@@ -1,5 +1,5 @@
 # No std listed: no operators and no printing (owner, 2026-10-06). Functions, `let`, `if`,
-# structs, `match`, and.then / or.else (Signatar's, since they skip their right side) still work.
+# structs, `match`, and.then / or.else (Brainstem's, since they skip their right side) still work.
 
 struct Point {
     x: int32
@@ -31,7 +31,7 @@ MAIN {
     }
 }
 
-# a fixed array and a text literal are Signatar's too (owner, 2026-10-06)
+# a fixed array and a text literal are Brainstem's too (owner, 2026-10-06)
 fn greeting [] -> str.utf8 {
     return "hi";
 }

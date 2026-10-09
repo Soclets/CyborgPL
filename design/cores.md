@@ -1,10 +1,13 @@
-# Signatar, lobes and neurons (owner, 2026-10-05/06/07; being designed, not built)
+# Brainstem, lobes and neurons (owner, 2026-10-05/06/07; being designed, not built)
+
+> Named 2026-10-09: the lowest level was **Signatar** (2026-10-05) and is the
+> **Brainstem** in Nerve; quoted words keep the old name.
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
 **2026-10-07: no base, no codextras** (owner: "there's no reason to
 create a language on this base. So, could we remove it, and let Signatar
-be the lowest level?", then "`a`" to a core taking powers away). Signatar
+be the lowest level?", then "`a`" to a core taking powers away). Brainstem
 is the language and the lowest level, and does what the base did.
 `DECISIONS.md` 2026-10-07 has it; older passages quoting the base keep
 their words. Later that day a **dialect** layer (syntax above the base, "more like the
@@ -27,7 +30,7 @@ equivalent anyways, and other stuff". The theme was planned: a cyborg
 ## The stack
 
 ```
-Signatar    the language itself, the lowest level: reads the files, loads
+Brainstem    the language itself, the lowest level: reads the files, loads
             the cores, enforces the grants, hands its LLVM IR to LLVM
 IEG         the official core: raw operations, inline.LL, the no_check labels
 ASP         numbers mean their true values; to. conversions; run-time checks
@@ -39,8 +42,8 @@ std         a limb with powers: every operator, logic, text, printing
 your limbs  everything else
 ```
 
-When people say "CyborgPL" they mean Signatar with whatever lobes, "like
-how they say BIOS for UEFI" (owner); the website will say **Signatar
+When people say "CyborgPL" they mean Brainstem with whatever lobes, "like
+how they say BIOS for UEFI" (owner); the website will say **Brainstem
 Nerve** when this lands, "Or else, it would just be an Assembly
 monster" (owner).
 
@@ -48,7 +51,7 @@ monster" (owner).
 
 | | What it is | Authority | Written in |
 |---|---|---|---|
-| **Signatar** | the language: syntax, types, its own rules, its checker, and the loading and grant enforcement the base did | highest: defines which powers exist and limits lobes | (CCA itself) |
+| **Brainstem** | the language: syntax, types, its own rules, its checker, and the loading and grant enforcement the base did | highest: defines which powers exist and limits lobes | (CCA itself) |
 | **A lobe** | "kinda more of like a compiler mod" (owner) | grants powers to neurons, and may take them away (2026-10-07); may add syntax | Rust plugin + Nerve |
 | **A neuron** | a library | only the powers granted to it | Nerve |
 
@@ -70,7 +73,7 @@ monster" (owner).
            program does. Use it only if you trust where it came from.
   ```
 
-- **Trust**: Signatar and the official lobes are verified (RRx2 checks
+- **Trust**: Brainstem and the official lobes are verified (RRx2 checks
   IEG's IR against its contracts); installing any other is already
   trusting it, as installing any program is.
 
@@ -98,7 +101,7 @@ CAPS     90d0813dc72a0c7d54a4ded7a2c9577e77f0036958b245ab01808f9a8568bd01  (firs
 std      fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936  (a limb, 2026-10-06T12:57:14+07:00)
 ```
 
-## Signatar, the language
+## Brainstem, the language
 
 "Signature but cooler" (owner). Very low level: "not nothing, but it's
 pretty lower-level (say writing fucking Assembly for a lot of things)"
@@ -108,7 +111,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   enforcing the grants, handing its LLVM IR to LLVM;
 - **types, `let`, functions, `if`, loops, `match`, structs, enums, `bool`**;
 - **the borrow rules**, lifetime groups (`@x`) included, and **Cortex**
-  (it proves things about Signatar's own rules; at Signatar alone that is
+  (it proves things about Brainstem's own rules; at Brainstem alone that is
   mostly borrows, types and shape, since its maths is assembly);
 - **SIMD**, `and.then` / `or.else` (they skip their right side, which an
   operator from std cannot), **`on.target`** (below);
@@ -119,7 +122,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   2026-10-06);
 - **kernel-grade raw memory**, beside ownership: pointers as values,
   addresses as numbers and back, volatile access, memory with no owner;
-- **no operators, no `to.` conversions, no markers**: in Signatar alone, a
+- **no operators, no `to.` conversions, no markers**: in Brainstem alone, a
   negation or a reinterpretation is assembly.
 
 ## The official lobes
@@ -128,7 +131,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   (`add`, `negate`, `compare` *sketch*), with contracts Cortex trusts;
   `inline.LL { … }`, LLVM IR in place; and the **labels**: `!check`,
   `NO_FUCKING_CHECKS`, and the rule that raw memory and unproven code sit
-  under `!check`, so a kernel on Signatar + IEG has clear syntax ("like
+  under `!check`, so a kernel on Brainstem + IEG has clear syntax ("like
   Rust's kernel mode also has clear syntax", owner). Not fully unsafe.
   It also brings **`on.machine`**, the startup check of the chip's
   features.
@@ -139,21 +142,21 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   brings the **`to.` syntax**: checked conversions and the raw
   `to.int8.bits[128]`, never the default.
 - **Genny.** Generics (`<T>`, bounds, `and`, `any`), interfaces and
-  `satisfies`. Needs only Signatar, so a kernel may take it; zero cost at
+  `satisfies`. Needs only Brainstem, so a kernel may take it; zero cost at
   run time, paid in program size and build time.
 - **MCPS, "More Concurrently Parallel Shit".** Splitting proven loops
   across cores, and `concur`, channels, `whichever`, timers, sharing one
   thread pool. A program without it (a kernel) runs its loops in order and
   `for para` is refused. Needs IEG, not std.
 - **WSTN, "Wanted Some Thai Names"** (owner, 2026-10-06): names in every
-  script. Signatar's names, bare and quoted, are English letters, digits
+  script. Brainstem's names, bare and quoted, are English letters, digits
   and `_`; WSTN opens them to every script and to emoji (owner: "`b`").
 - **MTM, "Maybe Too Much"** (owner, 2026-10-06): other spellings, so
   each layer keeps one, each working only where its owner is listed:
-  `immut` (Signatar's `!mut`), `nocheck` (IEG's `!check`), `not` (std's
-  `! 'x'`), and for Signatar: The arrows `->`,
+  `immut` (Brainstem's `!mut`), `nocheck` (IEG's `!check`), `not` (std's
+  `! 'x'`), and for Brainstem: The arrows `->`,
   `>>`, `>>>`, `<-`, `<<`, `<<<`, `<->`, `<<>>`, `<<<>>>`, `<---->`, `<--|-->`,
-  `<-|->`, `<<|>>`, `<<<|>>>` (Signatar: `-->`, `<--`, `<-->`); `&` / `&mut`;
+  `<-|->`, `<<|>>`, `<<<|>>>` (Brainstem: `-->`, `<--`, `<-->`); `&` / `&mut`;
   Rust's number names; `bfloat16` / `bf16`; `!std.i24`; the short names
   for an `inline.` language.
 - **GPU**: **AutoGPU**, automatic offload on every GPU (it translates
@@ -161,7 +164,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   (`inline.MSL`), **Nvidia** and **Vulkan** (AMD, NVIDIA, Intel, Android).
   Listing all runs on all; listing one is a choice, as Valorant chose
   Windows (owner). Lobe names are not trademarked; the categories and
-  names like Signatar are (owner).
+  names like Brainstem are (owner).
 
 ## std, a neuron with powers
 
@@ -181,8 +184,8 @@ makes its own lists and allocator, as Linux does.
 
 ## Powers and who grants them
 
-- **Signatar defines which powers exist** and limits lobes (no lobe
-  may switch off Signatar's borrow rules).
+- **Brainstem defines which powers exist** and limits lobes (no lobe
+  may switch off Brainstem's borrow rules).
 - **Lobes grant powers to neurons**: to every neuron built with them, and
   extra to favourites named by registry ID (names repeat, IDs do not).
   **A lobe may also take powers away** from the programs and neurons built
@@ -197,7 +200,7 @@ makes its own lists and allocator, as Linux does.
 - **The program may take powers away, never add** (`deny`), and **an
   upgrade that starts using a new power is flagged**.
 - **The dangerous abilities are powers too** (owner, 2026-10-07), which
-  Signatar grants every neuron by default: `inline_assembly`, `c_calls`,
+  Brainstem grants every neuron by default: `inline_assembly`, `c_calls`,
   `raw_memory`. **Lobes may add powers of their own.** A power narrows with
   `.` and names exact things in `[ ]`; `deny` takes `.except[ … ]` and
   `.for[ … ]`: `deny = [cca::Power.c_calls.except["sqrt"],
@@ -223,7 +226,7 @@ cca::Manifest[
 
 ## Installing
 
-The website offers packages: Signatar; + IEG; + ASP +
+The website offers packages: Brainstem; + IEG; + ASP +
 Genny + std (std needs ASP; owner, 2026-10-06); all, with source
 (owner). Packages with std set things up so `cca new`
 lists std (and ASP, Genny), std by its registry ID and version like
@@ -262,10 +265,10 @@ fast where it can be.
 
 ## Hello World at every level
 
-Signatar alone: raw system calls in `inline.ASM`; Signatar through C:
+Brainstem alone: raw system calls in `inline.ASM`; Brainstem through C:
 `extern.C fn write`; inside IEG: `inline.LL`; a program on IEG with no
 std: IEG's raw write; with std: `std::print.useful.stdout["Hello, world!",
-\n];`; and a neuron of your own on top. The lowest level is Signatar's raw
+\n];`; and a neuron of your own on top. The lowest level is Brainstem's raw
 assembly; there is no base below it now.
 
 ## Open

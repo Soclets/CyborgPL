@@ -103,7 +103,7 @@ pub struct LexError {
 }
 
 /// A message's column counts graphemes, what a reader counts (owner, 2026-10-06: "our error messages
-/// are gonna be graphemes"; Signatar's rule). The lexer walks code points, so its columns are mapped
+/// are gonna be graphemes"; Brainstem's rule). The lexer walks code points, so its columns are mapped
 /// here, a line at a time, with the oracle's grapheme approximation.
 pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
     let lines: Vec<Vec<char>> = src.split('\n').map(|l| l.chars().collect()).collect();
@@ -120,7 +120,7 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
 }
 
 /// A name's characters: English letters, digits and `_`, and, for WSTN to allow (owner, 2026-10-06), any
-/// other script or emoji; Signatar refuses those in the parser, where it knows the cores.
+/// other script or emoji; Brainstem refuses those in the parser, where it knows the cores.
 fn name_start(c: char) -> bool { c.is_alphabetic() || c == '_' || (!c.is_ascii() && !c.is_whitespace() && !c.is_control()) }
 fn name_char(c: char) -> bool { c.is_alphanumeric() || c == '_' || (!c.is_ascii() && !c.is_whitespace() && !c.is_control()) }
 

@@ -1,5 +1,5 @@
 # Powers (owner, 2026-10-07): this Neuron lists `c_calls`, and the program denies every C call except
-# `write`, so its one call to `write` builds. Signatar alone: no lobes, no cord.
+# `write`, so its one call to `write` builds. Brainstem alone: no lobes, no cord.
 
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 

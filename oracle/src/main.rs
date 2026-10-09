@@ -455,7 +455,7 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
     Ok(())
 }
 
-/// The power check (owner, 2026-10-07): each use is granted (Signatar grants the dangerous powers to
+/// The power check (owner, 2026-10-07): each use is granted (Brainstem grants the dangerous powers to
 /// every limb, IEG grants vouching and the operator powers to the limbs that list it), listed in the
 /// using Neuron's `powers`, and not taken away by the program's `deny`. A Neuron with no `CCA.cplr` has
 /// every power, and nothing is checked.
@@ -501,7 +501,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
                 _ => format!("uses `{path}`"),
             };
             let at = if root.is_empty() { format!("line {line}") } else { format!("line {line} of `{}`", limb.prefix) };
-            // 1. granted: Signatar's to every limb; vouching and the operator powers by IEG
+            // 1. granted: Brainstem's to every limb; vouching and the operator powers by IEG
             let by_ieg = matches!(segs[0], "vouch" | "operators_on_builtin_types" | "prefix_operators");
             if by_ieg && !limb.cores.iter().any(|c| c == "IEG") {
                 return Err(format!("{at}: {who} {what}, a power no lobe it lists grants: IEG grants `{}` (add `{}` to its `lobes`)", segs[0], parser::core_line("IEG")));

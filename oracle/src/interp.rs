@@ -191,7 +191,7 @@ impl<'p> Interp<'p> {
     pub fn set_bare(&mut self, b: HashMap<String, crate::ast::Bare>) { self.bare_of = b; }
 
     /// Whether this code's Neuron has IEG, whose rule puts raw memory and unproven code under `!check`;
-    /// Signatar alone marks nothing (owner, 2026-10-06: "Signatar marks nothing", then "yes" to
+    /// Brainstem alone marks nothing (owner, 2026-10-06: "Brainstem marks nothing", then "yes" to
     /// `inline.ASM` and the rest needing `!check` only where IEG is)
     fn marks_needed(&self) -> bool {
         let root: Vec<String> = self.module.first().filter(|r| r.starts_with("::")).cloned().into_iter().collect();
@@ -4945,7 +4945,7 @@ fn round_f16(x: f64) -> f64 {
 
 /// The digits of a bin literal as written (with a leading `-`), looking through parentheses.
 /// Without ASP a literal is a bit pattern, as the machine's: an `int8` holding `128` holds -128's bits,
-/// and one wider than the type's bits is refused (owner, 2026-10-06: "`a`", "Signatar's, then").
+/// and one wider than the type's bits is refused (owner, 2026-10-06: "`a`", "Brainstem's, then").
 fn raw_land(v: Value, prov: Prov, t: &Ty, line: usize) -> Result<(Value, Prov), RuntimeError> {
     match (&prov, &v, t) {
         (Prov::Raw, Value::Int(i), Ty::Int(w) | Ty::Uint(w)) if int_range(t).is_some() => {
@@ -4957,7 +4957,7 @@ fn raw_land(v: Value, prov: Prov, t: &Ty, line: usize) -> Result<(Value, Prov), 
             Ok((Value::Int(v), Prov::Literal))
         }
         (Prov::Raw, Value::Int(_), Ty::Int(_) | Ty::Uint(_)) => rt(line, format!("a literal landing in {} without ASP is not built in the oracle", ty_name(t))),
-        (Prov::Raw, _, Ty::Bin(_) | Ty::Brain | Ty::Deci(_) | Ty::Ranged(..)) => rt(line, format!("what a literal means in {} without ASP is not decided: Signatar's literals are bit patterns (owner, 2026-10-06), decided for whole-number types only", ty_name(t))),
+        (Prov::Raw, _, Ty::Bin(_) | Ty::Brain | Ty::Deci(_) | Ty::Ranged(..)) => rt(line, format!("what a literal means in {} without ASP is not decided: Brainstem's literals are bit patterns (owner, 2026-10-06), decided for whole-number types only", ty_name(t))),
         (Prov::Raw, _, _) => Ok((v, Prov::Literal)),
         _ => Ok((v, prov)),
     }

@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — The base is the Brainstem (owner)
+
+Next part name: the base, named Signatar on 2026-10-05 (its rename to "base
+CyborgPL" was recorded on 2026-10-07 but never applied), is the Brainstem
+(chosen 2026-10-08). The owner: "yea, go". It is never written in programs,
+so **"Signatar" is "Brainstem" in the design notes, the oracle's comments and
+messages ("Brainstem's names are English letters, digits and `_`",
+"`inline.ASM` (Brainstem's)"), the oracle README, example comments and two
+reject tests**; quoted words keep "Signatar", and `design/cores.md` says so at
+its top. Not renamed, design claude's reading: the plain words "the base"
+and "base" in prose, which are ordinary English as much as a name. Also
+today: `cca precog` refused, naming `cca cortex` (99e3b6b2), after check
+claude switched (44629ebd).
+
 ### 2026-10-09 — A core is a lobe: `lobes = [cca::Lobe[…]]` (owner)
 
 Next part name, core → Lobe (chosen 2026-10-08). The owner: "Lobe next".

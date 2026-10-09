@@ -10,7 +10,7 @@ are a test tool's; CCA's are these.
 **Columns** (owner, 2026-10-06): the text message counts graphemes, what
 a reader counts; the JSON counts in the unit the editor asks for, UTF-16
 code units by default, as the Language Server Protocol does. This is
-Signatar's rule (the owner then: "we can't force the other codextras to
+Brainstem's rule (the owner then: "we can't force the other codextras to
 use this anyways"; there are no others since 2026-10-07).
 
 ## The shape — plain text is the message (owner, 2026-09-22)

@@ -89,7 +89,7 @@ pub const STD_ID: &str = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d80010
 pub const STD_VERSION: &str = "2026-10-06T12:57:14+07:00";
 
 /// The operators that are std's (owner, 2026-10-05/06), as the oracle spells them inside; `and.then` and
-/// `or.else` stay Signatar's, and a Neuron's own operators are that Neuron's.
+/// `or.else` stay Brainstem's, and a Neuron's own operators are that Neuron's.
 fn is_std_op(op: &str) -> bool {
     matches!(op, "+" | "-" | "x" | "+~" | "-~" | "x~" | "+.ieee" | "-.ieee" | "x.ieee" | "pow" | "pow.wrap" | "pow.ieee" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or" | "++")
         || BIT_OPS.contains(&op) || op.starts_with("div.") || op.starts_with("mod.")
@@ -383,7 +383,7 @@ impl Parser {
                 }
             }
         }
-        // Signatar's names are English letters, digits and `_`, bare or quoted (owner, 2026-10-06: "Bare
+        // Brainstem's names are English letters, digits and `_`, bare or quoted (owner, 2026-10-06: "Bare
         // names should be English only", "English only too, crazy ones from the core"); WSTN allows every
         // script and emoji ("`b`"). Text values are not names.
         if self.lacks.iter().any(|c| c == "WSTN") {
@@ -391,7 +391,7 @@ impl Parser {
                 let (name, shown) = match &self.toks[i].tok { Tok::Word(w) => (w, w.clone()), Tok::Var(v) => (v, format!("'{v}'")), _ => continue };
                 if name.is_ascii() { continue; }
                 self.pos = i;
-                return self.err(format!("`{shown}` is not an English name: Signatar's names are English letters, digits and `_`; a name in another script, or an emoji, needs the lobe WSTN in this Neuron's `lobes` (`{}`)", core_line("WSTN")));
+                return self.err(format!("`{shown}` is not an English name: Brainstem's names are English letters, digits and `_`; a name in another script, or an emoji, needs the lobe WSTN in this Neuron's `lobes` (`{}`)", core_line("WSTN")));
             }
         }
         // the words a core brings (design/cores.md): ASP `to.` and `check`; IEG `nocheck` and
@@ -445,7 +445,7 @@ impl Parser {
             }
         }
         // growing lists, maps and text operations are std's; fixed arrays and text literals are
-        // Signatar's (owner, 2026-10-06)
+        // Brainstem's (owner, 2026-10-06)
         if self.no_std {
             for i in 0..self.toks.len() {
                 let Tok::Word(w) = &self.toks[i].tok else { continue };
@@ -1970,7 +1970,7 @@ impl Parser {
                         Tok::Word(l) if l == "LL" || l == "LLVM" || l == "LLVM_Intermediate_Representation" => return self.err("`inline.LL`, LLVM IR in place, is IEG's (owner, 2026-10-07); the oracle does not read it yet"),
                         Tok::Word(l) if l == "MSL" || l == "Metal_Shading_Language" => return self.err("`inline.MSL`, the Metal Shading Language, is the Metal lobe's (owner, 2026-10-07); the oracle does not read it yet"),
                         Tok::Word(l) if l == "ll" || l == "msl" => return self.err(format!("an inline language's name is in capitals: `inline.{}`", l.to_uppercase())),
-                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; the inline languages are `inline.ASM` (Signatar's), `inline.LL` (IEG's) and `inline.MSL` (the Metal lobe's) (`inline.C` is possible later — LLVM ships clang)")),
+                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; the inline languages are `inline.ASM` (Brainstem's), `inline.LL` (IEG's) and `inline.MSL` (the Metal lobe's) (`inline.C` is possible later — LLVM ships clang)")),
                         other => return self.err(format!("expected `ASM` after `inline.`, found {other}")),
                     }
                     let text = match self.advance().tok {
