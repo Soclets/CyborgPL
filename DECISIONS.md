@@ -13,10 +13,11 @@ the icon in the README"; the icon itself, website claude's work (43ce7ebd):
 not no-background". It is a starburst nerve (a ring for the cell body, a dot
 at its centre, ten nerves radiating out, long and short in turn, each ending
 in a bulb), always on its own black rounded tile: `brand/nerve/icon.svg`,
-never the bare `mark-*.svg`. **The README's top shows the icon left of the
-NERVE wordmark**, at the wordmark's height (54 px beside 320 px wide), one
-file for both themes since it carries its tile; the README's `brand/` line
-names it. Layout design claude's.
+never the bare `mark-*.svg`. **The README's top shows the icon above the
+NERVE wordmark** (72 px wide), one file for both themes since it carries its
+tile; the README's `brand/` line names it. Design claude first put it on the
+wordmark's left; the owner: "Format's broken in the README. Logo should be on
+top, not on the left".
 
 ### 2026-10-09 — The names and logos are trademarks anyone may use, without pretending to be us (owner)
 
