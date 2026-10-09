@@ -115,7 +115,7 @@ pub struct Interp<'p> {
     /// aliases a mutation and never outlives its owner (core-features.md).
     writes: HashMap<usize, (u64, usize, &'static str, String)>,
     write_count: u64,
-    /// the group cells of the last returned `-> lent@x` borrow, until a declaration takes them
+    /// the group cells of the last returned `-> lent @x` borrow, until a declaration takes them
     call_deps: Vec<usize>,
     pending_deps: Vec<usize>,
     /// the line of the `return` that ended the last call
@@ -1011,7 +1011,7 @@ impl<'p> Interp<'p> {
                         self.ret_line = *line;
                         match prov {
                             Prov::Bare(n) => return rt(*line, format!("returning bare '{n}', which owns a {}: say `give '{n}'` (or `copy`)", v.kind())),
-                            // a borrow handed back (owner, 2026-09-29): checked against `-> lent@x` by the caller
+                            // a borrow handed back (owner, 2026-09-29): checked against `-> lent @x` by the caller
                             Prov::Borrowed(cell, m) => { self.ret_borrow = Some((cell, m)); v }
                             _ => v,
                         }
@@ -1575,7 +1575,7 @@ impl<'p> Interp<'p> {
                 for (c, line) in &calls {
                     for n in self.call_froms(c, 0) {
                         if let Some(p) = f.params.iter().find(|p| p.name == n) {
-                            if p.life.as_ref() != Some(l) { return rt(*line, format!("`{}` returns a borrow of '{n}', which is not in @{l}: say `lent@{l} '{n}'`", f.name)); }
+                            if p.life.as_ref() != Some(l) { return rt(*line, format!("`{}` returns a borrow of '{n}', which is not in @{l}: say `lent @{l} '{n}'`", f.name)); }
                         }
                     }
                 }
@@ -1584,13 +1584,13 @@ impl<'p> Interp<'p> {
                 let param = f.params.iter().find(|p| p.name == n);
                 let lent = param.map_or(false, |p| matches!(p.kind, ParamKind::Lent | ParamKind::LentMut));
                 match &f.ret_lent {
-                    None => if lent || locals.contains(&n) || param.is_some() { return rt(line, format!("`{}` returns a borrow, so its signature must say so: `-> lent@x …`", f.name)); },
+                    None => if lent || locals.contains(&n) || param.is_some() { return rt(line, format!("`{}` returns a borrow, so its signature must say so: `-> lent @x …`", f.name)); },
                     Some((_, life)) => {
                         if (param.is_some() && !lent) || (param.is_none() && locals.contains(&n)) {
                             return rt(line, format!("`{}` hands back a borrow of something that dies when it returns; a borrow it returns must come from a `lent` parameter", f.name));
                         }
                         if let (Some(p), Some(l)) = (param, life) {
-                            if p.life.as_ref() != Some(l) { return rt(line, format!("`{}` returns a borrow of '{n}', which is not in @{l}: say `lent@{l} '{n}'`", f.name)); }
+                            if p.life.as_ref() != Some(l) { return rt(line, format!("`{}` returns a borrow of '{n}', which is not in @{l}: say `lent @{l} '{n}'`", f.name)); }
                         }
                     }
                 }
@@ -1649,7 +1649,7 @@ impl<'p> Interp<'p> {
     }
 
     /// The borrow rule on every path, not only the one a run takes (check claude, 2026-09-29):
-    /// in each body, read in source order, a borrow `'r' := lend 's'` (or a `-> lent@x` call's
+    /// in each body, read in source order, a borrow `'r' := lend 's'` (or a `-> lent @x` call's
     /// result, for the arguments in @x) followed by a change, `give` or `lend.mut` of 's' and then a
     /// use of 'r' is refused. Loops are read once, top to bottom; a second trip round is left to
     /// the run-time check.
@@ -4172,7 +4172,7 @@ impl<'p> Interp<'p> {
             if bound.iter().any(|(n, _)| n == &cname) { return rt(c.line, format!("'{cname}' is both a parameter and a capture")); }
             bound.push((cname, Slot { cell, ty: None, kind: if mutable { SlotKind::Owned } else { SlotKind::Lent }, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }));
         }
-        // which borrowed parameter is which cell, to check a `-> lent@x` return against
+        // which borrowed parameter is which cell, to check a `-> lent @x` return against
         let lent_params: Vec<(String, Option<String>, Rc<RefCell<Value>>)> = func.params.iter()
             .filter(|p| p.kind != ParamKind::Owned)
             .filter_map(|p| bound.iter().find(|(n, _)| n == &p.name).map(|(_, sl)| (p.name.clone(), p.life.clone(), sl.cell.clone())))
@@ -4187,7 +4187,7 @@ impl<'p> Interp<'p> {
             Flow::Give(_) => return rt(func.line, "`giveS` outside a case"),
             Flow::Fail(reason, payload) => return self.handle_failure(c.handler.as_ref().unwrap(), c.line, name, reason, payload, value_used),
         };
-        // `-> lent@x T`: the borrow must be of a parameter in group x — or of any lent parameter
+        // `-> lent @x T`: the borrow must be of a parameter in group x — or of any lent parameter
         // when no group is written (Cortex works it out) — never of something that dies here
         let borrowed = self.ret_borrow.take();
         match (&func.ret_lent, borrowed) {
@@ -4197,7 +4197,7 @@ impl<'p> Interp<'p> {
                 let from = match life { Some(l) => lent_params.iter().filter(|(_, _, pc)| Rc::ptr_eq(pc, &cell)).find(|(_, pl, _)| pl.as_ref() == Some(l)).or_else(|| sharing.next()), None => sharing.next() };
                 match from {
                     None => return rt(self.ret_line, format!("`{name}` hands back a borrow of something that dies when it returns; a borrow it returns must come from a `lent` parameter")),
-                    Some((pn, plife, _)) => if let Some(l) = life { if plife.as_ref() != Some(l) { return rt(self.ret_line, format!("`{name}` returns a borrow of '{pn}', which is not in @{l}: say `lent@{l} '{pn}'`")); } },
+                    Some((pn, plife, _)) => if let Some(l) = life { if plife.as_ref() != Some(l) { return rt(self.ret_line, format!("`{name}` returns a borrow of '{pn}', which is not in @{l}: say `lent @{l} '{pn}'`")); } },
                 }
                 // `@x`: the result lives while everything in the group does, whichever the body returned
                 // without a group, whatever the body may hand back, on any path (Cortex reads the body)
@@ -4209,7 +4209,7 @@ impl<'p> Interp<'p> {
                 self.call_borrow = Some((cell, m));
             }
             (Some(_), None) => return rt(self.ret_line, format!("`{name}` says it hands back a borrow (`-> lent …`) but returned a value of its own; `return lend '…'`")),
-            (None, Some(_)) => return rt(self.ret_line, format!("`{name}` returns a borrow, so its signature must say so: `-> lent@x …`")),
+            (None, Some(_)) => return rt(self.ret_line, format!("`{name}` returns a borrow, so its signature must say so: `-> lent @x …`")),
             (None, None) => {}
         }
         match (&func.ret, &result) {

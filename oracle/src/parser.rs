@@ -1143,7 +1143,7 @@ impl Parser {
         match self.peek() {
             Tok::Arrow => {
                 self.advance();
-                // `-> lent@x str.utf8` — hands back a borrow (owner, 2026-09-29)
+                // `-> lent @x str.utf8` — hands back a borrow (owner, 2026-09-29)
                 if self.is_word("lent") {
                     self.advance();
                     let m = if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(w) if w == "mut") { self.advance(); self.advance(); true } else { false };
@@ -1374,7 +1374,7 @@ impl Parser {
                 if !self.groups.contains(&w) { return self.err(format!("`@{w}` was never announced: announce it before the parameters, `fn f [@{w}] […]`")); }
                 Ok(Some(w))
             }
-            other => self.err(format!("a lifetime group is named after `@`: `lent@x`, found {other}")),
+            other => self.err(format!("a lifetime group is named after `@`: `lent @x`, found {other}")),
         }
     }
 
