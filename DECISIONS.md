@@ -67,7 +67,11 @@ array[uint8]]`; `cord::print` uses whichever the named function is** (owner:
 first"; design claude then found it exists: `array[T]` carries no size in its
 type and needs no heap, so a lent `array[uint8]` is that run, within the
 2026-09-23 rule that slices own their elements rather than a third, view
-kind. Not yet asked: `cord::exit` with no OS.
+kind. **`cord::exit` with no OS calls the board's exit, named like the
+output: `exit = "my.board.exit"` on the target, a function taking the code;
+with none named, it ends as MAIN does, the CPU sleeping forever** (owner:
+"c"), over (a) always sleeping, the code dropped, and (b) refused; design
+claude recommended (c).
 
 ### 2026-10-09 — The practical base is built in the oracle; Signatar is CyborgPL's base, the Brainstem Nerve's (owner)
 
