@@ -404,7 +404,7 @@ manifest_no_version [fnv:4888a0212dce5aa4] :: the manifest has no `version`
 manifest_not_a_manifest [fnv:6525d8158635aa91] :: Kinesin.nrp is one value: `kin::Manifest[
 manifest_old_consts [fnv:b7041583a1e96bf0] :: settings are no longer `const`s
 manifest_one_target [fnv:469b29d703804c8a] :: so the field is `targets`
-manifest_undoable_target [fnv:994ef28992020067] :: `x86_64-linux` is not a target Synapse can build
+manifest_undoable_target [fnv:8ac80970bcd8bd55] :: `x86_64-linux` is not a target Synapse can build
 manifest_unknown_field [fnv:aa8c1f78a700adc8] :: a `kin::Manifest` has no field `versoin`
 map_bad_key_type [fnv:3ebc5e71c74c0d11] :: keys are plain values, text, chars, structs, enums and lists of keys
 map_bad_variant [fnv:cd84c84831efd0e0] :: `map` (Cortex decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)
@@ -670,7 +670,7 @@ take_unhandled [fnv:0a69f5303bdb8818] :: `channel.take` can fail (closed): say w
 tas_missing [fnv:89a8d119de88beaf] :: `test fn` is TAS's
 temp_after_loop [fnv:652fb6ee6f955c44] :: 'i' is not declared
 temp_after_name [fnv:64d751df57cc16a6] :: expected `in`; `temp` goes before the name
-test_fn_called [fnv:9771210d724d2896] :: is a `test fn`: `synapse test` runs it
+test_fn_called [fnv:fc9ed5874a38cb00] :: is a `test fn`: `synapse test` runs it
 test_fn_params [fnv:e6c6894b85ea10f6] :: takes no parameters
 text_bound_graphemes [fnv:a6dcaaa62d158116] :: this can take it outside the bound its type gives it (`str.utf8[1, 2 graphemes]`)
 text_bound_no_unit [fnv:9c1acad0abdaf1b0] :: a text's length bound must say which unit it counts
