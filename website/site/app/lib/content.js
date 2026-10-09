@@ -77,5 +77,6 @@ export const LICENCE = [
       { label: "Legal code", href: "https://creativecommons.org/licenses/by/4.0/legalcode" },
       { label: "LICENSE-CC-BY-4.0 in the repo", href: `${REPO_URL}/blob/main/LICENSE-CC-BY-4.0` },
     ] },
-  { title: "Names and logo", text: "Nerve, Cortex, Neuron and Synthia, and the logo, are trademarks. They aren’t licensed with the code: a fork can’t call itself Nerve." },
+  // As the README words it (owner, 2026-10-09: "using it anywhere is possible, but shouldn't pretend to be us").
+  { title: "Names and logos", text: "Nerve™ (formerly CyborgPL™), Cortex™ (formerly Precog™) and Neuron™ (formerly Limb™) are names of this project, and the NERVE wordmark and its mark are its logos. They are trademarks, not registered. You may use the names and logos anywhere — in articles, talks, comparisons, links, your own projects about Nerve — as long as you don’t pretend to be us: nothing that says or suggests it is the official Nerve, made or endorsed by this project, when it isn’t." },
 ];
