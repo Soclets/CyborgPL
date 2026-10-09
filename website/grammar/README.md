@@ -86,9 +86,9 @@ wrong class. `node website/grammar/audit.mjs <scope>` prints one class.
 Since 2026-10-08 it also knows: `newln`; comparison words; `is`; `shadow`; `no_check`,
 `no_cheat`, `no_shadow`; `not_std.int24`; `.ieee`, `.masked` and the bitwise `.wrap` forms;
 `bare.never` / `case.insensitive [fn, var]`; `on.target` / `on.machine` and the target named;
-`my.` paths; std's names written bare (`print.useful[…]`, `duration`); registers in an inline
+the base's `optional` (`optional[int32]`, `optional.none`, `optional.value[…]`); `my.` paths; std's names written bare (`print.useful[…]`, `duration`); registers in an inline
 block's `with […]`; `list.fill[value 0, count 10]`; names in any script (WSTN). The retired
 spellings (`-->`, `==`, `</==`, `!mut`, `!$`, `$:=`, `nocheck`, `\n` outside text,
 `stdkit::` / `std::`, `cca::`, `pub.limb`, `!std_int24`, `#strict`) are marked deprecated.
 
-Last run on 2026-10-09 against all 159 programs (`.nrv`): no unscoped spans.
+Last run on 2026-10-09 against all 162 programs (`.nrv`): no unscoped spans.

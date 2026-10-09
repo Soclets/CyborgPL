@@ -426,6 +426,21 @@
     "type": {
       "patterns": [
         {
+          "comment": "The base's `optional` (2026-10-09): `optional[int32]`, and its two cases, `optional.none` and `optional.value[…]`.",
+          "match": "\\b(optional)(\\.)(none|value)\\b(?!\\s*\\[)",
+          "captures": {
+            "1": {
+              "name": "support.type.nerve"
+            },
+            "2": {
+              "name": "punctuation.accessor.nerve"
+            },
+            "3": {
+              "name": "variable.other.enummember.nerve"
+            }
+          }
+        },
+        {
           "comment": "Rust's number names, aliases for Nerve's (2026-10-02): i8–i128, u8–u128, f16 f32 f64; and the brain float, brain16 / bfloat16 / bf16.",
           "name": "support.type.numeric.nerve",
           "match": "\\b(?:[iu](?:8|16|32|64|128)|f(?:16|32|64)|brain16|bfloat16|bf16)\\b"
@@ -514,7 +529,7 @@
         },
         {
           "comment": "A library call through a built-in type is one dotted name up to its brackets: list.length[…], str.each.grapheme[…], simd.load.some[…].",
-          "match": "\\b(str|char|list|array|seq|map|simd|channel|ptr)(\\.)([\\p{Ll}_][\\p{L}\\p{N}_]*(?:\\.[\\p{Ll}_][\\p{L}\\p{N}_]*)*)(?=\\s*\\[)",
+          "match": "\\b(str|char|list|array|seq|map|simd|channel|ptr|optional)(\\.)([\\p{Ll}_][\\p{L}\\p{N}_]*(?:\\.[\\p{Ll}_][\\p{L}\\p{N}_]*)*)(?=\\s*\\[)",
           "captures": {
             "1": {
               "name": "support.type.nerve"
@@ -529,7 +544,7 @@
         },
         {
           "name": "support.type.nerve",
-          "match": "\\b(?:bool|str|char|list|array|seq|map|simd|channel|ptr|any|duration)\\b",
+          "match": "\\b(?:bool|str|char|list|array|seq|map|simd|channel|ptr|any|duration|optional)\\b",
           "comment": "The bare built-in types; `any` accepts every type (2026-10-02); `duration` is std's, written bare."
         },
         {
