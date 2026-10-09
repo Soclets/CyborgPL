@@ -1,0 +1,9 @@
+kin::Manifest[
+    name = "x",
+    prefix = "x",
+    version = "1.0.0",
+    lobes = [
+        kin::Lobe[id = "4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f", version = "2026-10-06T18:04:29+07:00"],  # ASP
+    ],
+    targets = [kin::Target[name = "aarch64-macos"],]
+];

@@ -68,7 +68,7 @@ monster" (owner).
 
   ```
   warning: the lobe "Fastmath" (registry ID 7f3a…) is not verified
-    where: CCA.cplr, lobes
+    where: Kinesin.nrp, lobes
     note:  a lobe runs inside the compiler and can change what your
            program does. Use it only if you trust where it came from.
   ```
@@ -78,7 +78,7 @@ monster" (owner).
   trusting it, as installing any program is.
 
 **IDs** (owner, 2026-10-06): a lobe is listed by its registry ID and
-version, `cca::Lobe[id = "…", version = "…"]`. The official ones, first
+version, `kin::Lobe[id = "…", version = "…"]`. The official ones, first
 version `2026-10-06T18:04:29+07:00`:
 
 ```
@@ -203,22 +203,22 @@ makes its own lists and allocator, as Linux does.
   Brainstem grants every neuron by default: `inline_assembly`, `c_calls`,
   `raw_memory`. **Lobes may add powers of their own.** A power narrows with
   `.` and names exact things in `[ ]`; `deny` takes `.except[ … ]` and
-  `.for[ … ]`: `deny = [cca::Power.c_calls.except["sqrt"],
-  cca::Power.inline_assembly.for["fastjson"],]`.
+  `.for[ … ]`: `deny = [kin::Power.c_calls.except["sqrt"],
+  kin::Power.inline_assembly.for["fastjson"],]`.
 
 ## Manifests
 
-`CCA.cplr` is one real Nerve value, not named `const`s ("if the syntax
+`Kinesin.nrp` is one real Nerve value, not named `const`s ("if the syntax
 looks real, but it's not real. It feels like a child roleplaying", owner):
 
 ```
-cca::Manifest[
+kin::Manifest[
     name = "shop",
     prefix = "shop",
-    lobes = [cca::Lobe[id = "5d0e846b…44b4085", version = "2026-10-06T18:04:29+07:00"],],   # IEG
-    dependencies = [cca::Dep[path = "std"],],
-    powers = [cca::Power.operators_on_builtin_types,],
-    deny = [cca::Power.inline_assembly,],
+    lobes = [kin::Lobe[id = "5d0e846b…44b4085", version = "2026-10-06T18:04:29+07:00"],],   # IEG
+    dependencies = [kin::Dep[path = "std"],],
+    powers = [kin::Power.operators_on_builtin_types,],
+    deny = [kin::Power.inline_assembly,],
 ];
 ```
 
@@ -233,14 +233,14 @@ lists std (and ASP, Genny), std by its registry ID and version like
 any neuron, CCA using the installed copy when it matches (owner, 2026-10-06;
 std's ID is `fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936`; its version is the release's date and time, ISO 8601 with
 the releaser's offset, first `2026-10-06T12:57:14+07:00`); without std, `cca new` writes an empty
-manifest. A `.cpls` file built with no `CCA.cplr` beside it gets what
+manifest. A `.nrv` file built with no `Kinesin.nrp` beside it gets what
 the machine's package installed (owner, 2026-10-06). The installer writes
 that down in **a machine-wide record** (owner: "Good idea"), which `cca
 new` reads too; its name and
 lives where each OS keeps such files (owner; macOS `~/Library/Application
 Support/CyborgPL/`, Linux `~/.local/share/cyborgpl/`, Windows
-`%APPDATA%\CyborgPL\`), named **`installed.cplr`** (owner); its value
-is *sketch*: `cca::Installed[ … ]`. **There is an uninstaller**
+`%APPDATA%\CyborgPL\`), named **`installed.nrp`** (owner); its value
+is *sketch*: `kin::Installed[ … ]`. **There is an uninstaller**
 (owner): with nothing named it removes everything the installer put
 there, with a piece named (std, say) only that piece; never a project. It
 comes with Synthia only, which can uninstall itself too (owner); a
@@ -275,7 +275,7 @@ assembly; there is no base below it now.
 
 - The stable **plugin interface** for lobes: compiler
   claude proposes it when building, the owner approves (2026-10-06).
-- **Building it**: the oracle reads `cca::Manifest` with `cores`, and a
+- **Building it**: the oracle reads `kin::Manifest` with `cores`, and a
   Neuron whose manifest does not list std reaches no operator and no
   `std::`, nor a lobe's words when it does not list that lobe
   (2026-10-06), and without ASP a whole-number literal lands as a bit

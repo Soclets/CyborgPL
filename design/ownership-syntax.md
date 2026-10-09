@@ -178,7 +178,7 @@ from something that dies at the return, and a function returning one
 must say so. Proposed alternatives: naming the parameters instead of a
 group (`--> lent str.utf8 from 'a', 'b'`, recommended by design claude
 and not chosen); `~` for the mark (it already means wrapping); a Rust-style
-list up front (`fn longer <@x> …`). `examples/lifetimes.cpls`.
+list up front (`fn longer <@x> …`). `examples/lifetimes.nrv`.
 
 **The group is optional outside `#strict`** (owner, 2026-09-29:
 "`-> lent str.utf8` is legal in normal"): `fn first [lent 'a': str.utf8]

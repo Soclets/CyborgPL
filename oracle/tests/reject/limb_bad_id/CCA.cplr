@@ -1,3 +1,0 @@
-cca::Manifest[
-    dependencies = [cca::Dep[id = "zz", path = "../../../../examples/limbs/areas"],]
-];

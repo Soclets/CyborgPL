@@ -61,7 +61,7 @@ def build(lang, name):
     if lang == "luajit":
         return ["luajit", os.path.join(src, name + ".lua")]
     if lang == "cyborgpl":
-        sh([CCA, "build", "--final", os.path.join(src, name + ".cpls"), "-o", out])
+        sh([CCA, "build", "--final", os.path.join(src, name + ".nrv"), "-o", out])
         return [out]
     raise ValueError(lang)
 

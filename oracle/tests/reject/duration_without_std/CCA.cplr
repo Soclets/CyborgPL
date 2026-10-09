@@ -1,6 +1,0 @@
-cca::Manifest[
-    name = "signatar_only",
-    prefix = "signatar_only",
-    version = "1.0.0",
-    targets = [cca::Target[name = "aarch64-macos"],]
-];

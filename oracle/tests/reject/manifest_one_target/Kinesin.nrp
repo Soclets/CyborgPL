@@ -1,0 +1,3 @@
+kin::Manifest[
+    target = "aarch64-macos"
+];

@@ -1,6 +1,0 @@
-cca::Manifest[
-    name = "x",
-    prefix = "x",
-    version = "1.0.0",
-    targets = [cca::Target[name = "aarch64-macos", default = true], cca::Target[name = "x86_64-linux", runner = "qemu-x86_64"],]
-];

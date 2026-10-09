@@ -39,7 +39,7 @@ compare but the exit code. CCA refuses every `std::` call until std
 exists (owner, 2026-09-22), so **each generated program carries a small
 printer written in the base language**: the number turned into ASCII
 digits in a `list[uint8]`, handed to C's `write` under `!check`, as
-`examples/ffi.cpls` does. Both implementations already agree on it.
+`examples/ffi.nrv` does. Both implementations already agree on it.
 The printer is ordinary Nerve, so a bug in *it* is a finding too.
 When std has a print, the generator switches to `std::print.useful` and the
 printer goes. Proposed alternative: wait for std, and compare only the
@@ -118,7 +118,7 @@ author than Cortex's.
 
 **4. Twin programs — other languages as oracles** (owner, 2026-09-21).
 A Cyborg program and the same algorithm in C, Rust, or Python, expected
-to print the same thing (`examples/pi.cpls` has all three). Covers what
+to print the same thing (`examples/pi.nrv` has all three). Covers what
 both languages define alike — arithmetic, widths, text output, lists —
 and cannot share a misreading of our spec, having never read it. Cannot
 cover what only Cyborg has: failures, ownership, check sites, range

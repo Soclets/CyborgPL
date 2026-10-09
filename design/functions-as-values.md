@@ -112,7 +112,7 @@ OCaml), `op[+]`.
 
 ## Oracle
 
-`examples/functions_as_values.cpls`, ten reject tests. Checks a function
+`examples/functions_as_values.nrv`, ten reject tests. Checks a function
 value against a `fn[…]` type by count, kinds, types, return, failures;
 captures are taken at creation with their verbs; `lend.mut` of an element
 is not modelled.

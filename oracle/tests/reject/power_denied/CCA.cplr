@@ -1,8 +1,0 @@
-cca::Manifest[
-    name = "x",
-    prefix = "x",
-    version = "1.0.0",
-    powers = [cca::Power.c_calls,],
-    deny = [cca::Power.c_calls.functions["write"],],
-    targets = [cca::Target[name = "aarch64-macos"],]
-];

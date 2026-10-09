@@ -1,0 +1,7 @@
+kin::Manifest[
+    name = "x",
+    prefix = "x",
+    version = "1.0.0",
+    powers = [kin::Power.c_calls.except["x"],],
+    targets = [kin::Target[name = "aarch64-macos"],]
+];

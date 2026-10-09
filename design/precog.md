@@ -20,7 +20,7 @@ still provisional here, listed under Open. What Kespar could not do
 ## The pipeline
 
 ```
-.cpls ──parse──▶ AST ──check──▶ typed AST ──build──▶ MIR ──Precog──▶ MIR + proofs ──lower──▶ LLVM IR ──▶ binary
+.nrv ──parse──▶ AST ──check──▶ typed AST ──build──▶ MIR ──Precog──▶ MIR + proofs ──lower──▶ LLVM IR ──▶ binary
                                                           │
                                                           ▼
                                                      proof report
@@ -216,7 +216,7 @@ inductively (true before the first trip; true after a trip if true before
 it): a counter stays within the range's ends; a sum is bounded by trips
 times the largest element — which is what makes an average fit the
 element type, since a sum bounded by *n* × max divided by *n* is at
-most max (`examples/gradebook.cpls`, proven by CCA since dd04991, 2026-09-24); an index never decreases and never passes the
+most max (`examples/gradebook.nrv`, proven by CCA since dd04991, 2026-09-24); an index never decreases and never passes the
 length; a running max/min stays within the elements' domain; a count
 never exceeds the trips so far. A confirmed guess is a proof, never an
 assumption. If no shape fits or none is confirmed, the loop's sites are
@@ -277,7 +277,7 @@ since a bin's width changes values (owner, 2026-10-02). `*0.1` is a
   (`rlimit`); results do not depend on thread scheduling.
 - Sites are analysed and reported in source order.
 - Compile-time arithmetic is performed at the exact width the target uses;
-  the target is a description in the manifest (`Synthia.ttsr` / `CCA.cplr`), never the host.
+  the target is a description in the manifest (`Synthia.ttsr` / `Kinesin.nrp`), never the host.
 - Nothing is read at compile time except the source and the config: no
   files, clock, environment, network.
 - The compiler's and both solvers' versions are in the report header.
@@ -367,12 +367,12 @@ leaves layer-2 proofs covered only by testing; b covers them by analysis.
   compile time goes** (CCA, 2026-09-22). Joining at a loop head cannot
   see that a counter and a sum move together, so it gives the counter
   every value from 0 upwards and the sum overflows in the analysis
-  though never in the program. `examples/scores.cpls` went from 4 of 9
+  though never in the program. `examples/scores.nrv` went from 4 of 9
   sites proven to 9 of 9 — and from 1675 steps to 170.
 - Narrowing must reach through operations and fields, not only names:
   `if list.length[lend 's'.scores] > 0` has to teach the *list* its
   length, so that a second `list.length` of it proves the divisor
-  non-zero (`examples/gradebook.cpls`'s comment, now true).
+  non-zero (`examples/gradebook.nrv`'s comment, now true).
 - Z3 goes quadratic on nested loops past ~16 unrolls.
 - Big lists are carried as a summary (length interval + element domain),
   not a value per element.

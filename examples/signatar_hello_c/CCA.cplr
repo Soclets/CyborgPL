@@ -1,7 +1,0 @@
-cca::Manifest[
-    name = "signatar_hello_c",
-    prefix = "signatar_hello_c",
-    version = "1.0.0",
-    powers = [cca::Power.c_calls,],
-    targets = [cca::Target[name = "aarch64-macos"],]
-];

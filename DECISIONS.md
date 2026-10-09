@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-09 — Code ends `.nrv`, settings end `.nrp`; the manifest is `Kinesin.nrp` (owner; not yet applied)
+### 2026-10-09 — Code ends `.nrv`, settings end `.nrp`; the manifest is `Kinesin.nrp` with `kin::` types (owner)
 
 Before the endings step, design claude asked about the other `.cplr` files
 (`tune`, `build`, `spellings`, `cpl_ver`, `installed`): (a) all `.nrv`, (b)
@@ -21,8 +21,18 @@ old reports; `.palsy` with nothing, but reads as mocking cerebral palsy.
 The owner: "yea". So **`.nrv` is code and only code, and a file that is one
 Nerve value and never runs ends `.nrp`** ("neurapraxia": whole, but does
 not fire), **the manifest included: `Kinesin.nrp`**, replacing yesterday's
-`Kinesin.nrv`. Not yet asked: `build.cplr`, a full program, so `.nrv` by
-this rule (design claude's reading), and `cpl_ver.cplr`'s new name.
+`Kinesin.nrv`. Asked then whether the manifest's `cca::` types follow:
+(a) now, as `kinesin::`, recommended, or (b) as `synapse::` with CCA → Synapse;
+the owner: "`a`, but maybe use an abbriviation", then "yea" to **`kin::`**
+("kin": a Neuron's relatives, its dependencies): `kin::Manifest`,
+`kin::Lobe`, `kin::Dep`, `kin::Target`, `kin::Power`; `cca::` in a manifest is
+refused as an old spelling, and `kin` is a reserved Neuron prefix. **Applied
+the same day in the oracle and every example and test**: 1,029 files renamed
+(`.cpls` → `.nrv`, `limb.cpls` → `neuron.nrv`, `CCA.cplr` → `Kinesin.nrp`), a
+leftover old name refused naming the new one (three new reject tests), and
+the notes changed to match (`tune.nrp`, `spellings.nrp`, `installed.nrp`).
+Not yet asked: `build.cplr`, a full program, so `.nrv` by this rule (design
+claude's reading), and `cpl_ver.cplr`'s new name.
 
 ### 2026-10-09 — The runtime is Axon (owner)
 

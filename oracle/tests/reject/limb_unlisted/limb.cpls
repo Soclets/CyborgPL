@@ -1,2 +1,0 @@
-# a Neuron is used only when CCA.cplr lists it
-MAIN { let 'x' := geometry::area[1]; }

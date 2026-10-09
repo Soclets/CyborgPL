@@ -27,14 +27,14 @@ indentation by spaces only:
 
 ```
 check: 'k' can be past the end of 'xs'
-where: shop.cpls, line 31, column 20 — in `pick`, called from MAIN at line 48 of shop.cpls
+where: shop.nrv, line 31, column 20 — in `pick`, called from MAIN at line 48 of shop.nrv
 code:  'xs'['k']
 when:  'k' is 101 and 'xs' has 100 elements — there is no element to take
 
 why:   'k' comes from 'n'
        'n' is read from the user at line 4, with no limit
 
-try:   synthia run shop.cpls --input "101"
+try:   synthia run shop.nrv --input "101"
 
 fix:   limit the number where it is read — line 4:
        let 'n' := to.int32[1, 99]['text'] otherwise 0;
@@ -45,7 +45,7 @@ fix:   limit the number where it is read — line 4:
 
 ```
 error: 'xs' is an `array`, which cannot grow or shrink
-where: shop.cpls, line 12, column 5 — in `restock`
+where: shop.nrv, line 12, column 5 — in `restock`
 code:  list.append[lend.mut 'xs', 4]
 
 why:   'xs' was declared an array at line 10
@@ -85,7 +85,7 @@ fix, and the message names the later use:
 
 ```
 error: 's' cannot be changed here: 'r' still borrows it and is used on line 25
-where: shop.cpls, line 24, column 5 — in MAIN
+where: shop.nrv, line 24, column 5 — in MAIN
 code:  list.append[lend.mut 's', 4]
 ```
 
@@ -109,7 +109,7 @@ Proposed alternative: the later use.
    reproduces it.
 3. **Two locations, always.** A human-readable one — *where in the
    program's own terms*: "in `pick`, the loop starting at line 9 of
-   shop.cpls, called from MAIN at line 48 of shop.cpls" (every place it
+   shop.nrv, called from MAIN at line 48 of shop.nrv" (every place it
    names gives its file, owner 2026-10-08: "yea") — and an IDE-readable
    one, `file:line:col`,
    plus a machine format (`--message-format json`, as rustc: severity,

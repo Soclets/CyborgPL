@@ -75,8 +75,8 @@ width. Proposed: whole bytes only, or a short list, and a cap of 4,096
 bits; the owner chose any width ("there's already a disclaimer in
 front"). LLVM's widest is 8,388,608 bits (2^23); past it is refused. In
 between, the maths is limited by the widest operand's width, at least 64
-bits (`operators.md`). `examples/any_width.cpls`,
-`examples/wide_integers.cpls`.
+bits (`operators.md`). `examples/any_width.nrv`,
+`examples/wide_integers.nrv`.
 
 ## A declaration always has a value (owner, 2026-09-23)
 

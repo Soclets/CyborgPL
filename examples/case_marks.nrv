@@ -1,0 +1,23 @@
+# Names are exact unless marked (owner, 2026-10-06: "`a`, but `case.sensitive` shouldn't be an
+# error"). The writer marks kinds in `neuron.nrv` (here, the root file), or one item; an item's mark
+# covers its own name, so `Mood`'s cases stay exact. `case.sensitive` may be written anyway.
+case.insensitive [fn, var];
+
+case.insensitive enum Mood {
+    Happy
+    Grumpy
+}
+
+case.sensitive struct Exact {
+    n: int32
+}
+
+fn Describe ['m': Mood] -> str.utf8 {
+    return match 'M' { Happy { is "happy"; } Grumpy { is "grumpy"; } };
+}
+
+MAIN {
+    let 'Count' := 2;
+    let 'e' := Exact[n = 'COUNT'];
+    cord::print.useful[describe[MOOD.Happy], " ", DESCRIBE[mood.Grumpy], " ", 'e'.n, " ", 'count', newln];
+}

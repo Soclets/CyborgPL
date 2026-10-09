@@ -52,7 +52,7 @@ pub const CORE_VERSION: &str = "2026-10-06T18:04:29+07:00";
 /// The manifest line that lists an official core, for a message to show
 pub fn core_line(core: &str) -> String {
     let id = CORE_IDS.iter().find(|(n, _)| *n == core).map(|(_, i)| *i).unwrap_or("");
-    format!("cca::Lobe[id = \"{id}\", version = \"{}\"]", core_version(core))
+    format!("kin::Lobe[id = \"{id}\", version = \"{}\"]", core_version(core))
 }
 
 /// The target the oracle stands in for (cca/targets.txt has only this one)
@@ -120,7 +120,7 @@ pub struct ParseError {
 pub struct Parser {
     toks: Vec<Token>,
     pos: usize,
-    /// the module being parsed: [] for limb.cpls, ["shapes"] for shapes.cpls,
+    /// the module being parsed: [] for neuron.nrv, ["shapes"] for shapes.nrv,
     /// extended by each `module name { … }` block
     module: Vec<String>,
     /// set while parsing the type in `to.<type>[…]`: the bracket belongs to the
@@ -163,7 +163,7 @@ pub struct Parser {
     /// this Neuron's operator levels from its `precedence` block: name → (level, how a chain reads:
     /// 0 left first, 1 right first, 2 refused), on the language's scale (`base_level`)
     pub user_levels: std::collections::HashMap<String, (u16, u8)>,
-    /// this file's Neuron does not list std in its `CCA.cplr` (owner, 2026-10-06)
+    /// this file's Neuron does not list std in its `Kinesin.nrp` (owner, 2026-10-06)
     no_std: bool,
     /// the official cores this file's Neuron does not list
     lacks: Vec<String>,
@@ -174,9 +174,9 @@ type PResult<T> = Result<T, ParseError>;
 thread_local! {
     /// Every `precedence` block of the program, all its Neurons' (owner, 2026-10-03: a Neuron's levels
     /// apply wherever its operators are used); filled by a first pass over every file (`main.rs`)
-    /// What each Neuron's `CCA.cplr` does not list, by the Neuron's root (`[]` for the one being built,
+    /// What each Neuron's `Kinesin.nrp` does not list, by the Neuron's root (`[]` for the one being built,
     /// `["::areas"]` for a dependency): `std`, and the official cores by name (owner, 2026-10-05/06:
-    /// "Limbs should say what cores they are built for"). A Neuron with no `CCA.cplr` lacks nothing.
+    /// "Limbs should say what cores they are built for"). A Neuron with no `Kinesin.nrp` lacks nothing.
     pub static LACKS: std::cell::RefCell<Vec<(Vec<String>, Vec<String>)>> = std::cell::RefCell::new(Vec::new());
     /// Other Neurons' structs and enums that may be written bare (`bare.optional` / `bare.only`): the path
     /// as written, the canonical name, the Neuron's root, and whether it is `bare.only` (owner, 2026-10-06)
@@ -211,10 +211,10 @@ impl Parser {
         p
     }
 
-    /// What a core brings is refused in a Neuron whose `CCA.cplr` does not list that core (owner, 2026-10-05:
+    /// What a core brings is refused in a Neuron whose `Kinesin.nrp` does not list that core (owner, 2026-10-05:
     /// "Limbs should say what cores they are built for").
     fn core_missing<T>(&self, core: &str, what: &str) -> PResult<T> {
-        self.err(format!("{what} is {core}'s, and this Neuron's CCA.cplr does not list the lobe {core}: add `{}` to its `lobes` ({core})", core_line(core)))
+        self.err(format!("{what} is {core}'s, and this Neuron's Kinesin.nrp does not list the lobe {core}: add `{}` to its `lobes` ({core})", core_line(core)))
     }
 
     /// A use of a power, for the check once every file is read (owner, 2026-10-07)
@@ -246,10 +246,10 @@ impl Parser {
         Ok(w == "insensitive")
     }
 
-    /// Everything std brings is refused in a Neuron whose `CCA.cplr` does not list it (owner, 2026-10-06:
+    /// Everything std brings is refused in a Neuron whose `Kinesin.nrp` does not list it (owner, 2026-10-06:
     /// the operators, printing and the rest are std's, and a manifest lists std like any limb).
     fn std_missing<T>(&self, what: &str) -> PResult<T> {
-        self.err(format!("{what} is cord's, and this Neuron's CCA.cplr does not list cord: add `cca::Dep[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
+        self.err(format!("{what} is cord's, and this Neuron's Kinesin.nrp does not list cord: add `kin::Dep[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
     }
 
     fn resolve(&self, segs: &[String]) -> Vec<String> {
@@ -307,14 +307,20 @@ impl Parser {
         if self.is_word(w) { self.advance(); Ok(()) } else { self.err(format!("expected `{w}`, found {}", self.peek())) }
     }
 
-    /// `CCA.cplr`: one value, `cca::Manifest[ … ];` and nothing else (owner, 2026-10-06). `None` when the
+    /// `Kinesin.nrp`: one value, `kin::Manifest[ … ];` and nothing else (owner, 2026-10-06). `None` when the
     /// file holds something else; the fields and the line of the value otherwise.
     pub fn manifest(&mut self) -> PResult<Option<(Vec<(String, Bracket)>, usize)>> {
-        // `cca::Power.c_calls.functions["write"].except["x"]` is read whole, as text the manifest reader
+        // the manifest's types are `kin::` since 2026-10-09 (owner: Kinesin, "`a`, but maybe use an
+        // abbriviation", then `kin::`); `cca::` is the old spelling
+        if let Some(i) = (0..self.toks.len().saturating_sub(1)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "cca") && self.toks[i + 1].tok == Tok::ColonColon) {
+            self.pos = i;
+            return self.err("`cca::` is an old spelling: write `kin::` (owner, 2026-10-09)");
+        }
+        // `kin::Power.c_calls.functions["write"].except["x"]` is read whole, as text the manifest reader
         // takes apart (owner, 2026-10-07: powers narrow with `.` and name things in `[ ]`)
         let mut i = 0;
         while i + 2 < self.toks.len() {
-            if matches!(&self.toks[i].tok, Tok::Word(w) if w == "cca") && self.toks[i + 1].tok == Tok::ColonColon && matches!(&self.toks[i + 2].tok, Tok::Word(w) if w == "Power") {
+            if matches!(&self.toks[i].tok, Tok::Word(w) if w == "kin") && self.toks[i + 1].tok == Tok::ColonColon && matches!(&self.toks[i + 2].tok, Tok::Word(w) if w == "Power") {
                 let mut j = i + 3;
                 let mut text = String::new();
                 loop {
@@ -328,7 +334,7 @@ impl Parser {
                                     Tok::Text(t, _) => { things.push(t.clone()); j += 1; }
                                     Tok::Comma => j += 1,
                                     Tok::RBracket => { j += 1; break; }
-                                    other => { self.pos = j; return self.err(format!("a power names things as texts: `cca::Power.c_calls[\"write\"]`, found {other}")); }
+                                    other => { self.pos = j; return self.err(format!("a power names things as texts: `kin::Power.c_calls[\"write\"]`, found {other}")); }
                                 }
                             }
                             text.push('[');
@@ -345,9 +351,9 @@ impl Parser {
         }
         let b = self.rhs()?;
         self.expect(Tok::Semi, "`;` after the manifest")?;
-        if *self.peek() != Tok::Eof { return self.err("CCA.cplr holds one value, the `cca::Manifest[ … ];`, and nothing after it"); }
+        if *self.peek() != Tok::Eof { return self.err("Kinesin.nrp holds one value, the `kin::Manifest[ … ];`, and nothing after it"); }
         match b.values.as_slice() {
-            [Value::Expr(Expr::Construct(shape, fields, line))] if shape == "::cca.Manifest" => Ok(Some((fields.clone(), *line))),
+            [Value::Expr(Expr::Construct(shape, fields, line))] if shape == "::kin.Manifest" => Ok(Some((fields.clone(), *line))),
             _ => Ok(None),
         }
     }
@@ -517,7 +523,7 @@ impl Parser {
             if *self.peek() == Tok::Strict {
                 return self.err("`#strict` is gone (owner, 2026-10-07): its labels, `pos`, `count`, the types and `is` are every file's now; take the line out");
             }
-            // `case.insensitive;` as a file's first line, `case.insensitive [fn, struct];` in `limb.cpls`
+            // `case.insensitive;` as a file's first line, `case.insensitive [fn, struct];` in `neuron.nrv`
             // (owner, 2026-10-06), as the `bare` marks are; on an item it is read with the item below
             if self.is_case_mark() && matches!(self.peek_at(3), Tok::Semi | Tok::LBracket) {
                 let line = self.line();
@@ -531,7 +537,7 @@ impl Parser {
                     prog.case_marks.push(CaseMark { target: BareTarget::File(self.module.clone()), insensitive, line, limb_root: self.limb_root.clone() });
                     continue;
                 }
-                if depth > 0 || self.module != self.limb_root { return self.err("a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `limb.cpls`"); }
+                if depth > 0 || self.module != self.limb_root { return self.err("a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `neuron.nrv`"); }
                 self.advance();
                 loop {
                     let kind = match self.advance().tok { Tok::Word(k) => k, other => return self.err(format!("expected a kind (`fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var`), found {other}")) };
@@ -547,7 +553,7 @@ impl Parser {
                 continue;
             }
             // `bare.optional;` at the top of a file marks the file's module; `bare.never [fn, op];` in
-            // `limb.cpls` marks kinds across the Neuron (owner, 2026-10-06)
+            // `neuron.nrv` marks kinds across the Neuron (owner, 2026-10-06)
             if self.is_word("bare") {
                 let line = self.line();
                 let started = !(prog.funcs.is_empty() && prog.structs.is_empty() && prog.enums.is_empty() && prog.consts.is_empty() && prog.externs.is_empty() && prog.modules.is_empty() && prog.main.is_none() && prog.interfaces.is_empty());
@@ -561,7 +567,7 @@ impl Parser {
                     continue;
                 }
                 if *self.peek() == Tok::LBracket {
-                    if depth > 0 || self.module != self.limb_root { return self.err("a `bare` mark on kinds (`bare.never [fn, op];`) covers the whole Neuron, so it is written in `limb.cpls`"); }
+                    if depth > 0 || self.module != self.limb_root { return self.err("a `bare` mark on kinds (`bare.never [fn, op];`) covers the whole Neuron, so it is written in `neuron.nrv`"); }
                     self.advance();
                     loop {
                         let kind = match self.advance().tok { Tok::Word(k) => k, other => return self.err(format!("expected a kind (`fn`, `op`, `struct`, `enum`, `interface`), found {other}")) };
@@ -577,7 +583,7 @@ impl Parser {
                     self.expect(Tok::Semi, "`;` after the `bare` mark")?;
                     continue;
                 }
-                return self.err("a `bare` mark is `bare.optional;` at the top of a file, `bare.optional [fn, op];` in `limb.cpls`, or `pub bare.optional fn …` on an item");
+                return self.err("a `bare` mark is `bare.optional;` at the top of a file, `bare.optional [fn, op];` in `neuron.nrv`, or `pub bare.optional fn …` on an item");
             }
             // `on.target … { items } else { items }` at the top level: only the chosen branch's items exist
             // (owner, 2026-10-06: a compile-time choice around any code)
@@ -607,7 +613,7 @@ impl Parser {
                 let line = self.line(); pending_case = Some((self.case_mode()?, line));
                 if self.is_word("pub") { return self.err("`pub` comes first: `pub case.insensitive fn …`"); }
                 if !matches!(self.peek(), Tok::Word(w) if ["fn", "struct", "enum", "interface", "const", "module", "op", "extern", "layout"].contains(&w.as_str())) {
-                    return self.err("a `case` mark is `case.insensitive;` at the top of a file, `case.insensitive [fn, struct];` in `limb.cpls`, or `case.insensitive fn …` on an item");
+                    return self.err("a `case` mark is `case.insensitive;` at the top of a file, `case.insensitive [fn, struct];` in `neuron.nrv`, or `case.insensitive fn …` on an item");
                 }
             }
             // visibility (decided 2026-09-19): nothing, `pub.neuron`, `pub`
@@ -807,7 +813,7 @@ impl Parser {
                         other => return self.err(format!("expected a module name, found {other}")),
                     };
                     if let Err(m) = module_name_ok(&name) { return self.err(format!("`{name}` cannot name a module: {m}")); }
-                    if *self.peek() == Tok::Semi { return self.err(format!("a module is a file (`{name}.cpls`) or a block (`module {name} {{ … }}`); there is no `module {name};` include line")); }
+                    if *self.peek() == Tok::Semi { return self.err(format!("a module is a file (`{name}.nrv`) or a block (`module {name} {{ … }}`); there is no `module {name};` include line")); }
                     self.expect(Tok::LBrace, "`{` to open the module")?;
                     self.module.push(name);
                     prog.modules.push(ModuleDef { path: self.module.clone(), vis, line });
@@ -815,7 +821,7 @@ impl Parser {
                     self.module.pop();
                 }
                 Tok::Word(w) if w == "MAIN" => {
-                    if self.module != self.limb_root { return self.err("MAIN lives at the root of the Neuron (`limb.cpls`, outside any module)"); }
+                    if self.module != self.limb_root { return self.err("MAIN lives at the root of the Neuron (`neuron.nrv`, outside any module)"); }
                     if prog.main.is_some() { return self.err("a program has exactly one MAIN"); }
                     self.advance();
                     // the command line, as C hands it over: a count and the words (owner, 2026-09-29:

@@ -1,0 +1,11 @@
+kin::Manifest[
+    name = "limb_pub_limb",
+    prefix = "limb_pub_limb",
+    version = "1.0.0",
+    targets = [kin::Target[name = "aarch64-macos"],],
+    lobes = [
+        kin::Lobe[id = "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085", version = "2026-10-06T18:04:29+07:00"],  # IEG
+        kin::Lobe[id = "4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f", version = "2026-10-06T18:04:29+07:00"],  # ASP
+    ],
+    dependencies = [kin::Dep[id = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936", version = "2026-10-06T12:57:14+07:00"], kin::Dep[path = "../../../../examples/limbs/areas"],]
+];

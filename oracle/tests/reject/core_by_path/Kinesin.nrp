@@ -1,0 +1,7 @@
+kin::Manifest[
+    name = "x",
+    prefix = "x",
+    version = "1.0.0",
+    lobes = [kin::Lobe[path = "../mycore"],],
+    targets = [kin::Target[name = "aarch64-macos"],]
+];

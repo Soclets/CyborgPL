@@ -29,9 +29,9 @@ and "compile for the exact machine" makes the target part of the input.
    (owner: "`c`"); a build that reads one is repeatable only with the same
    values, which nothing records.
 4. **Measurements are inputs too** (owner, 2026-09-28): `cca tune` times
-   loops once, on purpose, and writes `tune.cplr` (`synthia tune` runs it); builds read the file
+   loops once, on purpose, and writes `tune.nrp` (`synthia tune` runs it); builds read the file
    and never time anything themselves (`gpu.md`).
-5. **The target is an explicit, recorded input** — in the manifest (`Synthia.ttsr` / `CCA.cplr`) or the
+5. **The target is an explicit, recorded input** — in the manifest (`Synthia.ttsr` / `Kinesin.nrp`) or the
    lock file — never sniffed from the host. "Native" is a convenience that
    resolves to a named target and writes it down.
 6. **Deterministic ordering** across Neurons and within the analysis: parallel

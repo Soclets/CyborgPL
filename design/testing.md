@@ -45,7 +45,7 @@ with a dot, `must.be`, which reads well only between two values), then
 
 ## Oracle
 
-`oracle --test file-or-Limb` runs the tests. `examples/testing.cpls` (two
+`oracle --test file-or-Limb` runs the tests. `examples/testing.nrv` (two
 of its tests fail on purpose; `.test-out` holds the report); reject tests
 must_outside_test, test_fn_params, test_fn_called, must_fail_not_a_call.
 A failed comparison's sides are worked out a second time for the message

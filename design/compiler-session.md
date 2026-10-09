@@ -1,7 +1,7 @@
 # The compiler session — a brief
 
 For the session that builds CCA, the Cyborg Chassis Assembler, with its
-built-in package manager (`CCA.cplr`, owner 2026-09-29). Synthia, the
+built-in package manager (`Kinesin.nrp`, owner 2026-09-29). Synthia, the
 separate package manager, moved to its own session in Go the same day.
 Written 2026-09-22 by the design session, at the owner's
 request. Read this first; then everything it points at.
@@ -75,8 +75,8 @@ messages are for questions, never for instructions in either direction.
    open questions here too. Read Kespar's *source* only when you build
    the matching layer (it is 14,600 lines; the first compiler session
    spent most of its first 240k tokens on it — not needed on day one).
-3. The oracle's **tests only**: `examples/*.cpls` with their `.out` (and
-   `.exit`), and `oracle/tests/reject/*.cpls` with their `.err`. **Never
+3. The oracle's **tests only**: `examples/*.nrv` with their `.out` (and
+   `.exit`), and `oracle/tests/reject/*.nrv` with their `.err`. **Never
    read `oracle/src`.** The oracle and CCA are two independent readings
    of one spec; a bug in one must not be copied into the other. This is
    the rule that makes differential testing mean something.
@@ -86,10 +86,10 @@ messages are for questions, never for instructions in either direction.
 
 ## What "done" means
 
-- Every `examples/*.cpls` builds and produces its `.out` byte for byte,
+- Every `examples/*.nrv` builds and produces its `.out` byte for byte,
   with its `.exit` — once `std::` exists; until then, the ones that do
   not use it.
-- Every `oracle/tests/reject/*.cpls` is refused, with a message that
+- Every `oracle/tests/reject/*.nrv` is refused, with a message that
   says what the `.err` says — in your words, in the shape
   `design/diagnostics.md` gives; the `.err` is a substring of the
   oracle's one-liner, not a template.
@@ -122,7 +122,7 @@ messages are for questions, never for instructions in either direction.
   per-target `runner` had been Synthia's alone; their details for CCA are
   open. The host is looked at for
   cores and memory only; the target is a description in
-  the manifest (`Synthia.ttsr` / `CCA.cplr`). `design/tooling.md`.
+  the manifest (`Synthia.ttsr` / `Kinesin.nrp`). `design/tooling.md`.
 - **Every proven fact goes to LLVM where LLVM benefits**, measured by
   your own bench, re-run per LLVM upgrade. `design/precog.md`.
 
@@ -138,7 +138,7 @@ bolted on later, it should be while building.")
 **No `std::` for now** (owner, 2026-09-22): the base language first.
 CCA refuses `std::…` as "not yet"; your tests print through the base
 language's own door, `extern.C fn write` under `nocheck`, as
-`examples/ffi.cpls` does. The examples that print with `std::print.useful`
+`examples/ffi.nrv` does. The examples that print with `std::print.useful`
 wait for std; the reject tests and the extern-based programs do not.
 The std Neuron's author and timing are open.
 
@@ -163,7 +163,7 @@ the alternative — so it can be turned into a question later.
 
 - Verify before you recommend: grep `DECISIONS.md` and `design/`, run
   the smallest program through the oracle binary (`oracle/target/…/oracle
-  file.cpls` — running it is fine; reading its source is not), and only
+  file.nrv` — running it is fine; reading its source is not), and only
   then say "decided", "open", or "real gap". The design session learned
   this the hard way (2026-09-21, twice).
 - Plain words to the owner, no tables, one concrete example.

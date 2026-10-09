@@ -1,0 +1,12 @@
+# A Neuron that uses another (owner, 2026-09-29): Kinesin.nrp lists it, `kin::Dep[path = "../limbs/areas"]`,
+# and its `pub` items are reached with `::` after its own 'prefix', `areas` (limbs.md, tooling.md).
+MAIN {
+    let 'c': areas::Circle = areas::Circle[radius = 2.0];
+    let 'a' := areas::circle[lend 'c'];
+    cord::print.useful['a', " ", areas::shapes.square[4], " ", areas::'pi', newln];
+    cord::print.useful[runnable::seven[] plus 1, newln];      # runnable's own MAIN does not run
+    let 'x': bin64 = 3.0;
+    let 'y': bin64 = 4.0;
+    cord::print.useful[('x' mean 'y'), " ", ('x' areas::mean 'y'), " ", ('x' mean.low 'y'), " ", ('x' areas::mean.low 'y'), newln];
+    cord::print.useful['x' mean 'y' plus 1.0, newln];     # areas' levels: ('x' mean 'y') plus 1.0
+}

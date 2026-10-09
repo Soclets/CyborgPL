@@ -119,7 +119,7 @@ is the built-in `any` (`generics.md`). Not built yet.
 
 ## Oracle
 
-`examples/interfaces.cpls`, nine reject tests. Satisfaction is checked
+`examples/interfaces.nrv`, nine reject tests. Satisfaction is checked
 by shape (kind or struct/enum name), for claims at load and for bounds
 when a call fills the blank; an operator defined for several types picks
 the definition by its left operand's type; the body-only-uses-promised

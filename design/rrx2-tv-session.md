@@ -99,16 +99,16 @@ You read Nerve's repo at `/Users/ts/Nerve` and never edit it.
 ## What you have to work with
 
 - **CCA writes its IR before and after LLVM's passes**: `cca build
-  file.cpls --emit-llvm DIR` writes `DIR/before.ll` and `DIR/after.ll`
+  file.nrv --emit-llvm DIR` writes `DIR/before.ll` and `DIR/after.ll`
   (ae478cd). A CCA built at f497869 is at
   `/Users/ts/Nerve/cca/target/release/cca`; running it is fine,
   reading its source is not. CCA emits LLVM 22 IR (it builds against
   `llvm@22`); you read it with LLVM 23. Check that this holds.
 - **Programs to run it on**: CCA's own test programs,
-  `cca/compiler/tests/**/*.cpls` (owner, 2026-10-01: "yes, use them") —
+  `cca/compiler/tests/**/*.nrv` (owner, 2026-10-01: "yes, use them") —
   the programs and the IR CCA writes from them only, never CCA's code, and
   their comments' expected answers are CCA's author's, not truth;
-  `examples/*.cpls` in Nerve's repo, and
+  `examples/*.nrv` in Nerve's repo, and
   check claude's corpus in `/Users/ts/Nerve
   verification/check/corpus/` (read-only).
 - **What CCA's IR may rely on**: `design/precog.md` (what Cortex proves),

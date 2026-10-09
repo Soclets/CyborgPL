@@ -1,8 +1,0 @@
-cca::Manifest[
-    name = "power_deny_except",
-    prefix = "power_deny_except",
-    version = "1.0.0",
-    powers = [cca::Power.c_calls,],
-    deny = [cca::Power.c_calls.except["write"],],
-    targets = [cca::Target[name = "aarch64-macos"],]
-];

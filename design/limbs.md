@@ -7,7 +7,7 @@ is still open is listed at the end.
 
 ## No `import`, no `use`
 
-- **Dependencies are declared in the manifest** (`Synthia.ttsr`, or `CCA.cplr` for CCA's built-in package manager, 2026-09-29), never in source. A source
+- **Dependencies are declared in the manifest** (`Synthia.ttsr`, or `Kinesin.nrp` for CCA's built-in package manager, 2026-09-29), never in source. A source
   file has no statement that loads a Neuron.
 - **Every item is reached by its full path**: `std::print.useful.stdout[…]`,
   `mathstuff::pow[2, 64]`, `'r': std::uenr`, `crate_x::Locker[…]`. `::`
@@ -98,8 +98,8 @@ file-only / block-only / both.
 
 ### Where a module comes from
 
-- **Every `.cpls` file in the Neuron is a module named after the file**:
-  `shapes.cpls` → `shapes`; a directory nests: `shapes/circle.cpls` →
+- **Every `.nrv` file in the Neuron is a module named after the file**:
+  `shapes.nrv` → `shapes`; a directory nests: `shapes/circle.nrv` →
   `shapes.circle`. Nothing declares it — Synthia knows the files, and `ls`
   shows the tree.
 - **`module name { … }` inside a file** nests one more module that has no
@@ -108,10 +108,10 @@ file-only / block-only / both.
   There is no `module name;` include line (Rust's `mod x;` exists only
   because Cargo does not scan).
 - A module cannot be both a file and a block.
-- **The root is `limb.cpls`** (kept over `root.cpls`; the echo with the
+- **The root is `neuron.nrv`** (kept over `root.nrv`; the echo with the
   `.limb` archive is fine — that is the whole Neuron packed, this is the file
   inside it). Its items are the Neuron's top level, `geometry::…` from outside.
-  `MAIN` lives there and nowhere else. A small Neuron is one `limb.cpls`.
+  `MAIN` lives there and nowhere else. A small Neuron is one `neuron.nrv`.
 
 ### Names — "whatever has most compat"
 
@@ -120,7 +120,7 @@ A module name, file or block, is a lowercase ASCII identifier: `a`–`z`,
 name (`con`, `nul`, `aux`, `prn`, `com1`–`9`, `lpt1`–`9`). A file in the
 Neuron whose name does not fit is a compile error naming it, never silently
 skipped. Why: macOS and Windows file systems are case-insensitive
-(`Shapes.cpls` and `shapes.cpls` collide on some machines and not others),
+(`Shapes.nrv` and `shapes.nrv` collide on some machines and not others),
 and macOS normalises Unicode names differently from Linux.
 
 ### Reaching in — `::` crosses, `.` narrows, `my.` is the root
@@ -170,7 +170,7 @@ pub.neuron module tests { … }        # modules carry it as well
 
 A module and a type (struct, enum, interface) cannot share a name in a
 Neuron: `module shapes { }` beside `struct shapes { }` — or a file
-`shapes.cpls` beside it — is a compile error, "rename one". Proposed
+`shapes.nrv` beside it — is a compile error, "rename one". Proposed
 alternative: allow it and tell them apart by what follows the dot
 (`shapes.'pi'` the module, `shapes.claimed` the type). Owner chose the
 refusal: nothing to disambiguate, for the reader or for Cortex.
@@ -178,23 +178,23 @@ refusal: nothing to disambiguate, for the reader or for Cortex.
 ## A shorter name for users — `pub fn area = shapes.circle.area;` (owner, 2026-09-23)
 
 ```
-# geometry/shapes/circle.cpls
+# geometry/shapes/circle.nrv
 pub.neuron fn area ['r': bin64] -> bin64 { … }
 pub.neuron struct Circle { r: bin64 }
 
-# geometry/limb.cpls
+# geometry/neuron.nrv
 pub fn area = shapes.circle.area;          # users write geometry::area[…]
 pub struct Circle = shapes.circle.Circle;  # users write geometry::Circle[…]
 ```
 
 Read it as: other Neurons get a function called `area`, and it is the one
-written in `shapes/circle.cpls`. The Neuron's author decides what comes
+written in `shapes/circle.nrv`. The Neuron's author decides what comes
 after `geometry::`, whatever the folders look like inside (owner:
 "Doesn't the Limb maker say what goes after `::`?"). The line reads as
 a declaration: the kind, the name users get, and `=` the path to where
 it is written. That path is the ordinary one inside a Neuron, relative to
 the module the line is in (2026-09-19): `shapes.circle` is how the file
-`shapes/circle.cpls` is named everywhere, and source never writes a
+`shapes/circle.nrv` is named everywhere, and source never writes a
 file name, since a module may also be a `module` block with no file.
 The line adds a name only: no code is copied, and it is the same
 `area`. If the original is `pub.neuron`, only the short name exists
@@ -202,12 +202,12 @@ outside, so the folder layout stays private. If it is `pub`, both
 paths work.
 
 Proposed alternatives: none, where the path follows the folders and an
-author wanting `geometry::area` puts it in `limb.cpls` or writes a
+author wanting `geometry::area` puts it in `neuron.nrv` or writes a
 forwarding function (design claude's first recommendation, for one name
 per thing); `pub shapes.circle.area;`, refused by the owner ("I don't
 think that makes sense, the syntax") because the new name is only
 implied; `pub fn area from shapes.circle;`, English-like but unable to
-give a different name; a file path, `"shapes/circle.cpls".area`, after
+give a different name; a file path, `"shapes/circle.nrv".area`, after
 the owner said the module path "doesn't seem like it's referencing a
 file". It would be the only file name in source, and it could not
 reach a `module` block.
@@ -229,15 +229,15 @@ so the author renames inside their own files first.
 adds the name to that module:
 
 ```
-# std/str.cpls
+# std/str.nrv
 pub fn split = split.split;      # users write std::str.split[…]
 ```
 
 So a big Neuron keeps its grouping (`std::str.…`) while the code behind
 it lives in whatever files suit it. Proposed alternative: only in
-`limb.cpls`, so a Neuron's whole outside face is in one file; but then
+`neuron.nrv`, so a Neuron's whole outside face is in one file; but then
 every short name would sit one level deep, and keeping
-`std::str.split` would mean the real function has to live in `str.cpls`.
+`std::str.split` would mean the real function has to live in `str.nrv`.
 
 Not yet ruled:
 which kinds it covers beyond `fn` and `struct` (`enum`, `interface`,
@@ -245,11 +245,11 @@ which kinds it covers beyond `fn` and `struct` (`enum`, `interface`,
 
 ## A Neuron's name (owner, 2026-09-23: a)
 
-The name lives in **the manifest** (`Synthia.ttsr` / `CCA.cplr`), beside the version and the
+The name lives in **the manifest** (`Synthia.ttsr` / `Kinesin.nrp`), beside the version and the
 dependencies, and nowhere in source. Synthia reads it and hands it to
 CCA with the rest of what it is building. Renaming the directory changes
 nothing, and a Neuron's own code never names itself: it says `my.` (`limb.` until 2026-10-06).
-Proposed alternative: `limb mathstuff;` at the top of `limb.cpls`, which
+Proposed alternative: `limb mathstuff;` at the top of `neuron.nrv`, which
 would give the name two places to disagree.
 
 **A dependency may have a MAIN** (owner, 2026-09-29: a): it runs only when
@@ -259,14 +259,14 @@ library can ship its own demo or tool.
 ## Case (owner, 2026-10-06)
 
 Names are exact (`case.sensitive`) unless a Neuron's writer marks them
-`case.insensitive`: on kinds in `limb.cpls` (`case.insensitive [fn,
+`case.insensitive`: on kinds in `neuron.nrv` (`case.insensitive [fn,
 struct, enum, interface, const, case, field, var];`), on one item (`pub
 case.insensitive fn area …`), on a block module, or as a file's first
 line (`case.insensitive;`). Writing `case.sensitive` is allowed; marks
 that disagree are an error. An insensitive name matches in any case, by
 Unicode's full case folding, in its own Neuron and from other Neurons.
 Keywords stay exact. It costs nothing at run time. DECISIONS 2026-10-06
-has the rulings and the oracle's readings; `examples/case_marks.cpls`,
+has the rulings and the oracle's readings; `examples/case_marks.nrv`,
 `examples/uses_case`.
 
 ## Open

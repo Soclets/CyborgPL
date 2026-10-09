@@ -45,7 +45,7 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   compile-time constant there). `...` because it is the ellipsis — "and so
   on" — the mark C, Java, Go, JS, Swift all use; owner asked and chose it
   over `many` (reads like an array) and `vararg`. Open: a union-typed
-  variadic (`int32 or bin16`) waits on union types. `examples/variadic.cpls`.
+  variadic (`int32 or bin16`) waits on union types. `examples/variadic.nrv`.
 - **Unpacking a list into a call: `...'xs'`** (decided 2026-09-21).
   `sum[...'xs']` with `'xs'` holding `1, 2, 3` is `sum[1, 2, 3]`; it may
   sit among hand-typed values (`sum[10, ...'xs', 20]`) and a bundle may be
@@ -62,7 +62,7 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   list empty (a give never leaves holes). No verb, into a `lent ...`,
   lends each element; plain elements take no verb (they copy by
   themselves). Owner chose this over "always copy" and "always give".
-  `examples/spread.cpls`.
+  `examples/spread.nrv`.
 - **The return type is `--> T`** after the parameter list (Rust's arrow),
   not `: T` — `:` attaches a type to a *name*, and a function's result is not
   the function's type. No arrow: Cortex picks the best return type from every
@@ -76,8 +76,8 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   (the arrows were short until that day; the long ones came first as the
   aliases, "Implement the `-->` alias"), and so are **`>>` and `>>>`** of
   `-->`, and **`<<` and `<<<`** of `<--`, and the both-ways binding's main spelling is **`<-->`**, with `<->`, `<<>>`, `<<<>>>`, `<---->`, `<--|-->`, `<-|->`, `<<|>>` and `<<<|>>>` (owner, 2026-10-06: "yea.", "`<<>>` too", "Two long arrows", "`b`"); an
-  arrow cannot name a Neuron's operator. `examples/long_arrow.cpls`,
-  `examples/short_arrow.cpls`, `examples/chevron_arrows.cpls`.
+  arrow cannot name a Neuron's operator. `examples/long_arrow.nrv`,
+  `examples/short_arrow.nrv`, `examples/chevron_arrows.nrv`.
 
 ## Calling (decided 2026-09-14)
 
@@ -155,7 +155,7 @@ flags, `--help` — is written in Nerve on top, in std or a Neuron. The
 2026-09-14 line here said the arguments "come from the std Limb"; the
 owner put the door in the base language instead. Proposed alternatives: a
 ready `list[str.utf8]` (design claude's recommendation); `std::args[]`;
-nothing until std. `examples/args.cpls`.
+nothing until std. `examples/args.nrv`.
 
 History: first decided as `func.int32 MAIN` with a mandatory `return`, then
 simplified the same day; `func` became `fn` on 2026-09-19.

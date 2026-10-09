@@ -1,0 +1,4 @@
+# module `shapes`; `shapes/circle.nrv` and `shapes/square.nrv` nest under it.
+pub fn describe [] -> str.utf8 {
+    return my.helper[] ++ ", " ++ circle.name[] ++ ", " ++ square.name[];
+}

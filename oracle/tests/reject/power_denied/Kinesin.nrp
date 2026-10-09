@@ -1,0 +1,8 @@
+kin::Manifest[
+    name = "x",
+    prefix = "x",
+    version = "1.0.0",
+    powers = [kin::Power.c_calls,],
+    deny = [kin::Power.c_calls.functions["write"],],
+    targets = [kin::Target[name = "aarch64-macos"],]
+];

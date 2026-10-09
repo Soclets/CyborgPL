@@ -34,10 +34,10 @@ pub struct RuntimeError {
 
 thread_local! { static SHOWN_FILE: std::cell::RefCell<String> = std::cell::RefCell::new(String::new()); }
 
-/// The file a message's second places name, without its folders (`shop.cpls`).
+/// The file a message's second places name, without its folders (`shop.nrv`).
 pub fn set_shown_file(name: &str) { SHOWN_FILE.with(|f| *f.borrow_mut() = name.to_string()); }
 
-/// A second place in a message gives its file, always (owner, 2026-10-08: "`a`"): `line 6 of shop.cpls`.
+/// A second place in a message gives its file, always (owner, 2026-10-08: "`a`"): `line 6 of shop.nrv`.
 /// A Neuron's places all name the program's root file: the oracle keeps no file per line.
 pub fn line_of(line: impl std::borrow::Borrow<usize>) -> String {
     let line = *line.borrow();
@@ -361,7 +361,7 @@ impl<'p> Interp<'p> {
             let path = m.path.join(".");
             let clash = self.prog.structs.iter().map(|d| (&d.name, d.line, "struct")).chain(self.prog.enums.iter().map(|e| (&e.name, e.line, "enum"))).chain(self.prog.interfaces.iter().map(|i| (&i.name, i.line, "interface"))).find(|(n, _, _)| **n == path);
             if let Some((_, l, what)) = clash {
-                let where_ = if m.line == 0 { format!("the file `{path}.cpls` and a {what} at {}", line_of(l)) } else { format!("a module block at {} and a {what} at {}", line_of(m.line), line_of(l)) };
+                let where_ = if m.line == 0 { format!("the file `{path}.nrv` and a {what} at {}", line_of(l)) } else { format!("a module block at {} and a {what} at {}", line_of(m.line), line_of(l)) };
                 return rt(l, format!("`{path}` is both a module and a {what} ({where_}); one name is one thing in a Neuron — rename one"));
             }
         }
@@ -3906,7 +3906,7 @@ impl<'p> Interp<'p> {
         }
         match &c.limb {
             Some(l) if l == "std" => self.std_call(c),
-            // another Neuron, loaded from `CCA.cplr` under its own root (owner, 2026-09-29)
+            // another Neuron, loaded from `Kinesin.nrp` under its own root (owner, 2026-09-29)
             Some(l) if self.prog.modules.iter().any(|m| m.path == [format!("::{l}")]) => {
                 let mut local = c.clone();
                 local.limb = None;
@@ -3918,7 +3918,7 @@ impl<'p> Interp<'p> {
                 }
                 self.user_call(&local)
             }
-            Some(l) => rt(c.line, format!("no Neuron with the prefix `{l}`: a Neuron this one uses is listed in its `CCA.cplr` (`dependencies = [cca::Dep[path = …],]`), and its own `CCA.cplr` says `prefix = \"{l}\"`")),
+            Some(l) => rt(c.line, format!("no Neuron with the prefix `{l}`: a Neuron this one uses is listed in its `Kinesin.nrp` (`dependencies = [kin::Dep[path = …],]`), and its own `Kinesin.nrp` says `prefix = \"{l}\"`")),
             None => self.user_call(c),
         }
     }
@@ -5209,7 +5209,7 @@ pub fn resolve_bound(base: &Ty, b: &Bound) -> Bound {
 
 fn const_key(module: &[String], name: &str) -> String { format!("{}/{name}", module.join(".")) }
 fn join_path(module: &[String], name: &str) -> String { if module.is_empty() { name.to_string() } else { format!("{}.{name}", module.join(".")) } }
-fn root_or(module: &[String]) -> String { if module.is_empty() { "the root (limb.cpls)".into() } else { module.join(".") } }
+fn root_or(module: &[String]) -> String { if module.is_empty() { "the root (neuron.nrv)".into() } else { module.join(".") } }
 
 /// The first `std::` call inside a const's value, if any (an effect at compile time).
 fn first_std_call(b: &Bracket) -> Option<String> {

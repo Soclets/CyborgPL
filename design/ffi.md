@@ -9,7 +9,7 @@ language's, open to every Neuron (as in C and Rust); std is the library
 everyone uses, not a privileged one. Inline assembly is also in — spelling
 not yet designed. In the oracle since 2026-09-20: every rule below is
 enforced; the oracle cannot link C, so it emulates `write`, `exit`,
-`getenv`, `strlen`, `malloc`, `free` (`examples/ffi.cpls`).
+`getenv`, `strlen`, `malloc`, `free` (`examples/ffi.nrv`).
 
 ## `extern.C` — a function whose body is somewhere else
 
@@ -36,11 +36,11 @@ its own `pub` / `pub.neuron`, and a `pub` before the block overrides them
 all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 `extern.C { … }` a line is private unless it says `pub fn …`; in
 `pub extern.C { … }` every line is public. One-line: `pub extern.C fn …`.
-`examples/low_level.cpls`, `examples/extern_block_pub.cpls`.
+`examples/low_level.nrv`, `examples/extern_block_pub.nrv`.
 
 - `extern` before `fn`, like `pub`; no body, a `;` instead. A normal
   signature otherwise. Which library provides it is Synthia's business
-  (the manifest (`Synthia.ttsr` / `CCA.cplr`)), never the source's. One calling convention: C's.
+  (the manifest (`Synthia.ttsr` / `Kinesin.nrp`)), never the source's. One calling convention: C's.
 - **An `extern` call is a `!check` site** — Cortex cannot see inside it,
   so nothing about it can be proven; `!check` already means "on my
   word", and the build output already lists every such site, so it now
@@ -81,7 +81,7 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
   C-shaped, as anything a pointer points at. **A cast keeps whether the
   pointer may write** (owner: a): a `ptr` stays read-only, a `ptr.mut`
   stays writable. It compiles to nothing — LLVM has one pointer type.
-  `examples/ptr_cast.cpls`.
+  `examples/ptr_cast.nrv`.
 - No raw-allocation primitive: bytes you can name are a `list[uint8]` /
   `array[uint8]` (owned, checked, lent to C); bytes nobody owns are
   `malloc`/`free`, two externs.
@@ -134,7 +134,7 @@ guard `if` after each call; (b) a trusted range, unverified — a
 `!check` in disguise, rejected; (c) this. Owner asked the safety and
 performance difference against (a): none — same compare, same proofs;
 written once in the signature instead of after every call. Owner: c.
-`examples/extern_range.cpls`.
+`examples/extern_range.nrv`.
 
 ## Where C's numbers are checked (owner, 2026-09-27)
 
@@ -174,7 +174,7 @@ Proposed and not chosen: `nocheck` vouching for the number where it is
 already written (b); stopping the program on a bad number (c); a fourth
 tier trusting C's answers too. The owner asked whether `!check` was then
 "lying" (it isn't, for the reason above), then chose this rule.
-`examples/c_enum_convert.cpls`.
+`examples/c_enum_convert.nrv`.
 
 ## A range type as a C struct's field (owner, 2026-09-27: a)
 
@@ -188,7 +188,7 @@ checked at the door when a struct comes from C, failing `out_of_range`,
 the ranged-return rule applied to fields. Proposed alternative: keep
 refusing it, with plain fields checked by hand. A range on an `extern.C fn`
 *parameter* is still refused; that was not asked.
-`examples/c_struct_ranges.cpls`.
+`examples/c_struct_ranges.nrv`.
 
 ## `layout.C enum` — C's enum (owner, 2026-09-27: a)
 
@@ -208,7 +208,7 @@ at the door, like a ranged return: C can send any number. Only a
 boundary, plain numbers with named constants, which loses the names in
 types and the exhaustive `match`. Written numbers required, and 32 bits:
 design claude's recommendation with a, not asked separately.
-`examples/c_enum.cpls`.
+`examples/c_enum.nrv`.
 
 ## `extern.C 'x': T` — a C global (decided 2026-09-21; `let` dropped 2026-09-25)
 
@@ -233,7 +233,7 @@ other declaration on 2026-09-25.
 **`errno` is not a plain global** on macOS and Linux — it is a macro
 that calls a function — so `extern.C 'errno': int32;` would be wrong
 there; the std Neuron offers `std::c.errno[]` backed by the real thing.
-`extern.C 'x': T` is for genuinely plain C globals. `examples/extern_data.cpls`.
+`extern.C 'x': T` is for genuinely plain C globals. `examples/extern_data.nrv`.
 
 ## `layout.C` — a struct in C's shape
 

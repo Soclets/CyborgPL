@@ -1,6 +1,0 @@
-cca::Manifest[
-    name = "x",
-    prefix = "Cash-Handling",
-    version = "1.0.0",
-    targets = [cca::Target[name = "aarch64-macos"],]
-];

@@ -45,36 +45,37 @@ Owner, 2026-09-14.
   TETR.IO replays). `.ttsr` is free everywhere. What the syntax looks like
   is open; Synthia is not being built yet.
 
-- **`.cpls`** — a Nerve source file (*CyborgPL Source*, the language's name then). `.cpl` is
+- **`.nrv`** — a Nerve source file, code and only code (2026-10-09; it was `.cpls`, *CyborgPL Source*, until then); a file that is one Nerve value and never runs ends **`.nrp`** (*neurapraxia*: a nerve whole but not firing). `.cpl` is
   deliberately avoided.
 - **`synthia sync`** (owner, 2026-10-06, via synthia claude): writes the
-  project's `CCA.cplr` from `Synthia.ttsr`, one for each needed Neuron that
+  project's `Kinesin.nrp` from `Synthia.ttsr`, one for each needed Neuron that
   has only a `Synthia.ttsr`, and the renamed copies in `.synthia/`, after
   checking the whole tree of path dependencies, so `cca build` follows
   knowing nothing of Synthia; a later `synthia build` would run it first.
   A needed Neuron on this machine with only a `Synthia.ttsr` gets its
-  `CCA.cplr` in its own folder, never a copy (owner: "`a`").
-- **CCA's package manager** (owner, 2026-09-29) — a second, built-in one,
-  "because a hobby is supposed to be fun": `cca add …`, no name of its own.
-  Its manifest is **`CCA.cplr`**, written in Nerve syntax on purpose:
-  `.cplr` (*CyborgPL Related*) is the extension for Nerve-syntax files
-  that belong to the tooling, and the file's name says which one it is.
-  **One value, `cca::Manifest[ … ];`** (owner, 2026-10-06: "`c`. It may
+  `Kinesin.nrp` in its own folder, never a copy (owner: "`a`").
+- **Kinesin, CCA's package manager** (owner, 2026-09-29; named 2026-10-08) — a second, built-in one,
+  "because a hobby is supposed to be fun": `cca add …`.
+  Its manifest is **`Kinesin.nrp`** (was `CCA.cplr`), written in Nerve syntax on purpose:
+  `.nrp` (was `.cplr`, *CyborgPL Related*) is the ending for Nerve-syntax files
+  that are one value and never run, and the file's name says which one it is;
+  its types are `kin::` (was `cca::`).
+  **One value, `kin::Manifest[ … ];`** (owner, 2026-10-06: "`c`. It may
   not look as complex, but at least it's not much of a roleplay"; from
   2026-09-29 to then, one plain `const` per setting), the shapes from
-  `cca`, a tiny built-in Neuron only `CCA.cplr` can reach:
+  `cca`, a tiny built-in Neuron only `Kinesin.nrp` can reach:
 
   ```
-  cca::Manifest[
+  kin::Manifest[
       name = "shop",
       prefix = "shop",
       version = "1.0.0",
-      lobes = [cca::Lobe[id = "5d0e846b…44b4085", version = "2026-10-06T18:04:29+07:00"],],   # IEG
+      lobes = [kin::Lobe[id = "5d0e846b…44b4085", version = "2026-10-06T18:04:29+07:00"],],   # IEG
       dependencies = [
-          cca::Dep[id = "3f9a…4a5b", version = "1.2"],
-          cca::Dep[path = "../money"],
+          kin::Dep[id = "3f9a…4a5b", version = "1.2"],
+          kin::Dep[path = "../money"],
       ],
-      targets = [cca::Target[name = "aarch64-macos"],]
+      targets = [kin::Target[name = "aarch64-macos"],]
   ];
   ```
 
@@ -94,7 +95,7 @@ Owner, 2026-09-14.
   its `name` (owner, 2026-09-29: "yea", then b): `prefix = "cash"`. Required (owner: "required"). Two Neurons with the
   same prefix are an error, fixed by editing one Neuron's source (owner:
   "Just edit the source code"), so a dependency line names no word:
-  `cca::Dep[path = "../money"]`. Not in the oracle yet. **A
+  `kin::Dep[path = "../money"]`. Not in the oracle yet. **A
   manifest is data only** (owner, 2026-09-29): anything that must be
   computed lives in **`build.cplr`**, a full Nerve program (functions,
   loops, a `MAIN`), which **never runs by itself** — a special command runs
@@ -129,20 +130,20 @@ Owner, 2026-09-14.
   hands it no words: settings come as any program gets them, from
   environment variables or files (owner: "Might aswell build shit
   yourself"). A
-  **`cca::Dep` is an `id` and `version`** (from the registry) **or a
+  **`kin::Dep` is an `id` and `version`** (from the registry) **or a
   `path`** (a folder on this machine) (owner, 2026-09-29: a; its `name`
   was dropped when the prefix became the Neuron's own):
-  `cca::Dep[path = "../money"]`. The settings the oracle
+  `kin::Dep[path = "../money"]`. The settings the oracle
   knows: `name`, `prefix`, `version`, `dependencies`, `targets` (a list of
-  `cca::Target[name = "aarch64-linux", runner = "qemu-aarch64"]`: several
+  `kin::Target[name = "aarch64-linux", runner = "qemu-aarch64"]`: several
   targets, since CCA's package manager can do whatever Synthia can, owner
   2026-09-29).
 
   Synthia stays the separate tool, with `Synthia.ttsr` in its own syntax
   (above). What goes in
-  `CCA.cplr`, and how the two relate, is open.
+  `Kinesin.nrp`, and how the two relate, is open.
 - **`.limb`** — a *published* Neuron: the Neuron's directory (its manifest +
-  `.cpls` files) packaged as one file for Synthia to upload, download, and
+  `.nrv` files) packaged as one file for Synthia to upload, download, and
   checksum. Same relationship as a Rust crate folder to its `.crate` tarball.
   Checked 2026-09-14: no existing `.limb` format is registered.
 
@@ -175,7 +176,7 @@ owner's order:
    **How it knows what to rewrite: a spelling table** (owner, 2026-10-02:
    "CyborgPL stores the stable spelling, and maps the stable spelling to
    the current one"). Every language word has a stable ID, and
-   **`spellings.cplr`** (one file for the whole language, shipped with
+   **`spellings.nrp`** (one file for the whole language, shipped with
    CCA, read by CCA, Synthia and the IDE) says how each version spells it:
    a row is the ID, the date of the change, the old and the new spelling,
    and the position it applies in. A removal is a spelling of nothing
@@ -193,7 +194,7 @@ owner's order:
    after that date and moves the date forward. It **shows the diff
    first**, and **upgrades an outdated dependency in a copy under
    `.synthia/`**, as the prefix override does. Those parts, and the name
-   `spellings.cplr`, are design claude's; the owner: "whatever is good,
+   `spellings.nrp`, are design claude's; the owner: "whatever is good,
    bro". Both files are Nerve syntax, so `.cplr`, no new extension.
 
    **CCA has a command that says where and what to change; Synthia makes
@@ -202,7 +203,7 @@ owner's order:
    automatically after a button or a CLI command"). CCA's lists every
    line a row matches — the new spelling, and the lines whose meaning
    changed — and edits nothing; Synthia's applies them, from the IDE's
-   button or its own command. Both read `spellings.cplr` and
+   button or its own command. Both read `spellings.nrp` and
    `cpl_ver.cplr`. Names open.
 2. **Neuron registry search** — searching the index (`limbs.xxx`) from the
    editor.
@@ -236,7 +237,7 @@ running CCA.
 ## Cross-compiling, running elsewhere (discussed 2026-09-21, proposal)
 
 CCA compiles and stops; it never executes what it built. The target is
-declared in the manifest (`Synthia.ttsr` or `CCA.cplr`), never sniffed from the host; the host is
+declared in the manifest (`Synthia.ttsr` or `Kinesin.nrp`), never sniffed from the host; the host is
 looked at only for cores and memory (speed), never for meaning — the same
 program with the same config gives the same proofs and the same binary on
 a laptop or a farm. Proof-cache entries are keyed by (function bytes,

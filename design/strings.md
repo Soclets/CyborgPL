@@ -28,7 +28,7 @@ the first chain word with `_` in it. The owner wrote it "for fun", after
 comparing the Hello World with Java's; `std::rs.println` (2026-09-19,
 removed a day later) had done the same as a borrowed Rust print. Only this
 form is decided: `print` and `print.format` have no `auto_newline`.
-`examples/print_auto_newline.cpls`.
+`examples/print_auto_newline.nrv`.
 
 ## `std::print.weird` — C++'s `cout <<`, with arrows (owner, 2026-10-01)
 
@@ -50,7 +50,7 @@ useful form, as `print.useful` (a bare `.weird` said "stored" until
 `.weird` changes the whole call's shape, `.useful` only how values
 look, so `print.useful.weird` is refused. The first borrowed-language
 print since `std::c.printf` / `std::rs.println` were removed
-(2026-09-20). `examples/print_weird.cpls`; reject tests
+(2026-09-20). `examples/print_weird.nrv`; reject tests
 print_weird_brackets, print_weird_order.
 
 ## `std::print.format` — the formatting print, with `{}` holes (2026-09-22; holes since 2026-10-01)
@@ -100,7 +100,7 @@ holes"):
 
 Before 2026-10-01 it was C's `printf` language (`%d %x %.2f`, `%%`, then
 `\%`), named `printf` until 2026-09-29. The borrowed `std::c.printf` /
-`std::rs.println` of 2026-09-19 stay removed. `examples/print_format.cpls`;
+`std::rs.println` of 2026-09-19 stay removed. `examples/print_format.nrv`;
 reject tests `print_format_*`.
 
 ## A length bound names its unit (decided 2026-09-22)
@@ -175,7 +175,7 @@ cord::str.at.<unit>[lend 's', pos 3]        -> that unit, or fail[out_of_range]
 cord::str.slice.grapheme[lend 's', pos 1, pos 5] -> str, or fail[out_of_range]
 ```
 
-The oracle emulates these so examples run (`examples/text.cpls`); std's
+The oracle emulates these so examples run (`examples/text.nrv`); std's
 real versions will be Nerve.
 
 ## Comparison

@@ -1,0 +1,8 @@
+kin::Manifest[
+    name = "power_deny_except",
+    prefix = "power_deny_except",
+    version = "1.0.0",
+    powers = [kin::Power.c_calls,],
+    deny = [kin::Power.c_calls.except["write"],],
+    targets = [kin::Target[name = "aarch64-macos"],]
+];

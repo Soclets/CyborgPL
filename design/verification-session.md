@@ -89,8 +89,8 @@ direction. If a session is not running, ask the owner.
 2. `design/compiler-verification.md` — the three oracles and what each
    answers. Then `design/precog.md`, which is what you are attacking
    most of the time, and the rest of `design/*.md` as you need them.
-3. `examples/*.cpls` with their `.out` and `.exit`, and
-   `oracle/tests/reject/*.cpls` with their `.err` — the corpus that
+3. `examples/*.nrv` with their `.out` and `.exit`, and
+   `oracle/tests/reject/*.nrv` with their `.err` — the corpus that
    already exists, and the shape of a test.
 4. `~/Kespar/design/generator.md` and `~/Kespar/design/oracle.md` — the
    owner's proof-of-concept did this once, at 2,173 lines of generator;

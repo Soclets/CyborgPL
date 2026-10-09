@@ -1,3 +1,0 @@
-cca::Manifest[
-    dependencies = [cca::Dep[path = "../x", version = "1.0"],]
-];

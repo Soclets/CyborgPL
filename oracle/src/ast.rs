@@ -77,8 +77,8 @@ pub struct Field {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Vis { Private, Limb, Pub }
 
-/// A module: a file of the Neuron (`shapes.cpls` → `shapes`, `shapes/circle.cpls`
-/// → `shapes.circle`) or a `module name { … }` block. The root, `limb.cpls`,
+/// A module: a file of the Neuron (`shapes.nrv` → `shapes`, `shapes/circle.nrv`
+/// → `shapes.circle`) or a `module name { … }` block. The root, `neuron.nrv`,
 /// is the empty path.
 #[derive(Debug, Clone)]
 pub struct ModuleDef {

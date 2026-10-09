@@ -82,7 +82,7 @@ save[lend 'mine'] otherwise { disk_full { cord::print.stored["not saved", newln]
 Enforces all of it, and checks the caller's side *before* running the call,
 as the compiler would: an unhandled failing call, `otherwise` on a safe call,
 a missing or unknown arm, a propagation the enclosing function does not
-list, a payload of the wrong type. `examples/failures.cpls`, eighteen reject
+list, a payload of the wrong type. `examples/failures.nrv`, eighteen reject
 tests.
 
 ## Open

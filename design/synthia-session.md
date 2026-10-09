@@ -28,7 +28,7 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
 ## What is decided
 
 - **Two package managers** (owner, 2026-09-29): CCA has one built in
-  (`cca add`, manifest `CCA.cplr` in Nerve syntax — compiler claude's).
+  (`cca add`, manifest `Kinesin.nrp` in Nerve syntax — compiler claude's).
   **Synthia is the separate one**, "fast, reliable, and easy-to-use".
 - **Go** (owner, 2026-09-29). Its standard library covers what a package
   manager does: fetching, archives, hashing, running `cca`.
@@ -37,12 +37,12 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
   `design/synthia-manifest.md` (owner, 2026-09-29), and its one open point
   is there.
 - **Synthia is an automatic programmer** (owner, 2026-09-30): it does
-  whatever a programmer using CCA would do by hand, writing a `CCA.cplr`
+  whatever a programmer using CCA would do by hand, writing a `Kinesin.nrp`
   for a Neuron that has only a `Synthia.ttsr`. CCA never knows Synthia
-  exists. The project's own `CCA.cplr` goes beside `Synthia.ttsr`,
+  exists. The project's own `Kinesin.nrp` goes beside `Synthia.ttsr`,
   rewritten from it each time, its first line saying it is generated
   (owner, 2026-09-30: a): `# Written by Synthia from Synthia.ttsr, and
-  rewritten each time: edit Synthia.ttsr, not this file.` (owner: "yea"). A `CCA.cplr` there without that line is not Synthia's: Synthia
+  rewritten each time: edit Synthia.ttsr, not this file.` (owner: "yea"). A `Kinesin.nrp` there without that line is not Synthia's: Synthia
   refuses to write and leaves it, and `synthia takeover` overrides (owner: "`a`,
   and there should be an override command"; then "`a`" for `takeover`).
 - **How it connects**: Synthia reads its manifest, fetches the Neurons,

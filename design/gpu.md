@@ -63,7 +63,7 @@ runtime), Vulkan / SPIR-V for everyone else — AMD, Intel, NVIDIA,
 phones — the portable one. CUDA / PTX is not in v1: NVIDIA runs Vulkan,
 and CUDA would need NVIDIA's driver found (never bundled) and hardware
 to test on. Cortex's decisions are the same for any GPU; a target is a
-runtime module for launching and memory plus a the manifest (`Synthia.ttsr` / `CCA.cplr`) line, so
+runtime module for launching and memory plus a the manifest (`Synthia.ttsr` / `Kinesin.nrp`) line, so
 CUDA later is an addition, not a change. Proposed: Metal only; Metal +
 CUDA; all three. Owner: Metal and Vulkan.
 
@@ -98,8 +98,8 @@ profile-guided optimisation, a separate command measures once:
 
 ```
 cca tune              # builds a measuring version, runs it on this machine with the inputs given,
-                      # times each undecided loop on CPU and GPU, and writes tune.cplr
-cca build --final     # reads tune.cplr as an input, like the lock file
+                      # times each undecided loop on CPU and GPU, and writes tune.nrp
+cca build --final     # reads tune.nrp as an input, like the lock file
 ```
 
 **The measuring is CCA's** (owner, 2026-09-30: a): CCA's package manager
@@ -111,16 +111,16 @@ Proposed and not chosen: both implementing the measuring; Synthia only,
 as this section first had it (written 2026-09-28, when Synthia was to be
 Nerve's one package manager).
 
-`tune.cplr` records the target, the compiler version and, per loop, the
+`tune.nrp` records the target, the compiler version and, per loop, the
 winner and its times. It is committed with the code, so a build of the
 same source and the same file is always the same program. An entry is
 ignored, and the build says so, when its loop has changed since it was
 measured, or when the file was made for a different target. Then the cost
 model decides. Proposed alternative: the cost model only. The file name
 was design claude's proposal, accepted with the rest; it was `tune.cplt`
-until the owner made it **`tune.cplr`** (2026-09-30: a), Nerve syntax
-like `CCA.cplr`, plain `const`s only, as `.cplr` is the extension for
-Nerve-syntax tooling files.
+until the owner made it **`tune.nrp`** (2026-09-30: a), Nerve syntax
+like `Kinesin.nrp`, plain `const`s only, as `.nrp` (was `.cplr`) is the ending for
+Nerve-syntax files that never run.
 
 ## Explicit control and raw GPU code (owner, 2026-10-01)
 
@@ -162,7 +162,7 @@ matching the kernel's `[[buffer(0)]]`, as `inline.ASM` writes ARM's `x0`
   LNIR when we do GPU loops? It's a hobby lang, and I think that's more
   fun. Only if it doesn't reduce perf"; it had been "only if offload gets
   serious", `precog.md`, three IRs). **It never makes a program slower**:
-  it changes a loop only when Cortex's estimate, or a `tune.cplr`
+  it changes a loop only when Cortex's estimate, or a `tune.nrp`
   measurement, says the change wins, and otherwise passes the loop
   through as MIR would have it; the bench builds with and without it to
   check. It **it is our own, in Rust, not MLIR** (owner, 2026-10-01: "our

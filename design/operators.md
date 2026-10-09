@@ -25,13 +25,13 @@ nearest value the type holds (`7.5 div.near 2.0` is 3.75), and
 Python's `//`); so `mod.near` is refused there, since it leaves nothing
 over (design claude's slip: it had first called it IEEE's `remainder()`).
 Proposed for bins: `div.near` naming the rounding (chosen), `div.real`,
-`div.frac`. `examples/div_rounding.cpls`.
+`div.frac`. `examples/div_rounding.nrv`.
 
 **The operators are words** (owner, 2026-10-02/03): `plus`, `minus`,
 `times`, `.wrap` for the wrapping ones, and std's `pow`; the symbols `+`,
 two-number `-`, `x`, `xx` and the tilde forms are refused, naming the
 word. A type defines its own with `op plus […]`; an operator as a value
-is `op plus`. `examples/word_operators.cpls`. Older passages below keep
+is `op plus`. `examples/word_operators.nrv`. Older passages below keep
 the symbols where they quote a ruling's day.
 
 | Operator | Meaning |
@@ -44,7 +44,7 @@ the symbols where they quote a ruling's day.
 | `pow`, `pow.wrap` | power: std's operators since 2026-10-03 (the language's `xx`, `xx~` before); bare or `std::pow`; above a negative, right pair first, as `xx` was (`-2 pow 2` is -4, `2 pow 3 pow 2` is 512) |
 | `div.floor` `div.ceil` `div.trunc` `div.near` | divide, rounding as named (`div` until 2026-10-02, `/` until 2026-09-29) |
 | `mod.floor` `mod.ceil` `mod.trunc` `mod.near` | what the same `div` leaves over |
-| `plus.ieee` `minus.ieee` `times.ieee` `pow.ieee` `div.floor.ieee` `div.ceil.ieee` `div.trunc.ieee` `div.near.ieee` `mod.floor.ieee` `mod.ceil.ieee` `mod.trunc.ieee`, and `neg.ieee 'x'` | IEEE 754's own answer, keeping a `-0`; on a bin or `brain16` only. Every other bin or `brain16` result is never `-0`: a zero times a negative, `-'x'` of a zero, a product too small to hold are all `0` (owner, 2026-10-07: "`a`", then "yea" to the family and to `neg.ieee`; `-.ieee 'x'` "defeats the purpose of a symbol"; `mod` and `pow` too, "yea."). `examples/zero_everywhere.cpls` |
+| `plus.ieee` `minus.ieee` `times.ieee` `pow.ieee` `div.floor.ieee` `div.ceil.ieee` `div.trunc.ieee` `div.near.ieee` `mod.floor.ieee` `mod.ceil.ieee` `mod.trunc.ieee`, and `neg.ieee 'x'` | IEEE 754's own answer, keeping a `-0`; on a bin or `brain16` only. Every other bin or `brain16` result is never `-0`: a zero times a negative, `-'x'` of a zero, a product too small to hold are all `0` (owner, 2026-10-07: "`a`", then "yea" to the family and to `neg.ieee`; `-.ieee 'x'` "defeats the purpose of a symbol"; `mod` and `pow` too, "yea."). `examples/zero_everywhere.nrv` |
 | `==` | equal |
 | `!==` | not equal — built from `==` |
 | `<`, `>` | less than, greater than |
@@ -366,7 +366,7 @@ operator in it. A level may hold `neg` (a negative), so std's `pow` sits above i
 operator in no level keeps the custom-operator rule: brackets beside any other.
 Operators of two Neurons in the same gap need brackets between them. The language's
 bitwise operators have no precedence and cannot be given one.
-`examples/precedence_levels.cpls`.
+`examples/precedence_levels.nrv`.
 
 ### From another Neuron (owner, 2026-09-23: a)
 
@@ -392,5 +392,5 @@ recommendation): only the Neuron that owns one of the operand types may
 share an operator, as in Rust, so two can never clash. That would stop
 a Neuron from sharing `~=` or `+|` for the language's own types.
 
-Oracle: `examples/operators.cpls`, thirteen reject tests. It runs one
+Oracle: `examples/operators.nrv`, thirteen reject tests. It runs one
 Neuron, so an operator is found by name across the whole program.

@@ -33,13 +33,13 @@ x86_64-windows.runner = wine
   claude, over a `[my powers]` section; asked "Does this say what it needs,
   or what it allows the others", synthia claude answered that it is what the
   Neuron itself uses, allowing or forbidding others being `deny`).
-  `power.c_calls.functions = sqrt, sin` is written to `CCA.cplr` as
-  `cca::Power.c_calls.functions["sqrt", "sin"]`; only the shape is checked,
+  `power.c_calls.functions = sqrt, sin` is written to `Kinesin.nrp` as
+  `kin::Power.c_calls.functions["sqrt", "sin"]`; only the shape is checked,
   since lobes may add powers; `= no` is refused (an unused power has no
   line). **A program takes powers away in a `[my denied powers]` section**
   (owner, 2026-10-08: "`a`", relayed by synthia claude, over `deny.` lines in
   `[my needed things]`; a denial is a rule set for others, not a need),
-  written to `CCA.cplr`'s `deny`: `raw_memory = yes` (all of it),
+  written to `Kinesin.nrp`'s `deny`: `raw_memory = yes` (all of it),
   `c_calls.functions = system` (the things named), `c_calls.except = sqrt,
   sin` (all but these), `inline_assembly.for = fastjson` (only to that Neuron,
   by prefix); `= no` is refused.
@@ -72,7 +72,7 @@ x86_64-windows.runner = wine
   listed there by its ID and version** (`core.asp.id = …`,
   `core.asp.version = …`), not in a section of its own (owner: "inside
   `[my needed things]`", over a `[my cores]` section, which synthia claude
-  recommended); a lobe and a Neuron may share a label. As in `CCA.cplr`
+  recommended); a lobe and a Neuron may share a label. As in `Kinesin.nrp`
   (2026-10-06: a lobe by registry ID; official IDs only until lobes can
   be loaded, and `core.x.path` refused for now; std needs the lobe ASP). A published one is named by **its ID**, which
   its creator generates: **256 bits of randomness, as 64 hex digits**,
@@ -98,8 +98,8 @@ x86_64-windows.runner = wine
 "yea"), in its plainer Nerve-syntax way; Synthia's edge is convenience,
 never capability, so CCA never needs it. The owner asked whether CCA's
 package manager could do "some Synthia shit", since otherwise "that feels
-like the base lang not being able to do inline ASM". So `CCA.cplr`'s
-`target` became `targets`, a list of `cca::Target[name = …, runner = …]`.
+like the base lang not being able to do inline ASM". So `Kinesin.nrp`'s
+`target` became `targets`, a list of `kin::Target[name = …, runner = …]`.
 
 - **Needed in every manifest: `name`, `version`, and at least one
   target** (owner, 2026-09-29: b). `id`, `time.created` and
@@ -111,8 +111,8 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   registry's, and open.
 - **`prefix = cash`** in `[my identity]` is the word code writes in front
   of `::` to reach this Neuron (owner, 2026-09-29: "`prefix`"), as
-  `CCA.cplr`'s `'prefix'`; its `name` is a label apart from it.
-  Required, as in `CCA.cplr` (owner: "if it's not always required, it
+  `Kinesin.nrp`'s `'prefix'`; its `name` is a label apart from it.
+  Required, as in `Kinesin.nrp` (owner: "if it's not always required, it
   could be weird to CyborgPL users"). **Synthia's easy override** for two Neurons with one
   prefix does what a CCA user does by hand (owner, 2026-09-29: "Synthia
   just does what the CyborgPL programmer had to do"): it copies that Neuron
@@ -150,19 +150,19 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   `geometry::area[…]`), so two Neurons both called "geometry" live side by
   side as `geometry.id` and `geo2.id`, and a clash never breaks a build.
   Proposed alternative: names unique in the registry too, first come.
-  Superseded the same day for `CCA.cplr`: the word in front of `::` is
+  Superseded the same day for `Kinesin.nrp`: the word in front of `::` is
   the Neuron's own `'prefix'`, apart from its `name`, and a dependency names
-  no word (`cca::Dep[id = "…", version = "1.2"]`); see `tooling.md`. The
+  no word (`kin::Dep[id = "…", version = "1.2"]`); see `tooling.md`. The
   `Synthia.ttsr` side is synthia claude's to ask.
 
-- **`default` is `yes` or `no`** (owner, 2026-09-30: b), as `CCA.cplr`'s
+- **`default` is `yes` or `no`** (owner, 2026-09-30: b), as `Kinesin.nrp`'s
   `true` or `false`.
 - **A target must be one CCA can build** (owner, 2026-09-29: "Only
   what's actually doable"), from CCA's own list, not any
   `architecture-system` name.
 - **One target is marked the default** (owner, 2026-09-29: b), the one
   built when none is named: `aarch64-macos.default = yes` here, `default =
-  true` on one `cca::Target` in `CCA.cplr`. With several targets exactly one
+  true` on one `kin::Target` in `Kinesin.nrp`. With several targets exactly one
   is marked; a single target is the default by itself. Proposed
   alternatives: this machine's, if listed (compiler claude's suggestion,
   which takes the target from the host, against reproducible builds); the

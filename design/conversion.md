@@ -48,14 +48,14 @@ to.int32["7"] otherwise { not_a_number { cord::exit[2]; } out_of_range { cord::e
   …`. From ASCII text, a number or a byte it cannot fail and takes no
   `otherwise`; into `utf16` or `utf32` never fails. The text encodings
   are the four of 2026-09-14 (`utf8`, `utf16`, `utf32`, `ascii`), each a
-  conversion target. `examples/to_ascii.cpls`.
+  conversion target. `examples/to_ascii.nrv`.
 - **Bytes into text** (owner, 2026-09-30: "yea"): `to.str.utf8['bytes']`
   reads a `list[uint8]` or `array[uint8]` as UTF-8 and fails `not_utf8`
   when it is not: `[104, 195, 169, 108, 108, 111]` is `"héllo"` (`é` is
   the two bytes 195, 169). Only `utf8` reads bytes so far. C's text is
   walked by hand into such a list, then converted once
-  (`examples/args.cpls`); a one-call shortcut is std's to write.
-  `examples/bytes_to_text.cpls`. **Any other list or array is not text**
+  (`examples/args.nrv`); a one-call shortcut is std's to write.
+  `examples/bytes_to_text.nrv`. **Any other list or array is not text**
   (owner, 2026-09-30: b): no `"[1, 2]"`; join the items with `++`, or
   print the list.
 - **`++` takes text on both sides.** This closes the language's last
@@ -75,7 +75,7 @@ to.int32["7"] otherwise { not_a_number { cord::exit[2]; } out_of_range { cord::e
   `true`/`false` in both. **`.useful` follows the verb** (owner: b, as in
   `print.useful`): `to.useful.str.utf8`, `to.useful.deci64` (moved from
   `to.deci64.useful`). A bin into a `deci` writes its form too,
-  `to.stored.deci64` or `to.useful.deci64` (owner, 2026-10-02; `types.md`). `examples/to_text_forms.cpls`. **A struct, a map,
+  `to.stored.deci64` or `to.useful.deci64` (owner, 2026-10-02; `types.md`). `examples/to_text_forms.nrv`. **A struct, a map,
   or an enum case carrying data is not text** (owner, 2026-09-30:
   "refuse"): build the text from its parts, or print it directly. **An
   enum with any data-carrying case is not text at all**, even a value that
@@ -91,7 +91,7 @@ to.int32["7"] otherwise { not_a_number { cord::exit[2]; } out_of_range { cord::e
   (`std::round`, `floor`, `ceil`, `trunc`: a bin in, a whole bin out) is
   std's; names provisional. Owner chose this over C's
   quiet truncation and over floor (which would match `div`).
-  `examples/whole.cpls`.
+  `examples/whole.nrv`.
 - **`char`** (decided 2026-09-21, three questions):
   - **Number ↔ char is not a conversion.** `to.int32[`7`]` is refused: it
     could mean 55 (the code) or 7 (the digit), and C's answer is the trap.
@@ -113,6 +113,6 @@ to.int32["7"] otherwise { not_a_number { cord::exit[2]; } out_of_range { cord::e
     `to.char.byte[p]` fails `not_one_byte` unless it is ASCII;
     `to.char.grapheme[p]` and `to.char.point[b]` always work and take no
     `otherwise`. Same shape as `not_whole`.
-  `examples/chars.cpls`.
+  `examples/chars.nrv`.
 - Not decided, refused by the oracle: anything → `bool` (no truthiness —
   compare instead); to or from lists, structs.

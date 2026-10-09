@@ -1,4 +1,4 @@
-//! `oracle file.cpls` — run a Nerve program the slow, obvious way.
+//! `oracle file.nrv` — run a Nerve program the slow, obvious way.
 //!
 //! This is the reference interpreter: the executable specification. It knows
 //! exactly what `design/` has decided and refuses everything else with a
@@ -36,7 +36,7 @@ fn parse_file_in(path: &Path, module: Vec<String>, limb_root: Vec<String>) -> Re
     let src = std::fs::read_to_string(path).map_err(|e| format!("{}: cannot read: {e}", path.display()))?;
     let mut toks = lexer::lex(&src).map_err(|e| format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg))?;
     case::rewrite(&mut toks, &limb_root, &module);
-    if LEVELS_ONLY.with(|f| f.get()) && path.file_name().map_or(true, |n| n != "CCA.cplr") {
+    if LEVELS_ONLY.with(|f| f.get()) && path.file_name().map_or(true, |n| n != "Kinesin.nrp") {
         parser::Parser::new_in_limb(toks, module, limb_root).scan_levels()
             .map_err(|e| format!("{}: line {}: {}", path.display(), e.line, e.msg))?;
         return Ok(ast::Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new(), bare_marks: Vec::new(), case_marks: Vec::new() });
@@ -45,9 +45,9 @@ fn parse_file_in(path: &Path, module: Vec<String>, limb_root: Vec<String>) -> Re
         .map_err(|e| if e.col == 0 { format!("{}: line {}: {}", path.display(), e.line, e.msg) } else { format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg) })
 }
 
-/// A Neuron is a directory: `limb.cpls` is the root; every other `.cpls` file is
+/// A Neuron is a directory: `neuron.nrv` is the root; every other `.nrv` file is
 /// a module named after it, directories nesting (decided 2026-09-19). A lone
-/// `.cpls` file is a Neuron of one root file.
+/// `.nrv` file is a Neuron of one root file.
 fn load(path: &Path) -> Result<ast::Program, String> {
     // first every file's `precedence` blocks, then the program with all of them known
     parser::SHARED_LEVELS.with(|l| l.borrow_mut().clear());
@@ -113,8 +113,8 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     Ok(prog)
 }
 
-/// A Neuron whose `CCA.cplr` does not list std or a core reaches none of it (owner, 2026-10-05/06). One with no
-/// `CCA.cplr` gets what the machine's package installed, and the oracle stands in for the full package.
+/// A Neuron whose `Kinesin.nrp` does not list std or a core reaches none of it (owner, 2026-10-05/06). One with no
+/// `Kinesin.nrp` gets what the machine's package installed, and the oracle stands in for the full package.
 /// A power as a manifest names it (owner, 2026-10-07): its path, the things named in `[ ]`, and for a
 /// `deny` its `.except[ … ]` and `.for[ … ]`.
 #[derive(Clone, Debug, Default)]
@@ -148,12 +148,12 @@ fn parse_power(text: &str) -> Result<PowerRef, String> {
         if word == "except" || word == "for" { last = Some(word.to_string()); } else { p.path.push(word.to_string()); last = None; }
         rest = &r[end..];
     }
-    if p.path.is_empty() { return Err("a power names its path: `cca::Power.c_calls`".into()); }
+    if p.path.is_empty() { return Err("a power names its path: `kin::Power.c_calls`".into()); }
     Ok(p)
 }
 
 fn mark_lacks(dir: &Path, root: &[String]) -> Result<(), String> {
-    if !dir.join("CCA.cplr").is_file() { return Ok(()); }
+    if !dir.join("Kinesin.nrp").is_file() { return Ok(()); }
     let (prefix, deps, cores) = read_manifest(dir)?;
     let (powers, deny) = MANIFEST_POWERS.with(|m| m.borrow_mut().take()).unwrap_or_default();
     LIMB_POWERS.with(|l| l.borrow_mut().push(LimbPowers { root: root.to_vec(), prefix: prefix.unwrap_or_default(), cores: cores.clone(), powers, deny }));
@@ -165,13 +165,14 @@ fn mark_lacks(dir: &Path, root: &[String]) -> Result<(), String> {
 
 fn load_files(path: &Path) -> Result<ast::Program, String> {
     if path.is_file() {
-        if path.extension().map(|x| x != "cpls").unwrap_or(true) { return Err("oracle: a Nerve source file ends in .cpls".into()); }
+        if path.extension().map(|x| x == "cpls").unwrap_or(false) { return Err(format!("{}: `.cpls` is the old ending: rename the file to `.nrv` (owner, 2026-10-09)", path.display())); }
+        if path.extension().map(|x| x != "nrv").unwrap_or(true) { return Err("oracle: a Nerve source file ends in .nrv".into()); }
         return parse_file(path, Vec::new());
     }
-    if !path.is_dir() { return Err(format!("oracle: {} is neither a .cpls file nor a Neuron directory", path.display())); }
+    if !path.is_dir() { return Err(format!("oracle: {} is neither a .nrv file nor a Neuron directory", path.display())); }
     mark_lacks(path, &[])?;
     let mut prog = load_limb(path, Vec::new())?;
-    // the Neurons it depends on, from its `CCA.cplr` (owner, 2026-09-29), each under a root of its own
+    // the Neurons it depends on, from its `Kinesin.nrp` (owner, 2026-09-29), each under a root of its own
     let mut loaded: Vec<(String, PathBuf)> = Vec::new();
     load_deps(path, &mut prog, &mut loaded, &mut Vec::new())?;
     Ok(prog)
@@ -179,8 +180,9 @@ fn load_files(path: &Path) -> Result<ast::Program, String> {
 
 /// One Neuron directory, its modules under `root` (`[]` for the Neuron being built).
 fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
-    let rootfile = path.join("limb.cpls");
-    if !rootfile.is_file() { return Err(format!("{}: a Neuron directory needs its root file, limb.cpls", path.display())); }
+    if !path.join("neuron.nrv").is_file() && path.join("limb.cpls").is_file() { return Err(format!("{}: `limb.cpls` is the old root file: rename it to `neuron.nrv` (owner, 2026-10-09)", path.display())); }
+    let rootfile = path.join("neuron.nrv");
+    if !rootfile.is_file() { return Err(format!("{}: a Neuron directory needs its root file, neuron.nrv", path.display())); }
     let mut prog = parse_file_in(&rootfile, root.clone(), root.clone())?;
     let mut files = Vec::new();
     collect(path, &mut Vec::new(), &mut files)?;
@@ -199,7 +201,7 @@ fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
         }
         prog.modules.push(ast::ModuleDef { path: module.clone(), vis: ast::Vis::Pub, line: 0 });
         let part = parse_file_in(&file, module, root.clone())?;
-        if part.main.is_some() { return Err(format!("{}: MAIN lives in limb.cpls, the root of the Neuron", file.display())); }
+        if part.main.is_some() { return Err(format!("{}: MAIN lives in neuron.nrv, the root of the Neuron", file.display())); }
         prog.funcs.extend(part.funcs);
         prog.structs.extend(part.structs);
         prog.consts.extend(part.consts);
@@ -215,7 +217,7 @@ fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
     Ok(prog)
 }
 
-/// A dependency from `CCA.cplr`: `cca::Dep[path = "../geometry"]` (or an `id` and `version`, from
+/// A dependency from `Kinesin.nrp`: `kin::Dep[path = "../geometry"]` (or an `id` and `version`, from
 /// the registry, which the oracle cannot fetch). It names no word: code writes the Neuron's own 'prefix'.
 struct Dep { what: String, path: Option<String>, version: Option<String>, id: Option<String> }
 
@@ -227,16 +229,16 @@ const OFFICIAL_CORES: [&str; 15] = ["IEG", "ASP", "Genny", "MCPS", "AutoGPU", "M
 
 use parser::CORE_IDS;
 
-/// Read a Neuron's `CCA.cplr`: one Nerve value, `cca::Manifest[ … ]` (owner, 2026-10-06: "`c`. It may
+/// Read a Neuron's `Kinesin.nrp`: one Nerve value, `kin::Manifest[ … ]` (owner, 2026-10-06: "`c`. It may
 /// not look as complex, but at least it's not much of a roleplay"), replacing 2026-09-29's one `const`
-/// per setting. Returns its 'prefix' (none when there is no `CCA.cplr`), its dependencies and its cores.
+/// per setting. Returns its 'prefix' (none when there is no `Kinesin.nrp`), its dependencies and its cores.
 fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), String> {
-    let file = dir.join("CCA.cplr");
+    let file = dir.join("Kinesin.nrp");
     if !file.is_file() { return Ok((None, Vec::new(), Vec::new())); }
     let shown = file.display();
     let src = std::fs::read_to_string(&file).map_err(|e| format!("{shown}: cannot read: {e}"))?;
     let toks = lexer::lex(&src).map_err(|e| format!("{shown}: line {}:{}: {}", e.line, e.col, e.msg))?;
-    let one = "CCA.cplr is one value: `cca::Manifest[name = \"shop\", prefix = \"shop\", version = \"1.0.0\", targets = [cca::Target[name = \"aarch64-macos\"],]];`";
+    let one = "Kinesin.nrp is one value: `kin::Manifest[name = \"shop\", prefix = \"shop\", version = \"1.0.0\", targets = [kin::Target[name = \"aarch64-macos\"],]];`";
     if matches!(toks.first().map(|t| &t.tok), Some(lexer::Tok::Word(w)) if w == "const" || w == "pub") {
         return Err(format!("{shown}: line {}: settings are no longer `const`s (2026-10-06): {one}", toks[0].line));
     }
@@ -272,11 +274,11 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
             }
             "version" => {
                 let v = text(value).ok_or_else(|| format!("{shown}: line {line}: `version` is a text"))?;
-                // any text, at most 256 bytes, as in Synthia.ttsr (owner, 2026-09-29: "256 bytes it is"; for CCA.cplr: "same")
+                // any text, at most 256 bytes, as in Synthia.ttsr (owner, 2026-09-29: "256 bytes it is"; for Kinesin.nrp: "same")
                 if v.len() > 256 { return Err(format!("{shown}: line {line}: `version` is at most 256 bytes, and this one is {}", v.len())); }
                 has_version = true;
             }
-            "target" => return Err(format!("{shown}: line {line}: a Neuron builds for several targets, so the field is `targets`: `targets = [cca::Target[name = \"aarch64-macos\"],]`")),
+            "target" => return Err(format!("{shown}: line {line}: a Neuron builds for several targets, so the field is `targets`: `targets = [kin::Target[name = \"aarch64-macos\"],]`")),
             // several targets, each with its settings (owner, 2026-09-29): CCA's package manager can do
             // whatever Synthia can, in its plainer way
             "targets" => {
@@ -286,8 +288,8 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                 let mut defaults = 0;
                 let mut names = Vec::new();
                 for it in items {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a target is `cca::Target[name = …]`, with a `runner` if it has one")) };
-                    if shape != "::cca.Target" { return Err(format!("{shown}: line {line}: a target is a `cca::Target`")); }
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a target is `kin::Target[name = …]`, with a `runner` if it has one")) };
+                    if shape != "::kin.Target" { return Err(format!("{shown}: line {line}: a target is a `kin::Target`")); }
                     if !fields.iter().any(|(f, _)| f == "name") { return Err(format!("{shown}: line {line}: a target needs its `name`")); }
                     for (f, b) in &fields {
                         // the one built when none is named (owner, 2026-09-29: b)
@@ -296,7 +298,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                                 _ => return Err(format!("{shown}: line {line}: `default` is `true` or `false`")) }
                             continue;
                         }
-                        if f != "name" && f != "runner" { return Err(format!("{shown}: line {line}: a `cca::Target` has no `{f}`; it has `name`, `runner` and `default`")); }
+                        if f != "name" && f != "runner" { return Err(format!("{shown}: line {line}: a `kin::Target` has no `{f}`; it has `name`, `runner` and `default`")); }
                         let t = text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
                         if f == "name" { names.push((t, line)); }
                     }
@@ -311,16 +313,16 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
             }
             "dependencies" => {
                 for it in items(value) {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a dependency is `cca::Dep[path = …]` or `cca::Dep[id = …, version = …]`")) };
-                    if shape != "::cca.Dep" { return Err(format!("{shown}: line {line}: a dependency is a `cca::Dep`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a dependency is `kin::Dep[path = …]` or `kin::Dep[id = …, version = …]`")) };
+                    if shape != "::kin.Dep" { return Err(format!("{shown}: line {line}: a dependency is a `kin::Dep`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
                     let mut d = Dep { what: String::new(), path: None, version: None, id: None };
                     for (f, b) in &fields {
                         // two Neurons with one prefix are an error, fixed by editing a Neuron's source (owner, 2026-09-29:
                         // "Just edit the source code"), so a dependency names no word
-                        if f == "name" || f == "prefix" { return Err(format!("{shown}: line {line}: a dependency names no word: code writes the Neuron's own 'prefix', from its `CCA.cplr`")); }
+                        if f == "name" || f == "prefix" { return Err(format!("{shown}: line {line}: a dependency names no word: code writes the Neuron's own 'prefix', from its `Kinesin.nrp`")); }
                         let t = text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
                         match f.as_str() { "path" => d.path = Some(t), "version" => d.version = Some(t), "id" => d.id = Some(t),
-                            other => return Err(format!("{shown}: line {line}: a `cca::Dep` has no `{other}`; it has `path`, or `id` and `version`")) }
+                            other => return Err(format!("{shown}: line {line}: a `kin::Dep` has no `{other}`; it has `path`, or `id` and `version`")) }
                     }
                     d.what = match (&d.path, &d.id) { (Some(p), _) => format!("the Neuron at `{p}`"), (None, Some(i)) => format!("the Neuron `{}…`", &i[..i.len().min(8)]), _ => "the dependency".into() };
                     if d.path.is_some() == d.version.is_some() { return Err(format!("{shown}: line {line}: a dependency says where it comes from once: a `path` on this machine, or an `id` and `version` from the registry")); }
@@ -342,20 +344,20 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
             }
             // the cores a Neuron is built for (owner, 2026-10-05: "Limbs should say what cores they are built
             // for"), each by its registry ID and version, or a `path` for one never registered (2026-10-06)
-            // a core is a lobe (owner, 2026-10-09); `cores` and `cca::Core` are the old spellings
+            // a core is a lobe (owner, 2026-10-09); `cores` and `kin::Core` are the old spellings
             "cores" => return Err(format!("{shown}: line {line}: `cores` is an old spelling: write `lobes` (owner, 2026-10-09)")),
             "lobes" => {
                 for it in items(value) {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a lobe is `cca::Lobe[id = \"…\", version = \"…\"]`")) };
-                    if shape == "::cca.Core" { return Err(format!("{shown}: line {line}: `cca::Core` is an old spelling: write `cca::Lobe` (owner, 2026-10-09)")); }
-                    if shape != "::cca.Lobe" { return Err(format!("{shown}: line {line}: a lobe is a `cca::Lobe`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a lobe is `kin::Lobe[id = \"…\", version = \"…\"]`")) };
+                    if shape == "::kin.Core" { return Err(format!("{shown}: line {line}: `kin::Core` is an old spelling: write `kin::Lobe` (owner, 2026-10-09)")); }
+                    if shape != "::kin.Lobe" { return Err(format!("{shown}: line {line}: a lobe is a `kin::Lobe`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
                     let (mut id, mut version, mut cpath) = (None, None, None);
                     for (f, b) in &fields {
                         let t = text(b).ok_or_else(|| format!("{shown}: line {line}: a lobe's `{f}` is a text"))?;
                         match f.as_str() {
                             "id" => id = Some(t), "version" => version = Some(t), "path" => cpath = Some(t),
-                            "name" => return Err(format!("{shown}: line {line}: a lobe is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `cca::Lobe[id = \"…\", version = \"…\"]`{}", CORE_IDS.iter().find(|(n, _)| *n == t).map(|(n, i)| format!("; {n}'s is `{i}`")).unwrap_or_default())),
-                            other => return Err(format!("{shown}: line {line}: a `cca::Lobe` has no `{other}`; it has `id` and `version`, or a `path`")),
+                            "name" => return Err(format!("{shown}: line {line}: a lobe is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `kin::Lobe[id = \"…\", version = \"…\"]`{}", CORE_IDS.iter().find(|(n, _)| *n == t).map(|(n, i)| format!("; {n}'s is `{i}`")).unwrap_or_default())),
+                            other => return Err(format!("{shown}: line {line}: a `kin::Lobe` has no `{other}`; it has `id` and `version`, or a `path`")),
                         }
                     }
                     if cpath.is_some() {
@@ -380,15 +382,15 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
             "powers" | "deny" => {
                 let mut list = Vec::new();
                 for it in items(value) {
-                    let ast::Expr::Text(t, _) = &it else { return Err(format!("{shown}: line {line}: a power is `cca::Power.c_calls`, narrowed with `.` and naming things in `[ ]`")) };
-                    let Some(text) = t.strip_prefix("power:") else { return Err(format!("{shown}: line {line}: a power is `cca::Power.c_calls`, not a text")) };
+                    let ast::Expr::Text(t, _) = &it else { return Err(format!("{shown}: line {line}: a power is `kin::Power.c_calls`, narrowed with `.` and naming things in `[ ]`")) };
+                    let Some(text) = t.strip_prefix("power:") else { return Err(format!("{shown}: line {line}: a power is `kin::Power.c_calls`, not a text")) };
                     let pw = parse_power(text).map_err(|m| format!("{shown}: line {line}: {m}"))?;
                     if f == "powers" && (!pw.except.is_empty() || !pw.for_.is_empty()) { return Err(format!("{shown}: line {line}: `.except` and `.for` belong to `deny`; `powers` lists what this Neuron uses")); }
                     list.push(pw);
                 }
                 if f == "powers" { powers_seen = list; } else { deny_seen = list; }
             }
-            other => return Err(format!("{shown}: line {line}: a `cca::Manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies`, `lobes`, `powers` and `deny`")),
+            other => return Err(format!("{shown}: line {line}: a `kin::Manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies`, `lobes`, `powers` and `deny`")),
         }
     }
     // a build needs the Neuron's name, version and a target; only publishing needs more (owner, 2026-09-29:
@@ -397,7 +399,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     if !name { return Err(format!("{shown}: line {mline}: the manifest has no `name`: {why}: `name = \"shop\"`")); }
     if prefix.is_none() { return Err(format!("{shown}: line {mline}: the manifest has no `prefix`, the word code writes in front of `::` to reach this Neuron: {why}: `prefix = \"shop\"`")); }
     if !has_version { return Err(format!("{shown}: line {mline}: the manifest has no `version`: {why}: `version = \"1.0.0\"`")); }
-    if targets == 0 { return Err(format!("{shown}: line {mline}: the manifest has no target: {why}: `targets = [cca::Target[name = \"aarch64-macos\"],]`")); }
+    if targets == 0 { return Err(format!("{shown}: line {mline}: the manifest has no target: {why}: `targets = [kin::Target[name = \"aarch64-macos\"],]`")); }
     // std needs ASP (owner, 2026-10-06: "You genuinely have to be shitting on my ass, if you installed
     // std without fucking ASP")
     if deps.iter().any(Dep::is_std) && !cores.iter().any(|c| c == "ASP") {
@@ -421,7 +423,7 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
     let here = dir.canonicalize().map_err(|e| format!("{}: {e}", dir.display()))?;
     chain.push(here);
     for d in deps {
-        let here_file = dir.join("CCA.cplr");
+        let here_file = dir.join("Kinesin.nrp");
         if d.is_std() { continue; }
         let Some(rel) = &d.path else {
             return Err(format!("{}: {} comes from the registry; the oracle takes `path` dependencies only", here_file.display(), d.what));
@@ -429,11 +431,11 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
         let depdir = dir.join(rel);
         let canon = depdir.canonicalize().map_err(|_| format!("{}: a dependency is at `{rel}`, and there is no directory there", here_file.display()))?;
         if chain.contains(&canon) { return Err(format!("{}: {} depends, through its dependencies, on itself", here_file.display(), d.what)); }
-        if !depdir.join("CCA.cplr").is_file() { return Err(format!("{}: {} has no `CCA.cplr`, so no 'prefix' for code to reach it by", here_file.display(), d.what)); }
+        if !depdir.join("Kinesin.nrp").is_file() { return Err(format!("{}: {} has no `Kinesin.nrp`, so no 'prefix' for code to reach it by", here_file.display(), d.what)); }
         let (Some(prefix), _, _) = read_manifest(&depdir)? else { unreachable!() };
         // a Neuron may pick `std` or `cca`; it just clashes with the built-in one (owner, 2026-09-29)
         // `cord` is the built-in's name since 2026-10-09; `cord` (2026-10-07) and `std` are its old ones, refused in code
-        if prefix == "std" || prefix == "stdkit" || prefix == "cord" || prefix == "cca" { return Err(format!("{}: {} has the prefix `{prefix}`, which names the built-in `{}::`; edit its 'prefix'", here_file.display(), d.what, if prefix == "cca" { "cca" } else { "cord" })); }
+        if prefix == "std" || prefix == "stdkit" || prefix == "cord" || prefix == "cca" || prefix == "kin" { return Err(format!("{}: {} has the prefix `{prefix}`, which names the built-in `{}::`; edit its 'prefix'", here_file.display(), d.what, if prefix == "cca" { "cca" } else { "cord" })); }
         if let Some((_, p)) = loaded.iter().find(|(n, _)| *n == prefix) {
             if *p != canon { return Err(format!("{}: two Neurons have the prefix `{prefix}` ({} and {}); edit one Neuron's 'prefix'", here_file.display(), p.display(), canon.display())); }
             continue;
@@ -457,7 +459,7 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
 
 /// The power check (owner, 2026-10-07): each use is granted (Brainstem grants the dangerous powers to
 /// every limb, IEG grants vouching and the operator powers to the limbs that list it), listed in the
-/// using Neuron's `powers`, and not taken away by the program's `deny`. A Neuron with no `CCA.cplr` has
+/// using Neuron's `powers`, and not taken away by the program's `deny`. A Neuron with no `Kinesin.nrp` has
 /// every power, and nothing is checked.
 fn check_powers(prog: &ast::Program) -> Result<(), String> {
     use ast::Ty;
@@ -509,7 +511,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
             // 2. listed by the Neuron
             let covers = |p: &PowerRef| p.path.len() <= segs.len() && p.path.iter().zip(&segs).all(|(a, b)| a == b) && (p.things.is_empty() || thing.as_ref().map_or(false, |t| p.things.contains(t)));
             if !limb.powers.iter().any(covers) {
-                return Err(format!("{at}: {who} {what}, and its CCA.cplr does not list `{}`: add `cca::Power.{}` to its `powers`", segs[0], segs[0]));
+                return Err(format!("{at}: {who} {what}, and its Kinesin.nrp does not list `{}`: add `kin::Power.{}` to its `powers`", segs[0], segs[0]));
             }
             // 3. not denied by the program
             if let Some(prog_limb) = program {
@@ -519,7 +521,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
                     let for_ok = d.for_.is_empty() || d.for_.contains(&limb.prefix);
                     let except_hit = thing.as_ref().map_or(false, |t| d.except.contains(t));
                     if path_ok && things_ok && for_ok && !except_hit {
-                        return Err(format!("{at}: {who} {what}, which this program denies (`deny`: `cca::Power.{}`)", d.path.join(".")));
+                        return Err(format!("{at}: {who} {what}, which this program denies (`deny`: `kin::Power.{}`)", d.path.join(".")));
                     }
                 }
             }
@@ -684,7 +686,7 @@ fn check_bare(prog: &ast::Program) -> Result<std::collections::HashMap<String, a
             BareTarget::Kind(k) => k == kind && m.limb_root == root,
         }).collect();
         let Some(first) = covering.first() else {
-            return Err(format!("line {line}: `{kind} {shown}` is `pub`, and nothing says how other Neurons write its path: mark it (`pub bare.never {kind} …`), its module, or its kind in `limb.cpls` (`bare.never [{kind}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default"));
+            return Err(format!("line {line}: `{kind} {shown}` is `pub`, and nothing says how other Neurons write its path: mark it (`pub bare.never {kind} …`), its module, or its kind in `neuron.nrv` (`bare.never [{kind}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default"));
         };
         if let Some(other) = covering.iter().find(|m| m.mode != first.mode) {
             return Err(format!("line {line}: `{kind} {shown}` is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error", word(first.mode), crate::interp::line_of(first.line), word(other.mode), crate::interp::line_of(other.line)));
@@ -721,9 +723,11 @@ fn collect(dir: &Path, prefix: &mut Vec<String>, out: &mut Vec<(Vec<String>, Pat
             prefix.push(name);
             collect(&p, prefix, out)?;
             prefix.pop();
-        } else if let Some(stem) = name.strip_suffix(".cpls") {
-            if prefix.is_empty() && stem == "limb" { continue; }
-            if stem == "limb" { return Err(format!("{}: `limb` names the root; a module cannot be called that", p.display())); }
+        } else if name.ends_with(".cpls") || name == "CCA.cplr" {
+            return Err(format!("{}: `{name}` has the old name: rename it to `{}` (owner, 2026-10-09)", p.display(), if name == "CCA.cplr" { "Kinesin.nrp".to_string() } else { name.replace(".cpls", ".nrv") }));
+        } else if let Some(stem) = name.strip_suffix(".nrv") {
+            if prefix.is_empty() && stem == "neuron" { continue; }
+            if stem == "neuron" { return Err(format!("{}: `neuron` names the root; a module cannot be called that", p.display())); }
             if stem == "my" { return Err(format!("{}: `my` is the root's path (`my.helper[]`); a module cannot be called that", p.display())); }
             parser::module_name_ok(stem).map_err(|m| format!("{}: `{stem}` cannot name a module: {m}", p.display()))?;
             let mut module = prefix.clone();
@@ -745,7 +749,7 @@ pub fn run_path_as(path: &Path, out: Box<dyn std::io::Write>, tests: bool) -> Re
 
 /// `args`: the words after `--`, which MAIN reads as C's argc/argv (owner, 2026-09-29).
 pub fn run_with_args(path: &Path, out: Box<dyn std::io::Write>, tests: bool, args: Vec<String>) -> Result<u8, String> {
-    interp::set_shown_file(&if path.is_dir() { "limb.cpls".to_string() } else { path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default() });
+    interp::set_shown_file(&if path.is_dir() { "neuron.nrv".to_string() } else { path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default() });
     let prog = load(path)?;
     let marks = check_bare(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     let mut interp = interp::Interp::new(&prog, out);
@@ -775,7 +779,7 @@ fn main() {
     let (tests, target) = match head {
         [_, t] => (false, t),
         [_, flag, t] if flag == "--test" => (true, t),
-        _ => { eprintln!("usage: oracle [--test] <file.cpls | limb-directory> [-- program arguments]"); exit(2); }
+        _ => { eprintln!("usage: oracle [--test] <file.nrv | limb-directory> [-- program arguments]"); exit(2); }
     };
     // the parser and the interpreter recurse, so a call nested a few thousand deep in one expression
     // needs more than the main thread's 8 MB (check claude, seed 32299): 1 GB, only what is used is touched

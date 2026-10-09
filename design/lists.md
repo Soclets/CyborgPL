@@ -250,7 +250,7 @@ none, since its counter is already the position, so `for 'i', 'x' in
 range[…]` is refused. With `perm`, both outlive the loop (the oracle's
 reading, not asked). Proposed alternative: leave it, looping over
 `range[1, list.length[…]]` and reading `'xs'['i']`, one extra line.
-`examples/for_position.cpls`.
+`examples/for_position.nrv`.
 
 ## Open
 
@@ -269,5 +269,5 @@ With it, CCA can ask for memory already zeroed (C's `calloc`) where the
 value is `false` or `0`, instead of growing a list one append at a time.
 Proposed alternatives: `list.repeat[…]`, Rust's `[0; 10]`; for strict,
 both labelled (`value 0, count 10`) or no change. `array.fill` was
-mentioned, not asked. `examples/list_fill.cpls`, `list_fill_strict.cpls`.
+mentioned, not asked. `examples/list_fill.nrv`, `list_fill_strict.nrv`.
 

@@ -1,7 +1,0 @@
-cca::Manifest[
-    name = "x",
-    prefix = "x",
-    version = "1.0.0",
-    lobes = [cca::Lobe[name = "IEG"],],
-    targets = [cca::Target[name = "aarch64-macos"],]
-];

@@ -26,7 +26,7 @@ v1 syntax carries over unless the owner explicitly chooses it.
 ## Sessions
 
 - **Design session** ("design claude", this repo's default): decisions, `design/`, `DECISIONS.md`, the oracle. Commits carry `Co-Authored-By: design claude <noreply@anthropic.com>`.
-- **Compiler session** ("compiler claude"): CCA, including its built-in package manager (`CCA.cplr`, owner 2026-09-29). Its brief is `design/compiler-session.md`; it works in its own clone of this repo at `/Users/ts/Nerve compiler` (same `main`, no branch; its own folder so it has its own Claude memory), in `cca/`; both clones `git pull --rebase` before pushing; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
+- **Compiler session** ("compiler claude"): CCA, including its built-in package manager, Kinesin (manifest `Kinesin.nrp`, owner 2026-09-29). Its brief is `design/compiler-session.md`; it works in its own clone of this repo at `/Users/ts/Nerve compiler` (same `main`, no branch; its own folder so it has its own Claude memory), in `cca/`; both clones `git pull --rebase` before pushing; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
 - **Synthia session** ("synthia claude", owner 2026-09-29): Synthia, the separate package manager, written in Go, in its own repo (`Cyborg-Assembly-Manufacturing-Site/Synthia`, checked out at `/Users/ts/Synthia`), not this one. Its brief is `design/synthia-session.md`. Started 2026-09-29; Go only for now, and it never runs `cca`.
 - **Verification session** ("check claude"): the program generator, the differential harness, the Cortex oracle, translation validation. Its brief is `design/verification-session.md`; it works in its own clone at `/Users/ts/Nerve verification`, in `check/`. It reads `design/` and the tests, and **never `cca/` or `oracle/src`** — it is a different author from Cortex's, which is what makes its checks mean anything. Commits carry `Co-Authored-By: check claude <noreply@anthropic.com>`.
 
@@ -49,7 +49,7 @@ v1 syntax carries over unless the owner explicitly chooses it.
 
 - `DECISIONS.md` — the running log of settled design decisions.
 - `design/` — design documents, one topic per file, as they are written.
-- `examples/` — `.cpls` programs using settled syntax only, each with its
+- `examples/` — `.nrv` programs using settled syntax only, each with its
   expected `.out` (and `.exit` if non-zero). Run by the oracle's tests.
 - `website/` — the open-source Nerve website (owner, 2026-09-23), built by
   the website session, which updates it only when the owner says so.
@@ -76,10 +76,15 @@ design clone is `/Users/ts/Nerve`, the others `/Users/ts/Nerve compiler`,
 `Cyborg-Assembly-Manufacturing-Site/CyborgPL` and the `/Users/ts/CyborgPL v2…`
 folders are frozen at 087cdfc8: never push there. The prose says Nerve
 (step 1, 2026-10-08); the standard library is `cord` and a library is a
-Neuron, `pub.neuron`, Precog is Cortex, a core is a lobe, `lobes = [cca::Lobe[…]]`,
-the base (Signatar) is the Brainstem, and the runtime is Axon (2026-10-09); the code and its words still say CCA, `limb.cpls` (→ `neuron.nrv` with the endings), `.cpls`, `CCA.cplr`,
-renamed later one piece at a time (the Nerve
-names are in `DECISIONS.md`).
+Neuron, `pub.neuron`, Precog is Cortex, a core is a lobe, `lobes =
+[kin::Lobe[…]]`, the base (Signatar) is the Brainstem, the runtime is Axon,
+and the built-in package manager is Kinesin (2026-10-09). Code ends **`.nrv`**
+(was `.cpls`), a Neuron's root is `neuron.nrv` (was `limb.cpls`), a file that
+is one value and never runs ends **`.nrp`**, and the manifest is
+`Kinesin.nrp` with `kin::` types (was `CCA.cplr`, `cca::`). Still to rename:
+CCA → Synapse (the `cca` command and folder, compiler claude's), and
+`build.cplr` / `cpl_ver.cplr` (not yet asked). The Nerve names are in
+`DECISIONS.md`.
 
 ## Git
 

@@ -18,7 +18,7 @@ parallel:
   a short loop is not worth waking a thread for. **Cortex estimates it
   itself** (owner, 2026-09-30: "Bro, Precog exists"), from the trips and
   the work of each, never from a number someone picks or from timing the
-  machine — and **a measurement in `tune.cplr` wins where there is one**
+  machine — and **a measurement in `tune.nrp` wins where there is one**
   (owner: a), as for the GPU: `cca tune` times the undecided loops once,
   outside the build (`gpu.md`). A missing or stale entry only costs speed,
   never correctness. Proposed: a fixed trip threshold; the estimate alone
@@ -93,7 +93,7 @@ Nerve for timing code and the like, where today an empty
 are scheduled, so `for !cheat seq`, never `for seq !cheat` (refused). It is the
 rule `.useful` already follows in `print.useful.stdout` and
 `to.useful.str.utf8`. `!cheat` is a token of its own, not a reserved name.
-`examples/for_no_cheat.cpls`; reject test for_no_cheat_order.
+`examples/for_no_cheat.nrv`; reject test for_no_cheat_order.
 
 ## The GPU (owner, 2026-09-21: automatic)
 

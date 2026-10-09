@@ -1,5 +1,5 @@
-//! Every `examples/*.cpls` must produce its `.out` (and its `.exit` code, if
-//! present). Every `tests/reject/*.cpls` must fail with a message containing
+//! Every `examples/*.nrv` must produce its `.out` (and its `.exit` code, if
+//! present). Every `tests/reject/*.nrv` must fail with a message containing
 //! its `.err`. Run: `cargo test` in oracle/.
 
 use std::fs;
@@ -14,12 +14,12 @@ fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_path_buf()
 }
 
-/// `.cpls` files, plus Limb directories (a directory holding `limb.cpls`);
+/// `.nrv` files, plus Limb directories (a directory holding `neuron.nrv`);
 /// a directory's expected `.out` / `.err` sits beside it, named after it.
 fn cpls_files(dir: &Path) -> Vec<PathBuf> {
     let mut v: Vec<PathBuf> = fs::read_dir(dir).unwrap()
         .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| p.extension().map(|x| x == "cpls").unwrap_or(false) || p.join("limb.cpls").is_file())
+        .filter(|p| p.extension().map(|x| x == "nrv").unwrap_or(false) || p.join("neuron.nrv").is_file())
         .collect();
     v.sort();
     v
