@@ -1505,7 +1505,8 @@ impl<'p> Interp<'p> {
             // a length is a uint64, and an item has its list's element type (check claude, seeds 5018, 5054)
             Expr::Builtin(h, op, _, _) if (h == "list" || h == "array") && op == "length" => Some(Ty::Uint(IntWidth::W64)),
             Expr::Index(name, _, _) | Expr::CallValue(name, _, _, _) => match self.lookup(name).and_then(|s| s.ty.clone()) {
-                Some(Ty::List(t)) | Some(Ty::Array(t)) => Some(*t),
+                // a vector's lane, `'s'[pos 2]`, has the lane's type (check claude, seed 42640)
+                Some(Ty::List(t)) | Some(Ty::Array(t)) | Some(Ty::Simd(t, _)) => Some(*t),
                 Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(t) | Ty::Array(t) => Some(*t), _ => None },
                 _ => None,
             },
