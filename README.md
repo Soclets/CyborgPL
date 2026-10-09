@@ -1,5 +1,5 @@
 <p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="brand/nerve/wordmark-white.svg"><img src="brand/nerve/wordmark-black.svg" alt="Nerve" width="320"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="brand/nerve/wordmark-cross-mono-white.svg"><img src="brand/nerve/wordmark-cross-mono-black.svg" alt="Nerve" width="380"></picture>
 </p>
 
 <h3 align="center">Nerve™</h3>
@@ -18,7 +18,7 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 - [`examples/`](examples/) — programs in settled syntax, each with its expected output.
 - [`oracle/`](oracle/) — the reference interpreter: the executable spec.
 - [`synapse/`](synapse/) — the compiler.
-- [`brand/`](brand/) — the official logo is the NERVE wordmark in [`brand/nerve/`](brand/nerve/) (owner, 2026-10-09: "Mono as official logo"): block letters with a nerve impulse through them, black on light backgrounds and white on dark; and the icon, [`brand/nerve/icon.svg`](brand/nerve/icon.svg) (owner, 2026-10-09: "The last one, official now"), a starburst nerve on its own black rounded tile, always shown with its tile. The earlier mark (a circular C wrapping `:=`) is still in `brand/`.
+- [`brand/`](brand/) — the official logo is the NERVE wordmark in [`brand/nerve/`](brand/nerve/) (owner, 2026-10-09: "Mono as official logo"): block letters with a nerve impulse through them, black on light backgrounds and white on dark, shown at the top with a medical cross after it, carrying its own impulse (`wordmark-cross-mono-*.svg`); and the icon, [`brand/nerve/icon.svg`](brand/nerve/icon.svg) (owner, 2026-10-09: "The last one, official now"), a starburst nerve on its own black rounded tile, always shown with its tile. The earlier mark (a circular C wrapping `:=`) is still in `brand/`.
 - [`LICENSE`](LICENSE) — Apache-2.0 WITH LLVM-exception. Programs you compile owe nothing; a fork keeps the notices and may not use the name.
 - [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) — CC BY 4.0, for this repo's text (its Markdown files: this README, `DECISIONS.md`, `design/` and the other notes), the website's text (`website/`) and the logo files (`brand/`): copy them, translate, remix, use them anywhere, with credit. Credit them exactly as:
   - this repo's text: `Nerve GitHub repo text: https://nerve-lang.com, https://github.com/Soclets/Nerve-lang`

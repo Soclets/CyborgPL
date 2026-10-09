@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — The README's top shows the cross wordmark (owner, via website claude)
+
+Relayed by website claude: "Let design claude add this to README", for the
+mono cross wordmark (7c72bf7c): the kerned NERVE (kerned 8f08525c, owner:
+"tell website claude to kern it", after "the v has exta space") followed by
+a softened medical cross in the letters' colour, carrying its own impulse.
+Asked where, the owner: "`a`": **it replaces the plain wordmark at the
+README's top**, black in light mode and white in dark, 380 px wide. The
+site's kerned wordmark is already deployed (owner: "it's already deployed").
+
 ### 2026-10-09 — Text into a deci goes by the value; `.written` counts the digits as written (owner)
 
 Check claude's question (seed 42580): does a trailing zero count against a
