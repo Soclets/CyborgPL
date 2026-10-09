@@ -659,43 +659,71 @@ fn check_redeclared(prog: &ast::Program) -> Result<(), String> {
     Ok(())
 }
 
-/// A function's `return` of a plain literal of the wrong kind is refused in code that never runs too
-/// (check claude, seed 44056: the oracle checked a return only where it ran), as a `let` over a name is
-/// (caba9b84). Only literals are judged here: a `bool` where a number is due, a number where a `bool` is,
-/// a text where neither text nor anything else takes it; the interpreter checks the rest as it runs.
+/// A function's `return` of the wrong kind is refused in code that never runs too (check claude, seed
+/// 44056: the oracle checked a return only where it ran), as a `let` over a name is (caba9b84). Judged
+/// here: a literal, or a name whose type is known from its declaration (a parameter, `let` / `shadow`
+/// with a type, or `:=` of a literal), when its kind (number, `bool`, text) cannot be the return type's;
+/// the interpreter checks the rest as it runs.
 fn check_return_literals(prog: &ast::Program) -> Result<(), String> {
     use ast::{Expr, Stmt, Ty};
-    fn kind_ok(e: &Expr, t: &Ty) -> Option<&'static str> {
-        let number = matches!(t, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Brain | Ty::Deci(_));
-        let text = matches!(t, Ty::Str(_));
-        match e {
-            Expr::Bool(..) if number || text => Some("a `bool`"),
-            Expr::Int(..) | Expr::Bin(..) | Expr::Exact(..) if matches!(t, Ty::Bool) || text => Some("a number"),
-            Expr::Text(..) if number || matches!(t, Ty::Bool) => Some("a text"),
+    #[derive(Clone, Copy, PartialEq)]
+    enum Kind { Number, Bool, Text }
+    fn of_ty(t: &Ty) -> Option<Kind> {
+        match t {
+            Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Brain | Ty::Deci(_) => Some(Kind::Number),
+            Ty::Bool => Some(Kind::Bool),
+            Ty::Str(_) => Some(Kind::Text),
             _ => None,
         }
     }
-    fn walk(body: &[Stmt], t: &Ty, f: &str) -> Result<(), String> {
-        for st in body {
-            match st {
-                Stmt::Return { value: Some(b), line } => {
-                    if let [ast::Value::Expr(e)] = b.values.as_slice() {
-                        if let Some(what) = kind_ok(e, t) {
-                            return Err(format!("line {line}: `{f}` returns {}, but this `return` gives {what}", value::ty_name(t)));
+    fn of_lit(e: &Expr) -> Option<Kind> {
+        match e {
+            Expr::Int(..) | Expr::Bin(..) | Expr::Exact(..) => Some(Kind::Number),
+            Expr::Bool(..) => Some(Kind::Bool),
+            Expr::Text(..) => Some(Kind::Text),
+            _ => None,
+        }
+    }
+    fn shown(k: Kind) -> &'static str { match k { Kind::Number => "a number", Kind::Bool => "a `bool`", Kind::Text => "a text" } }
+    type Scopes = Vec<Vec<(String, Option<Kind>)>>;
+    fn find(sc: &Scopes, n: &str) -> Option<Kind> { sc.iter().rev().flat_map(|s| s.iter().rev()).find(|(m, _)| m == n).and_then(|(_, k)| *k) }
+    fn walk(sc: &mut Scopes, body: &[Stmt], want: Kind, rt: &Ty, f: &str) -> Result<(), String> {
+        sc.push(Vec::new());
+        let r = (|| {
+            for st in body {
+                match st {
+                    Stmt::Decl { name, ty, value, .. } => {
+                        let k = match ty { Some(t) => of_ty(t), None => match value.values.as_slice() { [ast::Value::Expr(e)] => of_lit(e), _ => None } };
+                        sc.last_mut().unwrap().push((name.clone(), k));
+                    }
+                    Stmt::Return { value: Some(b), line } => {
+                        if let [ast::Value::Expr(e)] = b.values.as_slice() {
+                            let (k, what) = match e {
+                                Expr::Var(n, _) => (find(sc, n), format!("'{n}', which is ")),
+                                other => (of_lit(other), String::new()),
+                            };
+                            if let Some(k) = k { if k != want {
+                                return Err(format!("line {line}: `{f}` returns {}, but this `return` gives {what}{}", value::ty_name(rt), shown(k)));
+                            } }
                         }
                     }
+                    Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { walk(sc, b, want, rt, f)?; } if let Some(o) = otherwise { walk(sc, o, want, rt, f)?; } }
+                    Stmt::Loop { body, .. } | Stmt::Block { body, .. } | Stmt::While { body, .. } | Stmt::For { body, .. } | Stmt::Range { body, .. } => walk(sc, body, want, rt, f)?,
+                    Stmt::Tier { body, .. } => walk(sc, std::slice::from_ref(&**body), want, rt, f)?,
+                    Stmt::Match { arms, .. } => { for a in arms { walk(sc, &a.body, want, rt, f)?; } }
+                    _ => {}
                 }
-                Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { walk(b, t, f)?; } if let Some(o) = otherwise { walk(o, t, f)?; } }
-                Stmt::Loop { body, .. } | Stmt::Block { body, .. } | Stmt::While { body, .. } | Stmt::For { body, .. } | Stmt::Range { body, .. } => walk(body, t, f)?,
-                Stmt::Tier { body, .. } => walk(std::slice::from_ref(&**body), t, f)?,
-                Stmt::Match { arms, .. } => { for a in arms { walk(&a.body, t, f)?; } }
-                _ => {}
             }
-        }
-        Ok(())
+            Ok(())
+        })();
+        sc.pop();
+        r
     }
     for func in &prog.funcs {
-        if let Some(t) = &func.ret { walk(&func.body, t, &func.name)?; }
+        let Some(t) = &func.ret else { continue };
+        let Some(want) = of_ty(t) else { continue };
+        let mut sc: Scopes = vec![func.params.iter().map(|p| (p.name.clone(), p.ty.as_ref().and_then(of_ty))).collect()];
+        walk(&mut sc, &func.body, want, t, &func.name)?;
     }
     Ok(())
 }
