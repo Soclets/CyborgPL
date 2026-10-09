@@ -176,7 +176,11 @@ the owner: "`b`", then, for the credit, "`Nerve GitHub repo text`". So
 **every Markdown file in the repository (`*.md`: README, `DECISIONS.md`,
 `design/`, the other notes) is CC BY 4.0, credited `Nerve GitHub repo text:
 https://nerve-lang.com, https://github.com/Soclets/Nerve-lang`**; code and
-its comments stay Apache-2.0 WITH LLVM-exception. Where the line falls
+its comments stay Apache-2.0 WITH LLVM-exception. The scope note at the top of `LICENSE-CC-BY-4.0` (47f4ccb3) made
+GitHub stop recognizing the file, so its CC-BY-4.0 tab disappeared (owner:
+"our GH repo doesn't display CC BY on the tab"); the file is the official
+text again, unchanged, and the scope lives in the README's licence lines
+and warning only. Where the line falls
 (`*.md` files) is design claude's reading of "the GH repo's words". The
 same exchange: the repo's GitHub website set to https://nerve-lang.com and
 six topics added; its description, "One word: "Cortex"", kept (owner: "It
