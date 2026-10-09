@@ -578,8 +578,10 @@ remove_needs_pos [fnv:ab2e9906df557f37] :: the position says `pos`: `list.remove
 return_group_through_call [fnv:0d648b1bc81e861d] :: returns a borrow of 'c', which is not in @x
 return_in_main [fnv:3c8cbdc32042028c] :: `MAIN` is a block, not a function: it has no `return`
 return_needs_type [fnv:3bf50314ac10e1f2] :: `three` returns a value, so it says its type: `-> int32`
+return_shadowed_name_unrun [fnv:9dc746dde455db84] :: expected a value of the return type (uint8), found a `bool`
 return_type_colon [fnv:940ae1aff445aa14] :: the return type is `-> int32`, not `: int32`
 return_type_on_fn [fnv:031126c3980e54ca] :: the return type goes after the parameters
+return_wrong_kind_unrun [fnv:65c8529ba8f58ea7] :: expected a value of the return type (uint8), found a `bool`
 rust_string [fnv:ffdc0506a249c7be] :: text is `str.utf8`
 rust_usize [fnv:6bb0e8d9e2e18eb7] :: as big as the machine
 send_lend [fnv:39b4c67c5c98f0f5] :: write `give` (it moves) or `copy` (a second one)
