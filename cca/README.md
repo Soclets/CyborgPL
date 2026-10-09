@@ -31,7 +31,9 @@ are in it):
 - `cores/<name>/` — one crate per official lobe (a core until 2026-10-09; `cca-core-ieg`, …),
   each its name, registry ID and version for now; each lobe's features
   move in at its step.
-- `runtime/` — `cca-runtime`, the `no_std` Rust library linked into every
+- `runtime/` — `cca-runtime`, **Axon** (the runtime's name, owner
+  2026-10-09; the crate keeps its name until the code-name step), the
+  `no_std` Rust library linked into every
   CyborgPL binary.
 
 ./target/debug/cca build ../examples/… -o prog       # …then generate, link, and run
@@ -39,7 +41,7 @@ are in it):
 
 The build needs LLVM 22 and lld 22 where `cca/.cargo/config.toml` says they
 are (Homebrew's `llvm@22` and `lld@22` for now), a C++ compiler for the lld
-shim (`compiler/lld/shim.cpp`), and the runtime linked into every binary:
+shim (`compiler/lld/shim.cpp`), and Axon, the runtime, linked into every binary:
 `cargo build -p cca-runtime`. CCA links with lld through its library
 (owner, 2026-10-08: "We'll use `lld`", then "`a`", Zig's way), so LLVM is
 linked as one shared library, the one lld's libraries use; a self-contained
