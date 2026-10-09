@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="brand/logo.svg" alt="" width="96">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/nerve/wordmark-white.svg">
+    <img src="brand/nerve/wordmark-black.svg" alt="Nerve" width="320">
+  </picture>
 </p>
 
 <h3 align="center">Nerve™</h3>
@@ -18,7 +21,7 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 - [`examples/`](examples/) — programs in settled syntax, each with its expected output.
 - [`oracle/`](oracle/) — the reference interpreter: the executable spec.
 - [`synapse/`](synapse/) — the compiler.
-- [`brand/`](brand/) — the mark (a circular C wrapping `:=`). On a pure white or pure black background use the single-colour versions, never the purple one.
+- [`brand/`](brand/) — the official logo is the NERVE wordmark in [`brand/nerve/`](brand/nerve/) (owner, 2026-10-09: "Mono as official logo"): block letters with a nerve impulse cut through them, black on light backgrounds and white on dark. The earlier mark (a circular C wrapping `:=`) is still in `brand/`.
 - [`LICENSE`](LICENSE) — Apache-2.0 WITH LLVM-exception. Programs you compile owe nothing; a fork keeps the notices and may not use the name.
 - [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) — CC BY 4.0, for the website's text (`website/`): copy it, translate it, remix it, with credit. Credit it exactly as:
   `Original: Nerve™ (product name) at (one of the product's locations) nerve-lang.com (official website)`

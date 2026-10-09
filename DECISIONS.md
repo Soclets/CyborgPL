@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — The NERVE wordmark is the official logo (owner, via website claude)
+
+Relayed by website claude, with the owner's words: "Mono as official logo.
+Message design claude to add it to the README, replacing the original."
+The logo is the NERVE wordmark (`brand/nerve/`, 3bffea57, website claude's):
+heavy block letters with a nerve impulse cut through them at mid-height,
+see-through, black (`wordmark-black.svg`) for light backgrounds and white
+for dark. **The README's top shows it in place of the old C mark**, switching
+with GitHub's light and dark themes, and its `brand/` line describes it. The
+old C-mark files stay in `brand/` (not asked); the website keeps the old mark
+until the owner asks website claude.
+
 ### 2026-10-09 — CCA is Synapse; the command answers to both `synapse` and `syn` (owner)
 
 The last rename step, CCA → Synapse (chosen 2026-10-08): the owner, "Yea".
