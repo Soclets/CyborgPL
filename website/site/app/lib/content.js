@@ -65,13 +65,14 @@ export const LICENCE = [
       { label: "LLVM exception", href: "https://spdx.org/licenses/LLVM-exception.html" },
       { label: "LICENSE in the repo", href: `${REPO_URL}/blob/main/LICENSE` },
     ] },
-  // The credit lines are the owner's (2026-10-09), word for word as in the README.
-  { title: "This site’s text and the logos", text: "CC BY 4.0: copy, translate, remix and use them anywhere, with credit. Credit them exactly as:",
+  // The credit lines are the owner's (2026-10-09), word for word as in the README; the repo's text joined later that day.
+  { title: "Writing and logos", text: "CC BY 4.0 covers the repo’s text (its Markdown files: the README, DECISIONS.md, design/ and the other notes), this site’s text and the logos: copy them, translate, remix, use them anywhere, with credit. Credit them exactly as:",
     credits: [
+      { label: "The repo’s text", line: "Nerve GitHub repo text: https://nerve-lang.com, https://github.com/Soclets/Nerve-lang" },
       { label: "This site’s text", line: "Nerve website text: https://nerve-lang.com, https://github.com/Soclets/Nerve-lang" },
       { label: "The logos", line: "Nerve logo(s): https://nerve-lang.com, https://github.com/Soclets/Nerve-lang" },
     ],
-    note: "As the licence asks, also say they’re under CC BY 4.0, and whether you changed them. The site’s code stays under Apache-2.0, above.",
+    note: "As the licence asks, also say they’re under CC BY 4.0, and whether you changed them. Code and its comments, the site’s code included, stay under Apache-2.0, above.",
     links: [
       { label: "CC BY 4.0", href: "https://creativecommons.org/licenses/by/4.0/" },
       { label: "Legal code", href: "https://creativecommons.org/licenses/by/4.0/legalcode" },
