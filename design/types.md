@@ -55,7 +55,7 @@ what hashes and big counters want, and `std::uenr` is built on them.
 Owner's condition, recorded as a requirement rather than a wish:
 **`std::uenr` had better be optimised.** It is now the only answer for
 precision beyond 64 bits, so its performance is not a nice-to-have —
-see `implementation-languages.md`, where the runtime is `no_std` Rust
+see `implementation-languages.md`, where Axon, the runtime, is `no_std` Rust
 and `deci`/`uenr` are ours to write rather than vendored.
 
 ## Integers of any width: `!std.int24` (owner, 2026-10-03; the `.` since 2026-10-06)

@@ -12,7 +12,7 @@ A bug here does not crash Nerve; it makes Nerve *lie*.
   use-after-free in a user's binary.
 - **Proof-feeding into LLVM** — a wrong `nsw`/`nuw`/`!range`/`assume` is a
   silent miscompile.
-- **Intrinsic contracts** between the standard Neuron and the runtime —
+- **Intrinsic contracts** between the standard Neuron and Axon (the runtime) —
   hand-declared facts Cortex trusts without proof.
 
 ## Tier 2 — tested and sampled, not fully reviewed

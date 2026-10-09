@@ -22,6 +22,12 @@ Owner, 2026-09-14.
   that people search "CyborgPL
   Precog", not "Precog".
 
+- **Axon** (2026-10-09, owner: "Axon next") — the runtime: the `no_std`
+  Rust library linked into every program (thread pool, check-failure
+  handler, program entry, the OS edge). Named for the fibre that carries a
+  neuron's signal while it fires, as the runtime is what runs while the
+  program runs. Its crate is still `cca-runtime` until the code-name step.
+
 - **Neuron** — the unit of code distribution, exactly like Rust's *crate*:
   every library or program is a Neuron, Synthia installs Neurons, and the standard
   library is one Neuron among them, reached as `std.` in a chain. (A cyborg has

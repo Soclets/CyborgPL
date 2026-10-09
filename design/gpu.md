@@ -6,9 +6,9 @@ Opened 2026-09-22. Part of v1 (owner, 2026-09-21). The rule is
 `parallelism.md`'s, extended: the programmer writes `for`, Cortex
 decides CPU cores or GPU, `for seq` says no. No GPU syntax. Underneath,
 the loop body is compiled for the GPU target (by LLVM for Vulkan, by
-CCA's own Metal generator for Metal) and the runtime launches it and
+CCA's own Metal generator for Metal) and Axon, the runtime, launches it and
 moves the data. This document is what Cortex needs to
-decide, and what the runtime does.
+decide, and what Axon does.
 
 ## What a body may contain — plain values, and failures (owner: b)
 

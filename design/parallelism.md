@@ -39,7 +39,7 @@ protect, because only conflict-free loops are parallelised.
 
 ## Underneath
 
-The runtime (the `no_std` Rust library in every binary) carries a thread
+Axon, the runtime (the `no_std` Rust library in every binary), carries a thread
 pool — one thread per core, created at startup, idle when unused — and a
 scheduler that hands them slices of a parallelised loop. The OS places
 threads on cores; the program never allocates a core. A few hundred lines.

@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — The runtime is Axon (owner)
+
+Next part name (chosen 2026-10-08): the owner, "Axon next". The runtime has
+no word in programs and no name of its own in my areas, only CCA's crate
+`cca-runtime` / `libcca_runtime.a` (compiler claude's, for the code-name
+step). So **the notes call the runtime library Axon** where they mean it
+(`parallelism.md`, `gpu.md`, `types.md`, `cores.md`, `licensing.md`,
+`review-policy.md`, `compiler-session.md`, `implementation-languages.md`),
+and `tooling.md` has an Axon entry. "Runtime" as an adjective ("a runtime
+check", "at run time") stays, design claude's reading.
+
 ### 2026-10-09 — The base is the Brainstem (owner)
 
 Next part name: the base, named Signatar on 2026-10-05 (its rename to "base

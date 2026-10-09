@@ -7,7 +7,7 @@ counsel to draft; this records what they must achieve.
 
 1. **Using the language is free, with no credit required anywhere.** Writing
    Nerve, compiling it, shipping the binary: nothing owed, nothing to
-   mention. The code that lands in a user's binary — the runtime and the
+   mention. The code that lands in a user's binary — Axon (the runtime) and the
    standard Neuron — must carry no attribution obligation for compiled output.
 2. **Modifying the compiler is free, with credit everywhere** — in the
    source *and* wherever the user of the modified compiler can see: its

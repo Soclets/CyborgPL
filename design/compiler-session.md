@@ -146,7 +146,7 @@ The std Neuron's author and timing are open.
 
 Not picks. Send them to the design session or the owner:
 
-- The memory layout of `str`, `list`, `map`, `channel` in the runtime
+- The memory layout of `str`, `list`, `map`, `channel` in Axon (the runtime)
   (the oracle deliberately does not model it).
 - The proof cache's on-disk form.
 - Every provisional number in `design/precog.md` (set caps, trip

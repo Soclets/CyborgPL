@@ -172,7 +172,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
 without ASP is refused, so std's maths always has true values and checks,
 and without IEG too, which grants std its operators.
 
-Written in Nerve, calling the Rust runtime for what Nerve cannot
+Written in Nerve, calling Axon, the Rust runtime, for what Nerve cannot
 express yet. It holds **every operator**: `plus`, `minus`, `times`,
 `div.X` / `mod.X`, `pow`, comparisons, `and`, `or`, `not`, `not.bit`, `-`
 (so `-5` is std's `-` applied to `5`), bitwise and `++`; the text and
