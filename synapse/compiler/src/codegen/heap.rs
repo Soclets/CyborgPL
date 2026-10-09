@@ -830,7 +830,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// `define` gives every owning local one, and LLVM removes the ones
     /// whose answer is always the same.
     pub(super) fn emit_drop(&mut self, place: &Place, slot: PointerValue<'ctx>, ty: &Ty, flag: Option<PointerValue<'ctx>>, func: FunctionValue<'ctx>) {
-        if !place.proj.is_empty() {
+        // A field is dropped only as what is left of a value some of whose
+        // fields were given away (`mir::ownership`); the value's own flag
+        // says whether it is here, and stays as it is for the next field.
+        let field = !place.proj.is_empty();
+        if place.proj.iter().any(|p| !matches!(p, Proj::Field(_))) {
             return;
         }
         let Some(dropper) = self.drop_fn(ty) else { return };
@@ -842,7 +846,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let _ = self.builder.build_conditional_branch(alive, yes, done);
                 self.builder.position_at_end(yes);
                 let _ = self.builder.build_call(dropper, &[slot.into()], "");
-                let _ = self.builder.build_store(f, self.ctx.bool_type().const_zero());
+                if !field {
+                    let _ = self.builder.build_store(f, self.ctx.bool_type().const_zero());
+                }
                 let _ = self.builder.build_unconditional_branch(done);
                 self.builder.position_at_end(done);
             }
@@ -1357,6 +1363,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             if let Some(d) = dest {
                 let t = self.builder.build_load(text_ty, out, "t").ok()?;
                 self.store_place(fi, d, t, slots);
+                // The new text is held now, and freed at the end like any
+                // (examples/bytes_to_text leaked it).
+                if d.proj.is_empty() {
+                    self.mark_alive(d.local, true);
+                }
             }
             let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
             return Some(());
@@ -1615,6 +1626,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let copied = self.to_text(fi, &o, v, &Ty::Char(Unit::Grapheme))?;
             if let Some(d) = dest {
                 self.store_place(fi, d, copied, slots);
+                if d.proj.is_empty() {
+                    self.mark_alive(d.local, true);
+                }
             }
             let _ = self.builder.build_unconditional_branch(blocks[ok.0 as usize]);
             return Some(());

@@ -71,6 +71,11 @@ fn walk(p: &mut Program, f: usize, sources: &SourceMap, out: &mut Outcome) {
     // Where each local was given away, for the message that says so.
     let mut given_at: HashMap<LocalId, (SpanId, bool)> = HashMap::new();
     let mut reported: Vec<(LocalId, SpanId)> = Vec::new();
+    let mut fields: Fields = HashMap::new();
+    // Drops of a value some of whose fields were given away: the rest of
+    // it is still owned, and freed field by field (examples/lockers:
+    // `give 'mine'.owner` left its `items` list never freed).
+    let mut partial: Vec<(usize, usize, LocalId)> = Vec::new();
     let mut rounds = 0usize;
 
     while let Some(b) = work.pop() {
@@ -87,7 +92,7 @@ fn walk(p: &mut Program, f: usize, sources: &SourceMap, out: &mut Outcome) {
                         use_place(p, f, &env, &pl, how, s.span, &given_at, &mut reported, out, sources);
                     }
                     for pl in rvalue_moves(rvalue) {
-                        mark_gone(&mut env, &pl, s.span, &mut given_at);
+                        mark_gone(&mut env, &pl, s.span, &mut given_at, &mut fields);
                     }
                     if place.proj.is_empty() {
                         env.insert(place.local, State::Here);
@@ -100,7 +105,7 @@ fn walk(p: &mut Program, f: usize, sources: &SourceMap, out: &mut Outcome) {
                             use_place(p, f, &env, pl, how, s.span, &given_at, &mut reported, out, sources);
                         }
                         if let Operand::Move(pl) = a {
-                            mark_gone(&mut env, pl, s.span, &mut given_at);
+                            mark_gone(&mut env, pl, s.span, &mut given_at, &mut fields);
                         }
                     }
                     if let Some(d) = dest {
@@ -113,6 +118,9 @@ fn walk(p: &mut Program, f: usize, sources: &SourceMap, out: &mut Outcome) {
                     let state = state_of(&env, pl.local);
                     match state {
                         State::Gone => {
+                            if pl.proj.is_empty() && matches!(fields.get(&pl.local), Some(Some(_))) && !partial.contains(&(b, si, pl.local)) {
+                                partial.push((b, si, pl.local));
+                            }
                             p.functions[f].blocks[b].stmts[si].kind = StmtKind::Nop;
                             out.drops_removed += 1;
                         }
@@ -128,7 +136,7 @@ fn walk(p: &mut Program, f: usize, sources: &SourceMap, out: &mut Outcome) {
                         };
                         use_place(p, f, &env, pl, how, s.span, &given_at, &mut reported, out, sources);
                         if *verb == crate::ast::Verb::Give {
-                            mark_gone(&mut env, pl, s.span, &mut given_at);
+                            mark_gone(&mut env, pl, s.span, &mut given_at, &mut fields);
                         }
                     }
                 }
@@ -148,11 +156,11 @@ fn walk(p: &mut Program, f: usize, sources: &SourceMap, out: &mut Outcome) {
                     match a {
                         Arg::Give(pl) => {
                             use_place(p, f, &env, pl, Use::Give, tspan, &given_at, &mut reported, out, sources);
-                            mark_gone(&mut env, pl, tspan, &mut given_at);
+                            mark_gone(&mut env, pl, tspan, &mut given_at, &mut fields);
                         }
                         Arg::Value(Operand::Move(pl)) => {
                             use_place(p, f, &env, pl, Use::Give, tspan, &given_at, &mut reported, out, sources);
-                            mark_gone(&mut env, pl, tspan, &mut given_at);
+                            mark_gone(&mut env, pl, tspan, &mut given_at, &mut fields);
                         }
                         Arg::Lend { place, .. } | Arg::Copy(place) | Arg::Value(Operand::Read(place)) => {
                             use_place(p, f, &env, place, Use::Read, tspan, &given_at, &mut reported, out, sources);
@@ -173,7 +181,7 @@ fn walk(p: &mut Program, f: usize, sources: &SourceMap, out: &mut Outcome) {
             }
             Terminator::Fail { payload: Some(o), .. } => {
                 if let Operand::Move(pl) = o {
-                    mark_gone(&mut env, pl, tspan, &mut given_at);
+                    mark_gone(&mut env, pl, tspan, &mut given_at, &mut fields);
                 }
             }
             _ => {}
@@ -199,6 +207,17 @@ fn walk(p: &mut Program, f: usize, sources: &SourceMap, out: &mut Outcome) {
             }
         }
     }
+    // Each such drop becomes the drops of the fields still owned.
+    partial.sort_by(|a, b| b.cmp(a));
+    for (b, si, l) in partial {
+        let Some(Some(gone)) = fields.get(&l) else { continue };
+        let ty = p.functions[f].locals[l.0 as usize].ty.clone();
+        let Ty::Struct { id, args } = ty.base() else { continue };
+        let info = p.items.structs[id.0 as usize].clone();
+        let span = p.functions[f].blocks[b].stmts[si].span;
+        let rest: Vec<Statement> = info.fields.iter().enumerate().filter(|(k, fd)| !gone.contains(k) && fd.ty.subst(args).is_owned()).map(|(k, _)| Statement { kind: StmtKind::Drop(Place { local: l, proj: vec![Proj::Field(k)] }), span }).collect();
+        p.functions[f].blocks[b].stmts.splice(si..si + 1, rest);
+    }
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -220,12 +239,27 @@ fn moves_base(pl: &Place) -> bool {
     !pl.proj.iter().any(|p| matches!(p, Proj::Index(_) | Proj::BundleElem(_)))
 }
 
-fn mark_gone(env: &mut Env, pl: &Place, span: SpanId, given_at: &mut HashMap<LocalId, (SpanId, bool)>) {
+fn mark_gone(env: &mut Env, pl: &Place, span: SpanId, given_at: &mut HashMap<LocalId, (SpanId, bool)>, fields: &mut Fields) {
     if moves_base(pl) {
         env.insert(pl.local, State::Gone);
         given_at.entry(pl.local).or_insert((span, !pl.proj.is_empty()));
+        // Which of its fields went, when it was not all of it.
+        match (pl.proj.first(), fields.get_mut(&pl.local)) {
+            (None, _) => {
+                fields.insert(pl.local, None);
+            }
+            (Some(Proj::Field(k)), Some(Some(ks))) => ks.push(*k),
+            (Some(Proj::Field(k)), None) => {
+                fields.insert(pl.local, Some(vec![*k]));
+            }
+            _ => {}
+        }
     }
 }
+
+/// For each local given away field by field, the fields that went; `None`
+/// once all of it did.
+type Fields = HashMap<LocalId, Option<Vec<usize>>>;
 
 #[allow(clippy::too_many_arguments)]
 fn use_place(p: &Program, f: usize, env: &Env, pl: &Place, how: Use, span: SpanId, given_at: &HashMap<LocalId, (SpanId, bool)>, reported: &mut Vec<(LocalId, SpanId)>, out: &mut Outcome, sources: &SourceMap) {

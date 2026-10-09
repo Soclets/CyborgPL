@@ -300,3 +300,5 @@ list_remove_in_range 157
 # Iterators: `for` calls a type's own `next` (owner, 2026-10-09).
 iterator_walk 42
 iterator_owned 18
+# What running the examples found once cord::print was built (2026-10-09).
+drops_print_found 11

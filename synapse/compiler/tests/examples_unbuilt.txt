@@ -4,41 +4,16 @@
 # prints what the oracle prints. The test insists each one here is still
 # refused with these words, and says to drop the line the day it builds.
 
-bounded :: not yet: this conversion has no shape in the generated code yet
-brain16 :: `cord::print.format` is not built yet: of cord, Synapse builds `cord::print.useful`, `cord
+brain16 :: `cord::print.format` is not built yet
 c_variables :: the linker (lld) refused the program:
-callbacks :: not yet: this conversion has no shape in the generated code yet
-check_tiers :: not yet: this conversion has no shape in the generated code yet
-concur :: not yet: this conversion has no shape in the generated code yet
-empty :: not yet: this conversion has no shape in the generated code yet
-enums :: not yet: this conversion has no shape in the generated code yet
 extern_data :: the linker (lld) refused the program:
-for_lend_mut :: not yet: this conversion has no shape in the generated code yet
-for_lend_mut_read :: not yet: this conversion has no shape in the generated code yet
-format_value :: `cord::format` is not built yet: of cord, Synapse builds `cord::print.useful`, `cord::prin
-functions_as_values :: not yet: this conversion has no shape in the generated code yet
+format_value :: `cord::format` is not built yet
 input :: `cord::input.line` is not available yet
-interface_types :: not yet: this conversion has no shape in the generated code yet
 inventory :: `cord::str.at.point` is not available yet
 keys :: `cord::str.lower` is not available yet
-list_array :: not yet: this conversion has no shape in the generated code yet
-list_fill :: not yet: this conversion has no shape in the generated code yet
-list_literal_family :: not yet: this conversion has no shape in the generated code yet
-list_literal_mixed :: not yet: this conversion has no shape in the generated code yet
-lists :: not yet: this conversion has no shape in the generated code yet
-lists2 :: not yet: this conversion has no shape in the generated code yet
-ownership :: not yet: this conversion has no shape in the generated code yet
-print_format :: `cord::print.format` is not built yet: of cord, Synapse builds `cord::print.useful`, `cord
+print_format :: `cord::print.format` is not built yet
 shop :: `cord::input.line` is not available yet
-simd :: not yet: this conversion has no shape in the generated code yet
-simd_shuffle :: not yet: this conversion has no shape in the generated code yet
-simd_tail :: not yet: this conversion has no shape in the generated code yet
-slicing :: not yet: this conversion has no shape in the generated code yet
-spelled_out :: not yet: this conversion has no shape in the generated code yet
-spread :: not yet: this conversion has no shape in the generated code yet
 std_bare :: `cord::str.split` is not available yet
-structs :: not yet: this conversion has no shape in the generated code yet
 text :: `cord::str.split` is not available yet
-to_text_forms :: not yet: this conversion has no shape in the generated code yet
 whichever :: `cord::time.after` is not available yet
 whole :: `cord::round` is not available yet

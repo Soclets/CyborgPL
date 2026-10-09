@@ -605,11 +605,15 @@ impl core::fmt::Write for Buf<'_> {
 /// `out` must be writable.
 #[no_mangle]
 pub unsafe extern "C" fn cyborg_bin_to_text_useful(out: *mut Text, x: f64, bits: u32) {
+    let mut buf = [0u8; 1080];
+    let n = bin_useful(x, bits, &mut buf);
+    text_of(out, &buf[..n]);
+}
+
+/// A bin's useful form into `buf`; how many bytes.
+pub(crate) fn bin_useful(x: f64, bits: u32, out: &mut [u8; 1080]) -> usize {
     if x.is_nan() || x.is_infinite() {
-        let mut buf = [0u8; 1080];
-        let n = expand(x, &mut buf);
-        text_of(out, &buf[..n]);
-        return;
+        return expand(x, out);
     }
     // `d.ddde±N`: the digits and where the point goes.
     let mut sci = [0u8; 64];
@@ -677,7 +681,8 @@ pub unsafe extern "C" fn cyborg_bin_to_text_useful(out: *mut Text, x: f64, bits:
             put(c, &mut k);
         }
     }
-    text_of(out, &buf[..k]);
+    out[..k].copy_from_slice(&buf[..k]);
+    k
 }
 
 /// The shortest decimal that reads back as `x` at `bits`, in scientific
@@ -851,6 +856,11 @@ pub unsafe extern "C" fn cyborg_deci_to_text(out: *mut Text, lo: u64, hi: u64, b
     let mut buf = [0u8; 6300];
     let n = write_dec(d, useful != 0, &mut buf);
     text_of(out, &buf[..n]);
+}
+
+/// A deci, as two halves at `bits`, into `buf`; how many bytes.
+pub(crate) fn deci_text(lo: u64, hi: u64, bits: u32, useful: bool, buf: &mut [u8; 6300]) -> usize {
+    write_dec(decode(two(lo, hi), width(bits)), useful, buf)
 }
 
 fn write_dec(d: Dec, useful: bool, buf: &mut [u8]) -> usize {

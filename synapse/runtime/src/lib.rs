@@ -12,6 +12,7 @@ pub mod tasks;
 pub mod par;
 pub mod channels;
 pub mod deci;
+pub mod print;
 
 extern "C" {
     fn write(fd: i32, buf: *const u8, count: usize) -> isize;
@@ -825,14 +826,26 @@ fn digits_of(mut v: u128, buf: &mut [u8]) -> usize {
 /// `out` must be writable.
 #[no_mangle]
 pub unsafe extern "C" fn cyborg_int_to_text(out: *mut Text, lo: u64, hi: u64) {
-    let v = ((hi as u128) << 64 | lo as u128) as i128;
     let mut buf = [0u8; 41];
-    let mut at = digits_of(v.unsigned_abs(), &mut buf);
+    let at = int_digits(lo, hi, true, &mut buf);
+    text_of(out, &buf[at..]);
+}
+
+/// A whole number of 128 bits, as two halves, read signed or not: its
+/// decimal digits into the end of `buf`, a `-` before a negative one;
+/// where they start.
+pub(crate) fn int_digits(lo: u64, hi: u64, signed: bool, buf: &mut [u8; 41]) -> usize {
+    let bits = (hi as u128) << 64 | lo as u128;
+    if !signed {
+        return digits_of(bits, buf);
+    }
+    let v = bits as i128;
+    let mut at = digits_of(v.unsigned_abs(), buf);
     if v < 0 {
         at -= 1;
         buf[at] = b'-';
     }
-    text_of(out, &buf[at..]);
+    at
 }
 
 /// A whole number of any width as text (owner, 2026-10-03): its
@@ -960,7 +973,7 @@ pub unsafe extern "C" fn cyborg_bin_to_text(out: *mut Text, x: f64) {
 }
 
 /// The exact decimal expansion of `x` into `buf`; how many bytes.
-fn expand(x: f64, buf: &mut [u8; 1080]) -> usize {
+pub(crate) fn expand(x: f64, buf: &mut [u8; 1080]) -> usize {
     let bits = x.to_bits();
     let neg = bits >> 63 != 0;
     let exp = ((bits >> 52) & 0x7ff) as i32;
@@ -1031,7 +1044,13 @@ fn expand(x: f64, buf: &mut [u8; 1080]) -> usize {
 #[no_mangle]
 pub unsafe extern "C" fn cyborg_char_to_text(out: *mut Text, code: u32) {
     let mut buf = [0u8; 4];
-    let n = match code {
+    let n = char_utf8(code, &mut buf);
+    text_of(out, &buf[..n]);
+}
+
+/// A code point's UTF-8 into `buf`; how many bytes.
+pub(crate) fn char_utf8(code: u32, buf: &mut [u8; 4]) -> usize {
+    match code {
         0..=0x7f => {
             buf[0] = code as u8;
             1
@@ -1054,8 +1073,7 @@ pub unsafe extern "C" fn cyborg_char_to_text(out: *mut Text, code: u32) {
             buf[3] = 0x80 | (code & 0x3f) as u8;
             4
         }
-    };
-    text_of(out, &buf[..n]);
+    }
 }
 
 /// The one code point a text holds, or -1 when it holds none or more than

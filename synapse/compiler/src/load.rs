@@ -255,15 +255,21 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
 fn board_fn(items: &Items, written: &str, at: crate::source::Span, field: &str) -> Result<(crate::resolve::FnId, crate::resolve::OutputForm)> {
     use crate::resolve::{ItemRef, OutputForm};
     use crate::types::{ParamKind, SeqKind, Ty};
-    let segs: Vec<crate::ast::Ident> = written.split('.').map(|s| crate::ast::Ident { name: s.to_string(), span: at }).collect();
-    if segs.iter().any(|s| s.name.is_empty()) {
-        return err(Diagnostic::error(format!("a target's `{}` names a function as code does, `my.serial.write`; `{}` is not one", field, written)).at(at));
+    // This Neuron's (`my.serial.write`) or a board Neuron's it depends on
+    // (`virt::serial.write`), written as code writes it.
+    let (limb, rest) = match written.split_once("::") {
+        Some((l, r)) => (Some(crate::ast::Ident { name: l.to_string(), span: at }), r),
+        None => (None, written),
+    };
+    let segs: Vec<crate::ast::Ident> = rest.split('.').map(|s| crate::ast::Ident { name: s.to_string(), span: at }).collect();
+    if segs.iter().any(|s| s.name.is_empty()) || limb.as_ref().is_some_and(|l| l.name.is_empty()) {
+        return err(Diagnostic::error(format!("a target's `{}` names a function as code does, `my.serial.write` or `virt::serial.write`; `{}` is not one", field, written)).at(at));
     }
-    let path = crate::ast::Path { limb: None, segs, span: at };
+    let path = crate::ast::Path { limb, segs, span: at };
     let id = match items.lookup_path(&path, crate::resolve::ROOT) {
         Ok(ItemRef::Fn(id)) => id,
         Ok(other) => return err(Diagnostic::error(format!("the target's `{}`, `{}`, is a {}: it names a function", field, written, other.what())).at(at)),
-        Err(e) => return err(Diagnostic::error(format!("the target's `{}`, `{}`, names no function of this Neuron: {}", field, written, e.sentence)).at(at)),
+        Err(e) => return err(Diagnostic::error(format!("the target's `{}`, `{}`, names no function: {}", field, written, e.sentence)).at(at)),
     };
     let f = &items.fns[id.0 as usize];
     let one = |kind: ParamKind, ty: &Ty| f.params.len() == 1 && f.params[0].kind == kind && f.params[0].ty.as_ref() == Some(ty);

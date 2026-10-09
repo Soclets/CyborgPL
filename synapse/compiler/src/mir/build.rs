@@ -153,6 +153,11 @@ pub fn resolved(t: &Ty, subst: &HashMap<crate::types::InferId, Ty>) -> Ty {
             Some(b) => resolved(b, subst),
             None => t.clone(),
         },
+        // A whole number a use pinned, or one nothing did: a bare one.
+        Ty::Int(crate::types::IntW::Free(id)) if id.0 != 0 => match subst.get(id) {
+            Some(b) => resolved(b, subst),
+            None => Ty::Int(crate::types::IntW::Free(crate::types::InferId(0))),
+        },
         Ty::Seq { elem, kind } => Ty::Seq { elem: Box::new(resolved(elem, subst)), kind: *kind },
         Ty::Channel(e) => Ty::Channel(Box::new(resolved(e, subst))),
         Ty::Ptr { mutable, elem } => Ty::Ptr { mutable: *mutable, elem: Box::new(resolved(elem, subst)) },
@@ -1694,12 +1699,23 @@ impl<'a> FnBuilder<'a> {
                 // str.utf8[5]]`, `show[make[]]` — is the function's from
                 // then on: given, as `give` would, so it is not freed here
                 // as well. It was, and the text was freed twice.
+                // A parameter that only borrows lends it instead, and the
+                // temporary is freed after the call (`count[[1, 2, 3]]` into
+                // a `lent` list leaked the list).
                 if matches!(callee, hir::Callee::Fn(_) | hir::Callee::Value(_)) {
-                    for m in margs.iter_mut() {
+                    let kinds: Vec<crate::types::ParamKind> = match callee {
+                        hir::Callee::Fn(inst) => self.arena.instances[inst.0 as usize].sig.params.iter().map(|(k, _)| *k).collect(),
+                        _ => Vec::new(),
+                    };
+                    for (k, m) in margs.iter_mut().enumerate() {
                         if let Arg::Value(Operand::Read(p)) = m {
                             let l = &self.locals[p.local.0 as usize];
                             if p.proj.is_empty() && l.name.is_none() && l.kind == LocalKind::Owned {
-                                *m = Arg::Give(p.clone());
+                                *m = match kinds.get(k) {
+                                    Some(crate::types::ParamKind::Lent) => Arg::Lend { place: p.clone(), mutable: false },
+                                    Some(crate::types::ParamKind::LentMut) => Arg::Lend { place: p.clone(), mutable: true },
+                                    _ => Arg::Give(p.clone()),
+                                };
                             }
                         }
                     }

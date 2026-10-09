@@ -1,0 +1,7 @@
+kin::Manifest[
+    name = "uses_board",
+    prefix = "uses_board",
+    version = "0.1.0",
+    dependencies = [kin::Dep[path = "../virt"],],
+    targets = [kin::Target[name = "aarch64-none", layout = "boards/virt.ld", output = "virt::serial.write"],]
+];

@@ -551,6 +551,12 @@ fn bare_metal_runs_in_qemu() {
     // of one of the two shapes, on a target with no OS only.
     refused(&bare.join("bad_output"), "the target's `output`, `fn my.serial.write`, takes the bytes `cord::print` writes in one of two forms");
     refused(&bare.join("output_with_os"), "`exit` is for a target with no OS");
+    // A target's output may be the Neuron's own function or a board
+    // Neuron's it uses (`virt::serial.write`).
+    for name in ["serial", "uses_board"] {
+        let r = Command::new(cca()).arg("build").arg(bare.join(name)).arg("-o").arg(out.join(name)).output().unwrap();
+        assert!(r.status.success(), "{} did not build for aarch64-none:\n{}", name, String::from_utf8_lossy(&r.stderr));
+    }
     let qemu = Command::new("qemu-system-aarch64").arg("--version").output();
     if !qemu.is_ok_and(|o| o.status.success()) {
         eprintln!("note: no qemu-system-aarch64 on this machine, so the aarch64-none programs were built but not run");

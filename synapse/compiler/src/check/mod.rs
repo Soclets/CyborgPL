@@ -203,6 +203,11 @@ impl Checker {
                 Some(bound) => self.resolve(bound),
                 None => t.clone(),
             },
+            // A whole number not pinned yet, which a later use may pin.
+            Ty::Int(crate::types::IntW::Free(id)) if id.0 != 0 => match self.subst.get(id) {
+                Some(bound) => self.resolve(bound),
+                None => t.clone(),
+            },
             Ty::Seq { elem, kind } => Ty::Seq { elem: Box::new(self.resolve(elem)), kind: *kind },
             Ty::Channel(e) => Ty::Channel(Box::new(self.resolve(e))),
             // A lane count of 0 means "the shape this target has for that
@@ -237,8 +242,27 @@ impl Checker {
         let b = self.resolve(b);
         match (&a, &b) {
             (Ty::Infer(x), Ty::Infer(y)) if x == y => true,
+            // An unknown type first known to be a bare whole number is one
+            // whose width a later use may still pin: a `list.empty` given
+            // bare numbers, then handed back as a `list[int32]`, is a list
+            // of `int32`, laid out as one (examples/bounded: it was read as
+            // a list of 64-bit numbers).
+            (Ty::Infer(x), Ty::Int(crate::types::IntW::Free(InferId(0)))) | (Ty::Int(crate::types::IntW::Free(InferId(0))), Ty::Infer(x)) => {
+                let id = InferId(self.next_infer);
+                self.next_infer += 1;
+                self.subst.insert(*x, Ty::Int(crate::types::IntW::Free(id)));
+                true
+            }
             (Ty::Infer(x), other) | (other, Ty::Infer(x)) => {
                 self.subst.insert(*x, other.clone());
+                true
+            }
+            (Ty::Int(crate::types::IntW::Free(x)), Ty::Int(crate::types::IntW::Free(y))) if x.0 != 0 && y.0 != 0 && x != y => {
+                self.subst.insert(*x, b.clone());
+                true
+            }
+            (Ty::Int(crate::types::IntW::Free(x)), fixed @ Ty::Int(crate::types::IntW::Fixed { .. })) | (fixed @ Ty::Int(crate::types::IntW::Fixed { .. }), Ty::Int(crate::types::IntW::Free(x))) if x.0 != 0 => {
+                self.subst.insert(*x, fixed.clone());
                 true
             }
             (Ty::Int(_), Ty::Int(_)) => true,
