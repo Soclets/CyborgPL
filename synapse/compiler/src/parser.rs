@@ -183,12 +183,8 @@ fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
         "str" if dot_then(&["each", "at"]) && matches!(toks.get(i + 3).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "point" || x == "grapheme") => ("counting in points or graphemes", "UniTect"),
         "char" if dot_then(&["point", "grapheme"]) => (if next_is(2, "point") { "`char.point`" } else { "`char.grapheme`" }, "UniTect"),
         "case" if dot_then(&["insensitive", "sensitive"]) => ("a `case` mark", "CAPS"),
-        "to" if matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) => ("`to.`", "ASP"),
-        "check" => ("`check`", "ASP"),
         "nocheck" => ("`no_check`", "IEG"),
         "NO_FUCKING_CHECKS" => ("`NO_FUCKING_CHECKS`", "IEG"),
-        "interface" => ("`interface`", "Genny"),
-        "satisfies" => ("`satisfies`", "Genny"),
         "on" if matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && next_is(2, "machine") => ("`on.machine`", "IEG"),
         "concur" => ("`concur`", "MCPS"),
         "whichever" => ("`whichever`", "MCPS"),
@@ -1182,9 +1178,6 @@ impl<'a> Parser<'a> {
         // `<T: Number, U: any>` (owner, 2026-10-07): one `< >`, each
         // blank with what it accepts, commas between.
         if self.is_op("<") && matches!(self.peek_at(1), Tok::Word(_)) {
-            if self.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "Genny")) {
-                return core_missing("a generic", "Genny", self.span_at(1));
-            }
             self.bump();
             loop {
                 let name = self.ident("the generic's name")?;
@@ -1291,7 +1284,15 @@ impl<'a> Parser<'a> {
         }
         // A keyword may name a function — `fn true`, `fn to` — reached by
         // path, never bare (limbs.md, 2026-09-19): `limb.true[…]`.
-        let name = self.ident("the function's name")?;
+        let mut name = self.ident("the function's name")?;
+        // `fn Counter.next […]`: a function belonging to a type (owner,
+        // 2026-10-09: "`b`"), called `Counter.next[…]`.
+        let mut owner = None;
+        if has_body && self.is(&Tok::Dot) && matches!(self.peek_at(1), Tok::Word(_)) {
+            self.bump();
+            let own = std::mem::replace(&mut name, self.ident("the function's name after its type")?);
+            owner = Some(own);
+        }
         let announce = self.announce(&name.name, "fn")?;
         let params = self.params(if has_body { ParamContext::Fn } else { ParamContext::Extern })?;
         if self.is(&Tok::Colon) {
@@ -1324,7 +1325,7 @@ impl<'a> Parser<'a> {
             self.expect_semi("the extern declaration")?;
             None
         };
-        Ok(FnDecl { name, announce, params, ret, ret_lent, fails, body, test: false })
+        Ok(FnDecl { name, owner, announce, params, ret, ret_lent, fails, body, test: false })
     }
 
     /// The group's name, right after its `@`.
@@ -2015,10 +2016,6 @@ impl<'a> Parser<'a> {
         let mut ty = Type { span: start.to(self.prev_span()), kind };
         // A bound: `T[lo, hi]`, `str.utf8[1, 40 graphemes]`, `list[T][0, 10]`.
         while self.is(&Tok::LBracket) && self.bracket_is_bound() {
-            // Range types and length bounds are ASP's (owner, 2026-10-07).
-            if self.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "ASP")) {
-                return core_missing("a range or a length bound on a type", "ASP", self.span());
-            }
             let bstart = self.span();
             self.bump();
             let lo = self.bound_value()?;
@@ -3386,12 +3383,13 @@ impl<'a> Parser<'a> {
                     return self.fail_at(op_span, format!("`{}` is not an operator here: {}", c, h));
                 }
             }
-            // Every operator is std's but Signatar's `and.then` / `or.else`
-            // and a Limb's own.
+            // The operators are the Brainstem's (owner, 2026-10-08: "`a`",
+            // built 2026-10-09); only `++`, which builds growing text and
+            // lists, is cord's, as is a cord operator named by its path.
             let std_op = match &op {
-                BinOp::AndThen | BinOp::OrElse => false,
+                BinOp::Join => true,
                 BinOp::Custom(c) => c.starts_with("std::"),
-                _ => true,
+                _ => false,
             };
             if std_op {
                 self.std_gate(&op.spelled(), op_span)?;
@@ -3472,8 +3470,6 @@ impl<'a> Parser<'a> {
                 self.postfix_on(Expr { kind: ExprKind::Exact(text.replace('_', "")), span })
             }
             Tok::Op(o) if o == "-" => {
-                // Signatar has no negative numbers: `-5` is std's too.
-                self.std_gate("-", start)?;
                 self.bump();
                 // A negative binds below std's `pow`: `-2 pow 2` is -4.
                 let operand = self.expr(2 * NEG_LEVEL)?;
@@ -3483,7 +3479,6 @@ impl<'a> Parser<'a> {
             // `neg.ieee 'x'` (owner, 2026-10-07: "yea"): IEEE's negation,
             // binding as `-` does.
             Tok::Word(w) if w == "neg" && matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "ieee") => {
-                self.std_gate("neg.ieee", start)?;
                 self.bump();
                 self.bump();
                 self.bump();
@@ -3514,7 +3509,6 @@ impl<'a> Parser<'a> {
                 if self.adjacent(0, 1) {
                     return self.fail("a glued `!` marks a rule (`immut`, `no_shadow`, `no_check`, `no_cheat`); to negate a value, space it: `! 'ready'`");
                 }
-                self.std_gate("!", start)?;
                 self.bump();
                 let operand = self.expr(2 * CMP_LEVEL)?;
                 if let ExprKind::Binary { op, op_span, .. } = &operand.kind {
@@ -3529,7 +3523,6 @@ impl<'a> Parser<'a> {
             Tok::Word(w) => match w.as_str() {
                 "not" => {
                     self.bump();
-                    self.std_gate(if self.is(&Tok::Dot) { "not.bit" } else { "not" }, start)?;
                     if self.eat(&Tok::Dot) {
                         let b = self.ident("`bit`")?;
                         if b.name != "bit" {

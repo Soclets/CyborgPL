@@ -42,6 +42,7 @@ mod cabi;
 mod deci;
 mod heap;
 mod par;
+pub mod size;
 mod tasks;
 
 /// Something the lowering cannot do yet, named so the writer knows what

@@ -36,7 +36,7 @@ pub enum Bareness {
     Std,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ItemRef {
     Fn(FnId),
     ExternFn(crate::hir::ExternId),
@@ -178,9 +178,6 @@ pub struct Items {
     pub trusted_door: bool,
     /// Files marked `#strict` (owner, 2026-09-27).
     pub strict_files: std::collections::HashSet<crate::source::FileId>,
-    /// Files of a Limb whose `CCA.cplr` does not list ASP (owner,
-    /// 2026-10-06): a whole-number literal there lands as a bit pattern.
-    pub raw_files: std::collections::HashSet<crate::source::FileId>,
     /// Each pub thing's `bare` mark, by its name's span (owner,
     /// 2026-10-06).
     pub bare_marks: HashMap<Span, crate::ast::Bare>,
@@ -225,6 +222,13 @@ pub struct Items {
     pending_extern_lets: Vec<(crate::hir::ExternId, ast::Type, ModuleId)>,
     pending_consts: Vec<(crate::hir::ConstId, Option<ast::Type>, ModuleId)>,
     pending_claims: Vec<(ast::Type, ast::Path, ModuleId, Span)>,
+    /// `fn Counter.next`: each function's type, as written, where it is.
+    pending_type_fns: Vec<(FnId, ast::Ident, ModuleId)>,
+    /// The functions belonging to a type (owner, 2026-10-09: "`b`"), by
+    /// the type and the name after the dot.
+    pub type_fns: HashMap<(ItemRef, String), FnId>,
+    /// The Brainstem's `optional` (owner, 2026-10-08), in every program.
+    pub base_optional: Option<EnumId>,
 }
 
 pub const ROOT: ModuleId = ModuleId(0);
@@ -283,6 +287,22 @@ impl Items {
         Ok(())
     }
 
+    /// The Brainstem's own declarations (owner, 2026-10-08): `optional`,
+    /// in a module of its own that every bare path falls back to.
+    pub fn add_base(&mut self, file: &ast::File) -> Result<()> {
+        let m = self.add_module("brainstem", None, Vis::Pub);
+        for item in &file.items {
+            if let ItemKind::Enum(decl) = &item.kind {
+                let id = EnumId(self.enums.len() as u32);
+                self.enums.push(EnumInfo { name: decl.name.name.clone(), path: decl.name.name.clone(), cases: Vec::new(), numbers: None, blanks: Vec::new(), bounds: Vec::new(), span: decl.name.span });
+                self.declare(m, &decl.name.name, ItemRef::Enum(id), Vis::Pub, decl.name.span)?;
+                self.pending_enums.push((id, decl.clone(), m));
+                self.base_optional = Some(id);
+            }
+        }
+        Ok(())
+    }
+
     /// Collect one parsed file as module `m`.
     pub fn collect_file(&mut self, file: &ast::File, m: ModuleId, is_root: bool) -> Result<()> {
         if let Some(f) = file.strict {
@@ -306,6 +326,14 @@ impl Items {
                 }
                 self.main = Some((block.clone(), m, item.span, params.clone()));
             }
+            ItemKind::Fn(decl) if decl.owner.is_some() => {
+                let owner = decl.owner.clone().unwrap();
+                let id = FnId(self.fns.len() as u32);
+                let name = format!("{}.{}", owner.name, decl.name.name);
+                self.fns.push(placeholder_fn(&name, m, vis, item.span, decl.name.span));
+                self.pending_type_fns.push((id, owner, m));
+                self.pending_fns.push((id, decl.clone(), m, None));
+            }
             ItemKind::Fn(decl) => {
                 let id = FnId(self.fns.len() as u32);
                 self.fns.push(placeholder_fn(&decl.name.name, m, vis, item.span, decl.name.span));
@@ -315,7 +343,7 @@ impl Items {
             ItemKind::Op(op) => {
                 let id = FnId(self.fns.len() as u32);
                 self.fns.push(placeholder_fn(&op.op.name, m, vis, item.span, op.op.span));
-                let decl = ast::FnDecl { name: op.op.clone(), announce: op.announce.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false };
+                let decl = ast::FnDecl { name: op.op.clone(), announce: op.announce.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false, owner: None };
                 self.pending_fns.push((id, decl, m, Some(op.op.name.clone())));
                 self.ops.entry(op.op.name.clone()).or_default().push(id);
             }
@@ -337,12 +365,18 @@ impl Items {
                 self.pending_extern_lets.push((id, ty.clone(), m));
             }
             ItemKind::Struct(decl) => {
+                if decl.name.name == "optional" {
+                    return err(Diagnostic::error("`optional` is the base's: every program has `enum optional <T: any> { value: <T>  none }`; name this struct something else").at(decl.name.span));
+                }
                 let id = StructId(self.structs.len() as u32);
                 self.structs.push(StructInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), layout_c: decl.layout_c, fields: Vec::new(), blanks: Vec::new(), bounds: Vec::new(), span: decl.name.span });
                 self.declare(m, &decl.name.name, ItemRef::Struct(id), vis, decl.name.span)?;
                 self.pending_structs.push((id, decl.clone(), m));
             }
             ItemKind::Enum(decl) => {
+                if decl.name.name == "optional" {
+                    return err(Diagnostic::error("`optional` is the base's: every program has `enum optional <T: any> { value: <T>  none }`; name this enum something else").at(decl.name.span));
+                }
                 let id = EnumId(self.enums.len() as u32);
                 self.enums.push(EnumInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), cases: Vec::new(), numbers: decl.layout_c.then(Vec::new), blanks: Vec::new(), bounds: Vec::new(), span: decl.name.span });
                 self.declare(m, &decl.name.name, ItemRef::Enum(id), vis, decl.name.span)?;
@@ -484,6 +518,27 @@ impl Items {
                 entries.push(IfaceEntryInfo { is_op, name, params, ret, fails });
             }
             self.ifaces[id.0 as usize].entries = entries;
+        }
+        // A function belongs to a struct or an enum of its own Neuron,
+        // once per name; an enum's function is not named as a case is.
+        let type_fns = std::mem::take(&mut self.pending_type_fns);
+        for (id, owner, m) in &type_fns {
+            let path = ast::Path { limb: None, segs: vec![owner.clone()], span: owner.span };
+            let ty = match self.lookup_path(&path, *m)? {
+                t @ (ItemRef::Struct(_) | ItemRef::Enum(_)) => t,
+                other => return err(Diagnostic::error(format!("`{}` is a {}: a function belongs to a struct or an enum, `fn {}.name […]` naming one", owner.name, other.what(), owner.name)).at(owner.span)),
+            };
+            let name = self.fns[id.0 as usize].name.clone();
+            let after = name[owner.name.len() + 1..].to_string();
+            if let ItemRef::Enum(e) = ty {
+                if self.enums[e.0 as usize].cases.iter().any(|c| c.name == after) || self.pending_enums.iter().any(|(pe, d, _)| *pe == e && d.cases.iter().any(|c| c.name.name == after)) {
+                    return err(Diagnostic::error(format!("`{}` is a case of `{}`, so `fn {}` cannot take its name", after, owner.name, name)).at(self.fns[id.0 as usize].name_span));
+                }
+            }
+            if let Some(prev) = self.type_fns.get(&(ty, after.clone())) {
+                return err(Diagnostic::error(format!("`fn {}` is defined twice", name)).at(self.fns[id.0 as usize].name_span).why_at(self.fns[prev.0 as usize].name_span, format!("the first `fn {}` is declared here", name)));
+            }
+            self.type_fns.insert((ty, after), *id);
         }
         let fns = std::mem::take(&mut self.pending_fns);
         for (id, decl, m, op) in &fns {
@@ -760,6 +815,34 @@ impl Items {
         own.map(Bareness::Own)
     }
 
+    /// `Counter.next`: a function belonging to a type (owner, 2026-10-09:
+    /// "`b`"), when the path's head is a struct or an enum. `None` when it
+    /// is not a type's, or names an enum's case. One without `pub` is seen
+    /// across its Neuron (the oracle's pick; not asked).
+    pub fn lookup_type_fn(&self, path: &ast::Path, m: ModuleId) -> Result<Option<FnId>> {
+        if path.segs.len() < 2 {
+            return Ok(None);
+        }
+        let prefix = ast::Path { limb: path.limb.clone(), segs: path.segs[..path.segs.len() - 1].to_vec(), span: path.span };
+        let ty = match self.lookup_path(&prefix, m) {
+            Ok(t @ (ItemRef::Struct(_) | ItemRef::Enum(_))) => t,
+            _ => return Ok(None),
+        };
+        let last = path.last();
+        let Some(&id) = self.type_fns.get(&(ty, last.name.clone())) else {
+            if let ItemRef::Struct(s) = ty {
+                let name = &self.structs[s.0 as usize].name;
+                return err(Diagnostic::error(format!("`{}` has no function `{}`: there is no `fn {}.{}`", name, last.name, name, last.name)).at(last.span));
+            }
+            return Ok(None);
+        };
+        let f = &self.fns[id.0 as usize];
+        if self.limb_root(f.module) != self.limb_root(m) && f.vis != Vis::Pub {
+            return err(Diagnostic::error(format!("`fn {}` is not `pub`, and another Neuron reaches only `pub` items", f.name)).at(last.span).fix(None, "its own Neuron opens it with `pub`"));
+        }
+        Ok(Some(id))
+    }
+
     /// A `pub` item of another Limb, from its root, and its name's span.
     fn lookup_pub_from(&self, path: &ast::Path, root: ModuleId) -> Option<(ItemRef, Span)> {
         let mut cur = root;
@@ -800,8 +883,19 @@ impl Items {
             }
         }
         let mut result = None;
+        let mut first_seg = path.limb.is_none();
         while let Some(seg) = segs.next() {
             let module = &self.modules[cur.0 as usize];
+            // The base's `optional`, which no Neuron may declare.
+            if std::mem::take(&mut first_seg) && seg.name == "optional" && module.item(&seg.name).is_none() {
+                if let Some(id) = self.base_optional {
+                    if segs.peek().is_some() {
+                        return err(Diagnostic::error("`optional` is an enum, not a module: nothing comes after it in a path but a case").at(seg.span));
+                    }
+                    result = Some(ItemRef::Enum(id));
+                    continue;
+                }
+            }
             let Some((item, vis, _)) = module.item(&seg.name) else {
                 let kind = if segs.peek().is_none() { "item" } else { "module" };
                 return err(Diagnostic::error(format!("there is no {} `{}` in {}", kind, seg.name, describe_module(&module.path))).at(seg.span).why(self.hint_for_missing(&seg.name, cur)));

@@ -90,6 +90,10 @@ pub enum StmtKind {
     ForRange { counter: LocalId, start: Expr, stop: Expr, step: Option<Expr>, body: Block, perm: bool, seq: bool, para: bool, nocheat: bool },
     /// Over a list/array/bundle/text-walk/map-walk: `elem` is the element local.
     ForEach { elem: LocalId, pos: Option<LocalId>, iter: Expr, body: Block, perm: bool, seq: bool, para: bool, nocheat: bool },
+    /// `for 'x' in lend.mut 'c'` over an iterator (owner, 2026-10-09):
+    /// `call` is its `next`, once per trip; `optional`'s `value` case
+    /// binds `elem`, its `none` ends the loop.
+    ForNext { elem: LocalId, call: Expr, value_case: usize, none_case: usize, body: Block, perm: bool },
     Return(Option<Expr>),
     Fail { name: String, index: usize, payload: Option<Expr> },
     Break,

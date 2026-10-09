@@ -15,7 +15,10 @@ step 1 is Brainstem's power ledger, not a layer under it. The rename of
 Brainstem to "base CyborgPL" is recorded and not applied ("Record, don't
 implement yet"). MTM is gone (its spellings are old ones, refused); the
 slimmer base added TAS, AI, WSMW, Money, UniTect and CAPS, and ASP took
-the range types and length bounds (section 1). The text below is the
+the range types and length bounds (section 1). **ASP and Genny are
+retired** (owner, 2026-10-08; built 2026-10-09): what they held is the
+Brainstem's, Nerve's base, so a manifest listing either is refused, and
+IEG is the one deep lobe left. The text below is the
 proposal as answered, with "the base" and "the codextra" read as
 Brainstem.
 
@@ -43,25 +46,22 @@ every lobe and power; lobes are named by registry ID and version.
 
 ## 1. Where Synapse is today
 
-Each official lobe is a switch inside one compiler. Listing ASP lets the
-parser accept `to.` and makes literals true values in the checker;
-listing MTM lets the lexer's alternative spellings through; listing MCPS
+Each official lobe is a switch inside one compiler. Listing MTM lets the lexer's alternative spellings through; listing MCPS
 lets `concur` and `for para` parse; and so on. Concretely, today:
 
 | Lobe | Where it lives in Synapse now |
 |---|---|
-| ASP | `to.` and `check` in the parser's word gate; literal meaning in `check/expr.rs` (`raw_files`); `to.T.bits`; range types and length bounds (the type parser) |
 | IEG | `no_check` / `NO_FUCKING_CHECKS` in the gate; the marking rule (`needs_mark`); `on.machine` |
-| Genny | generics and `interface` in the gate, then all of `check/` |
 | MCPS | `concur`, `whichever`, `channel`, `for para` in the gate; `par.rs`, `codegen/par.rs`, `codegen/tasks.rs` |
 | WSTN | a parser pre-scan refusing a name past ASCII |
 | TAS, AI, WSMW, Money, UniTect, CAPS | words in the gate (`test fn`, `must`, `brain16`, `int128`, `not_std.`, `deci64`, `char.grapheme`, `case.insensitive`, …); their meaning still all of `check/` |
 | cord | not a lobe: a limb Synapse does not have yet (`cord::` is a stub) |
 | MTM | gone (2026-10-07): its spellings are old ones, refused by name in every limb |
+| ASP, Genny | retired (2026-10-08): `to.`, `check`, true-value literals, range types, generics and interfaces are the Brainstem's; their IDs are refused, naming why |
 
 So "moving the lobes out" is two different jobs: the thin ones (WSTN,
 the gate words, the syntax half of MCPS) are already almost separate; the deep ones
-(ASP, IEG, Genny) are woven through the type checker, Cortex and the IR,
+(IEG, and ASP and Genny until they were retired) are woven through the type checker, Cortex and the IR,
 because they change what a number or a type *means*. The proposal treats
 them differently on purpose.
 
@@ -365,7 +365,7 @@ question above changes it):
    smallest lobes, proving the menu. (MTM was to be first; it is gone.)
 5. **MCPS's syntax and runtime**, then the **GPU lobes**, which are mostly
    new syntax lowering to runtime calls (section 5, way 3).
-6. **ASP, IEG, Genny** as Q4 decides.
+6. **IEG** as Q4 decides (ASP and Genny are retired: the Brainstem's).
 7. **External loading** (Q5: native libraries, C ABI) last, once the official lobes have used the
    interface long enough to stop it moving; then the warning, the
    lockfile, and `kin::Lobe[path = …]` working.

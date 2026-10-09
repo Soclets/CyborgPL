@@ -297,3 +297,6 @@ simd_sum_and_bare_pow_beside_typed 128
 wrap_bare_group 121
 list_remove_bounds trap
 list_remove_in_range 157
+# Iterators: `for` calls a type's own `next` (owner, 2026-10-09).
+iterator_walk 42
+iterator_owned 18

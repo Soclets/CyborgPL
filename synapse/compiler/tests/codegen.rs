@@ -203,16 +203,10 @@ fn limbs_reach_their_dependencies() {
     }
     // A dependency's MAIN runs when that Limb is run itself, and is left
     // out when another uses it (owner, 2026-09-29: a).
-    for (name, code) in [("uses_runnable", 8), ("runnable", 99), ("uses_area_ops", 49), ("bare_root", 7), ("uses_raw", 127), ("uses_shout", 131)] {
+    for (name, code) in [("uses_runnable", 8), ("runnable", 99), ("uses_area_ops", 49), ("bare_root", 7), ("uses_shout", 131), ("uses_bare_dep", 8)] {
         let r = Command::new(cca()).arg("run").arg(limbs.join(name)).output().unwrap();
         assert_eq!(r.status.code(), Some(code), "{} did not run to {}:\n{}", name, code, String::from_utf8_lossy(&r.stderr));
     }
-    // Whether std is reached is judged per Limb, by its own Kinesin.nrp
-    // (owner, 2026-10-06): a Limb without std is refused its operators
-    // even when the one using it lists std.
-    let r = Command::new(cca()).arg("check").arg(limbs.join("uses_bare_dep")).output().unwrap();
-    let err = String::from_utf8_lossy(&r.stderr);
-    assert!(!r.status.success() && err.contains("`plus.wrap` is cord's") && err.contains("bare_dep/neuron.nrv"), "a Limb without std reached `plus.wrap`:\n{}", err);
     // A lone target saying `default = false` leaves no default (owner,
     // 2026-09-30): checking is fine, a build with no `--target` is
     // refused, and one naming it builds.

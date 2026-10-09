@@ -147,19 +147,11 @@ name = "synapse-lobe-ai"
 version = "0.0.1"
 
 [[package]]
-name = "synapse-lobe-asp"
-version = "0.0.1"
-
-[[package]]
 name = "synapse-lobe-autogpu"
 version = "0.0.1"
 
 [[package]]
 name = "synapse-lobe-caps"
-version = "0.0.1"
-
-[[package]]
-name = "synapse-lobe-genny"
 version = "0.0.1"
 
 [[package]]

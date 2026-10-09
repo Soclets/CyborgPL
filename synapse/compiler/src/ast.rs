@@ -612,6 +612,9 @@ pub struct RetLent {
 #[derive(Debug, Clone, PartialEq)]
 pub struct FnDecl {
     pub name: Ident,
+    /// `fn Counter.next […]` (owner, 2026-10-09: "`b`"): the type the
+    /// function belongs to, `Counter`; `name` is then `next`.
+    pub owner: Option<Ident>,
     /// `<T>: Number`, `| @x`: announced after the name (owner, 2026-10-02).
     pub announce: Announce,
     pub params: Vec<Param>,
@@ -806,10 +809,8 @@ pub const ON_FEATURES: [&str; 14] = ["aarch64", "x86_64", "neon", "sve", "sve2",
 /// knows (`design/cores.md`; owner, 2026-10-06), the ones a `cores` field
 /// may list; another core is a plugin, which CCA cannot load yet. WSTN is
 /// listed but builds nothing yet.
-pub const OFFICIAL_CORES: [(&str, &str, &str); 15] = [
+pub const OFFICIAL_CORES: [(&str, &str, &str); 13] = [
     ("IEG", "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085", "2026-10-06T18:04:29+07:00"),
-    ("ASP", "4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f", "2026-10-06T18:04:29+07:00"),
-    ("Genny", "c3e299d99a13567b2039c13fc17d0ca562be9d6f657f8c40a4774081983b20c9", "2026-10-06T18:04:29+07:00"),
     ("MCPS", "7d0ccfe6e41eed3a4d8ffe00ccaada9b89a4b9a3ea553a9d869cb6902e2ca75d", "2026-10-06T18:04:29+07:00"),
     ("AutoGPU", "67b2514aab0ffa5ca9c3ae48144498880466d68aa3b8b8f8e1082e6032c24c4d", "2026-10-06T18:04:29+07:00"),
     ("Metal", "3e7b81fec072c86d58538d10978aff1d42814c9e907f1259766851795cded9b7", "2026-10-06T18:04:29+07:00"),
@@ -823,6 +824,13 @@ pub const OFFICIAL_CORES: [(&str, &str, &str); 15] = [
     ("Money", "d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f", "2026-10-07T20:22:24+07:00"),
     ("UniTect", "137a9a35afc69ec6ee796bc39eeefc75680db17ce8a04443126a492812a0ae96", "2026-10-07T20:22:24+07:00"),
     ("CAPS", "90d0813dc72a0c7d54a4ded7a2c9577e77f0036958b245ab01808f9a8568bd01", "2026-10-07T20:22:24+07:00"),
+];
+
+/// Lobes folded into the Brainstem, Nerve's base, on 2026-10-08 (owner:
+/// "`a`", built 2026-10-09): their IDs name no lobe now.
+pub const RETIRED_CORES: [(&str, &str); 2] = [
+    ("ASP", "4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f"),
+    ("Genny", "c3e299d99a13567b2039c13fc17d0ca562be9d6f657f8c40a4774081983b20c9"),
 ];
 
 /// MTM's registry ID, retired (owner, 2026-10-07: "MTM is gone.").

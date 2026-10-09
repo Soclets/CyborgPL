@@ -540,6 +540,8 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     let obj = out.with_extension("o");
     brainstem::codegen::write_object(&lowered.module, &obj, emit).map_err(|e| format!("error: {}\n", e))?;
     brainstem::codegen::link(&obj, out).map_err(|e| format!("error: {}\n", e))?;
+    // Every build ends with its size, broken down (owner, 2026-10-08).
+    let size = brainstem::codegen::size::report(&mir, &obj, out);
     let _ = std::fs::remove_file(&obj);
     // `nocheck` sites carry no check: counted apart, not as "checked".
     let proven = analysis.sites.iter().filter(|r| matches!(r.verdict, brainstem::mir::Verdict::Proven { .. })).count();
@@ -550,6 +552,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     } else {
         say(format!("{} sites: {} proven, {} checked at run time\n", analysis.sites.len(), proven, checked));
     }
+    say(size.unwrap_or_else(|e| format!("size: not measured: {}\n", e)));
     if !quiet {
         println!("wrote {}", out.display());
     }

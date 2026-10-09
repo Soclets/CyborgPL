@@ -194,9 +194,16 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         check_case(sources, &mut items, &file, true)?;
         items.collect_file(&file, m, true)?;
     }
+    // The Brainstem's `optional` (owner, 2026-10-08), every program's.
+    let base_id = sources.add(Path::new("the Brainstem"), BASE_SOURCE.to_string());
+    let base = crate::parser::parse_file(&crate::lexer::lex(base_id, BASE_SOURCE)?)?;
+    items.add_base(&base)?;
     items.resolve_all()?;
     Ok(items)
 }
+
+/// What every program has without writing it (owner, 2026-10-08: "yea").
+const BASE_SOURCE: &str = "enum optional <T: any> { value: <T>  none }\n";
 
 /// The targets CCA writes code for: `cca/targets.txt`, the one list,
 /// which Synthia copies.
@@ -409,7 +416,6 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     // by their own `CCA.cplr` (owner, 2026-10-06).
     crate::parser::set_no_std(dir.join(MANIFEST).is_file() && !manifest.has_std);
     crate::parser::set_cores(dir.join(MANIFEST).is_file().then(|| manifest.cores.clone()));
-    let first_file = sources.files.len();
     let parsed = (|| {
         let mut file = parse_file(sources, &root)?;
         check_bare(sources, items, &file, "", true)?;
@@ -425,11 +431,6 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     crate::parser::set_no_std(false);
     crate::parser::set_cores(None);
     parsed?;
-    // Without ASP a literal is a bit pattern, as the machine's (owner,
-    // 2026-10-06).
-    if dir.join(MANIFEST).is_file() && !manifest.cores.iter().any(|c| c == "ASP") {
-        items.raw_files.extend((first_file..sources.files.len()).map(|f| FileId(f as u32)));
-    }
     if dir.join(MANIFEST).is_file() && !manifest.has_std {
         items.no_std_roots.insert(m);
     }
@@ -736,6 +737,9 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     if i == crate::ast::MTM_ID {
                         return err(Diagnostic::error("the lobe `9c6c7730…` is MTM, which is gone since 2026-10-07: every spelling it held is an old one now — take it out of `lobes`").at(ispan));
                     }
+                    if let Some((n, _)) = crate::ast::RETIRED_CORES.iter().find(|(_, rid)| *rid == i) {
+                        return err(Diagnostic::error(format!("{} is retired: since 2026-10-08 it is part of the Brainstem, Nerve's base; take it out of `lobes`", n)).at(ispan));
+                    }
                     let Some(&(n, _, known)) = OFFICIAL_CORES.iter().find(|(_, oid, _)| *oid == i) else {
                         return err(Diagnostic::error(format!("the lobe `{}…` is not an official one; loading another lobe is not built yet (a plugin, which Synapse cannot load yet)", &i[..i.len().min(8)])).at(ispan));
                     };
@@ -837,16 +841,8 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             return err(Diagnostic::error(format!("the manifest has no `{}`{}: a build needs the Neuron's `name`, `prefix`, `version` and at least one target, {}", need, what, MANIFEST_SHAPE)).at(value.span));
         }
     }
-    // std's maths always has true values and checks (owner, 2026-10-06):
-    // a Limb that lists std lists ASP.
-    if out.has_std && !out.cores.iter().any(|c| c == "ASP") {
-        return err(Diagnostic::error(format!("cord needs the lobe ASP, so its maths has true values and checks: add `{}` to `lobes`", crate::ast::core_line("ASP"))).at(value.span));
-    }
-    // And IEG, which grants it the operators on built-in types (owner,
-    // 2026-10-06: "`a`").
-    if out.has_std && !out.cores.iter().any(|c| c == "IEG") {
-        return err(Diagnostic::error(format!("cord needs the lobe IEG, which grants it the operators on built-in types: add `{}` to `lobes`", crate::ast::core_line("IEG"))).at(value.span));
-    }
+    // cord needs no lobe since the operators and true values are the
+    // Brainstem's (2026-10-08, built 2026-10-09; design claude's reading).
     if out.targets.is_empty() {
         return err(Diagnostic::error(format!("the manifest has no target: a build needs the Neuron's `name`, `prefix`, `version` and at least one target, {}", MANIFEST_SHAPE)).at(value.span));
     }

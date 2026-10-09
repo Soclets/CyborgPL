@@ -753,6 +753,9 @@ impl Checker {
                 }
                 let it = self.expr(ctx, e)?;
                 let it_ty = self.resolve(&it.ty);
+                if matches!(it_ty.base(), Ty::Struct { .. } | Ty::Enum { .. }) && matches!(it.kind, hir::ExprKind::Lend { .. } | hir::ExprKind::Give(_)) {
+                    return self.for_next(ctx, perm, name, pos, e, it, &it_ty, body);
+                }
                 let (elem_ty, elem_kind) = match &it.kind {
                     hir::ExprKind::Lend { mutable, .. } => {
                         let elem = self.elem_type_of(&it_ty, e.span, "a `for` over")?;
@@ -828,6 +831,69 @@ impl Checker {
                 Ok(hir::StmtKind::ForEach { elem: id, pos: pos_id, iter: it, body: b, perm, seq, para, nocheat: false })
             }
         }
+    }
+
+    /// A `for` over an iterator (owner, 2026-10-08/09): a value whose type
+    /// has its own `next`, taking it `lent.mut` and returning
+    /// `optional[…]`, taken by `lend.mut` (it remains, used up as far as
+    /// the loop went) or `give` (gone after). `next` runs once per trip, so
+    /// `break` ends even an endless one.
+    #[allow(clippy::too_many_arguments)]
+    fn for_next(&mut self, ctx: &mut FnCtx, perm: bool, name: &ast::QName, pos: Option<&ast::QName>, e: &ast::Expr, it: hir::Expr, it_ty: &Ty, body: &ast::Block) -> Result<hir::StmtKind> {
+        let ty_name = self.spell(it_ty);
+        let key = match it_ty.base() {
+            Ty::Struct { id, .. } => crate::resolve::ItemRef::Struct(*id),
+            Ty::Enum { id, .. } => crate::resolve::ItemRef::Enum(*id),
+            _ => unreachable!(),
+        };
+        let head = ty_name.split('[').next().unwrap_or(&ty_name).to_string();
+        let Some(&next) = self.items.type_fns.get(&(key, "next".to_string())) else {
+            return err(Diagnostic::error(format!("a `for` over {}, which has no `fn {}.next`: `for` walks a list, or an iterator", crate::types::a_type(&ty_name), head)).at(e.span));
+        };
+        let decl = self.items.fns[next.0 as usize].clone();
+        let optional = self.items.base_optional;
+        let shaped = decl.params.len() == 1 && decl.params[0].kind == crate::types::ParamKind::LentMut && matches!(&decl.ret, Ty::Enum { id, .. } if Some(*id) == optional);
+        if !shaped {
+            return err(Diagnostic::error(format!("`fn {}.next` does not walk: an iterator's `next` takes it `lent.mut` and returns `optional[…]`", head)).at(e.span).why_at(decl.name_span, format!("`fn {}.next` is declared here", head)));
+        }
+        if pos.is_some() {
+            return err(Diagnostic::error("an iterator has no positions: its items come one at a time, so the loop takes no `pos`").at(e.span));
+        }
+        let mut stmts = Vec::new();
+        // What `next` is called on: the lent place, or the iterator handed
+        // over to the loop, held where nothing else can name it.
+        let arg = match &it.kind {
+            hir::ExprKind::Lend { mutable: true, .. } => e.clone(),
+            hir::ExprKind::Lend { .. } => {
+                return err(Diagnostic::error(format!("`next` changes the iterator, so a `for` takes {} with `lend.mut` (it remains) or `give` (it is gone after), not `lend`", crate::types::a_type(&ty_name))).at(e.span));
+            }
+            _ => {
+                let held = format!(" iterator {}", ctx.locals.len());
+                let local = ctx.declare(&held, Local { name: held.clone(), ty: it_ty.clone(), mutability: Some(crate::ast::Mutability::Mut), kind: LocalKind::Owned, from_blank: false, span: e.span });
+                stmts.push(hir::Stmt { kind: hir::StmtKind::Let { local, value: it, typed: true }, span: e.span, tier: ctx.tier });
+                let q = ast::QName { name: held, span: e.span };
+                ast::Expr { kind: ast::ExprKind::Verb { verb: ast::Verb::LendMut, amp: false, expr: Box::new(ast::Expr { kind: ast::ExprKind::Name(q), span: e.span }) }, span: e.span }
+            }
+        };
+        let call = self.fn_call(ctx, next, &[ast::Arg::Positional(arg)], None, e.span, true, &ast::Path { limb: None, segs: Vec::new(), span: e.span })?;
+        let call_ty = self.resolve(&call.ty);
+        let Ty::Enum { id: oid, args } = call_ty.base() else { unreachable!() };
+        let item_ty = args.first().cloned().unwrap_or(Ty::Nothing);
+        let cases = &self.items.enums[oid.0 as usize].cases;
+        let value_case = cases.iter().position(|c| c.name == "value").unwrap();
+        let none_case = cases.iter().position(|c| c.name == "none").unwrap();
+        if !perm {
+            ctx.push_scope();
+        }
+        let elem = ctx.declare(&name.name, Local { name: name.name.clone(), ty: item_ty, mutability: None, kind: LocalKind::LoopVar, from_blank: false, span: name.span });
+        ctx.loop_depth += 1;
+        let b = self.block(ctx, body)?;
+        ctx.loop_depth -= 1;
+        if !perm {
+            ctx.pop_scope();
+        }
+        stmts.push(hir::Stmt { kind: hir::StmtKind::ForNext { elem, call, value_case, none_case, body: b, perm }, span: body.span, tier: ctx.tier });
+        Ok(hir::StmtKind::Block(hir::Block { stmts, span: body.span }))
     }
 
     /// The element type of something a `for` can run over.

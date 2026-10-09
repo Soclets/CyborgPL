@@ -658,6 +658,9 @@ impl<'a> FnBuilder<'a> {
                 self.nocheat_next = *nocheat;
                 self.for_each(*elem, *pos, iter, body, *perm, *seq, *para, span);
             }
+            hir::StmtKind::ForNext { elem, call, value_case, none_case, body, perm } => {
+                self.for_next(*elem, call, *value_case, *none_case, body, *perm, span);
+            }
             hir::StmtKind::Return(v) => {
                 match v {
                     Some(e) => {
@@ -908,6 +911,46 @@ impl<'a> FnBuilder<'a> {
         );
         self.terminate(Terminator::Goto(head));
 
+        self.cur = exit;
+        if perm {
+            self.scopes.last_mut().unwrap().push(e);
+        }
+    }
+
+    /// A `for` over an iterator: `next` at the head, its `none` the exit,
+    /// its `value` the item.
+    #[allow(clippy::too_many_arguments)]
+    fn for_next(&mut self, elem: hir::LocalId, call: &hir::Expr, value_case: usize, none_case: usize, body: &hir::Block, perm: bool, span: SpanId) {
+        let e = LocalId(elem.0);
+        let head = self.new_block();
+        let body_b = self.new_block();
+        let exit = self.new_block();
+        self.terminate(Terminator::Goto(head));
+        self.cur = head;
+        let v = self.eval(call, span);
+        let v = match v.place() {
+            Some(_) => v,
+            None => {
+                let ty = self.resolve_ty(&call.ty);
+                let t = self.temp(&ty, span);
+                self.assign(Place::local(t), Rvalue::Use(v), span);
+                Operand::Move(Place::local(t))
+            }
+        };
+        self.terminate(Terminator::Switch { value: v.clone(), cases: vec![(value_case, body_b), (none_case, exit)] });
+        self.cur = body_b;
+        self.push_scope();
+        let mut src = v.place().unwrap().clone();
+        src.proj.push(Proj::Field(value_case));
+        self.assign(Place::local(e), Rvalue::Use(Operand::Read(src)), span);
+        if !perm {
+            self.scopes.last_mut().unwrap().push(e);
+        }
+        self.loops.push(LoopTargets { brk: exit, cont: head, depth: self.scopes.len() - 1 });
+        self.block(body);
+        self.loops.pop();
+        self.pop_scope(span);
+        self.terminate(Terminator::Goto(head));
         self.cur = exit;
         if perm {
             self.scopes.last_mut().unwrap().push(e);

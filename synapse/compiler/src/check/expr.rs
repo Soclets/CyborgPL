@@ -307,6 +307,10 @@ impl Checker {
         if path.limb.as_ref().map_or(false, |l| l.name == "std") {
             return err(Diagnostic::error(format!("`{}` is called, and a call needs `[…]`: `{}[…]`", path.spelled(), path.spelled())).at(span));
         }
+        if let Some(id) = self.items.lookup_type_fn(path, ctx.module)? {
+            let name = &self.items.fns[id.0 as usize].name;
+            return err(Diagnostic::error(format!("`{}` is a function: call it, `{}[…]`", name, name)).at(span));
+        }
         // An enum case without data: `Status.empty`.
         if path.segs.len() >= 2 {
             let prefix = ast::Path { limb: path.limb.clone(), segs: path.segs[..path.segs.len() - 1].to_vec(), span: path.span };
@@ -628,29 +632,6 @@ impl Checker {
         // meaning, and 70000 in a `bin16` would silently become 69984.
         // Bare numbers in a `deci` place are decimals, exactly as written
         // (owner, 2026-09-29): `let 'a': deci64 = 0.1 + 0.2;` is 0.3.
-        // Without ASP, Signatar's literals are bit patterns (owner,
-        // 2026-10-06): one lands as the type's bits, read as signed for an
-        // `intN`, and one wider than those bits is refused (owner: "a").
-        // What a literal means anywhere else is not decided.
-        if let (K::Int(i), true) = (&v.kind, self.items.raw_files.contains(&v.span.file) && matches!(vt.base(), Ty::Int(IntW::Free(_)))) {
-            match &t {
-                Ty::Int(IntW::Fixed { signed, bits }) if t.exact_limit().is_none() => {
-                    let (signed, bits) = (*signed, *bits);
-                    let room = 1i128.checked_shl(bits).filter(|_| bits < 127);
-                    if room.is_some_and(|room| *i >= room) {
-                        return err(Diagnostic::error(format!("`{}` does not fit the {} bits of {}: without ASP a literal is a bit pattern, 0 to {}", i, bits, self.spell(&t), room.unwrap() - 1)).at(v.span));
-                    }
-                    let value = match room {
-                        Some(room) if signed && *i >= room / 2 => *i - room,
-                        _ => *i,
-                    };
-                    return Ok(Expr { kind: K::Int(value), ty: t.clone(), span: v.span });
-                }
-                // Not settled yet: the literal waits, as anywhere.
-                Ty::Infer(_) | Ty::Int(IntW::Free(_)) => {}
-                _ => return err(Diagnostic::error(format!("what a literal means in {} without ASP is not decided", self.spell(&t))).at(v.span)),
-            }
-        }
         if matches!(vt.base(), Ty::Deci(EXACT_FREE)) && matches!(t.base(), Ty::Bin(_) | Ty::Int(_)) {
             return err(Diagnostic::error(format!("a `*` literal is exactly what is written, a deci, and {} is {}, which cannot hold it exactly: drop the `*` for a bin, or make it a `deci`", what, article(&self.spell(&t)))).at(v.span));
         }
@@ -2200,6 +2181,10 @@ impl Checker {
                 return self.builtin_call(ctx, b, path, args, otherwise, span, used);
             }
         }
+        // A type's own function: `Counter.next[…]` (owner, 2026-10-09).
+        if let Some(id) = self.items.lookup_type_fn(path, ctx.module)? {
+            return self.fn_call(ctx, id, args, otherwise, span, used, path);
+        }
         // An enum case with data: `Status.claimed["x"]`.
         if path.segs.len() >= 2 && path.limb.is_none() {
             let prefix = ast::Path { limb: None, segs: path.segs[..path.segs.len() - 1].to_vec(), span: path.span };
@@ -2240,7 +2225,7 @@ impl Checker {
         }
     }
 
-    fn fn_call(&mut self, ctx: &mut FnCtx, id: FnId, args: &[AArg], otherwise: Option<&ast::Otherwise>, span: Span, used: bool, path: &ast::Path) -> Result<Expr> {
+    pub(crate) fn fn_call(&mut self, ctx: &mut FnCtx, id: FnId, args: &[AArg], otherwise: Option<&ast::Otherwise>, span: Span, used: bool, path: &ast::Path) -> Result<Expr> {
         let decl = self.items.fns[id.0 as usize].clone();
         if decl.op.is_some() {
             return err(Diagnostic::error(format!("`{}` is an operator; it goes between two values: `'a' {} 'b'`, never `{}[…]`", decl.name, decl.name, decl.name)).at(span));
@@ -3068,7 +3053,7 @@ impl Checker {
         // deci — the conversion says which.
         let (form, stripped) = conv_form(target)?;
         let target = stripped.as_ref().unwrap_or(target);
-        // `to.int8.bits[…]` (owner, 2026-10-06): ASP's raw form.
+        // `to.int8.bits[…]` (owner, 2026-10-06): the raw form, the Brainstem's since 2026-10-08.
         if let ast::TypeKind::Path { path, args } = &target.kind {
             if path.segs.len() >= 2 && path.segs.last().is_some_and(|s| s.name == "bits") {
                 let mut p = path.clone();

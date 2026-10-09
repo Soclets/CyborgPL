@@ -542,3 +542,23 @@ Dated, with the alternative, so each can become a question later.
   the oracle's. A comparison shows its sides when both have a text form
   (numbers, `bool`, characters, text); other values say only that `must`
   does not hold. Alternative: `setjmp`/`longjmp` in one process.
+- **2026-10-09 — The size report's shape** (the owner asked for "size with a
+  breakdown"; the breakdown is design claude's reading: by Neuron, by
+  function, and the copies each generic produced). Every `synapse build`
+  and `synapse run` ends with it, after the sites line: the file's size on
+  disk, the program's own code and data, and each function's code by
+  Neuron, largest first, a generic's copy named with its types
+  (`biggest[int32]`, "a copy of the generic `biggest` (2 in all)"). It is
+  measured in the object file before linking, each function running from
+  its symbol to the next; one LLVM inlined everywhere has no room of its
+  own and is named on one line. The entry, `main`, is counted as the
+  program's, since `MAIN` is often inlined into it. A blank a bare literal
+  filled is named as built, 64 bits wide. Everything else on disk is Axon,
+  the runtime, and the linker's. Alternative: measure the linked file,
+  which needs its symbol table kept.
+- **2026-10-09 — Where the base's `optional` lives.** It is declared once,
+  in a module of its own, and a bare `optional` falls back to it when the
+  module has none, which no Neuron can have (`optional` is the base's). A
+  type's own function (`fn Counter.next`) without `pub` is seen across its
+  Neuron, as the oracle has it (not asked). A `for` over an iterator takes
+  no `pos`, and plain `lend` is refused (`next` changes it).
