@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { iconSVG, wordmarkSVG } from "./lib/wordmark.js";
+import { wordmarkSVG } from "./lib/wordmark.js";
 import { ICON } from "./lib/icon-hash.js";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import "./app.css";
@@ -23,7 +23,7 @@ export const links = () => [
 // without JavaScript, stays up at least 1 s even when loading is quicker (owner; the bar
 // still reaches 100% when loading really ends), gives up after 10 s rather than stick, and holds no text, so a search
 // engine has nothing of it to quote (the percentage is drawn by CSS from data-pct).
-const MARK = `<div class="boot-mark">${iconSVG(64)}${wordmarkSVG("wordmark-boot", 26)}</div>`;
+const MARK = `<div class="boot-mark logo">${wordmarkSVG("wordmark-boot", 30)}</div>`;
 const BOOT_HTML = `<div class="boot-in">${MARK}<div class="boot-bar"><i></i></div><span class="boot-pct" data-pct="0%"></span></div>`;
 const BOOT_JS = `(function(){
 var b=document.getElementById("boot");if(!b)return;var shown=performance.now();

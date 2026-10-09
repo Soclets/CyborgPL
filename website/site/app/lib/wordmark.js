@@ -1,7 +1,8 @@
-// The Nerve icon (brand/nerve/icon.svg: a medical cross carrying a nerve impulse, on its black tile)
-// and the NERVE wordmark (brand/nerve/wordmark-black.svg) in the current text colour. On the site the
-// impulse is a see-through cut, so it shows whatever is behind it in either theme. The brand files
-// paint it in instead, for places that draw the image without the page behind it.
+// The site's logo: the NERVE wordmark with the medical cross as its last mark, the cross carrying its
+// own impulse (brand/nerve/wordmark-cross-mono-*.svg). Both impulses are see-through cuts here, so
+// they show whatever is behind them; the brand files paint them in instead, for places that draw the
+// image without the page behind it. Black or white, never the Solarized ink (owner: "they both don't
+// have to follow the theme"): the colour is set in app.css (.logo).
 // Kerned as brand/nerve's files are (8f08525c): the V and the last E sit closer.
 const LETTERS = [
   "M44 200 V100 H82 L136 166 V100 H164 V200 H128 L74 134 V200 Z",
@@ -13,18 +14,12 @@ const LETTERS = [
 const CUT = '<path d="M118 150 H300 L310 150 L322 108 L333 157 L341 157 L347 150 H560" fill="none" stroke="#000" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>'
   + '<path d="M12 150 L118 147.6 L118 152.4 Z" fill="#000"/><path d="M560 147.6 L672 149.8 L672 150.2 L560 152.4 Z" fill="#000"/>';
 
-export const wordmarkSVG = (id, height) =>
-  `<svg viewBox="44 100 574 100" height="${height}" width="${Math.round(height * 5.74)}" role="img" aria-label="Nerve">`
-  + `<defs><mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="700" height="320"><rect width="700" height="320" fill="#fff"/>${CUT}</mask></defs>`
-  + `<g fill="currentColor" mask="url(#${id})">${LETTERS.map((d) => `<path d="${d}"/>`).join("")}</g></svg>`;
-
 // The cross from the cross wordmark (centre 692,150), carrying its impulse.
 const CROSS = "M676.00 108.00 C676.00 103.58 679.58 100.00 684.00 100.00 L700.00 100.00 C704.42 100.00 708.00 103.58 708.00 108.00 L708.00 129.00 C708.00 131.76 710.24 134.00 713.00 134.00 L734.00 134.00 C738.42 134.00 742.00 137.58 742.00 142.00 L742.00 158.00 C742.00 162.42 738.42 166.00 734.00 166.00 L713.00 166.00 C710.24 166.00 708.00 168.24 708.00 171.00 L708.00 192.00 C708.00 196.42 704.42 200.00 700.00 200.00 L684.00 200.00 C679.58 200.00 676.00 196.42 676.00 192.00 L676.00 171.00 C676.00 168.24 673.76 166.00 671.00 166.00 L650.00 166.00 C645.58 166.00 642.00 162.42 642.00 158.00 L642.00 142.00 C642.00 137.58 645.58 134.00 650.00 134.00 L671.00 134.00 C673.76 134.00 676.00 131.76 676.00 129.00 Z";
 const IMPULSE = "M630 150 H678 L684 150 L691 110 L698 158 L702 158 L706 150 H756";
 
-// The icon always on its own black tile (brand/nerve/icon.svg), whatever the theme (owner: "with its
-// background"): the white cross, its impulse in the tile's black.
-export const iconSVG = (size) =>
-  `<svg viewBox="0 0 180 180" width="${size}" height="${size}" aria-hidden="true"><rect width="180" height="180" rx="38" fill="#111111"/>`
-  + `<g transform="translate(90 90) scale(1.12) translate(-692 -150)"><defs><clipPath id="icon-cross-${size}"><path d="${CROSS}"/></clipPath></defs>`
-  + `<path fill="#ffffff" d="${CROSS}"/><path d="${IMPULSE}" clip-path="url(#icon-cross-${size})" fill="none" stroke="#111111" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/></g></svg>`;
+export const wordmarkSVG = (id, height) =>
+  `<svg viewBox="44 100 698 100" height="${height}" width="${Math.round(height * 6.98)}" role="img" aria-label="Nerve">`
+  + `<defs><mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="760" height="320"><rect width="760" height="320" fill="#fff"/>${CUT}`
+  + `<path d="${IMPULSE}" fill="none" stroke="#000" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/></mask></defs>`
+  + `<g fill="currentColor" mask="url(#${id})">${LETTERS.map((d) => `<path d="${d}"/>`).join("")}<path d="${CROSS}"/></g></svg>`;

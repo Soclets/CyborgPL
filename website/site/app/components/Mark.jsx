@@ -1,6 +1,6 @@
-import { iconSVG, wordmarkSVG } from "../lib/wordmark.js";
+import { wordmarkSVG } from "../lib/wordmark.js";
 
-// The Nerve icon on its tile beside the NERVE wordmark (see lib/wordmark.js).
+// The Nerve logo: the wordmark with its cross (see lib/wordmark.js).
 export default function Mark({ height = 18 }) {
-  return <span className="wordmark" dangerouslySetInnerHTML={{ __html: iconSVG(Math.round(height * 1.65)) + wordmarkSVG("wordmark-top", height) }} />;
+  return <span className="wordmark logo" dangerouslySetInnerHTML={{ __html: wordmarkSVG("wordmark-top", height) }} />;
 }
