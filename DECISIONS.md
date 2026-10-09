@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — Nerve builds for a machine with no OS: the target `aarch64-none` (owner)
+
+Compiler claude, having built the practical base in Synapse (2d190720, with
+the size report), could not build the trap on a failed check with no OS:
+Synapse targets only `aarch64-macos`. Asked whether Nerve should build for a
+machine with no operating system now, named `aarch64-none` (compiler
+claude's suggestion, tested in QEMU's `virt` machine), the owner: "yea, if
+`aarch64-none` is consistent/correct". It is: Nerve's targets are written
+chip-OS (`aarch64-macos`, `x86_64-linux`), `none` is already among
+`on.target.os`'s names, and LLVM's own name for it is `aarch64-unknown-none`.
+So **Synapse gains the target `aarch64-none`**, with its own link step (no
+system library, a linker script, an entry point), and a failed check there
+becomes a trap (`brk`). Not built yet.
+
 ### 2026-10-09 — The practical base is built in the oracle; Signatar is CyborgPL's base, the Brainstem Nerve's (owner)
 
 The owner: "Brainstem does have plus, Signatar doesn't", then "Do it now. Btw,
