@@ -109,7 +109,10 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   the `deci` holds (an `int64` into a `deci64`); an `int32` into a
   `deci64` always fits and takes no `otherwise`.
 - **From text**: `bin`'s grammar; more digits than the width fails
-  `too_many_digits`, beside `not_a_number` and `out_of_range`.
+  `too_many_digits`, beside `not_a_number` and `out_of_range`. **By the
+  value**: `to.deci32["1234567.0"]` is 1234567 and fits, a trailing zero
+  dropped where it must be; **`to.deci32.written[…]`** counts every digit as
+  written, trailing zeros included (owner, 2026-10-09).
 - **Trailing zeros are kept**, as IEEE does: `1.50` stays `1.50`, `2.50 x
   2` is `5.00`, `1.50 == 1.5` is true. `print` shows `1.50`, `print.useful`
   `1.5`.

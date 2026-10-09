@@ -3537,6 +3537,16 @@ impl Parser {
                     if matches!(ty, Ty::Inst(..) | Ty::Var(_)) { return self.err(format!("no conversion to {}; conversions are between numbers, text, lists and arrays", ty_name(&ty))); }
                     // `to.deci64.useful[…]`: the shortest decimal that reads back as the same bin (owner, 2026-09-29)
                     // the type parser reads `deci64.useful` as one dotted name
+                    // `to.deci32.written["1234567.0"]`: count the digits as written, trailing zeros included (owner,
+                    // 2026-10-09: "yea, `.written`"); the plain form goes by the value, as `to.int32[2.0]` does
+                    if let Ty::Struct(n) = &ty {
+                        if let Some(d) = n.strip_suffix(".written").filter(|d| matches!(*d, "deci32" | "deci64" | "deci128")) {
+                            if *self.peek() != Tok::LBracket { return self.err(format!("`to.{n}` converts a text: `to.{n}[\"…\"]`")); }
+                            let b = self.bracket()?;
+                            if b.values.len() != 1 { return self.err("`to.…[…]` converts exactly one value"); }
+                            return Ok(Expr::Convert(Ty::Deci(d[4..].parse().unwrap()), b, None, 4, line));
+                        }
+                    }
                     let (ty, dotted_useful) = match &ty {
                         Ty::Struct(n) if n.ends_with(".useful") && matches!(&n[..n.len() - 7], "deci32" | "deci64" | "deci128") => (Ty::Deci(n[4..n.len() - 7].parse().unwrap()), true),
                         _ => (ty, false),

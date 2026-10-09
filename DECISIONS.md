@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — Text into a deci goes by the value; `.written` counts the digits as written (owner)
+
+Check claude's question (seed 42580): does a trailing zero count against a
+`deci`'s width? `to.deci32["1234567.0"]`: eight digits written, seven needed,
+and a `deci32` holds seven; `types.md` said both "more digits than the width
+fails `too_many_digits`" and "trailing zeros are kept"; the oracle converted,
+Synapse refused. Offered (a) count the written digits, (b) the value's,
+design claude recommending (b); the owner: "I think there should be a way to
+say what you want", then "See other `to`s, do they default?" (yes: the plain
+form judges the value, `to.int32[2.0]` is 2; a variant word marks a
+different meaning, `to.int8.bits`; and where no meaning is usual there is no
+default, `to.useful` / `to.stored`), then "yea, `.written`". So **the plain
+`to.deci32["1234567.0"]` goes by the value and fits, and
+`to.deci32.written["1234567.0"]` counts every digit as written, trailing
+zeros included, failing `too_many_digits` past the width**. Which digits
+count (from the first that is not a leading zero) is design claude's
+reading. Built in the oracle; `examples/deci_written.nrv`.
+
 ### 2026-10-09 — Nerve builds for a machine with no OS: the target `aarch64-none` (owner)
 
 Compiler claude, having built the practical base in Synapse (2d190720, with

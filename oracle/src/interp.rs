@@ -2535,6 +2535,17 @@ impl<'p> Interp<'p> {
                             }
                         }
                     }
+                    // `.written`: every digit written counts, from the first that is not a leading zero, trailing
+                    // zeros included (owner, 2026-10-09; which digits count is design claude's reading)
+                    (Ty::Deci(w), Value::Str(s)) if form == 4 && {
+                        let mant = s.trim_start_matches(['+', '-']).split(['e', 'E']).next().unwrap_or("");
+                        let digits: String = mant.chars().filter(|c| c.is_ascii_digit()).collect();
+                        digits.trim_start_matches('0').len() > crate::deci::precision(*w)
+                    } => {
+                        let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.deci{w}.written"), "too_many_digits".into(), None, true)?;
+                        let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
+                        return Ok((v, prov));
+                    }
                     (Ty::Deci(w), Value::Str(s)) => match crate::deci::Deci::parse(s.trim_start_matches('+'), *w) {
                         Ok(Some(d)) => Value::Deci(d),
                         other => {
