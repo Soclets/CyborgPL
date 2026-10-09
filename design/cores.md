@@ -1,7 +1,12 @@
 # Brainstem, lobes and neurons (owner, 2026-10-05/06/07; being designed, not built)
 
-> Named 2026-10-09: the lowest level was **Signatar** (2026-10-05) and is the
-> **Brainstem** in Nerve; quoted words keep the old name.
+> Names: **Signatar** (2026-10-05) is the slim base this note describes, as of
+> 2026-10-07: no operators, its maths in assembly. On 2026-10-08 the base was
+> made practical (operators, true-value numbers, ASP, Genny, iterators,
+> `optional`; `DECISIONS.md`, "The base should be practical"; not built yet),
+> and that base is the **Brainstem** (2026-10-09). Brainstem has `plus`;
+> Signatar did not (owner, 2026-10-09). Below, "Signatar" is the 2026-10-07
+> slim base, kept as history.
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
@@ -101,7 +106,7 @@ CAPS     90d0813dc72a0c7d54a4ded7a2c9577e77f0036958b245ab01808f9a8568bd01  (firs
 std      fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936  (a limb, 2026-10-06T12:57:14+07:00)
 ```
 
-## Brainstem, the language
+## Signatar, the language as of 2026-10-07 (superseded by the Brainstem, 2026-10-08)
 
 "Signature but cooler" (owner). Very low level: "not nothing, but it's
 pretty lower-level (say writing fucking Assembly for a lot of things)"
@@ -111,7 +116,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   enforcing the grants, handing its LLVM IR to LLVM;
 - **types, `let`, functions, `if`, loops, `match`, structs, enums, `bool`**;
 - **the borrow rules**, lifetime groups (`@x`) included, and **Cortex**
-  (it proves things about Brainstem's own rules; at Brainstem alone that is
+  (it proves things about Signatar's own rules; at Signatar alone that is
   mostly borrows, types and shape, since its maths is assembly);
 - **SIMD**, `and.then` / `or.else` (they skip their right side, which an
   operator from std cannot), **`on.target`** (below);
@@ -122,7 +127,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   2026-10-06);
 - **kernel-grade raw memory**, beside ownership: pointers as values,
   addresses as numbers and back, volatile access, memory with no owner;
-- **no operators, no `to.` conversions, no markers**: in Brainstem alone, a
+- **no operators, no `to.` conversions, no markers**: in Signatar alone, a
   negation or a reinterpretation is assembly.
 
 ## The official lobes

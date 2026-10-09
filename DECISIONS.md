@@ -182,7 +182,12 @@ messages ("Brainstem's names are English letters, digits and `_`",
 "`inline.ASM` (Brainstem's)"), the oracle README, example comments and two
 reject tests**; quoted words keep "Signatar", and `design/cores.md` says so at
 its top. Not renamed, design claude's reading: the plain words "the base"
-and "base" in prose, which are ordinary English as much as a name. Also
+and "base" in prose, which are ordinary English as much as a name. Corrected later the same day (owner: "Brainstem does have plus,
+Signatar doesn't"): **Signatar names the slim base of 2026-10-07 (no
+operators); the Brainstem is the base as made practical on 2026-10-08, with
+the operators and the rest**. The blanket rename had made `design/cores.md`
+say "no operators … in Brainstem alone"; its description of the slim base
+says Signatar again, marked as superseded. Also
 today: `cca precog` refused, naming `cca cortex` (99e3b6b2), after check
 claude switched (44629ebd).
 
