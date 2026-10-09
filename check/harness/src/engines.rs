@@ -268,3 +268,13 @@ pub fn cca_run(bin: &Path, dir: &Path, env: &[(String, String)]) -> Exec {
     let msg = r.stderr.lines().next().unwrap_or("").to_string();
     Exec::Stopped { out: r.stdout, code: r.code, line, msg }
 }
+
+/// `cca precog --json <file>`: CCA's analyzer, Precog until it was named
+/// Cortex (owner, 2026-10-09). Whichever subcommand CCA answers to.
+pub fn analyze(t: &Tools, file: &Path, dir: &Path, limit: Duration) -> Run {
+    let r = run(Command::new(&t.cca).arg("precog").arg("--json").arg(file), dir, &[], false, limit);
+    if r.stderr.starts_with("usage:") || String::from_utf8_lossy(&r.stdout).starts_with("usage:") {
+        return run(Command::new(&t.cca).arg("cortex").arg("--json").arg(file), dir, &[], false, limit);
+    }
+    r
+}

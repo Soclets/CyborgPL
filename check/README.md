@@ -27,6 +27,11 @@ and, with `cord` (the standard library, stdkit until 2026-10-09) not avoided, re
 `str.slice.grapheme`, out of range sometimes. The evaluator models remove and shadow; the text
 reads are compared between the engines only. Default avoid: `cord` (CCA has no standard library yet).
 
+
+**Precog is Cortex** (owner, 2026-10-09): CCA's analyzer's Nerve name. The notes below say Precog,
+as they did when written; `check claims` asks `cca precog --json`, or `cca cortex --json` once CCA
+answers to that name instead.
+
 ## What is here
 
 - **`gen/`** — the program generator. `seed → program` is a pure function

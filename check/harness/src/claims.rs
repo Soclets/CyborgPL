@@ -164,7 +164,7 @@ pub fn check_claims(t: &Tools, p: &Program, dir: &Path) -> Result<Outcome, Strin
     let (text, spans) = p.render_spans();
     let file = dir.join("prog.cpls");
     std::fs::write(&file, &text).map_err(|e| e.to_string())?;
-    let r = engines::run(Command::new(&t.cca).arg("precog").arg("--json").arg(&file), dir, &[], false, engines::BUILD_LIMIT);
+    let r = engines::analyze(t, &file, dir, engines::BUILD_LIMIT);
     if r.timed_out {
         return Err("cca precog ran past its limit".into());
     }

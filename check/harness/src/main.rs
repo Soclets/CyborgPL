@@ -781,7 +781,7 @@ fn same_run(t: &Tools, a: &Args) {
                     let _ = std::fs::create_dir_all(&dir);
                     let f = dir.join("prog.cpls");
                     std::fs::write(&f, p.render()).unwrap();
-                    let once = || engines::run(std::process::Command::new(&t.cca).arg("precog").arg("--json").arg(&f), &dir, &[], false, engines::build_limit());
+                    let once = || engines::analyze(&t, &f, &dir, engines::build_limit());
                     let (x, y) = (once(), once());
                     if x.timed_out || y.timed_out {
                         continue;
