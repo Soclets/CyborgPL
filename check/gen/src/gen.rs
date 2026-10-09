@@ -111,13 +111,15 @@ pub struct Config {
     pub shadow_wrong: u64,
     /// stdkit's `str.at` / `str.slice` (CCA has no stdkit yet).
     pub cord: bool,
+    /// A `Counter` iterator and `optional` (owner, 2026-10-09).
+    pub iterators: bool,
     /// `!mut`, `!check` and `! 'x'` (owner, 9a9e573) on most programs.
     pub new_words: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, cord: true, new_words: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, cord: true, iterators: true, new_words: true }
     }
 }
 
@@ -234,6 +236,8 @@ struct Gen {
     mutator: bool,
     /// A plain `let` over a visible name was written on purpose.
     shadow_mistake: bool,
+    /// `Counter`, `Counter.next` and `half` are in the program.
+    iter_ready: bool,
     /// How many call arguments the expression being built is inside.
     call_nest: u32,
     /// A `#strict` file: the whole program under the generator's `check`
@@ -280,6 +284,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         extra_fns: vec![],
         mutator: false,
         shadow_mistake: false,
+        iter_ready: false,
         call_nest: 0,
     };
     if strict {
@@ -314,6 +319,12 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         if mistake {
             wrong = Some(bad);
         }
+    }
+    // An iterator and an `optional` (owner, 2026-10-09, 5c52ba8a): a type
+    // with its own `next`, walked by `for`, and a function that may give none.
+    if cfg.iterators && g.rng.chance(30) {
+        g.extra_fns.push("struct Counter {\n    now: int32\n    stop: int32\n}\n\nfn Counter.next [lent.mut 'c': Counter] -> optional[int32] {\n    if 'c'.now at_least 'c'.stop { return optional.none; }\n    change 'c'.now = 'c'.now plus 1;\n    return optional.value['c'.now];\n}\n\nfn half ['n': int32] -> optional[int32] {\n    if ('n' mod.floor 2) equal_to 0 { return optional.value['n' div.floor 2]; }\n    return optional.none;\n}\n".to_string());
+        g.iter_ready = true;
     }
     // MAIN
     g.callable = g.sigs.len();
@@ -730,6 +741,7 @@ impl Gen {
             if self.cfg.brain16 && self.in_check == 0 { 2 } else { 0 },             // brain16
             if self.removable().is_empty() { 0 } else { 2 },                        // list.remove
             if self.shadowable().is_empty() { 0 } else { 1 },                       // shadow
+            if self.iter_ready && self.in_check == 0 { 2 } else { 0 },             // iterator, optional
         ];
         match self.rng.weighted(&w) {
             0 => self.let_stmt(),
@@ -754,6 +766,7 @@ impl Gen {
             21 => self.brain_episode(),
             22 => self.remove(),
             23 => self.shadow_stmt(),
+            24 => self.iter_episode(),
             6 if self.rng.chance(8) => self.min_by_minus_one(),
             6 => {
                 let t = self.int_ty();
@@ -1700,6 +1713,39 @@ impl Gen {
     /// rounded), and seen as integers: `to.int64[…] otherwise -1`, a deci in
     /// either form scaled, a comparison, the length of its text. A risk
     /// taken: a value past `bin16`'s largest converted into one.
+    /// A `Counter` walked by hand (`match` on its `next`), by `for … in
+    /// lend.mut` (sometimes left early) and by `for … in give`; and `half`'s
+    /// `optional` matched on a value in scope. Compared between the engines.
+    fn iter_episode(&mut self) -> Stmt {
+        self.unevaluable = true;
+        let q = |n: &str| format!("'{n}'");
+        let c = self.name("c");
+        let now = self.rng.range(-5, 5);
+        let stop = now + self.rng.range(-2, 8);
+        let mut lines = vec![format!("let mut {} := Counter[now = {now}, stop = {stop}];", q(&c))];
+        if self.rng.chance(60) {
+            let x = self.name("x");
+            lines.push(format!("match Counter.next[lend.mut {}] {{ value {} {{ put_i[to.int64[{}]]; }} none {{ put_u[0]; }} }}", q(&c), q(&x), q(&x)));
+        }
+        if self.rng.chance(70) {
+            let x = self.name("x");
+            let stop_at = self.rng.range(now, stop.max(now) + 1);
+            let brk = if self.rng.chance(50) { format!(" if {} equal_to {stop_at} {{ break; }}", q(&x)) } else { String::new() };
+            lines.push(format!("for {} in lend.mut {} {{{brk} put_i[to.int64[{}]]; }}", q(&x), q(&c), q(&x)));
+        }
+        if self.rng.chance(60) {
+            let x = self.name("x");
+            lines.push(format!("for {} in give {} {{ put_i[to.int64[{}]]; }}", q(&x), q(&c), q(&x)));
+        }
+        let ints: Vec<VarInfo> = self.vars().filter(|v| matches!(v.ty, Ty::I8 | Ty::I16 | Ty::I32 | Ty::U8 | Ty::U16)).cloned().collect();
+        if !ints.is_empty() && self.rng.chance(60) {
+            let v = self.rng.pick(&ints).clone();
+            let h = self.name("x");
+            lines.push(format!("match half[to.int32[{}]] {{ value {} {{ put_i[to.int64[{}]]; }} none {{ put_u[1]; }} }}", q(&v.name), q(&h), q(&h)));
+        }
+        Stmt::Block { tier: Tier::Default, body: lines.into_iter().map(Stmt::Src).collect() }
+    }
+
     fn brain_episode(&mut self) -> Stmt {
         self.unevaluable = true;
         const LITS: &[&str] = &["0.1", "0.2", "0.5", "1.5", "2.5", "-1.75", "3.0", "12.75", "300.7", "0.001", "1000.0", "-0.3"];
