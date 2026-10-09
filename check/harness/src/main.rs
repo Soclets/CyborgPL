@@ -115,6 +115,7 @@ impl Args {
             cord: !avoid.contains("cord") && !avoid.contains("stdkit"),
             iterators: !avoid.contains("iterators"),
             print: !avoid.contains("print"),
+            written: !avoid.contains("written"),
             new_words: !avoid.contains("new-words"),
         }
     }

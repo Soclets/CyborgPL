@@ -115,13 +115,15 @@ pub struct Config {
     pub iterators: bool,
     /// `cord::print` of decis and brain16, their own text (Synapse 252fa188).
     pub print: bool,
+    /// `to.decN.written[…]` from text (owner, 2026-10-09).
+    pub written: bool,
     /// `!mut`, `!check` and `! 'x'` (owner, 9a9e573) on most programs.
     pub new_words: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, cord: true, iterators: true, print: true, new_words: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, cord: true, iterators: true, print: true, written: true, new_words: true }
     }
 }
 
@@ -744,6 +746,7 @@ impl Gen {
             if self.removable().is_empty() { 0 } else { 2 },                        // list.remove
             if self.shadowable().is_empty() { 0 } else { 1 },                       // shadow
             if self.iter_ready && self.in_check == 0 { 2 } else { 0 },             // iterator, optional
+            if self.cfg.print && (!self.lists().is_empty() || !self.simd_vars(None).is_empty() || !self.enum_vars().is_empty()) { 1 } else { 0 }, // print a whole value
         ];
         match self.rng.weighted(&w) {
             0 => self.let_stmt(),
@@ -769,6 +772,7 @@ impl Gen {
             22 => self.remove(),
             23 => self.shadow_stmt(),
             24 => self.iter_episode(),
+            25 => self.print_whole(),
             6 if self.rng.chance(8) => self.min_by_minus_one(),
             6 => {
                 let t = self.int_ty();
@@ -1601,7 +1605,12 @@ impl Gen {
                         Expr::Conv(ty.clone(), Box::new(Expr::Var(v.name)), fb)
                     }
                 }
-                _ => Expr::Conv(ty.clone(), Box::new(Expr::Text(self.number_text())), Some(Box::new(Expr::Num(self.deci_lit(digits))))),
+                // `.written` counts every digit written, trailing zeros
+                // included (owner, 2026-10-09); plain goes by the value
+                _ => {
+                    let conv = if self.cfg.written && self.rng.chance(35) { format!("{ty}.written") } else { ty.clone() };
+                    Expr::Conv(conv, Box::new(Expr::Text(self.number_text())), Some(Box::new(Expr::Num(self.deci_lit(digits)))))
+                }
             };
             let name = self.name("d");
             let typed = !matches!(value, Expr::Conv(..));
@@ -1859,6 +1868,16 @@ impl Gen {
             }
         }
         Stmt::Block { tier: Tier::Default, body }
+    }
+
+    /// A list, a vector or an enum value printed whole by cord, as both
+    /// engines print them (Synapse beeb7b1a).
+    fn print_whole(&mut self) -> Stmt {
+        let mut names: Vec<String> = self.lists().into_iter().map(|v| v.name).collect();
+        names.extend(self.simd_vars(None).into_iter().map(|v| v.name));
+        names.extend(self.enum_vars().into_iter().map(|v| v.name));
+        let n = self.rng.pick(&names).clone();
+        Stmt::Src(self.cord_print(&n))
     }
 
     /// `cord::print.useful['x', newln];` or `.stored`, or `.auto_newln` with

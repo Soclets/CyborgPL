@@ -23,6 +23,9 @@ with `cord::print.useful` / `.stored` (`.auto_newln` on `useful` only, as Synaps
 engines' own text of those numbers is compared; about 30 programs in 100 get a `Counter` iterator
 (walked by hand, by `for … in lend.mut`, by `for … in give`) and `half`'s `optional`. Shadowing
 touches only the generator's own `'v…'` locals. `--avoid print` / `iterators` leave them out.
+Lists, vectors and enum values are printed whole by `cord::print` too (Synapse beeb7b1a), and some
+text-to-deci conversions are `to.decN.written[…]` (counts trailing zeros, owner 2026-10-09;
+`--avoid written`).
 
 **list.remove, shadow, str.at / str.slice** (owner, 2026-10-08): the generator removes an item
 (`pos`, its item printed or dropped; past the end as a risk) where the list's least length stays
