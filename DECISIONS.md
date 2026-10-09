@@ -23,7 +23,15 @@ product"; offered "never freezes", "no compatibility promise" and others,
 the owner wrote "Nerve is being experimented around on. So, please do not
 expect stability.", then chose design claude's smoothing: **"Nerve is being
 experimented with, so please don't expect stability: any release may change
-or remove anything, and it comes with no warranty."**
+or remove anything, and it comes with no warranty."** Then, of "What anyone else says about it isn't from us": "What if they
+copied our words verbatim? Or, say got it correctly?"; offered (a) a
+mismatch loses to the repo and site and (b) "we answer for what we publish";
+the owner asked what "they're right and it isn't" meant, and took the
+clearer wording with "you should likely trust": **"If something said
+elsewhere, for example in an article, a search result or an AI summary,
+doesn't match them, you should likely trust this repository and
+nerve-lang.com, not the other source. We aren't responsible for what others
+say."**
 
 ### 2026-10-09 — The README's top shows the cross wordmark (owner, via website claude)
 
