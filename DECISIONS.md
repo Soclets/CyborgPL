@@ -15,7 +15,15 @@ stability is a guarantee" and added who speaks for Nerve; the owner: "Not in
 every scenario". So the warning reads: **"Only this repository and
 nerve-lang.com speak for Nerve. What anyone else says about it isn't from
 us, and we aren't responsible for it: for example, an article, a search
-result or an AI summary."** No warranty and unstable-by-design stay.
+result or an AI summary."** Then the owner: "\"Nerve is unstable by design\" reads
+like we're purposely making it unstable, not really" (the 2026-10-01 ruling
+meant no stability promise); "makes no stability promise" sounded like no
+promises at all, when the README does promise "fast & safe at the final
+product"; offered "never freezes", "no compatibility promise" and others,
+the owner wrote "Nerve is being experimented around on. So, please do not
+expect stability.", then chose design claude's smoothing: **"Nerve is being
+experimented with, so please don't expect stability: any release may change
+or remove anything, and it comes with no warranty."**
 
 ### 2026-10-09 — The README's top shows the cross wordmark (owner, via website claude)
 
