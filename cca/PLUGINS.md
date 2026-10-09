@@ -4,20 +4,20 @@
 
 **Since 2026-10-07 (owner; DECISIONS 2026-10-07, "No base and no
 codextras")**: there is no base below the language and no codextras.
-Signatar is the lowest level and does what this proposal gave the base
+Brainstem is the lowest level and does what this proposal gave the base
 (reading files and manifests, loading lobes, checking powers, handing IR
 to LLVM); dialects were tried and dropped the same day ("just let them
 fork so they could do whatever they want"). A lobe may also **take powers
 away** (owner: "`a`"; a game engine's lobe forbidding raw memory to the
-limbs built with it). So the three boundaries below are one, Signatar ↔
-lobe; (A) and (C) are inside Signatar now, and the `cca-base` crate from
-step 1 is Signatar's power ledger, not a layer under it. The rename of
-Signatar to "base CyborgPL" is recorded and not applied ("Record, don't
+limbs built with it). So the three boundaries below are one, Brainstem ↔
+lobe; (A) and (C) are inside Brainstem now, and the `cca-base` crate from
+step 1 is Brainstem's power ledger, not a layer under it. The rename of
+Brainstem to "base CyborgPL" is recorded and not applied ("Record, don't
 implement yet"). MTM is gone (its spellings are old ones, refused); the
 slimmer base added TAS, AI, WSMW, Money, UniTect and CAPS, and ASP took
 the range types and length bounds (section 1). The text below is the
 proposal as answered, with "the base" and "the codextra" read as
-Signatar.
+Brainstem.
 
 Compiler claude's proposal, 2026-10-07, for the owner to approve
 (2026-10-06: "compiler claude proposes the plugin interface, with the
@@ -35,7 +35,7 @@ the owner's, and nothing here fills them in.
 
 Fixed points this builds on (`design/cores.md`; DECISIONS 2026-10-05 to
 2026-10-07): the base reads files, loads the codextra and lobes, enforces
-grants, and hands LLVM IR to LLVM unread; the codextra (Signatar) does
+grants, and hands LLVM IR to LLVM unread; the codextra (Brainstem) does
 the syntax, types, borrows, Cortex and the IR; the codextra limits what
 lobes may do; lobes grant powers, add syntax and depend on lobes; every
 limb lists the powers it uses; a program may only `deny`; a lone file has
@@ -70,7 +70,7 @@ them differently on purpose.
 There are three boundaries, not one:
 
 ```
-base  <──(A)──>  codextra (Signatar)  <──(B)──>  lobes
+base  <──(A)──>  codextra (Brainstem)  <──(B)──>  lobes
   └────────────────────(C)─────────────────────┘
 ```
 
@@ -79,8 +79,8 @@ base  <──(A)──>  codextra (Signatar)  <──(B)──>  lobes
   LLVM IR, a list of power uses, and messages.
 - **(B) codextra ↔ lobe**: the big one, and **the codextra's to define**,
   since "a codextra defines which powers exist and limits lobes". A lobe
-  written for Signatar is a Signatar lobe; another codextra defines its
-  own (B). So (B) below is *Signatar's* lobe interface.
+  written for Brainstem is a Brainstem lobe; another codextra defines its
+  own (B). So (B) below is *Brainstem's* lobe interface.
 - **(C) base ↔ lobe**: only loading, identity, dependencies and the power
   catalogue, never syntax or IR. The base enforces grants, so it must
   know which powers each lobe adds and grants, without understanding
@@ -108,16 +108,16 @@ The base checks `uses` against the manifests (section 4) before handing
 the IR to LLVM, so a codextra cannot use a power nobody granted by
 forgetting to check: the base does not trust it to. `read_manifest`
 is the codextra's because the base does not know what a quoted name is
-(cores.md: Signatar reads `CCA.cplr`).
+(cores.md: Brainstem reads `CCA.cplr`).
 
-### (B) What a Signatar lobe provides
+### (B) What a Brainstem lobe provides
 
 A lobe is two parts, as cores.md has it: **Rust** (what the compiler runs)
 and **CyborgPL** (code it brings, compiled as a limb of its own). The Rust
 part answers four kinds of question:
 
-1. **Which syntax it adds**: entries in Signatar's hook menu (section 3).
-2. **What its syntax means**: each hook's node lowers to Signatar code,
+1. **Which syntax it adds**: entries in Brainstem's hook menu (section 3).
+2. **What its syntax means**: each hook's node lowers to Brainstem code,
    to calls into the lobe's own CyborgPL part, or to IR (section 5).
 3. **Which powers it adds and grants**: its catalogue entries, and its
    grants (to every limb, or to favourites by registry ID).
@@ -138,9 +138,9 @@ pub trait Lobe {
 
 ## 3. Adding syntax: the hard part
 
-**Q1. How a lobe adds syntax to Signatar's parser.**
+**Q1. How a lobe adds syntax to Brainstem's parser.**
 
-- **(a) A fixed menu of hooks.** Signatar names the places a lobe may
+- **(a) A fixed menu of hooks.** Brainstem names the places a lobe may
   extend, and a lobe claims entries. The menu, read off what the official
   lobes already need:
 
@@ -159,18 +159,18 @@ pub trait Lobe {
   | a spelling of an existing token | MTM's `->`, `immut`, `i32` |
   | the characters a name may hold | WSTN |
 
-  Signatar keeps precedence, spans and error messages; two lobes claiming
+  Brainstem keeps precedence, spans and error messages; two lobes claiming
   the same entry are refused when the manifest is read, naming both.
-  New *kinds* of syntax need a new entry in Signatar.
+  New *kinds* of syntax need a new entry in Brainstem.
 
 - **(b) Token rewriting**, like Rust's procedural macros: a lobe is given
   the tokens after its word, up to a matching close, and gives back plain
-  Signatar tokens (calling into its CyborgPL part). Any shape fits, but
+  Brainstem tokens (calling into its CyborgPL part). Any shape fits, but
   messages point at rewritten code, Cortex sees only the expansion, and
   two lobes' rewrites can interfere in ways neither checks.
 
-- **(c) Grammar fragments**: each lobe ships grammar rules that Signatar
-  merges into its parser. The most expressive, but Signatar's parser is
+- **(c) Grammar fragments**: each lobe ships grammar rules that Brainstem
+  merges into its parser. The most expressive, but Brainstem's parser is
   hand-written recursive descent and would be rewritten as a generated
   one; ambiguity between two lobes' grammars is found only by the
   generator, if at all; and errors get worse.
@@ -199,13 +199,13 @@ lobe may instead leave a word unreserved, found by its position.
 
 All engineering, given the rulings, except where marked:
 
-1. **The catalogue.** Signatar's `powers()` gives the tree it defines
+1. **The catalogue.** Brainstem's `powers()` gives the tree it defines
    (`inline_assembly`, `c_calls.functions`, `raw_memory.read`, the four
    extension powers, …). Each listed lobe's `powers()` adds entries under
-   the paths it may add to. Signatar decides where a lobe may add; a lobe
-   cannot add above or beside a Signatar power it is not allowed to
-   extend, and nothing lifts Signatar's limits (borrows, Cortex).
-2. **Grants.** Signatar grants its defaults to every limb (the three
+   the paths it may add to. Brainstem decides where a lobe may add; a lobe
+   cannot add above or beside a Brainstem power it is not allowed to
+   extend, and nothing lifts Brainstem's limits (borrows, Cortex).
+2. **Grants.** Brainstem grants its defaults to every limb (the three
    dangerous powers). Each lobe grants to every limb built with it, and
    may grant more to favourites named by registry ID. **A lobe may also
    take a power away** from every limb built with it (owner, 2026-10-07:
@@ -216,7 +216,7 @@ All engineering, given the rulings, except where marked:
 4. **Using.** The codextra reports every use as `(limb, power path,
    thing, span)`: `c_calls` with thing `"sqrt"`, `vouch` at a `!check`.
 5. **The base's check** of each use, in this order, each with its own
-   message: granted (by Signatar or a listed lobe)? listed by the limb?
+   message: granted (by Brainstem or a listed lobe)? listed by the limb?
    not denied by the program (`deny`, with `.except[…]` and `.for[…]`)?
    A lone file skips 1 to 3: it has every lobe and power.
 6. **The record.** The build writes the list of uses per limb, which the
@@ -244,8 +244,8 @@ IEG's; trusting a lobe is listing it, as the approved warning says.
 **(engineering)** A lobe's node lowers in one of three ways, chosen per
 node:
 
-1. **To Signatar code**: the node is a call to a function in the lobe's
-   CyborgPL part, or plain Signatar it builds. Signatar then types it,
+1. **To Brainstem code**: the node is a call to a function in the lobe's
+   CyborgPL part, or plain Brainstem it builds. Brainstem then types it,
    checks borrows, runs Cortex and makes IR as for any code. This is the
    default, and the one every third-party lobe should reach for.
 2. **To IR with a contract**: the lobe gives an LLVM IR template, and a
@@ -255,7 +255,7 @@ node:
 3. **To runtime**: a call into a static library or bitcode the lobe ships
    (MCPS's thread pool, Metal's command queues).
 
-What a lobe may not do: replace Signatar's types, borrow rules or Cortex,
+What a lobe may not do: replace Brainstem's types, borrow rules or Cortex,
 or reach into another lobe's nodes. A lobe that needs another (MCPS needs
 IEG) calls it through its CyborgPL part or its declared nodes.
 
@@ -265,12 +265,12 @@ needs a mark. None of that is a node to lower.
 
 **Q4. How the deep official lobes move out.**
 
-- **(a) Policies Signatar owns, switched on by the lobe.** ASP's,
-  Genny's and IEG's rules stay in Signatar's code; the ASP plugin is the
+- **(a) Policies Brainstem owns, switched on by the lobe.** ASP's,
+  Genny's and IEG's rules stay in Brainstem's code; the ASP plugin is the
   switch, plus its syntax hooks. The plugin interface is honest about
-  this: Signatar defines a few *policies* (number meaning, generics, the
+  this: Brainstem defines a few *policies* (number meaning, generics, the
   marking rule) that only its official lobes may enable.
-- **(b) Real separation**: Signatar exposes its type checker and Cortex
+- **(b) Real separation**: Brainstem exposes its type checker and Cortex
   through the interface, deep enough for ASP and Genny to be written
   outside it. Anyone could then write a different ASP. It is a far larger
   and far less stable interface: every change to the checker is a change
@@ -278,7 +278,7 @@ needs a mark. None of that is a node to lower.
 - **(c) Some of each**: (a) now, and a policy moves to (b) the day a
   second author wants to write one.
 
-**Decided: (b), real separation** (owner: "`b`"): Signatar opens its type
+**Decided: (b), real separation** (owner: "`b`"): Brainstem opens its type
 checker and Cortex far enough that ASP, Genny and IEG are written outside
 it, and anyone could write an ASP2. The cost is accepted: a large
 interface, where a change to the checker is a change to the plugin API.
@@ -311,7 +311,7 @@ separation.
 no WebAssembly sandbox** (owner: "the OS lib thingies file type"; asking,
 on the way, why the language was getting restricted). A lobe is trusted
 when it is listed, as the approved warning says. The official lobes are
-still built into CCA, and Signatar into CCA as the default codextra (not
+still built into CCA, and Brainstem into CCA as the default codextra (not
 asked; as proposed). **Recommendation, as it was: (b) for every lobe that is not official; the official
 lobes built into CCA as Rust crates behind the same trait.** The registry
 then ships one file per lobe version, a stranger's lobe cannot read your
@@ -354,10 +354,10 @@ question above changes it):
    check, the LLVM handoff), `signatar` (the rest of today's compiler),
    and `cores/*` (one crate per official lobe, empty at first). No
    behaviour changes.
-2. **The power ledger**, before any plugin: Signatar reports uses, the
+2. **The power ledger**, before any plugin: Brainstem reports uses, the
    base checks them against `powers` and `deny`. This is the powers
    ruling built, and needs nothing below.
-3. **The hook menu** (Q1) inside Signatar, with today's switches rewired
+3. **The hook menu** (Q1) inside Brainstem, with today's switches rewired
    through it: the gate tables become claims made by `cores/asp`,
    `cores/mcps`, and so on.
 4. **Move WSTN out** first (only name characters), then the slimmer

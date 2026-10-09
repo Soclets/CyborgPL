@@ -350,7 +350,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                 Tok::Name(n) if !n.is_ascii() => format!("`'{}'`", n),
                 _ => continue,
             };
-            return err(Diagnostic::error(format!("{} is not an English name: Signatar's names are English letters, digits and `_`; a name in another script, or an emoji, needs the lobe WSTN in this Neuron's `lobes` (`{}`)", shown, core_line("WSTN"))).at(t.span));
+            return err(Diagnostic::error(format!("{} is not an English name: Brainstem's names are English letters, digits and `_`; a name in another script, or an emoji, needs the lobe WSTN in this Neuron's `lobes` (`{}`)", shown, core_line("WSTN"))).at(t.span));
         }
     }
     // Old spellings, in every Limb (the 2026-10-07 revision; owner: "MTM

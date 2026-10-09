@@ -794,7 +794,7 @@ impl Checker {
             let Some(lp) = self.items.limb_powers.get(&root).cloned() else { continue };
             // Signatar grants the dangerous three to every limb; IEG the
             // vouching and the operator powers to every limb listing it.
-            let mut grants: Vec<Grant> = ["inline_assembly", "c_calls", "raw_memory"].iter().map(|p| Grant { power: Power::new(p), by: "Signatar".into(), to: None }).collect();
+            let mut grants: Vec<Grant> = ["inline_assembly", "c_calls", "raw_memory"].iter().map(|p| Grant { power: Power::new(p), by: "Brainstem".into(), to: None }).collect();
             if lp.cores.iter().any(|c| c == "IEG") {
                 grants.extend(["vouch", "operators_on_builtin_types", "prefix_operators"].iter().map(|p| Grant { power: Power::new(p), by: "IEG".into(), to: None }));
             }

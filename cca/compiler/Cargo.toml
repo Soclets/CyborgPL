@@ -2,7 +2,7 @@
 name = "signatar"
 version = "0.0.1"
 edition = "2021"
-description = "Signatar, the lowest level of the CyborgPL language, built into CCA (cca/PLUGINS.md)"
+description = "Brainstem (the crate is still named signatar), the lowest level of the CyborgPL language, built into CCA (cca/PLUGINS.md)"
 publish = false
 
 [lib]
