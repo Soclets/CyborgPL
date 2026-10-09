@@ -41,7 +41,19 @@ unit, clear `.bss`, run MAIN), and the script keeps it first with
 (`wfe` in a loop; owner: "`a`"), like a failed check but without the trap,
 so a debugger still sees where it stopped; over (b) powering off through
 PSCI and (c) semihosting an exit code (hangs a board with no debugger).
-Design claude and compiler claude recommended (a).
+Design claude and compiler claude recommended (a). **Q4: with no OS, `cord::print` passes its bytes to an output the
+board's Neuron provides** (owner: "f"): the board decides how bytes leave (a
+serial chip, a screen, anything), and the same `cord::print[…]` works on
+every board, as C's `printf` calls the `_write` a bare-metal program
+supplies. Offered first were (a) refused, recommended by compiler claude, (b)
+a UART at a fixed address, then, on "are there only two options?", (c) the
+Neuron naming its serial chip's address and kind, (d) semihosting, (e) the
+board's Neuron driving the port itself with the base's raw memory and
+`cord::print` refused, which design claude recommended with (f) later; the
+owner asked "Does `e` have the most useful possibilities?" (the most
+flexible, not the most convenient) and chose (f). Not yet asked: how a
+Neuron names its output, what the output function takes, and `cord::exit`
+with no OS.
 
 ### 2026-10-09 — The practical base is built in the oracle; Signatar is CyborgPL's base, the Brainstem Nerve's (owner)
 
