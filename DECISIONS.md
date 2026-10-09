@@ -13,8 +13,10 @@ recommended, `snp`, `sy`), the owner: "Both". So **the compiler's command is
 `synapse`, and `syn` is its short form**: `synapse build` and `syn build` do
 the same; the old `cca` is refused, naming them. This is a deliberate second
 spelling, the owner's, where 2026-10-07 made one spelling per thing the rule
-in the language and `cca precog` was refused on it this morning. Not yet
-asked: the names of the folder (`cca/`) and the crates (`cca-runtime`, …).
+in the language and `cca precog` was refused on it this morning. Then
+**the folder and crates take the full name**: `synapse/`, `synapse-runtime`
+and so on (owner: "Yeah"), `syn` being a typing shortcut only, as design
+claude recommended.
 
 ### 2026-10-09 — Code ends `.nrv`, settings end `.nrp`; the manifest is `Kinesin.nrp` with `kin::` types (owner)
 
