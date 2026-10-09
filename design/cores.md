@@ -1,12 +1,13 @@
 # Brainstem, lobes and neurons (owner, 2026-10-05/06/07; being designed, not built)
 
-> Names: **Signatar** (2026-10-05) is the slim base this note describes, as of
+> Names (owner, 2026-10-09): **Signatar is CyborgPL's base, the Brainstem is
+> Nerve's.** Signatar (2026-10-05) is the slim base this note describes, as of
 > 2026-10-07: no operators, its maths in assembly. On 2026-10-08 the base was
-> made practical (operators, true-value numbers, ASP, Genny, iterators,
-> `optional`; `DECISIONS.md`, "The base should be practical"; not built yet),
-> and that base is the **Brainstem** (2026-10-09). Brainstem has `plus`;
-> Signatar did not (owner, 2026-10-09). Below, "Signatar" is the 2026-10-07
-> slim base, kept as history.
+> made practical (operators, true-value numbers, ASP and Genny folded in,
+> iterators, `optional`; `DECISIONS.md`, "The base should be practical"), and
+> that is the Brainstem, **built in the oracle 2026-10-09**. Brainstem has
+> `plus`; Signatar did not. The lobes ASP and Genny are retired. Below,
+> "Signatar" is the 2026-10-07 slim base, kept as history.
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 

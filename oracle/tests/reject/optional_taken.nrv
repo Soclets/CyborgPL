@@ -1,0 +1,2 @@
+enum optional { yes  no }
+MAIN { }

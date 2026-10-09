@@ -5,6 +5,32 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — The practical base is built in the oracle; Signatar is CyborgPL's base, the Brainstem Nerve's (owner)
+
+The owner: "Brainstem does have plus, Signatar doesn't", then "Do it now. Btw,
+Signatar is CyborgPL's base, Brainstem is Nerve's base". So **the 2026-10-08
+base is built in the oracle**: the operators need no lobe and no cord (only
+`++`, which builds growing text and lists, stays cord's); a literal is its true
+value everywhere (the bit-pattern literals of a Neuron without ASP are gone,
+with `examples/raw_numbers` and the `raw` Neuron); `to.`, `check` and range
+types need no lobe; generics and interfaces need no lobe; **ASP and Genny are
+retired**, a manifest listing either refused ("ASP is retired: since
+2026-10-08 it is part of the Brainstem, Nerve's base; take it out of
+`lobes`"), and every manifest is updated; cord needs neither ASP nor IEG any
+more (design claude's reading); every program has the base's **`optional`**
+(an enum may not take the name); **`fn Counter.next`** is parsed and called
+`Counter.next[…]`; and **`for` walks an iterator** by `lend.mut` or `give`,
+calling its `next` once per trip so `break` ends even an endless one.
+Thirteen reject tests that checked the old gates are removed; new:
+`examples/brainstem_practical/` (operators, `to.`, a range type and a generic
+with no lobes and no cord), `examples/iterators.nrv`, and reject tests
+asp_retired, iterator_given_away, for_no_next, optional_taken. Not built:
+the trap on a failed check with no OS and the size report (Synapse's),
+`Iterator[int32]` and a type's item declaration (spelling not designed),
+adapters (not designed). Design claude's slip, found building it: the
+iterator samples shown to the owner wrote `[lend.mut 'c': Counter]` for a
+parameter; a parameter is `lent.mut`, as the oracle says.
+
 ### 2026-10-09 — A function can belong to a type: `fn Counter.next […]`, called `Counter.next[…]` (owner: b)
 
 Back to iterators after the rename (left open 2026-10-08): two types cannot

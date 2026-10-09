@@ -90,9 +90,10 @@ pub const STD_VERSION: &str = "2026-10-06T12:57:14+07:00";
 
 /// The operators that are std's (owner, 2026-10-05/06), as the oracle spells them inside; `and.then` and
 /// `or.else` stay Brainstem's, and a Neuron's own operators are that Neuron's.
+/// The operators moved into the base on 2026-10-08 (owner: "`a`"); only `++`, which builds growing
+/// text and lists, still needs cord
 fn is_std_op(op: &str) -> bool {
-    matches!(op, "+" | "-" | "x" | "+~" | "-~" | "x~" | "+.ieee" | "-.ieee" | "x.ieee" | "pow" | "pow.wrap" | "pow.ieee" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or" | "++")
-        || BIT_OPS.contains(&op) || op.starts_with("div.") || op.starts_with("mod.")
+    op == "++"
 }
 
 /// std's names the oracle emulates, which may be written without `std::` since std marks everything
@@ -170,6 +171,11 @@ pub struct Parser {
 }
 
 type PResult<T> = Result<T, ParseError>;
+
+thread_local! {
+    /// The paths that are a type's name with its functions under it (`fn Counter.next`, 2026-10-09), not modules
+    pub static TYPE_PATHS: std::cell::RefCell<Vec<Vec<String>>> = std::cell::RefCell::new(Vec::new());
+}
 
 thread_local! {
     /// Every `precedence` block of the program, all its Neurons' (owner, 2026-10-03: a Neuron's levels
@@ -408,10 +414,7 @@ impl Parser {
                 let Tok::Word(w) = &self.toks[i].tok else { continue };
                 if i > 0 && matches!(self.toks[i - 1].tok, Tok::Dot | Tok::ColonColon) { continue; }
                 let core = match w.as_str() {
-                    "to" if self.toks.get(i + 1).map(|t| &t.tok) == Some(&Tok::Dot) => "ASP",
-                    "check" => "ASP",
                     "nocheck" | "NO_FUCKING_CHECKS" => "IEG",
-                    "interface" | "satisfies" => "Genny",
                     "concur" | "whichever" | "channel" | "para" => "MCPS",
                     _ => continue,
                 };
@@ -668,7 +671,18 @@ impl Parser {
                     f.is_test = true;
                     prog.funcs.push(f)
                 }
-                Tok::Word(w) if w == "fn" => { let mut f = self.func()?; f.vis = vis; prog.funcs.push(f) }
+                Tok::Word(w) if w == "fn" => {
+                    let mut f = self.func()?;
+                    f.vis = vis;
+                    // `fn Counter.next`: the type's name is a path its functions sit under (2026-10-09); a function
+                    // with no `pub` is seen where its type is declared, here across the Neuron (provisional)
+                    if f.module.len() > self.module.len() {
+                        if !prog.modules.iter().any(|m| m.path == f.module) { prog.modules.push(ModuleDef { path: f.module.clone(), vis: Vis::Pub, line: f.line }); }
+                        TYPE_PATHS.with(|t| { let mut t = t.borrow_mut(); if !t.contains(&f.module) { t.push(f.module.clone()); } });
+                        if f.vis == Vis::Private { f.vis = Vis::Limb; }
+                    }
+                    prog.funcs.push(f)
+                }
                 Tok::Word(w) if w == "struct" => { let mut d = self.struct_def()?; d.vis = vis; prog.structs.push(d) }
                 Tok::Word(w) if w == "enum" => {
                     // enum Name { case  case: type … }   (design/enums.md, 2026-09-20)
@@ -1101,6 +1115,15 @@ impl Parser {
         // A keyword may name a function (decided 2026-09-19) — it is then never called
         // bare, only through a path: `my.to[…]` inside, `std::to[…]` outside.
         if name == "MAIN" { return self.err("MAIN is the program's block, not a function: `MAIN { … }`"); }
+        // a function can belong to a type: `fn Counter.next […]`, called `Counter.next[…]` (owner,
+        // 2026-10-09: "`b`"); it sits under the type's name as a module's functions sit under the module's
+        let mut owner: Option<String> = None;
+        let name = if !self.in_interface && *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(_)) {
+            self.advance();
+            let Tok::Word(m) = self.advance().tok else { unreachable!() };
+            owner = Some(name);
+            m
+        } else { name };
         let gens = if self.in_interface { Vec::new() } else { self.announce("fn")? };
         if *self.peek() == Tok::LParen { return self.err("parameters sit in `[ ]`; `( )` is arithmetic grouping"); }
         self.expect(Tok::LBracket, "`[` to open the parameter list")?;
@@ -1171,7 +1194,9 @@ impl Parser {
         if ret.is_none() && ret_lent.is_none() && self.saw_value_return { return self.err(format!("`{name}` returns a value, so it says its type: `-> int32` (owner, 2026-10-07)")); }
         let bounds = Self::flat_bounds(&gens);
         if !self.in_interface { self.declared = None; self.groups.clear(); }
-        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent, fails, is_extern: false, is_op: false, is_test: false, bounds, params, body, line })
+        let mut module = self.module.clone();
+        if let Some(t) = owner { module.push(t); }
+        Ok(Func { name, module, vis: Vis::Private, ret, ret_lent, fails, is_extern: false, is_op: false, is_test: false, bounds, params, body, line })
     }
 
     // fail list := 'fail' '[' Word (':' type)? (',' Word (':' type)?)* ']'
@@ -1243,7 +1268,6 @@ impl Parser {
     fn announce(&mut self, what: &str) -> PResult<Vec<(String, Vec<String>)>> {
         let mut gens: Vec<(String, Vec<String>)> = Vec::new();
         let mut groups: Vec<String> = Vec::new();
-        if matches!(self.peek(), Tok::Op(o) if o == "<") && self.lacks.iter().any(|c| c == "Genny") { return self.core_missing("Genny", "a generic"); }
         if matches!(self.peek(), Tok::Op(o) if o == "<") {
             self.advance();
             loop {
@@ -1406,9 +1430,6 @@ impl Parser {
     /// A type; a range or a length bound is ASP's (owner, 2026-10-07: "move"), refused without it
     fn ty(&mut self) -> PResult<Ty> {
         let t = self.ty_inner()?;
-        if matches!(t, Ty::Ranged(..) | Ty::TextRanged(..)) && self.lacks.iter().any(|c| c == "ASP") {
-            return self.core_missing("ASP", "a range or a length bound on a type");
-        }
         Ok(t)
     }
 
@@ -3214,14 +3235,8 @@ impl Parser {
     // unary := ('not' | '-') unary | primary
     fn unary(&mut self) -> PResult<Expr> {
         let line = self.line();
-        if self.no_std && self.is_word("not") {
-            let bit = *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "bit");
-            return self.std_missing(if bit { "`not.bit`" } else { "`not`" });
-        }
-        if self.no_std && *self.peek() == Tok::Op("-".into()) { return self.std_missing("`-`"); }
         // `neg.ieee 'x'`: IEEE's negation, 0 becoming -0 (owner, 2026-10-07: "yea"); it binds as `-` does
         if self.is_word("neg") && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "ieee") {
-            if self.no_std { return self.std_missing("`neg.ieee`"); }
             self.advance(); self.advance(); self.advance();
             return Ok(Expr::Unary("neg.ieee".into(), Box::new(self.climb(701)?), line));
         }
@@ -3254,8 +3269,7 @@ impl Parser {
                         return Ok(Expr::Duration(i * per, line));
                     }
                 }
-                // without ASP a literal is a bit pattern (owner, 2026-10-06); ASP makes it a value again
-                if self.lacks.iter().any(|c| c == "ASP") { return Ok(Expr::RawInt(i, line)); }
+                // a literal means its true value in the base (owner, 2026-10-08: ASP's number rules moved in)
                 Ok(Expr::Int(i, line))
             }
             Tok::BigInt(s) => { self.advance(); Ok(Expr::BigInt(s, line)) }

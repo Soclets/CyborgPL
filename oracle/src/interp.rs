@@ -358,6 +358,8 @@ impl<'p> Interp<'p> {
             let k = format!("module {}", m.path.join("."));
             if let Some(l) = seen.insert(k.clone(), m.line) { return rt(m.line, format!("module `{}` is defined twice (first at {}) — a file and a block cannot both be it", m.path.join("."), line_of(l))); }
             // One name, one thing, per Neuron (decided 2026-09-21): a module and a type cannot share a name.
+            // A type's own functions (`fn Counter.next`) sit under its name, which is not a module.
+            if crate::parser::TYPE_PATHS.with(|t| t.borrow().contains(&m.path)) { continue; }
             let path = m.path.join(".");
             let clash = self.prog.structs.iter().map(|d| (&d.name, d.line, "struct")).chain(self.prog.enums.iter().map(|e| (&e.name, e.line, "enum"))).chain(self.prog.interfaces.iter().map(|i| (&i.name, i.line, "interface"))).find(|(n, _, _)| **n == path);
             if let Some((_, l, what)) = clash {
@@ -832,6 +834,52 @@ impl<'p> Interp<'p> {
                 Ok(Flow::Normal)
             }
             Stmt::For { name, index, perm, over, body, line, .. } => {
+                // over an iterator, a value whose type has its own `next` returning `optional[…]` (owner, 2026-10-09:
+                // `fn Counter.next`, "`b`"; `lend.mut` borrows it, `give` hands it over, "`c`"): `next` is called
+                // once per trip, so `break` ends even an endless one
+                if over.values.len() == 1 {
+                    if let crate::ast::Value::Expr(Expr::Owned(verb, n, _)) = &over.values[0] {
+                        let tname = self.lookup(n).and_then(|s| match &*s.cell.borrow() { Value::Struct(t, _) | Value::Enum(t, _, _) => Some(t.clone()), _ => None });
+                        if let (Some(tname), Verb::LendMut | Verb::Give) = (tname, verb) {
+                            let Some(next_mod) = self.prog.funcs.iter().find(|f| f.name == "next" && !f.is_op && f.module.last() == Some(&tname)).map(|f| f.module.clone()) else {
+                                return rt(*line, format!("'{n}' is a `{tname}`, which has no `fn {tname}.next`: `for` walks a list, or an iterator, a type with its own `next` returning `optional[…]`"));
+                            };
+                            if index.is_some() { return rt(*line, "an iterator has no positions: `for 'x' in lend.mut 'it'`"); }
+                            let call = Expr::Call(Call {
+                                handler: None, limb: None, from: self.module.clone(), line: *line, bare: false,
+                                path: next_mod.iter().cloned().chain(std::iter::once("next".to_string())).collect(),
+                                written: vec![tname.clone(), "next".into()],
+                                args: Bracket { values: vec![crate::ast::Value::Expr(Expr::Owned(Verb::LendMut, n.clone(), *line))], line: *line, one_list: false },
+                            });
+                            let cell = Rc::new(RefCell::new(Value::Nothing));
+                            let mut ran = false;
+                            loop {
+                                let (v, _) = self.eval(&call)?;
+                                let item = match v {
+                                    Value::Enum(t, c, d) if t == "optional" => match (c.as_str(), d) { ("value", Some(x)) => *x, _ => break },
+                                    other => return rt(*line, format!("`{tname}.next` must return `optional[…]`, it returned {}", other.kind())),
+                                };
+                                ran = true;
+                                *cell.borrow_mut() = item;
+                                self.push();
+                                let r = self.declare(name, Slot { cell: cell.clone(), ty: None, kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: true, since: 0, deps: Vec::new() }, *line)
+                                    .and_then(|_| self.stmts(body));
+                                self.pop();
+                                match r? {
+                                    Flow::Break => break,
+                                    f @ (Flow::Return(_) | Flow::Fail(..) | Flow::Give(_)) => return Ok(f),
+                                    Flow::Normal | Flow::Continue => {}
+                                }
+                            }
+                            if matches!(verb, Verb::Give) { if let Some(s) = self.lookup_mut(n) { s.alive = false; } }
+                            if *perm {
+                                if !ran { return rt(*line, format!("`perm` '{name}' would outlive a loop whose iterator gave nothing, but was never given a value")); }
+                                self.declare(name, Slot { cell, ty: None, kind: SlotKind::Owned, alive: true, immut: false, sized: false, sealed: false, since: 0, deps: Vec::new() }, *line)?;
+                            }
+                            return Ok(Flow::Normal);
+                        }
+                    }
+                }
                 let (items, kind) = self.for_source(over, *line)?;
                 // a loop over a lend borrows the list while it runs: changing the list inside is refused
                 // (check claude's borrow findings, 2026-09-29)

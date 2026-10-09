@@ -52,6 +52,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     // first every file's `precedence` blocks, then the program with all of them known
     parser::SHARED_LEVELS.with(|l| l.borrow_mut().clear());
     parser::LACKS.with(|n| n.borrow_mut().clear());
+    parser::TYPE_PATHS.with(|t| t.borrow_mut().clear());
     case::PLAN.with(|p| p.borrow_mut().clear());
     LEVELS_ONLY.with(|f| f.set(true));
     let first = load_files(path);
@@ -80,7 +81,15 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     parser::POWER_USES.with(|u| u.borrow_mut().clear());
     parser::CALL_SITES.with(|u| u.borrow_mut().clear());
     parser::VAR_SITES.with(|u| u.borrow_mut().clear());
-    let prog = load_files(path)?;
+    let mut prog = load_files(path)?;
+    // the base's `optional` (owner, 2026-10-08: "an iterator's next returns an Option-like value", named
+    // `optional` with `value` and `none`): every program has it, as it has `list`
+    let prelude = lexer::lex("enum optional <T: any> { value: <T>  none }").map_err(|e| format!("the base's optional: {}", e.msg))?;
+    let base = parser::Parser::new(prelude).program().map_err(|e| format!("the base's optional: {}", e.msg))?;
+    if prog.enums.iter().any(|e| e.name == "optional") {
+        return Err(format!("{}: `optional` is the base's (`optional.value[…]` / `optional.none`); an enum cannot take its name", path.display()));
+    }
+    prog.enums.extend(base.enums);
     check_powers(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_type_names(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_redeclared(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
@@ -225,7 +234,7 @@ impl Dep { fn is_std(&self) -> bool { self.id.as_deref() == Some(parser::STD_ID)
 
 /// The official cores (design/cores.md, 2026-10-06). Another core is a Rust plugin, which the oracle
 /// cannot load.
-const OFFICIAL_CORES: [&str; 15] = ["IEG", "ASP", "Genny", "MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan", "WSTN", "TAS", "AI", "WSMW", "Money", "UniTect", "CAPS"];
+const OFFICIAL_CORES: [&str; 13] = ["IEG", "MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan", "WSTN", "TAS", "AI", "WSMW", "Money", "UniTect", "CAPS"];
 
 use parser::CORE_IDS;
 
@@ -306,7 +315,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                 if count > 1 && defaults != 1 { return Err(format!("{shown}: line {line}: with several targets, exactly one says `default = true` — the one built when none is named ({defaults} do)")); }
                 // only a target Synapse can build (owner, 2026-09-30: "refuse", as Synthia.ttsr's "Only what's
                 // actually doable"); the one list is Synapse's
-                let doable: Vec<&str> = include_str!("../../cca/targets.txt").lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).collect();
+                let doable: Vec<&str> = include_str!("../../synapse/targets.txt").lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).collect();
                 for (t, line) in names {
                     if !doable.contains(&t.as_str()) { return Err(format!("{shown}: line {line}: `{t}` is not a target Synapse can build; it builds for {}", doable.iter().map(|d| format!("`{d}`")).collect::<Vec<_>>().join(", "))); }
                 }
@@ -371,6 +380,8 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     let Some((core, _)) = CORE_IDS.iter().find(|(_, i)| *i == id) else {
                         return Err(format!("{shown}: line {line}: the lobe `{}…` is not an official one; loading another lobe is not built yet (a Rust plugin, which the oracle cannot load)", &id[..8]));
                     };
+                    // ASP and Genny folded into the base (owner, 2026-10-08: "`a`" to both); their IDs no longer name a lobe
+                    if *core == "ASP" || *core == "Genny" { return Err(format!("{shown}: line {line}: {core} is retired: since 2026-10-08 it is part of the Brainstem, Nerve's base; take it out of `lobes`")); }
                     let want = parser::core_version(core);
                     if version != want { return Err(format!("{shown}: line {line}: the oracle stands in for {core} `{want}` only, the installed one; this asks for `{version}`")); }
                     let core = core.to_string();
@@ -400,15 +411,8 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     if prefix.is_none() { return Err(format!("{shown}: line {mline}: the manifest has no `prefix`, the word code writes in front of `::` to reach this Neuron: {why}: `prefix = \"shop\"`")); }
     if !has_version { return Err(format!("{shown}: line {mline}: the manifest has no `version`: {why}: `version = \"1.0.0\"`")); }
     if targets == 0 { return Err(format!("{shown}: line {mline}: the manifest has no target: {why}: `targets = [kin::Target[name = \"aarch64-macos\"],]`")); }
-    // std needs ASP (owner, 2026-10-06: "You genuinely have to be shitting on my ass, if you installed
-    // std without fucking ASP")
-    if deps.iter().any(Dep::is_std) && !cores.iter().any(|c| c == "ASP") {
-        return Err(format!("{shown}: line {mline}: cord needs the lobe ASP, so its maths has true values and checks: add `{}` to `lobes`", parser::core_line("ASP")));
-    }
-    // std needs IEG too: its operators on built-in types are a power IEG grants (owner, 2026-10-06: "`a`")
-    if deps.iter().any(Dep::is_std) && !cores.iter().any(|c| c == "IEG") {
-        return Err(format!("{shown}: line {mline}: cord needs the lobe IEG, which grants it the operators on built-in types: add `{}` to `lobes`", parser::core_line("IEG")));
-    }
+    // cord needed ASP and IEG until 2026-10-08, when the operators and ASP's number rules moved into
+    // the base (owner: "`a`" to both); it needs no lobe now (design claude's reading)
     // cores depend on cores (owner, 2026-10-05); MCPS "Needs IEG, not std" (owner, 2026-10-06)
     if cores.iter().any(|c| c == "MCPS") && !cores.iter().any(|c| c == "IEG") {
         return Err(format!("{shown}: line {mline}: the lobe MCPS needs IEG: add `{}` to `lobes`", parser::core_line("IEG")));

@@ -1,5 +1,0 @@
-interface Shape {
-    fn area [lent 's': Self] -> bin64;
-}
-
-MAIN { }

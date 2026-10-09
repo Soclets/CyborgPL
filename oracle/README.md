@@ -113,6 +113,8 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 
 - **A second place's file in a Neuron**: every second place a message names gives its file (owner, 2026-10-08), `line 6 of shop.nrv`, the name without folders, as Synapse spells it; the oracle keeps no file per line, so in a Neuron directory every such place names `neuron.nrv`, as the first place already names the directory.
 
+- **A type's own functions** (`fn Counter.next`, 2026-10-09): one written without `pub` is seen across the Neuron (as `pub.neuron`), since where a type's functions are visible was not asked; and a `for` over a value of a type with no `next` is refused, naming the type.
+
 Each is marked "provisional" in the source. They are picks the interpreter
 had to make to run at all; none is a decision.
 

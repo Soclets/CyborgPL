@@ -4,7 +4,6 @@ kin::Manifest[
     version = "1.0.0",
     lobes = [
         kin::Lobe[id = "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085", version = "2026-10-06T18:04:29+07:00"],  # IEG
-        kin::Lobe[id = "4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f", version = "2026-10-06T18:04:29+07:00"],  # ASP
         kin::Lobe[id = "63baa4cf89d8b6df6adceb812df005b30ea2771fd56f2117d0246ef911de21aa", version = "2026-10-07T18:08:59+07:00"],  # TAS
         kin::Lobe[id = "8c723ccae25a719cd66eb44e95aeeef0557acec1467624ab91092c4ada766f21", version = "2026-10-07T20:22:24+07:00"],  # AI
         kin::Lobe[id = "0fb49902b57b8bc0b72caf424d80e17d035038e2cac58292d92f18b792d205a0", version = "2026-10-07T20:22:24+07:00"],  # WSMW

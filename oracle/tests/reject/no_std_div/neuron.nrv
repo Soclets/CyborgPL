@@ -1,3 +1,0 @@
-MAIN {
-    let 'x': int32 = 7 div.floor 2;
-}

@@ -1,3 +1,0 @@
-MAIN {
-    let 'b': bool = not true;
-}

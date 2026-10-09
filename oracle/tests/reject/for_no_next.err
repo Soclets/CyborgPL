@@ -1,0 +1,1 @@
+which has no `fn Point.next`: `for` walks a list, or an iterator
