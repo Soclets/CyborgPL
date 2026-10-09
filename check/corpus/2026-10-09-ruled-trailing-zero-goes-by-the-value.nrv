@@ -1,8 +1,7 @@
-# Question 2026-10-09 (check run --borrow-wrong 1000, seed 42580, cut down by hand), not a ruled finding:
-# to.deci32["1234567.0"] otherwise 9.5. The text has 8 digits written, the value needs 7, and a deci32
-# holds 7. design/types.md: "from text, more digits than the width fails too_many_digits" and
-# "trailing zeros are kept". The oracle drops the zero and converts (prints 12345670); Synapse counts it
-# and takes the otherwise (prints 95). Asked of the owner via design claude.
+# Finding 2026-10-09, ruled the same day (owner; oracle 3661b965): to.deci32["1234567.0"] goes by the
+# value, which a deci32 holds (7 digits), so it converts: 12345670, as the oracle prints. Counting the
+# written digits is the new to.deci32.written[…], which fails too_many_digits here. Synapse had counted
+# the trailing zero and taken the otherwise (95) (seed 42580).
 # check claude generator, seed 1
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
