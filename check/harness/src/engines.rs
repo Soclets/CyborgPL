@@ -16,11 +16,12 @@ pub struct Tools {
 
 impl Tools {
     /// The binaries built in this repository (`cargo build --release` in
-    /// `oracle/` and `cca/`).
+    /// `oracle/` and `synapse/`). `cca` is Synapse, the compiler (CCA until
+    /// the owner's rename, 2026-10-09).
     pub fn find(repo: &Path) -> Result<Tools, String> {
         let oracle = repo.join("oracle/target/release/oracle");
-        let cca = repo.join("cca/target/release/cca");
-        for (p, dir) in [(&oracle, "oracle"), (&cca, "cca")] {
+        let cca = repo.join("synapse/target/release/synapse");
+        for (p, dir) in [(&oracle, "oracle"), (&cca, "synapse")] {
             if !p.exists() {
                 return Err(format!("{} not found; run `cargo build --release` in {dir}/", p.display()));
             }
@@ -269,7 +270,7 @@ pub fn cca_run(bin: &Path, dir: &Path, env: &[(String, String)]) -> Exec {
     Exec::Stopped { out: r.stdout, code: r.code, line, msg }
 }
 
-/// `cca cortex --json <file>`: CCA's analyzer, Cortex (Precog until the
+/// `synapse cortex --json <file>`: Synapse's analyzer, Cortex (Precog until the
 /// owner's rename, 2026-10-09; `cca precog` is refused since).
 pub fn analyze(t: &Tools, file: &Path, dir: &Path, limit: Duration) -> Run {
     run(Command::new(&t.cca).arg("cortex").arg("--json").arg(file), dir, &[], false, limit)

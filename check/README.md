@@ -36,6 +36,10 @@ as they did when written; `check claims` asks `cca cortex --json` (`cca precog` 
 **Endings** (owner, 2026-10-09): programs are `.nrv` files (were `.cpls`); the corpus was renamed
 with `git mv`, and the harness writes `prog.nrv`. Older notes below may still say `.cpls`.
 
+
+**CCA is Synapse** (owner, 2026-10-09): the harness runs `synapse/target/release/synapse`
+(`cd synapse && cargo build --release -j 3`) and asks `synapse cortex --json`. Older notes below say CCA.
+
 ## What is here
 
 - **`gen/`** — the program generator. `seed → program` is a pure function
