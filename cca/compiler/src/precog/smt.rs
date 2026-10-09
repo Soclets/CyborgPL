@@ -402,7 +402,7 @@ pub fn encode(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts)
         return None;
     }
     let mut text = String::new();
-    let _ = writeln!(text, "; CyborgPL — Precog layer 3, {}", describe_site(p, f, site));
+    let _ = writeln!(text, "; CyborgPL — Cortex layer 3, {}", describe_site(p, f, site));
     let _ = writeln!(text, "(set-option :rlimit {})", RLIMIT);
     let _ = writeln!(text, "(set-option :produce-models true)");
     let _ = writeln!(text, "(set-logic QF_BV)");

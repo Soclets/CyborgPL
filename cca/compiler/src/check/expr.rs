@@ -210,8 +210,8 @@ impl Checker {
                 }
                 if !t.is_c_shaped(&self.items.structs, &self.items.enums) {
                     let why = match t.base() {
-                        Ty::Struct { id, .. } => format!("struct `{}` is not `layout.C`; its layout is Precog's, not C's", self.items.structs[id.0 as usize].name),
-                        Ty::Enum { id, .. } => format!("enum `{}` is not `layout.C`; its layout is Precog's, not C's", self.items.enums[id.0 as usize].name),
+                        Ty::Struct { id, .. } => format!("struct `{}` is not `layout.C`; its layout is Cortex's, not C's", self.items.structs[id.0 as usize].name),
+                        Ty::Enum { id, .. } => format!("enum `{}` is not `layout.C`; its layout is Cortex's, not C's", self.items.enums[id.0 as usize].name),
                         other => format!("`{}` is not C-shaped", self.spell(other)),
                     };
                     return err(Diagnostic::error(format!("a pointer points at C-shaped data, so it casts only to a C-shaped type: {}", why)).at(ty.span));

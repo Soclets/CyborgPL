@@ -176,7 +176,7 @@ duration_without_std [fnv:277c8171e7a593ab] :: `duration` is cord's
 else_if_bare [fnv:38697b0b1183ad5e] :: `else.if` became `else if`: two bare words
 empty_array [fnv:8e009c1193ae6fd2] :: an array is fixed at the size it was made with
 empty_int [fnv:46819038938fd6c9] :: `[]` is an empty list, but the declared type is an `int32`
-empty_walrus [fnv:7a096e3b41300cf6] :: write `list.empty` (Precog picks the element type from what is appended later), or give it a type
+empty_walrus [fnv:7a096e3b41300cf6] :: write `list.empty` (Cortex picks the element type from what is appended later), or give it a type
 enum_bare_owned [fnv:463b06aecdfd81cb] :: say what happens to it
 enum_bind_without_data [fnv:85d1b2a55dade2b9] :: `a` carries nothing, so there is no value to name 'x'
 enum_comma_cases [fnv:935f43a00064d8d3] :: one per line, nothing between
@@ -401,7 +401,7 @@ manifest_one_target [fnv:469b29d703804c8a] :: so the field is `targets`
 manifest_undoable_target [fnv:994ef28992020067] :: `x86_64-linux` is not a target CCA can build
 manifest_unknown_field [fnv:e1975ef746a966f7] :: a `cca::Manifest` has no field `versoin`
 map_bad_key_type [fnv:3ebc5e71c74c0d11] :: keys are plain values, text, chars, structs, enums and lists of keys
-map_bad_variant [fnv:cd84c84831efd0e0] :: `map` (Precog decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)
+map_bad_variant [fnv:cd84c84831efd0e0] :: `map` (Cortex decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)
 map_bound_over [fnv:0e4ebc4a07b99fd9] :: this can take it outside the bound its type gives it
 map_get_unhandled [fnv:fb19a18b0ea9877e] :: `map.get` can fail (missing): say what happens
 map_hash_disagrees [fnv:bffd9b036fb4e87b] :: !pending its `op ==` and `hash` are written with `std::str.lower` / `std::str.at.point`, so Precog can only settle "equal keys hash the same" once std exists; until then the working build checks it at run time (the map asks on a miss) and the final build refuses the map
@@ -702,7 +702,7 @@ variadic_ellipsis_after_name [fnv:a6d51e15cd0b1ed9] :: the dots go before the na
 variadic_not_last [fnv:e0b808d1821a4725] :: the rest of the arguments go to it
 variadic_too_few [fnv:9b911531dc4f9325] :: `f` takes at least 1 argument, and 0 were given
 variadic_typed_mismatch [fnv:7d29ffc630950dd5] :: `f`'s parameter 'nums' is an `int32` and this value is text: convert it first
-walrus_with_type [fnv:71f8f0e47289f563] :: `:=` means Precog chooses the type, so it takes no type; with a type written, use `=`
+walrus_with_type [fnv:e4d69da5edafbac8] :: `:=` means Cortex chooses the type, so it takes no type; with a type written, use `=`
 whichever_unhandled [fnv:86bb5570c3022d11] :: `whichever` can fail (closed) when every channel is closed, so it needs an `otherwise`
 while_keyword [fnv:eb07551a9069b239] :: `while 'x' < 3 { … }`
 wide_does_not_fit [fnv:385d629b5c9cf365] :: the value can be outside what an `int64` holds

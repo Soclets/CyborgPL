@@ -36,9 +36,9 @@ pub fn render(a: &Analysis, p: &Program, sources: &SourceMap) -> String {
     lines.sort_by_key(|(f, l, _)| (*f, *l));
     let mut o = String::new();
     if a.whole_program {
-        let _ = writeln!(o, "The program reads nothing from outside, so Precog ran all of it ({} steps).", a.steps);
+        let _ = writeln!(o, "The program reads nothing from outside, so Cortex ran all of it ({} steps).", a.steps);
     } else {
-        let _ = writeln!(o, "Precog ran the program over what its inputs allow ({} steps).", a.steps);
+        let _ = writeln!(o, "Cortex ran the program over what its inputs allow ({} steps).", a.steps);
     }
     for (_, _, l) in &lines {
         let _ = writeln!(o, "{}", l);

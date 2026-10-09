@@ -54,17 +54,17 @@ cargo test        # every examples/*.cpls checks; every reject program is
 ## Status
 
 - 2026-09-22: the whole pipeline runs — lexer, parser, item resolution,
-  the checker, HIR, MIR, the ownership walk, Precog (layers 1, 2 and 3)
+  the checker, HIR, MIR, the ownership walk, Cortex (layers 1, 2 and 3)
   and LLVM, out to an object file and a linked binary. The heap is in:
   lists, text built at run time, maps, enums and `match`, and failures as
   values, all of them freeing what they take. Every
   `examples/*.cpls` loads, checks and lowers to a well-formed graph, and
-  none is refused by Precog. Of the 358 reject programs, 344 are refused
+  none is refused by Cortex. Of the 358 reject programs, 344 are refused
   in CCA's own words (`compiler/tests/reject_phrases.txt`); 9 are marked
   `!pending` and 5 `!by-design`. The test insists a `!pending` one is
   still *accepted*, so the file has to be updated the day each starts
   being refused.
-- Over the examples, Precog settles 398 of 422 sites: layer 1 folds what
+- Over the examples, Cortex settles 398 of 422 sites: layer 1 folds what
   it can, layer 2 proves most of the rest, and layer 3 is asked what is
   left. 21 sites keep a check at run time and 3 are `nocheck`.
 - 2026-09-24: every base-language example builds; what has no code yet
@@ -92,7 +92,7 @@ cargo test        # every examples/*.cpls checks; every reject program is
   nobody else (`mir/borrows.rs`).
 
 - `cca build --assert-proofs file.cpls -o out` (2026-09-23): the build that
-  checks Precog (`precog.md`, attack (d)). Every site Precog proved keeps
+  checks Cortex (`precog.md`, attack (d)). Every site Cortex proved keeps
   a run-time check, nothing proven is promised to LLVM, and layer 1's
   folded answers are computed at run time instead. A wrong proof prints
   `proof failed: <the site's sentence>` and `where: file, line N, column
@@ -120,13 +120,13 @@ Dated, with the alternative, so each can become a question later.
   machine's. It moves into the target description the day there is one.
   Alternative: refuse every `simd` until Synthia exists, which would leave
   `examples/simd.cpls` unbuildable.
-- **2026-09-22 — a `list` is 24 bytes even where Precog could prove it
+- **2026-09-22 — a `list` is 24 bytes even where Cortex could prove it
   smaller.** `lists.md` says a sequence nothing appends to becomes an
   `array`, and a list whose final size is proven needs no capacity field.
   Neither is implemented, so a `SeqKind::Free` is lowered as the shape that
   can do both. Sound, and larger than it needs to be. The same is true of
   `map`: `MapOrder::Free` is lowered as the ordered shape. Alternative:
-  refuse to lower until Precog settles the variant, which would block
+  refuse to lower until Cortex settles the variant, which would block
   programs for a size question.
 - **2026-09-22 — `cca/.cargo/config.toml` points at Homebrew's LLVM 22.**
   The compiler's own dependency has to be found somewhere, and Synthia does
@@ -138,7 +138,7 @@ Dated, with the alternative, so each can become a question later.
   temporary access without ownership, and an address is what that is on
   the machine. `ownership-syntax.md` says what a lend *means* and not what
   it is made of, so this is a pick. Alternative: pass small lent values by
-  copy and rely on Precog to prove nothing observes the difference — which
+  copy and rely on Cortex to prove nothing observes the difference — which
   is true today and stops being true the moment a `lend.mut` writes back.
 - **2026-09-22 — A drop whose value is gone on *some* paths asks a flag.**
   MIR emits a drop per owned local at its scope's end; the ownership walk
@@ -192,13 +192,13 @@ Dated, with the alternative, so each can become a question later.
   because a portfolio missing a member is not the portfolio the design
   decided on. Alternative: build CVC5 from source, which pins the exact
   commit at the cost of a long build.
-- **2026-09-22 — 128-bit whole numbers are refused.** Every number Precog
+- **2026-09-22 — 128-bit whole numbers are refused.** Every number Cortex
   reasons about is held in `i128`, so a `uint128` has values it cannot
   write down and an `int128` has sums it cannot; a proof about a number
   the prover cannot represent would not be a proof. `int128`/`uint128`
   are *proposed* in `design/types.md`, not decided, so CCA says so in a
   message instead of carrying them badly (it used to panic). Alternative:
-  a wider value model throughout Precog's domains, which is real work for
+  a wider value model throughout Cortex's domains, which is real work for
   a width that may not survive the design.
 - **2026-09-22 — An enum is a tag and the room beside it.** The tag is the
   smallest whole number that can name every case, so a three-case enum
@@ -222,9 +222,9 @@ Dated, with the alternative, so each can become a question later.
   out-parameter for the answer and the reason in the return register,
   which is smaller for a wide answer and worse for every other case.
 - **2026-09-22 — Every text handle carries the mark, for now.** The owner
-  decided (c): Precog knows which memory a text is in and a free is
+  decided (c): Cortex knows which memory a text is in and a free is
   emitted only where it can be the heap, with the sentinel — the high bit
-  of the length — as the fallback for a name that may hold either. Precog
+  of the length — as the fallback for a name that may hold either. Cortex
   does not carry that fact yet, so CCA pays the fallback everywhere: a
   literal's length has the bit set, `str.bytes` masks it off, and the free
   tests it. This is the decided mechanism at the decided fallback, not a
@@ -276,13 +276,13 @@ Dated, with the alternative, so each can become a question later.
   folding). Alternative: loop invariants found by induction for every
   loop, not only the template shapes (the sum-over-length one proves
   gradebook since 2026-09-24).
-- **2026-09-23 — Channels: the counting, none of Precog's three parts yet.**
+- **2026-09-23 — Channels: the counting, none of Cortex's three parts yet.**
   The layout is the owner's (one block, slots inline, never growing; the
   program holds a pointer to it) and so is `closed` (count the tasks that
   can reach it; a `take` on an empty channel fails `closed` when every
   holder is itself waiting to take from it). What is built is the plain
   form: every channel on the heap, every slot the type allows, and the
-  counting everywhere. Of Precog's half of `closed`, one part is built
+  counting everywhere. Of Cortex's half of `closed`, one part is built
   (2026-09-23, `mir/channels.rs`): the task that made a channel lets go
   of it where it provably never names it again — directly or through a
   borrow held in another name — rather than at the end of its block, so
@@ -312,11 +312,11 @@ Dated, with the alternative, so each can become a question later.
   every `+ - x xx` on integers as one internal type whose range is
   `int64`'s lowest to `uint64`'s highest (spelled `integer`), holds it
   in 65 bits, and computes `+ - x` in 128 so the only question in
-  between is that window. Alternative: the narrowest type Precog proves
+  between is that window. Alternative: the narrowest type Cortex proves
   (`operators.md` allows it, "especially for SIMD"); later, as an
   optimisation, since the answer is the same.
 - **2026-09-23 — `:=` of an exact answer keeps the exact type, for now.**
-  The width is decided (`precog.md`, "`:=` widths"): Precog picks the
+  The width is decided (`precog.md`, "`:=` widths"): Cortex picks the
   narrowest type holding every value the name can have, then adjusts for
   speed. CCA does not choose it yet; it holds the exact type, which holds
   the same values, so only the representation differs.
@@ -328,7 +328,7 @@ Dated, with the alternative, so each can become a question later.
   since none of those was asked.
 - **2026-09-24 — Induction on arguments covers at most 4096 tuples.** A
   recursive function is proven by induction on its arguments (owner:
-  "teach Precog to prove bounds on recursive functions by induction"): its
+  "teach Cortex to prove bounds on recursive functions by induction"): its
   body is analysed once per argument tuple, from each parameter type's
   lowest value up to the highest the call can pass, and a recursive call
   reads the answers for the tuples before it. `INDUCTION_CAP` bounds how
@@ -350,7 +350,7 @@ Dated, with the alternative, so each can become a question later.
   text. Alternatives: the raw byte (text that is not UTF-8), or refusing
   it (`not_utf8`).
 - **2026-09-24 — A character whose unit is not written is a point.**
-  `types.md` leaves the unit to Precog "from the content and its use";
+  `types.md` leaves the unit to Cortex "from the content and its use";
   CCA picks `char.point` (flat, 32 bits) when the content is one code
   point; a literal of several points can only be a `char.grapheme`, and
   is one. Not a semantic choice: the unit changes no value a program can
@@ -364,18 +364,18 @@ Dated, with the alternative, so each can become a question later.
   branches on the null. Nothing in `design/` says how a function value is
   laid out. Alternatives: always an env parameter (C callbacks then need a
   second entry per function); defunctionalising — every function value's
-  possible targets are known to Precog, so a tag and a switch, no indirect
+  possible targets are known to Cortex, so a tag and a switch, no indirect
   call. The block begins with how to give it back and how to copy it
   (null for one that only lends): a function carrying a `copy`/`give`
   capture is owned (owner, 2026-09-24: a), and its block is on the heap.
 - **2026-09-24 — A `:=` list lent across takes the parameter's widths.**
-  `types.md` leaves a `:=` collection's width to Precog, from use; CCA
+  `types.md` leaves a `:=` collection's width to Cortex, from use; CCA
   gives a list of bare numbers the width of the parameter it is lent,
   given, or unpacked into. (A lend whose written widths differ is a type
   error, owner 2026-09-24: a — "a lend hands over the value where it is, so
   the sizes must match".)
 - **2026-09-24 — `cca precog --json`: a line per check site, for the
-  Precog oracle.** Check claude asked for CCA's claims in a form a program
+  Cortex oracle.** Check claude asked for CCA's claims in a form a program
   reads (`precog.md`, attacks b and c). One JSON object per site: file,
   start and end (line, column) of its expression, the function instance,
   the kind of check and the construct, the type and range it must fit, the
@@ -403,9 +403,9 @@ Dated, with the alternative, so each can become a question later.
   is its layout in an integer of its width. An answer past the largest
   value, a division or `mod` by zero, and zero to a negative power stop the
   program where they happen (exit 101, as a check does), as the oracle
-  stops; they are not Precog sites, since Precog follows nothing about a
+  stops; they are not Cortex sites, since Cortex follows nothing about a
   decimal yet (every `deci` domain is "any", a range type's too).
-  Alternative: sites Precog could prove, once it follows decimals.
+  Alternative: sites Cortex could prove, once it follows decimals.
 - **2026-09-29 — `deci` `xx` is exact while the power has at most p + 40
   digits**, then carried at p + 40 digits, cut toward zero and marked
   inexact: only an answer within 10^-40 of a tie could round differently.

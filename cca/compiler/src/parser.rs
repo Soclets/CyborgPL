@@ -1848,11 +1848,11 @@ impl<'a> Parser<'a> {
         let shadow = false;
         if self.eat(&Tok::Walrus) {
             if ty.is_some() {
-                return self.fail_at(self.prev_span(), "`:=` means Precog chooses the type, so it takes no type; with a type written, use `=` — you said everything");
+                return self.fail_at(self.prev_span(), "`:=` means Cortex chooses the type, so it takes no type; with a type written, use `=` — you said everything");
             }
         } else if self.eat_op("=") {
             if ty.is_none() {
-                return self.fail_at(self.prev_span(), "`=` means you said everything, so it needs the type: `let 'x': int32 = …;` — or `:=` to let Precog choose");
+                return self.fail_at(self.prev_span(), "`=` means you said everything, so it needs the type: `let 'x': int32 = …;` — or `:=` to let Cortex choose");
             }
         } else if self.is(&Tok::Semi) {
             return self.fail(format!("a {} needs a value: there is no implicit zero — write `= 0` (or whatever it should hold)", what));
@@ -2367,7 +2367,7 @@ impl<'a> Parser<'a> {
             "otherwise" => self.fail("`otherwise` follows a call that can fail: `let 'x' := f[] otherwise 0;`"),
             "fn" | "struct" | "interface" | "op" => self.fail(format!("a `{}` sits at the top level of a file or a module, not inside a body", w)),
             "enum" => self.fail("an `enum` sits at the top level of a file or a module, not inside a body"),
-            "const" => self.fail("a `const` sits at the top level: inside a body a declaration is `let 'x' := …;`, and Precog finds the constants itself"),
+            "const" => self.fail("a `const` sits at the top level: inside a body a declaration is `let 'x' := …;`, and Cortex finds the constants itself"),
             "module" => self.fail("a `module` sits at the top level of a file, not inside a body"),
             "pub" => self.fail("`pub` goes at the top level, on a `fn`, `struct`, `enum` or `const`"),
             "extern" => self.fail("an `extern` declaration sits at the top level, not inside a body"),

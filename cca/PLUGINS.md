@@ -34,7 +34,7 @@ the owner's, and nothing here fills them in.
 Fixed points this builds on (`design/cores.md`; DECISIONS 2026-10-05 to
 2026-10-07): the base reads files, loads the codextra and cores, enforces
 grants, and hands LLVM IR to LLVM unread; the codextra (Signatar) does
-the syntax, types, borrows, Precog and the IR; the codextra limits what
+the syntax, types, borrows, Cortex and the IR; the codextra limits what
 cores may do; cores grant powers, add syntax and depend on cores; every
 limb lists the powers it uses; a program may only `deny`; a lone file has
 every core and power; cores are named by registry ID and version.
@@ -59,7 +59,7 @@ lets `concur` and `for para` parse; and so on. Concretely, today:
 
 So "moving the cores out" is two different jobs: the thin ones (WSTN,
 the gate words, the syntax half of MCPS) are already almost separate; the deep ones
-(ASP, IEG, Genny) are woven through the type checker, Precog and the IR,
+(ASP, IEG, Genny) are woven through the type checker, Cortex and the IR,
 because they change what a number or a type *means*. The proposal treats
 them differently on purpose.
 
@@ -119,8 +119,8 @@ part answers four kinds of question:
    to calls into the core's own CyborgPL part, or to IR (section 5).
 3. **Which powers it adds and grants**: its catalogue entries, and its
    grants (to every limb, or to favourites by registry ID).
-4. **Contracts** for Precog: what each operation it adds promises and
-   requires, so Precog can reason through it (section 5).
+4. **Contracts** for Cortex: what each operation it adds promises and
+   requires, so Cortex can reason through it (section 5).
 
 ```rust
 pub trait Core {
@@ -164,7 +164,7 @@ pub trait Core {
 - **(b) Token rewriting**, like Rust's procedural macros: a core is given
   the tokens after its word, up to a matching close, and gives back plain
   Signatar tokens (calling into its CyborgPL part). Any shape fits, but
-  messages point at rewritten code, Precog sees only the expansion, and
+  messages point at rewritten code, Cortex sees only the expansion, and
   two cores' rewrites can interfere in ways neither checks.
 
 - **(c) Grammar fragments**: each core ships grammar rules that Signatar
@@ -202,7 +202,7 @@ All engineering, given the rulings, except where marked:
    extension powers, …). Each listed core's `powers()` adds entries under
    the paths it may add to. Signatar decides where a core may add; a core
    cannot add above or beside a Signatar power it is not allowed to
-   extend, and nothing lifts Signatar's limits (borrows, Precog).
+   extend, and nothing lifts Signatar's limits (borrows, Cortex).
 2. **Grants.** Signatar grants its defaults to every limb (the three
    dangerous powers). Each core grants to every limb built with it, and
    may grant more to favourites named by registry ID. **A core may also
@@ -221,12 +221,12 @@ All engineering, given the rulings, except where marked:
    registry shows and which an upgrade compares ("this version starts
    using `c_calls`").
 
-**Q3. Whether a third-party core's contracts are trusted by Precog.** A
+**Q3. Whether a third-party core's contracts are trusted by Cortex.** A
 core's operation comes with a contract ("returns at most its first
-argument"). If Precog trusts it, every proof downstream depends on that
+argument"). If Cortex trusts it, every proof downstream depends on that
 core's honesty. (a) Trusted, the core being trusted already by the
 warning's terms; (b) trusted only for verified cores, an unverified core's
-operations being opaque calls whose results Precog knows nothing about
+operations being opaque calls whose results Cortex knows nothing about
 (recommended: proofs then never rest on unverified code, at the price of
 more run-time checks where such a core is used); (c) trusted, and every
 site resting on one reported in the build's record.
@@ -234,7 +234,7 @@ site resting on one reported in the build's record.
 **Decided: (a), every core's contracts trusted, official or not** (owner:
 "Holy registry lock in" of trusting only verified ones, and on trust by an
 RRx2 proof, "they're just gonna fork our entire project instead"; then
-"`a`"). Precog treats a listed core's contracts as true, as it does
+"`a`"). Cortex treats a listed core's contracts as true, as it does
 IEG's; trusting a core is listing it, as the approved warning says.
 
 ## 5. Meaning and IR
@@ -244,16 +244,16 @@ node:
 
 1. **To Signatar code**: the node is a call to a function in the core's
    CyborgPL part, or plain Signatar it builds. Signatar then types it,
-   checks borrows, runs Precog and makes IR as for any code. This is the
+   checks borrows, runs Cortex and makes IR as for any code. This is the
    default, and the one every third-party core should reach for.
 2. **To IR with a contract**: the core gives an LLVM IR template, and a
-   contract Precog uses (Q3). This is IEG's way (`inline.LLVM`, the raw
+   contract Cortex uses (Q3). This is IEG's way (`inline.LLVM`, the raw
    operations), and the reason RRx2 checks IEG's IR against its
    contracts.
 3. **To runtime**: a call into a static library or bitcode the core ships
    (MCPS's thread pool, Metal's command queues).
 
-What a core may not do: replace Signatar's types, borrow rules or Precog,
+What a core may not do: replace Signatar's types, borrow rules or Cortex,
 or reach into another core's nodes. A core that needs another (MCPS needs
 IEG) calls it through its CyborgPL part or its declared nodes.
 
@@ -268,7 +268,7 @@ needs a mark. None of that is a node to lower.
   switch, plus its syntax hooks. The plugin interface is honest about
   this: Signatar defines a few *policies* (number meaning, generics, the
   marking rule) that only its official cores may enable.
-- **(b) Real separation**: Signatar exposes its type checker and Precog
+- **(b) Real separation**: Signatar exposes its type checker and Cortex
   through the interface, deep enough for ASP and Genny to be written
   outside it. Anyone could then write a different ASP. It is a far larger
   and far less stable interface: every change to the checker is a change
@@ -277,7 +277,7 @@ needs a mark. None of that is a node to lower.
   second author wants to write one.
 
 **Decided: (b), real separation** (owner: "`b`"): Signatar opens its type
-checker and Precog far enough that ASP, Genny and IEG are written outside
+checker and Cortex far enough that ASP, Genny and IEG are written outside
 it, and anyone could write an ASP2. The cost is accepted: a large
 interface, where a change to the checker is a change to the plugin API.
 (The recommendation had been (c), starting as (a).) Step 6 below is this

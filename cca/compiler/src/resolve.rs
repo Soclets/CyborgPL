@@ -1192,7 +1192,7 @@ impl Items {
                         None => MapOrder::Free(InferId(0)),
                         Some("ordered") => MapOrder::Ordered,
                         Some("unordered") => MapOrder::Unordered,
-                        Some(other) => return err(Diagnostic::error(format!("`map.{}` is not a variant: `map` (Precog decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)", other)).at(span)),
+                        Some(other) => return err(Diagnostic::error(format!("`map.{}` is not a variant: `map` (Cortex decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)", other)).at(span)),
                     };
                     if args.len() != 2 {
                         return err(Diagnostic::error("`map` takes two type parameters, the key and the value: `map[str.utf8, int32]`").at(span));
@@ -1236,7 +1236,7 @@ impl Items {
                         let has = simd_shapes_for(&elem).unwrap_or(0);
                         return err(Diagnostic::error(format!("this target has no `simd[{}, {}]`: its vector register holds {} lanes of `{}`, not {}", spell(&elem, self), lanes, has, spell(&elem, self), lanes))
                             .at(span)
-                            .why(format!("a `simd` is only ever a shape the machine has ({}-bit registers here); portability is the plain `for` loop, which Precog and LLVM vectorise by themselves", TARGET_SIMD_BITS))
+                            .why(format!("a `simd` is only ever a shape the machine has ({}-bit registers here); portability is the plain `for` loop, which Cortex and LLVM vectorise by themselves", TARGET_SIMD_BITS))
                             .fix(None, format!("simd[{}, {}]", spell(&elem, self), has)));
                     }
                     return Ok(Ty::Simd { elem: Box::new(elem), lanes });

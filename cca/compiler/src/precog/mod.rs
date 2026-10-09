@@ -227,7 +227,7 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
             if let Verdict::Proven { how } = &r.verdict {
                 if !how.starts_with("structured") && *how != "layer 3" {
                     r.verdict = Verdict::Unproven;
-                    r.note = "Precog reached its step budget before it had followed every trip".into();
+                    r.note = "Cortex reached its step budget before it had followed every trip".into();
                 }
             }
         }
@@ -3227,7 +3227,7 @@ pub fn notes(a: &Analysis, p: &Program, sources: &crate::source::SourceMap) -> V
             .at(f.span(site.span))
             .when(what.clone())
             .why(format!("`{}` removes the check on your word, and the build keeps it removed", word))
-            .why("Precog was not looking; this is what it saw while working out everything else")
+            .why("Cortex was not looking; this is what it saw while working out everything else")
             .fix(None, format!("remove the `{}`, or fix what it is covering", word));
         out.push(d.render(sources));
     }

@@ -142,7 +142,7 @@ impl Checker {
         use crate::ast::{BinOp, ExprKind as AK, MustKind};
         use crate::types::IntW;
         if !ctx.is_test {
-            return err(Diagnostic::error("`must` belongs in a `test fn`: in a program, Precog and `check` say what must hold, before it runs").at(span));
+            return err(Diagnostic::error("`must` belongs in a `test fn`: in a program, Cortex and `check` say what must hold, before it runs").at(span));
         }
         let int32 = Ty::Int(IntW::Fixed { signed: true, bits: 32 });
         let text = |s: &str| hir::Expr { kind: hir::ExprKind::Str(s.to_string()), ty: Ty::utf8(), span };
@@ -326,7 +326,7 @@ impl Checker {
                 }
                 if let (hir::ExprKind::List(items), None) = (&v.kind, &declared) {
                     if items.is_empty() {
-                        return err(Diagnostic::error(format!("`[]` says nothing about what '{}' holds, and nothing on the left says \"list\": write `list.empty` (Precog picks the element type from what is appended later), or give it a type", name.name)).at(value.span));
+                        return err(Diagnostic::error(format!("`[]` says nothing about what '{}' holds, and nothing on the left says \"list\": write `list.empty` (Cortex picks the element type from what is appended later), or give it a type", name.name)).at(value.span));
                     }
                 }
                 let (v, local_ty, kind) = match &declared {
