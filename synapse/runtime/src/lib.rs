@@ -8,8 +8,13 @@
 //! trap at run time names the site").
 #![no_std]
 
+// Tasks, channels and the parallel `for` stand on the OS's threads; a chip
+// with no OS (`aarch64-none`, owner 2026-10-09) has none of them.
+#[cfg(not(target_os = "none"))]
 pub mod tasks;
+#[cfg(not(target_os = "none"))]
 pub mod par;
+#[cfg(not(target_os = "none"))]
 pub mod channels;
 pub mod deci;
 pub mod print;
@@ -172,9 +177,20 @@ pub unsafe extern "C" fn cyborg_proof_failed(msg: *const u8, len: usize) -> ! {
 }
 
 #[cfg(not(test))]
+#[cfg(not(target_os = "none"))]
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {
     unsafe { exit(102) }
+}
+
+/// With no OS a panic freezes the CPU on a trap, as a failed check does
+/// (owner, 2026-10-08: "yea, freeze there").
+#[cfg(target_os = "none")]
+#[panic_handler]
+fn panic(_: &core::panic::PanicInfo) -> ! {
+    loop {
+        unsafe { core::arch::asm!("brk #1") }
+    }
 }
 
 /// Nothing here unwinds — the profiles say `panic = "abort"` — but the

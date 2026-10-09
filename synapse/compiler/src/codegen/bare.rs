@@ -5,8 +5,10 @@
 //!
 //! Nothing here comes from a C library: the few memory routines LLVM's code
 //! calls are written below, each in its own section so the link keeps only
-//! those used. Axon, the runtime, is not built for a chip with no OS, so a
-//! program that needs it is refused before linking, naming what needs it.
+//! those used. Axon, the runtime, is built for the chip without its heap,
+//! tasks and channels (`cargo build -p synapse-runtime --target
+//! aarch64-unknown-none`); a program that needs those is refused before
+//! linking, naming what needs it.
 
 use std::path::Path;
 
@@ -92,7 +94,8 @@ pub fn missing(module: &Module) -> Vec<String> {
     let mut f = module.get_first_function();
     while let Some(func) = f {
         let name = func.get_name().to_string_lossy().into_owned();
-        if func.count_basic_blocks() == 0 && !name.starts_with("llvm.") && !OURS.contains(&name.as_str()) && inkwell::values::BasicValue::get_first_use(&func.as_global_value().as_pointer_value()).is_some() {
+        let axon = name.starts_with("cyborg_") && !needs_os(&name);
+        if func.count_basic_blocks() == 0 && !name.starts_with("llvm.") && !OURS.contains(&name.as_str()) && !axon && inkwell::values::BasicValue::get_first_use(&func.as_global_value().as_pointer_value()).is_some() {
             out.push(name);
         }
         f = func.get_next_function();
@@ -100,10 +103,21 @@ pub fn missing(module: &Module) -> Vec<String> {
     out
 }
 
+/// Whether Axon's function `name` stands on the heap, threads or the OS,
+/// which a chip with no OS does not have: memory, text and lists that
+/// grow, maps, tasks and channels.
+fn needs_os(name: &str) -> bool {
+    let n = name.trim_start_matches("cyborg_");
+    ["alloc", "free", "realloc", "copy", "move", "spawn", "run", "whichever", "machine_has", "check_failed", "proof_failed"].contains(&n)
+        || ["str_", "map_", "chan_", "par_", "group_", "task_", "must_", "test_", "alloc"].iter().any(|p| n.starts_with(p))
+        || n.ends_with("_to_text")
+        || n.ends_with("_text_useful")
+}
+
 /// The sentence for one of them.
 pub fn why_missing(name: &str) -> String {
     if name.starts_with("cyborg_") {
-        format!("not yet on `{}`: this program needs Axon, the runtime (`{}`), which is not built for a chip with no OS", crate::target::name(), name)
+        format!("not yet on `{}`: this program needs Axon's heap, threads or OS (`{}`): text and lists that grow, maps, tasks and channels are not built for a chip with no OS", crate::target::name(), name)
     } else {
         format!("not yet on `{}`: `{}` is not defined anywhere — there is no C library under a program with no OS", crate::target::name(), name)
     }
@@ -168,7 +182,23 @@ extern "C" {
 /// Link with lld's ELF linker against the Neuron's own linker script
 /// (owner, 2026-10-09: "`c` now"): where the program sits is the board's,
 /// so Synapse has no layout of its own.
+/// Axon built for the bare chip, beside the compiler as cargo puts it.
+fn runtime() -> Option<std::path::PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    let triple = crate::target::bare_triple();
+    for dir in exe.parent()?.ancestors().take(4) {
+        for profile in ["release", "debug"] {
+            let p = dir.join(&triple).join(profile).join("libsynapse_runtime.a");
+            if p.is_file() {
+                return Some(p);
+            }
+        }
+    }
+    None
+}
+
 pub fn link(obj: &Path, script: &Path, written: &str, out: &Path) -> Result<(), String> {
+    let axon = runtime().ok_or_else(|| format!("Axon, the runtime, is not built for `{}`: `cargo build -p synapse-runtime --release --target {}`", crate::target::name(), crate::target::bare_triple()))?;
     let args: Vec<String> = vec![
         "ld.lld".into(),
         "-nostdlib".into(),
@@ -181,6 +211,7 @@ pub fn link(obj: &Path, script: &Path, written: &str, out: &Path) -> Result<(), 
         "-o".into(),
         out.to_string_lossy().into_owned(),
         obj.to_string_lossy().into_owned(),
+        axon.to_string_lossy().into_owned(),
     ];
     let c: Vec<std::ffi::CString> = args.iter().map(|a| std::ffi::CString::new(a.as_str()).map_err(|_| format!("a path holds a NUL byte: {}", a))).collect::<Result<_, _>>()?;
     let argv: Vec<*const std::os::raw::c_char> = c.iter().map(|a| a.as_ptr()).collect();
@@ -192,6 +223,12 @@ pub fn link(obj: &Path, script: &Path, written: &str, out: &Path) -> Result<(), 
     let said = unsafe { std::ffi::CStr::from_ptr(said.as_ptr()) }.to_string_lossy().trim().to_string();
     // The three addresses the entry reads are the script's to define
     // (owner, 2026-10-09: "Whatever's accurate", the C world's names).
+    // Something kept still stands on what a bare chip lacks.
+    for os in ["malloc", "free", "realloc", "calloc", "write", "exit", "pthread_create", "mmap", "sysctlbyname"] {
+        if said.contains(&format!("undefined symbol: {}\n", os)) || said.ends_with(&format!("undefined symbol: {}", os)) {
+            return Err(format!("not yet on `{}`: something in this program needs `{}`, which a chip with no OS does not have", crate::target::name(), os));
+        }
+    }
     for (name, what) in [("__stack_top", "where the stack starts"), ("__bss_start", "where the memory zeroed before MAIN starts"), ("__bss_end", "where the memory zeroed before MAIN ends")] {
         if said.contains(&format!("undefined symbol: {}", name)) {
             return Err(format!("the linker script `{}` does not define `{}`, {}", written, name, what));

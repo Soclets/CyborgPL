@@ -35,6 +35,7 @@ pub struct Out {
     pub bytes: [u8; CAP],
 }
 
+#[cfg(not(target_os = "none"))]
 extern "C" {
     fn write(fd: i32, buf: *const u8, count: usize) -> isize;
 }
@@ -68,6 +69,8 @@ pub unsafe extern "C" fn cyborg_out_flush(o: *mut Out) {
     }
     let p = (*o).bytes.as_ptr();
     match (*o).sink {
+        // A file descriptor is the OS's; with none there is never one.
+        #[cfg(not(target_os = "none"))]
         0 => {
             let mut done = 0;
             while done < n {

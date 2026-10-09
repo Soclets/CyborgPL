@@ -2194,6 +2194,14 @@ impl Checker {
         if path.limb.as_ref().is_some_and(|l| l.name == "std") {
             let name = path.segs.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
             if BUILT_CORD.contains(&name.as_str()) {
+                // With no OS, the target's output or exit is what they
+                // call: made into code, as a call would make it.
+                if crate::target::bare() {
+                    let board = if name == "exit" { self.items.board_exit } else { self.items.board_output.map(|(id, _)| id) };
+                    if let Some(id) = board {
+                        self.instance(crate::check::InstKey { fn_id: id, blanks: Vec::new(), bundle: None, owning: Vec::new() });
+                    }
+                }
                 return self.std_stub(ctx, path, args, otherwise, span, used);
             }
             if name == "format" || name.starts_with("print.") {

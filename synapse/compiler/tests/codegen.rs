@@ -542,7 +542,7 @@ fn bare_metal_runs_in_qemu() {
         let err = String::from_utf8_lossy(&r.stderr);
         assert!(!r.status.success() && err.contains(says), "{} was not refused with `{}`:\n{}", what.display(), says, err);
     };
-    refused(&bare.join("needs_axon"), "this program needs Axon, the runtime");
+    refused(&bare.join("needs_axon"), "this program needs Axon's heap, threads or OS (`cyborg_");
     refused(&bare.join("no_layout"), "the target `aarch64-none` has no `layout`");
     refused(&bare.join("layout_missing"), "the linker script `boards/nowhere.ld`, the `layout` of `aarch64-none`, is not there");
     refused(&dir().join("arithmetic.nrv"), "a lone file is not built for `aarch64-none`");
@@ -601,6 +601,42 @@ fn bare_metal_runs_in_qemu() {
             assert!(taken.is_empty(), "{} took an exception, so a check failed or the entry is wrong:\n{}", name, taken);
             assert!(pc >= entry && pc < entry + 0x100, "{} did not end asleep in the entry (PC {:#x}, entry {:#x})", name, pc, entry);
         }
+    }
+    // `cord::print` and `cord::exit` with no OS (owner, 2026-10-09): the
+    // bytes reach the board's serial port, and `exit` powers QEMU off.
+    // The output either way it may take: a byte or a chunk a call.
+    for name in ["uses_board", "uses_board_chunk"] {
+        let r = Command::new(cca()).arg("build").arg(bare.join(name)).arg("-o").arg(out.join(name)).output().unwrap();
+        assert!(r.status.success(), "{} did not build for aarch64-none:\n{}", name, String::from_utf8_lossy(&r.stderr));
+        if !Command::new("qemu-system-aarch64").arg("--version").output().is_ok_and(|o| o.status.success()) {
+            continue;
+        }
+        let exe = out.join(name);
+        let serial = out.join(format!("{}.serial", name));
+        let mut q = Command::new("qemu-system-aarch64")
+            .args(["-M", "virt", "-cpu", "cortex-a72", "-display", "none", "-monitor", "none", "-serial"])
+            .arg(format!("file:{}", serial.display()))
+            .arg("-kernel")
+            .arg(&exe)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        let mut ended = false;
+        for _ in 0..100 {
+            if q.try_wait().unwrap().is_some() {
+                ended = true;
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        if !ended {
+            let _ = q.kill();
+        }
+        let printed = std::fs::read_to_string(&serial).unwrap_or_default();
+        assert!(ended, "{}'s `cord::exit` did not power QEMU off; it printed:\n{}", name, printed);
+        assert_eq!(printed, "hello from a bare chip\nPoint[x = 3, y = -4] 0.1 42\n0.1000000000000000055511151231257827021181583404541015625\n", "{} printed the wrong thing through its board's serial port", name);
     }
     let _ = std::fs::remove_dir_all(&out);
 }

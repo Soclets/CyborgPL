@@ -172,15 +172,31 @@ pub fn report(p: &Program, obj: &Path, exe: &Path) -> Result<String, String> {
     }
     // What Synapse writes around the program: the entry that runs `MAIN`
     // (often with `MAIN` inlined into it), and a test run's table.
-    let mut glue: Vec<(&String, &u64)> = code.iter().filter(|(n, _)| !is_function(n)).collect();
+    // Synapse's own code around the program: the entry and, with no OS,
+    // `_start`, its vector table and the memory routines. Anything else in
+    // a linked file is Axon's, or Rust's `core` under it: one line.
+    const GLUE: [&str; 8] = ["main", "_start", "cy_vectors", "memcpy", "memmove", "memset", "memcmp", "bcmp"];
+    let mut glue: Vec<(&String, &u64)> = code.iter().filter(|(n, _)| !is_function(n) && (GLUE.contains(&n.as_str()) || n.starts_with("cy_test"))).collect();
     glue.sort();
     for (n, s) in glue {
         let name = if n == "main" { "the entry, `main`, which runs MAIN".to_string() } else { format!("`{}`, Synapse's", n) };
         own += *s;
         rows.push(("this Neuron".into(), name, None, *s));
     }
-    let rest = if crate::target::bare() { "the rest is the file's own layout" } else { "the rest is Axon, the runtime, and what the linker adds" };
-    let mut out = format!("size: {} on disk; the program's own code is {} and its data {}; {}\n", bytes(on_disk), bytes(own), bytes(data), rest);
+    let axon: Vec<u64> = code.iter().filter(|(n, _)| !is_function(n) && !GLUE.contains(&n.as_str()) && !n.starts_with("cy_test")).map(|(_, s)| *s).collect();
+    let mut out = if crate::target::bare() {
+        format!(
+            "size: {} on disk; the program's own code is {}, Axon's {} in {} function{}, and the data {}, Axon's tables included; the rest is the file's own layout\n",
+            bytes(on_disk),
+            bytes(own),
+            bytes(axon.iter().sum()),
+            axon.len(),
+            if axon.len() == 1 { "" } else { "s" },
+            bytes(data)
+        )
+    } else {
+        format!("size: {} on disk; the program's own code is {} and its data {}; the rest is Axon, the runtime, and what the linker adds\n", bytes(on_disk), bytes(own), bytes(data))
+    };
     let mut neurons: Vec<String> = rows.iter().map(|r| r.0.clone()).collect();
     neurons.sort();
     neurons.dedup();
