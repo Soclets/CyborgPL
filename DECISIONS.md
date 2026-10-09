@@ -27,7 +27,13 @@ stack. **The Neuron names its script in `Kinesin.nrp`, on the target:
 `kin::Target[name = "aarch64-none", layout = "boards/virt.ld"]`** (owner:
 "`b`"), so one Neuron can build for several boards, over (a) a fixed file
 name in the Neuron's folder; design claude recommended (b), and named the
-field `layout`.
+field `layout`. **The script defines `__stack_top`, `__bss_start` and `__bss_end`**, the
+names Synapse's entry reads (owner: "Whatever's accurate, bro", to (a) the C
+world's usual names or (b) Nerve names): they say exactly what they are and
+are what board scripts already use, so design claude, as compiler claude
+recommended, took (a). Vendors vary (some write `_sbss` / `_ebss` /
+`_estack`), so such a script adds a line; a missing one is refused, naming it
+and what it is for.
 
 ### 2026-10-09 — The practical base is built in the oracle; Signatar is CyborgPL's base, the Brainstem Nerve's (owner)
 
