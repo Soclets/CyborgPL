@@ -52,7 +52,7 @@ pub const CORE_VERSION: &str = "2026-10-06T18:04:29+07:00";
 /// The manifest line that lists an official core, for a message to show
 pub fn core_line(core: &str) -> String {
     let id = CORE_IDS.iter().find(|(n, _)| *n == core).map(|(_, i)| *i).unwrap_or("");
-    format!("cca::Core[id = \"{id}\", version = \"{}\"]", core_version(core))
+    format!("cca::Lobe[id = \"{id}\", version = \"{}\"]", core_version(core))
 }
 
 /// The target the oracle stands in for (cca/targets.txt has only this one)
@@ -214,7 +214,7 @@ impl Parser {
     /// What a core brings is refused in a Neuron whose `CCA.cplr` does not list that core (owner, 2026-10-05:
     /// "Limbs should say what cores they are built for").
     fn core_missing<T>(&self, core: &str, what: &str) -> PResult<T> {
-        self.err(format!("{what} is {core}'s, and this Neuron's CCA.cplr does not list the core {core}: add `{}` to its `cores` ({core})", core_line(core)))
+        self.err(format!("{what} is {core}'s, and this Neuron's CCA.cplr does not list the lobe {core}: add `{}` to its `lobes` ({core})", core_line(core)))
     }
 
     /// A use of a power, for the check once every file is read (owner, 2026-10-07)
@@ -391,7 +391,7 @@ impl Parser {
                 let (name, shown) = match &self.toks[i].tok { Tok::Word(w) => (w, w.clone()), Tok::Var(v) => (v, format!("'{v}'")), _ => continue };
                 if name.is_ascii() { continue; }
                 self.pos = i;
-                return self.err(format!("`{shown}` is not an English name: Signatar's names are English letters, digits and `_`; a name in another script, or an emoji, needs the core WSTN in this Neuron's `cores` (`{}`)", core_line("WSTN")));
+                return self.err(format!("`{shown}` is not an English name: Signatar's names are English letters, digits and `_`; a name in another script, or an emoji, needs the lobe WSTN in this Neuron's `lobes` (`{}`)", core_line("WSTN")));
             }
         }
         // the words a core brings (design/cores.md): ASP `to.` and `check`; IEG `nocheck` and
@@ -1968,9 +1968,9 @@ impl Parser {
                         Tok::Word(l) if l == "ASM" || l == "Assembly" || l == "S" => { self.use_power("inline_assembly", None, self.line()); }
                         Tok::Word(l) if l == "asm" || l == "s" || l == "assembly" => return self.err("an inline language's name is in capitals: `inline.ASM`".to_string()),
                         Tok::Word(l) if l == "LL" || l == "LLVM" || l == "LLVM_Intermediate_Representation" => return self.err("`inline.LL`, LLVM IR in place, is IEG's (owner, 2026-10-07); the oracle does not read it yet"),
-                        Tok::Word(l) if l == "MSL" || l == "Metal_Shading_Language" => return self.err("`inline.MSL`, the Metal Shading Language, is the Metal core's (owner, 2026-10-07); the oracle does not read it yet"),
+                        Tok::Word(l) if l == "MSL" || l == "Metal_Shading_Language" => return self.err("`inline.MSL`, the Metal Shading Language, is the Metal lobe's (owner, 2026-10-07); the oracle does not read it yet"),
                         Tok::Word(l) if l == "ll" || l == "msl" => return self.err(format!("an inline language's name is in capitals: `inline.{}`", l.to_uppercase())),
-                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; the inline languages are `inline.ASM` (Signatar's), `inline.LL` (IEG's) and `inline.MSL` (the Metal core's) (`inline.C` is possible later — LLVM ships clang)")),
+                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; the inline languages are `inline.ASM` (Signatar's), `inline.LL` (IEG's) and `inline.MSL` (the Metal lobe's) (`inline.C` is possible later — LLVM ships clang)")),
                         other => return self.err(format!("expected `ASM` after `inline.`, found {other}")),
                     }
                     let text = match self.advance().tok {

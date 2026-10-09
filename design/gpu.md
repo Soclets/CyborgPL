@@ -127,7 +127,7 @@ Nerve-syntax tooling files.
 Beside the automatic loops, a program may take the GPU in hand: **std**
 moves data to GPU memory and back, launches GPU code with N threads, and
 forces a loop onto the GPU over Cortex's choice (as `for para` forces
-cores); the **base language** has **`inline.MSL { … }`**, Metal Shading
+lobes); the **base language** has **`inline.MSL { … }`**, Metal Shading
 Language written inline — a `!check` site like `inline.ASM`, checked by
 Apple's Metal compiler at build time. A block runs where it is
 written, as `inline.ASM` does, and needs no std (owner): reuse is a

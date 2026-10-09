@@ -3,5 +3,5 @@ cca::Manifest[
     prefix = "x",
     version = "1.0.0",
     targets = [cca::Target[name = "aarch64-macos"],],
-    cores = [cca::Core[id = "0000000000000000000000000000000000000000000000000000000000000001", version = "1"],]
+    lobes = [cca::Lobe[id = "0000000000000000000000000000000000000000000000000000000000000001", version = "1"],]
 ];

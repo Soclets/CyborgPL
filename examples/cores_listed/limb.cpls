@@ -1,4 +1,4 @@
-# Each core's words work once the Neuron lists the core (owner, 2026-10-05/06): ASP's `to.` and
+# Each lobe's words work once the Neuron lists the lobe (owner, 2026-10-05/06): ASP's `to.` and
 # `check`, IEG's `no_check`, Genny's generics, MCPS's `concur`; std for the operators and printing.
 
 fn first <T: any> ['a': <T>, 'b': <T>] -> <T> {

@@ -342,34 +342,37 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
             }
             // the cores a Neuron is built for (owner, 2026-10-05: "Limbs should say what cores they are built
             // for"), each by its registry ID and version, or a `path` for one never registered (2026-10-06)
-            "cores" => {
+            // a core is a lobe (owner, 2026-10-09); `cores` and `cca::Core` are the old spellings
+            "cores" => return Err(format!("{shown}: line {line}: `cores` is an old spelling: write `lobes` (owner, 2026-10-09)")),
+            "lobes" => {
                 for it in items(value) {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a core is `cca::Core[id = \"…\", version = \"…\"]`")) };
-                    if shape != "::cca.Core" { return Err(format!("{shown}: line {line}: a core is a `cca::Core`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a lobe is `cca::Lobe[id = \"…\", version = \"…\"]`")) };
+                    if shape == "::cca.Core" { return Err(format!("{shown}: line {line}: `cca::Core` is an old spelling: write `cca::Lobe` (owner, 2026-10-09)")); }
+                    if shape != "::cca.Lobe" { return Err(format!("{shown}: line {line}: a lobe is a `cca::Lobe`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
                     let (mut id, mut version, mut cpath) = (None, None, None);
                     for (f, b) in &fields {
-                        let t = text(b).ok_or_else(|| format!("{shown}: line {line}: a core's `{f}` is a text"))?;
+                        let t = text(b).ok_or_else(|| format!("{shown}: line {line}: a lobe's `{f}` is a text"))?;
                         match f.as_str() {
                             "id" => id = Some(t), "version" => version = Some(t), "path" => cpath = Some(t),
-                            "name" => return Err(format!("{shown}: line {line}: a core is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `cca::Core[id = \"…\", version = \"…\"]`{}", CORE_IDS.iter().find(|(n, _)| *n == t).map(|(n, i)| format!("; {n}'s is `{i}`")).unwrap_or_default())),
-                            other => return Err(format!("{shown}: line {line}: a `cca::Core` has no `{other}`; it has `id` and `version`, or a `path`")),
+                            "name" => return Err(format!("{shown}: line {line}: a lobe is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `cca::Lobe[id = \"…\", version = \"…\"]`{}", CORE_IDS.iter().find(|(n, _)| *n == t).map(|(n, i)| format!("; {n}'s is `{i}`")).unwrap_or_default())),
+                            other => return Err(format!("{shown}: line {line}: a `cca::Lobe` has no `{other}`; it has `id` and `version`, or a `path`")),
                         }
                     }
                     if cpath.is_some() {
-                        if id.is_some() || version.is_some() { return Err(format!("{shown}: line {line}: a core says where it comes from once: an `id` and `version` from the registry, or a `path` on this machine")); }
-                        return Err(format!("{shown}: line {line}: the core at `{}` is not registered, so not verified; loading another core is not built yet (a Rust plugin, which the oracle cannot load)", cpath.unwrap()));
+                        if id.is_some() || version.is_some() { return Err(format!("{shown}: line {line}: a lobe says where it comes from once: an `id` and `version` from the registry, or a `path` on this machine")); }
+                        return Err(format!("{shown}: line {line}: the lobe at `{}` is not registered, so not verified; loading another lobe is not built yet (a Rust plugin, which the oracle cannot load)", cpath.unwrap()));
                     }
-                    let id = id.ok_or_else(|| format!("{shown}: line {line}: a core needs its `id` (64 hex digits) and `version`"))?;
+                    let id = id.ok_or_else(|| format!("{shown}: line {line}: a lobe needs its `id` (64 hex digits) and `version`"))?;
                     if id.len() != 64 || !id.bytes().all(|b| b.is_ascii_hexdigit()) { return Err(format!("{shown}: line {line}: an id is 64 hex digits, 256 random bits")); }
-                    let version = version.ok_or_else(|| format!("{shown}: line {line}: a core needs its `version`, as a registry limb does"))?;
-                    if id == parser::MTM_ID { return Err(format!("{shown}: line {line}: MTM is gone (owner, 2026-10-07): every other spelling is refused, naming the one to write; take this core out")); }
+                    let version = version.ok_or_else(|| format!("{shown}: line {line}: a lobe needs its `version`, as a registry limb does"))?;
+                    if id == parser::MTM_ID { return Err(format!("{shown}: line {line}: MTM is gone (owner, 2026-10-07): every other spelling is refused, naming the one to write; take this lobe out")); }
                     let Some((core, _)) = CORE_IDS.iter().find(|(_, i)| *i == id) else {
-                        return Err(format!("{shown}: line {line}: the core `{}…` is not an official one; loading another core is not built yet (a Rust plugin, which the oracle cannot load)", &id[..8]));
+                        return Err(format!("{shown}: line {line}: the lobe `{}…` is not an official one; loading another lobe is not built yet (a Rust plugin, which the oracle cannot load)", &id[..8]));
                     };
                     let want = parser::core_version(core);
                     if version != want { return Err(format!("{shown}: line {line}: the oracle stands in for {core} `{want}` only, the installed one; this asks for `{version}`")); }
                     let core = core.to_string();
-                    if cores.contains(&core) { return Err(format!("{shown}: line {line}: the core {core} is listed twice")); }
+                    if cores.contains(&core) { return Err(format!("{shown}: line {line}: the lobe {core} is listed twice")); }
                     cores.push(core);
                 }
             }
@@ -385,7 +388,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                 }
                 if f == "powers" { powers_seen = list; } else { deny_seen = list; }
             }
-            other => return Err(format!("{shown}: line {line}: a `cca::Manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies`, `cores`, `powers` and `deny`")),
+            other => return Err(format!("{shown}: line {line}: a `cca::Manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies`, `lobes`, `powers` and `deny`")),
         }
     }
     // a build needs the Neuron's name, version and a target; only publishing needs more (owner, 2026-09-29:
@@ -398,15 +401,15 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     // std needs ASP (owner, 2026-10-06: "You genuinely have to be shitting on my ass, if you installed
     // std without fucking ASP")
     if deps.iter().any(Dep::is_std) && !cores.iter().any(|c| c == "ASP") {
-        return Err(format!("{shown}: line {mline}: cord needs the core ASP, so its maths has true values and checks: add `{}` to `cores`", parser::core_line("ASP")));
+        return Err(format!("{shown}: line {mline}: cord needs the lobe ASP, so its maths has true values and checks: add `{}` to `lobes`", parser::core_line("ASP")));
     }
     // std needs IEG too: its operators on built-in types are a power IEG grants (owner, 2026-10-06: "`a`")
     if deps.iter().any(Dep::is_std) && !cores.iter().any(|c| c == "IEG") {
-        return Err(format!("{shown}: line {mline}: cord needs the core IEG, which grants it the operators on built-in types: add `{}` to `cores`", parser::core_line("IEG")));
+        return Err(format!("{shown}: line {mline}: cord needs the lobe IEG, which grants it the operators on built-in types: add `{}` to `lobes`", parser::core_line("IEG")));
     }
     // cores depend on cores (owner, 2026-10-05); MCPS "Needs IEG, not std" (owner, 2026-10-06)
     if cores.iter().any(|c| c == "MCPS") && !cores.iter().any(|c| c == "IEG") {
-        return Err(format!("{shown}: line {mline}: the core MCPS needs IEG: add `{}` to `cores`", parser::core_line("IEG")));
+        return Err(format!("{shown}: line {mline}: the lobe MCPS needs IEG: add `{}` to `lobes`", parser::core_line("IEG")));
     }
     MANIFEST_POWERS.with(|m| *m.borrow_mut() = Some((powers_seen, deny_seen)));
     Ok((prefix, deps, cores))
@@ -501,7 +504,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
             // 1. granted: Signatar's to every limb; vouching and the operator powers by IEG
             let by_ieg = matches!(segs[0], "vouch" | "operators_on_builtin_types" | "prefix_operators");
             if by_ieg && !limb.cores.iter().any(|c| c == "IEG") {
-                return Err(format!("{at}: {who} {what}, a power no core it lists grants: IEG grants `{}` (add `{}` to its `cores`)", segs[0], parser::core_line("IEG")));
+                return Err(format!("{at}: {who} {what}, a power no lobe it lists grants: IEG grants `{}` (add `{}` to its `lobes`)", segs[0], parser::core_line("IEG")));
             }
             // 2. listed by the Neuron
             let covers = |p: &PowerRef| p.path.len() <= segs.len() && p.path.iter().zip(&segs).all(|(a, b)| a == b) && (p.things.is_empty() || thing.as_ref().map_or(false, |t| p.things.contains(t)));

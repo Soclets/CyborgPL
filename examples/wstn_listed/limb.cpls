@@ -1,6 +1,6 @@
-# Names in every script, and emoji, come from the core WSTN, "Wanted Some Thai Names" (owner,
+# Names in every script, and emoji, come from the lobe WSTN, "Wanted Some Thai Names" (owner,
 # 2026-10-06: "`a`, `WSTN` (Wanted Some Thai Names) is the name", and "`b`": every script and emoji).
-# Signatar's own names are English only; this Neuron lists WSTN in its `cores`.
+# Signatar's own names are English only; this Neuron lists WSTN in its `lobes`.
 fn ทักทาย ['ชื่อ': str.utf8] -> str.utf8 {
     return "สวัสดี " ++ 'ชื่อ';
 }

@@ -76,8 +76,8 @@ design clone is `/Users/ts/Nerve`, the others `/Users/ts/Nerve compiler`,
 `Cyborg-Assembly-Manufacturing-Site/CyborgPL` and the `/Users/ts/CyborgPL v2…`
 folders are frozen at 087cdfc8: never push there. The prose says Nerve
 (step 1, 2026-10-08); the standard library is `cord` and a library is a
-Neuron, `pub.neuron`, and Precog is Cortex (2026-10-09); the code and its
-words still say CCA, `limb.cpls` (→ `neuron.nrv` with the endings), `.cpls`, `CCA.cplr`,
+Neuron, `pub.neuron`, Precog is Cortex, and a core is a lobe, `lobes = [cca::Lobe[…]]`
+(2026-10-09); the code and its words still say CCA, `limb.cpls` (→ `neuron.nrv` with the endings), `.cpls`, `CCA.cplr`,
 renamed later one piece at a time (the Nerve
 names are in `DECISIONS.md`).
 

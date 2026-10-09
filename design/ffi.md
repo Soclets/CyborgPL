@@ -269,7 +269,7 @@ replacing 2026-10-06's whole names; **the whole names and the older short
 ones are MTM's** (owner: "`a`"): `inline.Assembly` and `inline.S` for
 `inline.ASM`, `inline.LLVM_Intermediate_Representation` and `inline.LLVM`
 for `inline.LL` (IEG's), `inline.Metal_Shading_Language` for `inline.MSL`
-(the Metal core's). `inline.S` came first as an alias (owner, 2026-10-02:
+(the Metal lobe's). `inline.S` came first as an alias (owner, 2026-10-02:
 "Add `S` as an alias to `ASM`"), as assembly's `.S` files: the same
 block, the same rules. Capitals, as every language's name: `inline.s` is
 refused.

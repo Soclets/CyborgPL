@@ -35,7 +35,7 @@ x86_64-windows.runner = wine
   Neuron itself uses, allowing or forbidding others being `deny`).
   `power.c_calls.functions = sqrt, sin` is written to `CCA.cplr` as
   `cca::Power.c_calls.functions["sqrt", "sin"]`; only the shape is checked,
-  since cores may add powers; `= no` is refused (an unused power has no
+  since lobes may add powers; `= no` is refused (an unused power has no
   line). **A program takes powers away in a `[my denied powers]` section**
   (owner, 2026-10-08: "`a`", relayed by synthia claude, over `deny.` lines in
   `[my needed things]`; a denial is a rule set for others, not a need),
@@ -68,13 +68,13 @@ x86_64-windows.runner = wine
   synthia claude: "`core.asp.id`, I think, and `limb.geometry.id`", then
   "yea" to a whole section; until then `geometry.version = 1.2`,
   `money.path = ../money`, a form now refused naming `limb.geometry.id`):
-  `limb.geometry.version = 1.2`, `limb.money.path = ../money`. **A core is
+  `limb.geometry.version = 1.2`, `limb.money.path = ../money`. **A lobe is
   listed there by its ID and version** (`core.asp.id = …`,
   `core.asp.version = …`), not in a section of its own (owner: "inside
   `[my needed things]`", over a `[my cores]` section, which synthia claude
-  recommended); a core and a Neuron may share a label. As in `CCA.cplr`
-  (2026-10-06: a core by registry ID; official IDs only until cores can
-  be loaded, and `core.x.path` refused for now; std needs the core ASP). A published one is named by **its ID**, which
+  recommended); a lobe and a Neuron may share a label. As in `CCA.cplr`
+  (2026-10-06: a lobe by registry ID; official IDs only until lobes can
+  be loaded, and `core.x.path` refused for now; std needs the lobe ASP). A published one is named by **its ID**, which
   its creator generates: **256 bits of randomness, as 64 hex digits**,
   needed to register in the Neuron registry (owner). The value takes no quotes
   or braces: the key already says it is an ID, and a line ends where its

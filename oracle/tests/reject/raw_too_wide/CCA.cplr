@@ -2,8 +2,8 @@ cca::Manifest[
     name = "x",
     prefix = "x",
     version = "1.0.0",
-    cores = [
-        cca::Core[id = "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085", version = "2026-10-06T18:04:29+07:00"],  # IEG
+    lobes = [
+        cca::Lobe[id = "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085", version = "2026-10-06T18:04:29+07:00"],  # IEG
     ],
     targets = [cca::Target[name = "aarch64-macos"],]
 ];

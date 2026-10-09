@@ -2,6 +2,6 @@ cca::Manifest[
     name = "x",
     prefix = "x",
     version = "1.0.0",
-    cores = [cca::Core[path = "../mycore"],],
+    lobes = [cca::Lobe[path = "../mycore"],],
     targets = [cca::Target[name = "aarch64-macos"],]
 ];

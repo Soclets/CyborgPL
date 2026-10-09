@@ -1,4 +1,4 @@
-# What the base was slimmed into (owner, 2026-10-07), each from the core this Neuron lists: testing
+# What the base was slimmed into (owner, 2026-10-07), each from the lobe this Neuron lists: testing
 # (TAS), `brain16` (AI), `int128` and the other widths (WSMW), `deci` (Money), Unicode text
 # (UniTect), the case marks (CAPS); range types are ASP's.
 case.insensitive [fn];

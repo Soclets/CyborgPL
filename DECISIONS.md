@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — A core is a lobe: `lobes = [cca::Lobe[…]]` (owner)
+
+Next part name, core → Lobe (chosen 2026-10-08). The owner: "Lobe next".
+Design claude found the code words in every `CCA.cplr`, `cores =
+[cca::Core[id = …]]`, and proposed `lobes = [cca::Lobe[…]]`, `cca::Lobe`
+capitalized like `cca::Manifest` and `cca::Dep`; the owner: "yea, go". So
+**a Neuron lists its lobes as `lobes = [cca::Lobe[id = "…", version =
+"…"]]`**; `cores` and `cca::Core` are refused as old spellings naming the
+new ones; the oracle's messages say lobe ("this Neuron's CCA.cplr does not
+list the lobe ASP"), 80 manifests changed, two reject tests added. In
+prose a core is a lobe, lowercase as "core" was; **CPU cores stay cores**
+(the cores-per-session rule, "parallel on N CPU cores", the thread pool),
+as do quoted words, "core features" and the file names `design/cores.md`
+and `examples/slim_cores/`. Synthia's own `core.x.path` (paused) is left
+for synthia claude.
+
+The same message: "Don't message website claude, unless I tell you to.
+Just website claude, the others are fine."
+
 ### 2026-10-09 — Precog is Cortex (owner)
 
 Next part name, Precog → Cortex (chosen 2026-10-08: "`b`, only the people

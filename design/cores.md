@@ -1,4 +1,4 @@
-# Signatar, cores and neurons (owner, 2026-10-05/06/07; being designed, not built)
+# Signatar, lobes and neurons (owner, 2026-10-05/06/07; being designed, not built)
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
@@ -10,7 +10,7 @@ is the language and the lowest level, and does what the base did.
 their words. Later that day a **dialect** layer (syntax above the base, "more like the
 JVM") was added and then **dropped** (owner: "just let them fork so they
 could do whatever they want", then "Yeah"): the language is the lowest
-level, cores customize (and may take powers away), and anything deeper,
+level, lobes customize (and may take powers away), and anything deeper,
 its own syntax or optimizer, is a fork.
 
 The owner: "I was thinking of making the base lang more lower-level ... I
@@ -39,7 +39,7 @@ std         a limb with powers: every operator, logic, text, printing
 your limbs  everything else
 ```
 
-When people say "CyborgPL" they mean Signatar with whatever cores, "like
+When people say "CyborgPL" they mean Signatar with whatever lobes, "like
 how they say BIOS for UEFI" (owner); the website will say **Signatar
 Nerve** when this lands, "Or else, it would just be an Assembly
 monster" (owner).
@@ -48,34 +48,34 @@ monster" (owner).
 
 | | What it is | Authority | Written in |
 |---|---|---|---|
-| **Signatar** | the language: syntax, types, its own rules, its checker, and the loading and grant enforcement the base did | highest: defines which powers exist and limits cores | (CCA itself) |
-| **A core** | "kinda more of like a compiler mod" (owner) | grants powers to neurons, and may take them away (2026-10-07); may add syntax | Rust plugin + Nerve |
+| **Signatar** | the language: syntax, types, its own rules, its checker, and the loading and grant enforcement the base did | highest: defines which powers exist and limits lobes | (CCA itself) |
+| **A lobe** | "kinda more of like a compiler mod" (owner) | grants powers to neurons, and may take them away (2026-10-07); may add syntax | Rust plugin + Nerve |
 | **A neuron** | a library | only the powers granted to it | Nerve |
 
-- **Cores make dialects**, which are still Nerve. A restricted
-  dialect, a game engine's say, is a core that takes powers away from the
+- **Lobes make dialects**, which are still Nerve. A restricted
+  dialect, a game engine's say, is a lobe that takes powers away from the
   programs that list it (owner, 2026-10-07: "`a`"). Until 2026-10-07 a
   codextra was a category, another language on the base ("this shit could
   make another Codextra be another lang", owner); there is no base now.
-- **Core is a category too**: anyone may write one, cores depend on cores,
-  and an unverified core is used with a warning, never refused ("Maybe
-  it's their own, maybe it's their friend's", owner). A core need not put
+- **Lobe is a category too**: anyone may write one, lobes depend on lobes,
+  and an unverified lobe is used with a warning, never refused ("Maybe
+  it's their own, maybe it's their friend's", owner). A lobe need not put
   its name in the syntax.
 - **The warning** for one nobody verified (owner, 2026-10-06):
 
   ```
-  warning: the core "Fastmath" (registry ID 7f3a…) is not verified
-    where: CCA.cplr, cores
-    note:  a core runs inside the compiler and can change what your
+  warning: the lobe "Fastmath" (registry ID 7f3a…) is not verified
+    where: CCA.cplr, lobes
+    note:  a lobe runs inside the compiler and can change what your
            program does. Use it only if you trust where it came from.
   ```
 
-- **Trust**: Signatar and the official cores are verified (RRx2 checks
+- **Trust**: Signatar and the official lobes are verified (RRx2 checks
   IEG's IR against its contracts); installing any other is already
   trusting it, as installing any program is.
 
-**IDs** (owner, 2026-10-06): a core is listed by its registry ID and
-version, `cca::Core[id = "…", version = "…"]`. The official ones, first
+**IDs** (owner, 2026-10-06): a lobe is listed by its registry ID and
+version, `cca::Lobe[id = "…", version = "…"]`. The official ones, first
 version `2026-10-06T18:04:29+07:00`:
 
 ```
@@ -104,7 +104,7 @@ std      fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936  (a li
 pretty lower-level (say writing fucking Assembly for a lot of things)"
 (owner). It holds:
 
-- **syntax**, and what the base did: reading the files, loading the cores,
+- **syntax**, and what the base did: reading the files, loading the lobes,
   enforcing the grants, handing its LLVM IR to LLVM;
 - **types, `let`, functions, `if`, loops, `match`, structs, enums, `bool`**;
 - **the borrow rules**, lifetime groups (`@x`) included, and **Cortex**
@@ -122,7 +122,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
 - **no operators, no `to.` conversions, no markers**: in Signatar alone, a
   negation or a reinterpretation is assembly.
 
-## The official cores
+## The official lobes
 
 - **IEG, the Intense Energy Generator.** Raw operations as plain calls
   (`add`, `negate`, `compare` *sketch*), with contracts Cortex trusts;
@@ -157,10 +157,10 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   Rust's number names; `bfloat16` / `bf16`; `!std.i24`; the short names
   for an `inline.` language.
 - **GPU**: **AutoGPU**, automatic offload on every GPU (it translates
-  plain `for` loops), and three cores for hand-written GPU code: **Metal**
+  plain `for` loops), and three lobes for hand-written GPU code: **Metal**
   (`inline.MSL`), **Nvidia** and **Vulkan** (AMD, NVIDIA, Intel, Android).
   Listing all runs on all; listing one is a choice, as Valorant chose
-  Windows (owner). Core names are not trademarked; the categories and
+  Windows (owner). Lobe names are not trademarked; the categories and
   names like Signatar are (owner).
 
 ## std, a neuron with powers
@@ -181,16 +181,16 @@ makes its own lists and allocator, as Linux does.
 
 ## Powers and who grants them
 
-- **Signatar defines which powers exist** and limits cores (no core
+- **Signatar defines which powers exist** and limits lobes (no lobe
   may switch off Signatar's borrow rules).
-- **Cores grant powers to neurons**: to every neuron built with them, and
+- **Lobes grant powers to neurons**: to every neuron built with them, and
   extra to favourites named by registry ID (names repeat, IDs do not).
-  **A core may also take powers away** from the programs and neurons built
-  with it (owner, 2026-10-07: "`a`"), so a game engine's core makes a
-  restricted dialect its store can require; how a core spells it, and
-  which wins when one core grants what another takes away, are open.
+  **A lobe may also take powers away** from the programs and neurons built
+  with it (owner, 2026-10-07: "`a`"), so a game engine's lobe makes a
+  restricted dialect its store can require; how a lobe spells it, and
+  which wins when one lobe grants what another takes away, are open.
 - **A neuron lists the powers it uses** in its manifest; each works only if
-  a core it is built for granted it. std's: operators on built-in types
+  a lobe it is built for granted it. std's: operators on built-in types
   and prefix operators (from IEG), adding conversions (from ASP), and
   plugging its list into `for`, a power IEG may grant every neuron, so a
   kernel's own list works with `for` too.
@@ -198,7 +198,7 @@ makes its own lists and allocator, as Linux does.
   upgrade that starts using a new power is flagged**.
 - **The dangerous abilities are powers too** (owner, 2026-10-07), which
   Signatar grants every neuron by default: `inline_assembly`, `c_calls`,
-  `raw_memory`. **Cores may add powers of their own.** A power narrows with
+  `raw_memory`. **Lobes may add powers of their own.** A power narrows with
   `.` and names exact things in `[ ]`; `deny` takes `.except[ … ]` and
   `.for[ … ]`: `deny = [cca::Power.c_calls.except["sqrt"],
   cca::Power.inline_assembly.for["fastjson"],]`.
@@ -212,7 +212,7 @@ looks real, but it's not real. It feels like a child roleplaying", owner):
 cca::Manifest[
     name = "shop",
     prefix = "shop",
-    cores = [cca::Core[id = "5d0e846b…44b4085", version = "2026-10-06T18:04:29+07:00"],],   # IEG
+    lobes = [cca::Lobe[id = "5d0e846b…44b4085", version = "2026-10-06T18:04:29+07:00"],],   # IEG
     dependencies = [cca::Dep[path = "std"],],
     powers = [cca::Power.operators_on_builtin_types,],
     deny = [cca::Power.inline_assembly,],
@@ -270,13 +270,13 @@ assembly; there is no base below it now.
 
 ## Open
 
-- The stable **plugin interface** for cores: compiler
+- The stable **plugin interface** for lobes: compiler
   claude proposes it when building, the owner approves (2026-10-06).
 - **Building it**: the oracle reads `cca::Manifest` with `cores`, and a
   Neuron whose manifest does not list std reaches no operator and no
-  `std::`, nor a core's words when it does not list that core
+  `std::`, nor a lobe's words when it does not list that lobe
   (2026-10-06), and without ASP a whole-number literal lands as a bit
   pattern; lists, maps and text need std; ASP's `to.int8.bits[…]`;
   `on.target` and `on.machine` (minimum versions not built: how a build
   names its oldest OS and chip features is open). Not built: IEG's raw
-  operations, the powers, cores as plugins, the installer.
+  operations, the powers, lobes as plugins, the installer.
