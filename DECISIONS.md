@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — The Nerve icon is official, and in the README beside the wordmark (owner, via website claude)
+
+Relayed by website claude with the owner's words: "Tell design claude to put
+the icon in the README"; the icon itself, website claude's work (43ce7ebd):
+"The last one, official now", and "The icon should be with its background,
+not no-background". It is a starburst nerve (a ring for the cell body, a dot
+at its centre, ten nerves radiating out, long and short in turn, each ending
+in a bulb), always on its own black rounded tile: `brand/nerve/icon.svg`,
+never the bare `mark-*.svg`. **The README's top shows the icon left of the
+NERVE wordmark**, at the wordmark's height (54 px beside 320 px wide), one
+file for both themes since it carries its tile; the README's `brand/` line
+names it. Layout design claude's.
+
 ### 2026-10-09 — The names and logos are trademarks anyone may use, without pretending to be us (owner)
 
 The owner asked whether the repo says what CC BY 4.0 covers (the README

@@ -1,4 +1,5 @@
 <p align="center">
+  <img src="brand/nerve/icon.svg" alt="" width="54" align="middle">&nbsp;&nbsp;
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="brand/nerve/wordmark-white.svg">
     <img src="brand/nerve/wordmark-black.svg" alt="Nerve" width="320">
@@ -21,7 +22,7 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 - [`examples/`](examples/) — programs in settled syntax, each with its expected output.
 - [`oracle/`](oracle/) — the reference interpreter: the executable spec.
 - [`synapse/`](synapse/) — the compiler.
-- [`brand/`](brand/) — the official logo is the NERVE wordmark in [`brand/nerve/`](brand/nerve/) (owner, 2026-10-09: "Mono as official logo"): block letters with a nerve impulse through them, black on light backgrounds and white on dark. The earlier mark (a circular C wrapping `:=`) is still in `brand/`.
+- [`brand/`](brand/) — the official logo is the NERVE wordmark in [`brand/nerve/`](brand/nerve/) (owner, 2026-10-09: "Mono as official logo"): block letters with a nerve impulse through them, black on light backgrounds and white on dark; and the icon, [`brand/nerve/icon.svg`](brand/nerve/icon.svg) (owner, 2026-10-09: "The last one, official now"), a starburst nerve on its own black rounded tile, always shown with its tile. The earlier mark (a circular C wrapping `:=`) is still in `brand/`.
 - [`LICENSE`](LICENSE) — Apache-2.0 WITH LLVM-exception. Programs you compile owe nothing; a fork keeps the notices and may not use the name.
 - [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) — CC BY 4.0, for the website's text (`website/`) and the logo files (`brand/`): copy them, translate, remix, use them anywhere, with credit. Credit them exactly as:
   - the website's text: `Nerve website text: https://nerve-lang.com, https://github.com/Soclets/Nerve-lang`
