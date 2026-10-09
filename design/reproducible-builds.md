@@ -34,7 +34,7 @@ and "compile for the exact machine" makes the target part of the input.
 5. **The target is an explicit, recorded input** — in the manifest (`Synthia.ttsr` / `CCA.cplr`) or the
    lock file — never sniffed from the host. "Native" is a convenience that
    resolves to a named target and writes it down.
-6. **Deterministic ordering** across Limbs and within the analysis: parallel
+6. **Deterministic ordering** across Neurons and within the analysis: parallel
    inside the compiler is fine only where the result cannot depend on who
    finishes first.
 7. **Compile-time arithmetic matches the target.** A `bin16` folded at

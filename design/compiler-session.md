@@ -140,7 +140,7 @@ CCA refuses `std::…` as "not yet"; your tests print through the base
 language's own door, `extern.C fn write` under `nocheck`, as
 `examples/ffi.cpls` does. The examples that print with `std::print.useful`
 wait for std; the reject tests and the extern-based programs do not.
-The std Limb's author and timing are open.
+The std Neuron's author and timing are open.
 
 ## What comes back as questions
 

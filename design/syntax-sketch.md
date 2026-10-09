@@ -75,7 +75,7 @@ without the rest of that redesign. See `DECISIONS.md`.
 
 ## What the sample establishes
 
-- **Dot chains narrow general→specific inside a type and inside a Limb
+- **Dot chains narrow general→specific inside a type and inside a Neuron
   path** — `str.utf8`, `char.grapheme`, `std::print.useful.stdout`, `lend.mut`.
   A *type parameter* is bracketed, not chained: `list[int32]`,
   `array[list[str.utf8]]` (decided 2026-09-19). They no longer carry the name-to-type job (that is `:`) and no
@@ -90,9 +90,9 @@ without the rest of that redesign. See `DECISIONS.md`.
   is then reached only through a path (`std::to[…]`, `my.to[…]`;
   `limbs.md`, 2026-09-19). Variables are quoted and can never collide with
   anything.
-- **`::` crosses into a Limb; `.` narrows within** (decided 2026-09-14).
+- **`::` crosses into a Neuron; `.` narrows within** (decided 2026-09-14).
   `std::print.stored.stdout[…]`, `'r': std::uenr`, `crate_x::Locker[…]`. Inside a
-  Limb the same `.` walks modules: `shapes.circle.area[…]`, `my.helper[…]`
+  Neuron the same `.` walks modules: `shapes.circle.area[…]`, `my.helper[…]`
   for the root (`limbs.md`, 2026-09-19; `limb.` until 2026-10-06).
 - **User names are quoted** (`'x'`, `'s'`). **Settled and reaffirmed — see
   `DECISIONS.md`; not open for relitigation.** The word operators (`x`,

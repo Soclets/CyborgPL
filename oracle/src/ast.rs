@@ -73,11 +73,11 @@ pub struct Field {
 }
 
 /// Visibility (decided 2026-09-19): nothing = this module (and its descendants),
-/// `pub.limb` = the whole Limb, `pub` = other Limbs too.
+/// `pub.neuron` = the whole Neuron, `pub` = other Neurons too.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Vis { Private, Limb, Pub }
 
-/// A module: a file of the Limb (`shapes.cpls` → `shapes`, `shapes/circle.cpls`
+/// A module: a file of the Neuron (`shapes.cpls` → `shapes`, `shapes/circle.cpls`
 /// → `shapes.circle`) or a `module name { … }` block. The root, `limb.cpls`,
 /// is the empty path.
 #[derive(Debug, Clone)]
@@ -251,18 +251,18 @@ pub struct Claim {
     pub line: usize,
 }
 
-/// How other Limbs write the path to a `pub` thing (owner, 2026-10-06): `bare.never` (the path is
+/// How other Neurons write the path to a `pub` thing (owner, 2026-10-06): `bare.never` (the path is
 /// required), `bare.optional`, `bare.only` (the path is forbidden). There is no default.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Bare { Never, Optional, Only }
 
 /// What a `bare` mark covers: one item (its kind and canonical name), a block module (everything in
-/// it), a file (its module and the block modules written in it), or a kind across the Limb.
+/// it), a file (its module and the block modules written in it), or a kind across the Neuron.
 #[derive(Debug, Clone)]
 pub enum BareTarget { Item(String, String), Block(Vec<String>), File(Vec<String>), Kind(String) }
 
 /// `case.insensitive` / `case.sensitive` (owner, 2026-10-06): on an item, a block module, a file, or
-/// kinds across the Limb (`fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var`), as the
+/// kinds across the Neuron (`fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var`), as the
 /// `bare` marks are; names are exact unless marked.
 #[derive(Debug, Clone)]
 pub struct CaseMark { pub target: BareTarget, pub insensitive: bool, pub line: usize, pub limb_root: Vec<String> }
@@ -365,15 +365,15 @@ pub enum Tier { Check, NoCheck, NoChecksAtAll }   // NO_FUCKING_CHECKS (owner, 2
 pub struct Call {
     /// `otherwise …` after the call, if any
     pub handler: Option<Handler>,
-    pub limb: Option<String>,   // None = this Limb; Some("std") = std::
-    /// std: print.stored.stdout → ["print", "stored", "stdout"]; this Limb: the canonical path from
+    pub limb: Option<String>,   // None = this Neuron; Some("std") = std::
+    /// std: print.stored.stdout → ["print", "stored", "stdout"]; this Neuron: the canonical path from
     /// the root, `limb.` stripped, the calling module prefixed to a relative one
     pub path: Vec<String>,
     /// the module the call is written in (for visibility)
     pub from: Vec<String>,
     pub args: Bracket,
     pub line: usize,
-    /// written with no path (no `x::`, no `my.`), so another Limb's `bare.optional` / `bare.only`
+    /// written with no path (no `x::`, no `my.`), so another Neuron's `bare.optional` / `bare.only`
     /// name may be meant (owner, 2026-10-06); `written` is the path as written
     pub bare: bool,
     pub written: Vec<String>,
@@ -400,7 +400,7 @@ pub enum Value {
 #[derive(Debug, Clone)]
 pub enum Expr {
     Int(i128, usize),
-    /// a whole-number literal in a Limb without ASP: a bit pattern, as the machine's (owner, 2026-10-06)
+    /// a whole-number literal in a Neuron without ASP: a bit pattern, as the machine's (owner, 2026-10-06)
     RawInt(i128, usize),
     /// a literal past i128: its digits (owner, 2026-10-03)
     BigInt(String, usize),

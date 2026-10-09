@@ -1,2 +1,2 @@
-# another Limb's private function is not reachable (limbs.md)
+# another Neuron's private function is not reachable (limbs.md)
 MAIN { let 'x' := areas::hidden[]; }

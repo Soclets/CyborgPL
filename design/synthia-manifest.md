@@ -1,7 +1,7 @@
 # `Synthia.ttsr` — Synthia's manifest (owner, 2026-09-29, in progress)
 
 *Tankun's TOML Syntax Ripoff*: sections and `key = value` lines like TOML,
-in the Limb's own voice, with dotted keys and no quotes.
+in the Neuron's own voice, with dotted keys and no quotes.
 
 ```
 [my identity]
@@ -28,11 +28,11 @@ aarch64-linux.runner = qemu-aarch64
 x86_64-windows.runner = wine
 ```
 
-- **The powers a Limb uses are `power.` lines in `[my needed things]`**,
+- **The powers a Neuron uses are `power.` lines in `[my needed things]`**,
   beside `core.` and `limb.` (owner, 2026-10-08: "`a`", relayed by synthia
   claude, over a `[my powers]` section; asked "Does this say what it needs,
   or what it allows the others", synthia claude answered that it is what the
-  Limb itself uses, allowing or forbidding others being `deny`).
+  Neuron itself uses, allowing or forbidding others being `deny`).
   `power.c_calls.functions = sqrt, sin` is written to `CCA.cplr` as
   `cca::Power.c_calls.functions["sqrt", "sin"]`; only the shape is checked,
   since cores may add powers; `= no` is refused (an unused power has no
@@ -41,13 +41,13 @@ x86_64-windows.runner = wine
   `[my needed things]`; a denial is a rule set for others, not a need),
   written to `CCA.cplr`'s `deny`: `raw_memory = yes` (all of it),
   `c_calls.functions = system` (the things named), `c_calls.except = sqrt,
-  sin` (all but these), `inline_assembly.for = fastjson` (only to that Limb,
+  sin` (all but these), `inline_assembly.for = fastjson` (only to that Neuron,
   by prefix); `= no` is refused.
 - **The sections are the owner's**: `[my identity]` (proposed by the owner
   as `[my credentials]`; renamed because "credentials" reads as passwords
   and tokens — owner: b), `[my needed things]`, `[my target]`.
 - **Times** are ISO 8601 with the zone, `2026-09-29T17:40:00+07:00` (owner:
-  a). `time.created` is when the Limb was first made; `time.stated_ver.created`
+  a). `time.created` is when the Neuron was first made; `time.stated_ver.created`
   when the version stated in `version` was made. **The publish time is the
   registry's**, recorded in its index, never written into the manifest
   (owner: b). A readable form of a time is a Synthia command's job, not a
@@ -72,23 +72,23 @@ x86_64-windows.runner = wine
   listed there by its ID and version** (`core.asp.id = …`,
   `core.asp.version = …`), not in a section of its own (owner: "inside
   `[my needed things]`", over a `[my cores]` section, which synthia claude
-  recommended); a core and a Limb may share a label. As in `CCA.cplr`
+  recommended); a core and a Neuron may share a label. As in `CCA.cplr`
   (2026-10-06: a core by registry ID; official IDs only until cores can
   be loaded, and `core.x.path` refused for now; std needs the core ASP). A published one is named by **its ID**, which
   its creator generates: **256 bits of randomness, as 64 hex digits**,
-  needed to register in the Limb registry (owner). The value takes no quotes
+  needed to register in the Neuron registry (owner). The value takes no quotes
   or braces: the key already says it is an ID, and a line ends where its
   value does (owner: "yeah", after asking about `{}` and `""`).
 
-- **A Limb states its own ID in `[my identity]`** (owner: a), generated
+- **A Neuron states its own ID in `[my identity]`** (owner: a), generated
   once when it is created and never changed; the registry checks it
-  matches when the Limb registers.
+  matches when the Neuron registers.
 - **The registry refuses an ID it already has, and a registered ID is
-  permanent** (owner): it belongs to that Limb for good, never released or
+  permanent** (owner): it belongs to that Neuron for good, never released or
   reused. By accident two IDs never match — 2²⁵⁶ ≈ 1.16 × 10⁷⁷, and eight
-  billion people making a billion Limbs each would share one with chance
+  billion people making a billion Neurons each would share one with chance
   ≈ 2.8 × 10⁻⁴⁰ — so the rule is against a copied ID, someone passing their
-  Limb off as another.
+  Neuron off as another.
 
 - **`[my target]` holds several targets, each with its settings** (owner:
   b), as dotted keys: a `runner` for a cross target's tests, `default` for
@@ -104,30 +104,30 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
 - **Needed in every manifest: `name`, `version`, and at least one
   target** (owner, 2026-09-29: b). `id`, `time.created` and
   `time.stated_ver.created` are needed only to publish, and checked then:
-  a Limb that never leaves its machine needs no ID.
-- **A Limb's own `version` is any text, at most 256 bytes** (owner,
+  a Neuron that never leaves its machine needs no ID.
+- **A Neuron's own `version` is any text, at most 256 bytes** (owner,
   2026-09-29: "256 bytes it is"; "it doesn't require `.`"): room for a
-  version written in Thai. What a needed Limb's `version` means is the
+  version written in Thai. What a needed Neuron's `version` means is the
   registry's, and open.
 - **`prefix = cash`** in `[my identity]` is the word code writes in front
-  of `::` to reach this Limb (owner, 2026-09-29: "`prefix`"), as
+  of `::` to reach this Neuron (owner, 2026-09-29: "`prefix`"), as
   `CCA.cplr`'s `'prefix'`; its `name` is a label apart from it.
   Required, as in `CCA.cplr` (owner: "if it's not always required, it
-  could be weird to CyborgPL users"). **Synthia's easy override** for two Limbs with one
+  could be weird to CyborgPL users"). **Synthia's easy override** for two Neurons with one
   prefix does what a CCA user does by hand (owner, 2026-09-29: "Synthia
-  just does what the CyborgPL programmer had to do"): it copies that Limb
+  just does what the CyborgPL programmer had to do"): it copies that Neuron
   into a folder of its own, changes the `prefix` in the copy, and hands
   CCA an ordinary path dependency. The override is a dotted `prefix` line
-  on the needed Limb's key (owner, 2026-09-30: "Prefix shall be narrowed
+  on the needed Neuron's key (owner, 2026-09-30: "Prefix shall be narrowed
   using a dot", "yea"): `money.path = ../money` with `money.prefix =
   cash2` (`limb.money.path`, `limb.money.prefix` since 2026-10-06), and code writes `cash2::`. The key (`money`) is this
-  manifest's label for the Limb, following the name rule; without a
-  `prefix` line code writes the Limb's own prefix. The copy lives in the
+  manifest's label for the Neuron, following the name rule; without a
+  `prefix` line code writes the Neuron's own prefix. The copy lives in the
   project, in Synthia's own `.synthia/` folder beside `Synthia.ttsr`
   (owner, 2026-09-30: a): always safe to delete, since Synthia remakes
   it, and kept out of git.
 - **Names follow the module-name rule** (owner, 2026-09-29: "yea"): a
-  Limb's `name` and each local name in `[my needed things]` are lowercase
+  Neuron's `name` and each local name in `[my needed things]` are lowercase
   ASCII letters, digits and `_`, starting with a letter, not a keyword,
   not a Windows device name — each is written in code as `name::`.
   The prefix later took that job; `name` stays strict all the same, in
@@ -146,12 +146,12 @@ like the base lang not being able to do inline ASM". So `CCA.cplr`'s
   section), `code:`, and `fix:` when there is one right line to write.
 - **Names may repeat; IDs never do** (owner: "Names could be the same, IDs
   can't"). A name is a label; the key before `.id` in `[my needed things]` is
-  what this Limb's code calls that dependency (`geometry.id = …`, now `limb.geometry.id`, →
-  `geometry::area[…]`), so two Limbs both called "geometry" live side by
+  what this Neuron's code calls that dependency (`geometry.id = …`, now `limb.geometry.id`, →
+  `geometry::area[…]`), so two Neurons both called "geometry" live side by
   side as `geometry.id` and `geo2.id`, and a clash never breaks a build.
   Proposed alternative: names unique in the registry too, first come.
   Superseded the same day for `CCA.cplr`: the word in front of `::` is
-  the Limb's own `'prefix'`, apart from its `name`, and a dependency names
+  the Neuron's own `'prefix'`, apart from its `name`, and a dependency names
   no word (`cca::Dep[id = "…", version = "1.2"]`); see `tooling.md`. The
   `Synthia.ttsr` side is synthia claude's to ask.
 

@@ -8,7 +8,7 @@ counsel to draft; this records what they must achieve.
 1. **Using the language is free, with no credit required anywhere.** Writing
    Nerve, compiling it, shipping the binary: nothing owed, nothing to
    mention. The code that lands in a user's binary — the runtime and the
-   standard Limb — must carry no attribution obligation for compiled output.
+   standard Neuron — must carry no attribution obligation for compiled output.
 2. **Modifying the compiler is free, with credit everywhere** — in the
    source *and* wherever the user of the modified compiler can see: its
    version output, its documentation, its website, its distribution page.
@@ -18,9 +18,9 @@ counsel to draft; this records what they must achieve.
 ## Decided 2026-09-23 (owner): one standard licence, plus trademark
 
 **Apache-2.0 WITH LLVM-exception for everything that is code** — the
-runtime, the standard Limb, the compiler, Precog, Synthia, the oracle
+runtime, the standard Neuron, the compiler, Precog, Synthia, the oracle
 and the verification tools. **Trademark on the names** — Nerve,
-Precog, Limb, Synthia — as the instrument for "credit everywhere".
+Precog, Neuron, Synthia — as the instrument for "credit everywhere".
 
 What that achieves against the intent above: a user of the language
 owes nothing, because the exception waives notice for compiled output
@@ -56,10 +56,10 @@ The trademark flags below still stand and are the thing to act on.
 
 | Piece | Licence | Effect |
 |---|---|---|
-| Runtime, standard Limb | Apache-2.0 WITH LLVM-exception | The exception waives notice requirements for compiled binaries — users owe nothing. Same licence LLVM uses and Xag used. |
+| Runtime, standard Neuron | Apache-2.0 WITH LLVM-exception | The exception waives notice requirements for compiled binaries — users owe nothing. Same licence LLVM uses and Xag used. |
 | Compiler, Precog, Synthia | Apache-2.0 **plus a Nerve attribution term** | Apache alone requires credit in source (licence, copyright, `NOTICE`, marking of changed files). The additional term extends it to user-visible places. |
 | Spec, docs, decision log | CC BY 4.0 | Anyone may implement the language; the text is credited. |
-| Names — Nerve, Precog, Limb, Synthia | Trademark (separate from copyright) | A fork credits Nerve but may not call itself Nerve. The stronger tool for "credit everywhere". |
+| Names — Nerve, Precog, Neuron, Synthia | Trademark (separate from copyright) | A fork credits Nerve but may not call itself Nerve. The stronger tool for "credit everywhere". |
 
 ## Known consequences of the attribution term (for counsel to weigh)
 

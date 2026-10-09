@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — A library is a Neuron: `pub.neuron`; the root file waits for the endings (owner)
+
+Next part name, Limb → Neuron (chosen 2026-10-08). Design claude found two
+code words: `pub.limb` and the root file `limb.cpls`, and proposed
+`pub.neuron` and `neuron.cpls`. The owner: "Isn't it `.nrv`?"; design
+claude: yes, at step 3, so renaming the root file now would mean renaming
+124 files twice. **`pub.limb` is `pub.neuron` now**, refused as an old
+spelling naming it ("`limb` is an old spelling: write `neuron`"), and
+**"Limb" is "Neuron" in prose and messages**; **the root file goes from
+`limb.cpls` straight to `neuron.nrv` in step 3** (owner: "yea, go"). Kept:
+owner quotes, `limb.cpls` and the `limbs/` folders until step 3, and
+`design/limbs.md`'s file name. The README's trademark line reads "Neuron™
+(formerly Limb™)", design claude's wording.
+
 ### 2026-10-09 — Rename step 2 begins: stdkit is `cord`, lowercase in code (owner)
 
 Step 2 of renaming inside the repo, the part names, one at a time; design

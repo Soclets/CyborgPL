@@ -4,7 +4,7 @@
 //!   "…"   text literal (exactly its characters; `\"` and `\\` only)   '…'   variable name   `…`   one character
 //!   bare word                    keyword, function name, or operator word
 //!   [ ] { } ( )                  value slot, body, arithmetic grouping
-//!   ::  .  :=  =  ;  ,           Limb boundary, chain, best-type bind, typed bind, end, separator
+//!   ::  .  :=  =  ;  ,           Neuron boundary, chain, best-type bind, typed bind, end, separator
 //!   :  ->                        name-to-type, function return type (decided 2026-09-19)
 //!   newln                        a newline piece (owner, 2026-10-07; `\n` before)
 //!   ++                           joins text (decided 2026-09-19)
@@ -284,6 +284,8 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 "Metal_Shading_Language" if after_inline => Some("inline.MSL"),
                 // the standard library is `cord` (owner, 2026-10-09: "lowercase syntax"); `stdkit` (2026-10-07) and `std` before it
                 "std" | "stdkit" if !after_bang => Some("cord"),
+                // a library is a Neuron (owner, 2026-10-09); `pub.limb` is the old spelling of `pub.neuron`
+                "limb" => Some("neuron"),
                 "auto_newline" => Some("auto_newln"),
                 "giveS" | "gives" => Some("is"),
                 _ => None,
@@ -298,6 +300,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 "at_least" => Some(Tok::Op(">/==".into())),
                 "newln" => Some(Tok::Newline),
                 "cord" => Some(Tok::Word("std".into())),
+                "neuron" => Some(Tok::Word("limb".into())),
                 "auto_newln" => Some(Tok::Word("auto_newline".into())),
                 // a case's value says `is` (owner, 2026-10-07), held inside as `#strict`'s `giveS`
                 "is" => Some(Tok::Word("giveS".into())),

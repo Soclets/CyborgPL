@@ -1,4 +1,4 @@
-# Modules as blocks in one file (a Limb of one root file). See examples/geometry/ for files.
+# Modules as blocks in one file (a Neuron of one root file). See examples/geometry/ for files.
 
 bare.never [fn, struct];
 
@@ -11,8 +11,8 @@ module counter {
         return Count[n = 'c'.n plus step[]];
     }
     fn step [] -> int32 { return my.'scale'; }      # private; reaches the root's const
-    pub.limb module inner {
-        pub.limb fn twice ['n': int32] -> int32 { return 'n' times 2; }
+    pub.neuron module inner {
+        pub.neuron fn twice ['n': int32] -> int32 { return 'n' times 2; }
     }
 }
 

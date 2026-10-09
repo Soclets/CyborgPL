@@ -1,4 +1,4 @@
-# The root of the Limb: its items are `geometry::…` from outside.
+# The root of the Neuron: its items are `geometry::…` from outside.
 
 bare.never [fn, struct];
 
@@ -7,7 +7,7 @@ const 'unit' := 1.0;
 fn helper [] -> str.utf8 { return "from the root"; }
 
 module report {
-    pub.limb fn line ['label': str.utf8, 'v': bin64] {
+    pub.neuron fn line ['label': str.utf8, 'v': bin64] {
         cord::print.useful['label', ": ", 'v', newln];
     }
 }

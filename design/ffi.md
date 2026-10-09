@@ -5,7 +5,7 @@
 Decided 2026-09-19, one question at a time, after the owner asked how
 std's print gets made and then: "Syscall and lower-level stuff should be
 able to do, using the base Cyborg language." So the door to the OS is the
-language's, open to every Limb (as in C and Rust); std is the library
+language's, open to every Neuron (as in C and Rust); std is the library
 everyone uses, not a privileged one. Inline assembly is also in — spelling
 not yet designed. In the oracle since 2026-09-20: every rule below is
 enforced; the oracle cannot link C, so it emulates `write`, `exit`,
@@ -32,7 +32,7 @@ block of `fn` lines and C globals with `extern.C` written once; both stay.
 The `.C` is every language's capitalized name, as `layout.C`; a bare
 `extern fn` and `extern.c` are refused. Design claude had recommended a
 plain `extern { … }`, since `extern` reaches only C. **Each line may say
-its own `pub` / `pub.limb`, and a `pub` before the block overrides them
+its own `pub` / `pub.neuron`, and a `pub` before the block overrides them
 all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 `extern.C { … }` a line is private unless it says `pub fn …`; in
 `pub extern.C { … }` every line is public. One-line: `pub extern.C fn …`.
@@ -232,7 +232,7 @@ other declaration on 2026-09-25.
 
 **`errno` is not a plain global** on macOS and Linux — it is a macro
 that calls a function — so `extern.C 'errno': int32;` would be wrong
-there; the std Limb offers `std::c.errno[]` backed by the real thing.
+there; the std Neuron offers `std::c.errno[]` backed by the real thing.
 `extern.C 'x': T` is for genuinely plain C globals. `examples/extern_data.cpls`.
 
 ## `layout.C` — a struct in C's shape

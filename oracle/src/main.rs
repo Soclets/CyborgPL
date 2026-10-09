@@ -27,11 +27,11 @@ fn parse_file(path: &Path, module: Vec<String>) -> Result<ast::Program, String> 
 
 thread_local! {
     /// The first pass over a program's files reads only their `precedence` blocks (owner, 2026-10-03:
-    /// a Limb's levels apply wherever its operators are used)
+    /// a Neuron's levels apply wherever its operators are used)
     static LEVELS_ONLY: std::cell::Cell<bool> = std::cell::Cell::new(false);
 }
 
-/// Parse one file of the Limb rooted at `limb_root` (`[]` for the Limb being built).
+/// Parse one file of the Neuron rooted at `limb_root` (`[]` for the Neuron being built).
 fn parse_file_in(path: &Path, module: Vec<String>, limb_root: Vec<String>) -> Result<ast::Program, String> {
     let src = std::fs::read_to_string(path).map_err(|e| format!("{}: cannot read: {e}", path.display()))?;
     let mut toks = lexer::lex(&src).map_err(|e| format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg))?;
@@ -45,9 +45,9 @@ fn parse_file_in(path: &Path, module: Vec<String>, limb_root: Vec<String>) -> Re
         .map_err(|e| if e.col == 0 { format!("{}: line {}: {}", path.display(), e.line, e.msg) } else { format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg) })
 }
 
-/// A Limb is a directory: `limb.cpls` is the root; every other `.cpls` file is
+/// A Neuron is a directory: `limb.cpls` is the root; every other `.cpls` file is
 /// a module named after it, directories nesting (decided 2026-09-19). A lone
-/// `.cpls` file is a Limb of one root file.
+/// `.cpls` file is a Neuron of one root file.
 fn load(path: &Path) -> Result<ast::Program, String> {
     // first every file's `precedence` blocks, then the program with all of them known
     parser::SHARED_LEVELS.with(|l| l.borrow_mut().clear());
@@ -57,7 +57,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     let first = load_files(path);
     LEVELS_ONLY.with(|f| f.set(false));
     first?;
-    // then the program once to learn which of other Limbs' structs and enums may be written bare
+    // then the program once to learn which of other Neurons' structs and enums may be written bare
     // (owner, 2026-10-06), and again with that known
     parser::BARE_TYPES.with(|t| t.borrow_mut().clear());
     let once = load_files(path)?;
@@ -92,7 +92,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
         let own = prog.funcs.iter().any(|f| f.module == own_module && Some(&f.name) == written.last() && !f.is_op);
         let mine = from.first().filter(|r| r.starts_with("::")).cloned();
         let mut who: Vec<String> = Vec::new();
-        if own { who.push(format!("`my.{}` (this Limb's)", own_module.iter().filter(|m| !m.starts_with("::")).chain(written.last()).cloned().collect::<Vec<_>>().join("."))); }
+        if own { who.push(format!("`my.{}` (this Neuron's)", own_module.iter().filter(|m| !m.starts_with("::")).chain(written.last()).cloned().collect::<Vec<_>>().join("."))); }
         if std { who.push(format!("`cord::{shown}`")); }
         for f in &prog.funcs {
             let Some(root) = f.module.first().filter(|r| r.starts_with("::")) else { continue };
@@ -103,24 +103,24 @@ fn load(path: &Path) -> Result<ast::Program, String> {
         }
         if who.len() > 1 { return Err(format!("{}: line {line}: `{shown}` could be any of {}: write the path", path.display(), who.join(", "))); }
     }
-    // this Limb's own struct or enum does not win over another Limb's bare one (owner, 2026-10-06: "no")
+    // this Neuron's own struct or enum does not win over another Neuron's bare one (owner, 2026-10-06: "no")
     for (own, theirs, written, root) in parser::BARE_TYPE_USES.with(|u| u.borrow().clone()) {
         if prog.structs.iter().any(|d| d.name == own) || prog.enums.iter().any(|d| d.name == own) || prog.interfaces.iter().any(|d| d.name == own) {
             let _ = theirs;
-            return Err(format!("{}: `{written}` could be any of `my.{written}` (this Limb's), `{}::{written}`: write the path", path.display(), match root.trim_start_matches("::") { "std" => "cord", r => r }));
+            return Err(format!("{}: `{written}` could be any of `my.{written}` (this Neuron's), `{}::{written}`: write the path", path.display(), match root.trim_start_matches("::") { "std" => "cord", r => r }));
         }
     }
     Ok(prog)
 }
 
-/// A Limb whose `CCA.cplr` does not list std or a core reaches none of it (owner, 2026-10-05/06). One with no
+/// A Neuron whose `CCA.cplr` does not list std or a core reaches none of it (owner, 2026-10-05/06). One with no
 /// `CCA.cplr` gets what the machine's package installed, and the oracle stands in for the full package.
 /// A power as a manifest names it (owner, 2026-10-07): its path, the things named in `[ ]`, and for a
 /// `deny` its `.except[ … ]` and `.for[ … ]`.
 #[derive(Clone, Debug, Default)]
 struct PowerRef { path: Vec<String>, things: Vec<String>, except: Vec<String>, for_: Vec<String> }
 
-/// Each Limb's manifest, as the power check needs it: its root, prefix, cores, listed powers and denies.
+/// Each Neuron's manifest, as the power check needs it: its root, prefix, cores, listed powers and denies.
 struct LimbPowers { root: Vec<String>, prefix: String, cores: Vec<String>, powers: Vec<PowerRef>, deny: Vec<PowerRef> }
 
 thread_local! {
@@ -168,19 +168,19 @@ fn load_files(path: &Path) -> Result<ast::Program, String> {
         if path.extension().map(|x| x != "cpls").unwrap_or(true) { return Err("oracle: a Nerve source file ends in .cpls".into()); }
         return parse_file(path, Vec::new());
     }
-    if !path.is_dir() { return Err(format!("oracle: {} is neither a .cpls file nor a Limb directory", path.display())); }
+    if !path.is_dir() { return Err(format!("oracle: {} is neither a .cpls file nor a Neuron directory", path.display())); }
     mark_lacks(path, &[])?;
     let mut prog = load_limb(path, Vec::new())?;
-    // the Limbs it depends on, from its `CCA.cplr` (owner, 2026-09-29), each under a root of its own
+    // the Neurons it depends on, from its `CCA.cplr` (owner, 2026-09-29), each under a root of its own
     let mut loaded: Vec<(String, PathBuf)> = Vec::new();
     load_deps(path, &mut prog, &mut loaded, &mut Vec::new())?;
     Ok(prog)
 }
 
-/// One Limb directory, its modules under `root` (`[]` for the Limb being built).
+/// One Neuron directory, its modules under `root` (`[]` for the Neuron being built).
 fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
     let rootfile = path.join("limb.cpls");
-    if !rootfile.is_file() { return Err(format!("{}: a Limb directory needs its root file, limb.cpls", path.display())); }
+    if !rootfile.is_file() { return Err(format!("{}: a Neuron directory needs its root file, limb.cpls", path.display())); }
     let mut prog = parse_file_in(&rootfile, root.clone(), root.clone())?;
     let mut files = Vec::new();
     collect(path, &mut Vec::new(), &mut files)?;
@@ -199,7 +199,7 @@ fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
         }
         prog.modules.push(ast::ModuleDef { path: module.clone(), vis: ast::Vis::Pub, line: 0 });
         let part = parse_file_in(&file, module, root.clone())?;
-        if part.main.is_some() { return Err(format!("{}: MAIN lives in limb.cpls, the root of the Limb", file.display())); }
+        if part.main.is_some() { return Err(format!("{}: MAIN lives in limb.cpls, the root of the Neuron", file.display())); }
         prog.funcs.extend(part.funcs);
         prog.structs.extend(part.structs);
         prog.consts.extend(part.consts);
@@ -216,7 +216,7 @@ fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
 }
 
 /// A dependency from `CCA.cplr`: `cca::Dep[path = "../geometry"]` (or an `id` and `version`, from
-/// the registry, which the oracle cannot fetch). It names no word: code writes the Limb's own 'prefix'.
+/// the registry, which the oracle cannot fetch). It names no word: code writes the Neuron's own 'prefix'.
 struct Dep { what: String, path: Option<String>, version: Option<String>, id: Option<String> }
 
 impl Dep { fn is_std(&self) -> bool { self.id.as_deref() == Some(parser::STD_ID) } }
@@ -227,7 +227,7 @@ const OFFICIAL_CORES: [&str; 15] = ["IEG", "ASP", "Genny", "MCPS", "AutoGPU", "M
 
 use parser::CORE_IDS;
 
-/// Read a Limb's `CCA.cplr`: one Nerve value, `cca::Manifest[ … ]` (owner, 2026-10-06: "`c`. It may
+/// Read a Neuron's `CCA.cplr`: one Nerve value, `cca::Manifest[ … ]` (owner, 2026-10-06: "`c`. It may
 /// not look as complex, but at least it's not much of a roleplay"), replacing 2026-09-29's one `const`
 /// per setting. Returns its 'prefix' (none when there is no `CCA.cplr`), its dependencies and its cores.
 fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), String> {
@@ -261,10 +261,10 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
             // strict: the module-name rule (owner, 2026-09-30: "strict"), though code writes the prefix
             "name" => {
                 let n = text(value).ok_or_else(|| format!("{shown}: line {line}: `name` is a text: `name = \"shop\"`"))?;
-                parser::module_name_ok(&n).map_err(|m| format!("{shown}: line {line}: `{n}` cannot name a Limb: {m}"))?;
+                parser::module_name_ok(&n).map_err(|m| format!("{shown}: line {line}: `{n}` cannot name a Neuron: {m}"))?;
                 name = true;
             }
-            // the word code writes in front of `::` to reach this Limb, its maker's pick (owner, 2026-09-29: b, "required")
+            // the word code writes in front of `::` to reach this Neuron, its maker's pick (owner, 2026-09-29: b, "required")
             "prefix" => {
                 let p = text(value).ok_or_else(|| format!("{shown}: line {line}: `prefix` is a text: `prefix = \"shop\"`"))?;
                 parser::module_name_ok(&p).map_err(|m| format!("{shown}: line {line}: `{p}` cannot be a prefix, written in code as `{p}::`: {m}"))?;
@@ -276,7 +276,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                 if v.len() > 256 { return Err(format!("{shown}: line {line}: `version` is at most 256 bytes, and this one is {}", v.len())); }
                 has_version = true;
             }
-            "target" => return Err(format!("{shown}: line {line}: a Limb builds for several targets, so the field is `targets`: `targets = [cca::Target[name = \"aarch64-macos\"],]`")),
+            "target" => return Err(format!("{shown}: line {line}: a Neuron builds for several targets, so the field is `targets`: `targets = [cca::Target[name = \"aarch64-macos\"],]`")),
             // several targets, each with its settings (owner, 2026-09-29): CCA's package manager can do
             // whatever Synthia can, in its plainer way
             "targets" => {
@@ -315,21 +315,21 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     if shape != "::cca.Dep" { return Err(format!("{shown}: line {line}: a dependency is a `cca::Dep`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
                     let mut d = Dep { what: String::new(), path: None, version: None, id: None };
                     for (f, b) in &fields {
-                        // two Limbs with one prefix are an error, fixed by editing a Limb's source (owner, 2026-09-29:
+                        // two Neurons with one prefix are an error, fixed by editing a Neuron's source (owner, 2026-09-29:
                         // "Just edit the source code"), so a dependency names no word
-                        if f == "name" || f == "prefix" { return Err(format!("{shown}: line {line}: a dependency names no word: code writes the Limb's own 'prefix', from its `CCA.cplr`")); }
+                        if f == "name" || f == "prefix" { return Err(format!("{shown}: line {line}: a dependency names no word: code writes the Neuron's own 'prefix', from its `CCA.cplr`")); }
                         let t = text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
                         match f.as_str() { "path" => d.path = Some(t), "version" => d.version = Some(t), "id" => d.id = Some(t),
                             other => return Err(format!("{shown}: line {line}: a `cca::Dep` has no `{other}`; it has `path`, or `id` and `version`")) }
                     }
-                    d.what = match (&d.path, &d.id) { (Some(p), _) => format!("the Limb at `{p}`"), (None, Some(i)) => format!("the Limb `{}…`", &i[..i.len().min(8)]), _ => "the dependency".into() };
+                    d.what = match (&d.path, &d.id) { (Some(p), _) => format!("the Neuron at `{p}`"), (None, Some(i)) => format!("the Neuron `{}…`", &i[..i.len().min(8)]), _ => "the dependency".into() };
                     if d.path.is_some() == d.version.is_some() { return Err(format!("{shown}: line {line}: a dependency says where it comes from once: a `path` on this machine, or an `id` and `version` from the registry")); }
-                    // the registry knows a Limb by its ID, never its name (owner, 2026-09-29): names may repeat
+                    // the registry knows a Neuron by its ID, never its name (owner, 2026-09-29): names may repeat
                     // an ID is 64 hex digits wherever it is written (the owner's definition; compiler claude, 2026-09-29)
                     if let Some(i) = &d.id {
                         if i.len() != 64 || !i.bytes().all(|b| b.is_ascii_hexdigit()) { return Err(format!("{shown}: line {line}: an id is 64 hex digits, 256 random bits")); }
                     }
-                    if d.version.is_some() && d.id.is_none() { return Err(format!("{shown}: line {line}: a `version` comes from the registry, which knows a Limb by its ID: `id = \"…\"`, 64 hex digits")); }
+                    if d.version.is_some() && d.id.is_none() { return Err(format!("{shown}: line {line}: a `version` comes from the registry, which knows a Neuron by its ID: `id = \"…\"`, 64 hex digits")); }
                     // std is listed like any limb, by its ID and version; CCA uses the installed copy when they
                     // match (owner, 2026-10-06), and the oracle stands in for that copy
                     if d.is_std() {
@@ -340,7 +340,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     deps.push(d);
                 }
             }
-            // the cores a Limb is built for (owner, 2026-10-05: "Limbs should say what cores they are built
+            // the cores a Neuron is built for (owner, 2026-10-05: "Limbs should say what cores they are built
             // for"), each by its registry ID and version, or a `path` for one never registered (2026-10-06)
             "cores" => {
                 for it in items(value) {
@@ -373,14 +373,14 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     cores.push(core);
                 }
             }
-            // the powers a Limb uses, and what the program takes away (owner, 2026-10-07)
+            // the powers a Neuron uses, and what the program takes away (owner, 2026-10-07)
             "powers" | "deny" => {
                 let mut list = Vec::new();
                 for it in items(value) {
                     let ast::Expr::Text(t, _) = &it else { return Err(format!("{shown}: line {line}: a power is `cca::Power.c_calls`, narrowed with `.` and naming things in `[ ]`")) };
                     let Some(text) = t.strip_prefix("power:") else { return Err(format!("{shown}: line {line}: a power is `cca::Power.c_calls`, not a text")) };
                     let pw = parse_power(text).map_err(|m| format!("{shown}: line {line}: {m}"))?;
-                    if f == "powers" && (!pw.except.is_empty() || !pw.for_.is_empty()) { return Err(format!("{shown}: line {line}: `.except` and `.for` belong to `deny`; `powers` lists what this Limb uses")); }
+                    if f == "powers" && (!pw.except.is_empty() || !pw.for_.is_empty()) { return Err(format!("{shown}: line {line}: `.except` and `.for` belong to `deny`; `powers` lists what this Neuron uses")); }
                     list.push(pw);
                 }
                 if f == "powers" { powers_seen = list; } else { deny_seen = list; }
@@ -388,11 +388,11 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
             other => return Err(format!("{shown}: line {line}: a `cca::Manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies`, `cores`, `powers` and `deny`")),
         }
     }
-    // a build needs the Limb's name, version and a target; only publishing needs more (owner, 2026-09-29:
+    // a build needs the Neuron's name, version and a target; only publishing needs more (owner, 2026-09-29:
     // "yea", matching Synthia.ttsr)
-    let why = "a build needs the Limb's `name`, `prefix`, `version` and at least one target";
+    let why = "a build needs the Neuron's `name`, `prefix`, `version` and at least one target";
     if !name { return Err(format!("{shown}: line {mline}: the manifest has no `name`: {why}: `name = \"shop\"`")); }
-    if prefix.is_none() { return Err(format!("{shown}: line {mline}: the manifest has no `prefix`, the word code writes in front of `::` to reach this Limb: {why}: `prefix = \"shop\"`")); }
+    if prefix.is_none() { return Err(format!("{shown}: line {mline}: the manifest has no `prefix`, the word code writes in front of `::` to reach this Neuron: {why}: `prefix = \"shop\"`")); }
     if !has_version { return Err(format!("{shown}: line {mline}: the manifest has no `version`: {why}: `version = \"1.0.0\"`")); }
     if targets == 0 { return Err(format!("{shown}: line {mline}: the manifest has no target: {why}: `targets = [cca::Target[name = \"aarch64-macos\"],]`")); }
     // std needs ASP (owner, 2026-10-06: "You genuinely have to be shitting on my ass, if you installed
@@ -412,7 +412,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     Ok((prefix, deps, cores))
 }
 
-/// Load every Limb `dir` depends on, and theirs, each once, under `::prefix`.
+/// Load every Neuron `dir` depends on, and theirs, each once, under `::prefix`.
 fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, PathBuf)>, chain: &mut Vec<PathBuf>) -> Result<(), String> {
     let (_, deps, _) = read_manifest(dir)?;
     let here = dir.canonicalize().map_err(|e| format!("{}: {e}", dir.display()))?;
@@ -428,18 +428,18 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
         if chain.contains(&canon) { return Err(format!("{}: {} depends, through its dependencies, on itself", here_file.display(), d.what)); }
         if !depdir.join("CCA.cplr").is_file() { return Err(format!("{}: {} has no `CCA.cplr`, so no 'prefix' for code to reach it by", here_file.display(), d.what)); }
         let (Some(prefix), _, _) = read_manifest(&depdir)? else { unreachable!() };
-        // a Limb may pick `std` or `cca`; it just clashes with the built-in one (owner, 2026-09-29)
+        // a Neuron may pick `std` or `cca`; it just clashes with the built-in one (owner, 2026-09-29)
         // `cord` is the built-in's name since 2026-10-09; `cord` (2026-10-07) and `std` are its old ones, refused in code
         if prefix == "std" || prefix == "stdkit" || prefix == "cord" || prefix == "cca" { return Err(format!("{}: {} has the prefix `{prefix}`, which names the built-in `{}::`; edit its 'prefix'", here_file.display(), d.what, if prefix == "cca" { "cca" } else { "cord" })); }
         if let Some((_, p)) = loaded.iter().find(|(n, _)| *n == prefix) {
-            if *p != canon { return Err(format!("{}: two Limbs have the prefix `{prefix}` ({} and {}); edit one Limb's 'prefix'", here_file.display(), p.display(), canon.display())); }
+            if *p != canon { return Err(format!("{}: two Neurons have the prefix `{prefix}` ({} and {}); edit one Neuron's 'prefix'", here_file.display(), p.display(), canon.display())); }
             continue;
         }
         loaded.push((prefix.clone(), canon.clone()));
         let root = vec![format!("::{prefix}")];
         mark_lacks(&depdir, &root)?;
         let mut dep = load_limb(&depdir, root.clone())?;
-        // a dependency's MAIN never runs: only the Limb being built has one (the oracle's reading)
+        // a dependency's MAIN never runs: only the Neuron being built has one (the oracle's reading)
         dep.main = None;
         dep.main_args = None;
         prog.modules.push(ast::ModuleDef { path: root, vis: ast::Vis::Pub, line: 0 });
@@ -454,7 +454,7 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
 
 /// The power check (owner, 2026-10-07): each use is granted (Signatar grants the dangerous powers to
 /// every limb, IEG grants vouching and the operator powers to the limbs that list it), listed in the
-/// using Limb's `powers`, and not taken away by the program's `deny`. A Limb with no `CCA.cplr` has
+/// using Neuron's `powers`, and not taken away by the program's `deny`. A Neuron with no `CCA.cplr` has
 /// every power, and nothing is checked.
 fn check_powers(prog: &ast::Program) -> Result<(), String> {
     use ast::Ty;
@@ -466,7 +466,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
             uses.push((root, "c_calls.functions".into(), name.first().cloned(), line));
         }
     }
-    // C variables: a quoted name that is an extern variable of the same Limb
+    // C variables: a quoted name that is an extern variable of the same Neuron
     for (root, name, line) in parser::VAR_SITES.with(|c| c.borrow().clone()) {
         let in_root = |m: &[String]| m.first().filter(|r| r.starts_with("::")).cloned().into_iter().collect::<Vec<_>>() == root;
         if prog.externs.iter().any(|e| e.name == name && in_root(&e.module)) { uses.push((root, "c_calls.variables".into(), Some(name), line)); }
@@ -486,7 +486,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
         for (root, path, thing, line) in uses {
             let Some(limb) = lp.iter().find(|l| l.root == root) else { continue };
             let segs: Vec<&str> = path.split('.').collect();
-            let who = if root.is_empty() { "this Limb".to_string() } else { format!("`{}`", limb.prefix) };
+            let who = if root.is_empty() { "this Neuron".to_string() } else { format!("`{}`", limb.prefix) };
             let what = match (segs[0], segs.get(1).copied(), &thing) {
                 ("inline_assembly", _, _) => "runs assembly (`inline.ASM`)".to_string(),
                 ("c_calls", Some("functions"), Some(t)) => format!("calls C (`{t}`)"),
@@ -503,7 +503,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
             if by_ieg && !limb.cores.iter().any(|c| c == "IEG") {
                 return Err(format!("{at}: {who} {what}, a power no core it lists grants: IEG grants `{}` (add `{}` to its `cores`)", segs[0], parser::core_line("IEG")));
             }
-            // 2. listed by the Limb
+            // 2. listed by the Neuron
             let covers = |p: &PowerRef| p.path.len() <= segs.len() && p.path.iter().zip(&segs).all(|(a, b)| a == b) && (p.things.is_empty() || thing.as_ref().map_or(false, |t| p.things.contains(t)));
             if !limb.powers.iter().any(covers) {
                 return Err(format!("{at}: {who} {what}, and its CCA.cplr does not list `{}`: add `cca::Power.{}` to its `powers`", segs[0], segs[0]));
@@ -525,7 +525,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
     })
 }
 
-/// Every `pub` thing says how other Limbs write its path, on itself, its module or its kind, and the
+/// Every `pub` thing says how other Neurons write its path, on itself, its module or its kind, and the
 /// marks that cover it agree (owner, 2026-10-06: "I don't think there should be a default"; "`c`").
 /// Every type a signature, field, payload, const or C variable names is declared somewhere, even in
 /// a function nothing calls (found 2026-10-07: `fn f ['v': nosuchtype] { }` ran).
@@ -669,7 +669,7 @@ fn check_bare(prog: &ast::Program) -> Result<std::collections::HashMap<String, a
     for d in &prog.interfaces { if d.vis == Vis::Pub { items.push(("interface", &d.name, d.module.clone(), d.line)); } }
     for (kind, name, module, line) in items {
         let root: Vec<String> = match module.first() { Some(r) if r.starts_with("::") => vec![r.clone()], _ => Vec::new() };
-        // `shapes.area` in this Limb, `areas::shapes.area` in a dependency
+        // `shapes.area` in this Neuron, `areas::shapes.area` in a dependency
         let last = name.rsplit('.').next().unwrap_or(name);
         let mut segs: Vec<String> = module.iter().map(|m| m.trim_start_matches("::").to_string()).collect();
         segs.push(last.to_string());
@@ -681,15 +681,15 @@ fn check_bare(prog: &ast::Program) -> Result<std::collections::HashMap<String, a
             BareTarget::Kind(k) => k == kind && m.limb_root == root,
         }).collect();
         let Some(first) = covering.first() else {
-            return Err(format!("line {line}: `{kind} {shown}` is `pub`, and nothing says how other Limbs write its path: mark it (`pub bare.never {kind} …`), its module, or its kind in `limb.cpls` (`bare.never [{kind}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default"));
+            return Err(format!("line {line}: `{kind} {shown}` is `pub`, and nothing says how other Neurons write its path: mark it (`pub bare.never {kind} …`), its module, or its kind in `limb.cpls` (`bare.never [{kind}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default"));
         };
         if let Some(other) = covering.iter().find(|m| m.mode != first.mode) {
             return Err(format!("line {line}: `{kind} {shown}` is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error", word(first.mode), crate::interp::line_of(first.line), word(other.mode), crate::interp::line_of(other.line)));
         }
         marks.insert(interp::bare_key(kind, &module, last), first.mode);
     }
-    // two Limbs forbidding the path to one name clash as soon as both are depended on (owner,
-    // 2026-10-06: "`a`"), fixed as a prefix clash is, by editing one Limb's source
+    // two Neurons forbidding the path to one name clash as soon as both are depended on (owner,
+    // 2026-10-06: "`a`"), fixed as a prefix clash is, by editing one Neuron's source
     let mut only: Vec<(String, String)> = Vec::new();
     for (key, mode) in &marks {
         if *mode != Bare::Only { continue; }
@@ -699,7 +699,7 @@ fn check_bare(prog: &ast::Program) -> Result<std::collections::HashMap<String, a
         let rel = format!("{kind} {rel}");
         if let Some((other, _)) = only.iter().find(|(r, x)| *x == rel && r != root) {
             let mut two = [other.clone(), root.to_string()]; two.sort();
-            return Err(format!("`{}` and `{}` both forbid the path to `{rel}` (`bare.only`), so it cannot tell them apart: edit one Limb's source, as for a prefix clash", two[0], two[1]));
+            return Err(format!("`{}` and `{}` both forbid the path to `{rel}` (`bare.only`), so it cannot tell them apart: edit one Neuron's source, as for a prefix clash", two[0], two[1]));
         }
         only.push((root.to_string(), rel));
     }

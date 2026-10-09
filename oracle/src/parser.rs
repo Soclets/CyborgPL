@@ -89,7 +89,7 @@ pub const STD_ID: &str = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d80010
 pub const STD_VERSION: &str = "2026-10-06T12:57:14+07:00";
 
 /// The operators that are std's (owner, 2026-10-05/06), as the oracle spells them inside; `and.then` and
-/// `or.else` stay Signatar's, and a Limb's own operators are that Limb's.
+/// `or.else` stay Signatar's, and a Neuron's own operators are that Neuron's.
 fn is_std_op(op: &str) -> bool {
     matches!(op, "+" | "-" | "x" | "+~" | "-~" | "x~" | "+.ieee" | "-.ieee" | "x.ieee" | "pow" | "pow.wrap" | "pow.ieee" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or" | "++")
         || BIT_OPS.contains(&op) || op.starts_with("div.") || op.starts_with("mod.")
@@ -149,7 +149,7 @@ pub struct Parser {
     groups: Vec<String>,
     /// captures of the anonymous function just parsed
     pending_captures: Vec<(Verb, String)>,
-    /// where `my.` points: `[]` for the Limb being built, `["::geometry"]` for a dependency
+    /// where `my.` points: `[]` for the Neuron being built, `["::geometry"]` for a dependency
     /// loaded beside it (a segment no source can write, so the two never meet)
     limb_root: Vec<String>,
     /// inside a `test fn`'s body: `must` may appear (owner, 2026-09-29)
@@ -160,34 +160,34 @@ pub struct Parser {
     op_old: std::cell::Cell<bool>,
     /// the oracle's own stand-in functions (`op plus` as a value) are written with the symbols
     pub internal_ops: bool,
-    /// this Limb's operator levels from its `precedence` block: name → (level, how a chain reads:
+    /// this Neuron's operator levels from its `precedence` block: name → (level, how a chain reads:
     /// 0 left first, 1 right first, 2 refused), on the language's scale (`base_level`)
     pub user_levels: std::collections::HashMap<String, (u16, u8)>,
-    /// this file's Limb does not list std in its `CCA.cplr` (owner, 2026-10-06)
+    /// this file's Neuron does not list std in its `CCA.cplr` (owner, 2026-10-06)
     no_std: bool,
-    /// the official cores this file's Limb does not list
+    /// the official cores this file's Neuron does not list
     lacks: Vec<String>,
 }
 
 type PResult<T> = Result<T, ParseError>;
 
 thread_local! {
-    /// Every `precedence` block of the program, all its Limbs' (owner, 2026-10-03: a Limb's levels
+    /// Every `precedence` block of the program, all its Neurons' (owner, 2026-10-03: a Neuron's levels
     /// apply wherever its operators are used); filled by a first pass over every file (`main.rs`)
-    /// What each Limb's `CCA.cplr` does not list, by the Limb's root (`[]` for the one being built,
+    /// What each Neuron's `CCA.cplr` does not list, by the Neuron's root (`[]` for the one being built,
     /// `["::areas"]` for a dependency): `std`, and the official cores by name (owner, 2026-10-05/06:
-    /// "Limbs should say what cores they are built for"). A Limb with no `CCA.cplr` lacks nothing.
+    /// "Limbs should say what cores they are built for"). A Neuron with no `CCA.cplr` lacks nothing.
     pub static LACKS: std::cell::RefCell<Vec<(Vec<String>, Vec<String>)>> = std::cell::RefCell::new(Vec::new());
-    /// Other Limbs' structs and enums that may be written bare (`bare.optional` / `bare.only`): the path
-    /// as written, the canonical name, the Limb's root, and whether it is `bare.only` (owner, 2026-10-06)
+    /// Other Neurons' structs and enums that may be written bare (`bare.optional` / `bare.only`): the path
+    /// as written, the canonical name, the Neuron's root, and whether it is `bare.only` (owner, 2026-10-06)
     pub static BARE_TYPES: std::cell::RefCell<Vec<(Vec<String>, String, String, bool)>> = std::cell::RefCell::new(Vec::new());
-    /// Bare type names that resolved to another Limb's: (this Limb's would-be name, theirs, as written,
-    /// their root), checked once every file is read, since this Limb's own does not win
+    /// Bare type names that resolved to another Neuron's: (this Neuron's would-be name, theirs, as written,
+    /// their root), checked once every file is read, since this Neuron's own does not win
     pub static BARE_TYPE_USES: std::cell::RefCell<Vec<(String, String, String, String)>> = std::cell::RefCell::new(Vec::new());
     /// Every call written with no path: (the module it is in, the path as written, whether std may be
     /// meant, its line), checked for clashes once the program is read, whether or not it runs
     pub static BARE_CALLS: std::cell::RefCell<Vec<(Vec<String>, Vec<String>, bool, usize)>> = std::cell::RefCell::new(Vec::new());
-    /// Power uses seen while parsing (owner, 2026-10-07): the Limb's root, the power's path, the thing
+    /// Power uses seen while parsing (owner, 2026-10-07): the Neuron's root, the power's path, the thing
     /// named, the line. C calls and C variables are found once the program is read (CALL_SITES, VAR_SITES).
     pub static POWER_USES: std::cell::RefCell<Vec<(Vec<String>, String, Option<String>, usize)>> = std::cell::RefCell::new(Vec::new());
     pub static CALL_SITES: std::cell::RefCell<Vec<(Vec<String>, Vec<String>, usize)>> = std::cell::RefCell::new(Vec::new());
@@ -202,7 +202,7 @@ impl Parser {
 
     /// A path written in this module, made canonical (from the root):
     /// `my.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
-    /// A parser for a dependency Limb's file: its modules sit under `limb_root`.
+    /// A parser for a dependency Neuron's file: its modules sit under `limb_root`.
     pub fn new_in_limb(toks: Vec<Token>, module: Vec<String>, limb_root: Vec<String>) -> Self {
         let mut p = Parser::new_in(toks, module);
         p.lacks = LACKS.with(|l| l.borrow().iter().find(|(r, _)| *r == limb_root).map(|(_, v)| v.clone()).unwrap_or_default());
@@ -211,10 +211,10 @@ impl Parser {
         p
     }
 
-    /// What a core brings is refused in a Limb whose `CCA.cplr` does not list that core (owner, 2026-10-05:
+    /// What a core brings is refused in a Neuron whose `CCA.cplr` does not list that core (owner, 2026-10-05:
     /// "Limbs should say what cores they are built for").
     fn core_missing<T>(&self, core: &str, what: &str) -> PResult<T> {
-        self.err(format!("{what} is {core}'s, and this Limb's CCA.cplr does not list the core {core}: add `{}` to its `cores` ({core})", core_line(core)))
+        self.err(format!("{what} is {core}'s, and this Neuron's CCA.cplr does not list the core {core}: add `{}` to its `cores` ({core})", core_line(core)))
     }
 
     /// A use of a power, for the check once every file is read (owner, 2026-10-07)
@@ -233,7 +233,7 @@ impl Parser {
                 return self.err(format!("no `bare.{m}`: a path is `bare.never` (required), `bare.optional` or `bare.only` (forbidden)"));
             }
         }
-        self.err("say how other Limbs write the path: `bare.never` (required), `bare.optional` or `bare.only` (forbidden); a plain `bare` does not say")
+        self.err("say how other Neurons write the path: `bare.never` (required), `bare.optional` or `bare.only` (forbidden); a plain `bare` does not say")
     }
 
     /// `case.insensitive` / `case.sensitive` at the cursor (owner, 2026-10-06: "yea" to the spelling)
@@ -246,10 +246,10 @@ impl Parser {
         Ok(w == "insensitive")
     }
 
-    /// Everything std brings is refused in a Limb whose `CCA.cplr` does not list it (owner, 2026-10-06:
+    /// Everything std brings is refused in a Neuron whose `CCA.cplr` does not list it (owner, 2026-10-06:
     /// the operators, printing and the rest are std's, and a manifest lists std like any limb).
     fn std_missing<T>(&self, what: &str) -> PResult<T> {
-        self.err(format!("{what} is cord's, and this Limb's CCA.cplr does not list cord: add `cca::Dep[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
+        self.err(format!("{what} is cord's, and this Neuron's CCA.cplr does not list cord: add `cca::Dep[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
     }
 
     fn resolve(&self, segs: &[String]) -> Vec<String> {
@@ -261,8 +261,8 @@ impl Parser {
 
     fn canonical(&self, segs: &[String]) -> String { self.resolve(segs).join(".") }
 
-    /// A struct or enum name as written: this Limb's, or another Limb's `bare.optional` / `bare.only` one
-    /// (owner, 2026-10-06); two other Limbs' are an error where written
+    /// A struct or enum name as written: this Neuron's, or another Neuron's `bare.optional` / `bare.only` one
+    /// (owner, 2026-10-06); two other Neurons' are an error where written
     fn type_name(&self, segs: &[String]) -> PResult<String> {
         let own = self.canonical(segs);
         if segs.first().map_or(true, |s| s == "my") { return Ok(own); }
@@ -358,10 +358,10 @@ impl Parser {
         let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new(), bare_marks: Vec::new(), case_marks: Vec::new() };
         // every quoted name, for finding C's variables once the program is read (owner, 2026-10-07)
         for t in &self.toks { if let Tok::Var(v) = &t.tok { VAR_SITES.with(|vs| vs.borrow_mut().push((self.limb_root.clone(), v.clone(), t.line))); } }
-        // the root is `my.` (owner, 2026-10-06), no longer `limb.`; `pub.limb` stays
+        // the root is `my.` (owner, 2026-10-06), no longer `limb.`; `pub.neuron` became `pub.neuron` (2026-10-09)
         if let Some(i) = (0..self.toks.len().saturating_sub(1)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "limb") && self.toks[i + 1].tok == Tok::Dot && (i == 0 || self.toks[i - 1].tok != Tok::Dot)) {
             self.pos = i;
-            return self.err("the root of this Limb is `my.` since 2026-10-06, no longer `limb.`: `my.helper[]`, `my.'pi'`");
+            return self.err("the root of this Neuron is `my.` since 2026-10-06, no longer `limb.`: `my.helper[]`, `my.'pi'`");
         }
         // the old spellings, refused by name everywhere (owner, 2026-10-07: "MTM is gone.")
         {
@@ -379,7 +379,7 @@ impl Parser {
                 };
                 if let Some((w, m)) = found {
                     self.pos = i;
-                    return self.err(format!("`{w}` is an old spelling: write `{m}` (owner, {}; MTM, which kept the old spellings, is gone)", if m == "cord" { "2026-10-09" } else { "2026-10-07" }));
+                    return self.err(format!("`{w}` is an old spelling: write `{m}` (owner, {}; MTM, which kept the old spellings, is gone)", if m == "cord" || m == "neuron" { "2026-10-09" } else { "2026-10-07" }));
                 }
             }
         }
@@ -391,7 +391,7 @@ impl Parser {
                 let (name, shown) = match &self.toks[i].tok { Tok::Word(w) => (w, w.clone()), Tok::Var(v) => (v, format!("'{v}'")), _ => continue };
                 if name.is_ascii() { continue; }
                 self.pos = i;
-                return self.err(format!("`{shown}` is not an English name: Signatar's names are English letters, digits and `_`; a name in another script, or an emoji, needs the core WSTN in this Limb's `cores` (`{}`)", core_line("WSTN")));
+                return self.err(format!("`{shown}` is not an English name: Signatar's names are English letters, digits and `_`; a name in another script, or an emoji, needs the core WSTN in this Neuron's `cores` (`{}`)", core_line("WSTN")));
             }
         }
         // the words a core brings (design/cores.md): ASP `to.` and `check`; IEG `nocheck` and
@@ -531,7 +531,7 @@ impl Parser {
                     prog.case_marks.push(CaseMark { target: BareTarget::File(self.module.clone()), insensitive, line, limb_root: self.limb_root.clone() });
                     continue;
                 }
-                if depth > 0 || self.module != self.limb_root { return self.err("a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Limb, so it is written in `limb.cpls`"); }
+                if depth > 0 || self.module != self.limb_root { return self.err("a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `limb.cpls`"); }
                 self.advance();
                 loop {
                     let kind = match self.advance().tok { Tok::Word(k) => k, other => return self.err(format!("expected a kind (`fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var`), found {other}")) };
@@ -547,7 +547,7 @@ impl Parser {
                 continue;
             }
             // `bare.optional;` at the top of a file marks the file's module; `bare.never [fn, op];` in
-            // `limb.cpls` marks kinds across the Limb (owner, 2026-10-06)
+            // `limb.cpls` marks kinds across the Neuron (owner, 2026-10-06)
             if self.is_word("bare") {
                 let line = self.line();
                 let started = !(prog.funcs.is_empty() && prog.structs.is_empty() && prog.enums.is_empty() && prog.consts.is_empty() && prog.externs.is_empty() && prog.modules.is_empty() && prog.main.is_none() && prog.interfaces.is_empty());
@@ -561,11 +561,11 @@ impl Parser {
                     continue;
                 }
                 if *self.peek() == Tok::LBracket {
-                    if depth > 0 || self.module != self.limb_root { return self.err("a `bare` mark on kinds (`bare.never [fn, op];`) covers the whole Limb, so it is written in `limb.cpls`"); }
+                    if depth > 0 || self.module != self.limb_root { return self.err("a `bare` mark on kinds (`bare.never [fn, op];`) covers the whole Neuron, so it is written in `limb.cpls`"); }
                     self.advance();
                     loop {
                         let kind = match self.advance().tok { Tok::Word(k) => k, other => return self.err(format!("expected a kind (`fn`, `op`, `struct`, `enum`, `interface`), found {other}")) };
-                        if kind == "const" { return self.err("a const takes no `bare` mark: `'pi'` alone is a variable, so another Limb's const always has its path (owner, 2026-10-06)"); }
+                        if kind == "const" { return self.err("a const takes no `bare` mark: `'pi'` alone is a variable, so another Neuron's const always has its path (owner, 2026-10-06)"); }
                         if !["fn", "op", "struct", "enum", "interface"].contains(&kind.as_str()) {
                             return self.err(format!("`{kind}` is not a kind a `bare` mark covers: `fn`, `op`, `struct`, `enum`, `interface` (a module is marked on itself)"));
                         }
@@ -610,7 +610,7 @@ impl Parser {
                     return self.err("a `case` mark is `case.insensitive;` at the top of a file, `case.insensitive [fn, struct];` in `limb.cpls`, or `case.insensitive fn …` on an item");
                 }
             }
-            // visibility (decided 2026-09-19): nothing, `pub.limb`, `pub`
+            // visibility (decided 2026-09-19): nothing, `pub.neuron`, `pub`
             let mut vis = Vis::Private;
             if self.is_word("pub") {
                 self.advance();
@@ -620,19 +620,19 @@ impl Parser {
                     match self.advance().tok {
                         Tok::Word(w) if w == "limb" => vis = Vis::Limb,
                         Tok::Word(w) if w == "bare" => return self.err("`bare` is its own word after `pub`, not a narrowing: `pub bare.optional fn …`"),
-                        other => return self.err(format!("the only narrowing of `pub` is `pub.limb` (visible in this Limb only), found {other}")),
+                        other => return self.err(format!("the only narrowing of `pub` is `pub.neuron` (visible in this Neuron only), found {other}")),
                     }
                 }
-                // `pub fn area = shapes.circle.area;` — a shorter name for other Limbs (owner,
-                // 2026-09-23). The oracle runs one Limb, where it has no outside to serve.
+                // `pub fn area = shapes.circle.area;` — a shorter name for other Neurons (owner,
+                // 2026-09-23). The oracle runs one Neuron, where it has no outside to serve.
                 if matches!(self.peek(), Tok::Word(k) if ["fn", "struct", "enum", "interface", "const", "module"].contains(&k.as_str()))
                     && matches!(self.peek_at(1), Tok::Word(_) | Tok::Var(_)) && *self.peek_at(2) == Tok::Eq {
-                    return self.err("`pub fn area = shapes.circle.area;` gives other Limbs a shorter name; the oracle runs one Limb, so it is not in the oracle yet");
+                    return self.err("`pub fn area = shapes.circle.area;` gives other Neurons a shorter name; the oracle runs one Neuron, so it is not in the oracle yet");
                 }
-                // `pub bare.optional fn …`: how other Limbs write the path to this item (owner, 2026-10-06)
+                // `pub bare.optional fn …`: how other Neurons write the path to this item (owner, 2026-10-06)
                 if self.is_word("bare") {
                     let line = self.line();
-                    if vis == Vis::Limb { return self.err("a `bare` mark says how other Limbs write the path, and a `pub.limb` thing is never reached from them"); }
+                    if vis == Vis::Limb { return self.err("a `bare` mark says how other Neurons write the path, and a `pub.neuron` thing is never reached from them"); }
                     pending_bare = Some((self.bare_mode()?, line));
                 }
                 if self.is_case_mark() {
@@ -642,8 +642,8 @@ impl Parser {
                 }
                 match self.peek().clone() {
                     Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" || w == "interface" => {}
-                    Tok::Word(w) if w == "let" => return self.err("a Limb-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
-                    Tok::Var(_) => return self.err("a Limb-level value is a `const`, not a variable: `pub const 'x' := 1;`"),
+                    Tok::Word(w) if w == "let" => return self.err("a Neuron-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
+                    Tok::Var(_) => return self.err("a Neuron-level value is a `const`, not a variable: `pub const 'x' := 1;`"),
                     Tok::Word(w) if w == "MAIN" => return self.err("MAIN is the program's entry, never `pub`"),
                     other => return self.err(format!("`pub` goes before `fn`, `struct`, `const`, or `module`, found {other}")),
                 }
@@ -716,7 +716,7 @@ impl Parser {
                         self.advance();
                         while *self.peek() != Tok::RBrace {
                             if *self.peek() == Tok::Eof { return self.err("an `extern.C { … }` block is missing its `}`"); }
-                            // a line may say its own `pub` / `pub.limb`; a `pub` written on the block
+                            // a line may say its own `pub` / `pub.neuron`; a `pub` written on the block
                             // overrides every line's (owner, 2026-10-02: "allow mixing, but block overrides")
                             let mut line_vis = Vis::Private;
                             if self.is_word("pub") {
@@ -726,7 +726,7 @@ impl Parser {
                                     self.advance();
                                     match self.advance().tok {
                                         Tok::Word(w) if w == "limb" => line_vis = Vis::Limb,
-                                        other => return self.err(format!("the only narrowing of `pub` is `pub.limb` (visible in this Limb only), found {other}")),
+                                        other => return self.err(format!("the only narrowing of `pub` is `pub.neuron` (visible in this Neuron only), found {other}")),
                                     }
                                 }
                             }
@@ -815,7 +815,7 @@ impl Parser {
                     self.module.pop();
                 }
                 Tok::Word(w) if w == "MAIN" => {
-                    if self.module != self.limb_root { return self.err("MAIN lives at the root of the Limb (`limb.cpls`, outside any module)"); }
+                    if self.module != self.limb_root { return self.err("MAIN lives at the root of the Neuron (`limb.cpls`, outside any module)"); }
                     if prog.main.is_some() { return self.err("a program has exactly one MAIN"); }
                     self.advance();
                     // the command line, as C hands it over: a count and the words (owner, 2026-09-29:
@@ -906,10 +906,10 @@ impl Parser {
                     prog.claims.push(Claim { ty, iface: self.type_name(&segs)?, line });
                 }
                 Tok::Word(w) if w == "func" => return self.err("`func` became `fn` (2026-09-19): `fn add ['a': int32] -> int32 { … }`"),
-                Tok::Word(w) if w == "let" || w == "var" => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a Limb-level value is a `const`: `const 'x' := 1;`"),
-                Tok::Var(_) => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a Limb-level value is a `const`: `const 'x' := 1;`"),
+                Tok::Word(w) if w == "let" || w == "var" => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a Neuron-level value is a `const`: `const 'x' := 1;`"),
+                Tok::Var(_) => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a Neuron-level value is a `const`: `const 'x' := 1;`"),
                 Tok::Word(w) if w == "mod" => return self.err("`mod` is the remainder operator; a module block is `module name { … }`"),
-                Tok::Word(w) if w == "check" || w == "nocheck" || w == "NO_FUCKING_CHECKS" => return self.err(format!("`{w}` goes in front of a statement inside a body; there is no file-wide or Limb-wide tier")),
+                Tok::Word(w) if w == "check" || w == "nocheck" || w == "NO_FUCKING_CHECKS" => return self.err(format!("`{w}` goes in front of a statement inside a body; there is no file-wide or Neuron-wide tier")),
                 Tok::RBrace => return self.err("`}` with nothing open"),
                 other => return self.err(format!("expected `fn`, `struct`, `const`, `module`, or `MAIN` at the top level, found {other}")),
             }
@@ -941,7 +941,7 @@ impl Parser {
                     BareTarget::Item(if f.is_op { "op".into() } else { "fn".into() }, f.module.iter().cloned().chain(std::iter::once(f.name.clone())).collect::<Vec<_>>().join("."))
                 } else if prog.structs.len() > before.1 { BareTarget::Item("struct".into(), prog.structs[before.1].name.clone()) }
                 else if prog.enums.len() > before.2 { BareTarget::Item("enum".into(), prog.enums[before.2].name.clone()) }
-                else if prog.consts.len() > before.3 { return Err(ParseError { line, col: 0, msg: "a const takes no `bare` mark: `'pi'` alone is a variable, so another Limb's const always has its path (owner, 2026-10-06)".into() }); }
+                else if prog.consts.len() > before.3 { return Err(ParseError { line, col: 0, msg: "a const takes no `bare` mark: `'pi'` alone is a variable, so another Neuron's const always has its path (owner, 2026-10-06)".into() }); }
                 else if prog.interfaces.len() > before.4 { BareTarget::Item("interface".into(), prog.interfaces[before.4].name.clone()) }
                 else { return Err(ParseError { line, col: 0, msg: "a `bare` mark goes on a `fn`, `op`, `struct`, `enum`, `interface` or `module`".into() }); };
                 prog.bare_marks.push(BareMark { target, mode, line, limb_root: self.limb_root.clone() });
@@ -1482,7 +1482,7 @@ impl Parser {
             if matches!(self.peek_at(2), Tok::Word(w) if w == "duration") { self.advance(); self.advance(); self.advance(); return Ok(Ty::Duration); }
             return self.err("the only cord type the oracle knows is `cord::duration`");
         }
-        // another Limb's type: `geometry::Circle` (limbs.md)
+        // another Neuron's type: `geometry::Circle` (limbs.md)
         if matches!(self.peek(), Tok::Word(w) if w != "std") && *self.peek_at(1) == Tok::ColonColon {
             let limb = match self.advance().tok { Tok::Word(w) => w, _ => unreachable!() };
             self.advance();
@@ -1835,7 +1835,7 @@ impl Parser {
                     Ok(Stmt::Return { value, line })
                 }
                 "fn" | "func" => self.err("a `fn` cannot be defined inside a body; it goes at the top level"),
-                "const" => self.err("a `const` sits at the top level of the Limb; inside a body use `let` (Precog finds the constants itself)"),
+                "const" => self.err("a `const` sits at the top level of the Neuron; inside a body use `let` (Precog finds the constants itself)"),
                 "pub" => self.err("`pub` goes at the top level, before `fn`, `struct`, `const`, or `module`"),
                 "module" => self.err("a `module` block sits at the top level of a file, not inside a body"),
                 "MAIN" => self.err("MAIN cannot be nested or called"),
@@ -2505,7 +2505,7 @@ impl Parser {
             if !matches!(self.peek_at(i), Tok::Word(_)) { return false; }
             match self.peek_at(i + 1) {
                 Tok::Dot if matches!(self.peek_at(i + 2), Tok::Word(_)) => { i += 2; dots += 1; }
-                Tok::Dot | Tok::LBracket | Tok::ColonColon => return false,   // a const path, a call, a Limb
+                Tok::Dot | Tok::LBracket | Tok::ColonColon => return false,   // a const path, a call, a Neuron
                 _ => return dots >= 1,
             }
         }
@@ -2635,7 +2635,7 @@ impl Parser {
             self.advance();
             match self.advance().tok { Tok::Word(w) => path.push(w), other => return self.err(format!("expected a name after `.`, found {other}")) }
         }
-        // written with no path at all: another Limb's bare name may be meant (owner, 2026-10-06)
+        // written with no path at all: another Neuron's bare name may be meant (owner, 2026-10-06)
         let bare = limb.is_none() && path[0] != "my";
         let written = if path[0] == "my" { path[1..].to_vec() } else { path.clone() };
         // std's names come bare too (owner, 2026-10-06: std is "optional for all"), where std is listed
@@ -2930,7 +2930,7 @@ impl Parser {
             Tok::Word(w) if w == "x" || w == "xx" => { self.op_old.set(true); Some(w.clone()) }
             Tok::Word(w) if OP_WORDS.contains(&w.as_str()) => Some(w.clone()),
             Tok::Word(w) if w == "xor" || w == "shl" || w == "shr" => Some(w.clone()),
-            // a Limb's word operator with its path, `vecmath::dot`, `vecmath::dot.fast` (owner, 2026-10-02/03)
+            // a Neuron's word operator with its path, `vecmath::dot`, `vecmath::dot.fast` (owner, 2026-10-02/03)
             Tok::Word(p) if *self.peek_at(k + 1) == Tok::ColonColon && matches!(self.peek_at(k + 2), Tok::Word(n) if !KEYWORDS.contains(&n.as_str())) && !matches!(self.peek_at(k + 3), Tok::LBracket | Tok::ColonColon) => {
                 let Tok::Word(n) = self.peek_at(k + 2).clone() else { unreachable!() };
                 if *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(_)) && *self.peek_at(k + 5) != Tok::LBracket {
@@ -2981,7 +2981,7 @@ impl Parser {
         Ok(e)
     }
 
-    /// The language's own operator levels, in hundreds so a Limb's levels fit between them
+    /// The language's own operator levels, in hundreds so a Neuron's levels fit between them
     /// (owner, 2026-10-03); 0 = no level (brackets beside any other operator).
     fn base_level(op: &str) -> u16 {
         match op {
@@ -3080,7 +3080,7 @@ impl Parser {
             let mut pin: Option<u16> = None;
             for name in names {
                 if BIT_OPS.contains(&name.as_str()) || name == "not.bit" || name == "not" {
-                    return bad(*line, format!("`{name}` has no precedence in the language, and a Limb cannot give it one"));
+                    return bad(*line, format!("`{name}` has no precedence in the language, and a Neuron cannot give it one"));
                 }
                 let base = Parser::base_level(name);
                 if base == 0 { continue; }
@@ -3112,11 +3112,11 @@ impl Parser {
             for name in names {
                 if Parser::base_level(name) != 0 { continue; }
                 // the same block read twice (the first pass and this file's own parse) agrees with itself;
-                // two Limbs giving one operator different levels do not
+                // two Neurons giving one operator different levels do not
                 if let Some(old) = self.user_levels.get(name) { if *old != (values[i], *chain) { return bad(*line, format!("`{name}` is in two levels")); } }
                 self.user_levels.insert(name.clone(), (values[i], *chain));
                 let clash = SHARED_LEVELS.with(|l| { let mut l = l.borrow_mut(); match l.get(name) { Some(old) if *old != (values[i], *chain) => true, _ => { l.insert(name.clone(), (values[i], *chain)); false } } });
-                if clash { return bad(*line, format!("`{name}` has a different precedence in another Limb")); }
+                if clash { return bad(*line, format!("`{name}` has a different precedence in another Neuron")); }
             }
         }
         Ok(())
@@ -3158,7 +3158,7 @@ impl Parser {
             let (lv, chain) = self.lvl(&op);
             if lv < min || lv == 0 { break; }
             // a level whose chains are refused (owner, 2026-10-03): the language's comparisons are
-            // checked in `validate`; a Limb's here
+            // checked in `validate`; a Neuron's here
             if chain == 2 && self.user_levels.contains_key(&op) {
                 if let Expr::Binary(prev, ..) = &lhs { if self.lvl(prev).0 == lv { return self.err(format!("`{prev}` then `{op}`: this level does not chain (`level.when_chained.refused`) — parenthesise")); } }
             }
@@ -3590,7 +3590,7 @@ impl Parser {
                 "true" | "false" if matches!(self.peek_at(1), Tok::LBracket) => self.err(format!("bare `{w}` is the boolean, so `{w}[…]` is no call; a function named `{w}` is reached by path: `my.{w}[…]`")),
                 "true" => { self.advance(); Ok(Expr::Bool(true, line)) }
                 "false" => { self.advance(); Ok(Expr::Bool(false, line)) }
-                "my" if !matches!(self.peek_at(1), Tok::Dot) => self.err("`my` is the root of this Limb and is followed by `.`: `my.helper[]`, `my.'pi'`"),
+                "my" if !matches!(self.peek_at(1), Tok::Dot) => self.err("`my` is the root of this Neuron and is followed by `.`: `my.helper[]`, `my.'pi'`"),
                 "fn" => {
                     // fn [params] -> T with [lend 'v', give 'w'] { … } — an anonymous function (2026-09-21)
                     let saved_bounds = std::mem::take(&mut self.bounds);
@@ -3635,8 +3635,8 @@ impl Parser {
                     let name = match self.advance().tok { Tok::Var(v) => v, _ => unreachable!() };
                     Ok(Expr::ConstPath(self.resolve(&segs), name, self.module.clone(), line))
                 }
-                // another Limb's struct or const: `geometry::Circle[radius = 2.0]`, `geometry::'pi'`
-                // (limbs.md: `::` crosses into another Limb)
+                // another Neuron's struct or const: `geometry::Circle[radius = 2.0]`, `geometry::'pi'`
+                // (limbs.md: `::` crosses into another Neuron)
                 _ if self.is_limb_item() => {
                     let limb = match self.advance().tok { Tok::Word(w) => w, _ => unreachable!() };
                     self.advance(); // ::

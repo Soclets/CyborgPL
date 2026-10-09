@@ -1,1 +1,1 @@
-this Limb calls C (`write`), which this program denies (`deny`: `cca::Power.c_calls.functions`)
+this Neuron calls C (`write`), which this program denies (`deny`: `cca::Power.c_calls.functions`)

@@ -1,5 +1,5 @@
-# A small Limb used by examples/uses_a_limb (a dependency: it has no MAIN). Only `pub` items reach
-# another Limb; `pub.limb` and private ones stay home. `my.` here is this Limb's root.
+# A small Neuron used by examples/uses_a_limb (a dependency: it has no MAIN). Only `pub` items reach
+# another Neuron; `pub.neuron` and private ones stay home. `my.` here is this Neuron's root.
 
 bare.never [fn, struct];
 bare.optional [op];
@@ -12,7 +12,7 @@ pub fn circle [lent 'c': Circle] -> bin64 {
     return 'c'.radius times 'c'.radius times my.'pi';
 }
 
-pub.limb fn internal [] -> int32 { return 2; }
+pub.neuron fn internal [] -> int32 { return 2; }
 
 fn hidden [] -> int32 { return 1; }
 
@@ -20,9 +20,9 @@ pub module shapes {
     pub fn square ['s': int32] -> int32 { return 's' times 's'; }
 }
 
-# A Limb's own word operator with a narrowed form (owner, 2026-10-02/03): users write it bare or
-# with this Limb's path, `areas::mean.low`.
-# its levels apply wherever `mean` is used, in other Limbs too (owner, 2026-10-03)
+# A Neuron's own word operator with a narrowed form (owner, 2026-10-02/03): users write it bare or
+# with this Neuron's path, `areas::mean.low`.
+# its levels apply wherever `mean` is used, in other Neurons too (owner, 2026-10-03)
 precedence.low_first {
     level.when_chained.left_first 1 { plus }
     level.when_chained.left_first 2 { times  mean  mean.low }

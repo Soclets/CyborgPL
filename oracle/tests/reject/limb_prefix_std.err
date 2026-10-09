@@ -1,1 +1,1 @@
-the Limb at `../../limbs/std_limb` has the prefix `std`, which names the built-in `cord::`; edit its 'prefix'
+the Neuron at `../../limbs/std_limb` has the prefix `std`, which names the built-in `cord::`; edit its 'prefix'

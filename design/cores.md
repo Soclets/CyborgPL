@@ -1,4 +1,4 @@
-# Signatar, cores and limbs (owner, 2026-10-05/06/07; being designed, not built)
+# Signatar, cores and neurons (owner, 2026-10-05/06/07; being designed, not built)
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
@@ -49,8 +49,8 @@ monster" (owner).
 | | What it is | Authority | Written in |
 |---|---|---|---|
 | **Signatar** | the language: syntax, types, its own rules, its checker, and the loading and grant enforcement the base did | highest: defines which powers exist and limits cores | (CCA itself) |
-| **A core** | "kinda more of like a compiler mod" (owner) | grants powers to limbs, and may take them away (2026-10-07); may add syntax | Rust plugin + Nerve |
-| **A limb** | a library | only the powers granted to it | Nerve |
+| **A core** | "kinda more of like a compiler mod" (owner) | grants powers to neurons, and may take them away (2026-10-07); may add syntax | Rust plugin + Nerve |
+| **A neuron** | a library | only the powers granted to it | Nerve |
 
 - **Cores make dialects**, which are still Nerve. A restricted
   dialect, a game engine's say, is a core that takes powers away from the
@@ -163,7 +163,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   Windows (owner). Core names are not trademarked; the categories and
   names like Signatar are (owner).
 
-## std, a limb with powers
+## std, a neuron with powers
 
 **std needs ASP and IEG** (owner, 2026-10-06): a manifest listing std
 without ASP is refused, so std's maths always has true values and checks,
@@ -183,21 +183,21 @@ makes its own lists and allocator, as Linux does.
 
 - **Signatar defines which powers exist** and limits cores (no core
   may switch off Signatar's borrow rules).
-- **Cores grant powers to limbs**: to every limb built with them, and
+- **Cores grant powers to neurons**: to every neuron built with them, and
   extra to favourites named by registry ID (names repeat, IDs do not).
-  **A core may also take powers away** from the programs and limbs built
+  **A core may also take powers away** from the programs and neurons built
   with it (owner, 2026-10-07: "`a`"), so a game engine's core makes a
   restricted dialect its store can require; how a core spells it, and
   which wins when one core grants what another takes away, are open.
-- **A limb lists the powers it uses** in its manifest; each works only if
+- **A neuron lists the powers it uses** in its manifest; each works only if
   a core it is built for granted it. std's: operators on built-in types
   and prefix operators (from IEG), adding conversions (from ASP), and
-  plugging its list into `for`, a power IEG may grant every limb, so a
+  plugging its list into `for`, a power IEG may grant every neuron, so a
   kernel's own list works with `for` too.
 - **The program may take powers away, never add** (`deny`), and **an
   upgrade that starts using a new power is flagged**.
 - **The dangerous abilities are powers too** (owner, 2026-10-07), which
-  Signatar grants every limb by default: `inline_assembly`, `c_calls`,
+  Signatar grants every neuron by default: `inline_assembly`, `c_calls`,
   `raw_memory`. **Cores may add powers of their own.** A power narrows with
   `.` and names exact things in `[ ]`; `deny` takes `.except[ … ]` and
   `.for[ … ]`: `deny = [cca::Power.c_calls.except["sqrt"],
@@ -227,7 +227,7 @@ The website offers packages: Signatar; + IEG; + ASP +
 Genny + std (std needs ASP; owner, 2026-10-06); all, with source
 (owner). Packages with std set things up so `cca new`
 lists std (and ASP, Genny), std by its registry ID and version like
-any limb, CCA using the installed copy when it matches (owner, 2026-10-06;
+any neuron, CCA using the installed copy when it matches (owner, 2026-10-06;
 std's ID is `fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936`; its version is the release's date and time, ISO 8601 with
 the releaser's offset, first `2026-10-06T12:57:14+07:00`); without std, `cca new` writes an empty
 manifest. A `.cpls` file built with no `CCA.cplr` beside it gets what
@@ -242,7 +242,7 @@ is *sketch*: `cca::Installed[ … ]`. **There is an uninstaller**
 there, with a piece named (std, say) only that piece; never a project. It
 comes with Synthia only, which can uninstall itself too (owner); a
 CCA-only user removes Nerve by hand, "just like how a CCA user would
-have to change a limb's prefix themselves" (owner).
+have to change a neuron's prefix themselves" (owner).
 
 ## Code for one machine
 
@@ -265,7 +265,7 @@ fast where it can be.
 Signatar alone: raw system calls in `inline.ASM`; Signatar through C:
 `extern.C fn write`; inside IEG: `inline.LL`; a program on IEG with no
 std: IEG's raw write; with std: `std::print.useful.stdout["Hello, world!",
-\n];`; and a limb of your own on top. The lowest level is Signatar's raw
+\n];`; and a neuron of your own on top. The lowest level is Signatar's raw
 assembly; there is no base below it now.
 
 ## Open
@@ -273,7 +273,7 @@ assembly; there is no base below it now.
 - The stable **plugin interface** for cores: compiler
   claude proposes it when building, the owner approves (2026-10-06).
 - **Building it**: the oracle reads `cca::Manifest` with `cores`, and a
-  Limb whose manifest does not list std reaches no operator and no
+  Neuron whose manifest does not list std reaches no operator and no
   `std::`, nor a core's words when it does not list that core
   (2026-10-06), and without ASP a whole-number literal lands as a bit
   pattern; lists, maps and text need std; ASP's `to.int8.bits[…]`;

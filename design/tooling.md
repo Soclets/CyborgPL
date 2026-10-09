@@ -20,9 +20,9 @@ Owner, 2026-09-14.
   vulnerability scanner); the owner's view is that people search "CyborgPL
   Precog", not "Precog".
 
-- **Limb** — the unit of code distribution, exactly like Rust's *crate*:
-  every library or program is a Limb, Synthia installs Limbs, and the standard
-  library is one Limb among them, reached as `std.` in a chain. (A cyborg has
+- **Neuron** — the unit of code distribution, exactly like Rust's *crate*:
+  every library or program is a Neuron, Synthia installs Neurons, and the standard
+  library is one Neuron among them, reached as `std.` in a chain. (A cyborg has
   limbs.)
 - **Synthia** — the package manager and build tool: it *synthesises*
   everything (owner, 2026-09-23, on renaming from JetPack). Its manifest
@@ -40,11 +40,11 @@ Owner, 2026-09-14.
 - **`.cpls`** — a Nerve source file (*CyborgPL Source*, the language's name then). `.cpl` is
   deliberately avoided.
 - **`synthia sync`** (owner, 2026-10-06, via synthia claude): writes the
-  project's `CCA.cplr` from `Synthia.ttsr`, one for each needed Limb that
+  project's `CCA.cplr` from `Synthia.ttsr`, one for each needed Neuron that
   has only a `Synthia.ttsr`, and the renamed copies in `.synthia/`, after
   checking the whole tree of path dependencies, so `cca build` follows
   knowing nothing of Synthia; a later `synthia build` would run it first.
-  A needed Limb on this machine with only a `Synthia.ttsr` gets its
+  A needed Neuron on this machine with only a `Synthia.ttsr` gets its
   `CCA.cplr` in its own folder, never a copy (owner: "`a`").
 - **CCA's package manager** (owner, 2026-09-29) — a second, built-in one,
   "because a hobby is supposed to be fun": `cca add …`, no name of its own.
@@ -54,7 +54,7 @@ Owner, 2026-09-14.
   **One value, `cca::Manifest[ … ];`** (owner, 2026-10-06: "`c`. It may
   not look as complex, but at least it's not much of a roleplay"; from
   2026-09-29 to then, one plain `const` per setting), the shapes from
-  `cca`, a tiny built-in Limb only `CCA.cplr` can reach:
+  `cca`, a tiny built-in Neuron only `CCA.cplr` can reach:
 
   ```
   cca::Manifest[
@@ -77,14 +77,14 @@ Owner, 2026-09-14.
   build, from its one list, `cca/targets.txt` (owner, 2026-09-30:
   "refuse", as `Synthia.ttsr`); today that is `aarch64-macos` alone, so a
   cross target and its `runner` wait until CCA builds for one. A lone target marked `default = false` means the
-  Limb has no default: a compile that names no target on the command line
+  Neuron has no default: a compile that names no target on the command line
   errors, and one that names it builds (owner, 2026-09-30). A target is
   named with `--target <name>`: `cca build --target aarch64-macos`
   (owner: "yea"). `version` is any text, at most 256 bytes
   (owner: "same" as `Synthia.ttsr`). **`'prefix'` is the word code writes in
-  front of `::`** to reach this Limb, picked by its maker and apart from
-  its `name` (owner, 2026-09-29: "yea", then b): `prefix = "cash"`. Required (owner: "required"). Two Limbs with the
-  same prefix are an error, fixed by editing one Limb's source (owner:
+  front of `::`** to reach this Neuron, picked by its maker and apart from
+  its `name` (owner, 2026-09-29: "yea", then b): `prefix = "cash"`. Required (owner: "required"). Two Neurons with the
+  same prefix are an error, fixed by editing one Neuron's source (owner:
   "Just edit the source code"), so a dependency line names no word:
   `cca::Dep[path = "../money"]`. Not in the oracle yet. **A
   manifest is data only** (owner, 2026-09-29): anything that must be
@@ -92,30 +92,30 @@ Owner, 2026-09-14.
   loops, a `MAIN`), which **never runs by itself** — a special command runs
   chosen ones or all of them, a dependency's included. Both package managers
   run it. The command is **`cca prepare`** (owner, 2026-09-29: b):
-  `cca prepare geometry, money` runs those Limbs' `build.cplr` (names
+  `cca prepare geometry, money` runs those Neurons' `build.cplr` (names
   separated by commas, owner; a space after the comma or not),
   `cca prepare --all` runs every one; `synthia prepare` alike. Proposed
   alternatives: `build-script`, `run-build`. Compiler claude's four
-  suggestions, accepted by the owner: `cca prepare` acts on the Limb in
+  suggestions, accepted by the owner: `cca prepare` acts on the Neuron in
   the current directory, or a folder given as `cca run` takes one — a
-  word with a `/` is a folder, a bare word a Limb's name (owner,
+  word with a `/` is a folder, a bare word a Neuron's name (owner,
   2026-09-30: "`/`"): `cca prepare ../app geometry`, the folder first
   as the program is in `cca run` (owner: "yea"), and a bare `.` or `..`
   is a folder too (owner: "yea"); a name is
-  a Limb's `name` (owner, 2026-09-30: "I think name's better"; at first
+  a Neuron's `name` (owner, 2026-09-30: "I think name's better"; at first
   the local name, then briefly the prefix), and when two dependencies
   share that name, `cca prepare` refuses and lists them by prefix (owner:
   a), and `cca prepare --prefix geo2` picks one (owner: "flag"),
   several as a comma list, `--prefix geo2, geo3` (owner: "yea"),
   mixed with names, `cca prepare money --prefix geo2` (owner: "yea"),
   names first and every word after `--prefix` a prefix (owner: "yea"),
-  run in the order written, each once (owner: "yea"); a `build.cplr` runs in its own Limb's folder; `--all` runs
-  dependencies before the Limbs that use them, each once, stopping at the
-  first that fails. With no names it is refused, saying to name Limbs or use
+  run in the order written, each once (owner: "yea"); a `build.cplr` runs in its own Neuron's folder; `--all` runs
+  dependencies before the Neurons that use them, each once, stopping at the
+  first that fails. With no names it is refused, saying to name Neurons or use
   `--all` (owner, 2026-09-30: a). A `build.cplr` is an ordinary program with
   no limits (owner, 2026-09-30: "It's for fun. You can make a malware
   payload, or be a good person …"): the build has no channel from it, and
-  it reaches a Limb only as any program would, by reading its files — no
+  it reaches a Neuron only as any program would, by reading its files — no
   `my.` or prefix into code (owner: "not a shortcut to reach a limb.
   It's turing complete, so you build that yourself"), and `cca prepare`
   hands it no words: settings come as any program gets them, from
@@ -123,7 +123,7 @@ Owner, 2026-09-14.
   yourself"). A
   **`cca::Dep` is an `id` and `version`** (from the registry) **or a
   `path`** (a folder on this machine) (owner, 2026-09-29: a; its `name`
-  was dropped when the prefix became the Limb's own):
+  was dropped when the prefix became the Neuron's own):
   `cca::Dep[path = "../money"]`. The settings the oracle
   knows: `name`, `prefix`, `version`, `dependencies`, `targets` (a list of
   `cca::Target[name = "aarch64-linux", runner = "qemu-aarch64"]`: several
@@ -133,13 +133,13 @@ Owner, 2026-09-14.
   Synthia stays the separate tool, with `Synthia.ttsr` in its own syntax
   (above). What goes in
   `CCA.cplr`, and how the two relate, is open.
-- **`.limb`** — a *published* Limb: the Limb's directory (its manifest +
+- **`.limb`** — a *published* Neuron: the Neuron's directory (its manifest +
   `.cpls` files) packaged as one file for Synthia to upload, download, and
   checksum. Same relationship as a Rust crate folder to its `.crate` tarball.
   Checked 2026-09-14: no existing `.limb` format is registered.
 
-  A Limb can never be an opaque precompiled binary: whole-program analysis
-  must see inside every Limb to prove ranges, borrows, and guardrails across
+  A Neuron can never be an opaque precompiled binary: whole-program analysis
+  must see inside every Neuron to prove ranges, borrows, and guardrails across
   the call boundary. A `.limb` therefore always contains analysable source
   (optionally plus a cached front-end result, an optimisation for later).
 
@@ -159,7 +159,7 @@ owner's order:
    a compiler error's `fix:`; the owner corrected that.
    **It is a command too** (owner, 2026-10-02: "a command"), so a whole
    project upgrades without the IDE — **Synthia's** (owner: "I think it
-   should be Synthia. Just like how Synthia can already change a limb's
+   should be Synthia. Just like how Synthia can already change a neuron's
    prefix, by Synthia itself editing the source code"), as its prefix
    override does by hand what a CCA user would (`synthia-manifest.md`).
    Its name is open.
@@ -179,7 +179,7 @@ owner's order:
    those lines to check instead of rewriting them (`and` running both
    sides, 2026-09-25, is one).
 
-   **Each Limb's `cpl_ver.cplr`** holds the language date its code was
+   **Each Neuron's `cpl_ver.cplr`** holds the language date its code was
    written for (owner: "`cpl_ver`", "with the dot"); a file of its own, so
    both manifests and the IDE read it alike. Quick Fix applies every row
    after that date and moves the date forward. It **shows the diff
@@ -196,7 +196,7 @@ owner's order:
    changed — and edits nothing; Synthia's applies them, from the IDE's
    button or its own command. Both read `spellings.cplr` and
    `cpl_ver.cplr`. Names open.
-2. **Limb registry search** — searching the index (`limbs.xxx`) from the
+2. **Neuron registry search** — searching the index (`limbs.xxx`) from the
    editor.
 3. **Solarized themes** — Solarized Light and Dark.
 4. **Highlighting**.
@@ -255,4 +255,4 @@ with the rest of Synthia.
 ## Open
 
 - Synthia's own syntax for `Synthia.ttsr`, and how Synthia and CCA's package manager relate.
-- **The Limb registry is an index only** (owner, 2026-09-29): small files naming each Limb's versions and linking to each version's release where its author keeps it; the registry never stores code, so it costs nothing to host (static files). A release lives **on GitHub**; the index keeps **a checksum of every release**; **registering a new Limb is a reviewed pull request, and a new version needs no review**; and **malware-free is not guaranteed**, which the registry says plainly. Open: how an update proves it comes from the Limb's owner. Its domain, when it exists: **`limbs.xxx`** (owner, 2026-09-29: "`limbs.xxx` it is, I'll just wait until there's a limbs registery"; $95 a year, so not bought yet). Looked at: `cpl-limbs.dev`, `limbs.network`, `limbs.wtf`, `limbs.fyi`, `limbs-reg`; `limbs.dev` and `limbs.io` are taken; there is no `.registry` ending.
+- **The Neuron registry is an index only** (owner, 2026-09-29): small files naming each Neuron's versions and linking to each version's release where its author keeps it; the registry never stores code, so it costs nothing to host (static files). A release lives **on GitHub**; the index keeps **a checksum of every release**; **registering a new Neuron is a reviewed pull request, and a new version needs no review**; and **malware-free is not guaranteed**, which the registry says plainly. Open: how an update proves it comes from the Neuron's owner. Its domain, when it exists: **`limbs.xxx`** (owner, 2026-09-29: "`limbs.xxx` it is, I'll just wait until there's a limbs registery"; $95 a year, so not bought yet). Looked at: `cpl-limbs.dev`, `limbs.network`, `limbs.wtf`, `limbs.fyi`, `limbs-reg`; `limbs.dev` and `limbs.io` are taken; there is no `.registry` ending.

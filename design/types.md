@@ -204,9 +204,9 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   everything.
 - **`uenr` — Unbounded Exact Numerical Representation** (owner, 2026-09-14). A number
   type with no fixed width that never rounds: it grows to hold whatever
-  value it is given. Provided by the **standard Limb**, not built into the
+  value it is given. Provided by the **standard Neuron**, not built into the
   language — so it is Nerve source Precog can see through, and it takes
-  the role legacy's `bignum`/`bigint` had. Reached through the Limb
+  the role legacy's `bignum`/`bigint` had. Reached through the Neuron
   boundary: `let 'n': std::uenr = 1000;`. **Exact is exact**: fractions are
   held as true rationals, so `(1/3) times 3` is exactly `1` (decided
   2026-09-14).

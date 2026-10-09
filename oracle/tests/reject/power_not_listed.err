@@ -1,1 +1,1 @@
-this Limb calls C (`write`), and its CCA.cplr does not list `c_calls`: add `cca::Power.c_calls` to its `powers`
+this Neuron calls C (`write`), and its CCA.cplr does not list `c_calls`: add `cca::Power.c_calls` to its `powers`

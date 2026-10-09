@@ -40,7 +40,7 @@ recommended.
    `!check` C call, and everything else calls that safe wrapper. The
    build's `!check` list stays short enough to review.
 6. **`NO_FUCKING_CHECKS` only after measuring.** Never a first resort.
-7. **`#strict` for public Limbs, plain files for programs.** A library's
+7. **`#strict` for public Neurons, plain files for programs.** A library's
    safety should not depend on who calls it, and `#strict` makes sure it
    does not.
 
@@ -63,7 +63,7 @@ recommended.
     vectorise, `!cheat` only for timing code.
 12. **`print.useful` for people, `print` for debugging numbers,
     `print.format` for shaped output** (columns, hex, places).
-13. **`precedence.low_first` for a Limb's operator levels** (owner,
+13. **`precedence.low_first` for a Neuron's operator levels** (owner,
     2026-10-03: "low_first is good practice"): level 1 binds loosest, as a
     precedence table is read top to bottom. `precedence.high_first` is
     there for whoever thinks the other way.

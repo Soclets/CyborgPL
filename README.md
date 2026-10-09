@@ -78,7 +78,7 @@ The oracle and the verification harness use no crates.
 </details>
 
 **Ideas taken from other languages**
-- **Rust**: ownership and borrowing, lifetime groups (`'a` there, `@x` here), interfaces and `<T: Ordered>` bounds (Rust's traits), diagnostics "helpful like Rust's", and `::` for stepping into another Limb (Rust's paths, which took it from C++).
+- **Rust**: ownership and borrowing, lifetime groups (`'a` there, `@x` here), interfaces and `<T: Ordered>` bounds (Rust's traits), diagnostics "helpful like Rust's", and `::` for stepping into another Neuron (Rust's paths, which took it from C++).
 - **Ada**: `and then` / `or else`, here `and.then` / `or.else`.
 - **Swift**, **Zig** and **C**: points of comparison in the SIMD, wrapping-arithmetic and enum decisions.
 - **IEEE 754**: `bin16`, `bin32` and `bin64` arithmetic and rounding.
@@ -88,4 +88,4 @@ The oracle and the verification harness use no crates.
 - **CyborgPL v1** ([CyborgPL-legacy](https://github.com/Artificial-IntelligenceAI/CyborgPL-legacy)): `x` and `xx`.
 
 Copyright 2026 Tankun Sriket.
-Nerve™ (formerly CyborgPL™), Precog™ and Limb™ are names of this project.
+Nerve™ (formerly CyborgPL™), Precog™ and Neuron™ (formerly Limb™) are names of this project.

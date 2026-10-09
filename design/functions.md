@@ -23,7 +23,7 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
 ```
 
 - **`fn`**, bare name, parameters in one `[ ]`, optional `--> type`, body in
-  `{ }`. `pub fn` makes it visible to other Limbs (`limbs.md`).
+  `{ }`. `pub fn` makes it visible to other Neurons (`limbs.md`).
 - **Parameters are `'name': type`.** The ownership verb, when there is one,
   sits before the name and mirrors the caller exactly: the caller writes
   `lend 's'`, the parameter reads `lent 'text': …`; `lend.mut` ↔ `lent.mut`.
@@ -76,15 +76,15 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   (the arrows were short until that day; the long ones came first as the
   aliases, "Implement the `-->` alias"), and so are **`>>` and `>>>`** of
   `-->`, and **`<<` and `<<<`** of `<--`, and the both-ways binding's main spelling is **`<-->`**, with `<->`, `<<>>`, `<<<>>>`, `<---->`, `<--|-->`, `<-|->`, `<<|>>` and `<<<|>>>` (owner, 2026-10-06: "yea.", "`<<>>` too", "Two long arrows", "`b`"); an
-  arrow cannot name a Limb's operator. `examples/long_arrow.cpls`,
+  arrow cannot name a Neuron's operator. `examples/long_arrow.cpls`,
   `examples/short_arrow.cpls`, `examples/chevron_arrows.cpls`.
 
 ## Calling (decided 2026-09-14)
 
-A function is a member of a Limb. In the Limb where it is defined it is
-called **bare**: `add[10, 20]`. From any other Limb it is reached through
+A function is a member of a Neuron. In the Neuron where it is defined it is
+called **bare**: `add[10, 20]`. From any other Neuron it is reached through
 the boundary: `mathstuff::pow[2, 64]`, `std::print.stored.stdout[…]`, and
-never bare (owner, 2026-09-23: no Limb can offer a shortcut).
+never bare (owner, 2026-09-23: no Neuron can offer a shortcut).
 
 **Function names are bare at the definition too**: quotes mean *variable*,
 and a function is not one. A function name is a plain identifier — no
@@ -134,8 +134,8 @@ whole-program analysis and owns the program's top-level values. Next to
 that reason: its distinctness is the feature, and Rust's `fn main` being an
 ordinary callable function was the thing disliked.
 
-A Limb with a `MAIN` is a program; without one, a library. A Limb another
-depends on may have one too, run only when that Limb is run itself
+A Neuron with a `MAIN` is a program; without one, a library. A Neuron another
+depends on may have one too, run only when that Neuron is run itself
 (owner, 2026-09-29).
 
 **Command-line arguments arrive as C has them** (owner, 2026-09-29:
@@ -151,7 +151,7 @@ MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
 Exactly these two types (the names are free); the program's name comes
 first, each word ends in a NUL, and `argv[argc]` is a null pointer. Reading
 them is C's world, so `!check`. Anything friendlier — a list of text,
-flags, `--help` — is written in Nerve on top, in std or a Limb. The
+flags, `--help` — is written in Nerve on top, in std or a Neuron. The
 2026-09-14 line here said the arguments "come from the std Limb"; the
 owner put the door in the base language instead. Proposed alternatives: a
 ready `list[str.utf8]` (design claude's recommendation); `std::args[]`;

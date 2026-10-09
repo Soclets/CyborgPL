@@ -1,4 +1,4 @@
-# The Limb `raw` has no ASP, so its literals land as bit patterns; this one has ASP, so they are values.
+# The Neuron `raw` has no ASP, so its literals land as bit patterns; this one has ASP, so they are values.
 
 MAIN {
     cord::print.useful[raw::min_int8[], newln];             # 128 in an int8: -128's bits

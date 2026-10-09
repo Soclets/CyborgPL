@@ -348,7 +348,7 @@ for a user type** (`op plus ['a': Vec, 'b': Vec]`, decided 2026-09-20 with
 interfaces) but never changed for the language's own types. Prefix (one-operand) custom
 operators are not offered.
 
-### A Limb's precedence (owner, 2026-10-03)
+### A Neuron's precedence (owner, 2026-10-03)
 
 ```
 precedence.low_first {                          # level 1 binds loosest (good practice)
@@ -359,38 +359,38 @@ precedence.low_first {                          # level 1 binds loosest (good pr
 }
 ```
 
-A Limb may give its operators a precedence in one block; `precedence.high_first`
+A Neuron may give its operators a precedence in one block; `precedence.high_first`
 counts the other way, and a bare `precedence` is refused. Each level says how a chain
 of it reads (`left_first`, `right_first`, `refused`), and must agree with any language
 operator in it. A level may hold `neg` (a negative), so std's `pow` sits above it. An
 operator in no level keeps the custom-operator rule: brackets beside any other.
-Operators of two Limbs in the same gap need brackets between them. The language's
+Operators of two Neurons in the same gap need brackets between them. The language's
 bitwise operators have no precedence and cannot be given one.
 `examples/precedence_levels.cpls`.
 
-### From another Limb (owner, 2026-09-23: a)
+### From another Neuron (owner, 2026-09-23: a)
 
 **Since 2026-10-02 (owner; built 2026-10-03): a word operator may also carry
-its path, `'a' std::pow 'b'`, and a Limb may declare narrowed forms after
+its path, `'a' std::pow 'b'`, and a Neuron may declare narrowed forms after
 a dot, `pub op pow.wrap […]`, used `'a' std::pow.wrap 'b'`. Bare and
-with a path are both legal; the official Limb registry refuses a
-published Limb that writes another Limb's word operator bare, unless the
+with a path are both legal; the official Neuron registry refuses a
+published Neuron that writes another Neuron's word operator bare, unless the
 owner overrides it ("Always refuse, unless I override"). A glyph operator
 (`~=`) has no path.** The paragraph below is the 2026-09-23 rule.
 
-A `pub op` is usable by every Limb that depends on the one that wrote
+A `pub op` is usable by every Neuron that depends on the one that wrote
 it, with nothing written: an operator has no place for a path, so
 `'u' dot 'v'` finds the `dot` written for what `'u'` and `'v'` are. Any
-Limb may share an operator for any types, the language's own included
+Neuron may share an operator for any types, the language's own included
 (`op ~= ['a': bin64, 'b': bin64] -> bool` for "equal within a margin").
 **Two meanings of one operator for the same types is a compile error**
 (owner: "shouldn't two meanings of `~=` just err?"), whether they come
-from two Limbs or from a Limb and your own code. With no path to pick
-one, the fix is to drop a Limb, or copy one operator into your own
+from two Neurons or from a Neuron and your own code. With no path to pick
+one, the fix is to drop a Neuron, or copy one operator into your own
 code and edit it. Proposed alternative (design claude's
-recommendation): only the Limb that owns one of the operand types may
+recommendation): only the Neuron that owns one of the operand types may
 share an operator, as in Rust, so two can never clash. That would stop
-a Limb from sharing `~=` or `+|` for the language's own types.
+a Neuron from sharing `~=` or `+|` for the language's own types.
 
 Oracle: `examples/operators.cpls`, thirteen reject tests. It runs one
-Limb, so an operator is found by name across the whole program.
+Neuron, so an operator is found by name across the whole program.

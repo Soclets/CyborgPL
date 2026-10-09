@@ -40,7 +40,7 @@ fn three [] -> array[int32] {
     return [1, 2, 3,];
 }
 
-# std's `exit` is out of reach without std, so this Limb's own `exit` is the only one (2026-10-06)
+# std's `exit` is out of reach without std, so this Neuron's own `exit` is the only one (2026-10-06)
 fn exit [] { }
 
 fn stop [] {

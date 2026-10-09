@@ -38,7 +38,7 @@ thread_local! { static SHOWN_FILE: std::cell::RefCell<String> = std::cell::RefCe
 pub fn set_shown_file(name: &str) { SHOWN_FILE.with(|f| *f.borrow_mut() = name.to_string()); }
 
 /// A second place in a message gives its file, always (owner, 2026-10-08: "`a`"): `line 6 of shop.cpls`.
-/// A Limb's places all name the program's root file: the oracle keeps no file per line.
+/// A Neuron's places all name the program's root file: the oracle keeps no file per line.
 pub fn line_of(line: impl std::borrow::Borrow<usize>) -> String {
     let line = *line.borrow();
     SHOWN_FILE.with(|f| { let f = f.borrow(); if f.is_empty() { format!("line {line}") } else { format!("line {line} of {f}") } })
@@ -88,7 +88,7 @@ struct Task {
 /// What an evaluated expression *is*, for ownership and typing purposes.
 enum Prov {
     Literal,                             // a bare numeric literal: untyped, adopts its context's family
-    Raw,                                 // a whole-number literal in a Limb without ASP: its bits land as they are
+    Raw,                                 // a whole-number literal in a Neuron without ASP: its bits land as they are
     Plain,                               // a plain value: copies freely
     Fresh,                               // a newly made owned value (literal, call result): storable
     Given,                               // `give 'x'`: ownership transferred here
@@ -128,7 +128,7 @@ pub struct Interp<'p> {
     args: Vec<String>,
     /// the matched case's data type, for the name an arm binds
     arm_ty: Option<Ty>,
-    /// Limb-level `const`s by canonical key (`module/name`): never assignable, every read a fresh value.
+    /// Neuron-level `const`s by canonical key (`module/name`): never assignable, every read a fresh value.
     consts: HashMap<String, Slot>,
     /// the module the running code was written in (for bare names and visibility)
     module: Vec<String>,
@@ -190,7 +190,7 @@ impl<'p> Interp<'p> {
     pub fn set_args(&mut self, args: Vec<String>) { self.args = args; }
     pub fn set_bare(&mut self, b: HashMap<String, crate::ast::Bare>) { self.bare_of = b; }
 
-    /// Whether this code's Limb has IEG, whose rule puts raw memory and unproven code under `!check`;
+    /// Whether this code's Neuron has IEG, whose rule puts raw memory and unproven code under `!check`;
     /// Signatar alone marks nothing (owner, 2026-10-06: "Signatar marks nothing", then "yes" to
     /// `inline.ASM` and the rest needing `!check` only where IEG is)
     fn marks_needed(&self) -> bool {
@@ -198,8 +198,8 @@ impl<'p> Interp<'p> {
         !crate::parser::LACKS.with(|l| l.borrow().iter().any(|(r, lacks)| *r == root && lacks.iter().any(|c| c == "IEG")))
     }
 
-    /// Another Limb's `pub` functions reached bare by `written`, from a call in `from` (owner, 2026-10-06):
-    /// those marked `bare.optional` or `bare.only`, in a Limb other than the caller's.
+    /// Another Neuron's `pub` functions reached bare by `written`, from a call in `from` (owner, 2026-10-06):
+    /// those marked `bare.optional` or `bare.only`, in a Neuron other than the caller's.
     fn bare_fns_elsewhere(&self, from: &[String], written: &[String], op: bool) -> Vec<&'p Func> {
         let mine = from.first().filter(|r| r.starts_with("::")).cloned();
         let prog: &'p Program = self.prog;
@@ -216,7 +216,7 @@ impl<'p> Interp<'p> {
         self.prepare()?;
         let main = match &self.prog.main {
             Some(m) => m,
-            None => return rt(0, "this Limb has no MAIN, so it is a library, not a program"),
+            None => return rt(0, "this Neuron has no MAIN, so it is a library, not a program"),
         };
         // `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`: C's own view of the command line — the
         // program's name first, each word NUL-ended, and a null pointer after the last (owner, 2026-09-29)
@@ -325,7 +325,7 @@ impl<'p> Interp<'p> {
         for (j, g) in ops.iter().enumerate() {
             for f in &ops[..j] {
                 if f.name != g.name { continue; }
-                // two Limbs may each define one word operator for the same types: the path tells them
+                // two Neurons may each define one word operator for the same types: the path tells them
                 // apart (owner, 2026-10-02), and a bare use of it is refused where it is written; a glyph
                 // operator has no path, so two of them stay an error
                 if root(f) != root(g) && word(&f.name) { continue; }
@@ -357,12 +357,12 @@ impl<'p> Interp<'p> {
         for m in &self.prog.modules {
             let k = format!("module {}", m.path.join("."));
             if let Some(l) = seen.insert(k.clone(), m.line) { return rt(m.line, format!("module `{}` is defined twice (first at {}) — a file and a block cannot both be it", m.path.join("."), line_of(l))); }
-            // One name, one thing, per Limb (decided 2026-09-21): a module and a type cannot share a name.
+            // One name, one thing, per Neuron (decided 2026-09-21): a module and a type cannot share a name.
             let path = m.path.join(".");
             let clash = self.prog.structs.iter().map(|d| (&d.name, d.line, "struct")).chain(self.prog.enums.iter().map(|e| (&e.name, e.line, "enum"))).chain(self.prog.interfaces.iter().map(|i| (&i.name, i.line, "interface"))).find(|(n, _, _)| **n == path);
             if let Some((_, l, what)) = clash {
                 let where_ = if m.line == 0 { format!("the file `{path}.cpls` and a {what} at {}", line_of(l)) } else { format!("a module block at {} and a {what} at {}", line_of(m.line), line_of(l)) };
-                return rt(l, format!("`{path}` is both a module and a {what} ({where_}); one name is one thing in a Limb — rename one"));
+                return rt(l, format!("`{path}` is both a module and a {what} ({where_}); one name is one thing in a Neuron — rename one"));
             }
         }
         Ok(())
@@ -470,11 +470,11 @@ impl<'p> Interp<'p> {
     }
 
     /// Visibility (decided 2026-09-19): an item declared in module `owner` with `vis`
-    /// is reachable from module `from` if it is `pub` / `pub.limb` (one Limb here, so
+    /// is reachable from module `from` if it is `pub` / `pub.neuron` (one Neuron here, so
     /// both count) or `from` is `owner` or a descendant of it. Every module on the
     /// way is checked the same way.
     fn reachable(&self, from: &[String], owner: &[String], vis: Vis) -> bool {
-        // across a Limb's edge only `pub` passes: `pub.limb` stays home (limbs.md)
+        // across a Neuron's edge only `pub` passes: `pub.neuron` stays home (limbs.md)
         if limb_of(from) != limb_of(owner) { return vis == Vis::Pub; }
         vis != Vis::Private || from.starts_with(owner)
     }
@@ -483,7 +483,7 @@ impl<'p> Interp<'p> {
         for i in 1..=module.len() {
             let path = &module[..i];
             let Some(m) = self.prog.modules.iter().find(|m| m.path == path) else {
-                return rt(line, format!("no module `{}` in {}", path.iter().map(|p| p.trim_start_matches("::")).collect::<Vec<_>>().join("."), if limb_of(path).is_empty() { "this Limb".to_string() } else { format!("the Limb `{}`", &limb_of(path)[2..]) }));
+                return rt(line, format!("no module `{}` in {}", path.iter().map(|p| p.trim_start_matches("::")).collect::<Vec<_>>().join("."), if limb_of(path).is_empty() { "this Neuron".to_string() } else { format!("the Neuron `{}`", &limb_of(path)[2..]) }));
             };
             if !self.reachable(from, &module[..i - 1], m.vis) {
                 return rt(line, format!("module `{}` is private to `{}`", path.join("."), root_or(&module[..i - 1])));
@@ -2122,7 +2122,7 @@ impl<'p> Interp<'p> {
                     None => return rt(line, format!("no const '{name}' in `{}`", root_or(module))),
                 };
                 if !self.reachable(from, module, def.vis) {
-                    return rt(line, format!("const '{name}' is private to `{}`; mark it `pub` or `pub.limb`", root_or(module)));
+                    return rt(line, format!("const '{name}' is private to `{}`; mark it `pub` or `pub.neuron`", root_or(module)));
                 }
                 let v = self.consts[&const_key(module, name)].cell.borrow().clone();
                 let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
@@ -3871,8 +3871,8 @@ impl<'p> Interp<'p> {
     fn call(&mut self, c: &Call) -> Result<Value, RuntimeError> {
         self.one_lend_mut(&c.args, c.line)?;
         let shown = c.written.join(".");
-        // a name written bare may be this Limb's, std's, or another Limb's `bare.optional` / `bare.only`
-        // one; more than one is an error where it is written, and this Limb's own does not win
+        // a name written bare may be this Neuron's, std's, or another Neuron's `bare.optional` / `bare.only`
+        // one; more than one is an error where it is written, and this Neuron's own does not win
         // (owner, 2026-10-06: "`a`, and no")
         if c.bare {
             let own_module: Vec<String> = c.from.iter().cloned().chain(c.written[..c.written.len() - 1].iter().cloned()).collect();
@@ -3882,13 +3882,13 @@ impl<'p> Interp<'p> {
             let mut who: Vec<String> = Vec::new();
             if own {
                 let mine: Vec<&str> = own_module.iter().filter(|m| !m.starts_with("::")).map(String::as_str).chain(c.written.last().map(String::as_str)).collect();
-                who.push(format!("`my.{}` (this Limb's)", mine.join(".")));
+                who.push(format!("`my.{}` (this Neuron's)", mine.join(".")));
             }
             if std { who.push(format!("`cord::{shown}`")); }
             for f in &others { who.push(format!("`{}::{shown}`", f.module[0].trim_start_matches("::"))); }
             if who.len() > 1 { return rt(c.line, format!("`{shown}` could be any of {}: write the path", who.join(", "))); }
             if who.is_empty() {
-                // another Limb's name that needs its path says so, rather than "no function"
+                // another Neuron's name that needs its path says so, rather than "no function"
                 let prog: &'p Program = self.prog;
                 if let Some(f) = prog.funcs.iter().find(|f| f.module.first().map_or(false, |r| r.starts_with("::")) && f.vis == crate::ast::Vis::Pub && !f.is_op
                     && f.module[1..].iter().map(String::as_str).chain(std::iter::once(f.name.as_str())).collect::<Vec<_>>() == c.written.iter().map(String::as_str).collect::<Vec<_>>()
@@ -3906,7 +3906,7 @@ impl<'p> Interp<'p> {
         }
         match &c.limb {
             Some(l) if l == "std" => self.std_call(c),
-            // another Limb, loaded from `CCA.cplr` under its own root (owner, 2026-09-29)
+            // another Neuron, loaded from `CCA.cplr` under its own root (owner, 2026-09-29)
             Some(l) if self.prog.modules.iter().any(|m| m.path == [format!("::{l}")]) => {
                 let mut local = c.clone();
                 local.limb = None;
@@ -3918,7 +3918,7 @@ impl<'p> Interp<'p> {
                 }
                 self.user_call(&local)
             }
-            Some(l) => rt(c.line, format!("no Limb with the prefix `{l}`: a Limb this one uses is listed in its `CCA.cplr` (`dependencies = [cca::Dep[path = …],]`), and its own `CCA.cplr` says `prefix = \"{l}\"`")),
+            Some(l) => rt(c.line, format!("no Neuron with the prefix `{l}`: a Neuron this one uses is listed in its `CCA.cplr` (`dependencies = [cca::Dep[path = …],]`), and its own `CCA.cplr` says `prefix = \"{l}\"`")),
             None => self.user_call(c),
         }
     }
@@ -4279,7 +4279,7 @@ impl<'p> Interp<'p> {
         // pick the definition whose first operand's type matches the left value (an
         // operator may be defined for several types)
         let lshape = shape_of(&left.0);
-        // `vecmath::dot`: only that Limb's `dot` (owner, 2026-10-02: a Limb's word operator may carry its path)
+        // `vecmath::dot`: only that Neuron's `dot` (owner, 2026-10-02: a Neuron's word operator may carry its path)
         let (limb, name) = match op.split_once("::") { Some((l, n)) => (Some(format!("::{l}")), n), None => (None, op) };
         let candidates: Vec<Func> = self.prog.funcs.iter().filter(|f| f.is_op && f.name == name && limb.as_ref().map_or(true, |l| f.module.first() == Some(l))).cloned().collect();
         // the one written for this type, else a generic one (they never overlap: `check_duplicates`)
@@ -4291,19 +4291,19 @@ impl<'p> Interp<'p> {
                     "*" => "; multiply is `times`, power is cord's `pow`", "^" => "; power is cord's `pow`", "%" => "; remainder is `mod`",
                     "&" | "|" | "!" => "; use `and`, `or`, `!`", _ => "",
                 };
-                if let Some(l) = &limb { return rt(line, format!("the Limb `{}` has no operator `{name}` for these values", &l[2..])); }
+                if let Some(l) = &limb { return rt(line, format!("the Neuron `{}` has no operator `{name}` for these values", &l[2..])); }
                 return rt(line, format!("`{op}` is not an operator here{hint} — declare it with `op {op} ['a': T, 'b': T] -> R {{ … }}`"));
             }
         };
-        // written bare, the same word operator for these types in two Limbs is a clash where it is
+        // written bare, the same word operator for these types in two Neurons is a clash where it is
         // written, as a bare name is (owner, 2026-10-06: "`a`, and no")
         if limb.is_none() {
             let same: Vec<&Func> = candidates.iter().filter(|f| f.params.len() == def.params.len() && f.params.iter().zip(&def.params).all(|(a, b)| a.ty.as_ref().map(ty_shape) == b.ty.as_ref().map(ty_shape))).collect();
-            let mut roots: Vec<String> = same.iter().map(|f| f.module.first().filter(|r| r.starts_with("::")).map(|r| format!("`{}::{name}`", r.trim_start_matches("::"))).unwrap_or_else(|| format!("`{name}` (this Limb's)"))).collect();
+            let mut roots: Vec<String> = same.iter().map(|f| f.module.first().filter(|r| r.starts_with("::")).map(|r| format!("`{}::{name}`", r.trim_start_matches("::"))).unwrap_or_else(|| format!("`{name}` (this Neuron's)"))).collect();
             roots.dedup();
             if roots.len() > 1 { return rt(line, format!("`{name}` could be any of {}: write the path", roots.join(", "))); }
         }
-        // another Limb's word operator follows its `bare` mark (owner, 2026-10-06): `bare.never` needs its
+        // another Neuron's word operator follows its `bare` mark (owner, 2026-10-06): `bare.never` needs its
         // path, `bare.only` refuses it; a glyph operator has no path and no mark
         if let Some(root) = def.module.first().filter(|r| r.starts_with("::")) {
             let here = self.module.first().filter(|r| r.starts_with("::"));
@@ -4708,7 +4708,7 @@ impl<'p> Interp<'p> {
         };
         let from = if from.is_empty() { self.module.clone() } else { from.to_vec() };
         self.check_path(&from, &def.module, line)?;
-        if !self.reachable(&from, &def.module, def.vis) { return rt(line, format!("enum `{tname}` is private to `{}`; mark it `pub` or `pub.limb`", root_or(&def.module))); }
+        if !self.reachable(&from, &def.module, def.vis) { return rt(line, format!("enum `{tname}` is private to `{}`; mark it `pub` or `pub.neuron`", root_or(&def.module))); }
         let cdef = match def.cases.iter().find(|c| c.name == case) {
             Some(c) => c,
             None => return rt(line, format!("`{tname}` has no case `{case}` (it has {})", def.cases.iter().map(|c| c.name.as_str()).collect::<Vec<_>>().join(", "))),
@@ -5486,18 +5486,18 @@ fn value_eq(a: &Value, b: &Value) -> bool {
     }
 }
 
-/// Which Limb a module path belongs to: `""` for the Limb being built, `"::geometry"` for a dependency.
+/// Which Neuron a module path belongs to: `""` for the Neuron being built, `"::geometry"` for a dependency.
 fn limb_of(path: &[String]) -> &str {
     match path.first() { Some(p) if p.starts_with("::") => p.as_str(), _ => "" }
 }
 
-/// Why an item cannot be reached: across a Limb's edge only `pub` passes (limbs.md).
+/// Why an item cannot be reached: across a Neuron's edge only `pub` passes (limbs.md).
 fn private_msg(from: &[String], owner: &[String], what: &str) -> String {
     let what = what.replace("::", "").replacen('.', "::", if limb_of(owner).is_empty() { 0 } else { 1 });
     if limb_of(from) != limb_of(owner) {
-        format!("{what} is not `pub`, and another Limb reaches only `pub` items")
+        format!("{what} is not `pub`, and another Neuron reaches only `pub` items")
     } else {
-        format!("{what} is private to `{}`; mark it `pub` or `pub.limb`", root_or(owner))
+        format!("{what} is private to `{}`; mark it `pub` or `pub.neuron`", root_or(owner))
     }
 }
 

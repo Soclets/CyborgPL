@@ -38,18 +38,18 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
   is there.
 - **Synthia is an automatic programmer** (owner, 2026-09-30): it does
   whatever a programmer using CCA would do by hand, writing a `CCA.cplr`
-  for a Limb that has only a `Synthia.ttsr`. CCA never knows Synthia
+  for a Neuron that has only a `Synthia.ttsr`. CCA never knows Synthia
   exists. The project's own `CCA.cplr` goes beside `Synthia.ttsr`,
   rewritten from it each time, its first line saying it is generated
   (owner, 2026-09-30: a): `# Written by Synthia from Synthia.ttsr, and
   rewritten each time: edit Synthia.ttsr, not this file.` (owner: "yea"). A `CCA.cplr` there without that line is not Synthia's: Synthia
   refuses to write and leaves it, and `synthia takeover` overrides (owner: "`a`,
   and there should be an override command"; then "`a`" for `takeover`).
-- **How it connects**: Synthia reads its manifest, fetches the Limbs,
+- **How it connects**: Synthia reads its manifest, fetches the Neurons,
   and calls `cca build …` saying where each is. CCA never reads
   `Synthia.ttsr` and never depends on Synthia (owner, 2026-09-29): CCA
   builds, runs and tests on its own.
-- **What a manifest holds** (from earlier rulings): the Limb's name (never
+- **What a manifest holds** (from earlier rulings): the Neuron's name (never
   in source, 2026-09-23), its dependencies (never in source), the target
   (reproducible builds: never the host's), a version.
 - **Licence**: Apache-2.0 WITH LLVM-exception, as Nerve (owner,
@@ -74,7 +74,7 @@ list is from 898ad6d).
 Commands other than `synthia show` (`synthia-manifest.md`) and
 `synthia prepare` (`tooling.md`); `synthia build/final/run/test` are
 named in `tooling.md` from before CCA had its own; lock files,
-publishing, where Limbs are fetched from; how CCA takes the list of Limbs
+publishing, where Neurons are fetched from; how CCA takes the list of Neurons
 (ask compiler claude, who owns CCA's command line). `design/tooling.md`,
 `design/limbs.md`, `design/reproducible-builds.md`.
 
