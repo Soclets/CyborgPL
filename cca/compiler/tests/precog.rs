@@ -17,7 +17,7 @@ use signatar::precog::smt;
 fn build(src: &str) -> Program {
     let dir = std::env::temp_dir().join("cca-precog-tests");
     let _ = std::fs::create_dir_all(&dir);
-    let path = dir.join(format!("t{}.cpls", hash(src)));
+    let path = dir.join(format!("t{}.nrv", hash(src)));
     std::fs::write(&path, src).unwrap();
     let mut sources = signatar::source::SourceMap::default();
     let items = signatar::load::load(&path, &mut sources).unwrap_or_else(|d| panic!("{}", d.render(&sources)));

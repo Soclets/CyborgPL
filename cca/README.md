@@ -7,10 +7,10 @@ from `design/` and the oracle's tests, never from `oracle/src`
 ```
 cd cca
 cargo build
-./target/debug/cca parse ../examples/hello.cpls     # parse only; the first refusal, in the diagnostics.md shape
-./target/debug/cca check ../examples/add.cpls       # parse and check
-./target/debug/cca mir   ../examples/add.cpls       # check, then print the flow graph
-./target/debug/cca precog ../examples/scores.cpls   # …then prove, and print the report
+./target/debug/cca parse ../examples/hello.nrv     # parse only; the first refusal, in the diagnostics.md shape
+./target/debug/cca check ../examples/add.nrv       # parse and check
+./target/debug/cca mir   ../examples/add.nrv       # check, then print the flow graph
+./target/debug/cca precog ../examples/scores.nrv   # …then prove, and print the report
 ```
 
 ## Layout
@@ -49,7 +49,7 @@ release will need LLVM and lld built as static libraries. Linking is built
 for macOS hosts so far (the SDK found by `xcrun`).
 
 ```
-cargo test        # every examples/*.cpls checks; every reject program is
+cargo test        # every examples/*.nrv checks; every reject program is
                   # refused; CCA's own programs build, run and exit right
 ```
 
@@ -60,7 +60,7 @@ cargo test        # every examples/*.cpls checks; every reject program is
   and LLVM, out to an object file and a linked binary. The heap is in:
   lists, text built at run time, maps, enums and `match`, and failures as
   values, all of them freeing what they take. Every
-  `examples/*.cpls` loads, checks and lowers to a well-formed graph, and
+  `examples/*.nrv` loads, checks and lowers to a well-formed graph, and
   none is refused by Cortex. Of the 358 reject programs, 344 are refused
   in CCA's own words (`compiler/tests/reject_phrases.txt`); 9 are marked
   `!pending` and 5 `!by-design`. The test insists a `!pending` one is
@@ -93,7 +93,7 @@ cargo test        # every examples/*.cpls checks; every reject program is
   not given away, changed or lent `mut`, and a `lent.mut` one is used by
   nobody else (`mir/borrows.rs`).
 
-- `cca build --assert-proofs file.cpls -o out` (2026-09-23): the build that
+- `cca build --assert-proofs file.nrv -o out` (2026-09-23): the build that
   checks Cortex (`precog.md`, attack (d)). Every site Cortex proved keeps
   a run-time check, nothing proven is promised to LLVM, and layer 1's
   folded answers are computed at run time instead. A wrong proof prints
@@ -111,7 +111,7 @@ Dated, with the alternative, so each can become a question later.
   `no_std` and `staticlib`, which a second crate is the only way to say.
   Alternative: one crate with the runtime as a module and a build script.
 - **2026-09-22 — `;` after a `concur` or `whichever` statement is
-  optional.** The examples write it both ways (`whichever.cpls`); the
+  optional.** The examples write it both ways (`whichever.nrv`); the
   oracle accepts both; every other statement needs its `;` and there are
   no empty statements. Alternative: require it always (would break the
   examples) or never (would break them too).
@@ -121,7 +121,7 @@ Dated, with the alternative, so each can become a question later.
   `types::TARGET_SIMD_BITS` holds 128 — the oracle's fixed target and this
   machine's. It moves into the target description the day there is one.
   Alternative: refuse every `simd` until Synthia exists, which would leave
-  `examples/simd.cpls` unbuildable.
+  `examples/simd.nrv` unbuildable.
 - **2026-09-22 — a `list` is 24 bytes even where Cortex could prove it
   smaller.** `lists.md` says a sequence nothing appends to becomes an
   `array`, and a list whose final size is proven needs no capacity field.
@@ -444,9 +444,9 @@ Dated, with the alternative, so each can become a question later.
   machine. The targets CCA writes code for are listed in `cca/targets.txt`,
   the one list (Synthia copies it, and the oracle reads it); any target
   not in it is refused (owner, 2026-09-30: "refuse"), and a default that
-  is not this machine's is "not yet". A `CCA.cplr` without a 'name', a 'prefix', a
+  is not this machine's is "not yet". A `Kinesin.nrp` without a 'name', a 'prefix', a
   'version' or a target is refused (owner, 2026-09-29), a dependency's
-  too; a folder with no `CCA.cplr` is a plain program, and a dependency
+  too; a folder with no `Kinesin.nrp` is a plain program, and a dependency
   must have one. Its 'name' and 'prefix' both follow the module-name rule
   (owner, 2026-09-30: "strict"), with the oracle's reasons. A dependency is reached by its own 'prefix' and names no
   word; two different folders with one prefix, or a dependency whose
@@ -495,8 +495,8 @@ Dated, with the alternative, so each can become a question later.
   target named is then refused; checking (`cca check`, `cca mir`, `cca
   precog`) is not. A target is named `--target aarch64-macos`, the
   spelling cargo and clang use, once per command (proposed by CCA, ruled
-  by the owner). A named target must be one the Neuron's `CCA.cplr` lists (a
-  plain `.cpls` file: one in `cca/targets.txt`), and is built only on its
+  by the owner). A named target must be one the Neuron's `Kinesin.nrp` lists (a
+  plain `.nrv` file: one in `cca/targets.txt`), and is built only on its
   own machine so far, as the default is.
 - **2026-09-29 — `cca prepare`: picks around the owner's rulings.** The
   rulings (the current folder's Neuron; names are Neurons' `name`s, its own or

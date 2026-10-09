@@ -17,6 +17,56 @@ pub enum Purpose<'a> {
     Compile(Option<&'a str>),
 }
 
+/// The file names (owner, 2026-10-09): code ends `.nrv`, a Neuron's root
+/// is `neuron.nrv`, and its manifest, a file that is one value and never
+/// runs, is `Kinesin.nrp`.
+pub const MANIFEST: &str = "Kinesin.nrp";
+pub const ROOT: &str = "neuron.nrv";
+
+/// A file or folder still named as it was before 2026-10-09, refused
+/// naming its new name.
+fn old_names(path: &Path) -> Result<()> {
+    let name = |p: &Path| p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    if path.is_file() {
+        if path.extension().is_some_and(|x| x == "cpls") {
+            return err(Diagnostic::error("`.cpls` is the old ending: rename the file to `.nrv`"));
+        }
+        return Ok(());
+    }
+    if path.join("CCA.cplr").is_file() {
+        return err(Diagnostic::error(format!("`CCA.cplr` has the old name: rename it to `{}`", MANIFEST)));
+    }
+    if !path.join(ROOT).is_file() && path.join("limb.cpls").is_file() {
+        return err(Diagnostic::error(format!("`limb.cpls` is the old root file: rename it to `{}`", ROOT)));
+    }
+    // A leftover `.cpls` file anywhere in the Neuron's folders.
+    fn under(d: &Path, found: &mut Option<std::path::PathBuf>) {
+        let Ok(rd) = std::fs::read_dir(d) else { return };
+        let mut es: Vec<_> = rd.filter_map(|e| e.ok()).map(|e| e.path()).collect();
+        es.sort();
+        for e in es {
+            if found.is_some() {
+                return;
+            }
+            let n = e.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+            if e.is_dir() {
+                if !n.starts_with('.') && n != "target" && !e.join(MANIFEST).is_file() {
+                    under(&e, found);
+                }
+            } else if e.extension().is_some_and(|x| x == "cpls") {
+                *found = Some(e);
+            }
+        }
+    }
+    let mut found = None;
+    under(path, &mut found);
+    if let Some(f) = found {
+        let stem = f.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+        return err(Diagnostic::error(format!("`{}` has the old name: rename it to `{}.nrv`", name(&f), stem)));
+    }
+    Ok(())
+}
+
 pub fn load(path: &Path, sources: &mut SourceMap) -> Result<Items> {
     load_for(path, sources, Purpose::Check)
 }
@@ -43,16 +93,16 @@ fn gather_precedence(sources: &mut SourceMap, path: &Path) -> Result<()> {
                 for e in es {
                     let name = e.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
                     if e.is_dir() {
-                        if !name.starts_with('.') && name != "target" && !e.join("CCA.cplr").is_file() {
+                        if !name.starts_with('.') && name != "target" && !e.join(MANIFEST).is_file() {
                             cpls_under(&e, out);
                         }
-                    } else if e.extension().is_some_and(|x| x == "cpls") {
+                    } else if e.extension().is_some_and(|x| x == "nrv") {
                         out.push(e);
                     }
                 }
             }
             cpls_under(&d, &mut files);
-            if d.join("CCA.cplr").is_file() {
+            if d.join(MANIFEST).is_file() {
                 if let Ok(m) = read_manifest(sources, &d) {
                     for dep in &m.deps {
                         dirs.push(d.join(&dep.path));
@@ -86,6 +136,7 @@ fn gather_precedence(sources: &mut SourceMap, path: &Path) -> Result<()> {
 }
 
 pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Result<Items> {
+    old_names(path)?;
     gather_precedence(sources, path)?;
     let mut items = Items::default();
     // The root Limb's targets and default, when it has a `CCA.cplr`.
@@ -105,7 +156,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         (Purpose::Check, None) => None,
         (Purpose::Compile(Some(t)), Some((listed, _))) => {
             if !listed.iter().any(|l| l == t) {
-                return err(Diagnostic::error(format!("`{}` is not one of this Neuron's targets: its `CCA.cplr` lists {}", t, listed.iter().map(|l| format!("`{}`", l)).collect::<Vec<_>>().join(", "))));
+                return err(Diagnostic::error(format!("`{}` is not one of this Neuron's targets: its `Kinesin.nrp` lists {}", t, listed.iter().map(|l| format!("`{}`", l)).collect::<Vec<_>>().join(", "))));
             }
             Some((t.to_string(), None))
         }
@@ -170,15 +221,15 @@ pub enum Wanted {
 /// each once; `--all` runs dependencies before the Limbs that use them,
 /// each once. Nothing is loaded but manifests.
 pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<Vec<(String, PathBuf)>> {
-    if !dir.join("limb.cpls").is_file() {
-        return err(Diagnostic::error(format!("`cca prepare` acts on a Neuron, and `{}` has no `limb.cpls`", dir.display())));
+    if !dir.join(ROOT).is_file() {
+        return err(Diagnostic::error(format!("`cca prepare` acts on a Neuron, and `{}` has no `neuron.nrv`", dir.display())));
     }
     // A Limb's name and prefix, from its own `CCA.cplr`; a dependency
     // without one has neither.
     fn words_of(sources: &mut SourceMap, dir: &Path, from: Option<(&Path, &str)>) -> Result<(String, String)> {
         if let Some((manifest_at, written)) = from {
-            if !dir.join("CCA.cplr").is_file() {
-                return err(Diagnostic::error(format!("the Neuron at `{}` has no `CCA.cplr`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
+            if !dir.join(MANIFEST).is_file() {
+                return err(Diagnostic::error(format!("the Neuron at `{}` has no `Kinesin.nrp`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
             }
         }
         let m = read_manifest(sources, dir)?;
@@ -191,7 +242,7 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
         if name == prefix { name.to_string() } else { format!("{} (prefix `{}`)", name, prefix) }
     }
     let manifest = read_manifest(sources, dir)?;
-    let manifest_at = dir.join("CCA.cplr");
+    let manifest_at = dir.join(MANIFEST);
     let (own_name, own_prefix) = words_of(sources, dir, None)?;
     let names = match pick {
         Pick::All => {
@@ -207,7 +258,7 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
                     return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a Neuron cannot depend on itself, however far round", names.join(" → "))));
                 }
                 let manifest = read_manifest(sources, dir)?;
-                let manifest_at = dir.join("CCA.cplr");
+                let manifest_at = dir.join(MANIFEST);
                 stack.push((key.clone(), shown.clone()));
                 for d in &manifest.deps {
                     let at = dir.join(&d.path);
@@ -295,6 +346,7 @@ struct Loading {
 /// and its root is `ROOT`, made first. Gives back the Limb's root module
 /// and its prefix.
 fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Option<(&Path, &str)>, state: &mut Loading) -> Result<(ModuleId, String)> {
+    old_names(dir)?;
     let key = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
     if let Some(r) = state.done.get(&key) {
         return Ok(r.clone());
@@ -304,18 +356,18 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
         names.push(state.stack[at].1.clone());
         return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a Neuron cannot depend on itself, however far round", names.join(" → "))));
     }
-    let root = dir.join("limb.cpls");
+    let root = dir.join(ROOT);
     if !root.is_file() {
         return err(Diagnostic::error(match from {
-            None => format!("`{}` is a Neuron directory, and a Neuron needs its root file `limb.cpls`: none is there", short(dir)),
-            Some((_, written)) => format!("the Neuron at `{}` needs its root file `limb.cpls`: none is there", written),
+            None => format!("`{}` is a Neuron directory, and a Neuron needs its root file `neuron.nrv`: none is there", short(dir)),
+            Some((_, written)) => format!("the Neuron at `{}` needs its root file `neuron.nrv`: none is there", written),
         }));
     }
     // A dependency is reached by the prefix its own `CCA.cplr` gives it,
     // and the depending Limb names no word (owner, 2026-09-29).
     if let Some((manifest_at, written)) = from {
-        if !dir.join("CCA.cplr").is_file() {
-            return err(Diagnostic::error(format!("the Neuron at `{}` has no `CCA.cplr`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
+        if !dir.join(MANIFEST).is_file() {
+            return err(Diagnostic::error(format!("the Neuron at `{}` has no `Kinesin.nrp`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
         }
     }
     let manifest = read_manifest(sources, dir)?;
@@ -326,8 +378,8 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     if let Some((manifest_at, written)) = from {
         // `cord` is reserved beside the old `std` and `stdkit` (owner,
         // 2026-10-09).
-        if matches!(prefix.as_str(), "std" | "stdkit" | "cord" | "cca") {
-            return err(Diagnostic::error(format!("the Neuron at `{}` has the prefix `{}`, which names the built-in `{}::`; edit its `prefix`", written, prefix, if prefix == "cca" { "cca" } else { "cord" })).place(manifest_at.display().to_string()));
+        if matches!(prefix.as_str(), "std" | "stdkit" | "cord" | "cca" | "kin") {
+            return err(Diagnostic::error(format!("the Neuron at `{}` has the prefix `{}`, which names the built-in `{}::`; edit its `prefix`", written, prefix, match prefix.as_str() { "cca" => "cca", "kin" => "kin", _ => "cord" })).place(manifest_at.display().to_string()));
         }
         // No override: two Limbs with one prefix are fixed by editing one
         // (owner, 2026-09-29: "Just edit the source code").
@@ -338,7 +390,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
         }
         state.prefixes.insert(prefix.clone(), key.clone());
     }
-    if from.is_none() && dir.join("CCA.cplr").is_file() {
+    if from.is_none() && dir.join(MANIFEST).is_file() {
         state.root = Some((manifest.targets.clone(), manifest.default_target.clone()));
     }
     let m = match from {
@@ -351,8 +403,8 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     };
     // A Limb without std reaches none of it; its dependencies are judged
     // by their own `CCA.cplr` (owner, 2026-10-06).
-    crate::parser::set_no_std(dir.join("CCA.cplr").is_file() && !manifest.has_std);
-    crate::parser::set_cores(dir.join("CCA.cplr").is_file().then(|| manifest.cores.clone()));
+    crate::parser::set_no_std(dir.join(MANIFEST).is_file() && !manifest.has_std);
+    crate::parser::set_cores(dir.join(MANIFEST).is_file().then(|| manifest.cores.clone()));
     let first_file = sources.files.len();
     let parsed = (|| {
         let mut file = parse_file(sources, &root)?;
@@ -371,18 +423,18 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     parsed?;
     // Without ASP a literal is a bit pattern, as the machine's (owner,
     // 2026-10-06).
-    if dir.join("CCA.cplr").is_file() && !manifest.cores.iter().any(|c| c == "ASP") {
+    if dir.join(MANIFEST).is_file() && !manifest.cores.iter().any(|c| c == "ASP") {
         items.raw_files.extend((first_file..sources.files.len()).map(|f| FileId(f as u32)));
     }
-    if dir.join("CCA.cplr").is_file() && !manifest.has_std {
+    if dir.join(MANIFEST).is_file() && !manifest.has_std {
         items.no_std_roots.insert(m);
     }
-    if dir.join("CCA.cplr").is_file() && !manifest.cores.iter().any(|c| c == "IEG") {
+    if dir.join(MANIFEST).is_file() && !manifest.cores.iter().any(|c| c == "IEG") {
         items.no_ieg_roots.insert(m);
     }
     // The power ledger's view of this Limb (owner, 2026-10-07): its list,
     // its cores; and, for the program, its `deny`.
-    if dir.join("CCA.cplr").is_file() {
+    if dir.join(MANIFEST).is_file() {
         items.limb_powers.insert(m, crate::resolve::LimbPowers { prefix: prefix.clone(), is_program: from.is_none(), lists: manifest.powers.clone(), cores: manifest.cores.clone() });
         if from.is_none() {
             items.program_deny = manifest.deny.clone();
@@ -391,7 +443,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     state.stack.push((key.clone(), prefix.clone()));
     let mut deps = std::collections::HashMap::new();
     let mut in_order: Vec<(String, ModuleId)> = Vec::new();
-    let manifest_at = dir.join("CCA.cplr");
+    let manifest_at = dir.join(MANIFEST);
     for d in &manifest.deps {
         let at = dir.join(&d.path);
         let (r, p) = load_limb(sources, items, &at, Some((&manifest_at, &d.path)), state)?;
@@ -459,13 +511,13 @@ const FIELDS: [&str; 8] = ["name", "prefix", "version", "targets", "dependencies
 
 use crate::ast::OFFICIAL_CORES;
 
-const MANIFEST_SHAPE: &str = "`cca::Manifest[name = \"areas\", prefix = \"areas\", version = \"1.0.0\", targets = [cca::Target[name = \"aarch64-macos\"],]];`";
+const MANIFEST_SHAPE: &str = "`kin::Manifest[name = \"areas\", prefix = \"areas\", version = \"1.0.0\", targets = [kin::Target[name = \"aarch64-macos\"],]];`";
 
 fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     use crate::ast::{Arg as AArg, ExprKind};
     use crate::lexer::Tok;
     let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new(), has_std: false, cores: Vec::new(), powers: Vec::new(), deny: Vec::new() };
-    let at = dir.join("CCA.cplr");
+    let at = dir.join(MANIFEST);
     if !at.is_file() {
         return Ok(out);
     }
@@ -473,12 +525,18 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     let id: FileId = sources.add(&at, text);
     let toks = crate::lexer::lex(id, &sources.get(id).text)?;
     if matches!(&toks[0].tok, Tok::Word(w) if w == "const" || w == "pub") {
-        return err(Diagnostic::error(format!("CCA.cplr's settings are no longer `const`s: the file is one value, {}", MANIFEST_SHAPE)).at(toks[0].span));
+        return err(Diagnostic::error(format!("Kinesin.nrp's settings are no longer `const`s: the file is one value, {}", MANIFEST_SHAPE)).at(toks[0].span));
+    }
+    // The manifest's types are `kin::` (owner, 2026-10-09: "yea").
+    for (i, t) in toks.iter().enumerate() {
+        if t.tok == Tok::Word("cca".into()) && toks.get(i + 1).is_some_and(|n| n.tok == Tok::ColonColon) {
+            return err(Diagnostic::error("`cca::` is an old spelling: write `kin::`").at(t.span));
+        }
     }
     let value = crate::parser::parse_value(&toks)?;
     let fields = match &value.kind {
-        ExprKind::Call { path, args, .. } if path.limb.as_ref().map(|l| l.name.as_str()) == Some("cca") && path.segs.iter().map(|s| s.name.as_str()).eq(["Manifest"]) => args,
-        _ => return err(Diagnostic::error(format!("CCA.cplr is one value: {}", MANIFEST_SHAPE)).at(value.span)),
+        ExprKind::Call { path, args, .. } if path.limb.as_ref().map(|l| l.name.as_str()) == Some("kin") && path.segs.iter().map(|s| s.name.as_str()).eq(["Manifest"]) => args,
+        _ => return err(Diagnostic::error(format!("Kinesin.nrp is one value: {}", MANIFEST_SHAPE)).at(value.span)),
     };
     let mut seen: Vec<String> = Vec::new();
     let text = |e: &crate::ast::Expr, what: &str| -> Result<String> {
@@ -489,12 +547,12 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     };
     for a in fields {
         let AArg::Named(field, v) = a else {
-            return err(Diagnostic::error("a `cca::Manifest` names its fields: `name = …`, `prefix = …`, `version = …`, `targets = […]`").at(a.span()));
+            return err(Diagnostic::error("a `kin::Manifest` names its fields: `name = …`, `prefix = …`, `version = …`, `targets = […]`").at(a.span()));
         };
         let setting = field.name.as_str();
         // One target became a list (owner, 2026-09-29).
         if setting == "target" {
-            return err(Diagnostic::error("a Neuron lists its targets, so the field is `targets`: `targets = [cca::Target[name = \"aarch64-macos\"],]`").at(field.span));
+            return err(Diagnostic::error("a Neuron lists its targets, so the field is `targets`: `targets = [kin::Target[name = \"aarch64-macos\"],]`").at(field.span));
         }
         // A core is a lobe (owner, 2026-10-09: "yea, go").
         if setting == "cores" {
@@ -503,10 +561,10 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
         // What a Limb may do (`design/cores.md`): which powers exist is
         // not decided.
         if !FIELDS.contains(&setting) {
-            return err(Diagnostic::error(format!("a `cca::Manifest` has no field `{}`: its fields are {}", setting, FIELDS.iter().map(|s| format!("`{}`", s)).collect::<Vec<_>>().join(", "))).at(field.span));
+            return err(Diagnostic::error(format!("a `kin::Manifest` has no field `{}`: its fields are {}", setting, FIELDS.iter().map(|s| format!("`{}`", s)).collect::<Vec<_>>().join(", "))).at(field.span));
         }
         if seen.iter().any(|s| s == setting) {
-            return err(Diagnostic::error(format!("`{}` is given twice in the `cca::Manifest`", setting)).at(field.span));
+            return err(Diagnostic::error(format!("`{}` is given twice in the `kin::Manifest`", setting)).at(field.span));
         }
         seen.push(setting.to_string());
         match setting {
@@ -534,7 +592,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             // machine: which one is built when none is named is open.
             "targets" => {
                 let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error("`targets` is a list of `cca::Target[…]`: `[cca::Target[name = \"aarch64-macos\"],]`").at(v.span));
+                    return err(Diagnostic::error("`targets` is a list of `kin::Target[…]`: `[kin::Target[name = \"aarch64-macos\"],]`").at(v.span));
                 };
                 let mut names: Vec<String> = Vec::new();
                 let mut name_spans: Vec<crate::source::Span> = Vec::new();
@@ -542,17 +600,17 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                 let mut defaults: Vec<(String, crate::source::Span)> = Vec::new();
                 for e in entries {
                     let ExprKind::Call { path, args, .. } = &e.kind else {
-                        return err(Diagnostic::error("each target is a `cca::Target[name = …]`, with a `runner = …` when this machine cannot run it").at(e.span));
+                        return err(Diagnostic::error("each target is a `kin::Target[name = …]`, with a `runner = …` when this machine cannot run it").at(e.span));
                     };
-                    if path.limb.as_ref().map(|l| l.name.as_str()) != Some("cca") || !path.segs.iter().map(|s| s.name.as_str()).eq(["Target"]) {
-                        return err(Diagnostic::error(format!("each target is a `cca::Target[…]`, and this is `{}`", path.spelled())).at(e.span));
+                    if path.limb.as_ref().map(|l| l.name.as_str()) != Some("kin") || !path.segs.iter().map(|s| s.name.as_str()).eq(["Target"]) {
+                        return err(Diagnostic::error(format!("each target is a `kin::Target[…]`, and this is `{}`", path.spelled())).at(e.span));
                     }
                     let mut name = None;
                     let mut is_default = false;
                     let mut said_not = false;
                     for a in args {
                         let AArg::Named(field, v) = a else {
-                            return err(Diagnostic::error("a `cca::Target` names its fields: `name = …`, and `runner = …` when it needs one").at(a.span()));
+                            return err(Diagnostic::error("a `kin::Target` names its fields: `name = …`, and `runner = …` when it needs one").at(a.span()));
                         };
                         match field.name.as_str() {
                             "name" => name = Some((text(v, "a target's `name`")?, field.span)),
@@ -568,11 +626,11 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                                 }
                                 _ => return err(Diagnostic::error("a target's `default` is `true` or `false`").at(v.span)),
                             },
-                            other => return err(Diagnostic::error(format!("a `cca::Target` has no field `{}`: it is a `name`, a `runner` when this machine cannot run it, and `default = true` on the one built when none is named", other)).at(field.span)),
+                            other => return err(Diagnostic::error(format!("a `kin::Target` has no field `{}`: it is a `name`, a `runner` when this machine cannot run it, and `default = true` on the one built when none is named", other)).at(field.span)),
                         }
                     }
                     let Some((n, span)) = name else {
-                        return err(Diagnostic::error("a `cca::Target` needs its `name`: `cca::Target[name = \"aarch64-linux\"]`").at(e.span));
+                        return err(Diagnostic::error("a `kin::Target` needs its `name`: `kin::Target[name = \"aarch64-linux\"]`").at(e.span));
                     };
                     if names.contains(&n) {
                         return err(Diagnostic::error(format!("the target `{}` is listed twice in `targets`", n)).at(span));
@@ -613,7 +671,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             // .except["write"],]` (owner, 2026-10-07).
             "powers" | "deny" => {
                 let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error(format!("`{}` is a list of `cca::Power.…`: `[cca::Power.c_calls,]`", setting)).at(v.span));
+                    return err(Diagnostic::error(format!("`{}` is a list of `kin::Power.…`: `[kin::Power.c_calls,]`", setting)).at(v.span));
                 };
                 for e in entries {
                     let (power, except, for_limbs) = read_power(e)?;
@@ -632,16 +690,16 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             // of the cores it lists; CCA's code is built the same either way.
             "lobes" => {
                 let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error(format!("`lobes` is a list of `cca::Lobe[…]`: `[{},]`", crate::ast::core_line("IEG"))).at(v.span));
+                    return err(Diagnostic::error(format!("`lobes` is a list of `kin::Lobe[…]`: `[{},]`", crate::ast::core_line("IEG"))).at(v.span));
                 };
                 let mut names: Vec<String> = Vec::new();
                 for e in entries {
                     let core = match &e.kind {
-                        ExprKind::Call { path, .. } if path.limb.as_ref().map(|l| l.name.as_str()) == Some("cca") && path.segs.iter().map(|s| s.name.as_str()).eq(["Core"]) => {
-                            return err(Diagnostic::error("`cca::Core` is an old spelling: write `cca::Lobe`").at(path.span));
+                        ExprKind::Call { path, .. } if path.limb.as_ref().map(|l| l.name.as_str()) == Some("kin") && path.segs.iter().map(|s| s.name.as_str()).eq(["Core"]) => {
+                            return err(Diagnostic::error("`kin::Core` is an old spelling: write `kin::Lobe`").at(path.span));
                         }
-                        ExprKind::Call { path, args, .. } if path.limb.as_ref().map(|l| l.name.as_str()) == Some("cca") && path.segs.iter().map(|s| s.name.as_str()).eq(["Lobe"]) => args,
-                        _ => return err(Diagnostic::error("each lobe is a `cca::Lobe[id = …, version = …]`").at(e.span)),
+                        ExprKind::Call { path, args, .. } if path.limb.as_ref().map(|l| l.name.as_str()) == Some("kin") && path.segs.iter().map(|s| s.name.as_str()).eq(["Lobe"]) => args,
+                        _ => return err(Diagnostic::error("each lobe is a `kin::Lobe[id = …, version = …]`").at(e.span)),
                     };
                     // A core is listed by its registry ID and a version, or
                     // by a path when it is not registered (owner,
@@ -649,14 +707,14 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     let (mut id, mut version, mut where_) = (None, None, None);
                     for a in core {
                         let AArg::Named(f, cv) = a else {
-                            return err(Diagnostic::error("a `cca::Lobe` names its fields: `cca::Lobe[id = \"…\", version = \"…\"]`").at(a.span()));
+                            return err(Diagnostic::error("a `kin::Lobe` names its fields: `kin::Lobe[id = \"…\", version = \"…\"]`").at(a.span()));
                         };
                         match f.name.as_str() {
-                            "name" => return err(Diagnostic::error(format!("a lobe is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `cca::Lobe[id = \"…\", version = \"…\"]`; IEG's is `{}`", OFFICIAL_CORES[0].1)).at(f.span)),
+                            "name" => return err(Diagnostic::error(format!("a lobe is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `kin::Lobe[id = \"…\", version = \"…\"]`; IEG's is `{}`", OFFICIAL_CORES[0].1)).at(f.span)),
                             "id" => id = Some((text(cv, "a lobe's `id`")?, cv.span)),
                             "version" => version = Some((text(cv, "a lobe's `version`")?, cv.span)),
                             "path" => where_ = Some((text(cv, "a lobe's `path`")?, cv.span)),
-                            other => return err(Diagnostic::error(format!("a `cca::Lobe` has no field `{}`: it is an `id` and a `version`, or a `path`", other)).at(f.span)),
+                            other => return err(Diagnostic::error(format!("a `kin::Lobe` has no field `{}`: it is an `id` and a `version`, or a `path`", other)).at(f.span)),
                         }
                     }
                     if let (Some(_), Some((_, at))) = (&id, &where_) {
@@ -668,7 +726,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                         return err(Diagnostic::error(format!("the lobe at `{}` is not registered, so not verified; loading another lobe is not built yet (a plugin, which CCA cannot load yet)", p)).at(at));
                     }
                     let Some((i, ispan)) = id else {
-                        return err(Diagnostic::error("a `cca::Lobe` says which lobe: `cca::Lobe[id = \"…\", version = \"…\"]`").at(e.span));
+                        return err(Diagnostic::error("a `kin::Lobe` says which lobe: `kin::Lobe[id = \"…\", version = \"…\"]`").at(e.span));
                     };
                     // MTM's ID is retired (owner, 2026-10-07: "MTM is gone.").
                     if i == crate::ast::MTM_ID {
@@ -696,26 +754,26 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             }
             _ => {
                 let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error("`dependencies` is a list of `cca::Dep[…]`: `[cca::Dep[path = \"../areas\"],]`").at(v.span));
+                    return err(Diagnostic::error("`dependencies` is a list of `kin::Dep[…]`: `[kin::Dep[path = \"../areas\"],]`").at(v.span));
                 };
                 for e in entries {
                     let ExprKind::Call { path, args, .. } = &e.kind else {
-                        return err(Diagnostic::error("each dependency is a `cca::Dep[path = …]`, or a `cca::Dep[id = …, version = …]`").at(e.span));
+                        return err(Diagnostic::error("each dependency is a `kin::Dep[path = …]`, or a `kin::Dep[id = …, version = …]`").at(e.span));
                     };
-                    if path.limb.as_ref().map(|l| l.name.as_str()) != Some("cca") || !path.segs.iter().map(|s| s.name.as_str()).eq(["Dep"]) {
-                        return err(Diagnostic::error(format!("each dependency is a `cca::Dep[…]`, and this is `{}`", path.spelled())).at(e.span));
+                    if path.limb.as_ref().map(|l| l.name.as_str()) != Some("kin") || !path.segs.iter().map(|s| s.name.as_str()).eq(["Dep"]) {
+                        return err(Diagnostic::error(format!("each dependency is a `kin::Dep[…]`, and this is `{}`", path.spelled())).at(e.span));
                     }
                     let (mut dpath, mut version, mut id) = (None, None, None);
                     for a in args {
                         let AArg::Named(field, v) = a else {
-                            return err(Diagnostic::error("a `cca::Dep` names its fields: a `path = …`, or an `id = …` and a `version = …`").at(a.span()));
+                            return err(Diagnostic::error("a `kin::Dep` names its fields: a `path = …`, or an `id = …` and a `version = …`").at(a.span()));
                         };
                         let slot = match field.name.as_str() {
-                            "name" | "prefix" => return err(Diagnostic::error("a dependency names no word: code writes the Neuron's own `prefix`, from its `CCA.cplr`").at(field.span)),
+                            "name" | "prefix" => return err(Diagnostic::error("a dependency names no word: code writes the Neuron's own `prefix`, from its `Kinesin.nrp`").at(field.span)),
                             "path" => &mut dpath,
                             "version" => &mut version,
                             "id" => &mut id,
-                            other => return err(Diagnostic::error(format!("a `cca::Dep` has no field `{}`: it is a `path`, or an `id` and a `version`", other)).at(field.span)),
+                            other => return err(Diagnostic::error(format!("a `kin::Dep` has no field `{}`: it is a `path`, or an `id` and a `version`", other)).at(field.span)),
                         };
                         *slot = Some((text(v, &format!("`{}`", field.name))?, field.span));
                     }
@@ -814,7 +872,7 @@ fn check_case(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, r
     if root {
         CASE_LINES.with(|k| *k.borrow_mut() = file.case_kinds.clone());
     } else if let Some((_, _, at)) = file.case_kinds.first() {
-        return err(Diagnostic::error("a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `limb.cpls`").at(*at));
+        return err(Diagnostic::error("a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `neuron.nrv`").at(*at));
     }
     let lines = CASE_LINES.with(|k| k.borrow().clone());
     let line = |at: Span| sources.get(at.file).line_of(at.start);
@@ -933,7 +991,7 @@ fn check_bare(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, b
     if root {
         BARE_KINDS.with(|k| *k.borrow_mut() = file.bare_kinds.clone());
     } else if let Some((m, _, at)) = file.bare_kinds.first() {
-        return err(Diagnostic::error(format!("`{} [ … ];` covers the whole Neuron, so it is written in `limb.cpls`", m.spelled())).at(*at));
+        return err(Diagnostic::error(format!("`{} [ … ];` covers the whole Neuron, so it is written in `neuron.nrv`", m.spelled())).at(*at));
     }
     let kinds = BARE_KINDS.with(|k| k.borrow().clone());
     let line = |at: crate::source::Span| sources.get(at.file).line_of(at.start);
@@ -1003,7 +1061,7 @@ fn check_bare(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, b
         let mut all: Vec<(Bare, crate::source::Span)> = chain.first().copied().into_iter().chain(file.bare_file).chain(kinds.iter().filter(|(_, ks, _)| ks.iter().any(|k| k == kind)).map(|(m, _, at)| (*m, *at))).collect();
         all.sort_by_key(|m| (m.1.file != it.span.file, line(m.1)));
         match all.first() {
-            None => err(Diagnostic::error(format!("`{k} {n}` is `pub`, and nothing says how other Neurons write its path: mark it (`pub bare.never {k} …`), its module, or its kind in `limb.cpls` (`bare.never [{k}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default", k = kind, n = name)).at(it.span)),
+            None => err(Diagnostic::error(format!("`{k} {n}` is `pub`, and nothing says how other Neurons write its path: mark it (`pub bare.never {k} …`), its module, or its kind in `neuron.nrv` (`bare.never [{k}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default", k = kind, n = name)).at(it.span)),
             Some(&first) => match all.iter().find(|m| m.0 != first.0) {
                 Some(&other) => both(first, other),
                 None => {
@@ -1029,13 +1087,13 @@ fn read_power(e: &crate::ast::Expr) -> Result<ReadPower> {
         args.iter()
             .map(|a| match a {
                 AArg::Positional(crate::ast::Expr { kind: ExprKind::Str(s), .. }) => Ok(s.clone()),
-                other => err(Diagnostic::error("a power names exact things as texts: `cca::Power.c_calls[\"sqrt\"]`").at(other.span())),
+                other => err(Diagnostic::error("a power names exact things as texts: `kin::Power.c_calls[\"sqrt\"]`").at(other.span())),
             })
             .collect()
     }
     fn flat(e: &crate::ast::Expr, out: &mut Vec<Step>) -> Result<()> {
         match &e.kind {
-            ExprKind::Path(p) | ExprKind::Call { path: p, args: _, .. } if p.limb.as_ref().map(|l| l.name.as_str()) == Some("cca") && p.segs.first().is_some_and(|s| s.name == "Power") => {
+            ExprKind::Path(p) | ExprKind::Call { path: p, args: _, .. } if p.limb.as_ref().map(|l| l.name.as_str()) == Some("kin") && p.segs.first().is_some_and(|s| s.name == "Power") => {
                 out.extend(p.segs[1..].iter().map(|s| Step::Word(s.name.clone())));
                 if let ExprKind::Call { args, .. } = &e.kind {
                     out.push(Step::Things(texts(args)?));
@@ -1057,7 +1115,7 @@ fn read_power(e: &crate::ast::Expr) -> Result<ReadPower> {
                 out.push(Step::Things(texts(&[AArg::Positional((**index).clone())])?));
                 Ok(())
             }
-            _ => err(Diagnostic::error("a power is `cca::Power.` and its name: `cca::Power.c_calls`, `cca::Power.raw_memory.read`").at(e.span)),
+            _ => err(Diagnostic::error("a power is `kin::Power.` and its name: `kin::Power.c_calls`, `kin::Power.raw_memory.read`").at(e.span)),
         }
     }
     let mut steps = Vec::new();
@@ -1086,7 +1144,7 @@ fn read_power(e: &crate::ast::Expr) -> Result<ReadPower> {
         }
     }
     if power.path.is_empty() {
-        return err(Diagnostic::error("a power has a name: `cca::Power.c_calls`").at(e.span));
+        return err(Diagnostic::error("a power has a name: `kin::Power.c_calls`").at(e.span));
     }
     // The powers there are (owner, 2026-10-07): Signatar's three and their
     // narrowings, IEG's vouching, and the extension powers built so far.
@@ -1119,11 +1177,11 @@ fn load_dir(sources: &mut SourceMap, items: &mut Items, dir: &Path, parent: Modu
     let mut file_modules: Vec<(String, ModuleId)> = Vec::new();
     for e in entries.iter().filter(|p| p.is_file()) {
         let Some(ext) = e.extension() else { continue };
-        if ext != "cpls" {
+        if ext != "nrv" {
             continue;
         }
         let stem = e.file_stem().unwrap().to_string_lossy().to_string();
-        if is_root_dir && stem == "limb" {
+        if is_root_dir && stem == "neuron" {
             continue;
         }
         check_name(&stem, e)?;
@@ -1168,11 +1226,16 @@ fn load_dir(sources: &mut SourceMap, items: &mut Items, dir: &Path, parent: Modu
 fn has_cpls(dir: &Path) -> bool {
     std::fs::read_dir(dir).map(|rd| rd.filter_map(|e| e.ok()).any(|e| {
         let p = e.path();
-        (p.is_file() && p.extension().map(|x| x == "cpls").unwrap_or(false)) || (p.is_dir() && has_cpls(&p))
+        (p.is_file() && p.extension().map(|x| x == "nrv").unwrap_or(false)) || (p.is_dir() && has_cpls(&p))
     })).unwrap_or(false)
 }
 
 fn check_name(name: &str, at: &Path) -> Result<()> {
+    // `neuron.nrv` is a Neuron's root file (owner, 2026-10-09; `limb`
+    // before it).
+    if name == "neuron" {
+        return err(Diagnostic::error(format!("`neuron` names a Neuron's root file (`neuron.nrv`), so it cannot name a module: rename `{}`", short(at))));
+    }
     let ok = name.chars().next().map(|c| c.is_ascii_lowercase()).unwrap_or(false) && name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
     if !ok {
         return err(Diagnostic::error(format!("`{}` cannot name a module: module names are lowercase ASCII letters, digits and `_`, starting with a letter — rename `{}`", name, short(at))));

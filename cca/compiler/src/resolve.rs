@@ -299,7 +299,7 @@ impl Items {
         match &item.kind {
             ItemKind::Main(params, block) => {
                 if !is_root {
-                    return err(Diagnostic::error("`MAIN` lives at the root of the Neuron (`limb.cpls`), not in a module").at(item.span));
+                    return err(Diagnostic::error("`MAIN` lives at the root of the Neuron (`neuron.nrv`), not in a module").at(item.span));
                 }
                 if self.main.is_some() {
                     return err(Diagnostic::error("a program has one `MAIN`; this is the second").at(item.span));
@@ -864,7 +864,7 @@ impl Items {
         let here = self.limb_root(m);
         match self.limb_deps.get(&here).and_then(|d| d.get(&limb.name)) {
             Some(r) => Ok(*r),
-            None => err(Diagnostic::error(format!("no Neuron with the prefix `{}`: a Neuron this one uses is listed in its `CCA.cplr` (`dependencies = [cca::Dep[path = …],]`), and its own `CCA.cplr` says `prefix = \"{}\"`", limb.name, limb.name)).at(limb.span)),
+            None => err(Diagnostic::error(format!("no Neuron with the prefix `{}`: a Neuron this one uses is listed in its `Kinesin.nrp` (`dependencies = [kin::Dep[path = …],]`), and its own `Kinesin.nrp` says `prefix = \"{}\"`", limb.name, limb.name)).at(limb.span)),
         }
     }
 
@@ -1359,7 +1359,7 @@ pub fn describe_module(path: &str) -> String {
     if let Some(limb) = path.strip_suffix("::limb") {
         format!("the root of Neuron `{}`", limb)
     } else if path == "limb" {
-        "the root (`limb.cpls`)".to_string()
+        "the root (`neuron.nrv`)".to_string()
     } else {
         format!("module `{}`", path)
     }

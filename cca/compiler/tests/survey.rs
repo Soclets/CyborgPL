@@ -59,7 +59,7 @@ fn stage(path: &Path) -> Stage {
 #[ignore]
 fn survey() {
     let dir = repo().join("examples");
-    let mut files: Vec<PathBuf> = std::fs::read_dir(&dir).unwrap().filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().map_or(false, |x| x == "cpls") || p.is_dir()).collect();
+    let mut files: Vec<PathBuf> = std::fs::read_dir(&dir).unwrap().filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().map_or(false, |x| x == "nrv") || p.is_dir()).collect();
     files.sort();
     let mut base_gaps: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut std_only = Vec::new();

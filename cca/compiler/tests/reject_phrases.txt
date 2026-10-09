@@ -56,7 +56,7 @@ bare_glyph_op [fnv:ff9fd24907e07e6b] :: is a glyph operator, which has nowhere t
 bare_int [fnv:ef16210764d8ed79] :: the typed form is always fully explicit
 bare_kind_disagree [fnv:e3a4fefd8054dcfd] :: marks that disagree are an error
 bare_kind_unknown [fnv:61121c79d3fb4bbd] :: `module` is not a kind a `bare` mark covers
-bare_kinds_in_module [fnv:41a5f35fe69c7ecd] :: covers the whole Neuron, so it is written in `limb.cpls`
+bare_kinds_in_module [fnv:d52099e4818e5a0e] :: covers the whole Neuron, so it is written in `neuron.nrv`
 bare_list_type [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type parameter, the element type: `list[int32]`
 bare_never_op [fnv:d5a8c10e8fadaad1] :: `merge` is `greet`'s and `bare.never`: write `greet::merge`
 bare_never_without_path [fnv:fb7503be4f3b3837] :: `formal` is `greet`'s and `bare.never`: `greet` requires its path, so write `greet::formal[…]`
@@ -119,13 +119,14 @@ callback_with_capture [fnv:857b4698d5db52ac] :: C has nowhere to keep them
 callback_wrong_shape [fnv:6250f1a435863168] :: `qsort`'s parameter 'cmp' wants a function taking 2 argument(s); got a function taking 1 argument(s)
 caps_missing [fnv:6aac611f9faf6650] :: a `case` mark is CAPS's
 case_bad_kind [fnv:1784123126ebe5b3] :: `op` is not a kind a `case` mark covers: `fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var` (a module is marked on itself)
-case_differ_only [fnv:9f04eec11862c755] :: `Area` and `area` (line 2 of case_differ_only.cpls) differ only in case, and `area` is `case.insensitive`: they would be one name
-case_disagree [fnv:42ce55f108fca447] :: `fn Area` is marked both `case.insensitive` (line 1 of case_disagree.cpls) and `case.sensitive` (line 2 of case_disagree.cpls): marks that disagree are an error (owner, 2026-10-06)
+case_differ_only [fnv:611fb6b59275fbb7] :: `Area` and `area` (line 2 of case_differ_only.nrv) differ only in case, and `area` is `case.insensitive`: they would be one name
+case_disagree [fnv:e72158c33033734f] :: `fn Area` is marked both `case.insensitive` (line 1 of case_disagree.nrv) and `case.sensitive` (line 2 of case_disagree.nrv): marks that disagree are an error (owner, 2026-10-06)
 case_file_not_first [fnv:4f364d8fce7ca49c] :: a file's `case` mark is at its top, before anything else; a block module takes `case.insensitive module name { … }`
-case_kinds_in_module [fnv:280390737a998c99] :: a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `limb.cpls`
+case_kinds_in_module [fnv:7eb83a3a3d90d9c8] :: a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `neuron.nrv`
 case_pub_after [fnv:c644387294c3f297] :: `pub` comes first: `pub case.insensitive fn …`
-case_sensitive_default [fnv:a1b5964ecf87547c] :: there is no item `area` in the root (`limb.cpls`)
+case_sensitive_default [fnv:3ea4d3d6b2faacfb] :: there is no item `area` in the root (`neuron.nrv`)
 case_value_needs_is [fnv:381bbe93e82606db] :: a case says its value with `is`: `a { is …; }`
+cca_prefix_old [fnv:2e94c9e66ddf29cd] :: `cca::` is an old spelling: write `kin::`
 chained_cmp [fnv:fb46d9317941f47c] :: comparisons do not chain
 char_to_number [fnv:f0322c3a10514c25] :: `to.int32[`7`]` could mean 55 (its code) or 7 (its digit)
 check_bare [fnv:413f5a3fb67ec940] :: `check` goes in front of a statement
@@ -146,10 +147,10 @@ const_mut [fnv:9f30cb564f340919] :: neither `mut` nor `immut`
 const_shadow [fnv:e1b51c069042fda4] :: 'max' is a const and cannot be shadowed
 const_verb [fnv:d48a3137f8878e3c] :: it is a value known at compile time
 construct_quoted_field [fnv:7597065160c99b01] :: `x = …`, not `'x' = …`
-core_by_name [fnv:6bd84558b992431f] :: a lobe is listed by its registry ID since 2026-10-06
+core_by_name [fnv:7aae21500f4b8b92] :: a lobe is listed by its registry ID since 2026-10-06
 core_by_path [fnv:c0c6e1b65030802e] :: the lobe at `../mycore` is not registered, so not verified; loading another lobe is not built yet
 core_no_version [fnv:8a983765217202e8] :: a lobe needs its `version`, as a registry limb does
-core_type_old_spelling [fnv:8f85046a457b8f81] :: `cca::Core` is an old spelling: write `cca::Lobe`
+core_type_old_spelling [fnv:eb0bd38e45724c5d] :: `kin::Core` is an old spelling: write `kin::Lobe`
 core_wrong_version [fnv:a4a7a39fc18a028d] :: CCA knows IEG `2026-10-06T18:04:29+07:00` only
 cores_old_spelling [fnv:cdfee69d2e3230bf] :: `cores` is an old spelling: write `lobes`
 deci_family_mix [fnv:08ea65ffe19d9d06] :: between a deci and another number family
@@ -164,8 +165,8 @@ detached_lend [fnv:3faba8a8fbccffe8] :: no scope protects it, so 'x' could be go
 dir_badname [fnv:bfe56ff8eb188642] :: module names are lowercase ASCII letters, digits and `_`, starting with a letter
 dir_device_name [fnv:4718e7decb462654] :: is a reserved device name on Windows and cannot name a module
 dir_file_and_block [fnv:df3acd94ef8806e5] :: a module cannot be both
-dir_main_in_module [fnv:ff7321078df83975] :: `MAIN` lives at the root of the Neuron (`limb.cpls`), not in a module
-dir_no_root [fnv:6b8ef1b171c8350e] :: is a Neuron directory, and a Neuron needs its root file `limb.cpls`: none is there
+dir_main_in_module [fnv:ff7321078df83975] :: `MAIN` lives at the root of the Neuron (`neuron.nrv`), not in a module
+dir_no_root [fnv:6b8ef1b171c8350e] :: is a Neuron directory, and a Neuron needs its root file `neuron.nrv`: none is there
 dir_private_across_files [fnv:f537c2f7d773d954] :: it is visible there and in the modules nested inside it
 div_bare [fnv:d40c9ab3e6d5809c] :: say how `div` rounds
 div_lands_too_small [fnv:cd716c13c720d27d] :: the value can be outside what an `int8` holds
@@ -246,7 +247,7 @@ fnval_give_captured_used [fnv:144c19a252fdb2b8] :: was given away and no longer 
 fnval_op_as_value [fnv:62b0125508bce133] :: an operator sits between two values
 fnval_silent_capture [fnv:b296dee211a9f22b] :: it sees nothing of the surrounding scope unless `with [lend 'limit']` (or `copy` / `give`) says so
 fnval_type_with_names [fnv:3c0e576199d23fb9] :: no parameter names
-fnval_unknown_name [fnv:30b76508228be70e] :: a bare name is the function as a value, and none by that name is declared in the root (`limb.cpls`)
+fnval_unknown_name [fnv:30b76508228be70e] :: a bare name is the function as a value, and none by that name is declared in the root (`neuron.nrv`)
 fnval_wrong_return [fnv:13cc98448e4ae7f5] :: expected `apply`'s parameter 'f' (fn[int32] -> int32), found a `fn[int32] -> bool`
 fnval_wrong_shape [fnv:6250f1a435863168] :: expected `apply`'s parameter 'f' (fn[int32, int32] -> int32), found a `fn[int32] -> int32`
 fnval_wrong_verb [fnv:e7a82c8acfe26976] :: expected `apply`'s parameter 'f' (fn[str.utf8] -> int32), found a `fn[lent str.utf8] -> int32`
@@ -270,7 +271,7 @@ generic_inst_mismatch [fnv:7d29ffc630950dd5] :: expected a value of the declared
 generic_no_bound [fnv:ea71e74c4327a5eb] :: says what it accepts
 generic_no_space_arrow [fnv:436cf28ab247e3e5] :: put a space after `->` (`-> <T>`)
 generic_old_form [fnv:933f3f4e3a90c52c] :: what `<T>` accepts goes inside the brackets: `<T: any>`
-generic_op_overlap [fnv:d17deb8aaee98190] :: `~=` for int32 and the generic `~=` both cover int32
+generic_op_overlap [fnv:d39121bbe4049cfc] :: `~=` for int32 and the generic `~=` both cover int32
 generic_quoted_var [fnv:00d462dc38c9d0b4] :: a type variable's name is bare: `<T>`, not `<'T'>`
 generic_size_of [fnv:cf20c2fa7cc04da7] :: `size.of` takes a concrete type
 generic_to_c [fnv:89768fbb7f2f8a1a] :: a blank `<T>` cannot appear here
@@ -302,12 +303,14 @@ old_bang_check [fnv:a0138db0859142d5] :: `!check` is an old spelling: write `no_
 old_bang_mut [fnv:84b6146b48e828b9] :: `!mut` is an old spelling: write `immut`
 old_bang_not [fnv:8a10fba72a0c2f1a] :: `!` is an old spelling: write `not`
 old_bang_shadow [fnv:7c66670daa4752d3] :: `!$` is an old spelling: write `no_shadow`
+old_ending_cpls [fnv:269514a2c6134a46] :: `helper.cpls` has the old name: rename it to `helper.nrv`
 old_eq [fnv:d19b7ef20365f588] :: `==` is an old spelling: write `equal_to`
 old_ge [fnv:3c2099159bf1fd6a] :: `>/==` is an old spelling: write `at_least`
 old_inline_assembly [fnv:c077e953beb2d9ef] :: `inline.Assembly` is an old spelling: write `inline.ASM`
 old_inline_s [fnv:36fd7bec575e37a8] :: `inline.S` is an old spelling: write `inline.ASM`
 old_le [fnv:1955b6f224223830] :: `</==` is an old spelling: write `at_most`
 old_long_arrow [fnv:e6d19b625f1236c7] :: `-->` is an old spelling: write `->`
+old_manifest_name [fnv:e19fc01fe85f528f] :: `CCA.cplr` has the old name: rename it to `Kinesin.nrp`
 old_ne [fnv:89de9a5280038433] :: `!==` is an old spelling: write `not_equal`
 old_nocheck [fnv:1c0978e44051946b] :: `nocheck` is an old spelling: write `no_check`
 old_rust_name [fnv:ce24587a783da6fe] :: `i32` is an old spelling: write `int32`
@@ -380,7 +383,7 @@ list_into_array [fnv:25040c8ec84b53a4] :: the declared type is an `array` and th
 list_mixed_types [fnv:7d29ffc630950dd5] :: the list's element type is an `integer` and this value is text: convert it first
 list_to_text [fnv:0534c45cc9322638] :: a list is not text
 list_two_params [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type parameter, the element type: `list[int32]`
-loop_list_changed [fnv:d10d29551c0d3754] :: the loop on line 4 of loop_list_changed.cpls is still going through it
+loop_list_changed [fnv:16b831165e38dc0c] :: the loop on line 4 of loop_list_changed.nrv is still going through it
 lte_retired [fnv:d3273b1a4ee04243] :: `<==` is not an operator; less-or-equal is `at_most`
 main_args_one [fnv:a01f160c881421a0] :: `,` and the second parameter
 main_args_type [fnv:0fbaeb76c89973a8] :: is C's `argc`, whose type is `int32`
@@ -397,11 +400,11 @@ manifest_no_name [fnv:4d3f43697b4ab2f9] :: the manifest has no `name`
 manifest_no_prefix [fnv:400ab5e5ebd0c0b4] :: the manifest has no `prefix`
 manifest_no_target [fnv:0ec242e08a4049e9] :: the manifest has no target
 manifest_no_version [fnv:4888a0212dce5aa4] :: the manifest has no `version`
-manifest_not_a_manifest [fnv:005996073527cb29] :: CCA.cplr is one value: `cca::Manifest[
+manifest_not_a_manifest [fnv:6525d8158635aa91] :: Kinesin.nrp is one value: `kin::Manifest[
 manifest_old_consts [fnv:b7041583a1e96bf0] :: settings are no longer `const`s
 manifest_one_target [fnv:469b29d703804c8a] :: so the field is `targets`
 manifest_undoable_target [fnv:994ef28992020067] :: `x86_64-linux` is not a target CCA can build
-manifest_unknown_field [fnv:e1975ef746a966f7] :: a `cca::Manifest` has no field `versoin`
+manifest_unknown_field [fnv:aa8c1f78a700adc8] :: a `kin::Manifest` has no field `versoin`
 map_bad_key_type [fnv:3ebc5e71c74c0d11] :: keys are plain values, text, chars, structs, enums and lists of keys
 map_bad_variant [fnv:cd84c84831efd0e0] :: `map` (Cortex decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)
 map_bound_over [fnv:0e4ebc4a07b99fd9] :: this can take it outside the bound its type gives it
@@ -424,10 +427,10 @@ mod_mixed [fnv:c019255d74965b33] :: mathematics has no settled reading for `mod.
 mod_near_fraction [fnv:134e0296bec94776] :: leaves nothing over
 mod_trunc_beside [fnv:9d0efe113095066a] :: parenthesise
 mod_wrap [fnv:be9f9597514259ce] :: `mod` never overflows
-module_bare_name_from_root [fnv:0936952b4389389e] :: there is no item `f` in the root (`limb.cpls`)
+module_bare_name_from_root [fnv:0936952b4389389e] :: there is no item `f` in the root (`neuron.nrv`)
 module_in_body [fnv:ff095bdb85c4c377] :: a `module` sits at the top level of a file, not inside a body
 module_include_line [fnv:e6545bf351dc2847] :: a file module is found by its file name, and `module a { … }` is a block
-module_main_inside [fnv:ff7321078df83975] :: `MAIN` lives at the root of the Neuron (`limb.cpls`), not in a module
+module_main_inside [fnv:ff7321078df83975] :: `MAIN` lives at the root of the Neuron (`neuron.nrv`), not in a module
 module_mod_keyword [fnv:6d4cb506dcd6ef18] :: `mod` is the remainder operator; a module is `module name { … }`
 module_private_const [fnv:f537c2f7d773d954] :: add `pub` (other Neurons too) or `pub.neuron` (this Neuron) where it is declared
 module_private_fn [fnv:f537c2f7d773d954] :: it is visible there and in the modules nested inside it
@@ -444,10 +447,10 @@ my_alone [fnv:8b049ab55a911000] :: `my` is followed by `.` and the root item it 
 ne [fnv:1ab20e7db13a717a] :: `!=` is not an operator; not-equal is `not_equal`
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
 no_asp_check [fnv:2bd1fa17f630e35f] :: `check` is ASP's
-no_asp_to [fnv:6bb550a4e86bb313] :: `to.` is ASP's, and this Neuron's CCA.cplr does not list the lobe ASP
+no_asp_to [fnv:522beed3e6bfdb3c] :: `to.` is ASP's, and this Neuron's Kinesin.nrp does not list the lobe ASP
 no_bin128 [fnv:65f2adec4a0637da] :: there is no `bin128`
 no_cheat_old [fnv:fc0169759787cd18] :: `!c` is `no_cheat` now
-no_checks_lied [fnv:7bbcfe7ae233e140] :: !by-design CCA builds it and emits a note naming `NO_FUCKING_CHECKS`, which is the rule for a vouch that fails every run (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
+no_checks_lied [fnv:db50aac17478d1b8] :: !by-design CCA builds it and emits a note naming `NO_FUCKING_CHECKS`, which is the rule for a vouch that fails every run (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
 no_genny_generic [fnv:64350b60364cff82] :: a generic is Genny's
 no_genny_interface [fnv:d54522e77c6c628f] :: `interface` is Genny's
 no_ieg_no_checks_at_all [fnv:632142714807fd7f] :: `NO_FUCKING_CHECKS` is IEG's
@@ -461,11 +464,11 @@ no_std_list [fnv:2e321b84a09d7e30] :: a growing list (`list`) is cord's
 no_std_map [fnv:5149b9e8f16923d5] :: a map (`map`) is cord's
 no_std_negative [fnv:e09337d1f21210a8] :: `-` is cord's
 no_std_not [fnv:1e5730f94e9f7b4e] :: `not` is cord's
-no_std_plus [fnv:f58509518c1daa99] :: `plus` is cord's, and this Neuron's CCA.cplr does not list cord
+no_std_plus [fnv:9ee6f60665865e26] :: `plus` is cord's, and this Neuron's Kinesin.nrp does not list cord
 no_std_print [fnv:280a5fd8020bccee] :: `cord::print` is cord's
 no_std_text [fnv:704e2ab507e60726] :: a text operation (`str.…`) is cord's
 no_zero_value [fnv:84b2ff3a065836c5] :: there is no implicit zero
-nocheck_lied [fnv:86874220d4213c96] :: !by-design CCA builds it and emits a note, which is the rule (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
+nocheck_lied [fnv:591a65092c38e6be] :: !by-design CCA builds it and emits a note, which is the rule (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
 not_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading
 not_glued [fnv:a2433dca0ab88933] :: `!` is not an operator since 2026-10-07: a value's not is `not '
 number_next_to_text [fnv:7bc354939d76583e] :: join text with `++`, separate values with `,`
@@ -495,7 +498,7 @@ op_power_not_granted [fnv:d245be4188ec83f8] :: defines the operator `mean` on bu
 op_redefine_builtin [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `int32` may not
 op_redefine_word [fnv:32696bdc53fd9faa] :: a struct or enum may define `op mod` for itself, `int32` may not
 op_run_no_space [fnv:fc83d9208bcfbb43] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
-op_same_types_twice [fnv:0bc50ae9801281b3] :: `<+>` is defined twice for A, A
+op_same_types_twice [fnv:c633187c1719ed7b] :: `<+>` is defined twice for A, A
 op_star_undefined [fnv:b20e9f542727bd69] :: multiply is `times`
 op_three_operands [fnv:88d3d9d2c04c25a1] :: an operator takes exactly two operands; `<+>` is declared with 3
 op_value_and_then [fnv:a093a0ddfbdcf82d] :: cannot skip anything
@@ -515,11 +518,11 @@ plus_plus [fnv:b59243419dd75691] :: `++` joins text; there is no increment
 plusplus_needs_conversion [fnv:a6e724baccce5e1b] :: `++` joins text, and its right side is an `integer`: convert it first
 plusplus_numbers [fnv:4cdcad9affc5f4d9] :: `++` joins text, and its left side is an `integer`: convert it first
 pow_old [fnv:f86bba52e868b039] :: `xx` is `pow` now
-power_denied [fnv:54e59681190e4a76] :: this Neuron calls C (`write`), which this program denies (`deny`: `cca::Power.c_calls.functions`)
+power_denied [fnv:d3cf5dfcc087ccf7] :: this Neuron calls C (`write`), which this program denies (`deny`: `kin::Power.c_calls.functions`)
 power_deny_for [fnv:b37efe31805baa2c] :: `shapes` defines the operator `mean` on built-in types, which this program denies
 power_except_in_powers [fnv:54b297f6474bc3b4] :: `.except` and `.for` belong to `deny`
 power_listed_too_narrow [fnv:230e2928cd405e42] :: does not list `c_calls`
-power_not_listed [fnv:45d60555c5ff5bfd] :: this Neuron calls C (`write`), and its CCA.cplr does not list `c_calls`: add `cca::Power.c_calls` to its `powers`
+power_not_listed [fnv:9f3c8dba77f27483] :: this Neuron calls C (`write`), and its Kinesin.nrp does not list `c_calls`: add `kin::Power.c_calls` to its `powers`
 precedence_bare [fnv:2c52bed853d4921b] :: say which way the levels count
 print_bare [fnv:7587d85df41ba149] :: say which form
 print_format_backslash_percent [fnv:ad50ed3dcd7f1187] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet

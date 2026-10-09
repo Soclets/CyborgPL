@@ -276,7 +276,7 @@ fn rust_name(w: &str) -> Option<&'static str> {
 }
 
 fn core_missing<T>(what: &str, core: &str, at: Span) -> Result<T> {
-    err(Diagnostic::error(format!("{} is {}'s, and this Neuron's CCA.cplr does not list the lobe {}: add `{}` to its `lobes`", what, core, core, core_line(core))).at(at))
+    err(Diagnostic::error(format!("{} is {}'s, and this Neuron's Kinesin.nrp does not list the lobe {}: add `{}` to its `lobes`", what, core, core, core_line(core))).at(at))
 }
 
 /// std's registry ID and the one version CCA knows (owner, 2026-10-06).
@@ -323,7 +323,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
             // "Time: std, with duration literals"; d690ed91).
             if let (Tok::Num { .. }, Some(Tok::Word(u))) = (&toks[i].tok, toks.get(i + 1).map(|t| &t.tok)) {
                 if DURATION_UNITS.contains(&u.as_str()) {
-                    return err(Diagnostic::error(format!("a duration literal (`5 seconds`) is cord's, and this Neuron's CCA.cplr does not list cord: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", STD_ID, STD_VERSION)).at(toks[i].span));
+                    return err(Diagnostic::error(format!("a duration literal (`5 seconds`) is cord's, and this Neuron's Kinesin.nrp does not list cord: add `kin::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", STD_ID, STD_VERSION)).at(toks[i].span));
                 }
             }
             let Tok::Word(w) = &toks[i].tok else { continue };
@@ -338,7 +338,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                 ("str", Some(Tok::Dot)) if matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(u)) if matches!(u.as_str(), "bytes" | "points" | "graphemes" | "each" | "split" | "find" | "contains" | "trim" | "upper" | "lower" | "replace" | "starts_with" | "ends_with" | "at" | "slice" | "join")) => "a text operation (`str.…`)",
                 _ => continue,
             };
-            return err(Diagnostic::error(format!("{} is cord's, and this Neuron's CCA.cplr does not list cord: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION)).at(toks[i].span));
+            return err(Diagnostic::error(format!("{} is cord's, and this Neuron's Kinesin.nrp does not list cord: add `kin::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION)).at(toks[i].span));
         }
     }
     // Signatar's names are English letters, digits and `_`, bare or
@@ -519,7 +519,7 @@ impl<'a> Parser<'a> {
         if !self.no_std {
             return Ok(());
         }
-        self.fail_at(span, format!("`{}` is cord's, and this Neuron's CCA.cplr does not list cord: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION))
+        self.fail_at(span, format!("`{}` is cord's, and this Neuron's Kinesin.nrp does not list cord: add `kin::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION))
     }
 
     fn fail<T>(&self, msg: impl Into<String>) -> Result<T> {
@@ -618,7 +618,7 @@ impl<'a> Parser<'a> {
                 return self.fail_at(at, format!("`pub` comes first: `pub {} fn …`", case_spelled(mark)));
             }
             if self.is(&Tok::LBracket) {
-                return self.fail_at(at, "a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `limb.cpls`");
+                return self.fail_at(at, "a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `neuron.nrv`");
             }
             if self.is(&Tok::Semi) {
                 return self.fail_at(at, CASE_FILE_MARK_FIRST);
@@ -629,7 +629,7 @@ impl<'a> Parser<'a> {
         if self.is_word("bare") {
             let at = self.span();
             return match self.bare_line()? {
-                (_, Some(_)) => self.fail_at(at, "a `bare.… […];` line covers the whole Neuron, so it is written in `limb.cpls`"),
+                (_, Some(_)) => self.fail_at(at, "a `bare.… […];` line covers the whole Neuron, so it is written in `neuron.nrv`"),
                 (_, None) => self.fail_at(at, FILE_MARK_FIRST),
             };
         }
@@ -896,7 +896,7 @@ impl<'a> Parser<'a> {
             return Ok((mark, at, None));
         }
         if !self.eat(&Tok::LBracket) {
-            return self.fail_at(at, format!("a `case` mark is `{m};` at the top of a file, `{m} [fn, var];` in `limb.cpls`, `pub {m} fn …` on an item, or `{m} module name {{ … }}`", m = case_spelled(mark)));
+            return self.fail_at(at, format!("a `case` mark is `{m};` at the top of a file, `{m} [fn, var];` in `neuron.nrv`, `pub {m} fn …` on an item, or `{m} module name {{ … }}`", m = case_spelled(mark)));
         }
         let kinds_list = || CASE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", ");
         let mut kinds = Vec::new();
@@ -943,7 +943,7 @@ impl<'a> Parser<'a> {
             return Ok((mark, None));
         }
         if !self.eat(&Tok::LBracket) {
-            return self.fail_at(at, format!("a `bare` mark is `{m};` at the top of a file, `{m} [fn, op];` in `limb.cpls`, or `pub {m} fn …` on an item", m = mark.spelled()));
+            return self.fail_at(at, format!("a `bare` mark is `{m};` at the top of a file, `{m} [fn, op];` in `neuron.nrv`, or `pub {m} fn …` on an item", m = mark.spelled()));
         }
         let mut kinds = Vec::new();
         loop {

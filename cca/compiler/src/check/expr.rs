@@ -1791,7 +1791,7 @@ impl Checker {
             Some((limb, name)) => {
                 let here = self.items.limb_root(ctx.module);
                 let Some(root) = self.items.limb_deps.get(&here).and_then(|d| d.get(limb)).copied() else {
-                    return err(Diagnostic::error(format!("no Neuron with the prefix `{}`: a Neuron this one uses is listed in its `CCA.cplr`, and its own `CCA.cplr` says `prefix = \"{}\"`", limb, limb)).at(op_span));
+                    return err(Diagnostic::error(format!("no Neuron with the prefix `{}`: a Neuron this one uses is listed in its `Kinesin.nrp`, and its own `Kinesin.nrp` says `prefix = \"{}\"`", limb, limb)).at(op_span));
                 };
                 (Some((limb, root)), name)
             }

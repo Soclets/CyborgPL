@@ -1,7 +1,7 @@
 //! CCA against the oracle's tests (`design/compiler-session.md`).
 //!
-//! - every `examples/*.cpls` must load and check;
-//! - every `oracle/tests/reject/*.cpls` must be refused, with a message in
+//! - every `examples/*.nrv` must load and check;
+//! - every `oracle/tests/reject/*.nrv` must be refused, with a message in
 //!   CCA's own words. The `.err` is the *oracle's* one-liner, not a
 //!   template, so the phrase CCA must keep saying is recorded in
 //!   `reject_phrases.txt` — reviewed once against the `.err`, and the test
@@ -115,10 +115,10 @@ fn targets(dir: &Path) -> Vec<PathBuf> {
     let mut v: Vec<PathBuf> = std::fs::read_dir(dir)
         .unwrap()
         .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| p.extension().map(|x| x == "cpls").unwrap_or(false) || p.is_dir())
+        .filter(|p| p.extension().map(|x| x == "nrv").unwrap_or(false) || p.is_dir())
         // A folder that only holds Limbs used as dependencies
         // (`examples/limbs/`) is not a program of its own.
-        .filter(|p| !(p.is_dir() && !p.join("limb.cpls").is_file() && std::fs::read_dir(p).map(|rd| rd.filter_map(|e| e.ok()).any(|e| e.path().join("limb.cpls").is_file())).unwrap_or(false)))
+        .filter(|p| !(p.is_dir() && !p.join("neuron.nrv").is_file() && std::fs::read_dir(p).map(|rd| rd.filter_map(|e| e.ok()).any(|e| e.path().join("neuron.nrv").is_file())).unwrap_or(false)))
         .collect();
     v.sort();
     v

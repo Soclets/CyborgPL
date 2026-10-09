@@ -80,7 +80,7 @@ fn programs_build_run_and_give_back() {
     let _ = std::fs::create_dir_all(&out_dir);
     let results = common::par_map(&programs(), |(name, want)| -> Vec<String> {
         let mut failures = Vec::new();
-        let src = dir().join(format!("{}.cpls", name));
+        let src = dir().join(format!("{}.nrv", name));
         let bin = out_dir.join(name);
         let build = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(&bin).output().unwrap();
         if !build.status.success() {
@@ -135,7 +135,7 @@ fn a_proven_site_hands_its_fact_to_llvm() {
 fn deep_nesting_is_checked() {
     let dir = std::env::temp_dir().join("cca-codegen-tests");
     let _ = std::fs::create_dir_all(&dir);
-    let src = dir.join("deep.cpls");
+    let src = dir.join("deep.nrv");
     let depth = 5000;
     let expr = format!("{}1{}", "(1 plus ".repeat(depth), ")".repeat(depth));
     std::fs::write(&src, format!("MAIN {{\n    let 'x': int64 = {};\n}}\n", expr)).unwrap();
@@ -148,13 +148,13 @@ fn deep_nesting_is_checked() {
 #[test]
 fn main_takes_the_command_line() {
     assert!(runtime().is_some(), "the runtime is not built");
-    let src = dir().parent().unwrap().join("args/words.cpls");
+    let src = dir().parent().unwrap().join("args/words.nrv");
     let r = Command::new(cca()).arg("run").arg(&src).arg("--").args(["apples", "3", "hello world"]).output().unwrap();
     assert_eq!(r.status.code(), Some(212), "the arguments did not arrive as C hands them over:\n{}", String::from_utf8_lossy(&r.stderr));
     // Each word's bytes read as UTF-8 once (owner, 2026-09-30): a word past
     // ASCII arrives whole, and bytes that are not UTF-8 fail `not_utf8`.
     use std::os::unix::ffi::OsStrExt;
-    let src = dir().parent().unwrap().join("args/words_text.cpls");
+    let src = dir().parent().unwrap().join("args/words_text.nrv");
     let r = Command::new(cca()).arg("run").arg(&src).arg("--").arg("héllo").arg("ab").arg(std::ffi::OsStr::from_bytes(&[0xff])).output().unwrap();
     assert_eq!(r.status.code(), Some(178), "the words' bytes were not read as UTF-8:\n{}", String::from_utf8_lossy(&r.stderr));
 }
@@ -167,7 +167,7 @@ fn example_pending(name: &str) -> bool {
     text.lines().any(|l| l.split_once(" :: ").is_some_and(|(n, _)| n.trim() == name))
 }
 
-/// `cca test` (owner, 2026-09-29, `testing.md`): examples/testing.cpls
+/// `cca test` (owner, 2026-09-29, `testing.md`): examples/testing.nrv
 /// reports exactly as the oracle's `.test-out` has it, and every other way
 /// a test ends reports as tests/testing/outcomes.test-out says. A failing
 /// test makes the exit 1.
@@ -176,7 +176,7 @@ fn tests_run_and_report() {
     assert!(runtime().is_some(), "the runtime is not built");
     let repo = dir().parent().unwrap().parent().unwrap().parent().unwrap().parent().unwrap().to_path_buf();
     let testing = dir().parent().unwrap().join("testing");
-    for (src, want) in [(repo.join("examples/testing.cpls"), repo.join("examples/testing.test-out")), (testing.join("outcomes.cpls"), testing.join("outcomes.test-out"))] {
+    for (src, want) in [(repo.join("examples/testing.nrv"), repo.join("examples/testing.test-out")), (testing.join("outcomes.nrv"), testing.join("outcomes.test-out"))] {
         if src.starts_with(repo.join("examples")) && example_pending("testing") {
             continue;
         }
@@ -190,7 +190,7 @@ fn tests_run_and_report() {
 
 /// A Limb with a `path` dependency (owner, 2026-09-29): `areas::…` reaches
 /// its `pub` items, types, consts and modules, and the program runs; a
-/// cycle, and a dependency whose own `CCA.cplr` gives another name, are
+/// cycle, and a dependency whose own `Kinesin.nrp` gives another name, are
 /// refused.
 #[test]
 fn limbs_reach_their_dependencies() {
@@ -207,12 +207,12 @@ fn limbs_reach_their_dependencies() {
         let r = Command::new(cca()).arg("run").arg(limbs.join(name)).output().unwrap();
         assert_eq!(r.status.code(), Some(code), "{} did not run to {}:\n{}", name, code, String::from_utf8_lossy(&r.stderr));
     }
-    // Whether std is reached is judged per Limb, by its own CCA.cplr
+    // Whether std is reached is judged per Limb, by its own Kinesin.nrp
     // (owner, 2026-10-06): a Limb without std is refused its operators
     // even when the one using it lists std.
     let r = Command::new(cca()).arg("check").arg(limbs.join("uses_bare_dep")).output().unwrap();
     let err = String::from_utf8_lossy(&r.stderr);
-    assert!(!r.status.success() && err.contains("`plus.wrap` is cord's") && err.contains("bare_dep/limb.cpls"), "a Limb without std reached `plus.wrap`:\n{}", err);
+    assert!(!r.status.success() && err.contains("`plus.wrap` is cord's") && err.contains("bare_dep/neuron.nrv"), "a Limb without std reached `plus.wrap`:\n{}", err);
     // A lone target saying `default = false` leaves no default (owner,
     // 2026-09-30): checking is fine, a build with no `--target` is
     // refused, and one naming it builds.
@@ -285,11 +285,11 @@ fn prepare_runs_build_scripts_in_their_folders() {
 #[test]
 fn run_builds_runs_and_hands_back_the_exit() {
     assert!(runtime().is_some(), "the runtime is not built");
-    let r = Command::new(cca()).arg("run").arg(dir().join("simd_lane_write.cpls")).output().unwrap();
+    let r = Command::new(cca()).arg("run").arg(dir().join("simd_lane_write.nrv")).output().unwrap();
     assert_eq!(r.status.code(), Some(208), "`cca run` did not hand back the program's exit:\n{}", String::from_utf8_lossy(&r.stderr));
     assert!(r.stdout.is_empty(), "`cca run` printed on the program's stdout:\n{}", String::from_utf8_lossy(&r.stdout));
     assert!(String::from_utf8_lossy(&r.stderr).contains("sites:"), "`cca run` said nothing of the build on stderr");
-    let r = Command::new(cca()).arg("run").arg(dir().join("deci_divide_zero.cpls")).output().unwrap();
+    let r = Command::new(cca()).arg("run").arg(dir().join("deci_divide_zero.nrv")).output().unwrap();
     assert_eq!(r.status.code(), Some(101), "a check that fired under `cca run` did not stop it with 101");
 }
 
@@ -355,7 +355,7 @@ fn programs_run_the_same_with_proofs_asserted() {
     let _ = std::fs::create_dir_all(&out_dir);
     let results = common::par_map(&programs(), |(name, want)| -> Option<String> {
         let bin = out_dir.join(name);
-        let build = Command::new(cca()).arg("build").arg("--assert-proofs").arg(dir().join(format!("{}.cpls", name))).arg("-o").arg(&bin).output().unwrap();
+        let build = Command::new(cca()).arg("build").arg("--assert-proofs").arg(dir().join(format!("{}.nrv", name))).arg("-o").arg(&bin).output().unwrap();
         if !build.status.success() {
             return Some(format!("{}: would not build with proofs asserted:\n{}", name, indent(&String::from_utf8_lossy(&build.stderr))));
         }
@@ -376,9 +376,9 @@ fn final_build(path: &Path) -> std::process::Output {
 
 /// The final build accepts loops whose facts are counted (owner,
 /// 2026-09-23): a running sum is at most its trips times its largest step
-/// (`bench/lists.cpls`), and a list appended once a trip is as long as the
-/// counter has come (`bench/sieve.cpls`) — and recursion proven by
-/// induction on its arguments (`bench/fib.cpls`). And it still refuses
+/// (`bench/lists.nrv`), and a list appended once a trip is as long as the
+/// counter has come (`bench/sieve.nrv`) — and recursion proven by
+/// induction on its arguments (`bench/fib.nrv`). And it still refuses
 /// where the count does not fit, where the appends are not one a trip,
 /// where fib goes one past what fits, where a function recurses upward,
 /// and where the counter may not move on a trip.
@@ -386,25 +386,25 @@ fn final_build(path: &Path) -> std::process::Output {
 fn final_build_proves_counted_loops_and_no_more() {
     let bench = Path::new(env!("CARGO_MANIFEST_DIR")).join("../bench");
     for name in ["lists", "sieve", "fib"] {
-        let r = final_build(&bench.join(format!("{}.cpls", name)));
-        assert!(r.status.success(), "the final build refused bench/{}.cpls:\n{}", name, String::from_utf8_lossy(&r.stderr));
+        let r = final_build(&bench.join(format!("{}.nrv", name)));
+        assert!(r.status.success(), "the final build refused bench/{}.nrv:\n{}", name, String::from_utf8_lossy(&r.stderr));
     }
     let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/final");
     // An average fits its elements' type: the sum-over-length template.
     for name in ["mean_ok"] {
-        let r = final_build(&tests.join(format!("{}.cpls", name)));
-        assert!(r.status.success(), "the final build refused tests/final/{}.cpls:\n{}", name, String::from_utf8_lossy(&r.stderr));
+        let r = final_build(&tests.join(format!("{}.nrv", name)));
+        assert!(r.status.success(), "the final build refused tests/final/{}.nrv:\n{}", name, String::from_utf8_lossy(&r.stderr));
     }
     // Where each must be refused: the line that really can go wrong.
     for (name, phrase) in [
-        ("acc_overflows", "acc_overflows.cpls, line 12"),
-        ("append_on_a_branch", "append_on_a_branch.cpls, line 18"),
-        ("fib_93", "fib_93.cpls, line 8"),
-        ("recursion_upward", "recursion_upward.cpls, line 9"),
-        ("counter_on_a_branch", "counter_on_a_branch.cpls, line 19"),
-        ("mean_stale_read", "mean_stale_read.cpls, line 17"),
+        ("acc_overflows", "acc_overflows.nrv, line 12"),
+        ("append_on_a_branch", "append_on_a_branch.nrv, line 18"),
+        ("fib_93", "fib_93.nrv, line 8"),
+        ("recursion_upward", "recursion_upward.nrv, line 9"),
+        ("counter_on_a_branch", "counter_on_a_branch.nrv, line 19"),
+        ("mean_stale_read", "mean_stale_read.nrv, line 17"),
     ] {
-        let r = final_build(&tests.join(format!("{}.cpls", name)));
+        let r = final_build(&tests.join(format!("{}.nrv", name)));
         let err = String::from_utf8_lossy(&r.stderr);
         assert!(!r.status.success() && err.contains(phrase), "{}: the final build should refuse it ({}), and said:\n{}", name, phrase, err);
     }
@@ -424,7 +424,7 @@ fn an_unproven_narrowing_is_checked() {
 /// `proof failed:` exit 104 rather than silent undefined behaviour.
 #[test]
 fn proofs_can_be_asserted() {
-    let src = dir().join("proven_add.cpls");
+    let src = dir().join("proven_add.nrv");
     let out = std::env::temp_dir().join("cca-codegen-tests/ir-asserted");
     let _ = std::fs::create_dir_all(out.parent().unwrap());
     let r = Command::new(cca()).arg("build").arg("--assert-proofs").arg(&src).arg("-o").arg(&out).env("CCA_IR", "1").output().unwrap();
@@ -435,7 +435,7 @@ fn proofs_can_be_asserted() {
 }
 
 fn ir_of(name: &str) -> String {
-    let src = dir().join(format!("{}.cpls", name));
+    let src = dir().join(format!("{}.nrv", name));
     let out = std::env::temp_dir().join(format!("cca-codegen-tests/ir-{}", name));
     let _ = std::fs::create_dir_all(out.parent().unwrap());
     let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(&out).env("CCA_IR", "1").output().unwrap();
@@ -454,29 +454,29 @@ fn indent(s: &str) -> String {
 fn borrows_keep_what_they_borrow_while_in_use() {
     let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/final");
     for (name, phrase) in [("borrow_given_while_used", "'s' cannot be given away here: 'l' still borrows it"), ("borrow_mut_exclusive", "'xs' cannot be used here: 'm' still borrows it `lent.mut`"), ("borrow_appended_while_used", "'s' cannot be changed here: 'r' still borrows it")] {
-        let r = final_build(&tests.join(format!("{}.cpls", name)));
+        let r = final_build(&tests.join(format!("{}.nrv", name)));
         let err = String::from_utf8_lossy(&r.stderr).to_string();
         assert!(!r.status.success() && err.contains(phrase), "{}: should be refused ({}), and said:\n{}", name, phrase, err);
     }
-    let ok = final_build(&tests.join("borrow_given_after.cpls"));
-    assert!(ok.status.success(), "borrow_given_after.cpls should build:\n{}", String::from_utf8_lossy(&ok.stderr));
+    let ok = final_build(&tests.join("borrow_given_after.nrv"));
+    assert!(ok.status.success(), "borrow_given_after.nrv should build:\n{}", String::from_utf8_lossy(&ok.stderr));
 }
 
 /// Parallel `for` (owner, 2026-09-30: "do para for"): a loop whose
 /// iterations are proven apart gets a slice of its own and a call into the
 /// runtime's pool; a loop that calls C gets one only under `for para`, and
 /// `for seq` never does. What they compute is the in-order answer at any
-/// thread count (tests/programs/par_*.cpls, run at 3).
+/// thread count (tests/programs/par_*.nrv, run at 3).
 #[test]
 fn parallel_for_runs_in_slices() {
     let ir = ir_of("par_for");
     let slices = ir.matches("define internal void @cy_slice_").count();
-    assert!(slices >= 3 && ir.contains("@cyborg_par_for"), "par_for.cpls should run three loops in slices, and has {}:\n{}", slices, indent(&ir));
+    assert!(slices >= 3 && ir.contains("@cyborg_par_for"), "par_for.nrv should run three loops in slices, and has {}:\n{}", slices, indent(&ir));
     let ir = ir_of("par_extern");
     assert_eq!(ir.matches("define internal void @cy_slice_").count(), 1, "only the `for para` loop over C should run in slices:\n{}", indent(&ir));
     for threads in ["1", "2", "3"] {
         let exe = std::env::temp_dir().join("cca-codegen-tests/par_for");
-        let r = Command::new(cca()).arg("build").arg(dir().join("par_for.cpls")).arg("-o").arg(&exe).output().unwrap();
+        let r = Command::new(cca()).arg("build").arg(dir().join("par_for.nrv")).arg("-o").arg(&exe).output().unwrap();
         assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
         let r = Command::new(&exe).env("CYBORG_THREADS", threads).output().unwrap();
         assert_eq!(r.status.code(), Some(160), "par_for gave another answer on {} thread(s)", threads);
@@ -491,7 +491,7 @@ fn parallel_for_runs_in_slices() {
 fn refused_programs_stay_refused() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests").join("refuse");
     let mut failures = Vec::new();
-    let mut entries: Vec<PathBuf> = std::fs::read_dir(&dir).unwrap().filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "cpls")).collect();
+    let mut entries: Vec<PathBuf> = std::fs::read_dir(&dir).unwrap().filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "nrv")).collect();
     entries.sort();
     for p in entries {
         let src = std::fs::read_to_string(&p).unwrap();
@@ -513,7 +513,7 @@ fn refused_programs_stay_refused() {
 /// and its verdict was theirs.
 #[test]
 fn a_site_past_the_call_depth_is_judged() {
-    let src = dir().parent().unwrap().join("testing/claim_past_depth.cpls");
+    let src = dir().parent().unwrap().join("testing/claim_past_depth.nrv");
     let r = Command::new(cca()).arg("cortex").arg("--json").arg(&src).output().unwrap();
     let out = String::from_utf8_lossy(&r.stdout).to_string();
     let line = out.lines().find(|l| l.contains("\"start\":[5,") && l.contains("\"into int8\"")).unwrap_or_else(|| panic!("no claim for line 5:\n{}", out));

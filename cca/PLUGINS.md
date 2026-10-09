@@ -1,6 +1,6 @@
 # Plugins: how lobes plug into CCA (proposal)
 
-**A core is a lobe since 2026-10-09** (owner: "Lobe next", then "yea, go"): a Neuron lists `lobes = [cca::Lobe[…]]`. The crates under `cores/` keep their folder names for now.
+**A core is a lobe since 2026-10-09** (owner: "Lobe next", then "yea, go"): a Neuron lists `lobes = [kin::Lobe[…]]`. The crates under `cores/` keep their folder names for now.
 
 **Since 2026-10-07 (owner; DECISIONS 2026-10-07, "No base and no
 codextras")**: there is no base below the language and no codextras.
@@ -108,7 +108,7 @@ The base checks `uses` against the manifests (section 4) before handing
 the IR to LLVM, so a codextra cannot use a power nobody granted by
 forgetting to check: the base does not trust it to. `read_manifest`
 is the codextra's because the base does not know what a quoted name is
-(cores.md: Brainstem reads `CCA.cplr`).
+(cores.md: Brainstem reads `Kinesin.nrp`).
 
 ### (B) What a Brainstem lobe provides
 
@@ -212,7 +212,7 @@ All engineering, given the rulings, except where marked:
    "`a`"): a taken power is not granted, whoever else grants it, and the
    message names the lobe that took it.
 3. **Listing.** Each limb's manifest lists the powers it uses
-   (`powers = [cca::Power.c_calls,]`); the program's own limb too.
+   (`powers = [kin::Power.c_calls,]`); the program's own limb too.
 4. **Using.** The codextra reports every use as `(limb, power path,
    thing, span)`: `c_calls` with thing `"sqrt"`, `vouch` at a `!check`.
 5. **The base's check** of each use, in this order, each with its own
@@ -325,12 +325,12 @@ your program does.
   `installed.cplr`: `…/CyborgPL/lobes/<id>/<version>/`, holding the plugin
   file, its CyborgPL part, and a `Lobe.cplr` manifest (name, ID, version,
   the interface version it was built for, needs, powers it adds). A
-  `cca::Lobe[path = …]` points at such a folder. Synthia downloads into
+  `kin::Lobe[path = …]` points at such a folder. Synthia downloads into
   it; CCA never downloads (as for std).
 - **Two versions.** The lobe's own version (which release, the date and
   time) and the interface version (which (B) it speaks). CCA loads a lobe
   whose interface version it supports, and otherwise names both.
-- **Pinning.** A lockfile beside `CCA.cplr` records each lobe's content
+- **Pinning.** A lockfile beside `Kinesin.nrp` records each lobe's content
   hash, so the same manifest always loads the same bytes.
 - **Verified lobes** are the official ones, built into CCA and checked as
   CCA is (RRx2 for IEG's IR). Any other lobe gets the approved warning.
@@ -368,7 +368,7 @@ question above changes it):
 6. **ASP, IEG, Genny** as Q4 decides.
 7. **External loading** (Q5: native libraries, C ABI) last, once the official lobes have used the
    interface long enough to stop it moving; then the warning, the
-   lockfile, and `cca::Lobe[path = …]` working.
+   lockfile, and `kin::Lobe[path = …]` working.
 
 ## 8. Gaps that block parts of this (the owner's)
 

@@ -1,0 +1,11 @@
+# No std listed: no operators here, while the Limb it uses lists std and
+# has them (owner, 2026-10-06: the check is per Limb).
+kin::Manifest[
+    name = "bare_root",
+    prefix = "bare_root",
+    version = "0.1.0",
+    dependencies = [kin::Dep[path = "../adds"],],
+    lobes = [kin::Lobe[id = "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085", version = "2026-10-06T18:04:29+07:00"],],  # IEG
+    powers = [kin::Power.c_calls, kin::Power.vouch,],
+    targets = [kin::Target[name = "aarch64-macos"],]
+];

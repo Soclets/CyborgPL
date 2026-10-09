@@ -5,13 +5,13 @@ use signatar::diag::Diagnostic;
 use signatar::source::SourceMap;
 
 fn usage() -> ! {
-    eprintln!("usage: cca parse <file.cpls>…      parse only, report the first refusal");
-    eprintln!("       cca check <file.cpls | limb-dir>…   parse and check");
-    eprintln!("       cca mir <file.cpls | limb-dir>       check, then print the flow graph");
-    eprintln!("       cca cortex <file.cpls | neuron-dir>  check, lower, prove, and report");
-    eprintln!("       cca build <file.cpls | limb-dir> [-o out] [--target t] [--emit-llvm dir]   …then generate, assemble and link; dir/before.ll and dir/after.ll are the LLVM IR before and after LLVM's passes");
-    eprintln!("       cca run <file.cpls | limb-dir> [-- words…]   build, then run it here with its words; its exit is cca's");
-    eprintln!("       cca test <file.cpls | limb-dir>      run every `test fn`, each on its own, and report");
+    eprintln!("usage: cca parse <file.nrv>…      parse only, report the first refusal");
+    eprintln!("       cca check <file.nrv | neuron-dir>…   parse and check");
+    eprintln!("       cca mir <file.nrv | neuron-dir>       check, then print the flow graph");
+    eprintln!("       cca cortex <file.nrv | neuron-dir>  check, lower, prove, and report");
+    eprintln!("       cca build <file.nrv | neuron-dir> [-o out] [--target t] [--emit-llvm dir]   …then generate, assemble and link; dir/before.ll and dir/after.ll are the LLVM IR before and after LLVM's passes");
+    eprintln!("       cca run <file.nrv | neuron-dir> [-- words…]   build, then run it here with its words; its exit is cca's");
+    eprintln!("       cca test <file.nrv | neuron-dir>      run every `test fn`, each on its own, and report");
     eprintln!("       cca prepare [folder/] [<name>, …] [--prefix <prefix>, …] | --all   run those Neurons' build.cplr, in their own folders");
     eprintln!("       cca version                  the compiler's version and the Unicode version it pins");
     exit(2)
