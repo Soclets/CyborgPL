@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — A function can belong to a type: `fn Counter.next […]`, called `Counter.next[…]` (owner: b)
+
+Back to iterators after the rename (left open 2026-10-08): two types cannot
+both have a `next`, since two functions may not share a name. Offered (a) the
+same name allowed, picked by the argument's type (overloading), which design
+claude recommended, or (b) the type in the name; after seeing both written
+out ("let me see syntax"), the owner: "`b`". So **a function can belong to a
+type, written `fn Counter.next [lend.mut 'c': Counter] -> optional[int32]`
+and called `Counter.next[lend.mut 'c']`**, the type's name before the dot as
+an enum's case is built (`optional.value[…]`); `Counter.next` and
+`Words.next` are two names, so nothing clashes, and every call names its
+type. An interface's `fn next` is kept by the type's own `next`, so `for`
+finds `Counter.next` for a `Counter` by itself. Design claude's readings,
+not asked: an interface's `fn show [lent 'x': <T>]` (`interfaces.md`) is
+kept the same way, by `fn Vec.show`; a type and a module still cannot share
+a name in one scope, so `X.y` stays unambiguous. Not yet asked: how `for`
+takes an iterator (`for 'x' in lend.mut 'c'` was design claude's sketch);
+whether the first parameter must be the type.
+
 ### 2026-10-09 — The repo's Markdown is CC BY 4.0, credited "Nerve GitHub repo text" (owner)
 
 The owner: "what license is the GH repo's words": Apache-2.0 WITH
