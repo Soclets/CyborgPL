@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — Code ends `.nrv`, settings end `.nrp`; the manifest is `Kinesin.nrp` (owner; not yet applied)
+
+Before the endings step, design claude asked about the other `.cplr` files
+(`tune`, `build`, `spellings`, `cpl_ver`, `installed`): (a) all `.nrv`, (b)
+a separate ending, first recommending (a). The owner asked how TOML looks,
+then "What is a broken `nrv`? Since some of those files aren't turing
+complete": a `.cpls` is code, a `.cplr` one value; with one ending, what is
+"broken" would depend on the file's name, and the compiler, editors and
+the site would have to tell settings from code by name. Design claude
+changed to (b). The owner: "I'm trying to be in theme, what do you call a
+broken nerve?": neurapraxia (a nerve intact but not firing), palsy,
+neuroma, neuropathy. Checked: `.nrp` overlaps only ASP.NET Report Maker's
+old reports; `.palsy` with nothing, but reads as mocking cerebral palsy.
+The owner: "yea". So **`.nrv` is code and only code, and a file that is one
+Nerve value and never runs ends `.nrp`** ("neurapraxia": whole, but does
+not fire), **the manifest included: `Kinesin.nrp`**, replacing yesterday's
+`Kinesin.nrv`. Not yet asked: `build.cplr`, a full program, so `.nrv` by
+this rule (design claude's reading), and `cpl_ver.cplr`'s new name.
+
 ### 2026-10-09 — The runtime is Axon (owner)
 
 Next part name (chosen 2026-10-08): the owner, "Axon next". The runtime has
