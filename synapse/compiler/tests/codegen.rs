@@ -180,7 +180,7 @@ fn tests_run_and_report() {
         if src.starts_with(repo.join("examples")) && example_pending("testing") {
             continue;
         }
-        let r = Command::new(cca()).arg("test").arg(&src).env("CCA_STD_STUBS", "1").output().unwrap();
+        let r = Command::new(cca()).arg("test").arg(&src).env("SYNAPSE_CORD_STUBS", "1").output().unwrap();
         let got = String::from_utf8_lossy(&r.stdout).to_string();
         let want = std::fs::read_to_string(&want).unwrap();
         assert_eq!(got, want, "`cca test {}` reported otherwise:\n{}", src.display(), String::from_utf8_lossy(&r.stderr));
@@ -427,7 +427,7 @@ fn proofs_can_be_asserted() {
     let src = dir().join("proven_add.nrv");
     let out = std::env::temp_dir().join("cca-codegen-tests/ir-asserted");
     let _ = std::fs::create_dir_all(out.parent().unwrap());
-    let r = Command::new(cca()).arg("build").arg("--assert-proofs").arg(&src).arg("-o").arg(&out).env("CCA_IR", "1").output().unwrap();
+    let r = Command::new(cca()).arg("build").arg("--assert-proofs").arg(&src).arg("-o").arg(&out).env("SYNAPSE_IR", "1").output().unwrap();
     assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
     let ir = String::from_utf8_lossy(&r.stdout).to_string();
     assert!(!ir.contains(" nsw") && !ir.contains(" nuw"), "a proof was promised to LLVM in the proof-checking build:\n{}", ir);
@@ -438,7 +438,7 @@ fn ir_of(name: &str) -> String {
     let src = dir().join(format!("{}.nrv", name));
     let out = std::env::temp_dir().join(format!("cca-codegen-tests/ir-{}", name));
     let _ = std::fs::create_dir_all(out.parent().unwrap());
-    let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(&out).env("CCA_IR", "1").output().unwrap();
+    let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(&out).env("SYNAPSE_IR", "1").output().unwrap();
     assert!(r.status.success(), "{} would not build:\n{}", name, String::from_utf8_lossy(&r.stderr));
     String::from_utf8_lossy(&r.stdout).to_string()
 }

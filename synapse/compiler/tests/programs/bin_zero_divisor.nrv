@@ -4,7 +4,7 @@
 extern.C fn exit ['code': int32];
 extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn divisor [] -> bin64 {
-    let 'key' := "CCA_NO_SUCH_VARIABLE";
+    let 'key' := "SYNAPSE_NO_SUCH_VARIABLE";
     no_check let 'p' := getenv[lend 'key'];
     if ptr.is_null['p'] { return 0.0; }
     return 2.0;

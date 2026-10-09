@@ -16,7 +16,7 @@ fn apply ['f': fn[int32] -> int32 or fail[odd: int32], 'n': int32] -> int32 {
     return 'v';
 }
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'n': int32 = 7;
     if 'there' { change 'n' = 12; }

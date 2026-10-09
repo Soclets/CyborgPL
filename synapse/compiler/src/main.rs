@@ -18,6 +18,19 @@ fn usage() -> ! {
 }
 
 fn main() {
+    // The environment's switches are `SYNAPSE_*` (owner, 2026-10-09: "`a`");
+    // an old `CCA_*` one is refused, naming the new.
+    for (k, _) in std::env::vars_os() {
+        if let Some(rest) = k.to_str().and_then(|k| k.strip_prefix("CCA_")) {
+            let new = match rest {
+                "STD_STUBS" => "SYNAPSE_CORD_STUBS".to_string(),
+                "PRECOG_STATS" => "SYNAPSE_CORTEX_STATS".to_string(),
+                other => format!("SYNAPSE_{}", other),
+            };
+            eprintln!("error: `CCA_{}` is an old name: write `{}`", rest, new);
+            exit(2);
+        }
+    }
     // Checking, lowering and proving walk an expression by recursion, and
     // a generated line nesting 5,000 brackets overflowed the main thread's
     // 8 MB (check claude, seed 6241). The work runs on a thread with room
@@ -466,7 +479,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     let mut sources = SourceMap::default();
     let items = brainstem::load::load_for(path, &mut sources, brainstem::load::Purpose::Compile(target)).map_err(|d| d.render(&sources))?;
     let mut checker = brainstem::check::Checker::new(items);
-    checker.std_stubs = std::env::var("CCA_STD_STUBS").is_ok();
+    checker.std_stubs = std::env::var("SYNAPSE_CORD_STUBS").is_ok();
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
     let mut mir = brainstem::mir::build::build(program);
     brainstem::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in Synapse:\n  {}\n", p.join("\n  ")))?;
@@ -485,7 +498,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     // Parallel `for` (`parallelism.md`): a `for para` whose iterations
     // conflict is an error; the rest is decided as the loops are written.
     let plan = brainstem::par::plan(&mir);
-    if std::env::var("CCA_PAR").is_ok() {
+    if std::env::var("SYNAPSE_PAR").is_ok() {
         for ((fi, pre), pl) in &plan.loops {
             let f = &mir.functions[*fi];
             let sp = f.span(pl.fl.span);
@@ -521,7 +534,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
         }
         s
     })?;
-    if std::env::var("CCA_IR").is_ok() {
+    if std::env::var("SYNAPSE_IR").is_ok() {
         println!("{}", lowered.module.print_to_string().to_string());
     }
     let obj = out.with_extension("o");
@@ -547,7 +560,7 @@ fn precog_one(path: &Path, json: bool) -> Result<(), String> {
     let mut sources = SourceMap::default();
     let items = brainstem::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
     let mut checker = brainstem::check::Checker::new(items);
-    checker.std_stubs = std::env::var("CCA_STD_STUBS").is_ok();
+    checker.std_stubs = std::env::var("SYNAPSE_CORD_STUBS").is_ok();
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
     let mut mir = brainstem::mir::build::build(program);
     brainstem::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in Synapse:\n  {}\n", p.join("\n  ")))?;
@@ -555,7 +568,7 @@ fn precog_one(path: &Path, json: bool) -> Result<(), String> {
     if !owned.problems.is_empty() {
         return Err(owned.problems.join(""));
     }
-    if std::env::var("CCA_DROPS").is_ok() {
+    if std::env::var("SYNAPSE_DROPS").is_ok() {
         eprintln!("drops: {} removed as already given away, {} left on some paths only", owned.drops_removed, owned.conditional_drops);
     }
     let analysis = brainstem::cortex::analyse(&mut mir);
@@ -578,7 +591,7 @@ fn mir_one(path: &Path) -> Result<(), String> {
     let mut sources = SourceMap::default();
     let items = brainstem::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
     let mut checker = brainstem::check::Checker::new(items);
-    checker.std_stubs = std::env::var("CCA_STD_STUBS").is_ok();
+    checker.std_stubs = std::env::var("SYNAPSE_CORD_STUBS").is_ok();
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
     let mir = brainstem::mir::build::build(program);
     let problems = brainstem::mir::verify::program(&mir);
@@ -607,7 +620,7 @@ fn check_one(path: &Path) -> Result<(), String> {
     let mut sources = SourceMap::default();
     let items = brainstem::load::load(path, &mut sources).map_err(|d| d.render(&sources))?;
     let mut checker = brainstem::check::Checker::new(items);
-    checker.std_stubs = std::env::var("CCA_STD_STUBS").is_ok();
+    checker.std_stubs = std::env::var("SYNAPSE_CORD_STUBS").is_ok();
     checker.check_program().map_err(|d| d.render(&sources))?;
     Ok(())
 }

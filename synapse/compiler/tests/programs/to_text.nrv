@@ -10,7 +10,7 @@ fn short ['n': int64] -> str.utf8 {
     return give 's';
 }
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'got': int32 = 0;
     let mut 'n': int64 = -9223372036854775807;

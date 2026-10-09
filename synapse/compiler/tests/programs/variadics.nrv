@@ -23,7 +23,7 @@ fn bytes [lent 'label': str.utf8, lent ...'parts': str.utf8] -> uint64 {
 fn pass_on [lent ...'parts': str.utf8] -> uint64 { return bytes["x", ...'parts']; }
 fn keep [...'names': str.utf8] -> uint64 { return list.length[lend 'names']; }
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'got': int32 = 0;
     let mut 'three': int32 = 4;

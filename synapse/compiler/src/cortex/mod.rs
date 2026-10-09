@@ -302,7 +302,7 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
         let f = &mut p.functions[r.function];
         f.sites[r.site.0 as usize].verdict = r.verdict.clone();
     }
-    if std::env::var("CCA_PRECOG_STATS").is_ok() {
+    if std::env::var("SYNAPSE_CORTEX_STATS").is_ok() {
         let mut w: Vec<(usize, (u64, u64))> = a.walks.iter().map(|(k, v)| (*k, *v)).collect();
         w.sort_by_key(|(_, (n, _))| std::cmp::Reverse(*n));
         for (fi, (n, blocks)) in w.iter().take(12) {
@@ -396,7 +396,7 @@ struct Precog {
     no_induction: std::collections::HashSet<usize>,
     induction_calls: HashMap<(usize, Vec<i128>), Vec<Vec<i128>>>,
     /// How often each function was walked, and how many blocks it walked
-    /// in all (`CCA_PRECOG_STATS=1` prints it: where a slow build's time
+    /// in all (`SYNAPSE_CORTEX_STATS=1` prints it: where a slow build's time
     /// goes).
     walks: HashMap<usize, (u64, u64)>,
     /// A recursive function's answers, one per tuple of its arguments, from

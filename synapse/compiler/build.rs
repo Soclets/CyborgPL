@@ -1,13 +1,13 @@
 //! lld, built into CCA through its library (owner, 2026-10-08: "`a`"):
 //! the shim in `lld/shim.cpp`, compiled with the C++ compiler, and lld's
-//! libraries, Homebrew's lld 22 for now (`CCA_LLD_PREFIX`, set in
+//! libraries, Homebrew's lld 22 for now (`SYNAPSE_LLD_PREFIX`, set in
 //! `.cargo/config.toml`), beside the shared LLVM inkwell links.
 
 fn main() {
-    let lld = std::env::var("CCA_LLD_PREFIX").unwrap_or_else(|_| "/opt/homebrew/opt/lld@22".into());
+    let lld = std::env::var("SYNAPSE_LLD_PREFIX").unwrap_or_else(|_| "/opt/homebrew/opt/lld@22".into());
     let llvm = std::env::var("LLVM_SYS_221_PREFIX").unwrap_or_else(|_| "/opt/homebrew/opt/llvm@22".into());
     println!("cargo:rerun-if-changed=lld/shim.cpp");
-    println!("cargo:rerun-if-env-changed=CCA_LLD_PREFIX");
+    println!("cargo:rerun-if-env-changed=SYNAPSE_LLD_PREFIX");
     cc::Build::new()
         .cpp(true)
         .file("lld/shim.cpp")

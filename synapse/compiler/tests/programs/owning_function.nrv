@@ -8,7 +8,7 @@ extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn look [lent 'f': fn[] -> uint64] -> uint64 { return 'f'[]; }
 fn run ['f': fn[] -> uint64] -> uint64 { return 'f'[]; }
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'xs' := [1, 2, 3];
     if 'there' { list.append[lend.mut 'xs', 4]; }

@@ -4,7 +4,7 @@
 extern.C fn exit ['code': int32];
 extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'a' := 5 seconds;
     if 'there' { change 'a' = 1500 millis; }

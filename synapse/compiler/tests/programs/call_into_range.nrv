@@ -1,5 +1,5 @@
 # A call's answer stored into a narrower type is asked there, like any
-# other value: `twice` gives 2 here (no CCA_NO_SUCH_VARIABLE is set), and
+# other value: `twice` gives 2 here (no SYNAPSE_NO_SUCH_VARIABLE is set), and
 # 2 is no int32[0, 1]. Filled straight into the place, it was never asked
 # — the store held 2 and Precog believed the type (the oracle: "2 does not
 # fit int32[0, 1]").
@@ -9,7 +9,7 @@ fn twice ['d': int32] -> int32 {
     return 'd' times 2;
 }
 fn one [] -> int32 {
-    let 'key' := "CCA_NO_SUCH_VARIABLE";
+    let 'key' := "SYNAPSE_NO_SUCH_VARIABLE";
     no_check let 'p' := getenv[lend 'key'];
     if ptr.is_null['p'] { return 1; }
     return 0;

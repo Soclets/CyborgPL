@@ -119,7 +119,7 @@ impl Portfolio {
 fn run(s: &Solver, q: &Query) -> Answer {
     // The query goes in on stdin, so no file is left behind — a build that
     // is stopped halfway used to leave its queries in the temp directory,
-    // some of them megabytes. `CCA_KEEP_SMT=1` still writes each one out,
+    // some of them megabytes. `SYNAPSE_KEEP_SMT=1` still writes each one out,
     // for reading. The step budget rides in the query itself
     // (`set-option :rlimit`): Z3's `RLIMIT`, and CVC5's own `CVC5_RLIMIT`
     // in its coarser steps.
@@ -130,7 +130,7 @@ fn run(s: &Solver, q: &Query) -> Answer {
     } else {
         &q.text
     };
-    if std::env::var("CCA_KEEP_SMT").is_ok() {
+    if std::env::var("SYNAPSE_KEEP_SMT").is_ok() {
         static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let dir = std::env::temp_dir().join("cca-smt");

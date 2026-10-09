@@ -153,7 +153,7 @@ Dated, with the alternative, so each can become a question later.
   is true today and stops being true the moment a `lend.mut` writes back.
 - **2026-09-22 — A drop whose value is gone on *some* paths asks a flag.**
   MIR emits a drop per owned local at its scope's end; the ownership walk
-  removes the ones definitely already given away (`CCA_DROPS=1` counts
+  removes the ones definitely already given away (`SYNAPSE_DROPS=1` counts
   both). Where a value is gone on some paths only, each owning local has an
   "alive" flag at run time — set when it gets a value, cleared when it is
   given away — and the drop tests it. Alternative: split the block so each
@@ -161,7 +161,7 @@ Dated, with the alternative, so each can become a question later.
 - **2026-09-22 — A testing-only `std::` stub table.** `std::` does not
   exist (owner, 2026-09-22), but 69 of the 74 examples use it. The
   checker has a flag (off by default, on in `cargo test` and with
-  `CCA_STD_STUBS=1`) that gives the `std::` names the oracle emulates
+  `SYNAPSE_CORD_STUBS=1`) that gives the `std::` names the oracle emulates
   their types and nothing else — no code is generated for them. It exists
   so the front end can be tested against the examples today, and goes away
   when std is written. Alternative: test only the six extern-based

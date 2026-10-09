@@ -6,7 +6,7 @@ extern.C fn exit ['code': int32];
 extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
 fn first ['xs': list[int32]] -> int32 { return 'xs'[pos 1]; }
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'x': int32 = 1;
     if 'there' { change 'x' = 2; }

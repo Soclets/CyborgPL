@@ -22,7 +22,7 @@ fn unit ['t': str.utf8] -> bin64 {
     return 'v';
 }
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 's' := "";
     if 'there' { change 's' = "5"; }

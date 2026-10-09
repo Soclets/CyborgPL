@@ -15,7 +15,7 @@ fn byte ['code': int64] -> uint8 {
     return char.code['c'];
 }
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'd': int64 = 0;
     if 'there' { change 'd' = 1; }

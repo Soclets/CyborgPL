@@ -77,7 +77,7 @@ pub struct Plan {
     pub loops: HashMap<(usize, usize), ParLoop>,
     /// A `for para` whose iterations conflict: (function, where, why).
     pub errors: Vec<(usize, SpanId, String)>,
-    /// Every other loop left in order, and why (`CCA_PAR=1` prints them).
+    /// Every other loop left in order, and why (`SYNAPSE_PAR=1` prints them).
     pub declined: Vec<(usize, SpanId, String)>,
 }
 

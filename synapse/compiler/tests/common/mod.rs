@@ -12,9 +12,9 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Condvar, Mutex};
 
-/// How many at once: this session's share, 3, or `CCA_TEST_JOBS`.
+/// How many at once: this session's share, 3, or `SYNAPSE_TEST_JOBS`.
 pub fn jobs() -> usize {
-    std::env::var("CCA_TEST_JOBS").ok().and_then(|v| v.parse().ok()).filter(|n: &usize| *n > 0).unwrap_or(3)
+    std::env::var("SYNAPSE_TEST_JOBS").ok().and_then(|v| v.parse().ok()).filter(|n: &usize| *n > 0).unwrap_or(3)
 }
 
 static RUNNING: Mutex<usize> = Mutex::new(0);

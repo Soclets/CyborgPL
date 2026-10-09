@@ -21,7 +21,7 @@ fn count_if [lent 'xs': list[int32], 'test': fn[int32] -> bool] -> int32 {
     return 'n';
 }
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'got': int32 = 0;
     let mut 'first': int32 = 9;

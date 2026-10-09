@@ -11,12 +11,12 @@
 LLVM_SYS_221_PREFIX = "/opt/homebrew/opt/llvm@22"
 # lld, built into CCA through its library (owner, 2026-10-08: "`a`", Zig's
 # way): Homebrew's lld 22, matching the LLVM above, for now.
-CCA_LLD_PREFIX = "/opt/homebrew/opt/lld@22"
+SYNAPSE_LLD_PREFIX = "/opt/homebrew/opt/lld@22"
 # The share below holds for the tests cargo runs side by side, too.
 RUST_TEST_THREADS = "3"
 
 # This session's share of the machine (owner, 2026-09-23): 10 cores, three
 # sessions doing heavy work, 3 each and one left for the desktop. The test
-# suite keeps to the same number (`compiler/tests/common`, CCA_TEST_JOBS).
+# suite keeps to the same number (`compiler/tests/common`, SYNAPSE_TEST_JOBS).
 [build]
 jobs = 3

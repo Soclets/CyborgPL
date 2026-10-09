@@ -9,7 +9,7 @@ fn short [lent 't': str.utf8] -> int32 {
     return 1;
 }
 MAIN {
-    let 'k' := "CCA_SURELY_UNSET_VARIABLE";
+    let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'w' := "ab";
     if 'there' { change 'w' = "เกี่ยว"; }
