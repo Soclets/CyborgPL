@@ -200,7 +200,12 @@ wordmark**. Then a light icon (owner: "Tell website claude to make a light versi
 of the icon"; `brand/nerve/icon-light.svg`, a dark starburst on a white tile
 with a hairline edge), and **the README's icon switches with GitHub's theme**
 (owner: "yea, switch it with the theme"): the light icon in light mode, the
-dark one in dark mode, as the wordmark does.
+dark one in dark mode, as the wordmark does. Seen in light mode, the owner: "Hm, that looks weird next to the
+wordmark" (a pale outlined tile beside heavy black letters); offered (a) the
+dark icon in both themes, (b) a bolder light icon, (c) the light icon kept
+for other uses; **the dark icon in both themes** (owner: "`a`", as design
+claude recommended): the black tile carries the wordmark's weight.
+`icon-light.svg` stays in `brand/nerve/`, unused.
 
 ### 2026-10-09 — The names and logos are trademarks anyone may use, without pretending to be us (owner)
 
