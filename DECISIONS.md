@@ -218,7 +218,10 @@ white wordmark**; the outlined black files are removed. Then the owner:
 "Remove the outline, and icon from dark mode". So **the icon shows in light
 mode only** (black icon beside the black wordmark); **dark mode shows the
 white wordmark alone**. GitHub's `#gh-light-mode-only` on the icon's address
-hides it in dark mode; `icon-light-white-edge.svg` is removed.
+hides it in dark mode; `icon-light-white-edge.svg` is removed. Then the owner: "Now, remove the icon from all": **the README's top is
+the wordmark alone, in both themes** (black in light, white in dark, 320 px
+wide again). The icon stays official, in `brand/nerve/`, and named in the
+README's `brand/` line.
 
 ### 2026-10-09 — The names and logos are trademarks anyone may use, without pretending to be us (owner)
 
