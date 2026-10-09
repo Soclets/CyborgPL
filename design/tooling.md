@@ -97,11 +97,11 @@ Owner, 2026-09-14.
   "Just edit the source code"), so a dependency line names no word:
   `kin::Dep[path = "../money"]`. Not in the oracle yet. **A
   manifest is data only** (owner, 2026-09-29): anything that must be
-  computed lives in **`build.cplr`**, a full Nerve program (functions,
+  computed lives in **`build.nrv`**, a full Nerve program (functions,
   loops, a `MAIN`), which **never runs by itself** — a special command runs
   chosen ones or all of them, a dependency's included. Both package managers
   run it. The command is **`cca prepare`** (owner, 2026-09-29: b):
-  `cca prepare geometry, money` runs those Neurons' `build.cplr` (names
+  `cca prepare geometry, money` runs those Neurons' `build.nrv` (names
   separated by commas, owner; a space after the comma or not),
   `cca prepare --all` runs every one; `synthia prepare` alike. Proposed
   alternatives: `build-script`, `run-build`. Compiler claude's four
@@ -118,10 +118,10 @@ Owner, 2026-09-14.
   several as a comma list, `--prefix geo2, geo3` (owner: "yea"),
   mixed with names, `cca prepare money --prefix geo2` (owner: "yea"),
   names first and every word after `--prefix` a prefix (owner: "yea"),
-  run in the order written, each once (owner: "yea"); a `build.cplr` runs in its own Neuron's folder; `--all` runs
+  run in the order written, each once (owner: "yea"); a `build.nrv` runs in its own Neuron's folder; `--all` runs
   dependencies before the Neurons that use them, each once, stopping at the
   first that fails. With no names it is refused, saying to name Neurons or use
-  `--all` (owner, 2026-09-30: a). A `build.cplr` is an ordinary program with
+  `--all` (owner, 2026-09-30: a). A `build.nrv` is an ordinary program with
   no limits (owner, 2026-09-30: "It's for fun. You can make a malware
   payload, or be a good person …"): the build has no channel from it, and
   it reaches a Neuron only as any program would, by reading its files — no
@@ -188,7 +188,7 @@ owner's order:
    those lines to check instead of rewriting them (`and` running both
    sides, 2026-09-25, is one).
 
-   **Each Neuron's `cpl_ver.cplr`** holds the language date its code was
+   **Each Neuron's `nerve_version.nrp`** holds the language date its code was
    written for (owner: "`cpl_ver`", "with the dot"); a file of its own, so
    both manifests and the IDE read it alike. Quick Fix applies every row
    after that date and moves the date forward. It **shows the diff
@@ -204,7 +204,7 @@ owner's order:
    line a row matches — the new spelling, and the lines whose meaning
    changed — and edits nothing; Synthia's applies them, from the IDE's
    button or its own command. Both read `spellings.nrp` and
-   `cpl_ver.cplr`. Names open.
+   `nerve_version.nrp`. Names open.
 2. **Neuron registry search** — searching the index (`limbs.xxx`) from the
    editor.
 3. **Solarized themes** — Solarized Light and Dark.

@@ -727,6 +727,8 @@ fn collect(dir: &Path, prefix: &mut Vec<String>, out: &mut Vec<(Vec<String>, Pat
             return Err(format!("{}: `{name}` has the old name: rename it to `{}` (owner, 2026-10-09)", p.display(), if name == "CCA.cplr" { "Kinesin.nrp".to_string() } else { name.replace(".cpls", ".nrv") }));
         } else if let Some(stem) = name.strip_suffix(".nrv") {
             if prefix.is_empty() && stem == "neuron" { continue; }
+            // a Neuron's `build.nrv` is its build program, run by `cca prepare`, not a module (owner, 2026-10-09: "yea")
+            if prefix.is_empty() && stem == "build" { continue; }
             if stem == "neuron" { return Err(format!("{}: `neuron` names the root; a module cannot be called that", p.display())); }
             if stem == "my" { return Err(format!("{}: `my` is the root's path (`my.helper[]`); a module cannot be called that", p.display())); }
             parser::module_name_ok(stem).map_err(|m| format!("{}: `{stem}` cannot name a module: {m}", p.display()))?;

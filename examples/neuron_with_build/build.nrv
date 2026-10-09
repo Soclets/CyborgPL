@@ -1,0 +1,4 @@
+# The build program: a full Nerve program of its own, with its own MAIN.
+MAIN {
+    cord::print.useful["preparing", newln];
+}

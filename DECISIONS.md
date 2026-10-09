@@ -31,8 +31,10 @@ the same day in the oracle and every example and test**: 1,029 files renamed
 (`.cpls` → `.nrv`, `limb.cpls` → `neuron.nrv`, `CCA.cplr` → `Kinesin.nrp`), a
 leftover old name refused naming the new one (three new reject tests), and
 the notes changed to match (`tune.nrp`, `spellings.nrp`, `installed.nrp`).
-Not yet asked: `build.cplr`, a full program, so `.nrv` by this rule (design
-claude's reading), and `cpl_ver.cplr`'s new name.
+Then, asked about the two left: **`build.cplr` is `build.nrv`**, a full
+program (owner: "yea"; at a Neuron's root it is the build program, not a
+module, in the oracle, design claude's reading), and **`cpl_ver.cplr` is
+`nerve_version.nrp`** (owner's name, over design claude's `nrv_ver.nrp`).
 
 ### 2026-10-09 — The runtime is Axon (owner)
 
