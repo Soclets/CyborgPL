@@ -30,7 +30,7 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
   As the licence asks, also say they are under CC BY 4.0, and whether you changed them. The site's code stays under `LICENSE`.
 
 <details>
-<summary><h2>Credits</h2></summary>
+<summary><b>Credits</b></summary>
 
 Nerve™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS.md`](DECISIONS.md). Everything below helped build it.
 
