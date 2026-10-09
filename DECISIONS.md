@@ -59,8 +59,15 @@ there is no normal one). **The program names its output on the target in
 `Kinesin.nrp`: `kin::Target[name = "aarch64-none", layout = "boards/virt.ld",
 output = "my.serial.write"]`** (owner: "`a`"), over (b) a mark on the function
 and (c) an interface found automatically; design claude recommended (a), and
-named the field `output`. Not yet asked: what the output function takes,
-and `cord::exit` with no OS.
+named the field `output`. **The output takes either one byte, `fn
+serial.write ['b': uint8]`, or a chunk, `fn screen.write [lent 'bytes':
+array[uint8]]`; `cord::print` uses whichever the named function is** (owner:
+"both?", then "Yeah"). Design claude first said a chunk needed a new
+"borrowed run of bytes" type, and the owner said "Let me design the needed
+first"; design claude then found it exists: `array[T]` carries no size in its
+type and needs no heap, so a lent `array[uint8]` is that run, within the
+2026-09-23 rule that slices own their elements rather than a third, view
+kind. Not yet asked: `cord::exit` with no OS.
 
 ### 2026-10-09 — The practical base is built in the oracle; Signatar is CyborgPL's base, the Brainstem Nerve's (owner)
 
