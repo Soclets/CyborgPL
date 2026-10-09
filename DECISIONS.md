@@ -208,7 +208,13 @@ claude recommended): the black tile carries the wordmark's weight. Seen in
 dark mode, the owner: "Works, but dark looks weird" (the black tile vanishes
 into GitHub's dark page); **the icon's tile matches the letters: the dark
 icon (black tile) beside the black wordmark in light mode, the light icon
-(white tile) beside the white wordmark in dark mode** (owner: "yea").
+(white tile) beside the white wordmark in dark mode** (owner: "yea"). Then the owner: "I think the black ones look good. So, maybe add an
+outline for dark mode?"; design claude outlined the black icon, then (owner:
+"The wordmark didn't change") the black wordmark too, then thinned both
+("Outline is too thick"); the owner: "Fuck it, go back to no outline", and to
+which: "`a`, with white outline on the icon". So **dark mode shows the light
+icon, its edge white instead of grey (`icon-light-white-edge.svg`), beside the
+white wordmark**; the outlined black files are removed.
 
 ### 2026-10-09 — The names and logos are trademarks anyone may use, without pretending to be us (owner)
 
