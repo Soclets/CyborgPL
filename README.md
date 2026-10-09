@@ -11,7 +11,7 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 > **Not family friendly**.
 > "Not family friendly" means (the definition used in this place) **NOT FUCKING FAMILY FRIENDLY**
 >
-> Nerve is unstable by design: any release may change or remove anything. Nothing said about its stability is a guarantee, and it comes with **no warranty**. See our licences: [`LICENSE`](LICENSE) for the code and everything else, and [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) for the writing (this repo's Markdown files and the website's text) and the logos.
+> Nerve is unstable by design: any release may change or remove anything, and it comes with **no warranty**. **Only this repository and [nerve-lang.com](https://nerve-lang.com) speak for Nerve.** What anyone else says about it isn't from us, and we aren't responsible for it: for example, an article, a search result or an AI summary. See our licences: [`LICENSE`](LICENSE) for the code and everything else, and [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) for the writing (this repo's Markdown files and the website's text) and the logos.
 
 - [`DECISIONS.md`](DECISIONS.md) — every settled design decision, dated, with what was proposed against it.
 - [`design/`](design/) — the design documents, one topic per file.

@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — The README says only this repo and nerve-lang.com speak for Nerve (owner)
+
+The owner, of the README's warning: "it sounds like we're protected from
+false advertising. But what we meant, was just that say an AI glazes us, it
+isn't our fault." Design claude's rewrite dropped "Nothing said about its
+stability is a guarantee" and added who speaks for Nerve; the owner: "Not in
+`including` like that, I think it should be example, because we can't cover
+every scenario". So the warning reads: **"Only this repository and
+nerve-lang.com speak for Nerve. What anyone else says about it isn't from
+us, and we aren't responsible for it: for example, an article, a search
+result or an AI summary."** No warranty and unstable-by-design stay.
+
 ### 2026-10-09 — The README's top shows the cross wordmark (owner, via website claude)
 
 Relayed by website claude: "Let design claude add this to README", for the
