@@ -14,18 +14,20 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 > **Not family friendly**.
 > "Not family friendly" means (the definition used in this place) **NOT FUCKING FAMILY FRIENDLY**
 >
-> Nerve is unstable by design: any release may change or remove anything. Nothing said about its stability is a guarantee, and it comes with **no warranty**. See our licences: [`LICENSE`](LICENSE) for the code and everything else, and [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) for the website's text only.
+> Nerve is unstable by design: any release may change or remove anything. Nothing said about its stability is a guarantee, and it comes with **no warranty**. See our licences: [`LICENSE`](LICENSE) for the code and everything else, and [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) for the website's text and the logos only.
 
 - [`DECISIONS.md`](DECISIONS.md) — every settled design decision, dated, with what was proposed against it.
 - [`design/`](design/) — the design documents, one topic per file.
 - [`examples/`](examples/) — programs in settled syntax, each with its expected output.
 - [`oracle/`](oracle/) — the reference interpreter: the executable spec.
 - [`synapse/`](synapse/) — the compiler.
-- [`brand/`](brand/) — the official logo is the NERVE wordmark in [`brand/nerve/`](brand/nerve/) (owner, 2026-10-09: "Mono as official logo"): block letters with a nerve impulse cut through them, black on light backgrounds and white on dark. The earlier mark (a circular C wrapping `:=`) is still in `brand/`.
+- [`brand/`](brand/) — the official logo is the NERVE wordmark in [`brand/nerve/`](brand/nerve/) (owner, 2026-10-09: "Mono as official logo"): block letters with a nerve impulse through them, black on light backgrounds and white on dark. The earlier mark (a circular C wrapping `:=`) is still in `brand/`.
 - [`LICENSE`](LICENSE) — Apache-2.0 WITH LLVM-exception. Programs you compile owe nothing; a fork keeps the notices and may not use the name.
-- [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) — CC BY 4.0, for the website's text (`website/`): copy it, translate it, remix it, with credit. Credit it exactly as:
-  `Original: Nerve™ (product name) at (one of the product's locations) nerve-lang.com (official website)`
-  The parentheses and what is inside them are part of the credit, not placeholders. As the licence asks, also say the text is under CC BY 4.0, and whether you changed it. The site's code stays under `LICENSE`.
+- [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) — CC BY 4.0, for the website's text (`website/`) and the logo files (`brand/`): copy them, translate, remix, use them anywhere, with credit. Credit them exactly as:
+  - the website's text: `Nerve website text: https://nerve-lang.com, https://github.com/Soclets/Nerve-lang`
+  - the logos: `Nerve logo(s): https://nerve-lang.com, https://github.com/Soclets/Nerve-lang`
+
+  As the licence asks, also say they are under CC BY 4.0, and whether you changed them. The site's code stays under `LICENSE`.
 
 ## Contributing
 

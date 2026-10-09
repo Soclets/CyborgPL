@@ -53,10 +53,13 @@ repo's licence.
 **The names and logos are trademarks, not registered, and anyone may use
 them anywhere, as long as they don't pretend to be the project** (owner,
 2026-10-09: "The logos should be trademarked (not registered yet), but using
-it anywhere is possible, but shouldn't pretend to be us"). So the logo files
-in `brand/` stay under the repo's licence like any file, and what is
-reserved is only passing off: claiming or implying to be the official Nerve,
-or made or endorsed by this project. The README says so.
+it anywhere is possible, but shouldn't pretend to be us"). What is reserved
+is only passing off: claiming or implying to be the official Nerve, or made
+or endorsed by this project. **The logo files in `brand/` are CC BY 4.0**,
+like the website's text, credited `Nerve logo(s): https://nerve-lang.com,
+https://github.com/Soclets/Nerve-lang`; the website's text is credited `Nerve
+website text: …` with the same two links (owner, 2026-10-09). The README
+says so.
 
 The trademark flags below still stand and are the thing to act on.
 

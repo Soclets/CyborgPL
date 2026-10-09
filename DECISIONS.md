@@ -17,8 +17,20 @@ excluded, the owner: "Mf, I don't have a lawyer. The logos should be
 trademarked (not registered yet), but using it anywhere is possible, but
 shouldn't pretend to be us". So **the names and logos are unregistered
 trademarks (™); anyone may use them anywhere, but not to pass themselves
-off as the project** (the official Nerve, or made or endorsed by it). The
-logo files stay under the repo's licence. The README's trademark line and
+off as the project** (the official Nerve, or made or endorsed by it). Design
+claude then wrote "the logo files stay under the repo's licence", its reading,
+not asked; the owner: "So, our logos are Apache 2.0?" Offered Apache-2.0
+(notice duty), CC BY 4.0 (credit duty) or CC0 (nothing), with design claude
+leaning CC0; the owner: "Don't we already have CC BY?", then wrote the credit:
+"Nerve logo(s): <official website>, <official GH repo>", and "yea" to
+applying it, and changed the website text credit to match ("separate one,
+go"). So **the logo files in `brand/` are CC BY 4.0, credited `Nerve logo(s):
+https://nerve-lang.com, https://github.com/Soclets/Nerve-lang`**, and **the
+website's text credit is `Nerve website text: https://nerve-lang.com,
+https://github.com/Soclets/Nerve-lang`**, replacing `Original: Nerve™ (product
+name) at (one of the product's locations) nerve-lang.com (official
+website)`. The GitHub link 404s for others while the repo is private (the
+owner kept it). The README, the scope note in `LICENSE-CC-BY-4.0` and
 `design/licensing.md` say so.
 
 ### 2026-10-09 — The NERVE wordmark is the official logo (owner, via website claude)
