@@ -522,3 +522,75 @@ fn a_site_past_the_call_depth_is_judged() {
     };
     assert!(covers(4) && covers(6), "the claim leaves out a value a call reaches:\n{}", line);
 }
+
+/// A program with no OS (owner, 2026-10-09: `aarch64-none`), each a Neuron
+/// bringing its own linker script (`layout`), built and run in QEMU's
+/// `virt` machine when QEMU is here. It cannot exit with a code,
+/// so what the CPU did is read from QEMU: an exception taken (`-d int`),
+/// and where the CPU is (`info registers`). One that runs to its end sleeps
+/// in the entry; one whose check fails stops on `brk`.
+#[test]
+fn bare_metal_runs_in_qemu() {
+    let bare = dir().parent().unwrap().join("bare");
+    let out = std::env::temp_dir().join(format!("synapse-bare-{}", std::process::id()));
+    std::fs::create_dir_all(&out).unwrap();
+    // Refused: what needs Axon, which no OS-less build has (before
+    // linking); a target with no `layout`, or one naming no file; and a
+    // lone file, which has no Kinesin.nrp to name one.
+    let refused = |what: &std::path::Path, says: &str| {
+        let r = Command::new(cca()).args(["build", "--target", "aarch64-none"]).arg(what).arg("-o").arg(out.join("refused")).output().unwrap();
+        let err = String::from_utf8_lossy(&r.stderr);
+        assert!(!r.status.success() && err.contains(says), "{} was not refused with `{}`:\n{}", what.display(), says, err);
+    };
+    refused(&bare.join("needs_axon"), "this program needs Axon, the runtime");
+    refused(&bare.join("no_layout"), "the target `aarch64-none` has no `layout`");
+    refused(&bare.join("layout_missing"), "the linker script `boards/nowhere.ld`, the `layout` of `aarch64-none`, is not there");
+    refused(&dir().join("arithmetic.nrv"), "a lone file is not built for `aarch64-none`");
+    refused(&bare.join("no_stack_top"), "the linker script `boards/virt.ld` does not define `__stack_top`, where the stack starts");
+    let qemu = Command::new("qemu-system-aarch64").arg("--version").output();
+    if !qemu.is_ok_and(|o| o.status.success()) {
+        eprintln!("note: no qemu-system-aarch64 on this machine, so the aarch64-none programs were built but not run");
+    }
+    for (name, traps) in [("computes", false), ("traps", true)] {
+        let exe = out.join(name);
+        let r = Command::new(cca()).arg("build").arg(bare.join(name)).arg("-o").arg(&exe).output().unwrap();
+        assert!(r.status.success(), "{} did not build for aarch64-none:\n{}", name, String::from_utf8_lossy(&r.stderr));
+        let elf = std::fs::read(&exe).unwrap();
+        assert!(elf.starts_with(b"\x7fELF") && elf[18] == 0xb7, "{} is not an aarch64 ELF file", name);
+        let entry = u64::from_le_bytes(elf[24..32].try_into().unwrap());
+        if !Command::new("qemu-system-aarch64").arg("--version").output().is_ok_and(|o| o.status.success()) {
+            continue;
+        }
+        let log = out.join(format!("{}.log", name));
+        let mut q = Command::new("qemu-system-aarch64")
+            .args(["-M", "virt", "-cpu", "cortex-a72", "-display", "none", "-serial", "none", "-monitor", "stdio", "-d", "int", "-D"])
+            .arg(&log)
+            .arg("-kernel")
+            .arg(&exe)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(1500));
+        {
+            use std::io::Write;
+            let stdin = q.stdin.as_mut().unwrap();
+            let _ = stdin.write_all(b"info registers\n");
+            let _ = stdin.flush();
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            let _ = stdin.write_all(b"quit\n");
+        }
+        let seen = q.wait_with_output().unwrap();
+        let regs = String::from_utf8_lossy(&seen.stdout).replace('\r', "");
+        let pc = regs.split("PC=").nth(1).and_then(|s| u64::from_str_radix(&s[..16], 16).ok()).unwrap_or_else(|| panic!("QEMU showed no PC for {}:\n{}", name, regs));
+        let taken = std::fs::read_to_string(&log).unwrap_or_default();
+        if traps {
+            assert!(taken.contains("[Breakpoint]") && taken.contains("ESR 0x3c/0xf2000001"), "{}'s failed check did not stop on `brk`:\n{}", name, taken);
+        } else {
+            assert!(taken.is_empty(), "{} took an exception, so a check failed or the entry is wrong:\n{}", name, taken);
+            assert!(pc >= entry && pc < entry + 0x100, "{} did not end asleep in the entry (PC {:#x}, entry {:#x})", name, pc, entry);
+        }
+    }
+    let _ = std::fs::remove_dir_all(&out);
+}

@@ -23,6 +23,8 @@ struct Sym {
     name: String,
     section: usize,
     addr: u64,
+    /// ELF's own size for it; 0 where the format keeps none (Mach-O).
+    size: u64,
 }
 
 /// The object's code, by symbol, and its data, in bytes.
@@ -46,6 +48,9 @@ fn measure(obj: &Path) -> Result<(HashMap<String, u64>, u64), String> {
             llvm_sys::core::LLVMDisposeMemoryBuffer(buf);
             return Err(said);
         }
+        // ELF keeps each symbol's size; Mach-O does not (LLVM's C API hands
+        // back the address there).
+        let elf = matches!(LLVMBinaryGetType(bin), LLVMBinaryType::LLVMBinaryTypeELF32L | LLVMBinaryType::LLVMBinaryTypeELF32B | LLVMBinaryType::LLVMBinaryTypeELF64L | LLVMBinaryType::LLVMBinaryTypeELF64B);
         // Every section: its name, start and size.
         let mut sections: Vec<(String, u64, u64)> = Vec::new();
         let si = LLVMObjectFileCopySectionIterator(bin);
@@ -69,7 +74,7 @@ fn measure(obj: &Path) -> Result<(HashMap<String, u64>, u64), String> {
                 let start = LLVMGetSectionAddress(at);
                 let size = LLVMGetSectionSize(at);
                 if let Some(section) = sections.iter().position(|s| s.1 == start && s.2 == size) {
-                    syms.push(Sym { name, section, addr: LLVMGetSymbolAddress(yi) });
+                    syms.push(Sym { name, section, addr: LLVMGetSymbolAddress(yi), size: if elf { LLVMGetSymbolSize(yi) } else { 0 } });
                 }
             }
             LLVMMoveToNextSymbol(yi);
@@ -83,18 +88,31 @@ fn measure(obj: &Path) -> Result<(HashMap<String, u64>, u64), String> {
             if !is_code(name) {
                 continue;
             }
-            // Assembler-made labels (`ltmp0`, `l_…`, `.L…`) mark places, not functions.
-            let mut here: Vec<&Sym> = syms.iter().filter(|s| s.section == i && !s.name.starts_with("ltmp") && !s.name.starts_with("l_") && !s.name.starts_with(".L") && !s.name.is_empty()).collect();
+            // Assembler-made labels (`ltmp0`, `l_…`, `.L…`), ARM's mapping
+            // symbols (`$x`, `$d`) and sections' own names mark places, not
+            // functions.
+            let mut here: Vec<&Sym> = syms.iter().filter(|s| s.section == i && !s.name.starts_with("ltmp") && !s.name.starts_with("l_") && !s.name.starts_with('.') && !s.name.starts_with('$') && !s.name.is_empty()).collect();
             here.sort_by_key(|s| s.addr);
             for (k, s) in here.iter().enumerate() {
-                let end = here[k + 1..].iter().map(|n| n.addr).find(|a| *a > s.addr).unwrap_or(start + size);
-                let name = s.name.strip_prefix('_').filter(|_| cfg!(target_os = "macos")).unwrap_or(&s.name).to_string();
+                let end = if s.size > 0 { s.addr + s.size } else { here[k + 1..].iter().map(|n| n.addr).find(|a| *a > s.addr).unwrap_or(start + size) };
+                // Mach-O writes a C name with `_` in front; ELF does not.
+                let name = s.name.strip_prefix('_').filter(|_| cfg!(target_os = "macos") && !crate::target::bare()).unwrap_or(&s.name).to_string();
                 *code.entry(name).or_default() += end - s.addr;
             }
         }
-        let data = sections.iter().filter(|(n, _, _)| !is_code(n) && !n.starts_with("__debug") && !n.starts_with(".debug") && n != "__compact_unwind" && n != "__eh_frame" && n != ".eh_frame").map(|s| s.2).sum();
+        // Only what the program holds while it runs: constants, text,
+        // variables; not the object's own bookkeeping (symbols, relocations,
+        // unwind tables, debug information).
+        let is_data = |n: &str| [".rodata", ".data", ".bss", ".tdata", ".tbss", "__const", "__cstring", "__data", "__bss", "__common", "__literal"].iter().any(|p| n.starts_with(p));
+        let data = sections.iter().filter(|(n, _, _)| is_data(n)).map(|s| s.2).sum();
         Ok((code, data))
     }
+}
+
+/// `cy_12_name`: one of the program's functions, as `declare_all` names it.
+fn is_function(symbol: &str) -> bool {
+    let rest = symbol.strip_prefix("cy_main_").or_else(|| symbol.strip_prefix("cy_").and_then(|r| r.split_once('_')).map(|(n, _)| n));
+    rest.is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
 }
 
 fn bytes(n: u64) -> String {
@@ -111,7 +129,9 @@ fn bytes(n: u64) -> String {
 
 /// The report, from the object written for `p` and the file linked from it.
 pub fn report(p: &Program, obj: &Path, exe: &Path) -> Result<String, String> {
-    let (code, data) = measure(obj)?;
+    // With no OS the linked file is all the program's, and only what the
+    // link kept is in it; otherwise the object, before Axon joins it.
+    let (code, data) = measure(if crate::target::bare() { exe } else { obj })?;
     let on_disk = std::fs::metadata(exe).map_err(|e| format!("cannot read {}: {}", exe.display(), e))?.len();
     let spell = |t: &crate::types::Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
     // Each function's line: its Neuron, the name it is known by, and the
@@ -120,7 +140,7 @@ pub fn report(p: &Program, obj: &Path, exe: &Path) -> Result<String, String> {
     let mut inlined: Vec<String> = Vec::new();
     let mut own = 0u64;
     for (i, f) in p.functions.iter().enumerate() {
-        let symbol = format!("cy_{}_{}", i, super::sanitise(&f.name));
+        let symbol = if p.main.is_some_and(|m| m.0 as usize == i) { format!("cy_main_{}", i) } else { format!("cy_{}_{}", i, super::sanitise(&f.name)) };
         // `MAIN`'s instance belongs to no declared function.
         let found = f.inst.and_then(|inst| p.instances.get(inst.0 as usize)).and_then(|inst| p.items.fns.get(inst.key.fn_id.0 as usize).map(|d| (inst, d)));
         let (neuron, name, generic) = match found {
@@ -152,19 +172,15 @@ pub fn report(p: &Program, obj: &Path, exe: &Path) -> Result<String, String> {
     }
     // What Synapse writes around the program: the entry that runs `MAIN`
     // (often with `MAIN` inlined into it), and a test run's table.
-    let mut glue: Vec<(&String, &u64)> = code.iter().filter(|(n, _)| !n.starts_with("cy_") || n.starts_with("cy_test")).collect();
+    let mut glue: Vec<(&String, &u64)> = code.iter().filter(|(n, _)| !is_function(n)).collect();
     glue.sort();
     for (n, s) in glue {
         let name = if n == "main" { "the entry, `main`, which runs MAIN".to_string() } else { format!("`{}`, Synapse's", n) };
         own += *s;
         rows.push(("this Neuron".into(), name, None, *s));
     }
-    let mut out = format!(
-        "size: {} on disk; the program's own code is {} and its data {}; the rest is Axon, the runtime, and what the linker adds\n",
-        bytes(on_disk),
-        bytes(own),
-        bytes(data)
-    );
+    let rest = if crate::target::bare() { "the rest is the file's own layout" } else { "the rest is Axon, the runtime, and what the linker adds" };
+    let mut out = format!("size: {} on disk; the program's own code is {} and its data {}; {}\n", bytes(on_disk), bytes(own), bytes(data), rest);
     let mut neurons: Vec<String> = rows.iter().map(|r| r.0.clone()).collect();
     neurons.sort();
     neurons.dedup();

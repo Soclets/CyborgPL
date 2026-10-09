@@ -1,0 +1,6 @@
+kin::Manifest[
+    name = "computes",
+    prefix = "computes",
+    version = "0.1.0",
+    targets = [kin::Target[name = "aarch64-none", layout = "boards/virt.ld"],]
+];

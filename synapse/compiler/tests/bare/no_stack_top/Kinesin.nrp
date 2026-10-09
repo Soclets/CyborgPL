@@ -1,0 +1,6 @@
+kin::Manifest[
+    name = "no_stack_top",
+    prefix = "no_stack_top",
+    version = "0.1.0",
+    targets = [kin::Target[name = "aarch64-none", layout = "boards/virt.ld"],]
+];

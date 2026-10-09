@@ -726,8 +726,10 @@ impl<'a> Parser<'a> {
                 Ok(Err(f.name))
             }
             "target" => {
-                // The target CCA builds for is this machine's so far.
-                let (chip, os) = (std::env::consts::ARCH, std::env::consts::OS);
+                // The build's target (`crate::target`), set before any file
+                // is read.
+                let (chip, os) = (crate::target::chip(), crate::target::os());
+                let (chip, os) = (chip.as_str(), os.as_str());
                 if self.eat(&Tok::Dot) {
                     let part = self.ident("`chip` or `os`")?;
                     let name = self.ident("a name")?;
@@ -3917,9 +3919,11 @@ impl<'a> Parser<'a> {
             if self.at_eof() {
                 return self.fail("this `[` is never closed");
             }
-            // `field = value`
+            // `field = value`. `layout` names a field too (a no-OS
+            // target's linker script, owner 2026-10-09): as a keyword it
+            // only ever starts `layout.C`, never stands before `=`.
             if let Tok::Word(w) = self.peek().clone() {
-                if self.is_op_at(1, "=") && !is_keyword(&w) {
+                if self.is_op_at(1, "=") && (!is_keyword(&w) || w == "layout") {
                     let name = self.ident("a field")?;
                     self.bump(); // =
                     let value = self.expr(0)?;

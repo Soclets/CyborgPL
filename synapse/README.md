@@ -57,6 +57,23 @@ linked as one shared library, the one lld's libraries use; a self-contained
 release will need LLVM and lld built as static libraries. Linking is built
 for macOS hosts so far (the SDK found by `xcrun`).
 
+**A chip with no OS: `aarch64-none`** (owner, 2026-10-09). Built from any
+host, run on the bare chip (tested in QEMU's `virt` machine,
+`compiler/tests/bare/`). The Neuron names its own linker script on the
+target, its path from the Neuron's folder: `kin::Target[name =
+"aarch64-none", layout = "boards/virt.ld"]` ("`c` now", then "`b`"); a lone
+file is not built for it. The script keeps `_start` first (`ENTRY(_start)`,
+"`a`") and defines `__stack_top`, `__bss_start` and `__bss_end` ("Whatever's
+accurate"), each refused by name when missing. Synapse writes `_start`:
+only core 0 goes on, the FP/SIMD unit is turned on, a vector table whose
+entries wait forever is installed, the stack is set and the zeroed memory
+cleared, then MAIN runs; when it ends the CPU sleeps forever (`wfe`, "`a`").
+A failed run-time check is `brk #1` (2026-10-08: "yea, freeze there"): the
+CPU stops in the table, `ELR_EL1` at the trap and `ESR_EL1` saying it was
+one. `memcpy`, `memset`, `memmove` and `memcmp` are Synapse's own, each kept
+only if used (`--gc-sections`). Axon is not built for it, so a program
+needing it, or C, is refused before linking, naming the function.
+
 ```
 cargo test        # every examples/*.nrv checks; every reject program is
                   # refused; Synapse's own programs build, run and exit right

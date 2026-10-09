@@ -141,14 +141,26 @@ fn gather_precedence(sources: &mut SourceMap, path: &Path) -> Result<()> {
 
 pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Result<Items> {
     old_names(path)?;
+    // The target, known before any file is read (`on.target`): the one
+    // named, or else the root Neuron's default, set where its manifest is
+    // read; this machine for a lone file.
+    crate::target::set(match &purpose {
+        Purpose::Compile(Some(t)) => Some(t),
+        _ => None,
+    });
+    crate::target::set_layout(None);
     gather_precedence(sources, path)?;
     let mut items = Items::default();
     // The root Limb's targets and default, when it has a `CCA.cplr`.
     let mut root: Option<(Vec<String>, Option<(String, crate::source::Span)>)> = None;
+    let mut layouts: Vec<(String, String, crate::source::Span)> = Vec::new();
+    let mut root_dir: Option<PathBuf> = None;
     if path.is_dir() {
-        let mut state = Loading { stack: Vec::new(), done: std::collections::HashMap::new(), prefixes: std::collections::HashMap::new(), root: None };
+        let mut state = Loading { stack: Vec::new(), done: std::collections::HashMap::new(), prefixes: std::collections::HashMap::new(), root: None, root_layouts: Vec::new(), root_dir: None };
         load_limb(sources, &mut items, path, None, &mut state)?;
         root = state.root;
+        layouts = state.root_layouts;
+        root_dir = state.root_dir;
     }
     // What is built is a target from the manifest, never the host
     // (`reproducible-builds.md`): the one named, or the default. A lone
@@ -177,9 +189,30 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         (Purpose::Compile(None), Some((_, Some((t, s))))) => Some((t.clone(), Some(*s))),
         (Purpose::Compile(None), None) => None,
     };
+    // A no-OS target is linked against the Neuron's own script, named by
+    // its `layout` (owner, 2026-10-09: "`c` now", then "`b`").
+    if let Some((t, span)) = chosen.as_ref().filter(|(t, _)| t.ends_with("-none")) {
+        let Some(dir) = &root_dir else {
+            let d = Diagnostic::error(format!("a lone file is not built for `{}`: a program with no OS brings a linker script saying where it sits in the board's memory, named in a Neuron's Kinesin.nrp — `kin::Target[name = \"{}\", layout = \"boards/virt.ld\"]`", t, t));
+            return err(match span {
+                Some(s) => d.at(*s),
+                None => d,
+            });
+        };
+        let Some((_, file, at)) = layouts.iter().find(|(n, _, _)| n == t) else {
+            unreachable!("a no-OS target without a `layout` is refused where the manifest is read")
+        };
+        let script = dir.join(file);
+        if !script.is_file() {
+            return err(Diagnostic::error(format!("the linker script `{}`, the `layout` of `{}`, is not there: the path is from the Neuron's folder", file, t)).at(*at));
+        }
+        crate::target::set_layout(Some((script, file.clone())));
+    }
     if let Some((t, span)) = chosen {
-        let here = format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS);
-        if t != here {
+        let here = crate::target::host();
+        // A no-OS target is built on another machine (owner, 2026-10-09:
+        // `aarch64-none`), from any.
+        if t != here && !t.ends_with("-none") {
             let d = Diagnostic::error(format!("not yet: the target is `{}`, and Synapse builds it only on a `{}` machine so far — this one is `{}`", t, t, here));
             return err(match span {
                 Some(s) => d.at(s),
@@ -348,6 +381,9 @@ struct Loading {
     prefixes: std::collections::HashMap<String, PathBuf>,
     /// The Limb being built: its targets and default, from its `CCA.cplr`.
     root: Option<(Vec<String>, Option<(String, crate::source::Span)>)>,
+    /// Its folder and its no-OS targets' linker scripts.
+    root_layouts: Vec<(String, String, crate::source::Span)>,
+    root_dir: Option<PathBuf>,
 }
 
 /// One Limb directory and, through its `CCA.cplr`, its dependencies: each
@@ -403,6 +439,11 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     }
     if from.is_none() && dir.join(MANIFEST).is_file() {
         state.root = Some((manifest.targets.clone(), manifest.default_target.clone()));
+        state.root_layouts = manifest.layouts.clone();
+        state.root_dir = Some(dir.to_path_buf());
+        if !crate::target::is_set() {
+            crate::target::set(manifest.default_target.as_ref().map(|(t, _)| t.as_str()));
+        }
     }
     let m = match from {
         None => new_module(items, "limb", None, Vis::Pub),
@@ -496,6 +537,9 @@ struct Manifest {
     default_target: Option<(String, crate::source::Span)>,
     /// Every target listed.
     targets: Vec<String>,
+    /// A no-OS target's linker script (owner, 2026-10-09: "`b`"): the
+    /// target, the path as written (from the Neuron's folder), and where.
+    layouts: Vec<(String, String, crate::source::Span)>,
     /// std is listed, by its ID and version (owner, 2026-10-06); a Limb
     /// that does not list it reaches no operator and no `std::`.
     has_std: bool,
@@ -521,7 +565,7 @@ const MANIFEST_SHAPE: &str = "`kin::Manifest[name = \"areas\", prefix = \"areas\
 fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     use crate::ast::{Arg as AArg, ExprKind};
     use crate::lexer::Tok;
-    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new(), has_std: false, cores: Vec::new(), powers: Vec::new(), deny: Vec::new() };
+    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new(), layouts: Vec::new(), has_std: false, cores: Vec::new(), powers: Vec::new(), deny: Vec::new() };
     let at = dir.join(MANIFEST);
     if !at.is_file() {
         return Ok(out);
@@ -611,6 +655,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                         return err(Diagnostic::error(format!("each target is a `kin::Target[…]`, and this is `{}`", path.spelled())).at(e.span));
                     }
                     let mut name = None;
+                    let mut layout: Option<(String, crate::source::Span)> = None;
                     let mut is_default = false;
                     let mut said_not = false;
                     for a in args {
@@ -622,6 +667,9 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                             "runner" => {
                                 text(v, "a target's `runner`")?;
                             }
+                            // A no-OS target's linker script, from the
+                            // Neuron's folder (owner, 2026-10-09: "`b`").
+                            "layout" => layout = Some((text(v, "a target's `layout`")?, v.span)),
                             // The one built when none is named (owner,
                             // 2026-09-29: b).
                             "default" => match &v.kind {
@@ -631,7 +679,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                                 }
                                 _ => return err(Diagnostic::error("a target's `default` is `true` or `false`").at(v.span)),
                             },
-                            other => return err(Diagnostic::error(format!("a `kin::Target` has no field `{}`: it is a `name`, a `runner` when this machine cannot run it, and `default = true` on the one built when none is named", other)).at(field.span)),
+                            other => return err(Diagnostic::error(format!("a `kin::Target` has no field `{}`: it is a `name`, a `runner` when this machine cannot run it, `default = true` on the one built when none is named, and a `layout` on one with no OS", other)).at(field.span)),
                         }
                     }
                     let Some((n, span)) = name else {
@@ -639,6 +687,14 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     };
                     if names.contains(&n) {
                         return err(Diagnostic::error(format!("the target `{}` is listed twice in `targets`", n)).at(span));
+                    }
+                    match layout {
+                        Some((file, at)) if n.ends_with("-none") => out.layouts.push((n.clone(), file, at)),
+                        Some((_, at)) => return err(Diagnostic::error(format!("`layout` is for a target with no OS, whose program says where it sits in memory; on `{}` the OS places it", n)).at(at)),
+                        None if n.ends_with("-none") => {
+                            return err(Diagnostic::error(format!("the target `{n}` has no `layout`: a program with no OS brings its own linker script, saying where it sits in the board's memory — `kin::Target[name = \"{n}\", layout = \"boards/virt.ld\"]`, the path from the Neuron's folder")).at(span));
+                        }
+                        None => {}
                     }
                     if is_default {
                         defaults.push((n.clone(), span));

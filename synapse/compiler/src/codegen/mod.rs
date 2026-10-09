@@ -41,6 +41,7 @@ use crate::types::{BinW, IntW, Ty};
 mod cabi;
 mod deci;
 mod heap;
+pub mod bare;
 mod par;
 pub mod size;
 mod tasks;
@@ -1982,6 +1983,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// Stop the program where a check fired, naming the site
     /// (`diagnostics.md`: "the trap at run time names the site").
     fn trap(&mut self, fi: usize, site: SiteId) {
+        // With no operating system, a failed check freezes the CPU there,
+        // on a trap instruction a debugger shows (owner, 2026-10-08: "yea,
+        // freeze there"): LLVM's trap, `brk` on ARM.
+        if crate::target::bare() {
+            if let Some(trap) = inkwell::intrinsics::Intrinsic::find("llvm.trap").and_then(|i| i.get_declaration(self.module, &[])) {
+                let _ = self.builder.build_call(trap, &[], "");
+            }
+            let _ = self.builder.build_unreachable();
+            return;
+        }
         let (msg, handler) = self.site_message(fi, site);
         let ptr = self.global_bytes(&msg);
         let len = self.ctx.i64_type().const_int(msg.len() as u64, false);
@@ -4121,7 +4132,12 @@ fn macos_version() -> Option<String> {
         .clone()
 }
 
+/// The build's triple: this machine's, or LLVM's name for a no-OS
+/// target (`aarch64-unknown-none`).
 fn host_triple() -> inkwell::targets::TargetTriple {
+    if crate::target::bare() {
+        return inkwell::targets::TargetTriple::create(&crate::target::bare_triple());
+    }
     static TRIPLE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     let t = TRIPLE.get_or_init(|| {
         let default = TargetMachine::get_default_triple().as_str().to_string_lossy().into_owned();
@@ -4141,6 +4157,15 @@ fn host_triple() -> inkwell::targets::TargetTriple {
 fn machine() -> Result<TargetMachine, String> {
     Target::initialize_native(&InitializationConfig::default()).map_err(|e| e.to_string())?;
     let triple = host_triple();
+    // A bare chip is not this one: its baseline CPU, and code placed where
+    // the linker puts it, with nothing to relocate it when it starts.
+    if crate::target::bare() {
+        Target::initialize_aarch64(&InitializationConfig::default());
+        let target = Target::from_triple(&triple).map_err(|e| e.to_string())?;
+        return target
+            .create_target_machine(&triple, "generic", "", OptimizationLevel::Aggressive, RelocMode::Static, CodeModel::Small)
+            .ok_or_else(|| format!("LLVM has no description of `{}`", crate::target::name()));
+    }
     let target = Target::from_triple(&triple).map_err(|e| e.to_string())?;
     target
         .create_target_machine(&triple, &TargetMachine::get_host_cpu_name().to_string(), &TargetMachine::get_host_cpu_features().to_string(), OptimizationLevel::Aggressive, RelocMode::PIC, CodeModel::Default)
@@ -4182,6 +4207,14 @@ pub fn write_object(module: &Module, path: &Path, emit: Option<&Path>) -> Result
         .run_passes(PASSES, &machine, inkwell::passes::PassBuilderOptions::create())
         .map_err(|e| e.to_string())?;
     write_ll("after.ll", "after LLVM's passes, as the backend gets it")?;
+    // With no OS, nothing will define what LLVM's code still calls; the
+    // entry and the memory routines are the program's own.
+    if crate::target::bare() {
+        if let Some(name) = bare::missing(module).first() {
+            return Err(bare::why_missing(name));
+        }
+        module.set_inline_assembly(&format!("{}\n{}", bare::ENTRY_ASM, bare::MEMORY_ASM));
+    }
     machine.write_to_file(module, FileType::Object, path).map_err(|e| e.to_string())
 }
 
@@ -4199,6 +4232,12 @@ extern "C" {
 /// architecture, the platform and SDK versions, the SDK as the system
 /// root, the runtime, and libSystem.
 pub fn link(obj: &Path, out: &Path) -> Result<(), String> {
+    if crate::target::bare() {
+        let Some(script) = crate::target::layout() else {
+            return Err(format!("a program for `{}` brings its own linker script, which says where it sits in the board's memory (owner, 2026-10-09: \"`c` now\"), and this one has none", crate::target::name()));
+        };
+        return bare::link(obj, &script.0, &script.1, out);
+    }
     let runtime = runtime_path().ok_or_else(|| "Axon, the runtime, is not built: `cargo build -p synapse-runtime --release`".to_string())?;
     if !cfg!(target_os = "macos") {
         return Err("linking with lld is built for macOS so far: this host's system libraries and start files are not found yet".into());
