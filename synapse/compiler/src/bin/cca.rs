@@ -1,3 +1,7 @@
-//! `cca`: the old name of `synapse`, answering until the tools that call it have switched (owner, 2026-10-09).
+//! `cca`: the old name of `synapse` (owner, 2026-10-09: "Yea"), refused
+//! like any old spelling, naming the new one.
 
-include!("../main.rs");
+fn main() {
+    eprintln!("error: `cca` is the old name: write `synapse` (or `syn`)");
+    std::process::exit(1);
+}

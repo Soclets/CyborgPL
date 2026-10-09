@@ -10,9 +10,8 @@ level, `compiler/`), the lobes (`lobes/`), Cortex (the prover,
 `compiler/src/cortex`) and Axon (the runtime, `runtime/`). The command is
 `synapse`, and `syn` is the same command (owner: "Both"); the folder and the
 crates take the full name (`synapse-brainstem`, `synapse-runtime`,
-`synapse-lobe-*`; "Yeah"). The old `cca` command still answers until the
-tools that call it have switched, and a `cca` symlink keeps the old folder's
-paths working meanwhile.
+`synapse-lobe-*`; "Yeah"). The old `cca` command is refused, naming
+`synapse`, as any old spelling is.
 
 ```
 cd synapse
