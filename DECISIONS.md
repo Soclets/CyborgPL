@@ -51,9 +51,16 @@ Neuron naming its serial chip's address and kind, (d) semihosting, (e) the
 board's Neuron driving the port itself with the base's raw memory and
 `cord::print` refused, which design claude recommended with (f) later; the
 owner asked "Does `e` have the most useful possibilities?" (the most
-flexible, not the most convenient) and chose (f). Not yet asked: how a
-Neuron names its output, what the output function takes, and `cord::exit`
-with no OS.
+flexible, not the most convenient) and chose (f). Asked "Don't you have to
+write it yourself?" (yes: the program's author, or once per board as a board
+Neuron; Nerve ships no drivers) and "So, you write it, you then tell
+`cord::print` to call yours, instead of print's normal one?" (yes: with no OS
+there is no normal one). **The program names its output on the target in
+`Kinesin.nrp`: `kin::Target[name = "aarch64-none", layout = "boards/virt.ld",
+output = "my.serial.write"]`** (owner: "`a`"), over (b) a mark on the function
+and (c) an interface found automatically; design claude recommended (a), and
+named the field `output`. Not yet asked: what the output function takes,
+and `cord::exit` with no OS.
 
 ### 2026-10-09 — The practical base is built in the oracle; Signatar is CyborgPL's base, the Brainstem Nerve's (owner)
 
