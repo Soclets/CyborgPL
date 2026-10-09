@@ -71,7 +71,18 @@ kind. **`cord::exit` with no OS calls the board's exit, named like the
 output: `exit = "my.board.exit"` on the target, a function taking the code;
 with none named, it ends as MAIN does, the CPU sleeping forever** (owner:
 "c"), over (a) always sleeping, the code dropped, and (b) refused; design
-claude recommended (c).
+claude recommended (c). Compiler claude then raised the owner's 2026-09-22 "No `std::` for now"
+(Synapse builds no cord; every `cord::` call is refused outside test stubs):
+does this lift it? Offered (a) print and exit on no-OS targets only, (b) on
+every target, (c) not yet; design claude and compiler claude recommended
+(b). The owner: "`b`, not the entire fucking neuron". So **Synapse builds
+`cord::print` and `cord::exit`, on every target** (macOS's terminal and exit,
+or the board's `output` and `exit`), **and nothing else of cord**: the rest
+stays refused, "No `std::` for now" otherwise standing. Design claude's
+readings passed on: an `output` / `exit` path names a function of this
+Neuron (`my.serial.write`) or of a board Neuron it depends on
+(`virt::serial.write`); compiler claude's: the exit code is a `uint8`, as
+`cord::exit`'s is.
 
 ### 2026-10-09 — The practical base is built in the oracle; Signatar is CyborgPL's base, the Brainstem Nerve's (owner)
 
