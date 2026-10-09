@@ -1,6 +1,6 @@
 # Nerve syntax grammar
 
-`nerve.tmLanguage.json` is a TextMate grammar for `.cpls`. The website uses
+`nerve.tmLanguage.json` is a TextMate grammar for `.nrv` (and `.nrp`). The website uses
 it to highlight every code sample; it also works in VS Code and anything else
 that reads TextMate grammars.
 
@@ -89,6 +89,6 @@ Since 2026-10-08 it also knows: `newln`; comparison words; `is`; `shadow`; `no_c
 `my.` paths; std's names written bare (`print.useful[…]`, `duration`); registers in an inline
 block's `with […]`; `list.fill[value 0, count 10]`; names in any script (WSTN). The retired
 spellings (`-->`, `==`, `</==`, `!mut`, `!$`, `$:=`, `nocheck`, `\n` outside text,
-`stdkit::` / `std::`, `pub.limb`, `!std_int24`, `#strict`) are marked deprecated.
+`stdkit::` / `std::`, `cca::`, `pub.limb`, `!std_int24`, `#strict`) are marked deprecated.
 
-Last run on 2026-10-09 against all 159 programs: no unscoped spans.
+Last run on 2026-10-09 against all 159 programs (`.nrv`): no unscoped spans.

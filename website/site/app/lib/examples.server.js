@@ -42,7 +42,7 @@ const TITLES = {
 export const titleOf = (id) => TITLES[id] ?? id.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()).replace(/^Simd\b/, "SIMD");
 
 const read = (id, ext) => readFileSync(path.join(EXAMPLES, `${id}.${ext}`), "utf8").replace(/\n$/, "");
-export const exampleIds = () => readdirSync(EXAMPLES).filter((f) => f.endsWith(".cpls")).map((f) => f.slice(0, -5)).sort();
+export const exampleIds = () => readdirSync(EXAMPLES).filter((f) => f.endsWith(".nrv")).map((f) => f.slice(0, -4)).sort();
 
 // The opening sentence of the first comment, without its "(design/…, date)" bookkeeping. A
 // sentence may run over several comment lines; an indented line (a list) or a blank one ends it.
@@ -64,7 +64,7 @@ function summaryOf(src) {
 
 export function listExamples() {
   return exampleIds().map((id) => {
-    const src = read(id, "cpls");
+    const src = read(id, "nrv");
     const code = src.split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
     return { id, title: titleOf(id), summary: summaryOf(src), lines: src.split("\n").length, preview: code.slice(0, 6).join("\n"), source: src };
   });
@@ -72,10 +72,10 @@ export function listExamples() {
 
 export async function getExample(id) {
   if (!exampleIds().includes(id)) throw new Response("Not found", { status: 404 });
-  const src = read(id, "cpls");
+  const src = read(id, "nrv");
   const exit = existsSync(path.join(EXAMPLES, `${id}.exit`)) ? read(id, "exit").trim() : null;
   return {
-    id, title: titleOf(id), summary: summaryOf(src), file: `examples/${id}.cpls`,
+    id, title: titleOf(id), summary: summaryOf(src), file: `examples/${id}.nrv`,
     lines: src.split("\n").length, html: await highlight(src), out: read(id, "out"), exit,
   };
 }

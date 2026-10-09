@@ -7,10 +7,10 @@ export const REPO_URL = "https://github.com/Soclets/Nerve-lang";
 export const RRX2_URL = "https://github.com/Cyborg-Assembly-Manufacturing-Site/RRx2";
 
 export const DESCRIPTION =
-  "Nerve is a compiled language where Precog, a whole-program analyser, proves every overflow and bounds check at compile time. The final build carries none of them, or it doesn’t build.";
+  "Nerve is a compiled language where Cortex, a whole-program analyser, proves every overflow and bounds check at compile time. The final build carries none of them, or it doesn’t build.";
 
 export const FEATURES = [
-  { id: "precog", icon: "shield", title: "Precog", text: "Every overflow and bounds check is proven at compile time — or the program doesn’t build." },
+  { id: "cortex", icon: "shield", title: "Cortex", text: "Every overflow and bounds check is proven at compile time — or the program doesn’t build." },
   { id: "ownership", icon: "key", title: "Ownership, no GC", text: "Every value has one owner. `give`, `copy` and `lend` say what happens to it." },
   { id: "inference", icon: "type", title: "`:=` picks the best type", text: "Worked out from the whole program. A value from outside needs its type written." },
   { id: "dot", icon: "dot", title: "A dot narrows", text: "`str.utf8`, `lend.mut`, `list.length`, `map.ordered` — one small rule, everywhere." },
@@ -21,9 +21,9 @@ export const FEATURES = [
 // Home's honest table (owner, 2026-09-28): each feature beside what it costs. Every line is
 // the design's own words, from design/core-features.md and DECISIONS.md — no costs invented.
 export const TRADEOFFS = [
-  { get: "Precog proves every overflow and bounds check at compile time; the final build carries none of them.",
+  { get: "Cortex proves every overflow and bounds check at compile time; the final build carries none of them.",
     cost: "Compile time is not a cost the language cares about: builds are slow, and every build is a full one — there is no fast development mode." },
-  { get: "The working build checks what Precog can’t yet prove, whatever the runtime cost.",
+  { get: "The working build checks what Cortex can’t yet prove, whatever the runtime cost.",
     cost: "The final build refuses that code until you write a guardrail, a tighter type, or `no_check`." },
   { get: "Ownership, no garbage collector: every value has one owner, so the compiler knows when to free it.",
     cost: "Every call says what happens to a value: `lend`, `give` or `copy`." },
@@ -71,5 +71,5 @@ export const LICENCE = [
       { label: "Legal code", href: "https://creativecommons.org/licenses/by/4.0/legalcode" },
       { label: "LICENSE-CC-BY-4.0 in the repo", href: `${REPO_URL}/blob/main/LICENSE-CC-BY-4.0` },
     ] },
-  { title: "Names and logo", text: "Nerve, Precog, Neuron and Synthia, and the logo, are trademarks. They aren’t licensed with the code: a fork can’t call itself Nerve." },
+  { title: "Names and logo", text: "Nerve, Cortex, Neuron and Synthia, and the logo, are trademarks. They aren’t licensed with the code: a fork can’t call itself Nerve." },
 ];

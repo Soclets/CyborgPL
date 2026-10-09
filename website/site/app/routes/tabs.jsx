@@ -75,7 +75,7 @@ function Topbar({ pathname }) {
   return (
     <header className="topbar">
       <div className="topbar-in">
-        <Link to="/" className="brand" prefetch="intent"><Mark size={26} /><b>Nerve</b></Link>
+        <Link to="/" className="brand" prefetch="intent" aria-label="Nerve, home"><Mark height={17} /></Link>
         <nav aria-label="Site" ref={nav}>
           <span className="topbar-pill" ref={pill} aria-hidden="true" />
           {LINKS.map((l, i) => (

@@ -5,7 +5,7 @@ import { exampleIds } from "../app/lib/examples.server.js";
 
 const index = {};
 for (const id of exampleIds()) {
-  index[id] = readFileSync(`../../examples/${id}.cpls`, "utf8").split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
+  index[id] = readFileSync(`../../examples/${id}.nrv`, "utf8").split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
 }
 writeFileSync("public/search-index.json", JSON.stringify(index));
 console.log(`search-index: ${Object.keys(index).length} examples`);

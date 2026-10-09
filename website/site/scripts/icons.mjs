@@ -1,5 +1,6 @@
-// App icons from the brand files: the square avatar for home-screen icons (iOS masks
-// its own corners), the rounded tile as the browser favicon.
+// App icons from the brand files (brand/nerve/): the R from the NERVE wordmark, impulse and
+// all. The square avatar for home-screen icons (iOS masks its own corners), the rounded tile
+// as the browser favicon, and the bare R for the comparison's white tile.
 import { Resvg } from "@resvg/resvg-js";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -7,19 +8,19 @@ import path from "node:path";
 const brand = path.resolve(process.cwd(), "../../brand");
 mkdirSync("public/icons", { recursive: true });
 mkdirSync("public/language-logos", { recursive: true });
-copyFileSync(path.join(brand, "mark-black.svg"), "public/language-logos/nerve.svg");
-const avatar = readFileSync(path.join(brand, "avatar.svg"), "utf8");
+copyFileSync(path.join(brand, "nerve/mark-black.svg"), "public/language-logos/nerve.svg");
+const avatar = readFileSync(path.join(brand, "nerve/avatar.svg"), "utf8");
 for (const [name, size] of [["icon-192.png", 192], ["icon-512.png", 512], ["apple-touch-icon.png", 180]]) {
   const png = new Resvg(avatar, { fitTo: { mode: "width", value: size } }).render().asPng();
   writeFileSync(path.join("public/icons", name), png);
 }
-copyFileSync(path.join(brand, "logo.svg"), "public/favicon.svg");
+copyFileSync(path.join(brand, "nerve/icon.svg"), "public/favicon.svg");
 // RRx2's logo, for its row on More (the light version: RR and heart red, 2 and arrow black).
 copyFileSync(path.join(brand, "rrx2/logo.svg"), "public/icons/rrx2.svg");
 
 // The tab logo as PNG and ICO too: Safari doesn't reliably use an SVG tab icon, and
 // browsers ask for /favicon.ico whatever the page links.
-const logo = readFileSync(path.join(brand, "logo.svg"), "utf8");
+const logo = readFileSync(path.join(brand, "nerve/icon.svg"), "utf8");
 const png = (size) => new Resvg(logo, { fitTo: { mode: "width", value: size } }).render().asPng();
 writeFileSync("public/icons/favicon-32.png", png(32));
 writeFileSync("public/icons/favicon-96.png", png(96));

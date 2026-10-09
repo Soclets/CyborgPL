@@ -15,7 +15,7 @@ export const meta = ({ loaderData, params, matches }) => {
   const ex = loaderData?.title ? loaderData : briefOf(list?.loaderData ?? list?.data, params.id);
   return seo({
   title: `${ex?.title ? plain(ex.title) : "Example"} · Nerve`,
-  description: (ex?.summary && plain(ex.summary)) || `examples/${params.id}.cpls — a Nerve program and the output it prints.`,
+  description: (ex?.summary && plain(ex.summary)) || `examples/${params.id}.nrv — a Nerve program and the output it prints.`,
   path: `/examples/${params.id}`,
   });
 };
@@ -124,7 +124,7 @@ export default function Example() {
           <div className="sheet-head">
             <div>
               <b><Md text={title} /></b>
-              <small>examples/{id}.cpls{brief?.lines ? ` · ${brief.lines} lines` : ""}</small>
+              <small>examples/{id}.nrv{brief?.lines ? ` · ${brief.lines} lines` : ""}</small>
             </div>
             {/* On a phone there is no visible close button: swipe down (owner, 2026-09-25), and this
                 one is for screen readers only. A computer can't swipe, so there it shows (app.css). */}

@@ -4,7 +4,8 @@
   "displayName": "Nerve",
   "scopeName": "source.nerve",
   "fileTypes": [
-    "cpls"
+    "nrv",
+    "nrp"
   ],
   "aliases": [
     "cpls"
@@ -759,8 +760,8 @@
           }
         },
         {
-          "comment": "`stdkit::` and `std::` are the standard library's old spellings; it is `cord::` since 2026-10-09.",
-          "match": "\\b(stdkit|std)(::)",
+          "comment": "Old Neuron paths: `stdkit::` and `std::` are `cord::` since 2026-10-09; `cca::` (the manifest's types) is `kin::`.",
+          "match": "\\b(stdkit|std|cca)(::)",
           "captures": {
             "1": {
               "name": "invalid.deprecated.nerve"

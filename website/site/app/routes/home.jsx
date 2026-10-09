@@ -40,12 +40,12 @@ export async function loader() {
   const lessons = SYNTAX.map((s, i) => ({ to: `/learn#syntax-${i + 1}`, title: plain(s.title), text: plain(s.text), kind: "Syntax", icon: "book" }));
   const { readPractice } = await import("../lib/practice.server.js");
   const practices = (await readPractice()).flatMap((g) => g.items.map((it) => ({ to: `/good-practice#p-${it.n}`, title: plain(it.title), text: plain(it.text), kind: "Practice", icon: "check" })));
-  const examples = listExamples().map((e) => ({ to: `/examples/${e.id}`, title: e.title, text: e.summary || `examples/${e.id}.cpls`, kind: "Example", icon: "code", id: e.id }));
+  const examples = listExamples().map((e) => ({ to: `/examples/${e.id}`, title: e.title, text: e.summary || `examples/${e.id}.nrv`, kind: "Example", icon: "code", id: e.id }));
   // An answer's code must be a real line of its example, or the build stops.
   const { readFileSync } = await import("node:fs");
   const answers = await Promise.all(ANSWERS.map(async (a) => {
-    const src = readFileSync(`../../examples/${a.from}.cpls`, "utf8");
-    for (const line of a.code.split("\n")) if (!src.includes(line)) throw new Error(`answers.js: "${line}" is not in examples/${a.from}.cpls`);
+    const src = readFileSync(`../../examples/${a.from}.nrv`, "utf8");
+    for (const line of a.code.split("\n")) if (!src.includes(line)) throw new Error(`answers.js: "${line}" is not in examples/${a.from}.nrv`);
     return highlight(a.code);
   }));
   return { index: [...pages, ...features, ...lessons, ...practices, ...examples], answers };
@@ -99,7 +99,7 @@ function Answer({ a, html, q, onGo }) {
       <b><Md text={a.title} /></b>
       <p><Md text={a.text} /></p>
       <Code html={html} />
-      <small>examples/{a.from}.cpls <Icon name="chev" size={14} /></small>
+      <small>examples/{a.from}.nrv <Icon name="chev" size={14} /></small>
     </Link>
   );
 }
