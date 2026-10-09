@@ -37,7 +37,11 @@ and what it is for. **Q2: the entry is `_start`** (owner: "`a`"), the name every
 and debugger expects; Synapse writes it (set the stack, turn on the FP/SIMD
 unit, clear `.bss`, run MAIN), and the script keeps it first with
 `ENTRY(_start)`. Whether a program may write its own entry (in
-`inline.ASM`) is left for later.
+`inline.ASM`) is left for later. **Q3: when MAIN ends with no OS, the CPU sleeps forever there**
+(`wfe` in a loop; owner: "`a`"), like a failed check but without the trap,
+so a debugger still sees where it stopped; over (b) powering off through
+PSCI and (c) semihosting an exit code (hangs a board with no debugger).
+Design claude and compiler claude recommended (a).
 
 ### 2026-10-09 — The practical base is built in the oracle; Signatar is CyborgPL's base, the Brainstem Nerve's (owner)
 
