@@ -33,7 +33,11 @@ world's usual names or (b) Nerve names): they say exactly what they are and
 are what board scripts already use, so design claude, as compiler claude
 recommended, took (a). Vendors vary (some write `_sbss` / `_ebss` /
 `_estack`), so such a script adds a line; a missing one is refused, naming it
-and what it is for.
+and what it is for. **Q2: the entry is `_start`** (owner: "`a`"), the name every linker, loader
+and debugger expects; Synapse writes it (set the stack, turn on the FP/SIMD
+unit, clear `.bss`, run MAIN), and the script keeps it first with
+`ENTRY(_start)`. Whether a program may write its own entry (in
+`inline.ASM`) is left for later.
 
 ### 2026-10-09 — The practical base is built in the oracle; Signatar is CyborgPL's base, the Brainstem Nerve's (owner)
 
