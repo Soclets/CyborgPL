@@ -214,7 +214,11 @@ outline for dark mode?"; design claude outlined the black icon, then (owner:
 ("Outline is too thick"); the owner: "Fuck it, go back to no outline", and to
 which: "`a`, with white outline on the icon". So **dark mode shows the light
 icon, its edge white instead of grey (`icon-light-white-edge.svg`), beside the
-white wordmark**; the outlined black files are removed.
+white wordmark**; the outlined black files are removed. Then the owner:
+"Remove the outline, and icon from dark mode". So **the icon shows in light
+mode only** (black icon beside the black wordmark); **dark mode shows the
+white wordmark alone**. GitHub's `#gh-light-mode-only` on the icon's address
+hides it in dark mode; `icon-light-white-edge.svg` is removed.
 
 ### 2026-10-09 — The names and logos are trademarks anyone may use, without pretending to be us (owner)
 
