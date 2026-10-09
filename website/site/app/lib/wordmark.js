@@ -1,4 +1,4 @@
-// The Nerve icon (brand/nerve/icon.svg: a cell body with nerves bursting from it, on its black tile)
+// The Nerve icon (brand/nerve/icon.svg: a medical cross carrying a nerve impulse, on its black tile)
 // and the NERVE wordmark (brand/nerve/wordmark-black.svg) in the current text colour. On the site the
 // impulse is a see-through cut, so it shows whatever is behind it in either theme. The brand files
 // paint it in instead, for places that draw the image without the page behind it.
@@ -18,9 +18,13 @@ export const wordmarkSVG = (id, height) =>
   + `<defs><mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="700" height="320"><rect width="700" height="320" fill="#fff"/>${CUT}</mask></defs>`
   + `<g fill="currentColor" mask="url(#${id})">${LETTERS.map((d) => `<path d="${d}"/>`).join("")}</g></svg>`;
 
-const BURST = '<circle cx="90" cy="90" r="20" fill="none" stroke="currentColor" stroke-width="8"/><path d="M90.0 60.0 L90.0 20.0" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="90.0" cy="20.0" r="6" fill="currentColor"/><path d="M107.6 65.7 L120.6 47.9" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="120.6" cy="47.9" r="4.5" fill="currentColor"/><path d="M118.5 80.7 L156.6 68.4" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="156.6" cy="68.4" r="6" fill="currentColor"/><path d="M118.5 99.3 L139.5 106.1" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="139.5" cy="106.1" r="4.5" fill="currentColor"/><path d="M107.6 114.3 L131.1 146.6" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="131.1" cy="146.6" r="6" fill="currentColor"/><path d="M90.0 120.0 L90.0 142.0" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="90.0" cy="142.0" r="4.5" fill="currentColor"/><path d="M72.4 114.3 L48.9 146.6" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="48.9" cy="146.6" r="6" fill="currentColor"/><path d="M61.5 99.3 L40.5 106.1" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="40.5" cy="106.1" r="4.5" fill="currentColor"/><path d="M61.5 80.7 L23.4 68.4" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="23.4" cy="68.4" r="6" fill="currentColor"/><path d="M72.4 65.7 L59.4 47.9" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="59.4" cy="47.9" r="4.5" fill="currentColor"/><circle cx="90" cy="90" r="7" fill="currentColor"/>';
+// The cross from the cross wordmark (centre 692,150), carrying its impulse.
+const CROSS = "M676.00 108.00 C676.00 103.58 679.58 100.00 684.00 100.00 L700.00 100.00 C704.42 100.00 708.00 103.58 708.00 108.00 L708.00 129.00 C708.00 131.76 710.24 134.00 713.00 134.00 L734.00 134.00 C738.42 134.00 742.00 137.58 742.00 142.00 L742.00 158.00 C742.00 162.42 738.42 166.00 734.00 166.00 L713.00 166.00 C710.24 166.00 708.00 168.24 708.00 171.00 L708.00 192.00 C708.00 196.42 704.42 200.00 700.00 200.00 L684.00 200.00 C679.58 200.00 676.00 196.42 676.00 192.00 L676.00 171.00 C676.00 168.24 673.76 166.00 671.00 166.00 L650.00 166.00 C645.58 166.00 642.00 162.42 642.00 158.00 L642.00 142.00 C642.00 137.58 645.58 134.00 650.00 134.00 L671.00 134.00 C673.76 134.00 676.00 131.76 676.00 129.00 Z";
+const IMPULSE = "M630 150 H678 L684 150 L691 110 L698 158 L702 158 L706 150 H756";
+
 // The icon always on its own black tile (brand/nerve/icon.svg), whatever the theme (owner: "with its
-// background").
+// background"): the white cross, its impulse in the tile's black.
 export const iconSVG = (size) =>
   `<svg viewBox="0 0 180 180" width="${size}" height="${size}" aria-hidden="true"><rect width="180" height="180" rx="38" fill="#111111"/>`
-  + `<g color="#ffffff" transform="translate(90 90) scale(0.86) translate(-90 -90)">${BURST}</g></svg>`;
+  + `<g transform="translate(90 90) scale(1.12) translate(-692 -150)"><defs><clipPath id="icon-cross-${size}"><path d="${CROSS}"/></clipPath></defs>`
+  + `<path fill="#ffffff" d="${CROSS}"/><path d="${IMPULSE}" clip-path="url(#icon-cross-${size})" fill="none" stroke="#111111" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/></g></svg>`;

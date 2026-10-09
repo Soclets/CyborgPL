@@ -1,5 +1,5 @@
-// App icons from the brand files (brand/nerve/): the Nerve icon, a cell body with nerves
-// bursting from it. The square avatar for home-screen icons (iOS masks its own corners), the
+// App icons from the brand files (brand/nerve/): the Nerve icon, a medical cross carrying a
+// nerve impulse. The square avatar for home-screen icons (iOS masks its own corners), the
 // rounded tile as the browser favicon and the comparison's logo (always on its tile).
 import { Resvg } from "@resvg/resvg-js";
 import { createHash } from "node:crypto";
