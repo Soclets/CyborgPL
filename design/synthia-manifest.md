@@ -94,9 +94,9 @@ x86_64-windows.runner = wine
   b), as dotted keys: a `runner` for a cross target's tests, `default` for
   the one built when none is named. One target is one line.
 
-**CCA's package manager can do whatever Synthia can** (owner, 2026-09-29:
+**Synapse's package manager can do whatever Synthia can** (owner, 2026-09-29:
 "yea"), in its plainer Nerve-syntax way; Synthia's edge is convenience,
-never capability, so CCA never needs it. The owner asked whether CCA's
+never capability, so Synapse never needs it. The owner asked whether Synapse's
 package manager could do "some Synthia shit", since otherwise "that feels
 like the base lang not being able to do inline ASM". So `Kinesin.nrp`'s
 `target` became `targets`, a list of `kin::Target[name = …, runner = …]`.
@@ -114,10 +114,10 @@ like the base lang not being able to do inline ASM". So `Kinesin.nrp`'s
   `Kinesin.nrp`'s `'prefix'`; its `name` is a label apart from it.
   Required, as in `Kinesin.nrp` (owner: "if it's not always required, it
   could be weird to CyborgPL users"). **Synthia's easy override** for two Neurons with one
-  prefix does what a CCA user does by hand (owner, 2026-09-29: "Synthia
+  prefix does what a Synapse user does by hand (owner, 2026-09-29: "Synthia
   just does what the CyborgPL programmer had to do"): it copies that Neuron
   into a folder of its own, changes the `prefix` in the copy, and hands
-  CCA an ordinary path dependency. The override is a dotted `prefix` line
+  Synapse an ordinary path dependency. The override is a dotted `prefix` line
   on the needed Neuron's key (owner, 2026-09-30: "Prefix shall be narrowed
   using a dot", "yea"): `money.path = ../money` with `money.prefix =
   cash2` (`limb.money.path`, `limb.money.prefix` since 2026-10-06), and code writes `cash2::`. The key (`money`) is this
@@ -141,7 +141,7 @@ like the base lang not being able to do inline ASM". So `Kinesin.nrp`'s
   starts a value or follows a space is a comment after a value, and
   refused; a `#` inside a word is part of the value (`../money#2`; owner,
   2026-09-29: "yea").
-- **A refusal is written in CCA's message shape** (`diagnostics.md`;
+- **A refusal is written in Synapse's message shape** (`diagnostics.md`;
   owner, 2026-09-29: "yea"): `error:`, `where:` (file, line, column,
   section), `code:`, and `fix:` when there is one right line to write.
 - **Names may repeat; IDs never do** (owner: "Names could be the same, IDs
@@ -157,8 +157,8 @@ like the base lang not being able to do inline ASM". So `Kinesin.nrp`'s
 
 - **`default` is `yes` or `no`** (owner, 2026-09-30: b), as `Kinesin.nrp`'s
   `true` or `false`.
-- **A target must be one CCA can build** (owner, 2026-09-29: "Only
-  what's actually doable"), from CCA's own list, not any
+- **A target must be one Synapse can build** (owner, 2026-09-29: "Only
+  what's actually doable"), from Synapse's own list, not any
   `architecture-system` name.
 - **One target is marked the default** (owner, 2026-09-29: b), the one
   built when none is named: `aarch64-macos.default = yes` here, `default =

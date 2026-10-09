@@ -6,7 +6,7 @@ Opened 2026-09-22. Part of v1 (owner, 2026-09-21). The rule is
 `parallelism.md`'s, extended: the programmer writes `for`, Cortex
 decides CPU cores or GPU, `for seq` says no. No GPU syntax. Underneath,
 the loop body is compiled for the GPU target (by LLVM for Vulkan, by
-CCA's own Metal generator for Metal) and Axon, the runtime, launches it and
+Synapse's own Metal generator for Metal) and Axon, the runtime, launches it and
 moves the data. This document is what Cortex needs to
 decide, and what Axon does.
 
@@ -73,7 +73,7 @@ and tested here.
 The first public GitHub release needs only Metal (owner, 2026-10-01).
 
 **How each is compiled** (owner, 2026-09-30: direct text). Vulkan: LLVM
-compiles the body to SPIR-V. Metal: CCA writes Metal Shading Language
+compiles the body to SPIR-V. Metal: Synapse writes Metal Shading Language
 text straight from its own MIR, which Apple's compiler then builds. This
 takes the place of making SPIR-V once and converting it. Direct text can
 use Metal-only features (operations across a SIMD group, threadgroup
@@ -87,7 +87,7 @@ expected, not measured. No C++: the Metal runtime is reached from Rust.
 A line per `for` Cortex considered — offloaded, parallel on CPU cores,
 sequential and why (`diagnostics.md`).
 
-## Measured once, on purpose: `cca tune` (owner, 2026-09-28; CCA's since 2026-09-30)
+## Measured once, on purpose: `synapse tune` (owner, 2026-09-28; Synapse's since 2026-09-30)
 
 By default a cost model decides CPU or GPU: the loop's work (trips times
 the body's cost) against the GPU's launch cost. The owner asked whether
@@ -97,14 +97,14 @@ is the target. Not inside a build: Cortex uses no wall-clock
 profile-guided optimisation, a separate command measures once:
 
 ```
-cca tune              # builds a measuring version, runs it on this machine with the inputs given,
+synapse tune              # builds a measuring version, runs it on this machine with the inputs given,
                       # times each undecided loop on CPU and GPU, and writes tune.nrp
-cca build --final     # reads tune.nrp as an input, like the lock file
+synapse build --final     # reads tune.nrp as an input, like the lock file
 ```
 
-**The measuring is CCA's** (owner, 2026-09-30: a): CCA's package manager
-can do whatever Synthia can, and Synthia does what a CCA user would, so
-`synthia tune` runs `cca tune`. **Synthia also shows the results
+**The measuring is Synapse's** (owner, 2026-09-30: a): Synapse's package manager
+can do whatever Synthia can, and Synthia does what a Synapse user would, so
+`synthia tune` runs `synapse tune`. **Synthia also shows the results
 readably** (owner: "synthia should have a readable version"), as
 `synthia show --readable` does a manifest's times; its spelling is open.
 Proposed and not chosen: both implementing the measuring; Synthia only,
@@ -169,4 +169,4 @@ matching the kernel's `[[buffer(0)]]`, as `inline.ASM` writes ARM's `x0`
   own"), and it is called **LNIR**, *Loop-Nest IR* (owner): built from MIR after Cortex, it reads Cortex's proofs directly,
   so it can transform loops MLIR's analysis could not see into; MLIR's
   ready-made passes would be faster to get, and it has no Metal output
-  anyway (Metal is CCA's own text).
+  anyway (Metal is Synapse's own text).

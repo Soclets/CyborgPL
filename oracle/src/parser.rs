@@ -655,9 +655,9 @@ impl Parser {
                 }
             }
             match self.peek().clone() {
-                // `test fn name [] { … }` (owner, 2026-09-29): run by `cca test`, never called
+                // `test fn name [] { … }` (owner, 2026-09-29): run by `synapse test`, never called
                 Tok::Word(w) if w == "test" && matches!(self.peek_at(1), Tok::Word(f) if f == "fn") => {
-                    if vis != Vis::Private { return self.err("a `test fn` is never `pub`: nothing calls it, `cca test` runs it"); }
+                    if vis != Vis::Private { return self.err("a `test fn` is never `pub`: nothing calls it, `synapse test` runs it"); }
                     self.advance();
                     self.in_test = true;
                     let f = self.func();

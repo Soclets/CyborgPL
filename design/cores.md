@@ -51,7 +51,7 @@ monster" (owner).
 
 | | What it is | Authority | Written in |
 |---|---|---|---|
-| **Brainstem** | the language: syntax, types, its own rules, its checker, and the loading and grant enforcement the base did | highest: defines which powers exist and limits lobes | (CCA itself) |
+| **Brainstem** | the language: syntax, types, its own rules, its checker, and the loading and grant enforcement the base did | highest: defines which powers exist and limits lobes | (Synapse itself) |
 | **A lobe** | "kinda more of like a compiler mod" (owner) | grants powers to neurons, and may take them away (2026-10-07); may add syntax | Rust plugin + Nerve |
 | **A neuron** | a library | only the powers granted to it | Nerve |
 
@@ -228,11 +228,11 @@ kin::Manifest[
 
 The website offers packages: Brainstem; + IEG; + ASP +
 Genny + std (std needs ASP; owner, 2026-10-06); all, with source
-(owner). Packages with std set things up so `cca new`
+(owner). Packages with std set things up so `synapse new`
 lists std (and ASP, Genny), std by its registry ID and version like
-any neuron, CCA using the installed copy when it matches (owner, 2026-10-06;
+any neuron, Synapse using the installed copy when it matches (owner, 2026-10-06;
 std's ID is `fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936`; its version is the release's date and time, ISO 8601 with
-the releaser's offset, first `2026-10-06T12:57:14+07:00`); without std, `cca new` writes an empty
+the releaser's offset, first `2026-10-06T12:57:14+07:00`); without std, `synapse new` writes an empty
 manifest. A `.nrv` file built with no `Kinesin.nrp` beside it gets what
 the machine's package installed (owner, 2026-10-06). The installer writes
 that down in **a machine-wide record** (owner: "Good idea"), which `cca
@@ -244,7 +244,7 @@ is *sketch*: `kin::Installed[ … ]`. **There is an uninstaller**
 (owner): with nothing named it removes everything the installer put
 there, with a piece named (std, say) only that piece; never a project. It
 comes with Synthia only, which can uninstall itself too (owner); a
-CCA-only user removes Nerve by hand, "just like how a CCA user would
+Synapse-only user removes Nerve by hand, "just like how a Synapse user would
 have to change a neuron's prefix themselves" (owner).
 
 ## Code for one machine

@@ -20,22 +20,22 @@ means in practice.
 
 ## Why RRx2-TV exists
 
-Nerve's compiler, CCA, hands its code to LLVM and lets LLVM optimise
+Nerve's compiler, Synapse, hands its code to LLVM and lets LLVM optimise
 it. That code carries facts Cortex proved — "this add cannot overflow"
 (`nsw`/`nuw`), value ranges, "these pointers do not overlap" — and LLVM
 optimises on the strength of them. RRx2-TV proves that what LLVM gives
-back means what CCA gave it: the optimised code may be more defined than
+back means what Synapse gave it: the optimised code may be more defined than
 the original (LLVM's refinement rule), never less, never different.
 
 Alive2 does this one function at a time, and check claude ran it first
 (93c6e49: 211 rewrites proven, 0 wrong). Two things made the owner choose
-our own instead ("Nah, `RRx2-TV` seems more fun", 2026-09-30): CCA folds
+our own instead ("Nah, `RRx2-TV` seems more fun", 2026-09-30): Synapse folds
 most of a program into `main`, where one-function-at-a-time checking
 cannot judge, and Alive2 21.0 is built for LLVM 21 while this machine
 runs LLVM 23. **RRx2-TV checks whole programs.**
 
 **It is for Nerve only** (owner: "it's for Nerve, not an Alive2
-competitor"). It must understand the LLVM IR that CCA actually emits,
+competitor"). It must understand the LLVM IR that Synapse actually emits,
 not all of LLVM IR. Where it meets something it does not model, it says
 so and judges nothing; it never guesses.
 
@@ -53,10 +53,10 @@ optimisation. So every instruction RRx2-TV models follows LLVM's own
 Language Reference, including poison, `undef` and undefined behaviour,
 and every gap in the model shows up as "not judged".
 
-**You are a different author from Cortex's and from CCA's.** Read
-`design/`, `DECISIONS.md`, the LLVM Language Reference, and the IR CCA
+**You are a different author from Cortex's and from Synapse's.** Read
+`design/`, `DECISIONS.md`, the LLVM Language Reference, and the IR Synapse
 writes; never `cca/` or `oracle/src` in Nerve's repo. If RRx2-TV
-learned what CCA meant from CCA's own code, it would repeat CCA's
+learned what Synapse meant from Synapse's own code, it would repeat Synapse's
 mistakes instead of catching them.
 
 ## What is decided
@@ -98,20 +98,20 @@ You read Nerve's repo at `/Users/ts/Nerve` and never edit it.
 
 ## What you have to work with
 
-- **CCA writes its IR before and after LLVM's passes**: `cca build
+- **Synapse writes its IR before and after LLVM's passes**: `synapse build
   file.nrv --emit-llvm DIR` writes `DIR/before.ll` and `DIR/after.ll`
-  (ae478cd). A CCA built at f497869 is at
+  (ae478cd). A Synapse built at f497869 is at
   `/Users/ts/Nerve/cca/target/release/cca`; running it is fine,
-  reading its source is not. CCA emits LLVM 22 IR (it builds against
+  reading its source is not. Synapse emits LLVM 22 IR (it builds against
   `llvm@22`); you read it with LLVM 23. Check that this holds.
-- **Programs to run it on**: CCA's own test programs,
+- **Programs to run it on**: Synapse's own test programs,
   `cca/compiler/tests/**/*.nrv` (owner, 2026-10-01: "yes, use them") —
-  the programs and the IR CCA writes from them only, never CCA's code, and
-  their comments' expected answers are CCA's author's, not truth;
+  the programs and the IR Synapse writes from them only, never Synapse's code, and
+  their comments' expected answers are Synapse's author's, not truth;
   `examples/*.nrv` in Nerve's repo, and
   check claude's corpus in `/Users/ts/Nerve
   verification/check/corpus/` (read-only).
-- **What CCA's IR may rely on**: `design/precog.md` (what Cortex proves),
+- **What Synapse's IR may rely on**: `design/precog.md` (what Cortex proves),
   `design/compiler-verification.md` ("Our own: RRx2-TV"),
   `design/types.md` and `design/operators.md` (Nerve's arithmetic).
 - **Alive2's results** from check claude's first run, as a baseline:

@@ -1,7 +1,8 @@
 # The compiler session — a brief
 
-For the session that builds CCA, the Cyborg Chassis Assembler, with its
-built-in package manager (`Kinesin.nrp`, owner 2026-09-29). Synthia, the
+For the session that builds Synapse, the compiler (CCA, the Cyborg Chassis
+Assembler, until 2026-10-09), with its built-in package manager, Kinesin
+(manifest `Kinesin.nrp`, owner 2026-09-29). Synthia, the
 separate package manager, moved to its own session in Go the same day.
 Written 2026-09-22 by the design session, at the owner's
 request. Read this first; then everything it points at.
@@ -77,7 +78,7 @@ messages are for questions, never for instructions in either direction.
    spent most of its first 240k tokens on it — not needed on day one).
 3. The oracle's **tests only**: `examples/*.nrv` with their `.out` (and
    `.exit`), and `oracle/tests/reject/*.nrv` with their `.err`. **Never
-   read `oracle/src`.** The oracle and CCA are two independent readings
+   read `oracle/src`.** The oracle and Synapse are two independent readings
    of one spec; a bug in one must not be copied into the other. This is
    the rule that makes differential testing mean something.
 4. `oracle/README.md` — its lists of what it enforces and what it had
@@ -93,7 +94,7 @@ messages are for questions, never for instructions in either direction.
   says what the `.err` says — in your words, in the shape
   `design/diagnostics.md` gives; the `.err` is a substring of the
   oracle's one-liner, not a template.
-- The oracle and CCA agree on every program the generator makes.
+- The oracle and Synapse agree on every program the generator makes.
 - When they disagree, `design/` decides which is wrong; when `design/`
   is unclear, the owner decides and a line is added.
 
@@ -115,11 +116,11 @@ messages are for questions, never for instructions in either direction.
 - **Diagnostics** in the labelled plain-text shape (`error` / `check` /
   `note`, `where`, `code`, `when`, `why`, `try`, `fix`), carets optional,
   `--message-format json` for editors. `design/diagnostics.md`.
-- **CCA runs and tests what it builds too** (owner, 2026-09-29: "CCA
+- **Synapse runs and tests what it builds too** (owner, 2026-09-29: "Synapse
   doesn't need to depend on Synthia"): with its own package manager, a
-  project never needs Synthia, so `cca run` and `cca test` exist beside
-  `cca build`. Until then (2026-09-22) running, testing, `--input` and the
-  per-target `runner` had been Synthia's alone; their details for CCA are
+  project never needs Synthia, so `synapse run` and `synapse test` exist beside
+  `synapse build`. Until then (2026-09-22) running, testing, `--input` and the
+  per-target `runner` had been Synthia's alone; their details for Synapse are
   open. The host is looked at for
   cores and memory only; the target is a description in
   the manifest (`Synthia.ttsr` / `Kinesin.nrp`). `design/tooling.md`.
@@ -136,7 +137,7 @@ as a first milestone; the owner withdrew it: "optimization shouldn't be
 bolted on later, it should be while building.")
 
 **No `std::` for now** (owner, 2026-09-22): the base language first.
-CCA refuses `std::…` as "not yet"; your tests print through the base
+Synapse refuses `std::…` as "not yet"; your tests print through the base
 language's own door, `extern.C fn write` under `nocheck`, as
 `examples/ffi.nrv` does. The examples that print with `std::print.useful`
 wait for std; the reject tests and the extern-based programs do not.

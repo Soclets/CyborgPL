@@ -41,7 +41,7 @@ from Cortex's**, and that is the whole point of this session existing
 separately (`design/compiler-verification.md`, owner 2026-09-21). So:
 
 - **Never read `cca/`.** Not the source, not the comments. You attack
-  what CCA *claims* — its output, its binaries, its proof report —
+  what Synapse *claims* — its output, its binaries, its proof report —
   never its reasoning. A bug you inherit from reading its code is a bug
   you cannot find.
 - **Never read `oracle/src` either.** Same reason: the interpreter is
@@ -50,7 +50,7 @@ separately (`design/compiler-verification.md`, owner 2026-09-21). So:
 - You read `design/`, `DECISIONS.md`, the examples and the reject
   tests. The specification, not the implementations.
 
-Running both is fine and necessary — `cca build`, the oracle binary,
+Running both is fine and necessary — `synapse build`, the oracle binary,
 their outputs, their reports. Reading their insides is not.
 
 ## Where you work
@@ -76,7 +76,7 @@ name reaches a session only while it runs:
   specification does not say. It asks the owner and answers you, or
   answers from the record.
 - **"CyborgPL compiler"** — compiler claude. Send it findings: a
-  program, what CCA did, what the oracle did, and which one the
+  program, what Synapse did, what the oracle did, and which one the
   specification says is wrong. Do not send it fixes; you do not read
   its code, and it does not need your patch.
 
@@ -95,7 +95,7 @@ direction. If a session is not running, ask the owner.
 4. `~/Kespar/design/generator.md` and `~/Kespar/design/oracle.md` — the
    owner's proof-of-concept did this once, at 2,173 lines of generator;
    its findings are in `design/precog.md`'s Kespar section. Read its
-   *source* only if you want to, and never CCA's.
+   *source* only if you want to, and never Synapse's.
 
 ## What to build, in the order that pays
 
@@ -109,11 +109,11 @@ fourth are the deeper checks.
    loops, every operator at its boundaries, failures and handlers,
    ownership verbs, generics and interfaces.
 2. **The differential harness.** Each generated program through the
-   oracle and through CCA; compare stdout byte for byte, the exit code,
+   oracle and through Synapse; compare stdout byte for byte, the exit code,
    and where a check fired. A difference is a bug in one of them —
    `design/` decides which. Shrink a failing program to its smallest
    form before reporting it.
-3. **The Cortex oracle** — three attacks on every claim in CCA's proof
+3. **The Cortex oracle** — three attacks on every claim in Synapse's proof
    report (`design/precog.md`, owner 2026-09-22):
    - exhaustive and random execution over the domains (every `int8`,
      every list to length 4; random plus edge values beyond that);
@@ -126,7 +126,7 @@ fourth are the deeper checks.
    built by its own session (`design/rrx2-tv-session.md`) and run only
    when the owner says it is time. This session no longer runs Alive2
    (owner, 2026-10-02: "We have RRx2 to replace ALive2, lol"). Ours is the Cyborg half: that
-   the IR CCA hands to LLVM means what the MIR meant.
+   the IR Synapse hands to LLVM means what the MIR meant.
 
 ## What a finding looks like
 

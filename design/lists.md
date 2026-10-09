@@ -265,7 +265,7 @@ The value, then the count, as `simd.fill[7]` fills every lane. A count
 below 0 is a check site. A **`#strict` file labels the count**,
 `list.fill[0, count 10]` (owner: "count"), since `list.fill[0, 10]`
 could be ten 0s or zero 10s; elsewhere `count` is refused, as `pos` is.
-With it, CCA can ask for memory already zeroed (C's `calloc`) where the
+With it, Synapse can ask for memory already zeroed (C's `calloc`) where the
 value is `false` or `0`, instead of growing a list one append at a time.
 Proposed alternatives: `list.repeat[…]`, Rust's `[0; 10]`; for strict,
 both labelled (`value 0, count 10`) or no change. `array.fill` was

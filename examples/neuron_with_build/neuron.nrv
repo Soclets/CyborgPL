@@ -1,4 +1,4 @@
-# A Neuron's build.nrv is its build program, run by `cca prepare`, not one of its modules
+# A Neuron's build.nrv is its build program, run by `synapse prepare`, not one of its modules
 # (owner, 2026-10-09: build.cplr became build.nrv); the oracle skips it.
 MAIN {
     cord::print.useful["built", newln];

@@ -111,7 +111,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 
 - The oracle is not parameterised by target (pointer size, `bin128` in hardware or not); it behaves as one 64-bit machine. Cross-target proofs would need it to take those as inputs (noted 2026-09-21).
 
-- **A second place's file in a Neuron**: every second place a message names gives its file (owner, 2026-10-08), `line 6 of shop.nrv`, the name without folders, as CCA spells it; the oracle keeps no file per line, so in a Neuron directory every such place names `neuron.nrv`, as the first place already names the directory.
+- **A second place's file in a Neuron**: every second place a message names gives its file (owner, 2026-10-08), `line 6 of shop.nrv`, the name without folders, as Synapse spells it; the oracle keeps no file per line, so in a Neuron directory every such place names `neuron.nrv`, as the first place already names the directory.
 
 Each is marked "provisional" in the source. They are picks the interpreter
 had to make to run at all; none is a decision.
@@ -124,7 +124,7 @@ had to make to run at all; none is a decision.
 | Grapheme counting is an approximation (combining marks, ZWJ, variation selectors, skin tones) | `interp.rs` `grapheme_count` | The real runtime needs UAX #29 |
 | A pointer into a lent `str` reads its UTF-8 bytes and yields 0 one past the end; a normal struct's `size.of` uses C's rule | `interp.rs` `ptr_op`, `size_align` | The oracle has no memory; Cortex's real layout is not modelled |
 | `ptr.cast[T]` relabels: the oracle's pointers carry no element type and its memory is a list of values, so a cast never reinterprets bytes (a `Point` written through a cast pointer reads back as that `Point`, never as its bytes) | `interp.rs` `PtrCast` | The oracle has no memory |
-| A `deci` literal with too many digits for its type is refused when the run reaches it, after any earlier output; the design makes it a compile error, and CCA refuses the program up front | `interp.rs` | The oracle types a literal only where it lands (check claude, 2026-09-30) |
+| A `deci` literal with too many digits for its type is refused when the run reaches it, after any earlier output; the design makes it a compile error, and Synapse refuses the program up front | `interp.rs` | The oracle types a literal only where it lands (check claude, 2026-09-30) |
 | A file module is public; a directory with no `.nrv` of its own is an implicit public module | `main.rs` `load` | A file has no line to carry `pub.neuron`; open in `design/limbs.md` |
 | `shl`/`shr`/`not.bit` on an exact plain sum of mixed sizes take the left operand's declared type | `interp.rs` bitwise branch | Wrapping was ruled (write the size, 2026-09-23); shifts were not asked |
 | `xx~` wraps at the base's size, and its exponent's size does not count as mixing | `interp.rs` wrapping branch | By analogy with a shift's count; the owner ruled mixing for values, not for a power's exponent |
@@ -139,7 +139,7 @@ had to make to run at all; none is a decision.
 | A deci range's bounds are held as bins, so a deci128 within a bin64's precision of a bound may be judged inside | `interp.rs` `check_type` | The oracle's limit |
 | Another Neuron's enum cases (`x::Kind.small`), functions as values (`x::f`) and re-exports are not reached yet; operators from any loaded Neuron are found by type without checking `pub` | `main.rs` `load_deps`, `interp.rs` | The oracle's limits for Neurons |
 | `'f' := op +;` with no type is refused | `parser.rs` `decl` | Nothing says which `+`; design claude's reading (2026-09-29) |
-| A custom operator as a value (`op dot`) has its operands' kinds, lent unless `give`; with several `op` of one name the oracle refuses rather than picking by where it goes | `interp.rs` `OpValue` | CCA picks by type; the oracle has no expected type at that point |
+| A custom operator as a value (`op dot`) has its operands' kinds, lent unless `give`; with several `op` of one name the oracle refuses rather than picking by where it goes | `interp.rs` `OpValue` | Synapse picks by type; the oracle has no expected type at that point |
 
 ## Not implemented because not designed
 

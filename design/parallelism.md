@@ -19,7 +19,7 @@ parallel:
   itself** (owner, 2026-09-30: "Bro, Precog exists"), from the trips and
   the work of each, never from a number someone picks or from timing the
   machine — and **a measurement in `tune.nrp` wins where there is one**
-  (owner: a), as for the GPU: `cca tune` times the undecided loops once,
+  (owner: a), as for the GPU: `synapse tune` times the undecided loops once,
   outside the build (`gpu.md`). A missing or stale entry only costs speed,
   never correctness. Proposed: a fixed trip threshold; the estimate alone
   for cores, tuning for the GPU only.
@@ -80,7 +80,7 @@ for no_cheat para 'i' in range[from 1, to 'n', by 1] { … }
 
 **`!cheat`, "no cheat"** (`!c` until 2026-10-06): every round's work really happens at run time. The
 compiler may not replace the loop with its answer (clang turns
-`acc += i` over a known range into n(n+1)/2, and CCA's slices fold the
+`acc += i` over a known range into n(n+1)/2, and Synapse's slices fold the
 same way) nor drop rounds whose results look unused. It may still do the
 work faster — SIMD, or across cores — so `!cheat` is about whether the work
 happens, not how; add `seq` for one round at a time, in order (owner:

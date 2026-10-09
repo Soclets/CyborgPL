@@ -39,7 +39,7 @@ because Nerve would be judged against it. Everything below serves
 that.
 
 **You are a different author from Nerve's.** RR must share no
-code with Nerve's `std::uenr` or with CCA, or it cannot judge them.
+code with Nerve's `std::uenr` or with Synapse, or it cannot judge them.
 Learn Nerve's number rules from `design/` and `DECISIONS.md`; never
 read `cca/` or `oracle/src` in Nerve's repo.
 

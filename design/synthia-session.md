@@ -27,8 +27,8 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
 
 ## What is decided
 
-- **Two package managers** (owner, 2026-09-29): CCA has one built in
-  (`cca add`, manifest `Kinesin.nrp` in Nerve syntax — compiler claude's).
+- **Two package managers** (owner, 2026-09-29): Synapse has one built in
+  (`synapse add`, manifest `Kinesin.nrp` in Nerve syntax — compiler claude's).
   **Synthia is the separate one**, "fast, reliable, and easy-to-use".
 - **Go** (owner, 2026-09-29). Its standard library covers what a package
   manager does: fetching, archives, hashing, running `cca`.
@@ -37,8 +37,8 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
   `design/synthia-manifest.md` (owner, 2026-09-29), and its one open point
   is there.
 - **Synthia is an automatic programmer** (owner, 2026-09-30): it does
-  whatever a programmer using CCA would do by hand, writing a `Kinesin.nrp`
-  for a Neuron that has only a `Synthia.ttsr`. CCA never knows Synthia
+  whatever a programmer using Synapse would do by hand, writing a `Kinesin.nrp`
+  for a Neuron that has only a `Synthia.ttsr`. Synapse never knows Synthia
   exists. The project's own `Kinesin.nrp` goes beside `Synthia.ttsr`,
   rewritten from it each time, its first line saying it is generated
   (owner, 2026-09-30: a): `# Written by Synthia from Synthia.ttsr, and
@@ -46,8 +46,8 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
   refuses to write and leaves it, and `synthia takeover` overrides (owner: "`a`,
   and there should be an override command"; then "`a`" for `takeover`).
 - **How it connects**: Synthia reads its manifest, fetches the Neurons,
-  and calls `cca build …` saying where each is. CCA never reads
-  `Synthia.ttsr` and never depends on Synthia (owner, 2026-09-29): CCA
+  and calls `synapse build …` saying where each is. Synapse never reads
+  `Synthia.ttsr` and never depends on Synthia (owner, 2026-09-29): Synapse
   builds, runs and tests on its own.
 - **What a manifest holds** (from earlier rulings): the Neuron's name (never
   in source, 2026-09-23), its dependencies (never in source), the target
@@ -73,9 +73,9 @@ list is from 898ad6d).
 
 Commands other than `synthia show` (`synthia-manifest.md`) and
 `synthia prepare` (`tooling.md`); `synthia build/final/run/test` are
-named in `tooling.md` from before CCA had its own; lock files,
-publishing, where Neurons are fetched from; how CCA takes the list of Neurons
-(ask compiler claude, who owns CCA's command line). `design/tooling.md`,
+named in `tooling.md` from before Synapse had its own; lock files,
+publishing, where Neurons are fetched from; how Synapse takes the list of Neurons
+(ask compiler claude, who owns Synapse's command line). `design/tooling.md`,
 `design/limbs.md`, `design/reproducible-builds.md`.
 
 ## Reaching the other sessions

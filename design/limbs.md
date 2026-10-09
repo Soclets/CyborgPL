@@ -7,7 +7,7 @@ is still open is listed at the end.
 
 ## No `import`, no `use`
 
-- **Dependencies are declared in the manifest** (`Synthia.ttsr`, or `Kinesin.nrp` for CCA's built-in package manager, 2026-09-29), never in source. A source
+- **Dependencies are declared in the manifest** (`Synthia.ttsr`, or `Kinesin.nrp` for Synapse's built-in package manager, 2026-09-29), never in source. A source
   file has no statement that loads a Neuron.
 - **Every item is reached by its full path**: `std::print.useful.stdout[…]`,
   `mathstuff::pow[2, 64]`, `'r': std::uenr`, `crate_x::Locker[…]`. `::`
@@ -247,7 +247,7 @@ which kinds it covers beyond `fn` and `struct` (`enum`, `interface`,
 
 The name lives in **the manifest** (`Synthia.ttsr` / `Kinesin.nrp`), beside the version and the
 dependencies, and nowhere in source. Synthia reads it and hands it to
-CCA with the rest of what it is building. Renaming the directory changes
+Synapse with the rest of what it is building. Renaming the directory changes
 nothing, and a Neuron's own code never names itself: it says `my.` (`limb.` until 2026-10-06).
 Proposed alternative: `limb mathstuff;` at the top of `neuron.nrv`, which
 would give the name two places to disagree.

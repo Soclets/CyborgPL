@@ -162,7 +162,7 @@ subtraction when `'w'` is a `uint32`. And the other side does size it: in
 
 The sentence above — "the compiler knows every width; the oracle needs
 the left operand declared" — was always about the oracle's limit, not
-the language's rule. CCA had read it as a rule and refused both lines;
+the language's rule. Synapse had read it as a rule and refused both lines;
 it is the one that changes. Found by the generator on its first run: it
 was two-thirds of every disagreement until check claude steered around
 it.

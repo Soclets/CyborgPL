@@ -1,7 +1,7 @@
 # Finding 2026-10-05 (check run --borrow-wrong 1000, seed 24149, cut down by hand): without @x a
 # call's result borrows whatever its body may hand back on any path (oracle README), so 'r' may
 # borrow 'o2' (b2's last return, through b1), and 's' := b1[…, lend 'r', lend 'r'] may too. Giving
-# 'o2' away while 's' is used is a mistake: CCA refuses it. The oracle runs it (exit 0). Without
+# 'o2' away while 's' is used is a mistake: Synapse refuses it. The oracle runs it (exit 0). Without
 # 's' (the length of 'r' read directly) the oracle refuses too, so it is the borrow passed through
 # the local 'r' into a second call that it loses.
 fn b1 [@x] [lent @x 'a': list[int32], lent @x 'b': list[int32], lent @x 'c': list[int32]] -> lent @x list[int32] {

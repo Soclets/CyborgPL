@@ -141,7 +141,7 @@ line fails whenever it runs, and a compile error with the
 counterexample in the final build. The working build never refuses to
 compile (2026-09-14), and this is why it matters: Cortex's sets widen,
 so it sometimes believes values reach a line that never do. The
-generator found exactly that — a program with no input at all where CCA
+generator found exactly that — a program with no input at all where Synapse
 refused a line inside an `else` the oracle shows is never taken. Under
 the stricter reading, the analyser's imprecision becomes the
 programmer's error. Proposed alternatives: refuse any such site,
@@ -216,7 +216,7 @@ inductively (true before the first trip; true after a trip if true before
 it): a counter stays within the range's ends; a sum is bounded by trips
 times the largest element — which is what makes an average fit the
 element type, since a sum bounded by *n* × max divided by *n* is at
-most max (`examples/gradebook.nrv`, proven by CCA since dd04991, 2026-09-24); an index never decreases and never passes the
+most max (`examples/gradebook.nrv`, proven by Synapse since dd04991, 2026-09-24); an index never decreases and never passes the
 length; a running max/min stays within the elements' domain; a count
 never exceeds the trips so far. A confirmed guess is a proof, never an
 assumption. If no shape fits or none is confirmed, the loop's sites are
@@ -364,7 +364,7 @@ leaves layer-2 proofs covered only by testing; b covers them by analysis.
   states joined in place, exact sets reference-counted, ranges not spelled
   out past 64 values. Trip-by-trip following is where compile time goes.
 - **Trip-by-trip is where the proofs come from, not only where the
-  compile time goes** (CCA, 2026-09-22). Joining at a loop head cannot
+  compile time goes** (Synapse, 2026-09-22). Joining at a loop head cannot
   see that a counter and a sum move together, so it gives the counter
   every value from 0 upwards and the sum overflows in the analysis
   though never in the program. `examples/scores.nrv` went from 4 of 9
@@ -387,7 +387,7 @@ leaves layer-2 proofs covered only by testing; b covers them by analysis.
   programs.
 - Every provisional number: set cap 4096 / re-set at 64, trips 2M
   across the program (100k per loop is ruled), induction over at most
-  4,096 argument tuples per recursive function (CCA's pick, 59c3f56), recursion depth 8, unroll 16 / 64, `rlimit` 10M. Kespar's picks;
+  4,096 argument tuples per recursive function (Synapse's pick, 59c3f56), recursion depth 8, unroll 16 / 64, `rlimit` 10M. Kespar's picks;
   to be measured, not guessed.
 - The character-class vocabulary for text (which classes; how each std
   text operation maps them) — decided in principle (c), list open.

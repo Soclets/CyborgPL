@@ -28,7 +28,7 @@ and "compile for the exact machine" makes the target part of the input.
    a build may read any environment variable, freely, as Rust's `env!`
    (owner: "`c`"); a build that reads one is repeatable only with the same
    values, which nothing records.
-4. **Measurements are inputs too** (owner, 2026-09-28): `cca tune` times
+4. **Measurements are inputs too** (owner, 2026-09-28): `synapse tune` times
    loops once, on purpose, and writes `tune.nrp` (`synthia tune` runs it); builds read the file
    and never time anything themselves (`gpu.md`).
 5. **The target is an explicit, recorded input** — in the manifest (`Synthia.ttsr` / `Kinesin.nrp`) or the

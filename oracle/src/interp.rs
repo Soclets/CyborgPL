@@ -173,7 +173,7 @@ pub struct Interp<'p> {
     /// its value is written back into the field (struct cell, field name, temp cell)
     field_borrows: Vec<(Rc<RefCell<Value>>, String, Rc<RefCell<Value>>)>,
     /// `for 'x' in lend.mut 'xs'` loops running now: the list may be read while 'x' is finished
-    /// for the trip, and sees the new values (owner, 2026-09-30: a, CCA's liveness rule)
+    /// for the trip, and sees the new values (owner, 2026-09-30: a, Synapse's liveness rule)
     mut_walks: Vec<MutWalk>,
     scopes: Vec<HashMap<String, Slot>>,
     out: Box<dyn Write>,
@@ -246,7 +246,7 @@ impl<'p> Interp<'p> {
         }
     }
 
-    /// `cca test` (owner, 2026-09-29): every `test fn`, in the order written, each on its own;
+    /// `synapse test` (owner, 2026-09-29): every `test fn`, in the order written, each on its own;
     /// a test passes unless a `must` does not hold or something else stops it. Exit 0 when all pass.
     pub fn run_tests(&mut self) -> Result<u8, RuntimeError> {
         self.prepare()?;
@@ -3944,7 +3944,7 @@ impl<'p> Interp<'p> {
             return rt(c.line, private_msg(&c.from, &func.module, &format!("`{}`", join_path(&func.module, name))));
         }
         if func.is_op { return rt(c.line, format!("`{name}` is an operator; it goes between its operands (`'a' {name} 'b'`), never called with `[…]`")); }
-        if func.is_test { return rt(c.line, format!("`{name}` is a `test fn`: `cca test` runs it, and nothing calls it")); }
+        if func.is_test { return rt(c.line, format!("`{name}` is a `test fn`: `synapse test` runs it, and nothing calls it")); }
         if func.is_extern {
             if self.nocheck_depth == 0 && self.marks_needed() { return rt(c.line, format!("`{name}` is extern; nothing about it can be proven — the call is a no_check site: `no_check … {name}[…]`")); }
             let ranged_ret = matches!(func.ret, Some(Ty::Ranged(..)));

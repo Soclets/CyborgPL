@@ -4,13 +4,15 @@
 
 Owner, 2026-09-14.
 
-- **Cyborg Chassis Assembler (CCA)** — the Nerve compiler (owner,
-  2026-09-18; spelling of "Chassis" to confirm — owner wrote "Chasis").
-  Not an assembler in the `as` sense; the owner accepts the possible
-  confusion. The chassis is the frame; Cortex is what is bolted to it.
+- **Synapse** — the Nerve compiler (owner, 2026-10-09), where code crosses
+  from human to machine. Its command is `synapse`, or `syn` for short (owner:
+  "Both"); its folder `synapse/`, its crates `synapse-*`. Until 2026-10-09 it
+  was **CCA**, the *Cyborg Chassis Assembler* (owner, 2026-09-18; "Chassis"
+  was spelled "Chasis" then): the chassis the frame, Precog what was bolted
+  to it.
 - **Nowork** — the Lunae (formerly N%) compiler (owner, 2026-09-18): the iteration compiler
   that does no proving and no optimising — no work — and hands the program
-  to CCA for the final product. See `scripting.md`.
+  to Synapse for the final product. See `scripting.md`.
 - **Cortex** (named **Precog** until 2026-10-09, owner: "`b`", the brain's
   thinking part in the Nerve names) — the "everything at compile time"
   technology: whole-program execution and exact analysis over sets of values
@@ -50,12 +52,12 @@ Owner, 2026-09-14.
 - **`synthia sync`** (owner, 2026-10-06, via synthia claude): writes the
   project's `Kinesin.nrp` from `Synthia.ttsr`, one for each needed Neuron that
   has only a `Synthia.ttsr`, and the renamed copies in `.synthia/`, after
-  checking the whole tree of path dependencies, so `cca build` follows
+  checking the whole tree of path dependencies, so `synapse build` follows
   knowing nothing of Synthia; a later `synthia build` would run it first.
   A needed Neuron on this machine with only a `Synthia.ttsr` gets its
   `Kinesin.nrp` in its own folder, never a copy (owner: "`a`").
-- **Kinesin, CCA's package manager** (owner, 2026-09-29; named 2026-10-08) — a second, built-in one,
-  "because a hobby is supposed to be fun": `cca add …`.
+- **Kinesin, Synapse's package manager** (owner, 2026-09-29; named 2026-10-08) — a second, built-in one,
+  "because a hobby is supposed to be fun": `synapse add …`.
   Its manifest is **`Kinesin.nrp`** (was `CCA.cplr`), written in Nerve syntax on purpose:
   `.nrp` (was `.cplr`, *CyborgPL Related*) is the ending for Nerve-syntax files
   that are one value and never run, and the file's name says which one it is;
@@ -82,13 +84,13 @@ Owner, 2026-09-14.
   Its fields are checked as a struct's are: a typo is "no such field".
   **`name`, `version` and at least one target are required** (owner,
   2026-09-29: "yea"), as in `Synthia.ttsr`. `name` follows the module-name rule, as
-  in `Synthia.ttsr` (owner, 2026-09-30: "strict"). A target must be one CCA can
+  in `Synthia.ttsr` (owner, 2026-09-30: "strict"). A target must be one Synapse can
   build, from its one list, `cca/targets.txt` (owner, 2026-09-30:
   "refuse", as `Synthia.ttsr`); today that is `aarch64-macos` alone, so a
-  cross target and its `runner` wait until CCA builds for one. A lone target marked `default = false` means the
+  cross target and its `runner` wait until Synapse builds for one. A lone target marked `default = false` means the
   Neuron has no default: a compile that names no target on the command line
   errors, and one that names it builds (owner, 2026-09-30). A target is
-  named with `--target <name>`: `cca build --target aarch64-macos`
+  named with `--target <name>`: `synapse build --target aarch64-macos`
   (owner: "yea"). `version` is any text, at most 256 bytes
   (owner: "same" as `Synthia.ttsr`). **`'prefix'` is the word code writes in
   front of `::`** to reach this Neuron, picked by its maker and apart from
@@ -100,23 +102,23 @@ Owner, 2026-09-14.
   computed lives in **`build.nrv`**, a full Nerve program (functions,
   loops, a `MAIN`), which **never runs by itself** — a special command runs
   chosen ones or all of them, a dependency's included. Both package managers
-  run it. The command is **`cca prepare`** (owner, 2026-09-29: b):
-  `cca prepare geometry, money` runs those Neurons' `build.nrv` (names
+  run it. The command is **`synapse prepare`** (owner, 2026-09-29: b):
+  `synapse prepare geometry, money` runs those Neurons' `build.nrv` (names
   separated by commas, owner; a space after the comma or not),
-  `cca prepare --all` runs every one; `synthia prepare` alike. Proposed
+  `synapse prepare --all` runs every one; `synthia prepare` alike. Proposed
   alternatives: `build-script`, `run-build`. Compiler claude's four
-  suggestions, accepted by the owner: `cca prepare` acts on the Neuron in
-  the current directory, or a folder given as `cca run` takes one — a
+  suggestions, accepted by the owner: `synapse prepare` acts on the Neuron in
+  the current directory, or a folder given as `synapse run` takes one — a
   word with a `/` is a folder, a bare word a Neuron's name (owner,
-  2026-09-30: "`/`"): `cca prepare ../app geometry`, the folder first
-  as the program is in `cca run` (owner: "yea"), and a bare `.` or `..`
+  2026-09-30: "`/`"): `synapse prepare ../app geometry`, the folder first
+  as the program is in `synapse run` (owner: "yea"), and a bare `.` or `..`
   is a folder too (owner: "yea"); a name is
   a Neuron's `name` (owner, 2026-09-30: "I think name's better"; at first
   the local name, then briefly the prefix), and when two dependencies
-  share that name, `cca prepare` refuses and lists them by prefix (owner:
-  a), and `cca prepare --prefix geo2` picks one (owner: "flag"),
+  share that name, `synapse prepare` refuses and lists them by prefix (owner:
+  a), and `synapse prepare --prefix geo2` picks one (owner: "flag"),
   several as a comma list, `--prefix geo2, geo3` (owner: "yea"),
-  mixed with names, `cca prepare money --prefix geo2` (owner: "yea"),
+  mixed with names, `synapse prepare money --prefix geo2` (owner: "yea"),
   names first and every word after `--prefix` a prefix (owner: "yea"),
   run in the order written, each once (owner: "yea"); a `build.nrv` runs in its own Neuron's folder; `--all` runs
   dependencies before the Neurons that use them, each once, stopping at the
@@ -126,7 +128,7 @@ Owner, 2026-09-14.
   payload, or be a good person …"): the build has no channel from it, and
   it reaches a Neuron only as any program would, by reading its files — no
   `my.` or prefix into code (owner: "not a shortcut to reach a limb.
-  It's turing complete, so you build that yourself"), and `cca prepare`
+  It's turing complete, so you build that yourself"), and `synapse prepare`
   hands it no words: settings come as any program gets them, from
   environment variables or files (owner: "Might aswell build shit
   yourself"). A
@@ -136,7 +138,7 @@ Owner, 2026-09-14.
   `kin::Dep[path = "../money"]`. The settings the oracle
   knows: `name`, `prefix`, `version`, `dependencies`, `targets` (a list of
   `kin::Target[name = "aarch64-linux", runner = "qemu-aarch64"]`: several
-  targets, since CCA's package manager can do whatever Synthia can, owner
+  targets, since Synapse's package manager can do whatever Synthia can, owner
   2026-09-29).
 
   Synthia stays the separate tool, with `Synthia.ttsr` in its own syntax
@@ -170,19 +172,19 @@ owner's order:
    project upgrades without the IDE — **Synthia's** (owner: "I think it
    should be Synthia. Just like how Synthia can already change a neuron's
    prefix, by Synthia itself editing the source code"), as its prefix
-   override does by hand what a CCA user would (`synthia-manifest.md`).
+   override does by hand what a Synapse user would (`synthia-manifest.md`).
    Its name is open.
 
    **How it knows what to rewrite: a spelling table** (owner, 2026-10-02:
    "CyborgPL stores the stable spelling, and maps the stable spelling to
    the current one"). Every language word has a stable ID, and
    **`spellings.nrp`** (one file for the whole language, shipped with
-   CCA, read by CCA, Synthia and the IDE) says how each version spells it:
+   Synapse, read by Synapse, Synthia and the IDE) says how each version spells it:
    a row is the ID, the date of the change, the old and the new spelling,
    and the position it applies in. A removal is a spelling of nothing
    (owner: "if `let` was dropped, just make it support that too"), so
    rows cover renames (`/` → `div`), removals (`let`, `pos`) and
-   additions (`change` before a bare assignment). CCA's "use X" errors
+   additions (`change` before a bare assignment). Synapse's "use X" errors
    and Synthia's rewrites come from the same rows, so they never disagree.
    **A meaning change is a row too**, marked to report: Quick Fix lists
    those lines to check instead of rewriting them (`and` running both
@@ -197,10 +199,10 @@ owner's order:
    `spellings.nrp`, are design claude's; the owner: "whatever is good,
    bro". Both files are Nerve syntax, so `.cplr`, no new extension.
 
-   **CCA has a command that says where and what to change; Synthia makes
-   the changes** (owner, 2026-10-02: "I think CCA's one should be a
+   **Synapse has a command that says where and what to change; Synthia makes
+   the changes** (owner, 2026-10-02: "I think Synapse's one should be a
    command, and it tells you where & what to change. Synthia does it
-   automatically after a button or a CLI command"). CCA's lists every
+   automatically after a button or a CLI command"). Synapse's lists every
    line a row matches — the new spelling, and the lines whose meaning
    changed — and edits nothing; Synthia's applies them, from the IDE's
    button or its own command. Both read `spellings.nrp` and
@@ -232,11 +234,11 @@ Noted by design claude, not ruled: the description in a code picker
 needs somewhere to come from, and Nerve has no doc comments yet; in VS
 Code, 3 ships built in, 6 is the existing `clangd` extension, 7 has
 existing `.ll` extensions, and 1, 2 and 5 come from a language server
-running CCA.
+running Synapse.
 
 ## Cross-compiling, running elsewhere (discussed 2026-09-21, proposal)
 
-CCA compiles and stops; it never executes what it built. The target is
+Synapse compiles and stops; it never executes what it built. The target is
 declared in the manifest (`Synthia.ttsr` or `Kinesin.nrp`), never sniffed from the host; the host is
 looked at only for cores and memory (speed), never for meaning — the same
 program with the same config gives the same proofs and the same binary on
@@ -263,5 +265,5 @@ with the rest of Synthia.
 
 ## Open
 
-- Synthia's own syntax for `Synthia.ttsr`, and how Synthia and CCA's package manager relate.
+- Synthia's own syntax for `Synthia.ttsr`, and how Synthia and Synapse's package manager relate.
 - **The Neuron registry is an index only** (owner, 2026-09-29): small files naming each Neuron's versions and linking to each version's release where its author keeps it; the registry never stores code, so it costs nothing to host (static files). A release lives **on GitHub**; the index keeps **a checksum of every release**; **registering a new Neuron is a reviewed pull request, and a new version needs no review**; and **malware-free is not guaranteed**, which the registry says plainly. Open: how an update proves it comes from the Neuron's owner. Its domain, when it exists: **`limbs.xxx`** (owner, 2026-09-29: "`limbs.xxx` it is, I'll just wait until there's a limbs registery"; $95 a year, so not bought yet). Looked at: `cpl-limbs.dev`, `limbs.network`, `limbs.wtf`, `limbs.fyi`, `limbs-reg`; `limbs.dev` and `limbs.io` are taken; there is no `.registry` ending.

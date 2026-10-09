@@ -30,7 +30,7 @@ process[lend.mut 's'];   # temporary exclusive access, may modify
   `'u'`. To read and change one list, pass it once with `lend.mut` (it can
   read too); to keep how it was, `copy` it first. Proposed: (a) refuse, as
   Rust does; (b) refuse only when a change actually happens while the other
-  borrow is in use, as the oracle and CCA did. Compiler claude and design
+  borrow is in use, as the oracle and Synapse did. Compiler claude and design
   claude recommended a: the mistake shows at the call, a later change
   inside the function cannot break callers far away, and the compiler can
   tell LLVM the two never overlap.

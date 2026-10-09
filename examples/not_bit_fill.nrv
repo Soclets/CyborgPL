@@ -3,7 +3,7 @@
 # The width comes from any operand whose type is known (owner: a, 2026-09-23), here 'v17', and the
 # lanes are uint16 besides. The oracle stops: "`not.bit` flips a type's bits, so it needs to know how
 # many". With ('v17' plus 5) it runs, as it does for not.bit (5 plus 'v17') in a comparison or a
-# print: inside simd.fill it looks at the left operand only. CCA runs it.
+# print: inside simd.fill it looks at the left operand only. Synapse runs it.
 # check claude generator, seed 24126
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 

@@ -35,7 +35,7 @@ way it has been found. This runs continuously in the compiler's CI.
 ## Printing while there is no std (owner, 2026-09-23)
 
 A generated program must print something, or the harness has nothing to
-compare but the exit code. CCA refuses every `std::` call until std
+compare but the exit code. Synapse refuses every `std::` call until std
 exists (owner, 2026-09-22), so **each generated program carries a small
 printer written in the base language**: the number turned into ASCII
 digits in a `list[uint8]`, handed to C's `write` under `!check`, as
@@ -61,7 +61,7 @@ conversion. It switches to `std::input` when std has one. Proposed
 alternative: wait for std, and test only what a fully known program
 tests.
 
-This channel found three CCA bugs on the day it was proposed, probed by
+This channel found three Synapse bugs on the day it was proposed, probed by
 hand — the worst a **wrong proof**: `'n' times 10000000000000000000` into a
 `uint64` reported proven, with the binary silently overflowing at n = 2
 where the oracle stops. That is the class of bug the proofs-as-
@@ -99,7 +99,7 @@ asks the clever one. The interpreter stays ours — it is the spec.
 **Our own: `RRx2-TV`** (owner, 2026-09-30: "Nah, `RRx2-TV` seems more
 fun"). Translation validation for the LLVM half becomes ours, not
 borrowed: a checker named RRx2-TV, which can check a whole program where
-Alive2 checks one function at a time (CCA folds most of a program into
+Alive2 checks one function at a time (Synapse folds most of a program into
 `main`), and can read Cortex's facts directly. Check claude ran
 Alive2 first (93c6e49); Nerve is paused until RRx2-TV exists (owner). The paragraph above is why "Borrow it"
 was chosen, and it still holds as the cost: most of Alive2 is an exact
@@ -109,7 +109,7 @@ author. Open: who writes it, in what language, in which repo, and
 whether it starts from Alive2's code (MIT) or from nothing.
 
 **Sessions** (owner, 2026-09-22): (1) this one — design and the
-oracle, never a line of the compiler; (2) a fresh session — CCA
+oracle, never a line of the compiler; (2) a fresh session — Synapse
 (front end, checker, MIR, Cortex, lowering, runtime) and Synthia,
 reading `design/` and the oracle's tests, never its source; (3) later,
 another fresh session — verification: the Cortex oracle, translation

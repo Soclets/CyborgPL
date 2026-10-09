@@ -14,7 +14,7 @@ test fn adds_up [] {
 }
 ```
 
-`cca test` (CCA runs and tests on its own, 2026-09-29) runs every `test fn`
+`synapse test` (Synapse runs and tests on its own, 2026-09-29) runs every `test fn`
 in the order written, each on its own, and reports each one, then a
 count; it exits 0 when all pass.
 

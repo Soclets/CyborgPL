@@ -167,7 +167,7 @@ pub struct Func {
     /// `op NAME ['a': T, 'b': T] -> R { }` — a custom operator (design/operators.md, 2026-09-20):
     /// used between two operands, never called with `[…]`; operands lent unless `give`
     pub is_op: bool,
-    /// `test fn name [] { … }` (owner, 2026-09-29): run by `cca test`, never called, left out of builds
+    /// `test fn name [] { … }` (owner, 2026-09-29): run by `synapse test`, never called, left out of builds
     pub is_test: bool,
     /// `<T: Ordered>` — each type variable's required interface (canonical), if any
     pub bounds: Vec<(String, String)>,

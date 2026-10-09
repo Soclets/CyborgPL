@@ -279,7 +279,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                 has_version = true;
             }
             "target" => return Err(format!("{shown}: line {line}: a Neuron builds for several targets, so the field is `targets`: `targets = [kin::Target[name = \"aarch64-macos\"],]`")),
-            // several targets, each with its settings (owner, 2026-09-29): CCA's package manager can do
+            // several targets, each with its settings (owner, 2026-09-29): Synapse's package manager can do
             // whatever Synthia can, in its plainer way
             "targets" => {
                 let items = items(value);
@@ -304,11 +304,11 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     }
                 }
                 if count > 1 && defaults != 1 { return Err(format!("{shown}: line {line}: with several targets, exactly one says `default = true` — the one built when none is named ({defaults} do)")); }
-                // only a target CCA can build (owner, 2026-09-30: "refuse", as Synthia.ttsr's "Only what's
-                // actually doable"); the one list is CCA's
+                // only a target Synapse can build (owner, 2026-09-30: "refuse", as Synthia.ttsr's "Only what's
+                // actually doable"); the one list is Synapse's
                 let doable: Vec<&str> = include_str!("../../cca/targets.txt").lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).collect();
                 for (t, line) in names {
-                    if !doable.contains(&t.as_str()) { return Err(format!("{shown}: line {line}: `{t}` is not a target CCA can build; it builds for {}", doable.iter().map(|d| format!("`{d}`")).collect::<Vec<_>>().join(", "))); }
+                    if !doable.contains(&t.as_str()) { return Err(format!("{shown}: line {line}: `{t}` is not a target Synapse can build; it builds for {}", doable.iter().map(|d| format!("`{d}`")).collect::<Vec<_>>().join(", "))); }
                 }
             }
             "dependencies" => {
@@ -332,7 +332,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                         if i.len() != 64 || !i.bytes().all(|b| b.is_ascii_hexdigit()) { return Err(format!("{shown}: line {line}: an id is 64 hex digits, 256 random bits")); }
                     }
                     if d.version.is_some() && d.id.is_none() { return Err(format!("{shown}: line {line}: a `version` comes from the registry, which knows a Neuron by its ID: `id = \"…\"`, 64 hex digits")); }
-                    // std is listed like any limb, by its ID and version; CCA uses the installed copy when they
+                    // std is listed like any limb, by its ID and version; Synapse uses the installed copy when they
                     // match (owner, 2026-10-06), and the oracle stands in for that copy
                     if d.is_std() {
                         if deps.iter().any(|x: &Dep| x.is_std()) { return Err(format!("{shown}: line {line}: cord is listed twice")); }
@@ -728,7 +728,7 @@ fn collect(dir: &Path, prefix: &mut Vec<String>, out: &mut Vec<(Vec<String>, Pat
             return Err(format!("{}: `{name}` has the old name: rename it to `{new}` (owner, 2026-10-09)", p.display()));
         } else if let Some(stem) = name.strip_suffix(".nrv") {
             if prefix.is_empty() && stem == "neuron" { continue; }
-            // a Neuron's `build.nrv` is its build program, run by `cca prepare`, not a module (owner, 2026-10-09: "yea")
+            // a Neuron's `build.nrv` is its build program, run by `synapse prepare`, not a module (owner, 2026-10-09: "yea")
             if prefix.is_empty() && stem == "build" { continue; }
             if stem == "neuron" { return Err(format!("{}: `neuron` names the root; a module cannot be called that", p.display())); }
             if stem == "my" { return Err(format!("{}: `my` is the root's path (`my.helper[]`); a module cannot be called that", p.display())); }
@@ -745,7 +745,7 @@ pub fn run_path(path: &Path, out: Box<dyn std::io::Write>) -> Result<u8, String>
     run_path_as(path, out, false)
 }
 
-/// `tests`: run every `test fn` instead of MAIN (`cca test`, owner 2026-09-29).
+/// `tests`: run every `test fn` instead of MAIN (`synapse test`, owner 2026-09-29).
 pub fn run_path_as(path: &Path, out: Box<dyn std::io::Write>, tests: bool) -> Result<u8, String> {
     run_with_args(path, out, tests, Vec::new())
 }

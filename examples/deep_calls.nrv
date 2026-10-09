@@ -1,5 +1,5 @@
 # A call nested 2000 deep in one expression runs (check claude, seed 32299: the oracle overflowed its
-# stack at 1000; CCA runs 2000). Robustness, not meaning.
+# stack at 1000; Synapse runs 2000). Robustness, not meaning.
 fn g ['x': uint32] -> uint32 {
     return 'x';
 }
