@@ -204,8 +204,11 @@ dark one in dark mode, as the wordmark does. Seen in light mode, the owner: "Hm,
 wordmark" (a pale outlined tile beside heavy black letters); offered (a) the
 dark icon in both themes, (b) a bolder light icon, (c) the light icon kept
 for other uses; **the dark icon in both themes** (owner: "`a`", as design
-claude recommended): the black tile carries the wordmark's weight.
-`icon-light.svg` stays in `brand/nerve/`, unused.
+claude recommended): the black tile carries the wordmark's weight. Seen in
+dark mode, the owner: "Works, but dark looks weird" (the black tile vanishes
+into GitHub's dark page); **the icon's tile matches the letters: the dark
+icon (black tile) beside the black wordmark in light mode, the light icon
+(white tile) beside the white wordmark in dark mode** (owner: "yea").
 
 ### 2026-10-09 — The names and logos are trademarks anyone may use, without pretending to be us (owner)
 
