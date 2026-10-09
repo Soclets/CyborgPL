@@ -16,7 +16,13 @@ spelling, the owner's, where 2026-10-07 made one spelling per thing the rule
 in the language and `cca precog` was refused on it this morning. Then
 **the folder and crates take the full name**: `synapse/`, `synapse-runtime`
 and so on (owner: "Yeah"), `syn` being a typing shortcut only, as design
-claude recommended.
+claude recommended. Compiler claude kept the `CCA_*` environment variables; asked, **they are
+`SYNAPSE_*`** (owner: "`a`"): `SYNAPSE_TEST_JOBS`, `SYNAPSE_IR`,
+`SYNAPSE_LLD_PREFIX`, and `CCA_STD_STUBS` becomes `SYNAPSE_CORD_STUBS`; an old
+`CCA_*` name is refused, naming the new one. Check claude moved to `synapse
+cortex --json` (9f3721ac), so `cca` can refuse. RRx2-TV, which reads
+`cca/compiler/tests`, is not messaged; it reads its updated brief when the
+owner next starts it (owner: "`b`").
 
 ### 2026-10-09 — Code ends `.nrv`, settings end `.nrp`; the manifest is `Kinesin.nrp` with `kin::` types (owner)
 
