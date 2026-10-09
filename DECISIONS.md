@@ -34,7 +34,13 @@ messages ("Cortex would refuse to compile", "`:=` means Cortex chooses the
 type"), the example comments and one reject test**. Kept: quoted words,
 `design/precog.md`'s file name, and the old name's history in
 `design/tooling.md`. The README reads "Cortex™ (formerly Precog™)". CCA's
-`precog` module and check claude's tools are theirs.
+`precog` module and check claude's tools are theirs. Compiler claude renamed the command `cca precog` to `cca cortex`
+(e36cb9a7) and kept `cca precog` as an alias for check claude's harness;
+asked to (a) keep the alias or (b) refuse it like any old spelling, design
+claude recommending (b) by the 2026-10-07 rule of one spelling per thing,
+**`cca precog` is refused, naming `cca cortex`, and check claude switches**
+(owner: "`b`"). CCA's internal `precog` module and `cca/cores/` crates keep
+their names until the code-name step (compiler claude's call).
 
 The same message: "Btw, didn't I say that only I could make website claude
 update?" Yes (2026-09-24): design claude had asked website claude to switch
