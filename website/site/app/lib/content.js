@@ -71,5 +71,5 @@ export const LICENCE = [
       { label: "Legal code", href: "https://creativecommons.org/licenses/by/4.0/legalcode" },
       { label: "LICENSE-CC-BY-4.0 in the repo", href: `${REPO_URL}/blob/main/LICENSE-CC-BY-4.0` },
     ] },
-  { title: "Names and logo", text: "Nerve, Precog, Limb and Synthia, and the logo, are trademarks. They aren’t licensed with the code: a fork can’t call itself Nerve." },
+  { title: "Names and logo", text: "Nerve, Precog, Neuron and Synthia, and the logo, are trademarks. They aren’t licensed with the code: a fork can’t call itself Nerve." },
 ];

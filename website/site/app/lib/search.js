@@ -15,7 +15,7 @@ const SYNONYMS = {
   overflow: ["precog", "overflow"], bounds: ["precog", "bounded"], safety: ["precog"], safe: ["precog"], prove: ["precog"], proof: ["precog"],
   compiler: ["llvm"], native: ["llvm"], backend: ["llvm"],
   string: ["str.utf8", "strings", "text"], strings: ["str.utf8", "text"],
-  stdkit: ["cord"], stdlib: ["cord"], print: ["cord::print.stored", "prints"], printu: ["print.useful"], printf: ["print.format"], println: ["cord::print.stored", "prints"], output: ["cord::print.stored", "prints"], stdout: ["cord::print.stored"],
+  stdkit: ["cord"], stdlib: ["cord"], limb: ["neuron", "pub.neuron"], library: ["neuron", "cord"], print: ["cord::print.stored", "prints"], printu: ["print.useful"], printf: ["print.format"], println: ["cord::print.stored", "prints"], output: ["cord::print.stored", "prints"], stdout: ["cord::print.stored"],
   loop: ["while", "for", "loops"], iterate: ["for", "range"],
   function: ["fn", "functions"], method: ["fn", "functions"], func: ["fn"],
   enum: ["enums", "match"], variant: ["enums"], union: ["enums"], switch: ["match"],

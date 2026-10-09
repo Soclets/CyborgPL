@@ -39,12 +39,12 @@ including the 2026-10-07 revision: `->` / `<-`, comparison in words
   ranged type (`int32[1, max]`).
 - Custom operators, where they are declared (`op dot […]`, `op <+>`, `op div.floor`) and where
   they are used between two values (`'u' dot 'v'`, `'u' <+> 'v'`).
-- A Limb's precedence: `precedence.low_first` / `high_first` blocks of
+- A Neuron's precedence: `precedence.low_first` / `high_first` blocks of
   `level.when_chained.<mode> N { … }`, whose words and symbols name operators.
 - The exact literal `*0.1` as one number.
 - Modules before a dot (`counter.bump`), and a function named as a value
   (`first_by[…, by_number]`) — safe because variables are always quoted.
-- Limb paths (`std::print.stored.stdout`), conversions (`to.int32`), calls in
+- Neuron paths (`cord::print.useful`), conversions (`to.int32`), calls in
   brackets, and the narrowing dot.
 - Ownership verbs (and `&` / `&mut`, their other spelling), the check tiers including
   `NO_FUCKING_CHECKS`, failure names after `fail`, and the word operators `plus`,
@@ -62,7 +62,7 @@ including the 2026-10-07 revision: `->` / `<-`, comparison in words
 - `layout.C enum Key { a = 65 }`: a case and its number. `extern.C`, `layout.C`,
   `inline.S` / `inline.ASM` and `inline.MSL` read as one keyword, not a type.
 - A library call through a built-in type as one name: `str.each.grapheme[…]`,
-  `simd.load.some[…]`; `pub.limb`; a module inside a module (`counter.inner.twice`).
+  `simd.load.some[…]`; `pub.neuron`; a module inside a module (`counter.inner.twice`).
 - `inline.ASM { … }`, whose contents are left verbatim.
 
 ## What it relies on
@@ -89,6 +89,6 @@ Since 2026-10-08 it also knows: `newln`; comparison words; `is`; `shadow`; `no_c
 `my.` paths; std's names written bare (`print.useful[…]`, `duration`); registers in an inline
 block's `with […]`; `list.fill[value 0, count 10]`; names in any script (WSTN). The retired
 spellings (`-->`, `==`, `</==`, `!mut`, `!$`, `$:=`, `nocheck`, `\n` outside text,
-`stdkit::` / `std::`, `!std_int24`, `#strict`) are marked deprecated.
+`stdkit::` / `std::`, `pub.limb`, `!std_int24`, `#strict`) are marked deprecated.
 
 Last run on 2026-10-09 against all 159 programs: no unscoped spans.

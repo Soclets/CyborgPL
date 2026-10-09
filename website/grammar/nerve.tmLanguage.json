@@ -710,8 +710,13 @@
           "comment": "`giveS` is a `#strict` match arm's value (2026-09-29; the capital S keeps it apart from `give`)."
         },
         {
+          "comment": "`pub.limb` is `pub.neuron` since 2026-10-09: a library is a Neuron.",
+          "name": "invalid.deprecated.nerve",
+          "match": "\\bpub\\.limb\\b"
+        },
+        {
           "name": "keyword.declaration.nerve",
-          "match": "\\b(?:pub\\.limb|let|fn|struct|enum|interface|module|limb|const|pub|op|extern|layout|inline|asm|ASM)\\b",
+          "match": "\\b(?:pub\\.neuron|let|fn|struct|enum|interface|module|limb|const|pub|op|extern|layout|inline|asm|ASM)\\b",
           "comment": "`pub.limb` is `pub` narrowed: visible across the limb."
         },
         {
