@@ -316,17 +316,19 @@ html.desktop .more, html.desktop .plain { max-width: 720px; }
 #boot { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: var(--bg); color: var(--ink);
   transition: opacity .3s ease, visibility 0s linear .3s; }
 #boot[data-done] { opacity: 0; visibility: hidden; pointer-events: none; }
-.boot-in { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.boot-in { display: flex; flex-direction: column; align-items: center; gap: 34px; animation: boot-in .45s ease both; }
 .boot-mark { line-height: 0; }
+.boot-mark svg { width: min(360px, 76vw); height: auto; display: block; }
 /* The logo is black or white, not the Solarized ink: black on the light theme, white on the dark. */
 .logo { color: #111111; }
 html.desktop[data-theme="dark"] .logo { color: #ffffff; }
 @media (prefers-color-scheme: dark) { html.desktop:not([data-theme="light"]) .logo { color: #ffffff; } }
-.boot-bar { width: 168px; height: 4px; border-radius: 2px; background: var(--surface); overflow: hidden; }
-.boot-bar i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); border-radius: 2px; background: var(--violet); transition: width .18s ease; }
-.boot-pct { margin-top: -10px; font: 600 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
-.boot-pct::after { content: attr(data-pct); }
-@media (prefers-reduced-motion: reduce) { #boot, .boot-bar i { transition: none; } }
+/* A ring with a gap, turning: the loading indicator, in the logo's black or white. */
+.boot-spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid currentColor; border-top-color: transparent; opacity: .75;
+  animation: boot-spin .8s linear infinite; }
+@keyframes boot-spin { to { transform: rotate(360deg); } }
+@keyframes boot-in { from { opacity: 0; transform: translateY(6px) scale(.985); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { #boot, .boot-in { transition: none; animation: none; } .boot-spin { animation-duration: 2.4s; } }
 /* The full plain source is readable while its highlighting loads. */
 .sheet-pending pre { color: var(--text); min-height: calc(var(--example-lines, 0) * 1lh); }
 

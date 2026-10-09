@@ -11,7 +11,7 @@ mkdirSync("public/icons", { recursive: true });
 // start clean, so icons from an older drawing (or older names) aren't deployed beside the new ones
 for (const f of readdirSync("public/icons")) rmSync(path.join("public/icons", f));
 mkdirSync("public/language-logos", { recursive: true });
-copyFileSync(path.join(brand, "nerve/icon.svg"), "public/language-logos/nerve.svg");
+
 const avatar = readFileSync(path.join(brand, "nerve/avatar.svg"), "utf8");
 // Cache busting: the icons' file names carry a hash of their drawings, so a new icon is a new
 // address that no browser (Safari's icon cache included) has seen. root.jsx and the manifest use it.
@@ -24,6 +24,8 @@ for (const [name, size] of [[`app-${H}-192.png`, 192], [`app-${H}-512.png`, 512]
 }
 copyFileSync(path.join(brand, "nerve/icon.svg"), "public/favicon.svg");
 copyFileSync(path.join(brand, "nerve/icon.svg"), `public/icons/tab-${H}.svg`);
+for (const f of readdirSync("public/language-logos")) if (f.startsWith("nerve")) rmSync(path.join("public/language-logos", f));
+copyFileSync(path.join(brand, "nerve/icon.svg"), `public/language-logos/nerve-${H}.svg`);
 // RRx2's logo, for its row on More (the light version: RR and heart red, 2 and arrow black).
 copyFileSync(path.join(brand, "rrx2/logo.svg"), "public/icons/rrx2.svg");
 

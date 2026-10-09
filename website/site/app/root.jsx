@@ -16,25 +16,19 @@ export const links = () => [
   { rel: "apple-touch-icon", href: `/icons/touch-${ICON}.png` },
 ];
 
-// The loading screen (owner, 2026-09-28: "a real loading screen"). It is in every
-// pre-rendered page, so it is there from the first paint, and its bar is real: each step is
-// a file the page actually downloads (its scripts and styles, counted as the browser
-// reports them finished), and the last step is the app itself starting. It never shows
-// without JavaScript, stays up at least 1 s even when loading is quicker (owner; the bar
-// still reaches 100% when loading really ends), gives up after 10 s rather than stick, and holds no text, so a search
-// engine has nothing of it to quote (the percentage is drawn by CSS from data-pct).
-const MARK = `<div class="boot-mark logo">${wordmarkSVG("wordmark-boot", 30)}</div>`;
-const BOOT_HTML = `<div class="boot-in">${MARK}<div class="boot-bar"><i></i></div><span class="boot-pct" data-pct="0%"></span></div>`;
+// The loading screen (owner, 2026-09-28: "a real loading screen"). It is in every pre-rendered
+// page, so it is there from the first paint: the logo, large, and a spinning indicator (owner,
+// 2026-10-09: the progress bar replaced by a spinner). It stays until loading really ends: every
+// file the page downloads (its scripts and styles, as the browser reports them finished) and then
+// the app itself starting. It never shows without JavaScript, stays up at least 1 s even when
+// loading is quicker (owner), gives up after 10 s rather than stick, and holds no text, so a
+// search engine has nothing of it to quote.
+const MARK = `<div class="boot-mark logo">${wordmarkSVG("wordmark-boot", 48)}</div>`;
+const BOOT_HTML = `<div class="boot-in">${MARK}<span class="boot-spin logo"></span></div>`;
 const BOOT_JS = `(function(){
 var b=document.getElementById("boot");if(!b)return;var shown=performance.now();
-var pct=b.querySelector(".boot-pct");
-var want=[].map.call(document.querySelectorAll('link[rel="modulepreload"],link[rel="stylesheet"]'),function(l){return l.href});
-var total=want.length+1,seen={},n=0,over=false;
-function show(p){var v=Math.round(p*100);b.style.setProperty("--p",p);pct.setAttribute("data-pct",v+"%");b.setAttribute("aria-valuenow",v)}
-function got(u){if(over||seen[u]||want.indexOf(u)<0)return;seen[u]=1;n++;show(n/total)}
-try{performance.getEntriesByType("resource").forEach(function(e){got(e.name)});new PerformanceObserver(function(l){l.getEntries().forEach(function(e){got(e.name)})}).observe({type:"resource",buffered:true})}catch(e){}
-show(n/total);
-function done(){if(over)return;over=true;show(1);setTimeout(function(){b.setAttribute("data-done","")},Math.max(0,1000-(performance.now()-shown)))}
+var over=false;
+function done(){if(over)return;over=true;b.removeAttribute("aria-busy");setTimeout(function(){b.setAttribute("data-done","")},Math.max(0,1000-(performance.now()-shown)))}
 window.__nerveStarted=done;setTimeout(done,10000);
 })();`;
 
@@ -59,7 +53,7 @@ export function Layout({ children }) {
         <Links />
       </head>
       <body>
-        <div id="boot" role="progressbar" aria-label="Loading" aria-valuemin={0} aria-valuemax={100} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: BOOT_HTML }} />
+        <div id="boot" role="status" aria-label="Loading" aria-busy="true" suppressHydrationWarning dangerouslySetInnerHTML={{ __html: BOOT_HTML }} />
         <noscript><style>{"#boot{display:none}"}</style></noscript>
         <script dangerouslySetInnerHTML={{ __html: BOOT_JS }} />
         {children}
