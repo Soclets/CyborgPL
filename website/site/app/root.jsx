@@ -1,17 +1,17 @@
 import { useEffect } from "react";
-import { wordmarkSVG } from "./lib/wordmark.js";
+import { iconSVG, wordmarkSVG } from "./lib/wordmark.js";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import "./app.css";
 
 export const links = () => [
   { rel: "manifest", href: "/manifest.webmanifest" },
-  // The tab icon (brand/nerve/icon.svg, the R from the wordmark): ICO and PNG for Safari and older browsers, SVG for the rest.
-  // ?v=3: a new address, so browsers that cached "no icon" (Safari) fetch these afresh.
-  { rel: "icon", href: "/favicon.ico?v=3", sizes: "48x48" },
-  { rel: "icon", href: "/icons/favicon-32.png?v=3", type: "image/png", sizes: "32x32" },
-  { rel: "icon", href: "/icons/favicon-96.png?v=3", type: "image/png", sizes: "96x96" },
-  { rel: "icon", href: "/favicon.svg?v=3", type: "image/svg+xml" },
-  { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png?v=3" },
+  // The tab icon (brand/nerve/icon.svg, the Nerve icon on a black tile): ICO and PNG for Safari and older browsers, SVG for the rest.
+  // ?v=4: a new address, so browsers that cached "no icon" (Safari) fetch these afresh.
+  { rel: "icon", href: "/favicon.ico?v=4", sizes: "48x48" },
+  { rel: "icon", href: "/icons/favicon-32.png?v=4", type: "image/png", sizes: "32x32" },
+  { rel: "icon", href: "/icons/favicon-96.png?v=4", type: "image/png", sizes: "96x96" },
+  { rel: "icon", href: "/favicon.svg?v=4", type: "image/svg+xml" },
+  { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png?v=4" },
 ];
 
 // The loading screen (owner, 2026-09-28: "a real loading screen"). It is in every
@@ -21,7 +21,7 @@ export const links = () => [
 // without JavaScript, stays up at least 1 s even when loading is quicker (owner; the bar
 // still reaches 100% when loading really ends), gives up after 10 s rather than stick, and holds no text, so a search
 // engine has nothing of it to quote (the percentage is drawn by CSS from data-pct).
-const MARK = wordmarkSVG("wordmark-boot", 30);
+const MARK = `<div class="boot-mark">${iconSVG(64)}${wordmarkSVG("wordmark-boot", 26)}</div>`;
 const BOOT_HTML = `<div class="boot-in">${MARK}<div class="boot-bar"><i></i></div><span class="boot-pct" data-pct="0%"></span></div>`;
 const BOOT_JS = `(function(){
 var b=document.getElementById("boot");if(!b)return;var shown=performance.now();

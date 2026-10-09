@@ -1,6 +1,6 @@
-// App icons from the brand files (brand/nerve/): the R from the NERVE wordmark, impulse and
-// all. The square avatar for home-screen icons (iOS masks its own corners), the rounded tile
-// as the browser favicon, and the bare R for the comparison's white tile.
+// App icons from the brand files (brand/nerve/): the Nerve icon, a cell body with nerves
+// bursting from it. The square avatar for home-screen icons (iOS masks its own corners), the
+// rounded tile as the browser favicon, and the bare icon for the comparison's white tile.
 import { Resvg } from "@resvg/resvg-js";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
