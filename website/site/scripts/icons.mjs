@@ -1,6 +1,6 @@
 // App icons from the brand files (brand/nerve/): the Nerve icon, a cell body with nerves
 // bursting from it. The square avatar for home-screen icons (iOS masks its own corners), the
-// rounded tile as the browser favicon, and the bare icon for the comparison's white tile.
+// rounded tile as the browser favicon and the comparison's logo (always on its tile).
 import { Resvg } from "@resvg/resvg-js";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -8,7 +8,7 @@ import path from "node:path";
 const brand = path.resolve(process.cwd(), "../../brand");
 mkdirSync("public/icons", { recursive: true });
 mkdirSync("public/language-logos", { recursive: true });
-copyFileSync(path.join(brand, "nerve/mark-black.svg"), "public/language-logos/nerve.svg");
+copyFileSync(path.join(brand, "nerve/icon.svg"), "public/language-logos/nerve.svg");
 const avatar = readFileSync(path.join(brand, "nerve/avatar.svg"), "utf8");
 for (const [name, size] of [["icon-192.png", 192], ["icon-512.png", 512], ["apple-touch-icon.png", 180]]) {
   const png = new Resvg(avatar, { fitTo: { mode: "width", value: size } }).render().asPng();

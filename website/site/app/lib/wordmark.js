@@ -1,5 +1,5 @@
-// The Nerve icon (brand/nerve/mark-black.svg: a cell body with nerves bursting from it) and the
-// NERVE wordmark (brand/nerve/wordmark-black.svg), both in the current text colour. On the site the
+// The Nerve icon (brand/nerve/icon.svg: a cell body with nerves bursting from it, on its black tile)
+// and the NERVE wordmark (brand/nerve/wordmark-black.svg) in the current text colour. On the site the
 // impulse is a see-through cut, so it shows whatever is behind it in either theme. The brand files
 // paint it in instead, for places that draw the image without the page behind it.
 const LETTERS = [
@@ -18,5 +18,8 @@ export const wordmarkSVG = (id, height) =>
   + `<g fill="currentColor" mask="url(#${id})">${LETTERS.map((d) => `<path d="${d}"/>`).join("")}</g></svg>`;
 
 const BURST = '<circle cx="90" cy="90" r="20" fill="none" stroke="currentColor" stroke-width="8"/><path d="M90.0 60.0 L90.0 20.0" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="90.0" cy="20.0" r="6" fill="currentColor"/><path d="M107.6 65.7 L120.6 47.9" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="120.6" cy="47.9" r="4.5" fill="currentColor"/><path d="M118.5 80.7 L156.6 68.4" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="156.6" cy="68.4" r="6" fill="currentColor"/><path d="M118.5 99.3 L139.5 106.1" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="139.5" cy="106.1" r="4.5" fill="currentColor"/><path d="M107.6 114.3 L131.1 146.6" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="131.1" cy="146.6" r="6" fill="currentColor"/><path d="M90.0 120.0 L90.0 142.0" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="90.0" cy="142.0" r="4.5" fill="currentColor"/><path d="M72.4 114.3 L48.9 146.6" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="48.9" cy="146.6" r="6" fill="currentColor"/><path d="M61.5 99.3 L40.5 106.1" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="40.5" cy="106.1" r="4.5" fill="currentColor"/><path d="M61.5 80.7 L23.4 68.4" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="23.4" cy="68.4" r="6" fill="currentColor"/><path d="M72.4 65.7 L59.4 47.9" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><circle cx="59.4" cy="47.9" r="4.5" fill="currentColor"/><circle cx="90" cy="90" r="7" fill="currentColor"/>';
+// The icon always on its own black tile (brand/nerve/icon.svg), whatever the theme (owner: "with its
+// background").
 export const iconSVG = (size) =>
-  `<svg viewBox="0 0 180 180" width="${size}" height="${size}" aria-hidden="true">${BURST}</svg>`;
+  `<svg viewBox="0 0 180 180" width="${size}" height="${size}" aria-hidden="true"><rect width="180" height="180" rx="38" fill="#111111"/>`
+  + `<g color="#ffffff" transform="translate(90 90) scale(0.86) translate(-90 -90)">${BURST}</g></svg>`;

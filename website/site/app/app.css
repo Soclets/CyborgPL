@@ -366,6 +366,8 @@ html.desktop .comparison-trigger:focus-visible, .comparison-trigger:focus-visibl
 .language-logo { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none;
   width: var(--logo-size, 32px); height: var(--logo-size, 32px); padding: 4px; border-radius: 8px; background: #fff; }
 .language-logo img { display: block; width: 100%; height: 100%; object-fit: contain; }
+/* Nerve's icon brings its own black tile, so it goes edge to edge instead of on the white one. */
+.language-logo[data-language="nerve"] { padding: 0; background: none; }
 /* The PSF asks for a ™ with its logo that is never obscured: legible, outside the tile. */
 .language-logo.has-tm { margin-right: 8px; }
 .language-logo sup { position: absolute; top: -1px; right: -10px; color: var(--ink); font: 600 9px/1 var(--sans); }

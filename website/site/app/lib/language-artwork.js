@@ -3,9 +3,9 @@ import { REPO_URL } from "./content.js";
 export const LANGUAGE_ARTWORK = {
   nerve: {
     asset: "/language-logos/nerve.svg", title: "Nerve",
-    credit: "The Nerve icon: a cell body with nerves bursting from it. Copyright 2026 Tankun Sriket. Nerve and its logo are project trademarks.",
+    credit: "The Nerve icon: a cell body with nerves bursting from it, on its black tile. Copyright 2026 Tankun Sriket. Nerve and its logo are project trademarks.",
     links: [
-      { label: "Project artwork", href: `${REPO_URL}/blob/main/brand/nerve/mark-black.svg` },
+      { label: "Project artwork", href: `${REPO_URL}/blob/main/brand/nerve/icon.svg` },
       { label: "Usage terms", href: "https://nerve-lang.com/licence" },
     ],
   },
