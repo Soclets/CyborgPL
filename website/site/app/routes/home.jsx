@@ -187,7 +187,7 @@ export default function Home() {
     <div className="home">
       {search}
       <HomeView kind="hero">
-      <h1 className="huge">For the <span>selfless</span> people</h1>
+      <h1 className="huge">Wired into your <span>nerves</span></h1>
       <p className="lede">{DESCRIPTION}</p>
       <div className="actions">
         <Link className="btn primary" to="/download" prefetch="intent"><Icon name="download" size={18} stroke={2.3} />Download</Link>
