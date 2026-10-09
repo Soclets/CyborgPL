@@ -1,17 +1,19 @@
 import { useEffect } from "react";
 import { iconSVG, wordmarkSVG } from "./lib/wordmark.js";
+import { ICON } from "./lib/icon-hash.js";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import "./app.css";
 
 export const links = () => [
   { rel: "manifest", href: "/manifest.webmanifest" },
-  // The tab icon (brand/nerve/icon.svg, the Nerve icon on a black tile): ICO and PNG for Safari and older browsers, SVG for the rest.
-  // ?v=4: a new address, so browsers that cached "no icon" (Safari) fetch these afresh.
-  { rel: "icon", href: "/favicon.ico?v=4", sizes: "48x48" },
-  { rel: "icon", href: "/icons/favicon-32.png?v=4", type: "image/png", sizes: "32x32" },
-  { rel: "icon", href: "/icons/favicon-96.png?v=4", type: "image/png", sizes: "96x96" },
-  { rel: "icon", href: "/favicon.svg?v=4", type: "image/svg+xml" },
-  { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png?v=4" },
+  // The tab icon (brand/nerve/icon.svg, the Nerve icon on a black tile): ICO and PNG for Safari and
+  // older browsers, SVG for the rest. The file names carry a hash of the drawing (scripts/icons.mjs),
+  // so a changed icon is an address no browser has cached, Safari's icon cache included.
+  { rel: "icon", href: `/icons/tab-${ICON}.ico`, sizes: "48x48" },
+  { rel: "icon", href: `/icons/tab-${ICON}-32.png`, type: "image/png", sizes: "32x32" },
+  { rel: "icon", href: `/icons/tab-${ICON}-96.png`, type: "image/png", sizes: "96x96" },
+  { rel: "icon", href: `/icons/tab-${ICON}.svg`, type: "image/svg+xml" },
+  { rel: "apple-touch-icon", href: `/icons/touch-${ICON}.png` },
 ];
 
 // The loading screen (owner, 2026-09-28: "a real loading screen"). It is in every
