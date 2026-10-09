@@ -13,7 +13,11 @@ mono cross wordmark (7c72bf7c): the kerned NERVE (kerned 8f08525c, owner:
 a softened medical cross in the letters' colour, carrying its own impulse.
 Asked where, the owner: "`a`": **it replaces the plain wordmark at the
 README's top**, black in light mode and white in dark, 380 px wide. The
-site's kerned wordmark is already deployed (owner: "it's already deployed").
+site's kerned wordmark is already deployed (owner: "it's already deployed"). Then, relayed by website claude: **the icon is now the mono cross**
+(owner: "Use that as the new icon"): a white cross carrying its impulse on
+the black rounded tile, `brand/nerve/icon.svg` and its siblings under the
+same names (78469ed9), on the site too (b47bc6bc); the starburst is retired.
+The README's `brand/` line describes it.
 
 ### 2026-10-09 — Text into a deci goes by the value; `.written` counts the digits as written (owner)
 
