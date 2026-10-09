@@ -20,9 +20,14 @@ type. An interface's `fn next` is kept by the type's own `next`, so `for`
 finds `Counter.next` for a `Counter` by itself. Design claude's readings,
 not asked: an interface's `fn show [lent 'x': <T>]` (`interfaces.md`) is
 kept the same way, by `fn Vec.show`; a type and a module still cannot share
-a name in one scope, so `X.y` stays unambiguous. Not yet asked: how `for`
-takes an iterator (`for 'x' in lend.mut 'c'` was design claude's sketch);
-whether the first parameter must be the type.
+a name in one scope, so `X.y` stays unambiguous. Then, how `for` takes an
+iterator, since `next` changes it (plain `lend` cannot): (a) `lend.mut`
+only, (b) `give` only, (c) both; **both** (owner: "`c`", as design claude
+recommended): `for 'x' in lend.mut 'c'` borrows it, and 'c' remains,
+used up as far as the loop went; `for 'x' in give 'c'` hands it over, and
+'c' is gone after the loop. `temp` / `perm` apply as on every `for`. Not yet
+asked: whether a type's function must take the type as its first
+parameter.
 
 ### 2026-10-09 — The repo's Markdown is CC BY 4.0, credited "Nerve GitHub repo text" (owner)
 
