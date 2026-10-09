@@ -303,6 +303,7 @@ old_bang_check [fnv:a0138db0859142d5] :: `!check` is an old spelling: write `no_
 old_bang_mut [fnv:84b6146b48e828b9] :: `!mut` is an old spelling: write `immut`
 old_bang_not [fnv:8a10fba72a0c2f1a] :: `!` is an old spelling: write `not`
 old_bang_shadow [fnv:7c66670daa4752d3] :: `!$` is an old spelling: write `no_shadow`
+old_build_name [fnv:fd298b0602bd0f69] :: `build.cplr` has the old name: rename it to `build.nrv`
 old_ending_cpls [fnv:269514a2c6134a46] :: `helper.cpls` has the old name: rename it to `helper.nrv`
 old_eq [fnv:d19b7ef20365f588] :: `==` is an old spelling: write `equal_to`
 old_ge [fnv:3c2099159bf1fd6a] :: `>/==` is an old spelling: write `at_least`
