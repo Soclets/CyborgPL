@@ -33,6 +33,9 @@ fn old_names(path: &Path) -> Result<()> {
         }
         return Ok(());
     }
+    if path.join("build.cplr").is_file() {
+        return err(Diagnostic::error("`build.cplr` has the old name: rename it to `build.nrv`"));
+    }
     if path.join("CCA.cplr").is_file() {
         return err(Diagnostic::error(format!("`CCA.cplr` has the old name: rename it to `{}`", MANIFEST)));
     }
@@ -102,6 +105,7 @@ fn gather_precedence(sources: &mut SourceMap, path: &Path) -> Result<()> {
                 }
             }
             cpls_under(&d, &mut files);
+            files.retain(|f| *f != d.join("build.nrv"));
             if d.join(MANIFEST).is_file() {
                 if let Ok(m) = read_manifest(sources, &d) {
                     for dep in &m.deps {
@@ -216,7 +220,7 @@ pub enum Wanted {
     Prefix(String),
 }
 
-/// What `cca prepare` runs, in order: each Limb's `build.cplr` with the
+/// What `cca prepare` runs, in order: each Limb's `build.nrv` with the
 /// name it goes by and the folder it runs in. Names run in the order given,
 /// each once; `--all` runs dependencies before the Limbs that use them,
 /// each once. Nothing is loaded but manifests.
@@ -267,7 +271,7 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
                 }
                 stack.pop();
                 done.push(key);
-                if dir.join("build.cplr").is_file() {
+                if dir.join("build.nrv").is_file() {
                     out.push((shown, dir.to_path_buf()));
                 }
                 Ok(())
@@ -319,8 +323,8 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
             continue;
         }
         ran.push(key);
-        if !at.join("build.cplr").is_file() {
-            return err(Diagnostic::error(format!("`{}` has no `build.cplr` to run, at `{}`", n, at.display())));
+        if !at.join("build.nrv").is_file() {
+            return err(Diagnostic::error(format!("`{}` has no `build.nrv` to run, at `{}`", n, at.display())));
         }
         out.push((shown, at));
     }
@@ -1181,7 +1185,9 @@ fn load_dir(sources: &mut SourceMap, items: &mut Items, dir: &Path, parent: Modu
             continue;
         }
         let stem = e.file_stem().unwrap().to_string_lossy().to_string();
-        if is_root_dir && stem == "neuron" {
+        // `build.nrv` is the program `cca prepare` runs, not a module
+        // (owner, 2026-10-09: "yea"; design claude's reading).
+        if is_root_dir && (stem == "neuron" || stem == "build") {
             continue;
         }
         check_name(&stem, e)?;

@@ -12,7 +12,7 @@ fn usage() -> ! {
     eprintln!("       cca build <file.nrv | neuron-dir> [-o out] [--target t] [--emit-llvm dir]   …then generate, assemble and link; dir/before.ll and dir/after.ll are the LLVM IR before and after LLVM's passes");
     eprintln!("       cca run <file.nrv | neuron-dir> [-- words…]   build, then run it here with its words; its exit is cca's");
     eprintln!("       cca test <file.nrv | neuron-dir>      run every `test fn`, each on its own, and report");
-    eprintln!("       cca prepare [folder/] [<name>, …] [--prefix <prefix>, …] | --all   run those Neurons' build.cplr, in their own folders");
+    eprintln!("       cca prepare [folder/] [<name>, …] [--prefix <prefix>, …] | --all   run those Neurons' build.nrv, in their own folders");
     eprintln!("       cca version                  the compiler's version and the Unicode version it pins");
     exit(2)
 }
@@ -287,7 +287,7 @@ fn test_verdict(status: &std::process::ExitStatus, stderr: &str) -> Option<Strin
 /// folder, or in a folder given first, written with a `/`; names are Limbs' `name`s, its own or its dependencies',
 /// separated by commas (`geometry, money` or `geometry,money`), run in the
 /// order given; a name two Limbs share is refused with their prefixes, and
-/// `--prefix geo2, geo3` after the names picks by prefix; `--all` runs every Limb's `build.cplr`,
+/// `--prefix geo2, geo3` after the names picks by prefix; `--all` runs every Limb's `build.nrv`,
 /// dependencies first. Each is built as a program of its own and run in
 /// its Limb's folder; the first that fails stops the rest, and its exit is
 /// cca's.
@@ -339,7 +339,7 @@ fn prepare(rest: &[String]) {
         }
     };
     if plan.is_empty() {
-        println!("no Neuron here has a build.cplr");
+        println!("no Neuron here has a build.nrv");
         return;
     }
     let dir = std::env::temp_dir().join(format!("cca-prepare-{}", std::process::id()));
@@ -350,7 +350,7 @@ fn prepare(rest: &[String]) {
     for (k, (name, folder)) in plan.iter().enumerate() {
         println!("prepare: {}", name);
         let exe = dir.join(format!("build-{}", k));
-        if let Err(d) = build_one(&folder.join("build.cplr"), &exe, false, false, true, None) {
+        if let Err(d) = build_one(&folder.join("build.nrv"), &exe, false, false, true, None) {
             let _ = std::fs::remove_dir_all(&dir);
             eprint!("{}", d);
             exit(1);
@@ -362,7 +362,7 @@ fn prepare(rest: &[String]) {
                 use std::os::unix::process::ExitStatusExt;
                 let code = s.code().unwrap_or_else(|| 128 + s.signal().unwrap_or(0));
                 let _ = std::fs::remove_dir_all(&dir);
-                eprintln!("error: `{}`'s build.cplr exited with {}, and `cca prepare` stops there", name, code);
+                eprintln!("error: `{}`'s build.nrv exited with {}, and `cca prepare` stops there", name, code);
                 exit(code);
             }
             Err(e) => {

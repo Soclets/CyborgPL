@@ -502,16 +502,16 @@ Dated, with the alternative, so each can become a question later.
   rulings (the current folder's Neuron; names are Neurons' `name`s, its own or
   its dependencies', comma-separated with or without a space; a name two of
   them share is refused with their prefixes listed, and `--prefix geo2`
-  picks one; a `build.cplr` runs in its own Neuron's folder; `--all` runs
+  picks one; a `build.nrv` runs in its own Neuron's folder; `--all` runs
   dependencies first, each once, stopping at the first failure) are built
   as ruled. Also ruled (owner, 2026-09-30, "yea" to each, as CCA had
   built them): named Neurons run in the order written, each once, whether
   asked for by name or by prefix; the names come before `--prefix`, and
   every word after it is a prefix, so `cca prepare --prefix geo2 money`
   and a second `--prefix` are refused. Picks beside them, still
-  provisional: a named Neuron with no `build.cplr` is refused, while `--all` passes
+  provisional: a named Neuron with no `build.nrv` is refused, while `--all` passes
   over those; and the failing one's exit is cca's. Ruled (owner,
-  2026-09-30): each `build.cplr` is an ordinary program with no limits
+  2026-09-30): each `build.nrv` is an ordinary program with no limits
   and no channel into the build, built as a program of its own with no
   language access to its Neuron's code — it reads a Neuron's files as any
   program would — and given no command-line words: its settings come as

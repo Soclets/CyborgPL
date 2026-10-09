@@ -237,7 +237,7 @@ fn limbs_reach_their_dependencies() {
 /// `cca prepare` (owner, 2026-09-29, 2026-09-30): the current folder's
 /// Limb; names are Limbs' `name`s, comma-separated with or without a space,
 /// run in the order given; a shared name is refused and `--prefix` picks; `--all` runs dependencies first, each once, and stops
-/// at the first that fails. Each build.cplr stops with 9 unless it runs in
+/// at the first that fails. Each build.nrv stops with 9 unless it runs in
 /// its own Limb's folder.
 #[test]
 fn prepare_runs_build_scripts_in_their_folders() {
