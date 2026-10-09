@@ -24,7 +24,7 @@ count; it exits 0 when all pass.
   out. Proposed alternatives: every function in a `module tests { }`; a
   `#test` file mode.
 - **`must` states what must hold** (owner: "the fam"), and only inside a
-  `test fn` (in a program, Precog and `check` do this job, at compile
+  `test fn` (in a program, Cortex and `check` do this job, at compile
   time). A comparison that does not hold shows both sides: "the left side
   is 6, and it must be `==` 5".
 - **`must.fail`** expects a failure — Cyborg's named `fail` / `otherwise`

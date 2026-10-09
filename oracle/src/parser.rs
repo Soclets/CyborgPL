@@ -962,7 +962,7 @@ impl Parser {
         let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
         match (self.peek().clone(), &ty) {
             (Tok::Walrus, None) | (Tok::Eq, Some(_)) => { self.advance(); }
-            (Tok::Walrus, Some(_)) => return self.err("`:=` means Precog chooses the type; with an explicit type write `=`"),
+            (Tok::Walrus, Some(_)) => return self.err("`:=` means Cortex chooses the type; with an explicit type write `=`"),
             (Tok::Eq, None) => return self.err("`=` means you said everything; with no type write `:=`"),
             (Tok::ShadowWalrus | Tok::ShadowEq, _) => return self.err("a const cannot shadow anything; there is nothing above the top level"),
             (other, _) => return self.err(format!("expected `:=` or `=` after '{name}', found {other}")),
@@ -1786,7 +1786,7 @@ impl Parser {
                 "change" => { self.advance(); self.change_stmt(line) }
                 // `must …;` — a test's assertion (owner, 2026-09-29): `must`, `must.fail[.reason]`, `must.stop`
                 "must" => {
-                    if !self.in_test { return self.err("`must` belongs in a `test fn`; in a program, Precog proves what must hold (`check`)"); }
+                    if !self.in_test { return self.err("`must` belongs in a `test fn`; in a program, Cortex proves what must hold (`check`)"); }
                     self.advance();
                     let (mut kind, mut reason) = (None, None);
                     if *self.peek() == Tok::Dot {
@@ -1835,7 +1835,7 @@ impl Parser {
                     Ok(Stmt::Return { value, line })
                 }
                 "fn" | "func" => self.err("a `fn` cannot be defined inside a body; it goes at the top level"),
-                "const" => self.err("a `const` sits at the top level of the Neuron; inside a body use `let` (Precog finds the constants itself)"),
+                "const" => self.err("a `const` sits at the top level of the Neuron; inside a body use `let` (Cortex finds the constants itself)"),
                 "pub" => self.err("`pub` goes at the top level, before `fn`, `struct`, `const`, or `module`"),
                 "module" => self.err("a `module` block sits at the top level of a file, not inside a body"),
                 "MAIN" => self.err("MAIN cannot be nested or called"),
@@ -2121,7 +2121,7 @@ impl Parser {
         match (self.peek().clone(), &ty) {
             (Tok::Walrus, None) => { self.advance(); }
             (Tok::Eq, Some(_)) => { self.advance(); }
-            (Tok::Walrus, Some(_)) => return self.err("`:=` means Precog chooses the type; with an explicit type write `=`"),
+            (Tok::Walrus, Some(_)) => return self.err("`:=` means Cortex chooses the type; with an explicit type write `=`"),
             (Tok::Eq, None) => return self.err("`=` means you said everything; with no type write `:=`"),
             (Tok::Semi, _) => return self.err(format!("'{name}' needs a value; there are no implicit zero values")),
             (other, _) => return self.err(format!("expected `:=` or `=`, found {other}")),
@@ -2819,7 +2819,7 @@ impl Parser {
         }
         let args = self.bracket()?;
         // `simd.shuffle['v', [4, 3, 2, 1]]` — the new order is fixed numbers, known when compiling
-        // (owner, 2026-09-27: a), so it is one instruction and Precog sees through it
+        // (owner, 2026-09-27: a), so it is one instruction and Cortex sees through it
         if head == "simd" && op == "shuffle" {
             let fixed = match args.values.get(1) {
                 Some(Value::Expr(Expr::Nested(b))) => b.values.iter().all(|v| matches!(v, Value::Expr(Expr::Int(..) | Expr::RawInt(..)))),

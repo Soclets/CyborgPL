@@ -41,7 +41,7 @@ let 'n' := to.int32['text'] otherwise 0;
 (A failing call must be the whole right-hand side, so they cannot nest;
 Claude first wrote them nested and the owner caught the `]`.)
 
-## What Precog knows about an outside value
+## What Cortex knows about an outside value
 
 After `to.int32['text']`, `'n'` is any `int32`. **The type is the first
 annotation** (owner: "doesn't `int32` already say it?"): `for 'i' in
@@ -74,7 +74,7 @@ let 'unit': bin64[0.0, 1.0] = 0.25;
   **fails** with `out_of_range` (beside `not_a_number`), so a bad outside
   value is a failure you handle, never a crash; past it, `'n'` is
   `int32[0, 100]`.
-- Precog carries the bounds through arithmetic: `'n' plus 1` is an
+- Cortex carries the bounds through arithmetic: `'n' plus 1` is an
   `int32[1, 101]`; storing it back into an `int32[0, 100]` is a check
   site; `'xs'['n']` on a 100-element list is proven.
 - A range type cannot cross to C (C has no ranges — use the plain type).

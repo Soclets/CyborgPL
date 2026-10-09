@@ -6,7 +6,7 @@ with a message that says so, and is deliberately slow, small, and obvious.
 Its job is to keep the prose honest: if a note in `design/` and this program
 disagree, one of them is wrong, and it is usually the note.
 
-Not the compiler. Not Precog. No LLVM. See `design/compiler-verification.md`
+Not the compiler. Not Cortex. No LLVM. See `design/compiler-verification.md`
 for where it fits.
 
 ```
@@ -63,7 +63,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
   `lent.mut` at the parameter, and they must agree; a bare owned variable
   cannot be stored; a given variable is dead until reassigned
 - the default check tier: every landing and every 64-bit limit is checked, and
-  every division zero-checked, because there is no Precog here to remove them
+  every division zero-checked, because there is no Cortex here to remove them
 - `check <stmt>` / `nocheck <stmt>` / `check { … }` (2026-09-19): the oracle runs the check anyway; a `check` whose site fires reports the counterexample value, a `nocheck` whose site fires reports the lie; refused on a fn/struct/const/module, inside a value, at the top level, or doubled
 - `print` shows the stored value (full binary expansion), `print.useful` the useful one (the borrowed C/Rust prints of 2026-09-19 were removed 2026-09-20 and are refused by name)
 - strings are exactly their characters; only `\"` and `\\` escape; `"\n"` is two characters, the newline is the bare `\n` (2026-09-19)
@@ -118,24 +118,24 @@ had to make to run at all; none is a decision.
 
 | Pick | Where | Why this way |
 |---|---|---|
-| A `:=` character literal infers the narrowest unit that holds it (byte → point → grapheme) | `interp.rs` `eval` | Precog would also look at use; the oracle only sees content |
-| A `lend` held in a variable cannot be returned from a function or stored in a list | `interp.rs` | The oracle has no lifetimes; the compiler will (Precog infers them). Confirmed a gap, not the design, 2026-09-21 |
+| A `:=` character literal infers the narrowest unit that holds it (byte → point → grapheme) | `interp.rs` `eval` | Cortex would also look at use; the oracle only sees content |
+| A `lend` held in a variable cannot be returned from a function or stored in a list | `interp.rs` | The oracle has no lifetimes; the compiler will (Cortex infers them). Confirmed a gap, not the design, 2026-09-21 |
 | `lend.mut 'x'.field` writes back at the end of the statement; `'x'.field[i] = v` is refused (lend the list to a name first) | `interp.rs` `stmt` | A statement is the unit of a lend here; the compiler tracks the borrow itself |
 | Grapheme counting is an approximation (combining marks, ZWJ, variation selectors, skin tones) | `interp.rs` `grapheme_count` | The real runtime needs UAX #29 |
-| A pointer into a lent `str` reads its UTF-8 bytes and yields 0 one past the end; a normal struct's `size.of` uses C's rule | `interp.rs` `ptr_op`, `size_align` | The oracle has no memory; Precog's real layout is not modelled |
+| A pointer into a lent `str` reads its UTF-8 bytes and yields 0 one past the end; a normal struct's `size.of` uses C's rule | `interp.rs` `ptr_op`, `size_align` | The oracle has no memory; Cortex's real layout is not modelled |
 | `ptr.cast[T]` relabels: the oracle's pointers carry no element type and its memory is a list of values, so a cast never reinterprets bytes (a `Point` written through a cast pointer reads back as that `Point`, never as its bytes) | `interp.rs` `PtrCast` | The oracle has no memory |
 | A `deci` literal with too many digits for its type is refused when the run reaches it, after any earlier output; the design makes it a compile error, and CCA refuses the program up front | `interp.rs` | The oracle types a literal only where it lands (check claude, 2026-09-30) |
 | A file module is public; a directory with no `.cpls` of its own is an implicit public module | `main.rs` `load` | A file has no line to carry `pub.neuron`; open in `design/limbs.md` |
 | `shl`/`shr`/`not.bit` on an exact plain sum of mixed sizes take the left operand's declared type | `interp.rs` bitwise branch | Wrapping was ruled (write the size, 2026-09-23); shifts were not asked |
 | `xx~` wraps at the base's size, and its exponent's size does not count as mixing | `interp.rs` wrapping branch | By analogy with a shift's count; the owner ruled mixing for values, not for a power's exponent |
-| `*0.1` under `:=` is a `deci64` | `interp.rs` `Exact` | The design leaves the width to Precog, which the oracle does not run |
+| `*0.1` under `:=` is a `deci64` | `interp.rs` `Exact` | The design leaves the width to Cortex, which the oracle does not run |
 | A `brain16` literal in a list is rounded from its 64-bit value, not straight from its digits (a declaration rounds from the digits) | `interp.rs` `elem_literal` | Differs only on a rare tie |
 | A bin operation on two different widths (`bin32` with `bin64`) rounds at the wider | `interp.rs` `bin_width` | Mixed bin widths were not asked; the owner ruled per-step rounding at the values' width |
 | A C enum or ranged value coming from C (a return, a lent `ptr.mut`, `ptr.read`, a C variable) is checked and fails `out_of_range` — not exercised, since no emulated libc function hands one over; `to.Key[…]` and the callback rule are | `interp.rs` | The rules are decided; the oracle runs no real C |
 | Text → bin also takes a leading `+`, and refuses `_` grouping, `.5`, `5.` and surrounding spaces | `interp.rs` `bin_text` | The owner ruled sign, digits, fraction and exponent; these edges were not asked |
 | A list/array mismatch is caught where the source's type is declared (a variable, a call's return, a slice, a conversion); a field read is not traced | `interp.rs` `coll_kind` | The oracle's limit, not the rule |
 | `return lend 'x'` and `return f[…]` (a call handing back a borrow, 2026-10-02) are checked without a call; a borrow returned through a local or another lend is checked when the function runs, and a chain of calls is followed 8 deep | `interp.rs` `check_returned_borrows` / `call_deps` | The oracle's limit |
-| A borrow, a change of what it borrows, then a use of the borrow is refused on every path when read top to bottom (`lend 's'` or a `-> lent@x` call); without `@x` a call's result borrows whatever its body may hand back on any path; a loop's second trip round is caught only on the path the run takes; a stale borrow is refused where it is next used; a change to a field borrowed with `lend 'x'.f`, and a `for` over an element's lend, are not traced | `interp.rs` `wrote` / `stale` | The oracle's limit: Precog refuses on any path, at compile time |
+| A borrow, a change of what it borrows, then a use of the borrow is refused on every path when read top to bottom (`lend 's'` or a `-> lent@x` call); without `@x` a call's result borrows whatever its body may hand back on any path; a loop's second trip round is caught only on the path the run takes; a stale borrow is refused where it is next used; a change to a field borrowed with `lend 'x'.f`, and a `for` over an element's lend, are not traced | `interp.rs` `wrote` / `stale` | The oracle's limit: Cortex refuses on any path, at compile time |
 | A deci range's bounds are held as bins, so a deci128 within a bin64's precision of a bound may be judged inside | `interp.rs` `check_type` | The oracle's limit |
 | Another Neuron's enum cases (`x::Kind.small`), functions as values (`x::f`) and re-exports are not reached yet; operators from any loaded Neuron are found by type without checking `pub` | `main.rs` `load_deps`, `interp.rs` | The oracle's limits for Neurons |
 | `'f' := op +;` with no type is refused | `parser.rs` `decl` | Nothing says which `+`; design claude's reading (2026-09-29) |

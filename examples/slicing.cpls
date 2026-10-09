@@ -1,5 +1,5 @@
 # list.slice / array.slice (2026-09-23): 1-based and inclusive, like [i] and range[…].
-# A slice owns its elements; Precog elides the copy where nobody can tell.
+# A slice owns its elements; Cortex elides the copy where nobody can tell.
 MAIN {
     let 'xs' := [10, 20, 30, 40, 50];
     let 'mid' := list.slice[lend 'xs', pos 2, pos 4];

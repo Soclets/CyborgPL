@@ -3,7 +3,7 @@
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
 > The compile-time technology described under "Everything at compile time"
-> is named **Precog** (decided 2026-09-14).
+> is named **Cortex** (decided 2026-09-14).
 
 Decided by the owner, 2026-09-14. These are the five pillars every later
 design decision is measured against.
@@ -70,9 +70,9 @@ the compiler can see, not from compiler checks left behind.
 
 ### No development mode (decided 2026-09-16)
 
-There is no build that skips Precog, no "prove later" tier, no fast path for
+There is no build that skips Cortex, no "prove later" tier, no fast path for
 everyday edits. Every build is a full build; the tagline is the contract.
-Precog gets faster by engineering — including not re-proving functions
+Cortex gets faster by engineering — including not re-proving functions
 whose bodies and inputs are byte-identical to the last build, which reuses
 proofs rather than skipping them — never by doing less.
 
@@ -85,7 +85,7 @@ proofs rather than skipping them — never by doing less.
   runtime-check rule "was when building around, dev testing, not the
   final product") the same site is a **compile error with a
   counterexample** — the default behaves as `check`. Both builds run
-  Precog in full; the final build is stricter, never looser, so this is
+  Cortex in full; the final build is stricter, never looser, so this is
   not the rejected development mode. The final product contains no
   runtime checks: every site is proven, `check`-confirmed, or `!check`.
   Proposed: `synthia build` / `synthia final`, Synthia's, so no file-wide
@@ -98,10 +98,10 @@ proofs rather than skipping them — never by doing less.
   verification. The one place the final product's safety rests on the
   programmer alone. The build output lists every `!check` site.
   **A certain failure gets a note, never a refusal** (owner,
-  2026-09-22): when Precog's ordinary work happens to show that a
+  2026-09-22): when Cortex's ordinary work happens to show that a
   `!check` site fails on *every* run — `!check 'q' := 1 div.floor 'z';`
   with `'z'` proven to be 0 — the build says so (`note:`, the third
-  kind in `diagnostics.md`) and builds anyway. Precog never goes
+  kind in `diagnostics.md`) and builds anyway. Cortex never goes
   looking; it only refuses to stay silent about what it could not
   avoid noticing. A `!check` that fails on *some* inputs ships with
   nothing said, so "no verification" holds everywhere it matters.
@@ -142,7 +142,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
 - **`#strict`: every reason written where it is used** (owner, 2026-09-27:
   a). In a file marked `#strict`, a check site must be proven from what
   is written in its own function: a guardrail `if`, a range type (on a
-  parameter, a variable, a declared return), or a loop's bounds. Precog
+  parameter, a variable, a declared return), or a loop's bounds. Cortex
   still checks the proof, but may not use facts from callers or other
   functions' bodies, so a reader sees why each site is safe, and a
   function stays safe whoever calls it later. "Verbose, but for a
@@ -156,7 +156,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   **`!check` is allowed** in a strict file (owner: a): it is a written
   reason too, and listed. Otherwise a C call could never sit in one.
 
-  **And the file writes out what others leave to Precog** (owner, same
+  **And the file writes out what others leave to Cortex** (owner, same
   day: "`#strict` gives a fuck about the reader too"):
   - `pos` on every position: `'xs'[pos 2]`, `list.slice[lend 'xs', pos 2,
     pos 4]`, `simd.load[lend 'xs', pos 'i']`. Only strict files have it;
@@ -178,7 +178,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   - the count of a `list.fill` labelled: `list.fill[0, count 10]`
     (2026-09-30, `lists.md`).
   Proposed and not chosen: a type on every variable, since `:=` letting
-  Precog pick the best type is a pillar and a written type can be a worse
+  Cortex pick the best type is a pillar and a written type can be a worse
   choice. Also proposed for mutability: `mut` only on variables that
   change (4a), or nothing, since `change` already marks each change (4c).
   The owner chose `mut` or `!mut` everywhere (4b).
@@ -191,7 +191,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   written, so you find out at once. Proposed alternative: the working
   build checks at run time, as elsewhere.
 - **The ladder** (clarified 2026-09-19): a guardrail that is good enough
-  already removes the check under the default tier — Precog proves it and
+  already removes the check under the default tier — Cortex proves it and
   emits nothing; a proven check can never fire, so keeping it would be pure
   cost. `check` does not remove anything extra; it makes the compiler *tell
   you* when the guardrail is not enough. So the finish line is a passed
@@ -200,7 +200,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
 - Build output lists every `!check` site and every passed `check` (owner,
   2026-09-19). Proposed, unanswered: also the default-tier sites still
   carrying a runtime check — the "where to add a guardrail" list.
-- A guardrail is an ordinary `if` in front of the site; `check` asks Precog
+- A guardrail is an ordinary `if` in front of the site; `check` asks Cortex
   to confirm the `if` is enough:
 
   ```

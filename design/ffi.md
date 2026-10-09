@@ -41,7 +41,7 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 - `extern` before `fn`, like `pub`; no body, a `;` instead. A normal
   signature otherwise. Which library provides it is Synthia's business
   (the manifest (`Synthia.ttsr` / `CCA.cplr`)), never the source's. One calling convention: C's.
-- **An `extern` call is a `!check` site** — Precog cannot see inside it,
+- **An `extern` call is a `!check` site** — Cortex cannot see inside it,
   so nothing about it can be proven; `!check` already means "on my
   word", and the build output already lists every such site, so it now
   lists every place a program leaves the language. No second `unsafe`
@@ -123,7 +123,7 @@ no_check let 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_
 An extern's return may be a range type. It is a promise about C that
 Cyborg does not trust: the value is compared against the range at the
 door, and outside it the call **fails `out_of_range`**, which the caller
-handles like any failure. Inside it, Precog knows the value's domain
+handles like any failure. Inside it, Cortex knows the value's domain
 and everything downstream is provable. It is a failure, not a check
 site — so `!check` (which the call needs) does not remove it, and the
 final build keeps it: one compare per call, the program's own logic,
@@ -252,13 +252,13 @@ layout.C struct Timeval {
 ```
 
 Only a `layout.C` struct may cross to C (in a signature or a `ptr[…]`); a
-normal struct's layout is Precog's. Its fields must be C-shaped: numbers,
+normal struct's layout is Cortex's. Its fields must be C-shaped: numbers,
 `bool`, `ptr[…]`, other `layout.C` structs — no `str`, no `list`.
 
 ## `size.of[T]`, `align.of[T]`
 
 Compile-time constants, spelled like `to.`: `malloc[10 times size.of[Timeval]]`.
-A `layout.C` struct has C's size; a normal struct's is whatever Precog
+A `layout.C` struct has C's size; a normal struct's is whatever Cortex
 chose.
 
 ## Inline assembly — `inline.ASM` (decided 2026-09-20)

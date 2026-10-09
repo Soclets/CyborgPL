@@ -7,17 +7,19 @@ Owner, 2026-09-14.
 - **Cyborg Chassis Assembler (CCA)** — the Nerve compiler (owner,
   2026-09-18; spelling of "Chassis" to confirm — owner wrote "Chasis").
   Not an assembler in the `as` sense; the owner accepts the possible
-  confusion. The chassis is the frame; Precog is what is bolted to it.
+  confusion. The chassis is the frame; Cortex is what is bolted to it.
 - **Nowork** — the Lunae (formerly N%) compiler (owner, 2026-09-18): the iteration compiler
   that does no proving and no optimising — no work — and hands the program
   to CCA for the final product. See `scripting.md`.
-- **Precog** — the "everything at compile time" technology: whole-program
-  execution and exact analysis over sets of values (see
-  `core-features.md`). The compiler knows what the program will do before it
-  runs. Used as a noun everywhere: Precog finds an overflow, `check` asks
-  Precog to verify a guardrail, a "Precog-proven" site carries no runtime
-  check. The word is shared with unrelated products (an AI company, a
-  vulnerability scanner); the owner's view is that people search "CyborgPL
+- **Cortex** (named **Precog** until 2026-10-09, owner: "`b`", the brain's
+  thinking part in the Nerve names) — the "everything at compile time"
+  technology: whole-program execution and exact analysis over sets of values
+  (see `core-features.md`). The compiler knows what the program will do
+  before it runs. Used as a noun everywhere: Cortex finds an overflow,
+  `check` asks Cortex to verify a guardrail, a Cortex-proven site carries no
+  runtime check. Of the old name, the word was shared with unrelated
+  products (an AI company, a vulnerability scanner); the owner's view was
+  that people search "CyborgPL
   Precog", not "Precog".
 
 - **Neuron** — the unit of code distribution, exactly like Rust's *crate*:
@@ -210,11 +212,11 @@ owner's order:
 6. **C support** — "though, likely no Quick Fix for C".
 7. **LLVM IR support** — no Quick Fix.
 8. "and other good stuff".
-9. **Two dino games while Precog proves** (owner, 2026-10-03: "we could just
-   let the IDE have two. One where Precog "plays", and the other one where
+9. **Two dino games while Cortex proves** (owner, 2026-10-03: "we could just
+   let the IDE have two. One where Cortex "plays", and the other one where
    the writer plays"): Chromium's offline dinosaur game, which is open
    source (Chromium's BSD licence, so it may be bundled with its notice).
-   In one, Precog runs: each cactus jumped is a check proven, a refused site
+   In one, Cortex runs: each cactus jumped is a check proven, a refused site
    is a crash, and the run ends with the build. In the other, the writer
    plays while waiting. Design claude's suggestion: a cyborg dino rather
    than Chrome's own art.

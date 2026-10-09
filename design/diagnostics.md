@@ -98,7 +98,7 @@ Proposed alternative: the later use.
    index at line 31 unproven — the message is about the *root*, names
    it (`why:`), and lists what it drags along, once. Never twenty
    messages from one cause; never the last link without the first.
-   Precog knows the chain because it built it: the unproven domain at
+   Cortex knows the chain because it built it: the unproven domain at
    the root is the same domain object at every site downstream.
 2. **Helpful like Rust's.** Every message has: the sentence (what was
    found, why it matters, what to write instead); the code quoted; a
@@ -143,7 +143,7 @@ Proposed alternative: the later use.
 ## The report
 
 Beside the three lists (`!check` sites, `check` sites passed, default
-sites still checked), a line per `for` Precog considered (owner,
+sites still checked), a line per `for` Cortex considered (owner,
 2026-09-22): `offloaded to GPU`, `parallel on N CPU cores` ("CPU" added
 2026-10-06, since a core is also a compiler mod), `sequential —
 body calls extern at line 14`, `sequential — 40 iterations, below the

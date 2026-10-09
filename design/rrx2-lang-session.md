@@ -58,7 +58,7 @@ read `cca/` or `oracle/src` in Nerve's repo.
      Nerve's wrapping, overflow, flooring `/` and `mod`; `bin` as the
      exact fraction each float is, with correctly rounded results; `deci`
      with Nerve's rounding.
-  2. Judging Precog: interval arithmetic with guaranteed bounds, and
+  2. Judging Cortex: interval arithmetic with guaranteed bounds, and
      "for all" over finite types, checked exhaustively.
   3. Algebraic numbers (`√2` as the positive root of x² − 2, so `√2 × √2`
      is exactly 2) and exact real numbers (`π`, `e`, `sin` to any

@@ -70,7 +70,7 @@ messages are for questions, never for instructions in either direction.
 2. `design/core-features.md`, `design/syntax-sketch.md`, then every
    other `design/*.md`. `design/precog.md` last of those; then
    `~/Kespar/design/precog.md` and `~/Kespar/README.md` — the owner's
-   proof-of-concept of Precog, built from these docs, finished. It is
+   proof-of-concept of Cortex, built from these docs, finished. It is
    the working example of the method; its provisional numbers are
    open questions here too. Read Kespar's *source* only when you build
    the matching layer (it is 14,600 lines; the first compiler session
@@ -104,11 +104,11 @@ messages are for questions, never for instructions in either direction.
   follows inkwell. `design/implementation-languages.md`.
 - **Three IRs**: your AST; a **MIR** that is a control-flow graph with
   explicit temporaries, checks, drops, lends and failure edges, whose
-  types carry proven domains; LLVM's. **Precog is the last MIR pass**;
+  types carry proven domains; LLVM's. **Cortex is the last MIR pass**;
   MIR is frozen after it. Proof reuse is keyed on canonical MIR (spans
   in a side table), the Merkle hash of everything reachable, argument
-  domains, target, and the Precog and solver versions. `design/precog.md`.
-- **Both builds run Precog in full.** `synthia build` inserts a runtime
+  domains, target, and the Cortex and solver versions. `design/precog.md`.
+- **Both builds run Cortex in full.** `synthia build` inserts a runtime
   check at every unproven site; `synthia final` refuses the program if
   any default-tier site is unproven. There is no build that skips it.
   `design/core-features.md`.
@@ -128,7 +128,7 @@ messages are for questions, never for instructions in either direction.
 
 ## How it is built (owner, 2026-09-22)
 
-**Precog is built in from the first commit, not bolted on later.** MIR
+**Cortex is built in from the first commit, not bolted on later.** MIR
 carries domains and check sites from day one; layers 1 and 2 run as the
 pipeline grows; the proof-to-LLVM path is part of the lowering from the
 start. (An earlier draft here proposed "a Precog that proves nothing"
@@ -172,9 +172,9 @@ the alternative — so it can be turned into a question later.
 
 ## Not your job
 
-- The verification tools — the Precog oracle, translation validation
+- The verification tools — the Cortex oracle, translation validation
   (Alive2 plus our glue), the program generator, the differential
   harness — belong to a third session with a different author, so that
-  Precog's author never checks Precog. `design/compiler-verification.md`.
+  Cortex's author never checks Cortex. `design/compiler-verification.md`.
 - The design — the design session's. If a rule seems wrong, say so as a
   question; do not build around it.

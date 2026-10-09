@@ -14,7 +14,7 @@ recommended.
 
 ## Types and values
 
-1. **Let Precog choose inside the program; write types at the doors.**
+1. **Let Cortex choose inside the program; write types at the doors.**
    `:=` everywhere inside; an explicit type where the outside world comes
    in — input, `extern`, struct fields, public functions. That is the
    third pillar used as meant (`core-features.md`).
@@ -58,7 +58,7 @@ recommended.
 
 ## Loops and output
 
-11. **A plain `for`; Precog parallelises.** `seq` only when order matters,
+11. **A plain `for`; Cortex parallelises.** `seq` only when order matters,
     `para` only after measuring, `simd` only when the plain loop did not
     vectorise, `!cheat` only for timing code.
 12. **`print.useful` for people, `print` for debugging numbers,

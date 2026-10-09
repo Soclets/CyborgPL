@@ -3,7 +3,7 @@
 Decided 2026-09-22, one question at a time. A CPU has registers that
 hold several numbers side by side and instructions that work on all of
 them at once. A plain `for` over an `array` should reach the same
-instructions by itself — Precog proves the checks away, LLVM's
+instructions by itself — Cortex proves the checks away, LLVM's
 vectoriser does the rest — and that is the path to take first. These
 types are for when it does not, or when the algorithm is a vector
 algorithm.
@@ -81,13 +81,13 @@ that names the fold to use.
   do the other option too", then "yea"). Until 2026-10-07 this said "`sum` is
   a check site (it can overflow `T`)".
 
-## What Precog knows
+## What Cortex knows
 
 A lane is a plain value, so a vector carries **a domain per lane** and
 every operator's rule is the scalar rule applied lane-wise. A load
 whose index is proven inside the array needs no check; `simd.sum` whose
 lanes are proven small needs no overflow check. Nothing about SIMD is
-special to Precog — it is N of what it already does.
+special to Cortex — it is N of what it already does.
 
 ## In the oracle (2026-09-22)
 
@@ -125,7 +125,7 @@ simd.store.some[lend.mut 'xs', pos 9, 2, 'v'];               # writes lanes 1–
 Every vector loop over a list whose length is not a multiple of N has a
 tail. With these the tail is one more trip of the same loop, not a second
 scalar loop. k is 0 to N, and the k items must lie in the list, a check
-site Precog proves like `simd.load`'s. The other lanes of a load are the
+site Cortex proves like `simd.load`'s. The other lanes of a load are the
 element type's zero. Newer hardware does this directly (SVE predicates,
 AVX-512 masks), and elsewhere the compiler lowers it. Proposed
 alternative: leave the tail a plain loop. The names `load.some` /
@@ -157,7 +157,7 @@ let 'b' := simd.shuffle['v', [1, 1, 1, 1]];      # lane 1 everywhere
 One operation for every rearrangement: the vector, then its new order as
 lane numbers (1-based, as positions are), one per lane, and repeats are
 allowed. The order must be fixed numbers known when compiling, so it is
-one instruction on every chip and Precog sees through it. A lane that
+one instruction on every chip and Cortex sees through it. A lane that
 does not exist is an error. Proposed alternative: nothing yet, since the
 folds cover the common cases. Shuffling two vectors together
 (interleave) was not asked. `examples/simd_shuffle.cpls`.

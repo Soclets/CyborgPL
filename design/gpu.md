@@ -3,17 +3,17 @@
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
 Opened 2026-09-22. Part of v1 (owner, 2026-09-21). The rule is
-`parallelism.md`'s, extended: the programmer writes `for`, Precog
+`parallelism.md`'s, extended: the programmer writes `for`, Cortex
 decides CPU cores or GPU, `for seq` says no. No GPU syntax. Underneath,
 the loop body is compiled for the GPU target (by LLVM for Vulkan, by
 CCA's own Metal generator for Metal) and the runtime launches it and
-moves the data. This document is what Precog needs to
+moves the data. This document is what Cortex needs to
 decide, and what the runtime does.
 
 ## What a body may contain — plain values, and failures (owner: b)
 
 A GPU runs thousands of copies of the body at once, each on its own
-slice of the range, with no operating system underneath. Precog may
+slice of the range, with no operating system underneath. Cortex may
 offload a loop whose body uses only:
 
 - plain values — `int`, `uint`, `bin`, `bool`, `char.byte` / `.point`
@@ -38,17 +38,17 @@ Never offloadable: `extern` calls, `std::input` / `print`, `inline.ASM`,
 (allocation per `++` on a GPU is 10–100× slower than on the CPU; a
 text loop is never worth offloading), `std::uenr` and `deci` (software
 arithmetic with allocation). A loop that touches any of these stays on
-the CPU, silently — that is not an error, it is Precog deciding.
+the CPU, silently — that is not an error, it is Cortex deciding.
 
 Proposed: (a) plain values only; (b) a plus failures; (c) b plus text.
 Owner: b.
 
-## How data crosses — Precog keeps it there (owner: b)
+## How data crosses — Cortex keeps it there (owner: b)
 
 On unified memory (the M5) a lent list is already where the GPU can
 see it; nothing moves. On a discrete GPU a list crosses a bus in and
 its changes cross back, and the copy can cost more than the loop.
-Precog decides the crossings the way it decides everything: it sees
+Cortex decides the crossings the way it decides everything: it sees
 the whole program. A list used by three offloaded loops in a row, with
 no CPU access between them, goes over once and comes back once; a list
 the CPU reads between two loops comes back between them. This is a
@@ -62,7 +62,7 @@ Metal for Apple (the machine this is designed on; the benchmark's
 runtime), Vulkan / SPIR-V for everyone else — AMD, Intel, NVIDIA,
 phones — the portable one. CUDA / PTX is not in v1: NVIDIA runs Vulkan,
 and CUDA would need NVIDIA's driver found (never bundled) and hardware
-to test on. Precog's decisions are the same for any GPU; a target is a
+to test on. Cortex's decisions are the same for any GPU; a target is a
 runtime module for launching and memory plus a the manifest (`Synthia.ttsr` / `CCA.cplr`) line, so
 CUDA later is an addition, not a change. Proposed: Metal only; Metal +
 CUDA; all three. Owner: Metal and Vulkan.
@@ -77,22 +77,22 @@ compiles the body to SPIR-V. Metal: CCA writes Metal Shading Language
 text straight from its own MIR, which Apple's compiler then builds. This
 takes the place of making SPIR-V once and converting it. Direct text can
 use Metal-only features (operations across a SIMD group, threadgroup
-memory) and carry Precog's facts into the code, where a converter loses
+memory) and carry Cortex's facts into the code, where a converter loses
 some of both. It costs a second code generator, and so a second place
-Precog's proofs must be carried correctly and tested. The speed edge is
+Cortex's proofs must be carried correctly and tested. The speed edge is
 expected, not measured. No C++: the Metal runtime is reached from Rust.
 
 ## The report (owner: yes)
 
-A line per `for` Precog considered — offloaded, parallel on CPU cores,
+A line per `for` Cortex considered — offloaded, parallel on CPU cores,
 sequential and why (`diagnostics.md`).
 
 ## Measured once, on purpose: `cca tune` (owner, 2026-09-28; CCA's since 2026-09-30)
 
 By default a cost model decides CPU or GPU: the loop's work (trips times
 the body's cost) against the GPU's launch cost. The owner asked whether
-Precog could instead run both at compile time when the building machine
-is the target. Not inside a build: Precog uses no wall-clock
+Cortex could instead run both at compile time when the building machine
+is the target. Not inside a build: Cortex uses no wall-clock
 (`reproducible-builds.md`), so a build never times anything. Instead, as
 profile-guided optimisation, a separate command measures once:
 
@@ -126,7 +126,7 @@ Nerve-syntax tooling files.
 
 Beside the automatic loops, a program may take the GPU in hand: **std**
 moves data to GPU memory and back, launches GPU code with N threads, and
-forces a loop onto the GPU over Precog's choice (as `for para` forces
+forces a loop onto the GPU over Cortex's choice (as `for para` forces
 cores); the **base language** has **`inline.MSL { … }`**, Metal Shading
 Language written inline — a `!check` site like `inline.ASM`, checked by
 Apple's Metal compiler at build time. A block runs where it is
@@ -155,18 +155,18 @@ matching the kernel's `[[buffer(0)]]`, as `inline.ASM` writes ARM's `x0`
 
 ## Open
 
-- Precog's offload threshold: how many iterations, of what body, before
+- Cortex's offload threshold: how many iterations, of what body, before
   the launch cost is worth it — a number for the bench.
 - A loop-nest model (the polyhedral kind) for tiling and fusion — a
   fourth IR, **built with GPU loops** (owner, 2026-10-01: "Could we have
   LNIR when we do GPU loops? It's a hobby lang, and I think that's more
   fun. Only if it doesn't reduce perf"; it had been "only if offload gets
   serious", `precog.md`, three IRs). **It never makes a program slower**:
-  it changes a loop only when Precog's estimate, or a `tune.cplr`
+  it changes a loop only when Cortex's estimate, or a `tune.cplr`
   measurement, says the change wins, and otherwise passes the loop
   through as MIR would have it; the bench builds with and without it to
   check. It **it is our own, in Rust, not MLIR** (owner, 2026-10-01: "our
-  own"), and it is called **LNIR**, *Loop-Nest IR* (owner): built from MIR after Precog, it reads Precog's proofs directly,
+  own"), and it is called **LNIR**, *Loop-Nest IR* (owner): built from MIR after Cortex, it reads Cortex's proofs directly,
   so it can transform loops MLIR's analysis could not see into; MLIR's
   ready-made passes would be faster to get, and it has no Metal output
   anyway (Metal is CCA's own text).

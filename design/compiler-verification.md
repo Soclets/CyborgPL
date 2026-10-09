@@ -9,10 +9,10 @@ the optimised generator.
 ## The two implementations
 
 - **The oracle** — a reference interpreter: slow, small, written for
-  obviousness, straight from the spec. No Precog, no LLVM, no optimisation.
+  obviousness, straight from the spec. No Cortex, no LLVM, no optimisation.
   Correct by inspection. It is also the *executable specification*: what
   Nerve does in a given case is what the oracle does.
-- **The generator** — the real compiler: Precog + LLVM, targeting the exact
+- **The generator** — the real compiler: Cortex + LLVM, targeting the exact
   machine and using everything the hardware has.
 
 ## The method: differential testing
@@ -25,8 +25,8 @@ way it has been found. This runs continuously in the compiler's CI.
 ## Beyond testing
 
 - **Translation validation** — for a compiled program, use the SMT solver
-  (already present for Precog) to prove the LLVM-optimised IR is equivalent
-  to the unoptimised IR, as Alive2 does. Covers the LLVM half; Precog's own
+  (already present for Cortex) to prove the LLVM-optimised IR is equivalent
+  to the unoptimised IR, as Alive2 does. Covers the LLVM half; Cortex's own
   transformations (folding, CTFE) are covered by the oracle. A compiler-CI
   tool, run over the test corpus.
 - **Full formal verification** (CompCert-style, in a proof assistant) — the
@@ -50,7 +50,7 @@ until then.
 
 A program that reads nothing is run to the end at compile time
 (`precog.md`, layer 1), so its binary is only its output: testing it
-exercises Precog's compile-time execution and nothing else — not the
+exercises Cortex's compile-time execution and nothing else — not the
 machine code, not the runtime checks, not layers 2 and 3. Generated
 programs therefore need a value the compiler cannot see, and until std
 has input they get it as **the length of an environment variable**,
@@ -76,11 +76,11 @@ kind — a second interpreter would only be the same reading again:
 1. **The interpreter oracle** (exists, `oracle/`) — answers "what does this
    program *do*". Differential testing against the compiler on the
    examples and on generated programs.
-2. **The Precog oracle** — answers "what can be *proven*". Three attacks
-   on every claim in Precog's report (decided 2026-09-22, `precog.md`):
+2. **The Cortex oracle** — answers "what can be *proven*". Three attacks
+   on every claim in Cortex's report (decided 2026-09-22, `precog.md`):
    exhaustive/random execution over the domains; an independent simple
    interval analysis; and the negation of every solver-proven site,
-   re-encoded by a second author. A disagreement is a Precog bug.
+   re-encoded by a second author. A disagreement is a Cortex bug.
 3. **The translation-validation oracle** — answers "does the machine code
    still mean the source". Checks the compiler's LLVM IR against the
    program (Alive2's territory), as above.
@@ -92,29 +92,29 @@ in step with LLVM by people who work on LLVM, run in LLVM's own CI and
 credited with hundreds of LLVM bugs; its trust is that history, which a
 rewrite could not have. Ours is the Cyborg half: that MIR-with-proofs
 means what the source meant, and that the IR handed to LLVM matches
-MIR — a few hundred to a few thousand lines. The Precog oracle can sit
-on an SMT solver (Z3), asking the dumb literal question where Precog
+MIR — a few hundred to a few thousand lines. The Cortex oracle can sit
+on an SMT solver (Z3), asking the dumb literal question where Cortex
 asks the clever one. The interpreter stays ours — it is the spec.
 
 **Our own: `RRx2-TV`** (owner, 2026-09-30: "Nah, `RRx2-TV` seems more
 fun"). Translation validation for the LLVM half becomes ours, not
 borrowed: a checker named RRx2-TV, which can check a whole program where
 Alive2 checks one function at a time (CCA folds most of a program into
-`main`), and can read Precog's facts directly. Check claude ran
+`main`), and can read Cortex's facts directly. Check claude ran
 Alive2 first (93c6e49); Nerve is paused until RRx2-TV exists (owner). The paragraph above is why "Borrow it"
 was chosen, and it still holds as the cost: most of Alive2 is an exact
 meaning for every LLVM instruction, and a mistake there says "proven"
-where nothing is. Like check claude's tools, it must not share Precog's
+where nothing is. Like check claude's tools, it must not share Cortex's
 author. Open: who writes it, in what language, in which repo, and
 whether it starts from Alive2's code (MIT) or from nothing.
 
 **Sessions** (owner, 2026-09-22): (1) this one — design and the
 oracle, never a line of the compiler; (2) a fresh session — CCA
-(front end, checker, MIR, Precog, lowering, runtime) and Synthia,
+(front end, checker, MIR, Cortex, lowering, runtime) and Synthia,
 reading `design/` and the oracle's tests, never its source; (3) later,
-another fresh session — verification: the Precog oracle, translation
+another fresh session — verification: the Cortex oracle, translation
 validation, the generator, the differential harness, by a different
-author than Precog's.
+author than Cortex's.
 
 **4. Twin programs — other languages as oracles** (owner, 2026-09-21).
 A Cyborg program and the same algorithm in C, Rust, or Python, expected

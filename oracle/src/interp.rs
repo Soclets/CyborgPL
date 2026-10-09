@@ -8,7 +8,7 @@
 //!     error; `give` kills the source; `lend`/`lent` cannot be given away or
 //!     assigned to; `lend.mut` writes through
 //!   - the default check tier: every integer operation is overflow-checked,
-//!     every division checks for zero — there is no Precog here to remove them
+//!     every division checks for zero — there is no Cortex here to remove them
 //!   - `if`/`while` conditions must be bool
 
 use crate::ast::*;
@@ -266,7 +266,7 @@ impl<'p> Interp<'p> {
 
     /// The checks before anything runs, then the consts and C's variables.
     fn prepare(&mut self) -> Result<(), RuntimeError> {
-        // Consts first, in order: each may use the ones above it. Precog would
+        // Consts first, in order: each may use the ones above it. Cortex would
         // fold these at compile time; the oracle evaluates them before MAIN.
         self.check_duplicates()?;
         self.check_returned_borrows()?;
@@ -375,7 +375,7 @@ impl<'p> Interp<'p> {
             Ty::Ptr(inner, _) => self.c_shaped(inner),
             Ty::Struct(n) => match self.prog.structs.iter().find(|d| &d.name == n) {
                 Some(d) if d.layout_c => Ok(()),
-                Some(_) => Err(format!("struct `{n}` is not `layout.C`; its layout is Precog's, not C's")),
+                Some(_) => Err(format!("struct `{n}` is not `layout.C`; its layout is Cortex's, not C's")),
                 None => match self.prog.enums.iter().find(|e| &e.name == n) {
                     Some(e) if e.c_values.is_some() => Ok(()),
                     Some(_) => Err(format!("enum `{n}` is not `layout.C`; a C enum is `layout.C enum {n} {{ a = 0 }}`")),
@@ -1106,7 +1106,7 @@ impl<'p> Interp<'p> {
             }
             Stmt::BuiltinStmt { head, op, args, line } => { self.builtin(head, op, args, *line)?; Ok(Flow::Normal) }
             Stmt::Block { body, .. } => self.block(body),
-            // The tiers (decided 2026-09-19). The oracle has no Precog, so it cannot
+            // The tiers (decided 2026-09-19). The oracle has no Cortex, so it cannot
             // prove; it runs every check and reports what the compiler *would* have
             // found: a `check` whose site fires is the missing guardrail, shown with
             // the concrete value (the compiler's counterexample); a `nocheck` whose
@@ -1122,7 +1122,7 @@ impl<'p> Interp<'p> {
                 match r {
                     Err(e) if e.site => {
                         let msg = match tier {
-                            Tier::Check => format!("`check` at {} fails: {} — the guardrail is not enough (Precog would refuse to compile; this value is the counterexample)", line_of(line), e.msg),
+                            Tier::Check => format!("`check` at {} fails: {} — the guardrail is not enough (Cortex would refuse to compile; this value is the counterexample)", line_of(line), e.msg),
                             Tier::NoCheck => format!("`no_check` at {} lied: {} — the compiled program would be undefined here", line_of(line), e.msg),
                             Tier::NoChecksAtAll => format!("`NO_FUCKING_CHECKS` at {} lied: {} — the compiled program would be undefined here", line_of(line), e.msg),
                         };
@@ -1749,7 +1749,7 @@ impl<'p> Interp<'p> {
     }
 
     /// Is this expression, by its declared type, a `list` (false) or an `array` (true)?
-    /// `None` when it is neither, or when nothing fixes it (a literal, a `:=` Precog picks).
+    /// `None` when it is neither, or when nothing fixes it (a literal, a `:=` Cortex picks).
     fn coll_kind(&self, e: &Expr) -> Option<bool> {
         let kind = |t: &Ty| match t { Ty::List(_) => Some(false), Ty::Array(_) => Some(true), Ty::Ranged(b, _, _) => match &**b { Ty::List(_) => Some(false), Ty::Array(_) => Some(true), _ => None }, _ => None };
         match e {
@@ -1896,7 +1896,7 @@ impl<'p> Interp<'p> {
             Expr::RawInt(i, _) => Ok((Value::Int(*i), Prov::Raw)),
             Expr::BigInt(s, _) => Ok((Value::Big(crate::bigint::BigInt::parse(s).expect("lexed digits")), Prov::Literal)),
             // `*0.1` — exactly this, a deci (owner, 2026-10-02): of the width the place wants, or,
-            // under `:=`, deci64 — the oracle's pick; Precog chooses the width
+            // under `:=`, deci64 — the oracle's pick; Cortex chooses the width
             Expr::Exact(digits, _) => {
                 if let Some(t @ (Ty::Bin(_) | Ty::Brain | Ty::Int(_) | Ty::Uint(_))) = &self.expected {
                     return rt(line, format!("`*{digits}` is exact, a deci; a {} cannot hold it exactly: drop the `*`, or make this a deci", ty_name(t)));
@@ -1949,7 +1949,7 @@ impl<'p> Interp<'p> {
             Expr::Newline(_) => Ok((Value::Str("\n".into()), Prov::Fresh)),
             Expr::Char(c, _) => {
                 // With `:=`, the unit is inferred: the narrowest that holds the content
-                // (provisional — Precog would also look at use).
+                // (provisional — Cortex would also look at use).
                 let unit = if c.len() == 1 { CharUnit::Byte }
                     else if c.chars().count() == 1 { CharUnit::Point }
                     else if grapheme_count(c) == 1 { CharUnit::Grapheme }
@@ -2109,7 +2109,7 @@ impl<'p> Interp<'p> {
                 if !self.reachable(&from, &def.module, def.vis) {
                     return rt(line, private_msg(&self.module, &def.module, &format!("struct `{sname}`")));
                 }
-                // a generic struct's blanks are filled by the values given (Precog: from use)
+                // a generic struct's blanks are filled by the values given (Cortex: from use)
                 let saved_tvars = std::mem::take(&mut *self.tvars.borrow_mut());
                 let r = self.construct_fields(&def, sname, given, line);
                 *self.tvars.borrow_mut() = saved_tvars;
@@ -2700,7 +2700,7 @@ impl<'p> Interp<'p> {
             }
             // Wrapping arithmetic (decided 2026-09-20): `+~ -~ x~ xx~` are always defined —
             // modulo the type's size. The oracle wraps at the left operand's declared
-            // integer width (Precog knows every width; the oracle only knows declared ones).
+            // integer width (Cortex knows every width; the oracle only knows declared ones).
             // `div.trunc.wrap` and the other three (owner, 2026-10-03): the true quotient, then wrapped at
             // the type's width, as ARM gives the smallest value divided by -1
             Expr::Binary(op, l, r, _) if op.starts_with("div.") && op.ends_with(".wrap") => {
@@ -2751,7 +2751,7 @@ impl<'p> Interp<'p> {
                     let raw = match op.as_str() {
                         "+~" => x.add(&y), "-~" => x.sub(&y), "x~" => x.mul(&y),
                         _ => {
-                            if y.is_neg() { return site(line, "a negative exponent on integers would produce a fraction — a check site: Precog proves the exponent is never negative, or the final build refuses"); }
+                            if y.is_neg() { return site(line, "a negative exponent on integers would produce a fraction — a check site: Cortex proves the exponent is never negative, or the final build refuses"); }
                             // square and multiply, taking the remainder at every step
                             let (mut base, mut e, mut acc) = (x.mod_pow2(bits as u64), y.clone(), crate::bigint::BigInt::from_i128(1));
                             let two = crate::bigint::BigInt::from_i128(2);
@@ -2772,7 +2772,7 @@ impl<'p> Interp<'p> {
                         "+~" => x.wrapping_add(y),
                         "-~" => x.wrapping_sub(y),
                         "x~" => x.wrapping_mul(y),
-                        _ => { if y < 0 { return site(line, "a negative exponent on integers would produce a fraction — a check site: Precog proves the exponent is never negative, or the final build refuses"); } let mut acc: i128 = 1; for _ in 0..y { acc = acc.wrapping_mul(x); } acc }
+                        _ => { if y < 0 { return site(line, "a negative exponent on integers would produce a fraction — a check site: Cortex proves the exponent is never negative, or the final build refuses"); } let mut acc: i128 = 1; for _ in 0..y { acc = acc.wrapping_mul(x); } acc }
                     };
                     let m: i128 = 1i128 << bits;
                     let mut v = raw.rem_euclid(m);
@@ -3173,7 +3173,7 @@ impl<'p> Interp<'p> {
             ("-", Int(x), Int(y)) => Int(x.checked_sub(y).ok_or_else(|| ovf("-"))?),
             ("x", Int(x), Int(y)) => Int(x.checked_mul(y).ok_or_else(|| ovf("x"))?),
             ("xx", Int(x), Int(y)) => {
-                if y < 0 { return site(line, "a negative exponent on integers would produce a fraction — a check site: Precog proves the exponent is never negative, or the final build refuses"); }
+                if y < 0 { return site(line, "a negative exponent on integers would produce a fraction — a check site: Cortex proves the exponent is never negative, or the final build refuses"); }
                 let mut acc: i128 = 1;
                 for _ in 0..y { acc = acc.checked_mul(x).ok_or_else(|| ovf("xx"))?; }
                 Int(acc)
@@ -3258,7 +3258,7 @@ impl<'p> Interp<'p> {
     /// oracle knows one for: `list.length[…]` / `array.length[…]` are `uint64`
     /// (decided 2026-09-21). Everything else: unknown (a provisional gap, see README).
     /// Is the length of what this bracket produces known at this point? A literal list,
-    /// `list.empty`, or a value of a bounded type `list[T][lo, hi]` — the cases Precog
+    /// `list.empty`, or a value of a bounded type `list[T][lo, hi]` — the cases Cortex
     /// always knows. (It would know more; the oracle keeps to these.)
     fn sized_from(value: &Bracket, ty: Option<&Ty>) -> bool {
         if matches!(ty, Some(Ty::Ranged(b, _, _)) if matches!(**b, Ty::List(_))) { return true; }
@@ -3348,7 +3348,7 @@ impl<'p> Interp<'p> {
         }
         if op == "slice" {
             // A slice owns its elements, as a list always does (owner, 2026-09-23): the copy is
-            // the meaning, and Precog elides it where nobody can tell. 1-based and inclusive,
+            // the meaning, and Cortex elides it where nobody can tell. 1-based and inclusive,
             // like `[pos i]` and `range[…]`; a check site, like every language operation.
             if args.values.len() != 3 { return rt(line, format!("`{head}.slice` takes a list and two positions: `{head}.slice[lend 'xs', pos 2, pos 4]`")); }
             let (v, prov) = self.value(&args.values[0])?;
@@ -3418,7 +3418,7 @@ impl<'p> Interp<'p> {
                 // A length-bounded list (`list[T][lo, hi]`) is checked after every change (decided 2026-09-21).
                 let new_len = Value::List(items);
                 if let Some(t @ Ty::Ranged(..)) = self.lookup(&var_name).and_then(|s| s.ty.clone()) { self.check_type(&new_len, &t, line)?; }
-                else if let Some(s) = self.lookup_mut(&var_name) { s.sized = false; }   // Precog would track it; the oracle does not
+                else if let Some(s) = self.lookup_mut(&var_name) { s.sized = false; }   // Cortex would track it; the oracle does not
                 *cell.borrow_mut() = new_len;
                 Ok(removed.unwrap_or(Value::Nothing))
             }
@@ -3430,7 +3430,7 @@ impl<'p> Interp<'p> {
     // A language collection beside list and array. `map.get`/`map.remove` fail `missing`;
     // keys compare by structure, or by a type's own `op ==` / `fn hash` when it satisfies
     // `Key` — and then "equal keys hash the same" is a check site (the oracle tests it on
-    // every comparison it makes; Precog proves it).
+    // every comparison it makes; Cortex proves it).
 
     fn key_ok(&self, k: &Value, line: usize) -> Result<(), RuntimeError> {
         match k {
@@ -3525,7 +3525,7 @@ impl<'p> Interp<'p> {
                     let t = self.lookup(n).and_then(|s| s.ty.clone());
                     let t = match t { Some(Ty::Ranged(b, _, _)) => Some(*b), t => t };
                     if let Some(Ty::Map(_, _, MapOrder::Unordered)) = t {
-                        return rt(line, format!("'{n}' is a `map.unordered`, which promises never to be walked; `map.{op}` needs a `map.ordered` (or a plain `map`, and Precog keeps the order)"));
+                        return rt(line, format!("'{n}' is a `map.unordered`, which promises never to be walked; `map.{op}` needs a `map.ordered` (or a plain `map`, and Cortex keeps the order)"));
                     }
                 }
                 let pairs = match &*cell.borrow() { Value::Map(ps) => ps.clone(), _ => Vec::new() };
@@ -4128,7 +4128,7 @@ impl<'p> Interp<'p> {
             Flow::Fail(reason, payload) => return self.handle_failure(c.handler.as_ref().unwrap(), c.line, name, reason, payload, value_used),
         };
         // `-> lent@x T`: the borrow must be of a parameter in group x — or of any lent parameter
-        // when no group is written (Precog works it out) — never of something that dies here
+        // when no group is written (Cortex works it out) — never of something that dies here
         let borrowed = self.ret_borrow.take();
         match (&func.ret_lent, borrowed) {
             (Some((_, life)), Some((cell, m))) => {
@@ -4140,7 +4140,7 @@ impl<'p> Interp<'p> {
                     Some((pn, plife, _)) => if let Some(l) = life { if plife.as_ref() != Some(l) { return rt(self.ret_line, format!("`{name}` returns a borrow of '{pn}', which is not in @{l}: say `lent@{l} '{pn}'`")); } },
                 }
                 // `@x`: the result lives while everything in the group does, whichever the body returned
-                // without a group, whatever the body may hand back, on any path (Precog reads the body)
+                // without a group, whatever the body may hand back, on any path (Cortex reads the body)
                 let deps = self.may_return(&func, 0);
                 self.call_deps = match life {
                     Some(l) => lent_params.iter().filter(|(_, pl, _)| pl.as_ref() == Some(l)).map(|(_, _, pc)| Rc::as_ptr(pc) as *const () as usize).collect(),
@@ -4518,7 +4518,7 @@ impl<'p> Interp<'p> {
         Ok(out)
     }
 
-    /// C's sizes and alignments; a normal struct gets the same rule (Precog's real
+    /// C's sizes and alignments; a normal struct gets the same rule (Cortex's real
     /// choice is not modelled), lists and strs are their 24-byte handle.
     fn size_align(&self, ty: &Ty, line: usize) -> Result<(usize, usize), RuntimeError> {
         Ok(match ty {
@@ -5135,7 +5135,7 @@ fn big_binary(op: &str, a: &Value, b: &Value, line: usize) -> Result<Option<Valu
         "-" => from_big(x.sub(&y)),
         "x" => from_big(x.mul(&y)),
         "xx" => {
-            if y.is_neg() { return site(line, "a negative exponent on integers would produce a fraction — a check site: Precog proves the exponent is never negative, or the final build refuses"); }
+            if y.is_neg() { return site(line, "a negative exponent on integers would produce a fraction — a check site: Cortex proves the exponent is never negative, or the final build refuses"); }
             let e = y.to_u64().filter(|e| x.bits().saturating_mul(*e) <= 16_777_216 || x.bits() <= 1);
             match e { Some(e) => from_big(x.pow(e)), None => return site(line, format!("{x} to the power {y} is past the widest integer there is (2^23 bits)")) }
         }

@@ -3,7 +3,7 @@
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
 Decided 2026-09-22, one question at a time. Not parallelism
-(`parallelism.md`: the same work on many pieces, Precog spreads a `for`
+(`parallelism.md`: the same work on many pieces, Cortex spreads a `for`
 over cores or a GPU, the programmer writes nothing). Concurrency is
 *different* things that wait on the outside world — ten connections, a
 download beside a keyboard — where the waiting is the point.
@@ -23,8 +23,8 @@ for 'i' in range[from 1, to 2, by 1] {
 
 A word starts a task; tasks talk through channels; a value sent is
 `give`n, so no two tasks ever hold one thing — no locks, because nothing
-is shared, and Precog checks that nothing is. Ownership does the work
-the language already paid for. Proposed alternatives: Precog overlaps
+is shared, and Cortex checks that nothing is. Ownership does the work
+the language already paid for. Proposed alternatives: Cortex overlaps
 waiting calls automatically (would rarely fire — real concurrent
 programs are about shared state); `async`/`await` (colours every
 caller).
@@ -45,7 +45,7 @@ reading ("agree") against `task` and chose `concur`.
 A task can outlive the code around it, so it names what it takes, as an
 anonymous function does (`functions-as-values.md`): `with [give 'url',
 copy 'n', lend 'results']`. `give` moves it in; `copy` duplicates;
-**`lend` is a check site** — Precog proves the task ends before the
+**`lend` is a check site** — Cortex proves the task ends before the
 lender's scope does (structured tasks make that provable; see below);
 unproven, the tiers. Proposed alternative: `give` and `copy` only.
 
@@ -107,8 +107,8 @@ default — a meeting point, not a box); `[0, N]` is a bounded queue.
 Unbounded is refused: the classic way to hide a slow consumer until the
 machine dies. `take` fails `closed` exactly as `std::input.line[]`
 does at end of input. A `send` nobody will ever take is a check site
-(Precog sees every taker). Two tasks each waiting on the other is a
-check site too — a deadlock Precog can see.
+(Cortex sees every taker). Two tasks each waiting on the other is a
+check site too — a deadlock Cortex can see.
 
 ## `whichever` — whichever comes first (owner: a; the word, owner)
 
@@ -155,7 +155,7 @@ an integer wide enough for centuries); `5 seconds == 5_000 millis`.
 **A duration is never negative** (owner, 2026-09-22): it is a length of
 time, and every use here is a wait, a timeout or a tick. `5 seconds -
 6 seconds` is refused — a check site like any narrowing past a bound,
-an error when Precog sees it is certain. Proposed alternatives: a
+an error when Cortex sees it is certain. Proposed alternatives: a
 signed duration (`-1 second`, which the integer underneath gives for
 free, and which would be the natural way to say "how far past the
 deadline" — but that is a difference of two *instants*, a type not
@@ -178,10 +178,10 @@ case it does not answer is a holder stuck waiting on something else,
 which keeps the channel open and the take waiting — that is a
 deadlock, already a check site above.
 
-**And Precog deletes the counting wherever it proves the last sender
+**And Cortex deletes the counting wherever it proves the last sender
 is done** — structured concurrency tells it when every task that could
 send has ended, so the close is emitted at that point and the counters
-are not built. Proposed alternatives: the counting alone; Precog alone
+are not built. Proposed alternatives: the counting alone; Cortex alone
 (it will not prove every case, so something is still needed for the
 rest). Owner: both, the counting built first.
 
@@ -196,7 +196,7 @@ slot inline versus through a pointer is 2.44 ns against 2.47 ns —
 nothing. The reason to choose inline is the allocation count, not the
 access.)
 
-**Precog's three parts**, each the usual "pay for what you use":
+**Cortex's three parts**, each the usual "pay for what you use":
 
 - **The stack, not the heap.** A structured task cannot outlive the
   block that started it, and a detached one cannot *lend* anything
@@ -206,7 +206,7 @@ access.)
   the heap against 0.9 ns on the stack, which is worth most where
   channels are made in a loop (one per connection).
 - **Fewer slots than the type allows.** `[0, 100]` is the writer's
-  ceiling, not a measurement; where Precog proves the channel never
+  ceiling, not a measurement; where Cortex proves the channel never
   holds more than 3 at once, it allocates 3.
 - **No channel at all.** One sender, one taker, one value, all inside
   one block: the hand-off becomes a plain variable the task writes

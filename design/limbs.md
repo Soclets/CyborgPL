@@ -68,7 +68,7 @@ const 'pi': bin64 = 3.141_592_653_589_793;      # private to the Limb
   is refused at the top level). It is a value known at compile time — a
   literal, arithmetic on literals, another const, a pure call; anything
   with an effect or a runtime input is a compile error. It has no storage:
-  Precog bakes it in at every use. It is never assignable, never `mut` /
+  Cortex bakes it in at every use. It is never assignable, never `mut` /
   `!mut`, never shadowed, and no ownership verb applies to it — nobody
   owns it, every use is a fresh value.
 - **Named like a variable, quoted**: `'pi'`, used in expressions as
@@ -87,7 +87,7 @@ const 'pi': bin64 = 3.141_592_653_589_793;      # private to the Limb
   parallelism would all have a hole in it. Closed, not parked.
 - This does not reopen "no `const` keyword for locals" (2026-09-14): inside
   a body a variable declaration (`let 'x' := …`) is still the only kind and
-  Precog finds the constants itself. `const` exists only where variables
+  Cortex finds the constants itself. `const` exists only where variables
   do not.
 
 ## Modules (decided 2026-09-19)
@@ -173,7 +173,7 @@ Neuron: `module shapes { }` beside `struct shapes { }` — or a file
 `shapes.cpls` beside it — is a compile error, "rename one". Proposed
 alternative: allow it and tell them apart by what follows the dot
 (`shapes.'pi'` the module, `shapes.claimed` the type). Owner chose the
-refusal: nothing to disambiguate, for the reader or for Precog.
+refusal: nothing to disambiguate, for the reader or for Cortex.
 
 ## A shorter name for users — `pub fn area = shapes.circle.area;` (owner, 2026-09-23)
 

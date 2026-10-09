@@ -62,7 +62,7 @@ pub const 'max' := 8;            # a Limb-level value: top level only, see limbs
 - **`mut` / `!mut`** (`!mut` is the same as `!mut`) are bare words
   between `let` and the name, and `!$` before those says the name cannot
   be shadowed (2026-09-25): `let !$ mut 'total' := 0;`. Statable, not standard — see `ownership-syntax.md`. **Plain
-  means Precog infers**: `let 'x' := 1; change 'x' = 2;` is legal; `mut` states
+  means Cortex infers**: `let 'x' := 1; change 'x' = 2;` is legal; `mut` states
   intent, `!mut` is the enforced contract. The same rule holds for an
   owning parameter (`'items': T` may be changed; `!mut 'n': T` may not).
   Not Rust's default-fixed — a fifth cold reader assumed it was

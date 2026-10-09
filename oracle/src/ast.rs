@@ -34,7 +34,7 @@ pub enum Ty {
     Channel(Box<Ty>),
     /// `std::duration` — a span of time, from a duration literal `5 seconds`
     Duration,
-    /// `map[K, V]` — a language collection (decided 2026-09-22); the order variant is Precog's
+    /// `map[K, V]` — a language collection (decided 2026-09-22); the order variant is Cortex's
     /// to pick unless written: `map.ordered` keeps insertion order, `map.unordered` cannot be walked
     Map(Box<Ty>, Box<Ty>, MapOrder),
     /// `simd[uint8, 16]` — N plain values in one register (design/simd.md, 2026-09-22)
@@ -133,7 +133,7 @@ pub enum ParamKind { Owned, Lent, LentMut }
 pub enum Verb { Give, Copy, Lend, LendMut }
 
 /// Stated mutability (design/ownership-syntax.md). `None` = not stated;
-/// Precog infers, and stating it is not standard practice.
+/// Cortex infers, and stating it is not standard practice.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Mutability { Mut, Immut }
 

@@ -48,7 +48,7 @@ let 'evens'   := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod.f
 An anonymous function is `fn` with its parameters, return, and body,
 written where it is used. It sees **nothing** of the surrounding scope
 unless `with [ … ]` lists it, each with a verb: `lend 'limit'` borrows
-(the function value cannot outlive `'limit'` — Precog's lifetime
+(the function value cannot outlive `'limit'` — Cortex's lifetime
 inference, as for a named lend), `copy` takes an independent copy,
 `give` moves the variable in (it is gone outside). Owner chose this over
 named-only and over inline-without-capture; every other language captures

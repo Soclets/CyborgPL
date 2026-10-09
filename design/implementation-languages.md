@@ -5,10 +5,10 @@ writing most code, nobody who reviews C or OCaml.
 
 | Component | Language | Notes |
 |---|---|---|
-| Compiler — front end, ownership/borrow checking, Precog, LLVM lowering | **Rust** | LLVM via `llvm-sys`/`inkwell` (the C API). |
+| Compiler — front end, ownership/borrow checking, Cortex, LLVM lowering | **Rust** | LLVM via `llvm-sys`/`inkwell` (the C API). |
 | LLVM wrapper | **C++** | The only non-Rust code. A small file exposing, as C functions, whatever the LLVM C API lacks (custom passes, pass-manager internals, new APIs). The rustc model (`RustWrapper.cpp`). Kept minimal. |
 | Runtime — linked into every user binary (`deci`/`bin128` software arithmetic, `str`/list memory and drop glue, number↔text, check-failure handler, program entry, OS edge) | **`no_std` Rust** | `deci` written in Rust, not vendored from a C library. No C anywhere. |
-| Standard Neuron | **Nerve** | Not a choice: a Neuron must be analysable source for Precog. Sits on a small intrinsic layer over the runtime — the one boundary Precog cannot see through, so each intrinsic declares its contract by hand. |
+| Standard Neuron | **Nerve** | Not a choice: a Neuron must be analysable source for Cortex. Sits on a small intrinsic layer over the runtime — the one boundary Cortex cannot see through, so each intrinsic declares its contract by hand. |
 | Synthia | **Go** (owner, 2026-09-29; Rust until then) | A separate tool since the two package managers (2026-09-29): it reads `Synthia.ttsr`, fetches Neurons and runs `cca build …`, sharing no code with CCA. Go's standard library covers it; one cross-compiling binary. |
 | Program generator and test/translation-validation harness | **Rust** | Shares the compiler's AST so generated programs are valid by construction. |
 | Oracle interpreter | **Rust**, by a *different AI model* than the compiler, no shared code | Author independence in place of language independence. OCaml was considered and rejected — nobody on the team would review it. It was tried once, on 2026-09-17: a subagent wrote a 1,287-line OCaml interpreter (`oracle-ocaml/`, never committed), and one run against the Rust oracle found 7 disagreements, two of which became decisions (`1,000` is an error; verbs on a plain value are an error). The owner then had it deleted. |

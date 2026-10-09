@@ -45,7 +45,7 @@ Nerve™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIO
 **Languages and tools**
 - [Rust](https://www.rust-lang.org) and Cargo: the oracle, CCA and the verification harness.
 - [LLVM](https://llvm.org) 22: CCA's code generator, through [llvm-sys](https://crates.io/crates/llvm-sys) and [Inkwell](https://github.com/TheDan64/inkwell).
-- [Z3](https://github.com/Z3Prover/z3) (Microsoft Research) and [cvc5](https://cvc5.github.io): the SMT solvers behind Precog™'s proofs, and the independent check of them.
+- [Z3](https://github.com/Z3Prover/z3) (Microsoft Research) and [cvc5](https://cvc5.github.io): the SMT solvers behind Cortex™'s proofs, and the independent check of them.
 - [Alive2](https://github.com/AliveToolkit/alive2): check claude's first translation validation, proving LLVM's rewrites of CCA's code.
 - [Clang](https://clang.llvm.org): the C programs CCA is benchmarked against (`cca/bench/`, `bench/`), and the C side of `bench/gpu/`.
 - Metal and Xcode's Metal Toolchain, by Apple: the GPU side of `bench/gpu/`.
@@ -83,9 +83,9 @@ The oracle and the verification harness use no crates.
 - **Swift**, **Zig** and **C**: points of comparison in the SIMD, wrapping-arithmetic and enum decisions.
 - **IEEE 754**: `bin16`, `bin32` and `bin64` arithmetic and rounding.
 - **Lua**: the name *Lunae*.
-- **Kespar**, another of the owner's languages: Precog's design notes and its first provisional limits.
-- **Xag**, the owner's C++ language: the reference for everything outside Precog, and the licence.
+- **Kespar**, another of the owner's languages: Cortex's design notes and its first provisional limits.
+- **Xag**, the owner's C++ language: the reference for everything outside Cortex, and the licence.
 - **CyborgPL v1** ([CyborgPL-legacy](https://github.com/Artificial-IntelligenceAI/CyborgPL-legacy)): `x` and `xx`.
 
 Copyright 2026 Tankun Sriket.
-Nerve™ (formerly CyborgPL™), Precog™ and Neuron™ (formerly Limb™) are names of this project.
+Nerve™ (formerly CyborgPL™), Cortex™ (formerly Precog™) and Neuron™ (formerly Limb™) are names of this project.

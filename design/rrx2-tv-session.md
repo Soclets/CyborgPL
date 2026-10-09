@@ -21,7 +21,7 @@ means in practice.
 ## Why RRx2-TV exists
 
 Nerve's compiler, CCA, hands its code to LLVM and lets LLVM optimise
-it. That code carries facts Precog proved — "this add cannot overflow"
+it. That code carries facts Cortex proved — "this add cannot overflow"
 (`nsw`/`nuw`), value ranges, "these pointers do not overlap" — and LLVM
 optimises on the strength of them. RRx2-TV proves that what LLVM gives
 back means what CCA gave it: the optimised code may be more defined than
@@ -53,7 +53,7 @@ optimisation. So every instruction RRx2-TV models follows LLVM's own
 Language Reference, including poison, `undef` and undefined behaviour,
 and every gap in the model shows up as "not judged".
 
-**You are a different author from Precog's and from CCA's.** Read
+**You are a different author from Cortex's and from CCA's.** Read
 `design/`, `DECISIONS.md`, the LLVM Language Reference, and the IR CCA
 writes; never `cca/` or `oracle/src` in Nerve's repo. If RRx2-TV
 learned what CCA meant from CCA's own code, it would repeat CCA's
@@ -63,7 +63,7 @@ mistakes instead of catching them.
 
 - **C++** (owner, 2026-09-30), using LLVM's own C++ library to read IR.
 - **The solver is Bitwuzla, alone** (owner: "Bitwuzla alone"): built for
-  fixed-width machine numbers, and not used by Precog (which asks Z3 and
+  fixed-width machine numbers, and not used by Cortex (which asks Z3 and
   CVC5), so one solver bug cannot fool both. Not installed yet:
   `brew install bitwuzla` (0.9.1) is a download, so ask the owner first.
 - **The latest stable Clang** (owner): Homebrew's
@@ -111,7 +111,7 @@ You read Nerve's repo at `/Users/ts/Nerve` and never edit it.
   `examples/*.cpls` in Nerve's repo, and
   check claude's corpus in `/Users/ts/Nerve
   verification/check/corpus/` (read-only).
-- **What CCA's IR may rely on**: `design/precog.md` (what Precog proves),
+- **What CCA's IR may rely on**: `design/precog.md` (what Cortex proves),
   `design/compiler-verification.md` ("Our own: RRx2-TV"),
   `design/types.md` and `design/operators.md` (Nerve's arithmetic).
 - **Alive2's results** from check claude's first run, as a baseline:

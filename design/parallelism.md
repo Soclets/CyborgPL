@@ -7,15 +7,15 @@ Decided 2026-09-14. Concurrency (tasks that wait on the outside world —
 
 ## Automatic
 
-The programmer writes `for`. Precog decides whether it runs in
+The programmer writes `for`. Cortex decides whether it runs in
 parallel:
 
 - **Whether it can:** the iterations must provably not touch each other's
   data. Ownership makes that a proof — two iterations that would conflict
   cannot both own the same value — rather than the guess a C or Go compiler
   has to make.
-- **Whether it should:** Precog usually knows the trip count or its bound;
-  a short loop is not worth waking a thread for. **Precog estimates it
+- **Whether it should:** Cortex usually knows the trip count or its bound;
+  a short loop is not worth waking a thread for. **Cortex estimates it
   itself** (owner, 2026-09-30: "Bro, Precog exists"), from the trips and
   the work of each, never from a number someone picks or from timing the
   machine — and **a measurement in `tune.cplr` wins where there is one**
@@ -56,13 +56,13 @@ for seq 'line' in lend 'lines' {
 ```
 
 A loop that prints, reads input or calls C stays in order by itself
-(owner, 2026-09-30: a); `seq` is then for loops Precog would run in
+(owner, 2026-09-30: a); `seq` is then for loops Cortex would run in
 parallel but you want in order, like an exact `bin` total. The other way,
 **`for para`** forces a loop parallel (owner: "`para`"). It overrides
 only that automatic order (owner: "`a`, because `nocheck` exists"): the
 `!check` every C call already carries is also the writer's word that the
 C is safe on many cores at once, and printing under `para` may come out in
-any order. A conflict Precog can see — two iterations writing the same
+any order. A conflict Cortex can see — two iterations writing the same
 place, other than a reduction — stays an error, `para` or not.
 
 This was the entire parallelism syntax of v1 — one word for saying no —
@@ -97,10 +97,10 @@ rule `.useful` already follows in `print.useful.stdout` and
 
 ## The GPU (owner, 2026-09-21: automatic)
 
-Same rule, one more place to run: the programmer writes `for`, Precog
+Same rule, one more place to run: the programmer writes `for`, Cortex
 decides CPU cores or GPU, `for seq` says no. No GPU syntax. Underneath,
 loop bodies are compiled by LLVM for the GPU target and a runtime launches
-them and moves the data. Precog offloads only when the iterations are
+them and moves the data. Cortex offloads only when the iterations are
 provably independent (the existing test), the trip count is worth the
 transfer, and the body stays within what the GPU can do. Part of v1.
 Undesigned beyond this.

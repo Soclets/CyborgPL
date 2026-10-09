@@ -29,7 +29,7 @@ rounding, `to.bin16['w']` a check site. A literal rounds to the nearest `brain16
 
 **`*0.1` means "exactly this"** (owner, 2026-10-02; in the oracle the same day): a
 decimal literal marked `*` is a `deci`, `let 'price' := *19.99;`; a plain
-one is a `bin`, meaning `bin64`'s answer: Precog narrows it only where
+one is a `bin`, meaning `bin64`'s answer: Cortex narrows it only where
 it proves the whole program gives the same results (owner, 2026-10-02),
 so `brain16` is never chosen, only written.
 
@@ -158,15 +158,15 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   and a length** — plus the bytes it points at. No capacity field: a
   text is never grown in place, since `++` makes a new one, so a third
   number would be dead weight in every list, struct and array of texts.
-  **Where Precog proves a text is built by repeated `++`** — the
+  **Where Cortex proves a text is built by repeated `++`** — the
   builder pattern, a loop appending to the same name — *that* text
   gets a hidden capacity and grows in place, one allocation instead of
   N. The field exists only in the values that earn it; the type stays
   16 bytes. (Proposed: 16 bytes always; 24 bytes always; owner: both,
-  Precog deciding — the same trick as `list` vs `array` and a map's
-  order list.) Known-at-compile-time texts need no heap: Precog bakes
+  Cortex deciding — the same trick as `list` vs `array` and a map's
+  order list.) Known-at-compile-time texts need no heap: Cortex bakes
   them into the binary as constant data. **Which memory a text points
-  at is Precog's to know, not the value's to carry** (owner,
+  at is Cortex's to know, not the value's to carry** (owner,
   2026-09-22): it emits a free only where the value can actually be on
   the heap — a name that only ever holds constants is never freed, and
   no runtime test is paid. Where a name may hold either (a constant in
@@ -195,17 +195,17 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   A character literal is written in **backticks**: `` let 'c' := `1`; ``
   (decided 2026-09-14). Three quote styles, three token classes: `"…"` text,
   `'…'` name, `` `…` `` one character. The literal must be exactly one unit
-  of the chosen or inferred kind. With `:=`, Precog picks the unit from the
+  of the chosen or inferred kind. With `:=`, Cortex picks the unit from the
   content and its use (`` `a` `` may be a byte; `` `🍎` `` needs `point`;
   `` `กี่` `` can only be `grapheme`).
 - **The typed form is always fully explicit** (decided 2026-09-14): no bare
   `int`, `str`, or `char`. `int32`, `str.utf8`,
-  `char.point`. `:=` means Precog chooses; `=` means you said
+  `char.point`. `:=` means Cortex chooses; `=` means you said
   everything.
 - **`uenr` — Unbounded Exact Numerical Representation** (owner, 2026-09-14). A number
   type with no fixed width that never rounds: it grows to hold whatever
   value it is given. Provided by the **standard Neuron**, not built into the
-  language — so it is Nerve source Precog can see through, and it takes
+  language — so it is Nerve source Cortex can see through, and it takes
   the role legacy's `bignum`/`bigint` had. Reached through the Neuron
   boundary: `let 'n': std::uenr = 1000;`. **Exact is exact**: fractions are
   held as true rationals, so `(1/3) times 3` is exactly `1` (decided

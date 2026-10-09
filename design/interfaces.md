@@ -91,7 +91,7 @@ checks this against the interface; the oracle does not).
 
 A `<T>` may be filled with an owned type or a plain one, so generic code
 is written for the owned case — `return give 'a'`, `copy 'x'` — and for a
-plain `T` the verb does nothing (Precog specialises it away). Without this
+plain `T` the verb does nothing (Cortex specialises it away). Without this
 rule no generic body could return its parameter. Consequence set by
 Claude 2026-09-20, from "verbs on a plain value are an error" meeting
 generics.

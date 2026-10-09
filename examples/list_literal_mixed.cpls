@@ -1,5 +1,5 @@
 # In a list literal, a bare number takes its family from the other items (owner, 2026-09-30: a):
-# the 1 here is a bin, like the 2.5 beside it. With `:=`, Precog still picks list or array and the width.
+# the 1 here is a bin, like the 2.5 beside it. With `:=`, Cortex still picks list or array and the width.
 MAIN {
     let 'xs' := [1, 2.5];
     let 'ys': list[bin64] = [2.5, 1];

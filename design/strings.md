@@ -118,7 +118,7 @@ and, because a text has three lengths and no single one, the bound
 high bound. `str.utf8[0, 20]` with no unit is a compile error. Every
 change to a bounded text (assignment, `++`) is a check site against the
 bound; a conversion into one (`to.str.utf8[0, 3 bytes][…]`) fails
-`out_of_range` like any conversion into a range type. Precog carries
+`out_of_range` like any conversion into a range type. Cortex carries
 the length interval per unit already. Proposed: bytes always, graphemes
 always, or say which; owner chose "say which".
 
@@ -147,7 +147,7 @@ for 'b' in str.each.byte[lend 's'] { … }         # 'b': uint8
 
 A bare `for 'c' in lend 's'` is an error: a text is not a list of anything
 until you say what. `each.<unit>` yields the units without building a
-list (Precog lowers it to a loop over the bytes; the oracle builds the
+list (Cortex lowers it to a loop over the bytes; the oracle builds the
 list).
 
 ## No `[i]` on a text
@@ -193,5 +193,5 @@ real versions will be Nerve.
 - A collation / locale-aware compare in std.
 - Normalisation (NFC/NFD) in std.
 - Building text piece by piece efficiently (a builder) — `++` allocates
-  each time; Precog may fold chains, but a `list[str]` + `std::str.join`
+  each time; Cortex may fold chains, but a `list[str]` + `std::str.join`
   is the honest shape today.

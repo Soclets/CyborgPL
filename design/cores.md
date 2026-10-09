@@ -107,7 +107,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
 - **syntax**, and what the base did: reading the files, loading the cores,
   enforcing the grants, handing its LLVM IR to LLVM;
 - **types, `let`, functions, `if`, loops, `match`, structs, enums, `bool`**;
-- **the borrow rules**, lifetime groups (`@x`) included, and **Precog**
+- **the borrow rules**, lifetime groups (`@x`) included, and **Cortex**
   (it proves things about Signatar's own rules; at Signatar alone that is
   mostly borrows, types and shape, since its maths is assembly);
 - **SIMD**, `and.then` / `or.else` (they skip their right side, which an
@@ -125,7 +125,7 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
 ## The official cores
 
 - **IEG, the Intense Energy Generator.** Raw operations as plain calls
-  (`add`, `negate`, `compare` *sketch*), with contracts Precog trusts;
+  (`add`, `negate`, `compare` *sketch*), with contracts Cortex trusts;
   `inline.LL { … }`, LLVM IR in place; and the **labels**: `!check`,
   `NO_FUCKING_CHECKS`, and the rule that raw memory and unproven code sit
   under `!check`, so a kernel on Signatar + IEG has clear syntax ("like

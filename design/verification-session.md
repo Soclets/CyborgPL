@@ -1,7 +1,7 @@
 # The verification session — a brief
 
 For the session that builds the tools which attack the compiler: the
-program generator, the differential harness, the Precog oracle, and
+program generator, the differential harness, the Cortex oracle, and
 translation validation. Written 2026-09-23 by the design session, at the
 owner's request. Read this first; then everything it points at.
 
@@ -37,7 +37,7 @@ The full rule is in `CLAUDE.md` and `DECISIONS.md`.
 ## Why you exist, and the rule that makes it work
 
 The compiler cannot check its own work. **You are a different author
-from Precog's**, and that is the whole point of this session existing
+from Cortex's**, and that is the whole point of this session existing
 separately (`design/compiler-verification.md`, owner 2026-09-21). So:
 
 - **Never read `cca/`.** Not the source, not the comments. You attack
@@ -104,7 +104,7 @@ fourth are the deeper checks.
 
 1. **The program generator.** Random *valid* Nerve programs, built
    from the grammar so they are correct by construction, with a seed so
-   any finding replays exactly. Kespar's found three Precog bugs in one
+   any finding replays exactly. Kespar's found three Cortex bugs in one
    commit. Cover what the corpus does not: deep call chains, nested
    loops, every operator at its boundaries, failures and handlers,
    ownership verbs, generics and interfaces.
@@ -113,7 +113,7 @@ fourth are the deeper checks.
    and where a check fired. A difference is a bug in one of them —
    `design/` decides which. Shrink a failing program to its smallest
    form before reporting it.
-3. **The Precog oracle** — three attacks on every claim in CCA's proof
+3. **The Cortex oracle** — three attacks on every claim in CCA's proof
    report (`design/precog.md`, owner 2026-09-22):
    - exhaustive and random execution over the domains (every `int8`,
      every list to length 4; random plus edge values beyond that);

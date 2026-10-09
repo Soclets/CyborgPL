@@ -8,20 +8,20 @@ byte-identical binary, on any machine, any day.
 ## Why Nerve is more exposed than other compilers
 
 In C or Rust, nondeterministic optimisation yields a slower or faster binary
-that does the same thing. In Nerve, Precog's proofs decide **behaviour**:
+that does the same thing. In Nerve, Cortex's proofs decide **behaviour**:
 a bound proven on one machine and not on another means one binary has no
 runtime check and the other has one — two different programs. SMT solvers
 are nondeterministic by default (time limits, seeds, memory, clause order),
 and "compile for the exact machine" makes the target part of the input.
 
-## Requirements on Precog and the build
+## Requirements on Cortex and the build
 
-1. **No wall-clock anywhere in Precog.** Every budget is a step count —
+1. **No wall-clock anywhere in Cortex.** Every budget is a step count —
    solver steps, unroll depth, invariant candidates tried — never seconds.
 2. **Solver determinism pinned.** Fixed seeds and configuration; results may
    not depend on thread scheduling. The solver's version is part of the
    compiler's version: a solver upgrade is a compiler change.
-3. **Compile-time I/O is always a boundary.** Precog never reads a file,
+3. **Compile-time I/O is always a boundary.** Cortex never reads a file,
    clock, or environment variable at compile time. Those are bounded values
    with explicit types like any other input. (Closes the earlier open
    question.) **Revised 2026-10-08** (owner: "We should have env vars"):

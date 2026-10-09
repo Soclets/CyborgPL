@@ -17,7 +17,7 @@ to.int32["7"] otherwise { not_a_number { cord::exit[2]; } out_of_range { cord::e
   `list.length[…]`; the chain narrows to the target type (`to.str.utf8`,
   never a bare `to.str`); the bracket holds exactly one value. Owner's
   spelling, over `int32[…]` (types-as-calls) and `std::to.int32[…]` (a
-  library job): the compiler owns conversion — Precog has to know exactly
+  library job): the compiler owns conversion — Cortex has to know exactly
   what int→bin does to prove ranges — and a bare head reads as what it is.
 - **Text that is a real number too big for the type fails `out_of_range`**
   (owner, 2026-09-24: c): `to.int32["99999999999"] otherwise …`, however
@@ -38,7 +38,7 @@ to.int32["7"] otherwise { not_a_number { cord::exit[2]; } out_of_range { cord::e
 - **A conversion that can fail fails the normal way**: text → number is
   `--> … or fail[not_a_number, out_of_range]` and takes `otherwise` like any call
   (`failures.md`). A narrowing conversion is not a failure but a **check
-  site**: `to.int8['big']` carries a runtime check unless Precog proves the
+  site**: `to.int8['big']` carries a runtime check unless Cortex proves the
   fit, and `check to.int8[…]` asks for the proof.
 - **Between `list` and `array`**: `to.array[give 'l']`, `to.list[copy
   'a']`, and the element type is not written (owner, 2026-09-23;

@@ -88,7 +88,7 @@ behind the word that means none.
 
 ## Mutability: statable, not standard (decided 2026-09-14)
 
-A plain `let 'x' := 1000;` is the standard practice — Precog already knows
+A plain `let 'x' := 1000;` is the standard practice — Cortex already knows
 whether `'x'` is ever reassigned, so nothing needs saying. The programmer
 *may* state it, as a bare word before the name (revised 2026-09-19; it was
 a chain segment, `var.!mut.int32`), and the compiler then holds them to it:
@@ -103,7 +103,7 @@ fn twice [immut 'n': int32] -> int32 { … }
 annotation. `mut` is documentation. Neither is expected in ordinary code.
 
 Not the same thing as a constant (a value known at compile time, baked into
-the binary): Precog finds those itself; no keyword exists for them.
+the binary): Cortex finds those itself; no keyword exists for them.
 
 ## Why explicit
 
@@ -138,7 +138,7 @@ mirror over the type-position, 2026-09-19.
 Caller verb and parameter kind must agree; a mismatch is a compile error
 with an obvious message ("`count` only looks at `'text'`; you tried to give
 it away"). A reader knows from the signature alone whether their value comes
-back, and Precog has the contract without the body.
+back, and Cortex has the contract without the body.
 
 The words pair: the caller *lends*, the parameter is *lent*.
 
@@ -149,7 +149,7 @@ freed after; nothing else can reach it, so nothing is implied. (Decided
 
 A lend may be given its own name (decided 2026-09-14):
 `let 'r' := lend 's';` — `'r'` looks at `'s'` without owning it: readable,
-not assignable, not give-able. Precog's lifetime inference keeps it from
+not assignable, not give-able. Cortex's lifetime inference keeps it from
 outliving `'s'`.
 
 ## Handing back a borrow: `--> lent@x T` (owner, 2026-09-29)
@@ -163,7 +163,7 @@ fn pick [@x, @y] [lent @x 'a': str.utf8, lent @y 'b': str.utf8] -> lent @x str.u
 ```
 
 A function may hand back a borrow of what it was lent (2026-09-21: a lend
-may leave the call, and Precog proves it lives long enough). The return
+may leave the call, and Cortex proves it lives long enough). The return
 says so, `--> lent T` or `--> lent.mut T`. **`@x` names a lifetime group**:
 everything marked `@x` lives and dies together, so `longer`'s result is
 good while both `'a` and `'b` are, and `pick`'s needs only `'a`. The name
@@ -182,7 +182,7 @@ list up front (`fn longer <@x> …`). `examples/lifetimes.cpls`.
 
 **The group is optional outside `#strict`** (owner, 2026-09-29:
 "`-> lent str.utf8` is legal in normal"): `fn first [lent 'a': str.utf8]
---> lent str.utf8` is fine, and Precog works out from the body what the
+--> lent str.utf8` is fine, and Cortex works out from the body what the
 result depends on, as "optional, verified" (2026-09-14) had it. **A
 `#strict` file must write it** (owner: "yeah, required in strict"): a
 strict caller sees only signatures, and the reader should see what the

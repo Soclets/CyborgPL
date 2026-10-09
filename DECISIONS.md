@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — Precog is Cortex (owner)
+
+Next part name, Precog → Cortex (chosen 2026-10-08: "`b`, only the people
+with the link have seen it, and bots"). The owner: "yea, go". Precog is never
+written in programs, so this is prose and messages only: **"Precog" is
+"Cortex" in `design/`, the README, `CLAUDE.md`, the oracle's comments and
+messages ("Cortex would refuse to compile", "`:=` means Cortex chooses the
+type"), the example comments and one reject test**. Kept: quoted words,
+`design/precog.md`'s file name, and the old name's history in
+`design/tooling.md`. The README reads "Cortex™ (formerly Precog™)". CCA's
+`precog` module and check claude's tools are theirs.
+
+The same message: "Btw, didn't I say that only I could make website claude
+update?" Yes (2026-09-24): design claude had asked website claude to switch
+the site to Neuron after a "yea, go" that was about the repo (3f949b12, not
+deployed). From now on design claude only informs website claude; the site
+changes when the owner says so.
+
 ### 2026-10-09 — A library is a Neuron: `pub.neuron`; the root file waits for the endings (owner)
 
 Next part name, Limb → Neuron (chosen 2026-10-08). Design claude found two

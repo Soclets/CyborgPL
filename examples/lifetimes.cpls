@@ -2,7 +2,7 @@
 # after the function's name (owner, 2026-10-02): everything marked `@x` lives and dies together, so the result of `longer`
 # is good while both 'a and 'b are; `pick`'s result only needs 'a. Like Rust's `'x`, spelt with
 # `@` since `'` means a variable here. A borrow of something that dies at the return is refused.
-# Outside `#strict` the group may be left out (`first`), and Precog works it out from the body;
+# Outside `#strict` the group may be left out (`first`), and Cortex works it out from the body;
 # a `#strict` file must write it.
 fn longer [@x] [lent @x 'a': str.utf8, lent @x 'b': str.utf8] -> lent @x str.utf8 {
     if str.bytes[lend 'a'] at_least str.bytes[lend 'b'] { return lend 'a'; }

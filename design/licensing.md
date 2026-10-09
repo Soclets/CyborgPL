@@ -18,14 +18,14 @@ counsel to draft; this records what they must achieve.
 ## Decided 2026-09-23 (owner): one standard licence, plus trademark
 
 **Apache-2.0 WITH LLVM-exception for everything that is code** — the
-runtime, the standard Neuron, the compiler, Precog, Synthia, the oracle
+runtime, the standard Neuron, the compiler, Cortex, Synthia, the oracle
 and the verification tools. **Trademark on the names** — Nerve,
-Precog, Neuron, Synthia — as the instrument for "credit everywhere".
+Cortex, Neuron, Synthia — as the instrument for "credit everywhere".
 
 What that achieves against the intent above: a user of the language
 owes nothing, because the exception waives notice for compiled output
 (intent 1, unchanged); a fork of the compiler must keep the Apache
-notices in the source, and may not call itself Nerve or Precog,
+notices in the source, and may not call itself Nerve or Cortex,
 because the names are not licensed with the code.
 
 What it gives up, and the owner weighed it: a fork need not credit
@@ -57,9 +57,9 @@ The trademark flags below still stand and are the thing to act on.
 | Piece | Licence | Effect |
 |---|---|---|
 | Runtime, standard Neuron | Apache-2.0 WITH LLVM-exception | The exception waives notice requirements for compiled binaries — users owe nothing. Same licence LLVM uses and Xag used. |
-| Compiler, Precog, Synthia | Apache-2.0 **plus a Nerve attribution term** | Apache alone requires credit in source (licence, copyright, `NOTICE`, marking of changed files). The additional term extends it to user-visible places. |
+| Compiler, Cortex, Synthia | Apache-2.0 **plus a Nerve attribution term** | Apache alone requires credit in source (licence, copyright, `NOTICE`, marking of changed files). The additional term extends it to user-visible places. |
 | Spec, docs, decision log | CC BY 4.0 | Anyone may implement the language; the text is credited. |
-| Names — Nerve, Precog, Neuron, Synthia | Trademark (separate from copyright) | A fork credits Nerve but may not call itself Nerve. The stronger tool for "credit everywhere". |
+| Names — Nerve, Cortex, Neuron, Synthia | Trademark (separate from copyright) | A fork credits Nerve but may not call itself Nerve. The stronger tool for "credit everywhere". |
 
 ## Known consequences of the attribution term (for counsel to weigh)
 
@@ -82,7 +82,7 @@ The trademark flags below still stand and are the thing to act on.
   rather than programming) and **Synthesia** (the AI video company —
   a different word, close enough to be misheard). Judged acceptable:
   neither is in this lane.
-- **Precog** is used by unrelated companies (an AI platform; a
+- **Cortex** is used by unrelated companies (an AI platform; a
   vulnerability scanner). Lower risk, still worth a look.
 - Dependencies (LLVM: Apache-2.0 + LLVM exception; Z3: MIT; Rust crates:
   MIT/Apache) impose nothing that conflicts with any of the above.

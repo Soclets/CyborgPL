@@ -1,18 +1,18 @@
-# Precog
+# Cortex
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
 Opened 2026-09-22. What the compiler does between the checked AST and
 LLVM: run the whole program at compile time over sets of values, prove
-every check site it can, and report the rest. The rules Precog must meet
+every check site it can, and report the rest. The rules Cortex must meet
 are in `core-features.md` (tiers, no development mode, final build),
 `reproducible-builds.md` (no clocks, no compile-time I/O), `parallelism.md`
 (what a parallel `for` needs proven), `input.md` (where values come from).
 
 **This document starts from Kespar** (`~/Kespar/design/precog.md`,
-2026-09-16..19): the owner's proof-of-concept of Precog, built from this
+2026-09-16..19): the owner's proof-of-concept of Cortex, built from this
 repo's docs, with a three-layer analyser, a separately-authored oracle, a
-program generator that found real Precog bugs, and a bench. Kespar's
+program generator that found real Cortex bugs, and a bench. Kespar's
 method is carried over; every number Kespar marked **provisional** is
 still provisional here, listed under Open. What Kespar could not do
 (ownership, failures, range types, the final build, LLVM) is added.
@@ -32,27 +32,27 @@ explicit jumps, one operation per instruction on named temporaries,
 every check site, drop, lend and failure edge an explicit instruction,
 a source span on each), and LLVM's. The typed AST is what rustc calls
 HIR — a second high-level IR would duplicate it (proposed as c,
-declined). Everything that reasons — the ownership checker, Precog's
+declined). Everything that reasons — the ownership checker, Cortex's
 sets and its SMT encoding, the parallel-loop proof, the lowering — reads
 MIR, so the flow graph is derived once. **MIR carries proofs**: a
-temporary's type includes its proven domain, and a proof made in Precog
+temporary's type includes its proven domain, and a proof made in Cortex
 rides the instruction to LLVM as `nsw` / `nuw` / `!range`. Proof reuse
-keys on canonical MIR (see Reuse), never on source bytes. **Precog is
+keys on canonical MIR (see Reuse), never on source bytes. **Cortex is
 the last MIR pass** (decided 2026-09-22): after it, MIR is frozen and
-lowered as is. Any MIR-level optimisation runs before Precog, so Precog
+lowered as is. Any MIR-level optimisation runs before Cortex, so Cortex
 proves exactly what is emitted, and no later pass can change an
 instruction out from under its proof.
 
 `synthia build` runs everything and inserts a runtime check at every
-unproven site; `synthia final` runs the same Precog and refuses the
+unproven site; `synthia final` runs the same Cortex and refuses the
 program if any default-tier site is unproven (`core-features.md`). Both
-run Precog in full — there is no build that skips it.
+run Cortex in full — there is no build that skips it.
 
 ## Layer 1 — known values are executed
 
 Everything that does not depend on the outside world is **known**: a
 literal, arithmetic on literals, a call with known arguments, a loop over a
-known range. Precog executes it at compile time with the language's exact
+known range. Cortex executes it at compile time with the language's exact
 semantics (integers checked against their width, IEEE bins at their
 width, `deci` exactly, text as text). The result is folded in. A program
 that reads nothing is executed to the end and its binary is its output; a
@@ -69,7 +69,7 @@ A value from outside the program has a **domain**: what its type allows.
 `int32`; `to.int32[0, 100][…]` is `[0, 100]`; a `list[T][lo, hi]` has a
 length in `[lo, hi]`; an `extern` result is anything its C-shaped type
 holds — or, with a ranged return (`ffi.md`, 2026-09-22), the range,
-enforced at the door as a failure. Precog runs the program abstractly
+enforced at the door as a failure. Cortex runs the program abstractly
 over those domains: each expression gets the set of values it can take, computed exactly through
 every operation (`{1, 2, 3} times {10}` is `{10, 20, 30}`).
 
@@ -123,12 +123,12 @@ every operation (`{1, 2, 3} times {10}` is `{10, 20, 30}`).
   `'i'` in `[1, 1000]` proves its own multiply, without a contract on
   `square`.
 - **Ownership** is what Kespar lacked: every value has exactly one owner
-  and lends are tracked by the checker, so Precog knows which memory a
+  and lends are tracked by the checker, so Cortex knows which memory a
   loop iteration can touch. That is the proof `parallelism.md` needs —
   two iterations that would conflict cannot both own or mutably lend the
   same value — and it is a fact about the program, not a domain.
 
-At each check site Precog asks: is every value in the result's set legal?
+At each check site Cortex asks: is every value in the result's set legal?
 Yes → **proven**, no check. No value legal → see below. Otherwise →
 **unproven**, on to layer 3.
 
@@ -139,7 +139,7 @@ fails whenever it runs but *may not run* is **unproven**, like any
 other: a runtime check in the working build with a `note:` saying the
 line fails whenever it runs, and a compile error with the
 counterexample in the final build. The working build never refuses to
-compile (2026-09-14), and this is why it matters: Precog's sets widen,
+compile (2026-09-14), and this is why it matters: Cortex's sets widen,
 so it sometimes believes values reach a line that never do. The
 generator found exactly that — a program with no input at all where CCA
 refused a line inside an `else` the oracle shows is never taken. Under
@@ -164,7 +164,7 @@ real program semantics, put to a **portfolio of two solvers, Z3 and CVC5**
 Both are pinned to exact versions and fixed configurations. For
 determinism the portfolio is not "first to answer": **both run to their
 full budget**, and the results combine — any `unsat` is a proof (a wrong
-`unsat` would be a solver bug, which is what the Precog oracle exists to
+`unsat` would be a solver bug, which is what the Cortex oracle exists to
 catch); if both say `sat`, Z3's counterexample is the one reported (fixed
 order, so the same input on every machine); `unknown` from both is
 unproven. The doubling is paid in parallel across cores.
@@ -186,18 +186,18 @@ whether any input reaches the site with an illegal value.
   is the same on every machine.
 
 **Disagreement** (`unsat` from one, `sat` from the other; decided
-2026-09-22, owner: c): something is wrong — a solver, or Precog's own
+2026-09-22, owner: c): something is wrong — a solver, or Cortex's own
 translation of the program into the query, which both solvers received
 (owner's point: a bogus counterexample may be right about a wrong
-query). Precog runs the `sat` solver's counterexample at compile time —
+query). Cortex runs the `sat` solver's counterexample at compile time —
 the program's reads replaced by the counterexample's values, no I/O,
 deterministic. If the site fails on them, the site is `sat` for real.
 If it does not, the site is **unproven** — neither answer is trusted on
 that query. The build continues with the safe answer either way. The
 report says, in plain words, that this is a bug in a solver or in
-Precog and not in the program, names both answers, points at Cyborg's
+Cortex and not in the program, names both answers, points at Cyborg's
 issue tracker (never a solver's — the writer need not know what SMT is,
-and the diagnosis of which is at fault needs the Precog oracle's second
+and the diagnosis of which is at fault needs the Cortex oracle's second
 encoding), and writes the query with both answers to a file to attach.
 Proposed alternatives: refuse the build; treat as unproven without
 running the counterexample.
@@ -208,9 +208,9 @@ named the missing piece, decided here:
 
 ## Loop invariants — templates first, then unproven (decided 2026-09-22)
 
-A loop Precog cannot run to the end (its trip count depends on input and
+A loop Cortex cannot run to the end (its trip count depends on input and
 is too big or unbounded to follow) needs a fact that holds on every trip,
-checked once — an invariant. Nobody writes one. Precog **guesses from a
+checked once — an invariant. Nobody writes one. Cortex **guesses from a
 fixed list of shapes** and keeps each guess the solver confirms
 inductively (true before the first trip; true after a trip if true before
 it): a counter stays within the range's ends; a sum is bounded by trips
@@ -270,7 +270,7 @@ since a bin's width changes values (owner, 2026-10-02). `*0.1` is a
 
 ## Determinism
 
-`reproducible-builds.md`, restated for Precog:
+`reproducible-builds.md`, restated for Cortex:
 
 - No wall-clock anywhere; every limit is a count.
 - Z3 and CVC5 are called with fixed configurations and step budgets
@@ -284,7 +284,7 @@ since a bin's width changes values (owner, 2026-10-02). `*0.1` is a
 
 ## Reuse and parallel work
 
-Precog's own work splits: sites are independent questions, call-site
+Cortex's own work splits: sites are independent questions, call-site
 specialisations are independent jobs, layer-3 queries run across all
 cores. Results are **content-addressed**. The key for a function's analysis is
 the hash of: its MIR in **canonical form** (spans live in a side table
@@ -293,14 +293,14 @@ nothing); the canonical MIR of **everything it reaches** through calls
 (a Merkle hash over the call graph — with per-call-site analysis the
 callee is proven *inside* the caller's proof, so a callee change must
 invalidate the caller); its argument domains; the target description;
-the Precog version; the pinned solver versions and configurations.
+the Cortex version; the pinned solver versions and configurations.
 Tiers are MIR instructions, so they are in the hash already. An entry
 whose key matches is reused, never re-proven; nothing is ever skipped
 (`core-features.md`, 2026-09-16). A shared cache of those keys is what a
 team's build farm serves. (Cold read of this document, 2026-09-22: the
 first draft hashed raw MIR bytes and the function alone — both wrong.) Memory: must run a large program in 32 GB and
 scale near-linearly with cores and memory on independent units (owner,
-2026-09-21). GPU offload (`parallelism.md`) is a decision Precog makes
+2026-09-21). GPU offload (`parallelism.md`) is a decision Cortex makes
 from the same independence proof.
 
 ## The report
@@ -317,36 +317,36 @@ line 9   square: 'x' times 'x'       overflow           proven    (layer 2, at 1
 Three lists in the build output: `!check` sites, `check` sites passed,
 default sites still checked (working build only; a final build has none).
 `--types` adds every `:=` name with its chosen width and the value that
-decided it. The Precog oracle (`compiler-verification.md`) reads this
+decided it. The Cortex oracle (`compiler-verification.md`) reads this
 report to know which claims to attack.
 
-## The Precog oracle (decided 2026-09-22, owner: a + b + c)
+## The Cortex oracle (decided 2026-09-22, owner: a + b + c)
 
 The second of the three oracles in `compiler-verification.md`, attacking
-every claim in the report, by a different author than Precog, no shared
-code. Three attacks, one per way Precog can be wrong:
+every claim in the report, by a different author than Cortex, no shared
+code. Three attacks, one per way Cortex can be wrong:
 
-- **a. Exhaustive and random execution.** For every site Precog calls
+- **a. Exhaustive and random execution.** For every site Cortex calls
   proven, run the program through the interpreter oracle over every input
   when the domains are small (all of `int8`, every list to length 4),
   and over random plus edge values (0, −1, min, max, empty, one past the
-  bound) when they are not. A check that fires is a Precog bug. Kespar's
+  bound) when they are not. A check that fires is a Cortex bug. Kespar's
   generator did this and found three layer-2 bugs in one commit.
 - **b. An independent interval analysis** — deliberately simple,
   separately written — recomputing each site's range. A site where
-  Precog claims a range the simple analysis cannot justify is flagged.
+  Cortex claims a range the simple analysis cannot justify is flagged.
   Attacks layer 2, which is where Kespar's bugs were.
 - **c. The negation, re-encoded.** For every solver-proven site, a fresh
   solver instance is asked "find an input that fails here" through a
   second, independently written program-to-query translation. Attacks
-  layer 3's encoding with the part of Precog least likely to be wrong,
+  layer 3's encoding with the part of Cortex least likely to be wrong,
   the solvers themselves.
 - **d. Proofs as assertions** (decided 2026-09-22, owner: yes; from the
   cold read of this document). A proven fact handed to LLVM as `nsw` /
-  `nuw` / `!range` is a *promise*: if Precog was wrong, the result is
+  `nuw` / `!range` is a *promise*: if Cortex was wrong, the result is
   silent undefined behaviour, not a missed check. So the compiler has an
   authors-only mode that emits every proven fact as a **runtime
-  assertion** instead of a promise — same Precog, same proofs, nothing
+  assertion** instead of a promise — same Cortex, same proofs, nothing
   trusted — and the differential harness runs the examples, the twin
   programs and the generated programs through it. An assertion that
   trips is a wrong proof, caught before any writer's binary is built.
@@ -378,7 +378,7 @@ leaves layer-2 proofs covered only by testing; b covers them by analysis.
   not a value per element.
 - None of the four bench programs needed Z3: layer 2 proved everything or
   the program folded to its output.
-- The fuzzer found real Precog bugs the oracle caught — three in one
+- The fuzzer found real Cortex bugs the oracle caught — three in one
   commit. The generator and the oracle are not optional.
 
 ## Open

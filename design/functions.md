@@ -29,14 +29,14 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   `lend 's'`, the parameter reads `lent 'text': …`; `lend.mut` ↔ `lent.mut`.
   An **owning parameter has no keyword** — the caller writes `give`/`copy`.
   `mut`/`!mut` go where they go on a declaration: before the name.
-  A parameter with no type (`lent 'items'`) is legal: Precog infers its
+  A parameter with no type (`lent 'items'`) is legal: Cortex infers its
   best type from every call site in the program.
 - **A function that can fail says so**: `--> bool or fail[full, bad_item: str.utf8]`
   or `--> fail[disk_full]`; see `failures.md` (decided 2026-09-19).
 - **A variadic parameter is `...'name'`** (decided 2026-09-19): the rest
   of the arguments, any number including zero; last parameter only, one
   per function; composes with the verbs (`lent ...'parts'`). Model (b):
-  every call site has a fixed shape, so Precog compiles the function per
+  every call site has a fixed shape, so Cortex compiles the function per
   shape — the same machinery generics will use — and with no type each
   argument keeps its own; the body's operations are the constraint,
   checked per call site (`sum[1, "two"]` fails to compile at that call).
@@ -52,7 +52,7 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   passed on (`show["loud", ...'parts']`). Because a variadic is compiled
   per call shape, **the list's length must be known at the call**: a
   literal list, a `list[T][lo, hi]`, a variadic bundle. A plain list whose
-  length Precog cannot see (one read from input, one appended to without a
+  length Cortex cannot see (one read from input, one appended to without a
   bound) is a compile error at that call — "give it a bound or pass it as
   a list" — never a quietly built list-taking version (owner chose this
   over that). `...` is only meaningful as a call argument. **Owned
@@ -65,7 +65,7 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   `examples/spread.cpls`.
 - **The return type is `--> T`** after the parameter list (Rust's arrow),
   not `: T` — `:` attaches a type to a *name*, and a function's result is not
-  the function's type. No arrow: Precog picks the best return type from every
+  the function's type. No arrow: Cortex picks the best return type from every
   `return` in the body; no `return` at all: the function returns nothing. A
   function declared *with* a return type must return a value on every path;
   falling off the end is a compile error.
@@ -128,7 +128,7 @@ implied thing in the language. Any other exit code is stated where it
 happens: `std::exit[1];`, typed `uint8` because an exit status is 0–255.
 
 `MAIN` is **unquoted** because it belongs to the language, not the user. It
-cannot be called: it is not a function. It is the single root of Precog's
+cannot be called: it is not a function. It is the single root of Cortex's
 whole-program analysis and owns the program's top-level values. Next to
 `fn` it is the only shouting word in a file — the owner kept it for exactly
 that reason: its distinctness is the feature, and Rust's `fn main` being an

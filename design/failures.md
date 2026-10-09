@@ -10,7 +10,7 @@ A function that can fail says so in its signature and hands the failure back
 as a value. The caller **must** say what happens before the value can be
 used; forgetting is a compile error. No exceptions (implied control flow —
 against "nothing is implied"), no sentinel values nobody checks. Rust's
-`Result` and Zig's error sets landed here for the same reasons; Precog sees
+`Result` and Zig's error sets landed here for the same reasons; Cortex sees
 every failure path as it sees any other value.
 
 ## A failure has a name and may carry data

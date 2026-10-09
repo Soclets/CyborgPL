@@ -10,7 +10,7 @@ blank, and the compiler fills the blank per use.
 ## The model (decided with variadics, 2026-09-19)
 
 A generic is written once and **compiled per type it is used with** —
-Precog sees every call site, so `max[3, 9]` and `max[2.5, 1.5]` become an
+Cortex sees every call site, so `max[3, 9]` and `max[2.5, 1.5]` become an
 `int32` version and a `bin64` version of one source. Same speed as the
 hand-written copies. This is the machinery variadics already use; Zig's
 comptime and Rust's monomorphisation do the same.
