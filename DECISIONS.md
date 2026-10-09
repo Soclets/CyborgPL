@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-09 — The Nerve icon is official, and in the README beside the wordmark (owner, via website claude)
+### 2026-10-09 — The Nerve icon is official; tried at the README's top, then taken out (owner, via website claude)
 
 Relayed by website claude with the owner's words: "Tell design claude to put
 the icon in the README"; the icon itself, website claude's work (43ce7ebd):
@@ -17,7 +17,9 @@ never the bare `mark-*.svg`. **The README's top shows the icon above the
 NERVE wordmark** (72 px wide), one file for both themes since it carries its
 tile; the README's `brand/` line names it. Design claude first put it on the
 wordmark's left; the owner: "Format's broken in the README. Logo should be on
-top, not on the left".
+top, not on the left", then "Ahhh. It's look weird, remove it from there": **the
+icon is not at the README's top**; only the wordmark is. The `brand/` line
+still names the icon.
 
 ### 2026-10-09 — The names and logos are trademarks anyone may use, without pretending to be us (owner)
 

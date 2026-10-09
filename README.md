@@ -1,8 +1,4 @@
 <p align="center">
-  <img src="brand/nerve/icon.svg" alt="" width="72">
-</p>
-
-<p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="brand/nerve/wordmark-white.svg">
     <img src="brand/nerve/wordmark-black.svg" alt="Nerve" width="320">
