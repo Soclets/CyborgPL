@@ -514,7 +514,7 @@ fn refused_programs_stay_refused() {
 #[test]
 fn a_site_past_the_call_depth_is_judged() {
     let src = dir().parent().unwrap().join("testing/claim_past_depth.cpls");
-    let r = Command::new(cca()).arg("precog").arg("--json").arg(&src).output().unwrap();
+    let r = Command::new(cca()).arg("cortex").arg("--json").arg(&src).output().unwrap();
     let out = String::from_utf8_lossy(&r.stdout).to_string();
     let line = out.lines().find(|l| l.contains("\"start\":[5,") && l.contains("\"into int8\"")).unwrap_or_else(|| panic!("no claim for line 5:\n{}", out));
     let covers = |v: i64| -> bool {

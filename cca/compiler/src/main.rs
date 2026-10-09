@@ -8,7 +8,7 @@ fn usage() -> ! {
     eprintln!("usage: cca parse <file.cpls>…      parse only, report the first refusal");
     eprintln!("       cca check <file.cpls | limb-dir>…   parse and check");
     eprintln!("       cca mir <file.cpls | limb-dir>       check, then print the flow graph");
-    eprintln!("       cca cortex <file.cpls | neuron-dir>  check, lower, prove, and report (`cca precog` still answers)");
+    eprintln!("       cca cortex <file.cpls | neuron-dir>  check, lower, prove, and report");
     eprintln!("       cca build <file.cpls | limb-dir> [-o out] [--target t] [--emit-llvm dir]   …then generate, assemble and link; dir/before.ll and dir/after.ll are the LLVM IR before and after LLVM's passes");
     eprintln!("       cca run <file.cpls | limb-dir> [-- words…]   build, then run it here with its words; its exit is cca's");
     eprintln!("       cca test <file.cpls | limb-dir>      run every `test fn`, each on its own, and report");
@@ -81,9 +81,13 @@ fn real_main() {
                 exit(1);
             }
         }
-        // Precog is Cortex (owner, 2026-10-09: "yea, go"); the old name
-        // still answers, for the tools that call it.
-        "cortex" | "precog" => {
+        // Precog is Cortex (owner, 2026-10-09: "yea, go"), and the old name
+        // is refused like any old spelling ("`b`").
+        "precog" => {
+            eprintln!("error: `precog` is an old spelling: write `cca cortex`");
+            exit(1);
+        }
+        "cortex" => {
             let mut failed = false;
             // `--json`: a line per site, for the Precog oracle (report.rs).
             let json = args[1..].iter().any(|a| a == "--json");
