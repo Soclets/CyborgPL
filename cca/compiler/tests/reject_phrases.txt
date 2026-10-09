@@ -146,10 +146,12 @@ const_mut [fnv:9f30cb564f340919] :: neither `mut` nor `immut`
 const_shadow [fnv:e1b51c069042fda4] :: 'max' is a const and cannot be shadowed
 const_verb [fnv:d48a3137f8878e3c] :: it is a value known at compile time
 construct_quoted_field [fnv:7597065160c99b01] :: `x = …`, not `'x' = …`
-core_by_name [fnv:9cd0be34feaebe9d] :: a core is listed by its registry ID since 2026-10-06
-core_by_path [fnv:eb1421226a148df0] :: the core at `../mycore` is not registered, so not verified; loading another core is not built yet
-core_no_version [fnv:76ee9ac969d7f85b] :: a core needs its `version`, as a registry limb does
+core_by_name [fnv:6bd84558b992431f] :: a lobe is listed by its registry ID since 2026-10-06
+core_by_path [fnv:c0c6e1b65030802e] :: the lobe at `../mycore` is not registered, so not verified; loading another lobe is not built yet
+core_no_version [fnv:8a983765217202e8] :: a lobe needs its `version`, as a registry limb does
+core_type_old_spelling [fnv:8f85046a457b8f81] :: `cca::Core` is an old spelling: write `cca::Lobe`
 core_wrong_version [fnv:a4a7a39fc18a028d] :: CCA knows IEG `2026-10-06T18:04:29+07:00` only
+cores_old_spelling [fnv:cdfee69d2e3230bf] :: `cores` is an old spelling: write `lobes`
 deci_family_mix [fnv:08ea65ffe19d9d06] :: between a deci and another number family
 deci_fractional_power [fnv:bb5918d5dddef02d] :: exponent is an integer or a whole literal
 deci_from_bin_bare [fnv:24a8031c925aa8d8] :: say which value
@@ -286,7 +288,7 @@ ieee_on_mod [fnv:2473cab7e2c3596a] :: `.ieee` goes on an operator that can make 
 index_needs_pos [fnv:4bc10e32735f4756] :: a read says it is a position: `'xs'[pos 2]`
 index_needs_pos_change [fnv:7fbb95940493767c] :: an index says it is a position: `'xs'[pos 2]`
 inline_ll_not_built [fnv:e2c382ebdb39d9d5] :: `inline.LL`, LLVM IR in place, is IEG's
-inline_msl_not_built [fnv:ef3056a3ef130c95] :: `inline.MSL`, the Metal Shading Language, is the Metal core's
+inline_msl_not_built [fnv:d7389a01e1fb7f88] :: `inline.MSL`, the Metal Shading Language, is the Metal lobe's
 let_over_name_unrun [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
 let_over_param_uncalled [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
 lifetime_glued [fnv:56103fcd967d54ea] :: a space before the group: `lent @
@@ -385,8 +387,8 @@ main_args_type [fnv:0fbaeb76c89973a8] :: is C's `argc`, whose type is `int32`
 main_as_func [fnv:d88745ab93f13dde] :: write `MAIN { … }` with no `fn`, no return type, no `return`
 manifest_bad_name [fnv:bc4dfe7c942706be] :: `Areas of shapes` cannot name a Neuron
 manifest_bad_prefix [fnv:142ba3472cf5fe78] :: cannot be a prefix, written in code as `Cash-Handling::`
-manifest_core_twice [fnv:0e32e454b22e9575] :: the core IEG is listed twice
-manifest_core_unofficial [fnv:a8509f2d96e82710] :: is not an official one; loading another core is not built yet
+manifest_core_twice [fnv:2baab86a188cacf8] :: the lobe IEG is listed twice
+manifest_core_unofficial [fnv:39dd97a70a0c0125] :: is not an official one; loading another lobe is not built yet
 manifest_dep_twice_where [fnv:22cee5cf4ecd7ef3] :: says where it comes from once
 manifest_field_twice [fnv:dd4b619356aeb955] :: `name` is given twice
 manifest_long_version [fnv:a46141b25a099c4e] :: `version` is at most 256 bytes, and this one is 257
@@ -413,7 +415,7 @@ map_to_text [fnv:a985b1bfd8ca8afa] :: a map is not text
 map_unordered_walk [fnv:5169287ec337a31d] :: `map.keys` needs a `map` or `map.ordered`
 map_value_out_of_range [fnv:da58956c39843392] :: the value can be outside what an `int32[0, 10]` holds
 match_value_unused [fnv:02489215508528d6] :: gives a value, but this `match` is not used as one
-mcps_needs_ieg [fnv:e4c918877f3a3e62] :: the core MCPS needs IEG
+mcps_needs_ieg [fnv:70f8e7d5c7c44427] :: the lobe MCPS needs IEG
 missing_return_type_value [fnv:b6b32cd3a621d22b] :: every path must `return` a value (or `fail`)
 mix_families [fnv:bb249fe14c123783] :: there is no implicit conversion between numeric families
 mod_bare [fnv:142b817e3a94675b] :: say how `mod` rounds
@@ -442,7 +444,7 @@ my_alone [fnv:8b049ab55a911000] :: `my` is followed by `.` and the root item it 
 ne [fnv:1ab20e7db13a717a] :: `!=` is not an operator; not-equal is `not_equal`
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
 no_asp_check [fnv:2bd1fa17f630e35f] :: `check` is ASP's
-no_asp_to [fnv:ed56abcbd724e688] :: `to.` is ASP's, and this Neuron's CCA.cplr does not list the core ASP
+no_asp_to [fnv:6bb550a4e86bb313] :: `to.` is ASP's, and this Neuron's CCA.cplr does not list the lobe ASP
 no_bin128 [fnv:65f2adec4a0637da] :: there is no `bin128`
 no_cheat_old [fnv:fc0169759787cd18] :: `!c` is `no_cheat` now
 no_checks_lied [fnv:7bbcfe7ae233e140] :: !by-design CCA builds it and emits a note naming `NO_FUCKING_CHECKS`, which is the rule for a vouch that fails every run (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
@@ -489,7 +491,7 @@ op_no_precedence [fnv:9d0efe113095066a] :: a custom operator has no precedence
 op_no_return_type [fnv:afe154068b1dbc9d] :: is required on an operator
 op_path_wrong_limb [fnv:58f14d819d74bfce] :: the Neuron `runnable` has no operator `mean`
 op_percent_undefined [fnv:7898bb583b3ac02c] :: `%` is not an operator here: remainder is `mod.floor`
-op_power_not_granted [fnv:48dcf19305aa9efb] :: defines the operator `mean` on built-in types, a power no core it lists grants: IEG grants `operators_on_builtin_types`
+op_power_not_granted [fnv:d245be4188ec83f8] :: defines the operator `mean` on built-in types, a power no lobe it lists grants: IEG grants `operators_on_builtin_types`
 op_redefine_builtin [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `int32` may not
 op_redefine_word [fnv:32696bdc53fd9faa] :: a struct or enum may define `op mod` for itself, `int32` may not
 op_run_no_space [fnv:fc83d9208bcfbb43] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
@@ -621,8 +623,8 @@ spread_owned_needs_verb [fnv:b64e38d86c3a19e9] :: say `...copy 'w'` or `...give 
 spread_plain_no_verb [fnv:c21efae9ad74426b] :: its elements are plain `integer` values, which copy by themselves
 spread_unknown_length [fnv:c06c4e8a33a43f63] :: a call's shape is fixed per call
 star_operator [fnv:b20e9f542727bd69] :: multiply is `times`
-std_needs_asp [fnv:fdf75c60c7ba90e2] :: cord needs the core ASP
-std_needs_ieg [fnv:b8e91f60a0af5109] :: cord needs the core IEG
+std_needs_asp [fnv:9b19b296ac762fb9] :: cord needs the lobe ASP
+std_needs_ieg [fnv:425caed92b6baa3c] :: cord needs the lobe IEG
 std_not_a_type [fnv:e456092e8ffcd94f] :: is not a type: a non-standard integer
 std_on_standard [fnv:b6b921c48995d42b] :: `int32` is standard: write `int32`
 std_too_wide [fnv:685422467bc9f0ae] :: past the widest integer there is

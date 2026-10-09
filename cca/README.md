@@ -28,8 +28,8 @@ are in it):
   other sessions read `cca/compiler/tests`.
 - `base/` — `cca-base`, Signatar's power ledger (step 2), kept a crate
   of its own; "the base" it was named for is Signatar's since 2026-10-07.
-- `cores/<name>/` — one crate per official core (`cca-core-ieg`, …),
-  each its name, registry ID and version for now; each core's features
+- `cores/<name>/` — one crate per official lobe (a core until 2026-10-09; `cca-core-ieg`, …),
+  each its name, registry ID and version for now; each lobe's features
   move in at its step.
 - `runtime/` — `cca-runtime`, the `no_std` Rust library linked into every
   CyborgPL binary.

@@ -804,7 +804,7 @@ impl Checker {
             let top = &u.path[0];
             let sentence = match check(&used, &limb, &self.items.program_deny) {
                 Ok(()) => continue,
-                Err(Refusal::NotGranted { .. }) => format!("{} {}, a power no core it lists grants: IEG grants `{}` (add `{}` to its `cores`)", who, u.doing, top, crate::ast::core_line("IEG")),
+                Err(Refusal::NotGranted { .. }) => format!("{} {}, a power no lobe it lists grants: IEG grants `{}` (add `{}` to its `lobes`)", who, u.doing, top, crate::ast::core_line("IEG")),
                 Err(Refusal::NotListed { .. }) => format!("{} {}, and its CCA.cplr does not list `{}`: add `cca::Power.{}` to its `powers`", who, u.doing, top, top),
                 Err(Refusal::Denied { entry, .. }) => format!("{} {}, which this program denies (`deny`: `cca::Power.{}`)", who, u.doing, entry.power.path.join(".")),
             };

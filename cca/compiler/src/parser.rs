@@ -276,7 +276,7 @@ fn rust_name(w: &str) -> Option<&'static str> {
 }
 
 fn core_missing<T>(what: &str, core: &str, at: Span) -> Result<T> {
-    err(Diagnostic::error(format!("{} is {}'s, and this Neuron's CCA.cplr does not list the core {}: add `{}` to its `cores`", what, core, core, core_line(core))).at(at))
+    err(Diagnostic::error(format!("{} is {}'s, and this Neuron's CCA.cplr does not list the lobe {}: add `{}` to its `lobes`", what, core, core, core_line(core))).at(at))
 }
 
 /// std's registry ID and the one version CCA knows (owner, 2026-10-06).
@@ -350,7 +350,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                 Tok::Name(n) if !n.is_ascii() => format!("`'{}'`", n),
                 _ => continue,
             };
-            return err(Diagnostic::error(format!("{} is not an English name: Signatar's names are English letters, digits and `_`; a name in another script, or an emoji, needs the core WSTN in this Neuron's `cores` (`{}`)", shown, core_line("WSTN"))).at(t.span));
+            return err(Diagnostic::error(format!("{} is not an English name: Signatar's names are English letters, digits and `_`; a name in another script, or an emoji, needs the lobe WSTN in this Neuron's `lobes` (`{}`)", shown, core_line("WSTN"))).at(t.span));
         }
     }
     // Old spellings, in every Limb (the 2026-10-07 revision; owner: "MTM
@@ -2656,7 +2656,7 @@ impl<'a> Parser<'a> {
             "ASM" | "Assembly" | "S" => {}
             // IEG's and Metal's, named but not read yet.
             "LL" | "LLVM" | "LLVM_Intermediate_Representation" => return self.fail_at(lang.span, "`inline.LL`, LLVM IR in place, is IEG's, and CCA does not read it yet"),
-            "MSL" | "Metal_Shading_Language" => return self.fail_at(lang.span, "`inline.MSL`, the Metal Shading Language, is the Metal core's, and CCA does not read it yet"),
+            "MSL" | "Metal_Shading_Language" => return self.fail_at(lang.span, "`inline.MSL`, the Metal Shading Language, is the Metal lobe's, and CCA does not read it yet"),
             "asm" | "s" | "assembly" => return self.fail_at(lang.span, "an inline language's name is in capitals: `inline.ASM`"),
             "ll" | "llvm" => return self.fail_at(lang.span, "an inline language's name is in capitals: `inline.LL`"),
             "msl" => return self.fail_at(lang.span, "an inline language's name is in capitals: `inline.MSL`"),
