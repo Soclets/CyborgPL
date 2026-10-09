@@ -32,6 +32,10 @@ reads are compared between the engines only. Default avoid: `cord` (CCA has no s
 as they did when written; `check claims` asks `cca cortex --json` (`cca precog` is refused, owner
 2026-10-09: one spelling per thing).
 
+
+**Endings** (owner, 2026-10-09): programs are `.nrv` files (were `.cpls`); the corpus was renamed
+with `git mv`, and the harness writes `prog.nrv`. Older notes below may still say `.cpls`.
+
 ## What is here
 
 - **`gen/`** — the program generator. `seed → program` is a pure function

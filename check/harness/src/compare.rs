@@ -83,7 +83,7 @@ pub fn check_program(tools: &Tools, p: &check_gen::ast::Program, dir: &Path, env
         return v;
     }
     std::fs::create_dir_all(dir).unwrap();
-    let file = dir.join("prog.cpls");
+    let file = dir.join("prog.nrv");
     std::fs::write(&file, &src).unwrap();
     let env: Env = envs.first().cloned().unwrap_or_default();
     let mut d = String::new();
@@ -113,7 +113,7 @@ pub fn check_program(tools: &Tools, p: &check_gen::ast::Program, dir: &Path, env
 
 pub fn check_modes(tools: &Tools, src: &str, dir: &Path, envs: &[Env], modes: &[Mode]) -> Verdict {
     std::fs::create_dir_all(dir).unwrap();
-    let file = dir.join("prog.cpls");
+    let file = dir.join("prog.nrv");
     std::fs::write(&file, src).unwrap();
     let envs: Vec<Env> = if envs.is_empty() { vec![vec![]] } else { envs.to_vec() };
     let mut builds = vec![];

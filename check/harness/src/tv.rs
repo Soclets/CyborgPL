@@ -98,7 +98,7 @@ fn alive(dir: &Path, src: &Path, tgt: &Path) -> Result<String, String> {
 
 pub fn validate(t: &Tools, src: &str, dir: &Path) -> Result<Outcome, String> {
     std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-    let file = dir.join("prog.cpls");
+    let file = dir.join("prog.nrv");
     std::fs::write(&file, src).map_err(|e| e.to_string())?;
     let ir = dir.join("ir");
     let _ = std::fs::remove_dir_all(&ir);
