@@ -93,6 +93,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     check_powers(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_type_names(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_redeclared(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
+    check_return_literals(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     // a bare call with more than one candidate is refused where it is written, run or not (owner,
     // 2026-10-06: "`a`, and no"); the interpreter makes the same check when a call runs
     for (from, written, std, line) in parser::BARE_CALLS.with(|b| b.borrow().clone()) {
@@ -654,6 +655,47 @@ fn check_redeclared(prog: &ast::Program) -> Result<(), String> {
     if let Some(m) = &prog.main {
         let mut sc: Scopes = vec![consts(&[]), prog.main_args.iter().flat_map(|(a, b)| [(a.clone(), false), (b.clone(), false)]).collect()];
         block(&mut sc, m, &[])?;
+    }
+    Ok(())
+}
+
+/// A function's `return` of a plain literal of the wrong kind is refused in code that never runs too
+/// (check claude, seed 44056: the oracle checked a return only where it ran), as a `let` over a name is
+/// (caba9b84). Only literals are judged here: a `bool` where a number is due, a number where a `bool` is,
+/// a text where neither text nor anything else takes it; the interpreter checks the rest as it runs.
+fn check_return_literals(prog: &ast::Program) -> Result<(), String> {
+    use ast::{Expr, Stmt, Ty};
+    fn kind_ok(e: &Expr, t: &Ty) -> Option<&'static str> {
+        let number = matches!(t, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Brain | Ty::Deci(_));
+        let text = matches!(t, Ty::Str(_));
+        match e {
+            Expr::Bool(..) if number || text => Some("a `bool`"),
+            Expr::Int(..) | Expr::Bin(..) | Expr::Exact(..) if matches!(t, Ty::Bool) || text => Some("a number"),
+            Expr::Text(..) if number || matches!(t, Ty::Bool) => Some("a text"),
+            _ => None,
+        }
+    }
+    fn walk(body: &[Stmt], t: &Ty, f: &str) -> Result<(), String> {
+        for st in body {
+            match st {
+                Stmt::Return { value: Some(b), line } => {
+                    if let [ast::Value::Expr(e)] = b.values.as_slice() {
+                        if let Some(what) = kind_ok(e, t) {
+                            return Err(format!("line {line}: `{f}` returns {}, but this `return` gives {what}", value::ty_name(t)));
+                        }
+                    }
+                }
+                Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { walk(b, t, f)?; } if let Some(o) = otherwise { walk(o, t, f)?; } }
+                Stmt::Loop { body, .. } | Stmt::Block { body, .. } | Stmt::While { body, .. } | Stmt::For { body, .. } | Stmt::Range { body, .. } => walk(body, t, f)?,
+                Stmt::Tier { body, .. } => walk(std::slice::from_ref(&**body), t, f)?,
+                Stmt::Match { arms, .. } => { for a in arms { walk(&a.body, t, f)?; } }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+    for func in &prog.funcs {
+        if let Some(t) = &func.ret { walk(&func.body, t, &func.name)?; }
     }
     Ok(())
 }
