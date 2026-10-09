@@ -192,7 +192,11 @@ tile; the README's `brand/` line names it. Design claude first put it on the
 wordmark's left; the owner: "Format's broken in the README. Logo should be on
 top, not on the left", then "Ahhh. It's look weird, remove it from there": **the
 icon is not at the README's top**; only the wordmark is. The `brand/` line
-still names the icon.
+still names the icon. Later the same day, the owner: "Try putting the Nerve icon next to the
+wordmark, on the left. With the icon's background"; design claude set both
+54 px high on one line, with no alignment attributes (9de7d292); the owner:
+"Looks good". So **the README's top shows the icon, on its tile, left of the
+wordmark**.
 
 ### 2026-10-09 — The names and logos are trademarks anyone may use, without pretending to be us (owner)
 
