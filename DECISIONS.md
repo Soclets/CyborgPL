@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — The names and logos are trademarks anyone may use, without pretending to be us (owner)
+
+The owner asked whether the repo says what CC BY 4.0 covers (the README
+does; the bare licence file, the README's warning line and GitHub's two
+side-by-side licence tabs do not), then "What about our logo, does CC BY
+cover that": no, CC BY is the website's text only, the name and logo were
+reserved (2026-09-23), and the logo files fall under the repo's default
+licence. Asked whether the files should stay under Apache-2.0 or be
+excluded, the owner: "Mf, I don't have a lawyer. The logos should be
+trademarked (not registered yet), but using it anywhere is possible, but
+shouldn't pretend to be us". So **the names and logos are unregistered
+trademarks (™); anyone may use them anywhere, but not to pass themselves
+off as the project** (the official Nerve, or made or endorsed by it). The
+logo files stay under the repo's licence. The README's trademark line and
+`design/licensing.md` say so.
+
 ### 2026-10-09 — The NERVE wordmark is the official logo (owner, via website claude)
 
 Relayed by website claude, with the owner's words: "Mono as official logo.
