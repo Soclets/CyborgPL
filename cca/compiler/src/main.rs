@@ -12,7 +12,7 @@ fn usage() -> ! {
     eprintln!("       cca build <file.cpls | limb-dir> [-o out] [--target t] [--emit-llvm dir]   …then generate, assemble and link; dir/before.ll and dir/after.ll are the LLVM IR before and after LLVM's passes");
     eprintln!("       cca run <file.cpls | limb-dir> [-- words…]   build, then run it here with its words; its exit is cca's");
     eprintln!("       cca test <file.cpls | limb-dir>      run every `test fn`, each on its own, and report");
-    eprintln!("       cca prepare [folder/] [<name>, …] [--prefix <prefix>, …] | --all   run those Limbs' build.cplr, in their own folders");
+    eprintln!("       cca prepare [folder/] [<name>, …] [--prefix <prefix>, …] | --all   run those Neurons' build.cplr, in their own folders");
     eprintln!("       cca version                  the compiler's version and the Unicode version it pins");
     exit(2)
 }
@@ -203,7 +203,7 @@ fn real_main() {
                     "--assert-proofs" => assert_proofs = true,
                     f if file.is_none() && !f.starts_with('-') => file = Some(f.to_string()),
                     other => {
-                        eprintln!("error: `cca test` takes one program or Limb, `--target <name>` and `--assert-proofs`; `{}` is not one of them", other);
+                        eprintln!("error: `cca test` takes one program or Neuron, `--target <name>` and `--assert-proofs`; `{}` is not one of them", other);
                         exit(2);
                     }
                 }
@@ -296,7 +296,7 @@ fn prepare(rest: &[String]) {
     };
     if rest.is_empty() {
         // Refused, a folder alone too (owner, 2026-09-30: "`a`").
-        eprintln!("error: `cca prepare` needs to be told which Limbs to prepare: name them, `cca prepare geometry, money`, or give `--all` for every one");
+        eprintln!("error: `cca prepare` needs to be told which Neurons to prepare: name them, `cca prepare geometry, money`, or give `--all` for every one");
         exit(2);
     }
     let pick = if rest.len() == 1 && rest[0] == "--all" {
@@ -333,7 +333,7 @@ fn prepare(rest: &[String]) {
         }
     };
     if plan.is_empty() {
-        println!("no Limb here has a build.cplr");
+        println!("no Neuron here has a build.cplr");
         return;
     }
     let dir = std::env::temp_dir().join(format!("cca-prepare-{}", std::process::id()));

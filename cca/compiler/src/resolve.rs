@@ -299,7 +299,7 @@ impl Items {
         match &item.kind {
             ItemKind::Main(params, block) => {
                 if !is_root {
-                    return err(Diagnostic::error("`MAIN` lives at the root of the Limb (`limb.cpls`), not in a module").at(item.span));
+                    return err(Diagnostic::error("`MAIN` lives at the root of the Neuron (`limb.cpls`), not in a module").at(item.span));
                 }
                 if self.main.is_some() {
                     return err(Diagnostic::error("a program has one `MAIN`; this is the second").at(item.span));
@@ -724,7 +724,7 @@ impl Items {
                 let module = &self.modules[m.0 as usize].path;
                 let inner = module.rsplit("::").next().unwrap_or(module);
                 let at = if m == here { String::new() } else { format!("{}.", inner) };
-                found.push((format!("`my.{}{}` (this Limb's)", at, written), Bareness::Own(*i)));
+                found.push((format!("`my.{}{}` (this Neuron's)", at, written), Bareness::Own(*i)));
             }
         }
         if std && !self.no_std_roots.contains(&here) {
@@ -783,11 +783,11 @@ impl Items {
         let mut cur = m;
         if let Some(limb) = &path.limb {
             if limb.name == "std" {
-                return err(Diagnostic::error(format!("`{}` is not available yet: there is no `cord` Limb for now — the base language comes first", path.spelled())).at(path.span));
+                return err(Diagnostic::error(format!("`{}` is not available yet: there is no `cord` Neuron for now — the base language comes first", path.spelled())).at(path.span));
             }
             cur = self.dependency(limb, m)?;
             if path.segs.first().map_or(false, |s| s.name == "my") {
-                return err(Diagnostic::error(format!("`{}::` already starts at that Limb's root: write `{}::…` without `my.`", limb.name, limb.name)).at(path.span));
+                return err(Diagnostic::error(format!("`{}::` already starts at that Neuron's root: write `{}::…` without `my.`", limb.name, limb.name)).at(path.span));
             }
         }
         let mut segs = path.segs.iter().peekable();
@@ -826,7 +826,7 @@ impl Items {
     pub fn lookup_const_path(&self, path: &ast::Path, name: &ast::QName, m: ModuleId) -> Result<crate::hir::ConstId> {
         if let Some(limb) = &path.limb {
             if limb.name == "std" {
-                return err(Diagnostic::error("`cord::` is not available yet: there is no `cord` Limb for now").at(path.span));
+                return err(Diagnostic::error("`cord::` is not available yet: there is no `cord` Neuron for now").at(path.span));
             }
             if path.segs.is_empty() {
                 let root = self.dependency(limb, m)?;
@@ -850,10 +850,10 @@ impl Items {
             return err(Diagnostic::error(format!("there is no const '{}' in {}", name.name, describe_module(&module.path))).at(name.span));
         };
         if !self.visible(*vis, target, from) && self.limb_root(target) != self.limb_root(from) {
-            return err(Diagnostic::error(format!("the const '{}' is not `pub`, and another Limb reaches only `pub` items", name.name)).at(name.span));
+            return err(Diagnostic::error(format!("the const '{}' is not `pub`, and another Neuron reaches only `pub` items", name.name)).at(name.span));
         }
         if !self.visible(*vis, target, from) {
-            return err(Diagnostic::error(format!("'{}' is private to {}: add `pub` (other Limbs too) or `pub.limb` (this Limb) where it is declared", name.name, describe_module(&module.path))).at(name.span));
+            return err(Diagnostic::error(format!("'{}' is private to {}: add `pub` (other Neurons too) or `pub.neuron` (this Neuron) where it is declared", name.name, describe_module(&module.path))).at(name.span));
         }
         Ok(*id)
     }
@@ -864,7 +864,7 @@ impl Items {
         let here = self.limb_root(m);
         match self.limb_deps.get(&here).and_then(|d| d.get(&limb.name)) {
             Some(r) => Ok(*r),
-            None => err(Diagnostic::error(format!("no Limb with the prefix `{}`: a Limb this one uses is listed in its `CCA.cplr` (`dependencies = [cca::Dep[path = …],]`), and its own `CCA.cplr` says `prefix = \"{}\"`", limb.name, limb.name)).at(limb.span)),
+            None => err(Diagnostic::error(format!("no Neuron with the prefix `{}`: a Neuron this one uses is listed in its `CCA.cplr` (`dependencies = [cca::Dep[path = …],]`), and its own `CCA.cplr` says `prefix = \"{}\"`", limb.name, limb.name)).at(limb.span)),
         }
     }
 
@@ -886,7 +886,7 @@ impl Items {
         let where_ = describe_module(&self.modules[declared_in.0 as usize].path);
         let what = item.what();
         if self.limb_root(declared_in) != self.limb_root(from) {
-            return err(Diagnostic::error(format!("{} `{}` is not `pub`, and another Limb reaches only `pub` items", what, seg.name)).at(seg.span).fix(None, "its own Limb opens it with `pub`; `pub.limb` keeps it inside that Limb"));
+            return err(Diagnostic::error(format!("{} `{}` is not `pub`, and another Neuron reaches only `pub` items", what, seg.name)).at(seg.span).fix(None, "its own Neuron opens it with `pub`; `pub.neuron` keeps it inside that Neuron"));
         }
         let full = match item {
             ItemRef::Module(c) => format!("module `{}`", self.modules[c.0 as usize].path),
@@ -894,7 +894,7 @@ impl Items {
         };
         err(Diagnostic::error(format!("{} is private to {}: it is visible there and in the modules nested inside it", full, where_))
             .at(seg.span)
-            .fix(None, format!("write `pub.limb` before it to open it to the whole Limb, or `pub` for other Limbs too")))
+            .fix(None, format!("write `pub.neuron` before it to open it to the whole Neuron, or `pub` for other Neurons too")))
     }
 
     fn hint_for_missing(&self, name: &str, m: ModuleId) -> String {
@@ -1269,7 +1269,7 @@ impl Items {
                 }
                 "duration" => return Ok(Ty::Duration),
                 "fn" => unreachable!(),
-                "uenr" => return err(Diagnostic::error("`uenr` is the standard Limb's type, `cord::uenr`, and `cord::` is not available yet").at(span)),
+                "uenr" => return err(Diagnostic::error("`uenr` is the standard Neuron's type, `cord::uenr`, and `cord::` is not available yet").at(span)),
                 _ => {}
             }
         }
@@ -1357,7 +1357,7 @@ pub fn module_path(items: &Items, name: &str, parent: Option<ModuleId>) -> Strin
 
 pub fn describe_module(path: &str) -> String {
     if let Some(limb) = path.strip_suffix("::limb") {
-        format!("the root of Limb `{}`", limb)
+        format!("the root of Neuron `{}`", limb)
     } else if path == "limb" {
         "the root (`limb.cpls`)".to_string()
     } else {

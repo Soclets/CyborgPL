@@ -800,7 +800,7 @@ impl Checker {
             }
             let limb = Limb { name: lp.prefix.clone(), id: None, lists: lp.lists.clone(), grants };
             let used = Use { limb: lp.prefix.clone(), path: u.path.clone(), thing: u.thing.clone(), doing: u.doing.clone(), at: u.span.start };
-            let who = if lp.is_program { "this Limb".to_string() } else { format!("`{}`", lp.prefix) };
+            let who = if lp.is_program { "this Neuron".to_string() } else { format!("`{}`", lp.prefix) };
             let top = &u.path[0];
             let sentence = match check(&used, &limb, &self.items.program_deny) {
                 Ok(()) => continue,

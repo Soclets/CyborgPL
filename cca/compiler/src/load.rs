@@ -105,7 +105,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         (Purpose::Check, None) => None,
         (Purpose::Compile(Some(t)), Some((listed, _))) => {
             if !listed.iter().any(|l| l == t) {
-                return err(Diagnostic::error(format!("`{}` is not one of this Limb's targets: its `CCA.cplr` lists {}", t, listed.iter().map(|l| format!("`{}`", l)).collect::<Vec<_>>().join(", "))));
+                return err(Diagnostic::error(format!("`{}` is not one of this Neuron's targets: its `CCA.cplr` lists {}", t, listed.iter().map(|l| format!("`{}`", l)).collect::<Vec<_>>().join(", "))));
             }
             Some((t.to_string(), None))
         }
@@ -117,7 +117,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
             Some((t.to_string(), None))
         }
         (Purpose::Compile(None), Some((listed, None))) => {
-            return err(Diagnostic::error(format!("this Limb has no default target — its one target says `default = false` — so a build names the target: `--target {}`", listed.first().map(String::as_str).unwrap_or("aarch64-macos"))));
+            return err(Diagnostic::error(format!("this Neuron has no default target — its one target says `default = false` — so a build names the target: `--target {}`", listed.first().map(String::as_str).unwrap_or("aarch64-macos"))));
         }
         (Purpose::Compile(None), Some((_, Some((t, s))))) => Some((t.clone(), Some(*s))),
         (Purpose::Compile(None), None) => None,
@@ -171,18 +171,18 @@ pub enum Wanted {
 /// each once. Nothing is loaded but manifests.
 pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<Vec<(String, PathBuf)>> {
     if !dir.join("limb.cpls").is_file() {
-        return err(Diagnostic::error(format!("`cca prepare` acts on a Limb, and `{}` has no `limb.cpls`", dir.display())));
+        return err(Diagnostic::error(format!("`cca prepare` acts on a Neuron, and `{}` has no `limb.cpls`", dir.display())));
     }
     // A Limb's name and prefix, from its own `CCA.cplr`; a dependency
     // without one has neither.
     fn words_of(sources: &mut SourceMap, dir: &Path, from: Option<(&Path, &str)>) -> Result<(String, String)> {
         if let Some((manifest_at, written)) = from {
             if !dir.join("CCA.cplr").is_file() {
-                return err(Diagnostic::error(format!("the Limb at `{}` has no `CCA.cplr`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("the Neuron at `{}` has no `CCA.cplr`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
             }
         }
         let m = read_manifest(sources, dir)?;
-        let folder = dir.canonicalize().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).unwrap_or_else(|| "this Limb".into());
+        let folder = dir.canonicalize().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).unwrap_or_else(|| "this Neuron".into());
         Ok((m.name.map(|(n, _)| n).unwrap_or_else(|| folder.clone()), m.prefix.map(|(p, _)| p).unwrap_or(folder)))
     }
     // How a Limb is shown: its name, and its prefix too where that differs,
@@ -204,7 +204,7 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
                 if let Some(at) = stack.iter().position(|(p, _)| *p == key) {
                     let mut names: Vec<String> = stack[at..].iter().map(|(_, n)| n.clone()).collect();
                     names.push(shown);
-                    return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a Limb cannot depend on itself, however far round", names.join(" → "))));
+                    return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a Neuron cannot depend on itself, however far round", names.join(" → "))));
                 }
                 let manifest = read_manifest(sources, dir)?;
                 let manifest_at = dir.join("CCA.cplr");
@@ -243,7 +243,7 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
         };
         let found: Vec<&(String, String, PathBuf)> = known.iter().filter(|(name, prefix, _)| if by_prefix { prefix == n } else { name == n }).collect();
         let at = match found.as_slice() {
-            [] if by_prefix => return err(Diagnostic::error(format!("no Limb here has the prefix `{}`: the prefixes here are {}", n, known.iter().map(|(_, p, _)| format!("`{}`", p)).collect::<Vec<_>>().join(", ")))),
+            [] if by_prefix => return err(Diagnostic::error(format!("no Neuron here has the prefix `{}`: the prefixes here are {}", n, known.iter().map(|(_, p, _)| format!("`{}`", p)).collect::<Vec<_>>().join(", ")))),
             [] => {
                 let mut names: Vec<String> = Vec::new();
                 for (k, _, _) in &known {
@@ -251,14 +251,14 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
                         names.push(k.clone());
                     }
                 }
-                return err(Diagnostic::error(format!("no Limb here is named `{}`: the names here are {}", n, names.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))));
+                return err(Diagnostic::error(format!("no Neuron here is named `{}`: the names here are {}", n, names.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))));
             }
             [one] => (label(&one.0, &one.1), one.2.clone()),
             // Two Limbs may share a name, never a prefix: which one is
             // meant is said by prefix (owner, 2026-09-30: a, "flag").
             many => {
                 let prefixes: Vec<String> = many.iter().map(|(_, p, _)| format!("`{}`", p)).collect();
-                return err(Diagnostic::error(format!("{} Limbs here are named `{}`, with the prefixes {}: pick one with `cca prepare --prefix {}`", many.len(), n, prefixes.join(", "), many[0].1)));
+                return err(Diagnostic::error(format!("{} Neurons here are named `{}`, with the prefixes {}: pick one with `cca prepare --prefix {}`", many.len(), n, prefixes.join(", "), many[0].1)));
             }
         };
         let (shown, at) = at;
@@ -302,38 +302,38 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     if let Some(at) = state.stack.iter().position(|(p, _)| *p == key) {
         let mut names: Vec<String> = state.stack[at..].iter().map(|(_, n)| n.clone()).collect();
         names.push(state.stack[at].1.clone());
-        return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a Limb cannot depend on itself, however far round", names.join(" → "))));
+        return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a Neuron cannot depend on itself, however far round", names.join(" → "))));
     }
     let root = dir.join("limb.cpls");
     if !root.is_file() {
         return err(Diagnostic::error(match from {
-            None => format!("`{}` is a Limb directory, and a Limb needs its root file `limb.cpls`: none is there", short(dir)),
-            Some((_, written)) => format!("the Limb at `{}` needs its root file `limb.cpls`: none is there", written),
+            None => format!("`{}` is a Neuron directory, and a Neuron needs its root file `limb.cpls`: none is there", short(dir)),
+            Some((_, written)) => format!("the Neuron at `{}` needs its root file `limb.cpls`: none is there", written),
         }));
     }
     // A dependency is reached by the prefix its own `CCA.cplr` gives it,
     // and the depending Limb names no word (owner, 2026-09-29).
     if let Some((manifest_at, written)) = from {
         if !dir.join("CCA.cplr").is_file() {
-            return err(Diagnostic::error(format!("the Limb at `{}` has no `CCA.cplr`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
+            return err(Diagnostic::error(format!("the Neuron at `{}` has no `CCA.cplr`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
         }
     }
     let manifest = read_manifest(sources, dir)?;
     let prefix = match &manifest.prefix {
         Some((p, _)) => p.clone(),
-        None => dir.canonicalize().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).unwrap_or_else(|| "this Limb".into()),
+        None => dir.canonicalize().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).unwrap_or_else(|| "this Neuron".into()),
     };
     if let Some((manifest_at, written)) = from {
         // `cord` is reserved beside the old `std` and `stdkit` (owner,
         // 2026-10-09).
         if matches!(prefix.as_str(), "std" | "stdkit" | "cord" | "cca") {
-            return err(Diagnostic::error(format!("the Limb at `{}` has the prefix `{}`, which names the built-in `{}::`; edit its `prefix`", written, prefix, if prefix == "cca" { "cca" } else { "cord" })).place(manifest_at.display().to_string()));
+            return err(Diagnostic::error(format!("the Neuron at `{}` has the prefix `{}`, which names the built-in `{}::`; edit its `prefix`", written, prefix, if prefix == "cca" { "cca" } else { "cord" })).place(manifest_at.display().to_string()));
         }
         // No override: two Limbs with one prefix are fixed by editing one
         // (owner, 2026-09-29: "Just edit the source code").
         if let Some(other) = state.prefixes.get(&prefix) {
             if *other != key {
-                return err(Diagnostic::error(format!("two Limbs have the prefix `{}` ({} and {}); edit one Limb's `prefix`", prefix, other.display(), key.display())).place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("two Neurons have the prefix `{}` ({} and {}); edit one Neuron's `prefix`", prefix, other.display(), key.display())).place(manifest_at.display().to_string()));
             }
         }
         state.prefixes.insert(prefix.clone(), key.clone());
@@ -413,7 +413,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
             let kind = if f.op.is_some() { "op" } else { "fn" };
             let named = format!("{} {}", kind, path);
             if let Some((other, _)) = only.iter().find(|(o, n)| *n == named && o != p) {
-                return err(Diagnostic::error(format!("`{}` and `{}` both forbid the path to `{}` (`bare.only`), so it cannot tell them apart: edit one Limb's source, as for a prefix clash", other, p, named)).place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("`{}` and `{}` both forbid the path to `{}` (`bare.only`), so it cannot tell them apart: edit one Neuron's source, as for a prefix clash", other, p, named)).place(manifest_at.display().to_string()));
             }
             only.push((p.clone(), named));
         }
@@ -494,7 +494,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
         let setting = field.name.as_str();
         // One target became a list (owner, 2026-09-29).
         if setting == "target" {
-            return err(Diagnostic::error("a Limb lists its targets, so the field is `targets`: `targets = [cca::Target[name = \"aarch64-macos\"],]`").at(field.span));
+            return err(Diagnostic::error("a Neuron lists its targets, so the field is `targets`: `targets = [cca::Target[name = \"aarch64-macos\"],]`").at(field.span));
         }
         // What a Limb may do (`design/cores.md`): which powers exist is
         // not decided.
@@ -508,7 +508,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
         match setting {
             "name" => {
                 let n = text(v, "`name`")?;
-                check_word(&n, v.span, "name a Limb")?;
+                check_word(&n, v.span, "name a Neuron")?;
                 out.name = Some((n, v.span));
             }
             "prefix" => {
@@ -615,7 +615,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     let (power, except, for_limbs) = read_power(e)?;
                     if setting == "powers" {
                         if except.is_some() || for_limbs.is_some() {
-                            return err(Diagnostic::error("`.except` and `.for` belong to `deny`; `powers` lists what this Limb uses").at(e.span));
+                            return err(Diagnostic::error("`.except` and `.for` belong to `deny`; `powers` lists what this Neuron uses").at(e.span));
                         }
                         out.powers.push(power);
                     } else {
@@ -704,7 +704,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                             return err(Diagnostic::error("a `cca::Dep` names its fields: a `path = …`, or an `id = …` and a `version = …`").at(a.span()));
                         };
                         let slot = match field.name.as_str() {
-                            "name" | "prefix" => return err(Diagnostic::error("a dependency names no word: code writes the Limb's own `prefix`, from its `CCA.cplr`").at(field.span)),
+                            "name" | "prefix" => return err(Diagnostic::error("a dependency names no word: code writes the Neuron's own `prefix`, from its `CCA.cplr`").at(field.span)),
                             "path" => &mut dpath,
                             "version" => &mut version,
                             "id" => &mut id,
@@ -740,7 +740,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                             return err(Diagnostic::error("a dependency says where it comes from once: a `path` (a folder on this machine) or a `version` (the registry), not both").at(vspan));
                         }
                         (None, Some(_)) if id.is_none() => {
-                            return err(Diagnostic::error("this dependency comes from the registry, which knows a Limb by its ID, never its name: add `id = \"…\"`, the 64 hex digits its creator made").at(e.span));
+                            return err(Diagnostic::error("this dependency comes from the registry, which knows a Neuron by its ID, never its name: add `id = \"…\"`, the 64 hex digits its creator made").at(e.span));
                         }
                         (None, Some((_, vspan))) => {
                             return err(Diagnostic::error("not yet: this dependency asks the registry for a `version`, and the registry does not exist yet — give its folder with `path = \"…\"`").at(vspan));
@@ -764,8 +764,8 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     // it is a Limb with a name, a version and a target to build.
     for need in ["name", "prefix", "version"] {
         if !seen.iter().any(|s| s == need) {
-            let what = if need == "prefix" { ", the word code writes in front of `::` to reach this Limb" } else { "" };
-            return err(Diagnostic::error(format!("the manifest has no `{}`{}: a build needs the Limb's `name`, `prefix`, `version` and at least one target, {}", need, what, MANIFEST_SHAPE)).at(value.span));
+            let what = if need == "prefix" { ", the word code writes in front of `::` to reach this Neuron" } else { "" };
+            return err(Diagnostic::error(format!("the manifest has no `{}`{}: a build needs the Neuron's `name`, `prefix`, `version` and at least one target, {}", need, what, MANIFEST_SHAPE)).at(value.span));
         }
     }
     // std's maths always has true values and checks (owner, 2026-10-06):
@@ -779,7 +779,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
         return err(Diagnostic::error(format!("cord needs the core IEG, which grants it the operators on built-in types: add `{}` to `cores`", crate::ast::core_line("IEG"))).at(value.span));
     }
     if out.targets.is_empty() {
-        return err(Diagnostic::error(format!("the manifest has no target: a build needs the Limb's `name`, `prefix`, `version` and at least one target, {}", MANIFEST_SHAPE)).at(value.span));
+        return err(Diagnostic::error(format!("the manifest has no target: a build needs the Neuron's `name`, `prefix`, `version` and at least one target, {}", MANIFEST_SHAPE)).at(value.span));
     }
     Ok(out)
 }
@@ -807,7 +807,7 @@ fn check_case(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, r
     if root {
         CASE_LINES.with(|k| *k.borrow_mut() = file.case_kinds.clone());
     } else if let Some((_, _, at)) = file.case_kinds.first() {
-        return err(Diagnostic::error("a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Limb, so it is written in `limb.cpls`").at(*at));
+        return err(Diagnostic::error("a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `limb.cpls`").at(*at));
     }
     let lines = CASE_LINES.with(|k| k.borrow().clone());
     let line = |at: Span| sources.get(at.file).line_of(at.start);
@@ -926,7 +926,7 @@ fn check_bare(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, b
     if root {
         BARE_KINDS.with(|k| *k.borrow_mut() = file.bare_kinds.clone());
     } else if let Some((m, _, at)) = file.bare_kinds.first() {
-        return err(Diagnostic::error(format!("`{} [ … ];` covers the whole Limb, so it is written in `limb.cpls`", m.spelled())).at(*at));
+        return err(Diagnostic::error(format!("`{} [ … ];` covers the whole Neuron, so it is written in `limb.cpls`", m.spelled())).at(*at));
     }
     let kinds = BARE_KINDS.with(|k| k.borrow().clone());
     let line = |at: crate::source::Span| sources.get(at.file).line_of(at.start);
@@ -996,7 +996,7 @@ fn check_bare(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, b
         let mut all: Vec<(Bare, crate::source::Span)> = chain.first().copied().into_iter().chain(file.bare_file).chain(kinds.iter().filter(|(_, ks, _)| ks.iter().any(|k| k == kind)).map(|(m, _, at)| (*m, *at))).collect();
         all.sort_by_key(|m| (m.1.file != it.span.file, line(m.1)));
         match all.first() {
-            None => err(Diagnostic::error(format!("`{k} {n}` is `pub`, and nothing says how other Limbs write its path: mark it (`pub bare.never {k} …`), its module, or its kind in `limb.cpls` (`bare.never [{k}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default", k = kind, n = name)).at(it.span)),
+            None => err(Diagnostic::error(format!("`{k} {n}` is `pub`, and nothing says how other Neurons write its path: mark it (`pub bare.never {k} …`), its module, or its kind in `limb.cpls` (`bare.never [{k}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default", k = kind, n = name)).at(it.span)),
             Some(&first) => match all.iter().find(|m| m.0 != first.0) {
                 Some(&other) => both(first, other),
                 None => {

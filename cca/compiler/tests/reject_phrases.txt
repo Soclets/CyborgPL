@@ -47,7 +47,7 @@ assign_with_colon [fnv:a19ee1e93ed328a3] :: is already declared in this scope
 bad_comment_form [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
 bad_comment_suffix [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
 bare_char [fnv:b78f2a1f98dce47b] :: `char` is never bare: say the unit
-bare_clash_not_run [fnv:526639d5075009d1] :: `round` could be any of `my.m.round` (this Limb's), `cord::round`: write the path
+bare_clash_not_run [fnv:d28761be4eec376c] :: `round` could be any of `my.m.round` (this Neuron's), `cord::round`: write the path
 bare_const_item [fnv:1d7c838e9fed072b] :: a const takes no `bare` mark
 bare_const_kind [fnv:1d7c838e9fed072b] :: a const takes no `bare` mark
 bare_disagree [fnv:2b664eb8db1601d1] :: `fn shapes.area` is marked both
@@ -56,7 +56,7 @@ bare_glyph_op [fnv:ff9fd24907e07e6b] :: is a glyph operator, which has nowhere t
 bare_int [fnv:ef16210764d8ed79] :: the typed form is always fully explicit
 bare_kind_disagree [fnv:e3a4fefd8054dcfd] :: marks that disagree are an error
 bare_kind_unknown [fnv:61121c79d3fb4bbd] :: `module` is not a kind a `bare` mark covers
-bare_kinds_in_module [fnv:7fc6b403e02e9b30] :: covers the whole Limb, so it is written in `limb.cpls`
+bare_kinds_in_module [fnv:41a5f35fe69c7ecd] :: covers the whole Neuron, so it is written in `limb.cpls`
 bare_list_type [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type parameter, the element type: `list[int32]`
 bare_never_op [fnv:d5a8c10e8fadaad1] :: `merge` is `greet`'s and `bare.never`: write `greet::merge`
 bare_never_without_path [fnv:fb7503be4f3b3837] :: `formal` is `greet`'s and `bare.never`: `greet` requires its path, so write `greet::formal[…]`
@@ -64,16 +64,16 @@ bare_no_pub [fnv:2b46ad50cede3431] :: a `bare` mark is `bare.never;` at the top 
 bare_only_clash [fnv:8d848622a11f25cf] :: both forbid the path to `fn wave` (`bare.only`)
 bare_only_with_path [fnv:53a2f9ce7fabbd40] :: `greet::wave` is `bare.only`: `greet` forbids its path, so write `wave[…]`
 bare_optional_clash [fnv:04651577553f08b9] :: `hello` could be any of `greet::hello`, `wave::hello`: write the path
-bare_own_does_not_win [fnv:b18ee101b5b3b453] :: `hello` could be any of `my.hello` (this Limb's), `greet::hello`: write the path
+bare_own_does_not_win [fnv:c7e6534ea4d3e656] :: `hello` could be any of `my.hello` (this Neuron's), `greet::hello`: write the path
 bare_owned_assign [fnv:53ce1c0805c37af3] :: say what happens to it
 bare_plain [fnv:0b88d482d372e883] :: a plain `bare` does not say
-bare_pub_limb [fnv:fd76363fd87a59c5] :: a `pub.limb` thing is never reached from them
+bare_pub_limb [fnv:db91e17fbd6ba44a] :: a `pub.neuron` thing is never reached from them
 bare_str [fnv:b78f2a1f98dce47b] :: `str` is never bare: say the encoding
 bare_type_never [fnv:037dc0ed954fe338] :: no struct named `Tally`
 bare_type_only_with_path [fnv:ab3895b0a748dd52] :: `greet::Tone` is `bare.only`: `greet` forbids its path, so write `Tone`
-bare_type_own_does_not_win [fnv:92203127a54fc62d] :: `Note` could be any of `my.Note` (this Limb's), `greet::Note`: write the path
+bare_type_own_does_not_win [fnv:0bd90d486666472a] :: `Note` could be any of `my.Note` (this Neuron's), `greet::Note`: write the path
 bare_unknown_mode [fnv:4c3063f476958c3e] :: no `bare.sometimes`
-bare_unmarked [fnv:ae7fd65307577bd4] :: `fn area` is `pub`, and nothing says how other Limbs write its path
+bare_unmarked [fnv:4940e22e4292c2b7] :: `fn area` is `pub`, and nothing says how other Neurons write its path
 bin16_rounds_past [fnv:10faad936b06526e] :: the value can be outside what a `bin16` holds
 bin32_literal_past [fnv:0d44a148ed0c4e0f] :: the value can be outside what a `bin32` holds
 bin_infinity [fnv:5042776272302d97] :: can go past the largest bin (it would be infinity)
@@ -122,7 +122,7 @@ case_bad_kind [fnv:1784123126ebe5b3] :: `op` is not a kind a `case` mark covers:
 case_differ_only [fnv:9f04eec11862c755] :: `Area` and `area` (line 2 of case_differ_only.cpls) differ only in case, and `area` is `case.insensitive`: they would be one name
 case_disagree [fnv:42ce55f108fca447] :: `fn Area` is marked both `case.insensitive` (line 1 of case_disagree.cpls) and `case.sensitive` (line 2 of case_disagree.cpls): marks that disagree are an error (owner, 2026-10-06)
 case_file_not_first [fnv:4f364d8fce7ca49c] :: a file's `case` mark is at its top, before anything else; a block module takes `case.insensitive module name { … }`
-case_kinds_in_module [fnv:a400e271c042630a] :: a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Limb, so it is written in `limb.cpls`
+case_kinds_in_module [fnv:280390737a998c99] :: a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `limb.cpls`
 case_pub_after [fnv:c644387294c3f297] :: `pub` comes first: `pub case.insensitive fn …`
 case_sensitive_default [fnv:a1b5964ecf87547c] :: there is no item `area` in the root (`limb.cpls`)
 case_value_needs_is [fnv:381bbe93e82606db] :: a case says its value with `is`: `a { is …; }`
@@ -132,7 +132,7 @@ check_bare [fnv:413f5a3fb67ec940] :: `check` goes in front of a statement
 check_fails [fnv:be678e17da79103a] :: the position can be past the end
 check_in_value [fnv:e7e32bc71274232c] :: if half a statement needs it, split the statement
 check_nocheck [fnv:fd645963528e9ebf] :: `check` and `nocheck` cannot both cover it
-check_on_fn [fnv:5c19a165173f9cab] :: the tiers are never global
+check_on_fn [fnv:dfa9ed875d727ff4] :: the tiers are never global
 check_on_fn_in_body [fnv:e371561a00ed503f] :: a function's safety is the sum of its statements
 comma_grouping [fnv:05b8c86a9cd8fe27] :: `,` is not a digit separator
 concur_fail_unhandled [fnv:cbccfc56a451bded] :: this `concur` can fail (bad), so it needs an `otherwise` saying what happens when it does
@@ -162,8 +162,8 @@ detached_lend [fnv:3faba8a8fbccffe8] :: no scope protects it, so 'x' could be go
 dir_badname [fnv:bfe56ff8eb188642] :: module names are lowercase ASCII letters, digits and `_`, starting with a letter
 dir_device_name [fnv:4718e7decb462654] :: is a reserved device name on Windows and cannot name a module
 dir_file_and_block [fnv:df3acd94ef8806e5] :: a module cannot be both
-dir_main_in_module [fnv:ff7321078df83975] :: `MAIN` lives at the root of the Limb (`limb.cpls`), not in a module
-dir_no_root [fnv:6b8ef1b171c8350e] :: is a Limb directory, and a Limb needs its root file `limb.cpls`: none is there
+dir_main_in_module [fnv:ff7321078df83975] :: `MAIN` lives at the root of the Neuron (`limb.cpls`), not in a module
+dir_no_root [fnv:6b8ef1b171c8350e] :: is a Neuron directory, and a Neuron needs its root file `limb.cpls`: none is there
 dir_private_across_files [fnv:f537c2f7d773d954] :: it is visible there and in the modules nested inside it
 div_bare [fnv:d40c9ab3e6d5809c] :: say how `div` rounds
 div_lands_too_small [fnv:cd716c13c720d27d] :: the value can be outside what an `int8` holds
@@ -350,7 +350,7 @@ length_bare [fnv:db83e090996e37b9] :: `list.length` takes a lend: write `lend 'x
 length_is_uint64 [fnv:f5d77dd82552d1de] :: the value can be outside what a `uint64` holds
 let_chain [fnv:4d7d73671053951c] :: `let` is a word of its own
 let_missing [fnv:ccd63909d593c858] :: a declaration starts with `let`
-let_top_level [fnv:0318840d9eb85b0c] :: a Limb-level value is a `const`
+let_top_level [fnv:ee97a47ec0d725a5] :: a Neuron-level value is a `const`
 level_bare [fnv:4f04c4a80920e0e4] :: say how a chain of this level reads
 level_bit_op [fnv:8d3148a71e0946dc] :: has no precedence in the language
 level_refused_chain [fnv:4d8b77dbb9ca92d4] :: this level does not chain
@@ -364,13 +364,13 @@ lifetime_unsaid [fnv:aa05f2b37ee52d7a] :: returns a borrow, so its signature mus
 lifetime_wrong_group [fnv:b39bbc2e457836dc] :: `wrong` returns a borrow of 'b', which is not in @x
 limb_bad_id [fnv:f04176e7cf7d5fef] :: `id` is 64 hex digits
 limb_dep_names_word [fnv:4e354bca24585094] :: a dependency names no word
-limb_prefix_clash [fnv:5613861e39c25451] :: two Limbs have the prefix `areas`
-limb_prefix_std [fnv:841a6629f1d6a704] :: has the prefix `std`, which names the built-in `cord::`
-limb_private [fnv:c028ae8a275433b3] :: is not `pub`, and another Limb reaches only `pub` items
-limb_pub_limb [fnv:c028ae8a275433b3] :: is not `pub`, and another Limb reaches only `pub` items
-limb_registry_needs_id [fnv:59952df433346243] :: which knows a Limb by its ID
-limb_root_old [fnv:ab3a0f3b1cfed550] :: the root of this Limb is `my.` since 2026-10-06, no longer `limb.`
-limb_unlisted [fnv:7b3deec9ecbae94d] :: no Limb with the prefix `geometry`
+limb_prefix_clash [fnv:fd83fc9d9997b5c0] :: two Neurons have the prefix `areas`
+limb_prefix_std [fnv:d8c467fbc3aa1c13] :: has the prefix `std`, which names the built-in `cord::`
+limb_private [fnv:1fe410e572595d82] :: is not `pub`, and another Neuron reaches only `pub` items
+limb_pub_limb [fnv:1fe410e572595d82] :: is not `pub`, and another Neuron reaches only `pub` items
+limb_registry_needs_id [fnv:1d2219b06415c408] :: which knows a Neuron by its ID
+limb_root_old [fnv:5f20248ccc888299] :: the root of this Neuron is `my.` since 2026-10-06, no longer `limb.`
+limb_unlisted [fnv:49c20865a0266a78] :: no Neuron with the prefix `geometry`
 limb_version_dep [fnv:103c76d08dd5f6ea] :: the registry does not exist yet
 list_dot_type [fnv:e3dedab2278effd3] :: `list[int32]`, not `list.int32` (a dot picks a fixed variant, brackets supply a type)
 list_fill_too_big [fnv:8e5c8e7e946ba51c] :: the value can be outside what an `int8` holds
@@ -383,7 +383,7 @@ lte_retired [fnv:d3273b1a4ee04243] :: `<==` is not an operator; less-or-equal is
 main_args_one [fnv:a01f160c881421a0] :: `,` and the second parameter
 main_args_type [fnv:0fbaeb76c89973a8] :: is C's `argc`, whose type is `int32`
 main_as_func [fnv:d88745ab93f13dde] :: write `MAIN { … }` with no `fn`, no return type, no `return`
-manifest_bad_name [fnv:20b05ba63cd81271] :: `Areas of shapes` cannot name a Limb
+manifest_bad_name [fnv:bc4dfe7c942706be] :: `Areas of shapes` cannot name a Neuron
 manifest_bad_prefix [fnv:142ba3472cf5fe78] :: cannot be a prefix, written in code as `Cash-Handling::`
 manifest_core_twice [fnv:0e32e454b22e9575] :: the core IEG is listed twice
 manifest_core_unofficial [fnv:a8509f2d96e82710] :: is not an official one; loading another core is not built yet
@@ -425,9 +425,9 @@ mod_wrap [fnv:be9f9597514259ce] :: `mod` never overflows
 module_bare_name_from_root [fnv:0936952b4389389e] :: there is no item `f` in the root (`limb.cpls`)
 module_in_body [fnv:ff095bdb85c4c377] :: a `module` sits at the top level of a file, not inside a body
 module_include_line [fnv:e6545bf351dc2847] :: a file module is found by its file name, and `module a { … }` is a block
-module_main_inside [fnv:ff7321078df83975] :: `MAIN` lives at the root of the Limb (`limb.cpls`), not in a module
+module_main_inside [fnv:ff7321078df83975] :: `MAIN` lives at the root of the Neuron (`limb.cpls`), not in a module
 module_mod_keyword [fnv:6d4cb506dcd6ef18] :: `mod` is the remainder operator; a module is `module name { … }`
-module_private_const [fnv:f537c2f7d773d954] :: add `pub` (other Limbs too) or `pub.limb` (this Limb) where it is declared
+module_private_const [fnv:f537c2f7d773d954] :: add `pub` (other Neurons too) or `pub.neuron` (this Neuron) where it is declared
 module_private_fn [fnv:f537c2f7d773d954] :: it is visible there and in the modules nested inside it
 module_private_nested [fnv:d04f26a4f52170cd] :: it is visible there and in the modules nested inside it
 module_private_struct [fnv:f537c2f7d773d954] :: it is visible there and in the modules nested inside it
@@ -442,7 +442,7 @@ my_alone [fnv:8b049ab55a911000] :: `my` is followed by `.` and the root item it 
 ne [fnv:1ab20e7db13a717a] :: `!=` is not an operator; not-equal is `not_equal`
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
 no_asp_check [fnv:2bd1fa17f630e35f] :: `check` is ASP's
-no_asp_to [fnv:c593d284ba5fc4d7] :: `to.` is ASP's, and this Limb's CCA.cplr does not list the core ASP
+no_asp_to [fnv:ed56abcbd724e688] :: `to.` is ASP's, and this Neuron's CCA.cplr does not list the core ASP
 no_bin128 [fnv:65f2adec4a0637da] :: there is no `bin128`
 no_cheat_old [fnv:fc0169759787cd18] :: `!c` is `no_cheat` now
 no_checks_lied [fnv:7bbcfe7ae233e140] :: !by-design CCA builds it and emits a note naming `NO_FUCKING_CHECKS`, which is the rule for a vouch that fails every run (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
@@ -459,7 +459,7 @@ no_std_list [fnv:2e321b84a09d7e30] :: a growing list (`list`) is cord's
 no_std_map [fnv:5149b9e8f16923d5] :: a map (`map`) is cord's
 no_std_negative [fnv:e09337d1f21210a8] :: `-` is cord's
 no_std_not [fnv:1e5730f94e9f7b4e] :: `not` is cord's
-no_std_plus [fnv:897293c05a4336c2] :: `plus` is cord's, and this Limb's CCA.cplr does not list cord
+no_std_plus [fnv:f58509518c1daa99] :: `plus` is cord's, and this Neuron's CCA.cplr does not list cord
 no_std_print [fnv:280a5fd8020bccee] :: `cord::print` is cord's
 no_std_text [fnv:704e2ab507e60726] :: a text operation (`str.…`) is cord's
 no_zero_value [fnv:84b2ff3a065836c5] :: there is no implicit zero
@@ -487,7 +487,7 @@ op_lent_word [fnv:771913f827ed9a38] :: T` takes it by value
 op_next_to_plus [fnv:9d0efe113095066a] :: a custom operator has no precedence
 op_no_precedence [fnv:9d0efe113095066a] :: a custom operator has no precedence
 op_no_return_type [fnv:afe154068b1dbc9d] :: is required on an operator
-op_path_wrong_limb [fnv:f6e2ea45a86399f9] :: the Limb `runnable` has no operator `mean`
+op_path_wrong_limb [fnv:58f14d819d74bfce] :: the Neuron `runnable` has no operator `mean`
 op_percent_undefined [fnv:7898bb583b3ac02c] :: `%` is not an operator here: remainder is `mod.floor`
 op_power_not_granted [fnv:48dcf19305aa9efb] :: defines the operator `mean` on built-in types, a power no core it lists grants: IEG grants `operators_on_builtin_types`
 op_redefine_builtin [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `int32` may not
@@ -501,7 +501,7 @@ op_value_minus [fnv:c7639dd8d2554ca7] :: negation as a value is `op neg`
 op_value_old [fnv:b5417eae59430eac] :: `+` is `plus` now
 op_value_untyped [fnv:f5fb837892a1661a] :: alone does not say which
 op_word_undefined [fnv:b1acc1385341e3b7] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
-other_limb [fnv:e242547f6902477b] :: no Limb with the prefix `math`
+other_limb [fnv:37ccdedb8e65b252] :: no Neuron with the prefix `math`
 overflow_lands [fnv:106012fcbb102c23] :: the value can be outside what an `int8` holds
 overflow_past_64_bits [fnv:3fe9bf00838316b2] :: goes past 64 bits in between
 owning_function_bare [fnv:a8b589ea7248e723] :: is an owned `fn[] -> uint64`: say what happens to it
@@ -513,11 +513,11 @@ plus_plus [fnv:b59243419dd75691] :: `++` joins text; there is no increment
 plusplus_needs_conversion [fnv:a6e724baccce5e1b] :: `++` joins text, and its right side is an `integer`: convert it first
 plusplus_numbers [fnv:4cdcad9affc5f4d9] :: `++` joins text, and its left side is an `integer`: convert it first
 pow_old [fnv:f86bba52e868b039] :: `xx` is `pow` now
-power_denied [fnv:d3a05942a2d6ba25] :: this Limb calls C (`write`), which this program denies (`deny`: `cca::Power.c_calls.functions`)
+power_denied [fnv:54e59681190e4a76] :: this Neuron calls C (`write`), which this program denies (`deny`: `cca::Power.c_calls.functions`)
 power_deny_for [fnv:b37efe31805baa2c] :: `shapes` defines the operator `mean` on built-in types, which this program denies
 power_except_in_powers [fnv:54b297f6474bc3b4] :: `.except` and `.for` belong to `deny`
 power_listed_too_narrow [fnv:230e2928cd405e42] :: does not list `c_calls`
-power_not_listed [fnv:329b5cae3d6dcaa6] :: this Limb calls C (`write`), and its CCA.cplr does not list `c_calls`: add `cca::Power.c_calls` to its `powers`
+power_not_listed [fnv:45d60555c5ff5bfd] :: this Neuron calls C (`write`), and its CCA.cplr does not list `c_calls`: add `cca::Power.c_calls` to its `powers`
 precedence_bare [fnv:2c52bed853d4921b] :: say which way the levels count
 print_bare [fnv:7587d85df41ba149] :: say which form
 print_format_backslash_percent [fnv:ad50ed3dcd7f1187] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
@@ -549,8 +549,9 @@ ptr_read_without_nocheck [fnv:b05717fcb97887c8] :: no_check site
 ptr_write_readonly [fnv:9e0b87326584f59b] :: this pointer is read-only
 pub_in_body [fnv:f825901e8ec3da8a] :: `pub` goes at the top level, on a `fn`, `struct`, `enum` or `const`
 pub_let [fnv:db37187357d70c69] :: is a `const`, not a variable
-pub_main [fnv:71b5050bf3081fb0] :: it is the program's block, not something another Limb can reach
-pub_narrowing_bad [fnv:a97d696cbedd855e] :: the only narrowing of `pub` is `pub.limb` (this Limb only); plain `pub` is other Limbs too
+pub_limb_old_spelling [fnv:d31e7d0b9a2380b6] :: `limb` is an old spelling: write `neuron`
+pub_main [fnv:71b5050bf3081fb0] :: it is the program's block, not something another Neuron can reach
+pub_narrowing_bad [fnv:a97d696cbedd855e] :: the only narrowing of `pub` is `pub.neuron` (this Neuron only); plain `pub` is other Neurons too
 quoted_func_name [fnv:ae3cce4260d5cad9] :: `fn add […]`, not `fn 'add'`
 quoted_main [fnv:e070af1b394ec349] :: `fn main […]`, not `fn 'main'`
 range_as_value [fnv:7ef7f0bec22d7c9f] :: `range[…]` is only decided as what a `for` runs over; as a value on its own it is not
@@ -591,7 +592,7 @@ shadow_with_let [fnv:46b3a25a780cf743] :: `shadow` takes `let`'s place: `shadow 
 shift_count_huge [fnv:ec9fe2cc1e68af45] :: the shift count can be outside 0 to the width - 1
 shift_operand_too_wide [fnv:597323e2494de8f5] :: `minus` can leave what the type holds
 shl_no_width [fnv:93c25ad48c4751b2] :: `shl` needs a width, and nothing here gives one
-short_name_one_limb [fnv:c62ad7b10088ce87] :: gives other Limbs a shorter name
+short_name_one_limb [fnv:63819db5936c01f4] :: gives other Neurons a shorter name
 shr_no_width [fnv:507523dacedbfa20] :: `shr` needs a width, and nothing here gives one
 simd_bad_element [fnv:6d4c89bc3637c80b] :: a `simd` holds plain numbers or bools
 simd_fill_needs_value [fnv:68d864bfb7249c51] :: the value says `value`: `simd.fill[value 0]`

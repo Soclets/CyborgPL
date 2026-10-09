@@ -245,6 +245,8 @@ fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
             let (kind, bits) = w.split_at(1);
             old(&format!("not_std.{}", w), &format!("not_std.{}{}", if kind == "i" { "int" } else { "uint" }, bits))
         }
+        // `pub.neuron` (owner, 2026-10-09: a library is a Neuron).
+        Tok::Word(w) if w == "limb" && after(1, &Tok::Dot) && i >= 2 && toks[i - 2].tok == Tok::Word("pub".into()) => old("limb", "neuron"),
         Tok::Word(_) if after(1, &Tok::Dot) || after(1, &Tok::ColonColon) => None,
         Tok::Word(w) => rust_name(w).and_then(|m| old(w, m)),
         _ => None,
@@ -274,7 +276,7 @@ fn rust_name(w: &str) -> Option<&'static str> {
 }
 
 fn core_missing<T>(what: &str, core: &str, at: Span) -> Result<T> {
-    err(Diagnostic::error(format!("{} is {}'s, and this Limb's CCA.cplr does not list the core {}: add `{}` to its `cores`", what, core, core, core_line(core))).at(at))
+    err(Diagnostic::error(format!("{} is {}'s, and this Neuron's CCA.cplr does not list the core {}: add `{}` to its `cores`", what, core, core, core_line(core))).at(at))
 }
 
 /// std's registry ID and the one version CCA knows (owner, 2026-10-06).
@@ -321,7 +323,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
             // "Time: std, with duration literals"; d690ed91).
             if let (Tok::Num { .. }, Some(Tok::Word(u))) = (&toks[i].tok, toks.get(i + 1).map(|t| &t.tok)) {
                 if DURATION_UNITS.contains(&u.as_str()) {
-                    return err(Diagnostic::error(format!("a duration literal (`5 seconds`) is cord's, and this Limb's CCA.cplr does not list cord: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", STD_ID, STD_VERSION)).at(toks[i].span));
+                    return err(Diagnostic::error(format!("a duration literal (`5 seconds`) is cord's, and this Neuron's CCA.cplr does not list cord: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", STD_ID, STD_VERSION)).at(toks[i].span));
                 }
             }
             let Tok::Word(w) = &toks[i].tok else { continue };
@@ -336,7 +338,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                 ("str", Some(Tok::Dot)) if matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(u)) if matches!(u.as_str(), "bytes" | "points" | "graphemes" | "each" | "split" | "find" | "contains" | "trim" | "upper" | "lower" | "replace" | "starts_with" | "ends_with" | "at" | "slice" | "join")) => "a text operation (`str.…`)",
                 _ => continue,
             };
-            return err(Diagnostic::error(format!("{} is cord's, and this Limb's CCA.cplr does not list cord: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION)).at(toks[i].span));
+            return err(Diagnostic::error(format!("{} is cord's, and this Neuron's CCA.cplr does not list cord: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION)).at(toks[i].span));
         }
     }
     // Signatar's names are English letters, digits and `_`, bare or
@@ -348,7 +350,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                 Tok::Name(n) if !n.is_ascii() => format!("`'{}'`", n),
                 _ => continue,
             };
-            return err(Diagnostic::error(format!("{} is not an English name: Signatar's names are English letters, digits and `_`; a name in another script, or an emoji, needs the core WSTN in this Limb's `cores` (`{}`)", shown, core_line("WSTN"))).at(t.span));
+            return err(Diagnostic::error(format!("{} is not an English name: Signatar's names are English letters, digits and `_`; a name in another script, or an emoji, needs the core WSTN in this Neuron's `cores` (`{}`)", shown, core_line("WSTN"))).at(t.span));
         }
     }
     // Old spellings, in every Limb (the 2026-10-07 revision; owner: "MTM
@@ -517,7 +519,7 @@ impl<'a> Parser<'a> {
         if !self.no_std {
             return Ok(());
         }
-        self.fail_at(span, format!("`{}` is cord's, and this Limb's CCA.cplr does not list cord: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION))
+        self.fail_at(span, format!("`{}` is cord's, and this Neuron's CCA.cplr does not list cord: add `cca::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION))
     }
 
     fn fail<T>(&self, msg: impl Into<String>) -> Result<T> {
@@ -593,7 +595,7 @@ impl<'a> Parser<'a> {
         // The root path is `my.` (owner, 2026-10-06: "Is it `my.`?" —
         // "yea"); `pub.limb` and `limb.cpls` keep the word.
         if limb.is_none() && segs[0].name == "limb" {
-            return self.fail_at(segs[0].span, "the root of this Limb is `my.` since 2026-10-06, no longer `limb.`: `my.helper[]`, `my.'pi'`");
+            return self.fail_at(segs[0].span, "the root of this Neuron is `my.` since 2026-10-06, no longer `limb.`: `my.helper[]`, `my.'pi'`");
         }
         if let Some(l) = limb.as_ref().filter(|l| l.name == "std") {
             self.std_gate(&format!("cord::{}", segs[0].name), l.span.to(segs[0].span))?;
@@ -616,7 +618,7 @@ impl<'a> Parser<'a> {
                 return self.fail_at(at, format!("`pub` comes first: `pub {} fn …`", case_spelled(mark)));
             }
             if self.is(&Tok::LBracket) {
-                return self.fail_at(at, "a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Limb, so it is written in `limb.cpls`");
+                return self.fail_at(at, "a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `limb.cpls`");
             }
             if self.is(&Tok::Semi) {
                 return self.fail_at(at, CASE_FILE_MARK_FIRST);
@@ -627,7 +629,7 @@ impl<'a> Parser<'a> {
         if self.is_word("bare") {
             let at = self.span();
             return match self.bare_line()? {
-                (_, Some(_)) => self.fail_at(at, "a `bare.… […];` line covers the whole Limb, so it is written in `limb.cpls`"),
+                (_, Some(_)) => self.fail_at(at, "a `bare.… […];` line covers the whole Neuron, so it is written in `limb.cpls`"),
                 (_, None) => self.fail_at(at, FILE_MARK_FIRST),
             };
         }
@@ -635,8 +637,8 @@ impl<'a> Parser<'a> {
             self.bump();
             if self.eat(&Tok::Dot) {
                 let narrowing = self.ident("a word after `pub.`")?;
-                if narrowing.name != "limb" {
-                    return self.fail_at(narrowing.span, format!("`pub.{}` is not a visibility: the only narrowing of `pub` is `pub.limb` (this Limb only); plain `pub` is other Limbs too", narrowing.name));
+                if narrowing.name != "neuron" {
+                    return self.fail_at(narrowing.span, format!("`pub.{}` is not a visibility: the only narrowing of `pub` is `pub.neuron` (this Neuron only); plain `pub` is other Neurons too", narrowing.name));
                 }
                 vis = Vis::Limb;
             } else {
@@ -648,7 +650,7 @@ impl<'a> Parser<'a> {
             if self.is_word("bare") {
                 let (mark, at) = self.bare_mark()?;
                 if vis == Vis::Limb {
-                    return self.fail_at(at, "a `bare` mark says how other Limbs write the path, and a `pub.limb` thing is never reached from them");
+                    return self.fail_at(at, "a `bare` mark says how other Neurons write the path, and a `pub.neuron` thing is never reached from them");
                 }
                 bare = Some((mark, at));
             }
@@ -656,13 +658,13 @@ impl<'a> Parser<'a> {
                 case = Some(self.case_mark()?);
             }
             if self.is_word("MAIN") {
-                return self.fail("`MAIN` is never `pub`: it is the program's block, not something another Limb can reach");
+                return self.fail("`MAIN` is never `pub`: it is the program's block, not something another Neuron can reach");
             }
             if self.is_word("let") {
-                return self.fail("a Limb-level value is a `const`, not a `let`: `pub const 'name' := …;`");
+                return self.fail("a Neuron-level value is a `const`, not a `let`: `pub const 'name' := …;`");
             }
             if let Tok::Name(n) = self.peek().clone() {
-                return self.fail(format!("a Limb-level value is a `const`, not a variable: `pub const '{}' := …;`", n));
+                return self.fail(format!("a Neuron-level value is a `const`, not a variable: `pub const '{}' := …;`", n));
             }
         }
         // `test fn` (owner, 2026-09-29): never `pub`, run by `cca test`.
@@ -921,7 +923,7 @@ impl<'a> Parser<'a> {
         let at = self.span();
         self.bump();
         if !self.eat(&Tok::Dot) {
-            return self.fail_at(at, "say how other Limbs write the path: `bare.never` (required), `bare.optional` or `bare.only` (forbidden); a plain `bare` does not say");
+            return self.fail_at(at, "say how other Neurons write the path: `bare.never` (required), `bare.optional` or `bare.only` (forbidden); a plain `bare` does not say");
         }
         let mode = self.ident("`never`, `optional` or `only`")?;
         let mark = match mode.name.as_str() {
@@ -968,7 +970,7 @@ impl<'a> Parser<'a> {
     fn item_kind(&mut self, vis: Vis) -> Result<ItemKind> {
         let w = match self.peek().clone() {
             Tok::Word(w) => w,
-            Tok::Name(n) => return self.fail(format!("a Limb-level value is a `const`: `const '{}' := …;` — a variable lives inside a body", n)),
+            Tok::Name(n) => return self.fail(format!("a Neuron-level value is a `const`: `const '{}' := …;` — a variable lives inside a body", n)),
             other => return self.fail(format!("expected a top-level item (`fn`, `struct`, `enum`, `const`, `module`, `MAIN`), found {}", other.describe())),
         };
         match w.as_str() {
@@ -1030,8 +1032,8 @@ impl<'a> Parser<'a> {
                             line_vis = Vis::Pub;
                             if self.eat(&Tok::Dot) {
                                 let narrowing = self.ident("a word after `pub.`")?;
-                                if narrowing.name != "limb" {
-                                    return self.fail_at(narrowing.span, format!("`pub.{}` is not a visibility: the only narrowing of `pub` is `pub.limb`", narrowing.name));
+                                if narrowing.name != "neuron" {
+                                    return self.fail_at(narrowing.span, format!("`pub.{}` is not a visibility: the only narrowing of `pub` is `pub.neuron`", narrowing.name));
                                 }
                                 line_vis = Vis::Limb;
                             }
@@ -1112,16 +1114,16 @@ impl<'a> Parser<'a> {
                 self.precedence_block()?;
                 Ok(ItemKind::ExternBlock(Vec::new()))
             }
-            "let" => self.fail("a Limb-level value is a `const`, not a `let`: `const 'name' := …;`"),
+            "let" => self.fail("a Neuron-level value is a `const`, not a `let`: `const 'name' := …;`"),
             "check" | "nocheck" => {
                 if self.is_word_at(1, "fn") {
-                    self.fail(format!("`{}` cannot go on a `fn`: the tiers are never global — there is no file-wide or Limb-wide tier; put `{}` in front of the statements inside", w, w))
+                    self.fail(format!("`{}` cannot go on a `fn`: the tiers are never global — there is no file-wide or Neuron-wide tier; put `{}` in front of the statements inside", w, w))
                 } else {
                     self.fail(format!("`{}` goes in front of a statement inside a body, never at the top level: the tiers are never global", w))
                 }
             }
             "inline" => self.fail("`inline.ASM` goes inside a body, as a statement, under `no_check`"),
-            "var" => self.fail("`var` is gone, and a Limb's top-level value is a `const`: `const 'name' := …;`"),
+            "var" => self.fail("`var` is gone, and a Neuron's top-level value is a `const`: `const 'name' := …;`"),
             _ => {
                 // `Vec satisfies Ordered;`
                 if !is_keyword(&w) {
@@ -1429,7 +1431,7 @@ impl<'a> Parser<'a> {
     fn params(&mut self, ctx: ParamContext) -> Result<Vec<Param>> {
         if !self.is(&Tok::LBracket) {
             if ctx == ParamContext::Fn && self.is_op("=") {
-                return self.fail("not yet: `pub fn short = module.name;` gives other Limbs a shorter name (owner, 2026-09-23), and CCA builds one Limb so far");
+                return self.fail("not yet: `pub fn short = module.name;` gives other Neurons a shorter name (owner, 2026-09-23), and CCA builds one Neuron so far");
             }
             return self.fail(format!("expected `[` starting the parameters, found {}", self.peek().describe()));
         }
@@ -3696,7 +3698,7 @@ impl<'a> Parser<'a> {
                 }
                 "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail("`lang:` was removed: keywords are bare"),
                 w if is_keyword(w) && w != "map" && matches!(self.peek_at(1), Tok::LBracket) => {
-                    self.fail(format!("`{}` is a keyword and is never bare: a function named with one is reached only through a path — `limb.{}[…]` inside its own Limb, `name::{}[…]` from outside", w, w, w))
+                    self.fail(format!("`{}` is a keyword and is never bare: a function named with one is reached only through a path — `limb.{}[…]` inside its own Neuron, `name::{}[…]` from outside", w, w, w))
                 }
                 "let" | "return" | "if" | "else" | "loop" | "while" | "for" | "break" | "continue" | "fail" | "concur" | "whichever" | "struct" | "enum" | "pub" | "const" | "module" | "extern" | "interface" | "op" | "satisfies" | "with" | "in" | "from" | "temp" | "perm" | "seq" | "mut" | "immut" | "inline" | "layout" | "var" | "func" | "MAIN" => {
                     self.fail(format!("expected a value, found `{}`", w))
@@ -3704,7 +3706,7 @@ impl<'a> Parser<'a> {
                 // Another Limb's const, straight after `::`: `areas::'pi'`
                 // (`limbs.md`).
                 _ if matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(2), Tok::Name(_)) => {
-                    let limb = self.ident("a Limb's name")?;
+                    let limb = self.ident("a Neuron's name")?;
                     self.bump();
                     let Tok::Name(n) = self.peek().clone() else { unreachable!() };
                     let span = self.bump().span;

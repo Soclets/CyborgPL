@@ -223,7 +223,7 @@ fn limbs_reach_their_dependencies() {
     let r = Command::new(cca()).arg("run").arg("--target").arg("aarch64-macos").arg(limbs.join("no_default")).output().unwrap();
     assert_eq!(r.status.code(), Some(5), "`--target aarch64-macos` did not build and run it:\n{}", String::from_utf8_lossy(&r.stderr));
     let r = Command::new(cca()).arg("run").arg("--target").arg("x86_64-linux").arg(limbs.join("no_default")).output().unwrap();
-    assert!(!r.status.success() && String::from_utf8_lossy(&r.stderr).contains("is not one of this Limb's targets"), "a target the Limb does not list was built:\n{}", String::from_utf8_lossy(&r.stderr));
+    assert!(!r.status.success() && String::from_utf8_lossy(&r.stderr).contains("is not one of this Neuron's targets"), "a target the Limb does not list was built:\n{}", String::from_utf8_lossy(&r.stderr));
     // A version may be any text of at most 256 bytes (owner, 2026-09-29).
     let r = Command::new(cca()).arg("check").arg(limbs.join("long_version")).output().unwrap();
     assert!(r.status.success(), "a 256-byte version was refused:\n{}", String::from_utf8_lossy(&r.stderr));
@@ -253,7 +253,7 @@ fn prepare_runs_build_scripts_in_their_folders() {
     // prefixes, and `--prefix` picks one (owner, 2026-09-30).
     let r = prep("prep_shared", &["geometry"]);
     let err = String::from_utf8_lossy(&r.stderr);
-    assert!(!r.status.success() && err.contains("2 Limbs here are named `geometry`, with the prefixes `geometry`, `geo2`"), "a shared name was not refused with its prefixes:\n{}", err);
+    assert!(!r.status.success() && err.contains("2 Neurons here are named `geometry`, with the prefixes `geometry`, `geo2`"), "a shared name was not refused with its prefixes:\n{}", err);
     // `--prefix` takes a comma list, and follows names in one command
     // (owner, 2026-09-30: "yea", "yea").
     for (words, want) in [(&["--prefix", "geo2"][..], "geo2"), (&["--prefix", "geometry"][..], "geometry"), (&["--prefix", "geo2,", "geometry"][..], "geo2 geometry"), (&["shared", "--prefix", "geo2"][..], "shared geo2"), (&["shared,", "shared", "--prefix", "geo2,", "shared"][..], "shared geo2"), (&["--all"][..], "money geometry geo2 shared")] {

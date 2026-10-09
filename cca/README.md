@@ -435,7 +435,7 @@ Dated, with the alternative, so each can become a question later.
   the natural width a lone number has (`core-features.md`), 64 bits, so
   two lanes in a 128-bit register. Before, it had no shape at all.
   Alternative: refuse it and ask for a type, as `simd.shuffle` does.
-- **2026-09-29 — Limbs with dependencies: picks.** CCA builds the
+- **2026-09-29 — Neurons with dependencies: picks.** CCA builds the
   default target (owner, 2026-09-29: b: `default = true`, or the only
   one), and writes code for `aarch64-macos` only so far, so any other
   default is refused as "not yet" rather than built for the wrong
@@ -449,9 +449,9 @@ Dated, with the alternative, so each can become a question later.
   (owner, 2026-09-30: "strict"), with the oracle's reasons. A dependency is reached by its own 'prefix' and names no
   word; two different folders with one prefix, or a dependency whose
   prefix is `std` or `cca`, are refused, as the oracle does; the root
-  Limb's own prefix is checked against neither, as in the oracle. A
+  Neuron's own prefix is checked against neither, as in the oracle. A
   dependency's own 'targets' are checked and not otherwise used. Using a
-  runner is open. Two Limbs that depend on the same folder share one
+  runner is open. Two Neurons that depend on the same folder share one
   copy of it. A `version` dependency is refused until the registry
   exists, as the oracle does.
 - **2026-09-30 — Parallel `for`: how CCA builds it.** The rules are the
@@ -488,32 +488,32 @@ Dated, with the alternative, so each can become a question later.
     tests set 3, this session's share of the machine.
 - **2026-09-30 — `--target <name>` names the target to build (ruled:
   owner, 2026-09-30, "yea").** A lone
-  target saying `default = false` leaves the Limb no default (owner,
+  target saying `default = false` leaves the Neuron no default (owner,
   2026-09-30), and a compile (`cca build`, `cca run`, `cca test`) with no
   target named is then refused; checking (`cca check`, `cca mir`, `cca
   precog`) is not. A target is named `--target aarch64-macos`, the
   spelling cargo and clang use, once per command (proposed by CCA, ruled
-  by the owner). A named target must be one the Limb's `CCA.cplr` lists (a
+  by the owner). A named target must be one the Neuron's `CCA.cplr` lists (a
   plain `.cpls` file: one in `cca/targets.txt`), and is built only on its
   own machine so far, as the default is.
 - **2026-09-29 — `cca prepare`: picks around the owner's rulings.** The
-  rulings (the current folder's Limb; names are Limbs' `name`s, its own or
+  rulings (the current folder's Neuron; names are Neurons' `name`s, its own or
   its dependencies', comma-separated with or without a space; a name two of
   them share is refused with their prefixes listed, and `--prefix geo2`
-  picks one; a `build.cplr` runs in its own Limb's folder; `--all` runs
+  picks one; a `build.cplr` runs in its own Neuron's folder; `--all` runs
   dependencies first, each once, stopping at the first failure) are built
   as ruled. Also ruled (owner, 2026-09-30, "yea" to each, as CCA had
-  built them): named Limbs run in the order written, each once, whether
+  built them): named Neurons run in the order written, each once, whether
   asked for by name or by prefix; the names come before `--prefix`, and
   every word after it is a prefix, so `cca prepare --prefix geo2 money`
   and a second `--prefix` are refused. Picks beside them, still
-  provisional: a named Limb with no `build.cplr` is refused, while `--all` passes
+  provisional: a named Neuron with no `build.cplr` is refused, while `--all` passes
   over those; and the failing one's exit is cca's. Ruled (owner,
   2026-09-30): each `build.cplr` is an ordinary program with no limits
   and no channel into the build, built as a program of its own with no
-  language access to its Limb's code — it reads a Limb's files as any
+  language access to its Neuron's code — it reads a Neuron's files as any
   program would — and given no command-line words: its settings come as
-  any program's do, from the environment or files; a Limb whose prefix differs from its name
+  any program's do, from the environment or files; a Neuron whose prefix differs from its name
   is shown as `geometry (prefix `geo2`)`. `--prefix` takes a comma list
   and mixes with names (owner, 2026-09-30): `cca prepare money --prefix
   geo2, geo3`.

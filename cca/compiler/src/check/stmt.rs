@@ -292,7 +292,7 @@ impl Checker {
                     return err(Diagnostic::error(format!("`shadow` takes a visible '{n}', and none is visible here: write `let '{n}' := …;`", n = name.name)).at(name.span));
                 }
                 if !*shadow && self.const_visible(ctx, &name.name) {
-                    return err(Diagnostic::error(format!("'{}' is a const of this Limb and cannot be redeclared", name.name)).at(name.span));
+                    return err(Diagnostic::error(format!("'{}' is a const of this Neuron and cannot be redeclared", name.name)).at(name.span));
                 }
                 let declared = match ty {
                     Some(t) => {

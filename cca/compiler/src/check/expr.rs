@@ -1791,7 +1791,7 @@ impl Checker {
             Some((limb, name)) => {
                 let here = self.items.limb_root(ctx.module);
                 let Some(root) = self.items.limb_deps.get(&here).and_then(|d| d.get(limb)).copied() else {
-                    return err(Diagnostic::error(format!("no Limb with the prefix `{}`: a Limb this one uses is listed in its `CCA.cplr`, and its own `CCA.cplr` says `prefix = \"{}\"`", limb, limb)).at(op_span));
+                    return err(Diagnostic::error(format!("no Neuron with the prefix `{}`: a Neuron this one uses is listed in its `CCA.cplr`, and its own `CCA.cplr` says `prefix = \"{}\"`", limb, limb)).at(op_span));
                 };
                 (Some((limb, root)), name)
             }
@@ -1799,7 +1799,7 @@ impl Checker {
         };
         let Some(fn_id) = self.find_op_in(name, lt.base(), limb.map(|l| l.1)) else {
             if let Some((limb, _)) = limb {
-                return err(Diagnostic::error(format!("the Limb `{}` has no operator `{}` for {}: a path picks only that Limb's operator", limb, name, crate::types::a_type(&self.spell(&lt)))).at(op_span));
+                return err(Diagnostic::error(format!("the Neuron `{}` has no operator `{}` for {}: a path picks only that Neuron's operator", limb, name, crate::types::a_type(&self.spell(&lt)))).at(op_span));
             }
             let hint = match spelling {
                 "*" => "multiply is `times`",
@@ -1825,7 +1825,7 @@ impl Checker {
             if roots.len() > 1 {
                 let mut named: Vec<String> = roots.iter().map(|r| match self.items.limb_deps.get(&here).and_then(|d| d.iter().find(|(_, x)| *x == r)) {
                     Some((p, _)) => format!("`{}::{}`", p, name),
-                    None => format!("`my.{}` (this Limb's)", name),
+                    None => format!("`my.{}` (this Neuron's)", name),
                 }).collect();
                 named.sort();
                 return err(Diagnostic::error(format!("`{}` could be any of {}: write the path", name, named.join(", "))).at(op_span));
