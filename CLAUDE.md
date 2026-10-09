@@ -81,8 +81,8 @@ Neuron, `pub.neuron`, Precog is Cortex, a core is a lobe, `lobes =
 and the built-in package manager is Kinesin (2026-10-09). Code ends **`.nrv`**
 (was `.cpls`), a Neuron's root is `neuron.nrv` (was `limb.cpls`), a file that
 is one value and never runs ends **`.nrp`**, and the manifest is
-`Kinesin.nrp` with `kin::` types (was `CCA.cplr`, `cca::`). Still to rename:
-Synapse → Synapse (the `cca` command and folder, compiler claude's). A Neuron's
+`Kinesin.nrp` with `kin::` types (was `CCA.cplr`, `cca::`). The compiler is
+Synapse (`synapse` / `syn`, folder `synapse/`; `cca` refuses). A Neuron's
 build program is `build.nrv`, its language date `nerve_version.nrp`. The Nerve names are in
 `DECISIONS.md`.
 
