@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-09 — CCA is Synapse; the command answers to both `synapse` and `syn` (owner)
+
+The last rename step, CCA → Synapse (chosen 2026-10-08): the owner, "Yea".
+Asked for the command's name, (a) `synapse` or (b) an abbreviation (`syn`,
+recommended, `snp`, `sy`), the owner: "Both". So **the compiler's command is
+`synapse`, and `syn` is its short form**: `synapse build` and `syn build` do
+the same; the old `cca` is refused, naming them. This is a deliberate second
+spelling, the owner's, where 2026-10-07 made one spelling per thing the rule
+in the language and `cca precog` was refused on it this morning. Not yet
+asked: the names of the folder (`cca/`) and the crates (`cca-runtime`, …).
+
 ### 2026-10-09 — Code ends `.nrv`, settings end `.nrp`; the manifest is `Kinesin.nrp` with `kin::` types (owner)
 
 Before the endings step, design claude asked about the other `.cplr` files
