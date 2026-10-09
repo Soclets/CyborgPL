@@ -196,7 +196,11 @@ still names the icon. Later the same day, the owner: "Try putting the Nerve icon
 wordmark, on the left. With the icon's background"; design claude set both
 54 px high on one line, with no alignment attributes (9de7d292); the owner:
 "Looks good". So **the README's top shows the icon, on its tile, left of the
-wordmark**.
+wordmark**. Then a light icon (owner: "Tell website claude to make a light version
+of the icon"; `brand/nerve/icon-light.svg`, a dark starburst on a white tile
+with a hairline edge), and **the README's icon switches with GitHub's theme**
+(owner: "yea, switch it with the theme"): the light icon in light mode, the
+dark one in dark mode, as the wordmark does.
 
 ### 2026-10-09 — The names and logos are trademarks anyone may use, without pretending to be us (owner)
 

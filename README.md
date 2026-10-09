@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="brand/nerve/icon.svg" alt="" height="54"> <picture><source media="(prefers-color-scheme: dark)" srcset="brand/nerve/wordmark-white.svg"><img src="brand/nerve/wordmark-black.svg" alt="Nerve" height="54"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="brand/nerve/icon.svg"><img src="brand/nerve/icon-light.svg" alt="" height="54"></picture> <picture><source media="(prefers-color-scheme: dark)" srcset="brand/nerve/wordmark-white.svg"><img src="brand/nerve/wordmark-black.svg" alt="Nerve" height="54"></picture>
 </p>
 
 <h3 align="center">Nerve™</h3>
