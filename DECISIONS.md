@@ -17,7 +17,13 @@ chip-OS (`aarch64-macos`, `x86_64-linux`), `none` is already among
 `on.target.os`'s names, and LLVM's own name for it is `aarch64-unknown-none`.
 So **Synapse gains the target `aarch64-none`**, with its own link step (no
 system library, a linker script, an entry point), and a failed check there
-becomes a trap (`brk`). Not built yet.
+becomes a trap (`brk`). Not built yet. Compiler claude's four questions for running it, asked one at a
+time: **Q1, where the program sits in memory: a Neuron targeting
+`aarch64-none` brings its own linker script, which Synapse hands to lld**
+(owner: "`c` now", as Rust's `memory.x` and C's `-T`), over (a) one built-in
+layout per target (QEMU `virt`), which compiler claude and design claude
+recommended first, and (b) a new `kin::Target` field for RAM start, size and
+stack.
 
 ### 2026-10-09 — The practical base is built in the oracle; Signatar is CyborgPL's base, the Brainstem Nerve's (owner)
 
