@@ -71,7 +71,7 @@ fn have_leaks() -> bool {
 /// each building every program.
 #[test]
 fn programs_build_run_and_give_back() {
-    assert!(runtime().is_some(), "the runtime is not built — run `cargo build -p cca-runtime` first; the linker needs libsynapse_runtime.a");
+    assert!(runtime().is_some(), "the runtime is not built — run `cargo build -p synapse-runtime` first; the linker needs libsynapse_runtime.a");
     let leaks = have_leaks();
     if !leaks {
         eprintln!("note: no `leaks` on this machine, so nothing checked what the programs freed");

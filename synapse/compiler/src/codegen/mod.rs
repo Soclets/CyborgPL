@@ -4198,7 +4198,7 @@ extern "C" {
 /// architecture, the platform and SDK versions, the SDK as the system
 /// root, the runtime, and libSystem.
 pub fn link(obj: &Path, out: &Path) -> Result<(), String> {
-    let runtime = runtime_path().ok_or_else(|| "Axon, the runtime, is not built: `cargo build -p cca-runtime --release`".to_string())?;
+    let runtime = runtime_path().ok_or_else(|| "Axon, the runtime, is not built: `cargo build -p synapse-runtime --release`".to_string())?;
     if !cfg!(target_os = "macos") {
         return Err("linking with lld is built for macOS so far: this host's system libraries and start files are not found yet".into());
     }
