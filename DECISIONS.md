@@ -5,6 +5,27 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-10 — Include bytes may read any file; the registry refuses a published Neuron that reads one outside itself (owner: c; not built)
+
+The owner: "Let's do include bytes" (2026-10-08: "I kinda want include
+bytes, tbh", left open then as an exception to reproducible builds' rule
+3). Design claude first offered (a) only files inside the Neuron, the
+language refusing the rest, recommended, or (b) any path, as Rust's
+`include_bytes!`. Asked "What", then "Isn't it baked into the binary, so
+`b` wouldn't fail?" (the built program is fine; building the source again
+elsewhere, as every user of a published Neuron does, fails or differs), the
+owner: "So, we're gonna limit the language instead of putting a rule in the
+registry?" Design claude added (c) free in the language, the registry
+refusing a published Neuron that reads a file outside its folder, as it
+refuses a bare word operator from another Neuron (2026-10-02), and now
+recommended it; the gap, a Neuron depended on straight from git never
+passing the registry, is the same one that rule has. The owner: "(c)". So
+**a build may include any file's bytes; the registry refuses publishing a
+Neuron that includes a file outside its own folder**. Design claude's
+reading, not asked: the file counts as source, so its bytes are part of
+what the build and Cortex's cache depend on. Not yet asked: the spelling,
+the value's type, what a path is relative to, and a text twin.
+
 ### 2026-10-10 — The case marks are `case.any` and `case.exact` (owner: a)
 
 Shown `case.insensitive` / `case.sensitive` (2026-10-06), the owner: "I

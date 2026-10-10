@@ -27,7 +27,12 @@ and "compile for the exact machine" makes the target part of the input.
    question.) **Revised 2026-10-08** (owner: "We should have env vars"):
    a build may read any environment variable, freely, as Rust's `env!`
    (owner: "`c`"); a build that reads one is repeatable only with the same
-   values, which nothing records.
+   values, which nothing records. **Revised 2026-10-10**: a build may also
+   put a file's bytes into the program (include bytes), from any path; the
+   registry refuses a published Neuron that reads a file outside its own
+   folder (owner: "(c)"), so a Neuron built from source elsewhere finds
+   every file it includes. The file counts as source: its bytes are part
+   of what the build depends on. Spelling and the rest are in DECISIONS.
 4. **Measurements are inputs too** (owner, 2026-09-28): `synapse tune` times
    loops once, on purpose, and writes `tune.nrp` (`synthia tune` runs it); builds read the file
    and never time anything themselves (`gpu.md`).
