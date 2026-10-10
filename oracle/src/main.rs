@@ -245,7 +245,7 @@ impl Dep { fn is_std(&self) -> bool { self.id.as_deref() == Some(parser::STD_ID)
 
 /// The official cores (design/cores.md, 2026-10-06). Another core is a Rust plugin, which the oracle
 /// cannot load.
-const OFFICIAL_CORES: [&str; 13] = ["IEG", "MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan", "WSTN", "TAS", "AI", "WSMW", "Money", "UniTect", "CAPS"];
+const OFFICIAL_CORES: [&str; 14] = ["IEG", "MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan", "WSTN", "TAS", "AI", "WSMW", "Money", "UniTect", "CAPS", "CNC"];
 
 use parser::CORE_IDS;
 

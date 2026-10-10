@@ -134,6 +134,14 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
 
 ## The official lobes
 
+- **CNC, "CNC Not C"** (owner, 2026-10-10): everything about C, one lobe for
+  that expertise: `extern.C`, `incl.C`, `layout.C`, callbacks to C, the
+  `C.` types (`C.int`, `C.long`, `C.long_double`, …), and the `c_calls`
+  power. The Brainstem keeps none of it, but keeps `ptr` and inline
+  assembly, which are the machine's, not C's. A neuron that does not list
+  CNC provably never calls C. Lobes are being regrouped by expertise
+  (owner: "Like a big one for a expertise"); the lobes below predate that.
+
 - **IEG, the Intense Energy Generator.** Raw operations as plain calls
   (`add`, `negate`, `compare` *sketch*), with contracts Cortex trusts;
   `inline.LL { … }`, LLVM IR in place; and the **labels**: `no_check`,
@@ -207,8 +215,9 @@ makes its own lists and allocator, as Linux does.
 - **The program may take powers away, never add** (`deny`), and **an
   upgrade that starts using a new power is flagged**.
 - **The dangerous abilities are powers too** (owner, 2026-10-07), which
-  Brainstem grants every neuron by default: `inline_assembly`, `c_calls`,
-  `raw_memory`. **Lobes may add powers of their own.** A power narrows with
+  Brainstem grants every neuron by default: `inline_assembly` and
+  `raw_memory`; `c_calls` is CNC's since 2026-10-10, granted to a neuron
+  that lists CNC (design claude's reading: the Brainstem keeps nothing of C). **Lobes may add powers of their own.** A power narrows with
   `.` and names exact things in `[ ]`; `deny` takes `.except[ … ]` and
   `.for[ … ]`: `deny = [kin::Power.c_calls.except["sqrt"],
   kin::Power.inline_assembly.for["fastjson"],]`.

@@ -2,6 +2,8 @@
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
+> Since 2026-10-10 everything about C here (`extern.C`, `layout.C`, callbacks, and `incl.C`, C headers) is the CNC lobe's (`cores.md`): a neuron lists CNC to use it. `ptr`, raw memory and inline assembly stay the Brainstem's.
+
 Decided 2026-09-19, one question at a time, after the owner asked how
 std's print gets made and then: "Syscall and lower-level stuff should be
 able to do, using the base Cyborg language." So the door to the OS is the

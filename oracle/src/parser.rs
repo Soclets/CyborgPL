@@ -21,7 +21,7 @@ pub const KEYWORDS: &[&str] = &[
 
 /// A core is listed by its registry ID and version (owner, 2026-10-06: "ID", then "`a`"); the
 /// official ones, from `openssl rand -hex 32` (owner: "yea"), all first released at `CORE_VERSION`
-pub const CORE_IDS: [(&str, &str); 15] = [
+pub const CORE_IDS: [(&str, &str); 16] = [
     ("IEG", "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085"),
     ("ASP", "4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f"),
     ("Genny", "c3e299d99a13567b2039c13fc17d0ca562be9d6f657f8c40a4774081983b20c9"),
@@ -39,11 +39,13 @@ pub const CORE_IDS: [(&str, &str); 15] = [
     ("Money", "d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f"),
     ("UniTect", "137a9a35afc69ec6ee796bc39eeefc75680db17ce8a04443126a492812a0ae96"),
     ("CAPS", "90d0813dc72a0c7d54a4ded7a2c9577e77f0036958b245ab01808f9a8568bd01"),
+    // CNC, "CNC Not C" (owner, 2026-10-10): everything about C, the Brainstem keeping none of it
+    ("CNC", "04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1"),
 ];
 /// MTM's ID, retired with it (owner, 2026-10-07: "MTM is gone.")
 pub const MTM_ID: &str = "9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c3447af3d6a56";
 /// The cores made after the first eight, each first released when its ID was made (owner, 2026-10-06/07)
-pub const LATER_CORE_VERSIONS: [(&str, &str); 7] = [("WSTN", "2026-10-06T18:48:22+07:00"), ("TAS", "2026-10-07T18:08:59+07:00"),
+pub const LATER_CORE_VERSIONS: [(&str, &str); 8] = [("CNC", "2026-10-10T16:42:00+07:00"), ("WSTN", "2026-10-06T18:48:22+07:00"), ("TAS", "2026-10-07T18:08:59+07:00"),
     ("AI", "2026-10-07T20:22:24+07:00"), ("WSMW", "2026-10-07T20:22:24+07:00"), ("Money", "2026-10-07T20:22:24+07:00"),
     ("UniTect", "2026-10-07T20:22:24+07:00"), ("CAPS", "2026-10-07T20:22:24+07:00")];
 pub fn core_version(core: &str) -> &'static str { LATER_CORE_VERSIONS.iter().find(|(n, _)| *n == core).map(|(_, v)| *v).unwrap_or(CORE_VERSION) }
@@ -439,7 +441,7 @@ impl Parser {
         // what the base was slimmed into (owner, 2026-10-07): testing is TAS's, `brain16` AI's,
         // `int128` and the other widths WSMW's, `deci` Money's, Unicode text UniTect's, the case
         // marks CAPS's. A word after `::` names something in a path.
-        if self.lacks.iter().any(|c| ["TAS", "AI", "WSMW", "Money", "UniTect", "CAPS"].contains(&c.as_str())) {
+        if self.lacks.iter().any(|c| ["TAS", "AI", "WSMW", "Money", "UniTect", "CAPS", "CNC"].contains(&c.as_str())) {
             for i in 0..self.toks.len() {
                 if i > 0 && self.toks[i - 1].tok == Tok::ColonColon { continue; }
                 let prev_word = |k: usize| -> Option<&str> { if i >= k { if let Tok::Word(w) = &self.toks[i - k].tok { return Some(w.as_str()); } } None };
@@ -457,6 +459,8 @@ impl Parser {
                     Tok::Word(w) if after_dot && prev_word(2) == Some("char") && (w == "point" || w == "grapheme") => Some(("UniTect", format!("`char.{w}`"))),
                     Tok::Word(w) if w == "graphemes" || w == "points" || (after_dot && (w == "grapheme" || w == "point")) => Some(("UniTect", format!("counting in {w}"))),
                     Tok::Word(w) if w == "case" && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(m)) if ["any", "exact", "insensitive", "sensitive"].contains(&m.as_str())) => Some(("CAPS", "a `case` mark".into())),
+                    // everything about C is CNC's (owner, 2026-10-10): `extern.C`, `incl.C`, `layout.C`
+                    Tok::Word(w) if ["extern", "incl", "layout"].contains(&w.as_str()) && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(c)) if c == "C") => Some(("CNC", format!("`{w}.C`"))),
                     _ => None,
                 };
                 if let Some((core, what)) = found {

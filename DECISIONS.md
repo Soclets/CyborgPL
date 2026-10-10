@@ -38,7 +38,14 @@ plain `C` (shared with the language's name in `extern.C`), the owner's
 own style, or a body name (Ganglion). **CNC's registry ID** (owner: "gen
 now"), made as the others' were (`openssl rand -hex 32`, run once):
 `04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1`, first
-version `2026-10-10T16:42:00+07:00`. Not yet asked: the rest of the
+version `2026-10-10T16:42:00+07:00`. **Built in the oracle the same day**
+(owner: "yea"): `extern.C`, `incl.C` and `layout.C` in a Neuron whose
+`Kinesin.nrp` does not list CNC are refused, naming the line to add (a lone
+file has every lobe, as before); the five example and test Neurons that
+call C list it now. Design claude's reading, not asked: the `c_calls`
+power, which the Brainstem granted every Neuron (2026-10-07), is CNC's,
+granted to a Neuron that lists CNC, and is still listed in `powers` as
+before. Reject test `cnc_not_listed`. Not yet asked: the rest of the
 regrouping by expertise.
 
 ### 2026-10-10 — `bin128` is back, `not_std.bin80` is new, and C's `long double` is `C.long_double` (owner; not built)
