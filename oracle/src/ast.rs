@@ -443,6 +443,10 @@ pub enum Expr {
     Convert(Ty, Bracket, Option<Handler>, u8, usize),
     /// `size.of[T]` / `align.of[T]` — compile-time constants (design/ffi.md)
     SizeOf(Ty, bool, usize),
+    /// `incl.bytes["assets/logo.png"]` / `incl.str.utf8["assets/help.txt"]` (owner, 2026-10-10): a
+    /// file's bytes, read while building, from the Neuron's root; the text type for `incl.str.…`, none
+    /// for `incl.bytes`
+    Incl(std::rc::Rc<Vec<u8>>, Option<Encoding>, usize),
     /// `average` — a function as a value (canonical path); bare name, no brackets
     FnRef(Vec<String>, Vec<String>, usize),
     /// `op +` / `op neg` / `op dot` — an operator as a value (owner, 2026-09-29): the built-in
@@ -498,7 +502,7 @@ impl Expr {
             Expr::OwnedElem(_, _, _, l) => *l,
             Expr::ConstPath(_, _, _, l) => *l,
             Expr::Convert(_, _, _, _, l) => *l,
-            Expr::SizeOf(_, _, l) => *l,
+            Expr::SizeOf(_, _, l) | Expr::Incl(_, _, l) => *l,
             Expr::FnRef(_, _, l) | Expr::OpValue(_, _, l) | Expr::Lambda(_, _, l) | Expr::CallValue(_, _, _, l) | Expr::Spread(_, _, l) => *l,
             Expr::CharFromCode(_, _, _, l) | Expr::MapFail(_, _, _, l) | Expr::MapLit(_, l) | Expr::Duration(_, l) | Expr::ChannelNew(_, _, l) => *l,
             Expr::EnumValue(_, _, _, l) => *l,

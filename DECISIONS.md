@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; not built)
+### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 
 The owner: "Let's do include bytes" (2026-10-08: "I kinda want include
 bytes, tbh", left open then as an exception to reproducible builds' rule
@@ -54,7 +54,16 @@ text literal is "bytes in the program" and the base's (2026-10-06), and the
 file's contents are given as if written between quotes, so `incl.str.utf8`
 and `incl.str.ascii` are the Brainstem's too; `incl.str.utf16` / `.utf32`
 need UniTect, as those types do. The build refuses a file that is not
-valid in the named encoding. Not built.
+valid in the named encoding. **Built in the oracle the same day** (owner:
+"Yup"); `examples/include_files` (a module one folder down includes from
+the root), reject tests `incl_*`. Design claude's readings there, not
+asked: the path is written as quoted text, never a variable or const, since
+it is read while building; the file is read when the program is read, so a
+missing or wrongly encoded file is refused even in code that never runs;
+`incl` is a keyword, as `size` and `to` are; a value made with `:=` has the
+type, so `list.append` on included bytes is refused as on any array.
+**Open:** `incl.str.utf16` / `.utf32` are refused for now, as not built,
+until it is decided which byte order a file without a byte-order mark has.
 
 ### 2026-10-10 — The case marks are `case.any` and `case.exact` (owner: a)
 

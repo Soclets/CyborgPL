@@ -1,0 +1,2 @@
+# A module one folder down: its path still starts at the Neuron's root, not at `ui/`.
+pub.neuron fn greeting [] -> str.utf8 { return incl.str.utf8["assets/greeting.txt"]; }

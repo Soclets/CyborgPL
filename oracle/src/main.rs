@@ -36,6 +36,11 @@ fn parse_file_in(path: &Path, module: Vec<String>, limb_root: Vec<String>) -> Re
     let src = std::fs::read_to_string(path).map_err(|e| format!("{}: cannot read: {e}", path.display()))?;
     let mut toks = lexer::lex(&src).map_err(|e| format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg))?;
     case::rewrite(&mut toks, &limb_root, &module);
+    // the Neuron's folder, where an `incl.…` path starts (owner, 2026-10-10): up from the file's own folder
+    // once per module level below the root (`ui/header.nrv` is `ui.header`, one folder down)
+    let mut dir = path.parent().map(Path::to_path_buf).unwrap_or_default();
+    for _ in 0..(module.len().saturating_sub(limb_root.len())).saturating_sub(1) { dir.pop(); }
+    parser::NEURON_DIR.with(|d| *d.borrow_mut() = dir);
     if LEVELS_ONLY.with(|f| f.get()) && path.file_name().map_or(true, |n| n != "Kinesin.nrp") {
         parser::Parser::new_in_limb(toks, module, limb_root).scan_levels()
             .map_err(|e| format!("{}: line {}: {}", path.display(), e.line, e.msg))?;

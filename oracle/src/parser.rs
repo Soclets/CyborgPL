@@ -14,7 +14,7 @@ const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "shadow", "change", "giveS", "gives", "is", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "NO_FUCKING_CHECKS", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
+    "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "incl", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -175,6 +175,8 @@ type PResult<T> = Result<T, ParseError>;
 thread_local! {
     /// The paths that are a type's name with its functions under it (`fn Counter.next`, 2026-10-09), not modules
     pub static TYPE_PATHS: std::cell::RefCell<Vec<Vec<String>>> = std::cell::RefCell::new(Vec::new());
+    /// The folder of the Neuron whose file is being parsed: an `incl.…` path starts there (owner, 2026-10-10)
+    pub static NEURON_DIR: std::cell::RefCell<std::path::PathBuf> = std::cell::RefCell::new(std::path::PathBuf::new());
 }
 
 thread_local! {
@@ -3499,6 +3501,42 @@ impl Parser {
                     let ty = ty?;
                     self.expect(Tok::RBracket, "`]`")?;
                     Ok(Expr::SizeOf(ty, w == "size", line))
+                }
+                "incl" => {
+                    // incl.bytes["…"] / incl.str.utf8["…"] (owner, 2026-10-10): the file is read now, while
+                    // building, from the Neuron's root; text is checked against the encoding it names
+                    self.advance();
+                    self.expect(Tok::Dot, "`.bytes` or `.str.…` after `incl` (`incl.bytes[\"assets/logo.png\"]`)")?;
+                    let enc = match self.peek().clone() {
+                        Tok::Word(b) if b == "bytes" => { self.advance(); None }
+                        Tok::Word(t) if t == "str" => {
+                            self.to_target = true;
+                            let ty = self.ty();
+                            self.to_target = false;
+                            match ty? {
+                                Ty::Str(e) => Some(e),
+                                other => return self.err(format!("`incl.{}` is not a text type; text is `incl.str.utf8[…]` (or `.ascii`, `.utf16`, `.utf32`)", crate::value::ty_name(&other))),
+                            }
+                        }
+                        other => return self.err(format!("`incl.` is followed by `bytes` or a text type (`incl.str.utf8[…]`), found {other}")),
+                    };
+                    self.expect(Tok::LBracket, "`[` and the file's path in quotes")?;
+                    let Tok::Text(path, _) = self.advance().tok else { return self.err("an `incl` path is written in quotes, as text (`incl.bytes[\"assets/logo.png\"]`): it is read while building") };
+                    self.expect(Tok::RBracket, "`]` after the path")?;
+                    let what = match &enc { None => "incl.bytes".to_string(), Some(e) => format!("incl.{}", crate::value::ty_name(&Ty::Str(e.clone()))) };
+                    let full = NEURON_DIR.with(|d| d.borrow().join(&path));
+                    let bytes = std::fs::read(&full).map_err(|e| ParseError { line, col: 0, msg: format!("`{what}` cannot read \"{path}\" ({}, from the Neuron's root): {e}", full.display()) })?;
+                    match enc {
+                        Some(Encoding::Utf8) => if let Err(e) = std::str::from_utf8(&bytes) {
+                            return self.err(format!("\"{path}\" is not valid UTF-8 text (byte {} is not), so `{what}` cannot hold it; `incl.bytes` takes any file", e.valid_up_to() + 1));
+                        },
+                        Some(Encoding::Ascii) => if let Some(i) = bytes.iter().position(|b| *b >= 128) {
+                            return self.err(format!("\"{path}\" is not ASCII text (byte {} is {}), so `{what}` cannot hold it; `incl.bytes` takes any file", i + 1, bytes[i]));
+                        },
+                        Some(_) => return self.err(format!("`{what}` is not built in the oracle yet: which byte order a UTF-16 or UTF-32 file without a byte-order mark has is not decided")),
+                        None => {}
+                    }
+                    Ok(Expr::Incl(std::rc::Rc::new(bytes), enc, line))
                 }
                 "to" => {
                     // to.<type>[value]   (decided 2026-09-19)

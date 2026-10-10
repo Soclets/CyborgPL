@@ -1,0 +1,9 @@
+# Include bytes (owner, 2026-10-10): a file's bytes go into the program while it is built. The path
+# starts at the Neuron's root (this folder) in every file, as `my.` does; `incl.bytes` gives an
+# `array[uint8]`, and `incl.str.utf8` the text as if written in quotes, checked as UTF-8 while building.
+
+MAIN {
+    let 'tiny' := incl.bytes["assets/tiny.bin"];
+    cord::print.useful[array.length[lend 'tiny'], " bytes, the last is ", 'tiny'[pos 4], newln];
+    cord::print.useful[ui.header.greeting[]];
+}

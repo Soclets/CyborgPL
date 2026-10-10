@@ -1,0 +1,3 @@
+MAIN {
+    let 'b' := incl.bytes["incl_assets/missing.png"];
+}

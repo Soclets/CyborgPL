@@ -1520,6 +1520,8 @@ impl<'p> Interp<'p> {
             Expr::Var(name, _) => self.lookup(name).and_then(|s| s.ty.clone()),
             Expr::Paren(inner, _) => self.expr_ty_own(inner),
             Expr::Convert(t, _, _, _, _) => Some(t.clone()),
+            Expr::Incl(_, None, _) => Some(Ty::Array(Box::new(Ty::Uint(IntWidth::W8)))),
+            Expr::Incl(_, Some(e), _) => Some(Ty::Str(e.clone())),
             Expr::Unary(_, inner, _) => self.expr_ty_own(inner),
             Expr::Binary(_, l, r, _) => self.expr_ty_own(l).or_else(|| self.expr_ty_own(r)),
             // a length is a uint64, and an item has its list's element type (check claude, seeds 5018, 5054)
@@ -2687,6 +2689,11 @@ impl<'p> Interp<'p> {
                 let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
                 Ok((v, prov))
             }
+            // the bytes sit in the program file (owner, 2026-10-10): an `array[uint8]`, or text as if written in quotes
+            Expr::Incl(bytes, enc, _) => match enc {
+                None => Ok((Value::List(bytes.iter().map(|b| Value::Int(*b as i128)).collect()), Prov::Fresh)),
+                Some(_) => Ok((Value::Str(String::from_utf8_lossy(bytes).into_owned()), Prov::Literal)),
+            },
             Expr::SizeOf(ty, is_size, _) => {
                 let (size, align) = self.size_align(ty, line)?;
                 Ok((Value::Int(if *is_size { size } else { align } as i128), Prov::Literal))
@@ -3356,6 +3363,8 @@ impl<'p> Interp<'p> {
                 }
                 Some(u64)
             }
+            // included bytes are an `array[uint8]`, included text its named type (owner, 2026-10-10)
+            [crate::ast::Value::Expr(e @ Expr::Incl(..))] => self.expr_ty_own(e),
             // `let 'a' := to.array[give 'l']` is an array of what 'l' held
             // `'y' := to.deci32['x'] otherwise 0` is a deci32, whatever its fallback (check claude, 2026-09-30)
             [crate::ast::Value::Expr(Expr::Convert(t @ (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Deci(_)), _, _, _, _))] => Some(t.clone()),
