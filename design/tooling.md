@@ -7,7 +7,8 @@ Owner, 2026-09-14.
 - **Synapse** — the Nerve compiler (owner, 2026-10-09), where code crosses
   from human to machine; abbreviated **SNG, "Synapse Not GCC"** (owner,
   2026-10-10), as the C lobe is CNC, "CNC Not C". Its command is `synapse`, or `syn` for short (owner:
-  "Both"), or `sng` (owner, 2026-10-10: "work too"); its folder `synapse/`, its crates `synapse-*`. Until 2026-10-09 it
+  "Both"), or `sng` (owner, 2026-10-10: "work too"), and `suc`, "Synapse Uses
+  Clang", which the CNC lobe adds (owner, 2026-10-10); its folder `synapse/`, its crates `synapse-*`. Until 2026-10-09 it
   was **CCA**, the *Cyborg Chassis Assembler* (owner, 2026-09-18; "Chassis"
   was spelled "Chasis" then): the chassis the frame, Precog what was bolted
   to it.
