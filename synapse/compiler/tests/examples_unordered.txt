@@ -3,4 +3,3 @@
 # another, Synapse on threads, so the same lines are compared in any order.
 # `name :: why`.
 
-concur :: two tasks send to one channel; which arrives first is the scheduler's
