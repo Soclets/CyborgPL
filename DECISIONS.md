@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-10 — Nerve reads C headers, so C's functions need no hand-written `extern.C` (owner; syntax open, not built)
+### 2026-10-10 — Nerve reads C headers with `incl.C.system["stdio.h"];`, so C's functions need no hand-written `extern.C` (owner; not built)
 
 The owner: "I wanna add C++'s `#include <>`". Asked what it should do in
 Nerve, (a) read a C header so its functions and types are declared, as
@@ -45,7 +45,16 @@ the line says `pub`, as `extern.C` is: `pub incl.C["vendor/mylib.h"];`**
 over (b) always private; design claude recommended (a), wrapping a C
 library being a main reason to include its header. The line goes where
 `extern.C` goes, at a file's top level or in a `module` block, never in a
-body.
+body. **A header brings its functions, types, globals and plain `#define`
+constants** (owner: "(a)"): `#define BUFSIZ 1024` is a const, `'BUFSIZ'`;
+a function-like macro (`#define MAX(a, b) …`) is skipped, being text
+substitution, and is written in Nerve if needed; over (b) no `#define`s at
+all. Design claude recommended (a), as Zig and Swift do. The syntax is
+settled with this. Design claude's readings, not asked: what `incl.C`
+declares follows every `extern.C` rule (a call is a `!check` site, `ptr[T]`
+at the boundary, C's varargs); like `extern.C` it is the Brainstem's; the
+registry allows `.system` headers in a published Neuron and refuses a
+plain path outside the Neuron, as for `incl.bytes`.
 
 ### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 
