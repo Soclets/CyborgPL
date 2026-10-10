@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-10 — `bin128` is back, `not_std.bin80` is new, and C's `long double` gets a Nerve type too (owner; spelling open, not built)
+### 2026-10-10 — `bin128` is back, `not_std.bin80` is new, and C's `long double` is `C.long_double` (owner; not built)
 
 Asked how C's `long double` comes through a header (it is `double` on
 Apple's chips and Windows, Intel's 80-bit format on Linux/x86, 128-bit quad
@@ -31,8 +31,11 @@ is on the machine built for** (owner: "What `long double` actually is"):
 `bin64` on Apple's chips and Windows, `not_std.bin80` on Linux/x86, `bin128`
 on Linux/ARM, usable everywhere, maths included; over (b) only where Nerve
 meets C, converted to an exact size for maths. Design claude recommended
-(a): every size it can be is a real type now. Not yet asked: its spelling;
-whether `bin128` and `not_std.bin80` are the base's or a lobe's (WSMW holds
+(a): every size it can be is a real type now. **Spelled `C.long_double`**
+(owner: "Isn't it capital?", then "yea"), as every language's name is
+capitalized (`extern.C`, `layout.C`, `incl.C`); over (b) `bin.long` and (c)
+`long_double`; design claude recommended (a), `c.` as first shown. Not yet
+asked: whether `bin128` and `not_std.bin80` are the base's or a lobe's (WSMW holds
 the odd integer widths).
 
 ### 2026-10-10 — Nerve reads C headers with `incl.C.system["stdio.h"];`, so C's functions need no hand-written `extern.C` (owner; built in the oracle)
