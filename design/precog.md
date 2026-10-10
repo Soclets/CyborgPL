@@ -119,7 +119,7 @@ every operation (`{1, 2, 3} times {10}` is `{10, 20, 30}`).
   recursion depth-limited at **8** (provisional). Past that, a recursive
   function's result is bounded **by induction** (owner, 2026-09-23: c):
   assume the bound for smaller arguments and prove it for this one, so
-  `fib` on `[0, 92]` is proven without `!check`. So `square['i']` with
+  `fib` on `[0, 92]` is proven without `no_check`. So `square['i']` with
   `'i'` in `[1, 1000]` proves its own multiply, without a contract on
   `square`.
 - **Ownership** is what Kespar lacked: every value has exactly one owner
@@ -221,7 +221,7 @@ length; a running max/min stays within the elements' domain; a count
 never exceeds the trips so far. A confirmed guess is a proof, never an
 assumption. If no shape fits or none is confirmed, the loop's sites are
 **unproven** — working build checks them, final build asks for a guard or
-`!check` — exactly as if no guessing existed. Guessing only adds proofs.
+`no_check` — exactly as if no guessing existed. Guessing only adds proofs.
 
 The programmer's way to supply a fact is the one the language already
 has: a **guardrail** inside the loop (`if 'total' > 1_000_000 { fail
@@ -250,7 +250,7 @@ to c".
   failure with the site named; final build: refused.
 - **`check`, unproven** → compile error with the counterexample, or
   "solver gave up at line N; add a bound at line M".
-- **`!check`** → plain instruction, no proof attempted, listed.
+- **`no_check`** → plain instruction, no proof attempted, listed.
 
 ## `:=` widths
 
@@ -314,7 +314,7 @@ line 15  'a' div.floor 'b'       division by zero   trusted   (no_check)
 line 9   square: 'x' times 'x'       overflow           proven    (layer 2, at 1 call site)
 ```
 
-Three lists in the build output: `!check` sites, `check` sites passed,
+Three lists in the build output: `no_check` sites, `check` sites passed,
 default sites still checked (working build only; a final build has none).
 `--types` adds every `:=` name with its chosen width and the value that
 decided it. The Cortex oracle (`compiler-verification.md`) reads this

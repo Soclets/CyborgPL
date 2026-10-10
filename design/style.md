@@ -35,10 +35,10 @@ recommended.
 
 4. **The proven path first, then `check`.** A guard `if` in front of the
    site, and `check` on the ones that matter, so the compiler says whether
-   the guard is enough. `!check` is for what no guard can prove, mostly C.
-5. **Wrap `!check` once.** As std does: one small function holds the
-   `!check` C call, and everything else calls that safe wrapper. The
-   build's `!check` list stays short enough to review.
+   the guard is enough. `no_check` is for what no guard can prove, mostly C.
+5. **Wrap `no_check` once.** As std does: one small function holds the
+   `no_check` C call, and everything else calls that safe wrapper. The
+   build's `no_check` list stays short enough to review.
 6. **`NO_FUCKING_CHECKS` only after measuring.** Never a first resort.
 7. **`#strict` for public Neurons, plain files for programs.** A library's
    safety should not depend on who calls it, and `#strict` makes sure it

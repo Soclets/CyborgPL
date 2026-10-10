@@ -87,26 +87,26 @@ proofs rather than skipping them — never by doing less.
   counterexample** — the default behaves as `check`. Both builds run
   Cortex in full; the final build is stricter, never looser, so this is
   not the rejected development mode. The final product contains no
-  runtime checks: every site is proven, `check`-confirmed, or `!check`.
+  runtime checks: every site is proven, `check`-confirmed, or `no_check`.
   Proposed: `synthia build` / `synthia final`, Synthia's, so no file-wide
   switch enters the language.
 - **`check`** — "I've built a guardrail, could you help me verify it?" The
   compiler proves the guardrail exactly; proven → check removed, otherwise a
   compile error **with a counterexample** — the value that gets past the
   guardrail.
-- **`!check`** — "Okay, I'm sure this is correct." Check removed, no
+- **`no_check`** — "Okay, I'm sure this is correct." Check removed, no
   verification. The one place the final product's safety rests on the
-  programmer alone. The build output lists every `!check` site.
+  programmer alone. The build output lists every `no_check` site.
   **A certain failure gets a note, never a refusal** (owner,
   2026-09-22): when Cortex's ordinary work happens to show that a
-  `!check` site fails on *every* run — `!check 'q' := 1 div.floor 'z';`
+  `no_check` site fails on *every* run — `no_check let 'q' := 1 div.floor 'z';`
   with `'z'` proven to be 0 — the build says so (`note:`, the third
   kind in `diagnostics.md`) and builds anyway. Cortex never goes
   looking; it only refuses to stay silent about what it could not
-  avoid noticing. A `!check` that fails on *some* inputs ships with
+  avoid noticing. A `no_check` that fails on *some* inputs ships with
   nothing said, so "no verification" holds everywhere it matters.
   Proposed alternatives: say nothing at all; refuse the certain case
-  (which would make `!check` not quite mean what it says).
+  (which would make `no_check` not quite mean what it says).
 
 **Spelling** (owner, 2026-09-19: "`check` & `nocheck` at the front"): a bare
 word in front of a statement, covering every check site inside it. A `{ }`
@@ -119,8 +119,8 @@ check { for 'i' in range[from 1, to 'n', by 1] { … } }     # every site in the
 check if 'x' > 0 { … }                       # an if or a loop is a statement too
 ```
 
-- Innermost word wins when they nest. **No alias** for `!check` (owner,
-  2026-09-19): it stays long and rare; a dense region uses `!check { … }`.
+- Innermost word wins when they nest. **No alias** for `no_check` (owner,
+  2026-09-19): it stays long and rare; a dense region uses `no_check { … }`.
 - Never on an expression (`'a' plus (check 'b')`): if half a statement needs
   it, split the statement. Never on a `fn`, `struct`, `const`, or `module`:
   a function's safety is the sum of its statements, and a `check fn` would
@@ -128,11 +128,11 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   global** — no flag, no file-wide switch, no release mode (see "No
   development mode"). The grammar has nowhere to write a global one.
 - **`NO_FUCKING_CHECKS`, the fourth tier** (owner, 2026-09-27): everything
-  `!check` turns off, and what C hands back is trusted too, so a C enum or
+  `no_check` turns off, and what C hands back is trusted too, so a C enum or
   range type from C gets no `out_of_range` check and needs no `otherwise`
-  for one. It goes where `!check` goes, in front of a statement or a
+  for one. It goes where `no_check` goes, in front of a statement or a
   block, never on a function or a file, and it is listed in the build
-  output with the `!check` sites. For the rare hot spot where even a
+  output with the `no_check` sites. For the rare hot spot where even a
   comparison per value from C matters, and the author accepts undefined
   behaviour if C sends a number the binding doesn't know. It does not
   touch failures of Cyborg's own operations (text that isn't a number, a
@@ -153,7 +153,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   alternative: an `if` in front of every site even where a type already
   makes it safe.
 
-  **`!check` is allowed** in a strict file (owner: a): it is a written
+  **`no_check` is allowed** in a strict file (owner: a): it is a written
   reason too, and listed. Otherwise a C call could never sit in one.
 
   **And the file writes out what others leave to Cortex** (owner, same
@@ -195,9 +195,9 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   emits nothing; a proven check can never fire, so keeping it would be pure
   cost. `check` does not remove anything extra; it makes the compiler *tell
   you* when the guardrail is not enough. So the finish line is a passed
-  `check`, and `!check` is the exit for the site no guardrail can make
+  `check`, and `no_check` is the exit for the site no guardrail can make
   provable — never the last step after building one.
-- Build output lists every `!check` site and every passed `check` (owner,
+- Build output lists every `no_check` site and every passed `check` (owner,
   2026-09-19). Proposed, unanswered: also the default-tier sites still
   carrying a runtime check — the "where to add a guardrail" list.
 - A guardrail is an ordinary `if` in front of the site; `check` asks Cortex
@@ -212,7 +212,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   bin16 when input is 70000."*
 - The oracle cannot prove, so it runs every check and reports what the
   compiler would have found: a `check` whose site fires names the missing
-  guardrail with the concrete value; a `!check` whose site fires "lied".
+  guardrail with the concrete value; a `no_check` whose site fires "lied".
 
 ### Ownership with borrowing (decided 2026-09-14)
 

@@ -84,8 +84,8 @@ without the rest of that redesign. See `DECISIONS.md`.
 - **Keywords are bare and reserved** (decided 2026-09-14). The language's
   words — `fn`, `change`, `return`, `if`, `else`, `loop`, `while`, `for`, `in`,
   `break`, `continue`, `give`, `copy`, `lend`, `lent`, `op`, `check`,
-  `!check`, `true`, `false`, `mut`, `!mut`, `temp`, `perm`, `range`, `seq`,
-  `list`, `array`, `struct`, `pub`, `const`, `module`, `limb`, `my`, `check`, `!check`, `fail`, `otherwise`, `to`, `with` (and the retired `var`, `func`) — cannot
+  `no_check`, `true`, `false`, `mut`, `immut`, `temp`, `perm`, `range`, `seq`,
+  `list`, `array`, `struct`, `pub`, `const`, `module`, `neuron`, `my`, `fail`, `otherwise`, `to`, `incl`, `with` (and the retired `var`, `func`; the full list is the oracle's `KEYWORDS`) — cannot
   be used bare as function names; a function *may* be named with one, and
   is then reached only through a path (`std::to[…]`, `my.to[…]`;
   `limbs.md`, 2026-09-19). Variables are quoted and can never collide with

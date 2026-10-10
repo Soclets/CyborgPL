@@ -119,7 +119,7 @@ Proposed alternative: the later use.
    tiers: an unproven site, with its counterexample (an error in
    `check`-tier and final builds, a runtime check in a working build);
    `note` — the report: a proven range, a loop offloaded or not and
-   why, a `!check` listed. No "warning" that lives
+   why, a `no_check` listed. No "warning" that lives
    forever ignored: a thing worth saying is one of the three.
 5. **Plain words.** The writer's own names, quoted; the exact spelling
    to type. No jargon — not "SMT", "unsat", "lvalue", "monomorphised",
@@ -142,7 +142,7 @@ Proposed alternative: the later use.
 
 ## The report
 
-Beside the three lists (`!check` sites, `check` sites passed, default
+Beside the three lists (`no_check` sites, `check` sites passed, default
 sites still checked), a line per `for` Cortex considered (owner,
 2026-09-22): `offloaded to GPU`, `parallel on N CPU cores` ("CPU" added
 2026-10-06, since a core is also a compiler mod), `sequential —

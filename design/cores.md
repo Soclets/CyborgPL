@@ -135,9 +135,9 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
 
 - **IEG, the Intense Energy Generator.** Raw operations as plain calls
   (`add`, `negate`, `compare` *sketch*), with contracts Cortex trusts;
-  `inline.LL { … }`, LLVM IR in place; and the **labels**: `!check`,
+  `inline.LL { … }`, LLVM IR in place; and the **labels**: `no_check`,
   `NO_FUCKING_CHECKS`, and the rule that raw memory and unproven code sit
-  under `!check`, so a kernel on Brainstem + IEG has clear syntax ("like
+  under `no_check`, so a kernel on Brainstem + IEG has clear syntax ("like
   Rust's kernel mode also has clear syntax", owner). Not fully unsafe.
   It also brings **`on.machine`**, the startup check of the chip's
   features.

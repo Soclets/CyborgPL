@@ -95,7 +95,7 @@ holes"):
   it first, so `\\` is one backslash: `"C:\\temp"` prints `C:\temp`. An
   unknown escape is an error (owner: "Fine") — so `\%` is refused and
   `\\%` prints a backslash and a percent. **`%` is plain text.**
-- A format that is not a literal cannot be checked and is a `!check`
+- A format that is not a literal cannot be checked and is a `no_check`
   site; it is read as stored text.
 
 Before 2026-10-01 it was C's `printf` language (`%d %x %.2f`, `%%`, then

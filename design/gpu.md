@@ -34,7 +34,7 @@ offload a loop whose body uses only:
   iterations. The GPU was 13–42× one CPU core across those sizes.
 
 Never offloadable: `extern` calls, `std::input` / `print`, `inline.ASM`,
-`!check` sites (nothing proven, nothing offloadable), text
+`no_check` sites (nothing proven, nothing offloadable), text
 (allocation per `++` on a GPU is 10–100× slower than on the CPU; a
 text loop is never worth offloading), `std::uenr` and `deci` (software
 arithmetic with allocation). A loop that touches any of these stays on
@@ -128,7 +128,7 @@ Beside the automatic loops, a program may take the GPU in hand: **std**
 moves data to GPU memory and back, launches GPU code with N threads, and
 forces a loop onto the GPU over Cortex's choice (as `for para` forces
 lobes); the **base language** has **`inline.MSL { … }`**, Metal Shading
-Language written inline — a `!check` site like `inline.ASM`, checked by
+Language written inline — a `no_check` site like `inline.ASM`, checked by
 Apple's Metal compiler at build time. A block runs where it is
 written, as `inline.ASM` does, and needs no std (owner): reuse is a
 function holding it.

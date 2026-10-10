@@ -150,7 +150,7 @@ MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
 
 Exactly these two types (the names are free); the program's name comes
 first, each word ends in a NUL, and `argv[argc]` is a null pointer. Reading
-them is C's world, so `!check`. Anything friendlier — a list of text,
+them is C's world, so `no_check`. Anything friendlier — a list of text,
 flags, `--help` — is written in Nerve on top, in std or a Neuron. The
 2026-09-14 line here said the arguments "come from the std Limb"; the
 owner put the door in the base language instead. Proposed alternatives: a

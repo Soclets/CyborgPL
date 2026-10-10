@@ -60,7 +60,7 @@ A loop that prints, reads input or calls C stays in order by itself
 parallel but you want in order, like an exact `bin` total. The other way,
 **`for para`** forces a loop parallel (owner: "`para`"). It overrides
 only that automatic order (owner: "`a`, because `nocheck` exists"): the
-`!check` every C call already carries is also the writer's word that the
+`no_check` every C call already carries is also the writer's word that the
 C is safe on many cores at once, and printing under `para` may come out in
 any order. A conflict Cortex can see — two iterations writing the same
 place, other than a reduction — stays an error, `para` or not.
