@@ -5,6 +5,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-10 — Nerve reads C headers, so C's functions need no hand-written `extern.C` (owner; syntax open, not built)
+
+The owner: "I wanna add C++'s `#include <>`". Asked what it should do in
+Nerve, (a) read a C header so its functions and types are declared, as
+Zig's `@cImport` and Swift do, recommended, (b) paste another `.nrv` file's
+text, (c) bring in another Neuron's names (already done by `Kinesin.nrp`
+and paths, `import` ruled out 2026-09-19), the owner: "(a). It would slow
+compile times, right? But I mean, not many give a fuck about comptime when
+they choose Nerve." (It costs a C parse, Clang's, which comes with LLVM, of
+the header and all it includes; cacheable per header; small beside
+Cortex.) Offered the spelling (a) `extern.C <stdio.h>;`, recommended,
+(b) `#include <stdio.h>`, (c) `incl.C <stdio.h>;`, the owner: "(c), don't go
+yet. Because, `<>` currently mean generics". So **it is an `incl.C`**, and
+`< >` cannot mark a system header. **A system header and a header in the
+Neuron are written differently** (owner: "(b), but we'll need to discuss
+the syntax'"), after "what's the diff?" (one searching form would let a
+file in the Neuron named like a system header replace it unseen, and the
+registry could not tell a system header, allowed in a published Neuron,
+from a stray path outside it); shown as `incl.C.system["stdio.h"]` and
+`incl.C["vendor/mylib.h"]`, over (a) one form searching the Neuron, then
+the system. The syntax is still to be discussed.
+
 ### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 
 The owner: "Let's do include bytes" (2026-10-08: "I kinda want include
