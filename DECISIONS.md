@@ -64,6 +64,27 @@ missing or wrongly encoded file is refused even in code that never runs;
 type, so `list.append` on included bytes is refused as on any array.
 **Open:** `incl.str.utf16` / `.utf32` are refused for now, as not built,
 until it is decided which byte order a file without a byte-order mark has.
+**`incl.bytes` is a const's value only** (owner: "(c)"). Compiler claude,
+building it in Synapse (c42bafeb), found design claude's "nothing is copied
+at run time" wrong for bytes: an `array` may be changed in place, so bytes
+pointed at in the program file would be changed in read-only memory;
+Synapse copied them each time the line ran, which needs a heap. Offered
+(a) copy only when something changes them, (b) included bytes can never be
+changed, given or lent mutably, recommended; the owner: "Wait, so it it
+supposed to be a `const`?" Design claude added (c) `incl.bytes` only as a
+const's value, `const 'logo' := incl.bytes["assets/logo.png"];`, at the top
+or in a body, and recommended it, reusing the const rules (never changed or
+shadowed, nobody owns it); "every use is a fresh value" costs no copy where
+a use only reads (an index, a `lent` parameter), so it can be read where it
+sits, and a copy happens only where something takes it to keep or change
+(`let mut 'b' := 'logo';`), as for any const array. Asked "Perf diff?":
+reading costs no copy under (a), (b) and (c), against a full copy each time
+under Synapse's first build; (a) may copy when Cortex cannot prove nothing
+changes the bytes. The owner: "(c)". Elsewhere it is refused: "`incl.bytes`
+is a constant: give it a name with `const 'logo' := incl.bytes["…"];`".
+Building it showed a const in a body counted as an owned variable when
+used bare, `array.length['table']` refused; fixed. Not yet asked: whether
+`incl.str.…` follows.
 
 ### 2026-10-10 — The case marks are `case.any` and `case.exact` (owner: a)
 

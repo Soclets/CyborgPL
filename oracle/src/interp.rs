@@ -304,7 +304,11 @@ impl<'p> Interp<'p> {
     fn pop(&mut self) { self.scopes.pop(); }
     fn lookup(&self, name: &str) -> Option<&Slot> { self.scopes.iter().rev().find_map(|s| s.get(name)).or_else(|| self.consts.get(&const_key(&self.module, name))) }
     fn lookup_mut(&mut self, name: &str) -> Option<&mut Slot> { self.scopes.iter_mut().rev().find_map(|s| s.get_mut(name)) }
-    fn is_const(&self, name: &str) -> bool { self.consts.contains_key(&const_key(&self.module, name)) && !self.scopes.iter().any(|s| s.contains_key(name)) }
+    /// A top-level const, or a const in a body (owner, 2026-10-10), which is never shadowed
+    fn is_const(&self, name: &str) -> bool {
+        if self.lookup(name).is_some_and(|s| s.kind == SlotKind::Const) { return true; }
+        self.consts.contains_key(&const_key(&self.module, name)) && !self.scopes.iter().any(|s| s.contains_key(name))
+    }
 
     /// Two items with one canonical name, or a module declared twice (a file and a block).
     fn check_duplicates(&self) -> Result<(), RuntimeError> {

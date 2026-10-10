@@ -142,6 +142,8 @@ pub struct Parser {
     at_boundary: bool,
     /// set while parsing an interface's entries: signatures end with `;`, no body
     in_interface: bool,
+    /// set while parsing a const's value: `incl.bytes[…]` may stand there and nowhere else (owner, 2026-10-10)
+    in_const_value: bool,
     /// `<T: Ordered>` bounds seen while parsing the current signature
     bounds: Vec<(String, String)>,
     /// the generics announced by the item being parsed (owner, 2026-10-02); `None` outside one
@@ -204,9 +206,9 @@ thread_local! {
 }
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
 
     /// A path written in this module, made canonical (from the root):
     /// `my.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -994,7 +996,11 @@ impl Parser {
             (Tok::ShadowWalrus | Tok::ShadowEq, _) => return self.err("a const cannot shadow anything; there is nothing above the top level"),
             (other, _) => return self.err(format!("expected `:=` or `=` after '{name}', found {other}")),
         }
-        let value = self.rhs()?;
+        // `incl.bytes[…]` is allowed only here, as a const's value (owner, 2026-10-10: "(c)")
+        let saved = std::mem::replace(&mut self.in_const_value, true);
+        let value = self.rhs();
+        self.in_const_value = saved;
+        let value = value?;
         self.expect(Tok::Semi, "`;`")?;
         Ok(ConstDef { name, module: self.module.clone(), vis: Vis::Private, ty, value, line })
     }
@@ -3508,6 +3514,9 @@ impl Parser {
                     self.advance();
                     self.expect(Tok::Dot, "`.bytes` or `.str.…` after `incl` (`incl.bytes[\"assets/logo.png\"]`)")?;
                     let enc = match self.peek().clone() {
+                        // included bytes are a constant (owner, 2026-10-10: "(c)"): read where they sit, copied
+                        // only where something takes them to keep or change
+                        Tok::Word(b) if b == "bytes" && !self.in_const_value => return self.err("`incl.bytes` is a constant: give it a name with `const 'logo' := incl.bytes[\"…\"];` (owner, 2026-10-10), and read it from there"),
                         Tok::Word(b) if b == "bytes" => { self.advance(); None }
                         Tok::Word(t) if t == "str" => {
                             self.to_target = true;
