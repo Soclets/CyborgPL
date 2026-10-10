@@ -117,6 +117,7 @@ c_header_missing_local [fnv:818c5feae6a3f90d] :: `incl.C["incl_assets/none.h"]`:
 c_header_missing_system [fnv:06314181a44929f1] :: `incl.C.system["no_such_header.h"]`: the C compiler says: 'no_such_header.h' file not found
 c_header_not_linked [fnv:79acf4e468df98b0] :: !by-design Synapse declares `mylib_add` from the header and compiles the call, the C library being the linker's to find; the oracle refuses it because an interpreter cannot link C
 c_header_opaque_built [fnv:4008c41276aaadd3] :: `handle_t` is C's and opaque
+c_header_opaque_held [fnv:a20f17cb314eaeb8] :: `FILE` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[FILE]`, never held
 c_header_opaque_mixed [fnv:a23e6966eb398dba] :: `fclose` wants a pointer to `FILE` for 'p1', and this points at `uint8`
 c_header_opaque_size [fnv:82ce9b870b863694] :: `FILE` is C's and opaque: its size is C's own
 c_struct_range_out [fnv:c3d7be4306c6440a] :: the value can be outside what an `int32[0, 4096]` holds
