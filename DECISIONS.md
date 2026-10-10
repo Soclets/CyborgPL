@@ -39,7 +39,13 @@ would make C look like a Neuron. Design claude recommended (a): an `incl.C`
 line is an `extern.C` block that Synapse writes. **A system header is
 marked `.system`** (owner: "(a)"), over (b) `.sys` and (c) `.os` (not
 accurate: `stdio.h` is the C library's, and `aarch64-none` has no OS);
-design claude recommended (a).
+design claude recommended (a). **What a header declares is private unless
+the line says `pub`, as `extern.C` is: `pub incl.C["vendor/mylib.h"];`**
+(owner: "(a)"), a `pub` line needing a `bare.` mark like any `pub` thing,
+over (b) always private; design claude recommended (a), wrapping a C
+library being a main reason to include its header. The line goes where
+`extern.C` goes, at a file's top level or in a `module` block, never in a
+body.
 
 ### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 
