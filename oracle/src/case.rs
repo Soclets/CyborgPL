@@ -1,5 +1,5 @@
-//! `case.insensitive` / `case.sensitive` (owner, 2026-10-06): a Neuron's writer may make its names
-//! case-insensitive, in its own code and as reached from other Neurons; the default is `case.sensitive`;
+//! `case.any` / `case.exact` (owner, 2026-10-06): a Neuron's writer may make its names
+//! case-insensitive, in its own code and as reached from other Neurons; the default is `case.exact`;
 //! marks that disagree are an error; insensitive means Unicode's full case folding. The oracle reads the
 //! program once, works out which names are insensitive, and then rewrites every spelling of such a name
 //! to the one it was declared with before the program is read again, so the rest of the oracle stays
@@ -37,7 +37,7 @@ thread_local! {
 
 fn root_key(module: &[String]) -> String { module.first().filter(|r| r.starts_with("::")).cloned().unwrap_or_default() }
 
-fn word_mark(i: bool) -> &'static str { if i { "case.insensitive" } else { "case.sensitive" } }
+fn word_mark(i: bool) -> &'static str { if i { "case.any" } else { "case.exact" } }
 
 /// Is a thing of `kind`, `last` in `module`, insensitive? None marks: sensitive. Marks that disagree: an error.
 fn covered(prog: &Program, kind: &str, module: &[String], last: Option<&str>, line: usize, shown: &str) -> Result<bool, String> {
@@ -131,7 +131,7 @@ pub fn plan(prog: &Program, bare: &HashMap<String, ast::Bare>) -> Result<HashMap
         let pool = if word { declared.get(&root) } else { consts.get(&root) };
         if let Some((other, oline)) = pool.and_then(|p| p.iter().find(|(o, _)| *o != name && fold(o) == f)) {
             let (a, b) = if word { (format!("`{other}`"), format!("`{name}`")) } else { (format!("`'{other}'`"), format!("`'{name}'`")) };
-            return Err(format!("line {oline}: {a} and {b} ({}) differ only in case, and {b} is `case.insensitive`: they would be one name", crate::interp::line_of(line)));
+            return Err(format!("line {oline}: {a} and {b} ({}) differ only in case, and {b} is `case.any`: they would be one name", crate::interp::line_of(line)));
         }
         let lc = plan.entry(root).or_default();
         let (all, public_map) = if word { (&mut lc.words, &mut lc.pub_words) } else { (&mut lc.vars, &mut lc.pub_vars) };
@@ -153,7 +153,7 @@ pub fn plan(prog: &Program, bare: &HashMap<String, ast::Bare>) -> Result<HashMap
     for m in &prog.case_marks {
         if let (BareTarget::File(p) | BareTarget::Block(p), false) = (&m.target, m.insensitive) {
             if let Some(k) = prog.case_marks.iter().find(|k| matches!(&k.target, BareTarget::Kind(x) if x == "var") && k.insensitive && k.limb_root == m.limb_root) {
-                return Err(format!("line {}: the variables of `{}` are marked both `case.insensitive` ({}) and `case.sensitive` ({}): marks that disagree are an error (owner, 2026-10-06)", m.line, p.iter().map(|s| s.trim_start_matches("::")).collect::<Vec<_>>().join("."), crate::interp::line_of(k.line), crate::interp::line_of(m.line)));
+                return Err(format!("line {}: the variables of `{}` are marked both `case.any` ({}) and `case.exact` ({}): marks that disagree are an error (owner, 2026-10-06)", m.line, p.iter().map(|s| s.trim_start_matches("::")).collect::<Vec<_>>().join("."), crate::interp::line_of(k.line), crate::interp::line_of(m.line)));
             }
         }
     }
@@ -164,7 +164,7 @@ pub fn plan(prog: &Program, bare: &HashMap<String, ast::Bare>) -> Result<HashMap
 fn builtin_word(w: &str) -> bool {
     let num = |p: &str| w.strip_prefix(p).map_or(false, |d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit()));
     crate::parser::KEYWORDS.contains(&w) || crate::parser::STD_BARE_HEADS.contains(&w) || w == "MAIN"
-        || ["bool", "str", "char", "brain16", "std", "cca", "kin", "case", "insensitive", "sensitive", "bare", "never", "optional", "only", "not", "neg", "plus", "minus", "times", "div", "mod", "pow", "and", "or"].contains(&w)
+        || ["bool", "str", "char", "brain16", "std", "cca", "kin", "case", "any", "exact", "bare", "never", "optional", "only", "not", "neg", "plus", "minus", "times", "div", "mod", "pow", "and", "or"].contains(&w)
         || num("int") || num("uint") || num("bin") || num("deci")
 }
 

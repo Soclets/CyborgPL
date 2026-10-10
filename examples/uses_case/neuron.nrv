@@ -1,4 +1,4 @@
-# `shout` is case-insensitive (`case.insensitive [fn, struct, field, const];` in its `neuron.nrv`), so
+# `shout` is case-insensitive (`case.any [fn, struct, field, const];` in its `neuron.nrv`), so
 # this Neuron reaches its names in any case, with the path and bare (owner, 2026-10-06).
 MAIN {
     print.useful[shout::SHOUT["hey"], " ", WHISPER[], " ", shout::'VOLUME', newln];

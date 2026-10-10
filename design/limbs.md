@@ -265,14 +265,15 @@ library can ship its own demo or tool.
 
 ## Case (owner, 2026-10-06)
 
-Names are exact (`case.sensitive`) unless a Neuron's writer marks them
-`case.insensitive`: on kinds in `neuron.nrv` (`case.insensitive [fn,
-struct, enum, interface, const, case, field, var];`), on one item (`pub
-case.insensitive fn area …`), on a block module, or as a file's first
-line (`case.insensitive;`). Writing `case.sensitive` is allowed; marks
-that disagree are an error. An insensitive name matches in any case, by
-Unicode's full case folding, in its own Neuron and from other Neurons.
-Keywords stay exact. It costs nothing at run time. DECISIONS 2026-10-06
+Names are exact (`case.exact`) unless a Neuron's writer marks them
+`case.any`: on kinds in `neuron.nrv` (`case.any [fn, struct, enum,
+interface, const, case, field, var];`), on one item (`pub case.any fn
+area …`), on a block module, or as a file's first line (`case.any;`).
+Writing `case.exact` is allowed; marks that disagree are an error. A
+`case.any` name matches in any case, by Unicode's full case folding, in its
+own Neuron and from other Neurons. Spelled `case.insensitive` /
+`case.sensitive` until 2026-10-10 (owner: "(a)", to shorten them), and
+refused now with the new spelling. Keywords stay exact. It costs nothing at run time. DECISIONS 2026-10-06
 has the rulings and the oracle's readings; `examples/case_marks.nrv`,
 `examples/uses_case`.
 

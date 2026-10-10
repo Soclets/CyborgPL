@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-10 — The case marks are `case.any` and `case.exact` (owner: a)
+
+Shown `case.insensitive` / `case.sensitive` (2026-10-06), the owner: "I
+think we should shorten that synax". Offered (a) `case.any` / `case.exact`,
+(b) `case.loose` / `case.strict`, (c) `anycase` / `exactcase`, (d) `nocase`
+/ `case` (`case` alone is already the kind for an enum's cases); design
+claude recommended (a), keeping the `case.` start the `bare` marks share,
+and argued against (b) that `strict` already meant `#strict`. The owner:
+"(a). Also, isn't `#strict` deprecated?" (it is gone, refused since the
+2026-10-07 revision, so that argument was stale). So **`case.any [fn,
+var];`, `pub case.any fn area …`, `case.any;`, and `case.exact`**, with
+the same meaning. The old spellings are refused with the new one, as the
+other renames are (design claude's reading, following the 2026-10-09
+renames). Built in the oracle; reject test case_old_spelling. Quotes from
+2026-10-06 keep the words as said.
+
 ### 2026-10-10 — A `mut` that nothing changes is refused even in a generic function nobody calls (owner: a)
 
 The oracle refused it, reading the function as written, and Synapse let it

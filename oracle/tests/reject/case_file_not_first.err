@@ -1,1 +1,1 @@
-a file's `case` mark is at its top, before anything else; a block module takes `case.insensitive module name { … }`
+a file's `case` mark is at its top, before anything else; a block module takes `case.any module name { … }`

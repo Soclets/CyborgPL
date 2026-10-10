@@ -1,6 +1,6 @@
 # A Neuron whose writer made its names case-insensitive, in its own code and as reached from other
 # Neurons (owner, 2026-10-06: "`a`, and `c`. Would depend on their respective writers"), kind by kind.
-case.insensitive [fn, struct, field, const];
+case.any [fn, struct, field, const];
 bare.never [struct];
 
 pub const 'Volume' := 11;

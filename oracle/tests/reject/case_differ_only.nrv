@@ -1,4 +1,4 @@
-case.insensitive [fn];
+case.any [fn];
 fn area [] -> int32 { return 1; }
 struct Area { n: int32 }
 MAIN {

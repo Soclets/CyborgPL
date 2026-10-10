@@ -1,1 +1,1 @@
-`Area` and `area` (line 2 of case_differ_only.nrv) differ only in case, and `area` is `case.insensitive`: they would be one name
+`Area` and `area` (line 2 of case_differ_only.nrv) differ only in case, and `area` is `case.any`: they would be one name

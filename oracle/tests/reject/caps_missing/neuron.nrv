@@ -1,2 +1,2 @@
-case.insensitive;
+case.any;
 MAIN { }

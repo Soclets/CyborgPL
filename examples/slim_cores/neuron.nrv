@@ -1,7 +1,7 @@
 # What the base was slimmed into (owner, 2026-10-07), each from the lobe this Neuron lists: testing
 # (TAS), `brain16` (AI), `int128` and the other widths (WSMW), `deci` (Money), Unicode text
 # (UniTect), the case marks (CAPS); range types are ASP's.
-case.insensitive [fn];
+case.any [fn];
 
 fn Halve ['n': int128] -> int128 {
     return 'n' div.floor 2;

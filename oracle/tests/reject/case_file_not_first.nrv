@@ -1,5 +1,5 @@
 fn f [] -> int32 { return 1; }
-case.insensitive;
+case.any;
 MAIN {
     let 'a' := 1;
 }

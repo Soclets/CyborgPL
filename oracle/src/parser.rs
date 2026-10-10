@@ -242,14 +242,19 @@ impl Parser {
         self.err("say how other Neurons write the path: `bare.never` (required), `bare.optional` or `bare.only` (forbidden); a plain `bare` does not say")
     }
 
-    /// `case.insensitive` / `case.sensitive` at the cursor (owner, 2026-10-06: "yea" to the spelling)
+    /// `case.any` / `case.exact` at the cursor (owner, 2026-10-10: "(a)"; `case.insensitive` /
+    /// `case.sensitive` from 2026-10-06 until then, refused now with the new spelling)
     fn is_case_mark(&self) -> bool {
-        self.is_word("case") && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(w) if w == "insensitive" || w == "sensitive")
+        self.is_word("case") && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(w) if ["any", "exact", "insensitive", "sensitive"].contains(&w.as_str()))
     }
     fn case_mode(&mut self) -> PResult<bool> {
         self.advance(); self.advance();
         let Tok::Word(w) = self.advance().tok else { unreachable!() };
-        Ok(w == "insensitive")
+        match w.as_str() {
+            "insensitive" => self.err("`case.insensitive` is the old spelling: write `case.any` (owner, 2026-10-10)"),
+            "sensitive" => self.err("`case.sensitive` is the old spelling: write `case.exact` (owner, 2026-10-10)"),
+            _ => Ok(w == "any"),
+        }
     }
 
     /// Everything std brings is refused in a Neuron whose `Kinesin.nrp` does not list it (owner, 2026-10-06:
@@ -445,7 +450,7 @@ impl Parser {
                     Tok::Word(w) if after_dot && prev_word(2) == Some("str") && (w == "utf16" || w == "utf32") => Some(("UniTect", format!("`str.{w}`"))),
                     Tok::Word(w) if after_dot && prev_word(2) == Some("char") && (w == "point" || w == "grapheme") => Some(("UniTect", format!("`char.{w}`"))),
                     Tok::Word(w) if w == "graphemes" || w == "points" || (after_dot && (w == "grapheme" || w == "point")) => Some(("UniTect", format!("counting in {w}"))),
-                    Tok::Word(w) if w == "case" && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(m)) if m == "insensitive" || m == "sensitive") => Some(("CAPS", "a `case` mark".into())),
+                    Tok::Word(w) if w == "case" && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(m)) if ["any", "exact", "insensitive", "sensitive"].contains(&m.as_str())) => Some(("CAPS", "a `case` mark".into())),
                     _ => None,
                 };
                 if let Some((core, what)) = found {
@@ -526,7 +531,7 @@ impl Parser {
             if *self.peek() == Tok::Strict {
                 return self.err("`#strict` is gone (owner, 2026-10-07): its labels, `pos`, `count`, the types and `is` are every file's now; take the line out");
             }
-            // `case.insensitive;` as a file's first line, `case.insensitive [fn, struct];` in `neuron.nrv`
+            // `case.any;` as a file's first line, `case.any [fn, struct];` in `neuron.nrv`
             // (owner, 2026-10-06), as the `bare` marks are; on an item it is read with the item below
             if self.is_case_mark() && matches!(self.peek_at(3), Tok::Semi | Tok::LBracket) {
                 let line = self.line();
@@ -535,12 +540,12 @@ impl Parser {
                 if *self.peek() == Tok::Semi {
                     self.advance();
                     if depth > 0 || started || prog.case_marks.iter().any(|m| matches!(m.target, BareTarget::File(_))) {
-                        return Err(ParseError { line, col: 0, msg: "a file's `case` mark is at its top, before anything else; a block module takes `case.insensitive module name { … }`".into() });
+                        return Err(ParseError { line, col: 0, msg: "a file's `case` mark is at its top, before anything else; a block module takes `case.any module name { … }`".into() });
                     }
                     prog.case_marks.push(CaseMark { target: BareTarget::File(self.module.clone()), insensitive, line, limb_root: self.limb_root.clone() });
                     continue;
                 }
-                if depth > 0 || self.module != self.limb_root { return self.err("a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `neuron.nrv`"); }
+                if depth > 0 || self.module != self.limb_root { return self.err("a `case` mark on kinds (`case.any [fn, struct];`) covers the whole Neuron, so it is written in `neuron.nrv`"); }
                 self.advance();
                 loop {
                     let kind = match self.advance().tok { Tok::Word(k) => k, other => return self.err(format!("expected a kind (`fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var`), found {other}")) };
@@ -611,12 +616,12 @@ impl Parser {
             let mut pending_bare: Option<(Bare, usize)> = None;
             let mut pending_case: Option<(bool, usize)> = None;
             let before = (prog.funcs.len(), prog.structs.len(), prog.enums.len(), prog.consts.len(), prog.interfaces.len(), prog.modules.len());
-            // `case.insensitive fn area …` on an item (owner, 2026-10-06), before or after `pub` and `bare.…`
+            // `case.any fn area …` on an item (owner, 2026-10-06), before or after `pub` and `bare.…`
             if self.is_case_mark() {
                 let line = self.line(); pending_case = Some((self.case_mode()?, line));
-                if self.is_word("pub") { return self.err("`pub` comes first: `pub case.insensitive fn …`"); }
+                if self.is_word("pub") { return self.err("`pub` comes first: `pub case.any fn …`"); }
                 if !matches!(self.peek(), Tok::Word(w) if ["fn", "struct", "enum", "interface", "const", "module", "op", "extern", "layout"].contains(&w.as_str())) {
-                    return self.err("a `case` mark is `case.insensitive;` at the top of a file, `case.insensitive [fn, struct];` in `neuron.nrv`, or `case.insensitive fn …` on an item");
+                    return self.err("a `case` mark is `case.any;` at the top of a file, `case.any [fn, struct];` in `neuron.nrv`, or `case.any fn …` on an item");
                 }
             }
             // visibility (decided 2026-09-19): nothing, `pub.neuron`, `pub`

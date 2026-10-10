@@ -1,14 +1,14 @@
 # Names are exact unless marked (owner, 2026-10-06: "`a`, but `case.sensitive` shouldn't be an
-# error"). The writer marks kinds in `neuron.nrv` (here, the root file), or one item; an item's mark
-# covers its own name, so `Mood`'s cases stay exact. `case.sensitive` may be written anyway.
-case.insensitive [fn, var];
+# error"; `case.sensitive` is spelled `case.exact` since 2026-10-10). The writer marks kinds in `neuron.nrv` (here, the root file), or one item; an item's mark
+# covers its own name, so `Mood`'s cases stay exact. `case.exact` may be written anyway.
+case.any [fn, var];
 
-case.insensitive enum Mood {
+case.any enum Mood {
     Happy
     Grumpy
 }
 
-case.sensitive struct Exact {
+case.exact struct Exact {
     n: int32
 }
 

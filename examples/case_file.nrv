@@ -1,4 +1,4 @@
-case.insensitive;
+case.any;
 # A file's mark, its first line, covers every name written in it: functions, types, fields, cases,
 # consts and variables (owner, 2026-10-06: "`b`", at every level the `bare` marks have).
 const 'Limit' := 3;

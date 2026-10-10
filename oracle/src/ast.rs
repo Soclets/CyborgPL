@@ -261,7 +261,7 @@ pub enum Bare { Never, Optional, Only }
 #[derive(Debug, Clone)]
 pub enum BareTarget { Item(String, String), Block(Vec<String>), File(Vec<String>), Kind(String) }
 
-/// `case.insensitive` / `case.sensitive` (owner, 2026-10-06): on an item, a block module, a file, or
+/// `case.any` / `case.exact` (owner, 2026-10-06): on an item, a block module, a file, or
 /// kinds across the Neuron (`fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var`), as the
 /// `bare` marks are; names are exact unless marked.
 #[derive(Debug, Clone)]

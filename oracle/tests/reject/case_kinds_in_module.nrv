@@ -1,5 +1,5 @@
 module m {
-    case.insensitive [fn];
+    case.any [fn];
 }
 MAIN {
     let 'a' := 1;
