@@ -831,7 +831,7 @@ pub const ON_FEATURES: [&str; 14] = ["aarch64", "x86_64", "neon", "sve", "sve2",
 /// knows (`design/cores.md`; owner, 2026-10-06), the ones a `cores` field
 /// may list; another core is a plugin, which CCA cannot load yet. WSTN is
 /// listed but builds nothing yet.
-pub const OFFICIAL_CORES: [(&str, &str, &str); 13] = [
+pub const OFFICIAL_CORES: [(&str, &str, &str); 14] = [
     ("IEG", "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085", "2026-10-06T18:04:29+07:00"),
     ("MCPS", "7d0ccfe6e41eed3a4d8ffe00ccaada9b89a4b9a3ea553a9d869cb6902e2ca75d", "2026-10-06T18:04:29+07:00"),
     ("AutoGPU", "67b2514aab0ffa5ca9c3ae48144498880466d68aa3b8b8f8e1082e6032c24c4d", "2026-10-06T18:04:29+07:00"),
@@ -846,6 +846,8 @@ pub const OFFICIAL_CORES: [(&str, &str, &str); 13] = [
     ("Money", "d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f", "2026-10-07T20:22:24+07:00"),
     ("UniTect", "137a9a35afc69ec6ee796bc39eeefc75680db17ce8a04443126a492812a0ae96", "2026-10-07T20:22:24+07:00"),
     ("CAPS", "90d0813dc72a0c7d54a4ded7a2c9577e77f0036958b245ab01808f9a8568bd01", "2026-10-07T20:22:24+07:00"),
+    // Everything about C (owner, 2026-10-10: "CNC Not C").
+    ("CNC", "04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1", "2026-10-10T16:42:00+07:00"),
 ];
 
 /// Lobes folded into the Brainstem, Nerve's base, on 2026-10-08 (owner:

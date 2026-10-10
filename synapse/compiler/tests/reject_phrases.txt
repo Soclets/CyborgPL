@@ -149,6 +149,7 @@ check_in_value [fnv:e7e32bc71274232c] :: if half a statement needs it, split the
 check_nocheck [fnv:fd645963528e9ebf] :: `check` and `nocheck` cannot both cover it
 check_on_fn [fnv:dfa9ed875d727ff4] :: the tiers are never global
 check_on_fn_in_body [fnv:e371561a00ed503f] :: a function's safety is the sum of its statements
+cnc_not_listed [fnv:6d637c87468ab2b4] :: `incl.C` is CNC's, and this Neuron's Kinesin.nrp does not list the lobe CNC
 comma_grouping [fnv:05b8c86a9cd8fe27] :: `,` is not a digit separator
 concur_fail_unhandled [fnv:cbccfc56a451bded] :: this `concur` can fail (bad), so it needs an `otherwise` saying what happens when it does
 concur_return [fnv:d6776a53deac7dcb] :: `return` cannot leave it

@@ -190,6 +190,11 @@ fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
         "test" if next_is(1, "fn") => ("`test fn`", "TAS"),
         "must" if matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Name(_) | Tok::Word(_) | Tok::Num { .. } | Tok::LParen)) => ("`must`", "TAS"),
         "brain16" => ("`brain16`", "AI"),
+        // Everything about C is CNC's (owner, 2026-10-10); `ptr`, raw
+        // memory and inline assembly stay the Brainstem's.
+        "extern" if dot_then(&["C"]) => ("`extern.C`", "CNC"),
+        "incl" if dot_then(&["C"]) => ("`incl.C`", "CNC"),
+        "layout" if dot_then(&["C"]) => ("`layout.C`", "CNC"),
         "int128" | "uint128" => (if w == "int128" { "`int128`" } else { "`uint128`" }, "WSMW"),
         "not_std" => ("a `not_std.` width", "WSMW"),
         "deci32" | "deci64" | "deci128" => (match w.as_str() { "deci32" => "`deci32`", "deci64" => "`deci64`", _ => "`deci128`" }, "Money"),
