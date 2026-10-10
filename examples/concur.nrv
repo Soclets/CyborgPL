@@ -2,14 +2,15 @@
 fn fetch [lent 'url': str.utf8] -> str.utf8 { return "page of " ++ 'url'; }
 
 MAIN {
-    let 'results' := channel[str.utf8];
+    # Each task sends on its own channel, so the pages print in the same order whichever finishes first.
+    let 'from_a' := channel[str.utf8];
+    let 'from_b' := channel[str.utf8];
     let 'a' := "a.com";
-    concur with [lend 'results', give 'a'] { channel.send[lend 'results', fetch[lend 'a']]; }
-    concur with [lend 'results'] { channel.send[lend 'results', fetch["b.com"]]; }
-    for 'i' in range[from 1, to 2, by 1] {
-        let 'page' := channel.take[lend 'results'] otherwise "";
-        cord::print.useful['page', newln];
-    }
+    concur with [lend 'from_a', give 'a'] { channel.send[lend 'from_a', fetch[lend 'a']]; }
+    concur with [lend 'from_b'] { channel.send[lend 'from_b', fetch["b.com"]]; }
+    let 'page_a' := channel.take[lend 'from_a'] otherwise "";
+    let 'page_b' := channel.take[lend 'from_b'] otherwise "";
+    cord::print.useful['page_a', newln, 'page_b', newln];
     let 'd' := 5 seconds;
     cord::print.useful['d', " ", 1500 millis, " ", 1 hour, " ", 5 seconds equal_to 5_000 millis, newln];
 }
