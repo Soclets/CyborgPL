@@ -35,8 +35,11 @@ the Brainstem; the C lobe builds on the Brainstem's `ptr`** (owner: "yea");
 design claude recommended it. **The C lobe is CNC, "CNC Not C"** (owner:
 "`CNC`, CNC Not C."), a name that spells itself, as GNU's does; offered
 plain `C` (shared with the language's name in `extern.C`), the owner's
-own style, or a body name (Ganglion). Not yet asked: CNC's ID, and the
-rest of the regrouping by expertise.
+own style, or a body name (Ganglion). **CNC's registry ID** (owner: "gen
+now"), made as the others' were (`openssl rand -hex 32`, run once):
+`04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1`, first
+version `2026-10-10T16:42:00+07:00`. Not yet asked: the rest of the
+regrouping by expertise.
 
 ### 2026-10-10 — `bin128` is back, `not_std.bin80` is new, and C's `long double` is `C.long_double` (owner; not built)
 
