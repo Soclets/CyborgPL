@@ -1,0 +1,1 @@
+`FILE` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[FILE]`, never held

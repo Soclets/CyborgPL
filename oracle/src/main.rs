@@ -103,6 +103,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     let unkept = check_redeclared(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_return_literals(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     if let Some(m) = unkept { return Err(format!("{}: {m}", path.display())); }
+    check_opaque_held(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     // a bare call with more than one candidate is refused where it is written, run or not (owner,
     // 2026-10-06: "`a`, and no"); the interpreter makes the same check when a call runs
     for (from, written, std, line) in parser::BARE_CALLS.with(|b| b.borrow().clone()) {
@@ -758,6 +759,61 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
         walk(vec![consts(&[]), args], &[], 0, m)?;
     }
     Ok(unkept)
+}
+
+/// A C struct Nerve never looks inside (owner, 2026-10-10: `ptr.mut[FILE]`) is only pointed at: held
+/// anywhere else (a parameter, a return, a field, a variable, a list's element) it is refused, in code
+/// that runs or not, since holding it needs its size, which is C's own (compiler claude's reading).
+fn check_opaque_held(prog: &ast::Program) -> Result<(), String> {
+    use ast::{Stmt, Ty};
+    let opaque: Vec<&str> = prog.structs.iter().filter(|d| d.opaque).map(|d| d.name.as_str()).collect();
+    if opaque.is_empty() { return Ok(()); }
+    fn held<'a>(t: &'a Ty, opaque: &[&str]) -> Option<&'a str> {
+        match t {
+            Ty::Struct(n) if opaque.contains(&n.as_str()) => Some(n),
+            Ty::Ptr(..) => None,
+            Ty::List(e) | Ty::Array(e) | Ty::Channel(e) | Ty::Simd(e, _) | Ty::Ranged(e, _, _) => held(e, opaque),
+            Ty::Map(k, v, _) => held(k, opaque).or_else(|| held(v, opaque)),
+            Ty::Inst(_, ts) => ts.iter().find_map(|t| held(t, opaque)),
+            Ty::Fn(ps, r, _) => ps.iter().find_map(|(_, t)| held(t, opaque)).or_else(|| r.as_deref().and_then(|r| held(r, opaque))),
+            _ => None,
+        }
+    }
+    let msg = |n: &str, line: usize| format!("line {line}: `{n}` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[{n}]`, never held");
+    fn body(stmts: &[Stmt], opaque: &[&str], out: &mut Option<(String, usize)>) {
+        for st in stmts {
+            if out.is_some() { return; }
+            match st {
+                Stmt::Decl { ty: Some(t), line, .. } | Stmt::LocalConst { ty: Some(t), line, .. } | Stmt::Range { ty: Some(t), line, .. } => {
+                    if let Some(n) = held(t, opaque) { *out = Some((n.to_string(), *line)); }
+                }
+                Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { body(b, opaque, out); } if let Some(o) = otherwise { body(o, opaque, out); } }
+                Stmt::Loop { body: b, .. } | Stmt::Block { body: b, .. } | Stmt::While { body: b, .. } | Stmt::For { body: b, .. } | Stmt::Concur { body: b, .. } => body(b, opaque, out),
+                Stmt::Tier { body: b, .. } => body(std::slice::from_ref(&**b), opaque, out),
+                Stmt::Match { arms, .. } => { for a in arms { body(&a.body, opaque, out); } }
+                Stmt::Whichever { arms, .. } => { for a in arms { body(&a.body, opaque, out); } }
+                _ => {}
+            }
+        }
+    }
+    for f in &prog.funcs {
+        for p in &f.params { if let Some(n) = p.ty.as_ref().and_then(|t| held(t, &opaque)) { return Err(msg(n, f.line)); } }
+        if let Some(n) = f.ret.as_ref().and_then(|t| held(t, &opaque)) { return Err(msg(n, f.line)); }
+        let mut out = None;
+        body(&f.body, &opaque, &mut out);
+        if let Some((n, line)) = out { return Err(msg(&n, line)); }
+    }
+    for d in &prog.structs {
+        for fd in &d.fields { if let Some(n) = held(&fd.ty, &opaque) { return Err(msg(n, d.line)); } }
+    }
+    for c in &prog.consts { if let Some(n) = c.ty.as_ref().and_then(|t| held(t, &opaque)) { return Err(msg(n, c.line)); } }
+    for x in &prog.externs { if let Some(n) = held(&x.ty, &opaque) { return Err(msg(n, x.line)); } }
+    if let Some(m) = &prog.main {
+        let mut out = None;
+        body(m, &opaque, &mut out);
+        if let Some((n, line)) = out { return Err(msg(&n, line)); }
+    }
+    Ok(())
 }
 
 /// A function's `return` of the wrong kind is refused in code that never runs too (check claude, seed

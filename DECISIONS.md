@@ -98,7 +98,12 @@ handed a pointer to another type than its parameter's is refused, naming
 both ("`fclose` wants a pointer to `FILE` for 'p1', and this points at
 `uint8`"), and `ptr.cast[FILE][…]` passes. `size[…]` written bare now says
 both `size.of[int32]` and `my.size[…]`. `examples/c_structs.nrv`, reject
-tests `c_header_opaque_*`, `c_header_keyword_fn_bare`.
+tests `c_header_opaque_*`, `c_header_keyword_fn_bare`. An opaque struct
+held anywhere but behind a pointer (a parameter, a return, a field, a
+variable, a list's element) is refused too, unrun code included, since
+holding it needs its size (compiler claude's reading of "only pointed at",
+found when the oracle accepted `fn f ['x': FILE]`; reject test
+`c_header_opaque_held`).
 A C function pointer needs no new ruling: it is the `fn[…]` type C
 callbacks already are (2026-09-21), held and passed, a call through it a
 `no_check` site. **A named C enum comes through as a Nerve `layout.C enum`**
