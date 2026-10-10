@@ -99,6 +99,16 @@ both ("`fclose` wants a pointer to `FILE` for 'p1', and this points at
 `uint8`"), and `ptr.cast[FILE][…]` passes. `size[…]` written bare now says
 both `size.of[int32]` and `my.size[…]`. `examples/c_structs.nrv`, reject
 tests `c_header_opaque_*`, `c_header_keyword_fn_bare`.
+A C function pointer needs no new ruling: it is the `fn[…]` type C
+callbacks already are (2026-09-21), held and passed, a call through it a
+`no_check` site. **A named C enum comes through as a Nerve `layout.C enum`**
+(owner, "aak", then "(a)"): `enum color { RED, GREEN, BLUE }` gives
+`color.RED`, a parameter of that type takes only a `color`, and a number
+from C that is not one of its values fails `out_of_range` at the door, as
+any `layout.C enum` does; over (b) each name a plain const and the type an
+`int32`. Design claude leaned (a), for the checking, naming the cost: a C
+library that combines an enum's values as flags (`RED | BLUE`) fails at
+the door. Not built.
 
 ### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 
