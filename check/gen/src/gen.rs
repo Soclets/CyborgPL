@@ -117,13 +117,15 @@ pub struct Config {
     pub print: bool,
     /// `to.decN.written[…]` from text (owner, 2026-10-09).
     pub written: bool,
+    /// `const` declarations in bodies (owner, 2026-10-10).
+    pub consts: bool,
     /// `!mut`, `!check` and `! 'x'` (owner, 9a9e573) on most programs.
     pub new_words: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, cord: true, iterators: true, print: true, written: true, new_words: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, cord: true, iterators: true, print: true, written: true, consts: true, new_words: true }
     }
 }
 
@@ -747,6 +749,7 @@ impl Gen {
             if self.shadowable().is_empty() { 0 } else { 1 },                       // shadow
             if self.iter_ready && self.in_check == 0 { 2 } else { 0 },             // iterator, optional
             if self.cfg.print && (!self.lists().is_empty() || !self.simd_vars(None).is_empty() || !self.enum_vars().is_empty()) { 1 } else { 0 }, // print a whole value
+            if self.cfg.consts { 2 } else { 0 },                                     // a const in a body
         ];
         match self.rng.weighted(&w) {
             0 => self.let_stmt(),
@@ -773,6 +776,7 @@ impl Gen {
             23 => self.shadow_stmt(),
             24 => self.iter_episode(),
             25 => self.print_whole(),
+            26 => self.const_stmt(),
             6 if self.rng.chance(8) => self.min_by_minus_one(),
             6 => {
                 let t = self.int_ty();
@@ -2056,6 +2060,37 @@ impl Gen {
         } else {
             Stmt::Shadow(Box::new(s))
         }
+    }
+
+    /// `const 'cn3': int16 = 40;` in a body (owner, 2026-10-10): a literal, or
+    /// a const in scope plus a small number; a read-only name to the code
+    /// after it. As a mistake on purpose, a change or a shadow of it follows.
+    fn const_stmt(&mut self) -> Stmt {
+        let t = self.int_ty();
+        let consts: Vec<VarInfo> = self.vars().filter(|v| v.name.starts_with("cn") && v.ty == t).cloned().collect();
+        let (value, iv) = match consts.is_empty() || self.rng.chance(50) {
+            true => self.literal(t),
+            false => {
+                let c = self.rng.pick(&consts).clone();
+                let r = t.range();
+                let k = self.rng.range((r.lo - c.iv.lo).max(-5), (r.hi - c.iv.hi).min(5));
+                (Expr::Bin(BinOp::Add, Box::new(Expr::Var(c.name)), Box::new(Expr::Lit(k))), Iv::new(c.iv.lo + k, c.iv.hi + k))
+            }
+        };
+        let name = self.name("cn");
+        let decl = Stmt::Const(Box::new(Stmt::Let { tier: Tier::Default, name: name.clone(), mutability: Mutability::Plain, ty: t.into(), value }));
+        if !self.shadow_mistake && self.rng.below(1000) < self.cfg.shadow_wrong {
+            // a const is never assigned to and never shadowed: refused
+            self.shadow_mistake = true;
+            let wrong = if self.rng.chance(50) {
+                Stmt::Src(format!("change '{name}' = '{name}';"))
+            } else {
+                Stmt::Src(format!("shadow '{name}' := 1;"))
+            };
+            return Stmt::Block { tier: Tier::Default, body: vec![decl, wrong] };
+        }
+        self.declare(name, t, iv, false);
+        decl
     }
 
     fn assign_stmt(&mut self) -> Stmt {

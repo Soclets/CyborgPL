@@ -547,7 +547,7 @@ impl<'a> Ev<'a> {
                 Ok(Flow::Next)
             }
             Stmt::Src(_) => Ok(Flow::Next),
-            Stmt::Shadow(inner) => self.stmt(env, inner),
+            Stmt::Shadow(inner) | Stmt::Const(inner) => self.stmt(env, inner),
             Stmt::Remove { name, pos } => {
                 let l = Self::list(env, name);
                 let x = self.expr(env, pos)?.i();

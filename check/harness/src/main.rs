@@ -116,6 +116,7 @@ impl Args {
             iterators: !avoid.contains("iterators"),
             print: !avoid.contains("print"),
             written: !avoid.contains("written"),
+            consts: !avoid.contains("consts"),
             new_words: !avoid.contains("new-words"),
         }
     }

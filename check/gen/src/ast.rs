@@ -411,6 +411,9 @@ pub enum Stmt {
     /// A declaration written with `shadow` in `let`'s place: a name already
     /// visible, declared again on purpose (owner, 2026-10-08).
     Shadow(Box<Stmt>),
+    /// A declaration written with `const` in `let`'s place, inside a body
+    /// (owner, 2026-10-10): known at compile time, never changed or shadowed.
+    Const(Box<Stmt>),
     /// `mut 's': simd[int32, 4] = …;`
     SimdLet { name: String, mutable: bool, elem: Ty, lanes: usize, value: Expr },
 }
@@ -580,9 +583,8 @@ pub fn addr<T>(x: &T) -> usize {
 struct Wr<'a> {
     /// `!mut`, `!check` and `! 'x'` in place of `immut`, `nocheck` and `not`.
     new_words: bool,
-    /// The names something changes (`change`, `lend.mut`); None on the first
-    /// pass, which writes every `mut`.
-    changed: Option<std::collections::HashSet<String>>,
+    /// The declarations something changes (see `changed_decls`), by address.
+    changed: std::collections::HashSet<usize>,
     out: String,
     loose: bool,
     /// byte offsets while writing
@@ -597,8 +599,8 @@ struct Wr<'a> {
 impl<'a> Wr<'a> {
     /// Whether a declaration may say `mut`: only when something changes it
     /// (owner, 2026-10-10: a `mut` nothing changes is refused).
-    fn changed(&self, name: &str) -> bool {
-        self.changed.as_ref().map_or(true, |c| c.contains(name))
+    fn changed(&self, s: &Stmt) -> bool {
+        self.changed.contains(&addr(s))
     }
 
     /// The word for a name that never changes, in a `#strict` file.
@@ -795,11 +797,11 @@ impl<'a> Wr<'a> {
         self.indent = indent;
         match s {
             Stmt::EnumLet { name, mutable, en, value } => {
-                let head = format!("let {}{}: {en} = ", if *mutable && self.changed(name) { "mut " } else if self.strict { self.im() } else { "" }, q(name));
+                let head = format!("let {}{}: {en} = ", if *mutable && self.changed(s) { "mut " } else if self.strict { self.im() } else { "" }, q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::ListFill { name, mutable, elem, value, count } => {
-                let m = if *mutable && self.changed(name) { "mut " } else if self.strict { self.im() } else { "" };
+                let m = if *mutable && self.changed(s) { "mut " } else if self.strict { self.im() } else { "" };
                 self.out.push_str(&pad);
                 let s0 = self.out.len();
                 self.out.push_str(&format!("let {m}{}: list[{}] = list.fill[value ", q(name), elem.name()));
@@ -816,17 +818,18 @@ impl<'a> Wr<'a> {
                 self.e(pos);
                 self.out.push_str("];\n");
             }
-            Stmt::Shadow(inner) => {
-                // the declaration as it is, `shadow` in `let`'s place
+            Stmt::Shadow(inner) | Stmt::Const(inner) => {
+                // the declaration as it is, `shadow` or `const` in `let`'s place
+                let word = if matches!(s, Stmt::Shadow(_)) { "shadow " } else { "const " };
                 let start = self.out.len();
                 self.s(inner, indent);
                 let line = self.out[start..].to_string();
-                let fixed = line.replacen("let ", "shadow ", 1);
+                let fixed = line.replacen("let ", word, 1);
                 self.out.truncate(start);
                 self.out.push_str(&fixed);
             }
             Stmt::TypedLet { name, mutable, ty, value } => {
-                let m = if *mutable && self.changed(name) { "mut " } else if self.strict { self.im() } else { "" };
+                let m = if *mutable && self.changed(s) { "mut " } else if self.strict { self.im() } else { "" };
                 let head = format!("let {m}{}: {ty} = ", q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
@@ -835,7 +838,7 @@ impl<'a> Wr<'a> {
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::SimdLet { name, mutable, elem, lanes, value } => {
-                let m = if *mutable && self.changed(name) { "mut " } else if self.strict { self.im() } else { "" };
+                let m = if *mutable && self.changed(s) { "mut " } else if self.strict { self.im() } else { "" };
                 let head = format!("let {m}{}: simd[{}, {lanes}] = ", q(name), elem.name());
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
@@ -850,7 +853,7 @@ impl<'a> Wr<'a> {
                 let m = match mutability {
                     Mutability::Plain if self.strict => self.im(),
                     Mutability::Plain => "",
-                    Mutability::Mut if self.changed(name) => "mut ",
+                    Mutability::Mut if self.changed(s) => "mut ",
                     // `mut` is a promise that something changes it (owner, 2026-10-10)
                     Mutability::Mut => "",
                     Mutability::Immut => self.im(),
@@ -921,7 +924,7 @@ impl<'a> Wr<'a> {
             }
             Stmt::Return(e) => self.simple(s, &pad, Tier::Default, "return ", e, ";"),
             Stmt::ListLet { name, mutable, elem, items } => {
-                let m = if *mutable && self.changed(name) { "mut " } else if self.strict { self.im() } else { "" };
+                let m = if *mutable && self.changed(s) { "mut " } else if self.strict { self.im() } else { "" };
                 self.out.push_str(&pad);
                 let s0 = self.out.len();
                 self.out.push_str(&format!("let {m}{}: list[{}] = [", q(name), elem.name()));
@@ -979,21 +982,7 @@ impl<'a> Wr<'a> {
 impl Program {
     /// The same text as `render`, with every node's place in it.
     pub fn render_spans(&self) -> (String, Spans) {
-        // Two passes: every `mut` first, then only those of names the text changes.
-        let (first, _) = self.render_with(None);
-        let mut changed = std::collections::HashSet::new();
-        for key in ["change '", "lend.mut '"] {
-            for (i, _) in first.match_indices(key) {
-                let rest = &first[i + key.len()..];
-                if let Some(end) = rest.find('\'') {
-                    changed.insert(rest[..end].to_string());
-                }
-            }
-        }
-        self.render_with(Some(changed))
-    }
-
-    fn render_with(&self, changed: Option<std::collections::HashSet<String>>) -> (String, Spans) {
+        let changed = changed_decls(self);
         let mut w = Wr { new_words: self.new_words, changed, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
         w.out.push_str(&format!("# check claude generator, seed {}\n", self.seed));
         // `extern.C`, one line each, or as a block (owner, 2026-10-02: "both");
@@ -1115,4 +1104,155 @@ pub fn is_exact(e: &Expr) -> bool {
         Expr::Bin(op, ..) => !matches!(op, BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr | BinOp::WAdd | BinOp::WSub | BinOp::WMul),
         _ => false,
     }
+}
+
+/// The declarations something changes, by the address of their statement:
+/// each `change`, element write, append, remove or `lend.mut` marks the
+/// declaration of that name in scope where it is written, so a change of a
+/// shadow is not the shadowed one's (owner, 2026-10-10: a `mut` nothing
+/// changes is refused; Synapse judges by declaration, seed 48033).
+pub fn changed_decls(p: &Program) -> std::collections::HashSet<usize> {
+    struct W {
+        scopes: Vec<Vec<(String, usize)>>,
+        out: std::collections::HashSet<usize>,
+    }
+    impl W {
+        fn decl(&mut self, n: &str, at: usize) {
+            self.scopes.last_mut().unwrap().push((n.to_string(), at));
+        }
+        fn mark(&mut self, n: &str) {
+            if let Some(&(_, at)) = self.scopes.iter().flatten().rev().find(|(m, _)| m == n) {
+                self.out.insert(at);
+            }
+        }
+        fn text(&mut self, t: &str) {
+            for key in ["change '", "lend.mut '"] {
+                for (i, _) in t.match_indices(key) {
+                    let rest = &t[i + key.len()..];
+                    if let Some(end) = rest.find('\'') {
+                        let n = rest[..end].to_string();
+                        self.mark(&n);
+                    }
+                }
+            }
+        }
+        fn expr(&mut self, e: &Expr) {
+            match e {
+                Expr::Remove(n, p) => {
+                    self.mark(n);
+                    self.expr(p);
+                }
+                Expr::Bin(_, a, b) | Expr::Cmp(_, a, b) | Expr::And(a, b) | Expr::Or(a, b) | Expr::AndThen(a, b) | Expr::OrElse(a, b) => {
+                    self.expr(a);
+                    self.expr(b);
+                }
+                Expr::Neg(a) | Expr::NotBit(a) | Expr::Not(a) | Expr::To(_, a) | Expr::At(_, a) | Expr::SimdFill(a) | Expr::SimdFold(_, a) => self.expr(a),
+                Expr::Call(_, args) => args.iter().for_each(|a| self.expr(a)),
+                Expr::Match(s, arms) => {
+                    self.expr(s);
+                    self.arms(arms);
+                }
+                _ => {}
+            }
+        }
+        fn arms(&mut self, arms: &[Arm]) {
+            for a in arms {
+                self.scopes.push(vec![]);
+                if let Some(v) = &a.value {
+                    self.expr(v);
+                }
+                self.block(&a.body);
+                self.scopes.pop();
+            }
+        }
+        fn block(&mut self, b: &[Stmt]) {
+            self.scopes.push(vec![]);
+            for s in b {
+                self.stmt(s);
+            }
+            self.scopes.pop();
+        }
+        fn stmt(&mut self, s: &Stmt) {
+            let at = addr(s);
+            match s {
+                Stmt::Let { name, value, .. } | Stmt::EnumLet { name, value, .. } | Stmt::SimdLet { name, value, .. } | Stmt::TypedLet { name, value, .. } | Stmt::AutoLet { name, value } | Stmt::Borrow { name, value } => {
+                    self.expr(value);
+                    self.decl(name, at);
+                }
+                Stmt::ListLet { name, items, .. } => {
+                    items.iter().for_each(|e| self.expr(e));
+                    self.decl(name, at);
+                }
+                Stmt::ListFill { name, value, count, .. } => {
+                    self.expr(value);
+                    self.expr(count);
+                    self.decl(name, at);
+                }
+                Stmt::Give { name, .. } => self.decl(name, at),
+                Stmt::Shadow(inner) | Stmt::Const(inner) => self.stmt(inner),
+                Stmt::Assign { name, value, .. } => {
+                    self.expr(value);
+                    self.mark(name);
+                }
+                Stmt::SetAt { name, pos, value, .. } => {
+                    self.expr(pos);
+                    self.expr(value);
+                    self.mark(name);
+                }
+                Stmt::Append { name, value } => {
+                    self.expr(value);
+                    self.mark(name);
+                }
+                Stmt::Remove { name, pos } => {
+                    self.expr(pos);
+                    self.mark(name);
+                }
+                Stmt::Print { value, .. } | Stmt::Return(value) => self.expr(value),
+                Stmt::Src(t) => self.text(t),
+                Stmt::If { arms, otherwise } => {
+                    for (c, b) in arms {
+                        self.expr(c);
+                        self.block(b);
+                    }
+                    if let Some(b) = otherwise {
+                        self.block(b);
+                    }
+                }
+                Stmt::For { start, stop, name, body, .. } => {
+                    self.expr(start);
+                    self.expr(stop);
+                    self.scopes.push(vec![(name.clone(), 0)]);
+                    self.block(body);
+                    self.scopes.pop();
+                }
+                Stmt::ForEach { list, body, mutable, .. } => {
+                    if *mutable {
+                        self.mark(list);
+                    }
+                    self.block(body);
+                }
+                Stmt::While { cond, body } => {
+                    self.expr(cond);
+                    self.block(body);
+                }
+                Stmt::Loop { body } | Stmt::Block { body, .. } => self.block(body),
+                Stmt::MatchStmt { scrut, arms } => {
+                    self.expr(scrut);
+                    self.arms(arms);
+                }
+                _ => {}
+            }
+        }
+    }
+    let mut w = W { scopes: vec![vec![]], out: Default::default() };
+    for f in &p.funcs {
+        w.scopes.push(f.params.iter().map(|x| (x.name.clone(), 0)).collect());
+        w.block(&f.body);
+        w.scopes.pop();
+    }
+    for f in &p.bfuncs {
+        w.block(&f.body);
+    }
+    w.block(&p.main);
+    w.out
 }

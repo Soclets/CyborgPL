@@ -69,7 +69,7 @@ fn stmt_size(s: &Stmt) -> usize {
         Stmt::ListFill { value, count, .. } => expr_size(value) + expr_size(count),
         Stmt::Src(_) => 0,
         Stmt::Remove { pos, .. } => expr_size(pos),
-        Stmt::Shadow(inner) => stmt_size(inner),
+        Stmt::Shadow(inner) | Stmt::Const(inner) => stmt_size(inner),
         Stmt::MatchStmt { scrut, arms } => expr_size(scrut) + arms_size(arms),
         Stmt::Give { .. } => 0,
     }
@@ -268,7 +268,7 @@ fn stmt_variants(s: &Stmt) -> Vec<Vec<Stmt>> {
                 out.push(vec![Stmt::Append { name: name.clone(), value: e }]);
             }
         }
-        Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::EnumLet { .. } | Stmt::SimdLet { .. } | Stmt::TypedLet { .. } | Stmt::AutoLet { .. } | Stmt::ListFill { .. } | Stmt::Src(_) | Stmt::Remove { .. } | Stmt::Shadow(_) => {}
+        Stmt::Borrow { .. } | Stmt::Give { .. } | Stmt::EnumLet { .. } | Stmt::SimdLet { .. } | Stmt::TypedLet { .. } | Stmt::AutoLet { .. } | Stmt::ListFill { .. } | Stmt::Src(_) | Stmt::Remove { .. } | Stmt::Shadow(_) | Stmt::Const(_) => {}
         Stmt::MatchStmt { scrut, arms } => {
             for i in 0..arms.len() {
                 for b in block_variants(&arms[i].body) {
@@ -449,7 +449,7 @@ fn stmt_ok(s: &Stmt, scopes: &mut Vec<Vec<String>>, arity: &[(String, usize)]) -
         }
         Stmt::Src(_) => true,
         Stmt::Remove { name, pos } => known(scopes, name) && e(pos, scopes),
-        Stmt::Shadow(inner) => stmt_ok(inner, scopes, arity),
+        Stmt::Shadow(inner) | Stmt::Const(inner) => stmt_ok(inner, scopes, arity),
         Stmt::ListFill { name, value, count, .. } => {
             let ok = e(value, scopes) && e(count, scopes);
             scopes.last_mut().unwrap().push(name.clone());
