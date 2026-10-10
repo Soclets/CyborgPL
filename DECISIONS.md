@@ -44,8 +44,15 @@ Windows, and `char` unsigned on Linux/ARM; so `C.int`, `C.long`, `C.char`,
 built for, and a header comes through in them (`strlen` returns a
 `C.size_t`); over (b) a header's types turned into the machine's fixed
 sizes (the oracle's `long` → `int64` until now). Design claude recommended
-(a), as Rust (`c_int`) and Swift (`CInt`) do. Not yet asked: the list and
-the spelling of the unsigned and two-word ones; whether `bin128` and `not_std.bin80` are the base's or a lobe's (WSMW holds
+(a), as Rust (`c_int`) and Swift (`CInt`) do. **C's two-word names keep
+C's words: `C.unsigned_int`, `C.unsigned_long`, `C.long_long`,
+`C.signed_char`, `C.unsigned_char`**, and C's one-word names keep theirs
+(`C.size_t`, `C.ssize_t`, `C.wchar_t`, `C.ptrdiff_t`, `C.intptr_t`)
+(owner: "(a)"), over (b) Rust's short `C.uint`, `C.ulong`, which design
+claude noted look like Nerve's `uint32`; design claude recommended (a). A
+C type the same size everywhere comes through as Nerve's own (`int32_t` →
+`int32`, `uint8_t` → `uint8`, `float` → `bin32`, `double` → `bin64`).
+Not yet asked: whether `bin128` and `not_std.bin80` are the base's or a lobe's (WSMW holds
 the odd integer widths).
 
 ### 2026-10-10 — Nerve reads C headers with `incl.C.system["stdio.h"];`, so C's functions need no hand-written `extern.C` (owner; built in the oracle)
