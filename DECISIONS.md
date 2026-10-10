@@ -23,8 +23,15 @@ passing the registry, is the same one that rule has. The owner: "(c)". So
 **a build may include any file's bytes; the registry refuses publishing a
 Neuron that includes a file outside its own folder**. Design claude's
 reading, not asked: the file counts as source, so its bytes are part of
-what the build and Cortex's cache depend on. Not yet asked: the spelling,
-the value's type, what a path is relative to, and a text twin.
+what the build and Cortex's cache depend on.
+**Spelled `incl.bytes["logo.png"]`** (owner, "What's the abbreviation for
+`include`?", then "Bullet point 1"), over design claude's `include.bytes`
+(recommended), `embed[…]` and `file.bytes[…]`; design claude had named
+`incl`, `inc` (read as "increment") and the assemblers' `incbin`. **Only
+`incl.bytes`, no long second spelling** (owner: "(a)"), over (b) both;
+design claude recommended (a). Not yet asked: the value's type, what a path
+is relative to, and a text twin (`incl.text`, shown beside it but not
+chosen).
 
 ### 2026-10-10 — The case marks are `case.any` and `case.exact` (owner: a)
 
