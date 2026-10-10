@@ -25,7 +25,12 @@ file in the Neuron named like a system header replace it unseen, and the
 registry could not tell a system header, allowed in a published Neuron,
 from a stray path outside it); shown as `incl.C.system["stdio.h"]` and
 `incl.C["vendor/mylib.h"]`, over (a) one form searching the Neuron, then
-the system. The syntax is still to be discussed.
+the system. The syntax is still to be discussed. **The path is quoted text
+in brackets, as every `incl` has it: `incl.C.system["stdio.h"];`** (owner,
+"What should it use? `""`, `[]`?", then "(a)"), over (b) the quotes alone,
+`incl.C.system "stdio.h";`; design claude recommended (a), showing several
+headers in one bracket, `incl.C.system["stdio.h", "stdlib.h"];`, as part
+of it.
 
 ### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 
