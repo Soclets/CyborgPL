@@ -1,4 +1,0 @@
-MAIN {
-    let 'b' := incl.bytes["incl_assets/cafe.txt"];
-    list.append[lend.mut 'b', 1];
-}
