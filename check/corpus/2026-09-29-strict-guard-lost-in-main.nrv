@@ -46,8 +46,8 @@ fn f2 ['p1': uint16] -> int32 {
 }
 
 MAIN {
-    let mut 'v16': uint32 = f1[1] plus 0;
-    let mut 'v17': int64 = 19 minus to.int64['v16'];
+    let 'v16': uint32 = f1[1] plus 0;
+    let 'v17': int64 = 19 minus to.int64['v16'];
     for temp 'i19': uint8 in range[from 33, to 42, by 1] {
         let mut 'w22': uint64 = 3;
         loop {

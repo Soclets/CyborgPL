@@ -1739,7 +1739,7 @@ impl Gen {
         let c = self.name("c");
         let now = self.rng.range(-5, 5);
         let stop = now + self.rng.range(-2, 8);
-        let mut lines = vec![format!("let mut {} := Counter[now = {now}, stop = {stop}];", q(&c))];
+        let mut lines = vec![format!("let MUT{} := Counter[now = {now}, stop = {stop}];", q(&c))];
         if self.rng.chance(60) {
             let x = self.name("x");
             lines.push(format!("match Counter.next[lend.mut {}] {{ value {} {{ put_i[to.int64[{}]]; }} none {{ put_u[0]; }} }}", q(&c), q(&x), q(&x)));
@@ -1760,6 +1760,9 @@ impl Gen {
             let h = self.name("x");
             lines.push(format!("match half[to.int32[{}]] {{ value {} {{ put_i[to.int64[{}]]; }} none {{ put_u[1]; }} }}", q(&v.name), q(&h), q(&h)));
         }
+        // `mut` only if a `lend.mut` changes it (owner, 2026-10-10)
+        let changes = lines.iter().any(|l| l.contains(&format!("lend.mut {}", q(&c))));
+        lines[0] = lines[0].replace("MUT", if changes { "mut " } else { "" });
         Stmt::Block { tier: Tier::Default, body: lines.into_iter().map(Stmt::Src).collect() }
     }
 

@@ -580,6 +580,9 @@ pub fn addr<T>(x: &T) -> usize {
 struct Wr<'a> {
     /// `!mut`, `!check` and `! 'x'` in place of `immut`, `nocheck` and `not`.
     new_words: bool,
+    /// The names something changes (`change`, `lend.mut`); None on the first
+    /// pass, which writes every `mut`.
+    changed: Option<std::collections::HashSet<String>>,
     out: String,
     loose: bool,
     /// byte offsets while writing
@@ -592,6 +595,12 @@ struct Wr<'a> {
 }
 
 impl<'a> Wr<'a> {
+    /// Whether a declaration may say `mut`: only when something changes it
+    /// (owner, 2026-10-10: a `mut` nothing changes is refused).
+    fn changed(&self, name: &str) -> bool {
+        self.changed.as_ref().map_or(true, |c| c.contains(name))
+    }
+
     /// The word for a name that never changes, in a `#strict` file.
     fn im(&self) -> &'static str {
         "immut "
@@ -786,11 +795,11 @@ impl<'a> Wr<'a> {
         self.indent = indent;
         match s {
             Stmt::EnumLet { name, mutable, en, value } => {
-                let head = format!("let {}{}: {en} = ", if *mutable { "mut " } else if self.strict { self.im() } else { "" }, q(name));
+                let head = format!("let {}{}: {en} = ", if *mutable && self.changed(name) { "mut " } else if self.strict { self.im() } else { "" }, q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::ListFill { name, mutable, elem, value, count } => {
-                let m = if *mutable { "mut " } else if self.strict { self.im() } else { "" };
+                let m = if *mutable && self.changed(name) { "mut " } else if self.strict { self.im() } else { "" };
                 self.out.push_str(&pad);
                 let s0 = self.out.len();
                 self.out.push_str(&format!("let {m}{}: list[{}] = list.fill[value ", q(name), elem.name()));
@@ -817,7 +826,7 @@ impl<'a> Wr<'a> {
                 self.out.push_str(&fixed);
             }
             Stmt::TypedLet { name, mutable, ty, value } => {
-                let m = if *mutable { "mut " } else if self.strict { self.im() } else { "" };
+                let m = if *mutable && self.changed(name) { "mut " } else if self.strict { self.im() } else { "" };
                 let head = format!("let {m}{}: {ty} = ", q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
@@ -826,7 +835,7 @@ impl<'a> Wr<'a> {
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::SimdLet { name, mutable, elem, lanes, value } => {
-                let m = if *mutable { "mut " } else if self.strict { self.im() } else { "" };
+                let m = if *mutable && self.changed(name) { "mut " } else if self.strict { self.im() } else { "" };
                 let head = format!("let {m}{}: simd[{}, {lanes}] = ", q(name), elem.name());
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
@@ -841,7 +850,9 @@ impl<'a> Wr<'a> {
                 let m = match mutability {
                     Mutability::Plain if self.strict => self.im(),
                     Mutability::Plain => "",
-                    Mutability::Mut => "mut ",
+                    Mutability::Mut if self.changed(name) => "mut ",
+                    // `mut` is a promise that something changes it (owner, 2026-10-10)
+                    Mutability::Mut => "",
                     Mutability::Immut => self.im(),
                 };
                 let head = format!("let {m}{}: {} = ", q(name), ty.text());
@@ -910,7 +921,7 @@ impl<'a> Wr<'a> {
             }
             Stmt::Return(e) => self.simple(s, &pad, Tier::Default, "return ", e, ";"),
             Stmt::ListLet { name, mutable, elem, items } => {
-                let m = if *mutable { "mut " } else if self.strict { self.im() } else { "" };
+                let m = if *mutable && self.changed(name) { "mut " } else if self.strict { self.im() } else { "" };
                 self.out.push_str(&pad);
                 let s0 = self.out.len();
                 self.out.push_str(&format!("let {m}{}: list[{}] = [", q(name), elem.name()));
@@ -968,7 +979,22 @@ impl<'a> Wr<'a> {
 impl Program {
     /// The same text as `render`, with every node's place in it.
     pub fn render_spans(&self) -> (String, Spans) {
-        let mut w = Wr { new_words: self.new_words, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
+        // Two passes: every `mut` first, then only those of names the text changes.
+        let (first, _) = self.render_with(None);
+        let mut changed = std::collections::HashSet::new();
+        for key in ["change '", "lend.mut '"] {
+            for (i, _) in first.match_indices(key) {
+                let rest = &first[i + key.len()..];
+                if let Some(end) = rest.find('\'') {
+                    changed.insert(rest[..end].to_string());
+                }
+            }
+        }
+        self.render_with(Some(changed))
+    }
+
+    fn render_with(&self, changed: Option<std::collections::HashSet<String>>) -> (String, Spans) {
+        let mut w = Wr { new_words: self.new_words, changed, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
         w.out.push_str(&format!("# check claude generator, seed {}\n", self.seed));
         // `extern.C`, one line each, or as a block (owner, 2026-10-02: "both");
         // the block where there are three, so both forms are written

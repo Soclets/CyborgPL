@@ -16,8 +16,8 @@ fn b2 [@x] [lent @x 'a': list[int32], lent @x 'b': list[int32]] -> lent @x list[
 }
 
 MAIN {
-    let mut 'o1': list[int32] = [2, -16];
-    let mut 'o2': list[int32] = [7,];
+    let 'o1': list[int32] = [2, -16];
+    let 'o2': list[int32] = [7,];
     let 'r' := b2[lend 'o1', lend 'o2'];
     let 's' := b1[lend 'o1', lend 'r', lend 'r'];
     let 'g' := give 'o2';
