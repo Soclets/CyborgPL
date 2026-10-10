@@ -51,7 +51,7 @@ a function-like macro (`#define MAX(a, b) …`) is skipped, being text
 substitution, and is written in Nerve if needed; over (b) no `#define`s at
 all. Design claude recommended (a), as Zig and Swift do. The syntax is
 settled with this. Design claude's readings, not asked: what `incl.C`
-declares follows every `extern.C` rule (a call is a `!check` site, `ptr[T]`
+declares follows every `extern.C` rule (a call is a `no_check` site, `ptr[T]`
 at the boundary, C's varargs); like `extern.C` it is the Brainstem's; the
 registry allows `.system` headers in a published Neuron and refuses a
 plain path outside the Neuron, as for `incl.bytes`.
