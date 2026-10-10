@@ -92,9 +92,9 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     prog.enums.extend(base.enums);
     check_powers(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_type_names(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
-    check_redeclared(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
+    let unkept = check_redeclared(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_return_literals(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
-    check_mut_used(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
+    if let Some(m) = unkept { return Err(format!("{}: {m}", path.display())); }
     // a bare call with more than one candidate is refused where it is written, run or not (owner,
     // 2026-10-06: "`a`, and no"); the interpreter makes the same check when a call runs
     for (from, written, std, line) in parser::BARE_CALLS.with(|b| b.borrow().clone()) {
@@ -578,93 +578,178 @@ fn check_type_names(prog: &ast::Program) -> Result<(), String> {
 /// or not (check claude, 2026-10-08: the oracle checked only where it ran; owner, 2026-09-14 and
 /// 2026-10-08). Scopes as the interpreter keeps them: a function's parameters, then each block;
 /// a closure starts afresh with its parameters and captures.
-fn check_redeclared(prog: &ast::Program) -> Result<(), String> {
-    use ast::{Stmt, Expr, Handler, AsmBind};
-    type Scopes = Vec<Vec<(String, bool)>>;   // (name, sealed)
+///
+/// The same walk checks two promises in code that runs or not (check claude, 2026-10-10): a const is
+/// never changed (`change 'r' = …`), and a `mut` variable or parameter is changed by something (owner,
+/// 2026-10-10: "`b`"; in a generic function nobody calls too: "`a`"). A change is `change` (whole,
+/// field or element), `lend.mut`, a `lend.mut` capture, or an `inline.ASM` output or `lend.mut`, and it
+/// counts for the variable its name means where it is written, so a shadow's change is not the
+/// shadowed variable's. Hands back the first broken `mut` promise, reported after the other checks.
+fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
+    use ast::{Stmt, Expr, Handler, AsmBind, Mutability, Verb};
+    type Entry = (String, bool, Option<usize>);   // (name, sealed, which `mut` it is)
+    struct W { sc: Vec<Vec<Entry>>, muts: Vec<(String, usize, bool)> }   // (name, line, changed)
     // a const sits in the outermost scope, its name marked `const:`
-    fn find<'a>(sc: &'a Scopes, n: &str) -> Option<&'a (String, bool)> { sc.iter().rev().flat_map(|s| s.iter()).find(|(m, _)| m == n || m.strip_prefix("const:") == Some(n)) }
-    fn decl(sc: &mut Scopes, n: &str, shadow: bool, sealed: bool, line: usize) -> Result<(), String> {
-        match (find(sc, n), shadow) {
+    fn find<'a>(sc: &'a [Vec<Entry>], n: &str) -> Option<&'a Entry> { sc.iter().rev().flat_map(|s| s.iter().rev()).find(|(m, _, _)| m == n || m.strip_prefix("const:") == Some(n)) }
+    fn decl(w: &mut W, n: &str, shadow: bool, sealed: bool, is_mut: bool, line: usize) -> Result<(), String> {
+        match (find(&w.sc, n), shadow) {
             (Some(_), false) => return Err(format!("line {line}: '{n}' is already declared in an enclosing scope; to shadow it deliberately write `shadow '{n}' := …;` (owner, 2026-10-08)")),
             (None, true) => return Err(format!("line {line}: `shadow` declares over an existing '{n}', but none is visible here")),
-            (Some((m, true)), true) if m.starts_with("const:") => return Err(format!("line {line}: '{n}' is a const and cannot be shadowed")),
-            (Some((_, true)), true) => return Err(format!("line {line}: '{n}' cannot be shadowed: it is `no_shadow` (or a loop's own counter)")),
+            (Some((m, true, _)), true) if m.starts_with("const:") => return Err(format!("line {line}: '{n}' is a const and cannot be shadowed")),
+            (Some((_, true, _)), true) => return Err(format!("line {line}: '{n}' cannot be shadowed: it is `no_shadow` (or a loop's own counter)")),
             _ => {}
         }
-        sc.last_mut().unwrap().push((n.to_string(), sealed));
+        let m = if is_mut { w.muts.push((n.to_string(), line, false)); Some(w.muts.len() - 1) } else { None };
+        w.sc.last_mut().unwrap().push((n.to_string(), sealed, m));
         Ok(())
     }
-    fn block(sc: &mut Scopes, body: &[Stmt], extra: &[(String, bool)]) -> Result<(), String> {
-        sc.push(extra.to_vec());
-        for st in body { stmt(sc, st)?; }
-        sc.pop();
+    // something changes the variable `n` means here
+    fn changes(w: &mut W, n: &str) {
+        if let Some(i) = find(&w.sc, n).and_then(|e| e.2) { w.muts[i].2 = true; }
+    }
+    // a `lend.mut` in text the walk does not take apart further
+    fn lends_mut(w: &mut W, text: &str) {
+        for pat in ["Owned(LendMut, \"", "OwnedField(LendMut, \"", "OwnedElem(LendMut, \""] {
+            for rest in text.split(pat).skip(1) { if let Some(n) = rest.split('"').next() { changes(w, n); } }
+        }
+        for rest in text.split("Spread(\"").skip(1) {
+            if let Some((n, after)) = rest.split_once('"') { if after.starts_with(", Some(LendMut)") { changes(w, n); } }
+        }
+    }
+    // the bodies inside an expression that the walk visits in their own scopes
+    fn nested(e: &Expr, out: &mut Vec<String>) {
+        fn of_handler(h: &Option<Handler>, out: &mut Vec<String>) {
+            match h {
+                Some(Handler::Arms(a)) => for arm in a { out.push(format!("{:?}", arm.body)); if let Some(v) = &arm.value { nested(v, out); } },
+                Some(Handler::Leave(st)) => out.push(format!("{st:?}")),
+                Some(Handler::Value(b)) => for ast::Value::Expr(e) in &b.values { nested(e, out); },
+                _ => {}
+            }
+        }
+        match e {
+            Expr::Call(c) => { for ast::Value::Expr(e) in &c.args.values { nested(e, out); } of_handler(&c.handler, out); }
+            Expr::Match(v, a, _) => { for ast::Value::Expr(e) in &v.values { nested(e, out); } for arm in a { out.push(format!("{:?}", arm.body)); if let Some(v) = &arm.value { nested(v, out); } } }
+            Expr::Lambda(f, _, _) => out.push(format!("{:?}", f.body)),
+            _ => {}
+        }
+    }
+    fn block(w: &mut W, body: &[Stmt], extra: &[Entry]) -> Result<(), String> {
+        w.sc.push(extra.to_vec());
+        for st in body { stmt(w, st)?; }
+        w.sc.pop();
         Ok(())
     }
-    fn arms(sc: &mut Scopes, arms: &[ast::Arm]) -> Result<(), String> {
+    fn arms(w: &mut W, arms: &[ast::Arm]) -> Result<(), String> {
         for a in arms {
-            if let Some(v) = &a.value { expr(sc, v)?; }
-            block(sc, &a.body, &a.bind.iter().map(|b| (b.clone(), false)).collect::<Vec<_>>())?;
+            if let Some(v) = &a.value { expr(w, v)?; }
+            block(w, &a.body, &a.bind.iter().map(|b| (b.clone(), false, None)).collect::<Vec<_>>())?;
         }
         Ok(())
     }
-    fn handler(sc: &mut Scopes, h: &Option<Handler>) -> Result<(), String> {
-        match h { Some(Handler::Arms(a)) => arms(sc, a), Some(Handler::Leave(st)) => stmt(sc, st), _ => Ok(()) }
+    fn handler(w: &mut W, h: &Option<Handler>) -> Result<(), String> {
+        match h { Some(Handler::Arms(a)) => arms(w, a), Some(Handler::Leave(st)) => stmt(w, st), Some(Handler::Value(b)) => bracket(w, b), _ => Ok(()) }
     }
-    fn bracket(sc: &mut Scopes, b: &ast::Bracket) -> Result<(), String> {
-        for ast::Value::Expr(e) in &b.values { expr(sc, e)?; }
+    fn bracket(w: &mut W, b: &ast::Bracket) -> Result<(), String> {
+        let mut text = format!("{b:?}");
+        let mut bodies = Vec::new();
+        for ast::Value::Expr(e) in &b.values { nested(e, &mut bodies); }
+        for body in bodies { text = text.replace(&body, ""); }
+        lends_mut(w, &text);
+        for ast::Value::Expr(e) in &b.values { expr(w, e)?; }
         Ok(())
     }
-    fn expr(sc: &mut Scopes, e: &Expr) -> Result<(), String> {
+    fn expr(w: &mut W, e: &Expr) -> Result<(), String> {
         match e {
-            Expr::Call(c) => { bracket(sc, &c.args)?; handler(sc, &c.handler) }
-            Expr::Match(v, a, _) => { bracket(sc, v)?; arms(sc, a) }
+            Expr::Call(c) => { bracket(w, &c.args)?; handler(w, &c.handler) }
+            Expr::Match(v, a, _) => { bracket(w, v)?; arms(w, a) }
             Expr::Lambda(f, caps, _) => {
-                let mut fresh: Scopes = vec![caps.iter().map(|(_, n)| (n.clone(), false)).chain(f.params.iter().map(|p| (p.name.clone(), false))).collect()];
-                block(&mut fresh, &f.body, &[])
+                for (verb, n) in caps { if *verb == Verb::LendMut { changes(w, n); } }
+                let fresh = vec![caps.iter().map(|(_, n)| (n.clone(), false, None)).collect()];
+                let outer = std::mem::replace(&mut w.sc, fresh);
+                for p in &f.params {
+                    let m = if p.mutability == Some(Mutability::Mut) { w.muts.push((p.name.clone(), f.line, false)); Some(w.muts.len() - 1) } else { None };
+                    w.sc.last_mut().unwrap().push((p.name.clone(), false, m));
+                }
+                let r = block(w, &f.body, &[]);
+                w.sc = outer;
+                r
             }
             _ => Ok(()),
         }
     }
-    fn stmt(sc: &mut Scopes, st: &Stmt) -> Result<(), String> {
+    fn stmt(w: &mut W, st: &Stmt) -> Result<(), String> {
         match st {
-            Stmt::Decl { name, value, shadow, sealed, line, .. } => { bracket(sc, value)?; decl(sc, name, *shadow, *sealed, *line) }
+            Stmt::Decl { name, mutability, value, shadow, sealed, line, .. } => { bracket(w, value)?; decl(w, name, *shadow, *sealed, *mutability == Some(Mutability::Mut), *line) }
             Stmt::LocalConst { name, value, line, .. } => {
-                bracket(sc, value)?;
-                decl(sc, name, false, true, *line)?;
-                // marked as a const, so a later `shadow` names it as one
-                if let Some(last) = sc.last_mut().unwrap().last_mut() { last.0 = format!("const:{name}"); }
+                bracket(w, value)?;
+                decl(w, name, false, true, false, *line)?;
+                // marked as a const, so a later `shadow` or `change` names it as one
+                if let Some(last) = w.sc.last_mut().unwrap().last_mut() { last.0 = format!("const:{name}"); }
                 Ok(())
             }
-            Stmt::If { arms: a, otherwise, .. } => { for (c, b) in a { bracket(sc, c)?; block(sc, b, &[])?; } if let Some(o) = otherwise { block(sc, o, &[])?; } Ok(()) }
-            Stmt::Loop { body, .. } | Stmt::Block { body, .. } => block(sc, body, &[]),
-            Stmt::While { cond, body, .. } => { bracket(sc, cond)?; block(sc, body, &[]) }
-            Stmt::For { name, index, over, body, .. } => {
-                bracket(sc, over)?;
-                let mut names = vec![(name.clone(), true)];
-                if let Some(i) = index { names.push((i.clone(), true)); }
-                block(sc, body, &names)
+            Stmt::Assign { name, value, line } => {
+                bracket(w, value)?;
+                if find(&w.sc, name).is_some_and(|(m, _, _)| m.starts_with("const:")) { return Err(format!("line {line}: '{name}' is a const and cannot be assigned to")); }
+                changes(w, name);
+                Ok(())
             }
-            Stmt::Range { name, bounds, body, .. } => { bracket(sc, bounds)?; block(sc, body, &[(name.clone(), true)]) }
-            Stmt::Tier { body, .. } => stmt(sc, body),
-            Stmt::Match { value, arms: a, .. } => { bracket(sc, value)?; arms(sc, a) }
-            Stmt::Call { call, .. } => { bracket(sc, &call.args)?; handler(sc, &call.handler) }
-            Stmt::CallValue { args, handler: h, .. } | Stmt::MapFailStmt { args, handler: h, .. } => { bracket(sc, args)?; handler(sc, h) }
-            Stmt::Concur { body, handler: h, .. } => { block(sc, body, &[])?; handler(sc, h) }
-            Stmt::Whichever { arms: a, handler: h, .. } => { for w in a { block(sc, &w.body, &[(w.name.clone(), false)])?; } handler(sc, h) }
-            Stmt::Asm { binds, line, .. } => { for b in binds { if let AsmBind::Out(v, _) = b { if find(sc, v).is_none() { decl(sc, v, false, false, *line)?; } } } Ok(()) }
-            _ => Ok(()),
+            Stmt::AssignElem { name, index, value, .. } => { lends_mut(w, &format!("{index:?}")); expr(w, index)?; bracket(w, value)?; changes(w, name); Ok(()) }
+            Stmt::AssignField { name, value, .. } => { bracket(w, value)?; changes(w, name); Ok(()) }
+            Stmt::If { arms: a, otherwise, .. } => { for (c, b) in a { bracket(w, c)?; block(w, b, &[])?; } if let Some(o) = otherwise { block(w, o, &[])?; } Ok(()) }
+            Stmt::Loop { body, .. } | Stmt::Block { body, .. } => block(w, body, &[]),
+            Stmt::While { cond, body, .. } => { bracket(w, cond)?; block(w, body, &[]) }
+            Stmt::For { name, index, over, body, .. } => {
+                bracket(w, over)?;
+                let mut names = vec![(name.clone(), true, None)];
+                if let Some(i) = index { names.push((i.clone(), true, None)); }
+                block(w, body, &names)
+            }
+            Stmt::Range { name, bounds, body, .. } => { bracket(w, bounds)?; block(w, body, &[(name.clone(), true, None)]) }
+            Stmt::Tier { body, .. } => stmt(w, body),
+            Stmt::Match { value, arms: a, .. } => { bracket(w, value)?; arms(w, a) }
+            Stmt::Call { call, .. } => { bracket(w, &call.args)?; handler(w, &call.handler) }
+            Stmt::CallValue { args, handler: h, .. } | Stmt::MapFailStmt { args, handler: h, .. } => { bracket(w, args)?; handler(w, h) }
+            Stmt::Concur { caps, body, handler: h, .. } => {
+                for (verb, n) in caps { if *verb == Verb::LendMut { changes(w, n); } }
+                block(w, body, &[])?;
+                handler(w, h)
+            }
+            Stmt::Whichever { arms: a, handler: h, .. } => { for x in a { bracket(w, &x.chan)?; block(w, &x.body, &[(x.name.clone(), false, None)])?; } handler(w, h) }
+            Stmt::Asm { binds, line, .. } => {
+                for b in binds {
+                    match b {
+                        AsmBind::Out(v, _) => if find(&w.sc, v).is_none() { decl(w, v, false, false, false, *line)?; } else { changes(w, v); },
+                        AsmBind::InOut(v, _) | AsmBind::Lend(v, _, true) => changes(w, v),
+                        _ => {}
+                    }
+                }
+                Ok(())
+            }
+            _ => { lends_mut(w, &format!("{st:?}")); Ok(()) }
         }
     }
-    let consts = |module: &[String]| -> Vec<(String, bool)> { prog.consts.iter().filter(|c| c.module == module).map(|c| (format!("const:{}", c.name), true)).collect() };
-    for f in &prog.funcs {
-        let mut sc: Scopes = vec![consts(&f.module), f.params.iter().map(|p| (p.name.clone(), false)).collect()];
-        block(&mut sc, &f.body, &[])?;
-    }
+    let consts = |module: &[String]| -> Vec<Entry> { prog.consts.iter().filter(|c| c.module == module).map(|c| (format!("const:{}", c.name), true, None)).collect() };
+    let mut unkept = None;
+    let mut walk = |sc: Vec<Vec<Entry>>, params: &[ast::Param], fline: usize, body: &[Stmt]| -> Result<(), String> {
+        let mut w = W { sc, muts: Vec::new() };
+        for p in params {
+            let m = if p.mutability == Some(Mutability::Mut) { w.muts.push((p.name.clone(), fline, false)); Some(w.muts.len() - 1) } else { None };
+            w.sc.last_mut().unwrap().push((p.name.clone(), false, m));
+        }
+        block(&mut w, body, &[])?;
+        if unkept.is_none() {
+            if let Some((n, line, _)) = w.muts.iter().find(|m| !m.2) {
+                unkept = Some(format!("line {line}: '{n}' is `mut`, but nothing changes it: drop `mut`, or change it (`mut` is a promise that it changes, as `immut` is that it does not)"));
+            }
+        }
+        Ok(())
+    };
+    for f in &prog.funcs { walk(vec![consts(&f.module), Vec::new()], &f.params, f.line, &f.body)?; }
     if let Some(m) = &prog.main {
-        let mut sc: Scopes = vec![consts(&[]), prog.main_args.iter().flat_map(|(a, b)| [(a.clone(), false), (b.clone(), false)]).collect()];
-        block(&mut sc, m, &[])?;
+        let args: Vec<Entry> = prog.main_args.iter().flat_map(|(a, b)| [(a.clone(), false, None), (b.clone(), false, None)]).collect();
+        walk(vec![consts(&[]), args], &[], 0, m)?;
     }
-    Ok(())
+    Ok(unkept)
 }
 
 /// A function's `return` of the wrong kind is refused in code that never runs too (check claude, seed
@@ -733,47 +818,6 @@ fn check_return_literals(prog: &ast::Program) -> Result<(), String> {
         let mut sc: Scopes = vec![func.params.iter().map(|p| (p.name.clone(), p.ty.as_ref().and_then(of_ty))).collect()];
         walk(&mut sc, &func.body, want, t, &func.name)?;
     }
-    Ok(())
-}
-
-/// `mut` is a checked promise that a variable changes (owner, 2026-10-10: "`b`"), mirroring `immut`:
-/// a `let mut` or `mut` parameter that nothing in its function changes is refused. A change is
-/// `change 'x' = …`, `change 'x'.f = …`, `change 'x'[pos i] = …`, `lend.mut 'x'`, or an `inline.ASM`
-/// output into it. Found by name within the function (design claude's reading: a shadowing name of
-/// the same spelling counts for both, so this never refuses wrongly, only misses rarely).
-fn check_mut_used(prog: &ast::Program) -> Result<(), String> {
-    use ast::{Stmt, Mutability};
-    fn decls(body: &[Stmt], out: &mut Vec<(String, usize)>) {
-        for st in body {
-            match st {
-                Stmt::Decl { name, mutability: Some(Mutability::Mut), line, .. } => out.push((name.clone(), *line)),
-                Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { decls(b, out); } if let Some(o) = otherwise { decls(o, out); } }
-                Stmt::Loop { body, .. } | Stmt::Block { body, .. } | Stmt::While { body, .. } | Stmt::For { body, .. } | Stmt::Range { body, .. } => decls(body, out),
-                Stmt::Tier { body, .. } => decls(std::slice::from_ref(&**body), out),
-                Stmt::Match { arms, .. } => { for a in arms { decls(&a.body, out); } }
-                _ => {}
-            }
-        }
-    }
-    fn changed(text: &str, n: &str) -> bool {
-        let q = format!("{n:?}");
-        [format!("Assign {{ name: {q}"), format!("AssignElem {{ name: {q}"), format!("AssignField {{ name: {q}"),
-         format!("Owned(LendMut, {q}"), format!("Out({q}"), format!("InOut({q}")].iter().any(|p| text.contains(p.as_str()))
-    }
-    let check = |body: &[Stmt], params: &[ast::Param], fline: usize| -> Result<(), String> {
-        let text = format!("{body:?}");
-        let mut found = Vec::new();
-        decls(body, &mut found);
-        for p in params { if p.mutability == Some(Mutability::Mut) { found.push((p.name.clone(), fline)); } }
-        for (n, line) in found {
-            if !changed(&text, &n) {
-                return Err(format!("line {line}: '{n}' is `mut`, but nothing changes it: drop `mut`, or change it (`mut` is a promise that it changes, as `immut` is that it does not)"));
-            }
-        }
-        Ok(())
-    };
-    for f in &prog.funcs { check(&f.body, &f.params, f.line)?; }
-    if let Some(m) = &prog.main { check(m, &[], 0)?; }
     Ok(())
 }
 
