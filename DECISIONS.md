@@ -29,9 +29,17 @@ what the build and Cortex's cache depend on.
 (recommended), `embed[…]` and `file.bytes[…]`; design claude had named
 `incl`, `inc` (read as "increment") and the assemblers' `incbin`. **Only
 `incl.bytes`, no long second spelling** (owner: "(a)"), over (b) both;
-design claude recommended (a). Not yet asked: the value's type, what a path
-is relative to, and a text twin (`incl.text`, shown beside it but not
-chosen).
+design claude recommended (a). Asked the value's type, the owner: "Wait,
+what? Isn't it just a image?" (any file, its raw bytes; a PNG library makes
+pixels of them), then "Well, would it be in brainstem?" and "Yea, but would
+choosing `list` break that?" (it would: a growing list needs a heap, which
+is `cord`'s, and `aarch64-none` has none). **`incl.bytes` is the
+Brainstem's, needing no lobe and no `cord`, and gives an `array[uint8]`**
+(owner: "`a`"), over (b) `list[uint8]`; design claude recommended both:
+the bytes sit in the program file, nothing is copied at run time, the
+length is known while building, and `to.list[…]` makes a list for whoever
+wants one. Not yet asked: what a path is relative to, and a text twin
+(`incl.text`, shown beside it but not chosen).
 
 ### 2026-10-10 — The case marks are `case.any` and `case.exact` (owner: a)
 
