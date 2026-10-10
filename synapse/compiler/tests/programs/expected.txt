@@ -306,3 +306,5 @@ drops_print_found 11
 const_into_deci 210
 # incl.bytes: a new array each time, changed freely (owner, 2026-10-10).
 incl_bytes_change 67
+# A bare whole number past int64 is held wide enough, not wrapped.
+bare_past_64_bits 99

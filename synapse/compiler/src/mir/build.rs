@@ -528,6 +528,7 @@ impl<'a> FnBuilder<'a> {
                 b.term = Terminator::Unreachable;
             }
         }
+        self.widen_bare_ints();
         let params = body.params.iter().map(|p| LocalId(p.0)).collect();
         Function {
             name: body.name.clone(),
@@ -549,6 +550,78 @@ impl<'a> FnBuilder<'a> {
             ranges: Default::default(),
             operand_ranges: Default::default(),
             fors: self.fors,
+        }
+    }
+
+    /// A whole number nothing gave a type, `let 'a' := 10000000000000000000;`:
+    /// `:=` means Cortex chooses its width (types.md), and 64 bits cannot
+    /// hold what it is given here, so it is given as many as its value
+    /// needs, at least 128 — and so is whatever is worked out from it —
+    /// rather than the value silently wrapping.
+    fn widen_bare_ints(&mut self) {
+        // The signed width a constant needs, if more than 64 bits.
+        let need = |c: &Const| -> Option<u32> {
+            match c {
+                Const::Int(v) if i64::try_from(*v).is_err() => Some(128),
+                Const::Big(v) => Some((crate::bigint::Big::parse(v)?.bits() as u32 + 1).max(128)),
+                _ => None,
+            }
+        };
+        let bare = |t: &Ty| matches!(t, Ty::Int(IntW::Free(_)));
+        let mut wide: HashMap<usize, u32> = HashMap::new();
+        loop {
+            let mut grew = false;
+            for b in &self.blocks {
+                for st in &b.stmts {
+                    let StmtKind::Assign { place, rvalue } = &st.kind else { continue };
+                    let l = place.local.0 as usize;
+                    if !place.proj.is_empty() || !bare(&self.locals[l].ty) {
+                        continue;
+                    }
+                    let of = |o: &Operand| match o {
+                        Operand::Const(c) => need(c),
+                        _ => o.place().filter(|p| p.proj.is_empty()).and_then(|p| wide.get(&(p.local.0 as usize)).copied()),
+                    };
+                    let w = match rvalue {
+                        Rvalue::Use(o) | Rvalue::Unary { operand: o, .. } => of(o),
+                        Rvalue::Binary { lhs, rhs, .. } => of(lhs).max(of(rhs)),
+                        _ => None,
+                    };
+                    if let Some(w) = w {
+                        if wide.get(&l).map_or(true, |had| *had < w) {
+                            wide.insert(l, w);
+                            grew = true;
+                        }
+                    }
+                }
+            }
+            if !grew {
+                break;
+            }
+        }
+        if wide.is_empty() {
+            return;
+        }
+        for (l, w) in &wide {
+            self.locals[*l].ty = Ty::int(true, *w);
+            self.locals[*l].domain = Domain::of_ty(&self.locals[*l].ty, &self.arena.items);
+        }
+        // The site guarding a widened answer asks what the oracle asks of a
+        // bare number's arithmetic: that some 64-bit type holds the answer
+        // (the exact type at 64 bits). A negated literal is a literal, and
+        // asks only that its width holds it.
+        for b in &self.blocks {
+            for w in b.stmts.windows(2) {
+                let (StmtKind::Site(id), StmtKind::Assign { place, rvalue }) = (&w[0].kind, &w[1].kind) else { continue };
+                if !place.proj.is_empty() || !wide.contains_key(&(place.local.0 as usize)) {
+                    continue;
+                }
+                let site = &mut self.sites[id.0 as usize];
+                if site.result_ty.as_ref().is_some_and(bare) {
+                    let literal = matches!(rvalue, Rvalue::Unary { operand: Operand::Const(_), .. });
+                    site.result_ty = Some(if literal { self.locals[place.local.0 as usize].ty.clone() } else { Ty::exact() });
+                }
+            }
         }
     }
 

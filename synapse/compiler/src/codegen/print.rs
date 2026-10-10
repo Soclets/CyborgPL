@@ -67,6 +67,8 @@ impl<'ctx> Cg<'_, 'ctx> {
                 // cannot hold it signed), read back as that, signed.
                 Operand::Const(Const::Int(v)) if i64::try_from(*v).is_ok() => Ty::int(true, 64),
                 Operand::Const(Const::Int(_)) => Ty::int(true, 128),
+                // Past 128 bits: at the width `operand` builds it.
+                Operand::Const(Const::Big(v)) => Ty::int(true, crate::bigint::Big::parse(v)?.bits() as u32 + 1),
                 Operand::Const(Const::Bool(_)) => Ty::Bool,
                 Operand::Const(Const::Bin(_)) => Ty::Bin(BinW::Fixed(64)),
                 Operand::Const(Const::Deci { bits, .. }) => Ty::Deci(*bits),
