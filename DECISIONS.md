@@ -83,8 +83,17 @@ under Synapse's first build; (a) may copy when Cortex cannot prove nothing
 changes the bytes. The owner: "(c)". Elsewhere it is refused: "`incl.bytes`
 is a constant: give it a name with `const 'logo' := incl.bytes["…"];`".
 Building it showed a const in a body counted as an owned variable when
-used bare, `array.length['table']` refused; fixed. Not yet asked: whether
-`incl.str.…` follows.
+used bare, `array.length['table']` refused; fixed. **`incl.str.…` is a
+const's value only too** (owner: "`a`"), after "Wait a minute, what's
+`incl.str` even for?" (help or licence text, SQL, shaders, templates kept in
+their own files, checked while building and needing no `cord`, as Rust's
+`include_str!`) and "What would happen if it becomes a `const`?" (nothing in
+cost or use; it must be named before use, and the `const` lines show which
+files go in). Offered (a) the same rule as bytes, recommended for one rule,
+(b) anywhere, as a text literal. So **everything `incl` gives is a const**:
+`const 'help' := incl.str.utf8["assets/help.txt"];`; elsewhere it is
+refused ("`incl.str.…` is a constant, as `incl.bytes` is: give it a name
+with `const 'help' := …`").
 
 ### 2026-10-10 — The case marks are `case.any` and `case.exact` (owner: a)
 

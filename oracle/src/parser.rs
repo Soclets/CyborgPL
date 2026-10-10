@@ -3517,6 +3517,7 @@ impl Parser {
                         // included bytes are a constant (owner, 2026-10-10: "(c)"): read where they sit, copied
                         // only where something takes them to keep or change
                         Tok::Word(b) if b == "bytes" && !self.in_const_value => return self.err("`incl.bytes` is a constant: give it a name with `const 'logo' := incl.bytes[\"…\"];` (owner, 2026-10-10), and read it from there"),
+                        Tok::Word(t) if t == "str" && !self.in_const_value => return self.err("`incl.str.…` is a constant, as `incl.bytes` is: give it a name with `const 'help' := incl.str.utf8[\"…\"];` (owner, 2026-10-10), and read it from there"),
                         Tok::Word(b) if b == "bytes" => { self.advance(); None }
                         Tok::Word(t) if t == "str" => {
                             self.to_target = true;

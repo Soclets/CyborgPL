@@ -38,7 +38,7 @@ and "compile for the exact machine" makes the target part of the input.
    incl.bytes[…];`), read where it sits and copied only where something
    takes it to keep or change. Its text twin names the type, `incl.str.utf8[…]`
    (or `.ascii`, or `.utf16` / `.utf32` with UniTect), and the build refuses
-   a file not valid in it. A path is from the Neuron's root, as `my.` is.
+   a file not valid in it; it is a const's value only, as bytes are. A path is from the Neuron's root, as `my.` is.
    DECISIONS 2026-10-10 has the rulings.
 4. **Measurements are inputs too** (owner, 2026-09-28): `synapse tune` times
    loops once, on purpose, and writes `tune.nrp` (`synthia tune` runs it); builds read the file
