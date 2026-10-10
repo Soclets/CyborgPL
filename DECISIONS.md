@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-10 — Lobes go by expertise, one big one per field; talking to C is one: the C lobe (owner; being designed, not built)
+### 2026-10-10 — Lobes go by expertise, one big one per field; talking to C is one: CNC, "CNC Not C" (owner; being designed, not built)
 
 Asked where `bin128`, `not_std.bin80` and `C.long_double` go (WSMW, the
 odd widths' lobe, or the Brainstem), and shown that `C.long_double` in the
@@ -32,8 +32,11 @@ kernel uses with no C, and inline assembly is the machine's; 2026-10-08's
 "Base CyborgPL should be practical, while being good at kernel &
 bootloader" puts both in the base). **`ptr` and inline assembly stay in
 the Brainstem; the C lobe builds on the Brainstem's `ptr`** (owner: "yea");
-design claude recommended it. Not yet asked: the C lobe's name and ID, and
-the rest of the regrouping by expertise.
+design claude recommended it. **The C lobe is CNC, "CNC Not C"** (owner:
+"`CNC`, CNC Not C."), a name that spells itself, as GNU's does; offered
+plain `C` (shared with the language's name in `extern.C`), the owner's
+own style, or a body name (Ganglion). Not yet asked: CNC's ID, and the
+rest of the regrouping by expertise.
 
 ### 2026-10-10 — `bin128` is back, `not_std.bin80` is new, and C's `long double` is `C.long_double` (owner; not built)
 
