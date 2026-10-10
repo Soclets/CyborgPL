@@ -36,7 +36,10 @@ prefix comes from writing the line inside a module (`module c {
 incl.C.system["stdio.h"]; }`, then `c.printf[…]`), and a C name clashing
 with one of the module's own is refused; over (b) always `C::printf`, which
 would make C look like a Neuron. Design claude recommended (a): an `incl.C`
-line is an `extern.C` block that Synapse writes.
+line is an `extern.C` block that Synapse writes. **A system header is
+marked `.system`** (owner: "(a)"), over (b) `.sys` and (c) `.os` (not
+accurate: `stdio.h` is the C library's, and `aarch64-none` has no OS);
+design claude recommended (a).
 
 ### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 
