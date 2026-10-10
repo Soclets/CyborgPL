@@ -289,7 +289,7 @@ impl Items {
             let prev_what = prev.what();
             let what = r.what();
             let msg = if prev_what == what {
-                format!("`{}` is defined twice in {}: a {} of that name is already declared", name, describe_module(&module.path), what)
+                format!("`{}` is defined twice in {}: {} of that name is already declared", name, describe_module(&module.path), with_article(what))
             } else if matches!((prev, r), (ItemRef::Module(_), _) | (_, ItemRef::Module(_))) {
                 format!("`{}` is both a module and a {}: a module and a type cannot share a name — rename one", name, if prev_what == "module" { what } else { prev_what })
             } else {

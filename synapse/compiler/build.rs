@@ -8,6 +8,8 @@ fn main() {
     let llvm = std::env::var("LLVM_SYS_221_PREFIX").unwrap_or_else(|_| "/opt/homebrew/opt/llvm@22".into());
     println!("cargo:rerun-if-changed=lld/shim.cpp");
     println!("cargo:rerun-if-env-changed=SYNAPSE_LLD_PREFIX");
+    // `incl.C` asks the Clang beside this LLVM to read C headers.
+    println!("cargo:rustc-env=SYNAPSE_LLVM_PREFIX={}", llvm);
     cc::Build::new()
         .cpp(true)
         .file("lld/shim.cpp")

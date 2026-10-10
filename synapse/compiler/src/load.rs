@@ -228,7 +228,9 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
     }
     if !path.is_dir() {
         let m = new_module(&mut items, "limb", None, Vis::Pub);
-        items.neuron_dirs.insert(m, path.parent().map(|p| if p.as_os_str().is_empty() { Path::new(".") } else { p }).unwrap_or(Path::new(".")).to_path_buf());
+        let dir = path.parent().map(|p| if p.as_os_str().is_empty() { Path::new(".") } else { p }).unwrap_or(Path::new(".")).to_path_buf();
+        crate::parser::set_neuron_root(&dir);
+        items.neuron_dirs.insert(m, dir);
         let file = parse_file(sources, path)?;
         check_bare(sources, &mut items, &file, "", true)?;
         check_case(sources, &mut items, &file, true)?;
@@ -515,6 +517,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     // by their own `CCA.cplr` (owner, 2026-10-06).
     crate::parser::set_no_std(dir.join(MANIFEST).is_file() && !manifest.has_std);
     crate::parser::set_cores(dir.join(MANIFEST).is_file().then(|| manifest.cores.clone()));
+    let outer_root = crate::parser::set_neuron_root(dir);
     let parsed = (|| {
         let mut file = parse_file(sources, &root)?;
         check_bare(sources, items, &file, "", true)?;
@@ -529,6 +532,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     })();
     crate::parser::set_no_std(false);
     crate::parser::set_cores(None);
+    crate::parser::set_neuron_root(&outer_root);
     parsed?;
     if dir.join(MANIFEST).is_file() && !manifest.has_std {
         items.no_std_roots.insert(m);

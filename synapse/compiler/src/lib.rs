@@ -8,6 +8,7 @@ pub mod diag;
 pub mod lexer;
 pub mod names;
 pub mod parser;
+pub mod cheader;
 pub mod source;
 pub mod check;
 pub mod hir;

@@ -600,3 +600,19 @@ Dated, with the alternative, so each can become a question later.
   'logo'`) it is a fresh array, copied once, as "every use is a fresh
   value" says. Read inside a task it is still refused as a place (the
   task's captures are all it sees). `incl.str.*` is a text literal.
+- **2026-10-10 — How Synapse reads a C header.** An `incl.C` line is the
+  `extern.C` block Synapse writes (`compiler/src/cheader.rs`): the Clang
+  beside the LLVM Synapse is built with (else `clang` on `PATH`) is run
+  three times at once on the line's headers — its AST as JSON, its
+  `#define`s, and its own `#define`s to leave out — and what comes through
+  is written as Nerve and parsed at the line. What comes through follows
+  the oracle's README ("What of a C header comes through"); where it says
+  nothing, Synapse matches what the oracle does (found by running it): a
+  `#define` number may carry C's `u`/`l` suffixes and be hex or octal, but
+  not `+5`, `-(3)` or `0b101`; an empty `""` text comes through; a pointer
+  that is itself `const` (`char *const`, so `const char *const *` too)
+  leaves its function out; only globals C declares `extern` come
+  through, `mut` unless C's own type is `const`; C's `...` is a last
+  parameter `...'pN'`. Clang 22's own `__size_t` is `uint64`, and
+  `__ptrdiff_t` and `__signed_size_t` are `int64`. The headers are read
+  for the machine Synapse runs on, not the target.

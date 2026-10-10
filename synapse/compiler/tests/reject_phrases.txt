@@ -107,6 +107,14 @@ bytes_to_text_needs_otherwise [fnv:b62e90d146e74936] :: `to.str.utf8` can fail (
 c_enum_data [fnv:792b602bfc2bed61] :: of the C enum `K` carries no data
 c_enum_number_missing [fnv:3721994c1fc31d28] :: of the C enum `K` says its number
 c_enum_same_number [fnv:c5cddd1ecd2bf563] :: each case has its own number
+c_header_call_needs_no_check [fnv:4bd7c98b872aba34] :: nothing about `strlen` can be proven
+c_header_clash [fnv:6a1251337c7d821a] :: `strlen` is defined twice
+c_header_in_body [fnv:4b685b0459c1d2ba] :: `incl.C` sits at the top level of a file or in a `module` block
+c_header_lowercase [fnv:3e5988e32c743ee7] :: C is written capitalized here
+c_header_macro_skipped [fnv:35d1b390269120dc] :: no item `MYLIB_MAX`
+c_header_missing_local [fnv:818c5feae6a3f90d] :: `incl.C["incl_assets/none.h"]`: cannot read "incl_assets/none.h"
+c_header_missing_system [fnv:06314181a44929f1] :: `incl.C.system["no_such_header.h"]`: the C compiler says: 'no_such_header.h' file not found
+c_header_not_linked [fnv:79acf4e468df98b0] :: !by-design Synapse declares `mylib_add` from the header and compiles the call, the C library being the linker's to find; the oracle refuses it because an interpreter cannot link C
 c_struct_range_out [fnv:c3d7be4306c6440a] :: the value can be outside what an `int32[0, 4096]` holds
 c_var_c_enum [fnv:a4ee21bbf8d87688] :: a C variable cannot be `Mode`
 call_main [fnv:b4fc56b21cf49ce6] :: it is the program's one block

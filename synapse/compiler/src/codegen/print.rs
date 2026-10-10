@@ -63,7 +63,10 @@ impl<'ctx> Cg<'_, 'ctx> {
         let _ = self.builder.build_call(init, &[out.into(), self.ctx.i32_type().const_int(sink, false).into(), to.into()], "");
         for a in args {
             let ty = match a {
-                Operand::Const(Const::Int(_)) => Ty::exact(),
+                // At the width `operand` builds it (64 bits, or 128 when 64
+                // cannot hold it signed), read back as that, signed.
+                Operand::Const(Const::Int(v)) if i64::try_from(*v).is_ok() => Ty::int(true, 64),
+                Operand::Const(Const::Int(_)) => Ty::int(true, 128),
                 Operand::Const(Const::Bool(_)) => Ty::Bool,
                 Operand::Const(Const::Bin(_)) => Ty::Bin(BinW::Fixed(64)),
                 Operand::Const(Const::Deci { bits, .. }) => Ty::Deci(*bits),

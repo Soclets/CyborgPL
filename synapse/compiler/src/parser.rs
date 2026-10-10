@@ -45,6 +45,9 @@ struct Parser<'a> {
     /// The cores a Limb's `CCA.cplr` lists (owner, 2026-10-06); `None`
     /// for a program without one, which has every core.
     cores: Option<Vec<String>>,
+    /// What the `incl.C` lines of this scope declared so far, by name: the
+    /// same declaration twice is one (owner, 2026-10-10).
+    c_seen: std::collections::HashMap<String, String>,
     /// A `#strict` file (owner, 2026-09-27): `pos` on every position,
     /// every parameter's type, a return type, `mut`/`immut` on every
     /// declaration, `temp`/`perm` on every `for`.
@@ -144,6 +147,14 @@ thread_local! {
 }
 
 thread_local! { static NO_STD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
+
+// The Neuron's root, where an `incl.C["…"]` path starts.
+thread_local! { static NEURON_ROOT: std::cell::RefCell<std::path::PathBuf> = std::cell::RefCell::new(std::path::PathBuf::from(".")); }
+
+/// Set while a Neuron's files are parsed; gives back the one before.
+pub fn set_neuron_root(dir: &std::path::Path) -> std::path::PathBuf {
+    NEURON_ROOT.with(|r| std::mem::replace(&mut *r.borrow_mut(), dir.to_path_buf()))
+}
 
 /// Whether the files parsed next belong to a Limb whose `CCA.cplr` does
 /// not list std (owner, 2026-10-06); a program with no `CCA.cplr` gets the
@@ -287,7 +298,7 @@ pub fn set_shared_precedence(table: std::collections::HashMap<String, (u16, Chai
 
 /// The `precedence` blocks in one file's tokens: each operator's level.
 pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default() };
     let mut out = Vec::new();
     let mut depth = 0i32;
     for i in 0..toks.len() {
@@ -305,7 +316,7 @@ pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> 
 }
 
 pub fn parse_file(toks: &[Token]) -> Result<File> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default() };
     // Every Limb's levels, and this file's own blocks, read before any
     // expression in it: an operator above its block is parsed by it too.
     p.prec = SHARED_PREC.with(|t| t.borrow().clone());
@@ -418,7 +429,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
 /// 2026-10-06): `cca::Manifest[ … ];`.
 pub fn parse_value(toks: &[Token]) -> Result<Expr> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default() };
     let value = p.expr(0)?;
     p.expect_semi("the value")?;
     if !p.at_eof() {
@@ -1009,6 +1020,7 @@ impl<'a> Parser<'a> {
                 Ok(ItemKind::Fn(decl))
             }
             "func" => self.fail("`func` became `fn`: `fn name [params] -> type { … }`"),
+            "incl" if matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(c) if c == "C" || c == "c") => self.incl_c(),
             "extern" => {
                 self.bump();
                 // `extern` names its language (owner, 2026-10-02): `extern.C`,
@@ -1101,6 +1113,7 @@ impl<'a> Parser<'a> {
                 self.check_module_name(&name)?;
                 self.expect(&Tok::LBrace, "`{` after the module's name")?;
                 let mut items = Vec::new();
+                let outer_c = std::mem::take(&mut self.c_seen);
                 while !self.is(&Tok::RBrace) {
                     if self.at_eof() {
                         return self.fail(format!("module `{}` is never closed", name.name));
@@ -1112,6 +1125,7 @@ impl<'a> Parser<'a> {
                     push_item(&mut items, self.item()?);
                 }
                 self.bump();
+                self.c_seen = outer_c;
                 Ok(ItemKind::Module { name, items })
             }
             "mod" => self.fail("`mod` is the remainder operator; a module is `module name { … }`"),
@@ -1253,6 +1267,73 @@ impl<'a> Parser<'a> {
             self.expect(&Tok::RBracket, "`]` closing the lifetime groups")?;
         }
         Ok(a)
+    }
+
+    /// `incl.C["vendor/mylib.h"];` or `incl.C.system["stdio.h", …];`
+    /// (owner, 2026-10-10): the `extern.C` block Synapse writes from the
+    /// headers (`cheader.rs`), read here as if it stood on the line, every
+    /// part of it at the line.
+    fn incl_c(&mut self) -> Result<ItemKind> {
+        let start = self.bump().span;
+        self.bump();
+        let lang = self.ident("`C`")?;
+        if lang.name == "c" {
+            return self.fail_at(lang.span, "C is written capitalized here, as every language's name is: `incl.C`");
+        }
+        let system = if self.eat(&Tok::Dot) {
+            let w = self.ident("`system`")?;
+            if w.name != "system" {
+                return self.fail_at(w.span, format!("`incl.C.{}` is not a kind of header: `incl.C.system[\"stdio.h\"]` is the system's, `incl.C[\"vendor/mylib.h\"]` one in the Neuron", w.name));
+            }
+            true
+        } else {
+            false
+        };
+        self.expect(&Tok::LBracket, "`[` and the headers, in quotes")?;
+        let mut paths = Vec::new();
+        while !self.is(&Tok::RBracket) {
+            let Tok::Str(p) = self.peek().clone() else {
+                return self.fail("a header is written in quotes, as text: `incl.C.system[\"stdio.h\"]`");
+            };
+            self.bump();
+            paths.push(p);
+            if !self.eat(&Tok::Comma) {
+                break;
+            }
+        }
+        self.expect(&Tok::RBracket, "`]` closing the headers")?;
+        if paths.is_empty() {
+            return self.fail("`incl.C` names at least one header: `incl.C.system[\"stdio.h\"]`");
+        }
+        let line = start.to(self.prev_span());
+        self.expect_semi("the `incl.C` line")?;
+        let spelled = format!("`incl.C{}[{}]`", if system { ".system" } else { "" }, paths.iter().map(|p| format!("\"{}\"", p)).collect::<Vec<_>>().join(", "));
+        let root = NEURON_ROOT.with(|r| r.borrow().clone());
+        let decls = crate::cheader::declare(system, &paths, &root).map_err(|why| Box::new(Diagnostic::error(format!("{}: {}", spelled, why)).at(line)))?;
+        let mut text = String::new();
+        for d in decls {
+            match self.c_seen.get(&d.name) {
+                Some(t) if *t == d.text => continue,
+                _ => {}
+            }
+            self.c_seen.insert(d.name, d.text.clone());
+            text.push_str(&d.text);
+            text.push('\n');
+        }
+        let mut toks = crate::lexer::lex(line.file, &text)?;
+        for t in toks.iter_mut() {
+            t.span = line;
+        }
+        let mut p = Parser { toks: &toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default() };
+        let mut lines = Vec::new();
+        while !p.at_eof() {
+            let it = p.item()?;
+            match it.kind {
+                ItemKind::ExternBlock(more) => lines.extend(more),
+                kind => lines.push((Vis::Private, kind)),
+            }
+        }
+        Ok(ItemKind::ExternBlock(lines))
     }
 
     /// One of C's names after `extern.C`, alone or in its block: `fn …;`,
@@ -3641,6 +3722,8 @@ impl<'a> Parser<'a> {
                     }
                     let what = self.ident("`bytes` or `str`")?;
                     let form = match what.name.as_str() {
+                        "C" => return self.fail_at(start, "`incl.C` sits at the top level of a file or in a `module` block, as `extern.C` does, never in a body"),
+                        "c" => return self.fail_at(what.span, "C is written capitalized here, as every language's name is: `incl.C`"),
                         "bytes" => InclForm::Bytes,
                         "str" => {
                             self.expect(&Tok::Dot, "`.` and the text's encoding: `incl.str.utf8[…]`")?;
