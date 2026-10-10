@@ -208,6 +208,9 @@ pub enum Builtin {
     ToList,
     ToArray,
     ArrayLength,
+    /// `incl.bytes[…]`: its one argument the file's bytes, as hex text,
+    /// read while building (owner, 2026-10-10).
+    InclBytes,
     MapLength,
     MapHas,
     MapGet,

@@ -2307,6 +2307,7 @@ fn builtin_op(b: &Builtin) -> Op {
         Builtin::ToArray => Op::ToArray,
         Builtin::ListRemove => Op::ListRemove,
         Builtin::ArrayLength => Op::ArrayLength,
+        Builtin::InclBytes => Op::InclBytes,
         Builtin::MapLength => Op::MapLength,
         Builtin::MapHas => Op::MapHas,
         Builtin::MapGet => Op::MapGet,

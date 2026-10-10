@@ -361,6 +361,14 @@ pub struct Capture {
     pub span: Span,
 }
 
+/// What an `incl` makes of its file.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InclForm {
+    Bytes,
+    Utf8,
+    Ascii,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Expr {
     pub kind: ExprKind,
@@ -428,6 +436,10 @@ pub enum ExprKind {
     Value(Box<Expr>),
     /// `size.of[T]` / `align.of[T]`
     SizeOf { align: bool, ty: Type },
+    /// `incl.bytes["assets/logo.png"]`, `incl.str.utf8[…]`, `incl.str.ascii[…]`
+    /// (owner, 2026-10-10): a file read while building, from the Neuron's
+    /// root; `path_span` is the quoted path's.
+    Incl { form: InclForm, path: String, path_span: Span },
     /// `ptr.cast[T]['p']`: the same address, seen as pointing at a T
     /// (owner, 2026-09-30: a).
     PtrCast { ty: Type, value: Box<Expr> },

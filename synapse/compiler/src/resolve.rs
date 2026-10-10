@@ -209,6 +209,9 @@ pub struct Items {
     /// Each Limb with a `CCA.cplr`, by its root, for the power ledger
     /// (owner, 2026-10-07); a lone file has none, and every power.
     pub limb_powers: HashMap<ModuleId, LimbPowers>,
+    /// Each Neuron's folder, by its root module, where an `incl` path
+    /// starts (owner, 2026-10-10); a lone file's own folder.
+    pub neuron_dirs: HashMap<ModuleId, std::path::PathBuf>,
     /// The program's own `deny`.
     pub program_deny: Vec<synapse_base::powers::Deny>,
     pub modules: Vec<Module>,

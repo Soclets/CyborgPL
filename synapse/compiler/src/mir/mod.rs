@@ -151,6 +151,8 @@ pub enum Op {
     ToList,
     ToArray,
     ArrayLength,
+    /// A new `array[uint8]` of the bytes its one argument holds as hex.
+    InclBytes,
     MapLength,
     MapHas,
     MapGet,

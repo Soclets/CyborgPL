@@ -12,7 +12,7 @@ pub const KEYWORDS: &[&str] = &[
     "fn", "let", "shadow", "change", "return", "if", "else", "loop", "while", "for", "in", "break", "continue", "give", "copy", "lend", "lent", "op",
     "check", "nocheck", "true", "false", "mut", "immut", "temp", "perm", "range", "seq", "para", "list", "array", "struct", "pub",
     "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "with", "enum", "match", "interface", "satisfies", "extern", "ptr",
-    "layout", "size", "align", "inline", "map", "channel", "concur", "whichever", "from", "str", "char", "bool", "var", "func",
+    "layout", "size", "align", "incl", "inline", "map", "channel", "concur", "whichever", "from", "str", "char", "bool", "var", "func",
     "int8", "int16", "int32", "int64", "int128", "uint8", "uint16", "uint32", "uint64", "uint128", "bin16", "bin32", "bin64",
     "bin128", "deci32", "deci64", "deci128",
 ];
@@ -3630,6 +3630,40 @@ impl<'a> Parser<'a> {
                     self.expect(&Tok::RBracket, "`]`")?;
                     let span = start.to(self.prev_span());
                     Ok(Expr { kind: ExprKind::PtrCast { ty, value: Box::new(value) }, span })
+                }
+                // A file's bytes, read while building (owner, 2026-10-10).
+                "incl" => {
+                    self.bump();
+                    if !self.eat(&Tok::Dot) {
+                        return self.fail("`incl` is followed by what it makes of the file: `incl.bytes[\"assets/logo.png\"]`, `incl.str.utf8[…]`, `incl.str.ascii[…]`");
+                    }
+                    let what = self.ident("`bytes` or `str`")?;
+                    let form = match what.name.as_str() {
+                        "bytes" => InclForm::Bytes,
+                        "str" => {
+                            self.expect(&Tok::Dot, "`.` and the text's encoding: `incl.str.utf8[…]`")?;
+                            let enc = self.ident("the text's encoding")?;
+                            match enc.name.as_str() {
+                                "utf8" => InclForm::Utf8,
+                                "ascii" => InclForm::Ascii,
+                                "utf16" | "utf32" => return self.fail_at(enc.span, format!("`incl.str.{}` is not built yet: which byte order a UTF-16 or UTF-32 file without a byte-order mark has is not decided", enc.name)),
+                                other => return self.fail_at(enc.span, format!("`incl.str.{}` is not an encoding: `incl.str.utf8[…]` or `incl.str.ascii[…]`", other)),
+                            }
+                        }
+                        other => return self.fail_at(what.span, format!("`incl.{}` does not exist: `incl.bytes[…]` gives the bytes, `incl.str.utf8[…]` the text", other)),
+                    };
+                    self.expect(&Tok::LBracket, "`[` and the file's path, in quotes")?;
+                    let path_span = self.span();
+                    let Tok::Str(path) = self.peek().clone() else {
+                        return self.fail("an `incl` path is written in quotes, as text (`incl.bytes[\"assets/logo.png\"]`): it is read while building");
+                    };
+                    self.bump();
+                    if !self.is(&Tok::RBracket) {
+                        return self.fail_at(path_span, "an `incl` path is written in quotes, as text (`incl.bytes[\"assets/logo.png\"]`): it is read while building");
+                    }
+                    self.bump();
+                    let span = start.to(self.prev_span());
+                    Ok(Expr { kind: ExprKind::Incl { form, path, path_span }, span })
                 }
                 "size" | "align" => {
                     self.bump();

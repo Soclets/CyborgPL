@@ -3058,6 +3058,28 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// which is why the handle carries one.
     fn op(&mut self, fi: usize, op: &Op, args: &[Operand], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>, dest_ty: Option<Ty>) -> Option<Option<BasicValueEnum<'ctx>>> {
         match op {
+            // `incl.bytes[…]` (owner, 2026-10-10): the file's bytes in the
+            // program, copied once into the new array, which may change.
+            Op::InclBytes => {
+                let Some(Operand::Const(Const::Str(hex))) = args.first() else { return None };
+                let bytes: Vec<u8> = (0..hex.len() / 2).filter_map(|i| u8::from_str_radix(&hex[2 * i..2 * i + 2], 16).ok()).collect();
+                let i64t = self.ctx.i64_type();
+                let n = i64t.const_int(bytes.len() as u64, false);
+                let data = self.ctx.const_string(&bytes, false);
+                let g = self.module.add_global(data.get_type(), None, "incl");
+                g.set_initializer(&data);
+                g.set_constant(true);
+                g.set_linkage(Linkage::Private);
+                let mem = self.alloc(n);
+                if !bytes.is_empty() {
+                    let _ = self.builder.build_memcpy(mem, 1, g.as_pointer_value(), 1, n);
+                }
+                let h = self.handle(2);
+                let v = h.get_undef();
+                let v = self.builder.build_insert_value(v, mem, 0, "data").ok()?;
+                let v = self.builder.build_insert_value(v, n, 1, "len").ok()?;
+                Some(Some(v.into_struct_value().into()))
+            }
             // Of cord, the prints and `exit` (owner, 2026-10-09).
             Op::Std(name) if name == "exit" => {
                 self.emit_exit(fi, args, slots)?;

@@ -228,6 +228,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
     }
     if !path.is_dir() {
         let m = new_module(&mut items, "limb", None, Vis::Pub);
+        items.neuron_dirs.insert(m, path.parent().map(|p| if p.as_os_str().is_empty() { Path::new(".") } else { p }).unwrap_or(Path::new(".")).to_path_buf());
         let file = parse_file(sources, path)?;
         check_bare(sources, &mut items, &file, "", true)?;
         check_case(sources, &mut items, &file, true)?;
@@ -509,6 +510,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
             id
         }
     };
+    items.neuron_dirs.insert(m, dir.to_path_buf());
     // A Limb without std reaches none of it; its dependencies are judged
     // by their own `CCA.cplr` (owner, 2026-10-06).
     crate::parser::set_no_std(dir.join(MANIFEST).is_file() && !manifest.has_std);

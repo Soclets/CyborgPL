@@ -287,6 +287,12 @@ grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: it is 2 code points, so it fits 
 gte [fnv:e846773eb1344185] :: `>=` is not an operator; greater-or-equal is `at_least`
 ieee_on_int [fnv:0558ea36e12221de] :: `div.ceil.ieee` keeps a -0, which only a bin or brain16 has
 ieee_on_mod [fnv:2473cab7e2c3596a] :: `.ieee` goes on an operator that can make a -0, `plus`, `minus`, `times`, `pow`, a `div.X`, `mod.floor`, `mod.ceil` or `mod.trunc`; `mod.near` has no `.ieee` form
+incl_bytes_fixed [fnv:2e11d41534b7bb70] :: 'b' is an `array`, which cannot grow or shrink
+incl_missing_file [fnv:ccc27d01ee109bb5] :: `incl.bytes` cannot read "incl_assets/missing.png"
+incl_not_ascii [fnv:9787487b6b1cfb1e] :: "incl_assets/cafe.txt" is not ASCII text (byte 4 is 195)
+incl_not_utf8 [fnv:0369459831e72f55] :: "incl_assets/not_text.bin" is not valid UTF-8 text (byte 3 is not)
+incl_path_not_literal [fnv:ff6559bace5af893] :: an `incl` path is written in quotes, as text
+incl_utf16_not_built [fnv:0267072ab73f4c67] :: `incl.str.utf16` is not built yet
 index_needs_pos [fnv:4bc10e32735f4756] :: a read says it is a position: `'xs'[pos 2]`
 index_needs_pos_change [fnv:7fbb95940493767c] :: an index says it is a position: `'xs'[pos 2]`
 inline_ll_not_built [fnv:e2c382ebdb39d9d5] :: `inline.LL`, LLVM IR in place, is IEG's

@@ -194,6 +194,7 @@ impl Checker {
             }
             AK::FnLit(lit) => self.fn_literal(ctx, lit, span),
             AK::Spread { .. } => err(Diagnostic::error("`...` has no meaning here: it unpacks a list into a call's arguments — `sum[...'xs']`").at(span)),
+            AK::Incl { form, path, path_span } => self.incl(ctx, *form, path, *path_span, span),
             AK::SizeOf { align, ty } => {
                 // The function's own generics are announced, so naming one
                 // here is no typo — it just has no size or layout yet.
@@ -3457,7 +3458,7 @@ impl Checker {
         let mut fails: Vec<(String, Option<Ty>)> = Vec::new();
         let mut shuffle_order: Option<Vec<u32>> = None;
         let (hargs, ty): (Vec<Arg>, Ty) = match &b {
-            Builtin::MustReport | Builtin::MustStopFork | Builtin::MustStopDone => unreachable!("made by `must`, never written"),
+            Builtin::MustReport | Builtin::MustStopFork | Builtin::MustStopDone | Builtin::InclBytes => unreachable!("made by `must` or `incl`, never written"),
             Builtin::ListLength | Builtin::ArrayLength | Builtin::MapLength | Builtin::StrBytes | Builtin::StrPoints | Builtin::StrGraphemes => {
                 arity(1, self)?;
                 let a = self.lent_arg(ctx, positional[0], &name, false)?;
@@ -4430,6 +4431,39 @@ pub const BUILT_CORD: [&str; 18] = [
 ];
 
 impl Checker {
+    /// `incl.bytes[…]` / `incl.str.utf8[…]` / `incl.str.ascii[…]` (owner,
+    /// 2026-10-10): the file read now, while building, from the Neuron's
+    /// root whichever file says it; refused when it cannot be read or is
+    /// not the text it is called, even where the code never runs. Text
+    /// is a literal's, in the program file; bytes are a new `array`, an
+    /// array being one that may change.
+    fn incl(&mut self, ctx: &FnCtx, form: ast::InclForm, path: &str, path_span: Span, span: Span) -> Result<Expr> {
+        let root = self.items.limb_root(ctx.module);
+        let dir = self.items.neuron_dirs.get(&root).cloned().unwrap_or_else(|| std::path::PathBuf::from("."));
+        let full = dir.join(path);
+        let what = match form {
+            ast::InclForm::Bytes => "incl.bytes",
+            ast::InclForm::Utf8 => "incl.str.utf8",
+            ast::InclForm::Ascii => "incl.str.ascii",
+        };
+        let bytes = std::fs::read(&full).map_err(|e| Box::new(Diagnostic::error(format!("`{}` cannot read \"{}\" ({}, from the Neuron's root): {}", what, path, full.display(), e)).at(path_span)))?;
+        match form {
+            ast::InclForm::Bytes => {
+                let hex: String = bytes.iter().map(|b| format!("{:02x}", b)).collect();
+                let arg = Arg::Value(Expr { kind: K::Str(hex), ty: Ty::utf8(), span: path_span });
+                Ok(Expr { kind: K::Call { callee: Callee::Builtin(Builtin::InclBytes), args: vec![arg], otherwise: None, fails: Vec::new() }, ty: Ty::Seq { elem: Box::new(Ty::int(false, 8)), kind: SeqKind::Array }, span })
+            }
+            ast::InclForm::Utf8 => match String::from_utf8(bytes) {
+                Ok(text) => Ok(Expr { kind: K::Str(text), ty: Ty::utf8(), span }),
+                Err(e) => err(Diagnostic::error(format!("\"{}\" is not valid UTF-8 text (byte {} is not), so `incl.str.utf8` cannot hold it; `incl.bytes` takes any file", path, e.utf8_error().valid_up_to() + 1)).at(path_span)),
+            },
+            ast::InclForm::Ascii => match bytes.iter().position(|b| !b.is_ascii()) {
+                Some(i) => err(Diagnostic::error(format!("\"{}\" is not ASCII text (byte {} is {}), so `incl.str.ascii` cannot hold it; `incl.str.utf8` takes UTF-8 and `incl.bytes` any file", path, i + 1, bytes[i])).at(path_span)),
+                None => Ok(Expr { kind: K::Str(String::from_utf8(bytes).unwrap()), ty: Ty::Str(crate::types::Enc::Ascii), span }),
+            },
+        }
+    }
+
     /// Testing aid: `std::` typed as the oracle emulates it. Not std.
     fn std_stub(&mut self, ctx: &mut FnCtx, path: &ast::Path, args: &[AArg], otherwise: Option<&ast::Otherwise>, span: Span, used: bool) -> Result<Expr> {
         let name = path.segs.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
