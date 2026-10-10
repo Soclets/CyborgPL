@@ -5,6 +5,30 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-10 — Lobes go by expertise, one big one per field; talking to C is one: the C lobe (owner; being designed, not built)
+
+Asked where `bin128`, `not_std.bin80` and `C.long_double` go (WSMW, the
+odd widths' lobe, or the Brainstem), and shown that `C.long_double` in the
+Brainstem would let 80- and 128-bit maths past WSMW (the owner: "Uhhh. I
+mean, if `long double` doesn't need WSMW, but `not_std` needs WSMW. Doesn't
+that feel weird?") and what WSMW is ("What category/authority is WSMW?"),
+the owner: "I think the current lobes are too general, and aren't
+specialized. And it feels harder to maintain for me." Offered (a) splitting
+the mixed lobes or (b) fewer, sharper lobes, the owner: "Like a big one for
+a expertise": **a lobe per field of expertise, holding all that field
+needs**. Design claude sketched a regrouping (systems, numerics, money,
+machine learning, GPU, concurrency, text; tests and case marks to the
+Brainstem or `cord`), not ruled on. The owner: "I'll say we could do a C
+support/compatibility lobe". **The C lobe holds everything about C:
+`extern.C`, `incl.C`, `layout.C` structs and enums, callbacks to C, and the
+`C.` types, `C.long_double` with the widths it needs; the Brainstem keeps
+nothing of C** (owner: "(a)"), so a Neuron calls C only if it lists the C
+lobe (`cord` lists it itself), and one that does not provably never calls
+C; over (b) the Brainstem keeping `extern.C`, `layout.C` and `ptr`. Design
+claude recommended (a), noting it makes 2026-09-19's "the OS door is open
+to every Neuron" opt-in, still open to any Neuron that lists the lobe. Then
+"Though, is `ptr` & `ASM` really C?" (being asked).
+
 ### 2026-10-10 — `bin128` is back, `not_std.bin80` is new, and C's `long double` is `C.long_double` (owner; not built)
 
 Asked how C's `long double` comes through a header (it is `double` on
