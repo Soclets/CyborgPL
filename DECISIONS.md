@@ -38,7 +38,13 @@ Brainstem's, needing no lobe and no `cord`, and gives an `array[uint8]`**
 (owner: "`a`"), over (b) `list[uint8]`; design claude recommended both:
 the bytes sit in the program file, nothing is copied at run time, the
 length is known while building, and `to.list[…]` makes a list for whoever
-wants one. Not yet asked: what a path is relative to, and a text twin
+wants one. **A path is from the Neuron's root**, the folder holding
+`neuron.nrv` (owner: "(b)", after "What's the diff?"), as `my.` is:
+`incl.bytes["assets/logo.png"]` is the same in every file and survives
+moving the file, over (a) from the file writing it, as Rust and C do;
+design claude recommended (b). An absolute path works too (the registry
+refusing it in a published Neuron), and so, design claude's reading, does
+one climbing out with `..`, refused the same way. Not yet asked: a text twin
 (`incl.text`, shown beside it but not chosen).
 
 ### 2026-10-10 — The case marks are `case.any` and `case.exact` (owner: a)
