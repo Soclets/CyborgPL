@@ -40,6 +40,6 @@ fn put_i ['n': int64] {
 }
 MAIN {
     let 'v17': uint16 = 0;
-    let mut 's21': simd[uint16, 8] = simd.fill[value not.bit (5 plus 'v17')];
+    let 's21': simd[uint16, 8] = simd.fill[value not.bit (5 plus 'v17')];
     put_u[to.uint64[simd.max['s21']]];
 }

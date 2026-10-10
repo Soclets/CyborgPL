@@ -5,6 +5,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-10 — `mut` is a checked promise that a variable changes, as `immut` is that it does not (owner: b)
+
+Comparing Swift's `let` / `var`, the owner asked "Even with `=`, does Cortex
+pick your mut for you?" (yes: since 2026-09-14 a plain `let` may change or
+not, Cortex knowing which; design claude had first said otherwise, wrongly)
+and "then what's the point of `mut`?" (documentation only: "`mut` is
+documentation", `ownership-syntax.md`). Offered (a) keep it as documentation,
+(b) a checked promise mirroring `immut`, (c) remove it; design claude
+recommended (b), since an unchecked word goes stale. The owner: "`b`". So
+**a `let mut` or `mut` parameter that nothing in its function changes is
+refused**: "'x' is `mut`, but nothing changes it: drop `mut`, or change
+it". A change is `change` (whole, field or element), `lend.mut`, or an
+`inline.ASM` output. Built in the oracle, matched by name within the
+function (design claude's reading). Five programs dropped a needless `mut`;
+reject test mut_never_changed.
+
 ### 2026-10-09 — The README says only this repo and nerve-lang.com speak for Nerve (owner)
 
 The owner, of the README's warning: "it sounds like we're protected from

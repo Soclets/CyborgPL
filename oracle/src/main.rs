@@ -94,6 +94,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     check_type_names(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_redeclared(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_return_literals(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
+    check_mut_used(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     // a bare call with more than one candidate is refused where it is written, run or not (owner,
     // 2026-10-06: "`a`, and no"); the interpreter makes the same check when a call runs
     for (from, written, std, line) in parser::BARE_CALLS.with(|b| b.borrow().clone()) {
@@ -725,6 +726,47 @@ fn check_return_literals(prog: &ast::Program) -> Result<(), String> {
         let mut sc: Scopes = vec![func.params.iter().map(|p| (p.name.clone(), p.ty.as_ref().and_then(of_ty))).collect()];
         walk(&mut sc, &func.body, want, t, &func.name)?;
     }
+    Ok(())
+}
+
+/// `mut` is a checked promise that a variable changes (owner, 2026-10-10: "`b`"), mirroring `immut`:
+/// a `let mut` or `mut` parameter that nothing in its function changes is refused. A change is
+/// `change 'x' = …`, `change 'x'.f = …`, `change 'x'[pos i] = …`, `lend.mut 'x'`, or an `inline.ASM`
+/// output into it. Found by name within the function (design claude's reading: a shadowing name of
+/// the same spelling counts for both, so this never refuses wrongly, only misses rarely).
+fn check_mut_used(prog: &ast::Program) -> Result<(), String> {
+    use ast::{Stmt, Mutability};
+    fn decls(body: &[Stmt], out: &mut Vec<(String, usize)>) {
+        for st in body {
+            match st {
+                Stmt::Decl { name, mutability: Some(Mutability::Mut), line, .. } => out.push((name.clone(), *line)),
+                Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { decls(b, out); } if let Some(o) = otherwise { decls(o, out); } }
+                Stmt::Loop { body, .. } | Stmt::Block { body, .. } | Stmt::While { body, .. } | Stmt::For { body, .. } | Stmt::Range { body, .. } => decls(body, out),
+                Stmt::Tier { body, .. } => decls(std::slice::from_ref(&**body), out),
+                Stmt::Match { arms, .. } => { for a in arms { decls(&a.body, out); } }
+                _ => {}
+            }
+        }
+    }
+    fn changed(text: &str, n: &str) -> bool {
+        let q = format!("{n:?}");
+        [format!("Assign {{ name: {q}"), format!("AssignElem {{ name: {q}"), format!("AssignField {{ name: {q}"),
+         format!("Owned(LendMut, {q}"), format!("Out({q}"), format!("InOut({q}")].iter().any(|p| text.contains(p.as_str()))
+    }
+    let check = |body: &[Stmt], params: &[ast::Param], fline: usize| -> Result<(), String> {
+        let text = format!("{body:?}");
+        let mut found = Vec::new();
+        decls(body, &mut found);
+        for p in params { if p.mutability == Some(Mutability::Mut) { found.push((p.name.clone(), fline)); } }
+        for (n, line) in found {
+            if !changed(&text, &n) {
+                return Err(format!("line {line}: '{n}' is `mut`, but nothing changes it: drop `mut`, or change it (`mut` is a promise that it changes, as `immut` is that it does not)"));
+            }
+        }
+        Ok(())
+    };
+    for f in &prog.funcs { check(&f.body, &f.params, f.line)?; }
+    if let Some(m) = &prog.main { check(m, &[], 0)?; }
     Ok(())
 }
 

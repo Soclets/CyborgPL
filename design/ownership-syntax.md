@@ -95,12 +95,15 @@ a chain segment, `var.!mut.int32`), and the compiler then holds them to it:
 
 ```
 let immut 'limit': int32 = 10;      # assigning to 'limit' later is an error
-let mut 'counter' := 0;             # states the intent; nothing to enforce
+let mut 'counter' := 0;             # a promise that it changes: refused if nothing does (2026-10-10)
 fn twice [immut 'n': int32] -> int32 { … }
 ```
 
 `!mut` is a verified contract, like `check` and the optional lifetime
-annotation. `mut` is documentation. Neither is expected in ordinary code.
+annotation. **`mut` is one too since 2026-10-10** (owner: "`b`"): a `mut`
+variable or parameter that nothing in its function changes is refused, so
+the word can never lie; it was documentation until then. Neither is
+expected in ordinary code.
 
 Not the same thing as a constant (a value known at compile time, baked into
 the binary): Cortex finds those itself; no keyword exists for them.
