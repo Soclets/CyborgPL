@@ -1001,11 +1001,11 @@ fn check_case(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, r
     if root {
         CASE_LINES.with(|k| *k.borrow_mut() = file.case_kinds.clone());
     } else if let Some((_, _, at)) = file.case_kinds.first() {
-        return err(Diagnostic::error("a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `neuron.nrv`").at(*at));
+        return err(Diagnostic::error("a `case` mark on kinds (`case.any [fn, struct];`) covers the whole Neuron, so it is written in `neuron.nrv`").at(*at));
     }
     let lines = CASE_LINES.with(|k| k.borrow().clone());
     let line = |at: Span| sources.get(at.file).line_of(at.start);
-    let spelled = |b: bool| if b { "case.insensitive" } else { "case.sensitive" };
+    let spelled = |b: bool| if b { "case.any" } else { "case.exact" };
     let decide = |marks: &[(bool, Span)], what: &str, at: Span| -> Result<bool> {
         if let (Some(i), Some(s)) = (marks.iter().find(|m| m.0), marks.iter().find(|m| !m.0)) {
             return err(Diagnostic::error(format!("{} is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error (owner, 2026-10-06)", what, spelled(true), line(i.1), spelled(false), line(s.1))).at(at));
@@ -1019,7 +1019,7 @@ fn check_case(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, r
         if let Some((other, other_at, other_ins)) = seen.iter().find(|(n, _, _)| *n != name && fold_case(n) == f) {
             if ins || *other_ins {
                 let which = if *other_ins { other.as_str() } else { name };
-                return err(Diagnostic::error(format!("{} and {} ({}) differ only in case, and {} is `case.insensitive`: they would be one name", shown(name), shown(other), line(*other_at), shown(which))).at(at));
+                return err(Diagnostic::error(format!("{} and {} ({}) differ only in case, and {} is `case.any`: they would be one name", shown(name), shown(other), line(*other_at), shown(which))).at(at));
             }
         }
         seen.push((name.to_string(), at, ins));

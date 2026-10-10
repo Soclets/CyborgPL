@@ -137,7 +137,7 @@ pub struct FnCtx {
     /// What each borrowing local borrows, followed back to owners or
     /// `lent` parameters: a borrow of one is a borrow of those.
     pub borrow_src: HashMap<LocalId, Vec<LocalId>>,
-    /// Its variables are `case.insensitive` (owner, 2026-10-06): held and
+    /// Its variables are `case.any` (owner, 2026-10-06): held and
     /// found by their folded names.
     pub fold_vars: bool,
     /// The locals declared `mut`, a promise that they change (owner,

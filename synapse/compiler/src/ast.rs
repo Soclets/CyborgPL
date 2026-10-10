@@ -761,12 +761,12 @@ pub struct Item {
     pub span: Span,
     /// `pub bare.never fn …`: how other Limbs write its path.
     pub bare: Option<(Bare, Span)>,
-    /// `pub case.insensitive fn …` (owner, 2026-10-06): `true` for
+    /// `pub case.any fn …` (owner, 2026-10-06): `true` for
     /// insensitive. It covers the item's own name.
     pub case: Option<(bool, Span)>,
 }
 
-/// The kinds a `case.insensitive [fn, var];` line in `limb.cpls` covers
+/// The kinds a `case.any [fn, var];` line in `limb.cpls` covers
 /// (owner, 2026-10-06, design claude's list).
 pub const CASE_KINDS: [&str; 8] = ["fn", "struct", "enum", "interface", "const", "case", "field", "var"];
 
@@ -859,9 +859,9 @@ pub struct File {
     /// `bare.never [fn, struct];` lines, which cover the whole Limb and
     /// belong in `limb.cpls`.
     pub bare_kinds: Vec<(Bare, Vec<String>, Span)>,
-    /// `case.insensitive;` at its top: covers its module and the block
+    /// `case.any;` at its top: covers its module and the block
     /// modules written in it (owner, 2026-10-06). `true` for insensitive.
     pub case_file: Option<(bool, Span)>,
-    /// `case.insensitive [fn, var];` lines, which cover the whole Limb.
+    /// `case.any [fn, var];` lines, which cover the whole Limb.
     pub case_kinds: Vec<(bool, Vec<String>, Span)>,
 }

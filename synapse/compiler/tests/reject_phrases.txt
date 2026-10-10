@@ -119,11 +119,12 @@ callback_with_capture [fnv:857b4698d5db52ac] :: C has nowhere to keep them
 callback_wrong_shape [fnv:6250f1a435863168] :: `qsort`'s parameter 'cmp' wants a function taking 2 argument(s); got a function taking 1 argument(s)
 caps_missing [fnv:6aac611f9faf6650] :: a `case` mark is CAPS's
 case_bad_kind [fnv:1784123126ebe5b3] :: `op` is not a kind a `case` mark covers: `fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var` (a module is marked on itself)
-case_differ_only [fnv:611fb6b59275fbb7] :: `Area` and `area` (line 2 of case_differ_only.nrv) differ only in case, and `area` is `case.insensitive`: they would be one name
-case_disagree [fnv:e72158c33033734f] :: `fn Area` is marked both `case.insensitive` (line 1 of case_disagree.nrv) and `case.sensitive` (line 2 of case_disagree.nrv): marks that disagree are an error (owner, 2026-10-06)
-case_file_not_first [fnv:4f364d8fce7ca49c] :: a file's `case` mark is at its top, before anything else; a block module takes `case.insensitive module name { … }`
-case_kinds_in_module [fnv:7eb83a3a3d90d9c8] :: a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `neuron.nrv`
-case_pub_after [fnv:c644387294c3f297] :: `pub` comes first: `pub case.insensitive fn …`
+case_differ_only [fnv:c9c11f25d01e077c] :: `Area` and `area` (line 2 of case_differ_only.nrv) differ only in case, and `area` is `case.any`: they would be one name
+case_disagree [fnv:bc270b3bdae9e001] :: `fn Area` is marked both `case.any` (line 1 of case_disagree.nrv) and `case.exact` (line 2 of case_disagree.nrv): marks that disagree are an error (owner, 2026-10-06)
+case_file_not_first [fnv:d2bc60ae9c5750c7] :: a file's `case` mark is at its top, before anything else; a block module takes `case.any module name { … }`
+case_kinds_in_module [fnv:76c91d17530925c9] :: a `case` mark on kinds (`case.any [fn, struct];`) covers the whole Neuron, so it is written in `neuron.nrv`
+case_old_spelling [fnv:28491aeb352a850b] :: `case.insensitive` is the old spelling: write `case.any`
+case_pub_after [fnv:11f985d8ef005006] :: `pub` comes first: `pub case.any fn …`
 case_sensitive_default [fnv:3ea4d3d6b2faacfb] :: there is no item `area` in the root (`neuron.nrv`)
 case_value_needs_is [fnv:381bbe93e82606db] :: a case says its value with `is`: `a { is …; }`
 cca_prefix_old [fnv:2e94c9e66ddf29cd] :: `cca::` is an old spelling: write `kin::`

@@ -182,7 +182,7 @@ fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
         "str" if dot_then(&["points", "graphemes"]) => (if next_is(2, "points") { "`str.points`" } else { "`str.graphemes`" }, "UniTect"),
         "str" if dot_then(&["each", "at"]) && matches!(toks.get(i + 3).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "point" || x == "grapheme") => ("counting in points or graphemes", "UniTect"),
         "char" if dot_then(&["point", "grapheme"]) => (if next_is(2, "point") { "`char.point`" } else { "`char.grapheme`" }, "UniTect"),
-        "case" if dot_then(&["insensitive", "sensitive"]) => ("a `case` mark", "CAPS"),
+        "case" if dot_then(&["any", "exact", "insensitive", "sensitive"]) => ("a `case` mark", "CAPS"),
         "nocheck" => ("`no_check`", "IEG"),
         "NO_FUCKING_CHECKS" => ("`NO_FUCKING_CHECKS`", "IEG"),
         "on" if matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && next_is(2, "machine") => ("`on.machine`", "IEG"),
@@ -427,10 +427,10 @@ pub fn parse_value(toks: &[Token]) -> Result<Expr> {
 
 const NOT_A_COMMENT: &str = "";
 
-const CASE_FILE_MARK_FIRST: &str = "a file's `case` mark is at its top, before anything else; a block module takes `case.insensitive module name { … }`";
+const CASE_FILE_MARK_FIRST: &str = "a file's `case` mark is at its top, before anything else; a block module takes `case.any module name { … }`";
 
 fn case_spelled(insensitive: bool) -> &'static str {
-    if insensitive { "case.insensitive" } else { "case.sensitive" }
+    if insensitive { "case.any" } else { "case.exact" }
 }
 
 const FILE_MARK_FIRST: &str = "a file's `bare` mark is its first line, before anything else; a block module takes `pub bare.… module name { … }`";
@@ -606,7 +606,7 @@ impl<'a> Parser<'a> {
         let mut vis = Vis::Private;
         let mut bare = None;
         let mut case = None;
-        // `case.insensitive fn …` with no `pub`; a mark line here is in a
+        // `case.any fn …` with no `pub`; a mark line here is in a
         // block module or not at the top (owner, 2026-10-06).
         if self.at_case_mark() {
             let (mark, at) = self.case_mark()?;
@@ -614,7 +614,7 @@ impl<'a> Parser<'a> {
                 return self.fail_at(at, format!("`pub` comes first: `pub {} fn …`", case_spelled(mark)));
             }
             if self.is(&Tok::LBracket) {
-                return self.fail_at(at, "a `case` mark on kinds (`case.insensitive [fn, struct];`) covers the whole Neuron, so it is written in `neuron.nrv`");
+                return self.fail_at(at, "a `case` mark on kinds (`case.any [fn, struct];`) covers the whole Neuron, so it is written in `neuron.nrv`");
             }
             if self.is(&Tok::Semi) {
                 return self.fail_at(at, CASE_FILE_MARK_FIRST);
@@ -871,23 +871,30 @@ impl<'a> Parser<'a> {
         Ok(items)
     }
 
-    /// `case.insensitive` or `case.sensitive` here (owner, 2026-10-06):
-    /// `case` is no keyword, read as a mark only so.
+    /// `case.any` or `case.exact` here (owner, 2026-10-06; the words
+    /// 2026-10-10: "(a)"), or an old spelling to refuse: `case` is no
+    /// keyword, read as a mark only so.
     fn at_case_mark(&self) -> bool {
-        self.is_word("case") && matches!(self.peek_at(1), Tok::Dot) && (self.is_word_at(2, "insensitive") || self.is_word_at(2, "sensitive"))
+        self.is_word("case") && matches!(self.peek_at(1), Tok::Dot) && ["any", "exact", "insensitive", "sensitive"].iter().any(|w| self.is_word_at(2, w))
     }
 
-    /// `true` for `case.insensitive`.
+    /// `true` for `case.any`. `case.any` and `case.exact` are
+    /// the old spellings, refused naming the new.
     fn case_mark(&mut self) -> Result<(bool, Span)> {
         let at = self.span();
         self.bump();
         self.bump();
         let mode = self.bump().clone();
-        Ok((matches!(&mode.tok, Tok::Word(w) if w == "insensitive"), at.to(mode.span)))
+        match &mode.tok {
+            Tok::Word(w) if w == "insensitive" => self.fail_at(at.to(mode.span), "`case.insensitive` is the old spelling: write `case.any` (owner, 2026-10-10)"),
+            Tok::Word(w) if w == "sensitive" => self.fail_at(at.to(mode.span), "`case.sensitive` is the old spelling: write `case.exact` (owner, 2026-10-10)"),
+            Tok::Word(w) => Ok((w == "any", at.to(mode.span))),
+            _ => unreachable!("at_case_mark said a word follows"),
+        }
     }
 
-    /// A `case` mark line: `case.insensitive;` (a file's), or
-    /// `case.insensitive [fn, var];` (by kind); `None` kinds for the first.
+    /// A `case` mark line: `case.any;` (a file's), or
+    /// `case.any [fn, var];` (by kind); `None` kinds for the first.
     fn case_line(&mut self) -> Result<(bool, Span, Option<Vec<String>>)> {
         let (mark, at) = self.case_mark()?;
         if self.eat(&Tok::Semi) {

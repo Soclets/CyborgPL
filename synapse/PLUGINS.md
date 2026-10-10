@@ -54,7 +54,7 @@ lets `concur` and `for para` parse; and so on. Concretely, today:
 | IEG | `no_check` / `NO_FUCKING_CHECKS` in the gate; the marking rule (`needs_mark`); `on.machine` |
 | MCPS | `concur`, `whichever`, `channel`, `for para` in the gate; `par.rs`, `codegen/par.rs`, `codegen/tasks.rs` |
 | WSTN | a parser pre-scan refusing a name past ASCII |
-| TAS, AI, WSMW, Money, UniTect, CAPS | words in the gate (`test fn`, `must`, `brain16`, `int128`, `not_std.`, `deci64`, `char.grapheme`, `case.insensitive`, …); their meaning still all of `check/` |
+| TAS, AI, WSMW, Money, UniTect, CAPS | words in the gate (`test fn`, `must`, `brain16`, `int128`, `not_std.`, `deci64`, `char.grapheme`, `case.any`, …); their meaning still all of `check/` |
 | cord | not a lobe: a limb Synapse does not have yet (`cord::` is a stub) |
 | MTM | gone (2026-10-07): its spellings are old ones, refused by name in every limb |
 | ASP, Genny | retired (2026-10-08): `to.`, `check`, true-value literals, range types, generics and interfaces are the Brainstem's; their IDs are refused, naming why |

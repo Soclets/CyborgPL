@@ -83,7 +83,7 @@ pub struct Module {
     pub items: HashMap<String, (ItemRef, Vis, Span)>,
     /// Consts live in the value namespace, keyed by their quoted name.
     pub consts: HashMap<String, (crate::hir::ConstId, Vis, Span)>,
-    /// The `case.insensitive` names, folded, and as declared.
+    /// The `case.any` names, folded, and as declared.
     pub folded: HashMap<String, String>,
     pub folded_consts: HashMap<String, String>,
 }
@@ -91,7 +91,7 @@ pub struct Module {
 impl Items {
     /// A field or case name as written against the one declared: the same,
     /// or the same folded where its struct or enum (by its name's span) is
-    /// `case.insensitive` for them (owner, 2026-10-06).
+    /// `case.any` for them (owner, 2026-10-06).
     pub fn same_name(&self, set: &HashSet<Span>, owner: Span, declared: &str, written: &str) -> bool {
         declared == written || (set.contains(&owner) && ast::fold_case(declared) == ast::fold_case(written))
     }
@@ -191,7 +191,7 @@ pub struct Items {
     /// Each pub thing's `bare` mark, by its name's span (owner,
     /// 2026-10-06).
     pub bare_marks: HashMap<Span, crate::ast::Bare>,
-    /// `case.insensitive` (owner, 2026-10-06), worked out where each file
+    /// `case.any` (owner, 2026-10-06), worked out where each file
     /// is read: the names that match in any case, by their name's span;
     /// the structs whose fields and the enums whose cases do; the
     /// functions (and `MAIN`, by its span) whose variables do.
