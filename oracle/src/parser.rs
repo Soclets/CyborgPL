@@ -144,6 +144,8 @@ pub struct Parser {
     in_interface: bool,
     /// set while parsing a const's value: `incl.bytes[…]` may stand there and nowhere else (owner, 2026-10-10)
     in_const_value: bool,
+    /// set while reading the lines a C header stands for (`incl.C`): C's names may be Nerve keywords
+    from_c: bool,
     /// `<T: Ordered>` bounds seen while parsing the current signature
     bounds: Vec<(String, String)>,
     /// the generics announced by the item being parsed (owner, 2026-10-02); `None` outside one
@@ -206,9 +208,9 @@ thread_local! {
 }
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, from_c: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, from_c: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
 
     /// A path written in this module, made canonical (from the root):
     /// `my.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -757,12 +759,22 @@ impl Parser {
                     self.expect(Tok::Semi, "`;`")?;
                     let dir = NEURON_DIR.with(|d| d.borrow().clone());
                     for path in paths {
-                        let lines = crate::cheader::lines(system, &path, &dir).map_err(|m| ParseError { line, col: 0, msg: format!("`{what}[\"{path}\"]`: {m}") })?;
-                        for text in lines {
+                        let header = crate::cheader::lines(system, &path, &dir).map_err(|m| ParseError { line, col: 0, msg: format!("`{what}[\"{path}\"]`: {m}") })?;
+                        // a struct Nerve only points at (owner, 2026-10-10: `ptr.mut[FILE]`)
+                        for o in &header.opaque {
+                            let canonical = self.canonical(&[o.clone()]);
+                            if prog.structs.iter().any(|d| d.name == canonical) { continue; }
+                            prog.structs.push(StructDef { name: canonical, module: self.module.clone(), vis: vis.clone(), layout_c: true, opaque: true, params: Vec::new(), bounds: Vec::new(), fields: Vec::new(), line });
+                        }
+                        for text in header.lines {
                             // each line as if written here; one Nerve cannot say yet is left out, as the reader does
                             let Ok(toks) = crate::lexer::lex(&text) else { continue };
                             let mut sub = Parser::new_in_limb(toks, self.module.clone(), self.limb_root.clone());
+                            sub.from_c = true;
                             let Ok(mut part) = sub.program() else { continue };
+                            for d in &mut part.structs { d.line = line; d.vis = vis.clone(); }
+                            part.structs.retain(|d| !prog.structs.iter().any(|e| e.name == d.name && format!("{:?}", e.fields) == format!("{:?}", d.fields)));
+                            prog.structs.extend(part.structs);
                             for f in &mut part.funcs { f.line = line; f.vis = vis.clone(); }
                             for c in &mut part.consts { c.line = line; c.vis = vis.clone(); }
                             for x in &mut part.externs { x.line = line; x.vis = vis.clone(); }
@@ -1141,7 +1153,8 @@ impl Parser {
             else if self.is_word("mut") { self.advance(); }
             if *self.peek() == Tok::Dot { return self.err("`immut` is a bare word before the field's name: `immut number: int32`"); }
             let fname = match self.advance().tok {
-                Tok::Word(w) if KEYWORDS.contains(&w.as_str()) => return self.err(format!("`{w}` is a keyword and cannot name a field")),
+                // a C header's struct keeps C's field names, a keyword too, read after a dot (owner, 2026-10-10: "(b)")
+                Tok::Word(w) if KEYWORDS.contains(&w.as_str()) && !self.from_c => return self.err(format!("`{w}` is a keyword and cannot name a field")),
                 Tok::Word(w) => w,
                 Tok::Var(v) => return self.err(format!("a field's name is bare: `{v}: int32` — a field is a path into the struct, not a variable (decided 2026-09-19)")),
                 other => return self.err(format!("expected a field name, found {other}")),
@@ -1161,7 +1174,7 @@ impl Parser {
         let params: Vec<String> = gens.iter().map(|(g, _)| g.clone()).collect();
         let bounds = Self::flat_bounds(&gens);
         self.declared = None;
-        Ok(StructDef { name: self.canonical(&[name]), module: self.module.clone(), vis: Vis::Private, layout_c: false, params, bounds, fields, line })
+        Ok(StructDef { name: self.canonical(&[name]), module: self.module.clone(), vis: Vis::Private, layout_c: false, opaque: false, params, bounds, fields, line })
     }
 
     // fn := 'fn' Word '[' params ']' ('->' type)? block
@@ -3548,6 +3561,9 @@ impl Parser {
                 }
                 "size" | "align" => {
                     // size.of[T] / align.of[T]   (design/ffi.md)
+                    if matches!(self.peek_at(1), Tok::LBracket) {
+                        return self.err(format!("`{w}` is a keyword: a type's {w} is `{w}.of[int32]` (`.of` after `{w}`), and a function named `{w}`, a C header's say, is reached through a path, `my.{w}[…]` or its module's (owner, 2026-09-19, 2026-10-10)"));
+                    }
                     self.advance();
                     self.expect(Tok::Dot, &format!("`.of` after `{w}` (`{w}.of[int32]`)"))?;
                     match self.advance().tok { Tok::Word(o) if o == "of" => {}, other => return self.err(format!("`{w}.of[…]` is the only form, found {other}")) }

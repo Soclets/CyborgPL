@@ -108,6 +108,9 @@ pub struct StructDef {
     pub name: String,
     /// `layout.C struct`: C's layout, C-shaped fields only; may cross to C
     pub layout_c: bool,
+    /// a C struct Nerve never looks inside (owner, 2026-10-10: `ptr.mut[FILE]`): only pointed at, never
+    /// built, sized or read; it comes only from a C header, having no spelling of its own
+    pub opaque: bool,
     /// type variables, in the order announced (design/generics.md, 2026-10-02)
     pub params: Vec<String>,
     /// what each accepts: (blank, interface), one pair per interface; `any` adds none

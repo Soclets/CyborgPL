@@ -73,14 +73,13 @@ passed on, never built, read or changed, and handing it where C wants
 another struct's pointer is refused while building; over (b) every struct
 pointer a `ptr.mut[uint8]`. Design claude recommended (a), as Zig and Swift
 (`OpaquePointer`) do: no difference when running (a pointer is an address),
-and the one cost is a `ptr.cast[uint8][…]` where C takes `void *`. Not
-built. **A C struct whose fields Nerve can all spell comes through as a
+and the one cost is a `ptr.cast[uint8][…]` where C takes `void *`. **A C struct whose fields Nerve can all spell comes through as a
 `layout.C struct` with C's field names** (owner: "(a)", after "what"), so
 `struct tm`'s `tm_year` is read from what `localtime` gives; a struct with a
 field Nerve cannot spell yet comes through opaque, as `FILE`; over (b)
 every struct opaque, its fields written by hand. Design claude recommended
 (a): copying fields by hand is busywork, and a field copied in the wrong
-size or order reads garbage with no error. Not built. **A C struct is
+size or order reads garbage with no error. **A C struct is
 named by C's type name when it has one, else by its tag: `FILE`, `tm`**
 (owner: "(a)", after "what" twice and "Well, what do C people use?": `FILE`;
 the tag is `__sFILE` on macOS and `_IO_FILE` on Linux, and only `FILE` is
@@ -91,7 +90,15 @@ confused** (owner: "(b)"): a field keeps its C name, written after a dot
 (`'buf'.size`), where no keyword stands; a function is reached through a
 path (`my.size[…]`), as any keyword-named function is (2026-09-19); over (a)
 leaving them out, a struct with such a field coming through opaque. Design
-claude recommended (b).
+claude recommended (b). **Built in the oracle the same day** (owner: "yea"):
+an opaque struct is a struct the oracle marks opaque, refused when built
+(`handle_t[…]`) or sized (`size.of[FILE]`); `tm` comes through whole, 56
+bytes as C lays it out, and `stdio.h` with 80 of its 81 functions. A C call
+handed a pointer to another type than its parameter's is refused, naming
+both ("`fclose` wants a pointer to `FILE` for 'p1', and this points at
+`uint8`"), and `ptr.cast[FILE][…]` passes. `size[…]` written bare now says
+both `size.of[int32]` and `my.size[…]`. `examples/c_structs.nrv`, reject
+tests `c_header_opaque_*`, `c_header_keyword_fn_bare`.
 
 ### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 

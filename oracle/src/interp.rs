@@ -1524,6 +1524,10 @@ impl<'p> Interp<'p> {
             Expr::Var(name, _) => self.lookup(name).and_then(|s| s.ty.clone()),
             Expr::Paren(inner, _) => self.expr_ty_own(inner),
             Expr::Convert(t, _, _, _, _) => Some(t.clone()),
+            Expr::PtrCast(t, b, _) => {
+                let mutable = match b.values.first() { Some(crate::ast::Value::Expr(e)) => matches!(self.expr_ty_own(e), Some(Ty::Ptr(_, true))), _ => false };
+                Some(Ty::Ptr(Box::new(t.clone()), mutable))
+            }
             Expr::Incl(_, None, _) => Some(Ty::Array(Box::new(Ty::Uint(IntWidth::W8)))),
             Expr::Incl(_, Some(e), _) => Some(Ty::Str(e.clone())),
             Expr::Unary(_, inner, _) => self.expr_ty_own(inner),
@@ -2179,6 +2183,7 @@ impl<'p> Interp<'p> {
                     Some(d) => d.clone(),
                     None => return rt(line, format!("no struct named `{sname}` is declared (a call to a function is `{sname}[…]` with plain values, not `field = …`)")),
                 };
+                if def.opaque { return rt(line, format!("`{sname}` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[{sname}]`, never built")); }
                 let from = self.module.clone();
                 self.check_path(&from, &def.module, line)?;
                 if !self.reachable(&from, &def.module, def.vis) {
@@ -3367,6 +3372,9 @@ impl<'p> Interp<'p> {
                 }
                 Some(u64)
             }
+            // a pointer from C has the type C's declaration gives it (`malloc` → `ptr.mut[uint8]`), so handing
+            // it where C wants another struct's pointer is refused (owner, 2026-10-10: `ptr.mut[FILE]`)
+            [crate::ast::Value::Expr(e @ (Expr::Call(_) | Expr::PtrCast(..)))] => self.expr_ty_own(e).filter(|t| matches!(t, Ty::Ptr(..))),
             // included bytes are an `array[uint8]`, included text its named type (owner, 2026-10-10)
             [crate::ast::Value::Expr(e @ Expr::Incl(..))] => self.expr_ty_own(e),
             // `let 'a' := to.array[give 'l']` is an array of what 'l' held
@@ -4634,6 +4642,7 @@ impl<'p> Interp<'p> {
             Ty::Inst(n, _) => return rt(line, format!("`size.of[{n}[…]]`: a generic struct's size is not modelled by the oracle")),
             Ty::Struct(n) => {
                 let d = match self.prog.structs.iter().find(|d| &d.name == n) { Some(d) => d, None => return rt(line, format!("no struct named `{n}`")) };
+                if d.opaque { return rt(line, format!("`{n}` is C's and opaque: its size is C's own, and Nerve only points at it")); }
                 let (mut off, mut al) = (0usize, 1usize);
                 for f in &d.fields {
                     let (s, a) = self.size_align(&f.ty, line)?;
@@ -4696,7 +4705,18 @@ impl<'p> Interp<'p> {
                     match &*cell.borrow() { Value::List(_) | Value::Str(_) => {}, other => return rt(c.line, format!("a pointer needs a list, array, or str behind it, not {}", other.kind())) }
                     Value::Ptr(Ptr { cell: Some(cell), index: 0, mutable: is_mut })
                 }
-                (Some(Ty::Ptr(..)), Value::Ptr(_), _) => v,
+                (Some(Ty::Ptr(want, _)), Value::Ptr(_), _) => {
+                    // a pointer to one C type where C wants another is refused (owner, 2026-10-10: "(a)"):
+                    // `FILE` is not `uint8`; `ptr.cast` says it on purpose
+                    let have = match a { crate::ast::Value::Expr(e) => self.expr_ty_own(e) };
+                    if let Some(Ty::Ptr(have, _)) = have {
+                        if *have != **want {
+                            let p = param.unwrap();
+                            return rt(c.line, format!("`{}` wants a pointer to `{}` for '{}', and this points at `{}` (`ptr.cast[{}][…]` if you mean it)", func.name, ty_name(want), p.name, ty_name(&have), ty_name(want)));
+                        }
+                    }
+                    v
+                }
                 (Some(Ty::Ptr(..)), other, _) => return rt(c.line, format!("`{}` wants a pointer for '{}': `lend` a list/array/str, or pass a pointer from C; got {}", func.name, param.unwrap().name, other.kind())),
                 (Some(t @ Ty::Fn(..)), Value::Func(fv), _) => {
                     if !fv.captures.is_empty() { return rt(c.line, format!("`{}` is a callback for C, and `{}` captures [{}]: C has nowhere to keep them — pass them as a pointer argument instead", param.unwrap().name, fv.def.name, fv.captures.iter().map(|(n, _, _)| format!("'{n}'")).collect::<Vec<_>>().join(", "))); }

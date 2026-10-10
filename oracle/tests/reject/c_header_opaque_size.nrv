@@ -1,0 +1,4 @@
+incl.C.system["stdio.h"];
+MAIN {
+    cord::print.useful[size.of[FILE], newln];
+}
