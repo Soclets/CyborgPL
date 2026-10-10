@@ -30,7 +30,13 @@ in brackets, as every `incl` has it: `incl.C.system["stdio.h"];`** (owner,
 "What should it use? `""`, `[]`?", then "(a)"), over (b) the quotes alone,
 `incl.C.system "stdio.h";`; design claude recommended (a), showing several
 headers in one bracket, `incl.C.system["stdio.h", "stdlib.h"];`, as part
-of it.
+of it. **What a header declares is called bare, in the module where the
+`incl.C` line is** (owner: "(a)"), as a hand-written `extern.C` is; a
+prefix comes from writing the line inside a module (`module c {
+incl.C.system["stdio.h"]; }`, then `c.printf[…]`), and a C name clashing
+with one of the module's own is refused; over (b) always `C::printf`, which
+would make C look like a Neuron. Design claude recommended (a): an `incl.C`
+line is an `extern.C` block that Synapse writes.
 
 ### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 
