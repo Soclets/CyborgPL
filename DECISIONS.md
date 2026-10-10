@@ -27,7 +27,13 @@ lobe (`cord` lists it itself), and one that does not provably never calls
 C; over (b) the Brainstem keeping `extern.C`, `layout.C` and `ptr`. Design
 claude recommended (a), noting it makes 2026-09-19's "the OS door is open
 to every Neuron" opt-in, still open to any Neuron that lists the lobe. Then
-"Though, is `ptr` & `ASM` really C?" (being asked).
+"Though, is `ptr` & `ASM` really C?" (no: `ptr` is raw memory, which a
+kernel uses with no C, and inline assembly is the machine's; 2026-10-08's
+"Base CyborgPL should be practical, while being good at kernel &
+bootloader" puts both in the base). **`ptr` and inline assembly stay in
+the Brainstem; the C lobe builds on the Brainstem's `ptr`** (owner: "yea");
+design claude recommended it. Not yet asked: the C lobe's name and ID, and
+the rest of the regrouping by expertise.
 
 ### 2026-10-10 — `bin128` is back, `not_std.bin80` is new, and C's `long double` is `C.long_double` (owner; not built)
 
