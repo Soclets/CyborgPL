@@ -179,6 +179,8 @@ fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
         "not_std" => ("a `not_std.` width", "WSMW"),
         "deci32" | "deci64" | "deci128" => (match w.as_str() { "deci32" => "`deci32`", "deci64" => "`deci64`", _ => "`deci128`" }, "Money"),
         "str" if dot_then(&["utf16", "utf32"]) => (if next_is(2, "utf16") { "`str.utf16`" } else { "`str.utf32`" }, "UniTect"),
+        // UTF-16 and UTF-32 included need UniTect, as their text does.
+        "incl" if dot_then(&["str"]) && matches!(toks.get(i + 3).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "utf16" || x == "utf32") => (if matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "utf16") { "`incl.str.utf16`" } else { "`incl.str.utf32`" }, "UniTect"),
         "str" if dot_then(&["points", "graphemes"]) => (if next_is(2, "points") { "`str.points`" } else { "`str.graphemes`" }, "UniTect"),
         "str" if dot_then(&["each", "at"]) && matches!(toks.get(i + 3).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "point" || x == "grapheme") => ("counting in points or graphemes", "UniTect"),
         "char" if dot_then(&["point", "grapheme"]) => (if next_is(2, "point") { "`char.point`" } else { "`char.grapheme`" }, "UniTect"),
@@ -3644,10 +3646,28 @@ impl<'a> Parser<'a> {
                             self.expect(&Tok::Dot, "`.` and the text's encoding: `incl.str.utf8[…]`")?;
                             let enc = self.ident("the text's encoding")?;
                             match enc.name.as_str() {
-                                "utf8" => InclForm::Utf8,
-                                "ascii" => InclForm::Ascii,
-                                "utf16" | "utf32" => return self.fail_at(enc.span, format!("`incl.str.{}` is not built yet: which byte order a UTF-16 or UTF-32 file without a byte-order mark has is not decided", enc.name)),
-                                other => return self.fail_at(enc.span, format!("`incl.str.{}` is not an encoding: `incl.str.utf8[…]` or `incl.str.ascii[…]`", other)),
+                                "utf8" | "ascii" => {
+                                    if self.is(&Tok::Dot) {
+                                        return self.fail_at(enc.span, format!("`str.{}` has no byte order: write `incl.str.{}[…]`", enc.name, enc.name));
+                                    }
+                                    if enc.name == "utf8" { InclForm::Utf8 } else { InclForm::Ascii }
+                                }
+                                // Which byte order a file without a mark has is said
+                                // (owner, 2026-10-10: "saying the order in syntax").
+                                "utf16" | "utf32" => {
+                                    let says = format!("`incl.str.{e}` says its byte order: `incl.str.{e}.low_first[…]` (\"A\" stored low byte first, as Windows writes it) or `incl.str.{e}.high_first[…]`", e = enc.name);
+                                    if !self.eat(&Tok::Dot) {
+                                        return self.fail_at(enc.span, says);
+                                    }
+                                    let order = self.ident("`low_first` or `high_first`")?;
+                                    let low_first = match order.name.as_str() {
+                                        "low_first" => true,
+                                        "high_first" => false,
+                                        _ => return self.fail_at(order.span, says),
+                                    };
+                                    if enc.name == "utf16" { InclForm::Utf16 { low_first } } else { InclForm::Utf32 { low_first } }
+                                }
+                                other => return self.fail_at(enc.span, format!("`incl.str.{}` is not an encoding: `incl.str.utf8[…]`, `incl.str.ascii[…]`, or `incl.str.utf16` / `utf32` with its byte order", other)),
                             }
                         }
                         other => return self.fail_at(what.span, format!("`incl.{}` does not exist: `incl.bytes[…]` gives the bytes, `incl.str.utf8[…]` the text", other)),

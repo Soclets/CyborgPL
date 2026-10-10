@@ -4466,9 +4466,11 @@ impl Checker {
         let dir = self.items.neuron_dirs.get(&root).cloned().unwrap_or_else(|| std::path::PathBuf::from("."));
         let full = dir.join(path);
         let what = match form {
-            ast::InclForm::Bytes => "incl.bytes",
-            ast::InclForm::Utf8 => "incl.str.utf8",
-            ast::InclForm::Ascii => "incl.str.ascii",
+            ast::InclForm::Bytes => "incl.bytes".to_string(),
+            ast::InclForm::Utf8 => "incl.str.utf8".to_string(),
+            ast::InclForm::Ascii => "incl.str.ascii".to_string(),
+            ast::InclForm::Utf16 { low_first } => format!("incl.str.utf16.{}", if low_first { "low_first" } else { "high_first" }),
+            ast::InclForm::Utf32 { low_first } => format!("incl.str.utf32.{}", if low_first { "low_first" } else { "high_first" }),
         };
         let bytes = std::fs::read(&full).map_err(|e| Box::new(Diagnostic::error(format!("`{}` cannot read \"{}\" ({}, from the Neuron's root): {}", what, path, full.display(), e)).at(path_span)))?;
         // Everything `incl` gives is a const's value only (owner,
@@ -4493,6 +4495,47 @@ impl Checker {
                 Some(i) => err(Diagnostic::error(format!("\"{}\" is not ASCII text (byte {} is {}), so `incl.str.ascii` cannot hold it; `incl.str.utf8` takes UTF-8 and `incl.bytes` any file", path, i + 1, bytes[i])).at(path_span)),
                 None => Ok(Expr { kind: K::Str(String::from_utf8(bytes).unwrap()), ty: Ty::Str(crate::types::Enc::Ascii), span }),
             },
+            // In the byte order it says (owner, 2026-10-10); a byte-order
+            // mark that agrees is dropped, one that disagrees refused.
+            ast::InclForm::Utf16 { low_first } | ast::InclForm::Utf32 { low_first } => {
+                let (unit, enc, ty) = match form {
+                    ast::InclForm::Utf16 { .. } => (2usize, "str.utf16", Ty::Str(crate::types::Enc::Utf16)),
+                    _ => (4usize, "str.utf32", Ty::Str(crate::types::Enc::Utf32)),
+                };
+                if bytes.len() % unit != 0 {
+                    return err(Diagnostic::error(format!("\"{}\" is {} bytes, not a whole number of {}-byte units, so it is not {} text", path, bytes.len(), unit, enc)).at(path_span));
+                }
+                let mut units: Vec<u32> = bytes
+                    .chunks(unit)
+                    .map(|c| {
+                        let mut v: u32 = 0;
+                        for k in 0..unit {
+                            let b = if low_first { c[unit - 1 - k] } else { c[k] };
+                            v = v << 8 | b as u32;
+                        }
+                        v
+                    })
+                    .collect();
+                let flipped = if unit == 2 { 0xFFFE } else { 0xFFFE_0000 };
+                match units.first() {
+                    Some(0xFEFF) => {
+                        units.remove(0);
+                    }
+                    Some(u) if *u == flipped => {
+                        let said = |low: bool| if low { "low byte first" } else { "high byte first" };
+                        return err(Diagnostic::error(format!("\"{}\" starts with a byte-order mark saying {}, but `{}` says {}", path, said(!low_first), what, said(low_first))).at(path_span));
+                    }
+                    _ => {}
+                }
+                let bad = || Box::new(Diagnostic::error(format!("\"{}\" is not valid {} text in that byte order, so `{}` cannot hold it; `incl.bytes` takes any file", path, enc, what)).at(path_span));
+                let text: String = if unit == 2 {
+                    let u16s: Vec<u16> = units.iter().map(|u| *u as u16).collect();
+                    char::decode_utf16(u16s).collect::<std::result::Result<String, _>>().map_err(|_| bad())?
+                } else {
+                    units.iter().map(|u| char::from_u32(*u)).collect::<Option<String>>().ok_or_else(bad)?
+                };
+                Ok(Expr { kind: K::Str(text), ty, span })
+            }
         }
     }
 

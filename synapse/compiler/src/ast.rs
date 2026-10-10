@@ -367,6 +367,10 @@ pub enum InclForm {
     Bytes,
     Utf8,
     Ascii,
+    /// UTF-16 or UTF-32 in the byte order it says (owner, 2026-10-10):
+    /// `low_first` for `.low_first`.
+    Utf16 { low_first: bool },
+    Utf32 { low_first: bool },
 }
 
 #[derive(Debug, Clone, PartialEq)]
