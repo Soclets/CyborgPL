@@ -640,3 +640,16 @@ fn bare_metal_runs_in_qemu() {
     }
     let _ = std::fs::remove_dir_all(&out);
 }
+
+/// `synapse`, `syn` and `sng` are one command (owner, 2026-10-09 and
+/// 2026-10-10); `cca`, the old name, is refused naming them.
+#[test]
+fn every_name_of_the_command_runs() {
+    for exe in [env!("CARGO_BIN_EXE_synapse"), env!("CARGO_BIN_EXE_syn"), env!("CARGO_BIN_EXE_sng")] {
+        let out = Command::new(exe).output().unwrap();
+        let said = String::from_utf8_lossy(&out.stderr).to_string() + &String::from_utf8_lossy(&out.stdout);
+        assert!(said.contains("usage: synapse parse"), "`{}` did not answer as Synapse:\n{}", exe, said);
+    }
+    let out = Command::new(env!("CARGO_BIN_EXE_cca")).output().unwrap();
+    assert!(!out.status.success() && String::from_utf8_lossy(&out.stderr).contains("write `synapse` (or `syn`, or `sng`)"));
+}

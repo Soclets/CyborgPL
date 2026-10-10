@@ -8,7 +8,8 @@ never from `oracle/src` (`design/compiler-session.md`).
 is **Synapse**, where Nerve's parts meet: the Brainstem (the language's lowest
 level, `compiler/`), the lobes (`lobes/`), Cortex (the prover,
 `compiler/src/cortex`) and Axon (the runtime, `runtime/`). The command is
-`synapse`, and `syn` is the same command (owner: "Both"); the folder and the
+`synapse`, and `syn` is the same command (owner: "Both"), and so is `sng`,
+for SNG, "Synapse Not GCC" (owner, 2026-10-10: "work too"); the folder and the
 crates take the full name (`synapse-brainstem`, `synapse-runtime`,
 `synapse-lobe-*`; "Yeah"). The old `cca` command is refused, naming
 `synapse`, as any old spelling is.
@@ -603,7 +604,9 @@ Dated, with the alternative, so each can become a question later.
 - **2026-10-10 — How Synapse reads a C header.** An `incl.C` line is the
   `extern.C` block Synapse writes (`compiler/src/cheader.rs`): the Clang
   beside the LLVM Synapse is built with (else `clang` on `PATH`) is run
-  three times at once on the line's headers — its AST as JSON, its
+  three times at once on the line's headers (Clang is CNC's, owner
+  2026-10-10: borrowed so until the self-contained build, when it ships
+  inside the CNC lobe, fetched only by a build listing CNC) — its AST as JSON, its
   `#define`s, and its own `#define`s to leave out — and what comes through
   is written as Nerve and parsed at the line. What comes through follows
   the oracle's README ("What of a C header comes through"); where it says
