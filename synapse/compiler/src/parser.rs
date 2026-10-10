@@ -2366,7 +2366,11 @@ impl<'a> Parser<'a> {
             "otherwise" => self.fail("`otherwise` follows a call that can fail: `let 'x' := f[] otherwise 0;`"),
             "fn" | "struct" | "interface" | "op" => self.fail(format!("a `{}` sits at the top level of a file or a module, not inside a body", w)),
             "enum" => self.fail("an `enum` sits at the top level of a file or a module, not inside a body"),
-            "const" => self.fail("a `const` sits at the top level: inside a body a declaration is `let 'x' := …;`, and Cortex finds the constants itself"),
+            // A const in any body (owner, 2026-10-10: "I want it.", "`a`").
+            "const" => {
+                self.bump();
+                Ok(StmtKind::Const(self.const_decl()?))
+            }
             "module" => self.fail("a `module` sits at the top level of a file, not inside a body"),
             "pub" => self.fail("`pub` goes at the top level, on a `fn`, `struct`, `enum` or `const`"),
             "extern" => self.fail("an `extern` declaration sits at the top level, not inside a body"),

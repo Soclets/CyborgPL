@@ -253,7 +253,12 @@ impl Checker {
             ast::StmtKind::Gives { bare: true, .. } => err(Diagnostic::error("a value alone is not a statement: assign it, or call something with it").at(s.span)),
             ast::StmtKind::Gives { bare: false, .. } => err(Diagnostic::error("`giveS` ends a case of a `match` used as a value, and says that value; this is not the end of one").at(s.span)),
             ast::StmtKind::Tier { .. } => unreachable!("handled in stmt"),
+            ast::StmtKind::Const(d) => self.local_const(ctx, d, s.span),
             ast::StmtKind::Let { mutability, name, ty, shadow, value, sealed } => {
+                // A const is never shadowed (owner, 2026-10-10).
+                if ctx.lookup_const(&name.name).is_some() {
+                    return err(Diagnostic::error(format!("'{}' is a const and cannot be shadowed: it is the same value everywhere it is seen", name.name)).at(name.span));
+                }
                 // Shadowing is never silent. What it may not shadow: a name
                 // declared `!$`, and a loop's counter (owner, 2026-09-25) —
                 // `immut` only forbids `change`, and a shadow changes nothing.
@@ -843,6 +848,45 @@ impl Checker {
                 Ok(hir::StmtKind::ForEach { elem: id, pos: pos_id, iter: it, body: b, perm, seq, para, nocheat: false })
             }
         }
+    }
+
+    /// A `const` in a body (owner, 2026-10-10: "I want it.", "`a`"): as a
+    /// top-level one — its value known at compile time, nobody owning it —
+    /// seen only in its block, never assigned and never shadowed.
+    fn local_const(&mut self, ctx: &mut FnCtx, d: &ast::ConstDecl, span: Span) -> Result<hir::StmtKind> {
+        let name = &d.name;
+        if ctx.lookup_const(&name.name).is_some() {
+            return err(Diagnostic::error(format!("'{}' is a const and cannot be shadowed: it is the same value everywhere it is seen", name.name)).at(name.span));
+        }
+        if let Some(prev) = ctx.lookup(&name.name) {
+            return err(Diagnostic::error(format!("'{}' is already declared; a const is a new name, and shadowing is never silent", name.name)).at(name.span).why_at(ctx.locals[prev.0 as usize].span, "declared here"));
+        }
+        // Its value sees the consts around it and none of the variables.
+        let mut cctx = self.new_ctx(crate::hir::FnInst(u32::MAX), ctx.module, "the const".to_string(), Ty::Nothing, Vec::new(), false);
+        cctx.fold_vars = ctx.fold_vars;
+        let mut seen = std::collections::HashMap::new();
+        for s in &ctx.const_scopes {
+            seen.extend(s.iter().map(|(k, v)| (k.clone(), *v)));
+        }
+        cctx.const_scopes = vec![seen];
+        cctx.outer_vars = Some(ctx.scopes.iter().flat_map(|s| s.keys().cloned()).collect());
+        let mut value = self.expr(&mut cctx, &d.value)?;
+        let ty = match &d.ty {
+            Some(t) => {
+                let mut blanks = Vec::new();
+                let t = self.items.resolve_type(t, ctx.module, &mut blanks, false)?;
+                value = self.expect_store(&mut cctx, value, &t, "the const's declared type")?;
+                t
+            }
+            None => self.resolve(&value.ty),
+        };
+        self.check_const_value(&value)?;
+        let id = crate::hir::ConstId(self.items.consts.len() as u32);
+        self.items.consts.push(crate::resolve::ConstInfo { name: name.name.clone(), module: ctx.module, vis: ast::Vis::Private, ty: Some(ty), value: d.value.clone(), span: name.span });
+        self.const_values.push(Some(value));
+        let key = if ctx.fold_vars { ast::fold_case(&name.name) } else { name.name.clone() };
+        ctx.const_scopes.last_mut().unwrap().insert(key, id);
+        Ok(hir::StmtKind::Block(hir::Block { stmts: Vec::new(), span }))
     }
 
     /// A `for` over an iterator (owner, 2026-10-08/09): a value whose type

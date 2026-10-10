@@ -95,6 +95,15 @@ impl Checker {
                 Ok(Expr { kind: K::Duration(v * nanos), ty: Ty::Duration, span })
             }
             AK::Name(n) => {
+                // A const declared in this body (owner, 2026-10-10).
+                if let Some(cid) = ctx.lookup_const(&n.name) {
+                    let ty = self.const_type(cid, span)?;
+                    return Ok(Expr { kind: K::Const(cid), ty, span });
+                }
+                // A body const's value uses no variable.
+                if ctx.lookup(&n.name).is_none() && ctx.outer_vars.as_ref().is_some_and(|v| v.contains(&n.name)) {
+                    return err(Diagnostic::error(format!("a const's value must be known at compile time; '{}' is a variable (use `let` for a value worked out while running)", n.name)).at(span));
+                }
                 let Some(id) = ctx.lookup(&n.name) else {
                     // A const of this module, or C's variable.
                     if let Some((cid, _, _)) = self.items.modules[ctx.module.0 as usize].const_named(&n.name).cloned() {
@@ -359,8 +368,8 @@ impl Checker {
                     if let Some(w) = self.extern_let_named(&n.name, ctx) {
                         return self.extern_place(ctx, w, use_, e.span);
                     }
-                    if self.items.modules[ctx.module.0 as usize].const_named(&n.name).is_some() {
-                        return err(Diagnostic::error(format!("'{}' is a const and cannot be {}: it is a value known at compile time — nobody owns it, every use is a fresh value", n.name, match use_ { PlaceUse::Write => "assigned", PlaceUse::Give | PlaceUse::Copy | PlaceUse::Lend | PlaceUse::LendMut => "given, copied or lent", PlaceUse::Read => "used as a place" })).at(e.span));
+                    if ctx.lookup_const(&n.name).is_some() || self.items.modules[ctx.module.0 as usize].const_named(&n.name).is_some() {
+                        return err(Diagnostic::error(format!("'{}' is a const and cannot be {}: it is a value known at compile time — nobody owns it, every use is a fresh value", n.name, match use_ { PlaceUse::Write => "assigned to", PlaceUse::Give | PlaceUse::Copy | PlaceUse::Lend | PlaceUse::LendMut => "given, copied or lent", PlaceUse::Read => "used as a place" })).at(e.span));
                     }
                     return self.undeclared(ctx, n);
                 };

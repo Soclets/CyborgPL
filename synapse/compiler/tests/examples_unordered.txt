@@ -1,0 +1,6 @@
+# Examples whose printed lines come in an order their tasks' timing decides
+# (`examples_run_as_the_oracle_prints`): the oracle runs tasks one after
+# another, Synapse on threads, so the same lines are compared in any order.
+# `name :: why`.
+
+concur :: two tasks send to one channel; which arrives first is the scheduler's

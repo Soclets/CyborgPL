@@ -9,6 +9,7 @@
 //! its arguments) — the per-shape compilation `generics.md` decides.
 
 pub mod expr;
+pub mod mutscan;
 pub mod stmt;
 
 use std::collections::HashMap;
@@ -143,6 +144,12 @@ pub struct FnCtx {
     /// 2026-10-10: "`b`"), and the locals something changes.
     pub promised: Vec<LocalId>,
     pub changed: std::collections::HashSet<LocalId>,
+    /// The consts declared in a body (owner, 2026-10-10: "`a`"), scope by
+    /// scope beside `scopes`.
+    pub const_scopes: Vec<HashMap<String, crate::hir::ConstId>>,
+    /// Checking a body const's value: the variables around it, which it may
+    /// not use.
+    pub outer_vars: Option<Vec<String>>,
 }
 
 impl FnCtx {
@@ -167,9 +174,16 @@ impl FnCtx {
     }
     pub fn push_scope(&mut self) {
         self.scopes.push(HashMap::new());
+        self.const_scopes.push(HashMap::new());
     }
     pub fn pop_scope(&mut self) {
         self.scopes.pop();
+        self.const_scopes.pop();
+    }
+    /// A const declared in this body and seen here.
+    pub fn lookup_const(&self, name: &str) -> Option<crate::hir::ConstId> {
+        let name = self.key(name);
+        self.const_scopes.iter().rev().find_map(|s| s.get(name.as_ref()).copied())
     }
     /// Is `name` declared in an *enclosing* scope (not the innermost)?
     pub fn visible_outside(&self, name: &str) -> Option<LocalId> {
@@ -450,6 +464,27 @@ impl Checker {
                 }
             }
         }
+        // A function no instance checked — a generic nobody calls — has its
+        // `mut`s read from its source (owner, 2026-10-10: "`a`").
+        let checked: std::collections::HashSet<u32> = self.instances.iter().map(|i| i.key.fn_id.0).collect();
+        for i in 0..self.items.fns.len() {
+            let f = &self.items.fns[i];
+            if checked.contains(&(i as u32)) || f.is_literal {
+                continue;
+            }
+            let Some(body) = &f.body else { continue };
+            let mut scan = mutscan::Scan::default();
+            for p in &f.params {
+                if p.mutability == Some(Mutability::Mut) {
+                    scan.promised.push((p.name.clone(), p.span));
+                }
+            }
+            scan.block(body);
+            for (name, span) in scan.promised {
+                let kept = scan.changed.contains(&name);
+                self.mut_seen.entry(span).or_insert((name, kept));
+            }
+        }
         // A `mut` nothing changed, in any instance.
         let mut unkept: Vec<(&crate::source::Span, &String)> = self.mut_seen.iter().filter(|(_, (_, ok))| !ok).map(|(s, (n, _))| (s, n)).collect();
         unkept.sort_by_key(|(s, _)| (s.file.0, s.start));
@@ -524,7 +559,7 @@ impl Checker {
     }
 
     pub fn new_ctx(&self, inst: FnInst, module: ModuleId, name: String, ret: Ty, fails: Vec<(String, Option<Ty>)>, is_main: bool) -> FnCtx {
-        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_test: false, must_fail: false, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None, borrow_src: HashMap::new(), fold_vars: false, promised: Vec::new(), changed: Default::default() }
+        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_test: false, must_fail: false, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None, borrow_src: HashMap::new(), fold_vars: false, promised: Vec::new(), changed: Default::default(), const_scopes: vec![HashMap::new()], outer_vars: None }
     }
 
     fn check_instance(&mut self, inst: FnInst) -> Result<()> {

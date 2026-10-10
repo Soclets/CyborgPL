@@ -540,6 +540,9 @@ pub enum StmtKind {
     /// be shadowed.
     Let { mutability: Option<Mutability>, name: QName, ty: Option<Type>, shadow: bool, value: Expr, sealed: bool },
     Assign { target: Expr, value: Expr },
+    /// A `const` in a body (owner, 2026-10-10: "`a`"): seen only in its
+    /// block, never assigned or shadowed.
+    Const(ConstDecl),
     Expr(Expr),
     If { cond: Expr, then: Block, else_: Option<ElseArm> },
     Loop(Block),

@@ -284,6 +284,7 @@ fn indent(s: &str) -> String {
 #[test]
 fn examples_run_as_the_oracle_prints() {
     let unbuilt = load_list("examples_unbuilt.txt");
+    let unordered = load_list("examples_unordered.txt");
     let synapse = PathBuf::from(env!("CARGO_BIN_EXE_synapse"));
     let dir = repo().join("examples");
     let all: Vec<PathBuf> = targets(&dir).into_iter().filter(|p| dir.join(format!("{}.out", name_of(p))).is_file()).collect();
@@ -306,7 +307,18 @@ fn examples_run_as_the_oracle_prints() {
             (Some(_), false) => Some(format!("{}: builds now — drop its line in tests/examples_unbuilt.txt (it {} the oracle)", name, if r.stdout == want && r.status.code() == Some(code) { "runs as" } else { "differs from" })),
             (None, true) => Some(format!("{}: refused to build:\n{}", name, indent(&err))),
             (None, false) => {
-                if r.stdout != want || r.status.code() != Some(code) {
+                // Lines whose order the tasks' timing decides, compared as a set.
+                let same = if unordered.contains_key(&name) {
+                    let lines = |b: &[u8]| {
+                        let mut v: Vec<String> = String::from_utf8_lossy(b).lines().map(str::to_string).collect();
+                        v.sort();
+                        v
+                    };
+                    lines(&r.stdout) == lines(&want)
+                } else {
+                    r.stdout == want
+                };
+                if !same || r.status.code() != Some(code) {
                     Some(format!("{}: exit {:?} (the oracle's {}), and its output\n{}\n  the oracle's\n{}", name, r.status.code(), code, indent(&String::from_utf8_lossy(&r.stdout)), indent(&String::from_utf8_lossy(&want))))
                 } else {
                     None
