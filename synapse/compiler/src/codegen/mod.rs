@@ -1515,7 +1515,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             Rvalue::Convert { to, operand, useful, .. } => {
                 let mut v = self.operand(fi, operand, slots)?;
-                if let Some(from) = self.operand_cy_ty(fi, operand) {
+                // A constant has its family, not a place's type: a const's
+                // whole number into a deci went in as raw bits (check
+                // claude, seed 48186: 1234 printed as 0.000…0001234).
+                let from = match operand {
+                    Operand::Const(Const::Int(_)) => Some(Ty::exact()),
+                    Operand::Const(Const::Bin(_)) => Some(Ty::Bin(crate::types::BinW::Fixed(64))),
+                    Operand::Const(Const::Deci { bits, .. }) => Some(Ty::Deci(*bits)),
+                    _ => self.operand_cy_ty(fi, operand),
+                };
+                if let Some(from) = from {
                     if matches!(from.base(), Ty::Deci(_)) && !matches!(to.base(), Ty::Str(_)) || matches!(to.base(), Ty::Deci(_)) {
                         let from_signed = self.operand_signed(fi, operand).unwrap_or(true);
                         return self.deci_convert(fi, v, &from, to, *useful, from_signed, func);
