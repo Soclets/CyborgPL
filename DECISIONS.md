@@ -51,7 +51,9 @@ recommended (b), since an unchecked word goes stale. The owner: "`b`". So
 refused**: "'x' is `mut`, but nothing changes it: drop `mut`, or change
 it". A change is `change` (whole, field or element), `lend.mut`, or an
 `inline.ASM` output. Built in the oracle, matched by name within the
-function (design claude's reading). Five programs dropped a needless `mut`;
+function (design claude's reading), corrected the same day to by variable,
+as Synapse had it: a shadow is a different variable, so its change does not
+keep the shadowed one's promise (check claude's finding, 00f61a5e). Five programs dropped a needless `mut`;
 reject test mut_never_changed.
 
 ### 2026-10-09 — The README says only this repo and nerve-lang.com speak for Nerve (owner)
