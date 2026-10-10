@@ -42,6 +42,10 @@ own names (owner, same day: "only include the Rust ones and ours"): C's
 exact names, recorded first, were withdrawn, and no long spellings
 (`binary_float16`) are added.
 
+**`bin128` is back** (owner, 2026-10-10: "It wants both", with
+`not_std.bin80`, for C's `long double`; DECISIONS has the rest). What
+follows is the 2026-09-23 drop it reverses, kept as history.
+
 **No `bin128`** (owner, 2026-09-23: "b", over keeping it). The reason was
 design claude's, given when proposing it: quad precision has essentially
 no hardware anywhere — it is software arithmetic, and slow — and the thing

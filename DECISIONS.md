@@ -5,6 +5,32 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-10 — `bin128` is back, `not_std.bin80` is new, and C's `long double` gets a Nerve type too (owner; spelling open, not built)
+
+Asked how C's `long double` comes through a header (it is `double` on
+Apple's chips and Windows, Intel's 80-bit format on Linux/x86, 128-bit quad
+on Linux/ARM, PowerPC's double-double there), design claude offered (a) as
+`bin64` where it is one, (b) always left out, recommended. The owner:
+"Isn't it `deci`?" (no: it is binary, as `double` is; C23's `_Decimal64`
+would be `deci`), "Or we could just make `long double` in Nerve?", "Hm, I
+don't think I use the word "essentially"" (right: design claude had quoted
+its own 2026-09-23 reason for dropping `bin128` as the owner's; the
+owner's words were "b" and "but `std::uenr` better be fucking optimised";
+`types.md` corrected), "We'll have to do `bin128` first, right?", "Why the
+fuck are they using such weird witdhs?", "Does the `not_std` Nerve type
+family support `bin`?" (no, integers only; LLVM has fixed float formats,
+not any width), and "Does LLVM support the long double needed types?"
+(yes: Clang gives `x86_fp80`, `fp128` and `ppc_fp128`). The owner: "It
+wants both", confirmed as "Yeah, but I want `long double` too". So
+**`bin128` is a Nerve type again** (IEEE's 128-bit binary, reversing
+2026-09-23's drop), **`not_std.bin80` is new** (Intel's 80-bit extended,
+not an IEEE interchange format, so marked as `not_std` integers are), and
+**a type for C's `long double` exists as well**. PowerPC's double-double
+is not included. Not yet asked: what the `long double` type is (a name for
+whichever the machine uses, usable everywhere, or only where Nerve meets
+C) and its spelling; whether `bin128` and `not_std.bin80` are the base's or
+a lobe's (WSMW holds the odd integer widths).
+
 ### 2026-10-10 — Nerve reads C headers with `incl.C.system["stdio.h"];`, so C's functions need no hand-written `extern.C` (owner; built in the oracle)
 
 The owner: "I wanna add C++'s `#include <>`". Asked what it should do in
