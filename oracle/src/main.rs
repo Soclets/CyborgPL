@@ -41,6 +41,8 @@ fn parse_file_in(path: &Path, module: Vec<String>, limb_root: Vec<String>) -> Re
     // once per module level below the root (`ui/header.nrv` is `ui.header`, one folder down)
     let mut dir = path.parent().map(Path::to_path_buf).unwrap_or_default();
     for _ in 0..(module.len().saturating_sub(limb_root.len())).saturating_sub(1) { dir.pop(); }
+    // a file named bare (`oracle t.nrv`) has the empty path as its folder, which is "here" (compiler claude)
+    if dir.as_os_str().is_empty() { dir = PathBuf::from("."); }
     parser::NEURON_DIR.with(|d| *d.borrow_mut() = dir);
     if LEVELS_ONLY.with(|f| f.get()) && path.file_name().map_or(true, |n| n != "Kinesin.nrp") {
         parser::Parser::new_in_limb(toks, module, limb_root).scan_levels()

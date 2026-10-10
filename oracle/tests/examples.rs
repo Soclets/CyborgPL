@@ -72,3 +72,13 @@ fn rejected_programs_fail_with_the_right_message() {
     }
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
 }
+
+/// A file named bare, run from its own folder (`cd dir && oracle t.nrv`), finds what it includes there
+/// too (compiler claude, 2026-10-10: the empty path reached Clang as its input).
+#[test]
+fn a_bare_file_name_includes_from_its_folder() {
+    let dir = root().join("examples");
+    let out = Command::new(oracle()).current_dir(&dir).arg("c_headers.nrv").output().unwrap();
+    let want = fs::read_to_string(dir.join("c_headers.out")).unwrap();
+    assert_eq!(String::from_utf8_lossy(&out.stdout), want, "stderr: {}", String::from_utf8_lossy(&out.stderr));
+}
