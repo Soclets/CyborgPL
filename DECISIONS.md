@@ -80,7 +80,13 @@ built. **A C struct whose fields Nerve can all spell comes through as a
 field Nerve cannot spell yet comes through opaque, as `FILE`; over (b)
 every struct opaque, its fields written by hand. Design claude recommended
 (a): copying fields by hand is busywork, and a field copied in the wrong
-size or order reads garbage with no error. Not built.
+size or order reads garbage with no error. Not built. **A C struct is
+named by C's type name when it has one, else by its tag: `FILE`, `tm`**
+(owner: "(a)", after "what" twice and "Well, what do C people use?": `FILE`;
+the tag is `__sFILE` on macOS and `_IO_FILE` on Linux, and only `FILE` is
+the C standard's), over (b) always the tag. A type and a function may share
+a name, so `struct stat` and `stat` both come through, as the oracle already
+allows.
 
 ### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 
