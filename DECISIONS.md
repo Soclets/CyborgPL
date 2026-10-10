@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-10 — Nerve reads C headers with `incl.C.system["stdio.h"];`, so C's functions need no hand-written `extern.C` (owner; not built)
+### 2026-10-10 — Nerve reads C headers with `incl.C.system["stdio.h"];`, so C's functions need no hand-written `extern.C` (owner; built in the oracle)
 
 The owner: "I wanna add C++'s `#include <>`". Asked what it should do in
 Nerve, (a) read a C header so its functions and types are declared, as
@@ -54,7 +54,18 @@ settled with this. Design claude's readings, not asked: what `incl.C`
 declares follows every `extern.C` rule (a call is a `no_check` site, `ptr[T]`
 at the boundary, C's varargs); like `extern.C` it is the Brainstem's; the
 registry allows `.system` headers in a published Neuron and refuses a
-plain path outside the Neuron, as for `incl.bytes`.
+plain path outside the Neuron, as for `incl.bytes`. **Built in the oracle
+the same day** (owner: "yea, build it"), which asks Clang to read the header
+and declares what it can as the lines a person would write; it runs only the
+C functions it imitates. Building it showed a module's prefix needs
+`pub.neuron` on the line inside the module (`module text { pub.neuron
+incl.C.system["string.h"]; }`, then `text.strlen[…]`), as any item a module
+shares does. What comes through for now is a provisional pick in the
+oracle's README: numbers, `bool` and pointers to them, so `string.h` comes
+through whole and `stdio.h` in part (31 of 81 functions; `FILE *` is a
+struct, left out with function pointers and `long double` until structs
+are taken across). `examples/c_headers.nrv`, `examples/c_header_local`,
+reject tests `c_header_*`.
 
 ### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 

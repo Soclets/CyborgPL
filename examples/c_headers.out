@@ -1,0 +1,2 @@
+hello through C's write
+23 bytes; BUFSIZ 1024, EOF -1, SEEK_END 2

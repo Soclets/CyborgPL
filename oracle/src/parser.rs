@@ -659,7 +659,7 @@ impl Parser {
                     if pending_bare.is_none() && self.is_word("bare") { let line = self.line(); pending_bare = Some((self.bare_mode()?, line)); }
                 }
                 match self.peek().clone() {
-                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" || w == "interface" => {}
+                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" || w == "interface" || w == "incl" => {}
                     Tok::Word(w) if w == "let" => return self.err("a Neuron-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
                     Tok::Var(_) => return self.err("a Neuron-level value is a `const`, not a variable: `pub const 'x' := 1;`"),
                     Tok::Word(w) if w == "MAIN" => return self.err("MAIN is the program's entry, never `pub`"),
@@ -727,6 +727,56 @@ impl Parser {
                     let bounds = Self::flat_bounds(&gens);
                     self.declared = None;
                     prog.enums.push(EnumDef { name: self.canonical(&[name]), module: self.module.clone(), vis, cases, params, bounds, c_values: None, line });
+                }
+                Tok::Word(w) if w == "incl" && matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(c) if c == "C" || c == "c") => {
+                    // incl.C.system["stdio.h"]; / incl.C["vendor/mylib.h"]; (owner, 2026-10-10): the header's
+                    // functions, globals and plain `#define` constants, as the `extern.C` lines and consts a
+                    // person would write here; private unless `pub`, as `extern.C` is
+                    let line = self.line();
+                    self.advance(); self.advance();
+                    if matches!(self.advance().tok, Tok::Word(c) if c == "c") { return self.err("C is written capitalized here, as every language's name is: `incl.C`"); }
+                    let system = if *self.peek() == Tok::Dot {
+                        self.advance();
+                        match self.advance().tok {
+                            Tok::Word(s) if s == "system" => true,
+                            other => return self.err(format!("after `incl.C` comes `.system` for the system's headers (`incl.C.system[\"stdio.h\"]`), or the bracket for a header in the Neuron, found {other}")),
+                        }
+                    } else { false };
+                    let what = if system { "incl.C.system" } else { "incl.C" };
+                    self.expect(Tok::LBracket, &format!("`[` and the header's path in quotes (`{what}[\"…\"]`)"))?;
+                    let mut paths = Vec::new();
+                    loop {
+                        match self.advance().tok {
+                            Tok::Text(p, _) => paths.push(p),
+                            other => return self.err(format!("a header's path is written in quotes, as text, found {other}")),
+                        }
+                        if *self.peek() == Tok::Comma { self.advance(); if *self.peek() == Tok::RBracket { break; } continue; }
+                        break;
+                    }
+                    self.expect(Tok::RBracket, "`]` after the headers")?;
+                    self.expect(Tok::Semi, "`;`")?;
+                    let dir = NEURON_DIR.with(|d| d.borrow().clone());
+                    for path in paths {
+                        let lines = crate::cheader::lines(system, &path, &dir).map_err(|m| ParseError { line, col: 0, msg: format!("`{what}[\"{path}\"]`: {m}") })?;
+                        for text in lines {
+                            // each line as if written here; one Nerve cannot say yet is left out, as the reader does
+                            let Ok(toks) = crate::lexer::lex(&text) else { continue };
+                            let mut sub = Parser::new_in_limb(toks, self.module.clone(), self.limb_root.clone());
+                            let Ok(mut part) = sub.program() else { continue };
+                            for f in &mut part.funcs { f.line = line; f.vis = vis.clone(); }
+                            for c in &mut part.consts { c.line = line; c.vis = vis.clone(); }
+                            for x in &mut part.externs { x.line = line; x.vis = vis.clone(); }
+                            // C declares a thing again in another header (`ctermid` in unistd.h and stdio.h); the
+                            // same declaration twice is one, while a different one under the name is a clash, refused
+                            let sig = |f: &Func| format!("{:?}", (f.params.iter().map(|p| (&p.ty, p.variadic)).collect::<Vec<_>>(), &f.ret));
+                            part.funcs.retain(|f| !prog.funcs.iter().any(|g| g.is_extern && g.name == f.name && g.module == f.module && sig(g) == sig(f)));
+                            part.consts.retain(|c| !prog.consts.iter().any(|d| d.name == c.name && d.module == c.module && format!("{:?}", d.value) == format!("{:?}", c.value)));
+                            part.externs.retain(|x| !prog.externs.iter().any(|y| y.name == x.name && y.module == x.module && y.ty == x.ty));
+                            prog.funcs.extend(part.funcs);
+                            prog.consts.extend(part.consts);
+                            prog.externs.extend(part.externs);
+                        }
+                    }
                 }
                 Tok::Word(w) if w == "extern" => {
                     // extern.C fn name [params] -> T;  or a block of them, `extern.C { … }`  (design/ffi.md;
@@ -1979,6 +2029,7 @@ impl Parser {
                     Ok(Stmt::BuiltinStmt { head, op, args, line })
                 }
                 "extern" | "layout" => self.err(format!("`{w}` sits at the top level of a file")),
+                "incl" if matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(c) if c == "C" || c == "c") => self.err("`incl.C` sits at the top level of a file or in a `module` block, as `extern.C` does, never in a body"),
                 "asm" | "ASM" => self.err("inline assembly is `inline.ASM { … }` (decided 2026-09-20; `inline.ASM` again since 2026-10-07)"),
                 "giveS" => {
                     // `is "free";` gives a case its value (owner, 2026-10-07: "`is`")
@@ -3547,6 +3598,7 @@ impl Parser {
                             incl_order = order;
                             Some(e)
                         }
+                        Tok::Word(c) if c == "C" => return self.err("`incl.C` sits at the top level of a file or in a `module` block, as `extern.C` does, never in a body"),
                         other => return self.err(format!("`incl.` is followed by `bytes` or a text type (`incl.str.utf8[…]`), found {other}")),
                     };
                     self.expect(Tok::LBracket, "`[` and the file's path in quotes")?;
