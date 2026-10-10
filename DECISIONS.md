@@ -26,10 +26,14 @@ wants both", confirmed as "Yeah, but I want `long double` too". So
 2026-09-23's drop), **`not_std.bin80` is new** (Intel's 80-bit extended,
 not an IEEE interchange format, so marked as `not_std` integers are), and
 **a type for C's `long double` exists as well**. PowerPC's double-double
-is not included. Not yet asked: what the `long double` type is (a name for
-whichever the machine uses, usable everywhere, or only where Nerve meets
-C) and its spelling; whether `bin128` and `not_std.bin80` are the base's or
-a lobe's (WSMW holds the odd integer widths).
+is not included. **The `long double` type is what `long double` actually
+is on the machine built for** (owner: "What `long double` actually is"):
+`bin64` on Apple's chips and Windows, `not_std.bin80` on Linux/x86, `bin128`
+on Linux/ARM, usable everywhere, maths included; over (b) only where Nerve
+meets C, converted to an exact size for maths. Design claude recommended
+(a): every size it can be is a real type now. Not yet asked: its spelling;
+whether `bin128` and `not_std.bin80` are the base's or a lobe's (WSMW holds
+the odd integer widths).
 
 ### 2026-10-10 — Nerve reads C headers with `incl.C.system["stdio.h"];`, so C's functions need no hand-written `extern.C` (owner; built in the oracle)
 
