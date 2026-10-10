@@ -34,7 +34,10 @@ and "compile for the exact machine" makes the target part of the input.
    every file it includes. The file counts as source: its bytes are part
    of what the build depends on. It is spelled `incl.bytes["logo.png"]`, is
    the Brainstem's (no lobe, no `cord`), and gives an `array[uint8]` held
-   in the program file; DECISIONS 2026-10-10 has the rest.
+   in the program file. Its text twin names the type, `incl.str.utf8[…]`
+   (or `.ascii`, or `.utf16` / `.utf32` with UniTect), and the build refuses
+   a file not valid in it. A path is from the Neuron's root, as `my.` is.
+   DECISIONS 2026-10-10 has the rulings.
 4. **Measurements are inputs too** (owner, 2026-09-28): `synapse tune` times
    loops once, on purpose, and writes `tune.nrp` (`synthia tune` runs it); builds read the file
    and never time anything themselves (`gpu.md`).

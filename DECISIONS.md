@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-10 — Include bytes may read any file; the registry refuses a published Neuron that reads one outside itself (owner: c; not built)
+### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; not built)
 
 The owner: "Let's do include bytes" (2026-10-08: "I kinda want include
 bytes, tbh", left open then as an exception to reproducible builds' rule
@@ -44,8 +44,17 @@ wants one. **A path is from the Neuron's root**, the folder holding
 moving the file, over (a) from the file writing it, as Rust and C do;
 design claude recommended (b). An absolute path works too (the registry
 refusing it in a published Neuron), and so, design claude's reading, does
-one climbing out with `..`, refused the same way. Not yet asked: a text twin
-(`incl.text`, shown beside it but not chosen).
+one climbing out with `..`, refused the same way. **A text twin exists,
+and names its text type: `incl.str.utf8["assets/help.txt"]`** (owner:
+"(a), but it should be chosen in the syntax, the str type", then "(a), if
+it's actually a str"), over `incl.text.utf8[…]`; design claude recommended
+both the twin, offered as `incl.text` against (b) bytes only, and the
+spelling, which names the type as `to.str.utf8[…]` does. It is a `str`: a
+text literal is "bytes in the program" and the base's (2026-10-06), and the
+file's contents are given as if written between quotes, so `incl.str.utf8`
+and `incl.str.ascii` are the Brainstem's too; `incl.str.utf16` / `.utf32`
+need UniTect, as those types do. The build refuses a file that is not
+valid in the named encoding. Not built.
 
 ### 2026-10-10 — The case marks are `case.any` and `case.exact` (owner: a)
 
