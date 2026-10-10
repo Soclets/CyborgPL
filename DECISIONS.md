@@ -108,7 +108,12 @@ from C that is not one of its values fails `out_of_range` at the door, as
 any `layout.C enum` does; over (b) each name a plain const and the type an
 `int32`. Design claude leaned (a), for the checking, naming the cost: a C
 library that combines an enum's values as flags (`RED | BLUE`) fails at
-the door. Not built.
+the door. Not built. **An unnamed C enum's names come through as plain
+consts, `'SEEK_SET'`, as a `#define` number does** (owner: "(a)", after
+"what" and "what's the diff?": C libraries pick `#define` or an unnamed
+enum for their constants as it happens, so skipping one kind would bring
+half a library's constants); over (b) leaving them out. Design claude
+recommended (a). Not built.
 
 ### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 
