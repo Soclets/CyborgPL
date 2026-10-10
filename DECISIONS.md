@@ -86,7 +86,12 @@ named by C's type name when it has one, else by its tag: `FILE`, `tm`**
 the tag is `__sFILE` on macOS and `_IO_FILE` on Linux, and only `FILE` is
 the C standard's), over (b) always the tag. A type and a function may share
 a name, so `struct stat` and `stat` both come through, as the oracle already
-allows.
+allows. **A C name that is a Nerve keyword comes through where it cannot be
+confused** (owner: "(b)"): a field keeps its C name, written after a dot
+(`'buf'.size`), where no keyword stands; a function is reached through a
+path (`my.size[…]`), as any keyword-named function is (2026-09-19); over (a)
+leaving them out, a struct with such a field coming through opaque. Design
+claude recommended (b).
 
 ### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 
