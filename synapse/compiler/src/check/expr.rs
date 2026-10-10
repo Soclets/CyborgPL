@@ -199,9 +199,15 @@ impl Checker {
                 // The function's own generics are announced, so naming one
                 // here is no typo — it just has no size or layout yet.
                 let mut blanks: Vec<(String, Vec<crate::types::IfaceId>)> = ctx.blank_names.iter().map(|n| (n.clone(), Vec::new())).collect();
-                let t = self.items.resolve_type(ty, ctx.module, &mut blanks, true)?;
+                let t = self.items.resolve_type_opaque_ok(ty, ctx.module, &mut blanks, true)?;
                 if t.contains_var() {
                     return err(Diagnostic::error("a blank has no size until it is filled: `size.of` takes a concrete type").at(ty.span));
+                }
+                if let Ty::Struct { id, .. } = t.base() {
+                    let info = &self.items.structs[id.0 as usize];
+                    if info.opaque {
+                        return err(Diagnostic::error(format!("`{}` is C's and opaque: its size is C's own, and Nerve only points at it", info.name)).at(ty.span));
+                    }
                 }
                 Ok(Expr { kind: K::SizeOf { align: *align, ty: t }, ty: Ty::u64(), span })
             }
@@ -2100,6 +2106,9 @@ impl Checker {
 
     fn construct(&mut self, ctx: &mut FnCtx, id: StructId, args: &[AArg], span: Span) -> Result<Expr> {
         let info = self.items.structs[id.0 as usize].clone();
+        if info.opaque {
+            return err(Diagnostic::error(format!("`{n}` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[{n}]`, never built", n = info.name)).at(span));
+        }
         let targs: Vec<Ty> = info.blanks.iter().map(|_| self.fresh()).collect();
         let mut given: Vec<Option<Arg>> = vec![None; info.fields.len()];
         for a in args {
@@ -2898,6 +2907,13 @@ impl Checker {
                     let v = self.expr(ctx, e)?;
                     let vt = self.resolve(&v.ty);
                     if !self.unify(&vt, pty) {
+                        // A pointer to another target than C's (owner,
+                        // 2026-10-10: `FILE` is not `uint8`), with the way
+                        // to say it is meant.
+                        if let Ty::Ptr { elem: got, .. } = vt.base() {
+                            let (want, got) = (self.spell(elem), self.spell(got));
+                            return err(Diagnostic::error(format!("`{}` wants a pointer to `{}` for '{}', and this points at `{}` (`ptr.cast[{}][…]` if you mean it)", fname, want, pname, got, want)).at(e.span));
+                        }
                         return err(Diagnostic::error(format!("`{}`'s parameter '{}' is {}, and this is {}", fname, pname, crate::types::a_type(&self.spell(pty)), crate::types::a_type(&self.spell(&vt)))).at(e.span));
                     }
                     return Ok(Arg::Value(v));
@@ -3998,7 +4014,7 @@ impl Checker {
             Some(i) => StructId(i as u32),
             None => {
                 let id = StructId(self.items.structs.len() as u32);
-                self.items.structs.push(StructInfo { name: name.into(), path: name.into(), layout_c: false, fields: vec![FieldInfo { name: "key".into(), immut: true, ty: kt }, FieldInfo { name: "value".into(), immut: true, ty: vt }], blanks: Vec::new(), bounds: Vec::new(), span: Span::new(crate::source::FileId(0), 0, 0) });
+                self.items.structs.push(StructInfo { name: name.into(), path: name.into(), layout_c: false, opaque: false, fields: vec![FieldInfo { name: "key".into(), immut: true, ty: kt }, FieldInfo { name: "value".into(), immut: true, ty: vt }], blanks: Vec::new(), bounds: Vec::new(), span: Span::new(crate::source::FileId(0), 0, 0) });
                 id
             }
         };

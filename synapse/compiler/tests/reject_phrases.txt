@@ -110,11 +110,15 @@ c_enum_same_number [fnv:c5cddd1ecd2bf563] :: each case has its own number
 c_header_call_needs_no_check [fnv:4bd7c98b872aba34] :: nothing about `strlen` can be proven
 c_header_clash [fnv:6a1251337c7d821a] :: `strlen` is defined twice
 c_header_in_body [fnv:4b685b0459c1d2ba] :: `incl.C` sits at the top level of a file or in a `module` block
+c_header_keyword_fn_bare [fnv:a666bcf5cc077ec0] :: a function named `size`, a C header's say, is reached through a path, `my.size[…]`
 c_header_lowercase [fnv:3e5988e32c743ee7] :: C is written capitalized here
 c_header_macro_skipped [fnv:35d1b390269120dc] :: no item `MYLIB_MAX`
 c_header_missing_local [fnv:818c5feae6a3f90d] :: `incl.C["incl_assets/none.h"]`: cannot read "incl_assets/none.h"
 c_header_missing_system [fnv:06314181a44929f1] :: `incl.C.system["no_such_header.h"]`: the C compiler says: 'no_such_header.h' file not found
 c_header_not_linked [fnv:79acf4e468df98b0] :: !by-design Synapse declares `mylib_add` from the header and compiles the call, the C library being the linker's to find; the oracle refuses it because an interpreter cannot link C
+c_header_opaque_built [fnv:4008c41276aaadd3] :: `handle_t` is C's and opaque
+c_header_opaque_mixed [fnv:a23e6966eb398dba] :: `fclose` wants a pointer to `FILE` for 'p1', and this points at `uint8`
+c_header_opaque_size [fnv:82ce9b870b863694] :: `FILE` is C's and opaque: its size is C's own
 c_struct_range_out [fnv:c3d7be4306c6440a] :: the value can be outside what an `int32[0, 4096]` holds
 c_var_c_enum [fnv:a4ee21bbf8d87688] :: a C variable cannot be `Mode`
 call_main [fnv:b4fc56b21cf49ce6] :: it is the program's one block
@@ -638,7 +642,7 @@ simd_std_lane [fnv:5ea45cd90b3704c8] :: a vector's lanes are a standard width
 simd_sum_lane_past [fnv:b4b58287404c8c2f] :: the value can be outside what an `int32` holds
 simd_wrong_shape [fnv:813bb50692db0740] :: this target has no `simd[uint8, 64]`: its vector register holds 16 lanes
 single_quote_char [fnv:857025279acbd88a] :: 'a' is not declared
-size_of_alone [fnv:1c30f4b3569e6800] :: `size` is followed by `.of`: `size.of[int32]`
+size_of_alone [fnv:1c30f4b3569e6800] :: `size` is a keyword: a type's size is `size.of[int32]` (`.of` after `size`)
 slash_retired [fnv:e0da6f74f7c02643] :: division is `div.floor`
 slice_needs_pos [fnv:6f41d5119ca6dd60] :: positions say `pos`: `list.slice[lend 'xs', pos 2, pos 4]`
 slice_past_end [fnv:9addc01545809a6f] :: the slice can run outside the list

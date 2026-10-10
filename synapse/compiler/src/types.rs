@@ -337,6 +337,8 @@ pub struct StructInfo {
     pub name: String,
     pub path: String,
     pub layout_c: bool,
+    /// A C struct only pointed at (owner, 2026-10-10).
+    pub opaque: bool,
     pub fields: Vec<FieldInfo>,
     /// The generic blanks, in order of first appearance.
     pub blanks: Vec<String>,

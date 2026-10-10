@@ -48,6 +48,10 @@ struct Parser<'a> {
     /// What the `incl.C` lines of this scope declared so far, by name: the
     /// same declaration twice is one (owner, 2026-10-10).
     c_seen: std::collections::HashMap<String, String>,
+    /// Reading what Synapse wrote for an `incl.C` line: a C struct may be
+    /// opaque (`layout.C struct FILE;`) and a field may be named like a
+    /// keyword (owner, 2026-10-10).
+    from_c: bool,
     /// A `#strict` file (owner, 2026-09-27): `pos` on every position,
     /// every parameter's type, a return type, `mut`/`immut` on every
     /// declaration, `temp`/`perm` on every `for`.
@@ -298,7 +302,7 @@ pub fn set_shared_precedence(table: std::collections::HashMap<String, (u16, Chai
 
 /// The `precedence` blocks in one file's tokens: each operator's level.
 pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false };
     let mut out = Vec::new();
     let mut depth = 0i32;
     for i in 0..toks.len() {
@@ -316,7 +320,7 @@ pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> 
 }
 
 pub fn parse_file(toks: &[Token]) -> Result<File> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false };
     // Every Limb's levels, and this file's own blocks, read before any
     // expression in it: an operator above its block is parsed by it too.
     p.prec = SHARED_PREC.with(|t| t.borrow().clone());
@@ -429,7 +433,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
 /// 2026-10-06): `cca::Manifest[ … ];`.
 pub fn parse_value(toks: &[Token]) -> Result<Expr> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false };
     let value = p.expr(0)?;
     p.expect_semi("the value")?;
     if !p.at_eof() {
@@ -1324,7 +1328,7 @@ impl<'a> Parser<'a> {
         for t in toks.iter_mut() {
             t.span = line;
         }
-        let mut p = Parser { toks: &toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default() };
+        let mut p = Parser { toks: &toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true };
         let mut lines = Vec::new();
         while !p.at_eof() {
             let it = p.item()?;
@@ -1674,6 +1678,9 @@ impl<'a> Parser<'a> {
         if !announce.groups.is_empty() {
             return self.fail_at(announce.groups[0].span, "not yet: a struct holding a borrow, and so a lifetime group, is not decided (asked)");
         }
+        if self.from_c && layout_c && self.eat(&Tok::Semi) {
+            return Ok(StructDecl { name, announce, layout_c, fields: Vec::new(), opaque: true });
+        }
         self.expect(&Tok::LBrace, "`{` after the struct's name")?;
         let mut fields = Vec::new();
         while !self.is(&Tok::RBrace) {
@@ -1694,7 +1701,7 @@ impl<'a> Parser<'a> {
             }
             let fname = match self.peek().clone() {
                 Tok::Word(w) => {
-                    if is_keyword(&w) && !matches!(self.peek_at(1), Tok::Name(_)) {
+                    if is_keyword(&w) && !self.from_c && !matches!(self.peek_at(1), Tok::Name(_)) {
                         if matches!(self.peek_at(1), Tok::Colon) {
                             return self.fail(format!("`{}` is a keyword and cannot name a field", w));
                         }
@@ -1721,7 +1728,7 @@ impl<'a> Parser<'a> {
             fields.push(Field { immut, name: fname, ty });
         }
         self.bump();
-        Ok(StructDecl { name, announce, layout_c, fields })
+        Ok(StructDecl { name, announce, layout_c, fields, opaque: false })
     }
 
     fn enum_decl(&mut self, layout_c: bool) -> Result<EnumDecl> {
@@ -3771,7 +3778,7 @@ impl<'a> Parser<'a> {
                 "size" | "align" => {
                     self.bump();
                     if !self.eat(&Tok::Dot) {
-                        return self.fail(format!("`{}` is followed by `.of`: `{}.of[int32]`", w, w));
+                        return self.fail(format!("`{w}` is a keyword: a type's {w} is `{w}.of[int32]` (`.of` after `{w}`), and a function named `{w}`, a C header's say, is reached through a path, `my.{w}[…]` or its module's"));
                     }
                     let of = self.ident("`of`")?;
                     if of.name != "of" {
@@ -4067,11 +4074,12 @@ impl<'a> Parser<'a> {
             if self.at_eof() {
                 return self.fail("this `[` is never closed");
             }
-            // `field = value`. `layout` names a field too (a no-OS
-            // target's linker script, owner 2026-10-09): as a keyword it
-            // only ever starts `layout.C`, never stands before `=`.
-            if let Tok::Word(w) = self.peek().clone() {
-                if self.is_op_at(1, "=") && (!is_keyword(&w) || w == "layout") {
+            // `field = value`. A keyword names a field too — `layout` (a
+            // no-OS target's linker script, owner 2026-10-09), a C struct's
+            // `size` (owner, 2026-10-10: `buf[size = 42]`) — as no keyword
+            // stands before `=` otherwise.
+            if let Tok::Word(_) = self.peek() {
+                if self.is_op_at(1, "=") {
                     let name = self.ident("a field")?;
                     self.bump(); // =
                     let value = self.expr(0)?;

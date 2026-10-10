@@ -386,7 +386,7 @@ impl Items {
                     return err(Diagnostic::error("`optional` is the base's: every program has `enum optional <T: any> { value: <T>  none }`; name this struct something else").at(decl.name.span));
                 }
                 let id = StructId(self.structs.len() as u32);
-                self.structs.push(StructInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), layout_c: decl.layout_c, fields: Vec::new(), blanks: Vec::new(), bounds: Vec::new(), span: decl.name.span });
+                self.structs.push(StructInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), layout_c: decl.layout_c, opaque: decl.opaque, fields: Vec::new(), blanks: Vec::new(), bounds: Vec::new(), span: decl.name.span });
                 self.declare(m, &decl.name.name, ItemRef::Struct(id), vis, decl.name.span)?;
                 self.pending_structs.push((id, decl.clone(), m));
             }
@@ -1042,7 +1042,17 @@ impl Items {
         Ok(out)
     }
 
+    /// A type where an opaque C struct may be named, for the caller to say
+    /// what of it is refused (`size.of[FILE]`).
+    pub fn resolve_type_opaque_ok(&self, t: &ast::Type, m: ModuleId, blanks: &mut Vec<(String, Vec<IfaceId>)>, allow_blanks: bool) -> Result<Ty> {
+        POINTEE.with(|p| p.set(true));
+        self.resolve_type(t, m, blanks, allow_blanks)
+    }
+
     pub fn resolve_type(&self, t: &ast::Type, m: ModuleId, blanks: &mut Vec<(String, Vec<IfaceId>)>, allow_blanks: bool) -> Result<Ty> {
+        // Whether this type is what a `ptr` points at, the one place an
+        // opaque C struct may stand.
+        let pointee = POINTEE.with(|p| p.replace(false));
         match &t.kind {
             ast::TypeKind::Var { name, bound } => {
                 if !allow_blanks {
@@ -1080,7 +1090,10 @@ impl Items {
                 self.resolve_bound(base, lo, hi, unit.as_ref(), *span)
             }
             ast::TypeKind::Count(n) => err(Diagnostic::error(format!("`{}` is a number, not a type: only a `simd[T, N]` takes one, as its lane count", n)).at(t.span)),
-            ast::TypeKind::Path { path, args } => self.resolve_type_path(path, args, m, blanks, allow_blanks, t.span),
+            ast::TypeKind::Path { path, args } => {
+                POINTEE.with(|p| p.set(pointee));
+                self.resolve_type_path(path, args, m, blanks, allow_blanks, t.span)
+            }
         }
     }
 
@@ -1212,6 +1225,7 @@ impl Items {
     }
 
     fn resolve_type_path(&self, path: &ast::Path, args: &[ast::Type], m: ModuleId, blanks: &mut Vec<(String, Vec<IfaceId>)>, allow_blanks: bool, span: Span) -> Result<Ty> {
+        let pointee = POINTEE.with(|p| p.replace(false));
         let head = path.head();
         let no_args = |what: &str| -> Result<()> {
             if !args.is_empty() {
@@ -1368,6 +1382,7 @@ impl Items {
                     if args.len() != 1 {
                         return err(Diagnostic::error("`ptr` takes one type parameter: `ptr[uint8]`").at(span));
                     }
+                    POINTEE.with(|p| p.set(true));
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     if !elem.contains_var() && !elem.is_c_shaped(&self.structs, &self.enums) {
                         let why = match elem.base() {
@@ -1388,6 +1403,9 @@ impl Items {
         match self.lookup_path(path, m)? {
             ItemRef::Struct(id) => {
                 let info = &self.structs[id.0 as usize];
+                if info.opaque && !pointee {
+                    return err(Diagnostic::error(format!("`{n}` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[{n}]`, never held", n = info.name)).at(span));
+                }
                 let targs = self.type_args(args, &info.blanks, &info.name, m, blanks, allow_blanks, span)?;
                 Ok(Ty::Struct { id, args: targs })
             }
@@ -1664,6 +1682,8 @@ fn len_bounds(lo: &ast::Expr, hi: &ast::Expr, span: Span) -> Result<(u64, u64)> 
     }
     Ok((l as u64, h as u64))
 }
+
+thread_local! { static POINTEE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
 
 pub fn with_article(s: &str) -> String {
     if s.starts_with(['a', 'e', 'i', 'o', 'u']) {

@@ -104,6 +104,30 @@ struct Decls {
     list: Vec<Decl>,
     seen: HashSet<String>,
     typedefs: HashMap<String, String>,
+    /// C's structs by tag (`anon…` for one with none), and what Nerve
+    /// calls each: C's type name for it, else its tag (owner, 2026-10-10).
+    records: HashMap<String, Record>,
+    names: HashMap<String, String>,
+    /// A type name that names a struct, and which.
+    typedef_records: HashMap<String, String>,
+    whole: std::cell::RefCell<HashMap<String, bool>>,
+}
+
+#[derive(Default)]
+struct Record {
+    /// Its fields, once C defines it: name and type.
+    fields: Option<Vec<(String, String)>>,
+    /// A field Nerve cannot spell however its type reads: a bit field, a
+    /// struct or union written inside it.
+    odd: bool,
+}
+
+/// The key of a struct: its tag, or one made from Clang's id.
+fn record_key(d: &Json) -> Option<String> {
+    match d.str("name") {
+        Some(n) => Some(n.to_string()),
+        None => Some(format!("anon{}", d.str("id")?.trim_start_matches("0x"))),
+    }
 }
 
 impl Decls {
@@ -115,13 +139,91 @@ impl Decls {
 
     fn from_ast(&mut self, tree: &Json) {
         let Some(Json::Arr(top)) = tree.get("inner") else { return };
+        // The types first: a function may name a struct defined after it.
+        let mut typedef_order = Vec::new();
+        for d in top {
+            match d.str("kind") {
+                Some("TypedefDecl") => {
+                    let Some(name) = d.str("name") else { continue };
+                    if let Some(t) = d.get("type").and_then(qual) {
+                        self.typedefs.insert(name.to_string(), t.to_string());
+                    }
+                    let record = match d.get("inner") {
+                        Some(Json::Arr(inner)) => inner.iter().find(|i| i.str("kind") == Some("RecordType")).and_then(|i| i.get("decl")).filter(|d| d.str("kind") == Some("RecordDecl")).and_then(record_key),
+                        _ => None,
+                    };
+                    if let Some(k) = record {
+                        self.typedef_records.insert(name.to_string(), k.clone());
+                        typedef_order.push((name.to_string(), k));
+                    }
+                }
+                Some("RecordDecl") if d.str("tagUsed") == Some("struct") => {
+                    let Some(k) = record_key(d) else { continue };
+                    let r = self.records.entry(k).or_default();
+                    if d.get("completeDefinition").is_some() {
+                        let mut fields = Vec::new();
+                        if let Some(Json::Arr(inner)) = d.get("inner") {
+                            for f in inner {
+                                match f.str("kind") {
+                                    Some("FieldDecl") => {
+                                        let (Some(n), Some(t)) = (f.str("name"), f.get("type").and_then(qual)) else {
+                                            r.odd = true;
+                                            continue;
+                                        };
+                                        if f.get("isBitfield").is_some() {
+                                            r.odd = true;
+                                        }
+                                        fields.push((n.to_string(), t.to_string()));
+                                    }
+                                    Some("RecordDecl") => r.odd = true,
+                                    _ => {}
+                                }
+                            }
+                        }
+                        r.fields = Some(fields);
+                    }
+                }
+                _ => {}
+            }
+        }
+        // C's type name, when one names the struct and is not C's own
+        // (`FILE`, not `__sFILE`); else its tag, unless that is C's own.
+        for (name, k) in &typedef_order {
+            if !name.starts_with('_') && usable_type(name) && !self.names.contains_key(k) {
+                self.names.insert(k.clone(), name.clone());
+            }
+        }
+        let mut keys: Vec<&String> = self.records.keys().collect();
+        keys.sort();
+        for k in keys {
+            if !self.names.contains_key(k) && !k.starts_with("__") && !k.starts_with("anon") && usable_type(k) {
+                self.names.insert(k.clone(), k.clone());
+            }
+        }
+        // Each struct Nerve can name, in the order C declares them.
+        let mut order: Vec<String> = Vec::new();
+        for d in top {
+            if d.str("kind") == Some("RecordDecl") {
+                if let Some(k) = record_key(d) {
+                    if self.names.contains_key(&k) && !order.contains(&k) {
+                        order.push(k);
+                    }
+                }
+            }
+        }
+        for k in order {
+            let name = self.names[&k].clone();
+            if self.whole(&k) {
+                let fields: Vec<String> = self.records[&k].fields.iter().flatten().map(|(f, t)| format!("{}: {}", f, self.ty(t).unwrap())).collect();
+                self.push(&format!("struct {}", name), format!("layout.C struct {} {{ {} }}", name, fields.join("  ")));
+            } else {
+                self.push(&format!("struct {}", name), format!("layout.C struct {};", name));
+            }
+        }
         for d in top {
             let kind = d.str("kind").unwrap_or("");
             let Some(name) = d.str("name") else { continue };
-            if kind == "TypedefDecl" {
-                if let Some(t) = d.get("type").and_then(qual) {
-                    self.typedefs.insert(name.to_string(), t.to_string());
-                }
+            if kind == "TypedefDecl" || kind == "RecordDecl" {
                 continue;
             }
             if d.get("isImplicit").is_some() || !usable(name) || self.seen.contains(name) {
@@ -173,6 +275,13 @@ impl Decls {
         for w in split(t) {
             // `struct X` names a tag, which a typedef may share.
             let tagged = words.last().is_some_and(|x| matches!(x.as_str(), "struct" | "union" | "enum"));
+            if !tagged {
+                if let Some(k) = self.typedef_records.get(&w) {
+                    words.push("struct".into());
+                    words.push(k.clone());
+                    continue;
+                }
+            }
             // Clang's own names for C's `size_t` family, which no header
             // declares (Clang 22's predefined sugar).
             let predefined = match w.as_str() {
@@ -199,7 +308,7 @@ impl Decls {
     /// A value's own `const` (`const int x`) changes nothing here.
     fn ty(&self, t: &str) -> Option<String> {
         let words: Vec<String> = split(&self.resolve(t)).into_iter().filter(|w| !IGNORED.contains(&w.as_str())).collect();
-        if words.iter().any(|w| w == "[" || w == "(" || w == "struct" || w == "union" || w == "enum" || w == "?") {
+        if words.iter().any(|w| w == "[" || w == "(" || w == "union" || w == "enum" || w == "?") {
             return None;
         }
         // Any `const` after a `*` makes a pointer that is itself fixed.
@@ -212,6 +321,22 @@ impl Decls {
         let base: Vec<&str> = words.iter().map(String::as_str).filter(|w| *w != "*").collect();
         let pointee_const = base.contains(&"const");
         let base: Vec<&str> = base.into_iter().filter(|w| *w != "const").collect();
+        // A struct: by value only when Nerve sees inside it; pointed at,
+        // whole or opaque.
+        if let ["struct", key] = base.as_slice() {
+            let name = self.names.get(*key)?;
+            if stars == 0 && !self.whole(key) {
+                return None;
+            }
+            let mut out = name.clone();
+            for i in 0..stars {
+                out = if i == 0 && pointee_const { format!("ptr[{}]", out) } else { format!("ptr.mut[{}]", out) };
+            }
+            return Some(out);
+        }
+        if base.contains(&"struct") {
+            return None;
+        }
         let mut out = match (base_type(&base)?, stars) {
             ("void", 0) => return None,
             ("void", _) => "uint8".to_string(),
@@ -221,6 +346,22 @@ impl Decls {
             out = if i == 0 && pointee_const { format!("ptr[{}]", out) } else { format!("ptr.mut[{}]", out) };
         }
         Some(out)
+    }
+
+    /// Whether every field of the struct is one Nerve can spell (a number,
+    /// `bool`, a pointer, or a struct whole in turn), so it comes through as
+    /// a `layout.C struct`; else it is opaque, only pointed at.
+    fn whole(&self, key: &str) -> bool {
+        if let Some(w) = self.whole.borrow().get(key) {
+            return *w;
+        }
+        self.whole.borrow_mut().insert(key.to_string(), false);
+        let ok = match self.records.get(key) {
+            Some(Record { fields: Some(fields), odd: false }) => !fields.is_empty() && fields.iter().all(|(_, t)| self.ty(t).is_some()),
+            _ => false,
+        };
+        self.whole.borrow_mut().insert(key.to_string(), ok);
+        ok
     }
 
     fn define(&mut self, line: &str) {
@@ -241,9 +382,17 @@ impl Decls {
     }
 }
 
-/// A name Nerve can be given: not C's private `__…`, not a keyword.
+/// A name Nerve can be given: not C's private `__…`. A keyword is one too
+/// (owner, 2026-10-10): a function so named is reached by path,
+/// `my.size[…]`, and a const's name is quoted.
 fn usable(name: &str) -> bool {
-    !name.starts_with("__") && !crate::parser::is_keyword(name) && name.chars().next().is_some_and(|c| c.is_ascii_alphabetic() || c == '_') && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+    !name.starts_with("__") && name.chars().next().is_some_and(|c| c.is_ascii_alphabetic() || c == '_') && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
+/// A name a type can be given: a type is written bare where no path
+/// stands, so not a keyword.
+fn usable_type(name: &str) -> bool {
+    usable(name) && !crate::parser::is_keyword(name)
 }
 
 /// The type as written once its type names are gone.

@@ -615,4 +615,10 @@ Dated, with the alternative, so each can become a question later.
   through, `mut` unless C's own type is `const`; C's `...` is a last
   parameter `...'pN'`. Clang 22's own `__size_t` is `uint64`, and
   `__ptrdiff_t` and `__signed_size_t` are `int64`. The headers are read
-  for the machine Synapse runs on, not the target.
+  for the machine Synapse runs on, not the target. A C struct (owner,
+  2026-10-10) is written as a `layout.C struct` when whole, and as
+  `layout.C struct FILE;` when opaque, a form only Synapse's own text may
+  use; an opaque struct is refused wherever it would be held rather than
+  pointed at (a variable, a parameter, a field), not only when built or
+  sized. A bit field, or a struct or union written inside a struct, makes
+  it opaque. A struct with no fields is opaque.

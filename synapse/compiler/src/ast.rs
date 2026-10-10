@@ -661,6 +661,9 @@ pub struct StructDecl {
     pub announce: Announce,
     pub layout_c: bool,
     pub fields: Vec<Field>,
+    /// A C struct Nerve never looks inside (owner, 2026-10-10): only
+    /// pointed at, never built or sized.
+    pub opaque: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
