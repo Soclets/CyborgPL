@@ -2,41 +2,69 @@
 //! error?", then "`a`"): a generic one is never checked, its blanks having
 //! no type, but whether a variable changes does not depend on them. So its
 //! source is read for the promise alone: each `let mut` and `mut`
-//! parameter, and every name something changes — a `change`, a
-//! `lend.mut`, an `inline.ASM` output, a capture by `lend.mut` — matched by
-//! name within the function, as the oracle does.
+//! parameter, and every variable something changes — a `change`, a
+//! `lend.mut`, an `inline.ASM` output, a capture by `lend.mut` — found by
+//! its name in the scopes around it, so a shadow is another variable, as
+//! the oracle reads it too (00f61a5e).
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 use crate::ast::*;
 use crate::source::Span;
 
-#[derive(Default)]
+/// One variable: its name, where, whether `mut`, and whether changed.
+pub struct Var {
+    pub name: String,
+    pub span: Span,
+    pub promised: bool,
+    pub changed: bool,
+}
+
 pub struct Scan {
-    pub promised: Vec<(String, Span)>,
-    pub changed: HashSet<String>,
+    pub vars: Vec<Var>,
+    scopes: Vec<HashMap<String, usize>>,
+}
+
+impl Default for Scan {
+    fn default() -> Self {
+        Scan { vars: Vec::new(), scopes: vec![HashMap::new()] }
+    }
 }
 
 impl Scan {
+    /// A variable named here, from now on in this scope.
+    pub fn declare(&mut self, name: &str, span: Span, promised: bool) {
+        self.vars.push(Var { name: name.to_string(), span, promised, changed: false });
+        let i = self.vars.len() - 1;
+        self.scopes.last_mut().unwrap().insert(name.to_string(), i);
+    }
+
+    fn change(&mut self, name: &str) {
+        if let Some(i) = self.scopes.iter().rev().find_map(|s| s.get(name).copied()) {
+            self.vars[i].changed = true;
+        }
+    }
+
     pub fn params(&mut self, ps: &[Param]) {
         for p in ps {
-            if p.mutability == Some(Mutability::Mut) {
-                self.promised.push((p.name.name.clone(), p.name.span));
-            }
+            self.declare(&p.name.name, p.name.span, p.mutability == Some(Mutability::Mut));
         }
     }
 
     pub fn block(&mut self, b: &Block) {
+        self.scopes.push(HashMap::new());
         for s in &b.stmts {
             self.stmt(s);
         }
+        self.scopes.pop();
     }
 
     /// The variable a place starts from: `'x'`, `'x'.f`, `'x'[pos 2]`.
     fn base(&mut self, e: &Expr) {
         match &e.kind {
             ExprKind::Name(n) => {
-                self.changed.insert(n.name.clone());
+                let name = n.name.clone();
+                self.change(&name);
             }
             ExprKind::Field { base, .. } | ExprKind::Index { base, .. } => self.base(base),
             ExprKind::Paren(x) | ExprKind::Pos(x) => self.base(x),
@@ -51,7 +79,12 @@ impl Scan {
             Otherwise::PassUp(_) => {}
             Otherwise::Arms(arms, _) => {
                 for a in arms {
+                    self.scopes.push(HashMap::new());
+                    if let Some(b) = &a.bind {
+                        self.declare(&b.name, b.span, false);
+                    }
                     self.block(&a.body);
+                    self.scopes.pop();
                 }
             }
         }
@@ -72,18 +105,28 @@ impl Scan {
     fn captures(&mut self, cs: &[Capture]) {
         for c in cs {
             if c.verb == Verb::LendMut {
-                self.changed.insert(c.name.name.clone());
+                self.change(&c.name.name);
             }
+        }
+    }
+
+    fn arms(&mut self, arms: &[MatchArm]) {
+        for a in arms {
+            self.scopes.push(HashMap::new());
+            if let Some(b) = &a.bind {
+                self.declare(&b.name, b.span, false);
+            }
+            self.block(&a.body);
+            self.scopes.pop();
         }
     }
 
     fn stmt(&mut self, s: &Stmt) {
         match &s.kind {
             StmtKind::Let { mutability, name, value, .. } => {
-                if *mutability == Some(Mutability::Mut) {
-                    self.promised.push((name.name.clone(), name.span));
-                }
+                // The value is read before the new name exists.
                 self.expr(value);
+                self.declare(&name.name, name.span, *mutability == Some(Mutability::Mut));
             }
             StmtKind::Assign { target, value } => {
                 self.base(target);
@@ -106,7 +149,7 @@ impl Scan {
                 self.expr(cond);
                 self.block(body);
             }
-            StmtKind::For { iter, body, .. } => {
+            StmtKind::For { iter, body, name, pos, .. } => {
                 match iter {
                     ForIter::Range { start, stop, step } => {
                         self.expr(start);
@@ -117,7 +160,13 @@ impl Scan {
                     }
                     ForIter::Over(e) => self.expr(e),
                 }
+                self.scopes.push(HashMap::new());
+                self.declare(&name.name, name.span, false);
+                if let Some(p) = pos {
+                    self.declare(&p.name, p.span, false);
+                }
                 self.block(body);
+                self.scopes.pop();
             }
             StmtKind::Return(e) | StmtKind::Fail { payload: e, .. } => {
                 if let Some(e) = e {
@@ -128,10 +177,16 @@ impl Scan {
             StmtKind::Tier { stmt, .. } => self.stmt(stmt),
             StmtKind::Concur { captures, body, otherwise, .. } => {
                 self.captures(captures);
+                // Inside, the captures are the task's own names.
+                self.scopes.push(HashMap::new());
+                for c in captures {
+                    self.declare(&c.name.name, c.name.span, false);
+                }
                 match body {
                     ConcurBody::Block(b) => self.block(b),
                     ConcurBody::Call(e) => self.expr(e),
                 }
+                self.scopes.pop();
                 if let Some(o) = otherwise {
                     self.otherwise(o);
                 }
@@ -139,7 +194,10 @@ impl Scan {
             StmtKind::Whichever { arms, otherwise } => {
                 for a in arms {
                     self.expr(&a.channel);
+                    self.scopes.push(HashMap::new());
+                    self.declare(&a.name.name, a.name.span, false);
                     self.block(&a.body);
+                    self.scopes.pop();
                 }
                 if let Some(o) = otherwise {
                     self.otherwise(o);
@@ -147,15 +205,18 @@ impl Scan {
             }
             StmtKind::Match { value, arms } => {
                 self.expr(value);
-                for a in arms {
-                    self.block(&a.body);
-                }
+                self.arms(arms);
             }
             StmtKind::InlineAsm { bindings, .. } => {
                 for b in bindings {
                     match b {
                         AsmBinding::Reg { name, dir: AsmDir::InOut, .. } | AsmBinding::Lend { name, mutable: true, .. } => {
-                            self.changed.insert(name.name.clone());
+                            let name = name.name.clone();
+                            self.change(&name);
+                        }
+                        AsmBinding::Reg { name, dir: AsmDir::Out, .. } => {
+                            let (n, at) = (name.name.clone(), name.span);
+                            self.declare(&n, at, false);
                         }
                         _ => {}
                     }
@@ -180,9 +241,7 @@ impl Scan {
             }
             ExprKind::Match { value, arms } => {
                 self.expr(value);
-                for a in arms {
-                    self.block(&a.body);
-                }
+                self.arms(arms);
             }
             ExprKind::Call { args, otherwise, .. } => {
                 self.args(args);
@@ -232,8 +291,14 @@ impl Scan {
             }
             ExprKind::FnLit(lit) => {
                 self.captures(&lit.captures);
+                // Its own names: the captures and the parameters.
+                self.scopes.push(HashMap::new());
+                for c in &lit.captures {
+                    self.declare(&c.name.name, c.name.span, false);
+                }
                 self.params(&lit.params);
                 self.block(&lit.body);
+                self.scopes.pop();
             }
             _ => {}
         }

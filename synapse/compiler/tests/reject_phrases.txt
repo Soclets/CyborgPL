@@ -295,10 +295,12 @@ let_over_name_unrun [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an encl
 let_over_param_uncalled [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
 lifetime_glued [fnv:56103fcd967d54ea] :: a space before the group: `lent @
 local_const_changed [fnv:a00cb535ae190c57] :: 'r' is a const and cannot be assigned to
+local_const_changed_unrun [fnv:a00cb535ae190c57] :: 'r' is a const and cannot be assigned to
 local_const_from_variable [fnv:b9010530f45efa68] :: a const's value must be known at compile time; 'n' is a variable
 local_const_out_of_block [fnv:5c93bad6458ad0aa] :: 'r' is not declared
 local_const_shadowed [fnv:977cd1fe25a3944f] :: 'r' is a const and cannot be shadowed
 money_missing [fnv:55c193a2f84e0f3e] :: `deci64` is Money's
+mut_changed_only_by_shadow [fnv:0328a401ef015859] :: 'x' is `mut`, but nothing changes it
 mut_never_changed [fnv:fcfb6c057425e599] :: 'total' is `mut`, but nothing changes it
 mut_never_changed_unused_generic [fnv:79e50e733f2b5bd7] :: 'x' is `mut`, but nothing changes it
 neg_ieee_on_int [fnv:49dd57d5cf27f472] :: `neg.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `-'x'`

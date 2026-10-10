@@ -475,14 +475,11 @@ impl Checker {
             let Some(body) = &f.body else { continue };
             let mut scan = mutscan::Scan::default();
             for p in &f.params {
-                if p.mutability == Some(Mutability::Mut) {
-                    scan.promised.push((p.name.clone(), p.span));
-                }
+                scan.declare(&p.name, p.span, p.mutability == Some(Mutability::Mut));
             }
             scan.block(body);
-            for (name, span) in scan.promised {
-                let kept = scan.changed.contains(&name);
-                self.mut_seen.entry(span).or_insert((name, kept));
+            for v in scan.vars.into_iter().filter(|v| v.promised) {
+                self.mut_seen.entry(v.span).or_insert((v.name, v.changed));
             }
         }
         // A `mut` nothing changed, in any instance.
