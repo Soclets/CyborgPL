@@ -5,6 +5,12 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-10 — Synapse's abbreviation is SNG, "Synapse Not GCC" (owner)
+
+The owner, after naming the C lobe CNC, "CNC Not C": "Btw, the
+abbrieviation for Synapse is `SNG`, Synapse Not GCC". The command stays
+`synapse` / `syn` (2026-10-09); whether `sng` answers too is not asked.
+
 ### 2026-10-10 — Lobes go by expertise, one big one per field; talking to C is one: CNC, "CNC Not C" (owner; being designed, not built)
 
 Asked where `bin128`, `not_std.bin80` and `C.long_double` go (WSMW, the
