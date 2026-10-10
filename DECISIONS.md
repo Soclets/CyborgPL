@@ -66,6 +66,15 @@ through whole and `stdio.h` in part (31 of 81 functions; `FILE *` is a
 struct, left out with function pointers and `long double` until structs
 are taken across). `examples/c_headers.nrv`, `examples/c_header_local`,
 reject tests `c_header_*`.
+**A pointer to a C struct Nerve never looks inside comes through as an
+opaque type named as C names it: `fopen` gives a `ptr.mut[FILE]`** (owner,
+"ask me", then "Perf diff? Useful diff?", then "(a)"): it can be held and
+passed on, never built, read or changed, and handing it where C wants
+another struct's pointer is refused while building; over (b) every struct
+pointer a `ptr.mut[uint8]`. Design claude recommended (a), as Zig and Swift
+(`OpaquePointer`) do: no difference when running (a pointer is an address),
+and the one cost is a `ptr.cast[uint8][…]` where C takes `void *`. Not
+built.
 
 ### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 
