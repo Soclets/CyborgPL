@@ -295,6 +295,9 @@ pub enum Stmt {
     /// optionally `let mut` / `let immut` before the name (decided 2026-09-19)
     /// `shadow`: written with `$:=` / `$=`, deliberately hiding an outer name
     Decl { name: String, mutability: Option<Mutability>, ty: Option<Ty>, value: Bracket, shadow: bool, sealed: bool, line: usize },
+    /// `const 'retries' := 3;` inside a body (owner, 2026-10-10: "I want it", then "`a`": any body):
+    /// known at compile time, owned by nobody, never shadowed, seen only in its block
+    LocalConst { name: String, ty: Option<Ty>, value: Bracket, line: usize },
     /// `'x' = v;`
     Assign { name: String, value: Bracket, line: usize },
     /// `'xs'[pos i] = v;`

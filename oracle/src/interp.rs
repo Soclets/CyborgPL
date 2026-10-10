@@ -671,6 +671,26 @@ impl<'p> Interp<'p> {
                 Err(e) if e.site => Ok(Flow::Normal),
                 Err(e) => Err(e),
             },
+            // a const in a body (owner, 2026-10-10): its value is known at compile time, so it names no
+            // variable and calls no effect; nobody owns it, it is never shadowed, and it lives in its block
+            Stmt::LocalConst { name, ty, value, line } => {
+                if let Some(call) = first_std_call(value) {
+                    return rt(*line, format!("a const's value must be known at compile time; `cord::{call}` is an effect, not a value"));
+                }
+                let text = format!("{value:?}");
+                for cap in text.split("Var(\"").skip(1).chain(text.split("Owned(").skip(1).filter_map(|t| t.split_once(", \"").map(|(_, r)| r))) {
+                    let Some(n) = cap.split('"').next() else { continue };
+                    if self.lookup(n).is_some_and(|s| s.kind != SlotKind::Const) {
+                        return rt(*line, format!("a const's value must be known at compile time; '{n}' is a variable (use `let` for a value worked out while running)"));
+                    }
+                }
+                if value.values.is_empty() { return rt(*line, format!("const '{name}' needs a value")); }
+                let (v, prov) = self.bracket(value, *line)?;
+                if matches!(prov, Prov::Borrowed(..)) { return rt(*line, format!("const '{name}' cannot hold a lend")); }
+                let v = self.fit(v, prov, ty.as_ref(), *line)?;
+                self.declare(name, Slot { cell: Rc::new(RefCell::new(v)), ty: ty.clone(), kind: SlotKind::Const, alive: true, immut: true, sized: false, sealed: true, since: 0, deps: Vec::new() }, *line)?;
+                Ok(Flow::Normal)
+            }
             Stmt::Decl { name, mutability, ty, value, shadow, sealed, line } => {
                 let (v, prov) = if value.values.is_empty() {
                     match ty {

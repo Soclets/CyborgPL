@@ -85,10 +85,17 @@ const 'pi': bin64 = 3.141_592_653_589_793;      # private to the Limb
   lends mutably; a singleton is what `MAIN` owns and hands down. A global
   has no owner, so ownership, whole-program analysis, and automatic
   parallelism would all have a hole in it. Closed, not parked.
-- This does not reopen "no `const` keyword for locals" (2026-09-14): inside
-  a body a variable declaration (`let 'x' := …`) is still the only kind and
-  Cortex finds the constants itself. `const` exists only where variables
-  do not.
+- **A `const` may also sit inside any body** (owner, 2026-10-10: "I want
+  it.", then "`a`": any body, `MAIN` and functions alike). It follows the
+  top-level rules — its value is known at compile time, a variable or a
+  `cord::` effect in it is refused, it is never assigned to or shadowed,
+  nobody owns it — and it is seen only in its block. It reopens "no `const`
+  keyword for locals" (2026-09-14): Cortex still finds constants by itself,
+  and `let` stays the usual declaration; the word is for a reader (and a
+  check) that says "this is fixed when the program is built". `let immut`
+  is the other thing: a value worked out while running that is never
+  changed. Proposed: (a) any body, recommended by design claude; (b) only
+  `MAIN`. `examples/local_const.nrv`.
 
 ## Modules (decided 2026-09-19)
 

@@ -5,6 +5,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-10 — A `const` may sit inside any body, `MAIN` and functions alike (owner: "I want it.", a)
+
+The owner asked "How do you declare a const in MAIN?" (it could not be: a
+`const` was top-level only, and inside a body `let` was the one declaration,
+2026-09-14 and 2026-09-19) and "What would `const` in `MAIN` even do?"
+(design claude: say that a value is fixed when the program is built, and have
+that checked, where `let immut` is a value worked out while running that
+never changes). The owner: "I want it." Offered (a) any body, (b) only
+`MAIN`; design claude recommended (a). The owner: "`a`". So **`const 'x' :=
+…;` works in any body** with the top-level rules: its value is known at
+compile time, so a variable in it is refused ("a const's value must be known
+at compile time; 'n' is a variable (use `let` for a value worked out while
+running)") and so is a `cord::` effect; it is never assigned to ("'r' is a
+const and cannot be assigned to") or shadowed ("'r' is a const and cannot be
+shadowed"); nobody owns it; and it is seen only in its block. Built in the
+oracle; `examples/local_const.nrv`, reject tests local_const_from_variable,
+local_const_changed, local_const_shadowed, local_const_out_of_block; the
+old reject test const_in_body is gone. `limbs.md` ("`pub` and `const`") and
+`ownership-syntax.md` say so.
+
 ### 2026-10-10 — `mut` is a checked promise that a variable changes, as `immut` is that it does not (owner: b)
 
 Comparing Swift's `let` / `var`, the owner asked "Even with `=`, does Cortex

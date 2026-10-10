@@ -106,7 +106,8 @@ the word can never lie; it was documentation until then. Neither is
 expected in ordinary code.
 
 Not the same thing as a constant (a value known at compile time, baked into
-the binary): Cortex finds those itself; no keyword exists for them.
+the binary): Cortex finds those itself, and since 2026-10-10 a body may
+also say so with `const` (`limbs.md`, "`pub` and `const`").
 
 ## Why explicit
 

@@ -1862,7 +1862,7 @@ impl Parser {
                     Ok(Stmt::Return { value, line })
                 }
                 "fn" | "func" => self.err("a `fn` cannot be defined inside a body; it goes at the top level"),
-                "const" => self.err("a `const` sits at the top level of the Neuron; inside a body use `let` (Cortex finds the constants itself)"),
+                "const" => { let c = self.const_def()?; Ok(Stmt::LocalConst { name: c.name, ty: c.ty, value: c.value, line: c.line }) }
                 "pub" => self.err("`pub` goes at the top level, before `fn`, `struct`, `const`, or `module`"),
                 "module" => self.err("a `module` block sits at the top level of a file, not inside a body"),
                 "MAIN" => self.err("MAIN cannot be nested or called"),

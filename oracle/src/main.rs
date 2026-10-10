@@ -628,6 +628,13 @@ fn check_redeclared(prog: &ast::Program) -> Result<(), String> {
     fn stmt(sc: &mut Scopes, st: &Stmt) -> Result<(), String> {
         match st {
             Stmt::Decl { name, value, shadow, sealed, line, .. } => { bracket(sc, value)?; decl(sc, name, *shadow, *sealed, *line) }
+            Stmt::LocalConst { name, value, line, .. } => {
+                bracket(sc, value)?;
+                decl(sc, name, false, true, *line)?;
+                // marked as a const, so a later `shadow` names it as one
+                if let Some(last) = sc.last_mut().unwrap().last_mut() { last.0 = format!("const:{name}"); }
+                Ok(())
+            }
             Stmt::If { arms: a, otherwise, .. } => { for (c, b) in a { bracket(sc, c)?; block(sc, b, &[])?; } if let Some(o) = otherwise { block(sc, o, &[])?; } Ok(()) }
             Stmt::Loop { body, .. } | Stmt::Block { body, .. } => block(sc, body, &[]),
             Stmt::While { cond, body, .. } => { bracket(sc, cond)?; block(sc, body, &[]) }
