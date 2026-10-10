@@ -1,2 +1,3 @@
 4 bytes, the last is 255
 hello from a file, read while building
+from a UTF-16 file, low byte first: Aé€

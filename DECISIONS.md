@@ -62,8 +62,20 @@ it is read while building; the file is read when the program is read, so a
 missing or wrongly encoded file is refused even in code that never runs;
 `incl` is a keyword, as `size` and `to` are; a value made with `:=` has the
 type, so `list.append` on included bytes is refused as on any array.
-**Open:** `incl.str.utf16` / `.utf32` are refused for now, as not built,
-until it is decided which byte order a file without a byte-order mark has.
+`incl.str.utf16` / `.utf32` were refused at first, the byte order of a
+file without a byte-order mark undecided. Asked, the owner: "Why not just
+include it in syntax?" Design claude offered `.le` / `.be`, recommended;
+the owner: "What about the order?", then "I meant, what about saying the
+order in syntax, instead of the name". Offered (a) `.low_first` /
+`.high_first`, recommended, (b) `.small_first` / `.big_first`, (c) `.le` /
+`.be`; the owner: "If it's accurate" (it is: little-endian stores the low
+byte first, "€", 8364, as 172 32; big-endian the high byte; UTF-32's four
+bytes rise or fall the same way). So **UTF-16 and UTF-32 always say their
+byte order: `incl.str.utf16.low_first["…"]` or `.high_first`**; UTF-8 and
+ASCII have none and refuse one. Design claude's readings, built: a
+byte-order mark that agrees is not part of the text, one that disagrees is
+refused, and a file that is not whole units or not valid text in that
+order is refused.
 **`incl.bytes` is a const's value only** (owner: "(c)"). Compiler claude,
 building it in Synapse (c42bafeb), found design claude's "nothing is copied
 at run time" wrong for bytes: an `array` may be changed in place, so bytes

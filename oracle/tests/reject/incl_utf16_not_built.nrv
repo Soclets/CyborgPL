@@ -1,3 +1,0 @@
-MAIN {
-    const 't' := incl.str.utf16["incl_assets/cafe.txt"];
-}

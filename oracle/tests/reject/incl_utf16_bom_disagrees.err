@@ -1,0 +1,1 @@
+starts with a byte-order mark saying high byte first, but `incl.str.utf16.low_first` says low byte first

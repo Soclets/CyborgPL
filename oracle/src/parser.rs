@@ -3513,6 +3513,7 @@ impl Parser {
                     // building, from the Neuron's root; text is checked against the encoding it names
                     self.advance();
                     self.expect(Tok::Dot, "`.bytes` or `.str.…` after `incl` (`incl.bytes[\"assets/logo.png\"]`)")?;
+                    let mut incl_order: Option<bool> = None;   // UTF-16 / UTF-32: low byte first?
                     let enc = match self.peek().clone() {
                         // included bytes are a constant (owner, 2026-10-10: "(c)"): read where they sit, copied
                         // only where something takes them to keep or change
@@ -3520,30 +3521,74 @@ impl Parser {
                         Tok::Word(t) if t == "str" && !self.in_const_value => return self.err("`incl.str.…` is a constant, as `incl.bytes` is: give it a name with `const 'help' := incl.str.utf8[\"…\"];` (owner, 2026-10-10), and read it from there"),
                         Tok::Word(b) if b == "bytes" => { self.advance(); None }
                         Tok::Word(t) if t == "str" => {
-                            self.to_target = true;
-                            let ty = self.ty();
-                            self.to_target = false;
-                            match ty? {
-                                Ty::Str(e) => Some(e),
-                                other => return self.err(format!("`incl.{}` is not a text type; text is `incl.str.utf8[…]` (or `.ascii`, `.utf16`, `.utf32`)", crate::value::ty_name(&other))),
+                            self.advance();
+                            self.expect(Tok::Dot, "the text type after `incl.str` (`incl.str.utf8[…]`)")?;
+                            let e = match self.advance().tok {
+                                Tok::Word(e) if e == "utf8" => Encoding::Utf8,
+                                Tok::Word(e) if e == "ascii" => Encoding::Ascii,
+                                Tok::Word(e) if e == "utf16" => Encoding::Utf16,
+                                Tok::Word(e) if e == "utf32" => Encoding::Utf32,
+                                other => return self.err(format!("`incl.str.` takes a text type, `utf8`, `ascii`, `utf16` or `utf32`, found {other}")),
+                            };
+                            // UTF-16 and UTF-32 say their byte order (owner, 2026-10-10: "Why not just include it
+                            // in syntax?", then `.low_first` / `.high_first`, "If it's accurate")
+                            let order = if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(w) if w == "low_first" || w == "high_first") {
+                                self.advance();
+                                let Tok::Word(w) = self.advance().tok else { unreachable!() };
+                                Some(w == "low_first")
+                            } else { None };
+                            let wide = matches!(e, Encoding::Utf16 | Encoding::Utf32);
+                            let name = crate::value::ty_name(&Ty::Str(e.clone()));
+                            match (wide, order) {
+                                (true, None) => return self.err(format!("`incl.{name}` says its byte order: `incl.{name}.low_first[…]` (\"A\" stored low byte first, as Windows writes it) or `incl.{name}.high_first[…]`")),
+                                (false, Some(_)) => return self.err(format!("`{name}` has no byte order: write `incl.{name}[…]`")),
+                                _ => {}
                             }
+                            incl_order = order;
+                            Some(e)
                         }
                         other => return self.err(format!("`incl.` is followed by `bytes` or a text type (`incl.str.utf8[…]`), found {other}")),
                     };
                     self.expect(Tok::LBracket, "`[` and the file's path in quotes")?;
                     let Tok::Text(path, _) = self.advance().tok else { return self.err("an `incl` path is written in quotes, as text (`incl.bytes[\"assets/logo.png\"]`): it is read while building") };
                     self.expect(Tok::RBracket, "`]` after the path")?;
-                    let what = match &enc { None => "incl.bytes".to_string(), Some(e) => format!("incl.{}", crate::value::ty_name(&Ty::Str(e.clone()))) };
+                    let what = match &enc {
+                        None => "incl.bytes".to_string(),
+                        Some(e) => format!("incl.{}{}", crate::value::ty_name(&Ty::Str(e.clone())), match incl_order { Some(true) => ".low_first", Some(false) => ".high_first", None => "" }),
+                    };
                     let full = NEURON_DIR.with(|d| d.borrow().join(&path));
                     let bytes = std::fs::read(&full).map_err(|e| ParseError { line, col: 0, msg: format!("`{what}` cannot read \"{path}\" ({}, from the Neuron's root): {e}", full.display()) })?;
-                    match enc {
+                    match enc.clone() {
                         Some(Encoding::Utf8) => if let Err(e) = std::str::from_utf8(&bytes) {
                             return self.err(format!("\"{path}\" is not valid UTF-8 text (byte {} is not), so `{what}` cannot hold it; `incl.bytes` takes any file", e.valid_up_to() + 1));
                         },
                         Some(Encoding::Ascii) => if let Some(i) = bytes.iter().position(|b| *b >= 128) {
                             return self.err(format!("\"{path}\" is not ASCII text (byte {} is {}), so `{what}` cannot hold it; `incl.bytes` takes any file", i + 1, bytes[i]));
                         },
-                        Some(_) => return self.err(format!("`{what}` is not built in the oracle yet: which byte order a UTF-16 or UTF-32 file without a byte-order mark has is not decided")),
+                        Some(e) => {
+                            // the text is decoded now and held as UTF-8, as the oracle holds all text; a byte-order
+                            // mark that says the other order is refused, one that agrees is not part of the text
+                            let low = incl_order == Some(true);
+                            let unit = if matches!(e, Encoding::Utf16) { 2 } else { 4 };
+                            if bytes.len() % unit != 0 { return self.err(format!("\"{path}\" is {} bytes, not a whole number of {unit}-byte units, so it is not {} text", bytes.len(), crate::value::ty_name(&Ty::Str(e.clone())))); }
+                            let words: Vec<u32> = bytes.chunks(unit).map(|c| {
+                                let mut c = c.to_vec(); if !low { c.reverse(); }
+                                c.iter().rev().fold(0u32, |n, b| n << 8 | *b as u32)
+                            }).collect();
+                            let mut words = &words[..];
+                            match words.first() {
+                                Some(0xFEFF) => words = &words[1..],
+                                Some(0xFFFE) | Some(0xFFFE_0000) => return self.err(format!("\"{path}\" starts with a byte-order mark saying {}, but `{what}` says {}", if low { "high byte first" } else { "low byte first" }, if low { "low byte first" } else { "high byte first" })),
+                                _ => {}
+                            }
+                            let text: Option<String> = if unit == 2 {
+                                char::decode_utf16(words.iter().map(|w| *w as u16)).collect::<Result<String, _>>().ok()
+                            } else {
+                                words.iter().map(|w| char::from_u32(*w)).collect()
+                            };
+                            let Some(text) = text else { return self.err(format!("\"{path}\" is not valid {} text in that byte order, so `{what}` cannot hold it; `incl.bytes` takes any file", crate::value::ty_name(&Ty::Str(e.clone())))) };
+                            return Ok(Expr::Incl(std::rc::Rc::new(text.into_bytes()), enc, line));
+                        }
                         None => {}
                     }
                     Ok(Expr::Incl(std::rc::Rc::new(bytes), enc, line))
