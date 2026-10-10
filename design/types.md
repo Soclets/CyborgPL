@@ -42,8 +42,9 @@ own names (owner, same day: "only include the Rust ones and ours"): C's
 exact names, recorded first, were withdrawn, and no long spellings
 (`binary_float16`) are added.
 
-**No `bin128`** (owner, 2026-09-23). Quad precision has essentially no
-hardware anywhere — it is software arithmetic, and slow — and the thing
+**No `bin128`** (owner, 2026-09-23: "b", over keeping it). The reason was
+design claude's, given when proposing it: quad precision has essentially
+no hardware anywhere — it is software arithmetic, and slow — and the thing
 people reach for it for is "64 bits is not enough precision", which
 `std::uenr` answers properly by being exact rather than merely wider.
 `deci128` stays, because IEEE 754 defines exactly three decimal widths
