@@ -293,6 +293,7 @@ incl_missing_file [fnv:ccc27d01ee109bb5] :: `incl.bytes` cannot read "incl_asset
 incl_not_ascii [fnv:9787487b6b1cfb1e] :: "incl_assets/cafe.txt" is not ASCII text (byte 4 is 195)
 incl_not_utf8 [fnv:0369459831e72f55] :: "incl_assets/not_text.bin" is not valid UTF-8 text (byte 3 is not)
 incl_path_not_literal [fnv:ff6559bace5af893] :: an `incl` path is written in quotes, as text
+incl_str_not_const [fnv:4c9e85747b5cd57e] :: `incl.str.…` is a constant, as `incl.bytes` is
 incl_utf16_not_built [fnv:0267072ab73f4c67] :: `incl.str.utf16` is not built yet
 index_needs_pos [fnv:4bc10e32735f4756] :: a read says it is a position: `'xs'[pos 2]`
 index_needs_pos_change [fnv:7fbb95940493767c] :: an index says it is a position: `'xs'[pos 2]`

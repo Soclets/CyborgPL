@@ -4471,9 +4471,13 @@ impl Checker {
             ast::InclForm::Ascii => "incl.str.ascii",
         };
         let bytes = std::fs::read(&full).map_err(|e| Box::new(Diagnostic::error(format!("`{}` cannot read \"{}\" ({}, from the Neuron's root): {}", what, path, full.display(), e)).at(path_span)))?;
-        // The bytes are a const's value only (owner, 2026-10-10: "(c)").
-        if form == ast::InclForm::Bytes && !ctx.in_const {
-            return err(Diagnostic::error("`incl.bytes` is a constant: give it a name with `const 'logo' := incl.bytes[\"…\"];` (owner, 2026-10-10), and read it from there").at(span));
+        // Everything `incl` gives is a const's value only (owner,
+        // 2026-10-10: "(c)" for the bytes, then "`a`" for the text).
+        if !ctx.in_const {
+            return err(Diagnostic::error(match form {
+                ast::InclForm::Bytes => "`incl.bytes` is a constant: give it a name with `const 'logo' := incl.bytes[\"…\"];` (owner, 2026-10-10), and read it from there".to_string(),
+                _ => format!("`incl.str.…` is a constant, as `incl.bytes` is: give it a name with `const 'help' := {}[\"…\"];` (owner, 2026-10-10), and read it from there", what),
+            }).at(span));
         }
         match form {
             ast::InclForm::Bytes => {
