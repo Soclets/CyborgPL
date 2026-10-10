@@ -9,7 +9,8 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 The owner, after naming the C lobe CNC, "CNC Not C": "Btw, the
 abbrieviation for Synapse is `SNG`, Synapse Not GCC". The command stays
-`synapse` / `syn` (2026-10-09); whether `sng` answers too is not asked.
+`synapse` / `syn` (2026-10-09), and **`sng` works too** (owner: "work
+too"): three names for one command.
 
 ### 2026-10-10 — Lobes go by expertise, one big one per field; talking to C is one: CNC, "CNC Not C" (owner; being designed, not built)
 
