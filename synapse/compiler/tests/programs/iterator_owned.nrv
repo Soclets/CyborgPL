@@ -20,7 +20,7 @@ MAIN {
     for 'row' in lend.mut 'r' {
         change 'total' = 'total' plus to.int32[list.length[lend 'row']];
     }
-    let mut 's' := Rows[left = 3];
+    let 's' := Rows[left = 3];
     for perm 'last' in give 's' {
         change 'total' = 'total' plus 1;
     }

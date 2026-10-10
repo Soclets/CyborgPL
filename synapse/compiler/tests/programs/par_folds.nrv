@@ -5,13 +5,13 @@
 extern.C fn exit ['code': int32];
 MAIN {
     let 'n': int64 = 300000;
-    let mut 'bs': list[bin64] = list.fill[value 0.5, count 'n'];
+    let 'bs': list[bin64] = list.fill[value 0.5, count 'n'];
     let mut 'bsum': bin64 = 0.0;
     for 'x' in lend 'bs' {
         change 'bsum' = 'bsum' plus 'x';
     }
     let 'q': deci64 = 0.25;
-    let mut 'ds': list[deci64] = list.fill[value 'q', count 'n'];
+    let 'ds': list[deci64] = list.fill[value 'q', count 'n'];
     let mut 'dsum': deci64 = 0;
     for 'x' in lend 'ds' {
         change 'dsum' = 'dsum' plus 'x';

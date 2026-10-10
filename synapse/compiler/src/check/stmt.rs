@@ -367,6 +367,9 @@ impl Checker {
                     }
                 };
                 let id = ctx.declare(&name.name, Local { name: name.name.clone(), ty: local_ty, mutability: *mutability, kind, from_blank: false, span: name.span });
+                if *mutability == Some(ast::Mutability::Mut) {
+                    ctx.promised.push(id);
+                }
                 if *sealed {
                     ctx.sealed.insert(id);
                 }
@@ -612,6 +615,9 @@ impl Checker {
                                     return err(Diagnostic::error(format!("'{}' {}, so `lend.mut '{}'` cannot hand the assembly its address to write through", name.name, why, name.name)).at(name.span));
                                 }
                             }
+                            if *mutable {
+                                ctx.changed.insert(id);
+                            }
                             lends.push((id, *mutable, reg.name.clone()));
                         }
                         ast::AsmBinding::Reg { name, dir, reg } => {
@@ -633,6 +639,7 @@ impl Checker {
                                     };
                                     ins.push((id, reg.name.clone()));
                                     outs.push((id, reg.name.clone()));
+                                    ctx.changed.insert(id);
                                 }
                             }
                         }
@@ -997,6 +1004,9 @@ impl Checker {
                 return err(Diagnostic::error(format!("a detached task may not lend: no scope protects it, so '{}' could be gone while the task still looks at it — `give` or `copy` it", c.name.name)).at(c.span));
             }
             let ty = ctx.locals[outer.0 as usize].ty.clone();
+            if c.verb == ast::Verb::LendMut {
+                ctx.changed.insert(outer);
+            }
             inner_locals.push((c.name.name.clone(), c.verb, ty, outer));
         }
         let body_block = match body {

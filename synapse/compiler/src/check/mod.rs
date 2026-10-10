@@ -81,6 +81,9 @@ pub struct Checker {
     /// Inference variables: what each `Infer` has been unified with.
     pub subst: HashMap<InferId, Ty>,
     next_infer: u32,
+    /// Each `mut` variable, by where it is declared, and whether anything
+    /// changed it (owner, 2026-10-10).
+    pub mut_seen: HashMap<crate::source::Span, (String, bool)>,
     pub const_values: Vec<Option<hir::Expr>>,
     pub notes: Vec<Diagnostic>,
     /// Anonymous `fn` literals get a synthetic FnId each.
@@ -136,6 +139,10 @@ pub struct FnCtx {
     /// Its variables are `case.insensitive` (owner, 2026-10-06): held and
     /// found by their folded names.
     pub fold_vars: bool,
+    /// The locals declared `mut`, a promise that they change (owner,
+    /// 2026-10-10: "`b`"), and the locals something changes.
+    pub promised: Vec<LocalId>,
+    pub changed: std::collections::HashSet<LocalId>,
 }
 
 impl FnCtx {
@@ -182,7 +189,7 @@ impl FnCtx {
 impl Checker {
     pub fn new(items: Items) -> Checker {
         let n = items.consts.len();
-        Checker { power_uses: Vec::new(), items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new() }
+        Checker { power_uses: Vec::new(), items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new(), mut_seen: HashMap::new() }
     }
 
     pub fn fresh(&mut self) -> Ty {
@@ -417,6 +424,7 @@ impl Checker {
                     params.push(id);
                 }
                 let body = self.block(&mut ctx, &block)?;
+                self.mut_promises_kept(&ctx)?;
                 self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params, ret: Ty::Nothing, fails: Vec::new(), block: body, span, name: "MAIN".into(), is_main: true, is_test: false, ret_lent: None });
                 Some(inst)
             }
@@ -441,6 +449,12 @@ impl Checker {
                     self.check_instance(inst)?;
                 }
             }
+        }
+        // A `mut` nothing changed, in any instance.
+        let mut unkept: Vec<(&crate::source::Span, &String)> = self.mut_seen.iter().filter(|(_, (_, ok))| !ok).map(|(s, (n, _))| (s, n)).collect();
+        unkept.sort_by_key(|(s, _)| (s.file.0, s.start));
+        if let Some((span, name)) = unkept.first() {
+            return err(Diagnostic::error(format!("'{}' is `mut`, but nothing changes it: drop `mut`, or change it (`mut` is a promise that it changes, as `immut` is that it does not)", name)).at(**span));
         }
         // "Only a bare literal with no context has no width" (`operators.md`).
         for (t, span, what) in std::mem::take(&mut self.widths_pending) {
@@ -493,8 +507,24 @@ impl Checker {
         }
     }
 
+    /// `mut` promises that the variable changes, as `immut` that it does
+    /// not (owner, 2026-10-10: "`b`"). Each body says which of its `mut`
+    /// variables something changed — a `change`, a `lend.mut` (a task's or
+    /// a function literal's capture too), an `inline.ASM` output — by the
+    /// variable, so a shadow is another; and since a function is checked
+    /// once per shape (a variadic with no values never walks them), the
+    /// promise is kept if any of its instances changes it.
+    pub fn mut_promises_kept(&mut self, ctx: &FnCtx) -> crate::diag::Result<()> {
+        for id in &ctx.promised {
+            let l = &ctx.locals[id.0 as usize];
+            let e = self.mut_seen.entry(l.span).or_insert((l.name.clone(), false));
+            e.1 |= ctx.changed.contains(id);
+        }
+        Ok(())
+    }
+
     pub fn new_ctx(&self, inst: FnInst, module: ModuleId, name: String, ret: Ty, fails: Vec<(String, Option<Ty>)>, is_main: bool) -> FnCtx {
-        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_test: false, must_fail: false, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None, borrow_src: HashMap::new(), fold_vars: false }
+        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_test: false, must_fail: false, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None, borrow_src: HashMap::new(), fold_vars: false, promised: Vec::new(), changed: Default::default() }
     }
 
     fn check_instance(&mut self, inst: FnInst) -> Result<()> {
@@ -545,6 +575,9 @@ impl Checker {
                 ParamKind::LentMut => LocalKind::LentMut,
             };
             let id = ctx.declare(&p.name, Local { name: p.name.clone(), ty: ty.clone(), mutability: p.mutability, kind: lk, from_blank: p.from_blank, span: p.span });
+            if p.mutability == Some(Mutability::Mut) {
+                ctx.promised.push(id);
+            }
             if matches!(kind, ParamKind::Lent | ParamKind::LentMut) {
                 ctx.lent_params.insert(id, (pi, p.group.clone()));
             }
@@ -565,6 +598,7 @@ impl Checker {
             return err(Diagnostic::error(format!("`{}` returns a `{}` but can fall off the end and return nothing: every path must `return` a value (or `fail`)", decl.name, self.spell(&sig.ret))).at(decl.name_span).why(format!("declared `-> {}`", self.spell(&sig.ret))));
         }
         let name = decl.name.clone();
+        self.mut_promises_kept(&ctx)?;
         self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params, ret: sig.ret, fails: sig.fails, block, span: decl.span, name, is_main: false, is_test: decl.test, ret_lent });
         Ok(())
     }

@@ -296,6 +296,7 @@ let_over_name_unrun [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an encl
 let_over_param_uncalled [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
 lifetime_glued [fnv:56103fcd967d54ea] :: a space before the group: `lent @
 money_missing [fnv:55c193a2f84e0f3e] :: `deci64` is Money's
+mut_never_changed [fnv:fcfb6c057425e599] :: 'total' is `mut`, but nothing changes it
 neg_ieee_on_int [fnv:49dd57d5cf27f472] :: `neg.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `-'x'`
 old_ampersand [fnv:aeae80cbe3ea6bdd] :: `&` is an old spelling: write `lend` / `lent`; a bitwise and is `and.bit`
 old_auto_newline [fnv:3557516c4c015da6] :: `auto_newline` is an old spelling: write `auto_newln`

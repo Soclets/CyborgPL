@@ -364,8 +364,11 @@ impl Checker {
                     }
                     return self.undeclared(ctx, n);
                 };
-                let local = &ctx.locals[id.0 as usize];
                 self.check_place_use(ctx, id, use_, e.span, &n.name)?;
+                if matches!(use_, PlaceUse::Write | PlaceUse::LendMut) {
+                    ctx.changed.insert(id);
+                }
+                let local = &ctx.locals[id.0 as usize];
                 Ok(Place { base: id, proj: Vec::new(), ty: local.ty.clone(), span: e.span })
             }
             AK::Field { base, field } => {
@@ -2925,6 +2928,9 @@ impl Checker {
             if lit.params.iter().any(|p| p.name.name == c.name.name) {
                 return err(Diagnostic::error(format!("'{}' is both a capture and a parameter: they cannot share a name", c.name.name)).at(c.name.span));
             }
+            if c.verb == Verb::LendMut {
+                ctx.changed.insert(outer);
+            }
             inst_caps.push((c.name.name.clone(), c.verb, ty));
             caps.push((outer, c.verb));
         }
@@ -3008,12 +3014,16 @@ impl Checker {
                 ParamKind::LentMut => LocalKind::LentMut,
             };
             let id = ctx.declare(&p.name, Local { name: p.name.clone(), ty: ty.clone(), mutability: p.mutability, kind: lk, from_blank: false, span: p.span });
+            if p.mutability == Some(ast::Mutability::Mut) {
+                ctx.promised.push(id);
+            }
             params.push(id);
         }
         let block = self.block(&mut ctx, &body)?;
         if sig.ret != Ty::Nothing && !super::stmt::leaves_block(&block) {
             return err(Diagnostic::error(format!("this function returns {} but can fall off the end: every path must `return` a value", crate::types::a_type(&self.spell(&sig.ret)))).at(decl.span));
         }
+        self.mut_promises_kept(&ctx)?;
         self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params, ret: sig.ret, fails: sig.fails, block, span: decl.span, name: "an anonymous function".into(), is_main: false, is_test: false, ret_lent: None });
         Ok(())
     }

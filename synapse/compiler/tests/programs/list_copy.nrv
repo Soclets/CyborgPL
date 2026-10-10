@@ -1,6 +1,6 @@
 extern.C fn exit ['code': int32];
 MAIN {
-    let mut 'a': list[int32] = [1, 2, 3];
+    let 'a': list[int32] = [1, 2, 3];
     let mut 'b': list[int32] = copy 'a';
     list.append[lend.mut 'b', 4];
     change 'b'[pos 1] = 9;
