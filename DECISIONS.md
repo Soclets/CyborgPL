@@ -74,7 +74,13 @@ another struct's pointer is refused while building; over (b) every struct
 pointer a `ptr.mut[uint8]`. Design claude recommended (a), as Zig and Swift
 (`OpaquePointer`) do: no difference when running (a pointer is an address),
 and the one cost is a `ptr.cast[uint8][…]` where C takes `void *`. Not
-built.
+built. **A C struct whose fields Nerve can all spell comes through as a
+`layout.C struct` with C's field names** (owner: "(a)", after "what"), so
+`struct tm`'s `tm_year` is read from what `localtime` gives; a struct with a
+field Nerve cannot spell yet comes through opaque, as `FILE`; over (b)
+every struct opaque, its fields written by hand. Design claude recommended
+(a): copying fields by hand is busywork, and a field copied in the wrong
+size or order reads garbage with no error. Not built.
 
 ### 2026-10-10 — Include bytes, `incl.bytes[…]` and `incl.str.utf8[…]`: any file, from the Neuron's root, the registry refusing one outside the Neuron (owner; built in the oracle)
 
