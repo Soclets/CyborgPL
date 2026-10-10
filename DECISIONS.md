@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-10 — A `mut` that nothing changes is refused even in a generic function nobody calls (owner: a)
+
+The oracle refused it, reading the function as written, and Synapse let it
+through, since it checks a generic function only once something calls it
+(compiler claude, e9fe430a). Asked about
+`fn keep <T: any> ['v': <T>] -> <T> { let mut 'x' := 'v'; return 'x'; }`
+with `keep` never called, the owner: "Shouldn't that error?" Offered (a)
+always an error, called or not, (b) an error only once called; design
+claude recommended (a): whether something changes the variable does not
+depend on `T`, and a library's own author should hear of the mistake rather
+than its first caller. The owner: "`a`". Reject test
+mut_never_changed_unused_generic.
+
 ### 2026-10-10 — A `const` may sit inside any body, `MAIN` and functions alike (owner: "I want it.", a)
 
 The owner asked "How do you declare a const in MAIN?" (it could not be: a
