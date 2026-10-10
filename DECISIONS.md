@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-10 — Clang is CNC's: borrowed now, shipped inside the CNC lobe at release (owner)
+
+The owner: "Do we ship Clang yet?" No: nothing ships yet. `incl.C` borrows
+Clang, the oracle the `clang` on the PATH, Synapse the one beside the LLVM
+it is built with (else the PATH's), so it fails where none is installed.
+Design claude proposed Clang follow lld (2026-10-08: built into Synapse,
+the self-contained build waiting "when we do the release, or when it's
+needed"). The owner: "yea, but shouldn't that be for CNC?" So **Clang is
+CNC's: borrowed as now until the release, then shipped inside the CNC
+lobe, not inside Synapse**, a lobe being a compiler mod and Clang needed
+only for C; only a build listing CNC fetches it. Design claude noted that
+`cord` lists CNC, so most programs bring it anyway; kernels and bare
+programs without `cord` do not.
+
 ### 2026-10-10 — Synapse's abbreviation is SNG, "Synapse Not GCC" (owner)
 
 The owner, after naming the C lobe CNC, "CNC Not C": "Btw, the

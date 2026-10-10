@@ -139,7 +139,9 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   `C.` types (`C.int`, `C.long`, `C.long_double`, …), and the `c_calls`
   power. The Brainstem keeps none of it, but keeps `ptr` and inline
   assembly, which are the machine's, not C's. A neuron that does not list
-  CNC provably never calls C. Lobes are being regrouped by expertise
+  CNC provably never calls C. It brings Clang, which reads C headers:
+  borrowed from the machine until the release, then shipped inside CNC
+  (owner, 2026-10-10). Lobes are being regrouped by expertise
   (owner: "Like a big one for a expertise"); the lobes below predate that.
 
 - **IEG, the Intense Energy Generator.** Raw operations as plain calls
