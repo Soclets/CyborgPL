@@ -150,6 +150,12 @@ pub struct FnCtx {
     /// Checking a body const's value: the variables around it, which it may
     /// not use.
     pub outer_vars: Option<Vec<String>>,
+    /// Checking a const's value (owner, 2026-10-10: `incl.bytes` is one
+    /// only).
+    pub in_const: bool,
+    /// Each const array read in place here, and the local that views it,
+    /// set up as the body starts.
+    pub const_views: Vec<(crate::hir::ConstId, LocalId)>,
 }
 
 impl FnCtx {
@@ -403,6 +409,7 @@ impl Checker {
         for i in 0..self.items.consts.len() {
             let c = self.items.consts[i].clone();
             let mut ctx = self.new_ctx(FnInst(u32::MAX), c.module, "the const".to_string(), Ty::Nothing, Vec::new(), false);
+            ctx.in_const = true;
             let mut value = self.expr(&mut ctx, &c.value)?;
             if let Some(t) = &c.ty {
                 value = self.expect_store(&mut ctx, value, t, "the const's declared type")?;
@@ -437,8 +444,9 @@ impl Checker {
                     let id = ctx.declare(&p.name.name, Local { name: p.name.name.clone(), ty: want.clone(), mutability: None, kind: LocalKind::Owned, from_blank: false, span: p.span });
                     params.push(id);
                 }
-                let body = self.block(&mut ctx, &block)?;
+                let mut body = self.block(&mut ctx, &block)?;
                 self.mut_promises_kept(&ctx)?;
+                self.const_views_first(&ctx, &mut body);
                 self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params, ret: Ty::Nothing, fails: Vec::new(), block: body, span, name: "MAIN".into(), is_main: true, is_test: false, ret_lent: None });
                 Some(inst)
             }
@@ -525,6 +533,8 @@ impl Checker {
                 }
                 Ok(())
             }
+            // A file's bytes, read while building (owner, 2026-10-10).
+            hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::InclBytes), .. } => Ok(()),
             hir::ExprKind::Call { callee: hir::Callee::Fn(_), args, .. } => {
                 for a in args {
                     if let hir::Arg::Value(v) = a {
@@ -546,6 +556,20 @@ impl Checker {
     /// variable, so a shadow is another; and since a function is checked
     /// once per shape (a variadic with no values never walks them), the
     /// promise is kept if any of its instances changes it.
+    /// The const arrays this body reads in place, each viewed by its local
+    /// from the start (owner, 2026-10-10).
+    pub fn const_views_first(&self, ctx: &FnCtx, block: &mut hir::Block) {
+        let mut first = Vec::new();
+        for (cid, id) in &ctx.const_views {
+            let l = &ctx.locals[id.0 as usize];
+            let (ty, span) = (l.ty.clone(), l.span);
+            let c = hir::Expr { kind: hir::ExprKind::Const(*cid), ty: ty.clone(), span };
+            let view = hir::Expr { kind: hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::ConstView), args: vec![hir::Arg::Value(c)], otherwise: None, fails: Vec::new() }, ty, span };
+            first.push(hir::Stmt { kind: hir::StmtKind::Let { local: *id, value: view, typed: false }, span, tier: None });
+        }
+        block.stmts.splice(0..0, first);
+    }
+
     pub fn mut_promises_kept(&mut self, ctx: &FnCtx) -> crate::diag::Result<()> {
         for id in &ctx.promised {
             let l = &ctx.locals[id.0 as usize];
@@ -556,7 +580,7 @@ impl Checker {
     }
 
     pub fn new_ctx(&self, inst: FnInst, module: ModuleId, name: String, ret: Ty, fails: Vec<(String, Option<Ty>)>, is_main: bool) -> FnCtx {
-        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_test: false, must_fail: false, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None, borrow_src: HashMap::new(), fold_vars: false, promised: Vec::new(), changed: Default::default(), const_scopes: vec![HashMap::new()], outer_vars: None }
+        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_test: false, must_fail: false, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None, borrow_src: HashMap::new(), fold_vars: false, promised: Vec::new(), changed: Default::default(), const_scopes: vec![HashMap::new()], outer_vars: None, in_const: false, const_views: Vec::new() }
     }
 
     fn check_instance(&mut self, inst: FnInst) -> Result<()> {
@@ -631,6 +655,8 @@ impl Checker {
         }
         let name = decl.name.clone();
         self.mut_promises_kept(&ctx)?;
+        let mut block = block;
+        self.const_views_first(&ctx, &mut block);
         self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params, ret: sig.ret, fails: sig.fails, block, span: decl.span, name, is_main: false, is_test: decl.test, ret_lent });
         Ok(())
     }

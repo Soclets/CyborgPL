@@ -369,7 +369,26 @@ impl Checker {
                     if let Some(w) = self.extern_let_named(&n.name, ctx) {
                         return self.extern_place(ctx, w, use_, e.span);
                     }
-                    if ctx.lookup_const(&n.name).is_some() || self.items.modules[ctx.module.0 as usize].const_named(&n.name).is_some() {
+                    let cid = ctx.lookup_const(&n.name).or_else(|| self.items.modules[ctx.module.0 as usize].const_named(&n.name).map(|c| c.0));
+                    // A const array read in place — an element, its length,
+                    // lent to a call — is the program's own copy, nothing
+                    // copied (owner, 2026-10-10).
+                    if let (Some(cid), PlaceUse::Read | PlaceUse::Lend, false) = (cid, use_, ctx.is_task) {
+                        let ty = self.const_type(cid, e.span)?;
+                        if matches!(self.resolve(&ty).base(), Ty::Seq { kind: SeqKind::Array, .. }) {
+                            let id = match ctx.const_views.iter().find(|(c, _)| *c == cid) {
+                                Some((_, id)) => *id,
+                                None => {
+                                    let id = hir::LocalId(ctx.locals.len() as u32);
+                                    ctx.locals.push(Local { name: format!(" const {}", n.name), ty: ty.clone(), mutability: None, kind: LocalKind::ConstView, from_blank: false, span: e.span });
+                                    ctx.const_views.push((cid, id));
+                                    id
+                                }
+                            };
+                            return Ok(Place { base: id, proj: Vec::new(), ty, span: e.span });
+                        }
+                    }
+                    if cid.is_some() {
                         return err(Diagnostic::error(format!("'{}' is a const and cannot be {}: it is a value known at compile time — nobody owns it, every use is a fresh value", n.name, match use_ { PlaceUse::Write => "assigned to", PlaceUse::Give | PlaceUse::Copy | PlaceUse::Lend | PlaceUse::LendMut => "given, copied or lent", PlaceUse::Read => "used as a place" })).at(e.span));
                     }
                     return self.undeclared(ctx, n);
@@ -3034,6 +3053,8 @@ impl Checker {
             return err(Diagnostic::error(format!("this function returns {} but can fall off the end: every path must `return` a value", crate::types::a_type(&self.spell(&sig.ret)))).at(decl.span));
         }
         self.mut_promises_kept(&ctx)?;
+        let mut block = block;
+        self.const_views_first(&ctx, &mut block);
         self.instances[inst.0 as usize].body = Some(hir::Body { locals: ctx.locals, params, ret: sig.ret, fails: sig.fails, block, span: decl.span, name: "an anonymous function".into(), is_main: false, is_test: false, ret_lent: None });
         Ok(())
     }
@@ -3458,7 +3479,7 @@ impl Checker {
         let mut fails: Vec<(String, Option<Ty>)> = Vec::new();
         let mut shuffle_order: Option<Vec<u32>> = None;
         let (hargs, ty): (Vec<Arg>, Ty) = match &b {
-            Builtin::MustReport | Builtin::MustStopFork | Builtin::MustStopDone | Builtin::InclBytes => unreachable!("made by `must` or `incl`, never written"),
+            Builtin::MustReport | Builtin::MustStopFork | Builtin::MustStopDone | Builtin::InclBytes | Builtin::ConstView => unreachable!("made by `must`, `incl` or a const, never written"),
             Builtin::ListLength | Builtin::ArrayLength | Builtin::MapLength | Builtin::StrBytes | Builtin::StrPoints | Builtin::StrGraphemes => {
                 arity(1, self)?;
                 let a = self.lent_arg(ctx, positional[0], &name, false)?;
@@ -4009,7 +4030,10 @@ impl Checker {
                 let place = self.place(ctx, e, PlaceUse::Read)?;
                 let pt = self.resolve(&place.ty);
                 let pn = self.place_name(ctx, &place);
-                if pt.is_owned() {
+                // A const is written bare (owner, 2026-10-10): nobody owns
+                // it, so a look at it lends nothing away.
+                let a_const = place.proj.is_empty() && ctx.locals[place.base.0 as usize].kind == LocalKind::ConstView;
+                if pt.is_owned() && !(a_const && !mutates) {
                     return err(Diagnostic::error(format!("`{}` takes a lend: write `lend{} {}`", name, if mutates { ".mut" } else { "" }, pn)).at(e.span));
                 }
                 Ok(Arg::Lend { place, mutable: mutates })
@@ -4447,6 +4471,10 @@ impl Checker {
             ast::InclForm::Ascii => "incl.str.ascii",
         };
         let bytes = std::fs::read(&full).map_err(|e| Box::new(Diagnostic::error(format!("`{}` cannot read \"{}\" ({}, from the Neuron's root): {}", what, path, full.display(), e)).at(path_span)))?;
+        // The bytes are a const's value only (owner, 2026-10-10: "(c)").
+        if form == ast::InclForm::Bytes && !ctx.in_const {
+            return err(Diagnostic::error("`incl.bytes` is a constant: give it a name with `const 'logo' := incl.bytes[\"…\"];` (owner, 2026-10-10), and read it from there").at(span));
+        }
         match form {
             ast::InclForm::Bytes => {
                 let hex: String = bytes.iter().map(|b| format!("{:02x}", b)).collect();

@@ -41,6 +41,9 @@ pub enum LocalKind {
     /// A loop's element taken by `lend`: a loop variable that is a borrow
     /// of the list's element, never a value of its own to drop.
     LoopLent,
+    /// A const array read in place: the program's own copy, held but never
+    /// owned, changed or freed (owner, 2026-10-10).
+    ConstView,
     /// A captured lend inside a function literal.
     Captured,
 }
@@ -211,6 +214,8 @@ pub enum Builtin {
     /// `incl.bytes[…]`: its one argument the file's bytes, as hex text,
     /// read while building (owner, 2026-10-10).
     InclBytes,
+    /// A const array read in place: its one argument the const.
+    ConstView,
     MapLength,
     MapHas,
     MapGet,

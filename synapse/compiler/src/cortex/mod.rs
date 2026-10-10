@@ -1267,6 +1267,12 @@ impl Precog {
             Const::Char(c) => Domain::Chars { values: Some(vec![c.clone()]) },
             Const::Bool(b) => Domain::Bools(*b, !*b),
             Const::Duration(n) => Domain::Duration(ISet::one(*n)),
+            // A const array: its length is known.
+            Const::Bytes(b) => Domain::Seq { len: ISet::one(b.len() as i128), elem: Box::new(Domain::of_ty(&Ty::int(false, 8), &self.prog().items)) },
+            Const::Array { elem, items } => {
+                let e = Domain::of_ty(elem, &self.prog().items);
+                Domain::Seq { len: ISet::one(items.len() as i128), elem: Box::new(e) }
+            }
             Const::Const(id) => {
                 let ty = self.prog().items.consts[id.0 as usize].ty.clone();
                 match ty {

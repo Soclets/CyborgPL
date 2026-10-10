@@ -305,4 +305,4 @@ drops_print_found 11
 # A const into a deci (check claude, seed 48186).
 const_into_deci 210
 # incl.bytes: a new array each time, changed freely (owner, 2026-10-10).
-incl_bytes_change 57
+incl_bytes_change 67

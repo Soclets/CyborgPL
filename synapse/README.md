@@ -591,11 +591,12 @@ Dated, with the alternative, so each can become a question later.
   type's own function (`fn Counter.next`) without `pub` is seen across its
   Neuron, as the oracle has it (not asked). A `for` over an iterator takes
   no `pos`, and plain `lend` is refused (`next` changes it).
-- **2026-10-10 — `incl.bytes` is copied where it is made.** The file's
-  bytes sit in the program file (owner, 2026-10-10), and `incl.str.utf8` /
-  `.ascii` is a text literal of them, nothing copied. An `array` may be
-  changed in place, though, so each `incl.bytes[…]` that runs makes a new
-  array of them, one allocation and one `memcpy`, as an array literal
-  makes one; a change never reaches the file's bytes or the next pass.
-  With no OS it is refused for now with the other heap arrays. Alternative:
-  hand an array that is never changed the program's own bytes.
+- **2026-10-10 — A const array read in place is the program's own.**
+  `incl.bytes` is a const's value only (owner, 2026-10-10: "(c)"), and a
+  const array — it or one of literals — is laid out once in the program.
+  Read where it stands (an element, `array.length`, lent to a call) it is
+  viewed there, nothing copied, no heap, so with no OS too: a local set up
+  as its body starts, never freed. Taken as a value (`let mut 'b' :=
+  'logo'`) it is a fresh array, copied once, as "every use is a fresh
+  value" says. Read inside a task it is still refused as a place (the
+  task's captures are all it sees). `incl.str.*` is a text literal.

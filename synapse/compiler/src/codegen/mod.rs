@@ -88,7 +88,7 @@ pub fn lower_for<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, nam
         }
         Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
     };
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, op_sites: Vec::new(), par: crate::par::plan(p), par_child: None, nocheat: nocheat_blocks(p) };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, const_arrays: HashMap::new(), op_sites: Vec::new(), par: crate::par::plan(p), par_child: None, nocheat: nocheat_blocks(p) };
     cg.declare_all();
     for i in 0..p.functions.len() {
         cg.define(i);
@@ -106,6 +106,8 @@ pub fn lower_for<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, nam
 }
 
 struct Cg<'a, 'ctx> {
+    /// Each const array's elements in the program, made once, by its value.
+    const_arrays: HashMap<String, (PointerValue<'ctx>, (u64, u64))>,
     ctx: &'ctx Context,
     module: &'a Module<'ctx>,
     builder: Builder<'ctx>,
@@ -1165,6 +1167,22 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let h = self.handle(2);
                 Some(h.const_named_struct(&[bytes.into(), len.into()]).into())
             }
+            // A const array as a value: a fresh array of its own (owner,
+            // 2026-10-10: "every use is a fresh value"), copied from the
+            // program's.
+            Const::Bytes(_) | Const::Array { .. } => {
+                let (g, n) = self.const_array(c)?;
+                let i64t = self.ctx.i64_type();
+                let bytes = i64t.const_int(n.1, false);
+                let mem = self.alloc(bytes);
+                if n.1 > 0 {
+                    let _ = self.builder.build_memcpy(mem, 1, g, 1, bytes);
+                }
+                let h = self.handle(2);
+                let v = self.builder.build_insert_value(h.get_undef(), mem, 0, "data").ok()?;
+                let v = self.builder.build_insert_value(v, i64t.const_int(n.0, false), 1, "len").ok()?;
+                Some(v.into_struct_value().into())
+            }
             Const::Const(id) => {
                 let _ = fi;
                 self.cannot(format!("the const '{}' is not folded into the generated code yet", self.p.items.consts[id.0 as usize].name), None);
@@ -2011,6 +2029,41 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let _ = self.builder.build_call(handler, &args, "");
         }
         let _ = self.builder.build_unreachable();
+    }
+
+    /// A const array's elements in the program, once each, and its length
+    /// and size in bytes: `incl.bytes`' file, or an array of literals.
+    fn const_array(&mut self, c: &Const) -> Option<(PointerValue<'ctx>, (u64, u64))> {
+        let key = format!("{:?}", c);
+        if let Some(found) = self.const_arrays.get(&key) {
+            return Some(*found);
+        }
+        let (init, n): (BasicValueEnum<'ctx>, u64) = match c {
+            Const::Bytes(b) => (self.ctx.const_string(b, false).into(), b.len() as u64),
+            Const::Array { elem, items } => {
+                let et = self.ty(elem)?;
+                let mut vals: Vec<BasicValueEnum<'ctx>> = Vec::new();
+                for it in items {
+                    let v = self.constant(0, it)?;
+                    vals.push(self.fit(v, et));
+                }
+                let arr: BasicValueEnum<'ctx> = match et {
+                    BasicTypeEnum::IntType(t) => t.const_array(&vals.iter().map(|v| v.into_int_value()).collect::<Vec<_>>()).into(),
+                    BasicTypeEnum::FloatType(t) => t.const_array(&vals.iter().map(|v| v.into_float_value()).collect::<Vec<_>>()).into(),
+                    _ => return None,
+                };
+                (arr, items.len() as u64)
+            }
+            _ => return None,
+        };
+        let size = self.target.get_store_size(&init.get_type());
+        let g = self.module.add_global(init.get_type(), None, "const_array");
+        g.set_initializer(&init);
+        g.set_constant(true);
+        g.set_linkage(Linkage::Private);
+        let found = (g.as_pointer_value(), (n, size));
+        self.const_arrays.insert(key, found);
+        Some(found)
     }
 
     /// What a trap at this site says, and which runtime entry says it.
@@ -3058,6 +3111,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// which is why the handle carries one.
     fn op(&mut self, fi: usize, op: &Op, args: &[Operand], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>, dest_ty: Option<Ty>) -> Option<Option<BasicValueEnum<'ctx>>> {
         match op {
+            // A const array read in place (owner, 2026-10-10): the
+            // program's own copy, nothing copied, never freed.
+            Op::ConstView => {
+                let Some(Operand::Const(c)) = args.first() else { return None };
+                let (g, (n, _)) = self.const_array(c)?;
+                let h = self.handle(2);
+                let i64t = self.ctx.i64_type();
+                Some(Some(h.const_named_struct(&[g.into(), i64t.const_int(n, false).into()]).into()))
+            }
             // `incl.bytes[…]` (owner, 2026-10-10): the file's bytes in the
             // program, copied once into the new array, which may change.
             Op::InclBytes => {

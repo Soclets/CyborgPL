@@ -111,6 +111,11 @@ pub enum Const {
     Duration(i128),
     /// A Limb-level value, folded in at every use.
     Const(ConstId),
+    /// A const array's bytes (`incl.bytes`, owner 2026-10-10), as the file
+    /// holds them.
+    Bytes(Vec<u8>),
+    /// A const array of literals, element by element.
+    Array { elem: Ty, items: Vec<Const> },
     SizeOf { align: bool, ty: Ty },
     Nothing,
 }
@@ -153,6 +158,10 @@ pub enum Op {
     ArrayLength,
     /// A new `array[uint8]` of the bytes its one argument holds as hex.
     InclBytes,
+    /// A const array read in place (owner, 2026-10-10): its one argument
+    /// the const, the result the program's own copy of it, never freed
+    /// and never changed.
+    ConstView,
     MapLength,
     MapHas,
     MapGet,

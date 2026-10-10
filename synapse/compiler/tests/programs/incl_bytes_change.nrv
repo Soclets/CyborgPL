@@ -1,16 +1,27 @@
-# `incl.bytes` (owner, 2026-10-10): the file's bytes, read while building,
-# from this file's folder. Each one made is an array of its own, so
-# changing it in a loop never changes the next: three passes of
-# 1 + 2 + 3 + 4 with the first set to 10 is 3 x 19 = 57.
+# `incl.bytes` is a const's value (owner, 2026-10-10: "(c)"): read in
+# place — an element, its length, lent to a call — it is the program's own
+# bytes, nothing copied; taken to keep and change (`let mut 'b' := 'four'`)
+# it is a fresh array each time. Three passes of 1 + 2 + 3 + 4 with the
+# first set to 10 is 57; plus the const's own sum, 10, read in place: 67.
 extern.C fn exit ['code': int32];
+
+const 'four' := incl.bytes["incl_assets/four.bin"];
+
+fn total [lent 'bs': array[uint8]] -> int32 {
+    let mut 'n': int32 = 0;
+    for 'x' in lend 'bs' {
+        change 'n' = 'n' plus to.int32['x'];
+    }
+    return 'n';
+}
+
 MAIN {
     let mut 'sum': int32 = 0;
     for 'i' in range[from 1, to 3, by 1] {
-        let mut 'b' := incl.bytes["incl_assets/four.bin"];
+        let mut 'b' := 'four';
         change 'b'[pos 1] = 'b'[pos 1] plus 9;
-        for 'x' in lend 'b' {
-            change 'sum' = 'sum' plus to.int32['x'];
-        }
+        change 'sum' = 'sum' plus total[lend 'b'];
     }
+    change 'sum' = 'sum' plus total[lend 'four'] minus to.int32['four'[pos 4]] plus to.int32[array.length['four']];
     no_check my.exit['sum'];
 }

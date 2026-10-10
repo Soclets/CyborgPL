@@ -76,6 +76,24 @@ fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Ite
         hir::ExprKind::Bool(b) => Some(Const::Bool(*b)),
         hir::ExprKind::Duration(n) => Some(Const::Duration(*n)),
         hir::ExprKind::Const(id) => done.get(id.0 as usize).cloned().flatten(),
+        // A file's bytes (owner, 2026-10-10).
+        hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::InclBytes), args, .. } => match args.first() {
+            Some(hir::Arg::Value(hir::Expr { kind: hir::ExprKind::Str(hex), .. })) => Some(Const::Bytes((0..hex.len() / 2).filter_map(|i| u8::from_str_radix(&hex[2 * i..2 * i + 2], 16).ok()).collect())),
+            _ => None,
+        },
+        // An array of literals, each worked out.
+        hir::ExprKind::List(items_) if matches!(e.ty.base(), Ty::Seq { kind: crate::types::SeqKind::Array, .. }) => {
+            let Ty::Seq { elem, .. } = e.ty.base() else { unreachable!() };
+            let mut out = Vec::new();
+            for a in items_ {
+                let hir::Arg::Value(x) = a else { return None };
+                match const_eval(x, done, items)? {
+                    c @ (Const::Int(_) | Const::Bool(_) | Const::Char(_) | Const::Bin(_)) => out.push(c),
+                    _ => return None,
+                }
+            }
+            Some(Const::Array { elem: (**elem).clone(), items: out })
+        }
         hir::ExprKind::Unary { op, expr } => match (op, const_eval(expr, done, items)?) {
             (U::Neg, Const::Int(v)) => Some(Const::Int(v.checked_neg()?)),
             // `-'x'` of a zero is `0`, `neg.ieee` IEEE's `-0` (owner, 2026-10-07).
@@ -276,6 +294,7 @@ impl<'a> FnBuilder<'a> {
             let span = fb.span_id(l.span);
             let kind = match l.kind {
                 hir::LocalKind::Lent | hir::LocalKind::LoopLent => LocalKind::Lent { mutable: false },
+                hir::LocalKind::ConstView => LocalKind::Plain,
                 hir::LocalKind::LentMut => LocalKind::Lent { mutable: true },
                 _ if l.ty.is_owned() => LocalKind::Owned,
                 _ => LocalKind::Plain,
@@ -2308,6 +2327,7 @@ fn builtin_op(b: &Builtin) -> Op {
         Builtin::ListRemove => Op::ListRemove,
         Builtin::ArrayLength => Op::ArrayLength,
         Builtin::InclBytes => Op::InclBytes,
+        Builtin::ConstView => Op::ConstView,
         Builtin::MapLength => Op::MapLength,
         Builtin::MapHas => Op::MapHas,
         Builtin::MapGet => Op::MapGet,

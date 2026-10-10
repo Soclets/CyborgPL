@@ -870,6 +870,7 @@ impl Checker {
         }
         cctx.const_scopes = vec![seen];
         cctx.outer_vars = Some(ctx.scopes.iter().flat_map(|s| s.keys().cloned()).collect());
+        cctx.in_const = true;
         let mut value = self.expr(&mut cctx, &d.value)?;
         let ty = match &d.ty {
             Some(t) => {

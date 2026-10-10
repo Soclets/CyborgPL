@@ -636,7 +636,7 @@ fn bare_metal_runs_in_qemu() {
         }
         let printed = std::fs::read_to_string(&serial).unwrap_or_default();
         assert!(ended, "{}'s `cord::exit` did not power QEMU off; it printed:\n{}", name, printed);
-        assert_eq!(printed, "hello from a bare chip\nPoint[x = 3, y = -4] 0.1 42\n0.1000000000000000055511151231257827021181583404541015625\n", "{} printed the wrong thing through its board's serial port", name);
+        assert_eq!(printed, format!("hello from a bare chip\nPoint[x = 3, y = -4] 0.1 42\n0.1000000000000000055511151231257827021181583404541015625\n{}", if name == "uses_board" { "4 7\n" } else { "" }), "{} printed the wrong thing through its board's serial port", name);
     }
     let _ = std::fs::remove_dir_all(&out);
 }

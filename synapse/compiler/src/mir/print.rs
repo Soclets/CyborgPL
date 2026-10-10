@@ -144,6 +144,8 @@ fn const_s(c: &Const) -> String {
         Const::Bool(v) => v.to_string(),
         Const::Duration(v) => format!("{} nanos", v),
         Const::Const(i) => format!("const{}", i.0),
+        Const::Bytes(b) => format!("bytes[{}]", b.len()),
+        Const::Array { items, .. } => format!("[{}]", items.iter().map(const_s).collect::<Vec<_>>().join(", ")),
         Const::SizeOf { align, ty: _ } => if *align { "align.of[…]".into() } else { "size.of[…]".into() },
         Const::Nothing => "nothing".into(),
     }

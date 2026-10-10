@@ -287,7 +287,8 @@ grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: it is 2 code points, so it fits 
 gte [fnv:e846773eb1344185] :: `>=` is not an operator; greater-or-equal is `at_least`
 ieee_on_int [fnv:0558ea36e12221de] :: `div.ceil.ieee` keeps a -0, which only a bin or brain16 has
 ieee_on_mod [fnv:2473cab7e2c3596a] :: `.ieee` goes on an operator that can make a -0, `plus`, `minus`, `times`, `pow`, a `div.X`, `mod.floor`, `mod.ceil` or `mod.trunc`; `mod.near` has no `.ieee` form
-incl_bytes_fixed [fnv:2e11d41534b7bb70] :: 'b' is an `array`, which cannot grow or shrink
+incl_bytes_const_changed [fnv:2795471c8b84119c] :: 'b' is a const and cannot be assigned to
+incl_bytes_not_const [fnv:885dbcf9b8190f1c] :: `incl.bytes` is a constant: give it a name with `const 'logo' := incl.bytes
 incl_missing_file [fnv:ccc27d01ee109bb5] :: `incl.bytes` cannot read "incl_assets/missing.png"
 incl_not_ascii [fnv:9787487b6b1cfb1e] :: "incl_assets/cafe.txt" is not ASCII text (byte 4 is 195)
 incl_not_utf8 [fnv:0369459831e72f55] :: "incl_assets/not_text.bin" is not valid UTF-8 text (byte 3 is not)
