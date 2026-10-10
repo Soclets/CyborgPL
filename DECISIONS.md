@@ -34,8 +34,18 @@ meets C, converted to an exact size for maths. Design claude recommended
 (a): every size it can be is a real type now. **Spelled `C.long_double`**
 (owner: "Isn't it capital?", then "yea"), as every language's name is
 capitalized (`extern.C`, `layout.C`, `incl.C`); over (b) `bin.long` and (c)
-`long_double`; design claude recommended (a), `c.` as first shown. Not yet
-asked: whether `bin128` and `not_std.bin80` are the base's or a lobe's (WSMW holds
+`long_double`; design claude recommended (a), `c.` as first shown. **Every
+C type whose size depends on the machine gets a `C.` type, as `long double`
+did** (owner: "What about the other C types?", then "(a)"): Clang showed
+`long` 64 bits on Apple's chips and Linux but 32 on Windows and 32-bit
+Linux, `int` 16 on AVR, `size_t` 32 on 32-bit machines, `wchar_t` 16 on
+Windows, and `char` unsigned on Linux/ARM; so `C.int`, `C.long`, `C.char`,
+`C.size_t`, `C.wchar_t` and the rest, each what C's type is on the machine
+built for, and a header comes through in them (`strlen` returns a
+`C.size_t`); over (b) a header's types turned into the machine's fixed
+sizes (the oracle's `long` → `int64` until now). Design claude recommended
+(a), as Rust (`c_int`) and Swift (`CInt`) do. Not yet asked: the list and
+the spelling of the unsigned and two-word ones; whether `bin128` and `not_std.bin80` are the base's or a lobe's (WSMW holds
 the odd integer widths).
 
 ### 2026-10-10 — Nerve reads C headers with `incl.C.system["stdio.h"];`, so C's functions need no hand-written `extern.C` (owner; built in the oracle)
