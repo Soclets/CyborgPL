@@ -105,6 +105,7 @@ Money    d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f  (firs
 UniTect  137a9a35afc69ec6ee796bc39eeefc75680db17ce8a04443126a492812a0ae96  (first version 2026-10-07T20:22:24+07:00)
 CAPS     90d0813dc72a0c7d54a4ded7a2c9577e77f0036958b245ab01808f9a8568bd01  (first version 2026-10-07T20:22:24+07:00)
 CNC      04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1  (first version 2026-10-10T16:42:00+07:00)  ("CNC Not C": everything about C)
+Broca    55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece  (first version 2026-10-12T10:19:44+07:00)  (names and text in every human language: WSTN, UniTect and CAPS, retired, 2026-10-12)
 std      fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936  (a limb, 2026-10-06T12:57:14+07:00)
 ```
 

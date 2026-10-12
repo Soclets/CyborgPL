@@ -45,8 +45,9 @@ then "Broca"), after Broca's area, the brain's part for producing
 language: names in any script (WSTN's), text beyond UTF-8 and counting in
 points and graphemes (UniTect's), and the case marks (CAPS's). Offered
 Broca, Wernicke, or an acronym in the owner's style; design claude
-picked Broca. UniTect's, WSTN's and CAPS's IDs are retired; Broca's is not
-yet made. Not built.
+picked Broca. UniTect's, WSTN's and CAPS's IDs are retired. **Broca's
+registry ID** (owner: "let's go"), made as the others' were (`openssl rand
+-hex 32`, run once): `55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece`, first version `2026-10-12T10:19:44+07:00`. Not built.
 
 ### 2026-10-10 — CNC adds `suc`, "Synapse Uses Clang", another name for the `synapse` command (owner)
 
