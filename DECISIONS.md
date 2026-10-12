@@ -27,7 +27,13 @@ loop is `for 'i' from 1 to 10 by 1 { … }`, `to` including its end and
 written, no commas**; modifiers and a type stay where they were (`for seq
 perm 'k': int8 from 0 to 6 by 2`). Design claude's reading, not asked:
 `in range[…]` is refused, naming the new spelling, as old spellings are.
-Not built.
+Not built. Asked "Are there other stuff that would want this style?"
+(mostly not: the sentence form suits statements that start with a
+keyword; calls inside expressions keep their brackets), **slices take the
+same words as labels in their brackets: `list.slice[lend 'xs', from pos 2,
+to pos 4]`, and `before` for an end left out** (owner: "yeah"), for
+`list.slice`, `array.slice` and `str.slice`, so `from` / `to` / `before`
+are learned once. Design claude recommended it. Not built.
 
 ### 2026-10-12 — (dropped the same day) Conversion as `convert['x'](from int32, to int16)`, `( )` holding a call's details (owner)
 
