@@ -5,6 +5,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-12 — The regrouping so far is built in the oracle: IEG and TAS in the Brainstem, Broca for names and text (owner: "Yea")
+
+Built (owner: "Yea", to building it before MCPS): `no_check`,
+`NO_FUCKING_CHECKS`, `on.machine`, `test fn` and `must` need no lobe; the
+`vouch` and operator powers are the Brainstem's, granted to every Neuron
+and still listed in `powers`; MCPS no longer needs IEG; names in other
+scripts, text beyond UTF-8, grapheme and point counting, and the case
+marks are Broca's. Listing IEG or TAS is refused ("IEG is retired: since
+2026-10-12 it is part of the Brainstem, Nerve's base; take it out of
+`lobes`"), and listing WSTN, UniTect or CAPS names Broca's line to list
+instead; seventy example and test manifests were changed so. A consequence
+design claude did not ask, following from `no_check` being the
+Brainstem's: 2026-10-06's "Brainstem marks nothing" (a Neuron without IEG
+writing assembly or a C call unmarked) is gone, so every unprovable site is
+marked everywhere; `examples/signatar_hello_c` and `power_deny_except` now
+write `no_check` and list `vouch`, and the test that checked an unmarked
+`asm` block expects the marker. Tests that refused the old gates (MCPS
+without IEG, `on.machine` without IEG, `test fn` without TAS, an operator
+power without IEG) are gone; `no_ieg_nocheck` and
+`no_ieg_no_checks_at_all` became `vouch_not_listed` and
+`vouch_not_listed_no_checks`; new: `ieg_retired`, `wstn_now_broca`.
+
 ### 2026-10-12 — A C enum's later name for a number already named comes through as a const (owner: a)
 
 Compiler claude found C enums giving two names one number (`D_A = 1, D_B =
@@ -83,11 +105,11 @@ writes volatile access, barriers and intrinsics once for every chip).
 inline assembly; the raw-operations sketch is dropped; MCPS and the GPU
 lobes no longer require IEG**; over (b) a small IEG of the two and (c) IEG
 grown into a systems lobe with WSMW's small widths. Design claude
-recommended (a). IEG's ID is retired. Not built. **TAS is dissolved:
+recommended (a). IEG's ID is retired. **TAS is dissolved:
 `test fn` and `must` are the Brainstem's** (owner: "(a)"), testing being
 no expertise, and `test fn` syntax, which only the Brainstem or a lobe can
 add; over (b) TAS staying a lobe. Design claude recommended (a), as Rust's
-`#[test]` needs nothing extra. TAS's ID is retired. Not built. **CAPS
+`#[test]` needs nothing extra. TAS's ID is retired. **CAPS
 joins the text and international lobe, with UniTect and WSTN** (owner:
 "(c)"), its case folding being Unicode's (`ß` matching `SS`); over (a) back
 into the Brainstem and (b) CAPS kept as a lobe of one feature. Design
@@ -101,7 +123,7 @@ points and graphemes (UniTect's), and the case marks (CAPS's). Offered
 Broca, Wernicke, or an acronym in the owner's style; design claude
 picked Broca. UniTect's, WSTN's and CAPS's IDs are retired. **Broca's
 registry ID** (owner: "let's go"), made as the others' were (`openssl rand
--hex 32`, run once): `55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece`, first version `2026-10-12T10:19:44+07:00`. Not built.
+-hex 32`, run once): `55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece`, first version `2026-10-12T10:19:44+07:00`.
 
 **The number lobes (WSMW, Money, AI, and where `bin128` and `not_std.bin80`
 go) wait** (owner: "Those are for later, we won't be developing those lobes

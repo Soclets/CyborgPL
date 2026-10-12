@@ -1,7 +1,0 @@
-kin::Manifest[
-    name = "x",
-    prefix = "x",
-    version = "1.0.0",
-    powers = [kin::Power.operators_on_builtin_types,],
-    targets = [kin::Target[name = "aarch64-macos"],]
-];

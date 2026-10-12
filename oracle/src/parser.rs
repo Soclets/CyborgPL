@@ -21,7 +21,7 @@ pub const KEYWORDS: &[&str] = &[
 
 /// A core is listed by its registry ID and version (owner, 2026-10-06: "ID", then "`a`"); the
 /// official ones, from `openssl rand -hex 32` (owner: "yea"), all first released at `CORE_VERSION`
-pub const CORE_IDS: [(&str, &str); 16] = [
+pub const CORE_IDS: [(&str, &str); 17] = [
     ("IEG", "5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085"),
     ("ASP", "4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f"),
     ("Genny", "c3e299d99a13567b2039c13fc17d0ca562be9d6f657f8c40a4774081983b20c9"),
@@ -41,11 +41,13 @@ pub const CORE_IDS: [(&str, &str); 16] = [
     ("CAPS", "90d0813dc72a0c7d54a4ded7a2c9577e77f0036958b245ab01808f9a8568bd01"),
     // CNC, "CNC Not C" (owner, 2026-10-10): everything about C, the Brainstem keeping none of it
     ("CNC", "04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1"),
+    // Broca (owner, 2026-10-12): names and text in every human language, WSTN, UniTect and CAPS in one
+    ("Broca", "55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece"),
 ];
 /// MTM's ID, retired with it (owner, 2026-10-07: "MTM is gone.")
 pub const MTM_ID: &str = "9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c3447af3d6a56";
 /// The cores made after the first eight, each first released when its ID was made (owner, 2026-10-06/07)
-pub const LATER_CORE_VERSIONS: [(&str, &str); 8] = [("CNC", "2026-10-10T16:42:00+07:00"), ("WSTN", "2026-10-06T18:48:22+07:00"), ("TAS", "2026-10-07T18:08:59+07:00"),
+pub const LATER_CORE_VERSIONS: [(&str, &str); 9] = [("Broca", "2026-10-12T10:19:44+07:00"), ("CNC", "2026-10-10T16:42:00+07:00"), ("WSTN", "2026-10-06T18:48:22+07:00"), ("TAS", "2026-10-07T18:08:59+07:00"),
     ("AI", "2026-10-07T20:22:24+07:00"), ("WSMW", "2026-10-07T20:22:24+07:00"), ("Money", "2026-10-07T20:22:24+07:00"),
     ("UniTect", "2026-10-07T20:22:24+07:00"), ("CAPS", "2026-10-07T20:22:24+07:00")];
 pub fn core_version(core: &str) -> &'static str { LATER_CORE_VERSIONS.iter().find(|(n, _)| *n == core).map(|(_, v)| *v).unwrap_or(CORE_VERSION) }
@@ -432,12 +434,12 @@ impl Parser {
         // Brainstem's names are English letters, digits and `_`, bare or quoted (owner, 2026-10-06: "Bare
         // names should be English only", "English only too, crazy ones from the core"); WSTN allows every
         // script and emoji ("`b`"). Text values are not names.
-        if self.lacks.iter().any(|c| c == "WSTN") {
+        if self.lacks.iter().any(|c| c == "Broca") {
             for i in 0..self.toks.len() {
                 let (name, shown) = match &self.toks[i].tok { Tok::Word(w) => (w, w.clone()), Tok::Var(v) => (v, format!("'{v}'")), _ => continue };
                 if name.is_ascii() { continue; }
                 self.pos = i;
-                return self.err(format!("`{shown}` is not an English name: Brainstem's names are English letters, digits and `_`; a name in another script, or an emoji, needs the lobe WSTN in this Neuron's `lobes` (`{}`)", core_line("WSTN")));
+                return self.err(format!("`{shown}` is not an English name: Brainstem's names are English letters, digits and `_`; a name in another script, or an emoji, needs the lobe Broca in this Neuron's `lobes` (`{}`)", core_line("Broca")));
             }
         }
         // the words a core brings (design/cores.md): ASP `to.` and `check`; IEG `nocheck` and
@@ -448,7 +450,6 @@ impl Parser {
                 let Tok::Word(w) = &self.toks[i].tok else { continue };
                 if i > 0 && matches!(self.toks[i - 1].tok, Tok::Dot | Tok::ColonColon) { continue; }
                 let core = match w.as_str() {
-                    "nocheck" | "NO_FUCKING_CHECKS" => "IEG",
                     "concur" | "whichever" | "channel" | "para" => "MCPS",
                     _ => continue,
                 };
@@ -462,24 +463,22 @@ impl Parser {
         // what the base was slimmed into (owner, 2026-10-07): testing is TAS's, `brain16` AI's,
         // `int128` and the other widths WSMW's, `deci` Money's, Unicode text UniTect's, the case
         // marks CAPS's. A word after `::` names something in a path.
-        if self.lacks.iter().any(|c| ["TAS", "AI", "WSMW", "Money", "UniTect", "CAPS", "CNC"].contains(&c.as_str())) {
+        if self.lacks.iter().any(|c| ["AI", "WSMW", "Money", "Broca", "CNC"].contains(&c.as_str())) {
             for i in 0..self.toks.len() {
                 if i > 0 && self.toks[i - 1].tok == Tok::ColonColon { continue; }
                 let prev_word = |k: usize| -> Option<&str> { if i >= k { if let Tok::Word(w) = &self.toks[i - k].tok { return Some(w.as_str()); } } None };
                 let after_dot = i > 0 && self.toks[i - 1].tok == Tok::Dot;
                 let next = self.toks.get(i + 1).map(|t| &t.tok);
                 let found: Option<(&str, String)> = match &self.toks[i].tok {
-                    Tok::Word(w) if w == "test" && matches!(next, Some(Tok::Word(f)) if f == "fn") => Some(("TAS", "`test fn`".into())),
-                    Tok::Word(w) if w == "must" && !after_dot => Some(("TAS", "`must`".into())),
                     Tok::Word(w) if w == "brain16" => Some(("AI", "`brain16`".into())),
                     Tok::Word(w) if w == "int128" || w == "uint128" => Some(("WSMW", format!("`{w}`"))),
                     Tok::Op(o) if o == "!" && matches!(next, Some(Tok::Word(s)) if s == "std") => Some(("WSMW", "a `not_std.` width".into())),
                     Tok::Word(w) if w.starts_with("deci") && w[4..].parse::<u32>().is_ok() => Some(("Money", format!("`{w}`"))),
                     Tok::Op(o) if o == "*" && matches!(next, Some(Tok::Bin(..))) => Some(("Money", "an exact decimal literal (`*0.1`)".into())),
-                    Tok::Word(w) if after_dot && prev_word(2) == Some("str") && (w == "utf16" || w == "utf32") => Some(("UniTect", format!("`str.{w}`"))),
-                    Tok::Word(w) if after_dot && prev_word(2) == Some("char") && (w == "point" || w == "grapheme") => Some(("UniTect", format!("`char.{w}`"))),
-                    Tok::Word(w) if w == "graphemes" || w == "points" || (after_dot && (w == "grapheme" || w == "point")) => Some(("UniTect", format!("counting in {w}"))),
-                    Tok::Word(w) if w == "case" && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(m)) if ["any", "exact", "insensitive", "sensitive"].contains(&m.as_str())) => Some(("CAPS", "a `case` mark".into())),
+                    Tok::Word(w) if after_dot && prev_word(2) == Some("str") && (w == "utf16" || w == "utf32") => Some(("Broca", format!("`str.{w}`"))),
+                    Tok::Word(w) if after_dot && prev_word(2) == Some("char") && (w == "point" || w == "grapheme") => Some(("Broca", format!("`char.{w}`"))),
+                    Tok::Word(w) if w == "graphemes" || w == "points" || (after_dot && (w == "grapheme" || w == "point")) => Some(("Broca", format!("counting in {w}"))),
+                    Tok::Word(w) if w == "case" && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(m)) if ["any", "exact", "insensitive", "sensitive"].contains(&m.as_str())) => Some(("Broca", "a `case` mark".into())),
                     // everything about C is CNC's (owner, 2026-10-10): `extern.C`, `incl.C`, `layout.C`
                     Tok::Word(w) if ["extern", "incl", "layout"].contains(&w.as_str()) && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(c)) if c == "C") => Some(("CNC", format!("`{w}.C`"))),
                     Tok::Word(w) if w == "C" && !after_dot && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(c)) if C_TYPES.contains(&c.as_str())) => {
@@ -2112,10 +2111,10 @@ impl Parser {
                         // and `inline.S` were MTM's, refused before here as old spellings (MTM is gone, owner 2026-10-07)
                         Tok::Word(l) if l == "ASM" || l == "Assembly" || l == "S" => { self.use_power("inline_assembly", None, self.line()); }
                         Tok::Word(l) if l == "asm" || l == "s" || l == "assembly" => return self.err("an inline language's name is in capitals: `inline.ASM`".to_string()),
-                        Tok::Word(l) if l == "LL" || l == "LLVM" || l == "LLVM_Intermediate_Representation" => return self.err("`inline.LL`, LLVM IR in place, is IEG's (owner, 2026-10-07); the oracle does not read it yet"),
+                        Tok::Word(l) if l == "LL" || l == "LLVM" || l == "LLVM_Intermediate_Representation" => return self.err("`inline.LL`, LLVM IR in place, is the Brainstem's (owner, 2026-10-12, IEG being dissolved); the oracle does not read it yet"),
                         Tok::Word(l) if l == "MSL" || l == "Metal_Shading_Language" => return self.err("`inline.MSL`, the Metal Shading Language, is the Metal lobe's (owner, 2026-10-07); the oracle does not read it yet"),
                         Tok::Word(l) if l == "ll" || l == "msl" => return self.err(format!("an inline language's name is in capitals: `inline.{}`", l.to_uppercase())),
-                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; the inline languages are `inline.ASM` (Brainstem's), `inline.LL` (IEG's) and `inline.MSL` (the Metal lobe's) (`inline.C` is possible later — LLVM ships clang)")),
+                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; the inline languages are `inline.ASM` (Brainstem's), `inline.LL` (the Brainstem's) and `inline.MSL` (the Metal lobe's) (`inline.C` is possible later — LLVM ships clang)")),
                         other => return self.err(format!("expected `ASM` after `inline.`, found {other}")),
                     }
                     let text = match self.advance().tok {
@@ -2298,7 +2297,6 @@ impl Parser {
             match p.advance().tok { Tok::Word(w) => Ok(w), other => p.err(format!("expected {what}, found {other}")) }
         };
         if which == "machine" {
-            if self.lacks.iter().any(|c| c == "IEG") { return self.core_missing("IEG", "`on.machine`"); }
             if narrow.as_deref() != Some("chip") { return self.err("`on.machine` asks the chip what it can do: `on.machine.chip sve { … }`"); }
             let f = word(self, "a chip or a feature (`aarch64`, `sve`, `neon`, …)")?;
             return Ok((true, machine_has(&f).map_err(|m| ParseError { line: self.line(), col: 0, msg: m })?));

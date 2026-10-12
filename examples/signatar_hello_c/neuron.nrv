@@ -1,11 +1,11 @@
-# Hello World on Brainstem alone, through C (design/cores.md, "Hello World at every level"): no
-# lobes, no cord. Brainstem marks nothing, so a C call needs no `no_check` here; that rule is IEG's
-# (owner, 2026-10-06).
+# Hello World through C (design/cores.md, "Hello World at every level"): no cord, only CNC, which C
+# calls need. The call is a `no_check` site, marked: the marker is the Brainstem's since IEG was
+# dissolved (owner, 2026-10-12), so it is written everywhere, as the `vouch` power is listed.
 
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 MAIN {
     let 'text' := "Hello, world!
 ";
-    let 'n' := write[1, lend 'text', 14];
+    no_check let 'n' := write[1, lend 'text', 14];
 }

@@ -88,7 +88,7 @@ version, `kin::Lobe[id = "…", version = "…"]`. The official ones, first
 version `2026-10-06T18:04:29+07:00`:
 
 ```
-IEG      5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085
+IEG      5d0e846b2a0f57f6fae20216e8d856d41b6257e0a6104aaf0bc55b57b44b4085  (dissolved into the Brainstem, 2026-10-12)
 ASP      4882d1f3bf7b11d59879e4921672f15e91369e25d55a10e3dcd24e9b3fbe676f
 Genny    c3e299d99a13567b2039c13fc17d0ca562be9d6f657f8c40a4774081983b20c9
 MCPS     7d0ccfe6e41eed3a4d8ffe00ccaada9b89a4b9a3ea553a9d869cb6902e2ca75d
@@ -96,14 +96,14 @@ AutoGPU  67b2514aab0ffa5ca9c3ae48144498880466d68aa3b8b8f8e1082e6032c24c4d
 Metal    3e7b81fec072c86d58538d10978aff1d42814c9e907f1259766851795cded9b7
 Nvidia   beefcce9ed7cccf0d62f5a6e004c4bd53c6ae9e3a45c48883d3b1dc4be913361
 Vulkan   63ff7ed8da5e0eead0164488e89553b240501f16d4be863ba6be1e46b51ec3ec
-WSTN     e86b0df56e35b02b2ee91df6d89e63011564364d404ed7f5ea25d768d6d854d4  (first version 2026-10-06T18:48:22+07:00)
+WSTN     e86b0df56e35b02b2ee91df6d89e63011564364d404ed7f5ea25d768d6d854d4  (first version 2026-10-06T18:48:22+07:00)  (part of Broca, 2026-10-12)
 MTM      9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c3447af3d6a56  (first version 2026-10-06T19:18:54+07:00)  (gone, 2026-10-07)
-TAS      63baa4cf89d8b6df6adceb812df005b30ea2771fd56f2117d0246ef911de21aa  (first version 2026-10-07T18:08:59+07:00)
+TAS      63baa4cf89d8b6df6adceb812df005b30ea2771fd56f2117d0246ef911de21aa  (first version 2026-10-07T18:08:59+07:00)  (dissolved into the Brainstem, 2026-10-12)
 AI       8c723ccae25a719cd66eb44e95aeeef0557acec1467624ab91092c4ada766f21  (first version 2026-10-07T20:22:24+07:00)
 WSMW     0fb49902b57b8bc0b72caf424d80e17d035038e2cac58292d92f18b792d205a0  (first version 2026-10-07T20:22:24+07:00)
 Money    d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f  (first version 2026-10-07T20:22:24+07:00)
-UniTect  137a9a35afc69ec6ee796bc39eeefc75680db17ce8a04443126a492812a0ae96  (first version 2026-10-07T20:22:24+07:00)
-CAPS     90d0813dc72a0c7d54a4ded7a2c9577e77f0036958b245ab01808f9a8568bd01  (first version 2026-10-07T20:22:24+07:00)
+UniTect  137a9a35afc69ec6ee796bc39eeefc75680db17ce8a04443126a492812a0ae96  (first version 2026-10-07T20:22:24+07:00)  (part of Broca, 2026-10-12)
+CAPS     90d0813dc72a0c7d54a4ded7a2c9577e77f0036958b245ab01808f9a8568bd01  (first version 2026-10-07T20:22:24+07:00)  (part of Broca, 2026-10-12)
 CNC      04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1  (first version 2026-10-10T16:42:00+07:00)  ("CNC Not C": everything about C)
 Broca    55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece  (first version 2026-10-12T10:19:44+07:00)  (names and text in every human language: WSTN, UniTect and CAPS, retired, 2026-10-12)
 std      fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936  (a limb, 2026-10-06T12:57:14+07:00)

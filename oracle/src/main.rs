@@ -245,7 +245,7 @@ impl Dep { fn is_std(&self) -> bool { self.id.as_deref() == Some(parser::STD_ID)
 
 /// The official cores (design/cores.md, 2026-10-06). Another core is a Rust plugin, which the oracle
 /// cannot load.
-const OFFICIAL_CORES: [&str; 14] = ["IEG", "MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan", "WSTN", "TAS", "AI", "WSMW", "Money", "UniTect", "CAPS", "CNC"];
+const OFFICIAL_CORES: [&str; 10] = ["MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan", "AI", "WSMW", "Money", "CNC", "Broca"];
 
 use parser::CORE_IDS;
 
@@ -393,6 +393,10 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     };
                     // ASP and Genny folded into the base (owner, 2026-10-08: "`a`" to both); their IDs no longer name a lobe
                     if *core == "ASP" || *core == "Genny" { return Err(format!("{shown}: line {line}: {core} is retired: since 2026-10-08 it is part of the Brainstem, Nerve's base; take it out of `lobes`")); }
+                    // the lobes regrouped by expertise (owner, 2026-10-12): IEG and TAS dissolved into the Brainstem,
+                    // WSTN, UniTect and CAPS joined into Broca
+                    if *core == "IEG" || *core == "TAS" { return Err(format!("{shown}: line {line}: {core} is retired: since 2026-10-12 it is part of the Brainstem, Nerve's base; take it out of `lobes`")); }
+                    if ["WSTN", "UniTect", "CAPS"].contains(core) { return Err(format!("{shown}: line {line}: {core} is part of Broca since 2026-10-12: list `{}` instead", parser::core_line("Broca"))); }
                     let want = parser::core_version(core);
                     if version != want { return Err(format!("{shown}: line {line}: the oracle stands in for {core} `{want}` only, the installed one; this asks for `{version}`")); }
                     let core = core.to_string();
@@ -425,9 +429,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     // cord needed ASP and IEG until 2026-10-08, when the operators and ASP's number rules moved into
     // the base (owner: "`a`" to both); it needs no lobe now (design claude's reading)
     // cores depend on cores (owner, 2026-10-05); MCPS "Needs IEG, not std" (owner, 2026-10-06)
-    if cores.iter().any(|c| c == "MCPS") && !cores.iter().any(|c| c == "IEG") {
-        return Err(format!("{shown}: line {mline}: the lobe MCPS needs IEG: add `{}` to `lobes`", parser::core_line("IEG")));
-    }
+    // MCPS needed IEG until 2026-10-12, when IEG was dissolved into the Brainstem
     MANIFEST_POWERS.with(|m| *m.borrow_mut() = Some((powers_seen, deny_seen)));
     Ok((prefix, deps, cores))
 }
@@ -518,11 +520,8 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
                 _ => format!("uses `{path}`"),
             };
             let at = if root.is_empty() { format!("line {line}") } else { format!("line {line} of `{}`", limb.prefix) };
-            // 1. granted: Brainstem's to every limb; vouching and the operator powers by IEG
-            let by_ieg = matches!(segs[0], "vouch" | "operators_on_builtin_types" | "prefix_operators");
-            if by_ieg && !limb.cores.iter().any(|c| c == "IEG") {
-                return Err(format!("{at}: {who} {what}, a power no lobe it lists grants: IEG grants `{}` (add `{}` to its `lobes`)", segs[0], parser::core_line("IEG")));
-            }
+            // 1. granted: every power here is the Brainstem's to every limb since IEG was dissolved into it
+            // (owner, 2026-10-12), vouching and the operator powers included
             // 2. listed by the Neuron
             let covers = |p: &PowerRef| p.path.len() <= segs.len() && p.path.iter().zip(&segs).all(|(a, b)| a == b) && (p.things.is_empty() || thing.as_ref().map_or(false, |t| p.things.contains(t)));
             if !limb.powers.iter().any(covers) {
