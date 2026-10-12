@@ -23,8 +23,9 @@ the oracle: a `:=` whole number keeps the range its operands allow (`+`,
 calls' return types), and the conversion asks for `otherwise` when that
 range could have more digits than the `deci` holds; reject test
 `deci_from_wide_result`. Provisional in the oracle: a `:=` variable later
-changed keeps its first range, and one the oracle cannot bound is taken
-as fitting.
+changed keeps its first range; one nothing bounds is taken as possibly
+too long, so `otherwise` is asked for (Synapse's reading, matched the same
+day: under (a) an unbounded number could pass the digits).
 
 ### 2026-10-12 — A long example, `examples/corner_shop.nrv`; and an oracle bug: a struct field's type was not its value's context
 

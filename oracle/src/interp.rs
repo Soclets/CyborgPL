@@ -2308,7 +2308,8 @@ impl<'p> Interp<'p> {
                             Some(t @ (Ty::Int(_) | Ty::Uint(_))) => crate::value::int_range(&t).map_or(true, |(lo, hi)| digits(lo).max(digits(hi)) > p),
                             Some(Ty::Ranged(_, Bound::Int(lo), Bound::Int(hi))) => digits(lo).max(digits(hi)) > p,
                             // a `:=` result or arithmetic: what its operands let it be (owner, 2026-10-12: "(a)")
-                            _ => self.static_bound(e).map_or(false, |(lo, hi)| digits(lo).max(digits(hi)) > p),
+                            // nothing bounds it: it could have too many digits, so `otherwise` is asked for (as Synapse)
+                            _ => self.static_bound(e).map_or(true, |(lo, hi)| digits(lo).max(digits(hi)) > p),
                         }, _ => false },
                         _ => false,
                     };
@@ -4862,7 +4863,31 @@ impl<'p> Interp<'p> {
                     _ => return None,
                 }
             }
-            Expr::Call(_) | Expr::Builtin(..) | Expr::Index(..) | Expr::Field(..) => match self.expr_ty_own(e)? {
+            // a field: its declared type (`'line'.count`, an `int32[min 1, max 99]`)
+            Expr::Field(var, field, _) => {
+                let slot = self.lookup(var)?;
+                let sname = match &*slot.cell.borrow() { Value::Struct(n, _) => n.clone(), _ => return None };
+                let def = self.prog.structs.iter().find(|d| d.name == sname)?;
+                let t = def.fields.iter().find(|f| &f.name == field)?.ty.clone();
+                match t {
+                    t @ (Ty::Int(_) | Ty::Uint(_)) => crate::value::int_range(&t)?,
+                    Ty::Ranged(_, Bound::Int(lo), Bound::Int(hi)) => (lo, hi),
+                    _ => return None,
+                }
+            }
+            // `map.get[lend 'm', k]`: the map's value type
+            Expr::MapFail(op, args, _, _) if op == "get" => {
+                let Some(crate::ast::Value::Expr(Expr::Owned(_, m, _) | Expr::Var(m, _))) = args.values.first() else { return None };
+                match &self.lookup(m)?.ty {
+                    Some(Ty::Map(_, v, _)) => match &**v {
+                        t @ (Ty::Int(_) | Ty::Uint(_)) => crate::value::int_range(t)?,
+                        Ty::Ranged(_, Bound::Int(lo), Bound::Int(hi)) => (*lo, *hi),
+                        _ => return None,
+                    },
+                    _ => return None,
+                }
+            }
+            Expr::Call(_) | Expr::Builtin(..) | Expr::Index(..) => match self.expr_ty_own(e)? {
                 t @ (Ty::Int(_) | Ty::Uint(_)) => crate::value::int_range(&t)?,
                 Ty::Ranged(_, Bound::Int(lo), Bound::Int(hi)) => (lo, hi),
                 _ => return None,
