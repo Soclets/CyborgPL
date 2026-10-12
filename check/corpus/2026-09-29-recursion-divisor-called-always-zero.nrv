@@ -48,7 +48,7 @@ enum E2 {
     c3: uint16
 }
 
-fn f2 ['pr': int32[0, 6], 'p1': uint64, 'p2': uint64[min, 66]] -> int64 {
+fn f2 ['pr': int32[min 0, max 6], 'p1': uint64, 'p2': uint64[max 66]] -> int64 {
     if 'pr' equal_to 0 {
         return (((to.int64[to.int64['p1'] or.bit 15] or.bit 1) times ((2855519550069594396 minus 6) mod.floor (-to.int64['p1']))) mod.floor 1295) minus 800;
     }

@@ -44,7 +44,7 @@ enum E1 {
     c2: int64
 }
 
-fn f1 ['p1': uint16] -> int32[-181, 64] {
+fn f1 ['p1': uint16] -> int32[min -181, max 64] {
     {
         let mut 'w1': int32 = 7;
         loop {
@@ -99,7 +99,7 @@ fn f1 ['p1': uint16] -> int32[-181, 64] {
     return ((to.int32['p1'] mod.floor (-380335291)) mod.near (((710220129 div.floor 1081046253) mod.floor 1) plus 1)) minus 14;
 }
 
-fn f2 ['pr': uint8[0, 3], 'p1': uint16, 'p2': int16, 'p3': int8] -> int8 {
+fn f2 ['pr': uint8[min 0, max 3], 'p1': uint16, 'p2': int16, 'p3': int8] -> int8 {
     if 'pr' equal_to 0 {
         return 'p3';
     }
@@ -140,7 +140,7 @@ MAIN {
     change 'v34' = ((((to.uint32['v36'] times ((3626913585 minus 'v34' plus 'v34') mod.floor 65536)) mod.floor 311) plus 660) mod.floor 311) plus 660;
     {
         if false and to.uint64['v36'] minus 60550 equal_to 4044568063511618629 {
-            let 'v38': int64[1, max] = ((-1) mod.floor 9223372036854775807) plus 1;
+            let 'v38': int64[min 1] = ((-1) mod.floor 9223372036854775807) plus 1;
             {
                 let 'w39': brain16 = 2.5;
                 let 'w40' := to.brain16['v33'];

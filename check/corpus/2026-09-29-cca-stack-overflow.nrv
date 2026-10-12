@@ -56,10 +56,10 @@ fn b4 [@x] [lent @x 'a': list[uint64]] -> lent @x list[uint64] {
     return b1[lend 'a', lend 'a', lend 'a'];
 }
 
-fn f1 ['p1': uint8[min, 153], 'p2': int64[0, 9223372036854775807], 'p3': uint8] -> int16[1, max] {
+fn f1 ['p1': uint8[max 153], 'p2': int64[min 0, max 9223372036854775807], 'p3': uint8] -> int16[min 1] {
     for perm 'i1': int64 from 22 to 22 by 1 {
         put_i[(-22677) plus to.int16['p3']];
-        let immut 'v2': uint8[min, 12] = 11 times ('p3' div.floor 'p3');
+        let immut 'v2': uint8[max 12] = 11 times ('p3' div.floor 'p3');
         put_u[174 plus ((to.uint8['v2' div.floor (('v2' mod.floor 8) plus 1)] or.bit to.uint8[191 plus ('p3' mod.floor 65)]) mod.floor 82)];
         let 's3': simd[int64, 2] = simd.fill[value -1];
     }

@@ -36,7 +36,7 @@ fn put_i ['n': int64] {
     }
 }
 
-fn f ['pr': int32[0, 20], 'k': int32] -> int32 {
+fn f ['pr': int32[min 0, max 20], 'k': int32] -> int32 {
     if 'pr' at_least 20 { return 0; }
     let 'q': int32 = 100 div.floor ('k' minus 12);
     return f['pr' plus 1, 'k' plus 1] plus 'q';

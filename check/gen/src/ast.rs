@@ -80,7 +80,7 @@ impl Ty {
 }
 
 /// A declared type: a base type, and for a range type its bounds
-/// (`int32[0, 100]`, `int32[1, max]`, `int32[min, 100]`; design/input.md).
+/// (`int32[min 0, max 100]`, `int32[min 1]`, `int32[max 100]`; owner, 2026-10-12).
 /// `None` in a bound is the base type's own `min` / `max`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct TyR {
@@ -98,10 +98,19 @@ impl TyR {
     pub fn text(self) -> String {
         match self.range {
             None => self.base.name().to_string(),
+            // bounds labelled, a side left out the type's own limit (owner, 2026-10-12)
             Some((lo, hi)) => {
-                let lo = lo.map(|v| v.to_string()).unwrap_or("min".into());
-                let hi = hi.map(|v| v.to_string()).unwrap_or("max".into());
-                format!("{}[{lo}, {hi}]", self.base.name())
+                let mut parts = vec![];
+                if let Some(v) = lo {
+                    parts.push(format!("min {v}"));
+                }
+                if let Some(v) = hi {
+                    parts.push(format!("max {v}"));
+                }
+                if parts.is_empty() {
+                    return self.base.name().to_string();
+                }
+                format!("{}[{}]", self.base.name(), parts.join(", "))
             }
         }
     }

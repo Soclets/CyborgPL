@@ -1647,7 +1647,7 @@ impl Gen {
             let name = self.name("d");
             let inside = format!("0.{}", self.rng.range(1, 99));
             let value = if self.take_risk() { Expr::Bin(BinOp::Mul, Box::new(Expr::Var(self.rng.pick(&decis).clone())), Box::new(Expr::Num("3.0".into()))) } else { Expr::Num(inside) };
-            body.push(Stmt::TypedLet { name: name.clone(), mutable: false, ty: "deci64[0.0, 1.0]".into(), value });
+            body.push(Stmt::TypedLet { name: name.clone(), mutable: false, ty: "deci64[min 0.0, max 1.0]".into(), value });
             decis.push(name);
         }
         // printed by cord, its own text, stored or useful (Synapse 252fa188)

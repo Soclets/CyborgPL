@@ -41,13 +41,13 @@ enum E1 {
     c2: uint8
 }
 
-fn f1 ['pr': int32[0, 8], 'p1': bool, 'p2': uint16, 'p3': uint64] -> uint8 {
+fn f1 ['pr': int32[min 0, max 8], 'p1': bool, 'p2': uint16, 'p3': uint64] -> uint8 {
     if 'pr' at_least 8 {
         put_u[999000 plus ('p3' mod.floor 256)];
         return (to.uint8['p3' mod.floor 256] shl 0) minus ((to.uint8['pr'] plus 127) mod.floor 1);
     }
     let 'r1': uint8 = f1['pr' plus 1, 'p1' or (((117 div.floor 15) div.near (((12 mod.floor ((to.int8['pr'] mod.floor 62) minus 62)) mod.floor 62) minus 62)) not_equal ((-128) plus (((to.int8['p3' mod.floor 128] or.bit (-11)) mod.floor 127) plus 1))), 32768 plus ((('p2' times 1) mod.floor (((to.uint16[('p2' minus ('p2' mod.floor 1)) minus (('p2' plus 0) mod.floor 1)] times.wrap to.uint16['p3' mod.floor 65536]) mod.floor 43388) plus 1)) mod.floor 32768), ((to.uint64['p2'] plus 9223372036854775807) mod.floor ((to.uint64['p2'] mod.floor 10) plus 1)) mod.floor 15663594281552694135];
-    let mut 'v2': uint32[0, 198] = 2 pow 4;
+    let mut 'v2': uint32[min 0, max 198] = 2 pow 4;
     {
         let mut 'w3': uint8 = 3;
         loop {
@@ -65,7 +65,7 @@ fn f1 ['pr': int32[0, 8], 'p1': bool, 'p2': uint16, 'p3': uint64] -> uint8 {
 fn f2 ['p1': uint16] -> uint16 {
     if ((49 div.floor 19) > to.uint8['p1' mod.floor 256]) and true {
         let mut 'e4': E1 = E1.c1;
-        let 'v5': int16[min, 100] = (to.int16['p1' mod.floor 32768] mod.floor 32767) minus 32758;
+        let 'v5': int16[max 100] = (to.int16['p1' mod.floor 32768] mod.floor 32767) minus 32758;
     }
     let 'v7': int32 = match E1.c1 {
         c1 { (to.int32['p1'] mod.floor 523) minus 592 }
@@ -85,9 +85,9 @@ MAIN {
     if true {
         if ('v12' equal_to 28) or.else ((12 mod.floor ('v12' minus 28)) < (-1)) {
             let 'e13': E1 = E1.c2[(f1[7, (to.int32['v12'] not_equal ((-320966724) mod.ceil 594269508)) or ((to.uint8['v12'] shl to.uint8['v12']) equal_to f1[to.int32['v12'] times to.int32['v12'], ((-64) equal_to (to.int8['v12'] times (-69))) and (('v12' equal_to 0) or.else ((20 mod.floor 'v12') < 0)), 'v12', to.uint64['v12'] plus 0]), (f2[to.uint16[f2[0 plus f2[0 plus 'v12']]] and.bit to.uint16[to.uint16['v12' plus 'v12'] xor to.uint16['v12' div.trunc (('v12' mod.floor 8460) plus 1)]]] div.floor 3) plus ('v12' plus ('v12' or.bit 'v12')), 5 times (to.uint64['v12'] div.floor 9223372036854775807)] minus 0) mod.floor 53];
-            let immut 'v14': uint16[111, max] = ('v12' mod.floor 65425) plus 111;
+            let immut 'v14': uint16[min 111] = ('v12' mod.floor 65425) plus 111;
             put_i[to.int16['v14' mod.floor 32768]];
-            let 'v16': int16[min, -110] = match 'e13' {
+            let 'v16': int16[max -110] = match 'e13' {
                 c1 { ((1 times ((((-8590) plus to.int16['v12']) mod.floor 363) minus 181)) mod.floor 32658) minus 32767 }
                 c2 'd15' { ((to.int16[to.int16['d15'] minus to.int16['v14' mod.floor 32768]] shr to.int16[to.int16[to.int16['d15'] minus 17535] mod.floor 16]) mod.floor 32658) minus 32767 }
             };
@@ -95,7 +95,7 @@ MAIN {
             NO_FUCKING_CHECKS let mut 'v17': int64 = (((-15) times to.int64['v12']) mod.floor 954) minus 988;
             change 'v17' = ((3485829636007882345 mod.floor 'v17') mod.floor 954) minus 988;
         } else {
-            let 'v18': int16[min, 100] = 1;
+            let 'v18': int16[max 100] = 1;
             put_u[1151851384 plus to.uint32['v12']];
         }
         put_u[15 or.bit to.uint64[(to.uint64['v12'] minus 0) minus to.uint64['v12']]];
@@ -150,7 +150,7 @@ MAIN {
         c2 'd33' {
             if 2 not_equal ((10922990468106277506 mod.floor ((to.uint64['d33'] mod.floor 4) plus 1)) minus (to.uint64['v12'] minus 0)) {
                 let immut 'v34': bool = (to.uint64['v12'] at_most to.uint64['v12']) or 'v11';
-                let immut 'v36': int16[1, max] = match E1.c2['d33'] {
+                let immut 'v36': int16[min 1] = match E1.c2['d33'] {
                     c1 { (((1 div.near (((to.int16['d33'] and.bit (-19)) mod.floor 5) plus 1)) mod.ceil ((-16383) div.ceil (((0 mod.trunc 9) mod.floor 10) plus 1))) mod.floor 32767) plus 1 }
                     c2 'd35' { ((1 mod.floor ((-32768) plus 31630)) mod.floor 32767) plus 1 }
                 };

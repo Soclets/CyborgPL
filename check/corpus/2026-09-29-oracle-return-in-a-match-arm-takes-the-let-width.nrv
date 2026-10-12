@@ -44,7 +44,7 @@ enum E1 {
     c4: uint16
 }
 
-fn f3 [] -> uint64[min, 100] {
+fn f3 [] -> uint64[max 100] {
     let 'v9': uint16 = match E1.c2 {
         c1 'd6' { ((0 times 16852) mod.floor 58) plus 651 }
         c2 {
