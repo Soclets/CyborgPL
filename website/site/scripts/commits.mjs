@@ -6,14 +6,12 @@ import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 
 const git = (...args) => execFileSync("git", ["-C", "../..", ...args], { maxBuffer: 64 << 20 }).toString();
-const secret = new Set(git("log", "--format=%H", "--", "secrets").split("\n").filter(Boolean));
 const commits = [];
 for (const rec of git("log", "--no-merges", "--format=%H%x1f%aI%x1f%an%x1f%B%x1e").split("\x1e")) {
   const [hash, date, author, msg] = rec.replace(/^\n+/, "").split("\x1f");
-  if (!hash || secret.has(hash)) continue;
+  if (!hash) continue;
   const lines = msg.trim().split("\n");
   const subject = lines[0].trim();
-  if (/^house\.secrets\b/.test(subject)) continue;
   const by = [], body = [];
   for (const l of lines.slice(1)) {
     const m = l.match(/^Co-Authored-By:\s*(.+?)\s*<[^>]*>\s*$/i);
@@ -22,4 +20,4 @@ for (const rec of git("log", "--no-merges", "--format=%H%x1f%aI%x1f%an%x1f%B%x1e
   commits.push({ h: hash.slice(0, 8), d: date, a: author, by, s: subject, b: body.join("\n").trim() });
 }
 writeFileSync("public/commits.json", JSON.stringify(commits));
-console.log(`commits: ${commits.length} (${secret.size} touching secrets/ left out)`);
+console.log(`commits: ${commits.length}`);
