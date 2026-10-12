@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-12 — Regrouping the lobes by expertise: `no_check` and `NO_FUCKING_CHECKS` move to the Brainstem (owner: a)
+
+Going through the lobes one field at a time (2026-10-10: "Like a big one
+for a expertise"), starting with IEG, which the oracle gates on `no_check`,
+`NO_FUCKING_CHECKS` and `on.machine`, and which also holds `inline.LL` and
+a never-built sketch of raw operations as calls. Design claude pointed out
+that `no_check` sites come from the Brainstem (`ptr.read` / `ptr.write`,
+inline assembly) and CNC (every C call), so a kernel touching memory or any
+program calling C had to list IEG just to write the marker. **`no_check`
+and `NO_FUCKING_CHECKS` are the Brainstem's** (owner: "(a)"), over (b)
+staying IEG's as an extra step; design claude recommended (a), the real
+gate being the `raw_memory`, `inline_assembly` and `c_calls` powers, which
+a program can deny. Not built.
+
 ### 2026-10-10 — CNC adds `suc`, "Synapse Uses Clang", another name for the `synapse` command (owner)
 
 The owner: "Btw, CNC would add an alias for the `synapse` CLI command,
