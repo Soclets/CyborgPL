@@ -5,6 +5,27 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-12 — A whole number into a `deci` asks for `otherwise` only when it could have too many digits, worked out from its operands (owner: a)
+
+Compiler claude, building `corner_shop`: `to.deci64['sold']`, `'sold'` a
+`:=` of `int32` arithmetic, has no `otherwise`; Synapse asked for one, the
+oracle did not, and the oracle never asked even for an `int64`-derived
+`:=` (`'a' times 1000`), stopping at run time with a failure the program
+could not handle. Asked (after "what") whether a fallback is written where
+the conversion cannot fail: (a) no, the compiler works out from the
+operands what the number can be (`operators.md`: "a `:=` takes a type that
+holds its true value"), so `int32` arithmetic, at most 10 digits, never
+needs one into a `deci64`, and a number that could pass 16 digits does,
+refused while building without it; (b) always, for any `:=` number. The
+owner: "(a)"; design claude and compiler claude recommended it. Built in
+the oracle: a `:=` whole number keeps the range its operands allow (`+`,
+`-`, `times`, `div.X`, `mod.X`, unary `-`, literals, typed variables,
+calls' return types), and the conversion asks for `otherwise` when that
+range could have more digits than the `deci` holds; reject test
+`deci_from_wide_result`. Provisional in the oracle: a `:=` variable later
+changed keeps its first range, and one the oracle cannot bound is taken
+as fitting.
+
 ### 2026-10-12 — A long example, `examples/corner_shop.nrv`; and an oracle bug: a struct field's type was not its value's context
 
 The owner, through website claude: "Msg design claude for it to write a

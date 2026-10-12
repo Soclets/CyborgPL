@@ -109,6 +109,10 @@ struct MutWalk {
 }
 
 pub struct Interp<'p> {
+    /// What a `:=` whole number can be, worked out from its operands when it was declared (owner,
+    /// 2026-10-12: "(a)"), by its cell: a conversion into a `deci` fails `too_many_digits` only when this
+    /// range could have more digits than the `deci` holds
+    int_bounds: HashMap<usize, (i128, i128)>,
     prog: &'p Program,
     /// Writes to borrowed things (check claude, 2026-09-29): each owner's cell → (write count, line, what).
     /// A lent slot made before the latest write is stale, and using it is refused: a borrow never
@@ -183,7 +187,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, fallback_ty: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), mut_walks: Vec::new(), scopes: vec![HashMap::new()], out, bare_of: HashMap::new() }
+        Interp { int_bounds: HashMap::new(), prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, fallback_ty: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), mut_walks: Vec::new(), scopes: vec![HashMap::new()], out, bare_of: HashMap::new() }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -723,7 +727,14 @@ impl<'p> Interp<'p> {
                         let ty = ty.clone().or_else(|| self.known_ty(value));
                         // its length is known here when it came from a literal list, `list.empty`, or a bound
                         let sized = Self::sized_from(value, ty.as_ref());
-                        Slot { cell: Rc::new(RefCell::new(v)), ty, kind: SlotKind::Owned, alive: true, immut, sized, sealed: *sealed , since: 0, deps: Vec::new() }
+                        let is_int = matches!(v, Value::Int(_));
+                        let cell = Rc::new(RefCell::new(v));
+                        if ty.is_none() && is_int {
+                            if let [crate::ast::Value::Expr(e)] = value.values.as_slice() {
+                                if let Some(b) = self.static_bound(e) { self.int_bounds.insert(Rc::as_ptr(&cell) as usize, b); }
+                            }
+                        }
+                        Slot { cell, ty, kind: SlotKind::Owned, alive: true, immut, sized, sealed: *sealed , since: 0, deps: Vec::new() }
                     }
                 };
                 self.declare_shadow(name, slot, *shadow, *line)?;
@@ -2296,7 +2307,8 @@ impl<'p> Interp<'p> {
                         Value::Int(_) => match b.values.first() { Some(crate::ast::Value::Expr(e)) => match self.expr_ty(e) {
                             Some(t @ (Ty::Int(_) | Ty::Uint(_))) => crate::value::int_range(&t).map_or(true, |(lo, hi)| digits(lo).max(digits(hi)) > p),
                             Some(Ty::Ranged(_, Bound::Int(lo), Bound::Int(hi))) => digits(lo).max(digits(hi)) > p,
-                            _ => false,
+                            // a `:=` result or arithmetic: what its operands let it be (owner, 2026-10-12: "(a)")
+                            _ => self.static_bound(e).map_or(false, |(lo, hi)| digits(lo).max(digits(hi)) > p),
                         }, _ => false },
                         _ => false,
                     };
@@ -4817,6 +4829,46 @@ impl<'p> Interp<'p> {
         let prov = if val.is_owned() { Prov::Fresh } else { Prov::Plain };
         Ok((val, prov))
 
+    }
+
+    /// What a whole-number expression can be, from its operands' types and literals: the range Cortex
+    /// works out (operators.md: plain maths is exact, a `:=` holds the true value). None when unknown.
+    fn static_bound(&self, e: &Expr) -> Option<(i128, i128)> {
+        let sat = |x: Option<i128>| x.unwrap_or(i128::MAX);
+        Some(match e {
+            Expr::Int(v, _) => (*v, *v),
+            Expr::Paren(inner, _) => return self.static_bound(inner),
+            Expr::Var(name, _) => {
+                let slot = self.lookup(name)?;
+                match &slot.ty {
+                    Some(t @ (Ty::Int(_) | Ty::Uint(_))) => crate::value::int_range(t)?,
+                    Some(Ty::Ranged(_, Bound::Int(lo), Bound::Int(hi))) => (*lo, *hi),
+                    Some(_) => return None,
+                    None => *self.int_bounds.get(&(Rc::as_ptr(&slot.cell) as usize))?,
+                }
+            }
+            Expr::Unary(op, inner, _) if op == "-" => { let (lo, hi) = self.static_bound(inner)?; (hi.checked_neg()?, lo.checked_neg()?) }
+            Expr::Binary(op, l, r, _) => {
+                let (a, b) = (self.static_bound(l)?, self.static_bound(r)?);
+                match op.as_str() {
+                    "+" => (a.0.checked_add(b.0)?, a.1.checked_add(b.1)?),
+                    "-" => (a.0.checked_sub(b.1)?, a.1.checked_sub(b.0)?),
+                    "x" => {
+                        let ps = [a.0.checked_mul(b.0), a.0.checked_mul(b.1), a.1.checked_mul(b.0), a.1.checked_mul(b.1)];
+                        if ps.iter().any(Option::is_none) { (i128::MIN, i128::MAX) } else { let ps: Vec<i128> = ps.iter().map(|p| p.unwrap()).collect(); (*ps.iter().min()?, *ps.iter().max()?) }
+                    }
+                    o if o.starts_with("div.") => { let m = sat(a.0.checked_abs()).max(sat(a.1.checked_abs())); (-m, m) }
+                    o if o.starts_with("mod.") => { let m = sat(b.0.checked_abs()).max(sat(b.1.checked_abs())); (-m, m) }
+                    _ => return None,
+                }
+            }
+            Expr::Call(_) | Expr::Builtin(..) | Expr::Index(..) | Expr::Field(..) => match self.expr_ty_own(e)? {
+                t @ (Ty::Int(_) | Ty::Uint(_)) => crate::value::int_range(&t)?,
+                Ty::Ranged(_, Bound::Int(lo), Bound::Int(hi)) => (lo, hi),
+                _ => return None,
+            },
+            _ => return None,
+        })
     }
 
     /// Build an enum value: the case must exist; data exactly when the case carries some.
