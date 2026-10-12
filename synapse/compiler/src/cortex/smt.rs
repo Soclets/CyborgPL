@@ -1854,7 +1854,7 @@ pub fn int_shape(ty: &Ty) -> Option<(u32, bool)> {
 
 /// What a type holds, as two numbers.
 pub fn int_bounds(ty: &Ty) -> Option<(i128, i128)> {
-    if let Ty::Bounded { bound: Bound::Int { lo, hi }, .. } = ty {
+    if let Ty::Bounded { bound: Bound::Int { lo, hi, .. }, .. } = ty {
         return Some((*lo, *hi));
     }
     if let Ty::Bounded { bound: Bound::Len { lo, hi, .. }, .. } = ty {

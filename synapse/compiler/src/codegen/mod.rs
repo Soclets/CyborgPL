@@ -3603,7 +3603,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// global of a range type (C writes those unasked). Checked or proven,
     /// never a claim.
     fn guaranteed_range(&mut self, t: &Ty) -> Option<(i128, i128)> {
-        let Ty::Bounded { bound: crate::types::Bound::Int { lo, hi }, .. } = t else { return None };
+        let Ty::Bounded { bound: crate::types::Bound::Int { lo, hi, .. }, .. } = t else { return None };
         let (lo, hi) = (*lo, *hi);
         if self.ranges_trusted.is_none() {
             let items = &self.p.items;
@@ -3669,7 +3669,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
         let SiteKind::Narrow { to } = &site.kind else { return };
         // Into a `deci` range type: compared as decimals, by the runtime.
-        if let (Ty::Deci(bits), Some(crate::types::Bound::Bin { lo, hi })) = (to.base(), to.bound()) {
+        if let (Ty::Deci(bits), Some(crate::types::Bound::Bin { lo, hi, .. })) = (to.base(), to.bound()) {
             let Some(o) = site.operands.first() else { return };
             let o = match o.place() {
                 Some(p) => Operand::Read(p.clone()),

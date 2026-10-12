@@ -1888,7 +1888,7 @@ impl<'a> FnBuilder<'a> {
                         Ty::Int(IntW::Fixed { bits, .. }) => *bits,
                         _ => 64,
                     };
-                    let room = Ty::Bounded { inner: Box::new(Ty::Int(IntW::Fixed { signed: true, bits: n + 1 })), bound: Bound::Int { lo: -(1i128 << (n - 1)), hi: (1i128 << n) - 1 } };
+                    let room = Ty::Bounded { inner: Box::new(Ty::Int(IntW::Fixed { signed: true, bits: n + 1 })), bound: Bound::Int { lo: -(1i128 << (n - 1)), hi: (1i128 << n) - 1, said: Default::default() } };
                     self.narrow_arg(&op, &from_ty, &room, span);
                     let rv = Rvalue::Convert { to: target.clone(), operand: op, useful: false, bits: true };
                     match dest {
@@ -2379,8 +2379,8 @@ fn rvalue_operand(rv: &Rvalue) -> Option<Operand> {
 pub fn needs_narrow_check(from: &Ty, to: &Ty) -> bool {
     // Into a bound: always, unless the source's bound is inside it.
     if let Ty::Bounded { bound: to_b, inner } = to {
-        if let Bound::Int { lo, hi } = to_b {
-            if let Ty::Bounded { bound: Bound::Int { lo: flo, hi: fhi }, .. } = from {
+        if let Bound::Int { lo, hi, .. } = to_b {
+            if let Ty::Bounded { bound: Bound::Int { lo: flo, hi: fhi, .. }, .. } = from {
                 return !(flo >= lo && fhi <= hi);
             }
             let _ = inner;

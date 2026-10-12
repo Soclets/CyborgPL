@@ -1162,6 +1162,7 @@ impl Items {
                 if l > h {
                     return err(Diagnostic::error(format!("the low bound comes first: `[min {}, max {}]`", h, l)).at(span));
                 }
+                let said = Said { lo: !left_out(lo, "min"), hi: !left_out(hi, "max") };
                 if let Ty::Int(IntW::Fixed { signed, bits }) = &base {
                     let (min, max) = int_range(*signed, *bits);
                     // A bound is a value of its type (owner, 2026-09-23):
@@ -1172,7 +1173,7 @@ impl Items {
                         }
                     }
                 }
-                Bound::Int { lo: l, hi: h }
+                Bound::Int { lo: l, hi: h, said }
             }
             Ty::Bin(_) => {
                 if let Some(u) = unit {
@@ -1216,7 +1217,7 @@ impl Items {
                 if l.parse::<f64>().unwrap_or(0.0) > h.parse::<f64>().unwrap_or(0.0) {
                     return err(Diagnostic::error(format!("the low bound comes first: `[min {}, max {}]`", h, l)).at(span));
                 }
-                Bound::Bin { lo: l, hi: h }
+                Bound::Bin { lo: l, hi: h, said: Said { lo: !left_out(lo, "min"), hi: !left_out(hi, "max") } }
             }
             // With `bin`'s rules (owner, 2026-09-29): the bounds are
             // written with a point, and each is a value of the width.
@@ -1243,7 +1244,7 @@ impl Items {
                 if l.replace('_', "").parse::<f64>().unwrap_or(0.0) > h.replace('_', "").parse::<f64>().unwrap_or(0.0) {
                     return err(Diagnostic::error(format!("the low bound comes first: `[min {}, max {}]`", h, l)).at(span));
                 }
-                Bound::Bin { lo: l, hi: h }
+                Bound::Bin { lo: l, hi: h, said: Said::default() }
             }
             Ty::Str(_) => {
                 let u = match unit {
@@ -1737,6 +1738,12 @@ pub fn bin_literal(e: &ast::Expr) -> Option<String> {
         ast::ExprKind::Paren(inner) => bin_literal(inner),
         _ => None,
     }
+}
+
+/// Whether a bound's side was left out: the parser writes the type's own
+/// limit, `min` or `max`, for it.
+fn left_out(e: &ast::Expr, w: &str) -> bool {
+    matches!(&e.kind, ast::ExprKind::Path(p) if p.is(&[w]))
 }
 
 fn len_bounds(lo: &ast::Expr, hi: &ast::Expr, span: Span) -> Result<(u64, u64)> {

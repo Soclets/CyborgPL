@@ -3523,7 +3523,7 @@ impl Checker {
                 let mut ty = Ty::u64();
                 // A bounded list's length is bounded too.
                 if let Some(Bound::Len { lo, hi, .. }) = at.bound() {
-                    ty = Ty::Bounded { inner: Box::new(Ty::u64()), bound: Bound::Int { lo: *lo as i128, hi: *hi as i128 } };
+                    ty = Ty::Bounded { inner: Box::new(Ty::u64()), bound: Bound::Int { lo: *lo as i128, hi: *hi as i128, said: Default::default() } };
                 }
                 (vec![a], ty)
             }

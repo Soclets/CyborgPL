@@ -2362,7 +2362,7 @@ impl Precog {
                 // compared exactly with the range's written ends. Precog
                 // follows no deci value, so this was never proven, and a
                 // `#strict` file refused `deci64[0.0, 1.0] = 0.79`.
-                if let (Some(Operand::Const(Const::Deci { bits, value })), Ty::Deci(_), Some(crate::types::Bound::Bin { lo, hi })) = (site.operands.first(), to.base(), to.bound()) {
+                if let (Some(Operand::Const(Const::Deci { bits, value })), Ty::Deci(_), Some(crate::types::Bound::Bin { lo, hi, .. })) = (site.operands.first(), to.base(), to.bound()) {
                     let v = crate::deci::decode(*value, *bits);
                     let end = |t: &str| crate::deci::literal(t, 128).ok().map(|x| crate::deci::decode(x, 128));
                     if let (Some(l), Some(h)) = (end(lo), end(hi)) {

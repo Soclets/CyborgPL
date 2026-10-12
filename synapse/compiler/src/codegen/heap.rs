@@ -1265,7 +1265,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     fn kept_at_door(&mut self, v: BasicValueEnum<'ctx>, ty: &Ty) -> Option<IntValue<'ctx>> {
         let mut kept = self.ctx.bool_type().const_all_ones();
         if let Some(b) = ty.bound() {
-            let crate::types::Bound::Int { lo, hi } = b.clone() else { return None };
+            let crate::types::Bound::Int { lo, hi, .. } = b.clone() else { return None };
             let signed = matches!(ty.base(), Ty::Int(crate::types::IntW::Fixed { signed: true, .. }));
             let v = v.into_int_value();
             let t = v.get_type();
@@ -1522,7 +1522,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // A range type (or a plain one reached from a whole number):
             // outside it, the call fails `out_of_range`.
             let (lo, hi) = match to.bound() {
-                Some(crate::types::Bound::Int { lo, hi }) => (*lo, *hi),
+                Some(crate::types::Bound::Int { lo, hi, .. }) => (*lo, *hi),
                 _ => match to.base() {
                     Ty::Int(crate::types::IntW::Fixed { signed, bits }) => crate::resolve::int_range(*signed, *bits),
                     _ => return None,
@@ -1723,7 +1723,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let past = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(2, false), "past").ok()?;
         let x = self.builder.build_load(f64t, out, "value").ok()?.into_float_value();
         let mut outside = past;
-        if let Some(crate::types::Bound::Bin { lo, hi }) = to.bound() {
+        if let Some(crate::types::Bound::Bin { lo, hi, .. }) = to.bound() {
             let (Ok(lo), Ok(hi)) = (lo.replace('_', "").parse::<f64>(), hi.replace('_', "").parse::<f64>()) else { return None };
             let below = self.builder.build_float_compare(inkwell::FloatPredicate::OLT, x, f64t.const_float(lo), "below").ok()?;
             let above = self.builder.build_float_compare(inkwell::FloatPredicate::OGT, x, f64t.const_float(hi), "above").ok()?;
@@ -1849,7 +1849,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let t = self.ty(&Ty::Deci(bits))?.into_int_type();
         let r = if bits == 128 { x } else { self.builder.build_int_truncate(x, t, "deci").ok()? };
         // A range type: outside its bounds fails `out_of_range`.
-        if let Some(crate::types::Bound::Bin { lo, hi }) = to.bound() {
+        if let Some(crate::types::Bound::Bin { lo, hi, .. }) = to.bound() {
             let (lo, hi) = (lo.clone(), hi.clone());
             let outside = self.deci_outside(r, bits, &lo, &hi)?;
             let next = self.ctx.append_basic_block(func, "in_range");

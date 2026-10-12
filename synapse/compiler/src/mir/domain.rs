@@ -291,8 +291,8 @@ impl Domain {
             Ty::Bounded { inner, bound } => {
                 let inner_domain = Domain::of_ty(inner, items);
                 match (bound, inner_domain) {
-                    (Bound::Int { lo, hi }, Domain::Ints(s)) => Domain::Ints(s.clamp(*lo, *hi)),
-                    (Bound::Bin { lo, hi }, _) => Domain::Bins { lo: lo.parse().ok(), hi: hi.parse().ok() },
+                    (Bound::Int { lo, hi, .. }, Domain::Ints(s)) => Domain::Ints(s.clamp(*lo, *hi)),
+                    (Bound::Bin { lo, hi, .. }, _) => Domain::Bins { lo: lo.parse().ok(), hi: hi.parse().ok() },
                     (Bound::Len { lo, hi, unit }, Domain::Text { mut len, values, classes }) => {
                         let s = ISet::range(*lo as i128, *hi as i128);
                         match unit {

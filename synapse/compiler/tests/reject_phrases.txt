@@ -94,12 +94,12 @@ borrow_chain_through_local [fnv:0b277a9492cf82e4] :: 'o2' cannot be given away h
 borrow_choice_needs_group [fnv:1e7e66e4f7d01460] :: `longer` hands back a borrow and borrows more than one input: say which with a group, `fn longer [@x] [lent @x 'a': …, lent 'b': …] -> lent @x …`
 borrow_ungrouped_may_return [fnv:ed533803bcb93efa] :: 't' cannot be given away here: 'r' still borrows it and is used on line 13
 borrow_untaken_branch [fnv:dc66446cd05dbc61] :: 't' cannot be changed here: 'q' still borrows it and is used on line 8
-bound_append_over [fnv:25e03683e8f206b9] :: this can take it outside the bound its type gives it (`list[int32][0, 3]`)
+bound_append_over [fnv:86001c6b523795e5] :: this can take it outside the bound its type gives it (`list[int32][max 3]`)
 bound_backwards [fnv:0657eb87a916e1c7] :: the low bound is at most the high one
 bound_max_as_value [fnv:9c484b42a2770889] :: `min` and `max` label a bound now; a side left out is the type's own limit
 bound_old_spelling [fnv:a0a0af0d024fcead] :: a bound says which it is: `int32[min 0, max 100]`
 bound_on_array [fnv:d5be1883ea268628] :: an `array` has one length, already known
-bound_too_short [fnv:9806ce6df3c3ab28] :: this can take it outside the bound its type gives it (`list[int32][3, 5]`)
+bound_too_short [fnv:9806ce6df3c3ab28] :: this can take it outside the bound its type gives it (`list[int32][min 3, max 5]`)
 brain_into_bin [fnv:45daa7e478d16952] :: is a brain16, not bin32
 brain_mixed_bin [fnv:f96220f94a68d5be] :: the brain float is a family of its own
 brain_overflow [fnv:6c45f1780f2082f5] :: past the largest brain16
@@ -123,7 +123,7 @@ c_header_opaque_built [fnv:4008c41276aaadd3] :: `handle_t` is C's and opaque
 c_header_opaque_held [fnv:a20f17cb314eaeb8] :: `FILE` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[FILE]`, never held
 c_header_opaque_mixed [fnv:a23e6966eb398dba] :: `fclose` wants a pointer to `FILE` for 'p1', and this points at `uint8`
 c_header_opaque_size [fnv:82ce9b870b863694] :: `FILE` is C's and opaque: its size is C's own
-c_struct_range_out [fnv:c3d7be4306c6440a] :: the value can be outside what an `int32[0, 4096]` holds
+c_struct_range_out [fnv:6eb2d478488cbb38] :: the value can be outside what an `int32[min 0, max 4096]` holds
 c_type_needs_cnc [fnv:ffc7c65c30041305] :: `C.int` is CNC's, and this Neuron's Kinesin.nrp does not list the lobe CNC
 c_type_unknown [fnv:100c43f929842da7] :: `C.integer` is not one of C's machine-sized types
 c_var_c_enum [fnv:a4ee21bbf8d87688] :: a C variable cannot be `Mode`
@@ -461,7 +461,7 @@ map_literal_no_pair [fnv:29d9d93486c67e90] :: `map["ann" = 5551, "bob" = 5552]`
 map_set_needs_mut [fnv:0522b20ca28e7b3b] :: `map.set` changes the collection, so it takes `lend.mut`, not `lend`
 map_to_text [fnv:a985b1bfd8ca8afa] :: a map is not text
 map_unordered_walk [fnv:5169287ec337a31d] :: `map.keys` needs a `map` or `map.ordered`
-map_value_out_of_range [fnv:da58956c39843392] :: the value can be outside what an `int32[0, 10]` holds
+map_value_out_of_range [fnv:1c9a8051ba28c5f4] :: the value can be outside what an `int32[min 0, max 10]` holds
 match_value_unused [fnv:02489215508528d6] :: gives a value, but this `match` is not used as one
 missing_return_type_value [fnv:b6b32cd3a621d22b] :: every path must `return` a value (or `fail`)
 mix_families [fnv:bb249fe14c123783] :: there is no implicit conversion between numeric families
@@ -512,7 +512,7 @@ on_machine_top_level [fnv:b86c139ea15f48e6] :: `on.machine` chooses when running
 on_target_half [fnv:cd13379047ebb6c8] :: `aarch64` is a chip; a whole target is chip-os
 on_target_os_version [fnv:c6206898ad46136d] :: an OS minimum (`on.target.os macos 15`) is not built
 on_target_unknown_chip [fnv:7417416629ca9575] :: `arm64` is not a chip `on.target.chip` knows
-one_ended_below [fnv:a1c7cab21b67229a] :: the value can be outside what an `int8[1, 127]` holds
+one_ended_below [fnv:52e8dca3a8ec09b2] :: the value can be outside what an `int8[min 1]` holds
 op_builtin_for_int [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `int32` may not
 op_builtin_for_struct_ok_then_misuse [fnv:8cd6b76c300bff74] :: expected a value of the operand (V), found an `integer`
 op_called_as_fn [fnv:205c076f0bd07158] :: `'a' dot 'b'`, never `dot[…]`
@@ -591,19 +591,19 @@ pub_narrowing_bad [fnv:a97d696cbedd855e] :: the only narrowing of `pub` is `pub.
 quoted_func_name [fnv:ae3cce4260d5cad9] :: `fn add […]`, not `fn 'add'`
 quoted_main [fnv:e070af1b394ec349] :: `fn main […]`, not `fn 'main'`
 range_as_value [fnv:7ef7f0bec22d7c9f] :: `range[…]` is only decided as what a `for` runs over
-range_assign_out [fnv:55bf526902e573f2] :: the value can be outside what an `int32[0, 100]` holds
+range_assign_out [fnv:8458c49b7a375900] :: the value can be outside what an `int32[min 0, max 100]` holds
 range_bin_bounds_on_int [fnv:3864723dd6ff74d9] :: an integer's bounds are integers
 range_bound_below_unsigned [fnv:3bc29ab37d272cda] :: -1 does not fit uint8
 range_bound_markers [fnv:7138c2c8a9eefd10] :: expected a value, found `:=`
 range_bound_outside_type [fnv:2be735d451118719] :: 300 does not fit uint8
 range_bounds_order [fnv:15adcb907214545a] :: the low bound comes first
 range_convert_arm_missing [fnv:7d69be2b3de665e6] :: every reason needs an arm
-range_convert_unhandled [fnv:769294ffd6316ce9] :: `to.int32[0, 100]` can fail (not_a_number, out_of_range): say what happens
-range_field_out [fnv:6464c17428ae3267] :: the value can be outside what a `uint8[0, 100]` holds
+range_convert_unhandled [fnv:769294ffd6316ce9] :: `to.int32[min 0, max 100]` can fail (not_a_number, out_of_range): say what happens
+range_field_out [fnv:763f052c38237301] :: the value can be outside what a `uint8[min 0, max 100]` holds
 range_needs_by [fnv:7c7f64cdc0e3b031] :: a counting loop writes its step too, even when it is 1
 range_old_spelling [fnv:b3cf2031603ca627] :: a counting loop reads as a sentence now: `for 'i' from 1 to 10 by 1`
 range_overflows_type [fnv:cd716c13c720d27d] :: the value can be outside what an `int8` holds
-range_reassign_out [fnv:0642e09a92a7c67b] :: the value can be outside what an `int32[0, 100]` holds
+range_reassign_out [fnv:b42274efa1720c0d] :: the value can be outside what an `int32[min 0, max 100]` holds
 range_to_c [fnv:89768fbb7f2f8a1a] :: 'a' is written as the plain `int32`
 raw_too_wide [fnv:111760fc3883c66f] :: the value can be outside what an `int8` holds
 raw_too_wide_return [fnv:9e8ff85c86758b25] :: the value can be outside what a `uint16` holds
@@ -698,9 +698,9 @@ temp_after_loop [fnv:652fb6ee6f955c44] :: 'i' is not declared
 temp_after_name [fnv:64d751df57cc16a6] :: `temp` goes before the name
 test_fn_called [fnv:fc9ed5874a38cb00] :: is a `test fn`: `synapse test` runs it
 test_fn_params [fnv:e6c6894b85ea10f6] :: takes no parameters
-text_bound_graphemes [fnv:a6dcaaa62d158116] :: this can take it outside the bound its type gives it (`str.utf8[1, 2 graphemes]`)
+text_bound_graphemes [fnv:a6dcaaa62d158116] :: this can take it outside the bound its type gives it (`str.utf8[min 1, max 2 graphemes]`)
 text_bound_no_unit [fnv:9c1acad0abdaf1b0] :: a text's length bound must say which unit it counts
-text_bound_over [fnv:ab895cf7a7c48b5d] :: this can take it outside the bound its type gives it (`str.utf8[0, 20 bytes]`)
+text_bound_over [fnv:ab895cf7a7c48b5d] :: this can take it outside the bound its type gives it (`str.utf8[max 20 bytes]`)
 text_to_char_unhandled [fnv:04c58d3d4a6fac63] :: `to.char.point` can fail (not_one_char): say what happens
 times_old [fnv:b5fdcc466f65f1ef] :: `x` is `times` now
 to_array_bare [fnv:edaa77f80a93e8a4] :: converting bare 'l' would copy it without saying so

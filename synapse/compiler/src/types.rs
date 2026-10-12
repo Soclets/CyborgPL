@@ -97,11 +97,39 @@ pub struct FnTy {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Bound {
     /// A numeric range, both ends included, as exact integers.
-    Int { lo: i128, hi: i128 },
+    Int { lo: i128, hi: i128, said: Said },
     /// A bin range, as the literal's text (compared exactly by Precog).
-    Bin { lo: String, hi: String },
+    Bin { lo: String, hi: String, said: Said },
     /// A length or count bound; `unit` only for text.
     Len { lo: u64, hi: u64, unit: Option<Unit> },
+}
+
+/// Which sides of a number's bound were written, so a message prints it as
+/// it was (`int8[min 1]`, `uint8[min 0, max 100]`); a side left out is the
+/// type's own limit (owner, 2026-10-12). Never part of what the type is:
+/// every two compare equal.
+#[derive(Debug, Clone, Copy)]
+pub struct Said {
+    pub lo: bool,
+    pub hi: bool,
+}
+
+impl Default for Said {
+    fn default() -> Self {
+        Said { lo: true, hi: true }
+    }
+}
+
+impl PartialEq for Said {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+
+impl Eq for Said {}
+
+impl std::hash::Hash for Said {
+    fn hash<H: std::hash::Hasher>(&self, _: &mut H) {}
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -478,11 +506,19 @@ impl<'a> fmt::Display for TySpelling<'a> {
             Ty::Nothing => write!(f, "nothing"),
             Ty::Infer(_) => write!(f, "(not yet known)"),
             Ty::Var(i) => write!(f, "<blank {}>", i),
+            // As a bound is written (owner, 2026-10-12): labelled, a number's
+            // sides as they were written, a length's 0 and no limit left out.
             Ty::Bounded { inner, bound } => {
                 write!(f, "{}", sp(inner))?;
-                match bound {
-                    Bound::Int { lo, hi } => write!(f, "[{}, {}]", lo, hi),
-                    Bound::Bin { lo, hi } => write!(f, "[{}, {}]", lo, hi),
+                let labelled = |lo: Option<String>, hi: Option<String>, unit: &str| match (lo, hi) {
+                    (Some(l), Some(h)) => format!("[min {}, max {}{}]", l, h, unit),
+                    (Some(l), None) => format!("[min {}{}]", l, unit),
+                    (None, Some(h)) => format!("[max {}{}]", h, unit),
+                    (None, None) => String::new(),
+                };
+                let text = match bound {
+                    Bound::Int { lo, hi, said } => labelled(said.lo.then(|| lo.to_string()), said.hi.then(|| hi.to_string()), ""),
+                    Bound::Bin { lo, hi, said } => labelled(said.lo.then(|| lo.clone()), said.hi.then(|| hi.clone()), ""),
                     Bound::Len { lo, hi, unit } => {
                         let u = match unit {
                             Some(Unit::Byte) => " bytes",
@@ -490,9 +526,16 @@ impl<'a> fmt::Display for TySpelling<'a> {
                             Some(Unit::Grapheme) => " graphemes",
                             _ => "",
                         };
-                        write!(f, "[{}, {}{}]", lo, hi, u)
+                        let (l, h) = ((*lo != 0).then(|| lo.to_string()), (*hi != u64::MAX).then(|| hi.to_string()));
+                        // A text's unit is said even when both sides are open.
+                        if l.is_none() && h.is_none() && !u.is_empty() {
+                            format!("[min 0{}]", u)
+                        } else {
+                            labelled(l, h, u)
+                        }
                     }
-                }
+                };
+                write!(f, "{}", text)
             }
         }
     }
