@@ -76,6 +76,6 @@ export async function getExample(id) {
   const exit = existsSync(path.join(EXAMPLES, `${id}.exit`)) ? read(id, "exit").trim() : null;
   return {
     id, title: titleOf(id), summary: summaryOf(src), file: `examples/${id}.nrv`,
-    lines: src.split("\n").length, html: await highlight(src), out: read(id, "out"), exit,
+    lines: src.split("\n").length, html: await highlight(src), source: src, out: read(id, "out"), exit,
   };
 }

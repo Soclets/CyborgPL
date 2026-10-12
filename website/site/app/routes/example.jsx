@@ -2,6 +2,7 @@ import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Await, useLoaderData, useLocation, useNavigate, useRouteLoaderData } from "react-router";
 import { animate, motion, useDragControls, useMotionValue } from "motion/react";
 import Code from "../components/Code.jsx";
+import CopyButton from "../components/CopyButton.jsx";
 import Icon from "../components/Icon.jsx";
 import Md from "../components/Md.jsx";
 import { plain } from "../lib/md.js";
@@ -142,9 +143,13 @@ export default function Example() {
           <Suspense fallback={<div className="code sheet-code sheet-pending"><pre style={{ "--example-lines": brief?.lines }}>{brief?.source ?? brief?.preview}</pre></div>}>
             <Await resolve={full} errorElement={<p className="empty">This example didn’t load. Close it and try again.</p>}>
               {(ex) => tab === "code" ? (
-                <Code html={ex.html} className="sheet-code" />
+                <div className="copyable">
+                  <CopyButton text={ex.source} label="Copy code" />
+                  <Code html={ex.html} className="sheet-code" />
+                </div>
               ) : (
-                <div className="output">
+                <div className="output copyable">
+                  {ex.out && <CopyButton text={ex.out} label="Copy output" />}
                   <pre>{ex.out || "(prints nothing)"}</pre>
                   {ex.exit && <p className="exit">Exits with code {ex.exit}.</p>}
                   <p className="checked">This is the output the reference interpreter’s tests check for.</p>
