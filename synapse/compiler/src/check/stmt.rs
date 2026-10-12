@@ -371,6 +371,15 @@ impl Checker {
                     }
                 };
                 let id = ctx.declare(&name.name, Local { name: name.name.clone(), ty: local_ty, mutability: *mutability, kind, from_blank: false, span: name.span });
+                // A `:=` whole number keeps the range its operands allow.
+                if declared.is_none() {
+                    let t = self.resolve(&v.ty);
+                    if matches!(t.base(), Ty::Int(IntW::Free(_))) || t.is_exact() {
+                        if let Some(r) = self.int_span(ctx, &v) {
+                            ctx.int_ranges.insert(id, r);
+                        }
+                    }
+                }
                 if *mutability == Some(ast::Mutability::Mut) {
                     ctx.promised.push(id);
                 }

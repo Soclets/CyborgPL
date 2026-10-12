@@ -3216,9 +3216,13 @@ impl Checker {
             (Ty::Brain, Ty::Deci(_)) => fails.extend(crate::deci::conv_fails(&Ty::Bin(BinW::Fixed(64)), &t, None).unwrap_or_default()),
             (Ty::Deci(_), Ty::Brain) => fails.extend(crate::deci::conv_fails(&vt, &Ty::Bin(BinW::Fixed(64)), None).unwrap_or_default()),
             (Ty::Int(_) | Ty::Bin(_) | Ty::Str(_) | Ty::Deci(_), Ty::Deci(_)) | (Ty::Deci(_), Ty::Int(_) | Ty::Bin(_) | Ty::Str(_)) => {
+                // A `:=` whole number has the digits its operands allow
+                // (owner, 2026-10-12: "(a)"); a typed one, its type's.
+                let free = matches!(vt.base(), Ty::Int(IntW::Free(_))) || vt.is_exact();
                 let literal = match &v.kind {
                     K::Int(i) => Some(i.unsigned_abs().to_string().len() as u32),
                     K::BigInt(d) => Some(d.trim_start_matches('-').len() as u32),
+                    _ if free => self.int_span(ctx, &v).map(|(lo, hi)| lo.unsigned_abs().max(hi.unsigned_abs()).to_string().len() as u32),
                     _ => None,
                 };
                 fails.extend(crate::deci::conv_fails(&vt, &t, literal).unwrap_or_default());
@@ -4815,4 +4819,50 @@ fn slice_args(name: &str, args: &[AArg], span: Span) -> Result<Vec<AArg>> {
         other => return err(Diagnostic::error(how).at(other.span())),
     };
     Ok(vec![args[0].clone(), AArg::Positional(first), AArg::Positional(last)])
+}
+
+impl Checker {
+    /// What a whole number can be, worked out from its operands (owner,
+    /// 2026-10-12: "(a)"): a literal is itself, a typed value its type's
+    /// range, a `:=` local the range it was given, and `plus`, `minus`,
+    /// `times`, `div.X`, `mod.X` and negation what their operands allow;
+    /// `None` where nothing bounds it.
+    pub(crate) fn int_span(&self, ctx: &FnCtx, e: &Expr) -> Option<(i128, i128)> {
+        let typed = |t: &Ty| match self.resolve(t).base() {
+            t @ Ty::Int(IntW::Fixed { signed, bits }) if !t.is_exact() => Some(crate::resolve::int_range(*signed, *bits)),
+            _ => None,
+        };
+        match &e.kind {
+            K::Int(v) => Some((*v, *v)),
+            K::Local(id) => ctx.int_ranges.get(id).copied().or_else(|| typed(&ctx.locals[id.0 as usize].ty)),
+            K::Unary { op: UnOp::Neg, expr } => {
+                let (a, b) = self.int_span(ctx, expr)?;
+                Some((b.checked_neg()?, a.checked_neg()?))
+            }
+            K::Binary { op, lhs, rhs, .. } => {
+                let (a, b) = self.int_span(ctx, lhs)?;
+                let (c, d) = self.int_span(ctx, rhs)?;
+                match op {
+                    BinOp::Add => Some((a.checked_add(c)?, b.checked_add(d)?)),
+                    BinOp::Sub => Some((a.checked_sub(d)?, b.checked_sub(c)?)),
+                    BinOp::Mul => {
+                        let p = [a.checked_mul(c)?, a.checked_mul(d)?, b.checked_mul(c)?, b.checked_mul(d)?];
+                        Some((*p.iter().min()?, *p.iter().max()?))
+                    }
+                    // A quotient is no bigger than what is divided.
+                    BinOp::Div(_) => {
+                        let m = i128::try_from(a.unsigned_abs().max(b.unsigned_abs())).ok()?;
+                        Some((-m, m))
+                    }
+                    // A remainder is smaller than the divisor.
+                    BinOp::Mod(_) => {
+                        let m = i128::try_from(c.unsigned_abs().max(d.unsigned_abs())).ok()?;
+                        Some((-m, m))
+                    }
+                    _ => typed(&e.ty),
+                }
+            }
+            _ => typed(&e.ty),
+        }
+    }
 }

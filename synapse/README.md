@@ -647,3 +647,13 @@ Dated, with the alternative, so each can become a question later.
   later a const (owner, 2026-10-12: "a"). A struct packed or aligned its own
   way (`#pragma pack`, `__attribute__((packed))`, `aligned`) is opaque, as
   the oracle has `log2phys`: `layout.C` lays out as C does by default.
+- **2026-10-12 — What a `:=` whole number can be, for a `deci`.** The
+  owner's (a): converting a whole number into a `deci` asks for
+  `otherwise` only when it could have more digits than the `deci` holds,
+  worked out from its operands. The checker walks the value: a literal is
+  itself, a typed value its type's range, a `:=` local the range it was
+  first given (a later `change` is not followed, as the oracle has it),
+  and `plus`, `minus`, `times`, `div.X`, `mod.X` and negation what their
+  operands allow. Where nothing bounds it, Synapse asks for `otherwise`,
+  where the oracle takes it as fitting, so no run meets a failure the
+  program has no way to handle.

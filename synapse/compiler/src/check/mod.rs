@@ -156,6 +156,9 @@ pub struct FnCtx {
     /// Each const array read in place here, and the local that views it,
     /// set up as the body starts.
     pub const_views: Vec<(crate::hir::ConstId, LocalId)>,
+    /// What a `:=` whole number can be, from its operands (owner,
+    /// 2026-10-12: "(a)"), for whether it fits a `deci`; its first range.
+    pub int_ranges: HashMap<LocalId, (i128, i128)>,
 }
 
 impl FnCtx {
@@ -592,7 +595,7 @@ impl Checker {
     }
 
     pub fn new_ctx(&self, inst: FnInst, module: ModuleId, name: String, ret: Ty, fails: Vec<(String, Option<Ty>)>, is_main: bool) -> FnCtx {
-        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_test: false, must_fail: false, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None, borrow_src: HashMap::new(), fold_vars: false, promised: Vec::new(), changed: Default::default(), const_scopes: vec![HashMap::new()], outer_vars: None, in_const: false, const_views: Vec::new() }
+        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_test: false, must_fail: false, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None, borrow_src: HashMap::new(), fold_vars: false, promised: Vec::new(), changed: Default::default(), const_scopes: vec![HashMap::new()], outer_vars: None, in_const: false, const_views: Vec::new(), int_ranges: HashMap::new() }
     }
 
     fn check_instance(&mut self, inst: FnInst) -> Result<()> {

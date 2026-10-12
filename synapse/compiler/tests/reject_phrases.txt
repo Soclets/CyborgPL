@@ -177,6 +177,7 @@ count_commas [fnv:4203df364bce8d0b] :: no commas in a counting loop
 deci_family_mix [fnv:08ea65ffe19d9d06] :: between a deci and another number family
 deci_fractional_power [fnv:bb5918d5dddef02d] :: exponent is an integer or a whole literal
 deci_from_bin_bare [fnv:24a8031c925aa8d8] :: say which value
+deci_from_wide_result [fnv:8240ee7d1812e7fd] :: `to.deci64` can fail (too_many_digits)
 deci_int_needs_otherwise [fnv:d07bc7b3701143a5] :: can fail (too_many_digits)
 deci_literal_digits [fnv:1d5b181bc964df20] :: has 9 digits; deci32 holds 7
 deci_narrow_needs_otherwise [fnv:d07bc7b3701143a5] :: can fail (too_many_digits)

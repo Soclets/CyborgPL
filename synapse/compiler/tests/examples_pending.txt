@@ -2,9 +2,3 @@
 # session (design/compiler-session.md), so a wrong one is a question, never an
 # edit from here. The test insists each of these still fails, so the day one is
 # fixed the suite says so and the line goes.
-
-corner_shop :: lines 345 and 521, `to.deci64['sold']` and `to.deci64['cases']` with no
-  `otherwise`, each a `:=` of int32 arithmetic, which Synapse holds as an exact integer (up
-  to 20 digits) and so asks for `otherwise` (types.md: "when the integer's type could have
-  more digits than the deci holds"); the oracle takes them bare and fails at run time past
-  16 digits. Asked 2026-10-12.

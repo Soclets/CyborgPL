@@ -74,13 +74,21 @@ fn prove(path: &Path) -> Result<(), String> {
 /// those are listed in `examples_unproven.txt` with the reason, and the test
 /// insists each is *still* refused — the day Precog proves one, the suite
 /// says so and the line goes.
+///
+/// An example waiting on a `cord` function Synapse does not build
+/// (`examples_unbuilt.txt`) is left to the day it builds: its `cord` calls
+/// are testing stand-ins whose values Cortex cannot know, so what it proves
+/// of it means little, and a loop over a stand-in's list of no known length
+/// is followed its full 100 000 trips each time it is reached
+/// (`corner_shop` took seven minutes so).
 #[test]
 fn examples_are_not_refused_by_precog() {
     let pending = load_pending();
     let unproven = load_list("examples_unproven.txt");
+    let on_stand_ins: std::collections::HashSet<String> = load_list("examples_unbuilt.txt").into_iter().filter(|(_, why)| why.contains("cord::")).map(|(n, _)| n).collect();
     let failures: Vec<String> = common::par_map(&targets(&repo().join("examples")), |src| {
         let name = name_of(src);
-        if pending.contains_key(&name) {
+        if pending.contains_key(&name) || (on_stand_ins.contains(&name) && !unproven.contains_key(&name)) {
             return None;
         }
         match (unproven.get(&name), prove(src)) {
