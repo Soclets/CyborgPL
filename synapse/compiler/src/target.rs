@@ -61,3 +61,40 @@ pub fn bare() -> bool {
 pub fn bare_triple() -> String {
     format!("{}-unknown-none", chip())
 }
+
+/// C's machine-sized types (owner, 2026-10-10), as C's own names after
+/// `C.`: what each is on this target.
+pub const C_TYPES: [&str; 18] = [
+    "char", "signed_char", "unsigned_char", "short", "unsigned_short", "int", "unsigned_int", "long", "unsigned_long", "long_long", "unsigned_long_long",
+    "size_t", "ssize_t", "ptrdiff_t", "intptr_t", "uintptr_t", "wchar_t", "long_double",
+];
+
+/// What a C type is here: a whole number (signed, bits), a binary float
+/// (bits), or why it is not built for this target yet.
+pub enum CType {
+    Int(bool, u32),
+    Bin(u32),
+    NotYet(String),
+}
+
+pub fn c_type(name: &str) -> Option<CType> {
+    // Apple's arm64 ABI: `char` and `wchar_t` signed, `long double` a
+    // double. The bare chip follows Arm's AAPCS64: `char` and `wchar_t`
+    // unsigned, `long double` 128 bits.
+    let apple = os() == "macos";
+    Some(match name {
+        "char" => CType::Int(apple, 8),
+        "signed_char" => CType::Int(true, 8),
+        "unsigned_char" => CType::Int(false, 8),
+        "short" => CType::Int(true, 16),
+        "unsigned_short" => CType::Int(false, 16),
+        "int" => CType::Int(true, 32),
+        "unsigned_int" => CType::Int(false, 32),
+        "long" | "long_long" | "ssize_t" | "ptrdiff_t" | "intptr_t" => CType::Int(true, 64),
+        "unsigned_long" | "unsigned_long_long" | "size_t" | "uintptr_t" => CType::Int(false, 64),
+        "wchar_t" => CType::Int(apple, 32),
+        "long_double" if apple => CType::Bin(64),
+        "long_double" => CType::NotYet(format!("`C.long_double` is a 128-bit binary float on `{}`, and `bin128` is not built yet", crate::target::name())),
+        _ => return None,
+    })
+}

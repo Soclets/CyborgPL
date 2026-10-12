@@ -106,6 +106,7 @@ bytes_to_ascii [fnv:3b82fac2d984055d] :: only `to.str.utf8` reads bytes as text
 bytes_to_text_needs_otherwise [fnv:b62e90d146e74936] :: `to.str.utf8` can fail (not_utf8)
 c_enum_data [fnv:792b602bfc2bed61] :: of the C enum `K` carries no data
 c_enum_number_missing [fnv:3721994c1fc31d28] :: of the C enum `K` says its number
+c_enum_param_number [fnv:0538729f27791a2b] :: `paint`'s parameter 'p1' (color), found an `integer`
 c_enum_same_number [fnv:c5cddd1ecd2bf563] :: each case has its own number
 c_header_call_needs_no_check [fnv:4bd7c98b872aba34] :: nothing about `strlen` can be proven
 c_header_clash [fnv:6a1251337c7d821a] :: `strlen` is defined twice
@@ -121,6 +122,8 @@ c_header_opaque_held [fnv:a20f17cb314eaeb8] :: `FILE` is C's and opaque (owner, 
 c_header_opaque_mixed [fnv:a23e6966eb398dba] :: `fclose` wants a pointer to `FILE` for 'p1', and this points at `uint8`
 c_header_opaque_size [fnv:82ce9b870b863694] :: `FILE` is C's and opaque: its size is C's own
 c_struct_range_out [fnv:c3d7be4306c6440a] :: the value can be outside what an `int32[0, 4096]` holds
+c_type_needs_cnc [fnv:ffc7c65c30041305] :: `C.int` is CNC's, and this Neuron's Kinesin.nrp does not list the lobe CNC
+c_type_unknown [fnv:100c43f929842da7] :: `C.integer` is not one of C's machine-sized types
 c_var_c_enum [fnv:a4ee21bbf8d87688] :: a C variable cannot be `Mode`
 call_main [fnv:b4fc56b21cf49ce6] :: it is the program's one block
 call_without_bracket [fnv:93fa5962e0fc877b] :: a call needs `[…]`

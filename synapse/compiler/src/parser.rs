@@ -386,6 +386,13 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                     return core_missing(what, core, toks[i].span);
                 }
             }
+            // `C.int` and the other C types are CNC's (owner, 2026-10-10).
+            if let (Tok::Word(c), Some(Tok::Dot), Some(Tok::Word(t))) = (&toks[i].tok, toks.get(i + 1).map(|t| &t.tok), toks.get(i + 2).map(|t| &t.tok)) {
+                let after_dot = i > 0 && matches!(toks[i - 1].tok, Tok::Dot | Tok::ColonColon);
+                if c == "C" && !after_dot && !cores.iter().any(|c| c == "CNC") {
+                    return core_missing(&format!("`C.{}`", t), "CNC", toks[i].span);
+                }
+            }
         }
     }
     let strict = None;

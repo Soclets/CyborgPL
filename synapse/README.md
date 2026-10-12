@@ -625,3 +625,19 @@ Dated, with the alternative, so each can become a question later.
   pointed at (a variable, a parameter, a field), not only when built or
   sized. A bit field, or a struct or union written inside a struct, makes
   it opaque. A struct with no fields is opaque.
+- **2026-10-12 — C's types as Synapse reads them.** The `C.` types are
+  the target's (owner, 2026-10-10): on `aarch64-macos` Apple's ABI (`char`
+  and `wchar_t` signed, `long double` a `bin64`); on `aarch64-none` Arm's
+  AAPCS64 (`char` and `wchar_t` unsigned, `long double` 128 bits, refused
+  as not yet until `bin128` is built). Each is read as the Nerve type it
+  is, as the oracle does. A header's type is read as C writes it, its type
+  names followed until one Nerve keeps (`size_t` and its kind, `int8_t` …
+  `uint64_t`) or a struct's or enum's: so `fread` takes a `C.size_t`, as
+  its header says, where the oracle reads Clang's own built-in
+  declaration of it (`C.unsigned_long`). A struct with a function pointer
+  field comes through whole, as the oracle does; a union is opaque. A
+  typedef of a pointer to a struct (`pthread_t`) is that pointer
+  (`ptr.mut[_opaque_pthread_t]`), not a struct of its own name. C's `...`
+  is a last parameter `...'args'`, as the oracle writes it. A C enum with
+  two names for one number is refused with the whole line, as any
+  `layout.C enum` with one is (asked).

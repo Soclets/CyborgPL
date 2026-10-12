@@ -58,8 +58,11 @@ pub fn declare(system: bool, paths: &[String], root: &Path) -> Result<Vec<Decl>,
     let own: HashSet<String> = own.wait()?.lines().map(str::to_string).collect();
     let tree = Json::parse(&ast).ok_or("Clang's AST could not be read")?;
     let mut out = Decls::default();
+    let defines: Vec<&str> = defines.lines().filter(|l| !own.contains(*l)).collect();
+    // An unnamed enum's name a `#define` also makes is the define's.
+    out.defined = defines.iter().filter_map(|l| define_value(l)).map(|(n, _)| n.to_string()).collect();
     out.from_ast(&tree);
-    for line in defines.lines().filter(|l| !own.contains(*l)) {
+    for line in defines {
         out.define(line);
     }
     Ok(out.list)
@@ -111,6 +114,13 @@ struct Decls {
     /// A type name that names a struct, and which.
     typedef_records: HashMap<String, String>,
     whole: std::cell::RefCell<HashMap<String, bool>>,
+    /// C's enums by tag (`anon…` for one with none), their cases, and what
+    /// Nerve calls each (owner, 2026-10-10), named as a struct is.
+    enums: HashMap<String, Vec<(String, i128)>>,
+    enum_names: HashMap<String, String>,
+    typedef_enums: HashMap<String, String>,
+    /// The names the header's `#define`s make.
+    defined: HashSet<String>,
 }
 
 #[derive(Default)]
@@ -124,7 +134,8 @@ struct Record {
 
 /// The key of a struct: its tag, or one made from Clang's id.
 fn record_key(d: &Json) -> Option<String> {
-    match d.str("name") {
+    // Clang says `""` for the name of an unnamed one a typedef points at.
+    match d.str("name").filter(|n| !n.is_empty()) {
         Some(n) => Some(n.to_string()),
         None => Some(format!("anon{}", d.str("id")?.trim_start_matches("0x"))),
     }
@@ -141,6 +152,7 @@ impl Decls {
         let Some(Json::Arr(top)) = tree.get("inner") else { return };
         // The types first: a function may name a struct defined after it.
         let mut typedef_order = Vec::new();
+        let mut enum_typedefs = Vec::new();
         for d in top {
             match d.str("kind") {
                 Some("TypedefDecl") => {
@@ -148,14 +160,55 @@ impl Decls {
                     if let Some(t) = d.get("type").and_then(qual) {
                         self.typedefs.insert(name.to_string(), t.to_string());
                     }
+                    // A type name for another type name names what that
+                    // one does (`pthread_attr_t`, through
+                    // `__darwin_pthread_attr_t`, names the struct).
+                    let named = match d.get("inner") {
+                        Some(Json::Arr(inner)) => inner.iter().find(|i| i.str("kind") == Some("TypedefType")).and_then(|i| i.get("decl")).and_then(|d| d.str("name")).map(str::to_string),
+                        _ => None,
+                    };
                     let record = match d.get("inner") {
                         Some(Json::Arr(inner)) => inner.iter().find(|i| i.str("kind") == Some("RecordType")).and_then(|i| i.get("decl")).filter(|d| d.str("kind") == Some("RecordDecl")).and_then(record_key),
                         _ => None,
-                    };
+                    }
+                    .or_else(|| named.as_ref().and_then(|n| self.typedef_records.get(n).cloned()));
                     if let Some(k) = record {
                         self.typedef_records.insert(name.to_string(), k.clone());
                         typedef_order.push((name.to_string(), k));
                     }
+                    let en = match d.get("inner") {
+                        Some(Json::Arr(inner)) => inner.iter().find(|i| i.str("kind") == Some("EnumType")).and_then(|i| i.get("decl")).and_then(record_key),
+                        _ => None,
+                    }
+                    .or_else(|| named.as_ref().and_then(|n| self.typedef_enums.get(n).cloned()));
+                    if let Some(k) = en {
+                        self.typedef_enums.insert(name.to_string(), k.clone());
+                        enum_typedefs.push((name.to_string(), k));
+                    }
+                }
+                Some("EnumDecl") => {
+                    let Some(k) = record_key(d) else { continue };
+                    let Some(Json::Arr(inner)) = d.get("inner") else { continue };
+                    // Each case's number, counted on from the last written.
+                    let mut cases = Vec::new();
+                    let mut next: i128 = 0;
+                    for c in inner.iter().filter(|c| c.str("kind") == Some("EnumConstantDecl")) {
+                        let Some(n) = c.str("name") else { continue };
+                        let written = match c.get("inner") {
+                            Some(Json::Arr(v)) => v.iter().find_map(|e| e.str("value")).and_then(|v| v.parse::<i128>().ok()),
+                            _ => None,
+                        };
+                        let v = written.unwrap_or(next);
+                        cases.push((n.to_string(), v));
+                        next = v + 1;
+                    }
+                    self.enums.insert(k, cases);
+                }
+                // A union is only pointed at, as an opaque struct is (oracle
+                // README): Nerve has no spelling for its fields sharing room.
+                Some("RecordDecl") if d.str("tagUsed") == Some("union") => {
+                    let Some(k) = record_key(d) else { continue };
+                    self.records.entry(k).or_default().odd = true;
                 }
                 Some("RecordDecl") if d.str("tagUsed") == Some("struct") => {
                     let Some(k) = record_key(d) else { continue };
@@ -200,6 +253,37 @@ impl Decls {
                 self.names.insert(k.clone(), k.clone());
             }
         }
+        // An enum is named as a struct is; one with neither C's type name
+        // nor a tag has its names as consts, unless a `#define` made one.
+        for (name, k) in &enum_typedefs {
+            if !name.starts_with('_') && usable_type(name) && !self.enum_names.contains_key(k) {
+                self.enum_names.insert(k.clone(), name.clone());
+            }
+        }
+        for d in top {
+            if d.str("kind") != Some("EnumDecl") {
+                continue;
+            }
+            let Some(k) = record_key(d) else { continue };
+            if !self.enum_names.contains_key(&k) && !k.starts_with("anon") && !k.starts_with("__") && usable_type(&k) {
+                self.enum_names.insert(k.clone(), k.clone());
+            }
+            let Some(cases) = self.enums.get(&k).cloned() else { continue };
+            match self.enum_names.get(&k).cloned() {
+                Some(name) => {
+                    let body: Vec<String> = cases.iter().map(|(c, v)| format!("{} = {}", c, v)).collect();
+                    self.push(&format!("type {}", name), format!("layout.C enum {} {{ {} }}", name, body.join("  ")));
+                }
+                None if k.starts_with("anon") && !enum_typedefs.iter().any(|(_, t)| *t == k) => {
+                    for (c, v) in cases {
+                        if usable(&c) && !self.defined.contains(&c) {
+                            self.push(&c, format!("const '{}' := {};", c, v));
+                        }
+                    }
+                }
+                None => {}
+            }
+        }
         // Each struct Nerve can name, in the order C declares them.
         let mut order: Vec<String> = Vec::new();
         for d in top {
@@ -215,15 +299,15 @@ impl Decls {
             let name = self.names[&k].clone();
             if self.whole(&k) {
                 let fields: Vec<String> = self.records[&k].fields.iter().flatten().map(|(f, t)| format!("{}: {}", f, self.ty(t).unwrap())).collect();
-                self.push(&format!("struct {}", name), format!("layout.C struct {} {{ {} }}", name, fields.join("  ")));
+                self.push(&format!("type {}", name), format!("layout.C struct {} {{ {} }}", name, fields.join("  ")));
             } else {
-                self.push(&format!("struct {}", name), format!("layout.C struct {};", name));
+                self.push(&format!("type {}", name), format!("layout.C struct {};", name));
             }
         }
         for d in top {
             let kind = d.str("kind").unwrap_or("");
             let Some(name) = d.str("name") else { continue };
-            if kind == "TypedefDecl" || kind == "RecordDecl" {
+            if kind == "TypedefDecl" || kind == "RecordDecl" || kind == "EnumDecl" {
                 continue;
             }
             if d.get("isImplicit").is_some() || !usable(name) || self.seen.contains(name) {
@@ -249,10 +333,13 @@ impl Decls {
 
     fn function(&self, name: &str, d: &Json) -> Option<String> {
         let whole = d.get("type")?.str("qualType")?;
-        if whole.contains("(*") || whole.contains("(^") {
+        // A function that hands back a function pointer, or a block, is
+        // left out.
+        let open = whole.find('(')?;
+        if whole[open..].starts_with("(*") || whole[open..].starts_with("(^") {
             return None;
         }
-        let ret = whole[..whole.find('(')?].trim();
+        let ret = whole[..open].trim();
         let ret = if self.resolve(ret).trim() == "void" { None } else { Some(self.ty(ret)?) };
         let mut params = Vec::new();
         if let Some(Json::Arr(inner)) = d.get("inner") {
@@ -262,7 +349,7 @@ impl Decls {
             }
         }
         if d.get("variadic").is_some() {
-            params.push(format!("...'p{}'", params.len() + 1));
+            params.push("...'args'".to_string());
         }
         let ret = ret.map(|r| format!(" -> {}", r)).unwrap_or_default();
         Some(format!("extern.C fn {} [{}]{};", name, params.join(", "), ret))
@@ -281,15 +368,31 @@ impl Decls {
                     words.push(k.clone());
                     continue;
                 }
+                if let Some(k) = self.typedef_enums.get(&w) {
+                    words.push("enum".into());
+                    words.push(k.clone());
+                    continue;
+                }
+                // `size_t` and its kind keep their names, and a type the
+                // same size everywhere is Nerve's own (owner, 2026-10-10).
+                if KEPT.contains(&w.as_str()) {
+                    words.push(w);
+                    continue;
+                }
+                // Clang's own names for them, which no header declares
+                // (Clang 22's predefined sugar).
+                let predefined = match w.as_str() {
+                    "__size_t" => Some("size_t"),
+                    "__signed_size_t" => Some("ssize_t"),
+                    "__ptrdiff_t" => Some("ptrdiff_t"),
+                    _ => None,
+                };
+                if let Some(p) = predefined {
+                    words.push(p.into());
+                    continue;
+                }
             }
-            // Clang's own names for C's `size_t` family, which no header
-            // declares (Clang 22's predefined sugar).
-            let predefined = match w.as_str() {
-                "__size_t" => Some("unsigned long".to_string()),
-                "__signed_size_t" | "__ptrdiff_t" => Some("long".to_string()),
-                _ => None,
-            };
-            match self.typedefs.get(&w).or(predefined.as_ref()) {
+            match self.typedefs.get(&w) {
                 Some(under) if !tagged && !is_c_word(&w) => {
                     // `const T` where T is a pointer is a `const` pointer.
                     let under = self.resolve(under);
@@ -307,8 +410,20 @@ impl Decls {
     /// The Nerve type of a C type, or `None` if Nerve does not say it yet.
     /// A value's own `const` (`const int x`) changes nothing here.
     fn ty(&self, t: &str) -> Option<String> {
+        // A function pointer is Nerve's callback type (owner, 2026-10-10),
+        // named directly or through a type name.
+        let t = t.replace(" _Nullable", "").replace(" _Nonnull", "").replace(" _Null_unspecified", "");
+        let t = t.trim();
+        if let Some(under) = self.typedefs.get(t) {
+            if under.contains("(*)") || under.contains("(* _") {
+                return self.ty(under);
+            }
+        }
+        if let Some(at) = t.find("(*)") {
+            return self.fn_pointer(&t[..at], &t[at + 3..]);
+        }
         let words: Vec<String> = split(&self.resolve(t)).into_iter().filter(|w| !IGNORED.contains(&w.as_str())).collect();
-        if words.iter().any(|w| w == "[" || w == "(" || w == "union" || w == "enum" || w == "?") {
+        if words.iter().any(|w| w == "[" || w == "(" || w == "?") {
             return None;
         }
         // Any `const` after a `*` makes a pointer that is itself fixed.
@@ -323,7 +438,7 @@ impl Decls {
         let base: Vec<&str> = base.into_iter().filter(|w| *w != "const").collect();
         // A struct: by value only when Nerve sees inside it; pointed at,
         // whole or opaque.
-        if let ["struct", key] = base.as_slice() {
+        if let ["struct" | "union", key] = base.as_slice() {
             let name = self.names.get(*key)?;
             if stars == 0 && !self.whole(key) {
                 return None;
@@ -334,7 +449,18 @@ impl Decls {
             }
             return Some(out);
         }
-        if base.contains(&"struct") {
+        if base.contains(&"struct") || base.contains(&"union") {
+            return None;
+        }
+        // An enum: its name, or C's `int` when Nerve has none for it.
+        if let ["enum", key] = base.as_slice() {
+            let mut out = self.enum_names.get(*key).cloned().unwrap_or_else(|| "C.int".into());
+            for i in 0..stars {
+                out = if i == 0 && pointee_const { format!("ptr[{}]", out) } else { format!("ptr.mut[{}]", out) };
+            }
+            return Some(out);
+        }
+        if base.contains(&"enum") {
             return None;
         }
         let mut out = match (base_type(&base)?, stars) {
@@ -346,6 +472,42 @@ impl Decls {
             out = if i == 0 && pointee_const { format!("ptr[{}]", out) } else { format!("ptr.mut[{}]", out) };
         }
         Some(out)
+    }
+
+    /// `R (*)(P, …)`: `fn[P, …] -> R`, `fn[]` taking nothing; a variadic
+    /// one is left out.
+    fn fn_pointer(&self, ret: &str, rest: &str) -> Option<String> {
+        let rest = rest.trim();
+        if ret.contains('(') || !rest.starts_with('(') || !rest.ends_with(')') {
+            return None;
+        }
+        let inner = &rest[1..rest.len() - 1];
+        let mut params = Vec::new();
+        let (mut depth, mut from) = (0, 0);
+        let bytes = inner.as_bytes();
+        for i in 0..=bytes.len() {
+            let end = i == bytes.len();
+            if !end {
+                match bytes[i] {
+                    b'(' => depth += 1,
+                    b')' => depth -= 1,
+                    _ => {}
+                }
+            }
+            if end || (bytes[i] == b',' && depth == 0) {
+                let p = inner[from..i].trim();
+                if p == "..." {
+                    return None;
+                }
+                if !p.is_empty() && p != "void" {
+                    params.push(self.ty(p)?);
+                }
+                from = i + 1;
+            }
+        }
+        let ret = ret.trim();
+        let ret = if self.resolve(ret).trim() == "void" { String::new() } else { format!(" -> {}", self.ty(ret)?) };
+        Some(format!("fn[{}]{}", params.join(", "), ret))
     }
 
     /// Whether every field of the struct is one Nerve can spell (a number,
@@ -365,21 +527,32 @@ impl Decls {
     }
 
     fn define(&mut self, line: &str) {
-        let Some(rest) = line.strip_prefix("#define ") else { return };
-        let (name, value) = match rest.find(|c: char| c == ' ' || c == '(') {
-            Some(i) if rest.as_bytes()[i] == b'(' => return,
-            Some(i) => (&rest[..i], rest[i + 1..].trim()),
-            None => return,
-        };
-        if !usable(name) || self.seen.contains(name) {
-            return;
-        }
-        if let Some(n) = whole_number(value) {
-            self.push(name, format!("const '{}' := {};", name, n));
-        } else if value.len() >= 2 && value.starts_with('"') && value.ends_with('"') && !value[1..value.len() - 1].contains(['"', '\\']) {
+        let Some((name, value)) = define_value(line) else { return };
+        if !self.seen.contains(name) {
             self.push(name, format!("const '{}' := {};", name, value));
         }
     }
+}
+
+/// A `#define` that makes a const: its name and its value as Nerve writes
+/// it — a whole number, or text with no `\` or `"` inside.
+fn define_value(line: &str) -> Option<(&str, String)> {
+    let rest = line.strip_prefix("#define ")?;
+    let i = rest.find(|c: char| c == ' ' || c == '(')?;
+    if rest.as_bytes()[i] == b'(' {
+        return None;
+    }
+    let (name, value) = (&rest[..i], rest[i + 1..].trim());
+    if !usable(name) {
+        return None;
+    }
+    if let Some(n) = whole_number(value) {
+        return Some((name, n));
+    }
+    if value.len() >= 2 && value.starts_with('"') && value.ends_with('"') && !value[1..value.len() - 1].contains(['"', '\\']) {
+        return Some((name, value.to_string()));
+    }
+    None
 }
 
 /// A name Nerve can be given: not C's private `__…`. A keyword is one too
@@ -395,10 +568,14 @@ fn usable_type(name: &str) -> bool {
     usable(name) && !crate::parser::is_keyword(name)
 }
 
-/// The type as written once its type names are gone.
+/// The type as C writes it, its type names kept: `resolve` follows them,
+/// stopping at the ones Nerve keeps (`size_t`, `int32_t`).
 fn qual(t: &Json) -> Option<&str> {
-    t.str("desugaredQualType").or_else(|| t.str("qualType"))
+    t.str("qualType")
 }
+
+/// C's type names that come through as named, not as what they name.
+const KEPT: [&str; 14] = ["size_t", "ssize_t", "ptrdiff_t", "intptr_t", "uintptr_t", "wchar_t", "int8_t", "int16_t", "int32_t", "int64_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t"];
 
 /// Whether a global is `const` itself: the last `const` after the last `*`,
 /// or any `const` when there is no `*`.
@@ -441,45 +618,77 @@ fn split(t: &str) -> Vec<String> {
     out
 }
 
-/// C's arithmetic types, `long` being 64 bits as on the machines Synapse
-/// builds for.
+/// C's arithmetic types: the machine-sized ones as C's `C.` types (owner,
+/// 2026-10-10), what is the same size everywhere as Nerve's own.
 fn base_type(words: &[&str]) -> Option<&'static str> {
+    if let [one] = words {
+        if let Some(t) = match *one {
+            "size_t" => Some("C.size_t"),
+            "ssize_t" => Some("C.ssize_t"),
+            "ptrdiff_t" => Some("C.ptrdiff_t"),
+            "intptr_t" => Some("C.intptr_t"),
+            "uintptr_t" => Some("C.uintptr_t"),
+            "wchar_t" => Some("C.wchar_t"),
+            "int8_t" => Some("int8"),
+            "int16_t" => Some("int16"),
+            "int32_t" => Some("int32"),
+            "int64_t" => Some("int64"),
+            "uint8_t" => Some("uint8"),
+            "uint16_t" => Some("uint16"),
+            "uint32_t" => Some("uint32"),
+            "uint64_t" => Some("uint64"),
+            _ => None,
+        } {
+            return Some(t);
+        }
+    }
     let unsigned = words.contains(&"unsigned");
     let signed = words.contains(&"signed");
     let longs = words.iter().filter(|w| **w == "long").count();
     let rest: Vec<&str> = words.iter().copied().filter(|w| !matches!(*w, "unsigned" | "signed" | "long" | "int")).collect();
     let has_int = words.contains(&"int");
+    let plain = !unsigned && !signed && !has_int;
     Some(match rest.as_slice() {
-        ["void"] if !unsigned && !signed && longs == 0 && !has_int => "void",
-        ["_Bool"] | ["bool"] if !unsigned && !signed && longs == 0 && !has_int => "bool",
-        ["float"] if !unsigned && !signed && longs == 0 && !has_int => "bin32",
-        ["double"] if !unsigned && !signed && longs == 0 && !has_int => "bin64",
+        ["void"] if plain && longs == 0 => "void",
+        ["_Bool"] | ["bool"] if plain && longs == 0 => "bool",
+        ["float"] if plain && longs == 0 => "bin32",
+        ["double"] if plain && longs == 0 => "bin64",
+        ["double"] if plain && longs == 1 => "C.long_double",
         ["char"] if longs == 0 && !has_int => {
             if signed {
-                "int8"
+                "C.signed_char"
+            } else if unsigned {
+                "C.unsigned_char"
             } else {
-                "uint8"
+                "C.char"
             }
         }
         ["short"] if longs == 0 => {
             if unsigned {
-                "uint16"
+                "C.unsigned_short"
             } else {
-                "int16"
+                "C.short"
             }
         }
         [] if longs == 0 => {
             if unsigned {
-                "uint32"
+                "C.unsigned_int"
             } else {
-                "int32"
+                "C.int"
             }
         }
-        [] if longs <= 2 => {
+        [] if longs == 1 => {
             if unsigned {
-                "uint64"
+                "C.unsigned_long"
             } else {
-                "int64"
+                "C.long"
+            }
+        }
+        [] if longs == 2 => {
+            if unsigned {
+                "C.unsigned_long_long"
+            } else {
+                "C.long_long"
             }
         }
         _ => return None,

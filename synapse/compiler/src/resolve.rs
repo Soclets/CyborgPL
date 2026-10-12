@@ -175,6 +175,10 @@ pub struct ConstInfo {
 
 #[derive(Debug, Default)]
 pub struct Items {
+    /// A C type sharing its name with a C function (owner, 2026-10-10:
+    /// `struct stat` and `stat`): the name calls the function, and where a
+    /// type stands it is the type.
+    pub c_fn_types: HashMap<crate::hir::ExternId, ItemRef>,
     /// Where a `must.stop`'s expression is (owner, 2026-09-29): a check
     /// site there must fire, so one failing every time is not refused.
     pub must_stop_spans: Vec<Span>,
@@ -284,6 +288,26 @@ impl Items {
     }
 
     fn declare(&mut self, m: ModuleId, name: &str, r: ItemRef, vis: Vis, span: Span) -> Result<()> {
+        // A C type and a C function may share a name (owner, 2026-10-10).
+        let c_type = |i: &ItemRef, items: &Items| match i {
+            ItemRef::Struct(id) => items.structs[id.0 as usize].layout_c,
+            ItemRef::Enum(id) => items.enums[id.0 as usize].numbers.is_some(),
+            _ => false,
+        };
+        if let Some((prev, _, _)) = self.modules[m.0 as usize].items.get(name).cloned() {
+            match (prev, r) {
+                (ItemRef::ExternFn(f), t) if c_type(&t, self) && !self.c_fn_types.contains_key(&f) => {
+                    self.c_fn_types.insert(f, t);
+                    return Ok(());
+                }
+                (t, ItemRef::ExternFn(f)) if c_type(&t, self) => {
+                    self.c_fn_types.insert(f, t);
+                    self.modules[m.0 as usize].items.insert(name.to_string(), (r, vis, span));
+                    return Ok(());
+                }
+                _ => {}
+            }
+        }
         let module = &mut self.modules[m.0 as usize];
         if let Some((prev, _, prev_span)) = module.items.get(name) {
             let prev_what = prev.what();
@@ -1271,6 +1295,18 @@ impl Items {
                 return Ok(t);
             }
             match head {
+                // C's machine-sized types (owner, 2026-10-10), CNC's: each
+                // read as the Nerve type it is on the target.
+                "C" if path.segs.len() == 2 => {
+                    no_args(&path.spelled())?;
+                    let name = path.seg(1).unwrap_or("");
+                    return match crate::target::c_type(name) {
+                        Some(crate::target::CType::Int(signed, bits)) => Ok(Ty::int(signed, bits)),
+                        Some(crate::target::CType::Bin(bits)) => Ok(Ty::Bin(crate::types::BinW::Fixed(bits as u16))),
+                        Some(crate::target::CType::NotYet(why)) => err(Diagnostic::error(format!("not yet: {}", why)).at(span)),
+                        None => err(Diagnostic::error(format!("`C.{}` is not one of C's machine-sized types: {}", name, crate::target::C_TYPES.iter().map(|t| format!("`C.{}`", t)).collect::<Vec<_>>().join(", "))).at(span)),
+                    };
+                }
                 "str" => {
                     no_args("str")?;
                     let Some(enc) = path.seg(1) else {
@@ -1399,8 +1435,12 @@ impl Items {
                 _ => {}
             }
         }
-        // A user type by path.
-        match self.lookup_path(path, m)? {
+        // A user type by path; a C function's name, the C type sharing it.
+        let item = match self.lookup_path(path, m)? {
+            ItemRef::ExternFn(f) if self.c_fn_types.contains_key(&f) => self.c_fn_types[&f],
+            other => other,
+        };
+        match item {
             ItemRef::Struct(id) => {
                 let info = &self.structs[id.0 as usize];
                 if info.opaque && !pointee {
