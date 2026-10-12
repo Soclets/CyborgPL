@@ -1,7 +1,6 @@
 // The repo's commit history for the Commits page (owner, 2026-10-12: "a mirror of commits, minus
-// the code part"): each commit's message, author, co-authors and date, never its changes. A commit
-// that touches secrets/, or whose subject is house.secrets…, is left out: those are the owner's
-// private notes.
+// the code part"): each commit's message, author, co-authors and date, never its changes. Every
+// commit, those about secrets/ included (owner: "include").
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 
