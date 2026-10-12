@@ -1,4 +1,4 @@
 MAIN {
-    for 'i' in range[from 0, to 3, by 0] {
+    for 'i' from 0 to 3 by 0 {
     }
 }

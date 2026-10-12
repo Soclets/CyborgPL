@@ -314,7 +314,7 @@ pub enum Stmt {
     /// `index`: `for 'i', 'x' in lend 'xs'` — the position (1, 2, …) beside the item (owner, 2026-09-29)
     For { name: String, index: Option<String>, perm: bool, seq: bool, over: Bracket, body: Vec<Stmt>, line: usize },
     /// `for 'i' in range[start, stop, step] { }` — inclusive stop; `'i': T` types the counter
-    Range { name: String, perm: bool, seq: bool, ty: Option<Ty>, bounds: Bracket, body: Vec<Stmt>, line: usize },
+    Range { name: String, perm: bool, seq: bool, ty: Option<Ty>, bounds: Bracket, /** `before`: the end is left out (owner, 2026-10-12) */ exclusive: bool, body: Vec<Stmt>, line: usize },
     Break { line: usize },
     Continue { line: usize },
     Return { value: Option<Bracket>, line: usize },

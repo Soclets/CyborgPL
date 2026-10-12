@@ -1,1 +1,1 @@
-a range writes its step too, even when it is 1: `range[from 2, to 8, by 1]`
+a counting loop writes its step too, even when it is 1

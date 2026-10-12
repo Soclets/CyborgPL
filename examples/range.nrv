@@ -1,28 +1,28 @@
 MAIN {
-    for 'i' in range[from 1, to 3, by 1] {
+    for 'i' from 1 to 3 by 1 {
         cord::print.useful['i', " "];
     }
     cord::print.stored[newln];
-    for 'k' in range[from 0, to 10, by 5] {
+    for 'k' from 0 to 10 by 5 {
         cord::print.useful['k', " "];
     }
     cord::print.stored[newln];
-    for 'd' in range[from 3, to 1, by -1] {
+    for 'd' from 3 to 1 by -1 {
         cord::print.useful['d', " "];
     }
     cord::print.stored[newln];
-    for perm 'stop' in range[from 0, to 100, by 1] {
+    for perm 'stop' from 0 to 100 by 1 {
         if ('stop' times 'stop') > 50 { break; }
     }
     cord::print.useful["stopped at ", 'stop', newln];
-    for perm 'never' in range[from 5, to 2, by 1] {
+    for perm 'never' from 5 to 2 by 1 {
         cord::print.stored["unreachable", newln];
     }
     cord::print.useful["never ran, holds ", 'never', newln];
-    for perm 'done' in range[from 0, to 3, by 1] {
+    for perm 'done' from 0 to 3 by 1 {
     }
     cord::print.useful["ran out, holds ", 'done', newln];
-    for 'b': int8 in range[from 126, to 127, by 1] {
+    for 'b': int8 from 126 to 127 by 1 {
         cord::print.useful['b', " "];
     }
     cord::print.stored[newln];

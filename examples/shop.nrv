@@ -19,7 +19,7 @@ fn price [lent 'i': Item] -> int32 { return 'i'.cents; }
 fn cheapest <T: Priced> [lent 'xs': list[<T>]] -> <T> or fail[empty] {
     if list.length[lend 'xs'] equal_to 0 { fail empty; }
     let 'best' := 1;
-    for 'k' in range[from 2, to list.length[lend 'xs'], by 1] {
+    for 'k' from 2 to list.length[lend 'xs'] by 1 {
         if price[lend 'xs'[pos 'k']] < price[lend 'xs'[pos 'best']] { change 'best' = 'k'; }
     }
     return copy 'xs'[pos 'best'];

@@ -62,7 +62,7 @@ for 'item' in lend 'items' {                   # each element; 'item' gone after
     …
 }
 
-for 'i' in range[from 0, to 1000, by 1] {                    # 'i' from 0 to 1000 inclusive
+for 'i' from 0 to 1000 by 1 {                    # 'i' from 0 to 1000 inclusive
     …
 }
 ```
@@ -78,7 +78,7 @@ body ran with after a full run (the stop value when the step lands on it; for
 body never ran. One rule for every way a loop can end.
 
 ```
-for perm 'i' in range[from 0, to 100, by 1] {
+for perm 'i' from 0 to 100 by 1 {
     if found['i'] { break; }
 }
 cord::print.useful["stopped at ", 'i', newln];
@@ -108,7 +108,7 @@ zero times.
 The counter is declared like a variable: bare name → best type from the
 bounds; `'i': int32` → explicit, every value must fit. **The step is not
 one of those values** (owner, 2026-09-23): it is its own signed number,
-an instruction to go up or down, so `for 'i': uint64 in range[3, 1, -1]`
+an instruction to go up or down, so `for 'i': uint64 from 3 to 1 by -1`
 is legal — `'i'` is 3, 2, 1, every one a fine `uint64`. Counting down a
 list by position needs this, since a position is a `uint64`. Proposed
 alternative: the step must fit the counter's type too, which would make
@@ -122,8 +122,8 @@ file each bound is labelled and the step always written,
 `range[from 2, to 8, by 2]` (owner, 2026-09-27; `core-features.md`):
 
 ```
-for 'i' in range[from 0, to 9, by 1] { }                 # like  'i' := 0;
-for 'i': int8 in range[from 0, to 9, by 1] { }           # like  'i': int8 = 0;
+for 'i' from 0 to 9 by 1 { }                 # like  'i' := 0;
+for 'i': int8 from 0 to 9 by 1 { }           # like  'i': int8 = 0;
 ```
 
 **`range[…]` stays part of the `for`** (owner, 2026-09-23): it is not a
@@ -150,7 +150,7 @@ Cortex. Skipping ahead is a `while` with your own counter.
 2026-10-01) first, then `seq` or `para` (opt out of or force parallelism,
 see `parallelism.md`), then `perm` if the variable outlives the loop, then
 the name, reading "for, sequentially, a permanent 'i'": `for seq perm 'i':
-int32 in range[0, 9] { }`. The strongest modifier comes first. Plain
+int32 from 0 to 9 by 1 { }`. The strongest modifier comes first. Plain
 `for 'i' in …` is the common case.
 
 ### Not in the language

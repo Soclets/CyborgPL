@@ -73,9 +73,9 @@ until `para` joined it.
 ## No cheating: `for !cheat` (owner, 2026-10-01)
 
 ```
-for no_cheat 'i': int64 in range[from 1, to 'n', by 1] { change 'acc' = 'acc' plus 'i'; }
+for no_cheat 'i': int64 from 1 to 'n' by 1 { change 'acc' = 'acc' plus 'i'; }
 for no_cheat seq 'i' in lend 'xs' { … }
-for no_cheat para 'i' in range[from 1, to 'n', by 1] { … }
+for no_cheat para 'i' from 1 to 'n' by 1 { … }
 ```
 
 **`!cheat`, "no cheat"** (`!c` until 2026-10-06): every round's work really happens at run time. The

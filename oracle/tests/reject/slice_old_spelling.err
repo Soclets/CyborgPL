@@ -1,0 +1,1 @@
+a slice says where it runs: `list.slice[lend 'xs', from pos 2, to pos 4]`

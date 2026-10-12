@@ -15,7 +15,7 @@ MAIN {
     list.remove[lend.mut 'xs', pos 1];
     cord::print.useful['xs', " length ", list.length[lend 'xs'], newln];
     cord::print.useful["sum ", sum[lend 'xs'], newln];
-    for 'i' in range[from 1, to list.length[lend 'xs'], by 1] {
+    for 'i' from 1 to list.length[lend 'xs'] by 1 {
         cord::print.useful['xs'[pos 'i'], " "];
     }
     cord::print.stored[newln];
@@ -23,7 +23,7 @@ MAIN {
     cord::print.stored['days'[pos 2], " of ", array.length[lend 'days'], newln];
     let 'grid' := [[1, 2], [3, 4]];
     cord::print.useful['grid'[pos 2], newln];
-    for perm 'i' in range[from 1, to list.length[lend 'xs'], by 1] {
+    for perm 'i' from 1 to list.length[lend 'xs'] by 1 {
         if 'xs'[pos 'i'] equal_to 30 { break; }
     }
     change 'xs'[pos 'i'] = 33;

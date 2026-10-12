@@ -13,7 +13,7 @@ MAIN {
     }
     let 'xs' := [1, 2, 3];
     check {
-        for 'i' in range[from 1, to list.length[lend 'xs'], by 1] {
+        for 'i' from 1 to list.length[lend 'xs'] by 1 {
             cord::print.useful['xs'[pos 'i'], " "];
         }
     }

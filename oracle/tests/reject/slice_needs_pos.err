@@ -1,1 +1,1 @@
-positions say `pos`: `list.slice[lend 'xs', pos 2, pos 4]`
+a slice starts `from pos …`

@@ -23,7 +23,7 @@ fn count [lent 'text': str.utf8] -> int32 { … }
 MAIN {
     let 'mine' := Locker[name = "A", number = 7, occupied = false];
     let mut 'total': int32 = 0;
-    for 'i' in range[from 1, to 10, by 1] {
+    for 'i' from 1 to 10 by 1 {
         if ('i' mod.floor 2) equal_to 0 { change 'total' = 'total' plus 'i'; }
         else if 'i' equal_to 7 { break; }
         else { continue; }

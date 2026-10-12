@@ -7,7 +7,7 @@ fn by_owner  [lent 'a': Locker, lent 'b': Locker] -> bool { return str.bytes[len
 # a function that takes a function: the type is the signature without the names
 fn first_by [lent 'xs': list[Locker], 'less': fn[lent Locker, lent Locker] -> bool] -> str.utf8 {
     let 'best' := 1;
-    for 'i' in range[from 2, to list.length[lend 'xs'], by 1] {
+    for 'i' from 2 to list.length[lend 'xs'] by 1 {
         if 'less'[lend 'xs'[pos 'i'], lend 'xs'[pos 'best']] { change 'best' = 'i'; }
     }
     let 'winner' := lend 'xs'[pos 'best'];

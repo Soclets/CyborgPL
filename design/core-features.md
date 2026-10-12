@@ -115,7 +115,7 @@ block is a statement, so a region is `check { … }` with no second rule.
 ```
 check change 'xs'['i'] = 'total' plus 'score';     # prove: index in range, add fits
 no_check change 'hash' = 'hash' times 31 plus 'c';          # I want the wrap; on my word
-check { for 'i' in range[from 1, to 'n', by 1] { … } }     # every site in the region
+check { for 'i' from 1 to 'n' by 1 { … } }     # every site in the region
 check if 'x' > 0 { … }                       # an if or a loop is a statement too
 ```
 
@@ -158,8 +158,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
 
   **And the file writes out what others leave to Cortex** (owner, same
   day: "`#strict` gives a fuck about the reader too"):
-  - `pos` on every position: `'xs'[pos 2]`, `list.slice[lend 'xs', pos 2,
-    pos 4]`, `simd.load[lend 'xs', pos 'i']`. Only strict files have it;
+  - `pos` on every position: `'xs'[pos 2]`, `list.slice[lend 'xs', from pos 2, to pos 4]`, `simd.load[lend 'xs', pos 'i']`. Only strict files have it;
     elsewhere `pos` is gone. So a list read never looks like a call.
   - a type on every parameter;
   - a return type on every function that returns a value;
@@ -170,7 +169,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   - a returned borrow names its lifetime group, `--> lent@x T` (2026-09-29,
     `ownership-syntax.md`);
   - each range bound labelled, the step always written:
-    `for temp 'i' in range[from 2, to 8, by 2]` (owner, same day: "the loop
+    `for temp 'i' from 2 to 8 by 2` (owner, same day: "the loop
     syntax should be more self-explanatory"). "Count from 2 to 8 by -4"
     shows at a glance that it never runs. Proposed alternative words:
     `start` / `end` / `step`. Outside strict files the labels are not

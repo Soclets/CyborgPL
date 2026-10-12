@@ -5,6 +5,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-12 — Counting loops and slices are built in the oracle; `min` / `max` bounds wait on a question (owner: "Do number 1")
+
+Built: `for 'i' from 1 to 10 by 1`, `before` leaving the end out (a
+`before` end is never the counter's value, so it need not fit the
+counter's type: `for 'i': uint64 from 0 before 'n' by 1` with `'n'` 0 runs
+no rounds); `in range[…]` refused, naming the new form; commas refused;
+the step still required. Slices `list.slice[lend 'xs', from pos 2, to pos
+4]`, `before pos 4` leaving 4 out, for `list.slice`, `array.slice` and
+`cord::str.slice.<unit>`; the old unlabelled form refused, naming the new.
+About sixty examples, tests and design samples rewritten (the 2026-10-07
+revision table kept as written). Tests: `range_old_spelling` (was
+`range_type_on_range`), `slice_old_spelling`, `count_commas`;
+`range_needs_labels` gone, labels being the loop's words now. Design
+claude's readings: `to`, `before` and `by` end a bound while one is read,
+so no new keywords; the oracle holds `before pos 5` as the last position
+kept, 5 minus 1. **Not built: `min` / `max` on bounded types**: design
+claude found, building it, that 2026-09-23 made `min` and `max` the type's
+own limits (`int32[1, max]`, "at least 1"), which the labels would collide
+with; asked.
+
 ### 2026-10-12 — A counting loop reads as a sentence: `for 'i' from 1 to 10 by 1`, and `before` ends one short (owner; not built)
 
 Shown `for 'i' in range[from 1, to 10, by 1]` (owner: "Anyways, let me see

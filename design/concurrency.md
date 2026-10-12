@@ -13,7 +13,7 @@ let 'results' := channel[str.utf8];
 let 'a' := "a.com";
 concur with [lend 'results', give 'a'] { channel.send[lend 'results', fetch[lend 'a']]; }   # a call's result is fresh: no verb
 concur with [lend 'results'] { channel.send[lend 'results', fetch["b.com"]]; }
-for 'i' in range[from 1, to 2, by 1] {
+for 'i' from 1 to 2 by 1 {
     let 'page' := channel.take[lend 'results'] otherwise "";    # waits; whichever finished first
     cord::print.useful[str.bytes[lend 'page'], newln];
 }

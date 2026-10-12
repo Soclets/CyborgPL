@@ -11,7 +11,7 @@ algorithm.
 ```
 fn is_ascii [lent 'bytes': array[uint8]] -> bool {
     let mut 'acc' := simd.fill[value 0];                          # simd[uint8, 16]
-    for 'i' in range[from 1, to array.length[lend 'bytes'], by 16] {
+    for 'i' from 1 to array.length[lend 'bytes'] by 16 {
         change 'acc' = 'acc' or.bit simd.load[lend 'bytes', pos 'i'];
     }
     return simd.max['acc'] < 128;

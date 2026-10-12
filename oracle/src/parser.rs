@@ -171,6 +171,8 @@ pub struct Parser {
     in_const_value: bool,
     /// set while reading the lines a C header stands for (`incl.C`): C's names may be Nerve keywords
     from_c: bool,
+    /// set while reading a counting loop's bounds: `to`, `before` and `by` end a bound (owner, 2026-10-12)
+    in_count: bool,
     /// `<T: Ordered>` bounds seen while parsing the current signature
     bounds: Vec<(String, String)>,
     /// the generics announced by the item being parsed (owner, 2026-10-02); `None` outside one
@@ -233,9 +235,9 @@ thread_local! {
 }
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, from_c: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, from_c: false, in_count: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, from_c: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, from_c: false, in_count: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
 
     /// A path written in this module, made canonical (from the root):
     /// `my.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -2448,18 +2450,46 @@ impl Parser {
         }
         let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
         if *self.peek() == Tok::LBracket { return self.err("expected `in` before what the loop runs over"); }
+        // a counting loop reads as a sentence (owner, 2026-10-12): `for 'i' from 1 to 10 by 1`, `before`
+        // leaving the end out; `in` walks over something, `from` counts
+        if self.is_word("from") {
+            self.advance();
+            if index.is_some() { return self.err("a counting loop's counter already is the position: `for 'i' from 1 to 10 by 1`"); }
+            let saved = std::mem::replace(&mut self.in_count, true);
+            let r = self.count_bounds();
+            self.in_count = saved;
+            let (bounds, exclusive) = r?;
+            let body = self.block()?;
+            return Ok(Stmt::Range { name, perm, seq, ty, bounds, exclusive, body, line });
+        }
         self.expect_word("in")?;
         if self.is_word("range") {
-            self.advance();
-            if index.is_some() { return self.err("a range's counter already is the position; `for 'i' in range[…]`"); }
-            let bounds = self.range_bounds()?;
-            let body = self.block()?;
-            return Ok(Stmt::Range { name, perm, seq, ty, bounds, body, line });
+            return self.err("a counting loop reads as a sentence now: `for 'i' from 1 to 10 by 1` (`before 10` leaves 10 out) (owner, 2026-10-12)");
         }
         if ty.is_some() { return self.err("a `for` over a list takes no type on its variable; the element's type is the list's"); }
         let over = self.rhs()?;
         let body = self.block()?;
         Ok(Stmt::For { name, index, perm, seq, over, body, line })
+    }
+
+    // count := expr ('to' | 'before') expr 'by' expr   — start, the end (kept by `to`, left out by
+    // `before`), the step, always written; no commas (owner, 2026-10-12)
+    fn count_bounds(&mut self) -> PResult<(Bracket, bool)> {
+        let line = self.line();
+        let start = self.expr()?;
+        if *self.peek() == Tok::Comma { return self.err("no commas in a counting loop: `for 'i' from 1 to 10 by 1` (a long bound groups with `( )`)"); }
+        let exclusive = match self.peek().clone() {
+            Tok::Word(w) if w == "to" => false,
+            Tok::Word(w) if w == "before" => true,
+            other => return self.err(format!("after the start comes `to` (the end kept) or `before` (the end left out): `for 'i' from 1 to 10 by 1`, found {other}")),
+        };
+        self.advance();
+        let stop = self.expr()?;
+        if *self.peek() == Tok::Comma { return self.err("no commas in a counting loop: `for 'i' from 1 to 10 by 1` (a long bound groups with `( )`)"); }
+        if !self.is_word("by") { return self.err("a counting loop writes its step too, even when it is 1: `for 'i' from 1 to 10 by 1` (owner, 2026-10-07)"); }
+        self.advance();
+        let step = self.expr()?;
+        Ok((Bracket { values: vec![Value::Expr(start), Value::Expr(stop), Value::Expr(step)], line, one_list: false }, exclusive))
     }
 
     // range bounds := '[' expr ',' expr (',' expr)? ']'   — start, inclusive stop, step
@@ -2823,11 +2853,15 @@ impl Parser {
             let bline = self.line();
             self.expect(Tok::LBracket, "`[`")?;
             let mut values = vec![self.value()?];
+            if path[1] == "slice" {
+                self.slice_span(&mut values, &format!("cord::{}[lend 's', from pos 1, to pos 4]", path.join(".")), bline)?;
+            } else {
             while *self.peek() == Tok::Comma {
                 self.advance();
                 if !self.is_word("pos") { return self.err(format!("a position says `pos`: `cord::{}[lend 's', pos 3]` (owner, 2026-10-08)", path.join("."))); }
                 self.advance();
                 values.push(self.value()?);
+            }
             }
             self.expect(Tok::RBracket, "`]`")?;
             Bracket { values, line: bline, one_list: false }
@@ -2837,6 +2871,33 @@ impl Parser {
         if bare { BARE_CALLS.with(|b| b.borrow_mut().push((self.module.clone(), written.clone(), limb.as_deref() == Some("std"), line))); }
         if limb.is_none() { CALL_SITES.with(|c| c.borrow_mut().push((self.limb_root.clone(), path.clone(), line))); }
         Ok(Call { handler: None, limb, path, from: self.module.clone(), args, line, bare, written })
+    }
+
+    /// A slice's span, as a counting loop's words (owner, 2026-10-12): `, from pos 2, to pos 4`, or
+    /// `before pos 5`, which leaves 5 out (the oracle holds it as the last position kept, 5 minus 1)
+    fn slice_span(&mut self, values: &mut Vec<Value>, shown: &str, line: usize) -> PResult<()> {
+        self.expect(Tok::Comma, "`,` before `from pos …`")?;
+        if self.is_word("pos") { return self.err(format!("a slice says where it runs: `{shown}`, or `before pos 5` to leave 5 out (owner, 2026-10-12)")); }
+        if !self.is_word("from") { return self.err(format!("a slice starts `from pos …`: `{shown}`")); }
+        self.advance();
+        if !self.is_word("pos") { return self.err(format!("positions say `pos`: `{shown}`")); }
+        self.advance();
+        values.push(self.value()?);
+        self.expect(Tok::Comma, "`,` before `to pos …` or `before pos …`")?;
+        let before = match self.peek().clone() {
+            Tok::Word(w) if w == "to" => false,
+            Tok::Word(w) if w == "before" => true,
+            other => return self.err(format!("a slice's end is `to pos …` (kept) or `before pos …` (left out): `{shown}`, found {other}")),
+        };
+        self.advance();
+        if !self.is_word("pos") { return self.err(format!("positions say `pos`: `{shown}`")); }
+        self.advance();
+        let end = self.value()?;
+        values.push(if before {
+            let Value::Expr(e) = end;
+            Value::Expr(Expr::Binary("-".into(), Box::new(e), Box::new(Expr::Int(1, line)), line))
+        } else { end });
+        Ok(())
     }
 
     // index := '[' 'pos' expr ']'   — 1-based; `pos` is mandatory (decided 2026-09-17)
@@ -2901,12 +2962,7 @@ impl Parser {
             let line = self.line();
             self.advance();
             let mut values = vec![self.value()?];
-            for which in ["first", "last"] {
-                self.expect(Tok::Comma, &format!("`,` before the {which} position"))?;
-                if !self.is_word("pos") { return self.err(format!("positions say `pos`: `{head}.slice[lend 'xs', pos 2, pos 4]` (owner, 2026-10-07)")); }
-                self.advance();
-                values.push(self.value()?);
-            }
+            self.slice_span(&mut values, &format!("{head}.slice[lend 'xs', from pos 2, to pos 4]"), line)?;
             self.expect(Tok::RBracket, "`]`")?;
             return Ok((head, op, Bracket { values, line, one_list: false }));
         }
@@ -3269,6 +3325,7 @@ impl Parser {
         let line = self.line();
         let mut lhs = self.unary()?;
         loop {
+            if self.in_count && matches!(self.peek(), Tok::Word(w) if w == "to" || w == "before" || w == "by") { break; }
             let Some(op) = self.binop() else { break };
             if op == "=" { if self.in_map_key { break; } return self.err("`=` inside a value: assignment is a statement; equality is `equal_to`"); }
             if self.op_old.get() && !self.internal_ops { return self.old_op_error(&op); }

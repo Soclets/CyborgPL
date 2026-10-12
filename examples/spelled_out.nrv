@@ -6,10 +6,10 @@ fn ratio ['n': int32[1, max]] -> int32 { return 100 div.floor 'n'; }
 MAIN {
     let immut 'xs': list[int32] = [10, 20, 30, 40];
     let mut 'total': int32 = 0;
-    for temp 'i': uint64 in range[from 1, to 4, by 1] {
+    for temp 'i': uint64 from 1 to 4 by 1 {
         change 'total' = 'total' plus 'xs'[pos 'i'];
     }
-    let immut 'mid' := list.slice[lend 'xs', pos 2, pos 3];
+    let immut 'mid' := list.slice[lend 'xs', from pos 2, to pos 3];
     let immut 'f' := fn ['n': int32[0, 1000]] -> int32 { return 'n' times 2; };   # the range is why 'n' times 2 fits
     cord::print.useful['total', " ", 'mid', " ", ratio[4], " ", 'f'[3], newln];
 }

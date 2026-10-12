@@ -25,9 +25,9 @@ programmer only says which at a boundary.
 ## Slicing — `list.slice`, `array.slice` (owner, 2026-09-23)
 
 ```
-let 'mid' := list.slice[lend 'xs', pos 2, pos 4];      # elements 2, 3 and 4
-let 'head' := array.slice[lend 'fixed', pos 1, pos 2];
-let 'none' := list.slice[lend 'xs', pos 3, pos 2];     # empty: last is first minus 1
+let 'mid' := list.slice[lend 'xs', from pos 2, to pos 4];      # elements 2, 3 and 4
+let 'head' := array.slice[lend 'fixed', from pos 1, to pos 2];
+let 'none' := list.slice[lend 'xs', from pos 3, to pos 2];     # empty: last is first minus 1
 ```
 
 **A slice owns its elements**, like any list: the copy is the meaning.
@@ -120,7 +120,7 @@ has names and comments. A list read standing alone as a statement does
 nothing and is refused. `pos` is no longer a keyword. The position is an
 ordinal, the way people count,
 which lines up with inclusive ranges:
-`for 'i' in range[1, list.length[lend 'xs']]` walks the whole list
+`for 'i' from 1 to list.length[lend 'xs']` walks the whole list
 with no `- 1` anywhere. An out-of-range position is a runtime check in the
 default tier, proven away by Cortex where it can be.
 
@@ -139,7 +139,7 @@ Selecting by *value* (`'xs'[value-is 2]`) was considered and dropped: it is a
 search, and a search is a loop the reader should see —
 
 ```
-for perm 'i' in range[from 1, to list.length[lend 'xs'], by 1] {
+for perm 'i' from 1 to list.length[lend 'xs'] by 1 {
     if 'xs'['i'] equal_to 2 { break; }
 }
 change 'xs'['i'] = 5;

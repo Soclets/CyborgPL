@@ -975,13 +975,14 @@ impl<'p> Interp<'p> {
                 }
                 Ok(Flow::Normal)
             }
-            Stmt::Range { name, perm, ty, bounds, body, line, .. } => {
+            Stmt::Range { name, perm, ty, bounds, exclusive, body, line, .. } => {
                 let mut nums = Vec::new();
                 for (k, v) in bounds.values.iter().enumerate() {
                     let (val, prov) = self.value(v)?;
                     // The step is its own signed number, not a value the counter takes
                     // (owner, 2026-09-23): `for 'i': uint64 in range[3, 1, -1]` is legal.
-                    let val = if k < 2 { self.fit(val, prov, ty.as_ref(), *line)? } else { val };
+                    // an end left out (`before`) is never the counter's value, so it need not fit its type
+                    let val = if k == 0 || (k == 1 && !*exclusive) { self.fit(val, prov, ty.as_ref(), *line)? } else { val };
                     match val {
                         Value::Int(i) => nums.push(i),
                         other => return rt(*line, format!("a range bound must be an integer, got {}", other.kind())),
@@ -994,7 +995,7 @@ impl<'p> Interp<'p> {
                 let cell = Rc::new(RefCell::new(Value::Int(start)));
                 let mut i = start;
                 let mut broke = false;
-                while (step > 0 && i <= stop) || (step < 0 && i >= stop) {
+                while if *exclusive { (step > 0 && i < stop) || (step < 0 && i > stop) } else { (step > 0 && i <= stop) || (step < 0 && i >= stop) } {
                     if let Some(t) = ty { self.check_type(&Value::Int(i), t, *line)?; }
                     *cell.borrow_mut() = Value::Int(i);
                     self.push();
