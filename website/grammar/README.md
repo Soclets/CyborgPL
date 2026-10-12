@@ -98,4 +98,4 @@ enums by their lowercase names (`color.BLUE`); `size.of[T]`; a struct built by i
 name (`buf[size = 42]`); and `case.any` / `case.exact` (`case.insensitive` / `case.sensitive`
 marked deprecated).
 
-Last run on 2026-10-12 against all 166 programs (`.nrv`): no unscoped spans.
+Last run on 2026-10-12 against all 168 programs (`.nrv`): no unscoped spans.

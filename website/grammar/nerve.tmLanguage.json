@@ -426,6 +426,21 @@
     "type": {
       "patterns": [
         {
+          "comment": "An enum's case through its type: `Aisle.fresh`, `Status.empty` (a call, `Ticket.next[…]`, is a function).",
+          "match": "(?<![.'\\p{L}\\p{N}_])(\\p{Lu}[\\p{L}\\p{N}_]*)(\\.)([\\p{Ll}_][\\p{L}\\p{N}_]*)\\b(?!\\s*\\[)",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.nerve"
+            },
+            "2": {
+              "name": "punctuation.accessor.nerve"
+            },
+            "3": {
+              "name": "variable.other.enummember.nerve"
+            }
+          }
+        },
+        {
           "comment": "C's types, each C's size on the machine built for (2026-10-12): `C.int`, `C.long`, `C.size_t`, `C.long_double`.",
           "match": "(?<![.\\p{L}\\p{N}_])(C)(\\.)([\\p{Ll}_][\\p{L}\\p{N}_]*)\\b",
           "captures": {
