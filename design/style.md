@@ -21,14 +21,16 @@ recommended.
 2. **Narrow an outside value once, where it arrives, with a range type.**
 
    ```
-   'text' := std::input.line[] otherwise "";
-   'n' := to.int32[min 1, max 99]['text'] otherwise 1;
+   let 'text' := cord::input.line[] otherwise "";
+   let 'n' := to.int32[min 1, max 99]['text'] otherwise 1;
    ```
 
    Everything downstream is then proven, with no guard at each use
    (`input.md`).
 3. **No `mut` by habit.** Plain is the standard, and `change` already
-   marks every change. Keep `!mut` / `!$` for values whose
+   marks every change. `mut` is a checked promise that a value changes
+   (2026-10-10: one that nothing changes is refused), so write it where the
+   change is the point. Keep `immut` / `no_shadow` for values whose
    fixedness matters to the reader: a rate, a limit.
 
 ## Safety
@@ -36,7 +38,7 @@ recommended.
 4. **The proven path first, then `check`.** A guard `if` in front of the
    site, and `check` on the ones that matter, so the compiler says whether
    the guard is enough. `no_check` is for what no guard can prove, mostly C.
-5. **Wrap `no_check` once.** As std does: one small function holds the
+5. **Wrap `no_check` once.** As `cord` does: one small function holds the
    `no_check` C call, and everything else calls that safe wrapper. The
    build's `no_check` list stays short enough to review.
 6. **`NO_FUCKING_CHECKS` only after measuring.** Never a first resort.
@@ -53,15 +55,15 @@ recommended.
    one arm per reason close to the source, `otherwise fail` to pass it up.
    Careful with `otherwise 0` on input: it can turn "bad input" into a
    zero that looks real.
-10. **`and.then` for guards.** `if 'i' </== list.length[lend 'xs'] and.then
-    'xs'['i'] == 5 { … }`. A plain `and` runs both sides (`operators.md`).
+10. **`and.then` for guards.** `if 'i' at_most list.length[lend 'xs'] and.then
+    'xs'[pos 'i'] equal_to 5 { … }`. A plain `and` runs both sides (`operators.md`).
 
 ## Loops and output
 
 11. **A plain `for`; Cortex parallelises.** `seq` only when order matters,
     `para` only after measuring, `simd` only when the plain loop did not
-    vectorise, `!cheat` only for timing code.
-12. **`print.useful` for people, `print` for debugging numbers,
+    vectorise, `no_cheat` only for timing code.
+12. **`print.useful` for people, `print.stored` for debugging numbers,
     `print.format` for shaped output** (columns, hex, places).
 13. **`precedence.low_first` for a Neuron's operator levels** (owner,
     2026-10-03: "low_first is good practice"): level 1 binds loosest, as a
