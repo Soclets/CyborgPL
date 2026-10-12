@@ -87,6 +87,15 @@ cord::print.useful["stopped at ", 'i', newln];
 `perm` on a list loop keeps the last element visited (an empty list is an
 error: there is nothing to keep).
 
+### Counting: `for 'i' from 1 to 10 by 1` (owner, 2026-10-12)
+
+**Since 2026-10-12 a counting loop reads as a sentence**, `in range[` and
+`]` gone: `for 'i' from 1 to 10 by 1 { … }`. `to` includes its end,
+**`before`** stops one short (`for 'i' from 0 before 10 by 1` is 0 … 9),
+exactly one of the two; the step is always written; no commas, and a long
+bound is grouped with `( )`. What follows describes the same loop in its
+2026-09 spelling, `range[…]`, and holds for the new one but for the words.
+
 ### `range[…]`
 
 One `for`; the range is a value it runs over (decided 2026-09-19, merging

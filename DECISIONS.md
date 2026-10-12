@@ -5,6 +5,30 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-12 — A counting loop reads as a sentence: `for 'i' from 1 to 10 by 1`, and `before` ends one short (owner; not built)
+
+Shown `for 'i' in range[from 1, to 10, by 1]` (owner: "Anyways, let me see
+an `in range` loop"), the owner: "Should there be another option for `to`
+(not alias)?" Design claude offered an exclusive end, for counts and
+offsets from 0 (`to 'n' minus 1` cannot even be computed for an unsigned
+`'n'` of 0), first as `until`; the owner: "`until 10` means stop at 10,
+right?" (Kotlin's meaning, 10 excluded, but English reads it both ways), so
+design claude recommended **`before`**, which reads one way counting up or
+down; then "Should be it `to.before`?" (no: `to.` means a conversion
+everywhere else, and `before` is `to`'s opposite, not a narrower `to`).
+"How do we make it read more natural?": offered (a) keeping `range[…]`,
+(b) the loop as a sentence, `in range[` and `]` dropped, recommended:
+`in` walks over something, `from` counts, so the second word says which
+loop it is. "Should there be commas?": no, the labels separate the parts,
+and a long bound is grouped with `( )`. The owner: "yeah". So **a counting
+loop is `for 'i' from 1 to 10 by 1 { … }`, `to` including its end and
+`before` stopping one short (`for 'i' from 0 before 10 by 1` is 0 … 9;
+`from 10 before 0 by -1` is 10 … 1), exactly one of the two, the step always
+written, no commas**; modifiers and a type stay where they were (`for seq
+perm 'k': int8 from 0 to 6 by 2`). Design claude's reading, not asked:
+`in range[…]` is refused, naming the new spelling, as old spellings are.
+Not built.
+
 ### 2026-10-12 — (dropped the same day) Conversion as `convert['x'](from int32, to int16)`, `( )` holding a call's details (owner)
 
 Shown the `to.` conversions (owner: "Let me see convert syntax", then
