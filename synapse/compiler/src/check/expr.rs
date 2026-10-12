@@ -176,8 +176,7 @@ impl Checker {
                 self.conversion(ctx, target, expr, otherwise.as_deref(), span, used)
             }
             AK::Channel { elem, bound } => {
-                let mut blanks = Vec::new();
-                let et = self.items.resolve_type(elem, ctx.module, &mut blanks, false)?;
+                let et = self.body_type(ctx, elem)?;
                 let cap = match bound {
                     Some(b) => {
                         let (lo, hi) = (&b.0, &b.1);
@@ -3142,7 +3141,6 @@ impl Checker {
     }
 
     fn conversion(&mut self, ctx: &mut FnCtx, target: &ast::Type, operand: &ast::Expr, otherwise: Option<&ast::Otherwise>, span: Span, used: bool) -> Result<Expr> {
-        let mut blanks = Vec::new();
         // `to.useful.deci64[…]`: a bin's shortest decimal (owner,
         // 2026-09-29), where `to.deci64[…]` is its exact value; and
         // `to.useful.str.utf8[…]`, the useful text, where `to.str.utf8` is
@@ -3175,7 +3173,7 @@ impl Checker {
                 return self.to_bits(ctx, &inner, operand, otherwise, span);
             }
         }
-        let t = self.items.resolve_type(target, ctx.module, &mut blanks, false)?;
+        let t = self.body_type(ctx, target)?;
         if let Some(u) = form {
             if !matches!(t.base(), Ty::Str(_) | Ty::Deci(_)) {
                 let f = if u { "useful" } else { "stored" };

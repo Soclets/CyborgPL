@@ -310,3 +310,5 @@ incl_bytes_change 67
 bare_past_64_bits 99
 # `before` in a counting loop and a slice (owner, 2026-10-12).
 count_before 170
+# A local typed with the function's blank, in a generic body.
+generic_local 48

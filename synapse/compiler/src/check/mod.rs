@@ -579,6 +579,18 @@ impl Checker {
         Ok(())
     }
 
+    /// A type written inside a body (`let 'sum': <T> = 0;`): the function's
+    /// blanks are its own, filled with this instance's types.
+    pub(crate) fn body_type(&self, ctx: &FnCtx, t: &ast::Type) -> Result<Ty> {
+        let mut blanks: Vec<(String, Vec<crate::types::IfaceId>)> = ctx.blank_names.iter().map(|n| (n.clone(), Vec::new())).collect();
+        let generic = !ctx.blank_names.is_empty();
+        let rt = self.items.resolve_type(t, ctx.module, &mut blanks, generic)?;
+        Ok(match self.instances.get(ctx.inst.0 as usize) {
+            Some(i) if generic => rt.subst(&i.key.blanks),
+            _ => rt,
+        })
+    }
+
     pub fn new_ctx(&self, inst: FnInst, module: ModuleId, name: String, ret: Ty, fails: Vec<(String, Option<Ty>)>, is_main: bool) -> FnCtx {
         FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_test: false, must_fail: false, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None, borrow_src: HashMap::new(), fold_vars: false, promised: Vec::new(), changed: Default::default(), const_scopes: vec![HashMap::new()], outer_vars: None, in_const: false, const_views: Vec::new() }
     }

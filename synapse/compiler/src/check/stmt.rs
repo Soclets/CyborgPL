@@ -301,8 +301,7 @@ impl Checker {
                 }
                 let declared = match ty {
                     Some(t) => {
-                        let mut blanks = Vec::new();
-                        let rt = self.items.resolve_type(t, ctx.module, &mut blanks, false)?;
+                        let rt = self.body_type(ctx, t)?;
                         Some(rt)
                     }
                     None => None,
@@ -716,8 +715,7 @@ impl Checker {
             ast::ForIter::Range { start, stop, step, exclusive } => {
                 let counter_ty = match ty {
                     Some(t) => {
-                        let mut blanks = Vec::new();
-                        let rt = self.items.resolve_type(t, ctx.module, &mut blanks, false)?;
+                        let rt = self.body_type(ctx, t)?;
                         if !rt.is_int() {
                             return err(Diagnostic::error(format!("a range counter is an integer; `{}` is not", self.spell(&rt))).at(t.span));
                         }
@@ -878,8 +876,7 @@ impl Checker {
         let mut value = self.expr(&mut cctx, &d.value)?;
         let ty = match &d.ty {
             Some(t) => {
-                let mut blanks = Vec::new();
-                let t = self.items.resolve_type(t, ctx.module, &mut blanks, false)?;
+                let t = self.body_type(ctx, t)?;
                 value = self.expect_store(&mut cctx, value, &t, "the const's declared type")?;
                 t
             }
