@@ -65,8 +65,45 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
         let after = &rest[q + 1..];
         let Some(e) = after.find('\'') else { continue };
         let mut ty = &after[..e];
-        if let Some(d) = after[e + 1..].strip_prefix(":'") { if let Some(e2) = d.find('\'') { ty = &d[..e2]; } }
+        // `struct tm` / `enum color` stay as written; anything else is followed to what it names
+        if !ty.starts_with("struct ") && !ty.starts_with("enum ") {
+            if let Some(d) = after[e + 1..].strip_prefix(":'") { if let Some(e2) = d.find('\'') { ty = &d[..e2]; } }
+        }
         td.insert(name, ty.to_string());
+    }
+    // C's enums (owner, 2026-10-10): each one's constants with their values (a value not written is the
+    // one before plus 1); a named one becomes a `layout.C enum`, an unnamed one's names plain consts. An
+    // unnamed enum given a name by the `typedef` right after it (`typedef enum { … } level_t;`) is named.
+    let mut enums: Vec<(Option<String>, Vec<(String, i128)>)> = Vec::new();
+    let top: Vec<&str> = ast.lines().collect();
+    let mut k = 0;
+    while k < top.len() {
+        let Some(rest) = top[k].strip_prefix("|-").or_else(|| top[k].strip_prefix("`-")) else { k += 1; continue };
+        if !rest.starts_with("EnumDecl ") { k += 1; continue; }
+        let last = rest.split_whitespace().last().unwrap_or("");
+        let mut name = (!last.contains(':') && !last.contains('>')).then(|| last.to_string());
+        let mut cases: Vec<(String, Option<i128>)> = Vec::new();
+        k += 1;
+        while k < top.len() && (top[k].starts_with("| ") || top[k].starts_with("  ")) {
+            let l = top[k];
+            if let Some(i) = l.find("EnumConstantDecl ") {
+                let rest = &l[i..];
+                if let Some(q) = rest.find('\'') { cases.push((rest[..q].split_whitespace().last().unwrap_or("").to_string(), None)); }
+            } else if let Some(i) = l.find("value: Int ") {
+                if let (Some(c), Ok(v)) = (cases.last_mut(), l[i + 11..].trim().parse::<i128>()) { if c.1.is_none() { c.1 = Some(v); } }
+            }
+            k += 1;
+        }
+        if name.is_none() {
+            if let Some(next) = top.get(k).and_then(|l| l.strip_prefix("|-").or_else(|| l.strip_prefix("`-"))) {
+                if next.starts_with("TypedefDecl ") {
+                    if let Some(q) = next.find("'enum ") { let after = &next[q + 6..]; if let Some(e) = after.find('\'') { name = Some(after[..e].to_string()); } }
+                }
+            }
+        }
+        let mut v = -1i128;
+        let cases: Vec<(String, i128)> = cases.into_iter().map(|(n, x)| { v = x.unwrap_or(v + 1); (n, v) }).collect();
+        if !cases.is_empty() { enums.push((name, cases)); }
     }
     // C's structs: each tag's fields (None when some part is beyond a plain field), and its Nerve name,
     // C's type name when it has one, else the tag (owner, 2026-10-10: `FILE`, `tm`)
@@ -99,7 +136,14 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
     for (alias, target) in &td {
         if let Some(tag) = target.strip_prefix("struct ") { if good_name(alias) && !alias.starts_with('_') { names.entry(tag.to_string()).or_insert_with(|| alias.clone()); } }
     }
-    let mut cx = Cx { td: &td, records: &records, names: &names, layout: HashMap::new(), opaque: Vec::new(), busy: Vec::new() };
+    // a named enum's Nerve name: C's type name for it when it has one, else its tag (as for structs)
+    let mut enum_names: HashMap<String, String> = HashMap::new();
+    for (tag, _) in enums.iter().filter_map(|(n, c)| n.as_ref().map(|n| (n, c))) {
+        let alias = td.iter().find(|(a, t)| t.as_str() == format!("enum {tag}") && *a != tag && good_name(a) && !a.starts_with('_')).map(|(a, _)| a.clone());
+        let n = alias.unwrap_or_else(|| tag.clone());
+        if good_name(&n) && !crate::parser::KEYWORDS.contains(&n.as_str()) { enum_names.insert(tag.clone(), n); }
+    }
+    let mut cx = Cx { td: &td, records: &records, names: &names, enums: &enum_names, layout: HashMap::new(), opaque: Vec::new(), busy: Vec::new() };
     let mut fns: Vec<(String, String)> = Vec::new();   // (name, line), the last declaration of a name winning
     let mut vars: Vec<(String, String)> = Vec::new();
     for l in ast.lines() {
@@ -136,6 +180,15 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
         if name.contains('(') || given.contains(name) || !good_name(name) { continue; }   // a function-like macro, or the compiler's own
         if let Some(v) = constant(value.trim()) { consts.push(format!("const '{name}' := {v};")); }
     }
+    let mut enum_lines = Vec::new();
+    for (tag, cases) in &enums {
+        if cases.iter().any(|(n, _)| !good_name(n)) { continue; }
+        match tag.as_ref().and_then(|t| enum_names.get(t)) {
+            Some(name) => enum_lines.push(format!("layout.C enum {name} {{ {} }}", cases.iter().map(|(n, v)| format!("{n} = {v}")).collect::<Vec<_>>().join("  "))),
+            None if tag.is_none() => for (n, v) in cases { if !consts.iter().any(|c: &String| c.starts_with(&format!("const '{n}' "))) { consts.push(format!("const '{n}' := {v};")); } },
+            None => {}
+        }
+    }
     // every struct of the header that has a name, whole when Nerve can spell its fields, else opaque
     let mut tags: Vec<&String> = records.keys().collect();
     tags.sort();
@@ -148,7 +201,7 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
     opaque.retain(|o| !whole.contains(o));
     opaque.sort(); opaque.dedup();
     Ok(Header {
-        lines: structs.into_iter().map(|(_, l)| l).chain(fns.into_iter().map(|(_, l)| l)).chain(vars.into_iter().map(|(_, l)| l)).chain(consts).collect(),
+        lines: enum_lines.into_iter().chain(structs.into_iter().map(|(_, l)| l)).chain(fns.into_iter().map(|(_, l)| l)).chain(vars.into_iter().map(|(_, l)| l)).chain(consts).collect(),
         opaque,
     })
 }
@@ -158,6 +211,8 @@ struct Cx<'a> {
     td: &'a HashMap<String, String>,
     records: &'a HashMap<String, Option<Vec<(String, String)>>>,
     names: &'a HashMap<String, String>,
+    /// named enums: tag → Nerve name
+    enums: &'a HashMap<String, String>,
     /// structs that come through whole: tag → its `layout.C struct` line
     layout: HashMap<String, String>,
     /// Nerve names of structs that come through opaque
@@ -205,15 +260,15 @@ fn record(tag: &str, cx: &mut Cx, depth: usize, by_value: bool) -> Option<String
 /// `int (const char *, ...)` as an `extern.C fn` line, or None when some part has no Nerve spelling yet.
 fn function(name: &str, ty: &str, cx: &mut Cx) -> Option<String> {
     let open = ty.find('(')?;
-    if !ty.ends_with(')') || ty[open + 1..ty.len() - 1].contains('(') || ty[..open].contains(')') { return None; }   // function pointers
+    if !ty.ends_with(')') || ty[..open].contains(')') { return None; }
     let ret = strip(&ty[..open]);
     let ret = if ret == "void" { String::new() } else { format!(" -> {}", map(ret, cx, 0)?) };
     let inside = ty[open + 1..ty.len() - 1].trim();
     let mut params = Vec::new();
     if !inside.is_empty() && inside != "void" {
-        for (i, p) in inside.split(',').map(str::trim).enumerate() {
+        for (i, p) in split_top(inside).into_iter().enumerate() {
             if p == "..." { params.push("...'args'".to_string()); continue; }
-            params.push(format!("'p{}': {}", i + 1, map(strip(p), cx, 0)?));
+            params.push(format!("'p{}': {}", i + 1, map(strip(&p), cx, 0)?));
         }
     }
     Some(format!("extern.C fn {name} [{}]{ret};", params.join(", ")))
@@ -223,12 +278,27 @@ fn function(name: &str, ty: &str, cx: &mut Cx) -> Option<String> {
 fn strip(t: &str) -> &str { t.trim() }
 
 /// A C type as Nerve writes it at the C boundary; `const` before a pointer's target makes it `ptr`, else
-/// `ptr.mut`. Plain `char` is a byte, `uint8`, as Nerve's text is bytes; `void *` points at bytes.
+/// `ptr.mut`. `void *` points at bytes, `uint8`.
 fn map(t: &str, cx: &mut Cx, depth: usize) -> Option<String> {
     if depth > 16 { return None; }
     let mut t = t.to_string();
     for mark in ["__restrict", "restrict", "_Nullable", "_Nonnull", "_Null_unspecified", "volatile", "__unsafe_indexable", "__single"] { t = t.replace(mark, " "); }
     let t = t.split_whitespace().collect::<Vec<_>>().join(" ");
+    // a function pointer, `int (*)(const void *, const void *)`: Nerve's callback type, `fn[…] -> T`
+    // (2026-09-21), parameters by value
+    if let Some(p) = t.find("(*") {
+        let close = p + t[p..].find(')')?;
+        if !t[p + 2..close].trim().is_empty() { return None; }
+        let rest = t[close + 1..].trim();
+        let inside = rest.strip_prefix('(')?.strip_suffix(')')?.trim();
+        let ret = t[..p].trim();
+        let mut ps = Vec::new();
+        if !inside.is_empty() && inside != "void" {
+            for q in split_top(inside) { if q == "..." { return None; } ps.push(map(&q, cx, depth + 1)?); }
+        }
+        let ret = if ret == "void" { String::new() } else { format!(" -> {}", map(ret, cx, depth + 1)?) };
+        return Some(format!("fn[{}]{ret}", ps.join(", ")));
+    }
     let t = t.replace(" *", "*").replace("* ", "*");
     if let Some(inner) = t.strip_suffix('*') {
         let inner = inner.trim();
@@ -240,14 +310,23 @@ fn map(t: &str, cx: &mut Cx, depth: usize) -> Option<String> {
     }
     let base = t.strip_prefix("const ").unwrap_or(&t).trim();
     if let Some(tag) = struct_tag(base, cx) { return record(&tag, cx, depth, true); }
+    // a named enum is its Nerve enum (owner, 2026-10-10); one Nerve has no name for is an `int`, as C's are
+    if let Some(tag) = base.strip_prefix("enum ") { return Some(cx.enums.get(tag.trim()).cloned().unwrap_or_else(|| "C.int".to_string())); }
+    // C's machine-sized types are the `C.` types (owner, 2026-10-10), C's words kept; a type the same size
+    // everywhere is Nerve's own (`int32_t` is `int32`, `double` is `bin64`)
     Some(match base {
-        "char" | "unsigned char" => "uint8", "signed char" => "int8",
-        "short" | "short int" | "signed short" => "int16", "unsigned short" | "unsigned short int" => "uint16",
-        "int" | "signed int" | "signed" => "int32", "unsigned int" | "unsigned" => "uint32",
-        "long" | "long int" | "signed long" | "long long" | "long long int" | "signed long long" => "int64",
-        "unsigned long" | "unsigned long int" | "unsigned long long" | "unsigned long long int" => "uint64",
+        "char" => "C.char", "signed char" => "C.signed_char", "unsigned char" => "C.unsigned_char",
+        "short" | "short int" | "signed short" | "signed short int" => "C.short", "unsigned short" | "unsigned short int" => "C.unsigned_short",
+        "int" | "signed int" | "signed" => "C.int", "unsigned int" | "unsigned" => "C.unsigned_int",
+        "long" | "long int" | "signed long" | "signed long int" => "C.long", "unsigned long" | "unsigned long int" => "C.unsigned_long",
+        "long long" | "long long int" | "signed long long" | "signed long long int" => "C.long_long",
+        "unsigned long long" | "unsigned long long int" => "C.unsigned_long_long",
+        "long double" => "C.long_double",
+        "size_t" | "ssize_t" | "ptrdiff_t" | "intptr_t" | "uintptr_t" | "wchar_t" => return Some(format!("C.{base}")),
+        "int8_t" => "int8", "int16_t" => "int16", "int32_t" => "int32", "int64_t" => "int64",
+        "uint8_t" => "uint8", "uint16_t" => "uint16", "uint32_t" => "uint32", "uint64_t" => "uint64",
         "float" => "bin32", "double" => "bin64", "_Bool" | "bool" => "bool",
-        // a C type name stands for the type it names (`size_t` is `unsigned long` here)
+        // any other C type name stands for the type it names
         name => { let t = cx.td.get(name)?.clone(); return map(&t, cx, depth + 1); }
     }.to_string())
 }
@@ -274,4 +353,19 @@ fn struct_tag(t: &str, cx: &Cx) -> Option<String> {
     if let Some(tag) = t.strip_prefix("struct ") { return Some(tag.trim().to_string()); }
     let target = cx.td.get(t)?;
     target.strip_prefix("struct ").map(|tag| tag.trim().to_string())
+}
+
+/// A C parameter list split at its top-level commas, so a function pointer's own list stays whole.
+fn split_top(s: &str) -> Vec<String> {
+    let (mut out, mut depth, mut cur) = (Vec::new(), 0i32, String::new());
+    for c in s.chars() {
+        match c {
+            '(' => { depth += 1; cur.push(c); }
+            ')' => { depth -= 1; cur.push(c); }
+            ',' if depth == 0 => { out.push(cur.trim().to_string()); cur.clear(); }
+            _ => cur.push(c),
+        }
+    }
+    if !cur.trim().is_empty() { out.push(cur.trim().to_string()); }
+    out
 }

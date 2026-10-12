@@ -5,6 +5,27 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-12 — CNC finished in the oracle: the `C.` types, C enums and function pointers come through (owner: "yea")
+
+The focus being CNC first (owner: "yea"), the rest of 2026-10-10's C
+rulings are built in the oracle: the eighteen `C.` types, each what C's
+type is on the machine (the oracle's, aarch64-macos: `C.char` a signed
+8-bit, `C.long` 64 bits, `C.long_double` a `bin64`), CNC's, so a Neuron
+without CNC is refused at `C.int`; a header coming through in them
+(`strlen` takes a `ptr[C.char]` and returns a `C.size_t`); named C enums as
+`layout.C enum`s (`color.BLUE`), an unnamed one named by its `typedef`
+taking that name (`level_t`), the others' names consts (`'SEEK_B'`); and
+function pointers as `fn[…] -> C.int`. Passing a plain number where C
+wants an enum is refused ("expected a color, got integer"). Found while
+building: the parser kept a header's functions but not its enums, so a
+function using one failed; fixed. Design claude's readings, in the
+oracle's README: `size_t` and its kind keep their names rather than what
+they name; an enum Nerve has no name for is a `C.int`; a variadic function
+pointer is left out; `C.` types read as the Nerve type they are, so
+messages name `int64`. `stdio.h` now gives all 81 of its functions and
+`math.h` all 178. `examples/c_types.nrv`, reject tests `c_type_unknown`,
+`c_type_needs_cnc`, `c_enum_param_number`.
+
 ### 2026-10-12 — Regrouping the lobes by expertise: IEG and TAS are dissolved into the Brainstem (owner: a)
 
 Going through the lobes one field at a time (2026-10-10: "Like a big one

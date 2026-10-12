@@ -57,6 +57,27 @@ pub fn core_line(core: &str) -> String {
     format!("kin::Lobe[id = \"{id}\", version = \"{}\"]", core_version(core))
 }
 
+/// C's machine-sized types (owner, 2026-10-10: "(a)" twice): their Nerve names, C's words kept
+pub const C_TYPES: [&str; 18] = ["char", "signed_char", "unsigned_char", "short", "unsigned_short", "int", "unsigned_int",
+    "long", "unsigned_long", "long_long", "unsigned_long_long", "size_t", "ssize_t", "ptrdiff_t", "intptr_t", "uintptr_t", "wchar_t", "long_double"];
+
+/// What a `C.` type is on the oracle's machine, aarch64-macos (Clang's sizes; `char` and `wchar_t` signed
+/// there; `long double` is a `double`)
+pub fn c_type(name: &str) -> Option<Ty> {
+    Some(match name {
+        "char" | "signed_char" => Ty::Int(IntWidth::W8),
+        "unsigned_char" => Ty::Uint(IntWidth::W8),
+        "short" => Ty::Int(IntWidth::W16),
+        "unsigned_short" => Ty::Uint(IntWidth::W16),
+        "int" | "wchar_t" => Ty::Int(IntWidth::W32),
+        "unsigned_int" => Ty::Uint(IntWidth::W32),
+        "long" | "long_long" | "ssize_t" | "ptrdiff_t" | "intptr_t" => Ty::Int(IntWidth::W64),
+        "unsigned_long" | "unsigned_long_long" | "size_t" | "uintptr_t" => Ty::Uint(IntWidth::W64),
+        "long_double" => Ty::Bin(64),
+        _ => return None,
+    })
+}
+
 /// The target the oracle stands in for (cca/targets.txt has only this one)
 pub const ORACLE_TARGET: &str = "aarch64-macos";
 
@@ -461,6 +482,10 @@ impl Parser {
                     Tok::Word(w) if w == "case" && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(m)) if ["any", "exact", "insensitive", "sensitive"].contains(&m.as_str())) => Some(("CAPS", "a `case` mark".into())),
                     // everything about C is CNC's (owner, 2026-10-10): `extern.C`, `incl.C`, `layout.C`
                     Tok::Word(w) if ["extern", "incl", "layout"].contains(&w.as_str()) && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(c)) if c == "C") => Some(("CNC", format!("`{w}.C`"))),
+                    Tok::Word(w) if w == "C" && !after_dot && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(c)) if C_TYPES.contains(&c.as_str())) => {
+                        let Some(Tok::Word(c)) = self.toks.get(i + 2).map(|t| &t.tok) else { unreachable!() };
+                        Some(("CNC", format!("`C.{c}`")))
+                    }
                     _ => None,
                 };
                 if let Some((core, what)) = found {
@@ -779,6 +804,9 @@ impl Parser {
                             for d in &mut part.structs { d.line = line; d.vis = vis.clone(); }
                             part.structs.retain(|d| !prog.structs.iter().any(|e| e.name == d.name && format!("{:?}", e.fields) == format!("{:?}", d.fields)));
                             prog.structs.extend(part.structs);
+                            for e in &mut part.enums { e.line = line; e.vis = vis.clone(); }
+                            part.enums.retain(|e| !prog.enums.iter().any(|f| f.name == e.name && f.c_values == e.c_values));
+                            prog.enums.extend(part.enums);
                             for f in &mut part.funcs { f.line = line; f.vis = vis.clone(); }
                             for c in &mut part.consts { c.line = line; c.vis = vis.clone(); }
                             for x in &mut part.externs { x.line = line; x.vis = vis.clone(); }
@@ -1708,6 +1736,15 @@ impl Parser {
             let mutable = match segs.len() { 1 => false, 2 if segs[1] == "mut" => true, _ => return self.err("a pointer is `ptr[T]` or `ptr.mut[T]`") };
             if params.len() != 1 { return self.err("a pointer says what it points at: `ptr[uint8]`, `ptr.mut[Timeval]`"); }
             return Ok(Ty::Ptr(Box::new(params.pop().unwrap()), mutable));
+        }
+        // C's types whose size is the machine's (owner, 2026-10-10): each is what C's type is on the machine
+        // built for, here the oracle's one, aarch64-macos; they are CNC's
+        if head == "C" && segs.len() == 2 {
+            if !params.is_empty() { return self.err(format!("`C.{}` takes no type parameters", segs[1])); }
+            return match c_type(&segs[1]) {
+                Some(t) => Ok(t),
+                None => self.err(format!("`C.{}` is not one of C's machine-sized types: {}", segs[1], C_TYPES.iter().map(|n| format!("`C.{n}`")).collect::<Vec<_>>().join(", "))),
+            };
         }
         let width = |s: &str, prefix: &str| -> Option<u32> { s.strip_prefix(prefix).and_then(|w| w.parse().ok()) };
         let int_w = |n: u32| match n { 8 => Some(IntWidth::W8), 16 => Some(IntWidth::W16), 32 => Some(IntWidth::W32), 64 => Some(IntWidth::W64), 128 => Some(IntWidth::W128), _ => None };
