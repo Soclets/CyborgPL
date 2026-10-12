@@ -33,7 +33,13 @@ recommended (a). IEG's ID is retired. Not built. **TAS is dissolved:
 `test fn` and `must` are the Brainstem's** (owner: "(a)"), testing being
 no expertise, and `test fn` syntax, which only the Brainstem or a lobe can
 add; over (b) TAS staying a lobe. Design claude recommended (a), as Rust's
-`#[test]` needs nothing extra. TAS's ID is retired. Not built.
+`#[test]` needs nothing extra. TAS's ID is retired. Not built. **CAPS
+joins the text and international lobe, with UniTect and WSTN** (owner:
+"(c)"), its case folding being Unicode's (`ß` matching `SS`); over (a) back
+into the Brainstem and (b) CAPS kept as a lobe of one feature. Design
+claude leaned (c), keeping 2026-10-07's "spelling ways" out of the base
+("we'll be removing `brain`, non standard types, spelling ways, and unicode
+out of base"). The text lobe's name is not yet asked. Not built.
 
 ### 2026-10-10 — CNC adds `suc`, "Synapse Uses Clang", another name for the `synapse` command (owner)
 
