@@ -426,6 +426,21 @@
     "type": {
       "patterns": [
         {
+          "comment": "C's types, each C's size on the machine built for (2026-10-12): `C.int`, `C.long`, `C.size_t`, `C.long_double`.",
+          "match": "(?<![.\\p{L}\\p{N}_])(C)(\\.)([\\p{Ll}_][\\p{L}\\p{N}_]*)\\b",
+          "captures": {
+            "1": {
+              "name": "support.type.nerve"
+            },
+            "2": {
+              "name": "punctuation.accessor.nerve"
+            },
+            "3": {
+              "name": "support.type.numeric.nerve"
+            }
+          }
+        },
+        {
           "comment": "The base's `optional` (2026-10-09): `optional[int32]`, and its two cases, `optional.none` and `optional.value[…]`.",
           "match": "\\b(optional)(\\.)(none|value)\\b(?!\\s*\\[)",
           "captures": {
@@ -549,7 +564,7 @@
         },
         {
           "comment": "A type written after `:` or `-->` that is none of the above is a struct in this module.",
-          "match": "(?:(:)|(->))\\s*(\\p{Lu}[\\p{L}\\p{N}_]*)",
+          "match": "(?:(:)|(->))\\s*(\\p{Lu}[\\p{L}\\p{N}_]*)(?![.\\p{L}\\p{N}_])",
           "captures": {
             "1": {
               "name": "punctuation.separator.type.nerve"
@@ -566,6 +581,72 @@
     },
     "keyword": {
       "patterns": [
+        {
+          "comment": "Files included while building, each a const's value (2026-10-12): `incl.bytes[…]`, `incl.str.utf8[…]`, `incl.str.utf16.low_first[…]`; and C headers, through CNC: `incl.C.system[\"stdio.h\"]`, `incl.C[\"vendor/mylib.h\"]`.",
+          "match": "\\b(incl)(\\.)(?:(C)(?:(\\.)(system))?\\b|(bytes)\\b|(str(?:\\.[a-z0-9_]+)*))",
+          "captures": {
+            "1": {
+              "name": "keyword.control.import.nerve"
+            },
+            "2": {
+              "name": "punctuation.accessor.nerve"
+            },
+            "3": {
+              "name": "keyword.declaration.language.nerve"
+            },
+            "4": {
+              "name": "punctuation.accessor.nerve"
+            },
+            "5": {
+              "name": "keyword.control.import.nerve"
+            },
+            "6": {
+              "name": "support.type.nerve"
+            },
+            "7": {
+              "name": "support.type.nerve"
+            }
+          }
+        },
+        {
+          "comment": "`size.of[T]`: its argument is a type, even a C struct's lowercase name (`size.of[tm]`).",
+          "match": "\\b(size)(\\.)(of)(\\[)([\\p{L}_][\\p{L}\\p{N}_]*)(\\])",
+          "captures": {
+            "1": {
+              "name": "storage.modifier.nerve"
+            },
+            "2": {
+              "name": "punctuation.accessor.nerve"
+            },
+            "3": {
+              "name": "entity.name.function.nerve"
+            },
+            "4": {
+              "name": "punctuation.section.brackets.nerve"
+            },
+            "5": {
+              "name": "entity.name.type.nerve"
+            },
+            "6": {
+              "name": "punctuation.section.brackets.nerve"
+            }
+          }
+        },
+        {
+          "comment": "A C enum's case through its lowercase name (2026-10-12): `color.BLUE`, `level_t.LOW`.",
+          "match": "(?<![.'\\p{L}\\p{N}_])([\\p{Ll}_][\\p{L}\\p{N}_]*)(\\.)([A-Z][A-Z0-9_]*)\\b(?![\\p{Ll}])",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.nerve"
+            },
+            "2": {
+              "name": "punctuation.accessor.nerve"
+            },
+            "3": {
+              "name": "variable.other.enummember.nerve"
+            }
+          }
+        },
         {
           "comment": "std's print written bare (std is `bare.optional`): `print.useful[…]`, `print.weird.useful <- …`, `print.useful.stdout[…]`.",
           "match": "\\b(print(?:\\.(?:useful|stored|weird|format|stdout|stderr|auto_newln))+)\\b",
@@ -596,8 +677,23 @@
           }
         },
         {
-          "comment": "A Limb's marks for its names: `bare.never`, `bare.only`, `bare.optional` (whether the path is needed) and `case.insensitive` / `case.sensitive`, optionally for kinds: `[fn, var]`.",
-          "match": "\\b(bare|case)(\\.)(never|only|optional|insensitive|sensitive)\\b(?:\\s*(\\[)([^\\]]*)(\\]))?",
+          "comment": "`case.insensitive` / `case.sensitive` are `case.any` / `case.exact` since 2026-10-12.",
+          "match": "\\b(case)(\\.)(insensitive|sensitive)\\b",
+          "captures": {
+            "1": {
+              "name": "invalid.deprecated.nerve"
+            },
+            "2": {
+              "name": "invalid.deprecated.nerve"
+            },
+            "3": {
+              "name": "invalid.deprecated.nerve"
+            }
+          }
+        },
+        {
+          "comment": "A Neuron's marks for its names: `bare.never`, `bare.only`, `bare.optional` (whether the path is needed) and `case.any` / `case.exact` (2026-10-12), optionally for kinds: `[fn, var]`.",
+          "match": "\\b(bare|case)(\\.)(never|only|optional|any|exact)\\b(?:\\s*(\\[)([^\\]]*)(\\]))?",
           "captures": {
             "1": {
               "name": "storage.modifier.nerve"
@@ -691,9 +787,9 @@
           "match": "\\b(?:give|copy|lend|lent)(?:\\.mut)?\\b"
         },
         {
-          "comment": "Labels inside the brackets (2026-10-07): `range[from 1, to 4, by 1]`, `list.fill[value 0, count 10]`, `simd.fill[value 0]`.",
+          "comment": "Loops and slices read as a sentence (2026-10-12): `for 'i' from 1 to 10 by 1`, `before 10`, `from pos 2, to pos 4`; bounds are labelled: `int32[min 0, max 100]`; and `list.fill[value 0, count 10]`.",
           "name": "keyword.other.range.label.nerve",
-          "match": "(?<=\\[|,\\s)(?:from|to|by|value|count)\\b(?=\\s+[^\\s,\\]=:])"
+          "match": "\\b(?:from|before|by)\\b(?=\\s+[^\\s,\\]=:.])|\\bto\\b(?=\\s+[^\\s,\\]=:.])|(?<=\\[|,\\s)(?:value|count|min|max)\\b(?=\\s+[^\\s,\\]=:])"
         },
         {
           "comment": "`change` marks every assignment; `let` introduces a binding.",
@@ -737,7 +833,7 @@
         },
         {
           "name": "storage.modifier.nerve",
-          "match": "\\b(?:mut|immut|temp|perm|satisfies|from|to(?!\\.)|with|size|align)\\b",
+          "match": "\\b(?:mut|immut|temp|perm|satisfies|with|size|align)\\b",
           "comment": "`to` before a dot is a conversion (to.int32[…]), matched as a call."
         },
         {
@@ -813,6 +909,15 @@
             },
             "3": {
               "name": "support.type.nerve"
+            }
+          }
+        },
+        {
+          "comment": "A struct built with its fields named is a type, even a C struct's lowercase name: `buf[size = 42, count = 7]`.",
+          "match": "\\b([\\p{Ll}_][\\p{L}\\p{N}_]*)(?=\\[\\s*[\\p{L}_][\\p{L}\\p{N}_]*\\s*=(?![=>]))",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.nerve"
             }
           }
         },

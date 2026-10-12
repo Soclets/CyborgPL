@@ -91,4 +91,11 @@ block's `with […]`; `list.fill[value 0, count 10]`; names in any script (WSTN)
 spellings (`-->`, `==`, `</==`, `!mut`, `!$`, `$:=`, `nocheck`, `\n` outside text,
 `stdkit::` / `std::`, `cca::`, `pub.limb`, `!std_int24`, `#strict`) are marked deprecated.
 
-Last run on 2026-10-09 against all 162 programs (`.nrv`): no unscoped spans.
+Since 2026-10-12 it also knows: loops and slices as sentences (`for 'i' from 1 to 10 by 1`,
+`before`, `from pos 2, to pos 4`); labelled bounds (`int32[min 0, max 100]`); `incl.bytes[…]`,
+`incl.str.utf8[…]`, `incl.C.system[…]` and `incl.C[…]`; C's types (`C.int`, `C.long_double`) and C
+enums by their lowercase names (`color.BLUE`); `size.of[T]`; a struct built by its lowercase C
+name (`buf[size = 42]`); and `case.any` / `case.exact` (`case.insensitive` / `case.sensitive`
+marked deprecated).
+
+Last run on 2026-10-12 against all 166 programs (`.nrv`): no unscoped spans.

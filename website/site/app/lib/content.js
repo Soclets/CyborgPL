@@ -39,6 +39,9 @@ export const TRADEOFFS = [
     cost: "In development: no release yet, nothing to download." },
 ];
 
+// Why the name, in the owner's own words (2026-10-12), exactly as written.
+export const WHY_NERVE = "Nerve is named Nerve, because its syntax is meant to be easily read by the readers, and Cortex is wired into you, you can't remove it. Or else, Nerve isn't Nerve anymore.";
+
 export const ACCENTS = ["#6c71c4", "#268bd2", "#2aa198", "#859900", "#cb4b16", "#d33682"];
 
 // Introductory syntax, kept in step with the programs in examples/.

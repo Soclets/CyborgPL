@@ -8,7 +8,7 @@ import Marked from "../components/Marked.jsx";
 import Md from "../components/Md.jsx";
 import Warranty from "../components/Warranty.jsx";
 import { ANSWERS } from "../lib/answers.js";
-import { ACCENTS, DESCRIPTION, FEATURES, REPO_URL, SYNTAX, TRADEOFFS } from "../lib/content.js";
+import { ACCENTS, DESCRIPTION, FEATURES, REPO_URL, SYNTAX, TRADEOFFS, WHY_NERVE } from "../lib/content.js";
 import { plain } from "../lib/md.js";
 import { around, runSearch } from "../lib/search.js";
 import { useCodeIndex, useRecent } from "../lib/useSearch.js";
@@ -44,6 +44,7 @@ export async function loader() {
   // An answer's code must be a real line of its example, or the build stops.
   const { readFileSync } = await import("node:fs");
   const answers = await Promise.all(ANSWERS.map(async (a) => {
+    if (!a.code) return null;   // an answer with nothing to quote (the compiler's commands)
     const src = readFileSync(`../../examples/${a.from}.nrv`, "utf8");
     for (const line of a.code.split("\n")) if (!src.includes(line)) throw new Error(`answers.js: "${line}" is not in examples/${a.from}.nrv`);
     return highlight(a.code);
@@ -98,8 +99,8 @@ function Answer({ a, html, q, onGo }) {
       {a.foreign?.includes(q) && <p className="foreign"><code>{q}</code> isn’t built in here.</p>}
       <b><Md text={a.title} /></b>
       <p><Md text={a.text} /></p>
-      <Code html={html} />
-      <small>examples/{a.from}.nrv <Icon name="chev" size={14} /></small>
+      {html && <Code html={html} />}
+      {a.from && <small>examples/{a.from}.nrv <Icon name="chev" size={14} /></small>}
     </Link>
   );
 }
@@ -195,6 +196,11 @@ export default function Home() {
         <a className="btn round" href={REPO_URL} target="_blank" rel="noopener noreferrer" aria-label="Source on GitHub"><Icon name="github" size={20} stroke={1.9} /></a>
       </div>
       <Warranty />
+      <h2 className="section">Why “Nerve”</h2>
+      <blockquote className="why">
+        <p>{WHY_NERVE}</p>
+        <cite>Tankun Sriket, who designs Nerve</cite>
+      </blockquote>
       <h2 className="section">Features &amp; flaws</h2>
       <table className="tradeoffs">
         <thead><tr><th scope="col">What you get</th><th scope="col">What it costs</th></tr></thead>
