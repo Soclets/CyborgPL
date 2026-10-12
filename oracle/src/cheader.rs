@@ -113,11 +113,19 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
     let mut current: Option<(String, Option<Vec<(String, String)>>)> = None;
     for l in ast.lines() {
         if let Some(rest) = l.strip_prefix("|-").or_else(|| l.strip_prefix("`-")) {
-            if let Some((tag, fields)) = current.take() { records.insert(tag, fields); }
+            if let Some((tag, fields)) = current.take() {
+                // an unnamed struct takes the name of the `typedef` right after it (`typedef struct { … } div_t;`,
+                // which Clang writes `'struct div_t'`) (compiler claude)
+                let tag = if tag.is_empty() {
+                    rest.strip_prefix("TypedefDecl ").and_then(|r| r.find("'struct ").map(|q| &r[q + 8..])).and_then(|a| a.find('\'').map(|e| a[..e].to_string())).unwrap_or_default()
+                } else { tag };
+                if !tag.is_empty() { records.insert(tag, fields); }
+            }
             if rest.starts_with("RecordDecl ") && rest.ends_with(" definition") {
                 let words: Vec<&str> = rest.split_whitespace().collect();
                 let n = words.len();
                 if n >= 3 && words[n - 3] == "struct" { current = Some((words[n - 2].to_string(), Some(Vec::new()))); }
+                else if n >= 2 && words[n - 2] == "struct" { current = Some((String::new(), Some(Vec::new()))); }
                 else if n >= 3 && words[n - 3] == "union" { records.insert(words[n - 2].to_string(), None); }
             }
             continue;
@@ -310,7 +318,13 @@ fn map(t: &str, cx: &mut Cx, depth: usize) -> Option<String> {
     let t = t.replace(" *", "*").replace("* ", "*");
     if let Some(inner) = t.strip_suffix('*') {
         let inner = inner.trim();
-        let (is_const, base) = match inner.strip_prefix("const ") { Some(b) => (true, b.trim()), None => match inner.strip_suffix(" const") { Some(b) => (true, b.trim()), None => (false, inner) } };
+        // what this pointer points at is `const` when the word stands next to it: `const char *`, or
+        // `char *const *` for a pointer to a pointer; in `const char **` the `const` is the innermost
+        // target's, so this pointer is `ptr.mut` (compiler claude)
+        let (is_const, base) = if let Some(b) = inner.strip_suffix("*const") { (true, format!("{b}*")) }
+            else if inner.ends_with('*') { (false, inner.to_string()) }
+            else { match inner.strip_prefix("const ") { Some(b) => (true, b.trim().to_string()), None => match inner.strip_suffix(" const") { Some(b) => (true, b.trim().to_string()), None => (false, inner.to_string()) } } };
+        let base = base.as_str();
         let target = if base == "void" || cx.td.get(base).is_some_and(|t| t == "void") { "uint8".to_string() }
             else if let Some(tag) = struct_tag(base, cx) { record(&tag, cx, depth, false)? }
             else { map(base, cx, depth + 1)? };

@@ -11,3 +11,6 @@ typedef struct opaque_thing *thing_t;
 void use_thing(thing_t t);
 void stop(int code) __attribute__((noreturn));
 struct last { int a; long b; };
+typedef struct { int q; int r; } pair_t;
+pair_t make_pair(void);
+void takes(const unsigned char **x);

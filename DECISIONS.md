@@ -30,7 +30,12 @@ Clang's own built-in declarations put `unsigned long` over a header's
 `size_t` (the header is now read with `-fno-builtin`); a function marked
 `__attribute__((noreturn))` was left out (`abort`, `_Exit`); a `typedef`
 of a struct pointer (`pthread_t`) became an opaque struct of that name;
-and a header's last struct came through opaque however whole it was.
+and a header's last struct came through opaque however whole it was. A
+second comparison found two more, fixed: an unnamed struct named by its
+`typedef` (`div_t`) came through opaque, so `div` and `ldiv` were left
+out; and in `const unsigned char **` the oracle put the `const` on the
+outer pointer, which C puts on the innermost target
+(`ptr.mut[ptr[C.unsigned_char]]`).
 
 ### 2026-10-12 — Regrouping the lobes by expertise: IEG and TAS are dissolved into the Brainstem (owner: a)
 
