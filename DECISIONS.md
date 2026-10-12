@@ -10,9 +10,11 @@ Nothing here is final until the owner says so; open questions live at the bottom
 The owner: "Btw, CNC would add an alias for the `synapse` CLI command,
 called `suc` (Synapse Uses Clang)". So **`suc` is the `synapse` command, as
 `syn` and `sng` are, and it comes with CNC**: a lobe may add a name for the
-command, which no lobe did before. Not yet asked: when `suc` exists on a
-machine (once CNC has been fetched there, by any Neuron that lists it, is
-design claude's guess) and whether other lobes may add command names too.
+command, which no lobe did before. Asked (2026-10-12) when `suc` exists on
+a machine, with design claude's guess, once CNC has been fetched there by
+any Neuron that lists it, and whether other lobes may add command names
+too, the owner: "yea". So **`suc` exists once CNC is on the machine, and
+any lobe may add names for the command.**
 
 ### 2026-10-10 — Clang is CNC's: borrowed now, shipped inside the CNC lobe at release (owner)
 
