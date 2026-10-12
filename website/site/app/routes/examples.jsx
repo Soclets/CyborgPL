@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Outlet, useLoaderData } from "react-router";
+import { Link, Outlet, useLoaderData, useParams } from "react-router";
 import { loadExamples } from "../lib/example-cache.js";
 import Icon from "../components/Icon.jsx";
 import Marked from "../components/Marked.jsx";
@@ -37,6 +37,10 @@ export default function Examples() {
   // Every example whole, in the background, so one opens with its highlighting and copy at once.
   useEffect(() => { loadExamples().catch(() => {}); }, []);
   const { examples } = useLoaderData();
+  // With an example open, the grid is only its backdrop: Google is told not to quote it, so an
+  // example's search snippet comes from the example, not from the first card (owner, 2026-10-12).
+  const open = useParams().id;
+  const backdrop = open ? { "data-nosnippet": "" } : {};
   const [q, setQState] = useState(lastQ);
   const setQ = (v) => { lastQ = v; setQState(v); };
   // A second tap on this tab, already at the top, clears the search.
@@ -56,13 +60,13 @@ export default function Examples() {
   return (
     <div className="examples">
       <h1 className="h2big">Examples</h1>
-      <p className="lede small">Real programs from the repo, each with the output it really prints.</p>
+      <p className="lede small" {...backdrop}>Real programs from the repo, each with the output it really prints.</p>
       <label className="search">
         <Icon name="search" size={17} />
         <input type="search" placeholder={`Search ${examples.length} examples and their code`} value={q} onChange={(e) => setQ(e.target.value)}
           enterKeyHint="search" autoCapitalize="none" autoCorrect="off" spellCheck={false} aria-label="Search examples and their code" />
       </label>
-      <div className="grid">
+      <div className="grid" {...backdrop}>
         {shown.map((e, i) => (
           <Link key={e.id} to={e.id} state={{ fromGrid: true }} preventScrollReset prefetch="intent" className="gcard" style={{ "--c": ACCENTS[i % ACCENTS.length] }}>
             {e.line ? <pre className="gcode gline"><Marked text={around(e.line, found.q)} q={found.q} /></pre> : <pre className="gcode">{e.preview}</pre>}

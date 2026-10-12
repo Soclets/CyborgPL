@@ -17,7 +17,8 @@ export const meta = ({ loaderData, params, matches }) => {
   const ex = loaderData?.title ? loaderData : briefOf(list?.loaderData ?? list?.data, params.id);
   return seo({
   title: `${ex?.title ? plain(ex.title) : "Example"} · Nerve`,
-  description: (ex?.summary && plain(ex.summary)) || `examples/${params.id}.nrv — a Nerve program and the output it prints.`,
+  description: (ex?.summary && plain(ex.summary))
+    || `${ex?.title ? plain(ex.title) : params.id}: ${ex?.lines ? `${/^8|^1[18]$/.test(ex.lines) ? "an" : "a"} ${ex.lines}-line` : "a"} Nerve program from the repo, shown with the output it really prints.`,
   path: `/examples/${params.id}`,
   });
 };
