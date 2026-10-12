@@ -70,6 +70,12 @@ input { font: inherit; }
 .tradeoffs td:first-child { color: var(--ink); font-weight: 600; }
 .tradeoffs td:last-child { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line-dash); color: var(--text); }
 .tradeoffs td:last-child::before { content: "Cost  "; font: 800 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--orange); white-space: pre; }
+/* Built with: one card, each part with what it is made with below it */
+.built-with { background: var(--surface); border-radius: 18px; overflow: hidden; }
+.built-with tr { background: none; border-radius: 0; padding: 12px 16px; margin: 0; border-bottom: 1px solid var(--line); }
+.built-with tr:last-child { border-bottom: 0; }
+.built-with td:last-child { margin: 2px 0 0; padding: 0; border: 0; color: var(--muted); font-size: 14px; }
+.built-with td:last-child::before { content: none; }
 
 /* ---------------------------------------------------------------- code */
 .code pre { margin: 0; background: transparent !important; font-size: 13px; line-height: 1.6; white-space: pre; }
@@ -298,6 +304,8 @@ html.desktop .tradeoffs td { display: table-cell; width: 50%; vertical-align: to
 html.desktop .tradeoffs tr:last-child td { border-bottom: 0; }
 html.desktop .tradeoffs td:last-child { margin: 0; padding-top: 16px; border-top: 0; border-left: 1px solid var(--line); }
 html.desktop .tradeoffs td:last-child::before { content: none; }
+html.desktop .built-with th:last-child { color: var(--green); }
+html.desktop .built-with td:last-child { color: var(--text); font-size: 15px; }
 
 /* learn */
 html.desktop .learn .stack { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }

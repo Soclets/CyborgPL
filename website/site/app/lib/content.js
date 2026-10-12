@@ -42,6 +42,20 @@ export const TRADEOFFS = [
 // Why the name, in the owner's own words (2026-10-12), exactly as written.
 export const WHY_NERVE = "Nerve is named Nerve, because its syntax is meant to be easily read by the readers, and Cortex is wired into you, you can't remove it. Or else, Nerve isn't Nerve anymore.";
 
+// What Nerve's own tools are made with (owner, 2026-10-12: "add host langs"), as synapse/README.md
+// and each crate's Cargo.toml say.
+export const BUILT_WITH = [
+  { part: "Synapse, the compiler", made: "Rust" },
+  { part: "Its code generation", made: "LLVM 22" },
+  { part: "Its linking", made: "lld 22, through lld’s library and a small C++ shim" },
+  { part: "Reading C headers (`incl.C`)", made: "Clang 22" },
+  { part: "Cortex, the whole-program analyser", made: "Rust, inside Synapse" },
+  { part: "Axon, the runtime in every program", made: "Rust, `no_std`" },
+  { part: "The reference interpreter", made: "Rust" },
+  { part: "The checker that tests Synapse against it", made: "Rust" },
+  { part: "This website", made: "React Router, Shiki, Cloudflare Workers" },
+];
+
 export const ACCENTS = ["#6c71c4", "#268bd2", "#2aa198", "#859900", "#cb4b16", "#d33682"];
 
 // Introductory syntax, kept in step with the programs in examples/.

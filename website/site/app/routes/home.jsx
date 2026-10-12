@@ -8,7 +8,7 @@ import Marked from "../components/Marked.jsx";
 import Md from "../components/Md.jsx";
 import Warranty from "../components/Warranty.jsx";
 import { ANSWERS } from "../lib/answers.js";
-import { ACCENTS, DESCRIPTION, FEATURES, REPO_URL, SYNTAX, TRADEOFFS, WHY_NERVE } from "../lib/content.js";
+import { ACCENTS, BUILT_WITH, DESCRIPTION, FEATURES, REPO_URL, SYNTAX, TRADEOFFS, WHY_NERVE } from "../lib/content.js";
 import { plain } from "../lib/md.js";
 import { around, runSearch } from "../lib/search.js";
 import { useCodeIndex, useRecent } from "../lib/useSearch.js";
@@ -208,6 +208,15 @@ export default function Home() {
         <tbody>
           {TRADEOFFS.map((t) => (
             <tr key={t.get}><td><Md text={t.get} /></td><td><Md text={t.cost} /></td></tr>
+          ))}
+        </tbody>
+      </table>
+      <h2 className="section">Built with</h2>
+      <table className="tradeoffs built-with">
+        <thead><tr><th scope="col">Part</th><th scope="col">Made with</th></tr></thead>
+        <tbody>
+          {BUILT_WITH.map((b) => (
+            <tr key={b.part}><td><Md text={b.part} /></td><td><Md text={b.made} /></td></tr>
           ))}
         </tbody>
       </table>
