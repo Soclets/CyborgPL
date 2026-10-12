@@ -28,7 +28,15 @@ Asked "does loop need changing?" (no: `seq`, `para`, `temp`, `perm` are
 words before a name, as `mut` is, and `range[from 1, to 10, by 2]`'s labels
 are its input, not details). **`convert` replaces `to.`** (owner:
 "replace, and I think the others should be this style too, if it makes
-sense"): which other calls take the style is being asked. Not built.
+sense"): which other calls take the style is being asked. Asked along the
+way "Should we make it `utf8 string`, like that? idk", then "What if we
+change all too?" (shown: every type in English order, `map from utf8 string
+to list of int32`; the owner: "Holy shit, not that much, bro"), then a
+middle ground, brackets kept and the dotted variants as words (`utf8
+string`, `point char`); **types keep their spelling, `str.utf8` and the
+rest** (owner: "(a)"), over (b) words for text types only and (c) for
+every dotted type; design claude recommended (a): one spelling per type
+everywhere, and brackets show nesting at a glance. Not built.
 
 ### 2026-10-12 — The regrouping so far is built in the oracle: IEG and TAS in the Brainstem, Broca for names and text (owner: "Yea")
 
