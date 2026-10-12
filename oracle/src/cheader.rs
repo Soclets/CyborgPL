@@ -131,6 +131,9 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
             continue;
         }
         let Some((_, fields)) = current.as_mut() else { continue };
+        // a layout C changes by an attribute, on the struct or one field (`packed`, `aligned`, `#pragma
+        // pack`), is beyond a plain field: the struct comes through opaque (compiler claude)
+        if ["PackedAttr", "AlignedAttr", "MaxFieldAlignmentAttr"].iter().any(|a| l.contains(a)) { *fields = None; continue; }
         // a struct's fields; the last top-level declaration's are indented with spaces (compiler claude)
         let Some(child) = ["| |-", "| `-", "  |-", "  `-"].iter().find_map(|p| l.strip_prefix(p)) else { continue };
         if !child.starts_with("FieldDecl ") { *fields = None; continue; }   // a nested struct or union, an attribute: beyond a plain field

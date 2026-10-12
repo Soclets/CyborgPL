@@ -35,7 +35,12 @@ second comparison found two more, fixed: an unnamed struct named by its
 `typedef` (`div_t`) came through opaque, so `div` and `ldiv` were left
 out; and in `const unsigned char **` the oracle put the `const` on the
 outer pointer, which C puts on the innermost target
-(`ptr.mut[ptr[C.unsigned_char]]`).
+(`ptr.mut[ptr[C.unsigned_char]]`). And, as Synapse found for fcntl.h's
+`#pragma pack(4)` `struct log2phys`, a struct whose layout an attribute
+changes (`packed`, `aligned`, `#pragma pack`), on the struct or on one
+field, comes through opaque, since laying it out C's default way reads
+its fields at the wrong places; the oracle caught one on the struct but
+not one on a field.
 
 ### 2026-10-12 — Regrouping the lobes by expertise: IEG and TAS are dissolved into the Brainstem (owner: a)
 
