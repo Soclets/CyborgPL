@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-12 — Regrouping the lobes by expertise: IEG is dissolved into the Brainstem (`no_check`, `NO_FUCKING_CHECKS`, `on.machine`, `inline.LL`) (owner: a)
+### 2026-10-12 — Regrouping the lobes by expertise: IEG and TAS are dissolved into the Brainstem (owner: a)
 
 Going through the lobes one field at a time (2026-10-10: "Like a big one
 for a expertise"), starting with IEG, which the oracle gates on `no_check`,
@@ -29,7 +29,11 @@ writes volatile access, barriers and intrinsics once for every chip).
 inline assembly; the raw-operations sketch is dropped; MCPS and the GPU
 lobes no longer require IEG**; over (b) a small IEG of the two and (c) IEG
 grown into a systems lobe with WSMW's small widths. Design claude
-recommended (a). IEG's ID is retired. Not built.
+recommended (a). IEG's ID is retired. Not built. **TAS is dissolved:
+`test fn` and `must` are the Brainstem's** (owner: "(a)"), testing being
+no expertise, and `test fn` syntax, which only the Brainstem or a lobe can
+add; over (b) TAS staying a lobe. Design claude recommended (a), as Rust's
+`#[test]` needs nothing extra. TAS's ID is retired. Not built.
 
 ### 2026-10-10 — CNC adds `suc`, "Synapse Uses Clang", another name for the `synapse` command (owner)
 
