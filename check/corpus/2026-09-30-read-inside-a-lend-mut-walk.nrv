@@ -40,12 +40,12 @@ fn put_i ['n': int64] {
 
 MAIN {
     let 'v22': uint8 = 1;
-    for 'i24': int8 in range[from 120, to 127, by 1] {
+    for 'i24': int8 from 120 to 127 by 1 {
         let mut 'xs25': list[uint8] = list.fill[value ((('v22' plus 0) mod.floor (((('v22' mod.floor 4) pow (to.uint8['i24'] mod.floor 6)) mod.floor 122) plus 1)) mod.floor 110) plus 13, count ((-2147483647) minus (-190277311)) mod.floor 9];
         for 'x26' in lend.mut 'xs25' {
             change 'x26' = 'x26' plus 1;
             let 'v31': int64 = 0;
-            for 'i30': uint64 in range[from 1, to 1, by 1] {
+            for 'i30': uint64 from 1 to 1 by 1 {
                 change 'v31' = 'xs25'[pos 'i30'];
             }
             put_i['v31'];

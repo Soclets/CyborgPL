@@ -17,7 +17,7 @@ fn emit ['m': uint64, 'neg': bool] {
         change 'v' = 'v' div.floor 10;
         if 'v' equal_to 0 { break; }
     }
-    for 'k': uint64 in range[from list.length[lend 'ds'], to 1, by -1] {
+    for 'k': uint64 from list.length[lend 'ds'] to 1 by -1 {
         list.append[lend.mut 'buf', 'ds'[pos 'k']];
     }
     list.append[lend.mut 'buf', 10];
@@ -72,7 +72,7 @@ fn f2 ['p1': uint16] -> uint16 {
         c2 'd6' { -141 }
     };
     let mut 'v8': int64 = ((to.int64[(to.int64['v7'] minus 15) minus (9223372036854775806 div.floor 4611686018427387904)] shl to.int64[(to.int64['p1'] or.bit to.int64['v7']) times (to.int64['v7'] div.trunc (-4611686018427387904))]) mod.floor 868) minus 324;
-    for !c 'i9': int64 in range[from 9223372036854775786, to 9223372036854775807, by 2] {
+    for !c 'i9': int64 from 9223372036854775786 to 9223372036854775807 by 2 {
         change 'v8' = (((to.int64[(-5054614212144933731) plus 'i9'] minus.wrap 'v8') plus (('i9' minus 'i9') mod.floor 1)) mod.floor 868) minus 324;
         let mut 'v10': int16 = ((to.int16[('i9' mod.floor 65536) minus 32768] mod.trunc ((((to.int16['v8'] shr 13) plus (((-16384) minus to.int16['v7']) mod.floor 1)) mod.floor 3) plus 1)) mod.floor 45) plus 32723;
     }
@@ -137,7 +137,7 @@ MAIN {
     put_i[((to.int16['v12'] minus to.int16['v12']) times 16384) mod.ceil ((((1865 plus (-15)) mod.floor ((-7092) minus 2)) mod.floor 6) plus 1)];
     match E1.c2[to.uint8['v12']] {
         c1 {
-            for perm 'i29': int64 in range[from 9223372036854775787, to 9223372036854775807, by 2] {
+            for perm 'i29': int64 from 9223372036854775787 to 9223372036854775807 by 2 {
                 put_u[32768 plus 'v12'];
                 let 'v30': uint32 = to.uint32['v12'] div.floor ((to.uint32['v12'] mod.floor 1984127403) plus 1);
                 let immut 'v31': bool = (('v12' not_equal 21) and.then ((6 div.floor ('v12' minus 21)) < 1)) and.then (((to.int32['v12'] times 5) minus (to.int32['v30'] div.trunc ((to.int32['v12'] mod.floor 977265213) plus 1))) equal_to (-to.int32['v12']));

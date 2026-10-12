@@ -104,7 +104,7 @@ fn f2 ['pr': uint8[0, 3], 'p1': uint16, 'p2': int16, 'p3': int8] -> int8 {
         return 'p3';
     }
     let 'r19': int8 = f2['pr' minus 1, 'p1' div.ceil (('p1' mod.floor 25929) plus 1), (('p2' mod.floor 363) minus 181) times (((-(('p2' mod.floor 32767) minus 2638)) mod.floor 363) minus 181), to.int8['pr']];
-    for perm 'i20': uint8 in range[from 212, to 255, by 7] {
+    for perm 'i20': uint8 from 212 to 255 by 7 {
         put_u[to.int64[-9223372036854775808] mod.floor (-1)];
         {
             let 'd21': deci128 = 6411.0;
@@ -182,7 +182,7 @@ MAIN {
         put_i[to.int64['v34'] plus to.int64['v33'] minus 5058769046726752839];
         change 's37' = simd.fill[value (((simd.max['s37'] mod.floor 7) minus 3) pow (simd.max['s37'] mod.floor 20) div.floor (-(-9))) mod.floor ((((to.int32['v36'] mod.ceil (-2)) xor (to.int32['v34'] minus ((simd.sum['s37'] mod.floor 2147483647) minus 351439531))) mod.floor 854227907) plus 1)];
     }
-    for 'i57': int32 in range[from 10, to 22, by 2] {
+    for 'i57': int32 from 10 to 22 by 2 {
         put_i[to.int64['v36'] minus to.int64['v33'] plus (to.int64['v33'] shl 4) minus (to.int64['v34'] shl 52)];
         {
             let 'w58': brain16 = 0.1;

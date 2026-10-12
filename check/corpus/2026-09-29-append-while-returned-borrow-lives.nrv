@@ -22,7 +22,7 @@ fn first [lent 'a': list[int32]] -> lent list[int32] { return lend 'a'; }
 MAIN {
     let mut 's': list[int32] = [1, 2, 3];
     let 'r' := first[lend 's'];
-    for 'k': int32 in range[from 1, to 1000, by 1] { list.append[lend.mut 's', 'k']; }
+    for 'k': int32 from 1 to 1000 by 1 { list.append[lend.mut 's', 'k']; }
     put_u[to.uint64['r'[pos 1]]];
     put_u[list.length[lend 'r']];
 }

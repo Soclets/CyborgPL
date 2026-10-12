@@ -3,7 +3,7 @@
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 MAIN {
     let 'hi' := "hi";
-    for 'i': uint64 in range[from 3, to 1, by -1] {
+    for 'i': uint64 from 3 to 1 by -1 {
         no_check write[1, lend 'hi', 2];
     }
 }

@@ -2,7 +2,7 @@
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 MAIN {
     let 'dot' := ".";
-    for 'i': uint8 in range[from 250, to 255, by 3] {
+    for 'i': uint8 from 250 to 255 by 3 {
         no_check write[1, lend 'dot', 1];
     }
 }

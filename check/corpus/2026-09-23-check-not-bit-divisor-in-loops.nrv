@@ -18,7 +18,7 @@ fn emit ['m': uint64, 'neg': bool] {
         change 'v' = 'v' div.floor 10;
         if 'v' equal_to 0 { break; }
     }
-    for 'k': uint64 in range[from list.length[lend 'ds'], to 1, by -1] {
+    for 'k': uint64 from list.length[lend 'ds'] to 1 by -1 {
         list.append[lend.mut 'buf', 'ds'[pos 'k']];
     }
     list.append[lend.mut 'buf', 10];
@@ -48,7 +48,7 @@ MAIN {
     let mut 'w3': int16 = 7;
     while 'w3' > 0 {
         change 'w3' = 'w3' minus 1;
-        for 'i4': uint16 in range[from 29, to 3, by -3] {
+        for 'i4': uint16 from 29 to 3 by -3 {
             check change 'v2' = ((((126 or.bit 'v2') div.floor (not.bit 'v2')) shl 6) mod.floor 7) minus 102;
         }
     }

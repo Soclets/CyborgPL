@@ -63,8 +63,8 @@ MAIN {
     put_u[to.uint64[char.code['c']]];
     let 'g' := str.at.grapheme[lend 's', pos 9] otherwise `?`;
     put_u[str.bytes[lend 'g']];
-    let 'sl' := str.slice.grapheme[lend 's', pos 2, pos 4] otherwise "";
+    let 'sl' := str.slice.grapheme[lend 's', from pos 2, to pos 4] otherwise "";
     put_u[str.bytes[lend 'sl']];
-    let 'none' := str.slice.grapheme[lend 's', pos 4, pos 9] otherwise "-";
+    let 'none' := str.slice.grapheme[lend 's', from pos 4, to pos 9] otherwise "-";
     put_u[str.bytes[lend 'none']];
 }

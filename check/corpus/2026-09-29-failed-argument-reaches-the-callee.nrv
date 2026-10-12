@@ -43,7 +43,7 @@ MAIN {
     let 'w3': int8 = 6;
     while 'w3' > 0 {
         change 'w3' = 'w3' minus 1;
-        for 'i5': int64 in range[from 0, to 0, by 1] {
+        for 'i5': int64 from 0 to 0 by 1 {
             put_u[0 minus 1];
         }
     }

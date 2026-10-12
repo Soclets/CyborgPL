@@ -29,7 +29,7 @@ pub fn strict_printer(rng: &mut Rng) -> String {
 
 const STRICT_DIGITS: &str = "    let mut 'started': bool = false;
     let mut 'p': uint64 = 10000000000000000000;
-    for temp 'k': int32 in range[from 1, to 20, by 1] {
+    for temp 'k': int32 from 1 to 20 by 1 {
         if 'p' > 0 {
             let immut 'd': uint64 = ('m' div.floor 'p') mod.floor 10;
             if 'd' not_equal 0 or 'started' or 'p' equal_to 1 {
@@ -67,7 +67,7 @@ const DIGITS_REVERSED_FOR: &str = "    let mut 'v': uint64 = 'm';
         change 'v' = 'v' div.floor 10;
         if 'v' equal_to 0 { break; }
     }
-    for 'k': uint64 in range[from list.length[lend 'ds'], to 1, by -1] {
+    for 'k': uint64 from list.length[lend 'ds'] to 1 by -1 {
         list.append[lend.mut 'buf', 'ds'[pos 'k']];
     }
 ";

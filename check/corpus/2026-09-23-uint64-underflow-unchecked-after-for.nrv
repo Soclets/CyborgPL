@@ -42,7 +42,7 @@ MAIN {
     no_check let 'in1': uint64 = strlen[getenv[lend 'in1_key']];
     let 'in2_key' := "CHK_IN2";
     no_check let 'in2': uint64 = strlen[getenv[lend 'in2_key']];
-    for 'i21': int16 in range[from 37, to 40, by 1] {
+    for 'i21': int16 from 37 to 40 by 1 {
     }
     let 'w24': uint16 = 4;
     loop {

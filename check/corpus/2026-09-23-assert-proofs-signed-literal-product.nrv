@@ -17,7 +17,7 @@ fn emit ['m': uint64, 'neg': bool] {
         change 'v' = 'v' div.floor 10;
         if 'v' equal_to 0 { break; }
     }
-    for 'k': uint64 in range[from list.length[lend 'ds'], to 1, by -1] {
+    for 'k': uint64 from list.length[lend 'ds'] to 1 by -1 {
         list.append[lend.mut 'buf', 'ds'[pos 'k']];
     }
     list.append[lend.mut 'buf', 10];

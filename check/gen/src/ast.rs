@@ -884,14 +884,13 @@ impl<'a> Wr<'a> {
                 // the strongest modifier first: `for !cheat seq perm` (owner, 2026-10-01;
                 // `!cheat` since 2b7f336, 2026-10-06)
                 let cheat = ["", "no_cheat ", "no_cheat seq "][*cheat as usize];
-                self.out.push_str(&format!("{pad}for {cheat}{perm}{}: {} in range[", q(name), ty.name()));
-                // labelled, and `by` always written (owner, 2026-10-07)
-                self.out.push_str("from ");
+                // `for 'i' from A to B by C`, `by` always written (owner, 2026-10-12)
+                self.out.push_str(&format!("{pad}for {cheat}{perm}{}: {} from ", q(name), ty.name()));
                 self.e(start);
-                self.out.push_str(", to ");
+                self.out.push_str(" to ");
                 self.e(stop);
-                self.out.push_str(&format!(", by {}", step.unwrap_or(1)));
-                self.out.push_str("] {\n");
+                self.out.push_str(&format!(" by {}", step.unwrap_or(1)));
+                self.out.push_str(" {\n");
                 self.block(body, indent + 1);
                 self.out.push_str(&format!("{pad}}}\n"));
             }

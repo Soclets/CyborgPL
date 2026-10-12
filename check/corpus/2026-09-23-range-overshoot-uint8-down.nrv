@@ -4,7 +4,7 @@
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 MAIN {
     let 'dot' := ".";
-    for 'i': uint8 in range[from 1, to 0, by -2] {
+    for 'i': uint8 from 1 to 0 by -2 {
         no_check write[1, lend 'dot', 1];
     }
 }
