@@ -1,1 +1,1 @@
-a list of 4 does not fit list[int32][0, 3]
+a list of 4 does not fit list[int32][max 3]

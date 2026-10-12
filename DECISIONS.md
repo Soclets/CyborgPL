@@ -22,7 +22,10 @@ written being 0). Built in the oracle: an unlabelled bound is refused
 "at least 1")"), and so is `min` or `max` as a value. Examples, tests and
 design samples rewritten; `range_max_max` and `range_max_on_low_side`
 gone (their bounds are no longer writable); new `bound_old_spelling`,
-`bound_max_as_value`.
+`bound_max_as_value`. Following on (compiler claude's note): messages
+print a bounded type as it is written now, `5000 does not fit int32[min
+0, max 4096]`, `list[int32][max 3]`, a side that is the type's own limit
+left out, since the old text can no longer be written as code.
 
 ### 2026-10-12 — Counting loops and slices are built in the oracle; `min` / `max` bounds wait on a question (owner: "Do number 1")
 

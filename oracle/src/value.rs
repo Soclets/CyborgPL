@@ -216,12 +216,28 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::Array(t) => format!("array[{}]", ty_name(t)),
         Ty::Struct(n) => n.clone(),
         Ty::Var(n) => format!("<{n}>"),
-        Ty::Ranged(t, lo, hi) => format!("{}[{}, {}]", ty_name(t), bound_name(lo), bound_name(hi)),
+        // as it is written since 2026-10-12: each side labelled, a side that is the type's own limit left out
+        // (a length's low 0 and unlimited high, a channel's low 0)
+        Ty::Ranged(t, lo, hi) => {
+            let length = matches!(**t, Ty::List(_) | Ty::Array(_) | Ty::Map(..) | Ty::Channel(_));
+            let lo_open = matches!(lo, crate::ast::Bound::Min) || (length && *lo == crate::ast::Bound::Int(0));
+            let hi_open = matches!(hi, crate::ast::Bound::Max) || (length && *hi == crate::ast::Bound::Int(i128::MAX));
+            let mut sides = Vec::new();
+            if !lo_open { sides.push(format!("min {}", bound_name(lo))); }
+            if !hi_open { sides.push(format!("max {}", bound_name(hi))); }
+            if sides.is_empty() { ty_name(t) } else { format!("{}[{}]", ty_name(t), sides.join(", ")) }
+        }
         Ty::Channel(t) => format!("channel[{}]", ty_name(t)),
         Ty::Duration => "std::duration".into(),
         Ty::Simd(t, n) => format!("simd[{}, {n}]", ty_name(t)),
         Ty::Map(k, v, o) => format!("map{}[{}, {}]", match o { crate::ast::MapOrder::Any => "", crate::ast::MapOrder::Ordered => ".ordered", crate::ast::MapOrder::Unordered => ".unordered" }, ty_name(k), ty_name(v)),
-        Ty::TextRanged(e, lo, hi, u) => format!("{}[{}, {} {}]", ty_name(&Ty::Str(e.clone())), lo, hi, unit_word(u)),
+        Ty::TextRanged(e, lo, hi, u) => {
+            let mut sides = Vec::new();
+            if *lo != 0 { sides.push(format!("min {lo}")); }
+            if *hi != i128::MAX { sides.push(format!("max {hi}")); }
+            if sides.is_empty() { sides.push("min 0".into()); }
+            format!("{}[{} {}]", ty_name(&Ty::Str(e.clone())), sides.join(", "), unit_word(u))
+        }
         Ty::Fn(ps, r, fails) => {
             let ps: Vec<String> = ps.iter().map(|(k, t)| format!("{}{}", match k { crate::ast::ParamKind::Owned => "", crate::ast::ParamKind::Lent => "lent ", crate::ast::ParamKind::LentMut => "lent.mut " }, ty_name(t))).collect();
             let mut s = format!("fn[{}]", ps.join(", "));
