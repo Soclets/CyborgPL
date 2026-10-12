@@ -641,7 +641,7 @@ Dated, with the alternative, so each can become a question later.
   typedef of a pointer to a struct (`pthread_t`) is that pointer
   (`ptr.mut[_opaque_pthread_t]`), not a struct of its own name. C's `...`
   is a last parameter `...'args'`, as the oracle writes it. A C enum with
-  two names for one number is refused with the whole line, as any
-  `layout.C enum` with one is (asked). A struct packed or aligned its own
+  two names for one number keeps the first as its case and makes the
+  later a const (owner, 2026-10-12: "a"). A struct packed or aligned its own
   way (`#pragma pack`, `__attribute__((packed))`, `aligned`) is opaque, as
   the oracle has `log2phys`: `layout.C` lays out as C does by default.

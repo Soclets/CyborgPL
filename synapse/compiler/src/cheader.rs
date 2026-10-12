@@ -280,8 +280,25 @@ impl Decls {
             let Some(cases) = self.enums.get(&k).cloned() else { continue };
             match self.enum_names.get(&k).cloned() {
                 Some(name) => {
-                    let body: Vec<String> = cases.iter().map(|(c, v)| format!("{} = {}", c, v)).collect();
+                    // The first name for a number is the case; a later name
+                    // for it is a const holding it (owner, 2026-10-12: "a"),
+                    // unless a const of that name is already there.
+                    let mut numbers = HashSet::new();
+                    let mut body = Vec::new();
+                    let mut also = Vec::new();
+                    for (c, v) in &cases {
+                        if numbers.insert(*v) {
+                            body.push(format!("{} = {}", c, v));
+                        } else {
+                            also.push((c.clone(), *v));
+                        }
+                    }
                     self.push(&format!("type {}", name), format!("layout.C enum {} {{ {} }}", name, body.join("  ")));
+                    for (c, v) in also {
+                        if usable(&c) && !self.defined.contains(&c) {
+                            self.push(&c, format!("const '{}' := {};", c, v));
+                        }
+                    }
                 }
                 None if k.starts_with("anon") && !enum_typedefs.iter().any(|(_, t)| *t == k) => {
                     for (c, v) in cases {
