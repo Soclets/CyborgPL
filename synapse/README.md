@@ -613,8 +613,10 @@ Dated, with the alternative, so each can become a question later.
   nothing, Synapse matches what the oracle does (found by running it): a
   `#define` number may carry C's `u`/`l` suffixes and be hex or octal, but
   not `+5`, `-(3)` or `0b101`; an empty `""` text comes through; a pointer
-  that is itself `const` (`char *const`, so `const char *const *` too)
-  leaves its function out; only globals C declares `extern` come
+  is `ptr` when `const` stands next to its target (`const T *`, or `T
+  *const *` for the outer one, so `execv`'s `char *const *` is
+  `ptr[ptr.mut[C.char]]`), and a `const` after the last `*` leaves its
+  function out; only globals C declares `extern` come
   through, `mut` unless C's own type is `const`; C's `...` is a last
   parameter `...'pN'`. Clang 22's own `__size_t` is `uint64`, and
   `__ptrdiff_t` and `__signed_size_t` are `int64`. The headers are read

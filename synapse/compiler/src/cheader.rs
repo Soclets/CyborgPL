@@ -435,16 +435,31 @@ impl Decls {
         if words.iter().any(|w| w == "[" || w == "(" || w == "?") {
             return None;
         }
-        // Any `const` after a `*` makes a pointer that is itself fixed.
-        let stars = words.iter().filter(|w| *w == "*").count();
-        if let Some(first) = words.iter().position(|w| w == "*") {
-            if words[first..].iter().any(|w| w == "const") {
-                return None;
+        // Each pointer is `ptr` when `const` stands next to its target:
+        // `const T *`, or `T *const *` for the outer one. A `const` after
+        // the last `*` is a pointer that is itself fixed, which Nerve has
+        // no spelling for yet.
+        let first = words.iter().position(|w| w == "*").unwrap_or(words.len());
+        let mut target_const = vec![words[..first].iter().any(|w| w == "const")];
+        for (i, w) in words.iter().enumerate().skip(first) {
+            match w.as_str() {
+                "*" => target_const.push(words.get(i + 1).is_some_and(|n| n == "const")),
+                "const" => {}
+                _ => return None,
             }
         }
-        let base: Vec<&str> = words.iter().map(String::as_str).filter(|w| *w != "*").collect();
-        let pointee_const = base.contains(&"const");
-        let base: Vec<&str> = base.into_iter().filter(|w| *w != "const").collect();
+        if target_const.pop() == Some(true) && first < words.len() {
+            return None;
+        }
+        let stars = target_const.len();
+        let base: Vec<&str> = words[..first].iter().map(String::as_str).filter(|w| *w != "const").collect();
+        // The pointers from the innermost out, each `ptr` or `ptr.mut`.
+        let wrap = |mut out: String| {
+            for c in &target_const {
+                out = if *c { format!("ptr[{}]", out) } else { format!("ptr.mut[{}]", out) };
+            }
+            out
+        };
         // A struct: by value only when Nerve sees inside it; pointed at,
         // whole or opaque.
         if let ["struct" | "union", key] = base.as_slice() {
@@ -452,35 +467,24 @@ impl Decls {
             if stars == 0 && !self.whole(key) {
                 return None;
             }
-            let mut out = name.clone();
-            for i in 0..stars {
-                out = if i == 0 && pointee_const { format!("ptr[{}]", out) } else { format!("ptr.mut[{}]", out) };
-            }
-            return Some(out);
+            return Some(wrap(name.clone()));
         }
         if base.contains(&"struct") || base.contains(&"union") {
             return None;
         }
         // An enum: its name, or C's `int` when Nerve has none for it.
         if let ["enum", key] = base.as_slice() {
-            let mut out = self.enum_names.get(*key).cloned().unwrap_or_else(|| "C.int".into());
-            for i in 0..stars {
-                out = if i == 0 && pointee_const { format!("ptr[{}]", out) } else { format!("ptr.mut[{}]", out) };
-            }
-            return Some(out);
+            return Some(wrap(self.enum_names.get(*key).cloned().unwrap_or_else(|| "C.int".into())));
         }
         if base.contains(&"enum") {
             return None;
         }
-        let mut out = match (base_type(&base)?, stars) {
+        let out = match (base_type(&base)?, stars) {
             ("void", 0) => return None,
             ("void", _) => "uint8".to_string(),
             (b, _) => b.to_string(),
         };
-        for i in 0..stars {
-            out = if i == 0 && pointee_const { format!("ptr[{}]", out) } else { format!("ptr.mut[{}]", out) };
-        }
-        Some(out)
+        Some(wrap(out))
     }
 
     /// `R (*)(P, …)`: `fn[P, …] -> R`, `fn[]` taking nothing; a variadic
