@@ -39,7 +39,14 @@ joins the text and international lobe, with UniTect and WSTN** (owner:
 into the Brainstem and (b) CAPS kept as a lobe of one feature. Design
 claude leaned (c), keeping 2026-10-07's "spelling ways" out of the base
 ("we'll be removing `brain`, non standard types, spelling ways, and unicode
-out of base"). The text lobe's name is not yet asked. Not built.
+out of base"). **The text and international lobe is Broca** (owner:
+"(b)", a new name over keeping UniTect, then "What does it do, again?",
+then "Broca"), after Broca's area, the brain's part for producing
+language: names in any script (WSTN's), text beyond UTF-8 and counting in
+points and graphemes (UniTect's), and the case marks (CAPS's). Offered
+Broca, Wernicke, or an acronym in the owner's style; design claude
+picked Broca. UniTect's, WSTN's and CAPS's IDs are retired; Broca's is not
+yet made. Not built.
 
 ### 2026-10-10 — CNC adds `suc`, "Synapse Uses Clang", another name for the `synapse` command (owner)
 
