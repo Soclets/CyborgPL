@@ -33,6 +33,7 @@ export async function loader() {
     { to: "/examples", title: "Examples", text: "Every program in the repo, with its output", kind: "Page", icon: "code" },
     { to: "/download", title: "Download", text: "Nothing to download yet", kind: "Page", icon: "download" },
     { to: "/more", title: "RRx2 and RR", text: "Nerve’s own verifiers: RRx2, a translation validator, and RR, an exact-math language", kind: "Page", icon: "shield" },
+    { to: "/commits", title: "Commits", text: "Every change to Nerve, newest first: each commit's message, who wrote it and when", kind: "Page", icon: "book" },
     { to: "/good-practice", title: "Good practice", text: "How Nerve is meant to be written: the practices its rules make easy, advice not rules", kind: "Page", icon: "check" },
     { to: "/licence", title: "Licence", text: "Apache-2.0 with the LLVM exception; text CC BY 4.0", kind: "Page", icon: "licence" },
   ];

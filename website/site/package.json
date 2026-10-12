@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/icons.mjs && node scripts/search-index.mjs && react-router dev",
-    "build": "node scripts/icons.mjs && node scripts/search-index.mjs && node scripts/examples-full.mjs && react-router build && node scripts/post-build.mjs",
+    "build": "node scripts/icons.mjs && node scripts/search-index.mjs && node scripts/examples-full.mjs && node scripts/commits.mjs && react-router build && node scripts/post-build.mjs",
     "preview": "wrangler dev",
     "deploy": "npm run build && wrangler deploy"
   },

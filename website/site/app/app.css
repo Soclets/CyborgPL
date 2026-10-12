@@ -445,3 +445,24 @@ html.desktop .comparison-table td { padding: 16px; font-size: 14px; }
 html.desktop .comparison-table tbody tr > * { border-top: 1px solid var(--line); }
 html.desktop .comparison-table tbody tr:last-child th { border-radius: 0 0 0 16px; }
 html.desktop .comparison-table tbody tr:last-child td:last-child { border-radius: 0 0 16px 0; }
+
+/* Commits (owner, 2026-10-12): the repo's history, messages only. */
+.commit-search { width: 100%; padding: 12px 16px; border-radius: 14px; background: var(--surface); color: var(--ink); font: 16px var(--sans); border: 0; outline: none; }
+.commit-people { margin: 12px 0 6px; flex-wrap: wrap; }
+.commit-people small { opacity: .6; margin-left: 2px; }
+.commit-note { font-size: 13px; color: var(--muted); }
+.commit-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+.commit { padding: 14px 16px; border-radius: 14px; background: var(--surface); }
+.commit-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 8px; }
+.commit-head b { flex: 1 1 260px; font-size: 15px; line-height: 1.4; color: var(--ink); font-weight: 600; }
+.commit-kind { font: 700 11px var(--sans); text-transform: uppercase; letter-spacing: .06em; padding: 2px 7px; border-radius: 6px; background: var(--bg); color: var(--muted); }
+.commit-kind.k-feature { color: var(--green, #859900); } .commit-kind.k-fix { color: var(--red, #dc322f); }
+.commit-kind.k-decision { color: var(--violet); } .commit-kind.k-design { color: var(--blue, #268bd2); }
+.commit-kind.k-test { color: var(--cyan, #2aa198); } .commit-kind.k-house { color: var(--orange, #cb4b16); }
+.commit-where { font: 12px var(--mono); color: var(--muted); }
+.commit-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.commit-meta code { font: 12px var(--mono); }
+.commit details { margin-top: 8px; }
+.commit summary { cursor: pointer; font-size: 13px; color: var(--violet); }
+.commit-body { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0 0; font: 13px/1.55 var(--mono); color: var(--text); }
+.commit-more { margin: 16px 0 8px; padding: 10px 18px; border-radius: 99px; background: var(--surface); color: var(--ink); font: 700 14px var(--sans); }

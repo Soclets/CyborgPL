@@ -19,6 +19,7 @@ const LINKS = [
   { to: "/examples", label: "Examples", match: (p) => p.startsWith("/examples") },
   { to: "/download", label: "Download", match: (p) => p.startsWith("/download") },
   { to: "/licence", label: "Licence", match: (p) => p.startsWith("/licence") },
+  { to: "/commits", label: "Commits", match: (p) => p.startsWith("/commits") },
   { to: "/more", label: "More", match: (p) => p.startsWith("/more") },     // and RRx2, under Related
 ];
 
