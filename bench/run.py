@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CyborgPL against every other language installed here, on the same four programs.
+"""Nerve against every other language installed here, on the same four programs.
 
 Each program reads N from the environment and exits with its answer's low byte, so
 nothing is worked out while compiling and every language is checked against C's
@@ -199,7 +199,7 @@ def write_results(keys, missing, results):
              f"from process start to exit (startup included); runs past {TIMEOUT} s are timeouts. "
              "Every answer is checked against C's.", ""]
     for name, n in CASES:
-        lines += [f"## {name} (N = {n:,})", "", "| Language | Time | vs CyborgPL |", "|---|---|---|"]
+        lines += [f"## {name} (N = {n:,})", "", "| Language | Time | vs Nerve |", "|---|---|---|"]
         base = results.get(("nerve", name), (None,))[0]
         rows = []
         for key in keys:

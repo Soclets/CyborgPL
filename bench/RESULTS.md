@@ -2,6 +2,62 @@
 
 Machine: arm64 (Apple Silicon, 10 cores: 4 performance, 6 efficiency), Darwin 27.0.0. Best of 3 runs, wall-clock from process start to exit (startup included); runs past 60 s are timeouts. Every answer is checked against C's, and every one agreed.
 
+## 2026-10-12: Nerve against C, Python, Go and Rust
+
+Run at 17:53 (+07) with `CYBORG_BENCH_THREADS=10 python3 run.py nerve nerve1 c python rust go` (the Synapse release build of 14:04 in compiler claude's clone, committed as `2f8af0b0` at 14:08), with nothing else running. The owner asked, through website claude: "Could you ask design Claude to bench Nerve against C, Python, Go, and Rust?", then chose the uncapped run: "(a)". The first run under the Nerve name, and the first with Python and Rust; the Nerve programs are in today's syntax (`for 'i': int64 from 1 to 'n' by 1`, `int64[min 0, max 1_000_000_000]`).
+
+**The nuance** (noted as in the last run, owner 2026-10-06: "note the nuance"):
+
+- **The 10-thread row is not like for like.** Nerve spreads a proven `for` loop over the cores by itself; the C, Rust, Go and Python programs are the plain single-threaded code anyone would write first. **The 1-thread row is the fair comparison.** On it Nerve ties C on fib and sieve, is a little ahead on sum (0.087 s against 0.090) and a hair behind on lists (0.038 against 0.037), all within run-to-run noise. It beats Rust on sum (Rust 1.85× slower), lists (1.24×) and fib (1.07×), and ties it on sieve (0.373 against 0.370). It beats Go on three; on sieve Go is faster (0.353 against 0.373), as last time.
+- **Python is the interpreted one:** CPython is 24× (sieve) to 239× (lists) slower than single-threaded Nerve, and 739× slower than Nerve's 10 threads on sum.
+- **fib cannot be split:** it is all function calls, so every Nerve row is one core.
+- **sieve is held back by memory, not cores:** 10 threads take it from 0.373 s to 0.227 s, while sum goes from 0.087 s to 0.022 s.
+- **Rust's sum** is slower than C's here (0.161 s against 0.090), with `rustc -C opt-level=3` on the same loop; not looked into.
+
+### sum (N = 300,000,000)
+
+| Language | Time | vs Nerve |
+|---|---|---|
+| Nerve (Synapse, final build, 10 threads) | 0.022 s | 1.00× |
+| Nerve (Synapse, final build, 1 thread) | 0.087 s | 3.92× |
+| C (clang -O2) | 0.090 s | 4.09× |
+| Go | 0.137 s | 6.21× |
+| Rust (rustc -O) | 0.161 s | 7.30× |
+| Python (CPython) | 16.335 s | 738.74× |
+
+### fib (N = 35)
+
+| Language | Time | vs Nerve |
+|---|---|---|
+| C (clang -O2) | 0.015 s | 0.91× |
+| Nerve (Synapse, final build, 1 thread) | 0.015 s | 0.91× |
+| Rust (rustc -O) | 0.016 s | 0.98× |
+| Nerve (Synapse, final build, 10 threads) | 0.017 s | 1.00× |
+| Go | 0.021 s | 1.29× |
+| Python (CPython) | 0.511 s | 30.71× |
+
+### lists (N = 20,000,000)
+
+| Language | Time | vs Nerve |
+|---|---|---|
+| Nerve (Synapse, final build, 10 threads) | 0.029 s | 1.00× |
+| C (clang -O2) | 0.037 s | 1.27× |
+| Nerve (Synapse, final build, 1 thread) | 0.038 s | 1.32× |
+| Rust (rustc -O) | 0.047 s | 1.64× |
+| Go | 0.096 s | 3.30× |
+| Python (CPython) | 9.084 s | 313.02× |
+
+### sieve (N = 100,000,000)
+
+| Language | Time | vs Nerve |
+|---|---|---|
+| Nerve (Synapse, final build, 10 threads) | 0.227 s | 1.00× |
+| Go | 0.353 s | 1.56× |
+| Rust (rustc -O) | 0.370 s | 1.63× |
+| Nerve (Synapse, final build, 1 thread) | 0.373 s | 1.65× |
+| C (clang -O2) | 0.376 s | 1.66× |
+| Python (CPython) | 9.100 s | 40.13× |
+
 ## 2026-10-06: CyborgPL against C and Go
 
 Run at 20:36 (+07) with `CYBORG_BENCH_THREADS=10 python3 run.py cyborgpl cyborgpl1 c go`, after the day's cores revision (CCA at `c5179dbd`), with nothing else running (owner: "Bench 1v2, uncapped").
