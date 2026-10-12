@@ -4749,9 +4749,9 @@ fn conv_form(target: &ast::Type) -> Result<(Option<bool>, Option<ast::Type>)> {
             p.segs.remove(0);
             Ok((Some(path.segs[0].name == "useful"), Some(ast::Type { kind: ast::TypeKind::Path { path: p, args: args.clone() }, span: target.span })))
         }
-        ast::TypeKind::Bound { inner, lo, hi, unit, span } => {
+        ast::TypeKind::Bound { inner, lo, hi, unit, span, old } => {
             let (form, inner2) = conv_form(inner)?;
-            Ok((form, inner2.map(|i| ast::Type { kind: ast::TypeKind::Bound { inner: Box::new(i), lo: lo.clone(), hi: hi.clone(), unit: unit.clone(), span: *span }, span: target.span })))
+            Ok((form, inner2.map(|i| ast::Type { kind: ast::TypeKind::Bound { inner: Box::new(i), lo: lo.clone(), hi: hi.clone(), unit: unit.clone(), span: *span, old: *old }, span: target.span })))
         }
         _ => Ok((None, None)),
     }

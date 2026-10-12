@@ -1108,8 +1108,17 @@ impl Items {
                 }
                 Ok(Ty::Fn(Box::new(FnTy { params: ps, ret: r, fails: fs, owning: false })))
             }
-            ast::TypeKind::Bound { inner, lo, hi, unit, span } => {
+            ast::TypeKind::Bound { inner, lo, hi, unit, span, old } => {
                 let base = self.resolve_type(inner, m, blanks, allow_blanks)?;
+                if *old {
+                    // Whether it takes a bound comes before how one is
+                    // written (owner, 2026-10-12, labelled bounds).
+                    return match &base {
+                        Ty::Seq { kind: SeqKind::Array, .. } => err(Diagnostic::error("a length bound belongs on a `list`: an `array` has one length, already known").at(*span)),
+                        Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => err(Diagnostic::error("a bound says which it is: `int32[min 0, max 100]` (`[min 1]` alone is \"at least 1\") (owner, 2026-10-12)").at(*span)),
+                        other => err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`int32[min 0, max 100]`), text, lists, maps and channels", spell(other, self))).at(*span)),
+                    };
+                }
                 self.resolve_bound(base, lo, hi, unit.as_ref(), *span)
             }
             ast::TypeKind::Count(n) => err(Diagnostic::error(format!("`{}` is a number, not a type: only a `simd[T, N]` takes one, as its lane count", n)).at(t.span)),
@@ -1147,11 +1156,11 @@ impl Items {
                             return Ok(if p.is(&["min"]) { min } else { max });
                         }
                     }
-                    err(Diagnostic::error("an integer's bounds are integers, or `min` / `max`: `int32[0, 100]`, `int32[1, max]`").at(e.span))
+                    err(Diagnostic::error("an integer's bounds are integers: `int32[min 0, max 100]`").at(e.span))
                 };
                 let (l, h) = (end(lo)?, end(hi)?);
                 if l > h {
-                    return err(Diagnostic::error(format!("the low bound comes first: `[{}, {}]`", h, l)).at(span));
+                    return err(Diagnostic::error(format!("the low bound comes first: `[min {}, max {}]`", h, l)).at(span));
                 }
                 if let Ty::Int(IntW::Fixed { signed, bits }) = &base {
                     let (min, max) = int_range(*signed, *bits);
@@ -1169,15 +1178,6 @@ impl Items {
                 if let Some(u) = unit {
                     return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).at(u.span));
                 }
-                for e in [lo, hi] {
-                    if let ast::ExprKind::Path(p) = &e.kind {
-                        if p.is(&["min"]) || p.is(&["max"]) {
-                            return err(Diagnostic::error(format!("not yet: `{}` on a bin's range — Synapse takes one-ended ranges on integers so far", p.head())).at(e.span));
-                        }
-                    }
-                }
-                let l = bin_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `bin64[0.0, 1.0]` — an integer's bounds are integers, and the two do not mix").at(lo.span)))?;
-                let h = bin_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `bin64[0.0, 1.0]`").at(hi.span)))?;
                 // The largest finite value of each width; a bound past it
                 // is no value of the type (owner, 2026-09-23).
                 let top = match &base {
@@ -1185,6 +1185,25 @@ impl Items {
                     Ty::Bin(BinW::Fixed(32)) => Some(f32::MAX as f64),
                     Ty::Bin(BinW::Fixed(64)) => Some(f64::MAX),
                     _ => None,
+                };
+                // A side left out is the type's own limit (owner,
+                // 2026-10-12): `bin64[min 0.0]` is 0.0 to the largest bin64.
+                let side = |e: &ast::Expr| -> Result<Option<String>> {
+                    match &e.kind {
+                        ast::ExprKind::Path(p) if p.is(&["min"]) || p.is(&["max"]) => match top {
+                            Some(t) => Ok(Some(format!("{:?}", if p.is(&["min"]) { -t } else { t }))),
+                            None => err(Diagnostic::error(format!("`{}` is the type's own limit, and this bin's width is not known yet", p.head())).at(e.span)),
+                        },
+                        _ => Ok(None),
+                    }
+                };
+                let l = match side(lo)? {
+                    Some(v) => v,
+                    None => bin_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `bin64[min 0.0, max 1.0]` — an integer's bounds are integers, and the two do not mix").at(lo.span)))?,
+                };
+                let h = match side(hi)? {
+                    Some(v) => v,
+                    None => bin_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `bin64[min 0.0, max 1.0]`").at(hi.span)))?,
                 };
                 if let Some(top) = top {
                     for (t, e) in [(&l, lo), (&h, hi)] {
@@ -1195,7 +1214,7 @@ impl Items {
                     }
                 }
                 if l.parse::<f64>().unwrap_or(0.0) > h.parse::<f64>().unwrap_or(0.0) {
-                    return err(Diagnostic::error(format!("the low bound comes first: `[{}, {}]`", h, l)).at(span));
+                    return err(Diagnostic::error(format!("the low bound comes first: `[min {}, max {}]`", h, l)).at(span));
                 }
                 Bound::Bin { lo: l, hi: h }
             }
@@ -1205,7 +1224,14 @@ impl Items {
                 if let Some(u) = unit {
                     return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).at(u.span));
                 }
-                let written = |e: &ast::Expr| bin_literal(e).ok_or_else(|| Box::new(Diagnostic::error(format!("a deci's bounds are written with a point, as a bin's are: `deci{}[0.0, 1.0]`", bits)).at(e.span)));
+                for e in [lo, hi] {
+                    if let ast::ExprKind::Path(p) = &e.kind {
+                        if p.is(&["min"]) || p.is(&["max"]) {
+                            return err(Diagnostic::error(format!("not yet: a deci's bound with a side left out — Synapse writes both sides of a deci's range so far: `deci{}[min 0.0, max 1.0]`", bits)).at(span));
+                        }
+                    }
+                }
+                let written = |e: &ast::Expr| bin_literal(e).ok_or_else(|| Box::new(Diagnostic::error(format!("a deci's bounds are written with a point, as a bin's are: `deci{}[min 0.0, max 1.0]`", bits)).at(e.span)));
                 let (l, h) = (written(lo)?, written(hi)?);
                 for (t, e) in [(&l, lo), (&h, hi)] {
                     match crate::deci::literal(t, *bits) {
@@ -1215,7 +1241,7 @@ impl Items {
                     }
                 }
                 if l.replace('_', "").parse::<f64>().unwrap_or(0.0) > h.replace('_', "").parse::<f64>().unwrap_or(0.0) {
-                    return err(Diagnostic::error(format!("the low bound comes first: `[{}, {}]`", h, l)).at(span));
+                    return err(Diagnostic::error(format!("the low bound comes first: `[min {}, max {}]`", h, l)).at(span));
                 }
                 Bound::Bin { lo: l, hi: h }
             }
@@ -1227,7 +1253,7 @@ impl Items {
                         "graphemes" | "grapheme" => Unit::Grapheme,
                         other => return err(Diagnostic::error(format!("`{}` is not a unit of text length: `bytes`, `points` or `graphemes`", other)).at(u.span)),
                     },
-                    None => return err(Diagnostic::error("a text's length bound must say which unit it counts — `bytes`, `points` or `graphemes` — after the high bound: `str.utf8[1, 40 graphemes]`; a text has three lengths and no single one").at(span)),
+                    None => return err(Diagnostic::error("a text's length bound must say which unit it counts — `bytes`, `points` or `graphemes` — after the last number: `str.utf8[min 1, max 40 graphemes]`; a text has three lengths and no single one").at(span)),
                 };
                 let (l, h) = len_bounds(lo, hi, span)?;
                 Bound::Len { lo: l, hi: h, unit: Some(u) }
@@ -1236,13 +1262,16 @@ impl Items {
                 return err(Diagnostic::error("a length bound belongs on a `list`: an `array` has one length, already known").at(span));
             }
             Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => {
+                if matches!(base, Ty::Channel(_)) && matches!(&hi.kind, ast::ExprKind::Path(p) if p.is(&["max"])) {
+                    return err(Diagnostic::error("a bounded channel says how much it holds: `channel[T][max 100]`; with no bound it is a hand-off").at(span));
+                }
                 if let Some(u) = unit {
                     return err(Diagnostic::error(format!("a count bound has no unit; `{}` belongs on a text's length bound", u.name)).at(u.span));
                 }
                 let (l, h) = len_bounds(lo, hi, span)?;
                 Bound::Len { lo: l, hi: h, unit: None }
             }
-            other => return err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`int32[0, 100]`), text, lists, maps and channels", spell(other, self))).at(span)),
+            other => return err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`int32[min 0, max 100]`), text, lists, maps and channels", spell(other, self))).at(span)),
         };
         Ok(Ty::Bounded { inner: Box::new(base), bound })
     }
@@ -1711,13 +1740,16 @@ pub fn bin_literal(e: &ast::Expr) -> Option<String> {
 }
 
 fn len_bounds(lo: &ast::Expr, hi: &ast::Expr, span: Span) -> Result<(u64, u64)> {
-    let l = int_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a length bound's ends are whole numbers").at(lo.span)))?;
-    let h = int_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a length bound's ends are whole numbers").at(hi.span)))?;
+    // A side left out (owner, 2026-10-12): the low one is 0, the high one
+    // unlimited.
+    let left_out = |e: &ast::Expr, w: &str| matches!(&e.kind, ast::ExprKind::Path(p) if p.is(&[w]));
+    let l = if left_out(lo, "min") { 0 } else { int_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a length bound's ends are whole numbers").at(lo.span)))? };
+    let h = if left_out(hi, "max") { u64::MAX as i128 } else { int_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a length bound's ends are whole numbers").at(hi.span)))? };
     if l < 0 {
         return err(Diagnostic::error("a length bound's low end is 0 or more: a length is never negative").at(lo.span));
     }
     if l > h {
-        return err(Diagnostic::error(format!("the low bound comes first: `[{}, {}]`", h, l)).at(span));
+        return err(Diagnostic::error("the low bound is at most the high one: `list[int32][min 0, max 1000]`").at(span));
     }
     Ok((l as u64, h as u64))
 }

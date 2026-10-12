@@ -68,7 +68,9 @@ pub enum TypeKind {
     /// `shapes.circle.Circle`, `std::uenr`, `ptr.mut[T]`, `channel[T]`.
     Path { path: Path, args: Vec<Type> },
     /// `T[lo, hi]`, `str.utf8[1, 40 graphemes]`, `list[T][0, 10]`.
-    Bound { inner: Box<Type>, lo: Box<Expr>, hi: Box<Expr>, unit: Option<Ident>, span: Span },
+    /// `old`: written `[lo, hi]`, as before 2026-10-12, read so that a
+    /// type taking no bound is told that first, then refused.
+    Bound { inner: Box<Type>, lo: Box<Expr>, hi: Box<Expr>, unit: Option<Ident>, span: Span, old: bool },
     /// `<T>` / `<T: Ordered>`.
     Var { name: Ident, bound: Option<Path> },
     /// `fn[lent T, T] -> R or fail[…]`.

@@ -3,12 +3,12 @@
 # can be anything the return type holds. up(98) is past an int64 in truth.
 extern.C fn exit ['code': int32];
 extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn atoll ['s': ptr[uint8]] -> int64[0, 100];
-fn up ['n': int64[0, 100]] -> int64 {
+extern.C fn atoll ['s': ptr[uint8]] -> int64[min 0, max 100];
+fn up ['n': int64[min 0, max 100]] -> int64 {
     if 'n' at_least 100 { return 1; }
     return up['n' plus 1] plus 9_000_000_000_000_000_000;
 }
-fn read_n ['text': ptr[uint8]] -> int64[0, 100] or fail[missing, out_of_range] {
+fn read_n ['text': ptr[uint8]] -> int64[min 0, max 100] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
     no_check let 'n' := atoll['text'] otherwise fail;
     return 'n';

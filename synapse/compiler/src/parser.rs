@@ -2122,35 +2122,75 @@ impl<'a> Parser<'a> {
             other => return self.fail(format!("expected a type, found {}", other.describe())),
         };
         let mut ty = Type { span: start.to(self.prev_span()), kind };
-        // A bound: `T[lo, hi]`, `str.utf8[1, 40 graphemes]`, `list[T][0, 10]`.
+        // A bound (owner, 2026-10-12): `T[min 0, max 100]`, `T[min 1]` (at
+        // least 1), `str.utf8[min 1, max 40 graphemes]`, `list[T][max 10]`.
         while self.is(&Tok::LBracket) && self.bracket_is_bound() {
-            let bstart = self.span();
-            self.bump();
-            let lo = self.bound_value()?;
-            self.expect(&Tok::Comma, "`,` between the bounds")?;
-            let hi = self.bound_value()?;
-            let unit = if let Tok::Word(w) = self.peek().clone() {
-                if matches!(w.as_str(), "points" | "graphemes") && self.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "Broca")) {
-                    return core_missing("counting in points or graphemes", "Broca", self.span());
-                }
-                if !is_keyword(&w) && w != "x" {
-                    Some(self.ident("a unit")?)
-                } else {
-                    None
-                }
+            let (lo, hi, unit, span, old) = if self.is_word_at(1, "min") || self.is_word_at(1, "max") {
+                let (lo, hi, unit, span) = self.labelled_bound()?;
+                (lo, hi, unit, span, false)
             } else {
-                None
+                // `[lo, hi]`: read as it was, to be refused once the type is
+                // known to take a bound at all.
+                let bstart = self.bump().span;
+                while !self.is(&Tok::RBracket) && !self.at_eof() {
+                    self.bump();
+                }
+                self.expect(&Tok::RBracket, "`]` closing the bound")?;
+                (None, None, None, bstart.to(self.prev_span()), true)
             };
-            self.expect(&Tok::RBracket, "`]` closing the bound")?;
-            let span = bstart.to(self.prev_span());
-            ty = Type { span: start.to(self.prev_span()), kind: TypeKind::Bound { inner: Box::new(ty), lo: Box::new(lo), hi: Box::new(hi), unit, span } };
+            let side = |e: Option<Expr>, w: &str| e.unwrap_or_else(|| Expr { kind: ExprKind::Path(Path { limb: None, segs: vec![Ident { name: w.into(), span }], span }), span });
+            let (lo, hi) = (side(lo, "min"), side(hi, "max"));
+            ty = Type { span: start.to(self.prev_span()), kind: TypeKind::Bound { inner: Box::new(ty), lo: Box::new(lo), hi: Box::new(hi), unit, span, old } };
         }
         Ok(ty)
     }
 
-    /// Is the bracket at the cursor `[expr, expr [unit]]` — a bound — rather
-    /// than type arguments or a call's argument? Decided by a trial parse.
+    /// `[min 0, max 100]`, `[min 1]`, `[max 100]`, a unit after the last
+    /// number (`[min 1, max 40 graphemes]`), from the `[` at the cursor: each
+    /// side said, `None` for one left out.
+    fn labelled_bound(&mut self) -> Result<(Option<Expr>, Option<Expr>, Option<Ident>, Span)> {
+        let bstart = self.bump().span;
+        if !(self.is_word("min") || self.is_word("max")) {
+            return self.fail_at(bstart, "a bound says which it is: `int32[min 0, max 100]` (`[min 1]` alone is \"at least 1\") (owner, 2026-10-12)");
+        }
+        let old = |this: &Self| matches!(this.peek_at(1), Tok::Comma | Tok::RBracket);
+        if old(self) {
+            return self.fail_at(bstart, "a bound says which it is: `int32[min 0, max 100]` (`[min 1]` alone is \"at least 1\") (owner, 2026-10-12)");
+        }
+        let mut lo = None;
+        let mut hi = None;
+        if self.eat_word("min") {
+            lo = Some(self.bound_value()?);
+            if self.eat(&Tok::Comma) && !self.is_word("max") {
+                return self.fail("a bound says which it is: `int32[min 0, max 100]` (`[min 1]` alone is \"at least 1\") (owner, 2026-10-12)");
+            }
+        }
+        if self.eat_word("max") {
+            hi = Some(self.bound_value()?);
+        }
+        let unit = if let Tok::Word(w) = self.peek().clone() {
+            if matches!(w.as_str(), "points" | "graphemes") && self.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "Broca")) {
+                return core_missing("counting in points or graphemes", "Broca", self.span());
+            }
+            if !is_keyword(&w) && w != "x" {
+                Some(self.ident("a unit")?)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        self.expect(&Tok::RBracket, "`]` closing the bound")?;
+        Ok((lo, hi, unit, bstart.to(self.prev_span())))
+    }
+
+    /// Is the bracket at the cursor a bound rather than type arguments or a
+    /// call's argument? `[min …` or `[max …` is (owner, 2026-10-12); so is
+    /// the old `[lo, hi]`, read to be refused naming the new spelling.
     fn bracket_is_bound(&mut self) -> bool {
+        if (self.is_word_at(1, "min") || self.is_word_at(1, "max")) && !matches!(self.peek_at(2), Tok::Comma | Tok::RBracket) {
+            return true;
+        }
         let save = self.pos;
         let mut ok = false;
         if self.eat(&Tok::LBracket) {
@@ -2167,20 +2207,16 @@ impl<'a> Parser<'a> {
         ok
     }
 
-    /// One end of a bound as written: `min` or `max`, the base type's own
-    /// limit (`int32[1, max]`), or a value.
+    /// One side's value; `min` and `max` are its labels now, never values.
     fn bound_value(&mut self) -> Result<Expr> {
-        if let Tok::Word(w) = self.peek().clone() {
-            if w == "min" || w == "max" {
-                let span = self.bump().span;
-                let path = Path { limb: None, segs: vec![Ident { name: w, span }], span };
-                return Ok(Expr { kind: ExprKind::Path(path), span });
-            }
+        if self.is_word("min") || self.is_word("max") {
+            return self.fail("`min` and `max` label a bound now; a side left out is the type's own limit: `int32[min 1]` is \"at least 1\" (owner, 2026-10-12)");
         }
         self.expr(0)
     }
 
-    /// One end of a bound: a number, possibly negative, or `min` / `max`.
+    /// One end of an old bound, `[lo, hi]`: a number, possibly negative, or
+    /// `min` / `max`.
     fn bound_end(&mut self) -> bool {
         if let Tok::Word(w) = self.peek() {
             if w == "min" || w == "max" {
@@ -3718,12 +3754,14 @@ impl<'a> Parser<'a> {
                     self.expect(&Tok::LBracket, "`[` after `channel`: `channel[T]`")?;
                     let elem = self.type_()?;
                     self.expect(&Tok::RBracket, "`]` closing the channel's type")?;
+                    // `channel[T][max 10]` (owner, 2026-10-12): a `min`
+                    // written is 0; with no bound it is a hand-off.
                     let bound = if self.is(&Tok::LBracket) {
-                        self.bump();
-                        let lo = self.expr(0)?;
-                        self.expect(&Tok::Comma, "`,` between the channel's bounds")?;
-                        let hi = self.expr(0)?;
-                        self.expect(&Tok::RBracket, "`]` closing the bound")?;
+                        let (lo, hi, _, span) = self.labelled_bound()?;
+                        let Some(hi) = hi else {
+                            return self.fail_at(span, "a bounded channel says how much it holds: `channel[T][max 100]`; with no bound it is a hand-off");
+                        };
+                        let lo = lo.unwrap_or(Expr { kind: ExprKind::Int("0".into()), span });
                         Some(Box::new((lo, hi)))
                     } else {
                         None

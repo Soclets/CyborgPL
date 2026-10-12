@@ -3,8 +3,8 @@
 # The final build must not bound 'acc' by the counter.
 extern.C fn exit ['code': int32];
 extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn atoll ['s': ptr[uint8]] -> int64[0, 1000];
-fn read_n ['text': ptr[uint8]] -> int64[0, 1000] or fail[missing, out_of_range] {
+extern.C fn atoll ['s': ptr[uint8]] -> int64[min 0, max 1000];
+fn read_n ['text': ptr[uint8]] -> int64[min 0, max 1000] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
     no_check let 'n' := atoll['text'] otherwise fail;
     return 'n';

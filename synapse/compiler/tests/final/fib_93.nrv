@@ -2,12 +2,12 @@
 # final build must refuse where it lands.
 extern.C fn exit ['code': int32];
 extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn atoll ['s': ptr[uint8]] -> int64[0, 93];
-fn fib ['n': int64[0, 93]] -> int64 {
+extern.C fn atoll ['s': ptr[uint8]] -> int64[min 0, max 93];
+fn fib ['n': int64[min 0, max 93]] -> int64 {
     if 'n' < 2 { return 'n'; }
     return fib['n' minus 1] plus fib['n' minus 2];
 }
-fn read_n ['text': ptr[uint8]] -> int64[0, 93] or fail[missing, out_of_range] {
+fn read_n ['text': ptr[uint8]] -> int64[min 0, max 93] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
     no_check let 'n' := atoll['text'] otherwise fail;
     return 'n';

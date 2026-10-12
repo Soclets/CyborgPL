@@ -32,7 +32,7 @@ MAIN {
     if add[4, 5, 'three'] equal_to 12 and count[4, 5, 6] equal_to 3 and count[] equal_to 0 { change 'got' = 'got' plus 2; }
     let 'xs' := [1, 2, 'three'];
     if add[...'xs'] equal_to 6 and add[10, ...'xs', 20] equal_to 36 { change 'got' = 'got' plus 4; }
-    let mut 'ys': list[int32][0, 4] = list.empty;
+    let mut 'ys': list[int32][min 0, max 4] = list.empty;
     list.append[lend.mut 'ys', 7];
     if 'there' { list.append[lend.mut 'ys', 8]; }
     if add[...'ys'] equal_to 15 and count[...'ys', 1] equal_to 3 { change 'got' = 'got' plus 8; }

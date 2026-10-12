@@ -1,12 +1,12 @@
 extern.C fn exit ['code': int32];
-fn produce [lent 'out': channel[list[int32]][0, 4], 'base': int32] {
+fn produce [lent 'out': channel[list[int32]][min 0, max 4], 'base': int32] {
     for 'i': int32 from 1 to 50 by 1 {
         let 'batch': list[int32] = ['base', 'i'];
         channel.send[lend 'out', give 'batch'];
     }
 }
 MAIN {
-    let 'pipe' := channel[list[int32]][0, 4];
+    let 'pipe' := channel[list[int32]][min 0, max 4];
     let 'quiet' := channel[int32];
     concur with [lend 'pipe'] { produce[lend 'pipe', 1000]; }
     concur with [lend 'pipe'] { produce[lend 'pipe', 2000]; }

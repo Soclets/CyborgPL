@@ -1,6 +1,6 @@
 extern.C fn exit ['code': int32];
 extern.C fn strlen ['s': ptr[uint8]] -> uint64;
-fn r ['d': int32[0, 12], 'v': uint8, 'w': uint16] -> int8 {
+fn r ['d': int32[min 0, max 12], 'v': uint8, 'w': uint16] -> int8 {
     if 'd' at_least 12 {
         return to.int8['v'];
     }

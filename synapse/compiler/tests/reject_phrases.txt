@@ -95,7 +95,9 @@ borrow_choice_needs_group [fnv:1e7e66e4f7d01460] :: `longer` hands back a borrow
 borrow_ungrouped_may_return [fnv:ed533803bcb93efa] :: 't' cannot be given away here: 'r' still borrows it and is used on line 13
 borrow_untaken_branch [fnv:dc66446cd05dbc61] :: 't' cannot be changed here: 'q' still borrows it and is used on line 8
 bound_append_over [fnv:25e03683e8f206b9] :: this can take it outside the bound its type gives it (`list[int32][0, 3]`)
-bound_backwards [fnv:eaa53671d88b43f0] :: the low bound comes first: `[2, 5]`
+bound_backwards [fnv:0657eb87a916e1c7] :: the low bound is at most the high one
+bound_max_as_value [fnv:9c484b42a2770889] :: `min` and `max` label a bound now; a side left out is the type's own limit
+bound_old_spelling [fnv:a0a0af0d024fcead] :: a bound says which it is: `int32[min 0, max 100]`
 bound_on_array [fnv:d5be1883ea268628] :: an `array` has one length, already known
 bound_too_short [fnv:9806ce6df3c3ab28] :: this can take it outside the bound its type gives it (`list[int32][3, 5]`)
 brain_into_bin [fnv:45daa7e478d16952] :: is a brain16, not bin32
@@ -594,12 +596,10 @@ range_bin_bounds_on_int [fnv:3864723dd6ff74d9] :: an integer's bounds are intege
 range_bound_below_unsigned [fnv:3bc29ab37d272cda] :: -1 does not fit uint8
 range_bound_markers [fnv:7138c2c8a9eefd10] :: expected a value, found `:=`
 range_bound_outside_type [fnv:2be735d451118719] :: 300 does not fit uint8
-range_bounds_order [fnv:15adcb907214545a] :: the low bound comes first: `[0, 100]`
+range_bounds_order [fnv:15adcb907214545a] :: the low bound comes first
 range_convert_arm_missing [fnv:7d69be2b3de665e6] :: every reason needs an arm
 range_convert_unhandled [fnv:769294ffd6316ce9] :: `to.int32[0, 100]` can fail (not_a_number, out_of_range): say what happens
 range_field_out [fnv:6464c17428ae3267] :: the value can be outside what a `uint8[0, 100]` holds
-range_max_max [fnv:ef6343cb6dbd8287] :: the value can be outside what an `int32[2147483647, 2147483647]` holds
-range_max_on_low_side [fnv:561f9168a24ad79e] :: the low bound comes first
 range_needs_by [fnv:7c7f64cdc0e3b031] :: a counting loop writes its step too, even when it is 1
 range_old_spelling [fnv:b3cf2031603ca627] :: a counting loop reads as a sentence now: `for 'i' from 1 to 10 by 1`
 range_overflows_type [fnv:cd716c13c720d27d] :: the value can be outside what an `int8` holds

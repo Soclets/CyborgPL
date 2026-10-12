@@ -3,7 +3,7 @@
 # value, so a strict file refused it; now it is proven, and 3 comes back.
 extern.C fn exit ['code': int32];
 fn f [] -> int32 {
-    let immut 'd': deci64[0.0, 1.0] = 0.79;
+    let immut 'd': deci64[min 0.0, max 1.0] = 0.79;
     return 3;
 }
 MAIN {

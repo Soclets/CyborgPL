@@ -4,11 +4,11 @@
 # ends the program with exit code 2, as does no N at all.
 extern.C fn exit ['code': int32];
 extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn atoll ['s': ptr[uint8]] -> int64[0, 1_000_000_000];
+extern.C fn atoll ['s': ptr[uint8]] -> int64[min 0, max 1_000_000_000];
 
 # N, from the text in the environment: missing when there is none, and out
 # of range when it is not a number this program takes.
-fn read_n ['text': ptr[uint8]] -> int64[0, 1_000_000_000] or fail[missing, out_of_range] {
+fn read_n ['text': ptr[uint8]] -> int64[min 0, max 1_000_000_000] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
     no_check let 'n' := atoll['text'] otherwise fail;
     return 'n';
