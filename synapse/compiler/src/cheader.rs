@@ -132,6 +132,11 @@ struct Record {
     odd: bool,
 }
 
+/// Whether a field says its own packing or alignment.
+fn laid_out_its_own_way(f: &Json) -> bool {
+    matches!(f.get("inner"), Some(Json::Arr(v)) if v.iter().any(|a| matches!(a.str("kind"), Some("PackedAttr" | "AlignedAttr"))))
+}
+
 /// The key of a struct: its tag, or one made from Clang's id.
 fn record_key(d: &Json) -> Option<String> {
     // Clang says `""` for the name of an unnamed one a typedef points at.
@@ -223,12 +228,16 @@ impl Decls {
                                             r.odd = true;
                                             continue;
                                         };
-                                        if f.get("isBitfield").is_some() {
+                                        if f.get("isBitfield").is_some() || laid_out_its_own_way(f) {
                                             r.odd = true;
                                         }
                                         fields.push((n.to_string(), t.to_string()));
                                     }
                                     Some("RecordDecl") => r.odd = true,
+                                    // Packed or aligned its own way (`#pragma
+                                    // pack`): `layout.C` lays out as C does
+                                    // by default, so it is only pointed at.
+                                    Some("PackedAttr" | "MaxFieldAlignmentAttr" | "AlignedAttr") => r.odd = true,
                                     _ => {}
                                 }
                             }
