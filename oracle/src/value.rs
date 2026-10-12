@@ -250,7 +250,7 @@ pub fn ty_name(ty: &Ty) -> String {
     }
 }
 
-pub fn bound_name(b: &crate::ast::Bound) -> String { match b { crate::ast::Bound::Min => "min".into(), crate::ast::Bound::Max => "max".into(), crate::ast::Bound::Int(i) => i.to_string(), crate::ast::Bound::Bin(x) => format!("{x}") } }
+pub fn bound_name(b: &crate::ast::Bound) -> String { match b { crate::ast::Bound::Min => "min".into(), crate::ast::Bound::Max => "max".into(), crate::ast::Bound::Int(i) => i.to_string(), crate::ast::Bound::Bin(x) => { let t = format!("{x}"); if t.contains(['.', 'e', 'i', 'N']) { t } else { format!("{t}.0") } } } }   // a bin bound keeps its point, as it is written (compiler claude)
 
 fn w_num(w: &IntWidth) -> u32 {
     match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128, IntWidth::Other(n) => *n }
