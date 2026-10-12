@@ -131,13 +131,11 @@ input { font: inherit; }
 .sheet-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-x pan-y;
   padding: 0 var(--pad) calc(var(--tabbar-space) + 8px); }
 .sheet-code { background: var(--surface); border-radius: 18px; padding: 14px; }
-/* Copy, at the top right of an example's code or output (owner, 2026-10-12: "easy copy"). */
-.copyable { position: relative; }
-.copy-btn { position: absolute; top: 8px; right: 8px; z-index: 1; display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 10px; border-radius: 99px; background: var(--bg); color: var(--text); font: 600 12px var(--sans);
-  box-shadow: 0 0 0 1px var(--line); opacity: .92; }
-.copy-btn:hover { opacity: 1; color: var(--ink); }
-.copy-btn.done { color: var(--ink); }
+/* Copy, beside the Code / Output tabs (owner, 2026-10-12: "easy copy", never covering the code). */
+.seg-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.copy-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 99px; background: var(--surface);
+  color: var(--text); font: 700 13px var(--sans); }
+.copy-btn:hover, .copy-btn.done { color: var(--ink); }
 .sheet-code pre { font-size: 12.5px; }
 .output pre { margin: 0; background: var(--term-bg); color: var(--term-fg); border-radius: 18px; padding: 16px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
 .exit { margin: 12px 4px 0; font-size: 14px; color: var(--orange); font-weight: 700; }

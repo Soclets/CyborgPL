@@ -1,14 +1,15 @@
-import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Await, useLoaderData, useLocation, useNavigate, useRouteLoaderData } from "react-router";
 import { animate, motion, useDragControls, useMotionValue } from "motion/react";
 import Code from "../components/Code.jsx";
 import CopyButton from "../components/CopyButton.jsx";
+import { cached, loadExamples } from "../lib/example-cache.js";
 import Icon from "../components/Icon.jsx";
 import Md from "../components/Md.jsx";
 import { plain } from "../lib/md.js";
 import { seo } from "../lib/seo.js";
 
-// The grid's entry includes the full plain source, ready before a card is clicked.
+// The grid's entry: title, summary and the plain source, ready before a card is clicked.
 const briefOf = (list, id) => list?.examples?.find((e) => e.id === id);
 
 export const meta = ({ loaderData, params, matches }) => {
@@ -26,11 +27,13 @@ export async function loader({ params }) {
   return getExample(params.id);
 }
 
-// Opening doesn't wait for the example's data (owner: they took a while to pop up). The
-// window opens at once with the full plain source, and the highlighted code and the
-// output follow as a promise. A direct link is pre-rendered whole, as before.
+// Opening doesn't wait (owner: they took a while to pop up; then "there shouldn't be a delay for
+// syntax highlighting and the copy button"): the Examples grid loads every example whole in the
+// background (lib/example-cache.js), so a click finds it ready. If it isn't there yet, the plain
+// source shows while it arrives, and the example's own data is the last resort. A direct link is
+// pre-rendered whole, as before.
 export function clientLoader({ serverLoader, params }) {
-  return { id: params.id, full: serverLoader() };
+  return { id: params.id, load: serverLoader };
 }
 
 // The example opens as a bottom sheet over the grid. Swipe it down to put it away
@@ -38,9 +41,15 @@ export function clientLoader({ serverLoader, params }) {
 export default function Example() {
   const data = useLoaderData();
   const id = data.id;
-  const full = data.full ?? data;   // the whole example, or a promise of it
   const list = useRouteLoaderData("routes/examples");
-  const brief = data.full ? briefOf(list, id) : data;
+  const brief = data.load ? briefOf(list, id) : data;
+  // the whole example: the grid's entry (or the pre-rendered page's), else fetched once
+  const full = useMemo(() => {
+    if (brief?.html) return brief;                       // the pre-rendered page: already whole
+    const got = cached(id);
+    if (got) return { ...brief, ...got };                // the usual case: loaded with the grid
+    return loadExamples().then((all) => ({ ...brief, ...all[id] })).catch(() => data.load?.());
+  }, [id]);
   const title = brief?.title ?? id;
   const navigate = useNavigate();
   const location = useLocation();
@@ -132,33 +141,37 @@ export default function Example() {
             <button className="sheet-close" onClick={() => close()} aria-label="Close"><Icon name="x" size={20} /></button>
           </div>
           {brief?.summary && <p className="sheet-summary"><Md text={brief.summary} /></p>}
-          <div className="seg" role="tablist">
-            <button role="tab" aria-selected={tab === "code"} className={tab === "code" ? "on" : ""} onClick={() => setTab("code")}>Code</button>
-            <button role="tab" aria-selected={tab === "output"} className={tab === "output" ? "on" : ""} onClick={() => setTab("output")}>Output</button>
+          <div className="seg-row">
+            <div className="seg" role="tablist">
+              <button role="tab" aria-selected={tab === "code"} className={tab === "code" ? "on" : ""} onClick={() => setTab("code")}>Code</button>
+              <button role="tab" aria-selected={tab === "output"} className={tab === "output" ? "on" : ""} onClick={() => setTab("output")}>Output</button>
+            </div>
+            {/* Copy sits beside the tabs, never over the code (owner, 2026-10-12). */}
+            {tab === "code" && (full?.source ?? brief?.source) && <CopyButton text={full?.source ?? brief?.source} label="Copy code" />}
+            {tab === "output" && full?.out && <CopyButton text={full.out} label="Copy output" />}
           </div>
         </div>
         <div className="sheet-body">
-          {/* The full source is already with the grid; highlighting can follow without
-              delaying the text or changing the window's height. */}
-          <Suspense fallback={<div className="code sheet-code sheet-pending"><pre style={{ "--example-lines": brief?.lines }}>{brief?.source ?? brief?.preview}</pre></div>}>
-            <Await resolve={full} errorElement={<p className="empty">This example didn’t load. Close it and try again.</p>}>
-              {(ex) => tab === "code" ? (
-                <div className="copyable">
-                  <CopyButton text={ex.source} label="Copy code" />
-                  <Code html={ex.html} className="sheet-code" />
-                </div>
-              ) : (
-                <div className="output copyable">
-                  {ex.out && <CopyButton text={ex.out} label="Copy output" />}
-                  <pre>{ex.out || "(prints nothing)"}</pre>
-                  {ex.exit && <p className="exit">Exits with code {ex.exit}.</p>}
-                  <p className="checked">This is the output the reference interpreter’s tests check for.</p>
-                </div>
-              )}
-            </Await>
-          </Suspense>
+          {full?.html ? <Body ex={full} tab={tab} /> : (
+            <Suspense fallback={<div className="code sheet-code sheet-pending"><pre style={{ "--example-lines": brief?.lines }}>{brief?.source ?? brief?.preview}</pre></div>}>
+              <Await resolve={full} errorElement={<p className="empty">This example didn’t load. Close it and try again.</p>}>
+                {(ex) => <Body ex={ex} tab={tab} />}
+              </Await>
+            </Suspense>
+          )}
         </div>
       </motion.section>
+    </div>
+  );
+}
+
+// An example's code or output, once it is here.
+function Body({ ex, tab }) {
+  return tab === "code" ? <Code html={ex.html} className="sheet-code" /> : (
+    <div className="output">
+      <pre>{ex.out || "(prints nothing)"}</pre>
+      {ex.exit && <p className="exit">Exits with code {ex.exit}.</p>}
+      <p className="checked">This is the output the reference interpreter’s tests check for.</p>
     </div>
   );
 }

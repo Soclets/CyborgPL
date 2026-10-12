@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Outlet, useLoaderData } from "react-router";
+import { loadExamples } from "../lib/example-cache.js";
 import Icon from "../components/Icon.jsx";
 import Marked from "../components/Marked.jsx";
 import { ACCENTS } from "../lib/content.js";
@@ -33,6 +34,8 @@ function useWarmExampleWindow() {
 
 export default function Examples() {
   useWarmExampleWindow();
+  // Every example whole, in the background, so one opens with its highlighting and copy at once.
+  useEffect(() => { loadExamples().catch(() => {}); }, []);
   const { examples } = useLoaderData();
   const [q, setQState] = useState(lastQ);
   const setQ = (v) => { lastQ = v; setQState(v); };
