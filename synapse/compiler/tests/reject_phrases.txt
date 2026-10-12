@@ -170,6 +170,7 @@ core_no_version [fnv:8a983765217202e8] :: a lobe needs its `version`, as a regis
 core_type_old_spelling [fnv:eb0bd38e45724c5d] :: `kin::Core` is an old spelling: write `kin::Lobe`
 core_wrong_version [fnv:6782989e05d7e599] :: Synapse knows MCPS `2026-10-06T18:04:29+07:00` only
 cores_old_spelling [fnv:cdfee69d2e3230bf] :: `cores` is an old spelling: write `lobes`
+count_commas [fnv:4203df364bce8d0b] :: no commas in a counting loop
 deci_family_mix [fnv:08ea65ffe19d9d06] :: between a deci and another number family
 deci_fractional_power [fnv:bb5918d5dddef02d] :: exponent is an integer or a whole literal
 deci_from_bin_bare [fnv:24a8031c925aa8d8] :: say which value
@@ -273,12 +274,12 @@ for_lend_element_change [fnv:be5f6615821c3f27] :: 'x' belongs to the loop and ca
 for_lend_mut_length_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it `lent.mut`
 for_lend_mut_read_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it `lent.mut`
 for_list_typed [fnv:df6b9ecc22e597b6] :: each element's type is the list's
-for_loop_chain [fnv:443eefc427c541ef] :: `for 'x' in lend 'xs' { … }`, `for 'i' in range[0, 9] { … }`
+for_loop_chain [fnv:443eefc427c541ef] :: `loop.temp.for` / `loop.range` became `for`
 for_no_cheat_order [fnv:a36668e619deea07] :: `no_cheat` comes first
 for_no_next [fnv:ce601e91e7d21e30] :: which has no `fn Point.next`: `for` walks a list, or an iterator
-for_position_range [fnv:0ce54d108b5cfe61] :: a range's counter already is the position
+for_position_range [fnv:207789db02876035] :: a counting loop's counter already is the position
 for_seq_and_para [fnv:7936e43d22d1f2db] :: `seq` or `para`, not both
-for_without_in [fnv:64d751df57cc16a6] :: expected `in` after the loop variable, found `[`
+for_without_in [fnv:64d751df57cc16a6] :: expected `in` or `from` after the loop variable, found `[`
 func_keyword [fnv:06228e3da7cced76] :: became `fn`
 generic_any_and [fnv:a8a533fe624275bd] :: `any` stands alone
 generic_arg_count [fnv:36a98e3c765ffd71] :: `Pair` has 2 blank(s) (<A>, <B>), and 1 type(s) were given
@@ -587,11 +588,11 @@ pub_main [fnv:71b5050bf3081fb0] :: it is the program's block, not something anot
 pub_narrowing_bad [fnv:a97d696cbedd855e] :: the only narrowing of `pub` is `pub.neuron` (this Neuron only); plain `pub` is other Neurons too
 quoted_func_name [fnv:ae3cce4260d5cad9] :: `fn add […]`, not `fn 'add'`
 quoted_main [fnv:e070af1b394ec349] :: `fn main […]`, not `fn 'main'`
-range_as_value [fnv:7ef7f0bec22d7c9f] :: `range[…]` is only decided as what a `for` runs over; as a value on its own it is not
+range_as_value [fnv:7ef7f0bec22d7c9f] :: `range[…]` is only decided as what a `for` runs over
 range_assign_out [fnv:55bf526902e573f2] :: the value can be outside what an `int32[0, 100]` holds
 range_bin_bounds_on_int [fnv:3864723dd6ff74d9] :: an integer's bounds are integers
 range_bound_below_unsigned [fnv:3bc29ab37d272cda] :: -1 does not fit uint8
-range_bound_markers [fnv:25dc300d7444e21b] :: the bounds of a `range` are plain values: `range[0, 3]`
+range_bound_markers [fnv:7138c2c8a9eefd10] :: expected a value, found `:=`
 range_bound_outside_type [fnv:2be735d451118719] :: 300 does not fit uint8
 range_bounds_order [fnv:15adcb907214545a] :: the low bound comes first: `[0, 100]`
 range_convert_arm_missing [fnv:7d69be2b3de665e6] :: every reason needs an arm
@@ -599,12 +600,11 @@ range_convert_unhandled [fnv:769294ffd6316ce9] :: `to.int32[0, 100]` can fail (n
 range_field_out [fnv:6464c17428ae3267] :: the value can be outside what a `uint8[0, 100]` holds
 range_max_max [fnv:ef6343cb6dbd8287] :: the value can be outside what an `int32[2147483647, 2147483647]` holds
 range_max_on_low_side [fnv:561f9168a24ad79e] :: the low bound comes first
-range_needs_by [fnv:e4a74815e250370b] :: a range writes its step too, even when it is 1: `range[from 2, to 8, by 1]`
-range_needs_labels [fnv:c8bc7c7177f09a13] :: each bound says what it is: `range[from 2, to 8, by 1]` — this one is `from`
+range_needs_by [fnv:7c7f64cdc0e3b031] :: a counting loop writes its step too, even when it is 1
+range_old_spelling [fnv:b3cf2031603ca627] :: a counting loop reads as a sentence now: `for 'i' from 1 to 10 by 1`
 range_overflows_type [fnv:cd716c13c720d27d] :: the value can be outside what an `int8` holds
 range_reassign_out [fnv:0642e09a92a7c67b] :: the value can be outside what an `int32[0, 100]` holds
 range_to_c [fnv:89768fbb7f2f8a1a] :: 'a' is written as the plain `int32`
-range_type_on_range [fnv:bde7b04c0713065f] :: int32 in range[0, 3]`
 raw_too_wide [fnv:111760fc3883c66f] :: the value can be outside what an `int8` holds
 raw_too_wide_return [fnv:9e8ff85c86758b25] :: the value can be outside what a `uint16` holds
 remove_needs_pos [fnv:ab2e9906df557f37] :: the position says `pos`: `list.remove[lend.mut 'xs', pos 2]`
@@ -645,7 +645,8 @@ simd_wrong_shape [fnv:813bb50692db0740] :: this target has no `simd[uint8, 64]`:
 single_quote_char [fnv:857025279acbd88a] :: 'a' is not declared
 size_of_alone [fnv:1c30f4b3569e6800] :: `size` is a keyword: a type's size is `size.of[int32]` (`.of` after `size`)
 slash_retired [fnv:e0da6f74f7c02643] :: division is `div.floor`
-slice_needs_pos [fnv:6f41d5119ca6dd60] :: positions say `pos`: `list.slice[lend 'xs', pos 2, pos 4]`
+slice_needs_pos [fnv:bbcf4577f909ab6f] :: a slice starts `from pos …`
+slice_old_spelling [fnv:b91a123caf5e48b1] :: a slice says where it runs: `list.slice[lend 'xs', from pos 2, to pos 4]`
 slice_past_end [fnv:9addc01545809a6f] :: the slice can run outside the list
 spread_lent_no_verb [fnv:4aeae176b5f51db7] :: `...` with no verb lends each element
 spread_lent_unbounded [fnv:c06c4e8a33a43f63] :: a call's shape is fixed per call
@@ -694,7 +695,7 @@ struct_write_through_lent [fnv:a2d4141c48d32f8c] :: it belongs to whoever lent i
 struct_wrong_field_type [fnv:7d29ffc630950dd5] :: field `x` is an `int32` and this value is text: convert it first
 take_unhandled [fnv:0a69f5303bdb8818] :: `channel.take` can fail (closed): say what happens
 temp_after_loop [fnv:652fb6ee6f955c44] :: 'i' is not declared
-temp_after_name [fnv:64d751df57cc16a6] :: expected `in`; `temp` goes before the name
+temp_after_name [fnv:64d751df57cc16a6] :: `temp` goes before the name
 test_fn_called [fnv:fc9ed5874a38cb00] :: is a `test fn`: `synapse test` runs it
 test_fn_params [fnv:e6c6894b85ea10f6] :: takes no parameters
 text_bound_graphemes [fnv:a6dcaaa62d158116] :: this can take it outside the bound its type gives it (`str.utf8[1, 2 graphemes]`)

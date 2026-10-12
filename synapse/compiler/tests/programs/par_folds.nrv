@@ -21,7 +21,7 @@ MAIN {
         change 'dprod' = 'dprod' times 1;
     }
     let mut 'sign': int64 = 1;
-    for 'i': int64 in range[from 1, to 'n', by 1] {
+    for 'i': int64 from 1 to 'n' by 1 {
         change 'sign' = 'sign' times (('i' mod.floor 2) times 2 minus 1);
     }
     let 'b': int32 = to.int32['bsum' div.near 1000.0] otherwise 1;

@@ -9,17 +9,17 @@ MAIN {
     let 'n': int64 = 100000;
     let mut 'a': list[int64] = list.fill[value 0, count 'n'];
     let mut 'b': list[int64] = list.fill[value 0, count 'n'];
-    for para 'i': int64 in range[from 1, to 'n', by 1] {
+    for para 'i': int64 from 1 to 'n' by 1 {
         no_check let 'v' := labs['i' minus 12345];
         change 'a'[pos 'i'] = 'v';
     }
-    for 'i': int64 in range[from 1, to 'n', by 1] {
+    for 'i': int64 from 1 to 'n' by 1 {
         no_check let 'v' := labs['i' minus 12345];
         change 'b'[pos 'i'] = 'v';
     }
     let mut 'same': int64 = 0;
     let mut 's': int64 = 0;
-    for 'k': int64 in range[from 1, to 'n', by 1] {
+    for 'k': int64 from 1 to 'n' by 1 {
         if 'a'[pos 'k'] equal_to 'b'[pos 'k'] { change 'same' = 'same' plus 1; }
         change 's' = ('s' plus 'a'[pos 'k']) mod.floor 256;
     }

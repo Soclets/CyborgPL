@@ -7,7 +7,7 @@ MAIN {
     let 'n': int64 = 400000000;
     let 'big': bin64 = 10.0 pow 300.0;
     let mut 't': bin64 = 0.0;
-    for 'i': int64 in range[from 1, to 'n', by 1] {
+    for 'i': int64 from 1 to 'n' by 1 {
         change 't' = 't' plus 'big';
     }
     let 'r': int32 = to.int32['big' div.near 't'] otherwise 7;

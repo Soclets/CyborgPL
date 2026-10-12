@@ -151,7 +151,7 @@ impl Scan {
             }
             StmtKind::For { iter, body, name, pos, .. } => {
                 match iter {
-                    ForIter::Range { start, stop, step } => {
+                    ForIter::Range { start, stop, step, .. } => {
                         self.expr(start);
                         self.expr(stop);
                         if let Some(st) = step {

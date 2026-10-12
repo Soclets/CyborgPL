@@ -93,7 +93,7 @@ pub enum StmtKind {
     If { cond: Expr, then: Block, else_: Option<Block> },
     Loop(Block),
     While { cond: Expr, body: Block },
-    ForRange { counter: LocalId, start: Expr, stop: Expr, step: Option<Expr>, body: Block, perm: bool, seq: bool, para: bool, nocheat: bool },
+    ForRange { counter: LocalId, start: Expr, stop: Expr, step: Option<Expr>, exclusive: bool, body: Block, perm: bool, seq: bool, para: bool, nocheat: bool },
     /// Over a list/array/bundle/text-walk/map-walk: `elem` is the element local.
     ForEach { elem: LocalId, pos: Option<LocalId>, iter: Expr, body: Block, perm: bool, seq: bool, para: bool, nocheat: bool },
     /// `for 'x' in lend.mut 'c'` over an iterator (owner, 2026-10-09):

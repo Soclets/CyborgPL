@@ -9,7 +9,7 @@ MAIN {
     let 'ds': list[int8] = [-3, -1, 1, 2, 7];
     let mut 'bad': int32 = 0;
     for 'd' in lend 'ds' {
-        for 'i' in range[from -128, to 127, by 1] {
+        for 'i' from -128 to 127 by 1 {
             let 'n': int8 = to.int8['i'];
             let 'r': int8 = 'n' mod.trunc 'd';
             if ('n' not_equal -128) or ('d' not_equal -1) {

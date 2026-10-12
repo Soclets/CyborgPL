@@ -3478,6 +3478,13 @@ impl Checker {
             BuiltinHead::B(b) => b,
         };
         let name = path.spelled();
+        let labelled;
+        let args = if matches!(b, Builtin::ListSlice | Builtin::ArraySlice) {
+            labelled = slice_args(&name, args, span)?;
+            &labelled[..]
+        } else {
+            args
+        };
         let positional: Vec<&ast::Expr> = {
             let mut v = Vec::new();
             for a in args {
@@ -4082,7 +4089,7 @@ impl Checker {
     fn pos_arg(&mut self, ctx: &mut FnCtx, e: &ast::Expr, name: &str) -> Result<Arg> {
         let e = match &e.kind {
             AK::Pos(inner) => &**inner,
-            _ if name.ends_with("slice") => return err(Diagnostic::error(format!("positions say `pos`: `{}[lend 'xs', pos 2, pos 4]`", name)).at(e.span)),
+            _ if name.ends_with("slice") => return err(Diagnostic::error(format!("positions say `pos`: `{}[lend 'xs', from pos 2, to pos 4]`", name)).at(e.span)),
             _ => return err(Diagnostic::error(format!("a position says `pos`: `{}[lend 'xs', pos 1]`", name)).at(e.span)),
         };
         let v = self.expr(ctx, e)?;
@@ -4562,6 +4569,13 @@ impl Checker {
     /// Testing aid: `std::` typed as the oracle emulates it. Not std.
     fn std_stub(&mut self, ctx: &mut FnCtx, path: &ast::Path, args: &[AArg], otherwise: Option<&ast::Otherwise>, span: Span, used: bool) -> Result<Expr> {
         let name = path.segs.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
+        let labelled;
+        let args = if name.starts_with("str.slice.") {
+            labelled = slice_args(&format!("cord::{}", name), args, span)?;
+            &labelled[..]
+        } else {
+            args
+        };
         let mut positional = Vec::new();
         for a in args {
             match a {
@@ -4771,4 +4785,36 @@ fn into_brain(e: &mut Expr) {
         _ => {}
     }
     e.ty = Ty::Brain;
+}
+
+/// A slice's arguments as the checker reads them (owner, 2026-10-12): the
+/// collection, then `from pos 2` and `to pos 4`, or `before pos 5`, which is
+/// `to pos 5 minus 1` — so a slice ending before where it starts is empty,
+/// as one whose last is one before its first is.
+fn slice_args(name: &str, args: &[AArg], span: Span) -> Result<Vec<AArg>> {
+    let how = format!("a slice says where it runs: `{}[lend 'xs', from pos 2, to pos 4]`, or `before pos 5` to leave 5 out (owner, 2026-10-12)", name);
+    if args.len() != 3 {
+        if args.iter().skip(1).any(|a| matches!(a, AArg::Positional(e) if matches!(e.kind, AK::Pos(_)))) {
+            return err(Diagnostic::error(how).at(span));
+        }
+        return Ok(args.to_vec());
+    }
+    let first = match &args[1] {
+        AArg::Named(l, e) if l.name == "from" => e.clone(),
+        AArg::Positional(e) if !matches!(e.kind, AK::Pos(_)) => return err(Diagnostic::error(format!("a slice starts `from pos …`: `{}[lend 'xs', from pos 2, to pos 4]`", name)).at(e.span)),
+        other => return err(Diagnostic::error(how).at(other.span())),
+    };
+    let last = match &args[2] {
+        AArg::Named(l, e) if l.name == "to" => e.clone(),
+        AArg::Named(l, e) if l.name == "before" => match &e.kind {
+            AK::Pos(inner) => {
+                let one = ast::Expr { kind: AK::Int("1".into()), span: inner.span };
+                let less = ast::Expr { kind: AK::Binary { op: BinOp::Sub, op_span: l.span, lhs: inner.clone(), rhs: Box::new(one) }, span: inner.span };
+                ast::Expr { kind: AK::Pos(Box::new(less)), span: e.span }
+            }
+            _ => e.clone(),
+        },
+        other => return err(Diagnostic::error(how).at(other.span())),
+    };
+    Ok(vec![args[0].clone(), AArg::Positional(first), AArg::Positional(last)])
 }

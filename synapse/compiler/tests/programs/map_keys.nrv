@@ -2,7 +2,7 @@ extern.C fn exit ['code': int32];
 struct Point { x: int32  y: int32 }
 MAIN {
     let mut 'big': map[int32, int32] = map.empty;
-    for 'i': int32 in range[from 1, to 200, by 1] {
+    for 'i': int32 from 1 to 200 by 1 {
         map.set[lend.mut 'big', 'i', 'i' times 2];
     }
     let 'v' := map.get[lend 'big', 150] otherwise 0;

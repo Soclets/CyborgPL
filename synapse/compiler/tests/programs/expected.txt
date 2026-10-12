@@ -308,3 +308,5 @@ const_into_deci 210
 incl_bytes_change 67
 # A bare whole number past int64 is held wide enough, not wrapped.
 bare_past_64_bits 99
+# `before` in a counting loop and a slice (owner, 2026-10-12).
+count_before 170

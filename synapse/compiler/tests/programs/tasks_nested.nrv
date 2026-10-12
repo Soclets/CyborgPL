@@ -8,7 +8,7 @@ MAIN {
     let 'xs': list[int32] = [1, 2, 3];
     let 'name': str.utf8 = "task" ++ "s";
     let mut 'out': list[int32] = [];
-    for 'k': int32 in range[from 1, to 50, by 1] {
+    for 'k': int32 from 1 to 50 by 1 {
         concur with [copy 'xs', give 'name', lend.mut 'out'] {
             let 'inner' := total[lend 'xs'];
             {

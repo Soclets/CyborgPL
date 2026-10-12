@@ -14,7 +14,7 @@ MAIN {
         change 'x' = 'x' times 3;
     }
     let mut 'total': int64 = 0;
-    for 'k': int64 in range[from 1, to 3, by 1] {
+    for 'k': int64 from 1 to 3 by 1 {
         change 'total' = 'total' plus to.int64['prices'[pos 'k']];
     }
     for 'v' in lend 'xs' {

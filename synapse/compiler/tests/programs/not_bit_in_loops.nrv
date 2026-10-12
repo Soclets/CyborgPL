@@ -13,7 +13,7 @@ MAIN {
     let mut 'w3': int16 = 7;
     while 'w3' > 0 {
         change 'w3' = 'w3' minus 1;
-        for 'i4': uint16 in range[from 29, to 3, by -3] {
+        for 'i4': uint16 from 29 to 3 by -3 {
             check change 'v2' = ((to.int8[(126 or.bit 'v2') div.floor (not.bit 'v2')] shl 6) mod.floor 7) minus 102;
         }
     }

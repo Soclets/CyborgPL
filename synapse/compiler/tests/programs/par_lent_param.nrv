@@ -10,7 +10,7 @@ fn total [lent 'xs': list[int64]] -> int64 {
     return 'acc';
 }
 fn scale [lent.mut 'xs': list[int64], 'k': int64] {
-    for 'i': uint64 in range[from 1, to list.length[lend 'xs'], by 1] {
+    for 'i': uint64 from 1 to list.length[lend 'xs'] by 1 {
         change 'xs'[pos 'i'] = ('xs'[pos 'i'] times 'k') mod.floor 1000;
     }
 }

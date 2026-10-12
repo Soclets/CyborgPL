@@ -9,7 +9,7 @@ fn by_number [lent 'a': Locker, lent 'b': Locker] -> bool { return 'a'.number < 
 fn by_owner [lent 'a': Locker, lent 'b': Locker] -> bool { return str.bytes[lend 'a'.owner] < str.bytes[lend 'b'.owner]; }
 fn first_by [lent 'xs': list[Locker], 'less': fn[lent Locker, lent Locker] -> bool] -> int32 {
     let mut 'best' := 1;
-    for 'i' in range[from 2, to list.length[lend 'xs'], by 1] {
+    for 'i' from 2 to list.length[lend 'xs'] by 1 {
         if 'less'[lend 'xs'[pos 'i'], lend 'xs'[pos 'best']] { change 'best' = 'i'; }
     }
     let 'winner' := lend 'xs'[pos 'best'];

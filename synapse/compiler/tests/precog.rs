@@ -205,7 +205,7 @@ const PROGRAMS: &[&str] = &[
      MAIN {\n\
      \x20   no_check let 'n': int32 = getpid[];\n\
      \x20   let mut 'total': int32 = 0;\n\
-     \x20   for 'i': int32 in range[from 1, to 10, by 1] {\n\
+     \x20   for 'i': int32 from 1 to 10 by 1 {\n\
      \x20       change 'total' = 'total' plus 'i' plus 'n';\n\
      \x20   }\n\
      }\n",

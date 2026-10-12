@@ -12,7 +12,7 @@ MAIN {
     let 'eights': list[int8] = list.fill[value 100, count 4];
     let 'bs': list[bin64] = list.fill[value 1.5, count 2];
     let mut 'code': int64 = 0;
-    for 'k': int64 in range[from 1, to 5, by 1] {
+    for 'k': int64 from 1 to 5 by 1 {
         change 'code' = 'code' plus 'scores'[pos 'k'];
     }
     change 'code' = 'code' plus to.int64[list.length[lend 'flags']] times 10;

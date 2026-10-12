@@ -1,7 +1,7 @@
 extern.C fn exit ['code': int32];
 MAIN {
     let mut 'out': str.utf8 = "";
-    for 'i': int32 in range[from 1, to 20, by 1] {
+    for 'i': int32 from 1 to 20 by 1 {
         change 'out' = copy 'out' ++ "ab";
     }
     let 'n': int32 = str.bytes[lend 'out'];

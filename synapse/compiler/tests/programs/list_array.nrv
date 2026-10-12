@@ -9,7 +9,7 @@ MAIN {
     let 'a' := to.array[give 'l'];
     let mut 'm' := to.list[copy 'a'];
     list.append[lend.mut 'm', 4];
-    let mut 's': list[int32] = array.slice[lend 'a', pos 2, pos 3];
+    let mut 's': list[int32] = array.slice[lend 'a', from pos 2, to pos 3];
     list.append[lend.mut 's', 9];
     let mut 'w': list[str.utf8] = ["x", "yy"];
     list.append[lend.mut 'w', "zzz"];

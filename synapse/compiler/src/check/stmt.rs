@@ -713,7 +713,7 @@ impl Checker {
             return err(Diagnostic::error(format!("'{}' is already declared; a loop variable is a new name (shadowing is never silent)", name.name)).at(name.span).why_at(p.span, "declared here"));
         }
         match iter {
-            ast::ForIter::Range { start, stop, step } => {
+            ast::ForIter::Range { start, stop, step, exclusive } => {
                 let counter_ty = match ty {
                     Some(t) => {
                         let mut blanks = Vec::new();
@@ -728,7 +728,10 @@ impl Checker {
                 let s = self.expr(ctx, start)?;
                 let s = self.expect_store(ctx, s, &counter_ty, "the counter")?;
                 let e = self.expr(ctx, stop)?;
-                let e = self.expect_store(ctx, e, &counter_ty, "the counter")?;
+                // A `before` end is never the counter's value, so it need not
+                // fit the counter's type (owner, 2026-10-12): it is held in
+                // 128 bits, as the step's test is.
+                let e = if *exclusive { self.expect_store(ctx, e, &Ty::int(true, 128), "the end")? } else { self.expect_store(ctx, e, &counter_ty, "the counter")? };
                 let st = match step {
                     Some(st) => {
                         let v = self.expr(ctx, st)?;
@@ -758,7 +761,7 @@ impl Checker {
                     ctx.pop_scope();
                 }
                 debug_assert!(ctx.scopes.len() == outer_scope_len);
-                Ok(hir::StmtKind::ForRange { counter: id, start: s, stop: e, step: st, body: b, perm, seq, para, nocheat: false })
+                Ok(hir::StmtKind::ForRange { counter: id, start: s, stop: e, step: st, exclusive: *exclusive, body: b, perm, seq, para, nocheat: false })
             }
             ast::ForIter::Over(e) => {
                 if ty.is_some() {

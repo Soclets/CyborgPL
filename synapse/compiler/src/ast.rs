@@ -495,7 +495,9 @@ impl Tier {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ForIter {
-    Range { start: Expr, stop: Expr, step: Option<Expr> },
+    /// `from 1 to 10 by 1`; `exclusive` for `before`, the end left out
+    /// (owner, 2026-10-12).
+    Range { start: Expr, stop: Expr, step: Option<Expr>, exclusive: bool },
     /// `lend 'xs'`, `give 'xs'`, `str.each.grapheme[…]`, `map.keys[…]`.
     Over(Expr),
 }

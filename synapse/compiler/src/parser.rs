@@ -52,6 +52,8 @@ struct Parser<'a> {
     /// opaque (`layout.C struct FILE;`) and a field may be named like a
     /// keyword (owner, 2026-10-10).
     from_c: bool,
+    /// Reading a counting loop's bound, which `to`, `before` and `by` end.
+    count_bound: bool,
     /// A `#strict` file (owner, 2026-09-27): `pos` on every position,
     /// every parameter's type, a return type, `mut`/`immut` on every
     /// declaration, `temp`/`perm` on every `for`.
@@ -302,7 +304,7 @@ pub fn set_shared_precedence(table: std::collections::HashMap<String, (u16, Chai
 
 /// The `precedence` blocks in one file's tokens: each operator's level.
 pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false };
     let mut out = Vec::new();
     let mut depth = 0i32;
     for i in 0..toks.len() {
@@ -320,7 +322,7 @@ pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> 
 }
 
 pub fn parse_file(toks: &[Token]) -> Result<File> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false };
     // Every Limb's levels, and this file's own blocks, read before any
     // expression in it: an operator above its block is parsed by it too.
     p.prec = SHARED_PREC.with(|t| t.borrow().clone());
@@ -440,7 +442,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
 /// 2026-10-06): `cca::Manifest[ … ];`.
 pub fn parse_value(toks: &[Token]) -> Result<Expr> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false };
     let value = p.expr(0)?;
     p.expect_semi("the value")?;
     if !p.at_eof() {
@@ -1335,7 +1337,7 @@ impl<'a> Parser<'a> {
         for t in toks.iter_mut() {
             t.span = line;
         }
-        let mut p = Parser { toks: &toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true };
+        let mut p = Parser { toks: &toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, count_bound: false };
         let mut lines = Vec::new();
         while !p.at_eof() {
             let it = p.item()?;
@@ -2073,7 +2075,7 @@ impl<'a> Parser<'a> {
                 return self.fail("`char` is never bare: say the unit — `char.point`, `char.grapheme`, `char.byte`");
             }
             Tok::Word(w) if w == "range" => {
-                return self.fail("`range` builds its bounds from values: `for 'i': int32 in range[0, 3]` — the type goes on the counter's name");
+                return self.fail("a counting loop reads as a sentence now: `for 'i' from 1 to 10 by 1` (`before 10` leaves 10 out) (owner, 2026-10-12)");
             }
             // An integer of any width, marked as not standard (owner,
             // 2026-10-03): `!std.int24`, "not standard" narrowed with `.`
@@ -2365,7 +2367,7 @@ impl<'a> Parser<'a> {
                     let what = self.ident("a word")?;
                     return match what.name.as_str() {
                         "while" => self.fail_at(what.span, "`loop.while` became `while`: `while 'x' < 3 { … }`"),
-                        "for" | "temp" | "perm" | "seq" | "range" => self.fail_at(what.span, "`loop.temp.for` / `loop.range` became `for`: `for 'x' in lend 'xs' { … }`, `for 'i' in range[0, 9] { … }`"),
+                        "for" | "temp" | "perm" | "seq" | "range" => self.fail_at(what.span, "`loop.temp.for` / `loop.range` became `for`: `for 'x' in lend 'xs' { … }`, `for 'i' from 0 to 9 by 1 { … }`"),
                         _ => self.fail_at(what.span, "`loop` takes no chain: `loop { … }` runs until `break`; `while` and `for` are bare words"),
                     };
                 }
@@ -2560,48 +2562,59 @@ impl<'a> Parser<'a> {
             (None, name)
         };
         if self.is_word("temp") || self.is_word("perm") {
-            return self.fail(format!("expected `in`; `{}` goes before the name — `for {} '{}' in …`", self.word_text(), self.word_text(), name.name));
+            return self.fail(format!("expected `in` or `from`; `{}` goes before the name — `for {} '{}' in …`", self.word_text(), self.word_text(), name.name));
         }
-        if !self.eat_word("in") {
-            return self.fail(format!("expected `in` after the loop variable, found {}", self.peek().describe()));
-        }
-        let iter = if self.is_word("range") {
-            let rstart = self.span();
-            self.bump();
-            if self.is(&Tok::Dot) {
-                return self.fail("`range` builds its bounds from values, and the counter's type goes on its name: `for 'i': int32 in range[0, 3]`");
-            }
-            self.expect(&Tok::LBracket, "`[` after `range`")?;
-            if self.is(&Tok::Walrus) || self.is_op("=") {
-                return self.fail("the bounds of a `range` are plain values: `range[0, 3]` — the `:=` / `=` markers are gone (they would say the same thing twice)");
-            }
-            // Every range labels each bound and writes its step (owner,
-            // 2026-10-07: "`a`"): `range[from 2, to 8, by 1]`.
-            let labelled = |this: &mut Self, word: &str| -> Result<Expr> {
-                if this.range_label() != Some(word) {
-                    return this.fail(format!("each bound says what it is: `range[from 2, to 8, by 1]` — this one is `{}`", word));
+        // A counting loop reads as a sentence (owner, 2026-10-12): `for 'i'
+        // from 1 to 10 by 1`, `before 10` leaving 10 out. While a bound is
+        // read, `to`, `before` and `by` end it.
+        let iter = if self.eat_word("from") {
+            let no_commas = |this: &mut Self| -> Result<()> {
+                if this.is(&Tok::Comma) {
+                    return this.fail("no commas in a counting loop: `for 'i' from 1 to 10 by 1` (a long bound groups with `( )`)");
                 }
-                this.bump();
-                this.expr(0)
+                Ok(())
             };
-            let start = labelled(self, "from")?;
-            self.expect(&Tok::Comma, "`,` between the range's start and stop")?;
-            let stop = labelled(self, "to")?;
-            if !self.eat(&Tok::Comma) {
-                return self.fail("a range writes its step too, even when it is 1: `range[from 2, to 8, by 1]`");
+            let start = self.count_bound_expr()?;
+            no_commas(self)?;
+            let exclusive = if self.is_word("before") {
+                true
+            } else if self.range_label() == Some("to") {
+                false
+            } else {
+                return self.fail("after the start comes `to` (the end kept) or `before` (the end left out): `for 'i' from 1 to 10 by 1`");
+            };
+            self.bump();
+            let stop = self.count_bound_expr()?;
+            no_commas(self)?;
+            if !self.eat_word("by") {
+                return self.fail("a counting loop writes its step too, even when it is 1: `for 'i' from 1 to 10 by 1` (owner, 2026-10-07)");
             }
-            let step = Some(labelled(self, "by")?);
-            self.expect(&Tok::RBracket, "`]` closing the range")?;
-            let _ = rstart;
-            ForIter::Range { start, stop, step }
+            let step = self.count_bound_expr()?;
+            no_commas(self)?;
+            if let Some(p) = &pos {
+                return self.fail_at(p.span, format!("a counting loop's counter already is the position: `for '{}' from …`, one name", p.name));
+            }
+            ForIter::Range { start, stop, step: Some(step), exclusive }
         } else {
+            if !self.eat_word("in") {
+                return self.fail(format!("expected `in` or `from` after the loop variable, found {}", self.peek().describe()));
+            }
+            if self.is_word("range") {
+                return self.fail("a counting loop reads as a sentence now: `for 'i' from 1 to 10 by 1` (`before 10` leaves 10 out) (owner, 2026-10-12)");
+            }
             ForIter::Over(self.expr(0)?)
         };
-        if let (Some(p), ForIter::Range { .. }) = (&pos, &iter) {
-            return self.fail_at(p.span, format!("a range's counter already is the position: `for '{}' in range[…]`, one name", p.name));
-        }
         let body = self.block("`for`")?;
         Ok(StmtKind::For { nocheat, seq, para, perm, name, pos, ty, iter, body })
+    }
+
+    /// One bound of a counting loop: an expression its next word ends;
+    /// brackets and parentheses inside it read as anywhere.
+    fn count_bound_expr(&mut self) -> Result<Expr> {
+        let outer = std::mem::replace(&mut self.count_bound, true);
+        let e = self.expr(0);
+        self.count_bound = outer;
+        e
     }
 
     /// `from`, `to` or `by` heading a range bound; `to.int32[…]` is a
@@ -3389,6 +3402,11 @@ impl<'a> Parser<'a> {
             // the operator itself; `std::pow` has its own arm.
             let skip = if self.is_word("std") && matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(2), Tok::Word(w) if matches!(w.as_str(), "plus" | "minus" | "times" | "div" | "mod" | "and" | "or" | "xor" | "shl" | "shr")) { 2 } else { 0 };
             self.pos += skip;
+            // A counting loop's bound ends at its next word (owner,
+            // 2026-10-12): `to`, `before` and `by` are never operators there.
+            if self.count_bound && skip == 0 && (self.is_word("before") || self.is_word("by") || (self.is_word("to") && !matches!(self.peek_at(1), Tok::Dot))) {
+                break;
+            }
             let Some(t) = self.binop() else {
                 self.pos -= skip;
                 break;
@@ -3797,27 +3815,7 @@ impl<'a> Parser<'a> {
                     let span = start.to(self.prev_span());
                     Ok(Expr { kind: ExprKind::SizeOf { align: w == "align", ty }, span })
                 }
-                "range" => {
-                    self.bump();
-                    if self.is(&Tok::Dot) {
-                        return self.fail("`range` builds its bounds from values; a counter's type goes on its name: `for 'i': int32 in range[0, 3]`");
-                    }
-                    self.expect(&Tok::LBracket, "`[` after `range`")?;
-                    self.eat_word("from");
-                    let s = self.expr(0)?;
-                    self.expect(&Tok::Comma, "`,`")?;
-                    self.eat_word("to");
-                    let e = self.expr(0)?;
-                    let step = if self.eat(&Tok::Comma) {
-                        self.eat_word("by");
-                        Some(Box::new(self.expr(0)?))
-                    } else {
-                        None
-                    };
-                    self.expect(&Tok::RBracket, "`]`")?;
-                    let span = start.to(self.prev_span());
-                    Ok(Expr { kind: ExprKind::Range { start: Box::new(s), stop: Box::new(e), step }, span })
-                }
+                "range" => self.fail("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not — and a counting loop reads as a sentence now: `for 'i' from 1 to 10 by 1` (owner, 2026-10-12)"),
                 "otherwise" => self.fail("`otherwise` follows a call that can fail: `let 'x' := f[] otherwise 0;`"),
                 // `op +` (owner, 2026-09-29): the operator as a value.
                 "op" if !matches!(self.peek_at(1), Tok::LBracket) => {
@@ -4076,10 +4074,31 @@ impl<'a> Parser<'a> {
     /// The contents of a `[ … ]` after a path: positional values, `name = value`
     /// fields, or `key = value` pairs. Consumes the closing `]`.
     fn args(&mut self) -> Result<Vec<Arg>> {
+        // Inside brackets a counting loop's words read as anywhere.
+        let outer = std::mem::replace(&mut self.count_bound, false);
+        let args = self.args_inside();
+        self.count_bound = outer;
+        args
+    }
+
+    fn args_inside(&mut self) -> Result<Vec<Arg>> {
         let mut args = Vec::new();
         while !self.is(&Tok::RBracket) {
             if self.at_eof() {
                 return self.fail("this `[` is never closed");
+            }
+            // A slice says where it runs (owner, 2026-10-12): `from pos 2`,
+            // `to pos 4` or `before pos 4`, each a label on its position.
+            if (self.is_word("from") || self.is_word("before") || (self.is_word("to") && !matches!(self.peek_at(1), Tok::Dot))) && self.is_word_at(1, "pos") {
+                let label = self.ident("`from`, `to` or `before`")?;
+                let start = self.bump().span;
+                let inner = Box::new(self.expr(0)?);
+                let value = Expr { kind: ExprKind::Pos(inner), span: start.to(self.prev_span()) };
+                args.push(Arg::Named(label, value));
+                if !self.eat(&Tok::Comma) {
+                    break;
+                }
+                continue;
             }
             // `field = value`. A keyword names a field too — `layout` (a
             // no-OS target's linker script, owner 2026-10-09), a C struct's

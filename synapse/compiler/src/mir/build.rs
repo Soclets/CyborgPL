@@ -747,9 +747,9 @@ impl<'a> FnBuilder<'a> {
                 self.loops.pop();
                 self.cur = exit;
             }
-            hir::StmtKind::ForRange { counter, start, stop, step, body, perm, seq, para, nocheat } => {
+            hir::StmtKind::ForRange { counter, start, stop, step, exclusive, body, perm, seq, para, nocheat } => {
                 self.nocheat_next = *nocheat;
-                self.for_range(*counter, start, stop, step.as_ref(), body, *perm, *seq, *para, span);
+                self.for_range(*counter, start, stop, step.as_ref(), *exclusive, body, *perm, *seq, *para, span);
             }
             hir::StmtKind::ForEach { elem, pos, iter, body, perm, seq, para, nocheat } => {
                 self.nocheat_next = *nocheat;
@@ -813,10 +813,11 @@ impl<'a> FnBuilder<'a> {
         }
     }
 
-    /// `for 'i' in range[a, b, s]` — the counter moves by the step and the
+    /// `for 'i' from a to b by s` — the counter moves by the step and the
     /// body cannot assign to it, so the header alone says the trip count.
     #[allow(clippy::too_many_arguments)]
-    fn for_range(&mut self, counter: hir::LocalId, start: &hir::Expr, stop: &hir::Expr, step: Option<&hir::Expr>, body: &hir::Block, perm: bool, seq: bool, para: bool, span: SpanId) {
+    #[allow(clippy::too_many_arguments)]
+    fn for_range(&mut self, counter: hir::LocalId, start: &hir::Expr, stop: &hir::Expr, step: Option<&hir::Expr>, exclusive: bool, body: &hir::Block, perm: bool, seq: bool, para: bool, span: SpanId) {
         let c = LocalId(counter.0);
         let ty = self.locals[c.0 as usize].ty.clone();
         // The counter holds every value the range names, so each end of the
@@ -826,9 +827,11 @@ impl<'a> FnBuilder<'a> {
         self.site_of(SiteKind::Narrow { to: ty.clone() }, vec![s.clone()], Some(ty.clone()), span);
         self.assign(Place::local(c), Rvalue::Use(s), span);
         let stop_v = self.eval(stop, span);
-        self.site_of(SiteKind::Narrow { to: ty.clone() }, vec![stop_v.clone()], Some(ty.clone()), span);
         let stop_t = self.temp(&ty, span);
-        self.assign(Place::local(stop_t), Rvalue::Use(stop_v), span);
+        if !exclusive {
+            self.site_of(SiteKind::Narrow { to: ty.clone() }, vec![stop_v.clone()], Some(ty.clone()), span);
+            self.assign(Place::local(stop_t), Rvalue::Use(stop_v.clone()), span);
+        }
         // "The step is not one of those values" (owner, 2026-09-23): it is
         // its own signed number, so a `uint64` counter can count down by
         // -1. It lives in a signed 64-bit temporary, not in the counter's
@@ -841,6 +844,35 @@ impl<'a> FnBuilder<'a> {
         self.site_of(SiteKind::Narrow { to: step_ty.clone() }, vec![step_v.clone()], Some(step_ty.clone()), span);
         let step_t = self.temp(&step_ty, span);
         self.assign(Place::local(step_t), Rvalue::Use(step_v.clone()), span);
+        // `before` (owner, 2026-10-12): the end is left out, and is never the
+        // counter's value. A range already empty — from 0 before 0 — runs no
+        // rounds; any other runs to the value one before the end, which lies
+        // between the first value and the end, so the loop below is the
+        // inclusive one, unchanged.
+        let after = exclusive.then(|| self.new_block());
+        if let Some(after) = after {
+            let wide = Ty::int(true, 128);
+            let end = self.into_temp(Rvalue::Convert { to: wide.clone(), operand: stop_v, useful: false, bits: false }, &wide, span);
+            let first = self.into_temp(Rvalue::Convert { to: wide.clone(), operand: Operand::Read(Place::local(c)), useful: false, bits: false }, &wide, span);
+            let up = self.into_temp(Rvalue::Binary { op: BinOp::Ge, lhs: Operand::Read(Place::local(step_t)), rhs: Operand::Const(Const::Int(0)) }, &Ty::Bool, span);
+            let up_b = self.new_block();
+            let down_b = self.new_block();
+            let go = self.new_block();
+            self.terminate(Terminator::If { cond: up, then: up_b, else_: down_b });
+            for (b, op, by) in [(up_b, BinOp::Lt, 1i128), (down_b, BinOp::Gt, -1)] {
+                self.cur = b;
+                let room = self.into_temp(Rvalue::Binary { op, lhs: first.clone(), rhs: end.clone() }, &Ty::Bool, span);
+                let last_b = self.new_block();
+                self.terminate(Terminator::If { cond: room, then: last_b, else_: after });
+                self.cur = last_b;
+                let one = self.into_temp(Rvalue::Convert { to: wide.clone(), operand: Operand::Const(Const::Int(by)), useful: false, bits: false }, &wide, span);
+                let last = self.into_temp(Rvalue::Binary { op: BinOp::Sub, lhs: end.clone(), rhs: one }, &wide, span);
+                self.site_of(SiteKind::Narrow { to: ty.clone() }, vec![last.clone()], Some(ty.clone()), span);
+                self.assign(Place::local(stop_t), Rvalue::Convert { to: ty.clone(), operand: last, useful: false, bits: false }, span);
+                self.terminate(Terminator::Goto(go));
+            }
+            self.cur = go;
+        }
 
         let head = self.new_block();
         let body_b = self.new_block();
@@ -923,6 +955,10 @@ impl<'a> FnBuilder<'a> {
         self.terminate(Terminator::Goto(head));
 
         self.cur = exit;
+        if let Some(after) = after {
+            self.terminate(Terminator::Goto(after));
+            self.cur = after;
+        }
         if perm {
             // The counter outlives the loop, holding what the loop last gave it.
             self.scopes.last_mut().unwrap().push(c);

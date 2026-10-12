@@ -17,7 +17,7 @@ fn total [lent 'bs': array[uint8]] -> int32 {
 
 MAIN {
     let mut 'sum': int32 = 0;
-    for 'i' in range[from 1, to 3, by 1] {
+    for 'i' from 1 to 3 by 1 {
         let mut 'b' := 'four';
         change 'b'[pos 1] = 'b'[pos 1] plus 9;
         change 'sum' = 'sum' plus total[lend 'b'];

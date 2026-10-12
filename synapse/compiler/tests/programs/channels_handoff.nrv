@@ -6,7 +6,7 @@ MAIN {
     concur with [lend 'results', give 'a'] { channel.send[lend 'results', fetch[lend 'a']]; }
     concur with [lend 'results'] { channel.send[lend 'results', fetch["b.com"]]; }
     let mut 'total': int32 = 0;
-    for 'i' in range[from 1, to 2, by 1] {
+    for 'i' from 1 to 2 by 1 {
         let 'page' := channel.take[lend 'results'] otherwise "";
         change 'total' = 'total' plus str.bytes[lend 'page'];
     }
