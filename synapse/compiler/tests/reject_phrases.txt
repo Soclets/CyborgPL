@@ -76,6 +76,7 @@ bare_unknown_mode [fnv:4c3063f476958c3e] :: no `bare.sometimes`
 bare_unmarked [fnv:4940e22e4292c2b7] :: `fn area` is `pub`, and nothing says how other Neurons write its path
 bin16_rounds_past [fnv:10faad936b06526e] :: the value can be outside what a `bin16` holds
 bin32_literal_past [fnv:0d44a148ed0c4e0f] :: the value can be outside what a `bin32` holds
+bin_bound_printed [fnv:1069ed4132bffb34] :: the value can be outside what a `bin64[min 0.0, max 1.0]` holds
 bin_infinity [fnv:5042776272302d97] :: can go past the largest bin (it would be infinity)
 bin_into_untyped_int_list [fnv:d7cb425ec9fe165b] :: there is no implicit conversion between numeric families
 bin_nan [fnv:da5fa56ba74549ff] :: nothing can be divided by zero
