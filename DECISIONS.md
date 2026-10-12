@@ -5,6 +5,31 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-12 — Conversion is `convert['x'](from int32, to int16)`, replacing `to.int16['x']`; `( )` holds a call's details (owner; not built)
+
+Shown the `to.` conversions (owner: "Let me see convert syntax", then
+"conversions, bro"), the owner: "I kinda want like this: `convert[from
+int32, to int16]`". Asked where the value goes, (a) `convert['x', from
+int32, to int16]` or (b) `convert[from int32, to int16]['x']`, design claude
+leaning (b), the owner: "What IF, we use both `[]` and `()` for that".
+Design claude pointed out 2026-09-19's "`()` is also grouping" (one job per
+bracket) and gave `convert[…]('x' plus 1) times 2` as a reading hazard; the
+owner: "What are you converting?" (`'x' plus 1`, then times 2: in Nerve
+nothing else follows `]` with `(`, so it is unambiguous; design claude
+withdrew the hazard). Then "Wouldn't swapping the positions there make more
+sense. Like, `()` first", and "`()` kinda seems like it should be like
+extra info. You know?", as in English. So **the value is in `[ ]`, as any
+call's is, and the details in `( )`: `convert['x'](from int32, to int16)`,
+`convert["42"](from str.utf8, to int32) otherwise 0`** (owner: "Yeah, that
+seems good"); `( )` gains a job, **a call's details**, never where a
+grouped value could stand. Shown with it, `from` optional, the compiler
+knowing `'x'`'s type (`convert['x'](to int16)`), and checked when written.
+Asked "does loop need changing?" (no: `seq`, `para`, `temp`, `perm` are
+words before a name, as `mut` is, and `range[from 1, to 10, by 2]`'s labels
+are its input, not details). **`convert` replaces `to.`** (owner:
+"replace, and I think the others should be this style too, if it makes
+sense"): which other calls take the style is being asked. Not built.
+
 ### 2026-10-12 — The regrouping so far is built in the oracle: IEG and TAS in the Brainstem, Broca for names and text (owner: "Yea")
 
 Built (owner: "Yea", to building it before MCPS): `no_check`,
