@@ -33,7 +33,14 @@ keyword; calls inside expressions keep their brackets), **slices take the
 same words as labels in their brackets: `list.slice[lend 'xs', from pos 2,
 to pos 4]`, and `before` for an end left out** (owner: "yeah"), for
 `list.slice`, `array.slice` and `str.slice`, so `from` / `to` / `before`
-are learned once. Design claude recommended it. Not built.
+are learned once. Design claude recommended it. Not built. The owner:
+"But should `int32[0, 100]` be `int32[min 0, 100]`". **A bounded type
+labels its bounds `min` and `max`: `int32[min 0, max 100]`, a list's length
+`list[int32][min 0, max 1000]`, a text's `str.utf8[min 1, max 40
+graphemes]`, both written** (owner: "Yeah"), design claude's reading of
+the owner's form as `max` on the second too, and of `min` / `max` over
+`from` / `to` for a type (a set of allowed values, not a direction). Not
+built.
 
 ### 2026-10-12 — (dropped the same day) Conversion as `convert['x'](from int32, to int16)`, `( )` holding a call's details (owner)
 
