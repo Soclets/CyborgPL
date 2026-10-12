@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-12 — Regrouping the lobes by expertise: `no_check` and `NO_FUCKING_CHECKS` move to the Brainstem (owner: a)
+### 2026-10-12 — Regrouping the lobes by expertise: IEG is dissolved into the Brainstem (`no_check`, `NO_FUCKING_CHECKS`, `on.machine`, `inline.LL`) (owner: a)
 
 Going through the lobes one field at a time (2026-10-10: "Like a big one
 for a expertise"), starting with IEG, which the oracle gates on `no_check`,
@@ -17,7 +17,19 @@ program calling C had to list IEG just to write the marker. **`no_check`
 and `NO_FUCKING_CHECKS` are the Brainstem's** (owner: "(a)"), over (b)
 staying IEG's as an extra step; design claude recommended (a), the real
 gate being the `raw_memory`, `inline_assembly` and `c_calls` powers, which
-a program can deny. Not built.
+a program can deny. **IEG is dissolved** (owner: "(a)"), after "what the
+fuck does IEG even do?" (the first official lobe, the raw layer the
+standard library stood on; the operators left it 2026-10-08, the labels
+today, leaving `on.machine`, `inline.LL` and a never-built sketch) and
+"Would those two be useful for freestanding?" (yes: kernels and
+bootloaders pick code by the chip's features at boot, which Synapse would
+read from the chip's ID registers with no OS to ask, and `inline.LL`
+writes volatile access, barriers and intrinsics once for every chip).
+**`on.machine` joins the Brainstem beside `on.target`, `inline.LL` beside
+inline assembly; the raw-operations sketch is dropped; MCPS and the GPU
+lobes no longer require IEG**; over (b) a small IEG of the two and (c) IEG
+grown into a systems lobe with WSMW's small widths. Design claude
+recommended (a). IEG's ID is retired. Not built.
 
 ### 2026-10-10 — CNC adds `suc`, "Synapse Uses Clang", another name for the `synapse` command (owner)
 
