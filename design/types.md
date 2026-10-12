@@ -140,9 +140,9 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   to.int32['k'] otherwise …`.
 - **A wider `deci` into a narrower one fails `too_many_digits`** when its
   digits do not fit (`to.deci32['x'] otherwise …`); `2.50` converts exactly.
-- **A `deci` may be a range type**, with `bin`'s rules: `deci64[0.0, 1.0]`,
+- **A `deci` may be a range type**, with `bin`'s rules: `deci64[min 0.0, max 1.0]`,
   the bounds written with a point; a value outside is a check site, and
-  `to.deci64[0.0, 1.0][…]` fails `out_of_range`.
+  `to.deci64[min 0.0, max 1.0][…]` fails `out_of_range`.
 
 ## Notes (Claude, 2026-09-14)
 

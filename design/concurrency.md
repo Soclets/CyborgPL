@@ -97,7 +97,7 @@ while the program carries on.
 
 ```
 let 'c' := channel[str.utf8];                    # hand-off: send waits for a taker
-let 'q' := channel[str.utf8][0, 100];            # a buffer: send waits only when full
+let 'q' := channel[str.utf8][max 100];            # a buffer: send waits only when full
 channel.send[lend 'c', give 'line'];             # a value is given, never lent
 let 'v' := channel.take[lend 'c'] otherwise …;   # waits; fails `closed` when no sender is left
 ```

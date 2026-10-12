@@ -118,7 +118,7 @@ no_check qsort[lend.mut 'nums', 5, size.of[int32], ascending];
 ## A ranged return — C's contract, checked at the door (decided 2026-09-22)
 
 ```
-extern.C fn strlen ['s': ptr[uint8]] -> uint64[0, 1_000_000];
+extern.C fn strlen ['s': ptr[uint8]] -> uint64[min 0, max 1_000_000];
 no_check let 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
 ```
 
@@ -129,7 +129,7 @@ handles like any failure. Inside it, Cortex knows the value's domain
 and everything downstream is provable. It is a failure, not a check
 site — so `no_check` (which the call needs) does not remove it, and the
 final build keeps it: one compare per call, the program's own logic,
-the same rule as `to.int32[0, 100][…]` at the input boundary. An extern
+the same rule as `to.int32[min 0, max 100][…]` at the input boundary. An extern
 with a plain return still cannot fail. Parameters cannot be ranged (C
 receives what it is given). Proposed: (a) nothing on the extern, a
 guard `if` after each call; (b) a trusted range, unverified — a
@@ -181,7 +181,7 @@ tier trusting C's answers too. The owner asked whether `no_check` was then
 ## A range type as a C struct's field (owner, 2026-09-27: a)
 
 ```
-layout.C struct Rect { w: int32[0, 4096]  h: int32[0, 4096] }
+layout.C struct Rect { w: int32[min 0, max 4096]  h: int32[min 0, max 4096] }
 ```
 
 C sees the plain number, so the layout is unchanged (`Rect` is 8 bytes).

@@ -77,7 +77,7 @@ a compile error. Proposed alternatives: a list of two-element lists
 ## A count bound, and bounds inside (owner: yes)
 
 ```
-let mut 'small': map[str.utf8[1, 3 bytes], int32[0, 10]][0, 2] = map.empty;
+let mut 'small': map[str.utf8[min 1, max 3 bytes], int32[min 0, max 10]][min 0, max 2] = map.empty;
 ```
 
 `map[K, V][lo, hi]` bounds the number of entries, as `list[T][lo, hi]`

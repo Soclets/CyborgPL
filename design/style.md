@@ -22,7 +22,7 @@ recommended.
 
    ```
    'text' := std::input.line[] otherwise "";
-   'n' := to.int32[1, 99]['text'] otherwise 1;
+   'n' := to.int32[min 1, max 99]['text'] otherwise 1;
    ```
 
    Everything downstream is then proven, with no guard at each use

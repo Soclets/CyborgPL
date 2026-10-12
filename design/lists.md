@@ -193,21 +193,21 @@ is fastest.
 ## A length bound — `list[T][lo, hi]`
 
 ```
-let mut 'ys': list[int32][0, 1000] = read_numbers[] otherwise list.empty;
-let 'n' := list.length[lend 'ys'];      # a uint64[0, 1000]
+let mut 'ys': list[int32][min 0, max 1000] = read_numbers[] otherwise list.empty;
+let 'n' := list.length[lend 'ys'];      # a uint64[min 0, max 1000]
 let 'm': int32 = 'n';                   # proven by the bound; no check
 ```
 
 Decided 2026-09-21: the thing, then its bounds — the same shape as
-`int32[0, 100]`. It is a fact about the data, not about one spot in the
+`int32[min 0, max 100]`. It is a fact about the data, not about one spot in the
 code, so everything downstream knows it: the list's length is a
 `uint64[lo, hi]`, and narrowing it is proven. Every change to the list
 (a construction, an assignment, `append`, `remove`) is checked against the
-bound — a check site like writing 101 into an `int32[0, 100]`: Cortex
+bound — a check site like writing 101 into an `int32[min 0, max 100]`: Cortex
 proves it where it can see the list, the tiers handle the rest. The low
 bound is 0 or more; an `array` takes no bound (its one length is already
 known). Inside a call the parameter is written the same way:
-`lent 'ys': list[int32][0, 1000]`.
+`lent 'ys': list[int32][min 0, max 1000]`.
 
 **`list.remove` hands the removed element back** (decided 2026-09-21): the
 list stops owning it, so the caller does — or drops it by not taking it.

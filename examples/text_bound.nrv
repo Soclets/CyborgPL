@@ -1,14 +1,14 @@
 # A length bound on text names its unit (decided 2026-09-22): text has three lengths.
-fn greet [lent 'name': str.utf8[1, 10 graphemes]] { cord::print.useful["hi ", 'name', newln]; }
+fn greet [lent 'name': str.utf8[min 1, max 10 graphemes]] { cord::print.useful["hi ", 'name', newln]; }
 
 MAIN {
-    let 'thai': str.utf8[1, 10 graphemes] = "เกี่ยว";       # 4 graphemes (เ|กี่|ย|ว), 6 points, 18 bytes: fits
-    let 'ascii': str.utf8[0, 5 bytes] = "hello";            # 5 bytes: fits
+    let 'thai': str.utf8[min 1, max 10 graphemes] = "เกี่ยว";       # 4 graphemes (เ|กี่|ย|ว), 6 points, 18 bytes: fits
+    let 'ascii': str.utf8[min 0, max 5 bytes] = "hello";            # 5 bytes: fits
     greet[lend 'thai'];
     greet[lend 'ascii'];
-    let mut 'line': str.utf8[0, 20 bytes] = "";
+    let mut 'line': str.utf8[min 0, max 20 bytes] = "";
     change 'line' = 'line' ++ "twelve chars";                      # 12 bytes: fits
     cord::print.useful[str.bytes[lend 'line'], newln];
-    let 'short' := to.stored.str.utf8[0, 3 bytes][12345] otherwise "?";     # into a bounded text: fails out_of_range
+    let 'short' := to.stored.str.utf8[min 0, max 3 bytes][12345] otherwise "?";     # into a bounded text: fails out_of_range
     cord::print.useful['short', newln];
 }

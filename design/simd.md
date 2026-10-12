@@ -32,7 +32,7 @@ The language's bracket rule for type parameters, as `list[int32]` and
 `map[K, V]`: `simd[uint8, 16]`, `simd[bin32, 4]`. Proposed
 alternatives: `uint8x16` (Swift's and Rust's look — a naming
 convention the parser must know), `uint8[16]` (collides with the
-range-type shape `int32[0, 100]`).
+range-type shape `int32[min 0, max 100]`).
 
 ## Only the target's own shapes (owner: b)
 

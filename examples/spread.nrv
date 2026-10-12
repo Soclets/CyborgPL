@@ -21,7 +21,7 @@ MAIN {
     let 'xs' := [1, 2, 3];
     cord::print.useful[sum[...'xs'], newln];                   # same as sum[1, 2, 3]
     cord::print.useful[sum[10, ...'xs', 20], newln];           # mixed with hand-typed values
-    let mut 'ys': list[int32][0, 4] = list.empty;
+    let mut 'ys': list[int32][min 0, max 4] = list.empty;
     list.append[lend.mut 'ys', 7];
     list.append[lend.mut 'ys', 8];
     cord::print.useful[sum[...'ys'], newln];                   # bounded: at most four

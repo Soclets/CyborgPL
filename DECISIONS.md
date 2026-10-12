@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-12 — A bounded type labels its bounds, and a side left out is the type's own limit: `int32[min 1]` (owner: a)
+
+Building `int32[min 0, max 100]`, design claude found 2026-09-23 had made
+`min` and `max` the type's own limits (`int32[1, max]`, "at least 1"), so
+the labels would give the words two jobs; offered (a) labels, a side left
+out meaning the type's own limit (`int32[min 1]` at least 1, `int32[max
+100]` at most 100, a bounded channel `channel[T][max 100]`), recommended,
+and (b) bounds unlabelled as before. The owner: "(a)". So **`min` and `max`
+only label a bound; a missing side is the type's own limit**, for numbers,
+list and map lengths (whose missing low side is 0 and high side
+unlimited), text lengths (`str.utf8[min 1, max 40 graphemes]`, the unit
+after the last number) and channels (`channel[T][max 100]`, a low side
+written being 0). Built in the oracle: an unlabelled bound is refused
+("a bound says which it is: `int32[min 0, max 100]` (`[min 1]` alone is
+"at least 1")"), and so is `min` or `max` as a value. Examples, tests and
+design samples rewritten; `range_max_max` and `range_max_on_low_side`
+gone (their bounds are no longer writable); new `bound_old_spelling`,
+`bound_max_as_value`.
+
 ### 2026-10-12 — Counting loops and slices are built in the oracle; `min` / `max` bounds wait on a question (owner: "Do number 1")
 
 Built: `for 'i' from 1 to 10 by 1`, `before` leaving the end out (a

@@ -5,7 +5,7 @@ fn fetch [lent 'url': str.utf8] -> str.utf8 or fail[no_network] {
 }
 
 MAIN {
-    let 'inbox' := channel[str.utf8][0, 10];
+    let 'inbox' := channel[str.utf8][max 10];
     let 'shutdown' := channel[bool];
     concur with [lend 'inbox'] { channel.send[lend 'inbox', "first"]; channel.send[lend 'inbox', "second"]; }
     concur with [lend 'shutdown'] { channel.send[lend 'shutdown', true]; }

@@ -16,6 +16,6 @@ MAIN {
     let 'w': not_std.uint4 = 9;
     let 'price': deci64 = 19.99;
     let 'g': char.grapheme = `ก็`;
-    let 'age': int32[0, 150] = 42;
+    let 'age': int32[min 0, max 150] = 42;
     print.useful[HALVE[1000000000000000000000], " ", 'b', " ", 'w', " ", 'price', " ", 'g', " ", 'age', newln];
 }

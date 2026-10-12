@@ -1659,10 +1659,7 @@ impl Parser {
                 || matches!(self.peek_at(1), Tok::Op(o) if o == "-")
                 || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max"));
             if numeric && range_ahead && (!self.to_target || self.bracket_then_bracket()) {
-                self.advance();
-                let lo = self.bound()?;
-                self.expect(Tok::Comma, "`,` between the bounds")?;
-                let hi = self.bound()?;
+                let (lo, hi) = self.labelled_bounds(&format!("{head}[min 0, max 100]"))?;
                 self.expect(Tok::RBracket, "`]` after the bounds")?;
                 let base = Parser::new_in(vec![Token { tok: Tok::Word(head.to_string()), line: 0, col: 0, mtm: None }, Token { tok: Tok::Eof, line: 0, col: 0, mtm: None }], self.module.clone()).ty().map_err(|e| ParseError { line: self.line(), col: 0, msg: e.msg })?;
                 match (&base, &lo, &hi) {
@@ -1722,7 +1719,8 @@ impl Parser {
             }
             return Ok(Ty::Simd(Box::new(t), n));
         }
-        if *self.peek() == Tok::LBracket && !self.to_target && !matches!(self.peek_at(1), Tok::Int(_)) {
+        // `[min …` / `[max …` is a bound too (owner, 2026-10-12), not type parameters
+        if *self.peek() == Tok::LBracket && !self.to_target && !matches!(self.peek_at(1), Tok::Int(_)) && !matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max") {
             self.advance();
             loop {
                 params.push(self.ty()?);
@@ -1762,21 +1760,21 @@ impl Parser {
                 };
                 // `str.utf8[1, 40 graphemes]` — a length bound in a named unit (decided 2026-09-22):
                 // text has three lengths, so the bound says which it counts.
-                if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Int(_)) && (!self.to_target || self.bracket_then_bracket()) {
-                    self.advance();
-                    let lo = match self.advance().tok { Tok::Int(i) => i, _ => unreachable!() };
-                    self.expect(Tok::Comma, "`,` between the length bounds")?;
-                    let hi = match self.advance().tok { Tok::Int(i) => i, other => return bad(self, format!("a text's length bounds are whole numbers, found {other}")) };
+                if *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_)) || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max")) && (!self.to_target || self.bracket_then_bracket()) {
+                    let shown = format!("str.{}[min 1, max 40 graphemes]", segs[1]);
+                    let (lo, hi) = self.labelled_bounds(&shown)?;
+                    let whole = |b: &Bound, missing: i128| match b { Bound::Int(i) => Some(*i), Bound::Min | Bound::Max => Some(missing), _ => None };
+                    let (Some(lo), Some(hi)) = (whole(&lo, 0), whole(&hi, i128::MAX)) else { return bad(self, "a text's length bounds are whole numbers".into()) };
                     let unit = match self.advance().tok {
                         Tok::Word(w) if w == "bytes" => CharUnit::Byte,
                         Tok::Word(w) if w == "points" => CharUnit::Point,
                         Tok::Word(w) if w == "graphemes" => CharUnit::Grapheme,
-                        Tok::RBracket => return bad(self, "a text has three lengths: say which the bound counts — `str.utf8[1, 40 graphemes]`, `[…bytes]`, or `[…points]`".into()),
+                        Tok::RBracket => return bad(self, "a text has three lengths: say which the bound counts — `str.utf8[min 1, max 40 graphemes]`, `[…bytes]`, or `[…points]`".into()),
                         other => return bad(self, format!("the unit after a text's bounds is `bytes`, `points`, or `graphemes`, found {other}")),
                     };
                     self.expect(Tok::RBracket, "`]` after the unit")?;
                     if lo < 0 { return bad(self, "a length is never negative: the low bound is 0 or more".into()); }
-                    if lo > hi { return bad(self, "a range's low bound comes first: `str.utf8[0, 100 bytes]`".into()); }
+                    if lo > hi { return bad(self, "the low bound is at most the high one: `str.utf8[min 0, max 100 bytes]`".into()); }
                     return Ok(Ty::TextRanged(enc, lo, hi, unit));
                 }
                 Ok(Ty::Str(enc))
@@ -1794,10 +1792,12 @@ impl Parser {
                 if segs.len() > 1 { return bad(self, "`channel` takes its element type in brackets: `channel[str.utf8]`".into()); }
                 if params.len() != 1 { return bad(self, "`channel` takes exactly one type: `channel[str.utf8]`".into()); }
                 let base = Ty::Channel(Box::new(params.pop().unwrap()));
-                if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Int(_)) {
-                    self.advance();
-                    let lo = self.bound()?; self.expect(Tok::Comma, "`,` between the bounds")?; let hi = self.bound()?; self.expect(Tok::RBracket, "`]` after the bounds")?;
-                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a channel's bound is whole numbers: `channel[T][0, 100]`".into()) };
+                if *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_)) || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max")) {
+                    let (lo, hi) = self.labelled_bounds("channel[T][max 100]")?;
+                    self.expect(Tok::RBracket, "`]` after the bounds")?;
+                    let lo = if lo == Bound::Min { Bound::Int(0) } else { lo };
+                    if hi == Bound::Max { return bad(self, "a bounded channel says how much it holds: `channel[T][max 100]`; with no bound it is a hand-off".into()); }
+                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a channel's bound is whole numbers: `channel[T][max 100]`".into()) };
                     if *a != 0 { return bad(self, "a channel's low bound is 0: it may be empty".into()); }
                     if *b < 1 { return bad(self, "a channel that holds nothing is a hand-off: write `channel[T]` with no bound".into()); }
                     return Ok(Ty::Ranged(Box::new(base), lo, hi));
@@ -1818,15 +1818,14 @@ impl Parser {
                 match &k { Ty::Fn(..) | Ty::Ptr(..) | Ty::Map(..) => return bad(self, format!("{} cannot be a map key; keys are plain values, text, chars, structs, enums and lists of those, or a type that satisfies `Key`", ty_name(&k))), _ => {} }
                 let base = Ty::Map(Box::new(k), Box::new(v), order);
                 // `map[K, V][0, 100]` — an entry-count bound, as a list's (decided 2026-09-22)
-                if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..)) {
-                    self.advance();
-                    let lo = self.bound()?;
-                    self.expect(Tok::Comma, "`,` between the count bounds")?;
-                    let hi = self.bound()?;
+                if *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..)) || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max")) {
+                    let (lo, hi) = self.labelled_bounds("map[K, V][min 0, max 100]")?;
                     self.expect(Tok::RBracket, "`]` after the count bounds")?;
-                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a map's count bounds are whole numbers: `map[K, V][0, 100]`".to_string()) };
+                    let lo = if lo == Bound::Min { Bound::Int(0) } else { lo };
+                    let hi = if hi == Bound::Max { Bound::Int(i128::MAX) } else { hi };
+                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a map's count bounds are whole numbers: `map[K, V][min 0, max 100]`".to_string()) };
                     if *a < 0 { return bad(self, "a count is never negative: the low bound is 0 or more".to_string()); }
-                    if a > b { return bad(self, "a range's low bound comes first: `map[K, V][0, 100]`".to_string()); }
+                    if a > b { return bad(self, "the low bound is at most the high one: `map[K, V][min 0, max 100]`".to_string()); }
                     return Ok(Ty::Ranged(Box::new(base), lo, hi));
                 }
                 Ok(base)
@@ -1837,16 +1836,15 @@ impl Parser {
                 let inner = params.pop().unwrap();
                 let base = if head == "list" { Ty::List(Box::new(inner)) } else { Ty::Array(Box::new(inner)) };
                 // `list[int32][0, 1000]` — a length bound, the thing then its bounds like `int32[0, 100]` (decided 2026-09-21)
-                if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..)) {
+                if *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..)) || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max")) {
                     if head == "array" { return bad(self, "an `array` has one fixed length, so a bound on it says nothing; a length bound belongs on a `list`".to_string()); }
-                    self.advance();
-                    let lo = self.bound()?;
-                    self.expect(Tok::Comma, "`,` between the length bounds")?;
-                    let hi = self.bound()?;
+                    let (lo, hi) = self.labelled_bounds("list[int32][min 0, max 1000]")?;
                     self.expect(Tok::RBracket, "`]` after the length bounds")?;
-                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a length bound is a pair of whole numbers: `list[int32][0, 1000]`".to_string()) };
+                    let lo = if lo == Bound::Min { Bound::Int(0) } else { lo };
+                    let hi = if hi == Bound::Max { Bound::Int(i128::MAX) } else { hi };
+                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a length bound is whole numbers: `list[int32][min 0, max 1000]`".to_string()) };
                     if *a < 0 { return bad(self, "a length is never negative: the low bound is 0 or more".to_string()); }
-                    if a > b { return bad(self, "a range's low bound comes first: `list[int32][0, 1000]`".to_string()); }
+                    if a > b { return bad(self, "the low bound is at most the high one: `list[int32][min 0, max 1000]`".to_string()); }
                     return Ok(Ty::Ranged(Box::new(base), lo, hi));
                 }
                 Ok(base)
@@ -2576,6 +2574,34 @@ impl Parser {
     }
 
     /// A range type's bound: a numeric literal, possibly negated.
+    /// `[min 0, max 100]`, `[min 1]`, `[max 100]` (owner, 2026-10-12: "(a)"): each bound says which it is,
+    /// and a side left out is the type's own limit (`Bound::Min` / `Bound::Max`). The cursor is at `[`; for
+    /// text, `unit` reads the unit after the last number before the `]`.
+    fn labelled_bounds(&mut self, shown: &str) -> PResult<(Bound, Bound)> {
+        self.advance();
+        if matches!(self.peek(), Tok::Int(_) | Tok::Bin(..)) || matches!(self.peek(), Tok::Op(o) if o == "-") {
+            return self.err(format!("a bound says which it is: `{shown}` (`[min 1]` alone is \"at least 1\") (owner, 2026-10-12)"));
+        }
+        let mut lo = Bound::Min;
+        let mut hi = Bound::Max;
+        let mut any = false;
+        if self.is_word("min") {
+            self.advance(); lo = self.bound_value()?; any = true;
+            if *self.peek() == Tok::Comma { self.advance(); if !self.is_word("max") { return self.err(format!("after `min …` comes `max …`: `{shown}`")); } }
+        }
+        if self.is_word("max") { self.advance(); hi = self.bound_value()?; any = true; }
+        if !any { return self.err(format!("a bound says which it is: `{shown}`")); }
+        Ok((lo, hi))
+    }
+
+    /// One bound's number (no `min` / `max` words: those are its labels since 2026-10-12).
+    fn bound_value(&mut self) -> PResult<Bound> {
+        if matches!(self.peek(), Tok::Word(w) if w == "min" || w == "max") {
+            return self.err("`min` and `max` label a bound now; a side left out is the type's own limit: `int32[min 1]` is \"at least 1\" (owner, 2026-10-12)");
+        }
+        self.bound()
+    }
+
     fn bound(&mut self) -> PResult<Bound> {
         // `min` / `max` are the type's own limits: `int32[1, max]` is "at least 1"
         // (owner, 2026-09-23), so a one-ended range never writes a number that goes
@@ -3561,10 +3587,11 @@ impl Parser {
                     let ty = self.ty()?;
                     self.expect(Tok::RBracket, "`]` after the channel's type")?;
                     let mut cap = None;
-                    if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Int(_)) {
-                        self.advance();
-                        let lo = self.bound()?; self.expect(Tok::Comma, "`,` between the bounds")?; let hi = self.bound()?; self.expect(Tok::RBracket, "`]` after the bounds")?;
-                        match (lo, hi) { (Bound::Int(0), Bound::Int(b)) if b >= 1 => cap = Some(b as usize), _ => return self.err("a channel's bound is `[0, N]` with N at least 1; no bound is a hand-off") }
+                    if *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_)) || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max")) {
+                        let (lo, hi) = self.labelled_bounds("channel[T][max 100]")?;
+                        self.expect(Tok::RBracket, "`]` after the bounds")?;
+                        let lo = if lo == Bound::Min { Bound::Int(0) } else { lo };
+                        match (lo, hi) { (Bound::Int(0), Bound::Int(b)) if b >= 1 => cap = Some(b as usize), _ => return self.err("a channel's bound is `[max N]` with N at least 1; no bound is a hand-off") }
                     }
                     Ok(Expr::ChannelNew(ty, cap, line))
                 }

@@ -80,7 +80,7 @@ total[lend 'big'];          # error: a list[int64] lent where a list[int32] is l
 
 A lend hands over the value where it is, with no copy, so what is lent
 must have the parameter's layout. Range bounds do not change the layout
-(a `list[int32][0, 10]` lends as a `list[int32]`), and a `:=` collection
+(a `list[int32][min 0, max 10]` lends as a `list[int32]`), and a `:=` collection
 takes its width from its use. To take any width, make the parameter
 generic. Proposed alternative: a quiet converted copy, each element a
 narrowing site, written back for `lend.mut`, which would hide a copy

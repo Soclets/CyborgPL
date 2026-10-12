@@ -66,7 +66,7 @@ Cost is counted in steps (one per AST node evaluated), never in time.
 
 A value from outside the program has a **domain**: what its type allows.
 `std::input.line[]` is any text; `to.int32[…] otherwise …` on it is any
-`int32`; `to.int32[0, 100][…]` is `[0, 100]`; a `list[T][lo, hi]` has a
+`int32`; `to.int32[min 0, max 100][…]` is `[0, 100]`; a `list[T][lo, hi]` has a
 length in `[lo, hi]`; an `extern` result is anything its C-shaped type
 holds — or, with a ranged return (`ffi.md`, 2026-09-22), the range,
 enforced at the door as a failure. Cortex runs the program abstractly

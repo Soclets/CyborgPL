@@ -16,7 +16,7 @@ MAIN {
     let 'z': deci64 = 2.50;
     let 'zz' := to.deci32['z'] otherwise 0;
     cord::print.stored['y', " ", 'zz', newln];
-    let 'disc': deci64[0.0, 1.0] = 0.15;
-    let 'p' := to.deci64[0.0, 1.0]["1.5"] otherwise 'disc';
+    let 'disc': deci64[min 0.0, max 1.0] = 0.15;
+    let 'p' := to.deci64[min 0.0, max 1.0]["1.5"] otherwise 'disc';
     cord::print.stored['disc', " ", 'p', newln];
 }

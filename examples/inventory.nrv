@@ -1,4 +1,4 @@
-struct Item { name: str.utf8  grams: int32[1, 50_000] }
+struct Item { name: str.utf8  grams: int32[min 1, max 50_000] }
 
 fn heaviest [...'items': Item] -> Item or fail[none] {
     if list.length[lend 'items'] equal_to 0 { fail none; }
@@ -24,7 +24,7 @@ fn initial [lent 'name': str.utf8] -> char.point {
 }
 
 MAIN {
-    let mut 'shelf': list[Item][0, 4] = list.empty;
+    let mut 'shelf': list[Item][min 0, max 4] = list.empty;
     list.append[lend.mut 'shelf', Item[name = "rope", grams = 1_250]];
     list.append[lend.mut 'shelf', Item[name = "helmet", grams = 900]];
     list.append[lend.mut 'shelf', Item[name = "tent", grams = 4_000]];
