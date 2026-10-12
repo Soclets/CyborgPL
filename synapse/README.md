@@ -9,7 +9,9 @@ is **Synapse**, where Nerve's parts meet: the Brainstem (the language's lowest
 level, `compiler/`), the lobes (`lobes/`), Cortex (the prover,
 `compiler/src/cortex`) and Axon (the runtime, `runtime/`). The command is
 `synapse`, and `syn` is the same command (owner: "Both"), and so is `sng`,
-for SNG, "Synapse Not GCC" (owner, 2026-10-10: "work too"); the folder and the
+for SNG, "Synapse Not GCC" (owner, 2026-10-10: "work too"), and `suc`,
+"Synapse Uses Clang", the name the CNC lobe adds (built in while CNC is);
+the folder and the
 crates take the full name (`synapse-brainstem`, `synapse-runtime`,
 `synapse-lobe-*`; "Yeah"). The old `cca` command is refused, naming
 `synapse`, as any old spelling is.

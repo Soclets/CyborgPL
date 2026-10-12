@@ -209,7 +209,6 @@ pub struct Items {
     /// The roots of Limbs whose `CCA.cplr` does not list IEG: the rule
     /// that marks raw memory and unproven code `!check` is IEG's, so
     /// nothing there needs the mark (owner, 2026-10-06: "yes").
-    pub no_ieg_roots: std::collections::HashSet<ModuleId>,
     /// Each Limb with a `CCA.cplr`, by its root, for the power ledger
     /// (owner, 2026-10-07); a lone file has none, and every power.
     pub limb_powers: HashMap<ModuleId, LimbPowers>,

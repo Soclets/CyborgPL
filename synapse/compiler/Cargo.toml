@@ -11,7 +11,8 @@ path = "src/lib.rs"
 
 # The command is `synapse`, and `syn` the same command (owner,
 # 2026-10-09: "Both"), and `sng` too, SNG being "Synapse Not GCC" (owner,
-# 2026-10-10: "work too"); `cca`, the old name, is refused (src/bin/).
+# 2026-10-10: "work too"), and CNC's `suc`, "Synapse Uses Clang" (owner,
+# 2026-10-10); `cca`, the old name, is refused (src/bin/).
 [[bin]]
 name = "synapse"
 path = "src/main.rs"

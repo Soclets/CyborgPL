@@ -151,11 +151,11 @@ name = "synapse-lobe-autogpu"
 version = "0.0.1"
 
 [[package]]
-name = "synapse-lobe-caps"
+name = "synapse-lobe-broca"
 version = "0.0.1"
 
 [[package]]
-name = "synapse-lobe-ieg"
+name = "synapse-lobe-cnc"
 version = "0.0.1"
 
 [[package]]
@@ -175,23 +175,11 @@ name = "synapse-lobe-nvidia"
 version = "0.0.1"
 
 [[package]]
-name = "synapse-lobe-tas"
-version = "0.0.1"
-
-[[package]]
-name = "synapse-lobe-unitect"
-version = "0.0.1"
-
-[[package]]
 name = "synapse-lobe-vulkan"
 version = "0.0.1"
 
 [[package]]
 name = "synapse-lobe-wsmw"
-version = "0.0.1"
-
-[[package]]
-name = "synapse-lobe-wstn"
 version = "0.0.1"
 
 [[package]]

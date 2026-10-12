@@ -592,6 +592,7 @@ impl Checker {
             ast::StmtKind::InlineAsm { text, bindings } => {
                 self.power_use(ctx, &["inline_assembly"], None, "runs assembly (`inline.ASM`)".into(), s.span);
                 if self.needs_mark(ctx) {
+                    self.power_first()?;
                     return err(Diagnostic::error("an inline block is a no_check site: nothing inside it can be proven — write `no_check inline.ASM { … }`").at(s.span));
                 }
                 let mut ins = Vec::new();

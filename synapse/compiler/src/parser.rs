@@ -187,8 +187,6 @@ fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
     let dot_then = |t: &[&str]| matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(x)) if t.contains(&x.as_str()));
     Some(match w.as_str() {
         // The slimmer base (owner, 2026-10-07): what left it, by core.
-        "test" if next_is(1, "fn") => ("`test fn`", "TAS"),
-        "must" if matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Name(_) | Tok::Word(_) | Tok::Num { .. } | Tok::LParen)) => ("`must`", "TAS"),
         "brain16" => ("`brain16`", "AI"),
         // Everything about C is CNC's (owner, 2026-10-10); `ptr`, raw
         // memory and inline assembly stay the Brainstem's.
@@ -198,16 +196,13 @@ fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
         "int128" | "uint128" => (if w == "int128" { "`int128`" } else { "`uint128`" }, "WSMW"),
         "not_std" => ("a `not_std.` width", "WSMW"),
         "deci32" | "deci64" | "deci128" => (match w.as_str() { "deci32" => "`deci32`", "deci64" => "`deci64`", _ => "`deci128`" }, "Money"),
-        "str" if dot_then(&["utf16", "utf32"]) => (if next_is(2, "utf16") { "`str.utf16`" } else { "`str.utf32`" }, "UniTect"),
+        "str" if dot_then(&["utf16", "utf32"]) => (if next_is(2, "utf16") { "`str.utf16`" } else { "`str.utf32`" }, "Broca"),
         // UTF-16 and UTF-32 included need UniTect, as their text does.
-        "incl" if dot_then(&["str"]) && matches!(toks.get(i + 3).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "utf16" || x == "utf32") => (if matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "utf16") { "`incl.str.utf16`" } else { "`incl.str.utf32`" }, "UniTect"),
-        "str" if dot_then(&["points", "graphemes"]) => (if next_is(2, "points") { "`str.points`" } else { "`str.graphemes`" }, "UniTect"),
-        "str" if dot_then(&["each", "at"]) && matches!(toks.get(i + 3).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "point" || x == "grapheme") => ("counting in points or graphemes", "UniTect"),
-        "char" if dot_then(&["point", "grapheme"]) => (if next_is(2, "point") { "`char.point`" } else { "`char.grapheme`" }, "UniTect"),
-        "case" if dot_then(&["any", "exact", "insensitive", "sensitive"]) => ("a `case` mark", "CAPS"),
-        "nocheck" => ("`no_check`", "IEG"),
-        "NO_FUCKING_CHECKS" => ("`NO_FUCKING_CHECKS`", "IEG"),
-        "on" if matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && next_is(2, "machine") => ("`on.machine`", "IEG"),
+        "incl" if dot_then(&["str"]) && matches!(toks.get(i + 3).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "utf16" || x == "utf32") => (if matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "utf16") { "`incl.str.utf16`" } else { "`incl.str.utf32`" }, "Broca"),
+        "str" if dot_then(&["points", "graphemes"]) => (if next_is(2, "points") { "`str.points`" } else { "`str.graphemes`" }, "Broca"),
+        "str" if dot_then(&["each", "at"]) && matches!(toks.get(i + 3).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "point" || x == "grapheme") => ("counting in points or graphemes", "Broca"),
+        "char" if dot_then(&["point", "grapheme"]) => (if next_is(2, "point") { "`char.point`" } else { "`char.grapheme`" }, "Broca"),
+        "case" if dot_then(&["any", "exact", "insensitive", "sensitive"]) => ("a `case` mark", "Broca"),
         "concur" => ("`concur`", "MCPS"),
         "whichever" => ("`whichever`", "MCPS"),
         "channel" => ("`channel`", "MCPS"),
@@ -361,14 +356,14 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     }
     // Signatar's names are English letters, digits and `_`, bare or
     // quoted (owner, 2026-10-06); any other script, or an emoji, is WSTN's.
-    if p.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "WSTN")) {
+    if p.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "Broca")) {
         for t in toks.iter() {
             let shown = match &t.tok {
                 Tok::Word(w) if !w.is_ascii() => format!("`{}`", w),
                 Tok::Name(n) if !n.is_ascii() => format!("`'{}'`", n),
                 _ => continue,
             };
-            return err(Diagnostic::error(format!("{} is not an English name: Brainstem's names are English letters, digits and `_`; a name in another script, or an emoji, needs the lobe WSTN in this Neuron's `lobes` (`{}`)", shown, core_line("WSTN"))).at(t.span));
+            return err(Diagnostic::error(format!("{} is not an English name: Brainstem's names are English letters, digits and `_`; a name in another script, or an emoji, needs the lobe Broca in this Neuron's `lobes` (`{}`)", shown, core_line("Broca"))).at(t.span));
         }
     }
     // Old spellings, in every Limb (the 2026-10-07 revision; owner: "MTM
@@ -2133,8 +2128,8 @@ impl<'a> Parser<'a> {
             self.expect(&Tok::Comma, "`,` between the bounds")?;
             let hi = self.bound_value()?;
             let unit = if let Tok::Word(w) = self.peek().clone() {
-                if matches!(w.as_str(), "points" | "graphemes") && self.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "UniTect")) {
-                    return core_missing("counting in points or graphemes", "UniTect", self.span());
+                if matches!(w.as_str(), "points" | "graphemes") && self.cores.as_ref().is_some_and(|c| !c.iter().any(|c| c == "Broca")) {
+                    return core_missing("counting in points or graphemes", "Broca", self.span());
                 }
                 if !is_keyword(&w) && w != "x" {
                     Some(self.ident("a unit")?)
@@ -2767,7 +2762,7 @@ impl<'a> Parser<'a> {
             // `inline.ASM`"); `inline.Assembly` and `inline.S` are MTM's.
             "ASM" | "Assembly" | "S" => {}
             // IEG's and Metal's, named but not read yet.
-            "LL" | "LLVM" | "LLVM_Intermediate_Representation" => return self.fail_at(lang.span, "`inline.LL`, LLVM IR in place, is IEG's, and Synapse does not read it yet"),
+            "LL" | "LLVM" | "LLVM_Intermediate_Representation" => return self.fail_at(lang.span, "`inline.LL`, LLVM IR in place, is the Brainstem's, and Synapse does not read it yet"),
             "MSL" | "Metal_Shading_Language" => return self.fail_at(lang.span, "`inline.MSL`, the Metal Shading Language, is the Metal lobe's, and Synapse does not read it yet"),
             "asm" | "s" | "assembly" => return self.fail_at(lang.span, "an inline language's name is in capitals: `inline.ASM`"),
             "ll" | "llvm" => return self.fail_at(lang.span, "an inline language's name is in capitals: `inline.LL`"),

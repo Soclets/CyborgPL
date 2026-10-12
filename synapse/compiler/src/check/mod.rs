@@ -890,7 +890,6 @@ impl Checker {
     /// use, in source order, granted, listed, not denied. A Limb with no
     /// `CCA.cplr` is not checked: it has every core and power.
     fn check_powers(&mut self) -> Result<()> {
-        use synapse_base::powers::{check, Grant, Limb, Power, Refusal, Use};
         // An operator on built-in types is a use where it is declared:
         // `operators_on_builtin_types` when every operand is built in,
         // `prefix_operators` with one operand (owner: "`a`").
@@ -905,26 +904,43 @@ impl Checker {
             uses.push(PowerUse { module: f.module, path: vec![power.to_string()], thing: None, doing: format!("defines the operator `{}` on built-in types", op), span: f.name_span });
         }
         uses.sort_by_key(|u| (u.span.file.0, u.span.start));
-        for u in uses {
-            let root = self.items.limb_root(u.module);
-            let Some(lp) = self.items.limb_powers.get(&root).cloned() else { continue };
-            // Signatar grants the dangerous three to every limb; IEG the
-            // vouching and the operator powers to every limb listing it.
-            let mut grants: Vec<Grant> = ["inline_assembly", "c_calls", "raw_memory"].iter().map(|p| Grant { power: Power::new(p), by: "Brainstem".into(), to: None }).collect();
-            if lp.cores.iter().any(|c| c == "IEG") {
-                grants.extend(["vouch", "operators_on_builtin_types", "prefix_operators"].iter().map(|p| Grant { power: Power::new(p), by: "IEG".into(), to: None }));
+        for u in &uses {
+            if let Some(sentence) = self.power_refused(u) {
+                return err(Diagnostic::error(sentence).at(u.span));
             }
-            let limb = Limb { name: lp.prefix.clone(), id: None, lists: lp.lists.clone(), grants };
-            let used = Use { limb: lp.prefix.clone(), path: u.path.clone(), thing: u.thing.clone(), doing: u.doing.clone(), at: u.span.start };
-            let who = if lp.is_program { "this Neuron".to_string() } else { format!("`{}`", lp.prefix) };
-            let top = &u.path[0];
-            let sentence = match check(&used, &limb, &self.items.program_deny) {
-                Ok(()) => continue,
-                Err(Refusal::NotGranted { .. }) => format!("{} {}, a power no lobe it lists grants: IEG grants `{}` (add `{}` to its `lobes`)", who, u.doing, top, crate::ast::core_line("IEG")),
-                Err(Refusal::NotListed { .. }) => format!("{} {}, and its Kinesin.nrp does not list `{}`: add `kin::Power.{}` to its `powers`", who, u.doing, top, top),
-                Err(Refusal::Denied { entry, .. }) => format!("{} {}, which this program denies (`deny`: `kin::Power.{}`)", who, u.doing, entry.power.path.join(".")),
-            };
-            return err(Diagnostic::error(sentence).at(u.span));
+        }
+        Ok(())
+    }
+
+    /// Why a use of a power is refused, if it is.
+    fn power_refused(&self, u: &PowerUse) -> Option<String> {
+        use synapse_base::powers::{check, Grant, Limb, Power, Refusal, Use};
+        let root = self.items.limb_root(u.module);
+        let lp = self.items.limb_powers.get(&root)?;
+        // The Brainstem grants these to every Neuron (vouching and the
+        // operator powers since IEG joined it, owner 2026-10-12); a Neuron
+        // still lists each it uses.
+        let grants: Vec<Grant> = ["inline_assembly", "c_calls", "raw_memory", "vouch", "operators_on_builtin_types", "prefix_operators"].iter().map(|p| Grant { power: Power::new(p), by: "Brainstem".into(), to: None }).collect();
+        let limb = Limb { name: lp.prefix.clone(), id: None, lists: lp.lists.clone(), grants };
+        let used = Use { limb: lp.prefix.clone(), path: u.path.clone(), thing: u.thing.clone(), doing: u.doing.clone(), at: u.span.start };
+        let who = if lp.is_program { "this Neuron".to_string() } else { format!("`{}`", lp.prefix) };
+        let top = &u.path[0];
+        Some(match check(&used, &limb, &self.items.program_deny) {
+            Ok(()) => return None,
+            Err(Refusal::NotGranted { .. }) => format!("{} {}, a power nothing grants it: `{}`", who, u.doing, top),
+            Err(Refusal::NotListed { .. }) => format!("{} {}, and its Kinesin.nrp does not list `{}`: add `kin::Power.{}` to its `powers`", who, u.doing, top, top),
+            Err(Refusal::Denied { entry, .. }) => format!("{} {}, which this program denies (`deny`: `kin::Power.{}`)", who, u.doing, entry.power.path.join(".")),
+        })
+    }
+
+    /// Before refusing an unmarked site: the power it uses, just recorded,
+    /// is asked about first, as the oracle asks — a Neuron that may not call
+    /// C hears that before how to mark the call.
+    pub(crate) fn power_first(&self) -> Result<()> {
+        if let Some(u) = self.power_uses.last() {
+            if let Some(sentence) = self.power_refused(u) {
+                return err(Diagnostic::error(sentence).at(u.span));
+            }
         }
         Ok(())
     }

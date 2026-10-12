@@ -537,9 +537,6 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     if dir.join(MANIFEST).is_file() && !manifest.has_std {
         items.no_std_roots.insert(m);
     }
-    if dir.join(MANIFEST).is_file() && !manifest.cores.iter().any(|c| c == "IEG") {
-        items.no_ieg_roots.insert(m);
-    }
     // The power ledger's view of this Limb (owner, 2026-10-07): its list,
     // its cores; and, for the program, its `deny`.
     if dir.join(MANIFEST).is_file() {
@@ -830,7 +827,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             // of the cores it lists; CCA's code is built the same either way.
             "lobes" => {
                 let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error(format!("`lobes` is a list of `kin::Lobe[…]`: `[{},]`", crate::ast::core_line("IEG"))).at(v.span));
+                    return err(Diagnostic::error(format!("`lobes` is a list of `kin::Lobe[…]`: `[{},]`", crate::ast::core_line("MCPS"))).at(v.span));
                 };
                 let mut names: Vec<String> = Vec::new();
                 for e in entries {
@@ -850,7 +847,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                             return err(Diagnostic::error("a `kin::Lobe` names its fields: `kin::Lobe[id = \"…\", version = \"…\"]`").at(a.span()));
                         };
                         match f.name.as_str() {
-                            "name" => return err(Diagnostic::error(format!("a lobe is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `kin::Lobe[id = \"…\", version = \"…\"]`; IEG's is `{}`", OFFICIAL_CORES[0].1)).at(f.span)),
+                            "name" => return err(Diagnostic::error(format!("a lobe is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `kin::Lobe[id = \"…\", version = \"…\"]`; MCPS's is `{}`", OFFICIAL_CORES[0].1)).at(f.span)),
                             "id" => id = Some((text(cv, "a lobe's `id`")?, cv.span)),
                             "version" => version = Some((text(cv, "a lobe's `version`")?, cv.span)),
                             "path" => where_ = Some((text(cv, "a lobe's `path`")?, cv.span)),
@@ -872,8 +869,11 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     if i == crate::ast::MTM_ID {
                         return err(Diagnostic::error("the lobe `9c6c7730…` is MTM, which is gone since 2026-10-07: every spelling it held is an old one now — take it out of `lobes`").at(ispan));
                     }
-                    if let Some((n, _)) = crate::ast::RETIRED_CORES.iter().find(|(_, rid)| *rid == i) {
-                        return err(Diagnostic::error(format!("{} is retired: since 2026-10-08 it is part of the Brainstem, Nerve's base; take it out of `lobes`", n)).at(ispan));
+                    if let Some((n, _, when)) = crate::ast::RETIRED_CORES.iter().find(|(_, rid, _)| *rid == i) {
+                        return err(Diagnostic::error(format!("{} is retired: since {} it is part of the Brainstem, Nerve's base; take it out of `lobes`", n, when)).at(ispan));
+                    }
+                    if let Some((n, _)) = crate::ast::BROCA_CORES.iter().find(|(_, rid)| *rid == i) {
+                        return err(Diagnostic::error(format!("{} is part of Broca since 2026-10-12: list `{}` instead", n, crate::ast::core_line("Broca"))).at(ispan));
                     }
                     let Some(&(n, _, known)) = OFFICIAL_CORES.iter().find(|(_, oid, _)| *oid == i) else {
                         return err(Diagnostic::error(format!("the lobe `{}…` is not an official one; loading another lobe is not built yet (a plugin, which Synapse cannot load yet)", &i[..i.len().min(8)])).at(ispan));
@@ -888,10 +888,6 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                         return err(Diagnostic::error(format!("the lobe {} is listed twice", n)).at(ispan));
                     }
                     names.push(n.to_string());
-                }
-                // MCPS works on IEG (owner: "Needs IEG, not std").
-                if names.iter().any(|n| n == "MCPS") && !names.iter().any(|n| n == "IEG") {
-                    return err(Diagnostic::error(format!("the lobe MCPS needs IEG: add `{}` to `lobes`", crate::ast::core_line("IEG"))).at(v.span));
                 }
                 out.cores = names;
             }

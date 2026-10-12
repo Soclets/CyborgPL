@@ -31,7 +31,7 @@ asm_long_both [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its 
 asm_lowercase [fnv:3684b810cb4d2028] :: an inline language's name is in capitals: `inline.ASM`
 asm_refused [fnv:d5dd81bedd413e46] :: !by-design CCA compiles inline.ASM and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly, which is the interpreter's nature rather than a rule
 asm_s_lowercase [fnv:3684b810cb4d2028] :: an inline language's name is in capitals: `inline.ASM`
-asm_signatar_unmarked [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.ASM in a Limb without IEG, unmarked as Brainstem allows, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
+asm_signatar_unmarked [fnv:98a39490f4c80db0] :: an inline block is a no_check site
 asm_strings [fnv:c9b7ee31e6eab60e] :: not a list of strings
 asm_top_level [fnv:f8444caf9620e916] :: goes inside a body
 asm_unknown_var [fnv:652fb6ee6f955c44] :: 'zzz' is not declared
@@ -133,7 +133,7 @@ callback_lent_param [fnv:acc6e686bfb5348a] :: the `extern.C fn f` parameter 'cb'
 callback_str_param [fnv:fc8e6737a324ce6d] :: the `extern.C fn f` parameter 'cb' is not C-shaped
 callback_with_capture [fnv:857b4698d5db52ac] :: C has nowhere to keep them
 callback_wrong_shape [fnv:6250f1a435863168] :: `qsort`'s parameter 'cmp' wants a function taking 2 argument(s); got a function taking 1 argument(s)
-caps_missing [fnv:6aac611f9faf6650] :: a `case` mark is CAPS's
+caps_missing [fnv:e41e80e8b467688a] :: a `case` mark is Broca's
 case_bad_kind [fnv:1784123126ebe5b3] :: `op` is not a kind a `case` mark covers: `fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var` (a module is marked on itself)
 case_differ_only [fnv:c9c11f25d01e077c] :: `Area` and `area` (line 2 of case_differ_only.nrv) differ only in case, and `area` is `case.any`: they would be one name
 case_disagree [fnv:bc270b3bdae9e001] :: `fn Area` is marked both `case.any` (line 1 of case_disagree.nrv) and `case.exact` (line 2 of case_disagree.nrv): marks that disagree are an error (owner, 2026-10-06)
@@ -164,11 +164,11 @@ const_mut [fnv:9f30cb564f340919] :: neither `mut` nor `immut`
 const_shadow [fnv:e1b51c069042fda4] :: 'max' is a const and cannot be shadowed
 const_verb [fnv:d48a3137f8878e3c] :: it is a value known at compile time
 construct_quoted_field [fnv:7597065160c99b01] :: `x = …`, not `'x' = …`
-core_by_name [fnv:7aae21500f4b8b92] :: a lobe is listed by its registry ID since 2026-10-06
+core_by_name [fnv:9d5ccb2499cff948] :: a lobe is listed by its registry ID since 2026-10-06
 core_by_path [fnv:c0c6e1b65030802e] :: the lobe at `../mycore` is not registered, so not verified; loading another lobe is not built yet
 core_no_version [fnv:8a983765217202e8] :: a lobe needs its `version`, as a registry limb does
 core_type_old_spelling [fnv:eb0bd38e45724c5d] :: `kin::Core` is an old spelling: write `kin::Lobe`
-core_wrong_version [fnv:a4a7a39fc18a028d] :: Synapse knows IEG `2026-10-06T18:04:29+07:00` only
+core_wrong_version [fnv:6782989e05d7e599] :: Synapse knows MCPS `2026-10-06T18:04:29+07:00` only
 cores_old_spelling [fnv:cdfee69d2e3230bf] :: `cores` is an old spelling: write `lobes`
 deci_family_mix [fnv:08ea65ffe19d9d06] :: between a deci and another number family
 deci_fractional_power [fnv:bb5918d5dddef02d] :: exponent is an integer or a whole literal
@@ -304,6 +304,7 @@ grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: it is 2 code points, so it fits 
 gte [fnv:e846773eb1344185] :: `>=` is not an operator; greater-or-equal is `at_least`
 ieee_on_int [fnv:0558ea36e12221de] :: `div.ceil.ieee` keeps a -0, which only a bin or brain16 has
 ieee_on_mod [fnv:2473cab7e2c3596a] :: `.ieee` goes on an operator that can make a -0, `plus`, `minus`, `times`, `pow`, a `div.X`, `mod.floor`, `mod.ceil` or `mod.trunc`; `mod.near` has no `.ieee` form
+ieg_retired [fnv:d22a35fd8e6c5940] :: IEG is retired: since 2026-10-12 it is part of the Brainstem
 incl_bytes_const_changed [fnv:2795471c8b84119c] :: 'b' is a const and cannot be assigned to
 incl_bytes_not_const [fnv:885dbcf9b8190f1c] :: `incl.bytes` is a constant: give it a name with `const 'logo' := incl.bytes
 incl_missing_file [fnv:ccc27d01ee109bb5] :: `incl.bytes` cannot read "incl_assets/missing.png"
@@ -318,7 +319,7 @@ incl_utf32_wrong_order [fnv:f0029112c7b2f2ce] :: is not valid str.utf32 text in 
 incl_utf8_no_order [fnv:d692fc595199f040] :: `str.utf8` has no byte order
 index_needs_pos [fnv:4bc10e32735f4756] :: a read says it is a position: `'xs'[pos 2]`
 index_needs_pos_change [fnv:7fbb95940493767c] :: an index says it is a position: `'xs'[pos 2]`
-inline_ll_not_built [fnv:e2c382ebdb39d9d5] :: `inline.LL`, LLVM IR in place, is IEG's
+inline_ll_not_built [fnv:b71d478526e385ca] :: `inline.LL`, LLVM IR in place, is the Brainstem's
 inline_msl_not_built [fnv:d7389a01e1fb7f88] :: `inline.MSL`, the Metal Shading Language, is the Metal lobe's
 iterator_given_away [fnv:4d1554c3deb74f7c] :: 'c' was given away
 let_over_name_unrun [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
@@ -431,7 +432,7 @@ main_args_type [fnv:0fbaeb76c89973a8] :: is C's `argc`, whose type is `int32`
 main_as_func [fnv:d88745ab93f13dde] :: write `MAIN { … }` with no `fn`, no return type, no `return`
 manifest_bad_name [fnv:bc4dfe7c942706be] :: `Areas of shapes` cannot name a Neuron
 manifest_bad_prefix [fnv:142ba3472cf5fe78] :: cannot be a prefix, written in code as `Cash-Handling::`
-manifest_core_twice [fnv:2baab86a188cacf8] :: the lobe IEG is listed twice
+manifest_core_twice [fnv:4de29121cd7bdeee] :: the lobe MCPS is listed twice
 manifest_core_unofficial [fnv:39dd97a70a0c0125] :: is not an official one; loading another lobe is not built yet
 manifest_dep_twice_where [fnv:22cee5cf4ecd7ef3] :: says where it comes from once
 manifest_field_twice [fnv:dd4b619356aeb955] :: `name` is given twice
@@ -459,7 +460,6 @@ map_to_text [fnv:a985b1bfd8ca8afa] :: a map is not text
 map_unordered_walk [fnv:5169287ec337a31d] :: `map.keys` needs a `map` or `map.ordered`
 map_value_out_of_range [fnv:da58956c39843392] :: the value can be outside what an `int32[0, 10]` holds
 match_value_unused [fnv:02489215508528d6] :: gives a value, but this `match` is not used as one
-mcps_needs_ieg [fnv:70f8e7d5c7c44427] :: the lobe MCPS needs IEG
 missing_return_type_value [fnv:b6b32cd3a621d22b] :: every path must `return` a value (or `fail`)
 mix_families [fnv:bb249fe14c123783] :: there is no implicit conversion between numeric families
 mod_bare [fnv:142b817e3a94675b] :: say how `mod` rounds
@@ -490,8 +490,6 @@ negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers woul
 no_bin128 [fnv:65f2adec4a0637da] :: there is no `bin128`
 no_cheat_old [fnv:fc0169759787cd18] :: `!c` is `no_cheat` now
 no_checks_lied [fnv:db50aac17478d1b8] :: !by-design CCA builds it and emits a note naming `NO_FUCKING_CHECKS`, which is the rule for a vouch that fails every run (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
-no_ieg_no_checks_at_all [fnv:632142714807fd7f] :: `NO_FUCKING_CHECKS` is IEG's
-no_ieg_nocheck [fnv:f5f8439818da21dc] :: `no_check` is IEG's
 no_mcps_concur [fnv:85f83276fc15bc2c] :: `concur` is MCPS's
 no_mcps_para [fnv:80b8efddb44c83df] :: `for para` is MCPS's
 no_precedence [fnv:c019255d74965b33] :: mathematics has no settled reading here (`6 div.floor 2 times 3`)
@@ -507,7 +505,6 @@ number_next_to_text [fnv:7bc354939d76583e] :: join text with `++`, separate valu
 number_to_char [fnv:12ef8394243841eb] :: `char.point.from_code[…] otherwise …` builds one from a code
 on_bare [fnv:5498c2f32cd9b7fa] :: `on` is narrowed: `on.target …`
 on_else_if [fnv:48319131dc22b511] :: an `on` chain goes on with `else on.…` or ends with `else { }`
-on_machine_no_ieg [fnv:8e642b877b27d0ac] :: `on.machine` is IEG's
 on_machine_top_level [fnv:b86c139ea15f48e6] :: `on.machine` chooses when running, so it goes inside a body
 on_target_half [fnv:cd13379047ebb6c8] :: `aarch64` is a chip; a whole target is chip-os
 on_target_os_version [fnv:c6206898ad46136d] :: an OS minimum (`on.target.os macos 15`) is not built
@@ -526,7 +523,6 @@ op_no_precedence [fnv:9d0efe113095066a] :: a custom operator has no precedence
 op_no_return_type [fnv:afe154068b1dbc9d] :: is required on an operator
 op_path_wrong_limb [fnv:58f14d819d74bfce] :: the Neuron `runnable` has no operator `mean`
 op_percent_undefined [fnv:7898bb583b3ac02c] :: `%` is not an operator here: remainder is `mod.floor`
-op_power_not_granted [fnv:d245be4188ec83f8] :: defines the operator `mean` on built-in types, a power no lobe it lists grants: IEG grants `operators_on_builtin_types`
 op_redefine_builtin [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `int32` may not
 op_redefine_word [fnv:32696bdc53fd9faa] :: a struct or enum may define `op mod` for itself, `int32` may not
 op_run_no_space [fnv:fc83d9208bcfbb43] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
@@ -697,7 +693,6 @@ struct_var_in_field [fnv:dfa77d3a540c2949] :: a struct always owns its fields
 struct_write_through_lent [fnv:a2d4141c48d32f8c] :: it belongs to whoever lent it
 struct_wrong_field_type [fnv:7d29ffc630950dd5] :: field `x` is an `int32` and this value is text: convert it first
 take_unhandled [fnv:0a69f5303bdb8818] :: `channel.take` can fail (closed): say what happens
-tas_missing [fnv:89a8d119de88beaf] :: `test fn` is TAS's
 temp_after_loop [fnv:652fb6ee6f955c44] :: 'i' is not declared
 temp_after_name [fnv:64d751df57cc16a6] :: expected `in`; `temp` goes before the name
 test_fn_called [fnv:fc9ed5874a38cb00] :: is a `test fn`: `synapse test` runs it
@@ -728,7 +723,7 @@ type_before_name [fnv:5dc41176090cdaf6] :: a type goes after the name
 type_name_unknown [fnv:89a5ec489926ad73] :: there is no item `nosuchtype`
 types_two_prefixes [fnv:a01733d380e5e9a7] :: expected a value of the declared type (areas::Circle), found a `shapes::Circle`
 uint_negative [fnv:66ac7011902821d4] :: the value can be outside what a `uint8` holds
-unitect_missing [fnv:681105d57c941ecc] :: `char.grapheme` is UniTect's
+unitect_missing [fnv:e1fb36367cdafae5] :: `char.grapheme` is Broca's
 unknown_std [fnv:46c62b9861ef3858] :: `cord::println` does not exist
 use_after_give [fnv:7b0240d30516a476] :: was given away and no longer owns anything
 useful_after_type [fnv:9996cbd34a84574b] :: `.useful` follows the verb: `to.useful.deci64[…]`
@@ -738,6 +733,8 @@ variadic_ellipsis_after_name [fnv:a6d51e15cd0b1ed9] :: the dots go before the na
 variadic_not_last [fnv:e0b808d1821a4725] :: the rest of the arguments go to it
 variadic_too_few [fnv:9b911531dc4f9325] :: `f` takes at least 1 argument, and 0 were given
 variadic_typed_mismatch [fnv:7d29ffc630950dd5] :: `f`'s parameter 'nums' is an `int32` and this value is text: convert it first
+vouch_not_listed [fnv:827a300f59f5b3de] :: this Neuron vouches with `no_check`, and its Kinesin.nrp does not list `vouch`
+vouch_not_listed_no_checks [fnv:7f53a5425a5603d1] :: this Neuron vouches with `NO_FUCKING_CHECKS`, and its Kinesin.nrp does not list `vouch`
 walrus_with_type [fnv:e4d69da5edafbac8] :: `:=` means Cortex chooses the type, so it takes no type; with a type written, use `=`
 whichever_unhandled [fnv:86bb5570c3022d11] :: `whichever` can fail (closed) when every channel is closed, so it needs an `otherwise`
 while_keyword [fnv:eb07551a9069b239] :: `while 'x' < 3 { … }`
@@ -758,4 +755,5 @@ wrong_arg_count [fnv:eb88fab86c650ec3] :: `one` takes 1 argument, and 2 were giv
 wsmw_missing [fnv:c135fab3bfb61b07] :: `int128` is WSMW's
 wsmw_not_std_missing [fnv:737bb9a2ca26bdc9] :: a `not_std.` width is WSMW's
 wstn_emoji_fn [fnv:a4cb5da386eec0aa] :: is not an English name: Brainstem's names are English letters, digits and `_`
+wstn_now_broca [fnv:23eb2853da7751e8] :: WSTN is part of Broca since 2026-10-12: list `kin::Lobe[id = "55a2e2de
 wstn_thai_name [fnv:a4cb5da386eec0aa] :: is not an English name: Brainstem's names are English letters, digits and `_`

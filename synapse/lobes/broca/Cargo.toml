@@ -1,0 +1,10 @@
+[package]
+name = "synapse-lobe-broca"
+version = "0.0.1"
+edition = "2021"
+description = "Broca, an official lobe (design/cores.md), built into Synapse; empty until its step of synapse/PLUGINS.md's build order"
+publish = false
+
+[lib]
+name = "synapse_lobe_broca"
+path = "src/lib.rs"

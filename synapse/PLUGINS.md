@@ -17,8 +17,10 @@ implement yet"). MTM is gone (its spellings are old ones, refused); the
 slimmer base added TAS, AI, WSMW, Money, UniTect and CAPS, and ASP took
 the range types and length bounds (section 1). **ASP and Genny are
 retired** (owner, 2026-10-08; built 2026-10-09): what they held is the
-Brainstem's, Nerve's base, so a manifest listing either is refused, and
-IEG is the one deep lobe left. The text below is the
+Brainstem's, Nerve's base, so a manifest listing either is refused.
+**Lobes go by expertise since 2026-10-12** (owner): IEG and TAS are the
+Brainstem's too, and WSTN, UniTect and CAPS are one lobe, Broca; CNC holds
+everything about C (2026-10-10). The text below is the
 proposal as answered, with "the base" and "the codextra" read as
 Brainstem.
 
@@ -51,10 +53,11 @@ lets `concur` and `for para` parse; and so on. Concretely, today:
 
 | Lobe | Where it lives in Synapse now |
 |---|---|
-| IEG | `no_check` / `NO_FUCKING_CHECKS` in the gate; the marking rule (`needs_mark`); `on.machine` |
 | MCPS | `concur`, `whichever`, `channel`, `for para` in the gate; `par.rs`, `codegen/par.rs`, `codegen/tasks.rs` |
-| WSTN | a parser pre-scan refusing a name past ASCII |
-| TAS, AI, WSMW, Money, UniTect, CAPS | words in the gate (`test fn`, `must`, `brain16`, `int128`, `not_std.`, `deci64`, `char.grapheme`, `case.any`, …); their meaning still all of `check/` |
+| Broca | a parser pre-scan refusing a name past ASCII (was WSTN); `str.utf16`, `char.grapheme`, counting and `case.any` in the gate (was UniTect and CAPS) |
+| CNC | `extern.C`, `incl.C`, `layout.C` and the `C.` types in the gate; `cheader.rs`, the `C.` types in `target.rs` |
+| AI, WSMW, Money | words in the gate (`brain16`, `int128`, `not_std.`, `deci64`, …); their meaning still all of `check/` |
+| IEG, TAS | retired (2026-10-12): `no_check`, the marking rule in every Neuron, `on.machine`, `test fn` and `must` are the Brainstem's, which grants `vouch` and the operator powers to every Neuron |
 | cord | not a lobe: a limb Synapse does not have yet (`cord::` is a stub) |
 | MTM | gone (2026-10-07): its spellings are old ones, refused by name in every limb |
 | ASP, Genny | retired (2026-10-08): `to.`, `check`, true-value literals, range types, generics and interfaces are the Brainstem's; their IDs are refused, naming why |
