@@ -43,11 +43,13 @@ export const TRADEOFFS = [
 export const WHY_NERVE = "Nerve is named Nerve, because its syntax is meant to be easily read by the readers, and Cortex is wired into you, you can't remove it. Or else, Nerve isn't Nerve anymore.";
 
 // What Nerve's own tools are made with (owner, 2026-10-12: "add host langs"), as synapse/README.md
-// and each crate's Cargo.toml say.
+// and each crate's Cargo.toml say; the C++ wrapper is planned (design/implementation-languages.md; owner: "we'll eventually
+// have to use C++ too").
 export const BUILT_WITH = [
   { part: "Synapse, the compiler", made: "Rust" },
   { part: "Its code generation", made: "LLVM 22" },
   { part: "Its linking", made: "lld 22, through lld’s library and a small C++ shim" },
+  { part: "What LLVM’s C API lacks, like custom passes", made: "C++, eventually: a small wrapper, as Rust’s own compiler has" },
   { part: "Reading C headers (`incl.C`)", made: "Clang 22" },
   { part: "Cortex, the whole-program analyser", made: "Rust, inside Synapse" },
   { part: "Axon, the runtime in every program", made: "Rust, `no_std`" },
