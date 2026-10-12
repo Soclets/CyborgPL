@@ -3,7 +3,7 @@
 # a `bin64`); a header comes through in them, and a type the same size everywhere is Nerve's own
 # (`int32_t` is `int32`). A named C enum is a `layout.C enum` (`color.BLUE`, its value 6, counted on
 # from `GREEN = 5`); one named by its `typedef` takes that name (`level_t`); an unnamed one's names are
-# consts (`'SEEK_B'`). A C function pointer is Nerve's callback type, `fn[…] -> C.int`. All are CNC's.
+# consts (`'SEEK_B'`), and so is a later name for a number already named (`'SHADE_LAST'`). A C function pointer is Nerve's callback type, `fn[…] -> C.int`. All are CNC's.
 incl.C["headers/paint.h"];
 
 MAIN {
@@ -16,4 +16,8 @@ MAIN {
     cord::print.useful[size.of[last], newln];
     # an unnamed struct named by its `typedef` comes through whole as well: `pair_t`, 8 bytes
     cord::print.useful[size.of[pair_t], newln];
+    # two names for one number (owner, 2026-10-12: "(a)"): the first is the case, a later one a const,
+    # `SHADE_LAST = LIGHT` giving `'SHADE_LAST'`, 2; a number becomes the enum through `to.`, checked
+    let 's' := to.shade['SHADE_LAST'] otherwise shade.DARK;
+    cord::print.useful['SHADE_FIRST', " ", 'SHADE_LAST', " ", to.int32['s'], newln];
 }

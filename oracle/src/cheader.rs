@@ -203,7 +203,18 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
     for (tag, cases) in &enums {
         if cases.iter().any(|(n, _)| !good_name(n)) { continue; }
         match tag.as_ref().and_then(|t| enum_names.get(t)) {
-            Some(name) => enum_lines.push(format!("layout.C enum {name} {{ {} }}", cases.iter().map(|(n, v)| format!("{n} = {v}")).collect::<Vec<_>>().join("  "))),
+            Some(name) => {
+                // a later name for a number already named is a const (owner, 2026-10-12: "(a)"): the first
+                // is the case, `COLOR_FIRST = RED` a const holding the same number
+                let mut seen: Vec<i128> = Vec::new();
+                let mut own = Vec::new();
+                for (n, v) in cases {
+                    if seen.contains(v) {
+                        if !consts.iter().any(|c: &String| c.starts_with(&format!("const '{n}' "))) { consts.push(format!("const '{n}' := {v};")); }
+                    } else { seen.push(*v); own.push(format!("{n} = {v}")); }
+                }
+                enum_lines.push(format!("layout.C enum {name} {{ {} }}", own.join("  ")));
+            }
             None if tag.is_none() => for (n, v) in cases { if !consts.iter().any(|c: &String| c.starts_with(&format!("const '{n}' "))) { consts.push(format!("const '{n}' := {v};")); } },
             None => {}
         }

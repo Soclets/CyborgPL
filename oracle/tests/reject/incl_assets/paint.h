@@ -14,3 +14,5 @@ struct last { int a; long b; };
 typedef struct { int q; int r; } pair_t;
 pair_t make_pair(void);
 void takes(const unsigned char **x);
+enum shade { DARK, MID, LIGHT, SHADE_FIRST = DARK, SHADE_LAST = LIGHT };
+void tint(enum shade s);

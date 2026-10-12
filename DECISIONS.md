@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-12 — A C enum's later name for a number already named comes through as a const (owner: a)
+
+Compiler claude found C enums giving two names one number (`D_A = 1, D_B =
+1`), common in real headers, which a Nerve enum cannot hold (each case its
+own number); both the oracle and Synapse refused the whole `incl.C` line.
+Asked, with what such names are for (an old name kept beside a new one,
+the ends of a range, `COLOR_FIRST = RED`, synonyms) and "What's the most
+useful option?", the owner: "(a)". So **the first name for a number is the
+enum's case, and a later name for the same number is a plain const holding
+it**: `enum shade { DARK, MID, LIGHT, SHADE_FIRST = DARK, SHADE_LAST =
+LIGHT }` gives `layout.C enum shade { DARK = 0  MID = 1  LIGHT = 2 }` and
+`'SHADE_FIRST'`, `'SHADE_LAST'`; over (b) the whole enum a `C.int`, every
+name a const (losing the checking), and (c) a Nerve enum giving two names
+one case (changing Nerve's own enums, `match` included). Design claude and
+compiler claude recommended (a). Built in the oracle; `examples/c_types.nrv`
+turns `'SHADE_LAST'` into a `shade` with `to.shade[…] otherwise …`.
+
 ### 2026-10-12 — CNC finished in the oracle: the `C.` types, C enums and function pointers come through (owner: "yea")
 
 The focus being CNC first (owner: "yea"), the rest of 2026-10-10's C
