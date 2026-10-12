@@ -49,6 +49,16 @@ picked Broca. UniTect's, WSTN's and CAPS's IDs are retired. **Broca's
 registry ID** (owner: "let's go"), made as the others' were (`openssl rand
 -hex 32`, run once): `55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece`, first version `2026-10-12T10:19:44+07:00`. Not built.
 
+**The number lobes (WSMW, Money, AI, and where `bin128` and `not_std.bin80`
+go) wait** (owner: "Those are for later, we won't be developing those lobes
+yet. What lobes should we focus on?"). **The focus is CNC first, finishing
+it (the `C.` types, C enums, function pointers), then MCPS** (owner: "yea"),
+design claude's recommendation: CNC is mostly built and every program on a
+normal computer goes through it by way of `cord`, and MCPS holds the
+automatic parallel `for` (2026-09-14), Nerve's strongest "fast & safe at the
+final product"; Broca after, and the GPU lobes last. Design claude noted
+2026-10-07's plan put Money and WSMW in the first public release.
+
 ### 2026-10-10 — CNC adds `suc`, "Synapse Uses Clang", another name for the `synapse` command (owner)
 
 The owner: "Btw, CNC would add an alias for the `synapse` CLI command,
