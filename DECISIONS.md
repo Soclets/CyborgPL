@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-12 — Conversion is `convert['x'](from int32, to int16)`, replacing `to.int16['x']`; `( )` holds a call's details (owner; not built)
+### 2026-10-12 — (dropped the same day) Conversion as `convert['x'](from int32, to int16)`, `( )` holding a call's details (owner)
 
 Shown the `to.` conversions (owner: "Let me see convert syntax", then
 "conversions, bro"), the owner: "I kinda want like this: `convert[from
@@ -36,7 +36,14 @@ middle ground, brackets kept and the dotted variants as words (`utf8
 string`, `point char`); **types keep their spelling, `str.utf8` and the
 rest** (owner: "(a)"), over (b) words for text types only and (c) for
 every dotted type; design claude recommended (a): one spelling per type
-everywhere, and brackets show nesting at a glance. Not built.
+everywhere, and brackets show nesting at a glance. Then, shown which calls
+would take the style (conversion forms, `ptr.cast`, `print`, `incl`) and,
+asked "Could I see where this would be a nightmare?", nested conversions
+inside a print with their details piled at the ends, a long print whose
+form comes last, both jobs of `( )` on one line, and casts nested in a C
+call, the owner: "Fuck the new style." So **the `( )` style is dropped:
+`convert['x'](…)` is not adopted, and `( )` stays grouping only**. Design
+claude's reading, not asked: `to.int16['x']` stays as it was.
 
 ### 2026-10-12 — The regrouping so far is built in the oracle: IEG and TAS in the Brainstem, Broca for names and text (owner: "Yea")
 
