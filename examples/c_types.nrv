@@ -12,4 +12,6 @@ MAIN {
     let 'd': C.long_double = 1.5;
     cord::print.useful[to.int32[color.BLUE], " ", to.int32[level_t.LOW], " ", 'SEEK_B', newln];
     cord::print.useful['n' plus 2, " ", 'c', " ", 'd', " ", size.of[C.long], " ", size.of[C.int], newln];
+    # a header's last struct comes through whole too (compiler claude found it opaque once): 16 bytes
+    cord::print.useful[size.of[last], newln];
 }

@@ -54,7 +54,9 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
         if !full.is_file() { return Err(format!("cannot read \"{path}\" ({}, from the Neuron's root)", full.display())); }
         format!("#include \"{}\"\n", full.display())
     };
-    let ast = clang(&["-fsyntax-only", "-Xclang", "-ast-dump"], &include, dir)?;
+    // `-fno-builtin`: Clang would otherwise declare `fread`, `calloc`, … itself and merge its own words
+    // (`unsigned long`) over the header's (`size_t`) (compiler claude)
+    let ast = clang(&["-fno-builtin", "-fsyntax-only", "-Xclang", "-ast-dump"], &include, dir)?;
     // C's type names (`size_t`), each standing for the type it names, read first: a function may use one
     let mut td: HashMap<String, String> = HashMap::new();
     for l in ast.lines() {
@@ -121,14 +123,15 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
             continue;
         }
         let Some((_, fields)) = current.as_mut() else { continue };
-        let Some(child) = l.strip_prefix("| |-").or_else(|| l.strip_prefix("| `-")) else { continue };
+        // a struct's fields; the last top-level declaration's are indented with spaces (compiler claude)
+        let Some(child) = ["| |-", "| `-", "  |-", "  `-"].iter().find_map(|p| l.strip_prefix(p)) else { continue };
         if !child.starts_with("FieldDecl ") { *fields = None; continue; }   // a nested struct or union, an attribute: beyond a plain field
         let Some(q) = child.find('\'') else { *fields = None; continue };
         let fname = child[..q].split_whitespace().last().unwrap_or("").to_string();
         let after = &child[q + 1..];
         let Some(e) = after.find('\'') else { *fields = None; continue };
-        let mut fty = &after[..e];
-        if let Some(d) = after[e + 1..].strip_prefix(":'") { if let Some(e2) = d.find('\'') { fty = &d[..e2]; } }
+        // C's own type names are kept (`size_t` is `C.size_t`); `map` follows any other
+        let fty = &after[..e];
         if let Some(f) = fields.as_mut() { f.push((fname, fty.to_string())); }
     }
     if let Some((tag, fields)) = current.take() { records.insert(tag, fields); }
@@ -151,12 +154,17 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
         let is_fn = rest.starts_with("FunctionDecl ");
         if !is_fn && !rest.starts_with("VarDecl ") { continue; }
         let Some(q) = rest.find('\'') else { continue };
+        // Clang declares a builtin by itself (`implicit`), in its own words; the header's line follows
+        if rest[..q].split_whitespace().any(|w| w == "implicit") { continue; }
         let name = rest[..q].split_whitespace().last().unwrap_or("").to_string();
         let after = &rest[q + 1..];
         let Some(e) = after.find('\'') else { continue };
-        let mut ty = &after[..e];
+        let ty = &after[..e];
         let mut tail = &after[e + 1..];
-        if let Some(d) = tail.strip_prefix(":'") { if let Some(e2) = d.find('\'') { ty = &d[..e2]; tail = &d[e2 + 1..]; } }
+        if let Some(d) = tail.strip_prefix(":'") { if let Some(e2) = d.find('\'') { tail = &d[e2 + 1..]; } }
+        // 2. `__attribute__((noreturn))` and its kind say nothing Nerve's declaration holds (compiler claude)
+        let cleaned = strip_attributes(ty);
+        let ty = cleaned.as_str();
         if tail.split_whitespace().any(|w| w == "static") { continue; }   // a header's own inline helpers: nothing to link
         if !good_name(&name) { continue; }
         if is_fn {
@@ -352,7 +360,23 @@ fn constant(v: &str) -> Option<String> {
 fn struct_tag(t: &str, cx: &Cx) -> Option<String> {
     if let Some(tag) = t.strip_prefix("struct ") { return Some(tag.trim().to_string()); }
     let target = cx.td.get(t)?;
+    // `typedef struct _opaque_pthread_t *pthread_t;` names a pointer, which `map` follows (compiler claude)
+    if target.contains('*') { return None; }
     target.strip_prefix("struct ").map(|tag| tag.trim().to_string())
+}
+
+/// A C type without its `__attribute__((…))` parts.
+fn strip_attributes(t: &str) -> String {
+    let mut out = t.to_string();
+    while let Some(i) = out.find("__attribute__((") {
+        let mut depth = 0;
+        let mut end = out.len();
+        for (j, c) in out[i..].char_indices() {
+            match c { '(' => depth += 1, ')' => { depth -= 1; if depth == 0 { end = i + j + 1; break; } } _ => {} }
+        }
+        out.replace_range(i..end, "");
+    }
+    out.trim().to_string()
 }
 
 /// A C parameter list split at its top-level commas, so a function pointer's own list stays whole.

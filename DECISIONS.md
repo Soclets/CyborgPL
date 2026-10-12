@@ -24,7 +24,13 @@ they name; an enum Nerve has no name for is a `C.int`; a variadic function
 pointer is left out; `C.` types read as the Nerve type they are, so
 messages name `int64`. `stdio.h` now gives all 81 of its functions and
 `math.h` all 178. `examples/c_types.nrv`, reject tests `c_type_unknown`,
-`c_type_needs_cnc`, `c_enum_param_number`.
+`c_type_needs_cnc`, `c_enum_param_number`. Compiler claude, comparing
+Synapse with the oracle over nine headers, found four oracle bugs, fixed:
+Clang's own built-in declarations put `unsigned long` over a header's
+`size_t` (the header is now read with `-fno-builtin`); a function marked
+`__attribute__((noreturn))` was left out (`abort`, `_Exit`); a `typedef`
+of a struct pointer (`pthread_t`) became an opaque struct of that name;
+and a header's last struct came through opaque however whole it was.
 
 ### 2026-10-12 — Regrouping the lobes by expertise: IEG and TAS are dissolved into the Brainstem (owner: a)
 
