@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-12 — Why Nerve is called Nerve (owner)
+
+Asked "What Nerve called Nerve?", design claude gave what the record held
+(the 2026-10-08 brainstorm: one syllable, no language by the name, the
+body theme carried on). The owner gave the reason: "Nerve is named Nerve,
+because its syntax is meant to be easily read by the readers, and Cortex
+is wired into you, you can't remove it. Or else, Nerve isn't Nerve
+anymore." So the name stands for two things that make Nerve itself:
+**syntax meant to be easily read**, and **Cortex, which cannot be
+removed**; a Nerve without either is not Nerve.
+
 ### 2026-10-12 — A bounded type labels its bounds, and a side left out is the type's own limit: `int32[min 1]` (owner: a)
 
 Building `int32[min 0, max 100]`, design claude found 2026-09-23 had made
