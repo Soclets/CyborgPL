@@ -4799,7 +4799,12 @@ impl<'p> Interp<'p> {
                 None => return rt(line, format!("{sname} is missing `{}`: every field must be given — there are no zero values", f.name)),
             };
             if given.iter().filter(|(k, _)| k == &f.name).count() > 1 { return rt(line, format!("`{}` is given twice", f.name)); }
-            let (v, prov) = self.bracket(b, line)?;
+            // the field's type is its value's context, as a declared variable's is: `price = 0.45` into a
+            // `deci64` field is a deci
+            let saved = std::mem::replace(&mut self.expected, Some(f.ty.clone()));
+            let r = self.bracket(b, line);
+            self.expected = saved;
+            let (v, prov) = r?;
             match prov {
                 Prov::Bare(n) => return rt(line, format!("bare '{n}' as field `{}`: say `give '{n}'` or `copy '{n}'`", f.name)),
                 Prov::Borrowed(..) => return rt(line, format!("a struct owns its fields; `{}` cannot hold a lend", f.name)),
@@ -4834,7 +4839,10 @@ impl<'p> Interp<'p> {
             (Some(t), None) => return rt(line, format!("`{tname}.{case}` carries a {}: `{tname}.{case}[…]`", ty_name(t))),
             (Some(t), Some(b)) => {
                 if b.values.len() != 1 { return rt(line, format!("`{tname}.{case}` carries one value")); }
-                let (v, prov) = self.bracket(b, line)?;
+                let saved = std::mem::replace(&mut self.expected, Some(t.clone()));
+                let r = self.bracket(b, line);
+                self.expected = saved;
+                let (v, prov) = r?;
                 match prov {
                     Prov::Bare(n) => return rt(line, format!("bare '{n}' as the data of `{case}`: say `give '{n}'` or `copy '{n}'`")),
                     Prov::Borrowed(..) => return rt(line, "an enum owns its data; it cannot hold a lend"),

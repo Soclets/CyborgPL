@@ -5,6 +5,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-12 — A long example, `examples/corner_shop.nrv`; and an oracle bug: a struct field's type was not its value's context
+
+The owner, through website claude: "Msg design claude for it to write a
+500+ LOC Nerve example, and msg you back to deploy on website". Written:
+`examples/corner_shop.nrv`, a day at a corner shop, 668 lines, 504 of them
+code, using only decided syntax and run by the oracle (`corner_shop.out`):
+structs and enums with data, `match` giving a value (`is`), failures and
+`otherwise`, the ownership verbs, generics with an interface, functions as
+values, a type's own iterator (`Ticket.next`), range types with labelled
+bounds, counting loops with `before`, labelled slices, consts at the top
+and in bodies, maps, `concur` and channels, `deci64` money, `print.useful`
+/ `stored` / `format` and `cord::format`. Writing it found an oracle bug,
+fixed: a literal given to a struct field or an enum case's data did not
+take the field's type as its context (`Price[amount = 0.45]` with a
+`deci64` field was refused as a bin), though `types.md` makes a literal
+take its context's family and a declared variable's type already was one;
+`examples/deci_field_context.nrv`. Noted, not changed: `cord::round` takes
+only a bin, so the example keeps money exact and rounds only when it
+prints (`{:.2}`).
+
 ### 2026-10-12 — Good practice 7: a public Neuron states its limits in its signatures (owner: b)
 
 The owner, through website claude: "Good practice has outdated syntax".

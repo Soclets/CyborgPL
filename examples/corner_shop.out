@@ -1,0 +1,129 @@
+Corner Shop, open 8:00 to 20:00
+
+today's prices:
+  apple      fresh        0.45
+  banana     fresh        0.30
+  milk       fresh        1.20
+  bread      bakery       2.10
+  croissant  bakery       1.35
+  rice       pantry       3.80
+  beans      pantry       0.95
+  coffee     pantry       6.50
+  soap       household    1.75
+  candles    household    4.20
+
+open for 12 hours
+
+(order for Gus skipped: cannot read "apple two")
+
+--- receipt #101 for Ann ---
+  apple      x 6      2.70
+  bread      x 1      1.68
+  milk       x 2      2.40
+  total              6.78
+  paid by cash
+
+--- receipt #102 for Bo ---
+  coffee     x 2     13.00
+  croissant  x 4      4.32
+  total             17.32
+  paid by card ending 4242
+
+--- receipt #103 for Cy ---
+  rice       x 1      3.80
+  beans      x 3      2.85
+  soap       x 2      3.50
+  candles    x 1      4.20
+  discount 10%
+  total             12.92
+  paid by voucher, then 7.92 in cash
+
+--- receipt #104 for Dee ---
+  banana     x12      3.60
+  milk       x 1      1.20
+  total              4.80
+  paid by card ending 4242
+
+--- receipt #105 for Eli ---
+  sorry, Eli: not enough coffee
+
+--- receipt #106 for Fay ---
+  sorry, Fay: we do not sell pineapple
+
+--- receipt #107 for Hal ---
+  candles    x 2      8.40
+  bread      x 2      3.36
+  croissant  x 2      2.16
+  discount 25%
+  total             10.44
+  paid by card ending 4242
+
+
+=== Corner Shop, end of day ===
+orders served: 5, units sold: 41
+takings: 52.26
+biggest baskets (units): [13, 9, 7]
+best sale: #102, Bo, 17.32
+by aisle, at list price:
+  fresh          9.90
+  bakery        14.40
+  pantry        19.65
+  household     16.10
+reorder: croissant (0 left), coffee (3 left), candles (1 left)
+loyalty points:
+  Ann    18
+  Bo     12
+  Cy     14
+  Dee    26
+  Hal    12
+on the shelves tonight: fresh 61, bakery 5, pantry 33, household 8
+
+tomorrow's delivery:
+  apple       1 case(s)     2.70
+  banana      2 case(s)     3.60
+  milk        1 case(s)     7.20
+  bread       1 case(s)     7.56
+  croissant   1 case(s)     4.86
+  rice        1 case(s)    27.36
+  beans       1 case(s)     6.84
+  coffee      1 case(s)    46.80
+  soap        1 case(s)     4.20
+  candles     1 case(s)    10.08
+  to the supplier         121.20
+
+customers by the hour:
+   8:00 **
+   9:00 **
+  10:00 **
+  11:00 **
+  12:00 *********
+  13:00 ******
+  14:00 **
+  15:00 **
+  16:00 **
+  17:00 *********
+  18:00 ******
+  19:00 **
+  busiest from 12:00
+
+this week:
+  Mon  24  ######
+  Tue  28  #######
+  Wed  32  ########
+  Thu  36  #########
+  Fri  40  ##########
+  Sat  44  ###########
+  Sun  18  #####
+  222 customers, 31.7 a day, 44 on the busiest
+  weekdays 160, weekend 62
+
+searching the catalog:
+  starting with "b": banana, bread, beans
+  starting with "c": croissant, coffee, candles
+  nothing starts with "z"
+  containing "an": banana, croissant, beans, candles
+  the sign over the door says CORNER SHOP
+
+0.10 plus 0.20, stored exactly as money: 0.30
+0.1 plus 0.2, stored as a binary float: 0.3000000000000000444089209850062616169452667236328125
+good night from the Corner Shop
