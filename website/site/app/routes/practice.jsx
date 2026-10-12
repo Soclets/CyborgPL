@@ -3,7 +3,7 @@ import Code from "../components/Code.jsx";
 import Md from "../components/Md.jsx";
 import { seo } from "../lib/seo.js";
 
-export const meta = () => seo({ title: "Good practice · Nerve", description: "How Nerve is meant to be written: twelve practices its rules make easy. Advice, not rules.", path: "/good-practice" });
+export const meta = () => seo({ title: "Good practice · Nerve", description: "How Nerve is meant to be written: the practices its rules make easy. Advice, not rules.", path: "/good-practice" });
 
 export async function loader() {
   const { readPractice } = await import("../lib/practice.server.js");
