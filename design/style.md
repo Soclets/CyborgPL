@@ -42,9 +42,14 @@ recommended.
    `no_check` C call, and everything else calls that safe wrapper. The
    build's `no_check` list stays short enough to review.
 6. **`NO_FUCKING_CHECKS` only after measuring.** Never a first resort.
-7. **`#strict` for public Neurons, plain files for programs.** A library's
-   safety should not depend on who calls it, and `#strict` makes sure it
-   does not.
+7. **A public Neuron states its limits in its signatures** (owner,
+   2026-10-12: "(b), if it's actually valid"; `#strict` did this until
+   2026-10-07). A library's safety should not depend on who calls it, and
+   Cortex proves a site partly from its callers. So range types on public
+   parameters (`'p': int32[min 0, max 100]`): the function is proven from
+   its signature, and a bad value is refused at the caller's line. And
+   lifetime groups (`@x`) on returned borrows even where they could be
+   inferred, so a reader sees what the result depends on.
 
 ## Ownership and failures
 

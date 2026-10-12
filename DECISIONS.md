@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-12 — Good practice 7: a public Neuron states its limits in its signatures (owner: b)
+
+The owner, through website claude: "Good practice has outdated syntax".
+`design/style.md` was brought to today's spellings, and practice 7
+("`#strict` for public Neurons") had lost its tool. Offered (a) dropping
+it, (b) rewording it to what is left of the idea, recommended; the owner:
+"(b), if it's actually valid". Checked: `check` on a library's sites adds
+little, a final build refusing every unproven site anyway, so design
+claude dropped that part; what holds is that Cortex proves a site partly
+from its callers, so range types on public parameters make a function
+proven from its signature and refuse a bad value at the caller's line
+(run in the oracle), and a lifetime group may be written where it could be
+inferred (run too). So **practice 7: range types on public parameters,
+and `@x` on returned borrows even where inferred**. Advice, not a rule.
+
 ### 2026-10-12 — Why Nerve is called Nerve (owner)
 
 Asked "What Nerve called Nerve?", design claude gave what the record held
