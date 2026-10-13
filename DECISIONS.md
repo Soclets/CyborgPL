@@ -88,7 +88,16 @@ line above the member, which then has no name: `as "times_" ++
 to.stored.str.utf8['n'];` then `['x': int32] -> int32 { … }`** (owner:
 "(b)"), over (a) `_ as …` in the name's place; design claude recommended
 (b): a long name expression stays readable, and the signature under it
-looks like any other member's.
+looks like any other member's. The owner: "`as if` reads a bit weird".
+Design claude then found its own `as if … else …` examples invalid: an
+`if` gives no value in Nerve ("`if` is a keyword and cannot appear inside
+a value"), and `match` matches only enum cases, so a name worked out with
+logic calls a small function, run while generating (`named
+size_name['n'];`, the function using ordinary `if`s), and `as if` can
+never appear. Offered (a) keeping `as`, (b) `named`, recommended (`as`
+reads as a conversion elsewhere, Rust's `x as u8`); the owner: "(b), if
+it's correct" (it is: `named` had no meaning in Nerve). So **the line is
+`named "times_" ++ to.stored.str.utf8['n'];` or `named size_name['n'];`**.
 
 ### 2026-10-12 — A whole number into a `deci` asks for `otherwise` only when it could have too many digits, worked out from its operands (owner: a)
 
