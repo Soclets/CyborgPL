@@ -35,7 +35,13 @@ names. And when it needs separating, say FreeOp. You do free_op". So **the
 table is `reserved::table[ … ]`, its entries `reserved::old[ … ]` and
 `reserved::free_op[ … ]`: lowercase, words joined by `_`**, as the
 language's own names are (the capitals left: a language's name, `C`, `ASM`;
-`MAIN`; `NO_FUCKING_CHECKS`). Not relayed: the other sessions are
+`MAIN`; `NO_FUCKING_CHECKS`). Asked the twin, the manifest's
+`kin::Manifest`, `kin::Target`, `kin::Dep`, `kin::Lobe`, `kin::Power`,
+`kin::Installed` (114 files), design claude recommending lowercase, the
+old names refused naming the new, as `cores` names `lobes`, the table's
+first entries; the owner: "Yeah." So **`kin::manifest`, `kin::target`,
+`kin::dep`, `kin::lobe`, `kin::power`, `kin::installed`**. Not built yet.
+Not relayed: the other sessions are
 paused for the day, and Synthia since 2026-10-08.
 
 ### 2026-10-13 — Oracle bug: `op &` and `op !` were refused as old spellings; fixed (owner: "fix now")
