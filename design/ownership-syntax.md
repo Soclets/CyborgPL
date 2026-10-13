@@ -35,8 +35,10 @@ process[lend.mut 's'];   # temporary exclusive access, may modify
   inside the function cannot break callers far away, and the compiler can
   tell LLVM the two never overlap.
 
-**Alternative spelling (owner, 2026-09-21): `&` for `lend` / `lent`, `&mut`
-for `lend.mut` / `lent.mut`**, on both sides of a call —
+**Removed 2026-10-07** (owner: "MTM is gone."): `&` and `&mut` are refused,
+the message naming `lend` / `lent` (and `and.bit` for a bitwise and). What
+follows is their history. **Alternative spelling (owner, 2026-09-21): `&` for
+`lend` / `lent`, `&mut` for `lend.mut` / `lent.mut`**, on both sides of a call —
 `count[&'s']`, `process[&mut 's']`, `fn count [&'text': str.utf8]`,
 `fn edit [&mut 'text': str.utf8]`, `fn[&str.utf8] --> int32`. Same
 meaning, same rules; a program may mix the two. Since 2026-10-02 it covers every
