@@ -5,6 +5,32 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — A `collection` writes a function and its dot narrowings in one block; a narrowing that only fills arguments is one line (owner; being designed, not built)
+
+Asked "How do you create a neuron's `name::cum` and its dot narrowings?"
+(today: `prefix = "name"` in `Kinesin.nrp`, `pub bare.never fn cum`, and
+the narrowings as a module `cum` (a `cum.nrv` file or a `module cum { }`
+block) or, since 2026-10-09, `pub bare.never fn cum.quick` directly; a
+`bare.` mark on every `pub` item, or once per kind, `bare.never [fn];`),
+the owner: "I kinda want a special thingy for making those easier", then
+"Like, easier & more complex stuff". Offered ideas (one body with the
+narrowing as a value, presets, narrowings generated while building), the
+owner sketched "`collection "cum" { bare = never; cum ['x': int32, 'step':
+int32] -> int32 { … } }` … maybe with generation stuff too". Design claude
+filled it out (`cum` bare, not quoted, as a function's name is; `bare.never;`
+as the mark is spelled elsewhere; the main function unnamed in the block;
+members `quick […] { … }` reached as `cum.quick`; a generated part shown);
+the owner: "That seems good, but when the dot narrowings are basically the
+same thing. Is there a way to write shorter?" So **a narrowing that only
+fills arguments of the main function is one line, `quick ['step' = 2];`**
+(owner: "(a)"), `name::cum.quick['x']` being `cum['x', 2]`, several
+arguments allowed; over (b) a table, `by 'step' { quick = 2  slow = 3 }`;
+design claude recommended (a). Not yet settled: the rest of the
+`collection` (as sketched: `pub collection cum { bare.never; [ … ] -> T {
+… } quick [ … ] -> T { … } quick ['step' = 2]; }`, which the owner called
+"good"), and generation, which would be Nerve's first code written while
+building.
+
 ### 2026-10-12 — A whole number into a `deci` asks for `otherwise` only when it could have too many digits, worked out from its operands (owner: a)
 
 Compiler claude, building `corner_shop`: `to.deci64['sold']`, `'sold'` a
