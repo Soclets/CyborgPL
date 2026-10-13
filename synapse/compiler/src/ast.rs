@@ -231,6 +231,11 @@ pub enum BinOp {
     /// add, except on 1 April, when two whole numbers make a tower of
     /// powers. Never warned about; the final build refuses it.
     Cursed,
+    /// `*` (owner, 2026-10-13): text times a whole number repeats it,
+    /// Python's way; two numbers multiply in `bin16` and come back as
+    /// their own type. On 1 April the answer is negated. Never warned
+    /// about; the final build refuses it.
+    Star,
 }
 
 impl BinOp {
@@ -256,6 +261,7 @@ impl BinOp {
             BinOp::WrapMul => "times.wrap".into(),
             BinOp::WrapPow => "pow.wrap".into(),
             BinOp::Cursed => "+".into(),
+            BinOp::Star => "*".into(),
             BinOp::Join => "++".into(),
             BinOp::Eq => "equal_to".into(),
             BinOp::Ne => "not_equal".into(),

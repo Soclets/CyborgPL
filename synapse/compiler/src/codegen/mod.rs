@@ -1590,6 +1590,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     (BasicValueEnum::IntValue(i), BasicTypeEnum::FloatType(ft)) if !from_signed => Some(self.builder.build_unsigned_int_to_float(i, ft, "conv").ok()?.into()),
                     (BasicValueEnum::IntValue(i), BasicTypeEnum::FloatType(ft)) => Some(self.builder.build_signed_int_to_float(i, ft, "conv").ok()?.into()),
                     (BasicValueEnum::FloatValue(x), BasicTypeEnum::FloatType(ft)) => Some(self.float_cast(x, ft)?.into()),
+                    // A whole bin back to an integer: `*`'s `bin16` product
+                    // of two whole numbers (owner, 2026-10-13), whole and
+                    // inside every integer window by then.
+                    (BasicValueEnum::FloatValue(x), BasicTypeEnum::IntType(it)) => Some(self.builder.build_float_to_signed_int(x, it, "whole").ok()?.into()),
                     _ => {
                         self.cannot("this conversion has no shape in the generated code yet", None);
                         None
@@ -3367,6 +3371,21 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             // `on.machine.chip X` (owner, 2026-10-06): the runtime asks the
             // chip, as the oracle does.
+            // `*` on text (owner, 2026-10-13): Axon repeats it.
+            Op::StrRepeat => {
+                let text = self.operand(fi, args.first()?, slots)?;
+                let count = self.operand(fi, args.get(1)?, slots)?.into_int_value();
+                let april = self.operand(fi, args.get(2)?, slots)?.into_int_value();
+                let shape = match self.ty(dest_ty.as_ref()?)? {
+                    BasicTypeEnum::StructType(s) => s,
+                    _ => return None,
+                };
+                let (p, len) = self.text_parts_pub(text)?;
+                let out = self.stack(shape, "repeated").ok()?;
+                let f = self.rt("cyborg_str_repeat");
+                self.builder.build_call(f, &[out.into(), p.into(), len.into(), count.into(), april.into()], "").ok()?;
+                Some(Some(self.builder.build_load(shape, out, "text").ok()?))
+            }
             Op::AprilFirst => {
                 let f = self.rt("cyborg_april_first");
                 let v = basic_result(self.builder.build_call(f, &[], "april").ok()?)?;

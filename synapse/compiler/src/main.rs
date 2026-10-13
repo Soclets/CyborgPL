@@ -503,8 +503,9 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     // `+` (owner, 2026-10-13: "No warnings. Until final build"): the
     // working build says nothing, and the final build refuses the first.
     if final_build {
-        if let Some(at) = program.cursed.iter().min_by_key(|s| (s.file.0, s.start)) {
-            return Err(Diagnostic::error("a final build refuses `+`: add with `plus`, and join text with `++`").at(*at).render(&sources));
+        if let Some((at, star)) = program.cursed.iter().min_by_key(|(s, _)| (s.file.0, s.start)) {
+            let what = if *star { "a final build refuses `*`: multiply with `times`" } else { "a final build refuses `+`: add with `plus`, and join text with `++`" };
+            return Err(Diagnostic::error(what).at(*at).render(&sources));
         }
     }
     let mut mir = brainstem::mir::build::build(program);

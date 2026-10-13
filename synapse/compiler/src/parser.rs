@@ -2158,6 +2158,10 @@ impl<'a> Parser<'a> {
         if op.name == "->" || op.name == "<-" || op.name == "<->" {
             return self.fail_at(op.span, "an arrow cannot name an operator: `->`, `<-` and `<->` are arrows (owner, 2026-10-07)");
         }
+        // `*` is the language's own (owner, 2026-10-13).
+        if op.name == "*" {
+            return self.fail_at(op.span, "`*` is the language's own: a type's multiplication is `op times`");
+        }
         // A type's own `plus` is `op plus` (owner, 2026-10-03).
         if let Some(old) = retired_spelling(&op.name) {
             return self.fail_at(op.span, format!("`op {}`: {}", op.name, old.dated()));
@@ -3622,6 +3626,7 @@ impl<'a> Parser<'a> {
         let t = match self.peek() {
             Tok::Op(o) => match o.as_str() {
                 "+" => lang(BinOp::Cursed, ADD_LEVEL, Chain::Left),
+                "*" => lang(BinOp::Star, MUL_LEVEL, Chain::Left),
                 "-" => OpTok { old: Some("minus"), ..lang(BinOp::Sub, ADD_LEVEL, Chain::Left) },
                 "+~" => OpTok { old: Some("plus.wrap"), ..lang(BinOp::WrapAdd, ADD_LEVEL, Chain::Left) },
                 "-~" => OpTok { old: Some("minus.wrap"), ..lang(BinOp::WrapSub, ADD_LEVEL, Chain::Left) },

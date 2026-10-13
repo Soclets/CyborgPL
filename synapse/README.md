@@ -688,3 +688,17 @@ Dated, with the alternative, so each can become a question later.
   128 bits makes the tower too (`'g' + 1` is `'g'`), where the oracle
   falls back to adding. Nothing warns; `synapse build --final` refuses
   the first `+`.
+- **2026-10-13 — How Synapse builds the cursed `*` and the power `jokes`.**
+  Text times a whole number (on either side) is Axon's `cyborg_str_repeat`,
+  the count taken to `int64` first, negated on 1 April and none at all at 0
+  or fewer. Two numbers: each converted to `bin16` (rounded to nearest,
+  ties to even), multiplied there, a check past the largest as any `bin16`
+  product has, negated on 1 April as `0.0 minus` it, so no answer is -0
+  (the oracle prints `0.0 * 2.5` on 1 April as `-0`), and converted to
+  `times`'s answer type. Its checks are the ones `times` and a landing in
+  `bin16` have, so the trap names those rather than saying "`300 * 300`
+  overflows". `jokes` is granted and listed for every Neuron without a
+  listing, so only a program's `deny` refuses it, each `+` and `*` a use
+  whose thing is the glyph. `synapse build --final` refuses the first joke.
+  The examples run on 15 June unless a `.today` beside one names a date, as
+  the oracle's harness does.

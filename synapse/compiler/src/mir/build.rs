@@ -1453,6 +1453,9 @@ impl<'a> FnBuilder<'a> {
                 if *op == BinOp::Cursed {
                     return self.cursed_plus(l, r, lhs, rhs, result, span);
                 }
+                if *op == BinOp::Star {
+                    return self.cursed_star(l, r, lhs, rhs, result, span);
+                }
                 self.binary_rvalue(op, l, r, lhs, rhs, result, span)
             }
             hir::ExprKind::UserOp { inst, lhs, rhs } => {
@@ -1637,6 +1640,54 @@ impl<'a> FnBuilder<'a> {
         self.terminate(Terminator::Goto(join));
         self.cur = join;
         Rvalue::Use(Operand::Read(Place::local(dest)))
+    }
+
+    /// `*` (owner, 2026-10-13). Text times a whole number repeats it
+    /// (Axon's, which also hears whether it is 1 April, when the count is
+    /// negated and the text comes back empty). Two numbers: each rounded to
+    /// `bin16`, a site where it rounds past the largest, then multiplied
+    /// there, past the largest a site too, negated on 1 April, and the
+    /// answer taken back to the operands' own type.
+    fn cursed_star(&mut self, l: Operand, r: Operand, lhs: &hir::Expr, rhs: &hir::Expr, result: Ty, span: SpanId) -> Rvalue {
+        let april = self.temp(&Ty::Bool, span);
+        self.push(StmtKind::Op { dest: Some(Place::local(april)), op: Op::AprilFirst, args: Vec::new() }, span);
+        let april = Operand::Read(Place::local(april));
+        if result.is_text() {
+            let (text, count, count_ty) = if self.resolve_ty(&lhs.ty).is_text() { (l, r, self.resolve_ty(&rhs.ty)) } else { (r, l, self.resolve_ty(&lhs.ty)) };
+            let n = Ty::int(true, 64);
+            let count = if count_ty.base() == n.base() {
+                count
+            } else {
+                self.narrow_arg(&count, &count_ty, &n, span);
+                self.into_temp(Rvalue::Convert { to: n.clone(), operand: count, useful: false, bits: false }, &n, span)
+            };
+            let t = self.temp(&result, span);
+            self.push(StmtKind::Op { dest: Some(Place::local(t)), op: Op::StrRepeat, args: vec![text, count, april] }, span);
+            // A new text, owned: moved to where it goes, never copied.
+            return Rvalue::Use(Operand::Move(Place::local(t)));
+        }
+        let half = Ty::Bin(crate::types::BinW::Fixed(16));
+        let mut sides = Vec::new();
+        for (side, of) in [(l, lhs), (r, rhs)] {
+            let from = self.resolve_ty(&of.ty);
+            self.narrow_arg(&side, &from, &half, span);
+            sides.push(self.into_temp(Rvalue::Convert { to: half.clone(), operand: side, useful: false, bits: false }, &half, span));
+        }
+        let (a, b) = (sides.remove(0), sides.remove(0));
+        self.binary_sites(&BinOp::Mul, &a, &b, &half, span);
+        let p = self.into_temp(Rvalue::Binary { op: BinOp::Mul, lhs: a, rhs: b }, &half, span);
+        let dest = self.temp(&half, span);
+        let (neg_b, keep_b, join) = (self.new_block(), self.new_block(), self.new_block());
+        self.terminate(Terminator::If { cond: april, then: neg_b, else_: keep_b });
+        self.cur = neg_b;
+        // `0.0 minus`: no answer is -0.
+        self.assign(Place::local(dest), Rvalue::Binary { op: BinOp::Sub, lhs: Operand::Const(Const::Bin("0.0".into())), rhs: p.clone() }, span);
+        self.terminate(Terminator::Goto(join));
+        self.cur = keep_b;
+        self.assign(Place::local(dest), Rvalue::Use(p), span);
+        self.terminate(Terminator::Goto(join));
+        self.cur = join;
+        Rvalue::Convert { to: result, operand: Operand::Read(Place::local(dest)), useful: false, bits: false }
     }
 
     /// The check sites a binary operation carries (`precog.md`).

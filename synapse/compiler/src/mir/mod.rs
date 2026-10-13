@@ -180,6 +180,10 @@ pub enum Op {
     /// Whether it is 1 April by the machine's own date, when `+` on two
     /// whole numbers is `xxx` (owner, 2026-10-13).
     AprilFirst,
+    /// `*` on text (owner, 2026-10-13): the text, a count (`int64`), and
+    /// whether it is 1 April, when the count is negated; 0 or fewer times
+    /// is empty, as Python's is.
+    StrRepeat,
     /// `a xxx b`, the tower of powers, on the tower's own width: `a` and
     /// `b` taken there, the answer there too, past every window when it
     /// is past every integer, for the `Tower` site to stop.

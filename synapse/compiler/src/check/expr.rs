@@ -927,46 +927,6 @@ impl Checker {
     }
 
     fn binary(&mut self, ctx: &mut FnCtx, op: &BinOp, op_span: Span, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
-        // `+` (owner, 2026-10-13: "For the love of the game, no warnings"):
-        // with text on either side it joins, a number as `print.useful`
-        // shows it; two numbers are `plus`, two whole ones marked so that on
-        // 1 April they make the tower instead.
-        if *op == BinOp::Cursed {
-            self.cursed.push(op_span);
-            let l = self.expr(ctx, lhs)?;
-            let r = self.expr(ctx, rhs)?;
-            let (lt, rt) = (self.resolve(&l.ty), self.resolve(&r.ty));
-            if lt.is_text() || rt.is_text() {
-                let mut sides = Vec::new();
-                for (e, t, at) in [(l, lt.clone(), lhs.span), (r, rt.clone(), rhs.span)] {
-                    let e = self.as_operand(ctx, e)?;
-                    if t.is_text() || t.is_char() {
-                        sides.push(e);
-                    } else if t.is_numeric() || matches!(t.base(), Ty::Bool) {
-                        let (es, ty) = (e.span, Ty::utf8());
-                        sides.push(Expr { kind: K::Conv { target: ty.clone(), expr: Box::new(e), otherwise: None, fails: Vec::new(), useful: true, bits: false, written: false }, ty, span: es });
-                    } else {
-                        return err(Diagnostic::error(format!("`+` joins text with text or a number, and this is {}", crate::types::a_type(&self.spell(&t)))).at(at));
-                    }
-                }
-                let enc = match (lt.base(), rt.base()) {
-                    (Ty::Str(e), _) if !matches!(e, Enc::Free(_)) => *e,
-                    (_, Ty::Str(e)) => *e,
-                    _ => Enc::Free(InferId(0)),
-                };
-                let r = sides.pop().unwrap();
-                let l = sides.pop().unwrap();
-                return Ok(Expr { kind: K::Binary { op: BinOp::Join, lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Str(enc), span });
-            }
-            let mut e = self.binary(ctx, &BinOp::Add, op_span, lhs, rhs, span)?;
-            let whole = self.resolve(&e.ty).is_int();
-            if let K::Binary { op: o, .. } = &mut e.kind {
-                if whole && *o == BinOp::Add {
-                    *o = BinOp::Cursed;
-                }
-            }
-            return Ok(e);
-        }
         // `plus.ieee`, `minus.ieee`, `times.ieee` (owner, 2026-10-07):
         // checked as the plain operator, then kept as IEEE's own answer.
         if matches!(op, BinOp::AddIeee | BinOp::SubIeee | BinOp::MulIeee | BinOp::ModIeee(_) | BinOp::PowIeee) {
@@ -1001,9 +961,18 @@ impl Checker {
             return err(Diagnostic::error(format!("`{}` is not defined for `{}`: declare `op {} ['a': {}, 'b': {}] -> …` to give it one", op.spelled(), self.spell(&lt), op.spelled(), self.spell(&lt), self.spell(&lt))).at(op_span));
         }
         let r = self.expr(ctx, rhs)?;
-        let mut rt = self.resolve(&r.ty);
-        let mut l = self.as_operand(ctx, l)?;
-        let mut r = self.as_operand(ctx, r)?;
+        let rt = self.resolve(&r.ty);
+        let l = self.as_operand(ctx, l)?;
+        let r = self.as_operand(ctx, r)?;
+        self.binary_checked(ctx, op, op_span, l, r, lt, rt, lhs, rhs, span)
+    }
+
+    /// A binary operator on its two operands, checked already.
+    #[allow(clippy::too_many_arguments)]
+    fn binary_checked(&mut self, ctx: &mut FnCtx, op: &BinOp, op_span: Span, mut l: Expr, mut r: Expr, lt: Ty, mut rt: Ty, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
+        if let BinOp::Cursed | BinOp::Star = op {
+            return self.cursed(ctx, op, op_span, l, r, lt, rt, lhs, rhs, span);
+        }
         // A comparison compares true values (owner, 2026-09-23), so a group
         // of bare numbers on either side is worked out exactly — not held at
         // `int64` beside another bare number (seed 439), nor squeezed into
@@ -1034,7 +1003,7 @@ impl Checker {
             return self.simd_binary(op, op_span, l, r, &lt, &rt, span);
         }
         match op {
-            BinOp::Cursed => unreachable!("`+` is checked above"),
+            BinOp::Cursed | BinOp::Star => unreachable!("`+` and `*` are checked above"),
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_) => {
                 if lt.base() == &Ty::Duration || rt.base() == &Ty::Duration {
                     if !(lt.base() == &Ty::Duration && rt.base() == &Ty::Duration) || !matches!(op, BinOp::Add | BinOp::Sub) {
@@ -1265,6 +1234,73 @@ impl Checker {
             }
             BinOp::Custom(_) | BinOp::AddIeee | BinOp::SubIeee | BinOp::MulIeee | BinOp::ModIeee(_) | BinOp::PowIeee => unreachable!(),
         }
+    }
+
+    /// `+` and `*`, the jokes (owner, 2026-10-13: "For the love of the
+    /// game, no warnings"), a use of the power `jokes` each. `+` with text
+    /// on either side joins, a number as `print.useful` shows it; `*` with
+    /// text on one side and a whole number on the other repeats it. Two
+    /// numbers are `plus` / `times`, marked so the rest is Synapse's: on 1
+    /// April two whole numbers make the tower under `+`, and `*` works in
+    /// `bin16`, negated then.
+    #[allow(clippy::too_many_arguments)]
+    fn cursed(&mut self, ctx: &mut FnCtx, op: &BinOp, op_span: Span, l: Expr, r: Expr, lt: Ty, rt: Ty, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
+        let star = *op == BinOp::Star;
+        let glyph = op.spelled();
+        self.cursed.push((op_span, star));
+        self.power_use(ctx, &["jokes"], Some(glyph.clone()), format!("uses `{}`", glyph), op_span);
+        let family = |t: &Ty| -> String {
+            match t.base() {
+                Ty::Str(_) => "str".into(),
+                Ty::Int(_) => "integer".into(),
+                Ty::Bin(_) => "bin".into(),
+                Ty::Deci(_) => "deci".into(),
+                Ty::Brain => "brain16".into(),
+                Ty::Bool => "bool".into(),
+                Ty::Char(_) => "char".into(),
+                _ => self.spell(t),
+            }
+        };
+        let enc = match (lt.base(), rt.base()) {
+            (Ty::Str(e), _) if !matches!(e, Enc::Free(_)) => *e,
+            (_, Ty::Str(e)) => *e,
+            _ => Enc::Free(InferId(0)),
+        };
+        if star && (lt.is_text() || rt.is_text()) {
+            let count = if lt.is_text() { &rt } else { &lt };
+            if !(lt.is_text() ^ rt.is_text()) || !count.is_int() {
+                return err(Diagnostic::error(format!("`*` repeats text a whole number of times, not {} and {}", family(&lt), family(&rt))).at(op_span));
+            }
+            return Ok(Expr { kind: K::Binary { op: BinOp::Star, lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Str(enc), span });
+        }
+        if !star && (lt.is_text() || rt.is_text()) {
+            let mut sides = Vec::new();
+            for (e, t, at) in [(l, lt.clone(), lhs.span), (r, rt.clone(), rhs.span)] {
+                if t.is_text() || t.is_char() {
+                    sides.push(e);
+                } else if t.is_numeric() || matches!(t.base(), Ty::Bool) {
+                    let (es, ty) = (e.span, Ty::utf8());
+                    sides.push(Expr { kind: K::Conv { target: ty.clone(), expr: Box::new(e), otherwise: None, fails: Vec::new(), useful: true, bits: false, written: false }, ty, span: es });
+                } else {
+                    return err(Diagnostic::error(format!("`+` joins text with text or a number, and this is {}", crate::types::a_type(&self.spell(&t)))).at(at));
+                }
+            }
+            let r = sides.pop().unwrap();
+            let l = sides.pop().unwrap();
+            return Ok(Expr { kind: K::Binary { op: BinOp::Join, lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Str(enc), span });
+        }
+        if star && !(lt.is_numeric() && rt.is_numeric()) {
+            return err(Diagnostic::error(format!("`*` multiplies numbers, not {} and {}", family(&lt), family(&rt))).at(op_span));
+        }
+        let plain = if star { BinOp::Mul } else { BinOp::Add };
+        let mut e = self.binary_checked(ctx, &plain, op_span, l, r, lt, rt, lhs, rhs, span)?;
+        let ty = self.resolve(&e.ty);
+        if let K::Binary { op: o, .. } = &mut e.kind {
+            if *o == plain && (star || ty.is_int()) && !ty.is_simd() {
+                *o = op.clone();
+            }
+        }
+        Ok(e)
     }
 
     /// "Wrapping wraps at the size of its values" (`operators.md`): for an

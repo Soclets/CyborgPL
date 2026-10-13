@@ -410,6 +410,26 @@ pub unsafe extern "C" fn cyborg_str_concat(out: *mut Text, ap: *const u8, alen: 
     (*out).len = total;
 }
 
+/// `*` on text (owner, 2026-10-13): the text `count` times, Python's
+/// way, none at all for 0 or fewer; on 1 April the count is negated.
+///
+/// # Safety
+/// `p` must point at `len` readable bytes, and `out` at a text to fill.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_str_repeat(out: *mut Text, p: *const u8, len: u64, count: i64, april: bool) {
+    let len = len & !STATIC;
+    let n = if april { count.saturating_neg() } else { count }.max(0) as u64;
+    let total = len.checked_mul(n).unwrap_or_else(|| out_of_memory());
+    let q = cyborg_alloc(total);
+    if len != 0 {
+        for i in 0..n {
+            memcpy(q.add((i * len) as usize), p, len as usize);
+        }
+    }
+    (*out).ptr = q;
+    (*out).len = total;
+}
+
 /// Bytes read as UTF-8 (owner, 2026-09-30): a new text holding them, and
 /// 0; or 1, `not_utf8`, with nothing made.
 ///

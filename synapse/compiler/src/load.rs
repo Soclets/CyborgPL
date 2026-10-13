@@ -1287,7 +1287,7 @@ fn read_power(e: &crate::ast::Expr) -> Result<ReadPower> {
     }
     // The powers there are (owner, 2026-10-07): Signatar's three and their
     // narrowings, IEG's vouching, and the extension powers built so far.
-    let known: &[&[&str]] = &[&["inline_assembly"], &["c_calls"], &["c_calls", "functions"], &["c_calls", "variables"], &["raw_memory"], &["raw_memory", "read"], &["raw_memory", "write"], &["raw_memory", "cast"], &["vouch"], &["vouch", "c"], &["operators_on_builtin_types"], &["prefix_operators"]];
+    let known: &[&[&str]] = &[&["inline_assembly"], &["c_calls"], &["c_calls", "functions"], &["c_calls", "variables"], &["raw_memory"], &["raw_memory", "read"], &["raw_memory", "write"], &["raw_memory", "cast"], &["vouch"], &["vouch", "c"], &["operators_on_builtin_types"], &["prefix_operators"], &["jokes"]];
     if !known.iter().any(|k| k.iter().copied().eq(power.path.iter().map(String::as_str))) {
         return err(Diagnostic::error(format!("there is no power `{}`: the powers are {}", power.path.join("."), known.iter().map(|k| format!("`{}`", k.join("."))).collect::<Vec<_>>().join(", "))).at(e.span));
     }

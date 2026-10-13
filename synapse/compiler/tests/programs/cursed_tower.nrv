@@ -1,5 +1,6 @@
 # `+` (owner, 2026-10-13): two whole numbers add, except on 1 April, when
-# they make `xxx`, a tower of powers; with text it joins. Exits 7, and 28
+# they make `xxx`, a tower of powers; with text it joins. `*` repeats text,
+# none at all on 1 April. Exits 7, and 28
 # with `SYNAPSE_TODAY=04-01` (`plus_is_a_tower_on_1_april`).
 extern.C fn exit ['code': int32];
 
@@ -10,6 +11,7 @@ MAIN {
     let 't' := 'b' + 'c';
     let 'z' := 'zero' + 'c';
     let 'j' := "n" + 'b';
-    cord::print.useful['t', " ", 'z', " ", 'j', newln];
+    let 'rep' := "ab" * 'c';
+    cord::print.useful['t', " ", 'z', " ", 'j', " ", 'rep', "|", newln];
     no_check my.exit[to.int32['t' plus 'z']];
 }

@@ -56,7 +56,7 @@ pub struct Program {
     pub const_values: Vec<hir::Expr>,
     pub notes: Vec<Diagnostic>,
     /// Where `+` is written, for the final build to refuse.
-    pub cursed: Vec<crate::source::Span>,
+    pub cursed: Vec<(crate::source::Span, bool)>,
 }
 
 /// One use of a power, as the checker meets it (`cca/PLUGINS.md` §4).
@@ -96,7 +96,7 @@ pub struct Checker {
     /// nothing is generated for them.
     pub std_stubs: bool,
     /// Where `+` is written (owner, 2026-10-13): the final build refuses it.
-    pub cursed: Vec<crate::source::Span>,
+    pub cursed: Vec<(crate::source::Span, bool)>,
     /// A shift, `not.bit` or wrapping operator whose operands are all bare
     /// literals takes its width from where the value goes (owner,
     /// 2026-09-23). Each one's width is a variable a typed place binds;
@@ -940,7 +940,13 @@ impl Checker {
         // operator powers since IEG joined it, owner 2026-10-12); a Neuron
         // still lists each it uses.
         let grants: Vec<Grant> = ["inline_assembly", "c_calls", "raw_memory", "vouch", "operators_on_builtin_types", "prefix_operators"].iter().map(|p| Grant { power: Power::new(p), by: "Brainstem".into(), to: None }).collect();
-        let limb = Limb { name: lp.prefix.clone(), id: None, lists: lp.lists.clone(), grants };
+        // Jokes (`+`, `*`; owner, 2026-10-13) are granted and never listed,
+        // since a listing would tell: only a program's `deny` takes them.
+        let mut lists = lp.lists.clone();
+        lists.push(Power::new("jokes"));
+        let mut grants = grants;
+        grants.push(Grant { power: Power::new("jokes"), by: "Brainstem".into(), to: None });
+        let limb = Limb { name: lp.prefix.clone(), id: None, lists, grants };
         let used = Use { limb: lp.prefix.clone(), path: u.path.clone(), thing: u.thing.clone(), doing: u.doing.clone(), at: u.span.start };
         let who = if lp.is_program { "this Neuron".to_string() } else { format!("`{}`", lp.prefix) };
         let top = &u.path[0];
