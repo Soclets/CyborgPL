@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-13 — Checked manual memory: a handle stands on its own; Nerve ships an allocator only for targets with an OS; each allocation names its allocator (owner)
+### 2026-10-13 — Checked manual memory: `manual[T]` / `manual.mut[T]`, a handle standing on its own; Nerve ships an allocator only for targets with an OS; each allocation names its allocator (owner)
 
 Designing the 2026-10-13 direction. Offered where the memory lives: (a) one
 global heap, a handle working on its own, (b) pools, owned values of one
@@ -88,9 +88,17 @@ type written for fields, parameters and typed variables: a tree's
 `malloc`), "What type is manual?" and "Like bin16?" (a pointer type, as
 `ptr[T]` is, not a number: a plain value of an address and a generation,
 copied freely, not owned, no conversion to or from an integer), and "Is it
-Node inside, or a type inside?" (a type). Not yet asked: the rest of the
-spelling (allocating, freeing, the alive test) and whether a handle may
-write.
+Node inside, or a type inside?" (a type). Not yet asked: the rest of the spelling (allocating, freeing,
+the alive test) and whether a handle may write.
+
+Asked whether a handle may write: (a) one kind, every handle reading and
+writing, as C; (b) two, `manual[T]` reading only and `manual.mut[T]` also
+writing, as `ptr` / `ptr.mut` and `lend` / `lend.mut`, a writing handle
+narrowing to a reading one and never back, recommended. The owner: "(b)".
+So **`manual[T]` reads, `manual.mut[T]` reads and writes, and a
+`manual.mut[T]` can be handed out as a `manual[T]`, never the reverse**.
+Not yet asked: handles across threads and tasks, and the rest of the
+spelling (allocating, freeing, the alive test).
 
 ### 2026-10-13 — Direction: built-in checked manual memory, with generations, instead of reference counting; its checks follow the working / final rule (owner; not designed)
 

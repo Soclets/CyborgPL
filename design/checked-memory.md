@@ -38,6 +38,9 @@ struct Node {
 - **Plain**: copying a handle copies those two, never the `T`; two copies
   reach the same value (two parents, one child).
 - **Not owned**: a variable holding one ends and nothing is freed.
+- **`manual[T]` reads; `manual.mut[T]` reads and writes** (owner,
+  2026-10-13: "(b)"), as `ptr` / `ptr.mut` and `lend` / `lend.mut`. A
+  `manual.mut[T]` can be handed out as a `manual[T]`, never the reverse.
 - Kept apart from `ptr[T]`, C's unchecked pointer: the name says the duty a
   reader must not miss, that someone frees it.
 
@@ -101,8 +104,6 @@ The checks follow the rule every check follows (`core-features.md`,
 ## Open
 
 - The spelling: allocating, freeing, the alive test.
-- Whether a handle may write (`manual[T]` / `manual.mut[T]`, as `ptr` /
-  `ptr.mut`).
 - The generation's width (64 bits never wraps; 32 makes handles smaller):
   Synapse's, unless the owner wants it.
 - Handles across threads and tasks (`concurrency.md`).
