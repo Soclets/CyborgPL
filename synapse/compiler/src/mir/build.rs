@@ -1447,80 +1447,13 @@ impl<'a> FnBuilder<'a> {
                         return Rvalue::Use(Operand::Const(Const::Int(v)));
                     }
                 }
-                let mut l = self.eval(lhs, span);
-                let mut r = self.eval(rhs, span);
+                let l = self.eval(lhs, span);
+                let r = self.eval(rhs, span);
                 let result = self.resolve_ty(&e.ty);
-                // A bitwise operator works on one width, the answer's: an
-                // exact operand has to fit it first, a site like any
-                // narrowing (check claude: `'v' xor ('w' minus 13)` with
-                // `uint64`s took -8 as a bit pattern).
-                // `shl.masked` / `shr.masked` (owner, 2026-10-07): the count
-                // modulo the width, -1 being width - 1 as the chip masks it,
-                // and the bits past the width cut off; no site. Worked as the
-                // plain shift on the masked count, its answer read as bits.
-                if let BinOp::ShlMasked | BinOp::ShrMasked = op {
-                    let plain = if *op == BinOp::ShlMasked { BinOp::Shl } else { BinOp::Shr };
-                    let width = match result.base() {
-                        Ty::Int(IntW::Fixed { bits, .. }) => *bits,
-                        _ => 64,
-                    };
-                    let whole = Ty::Int(IntW::Fixed { signed: true, bits: 129 });
-                    let count = self.into_temp(Rvalue::Convert { to: whole.clone(), operand: r, useful: false, bits: false }, &whole, span);
-                    let masked = self.into_temp(Rvalue::Binary { op: BinOp::Mod(crate::ast::Round::Floor), lhs: count, rhs: Operand::Const(Const::Int(width as i128)) }, &whole, span);
-                    let from = self.resolve_ty(&lhs.ty);
-                    let x = if from.base() != result.base() {
-                        self.into_temp(Rvalue::Convert { to: result.clone(), operand: l, useful: false, bits: true }, &result, span)
-                    } else {
-                        l
-                    };
-                    let shifted = self.into_temp(Rvalue::Binary { op: plain, lhs: x, rhs: masked }, &result, span);
-                    return Rvalue::Convert { to: result.clone(), operand: shifted, useful: false, bits: true };
+                if *op == BinOp::Cursed {
+                    return self.cursed_plus(l, r, lhs, rhs, result, span);
                 }
-                // An exact operand wider than the limit in between (a group
-                // of bare numbers worked at its own size beside a typed
-                // one) is held to it where it is used (check claude, seed
-                // 36150).
-                if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::Mod(_)) {
-                    if let Some(limit) = result.exact_limit() {
-                        for (side, of) in [(&mut l, lhs), (&mut r, rhs)] {
-                            let from = self.resolve_ty(&of.ty);
-                            if from.exact_limit().is_some_and(|w| w > limit) {
-                                self.site_of(SiteKind::Narrow { to: result.clone() }, vec![side.clone()], Some(result.clone()), span);
-                                *side = self.into_temp(Rvalue::Convert { to: result.clone(), operand: side.clone(), useful: false, bits: false }, &result, span);
-                            }
-                        }
-                    }
-                }
-                // `.wrap` takes the operands as their bits instead (owner,
-                // 2026-10-07: "yea"): no site, the answer an N-bit pattern.
-                let (op, wrap) = match op {
-                    BinOp::AndBitWrap => (&BinOp::AndBit, true),
-                    BinOp::OrBitWrap => (&BinOp::OrBit, true),
-                    BinOp::XorWrap => (&BinOp::Xor, true),
-                    other => (other, false),
-                };
-                // A shifted number fits its width first too (owner,
-                // 2026-10-07: "a"): its own site, before the count's.
-                if matches!(op, BinOp::Shl | BinOp::Shr) && matches!(result.base(), Ty::Int(IntW::Fixed { .. })) && !result.is_exact() {
-                    let from = self.resolve_ty(&lhs.ty);
-                    if from.is_exact() {
-                        self.narrow_arg(&l, &from, &result, span);
-                        l = self.into_temp(Rvalue::Convert { to: result.clone(), operand: l, useful: false, bits: false }, &result, span);
-                    }
-                }
-                if matches!(op, BinOp::AndBit | BinOp::OrBit | BinOp::Xor) && matches!(result.base(), Ty::Int(IntW::Fixed { .. })) && !result.is_exact() {
-                    for (side, of) in [(&mut l, lhs), (&mut r, rhs)] {
-                        let from = self.resolve_ty(&of.ty);
-                        if from.is_exact() || (wrap && from.base() != result.base()) {
-                            if !wrap {
-                                self.narrow_arg(side, &from, &result, span);
-                            }
-                            *side = self.into_temp(Rvalue::Convert { to: result.clone(), operand: side.clone(), useful: false, bits: wrap }, &result, span);
-                        }
-                    }
-                }
-                self.binary_sites(&op.plain(), &l, &r, &result, span);
-                Rvalue::Binary { op: op.clone(), lhs: l, rhs: r }
+                self.binary_rvalue(op, l, r, lhs, rhs, result, span)
             }
             hir::ExprKind::UserOp { inst, lhs, rhs } => {
                 // An operator is a call under another spelling.
@@ -1597,6 +1530,113 @@ impl<'a> FnBuilder<'a> {
             }
             _ => Rvalue::Use(self.eval(e, span)),
         }
+    }
+
+    /// Two operands, worked out, under a binary operator: the sites it
+    /// carries, and the instruction.
+    #[allow(clippy::too_many_arguments)]
+    fn binary_rvalue(&mut self, op: &BinOp, mut l: Operand, mut r: Operand, lhs: &hir::Expr, rhs: &hir::Expr, result: Ty, span: SpanId) -> Rvalue {
+        // A bitwise operator works on one width, the answer's: an
+        // exact operand has to fit it first, a site like any
+        // narrowing (check claude: `'v' xor ('w' minus 13)` with
+        // `uint64`s took -8 as a bit pattern).
+        // `shl.masked` / `shr.masked` (owner, 2026-10-07): the count
+        // modulo the width, -1 being width - 1 as the chip masks it,
+        // and the bits past the width cut off; no site. Worked as the
+        // plain shift on the masked count, its answer read as bits.
+        if let BinOp::ShlMasked | BinOp::ShrMasked = op {
+            let plain = if *op == BinOp::ShlMasked { BinOp::Shl } else { BinOp::Shr };
+            let width = match result.base() {
+                Ty::Int(IntW::Fixed { bits, .. }) => *bits,
+                _ => 64,
+            };
+            let whole = Ty::Int(IntW::Fixed { signed: true, bits: 129 });
+            let count = self.into_temp(Rvalue::Convert { to: whole.clone(), operand: r, useful: false, bits: false }, &whole, span);
+            let masked = self.into_temp(Rvalue::Binary { op: BinOp::Mod(crate::ast::Round::Floor), lhs: count, rhs: Operand::Const(Const::Int(width as i128)) }, &whole, span);
+            let from = self.resolve_ty(&lhs.ty);
+            let x = if from.base() != result.base() {
+                self.into_temp(Rvalue::Convert { to: result.clone(), operand: l, useful: false, bits: true }, &result, span)
+            } else {
+                l
+            };
+            let shifted = self.into_temp(Rvalue::Binary { op: plain, lhs: x, rhs: masked }, &result, span);
+            return Rvalue::Convert { to: result.clone(), operand: shifted, useful: false, bits: true };
+        }
+        // An exact operand wider than the limit in between (a group
+        // of bare numbers worked at its own size beside a typed
+        // one) is held to it where it is used (check claude, seed
+        // 36150).
+        if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::Mod(_)) {
+            if let Some(limit) = result.exact_limit() {
+                for (side, of) in [(&mut l, lhs), (&mut r, rhs)] {
+                    let from = self.resolve_ty(&of.ty);
+                    if from.exact_limit().is_some_and(|w| w > limit) {
+                        self.site_of(SiteKind::Narrow { to: result.clone() }, vec![side.clone()], Some(result.clone()), span);
+                        *side = self.into_temp(Rvalue::Convert { to: result.clone(), operand: side.clone(), useful: false, bits: false }, &result, span);
+                    }
+                }
+            }
+        }
+        // `.wrap` takes the operands as their bits instead (owner,
+        // 2026-10-07: "yea"): no site, the answer an N-bit pattern.
+        let (op, wrap) = match op {
+            BinOp::AndBitWrap => (&BinOp::AndBit, true),
+            BinOp::OrBitWrap => (&BinOp::OrBit, true),
+            BinOp::XorWrap => (&BinOp::Xor, true),
+            other => (other, false),
+        };
+        // A shifted number fits its width first too (owner,
+        // 2026-10-07: "a"): its own site, before the count's.
+        if matches!(op, BinOp::Shl | BinOp::Shr) && matches!(result.base(), Ty::Int(IntW::Fixed { .. })) && !result.is_exact() {
+            let from = self.resolve_ty(&lhs.ty);
+            if from.is_exact() {
+                self.narrow_arg(&l, &from, &result, span);
+                l = self.into_temp(Rvalue::Convert { to: result.clone(), operand: l, useful: false, bits: false }, &result, span);
+            }
+        }
+        if matches!(op, BinOp::AndBit | BinOp::OrBit | BinOp::Xor) && matches!(result.base(), Ty::Int(IntW::Fixed { .. })) && !result.is_exact() {
+            for (side, of) in [(&mut l, lhs), (&mut r, rhs)] {
+                let from = self.resolve_ty(&of.ty);
+                if from.is_exact() || (wrap && from.base() != result.base()) {
+                    if !wrap {
+                        self.narrow_arg(side, &from, &result, span);
+                    }
+                    *side = self.into_temp(Rvalue::Convert { to: result.clone(), operand: side.clone(), useful: false, bits: wrap }, &result, span);
+                }
+            }
+        }
+        self.binary_sites(&op.plain(), &l, &r, &result, span);
+        Rvalue::Binary { op: op.clone(), lhs: l, rhs: r }
+    }
+
+    /// `+` on two whole numbers (owner, 2026-10-13): `plus`, except on 1
+    /// April by the machine's date, when it is `xxx`, a tower of powers,
+    /// overflowing as any number would. The tower is worked out on a width
+    /// past every window the answer has, so one past every integer is
+    /// past it too, where the `Tower` site stops it.
+    fn cursed_plus(&mut self, l: Operand, r: Operand, lhs: &hir::Expr, rhs: &hir::Expr, result: Ty, span: SpanId) -> Rvalue {
+        let dest = self.temp(&result, span);
+        let april = self.temp(&Ty::Bool, span);
+        self.push(StmtKind::Op { dest: Some(Place::local(april)), op: Op::AprilFirst, args: Vec::new() }, span);
+        let (tower_b, plus_b, join) = (self.new_block(), self.new_block(), self.new_block());
+        self.terminate(Terminator::If { cond: Operand::Read(Place::local(april)), then: tower_b, else_: plus_b });
+        self.cur = plus_b;
+        let sum = self.binary_rvalue(&BinOp::Add, l.clone(), r.clone(), lhs, rhs, result.clone(), span);
+        self.assign(Place::local(dest), sum, span);
+        self.terminate(Terminator::Goto(join));
+        self.cur = tower_b;
+        let limit = result.exact_limit().unwrap_or(64);
+        let whole = Ty::int(true, (limit + 2).max(130));
+        let a = self.into_temp(Rvalue::Convert { to: whole.clone(), operand: l, useful: false, bits: false }, &whole, span);
+        let b = self.into_temp(Rvalue::Convert { to: whole.clone(), operand: r, useful: false, bits: false }, &whole, span);
+        let t = self.temp(&whole, span);
+        self.push(StmtKind::Op { dest: Some(Place::local(t)), op: Op::Tetrate, args: vec![a, b] }, span);
+        let tower = Operand::Read(Place::local(t));
+        self.site_of(SiteKind::Tower { to: result.clone() }, vec![tower.clone()], Some(result.clone()), span);
+        self.assign(Place::local(dest), Rvalue::Convert { to: result, operand: tower, useful: false, bits: false }, span);
+        self.terminate(Terminator::Goto(join));
+        self.cur = join;
+        Rvalue::Use(Operand::Read(Place::local(dest)))
     }
 
     /// The check sites a binary operation carries (`precog.md`).

@@ -730,7 +730,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     SiteKind::NegativeExponent | SiteKind::FillCount => self.negative_exponent_check(fi, *id, slots, func),
                     SiteKind::SimdRange { lanes } => self.simd_range_check(fi, *id, lanes, slots, func),
                     SiteKind::SimdSome { lanes } => self.simd_some_check(fi, *id, lanes, slots, func),
-                    SiteKind::Narrow { .. } => self.narrow_check(fi, *id, slots, func),
+                    SiteKind::Narrow { .. } | SiteKind::Tower { .. } => self.narrow_check(fi, *id, slots, func),
                     SiteKind::LengthBound { .. } => self.length_check(fi, *id, slots, func),
                     SiteKind::Overflow(_) | SiteKind::DivZero | SiteKind::ModZero | SiteKind::ShiftWidth | SiteKind::ShiftCount => pending.push(*id),
                     // Checked inside the map, by the use that follows.
@@ -3367,6 +3367,55 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             // `on.machine.chip X` (owner, 2026-10-06): the runtime asks the
             // chip, as the oracle does.
+            Op::AprilFirst => {
+                let f = self.rt("cyborg_april_first");
+                let v = basic_result(self.builder.build_call(f, &[], "april").ok()?)?;
+                Some(Some(v))
+            }
+            // `a xxx b` on the tower's width (`mir::Op::Tetrate`): `b` of 0
+            // is 1 and of 1 is `a`, here; a `b` past 2^62 is cut to 2^62
+            // keeping its parity, and an `a` past 128 bits makes any taller
+            // tower past every integer. The rest is Axon's, its answer
+            // below 0 when there is none; none is the width's largest,
+            // past every window the answer lands in.
+            Op::Tetrate => {
+                let a = self.operand(fi, args.first()?, slots)?.into_int_value();
+                let b = self.operand(fi, args.get(1)?, slots)?.into_int_value();
+                let w = a.get_type();
+                let b = if b.get_type() == w { b } else { self.builder.build_int_s_extend_or_bit_cast(b, w, "b").ok()? };
+                let (i64t, i128t) = (self.ctx.i64_type(), self.ctx.i128_type());
+                let one = w.const_int(1, false);
+                let cap = w.const_int(1u64 << 62, false);
+                let bd = &self.builder;
+                let below = bd.build_int_compare(IntPredicate::SLT, b, one, "no_tower").ok()?;
+                let over = bd.build_int_compare(IntPredicate::SGT, b, cap, "tall").ok()?;
+                let parity = bd.build_and(b, one, "parity").ok()?;
+                let capped = bd.build_or(cap, parity, "capped").ok()?;
+                let b1 = bd.build_select(over, capped, b, "b_cut").ok()?.into_int_value();
+                let b2 = bd.build_select(below, w.const_zero(), b1, "b_cut").ok()?.into_int_value();
+                let b64 = bd.build_int_truncate_or_bit_cast(b2, i64t, "b64").ok()?;
+                let a128 = bd.build_int_truncate_or_bit_cast(a, i128t, "a128").ok()?;
+                let back = bd.build_int_s_extend_or_bit_cast(a128, w, "a_back").ok()?;
+                let fits = bd.build_int_compare(IntPredicate::EQ, back, a, "a_fits").ok()?;
+                let lo = bd.build_int_truncate(a128, i64t, "a_lo").ok()?;
+                let hi = bd.build_right_shift(a128, i128t.const_int(64, false), false, "a_hi").ok()?;
+                let hi = bd.build_int_truncate(hi, i64t, "a_hi").ok()?;
+                let out = self.stack(i128t, "tower").ok()?;
+                let f = self.rt("cyborg_tetrate");
+                self.builder.build_call(f, &[lo.into(), hi.into(), b64.into(), out.into()], "").ok()?;
+                let bd = &self.builder;
+                let t = bd.build_load(i128t, out, "tower").ok()?.into_int_value();
+                let none = bd.build_int_compare(IntPredicate::SLT, t, i128t.const_zero(), "past_every").ok()?;
+                let t = bd.build_int_s_extend_or_bit_cast(t, w, "tower").ok()?;
+                let largest = bd.build_right_shift(w.const_all_ones(), one, false, "largest").ok()?;
+                let v = bd.build_select(none, largest, t, "tower").ok()?.into_int_value();
+                let v = bd.build_select(fits, v, largest, "tower").ok()?.into_int_value();
+                let is1 = bd.build_int_compare(IntPredicate::EQ, b2, one, "b_is_1").ok()?;
+                let v = bd.build_select(is1, a, v, "tower").ok()?.into_int_value();
+                let is0 = bd.build_int_compare(IntPredicate::EQ, b2, w.const_zero(), "b_is_0").ok()?;
+                let v = bd.build_select(is0, one, v, "tower").ok()?;
+                Some(Some(v))
+            }
             Op::MachineHas(f) => {
                 let has = self.rt("cyborg_machine_has");
                 let code = self.ctx.i32_type().const_int(*f as u64, false);
@@ -3667,7 +3716,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         if !self.gets_check(&site.verdict) {
             return;
         }
-        let SiteKind::Narrow { to } = &site.kind else { return };
+        let (SiteKind::Narrow { to } | SiteKind::Tower { to }) = &site.kind else { return };
         // Into a `deci` range type: compared as decimals, by the runtime.
         if let (Ty::Deci(bits), Some(crate::types::Bound::Bin { lo, hi, .. })) = (to.base(), to.bound()) {
             let Some(o) = site.operands.first() else { return };

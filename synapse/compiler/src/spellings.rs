@@ -24,10 +24,20 @@ pub struct Old {
     pub written: String,
     pub write: Vec<String>,
     pub note: Option<String>,
+    pub since: Option<String>,
     pub where_: Option<String>,
 }
 
 impl Old {
+    /// The sentence with the ruling's date after it, as the oracle says it:
+    /// "`x` is an old spelling: write `times` (owner, 2026-10-03)".
+    pub fn dated(&self) -> String {
+        match &self.since {
+            Some(d) => format!("{} (owner, {})", self.sentence(), d),
+            None => self.sentence(),
+        }
+    }
+
     /// "`x` is an old spelling: write `y`" (or "`y` / `z`"), the note after.
     pub fn sentence(&self) -> String {
         let write = self.write.iter().map(|w| format!("`{}`", w)).collect::<Vec<_>>().join(" / ");
@@ -78,6 +88,7 @@ fn read(text: &str) -> Result<Spellings, String> {
                         written: text_of(field(&f, "written")?)?,
                         write: texts(field(&f, "write")?)?,
                         note: f.iter().find(|(n, _)| n == "note").map(|(_, v)| text_of(v)).transpose()?,
+                        since: f.iter().find(|(n, _)| n == "since").map(|(_, v)| text_of(v)).transpose()?,
                         where_: f.iter().find(|(n, _)| n == "where").map(|(_, v)| text_of(v)).transpose()?,
                     });
                 }
@@ -173,4 +184,13 @@ pub fn free_op_hint(op: &str) -> Option<&'static str> {
 /// Whether the table lists `word.` as an old spelling of its own (`limb.`).
 pub fn old_dotted(word: &str) -> bool {
     !reading() && get().old.iter().any(|o| o.written.strip_suffix('.') == Some(word))
+}
+
+/// The 2026-10-03 operator symbols, old spellings of the words (`x` is
+/// `times`), found by the parser where an operator stands.
+pub fn old_symbol(s: &str) -> Option<&'static Old> {
+    if reading() || !matches!(s, "+" | "-" | "x" | "xx" | "+~" | "-~" | "x~" | "xx~") {
+        return None;
+    }
+    get().old.iter().find(|o| o.written == s && o.where_.as_deref() == Some("special"))
 }

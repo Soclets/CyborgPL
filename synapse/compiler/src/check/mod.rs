@@ -55,6 +55,8 @@ pub struct Program {
     /// Consts, evaluated in order before MAIN.
     pub const_values: Vec<hir::Expr>,
     pub notes: Vec<Diagnostic>,
+    /// Where `+` is written, for the final build to refuse.
+    pub cursed: Vec<crate::source::Span>,
 }
 
 /// One use of a power, as the checker meets it (`cca/PLUGINS.md` §4).
@@ -93,6 +95,8 @@ pub struct Checker {
     /// checker can be run over the examples before std exists. Off by default;
     /// nothing is generated for them.
     pub std_stubs: bool,
+    /// Where `+` is written (owner, 2026-10-13): the final build refuses it.
+    pub cursed: Vec<crate::source::Span>,
     /// A shift, `not.bit` or wrapping operator whose operands are all bare
     /// literals takes its width from where the value goes (owner,
     /// 2026-09-23). Each one's width is a variable a typed place binds;
@@ -212,7 +216,7 @@ impl FnCtx {
 impl Checker {
     pub fn new(items: Items) -> Checker {
         let n = items.consts.len();
-        Checker { power_uses: Vec::new(), items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new(), mut_seen: HashMap::new() }
+        Checker { power_uses: Vec::new(), items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new(), mut_seen: HashMap::new(), cursed: Vec::new() }
     }
 
     pub fn fresh(&mut self) -> Ty {
@@ -516,7 +520,7 @@ impl Checker {
         }
         self.check_powers()?;
         let const_values = self.const_values.into_iter().map(|v| v.unwrap()).collect();
-        Ok(Program { items: self.items, instances: self.instances, subst: self.subst, main, const_values, notes: self.notes })
+        Ok(Program { items: self.items, instances: self.instances, subst: self.subst, main, const_values, notes: self.notes, cursed: self.cursed })
     }
 
     fn check_const_value(&self, e: &hir::Expr) -> Result<()> {

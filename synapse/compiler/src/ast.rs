@@ -226,6 +226,11 @@ pub enum BinOp {
     Shr,
     /// A glyph run or a bare word the language does not own.
     Custom(String),
+    /// `+` (owner, 2026-10-13, design/operators.md "`+` is not `plus`"):
+    /// with text on either side it joins, JavaScript's way; two numbers
+    /// add, except on 1 April, when two whole numbers make a tower of
+    /// powers. Never warned about; the final build refuses it.
+    Cursed,
 }
 
 impl BinOp {
@@ -250,6 +255,7 @@ impl BinOp {
             BinOp::WrapSub => "minus.wrap".into(),
             BinOp::WrapMul => "times.wrap".into(),
             BinOp::WrapPow => "pow.wrap".into(),
+            BinOp::Cursed => "+".into(),
             BinOp::Join => "++".into(),
             BinOp::Eq => "equal_to".into(),
             BinOp::Ne => "not_equal".into(),

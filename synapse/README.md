@@ -675,3 +675,16 @@ Dated, with the alternative, so each can become a question later.
   size_name['n'];`, owner 2026-10-13), run on whole numbers, `bool` and
   text with `if`, `while`, `loop`, `let`, `change` and `return`, a million
   steps at most.
+- **2026-10-13 — How Synapse builds the cursed `+`.** With text on either
+  side it is `++` with the number turned to text as `print.useful` shows
+  it. Two numbers are `plus`, in between held to `plus`'s own limit (the
+  widest operand's width, at least 64 bits), where the oracle's `+` holds
+  them to none. On 1 April, by the machine's local date (`SYNAPSE_TODAY=MM-DD`
+  stands in for it, as `ORACLE_TODAY` does for the oracle's), two whole
+  numbers are `xxx`: Axon works the tower out in 128 bits
+  (`cyborg_tetrate`), and its answer lands in `plus`'s answer, overflowing
+  as `plus`'s would ("overflowing as any number would"), a check there,
+  where the oracle lets an answer past 64 bits through. An operand past
+  128 bits makes the tower too (`'g' + 1` is `'g'`), where the oracle
+  falls back to adding. Nothing warns; `synapse build --final` refuses
+  the first `+`.

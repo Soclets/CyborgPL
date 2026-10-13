@@ -138,19 +138,10 @@ fn language_level(name: &str) -> Option<(u16, Option<Chain>)> {
     })
 }
 
-/// The word an old operator spelling is now (owner, 2026-10-03).
-fn retired_spelling(s: &str) -> Option<&'static str> {
-    Some(match s {
-        "+" => "plus",
-        "-" => "minus",
-        "x" => "times",
-        "xx" => "pow",
-        "+~" => "plus.wrap",
-        "-~" => "minus.wrap",
-        "x~" => "times.wrap",
-        "xx~" => "pow.wrap",
-        _ => return None,
-    })
+/// An old operator spelling (owner, 2026-10-03), as spellings.nrp has it:
+/// `x` is `times`.
+fn retired_spelling(s: &str) -> Option<&'static crate::spellings::Old> {
+    crate::spellings::old_symbol(s)
 }
 
 // Every Limb's operator levels, read before any file is parsed (owner,
@@ -2168,8 +2159,8 @@ impl<'a> Parser<'a> {
             return self.fail_at(op.span, "an arrow cannot name an operator: `->`, `<-` and `<->` are arrows (owner, 2026-10-07)");
         }
         // A type's own `plus` is `op plus` (owner, 2026-10-03).
-        if let Some(word) = retired_spelling(&op.name) {
-            return self.fail_at(op.span, format!("`op {}` is `op {}` now (owner, 2026-10-03): `op {} ['a': V, 'b': V] -> V {{ … }}`", op.name, word, word));
+        if let Some(old) = retired_spelling(&op.name) {
+            return self.fail_at(op.span, format!("`op {}`: {}", op.name, old.dated()));
         }
         Ok(op)
     }
@@ -3393,8 +3384,8 @@ impl<'a> Parser<'a> {
                     }
                     other => return self.fail(format!("a level lists operators by name, `{{ plus  dot }}`; found {}", other.describe())),
                 };
-                if let Some(word) = retired_spelling(&name) {
-                    return self.fail_at(ospan, format!("`{}` is `{}` now (owner, 2026-10-03)", name, word));
+                if let Some(old) = retired_spelling(&name) {
+                    return self.fail_at(ospan, old.dated());
                 }
                 if matches!(name.as_str(), "xor" | "shl" | "shr" | "and.bit" | "or.bit" | "not.bit") {
                     return self.fail_at(ospan, format!("`{}` has no precedence in the language: a bitwise operator is parenthesised beside another, so no level holds it", name));
@@ -3512,8 +3503,8 @@ impl<'a> Parser<'a> {
         let op = match self.peek().clone() {
             Tok::Op(o) => {
                 self.bump();
-                if let Some(word) = retired_spelling(&o) {
-                    return self.fail_at(at, format!("`{}` is `{}` now (owner, 2026-10-03): `op {}`", o, word, word));
+                if let Some(old) = retired_spelling(&o) {
+                    return self.fail_at(at, old.dated());
                 }
                 match o.as_str() {
                     "/" => return self.fail_at(at, "division is `div.floor`, `div.ceil`, `div.trunc` or `div.near`: `op div.floor`"),
@@ -3536,8 +3527,8 @@ impl<'a> Parser<'a> {
                 match w.as_str() {
                     "x" | "xx" => {
                         let old = if wraps { format!("{}~", w) } else { w.clone() };
-                        let word = retired_spelling(&old).unwrap_or("times");
-                        return self.fail_at(at, format!("`{}` is `{}` now (owner, 2026-10-03): `op {}`", old, word, word));
+                        let sentence = retired_spelling(&old).map_or_else(|| format!("`{}` is an old spelling", old), |o| o.dated());
+                        return self.fail_at(at, sentence);
                     }
                     "plus" | "minus" | "times" | "pow" => {
                         let wrap = self.is(&Tok::Dot) && self.is_word_at(1, "wrap");
@@ -3630,7 +3621,7 @@ impl<'a> Parser<'a> {
         };
         let t = match self.peek() {
             Tok::Op(o) => match o.as_str() {
-                "+" => OpTok { old: Some("plus"), ..lang(BinOp::Add, ADD_LEVEL, Chain::Left) },
+                "+" => lang(BinOp::Cursed, ADD_LEVEL, Chain::Left),
                 "-" => OpTok { old: Some("minus"), ..lang(BinOp::Sub, ADD_LEVEL, Chain::Left) },
                 "+~" => OpTok { old: Some("plus.wrap"), ..lang(BinOp::WrapAdd, ADD_LEVEL, Chain::Left) },
                 "-~" => OpTok { old: Some("minus.wrap"), ..lang(BinOp::WrapSub, ADD_LEVEL, Chain::Left) },
@@ -3796,9 +3787,8 @@ impl<'a> Parser<'a> {
                 }
             }
             let op_span = op_span.to(self.prev_span());
-            if let Some(word) = t.old {
+            if t.old.is_some() {
                 let was = match op {
-                    BinOp::Add => "+",
                     BinOp::Sub => "-",
                     BinOp::WrapAdd => "+~",
                     BinOp::WrapSub => "-~",
@@ -3807,7 +3797,8 @@ impl<'a> Parser<'a> {
                     BinOp::Pow => "xx",
                     _ => "xx~",
                 };
-                return self.fail_at(op_span, format!("`{}` is `{}` now (owner, 2026-10-03): `'a' {} 'b'`", was, word, word));
+                let sentence = retired_spelling(was).map_or_else(|| format!("`{}` is an old spelling", was), |o| o.dated());
+                return self.fail_at(op_span, sentence);
             }
             if let BinOp::Custom(name) = &op {
                 if let Some((base, narrow)) = name.split_once('.') {

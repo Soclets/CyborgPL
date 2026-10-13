@@ -137,6 +137,7 @@ pub fn render_json(a: &Analysis, p: &Program, sources: &SourceMap) -> String {
             SiteKind::ModZero => ("modulo_by_zero", "mod".into()),
             SiteKind::Bounds => ("position", "[…]".into()),
             SiteKind::Narrow { to } => ("narrowing", format!("into {}", spell(to))),
+            SiteKind::Tower { to } => ("april_tower", format!("+ into {}", spell(to))),
             SiteKind::LengthBound { to } => ("length_bound", format!("into {}", spell(to))),
             SiteKind::ShiftWidth => ("shift_width", "shl".into()),
             SiteKind::ShiftCount => ("shift_count", "shl/shr".into()),

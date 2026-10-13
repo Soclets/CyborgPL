@@ -316,3 +316,5 @@ generic_local 48
 collection_presets 192
 # A template named by a function of the file (owner, 2026-10-13).
 named_by_function 66
+# `+` on whole numbers, a tower on 1 April (owner, 2026-10-13).
+cursed_tower 7

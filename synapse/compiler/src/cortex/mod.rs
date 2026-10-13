@@ -1916,7 +1916,7 @@ impl Precog {
             }
             Op::CharCode => Domain::Ints(ISet::Range { lo: 0, hi: 0x10FFFF }),
             // Known only when the program runs.
-            Op::MachineHas(_) => Domain::Bools(true, true),
+            Op::MachineHas(_) | Op::AprilFirst => Domain::Bools(true, true),
             Op::Std(name) => {
                 if name.starts_with("input") {
                     self.reads_outside = true;
@@ -2342,6 +2342,9 @@ impl Precog {
                     Verdict::Fails { counterexample: format!("the position can be {} when there are {} element(s)", ihi, llo) }
                 }
             }
+            // Not followed: the tower is the runtime's, and a final build
+            // refuses `+` before anything asks.
+            SiteKind::Tower { .. } => Verdict::Unproven,
             SiteKind::Narrow { to } => {
                 // A duration's site carries both sides, because what has to
                 // fit is the difference.

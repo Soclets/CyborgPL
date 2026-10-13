@@ -543,7 +543,7 @@ op_builtin_for_int [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plu
 op_builtin_for_struct_ok_then_misuse [fnv:8cd6b76c300bff74] :: expected a value of the operand (V), found an `integer`
 op_called_as_fn [fnv:205c076f0bd07158] :: `'a' dot 'b'`, never `dot[…]`
 op_chevron_reserved [fnv:71bbd54de1a8e769] :: `>>` is an old spelling: write `->`
-op_decl_old [fnv:340eb7660e3e3d6e] :: `op +` is `op plus` now
+op_decl_old [fnv:8d3bd523db847803] :: `op +`: `+` is an old spelling: write `plus`
 op_div_bare [fnv:d40c9ab3e6d5809c] :: say how `div` rounds
 op_give_needs_give [fnv:675ca27f7d116f95] :: write `give 'u'` so the value moves in
 op_lent_word [fnv:771913f827ed9a38] :: T` takes it by value
@@ -560,7 +560,7 @@ op_star_undefined [fnv:b20e9f542727bd69] :: multiply is `times`
 op_three_operands [fnv:88d3d9d2c04c25a1] :: an operator takes exactly two operands; `<+>` is declared with 3
 op_value_and_then [fnv:a093a0ddfbdcf82d] :: cannot skip anything
 op_value_minus [fnv:c7639dd8d2554ca7] :: negation as a value is `op neg`
-op_value_old [fnv:b5417eae59430eac] :: `+` is `plus` now
+op_value_old [fnv:c3fb3b24d6a33f6f] :: `+` is an old spelling: write `plus`
 op_value_untyped [fnv:f5fb837892a1661a] :: alone does not say which
 op_word_undefined [fnv:b1acc1385341e3b7] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
 other_limb [fnv:37ccdedb8e65b252] :: no Neuron with the prefix `math`
@@ -570,11 +570,10 @@ owning_function_bare [fnv:a8b589ea7248e723] :: is an owned `fn[] -> uint64`: say
 param_lent_chain [fnv:1b310f9423971d5e] :: `lent` (looks at it) or `lent.mut` (may modify it)
 param_type_first [fnv:3a5e01bd7a977ab9] :: a parameter is written name first, then its type: `'a': int32`
 param_var [fnv:565659dbb62e1df1] :: an owning parameter is bare
-plus_old [fnv:b5417eae59430eac] :: `+` is `plus` now
 plus_plus [fnv:b59243419dd75691] :: `++` joins text; there is no increment
 plusplus_needs_conversion [fnv:a6e724baccce5e1b] :: `++` joins text, and its right side is an `integer`: convert it first
 plusplus_numbers [fnv:4cdcad9affc5f4d9] :: `++` joins text, and its left side is an `integer`: convert it first
-pow_old [fnv:f86bba52e868b039] :: `xx` is `pow` now
+pow_old [fnv:5b6c854d86c4d818] :: `xx` is an old spelling: write `pow`
 power_denied [fnv:e9a9308c5cc7c3d7] :: which this program denies (`deny`: `kin::power.c_calls.functions`)
 power_deny_for [fnv:b37efe31805baa2c] :: `shapes` defines the operator `mean` on built-in types, which this program denies
 power_except_in_powers [fnv:54b297f6474bc3b4] :: `.except` and `.for` belong to `deny`
@@ -728,7 +727,7 @@ text_bound_graphemes [fnv:a6dcaaa62d158116] :: this can take it outside the boun
 text_bound_no_unit [fnv:9c1acad0abdaf1b0] :: a text's length bound must say which unit it counts
 text_bound_over [fnv:ab895cf7a7c48b5d] :: this can take it outside the bound its type gives it (`str.utf8[max 20 bytes]`)
 text_to_char_unhandled [fnv:04c58d3d4a6fac63] :: `to.char.point` can fail (not_one_char): say what happens
-times_old [fnv:b5fdcc466f65f1ef] :: `x` is `times` now
+times_old [fnv:d0b9b9ea787f730a] :: `x` is an old spelling: write `times`
 to_array_bare [fnv:edaa77f80a93e8a4] :: converting bare 'l' would copy it without saying so
 to_ascii_needs_otherwise [fnv:44581da139b15bb0] :: `to.str.ascii` can fail (not_ascii)
 to_bits_bin [fnv:c018fb9e467c5ade] :: `.bits` is for whole-number types
@@ -773,7 +772,7 @@ word_op_two_limbs [fnv:336891dcfa99baf6] :: `mean` could be any of `areas::mean`
 wrap_amp_form [fnv:b1acc1385341e3b7] :: wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`
 wrap_into_bool [fnv:c689ac7fee6b711f] :: expected a value of the declared type (bool), found a whole number
 wrap_mixed_sizes [fnv:6be13d9666b31633] :: wraps at one size, and this mixes int8 and int16
-wrap_old [fnv:680e548e1da56bcc] :: `+~` is `plus.wrap` now
+wrap_old [fnv:89c8098afbbe3355] :: `+~` is an old spelling: write `plus.wrap`
 wrap_on_bin [fnv:cafed6afa93a0c84] :: it only knows a declared integer width
 wrap_percent_form [fnv:b1acc1385341e3b7] :: wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`
 wrap_untyped_left [fnv:1dd0601c6eead672] :: `plus.wrap` needs a width, and nothing here gives one

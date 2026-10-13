@@ -70,6 +70,91 @@ fn sysctl_says(name: &[u8]) -> bool {
     r == 0 && v != 0
 }
 
+#[cfg(not(target_os = "none"))]
+extern "C" {
+    fn time(t: *mut i64) -> i64;
+    fn localtime_r(t: *const i64, tm: *mut i32) -> *mut i32;
+    fn getenv(name: *const u8) -> *const u8;
+}
+
+/// Whether it is 1 April by the machine's own date (owner, 2026-10-13),
+/// when `+` on two whole numbers is `xxx`. `SYNAPSE_TODAY=MM-DD` stands in
+/// for the date, as `ORACLE_TODAY` does for the oracle's. A chip with no
+/// OS has no date, and it is never 1 April there.
+#[no_mangle]
+pub extern "C" fn cyborg_april_first() -> bool {
+    #[cfg(target_os = "none")]
+    {
+        false
+    }
+    #[cfg(not(target_os = "none"))]
+    {
+        // SAFETY: the name ends in its 0; what `getenv` gives is a C text
+        // or null, read only up to its 0.
+        let fake = unsafe { getenv(b"SYNAPSE_TODAY\0".as_ptr()) };
+        if !fake.is_null() {
+            let mut d = [0u8; 6];
+            for (i, b) in d.iter_mut().enumerate() {
+                // SAFETY: stops at the text's 0, never past it.
+                let c = unsafe { *fake.add(i) };
+                if c == 0 {
+                    break;
+                }
+                *b = c;
+            }
+            return &d[..5] == b"04-01" && d[5] == 0;
+        }
+        // `struct tm`: nine `int`s, then (macOS, Linux) a `long` and a
+        // pointer; 64 bytes hold it. `tm_mday` is the fourth, `tm_mon` the
+        // fifth, January being 0.
+        let mut tm = [0i32; 16];
+        // SAFETY: `time` with null only returns; `tm` is big enough.
+        unsafe {
+            let now = time(core::ptr::null_mut());
+            if localtime_r(&now, tm.as_mut_ptr()).is_null() {
+                return false;
+            }
+        }
+        tm[4] == 3 && tm[3] == 1
+    }
+}
+
+/// `a xxx b`, the tower of powers, for `b` of 2 or more and `a` in 128
+/// bits (Synapse works out `b` of 0 or 1, and an `a` past 128 bits, itself).
+/// `a` to the `a` to the … `b` times. Below 0 is the answer past every
+/// integer, since no tower of 2 or more is negative: a negative `a` meets
+/// a negative exponent at once. `b` is at most 2^62 and keeps its parity,
+/// all a tower of 0 asks.
+#[no_mangle]
+pub extern "C" fn cyborg_tetrate(a_lo: u64, a_hi: u64, b: u64, out: *mut u64) {
+    let a = ((a_hi as u128) << 64 | a_lo as u128) as i128;
+    let r: i128 = match a {
+        // 0, 0^0 = 1, 0^1 = 0, …
+        0 => (b % 2 == 0) as i128,
+        1 => 1,
+        _ => {
+            let mut r = a;
+            let mut left = b.saturating_sub(1);
+            loop {
+                if left == 0 {
+                    break r;
+                }
+                let Ok(e) = u32::try_from(r) else { break -1 };
+                match a.checked_pow(e) {
+                    Some(v) => r = v,
+                    None => break -1,
+                }
+                left -= 1;
+            }
+        }
+    };
+    // SAFETY: `out` is the caller's two words.
+    unsafe {
+        *out = r as u64;
+        *out.add(1) = ((r as u128) >> 64) as u64;
+    }
+}
+
 /// A check fired. `msg` is the site's own words, built at compile time, so
 /// nothing has to be formatted here.
 ///

@@ -927,6 +927,46 @@ impl Checker {
     }
 
     fn binary(&mut self, ctx: &mut FnCtx, op: &BinOp, op_span: Span, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
+        // `+` (owner, 2026-10-13: "For the love of the game, no warnings"):
+        // with text on either side it joins, a number as `print.useful`
+        // shows it; two numbers are `plus`, two whole ones marked so that on
+        // 1 April they make the tower instead.
+        if *op == BinOp::Cursed {
+            self.cursed.push(op_span);
+            let l = self.expr(ctx, lhs)?;
+            let r = self.expr(ctx, rhs)?;
+            let (lt, rt) = (self.resolve(&l.ty), self.resolve(&r.ty));
+            if lt.is_text() || rt.is_text() {
+                let mut sides = Vec::new();
+                for (e, t, at) in [(l, lt.clone(), lhs.span), (r, rt.clone(), rhs.span)] {
+                    let e = self.as_operand(ctx, e)?;
+                    if t.is_text() || t.is_char() {
+                        sides.push(e);
+                    } else if t.is_numeric() || matches!(t.base(), Ty::Bool) {
+                        let (es, ty) = (e.span, Ty::utf8());
+                        sides.push(Expr { kind: K::Conv { target: ty.clone(), expr: Box::new(e), otherwise: None, fails: Vec::new(), useful: true, bits: false, written: false }, ty, span: es });
+                    } else {
+                        return err(Diagnostic::error(format!("`+` joins text with text or a number, and this is {}", crate::types::a_type(&self.spell(&t)))).at(at));
+                    }
+                }
+                let enc = match (lt.base(), rt.base()) {
+                    (Ty::Str(e), _) if !matches!(e, Enc::Free(_)) => *e,
+                    (_, Ty::Str(e)) => *e,
+                    _ => Enc::Free(InferId(0)),
+                };
+                let r = sides.pop().unwrap();
+                let l = sides.pop().unwrap();
+                return Ok(Expr { kind: K::Binary { op: BinOp::Join, lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Str(enc), span });
+            }
+            let mut e = self.binary(ctx, &BinOp::Add, op_span, lhs, rhs, span)?;
+            let whole = self.resolve(&e.ty).is_int();
+            if let K::Binary { op: o, .. } = &mut e.kind {
+                if whole && *o == BinOp::Add {
+                    *o = BinOp::Cursed;
+                }
+            }
+            return Ok(e);
+        }
         // `plus.ieee`, `minus.ieee`, `times.ieee` (owner, 2026-10-07):
         // checked as the plain operator, then kept as IEEE's own answer.
         if matches!(op, BinOp::AddIeee | BinOp::SubIeee | BinOp::MulIeee | BinOp::ModIeee(_) | BinOp::PowIeee) {
@@ -994,6 +1034,7 @@ impl Checker {
             return self.simd_binary(op, op_span, l, r, &lt, &rt, span);
         }
         match op {
+            BinOp::Cursed => unreachable!("`+` is checked above"),
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_) => {
                 if lt.base() == &Ty::Duration || rt.base() == &Ty::Duration {
                     if !(lt.base() == &Ty::Duration && rt.base() == &Ty::Duration) || !matches!(op, BinOp::Add | BinOp::Sub) {
