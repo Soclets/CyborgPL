@@ -118,12 +118,13 @@ fn field<'a>(f: &[(String, &'a Expr)], name: &str) -> Result<&'a Expr, String> {
     f.iter().find(|(n, _)| n == name).map(|(_, v)| *v).ok_or_else(|| format!("no field `{}`", name))
 }
 
-/// A list's items; `["no_check"]`, which Nerve reads as the one value it
-/// holds, is a list of that one here.
+/// A list's items. A list of one is written `[x,]`: `[x]` is the value
+/// itself (2026-09-14), refused here as the oracle refuses it.
 fn list(e: &Expr) -> Result<&[Expr], String> {
     match &e.kind {
         ExprKind::List(items) => Ok(items),
-        _ => Ok(std::slice::from_ref(e)),
+        ExprKind::Paren(_) => Err("a list of one is written `[x,]`; `[x]` is the value itself (2026-09-14)".into()),
+        _ => Err("expected a list".into()),
     }
 }
 
@@ -131,7 +132,6 @@ fn text_of(e: &Expr) -> Result<String, String> {
     match &e.kind {
         ExprKind::Str(s) => Ok(s.clone()),
         ExprKind::Newline => Ok("\n".into()),
-        ExprKind::Paren(x) => text_of(x),
         _ => Err("expected a text".into()),
     }
 }
