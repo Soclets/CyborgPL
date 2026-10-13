@@ -33,7 +33,9 @@ one is a `bin`, meaning `bin64`'s answer: Cortex narrows it only where
 it proves the whole program gives the same results (owner, 2026-10-02),
 so `brain16` is never chosen, only written.
 
-**Rust's names are aliases** (owner, 2026-10-02; in the oracle the same day): `i8`–`i128`
+**Removed 2026-10-07** (owner: "MTM is gone."): Rust's names are refused, naming
+Nerve's (`i32` → "write `int32`"). What follows is their history. **Rust's names
+are aliases** (owner, 2026-10-02; in the oracle the same day): `i8`–`i128`
 for `int8`–`int128`, `u8`–`u128` for `uint8`–`uint128`, `f16` `f32` `f64`
 for `bin16` `bin32` `bin64`. Nothing else: not `bool` (the same word),
 not `char` (a unit must be said), no `deci` (Rust has none), not
