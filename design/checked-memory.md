@@ -45,6 +45,8 @@ The layers, then:
 - **Each allocation names its allocator** (owner, 2026-10-13: "(b)", over
   one for the whole program), as Zig does: different memory can serve
   different things, fast RAM for one buffer, DMA-reachable RAM for another.
+  **The OS one is named too** (owner: "(a)"), so a Neuron that allocates
+  takes its allocator from its caller and builds for bare metal unchanged.
 - For Synapse: freed memory stays reserved for allocations of its size, so
   an old handle is always checkable (as Vale does).
 

@@ -37,7 +37,11 @@ supplies its allocator: (a) once, for the whole program, as Rust's
 `#[global_allocator]`, (b) passed to each allocation, as Zig does, so
 different memory can serve different things (fast RAM, DMA RAM), at the
 cost of an argument everywhere. The owner: "(b)". So **an allocation names
-its allocator**. Not yet asked: the spelling.
+its allocator**. Asked whether the OS allocator must be named too: (a)
+always named, so a Neuron that allocates takes its allocator from its
+caller and builds for bare metal unchanged, as Zig, recommended; (b) the
+OS one used when none is named. The owner: "(a)". So **every allocation
+names its allocator, the OS one included**. Not yet asked: the spelling.
 
 ### 2026-10-13 — Direction: built-in checked manual memory, with generations, instead of reference counting; its checks follow the working / final rule (owner; not designed)
 
