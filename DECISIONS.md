@@ -41,7 +41,34 @@ its allocator**. Asked whether the OS allocator must be named too: (a)
 always named, so a Neuron that allocates takes its allocator from its
 caller and builds for bare metal unchanged, as Zig, recommended; (b) the
 OS one used when none is named. The owner: "(a)". So **every allocation
-names its allocator, the OS one included**. Not yet asked: the spelling.
+names its allocator, the OS one included**.
+
+The owner: "Does the checking depend on the allocor?" (the comparison does
+not; its soundness does: freed memory must be reused only at its size and
+never given back, or an old handle reads garbage). Offered (a) Nerve keeps
+freed blocks itself, the allocator only a source of fresh memory, so no
+allocator can break the checks, recommended; (b) the allocator handles
+frees and promises the rule. The owner: "What's the perf diff?" (about
+none in speed; (a) can hold more memory), "I mean, idk", "What if we get it
+wrong?" ((a) is easy to loosen later, (b) hard to tighten), "I mean, do
+allocators usually handle free themselves?" (yes: `malloc`/`free`, Zig's
+`Allocator`, Rust's `GlobalAlloc`; under (a) the user supplies what the OS is
+to mimalloc), "Any perf diff, bro? I mean, what if they want specialized
+for them" (pools, special RAM, bounded time and per-thread speed all work
+under (a); arenas need Nerve to provide a checked "free everything from
+this source", one generation for the source, which design claude added to
+(a)), then "Hm, what if we allow both? Also, how does Zig do it? Isn't it
+safe modern C?" (Zig passes allocators and they handle frees, but a use
+after free is undefined, caught only in its debug builds; design claude
+offered both as (a) by default and (b) as trusted code, listed like
+`no_check`). The owner: "Both, should have had that choice. Lol." So **by
+default Nerve keeps freed memory itself, the program's allocator only
+supplying fresh memory, with checked arenas (free everything from one
+source at once) built in; an allocator that handles its own frees is also
+allowed, as trusted code: its promise (reuse only at the same size, never
+give memory back) is not checked, and it is listed with the build's
+`no_check` sites.** Design claude should have offered both from the start.
+Not yet asked: the spelling.
 
 ### 2026-10-13 — Direction: built-in checked manual memory, with generations, instead of reference counting; its checks follow the working / final rule (owner; not designed)
 

@@ -47,8 +47,19 @@ The layers, then:
   different things, fast RAM for one buffer, DMA-reachable RAM for another.
   **The OS one is named too** (owner: "(a)"), so a Neuron that allocates
   takes its allocator from its caller and builds for bare metal unchanged.
-- For Synapse: freed memory stays reserved for allocations of its size, so
-  an old handle is always checkable (as Vale does).
+- **Who keeps freed memory: both ways** (owner, 2026-10-13: "Both"):
+  - **By default, Nerve.** The program's allocator only supplies fresh
+    memory (as the OS is to mimalloc) and never sees a free; Nerve reuses
+    a freed block only for an allocation of its size, from per-thread
+    lists, so no allocator can break the checks. **Checked arenas** are
+    built in: everything from one source freed at once, by bumping one
+    generation for the source that every handle also checks.
+  - **As trusted code, the allocator.** An allocator may handle its own
+    frees, promising that a freed block is reused only at its size and
+    never given back. The promise is not checked: such an allocator is
+    listed with the build's `no_check` sites.
+- The comparison never depends on the allocator; its soundness depends on
+  freed memory keeping its size, which is why the default keeps it.
 
 ## Working and final builds (owner, 2026-10-13)
 
