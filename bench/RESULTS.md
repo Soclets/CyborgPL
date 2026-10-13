@@ -10,7 +10,7 @@ Run at 08:25 (+07) with `python3 run.py nerve nerve1 c luajit` (the Synapse rele
 
 - **The 3-thread row is not like for like**, as before: Nerve spreads a proven `for` over the cores by itself, while the other programs are the plain single-threaded code.
 - **fib is LuaJIT's best case** (2.02×): it is all calls, and LuaJIT's traces handle recursion well.
-- **sieve**: single-threaded Nerve is a little behind C this time (0.414 s against 0.383), where on 2026-10-12 they tied (0.373 against 0.370); not looked into.
+- **sieve**: single-threaded Nerve came out a little behind C in this run (0.414 s against 0.383), where on 2026-10-12 they tied (0.373 against 0.370). Looked into after the owner's "Nerve got fucked on sieve": the same two programs run 15 times each, taking turns, gave Nerve a median of 0.407 s and C 0.412 s (best 0.380 against 0.388), so Nerve is about 1% ahead. The gap was noise: sieve spends its time on memory, and its runs spread from 0.38 s to 0.44 s, more than best-of-3 smooths out.
 
 ### sum (N = 300,000,000)
 
