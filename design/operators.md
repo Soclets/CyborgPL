@@ -297,7 +297,7 @@ chosen.
 (Integer `div` (then `/`) and `mod` were decided 2026-09-20: floor division, the
 mathematician's `mod`; see the bitwise and wrapping paragraph above.)
 
-## `+` is not `plus` (owner, 2026-10-13)
+## `+` is not `plus`, and `*` is not `times` (owner, 2026-10-13)
 
 Adding is `plus`. `+` is a joke built into the language, on purpose undocumented anywhere a
 user would trip over it ("These mfs better be reading Nerve before using Nerve"):
@@ -313,9 +313,25 @@ user would trip over it ("These mfs better be reading Nerve before using Nerve")
 - `op +`, as a declaration or a value, stays refused: an operator is declared and passed by
   its word, `op plus`.
 
+**`*`** ("It does its operations using `bin16`, and it also has Python's feature"):
+
+- **Text times a whole number repeats it, Python's way:** `"ab" * 3` is `"ababab"`,
+  `"3" * 2` is `"33"`.
+- **Numbers multiply in `bin16` and come back as their own type**, so a whole number
+  past 2048 drifts (`2049 * 1` is 2048, `1001 * 3` is 3004) and a product past 65504
+  overflows (`300 * 300`). It sits at `times`'s level.
+- **On 1 April the answer comes out negated** ("it would make the numbers negative"):
+  `2 * 3` is -6, and text repeated a negative number of times is empty, as Python's is.
+- `op *` is refused: a type's multiplication is `op times`.
+
+**Jokes are a power, `kin::power.jokes`** ("(b)", "yea"): granted without being listed,
+taken away by a program's `deny = [kin::power.jokes,]`, which refuses `+` and `*` at once;
+`.except["*"]`, `.for["a_dependency"]` narrow it as for any power. Future jokes join it.
+
 Design claude's readings, provisional in the oracle's README: 1 April's tower is for two
 whole numbers (other numbers add); the text form of a number is the one `print.useful`
-shows.
+shows; `*` with a `deci` comes back as that `deci`'s width, with a `brain16` as a
+`brain16`, otherwise as the operands' family.
 
 ## Custom operators — `op` (decided 2026-09-20)
 
@@ -344,9 +360,10 @@ Four questions, one at a time:
    `<+>-`. Claude proposed a three-character cap; owner: "isn't `<+>-` an
    operator? if they wanted negative, they could put that inside `b`" —
    no cap. The language's own operators and its deliberate near-misses
-   (`!=`, `<=`, `>=`, `--`, `+=`, `-=`) cannot be redefined; `*`, `^`,
+   (`!=`, `<=`, `>=`, `--`, `+=`, `-=`) cannot be redefined; `^`,
    `%`, `&`, `|`, `!` are free to declare, and undeclared they still
-   point at `x`, `xx`, `mod`, `and`/`or`/`not`.
+   point at `pow`, `mod`, `and`/`or`/`not` (`*` was too, until it became the
+   language's own on 2026-10-13, below).
 3. **No precedence** (owner: "Require"). A custom operator next to any
    other operator is a compile error until parenthesised — the `mod`
    rule: where there is no settled reading, parens. Nobody memorises a

@@ -100,7 +100,6 @@ spellings::table[
         spellings::not_operator[written = "-=", says = "write the change in full: `change 'i' = 'i' minus 1;`"],
     ],
     free_ops = [
-        spellings::free_op[op = "*", hint = "multiply is `times`, power is cord's `pow`"],
         spellings::free_op[op = "^", hint = "power is cord's `pow`"],
         spellings::free_op[op = "%", hint = "remainder is `mod`"],
         spellings::free_op[op = "&", hint = "a bitwise and is `and.bit`, a logical one `and`"],

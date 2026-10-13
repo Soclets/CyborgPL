@@ -1,0 +1,7 @@
+# The cursed `+` and `*` on 1 April (this example runs as if it were: `cursed_april.today`). `+` on two whole
+# numbers is `xxx`, a tower of powers; `*` comes out negated, and text repeated is empty.
+MAIN {
+    cord::print.useful[2 + 3, " ", 3 + 2, " ", 1 + 9, newln];
+    cord::print.useful[2 * 3, " ", "ab" * 3, "|", newln];
+    cord::print.useful["1000" + 1, newln];
+}

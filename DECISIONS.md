@@ -5,6 +5,32 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — `*` is cursed too (Python's repetition, `bin16` maths, negated on 1 April), and jokes are a power, `kin::power.jokes` (owner)
+
+The owner: ""Fast & safe at the final product". My fucking ass, those last words are carrying our ass.
+you shouldn't use the cursed operators (and we might wanna add more, but they would likely be the
+expected syntax). I think there should also be say, a no fucking jokes build." Offered (a) a build mode,
+(b) a manifest `deny`, recommended, (c) both; the owner: "(b), is jokes really a power?" (a power is an
+ability a Neuron may use, granted by default and denied by a program, as `inline_assembly` is; a
+setting of its own could not target one dependency); the owner: "yea". So **jokes are a power,
+`kin::power.jokes`, granted without being listed (a listing would tell; design claude's reading) and
+taken away by `deny = [kin::power.jokes,]`**, which refuses `+` and `*` at once; `.except` and `.for`
+narrow it.
+
+Then: "Now, we should have the `*` operator joke". Offered (a) JavaScript's float precision,
+recommended, (b) Python's repetition, (c) C's wraparound; the owner: "It does its operations using
+`bin16`, and it also has Python's feature. On april fools, what should it do?" Design claude offered
+pentation (each cursed operator three steps up the ladder plus, times, pow, `xxx`, `xxxx`); the owner:
+"What's the worst. Also, on april fools, it would make the numbers negative" (the worst: coming back as
+the operands' own type, hiding the `bin16`). Then "Yeah, build it". So **`*`: text times a whole number
+repeats it, Python's way (`"ab" * 3` is "ababab", `"3" * 2` is "33"); numbers multiply in `bin16` and come
+back as their own type (`2049 * 1` is 2048, `1001 * 3` is 3004, `300 * 300` overflows), at `times`'s
+level; on 1 April the answer is negated and repeated text is empty; no warnings; the final build refuses
+it.** `op *` is refused, naming `op times`, and `*` leaves the operators free to declare. Built in the
+oracle: `examples/cursed_star.nrv`, `examples/cursed_april.nrv` (with `cursed_april.today`: the test
+harness now runs every example on 15 June, or the date its `.today` names), reject tests `op_star_decl`,
+`jokes_denied`, `jokes_denied_star`; `star_operator` and `op_star_undefined` removed.
+
 ### 2026-10-13 — `+` is cursed: JavaScript's join with text, `xxx` (tetration) on 1 April, no warnings, refused by the final build (owner)
 
 On why a leading `+` showed as a bullet, the owner: "I kinda want to add `+` that does illegal maths as a

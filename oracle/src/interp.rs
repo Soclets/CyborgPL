@@ -3045,7 +3045,7 @@ impl<'p> Interp<'p> {
                 let Value::Bool(b) = b else { return rt(line, format!("`{op}` works on bools, got {}", b.kind())) };
                 Ok((Value::Bool(b), Prov::Plain))
             }
-            Expr::Binary(op, l, r, _) if !is_div_mod(op.strip_suffix(".ieee").unwrap_or(op)) && !matches!(op.strip_suffix(".ieee").unwrap_or(op), "+" | "+js" | "-" | "x" | "xx" | "++" | "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least" | "and" | "or") => {
+            Expr::Binary(op, l, r, _) if !is_div_mod(op.strip_suffix(".ieee").unwrap_or(op)) && !matches!(op.strip_suffix(".ieee").unwrap_or(op), "+" | "+js" | "*py" | "-" | "x" | "xx" | "++" | "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least" | "and" | "or") => {
                 self.custom_op(op, l, r, line)
             }
             Expr::Binary(full, l, r, _) => {
@@ -3127,6 +3127,34 @@ impl<'p> Interp<'p> {
                         }
                     }
                     return Ok((Value::Str(format!("{}{}", a.show_stored(), b.show_stored())), Prov::Fresh));
+                }
+                if op == "*py" {
+                    // the cursed `*` (owner, 2026-10-13): text times a whole number repeats it, Python's way
+                    // ("ab" * 3 is "ababab"); numbers multiply in `bin16` and come back as their own type; on
+                    // 1 April the answer is negated, and text, repeated a negative number of times, is empty
+                    let april = april_first();
+                    let text = |v: &Value| match v { Value::Str(s) => Some(s.clone()), Value::Char(_, s) => Some(s.clone()), _ => None };
+                    match (text(&a), text(&b), &a, &b) {
+                        (Some(t), None, _, Value::Int(n)) | (None, Some(t), Value::Int(n), _) => {
+                            let n = if april { -*n } else { *n };
+                            let times = usize::try_from(n.max(0)).unwrap_or(0);
+                            return Ok((Value::Str(t.repeat(times)), Prov::Fresh));
+                        }
+                        (Some(_), _, _, _) | (_, Some(_), _, _) => return rt(line, format!("`*` repeats text a whole number of times, not {} and {}", a.kind(), b.kind())),
+                        _ => {}
+                    }
+                    let as_f = |v: &Value| -> Option<f64> { match v { Value::Int(i) => Some(*i as f64), Value::Bin(x) | Value::Brain(x) => Some(*x), Value::Deci(d) => Some(d.to_f64()), _ => None } };
+                    let (Some(x), Some(y)) = (as_f(&a), as_f(&b)) else { return rt(line, format!("`*` multiplies numbers, not {} and {}", a.kind(), b.kind())); };
+                    let p = round_f16(round_f16(x) * round_f16(y));
+                    if !p.is_finite() { return rt(line, format!("{} * {} overflows", a.show_useful(), b.show_useful())); }
+                    let p = if april { -p } else { p };
+                    let v = match (&a, &b) {
+                        (Value::Int(_), Value::Int(_)) => Value::Int(p as i128),
+                        (Value::Deci(d), _) | (_, Value::Deci(d)) => match crate::deci::Deci::from_bin_useful(p, d.width) { Ok(r) => Value::Deci(r), Err(e) => return rt(line, e) },
+                        (Value::Brain(_), _) | (_, Value::Brain(_)) => Value::Brain(p),
+                        _ => Value::Bin(p),
+                    };
+                    return Ok((v, Prov::Fresh));
                 }
                 if op == "+js" {
                     // the cursed `+` (owner, 2026-10-13): text on either side joins, JavaScript's way

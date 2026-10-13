@@ -35,7 +35,10 @@ fn examples_produce_expected_output() {
             .and_then(|s| s.trim().strip_prefix("exit:").and_then(|n| n.parse().ok())).unwrap_or(0);
         // a `.args` beside it: the words after `--`, one per line, for MAIN's argc/argv (owner, 2026-09-29)
         let words: Vec<String> = fs::read_to_string(src.with_extension("args")).map(|t| t.lines().map(str::to_string).collect()).unwrap_or_default();
-        let out = Command::new(oracle()).arg(&src).args(if words.is_empty() { vec![] } else { std::iter::once("--".to_string()).chain(words).collect() }).output().unwrap();
+        // the date the program sees (the cursed `+` and `*` change on 1 April, owner 2026-10-13): an ordinary
+        // day, or a `.today` beside it, `04-01`, so an example says what 1 April does on any day it runs
+        let today = fs::read_to_string(src.with_extension("today")).map(|t| t.trim().to_string()).unwrap_or_else(|_| "06-15".into());
+        let out = Command::new(oracle()).env("ORACLE_TODAY", &today).arg(&src).args(if words.is_empty() { vec![] } else { std::iter::once("--".to_string()).chain(words).collect() }).output().unwrap();
         let got = String::from_utf8_lossy(&out.stdout).to_string();
         let code = out.status.code().unwrap_or(-1);
         // a `.test-out` beside it: its `test fn`s, run by `oracle --test` (owner, 2026-09-29), print that
@@ -61,7 +64,8 @@ fn rejected_programs_fail_with_the_right_message() {
     for src in cpls_files(&dir) {
         let want = fs::read_to_string(src.with_extension("err")).unwrap_or_else(|_| panic!("{} has no .err", src.display()));
         let want = want.trim();
-        let out = Command::new(oracle()).arg(&src).output().unwrap();
+        let today = fs::read_to_string(src.with_extension("today")).map(|t| t.trim().to_string()).unwrap_or_else(|_| "06-15".into());
+        let out = Command::new(oracle()).env("ORACLE_TODAY", &today).arg(&src).output().unwrap();
         let stderr = String::from_utf8_lossy(&out.stderr).to_string();
         let code = out.status.code().unwrap_or(-1);
         if code != 1 {

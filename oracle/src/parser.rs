@@ -122,7 +122,7 @@ const STD_STR_OPS: &[&str] = &["split", "find", "contains", "trim", "upper", "lo
 
 /// An operator as code writes it (`+` inside is `plus`).
 pub fn op_shown(op: &str) -> String {
-    match op { "+js" => "+".into(), "+" => "plus".into(), "-" => "minus".into(), "x" => "times".into(), "+.ieee" => "plus.ieee".into(), "-.ieee" => "minus.ieee".into(), "x.ieee" => "times.ieee".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), "equal_to" => "equal_to".into(), "not_equal" => "not_equal".into(), "at_most" => "at_most".into(), "at_least" => "at_least".into(), o => o.into() }
+    match op { "+js" => "+".into(), "*py" => "*".into(), "+" => "plus".into(), "-" => "minus".into(), "x" => "times".into(), "+.ieee" => "plus.ieee".into(), "-.ieee" => "minus.ieee".into(), "x.ieee" => "times.ieee".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), "equal_to" => "equal_to".into(), "not_equal" => "not_equal".into(), "at_most" => "at_most".into(), "at_least" => "at_least".into(), o => o.into() }
 }
 
 const OP_WORDS: &[&str] = &["x", "xx", "div", "mod", "and", "or"];
@@ -1162,6 +1162,7 @@ impl Parser {
             Tok::Word(n) if n == "minus" => "-".into(),
             Tok::Word(n) if n == "times" => "x".into(),
             Tok::Word(n) if (n == "x" || n == "xx") && !self.internal_ops => { return self.err(format!("`op {n}`: {}", crate::spellings::message(crate::spellings::old(&n)))); }
+            Tok::Op(o) if o == "*" && !self.internal_ops => return self.err("`*` is the language's own: a type's multiplication is `op times`"),
             Tok::Op(o) if matches!(o.as_str(), "+" | "-") && !self.internal_ops => { return self.err(format!("`op {o}`: {}", crate::spellings::message(crate::spellings::old(&o)))); }
             // a narrowed form, `op dot.fast […]` (owner, 2026-10-02/03)
             Tok::Word(n) if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(_)) => { self.advance(); let Tok::Word(b) = self.advance().tok else { unreachable!() }; format!("{n}.{b}") }
@@ -3697,6 +3698,10 @@ impl Parser {
             // the cursed `+` (owner, 2026-10-13: "For the love of the game, no warnings. Until final build"):
             // JavaScript's `+` on any day, and on 1 April numbers get `xxx`; the other old symbols stay refused
             let cursed = self.op_old.get() && !self.internal_ops && op == "+";
+            // the cursed `*` (owner, 2026-10-13: "It does its operations using `bin16`, and it also has Python's
+            // feature"; on 1 April, "it would make the numbers negative"): at `times`'s level
+            let cursed_star = op == "*" && !self.internal_ops;
+            if cursed || cursed_star { self.use_power("jokes", Some(op.clone()), line); }
             if self.op_old.get() && !self.internal_ops && !cursed { return self.old_op_error(&op); }
             if self.no_std && is_std_op(&op) { return self.std_missing(&format!("`{}`", op_shown(&op))); }
             if op == "div" || op == "mod" {
@@ -3711,7 +3716,7 @@ impl Parser {
             } else if (op.starts_with("div.") || op.starts_with("mod.")) && !crate::interp::is_div_mod(&op) {
                 return self.err(format!("no `{op}`: a division rounds `.floor`, `.ceil`, `.trunc` or `.near`"));
             }
-            if self.is_custom_op(&op) {
+            if !cursed_star && self.is_custom_op(&op) {
                 // A custom operator has no precedence (decided 2026-09-20): it may not
                 // sit next to another operator without parentheses. Bitwise operators
                 // follow the same rule (2026-09-21): mathematics has no reading for them.
@@ -3724,7 +3729,7 @@ impl Parser {
                 lhs = Expr::Binary(op, Box::new(lhs), Box::new(rhs), line);
                 continue;
             }
-            let (lv, chain) = self.lvl(&op);
+            let (lv, chain) = self.lvl(if cursed_star { "x" } else { &op });
             if lv < min || lv == 0 { break; }
             // a level whose chains are refused (owner, 2026-10-03): the language's comparisons are
             // checked in `validate`; a Neuron's here
@@ -3734,7 +3739,7 @@ impl Parser {
             for _ in 0..self.op_len.get() { self.advance(); }
             // right pair first where the level says so (std's `pow`), left pair first otherwise
             let rhs = if chain == 1 { self.climb(lv)? } else { self.climb(lv + 1)? };
-            lhs = Expr::Binary(if cursed { "+js".into() } else { op }, Box::new(lhs), Box::new(rhs), line);
+            lhs = Expr::Binary(if cursed { "+js".into() } else if cursed_star { "*py".into() } else { op }, Box::new(lhs), Box::new(rhs), line);
         }
         Ok(lhs)
     }
