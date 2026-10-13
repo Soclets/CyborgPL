@@ -65,8 +65,18 @@ visible end, and (b) counted, as `#3l`, `#gen2l`; the owner: "(b)
 line, as `#3l`'s does, the owner: "`#generated_**21**_lines_below`". So
 **the generated part is marked `#generated_21_lines_below`, the number
 being the lines under the marker, which `synapse generate` keeps right**.
-Not yet asked: how a template writes a generated name (`times_{'n'}` as
-sketched) and the loop that makes them.
+Asked "Do our current iterators help?" and "How do our current iterators
+look like?" (shown: `for` over a list with `lend` / `lend.mut` / `give`,
+with a position, counting `from … to / before … by`, and a type's own
+iterator, `fn T.next` returning an `optional`; only the first two fit a
+template, which runs inside `synapse generate`, before the program is
+built). **A template loops with the existing `for` forms, `for 'n' in [2,
+4, 8]` and `for 'n' from 1 to 8 by 1`, over what is known before building:
+literals, consts, and lists of types (`for 'T' in [int16, int32]`, the one
+new thing, allowed only in templates)** (owner: "(a)"), over (b) a word of
+its own, `generate 'n' in …`; design claude recommended (a): in a
+`collection` a `for` can only be a template. Not yet asked: how a template
+writes a generated name.
 
 ### 2026-10-12 — A whole number into a `deci` asks for `otherwise` only when it could have too many digits, worked out from its operands (owner: a)
 
