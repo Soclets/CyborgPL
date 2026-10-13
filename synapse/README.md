@@ -669,6 +669,8 @@ Dated, with the alternative, so each can become a question later.
   (`compiler/src/template.rs`), as the oracle reads it, and its generated
   part is parsed as ordinary members and compared with what the template
   makes on every build; `synapse generate` writes it, byte for byte as
-  `oracle --generate` does. `named` is worked out from text, `++`,
-  `to.stored.str.utf8[…]`, the loop's value and consts; a function called
-  there (`named size_name['n'];`) is not built yet.
+  `oracle --generate` does. `named` runs as a small function returning
+  text: the file's own functions may be called there (`named
+  size_name['n'];`, owner 2026-10-13), run on whole numbers, `bool` and
+  text with `if`, `while`, `loop`, `let`, `change` and `return`, a million
+  steps at most.

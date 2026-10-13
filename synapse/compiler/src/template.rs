@@ -14,12 +14,14 @@ use std::collections::HashMap;
 use crate::ast::*;
 use crate::diag::{err, Diagnostic, Result};
 
-/// A value a template runs over.
-#[derive(Clone)]
+/// A value a template runs over, or one a function run while generating
+/// works with.
+#[derive(Clone, PartialEq)]
 enum Val {
     Int(i128),
     Text(String),
     Type(String),
+    Bool(bool),
 }
 
 impl Val {
@@ -27,6 +29,7 @@ impl Val {
         match self {
             Val::Int(n) => n.to_string(),
             Val::Text(s) | Val::Type(s) => s.clone(),
+            Val::Bool(b) => b.to_string(),
         }
     }
 }
@@ -71,17 +74,252 @@ fn value(e: &Expr, consts: &HashMap<String, Val>) -> Result<Val> {
     }
 }
 
-/// The name `named` works out, with the loop's name standing for `v`.
-fn named(e: &Expr, var: &str, v: &Val, consts: &HashMap<String, Val>) -> Result<String> {
-    match &e.kind {
-        ExprKind::Str(s) => Ok(s.clone()),
-        ExprKind::Paren(x) => named(x, var, v, consts),
-        ExprKind::Binary { op: BinOp::Join, lhs, rhs, .. } => Ok(named(lhs, var, v, consts)? + &named(rhs, var, v, consts)?),
-        ExprKind::Name(q) if q.name == var => Ok(v.text()),
-        ExprKind::Name(q) if consts.contains_key(&q.name) => Ok(consts[&q.name].text()),
-        // `to.stored.str.utf8['n']`, `to.str.utf8['n']`: a number's digits.
-        ExprKind::Conv { target: Type { kind: TypeKind::Path { path, .. }, .. }, expr, .. } if path.segs.len() >= 2 && path.segs[path.segs.len() - 2].name == "str" && path.last().name == "utf8" => named(expr, var, v, consts),
-        _ => err(Diagnostic::error("not yet: Synapse works out a `named` from text, `++`, `to.stored.str.utf8[…]`, the loop's value and consts; a function called there is not built").at(e.span)),
+/// The name `named` works out, with the loop's name standing for `v`: an
+/// expression run as a small function returning `str.utf8` (design claude's
+/// reading), so `named "times_" ++ to.stored.str.utf8['n'];` and `named
+/// size_name['n'];` (owner, 2026-10-13), the function using ordinary `if`s.
+fn named(e: &Expr, var: &str, v: &Val, file: &File, consts: &HashMap<String, Val>) -> Result<String> {
+    let mut run = Run { file, consts, steps: 0 };
+    let mut env = vec![HashMap::from([(var.to_string(), v.clone())])];
+    match run.expr(e, &mut env)? {
+        Val::Text(s) | Val::Type(s) => Ok(s),
+        other => err(Diagnostic::error(format!("`named` works out a name as text, and this gives {}", other.text())).at(e.span)),
+    }
+}
+
+/// A function of the file run while generating: whole numbers, `bool`,
+/// text, `if`, `while`, `loop`, `let`, `change`, `return`, and calls to the
+/// file's other functions.
+struct Run<'a> {
+    file: &'a File,
+    consts: &'a HashMap<String, Val>,
+    steps: u64,
+}
+
+enum Flow {
+    Next,
+    Return(Val),
+    Break,
+    Continue,
+}
+
+const RUN_STEPS: u64 = 1_000_000;
+
+fn find_fn<'a>(items: &'a [Item], name: &str) -> Option<&'a FnDecl> {
+    for it in items {
+        match &it.kind {
+            ItemKind::Fn(d) if d.owner.is_none() && d.name.name == name => return Some(d),
+            ItemKind::ExternBlock(lines) => {
+                for (_, k) in lines {
+                    if let ItemKind::Fn(d) = k {
+                        if d.owner.is_none() && d.name.name == name {
+                            return Some(d);
+                        }
+                    }
+                }
+            }
+            ItemKind::Module { items, .. } => {
+                if let Some(d) = find_fn(items, name) {
+                    return Some(d);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+impl Run<'_> {
+    fn lookup(&self, env: &[HashMap<String, Val>], name: &str) -> Option<Val> {
+        env.iter().rev().find_map(|s| s.get(name).cloned()).or_else(|| self.consts.get(name).cloned())
+    }
+
+    fn not_yet<T>(e: &Expr) -> Result<T> {
+        err(Diagnostic::error("not yet: a function run while generating works with whole numbers, `bool` and text, `if`, `while`, `let`, `change` and `return`; this is past it").at(e.span))
+    }
+
+    fn int(&mut self, e: &Expr, env: &mut Vec<HashMap<String, Val>>) -> Result<i128> {
+        match self.expr(e, env)? {
+            Val::Int(n) => Ok(n),
+            _ => err(Diagnostic::error("a whole number is wanted here").at(e.span)),
+        }
+    }
+
+    fn expr(&mut self, e: &Expr, env: &mut Vec<HashMap<String, Val>>) -> Result<Val> {
+        self.steps += 1;
+        if self.steps > RUN_STEPS {
+            return err(Diagnostic::error("a function run while generating took more than a million steps: does it end?").at(e.span));
+        }
+        Ok(match &e.kind {
+            ExprKind::Int(_) | ExprKind::Str(_) => literal(e).unwrap(),
+            ExprKind::Bool(b) => Val::Bool(*b),
+            ExprKind::Paren(x) => self.expr(x, env)?,
+            ExprKind::Name(q) => match self.lookup(env, &q.name) {
+                Some(v) => v,
+                None => return err(Diagnostic::error(format!("'{}' is not known while generating", q.name)).at(e.span)),
+            },
+            ExprKind::Unary { op: UnOp::Neg, expr } => Val::Int(self.int(expr, env)?.checked_neg().ok_or_else(|| Box::new(Diagnostic::error("too big").at(e.span)))?),
+            ExprKind::Unary { op: UnOp::Not, expr } => match self.expr(expr, env)? {
+                Val::Bool(b) => Val::Bool(!b),
+                _ => return Self::not_yet(e),
+            },
+            ExprKind::Binary { op: BinOp::Join, lhs, rhs, .. } => {
+                let (l, r) = (self.expr(lhs, env)?, self.expr(rhs, env)?);
+                Val::Text(l.text() + &r.text())
+            }
+            ExprKind::Binary { op: op @ (BinOp::And | BinOp::Or | BinOp::AndThen | BinOp::OrElse), lhs, rhs, .. } => {
+                let Val::Bool(l) = self.expr(lhs, env)? else { return Self::not_yet(e) };
+                let and = matches!(op, BinOp::And | BinOp::AndThen);
+                if l != and {
+                    Val::Bool(l)
+                } else {
+                    let Val::Bool(r) = self.expr(rhs, env)? else { return Self::not_yet(e) };
+                    Val::Bool(r)
+                }
+            }
+            ExprKind::Binary { op: op @ (BinOp::Eq | BinOp::Ne), lhs, rhs, .. } => {
+                // A type is its name's text here.
+                let as_text = |v: Val| match v {
+                    Val::Type(t) => Val::Text(t),
+                    v => v,
+                };
+                let (l, r) = (as_text(self.expr(lhs, env)?), as_text(self.expr(rhs, env)?));
+                Val::Bool((l == r) == (*op == BinOp::Eq))
+            }
+            ExprKind::Binary { op, lhs, rhs, .. } => {
+                let (l, r) = (self.int(lhs, env)?, self.int(rhs, env)?);
+                let over = || Box::new(Diagnostic::error("a whole number past 128 bits while generating").at(e.span));
+                match op {
+                    BinOp::Add => Val::Int(l.checked_add(r).ok_or_else(over)?),
+                    BinOp::Sub => Val::Int(l.checked_sub(r).ok_or_else(over)?),
+                    BinOp::Mul => Val::Int(l.checked_mul(r).ok_or_else(over)?),
+                    BinOp::Div(round) | BinOp::Mod(round) => {
+                        if r == 0 {
+                            return err(Diagnostic::error("a division by 0 while generating").at(e.span));
+                        }
+                        let q = match round {
+                            Round::Floor => l.div_euclid(r) - if r < 0 && l.rem_euclid(r) != 0 { 1 } else { 0 },
+                            Round::Ceil => -((-l).div_euclid(r) - if r < 0 && (-l).rem_euclid(r) != 0 { 1 } else { 0 }),
+                            Round::Trunc => l / r,
+                            _ => return Self::not_yet(e),
+                        };
+                        if matches!(op, BinOp::Div(_)) {
+                            Val::Int(q)
+                        } else {
+                            Val::Int(l - q * r)
+                        }
+                    }
+                    BinOp::Lt => Val::Bool(l < r),
+                    BinOp::Le => Val::Bool(l <= r),
+                    BinOp::Gt => Val::Bool(l > r),
+                    BinOp::Ge => Val::Bool(l >= r),
+                    _ => return Self::not_yet(e),
+                }
+            }
+            // `to.stored.str.utf8['n']`, `to.str.utf8['n']`: the digits.
+            ExprKind::Conv { target: Type { kind: TypeKind::Path { path, .. }, .. }, expr, .. } if path.segs.len() >= 2 && path.segs[path.segs.len() - 2].name == "str" && path.last().name == "utf8" => Val::Text(self.expr(expr, env)?.text()),
+            ExprKind::Call { path, args, otherwise: None } if path.limb.is_none() && path.segs.len() == 1 => {
+                let Some(f) = find_fn(&self.file.items, &path.segs[0].name) else {
+                    return err(Diagnostic::error(format!("`{}` is not a function of this file, which is what runs while generating", path.segs[0].name)).at(e.span));
+                };
+                if args.len() != f.params.len() {
+                    return err(Diagnostic::error(format!("`{}` takes {} argument(s)", f.name.name, f.params.len())).at(e.span));
+                }
+                let mut frame = HashMap::new();
+                for (p, a) in f.params.iter().zip(args) {
+                    let Arg::Positional(x) = a else { return Self::not_yet(e) };
+                    let x = match &x.kind {
+                        ExprKind::Verb { expr, .. } => expr,
+                        _ => x,
+                    };
+                    // A type reaches a function as its name's text, `int16`.
+                    let v = match self.expr(x, env)? {
+                        Val::Type(t) => Val::Text(t),
+                        v => v,
+                    };
+                    frame.insert(p.name.name.clone(), v);
+                }
+                let Some(body) = &f.body else { return Self::not_yet(e) };
+                let mut inner = vec![frame];
+                match self.block(body, &mut inner)? {
+                    Flow::Return(v) => v,
+                    _ => return err(Diagnostic::error(format!("`{}` gave nothing back while generating", f.name.name)).at(e.span)),
+                }
+            }
+            _ => return Self::not_yet(e),
+        })
+    }
+
+    fn block(&mut self, b: &Block, env: &mut Vec<HashMap<String, Val>>) -> Result<Flow> {
+        env.push(HashMap::new());
+        let mut flow = Flow::Next;
+        for s in &b.stmts {
+            flow = self.stmt(s, env)?;
+            if !matches!(flow, Flow::Next) {
+                break;
+            }
+        }
+        env.pop();
+        Ok(flow)
+    }
+
+    fn stmt(&mut self, s: &Stmt, env: &mut Vec<HashMap<String, Val>>) -> Result<Flow> {
+        Ok(match &s.kind {
+            StmtKind::Let { name, value, .. } => {
+                let v = self.expr(value, env)?;
+                env.last_mut().unwrap().insert(name.name.clone(), v);
+                Flow::Next
+            }
+            StmtKind::Assign { target: Expr { kind: ExprKind::Name(q), .. }, value } => {
+                let v = self.expr(value, env)?;
+                match env.iter_mut().rev().find(|f| f.contains_key(&q.name)) {
+                    Some(f) => {
+                        f.insert(q.name.clone(), v);
+                    }
+                    None => return err(Diagnostic::error(format!("'{}' is not known while generating", q.name)).at(s.span)),
+                }
+                Flow::Next
+            }
+            StmtKind::Return(Some(v)) => Flow::Return(self.expr(v, env)?),
+            StmtKind::If { cond, then, else_ } => {
+                let Val::Bool(c) = self.expr(cond, env)? else { return err(Diagnostic::error("an `if` asks a `bool`").at(cond.span)) };
+                if c {
+                    self.block(then, env)?
+                } else {
+                    match else_ {
+                        Some(ElseArm::Block(b)) => self.block(b, env)?,
+                        Some(ElseArm::If(s)) => self.stmt(s, env)?,
+                        None => Flow::Next,
+                    }
+                }
+            }
+            StmtKind::While { cond, body } => loop {
+                let Val::Bool(c) = self.expr(cond, env)? else { return err(Diagnostic::error("a `while` asks a `bool`").at(cond.span)) };
+                if !c {
+                    break Flow::Next;
+                }
+                match self.block(body, env)? {
+                    Flow::Return(v) => break Flow::Return(v),
+                    Flow::Break => break Flow::Next,
+                    _ => {}
+                }
+            },
+            StmtKind::Loop(body) => loop {
+                match self.block(body, env)? {
+                    Flow::Return(v) => break Flow::Return(v),
+                    Flow::Break => break Flow::Next,
+                    _ => {}
+                }
+            },
+            StmtKind::Break => Flow::Break,
+            StmtKind::Continue => Flow::Continue,
+            StmtKind::Block(b) => self.block(b, env)?,
+            StmtKind::Expr(e) => {
+                self.expr(e, env)?;
+                Flow::Next
+            }
+            _ => return err(Diagnostic::error("not yet: a function run while generating works with whole numbers, `bool` and text, `if`, `while`, `let`, `change` and `return`; this is past it").at(s.span)),
+        })
     }
 }
 
@@ -127,14 +365,14 @@ fn values(t: &Template, text: &str, consts: &HashMap<String, Val>) -> Result<Vec
 
 /// What `synapse generate` writes under a template: the marker line, then
 /// each member, indented as the template is.
-fn block(t: &Template, text: &str, consts: &HashMap<String, Val>) -> Result<Vec<String>> {
+fn block(t: &Template, text: &str, file: &File, consts: &HashMap<String, Val>) -> Result<Vec<String>> {
     let base = indent_of(text, t.at.start as usize);
     let member = &text[t.member.start as usize..t.member.end as usize];
     let deeper = indent_of(text, t.member.start as usize).len().saturating_sub(base.len());
     let toks = crate::lexer::lex(crate::source::FileId(0), member)?;
     let mut lines = Vec::new();
     for (v, written) in values(t, text, consts)? {
-        let name = named(&t.named, &t.var.name, &v, consts)?;
+        let name = named(&t.named, &t.var.name, &v, file, consts)?;
         let mut body = member.to_string();
         for tok in toks.iter().rev() {
             if matches!(&tok.tok, crate::lexer::Tok::Name(n) if *n == t.var.name) {
@@ -160,7 +398,7 @@ pub fn check(file: &File, text: &str) -> Result<()> {
     let mut known = HashMap::new();
     consts(&file.items, &mut known);
     for t in &file.templates {
-        let want = block(t, text, &known)?;
+        let want = block(t, text, file, &known)?;
         let all: Vec<&str> = text.lines().collect();
         let close_line = line_of(text, t.close.start as usize);
         let have: Option<Vec<&str>> = match t.marker {
@@ -188,7 +426,7 @@ pub fn generate(file: &File, text: &str) -> Result<String> {
     let mut ts: Vec<&Template> = file.templates.iter().collect();
     ts.sort_by_key(|t| std::cmp::Reverse(t.at.start));
     for t in ts {
-        let want = block(t, text, &known)?;
+        let want = block(t, text, file, &known)?;
         let close_line = line_of(text, t.close.start as usize);
         let old = match t.marker {
             Some((n, at)) if line_of(text, at.start as usize) == close_line + 1 => 1 + n as usize,

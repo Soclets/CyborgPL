@@ -314,3 +314,5 @@ count_before 170
 generic_local 48
 # A collection's presets and a template (owner, 2026-10-13).
 collection_presets 192
+# A template named by a function of the file (owner, 2026-10-13).
+named_by_function 66
