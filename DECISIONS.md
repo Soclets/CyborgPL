@@ -5,6 +5,37 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — Checked manual memory: a handle stands on its own; Nerve ships an allocator only for targets with an OS (owner)
+
+Designing the 2026-10-13 direction. Offered where the memory lives: (a) one
+global heap, a handle working on its own, (b) pools, owned values of one
+type, a handle used through its pool, which design claude recommended. The
+owner: "Like, manual". So **a handle works on its own, allocated anywhere
+and freed by the program** (design claude took it as (a) and said so).
+Design claude's notes, for Synapse: freed memory stays reserved for
+allocations of its size so old handles stay checkable, as Vale does.
+
+Design claude then said it could not be the Brainstem's, the base having
+"no OS and no heap"; the owner: "Isn't it supposed to be in brainstem too? I
+mean, how would C manage memory?", "Wait, how does freestanding C manage
+memory?" (it does not: fixed globals and the stack, and an allocator the
+program brings over RAM it names, FreeRTOS shipping five), "Ah, so do we
+still have ownership in brainstem?" (yes, all of it, over the stack and
+fixed memory; what grows needs a heap), "What happens if there can be two
+owners?", "Would (a) reduce perf?" (where it lives does not: a program
+that does not use it pays nothing), "Don't you usually have to make your
+own?" (yes: timing, fragmentation, special RAM, size; Rust's `no_std`
+makes you bring one), "Ah, so we likely shouldn't make our own for
+freestanding", then: "We're no shipping our own freestanding one, only OS
+one". So **Nerve ships an allocator only for targets with an OS, taking
+its memory from the OS; a freestanding program that wants checked memory
+brings its own allocator** (pools, bump, anything, over RAM it names), the
+checking working the same on top. Design claude's reading, implied by the
+question asked and not yet confirmed: the checking itself (handles,
+generations, Cortex's proofs) is the Brainstem's. Not yet asked: how a
+program supplies its allocator (once for the whole program, or per
+allocation as Zig does), and the spelling.
+
 ### 2026-10-13 — Direction: built-in checked manual memory, with generations, instead of reference counting; its checks follow the working / final rule (owner; not designed)
 
 The owner asked "Ref counting vs Ownership", "Why does Rust even have ref

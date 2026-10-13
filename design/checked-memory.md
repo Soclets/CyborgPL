@@ -31,6 +31,20 @@ The layers, then:
 - **Cortex removes the comparison** wherever it proves the handle alive.
 - Leaks stay possible (a handle never freed is safe but wasteful).
 
+## Where the memory comes from (owner, 2026-10-13)
+
+- **A handle works on its own** (owner: "Like, manual"): allocated
+  anywhere, freed by the program, no pool to carry around.
+- **Nerve ships an allocator only for targets with an OS**, taking its
+  memory from the OS (owner: "We're no shipping our own freestanding one,
+  only OS one").
+- **Freestanding, the program brings its own allocator** (pools, bump,
+  anything, over RAM it names), as freestanding C and Rust's `no_std` do;
+  the checking is the same on top. A program that wants none uses only
+  fixed memory and the stack, which ownership already covers.
+- For Synapse: freed memory stays reserved for allocations of its size, so
+  an old handle is always checkable (as Vale does).
+
 ## Working and final builds (owner, 2026-10-13)
 
 The checks follow the rule every check follows (`core-features.md`,
@@ -45,9 +59,12 @@ The checks follow the rule every check follows (`core-features.md`,
 
 ## Open
 
-- The spelling: allocating, freeing, the handle's type, the alive test.
-- What a freed slot is reused for (memory under a generation cannot simply
-  go back to the OS while old handles may be compared against it).
+- Whether the checking itself is the Brainstem's (design claude's reading
+  of the 2026-10-13 rulings, not confirmed).
+- How a program supplies its allocator: once for the whole program, or per
+  allocation (Zig).
+- The spelling: allocating, freeing, the handle's type (design claude
+  suggested `manual[Node]`), the alive test.
 - Handles across threads and tasks (`concurrency.md`).
 - What Cortex proves about handles.
 - Whether a garbage collector is ruled out (asked 2026-10-13, not ruled;
