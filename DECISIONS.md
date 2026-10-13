@@ -5,6 +5,44 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — `spellings.nrp` is built: the oracle reads its keywords, old spellings, non-operators and operator hints from it; `kin::` is lowercase; the oracle's inside names are the real ones (owner: "Yes")
+
+The owner: "Yes" to building it. In three parts, the suite green after each:
+
+1. **`kin::` lowercase** (`c02be3b5`): `kin::manifest`, `kin::target`, `kin::dep`,
+   `kin::lobe`, `kin::power`, `kin::installed` in the oracle and 122 files of
+   `examples/`, the tests and `design/`; the capitals refused by name ("`kin::Manifest`
+   is an old spelling: write `kin::manifest` (owner, 2026-10-13)").
+2. **The oracle's inside names** (`315608ba`, `59ddce90`, `635e06bc`): it held
+   `no_check` as `nocheck`, `no_cheat` as `!cheat`, `is` as `giveS`, `auto_newln` as
+   `auto_newline`, `equal_to` / `not_equal` / `at_most` / `at_least` as `==` / `!==` /
+   `</==` / `>/==`, `cord` as `std`, `neuron` as `limb`, `not_std.int24` as
+   `!std_int24`; now each by its own name. Found on the way: a message on text
+   comparison showed the user `</==`; it says `at_most` now.
+3. **`spellings.nrp`**, at the top of the repo: `spellings::table[keywords = […],
+   retired = ["var", "func"], capitals = […], old = [spellings::old[written = "&", write
+   = ["lend", "lent"], note = "…", since = "2026-10-07"], …], not_operators =
+   [spellings::not_operator[written = "<=", says = "…", since = "…"], …], free_ops =
+   [spellings::free_op[op = "&", hint = "…"], …]];`. The oracle builds it in and asks it
+   for every keyword check, every old spelling (the lexer's word and symbol maps,
+   Rust's type names, `cca::`, `cores`, `kin::Core`, `kin::Manifest`…, `case.insensitive`),
+   every near-miss that is not an operator (`<=`, `/`, `--`…) and every free operator's
+   hint; it keeps no lists of its own. `oracle --check-spellings` and the test
+   `spellings_table_is_consistent` check it: the naming rule on keywords, nothing
+   both a keyword and old, no replacement or hint naming an old spelling, dates as
+   dates. Tried with three planted mistakes (today's stale `!` hint, a keyword
+   `FreeOp`, `std` both current and old): all three caught.
+
+Design claude's picks, provisional in the oracle's README: the shape above, and its
+field names; an old spelling's `where` ("anywhere", "after inline.", "outside a path",
+or "special", found by the code that names it); `retired` for `var` and `func`, which
+the code refuses with messages of their own; one message form for every old spelling
+("`x` is an old spelling: write `y`", `case.insensitive`'s "the old spelling" becoming
+"an old spelling"); `--` and `-=` now say `minus` where they said `plus`. Not yet: the
+stable IDs and positions of the 2026-10-02 Quick Fix rows. Not relayed: compiler and
+check claude are paused for the day, Synthia since 2026-10-08; Synapse still keeps its
+own lists and still reads `kin::` capitals.
+
 ### 2026-10-13 — `reserved.nrp` folds into `spellings.nrp`, the 2026-10-02 table, never built; it gains the keywords and the operators free to declare (owner)
 
 The owner: "what's the CyborgPL/Nerve file that stores the permanent names

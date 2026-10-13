@@ -11,13 +11,7 @@ use crate::value::ty_name;
 
 const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1_000), ("micros", 1_000), ("milli", 1_000_000), ("millis", 1_000_000), ("second", 1_000_000_000), ("seconds", 1_000_000_000), ("minute", 60_000_000_000), ("minutes", 60_000_000_000), ("hour", 3_600_000_000_000), ("hours", 3_600_000_000_000)];
 
-pub const KEYWORDS: &[&str] = &[
-    "fn", "let", "shadow", "change", "is", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
-    "give", "copy", "lend", "lent", "op", "check", "no_check", "no_cheat", "NO_FUCKING_CHECKS", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "neuron", "not_std", "my", "on", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "incl", "collection", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
-    // retired 2026-09-19, still reserved so the errors can point at the new spelling
-    "var", "func",
-];
+// the keywords live in `spellings.nrp` (owner, 2026-10-13), asked through `crate::spellings::is_reserved`
 
 /// A core is listed by its registry ID and version (owner, 2026-10-06: "ID", then "`a`"); the
 /// official ones, from `openssl rand -hex 32` (owner: "yea"), all first released at `CORE_VERSION`
@@ -288,8 +282,8 @@ impl Parser {
         self.advance(); self.advance();
         let Tok::Word(w) = self.advance().tok else { unreachable!() };
         match w.as_str() {
-            "insensitive" => self.err("`case.insensitive` is the old spelling: write `case.any` (owner, 2026-10-10)"),
-            "sensitive" => self.err("`case.sensitive` is the old spelling: write `case.exact` (owner, 2026-10-10)"),
+            "insensitive" => self.err(crate::spellings::message(crate::spellings::old("case.insensitive"))),
+            "sensitive" => self.err(crate::spellings::message(crate::spellings::old("case.sensitive"))),
             _ => Ok(w == "any"),
         }
     }
@@ -357,19 +351,30 @@ impl Parser {
 
     /// `Kinesin.nrp`: one value, `kin::manifest[ … ];` and nothing else (owner, 2026-10-06). `None` when the
     /// file holds something else; the fields and the line of the value otherwise.
+    /// One value and nothing after it, as `spellings.nrp` holds: its shape, its fields and its line
+    pub fn one_value(&mut self) -> PResult<(String, Vec<(String, Bracket)>, usize)> {
+        let b = self.rhs()?;
+        self.expect(Tok::Semi, "`;` after the value")?;
+        if *self.peek() != Tok::Eof { return self.err("the file holds one value and nothing after it"); }
+        match b.values.as_slice() {
+            [Value::Expr(Expr::Construct(shape, fields, line))] => Ok((shape.clone(), fields.clone(), *line)),
+            _ => self.err("the file holds one value, `name::shape[ … ];`"),
+        }
+    }
+
     pub fn manifest(&mut self) -> PResult<Option<(Vec<(String, Bracket)>, usize)>> {
         // the manifest's types are `kin::` since 2026-10-09 (owner: Kinesin, "`a`, but maybe use an
         // abbriviation", then `kin::`); `cca::` is the old spelling
         if let Some(i) = (0..self.toks.len().saturating_sub(1)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "cca") && self.toks[i + 1].tok == Tok::ColonColon) {
             self.pos = i;
-            return self.err("`cca::` is an old spelling: write `kin::` (owner, 2026-10-09)");
+            return self.err(crate::spellings::message(crate::spellings::old("cca::")));
         }
         // the language's own names are lowercase (owner, 2026-10-13): `kin::Manifest` and its kin are old spellings
         if let Some(i) = (0..self.toks.len().saturating_sub(2)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "kin") && self.toks[i + 1].tok == Tok::ColonColon
             && matches!(&self.toks[i + 2].tok, Tok::Word(w) if ["Manifest", "Target", "Dep", "Lobe", "Power", "Installed"].contains(&w.as_str()))) {
             let Tok::Word(w) = self.toks[i + 2].tok.clone() else { unreachable!() };
             self.pos = i;
-            return self.err(format!("`kin::{w}` is an old spelling: write `kin::{}` (owner, 2026-10-13)", w.to_lowercase()));
+            return self.err(crate::spellings::message(crate::spellings::old(&format!("kin::{w}"))));
         }
         // `kin::power.c_calls.functions["write"].except["x"]` is read whole, as text the manifest reader
         // takes apart (owner, 2026-10-07: powers narrow with `.` and name things in `[ ]`)
@@ -441,23 +446,19 @@ impl Parser {
         // the old spellings, refused by name everywhere (owner, 2026-10-07: "MTM is gone.")
         {
             for i in 0..self.toks.len() {
-                let after_path = i > 0 && matches!(self.toks[i - 1].tok, Tok::Dot | Tok::ColonColon);
-                let found: Option<(String, String)> = match (&self.toks[i].mtm, &self.toks[i].tok) {
-                    (Some((w, m)), _) => Some((w.clone(), m.to_string())),
-                    (None, Tok::Word(w)) if !after_path && rust_alias(w).is_some() => Some((w.clone(), rust_alias(w).unwrap().to_string())),
+                let found: Option<String> = match (&self.toks[i].mtm, &self.toks[i].tok) {
+                    (Some((w, _)), _) if w == "&" && matches!(self.toks.get(i + 1).map(|t| &t.tok), Some(Tok::Word(x)) if x == "mut") => Some(crate::spellings::message(crate::spellings::old("&mut"))),
+                    (Some((_, o)), _) => Some(crate::spellings::message(o)),
                     // `not_std.i24` / `not_std.u24`, Rust's way of writing the width
                     (None, Tok::Word(w)) if i > 1 && matches!(&self.toks[i - 2].tok, Tok::Word(s) if s == "not_std") && self.toks[i - 1].tok == Tok::Dot
                         && (w.starts_with('i') && !w.starts_with("int") || w.starts_with('u') && !w.starts_with("uint")) => {
-                        Some((format!("not_std.{w}"), format!("not_std.{}", w.replacen('i', "int", 1).replacen('u', "uint", 1))))
+                        Some(format!("`not_std.{w}` is an old spelling: write `not_std.{}` (owner, 2026-10-07; MTM, which kept the old spellings, is gone)", w.replacen('i', "int", 1).replacen('u', "uint", 1)))
                     }
                     _ => None,
                 };
-                if let Some((w, m)) = found {
+                if let Some(m) = found {
                     self.pos = i;
-                    if w == "&" && matches!(self.toks.get(i + 1).map(|t| &t.tok), Some(Tok::Word(x)) if x == "mut") {
-                        return self.err("`&mut` is an old spelling: write `lend.mut` / `lent.mut` (owner, 2026-10-07; MTM, which kept the old spellings, is gone)");
-                    }
-                    return self.err(format!("`{w}` is an old spelling: write `{m}` (owner, {}; MTM, which kept the old spellings, is gone)", if m == "cord" || m == "neuron" { "2026-10-09" } else { "2026-10-07" }));
+                    return self.err(m);
                 }
             }
         }
@@ -775,7 +776,7 @@ impl Parser {
                     let line = self.line();
                     self.advance();
                     let name = match self.advance().tok {
-                        Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name an enum")),
+                        Tok::Word(n) if crate::spellings::is_reserved(&n) => return self.err(format!("`{n}` is a keyword and cannot name an enum")),
                         Tok::Word(n) if rust_alias(&n).is_some() => return self.err(format!("`{n}` is another name for `{}`, so it cannot name an enum", rust_alias(&n).unwrap())),
                         Tok::Word(n) => n,
                         Tok::Var(v) => return self.err(format!("an enum's name is bare — it is a type: `enum {v}`")),
@@ -786,7 +787,7 @@ impl Parser {
                     let mut cases: Vec<FailCase> = Vec::new();
                     while *self.peek() != Tok::RBrace {
                         let cname = match self.advance().tok {
-                            Tok::Word(c) if KEYWORDS.contains(&c.as_str()) => return self.err(format!("`{c}` is a keyword and cannot name a case")),
+                            Tok::Word(c) if crate::spellings::is_reserved(&c) => return self.err(format!("`{c}` is a keyword and cannot name a case")),
                             Tok::Word(c) => c,
                             Tok::Var(v) => return self.err(format!("a case's name is bare, like a field: `{v}` — it is a path into the type")),
                             Tok::Eof => return self.err("unclosed `enum {`"),
@@ -927,7 +928,7 @@ impl Parser {
                         let line = self.line();
                         self.advance();
                         let name = match self.advance().tok {
-                            Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name an enum")),
+                            Tok::Word(n) if crate::spellings::is_reserved(&n) => return self.err(format!("`{n}` is a keyword and cannot name an enum")),
                             Tok::Word(n) => n,
                             other => return self.err(format!("expected an enum name, found {other}")),
                         };
@@ -935,7 +936,7 @@ impl Parser {
                         let (mut cases, mut values): (Vec<FailCase>, Vec<i128>) = (Vec::new(), Vec::new());
                         while *self.peek() != Tok::RBrace {
                             let cname = match self.advance().tok {
-                                Tok::Word(c) if KEYWORDS.contains(&c.as_str()) => return self.err(format!("`{c}` is a keyword and cannot name a case")),
+                                Tok::Word(c) if crate::spellings::is_reserved(&c) => return self.err(format!("`{c}` is a keyword and cannot name a case")),
                                 Tok::Word(c) => c,
                                 Tok::Eof => return self.err("unclosed `layout.C enum {`"),
                                 other => return self.err(format!("expected a case name, found {other}")),
@@ -1017,7 +1018,7 @@ impl Parser {
                     let line = self.line();
                     self.advance();
                     let name = match self.advance().tok {
-                        Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name an interface")),
+                        Tok::Word(n) if crate::spellings::is_reserved(&n) => return self.err(format!("`{n}` is a keyword and cannot name an interface")),
                         Tok::Word(n) if rust_alias(&n).is_some() => return self.err(format!("`{n}` is another name for `{}`, so it cannot name an interface", rust_alias(&n).unwrap())),
                         Tok::Word(n) if n == "any" => return self.err("`any` is the built-in \"any type\" (owner, 2026-10-02); an interface needs another name"),
                         Tok::Word(n) => n,
@@ -1154,7 +1155,7 @@ impl Parser {
         self.bounds.clear();
         self.expect_word("op")?;
         let name = match self.advance().tok {
-            Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot be an operator")),
+            Tok::Word(n) if crate::spellings::is_reserved(&n) => return self.err(format!("`{n}` is a keyword and cannot be an operator")),
             Tok::Word(n) if n == "not" => return self.err("`not` is the language's; it cannot be redefined"),
             // a type's own `plus` / `minus` / `times` (owner, 2026-10-03)
             Tok::Word(n) if n == "plus" => "+".into(),
@@ -1218,7 +1219,7 @@ impl Parser {
             Tok::Var(v) => return self.err(format!("a struct's name is bare — it is a type: `struct {v}`")),
             other => return self.err(format!("expected a struct name, found {other}")),
         };
-        if KEYWORDS.contains(&name.as_str()) { return self.err(format!("`{name}` is a keyword and cannot name a struct")); }
+        if crate::spellings::is_reserved(&name) { return self.err(format!("`{name}` is a keyword and cannot name a struct")); }
         if let Some(own) = rust_alias(&name) { return self.err(format!("`{name}` is another name for `{own}`, so it cannot name a struct")); }
         let gens = self.announce("struct")?;
         self.expect(Tok::LBrace, "`{`")?;
@@ -1232,7 +1233,7 @@ impl Parser {
             if *self.peek() == Tok::Dot { return self.err("`immut` is a bare word before the field's name: `immut number: int32`"); }
             let fname = match self.advance().tok {
                 // a C header's struct keeps C's field names, a keyword too, read after a dot (owner, 2026-10-10: "(b)")
-                Tok::Word(w) if KEYWORDS.contains(&w.as_str()) && !self.from_c => return self.err(format!("`{w}` is a keyword and cannot name a field")),
+                Tok::Word(w) if crate::spellings::is_reserved(&w) && !self.from_c => return self.err(format!("`{w}` is a keyword and cannot name a field")),
                 Tok::Word(w) => w,
                 Tok::Var(v) => return self.err(format!("a field's name is bare: `{v}: int32` — a field is a path into the struct, not a variable (decided 2026-09-19)")),
                 other => return self.err(format!("expected a field name, found {other}")),
@@ -1361,7 +1362,7 @@ impl Parser {
         let mut cases = Vec::new();
         loop {
             let name = match self.advance().tok {
-                Tok::Word(w) if KEYWORDS.contains(&w.as_str()) => return self.err(format!("`{w}` is a keyword and cannot name a failure")),
+                Tok::Word(w) if crate::spellings::is_reserved(&w) => return self.err(format!("`{w}` is a keyword and cannot name a failure")),
                 Tok::Word(w) => w,
                 Tok::Var(v) => return self.err(format!("a failure's name is bare: `fail[{v}]` — it names a reason, not a variable")),
                 other => return self.err(format!("expected a failure name, found {other}")),
@@ -1606,7 +1607,7 @@ impl Parser {
         if matches!(self.peek(), Tok::Op(o) if o == "<") {
             self.advance();
             let name = match self.advance().tok {
-                Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name a type variable")),
+                Tok::Word(n) if crate::spellings::is_reserved(&n) => return self.err(format!("`{n}` is a keyword and cannot name a type variable")),
                 Tok::Word(n) => n,
                 Tok::Var(v) => return self.err(format!("a type variable is a bare name: `<{v}>`")),
                 other => return self.err(format!("expected a type variable's name after `<`, found {other}")),
@@ -1897,7 +1898,7 @@ impl Parser {
                 Ok(base)
             }
             "int" | "uint" | "bin" | "deci" => bad(self, format!("the typed form is fully explicit: `{head}` needs a width (e.g. `{head}32`)")),
-            _ if KEYWORDS.contains(&head) => bad(self, format!("`{head}` is a keyword, not a type")),
+            _ if crate::spellings::is_reserved(&head) => bad(self, format!("`{head}` is a keyword, not a type")),
             _ => {
                 if !params.is_empty() {
                     let builtin = ["int", "uint", "bin", "deci"].iter().any(|p| width(head, p).is_some());
@@ -1971,7 +1972,7 @@ impl Parser {
                 }
                 "var" => self.err("`var` is gone: declare with `let 'x' := 1;` or `let 'x': int32 = 1;`"),
                 "mut" | "immut" => self.err(format!("a declaration starts with `let`: `let {w} 'x' := …;`")),
-                _ if matches!(self.peek_at(1), Tok::Var(_)) && !KEYWORDS.contains(&w.as_str()) => self.err(format!("a type goes after the name: `'x': {w} = …;`")),
+                _ if matches!(self.peek_at(1), Tok::Var(_)) && !crate::spellings::is_reserved(&w) => self.err(format!("a type goes after the name: `'x': {w} = …;`")),
                 "change" => { self.advance(); self.change_stmt(line) }
                 // `must …;` — a test's assertion (owner, 2026-09-29): `must`, `must.fail[.reason]`, `must.stop`
                 "must" => {
@@ -2109,7 +2110,7 @@ impl Parser {
                     // fail name; | fail name[payload];   (decided 2026-09-19)
                     self.advance();
                     let name = match self.advance().tok {
-                        Tok::Word(w) if KEYWORDS.contains(&w.as_str()) => return self.err(format!("`{w}` is a keyword, not a failure name")),
+                        Tok::Word(w) if crate::spellings::is_reserved(&w) => return self.err(format!("`{w}` is a keyword, not a failure name")),
                         Tok::Word(w) => w,
                         Tok::Var(v) => return self.err(format!("a failure's name is bare: `fail {v};`")),
                         Tok::Semi => return self.err("`fail` names its reason: `fail full;` — the reasons are listed in the signature's `fail[…]`"),
@@ -2526,7 +2527,7 @@ impl Parser {
         let line = self.line();
         self.advance(); self.advance(); self.advance();   // `collection . fn`
         let name = match self.advance().tok {
-            Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name a collection")),
+            Tok::Word(n) if crate::spellings::is_reserved(&n) => return self.err(format!("`{n}` is a keyword and cannot name a collection")),
             Tok::Word(n) => n,
             Tok::Text(t, _) => return self.err(format!("a collection's name is bare, as a function's: `collection.fn {t} {{ … }}`")),
             other => return self.err(format!("expected the collection's name after `collection.fn`, found {other}")),
@@ -2724,7 +2725,7 @@ impl Parser {
     fn handler_collection(&mut self) -> PResult<()> {
         self.advance(); self.advance(); self.advance();   // `collection . handler`
         let name = match self.advance().tok {
-            Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name a collection")),
+            Tok::Word(n) if crate::spellings::is_reserved(&n) => return self.err(format!("`{n}` is a keyword and cannot name a collection")),
             Tok::Word(n) => n,
             Tok::Text(t, _) => return self.err(format!("a collection's name is bare, as a function's: `collection.handler {t} {{ … }}`")),
             other => return self.err(format!("expected the collection's name after `collection.handler`, found {other}")),
@@ -2738,7 +2739,7 @@ impl Parser {
                 Tok::Word(w) if w == "bare" => return self.err("a `bare.` mark is for what is `pub`, and a `collection.handler` is not `pub`"),
                 Tok::Word(w) if w == "for" => return self.err("templates are for `collection.fn`; whether a `collection.handler` has them is not decided yet (2026-10-13)"),
                 Tok::Word(m) if *self.peek_at(1) == Tok::LBrace => {
-                    if KEYWORDS.contains(&m.as_str()) { return self.err(format!("`{m}` is a keyword and cannot name a handler")); }
+                    if crate::spellings::is_reserved(&m) { return self.err(format!("`{m}` is a keyword and cannot name a handler")); }
                     if seen.contains(&m) { return self.err(format!("`{m}` is written twice in `{name}`")); }
                     seen.push(m);
                     self.advance();
@@ -2978,7 +2979,7 @@ impl Parser {
     /// lowercase segment after an uppercase one… the oracle resolves both at run time, so a
     /// single bare word is treated as a function reference and a dotted one as an enum case.
     fn is_fn_ref(&self) -> bool {
-        matches!(self.peek(), Tok::Word(w) if !KEYWORDS.contains(&w.as_str()) && !OP_WORDS.contains(&w.as_str()))
+        matches!(self.peek(), Tok::Word(w) if !crate::spellings::is_reserved(&w) && !OP_WORDS.contains(&w.as_str()))
             && !matches!(self.peek_at(1), Tok::LBracket | Tok::ColonColon | Tok::Dot)
     }
 
@@ -3161,7 +3162,7 @@ impl Parser {
     fn call(&mut self) -> PResult<Call> {
         let line = self.line();
         let first = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected a name, found {other}")) };
-        if KEYWORDS.contains(&first.as_str()) && first != "my" && *self.peek() != Tok::ColonColon {
+        if crate::spellings::is_reserved(&first) && first != "my" && *self.peek() != Tok::ColonColon {
             return self.err(format!("`{first}` is a keyword; a function named `{first}` is reached through a path, never bare: `my.{first}[…]`"));
         }
         let (limb, mut path) = if *self.peek() == Tok::ColonColon {
@@ -3497,7 +3498,7 @@ impl Parser {
             Tok::Word(w) if OP_WORDS.contains(&w.as_str()) => Some(w.clone()),
             Tok::Word(w) if w == "xor" || w == "shl" || w == "shr" => Some(w.clone()),
             // a Neuron's word operator with its path, `vecmath::dot`, `vecmath::dot.fast` (owner, 2026-10-02/03)
-            Tok::Word(p) if *self.peek_at(k + 1) == Tok::ColonColon && matches!(self.peek_at(k + 2), Tok::Word(n) if !KEYWORDS.contains(&n.as_str())) && !matches!(self.peek_at(k + 3), Tok::LBracket | Tok::ColonColon) => {
+            Tok::Word(p) if *self.peek_at(k + 1) == Tok::ColonColon && matches!(self.peek_at(k + 2), Tok::Word(n) if !crate::spellings::is_reserved(&n)) && !matches!(self.peek_at(k + 3), Tok::LBracket | Tok::ColonColon) => {
                 let Tok::Word(n) = self.peek_at(k + 2).clone() else { unreachable!() };
                 if *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(_)) && *self.peek_at(k + 5) != Tok::LBracket {
                     let Tok::Word(b) = self.peek_at(k + 4).clone() else { unreachable!() };
@@ -3505,12 +3506,12 @@ impl Parser {
                 } else { self.op_len.set(3); Some(format!("{p}::{n}")) }
             }
             // a narrowed custom word operator, `dot.fast` (owner, 2026-10-02/03)
-            Tok::Word(w) if !KEYWORDS.contains(&w.as_str()) && w != "not" && *self.peek_at(k + 1) == Tok::Dot && matches!(self.peek_at(k + 2), Tok::Word(_)) && !matches!(self.peek_at(k + 3), Tok::LBracket | Tok::Dot) => {
+            Tok::Word(w) if !crate::spellings::is_reserved(&w) && w != "not" && *self.peek_at(k + 1) == Tok::Dot && matches!(self.peek_at(k + 2), Tok::Word(_)) && !matches!(self.peek_at(k + 3), Tok::LBracket | Tok::Dot) => {
                 let Tok::Word(b) = self.peek_at(k + 2).clone() else { unreachable!() };
                 self.op_len.set(3); Some(format!("{w}.{b}"))
             }
             // a custom word operator (decided 2026-09-20): a bare non-keyword word between operands
-            Tok::Word(w) if !KEYWORDS.contains(&w.as_str()) && w != "not" && *self.peek_at(k + 1) != Tok::LBracket && *self.peek_at(k + 1) != Tok::ColonColon && *self.peek_at(k + 1) != Tok::Dot => Some(w.clone()),
+            Tok::Word(w) if !crate::spellings::is_reserved(&w) && w != "not" && *self.peek_at(k + 1) != Tok::LBracket && *self.peek_at(k + 1) != Tok::ColonColon && *self.peek_at(k + 1) != Tok::Dot => Some(w.clone()),
             Tok::Eq => Some("=".into()),
             _ => None,
         }
@@ -4261,7 +4262,7 @@ impl Parser {
                     let caps = std::mem::take(&mut self.pending_captures);
                     Ok(Expr::Lambda(std::rc::Rc::new(f), caps, line))
                 }
-                _ if KEYWORDS.contains(&w.as_str()) && w != "my" => self.err(format!("`{w}` is a keyword and cannot appear inside a value")),
+                _ if crate::spellings::is_reserved(&w) && w != "my" => self.err(format!("`{w}` is a keyword and cannot appear inside a value")),
                 _ if self.is_fn_ref() => {
                     // a bare function name with no brackets: the function as a value
                     let mut segs = Vec::new();
@@ -4353,18 +4354,14 @@ pub fn module_name_ok(name: &str) -> Result<(), String> {
     }
     const DEVICES: &[&str] = &["con", "prn", "aux", "nul", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9"];
     if DEVICES.contains(&name) { return Err("it is a reserved device name on Windows".into()); }
-    if KEYWORDS.contains(&name) { return Err("it is a keyword".into()); }
+    if crate::spellings::is_reserved(&name) { return Err("it is a keyword".into()); }
     Ok(())
 }
 
 /// Other names for Nerve's types (owner, 2026-10-02): Rust's number names, and the brain
 /// float's `bfloat16` / `bf16` — the only aliases a type has.
 pub fn rust_alias(name: &str) -> Option<&'static str> {
-    Some(match name {
-        "bfloat16" | "bf16" => "brain16",
-        "i8" => "int8", "i16" => "int16", "i32" => "int32", "i64" => "int64", "i128" => "int128",
-        "u8" => "uint8", "u16" => "uint16", "u32" => "uint32", "u64" => "uint64", "u128" => "uint128",
-        "f16" => "bin16", "f32" => "bin32", "f64" => "bin64",
-        _ => return None,
-    })
+    // Rust's names for Nerve's types are old spellings in `spellings.nrp`, the ones refused outside a path
+    if crate::spellings::loading() { return None; }
+    crate::spellings::table().old.iter().find(|o| o.place == "outside a path" && o.written == name).map(|o| o.write[0].as_str())
 }

@@ -17,6 +17,7 @@ mod deci;
 mod interp;
 mod lexer;
 mod parser;
+mod spellings;
 mod value;
 
 use std::path::{Path, PathBuf};
@@ -380,11 +381,11 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
             // the cores a Neuron is built for (owner, 2026-10-05: "Limbs should say what cores they are built
             // for"), each by its registry ID and version, or a `path` for one never registered (2026-10-06)
             // a core is a lobe (owner, 2026-10-09); `cores` and `kin::Core` are the old spellings
-            "cores" => return Err(format!("{shown}: line {line}: `cores` is an old spelling: write `lobes` (owner, 2026-10-09)")),
+            "cores" => return Err(format!("{shown}: line {line}: {}", spellings::message(spellings::old("cores")))),
             "lobes" => {
                 for it in items(value) {
                     let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a lobe is `kin::lobe[id = \"…\", version = \"…\"]`")) };
-                    if shape == "::kin.Core" { return Err(format!("{shown}: line {line}: `kin::Core` is an old spelling: write `kin::lobe` (owner, 2026-10-09)")); }
+                    if shape == "::kin.Core" { return Err(format!("{shown}: line {line}: {}", spellings::message(spellings::old("kin::Core")))); }
                     if shape != "::kin.lobe" { return Err(format!("{shown}: line {line}: a lobe is a `kin::lobe`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
                     let (mut id, mut version, mut cpath) = (None, None, None);
                     for (f, b) in &fields {
@@ -1031,11 +1032,18 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     // `oracle [--test] <program> [-- words for the program's argv]`
     let (head, rest) = match args.iter().position(|a| a == "--") { Some(i) => (&args[..i], args[i + 1..].to_vec()), None => (&args[..], Vec::new()) };
+    // `oracle --check-spellings`: `spellings.nrp` checked against itself and the naming rule (owner, 2026-10-13)
+    if matches!(head, [_, flag] if flag == "--check-spellings") {
+        let bad = spellings::check();
+        for b in &bad { eprintln!("spellings.nrp: {b}"); }
+        if bad.is_empty() { println!("spellings.nrp: fine"); }
+        exit(if bad.is_empty() { 0 } else { 1 });
+    }
     let (tests, target) = match head {
-        [_, t] => (false, t),
+        [_, t] if t != "--check-spellings" => (false, t),
         [_, flag, t] if flag == "--test" => (true, t),
         [_, flag, t] if flag == "--generate" => { GENERATE.with(|g| g.set(true)); (false, t) }
-        _ => { eprintln!("usage: oracle [--test | --generate] <file.nrv | limb-directory> [-- program arguments]"); exit(2); }
+        _ => { eprintln!("usage: oracle [--test | --generate] <file.nrv | limb-directory> [-- program arguments], or oracle --check-spellings"); exit(2); }
     };
     // the parser and the interpreter recurse, so a call nested a few thousand deep in one expression
     // needs more than the main thread's 8 MB (check claude, seed 32299): 1 GB, only what is used is touched

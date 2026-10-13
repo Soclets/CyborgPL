@@ -4429,11 +4429,7 @@ impl<'p> Interp<'p> {
             .or_else(|| candidates.iter().find(|f| f.params[0].ty.as_ref().map(|t| matches!(t, Ty::Var(_))).unwrap_or(true))).or(candidates.first()) {
             Some(f) => f.clone(),
             None => {
-                let hint = match op {
-                    "*" => "; multiply is `times`, power is cord's `pow`", "^" => "; power is cord's `pow`", "%" => "; remainder is `mod`",
-                    "&" => "; a bitwise and is `and.bit`, a logical one `and`", "|" => "; a bitwise or is `or.bit`, a logical one `or`",
-                    "!" => "; not is `not`", _ => "",
-                };
+                let hint = crate::spellings::free_op_hint(op).map(|h| format!("; {h}")).unwrap_or_default();
                 if let Some(l) = &limb { return rt(line, format!("the Neuron `{}` has no operator `{name}` for these values", &l[2..])); }
                 return rt(line, format!("`{op}` is not an operator here{hint} — declare it with `op {op} ['a': T, 'b': T] -> R {{ … }}`"));
             }

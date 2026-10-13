@@ -97,7 +97,7 @@ pub struct Token {
     pub col: usize,
     /// an old spelling, as written, and the one that replaced it: refused everywhere since MTM, which
     /// kept them, is gone (owner, 2026-10-07: "MTM is gone.")
-    pub mtm: Option<(String, &'static str)>,
+    pub mtm: Option<(String, &'static crate::spellings::Old)>,
 }
 
 #[derive(Debug)]
@@ -156,7 +156,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
         if c == '\\' {
             if i + 1 < chars.len() && chars[i + 1] == 'n' {
                 push(Tok::Newline, &mut toks);
-                toks.last_mut().unwrap().mtm = Some(("\\n".into(), "newln"));
+                toks.last_mut().unwrap().mtm = mark("\\n");
                 i += 2; col += 2; continue;
             }
             return err(line, col, "a bare backslash: a backslash is only an escape inside text; the newline piece is `newln`".into());
@@ -281,20 +281,9 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             // the words that replaced `!` and the comparison symbols (owner, 2026-10-07) are read as the
             // tokens the oracle has always used inside; the old spellings are kept, to be refused by name
             let after_bang = matches!(toks.last().map(|t| &t.tok), Some(Tok::Op(o)) if o == "!");
-            let main: Option<&'static str> = match s.as_str() {
-                "nocheck" => Some("no_check"),
-                // the inline languages' main names are `inline.ASM`, `inline.LL`, `inline.MSL` (owner, 2026-10-07)
-                "Assembly" | "S" if after_inline => Some("inline.ASM"),
-                "LLVM" | "LLVM_Intermediate_Representation" if after_inline => Some("inline.LL"),
-                "Metal_Shading_Language" if after_inline => Some("inline.MSL"),
-                // the standard library is `cord` (owner, 2026-10-09: "lowercase syntax"); `stdkit` (2026-10-07) and `std` before it
-                "std" | "stdkit" if !after_bang => Some("cord"),
-                // a library is a Neuron (owner, 2026-10-09); `pub.limb` is the old spelling of `pub.neuron`
-                "limb" => Some("neuron"),
-                "auto_newline" => Some("auto_newln"),
-                "giveS" | "gives" => Some("is"),
-                _ => None,
-            };
+            // an old spelling, from `spellings.nrp` (owner, 2026-10-13): kept as written, to be refused by name
+            let in_path = matches!(toks.last().map(|t| &t.tok), Some(Tok::Dot | Tok::ColonColon));
+            let main: Option<&'static crate::spellings::Old> = if after_bang { None } else { crate::spellings::old_at(&s, after_inline, in_path) };
             let inside: Option<Tok> = match s.as_str() {
                 "no_shadow" => Some(Tok::NoShadow),
                 "equal_to" => Some(Tok::Op("equal_to".into())),
@@ -334,29 +323,29 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
         // multi-char punctuation, longest first
         let rest: String = chars[i..chars.len().min(i + 3)].iter().collect();
         let two: String = rest.chars().take(2).collect();
-        if two == "!$" { push(Tok::NoShadow, &mut toks); toks.last_mut().unwrap().mtm = Some(("!$".into(), "no_shadow")); i += 2; col += 2; continue; }
+        if two == "!$" { push(Tok::NoShadow, &mut toks); toks.last_mut().unwrap().mtm = mark("!$"); i += 2; col += 2; continue; }
         // `!c`, "no cheat", a loop's first modifier (owner, 2026-10-01): kept as its own word, so no
         // name can spell it
         // `!cheat` — "no cheat" (owner, 2026-10-06; `!c` before), one word; `!c` is still read as one,
         // so the parser can refuse it naming `!cheat`
         if chars[i..].iter().take(6).collect::<String>() == "!cheat" && !chars.get(i + 6).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
-            push(Tok::Word("!cheat".into()), &mut toks); toks.last_mut().unwrap().mtm = Some(("!cheat".into(), "no_cheat")); i += 6; col += 6; continue;
+            push(Tok::Word("!cheat".into()), &mut toks); toks.last_mut().unwrap().mtm = mark("!cheat"); i += 6; col += 6; continue;
         }
         // `!check` is the main spelling of `nocheck` (owner, 2026-10-06): read as the word `nocheck`,
         // which is MTM's spelling when written out
         if chars[i..].iter().take(6).collect::<String>() == "!check" && !chars.get(i + 6).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
-            push(Tok::Word("!check".into()), &mut toks); toks.last_mut().unwrap().mtm = Some(("!check".into(), "no_check")); i += 6; col += 6; continue;
+            push(Tok::Word("!check".into()), &mut toks); toks.last_mut().unwrap().mtm = mark("!check"); i += 6; col += 6; continue;
         }
         if two == "!c" && !chars.get(i + 2).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
             push(Tok::Word("!c".into()), &mut toks); i += 2; col += 2; continue;
         }
         // `!mut` is the main spelling and `immut` MTM's (owner, 2026-09-25, then 2026-10-06)
         if rest.starts_with("!mu") && chars[i..].iter().take(4).collect::<String>() == "!mut" && !chars.get(i + 4).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
-            push(Tok::Word("immut".into()), &mut toks); toks.last_mut().unwrap().mtm = Some(("!mut".into(), "immut")); i += 4; col += 4; continue;
+            push(Tok::Word("immut".into()), &mut toks); toks.last_mut().unwrap().mtm = mark("!mut"); i += 4; col += 4; continue;
         }
         // shadowing is the word `shadow` in `let`'s place since 2026-10-08 (owner: "yea"): `$:=`, `$=` are old
-        if rest.starts_with("$:=") { push(Tok::ShadowWalrus, &mut toks); toks.last_mut().unwrap().mtm = Some(("$:=".into(), "shadow 'x' := …")); i += 3; col += 3; continue; }
-        if two == "$=" { push(Tok::ShadowEq, &mut toks); toks.last_mut().unwrap().mtm = Some(("$=".into(), "shadow 'x': T = …")); i += 2; col += 2; continue; }
+        if rest.starts_with("$:=") { push(Tok::ShadowWalrus, &mut toks); toks.last_mut().unwrap().mtm = mark("$:="); i += 3; col += 3; continue; }
+        if two == "$=" { push(Tok::ShadowEq, &mut toks); toks.last_mut().unwrap().mtm = mark("$="); i += 2; col += 2; continue; }
         if c == '$' { return err(tl, tc, "`$` is not part of the language: a shadowing declaration is `shadow 'x' := …;` (owner, 2026-10-08)".into()); }
         if two == "::" { push(Tok::ColonColon, &mut toks); i += 2; col += 2; continue; }
         if two == ":=" { push(Tok::Walrus, &mut toks); i += 2; col += 2; continue; }
@@ -377,26 +366,19 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             // `!std_int24` reads `!` then the word, as it always has
             let std_word = matches!(chars[j..].iter().take(4).collect::<String>().as_str(), "std_" | "std.");
             if run == "!" && !std_word {
-                if chars.get(j).map_or(true, |c| c.is_whitespace()) { push(Tok::Word("not".into()), &mut toks); toks.last_mut().unwrap().mtm = Some(("!".into(), "not")); i = j; col += 1; continue; }
+                if chars.get(j).map_or(true, |c| c.is_whitespace()) { push(Tok::Word("not".into()), &mut toks); toks.last_mut().unwrap().mtm = mark("!"); i = j; col += 1; continue; }
                 return err(tl, tc, "`!` is not an operator since 2026-10-07: a value's not is `not 'ready'`".into());
             }
             if run == "!" && std_word {
-                push(Tok::Op("!".into()), &mut toks); toks.last_mut().unwrap().mtm = Some(("!std.".into(), "not_std.")); i = j; col += 1; continue;
+                push(Tok::Op("!".into()), &mut toks); toks.last_mut().unwrap().mtm = mark("!std."); i = j; col += 1; continue;
             }
             // the arrows are short, `->`, `<-`, `<->` (owner, 2026-10-07: "Short, the neck & eye movement
             // is less"); the comparisons are words (`equal_to`, `not_equal`, `at_most`, `at_least`); every
             // other spelling is refused by name, MTM being gone
-            let main: Option<&'static str> = match run.as_str() {
-                "-->" | ">>" | ">>>" => Some("->"),
-                "<--" | "<<" | "<<<" => Some("<-"),
-                "<-->" | "<<>>" | "<<<>>>" | "<---->" | "<--|-->" | "<-|->" | "<<|>>" | "<<<|>>>" => Some("<->"),
-                "&" | "&@" => Some("lend` / `lent`; a bitwise and is `and.bit"),
-                "==" => Some("equal_to"),
-                "!==" => Some("not_equal"),
-                "</==" => Some("at_most"),
-                ">/==" => Some("at_least"),
-                _ => None,
-            };
+            let main: Option<&'static crate::spellings::Old> = crate::spellings::old_at(&run, false, false);
+            if !crate::spellings::loading() {
+                if let Some(m) = crate::spellings::not_operator(&run) { return err(tl, tc, m); }
+            }
             let written = run.clone();
             let tok = match run.as_str() {
                 // `-->` is another spelling of `->`, everywhere (owner, 2026-10-03)
@@ -409,11 +391,6 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 // walled ones, `<--|-->`, `<-|->`, `<<|>>`, `<<<|>>>` (owner: "`b`")
                 "<-->" | "<->" | "<<>>" | "<<<>>>" | "<---->" | "<--|-->" | "<-|->" | "<<|>>" | "<<<|>>>" => Tok::BothArrow,
                 "=" => Tok::Eq,
-                "!=" => return err(tl, tc, "`!=` is not an operator; not-equal is `not_equal`".into()),
-                "<=" | "<==" => return err(tl, tc, format!("`{run}` is not an operator; less-or-equal is `at_most` (owner, 2026-10-07)")),
-                ">=" | ">==" => return err(tl, tc, format!("`{run}` is not an operator; greater-or-equal is `at_least` (owner, 2026-10-07)")),
-                "/" => return err(tl, tc, "`/` is not an operator; division is `div`: `'a' div 'b'` (owner, 2026-09-29)".into()),
-                "--" | "+=" | "-=" => return err(tl, tc, format!("`{run}` does not exist; write the change in full: change 'i' = 'i' plus 1;")),
                 _ => Tok::Op(run),   // built-in or custom; the parser tells them apart
             };
             push(tok, &mut toks);
@@ -485,4 +462,9 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
     }
     toks.push(Token { tok: Tok::Eof, line, col, mtm: None });
     Ok(toks)
+}
+
+/// The old spelling `written` as the lexer marks it, unless the table itself is being read
+fn mark(written: &str) -> Option<(String, &'static crate::spellings::Old)> {
+    if crate::spellings::loading() { None } else { Some((written.to_string(), crate::spellings::old(written))) }
 }

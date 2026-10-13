@@ -155,7 +155,7 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
     for (tag, _) in enums.iter().filter_map(|(n, c)| n.as_ref().map(|n| (n, c))) {
         let alias = td.iter().find(|(a, t)| t.as_str() == format!("enum {tag}") && *a != tag && good_name(a) && !a.starts_with('_')).map(|(a, _)| a.clone());
         let n = alias.unwrap_or_else(|| tag.clone());
-        if good_name(&n) && !crate::parser::KEYWORDS.contains(&n.as_str()) { enum_names.insert(tag.clone(), n); }
+        if good_name(&n) && !crate::spellings::is_reserved(&n) { enum_names.insert(tag.clone(), n); }
     }
     let mut cx = Cx { td: &td, records: &records, names: &names, enums: &enum_names, layout: HashMap::new(), opaque: Vec::new(), busy: Vec::new() };
     let mut fns: Vec<(String, String)> = Vec::new();   // (name, line), the last declaration of a name winning
@@ -261,7 +261,7 @@ fn good_name(n: &str) -> bool {
 /// A struct's Nerve name: C's type name for it, else its tag; None for the C library's own (`__x`).
 fn struct_name(tag: &str, cx: &Cx) -> Option<String> {
     let n = cx.names.get(tag).cloned().unwrap_or_else(|| tag.to_string());
-    (good_name(&n) && !crate::parser::KEYWORDS.contains(&n.as_str())).then_some(n)
+    (good_name(&n) && !crate::spellings::is_reserved(&n)).then_some(n)
 }
 
 /// `struct tag` by value: its name when it comes through whole (its fields all spelled), else None.

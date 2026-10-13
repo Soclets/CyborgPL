@@ -163,7 +163,7 @@ pub fn plan(prog: &Program, bare: &HashMap<String, ast::Bare>) -> Result<HashMap
 /// A word the language, std or the built-in types own: never rewritten, as keywords stay exact.
 fn builtin_word(w: &str) -> bool {
     let num = |p: &str| w.strip_prefix(p).map_or(false, |d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit()));
-    crate::parser::KEYWORDS.contains(&w) || crate::parser::STD_BARE_HEADS.contains(&w) || w == "MAIN"
+    crate::spellings::is_reserved(&w) || crate::parser::STD_BARE_HEADS.contains(&w) || w == "MAIN"
         || ["bool", "str", "char", "brain16", "cord", "kin", "case", "any", "exact", "bare", "never", "optional", "only", "not", "neg", "plus", "minus", "times", "div", "mod", "pow", "and", "or"].contains(&w)
         || num("int") || num("uint") || num("bin") || num("deci")
 }
