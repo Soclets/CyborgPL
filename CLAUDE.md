@@ -77,7 +77,7 @@ design clone is `/Users/ts/Nerve`, the others `/Users/ts/Nerve compiler`,
 folders are frozen at 087cdfc8: never push there. The prose says Nerve
 (step 1, 2026-10-08); the standard library is `cord` and a library is a
 Neuron, `pub.neuron`, Precog is Cortex, a core is a lobe, `lobes =
-[kin::Lobe[…]]`, the base (Signatar) is the Brainstem, the runtime is Axon,
+[kin::lobe[…]]`, the base (Signatar) is the Brainstem, the runtime is Axon,
 and the built-in package manager is Kinesin (2026-10-09). Code ends **`.nrv`**
 (was `.cpls`), a Neuron's root is `neuron.nrv` (was `limb.cpls`), a file that
 is one value and never runs ends **`.nrp`**, and the manifest is
