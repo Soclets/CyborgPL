@@ -83,8 +83,12 @@ with logic, `as if 'n' equal_to 1024 { "kb" } …`, where (a) needs a list
 of structs; design claude corrected its own pairs example, `for 'unit', 'n'
 in …` meaning a position and an item, not a pair unpacked), then "Would you
 need to do [the pairs] With (b)?" (no). The owner: "(b)". So **a generated
-name is worked out like text, on an `as`**. Not yet asked: where the `as`
-stands and what is written in the name's place.
+name is worked out like text, on an `as`**. **The `as` stands on its own
+line above the member, which then has no name: `as "times_" ++
+to.stored.str.utf8['n'];` then `['x': int32] -> int32 { … }`** (owner:
+"(b)"), over (a) `_ as …` in the name's place; design claude recommended
+(b): a long name expression stays readable, and the signature under it
+looks like any other member's.
 
 ### 2026-10-12 — A whole number into a `deci` asks for `otherwise` only when it could have too many digits, worked out from its operands (owner: a)
 
