@@ -5,6 +5,36 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — Direction: built-in checked manual memory, with generations, instead of reference counting; its checks follow the working / final rule (owner; not designed)
+
+The owner asked "Ref counting vs Ownership", "Why does Rust even have ref
+counting?" (data with more than one owner, where who lives longest is
+known only while running: shared nodes, data shared by threads), "Should
+Nerve have a GC also?" (design claude advised no tracing GC, citing the
+owner's 2026-10-08 words, CCA "doesn't have a GC either", and the
+tagline; the owner did not rule on it), then "What about optional manual
+where ownership can't cover?" (it exists, `malloc` / `free` through C, every
+pointer use `no_check`; design claude advised it is the wrong everyday
+tool, being unproven exactly where lifetimes are hardest), then "What about
+built-in checked manual?" Design claude described generations (Vale's
+generational references, slotmap): each allocation has a generation, a
+handle remembers the one it was made with, freeing bumps it, every use
+compares them, so a use after free or a double free is caught instead of
+undefined; Cortex removes the comparison where it proves the handle alive;
+copies of a handle are fine; leaks stay possible. The owner: "I think we'll
+do that instead of refc. But the checks would be in working, right?" Yes,
+by the 2026-09-20 rule (`core-features.md`): **the working build checks an
+unproven use of a handle at run time; the final build refuses it, so it is
+proven, guarded by a written "is it alive" test that Cortex reads, or
+`no_check`**; the final product holds no inserted check, and the generation
+stays in memory for the guards. The owner: "Yeah" (to writing it down).
+
+So: **Nerve's layer for what ownership cannot cover is built-in checked
+manual memory with generations, not reference counting.** Not designed:
+the spelling (allocating, freeing, the handle type, the alive test), what a
+freed slot is reused for, handles across threads and tasks, what Cortex
+proves, and whether a GC is ruled out (asked, not ruled).
+
 ### 2026-10-13 — A collection may have no function of its own; its name then only groups its members (owner: a)
 
 Compiler claude's provisional pick (Synapse had to choose): `zero`, in
