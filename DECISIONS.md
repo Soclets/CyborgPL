@@ -39,6 +39,21 @@ then every member is public under the collection's one `bare.` mark
 (owner: "(a)"), over (b) always public; design claude recommended (a):
 everything else is private unless it says `pub`, and public is a promise.
 
+Asked "How much time does a collection even safe" (measured: 40% fewer
+characters when the narrowings are presets, 4% when each has its own
+body) and "What's the generator for?" (narrowings that follow a pattern,
+one per type, width or size, `read.int16`, `read.int32`; mostly covered by
+generics and presets; its cost, names written nowhere that a reader cannot
+search for, design claude advising to leave it out for now), the owner:
+"I mean, you could just let it write to source". Offered (a) a file of its
+own beside the template (`cum.gen.nrv`), written by a command and checked
+by the build, recommended, (b) the same file, between markers, under the
+template, (c) only while building, never written; the owner: "(b)". So
+**generated narrowings are written into the same file, between markers,
+under the template**, where a reader sees and can search them. Not yet
+asked: what writes them (a command or the build), what happens to a hand
+edit inside the generated part, and the markers' spelling.
+
 ### 2026-10-12 — A whole number into a `deci` asks for `otherwise` only when it could have too many digits, worked out from its operands (owner: a)
 
 Compiler claude, building `corner_shop`: `to.deci64['sold']`, `'sold'` a
