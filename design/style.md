@@ -74,3 +74,12 @@ recommended.
     2026-10-03: "low_first is good practice"): level 1 binds loosest, as a
     precedence table is read top to bottom. `precedence.high_first` is
     there for whoever thinks the other way.
+
+## Collections
+
+14. **A preset before a template, a template before copies** (owner,
+    2026-10-13: "yea"). A narrowing that only fixes arguments is a
+    preset, `quick ['step' = 2];`. A template is for members a preset
+    cannot make, where the value changes the signature (`zero.of_int16`,
+    `zero.of_int64`) or no main function takes it. Members that differ in
+    what they do are written out.

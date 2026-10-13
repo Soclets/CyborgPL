@@ -5,6 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — Good practice 14: a preset before a template, a template before copies (owner: "yea")
+
+After collections were built, the owner: "we also might need to update
+good practice." Design claude proposed three items (a preset before a
+body; generate only when names follow a pattern; never edit a generated
+part by hand); the owner: "Is that consistent?" It was not: the second
+item's own example, `times_4`, is a preset; the third is already a rule
+(the build refuses a hand edit), and `style.md` lists advice, not rules;
+and `examples/collections.nrv` generated `times_N` that presets make. The
+owner: "yea" to one item instead, design claude's wording, now
+`design/style.md` 14: **a narrowing that only fixes arguments is a
+preset; a template is for members a preset cannot make, where the value
+changes the signature (`zero.of_int16`) or no main function takes it;
+members that differ in what they do are written out.** The example now
+uses presets for `scale` and a template only for `zero`; a counting
+template stays tested in `tests/reject/collection_generated_counting`.
+
 ### 2026-10-13 — Collections are built in the oracle, templates and `synapse generate` with them (owner: "build it")
 
 The owner: "build it, we also might need to update good practice." Built
