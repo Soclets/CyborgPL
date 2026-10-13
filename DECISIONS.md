@@ -5,6 +5,30 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — `+` is cursed: JavaScript's join with text, `xxx` (tetration) on 1 April, no warnings, refused by the final build (owner)
+
+On why a leading `+` showed as a bullet, the owner: "I kinda want to add `+` that does illegal maths as a
+joke". Design claude found `+` refused since 2026-10-03 ("`+` is `plus` now") and offered (a) a built-in
+joke `+`, warning that silently wrong maths is the one dangerous joke, or (b) `+` free to declare,
+recommended. The owner: "(a). Hahahaha. But it would warn you. "1000" + 1 = 10001, or 1001, or 2000
+randomly"; the 2000 as the left side times 2: "(b)"; the result's type: "It's random", then random each
+run "(b)", then "It's just a built-in cursed `+`, you just see `+`. Union is likely for later"; warn in
+the working build and refuse in the final: "(a). No double the other side anymore, but `"ab" + 1` could
+also give `abc` or `cd`"; then: "Actually, let's just make it "broken", but in a way people might not
+instantly notice it as a joke". Offered (a) float noise, recommended, (b) JavaScript's joining, (c) off
+by one now and then, (d) wrong on certain dates; the owner: "(b), and on April fools. It just adds up
+until your types overflows", then "Actually, let's make it do `xxx` on april fools. By that, ifykyk, a
+hint is that it's not porn" (`x` was times, `xx` power: `xxx` is tetration), and on the warning: "For
+the love of the game, no warnings. Until final build. These mfs better be reading Nerve before using
+Nerve". So **`+`: text on either side joins (`"1000" + 1` is "10001"); two numbers add, except on 1
+April, by the machine's date, when they get `xxx`, a tower of powers, overflowing as any number would
+(`3 + 3` is 7625597484987); no warning; the final build refuses it.** `op +` stays refused, naming `op
+plus`. Built in the oracle (working build only; the final build's refusal is Synapse's):
+`examples/cursed_plus.nrv`; the reject test `plus_old` removed; `ORACLE_TODAY=MM-DD` stands in for the
+date. The 2026-10-03 symbols (`+` for `op +`, `-`, `x`, `xx`, `+~`, `-~`, `x~`, `xx~`) moved into
+`spellings.nrp`, their messages now in the table's one form ("`x` is an old spelling: write `times`").
+Design claude's readings: the tower only for two whole numbers; a number joins as `print.useful` shows it.
+
 ### 2026-10-13 — `spellings.nrp` is built: the oracle reads its keywords, old spellings, non-operators and operator hints from it; `kin::` is lowercase; the oracle's inside names are the real ones (owner: "Yes")
 
 The owner: "Yes" to building it. In three parts, the suite green after each:

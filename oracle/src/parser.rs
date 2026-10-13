@@ -122,7 +122,7 @@ const STD_STR_OPS: &[&str] = &["split", "find", "contains", "trim", "upper", "lo
 
 /// An operator as code writes it (`+` inside is `plus`).
 pub fn op_shown(op: &str) -> String {
-    match op { "+" => "plus".into(), "-" => "minus".into(), "x" => "times".into(), "+.ieee" => "plus.ieee".into(), "-.ieee" => "minus.ieee".into(), "x.ieee" => "times.ieee".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), "equal_to" => "equal_to".into(), "not_equal" => "not_equal".into(), "at_most" => "at_most".into(), "at_least" => "at_least".into(), o => o.into() }
+    match op { "+js" => "+".into(), "+" => "plus".into(), "-" => "minus".into(), "x" => "times".into(), "+.ieee" => "plus.ieee".into(), "-.ieee" => "minus.ieee".into(), "x.ieee" => "times.ieee".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), "equal_to" => "equal_to".into(), "not_equal" => "not_equal".into(), "at_most" => "at_most".into(), "at_least" => "at_least".into(), o => o.into() }
 }
 
 const OP_WORDS: &[&str] = &["x", "xx", "div", "mod", "and", "or"];
@@ -1161,8 +1161,8 @@ impl Parser {
             Tok::Word(n) if n == "plus" => "+".into(),
             Tok::Word(n) if n == "minus" => "-".into(),
             Tok::Word(n) if n == "times" => "x".into(),
-            Tok::Word(n) if (n == "x" || n == "xx") && !self.internal_ops => { let now = if n == "x" { "times" } else { "pow" }; return self.err(format!("`op {n}` is `op {now}` now (owner, 2026-10-03)")); }
-            Tok::Op(o) if matches!(o.as_str(), "+" | "-") && !self.internal_ops => { let now = if o == "+" { "plus" } else { "minus" }; return self.err(format!("`op {o}` is `op {now}` now (owner, 2026-10-03)")); }
+            Tok::Word(n) if (n == "x" || n == "xx") && !self.internal_ops => { return self.err(format!("`op {n}`: {}", crate::spellings::message(crate::spellings::old(&n)))); }
+            Tok::Op(o) if matches!(o.as_str(), "+" | "-") && !self.internal_ops => { return self.err(format!("`op {o}`: {}", crate::spellings::message(crate::spellings::old(&o)))); }
             // a narrowed form, `op dot.fast […]` (owner, 2026-10-02/03)
             Tok::Word(n) if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(_)) => { self.advance(); let Tok::Word(b) = self.advance().tok else { unreachable!() }; format!("{n}.{b}") }
             Tok::Word(n) => n,
@@ -3519,9 +3519,7 @@ impl Parser {
 
     /// The word a retired operator symbol became (owner, 2026-10-03).
     fn old_op_error(&self, op: &str) -> PResult<Expr> {
-        let now = match op { "+" => "plus", "-" => "minus", "x" => "times", "xx" => "pow", "+~" => "plus.wrap", "-~" => "minus.wrap", "x~" => "times.wrap", _ => "pow.wrap" };
-        let note = if op.starts_with("xx") { ", cord's operator" } else { "" };
-        self.err(format!("`{op}` is `{now}` now{note} (owner, 2026-10-03)"))
+        self.err(crate::spellings::message(crate::spellings::old(op)))
     }
 
     fn is_custom_op(&self, op: &str) -> bool { self.lvl(op).0 == 0 && op != "=" }
@@ -3696,7 +3694,10 @@ impl Parser {
             if self.in_count && matches!(self.peek(), Tok::Word(w) if w == "to" || w == "before" || w == "by") { break; }
             let Some(op) = self.binop() else { break };
             if op == "=" { if self.in_map_key { break; } return self.err("`=` inside a value: assignment is a statement; equality is `equal_to`"); }
-            if self.op_old.get() && !self.internal_ops { return self.old_op_error(&op); }
+            // the cursed `+` (owner, 2026-10-13: "For the love of the game, no warnings. Until final build"):
+            // JavaScript's `+` on any day, and on 1 April numbers get `xxx`; the other old symbols stay refused
+            let cursed = self.op_old.get() && !self.internal_ops && op == "+";
+            if self.op_old.get() && !self.internal_ops && !cursed { return self.old_op_error(&op); }
             if self.no_std && is_std_op(&op) { return self.std_missing(&format!("`{}`", op_shown(&op))); }
             if op == "div" || op == "mod" {
                 return self.err(format!("say how `{op}` rounds: `{op}.floor`, `{op}.ceil`, `{op}.trunc` or `{op}.near` (owner, 2026-10-02)"));
@@ -3733,7 +3734,7 @@ impl Parser {
             for _ in 0..self.op_len.get() { self.advance(); }
             // right pair first where the level says so (std's `pow`), left pair first otherwise
             let rhs = if chain == 1 { self.climb(lv)? } else { self.climb(lv + 1)? };
-            lhs = Expr::Binary(op, Box::new(lhs), Box::new(rhs), line);
+            lhs = Expr::Binary(if cursed { "+js".into() } else { op }, Box::new(lhs), Box::new(rhs), line);
         }
         Ok(lhs)
     }

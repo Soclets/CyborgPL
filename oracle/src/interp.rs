@@ -3045,7 +3045,7 @@ impl<'p> Interp<'p> {
                 let Value::Bool(b) = b else { return rt(line, format!("`{op}` works on bools, got {}", b.kind())) };
                 Ok((Value::Bool(b), Prov::Plain))
             }
-            Expr::Binary(op, l, r, _) if !is_div_mod(op.strip_suffix(".ieee").unwrap_or(op)) && !matches!(op.strip_suffix(".ieee").unwrap_or(op), "+" | "-" | "x" | "xx" | "++" | "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least" | "and" | "or") => {
+            Expr::Binary(op, l, r, _) if !is_div_mod(op.strip_suffix(".ieee").unwrap_or(op)) && !matches!(op.strip_suffix(".ieee").unwrap_or(op), "+" | "+js" | "-" | "x" | "xx" | "++" | "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least" | "and" | "or") => {
                 self.custom_op(op, l, r, line)
             }
             Expr::Binary(full, l, r, _) => {
@@ -3127,6 +3127,24 @@ impl<'p> Interp<'p> {
                         }
                     }
                     return Ok((Value::Str(format!("{}{}", a.show_stored(), b.show_stored())), Prov::Fresh));
+                }
+                if op == "+js" {
+                    // the cursed `+` (owner, 2026-10-13): text on either side joins, JavaScript's way
+                    // (`"1000" + 1` is "10001"); two numbers add, except on 1 April, when they get `xxx`,
+                    // a tower of powers, until the type overflows ("it's not porn")
+                    let text = |v: &Value| match v { Value::Str(s) => Some(s.clone()), Value::Char(_, s) => Some(s.clone()), _ => None };
+                    if text(&a).is_some() || text(&b).is_some() {
+                        let shown = |v: &Value| text(v).unwrap_or_else(|| v.show_useful());
+                        return Ok((Value::Str(format!("{}{}", shown(&a), shown(&b))), Prov::Fresh));
+                    }
+                    if april_first() {
+                        if let (Value::Int(x), Value::Int(n)) = (&a, &b) {
+                            let Some(t) = tetration(*x, *n) else { return rt(line, format!("{x} xxx {n} overflows: the answer is past every integer (it is 1 April)")); };
+                            return Ok((Value::Int(t), Prov::Fresh));
+                        }
+                    }
+                    let v = self.binary("+", a, b, line)?;
+                    return Ok((v, Prov::Fresh));
                 }
                 let both_lit = matches!(pa, Prov::Literal) && matches!(pb, Prov::Literal);
                 // a deci power's exponent is an integer or a whole literal, never a deci variable: the
@@ -5737,4 +5755,23 @@ fn elem_literal(elem: Option<&Ty>, v: Value, prov: &Prov) -> Value {
         (Value::Bin(x), Prov::Literal) if brain => Value::Brain(crate::value::round_brain(x)),
         (v, _) => v,
     }
+}
+
+/// 1 April where the program runs, by the machine's own date (`ORACLE_TODAY=MM-DD` stands in for it, for testing)
+fn april_first() -> bool {
+    let today = std::env::var("ORACLE_TODAY").ok().or_else(|| {
+        std::process::Command::new("date").arg("+%m-%d").output().ok().map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+    });
+    today.as_deref() == Some("04-01")
+}
+
+/// `x xxx n`: a tower of n copies of x, x^(x^(…)); none past i128
+fn tetration(x: i128, n: i128) -> Option<i128> {
+    if n < 1 { return Some(1); }
+    let mut r = x;
+    for _ in 1..n {
+        let e: u32 = u32::try_from(r).ok()?;
+        r = x.checked_pow(e)?;
+    }
+    Some(r)
 }

@@ -297,6 +297,26 @@ chosen.
 (Integer `div` (then `/`) and `mod` were decided 2026-09-20: floor division, the
 mathematician's `mod`; see the bitwise and wrapping paragraph above.)
 
+## `+` is not `plus` (owner, 2026-10-13)
+
+Adding is `plus`. `+` is a joke built into the language, on purpose undocumented anywhere a
+user would trip over it ("These mfs better be reading Nerve before using Nerve"):
+
+- **Text on either side: it joins, JavaScript's way.** `"1000" + 1` is `"10001"`, `1 + "2"`
+  is `"12"`, `"ab" + "cd"` is `"abcd"`; a number joins as it prints.
+- **Two numbers: it adds**, as `plus` does, **except on 1 April**, by the machine's own date
+  where the program runs, when `+` is `xxx`: tetration, a tower of powers (`x` was times, `xx`
+  was power; "it's not porn"). `3 + 3` is 3 to the 3 to the 3, 7625597484987, and anything
+  bigger overflows like any number would.
+- **No warning anywhere** ("For the love of the game, no warnings"). **The final build
+  refuses it** ("Until final build").
+- `op +`, as a declaration or a value, stays refused: an operator is declared and passed by
+  its word, `op plus`.
+
+Design claude's readings, provisional in the oracle's README: 1 April's tower is for two
+whole numbers (other numbers add); the text form of a number is the one `print.useful`
+shows.
+
 ## Custom operators — `op` (decided 2026-09-20)
 
 ```
