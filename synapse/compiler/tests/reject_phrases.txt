@@ -157,6 +157,7 @@ check_on_fn [fnv:dfa9ed875d727ff4] :: the tiers are never global
 check_on_fn_in_body [fnv:e371561a00ed503f] :: a function's safety is the sum of its statements
 cnc_not_listed [fnv:6d637c87468ab2b4] :: `incl.C` is CNC's, and this Neuron's Kinesin.nrp does not list the lobe CNC
 collection_fn_inside [fnv:15e640714af8334d] :: a collection's members take no `fn`
+collection_generated_counting [fnv:fdc807f25075f2b0] :: does not match it: run `synapse generate`
 collection_generated_edited [fnv:fdc807f25075f2b0] :: does not match it: run `synapse generate`
 collection_generated_missing [fnv:fdc807f25075f2b0] :: does not match it: run `synapse generate`
 collection_generated_stale [fnv:fdc807f25075f2b0] :: does not match it: run `synapse generate`
