@@ -175,7 +175,7 @@ without the rest of that redesign. See `DECISIONS.md`.
 5. **Your own names are free** (2026-09-24, 2026-10-02): `struct Range` or
    `struct range`, as you like.
 
-`reserved.nrp`'s self-check refuses a built-in name that breaks 1 to 3.
+`spellings.nrp`'s self-check refuses a built-in name that breaks 1 to 3.
 
 ## Open
 

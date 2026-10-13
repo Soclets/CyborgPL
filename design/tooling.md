@@ -188,6 +188,12 @@ owner's order:
    rows cover renames (`/` → `div`), removals (`let`, `pos`) and
    additions (`change` before a bare assignment). Synapse's "use X" errors
    and Synthia's rewrites come from the same rows, so they never disagree.
+   **It also holds the current keywords and the operators free to declare,
+   with the hint shown when one is used undeclared** (owner, 2026-10-13,
+   folding in `reserved.nrp`), so the oracle and Synapse keep no lists of
+   their own. Design claude keeps it, in the same commit as each ruling; a
+   test checks it against itself (no hint names a refused word; nothing
+   both current and old) and against the naming rule (`syntax-sketch.md`).
    **A meaning change is a row too**, marked to report: Quick Fix lists
    those lines to check instead of rewriting them (`and` running both
    sides, 2026-09-25, is one).

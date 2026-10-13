@@ -5,6 +5,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — `reserved.nrp` folds into `spellings.nrp`, the 2026-10-02 table, never built; it gains the keywords and the operators free to declare (owner)
+
+The owner: "what's the CyborgPL/Nerve file that stores the permanent names
+of each thing?", then "The file for QuickFix". It is **`spellings.nrp`**,
+ruled 2026-10-02 (every language word a stable ID; one file for the whole
+language, read by Synapse, Synthia and the IDE; each row an ID, the date,
+the old and new spelling, the position; Synapse's "use X" errors and
+Synthia's rewrites from the same rows, "so they never disagree"), and never
+built. Design claude had proposed `reserved.nrp` earlier today without
+finding it: a duplicate. Recommended dropping `reserved.nrp` and building
+`spellings.nrp` as ruled, adding what it did not cover; the owner: "Yeah, if
+it's correct" (it is: nothing in the 2026-10-02 ruling conflicts). So **there
+is one table, `spellings.nrp`: the old spellings as ruled 2026-10-02, plus the
+current keywords and the operators free to declare with their hints when
+undeclared; read by the oracle, Synapse, Synthia and the IDE; kept by design
+claude in the same commit as each ruling; checked by a test against itself
+(no hint names a refused word; nothing both current and old) and against the
+naming rule.** `reserved.nrp` and its `reserved::` names are withdrawn; the
+lowercase rule for the table's names stands. Not built.
+
 ### 2026-10-13 — `print.useful.auto_newln` stays; not `print.useful.newln` (owner)
 
 The owner: "Should we make it `newln` instead? `auto_newln` to that".
@@ -28,10 +48,11 @@ only for a language's name (`C`, `ASM`, `MSL`), and `MAIN` and
 `free_op`); (4) `.` narrows, a variant of something (`print.useful`,
 `lend.mut`, `collection.fn`); (5) your own names stay free** (2026-09-24).
 The 2026-09-22 "no underscored keywords" is superseded. In
-`design/syntax-sketch.md`; `reserved.nrp`'s self-check is to refuse a
-built-in name that breaks 1 to 3.
+`design/syntax-sketch.md`; `spellings.nrp`'s self-check (`reserved.nrp`
+until it was folded in, the same day) is to refuse a built-in name that
+breaks 1 to 3.
 
-### 2026-10-13 — One table of what is reserved, `reserved.nrp`, read by every tool, kept by design claude (owner; not built)
+### 2026-10-13 — One table of what is reserved, `reserved.nrp`, read by every tool, kept by design claude (owner; folded into `spellings.nrp` the same day)
 
 After the `op &` / `op !` bugs, the owner: "Why don't we just make an
 auto-update reserver? So, the reserves don't go stale." Design claude
