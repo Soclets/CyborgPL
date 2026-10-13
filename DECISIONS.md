@@ -31,6 +31,14 @@ design claude recommended (a). Not yet settled: the rest of the
 "good"), and generation, which would be Nerve's first code written while
 building.
 
+The owner: "Nah, it should have a name. But maybe not `fn` Infront."
+So **the main function is named in the block, without `fn`: `cum ['x':
+int32, 'step': int32] -> int32 { … }`**, as members are (`quick […] { … }`).
+**A collection is private unless written `pub collection cum { … }`**, and
+then every member is public under the collection's one `bare.` mark
+(owner: "(a)"), over (b) always public; design claude recommended (a):
+everything else is private unless it says `pub`, and public is a promise.
+
 ### 2026-10-12 — A whole number into a `deci` asks for `otherwise` only when it could have too many digits, worked out from its operands (owner: a)
 
 Compiler claude, building `corner_shop`: `to.deci64['sold']`, `'sold'` a
