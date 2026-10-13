@@ -23,7 +23,19 @@ refused word; nothing is both a keyword and an old spelling). The owner:
 updating it in the same commit as the ruling; the other sessions only read
 it, as `design/`), then "Yeah". Design claude's reading of that: the name
 and place, `reserved.nrp` beside `DECISIONS.md`, are agreed with the rest.
-Not yet asked: the table's shape. Not relayed: the other sessions are
+Asked the table's shape, design claude showed `reserved::Table[keywords
+= […], old = [reserved::Old[written = "&", write = "lend` / `lent", since =
+"2026-10-07"], …], free_ops = [reserved::FreeOp[op = "&", hint = "…"], …]];`,
+copying `kin::Manifest`'s capitals. The owner: "Yeah, but when the fuck
+did it become capital letter?" (never a rule: type names need not be
+capitalised, 2026-09-24; the capital in `cca::Manifest` came from design
+claude's 2026-10-06 sketch, and `cca::Lobe` copied it, 2026-10-09), then:
+"I mean, look at the language. You don't see anything upper, except lang
+names. And when it needs separating, say FreeOp. You do free_op". So **the
+table is `reserved::table[ … ]`, its entries `reserved::old[ … ]` and
+`reserved::free_op[ … ]`: lowercase, words joined by `_`**, as the
+language's own names are (the capitals left: a language's name, `C`, `ASM`;
+`MAIN`; `NO_FUCKING_CHECKS`). Not relayed: the other sessions are
 paused for the day, and Synthia since 2026-10-08.
 
 ### 2026-10-13 — Oracle bug: `op &` and `op !` were refused as old spellings; fixed (owner: "fix now")
