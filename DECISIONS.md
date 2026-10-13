@@ -5,6 +5,53 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — Two kinds of collection, always named: `collection.fn` and `collection.handler`, a handler being a named `otherwise` block (owner; not built)
+
+Asked "How do you define your own otherwise handler in Nerve?" (there is
+none: a fallback value may be a function call, arms may call functions,
+and a catch-all arm was left out on purpose, `failures.md`), the owner:
+"Or maybe a handler collection?" Design claude sketched members named
+after the failure reasons, functions giving the value; the owner: "Nah,
+nah. Like different collection types. And like, you could do, say
+`otherwise cum.flow_back_to_bladder` when using". Design claude's reading,
+shown and not objected to: **a handler collection's member is a named
+`otherwise` block, the same arms as written inline, one per reason, and
+`otherwise cum_failed.flow_back_to_bladder` uses them as if written at the
+call**, so its arms may `return`, `break`, `continue` and `fail` from where
+it is used; it is refused on a call it does not cover exhaustively.
+
+The owner: "collection.<collection type>?" then "No, no. Like there are two
+collection types. So, use `.type`". So **a collection always says its kind;
+a bare `collection` is refused**. The owner offered "Maybe `col.fn` and
+`col.handler`"; design claude recommended `handler`, and `collection` in
+full over `col`, which most programmers read as *column*
+(`file:line:col`); the owner: "Your rec". So **`collection.fn` is the kind
+built today (an own function, members, presets, templates) and
+`collection.handler` holds named `otherwise` blocks**:
+
+```
+pub collection.fn cum {
+    bare.never;
+    cum ['x': int32, 'step': int32] -> int32 { … }
+    quick ['step' = 2];
+}
+
+collection.handler cum_failed {
+    flow_back_to_bladder {
+        odd { return 0; }
+        negative 'v' { report['v']; return 0; }
+    }
+}
+
+let 'b' := half[-4] otherwise cum_failed.flow_back_to_bladder;
+```
+
+Not built: the oracle and Synapse still take a bare `collection` (built
+today), and `examples/collections.nrv` and the `collection_*` tests use it.
+Not yet asked: the handler kind's details (whether `pub`, a `bare.` mark and
+templates apply to it, how a member is checked against the calls that use
+it, whether a payload's type is written).
+
 ### 2026-10-13 — Checked manual memory: `manual[T]` / `manual.mut[T]`, a handle standing on its own; Nerve ships an allocator only for targets with an OS; each allocation names its allocator (owner)
 
 Designing the 2026-10-13 direction. Offered where the memory lives: (a) one

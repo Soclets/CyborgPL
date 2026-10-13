@@ -4,6 +4,12 @@ Decided 2026-10-13 (owner), built the same day in the oracle and Synapse.
 The rulings, with the owner's words, are in `DECISIONS.md` under 2026-10-13;
 this note says what they add up to. The example is `examples/collections.nrv`.
 
+> **2026-10-13, later (owner; not built):** a collection always says its
+> kind. What this note describes is **`collection.fn`**; a bare
+> `collection` will be refused. The second kind, **`collection.handler`**,
+> holds named `otherwise` blocks (below). The examples here still show the
+> bare word the oracle and Synapse take today.
+
 A collection writes a function and its dot narrowings (`cum`, `cum.quick`,
 `cum.double`) in one block, instead of a `fn cum` and a `fn cum.quick` and a
 `fn cum.double` each with its own `pub` and `bare.` mark.
@@ -121,3 +127,27 @@ owner rules:
 - In a generated member, the loop's value is written as it stands in the
   list, so a const stays its name (`times 'big'`), while `named` sees its
   value (`times_100`).
+
+## `collection.handler` (owner, 2026-10-13; not built)
+
+```
+collection.handler cum_failed {
+    flow_back_to_bladder {
+        odd { return 0; }
+        negative 'v' { report['v']; return 0; }
+    }
+}
+
+let 'b' := half[-4] otherwise cum_failed.flow_back_to_bladder;
+```
+
+- A member is a **named `otherwise` block**: the arms written inline today,
+  one per reason, a payload bound to a quoted name.
+- `otherwise cum_failed.flow_back_to_bladder` uses it **as if written at
+  the call** (design claude's reading, not objected to): its arms may
+  `return`, `break`, `continue` and `fail` from where it is used.
+- It is refused on a call it does not cover: every reason the call can
+  fail with needs its arm, as inline.
+- Open: `pub`, the `bare.` mark and templates for this kind; how a member
+  is checked (once, or at each use); whether a payload's type is written.
+
