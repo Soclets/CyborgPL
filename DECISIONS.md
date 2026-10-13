@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — Oracle fixes to the cursed `+` and `*`, found by compiler claude building them
+
+Compiler claude found four places where the oracle parted from the ruling's words, building the ruling's
+reading in Synapse each time; all four were the oracle's: (1) two numbers through `+` skipped `plus`'s
+limit in between (`'d' + 'd' + 'd'` on int64's largest printed 27670116110564327421 where `plus` stops),
+though the ruling says they add "as `plus` does"; (2) on 1 April an operand past int128 fell back to
+adding, where the ruling makes every pair of whole numbers a tower (`'g' + 1` on uint128's largest is now
+`'g'`, `1 + 'g'` is 1); (3) the tower's answer was not held to the limit in between ("overflowing as any
+number would"): `18 + 2` on int64 now stops at 64 bits; (4) `*` on 1 April printed `-0`, which only the
+`.ieee` forms may (2026-10-07); it prints 0. Fixed: the cursed `+` shares `plus`'s check in between, and
+the tower is worked out on big integers and stopped as soon as it passes the limit.
+
 ### 2026-10-13 — `*` is cursed too (Python's repetition, `bin16` maths, negated on 1 April), and jokes are a power, `kin::power.jokes` (owner)
 
 The owner: ""Fast & safe at the final product". My fucking ass, those last words are carrying our ass.

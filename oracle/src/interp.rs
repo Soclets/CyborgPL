@@ -3147,7 +3147,8 @@ impl<'p> Interp<'p> {
                     let (Some(x), Some(y)) = (as_f(&a), as_f(&b)) else { return rt(line, format!("`*` multiplies numbers, not {} and {}", a.kind(), b.kind())); };
                     let p = round_f16(round_f16(x) * round_f16(y));
                     if !p.is_finite() { return rt(line, format!("{} * {} overflows", a.show_useful(), b.show_useful())); }
-                    let p = if april { -p } else { p };
+                    // no answer is -0 outside the `.ieee` forms (owner, 2026-10-07)
+                    let p = if april && p != 0.0 { -p } else { p };
                     let v = match (&a, &b) {
                         (Value::Int(_), Value::Int(_)) => Value::Int(p as i128),
                         (Value::Deci(d), _) | (_, Value::Deci(d)) => match crate::deci::Deci::from_bin_useful(p, d.width) { Ok(r) => Value::Deci(r), Err(e) => return rt(line, e) },
@@ -3165,14 +3166,18 @@ impl<'p> Interp<'p> {
                         let shown = |v: &Value| text(v).unwrap_or_else(|| v.show_useful());
                         return Ok((Value::Str(format!("{}{}", shown(&a), shown(&b))), Prov::Fresh));
                     }
-                    if april_first() {
-                        if let (Value::Int(x), Value::Int(n)) = (&a, &b) {
-                            let Some(t) = tetration(*x, *n) else { return rt(line, format!("{x} xxx {n} overflows: the answer is past every integer (it is 1 April)")); };
-                            return Ok((Value::Int(t), Prov::Fresh));
+                    // two numbers add as `plus` does, its limit in between included (compiler claude, 2026-10-13); on
+                    // 1 April two whole numbers make the tower, held to the same limit
+                    let whole = |v: &Value| matches!(v, Value::Int(_) | Value::Big(_));
+                    let v = if april_first() && whole(&a) && whole(&b) {
+                        let bits = self.in_between_bits(l, r);
+                        match tetration(&as_big(&a).unwrap(), &as_big(&b).unwrap(), bits) {
+                            Ok(t) => match t.to_i128() { Some(i) => Value::Int(i), None => Value::Big(t) },
+                            Err(m) => return site(line, m),
                         }
-                    }
-                    let v = self.binary("+", a, b, line)?;
-                    return Ok((v, Prov::Fresh));
+                    } else { self.binary("+", a, b, line)? };
+                    self.in_between(&v, l, r, "+", line)?;
+                    return Ok((v, Prov::Plain));
                 }
                 let both_lit = matches!(pa, Prov::Literal) && matches!(pb, Prov::Literal);
                 // a deci power's exponent is an integer or a whole literal, never a deci variable: the
@@ -3225,25 +3230,32 @@ impl<'p> Interp<'p> {
                 // type holds is a check site. Bare numbers alone are worked out at compile time.
                 // The limit in between is the widest operand's width, at least 64 bits (owner,
                 // 2026-10-03: "Ah, okay"), so a `!std_uint256` sum works at 256 bits.
-                if matches!(op.as_str(), "+" | "-" | "x" | "xx") && !both_lit {
-                    let width = |e: &Expr| match self.expr_ty(e) { Some(Ty::Int(w) | Ty::Uint(w)) => true_bits(&w), Some(Ty::Ranged(b, ..)) => match *b { Ty::Int(w) | Ty::Uint(w) => true_bits(&w), _ => 0 }, _ => 0 };
-                    let bits = 64.max(width(l)).max(width(r)) as u64;
-                    let past = match &v {
-                        Value::Int(n) if bits == 64 => *n < i64::MIN as i128 || *n > u64::MAX as i128,
-                        Value::Int(_) if bits >= 128 => false,
-                        Value::Int(_) | Value::Big(_) => {
-                            let b = as_big(&v).unwrap();
-                            b.cmp(&crate::bigint::BigInt::pow2(bits - 1).neg()).is_lt() || b.cmp(&crate::bigint::BigInt::pow2(bits).sub(&crate::bigint::BigInt::from_i128(1))).is_gt()
-                        }
-                        _ => false,
-                    };
-                    if past {
-                        return site(line, format!("{} goes past {bits} bits in between — `{op}` is exact, but no {bits}-bit type holds this", v.show_stored()));
-                    }
-                }
+                if matches!(op.as_str(), "+" | "-" | "x" | "xx") && !both_lit { self.in_between(&v, l, r, op, line)?; }
                 Ok((v, if both_lit { Prov::Literal } else { Prov::Plain }))
             }
         }
+    }
+
+    /// Plain integer math is exact, and checked where the value lands; in between, the one limit is the widest
+    /// operand's width, at least 64 bits (owner, 2026-09-23, 2026-10-03)
+    fn in_between_bits(&self, l: &Expr, r: &Expr) -> u64 {
+        let width = |e: &Expr| match self.expr_ty(e) { Some(Ty::Int(w) | Ty::Uint(w)) => true_bits(&w), Some(Ty::Ranged(b, ..)) => match *b { Ty::Int(w) | Ty::Uint(w) => true_bits(&w), _ => 0 }, _ => 0 };
+        64.max(width(l)).max(width(r)) as u64
+    }
+
+    fn in_between(&self, v: &Value, l: &Expr, r: &Expr, op: &str, line: usize) -> Result<(), RuntimeError> {
+        let bits = self.in_between_bits(l, r);
+        let past = match v {
+            Value::Int(n) if bits == 64 => *n < i64::MIN as i128 || *n > u64::MAX as i128,
+            Value::Int(_) if bits >= 128 => false,
+            Value::Int(_) | Value::Big(_) => {
+                let b = as_big(v).unwrap();
+                b.cmp(&crate::bigint::BigInt::pow2(bits - 1).neg()).is_lt() || b.cmp(&crate::bigint::BigInt::pow2(bits).sub(&crate::bigint::BigInt::from_i128(1))).is_gt()
+            }
+            _ => false,
+        };
+        if past { return site(line, format!("{} goes past {bits} bits in between — `{op}` is exact, but no {bits}-bit type holds this", v.show_stored())); }
+        Ok(())
     }
 
     /// `div.X` / `mod.X` within one family (owner, 2026-10-02). On integers every `div` is whole; on
@@ -5793,13 +5805,26 @@ fn april_first() -> bool {
     today.as_deref() == Some("04-01")
 }
 
-/// `x xxx n`: a tower of n copies of x, x^(x^(…)); none past i128
-fn tetration(x: i128, n: i128) -> Option<i128> {
-    if n < 1 { return Some(1); }
-    let mut r = x;
-    for _ in 1..n {
-        let e: u32 = u32::try_from(r).ok()?;
-        r = x.checked_pow(e)?;
+/// `x xxx n`: a tower of n copies of x, x^(x^(…)), stopped as soon as it passes `bits` (the limit in between)
+fn tetration(x: &crate::bigint::BigInt, n: &crate::bigint::BigInt, bits: u64) -> Result<crate::bigint::BigInt, String> {
+    use crate::bigint::BigInt;
+    let one = BigInt::from_i128(1);
+    let past = || format!("the answer goes past {bits} bits in between — `+` is exact, but no {bits}-bit type holds this");
+    if n.is_neg() || n.is_zero() { return Ok(one); }
+    if x.cmp(&one).is_eq() { return Ok(one); }
+    if x.is_zero() {
+        // 0, 0^0 = 1, 0^1 = 0, …: odd towers are 0
+        let odd = !n.mod_pow2(1).is_zero();
+        return Ok(if odd { BigInt::zero() } else { one });
     }
-    Some(r)
+    let mut r = x.clone();
+    let mut left = n.sub(&one);
+    while !left.is_zero() {
+        if r.is_neg() { return Err("a negative exponent on integers would produce a fraction — a check site: Cortex proves the exponent is never negative, or the final build refuses".into()); }
+        let Some(e) = r.to_u64().filter(|e| *e <= bits) else { return Err(past()) };
+        r = x.pow(e);
+        if r.bits() > bits { return Err(past()); }
+        left = left.sub(&one);
+    }
+    Ok(r)
 }
