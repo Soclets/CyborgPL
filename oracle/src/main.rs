@@ -12,6 +12,7 @@ mod ast;
 mod bigint;
 mod case;
 mod cheader;
+mod generate;
 mod deci;
 mod interp;
 mod lexer;
@@ -27,6 +28,8 @@ fn parse_file(path: &Path, module: Vec<String>) -> Result<ast::Program, String> 
 }
 
 thread_local! {
+    /// `oracle --generate <path>`: write the templates' generated parts instead of running
+    static GENERATE: std::cell::Cell<bool> = std::cell::Cell::new(false);
     /// The first pass over a program's files reads only their `precedence` blocks (owner, 2026-10-03:
     /// a Neuron's levels apply wherever its operators are used)
     static LEVELS_ONLY: std::cell::Cell<bool> = std::cell::Cell::new(false);
@@ -49,8 +52,18 @@ fn parse_file_in(path: &Path, module: Vec<String>, limb_root: Vec<String>) -> Re
             .map_err(|e| format!("{}: line {}: {}", path.display(), e.line, e.msg))?;
         return Ok(ast::Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new(), bare_marks: Vec::new(), case_marks: Vec::new() });
     }
-    parser::Parser::new_in_limb(toks, module, limb_root).program()
-        .map_err(|e| if e.col == 0 { format!("{}: line {}: {}", path.display(), e.line, e.msg) } else { format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg) })
+    parser::CURRENT_FILE.with(|f| *f.borrow_mut() = path.to_path_buf());
+    let r = parser::Parser::new_in_limb(toks, module.clone(), limb_root.clone()).program()
+        .map_err(|e| if e.col == 0 { format!("{}: line {}: {}", path.display(), e.line, e.msg) } else { format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg) })?;
+    // a file with collection templates is kept for the check of its generated parts (owner, 2026-10-13)
+    if parser::TEMPLATES.with(|t| t.borrow().iter().any(|(f, _, _)| f == path)) {
+        generate::PENDING.with(|p| {
+            let mut p = p.borrow_mut();
+            p.retain(|x| x.path != path);
+            p.push(generate::Pending { path: path.to_path_buf(), src: src.clone(), module, limb_root });
+        });
+    }
+    Ok(r)
 }
 
 /// A Neuron is a directory: `neuron.nrv` is the root; every other `.nrv` file is
@@ -61,6 +74,8 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     parser::SHARED_LEVELS.with(|l| l.borrow_mut().clear());
     parser::LACKS.with(|n| n.borrow_mut().clear());
     parser::TYPE_PATHS.with(|t| t.borrow_mut().clear());
+    parser::TEMPLATES.with(|t| t.borrow_mut().clear());
+    generate::PENDING.with(|p| p.borrow_mut().clear());
     case::PLAN.with(|p| p.borrow_mut().clear());
     LEVELS_ONLY.with(|f| f.set(true));
     let first = load_files(path);
@@ -983,7 +998,14 @@ pub fn run_path_as(path: &Path, out: Box<dyn std::io::Write>, tests: bool) -> Re
 /// `args`: the words after `--`, which MAIN reads as C's argc/argv (owner, 2026-09-29).
 pub fn run_with_args(path: &Path, out: Box<dyn std::io::Write>, tests: bool, args: Vec<String>) -> Result<u8, String> {
     interp::set_shown_file(&if path.is_dir() { "neuron.nrv".to_string() } else { path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default() });
-    let prog = load(path)?;
+    let mut prog = load(path)?;
+    // what `synapse generate` wrote must still be what the templates make (owner, 2026-10-13)
+    if GENERATE.with(|g| g.get()) {
+        let n = generate::write(&mut prog)?;
+        println!("generated {n} part(s)");
+        return Ok(0);
+    }
+    generate::check(&mut prog)?;
     let marks = check_bare(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     let mut interp = interp::Interp::new(&prog, out);
     interp.set_bare(marks);
@@ -1012,12 +1034,14 @@ fn main() {
     let (tests, target) = match head {
         [_, t] => (false, t),
         [_, flag, t] if flag == "--test" => (true, t),
-        _ => { eprintln!("usage: oracle [--test] <file.nrv | limb-directory> [-- program arguments]"); exit(2); }
+        [_, flag, t] if flag == "--generate" => { GENERATE.with(|g| g.set(true)); (false, t) }
+        _ => { eprintln!("usage: oracle [--test | --generate] <file.nrv | limb-directory> [-- program arguments]"); exit(2); }
     };
     // the parser and the interpreter recurse, so a call nested a few thousand deep in one expression
     // needs more than the main thread's 8 MB (check claude, seed 32299): 1 GB, only what is used is touched
     let target = target.clone();
-    let run = std::thread::Builder::new().stack_size(1 << 30).spawn(move || run_with_args(Path::new(&target), Box::new(std::io::stdout()), tests, rest))
+    let gen = GENERATE.with(|g| g.get());
+    let run = std::thread::Builder::new().stack_size(1 << 30).spawn(move || { GENERATE.with(|g| g.set(gen)); run_with_args(Path::new(&target), Box::new(std::io::stdout()), tests, rest) })
         .expect("the oracle's thread");
     match run.join() {
         Ok(Ok(code)) => exit(code as i32),

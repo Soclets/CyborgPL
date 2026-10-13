@@ -172,6 +172,9 @@ pub struct Func {
     pub is_op: bool,
     /// `test fn name [] { … }` (owner, 2026-09-29): run by `synapse test`, never called, left out of builds
     pub is_test: bool,
+    /// `fn Counter.next` / `fn cum.quick` (2026-10-09), and every member of a `collection`: the last
+    /// segment of `module` is the owner's name, not a module, so a const is found in the file around it
+    pub owned: bool,
     /// `<T: Ordered>` — each type variable's required interface (canonical), if any
     pub bounds: Vec<(String, String)>,
     pub params: Vec<Param>,

@@ -206,8 +206,10 @@ type PResult<T> = Result<T, ParseError>;
 thread_local! {
     /// The paths that are a type's name with its functions under it (`fn Counter.next`, 2026-10-09), not modules
     pub static TYPE_PATHS: std::cell::RefCell<Vec<Vec<String>>> = std::cell::RefCell::new(Vec::new());
-    /// Each collection template seen: (collection, line), for the check of what `synapse generate` wrote
-    pub static TEMPLATES: std::cell::RefCell<Vec<(String, usize)>> = std::cell::RefCell::new(Vec::new());
+    /// Each collection template seen: (file, collection, line), for the check of what `synapse generate` wrote
+    pub static TEMPLATES: std::cell::RefCell<Vec<(std::path::PathBuf, String, usize)>> = std::cell::RefCell::new(Vec::new());
+    /// The file being parsed, for TEMPLATES
+    pub static CURRENT_FILE: std::cell::RefCell<std::path::PathBuf> = std::cell::RefCell::new(std::path::PathBuf::new());
     /// The folder of the Neuron whose file is being parsed: an `incl.…` path starts there (owner, 2026-10-10)
     pub static NEURON_DIR: std::cell::RefCell<std::path::PathBuf> = std::cell::RefCell::new(std::path::PathBuf::new());
 }
@@ -1167,7 +1169,7 @@ impl Parser {
         } else { self.block()? };
         let bounds = Self::flat_bounds(&gens);
         if !self.in_interface { self.declared = None; self.groups.clear(); }
-        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails: Vec::new(), is_extern: false, is_op: true, is_test: false, bounds, params, body, line })
+        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails: Vec::new(), is_extern: false, is_op: true, is_test: false, owned: false, bounds, params, body, line })
     }
 
     // struct := 'struct' Word '{' (('mut' | 'immut')? Word ':' type)* '}'   — no `;`, no `let`
@@ -1312,8 +1314,9 @@ impl Parser {
         let bounds = Self::flat_bounds(&gens);
         if !self.in_interface { self.declared = None; self.groups.clear(); }
         let mut module = self.module.clone();
+        let owned = owner.is_some();
         if let Some(t) = owner { module.push(t); }
-        Ok(Func { name, module, vis: Vis::Private, ret, ret_lent, fails, is_extern: false, is_op: false, is_test: false, bounds, params, body, line })
+        Ok(Func { name, module, vis: Vis::Private, ret, ret_lent, fails, is_extern: false, is_op: false, is_test: false, owned, bounds, params, body, line })
     }
 
     // fail list := 'fail' '[' Word (':' type)? (',' Word (':' type)?)* ']'
@@ -2510,7 +2513,8 @@ impl Parser {
                 Tok::Word(w) if w == "for" => {
                     // a template: what `synapse generate` reads; skipped here, its output being ordinary members below
                     let tline = self.line();
-                    TEMPLATES.with(|t| t.borrow_mut().push((name.clone(), tline)));
+                    let file = CURRENT_FILE.with(|f| f.borrow().clone());
+                    TEMPLATES.with(|t| { let mut t = t.borrow_mut(); if !t.iter().any(|(f, _, l)| *f == file && *l == tline) { t.push((file, name.clone(), tline)); } });
                     self.advance();
                     while !matches!(self.peek(), Tok::LBrace | Tok::Eof) { self.advance(); }
                     self.skip_braces()?;
@@ -2888,7 +2892,7 @@ impl Parser {
         self.saw_value_return = saved_ret;
         self.pending_captures = caps;
         let bounds = std::mem::take(&mut self.bounds);
-        Ok(Func { name: String::new(), module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails, is_extern: false, is_op: false, is_test: false, bounds, params, body, line })
+        Ok(Func { name: String::new(), module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails, is_extern: false, is_op: false, is_test: false, owned: false, bounds, params, body, line })
     }
 
     /// `with [lend 'a', give 'b']` — explicit captures, for an anonymous fn and for `concur`.

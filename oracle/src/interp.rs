@@ -268,6 +268,24 @@ impl<'p> Interp<'p> {
         Ok(if failed == 0 { 0 } else { 1 })
     }
 
+    /// `synapse generate`'s names (owner, 2026-10-13): run each named function (no parameters, text back),
+    /// after the consts are ready, and hand back the texts in order
+    pub fn call_texts(&mut self, names: &[(Vec<String>, String)]) -> Result<Vec<String>, RuntimeError> {
+        self.prepare()?;
+        let mut out = Vec::new();
+        for (module, name) in names {
+            let Some(f) = self.prog.funcs.iter().find(|f| &f.module == module && &f.name == name).cloned() else { return rt(0, format!("no `{name}` to name a generated member")); };
+            self.module = module.clone();
+            let v = match self.run_body(&f, Vec::new())? { Flow::Return(v) => v, _ => Value::Nothing };
+            match v {
+                Value::Str(t) => out.push(t),
+                other => return rt(f.line, format!("a `named` line gives text, the member's name, not {}", other.kind())),
+            }
+        }
+        self.module = Vec::new();
+        Ok(out)
+    }
+
     /// The checks before anything runs, then the consts and C's variables.
     fn prepare(&mut self) -> Result<(), RuntimeError> {
         // Consts first, in order: each may use the ones above it. Cortex would
@@ -306,12 +324,21 @@ impl<'p> Interp<'p> {
 
     fn push(&mut self) { self.scopes.push(HashMap::new()); }
     fn pop(&mut self) { self.scopes.pop(); }
-    fn lookup(&self, name: &str) -> Option<&Slot> { self.scopes.iter().rev().find_map(|s| s.get(name)).or_else(|| self.consts.get(&const_key(&self.module, name))) }
+    fn lookup(&self, name: &str) -> Option<&Slot> { self.scopes.iter().rev().find_map(|s| s.get(name)).or_else(|| self.consts.get(&self.const_at(name))) }
+    /// Where a const of this name is kept: in this module, or, inside a function that belongs to a
+    /// type or another function (`fn Counter.next`, `fn cum.quick`, a collection's members), in the
+    /// file around it, since the owner's name is not a module that could hold consts
+    fn const_at(&self, name: &str) -> String {
+        let here = const_key(&self.module, name);
+        if self.consts.contains_key(&here) || self.module.is_empty() { return here; }
+        let parent = &self.module[..self.module.len() - 1];
+        if self.prog.funcs.iter().any(|f| f.owned && f.module == self.module) { const_key(parent, name) } else { here }
+    }
     fn lookup_mut(&mut self, name: &str) -> Option<&mut Slot> { self.scopes.iter_mut().rev().find_map(|s| s.get_mut(name)) }
     /// A top-level const, or a const in a body (owner, 2026-10-10), which is never shadowed
     fn is_const(&self, name: &str) -> bool {
         if self.lookup(name).is_some_and(|s| s.kind == SlotKind::Const) { return true; }
-        self.consts.contains_key(&const_key(&self.module, name)) && !self.scopes.iter().any(|s| s.contains_key(name))
+        self.consts.contains_key(&self.const_at(name)) && !self.scopes.iter().any(|s| s.contains_key(name))
     }
 
     /// Two items with one canonical name, or a module declared twice (a file and a block).
@@ -766,7 +793,7 @@ impl<'p> Interp<'p> {
                 let sized = Self::sized_from(value, ty.as_ref());
                 if kind == SlotKind::ExternMut {
                     // C's variable: the cell lives beside the consts
-                    *self.consts[&const_key(&self.module, name)].cell.borrow_mut() = v;
+                    *self.consts[&self.const_at(name)].cell.borrow_mut() = v;
                     return Ok(Flow::Normal);
                 }
                 self.wrote(name, *line, "changed");

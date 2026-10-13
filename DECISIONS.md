@@ -5,7 +5,31 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-13 — A `collection` writes a function and its dot narrowings in one block; a narrowing that only fills arguments is one line (owner; being designed, not built)
+### 2026-10-13 — Collections are built in the oracle, templates and `synapse generate` with them (owner: "build it")
+
+The owner: "build it, we also might need to update good practice." Built
+in two parts: the collection itself (`f891a27c`: the main function, members,
+presets, the one `bare.` mark, `pub`), then templates. **`oracle --generate
+PATH` is the oracle's `synapse generate`**: it writes each template's members
+under its `#generated_N_lines_below`, and every other run compares that part
+with what the template makes and refuses it when they differ, "the generated
+part under the template at line 9 does not match it: run `synapse generate`"
+(a hand edit, a changed template, a part never written). `examples/collections.nrv`
+has a list template (with a const), a counting one and a type one, each part
+written by `oracle --generate`.
+
+Design claude's readings, provisional in the oracle's README until the owner
+rules: the marker stands right under the template's closing `}`; a template's
+values are literals, consts and type names; `named` runs as a small function
+returning `str.utf8`, a type's name being its text (`of_int16`); a const in
+the list is written as its name in the generated member (`times 'big'`) while
+`named` sees its value (`times_100`). Found on the way: a function that
+belongs to another name, `fn d.t` (2026-10-09) and so every member of a
+collection, could not read the file's consts (`'big' is not declared`), the
+owner's name being taken for a module; fixed, a module's own functions
+unchanged.
+
+### 2026-10-13 — A `collection` writes a function and its dot narrowings in one block; a narrowing that only fills arguments is one line (owner; built 2026-10-13)
 
 Asked "How do you create a neuron's `name::cum` and its dot narrowings?"
 (today: `prefix = "name"` in `Kinesin.nrp`, `pub bare.never fn cum`, and
