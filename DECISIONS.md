@@ -75,7 +75,22 @@ bare-metal program bringing its memory source and everything on top
 checked, only the OS allocator outside it, recommended; (b) `cord`'s, bare
 metal having no checked memory. The owner: "(a)". So **checked memory is
 the Brainstem's; the OS allocator is not** (design claude's reading: it is
-`cord`'s, as everything needing an OS is). Not yet asked: the spelling.
+`cord`'s, as everything needing an OS is).
+
+**The handle's type is `manual[T]`** (owner: "Manual it is"), `T` any
+type (`manual[Node]`, `manual[int32]`), over `heap[T]` and `held[T]`, which
+design claude offered beside it, and `checked_ptr[T]`, the owner's (design
+claude noted the Nerve shape would be `ptr.checked[T]`, that the `ptr`
+family means C's unchecked pointers, and that "checked" already means
+`check`'s proving). The owner asked along the way "What's this for?" (the
+type written for fields, parameters and typed variables: a tree's
+`'left': manual[Node]`), "How does C look like?" (`struct Node *` from
+`malloc`), "What type is manual?" and "Like bin16?" (a pointer type, as
+`ptr[T]` is, not a number: a plain value of an address and a generation,
+copied freely, not owned, no conversion to or from an integer), and "Is it
+Node inside, or a type inside?" (a type). Not yet asked: the rest of the
+spelling (allocating, freeing, the alive test) and whether a handle may
+write.
 
 ### 2026-10-13 — Direction: built-in checked manual memory, with generations, instead of reference counting; its checks follow the working / final rule (owner; not designed)
 

@@ -21,6 +21,26 @@ The layers, then:
 3. **`malloc` / `free` through C** (`ffi.md`, CNC lobe) — every pointer use
    `no_check`; for C, custom allocators, the last bit of speed.
 
+## The handle: `manual[T]` (owner, 2026-10-13: "Manual it is")
+
+```
+struct Node {
+    'value': int32;
+    'left': manual[Node];
+    'right': manual[Node];
+}
+```
+
+- `T` is any type: `manual[Node]`, `manual[int32]`, `manual[array[uint8, 64]]`.
+- A **pointer type**, as `ptr[T]` is, not a number: inside, an address and
+  the generation the handle was made with. No conversion to or from an
+  integer.
+- **Plain**: copying a handle copies those two, never the `T`; two copies
+  reach the same value (two parents, one child).
+- **Not owned**: a variable holding one ends and nothing is freed.
+- Kept apart from `ptr[T]`, C's unchecked pointer: the name says the duty a
+  reader must not miss, that someone frees it.
+
 ## How it is checked: generations
 
 - Each allocation carries a **generation** number; a handle to it holds the
@@ -80,8 +100,11 @@ The checks follow the rule every check follows (`core-features.md`,
 
 ## Open
 
-- The spelling: allocating, freeing, the handle's type (design claude
-  suggested `manual[Node]`), the alive test.
+- The spelling: allocating, freeing, the alive test.
+- Whether a handle may write (`manual[T]` / `manual.mut[T]`, as `ptr` /
+  `ptr.mut`).
+- The generation's width (64 bits never wraps; 32 makes handles smaller):
+  Synapse's, unless the owner wants it.
 - Handles across threads and tasks (`concurrency.md`).
 - What Cortex proves about handles.
 - Whether a garbage collector is ruled out (asked 2026-10-13, not ruled;
