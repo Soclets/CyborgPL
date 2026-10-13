@@ -5,6 +5,27 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — One table of what is reserved, `reserved.nrp`, read by every tool, kept by design claude (owner; not built)
+
+After the `op &` / `op !` bugs, the owner: "Why don't we just make an
+auto-update reserver? So, the reserves don't go stale." Design claude
+listed the hand-kept copies (the keyword list in the oracle's parser,
+copied by hand into Synthia; the old spellings in the lexer and parser; the
+operator hints in the interpreter, where the stale `!` hint was; the
+operators free to declare in `operators.md`; Synapse's own copies of all
+of it) and proposed **one data file at the top of the repo, `reserved.nrp`,
+each entry saying what a word or symbol is (a keyword; an old spelling and
+what to write instead; an operator free to declare and its hint when
+undeclared), read by the oracle, Synapse and Synthia instead of their own
+lists, with a test that checks the table against itself** (no hint names a
+refused word; nothing is both a keyword and an old spelling). The owner:
+"Yeah", then "Yeah, but who's maintaining that?" (design claude: itself,
+updating it in the same commit as the ruling; the other sessions only read
+it, as `design/`), then "Yeah". Design claude's reading of that: the name
+and place, `reserved.nrp` beside `DECISIONS.md`, are agreed with the rest.
+Not yet asked: the table's shape. Not relayed: the other sessions are
+paused for the day, and Synthia since 2026-10-08.
+
 ### 2026-10-13 — Oracle bug: `op &` and `op !` were refused as old spellings; fixed (owner: "fix now")
 
 The owner, on hearing `&` was refused even as a custom operator: "why the
