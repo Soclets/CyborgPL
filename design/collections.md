@@ -4,11 +4,10 @@ Decided 2026-10-13 (owner), built the same day in the oracle and Synapse.
 The rulings, with the owner's words, are in `DECISIONS.md` under 2026-10-13;
 this note says what they add up to. The example is `examples/collections.nrv`.
 
-> **2026-10-13, later (owner; not built):** a collection always says its
-> kind. What this note describes is **`collection.fn`**; a bare
-> `collection` will be refused. The second kind, **`collection.handler`**,
-> holds named `otherwise` blocks (below). The examples here still show the
-> bare word the oracle and Synapse take today.
+> **2026-10-13, later (owner):** a collection always says its kind, and a
+> bare `collection` is refused. Most of this note is **`collection.fn`**;
+> the second kind, **`collection.handler`**, holds named `otherwise` blocks
+> (the last section). Both built in the oracle the same day.
 
 A collection writes a function and its dot narrowings (`cum`, `cum.quick`,
 `cum.double`) in one block, instead of a `fn cum` and a `fn cum.quick` and a
@@ -17,7 +16,7 @@ A collection writes a function and its dot narrowings (`cum`, `cum.quick`,
 ## The shape
 
 ```
-pub collection cum {
+pub collection.fn cum {
     bare.never;
     cum ['x': int32, 'step': int32] -> int32 { return 'x' plus 'step'; }
     quick ['step' = 2];
@@ -25,7 +24,7 @@ pub collection cum {
 }
 ```
 
-- `collection`, then the name, bare as a function's is (`cum`, never
+- `collection.fn`, then the name, bare as a function's is (`cum`, never
   `'cum'`), then `{ }`.
 - **The own function** carries the collection's name: `cum [ … ] -> T
   { … }`, called `cum[…]`, or `name::cum[…]` from another Neuron. ("Own
@@ -61,7 +60,7 @@ as `cord::print` does: `cord::print.useful[…]` and `cord::print.stored[…]`
 exist, a bare `cord::print[…]` does not.
 
 ```
-collection zero {
+collection.fn zero {
     of_int16 [] -> int16 { return 0; }
     of_int64 [] -> int64 { return 0; }
 }
@@ -77,7 +76,7 @@ cannot do (Good practice 14, `style.md`): where the value changes a
 member's signature, or no own function takes it.
 
 ```
-collection zero {
+collection.fn zero {
     for 'T' in [int16, int64] {
         named "of_" ++ 'T';
         [] -> 'T' { return 0; }
@@ -128,7 +127,7 @@ owner rules:
   list, so a const stays its name (`times 'big'`), while `named` sees its
   value (`times_100`).
 
-## `collection.handler` (owner, 2026-10-13; not built)
+## `collection.handler` (owner, 2026-10-13; built in the oracle)
 
 ```
 collection.handler cum_failed {
@@ -148,6 +147,10 @@ let 'b' := half[-4] otherwise cum_failed.flow_back_to_bladder;
   `return`, `break`, `continue` and `fail` from where it is used.
 - It is refused on a call it does not cover: every reason the call can
   fail with needs its arm, as inline.
-- Open: `pub`, the `bare.` mark and templates for this kind; how a member
-  is checked (once, or at each use); whether a payload's type is written.
+- A payload is bound as inline, `negative 'v'`, its type the call's
+  (design claude's reading: nothing new to write).
+- As built, design claude's picks until the owner rules: a member is
+  checked at each use, as the arms written there would be; a handler is
+  used in its own file; `pub`, a `bare.` mark and templates are refused as
+  not decided. `examples/collection_handlers.nrv`.
 

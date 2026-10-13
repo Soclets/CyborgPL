@@ -5,6 +5,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — `collection.fn` and `collection.handler` are built in the oracle (owner: "Build it")
+
+The owner: "Build it. The others are paused for today, just like I said."
+A bare `collection` is refused ("a collection says its kind"), as is any
+kind but `fn` and `handler`. `collection.fn` is the kind built this
+morning; `examples/collections.nrv` and the `collection_*` tests now say it.
+`collection.handler` holds named `otherwise` blocks; `otherwise
+half_failed.as_zero` reads the member's arms as if written at the call, so
+they `return`, `break`, `continue` and `fail` from there, and a member that
+misses a way the call can fail is refused there in the inline wording.
+`examples/collection_handlers.nrv` uses one member that gives a value, one
+that `continue`s a loop and one that `break`s it.
+
+Design claude's picks, provisional in the oracle's README until the owner
+rules: a member is checked at each use; a handler is used in its own file
+only; a payload is bound as inline (`negative 'v'`), its type the call's;
+`pub`, a `bare.` mark and templates on a `collection.handler` are refused
+as not decided. Not relayed: compiler claude and check claude are paused
+for the day (owner).
+
 ### 2026-10-13 — Two kinds of collection, always named: `collection.fn` and `collection.handler`, a handler being a named `otherwise` block (owner; not built)
 
 Asked "How do you define your own otherwise handler in Nerve?" (there is

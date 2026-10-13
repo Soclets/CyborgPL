@@ -716,10 +716,21 @@ impl Parser {
                     f.is_test = true;
                     prog.funcs.push(f)
                 }
-                // `collection cum { … }` (owner, 2026-10-13): a function and its dot narrowings in one block, read
-                // as the `fn cum …` and `fn cum.quick …` items it stands for
+                // a collection says its kind (owner, 2026-10-13: "there are two collection types. So, use
+                // `.type`"): `collection.fn cum { … }`, a function and its dot narrowings in one block, read as
+                // the `fn cum …` and `fn cum.quick …` items it stands for; `collection.handler h { … }`, named
+                // `otherwise` blocks, used as `otherwise h.member` and read as if written there
                 Tok::Word(w) if w == "collection" => {
-                    self.expand_collection(vis.clone(), pending_bare.map(|(m, _)| m))?;
+                    match (self.peek_at(1).clone(), self.peek_at(2).clone()) {
+                        (Tok::Dot, Tok::Word(k)) if k == "fn" => self.expand_collection(vis.clone(), pending_bare.map(|(m, _)| m))?,
+                        (Tok::Dot, Tok::Word(k)) if k == "handler" => {
+                            if vis != Vis::Private { return self.err("whether a `collection.handler` can be `pub` is not decided yet (2026-10-13)"); }
+                            if pending_bare.is_some() { return self.err("a `bare.` mark is for what is `pub`, and a `collection.handler` is not `pub`"); }
+                            self.handler_collection()?;
+                        }
+                        (Tok::Dot, Tok::Word(k)) => return self.err(format!("there is no `collection.{k}`: a collection is `collection.fn` (a function and its narrowings) or `collection.handler` (named `otherwise` blocks) (owner, 2026-10-13)")),
+                        _ => return self.err("a collection says its kind: `collection.fn cum { … }` (a function and its narrowings) or `collection.handler cum_failed { … }` (named `otherwise` blocks) (owner, 2026-10-13)"),
+                    }
                     continue;
                 }
                 Tok::Word(w) if w == "fn" => {
@@ -2489,12 +2500,12 @@ impl Parser {
     fn expand_collection(&mut self, vis: Vis, mark: Option<Bare>) -> PResult<()> {
         let start = self.pos;
         let line = self.line();
-        self.advance();
+        self.advance(); self.advance(); self.advance();   // `collection . fn`
         let name = match self.advance().tok {
             Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name a collection")),
             Tok::Word(n) => n,
-            Tok::Text(t, _) => return self.err(format!("a collection's name is bare, as a function's: `collection {t} {{ … }}`")),
-            other => return self.err(format!("expected the collection's name after `collection`, found {other}")),
+            Tok::Text(t, _) => return self.err(format!("a collection's name is bare, as a function's: `collection.fn {t} {{ … }}`")),
+            other => return self.err(format!("expected the collection's name after `collection.fn`, found {other}")),
         };
         self.expect(Tok::LBrace, "`{` after the collection's name")?;
         let mut mode = mark;
@@ -2684,6 +2695,71 @@ impl Parser {
     }
 
     /// From a `{`, past its matching `}`.
+    /// `collection.handler cum_failed { flow_back { odd { … } negative 'v' { … } } }` (owner, 2026-10-13): checked
+    /// for its shape here and left in the tokens, where `otherwise cum_failed.flow_back` finds its member
+    fn handler_collection(&mut self) -> PResult<()> {
+        self.advance(); self.advance(); self.advance();   // `collection . handler`
+        let name = match self.advance().tok {
+            Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name a collection")),
+            Tok::Word(n) => n,
+            Tok::Text(t, _) => return self.err(format!("a collection's name is bare, as a function's: `collection.handler {t} {{ … }}`")),
+            other => return self.err(format!("expected the collection's name after `collection.handler`, found {other}")),
+        };
+        self.expect(Tok::LBrace, "`{` after the collection's name")?;
+        let mut seen: Vec<String> = Vec::new();
+        loop {
+            match self.peek().clone() {
+                Tok::RBrace => { self.advance(); break; }
+                Tok::Eof => return self.err(format!("collection `{name}` is never closed: a `}}` is missing")),
+                Tok::Word(w) if w == "bare" => return self.err("a `bare.` mark is for what is `pub`, and a `collection.handler` is not `pub`"),
+                Tok::Word(w) if w == "for" => return self.err("templates are for `collection.fn`; whether a `collection.handler` has them is not decided yet (2026-10-13)"),
+                Tok::Word(m) if *self.peek_at(1) == Tok::LBrace => {
+                    if KEYWORDS.contains(&m.as_str()) { return self.err(format!("`{m}` is a keyword and cannot name a handler")); }
+                    if seen.contains(&m) { return self.err(format!("`{m}` is written twice in `{name}`")); }
+                    seen.push(m);
+                    self.advance();
+                    if *self.peek_at(1) == Tok::RBrace { return self.err("a handler with no arms handles nothing: one arm per failure, as after `otherwise`"); }
+                    self.skip_braces()?;
+                }
+                Tok::Word(m) => return self.err(format!("a `collection.handler` holds named `otherwise` blocks: `{m} {{ odd {{ … }} negative 'v' {{ … }} }}`, found `{m}` followed by {}", self.peek_at(1))),
+                other => return self.err(format!("a `collection.handler` holds named `otherwise` blocks (`flow_back {{ odd {{ … }} }}`), found {other}")),
+            }
+        }
+        Ok(())
+    }
+
+    /// The tokens of `{ … }` for member `member` of `collection.handler coll` in this file, if that collection exists:
+    /// `Some(Ok(tokens))`, `Some(Err(the members it has))` when the member is missing, `None` when no such collection
+    fn handler_block(&self, coll: &str, member: &str) -> Option<Result<Vec<Token>, Vec<String>>> {
+        let t = &self.toks;
+        let mut i = 0;
+        while i + 4 < t.len() {
+            let head = matches!(&t[i].tok, Tok::Word(w) if w == "collection") && t[i + 1].tok == Tok::Dot
+                && matches!(&t[i + 2].tok, Tok::Word(w) if w == "handler") && matches!(&t[i + 3].tok, Tok::Word(n) if n == coll)
+                && t[i + 4].tok == Tok::LBrace;
+            if !head { i += 1; continue; }
+            let mut j = i + 5;
+            let mut names = Vec::new();
+            while j < t.len() {
+                match &t[j].tok {
+                    Tok::Word(m) if j + 1 < t.len() && t[j + 1].tok == Tok::LBrace => {
+                        let (s, mut d, mut k) = (j + 1, 0i32, j + 1);
+                        while k < t.len() {
+                            match t[k].tok { Tok::LBrace => d += 1, Tok::RBrace => { d -= 1; if d == 0 { break; } } _ => {} }
+                            k += 1;
+                        }
+                        if m == member { return Some(Ok(t[s..=k.min(t.len() - 1)].to_vec())); }
+                        names.push(m.clone());
+                        j = k + 1;
+                    }
+                    _ => break,
+                }
+            }
+            return Some(Err(names));
+        }
+        None
+    }
+
     fn skip_braces(&mut self) -> PResult<()> {
         let mut d = 0i32;
         loop {
@@ -2787,6 +2863,21 @@ impl Parser {
             Tok::LBrace => {
                 let arms = self.arms("otherwise")?;
                 if arms.is_empty() { return self.err("`otherwise { }` handles nothing; list the failures, or use `otherwise fail;`"); }
+                Handler::Arms(arms)
+            }
+            // `otherwise cum_failed.flow_back` (owner, 2026-10-13): a `collection.handler`'s member, read as if
+            // its arms were written here
+            Tok::Word(c) if *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(_)) && self.handler_block(&c, "").is_some() => {
+                let Tok::Word(m) = self.peek_at(2).clone() else { unreachable!() };
+                let block = match self.handler_block(&c, &m) {
+                    Some(Ok(b)) => b,
+                    Some(Err(has)) => return self.err(format!("`{c}` has no handler `{m}`; it has {}", has.iter().map(|h| format!("`{h}`")).collect::<Vec<_>>().join(", "))),
+                    None => unreachable!(),
+                };
+                self.advance(); self.advance(); self.advance();
+                let at = self.pos;
+                self.toks.splice(at..at, block);
+                let arms = self.arms("otherwise")?;
                 Handler::Arms(arms)
             }
             Tok::Semi => return self.err("`otherwise` needs what to do: a value, `fail`, `return …`, or `{ arms }`"),

@@ -1,4 +1,4 @@
-collection c {
+collection.fn c {
     for 'n' from 1 before 3 by 1 {
         named "t" ++ to.stored.str.utf8['n'];
         [] -> int32 { return 'n'; }
