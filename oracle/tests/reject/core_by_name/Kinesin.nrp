@@ -1,7 +1,7 @@
-kin::Manifest[
+kin::manifest[
     name = "x",
     prefix = "x",
     version = "1.0.0",
-    lobes = [kin::Lobe[name = "MCPS"],],
-    targets = [kin::Target[name = "aarch64-macos"],]
+    lobes = [kin::lobe[name = "MCPS"],],
+    targets = [kin::target[name = "aarch64-macos"],]
 ];

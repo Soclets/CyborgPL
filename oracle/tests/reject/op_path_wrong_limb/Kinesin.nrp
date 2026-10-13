@@ -1,11 +1,11 @@
-kin::Manifest[
+kin::manifest[
     name = "op_path_wrong_limb",
     prefix = "op_path_wrong_limb",
     version = "1.0.0",
     dependencies = [
-        kin::Dep[id = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936", version = "2026-10-06T12:57:14+07:00"],
-        kin::Dep[path = "../../../../examples/limbs/areas"],
-        kin::Dep[path = "../../../../examples/limbs/runnable"],
+        kin::dep[id = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936", version = "2026-10-06T12:57:14+07:00"],
+        kin::dep[path = "../../../../examples/limbs/areas"],
+        kin::dep[path = "../../../../examples/limbs/runnable"],
     ],
-    targets = [kin::Target[name = "aarch64-macos", default = true],]
+    targets = [kin::target[name = "aarch64-macos", default = true],]
 ];

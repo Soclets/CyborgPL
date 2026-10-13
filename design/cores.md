@@ -84,7 +84,7 @@ monster" (owner).
   trusting it, as installing any program is.
 
 **IDs** (owner, 2026-10-06): a lobe is listed by its registry ID and
-version, `kin::Lobe[id = "…", version = "…"]`. The official ones, first
+version, `kin::lobe[id = "…", version = "…"]`. The official ones, first
 version `2026-10-06T18:04:29+07:00`:
 
 ```
@@ -222,8 +222,8 @@ makes its own lists and allocator, as Linux does.
   `raw_memory`; `c_calls` is CNC's since 2026-10-10, granted to a neuron
   that lists CNC (design claude's reading: the Brainstem keeps nothing of C). **Lobes may add powers of their own.** A power narrows with
   `.` and names exact things in `[ ]`; `deny` takes `.except[ … ]` and
-  `.for[ … ]`: `deny = [kin::Power.c_calls.except["sqrt"],
-  kin::Power.inline_assembly.for["fastjson"],]`.
+  `.for[ … ]`: `deny = [kin::power.c_calls.except["sqrt"],
+  kin::power.inline_assembly.for["fastjson"],]`.
 
 ## Manifests
 
@@ -231,13 +231,13 @@ makes its own lists and allocator, as Linux does.
 looks real, but it's not real. It feels like a child roleplaying", owner):
 
 ```
-kin::Manifest[
+kin::manifest[
     name = "shop",
     prefix = "shop",
-    lobes = [kin::Lobe[id = "5d0e846b…44b4085", version = "2026-10-06T18:04:29+07:00"],],   # IEG
-    dependencies = [kin::Dep[path = "std"],],
-    powers = [kin::Power.operators_on_builtin_types,],
-    deny = [kin::Power.inline_assembly,],
+    lobes = [kin::lobe[id = "5d0e846b…44b4085", version = "2026-10-06T18:04:29+07:00"],],   # IEG
+    dependencies = [kin::dep[path = "std"],],
+    powers = [kin::power.operators_on_builtin_types,],
+    deny = [kin::power.inline_assembly,],
 ];
 ```
 
@@ -259,7 +259,7 @@ new` reads too; its name and
 lives where each OS keeps such files (owner; macOS `~/Library/Application
 Support/CyborgPL/`, Linux `~/.local/share/cyborgpl/`, Windows
 `%APPDATA%\CyborgPL\`), named **`installed.nrp`** (owner); its value
-is *sketch*: `kin::Installed[ … ]`. **There is an uninstaller**
+is *sketch*: `kin::installed[ … ]`. **There is an uninstaller**
 (owner): with nothing named it removes everything the installer put
 there, with a piece named (std, say) only that piece; never a project. It
 comes with Synthia only, which can uninstall itself too (owner); a
@@ -294,7 +294,7 @@ assembly; there is no base below it now.
 
 - The stable **plugin interface** for lobes: compiler
   claude proposes it when building, the owner approves (2026-10-06).
-- **Building it**: the oracle reads `kin::Manifest` with `cores`, and a
+- **Building it**: the oracle reads `kin::manifest` with `cores`, and a
   Neuron whose manifest does not list std reaches no operator and no
   `std::`, nor a lobe's words when it does not list that lobe
   (2026-10-06), and without ASP a whole-number literal lands as a bit

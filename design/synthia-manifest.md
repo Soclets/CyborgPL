@@ -34,7 +34,7 @@ x86_64-windows.runner = wine
   or what it allows the others", synthia claude answered that it is what the
   Neuron itself uses, allowing or forbidding others being `deny`).
   `power.c_calls.functions = sqrt, sin` is written to `Kinesin.nrp` as
-  `kin::Power.c_calls.functions["sqrt", "sin"]`; only the shape is checked,
+  `kin::power.c_calls.functions["sqrt", "sin"]`; only the shape is checked,
   since lobes may add powers; `= no` is refused (an unused power has no
   line). **A program takes powers away in a `[my denied powers]` section**
   (owner, 2026-10-08: "`a`", relayed by synthia claude, over `deny.` lines in
@@ -99,7 +99,7 @@ x86_64-windows.runner = wine
 never capability, so Synapse never needs it. The owner asked whether Synapse's
 package manager could do "some Synthia shit", since otherwise "that feels
 like the base lang not being able to do inline ASM". So `Kinesin.nrp`'s
-`target` became `targets`, a list of `kin::Target[name = …, runner = …]`.
+`target` became `targets`, a list of `kin::target[name = …, runner = …]`.
 
 - **Needed in every manifest: `name`, `version`, and at least one
   target** (owner, 2026-09-29: b). `id`, `time.created` and
@@ -152,7 +152,7 @@ like the base lang not being able to do inline ASM". So `Kinesin.nrp`'s
   Proposed alternative: names unique in the registry too, first come.
   Superseded the same day for `Kinesin.nrp`: the word in front of `::` is
   the Neuron's own `'prefix'`, apart from its `name`, and a dependency names
-  no word (`kin::Dep[id = "…", version = "1.2"]`); see `tooling.md`. The
+  no word (`kin::dep[id = "…", version = "1.2"]`); see `tooling.md`. The
   `Synthia.ttsr` side is synthia claude's to ask.
 
 - **`default` is `yes` or `no`** (owner, 2026-09-30: b), as `Kinesin.nrp`'s
@@ -162,7 +162,7 @@ like the base lang not being able to do inline ASM". So `Kinesin.nrp`'s
   `architecture-system` name.
 - **One target is marked the default** (owner, 2026-09-29: b), the one
   built when none is named: `aarch64-macos.default = yes` here, `default =
-  true` on one `kin::Target` in `Kinesin.nrp`. With several targets exactly one
+  true` on one `kin::target` in `Kinesin.nrp`. With several targets exactly one
   is marked; a single target is the default by itself. Proposed
   alternatives: this machine's, if listed (compiler claude's suggestion,
   which takes the target from the host, against reproducible builds); the

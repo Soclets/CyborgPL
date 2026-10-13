@@ -1,1 +1,1 @@
-this Neuron calls C (`write`), and its Kinesin.nrp does not list `c_calls`: add `kin::Power.c_calls` to its `powers`
+this Neuron calls C (`write`), and its Kinesin.nrp does not list `c_calls`: add `kin::power.c_calls` to its `powers`

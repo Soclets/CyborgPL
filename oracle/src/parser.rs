@@ -56,7 +56,7 @@ pub const CORE_VERSION: &str = "2026-10-06T18:04:29+07:00";
 /// The manifest line that lists an official core, for a message to show
 pub fn core_line(core: &str) -> String {
     let id = CORE_IDS.iter().find(|(n, _)| *n == core).map(|(_, i)| *i).unwrap_or("");
-    format!("kin::Lobe[id = \"{id}\", version = \"{}\"]", core_version(core))
+    format!("kin::lobe[id = \"{id}\", version = \"{}\"]", core_version(core))
 }
 
 /// C's machine-sized types (owner, 2026-10-10: "(a)" twice): their Nerve names, C's words kept
@@ -297,7 +297,7 @@ impl Parser {
     /// Everything std brings is refused in a Neuron whose `Kinesin.nrp` does not list it (owner, 2026-10-06:
     /// the operators, printing and the rest are std's, and a manifest lists std like any limb).
     fn std_missing<T>(&self, what: &str) -> PResult<T> {
-        self.err(format!("{what} is cord's, and this Neuron's Kinesin.nrp does not list cord: add `kin::Dep[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
+        self.err(format!("{what} is cord's, and this Neuron's Kinesin.nrp does not list cord: add `kin::dep[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
     }
 
     fn resolve(&self, segs: &[String]) -> Vec<String> {
@@ -355,7 +355,7 @@ impl Parser {
         if self.is_word(w) { self.advance(); Ok(()) } else { self.err(format!("expected `{w}`, found {}", self.peek())) }
     }
 
-    /// `Kinesin.nrp`: one value, `kin::Manifest[ … ];` and nothing else (owner, 2026-10-06). `None` when the
+    /// `Kinesin.nrp`: one value, `kin::manifest[ … ];` and nothing else (owner, 2026-10-06). `None` when the
     /// file holds something else; the fields and the line of the value otherwise.
     pub fn manifest(&mut self) -> PResult<Option<(Vec<(String, Bracket)>, usize)>> {
         // the manifest's types are `kin::` since 2026-10-09 (owner: Kinesin, "`a`, but maybe use an
@@ -364,11 +364,18 @@ impl Parser {
             self.pos = i;
             return self.err("`cca::` is an old spelling: write `kin::` (owner, 2026-10-09)");
         }
-        // `kin::Power.c_calls.functions["write"].except["x"]` is read whole, as text the manifest reader
+        // the language's own names are lowercase (owner, 2026-10-13): `kin::Manifest` and its kin are old spellings
+        if let Some(i) = (0..self.toks.len().saturating_sub(2)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "kin") && self.toks[i + 1].tok == Tok::ColonColon
+            && matches!(&self.toks[i + 2].tok, Tok::Word(w) if ["Manifest", "Target", "Dep", "Lobe", "Power", "Installed"].contains(&w.as_str()))) {
+            let Tok::Word(w) = self.toks[i + 2].tok.clone() else { unreachable!() };
+            self.pos = i;
+            return self.err(format!("`kin::{w}` is an old spelling: write `kin::{}` (owner, 2026-10-13)", w.to_lowercase()));
+        }
+        // `kin::power.c_calls.functions["write"].except["x"]` is read whole, as text the manifest reader
         // takes apart (owner, 2026-10-07: powers narrow with `.` and name things in `[ ]`)
         let mut i = 0;
         while i + 2 < self.toks.len() {
-            if matches!(&self.toks[i].tok, Tok::Word(w) if w == "kin") && self.toks[i + 1].tok == Tok::ColonColon && matches!(&self.toks[i + 2].tok, Tok::Word(w) if w == "Power") {
+            if matches!(&self.toks[i].tok, Tok::Word(w) if w == "kin") && self.toks[i + 1].tok == Tok::ColonColon && matches!(&self.toks[i + 2].tok, Tok::Word(w) if w == "power") {
                 let mut j = i + 3;
                 let mut text = String::new();
                 loop {
@@ -382,7 +389,7 @@ impl Parser {
                                     Tok::Text(t, _) => { things.push(t.clone()); j += 1; }
                                     Tok::Comma => j += 1,
                                     Tok::RBracket => { j += 1; break; }
-                                    other => { self.pos = j; return self.err(format!("a power names things as texts: `kin::Power.c_calls[\"write\"]`, found {other}")); }
+                                    other => { self.pos = j; return self.err(format!("a power names things as texts: `kin::power.c_calls[\"write\"]`, found {other}")); }
                                 }
                             }
                             text.push('[');
@@ -399,9 +406,9 @@ impl Parser {
         }
         let b = self.rhs()?;
         self.expect(Tok::Semi, "`;` after the manifest")?;
-        if *self.peek() != Tok::Eof { return self.err("Kinesin.nrp holds one value, the `kin::Manifest[ … ];`, and nothing after it"); }
+        if *self.peek() != Tok::Eof { return self.err("Kinesin.nrp holds one value, the `kin::manifest[ … ];`, and nothing after it"); }
         match b.values.as_slice() {
-            [Value::Expr(Expr::Construct(shape, fields, line))] if shape == "::kin.Manifest" => Ok(Some((fields.clone(), *line))),
+            [Value::Expr(Expr::Construct(shape, fields, line))] if shape == "::kin.manifest" => Ok(Some((fields.clone(), *line))),
             _ => Ok(None),
         }
     }

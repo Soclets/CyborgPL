@@ -1,4 +1,4 @@
-# A Neuron that uses another (owner, 2026-09-29): Kinesin.nrp lists it, `kin::Dep[path = "../limbs/areas"]`,
+# A Neuron that uses another (owner, 2026-09-29): Kinesin.nrp lists it, `kin::dep[path = "../limbs/areas"]`,
 # and its `pub` items are reached with `::` after its own 'prefix', `areas` (limbs.md, tooling.md).
 MAIN {
     let 'c': areas::Circle = areas::Circle[radius = 2.0];

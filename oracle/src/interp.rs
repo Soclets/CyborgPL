@@ -4060,7 +4060,7 @@ impl<'p> Interp<'p> {
                 }
                 self.user_call(&local)
             }
-            Some(l) => rt(c.line, format!("no Neuron with the prefix `{l}`: a Neuron this one uses is listed in its `Kinesin.nrp` (`dependencies = [kin::Dep[path = …],]`), and its own `Kinesin.nrp` says `prefix = \"{l}\"`")),
+            Some(l) => rt(c.line, format!("no Neuron with the prefix `{l}`: a Neuron this one uses is listed in its `Kinesin.nrp` (`dependencies = [kin::dep[path = …],]`), and its own `Kinesin.nrp` says `prefix = \"{l}\"`")),
             None => self.user_call(c),
         }
     }

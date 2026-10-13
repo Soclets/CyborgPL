@@ -64,22 +64,22 @@ Owner, 2026-09-14.
   `.nrp` (was `.cplr`, *CyborgPL Related*) is the ending for Nerve-syntax files
   that are one value and never run, and the file's name says which one it is;
   its types are `kin::` (was `cca::`).
-  **One value, `kin::Manifest[ … ];`** (owner, 2026-10-06: "`c`. It may
+  **One value, `kin::manifest[ … ];`** (owner, 2026-10-06: "`c`. It may
   not look as complex, but at least it's not much of a roleplay"; from
   2026-09-29 to then, one plain `const` per setting), the shapes from
   `cca`, a tiny built-in Neuron only `Kinesin.nrp` can reach:
 
   ```
-  kin::Manifest[
+  kin::manifest[
       name = "shop",
       prefix = "shop",
       version = "1.0.0",
-      lobes = [kin::Lobe[id = "5d0e846b…44b4085", version = "2026-10-06T18:04:29+07:00"],],   # IEG
+      lobes = [kin::lobe[id = "5d0e846b…44b4085", version = "2026-10-06T18:04:29+07:00"],],   # IEG
       dependencies = [
-          kin::Dep[id = "3f9a…4a5b", version = "1.2"],
-          kin::Dep[path = "../money"],
+          kin::dep[id = "3f9a…4a5b", version = "1.2"],
+          kin::dep[path = "../money"],
       ],
-      targets = [kin::Target[name = "aarch64-macos"],]
+      targets = [kin::target[name = "aarch64-macos"],]
   ];
   ```
 
@@ -99,7 +99,7 @@ Owner, 2026-09-14.
   its `name` (owner, 2026-09-29: "yea", then b): `prefix = "cash"`. Required (owner: "required"). Two Neurons with the
   same prefix are an error, fixed by editing one Neuron's source (owner:
   "Just edit the source code"), so a dependency line names no word:
-  `kin::Dep[path = "../money"]`. Not in the oracle yet. **A
+  `kin::dep[path = "../money"]`. Not in the oracle yet. **A
   manifest is data only** (owner, 2026-09-29): anything that must be
   computed lives in **`build.nrv`**, a full Nerve program (functions,
   loops, a `MAIN`), which **never runs by itself** — a special command runs
@@ -134,12 +134,12 @@ Owner, 2026-09-14.
   hands it no words: settings come as any program gets them, from
   environment variables or files (owner: "Might aswell build shit
   yourself"). A
-  **`kin::Dep` is an `id` and `version`** (from the registry) **or a
+  **`kin::dep` is an `id` and `version`** (from the registry) **or a
   `path`** (a folder on this machine) (owner, 2026-09-29: a; its `name`
   was dropped when the prefix became the Neuron's own):
-  `kin::Dep[path = "../money"]`. The settings the oracle
+  `kin::dep[path = "../money"]`. The settings the oracle
   knows: `name`, `prefix`, `version`, `dependencies`, `targets` (a list of
-  `kin::Target[name = "aarch64-linux", runner = "qemu-aarch64"]`: several
+  `kin::target[name = "aarch64-linux", runner = "qemu-aarch64"]`: several
   targets, since Synapse's package manager can do whatever Synthia can, owner
   2026-09-29).
 

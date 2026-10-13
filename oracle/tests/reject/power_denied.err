@@ -1,1 +1,1 @@
-this Neuron calls C (`write`), which this program denies (`deny`: `kin::Power.c_calls.functions`)
+this Neuron calls C (`write`), which this program denies (`deny`: `kin::power.c_calls.functions`)

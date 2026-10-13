@@ -183,7 +183,7 @@ fn parse_power(text: &str) -> Result<PowerRef, String> {
         if word == "except" || word == "for" { last = Some(word.to_string()); } else { p.path.push(word.to_string()); last = None; }
         rest = &r[end..];
     }
-    if p.path.is_empty() { return Err("a power names its path: `kin::Power.c_calls`".into()); }
+    if p.path.is_empty() { return Err("a power names its path: `kin::power.c_calls`".into()); }
     Ok(p)
 }
 
@@ -252,7 +252,7 @@ fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
     Ok(prog)
 }
 
-/// A dependency from `Kinesin.nrp`: `kin::Dep[path = "../geometry"]` (or an `id` and `version`, from
+/// A dependency from `Kinesin.nrp`: `kin::dep[path = "../geometry"]` (or an `id` and `version`, from
 /// the registry, which the oracle cannot fetch). It names no word: code writes the Neuron's own 'prefix'.
 struct Dep { what: String, path: Option<String>, version: Option<String>, id: Option<String> }
 
@@ -264,7 +264,7 @@ const OFFICIAL_CORES: [&str; 10] = ["MCPS", "AutoGPU", "Metal", "Nvidia", "Vulka
 
 use parser::CORE_IDS;
 
-/// Read a Neuron's `Kinesin.nrp`: one Nerve value, `kin::Manifest[ … ]` (owner, 2026-10-06: "`c`. It may
+/// Read a Neuron's `Kinesin.nrp`: one Nerve value, `kin::manifest[ … ]` (owner, 2026-10-06: "`c`. It may
 /// not look as complex, but at least it's not much of a roleplay"), replacing 2026-09-29's one `const`
 /// per setting. Returns its 'prefix' (none when there is no `Kinesin.nrp`), its dependencies and its cores.
 fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), String> {
@@ -273,7 +273,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     let shown = file.display();
     let src = std::fs::read_to_string(&file).map_err(|e| format!("{shown}: cannot read: {e}"))?;
     let toks = lexer::lex(&src).map_err(|e| format!("{shown}: line {}:{}: {}", e.line, e.col, e.msg))?;
-    let one = "Kinesin.nrp is one value: `kin::Manifest[name = \"shop\", prefix = \"shop\", version = \"1.0.0\", targets = [kin::Target[name = \"aarch64-macos\"],]];`";
+    let one = "Kinesin.nrp is one value: `kin::manifest[name = \"shop\", prefix = \"shop\", version = \"1.0.0\", targets = [kin::target[name = \"aarch64-macos\"],]];`";
     if matches!(toks.first().map(|t| &t.tok), Some(lexer::Tok::Word(w)) if w == "const" || w == "pub") {
         return Err(format!("{shown}: line {}: settings are no longer `const`s (2026-10-06): {one}", toks[0].line));
     }
@@ -313,7 +313,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                 if v.len() > 256 { return Err(format!("{shown}: line {line}: `version` is at most 256 bytes, and this one is {}", v.len())); }
                 has_version = true;
             }
-            "target" => return Err(format!("{shown}: line {line}: a Neuron builds for several targets, so the field is `targets`: `targets = [kin::Target[name = \"aarch64-macos\"],]`")),
+            "target" => return Err(format!("{shown}: line {line}: a Neuron builds for several targets, so the field is `targets`: `targets = [kin::target[name = \"aarch64-macos\"],]`")),
             // several targets, each with its settings (owner, 2026-09-29): Synapse's package manager can do
             // whatever Synthia can, in its plainer way
             "targets" => {
@@ -323,8 +323,8 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                 let mut defaults = 0;
                 let mut names = Vec::new();
                 for it in items {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a target is `kin::Target[name = …]`, with a `runner` if it has one")) };
-                    if shape != "::kin.Target" { return Err(format!("{shown}: line {line}: a target is a `kin::Target`")); }
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a target is `kin::target[name = …]`, with a `runner` if it has one")) };
+                    if shape != "::kin.target" { return Err(format!("{shown}: line {line}: a target is a `kin::target`")); }
                     if !fields.iter().any(|(f, _)| f == "name") { return Err(format!("{shown}: line {line}: a target needs its `name`")); }
                     for (f, b) in &fields {
                         // the one built when none is named (owner, 2026-09-29: b)
@@ -333,7 +333,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                                 _ => return Err(format!("{shown}: line {line}: `default` is `true` or `false`")) }
                             continue;
                         }
-                        if f != "name" && f != "runner" { return Err(format!("{shown}: line {line}: a `kin::Target` has no `{f}`; it has `name`, `runner` and `default`")); }
+                        if f != "name" && f != "runner" { return Err(format!("{shown}: line {line}: a `kin::target` has no `{f}`; it has `name`, `runner` and `default`")); }
                         let t = text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
                         if f == "name" { names.push((t, line)); }
                     }
@@ -348,8 +348,8 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
             }
             "dependencies" => {
                 for it in items(value) {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a dependency is `kin::Dep[path = …]` or `kin::Dep[id = …, version = …]`")) };
-                    if shape != "::kin.Dep" { return Err(format!("{shown}: line {line}: a dependency is a `kin::Dep`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a dependency is `kin::dep[path = …]` or `kin::dep[id = …, version = …]`")) };
+                    if shape != "::kin.dep" { return Err(format!("{shown}: line {line}: a dependency is a `kin::dep`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
                     let mut d = Dep { what: String::new(), path: None, version: None, id: None };
                     for (f, b) in &fields {
                         // two Neurons with one prefix are an error, fixed by editing a Neuron's source (owner, 2026-09-29:
@@ -357,7 +357,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                         if f == "name" || f == "prefix" { return Err(format!("{shown}: line {line}: a dependency names no word: code writes the Neuron's own 'prefix', from its `Kinesin.nrp`")); }
                         let t = text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
                         match f.as_str() { "path" => d.path = Some(t), "version" => d.version = Some(t), "id" => d.id = Some(t),
-                            other => return Err(format!("{shown}: line {line}: a `kin::Dep` has no `{other}`; it has `path`, or `id` and `version`")) }
+                            other => return Err(format!("{shown}: line {line}: a `kin::dep` has no `{other}`; it has `path`, or `id` and `version`")) }
                     }
                     d.what = match (&d.path, &d.id) { (Some(p), _) => format!("the Neuron at `{p}`"), (None, Some(i)) => format!("the Neuron `{}…`", &i[..i.len().min(8)]), _ => "the dependency".into() };
                     if d.path.is_some() == d.version.is_some() { return Err(format!("{shown}: line {line}: a dependency says where it comes from once: a `path` on this machine, or an `id` and `version` from the registry")); }
@@ -383,16 +383,16 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
             "cores" => return Err(format!("{shown}: line {line}: `cores` is an old spelling: write `lobes` (owner, 2026-10-09)")),
             "lobes" => {
                 for it in items(value) {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a lobe is `kin::Lobe[id = \"…\", version = \"…\"]`")) };
-                    if shape == "::kin.Core" { return Err(format!("{shown}: line {line}: `kin::Core` is an old spelling: write `kin::Lobe` (owner, 2026-10-09)")); }
-                    if shape != "::kin.Lobe" { return Err(format!("{shown}: line {line}: a lobe is a `kin::Lobe`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a lobe is `kin::lobe[id = \"…\", version = \"…\"]`")) };
+                    if shape == "::kin.Core" { return Err(format!("{shown}: line {line}: `kin::Core` is an old spelling: write `kin::lobe` (owner, 2026-10-09)")); }
+                    if shape != "::kin.lobe" { return Err(format!("{shown}: line {line}: a lobe is a `kin::lobe`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
                     let (mut id, mut version, mut cpath) = (None, None, None);
                     for (f, b) in &fields {
                         let t = text(b).ok_or_else(|| format!("{shown}: line {line}: a lobe's `{f}` is a text"))?;
                         match f.as_str() {
                             "id" => id = Some(t), "version" => version = Some(t), "path" => cpath = Some(t),
-                            "name" => return Err(format!("{shown}: line {line}: a lobe is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `kin::Lobe[id = \"…\", version = \"…\"]`{}", CORE_IDS.iter().find(|(n, _)| *n == t).map(|(n, i)| format!("; {n}'s is `{i}`")).unwrap_or_default())),
-                            other => return Err(format!("{shown}: line {line}: a `kin::Lobe` has no `{other}`; it has `id` and `version`, or a `path`")),
+                            "name" => return Err(format!("{shown}: line {line}: a lobe is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `kin::lobe[id = \"…\", version = \"…\"]`{}", CORE_IDS.iter().find(|(n, _)| *n == t).map(|(n, i)| format!("; {n}'s is `{i}`")).unwrap_or_default())),
+                            other => return Err(format!("{shown}: line {line}: a `kin::lobe` has no `{other}`; it has `id` and `version`, or a `path`")),
                         }
                     }
                     if cpath.is_some() {
@@ -423,15 +423,15 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
             "powers" | "deny" => {
                 let mut list = Vec::new();
                 for it in items(value) {
-                    let ast::Expr::Text(t, _) = &it else { return Err(format!("{shown}: line {line}: a power is `kin::Power.c_calls`, narrowed with `.` and naming things in `[ ]`")) };
-                    let Some(text) = t.strip_prefix("power:") else { return Err(format!("{shown}: line {line}: a power is `kin::Power.c_calls`, not a text")) };
+                    let ast::Expr::Text(t, _) = &it else { return Err(format!("{shown}: line {line}: a power is `kin::power.c_calls`, narrowed with `.` and naming things in `[ ]`")) };
+                    let Some(text) = t.strip_prefix("power:") else { return Err(format!("{shown}: line {line}: a power is `kin::power.c_calls`, not a text")) };
                     let pw = parse_power(text).map_err(|m| format!("{shown}: line {line}: {m}"))?;
                     if f == "powers" && (!pw.except.is_empty() || !pw.for_.is_empty()) { return Err(format!("{shown}: line {line}: `.except` and `.for` belong to `deny`; `powers` lists what this Neuron uses")); }
                     list.push(pw);
                 }
                 if f == "powers" { powers_seen = list; } else { deny_seen = list; }
             }
-            other => return Err(format!("{shown}: line {line}: a `kin::Manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies`, `lobes`, `powers` and `deny`")),
+            other => return Err(format!("{shown}: line {line}: a `kin::manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies`, `lobes`, `powers` and `deny`")),
         }
     }
     // a build needs the Neuron's name, version and a target; only publishing needs more (owner, 2026-09-29:
@@ -440,7 +440,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     if !name { return Err(format!("{shown}: line {mline}: the manifest has no `name`: {why}: `name = \"shop\"`")); }
     if prefix.is_none() { return Err(format!("{shown}: line {mline}: the manifest has no `prefix`, the word code writes in front of `::` to reach this Neuron: {why}: `prefix = \"shop\"`")); }
     if !has_version { return Err(format!("{shown}: line {mline}: the manifest has no `version`: {why}: `version = \"1.0.0\"`")); }
-    if targets == 0 { return Err(format!("{shown}: line {mline}: the manifest has no target: {why}: `targets = [kin::Target[name = \"aarch64-macos\"],]`")); }
+    if targets == 0 { return Err(format!("{shown}: line {mline}: the manifest has no target: {why}: `targets = [kin::target[name = \"aarch64-macos\"],]`")); }
     // cord needed ASP and IEG until 2026-10-08, when the operators and ASP's number rules moved into
     // the base (owner: "`a`" to both); it needs no lobe now (design claude's reading)
     // cores depend on cores (owner, 2026-10-05); MCPS "Needs IEG, not std" (owner, 2026-10-06)
@@ -540,7 +540,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
             // 2. listed by the Neuron
             let covers = |p: &PowerRef| p.path.len() <= segs.len() && p.path.iter().zip(&segs).all(|(a, b)| a == b) && (p.things.is_empty() || thing.as_ref().map_or(false, |t| p.things.contains(t)));
             if !limb.powers.iter().any(covers) {
-                return Err(format!("{at}: {who} {what}, and its Kinesin.nrp does not list `{}`: add `kin::Power.{}` to its `powers`", segs[0], segs[0]));
+                return Err(format!("{at}: {who} {what}, and its Kinesin.nrp does not list `{}`: add `kin::power.{}` to its `powers`", segs[0], segs[0]));
             }
             // 3. not denied by the program
             if let Some(prog_limb) = program {
@@ -550,7 +550,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
                     let for_ok = d.for_.is_empty() || d.for_.contains(&limb.prefix);
                     let except_hit = thing.as_ref().map_or(false, |t| d.except.contains(t));
                     if path_ok && things_ok && for_ok && !except_hit {
-                        return Err(format!("{at}: {who} {what}, which this program denies (`deny`: `kin::Power.{}`)", d.path.join(".")));
+                        return Err(format!("{at}: {who} {what}, which this program denies (`deny`: `kin::power.{}`)", d.path.join(".")));
                     }
                 }
             }
