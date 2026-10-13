@@ -14,7 +14,7 @@ const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "shadow", "change", "is", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "no_check", "no_cheat", "NO_FUCKING_CHECKS", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "neuron", "my", "on", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "incl", "collection", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
+    "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "neuron", "not_std", "my", "on", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "incl", "collection", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -445,8 +445,8 @@ impl Parser {
                 let found: Option<(String, String)> = match (&self.toks[i].mtm, &self.toks[i].tok) {
                     (Some((w, m)), _) => Some((w.clone(), m.to_string())),
                     (None, Tok::Word(w)) if !after_path && rust_alias(w).is_some() => Some((w.clone(), rust_alias(w).unwrap().to_string())),
-                    // `!std.i24` / `!std.u24`, Rust's way, read as `!`, `std`, `.`, the width
-                    (None, Tok::Word(w)) if i > 2 && self.toks[i - 3].tok == Tok::Op("!".into()) && matches!(&self.toks[i - 2].tok, Tok::Word(s) if s == "std") && self.toks[i - 1].tok == Tok::Dot
+                    // `not_std.i24` / `not_std.u24`, Rust's way of writing the width
+                    (None, Tok::Word(w)) if i > 1 && matches!(&self.toks[i - 2].tok, Tok::Word(s) if s == "not_std") && self.toks[i - 1].tok == Tok::Dot
                         && (w.starts_with('i') && !w.starts_with("int") || w.starts_with('u') && !w.starts_with("uint")) => {
                         Some((format!("not_std.{w}"), format!("not_std.{}", w.replacen('i', "int", 1).replacen('u', "uint", 1))))
                     }
@@ -502,7 +502,7 @@ impl Parser {
                 let found: Option<(&str, String)> = match &self.toks[i].tok {
                     Tok::Word(w) if w == "brain16" => Some(("AI", "`brain16`".into())),
                     Tok::Word(w) if w == "int128" || w == "uint128" => Some(("WSMW", format!("`{w}`"))),
-                    Tok::Op(o) if o == "!" && matches!(next, Some(Tok::Word(s)) if s == "std") => Some(("WSMW", "a `not_std.` width".into())),
+                    Tok::Word(w) if w == "not_std" => Some(("WSMW", "a `not_std.` width".into())),
                     Tok::Word(w) if w.starts_with("deci") && w[4..].parse::<u32>().is_ok() => Some(("Money", format!("`{w}`"))),
                     Tok::Op(o) if o == "*" && matches!(next, Some(Tok::Bin(..))) => Some(("Money", "an exact decimal literal (`*0.1`)".into())),
                     Tok::Word(w) if after_dot && prev_word(2) == Some("str") && (w == "utf16" || w == "utf32") => Some(("Broca", format!("`str.{w}`"))),
@@ -1596,10 +1596,11 @@ impl Parser {
             let fixed = w.replacen("std_", "std.", 1);
             return self.err(format!("`!{w}` is `!{fixed}` since 2026-10-06: \"not standard\", narrowed with `.`"));
         }
-        if matches!(self.peek(), Tok::Op(o) if o == "!") && matches!(self.peek_at(1), Tok::Word(w) if w == "std") && *self.peek_at(2) == Tok::Dot {
-            let Tok::Word(w) = self.peek_at(3).clone() else { return self.err("`not_std.` is followed by a width: `not_std.int24`, `not_std.uint4`") };
-            self.toks.drain(self.pos..self.pos + 3);
-            self.toks[self.pos].tok = Tok::Word(format!("!std_{w}"));
+        // `not_std.int24` (owner, 2026-10-07): read as one name, `not_std.int24`, inside
+        if matches!(self.peek(), Tok::Word(w) if w == "not_std") && *self.peek_at(1) == Tok::Dot {
+            let Tok::Word(w) = self.peek_at(2).clone() else { return self.err("`not_std.` is followed by a width: `not_std.int24`, `not_std.uint4`") };
+            self.toks.drain(self.pos..self.pos + 2);
+            self.toks[self.pos].tok = Tok::Word(format!("not_std.{w}"));
         }
         // `<T>` — a type variable (design/generics.md, 2026-09-20)
         if matches!(self.peek(), Tok::Op(o) if o == "<") {
@@ -1911,15 +1912,14 @@ impl Parser {
                     }
                     return bad(self, format!("`{}` takes no narrowing", segs.join(".")));
                 }
-                if let Some(rest) = head.strip_prefix("!std_") {
-                    // our spelling or Rust's (MTM's): `!std.int24` / `!std.i24`, `!std.uint4` / `!std.u4`, held inside as `!std_…`
+                if let Some(rest) = head.strip_prefix("not_std.") {
                     let (signed, digits) = if let Some(d) = rest.strip_prefix("uint") { (false, d) } else if let Some(d) = rest.strip_prefix("int") { (true, d) }
                         else if let Some(d) = rest.strip_prefix('u') { (false, d) } else if let Some(d) = rest.strip_prefix('i') { (true, d) } else { (true, "") };
-                    let n: u32 = match digits.parse() { Ok(n) if n >= 1 => n, _ => return bad(self, format!("`{}` is not a type: a non-standard integer is `not_std.int24` or `not_std.uint24`", head.replacen("!std_", "not_std.", 1))) };
+                    let n: u32 = match digits.parse() { Ok(n) if n >= 1 => n, _ => return bad(self, format!("`{}` is not a type: a non-standard integer is `not_std.int24` or `not_std.uint24`", head)) };
                     let std_name = if signed { "int" } else { "uint" };
                     if int_w(n).is_some() { return bad(self, format!("`{std_name}{n}` is standard: write `{std_name}{n}` (owner, 2026-10-03)")); }
                     // LLVM's widest integer is 2^23 bits (checked with `llvm-as`, 2026-10-03)
-                    if n > 8_388_608 { return bad(self, format!("`{}` is past the widest integer there is: LLVM's integers go up to 8388608 bits", head.replacen("!std_", "not_std.", 1))); }
+                    if n > 8_388_608 { return bad(self, format!("`{}` is past the widest integer there is: LLVM's integers go up to 8388608 bits", head)); }
                     return Ok(if signed { Ty::Int(IntWidth::Other(n)) } else { Ty::Uint(IntWidth::Other(n)) });
                 }
                 if let Some(n) = width(head, "int") { return int_w(n).map(Ty::Int).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; int is 8/16/32/64/128"))); }

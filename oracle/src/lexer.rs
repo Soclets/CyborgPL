@@ -304,12 +304,6 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 "newln" => Some(Tok::Newline),
                 _ => None,
             };
-            if s == "not_std" {
-                // `not_std.int24` (owner, 2026-10-07), held inside as `!std_…`
-                push(Tok::Op("!".into()), &mut toks);
-                push(Tok::Word("std".into()), &mut toks);
-                continue;
-            }
             if let Some(t) = inside { push(t, &mut toks); continue; }
             let written = if after_inline && main.is_some() { format!("inline.{s}") } else { s.clone() };
             push(Tok::Word(s), &mut toks);
