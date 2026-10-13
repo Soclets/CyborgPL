@@ -302,8 +302,6 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 "at_most" => Some(Tok::Op("at_most".into())),
                 "at_least" => Some(Tok::Op("at_least".into())),
                 "newln" => Some(Tok::Newline),
-                "cord" => Some(Tok::Word("std".into())),
-                "neuron" => Some(Tok::Word("limb".into())),
                 _ => None,
             };
             if s == "not_std" {

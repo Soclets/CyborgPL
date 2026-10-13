@@ -4019,7 +4019,7 @@ impl<'p> Interp<'p> {
         if c.bare {
             let own_module: Vec<String> = c.from.iter().cloned().chain(c.written[..c.written.len() - 1].iter().cloned()).collect();
             let own = self.prog.funcs.iter().any(|f| f.module == own_module && Some(&f.name) == c.written.last() && !f.is_op);
-            let std = c.limb.as_deref() == Some("std");
+            let std = c.limb.as_deref() == Some("cord");
             let others = self.bare_fns_elsewhere(&c.from, &c.written, false);
             let mut who: Vec<String> = Vec::new();
             if own {
@@ -4047,7 +4047,7 @@ impl<'p> Interp<'p> {
             }
         }
         match &c.limb {
-            Some(l) if l == "std" => self.std_call(c),
+            Some(l) if l == "cord" => self.std_call(c),
             // another Neuron, loaded from `Kinesin.nrp` under its own root (owner, 2026-09-29)
             Some(l) if self.prog.modules.iter().any(|m| m.path == [format!("::{l}")]) => {
                 let mut local = c.clone();

@@ -193,7 +193,7 @@ fn mark_lacks(dir: &Path, root: &[String]) -> Result<(), String> {
     let (powers, deny) = MANIFEST_POWERS.with(|m| m.borrow_mut().take()).unwrap_or_default();
     LIMB_POWERS.with(|l| l.borrow_mut().push(LimbPowers { root: root.to_vec(), prefix: prefix.unwrap_or_default(), cores: cores.clone(), powers, deny }));
     let mut lacks: Vec<String> = OFFICIAL_CORES.iter().filter(|c| !cores.iter().any(|x| x == *c)).map(|c| c.to_string()).collect();
-    if !deps.iter().any(Dep::is_std) { lacks.push("std".into()); }
+    if !deps.iter().any(Dep::is_std) { lacks.push("cord".into()); }
     parser::LACKS.with(|n| n.borrow_mut().push((root.to_vec(), lacks)));
     Ok(())
 }
@@ -372,7 +372,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     if d.is_std() {
                         if deps.iter().any(|x: &Dep| x.is_std()) { return Err(format!("{shown}: line {line}: cord is listed twice")); }
                         if d.version.as_deref() != Some(parser::STD_VERSION) { return Err(format!("{shown}: line {line}: the oracle stands in for cord `{}` only, the installed one; this asks for `{}`", parser::STD_VERSION, d.version.as_deref().unwrap_or(""))); }
-                        d.what = "std".into();
+                        d.what = "cord".into();
                     }
                     deps.push(d);
                 }

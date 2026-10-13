@@ -14,7 +14,7 @@ const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "shadow", "change", "is", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "no_check", "no_cheat", "NO_FUCKING_CHECKS", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "incl", "collection", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
+    "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "neuron", "my", "on", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "incl", "collection", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -249,7 +249,7 @@ impl Parser {
     pub fn new_in_limb(toks: Vec<Token>, module: Vec<String>, limb_root: Vec<String>) -> Self {
         let mut p = Parser::new_in(toks, module);
         p.lacks = LACKS.with(|l| l.borrow().iter().find(|(r, _)| *r == limb_root).map(|(_, v)| v.clone()).unwrap_or_default());
-        p.no_std = p.lacks.iter().any(|c| c == "std");
+        p.no_std = p.lacks.iter().any(|c| c == "cord");
         p.limb_root = limb_root;
         p
     }
@@ -540,7 +540,7 @@ impl Parser {
             }
         }
         if self.no_std {
-            if let Some(i) = (0..self.toks.len().saturating_sub(1)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "std") && self.toks[i + 1].tok == Tok::ColonColon) {
+            if let Some(i) = (0..self.toks.len().saturating_sub(1)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "cord") && self.toks[i + 1].tok == Tok::ColonColon) {
                 self.pos = i;
                 let what = match &self.toks.get(i + 2).map(|t| &t.tok) { Some(Tok::Word(w)) => format!("`cord::{w}`"), _ => "`cord::`".into() };
                 return self.std_missing(&what);
@@ -550,7 +550,7 @@ impl Parser {
         // 2026-10-06), and its lists, maps and text units are the oracle's built-ins
         let mut i = 0;
         while i + 3 < self.toks.len() {
-            let std_head = matches!(&self.toks[i].tok, Tok::Word(w) if w == "std") && self.toks[i + 1].tok == Tok::ColonColon
+            let std_head = matches!(&self.toks[i].tok, Tok::Word(w) if w == "cord") && self.toks[i + 1].tok == Tok::ColonColon
                 && (i == 0 || self.toks[i - 1].tok != Tok::Dot)
                 && match (&self.toks[i + 2].tok, &self.toks[i + 3].tok, self.toks.get(i + 4).map(|t| &t.tok)) {
                     (Tok::Word(h), Tok::Dot, _) if h == "list" || h == "map" => true,
@@ -696,7 +696,7 @@ impl Parser {
                 if *self.peek() == Tok::Dot {
                     self.advance();
                     match self.advance().tok {
-                        Tok::Word(w) if w == "limb" => vis = Vis::Limb,
+                        Tok::Word(w) if w == "neuron" => vis = Vis::Limb,
                         Tok::Word(w) if w == "bare" => return self.err("`bare` is its own word after `pub`, not a narrowing: `pub bare.optional fn …`"),
                         other => return self.err(format!("the only narrowing of `pub` is `pub.neuron` (visible in this Neuron only), found {other}")),
                     }
@@ -894,7 +894,7 @@ impl Parser {
                                 if *self.peek() == Tok::Dot {
                                     self.advance();
                                     match self.advance().tok {
-                                        Tok::Word(w) if w == "limb" => line_vis = Vis::Limb,
+                                        Tok::Word(w) if w == "neuron" => line_vis = Vis::Limb,
                                         other => return self.err(format!("the only narrowing of `pub` is `pub.neuron` (visible in this Neuron only), found {other}")),
                                     }
                                 }
@@ -1660,12 +1660,12 @@ impl Parser {
             return Ok(Ty::Duration);
         }
         // `std::duration` — the one std type the oracle knows (design/concurrency.md)
-        if self.is_word("std") && *self.peek_at(1) == Tok::ColonColon {
+        if self.is_word("cord") && *self.peek_at(1) == Tok::ColonColon {
             if matches!(self.peek_at(2), Tok::Word(w) if w == "duration") { self.advance(); self.advance(); self.advance(); return Ok(Ty::Duration); }
             return self.err("the only cord type the oracle knows is `cord::duration`");
         }
         // another Neuron's type: `geometry::Circle` (limbs.md)
-        if matches!(self.peek(), Tok::Word(w) if w != "std") && *self.peek_at(1) == Tok::ColonColon {
+        if matches!(self.peek(), Tok::Word(w) if w != "cord") && *self.peek_at(1) == Tok::ColonColon {
             let limb = match self.advance().tok { Tok::Word(w) => w, _ => unreachable!() };
             self.advance();
             let mut segs = vec![format!("::{limb}")];
@@ -2622,7 +2622,7 @@ impl Parser {
         let w = |s: &str, l: usize| Token { tok: Tok::Word(s.to_string()), line: l, col: 0, mtm: None };
         let prefix = |l: usize| -> Vec<Token> {
             let mut p = Vec::new();
-            match vis { Vis::Pub => p.push(w("pub", l)), Vis::Limb => { p.push(w("pub", l)); p.push(tk(Tok::Dot, l)); p.push(w("limb", l)); } Vis::Private => {} }
+            match vis { Vis::Pub => p.push(w("pub", l)), Vis::Limb => { p.push(w("pub", l)); p.push(tk(Tok::Dot, l)); p.push(w("neuron", l)); } Vis::Private => {} }
             if let (Some(m), true) = (mode, vis != Vis::Private) {
                 p.push(w("bare", l)); p.push(tk(Tok::Dot, l));
                 p.push(w(match m { Bare::Never => "never", Bare::Optional => "optional", Bare::Only => "only" }, l));
@@ -2878,7 +2878,7 @@ impl Parser {
         let h = match self.peek().clone() {
             Tok::Word(w) if w == "fail" && *self.peek_at(1) == Tok::Semi => { self.advance(); Handler::Propagate }
             Tok::Word(w) if w == "fail" || w == "return" || w == "break" || w == "continue"
-                || (w == "std" && *self.peek_at(1) == Tok::ColonColon && matches!(self.peek_at(2), Tok::Word(e) if e == "exit")) => {
+                || (w == "cord" && *self.peek_at(1) == Tok::ColonColon && matches!(self.peek_at(2), Tok::Word(e) if e == "exit")) => {
                 // a leaving statement, `;` included; the outer statement's `;` is this one
                 let s = self.stmt()?;
                 self.pos -= 1; // hand the `;` back to the enclosing statement
@@ -3091,7 +3091,7 @@ impl Parser {
 
     /// `geometry::Circle[radius = …]` or `geometry::'pi'` (not `std::`, whose calls go through `call`)
     fn is_limb_item(&self) -> bool {
-        if !matches!(self.peek(), Tok::Word(w) if w != "std") || *self.peek_at(1) != Tok::ColonColon { return false; }
+        if !matches!(self.peek(), Tok::Word(w) if w != "cord") || *self.peek_at(1) != Tok::ColonColon { return false; }
         let mut i = 2;
         loop {
             match self.peek_at(i) {
@@ -3179,18 +3179,18 @@ impl Parser {
         let bare = limb.is_none() && path[0] != "my";
         let written = if path[0] == "my" { path[1..].to_vec() } else { path.clone() };
         // std's names come bare too (owner, 2026-10-06: std is "optional for all"), where std is listed
-        let limb = if bare && !self.no_std && (STD_BARE_HEADS.contains(&path[0].as_str()) || (path[0] == "str" && path.get(1).map_or(false, |o| STD_STR_OPS.contains(&o.as_str())))) { Some("std".to_string()) } else { limb };
+        let limb = if bare && !self.no_std && (STD_BARE_HEADS.contains(&path[0].as_str()) || (path[0] == "str" && path.get(1).map_or(false, |o| STD_STR_OPS.contains(&o.as_str())))) { Some("cord".to_string()) } else { limb };
         // a print goes to stdout unless it says `.stderr` (owner, 2026-10-07: "default to out")
         let mut path = path;
-        if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && !matches!(path.last().map(|s| s.as_str()), Some("stdout" | "stderr")) {
+        if limb.as_deref() == Some("cord") && path.first().map(|s| s.as_str()) == Some("print") && !matches!(path.last().map(|s| s.as_str()), Some("stdout" | "stderr")) {
             path.push("stdout".into());
         }
         // `std::print.weird.stored.stdout <- "n is " <- 'n' <- \n;` — C++'s `cout <<`, with Nerve's
         // arrow pointing where the values go (owner, 2026-10-01): values follow, one per `<-`
-        if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.iter().skip(2).any(|w| w == "weird") {
+        if limb.as_deref() == Some("cord") && path.first().map(|s| s.as_str()) == Some("print") && path.iter().skip(2).any(|w| w == "weird") {
             return self.err("`.weird` comes first, the strongest modifier: `cord::print.weird.useful.stdout <- …`");
         }
-        if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.get(1).map(|s| s.as_str()) == Some("weird") {
+        if limb.as_deref() == Some("cord") && path.first().map(|s| s.as_str()) == Some("print") && path.get(1).map(|s| s.as_str()) == Some("weird") {
             if *self.peek() == Tok::LBracket { return self.err(format!("`cord::{}` takes its values with arrows, not `[…]`: `cord::{} <- \"text\" <- 'n' <- newln;`", path.join("."), path.join("."))); }
             let bline = self.line();
             let mut values = Vec::new();
@@ -3208,14 +3208,14 @@ impl Parser {
         // `print.format` reads its format text as typed, with its own escapes, in one pass
         // (owner, 2026-10-01: "Format print has its own rules"): `\\` there is one backslash
         let raw_format = match (limb.as_deref(), path.first().map(|s| s.as_str()), path.get(1).map(|s| s.as_str()), self.peek_at(1)) {
-            (Some("std"), Some("print"), Some("format"), Tok::Text(_, raw)) => Some(raw.clone()),
+            (Some("cord"), Some("print"), Some("format"), Tok::Text(_, raw)) => Some(raw.clone()),
             // `format[…]` makes the text `print.format` prints (owner, 2026-10-07: "`a`")
-            (Some("std"), Some("format"), None, Tok::Text(_, raw)) => Some(raw.clone()),
+            (Some("cord"), Some("format"), None, Tok::Text(_, raw)) => Some(raw.clone()),
             _ => None,
         };
         // `str.at.grapheme[lend 's', pos 3]`, `str.slice.grapheme[lend 's', pos 1, pos 4]`: positions say
         // `pos` (owner, 2026-10-08: "`a`, if it's correct")
-        let positional = limb.as_deref() == Some("std") && path.len() == 3 && path[0] == "str" && (path[1] == "at" || path[1] == "slice");
+        let positional = limb.as_deref() == Some("cord") && path.len() == 3 && path[0] == "str" && (path[1] == "at" || path[1] == "slice");
         let mut args = if positional {
             let bline = self.line();
             self.expect(Tok::LBracket, "`[`")?;
@@ -3235,7 +3235,7 @@ impl Parser {
         } else { self.bracket()? };
         if let (Some(raw), Some(crate::ast::Value::Expr(Expr::Text(t, _)))) = (raw_format, args.values.first_mut()) { *t = raw; }
         let path = if limb.is_none() { self.resolve(&path) } else { path };
-        if bare { BARE_CALLS.with(|b| b.borrow_mut().push((self.module.clone(), written.clone(), limb.as_deref() == Some("std"), line))); }
+        if bare { BARE_CALLS.with(|b| b.borrow_mut().push((self.module.clone(), written.clone(), limb.as_deref() == Some("cord"), line))); }
         if limb.is_none() { CALL_SITES.with(|c| c.borrow_mut().push((self.limb_root.clone(), path.clone(), line))); }
         Ok(Call { handler: None, limb, path, from: self.module.clone(), args, line, bare, written })
     }
@@ -3445,7 +3445,7 @@ impl Parser {
     fn binop(&self) -> Option<String> {
         // `'a' std::plus 'b'`: std's word operators with their path (owner, 2026-10-06: std is
         // `bare.optional` for everything; `std::pow` since 2026-10-02)
-        if matches!(self.peek(), Tok::Word(w) if w == "std") && *self.peek_at(1) == Tok::ColonColon
+        if matches!(self.peek(), Tok::Word(w) if w == "cord") && *self.peek_at(1) == Tok::ColonColon
             && matches!(self.peek_at(2), Tok::Word(x) if ["plus", "minus", "times", "div", "mod", "and", "or", "xor", "shl", "shr"].contains(&x.as_str())) {
             let r = self.binop_from(2);
             if r.is_some() { self.op_len.set(self.op_len.get() + 2); }
@@ -3469,7 +3469,7 @@ impl Parser {
             }
             // std's `pow`, bare or with its path, and `pow.wrap` (owner, 2026-10-03)
             Tok::Word(w) if w == "pow" => { if dot_word("wrap") || dot_word("ieee") { self.op_len.set(3); Some(format!("pow.{}", if dot_word("wrap") { "wrap" } else { "ieee" })) } else { Some("pow".into()) } }
-            Tok::Word(w) if w == "std" && *self.peek_at(k + 1) == Tok::ColonColon && matches!(self.peek_at(k + 2), Tok::Word(x) if x == "pow") => {
+            Tok::Word(w) if w == "cord" && *self.peek_at(k + 1) == Tok::ColonColon && matches!(self.peek_at(k + 2), Tok::Word(x) if x == "pow") => {
                 if *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(x) if x == "wrap" || x == "ieee") { let Tok::Word(x) = self.peek_at(k + 4).clone() else { unreachable!() }; self.op_len.set(5); Some(format!("pow.{x}")) } else { self.op_len.set(3); Some("pow".into()) }
             }
             // `and.bit` / `or.bit` — one operator spelled as a chain
