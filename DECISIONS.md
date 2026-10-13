@@ -50,9 +50,14 @@ own beside the template (`cum.gen.nrv`), written by a command and checked
 by the build, recommended, (b) the same file, between markers, under the
 template, (c) only while building, never written; the owner: "(b)". So
 **generated narrowings are written into the same file, between markers,
-under the template**, where a reader sees and can search them. Not yet
-asked: what writes them (a command or the build), what happens to a hand
-edit inside the generated part, and the markers' spelling.
+under the template**, where a reader sees and can search them. **A
+command writes them, `synapse generate`; the build only reads, and refuses
+a generated part that no longer matches its template ("run `synapse
+generate`")** (owner: "(a)"), over (b) the build rewriting the source each
+time; design claude recommended (a): builds stay repeatable from the
+source alone, and a hand edit inside the generated part is refused, never
+lost silently. Not yet asked: the markers' spelling, and how a template
+writes a generated name.
 
 ### 2026-10-12 — A whole number into a `deci` asks for `otherwise` only when it could have too many digits, worked out from its operands (owner: a)
 
