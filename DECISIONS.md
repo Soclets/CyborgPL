@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — `print.useful.auto_newln` stays; not `print.useful.newln` (owner)
+
+The owner: "Should we make it `newln` instead? `auto_newln` to that".
+Design claude recommended keeping `auto_newln`: `newln` is already a value
+inside a print (`print.useful["Hi", newln]`), and `print.useful.newln["Hello"]`
+does not say the newline comes after. The owner: "Just keep `auto_newln`, no
+one would use it anyways".
+
 ### 2026-10-13 — How the language's own names are written: lowercase, `_` joining words, `.` narrowing, capitals only for a language's name (owner)
 
 The owner: "Before that. Is there a capital, and _ thingy rule recorded?"
