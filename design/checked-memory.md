@@ -42,6 +42,9 @@ The layers, then:
   anything, over RAM it names), as freestanding C and Rust's `no_std` do;
   the checking is the same on top. A program that wants none uses only
   fixed memory and the stack, which ownership already covers.
+- **Each allocation names its allocator** (owner, 2026-10-13: "(b)", over
+  one for the whole program), as Zig does: different memory can serve
+  different things, fast RAM for one buffer, DMA-reachable RAM for another.
 - For Synapse: freed memory stays reserved for allocations of its size, so
   an old handle is always checkable (as Vale does).
 
@@ -61,8 +64,6 @@ The checks follow the rule every check follows (`core-features.md`,
 
 - Whether the checking itself is the Brainstem's (design claude's reading
   of the 2026-10-13 rulings, not confirmed).
-- How a program supplies its allocator: once for the whole program, or per
-  allocation (Zig).
 - The spelling: allocating, freeing, the handle's type (design claude
   suggested `manual[Node]`), the alive test.
 - Handles across threads and tasks (`concurrency.md`).

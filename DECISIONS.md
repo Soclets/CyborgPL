@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-13 — Checked manual memory: a handle stands on its own; Nerve ships an allocator only for targets with an OS (owner)
+### 2026-10-13 — Checked manual memory: a handle stands on its own; Nerve ships an allocator only for targets with an OS; each allocation names its allocator (owner)
 
 Designing the 2026-10-13 direction. Offered where the memory lives: (a) one
 global heap, a handle working on its own, (b) pools, owned values of one
@@ -32,9 +32,12 @@ its memory from the OS; a freestanding program that wants checked memory
 brings its own allocator** (pools, bump, anything, over RAM it names), the
 checking working the same on top. Design claude's reading, implied by the
 question asked and not yet confirmed: the checking itself (handles,
-generations, Cortex's proofs) is the Brainstem's. Not yet asked: how a
-program supplies its allocator (once for the whole program, or per
-allocation as Zig does), and the spelling.
+generations, Cortex's proofs) is the Brainstem's. Asked how a program
+supplies its allocator: (a) once, for the whole program, as Rust's
+`#[global_allocator]`, (b) passed to each allocation, as Zig does, so
+different memory can serve different things (fast RAM, DMA RAM), at the
+cost of an argument everywhere. The owner: "(b)". So **an allocation names
+its allocator**. Not yet asked: the spelling.
 
 ### 2026-10-13 — Direction: built-in checked manual memory, with generations, instead of reference counting; its checks follow the working / final rule (owner; not designed)
 
