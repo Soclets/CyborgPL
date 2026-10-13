@@ -46,6 +46,23 @@ collection zero {
     of_int64 [] -> int64 { return 0; }
 }
 
+# `named` may call a function, run while generating, when a name needs logic (owner, 2026-10-13:
+# `named size_name['n'];`). A type is its name's text there.
+fn width_name ['t': str.utf8] -> str.utf8 {
+    if 't' equal_to "int16" { return "small"; }
+    return "big";
+}
+
+collection twice {
+    for 'T' in [int16, int64] {
+        named width_name['T'];
+        ['x': 'T'] -> 'T' { return 'x' times 2; }
+    }
+    #generated_2_lines_below
+    small ['x': int16] -> int16 { return 'x' times 2; }
+    big ['x': int64] -> int64 { return 'x' times 2; }
+}
+
 MAIN {
     let 'name' := "Ann";
     let 'a' := greet[lend 'name', "hello", 2] otherwise "?";
@@ -55,5 +72,5 @@ MAIN {
     let 'long' := "a name much longer than twenty bytes";
     let 'd' := greet.hi[lend 'long'] otherwise "too long";
     cord::print.useful['d', newln];
-    cord::print.useful[scale[7, 3], " ", scale.times_2[7], " ", scale.times_10[7], " ", scale.times_100[7], " ", zero.of_int64[], newln];
+    cord::print.useful[scale[7, 3], " ", scale.times_2[7], " ", scale.times_10[7], " ", scale.times_100[7], " ", zero.of_int64[], " ", twice.small[300], " ", twice.big[5_000_000_000], newln];
 }
