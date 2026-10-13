@@ -162,6 +162,21 @@ without the rest of that redesign. See `DECISIONS.md`.
   counting this one; `#Nld` this line and N more down. `#x` is an error.
 - Statements end with `;`. Bodies are `{ }`.
 
+## How the language's own names are written (owner, 2026-10-13)
+
+1. **The language's own names are lowercase**: keywords, types, `cord`,
+   `kin::` and `reserved::` names (`kin::manifest`, `reserved::free_op`).
+2. **Capitals only for a language's name** (`extern.C`, `inline.ASM`,
+   `inline.MSL`, 2026-10-02), and for `MAIN` and `NO_FUCKING_CHECKS`.
+3. **`_` joins the words of one name**: `no_check`, `not_equal`,
+   `at_most`, `free_op`.
+4. **`.` narrows**, for a variant of something: `print.useful`,
+   `lend.mut`, `div.floor`, `collection.fn`.
+5. **Your own names are free** (2026-09-24, 2026-10-02): `struct Range` or
+   `struct range`, as you like.
+
+`reserved.nrp`'s self-check refuses a built-in name that breaks 1 to 3.
+
 ## Open
 
 

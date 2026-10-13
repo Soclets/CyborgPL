@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — How the language's own names are written: lowercase, `_` joining words, `.` narrowing, capitals only for a language's name (owner)
+
+The owner: "Before that. Is there a capital, and _ thingy rule recorded?"
+There was none, only pieces (a language's name capitalised, 2026-10-02;
+"lowercase syntax" for `cord`, 2026-10-09; today's table and `kin::` names),
+and one note against it: on 2026-09-22 design claude wrote "no underscored
+keywords — a variant would be `pick.all`", since overtaken by `no_check`,
+`not_equal`, `equal_to`, `at_most`. Design claude wrote out the pattern the
+language follows; the owner: "Yeah." So **(1) the language's own names are
+lowercase (keywords, types, `cord`, `kin::`, `reserved::`); (2) capitals
+only for a language's name (`C`, `ASM`, `MSL`), and `MAIN` and
+`NO_FUCKING_CHECKS`; (3) `_` joins the words of one name (`no_check`,
+`free_op`); (4) `.` narrows, a variant of something (`print.useful`,
+`lend.mut`, `collection.fn`); (5) your own names stay free** (2026-09-24).
+The 2026-09-22 "no underscored keywords" is superseded. In
+`design/syntax-sketch.md`; `reserved.nrp`'s self-check is to refuse a
+built-in name that breaks 1 to 3.
+
 ### 2026-10-13 — One table of what is reserved, `reserved.nrp`, read by every tool, kept by design claude (owner; not built)
 
 After the `op &` / `op !` bugs, the owner: "Why don't we just make an
@@ -8645,7 +8663,7 @@ asked for.
 ### 2026-09-22 — `whichever`, not `pick` (owner)
 
 Owner asked what `pick` is, why not `pick_first` (nothing else to
-pick; no underscored keywords — a variant would be `pick.all`), and
+pick; no underscored keywords — a variant would be `pick.all`; superseded 2026-10-13: `_` joins the words of one name, `.` narrows), and
 for other words. Chose `whichever` over `pick`, `await`, `select`,
 `wait`, `listen`, `first`. Renamed throughout; the oracle, example and
 reject test follow.
