@@ -13,6 +13,7 @@
 # it for a reason that is not a rule, and the line says which.
 
 ai_missing [fnv:72a06f2d6464308c] :: `brain16` is AI's
+amp_mut_old [fnv:a96c1609d6013aad] :: `&mut` is an old spelling: write `lend.mut` / `lent.mut`
 and_does_not_guard [fnv:73a43ee7964ee933] :: the position can be past the end
 append_as_value [fnv:962f0b75bc91959f] :: it changes the list in place
 append_to_array [fnv:5b0ab95e546066e1] :: declare it a `list` to append
@@ -81,7 +82,7 @@ bin_infinity [fnv:5042776272302d97] :: can go past the largest bin (it would be 
 bin_into_untyped_int_list [fnv:d7cb425ec9fe165b] :: there is no implicit conversion between numeric families
 bin_nan [fnv:da5fa56ba74549ff] :: nothing can be divided by zero
 bin_to_int_unhandled [fnv:19f1e20a8a83665c] :: `to.int32` can fail (not_whole, out_of_range)
-bit_ampersand [fnv:aeae80cbe3ea6bdd] :: `&` is an old spelling: write `lend` / `lent`; a bitwise and is `and.bit`
+bit_ampersand [fnv:9a0988643ad14c28] :: a bitwise and is `and.bit`
 bit_mixed_needs_parens [fnv:d936cef674e6c908] :: a bitwise operator has no precedence
 bit_not_untyped [fnv:6f6393d70a590740] :: `not.bit` needs a width, and nothing here gives one
 bit_on_bin [fnv:a3920de02aa7e4cd] :: `xor` works on integers, and this is a `bin`
@@ -142,7 +143,7 @@ case_differ_only [fnv:c9c11f25d01e077c] :: `Area` and `area` (line 2 of case_dif
 case_disagree [fnv:bc270b3bdae9e001] :: `fn Area` is marked both `case.any` (line 1 of case_disagree.nrv) and `case.exact` (line 2 of case_disagree.nrv): marks that disagree are an error (owner, 2026-10-06)
 case_file_not_first [fnv:d2bc60ae9c5750c7] :: a file's `case` mark is at its top, before anything else; a block module takes `case.any module name { … }`
 case_kinds_in_module [fnv:76c91d17530925c9] :: a `case` mark on kinds (`case.any [fn, struct];`) covers the whole Neuron, so it is written in `neuron.nrv`
-case_old_spelling [fnv:28491aeb352a850b] :: `case.insensitive` is the old spelling: write `case.any`
+case_old_spelling [fnv:24c1c00fd0f09897] :: `case.insensitive` is an old spelling: write `case.any`
 case_pub_after [fnv:11f985d8ef005006] :: `pub` comes first: `pub case.any fn …`
 case_sensitive_default [fnv:3ea4d3d6b2faacfb] :: there is no item `area` in the root (`neuron.nrv`)
 case_value_needs_is [fnv:381bbe93e82606db] :: a case says its value with `is`: `a { is …; }`
@@ -161,6 +162,13 @@ collection_generated_counting [fnv:fdc807f25075f2b0] :: does not match it: run `
 collection_generated_edited [fnv:fdc807f25075f2b0] :: does not match it: run `synapse generate`
 collection_generated_missing [fnv:fdc807f25075f2b0] :: does not match it: run `synapse generate`
 collection_generated_stale [fnv:fdc807f25075f2b0] :: does not match it: run `synapse generate`
+collection_handler_function [fnv:c05c70f47225809b] :: a `collection.handler` holds named `otherwise` blocks
+collection_handler_not_covering [fnv:1f6f1f5fd3f573a8] :: can also fail with `negative`
+collection_handler_pub [fnv:43b98232013fe90c] :: can be `pub` is not decided yet
+collection_handler_template [fnv:79a7543712d85b5f] :: templates are for `collection.fn`
+collection_handler_unknown_member [fnv:3b6c2fde5b80f184] :: `h` has no handler `nope`; it has `zero`
+collection_kind_missing [fnv:684db8875c74ea16] :: a collection says its kind
+collection_kind_unknown [fnv:e227340f7bdab53b] :: there is no `collection.fun`
 collection_name_quoted [fnv:febf8670ce6f8fe2] :: a collection's name is bare, as a function's
 collection_named_outside [fnv:a0cca1ab550658b1] :: `named` names what a template generates
 collection_preset_no_main [fnv:22a7543a7381b537] :: a preset fills the main function's arguments, and collection `c` has none
@@ -178,10 +186,10 @@ const_mut [fnv:9f30cb564f340919] :: neither `mut` nor `immut`
 const_shadow [fnv:e1b51c069042fda4] :: 'max' is a const and cannot be shadowed
 const_verb [fnv:d48a3137f8878e3c] :: it is a value known at compile time
 construct_quoted_field [fnv:7597065160c99b01] :: `x = …`, not `'x' = …`
-core_by_name [fnv:9d5ccb2499cff948] :: a lobe is listed by its registry ID since 2026-10-06
+core_by_name [fnv:7e1e356c0a5bc828] :: a lobe is listed by its registry ID since 2026-10-06
 core_by_path [fnv:c0c6e1b65030802e] :: the lobe at `../mycore` is not registered, so not verified; loading another lobe is not built yet
 core_no_version [fnv:8a983765217202e8] :: a lobe needs its `version`, as a registry limb does
-core_type_old_spelling [fnv:eb0bd38e45724c5d] :: `kin::Core` is an old spelling: write `kin::Lobe`
+core_type_old_spelling [fnv:f309793c6a13bdfd] :: `kin::Core` is an old spelling: write `kin::lobe`
 core_wrong_version [fnv:6782989e05d7e599] :: Synapse knows MCPS `2026-10-06T18:04:29+07:00` only
 cores_old_spelling [fnv:cdfee69d2e3230bf] :: `cores` is an old spelling: write `lobes`
 count_commas [fnv:4203df364bce8d0b] :: no commas in a counting loop
@@ -338,6 +346,7 @@ index_needs_pos_change [fnv:7fbb95940493767c] :: an index says it is a position:
 inline_ll_not_built [fnv:b71d478526e385ca] :: `inline.LL`, LLVM IR in place, is the Brainstem's
 inline_msl_not_built [fnv:d7389a01e1fb7f88] :: `inline.MSL`, the Metal Shading Language, is the Metal lobe's
 iterator_given_away [fnv:4d1554c3deb74f7c] :: 'c' was given away
+kin_capital_old [fnv:81d5828a9253e998] :: `kin::Manifest` is an old spelling: write `kin::manifest`
 let_over_name_unrun [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
 let_over_param_uncalled [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
 lifetime_glued [fnv:56103fcd967d54ea] :: a space before the group: `lent @
@@ -376,6 +385,10 @@ old_shadow_walrus [fnv:2b12b45390216440] :: `$:=` is an old spelling: write `sha
 old_std_i [fnv:2c5376858ebb8036] :: `not_std.i24` is an old spelling: write `not_std.int24`
 old_std_path [fnv:e4e86bc349371b5b] :: `std` is an old spelling: write `cord`
 old_two_long_arrows [fnv:472bf2fa455f76eb] :: `<---->` is an old spelling: write `<->`
+op_amp_declared_still_not_lend [fnv:d61d6719d5da5729] :: `&` is an old spelling: write `lend` / `lent`
+op_amp_undeclared [fnv:9a0988643ad14c28] :: a bitwise and is `and.bit`
+op_bang_undeclared [fnv:86d806aeb202da87] :: `!` is not an operator here; not is `not`
+op_pipe_undeclared [fnv:3e1e33f26aad5836] :: a bitwise or is `or.bit`
 optional_taken [fnv:36e85e806de22b47] :: `optional` is the base's
 plus_ieee_on_int [fnv:cf2096d03cb58e67] :: `plus.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `plus`
 iface_bound_on_own_t [fnv:f270907c7555b421] :: accepts nothing in particular
@@ -458,11 +471,11 @@ manifest_no_name [fnv:4d3f43697b4ab2f9] :: the manifest has no `name`
 manifest_no_prefix [fnv:400ab5e5ebd0c0b4] :: the manifest has no `prefix`
 manifest_no_target [fnv:0ec242e08a4049e9] :: the manifest has no target
 manifest_no_version [fnv:4888a0212dce5aa4] :: the manifest has no `version`
-manifest_not_a_manifest [fnv:6525d8158635aa91] :: Kinesin.nrp is one value: `kin::Manifest[
+manifest_not_a_manifest [fnv:6955ee1a299cc271] :: Kinesin.nrp is one value: `kin::manifest[
 manifest_old_consts [fnv:b7041583a1e96bf0] :: settings are no longer `const`s
 manifest_one_target [fnv:469b29d703804c8a] :: so the field is `targets`
 manifest_undoable_target [fnv:8ac80970bcd8bd55] :: `x86_64-linux` is not a target Synapse can build
-manifest_unknown_field [fnv:aa8c1f78a700adc8] :: a `kin::Manifest` has no field `versoin`
+manifest_unknown_field [fnv:e4006332aecf1ba8] :: a `kin::manifest` has no field `versoin`
 map_bad_key_type [fnv:3ebc5e71c74c0d11] :: keys are plain values, text, chars, structs, enums and lists of keys
 map_bad_variant [fnv:cd84c84831efd0e0] :: `map` (Cortex decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)
 map_bound_over [fnv:0e4ebc4a07b99fd9] :: this can take it outside the bound its type gives it
@@ -538,7 +551,7 @@ op_next_to_plus [fnv:9d0efe113095066a] :: a custom operator has no precedence
 op_no_precedence [fnv:9d0efe113095066a] :: a custom operator has no precedence
 op_no_return_type [fnv:afe154068b1dbc9d] :: is required on an operator
 op_path_wrong_limb [fnv:58f14d819d74bfce] :: the Neuron `runnable` has no operator `mean`
-op_percent_undefined [fnv:7898bb583b3ac02c] :: `%` is not an operator here: remainder is `mod.floor`
+op_percent_undefined [fnv:7898bb583b3ac02c] :: remainder is `mod`
 op_redefine_builtin [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `int32` may not
 op_redefine_word [fnv:32696bdc53fd9faa] :: a struct or enum may define `op mod` for itself, `int32` may not
 op_run_no_space [fnv:fc83d9208bcfbb43] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
@@ -562,11 +575,11 @@ plus_plus [fnv:b59243419dd75691] :: `++` joins text; there is no increment
 plusplus_needs_conversion [fnv:a6e724baccce5e1b] :: `++` joins text, and its right side is an `integer`: convert it first
 plusplus_numbers [fnv:4cdcad9affc5f4d9] :: `++` joins text, and its left side is an `integer`: convert it first
 pow_old [fnv:f86bba52e868b039] :: `xx` is `pow` now
-power_denied [fnv:d3cf5dfcc087ccf7] :: this Neuron calls C (`write`), which this program denies (`deny`: `kin::Power.c_calls.functions`)
+power_denied [fnv:e9a9308c5cc7c3d7] :: which this program denies (`deny`: `kin::power.c_calls.functions`)
 power_deny_for [fnv:b37efe31805baa2c] :: `shapes` defines the operator `mean` on built-in types, which this program denies
 power_except_in_powers [fnv:54b297f6474bc3b4] :: `.except` and `.for` belong to `deny`
 power_listed_too_narrow [fnv:230e2928cd405e42] :: does not list `c_calls`
-power_not_listed [fnv:9f3c8dba77f27483] :: this Neuron calls C (`write`), and its Kinesin.nrp does not list `c_calls`: add `kin::Power.c_calls` to its `powers`
+power_not_listed [fnv:085437a77b4871a3] :: its Kinesin.nrp does not list `c_calls`: add `kin::power.c_calls` to its `powers`
 precedence_bare [fnv:2c52bed853d4921b] :: say which way the levels count
 print_bare [fnv:7587d85df41ba149] :: say which form
 print_format_backslash_percent [fnv:ad50ed3dcd7f1187] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
@@ -657,7 +670,7 @@ simd_sum_lane_past [fnv:b4b58287404c8c2f] :: the value can be outside what an `i
 simd_wrong_shape [fnv:813bb50692db0740] :: this target has no `simd[uint8, 64]`: its vector register holds 16 lanes
 single_quote_char [fnv:857025279acbd88a] :: 'a' is not declared
 size_of_alone [fnv:1c30f4b3569e6800] :: `size` is a keyword: a type's size is `size.of[int32]` (`.of` after `size`)
-slash_retired [fnv:e0da6f74f7c02643] :: division is `div.floor`
+slash_retired [fnv:e0da6f74f7c02643] :: division is `div`
 slice_needs_pos [fnv:bbcf4577f909ab6f] :: a slice starts `from pos …`
 slice_old_spelling [fnv:b91a123caf5e48b1] :: a slice says where it runs: `list.slice[lend 'xs', from pos 2, to pos 4]`
 slice_past_end [fnv:9addc01545809a6f] :: the slice can run outside the list
@@ -769,5 +782,5 @@ wrong_arg_count [fnv:eb88fab86c650ec3] :: `one` takes 1 argument, and 2 were giv
 wsmw_missing [fnv:c135fab3bfb61b07] :: `int128` is WSMW's
 wsmw_not_std_missing [fnv:737bb9a2ca26bdc9] :: a `not_std.` width is WSMW's
 wstn_emoji_fn [fnv:a4cb5da386eec0aa] :: is not an English name: Brainstem's names are English letters, digits and `_`
-wstn_now_broca [fnv:23eb2853da7751e8] :: WSTN is part of Broca since 2026-10-12: list `kin::Lobe[id = "55a2e2de
+wstn_now_broca [fnv:c5a219d814867b88] :: WSTN is part of Broca since 2026-10-12: list `kin::lobe[id = "55a2e2de
 wstn_thai_name [fnv:a4cb5da386eec0aa] :: is not an English name: Brainstem's names are English letters, digits and `_`

@@ -10,6 +10,7 @@ pub mod names;
 pub mod parser;
 pub mod cheader;
 pub mod template;
+pub mod spellings;
 pub mod source;
 pub mod check;
 pub mod hir;

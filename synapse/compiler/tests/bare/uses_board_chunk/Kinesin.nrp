@@ -1,7 +1,7 @@
-kin::Manifest[
+kin::manifest[
     name = "uses_board_chunk",
     prefix = "uses_board_chunk",
     version = "0.1.0",
-    dependencies = [kin::Dep[id = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936", version = "2026-10-06T12:57:14+07:00"], kin::Dep[path = "../virt"],],
-    targets = [kin::Target[name = "aarch64-none", layout = "boards/virt.ld", output = "virt::serial.write_all", exit = "virt::power.off"],]
+    dependencies = [kin::dep[id = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936", version = "2026-10-06T12:57:14+07:00"], kin::dep[path = "../virt"],],
+    targets = [kin::target[name = "aarch64-none", layout = "boards/virt.ld", output = "virt::serial.write_all", exit = "virt::power.off"],]
 ];

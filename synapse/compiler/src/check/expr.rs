@@ -1834,15 +1834,15 @@ impl Checker {
             if let Some((limb, _)) = limb {
                 return err(Diagnostic::error(format!("the Neuron `{}` has no operator `{}` for {}: a path picks only that Neuron's operator", limb, name, crate::types::a_type(&self.spell(&lt)))).at(op_span));
             }
-            let hint = match spelling {
-                "*" => "multiply is `times`",
-                "^" => "the power is cord's `pow`",
-                "%" => "remainder is `mod.floor` (or `.ceil`, `.trunc`, `.near`)",
-                "&" | "|" | "!" => "the boolean operators are `and`, `or`, `!`; the bitwise ones `and.bit`, `or.bit`, `not.bit`; a lend is `lend 'x'`",
-                "&+" | "&-" | "+%" | "-%" | "*%" => "wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`",
-                _ => "an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`",
+            // A glyph free to declare has its hint in spellings.nrp.
+            let hint = match crate::spellings::free_op_hint(spelling) {
+                Some(h) => h,
+                None => match spelling {
+                    "&+" | "&-" | "+%" | "-%" | "*%" => "wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`",
+                    _ => "an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`",
+                },
             };
-            return err(Diagnostic::error(format!("`{}` is not an operator here: {}", spelling, hint)).at(op_span));
+            return err(Diagnostic::error(format!("`{}` is not an operator here; {}", spelling, hint)).at(op_span));
         };
         // Bare, it may be more than one Limb's (owner, 2026-10-06): refused
         // where it is written, and this Limb's own does not win.

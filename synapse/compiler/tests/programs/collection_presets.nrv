@@ -4,7 +4,7 @@
 # empty list's failure) + 7 is 192.
 extern.C fn exit ['code': int32];
 
-collection mix {
+collection.fn mix {
     mix [lent 'xs': list[int32], 'a': int32, 'b': int32] -> int32 or fail[empty] {
         if list.length[lend 'xs'] equal_to 0 { fail empty; }
         return 'a' times 10 plus 'b';

@@ -554,14 +554,12 @@ impl<'a> Lexer<'a> {
             "auto_newln" => Tok::Word("auto_newline".into()),
             _ => Tok::Word(text.clone()),
         };
-        // Its old spellings, refused naming the new (owner: "MTM is gone.").
-        let alt = match text.as_str() {
-            "nocheck" => Some((text.clone(), "no_check")),
-            "std" | "stdkit" => Some((text.clone(), "cord")),
-            "auto_newline" => Some((text.clone(), "auto_newln")),
-            "gives" | "giveS" => Some((text.clone(), "is")),
-            _ => None,
-        };
+        // Its old spellings, refused naming the new (owner: "MTM is gone."),
+        // as `spellings.nrp` lists the ones that stand anywhere as a word.
+        // A word the table also lists with a dot after it (`limb.` is
+        // `my.`) is that entry when a dot follows, found where paths are read.
+        let dotted = self.peek() == Some('.') && crate::spellings::old_dotted(&text);
+        let alt = if dotted { None } else { crate::spellings::old_word(&text, None).and_then(|o| o.write.first()).map(|w| (text.clone(), w.as_str())) };
         self.push_alt(tok, start, alt);
         Ok(())
     }

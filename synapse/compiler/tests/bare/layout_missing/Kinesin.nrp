@@ -1,6 +1,6 @@
-kin::Manifest[
+kin::manifest[
     name = "layout_missing",
     prefix = "layout_missing",
     version = "0.1.0",
-    targets = [kin::Target[name = "aarch64-none", layout = "boards/nowhere.ld"],]
+    targets = [kin::target[name = "aarch64-none", layout = "boards/nowhere.ld"],]
 ];

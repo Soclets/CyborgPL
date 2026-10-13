@@ -15,7 +15,7 @@ fn size_name ['n': int32] -> str.utf8 {
     return "pow" ++ to.stored.str.utf8['k'];
 }
 
-collection block {
+collection.fn block {
     for 'n' in [1024, 1048576, 64] {
         named size_name['n'];
         [] -> int32 { return 'n'; }

@@ -1004,7 +1004,7 @@ impl Items {
         let here = self.limb_root(m);
         match self.limb_deps.get(&here).and_then(|d| d.get(&limb.name)) {
             Some(r) => Ok(*r),
-            None => err(Diagnostic::error(format!("no Neuron with the prefix `{}`: a Neuron this one uses is listed in its `Kinesin.nrp` (`dependencies = [kin::Dep[path = …],]`), and its own `Kinesin.nrp` says `prefix = \"{}\"`", limb.name, limb.name)).at(limb.span)),
+            None => err(Diagnostic::error(format!("no Neuron with the prefix `{}`: a Neuron this one uses is listed in its `Kinesin.nrp` (`dependencies = [kin::dep[path = …],]`), and its own `Kinesin.nrp` says `prefix = \"{}\"`", limb.name, limb.name)).at(limb.span)),
         }
     }
 

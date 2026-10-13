@@ -943,8 +943,8 @@ impl Checker {
         Some(match check(&used, &limb, &self.items.program_deny) {
             Ok(()) => return None,
             Err(Refusal::NotGranted { .. }) => format!("{} {}, a power nothing grants it: `{}`", who, u.doing, top),
-            Err(Refusal::NotListed { .. }) => format!("{} {}, and its Kinesin.nrp does not list `{}`: add `kin::Power.{}` to its `powers`", who, u.doing, top, top),
-            Err(Refusal::Denied { entry, .. }) => format!("{} {}, which this program denies (`deny`: `kin::Power.{}`)", who, u.doing, entry.power.path.join(".")),
+            Err(Refusal::NotListed { .. }) => format!("{} {}, and its Kinesin.nrp does not list `{}`: add `kin::power.{}` to its `powers`", who, u.doing, top, top),
+            Err(Refusal::Denied { entry, .. }) => format!("{} {}, which this program denies (`deny`: `kin::power.{}`)", who, u.doing, entry.power.path.join(".")),
         })
     }
 

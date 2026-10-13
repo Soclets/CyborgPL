@@ -108,7 +108,7 @@ impl<'ctx> Cg<'_, 'ctx> {
             return Some((0, w.const_int(fd, false)));
         }
         let Some((id, form)) = self.p.items.board_output else {
-            self.cannot(format!("`cord::print` with no OS writes to the output the target names, and this one names none: `kin::Target[name = \"{}\", layout = …, output = \"my.serial.write\"]`", crate::target::name()), None);
+            self.cannot(format!("`cord::print` with no OS writes to the output the target names, and this one names none: `kin::target[name = \"{}\", layout = …, output = \"my.serial.write\"]`", crate::target::name()), None);
             return None;
         };
         let f = self.board_fn(id)?;

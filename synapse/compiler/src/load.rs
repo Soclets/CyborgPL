@@ -198,7 +198,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
     // its `layout` (owner, 2026-10-09: "`c` now", then "`b`").
     if let Some((t, span)) = chosen.as_ref().filter(|(t, _)| t.ends_with("-none")) {
         let Some(dir) = &root_dir else {
-            let d = Diagnostic::error(format!("a lone file is not built for `{}`: a program with no OS brings a linker script saying where it sits in the board's memory, named in a Neuron's Kinesin.nrp — `kin::Target[name = \"{}\", layout = \"boards/virt.ld\"]`", t, t));
+            let d = Diagnostic::error(format!("a lone file is not built for `{}`: a program with no OS brings a linker script saying where it sits in the board's memory, named in a Neuron's Kinesin.nrp — `kin::target[name = \"{}\", layout = \"boards/virt.ld\"]`", t, t));
             return err(match span {
                 Some(s) => d.at(*s),
                 None => d,
@@ -624,7 +624,7 @@ const FIELDS: [&str; 8] = ["name", "prefix", "version", "targets", "dependencies
 
 use crate::ast::OFFICIAL_CORES;
 
-const MANIFEST_SHAPE: &str = "`kin::Manifest[name = \"areas\", prefix = \"areas\", version = \"1.0.0\", targets = [kin::Target[name = \"aarch64-macos\"],]];`";
+const MANIFEST_SHAPE: &str = "`kin::manifest[name = \"areas\", prefix = \"areas\", version = \"1.0.0\", targets = [kin::target[name = \"aarch64-macos\"],]];`";
 
 fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     use crate::ast::{Arg as AArg, ExprKind};
@@ -640,15 +640,23 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     if matches!(&toks[0].tok, Tok::Word(w) if w == "const" || w == "pub") {
         return err(Diagnostic::error(format!("Kinesin.nrp's settings are no longer `const`s: the file is one value, {}", MANIFEST_SHAPE)).at(toks[0].span));
     }
-    // The manifest's types are `kin::` (owner, 2026-10-09: "yea").
+    // The manifest's types are `kin::` (owner, 2026-10-09: "yea"), named in
+    // lowercase (owner, 2026-10-13).
     for (i, t) in toks.iter().enumerate() {
         if t.tok == Tok::Word("cca".into()) && toks.get(i + 1).is_some_and(|n| n.tok == Tok::ColonColon) {
             return err(Diagnostic::error("`cca::` is an old spelling: write `kin::`").at(t.span));
         }
+        if t.tok == Tok::Word("kin".into()) && toks.get(i + 1).is_some_and(|n| n.tok == Tok::ColonColon) {
+            if let Some(Tok::Word(w)) = toks.get(i + 2).map(|n| &n.tok) {
+                if ["Manifest", "Target", "Dep", "Lobe", "Power", "Installed"].contains(&w.as_str()) {
+                    return err(Diagnostic::error(format!("`kin::{}` is an old spelling: write `kin::{}` (owner, 2026-10-13)", w, w.to_lowercase())).at(t.span.to(toks[i + 2].span)));
+                }
+            }
+        }
     }
     let value = crate::parser::parse_value(&toks)?;
     let fields = match &value.kind {
-        ExprKind::Call { path, args, .. } if path.limb.as_ref().map(|l| l.name.as_str()) == Some("kin") && path.segs.iter().map(|s| s.name.as_str()).eq(["Manifest"]) => args,
+        ExprKind::Call { path, args, .. } if path.limb.as_ref().map(|l| l.name.as_str()) == Some("kin") && path.segs.iter().map(|s| s.name.as_str()).eq(["manifest"]) => args,
         _ => return err(Diagnostic::error(format!("Kinesin.nrp is one value: {}", MANIFEST_SHAPE)).at(value.span)),
     };
     let mut seen: Vec<String> = Vec::new();
@@ -660,12 +668,12 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     };
     for a in fields {
         let AArg::Named(field, v) = a else {
-            return err(Diagnostic::error("a `kin::Manifest` names its fields: `name = …`, `prefix = …`, `version = …`, `targets = […]`").at(a.span()));
+            return err(Diagnostic::error("a `kin::manifest` names its fields: `name = …`, `prefix = …`, `version = …`, `targets = […]`").at(a.span()));
         };
         let setting = field.name.as_str();
         // One target became a list (owner, 2026-09-29).
         if setting == "target" {
-            return err(Diagnostic::error("a Neuron lists its targets, so the field is `targets`: `targets = [kin::Target[name = \"aarch64-macos\"],]`").at(field.span));
+            return err(Diagnostic::error("a Neuron lists its targets, so the field is `targets`: `targets = [kin::target[name = \"aarch64-macos\"],]`").at(field.span));
         }
         // A core is a lobe (owner, 2026-10-09: "yea, go").
         if setting == "cores" {
@@ -674,10 +682,10 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
         // What a Limb may do (`design/cores.md`): which powers exist is
         // not decided.
         if !FIELDS.contains(&setting) {
-            return err(Diagnostic::error(format!("a `kin::Manifest` has no field `{}`: its fields are {}", setting, FIELDS.iter().map(|s| format!("`{}`", s)).collect::<Vec<_>>().join(", "))).at(field.span));
+            return err(Diagnostic::error(format!("a `kin::manifest` has no field `{}`: its fields are {}", setting, FIELDS.iter().map(|s| format!("`{}`", s)).collect::<Vec<_>>().join(", "))).at(field.span));
         }
         if seen.iter().any(|s| s == setting) {
-            return err(Diagnostic::error(format!("`{}` is given twice in the `kin::Manifest`", setting)).at(field.span));
+            return err(Diagnostic::error(format!("`{}` is given twice in the `kin::manifest`", setting)).at(field.span));
         }
         seen.push(setting.to_string());
         match setting {
@@ -705,7 +713,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             // machine: which one is built when none is named is open.
             "targets" => {
                 let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error("`targets` is a list of `kin::Target[…]`: `[kin::Target[name = \"aarch64-macos\"],]`").at(v.span));
+                    return err(Diagnostic::error("`targets` is a list of `kin::target[…]`: `[kin::target[name = \"aarch64-macos\"],]`").at(v.span));
                 };
                 let mut names: Vec<String> = Vec::new();
                 let mut name_spans: Vec<crate::source::Span> = Vec::new();
@@ -713,10 +721,10 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                 let mut defaults: Vec<(String, crate::source::Span)> = Vec::new();
                 for e in entries {
                     let ExprKind::Call { path, args, .. } = &e.kind else {
-                        return err(Diagnostic::error("each target is a `kin::Target[name = …]`, with a `runner = …` when this machine cannot run it").at(e.span));
+                        return err(Diagnostic::error("each target is a `kin::target[name = …]`, with a `runner = …` when this machine cannot run it").at(e.span));
                     };
-                    if path.limb.as_ref().map(|l| l.name.as_str()) != Some("kin") || !path.segs.iter().map(|s| s.name.as_str()).eq(["Target"]) {
-                        return err(Diagnostic::error(format!("each target is a `kin::Target[…]`, and this is `{}`", path.spelled())).at(e.span));
+                    if path.limb.as_ref().map(|l| l.name.as_str()) != Some("kin") || !path.segs.iter().map(|s| s.name.as_str()).eq(["target"]) {
+                        return err(Diagnostic::error(format!("each target is a `kin::target[…]`, and this is `{}`", path.spelled())).at(e.span));
                     }
                     let mut name = None;
                     let mut layout: Option<(String, crate::source::Span)> = None;
@@ -725,7 +733,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     let mut said_not = false;
                     for a in args {
                         let AArg::Named(field, v) = a else {
-                            return err(Diagnostic::error("a `kin::Target` names its fields: `name = …`, and `runner = …` when it needs one").at(a.span()));
+                            return err(Diagnostic::error("a `kin::target` names its fields: `name = …`, and `runner = …` when it needs one").at(a.span()));
                         };
                         match field.name.as_str() {
                             "name" => name = Some((text(v, "a target's `name`")?, field.span)),
@@ -749,11 +757,11 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                                 }
                                 _ => return err(Diagnostic::error("a target's `default` is `true` or `false`").at(v.span)),
                             },
-                            other => return err(Diagnostic::error(format!("a `kin::Target` has no field `{}`: it is a `name`, a `runner` when this machine cannot run it, `default = true` on the one built when none is named, and on one with no OS a `layout`, an `output` and an `exit`", other)).at(field.span)),
+                            other => return err(Diagnostic::error(format!("a `kin::target` has no field `{}`: it is a `name`, a `runner` when this machine cannot run it, `default = true` on the one built when none is named, and on one with no OS a `layout`, an `output` and an `exit`", other)).at(field.span)),
                         }
                     }
                     let Some((n, span)) = name else {
-                        return err(Diagnostic::error("a `kin::Target` needs its `name`: `kin::Target[name = \"aarch64-linux\"]`").at(e.span));
+                        return err(Diagnostic::error("a `kin::target` needs its `name`: `kin::target[name = \"aarch64-linux\"]`").at(e.span));
                     };
                     if names.contains(&n) {
                         return err(Diagnostic::error(format!("the target `{}` is listed twice in `targets`", n)).at(span));
@@ -768,7 +776,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                         Some((file, at)) if n.ends_with("-none") => out.layouts.push((n.clone(), file, at)),
                         Some((_, at)) => return err(Diagnostic::error(format!("`layout` is for a target with no OS, whose program says where it sits in memory; on `{}` the OS places it", n)).at(at)),
                         None if n.ends_with("-none") => {
-                            return err(Diagnostic::error(format!("the target `{n}` has no `layout`: a program with no OS brings its own linker script, saying where it sits in the board's memory — `kin::Target[name = \"{n}\", layout = \"boards/virt.ld\"]`, the path from the Neuron's folder")).at(span));
+                            return err(Diagnostic::error(format!("the target `{n}` has no `layout`: a program with no OS brings its own linker script, saying where it sits in the board's memory — `kin::target[name = \"{n}\", layout = \"boards/virt.ld\"]`, the path from the Neuron's folder")).at(span));
                         }
                         None => {}
                     }
@@ -808,7 +816,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             // .except["write"],]` (owner, 2026-10-07).
             "powers" | "deny" => {
                 let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error(format!("`{}` is a list of `kin::Power.…`: `[kin::Power.c_calls,]`", setting)).at(v.span));
+                    return err(Diagnostic::error(format!("`{}` is a list of `kin::power.…`: `[kin::power.c_calls,]`", setting)).at(v.span));
                 };
                 for e in entries {
                     let (power, except, for_limbs) = read_power(e)?;
@@ -827,16 +835,16 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             // of the cores it lists; CCA's code is built the same either way.
             "lobes" => {
                 let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error(format!("`lobes` is a list of `kin::Lobe[…]`: `[{},]`", crate::ast::core_line("MCPS"))).at(v.span));
+                    return err(Diagnostic::error(format!("`lobes` is a list of `kin::lobe[…]`: `[{},]`", crate::ast::core_line("MCPS"))).at(v.span));
                 };
                 let mut names: Vec<String> = Vec::new();
                 for e in entries {
                     let core = match &e.kind {
                         ExprKind::Call { path, .. } if path.limb.as_ref().map(|l| l.name.as_str()) == Some("kin") && path.segs.iter().map(|s| s.name.as_str()).eq(["Core"]) => {
-                            return err(Diagnostic::error("`kin::Core` is an old spelling: write `kin::Lobe`").at(path.span));
+                            return err(Diagnostic::error("`kin::Core` is an old spelling: write `kin::lobe`").at(path.span));
                         }
-                        ExprKind::Call { path, args, .. } if path.limb.as_ref().map(|l| l.name.as_str()) == Some("kin") && path.segs.iter().map(|s| s.name.as_str()).eq(["Lobe"]) => args,
-                        _ => return err(Diagnostic::error("each lobe is a `kin::Lobe[id = …, version = …]`").at(e.span)),
+                        ExprKind::Call { path, args, .. } if path.limb.as_ref().map(|l| l.name.as_str()) == Some("kin") && path.segs.iter().map(|s| s.name.as_str()).eq(["lobe"]) => args,
+                        _ => return err(Diagnostic::error("each lobe is a `kin::lobe[id = …, version = …]`").at(e.span)),
                     };
                     // A core is listed by its registry ID and a version, or
                     // by a path when it is not registered (owner,
@@ -844,14 +852,14 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     let (mut id, mut version, mut where_) = (None, None, None);
                     for a in core {
                         let AArg::Named(f, cv) = a else {
-                            return err(Diagnostic::error("a `kin::Lobe` names its fields: `kin::Lobe[id = \"…\", version = \"…\"]`").at(a.span()));
+                            return err(Diagnostic::error("a `kin::lobe` names its fields: `kin::lobe[id = \"…\", version = \"…\"]`").at(a.span()));
                         };
                         match f.name.as_str() {
-                            "name" => return err(Diagnostic::error(format!("a lobe is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `kin::Lobe[id = \"…\", version = \"…\"]`; MCPS's is `{}`", OFFICIAL_CORES[0].1)).at(f.span)),
+                            "name" => return err(Diagnostic::error(format!("a lobe is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `kin::lobe[id = \"…\", version = \"…\"]`; MCPS's is `{}`", OFFICIAL_CORES[0].1)).at(f.span)),
                             "id" => id = Some((text(cv, "a lobe's `id`")?, cv.span)),
                             "version" => version = Some((text(cv, "a lobe's `version`")?, cv.span)),
                             "path" => where_ = Some((text(cv, "a lobe's `path`")?, cv.span)),
-                            other => return err(Diagnostic::error(format!("a `kin::Lobe` has no field `{}`: it is an `id` and a `version`, or a `path`", other)).at(f.span)),
+                            other => return err(Diagnostic::error(format!("a `kin::lobe` has no field `{}`: it is an `id` and a `version`, or a `path`", other)).at(f.span)),
                         }
                     }
                     if let (Some(_), Some((_, at))) = (&id, &where_) {
@@ -863,7 +871,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                         return err(Diagnostic::error(format!("the lobe at `{}` is not registered, so not verified; loading another lobe is not built yet (a plugin, which Synapse cannot load yet)", p)).at(at));
                     }
                     let Some((i, ispan)) = id else {
-                        return err(Diagnostic::error("a `kin::Lobe` says which lobe: `kin::Lobe[id = \"…\", version = \"…\"]`").at(e.span));
+                        return err(Diagnostic::error("a `kin::lobe` says which lobe: `kin::lobe[id = \"…\", version = \"…\"]`").at(e.span));
                     };
                     // MTM's ID is retired (owner, 2026-10-07: "MTM is gone.").
                     if i == crate::ast::MTM_ID {
@@ -893,26 +901,26 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             }
             _ => {
                 let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error("`dependencies` is a list of `kin::Dep[…]`: `[kin::Dep[path = \"../areas\"],]`").at(v.span));
+                    return err(Diagnostic::error("`dependencies` is a list of `kin::dep[…]`: `[kin::dep[path = \"../areas\"],]`").at(v.span));
                 };
                 for e in entries {
                     let ExprKind::Call { path, args, .. } = &e.kind else {
-                        return err(Diagnostic::error("each dependency is a `kin::Dep[path = …]`, or a `kin::Dep[id = …, version = …]`").at(e.span));
+                        return err(Diagnostic::error("each dependency is a `kin::dep[path = …]`, or a `kin::dep[id = …, version = …]`").at(e.span));
                     };
-                    if path.limb.as_ref().map(|l| l.name.as_str()) != Some("kin") || !path.segs.iter().map(|s| s.name.as_str()).eq(["Dep"]) {
-                        return err(Diagnostic::error(format!("each dependency is a `kin::Dep[…]`, and this is `{}`", path.spelled())).at(e.span));
+                    if path.limb.as_ref().map(|l| l.name.as_str()) != Some("kin") || !path.segs.iter().map(|s| s.name.as_str()).eq(["dep"]) {
+                        return err(Diagnostic::error(format!("each dependency is a `kin::dep[…]`, and this is `{}`", path.spelled())).at(e.span));
                     }
                     let (mut dpath, mut version, mut id) = (None, None, None);
                     for a in args {
                         let AArg::Named(field, v) = a else {
-                            return err(Diagnostic::error("a `kin::Dep` names its fields: a `path = …`, or an `id = …` and a `version = …`").at(a.span()));
+                            return err(Diagnostic::error("a `kin::dep` names its fields: a `path = …`, or an `id = …` and a `version = …`").at(a.span()));
                         };
                         let slot = match field.name.as_str() {
                             "name" | "prefix" => return err(Diagnostic::error("a dependency names no word: code writes the Neuron's own `prefix`, from its `Kinesin.nrp`").at(field.span)),
                             "path" => &mut dpath,
                             "version" => &mut version,
                             "id" => &mut id,
-                            other => return err(Diagnostic::error(format!("a `kin::Dep` has no field `{}`: it is a `path`, or an `id` and a `version`", other)).at(field.span)),
+                            other => return err(Diagnostic::error(format!("a `kin::dep` has no field `{}`: it is a `path`, or an `id` and a `version`", other)).at(field.span)),
                         };
                         *slot = Some((text(v, &format!("`{}`", field.name))?, field.span));
                     }
@@ -1218,13 +1226,13 @@ fn read_power(e: &crate::ast::Expr) -> Result<ReadPower> {
         args.iter()
             .map(|a| match a {
                 AArg::Positional(crate::ast::Expr { kind: ExprKind::Str(s), .. }) => Ok(s.clone()),
-                other => err(Diagnostic::error("a power names exact things as texts: `kin::Power.c_calls[\"sqrt\"]`").at(other.span())),
+                other => err(Diagnostic::error("a power names exact things as texts: `kin::power.c_calls[\"sqrt\"]`").at(other.span())),
             })
             .collect()
     }
     fn flat(e: &crate::ast::Expr, out: &mut Vec<Step>) -> Result<()> {
         match &e.kind {
-            ExprKind::Path(p) | ExprKind::Call { path: p, args: _, .. } if p.limb.as_ref().map(|l| l.name.as_str()) == Some("kin") && p.segs.first().is_some_and(|s| s.name == "Power") => {
+            ExprKind::Path(p) | ExprKind::Call { path: p, args: _, .. } if p.limb.as_ref().map(|l| l.name.as_str()) == Some("kin") && p.segs.first().is_some_and(|s| s.name == "power") => {
                 out.extend(p.segs[1..].iter().map(|s| Step::Word(s.name.clone())));
                 if let ExprKind::Call { args, .. } = &e.kind {
                     out.push(Step::Things(texts(args)?));
@@ -1246,7 +1254,7 @@ fn read_power(e: &crate::ast::Expr) -> Result<ReadPower> {
                 out.push(Step::Things(texts(&[AArg::Positional((**index).clone())])?));
                 Ok(())
             }
-            _ => err(Diagnostic::error("a power is `kin::Power.` and its name: `kin::Power.c_calls`, `kin::Power.raw_memory.read`").at(e.span)),
+            _ => err(Diagnostic::error("a power is `kin::power.` and its name: `kin::power.c_calls`, `kin::power.raw_memory.read`").at(e.span)),
         }
     }
     let mut steps = Vec::new();
@@ -1275,7 +1283,7 @@ fn read_power(e: &crate::ast::Expr) -> Result<ReadPower> {
         }
     }
     if power.path.is_empty() {
-        return err(Diagnostic::error("a power has a name: `kin::Power.c_calls`").at(e.span));
+        return err(Diagnostic::error("a power has a name: `kin::power.c_calls`").at(e.span));
     }
     // The powers there are (owner, 2026-10-07): Signatar's three and their
     // narrowings, IEG's vouching, and the extension powers built so far.

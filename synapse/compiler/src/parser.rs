@@ -6,13 +6,12 @@ use crate::diag::{err, Diagnostic, Result};
 use crate::lexer::{Tok, Token};
 use crate::source::Span;
 
-/// Bare words the language owns. A function may be named with one only
-/// through a path (`my.to[…]`); a bare `to[…]` is the keyword.
-pub const KEYWORDS: &[&str] = &[
-    "fn", "let", "shadow", "change", "return", "if", "else", "loop", "while", "for", "in", "break", "continue", "give", "copy", "lend", "lent", "op",
-    "check", "nocheck", "true", "false", "mut", "immut", "temp", "perm", "range", "seq", "para", "list", "array", "struct", "pub",
-    "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "with", "enum", "match", "interface", "satisfies", "extern", "ptr", "collection",
-    "layout", "size", "align", "incl", "inline", "map", "channel", "concur", "whichever", "from", "str", "char", "bool", "var", "func",
+/// Words Synapse holds under another name inside, owned as the table's
+/// words they stand for (`no_check` is read as `nocheck`, `neuron` as
+/// `limb`), and the type names and retired words it has always kept out
+/// of names.
+const KEPT_INSIDE: &[&str] = &[
+    "nocheck", "limb", "str", "char", "bool", "var", "func",
     "int8", "int16", "int32", "int64", "int128", "uint8", "uint16", "uint32", "uint64", "uint128", "bin16", "bin32", "bin64",
     "bin128", "deci32", "deci64", "deci128",
 ];
@@ -22,8 +21,11 @@ pub const WORD_OPS: &[&str] = &["plus", "minus", "times", "pow", "mod", "div", "
 
 pub const DURATION_UNITS: &[&str] = &["nanos", "micros", "millis", "seconds", "minutes", "hours", "nano", "micro", "milli", "second", "minute", "hour"];
 
+/// Bare words the language owns (`spellings.nrp`'s `keywords`, owner,
+/// 2026-10-13). A function may be named with one only through a path
+/// (`my.to[…]`); a bare `to[…]` is the keyword.
 pub fn is_keyword(w: &str) -> bool {
-    KEYWORDS.contains(&w)
+    crate::spellings::is_keyword(w) || KEPT_INSIDE.contains(&w)
 }
 
 /// Words that name a built-in type when they head a type path.
@@ -56,6 +58,10 @@ struct Parser<'a> {
     count_bound: bool,
     /// The collections' templates read so far (owner, 2026-10-13).
     templates: Vec<Template>,
+    /// This file's `collection.handler`s (owner, 2026-10-13): each member's
+    /// arms, read before the file is, so `otherwise h.member` anywhere in
+    /// it reads them as if written there.
+    handlers: std::collections::HashMap<String, Vec<(String, Vec<FailArm>)>>,
     /// A `#strict` file (owner, 2026-09-27): `pos` on every position,
     /// every parameter's type, a return type, `mut`/`immut` on every
     /// declaration, `temp`/`perm` on every `for`.
@@ -226,7 +232,26 @@ fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
     let after = |n: usize, t: &Tok| i >= n && toks[i - n].tok == *t;
     let glued = |n: usize| toks.get(i + n).is_some_and(|t| t.span.start == toks[i + n - 1].span.end);
     let next = |n: usize| toks.get(i + n).map(|t| &t.tok);
+    // After `op`, or between two values, `&` and `!` are operators like any
+    // other, free to declare (`operators.md`); only their old uses, before a
+    // value, are old spellings.
+    let ends_value = |t: &Tok| match t {
+        Tok::Name(_) | Tok::Num { .. } | Tok::Str(_) | Tok::Char(_) | Tok::Newline | Tok::RBracket | Tok::RParen => true,
+        Tok::Word(w) => !is_keyword(w) || matches!(w.as_str(), "true" | "false"),
+        _ => false,
+    };
+    let starts_value = |t: &Tok| match t {
+        Tok::Name(_) | Tok::Num { .. } | Tok::Str(_) | Tok::Char(_) | Tok::Newline | Tok::LParen | Tok::LBracket => true,
+        Tok::Word(w) => !matches!(w.as_str(), "mut"),
+        _ => false,
+    };
+    let operator = i > 0 && (toks[i - 1].tok == Tok::Word("op".into()) || (ends_value(&toks[i - 1].tok) && next(1).is_some_and(starts_value)));
+    if operator && matches!(&toks[i].tok, Tok::Op(o) if o == "&" || o == "!") {
+        return None;
+    }
     match &toks[i].tok {
+        // `&mut` (owner, 2026-10-07): `lend.mut` / `lent.mut`.
+        Tok::Op(o) if o == "&" && matches!(next(1), Some(Tok::Word(w)) if w == "mut") => Some("`&mut` is an old spelling: write `lend.mut` / `lent.mut`".into()),
         // The `!` marks became words (owner, 2026-10-07).
         Tok::Op(o) if o == "!" => {
             if glued(1) {
@@ -265,31 +290,9 @@ fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
         // `pub.neuron` (owner, 2026-10-09: a library is a Neuron).
         Tok::Word(w) if w == "limb" && after(1, &Tok::Dot) && i >= 2 && toks[i - 2].tok == Tok::Word("pub".into()) => old("limb", "neuron"),
         Tok::Word(_) if after(1, &Tok::Dot) || after(1, &Tok::ColonColon) => None,
-        Tok::Word(w) => rust_name(w).and_then(|m| old(w, m)),
+        Tok::Word(w) => crate::spellings::old_word(w, Some("outside a path")).map(|o| o.sentence()),
         _ => None,
     }
-}
-
-/// Rust's number names and `bf16`/`bfloat16`, old spellings since MTM went
-/// (owner, 2026-10-07).
-fn rust_name(w: &str) -> Option<&'static str> {
-    Some(match w {
-        "i8" => "int8",
-        "i16" => "int16",
-        "i32" => "int32",
-        "i64" => "int64",
-        "i128" => "int128",
-        "u8" => "uint8",
-        "u16" => "uint16",
-        "u32" => "uint32",
-        "u64" => "uint64",
-        "u128" => "uint128",
-        "f16" => "bin16",
-        "f32" => "bin32",
-        "f64" => "bin64",
-        "bf16" | "bfloat16" => "brain16",
-        _ => return None,
-    })
 }
 
 fn core_missing<T>(what: &str, core: &str, at: Span) -> Result<T> {
@@ -306,7 +309,7 @@ pub fn set_shared_precedence(table: std::collections::HashMap<String, (u16, Chai
 
 /// The `precedence` blocks in one file's tokens: each operator's level.
 pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false, templates: Vec::new() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false, templates: Vec::new(), handlers: Default::default() };
     let mut out = Vec::new();
     let mut depth = 0i32;
     for i in 0..toks.len() {
@@ -324,7 +327,7 @@ pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> 
 }
 
 pub fn parse_file(toks: &[Token]) -> Result<File> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false, templates: Vec::new() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false, templates: Vec::new(), handlers: Default::default() };
     // Every Limb's levels, and this file's own blocks, read before any
     // expression in it: an operator above its block is parsed by it too.
     p.prec = SHARED_PREC.with(|t| t.borrow().clone());
@@ -340,7 +343,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
             // "Time: std, with duration literals"; d690ed91).
             if let (Tok::Num { .. }, Some(Tok::Word(u))) = (&toks[i].tok, toks.get(i + 1).map(|t| &t.tok)) {
                 if DURATION_UNITS.contains(&u.as_str()) {
-                    return err(Diagnostic::error(format!("a duration literal (`5 seconds`) is cord's, and this Neuron's Kinesin.nrp does not list cord: add `kin::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", STD_ID, STD_VERSION)).at(toks[i].span));
+                    return err(Diagnostic::error(format!("a duration literal (`5 seconds`) is cord's, and this Neuron's Kinesin.nrp does not list cord: add `kin::dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", STD_ID, STD_VERSION)).at(toks[i].span));
                 }
             }
             let Tok::Word(w) = &toks[i].tok else { continue };
@@ -355,7 +358,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                 ("str", Some(Tok::Dot)) if matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(u)) if matches!(u.as_str(), "bytes" | "points" | "graphemes" | "each" | "split" | "find" | "contains" | "trim" | "upper" | "lower" | "replace" | "starts_with" | "ends_with" | "at" | "slice" | "join")) => "a text operation (`str.…`)",
                 _ => continue,
             };
-            return err(Diagnostic::error(format!("{} is cord's, and this Neuron's Kinesin.nrp does not list cord: add `kin::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION)).at(toks[i].span));
+            return err(Diagnostic::error(format!("{} is cord's, and this Neuron's Kinesin.nrp does not list cord: add `kin::dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION)).at(toks[i].span));
         }
     }
     // Signatar's names are English letters, digits and `_`, bare or
@@ -400,6 +403,15 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     if p.is(&Tok::Strict) {
         return p.fail("`#strict` is gone: the labelled ranges, `pos`, `count`, `is` and typed parameters it asked for are every file's now");
     }
+    // The file's handlers first: a use may come before the definition.
+    for i in 0..toks.len() {
+        if matches!(&toks[i].tok, Tok::Word(w) if w == "collection") && matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(w)) if w == "handler") && (i == 0 || !matches!(toks[i - 1].tok, Tok::Dot)) {
+            p.pos = i + 3;
+            let (name, members) = p.handler_def()?;
+            p.handlers.insert(name, members);
+        }
+    }
+    p.pos = 0;
     let mut items = Vec::new();
     let mut bare_file = None;
     let mut bare_kinds = Vec::new();
@@ -444,7 +456,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
 /// 2026-10-06): `cca::Manifest[ … ];`.
 pub fn parse_value(toks: &[Token]) -> Result<Expr> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false, templates: Vec::new() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false, templates: Vec::new(), handlers: Default::default() };
     let value = p.expr(0)?;
     p.expect_semi("the value")?;
     if !p.at_eof() {
@@ -543,7 +555,7 @@ impl<'a> Parser<'a> {
         if !self.no_std {
             return Ok(());
         }
-        self.fail_at(span, format!("`{}` is cord's, and this Neuron's Kinesin.nrp does not list cord: add `kin::Dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION))
+        self.fail_at(span, format!("`{}` is cord's, and this Neuron's Kinesin.nrp does not list cord: add `kin::dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION))
     }
 
     fn fail<T>(&self, msg: impl Into<String>) -> Result<T> {
@@ -708,14 +720,34 @@ impl<'a> Parser<'a> {
             let span = start.to(self.prev_span());
             return Ok(Item { vis, kind, span, bare, case });
         }
-        // A collection (owner, 2026-10-13): its one `bare.` mark is inside.
+        // A collection (owner, 2026-10-13) says its kind: `collection.fn`,
+        // a function and its narrowings, its one `bare.` mark inside, or
+        // `collection.handler`, named `otherwise` blocks.
         if self.is_word("collection") {
             if let Some((_, at)) = bare {
-                return self.fail_at(at, "a collection's `bare.` mark goes inside it, once, for every member: `pub collection cum { bare.never; … }`");
+                return self.fail_at(at, "a collection's `bare.` mark goes inside it, once, for every member: `pub collection.fn cum { bare.never; … }`");
             }
-            let (lines, mark) = self.collection(vis)?;
-            let span = start.to(self.prev_span());
-            return Ok(Item { vis, kind: ItemKind::ExternBlock(lines), span, bare: mark, case });
+            let kw = self.bump().span;
+            if !self.eat(&Tok::Dot) {
+                return self.fail_at(kw, "a collection says its kind: `collection.fn cum { … }` (a function and its narrowings) or `collection.handler h { … }` (named `otherwise` blocks) (owner, 2026-10-13)");
+            }
+            let kind = self.ident("the collection's kind")?;
+            match kind.name.as_str() {
+                "fn" => {
+                    let (lines, mark) = self.collection(vis)?;
+                    let span = start.to(self.prev_span());
+                    return Ok(Item { vis, kind: ItemKind::ExternBlock(lines), span, bare: mark, case });
+                }
+                "handler" => {
+                    if vis != Vis::Private {
+                        return self.fail_at(start, "whether a `collection.handler` can be `pub` is not decided yet: it is read where it is written, in its own file");
+                    }
+                    self.handler_def()?;
+                    let span = start.to(self.prev_span());
+                    return Ok(Item { vis, kind: ItemKind::ExternBlock(Vec::new()), span, bare: None, case });
+                }
+                other => return self.fail_at(kind.span, format!("there is no `collection.{}`: a collection is `collection.fn` (a function and its narrowings) or `collection.handler` (named `otherwise` blocks)", other)),
+            }
         }
         let kind = self.item_kind(vis)?;
         if let (ItemKind::Const(_), Some((_, at))) = (&kind, &bare) {
@@ -923,8 +955,8 @@ impl<'a> Parser<'a> {
         self.bump();
         let mode = self.bump().clone();
         match &mode.tok {
-            Tok::Word(w) if w == "insensitive" => self.fail_at(at.to(mode.span), "`case.insensitive` is the old spelling: write `case.any` (owner, 2026-10-10)"),
-            Tok::Word(w) if w == "sensitive" => self.fail_at(at.to(mode.span), "`case.sensitive` is the old spelling: write `case.exact` (owner, 2026-10-10)"),
+            Tok::Word(w) if w == "insensitive" => self.fail_at(at.to(mode.span), "`case.insensitive` is an old spelling: write `case.any` (owner, 2026-10-10)"),
+            Tok::Word(w) if w == "sensitive" => self.fail_at(at.to(mode.span), "`case.sensitive` is an old spelling: write `case.exact` (owner, 2026-10-10)"),
             Tok::Word(w) => Ok((w == "any", at.to(mode.span))),
             _ => unreachable!("at_case_mark said a word follows"),
         }
@@ -1348,7 +1380,7 @@ impl<'a> Parser<'a> {
         for t in toks.iter_mut() {
             t.span = line;
         }
-        let mut p = Parser { toks: &toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, count_bound: false, templates: Vec::new() };
+        let mut p = Parser { toks: &toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, count_bound: false, templates: Vec::new(), handlers: Default::default() };
         let mut lines = Vec::new();
         while !p.at_eof() {
             let it = p.item()?;
@@ -1366,11 +1398,10 @@ impl<'a> Parser<'a> {
     /// filled), templates, and one `bare.` mark. It comes back as the
     /// functions it is: `fn cum`, `fn cum.double`, `fn cum.quick`.
     fn collection(&mut self, vis: Vis) -> Result<(Vec<(Vis, ItemKind)>, Option<(Bare, Span)>)> {
-        self.bump();
         let name = match self.peek().clone() {
             Tok::Word(_) => self.ident("the collection's name")?,
-            Tok::Str(s) => return self.fail(format!("a collection's name is bare, as a function's: `collection {} {{ … }}`", s)),
-            Tok::Name(n) => return self.fail(format!("a collection's name is bare, as a function's: `collection {} {{ … }}`", n)),
+            Tok::Str(s) => return self.fail(format!("a collection's name is bare, as a function's: `collection.fn {} {{ … }}`", s)),
+            Tok::Name(n) => return self.fail(format!("a collection's name is bare, as a function's: `collection.fn {} {{ … }}`", n)),
             other => return self.fail(format!("expected the collection's name, found {}", other.describe())),
         };
         let open = self.span();
@@ -1479,6 +1510,66 @@ impl<'a> Parser<'a> {
             }
         }
         Ok((lines, mark))
+    }
+
+    /// `collection.handler h { as_zero { odd { … } negative 'v' { … } } … }`
+    /// (owner, 2026-10-13), from after `handler`: each member an
+    /// `otherwise`'s arms, named.
+    fn handler_def(&mut self) -> Result<(String, Vec<(String, Vec<FailArm>)>)> {
+        let name = match self.peek().clone() {
+            Tok::Word(_) => self.ident("the collection's name")?,
+            Tok::Str(s) => return self.fail(format!("a collection's name is bare, as a function's: `collection.handler {} {{ … }}`", s)),
+            other => return self.fail(format!("expected the collection's name, found {}", other.describe())),
+        };
+        let open = self.span();
+        self.expect(&Tok::LBrace, "`{` after the collection's name")?;
+        let mut members: Vec<(String, Vec<FailArm>)> = Vec::new();
+        while !self.is(&Tok::RBrace) {
+            if self.at_eof() {
+                return self.fail_at(open, format!("collection `{}` is never closed", name.name));
+            }
+            if self.is_word("for") || self.is_word("named") {
+                return self.fail("templates are for `collection.fn`: a `collection.handler` holds named `otherwise` blocks, each written out");
+            }
+            if self.is_word("bare") {
+                return self.fail("a `collection.handler` is read in its own file, so it has no `bare.` mark");
+            }
+            let member = self.ident("a handler's name")?;
+            if !self.is(&Tok::LBrace) {
+                return self.fail_at(member.span, format!("a `collection.handler` holds named `otherwise` blocks: `{} {{ odd {{ … }} }}`, one arm per way a call can fail", member.name));
+            }
+            let (arms, _) = self.arms_block()?;
+            if members.iter().any(|(m, _)| *m == member.name) {
+                return self.fail_at(member.span, format!("`{}` is defined twice in `{}`", member.name, name.name));
+            }
+            members.push((member.name, arms));
+        }
+        self.bump();
+        Ok((name.name, members))
+    }
+
+    /// `{ reason { … } reason 'payload' { … } … }`: an `otherwise`'s arms.
+    fn arms_block(&mut self) -> Result<(Vec<FailArm>, Span)> {
+        let open = self.bump().span;
+        let mut arms = Vec::new();
+        while !self.is(&Tok::RBrace) {
+            if self.at_eof() {
+                return self.fail_at(open, "the `otherwise` arms are never closed");
+            }
+            let name = match self.peek().clone() {
+                Tok::Word(_) => self.ident("a failure name")?,
+                Tok::Name(n) => return self.fail(format!("an arm starts with the reason's bare name, then a quoted name for its payload: `bad_item '{}' {{ … }}`", n)),
+                other => return self.fail(format!("expected a failure name, found {}", other.describe())),
+            };
+            let bind = if let Tok::Name(_) = self.peek() { Some(self.qname("a name")?) } else { None };
+            let body = self.block("the arm")?;
+            arms.push(FailArm { name, bind, body });
+        }
+        let close = self.bump().span;
+        if arms.is_empty() {
+            return self.fail_at(open.to(close), "`otherwise { }` has no arms: one arm per reason, `reason { … }`");
+        }
+        Ok((arms, open.to(close)))
     }
 
     /// A template: `for 'n' in […]` or `for 'n' from … by …`, `named …;`,
@@ -2304,7 +2395,7 @@ impl<'a> Parser<'a> {
                 let path = self.path()?;
                 let head = path.head().to_string();
                 let mut args = Vec::new();
-                let container = path.limb.is_none() && matches!(head.as_str(), "list" | "array" | "map" | "channel" | "ptr");
+                let container = path.limb.is_none() && matches!(head.as_str(), "list" | "array" | "map" | "channel" | "ptr" | "simd");
                 let user_type = !is_primitive_head(&head) && !is_keyword(&head) || path.limb.is_some();
                 let takes_type_args = container || (user_type && !conv);
                 if self.is(&Tok::LBracket) && takes_type_args && !self.bracket_is_bound() {
@@ -2318,9 +2409,9 @@ impl<'a> Parser<'a> {
                     self.expect(&Tok::RBracket, "`]` closing the type parameters")?;
                 } else if self.is(&Tok::LBracket) && is_primitive_head(&head) && !self.bracket_is_bound() && !conv {
                     if head == "bool" || head.starts_with("str") || head.starts_with("char") {
-                        return self.fail(format!("`{}` takes no type parameters; a bracket after it is a bound — `[lo, hi]`", path.spelled()));
+                        return self.fail(format!("`{}` takes no type parameters; a bracket after it is a bound — `[min 1, max 40 graphemes]`", path.spelled()));
                     }
-                    return self.fail(format!("`{}` takes no type parameters; a bracket after it is a range — `{}[0, 100]`", path.spelled(), path.spelled()));
+                    return self.fail(format!("`{}` takes no type parameters; a bracket after it is a range — `{}[min 0, max 100]`", path.spelled(), path.spelled()));
                 }
                 TypeKind::Path { path, args }
             }
@@ -3207,26 +3298,23 @@ impl<'a> Parser<'a> {
                 Ok(Otherwise::Leave(Box::new(Stmt { kind: StmtKind::Continue, span })))
             }
             Tok::LBrace => {
-                let open = self.bump().span;
-                let mut arms = Vec::new();
-                while !self.is(&Tok::RBrace) {
-                    if self.at_eof() {
-                        return self.fail_at(open, "the `otherwise` arms are never closed");
+                let (arms, span) = self.arms_block()?;
+                Ok(Otherwise::Arms(arms, span))
+            }
+            // `otherwise h.as_zero` (owner, 2026-10-13): a handler's arms, read
+            // as if written here.
+            Tok::Word(w) if self.handlers.contains_key(&w) && matches!(self.peek_at(1), Tok::Dot) => {
+                let start = self.bump().span;
+                self.bump();
+                let member = self.ident("the handler's name")?;
+                let members = &self.handlers[&w];
+                match members.iter().find(|(m, _)| *m == member.name) {
+                    Some((_, arms)) => Ok(Otherwise::Arms(arms.clone(), start.to(member.span))),
+                    None => {
+                        let have = members.iter().map(|(m, _)| format!("`{}`", m)).collect::<Vec<_>>().join(", ");
+                        self.fail_at(member.span, format!("`{}` has no handler `{}`; it has {}", w, member.name, have))
                     }
-                    let name = match self.peek().clone() {
-                        Tok::Word(_) => self.ident("a failure name")?,
-                        Tok::Name(n) => return self.fail(format!("an arm starts with the reason's bare name, then a quoted name for its payload: `bad_item '{}' {{ … }}`", n)),
-                        other => return self.fail(format!("expected a failure name, found {}", other.describe())),
-                    };
-                    let bind = if let Tok::Name(_) = self.peek() { Some(self.qname("a name")?) } else { None };
-                    let body = self.block("the arm")?;
-                    arms.push(FailArm { name, bind, body });
                 }
-                let close = self.bump().span;
-                if arms.is_empty() {
-                    return self.fail_at(open.to(close), "`otherwise { }` has no arms: one arm per reason, `reason { … }`");
-                }
-                Ok(Otherwise::Arms(arms, open.to(close)))
             }
             _ => Ok(Otherwise::Value(self.expr(0)?)),
         }
@@ -3733,24 +3821,9 @@ impl<'a> Parser<'a> {
             }
             // The near-misses the language refuses by name.
             if let BinOp::Custom(c) = &op {
-                // The comparisons are words (owner, 2026-10-07).
-                let word = match c.as_str() {
-                    "!=" => Some("not-equal is `not_equal`"),
-                    ">=" | ">==" => Some("greater-or-equal is `at_least`"),
-                    "<=" | "<==" => Some("less-or-equal is `at_most`"),
-                    _ => None,
-                };
-                if let Some(h) = word {
-                    return self.fail_at(op_span, format!("`{}` is not an operator; {}", c, h));
-                }
-                let hint = match c.as_str() {
-                    "/" => Some("division is `div.floor`, `div.ceil`, `div.trunc` or `div.near`: `'a' div.floor 'b'`"),
-                    "--" => Some("there is no decrement: write `change 'i' = 'i' minus 1;`"),
-                    "+=" | "-=" => Some("there is no compound assignment: write `change 'i' = 'i' plus 1;`"),
-                    _ => None,
-                };
-                if let Some(h) = hint {
-                    return self.fail_at(op_span, format!("`{}` is not an operator here: {}", c, h));
+                // What is not an operator, and what to write (spellings.nrp).
+                if let Some(says) = crate::spellings::not_operator(c) {
+                    return self.fail_at(op_span, format!("`{}` is not an operator; {}", c, says));
                 }
             }
             // The operators are the Brainstem's (owner, 2026-10-08: "`a`",
