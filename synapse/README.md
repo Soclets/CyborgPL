@@ -678,23 +678,22 @@ Dated, with the alternative, so each can become a question later.
 - **2026-10-13 — How Synapse builds the cursed `+`.** With text on either
   side it is `++` with the number turned to text as `print.useful` shows
   it. Two numbers are `plus`, in between held to `plus`'s own limit (the
-  widest operand's width, at least 64 bits), where the oracle's `+` holds
-  them to none. On 1 April, by the machine's local date (`SYNAPSE_TODAY=MM-DD`
-  stands in for it, as `ORACLE_TODAY` does for the oracle's), two whole
-  numbers are `xxx`: Axon works the tower out in 128 bits
-  (`cyborg_tetrate`), and its answer lands in `plus`'s answer, overflowing
-  as `plus`'s would ("overflowing as any number would"), a check there,
-  where the oracle lets an answer past 64 bits through. An operand past
-  128 bits makes the tower too (`'g' + 1` is `'g'`), where the oracle
-  falls back to adding. Nothing warns; `synapse build --final` refuses
-  the first `+`.
+  widest operand's width, at least 64 bits). On 1 April, by the machine's
+  local date (`SYNAPSE_TODAY=MM-DD` stands in for it, as `ORACLE_TODAY`
+  does for the oracle's), two whole numbers are `xxx`, any two, an operand
+  past 128 bits included (`'g' + 1` is `'g'`): Axon works the tower out in
+  128 bits (`cyborg_tetrate`), and its answer lands in `plus`'s answer,
+  held to the same limit, a check there. These three were decided with
+  the oracle's matching fixes (design claude, 2026-10-13, `5f13a0ac`): no
+  longer picks. Nothing warns; `synapse build --final` refuses the first
+  `+`.
 - **2026-10-13 — How Synapse builds the cursed `*` and the power `jokes`.**
   Text times a whole number (on either side) is Axon's `cyborg_str_repeat`,
   the count taken to `int64` first, negated on 1 April and none at all at 0
   or fewer. Two numbers: each converted to `bin16` (rounded to nearest,
   ties to even), multiplied there, a check past the largest as any `bin16`
   product has, negated on 1 April as `0.0 minus` it, so no answer is -0
-  (the oracle prints `0.0 * 2.5` on 1 April as `-0`), and converted to
+  (decided, `5f13a0ac`), and converted to
   `times`'s answer type. Its checks are the ones `times` and a landing in
   `bin16` have, so the trap names those rather than saying "`300 * 300`
   overflows". `jokes` is granted and listed for every Neuron without a

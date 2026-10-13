@@ -316,9 +316,12 @@ impl SiteKind {
             SiteKind::TaskLendOutlives => "the task can outlive what it borrowed".into(),
             SiteKind::ChannelReachable => "nothing can ever take what is sent here".into(),
             SiteKind::Deadlock => "both sides can end up waiting for the other".into(),
-            SiteKind::Tower { to } => match to.exact_limit() {
-                Some(bits) => format!("on 1 April `+` is `xxx`, and its tower of powers can go past {} bits in between", bits),
-                None => format!("on 1 April `+` is `xxx`, and its tower of powers can be past what {} holds", crate::types::a_type(&spell(to))),
+            // Bare numbers' answer is held to 64 bits in between, as an
+            // exact one is to its limit.
+            SiteKind::Tower { to } => match (to.exact_limit(), to.base()) {
+                (Some(bits), _) => format!("on 1 April `+` is `xxx`, and its tower of powers can go past {} bits in between", bits),
+                (None, Ty::Int(crate::types::IntW::Free(_))) => "on 1 April `+` is `xxx`, and its tower of powers can go past 64 bits in between".into(),
+                (None, _) => format!("on 1 April `+` is `xxx`, and its tower of powers can be past what {} holds", crate::types::a_type(&spell(to))),
             },
         }
     }
