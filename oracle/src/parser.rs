@@ -12,8 +12,8 @@ use crate::value::ty_name;
 const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1_000), ("micros", 1_000), ("milli", 1_000_000), ("millis", 1_000_000), ("second", 1_000_000_000), ("seconds", 1_000_000_000), ("minute", 60_000_000_000), ("minutes", 60_000_000_000), ("hour", 3_600_000_000_000), ("hours", 3_600_000_000_000)];
 
 pub const KEYWORDS: &[&str] = &[
-    "fn", "let", "shadow", "change", "giveS", "gives", "is", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
-    "give", "copy", "lend", "lent", "op", "check", "nocheck", "NO_FUCKING_CHECKS", "true", "false", "mut", "immut",
+    "fn", "let", "shadow", "change", "is", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
+    "give", "copy", "lend", "lent", "op", "check", "no_check", "no_cheat", "NO_FUCKING_CHECKS", "true", "false", "mut", "immut",
     "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "incl", "collection", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
@@ -128,7 +128,7 @@ const STD_STR_OPS: &[&str] = &["split", "find", "contains", "trim", "upper", "lo
 
 /// An operator as code writes it (`+` inside is `plus`).
 pub fn op_shown(op: &str) -> String {
-    match op { "+" => "plus".into(), "-" => "minus".into(), "x" => "times".into(), "+.ieee" => "plus.ieee".into(), "-.ieee" => "minus.ieee".into(), "x.ieee" => "times.ieee".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), "==" => "equal_to".into(), "!==" => "not_equal".into(), "</==" => "at_most".into(), ">/==" => "at_least".into(), o => o.into() }
+    match op { "+" => "plus".into(), "-" => "minus".into(), "x" => "times".into(), "+.ieee" => "plus.ieee".into(), "-.ieee" => "minus.ieee".into(), "x.ieee" => "times.ieee".into(), "+~" => "plus.wrap".into(), "-~" => "minus.wrap".into(), "x~" => "times.wrap".into(), "equal_to" => "equal_to".into(), "not_equal" => "not_equal".into(), "at_most" => "at_most".into(), "at_least" => "at_least".into(), o => o.into() }
 }
 
 const OP_WORDS: &[&str] = &["x", "xx", "div", "mod", "and", "or"];
@@ -485,7 +485,7 @@ impl Parser {
                 };
                 if self.lacks.iter().any(|c| c == core) {
                     self.pos = i;
-                    let what = if w == "to" { "`to.`".to_string() } else if w == "para" { "`for para`".to_string() } else if w == "nocheck" { "`no_check`".to_string() } else { format!("`{w}`") };
+                    let what = if w == "to" { "`to.`".to_string() } else if w == "para" { "`for para`".to_string() }  else { format!("`{w}`") };
                     return self.core_missing(core, &what);
                 }
             }
@@ -1078,7 +1078,7 @@ impl Parser {
                 Tok::Word(w) if w == "let" || w == "var" => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a Neuron-level value is a `const`: `const 'x' := 1;`"),
                 Tok::Var(_) => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a Neuron-level value is a `const`: `const 'x' := 1;`"),
                 Tok::Word(w) if w == "mod" => return self.err("`mod` is the remainder operator; a module block is `module name { … }`"),
-                Tok::Word(w) if w == "check" || w == "nocheck" || w == "NO_FUCKING_CHECKS" => return self.err(format!("`{w}` goes in front of a statement inside a body; there is no file-wide or Neuron-wide tier")),
+                Tok::Word(w) if w == "check" || w == "no_check" || w == "NO_FUCKING_CHECKS" => return self.err(format!("`{w}` goes in front of a statement inside a body; there is no file-wide or Neuron-wide tier")),
                 Tok::RBrace => return self.err("`}` with nothing open"),
                 other => return self.err(format!("expected `fn`, `struct`, `const`, `module`, or `MAIN` at the top level, found {other}")),
             }
@@ -2029,17 +2029,17 @@ impl Parser {
                 "module" => self.err("a `module` block sits at the top level of a file, not inside a body"),
                 "MAIN" => self.err("MAIN cannot be nested or called"),
                 "else" => self.err("`else` without an `if`"),
-                "check" | "nocheck" | "NO_FUCKING_CHECKS" => {
+                "check" | "no_check" | "NO_FUCKING_CHECKS" => {
                     // decided 2026-09-19: a word before a statement (or a `{ }` block).
                     // `NO_FUCKING_CHECKS` (owner, 2026-09-27): `nocheck`, and C's answers trusted too
                     self.advance();
-                    let tier = match w.as_str() { "check" => Tier::Check, "nocheck" => Tier::NoCheck, _ => Tier::NoChecksAtAll };
+                    let tier = match w.as_str() { "check" => Tier::Check, "no_check" => Tier::NoCheck, _ => Tier::NoChecksAtAll };
                     // vouching is a power IEG grants (owner, 2026-10-07: "`a`")
                     match tier { Tier::NoCheck => self.use_power("vouch", None, line), Tier::NoChecksAtAll => self.use_power("vouch.c", None, line), _ => {} }
                     match self.peek().clone() {
                         Tok::Semi => return self.err(format!("`{w}` goes in front of a statement: `{w} 'xs'[pos 'i'] = 5;` or `{w} {{ … }}`")),
                         Tok::Word(k) if k == "fn" || k == "struct" || k == "const" || k == "module" => return self.err(format!("`{w}` covers a statement, not a `{k}` — a function's safety is the sum of its statements")),
-                        Tok::Word(k) if k == "check" || k == "nocheck" || k == "NO_FUCKING_CHECKS" => return self.err(format!("`{w} {k}`: one tier per statement; the innermost wins when they nest")),
+                        Tok::Word(k) if k == "check" || k == "no_check" || k == "NO_FUCKING_CHECKS" => return self.err(format!("`{w} {k}`: one tier per statement; the innermost wins when they nest")),
                         _ => {}
                     }
                     let body = self.stmt()?;
@@ -2130,7 +2130,7 @@ impl Parser {
                 "extern" | "layout" => self.err(format!("`{w}` sits at the top level of a file")),
                 "incl" if matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(c) if c == "C" || c == "c") => self.err("`incl.C` sits at the top level of a file or in a `module` block, as `extern.C` does, never in a body"),
                 "asm" | "ASM" => self.err("inline assembly is `inline.ASM { … }` (decided 2026-09-20; `inline.ASM` again since 2026-10-07)"),
-                "giveS" => {
+                "is" => {
                     // `is "free";` gives a case its value (owner, 2026-10-07: "`is`")
                     if self.arm_depth == 0 { return self.err("`is` gives a `match` or `otherwise` case its value; there is no case here"); }
                     self.advance();
@@ -2469,14 +2469,14 @@ impl Parser {
         // cores. The strongest modifier comes first, so `!cheat` precedes `seq` / `para`. The oracle
         // runs every round of every loop already, so it only reads the word.
         if self.is_word("!c") { return self.err("`!c` is `no_cheat` now: `for no_cheat 'i' in …` (owner, 2026-10-06)"); }
-        if self.is_word("!cheat") { self.advance(); }
+        if self.is_word("no_cheat") { self.advance(); }
         let mut seq = false;
         if self.is_word("seq") { self.advance(); seq = true; }
         // `for para` forces a loop parallel, as `for seq` forces it in order (owner, 2026-09-30); the
         // oracle runs every loop in order, one schedule of the design's, so it only reads the word
         else if self.is_word("para") { self.advance(); }
         if self.is_word("seq") || self.is_word("para") { return self.err("a `for` is `seq` or `para`, not both"); }
-        if self.is_word("!cheat") || self.is_word("!c") { return self.err("`no_cheat` comes first, the strongest modifier: `for no_cheat seq 'i' in …`"); }
+        if self.is_word("no_cheat") || self.is_word("!c") { return self.err("`no_cheat` comes first, the strongest modifier: `for no_cheat seq 'i' in …`"); }
         let perm = match self.peek().clone() {
             Tok::Word(w) if w == "temp" => { self.advance(); false }
             Tok::Word(w) if w == "perm" => { self.advance(); true }
@@ -3553,7 +3553,7 @@ impl Parser {
         match op {
             "or" | "or.else" => 100,
             "and" | "and.then" => 200,
-            "==" | "!==" | "<" | ">" | "</==" | ">/==" => 300,
+            "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least" => 300,
             "++" => 400,
             "+" | "-" | "+~" | "-~" => 500,
             "x" | "x~" => 600,
@@ -3566,7 +3566,7 @@ impl Parser {
     }
     /// How a chain of the language's own operator reads: 0 left first, 1 right first, 2 refused.
     fn base_chain(op: &str) -> u8 {
-        match op { "==" | "!==" | "<" | ">" | "</==" | ">/==" => 2, "xx" | "xx~" | "pow" | "pow.wrap" | "pow.ieee" => 1, _ => 0 }
+        match op { "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least" => 2, "xx" | "xx~" | "pow" | "pow.wrap" | "pow.ieee" => 1, _ => 0 }
     }
     fn lvl(&self, op: &str) -> (u16, u8) {
         // a path names whose operator it is; its level is the operator's own
@@ -3741,7 +3741,7 @@ impl Parser {
         let bad = |line: usize, msg: String| Err(ParseError { line, col: 0, msg });
         match e {
             Expr::Binary(op, l, r, line) => {
-                let is_cmp = |o: &str| matches!(o, "==" | "!==" | "<" | ">" | "</==" | ">/==");
+                let is_cmp = |o: &str| matches!(o, "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least");
                 for child in [l.as_ref(), r.as_ref()] {
                     match child {
                         Expr::Binary(cop, ..) => {
@@ -3920,7 +3920,7 @@ impl Parser {
                 }
                 "lent" => self.err("`lent` describes a parameter; a caller writes `lend`"),
                 "range" => self.err("`range[…]` is only decided as what a `for` runs over: `for temp 'i' in range[1, 10]`"),
-                "check" | "nocheck" | "NO_FUCKING_CHECKS" => self.err(format!("`{w}` goes in front of a statement, not inside a value; if half a statement needs it, split the statement")),
+                "check" | "no_check" | "NO_FUCKING_CHECKS" => self.err(format!("`{w}` goes in front of a statement, not inside a value; if half a statement needs it, split the statement")),
                 "list" | "array" => { let (h, o, a) = self.builtin()?; Ok(Expr::Builtin(h, o, a, line)) }
                 "channel" if *self.peek_at(1) == Tok::LBracket => {
                     // channel[T] / channel[T][0, N] as a value: a new channel
@@ -4225,7 +4225,7 @@ impl Parser {
                         let plain = op.split('.').next().unwrap();
                         return self.err(format!("`op {op}` cannot skip anything: a function's arguments are worked out before it runs, so it would be `op {plain}`. Write `op {plain}` (owner, 2026-09-29)"));
                     }
-                    let cmp = matches!(op.as_str(), "==" | "!==" | "<" | ">" | "</==" | ">/==");
+                    let cmp = matches!(op.as_str(), "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least");
                     let src = match op.as_str() {
                         "neg" => "fn ['a': <T>] -> <T> { return -'a'; }".to_string(),
                         "not" => "fn ['a': bool] -> bool { return not 'a'; }".to_string(),

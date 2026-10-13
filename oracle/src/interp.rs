@@ -244,7 +244,7 @@ impl<'p> Interp<'p> {
             Ok(Flow::Return(_)) => rt(0, "`return` inside MAIN: MAIN is a block, not a function; use cord::exit[…] for a code"),
             Ok(Flow::Fail(n, _)) => rt(0, format!("MAIN cannot fail (`{n}`); it exits — handle it, or cord::exit[…]")),
             Ok(Flow::Break) | Ok(Flow::Continue) => rt(0, "`break`/`continue` outside a loop"),
-            Ok(Flow::Give(_)) => rt(0, "`giveS` outside a case"),
+            Ok(Flow::Give(_)) => rt(0, "`is` outside a case"),
             Err(RuntimeError { exit: Some(code), .. }) => Ok(code),
             Err(e) => Err(e),
         }
@@ -609,7 +609,7 @@ impl<'p> Interp<'p> {
             }
             Ok(Flow::Return(_)) => rt(task.line, "`return` inside a task: a task is a block, not a function"),
             Ok(Flow::Break) | Ok(Flow::Continue) => rt(task.line, "`break`/`continue` inside a task reach no loop"),
-            Ok(Flow::Give(_)) => rt(task.line, "`giveS` outside a case"),
+            Ok(Flow::Give(_)) => rt(task.line, "`is` outside a case"),
             Ok(Flow::Normal) => Ok(()),
             Err(e) => Err(e),
         }
@@ -677,7 +677,7 @@ impl<'p> Interp<'p> {
                     Value::Bool(false) => {
                         // a comparison shows both sides (worked out again for the message: the oracle's reading)
                         if let Expr::Binary(op, l, r, _) = cond {
-                            if matches!(op.as_str(), "==" | "!==" | "<" | ">" | "</==" | ">/==") {
+                            if matches!(op.as_str(), "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least") {
                                 let (a, _) = self.eval(l)?;
                                 let (b, _) = self.eval(r)?;
                                 return rt(*line, format!("`must` does not hold: the left side is {}, and it must be `{}` {}", a.show_useful(), crate::parser::op_shown(op), b.show_useful()));
@@ -1852,7 +1852,7 @@ impl<'p> Interp<'p> {
         let fresh = !simd_shape && matches!(e, Expr::Call(_) | Expr::CallValue(..) | Expr::Builtin(..) | Expr::Convert(..)
             | Expr::Construct(..) | Expr::MapFail(..) | Expr::MapLit(..) | Expr::CharFromCode(..)
             | Expr::Lambda(..) | Expr::ChannelNew(..) | Expr::EnumValue(..))
-            || matches!(e, Expr::Binary(op, ..) if matches!(op.as_str(), "==" | "!==" | "<" | ">" | "</==" | ">/=="));
+            || matches!(e, Expr::Binary(op, ..) if matches!(op.as_str(), "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least"));
         let r = if fresh && self.expected.is_some() {
             let saved = self.expected.take();
             let r = self.eval_inner(e);
@@ -3045,7 +3045,7 @@ impl<'p> Interp<'p> {
                 let Value::Bool(b) = b else { return rt(line, format!("`{op}` works on bools, got {}", b.kind())) };
                 Ok((Value::Bool(b), Prov::Plain))
             }
-            Expr::Binary(op, l, r, _) if !is_div_mod(op.strip_suffix(".ieee").unwrap_or(op)) && !matches!(op.strip_suffix(".ieee").unwrap_or(op), "+" | "-" | "x" | "xx" | "++" | "==" | "!==" | "<" | ">" | "</==" | ">/==" | "and" | "or") => {
+            Expr::Binary(op, l, r, _) if !is_div_mod(op.strip_suffix(".ieee").unwrap_or(op)) && !matches!(op.strip_suffix(".ieee").unwrap_or(op), "+" | "-" | "x" | "xx" | "++" | "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least" | "and" | "or") => {
                 self.custom_op(op, l, r, line)
             }
             Expr::Binary(full, l, r, _) => {
@@ -3055,7 +3055,7 @@ impl<'p> Interp<'p> {
                 // A comparison's operands take their width from each other (2026-09-23): the
                 // stored `bool` says nothing, but a typed side sizes a literal group on the other
                 // (`'n' > (0 -~ 1)` wraps in uint64; verification session, seed 90).
-                let cmp = matches!(op.as_str(), "==" | "!==" | "<" | ">" | "</==" | ">/==");
+                let cmp = matches!(op.as_str(), "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least");
                 let saved_expected = self.expected.clone();
                 // beside a deci, a group of bare numbers takes the deci's width, as a literal does
                 // (`'a' + (1.5 x 2)`; compiler session, 2026-09-29)
@@ -3335,21 +3335,21 @@ impl<'p> Interp<'p> {
             }
             ("<", Brain(x), Brain(y)) => Bool(x < y),
             (">", Brain(x), Brain(y)) => Bool(x > y),
-            ("</==", Brain(x), Brain(y)) => Bool(x <= y),
-            (">/==", Brain(x), Brain(y)) => Bool(x >= y),
-            (_, x, y) if (matches!(x, Brain(_)) || matches!(y, Brain(_))) && !matches!(op, "==" | "!==") =>
+            ("at_most", Brain(x), Brain(y)) => Bool(x <= y),
+            ("at_least", Brain(x), Brain(y)) => Bool(x >= y),
+            (_, x, y) if (matches!(x, Brain(_)) || matches!(y, Brain(_))) && !matches!(op, "equal_to" | "not_equal") =>
                 return rt(line, format!("`{op}` between {} and {}: the brain float is a family of its own; convert one, `to.brain16[…]` or `to.bin32[…]`", x.kind(), y.kind())),
             // deci (owner, 2026-09-29): exact, then rounded to the width, half to even
             (_, Deci(x), Deci(y)) if x.width != y.width => return rt(line, format!("`{op}` between a deci{} and a deci{}: say which width, `to.deci{}[…]`", x.width, y.width, x.width.max(y.width))),
             ("+", Deci(x), Deci(y)) => Deci(x.add(&y).or_else(|m| site(line, m))?),
             ("-", Deci(x), Deci(y)) => Deci(x.sub(&y).or_else(|m| site(line, m))?),
             ("x", Deci(x), Deci(y)) => Deci(x.mul(&y).or_else(|m| site(line, m))?),
-            ("==", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_eq()),
-            ("!==", Deci(x), Deci(y)) => Bool(!x.cmp_value(&y).is_eq()),
+            ("equal_to", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_eq()),
+            ("not_equal", Deci(x), Deci(y)) => Bool(!x.cmp_value(&y).is_eq()),
             ("<", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_lt()),
             (">", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_gt()),
-            ("</==", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_le()),
-            (">/==", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_ge()),
+            ("at_most", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_le()),
+            ("at_least", Deci(x), Deci(y)) => Bool(x.cmp_value(&y).is_ge()),
             // `mod` takes the divisor's sign, as integer `mod`; `xx` takes a whole exponent and rounds
             // like the other operations (owner, 2026-09-29: a, a)
             ("xx", Deci(x), Deci(y)) => {
@@ -3363,28 +3363,28 @@ impl<'p> Interp<'p> {
                 return rt(line, format!("`{op}` between an integer and a bin: there is no implicit conversion between numeric families")),
             // a char compares by its content, whatever unit it was declared in
             // durations (design/concurrency.md): compare, add, subtract, scale by an integer
-            ("==", Duration(a), Duration(b)) => Bool(a == b),
-            ("!==", Duration(a), Duration(b)) => Bool(a != b),
+            ("equal_to", Duration(a), Duration(b)) => Bool(a == b),
+            ("not_equal", Duration(a), Duration(b)) => Bool(a != b),
             ("<", Duration(a), Duration(b)) => Bool(a < b),
             (">", Duration(a), Duration(b)) => Bool(a > b),
-            ("</==", Duration(a), Duration(b)) => Bool(a <= b),
-            (">/==", Duration(a), Duration(b)) => Bool(a >= b),
+            ("at_most", Duration(a), Duration(b)) => Bool(a <= b),
+            ("at_least", Duration(a), Duration(b)) => Bool(a >= b),
             ("+", Duration(a), Duration(b)) => Duration(a + b),
             ("-", Duration(a), Duration(b)) => { if b > a { return rt(line, "a duration is never negative"); } Duration(a - b) }
             ("x", Duration(a), Int(k)) | ("x", Int(k), Duration(a)) => { if k < 0 { return rt(line, "a duration is never negative"); } Duration(a * k) }
-            ("==", Char(_, a), Char(_, b)) => Bool(a == b),
-            ("!==", Char(_, a), Char(_, b)) => Bool(a != b),
-            ("==", x, y) => { same_family(&x, &y, line, "==")?; Bool(x == y) }
-            ("!==", x, y) => { same_family(&x, &y, line, "!==")?; Bool(x != y) }
+            ("equal_to", Char(_, a), Char(_, b)) => Bool(a == b),
+            ("not_equal", Char(_, a), Char(_, b)) => Bool(a != b),
+            ("equal_to", x, y) => { same_family(&x, &y, line, "equal_to")?; Bool(x == y) }
+            ("not_equal", x, y) => { same_family(&x, &y, line, "not_equal")?; Bool(x != y) }
             ("<", Int(x), Int(y)) => Bool(x < y),
             (">", Int(x), Int(y)) => Bool(x > y),
-            ("</==", Int(x), Int(y)) => Bool(x <= y),
-            (">/==", Int(x), Int(y)) => Bool(x >= y),
+            ("at_most", Int(x), Int(y)) => Bool(x <= y),
+            ("at_least", Int(x), Int(y)) => Bool(x >= y),
             ("<", Bin(x), Bin(y)) => Bool(x < y),
             (">", Bin(x), Bin(y)) => Bool(x > y),
-            ("</==", Bin(x), Bin(y)) => Bool(x <= y),
-            (">/==", Bin(x), Bin(y)) => Bool(x >= y),
-            ("<" | ">" | "</==" | ">/==", Str(_), Str(_)) => return rt(line, format!("`{op}` on text has no meaning yet: byte order is never what anyone means; a collation rule is cord's (decided 2026-09-20)")),
+            ("at_most", Bin(x), Bin(y)) => Bool(x <= y),
+            ("at_least", Bin(x), Bin(y)) => Bool(x >= y),
+            ("<" | ">" | "at_most" | "at_least", Str(_), Str(_)) => return rt(line, format!("`{op}` on text has no meaning yet: byte order is never what anyone means; a collation rule is cord's (decided 2026-09-20)")),
             ("and", Bool(x), Bool(y)) => Bool(x && y),
             ("or", Bool(x), Bool(y)) => Bool(x || y),
             (op, x, y) => return rt(line, format!("`{op}` cannot combine {} and {}", x.kind(), y.kind())),
@@ -3586,7 +3586,7 @@ impl<'p> Interp<'p> {
     fn custom_key(&self, k: &Value) -> bool {
         let shape = shape_of(k);
         matches!(k, Value::Struct(..) | Value::Enum(..))
-            && self.prog.funcs.iter().any(|f| f.is_op && f.name == "==" && f.params[0].ty.as_ref().map(|t| ty_shape(t) == shape).unwrap_or(false))
+            && self.prog.funcs.iter().any(|f| f.is_op && f.name == "equal_to" && f.params[0].ty.as_ref().map(|t| ty_shape(t) == shape).unwrap_or(false))
             && self.prog.funcs.iter().any(|f| !f.is_op && f.name == "hash" && f.params.len() == 1 && f.params[0].ty.as_ref().map(|t| ty_shape(t) == shape).unwrap_or(false))
     }
 
@@ -3606,7 +3606,7 @@ impl<'p> Interp<'p> {
         scope.insert("__key_b".to_string(), Slot { cell: Rc::new(RefCell::new(b.clone())), ty: None, kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: false , since: 0, deps: Vec::new() });
         self.scopes.push(scope);
         let ax = Expr::Var("__key_a".into(), line); let bx = Expr::Var("__key_b".into(), line);
-        let r = self.custom_op_with("==", (a.clone(), Prov::Plain), &ax, &bx, line);
+        let r = self.custom_op_with("equal_to", (a.clone(), Prov::Plain), &ax, &bx, line);
         self.scopes.pop();
         let (eq, _) = r?;
         let eq = match eq { Value::Bool(x) => x, other => return rt(line, format!("`op ==` for {shape} must return a bool, got {}", other.kind())) };
@@ -4266,7 +4266,7 @@ impl<'p> Interp<'p> {
             Flow::Return(v) => v,
             Flow::Normal => Value::Nothing,
             Flow::Break | Flow::Continue => return rt(func.line, "`break`/`continue` outside a loop"),
-            Flow::Give(_) => return rt(func.line, "`giveS` outside a case"),
+            Flow::Give(_) => return rt(func.line, "`is` outside a case"),
             Flow::Fail(reason, payload) => return self.handle_failure(c.handler.as_ref().unwrap(), c.line, name, reason, payload, value_used),
         };
         // `-> lent @x T`: the borrow must be of a parameter in group x — or of any lent parameter
@@ -4312,12 +4312,12 @@ impl<'p> Interp<'p> {
             return Ok(Err(format!("{shape} is not `{iface}`: it is not one of the types it lists")));
         }
         let builtin_ops: &[&str] = match shape {
-            "integer" | "bin" => &["+", "-", "x", "xx", "div", "mod", "<", ">", "</==", ">/==", "==", "!=="],
-            "deci" => &["+", "-", "x", "div", "<", ">", "</==", ">/==", "==", "!=="],
-            "bool" => &["and", "or", "==", "!=="],
-            "str" => &["++", "==", "!=="],
-            "char" | "list" => &["==", "!=="],
-            _ => &["==", "!=="],
+            "integer" | "bin" => &["+", "-", "x", "xx", "div", "mod", "<", ">", "at_most", "at_least", "equal_to", "not_equal"],
+            "deci" => &["+", "-", "x", "div", "<", ">", "at_most", "at_least", "equal_to", "not_equal"],
+            "bool" => &["and", "or", "equal_to", "not_equal"],
+            "str" => &["++", "equal_to", "not_equal"],
+            "char" | "list" => &["equal_to", "not_equal"],
+            _ => &["equal_to", "not_equal"],
         };
         for e in &def.entries {
             let found = if e.is_op {
@@ -4375,7 +4375,7 @@ impl<'p> Interp<'p> {
             Flow::Normal => Ok(Value::Nothing),
             Flow::Fail(..) => rt(line, "a callback cannot fail"),
             Flow::Break | Flow::Continue => rt(line, "`break`/`continue` outside a loop"),
-            Flow::Give(_) => rt(line, "`giveS` outside a case"),
+            Flow::Give(_) => rt(line, "`is` outside a case"),
         }
     }
 
@@ -4488,7 +4488,7 @@ impl<'p> Interp<'p> {
             Flow::Return(v) => v,
             Flow::Normal => return rt(line, format!("`op {op}` fell off the end without returning a value")),
             Flow::Break | Flow::Continue => return rt(def.line, "`break`/`continue` outside a loop"),
-            Flow::Give(_) => return rt(def.line, "`giveS` outside a case"),
+            Flow::Give(_) => return rt(def.line, "`is` outside a case"),
             Flow::Fail(..) => return rt(line, "an operator cannot fail"),
         };
         let k = self.ret_kind.take();
@@ -5064,7 +5064,7 @@ impl<'p> Interp<'p> {
             "print.stdout" | "print.stderr" => rt(c.line, format!("say which form `cord::{path}` shows: `cord::print.stored.{0}[…]` (what is stored) or `cord::print.useful.{0}[…]` (the useful value) (owner, 2026-10-02)", &path[6..])),
             "print.weird.stdout" | "print.weird.stderr" => rt(c.line, format!("say which form `cord::{path}` shows: `cord::print.weird.stored.{0}` or `cord::print.weird.useful.{0}` (owner, 2026-10-02)", &path[12..])),
             "print.stored.stdout" | "print.useful.stdout" | "print.stored.stderr" | "print.useful.stderr"
-            | "print.useful.auto_newline.stdout" | "print.useful.auto_newline.stderr"
+            | "print.useful.auto_newln.stdout" | "print.useful.auto_newln.stderr"
             | "print.weird.stored.stdout" | "print.weird.stored.stderr" | "print.weird.useful.stdout" | "print.weird.useful.stderr"
             | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output"
             | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" => {
@@ -5086,8 +5086,8 @@ impl<'p> Interp<'p> {
                     if matches!(v, Value::Nothing) { return rt(c.line, "a call that returns nothing cannot be printed"); }
                     text.push_str(&if useful { show_useful_as(&v, ty.as_ref()) } else { v.show_stored() });
                 }
-                // `.auto_newline` ends the line after the values (owner, 2026-09-30)
-                if path.contains(".auto_newline.") { text.push('\n'); }
+                // `.auto_newln` ends the line after the values (owner, 2026-09-30)
+                if path.contains(".auto_newln.") { text.push('\n'); }
                 if path.ends_with("stderr") { eprint!("{text}"); }
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
                 Ok(Value::Nothing)
@@ -5366,12 +5366,12 @@ fn big_binary(op: &str, a: &Value, b: &Value, line: usize) -> Result<Option<Valu
             let e = y.to_u64().filter(|e| x.bits().saturating_mul(*e) <= 16_777_216 || x.bits() <= 1);
             match e { Some(e) => from_big(x.pow(e)), None => return site(line, format!("{x} to the power {y} is past the widest integer there is (2^23 bits)")) }
         }
-        "==" => Value::Bool(x.cmp(&y).is_eq()),
-        "!==" => Value::Bool(!x.cmp(&y).is_eq()),
+        "equal_to" => Value::Bool(x.cmp(&y).is_eq()),
+        "not_equal" => Value::Bool(!x.cmp(&y).is_eq()),
         "<" => Value::Bool(x.cmp(&y).is_lt()),
         ">" => Value::Bool(x.cmp(&y).is_gt()),
-        "</==" => Value::Bool(x.cmp(&y).is_le()),
-        ">/==" => Value::Bool(x.cmp(&y).is_ge()),
+        "at_most" => Value::Bool(x.cmp(&y).is_le()),
+        "at_least" => Value::Bool(x.cmp(&y).is_ge()),
         o if is_div_mod(o) => {
             let (kind, mode) = o.split_once('.').unwrap();
             let Some((mut q, mut r)) = x.divrem_trunc(&y) else { return site(line, if kind == "div" { "division by zero" } else { "`mod` by zero" }) };

@@ -296,19 +296,14 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 _ => None,
             };
             let inside: Option<Tok> = match s.as_str() {
-                "no_check" => Some(Tok::Word("nocheck".into())),
-                "no_cheat" => Some(Tok::Word("!cheat".into())),
                 "no_shadow" => Some(Tok::NoShadow),
-                "equal_to" => Some(Tok::Op("==".into())),
-                "not_equal" => Some(Tok::Op("!==".into())),
-                "at_most" => Some(Tok::Op("</==".into())),
-                "at_least" => Some(Tok::Op(">/==".into())),
+                "equal_to" => Some(Tok::Op("equal_to".into())),
+                "not_equal" => Some(Tok::Op("not_equal".into())),
+                "at_most" => Some(Tok::Op("at_most".into())),
+                "at_least" => Some(Tok::Op("at_least".into())),
                 "newln" => Some(Tok::Newline),
                 "cord" => Some(Tok::Word("std".into())),
                 "neuron" => Some(Tok::Word("limb".into())),
-                "auto_newln" => Some(Tok::Word("auto_newline".into())),
-                // a case's value says `is` (owner, 2026-10-07), held inside as `#strict`'s `giveS`
-                "is" => Some(Tok::Word("giveS".into())),
                 _ => None,
             };
             if s == "not_std" {
@@ -358,7 +353,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
         // `!check` is the main spelling of `nocheck` (owner, 2026-10-06): read as the word `nocheck`,
         // which is MTM's spelling when written out
         if chars[i..].iter().take(6).collect::<String>() == "!check" && !chars.get(i + 6).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
-            push(Tok::Word("nocheck".into()), &mut toks); toks.last_mut().unwrap().mtm = Some(("!check".into(), "no_check")); i += 6; col += 6; continue;
+            push(Tok::Word("!check".into()), &mut toks); toks.last_mut().unwrap().mtm = Some(("!check".into(), "no_check")); i += 6; col += 6; continue;
         }
         if two == "!c" && !chars.get(i + 2).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
             push(Tok::Word("!c".into()), &mut toks); i += 2; col += 2; continue;
