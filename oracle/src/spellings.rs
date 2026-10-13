@@ -39,15 +39,17 @@ static LOADING: AtomicBool = AtomicBool::new(false);
 pub fn loading() -> bool { LOADING.load(Ordering::SeqCst) }
 
 pub fn table() -> &'static Table {
-    TABLE.get_or_init(|| {
-        LOADING.store(true, Ordering::SeqCst);
-        let t = read(SOURCE).unwrap_or_else(|e| panic!("spellings.nrp: {e}"));
-        LOADING.store(false, Ordering::SeqCst);
-        t
-    })
+    TABLE.get_or_init(|| read(SOURCE).unwrap_or_else(|e| panic!("spellings.nrp: {e}")))
 }
 
 fn read(src: &str) -> Result<Table, String> {
+    let was = LOADING.swap(true, Ordering::SeqCst);
+    let t = read_inner(src);
+    LOADING.store(was, Ordering::SeqCst);
+    t
+}
+
+fn read_inner(src: &str) -> Result<Table, String> {
     let toks = crate::lexer::lex(src).map_err(|e| format!("line {}:{}: {}", e.line, e.col, e.msg))?;
     let (shape, fields, _) = crate::parser::Parser::new(toks).one_value().map_err(|e| format!("line {}: {}", e.line, e.msg))?;
     if shape != "::spellings.table" { return Err(format!("the file is one `spellings::table[ … ]`, found `{shape}`")); }
@@ -86,16 +88,27 @@ fn flat(b: &Bracket) -> Vec<Expr> {
     for x in &b.values { let Value::Expr(x) = x; each(x, &mut v); }
     v
 }
+/// A list, as the language writes one: `[a, b]`, or `[a,]` for one item; `[a]` is the value itself (2026-09-14)
+fn list(b: &Bracket) -> Result<Vec<Expr>, String> {
+    match b.values.as_slice() {
+        [Value::Expr(Expr::Nested(inner))] if inner.values.len() != 1 || inner.one_list => Ok(flat(inner)),
+        [Value::Expr(Expr::Nested(inner))] => Err(format!("line {}: a list of one is written `[x,]`; `[x]` is the value itself (2026-09-14)", inner.line)),
+        _ => Err(format!("line {}: a list was expected, `[ … ]`", b.line)),
+    }
+}
 fn texts(b: &Bracket) -> Result<Vec<String>, String> {
-    flat(b).into_iter().map(|e| match e { Expr::Text(t, _) => Ok(t), _ => Err("a list of texts was expected".to_string()) }).collect()
+    list(b)?.into_iter().map(|e| match e { Expr::Text(t, _) => Ok(t), _ => Err("a list of texts was expected".to_string()) }).collect()
 }
 fn constructs(b: &Bracket) -> Result<Vec<(String, Vec<(String, Bracket)>, usize)>, String> {
-    flat(b).into_iter().map(|e| match e { Expr::Construct(s, f, l) => Ok((s, f, l)), _ => Err("a list of entries was expected".to_string()) }).collect()
+    list(b)?.into_iter().map(|e| match e { Expr::Construct(s, f, l) => Ok((s, f, l)), _ => Err("a list of entries was expected".to_string()) }).collect()
+}
+fn one_text(b: &Bracket) -> Result<String, String> {
+    match flat(b).as_slice() { [Expr::Text(t, _)] if !matches!(b.values.as_slice(), [Value::Expr(Expr::Nested(i))] if i.one_list) => Ok(t.clone()), _ => Err("one text was expected".to_string()) }
 }
 fn opt(f: &[(String, Bracket)], name: &str) -> Result<Option<String>, String> {
     match f.iter().find(|(n, _)| n == name) {
         None => Ok(None),
-        Some((_, b)) => match texts(b)?.as_slice() { [t] => Ok(Some(t.clone())), _ => Err(format!("`{name}` is one text")) },
+        Some((_, b)) => one_text(b).map(Some).map_err(|_| format!("`{name}` is one text")),
     }
 }
 fn need(f: &[(String, Bracket)], name: &str, line: usize) -> Result<String, String> {
