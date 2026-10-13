@@ -1,0 +1,4 @@
+collection c {
+    fn x [] { }
+}
+MAIN { }

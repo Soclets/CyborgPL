@@ -14,7 +14,7 @@ const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "shadow", "change", "giveS", "gives", "is", "return", "if", "else", "loop", "while", "for", "in", "break", "continue",
     "give", "copy", "lend", "lent", "op", "check", "nocheck", "NO_FUCKING_CHECKS", "true", "false", "mut", "immut",
-    "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "incl", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
+    "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from", "struct", "pub", "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "extern", "layout", "ptr", "size", "align", "incl", "collection", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies", "xor", "shl", "shr", "with", "test", "must",
     // retired 2026-09-19, still reserved so the errors can point at the new spelling
     "var", "func",
 ];
@@ -206,6 +206,8 @@ type PResult<T> = Result<T, ParseError>;
 thread_local! {
     /// The paths that are a type's name with its functions under it (`fn Counter.next`, 2026-10-09), not modules
     pub static TYPE_PATHS: std::cell::RefCell<Vec<Vec<String>>> = std::cell::RefCell::new(Vec::new());
+    /// Each collection template seen: (collection, line), for the check of what `synapse generate` wrote
+    pub static TEMPLATES: std::cell::RefCell<Vec<(String, usize)>> = std::cell::RefCell::new(Vec::new());
     /// The folder of the Neuron whose file is being parsed: an `incl.…` path starts there (owner, 2026-10-10)
     pub static NEURON_DIR: std::cell::RefCell<std::path::PathBuf> = std::cell::RefCell::new(std::path::PathBuf::new());
 }
@@ -691,7 +693,7 @@ impl Parser {
                     if pending_bare.is_none() && self.is_word("bare") { let line = self.line(); pending_bare = Some((self.bare_mode()?, line)); }
                 }
                 match self.peek().clone() {
-                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" || w == "interface" || w == "incl" => {}
+                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" || w == "interface" || w == "incl" || w == "collection" => {}
                     Tok::Word(w) if w == "let" => return self.err("a Neuron-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
                     Tok::Var(_) => return self.err("a Neuron-level value is a `const`, not a variable: `pub const 'x' := 1;`"),
                     Tok::Word(w) if w == "MAIN" => return self.err("MAIN is the program's entry, never `pub`"),
@@ -711,6 +713,12 @@ impl Parser {
                     if f.ret.is_some() || f.ret_lent.is_some() || !f.fails.is_empty() { return Err(ParseError { line: f.line, col: 0, msg: format!("`test fn {}` returns nothing and cannot fail; it passes unless a `must` does not hold", f.name) }); }
                     f.is_test = true;
                     prog.funcs.push(f)
+                }
+                // `collection cum { … }` (owner, 2026-10-13): a function and its dot narrowings in one block, read
+                // as the `fn cum …` and `fn cum.quick …` items it stands for
+                Tok::Word(w) if w == "collection" => {
+                    self.expand_collection(vis.clone(), pending_bare.map(|(m, _)| m))?;
+                    continue;
                 }
                 Tok::Word(w) if w == "fn" => {
                     let mut f = self.func()?;
@@ -2468,6 +2476,220 @@ impl Parser {
         let over = self.rhs()?;
         let body = self.block()?;
         Ok(Stmt::For { name, index, perm, seq, over, body, line })
+    }
+
+    /// `collection cum { bare.never; cum [ … ] -> T { … }  quick ['step' = 2];  slow [ … ] -> T { … } }`
+    /// (owner, 2026-10-13): rewritten, in the tokens, into the items it stands for: `fn cum …`, `fn cum.slow …`,
+    /// and for a preset a function that calls the main one with those arguments filled in. Each gets the
+    /// collection's `pub` and its one `bare.` mark. A template (`for … { named …; … }`) is what `synapse
+    /// generate` reads; its generated members stand under `#generated_N_lines_below` as ordinary members.
+    fn expand_collection(&mut self, vis: Vis, mark: Option<Bare>) -> PResult<()> {
+        let start = self.pos;
+        let line = self.line();
+        self.advance();
+        let name = match self.advance().tok {
+            Tok::Word(n) if KEYWORDS.contains(&n.as_str()) => return self.err(format!("`{n}` is a keyword and cannot name a collection")),
+            Tok::Word(n) => n,
+            Tok::Text(t, _) => return self.err(format!("a collection's name is bare, as a function's: `collection {t} {{ … }}`")),
+            other => return self.err(format!("expected the collection's name after `collection`, found {other}")),
+        };
+        self.expect(Tok::LBrace, "`{` after the collection's name")?;
+        let mut mode = mark;
+        let mut main: Option<Vec<Token>> = None;
+        let mut members: Vec<(String, Vec<Token>)> = Vec::new();
+        let mut presets: Vec<(String, Vec<(String, Vec<Token>)>, usize)> = Vec::new();
+        loop {
+            match self.peek().clone() {
+                Tok::RBrace => { self.advance(); break; }
+                Tok::Eof => return self.err(format!("collection `{name}` is never closed: a `}}` is missing")),
+                Tok::Word(w) if w == "bare" => {
+                    if mode.is_some() { return self.err("a collection has one `bare.` mark, for every member"); }
+                    mode = Some(self.bare_mode()?);
+                    self.expect(Tok::Semi, "`;` after the collection's `bare.` mark")?;
+                }
+                Tok::Word(w) if w == "for" => {
+                    // a template: what `synapse generate` reads; skipped here, its output being ordinary members below
+                    let tline = self.line();
+                    TEMPLATES.with(|t| t.borrow_mut().push((name.clone(), tline)));
+                    self.advance();
+                    while !matches!(self.peek(), Tok::LBrace | Tok::Eof) { self.advance(); }
+                    self.skip_braces()?;
+                }
+                Tok::Word(w) if w == "named" => return self.err("`named` names what a template generates: it stands inside a `for` in a collection"),
+                Tok::Word(w) if w == "fn" => return self.err(format!("a collection's members take no `fn`: `{name} [ … ] -> T {{ … }}`, `quick [ … ] -> T {{ … }}` (owner, 2026-10-13)")),
+                Tok::Word(m) => {
+                    let mline = self.line();
+                    self.advance();
+                    // a preset: `quick ['step' = 2];`, filling arguments of the main function
+                    if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Var(_)) && *self.peek_at(2) == Tok::Eq {
+                        self.advance();
+                        let mut fills = Vec::new();
+                        loop {
+                            let Tok::Var(p) = self.advance().tok else { return self.err(format!("a preset fills parameters by name: `{m} ['step' = 2];`")) };
+                            self.expect(Tok::Eq, "`=` after the parameter's name")?;
+                            let mut value = Vec::new();
+                            let mut depth = 0i32;
+                            loop {
+                                match self.peek() {
+                                    Tok::LBracket | Tok::LParen => depth += 1,
+                                    Tok::RBracket | Tok::RParen if depth > 0 => depth -= 1,
+                                    Tok::Comma | Tok::RBracket if depth == 0 => break,
+                                    Tok::Eof => return self.err("a preset is never closed: a `]` is missing"),
+                                    _ => {}
+                                }
+                                value.push(self.toks[self.pos].clone());
+                                self.advance();
+                            }
+                            if value.is_empty() { return self.err(format!("'{p}' is given no value")); }
+                            fills.push((p, value));
+                            if *self.peek() == Tok::Comma { self.advance(); continue; }
+                            break;
+                        }
+                        self.expect(Tok::RBracket, "`]` after the preset's values")?;
+                        self.expect(Tok::Semi, "`;` after a preset")?;
+                        if members.iter().any(|(n, _)| *n == m) || presets.iter().any(|(n, _, _)| *n == m) { return self.err(format!("`{name}.{m}` is written twice")); }
+                        presets.push((m, fills, mline));
+                        continue;
+                    }
+                    let from = self.pos;
+                    // the member: its generics and parameters, then up to its body's matching `}`
+                    let mut depth = 0i32;
+                    loop {
+                        match self.peek() {
+                            Tok::LBracket | Tok::LParen => depth += 1,
+                            Tok::RBracket | Tok::RParen => depth -= 1,
+                            Tok::LBrace if depth == 0 => break,
+                            Tok::Semi | Tok::Eof if depth == 0 => return self.err(format!("`{m}` in collection `{name}` has no body: a member is `{m} [ … ] -> T {{ … }}`, a preset `{m} ['step' = 2];`")),
+                            _ => {}
+                        }
+                        self.advance();
+                    }
+                    self.skip_braces()?;
+                    let toks = self.toks[from..self.pos].to_vec();
+                    if m == name {
+                        if main.is_some() { return self.err(format!("`{name}` is written twice in its collection")); }
+                        main = Some(toks);
+                    } else {
+                        if members.iter().any(|(n, _)| *n == m) { return self.err(format!("`{name}.{m}` is written twice")); }
+                        let _ = mline;
+                        members.push((m, toks));
+                    }
+                }
+                other => return self.err(format!("a collection holds its main function (`{name} [ … ] -> T {{ … }}`), members (`quick [ … ] -> T {{ … }}`), presets (`quick ['step' = 2];`), one `bare.` mark, and templates (`for … {{ named …; … }}`); found {other}")),
+            }
+        }
+        let end = self.pos;
+        let tk = |t: Tok, l: usize| Token { tok: t, line: l, col: 0, mtm: None };
+        let w = |s: &str, l: usize| Token { tok: Tok::Word(s.to_string()), line: l, col: 0, mtm: None };
+        let prefix = |l: usize| -> Vec<Token> {
+            let mut p = Vec::new();
+            match vis { Vis::Pub => p.push(w("pub", l)), Vis::Limb => { p.push(w("pub", l)); p.push(tk(Tok::Dot, l)); p.push(w("limb", l)); } Vis::Private => {} }
+            if let (Some(m), true) = (mode, vis != Vis::Private) {
+                p.push(w("bare", l)); p.push(tk(Tok::Dot, l));
+                p.push(w(match m { Bare::Never => "never", Bare::Optional => "optional", Bare::Only => "only" }, l));
+            }
+            p
+        };
+        let mut out = Vec::new();
+        if let Some(m) = &main {
+            let l = m.first().map(|t| t.line).unwrap_or(line);
+            out.extend(prefix(l)); out.push(w("fn", l)); out.push(w(&name, l)); out.extend(m.iter().cloned());
+        }
+        for (m, toks) in &members {
+            let l = toks.first().map(|t| t.line).unwrap_or(line);
+            out.extend(prefix(l)); out.push(w("fn", l)); out.push(w(&name, l)); out.push(tk(Tok::Dot, l)); out.push(w(m, l)); out.extend(toks.iter().cloned());
+        }
+        if !presets.is_empty() {
+            let Some(m) = &main else { return Err(ParseError { line, col: 0, msg: format!("a preset fills the main function's arguments, and collection `{name}` has none: write `{name} [ … ] -> T {{ … }}`") }) };
+            // the main function's pieces: what comes before its parameters (generics, lifetime groups), the
+            // parameters, and what comes after them up to its body (the return type and failures)
+            let close_of = |toks: &[Token], open: usize| -> usize {
+                let mut d = 0i32;
+                for (k, t) in toks.iter().enumerate().skip(open) { match t.tok { Tok::LBracket => d += 1, Tok::RBracket => { d -= 1; if d == 0 { return k; } } _ => {} } }
+                toks.len()
+            };
+            let mut ps = 0;
+            while ps < m.len() {
+                if m[ps].tok == Tok::LBracket {
+                    if matches!(m.get(ps + 1).map(|t| &t.tok), Some(Tok::Op(o)) if o == "@") { ps = close_of(m, ps) + 1; continue; }
+                    break;
+                }
+                ps += 1;
+            }
+            let pe = close_of(m, ps);
+            let body = m.iter().enumerate().skip(pe).find(|(_, t)| t.tok == Tok::LBrace).map(|(k, _)| k).unwrap_or(m.len());
+            let head = &m[..ps];
+            let tail = &m[pe + 1..body];
+            let mut groups: Vec<Vec<Token>> = vec![Vec::new()];
+            let mut d = 0i32;
+            for t in &m[ps + 1..pe] {
+                match t.tok { Tok::LBracket | Tok::LParen => d += 1, Tok::RBracket | Tok::RParen => d -= 1, Tok::Comma if d == 0 => { groups.push(Vec::new()); continue; } _ => {} }
+                groups.last_mut().unwrap().push(t.clone());
+            }
+            groups.retain(|g| !g.is_empty());
+            let returns = tail.iter().any(|t| t.tok == Tok::Arrow);
+            let fails = tail.iter().any(|t| matches!(&t.tok, Tok::Word(x) if x == "fail"));
+            for (pname, fills, pline) in &presets {
+                let l = *pline;
+                for (f, _) in fills {
+                    if !groups.iter().any(|g| g.iter().any(|t| t.tok == Tok::Var(f.clone()))) {
+                        return Err(ParseError { line: l, col: 0, msg: format!("'{f}' is not one of `{name}`'s parameters, so `{name}.{pname}` cannot fill it") });
+                    }
+                }
+                let mut params = Vec::new();
+                let mut args = Vec::new();
+                for g in &groups {
+                    let Some(var) = g.iter().find_map(|t| if let Tok::Var(v) = &t.tok { Some(v.clone()) } else { None }) else { continue };
+                    if let Some((_, v)) = fills.iter().find(|(f, _)| *f == var) {
+                        if !args.is_empty() { args.push(tk(Tok::Comma, l)); }
+                        args.extend(v.iter().cloned());
+                        continue;
+                    }
+                    if g.iter().any(|t| t.tok == Tok::Ellipsis) { return Err(ParseError { line: l, col: 0, msg: format!("a preset cannot leave a variadic parameter open; `{name}`'s '{var}' is one") }); }
+                    if !params.is_empty() { params.push(tk(Tok::Comma, l)); }
+                    params.extend(g.iter().cloned());
+                    if !args.is_empty() { args.push(tk(Tok::Comma, l)); }
+                    let lent = g.iter().position(|t| matches!(&t.tok, Tok::Word(x) if x == "lent"));
+                    if let Some(k) = lent {
+                        args.push(w("lend", l));
+                        if g.get(k + 1).map(|t| &t.tok) == Some(&Tok::Dot) { args.push(tk(Tok::Dot, l)); args.push(w("mut", l)); }
+                        args.push(tk(Tok::Var(var.clone()), l));
+                    } else {
+                        // a plain value passes itself; anything that owns something is handed over
+                        let colon = g.iter().position(|t| t.tok == Tok::Colon);
+                        let plain = colon.and_then(|c| g.get(c + 1)).map_or(false, |t| matches!(&t.tok, Tok::Word(x) if ["int", "uint", "bin", "deci", "bool", "char", "C", "brain16"].iter().any(|p| x.starts_with(p))));
+                        if !plain { args.push(w("give", l)); }
+                        args.push(tk(Tok::Var(var.clone()), l));
+                    }
+                }
+                out.extend(prefix(l)); out.push(w("fn", l)); out.push(w(&name, l)); out.push(tk(Tok::Dot, l)); out.push(w(pname, l));
+                out.extend(head.iter().cloned());
+                out.push(tk(Tok::LBracket, l)); out.extend(params); out.push(tk(Tok::RBracket, l));
+                out.extend(tail.iter().cloned());
+                out.push(tk(Tok::LBrace, l));
+                if returns { out.push(w("return", l)); }
+                out.push(w(&name, l)); out.push(tk(Tok::LBracket, l)); out.extend(args); out.push(tk(Tok::RBracket, l));
+                if fails { out.push(w("otherwise", l)); out.push(w("fail", l)); }
+                out.push(tk(Tok::Semi, l));
+                out.push(tk(Tok::RBrace, l));
+            }
+        }
+        self.toks.splice(start..end, out);
+        self.pos = start;
+        Ok(())
+    }
+
+    /// From a `{`, past its matching `}`.
+    fn skip_braces(&mut self) -> PResult<()> {
+        let mut d = 0i32;
+        loop {
+            match self.advance().tok {
+                Tok::LBrace => d += 1,
+                Tok::RBrace => { d -= 1; if d == 0 { return Ok(()); } }
+                Tok::Eof => return self.err("a `{` is never closed"),
+                _ => {}
+            }
+        }
     }
 
     // count := expr ('to' | 'before') expr 'by' expr   — start, the end (kept by `to`, left out by

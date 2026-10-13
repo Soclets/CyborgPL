@@ -1,0 +1,5 @@
+pub collection c {
+    bare.never;
+    bare.only;
+}
+MAIN { }

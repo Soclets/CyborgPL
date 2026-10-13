@@ -1,0 +1,4 @@
+collection c {
+    named "x";
+}
+MAIN { }

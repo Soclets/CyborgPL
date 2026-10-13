@@ -85,6 +85,11 @@ impl fmt::Display for Tok {
     }
 }
 
+thread_local! {
+    /// The `#generated_N_lines_below` markers of the file last lexed: (line, N)
+    pub static GENERATED: std::cell::RefCell<Vec<(usize, usize)>> = std::cell::RefCell::new(Vec::new());
+}
+
 #[derive(Debug, Clone)]
 pub struct Token {
     pub tok: Tok,
@@ -442,8 +447,18 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 //   #Nld   this line and N more down (N+1 lines)
                 let mut j = i + 1;
                 let mut word = String::new();
-                while j < chars.len() && chars[j].is_ascii_alphanumeric() { word.push(chars[j]); j += 1; }
+                while j < chars.len() && (chars[j].is_ascii_alphanumeric() || chars[j] == '_') { word.push(chars[j]); j += 1; }
                 let skip_lines: usize;   // full lines to skip after this one
+                // `#generated_21_lines_below` (owner, 2026-10-13): the next 21 lines are what `synapse generate`
+                // wrote from the template above; they are ordinary code, the marker a comment noted for the check
+                if let Some(n) = word.strip_prefix("generated_").and_then(|r| r.strip_suffix("_lines_below")).and_then(|d| d.parse::<usize>().ok()) {
+                    GENERATED.with(|g| g.borrow_mut().push((tl, n)));
+                    while i < chars.len() && chars[i] != '\n' { i += 1; }
+                    continue;
+                }
+                if word.starts_with("generated") {
+                    return err(tl, tc, "a generated part is marked `#generated_21_lines_below`, the number being the lines under the marker (owner, 2026-10-13)".into());
+                }
                 if word == "strict" {
                     // `#strict` (owner, 2026-09-27): every check site's proof written in its own
                     // function. A compile-time rule about proofs, which the oracle has none of, so

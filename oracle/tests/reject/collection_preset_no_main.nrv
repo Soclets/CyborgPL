@@ -1,0 +1,4 @@
+collection c {
+    q ['x' = 1];
+}
+MAIN { }
