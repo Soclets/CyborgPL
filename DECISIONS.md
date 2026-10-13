@@ -75,8 +75,16 @@ built). **A template loops with the existing `for` forms, `for 'n' in [2,
 literals, consts, and lists of types (`for 'T' in [int16, int32]`, the one
 new thing, allowed only in templates)** (owner: "(a)"), over (b) a word of
 its own, `generate 'n' in …`; design claude recommended (a): in a
-`collection` a `for` can only be a template. Not yet asked: how a template
-writes a generated name.
+`collection` a `for` can only be a template. Asked how a template writes a
+generated name: (a) a hole in the name, `times_{'n'}`, as `print.format`'s
+`{}`, recommended; (b) the name worked out like text on an `as`, `… as
+"times_" ++ 'n'`. The owner: "What does (b) benefit?" (a name computed
+with logic, `as if 'n' equal_to 1024 { "kb" } …`, where (a) needs a list
+of structs; design claude corrected its own pairs example, `for 'unit', 'n'
+in …` meaning a position and an item, not a pair unpacked), then "Would you
+need to do [the pairs] With (b)?" (no). The owner: "(b)". So **a generated
+name is worked out like text, on an `as`**. Not yet asked: where the `as`
+stands and what is written in the name's place.
 
 ### 2026-10-12 — A whole number into a `deci` asks for `otherwise` only when it could have too many digits, worked out from its operands (owner: a)
 
