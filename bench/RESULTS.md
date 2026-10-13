@@ -2,6 +2,52 @@
 
 Machine: arm64 (Apple Silicon, 10 cores: 4 performance, 6 efficiency), Darwin 27.0.0. Best of 3 runs, wall-clock from process start to exit (startup included); runs past 60 s are timeouts. Every answer is checked against C's, and every one agreed.
 
+## 2026-10-13: Nerve against LuaJIT
+
+Run at 08:25 (+07) with `python3 run.py nerve nerve1 c luajit` (the Synapse release build of 08:25 in compiler claude's clone, at `9af932c5`), with nothing else building. The owner: "Bench Nerve against LuaJIT. By AI stereotypes, it should beat Nerve." Nerve is held to 3 threads (design claude's core share), not 10; C is there as the reference every answer is checked against.
+
+**LuaJIT does not beat Nerve on any of the four.** Against single-threaded Nerve, the fair row, LuaJIT is 6.76× slower on sum, 2.02× on fib, 4.63× on lists and 1.96× on sieve (3.18× against Nerve's 3 threads). Why, as design claude reads it (not measured): LuaJIT is still a JIT on a dynamically typed language: its numbers are doubles unless it can prove otherwise, its tables carry type checks the trace has to guard, and it starts compiling only once a loop is hot. Nerve's programs are compiled ahead of time with every type known.
+
+- **The 3-thread row is not like for like**, as before: Nerve spreads a proven `for` over the cores by itself, while the other programs are the plain single-threaded code.
+- **fib is LuaJIT's best case** (2.02×): it is all calls, and LuaJIT's traces handle recursion well.
+- **sieve**: single-threaded Nerve is a little behind C this time (0.414 s against 0.383), where on 2026-10-12 they tied (0.373 against 0.370); not looked into.
+
+### sum (N = 300,000,000)
+
+| Language | Time | vs Nerve |
+|---|---|---|
+| Nerve (Synapse, final build, 3 threads) | 0.033 s | 1.00× |
+| Nerve (Synapse, final build, 1 thread) | 0.093 s | 2.79× |
+| C (clang -O2) | 0.095 s | 2.87× |
+| LuaJIT | 0.627 s | 18.85× |
+
+### fib (N = 35)
+
+| Language | Time | vs Nerve |
+|---|---|---|
+| Nerve (Synapse, final build, 3 threads) | 0.016 s | 1.00× |
+| Nerve (Synapse, final build, 1 thread) | 0.016 s | 1.02× |
+| C (clang -O2) | 0.017 s | 1.06× |
+| LuaJIT | 0.033 s | 2.06× |
+
+### lists (N = 20,000,000)
+
+| Language | Time | vs Nerve |
+|---|---|---|
+| Nerve (Synapse, final build, 1 thread) | 0.037 s | 1.00× |
+| Nerve (Synapse, final build, 3 threads) | 0.037 s | 1.00× |
+| C (clang -O2) | 0.038 s | 1.02× |
+| LuaJIT | 0.173 s | 4.63× |
+
+### sieve (N = 100,000,000)
+
+| Language | Time | vs Nerve |
+|---|---|---|
+| Nerve (Synapse, final build, 3 threads) | 0.255 s | 1.00× |
+| C (clang -O2) | 0.383 s | 1.50× |
+| Nerve (Synapse, final build, 1 thread) | 0.414 s | 1.62× |
+| LuaJIT | 0.812 s | 3.18× |
+
 ## 2026-10-12: Nerve against C, Python, Go and Rust
 
 Run at 17:53 (+07) with `CYBORG_BENCH_THREADS=10 python3 run.py nerve nerve1 c python rust go` (the Synapse release build of 14:04 in compiler claude's clone, committed as `2f8af0b0` at 14:08), with nothing else running. The owner asked, through website claude: "Could you ask design Claude to bench Nerve against C, Python, Go, and Rust?", then chose the uncapped run: "(a)". The first run under the Nerve name, and the first with Python and Rust; the Nerve programs are in today's syntax (`for 'i': int64 from 1 to 'n' by 1`, `int64[min 0, max 1_000_000_000]`).
