@@ -882,6 +882,9 @@ pub const CONST_TAKES_NO_MARK: &str = "a const takes no `bare` mark: `'pi'` alon
 #[derive(Debug, Clone, PartialEq)]
 pub struct File {
     pub items: Vec<Item>,
+    /// The collections' templates (owner, 2026-10-13), for `synapse
+    /// generate` to write and every build to compare.
+    pub templates: Vec<Template>,
     /// `#strict` at its top: which file it is.
     pub strict: Option<crate::source::FileId>,
     /// `bare.optional;` as its first line: covers its module and the block
@@ -895,4 +898,31 @@ pub struct File {
     pub case_file: Option<(bool, Span)>,
     /// `case.any [fn, var];` lines, which cover the whole Limb.
     pub case_kinds: Vec<(bool, Vec<String>, Span)>,
+}
+
+/// A template in a collection (owner, 2026-10-13): `for 'n' in [2, 4]` (or
+/// `from … to … by …`, or a list of types), `named "times_" ++ …;`, then a
+/// member with no name, kept as its text, since `'T'` may stand where a
+/// type goes until it is filled in.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Template {
+    /// The `for` keyword: where the template starts, and its indent.
+    pub at: Span,
+    pub var: QName,
+    pub values: TemplateValues,
+    pub named: Expr,
+    /// From the member's `[` to its body's closing `}`.
+    pub member: Span,
+    /// The template's own closing `}`.
+    pub close: Span,
+    /// `#generated_N_lines_below` under it, if there is one.
+    pub marker: Option<(u32, Span)>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum TemplateValues {
+    /// `in [2, 10, 'big']` or `in [int16, int64]`, each as written.
+    List(Vec<Expr>),
+    /// `from 1 to 3 by 1`, `before` leaving the end out.
+    Count { start: Expr, stop: Expr, step: Expr, exclusive: bool },
 }

@@ -653,3 +653,36 @@ fn every_name_of_the_command_runs() {
     let out = Command::new(env!("CARGO_BIN_EXE_cca")).output().unwrap();
     assert!(!out.status.success() && String::from_utf8_lossy(&out.stderr).contains("write `synapse` (or `syn`, `sng` or `suc`)"));
 }
+
+/// `synapse generate` (owner, 2026-10-13) writes what each template makes
+/// exactly as the oracle wrote it: `examples/collections.nrv` with its
+/// generated parts taken out comes back byte for byte.
+#[test]
+fn generate_writes_what_the_oracle_wrote() {
+    let example = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/collections.nrv");
+    let want = std::fs::read_to_string(&example).unwrap();
+    let mut stripped = String::new();
+    let mut skip = 0usize;
+    for line in want.lines() {
+        if skip > 0 {
+            skip -= 1;
+            continue;
+        }
+        if let Some(n) = line.trim_start().strip_prefix("#generated_").and_then(|r| r.strip_suffix("_lines_below")) {
+            skip = n.parse().unwrap();
+            continue;
+        }
+        stripped.push_str(line);
+        stripped.push('\n');
+    }
+    assert_ne!(stripped, want, "the example has no generated part to take out");
+    let dir = std::env::temp_dir().join(format!("synapse-generate-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&dir);
+    let file = dir.join("collections.nrv");
+    std::fs::write(&file, &stripped).unwrap();
+    let out = Command::new(cca()).arg("generate").arg(&file).output().unwrap();
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let got = std::fs::read_to_string(&file).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    assert_eq!(got, want);
+}

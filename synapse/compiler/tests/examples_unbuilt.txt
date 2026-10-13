@@ -6,6 +6,7 @@
 
 brain16 :: `cord::print.format` is not built yet
 c_variables :: the linker (lld) refused the program:
+collections :: `cord::str.upper` is not available yet
 corner_shop :: `cord::print.format` is not built yet
 extern_data :: the linker (lld) refused the program:
 format_value :: `cord::format` is not built yet

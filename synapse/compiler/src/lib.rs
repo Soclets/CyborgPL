@@ -9,6 +9,7 @@ pub mod lexer;
 pub mod names;
 pub mod parser;
 pub mod cheader;
+pub mod template;
 pub mod source;
 pub mod check;
 pub mod hir;

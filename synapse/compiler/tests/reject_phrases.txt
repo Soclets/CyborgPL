@@ -156,6 +156,16 @@ check_nocheck [fnv:fd645963528e9ebf] :: `check` and `nocheck` cannot both cover 
 check_on_fn [fnv:dfa9ed875d727ff4] :: the tiers are never global
 check_on_fn_in_body [fnv:e371561a00ed503f] :: a function's safety is the sum of its statements
 cnc_not_listed [fnv:6d637c87468ab2b4] :: `incl.C` is CNC's, and this Neuron's Kinesin.nrp does not list the lobe CNC
+collection_fn_inside [fnv:15e640714af8334d] :: a collection's members take no `fn`
+collection_generated_edited [fnv:fdc807f25075f2b0] :: does not match it: run `synapse generate`
+collection_generated_missing [fnv:fdc807f25075f2b0] :: does not match it: run `synapse generate`
+collection_generated_stale [fnv:fdc807f25075f2b0] :: does not match it: run `synapse generate`
+collection_name_quoted [fnv:febf8670ce6f8fe2] :: a collection's name is bare, as a function's
+collection_named_outside [fnv:a0cca1ab550658b1] :: `named` names what a template generates
+collection_preset_no_main [fnv:22a7543a7381b537] :: a preset fills the main function's arguments, and collection `c` has none
+collection_preset_unknown [fnv:175c636485763a06] :: 'nope' is not one of `c`'s parameters
+collection_template_unnamed [fnv:87469e40dd99c652] :: a template names what it makes first
+collection_two_marks [fnv:401613ec619e0361] :: a collection has one `bare.` mark, for every member
 comma_grouping [fnv:05b8c86a9cd8fe27] :: `,` is not a digit separator
 concur_fail_unhandled [fnv:cbccfc56a451bded] :: this `concur` can fail (bad), so it needs an `otherwise` saying what happens when it does
 concur_return [fnv:d6776a53deac7dcb] :: `return` cannot leave it

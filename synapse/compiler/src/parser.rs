@@ -11,7 +11,7 @@ use crate::source::Span;
 pub const KEYWORDS: &[&str] = &[
     "fn", "let", "shadow", "change", "return", "if", "else", "loop", "while", "for", "in", "break", "continue", "give", "copy", "lend", "lent", "op",
     "check", "nocheck", "true", "false", "mut", "immut", "temp", "perm", "range", "seq", "para", "list", "array", "struct", "pub",
-    "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "with", "enum", "match", "interface", "satisfies", "extern", "ptr",
+    "const", "module", "limb", "my", "on", "fail", "otherwise", "to", "with", "enum", "match", "interface", "satisfies", "extern", "ptr", "collection",
     "layout", "size", "align", "incl", "inline", "map", "channel", "concur", "whichever", "from", "str", "char", "bool", "var", "func",
     "int8", "int16", "int32", "int64", "int128", "uint8", "uint16", "uint32", "uint64", "uint128", "bin16", "bin32", "bin64",
     "bin128", "deci32", "deci64", "deci128",
@@ -54,6 +54,8 @@ struct Parser<'a> {
     from_c: bool,
     /// Reading a counting loop's bound, which `to`, `before` and `by` end.
     count_bound: bool,
+    /// The collections' templates read so far (owner, 2026-10-13).
+    templates: Vec<Template>,
     /// A `#strict` file (owner, 2026-09-27): `pos` on every position,
     /// every parameter's type, a return type, `mut`/`immut` on every
     /// declaration, `temp`/`perm` on every `for`.
@@ -304,7 +306,7 @@ pub fn set_shared_precedence(table: std::collections::HashMap<String, (u16, Chai
 
 /// The `precedence` blocks in one file's tokens: each operator's level.
 pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false, templates: Vec::new() };
     let mut out = Vec::new();
     let mut depth = 0i32;
     for i in 0..toks.len() {
@@ -322,7 +324,7 @@ pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> 
 }
 
 pub fn parse_file(toks: &[Token]) -> Result<File> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false, templates: Vec::new() };
     // Every Limb's levels, and this file's own blocks, read before any
     // expression in it: an operator above its block is parsed by it too.
     p.prec = SHARED_PREC.with(|t| t.borrow().clone());
@@ -436,13 +438,13 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
         }
         push_item(&mut items, p.item()?);
     }
-    Ok(File { items, strict, bare_file, bare_kinds, case_file, case_kinds })
+    Ok(File { items, templates: std::mem::take(&mut p.templates), strict, bare_file, bare_kinds, case_file, case_kinds })
 }
 
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
 /// 2026-10-06): `cca::Manifest[ … ];`.
 pub fn parse_value(toks: &[Token]) -> Result<Expr> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false, templates: Vec::new() };
     let value = p.expr(0)?;
     p.expect_semi("the value")?;
     if !p.at_eof() {
@@ -705,6 +707,15 @@ impl<'a> Parser<'a> {
             };
             let span = start.to(self.prev_span());
             return Ok(Item { vis, kind, span, bare, case });
+        }
+        // A collection (owner, 2026-10-13): its one `bare.` mark is inside.
+        if self.is_word("collection") {
+            if let Some((_, at)) = bare {
+                return self.fail_at(at, "a collection's `bare.` mark goes inside it, once, for every member: `pub collection cum { bare.never; … }`");
+            }
+            let (lines, mark) = self.collection(vis)?;
+            let span = start.to(self.prev_span());
+            return Ok(Item { vis, kind: ItemKind::ExternBlock(lines), span, bare: mark, case });
         }
         let kind = self.item_kind(vis)?;
         if let (ItemKind::Const(_), Some((_, at))) = (&kind, &bare) {
@@ -1337,7 +1348,7 @@ impl<'a> Parser<'a> {
         for t in toks.iter_mut() {
             t.span = line;
         }
-        let mut p = Parser { toks: &toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, count_bound: false };
+        let mut p = Parser { toks: &toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, count_bound: false, templates: Vec::new() };
         let mut lines = Vec::new();
         while !p.at_eof() {
             let it = p.item()?;
@@ -1347,6 +1358,201 @@ impl<'a> Parser<'a> {
             }
         }
         Ok(ItemKind::ExternBlock(lines))
+    }
+
+    /// `collection cum { … }` (owner, 2026-10-13): the main function named
+    /// as the collection, members reached as `cum.double`, presets one line
+    /// (`quick ['step' = 2];`, the main function with some arguments
+    /// filled), templates, and one `bare.` mark. It comes back as the
+    /// functions it is: `fn cum`, `fn cum.double`, `fn cum.quick`.
+    fn collection(&mut self, vis: Vis) -> Result<(Vec<(Vis, ItemKind)>, Option<(Bare, Span)>)> {
+        self.bump();
+        let name = match self.peek().clone() {
+            Tok::Word(_) => self.ident("the collection's name")?,
+            Tok::Str(s) => return self.fail(format!("a collection's name is bare, as a function's: `collection {} {{ … }}`", s)),
+            Tok::Name(n) => return self.fail(format!("a collection's name is bare, as a function's: `collection {} {{ … }}`", n)),
+            other => return self.fail(format!("expected the collection's name, found {}", other.describe())),
+        };
+        let open = self.span();
+        self.expect(&Tok::LBrace, "`{` after the collection's name")?;
+        let mut mark: Option<(Bare, Span)> = None;
+        let mut main: Option<FnDecl> = None;
+        let mut members: Vec<FnDecl> = Vec::new();
+        let mut presets: Vec<(Ident, Vec<(QName, Expr)>, Span)> = Vec::new();
+        while !self.is(&Tok::RBrace) {
+            if self.at_eof() {
+                return self.fail_at(open, format!("collection `{}` is never closed", name.name));
+            }
+            if self.is_word("bare") {
+                let at = self.span();
+                if mark.is_some() {
+                    return self.fail_at(at, "a collection has one `bare.` mark, for every member");
+                }
+                let m = self.bare_mark()?;
+                self.expect_semi("the `bare.` mark")?;
+                mark = Some(m);
+                continue;
+            }
+            if self.is_word("fn") {
+                return self.fail(format!("a collection's members take no `fn`: `double […] -> T {{ … }}`, reached as `{}.double`", name.name));
+            }
+            if self.is_word("named") {
+                return self.fail("`named` names what a template generates: it is the first line inside a template's `for`");
+            }
+            if self.is_word("for") {
+                let t = self.template()?;
+                self.templates.push(t);
+                continue;
+            }
+            if let Tok::Generated(_) = self.peek() {
+                return self.fail("a `#generated_N_lines_below` marker stands right under a template's closing `}`");
+            }
+            // A preset: `quick ['step' = 2];`.
+            if matches!(self.peek(), Tok::Word(_)) && matches!(self.peek_at(1), Tok::LBracket) && matches!(self.peek_at(2), Tok::Name(_)) && self.is_op_at(3, "=") {
+                let start = self.span();
+                let pname = self.ident("the preset's name")?;
+                self.bump();
+                let mut fills = Vec::new();
+                while !self.is(&Tok::RBracket) {
+                    let q = self.qname("a parameter's name")?;
+                    if !self.eat_op("=") {
+                        return self.fail(format!("a preset fills a parameter with `=`: `['{}' = 2]`", q.name));
+                    }
+                    let v = self.expr(0)?;
+                    fills.push((q, v));
+                    if !self.eat(&Tok::Comma) {
+                        break;
+                    }
+                }
+                self.expect(&Tok::RBracket, "`]` closing the preset")?;
+                self.expect_semi("the preset")?;
+                presets.push((pname, fills, start.to(self.prev_span())));
+                continue;
+            }
+            let mut d = self.fn_decl(true)?;
+            if d.owner.is_some() {
+                return self.fail_at(d.name.span, format!("a member is named once, inside its collection: `{} […]`, reached as `{}.{}`", d.name.name, name.name, d.name.name));
+            }
+            if d.name.name == name.name {
+                if main.is_some() {
+                    return self.fail_at(d.name.span, format!("collection `{}` has one main function", name.name));
+                }
+                main = Some(d);
+            } else {
+                d.owner = Some(name.clone());
+                members.push(d);
+            }
+        }
+        self.bump();
+        let mut lines: Vec<(Vis, ItemKind)> = Vec::new();
+        for (pname, fills, span) in presets {
+            let Some(m) = &main else {
+                return self.fail_at(span, format!("a preset fills the main function's arguments, and collection `{}` has none", name.name));
+            };
+            for (q, _) in &fills {
+                if !m.params.iter().any(|p| p.name.name == q.name) {
+                    return self.fail_at(q.span, format!("'{}' is not one of `{}`'s parameters", q.name, name.name));
+                }
+            }
+            lines.push((Vis::Private, ItemKind::Fn(preset(m, &name, pname, &fills, span))));
+        }
+        match main {
+            Some(m) => {
+                lines.insert(0, (Vis::Private, ItemKind::Fn(m)));
+                lines.extend(members.into_iter().map(|d| (Vis::Private, ItemKind::Fn(d))));
+            }
+            // With no main function there is nothing for the members to
+            // belong to: they are a module of the collection's name, reached
+            // the same way (`zero.of_int64[]`), open to the Neuron, or to
+            // all under the mark when the collection is `pub`.
+            None => {
+                let inner = if vis == Vis::Private { Vis::Limb } else { vis };
+                let span = name.span;
+                let items = members
+                    .into_iter()
+                    .map(|mut d| {
+                        d.owner = None;
+                        Item { vis: inner, kind: ItemKind::Fn(d), span, bare: mark, case: None }
+                    })
+                    .collect();
+                lines.push((Vis::Private, ItemKind::Module { name: name.clone(), items }));
+            }
+        }
+        Ok((lines, mark))
+    }
+
+    /// A template: `for 'n' in […]` or `for 'n' from … by …`, `named …;`,
+    /// a member with no name, `}`, and the marker under it if written.
+    fn template(&mut self) -> Result<Template> {
+        let at = self.bump().span;
+        let var = self.qname("the template's loop name")?;
+        let values = if self.eat_word("in") {
+            self.expect(&Tok::LBracket, "`[` and the values a template runs over")?;
+            let mut v = Vec::new();
+            while !self.is(&Tok::RBracket) {
+                v.push(self.expr(0)?);
+                if !self.eat(&Tok::Comma) {
+                    break;
+                }
+            }
+            self.expect(&Tok::RBracket, "`]` closing the values")?;
+            TemplateValues::List(v)
+        } else if self.eat_word("from") {
+            let start = self.count_bound_expr()?;
+            let exclusive = if self.is_word("before") {
+                true
+            } else if self.range_label() == Some("to") {
+                false
+            } else {
+                return self.fail("after the start comes `to` (the end kept) or `before` (the end left out): `for 'n' from 1 to 8 by 1`");
+            };
+            self.bump();
+            let stop = self.count_bound_expr()?;
+            if !self.eat_word("by") {
+                return self.fail("a counting loop writes its step too, even when it is 1: `for 'n' from 1 to 8 by 1` (owner, 2026-10-07)");
+            }
+            let step = self.count_bound_expr()?;
+            TemplateValues::Count { start, stop, step, exclusive }
+        } else {
+            return self.fail("a template runs over values known before building: `for 'n' in [2, 4]` or `for 'n' from 1 to 8 by 1`");
+        };
+        self.expect(&Tok::LBrace, "`{` opening the template")?;
+        if !self.eat_word("named") {
+            return self.fail("a template names what it makes first: `named \"times_\" ++ to.stored.str.utf8['n'];`, then the member");
+        }
+        let named = self.expr(0)?;
+        self.expect_semi("the `named` line")?;
+        if !self.is(&Tok::LBracket) {
+            return self.fail("after `named` comes the member, with no name: `['x': int32] -> int32 { … }`");
+        }
+        // The member, as text: up to its body's closing `}`.
+        let mstart = self.span();
+        let mut depth = 0i32;
+        loop {
+            if self.at_eof() {
+                return self.fail_at(mstart, "the template's member is never closed");
+            }
+            let t = self.bump().tok.clone();
+            match t {
+                Tok::LBracket | Tok::LBrace => depth += 1,
+                Tok::RBracket => depth -= 1,
+                Tok::RBrace => {
+                    depth -= 1;
+                    if depth == 0 {
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        let member = mstart.to(self.prev_span());
+        let close = self.span();
+        self.expect(&Tok::RBrace, "`}` closing the template: one member a template")?;
+        let marker = match self.peek().clone() {
+            Tok::Generated(n) => Some((n, self.bump().span)),
+            _ => None,
+        };
+        Ok(Template { at, var, values, named, member, close, marker })
     }
 
     /// One of C's names after `extern.C`, alone or in its block: `fn …;`,
@@ -4277,5 +4483,59 @@ fn push_item(items: &mut Vec<Item>, it: Item) {
     match it.kind {
         ItemKind::ExternBlock(lines) => items.extend(lines.into_iter().map(|(v, kind)| Item { vis: if it.vis == Vis::Private { v } else { it.vis }, kind, span: it.span, bare: it.bare, case: it.case })),
         kind => items.push(Item { vis: it.vis, kind, span: it.span, bare: it.bare, case: it.case }),
+    }
+}
+
+/// A preset as the function it is (owner, 2026-10-13): the main function's
+/// parameters it leaves open, calling the main function with each in its
+/// place, `lend` / `lend.mut` / `give` as the parameter takes it, and a
+/// failure passed up as it comes.
+fn preset(main: &FnDecl, owner: &Ident, name: Ident, fills: &[(QName, Expr)], span: Span) -> FnDecl {
+    let params: Vec<Param> = main.params.iter().filter(|p| !fills.iter().any(|(q, _)| q.name == p.name.name)).cloned().collect();
+    let args: Vec<Arg> = main
+        .params
+        .iter()
+        .map(|p| {
+            if let Some((_, v)) = fills.iter().find(|(q, _)| q.name == p.name.name) {
+                return Arg::Positional(v.clone());
+            }
+            let value = Expr { kind: ExprKind::Name(QName { name: p.name.name.clone(), span }), span };
+            let plain = p.ty.as_ref().is_some_and(plain_type);
+            let verb = match p.kind {
+                ParamKind::Lent => Some(Verb::Lend),
+                ParamKind::LentMut => Some(Verb::LendMut),
+                ParamKind::Owned if !plain && !p.variadic => Some(Verb::Give),
+                ParamKind::Owned => None,
+            };
+            Arg::Positional(match verb {
+                Some(verb) => Expr { kind: ExprKind::Verb { verb, amp: false, expr: Box::new(value) }, span },
+                None => value,
+            })
+        })
+        .collect();
+    let path = Path { limb: None, segs: vec![Ident { name: owner.name.clone(), span }], span };
+    let otherwise = (!main.fails.is_empty()).then(|| Box::new(Otherwise::PassUp(span)));
+    let call = Expr { kind: ExprKind::Call { path, args, otherwise }, span };
+    let stmt = if main.ret.is_some() { StmtKind::Return(Some(call)) } else { StmtKind::Expr(call) };
+    FnDecl {
+        name,
+        owner: Some(owner.clone()),
+        announce: main.announce.clone(),
+        params,
+        ret: main.ret.clone(),
+        ret_lent: main.ret_lent.clone(),
+        fails: main.fails.clone(),
+        body: Some(Block { stmts: vec![Stmt { kind: stmt, span }], span }),
+        test: false,
+    }
+}
+
+/// A type whose value is copied, not given: a number, `bool`, a character,
+/// or one of these with a bound.
+fn plain_type(t: &Type) -> bool {
+    match &t.kind {
+        TypeKind::Path { path, args } => args.is_empty() && is_primitive_head(path.head()) && !matches!(path.head(), "str" | "list" | "array" | "map" | "channel" | "simd"),
+        TypeKind::Bound { inner, .. } => plain_type(inner),
+        _ => false,
     }
 }

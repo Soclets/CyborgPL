@@ -657,3 +657,18 @@ Dated, with the alternative, so each can become a question later.
   operands allow. Where nothing bounds it, Synapse asks for `otherwise`,
   where the oracle takes it as fitting, so no run meets a failure the
   program has no way to handle.
+- **2026-10-13 — How Synapse builds a collection.** A collection is the
+  functions it is: the main function `fn cum`, each member `fn cum.double`
+  (a function may own functions, as 2026-10-09's `fn cum.quick` says), and
+  each preset a function calling the main one with its arguments filled
+  and the rest passed as the main function takes them, a failure passed up
+  as it comes. A collection with no main function has nothing for its
+  members to belong to, so they are a module of its name, reached the same
+  way (`zero.of_int64[]`), open to the Neuron, or to all under the mark
+  when the collection is `pub`. A template is read as text
+  (`compiler/src/template.rs`), as the oracle reads it, and its generated
+  part is parsed as ordinary members and compared with what the template
+  makes on every build; `synapse generate` writes it, byte for byte as
+  `oracle --generate` does. `named` is worked out from text, `++`,
+  `to.stored.str.utf8[…]`, the loop's value and consts; a function called
+  there (`named size_name['n'];`) is not built yet.

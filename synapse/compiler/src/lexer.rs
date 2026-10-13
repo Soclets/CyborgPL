@@ -26,6 +26,9 @@ pub enum Tok {
     Raw(String),
     /// `#strict` (owner, 2026-09-27): the file writes every reason out.
     Strict,
+    /// `#generated_N_lines_below` (owner, 2026-10-13): under a template,
+    /// the N lines `synapse generate` wrote.
+    Generated(u32),
     Walrus,      // :=
     ColonColon,  // ::
     Colon,       // :
@@ -60,6 +63,7 @@ impl Tok {
             Tok::Op(o) => format!("`{}`", o),
             Tok::Raw(_) => "a raw block".into(),
             Tok::Strict => "`#strict`".into(),
+            Tok::Generated(n) => format!("`#generated_{}_lines_below`", n),
             Tok::Walrus => "`:=`".into(),
             Tok::ColonColon => "`::`".into(),
             Tok::Colon => "`:`".into(),
@@ -347,6 +351,21 @@ impl<'a> Lexer<'a> {
 
     fn comment(&mut self, start: usize) -> Result<()> {
         self.bump(); // '#'
+        // A template's generated part (owner, 2026-10-13): a marker, not a
+        // comment, the number being the lines under it.
+        if self.src[self.pos..].starts_with("generated_") {
+            let word_end = self.src[self.pos..].find(|c: char| !(c.is_ascii_alphanumeric() || c == '_')).map_or(self.src.len(), |e| self.pos + e);
+            let word = &self.src[self.pos..word_end];
+            let n = word.strip_prefix("generated_").and_then(|r| r.strip_suffix("_lines_below")).and_then(|d| d.parse::<u32>().ok());
+            let Some(n) = n else {
+                return self.fail(start, format!("`#{}` is not a marker: a template's generated part is marked `#generated_N_lines_below`, N the lines under it", word));
+            };
+            while self.pos < word_end {
+                self.bump();
+            }
+            self.push(Tok::Generated(n), start);
+            return Ok(());
+        }
         // The form is whatever letters and digits follow the `#` before a space.
         let form_start = self.pos;
         while self.peek().map(|c| c.is_ascii_alphanumeric()).unwrap_or(false) {

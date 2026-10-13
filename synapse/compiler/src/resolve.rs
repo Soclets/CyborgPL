@@ -559,14 +559,16 @@ impl Items {
             }
             self.ifaces[id.0 as usize].entries = entries;
         }
-        // A function belongs to a struct or an enum of its own Neuron,
-        // once per name; an enum's function is not named as a case is.
+        // A function belongs to a struct, an enum or a function of its own
+        // Neuron (`fn cum.quick`, 2026-10-09, and a collection's members,
+        // 2026-10-13), once per name; an enum's function is not named as a
+        // case is.
         let type_fns = std::mem::take(&mut self.pending_type_fns);
         for (id, owner, m) in &type_fns {
             let path = ast::Path { limb: None, segs: vec![owner.clone()], span: owner.span };
             let ty = match self.lookup_path(&path, *m)? {
-                t @ (ItemRef::Struct(_) | ItemRef::Enum(_)) => t,
-                other => return err(Diagnostic::error(format!("`{}` is a {}: a function belongs to a struct or an enum, `fn {}.name […]` naming one", owner.name, other.what(), owner.name)).at(owner.span)),
+                t @ (ItemRef::Struct(_) | ItemRef::Enum(_) | ItemRef::Fn(_)) => t,
+                other => return err(Diagnostic::error(format!("`{}` is a {}: a function belongs to a struct, an enum or a function, `fn {}.name […]` naming one", owner.name, other.what(), owner.name)).at(owner.span)),
             };
             let name = self.fns[id.0 as usize].name.clone();
             let after = name[owner.name.len() + 1..].to_string();
@@ -865,7 +867,7 @@ impl Items {
         }
         let prefix = ast::Path { limb: path.limb.clone(), segs: path.segs[..path.segs.len() - 1].to_vec(), span: path.span };
         let ty = match self.lookup_path(&prefix, m) {
-            Ok(t @ (ItemRef::Struct(_) | ItemRef::Enum(_))) => t,
+            Ok(t @ (ItemRef::Struct(_) | ItemRef::Enum(_) | ItemRef::Fn(_))) => t,
             _ => return Ok(None),
         };
         let last = path.last();
@@ -873,6 +875,10 @@ impl Items {
             if let ItemRef::Struct(s) = ty {
                 let name = &self.structs[s.0 as usize].name;
                 return err(Diagnostic::error(format!("`{}` has no function `{}`: there is no `fn {}.{}`", name, last.name, name, last.name)).at(last.span));
+            }
+            if let ItemRef::Fn(f) = ty {
+                let name = &self.fns[f.0 as usize].name;
+                return err(Diagnostic::error(format!("`{}` has no `{}`: there is no `fn {}.{}`", name, last.name, name, last.name)).at(last.span));
             }
             return Ok(None);
         };

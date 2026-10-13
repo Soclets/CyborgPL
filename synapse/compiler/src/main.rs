@@ -13,6 +13,7 @@ fn usage() -> ! {
     eprintln!("       synapse run <file.nrv | neuron-dir> [-- words…]   build, then run it here with its words; its exit is synapse's");
     eprintln!("       synapse test <file.nrv | neuron-dir>      run every `test fn`, each on its own, and report");
     eprintln!("       synapse prepare [folder/] [<name>, …] [--prefix <prefix>, …] | --all   run those Neurons' build.nrv, in their own folders");
+    eprintln!("       synapse generate <file.nrv | neuron-dir>…   write each collection template's members under it");
     eprintln!("       synapse version                  the compiler's version and the Unicode version it pins");
     exit(2)
 }
@@ -57,6 +58,24 @@ fn real_main() {
             let (a, b, c) = unicode_segmentation::UNICODE_VERSION;
             println!("synapse {}", env!("CARGO_PKG_VERSION"));
             println!("unicode {}.{}.{}", a, b, c);
+        }
+        // A collection's templates (owner, 2026-10-13): their members are
+        // written into the file, under each template; a build only reads
+        // them.
+        "generate" => {
+            if args.len() < 2 {
+                usage();
+            }
+            let mut failed = false;
+            for f in &args[1..] {
+                if let Err(d) = generate_in(Path::new(f)) {
+                    failed = true;
+                    eprint!("{}", d);
+                }
+            }
+            if failed {
+                exit(1);
+            }
         }
         "parse" => {
             let mut failed = false;
@@ -605,6 +624,54 @@ fn mir_one(path: &Path) -> Result<(), String> {
     }
     if let Err(problems) = problems {
         return Err(format!("error: the flow graph is not well formed — this is a bug in Synapse, not in the program:\n  {}\n", problems.join("\n  ")));
+    }
+    Ok(())
+}
+
+/// `synapse generate` on a file, or on every `.nrv` file of a Neuron.
+fn generate_in(path: &Path) -> Result<(), String> {
+    if path.is_dir() {
+        brainstem::parser::set_neuron_root(path);
+        let mut files = Vec::new();
+        let mut dirs = vec![path.to_path_buf()];
+        while let Some(d) = dirs.pop() {
+            let entries = std::fs::read_dir(&d).map_err(|e| format!("error: cannot read {}: {}\n", d.display(), e))?;
+            for e in entries.flatten() {
+                let p = e.path();
+                let hidden = p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.starts_with('.') || n == "target");
+                if p.is_dir() && !hidden {
+                    dirs.push(p);
+                } else if p.extension().is_some_and(|x| x == "nrv") {
+                    files.push(p);
+                }
+            }
+        }
+        files.sort();
+        for f in files {
+            generate_one(&f)?;
+        }
+        return Ok(());
+    }
+    brainstem::parser::set_neuron_root(path.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or(Path::new(".")));
+    generate_one(path)
+}
+
+fn generate_one(path: &Path) -> Result<(), String> {
+    let mut sources = SourceMap::default();
+    let text = std::fs::read_to_string(path).map_err(|e| format!("error: cannot read {}: {}\n", path.display(), e))?;
+    let id = sources.add(path, text.clone());
+    let render = |d: Box<Diagnostic>| d.render(&sources);
+    let toks = brainstem::lexer::lex(id, &sources.get(id).text).map_err(render)?;
+    let file = brainstem::parser::parse_file(&toks).map_err(render)?;
+    if file.templates.is_empty() {
+        return Ok(());
+    }
+    let new = brainstem::template::generate(&file, &text).map_err(render)?;
+    if new != text {
+        std::fs::write(path, &new).map_err(|e| format!("error: cannot write {}: {}\n", path.display(), e))?;
+        println!("{}: {} template(s) written", path.display(), file.templates.len());
+    } else {
+        println!("{}: {} template(s), already as they make", path.display(), file.templates.len());
     }
     Ok(())
 }

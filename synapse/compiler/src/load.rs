@@ -1297,7 +1297,11 @@ fn parse_file(sources: &mut SourceMap, path: &Path) -> Result<crate::ast::File> 
     let text = std::fs::read_to_string(path).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", path.display(), e))))?;
     let id: FileId = sources.add(path, text);
     let toks = crate::lexer::lex(id, &sources.get(id).text)?;
-    crate::parser::parse_file(&toks)
+    let file = crate::parser::parse_file(&toks)?;
+    // A template's generated part is read, never written, by a build
+    // (owner, 2026-10-13): it must be the one the template makes now.
+    crate::template::check(&file, &sources.get(id).text)?;
+    Ok(file)
 }
 
 /// The entries of `dir` as modules of `parent`.
