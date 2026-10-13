@@ -56,8 +56,17 @@ a generated part that no longer matches its template ("run `synapse
 generate`")** (owner: "(a)"), over (b) the build rewriting the source each
 time; design claude recommended (a): builds stay repeatable from the
 source alone, and a hand edit inside the generated part is refused, never
-lost silently. Not yet asked: the markers' spelling, and how a template
-writes a generated name.
+lost silently. Offered markers: (a) comments, (b) a `generated { … }` block
+the language knows, recommended; the owner: "(a), but a special kind of
+comment. Just like how we already have `#3`" (the comment family `#3l`,
+`#3ld`, `#wl`). Offered (a) a pair, `#gen` … `#end gen`, recommended for a
+visible end, and (b) counted, as `#3l`, `#gen2l`; the owner: "(b)
+`#generated_21_lines`". Asked whether the number counts the marker's own
+line, as `#3l`'s does, the owner: "`#generated_**21**_lines_below`". So
+**the generated part is marked `#generated_21_lines_below`, the number
+being the lines under the marker, which `synapse generate` keeps right**.
+Not yet asked: how a template writes a generated name (`times_{'n'}` as
+sketched) and the loop that makes them.
 
 ### 2026-10-12 — A whole number into a `deci` asks for `otherwise` only when it could have too many digits, worked out from its operands (owner: a)
 
