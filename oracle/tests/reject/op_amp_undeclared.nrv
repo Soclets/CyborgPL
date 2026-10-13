@@ -1,0 +1,1 @@
+MAIN { let 'v' := 2 & 3; cord::print.useful['v', newln]; }

@@ -417,6 +417,20 @@ impl Parser {
             self.pos = i;
             return self.err("the root of this Neuron is `my.` since 2026-10-06, no longer `limb.`: `my.helper[]`, `my.'pi'`");
         }
+        // `&` and `!` are free to declare as custom operators (`operators.md`), so `op &`, `op !` and their use
+        // between two values are not the old `&` (`lend`) or `!` (`not`): read them as operators first
+        for i in 1..self.toks.len() {
+            let Some((w, _)) = self.toks[i].mtm.clone() else { continue };
+            if w != "&" && w != "!" { continue; }
+            let prev = &self.toks[i - 1].tok;
+            let declared = matches!(prev, Tok::Word(o) if o == "op");
+            let between = matches!(prev, Tok::Var(_) | Tok::Int(_) | Tok::BigInt(_) | Tok::Bin(..) | Tok::Text(..) | Tok::Char(_) | Tok::RParen | Tok::RBracket)
+                || matches!(prev, Tok::Word(b) if b == "true" || b == "false");
+            if declared || between {
+                self.toks[i].tok = Tok::Op(w);
+                self.toks[i].mtm = None;
+            }
+        }
         // the old spellings, refused by name everywhere (owner, 2026-10-07: "MTM is gone.")
         {
             for i in 0..self.toks.len() {
@@ -433,6 +447,9 @@ impl Parser {
                 };
                 if let Some((w, m)) = found {
                     self.pos = i;
+                    if w == "&" && matches!(self.toks.get(i + 1).map(|t| &t.tok), Some(Tok::Word(x)) if x == "mut") {
+                        return self.err("`&mut` is an old spelling: write `lend.mut` / `lent.mut` (owner, 2026-10-07; MTM, which kept the old spellings, is gone)");
+                    }
                     return self.err(format!("`{w}` is an old spelling: write `{m}` (owner, {}; MTM, which kept the old spellings, is gone)", if m == "cord" || m == "neuron" { "2026-10-09" } else { "2026-10-07" }));
                 }
             }

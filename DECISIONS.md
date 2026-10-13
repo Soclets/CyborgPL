@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — Oracle bug: `op &` and `op !` were refused as old spellings; fixed (owner: "fix now")
+
+The owner, on hearing `&` was refused even as a custom operator: "why the
+fuck is making a custom op called `&` refused?" No ruling did that:
+`operators.md` keeps `*`, `^`, `%`, `&`, `|`, `!` free to declare. Design
+claude's 2026-10-07 build of "MTM is gone" marked every `&` token (the old
+`lend`) and every spaced `!` (the old `not`) as an old spelling, so `op &`,
+`op !` and their use between two values were refused too. The owner: "There
+are bugs? If so, fix now". Fixed: after `op`, or between two values, `&` and
+`!` are operators; declared, they work as any custom operator, undeclared
+they are refused as `*` is, with a hint (`&`: "a bitwise and is `and.bit`, a
+logical one `and`"; `!`: "not is `not`"). Their old uses stay refused by
+name: `&'x'` and `&@` ("write `lend` / `lent`"), now `&mut` with its own
+("write `lend.mut` / `lent.mut`"), and `! 'x'` ("write `not`"). Also fixed:
+the hint for an undeclared `|` offered `!`, itself refused since 2026-10-07;
+it now says "a bitwise or is `or.bit`, a logical one `or`".
+`examples/op_amp_bang.nrv`; five reject tests. Not relayed: compiler and
+check claude are paused for the day.
+
 ### 2026-10-13 — `collection.fn` and `collection.handler` are built in the oracle (owner: "Build it")
 
 The owner: "Build it. The others are paused for today, just like I said."

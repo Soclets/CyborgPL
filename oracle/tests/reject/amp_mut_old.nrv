@@ -1,0 +1,2 @@
+fn f [lent.mut 'x': int32] { change 'x' = 2; }
+MAIN { let mut 'a' := 1; f[&mut 'a']; }

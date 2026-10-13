@@ -1,0 +1,3 @@
+op & ['a': int32, 'b': int32] -> int32 { return 'a' plus 'b'; }
+fn f [lent 'x': int32] -> int32 { return 'x'; }
+MAIN { let 'a' := 1; cord::print.useful[f[&'a'], newln]; }

@@ -4431,7 +4431,8 @@ impl<'p> Interp<'p> {
             None => {
                 let hint = match op {
                     "*" => "; multiply is `times`, power is cord's `pow`", "^" => "; power is cord's `pow`", "%" => "; remainder is `mod`",
-                    "&" | "|" | "!" => "; use `and`, `or`, `!`", _ => "",
+                    "&" => "; a bitwise and is `and.bit`, a logical one `and`", "|" => "; a bitwise or is `or.bit`, a logical one `or`",
+                    "!" => "; not is `not`", _ => "",
                 };
                 if let Some(l) = &limb { return rt(line, format!("the Neuron `{}` has no operator `{name}` for these values", &l[2..])); }
                 return rt(line, format!("`{op}` is not an operator here{hint} — declare it with `op {op} ['a': T, 'b': T] -> R {{ … }}`"));
