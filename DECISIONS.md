@@ -68,7 +68,14 @@ source at once) built in; an allocator that handles its own frees is also
 allowed, as trusted code: its promise (reuse only at the same size, never
 give memory back) is not checked, and it is listed with the build's
 `no_check` sites.** Design claude should have offered both from the start.
-Not yet asked: the spelling.
+
+Asked whether the checking itself (handles, generations, use after free
+and double free caught, Cortex's proofs) is the Brainstem's: (a) yes, a
+bare-metal program bringing its memory source and everything on top
+checked, only the OS allocator outside it, recommended; (b) `cord`'s, bare
+metal having no checked memory. The owner: "(a)". So **checked memory is
+the Brainstem's; the OS allocator is not** (design claude's reading: it is
+`cord`'s, as everything needing an OS is). Not yet asked: the spelling.
 
 ### 2026-10-13 — Direction: built-in checked manual memory, with generations, instead of reference counting; its checks follow the working / final rule (owner; not designed)
 

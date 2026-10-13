@@ -33,6 +33,11 @@ The layers, then:
 
 ## Where the memory comes from (owner, 2026-10-13)
 
+- **The checking is the Brainstem's** (owner: "(a)"): handles, generations,
+  caught use after free and double free, Cortex's proofs, the same on bare
+  metal as on an OS. Only the OS allocator is outside it (design claude's
+  reading: in `cord`, with everything else that needs an OS).
+
 - **A handle works on its own** (owner: "Like, manual"): allocated
   anywhere, freed by the program, no pool to carry around.
 - **Nerve ships an allocator only for targets with an OS**, taking its
@@ -75,8 +80,6 @@ The checks follow the rule every check follows (`core-features.md`,
 
 ## Open
 
-- Whether the checking itself is the Brainstem's (design claude's reading
-  of the 2026-10-13 rulings, not confirmed).
 - The spelling: allocating, freeing, the handle's type (design claude
   suggested `manual[Node]`), the alive test.
 - Handles across threads and tasks (`concurrency.md`).
