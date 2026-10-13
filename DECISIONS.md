@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-13 — A collection may have no function of its own; its name then only groups its members (owner: a)
+
+Compiler claude's provisional pick (Synapse had to choose): `zero`, in
+`examples/collections.nrv`, holds only generated members, so there is
+`zero.of_int64[]` but no `zero[…]`. Design claude asked first as "must a
+collection have a main function?"; the owner read "main" as `MAIN` ("Doesn't
+a `.nrv` need `MAIN`?", "what"), so design claude reworded: the function
+named after the collection is its **own function** (design claude's word,
+not ruled), unrelated to `MAIN`. Offered (a) allowed, the name grouping its
+members as a module's does, recommended; (b) not allowed, such members going
+in a `module` instead. The owner: "I mean, is `cord::print` like that
+allowed?" It is: `cord::print.useful` / `.stored` / `.format` exist and a
+bare `cord::print[…]` is refused (owner, 2026-10-02: a print says which form
+it shows). The owner: "(a)". So **a collection may have no own function**:
+its members are reached as `zero.of_int16[]`, there is no `zero[…]`, and
+they are public under the collection's `bare.` mark when it is `pub`. A
+preset still needs an own function to fill (refused otherwise, as built).
+
 ### 2026-10-13 — Good practice 14: a preset before a template, a template before copies (owner: "yea")
 
 After collections were built, the owner: "we also might need to update
