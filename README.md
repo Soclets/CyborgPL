@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="brand/zag/logo.svg" alt="Zag" width="300">
+</p>
+
 <h3 align="center">Zag™</h3>
 
 <p align="center">Just a small hobby lang 😊<br>
@@ -14,7 +18,7 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 - [`examples/`](examples/) — programs in settled syntax, each with its expected output.
 - [`oracle/`](oracle/) — the reference interpreter: the executable spec.
 - [`synapse/`](synapse/) — the compiler, Zomp (the folder keeps its Nerve-era name until the code is renamed).
-- [`brand/`](brand/) — Zag has no logo yet. Nerve's (the NERVE wordmark and the medical-cross icon in [`brand/nerve/`](brand/nerve/)) and CyborgPL's earlier mark stay in `brand/` as history.
+- [`brand/`](brand/) — the official logo is the Zag cloud in [`brand/zag/`](brand/zag/) (owner, 2026-10-14): a light-to-blue gradient cloud with "ZAG" in yellow, one logo at every size, shown at the top. Nerve's (the NERVE wordmark and the medical-cross icon in [`brand/nerve/`](brand/nerve/)) and CyborgPL's earlier mark stay in `brand/` as history.
 - [`LICENSE`](LICENSE) — Apache-2.0 WITH LLVM-exception. Programs you compile owe nothing; a fork keeps the notices and may not use the name.
 - [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) — CC BY 4.0, for this repo's text (its Markdown files: this README, `DECISIONS.md`, `design/` and the other notes), the website's text (`website/`) and the logo files (`brand/`): copy them, translate, remix, use them anywhere, with credit. Credit them exactly as:
   - this repo's text: `Zag GitHub repo text: https://zag-lang.org, https://github.com/Soclets/Zag-lang`
@@ -39,6 +43,7 @@ Zag™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS
 - Metal and Xcode's Metal Toolchain, by Apple: the GPU side of `bench/gpu/`.
 - The compilers and runtimes of `bench/`'s other languages (26 with C): C++, Rust, Go, Zig, Swift, Nim, Fortran (gfortran), OCaml, Dart, Java, Kotlin, C# (.NET), JavaScript and TypeScript (Node), Julia, LuaJIT, PyPy, Elixir, Erlang, Lust, Python, Ruby, Lua, Perl and R.
 - [Python](https://www.python.org): the benchmark runners.
+- [Bungee](https://github.com/djrrb/Bungee) (SIL Open Font License 1.1): the letters of the Zag logo, turned into outlines.
 - [Node.js](https://nodejs.org) and npm: the website's build.
 - [Homebrew](https://brew.sh): LLVM, Z3, cvc5, Alive2 and most of the benchmark's toolchains on the build machine.
 - [Git](https://git-scm.com), [GitHub](https://github.com) and the [GitHub CLI](https://cli.github.com): hosting and history.
@@ -78,4 +83,4 @@ The oracle and the verification harness use no crates.
 </details>
 
 Copyright 2026 Tankun Sriket.
-Zag™ (formerly Nerve™ and CyborgPL™), Zomp™ (formerly Synapse and Cortex™, before that Precog™) and Cell™ (formerly Neuron™ and Limb™) are names of this project, and its logos, when it has them, are its marks. They are trademarks, not registered. **You may use the names and logos anywhere** — in articles, talks, comparisons, links, your own projects about Zag — **as long as you don't pretend to be us**: nothing that says or suggests it is the official Zag, made or endorsed by this project, when it isn't.
+Zag™ (formerly Nerve™ and CyborgPL™), Zomp™ (formerly Synapse and Cortex™, before that Precog™) and Cell™ (formerly Neuron™ and Limb™) are names of this project, and the Zag cloud logo is its mark. They are trademarks, not registered. **You may use the names and logos anywhere** — in articles, talks, comparisons, links, your own projects about Zag — **as long as you don't pretend to be us**: nothing that says or suggests it is the official Zag, made or endorsed by this project, when it isn't.
