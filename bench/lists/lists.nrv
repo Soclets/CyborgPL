@@ -18,7 +18,7 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     no_check let 'n' := read_n[getenv[lend 'key']] otherwise fail;
     let mut 'xs': list[int64] = [];
     for 'i': int64 from 1 to 'n' by 1 {
-        list.append[lend.mut 'xs', 'i' mod.floor 1000];
+        list.append[lend.mut 'xs', value 'i' mod.floor 1000];
     }
     let mut 'acc': int64 = 0;
     for 'r': int64 from 1 to 10 by 1 {
