@@ -1,0 +1,6 @@
+kin::manifest[
+    name = "cord",
+    prefix = "cord",
+    version = "2026-10-06T12:57:14+07:00",
+    targets = [kin::target[name = "aarch64-macos"],]
+];
