@@ -13,8 +13,12 @@ ruled it goes to a separate file; that entry was "not designed", its file's name
 yet asked. Asked where the file goes, (a) beside the program, the same name with an ending
 (`hello` and `hello.debug`), recommended, as Linux tools do and as macOS's `hello.dSYM`, where
 debuggers already look, or (b) in a build folder apart from what ships, the owner: "(a)". So
-**a final build writes its debug info beside the program**. Still open: the ending and format
-per target (one ending everywhere, or each platform's own: `.dSYM`, `.debug`, `.pdb`).
+**a final build writes its debug info beside the program**. Then the ending: (a) each platform's
+own, `hello.dSYM` on macOS, `hello.debug` on Linux and with no OS, `hello.pdb` on Windows, which
+debuggers find with no setup, recommended, or (b) one ending everywhere, which macOS's debugger
+would not find by itself; the owner: "(a)". So **each platform's own ending**, and with it the
+format (design claude's reading): DWARF in the `.dSYM` and `.debug`, PDB on Windows. That settles
+2026-10-08's open questions; `design/debug-info.md` holds it.
 
 ### 2026-10-14 — The package manager is **Zopm**, not Strike (owner)
 
