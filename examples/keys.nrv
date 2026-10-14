@@ -3,7 +3,7 @@
 # a check site the compiler must prove.
 interface Key <T> { op equal_to ['a': <T>, 'b': <T>] -> bool;  fn hash [lent 'v': <T>] -> uint64; }
 
-struct Point { x: int32  y: int32 }                      # structural: fields decide
+struct Point { x: int32, y: int32 }                      # structural: fields decide
 
 struct User { name: str.utf8 }                           # its own rule: names compare lowercased
 op equal_to ['a': User, 'b': User] -> bool { return cord::str.lower[lend 'a'.name] equal_to cord::str.lower[lend 'b'.name]; }

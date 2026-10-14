@@ -24,8 +24,8 @@ pub module shapes {
 # with this Neuron's path, `areas::mean.low`.
 # its levels apply wherever `mean` is used, in other Neurons too (owner, 2026-10-03)
 precedence.low_first {
-    level.when_chained.left_first 1 { plus }
-    level.when_chained.left_first 2 { times  mean  mean.low }
+    level 1 { plus } left_first
+    level 2 { times, mean, mean.low } left_first
 }
 
 pub op mean ['a': bin64, 'b': bin64] -> bin64 { return ('a' plus 'b') div.near 2.0; }

@@ -1,3 +1,3 @@
 # a case that gives a value needs a match used as one (2026-09-29)
-enum S { a  b }
+enum S { a, b }
 MAIN { match S.a { a { is 1; } b { is 2; } } }

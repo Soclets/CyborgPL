@@ -1,7 +1,7 @@
 pub const 'passing' := 60;
 
 struct Student {
-    name: str.utf8
+    name: str.utf8,
     scores: list[int32]
 }
 

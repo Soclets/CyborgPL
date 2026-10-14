@@ -16,7 +16,7 @@ pub bare.never module shapes {            # everything in this block module
 }
 
 pub bare.only enum Mood {                 # this enum: written bare only, never with the path
-    calm
+    calm,
     loud
 }
 

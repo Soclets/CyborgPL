@@ -1,7 +1,7 @@
 # A `match` that gives a value (owner, 2026-09-29: a): a case whose block holds only a value is
 # that value; a case may still leave instead (`return`, `fail`, `break`). The same holds for
 # `otherwise` with several reasons. Every case is still covered.
-enum Status { empty  claimed: str.utf8  locked }
+enum Status { empty, claimed: str.utf8, locked }
 fn label ['s': Status] -> str.utf8 {
     let 'text' := match 's' {
         empty         { is "free"; }

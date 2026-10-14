@@ -4,7 +4,7 @@ extern.C fn malloc ['bytes': uint64] -> ptr.mut[uint8];
 extern.C fn free ['p': ptr.mut[uint8]];
 
 layout.C struct Point {
-    x: int32
+    x: int32,
     y: int32
 }
 

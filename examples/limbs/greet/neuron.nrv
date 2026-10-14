@@ -25,6 +25,6 @@ pub bare.optional struct Note {
 }
 
 pub bare.only enum Tone {
-    soft
+    soft,
     loud
 }

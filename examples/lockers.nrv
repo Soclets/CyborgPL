@@ -1,8 +1,8 @@
 pub const 'capacity' := 12;
 
 struct Locker {
-    immut number: int32
-    owner: str.utf8
+    immut number: int32,
+    owner: str.utf8,
     items: list[str.utf8]
 }
 

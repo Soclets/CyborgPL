@@ -11,15 +11,16 @@ carry a detail. A function's `fail[…]` list has this shape already
 
 ```
 enum Status {
-    empty
-    claimed: str.utf8       # this case carries who claimed it
+    empty,
+    claimed: str.utf8,       # this case carries who claimed it
     locked
 }
 ```
 
 Top level beside `struct`; `pub` works the same. The name is bare (a type);
 case names are bare (paths into the type, like fields); a case with data
-is `name: type`; no `;`, no `,`. Structs and enums share the type
+is `name: type`; cases are separated by `,`, a `,` after the last allowed
+(owner, 2026-10-14; until then there was none). Structs and enums share the type
 namespace. The keyword is `enum` (Rust/C/Swift/TypeScript) over `variant`.
 
 ## Values
@@ -27,7 +28,7 @@ namespace. The keyword is `enum` (Rust/C/Swift/TypeScript) over `variant`.
 ```
 let 'a' := Status.empty;                 # a case with no data: bare
 let 'b' := Status.claimed["Tankun"];     # a case with data: the bracket builds it
-struct Locker { number: int32  status: Status }
+struct Locker { number: int32, status: Status }
 ```
 
 - **An enum value is always owned**, like a struct (one rule; adding a

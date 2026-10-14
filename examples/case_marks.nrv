@@ -4,7 +4,7 @@
 case.any [fn, var];
 
 case.any enum Mood {
-    Happy
+    Happy,
     Grumpy
 }
 

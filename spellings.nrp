@@ -18,6 +18,7 @@ spellings::table[
         spellings::old[written = "x~", write = ["times.wrap",], since = "2026-10-03", where = "special"],
         spellings::old[written = "xx~", write = ["pow.wrap",], note = "cord's operator", since = "2026-10-03", where = "special"],
         spellings::old[written = "\"\"", write = ["str.empty",], since = "2026-10-14", where = "special"],
+        spellings::old[written = "level.when_chained", write = ["level 2 { plus, minus } left_first",], since = "2026-10-14", where = "special"],
         spellings::old[written = "nocheck", write = ["no_check",], since = "2026-10-07"],
         spellings::old[written = "!check", write = ["no_check",], since = "2026-10-07", where = "special"],
         spellings::old[written = "!cheat", write = ["no_cheat",], since = "2026-10-07", where = "special"],

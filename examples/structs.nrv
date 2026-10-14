@@ -1,7 +1,7 @@
 struct Locker {
-    name: str.utf8
-    immut number: int32
-    capacity: int32
+    name: str.utf8,
+    immut number: int32,
+    capacity: int32,
     occupied: bool
 }
 

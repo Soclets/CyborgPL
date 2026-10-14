@@ -1,6 +1,6 @@
 precedence.low_first {
-    level.when_chained.left_first 1 { plus }
-    level.when_chained.left_first 1 { dot }
+    level 1 { plus } left_first
+    level 1 { dot } left_first
 }
 MAIN {
 }

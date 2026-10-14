@@ -1,6 +1,6 @@
 # A match arm's data name has the case's type (found by check claude, 2026-09-29): 'd' is an int32,
 # so not.bit and times.wrap know their width, and 'b' is a uint8, so plus.wrap wraps at 8 bits.
-enum E1 { c1: int32  c2: uint8  c3 }
+enum E1 { c1: int32, c2: uint8, c3 }
 MAIN {
     let 'e' := E1.c1[5];
     match 'e' {

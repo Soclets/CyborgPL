@@ -1,5 +1,5 @@
 precedence.low_first {
-    level.when_chained.right_first 1 { plus }
+    level 1 { plus } right_first
 }
 MAIN {
 }

@@ -1,11 +1,11 @@
 enum Status {
-    empty
-    claimed: str.utf8
+    empty,
+    claimed: str.utf8,
     locked
 }
 
 struct Locker {
-    number: int32
+    number: int32,
     status: Status
 }
 

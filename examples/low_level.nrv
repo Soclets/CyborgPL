@@ -6,7 +6,7 @@ extern.C {
     fn free ['p': ptr.mut[uint8]];
 }
 
-layout.C struct Header { magic: uint32  flags: uint8  length: uint64 }
+layout.C struct Header { magic: uint32, flags: uint8, length: uint64 }
 
 # FNV-1a: the wrap *is* the algorithm, so `x~`, never a check
 fn fnv1a [lent 'bytes': array[uint8]] -> uint64 {

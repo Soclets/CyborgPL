@@ -216,7 +216,7 @@ copy. `give 'xs'[i]` stays refused: it would leave a hole (a slot
 with nothing in it, which every later access would have to check for —
 a cost on every list in the program), and shrinking-by-give would be a
 second spelling of `list.remove`. Positions that must stay put are the
-element type's business: `enum Slot { empty  job: Job }`. `list.append`
+element type's business: `enum Slot { empty, job: Job }`. `list.append`
 hands nothing back and cannot be used as a value.
 
 `array` has `length` only; `list` has `length`, `append`, `remove`. Appending

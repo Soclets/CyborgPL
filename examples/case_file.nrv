@@ -4,7 +4,7 @@ case.any;
 const 'Limit' := 3;
 
 struct Point {
-    X: int32
+    X: int32,
     Y: int32
 }
 

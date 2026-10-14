@@ -213,7 +213,7 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
                         if !consts.iter().any(|c: &String| c.starts_with(&format!("const '{n}' "))) { consts.push(format!("const '{n}' := {v};")); }
                     } else { seen.push(*v); own.push(format!("{n} = {v}")); }
                 }
-                enum_lines.push(format!("layout.C enum {name} {{ {} }}", own.join("  ")));
+                enum_lines.push(format!("layout.C enum {name} {{ {} }}", own.join(", ")));
             }
             None if tag.is_none() => for (n, v) in cases { if !consts.iter().any(|c: &String| c.starts_with(&format!("const '{n}' "))) { consts.push(format!("const '{n}' := {v};")); } },
             None => {}
@@ -278,7 +278,7 @@ fn record(tag: &str, cx: &mut Cx, depth: usize, by_value: bool) -> Option<String
         }).collect());
         cx.busy.pop();
         match spelled {
-            Some(fs) => { cx.layout.insert(tag.to_string(), format!("layout.C struct {name} {{ {} }}", fs.join("  "))); true }
+            Some(fs) => { cx.layout.insert(tag.to_string(), format!("layout.C struct {name} {{ {} }}", fs.join(", "))); true }
             None => false,
         }
     };

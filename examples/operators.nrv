@@ -1,4 +1,4 @@
-struct Vec { x: bin64  y: bin64 }
+struct Vec { x: bin64, y: bin64 }
 
 # a glyph operator: any run of  not % & * plus minus / < > = ? @ ^ | ~
 op <+> ['a': Vec, 'b': Vec] -> Vec {

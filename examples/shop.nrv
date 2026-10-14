@@ -3,14 +3,14 @@ interface Priced <T> {
 }
 
 enum Stock {
-    out
-    few: int32
+    out,
+    few: int32,
     plenty
 }
 
 struct Item {
-    name: str.utf8
-    cents: int32[min 0, max 100_000]
+    name: str.utf8,
+    cents: int32[min 0, max 100_000],
     stock: Stock
 }
 

@@ -13,8 +13,8 @@ The 2026-09-14 form is under **History** at the bottom.
 
 ```
 struct Locker {
-    name: str.utf8
-    immut number: int32
+    name: str.utf8,
+    immut number: int32,
     occupied: bool
 }
 

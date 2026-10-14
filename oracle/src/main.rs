@@ -108,7 +108,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     let mut prog = load_files(path)?;
     // the base's `optional` (owner, 2026-10-08: "an iterator's next returns an Option-like value", named
     // `optional` with `value` and `none`): every program has it, as it has `list`
-    let prelude = lexer::lex("enum optional <T: any> { value: <T>  none }").map_err(|e| format!("the base's optional: {}", e.msg))?;
+    let prelude = lexer::lex("enum optional <T: any> { value: <T>, none }").map_err(|e| format!("the base's optional: {}", e.msg))?;
     let base = parser::Parser::new(prelude).program().map_err(|e| format!("the base's optional: {}", e.msg))?;
     if prog.enums.iter().any(|e| e.name == "optional") {
         return Err(format!("{}: `optional` is the base's (`optional.value[…]` / `optional.none`); an enum cannot take its name", path.display()));

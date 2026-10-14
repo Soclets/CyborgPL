@@ -2,12 +2,12 @@
 # structs, `match`, and.then / or.else (Brainstem's, since they skip their right side) still work.
 
 struct Point {
-    x: int32
+    x: int32,
     y: int32
 }
 
 enum Light {
-    lit
+    lit,
     dark
 }
 

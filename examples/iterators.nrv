@@ -4,7 +4,7 @@
 # ("`c`"). `optional` is the base's: `optional.value[…]` / `optional.none`, matched bare.
 
 struct Counter {
-    now: int32
+    now: int32,
     stop: int32
 }
 

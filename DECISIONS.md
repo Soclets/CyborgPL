@@ -5,6 +5,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-14 — `level 2 { plus, minus } left_first`, and `,` between items in braces
+
+**Owner's choice.** A precedence level is written `level N { a, b }` with how a chain of it
+reads after the braces: `left_first`, `right_first` or `refused`. The old
+`level.when_chained.left_first 2 { plus }` is refused naming the new spelling (a special row
+in `spellings.nrp`). And every list of items in braces separates them with `,`, a `,` after
+the last allowed: enum cases, struct fields, `layout.C` structs and enums, precedence levels.
+A list without them is refused. `incl.C` writes `layout.C` declarations with them.
+
+- The owner, on `when_chained`: "what's the `when_chained` shit?", "I think it's too long",
+  "What the fuck are levels?", "Is chained shit really about levels?". Design claude offered
+  `level 2 { plus minus } left_first`; the owner: "That syntax seems good, but the no commas
+  are bothering me."
+- Design claude asked whether commas go (a) only in a level's list or (b) everywhere items sit
+  in braces; the owner: "(b), any other places too?". On struct fields: "Yeah". On `layout.C`
+  enums, the owner asked "But do the C ones need them? Aren't they for C compat?"; design
+  claude: they are Nerve's syntax, and C's own enums use commas. The owner: "Yea".
+- Design claude's reading, not ruled separately: `right_first` and `refused` keep their words;
+  the trailing `,` is allowed (multi-line lists in the examples leave it off).
+- Built in the oracle (`item_comma`), examples and tests converted, `examples/trailing_comma.nrv`;
+  reject tests `enum_no_comma`, `struct_no_comma`, `c_enum_no_comma`, `level_no_comma`,
+  `level_old_spelling`. Notes: `design/operators.md`, `structs.md`, `enums.md`, `ffi.md`.
 ### 2026-10-14 — An empty `part`, `at` or `from` is an error when building, and an empty text is written `str.empty`, not `""` (owner)
 
 cord claude wrote `str.contains`, `starts_with`, `ends_with`, `split`, `join` and `replace` in Nerve

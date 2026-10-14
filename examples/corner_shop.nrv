@@ -28,49 +28,49 @@ const 'low_stock' := 3;                 # at or below this, an item goes on the 
 # ---------------------------------------------------------------------------------------------------
 
 enum Aisle {
-    fresh
-    bakery
-    pantry
+    fresh,
+    bakery,
+    pantry,
     household
 }
 
 struct Item {
-    name: str.utf8
-    aisle: Aisle
+    name: str.utf8,
+    aisle: Aisle,
     price: deci64
 }
 
 # One line of an order: what, and how many.
 struct Line {
-    name: str.utf8
+    name: str.utf8,
     count: int32[min 1, max 99]
 }
 
 # How a customer pays. A card carries its last four digits, a voucher its value.
 enum Payment {
-    cash
-    card: str.utf8
+    cash,
+    card: str.utf8,
     voucher: deci64
 }
 
 struct Order {
-    customer: str.utf8
-    lines: list[Line]
-    payment: Payment
+    customer: str.utf8,
+    lines: list[Line],
+    payment: Payment,
     discount: int32[min 0, max 50]
 }
 
 # What one order came to, kept for the end-of-day report.
 struct Sale {
-    ticket: int32
-    customer: str.utf8
-    units: int32
+    ticket: int32,
+    customer: str.utf8,
+    units: int32,
     total: deci64
 }
 
 # Receipt numbers come from a counter that hands out the next one each time it is asked.
 struct Ticket {
-    now: int32
+    now: int32,
     last: int32
 }
 
@@ -484,8 +484,8 @@ fn show_search [lent 'items': list[Item]] {
 # ---------------------------------------------------------------------------------------------------
 
 struct Restock {
-    name: str.utf8
-    cases: int32
+    name: str.utf8,
+    cases: int32,
     cost: deci64
 }
 

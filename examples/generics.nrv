@@ -16,9 +16,9 @@ fn first <T: any> [lent 'xs': list[<T>]] -> <T> or fail[empty] {
     return 'xs'[pos 1];
 }
 
-struct Pair <A: any, B: any> { left: <A>  right: <B> }     # blanks in the order announced: A, B
+struct Pair <A: any, B: any> { left: <A>, right: <B> }     # blanks in the order announced: A, B
 
-enum Maybe <T: any> { none  some: <T> }
+enum Maybe <T: any> { none, some: <T> }
 
 fn describe [lent 'p': Pair[int32, str.utf8]] -> str.utf8 {
     return to.stored.str.utf8['p'.left] ++ " " ++ 'p'.right;

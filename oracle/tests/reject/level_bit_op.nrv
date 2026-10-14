@@ -1,5 +1,5 @@
 precedence.low_first {
-    level.when_chained.left_first 1 { xor }
+    level 1 { xor } left_first
 }
 MAIN {
 }

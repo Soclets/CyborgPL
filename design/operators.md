@@ -319,7 +319,7 @@ declare. The wrapping symbols (`+~`, `x~`, …) and `x` / `xx` stay old spelling
 ## Custom operators — `op` (decided 2026-09-20)
 
 ```
-struct Vec { x: bin64  y: bin64 }
+struct Vec { x: bin64, y: bin64 }
 op <+> ['a': Vec, 'b': Vec] -> Vec { return Vec[x = 'a'.x plus 'b'.x, y = 'a'.y plus 'b'.y]; }
 op dot ['a': Vec, 'b': Vec] -> bin64 { return 'a'.x times 'b'.x plus 'a'.y times 'b'.y; }
 op **  [give 'a': Vec, 'b': bin64] -> Vec { … return give 'a'; }
@@ -372,17 +372,20 @@ operators are not offered.
 
 ```
 precedence.low_first {                          # level 1 binds loosest (good practice)
-    level.when_chained.refused 1 { equal_to ~= }     # a language operator pins its level
-    level.when_chained.left_first 2 { plus }
-    level.when_chained.left_first 3 { times  dot }
-    level.when_chained.left_first 4 { scale }   # no language operator: above times, by number
+    level 1 { equal_to, ~= } refused     # a language operator pins its level
+    level 2 { plus } left_first
+    level 3 { times, dot } left_first
+    level 4 { scale } left_first   # no language operator: above times, by number
 }
 ```
 
 A Neuron may give its operators a precedence in one block; `precedence.high_first`
-counts the other way, and a bare `precedence` is refused. Each level says how a chain
-of it reads (`left_first`, `right_first`, `refused`), and must agree with any language
-operator in it. A level may hold `neg` (a negative), so std's `pow` sits above it. An
+counts the other way, and a bare `precedence` is refused. Each level is `level N { … }`,
+its operators separated by `,`, and after the braces it says how a chain of it reads
+(`left_first`, `right_first`, `refused`), which must agree with any language operator
+in it. This spelling is the owner's of 2026-10-14 ("That syntax seems good, but the no
+commas are bothering me."); it was `level.when_chained.left_first 2 { plus }`, now
+refused naming the new one. A level may hold `neg` (a negative), so std's `pow` sits above it. An
 operator in no level keeps the custom-operator rule: brackets beside any other.
 Operators of two Neurons in the same gap need brackets between them. The language's
 bitwise operators have no precedence and cannot be given one.

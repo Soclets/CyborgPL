@@ -1,7 +1,7 @@
 # A `match` alone in a case is a statement (owner, 2026-09-29); a nested match that is the case's value
 # says `is match …` (owner, 2026-10-07: a case says its value with `is`).
-enum Order { cancelled  paid }
-enum Ship { pickup  post }
+enum Order { cancelled, paid }
+enum Ship { pickup, post }
 MAIN {
     let 'o' := Order.paid;
     let 's' := Ship.post;

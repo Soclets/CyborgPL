@@ -11,9 +11,9 @@ of every field.
 
 ```
 struct Locker {
-    name: str.utf8
-    number: int32
-    capacity: int32
+    name: str.utf8,
+    number: int32,
+    capacity: int32,
     occupied: bool
 }
 ```
@@ -27,7 +27,9 @@ struct Locker {
   the type after the name like every other site.
 - No declaration word on a field: a struct always *owns* its fields, so there is nothing
   to choose (a parameter's `lent` chooses; a field cannot).
-- No `;` after a field: fields are not statements.
+- No `;` after a field: fields are not statements. Fields are separated by `,`, and a
+  `,` after the last is allowed (owner, 2026-10-14, as everywhere items sit in braces:
+  enum cases, `layout.C` structs and enums, precedence levels).
 - `!mut` is allowed on a field — `!mut number: int32` — under the same
   rule as `!mut` on a variable: a verified contract, allowed, not standard.
 - A field may be any type, including another struct or a list.

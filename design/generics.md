@@ -22,8 +22,8 @@ fn max <T: Number> ['a': <T>, 'b': <T>] -> <T> { … }           # announced aft
 fn first <T: any> [lent 'xs': list[<T>]] -> <T> or fail[empty] { … }
 fn pick <T: any> [@x] [lent @x 'xs': list[<T>]] -> lent @x <T> { … }   # then the lifetime groups, after a `|`
 
-struct Pair <A: any, B: any> { left: <A>  right: <B> }         # blanks in the order announced
-enum Maybe <T: any> { none  some: <T> }
+struct Pair <A: any, B: any> { left: <A>, right: <B> }         # blanks in the order announced
+enum Maybe <T: any> { none, some: <T> }
 
 let 'p': Pair[int32, str.utf8] = Pair[left = 7, right = "seven"];   # filled at the use
 let 'm' := Maybe.some[42];                                          # filled from the value

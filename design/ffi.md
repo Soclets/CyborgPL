@@ -184,7 +184,7 @@ tier trusting C's answers too. The owner asked whether `no_check` was then
 ## A range type as a C struct's field (owner, 2026-09-27: a)
 
 ```
-layout.C struct Rect { w: int32[min 0, max 4096]  h: int32[min 0, max 4096] }
+layout.C struct Rect { w: int32[min 0, max 4096], h: int32[min 0, max 4096] }
 ```
 
 C sees the plain number, so the layout is unchanged (`Rect` is 8 bytes).
@@ -198,14 +198,15 @@ refusing it, with plain fields checked by hand. A range on an `extern.C fn`
 ## `layout.C enum` — C's enum (owner, 2026-09-27: a)
 
 ```
-layout.C enum Key { a = 65  b = 66  escape = 256 }
+layout.C enum Key { a = 65, b = 66, escape = 256 }
 extern.C fn IsKeyDown ['key': Key] -> bool;
 ```
 
 A C enum is a number with names, and here it is a Cyborg enum laid out
 as C's: `match` covers every case, and it is owned like every enum
 (2026-09-20). Its cases carry no data, and each says its number, as the C
-header does. Guessing the order is how bindings go wrong, so a missing
+header does. Cases are separated by `,`, as C's are and as every list in braces is
+(owner, 2026-10-14: "Yea"); `incl.C` writes them so. Guessing the order is how bindings go wrong, so a missing
 number is an error, and so are two cases with one number. It is 32 bits,
 C's `int`. A number C hands back that matches no case fails `out_of_range`
 at the door, like a ranged return: C can send any number. Only a
@@ -251,7 +252,7 @@ naming `layout.C`.
 
 ```
 layout.C struct Timeval {
-    sec: int64
+    sec: int64,
     usec: int64
 }
 ```

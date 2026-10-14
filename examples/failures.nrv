@@ -1,5 +1,5 @@
 struct Locker {
-    owner: str.utf8
+    owner: str.utf8,
     items: list[str.utf8]
 }
 

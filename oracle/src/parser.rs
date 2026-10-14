@@ -804,7 +804,7 @@ impl Parser {
                         if cases.iter().any(|c| c.name == cname) { return self.err(format!("case `{cname}` is declared twice")); }
                         let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
                         if *self.peek() == Tok::Semi { return self.err("no `;` after a case"); }
-                        if *self.peek() == Tok::Comma { return self.err("no `,` between cases — one per line, like struct fields"); }
+                        self.item_comma("enum Size { small, medium, large }")?;
                         cases.push(FailCase { name: cname, ty });
                     }
                     self.advance();
@@ -958,6 +958,7 @@ impl Parser {
                             if v < i32::MIN as i128 || v > i32::MAX as i128 { return self.err(format!("{v} does not fit C's enum (an `int`, 32 bits)")); }
                             if cases.iter().any(|c| c.name == cname) { return self.err(format!("case `{cname}` is declared twice")); }
                             if let Some(i) = values.iter().position(|x| *x == v) { return self.err(format!("`{cname}` and `{}` are both {v}; each case has its own number", cases[i].name)); }
+                            self.item_comma("layout.C enum Key { a = 65, b = 66 }")?;
                             cases.push(FailCase { name: cname, ty: None });
                             values.push(v);
                         }
@@ -1255,7 +1256,7 @@ impl Parser {
             let ty = self.ty()?;
             if fields.iter().any(|f: &Field| f.name == fname) { return self.err(format!("field '{fname}' is declared twice")); }
             if *self.peek() == Tok::Semi { return self.err("no `;` after a struct field — fields are not statements"); }
-            if *self.peek() == Tok::Comma { return self.err("no `,` between struct fields — one per line"); }
+            self.item_comma("struct Locker { name: str.utf8, number: int32 }")?;
             fields.push(Field { ty, name: fname, immut });
         }
         self.advance();
@@ -1598,6 +1599,15 @@ impl Parser {
     fn ty(&mut self) -> PResult<Ty> {
         let t = self.ty_inner()?;
         Ok(t)
+    }
+
+    /// Items in braces are separated by `,`, the last one's optional (owner, 2026-10-14: "(b)")
+    fn item_comma(&mut self, shown: &str) -> PResult<()> {
+        match self.peek() {
+            Tok::Comma => { self.advance(); Ok(()) }
+            Tok::RBrace => Ok(()),
+            _ => self.err(format!("items in braces are separated by `,`: `{shown}` (owner, 2026-10-14)")),
+        }
     }
 
     /// After `exactly` or the prefix `*`: a number, which is then an exact `deci`
@@ -3635,7 +3645,7 @@ impl Parser {
         Ok(())
     }
 
-    /// `precedence.low_first { level.when_chained.left_first 1 { … } … }` (owner, 2026-10-03).
+    /// `precedence.low_first { level 1 { … } left_first … }` (owner, 2026-10-03; this spelling 2026-10-14).
     /// Returns the levels loosest first: (number, chain, operator names, line).
     fn precedence_block(&mut self) -> PResult<Vec<(i128, u8, Vec<String>, usize)>> {
         self.expect_word("precedence")?;
@@ -3650,19 +3660,11 @@ impl Parser {
         let mut levels = Vec::new();
         while *self.peek() != Tok::RBrace {
             let line = self.line();
-            if !self.is_word("level") { return self.err(format!("a `precedence` block holds `level.when_chained.… N {{ … }}` lines, found {}", self.peek())); }
+            if !self.is_word("level") { return self.err(format!("a `precedence` block holds `level N {{ … }} left_first` lines, found {}", self.peek())); }
             self.advance();
-            let chain_err = "say how a chain of this level reads: `level.when_chained.left_first`, `level.when_chained.right_first` or `level.when_chained.refused` (owner, 2026-10-03)";
-            if *self.peek() != Tok::Dot { return self.err(chain_err); }
-            self.advance();
-            if !self.is_word("when_chained") { return self.err(chain_err); }
-            self.advance();
-            self.expect(Tok::Dot, chain_err)?;
-            let chain = match self.advance().tok {
-                Tok::Word(w) if w == "left_first" => 0, Tok::Word(w) if w == "right_first" => 1, Tok::Word(w) if w == "refused" => 2,
-                _ => return self.err(chain_err),
-            };
-            let n = match self.advance().tok { Tok::Int(i) => i, other => return self.err(format!("a level's number, `level.when_chained.left_first 1 {{ … }}`, found {other}")) };
+            // `level 2 { plus, minus } left_first` (owner, 2026-10-14); `level.when_chained.left_first 2 { … }` is the old spelling
+            if *self.peek() == Tok::Dot { return self.err(crate::spellings::message(crate::spellings::old("level.when_chained"))); }
+            let n = match self.advance().tok { Tok::Int(i) => i, other => return self.err(format!("a level's number, `level 2 {{ plus, minus }} left_first`, found {other}")) };
             self.expect(Tok::LBrace, "`{` to open the level's operators")?;
             let mut names = Vec::new();
             while *self.peek() != Tok::RBrace {
@@ -3678,9 +3680,15 @@ impl Parser {
                     "x" | "xx" | "+~" | "-~" | "x~" | "xx~" => { self.op_len.set(1); return self.old_op_error(&name).map(|_| Vec::new()); }
                     _ => name,
                 };
+                self.item_comma("level 2 { plus, minus } left_first")?;
                 names.push(name);
             }
             self.advance();
+            let chain_err = "say how a chain of this level reads, after its operators: `left_first`, `right_first` or `refused` (`level 2 { plus, minus } left_first`, owner 2026-10-14)";
+            let chain = match self.advance().tok {
+                Tok::Word(w) if w == "left_first" => 0, Tok::Word(w) if w == "right_first" => 1, Tok::Word(w) if w == "refused" => 2,
+                _ => return self.err(chain_err),
+            };
             levels.push((n, chain, names, line));
         }
         self.advance();
@@ -3705,7 +3713,7 @@ impl Parser {
                 if name != "neg" && Parser::base_chain(name) != *chain {
                     let says = ["left_first", "right_first", "refused"][Parser::base_chain(name) as usize];
                     let shown = match name.as_str() { "+" => "plus", "-" => "minus", "x" => "times", "+~" => "plus.wrap", "-~" => "minus.wrap", "x~" => "times.wrap", o => o };
-                    return bad(*line, format!("`{shown}`'s chains read `{says}`: its level must say `level.when_chained.{says}`"));
+                    return bad(*line, format!("`{shown}`'s chains read `{says}`: its level must say `{says}`"));
                 }
                 if let Some(p) = pin { if p != base { return bad(*line, format!("`{name}` and another language operator in one level, but the language has them at different levels")); } }
                 pin = Some(base);
@@ -3779,7 +3787,7 @@ impl Parser {
             // a level whose chains are refused (owner, 2026-10-03): the language's comparisons are
             // checked in `validate`; a Neuron's here
             if chain == 2 && self.user_levels.contains_key(&op) {
-                if let Expr::Binary(prev, ..) = &lhs { if self.lvl(prev).0 == lv { return self.err(format!("`{prev}` then `{op}`: this level does not chain (`level.when_chained.refused`) — parenthesise")); } }
+                if let Expr::Binary(prev, ..) = &lhs { if self.lvl(prev).0 == lv { return self.err(format!("`{prev}` then `{op}`: this level does not chain (`refused`) — parenthesise")); } }
             }
             for _ in 0..self.op_len.get() { self.advance(); }
             // right pair first where the level says so (std's `pow`), left pair first otherwise

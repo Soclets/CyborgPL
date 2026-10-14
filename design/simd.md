@@ -135,7 +135,7 @@ went through with a. `examples/simd_tail.nrv`.
 ## A simd value goes anywhere a number does (owner, 2026-09-27: a)
 
 ```
-struct Particle { place: simd[bin32, 4]  vel: simd[bin32, 4] }
+struct Particle { place: simd[bin32, 4], vel: simd[bin32, 4] }
 let 'history': list[simd[bin32, 4]] = [];
 ```
 

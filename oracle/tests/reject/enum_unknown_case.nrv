@@ -1,4 +1,4 @@
-enum S { a  b }
+enum S { a, b }
 MAIN {
     let 's' := S.zz;
 }
