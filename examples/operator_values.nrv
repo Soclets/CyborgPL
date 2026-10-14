@@ -13,9 +13,9 @@ fn test2 ['a': int32, 'b': int32, 'f': fn[int32, int32] -> bool] -> bool { retur
 fn both [lent 'a': Vec, lent 'b': Vec, 'f': fn[lent Vec, lent Vec] -> bin64] -> bin64 { return 'f'[lend 'a', lend 'b']; }
 MAIN {
     let 'xs': list[int32] = [1, 2, 3, 4];
-    let 'sum' := fold[lend 'xs', 0, op plus];
-    let 'product' := fold[lend 'xs', 1, op times];
-    let 'down' := fold[lend 'xs', 0, op minus];
+    let 'sum' := fold[lend 'xs', from 0, op plus];
+    let 'product' := fold[lend 'xs', from 1, op times];
+    let 'down' := fold[lend 'xs', from 0, op minus];
     let 'n' := apply1[5, op neg];
     let 'le' := test2[3, 3, op at_most ];
     let 'f': fn[int32, int32] -> int32 = op mod.floor;

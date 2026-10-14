@@ -25,9 +25,9 @@ fn initial [lent 'name': str.utf8] -> char.point {
 
 MAIN {
     let mut 'shelf': list[Item][min 0, max 4] = list.empty;
-    list.append[lend.mut 'shelf', Item[name = "rope", grams = 1_250]];
-    list.append[lend.mut 'shelf', Item[name = "helmet", grams = 900]];
-    list.append[lend.mut 'shelf', Item[name = "tent", grams = 4_000]];
+    list.append[lend.mut 'shelf', value Item[name = "rope", grams = 1_250]];
+    list.append[lend.mut 'shelf', value Item[name = "helmet", grams = 900]];
+    list.append[lend.mut 'shelf', value Item[name = "tent", grams = 4_000]];
 
     let 'count' := list.length[lend 'shelf'];
     let 'left': int8 = 4 minus 'count';

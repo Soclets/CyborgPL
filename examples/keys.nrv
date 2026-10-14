@@ -12,11 +12,11 @@ User satisfies Key;
 
 MAIN {
     let mut 'grid': map[Point, str.utf8] = map.empty;
-    map.set[lend.mut 'grid', Point[x = 1, y = 2], "tree"];
-    let 'at' := map.get[lend 'grid', Point[x = 1, y = 2]] otherwise "nothing";
+    map.set[lend.mut 'grid', key Point[x = 1, y = 2], value "tree"];
+    let 'at' := map.get[lend 'grid', key Point[x = 1, y = 2]] otherwise "nothing";
     cord::print.useful['at', newln];
     let mut 'users': map[User, int32] = map.empty;
-    map.set[lend.mut 'users', User[name = "Ann"], 1];
-    let 'n' := map.get[lend 'users', User[name = "ANN"]] otherwise 0;     # same key by User's own equal_to 
+    map.set[lend.mut 'users', key User[name = "Ann"], value 1];
+    let 'n' := map.get[lend 'users', key User[name = "ANN"]] otherwise 0;     # same key by User's own equal_to 
     cord::print.useful['n', newln];
 }

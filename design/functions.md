@@ -143,7 +143,7 @@ depends on may have one too, run only when that Neuron is run itself
 
 ```
 MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
-    no_check let 'first' := ptr.read[ptr.at['argv', 1]];     # the first word after the program's name
+    no_check let 'first' := ptr.read[ptr.at['argv', by 1]];     # the first word after the program's name
     …
 }
 ```

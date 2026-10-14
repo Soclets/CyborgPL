@@ -1,0 +1,1 @@
+each argument after the first says what it is: `list.append[lend.mut 'xs', value 2]`

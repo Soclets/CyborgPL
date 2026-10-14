@@ -11,7 +11,7 @@ MAIN {
     cord::print.useful["first ", 'xs'[pos 1], ", last ", 'xs'[pos 3], newln];
     let 'n' := list.length[lend 'xs'];
     cord::print.useful["length ", 'n', newln];
-    list.append[lend.mut 'xs', 40];
+    list.append[lend.mut 'xs', value 40];
     list.remove[lend.mut 'xs', pos 1];
     cord::print.useful['xs', " length ", list.length[lend 'xs'], newln];
     cord::print.useful["sum ", sum[lend 'xs'], newln];

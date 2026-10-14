@@ -26,9 +26,9 @@ MAIN {
     else { no_check if strlen['home'] > 0 { cord::print.stored["HOME is set", newln]; } }
 
     no_check let 'buf' := malloc[4];                 # bytes nobody owns
-    no_check ptr.write['buf', 72];
-    no_check ptr.write[ptr.at['buf', 1], 105];
-    no_check cord::print.useful[ptr.read['buf'], " ", ptr.read[ptr.at['buf', 1]], newln];
+    no_check ptr.write['buf', value 72];
+    no_check ptr.write[ptr.at['buf', by 1], value 105];
+    no_check cord::print.useful[ptr.read['buf'], " ", ptr.read[ptr.at['buf', by 1]], newln];
     no_check free['buf'];
 
     cord::print.useful[size.of[int32], " ", size.of[Timeval], " ", align.of[int64], " ", size.of[ptr[uint8]], newln];

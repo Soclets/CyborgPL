@@ -165,12 +165,12 @@ to walk them. Everything else is ordinary library code, and case tables
 change with every Unicode release, so they belong in something updatable:
 
 ```
-cord::str.split[lend 's', " "]          -> list[str.utf8]
-cord::str.join[lend 'parts', "_"]
+cord::str.split[lend 's', at " "]          -> list[str.utf8]
+cord::str.join[lend 'parts', between "_"]
 cord::str.contains / starts_with / ends_with[lend 's', "x"]   -> bool
 cord::str.trim / upper / lower[lend 's']
-cord::str.replace[lend 's', "a", "b"]
-cord::str.find.grapheme[lend 's', "x"]  -> int32 or fail[missing]   (1-based grapheme position)
+cord::str.replace[lend 's', from "a", to "b"]
+cord::str.find.grapheme[lend 's', part "x"]  -> int32 or fail[missing]   (1-based grapheme position)
 cord::str.at.<unit>[lend 's', pos 3]        -> that unit, or fail[out_of_range]
 cord::str.slice.grapheme[lend 's', from pos 1, to pos 5] -> str, or fail[out_of_range]
 ```

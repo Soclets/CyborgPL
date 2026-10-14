@@ -177,6 +177,15 @@ without the rest of that redesign. See `DECISIONS.md`.
 
 `spellings.nrp`'s self-check refuses a built-in name that breaks 1 to 3.
 
+## Every argument after the first says its role (owner, 2026-10-14)
+
+The first argument, the thing worked on, is bare; each other argument starts with a word for its role:
+`list.append[lend.mut 'xs', value 2]`, `map.set[lend.mut 'm', key "ann", value 5551]`,
+`str.replace[lend 's', from "a", to "b"]`, `ptr.write['p', value 65]`, `range[from 1, to 4, by 1]`.
+The words: `value`, `key`, `part`, `at`, `between`, `from`, `to`, `before`, `by`, `count`, `pos`. A
+verb follows the word (`value give 'item'`). Print and format lists, every item having one role, and
+an operator value (`op plus`) stay bare. The full list is in `DECISIONS.md`, 2026-10-14.
+
 ## Open
 
 

@@ -5,7 +5,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-14 — Every argument after the first says its role: `list.append[lend.mut 'xs', value 2]`, `map.set[lend.mut 'm', key "ann", value 5551]` (owner; being built)
+### 2026-10-14 — The symbols, `exactly` and the argument words are built in the oracle
+
+Built in two commits. **Symbols** (`ec622a50`): the parser reads each symbol as its word (`/` as
+`div.trunc`, `==` as `equal_to`, `&&` as `and.then`), so levels and checks are the words'; `&` and `&mut`
+borrow again (the old-spelling rows taken out of `spellings.nrp`, the 2026-10-02 code still in place);
+`*const T` / `*mut T` are pointer types, `*'p'` reads and `change *'p' = v;` writes, both `no_check` sites;
+`exactly` (a new keyword) and the prefix `*` make a `deci`, a whole number included. The cursed `+` and
+`*`, the `.today` test dates and the `jokes` power are gone. `examples/symbols.nrv`; `op_amp_bang` is now
+`op_bang` (`&` being the language's own); the custom `**` in `examples/operators.nrv` is now `<*>`;
+fifteen refusal tests of what is now allowed removed, `op_symbol_decl` and `exactly_text` added.
+**Argument words**: a table in the parser checks each listed call's arguments for their words and takes
+the words out before the call is read; 182 words added across `examples/` and the tests, 26 in `design/`;
+refusal tests `argument_word_missing` and `argument_word_wrong`. Design claude's readings, in the oracle's
+README: `op +` / `op -` / `op *` declare `op plus` / `op minus` / `op times`; `&@x` names a group as
+`lent@x` does; the word stands before a verb (`value give 'item'`).
+
+### 2026-10-14 — Every argument after the first says its role: `list.append[lend.mut 'xs', value 2]`, `map.set[lend.mut 'm', key "ann", value 5551]` (owner; built the same day)
 
 Asked why `ptr.write['p', 65]` has no word in front of the number, then: "`list.append[lend.mut 'xs', 2]`
 I think that's an inconsistent mistake. Look at the others, there are words like `value`, `from`, `to`,
@@ -28,7 +44,7 @@ New words: `key`, `part`, `at`, `between`; reused: `value`, `count`, `from`, `to
 claude's picks among them, approved with the rest: `at` for split (`by` being a range's step), `between`
 for join (`with` being a keyword), `from` / `to` for replace (over `old` / `new`).
 
-### 2026-10-14 — Symbols come back as spellings of the words: `+ - * / % == != <= >= ** & && || &mut`, `*const T` / `*mut T` / `*'p'`, and `exactly` for the prefix `*` (owner; being built)
+### 2026-10-14 — Symbols come back as spellings of the words: `+ - * / % == != <= >= ** & && || &mut`, `*const T` / `*mut T` / `*'p'`, and `exactly` for the prefix `*` (owner; built the same day)
 
 The cursed `+` and `*` are dropped. The owner: "Actually, let's just let those ops do whatever is the most
 useful"; asked whether that meant the jokes' leftover details or the operators themselves: "(b)"; design

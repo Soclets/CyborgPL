@@ -120,6 +120,8 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 
 - **Symbols** (2026-10-14), design claude's picks: `op +`, `op -`, `op *` declare `op plus`, `op minus`, `op times`, and `op +` as a value is `op plus`; `&@x` / `&mut@x` name a lifetime group as `lent@x` / `lent.mut@x` do; `*'p'` and `change *'p'` take a quoted variable (`*` before anything else is `exactly`'s); `/` and `%` are `div.trunc` / `mod.trunc`.
 
+- **Argument words** (2026-10-14), design claude's picks: the word stands before a verb (`value give 'item'`); a call named after a `.` (`my.fold[…]`) or declared (`fn fold`) is not checked, only the language's and cord's calls; the check runs on the tokens before parsing, so a call's word list is one table in `parser.rs` (`ARGUMENT_WORDS`), not yet in `spellings.nrp`.
+
 - **SIMD**: the oracle's target is fixed as ARM64 128-bit (the real one comes from the manifest (`Synthia.ttsr` / `Kinesin.nrp`)); a bare `simd.fill[0]` with no declared type is 16 lanes; `simd.sum` overflow is a check site but `max`/`min` are not; broadcasting a scalar against a vector (`'v' + 1`) is allowed, which `design/simd.md` does not mention either way.
 
 - **The oracle's task schedule**: a task runs when something waits on it (a `take`, a `whichever`) or when its block ends, in source order; a sender never waits (the oracle cannot suspend a task mid-body, so a hand-off or a full bounded channel just queues — the waiting is unobservable in output); time never passes unless nothing else can run, and then a timer channel fires at once. One valid schedule of the design's, chosen for determinism, not the only one.

@@ -69,8 +69,8 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 
   ```
   no_check let 'c' := ptr.read['p'];       # the T at 'p'
-  no_check ptr.write['p', 65];               # needs ptr.mut
-  no_check let 'q' := ptr.at['p', 3];      # 3 elements further — in T units, never bytes
+  no_check ptr.write['p', value 65];               # needs ptr.mut
+  no_check let 'q' := ptr.at['p', by 3];      # 3 elements further — in T units, never bytes
   if ptr.is_null['f'] { fail not_found; }   # C's null; reading it would crash
   ```
   All `no_check` sites. No pointer↔integer conversion; a pointer comes

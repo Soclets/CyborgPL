@@ -36,7 +36,7 @@ fn describe [lent 'i': Item] -> str.utf8 {
 
 fn keep [lent 'xs': list[Item], 'test': fn[lent Item] -> bool] -> list[Item] {
     let 'out': list[Item] = [];
-    for 'x' in lend 'xs' { if 'test'[lend 'x'] { list.append[lend.mut 'out', copy 'x']; } }
+    for 'x' in lend 'xs' { if 'test'[lend 'x'] { list.append[lend.mut 'out', value copy 'x']; } }
     return give 'out';
 }
 

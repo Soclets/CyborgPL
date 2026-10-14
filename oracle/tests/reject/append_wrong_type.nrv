@@ -1,4 +1,4 @@
 MAIN {
     let 'xs': list[int32] = [1, 2, 3];
-    list.append[lend.mut 'xs', 2.5];
+    list.append[lend.mut 'xs', value 2.5];
 }

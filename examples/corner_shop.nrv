@@ -109,7 +109,7 @@ fn total_of <T: Number> [lent 'xs': list[<T>]] -> <T> {
 fn sorted_down [lent 'xs': list[int32]] -> list[int32] {
     let 'out': list[int32] = list.empty;
     for 'x' in lend 'xs' {
-        list.append[lend.mut 'out', 'x'];
+        list.append[lend.mut 'out', value 'x'];
         let 'i' := list.length[lend 'out'];
         while 'i' > 1 and.then 'out'[pos 'i'] > 'out'[pos 'i' minus 1] {
             let 'held' := 'out'[pos 'i'];
@@ -142,16 +142,16 @@ fn catalog [] -> list[Item] {
 
 fn opening_stock [] -> map[str.utf8, int32] {
     let 'stock': map[str.utf8, int32] = map.empty;
-    map.set[lend.mut 'stock', "apple", 40];
-    map.set[lend.mut 'stock', "banana", 30];
-    map.set[lend.mut 'stock', "milk", 12];
-    map.set[lend.mut 'stock', "bread", 8];
-    map.set[lend.mut 'stock', "croissant", 6];
-    map.set[lend.mut 'stock', "rice", 10];
-    map.set[lend.mut 'stock', "beans", 24];
-    map.set[lend.mut 'stock', "coffee", 5];
-    map.set[lend.mut 'stock', "soap", 9];
-    map.set[lend.mut 'stock', "candles", 4];
+    map.set[lend.mut 'stock', key "apple", value 40];
+    map.set[lend.mut 'stock', key "banana", value 30];
+    map.set[lend.mut 'stock', key "milk", value 12];
+    map.set[lend.mut 'stock', key "bread", value 8];
+    map.set[lend.mut 'stock', key "croissant", value 6];
+    map.set[lend.mut 'stock', key "rice", value 10];
+    map.set[lend.mut 'stock', key "beans", value 24];
+    map.set[lend.mut 'stock', key "coffee", value 5];
+    map.set[lend.mut 'stock', key "soap", value 9];
+    map.set[lend.mut 'stock', key "candles", value 4];
     return give 'stock';
 }
 
@@ -178,7 +178,7 @@ fn aisle_name ['a': Aisle] -> str.utf8 {
 
 # One "name count" piece into a line; a count that is not a number, or not 1 to 99, fails.
 fn parse_line [lent 'piece': str.utf8] -> Line or fail[bad_line: str.utf8] {
-    let 'words' := cord::str.split[lend 'piece', " "];
+    let 'words' := cord::str.split[lend 'piece', at " "];
     if list.length[lend 'words'] not_equal 2 { fail bad_line[copy 'piece']; }
     let 'name' := copy 'words'[pos 1];
     let 'count': int32[min 1, max 99] = to.int32[min 1, max 99]['words'[pos 2]] otherwise {
@@ -190,10 +190,10 @@ fn parse_line [lent 'piece': str.utf8] -> Line or fail[bad_line: str.utf8] {
 
 fn parse_order [lent 'text': str.utf8] -> list[Line] or fail[bad_line: str.utf8] {
     let 'lines': list[Line] = list.empty;
-    let 'pieces' := cord::str.split[lend 'text', ", "];
+    let 'pieces' := cord::str.split[lend 'text', at ", "];
     for 'piece' in lend 'pieces' {
         let 'line' := parse_line[lend 'piece'] otherwise fail;
-        list.append[lend.mut 'lines', give 'line'];
+        list.append[lend.mut 'lines', value give 'line'];
     }
     return give 'lines';
 }
@@ -241,9 +241,9 @@ fn take_order [
         let 'item' := find_item[lend 'items', lend 'line'.name] otherwise {
             unknown_item { fail unknown_item[copy 'line'.name]; }
         };
-        let 'have' := map.get[lend 'stock', copy 'line'.name] otherwise 0;
+        let 'have' := map.get[lend 'stock', key copy 'line'.name] otherwise 0;
         if 'have' < 'line'.count { fail out_of_stock[copy 'line'.name]; }
-        map.set[lend.mut 'stock', copy 'line'.name, 'have' minus 'line'.count];
+        map.set[lend.mut 'stock', key copy 'line'.name, value 'have' minus 'line'.count];
         let 'rule' := rule_for[copy 'item'.aisle];
         let 'count': deci64 = to.deci64['line'.count];
         let 'line_total' := 'rule'['item'.price times 'count'];
@@ -299,7 +299,7 @@ fn todays_orders [] -> list[Order] {
         let 'discount': int32[min 0, max 50] = 0;
         if 'i' equal_to 3 { change 'discount' = 10; }
         if 'i' equal_to 8 { change 'discount' = 25; }
-        list.append[lend.mut 'orders', Order[customer = copy 'customers'[pos 'i'], lines = give 'lines', payment = give 'payment', discount = 'discount']];
+        list.append[lend.mut 'orders', value Order[customer = copy 'customers'[pos 'i'], lines = give 'lines', payment = give 'payment', discount = 'discount']];
     }
     return give 'orders';
 }
@@ -316,8 +316,8 @@ fn choose_payment ['i': int32] -> Payment {
 
 fn add_points [lent.mut 'points': map[str.utf8, int32], lent 'sale': Sale] {
     let 'earned' := 'sale'.units times 'points_per_item';
-    let 'before' := map.get[lend 'points', copy 'sale'.customer] otherwise 0;
-    map.set[lend.mut 'points', copy 'sale'.customer, 'before' plus 'earned'];
+    let 'before' := map.get[lend 'points', key copy 'sale'.customer] otherwise 0;
+    map.set[lend.mut 'points', key copy 'sale'.customer, value 'before' plus 'earned'];
 }
 
 # ---------------------------------------------------------------------------------------------------
@@ -327,9 +327,9 @@ fn add_points [lent.mut 'points': map[str.utf8, int32], lent 'sale': Sale] {
 fn reorder_list [lent 'items': list[Item], lent 'stock': map[str.utf8, int32]] -> list[str.utf8] {
     let 'out': list[str.utf8] = list.empty;
     for 'it' in lend 'items' {
-        let 'left' := map.get[lend 'stock', copy 'it'.name] otherwise 0;
+        let 'left' := map.get[lend 'stock', key copy 'it'.name] otherwise 0;
         if 'left' at_most 'low_stock' {
-            list.append[lend.mut 'out', copy 'it'.name ++ " (" ++ to.stored.str.utf8['left'] ++ " left)"];
+            list.append[lend.mut 'out', value copy 'it'.name ++ " (" ++ to.stored.str.utf8['left'] ++ " left)"];
         }
     }
     return give 'out';
@@ -339,8 +339,8 @@ fn takings_by_aisle [lent 'items': list[Item], lent 'opening': map[str.utf8, int
     let 'sum': deci64 = 0;
     for 'it' in lend 'items' {
         if 'it'.aisle equal_to 'a' {
-            let 'had' := map.get[lend 'opening', copy 'it'.name] otherwise 0;
-            let 'has' := map.get[lend 'closing', copy 'it'.name] otherwise 0;
+            let 'had' := map.get[lend 'opening', key copy 'it'.name] otherwise 0;
+            let 'has' := map.get[lend 'closing', key copy 'it'.name] otherwise 0;
             let 'sold' := 'had' minus 'has';
             change 'sum' = 'sum' plus 'it'.price times to.deci64['sold'];
         }
@@ -355,7 +355,7 @@ fn report [lent 'sales': list[Sale], lent 'items': list[Item], lent 'opening': m
     let 'units': list[int32] = list.empty;
     let 'takings': deci64 = 0;
     for 's' in lend 'sales' {
-        list.append[lend.mut 'units', 's'.units];
+        list.append[lend.mut 'units', value 's'.units];
         change 'takings' = 'takings' plus 's'.total;
     }
     cord::print.useful["orders served: ", list.length[lend 'sales'], ", units sold: ", total_of[lend 'units'], newln];
@@ -394,13 +394,13 @@ fn report [lent 'sales': list[Sale], lent 'items': list[Item], lent 'opening': m
     if list.length[lend 'reorder'] equal_to 0 {
         cord::print.useful["nothing to reorder", newln];
     } else {
-        cord::print.useful["reorder: ", cord::str.join[lend 'reorder', ", "], newln];
+        cord::print.useful["reorder: ", cord::str.join[lend 'reorder', between ", "], newln];
     }
 
     # Loyalty points, for the customers who were served
     cord::print.useful["loyalty points:", newln];
     for 's' in lend 'sales' {
-        let 'p' := map.get[lend 'points', copy 's'.customer] otherwise 0;
+        let 'p' := map.get[lend 'points', key copy 's'.customer] otherwise 0;
         cord::print.format["  {:<5} {:>3}\n", 's'.customer, 'p'];
     }
 }
@@ -414,7 +414,7 @@ fn shelf_count [lent 'items': list[Item], lent 'stock': map[str.utf8, int32], 'a
     let 'n' := 0;
     for 'it' in lend 'items' {
         if 'it'.aisle equal_to 'a' {
-            let 'on_shelf' := map.get[lend 'stock', copy 'it'.name] otherwise 0;
+            let 'on_shelf' := map.get[lend 'stock', key copy 'it'.name] otherwise 0;
             change 'n' = 'n' plus 'on_shelf';
         }
     }
@@ -426,10 +426,10 @@ fn count_shelves [lent 'items': list[Item], lent 'stock': map[str.utf8, int32]] 
     let 'bakery_ch' := channel[int32];
     let 'pantry_ch' := channel[int32];
     let 'household_ch' := channel[int32];
-    concur with [lend 'fresh_ch', lend 'items', lend 'stock'] { channel.send[lend 'fresh_ch', shelf_count[lend 'items', lend 'stock', Aisle.fresh]]; }
-    concur with [lend 'bakery_ch', lend 'items', lend 'stock'] { channel.send[lend 'bakery_ch', shelf_count[lend 'items', lend 'stock', Aisle.bakery]]; }
-    concur with [lend 'pantry_ch', lend 'items', lend 'stock'] { channel.send[lend 'pantry_ch', shelf_count[lend 'items', lend 'stock', Aisle.pantry]]; }
-    concur with [lend 'household_ch', lend 'items', lend 'stock'] { channel.send[lend 'household_ch', shelf_count[lend 'items', lend 'stock', Aisle.household]]; }
+    concur with [lend 'fresh_ch', lend 'items', lend 'stock'] { channel.send[lend 'fresh_ch', value shelf_count[lend 'items', lend 'stock', Aisle.fresh]]; }
+    concur with [lend 'bakery_ch', lend 'items', lend 'stock'] { channel.send[lend 'bakery_ch', value shelf_count[lend 'items', lend 'stock', Aisle.bakery]]; }
+    concur with [lend 'pantry_ch', lend 'items', lend 'stock'] { channel.send[lend 'pantry_ch', value shelf_count[lend 'items', lend 'stock', Aisle.pantry]]; }
+    concur with [lend 'household_ch', lend 'items', lend 'stock'] { channel.send[lend 'household_ch', value shelf_count[lend 'items', lend 'stock', Aisle.household]]; }
     let 'f' := channel.take[lend 'fresh_ch'] otherwise 0;
     let 'b' := channel.take[lend 'bakery_ch'] otherwise 0;
     let 'p' := channel.take[lend 'pantry_ch'] otherwise 0;
@@ -444,8 +444,8 @@ fn count_shelves [lent 'items': list[Item], lent 'stock': map[str.utf8, int32]] 
 fn names_starting [lent 'items': list[Item], lent 'start': str.utf8] -> list[str.utf8] {
     let 'out': list[str.utf8] = list.empty;
     for 'it' in lend 'items' {
-        if cord::str.starts_with[lend 'it'.name, copy 'start'] {
-            list.append[lend.mut 'out', copy 'it'.name];
+        if cord::str.starts_with[lend 'it'.name, part copy 'start'] {
+            list.append[lend.mut 'out', value copy 'it'.name];
         }
     }
     return give 'out';
@@ -454,8 +454,8 @@ fn names_starting [lent 'items': list[Item], lent 'start': str.utf8] -> list[str
 fn names_containing [lent 'items': list[Item], lent 'part': str.utf8] -> list[str.utf8] {
     let 'out': list[str.utf8] = list.empty;
     for 'it' in lend 'items' {
-        if cord::str.contains[lend 'it'.name, copy 'part'] {
-            list.append[lend.mut 'out', copy 'it'.name];
+        if cord::str.contains[lend 'it'.name, part copy 'part'] {
+            list.append[lend.mut 'out', value copy 'it'.name];
         }
     }
     return give 'out';
@@ -469,11 +469,11 @@ fn show_search [lent 'items': list[Item]] {
         if list.length[lend 'found'] equal_to 0 {
             cord::print.useful["  nothing starts with \"", 's', "\"", newln];
         } else {
-            cord::print.useful["  starting with \"", 's', "\": ", cord::str.join[lend 'found', ", "], newln];
+            cord::print.useful["  starting with \"", 's', "\": ", cord::str.join[lend 'found', between ", "], newln];
         }
     }
     let 'has_an' := names_containing[lend 'items', "an"];
-    cord::print.useful["  containing \"an\": ", cord::str.join[lend 'has_an', ", "], newln];
+    cord::print.useful["  containing \"an\": ", cord::str.join[lend 'has_an', between ", "], newln];
     let 'sign' := 'shop_name';                     # a const is a fresh value each use, so it is named to lend
     let 'loud' := cord::str.upper[lend 'sign'];
     cord::print.useful["  the sign over the door says ", 'loud', newln];
@@ -510,8 +510,8 @@ fn case_cost ['price': deci64, 'size': int32] -> deci64 {
 fn plan_restock [lent 'items': list[Item], lent 'opening': map[str.utf8, int32], lent 'stock': map[str.utf8, int32]] -> list[Restock] {
     let 'plan': list[Restock] = list.empty;
     for 'it' in lend 'items' {
-        let 'target' := map.get[lend 'opening', copy 'it'.name] otherwise 0;
-        let 'left' := map.get[lend 'stock', copy 'it'.name] otherwise 0;
+        let 'target' := map.get[lend 'opening', key copy 'it'.name] otherwise 0;
+        let 'left' := map.get[lend 'stock', key copy 'it'.name] otherwise 0;
         let 'missing' := 'target' minus 'left';
         if 'missing' > 0 {
             let 'size' := case_size[copy 'it'.aisle];
@@ -519,7 +519,7 @@ fn plan_restock [lent 'items': list[Item], lent 'opening': map[str.utf8, int32],
             let 'cases' := ('missing' plus 'size' minus 1) div.floor 'size';
             let 'one_case' := case_cost['it'.price, 'size'];
             let 'n': deci64 = to.deci64['cases'];
-            list.append[lend.mut 'plan', Restock[name = copy 'it'.name, cases = 'cases', cost = 'one_case' times 'n']];
+            list.append[lend.mut 'plan', value Restock[name = copy 'it'.name, cases = 'cases', cost = 'one_case' times 'n']];
         }
     }
     return give 'plan';
@@ -551,7 +551,7 @@ fn show_week [] {
     let 'counts': list[int32] = list.empty;
     for 'd' from 1 to 'days' by 1 {
         let 'n' := customers_on['d'];
-        list.append[lend.mut 'counts', 'n'];
+        list.append[lend.mut 'counts', value 'n'];
     }
     let 'names' := ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     let 'busiest' := 0;
@@ -586,7 +586,7 @@ fn show_hours ['open': int32, 'close': int32] {
         if 'h' equal_to 13 or 'h' equal_to 18 { change 'n' = 6; }
         cord::print.format["  {:>2}:00 ", 'h'];
         let 'bar' := list.fill[value "*", count 'n'];
-        cord::print.useful[cord::str.join[lend 'bar', ""], newln];
+        cord::print.useful[cord::str.join[lend 'bar', between ""], newln];
         if 'n' > 'peak' {
             change 'peak' = 'n';
             change 'peak_hour' = 'h';
@@ -645,7 +645,7 @@ MAIN {
             }
         };
         add_points[lend.mut 'points', lend 'sale'];
-        list.append[lend.mut 'sales', give 'sale'];
+        list.append[lend.mut 'sales', value give 'sale'];
         cord::print.useful[newln];
     }
 

@@ -7,6 +7,6 @@ MAIN {
     let 'f': bin32 = 0.1;
     cord::print.stored[to.useful.deci64['f'], " ", to.stored.deci64['f'], newln];
     let mut 'm': map[deci64, int32] = map.empty;
-    map.set[lend.mut 'm', 1.50, 7];
-    cord::print.stored[map.has[lend 'm', 1.5], newln];
+    map.set[lend.mut 'm', key 1.50, value 7];
+    cord::print.stored[map.has[lend 'm', key 1.5], newln];
 }

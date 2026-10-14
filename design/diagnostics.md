@@ -46,7 +46,7 @@ fix:   limit the number where it is read — line 4:
 ```
 error: 'xs' is an `array`, which cannot grow or shrink
 where: shop.nrv, line 12, column 5 — in `restock`
-code:  list.append[lend.mut 'xs', 4]
+code:  list.append[lend.mut 'xs', value 4]
 
 why:   'xs' was declared an array at line 10
 
@@ -86,7 +86,7 @@ fix, and the message names the later use:
 ```
 error: 's' cannot be changed here: 'r' still borrows it and is used on line 25
 where: shop.nrv, line 24, column 5 — in MAIN
-code:  list.append[lend.mut 's', 4]
+code:  list.append[lend.mut 's', value 4]
 ```
 
 Proposed alternative: the later use.

@@ -4,7 +4,7 @@ MAIN {
     let mut 't': list[int32] = [5,];
     if 'n' > 5 {
         let 'q' := lend 't';
-        list.append[lend.mut 't', 1];
+        list.append[lend.mut 't', value 1];
         cord::print.useful[list.length[lend 'q'], newln];
     }
 }

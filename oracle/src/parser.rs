@@ -462,6 +462,9 @@ impl Parser {
                 }
             }
         }
+        // every argument after the first says its role (owner, 2026-10-14: "Seems all good"): checked here and
+        // the word taken out, so the calls read as before
+        self.argument_words()?;
         // Brainstem's names are English letters, digits and `_`, bare or quoted (owner, 2026-10-06: "Bare
         // names should be English only", "English only too, crazy ones from the core"); WSTN allows every
         // script and emoji ("`b`"). Text values are not names.
@@ -4424,4 +4427,80 @@ pub fn symbol_word(o: &str) -> Option<&'static str> {
         "&" => "and", "&&" => "and.then", "||" => "or.else",
         _ => return None,
     })
+}
+
+/// The word each argument after the first says, by call (owner, 2026-10-14), with the call as written whole
+const ARGUMENT_WORDS: &[(&str, &[(usize, &str)], &str)] = &[
+    ("list.append", &[(1, "value")], "list.append[lend.mut 'xs', value 2]"),
+    ("map.get", &[(1, "key")], "map.get[lend 'm', key \"ann\"]"),
+    ("map.has", &[(1, "key")], "map.has[lend 'm', key \"ann\"]"),
+    ("map.remove", &[(1, "key")], "map.remove[lend.mut 'm', key \"ann\"]"),
+    ("map.set", &[(1, "key"), (2, "value")], "map.set[lend.mut 'm', key \"ann\", value 5551]"),
+    ("str.contains", &[(1, "part")], "str.contains[lend 's', part \"ab\"]"),
+    ("str.starts_with", &[(1, "part")], "str.starts_with[lend 's', part \"ab\"]"),
+    ("str.ends_with", &[(1, "part")], "str.ends_with[lend 's', part \"ab\"]"),
+    ("str.find.grapheme", &[(1, "part")], "str.find.grapheme[lend 's', part \"x\"]"),
+    ("str.find.point", &[(1, "part")], "str.find.point[lend 's', part \"x\"]"),
+    ("str.find.byte", &[(1, "part")], "str.find.byte[lend 's', part \"x\"]"),
+    ("str.split", &[(1, "at")], "str.split[lend 's', at \",\"]"),
+    ("str.join", &[(1, "between")], "str.join[lend 'parts', between \", \"]"),
+    ("str.replace", &[(1, "from"), (2, "to")], "str.replace[lend 's', from \"a\", to \"b\"]"),
+    ("channel.send", &[(1, "value")], "channel.send[lend 'ch', value 5]"),
+    ("ptr.at", &[(1, "by")], "ptr.at['p', by 3]"),
+    ("ptr.write", &[(1, "value")], "ptr.write['p', value 65]"),
+    ("simd.load.some", &[(2, "count")], "simd.load.some[lend 'xs', pos 1, count 3]"),
+    ("simd.store", &[(2, "value")], "simd.store[lend.mut 'xs', pos 1, value 'v']"),
+    ("simd.store.some", &[(2, "count"), (3, "value")], "simd.store.some[lend.mut 'xs', pos 1, count 3, value 'v']"),
+    ("fold", &[(1, "from")], "fold[lend 'xs', from 0, op plus]"),
+];
+
+impl Parser {
+    fn argument_words(&mut self) -> PResult<()> {
+        let mut i = 0;
+        while i < self.toks.len() {
+            // a call's name: words joined by `.`, maybe after `cord::`, not itself after a `.` or `fn`
+            let starts = matches!(self.toks[i].tok, Tok::Word(_)) && !(i > 0 && matches!(self.toks[i - 1].tok, Tok::Dot))
+                && !(i > 0 && matches!(&self.toks[i - 1].tok, Tok::Word(w) if w == "fn" || w == "op"))
+                && !(i > 0 && self.toks[i - 1].tok == Tok::ColonColon && !(i > 1 && matches!(&self.toks[i - 2].tok, Tok::Word(w) if w == "cord")));
+            if !starts { i += 1; continue; }
+            let mut name = String::new();
+            let mut j = i;
+            loop {
+                let Tok::Word(w) = &self.toks[j].tok else { break };
+                if !name.is_empty() { name.push('.'); }
+                name.push_str(w);
+                if self.toks.get(j + 1).map(|t| &t.tok) == Some(&Tok::Dot) && matches!(self.toks.get(j + 2).map(|t| &t.tok), Some(Tok::Word(_))) { j += 2; } else { j += 1; break; }
+            }
+            let Some((_, words, shown)) = ARGUMENT_WORDS.iter().find(|(n, _, _)| *n == name) else { i += 1; continue };
+            if self.toks.get(j).map(|t| &t.tok) != Some(&Tok::LBracket) { i += 1; continue; }
+            // walk the arguments at depth 0
+            let mut k = j + 1;
+            let mut arg = 0usize;
+            let mut at_start = true;
+            let mut depth = 0i32;
+            while k < self.toks.len() {
+                if at_start {
+                    if let Some((_, word)) = words.iter().find(|(a, _)| *a == arg) {
+                        match &self.toks[k].tok {
+                            Tok::Word(w) if w == word => { self.toks.remove(k); }
+                            _ => { self.pos = k; return self.err(format!("each argument after the first says what it is: `{shown}` (owner, 2026-10-14)")); }
+                        }
+                    }
+                    at_start = false;
+                }
+                match self.toks[k].tok {
+                    Tok::LBracket | Tok::LParen | Tok::LBrace => depth += 1,
+                    Tok::RBracket | Tok::RParen | Tok::RBrace if depth == 0 => break,
+                    Tok::RBracket | Tok::RParen | Tok::RBrace => depth -= 1,
+                    Tok::Comma if depth == 0 => { arg += 1; at_start = true; }
+                    Tok::Eof => break,
+                    _ => {}
+                }
+                k += 1;
+            }
+            // carry on inside the arguments, where another call may stand (`ptr.write[ptr.at['p', by 1], value 7]`)
+            i = j + 1;
+        }
+        Ok(())
+    }
 }

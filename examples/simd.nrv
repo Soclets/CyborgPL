@@ -18,6 +18,6 @@ MAIN {
     let 'm' := 'a' > 'b';                       # a simd[bool, 4], one answer per lane
     cord::print.useful[simd.all['m'], " ", simd.any['b' > 'a'], newln];
     let mut 'out': array[int32] = [0, 0, 0, 0, 0, 0];
-    simd.store[lend.mut 'out', pos 2, 'a' plus 'b'];
+    simd.store[lend.mut 'out', pos 2, value 'a' plus 'b'];
     cord::print.useful['out', newln];
 }

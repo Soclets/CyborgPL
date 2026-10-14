@@ -1,10 +1,10 @@
 MAIN {
     let 'xs': list[int32] = [];
-    list.append[lend.mut 'xs', 7];
-    list.append[lend.mut 'xs', 8];
+    list.append[lend.mut 'xs', value 7];
+    list.append[lend.mut 'xs', value 8];
     cord::print.useful['xs', " ", list.length[lend 'xs'], newln];
     let 'ys' := list.empty;
     cord::print.useful[list.length[lend 'ys'], newln];
-    list.append[lend.mut 'ys', "a"];
+    list.append[lend.mut 'ys', value "a"];
     cord::print.useful['ys', newln];
 }

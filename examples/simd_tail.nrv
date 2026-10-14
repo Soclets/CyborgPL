@@ -13,13 +13,13 @@ MAIN {
             let 'v': simd[int32, 4] = simd.load[lend 'xs', pos 'i'];
             change 'acc' = 'acc' plus 'v';
         } else {
-            let 'v': simd[int32, 4] = simd.load.some[lend 'xs', pos 'i', 'left'];
+            let 'v': simd[int32, 4] = simd.load.some[lend 'xs', pos 'i', count 'left'];
             change 'acc' = 'acc' plus 'v';
         }
         change 'i' = 'i' plus 4;
     }
     let 'twice': simd[int32, 4] = simd.fill[value 2];
     let 'last': simd[int32, 4] = simd.load[lend 'xs', pos 7];
-    simd.store.some[lend.mut 'xs', pos 9, 2, 'last' times 'twice'];
+    simd.store.some[lend.mut 'xs', pos 9, count 2, value 'last' times 'twice'];
     cord::print.useful[simd.sum['acc'], " ", 'xs', newln];
 }

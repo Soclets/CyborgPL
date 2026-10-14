@@ -57,8 +57,8 @@ silently, which is where "why is this borrowed" bugs come from.
 ## 4. An operator is a value as `op plus` (owner, 2026-09-29)
 
 ```
-let 'sum'     := fold[lend 'xs', 0, op plus];
-let 'product' := fold[lend 'xs', 1, op times];
+let 'sum'     := fold[lend 'xs', from 0, op plus];
+let 'product' := fold[lend 'xs', from 1, op times];
 let 'flipped' := map[lend 'xs', op neg];
 let 'f': fn[int32, int32] -> int32 = op mod.floor;
 ```

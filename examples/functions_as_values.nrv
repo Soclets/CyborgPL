@@ -16,7 +16,7 @@ fn first_by [lent 'xs': list[Locker], 'less': fn[lent Locker, lent Locker] -> bo
 
 fn keep [lent 'xs': list[int32], 'test': fn[int32] -> bool] -> list[int32] {
     let 'out': list[int32] = [];
-    for 'x' in lend 'xs' { if 'test'['x'] { list.append[lend.mut 'out', 'x']; } }
+    for 'x' in lend 'xs' { if 'test'['x'] { list.append[lend.mut 'out', value 'x']; } }
     return give 'out';
 }
 

@@ -9,7 +9,7 @@ MAIN {
     let 'p' := Particle[place = simd.fill[value 0.0], vel = simd.fill[value 0.5]];
     let 'q' := step[give 'p'];
     let mut 'history': list[simd[bin32, 4]] = [];
-    list.append[lend.mut 'history', 'q'.place];
-    list.append[lend.mut 'history', 'q'.place plus 'q'.vel];
+    list.append[lend.mut 'history', value 'q'.place];
+    list.append[lend.mut 'history', value 'q'.place plus 'q'.vel];
     cord::print.useful[simd.sum['q'.place], " ", list.length[lend 'history'], " ", simd.sum['history'[pos 2]], newln];
 }

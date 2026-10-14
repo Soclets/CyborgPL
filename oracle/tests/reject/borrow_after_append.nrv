@@ -3,6 +3,6 @@ fn first [lent 'a': list[int32]] -> lent list[int32] { return lend 'a'; }
 MAIN {
     let mut 's': list[int32] = [1, 2, 3];
     let 'r' := first[lend 's'];
-    list.append[lend.mut 's', 4];
+    list.append[lend.mut 's', value 4];
     cord::print.useful[list.length[lend 'r'], newln];
 }

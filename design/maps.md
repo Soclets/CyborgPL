@@ -7,10 +7,10 @@ Decided 2026-09-22, one question at a time. The third collection, beside
 
 ```
 let mut 'phones': map[str.utf8, int32] = map.empty;
-map.set[lend.mut 'phones', "ann", 5551];                 # add, or replace an existing key's value
-let 'n' := map.get[lend 'phones', "ann"] otherwise 0;    # a missing key is a failure
-if map.has[lend 'phones', "bob"] { … }
-let 'v' := map.remove[lend.mut 'phones', "bob"] otherwise 0;   # hands the value back, like list.remove
+map.set[lend.mut 'phones', key "ann", value 5551];                 # add, or replace an existing key's value
+let 'n' := map.get[lend 'phones', key "ann"] otherwise 0;    # a missing key is a failure
+if map.has[lend 'phones', key "bob"] { … }
+let 'v' := map.remove[lend.mut 'phones', key "bob"] otherwise 0;   # hands the value back, like list.remove
 let 'count' := map.length[lend 'phones'];                # uint64
 ```
 

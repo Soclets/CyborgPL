@@ -3,8 +3,8 @@
 
 MAIN {
     let 's' := "a b c";
-    let 'parts' := str.split[lend 's', " "];
-    let 'same' := cord::str.split[lend 's', " "];
+    let 'parts' := str.split[lend 's', at " "];
+    let 'same' := cord::str.split[lend 's', at " "];
     print.useful[list.length[lend 'parts'], " ", cord::list.length[lend 'same'], newln];
     cord::print.useful[round[2.5], newln];
 }

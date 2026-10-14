@@ -71,7 +71,7 @@ that names the fold to use.
 - `simd.fill[7]` — every lane the same value.
 - `simd.load[lend 'xs', 'i']` — N elements of an `array` or `list`
   into a vector; a check site (is `'i' plus N minus 1` inside?).
-- `simd.store[lend.mut 'xs', 'i', 'v']` — the other way.
+- `simd.store[lend.mut 'xs', 'i', value 'v']` — the other way.
 - `simd.all['m']` / `simd.any['m']` — a `simd[bool, N]` to one `bool`.
 - `simd.max['v']` / `simd.min['v']` / `simd.sum['v']` — a numeric
   vector to one value. `sum` is a plain number, worked out in full and
@@ -118,8 +118,8 @@ on the spot. `examples/simd_mask.nrv`.
 ## The leftover end: `simd.load.some` / `simd.store.some` (owner, 2026-09-27: a)
 
 ```
-let 'v': simd[int32, 4] = simd.load.some[lend 'xs', pos 9, 2];   # 2 items; lanes 3–4 are zero
-simd.store.some[lend.mut 'xs', pos 9, 2, 'v'];               # writes lanes 1–2 only
+let 'v': simd[int32, 4] = simd.load.some[lend 'xs', pos 9, count 2];   # 2 items; lanes 3–4 are zero
+simd.store.some[lend.mut 'xs', pos 9, count 2, value 'v'];               # writes lanes 1–2 only
 ```
 
 Every vector loop over a list whose length is not a multiple of N has a

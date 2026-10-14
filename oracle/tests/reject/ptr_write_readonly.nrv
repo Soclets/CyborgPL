@@ -2,5 +2,5 @@ extern.C fn getenv ['n': ptr[uint8]] -> ptr[uint8];
 MAIN {
     let 'k' := "PATH";
     no_check let 'p' := getenv[lend 'k'];
-    no_check ptr.write['p', 1];
+    no_check ptr.write['p', value 1];
 }

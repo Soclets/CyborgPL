@@ -10,7 +10,7 @@ extern.C fn malloc ['bytes': uint64] -> *mut uint8;
 extern.C fn free ['p': *mut uint8];
 
 fn count [&'s': str.utf8] -> uint64 { return str.bytes[&'s']; }
-fn grow [&mut 'xs': list[int32]] { list.append[&mut 'xs', 1]; }
+fn grow [&mut 'xs': list[int32]] { list.append[&mut 'xs', value 1]; }
 
 MAIN {
     let 'a' := 7;
