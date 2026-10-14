@@ -5,6 +5,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-14 — `cord` stays Nerve, on a few runtime pieces; its session starts later (owner: "(c)")
+
+Asked whether Synapse should have cord's text functions now (examples `argument_words` and `corner_shop`
+wait on them), design claude pointed at the rulings: the standard Neuron is written in Nerve
+(2026-09-14), "may call the Rust runtime for what CyborgPL cannot express yet" (the owner: "Your
+suggestion is good, honestly"), by a new session that is "not gonna start soon" (2026-09-30). The owner
+noted "not a choice: a Neuron must be analysable source for Cortex" "Sounds like Claude" (it is:
+Claude's reasoning written into `implementation-languages.md` on 2026-09-14, not the owner's words). The
+owner: "What if we just make Cord in both?" Offered (a) Rust now, Nerve later, (b) both for good, the
+Nerve source what Cortex reads and Rust what runs, warned against, (c) Nerve calling a few runtime
+pieces, as ruled, recommended. The owner: "We'll do (c), but I'll start that session later." So
+**`cord` is written in Nerve, leaning on the Rust runtime only where Nerve cannot yet express something;
+Synapse builds none of it in Rust; the `cord` session starts when the owner says.**
+
 ### 2026-10-14 — `fold` taken out of the argument words: it is not the language's
 
 Writing an example for every argument word, design claude found that `fold`, in its list as `fold[lend
