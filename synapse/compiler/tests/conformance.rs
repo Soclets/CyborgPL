@@ -348,3 +348,32 @@ fn examples_run_as_the_oracle_prints() {
 }
 
 use std::process::Command;
+
+/// The examples in `examples_nerve_cord.txt`, each built in a Neuron that
+/// lists the Nerve cord (`cord/`, by cord's ID and its path; owner,
+/// 2026-10-14), print what the oracle prints.
+#[test]
+fn examples_run_against_the_nerve_cord() {
+    let synapse = PathBuf::from(env!("CARGO_BIN_EXE_synapse"));
+    let text = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/examples_nerve_cord.txt")).unwrap();
+    let cord = repo().join("cord");
+    let mut failures = Vec::new();
+    for name in text.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')) {
+        let dir = std::env::temp_dir().join(format!("cca-nerve-cord/{}", name));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::copy(repo().join(format!("examples/{}.nrv", name)), dir.join("neuron.nrv")).unwrap();
+        let manifest = format!(
+            "kin::manifest[\n    name = \"{n}\",\n    prefix = \"{n}\",\n    version = \"0.1.0\",\n    dependencies = [\n        kin::dep[id = \"fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936\", path = \"{c}\"],\n    ],\n    targets = [kin::target[name = \"aarch64-macos\"],]\n];\n",
+            n = name,
+            c = cord.display()
+        );
+        std::fs::write(dir.join("Kinesin.nrp"), manifest).unwrap();
+        let want = std::fs::read(repo().join(format!("examples/{}.out", name))).unwrap();
+        let r = Command::new(&synapse).arg("run").arg(&dir).stdin(std::process::Stdio::null()).output().unwrap();
+        if r.stdout != want || r.status.code() != Some(0) {
+            failures.push(format!("{}: exit {:?}, and against the Nerve cord it printed\n{}\n  the oracle's\n{}\n{}", name, r.status.code(), indent(&String::from_utf8_lossy(&r.stdout)), indent(&String::from_utf8_lossy(&want)), indent(&String::from_utf8_lossy(&r.stderr))));
+        }
+    }
+    assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+}

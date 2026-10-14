@@ -737,3 +737,8 @@ Dated, with the alternative, so each can become a question later.
   was a `Narrow` site, which checks numbers only, so an empty text reached
   a `str.utf8[min 1 bytes]` unchecked (cord claude); it is a
   `LengthBound` now, and a lend into a bounded parameter is a site too.
+- **2026-10-14 — Examples against the Nerve cord.** An example listed in
+  `tests/examples_nerve_cord.txt` is also built in a temporary Neuron that
+  lists `cord/` by cord's ID and its path, and must print the oracle's
+  `.out` (`examples_run_against_the_nerve_cord`); built as a lone file,
+  with the built-in cord, it stays on the not-yet-built list.

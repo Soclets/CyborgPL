@@ -1,0 +1,8 @@
+# Examples that need more of cord than Synapse builds in, and that run against
+# the Nerve cord in the repository's `cord/` (owner, 2026-10-14: listing it
+# takes over `cord::`). `examples_run_against_the_nerve_cord` builds each in a
+# Neuron listing `cord/` by cord's ID and its path, and insists it prints the
+# oracle's `.out`. They stay in examples_unbuilt.txt too: built as a lone
+# file, with the built-in cord, each is still refused.
+
+argument_words

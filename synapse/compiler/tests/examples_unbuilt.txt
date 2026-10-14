@@ -3,6 +3,7 @@
 # are built (owner, 2026-10-09), every other example builds, runs, and
 # prints what the oracle prints. The test insists each one here is still
 # refused with these words, and says to drop the line the day it builds.
+# Those in examples_nerve_cord.txt run against the Nerve cord in `cord/` too.
 
 argument_words :: `cord::str.contains` is not available yet
 brain16 :: `cord::print.format` is not built yet
