@@ -111,7 +111,6 @@ spellings::table[
         spellings::call[name = "simd.load.some", words = ["", "", "count",], example = "simd.load.some[lend 'xs', pos 1, count 3]"],
         spellings::call[name = "simd.store", words = ["", "", "value",], example = "simd.store[lend.mut 'xs', pos 1, value 'v']"],
         spellings::call[name = "simd.store.some", words = ["", "", "count", "value",], example = "simd.store.some[lend.mut 'xs', pos 1, count 3, value 'v']"],
-        spellings::call[name = "fold", words = ["", "from",], example = "fold[lend 'xs', from 0, op plus]"],
     ],
     free_ops = [
         spellings::free_op[op = "^", hint = "power is cord's `pow`"],

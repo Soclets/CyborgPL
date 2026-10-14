@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-14 — `fold` taken out of the argument words: it is not the language's
+
+Writing an example for every argument word, design claude found that `fold`, in its list as `fold[lend
+'xs', from 0, op plus]`, is no language or cord function: `examples/operator_values.nrv` and
+`design/functions-as-values.md` define it themselves, as an ordinary function, and the rule the owner
+approved is for "every built-in and `cord` function". It had been listed by design claude's mistake, and
+the oracle checked it only because its table matched any call named `fold`. Taken out of
+`spellings.nrp`'s `calls`; the example and the note read `fold[lend 'xs', 0, op plus]` again.
+
 ### 2026-10-14 — Good practice 15: write the words, not the symbols (owner: "Yeah")
 
 The owner, before the symbols were built: "Using symbols shouldn't be good practice". Design claude's
