@@ -329,7 +329,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     // An iterator and an `optional` (owner, 2026-10-09, 5c52ba8a): a type
     // with its own `next`, walked by `for`, and a function that may give none.
     if cfg.iterators && g.rng.chance(30) {
-        g.extra_fns.push("struct Counter {\n    now: int32\n    stop: int32\n}\n\nfn Counter.next [lent.mut 'c': Counter] -> optional[int32] {\n    if 'c'.now at_least 'c'.stop { return optional.none; }\n    change 'c'.now = 'c'.now plus 1;\n    return optional.value['c'.now];\n}\n\nfn half ['n': int32] -> optional[int32] {\n    if ('n' mod.floor 2) equal_to 0 { return optional.value['n' div.floor 2]; }\n    return optional.none;\n}\n".to_string());
+        g.extra_fns.push("struct Counter {\n    now: int32,\n    stop: int32\n}\n\nfn Counter.next [lent.mut 'c': Counter] -> optional[int32] {\n    if 'c'.now at_least 'c'.stop { return optional.none; }\n    change 'c'.now = 'c'.now plus 1;\n    return optional.value['c'.now];\n}\n\nfn half ['n': int32] -> optional[int32] {\n    if ('n' mod.floor 2) equal_to 0 { return optional.value['n' div.floor 2]; }\n    return optional.none;\n}\n".to_string());
         g.iter_ready = true;
     }
     // MAIN

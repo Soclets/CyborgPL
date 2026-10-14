@@ -35,14 +35,14 @@ fn put_i ['n': int64] {
 }
 
 enum E1 {
-    c1: uint32
-    c2
-    c3
+    c1: uint32,
+    c2,
+    c3,
     c4: uint64
 }
 
 layout.C enum E2 {
-    c1 = -169
+    c1 = -169,
     c2 = -2003713270
 }
 

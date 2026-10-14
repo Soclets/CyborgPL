@@ -38,9 +38,9 @@ fn put_i ['n': int64] {
 }
 
 enum E1 {
-    c1: int8
-    c2
-    c3: int64
+    c1: int8,
+    c2,
+    c3: int64,
     c4: uint16
 }
 

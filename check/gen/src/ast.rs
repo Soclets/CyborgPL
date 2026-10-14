@@ -1008,11 +1008,15 @@ impl Program {
         for e in &self.enums {
             let layout = if e.values.is_some() { "layout.C " } else { "" };
             w.out.push_str(&format!("\n{layout}enum {} {{\n", e.name));
+            // `,` between cases, and after the last when there is an even
+            // number of them, so both spellings are run (owner, 2026-10-14)
+            let n = e.cases.len();
             for (i, (c, t)) in e.cases.iter().enumerate() {
+                let comma = if i + 1 < n || n % 2 == 0 { "," } else { "" };
                 match (t, &e.values) {
-                    (_, Some(vs)) => w.out.push_str(&format!("    {c} = {}\n", vs[i])),
-                    (Some(t), None) => w.out.push_str(&format!("    {c}: {}\n", t.name())),
-                    (None, None) => w.out.push_str(&format!("    {c}\n")),
+                    (_, Some(vs)) => w.out.push_str(&format!("    {c} = {}{comma}\n", vs[i])),
+                    (Some(t), None) => w.out.push_str(&format!("    {c}: {}{comma}\n", t.name())),
+                    (None, None) => w.out.push_str(&format!("    {c}{comma}\n")),
                 }
             }
             w.out.push_str("}\n");

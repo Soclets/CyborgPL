@@ -38,13 +38,13 @@ fn put_i ['n': int64] {
 }
 
 enum E1 {
-    c1
+    c1,
     c2: uint64
 }
 
 enum E2 {
-    c1
-    c2: int16
+    c1,
+    c2: int16,
     c3: uint16
 }
 

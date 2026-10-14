@@ -18,7 +18,7 @@ fn put_u ['m': uint64] {
     list.append[lend.mut 'buf', value 10];
     no_check write[1, lend 'buf', list.length[lend 'buf']];
 }
-enum E { a  b }
+enum E { a, b }
 MAIN {
     let 'v': uint64 = match E.a { a { is (14576284062462565771 div.floor 6) mod.floor 51; } b { is 1; } };
     put_u['v'];
