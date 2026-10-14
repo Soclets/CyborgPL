@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-14 — The cord session: `cord claude`, its own clone at `/Users/ts/Nerve cord`, code in `cord/` (owner: "Yeah")
+
+The owner: "Prepare the Nerve Cord session stuff. Make sure to read Anthropic's guide for Opus 5.5".
+Design claude read the guide (the Claude Opus 5.5 section of the `claude-api` skill's model-migration
+guide, with the Claude Opus 5 and Claude Fable 5.1 prompting advice it builds on) and drafted
+`design/cord-session.md`: goals, reasons and limits rather than steps, no self-check instructions,
+progress claims grounded in runs, plain outcome-first writing, sub-agents rare. Four setup choices left
+open; the first, design claude's suggestion: **house name `cord claude`, its own clone at `/Users/ts/Nerve
+cord`, its code in `cord/` in this repository**; the owner: "Yeah". Still open: its cores, whether it may
+read `oracle/src` and `synapse/` (design claude recommends not), and when it starts.
+
 ### 2026-10-14 — `cord` stays Nerve, on a few runtime pieces; its session starts later (owner: "(c)")
 
 Asked whether Synapse should have cord's text functions now (examples `argument_words` and `corner_shop`
