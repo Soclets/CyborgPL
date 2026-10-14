@@ -5,6 +5,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-14 — Nerve becomes **Zag**, code ends `.zg`, home zag-lang.org (owner)
+
+**Owner's choice.** The language is renamed Zag, the third name (CyborgPL, then Nerve on
+2026-10-08). Source files end `.zg`. The owner bought **zag-lang.org** as its home.
+The other names (compiler, prover, runtime, base, library, standard Neuron, package manager,
+the one-value file ending) are being decided next; nothing has moved yet.
+
+- How it came about: the owner asked for a real word, one syllable, at most four letters,
+  whose file ending is recognisable in two letters ("`.` has to be recognizable in two
+  letters"). Moss, Gale, Zinc, Lynx and Oath were dropped, each already a language or with
+  its domain taken; Fale was clean. The owner proposed Zag; design claude warned it sits
+  beside Zig and one letter from the owner's Xag. The owner: "But Zag feels better than Fale,
+  though. Has more weight, because I mean, the language isn't so light on the writer".
+- The owner on the ending: "`.zg` it is". `.zg` is used by no known format or tool.
+- The story, design claude's draft, which the owner asked to have checked ("Is the lightning
+  thing actually true?") and which holds up (NWS, NOAA, Britannica, AMS): lightning first
+  feels its way down in faint zigzag steps, slowly; once it connects, the return stroke runs
+  back up that path some 180 to 1,000 times faster. Slow at development, fast and safe at the
+  final product. Not yet adopted as the official wording.
+- zag.sh has been someone else's since 2023; zag-lang.dev showed a "recently registered"
+  parking page on 2026-10-14, not the owner's.
+
 ### 2026-10-14 — `level 2 { plus, minus } left_first`, and `,` between items in braces
 
 **Owner's choice.** A precedence level is written `level N { a, b }` with how a chain of it
