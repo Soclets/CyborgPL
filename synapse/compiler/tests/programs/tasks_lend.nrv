@@ -2,7 +2,7 @@ extern.C fn exit ['code': int32];
 fn work ['n': int32] -> int32 { return 'n' times 2; }
 fn fill [lent.mut 'into': list[int32], 'from': int32] {
     for 'i': int32 from 1 to 5 by 1 {
-        list.append[lend.mut 'into', 'from' plus 'i'];
+        list.append[lend.mut 'into', value 'from' plus 'i'];
     }
 }
 MAIN {

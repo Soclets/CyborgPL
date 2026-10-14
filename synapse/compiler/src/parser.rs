@@ -89,6 +89,33 @@ struct OpTok {
     old: Option<&'static str>,
 }
 
+/// `ptr.read` / `ptr.write`, as `*'p'` and `change *'p' = v;` spell them.
+fn ptr_path(what: &str, at: Span) -> Path {
+    Path { limb: None, segs: vec![Ident { name: "ptr".into(), span: at }, Ident { name: what.into(), span: at }], span: at }
+}
+
+/// The symbols that spell the language's words (owner, 2026-10-14,
+/// `operators.md` "Symbols spell the words"): each read as its word's
+/// most useful general form, at the word's level and with its checks.
+fn symbol_word(o: &str) -> Option<(BinOp, &'static str)> {
+    Some(match o {
+        "+" => (BinOp::Add, "plus"),
+        "-" => (BinOp::Sub, "minus"),
+        "*" => (BinOp::Mul, "times"),
+        "/" => (BinOp::Div(Round::Trunc), "div.trunc"),
+        "%" => (BinOp::Mod(Round::Trunc), "mod.trunc"),
+        "==" => (BinOp::Eq, "equal_to"),
+        "!=" => (BinOp::Ne, "not_equal"),
+        "<=" => (BinOp::Le, "at_most"),
+        ">=" => (BinOp::Ge, "at_least"),
+        "**" => (BinOp::Pow, "pow"),
+        "&" => (BinOp::And, "and"),
+        "&&" => (BinOp::AndThen, "and.then"),
+        "||" => (BinOp::OrElse, "or.else"),
+        _ => return None,
+    })
+}
+
 /// How a chain of one level reads (owner, 2026-10-03):
 /// `level.when_chained.left_first`, `.right_first`, or `.refused`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -241,8 +268,6 @@ fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
         return None;
     }
     match &toks[i].tok {
-        // `&mut` (owner, 2026-10-07): `lend.mut` / `lent.mut`.
-        Tok::Op(o) if o == "&" && matches!(next(1), Some(Tok::Word(w)) if w == "mut") => Some("`&mut` is an old spelling: write `lend.mut` / `lent.mut`".into()),
         // The `!` marks became words (owner, 2026-10-07).
         Tok::Op(o) if o == "!" => {
             if glued(1) {
@@ -265,7 +290,6 @@ fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
             Some(Tok::Op(o)) if o == "=" => Some("`$=` is an old spelling: write `shadow 'x': T = …`".into()),
             _ => Some("`$` is not in the language since 2026-10-07: shadowing is `shadow 'x' := …;`".into()),
         },
-        Tok::Op(o) if o.starts_with('&') && !o.starts_with("&&") && !matches!(o.as_str(), "&+" | "&-" | "&*") => Some(format!("`{}` is an old spelling: write `lend` / `lent`; a bitwise and is `and.bit`", o)),
         // The inline languages' whole names (owner, 2026-10-07: "`a`").
         Tok::Word(w) if after(1, &Tok::Dot) && i >= 2 && toks[i - 2].tok == Tok::Word("inline".into()) => match w.as_str() {
             "Assembly" | "S" => old(&format!("inline.{}", w), "inline.ASM"),
@@ -318,6 +342,10 @@ pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> 
 }
 
 pub fn parse_file(toks: &[Token]) -> Result<File> {
+    // Each argument after the first says its role (owner, 2026-10-14): the
+    // words checked and taken out before anything is parsed.
+    let owned = crate::argwords::strip(toks)?;
+    let toks = &owned[..];
     let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false, templates: Vec::new(), handlers: Default::default() };
     // Every Limb's levels, and this file's own blocks, read before any
     // expression in it: an operator above its block is parsed by it too.
@@ -2158,9 +2186,13 @@ impl<'a> Parser<'a> {
         if op.name == "->" || op.name == "<-" || op.name == "<->" {
             return self.fail_at(op.span, "an arrow cannot name an operator: `->`, `<-` and `<->` are arrows (owner, 2026-10-07)");
         }
-        // `*` is the language's own (owner, 2026-10-13).
-        if op.name == "*" {
-            return self.fail_at(op.span, "`*` is the language's own: a type's multiplication is `op times`");
+        // `op +`, `op -`, `op *` declare the words (owner, 2026-10-14); the
+        // other symbols are the language's own spellings.
+        if let Some((_, word)) = symbol_word(&op.name) {
+            if matches!(op.name.as_str(), "+" | "-" | "*") {
+                return Ok(Ident { name: word.to_string(), span: op.span });
+            }
+            return self.fail_at(op.span, format!("`{}` is the language's own spelling of `{}`: it is not declared", op.name, word));
         }
         // A type's own `plus` is `op plus` (owner, 2026-10-03).
         if let Some(old) = retired_spelling(&op.name) {
@@ -2175,6 +2207,9 @@ impl<'a> Parser<'a> {
                 let span = self.bump().span;
                 // A comparison is named by its word (owner, 2026-10-07).
                 let name = match o.as_str() {
+                    // `==` written (two characters) is the symbol; the word
+                    // `equal_to` reads as the same token.
+                    "==" if span.end - span.start == 2 => o,
                     "==" => "equal_to".to_string(),
                     "!==" => "not_equal".to_string(),
                     "</==" => "at_most".to_string(),
@@ -2316,6 +2351,20 @@ impl<'a> Parser<'a> {
             }
             Tok::Op(o) if o.starts_with('<') => {
                 return self.fail(format!("`{}` is one operator: put a space around a `<T>` so `<` stands alone", o));
+            }
+            // `*const T` is `ptr[T]`, `*mut T` is `ptr.mut[T]` (owner,
+            // 2026-10-14).
+            Tok::Op(o) if o == "*" && (self.is_word_at(1, "const") || self.is_word_at(1, "mut")) => {
+                let at = self.bump().span;
+                let m = self.bump();
+                let mut segs = vec![Ident { name: "ptr".into(), span: at }];
+                if let Tok::Word(w) = &m.tok {
+                    if w == "mut" {
+                        segs.push(Ident { name: "mut".into(), span: m.span });
+                    }
+                }
+                let inner = self.type_()?;
+                TypeKind::Path { path: Path { limb: None, segs, span: at.to(m.span) }, args: vec![inner] }
             }
             Tok::Word(w) if w == "fn" => {
                 self.bump();
@@ -2641,6 +2690,21 @@ impl<'a> Parser<'a> {
             // Changing says so (owner, 2026-09-25): `change 'x' = …;`.
             "change" => {
                 self.bump();
+                // `change *'p' = v;` is `ptr.write['p', value v]` (owner,
+                // 2026-10-14).
+                if self.is_op("*") && matches!(self.peek_at(1), Tok::Name(_)) {
+                    let star = self.bump().span;
+                    let Tok::Name(n) = self.peek().clone() else { unreachable!() };
+                    let at = self.bump().span;
+                    if !self.eat_op("=") {
+                        return self.fail(format!("expected `=` after what is changed, found {}", self.peek().describe()));
+                    }
+                    let value = self.expr_top()?;
+                    self.expect_semi("the change")?;
+                    let p = Expr { kind: ExprKind::Name(QName { name: n, span: at }), span: at };
+                    let span = star.to(self.prev_span());
+                    return Ok(StmtKind::Expr(Expr { kind: ExprKind::Call { path: ptr_path("write", star), args: vec![Arg::Positional(p), Arg::Positional(value)], otherwise: None }, span }));
+                }
                 let target = self.expr_top()?;
                 match &target.kind {
                     ExprKind::Name(_) | ExprKind::Field { .. } | ExprKind::Index { .. } => {}
@@ -3510,8 +3574,11 @@ impl<'a> Parser<'a> {
                 if let Some(old) = retired_spelling(&o) {
                     return self.fail_at(at, old.dated());
                 }
+                if let Some((op, _)) = symbol_word(&o) {
+                    let spelled = op.spelled().to_string();
+                    return Ok((op, spelled));
+                }
                 match o.as_str() {
-                    "/" => return self.fail_at(at, "division is `div.floor`, `div.ceil`, `div.trunc` or `div.near`: `op div.floor`"),
                     "++" => BinOp::Join,
                     "==" => BinOp::Eq,
                     "!==" => BinOp::Ne,
@@ -3625,9 +3692,12 @@ impl<'a> Parser<'a> {
         };
         let t = match self.peek() {
             Tok::Op(o) => match o.as_str() {
-                "+" => lang(BinOp::Cursed, ADD_LEVEL, Chain::Left),
-                "*" => lang(BinOp::Star, MUL_LEVEL, Chain::Left),
-                "-" => OpTok { old: Some("minus"), ..lang(BinOp::Sub, ADD_LEVEL, Chain::Left) },
+                "+" | "-" => lang(symbol_word(o)?.0, ADD_LEVEL, Chain::Left),
+                "*" | "/" | "%" => lang(symbol_word(o)?.0, MUL_LEVEL, Chain::Left),
+                "**" => lang(BinOp::Pow, POW_LEVEL, Chain::Right),
+                "&" | "&&" => lang(symbol_word(o)?.0, AND_LEVEL, Chain::Left),
+                "||" => lang(BinOp::OrElse, OR_LEVEL, Chain::Left),
+                "!=" | "<=" | ">=" => lang(symbol_word(o)?.0, CMP_LEVEL, Chain::Refused),
                 "+~" => OpTok { old: Some("plus.wrap"), ..lang(BinOp::WrapAdd, ADD_LEVEL, Chain::Left) },
                 "-~" => OpTok { old: Some("minus.wrap"), ..lang(BinOp::WrapSub, ADD_LEVEL, Chain::Left) },
                 "++" => lang(BinOp::Join, JOIN_LEVEL, Chain::Left),
@@ -3742,9 +3812,12 @@ impl<'a> Parser<'a> {
                 self.pos -= skip;
                 break;
             }
-            // consume the operator token(s)
+            // consume the operator token(s); a symbol is one, its word's
+            // narrowing (`.then`, the rounding) in it already
+            let symbol = matches!(self.peek(), Tok::Op(_));
             self.bump();
             match op {
+                _ if symbol => {}
                 BinOp::AndThen | BinOp::OrElse => {
                     self.bump(); // .
                     self.bump(); // then / else
@@ -3894,19 +3967,36 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
+    /// After `exactly` or the prefix `*`: the number, as an exact `deci`.
+    fn exactly(&mut self, start: Span) -> Result<Expr> {
+        let Tok::Num { text, .. } = self.peek().clone() else {
+            return self.fail(format!("`exactly` is followed by a number: `exactly 19.99`, `exactly 1000`; found {}", self.peek().describe()));
+        };
+        let at = self.bump().span;
+        self.postfix_on(Expr { kind: ExprKind::Exact(text.replace('_', "")), span: start.to(at) })
+    }
+
     fn prefix(&mut self) -> Result<Expr> {
         let start = self.span();
         match self.peek().clone() {
-            // `*0.1`: exactly this decimal, a `deci` (owner, 2026-10-02).
-            Tok::Op(o) if o == "*" && matches!(self.peek_at(1), Tok::Num { .. }) => {
+            // `exactly 19.99`, `*19.99`, `exactly 1000`: exactly this number,
+            // a `deci` (owner, 2026-10-02; whole numbers and the word,
+            // 2026-10-14).
+            Tok::Word(w) if w == "exactly" => {
                 self.bump();
-                let Tok::Num { text, bin } = self.peek().clone() else { unreachable!() };
+                self.exactly(start)
+            }
+            Tok::Op(o) if o == "*" && !matches!(self.peek_at(1), Tok::Name(_)) => {
+                self.bump();
+                self.exactly(start)
+            }
+            // `*'p'` is `ptr.read['p']` (owner, 2026-10-14).
+            Tok::Op(o) if o == "*" => {
+                let star = self.bump().span;
+                let Tok::Name(n) = self.peek().clone() else { unreachable!() };
                 let at = self.bump().span;
-                if !bin {
-                    return self.fail_at(start.to(at), format!("`{}` is exact already: an integer is held as written, so `*` adds nothing — write `{}`", text, text));
-                }
-                let span = start.to(at);
-                self.postfix_on(Expr { kind: ExprKind::Exact(text.replace('_', "")), span })
+                let p = Expr { kind: ExprKind::Name(QName { name: n, span: at }), span: at };
+                Ok(Expr { kind: ExprKind::Call { path: ptr_path("read", star), args: vec![Arg::Positional(p)], otherwise: None }, span: start.to(at) })
             }
             Tok::Op(o) if o == "-" => {
                 self.bump();

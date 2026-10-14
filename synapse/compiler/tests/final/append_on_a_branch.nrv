@@ -9,7 +9,7 @@ MAIN {
     let mut 'xs': list[bool] = [];
     let mut 'i': int64 = 0;
     while 'i' at_most 'n' {
-        if ('i' mod.floor 2) equal_to 0 { list.append[lend.mut 'xs', true]; }
+        if ('i' mod.floor 2) equal_to 0 { list.append[lend.mut 'xs', value true]; }
         change 'i' = 'i' plus 1;
     }
     let mut 'p': int64 = 1;

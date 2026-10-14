@@ -177,17 +177,6 @@ pub enum Op {
     CharCode,
     /// Whether the machine running has a chip or feature (`hir`).
     MachineHas(u32),
-    /// Whether it is 1 April by the machine's own date, when `+` on two
-    /// whole numbers is `xxx` (owner, 2026-10-13).
-    AprilFirst,
-    /// `*` on text (owner, 2026-10-13): the text, a count (`int64`), and
-    /// whether it is 1 April, when the count is negated; 0 or fewer times
-    /// is empty, as Python's is.
-    StrRepeat,
-    /// `a xxx b`, the tower of powers, on the tower's own width: `a` and
-    /// `b` taken there, the answer there too, past every window when it
-    /// is past every integer, for the `Tower` site to stop.
-    Tetrate,
     CharFromCode(Unit),
     PtrRead,
     PtrWrite,
@@ -287,9 +276,6 @@ pub enum SiteKind {
     /// A `send` nobody can ever take; two tasks waiting on each other.
     ChannelReachable,
     Deadlock,
-    /// On 1 April `+` is `xxx` (owner, 2026-10-13): its tower lands in
-    /// the answer's type, overflowing as any number would.
-    Tower { to: Ty },
 }
 
 impl SiteKind {
@@ -316,13 +302,6 @@ impl SiteKind {
             SiteKind::TaskLendOutlives => "the task can outlive what it borrowed".into(),
             SiteKind::ChannelReachable => "nothing can ever take what is sent here".into(),
             SiteKind::Deadlock => "both sides can end up waiting for the other".into(),
-            // Bare numbers' answer is held to 64 bits in between, as an
-            // exact one is to its limit.
-            SiteKind::Tower { to } => match (to.exact_limit(), to.base()) {
-                (Some(bits), _) => format!("on 1 April `+` is `xxx`, and its tower of powers can go past {} bits in between", bits),
-                (None, Ty::Int(crate::types::IntW::Free(_))) => "on 1 April `+` is `xxx`, and its tower of powers can go past 64 bits in between".into(),
-                (None, _) => format!("on 1 April `+` is `xxx`, and its tower of powers can be past what {} holds", crate::types::a_type(&spell(to))),
-            },
         }
     }
 }

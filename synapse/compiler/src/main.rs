@@ -500,14 +500,6 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     let mut checker = brainstem::check::Checker::new(items);
     checker.std_stubs = std::env::var("SYNAPSE_CORD_STUBS").is_ok();
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
-    // `+` (owner, 2026-10-13: "No warnings. Until final build"): the
-    // working build says nothing, and the final build refuses the first.
-    if final_build {
-        if let Some((at, star)) = program.cursed.iter().min_by_key(|(s, _)| (s.file.0, s.start)) {
-            let what = if *star { "a final build refuses `*`: multiply with `times`" } else { "a final build refuses `+`: add with `plus`, and join text with `++`" };
-            return Err(Diagnostic::error(what).at(*at).render(&sources));
-        }
-    }
     let mut mir = brainstem::mir::build::build(program);
     brainstem::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in Synapse:\n  {}\n", p.join("\n  ")))?;
     let owned = brainstem::mir::ownership::check(&mut mir, &sources);

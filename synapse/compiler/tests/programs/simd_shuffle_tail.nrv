@@ -11,9 +11,9 @@ MAIN {
     let 'pairs' := simd.shuffle['v', [2, 1, 4, 3]];
     let 'first' := simd.shuffle['v', [1, 1, 1, 1]];
     let mut 'out': array[int32] = [0, 0, 0, 0];
-    simd.store[lend.mut 'out', pos 1, 'r'];
+    simd.store[lend.mut 'out', pos 1, value 'r'];
     let 'r1' := 'out'[pos 1];                          # 40
-    simd.store[lend.mut 'out', pos 1, 'pairs'];
+    simd.store[lend.mut 'out', pos 1, value 'pairs'];
     let 'p2' := 'out'[pos 2];                          # 10
     let 'f' := simd.sum['first'];                      # 40
 
@@ -27,17 +27,17 @@ MAIN {
             let 'w': simd[int32, 4] = simd.load[lend 'xs', pos 'i'];
             change 'acc' = 'acc' plus 'w';
         } else {
-            let 'w': simd[int32, 4] = simd.load.some[lend 'xs', pos 'i', 'left'];
+            let 'w': simd[int32, 4] = simd.load.some[lend 'xs', pos 'i', count 'left'];
             change 'acc' = 'acc' plus 'w';
         }
         change 'i' = 'i' plus 4;
     }
     let 'twice': simd[int32, 4] = simd.fill[value 2];
     let 'last': simd[int32, 4] = simd.load[lend 'xs', pos 7];
-    simd.store.some[lend.mut 'xs', pos 9, 2, 'last' times 'twice'];
+    simd.store.some[lend.mut 'xs', pos 9, count 2, value 'last' times 'twice'];
     let 'x9' := 'xs'[pos 9];                           # 14
     let 'x10' := 'xs'[pos 10];                         # 16
-    let 'none': simd[int32, 4] = simd.load.some[lend 'xs', pos 11, 0];
+    let 'none': simd[int32, 4] = simd.load.some[lend 'xs', pos 11, count 0];
     # 40 + 10 + 40 + 55 + 14 + 16 + 0 = 175
     no_check my.exit['r1' plus 'p2' plus 'f' plus simd.sum['acc'] plus 'x9' plus 'x10' plus simd.sum['none']];
 }

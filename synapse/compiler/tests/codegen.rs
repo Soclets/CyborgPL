@@ -686,29 +686,3 @@ fn generate_writes_what_the_oracle_wrote() {
     let _ = std::fs::remove_dir_all(&dir);
     assert_eq!(got, want);
 }
-
-/// `+` (owner, 2026-10-13): on 1 April, by the machine's date or
-/// `SYNAPSE_TODAY`, two whole numbers make `xxx`, a tower of powers that
-/// stops where it is past every integer; and the final build refuses `+`,
-/// and `*` too.
-#[test]
-fn plus_is_a_tower_on_1_april() {
-    assert!(runtime().is_some(), "the runtime is not built");
-    let run = |path: &Path, today: &str| Command::new(cca()).arg("run").arg(path).env("SYNAPSE_TODAY", today).output().unwrap();
-    let tower = dir().join("cursed_tower.nrv");
-    let r = run(&tower, "04-01");
-    assert_eq!((r.status.code(), String::from_utf8_lossy(&r.stdout).as_ref()), (Some(28), "27 1 n3 |\n"), "3 + 2 on 1 April is not 3 to the 3:\n{}", String::from_utf8_lossy(&r.stderr));
-    let r = run(&tower, "04-02");
-    assert_eq!((r.status.code(), String::from_utf8_lossy(&r.stdout).as_ref()), (Some(7), "5 2 n3 abab|\n"), "3 + 2 on 2 April is not 5:\n{}", String::from_utf8_lossy(&r.stderr));
-    let past = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/april/tower_past.nrv");
-    let r = run(&past, "04-01");
-    let err = String::from_utf8_lossy(&r.stderr);
-    assert!(r.status.code() == Some(101) && err.contains("tower of powers"), "5 xxx 3 did not stop:\n{}", err);
-    let r = final_build(&tower);
-    let err = String::from_utf8_lossy(&r.stderr);
-    assert!(!r.status.success() && err.contains("a final build refuses `+`") && err.contains("line 11"), "the final build let `+` through:\n{}", err);
-    let star = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/cursed_star.nrv");
-    let r = final_build(&star);
-    let err = String::from_utf8_lossy(&r.stderr);
-    assert!(!r.status.success() && err.contains("a final build refuses `*`") && err.contains("line 7"), "the final build let `*` through:\n{}", err);
-}

@@ -11,9 +11,9 @@ MAIN {
     let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'xs' := [1, 2, 3];
-    if 'there' { list.append[lend.mut 'xs', 4]; }
+    if 'there' { list.append[lend.mut 'xs', value 4]; }
     let 'count' := fn [] -> uint64 with [copy 'xs'] { return list.length[lend 'xs']; };
-    list.append[lend.mut 'xs', 5];
+    list.append[lend.mut 'xs', value 5];
     let 'again' := copy 'count';
     let 'moved' := give 'count';
     let 'words' := ["a", "bb"];

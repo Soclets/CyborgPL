@@ -9,7 +9,7 @@ fn run [] -> int32 {
     let 'ys': list[int32] = [5, 6];
     let 'm' := pickmut[lend.mut 'xs', lend 'ys'];
     change 'm'[pos 1] = 7;
-    list.append[lend.mut 'm', 9];
+    list.append[lend.mut 'm', value 9];
     return 'xs'[pos 1] times 10 plus to.int32[list.length[lend 'xs']];
 }
 MAIN {

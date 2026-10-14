@@ -6,7 +6,7 @@ extern.C fn exit ['code': int32];
 MAIN {
     let 'xs': list[int64] = [10, 20, 30, 40, 50];
     let mut 'mid' := list.slice[lend 'xs', from pos 2, to pos 4];
-    list.append[lend.mut 'mid', 7];
+    list.append[lend.mut 'mid', value 7];
     let 'none' := list.slice[lend 'xs', from pos 3, to pos 2];
     let 'fixed': array[int32] = [1, 2, 3];
     let 'head' := array.slice[lend 'fixed', from pos 1, to pos 2];

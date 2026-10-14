@@ -8,6 +8,7 @@ pub mod diag;
 pub mod lexer;
 pub mod names;
 pub mod parser;
+pub mod argwords;
 pub mod cheader;
 pub mod template;
 pub mod spellings;

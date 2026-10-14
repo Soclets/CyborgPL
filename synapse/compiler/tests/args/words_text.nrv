@@ -9,13 +9,13 @@ MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
     let mut 'bad': int32 = 0;
     let mut 'i': int32 = 1;
     while 'i' < 'argc' {
-        no_check let 'word' := ptr.read[ptr.at['argv', 'i']];
+        no_check let 'word' := ptr.read[ptr.at['argv', by 'i']];
         let mut 'k': int32 = 0;
         let mut 'raw': list[uint8] = [];
         loop {
-            no_check let 'b' := ptr.read[ptr.at['word', 'k']];
+            no_check let 'b' := ptr.read[ptr.at['word', by 'k']];
             if 'b' equal_to 0 { break; }
-            list.append[lend.mut 'raw', 'b'];
+            list.append[lend.mut 'raw', value 'b'];
             change 'k' = 'k' plus 1;
         }
         let 'text' := to.str.utf8['raw'] otherwise "";

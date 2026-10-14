@@ -2,7 +2,7 @@ extern.C fn exit ['code': int32];
 MAIN {
     let mut 'xs': list[int32] = [];
     for 'i': int32 from 1 to 100 by 1 {
-        list.append[lend.mut 'xs', 'i'];
+        list.append[lend.mut 'xs', value 'i'];
     }
     let 'len': int32 = list.length[lend 'xs'];
     let 'last': int32 = 'xs'[pos 100];

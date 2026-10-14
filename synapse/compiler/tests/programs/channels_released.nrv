@@ -3,7 +3,7 @@ MAIN {
     let 'c' := channel[int32];
     let mut 'got': int32 = 0;
     {
-        concur with [lend 'c'] { channel.send[lend 'c', 5]; }
+        concur with [lend 'c'] { channel.send[lend 'c', value 5]; }
         concur with [lend 'c', lend.mut 'got'] {
             let 'x' := channel.take[lend 'c'] otherwise 0;
             let 'y' := channel.take[lend 'c'] otherwise 100;

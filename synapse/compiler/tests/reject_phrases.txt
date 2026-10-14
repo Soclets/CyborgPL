@@ -13,12 +13,13 @@
 # it for a reason that is not a rule, and the line says which.
 
 ai_missing [fnv:72a06f2d6464308c] :: `brain16` is AI's
-amp_mut_old [fnv:a96c1609d6013aad] :: `&mut` is an old spelling: write `lend.mut` / `lent.mut`
 and_does_not_guard [fnv:73a43ee7964ee933] :: the position can be past the end
 append_as_value [fnv:962f0b75bc91959f] :: it changes the list in place
 append_to_array [fnv:5b0ab95e546066e1] :: declare it a `list` to append
 append_without_mut [fnv:ed12d99652ef7144] :: `list.append` changes the collection, so it takes `lend.mut`, not `lend`
 append_wrong_type [fnv:5d724d7f0bf1eafb] :: there is no implicit conversion between numeric families
+argument_word_missing [fnv:a61406b077c34010] :: each argument after the first says what it is: `list.append[lend.mut 'xs', value 2]`
+argument_word_wrong [fnv:5e004537c841e21b] :: each argument after the first says what it is: `map.get[lend 'm', key "ann"]`
 arith_overflow [fnv:7eddcdfe6e78e8b0] :: the value can be outside what an `int32` holds
 array_into_list [fnv:fd7150cb07b4b796] :: is a `list[int32]`, and 'f' is an `array[int32]`
 array_slice_is_list [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
@@ -82,7 +83,7 @@ bin_infinity [fnv:5042776272302d97] :: can go past the largest bin (it would be 
 bin_into_untyped_int_list [fnv:d7cb425ec9fe165b] :: there is no implicit conversion between numeric families
 bin_nan [fnv:da5fa56ba74549ff] :: nothing can be divided by zero
 bin_to_int_unhandled [fnv:19f1e20a8a83665c] :: `to.int32` can fail (not_whole, out_of_range)
-bit_ampersand [fnv:9a0988643ad14c28] :: a bitwise and is `and.bit`
+bit_ampersand [fnv:9caeeba957df596b] :: the left side of `and` must be a `bool`
 bit_mixed_needs_parens [fnv:d936cef674e6c908] :: a bitwise operator has no precedence
 bit_not_untyped [fnv:6f6393d70a590740] :: `not.bit` needs a width, and nothing here gives one
 bit_on_bin [fnv:a3920de02aa7e4cd] :: `xor` works on integers, and this is a `bin`
@@ -240,8 +241,8 @@ enum_quoted_case [fnv:c6233fb8356caa36] :: a case's name is bare
 enum_unknown_case [fnv:297e3ae595f8a01e] :: `S` has no case `zz`: its cases are a, b
 eq_in_value [fnv:8bd4b76183bb4396] :: equality is `equal_to`
 eq_without_type [fnv:b34002b1a60ea4e5] :: changing a variable says so
-exact_integer [fnv:ad0efd01de0e9e28] :: exact already
 exact_into_bin [fnv:5b84c614a3bd1fec] :: cannot hold it exactly
+exactly_text [fnv:6198506425e0eda2] :: `exactly` is followed by a number
 exit_range [fnv:66ac7011902821d4] :: !pending `std::exit` is a stub until std exists; its `uint8` argument gets no narrowing site yet
 extern_block_line_private [fnv:1db24bc0518461c4] :: is private to module `text`
 extern_block_unclosed [fnv:ca752e2459d18446] :: is its `}` missing
@@ -325,7 +326,6 @@ give_twice [fnv:553f0d0b814e2e86] :: was already given away, so there is nothing
 gives_renamed [fnv:2eabd18c6643101e] :: `gives` is an old spelling: write `is`
 grapheme_from_code [fnv:094cc6a08b067653] :: `char.point.from_code[…]` or `char.byte.from_code[…]`
 grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
-gte [fnv:e846773eb1344185] :: `>=` is not an operator; greater-or-equal is `at_least`
 ieee_on_int [fnv:0558ea36e12221de] :: `div.ceil.ieee` keeps a -0, which only a bin or brain16 has
 ieee_on_mod [fnv:2473cab7e2c3596a] :: `.ieee` goes on an operator that can make a -0, `plus`, `minus`, `times`, `pow`, a `div.X`, `mod.floor`, `mod.ceil` or `mod.trunc`; `mod.near` has no `.ieee` form
 ieg_retired [fnv:d22a35fd8e6c5940] :: IEG is retired: since 2026-10-12 it is part of the Brainstem
@@ -346,8 +346,6 @@ index_needs_pos_change [fnv:7fbb95940493767c] :: an index says it is a position:
 inline_ll_not_built [fnv:b71d478526e385ca] :: `inline.LL`, LLVM IR in place, is the Brainstem's
 inline_msl_not_built [fnv:d7389a01e1fb7f88] :: `inline.MSL`, the Metal Shading Language, is the Metal lobe's
 iterator_given_away [fnv:4d1554c3deb74f7c] :: 'c' was given away
-jokes_denied [fnv:ff7dbacb1dd324fa] :: this Neuron uses `+`, which this program denies (`deny`: `kin::power.jokes`)
-jokes_denied_star [fnv:89f24c5640c57ce5] :: this Neuron uses `*`, which this program denies (`deny`: `kin::power.jokes`)
 kin_capital_old [fnv:81d5828a9253e998] :: `kin::Manifest` is an old spelling: write `kin::manifest`
 let_over_name_unrun [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
 let_over_param_uncalled [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
@@ -362,7 +360,6 @@ mut_changed_only_by_shadow [fnv:0328a401ef015859] :: 'x' is `mut`, but nothing c
 mut_never_changed [fnv:fcfb6c057425e599] :: 'total' is `mut`, but nothing changes it
 mut_never_changed_unused_generic [fnv:79e50e733f2b5bd7] :: 'x' is `mut`, but nothing changes it
 neg_ieee_on_int [fnv:49dd57d5cf27f472] :: `neg.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `-'x'`
-old_ampersand [fnv:aeae80cbe3ea6bdd] :: `&` is an old spelling: write `lend` / `lent`; a bitwise and is `and.bit`
 old_auto_newline [fnv:3557516c4c015da6] :: `auto_newline` is an old spelling: write `auto_newln`
 old_backslash_n [fnv:d7a6d3312369f1b8] :: `\n` is an old spelling: write `newln`
 old_bang_cheat [fnv:8e0f85183eb6fdcb] :: `!cheat` is an old spelling: write `no_cheat`
@@ -372,7 +369,6 @@ old_bang_not [fnv:8a10fba72a0c2f1a] :: `!` is an old spelling: write `not`
 old_bang_shadow [fnv:7c66670daa4752d3] :: `!$` is an old spelling: write `no_shadow`
 old_build_name [fnv:fd298b0602bd0f69] :: `build.cplr` has the old name: rename it to `build.nrv`
 old_ending_cpls [fnv:269514a2c6134a46] :: `helper.cpls` has the old name: rename it to `helper.nrv`
-old_eq [fnv:d19b7ef20365f588] :: `==` is an old spelling: write `equal_to`
 old_ge [fnv:3c2099159bf1fd6a] :: `>/==` is an old spelling: write `at_least`
 old_inline_assembly [fnv:c077e953beb2d9ef] :: `inline.Assembly` is an old spelling: write `inline.ASM`
 old_inline_s [fnv:36fd7bec575e37a8] :: `inline.S` is an old spelling: write `inline.ASM`
@@ -387,11 +383,10 @@ old_shadow_walrus [fnv:2b12b45390216440] :: `$:=` is an old spelling: write `sha
 old_std_i [fnv:2c5376858ebb8036] :: `not_std.i24` is an old spelling: write `not_std.int24`
 old_std_path [fnv:e4e86bc349371b5b] :: `std` is an old spelling: write `cord`
 old_two_long_arrows [fnv:472bf2fa455f76eb] :: `<---->` is an old spelling: write `<->`
-op_amp_declared_still_not_lend [fnv:d61d6719d5da5729] :: `&` is an old spelling: write `lend` / `lent`
-op_amp_undeclared [fnv:9a0988643ad14c28] :: a bitwise and is `and.bit`
+op_amp_undeclared [fnv:9caeeba957df596b] :: the left side of `and` must be a `bool`
 op_bang_undeclared [fnv:86d806aeb202da87] :: `!` is not an operator here; not is `not`
 op_pipe_undeclared [fnv:3e1e33f26aad5836] :: a bitwise or is `or.bit`
-op_star_decl [fnv:dbc2d666e4947fdc] :: `*` is the language's own: a type's multiplication is `op times`
+op_symbol_decl [fnv:9faa9fcf67a2c71c] :: `%` is the language's own spelling of `mod.trunc`: it is not declared
 optional_taken [fnv:36e85e806de22b47] :: `optional` is the base's
 plus_ieee_on_int [fnv:cf2096d03cb58e67] :: `plus.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `plus`
 iface_bound_on_own_t [fnv:f270907c7555b421] :: accepts nothing in particular
@@ -517,7 +512,6 @@ must_fail_not_a_call [fnv:9484e22cead68df6] :: takes something that can fail
 must_outside_test [fnv:ed4eca753ea7258a] :: `must` belongs in a `test fn`
 mut_after_name [fnv:28b25637b1aadc1c] :: goes before the name
 my_alone [fnv:8b049ab55a911000] :: `my` is followed by `.` and the root item it reaches: `my.helper[…]`
-ne [fnv:1ab20e7db13a717a] :: `!=` is not an operator; not-equal is `not_equal`
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
 no_bin128 [fnv:65f2adec4a0637da] :: there is no `bin128`
 no_cheat_old [fnv:fc0169759787cd18] :: `!c` is `no_cheat` now
@@ -546,7 +540,6 @@ op_builtin_for_int [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plu
 op_builtin_for_struct_ok_then_misuse [fnv:8cd6b76c300bff74] :: expected a value of the operand (V), found an `integer`
 op_called_as_fn [fnv:205c076f0bd07158] :: `'a' dot 'b'`, never `dot[…]`
 op_chevron_reserved [fnv:71bbd54de1a8e769] :: `>>` is an old spelling: write `->`
-op_decl_old [fnv:8d3bd523db847803] :: `op +`: `+` is an old spelling: write `plus`
 op_div_bare [fnv:d40c9ab3e6d5809c] :: say how `div` rounds
 op_give_needs_give [fnv:675ca27f7d116f95] :: write `give 'u'` so the value moves in
 op_lent_word [fnv:771913f827ed9a38] :: T` takes it by value
@@ -554,7 +547,6 @@ op_next_to_plus [fnv:9d0efe113095066a] :: a custom operator has no precedence
 op_no_precedence [fnv:9d0efe113095066a] :: a custom operator has no precedence
 op_no_return_type [fnv:afe154068b1dbc9d] :: is required on an operator
 op_path_wrong_limb [fnv:58f14d819d74bfce] :: the Neuron `runnable` has no operator `mean`
-op_percent_undefined [fnv:7898bb583b3ac02c] :: remainder is `mod`
 op_redefine_builtin [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `int32` may not
 op_redefine_word [fnv:32696bdc53fd9faa] :: a struct or enum may define `op mod` for itself, `int32` may not
 op_run_no_space [fnv:fc83d9208bcfbb43] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
@@ -562,7 +554,6 @@ op_same_types_twice [fnv:c633187c1719ed7b] :: `<+>` is defined twice for A, A
 op_three_operands [fnv:88d3d9d2c04c25a1] :: an operator takes exactly two operands; `<+>` is declared with 3
 op_value_and_then [fnv:a093a0ddfbdcf82d] :: cannot skip anything
 op_value_minus [fnv:c7639dd8d2554ca7] :: negation as a value is `op neg`
-op_value_old [fnv:c3fb3b24d6a33f6f] :: `+` is an old spelling: write `plus`
 op_value_untyped [fnv:f5fb837892a1661a] :: alone does not say which
 op_word_undefined [fnv:b1acc1385341e3b7] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
 other_limb [fnv:37ccdedb8e65b252] :: no Neuron with the prefix `math`
@@ -671,7 +662,6 @@ simd_sum_lane_past [fnv:b4b58287404c8c2f] :: the value can be outside what an `i
 simd_wrong_shape [fnv:813bb50692db0740] :: this target has no `simd[uint8, 64]`: its vector register holds 16 lanes
 single_quote_char [fnv:857025279acbd88a] :: 'a' is not declared
 size_of_alone [fnv:1c30f4b3569e6800] :: `size` is a keyword: a type's size is `size.of[int32]` (`.of` after `size`)
-slash_retired [fnv:e0da6f74f7c02643] :: division is `div`
 slice_needs_pos [fnv:bbcf4577f909ab6f] :: a slice starts `from pos …`
 slice_old_spelling [fnv:b91a123caf5e48b1] :: a slice says where it runs: `list.slice[lend 'xs', from pos 2, to pos 4]`
 slice_past_end [fnv:9addc01545809a6f] :: the slice can run outside the list

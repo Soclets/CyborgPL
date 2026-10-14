@@ -7,15 +7,15 @@ extern.C fn exit ['code': int32];
 fn round ['n': int32] -> int32 {
     let mut 'xs': list[int32] = [];
     for 'i': int32 from 1 to 20 by 1 {
-        list.append[lend.mut 'xs', 'i' plus 'n'];
+        list.append[lend.mut 'xs', value 'i' plus 'n'];
     }
     let mut 'text': str.utf8 = "";
     for 'j': int32 from 1 to 5 by 1 {
         change 'text' = copy 'text' ++ "ab";
     }
     let mut 'm': map[str.utf8, list[int32]] = map.empty;
-    map.set[lend.mut 'm', copy 'text', copy 'xs'];
-    map.set[lend.mut 'm', "other", copy 'xs'];
+    map.set[lend.mut 'm', key copy 'text', value copy 'xs'];
+    map.set[lend.mut 'm', key "other", value copy 'xs'];
     let 'entries': int32 = map.length[lend 'm'];
     let 'bytes': int32 = str.bytes[lend 'text'];
     let 'count': int32 = list.length[lend 'xs'];

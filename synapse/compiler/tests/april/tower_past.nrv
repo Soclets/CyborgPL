@@ -1,5 +1,0 @@
-# On 1 April `5 xxx 3` is 5 to the 3125: past every integer, a check.
-MAIN {
-    let 'd': int64 = 5;
-    cord::print.useful['d' + 3, newln];
-}

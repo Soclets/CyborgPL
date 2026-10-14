@@ -2,7 +2,7 @@ extern.C fn exit ['code': int32];
 MAIN {
     let 'a': list[int32] = [1, 2, 3];
     let mut 'b': list[int32] = copy 'a';
-    list.append[lend.mut 'b', 4];
+    list.append[lend.mut 'b', value 4];
     change 'b'[pos 1] = 9;
     let 'la': int32 = list.length[lend 'a'];
     let 'lb': int32 = list.length[lend 'b'];

@@ -304,12 +304,8 @@ fn examples_run_as_the_oracle_prints() {
         let want = std::fs::read(dir.join(format!("{}.out", name))).unwrap();
         let code = std::fs::read_to_string(dir.join(format!("{}.exit", name))).ok().and_then(|t| t.trim().rsplit(':').next().and_then(|n| n.trim().parse::<i32>().ok())).unwrap_or(0);
         let words: Vec<String> = std::fs::read_to_string(dir.join(format!("{}.args", name))).map(|t| t.lines().filter(|l| !l.is_empty()).map(str::to_string).collect()).unwrap_or_default();
-        // The date the program sees, as the oracle's harness gives it (the
-        // cursed `+` and `*` change on 1 April, owner 2026-10-13): 15 June,
-        // or a `.today` beside it.
-        let today = std::fs::read_to_string(dir.join(format!("{}.today", name))).map(|t| t.trim().to_string()).unwrap_or_else(|_| "06-15".into());
         let mut cmd = Command::new(&synapse);
-        cmd.arg("run").arg(src).env("SYNAPSE_TODAY", &today).stdin(std::process::Stdio::null());
+        cmd.arg("run").arg(src).stdin(std::process::Stdio::null());
         if !words.is_empty() {
             cmd.arg("--").args(&words);
         }

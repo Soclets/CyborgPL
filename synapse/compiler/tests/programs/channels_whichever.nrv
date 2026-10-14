@@ -2,7 +2,7 @@ extern.C fn exit ['code': int32];
 fn produce [lent 'out': channel[list[int32]][min 0, max 4], 'base': int32] {
     for 'i': int32 from 1 to 50 by 1 {
         let 'batch': list[int32] = ['base', 'i'];
-        channel.send[lend 'out', give 'batch'];
+        channel.send[lend 'out', value give 'batch'];
     }
 }
 MAIN {
@@ -10,7 +10,7 @@ MAIN {
     let 'quiet' := channel[int32];
     concur with [lend 'pipe'] { produce[lend 'pipe', 1000]; }
     concur with [lend 'pipe'] { produce[lend 'pipe', 2000]; }
-    concur with [lend 'quiet'] { channel.send[lend 'quiet', 7]; }
+    concur with [lend 'quiet'] { channel.send[lend 'quiet', value 7]; }
     let mut 'batches': int32 = 0;
     let mut 'sevens': int32 = 0;
     let mut 'closed': int32 = 0;

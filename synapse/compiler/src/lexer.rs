@@ -233,7 +233,6 @@ impl<'a> Lexer<'a> {
                         "->" => Some("->"),
                         "<-" => Some("<-"),
                         "<->" => Some("<->"),
-                        "==" => Some("equal_to"),
                         "!==" => Some("not_equal"),
                         "</==" => Some("at_most"),
                         ">/==" => Some("at_least"),

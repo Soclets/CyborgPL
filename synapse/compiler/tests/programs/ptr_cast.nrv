@@ -14,9 +14,9 @@ layout.C struct Point {
 MAIN {
     no_check let 'raw' := malloc[size.of[Point]];
     no_check let 'p' := ptr.cast[Point]['raw'];
-    no_check ptr.write['p', Point[x = 3, y = 4]];
+    no_check ptr.write['p', value Point[x = 3, y = 4]];
     no_check let 'q' := ptr.read['p'];
-    no_check let 'second' := ptr.read[ptr.at[ptr.cast[int32]['raw'], 1]];
+    no_check let 'second' := ptr.read[ptr.at[ptr.cast[int32]['raw'], by 1]];
     let 'code' := 'q'.x times 10 plus 'q'.y plus 'second';
     no_check free['raw'];
     no_check my.exit['code'];

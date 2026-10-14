@@ -20,7 +20,7 @@ fn run [] -> int32 or fail[missing, out_of_range] {
     let mut 'xs': list[int64] = [];
     let mut 'i': int64 = 1;
     while 'i' at_most 'n' {
-        list.append[lend.mut 'xs', 'i' mod.floor 1000];
+        list.append[lend.mut 'xs', value 'i' mod.floor 1000];
         change 'i' = 'i' plus 1;
     }
     let mut 'acc': int64 = 0;
