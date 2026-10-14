@@ -2,8 +2,8 @@
 
 For the session that writes **`cord`**, Nerve's standard Neuron, in Nerve. Written 2026-10-14 by the
 design session, at the owner's request ("Prepare the Nerve Cord session stuff"). Read this first, then
-what it points at. Items marked **[open]** are the owner's to settle before you start; until then they
-are questions, not picks.
+what it points at. The owner starts this session when they choose (2026-10-14: "I'll start that
+session later").
 
 ## Who decides
 
@@ -58,13 +58,15 @@ Cores (owner, 2026-10-14: "Cord doesn't work when Compiler is."): **you and comp
 turns**: you work only while compiler claude does not, on its **3** cores (the machine has 10: 3 each
 for design, compiler and check claude, and 1 for the desktop).
 
-## What you read, and what you don't **[open]**
+## What you read, and what you don't
 
 Read `design/`, `DECISIONS.md`, `spellings.nrp`, the examples with their `.out`, and the reject tests
-with their `.err`: the specification. Run the oracle and Synapse binaries as much as you like. **Don't
-read `oracle/src` or `synapse/`** (design claude's recommendation): the oracle already carries its own
-reading of cord's behaviour, and your cord, written from the specification alone, is a second reading
-the two can be checked against. A cord copied from the oracle's Rust would only repeat it.
+with their `.err`: the specification. **You may read `synapse/`** (owner, 2026-10-14: "I mean, you could
+let it look at Synapse"): how it finds and builds a Neuron, how its intrinsics and Axon look, what its
+built-in `print` does. **Don't read `oracle/src`**: the oracle carries its own reading of cord's
+behaviour, and your cord, written from the specification, is a second reading the two are checked
+against; a cord copied from the oracle's Rust would only repeat it. Run the oracle and Synapse binaries
+as much as you like. Reading Synapse is not editing it: changes there are compiler claude's.
 
 ## What cord is, today
 

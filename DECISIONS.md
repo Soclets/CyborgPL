@@ -16,8 +16,10 @@ open; the first, design claude's suggestion: **house name `cord claude`, its own
 cord`, its code in `cord/` in this repository**; the owner: "Yeah". Cores: design claude offered (a) 2 / 3 / 2 / 2 and 1 for the desktop, recommended, (b) sharing, (c)
 the owner's own numbers; the owner: "Cord doesn't work when Compiler is." So **cord claude and compiler
 claude take turns: cord claude works only while compiler claude does not, on its 3 cores**; the split
-stays 3 / 3 / 3 and 1. Still open: whether it may read `oracle/src` and `synapse/` (design claude
-recommends not), and when it starts.
+stays 3 / 3 / 3 and 1. Asked whether it may read the oracle's and Synapse's source, design
+claude recommending neither; the owner: "I mean, you could let it look at Synapse". So **cord claude may
+read `synapse/`, not `oracle/src`**: its cord stays a second reading of the specification beside the
+oracle's. It starts when the owner says ("I'll start that session later"). The brief has nothing open.
 
 ### 2026-10-14 — `cord` stays Nerve, on a few runtime pieces; its session starts later (owner: "(c)")
 
