@@ -90,6 +90,10 @@ as much as you like. Reading Synapse is not editing it: changes there are compil
 - The language rules, naming included (lowercase, `_` joining words, `.` narrowing), are in
   `design/syntax-sketch.md`; good practice in `design/style.md` applies to cord's own code, which
   readers will copy.
+- Read when you reach them: `design/implementation-languages.md` (the runtime boundary, intrinsics and
+  their hand-written contracts), `design/limbs.md` and `design/cores.md` (a Neuron's layout and
+  manifest, prefixes, `bare.` marks, lobes such as Broca, powers), `design/failures.md` (how a function
+  fails, `otherwise`), `design/ownership-syntax.md` (`lend` / `give`, `lent` parameters).
 
 ## What to build first, and why
 
