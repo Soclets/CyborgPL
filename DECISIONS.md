@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-14 — Zag's names: Zomp, Strike, Rod, Ground, Cell, Coil, `wire`, `.zv` (owner)
+### 2026-10-14 — Zag's names: Zomp, Strike, Rod, Ground, Cell, Coil, `std`, `.zv` (owner)
 
 **Owner's choice**, from design claude's lightning-themed table: "Seems good. Though, we'll just
 rename `cord claude` to `std claude`, so it would be stable. PM could be `strike`, and compiler
@@ -20,14 +20,18 @@ could be `zomp` instead (Zag Compiler). Runtime could just be normal name".
 | base language | Brainstem | **Ground** |
 | library | Neuron (`neuron.nrv`, `pub.neuron`) | **Cell** (`cell.zg`, `pub.cell`) |
 | compiler extension | lobe | **Coil** |
-| standard library | `cord` | **`wire`** |
+| standard library | `cord` | **`std`** (owner, below; `wire` was proposed) |
 | one-value file | `.nrp` | **`.zv`** |
 | build program, language date | `build.nrv`, `nerve_version.nrp` | `build.zg`, `zag_version.zv` |
 | session | cord claude | **std claude** (owner: "so it would be stable") |
 
-Broca (the Unicode extension) is still open. Not yet asked: the manifest's name and prefix
-(design claude's reading: `Strike.zv` with `strike::`, as `Kinesin.nrp` went with Kinesin), and
-whether Zomp has a shorter command beside `zomp`. Nothing has moved yet.
+Then the manifest: design claude proposed **`Strike.zv`** with **`strike::`**
+(`coils = [strike::coil[…]]`), as `Kinesin.nrp` went with Kinesin; the owner: "yeah. and the
+std lib could just be `std`". So the standard library is **`std`**, not `wire`: the name it had
+until 2026-10-09, when it became `cord` (spellings.nrp's old row `std` → `cord` turns round).
+
+Broca (the Unicode extension) is still open, and whether Zomp has a shorter command beside
+`zomp`. Nothing has moved yet.
 
 ### 2026-10-14 — Nerve becomes **Zag**, code ends `.zg`, home zag-lang.org (owner)
 
