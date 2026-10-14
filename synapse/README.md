@@ -732,3 +732,8 @@ Dated, with the alternative, so each can become a question later.
   writes its `layout.C` declarations with `, ` between items, as Synapse
   reads them back. A level is `level 1 { plus, minus } left_first`, the old
   `level.when_chained.…` refused from the table's special row.
+- **2026-10-14 — A length bound is a `LengthBound` site wherever a value
+  lands.** Handing a value to a length-bounded parameter, field or return
+  was a `Narrow` site, which checks numbers only, so an empty text reached
+  a `str.utf8[min 1 bytes]` unchecked (cord claude); it is a
+  `LengthBound` now, and a lend into a bounded parameter is a site too.

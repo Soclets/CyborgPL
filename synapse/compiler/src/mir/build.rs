@@ -1287,7 +1287,11 @@ impl<'a> FnBuilder<'a> {
         let from = self.resolve_ty(from);
         let to = self.resolve_ty(to);
         if needs_narrow_check(&from, &to) {
-            self.site_of(SiteKind::Narrow { to: to.clone() }, vec![op.clone()], Some(to), span);
+            // A length bound is asked of the length (cord claude: an empty
+            // text into a `str.utf8[min 1 bytes]` was a narrowing nothing
+            // checked).
+            let kind = if matches!(to, Ty::Bounded { bound: Bound::Len { .. }, .. }) { SiteKind::LengthBound { to: to.clone() } } else { SiteKind::Narrow { to: to.clone() } };
+            self.site_of(kind, vec![op.clone()], Some(to), span);
         }
     }
 
@@ -1873,7 +1877,15 @@ impl<'a> FnBuilder<'a> {
                     }
                     let Some(want) = wants.get(i) else { break };
                     i += 1;
-                    if matches!(m, Arg::Lend { .. }) {
+                    // A lend into a bounded parameter (`lent 'part':
+                    // str.utf8[min 1 bytes]`) has to fit the bound as a
+                    // value would; any other lend is the value's own type.
+                    if let Arg::Lend { place, .. } = m {
+                        if matches!(self.resolve_ty(want), Ty::Bounded { .. }) {
+                            let have = self.arg_ty(a);
+                            let at = self.span_id(a.span());
+                            self.narrow_arg(&Operand::Read(place.clone()), &have, want, at);
+                        }
                         continue;
                     }
                     let have = self.arg_ty(a);

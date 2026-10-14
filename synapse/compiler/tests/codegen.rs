@@ -724,3 +724,21 @@ fn cords_text_positions_are_proven() {
         assert!(row.contains("proven"), "{} at {} is not proven:\n{}", code, line, row);
     }
 }
+
+/// A length bound is checked where a value is handed to a parameter, lent
+/// or given (cord claude, 2026-10-14: an empty text reached a
+/// `str.utf8[min 1 bytes]` parameter unchecked): with an argument each
+/// program stops at the call, without one it prints 1.
+#[test]
+fn a_length_bound_is_checked_at_the_call() {
+    assert!(runtime().is_some(), "the runtime is not built");
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/bounds");
+    for name in ["lent", "owned", "list"] {
+        let src = dir.join(format!("{}.nrv", name));
+        let r = Command::new(cca()).arg("run").arg(&src).arg("--").arg("go").output().unwrap();
+        let err = String::from_utf8_lossy(&r.stderr);
+        assert!(r.status.code() == Some(101) && err.contains("outside the bound its type gives it"), "{}: an empty value got through the bound:\n{}", name, err);
+        let r = Command::new(cca()).arg("run").arg(&src).output().unwrap();
+        assert_eq!((r.status.code(), String::from_utf8_lossy(&r.stdout).as_ref()), (Some(0), "before\n1\n"), "{} did not run without an argument:\n{}", name, String::from_utf8_lossy(&r.stderr));
+    }
+}
