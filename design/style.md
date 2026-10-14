@@ -83,3 +83,12 @@ recommended.
     cannot make, where the value changes the signature (`zero.of_int16`,
     `zero.of_int64`) or no main function takes it. Members that differ in
     what they do are written out.
+
+## Words and symbols
+
+15. **Write the words, not the symbols** (owner, 2026-10-14: "Using symbols
+    shouldn't be good practice", then "Yeah"). `'a' plus 'b'`, `'x' equal_to 0`,
+    `lend 'name'`, `ptr.read['p']`. Each symbol (`+`, `==`, `&`, `*'p'`) is
+    another spelling of a word, there for whoever thinks in symbols, but the
+    word says which form it is: `/` is `div.trunc`, and only the word tells a
+    reader it rounds toward zero. That's why Nerve is named for being read.

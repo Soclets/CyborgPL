@@ -5,6 +5,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-14 — Good practice 15: write the words, not the symbols (owner: "Yeah")
+
+The owner, before the symbols were built: "Using symbols shouldn't be good practice". Design claude's
+wording, shown before it went in; the owner: "Yeah". `design/style.md` 15: **write the words, not the
+symbols**; each symbol is another spelling of a word, but the word says which form it is (`/` is
+`div.trunc`, and only the word says it rounds toward zero).
+
 ### 2026-10-14 — The symbols, `exactly` and the argument words are built in the oracle
 
 Built in two commits. **Symbols** (`ec622a50`): the parser reads each symbol as its word (`/` as
