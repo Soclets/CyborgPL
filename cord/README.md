@@ -33,10 +33,10 @@ this one, and what it does not define yet, `print` and `exit`, is still Synapse'
 - Through Synapse, with the text read from the command line, so Cortex has to prove cord's sites from
   cord's own code rather than by running the program: all of cord's are proven.
 
-Not yet: Synapse checks a written empty `part`, `at` or `from` (refused when building), but not one
-worked out at run time. A lent text going into a `str.utf8[min 1 bytes]` parameter makes no check
-site, so an empty one reaches cord (`contains` then says `true`), where the oracle stops the program.
-Reported to compiler claude, 2026-10-14.
+An empty `part`, `at` or `from` is refused when building if written, and stops the program where
+it is passed if worked out at run time (exit 101, Synapse since `aa03a269`), as the oracle does.
+`examples/argument_words.nrv` is in Synapse's own tests against this folder
+(`synapse/compiler/tests/examples_nerve_cord.txt`).
 
 ## Provisional
 
