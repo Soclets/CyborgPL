@@ -702,3 +702,21 @@ Dated, with the alternative, so each can become a question later.
   does not have falls back to the built-ins, `print` and `exit` (owner,
   2026-10-14, "(a)"), name by name. Inside the Nerve cord its own names
   are its own. A program that lists no Nerve cord is unchanged.
+- **2026-10-14 — Layer 3 assumes the landings on the way, and knows a
+  counting loop's start.** Reaching a site means every check before it
+  passed, since one that fails stops the program and a proven one cannot
+  fail (by induction on the first site to fail): so a query assumes each
+  narrowing site walked before the asked one passed, unless it is trusted
+  (`no_check`). Only narrowings, and not the one that steps a counting
+  loop's counter (which lands where the loop just saw room): the others
+  add weight to every unrolled trip and turned proofs into spent budgets.
+  At a counting loop's last unrolled head, its counter is at least its
+  first value going up (at most, going down), when the loop writes
+  neither that value nor the step (`ForLoop::start`). Both from cord's
+  `str.nrv` (cord claude): `'pos' plus 'm'` wrapped round to 0 on an
+  unrolled trip and then indexed, and `for 'k' from 'pos'` was given a
+  `'k'` below `'pos'`.
+- **2026-10-14 — A module may be named after a built-in type's word.**
+  `str.nrv` (cord's), `int32`, `bool`, `char`: only the table's keywords and
+  the old words kept inside (`limb`, `nocheck`, `var`, `func`) are refused,
+  as the oracle has it.

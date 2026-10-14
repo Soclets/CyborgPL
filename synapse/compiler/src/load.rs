@@ -1428,7 +1428,7 @@ fn check_name(name: &str, at: &Path) -> Result<()> {
     if crate::parser::is_device_name(name) {
         return err(Diagnostic::error(format!("`{}` is a reserved device name on Windows and cannot name a module: rename `{}`", name, short(at))));
     }
-    if crate::parser::is_keyword(name) {
+    if crate::parser::reserved_module_name(name) {
         return err(Diagnostic::error(format!("`{}` is a keyword and cannot name a module: rename `{}`", name, short(at))));
     }
     Ok(())

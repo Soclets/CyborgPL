@@ -1,8 +1,10 @@
 # Lists the Nerve cord (owner, 2026-10-14): `cord::twice` and bare `twice` are its, `cord::print` falls
-# back to the built-in, which it has not written, and its `exit` takes over, so the run ends 0, not 7.
+# back to the built-in, which it has not written, its module `str` is reached as `cord::str.shout`, and its `exit` takes over, so the run ends 0, not 7.
 
 MAIN {
     let 'xs': list[int64] = [1, 2, 3];
     cord::print.useful[cord::twice[4], " ", twice[5], " ", helper::doubled[6], " ", total[lend 'xs'], newln];
+    let 'h' := "hi";
+    cord::print.useful[cord::str.shout[lend 'h'], newln];
     cord::exit[7];
 }

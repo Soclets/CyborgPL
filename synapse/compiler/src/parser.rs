@@ -28,6 +28,13 @@ pub fn is_keyword(w: &str) -> bool {
     crate::spellings::is_keyword(w) || KEPT_INSIDE.contains(&w)
 }
 
+/// Whether a word may not name a module: a keyword of the table, or one of
+/// the old words kept inside. A built-in type's word may (`str.nrv` in
+/// cord, which users reach as `cord::str.split`), as the oracle has it.
+pub fn reserved_module_name(w: &str) -> bool {
+    crate::spellings::is_keyword(w) || matches!(w, "nocheck" | "limb" | "var" | "func")
+}
+
 /// Words that name a built-in type when they head a type path.
 pub fn is_primitive_head(w: &str) -> bool {
     crate::resolve::rust_alias(w).is_some()
@@ -1251,7 +1258,7 @@ impl<'a> Parser<'a> {
         if is_device_name(n) {
             return self.fail_at(name.span, format!("`{}` is a reserved device name on Windows and cannot name a module", n));
         }
-        if is_keyword(n) {
+        if reserved_module_name(n) {
             return self.fail_at(name.span, format!("`{}` is a keyword and cannot name a module", n));
         }
         Ok(())

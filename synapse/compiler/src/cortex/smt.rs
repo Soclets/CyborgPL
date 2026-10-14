@@ -743,7 +743,7 @@ impl<'a> Enc<'a> {
             walked.insert(node);
             let (guard, mut env) = self.merge(&arrivals);
             let stmts = self.func().blocks[b].stmts.clone();
-            for s in &stmts {
+            for (si, s) in stmts.iter().enumerate() {
                 match &s.kind {
                     StmtKind::Assign { place, rvalue } => {
                         let v = self.rvalue(rvalue, &env);
@@ -822,6 +822,36 @@ impl<'a> Enc<'a> {
                             None => self.unexpressible = true,
                         }
                     }
+                    // Another site on the way that keeps a number in its
+                    // type: reaching the asked one means it passed (`precog.md`: "whether any input reaches the
+                    // site"), since a check that fails stops the program and
+                    // a proven one cannot fail — by induction on the first
+                    // site to fail. A trusted one is never checked, so
+                    // nothing follows from it (cord claude: `'pos' plus 'm'`
+                    // wrapped round to 0 on an unrolled trip, then indexed).
+                    StmtKind::Site(id) => {
+                        let other = &self.func().sites[id.0 as usize];
+                        let trusted = matches!(other.verdict, crate::mir::Verdict::Trusted) || matches!(other.tier, Some(crate::ast::Tier::Nocheck | crate::ast::Tier::NoChecks));
+                        // Only a landing, which keeps a number inside its
+                        // type: the rest add weight to every unrolled trip
+                        // and take nothing round to a wrong value. A counting
+                        // loop's step lands where the loop just saw room, so
+                        // it says nothing new and is left out too.
+                        let steps_counter = matches!(stmts.get(si + 1).map(|n| &n.kind), Some(StmtKind::Assign { place, .. }) if place.proj.is_empty() && self.func().fors.iter().any(|fl| fl.counter == place.local));
+                        let landing = matches!(other.kind, SiteKind::Narrow { .. }) && !steps_counter;
+                        if !trusted && landing {
+                            if let Some(bad) = self.bad_value(*id, &env) {
+                                // Only while no copy of the asked site walked
+                                // so far went wrong: past one that did, the
+                                // program has stopped, and nothing after it
+                                // is reached (`5 div 'v'` landing in a
+                                // `uint64` after the division by 'v' "proved"
+                                // 'v' was never 0).
+                                let ok = if self.reached.is_empty() { "true".to_string() } else { format!("(not (or false {}))", self.reached.join(" ")) };
+                                self.defs.push(format!("(assert (=> (and {} {}) (not {})))", guard, ok, bad));
+                            }
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -860,6 +890,8 @@ impl<'a> Enc<'a> {
                             }
                             this.assume_fact(&mut late, ti, l);
                         }
+                        let written = last_trip.get(&ti).cloned().unwrap_or_default();
+                        this.assume_counted(&mut late, ti, &written);
                         this.forget_aliased(&mut late);
                         incoming.entry((ti, UNROLL_PER_LOOP)).or_default().push((g.clone(), late));
                     }
@@ -873,7 +905,7 @@ impl<'a> Enc<'a> {
                 if lvl == UNROLL_PER_LOOP {
                     if let Some(written) = last_trip.get(&ti).cloned() {
                         let grows = resized.get(&ti).cloned().unwrap_or_default();
-                        for l in &sorted(written) {
+                        for l in &sorted(written.clone()) {
                             if grows.contains(l) {
                                 this.forget(&mut e, *l);
                             } else {
@@ -886,6 +918,7 @@ impl<'a> Enc<'a> {
                             // never below 1, whichever trip this stands for.
                             this.assume_fact(&mut e, ti, *l);
                         }
+                        this.assume_counted(&mut e, ti, &written);
                         this.forget_aliased(&mut e);
                         // Lock-step: the length is the entry's length plus
                         // how far the counter has come since. Only for a
@@ -1100,6 +1133,26 @@ impl<'a> Enc<'a> {
         let Some(v) = env.get(&Key::Local(l)).cloned() else { return };
         if let (Some(a), Some(b)) = (self.cmp_const(&v, "bvsge", lo), self.cmp_const(&v, "bvsle", hi)) {
             self.defs.push(format!("(assert (and {} {}))", a, b));
+        }
+    }
+
+    /// A counting loop's counter at its head, on any trip: never below its
+    /// first value going up, never above it going down — when nothing in
+    /// the loop writes the first value or the step, so their values here
+    /// are the ones the counter started from (cord claude: `'part'[pos 'k'
+    /// minus 'pos' plus 1]` in `for 'k' from 'pos' to …` was given a `'k'`
+    /// below `'pos'`).
+    fn assume_counted(&mut self, env: &mut Env, head: usize, written: &std::collections::HashSet<LocalId>) {
+        let fors: Vec<_> = self.func().fors.iter().filter(|fl| fl.head.0 as usize == head).cloned().collect();
+        for fl in fors {
+            let (Some(start), Some(step)) = (fl.start.as_ref(), fl.step) else { continue };
+            if written.contains(&step) || start.place().is_some_and(|p| !p.proj.is_empty() || written.contains(&p.local)) {
+                continue;
+            }
+            let (Some(k), Some(first), Some(by)) = (env.get(&Key::Local(fl.counter)).cloned(), self.operand(start, env), env.get(&Key::Local(step)).cloned()) else { continue };
+            let w = 130;
+            let (k, first, by) = (self.resize(k, w, true), self.resize(first, w, true), self.resize(by, w, true));
+            self.defs.push(format!("(assert (and (=> (bvsge {by} (_ bv0 {w})) (bvsge {k} {first})) (=> (bvslt {by} (_ bv0 {w})) (bvsle {k} {first}))))", by = by.term, k = k.term, first = first.term, w = w));
         }
     }
 

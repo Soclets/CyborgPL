@@ -697,10 +697,30 @@ fn listing_the_nerve_cord_takes_over_cord() {
     assert!(runtime().is_some(), "the runtime is not built");
     let limbs = dir().parent().unwrap().join("limbs");
     let r = Command::new(cca()).arg("run").arg(limbs.join("uses_nerve_cord")).output().unwrap();
-    assert_eq!((r.status.code(), String::from_utf8_lossy(&r.stdout).as_ref()), (Some(0), "8 10 12 6\n"), "the Nerve cord did not take over:\n{}", String::from_utf8_lossy(&r.stderr));
+    assert_eq!((r.status.code(), String::from_utf8_lossy(&r.stdout).as_ref()), (Some(0), "8 10 12 6\nhi!\n"), "the Nerve cord did not take over:\n{}", String::from_utf8_lossy(&r.stderr));
+    // `synapse build .` names the program after its folder (cord claude:
+    // it panicked on `.`).
+    let out = std::env::temp_dir().join("cca-build-dot");
+    let r = Command::new(cca()).arg("build").arg(".").arg("-o").arg(&out).current_dir(limbs.join("uses_nerve_cord")).output().unwrap();
+    assert!(r.status.success(), "`synapse build .` failed:\n{}", String::from_utf8_lossy(&r.stderr));
     for (name, says) in [("cord_wrong_prefix", "the Nerve cord's prefix is `cord`"), ("two_cords", "a program has one cord")] {
         let r = Command::new(cca()).arg("check").arg(limbs.join(name)).output().unwrap();
         let err = String::from_utf8_lossy(&r.stderr);
         assert!(!r.status.success() && err.contains(says), "{} was not refused as it should be:\n{}", name, err);
+    }
+}
+
+/// cord's text shapes (cord claude, 2026-10-14), on input Cortex cannot
+/// run: a counting loop's counter is never below its first value, and a
+/// landing walked before the asked site passed — so the positions in
+/// `sits_at` and `'text'[pos 'pos']` after `'pos' plus 'm'` are proven.
+#[test]
+fn cords_text_positions_are_proven() {
+    let src = dir().parent().unwrap().join("cortex/cord_text.nrv");
+    let r = Command::new(cca()).arg("cortex").arg(&src).output().unwrap();
+    let report = String::from_utf8_lossy(&r.stdout).to_string() + &String::from_utf8_lossy(&r.stderr);
+    for (line, code) in [("line 25", "'text'[pos 'k']"), ("line 25", "'part'[pos 'k' minus 'pos' plus 1]"), ("line 42", "'text'[pos 'pos']")] {
+        let row = report.lines().find(|l| l.starts_with(line) && l.contains(code)).unwrap_or_else(|| panic!("no row for {} at {}:\n{}", code, line, report));
+        assert!(row.contains("proven"), "{} at {} is not proven:\n{}", code, line, row);
     }
 }

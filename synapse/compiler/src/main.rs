@@ -165,7 +165,7 @@ fn real_main() {
             }
             let mut failed = false;
             for f in &files {
-                let dest = out.clone().unwrap_or_else(|| Path::new(f).file_stem().unwrap().to_string_lossy().to_string());
+                let dest = out.clone().unwrap_or_else(|| stem_of(Path::new(f)));
                 if let Err(d) = build_opts(Path::new(f), Path::new(&dest), assert_proofs, final_build, false, false, target.as_deref(), emit.as_deref().map(Path::new)) {
                     failed = true;
                     eprint!("{}", d);
@@ -477,6 +477,14 @@ fn words_list(words: &[String], what: &str, example: &str) -> Vec<String> {
 
 /// `quiet`: what CCA says along the way (Precog's notes, the tally) goes to
 /// stderr, for `cca run`, whose stdout is the program's.
+/// A program's name from its path: the file's stem, or the folder's name
+/// for a Neuron written as `.` or `..` (cord claude: `synapse build .`
+/// panicked).
+fn stem_of(path: &Path) -> String {
+    let full = path.file_stem().map(|_| path.to_path_buf()).or_else(|| std::fs::canonicalize(path).ok());
+    full.as_deref().and_then(|p| p.file_stem()).map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| "program".into())
+}
+
 fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, quiet: bool, target: Option<&str>) -> Result<(), String> {
     build_opts(path, out, assert_proofs, final_build, quiet, false, target, None).map(|_| ())
 }
@@ -539,7 +547,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
         return Err(s);
     }
     let ctx = brainstem::codegen::inkwell::context::Context::create();
-    let name = path.file_stem().unwrap().to_string_lossy().to_string();
+    let name = stem_of(path);
     let test_names: Vec<String> = mir.functions.iter().filter(|f| f.is_test).map(|f| f.name.clone()).collect();
     let lowered = brainstem::codegen::lower_for(&ctx, &mir, &sources, &name, assert_proofs, tests).map_err(|problems| {
         let mut s = String::new();

@@ -825,7 +825,8 @@ impl<'a> FnBuilder<'a> {
         // "`'i': int32` → explicit, every value must fit").
         let s = self.eval(start, span);
         self.site_of(SiteKind::Narrow { to: ty.clone() }, vec![s.clone()], Some(ty.clone()), span);
-        self.assign(Place::local(c), Rvalue::Use(s), span);
+        self.assign(Place::local(c), Rvalue::Use(s.clone()), span);
+        let first_v = s;
         let stop_v = self.eval(stop, span);
         let stop_t = self.temp(&ty, span);
         if !exclusive {
@@ -938,7 +939,7 @@ impl<'a> FnBuilder<'a> {
         let room_down = self.new_block();
         let step_b = self.new_block();
         self.terminate(Terminator::If { cond: up2, then: room_up, else_: room_down });
-        self.fors.push(ForLoop { pre, head, exit, counter: c, stop: stop_t, step: Some(step_t), exits_from: vec![up_b, down_b, room_up, room_down], seq, para, perm, nocheat: std::mem::take(&mut self.nocheat_next), span });
+        self.fors.push(ForLoop { pre, head, exit, counter: c, stop: stop_t, step: Some(step_t), start: Some(first_v), exits_from: vec![up_b, down_b, room_up, room_down], seq, para, perm, nocheat: std::mem::take(&mut self.nocheat_next), span });
         self.cur = room_up;
         let more_up = self.into_temp(Rvalue::Binary { op: BinOp::Ge, lhs: rem.clone(), rhs: by.clone() }, &Ty::Bool, span);
         self.terminate(Terminator::If { cond: more_up, then: step_b, else_: exit });
@@ -1004,7 +1005,7 @@ impl<'a> FnBuilder<'a> {
         let exit = self.new_block();
         let pre = self.cur;
         self.terminate(Terminator::Goto(head));
-        self.fors.push(ForLoop { pre, head, exit, counter: i, stop: len, step: None, exits_from: vec![head], seq: seq_word, para, perm, nocheat: std::mem::take(&mut self.nocheat_next), span });
+        self.fors.push(ForLoop { pre, head, exit, counter: i, stop: len, step: None, start: None, exits_from: vec![head], seq: seq_word, para, perm, nocheat: std::mem::take(&mut self.nocheat_next), span });
 
         self.cur = head;
         let cmp = self.into_temp(

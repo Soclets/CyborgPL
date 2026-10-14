@@ -518,6 +518,9 @@ pub struct ForLoop {
     pub stop: LocalId,
     /// A range's step (a signed 64-bit local); `None` over a list: 1.
     pub step: Option<LocalId>,
+    /// A range's first value, as the counter was given it; `None` over a
+    /// list.
+    pub start: Option<Operand>,
     pub exits_from: Vec<BlockId>,
     pub seq: bool,
     pub para: bool,
