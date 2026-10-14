@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-14 — The package manager is **Zopm**, not Strike (owner)
+
+The owner: "Or PM should be `zopm` (pm = package manager), a play on `zomp`. It could even do
+GNU stuff, Zopm Omni-potent Package Manager". Design claude warned that `zomp` and `zopm`
+differ by two swapped letters (typing one for the other, mixing them up in messages) and
+recommended keeping Strike; the owner: "Switch". So **the package manager is Zopm**, "Zopm
+Omni-potent Package Manager", a recursive name as GNU's. The manifest follows it (design
+claude's reading, as `Strike.zv` followed Strike): **`Zopm.zv`** with **`zopm::`**
+(`coils = [zopm::coil[unicode]]`). Strike is dropped.
+
 ### 2026-10-14 — The repository moves to `Soclets/Zag-lang` (owner)
 
 Design claude asked whether to move as Nerve's did, a new repo with full history, new folders,
@@ -27,7 +37,7 @@ could be `zomp` instead (Zag Compiler). Runtime could just be normal name".
 | What | Nerve | Zag |
 |---|---|---|
 | compiler | Synapse | **Zomp** ("Zag Compiler", owner) |
-| package manager | Kinesin | **Strike** (owner; design claude had proposed it for the compiler, and Relay here) |
+| package manager | Kinesin | **Zopm** (owner, later the same day; Strike first) |
 | prover | Cortex | part of **Zomp**, no name of its own (owner, below; Rod was proposed) |
 | runtime | Axon | no brand name: the runtime (owner: "just normal name") |
 | base language | Brainstem | **Ground** |

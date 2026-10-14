@@ -81,8 +81,8 @@ renamed `frozen-old`, push disabled): never push there. Older still,
 
 The Zag names (DECISIONS.md, 2026-10-14): code ends **`.zg`**, a one-value file
 **`.zv`**; the compiler is **Zomp** (`zomp`), the prover built into it with no name
-of its own (was Synapse and Cortex); the package manager **Strike**, manifest
-`Strike.zv` with `strike::` (was Kinesin, `Kinesin.nrp`, `kin::`); the runtime is
+of its own (was Synapse and Cortex); the package manager **Zopm** ("Zopm Omni-potent
+Package Manager"), manifest `Zopm.zv` with `zopm::` (was Kinesin, `Kinesin.nrp`, `kin::`); the runtime is
 just the runtime (was Axon); the base **Ground** (was Brainstem); a library a
 **Cell**, root `cell.zg`, `pub.cell` (was Neuron); a compiler extension a **Coil**
 (was lobe); the standard library **`std`** (was `cord`); the Unicode coil
