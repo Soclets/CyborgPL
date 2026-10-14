@@ -1,3 +1,3 @@
 MAIN {
-    let 't' := cord::input.line[1] otherwise "";
+    let 't' := cord::input.line[1] otherwise str.empty;
 }

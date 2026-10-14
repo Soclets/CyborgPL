@@ -8,8 +8,8 @@ MAIN {
     let 'a' := "a.com";
     concur with [lend 'from_a', give 'a'] { channel.send[lend 'from_a', value fetch[lend 'a']]; }
     concur with [lend 'from_b'] { channel.send[lend 'from_b', value fetch["b.com"]]; }
-    let 'page_a' := channel.take[lend 'from_a'] otherwise "";
-    let 'page_b' := channel.take[lend 'from_b'] otherwise "";
+    let 'page_a' := channel.take[lend 'from_a'] otherwise str.empty;
+    let 'page_b' := channel.take[lend 'from_b'] otherwise str.empty;
     cord::print.useful['page_a', newln, 'page_b', newln];
     let 'd' := 5 seconds;
     cord::print.useful['d', " ", 1500 millis, " ", 1 hour, " ", 5 seconds equal_to 5_000 millis, newln];

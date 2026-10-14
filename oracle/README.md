@@ -122,6 +122,8 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 
 - **Argument words** (2026-10-14), design claude's picks: the word stands before a verb (`value give 'item'`); a call named after a `.` (`my.fold[…]`) or declared (`fn fold`) is not checked, only the language's and cord's calls; the check runs on the tokens before parsing, from `spellings.nrp`'s `calls`: `spellings::call[name = "map.set", words = ["", "key", "value",], example = "…"]`, one word per argument, `""` for none.
 
+- **The empty text** (2026-10-14), design claude's picks: a written `""` is refused in programs (`.nrv`), while a data file read as one value (`spellings.nrp`, `Kinesin.nrp`) is not swept, though `spellings.nrp` itself writes `str.empty`; the oracle's built-in `cord` refuses an empty `part` / `at` / `from` when the call runs, where the Nerve `cord`'s `str.utf8[min 1 bytes]` refuses it while building.
+
 - **SIMD**: the oracle's target is fixed as ARM64 128-bit (the real one comes from the manifest (`Synthia.ttsr` / `Kinesin.nrp`)); a bare `simd.fill[0]` with no declared type is 16 lanes; `simd.sum` overflow is a check site but `max`/`min` are not; broadcasting a scalar against a vector (`'v' + 1`) is allowed, which `design/simd.md` does not mention either way.
 
 - **The oracle's task schedule**: a task runs when something waits on it (a `take`, a `whichever`) or when its block ends, in source order; a sender never waits (the oracle cannot suspend a task mid-body, so a hand-off or a full bounded channel just queues — the waiting is unobservable in output); time never passes unless nothing else can run, and then a timer channel fires at once. One valid schedule of the design's, chosen for determinism, not the only one.

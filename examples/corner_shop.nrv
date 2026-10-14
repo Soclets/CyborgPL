@@ -586,7 +586,7 @@ fn show_hours ['open': int32, 'close': int32] {
         if 'h' equal_to 13 or 'h' equal_to 18 { change 'n' = 6; }
         cord::print.format["  {:>2}:00 ", 'h'];
         let 'bar' := list.fill[value "*", count 'n'];
-        cord::print.useful[cord::str.join[lend 'bar', between ""], newln];
+        cord::print.useful[cord::str.join[lend 'bar', between str.empty], newln];
         if 'n' > 'peak' {
             change 'peak' = 'n';
             change 'peak_hour' = 'h';

@@ -55,7 +55,7 @@ MAIN {
     let 'pick' := cheapest[lend 'affordable'] otherwise cord::exit[0];
     cord::print.stored["cheapest: ", 'pick'.name, newln];
 
-    let 'text' := cord::input.line[] otherwise "";
+    let 'text' := cord::input.line[] otherwise str.empty;
     let 'budget' := to.int32[min 0, max 100_000]['text'] otherwise {
         not_a_number { cord::print.stored["no budget given", newln]; cord::exit[0]; }
         out_of_range { cord::print.stored["budget must be 0..100000 cents", newln]; cord::exit[1]; }

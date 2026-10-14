@@ -449,6 +449,8 @@ impl Parser {
                 let found: Option<String> = match (&self.toks[i].mtm, &self.toks[i].tok) {
                     (Some((w, _)), _) if w == "&" && matches!(self.toks.get(i + 1).map(|t| &t.tok), Some(Tok::Word(x)) if x == "mut") => Some(crate::spellings::message(crate::spellings::old("&mut"))),
                     (Some((_, o)), _) => Some(crate::spellings::message(o)),
+                    // an empty text is `str.empty` (owner, 2026-10-14: "(a)"); `""` is refused naming it
+                    (None, Tok::Text(t, raw)) if t.is_empty() && raw.is_empty() => Some(crate::spellings::message(crate::spellings::old("\"\""))),
                     // `not_std.i24` / `not_std.u24`, Rust's way of writing the width
                     (None, Tok::Word(w)) if i > 1 && matches!(&self.toks[i - 2].tok, Tok::Word(s) if s == "not_std") && self.toks[i - 1].tok == Tok::Dot
                         && (w.starts_with('i') && !w.starts_with("int") || w.starts_with('u') && !w.starts_with("uint")) => {
@@ -3865,6 +3867,11 @@ impl Parser {
             Tok::BigInt(s) => { self.advance(); Ok(Expr::BigInt(s, line)) }
             Tok::Bin(b, t) => { self.advance(); Ok(Expr::Bin(b, t, line)) }
             // `*0.1` — "I want exactly this" (owner, 2026-10-02): a decimal literal that is a deci
+            // `str.empty`: the empty text (owner, 2026-10-14), as `map.empty` is the empty map
+            Tok::Word(w) if w == "str" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(e) if e == "empty") && *self.peek_at(3) != Tok::LBracket => {
+                self.advance(); self.advance(); self.advance();
+                Ok(Expr::Text(String::new(), line))
+            }
             // `*'p'` reads through a pointer, `ptr.read['p']` (owner, 2026-10-14)
             Tok::Op(o) if o == "*" && matches!(self.peek_at(1), Tok::Var(_)) => {
                 let (l2, c2) = (self.toks[self.pos].line, self.toks[self.pos].col);

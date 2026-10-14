@@ -21,7 +21,7 @@ MAIN {
     cord::print.useful['third', " ", 'family', newln];
     let 'where' := cord::str.find.grapheme[lend 's', part "wör"] otherwise 0;
     cord::print.useful["wör starts at grapheme ", 'where', newln];
-    let 'head' := cord::str.slice.grapheme[lend 's', from pos 1, to pos 5] otherwise "";
+    let 'head' := cord::str.slice.grapheme[lend 's', from pos 1, to pos 5] otherwise str.empty;
     cord::print.useful['head', newln];
     cord::print.useful[cord::str.join[lend 'words', between "_"], newln];
 }

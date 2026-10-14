@@ -4989,14 +4989,14 @@ impl<'p> Interp<'p> {
             let int = |i: usize| -> Result<i128, RuntimeError> { match vals.get(i) { Some(Value::Int(n)) => Ok(*n), Some(o) => rt(c.line, format!("cord::{path}: argument {} must be an integer, got {}", i + 1, o.kind())), None => rt(c.line, format!("cord::{path}: missing argument {}", i + 1)) } };
             let fail = |me: &mut Self, reason: &str| -> Result<Value, RuntimeError> { me.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("cord::{path}"), reason.into(), None, value_used) };
             return match path.as_str() {
-                "str.split" => { let (s, sep) = (text(0)?, text(1)?); if sep.is_empty() { return rt(c.line, "cord::str.split: an empty separator"); } Ok(Value::List(s.split(sep.as_str()).map(|p| Value::Str(p.to_string())).collect())) }
-                "str.contains" => Ok(Value::Bool(text(0)?.contains(text(1)?.as_str()))),
-                "str.starts_with" => Ok(Value::Bool(text(0)?.starts_with(text(1)?.as_str()))),
-                "str.ends_with" => Ok(Value::Bool(text(0)?.ends_with(text(1)?.as_str()))),
+                "str.split" => { let (s, sep) = (text(0)?, text(1)?); if sep.is_empty() { return rt(c.line, empty_part("at")); } Ok(Value::List(s.split(sep.as_str()).map(|p| Value::Str(p.to_string())).collect())) }
+                "str.contains" => { let part = text(1)?; if part.is_empty() { return rt(c.line, empty_part("part")); } Ok(Value::Bool(text(0)?.contains(part.as_str()))) }
+                "str.starts_with" => { let part = text(1)?; if part.is_empty() { return rt(c.line, empty_part("part")); } Ok(Value::Bool(text(0)?.starts_with(part.as_str()))) }
+                "str.ends_with" => { let part = text(1)?; if part.is_empty() { return rt(c.line, empty_part("part")); } Ok(Value::Bool(text(0)?.ends_with(part.as_str()))) }
                 "str.trim" => Ok(Value::Str(text(0)?.trim().to_string())),
                 "str.upper" => Ok(Value::Str(text(0)?.to_uppercase())),
                 "str.lower" => Ok(Value::Str(text(0)?.to_lowercase())),
-                "str.replace" => Ok(Value::Str(text(0)?.replace(text(1)?.as_str(), &text(2)?))),
+                "str.replace" => { let from = text(1)?; if from.is_empty() { return rt(c.line, empty_part("from")); } Ok(Value::Str(text(0)?.replace(from.as_str(), &text(2)?))) }
                 "str.join" => match vals.get(0) { Some(Value::List(items)) => { let sep = text(1)?; let mut parts = Vec::new(); for it in items { match it { Value::Str(s) => parts.push(s.clone()), o => return rt(c.line, format!("cord::str.join: the list holds {}, not text", o.kind())) } } Ok(Value::Str(parts.join(&sep))) } _ => rt(c.line, "cord::str.join[lend 'parts', sep]") },
                 "str.at.grapheme" | "str.at.point" | "str.at.byte" => {
                     let s = text(0)?; let i = int(1)?;
@@ -5746,3 +5746,8 @@ fn elem_literal(elem: Option<&Ty>, v: Value, prov: &Prov) -> Value {
     }
 }
 
+
+/// An empty `part`, `at` or `from` (owner, 2026-10-14: "Error"): each is a text of at least 1 byte
+fn empty_part(word: &str) -> String {
+    format!("`{word}` is a text of at least 1 byte (`str.utf8[min 1 bytes]`): an empty one finds nothing (owner, 2026-10-14)")
+}

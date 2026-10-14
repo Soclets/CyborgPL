@@ -195,3 +195,12 @@ real versions will be Nerve.
 - Building text piece by piece efficiently (a builder) — `++` allocates
   each time; Cortex may fold chains, but a `list[str]` + `std::str.join`
   is the honest shape today.
+
+## The empty text, and looking for nothing (owner, 2026-10-14)
+
+**An empty text is written `str.empty`** (owner: "(a)"), as `map.empty` is the empty map: `let 'out' :=
+str.empty;`. A written `""` is refused, naming it, so an empty text is always meant. **`part`, `at` and
+`from` are texts of at least 1 byte** (`str.utf8[min 1 bytes]`): `str.contains`, `starts_with`,
+`ends_with` and `find.*` with an empty `part`, `str.split` with an empty `at`, `str.replace` with an empty
+`from` are refused (owner: "Error"); an empty one finds nothing anyone means. Whether a text is empty is
+`'s' equal_to str.empty` or `str.bytes[lend 's'] equal_to 0`.
