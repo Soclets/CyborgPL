@@ -4,6 +4,7 @@
 # prints what the oracle prints. The test insists each one here is still
 # refused with these words, and says to drop the line the day it builds.
 
+argument_words :: `cord::str.contains` is not available yet
 brain16 :: `cord::print.format` is not built yet
 c_variables :: the linker (lld) refused the program:
 collections :: `cord::str.upper` is not available yet

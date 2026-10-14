@@ -12,8 +12,8 @@ fn fold [lent 'xs': list[int32], 'start': int32, 'f': fn[int32, int32] -> int32]
 fn pairwise ['a': V, 'b': V, 'f': fn[lent V, lent V] -> int32] -> int32 { return 'f'[lend 'a', lend 'b']; }
 MAIN {
     let 'xs': list[int32] = [1, 2, 3, 4];
-    let 'sum' := fold[lend 'xs', from 0, op plus];
-    let 'prod' := fold[lend 'xs', from 1, op times];
+    let 'sum' := fold[lend 'xs', 0, op plus];
+    let 'prod' := fold[lend 'xs', 1, op times];
     let 'm': fn[int32, int32] -> int32 = op mod.floor;
     let 'r' := 'm'[17, 5];
     let 'd' := pairwise[V[x = 1, y = 2], V[x = 3, y = 4], op dot];

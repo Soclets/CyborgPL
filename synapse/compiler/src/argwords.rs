@@ -16,10 +16,9 @@ use crate::spellings::{calls, Call};
 /// A call after a `.` or a Neuron's `::` is someone's own (`my.fold[…]`),
 /// not the language's or cord's. The longest path wins: `simd.store.some` over `simd.store`.
 fn call_at(toks: &[Token], i: usize) -> Option<(&'static Call, usize)> {
-    // After `fn`, it is a declaration's parameters (`fn fold [lent 'xs': …]`).
     // `cord::str.split[…]` is cord's (the lexer reads `cord` as `std`).
     let cord = i >= 2 && matches!(toks[i - 1].tok, Tok::ColonColon) && matches!(&toks[i - 2].tok, Tok::Word(w) if w == "std");
-    if i > 0 && !cord && (matches!(toks[i - 1].tok, Tok::Dot | Tok::ColonColon) || matches!(&toks[i - 1].tok, Tok::Word(w) if w == "fn")) {
+    if i > 0 && !cord && matches!(toks[i - 1].tok, Tok::Dot | Tok::ColonColon) {
         return None;
     }
     let word = |k: usize| match toks.get(k).map(|t| &t.tok) {
