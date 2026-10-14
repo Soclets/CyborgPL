@@ -30,8 +30,9 @@ Then the manifest: design claude proposed **`Strike.zv`** with **`strike::`**
 std lib could just be `std`". So the standard library is **`std`**, not `wire`: the name it had
 until 2026-10-09, when it became `cord` (spellings.nrp's old row `std` → `cord` turns round).
 
-Broca (the Unicode extension) is still open, and whether Zomp has a shorter command beside
-`zomp`. Nothing has moved yet.
+Zomp's command is `zomp` alone, with no shorter form (design claude: it is already four
+letters; the owner: "Yeah, just zomp"). Broca (the Unicode extension) is still open. Nothing has
+moved yet.
 
 ### 2026-10-14 — Nerve becomes **Zag**, code ends `.zg`, home zag-lang.org (owner)
 
