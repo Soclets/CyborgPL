@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-14 — `'i' += 1;` and `'i'++;` spell `change 'i' = 'i' plus 1;` (owner: a)
+
+The owner, on `change 'x' = 'x' plus 1;` for `i++` (2026-09-14 had ruled "No `++` / `+=`
+shorthand"): "We might wanna add it now". Design claude offered word forms (`change 'i' plus 1;`,
+`change 'i' by 1;`, `step 'i';`); the owner: "That's the point, symbols aren't good prac in Zag. So,
+we add it as an alt". So, as the other symbols of 2026-10-14, **compound assignment comes in as
+symbol spellings of the long `change`**, which stays the good-practice form and gets no shorter
+word form: `'i' += 1;` and `'i'++;` spell `change 'i' = 'i' plus 1;`, `'i' -= 1;` and `'i'--;`
+spell `change 'i' = 'i' minus 1;`. `++` already joins text (2026-09-19); offered (a) `'i'++;` only
+as a whole statement (a name, `++`, `;`: a join always has a right side, so the two never meet)
+or (b) no `++` / `--`, only the `=` forms, recommended; the owner: "(a), they aren't supposed to
+be used anyways". This replaces 2026-09-14's "No `++` / `+=` shorthand".
+
+Design claude's reading, not asked: every symbol that spells a two-sided arithmetic word gets an
+`=` form (`+=`, `-=`, `*=`, `/=` for `div.trunc`, `%=` for `mod.trunc`, `**=` for `pow`), and the
+result is checked where it lands, as any `change`. Not built. The owner added: "And we might also
+add a text form for `++`" (a word spelling for joining text); open.
+
 ### 2026-10-14 — A final build's debug info goes beside the program (owner: a)
 
 Measuring a freestanding hello (Zomp/Synapse at c90b4186, `--final`) showed the final build still
