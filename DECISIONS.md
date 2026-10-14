@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-14 — A final build's debug info goes beside the program (owner: a)
+
+Measuring a freestanding hello (Zomp/Synapse at c90b4186, `--final`) showed the final build still
+carrying its debug info inside (841,936 bytes on disk, a 4,346-byte image), though 2026-10-08
+ruled it goes to a separate file; that entry was "not designed", its file's name and place not
+yet asked. Asked where the file goes, (a) beside the program, the same name with an ending
+(`hello` and `hello.debug`), recommended, as Linux tools do and as macOS's `hello.dSYM`, where
+debuggers already look, or (b) in a build folder apart from what ships, the owner: "(a)". So
+**a final build writes its debug info beside the program**. Still open: the ending and format
+per target (one ending everywhere, or each platform's own: `.dSYM`, `.debug`, `.pdb`).
+
 ### 2026-10-14 — The package manager is **Zopm**, not Strike (owner)
 
 The owner: "Or PM should be `zopm` (pm = package manager), a play on `zomp`. It could even do
