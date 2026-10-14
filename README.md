@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="brand/zag/logo.svg" alt="Zag" width="160">
+  <img src="brand/zag/logo.svg" alt="Z a g" width="160">
 </p>
 
 <h3 align="center">zag™</h3>
