@@ -1918,7 +1918,7 @@ impl Gen {
                 _ => {
                     let a = self.rng.range(0, n + 1);
                     let b = self.rng.range(a.max(1) - 1, n + 2);
-                    format!("let {} := str.slice.grapheme[lend {}, from pos {a}, to pos {b}] otherwise \"\";\nput_u[str.bytes[lend {}]];", q(&r), q(&s), q(&r))
+                    format!("let {} := str.slice.grapheme[lend {}, from pos {a}, to pos {b}] otherwise str.empty;\nput_u[str.bytes[lend {}]];", q(&r), q(&s), q(&r))
                 }
             };
             for l in line.split('\n') {

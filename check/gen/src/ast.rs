@@ -713,6 +713,8 @@ impl<'a> Wr<'a> {
                 self.e(p);
                 self.out.push(']');
             }
+            // An empty text is `str.empty`; a written `""` is refused (owner, 2026-10-14).
+            Expr::Text(t) if t.is_empty() => self.out.push_str("str.empty"),
             Expr::Text(t) => self.out.push_str(&format!("{t:?}")),
             Expr::StrBytes(n) => self.out.push_str(&format!("str.bytes[lend {}]", q(n))),
             Expr::Conv(t, v, fb) => {
