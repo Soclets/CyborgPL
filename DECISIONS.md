@@ -5,6 +5,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-14 — Listing the Nerve `cord` takes over `cord::`; without it, the Rust `print` / `exit` stay (owner: "Go ahead")
+
+cord claude, started today, proposed six byte-level text functions first and found Synapse treats cord
+as built in (refusing every `cord::` call but `print` / `exit`, and any Neuron whose prefix is `cord`).
+The owner: "Shouldn't you ask/tell compiler Claude first?" Compiler claude proposed embedding `cord/` in
+Synapse, a development override, lazy loading and a bare-name lookup (500-800 lines). The owner asked
+"How, again?", "so brainstem would have the cord neuron too?" (no: Synapse would only carry it; a
+program still lists cord, the Brainstem unchanged), "Why not just let Rust cord built-in (for now), and
+Nerve cord separate?", then **"I mean, shouldn't listing the real cord hijack it?"**, "Or let the Rust
+cord become a lobe?" (design claude advised against: a lobe extends the language, its registry ID is
+permanent, and every printing program would change) and "What if people just wanted to use the Rust
+version for debugging" (the oracle is that Rust version; for `print` / `exit`, not listing the Nerve cord
+keeps the built-ins). The owner: "Ah, okay. Go ahead". So **a Neuron that lists the Nerve `cord` (the
+Neuron in `cord/`, carrying cord's registry ID) as a dependency gets it under `cord::`, taking over from
+the built-in; a program that does not, or has no manifest, keeps Synapse's built-in Rust `cord::print`
+and `cord::exit`**; Synapse does not embed cord for now. Design claude's readings, for compiler claude to
+weigh: what the Nerve cord does not define yet (`print`, `exit`) falls back to the built-in; the oracle
+keeps its own Rust cord, the second reading cord is checked against; new cord functions' argument words
+go into `spellings.nrp` through design claude, which keeps that file.
+
 ### 2026-10-14 — The cord session: `cord claude`, its own clone at `/Users/ts/Nerve cord`, code in `cord/` (owner: "Yeah")
 
 The owner: "Prepare the Nerve Cord session stuff. Make sure to read Anthropic's guide for Opus 5.5".
