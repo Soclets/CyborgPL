@@ -25,6 +25,17 @@ weigh: what the Nerve cord does not define yet (`print`, `exit`) falls back to t
 keeps its own Rust cord, the second reading cord is checked against; new cord functions' argument words
 go into `spellings.nrp` through design claude, which keeps that file.
 
+Compiler claude agreed with the three readings (one working session, 250-400 lines) and raised four
+points. Asked the one needing the owner's word, "if any part of a program uses the Nerve `cord`, the
+whole program uses it", the owner: "That wouldn't be able to happen on pub release, right?" (right: a
+published Neuron cannot list a plain path, and once released there is one cord), then "Yes". So **one
+cord per program: if any Neuron in a build lists the Nerve cord, every `cord::` in the build goes to it,
+with the same fallback**. Compiler claude's other three, accepted as details (design claude's
+recommendation): the Neuron mounted as cord is exempt from the "list cord to use lists, maps, text"
+gate; the real cord is a dependency listing with cord's ID and a `path`, whose folder's prefix is `cord`
+(any other Neuron prefixed `cord` still refused); the Nerve cord takes over name by name, so a function
+moves from the built-in when cord defines it.
+
 ### 2026-10-14 — The cord session: `cord claude`, its own clone at `/Users/ts/Nerve cord`, code in `cord/` (owner: "Yeah")
 
 The owner: "Prepare the Nerve Cord session stuff. Make sure to read Anthropic's guide for Opus 5.5".
