@@ -13,8 +13,11 @@ guide, with the Claude Opus 5 and Claude Fable 5.1 prompting advice it builds on
 `design/cord-session.md`: goals, reasons and limits rather than steps, no self-check instructions,
 progress claims grounded in runs, plain outcome-first writing, sub-agents rare. Four setup choices left
 open; the first, design claude's suggestion: **house name `cord claude`, its own clone at `/Users/ts/Nerve
-cord`, its code in `cord/` in this repository**; the owner: "Yeah". Still open: its cores, whether it may
-read `oracle/src` and `synapse/` (design claude recommends not), and when it starts.
+cord`, its code in `cord/` in this repository**; the owner: "Yeah". Cores: design claude offered (a) 2 / 3 / 2 / 2 and 1 for the desktop, recommended, (b) sharing, (c)
+the owner's own numbers; the owner: "Cord doesn't work when Compiler is." So **cord claude and compiler
+claude take turns: cord claude works only while compiler claude does not, on its 3 cores**; the split
+stays 3 / 3 / 3 and 1. Still open: whether it may read `oracle/src` and `synapse/` (design claude
+recommends not), and when it starts.
 
 ### 2026-10-14 — `cord` stays Nerve, on a few runtime pieces; its session starts later (owner: "(c)")
 

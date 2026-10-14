@@ -54,8 +54,9 @@ Claude memory, and keeps your unsaved files away from the other sessions'. Commi
 or to compiler claude for `synapse/`. Never push to the old `Cyborg-Assembly-Manufacturing-Site/CyborgPL`
 repository or the frozen `/Users/ts/CyborgPL v2…` folders.
 
-Cores **[open]**: the machine has 10, today split 3 each for design, compiler and check claude and 1 for
-the desktop.
+Cores (owner, 2026-10-14: "Cord doesn't work when Compiler is."): **you and compiler claude take
+turns**: you work only while compiler claude does not, on its **3** cores (the machine has 10: 3 each
+for design, compiler and check claude, and 1 for the desktop).
 
 ## What you read, and what you don't **[open]**
 
