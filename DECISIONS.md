@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-14 — An empty `part`, `at` or `from` is an error when building: each is a text of at least 1 byte (owner)
+### 2026-10-14 — An empty `part`, `at` or `from` is an error when building, and an empty text is written `str.empty`, not `""` (owner)
 
 cord claude wrote `str.contains`, `starts_with`, `ends_with`, `split`, `join` and `replace` in Nerve
 (cord `9c2c3341`, agreeing with the oracle on 856 cases) and asked what they do with an empty text to
@@ -17,8 +17,10 @@ be less chance of a mistake", then, told that `contains['s', part ""]` is true f
 emptiness check is `'s' equal_to ""` or `str.bytes[…] equal_to 0`: "Yeah". So **`part`, `at` and `from`
 are texts of at least 1 byte (`str.utf8[min 1 bytes]`, cord claude's spelling): a written `""` is
 refused at the caller's line, a worked-out text checked where it is passed.** The oracle, which stops
-`split` at run time and inserts on `replace`, is to follow. Asked next: a way to say an empty text other
-than `""` (owner: "But I think there should be a way to say empty, without it being `""`").
+`split` at run time and inserts on `replace`, is to follow. Then the owner: "But I think there should be a way to say empty,
+without it being `""`". Offered `str.empty`, as `map.empty` is the empty map: (a) replacing `""`, empty
+quotes refused naming it, recommended, (b) beside it; the owner: "(a)". So **an empty text is written
+`str.empty`; `""` is refused, naming it**.
 
 ### 2026-10-14 — Listing the Nerve `cord` takes over `cord::`; without it, the Rust `print` / `exit` stay (owner: "Go ahead")
 
