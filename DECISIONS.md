@@ -22,6 +22,7 @@ could be `zomp` instead (Zag Compiler). Runtime could just be normal name".
 | compiler extension | lobe | **Coil** |
 | standard library | `cord` | **`std`** (owner, below; `wire` was proposed) |
 | one-value file | `.nrp` | **`.zv`** |
+| Unicode extension | Broca | **`unicode`** (owner, below) |
 | build program, language date | `build.nrv`, `nerve_version.nrp` | `build.zg`, `zag_version.zv` |
 | session | cord claude | **std claude** (owner: "so it would be stable") |
 
@@ -35,7 +36,8 @@ letters; the owner: "Yeah, just zomp"). Then the prover: the owner, "Rod sounds 
 claude asked whether that means the prover has no name of its own and is simply part of Zomp, as
 Cortex was always wired in ("Zomp proved it", "Zomp refused it"); the owner: "yeah". So **the
 prover is Zomp's**, with no name of its own; Rod is dropped. For Broca the owner said "you could
-just name it technically"; its name is still to be proposed. Nothing has moved yet.
+just name it technically"; design claude proposed **`unicode`** (`coils = [strike::coil[unicode]]`)
+over `text`, and the owner: "yea". Every name is now settled. Nothing has moved yet.
 
 ### 2026-10-14 — Nerve becomes **Zag**, code ends `.zg`, home zag-lang.org (owner)
 
