@@ -2185,10 +2185,27 @@ impl Checker {
             let plain = ast::Path { limb: None, segs: path.segs.clone(), span: path.span };
             return self.call(ctx, &plain, args, otherwise, span, used);
         }
-        if path.limb.is_none() && std_name(path) {
+        if path.limb.is_none() && (std_name(path) || self.items.nerve_cord_item(path).is_some_and(|(_, bare)| bare)) {
             if let crate::resolve::Bareness::Std = self.items.resolve_bare(path, ctx.module, true)? {
                 let with = ast::Path { limb: Some(ast::Ident { name: "std".into(), span: path.span }), segs: path.segs.clone(), span: path.span };
                 return self.call(ctx, &with, args, otherwise, span, used);
+            }
+        }
+        // The Nerve cord, when the program lists it, takes over `cord::`
+        // name by name (owner, 2026-10-14); what it has not written yet is
+        // the built-ins' still.
+        if path.limb.as_ref().is_some_and(|l| l.name == "std") {
+            let inner = ast::Path { limb: None, segs: path.segs.clone(), span: path.span };
+            match self.items.nerve_cord_item(&inner).map(|(i, _)| i) {
+                Some(ItemRef::Fn(id)) => return self.fn_call(ctx, id, args, otherwise, span, used, path),
+                Some(ItemRef::ExternFn(id)) => return self.extern_call(ctx, id, args, otherwise, span, used),
+                Some(ItemRef::Struct(id)) => {
+                    if otherwise.is_some() {
+                        return err(Diagnostic::error("building a struct value cannot fail; drop the `otherwise`").at(span));
+                    }
+                    return self.construct(ctx, id, args, span);
+                }
+                _ => {}
             }
         }
         // The prints are one family (owner, dc7e2e4): the old names say the

@@ -1,0 +1,6 @@
+kin::manifest[
+    name = "not_cord",
+    prefix = "not_cord",
+    version = "0.1.0",
+    targets = [kin::target[name = "aarch64-macos"],]
+];

@@ -206,6 +206,9 @@ pub struct Items {
     /// The roots of Limbs whose `CCA.cplr` does not list stdkit: std's names
     /// are not theirs to write bare.
     pub no_std_roots: std::collections::HashSet<ModuleId>,
+    /// The Nerve cord's root, when a Neuron of the program lists it (owner,
+    /// 2026-10-14): `cord::` looks there first, then at the built-ins.
+    pub nerve_cord: Option<ModuleId>,
     /// The roots of Limbs whose `CCA.cplr` does not list IEG: the rule
     /// that marks raw memory and unproven code `!check` is IEG's, so
     /// nothing there needs the mark (owner, 2026-10-06: "yes").
@@ -824,7 +827,8 @@ impl Items {
                 found.push((format!("`my.{}{}` (this Neuron's)", at, written), Bareness::Own(*i)));
             }
         }
-        if std && !self.no_std_roots.contains(&here) {
+        // Inside the Nerve cord, its own names are its own, not `cord::`'s.
+        if std && !self.no_std_roots.contains(&here) && self.nerve_cord != Some(here) {
             found.push((format!("`cord::{}`", written), Bareness::Std));
         }
         let mut never: Option<String> = None;
@@ -890,6 +894,13 @@ impl Items {
     }
 
     /// A `pub` item of another Limb, from its root, and its name's span.
+    /// What the Nerve cord has at this path, `pub` (owner, 2026-10-14), and
+    /// whether code may write it bare.
+    pub fn nerve_cord_item(&self, path: &ast::Path) -> Option<(ItemRef, bool)> {
+        let (item, span) = self.lookup_pub_from(path, self.nerve_cord?)?;
+        Some((item, matches!(self.bare_marks.get(&span), Some(ast::Bare::Optional | ast::Bare::Only))))
+    }
+
     fn lookup_pub_from(&self, path: &ast::Path, root: ModuleId) -> Option<(ItemRef, Span)> {
         let mut cur = root;
         let last = path.segs.len() - 1;
@@ -911,10 +922,11 @@ impl Items {
     fn lookup_plain(&self, path: &ast::Path, m: ModuleId) -> Result<ItemRef> {
         let mut cur = m;
         if let Some(limb) = &path.limb {
-            if limb.name == "std" {
-                return err(Diagnostic::error(format!("`{}` is not available yet: there is no `cord` Neuron for now — the base language comes first", path.spelled())).at(path.span));
+            match (limb.name.as_str(), self.nerve_cord) {
+                ("std", Some(root)) => cur = root,
+                ("std", None) => return err(Diagnostic::error(format!("`{}` is not available yet: there is no `cord` Neuron for now — the base language comes first", path.spelled())).at(path.span)),
+                _ => cur = self.dependency(limb, m)?,
             }
-            cur = self.dependency(limb, m)?;
             if path.segs.first().map_or(false, |s| s.name == "my") {
                 return err(Diagnostic::error(format!("`{}::` already starts at that Neuron's root: write `{}::…` without `my.`", limb.name, limb.name)).at(path.span));
             }
@@ -965,8 +977,11 @@ impl Items {
     /// A const reached by path: `a.'k'`, `limb.'scale'`, `areas::'pi'`.
     pub fn lookup_const_path(&self, path: &ast::Path, name: &ast::QName, m: ModuleId) -> Result<crate::hir::ConstId> {
         if let Some(limb) = &path.limb {
-            if limb.name == "std" {
+            if limb.name == "std" && self.nerve_cord.is_none() {
                 return err(Diagnostic::error("`cord::` is not available yet: there is no `cord` Neuron for now").at(path.span));
+            }
+            if limb.name == "std" && path.segs.is_empty() {
+                return self.lookup_const_in(self.nerve_cord.unwrap(), name, m);
             }
             if path.segs.is_empty() {
                 let root = self.dependency(limb, m)?;

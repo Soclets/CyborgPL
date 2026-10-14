@@ -158,8 +158,8 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
     let mut outputs: Vec<(String, String, crate::source::Span)> = Vec::new();
     let mut exits: Vec<(String, String, crate::source::Span)> = Vec::new();
     if path.is_dir() {
-        let mut state = Loading { stack: Vec::new(), done: std::collections::HashMap::new(), prefixes: std::collections::HashMap::new(), root: None, root_layouts: Vec::new(), root_outputs: Vec::new(), root_exits: Vec::new(), root_dir: None };
-        load_limb(sources, &mut items, path, None, &mut state)?;
+        let mut state = Loading { stack: Vec::new(), done: std::collections::HashMap::new(), prefixes: std::collections::HashMap::new(), root: None, root_layouts: Vec::new(), root_outputs: Vec::new(), root_exits: Vec::new(), root_dir: None, cord: None };
+        load_limb(sources, &mut items, path, None, false, &mut state)?;
         root = state.root;
         layouts = state.root_layouts;
         outputs = state.root_outputs;
@@ -441,6 +441,8 @@ struct Loading {
     root_outputs: Vec<(String, String, crate::source::Span)>,
     root_exits: Vec<(String, String, crate::source::Span)>,
     root_dir: Option<PathBuf>,
+    /// The Nerve cord's folder, once a Neuron lists it: one per program.
+    cord: Option<PathBuf>,
 }
 
 /// One Limb directory and, through its `CCA.cplr`, its dependencies: each
@@ -449,7 +451,7 @@ struct Loading {
 /// Limb's `CCA.cplr` and the path it wrote; the Limb being built has none,
 /// and its root is `ROOT`, made first. Gives back the Limb's root module
 /// and its prefix.
-fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Option<(&Path, &str)>, state: &mut Loading) -> Result<(ModuleId, String)> {
+fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Option<(&Path, &str)>, as_cord: bool, state: &mut Loading) -> Result<(ModuleId, String)> {
     old_names(dir)?;
     let key = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
     if let Some(r) = state.done.get(&key) {
@@ -480,14 +482,22 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
         None => dir.canonicalize().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).unwrap_or_else(|| "this Neuron".into()),
     };
     if let Some((manifest_at, written)) = from {
+        // The Nerve cord is the Neuron listed with cord's ID, and its
+        // prefix is `cord` (owner, 2026-10-14).
+        if as_cord && prefix != "cord" {
+            return err(Diagnostic::error(format!("the Neuron at `{}` is listed with cord's ID, and its prefix is `{}`: the Nerve cord's prefix is `cord`", written, prefix)).place(manifest_at.display().to_string()));
+        }
         // `cord` is reserved beside the old `std` and `stdkit` (owner,
-        // 2026-10-09).
-        if matches!(prefix.as_str(), "std" | "stdkit" | "cord" | "cca" | "kin") {
+        // 2026-10-09), but for the Nerve cord.
+        if !as_cord && matches!(prefix.as_str(), "std" | "stdkit" | "cord" | "cca" | "kin") {
             return err(Diagnostic::error(format!("the Neuron at `{}` has the prefix `{}`, which names the built-in `{}::`; edit its `prefix`", written, prefix, match prefix.as_str() { "cca" => "cca", "kin" => "kin", _ => "cord" })).place(manifest_at.display().to_string()));
         }
         // No override: two Limbs with one prefix are fixed by editing one
         // (owner, 2026-09-29: "Just edit the source code").
         if let Some(other) = state.prefixes.get(&prefix) {
+            if *other != key && as_cord {
+                return err(Diagnostic::error(format!("two Nerve cords are listed, `{}` and `{}`: a program has one cord (owner, 2026-10-14)", other.display(), key.display())).place(manifest_at.display().to_string()));
+            }
             if *other != key {
                 return err(Diagnostic::error(format!("two Neurons have the prefix `{}` ({} and {}); edit one Neuron's `prefix`", prefix, other.display(), key.display())).place(manifest_at.display().to_string()));
             }
@@ -515,7 +525,10 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     items.neuron_dirs.insert(m, dir.to_path_buf());
     // A Limb without std reaches none of it; its dependencies are judged
     // by their own `CCA.cplr` (owner, 2026-10-06).
-    crate::parser::set_no_std(dir.join(MANIFEST).is_file() && !manifest.has_std);
+    // The Nerve cord is cord: lists, maps and text are its own (owner,
+    // 2026-10-14).
+    let no_cord = dir.join(MANIFEST).is_file() && !manifest.has_std && !as_cord;
+    crate::parser::set_no_std(no_cord);
     crate::parser::set_cores(dir.join(MANIFEST).is_file().then(|| manifest.cores.clone()));
     let outer_root = crate::parser::set_neuron_root(dir);
     let parsed = (|| {
@@ -534,7 +547,7 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     crate::parser::set_cores(None);
     crate::parser::set_neuron_root(&outer_root);
     parsed?;
-    if dir.join(MANIFEST).is_file() && !manifest.has_std {
+    if no_cord {
         items.no_std_roots.insert(m);
     }
     // The power ledger's view of this Limb (owner, 2026-10-07): its list,
@@ -551,7 +564,18 @@ fn load_limb(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Optio
     let manifest_at = dir.join(MANIFEST);
     for d in &manifest.deps {
         let at = dir.join(&d.path);
-        let (r, p) = load_limb(sources, items, &at, Some((&manifest_at, &d.path)), state)?;
+        let (r, p) = load_limb(sources, items, &at, Some((&manifest_at, &d.path)), d.cord, state)?;
+        // One cord per program (owner, 2026-10-14: "Yes"): every `cord::`
+        // in the build goes to the Nerve cord, whichever Neuron listed it.
+        if d.cord {
+            let found = std::fs::canonicalize(&at).unwrap_or(at.clone());
+            if let Some(other) = state.cord.as_ref().filter(|o| **o != found) {
+                return err(Diagnostic::error(format!("two Nerve cords are listed, `{}` and `{}`: a program has one cord (owner, 2026-10-14)", other.display(), found.display())).place(manifest_at.display().to_string()));
+            }
+            state.cord = Some(found);
+            items.nerve_cord = Some(r);
+            continue;
+        }
         deps.insert(p.clone(), r);
         in_order.push((p, r));
     }
@@ -618,6 +642,9 @@ struct Manifest {
 
 struct Dep {
     path: String,
+    /// Listed with cord's ID and a `path`: the Nerve cord, which takes over
+    /// `cord::` for the whole program (owner, 2026-10-14).
+    cord: bool,
 }
 
 const FIELDS: [&str; 8] = ["name", "prefix", "version", "targets", "dependencies", "lobes", "powers", "deny"];
@@ -947,6 +974,19 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                             continue;
                         }
                     }
+                    // The Nerve cord, listed by its ID and the folder it is
+                    // being written in (owner, 2026-10-14: "shouldn't listing
+                    // the real cord hijack it?").
+                    if let (Some((i, ispan)), Some((p, _)), None) = (&id, &dpath, &version) {
+                        if i == crate::parser::STD_ID {
+                            if out.has_std {
+                                return err(Diagnostic::error("cord is listed twice in `dependencies`").at(*ispan));
+                            }
+                            out.has_std = true;
+                            out.deps.push(Dep { path: p.clone(), cord: true });
+                            continue;
+                        }
+                    }
                     match (dpath, version) {
                         (Some(_), Some((_, vspan))) => {
                             return err(Diagnostic::error("a dependency says where it comes from once: a `path` (a folder on this machine) or a `version` (the registry), not both").at(vspan));
@@ -964,7 +1004,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                             if out.deps.iter().any(|d| d.path == p) {
                                 return err(Diagnostic::error(format!("`{}` is listed twice in `dependencies`", p)).at(pspan));
                             }
-                            out.deps.push(Dep { path: p });
+                            out.deps.push(Dep { path: p, cord: false });
                         }
                     }
                 }

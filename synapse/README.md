@@ -692,3 +692,13 @@ Dated, with the alternative, so each can become a question later.
   checked.
   The cursed `+` and `*`, the `jokes` power and `SYNAPSE_TODAY` are gone
   (owner, 2026-10-14).
+- **2026-10-14 — How Synapse loads the Nerve cord.** A dependency listed
+  with cord's ID and a `path` (no `version`) is the Nerve cord: its prefix
+  must be `cord`, it is exempt from the "list cord to use lists, maps and
+  text" gate, and it is not a dependency by prefix but the program's one
+  cord (`Items::nerve_cord`), whichever Neuron listed it; a second one is
+  refused. `cord::x` (and a bare name the Nerve cord marks `bare.optional`
+  or `bare.only`) is looked up there first, as a `pub` item, and what it
+  does not have falls back to the built-ins, `print` and `exit` (owner,
+  2026-10-14, "(a)"), name by name. Inside the Nerve cord its own names
+  are its own. A program that lists no Nerve cord is unchanged.

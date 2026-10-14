@@ -686,3 +686,21 @@ fn generate_writes_what_the_oracle_wrote() {
     let _ = std::fs::remove_dir_all(&dir);
     assert_eq!(got, want);
 }
+
+/// The Nerve cord (owner, 2026-10-14): a Neuron listing it by cord's ID and
+/// a `path` gets it under `cord::`, for the whole program, name by name —
+/// `twice` and `total` are its, `print` falls back to the built-in, and its
+/// `exit` takes over, so the run ends 0 where the built-in's would end 7.
+/// Its prefix must be `cord`, and a program has one.
+#[test]
+fn listing_the_nerve_cord_takes_over_cord() {
+    assert!(runtime().is_some(), "the runtime is not built");
+    let limbs = dir().parent().unwrap().join("limbs");
+    let r = Command::new(cca()).arg("run").arg(limbs.join("uses_nerve_cord")).output().unwrap();
+    assert_eq!((r.status.code(), String::from_utf8_lossy(&r.stdout).as_ref()), (Some(0), "8 10 12 6\n"), "the Nerve cord did not take over:\n{}", String::from_utf8_lossy(&r.stderr));
+    for (name, says) in [("cord_wrong_prefix", "the Nerve cord's prefix is `cord`"), ("two_cords", "a program has one cord")] {
+        let r = Command::new(cca()).arg("check").arg(limbs.join(name)).output().unwrap();
+        let err = String::from_utf8_lossy(&r.stderr);
+        assert!(!r.status.success() && err.contains(says), "{} was not refused as it should be:\n{}", name, err);
+    }
+}
