@@ -2,7 +2,7 @@
   <img src="brand/zag/logo.svg" alt="Z a g" width="160">
 </p>
 
-<h3 align="center">zag™</h3>
+<h3 align="center">z a g™</h3>
 
 <p align="center">Just a small hobby lang 😊<br>
 Very slow at the development, fast &amp; safe at the final product (no warranty 🤣).</p>
