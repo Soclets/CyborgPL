@@ -10,19 +10,19 @@ extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
-    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    if 'neg' { list.append[lend.mut 'buf', value 45]; }
     let mut 'v': uint64 = 'm';
     let mut 'p': uint64 = 1;
     while 'v' div.floor 'p' at_least 10 {
         change 'p' = 'p' times 10;
     }
     loop {
-        list.append[lend.mut 'buf', to.uint8[48 plus ('v' div.floor 'p')]];
+        list.append[lend.mut 'buf', value to.uint8[48 plus ('v' div.floor 'p')]];
         change 'v' = 'v' mod.floor 'p';
         if 'p' equal_to 1 { break; }
         change 'p' = 'p' div.floor 10;
     }
-    list.append[lend.mut 'buf', 10];
+    list.append[lend.mut 'buf', value 10];
     no_check write[1, lend 'buf', list.length[lend 'buf']];
 }
 

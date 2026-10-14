@@ -396,7 +396,7 @@ pub enum Stmt {
     ListFill { name: String, mutable: bool, elem: Ty, value: Expr, count: Expr },
     /// `change 'xs'[p] = v;`
     SetAt { tier: Tier, name: String, pos: Expr, value: Expr },
-    /// `list.append[lend.mut 'xs', v];`
+    /// `list.append[lend.mut 'xs', value v];`
     Append { name: String, value: Expr },
     /// `for 'x' in lend 'xs'`, or `for 'i', 'x' in lend 'xs'` with the
     /// position from 1 (owner, c7951d4).
@@ -961,7 +961,7 @@ impl<'a> Wr<'a> {
                 self.out.push('\n');
             }
             Stmt::Append { name, value } => {
-                let head = format!("list.append[lend.mut {}, ", q(name));
+                let head = format!("list.append[lend.mut {}, value ", q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, "];");
             }
             Stmt::Borrow { name, value } => {

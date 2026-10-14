@@ -319,7 +319,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         }
         if g.rng.chance(50) && g.cfg.mutator {
             let t = g.belem.name();
-            g.extra_fns.push(format!("fn m1 [lent.mut 'a': list[{t}], lent 'b': list[{t}]] {{\n    if list.length[lend 'b'] > 0 {{\n        list.append[lend.mut 'a', 1];\n    }}\n}}\n"));
+            g.extra_fns.push(format!("fn m1 [lent.mut 'a': list[{t}], lent 'b': list[{t}]] {{\n    if list.length[lend 'b'] > 0 {{\n        list.append[lend.mut 'a', value 1];\n    }}\n}}\n"));
             g.mutator = true;
         }
         if mistake {

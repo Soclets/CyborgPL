@@ -10,18 +10,18 @@ extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
-    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    if 'neg' { list.append[lend.mut 'buf', value 45]; }
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
     loop {
-        list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', value to.uint8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
         if 'v' equal_to 0 { break; }
     }
     for 'k': uint64 from list.length[lend 'ds'] to 1 by -1 {
-        list.append[lend.mut 'buf', 'ds'[pos 'k']];
+        list.append[lend.mut 'buf', value 'ds'[pos 'k']];
     }
-    list.append[lend.mut 'buf', 10];
+    list.append[lend.mut 'buf', value 10];
     no_check write[1, lend 'buf', list.length[lend 'buf']];
 }
 

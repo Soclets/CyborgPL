@@ -8,18 +8,18 @@ extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
 fn emit ['m': uint64, 'neg': bool] {
     let mut 'buf': list[uint8] = [];
-    if 'neg' { list.append[lend.mut 'buf', 45]; }
+    if 'neg' { list.append[lend.mut 'buf', value 45]; }
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
     loop {
-        list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', value to.uint8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
         if 'v' equal_to 0 { break; }
     }
     for 'k': uint64 from list.length[lend 'ds'] to 1 by -1 {
-        list.append[lend.mut 'buf', 'ds'[pos 'k']];
+        list.append[lend.mut 'buf', value 'ds'[pos 'k']];
     }
-    list.append[lend.mut 'buf', 10];
+    list.append[lend.mut 'buf', value 10];
     NO_FUCKING_CHECKS write[1, lend 'buf', list.length[lend 'buf']];
 }
 
@@ -48,7 +48,7 @@ fn b2 [@y, @x] [lent @y 'a': list[uint16], lent @y 'b': list[uint16], lent @x 'c
 
 fn m1 [lent.mut 'a': list[uint16], lent 'b': list[uint16]] {
     if list.length[lend 'b'] > 0 {
-        list.append[lend.mut 'a', 1];
+        list.append[lend.mut 'a', value 1];
     }
 }
 MAIN {

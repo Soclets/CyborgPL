@@ -14,7 +14,7 @@ pub fn printer(rng: &mut Rng) -> String {
     let put_i = if rng.chance(50) { PUT_I_IF } else { PUT_I_ELSE_FIRST };
     let vouch = if rng.chance(50) { "no_check" } else { "NO_FUCKING_CHECKS" };
     format!(
-        "fn emit ['m': uint64, 'neg': bool] {{\n    let mut 'buf': list[uint8] = [];\n    if 'neg' {{ list.append[lend.mut 'buf', 45]; }}\n{digits}    list.append[lend.mut 'buf', 10];\n    {vouch} write[1, lend 'buf', list.length[lend 'buf']];\n}}\n\nfn put_u ['n': uint64] {{\n    emit['n', false];\n}}\n\n{put_i}"
+        "fn emit ['m': uint64, 'neg': bool] {{\n    let mut 'buf': list[uint8] = [];\n    if 'neg' {{ list.append[lend.mut 'buf', value 45]; }}\n{digits}    list.append[lend.mut 'buf', value 10];\n    {vouch} write[1, lend 'buf', list.length[lend 'buf']];\n}}\n\nfn put_u ['n': uint64] {{\n    emit['n', false];\n}}\n\n{put_i}"
     )
 }
 
@@ -24,7 +24,7 @@ pub fn printer(rng: &mut Rng) -> String {
 pub fn strict_printer(rng: &mut Rng) -> String {
     let put_i = if rng.chance(50) { STRICT_PUT_I_IF } else { STRICT_PUT_I_ELSE_FIRST };
     let vouch = if rng.chance(50) { "no_check" } else { "NO_FUCKING_CHECKS" };
-    format!("fn emit ['m': uint64, 'neg': bool] {{\n    let mut 'buf': list[uint8] = [];\n    if 'neg' {{ list.append[lend.mut 'buf', 45]; }}\n{STRICT_DIGITS}    list.append[lend.mut 'buf', 10];\n    {vouch} write[1, lend 'buf', list.length[lend 'buf']];\n}}\n\nfn put_u ['n': uint64] {{\n    emit['n', false];\n}}\n\n{put_i}")
+    format!("fn emit ['m': uint64, 'neg': bool] {{\n    let mut 'buf': list[uint8] = [];\n    if 'neg' {{ list.append[lend.mut 'buf', value 45]; }}\n{STRICT_DIGITS}    list.append[lend.mut 'buf', value 10];\n    {vouch} write[1, lend 'buf', list.length[lend 'buf']];\n}}\n\nfn put_u ['n': uint64] {{\n    emit['n', false];\n}}\n\n{put_i}")
 }
 
 const STRICT_DIGITS: &str = "    let mut 'started': bool = false;
@@ -34,7 +34,7 @@ const STRICT_DIGITS: &str = "    let mut 'started': bool = false;
             let immut 'd': uint64 = ('m' div.floor 'p') mod.floor 10;
             if 'd' not_equal 0 or 'started' or 'p' equal_to 1 {
                 change 'started' = true;
-                list.append[lend.mut 'buf', to.uint8[48 plus 'd']];
+                list.append[lend.mut 'buf', value to.uint8[48 plus 'd']];
             }
             change 'p' = 'p' div.floor 10;
         }
@@ -63,26 +63,26 @@ const STRICT_PUT_I_ELSE_FIRST: &str = "fn put_i ['n': int64] {
 const DIGITS_REVERSED_FOR: &str = "    let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
     loop {
-        list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', value to.uint8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
         if 'v' equal_to 0 { break; }
     }
     for 'k': uint64 from list.length[lend 'ds'] to 1 by -1 {
-        list.append[lend.mut 'buf', 'ds'[pos 'k']];
+        list.append[lend.mut 'buf', value 'ds'[pos 'k']];
     }
 ";
 
 const DIGITS_REVERSED_WHILE: &str = "    let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
-    list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
+    list.append[lend.mut 'ds', value to.uint8[48 plus ('v' mod.floor 10)]];
     change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', to.uint8[48 plus ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', value to.uint8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
     }
     let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' at_least 1 {
-        list.append[lend.mut 'buf', 'ds'[pos 'k']];
+        list.append[lend.mut 'buf', value 'ds'[pos 'k']];
         change 'k' = 'k' minus 1;
     }
 ";
@@ -93,7 +93,7 @@ const DIGITS_POWER_OF_TEN: &str = "    let mut 'v': uint64 = 'm';
         change 'p' = 'p' times 10;
     }
     loop {
-        list.append[lend.mut 'buf', to.uint8[48 plus ('v' div.floor 'p')]];
+        list.append[lend.mut 'buf', value to.uint8[48 plus ('v' div.floor 'p')]];
         change 'v' = 'v' mod.floor 'p';
         if 'p' equal_to 1 { break; }
         change 'p' = 'p' div.floor 10;
