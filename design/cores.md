@@ -217,9 +217,6 @@ makes its own lists and allocator, as Linux does.
   kernel's own list works with `for` too.
 - **The program may take powers away, never add** (`deny`), and **an
   upgrade that starts using a new power is flagged**.
-- **Jokes are a power, `jokes`** (owner, 2026-10-13): the cursed `+` and `*`
-  (`operators.md`), granted to every Neuron *without being listed*, since a
-  listing would tell, and taken away only by a program's `deny`.
 - **The dangerous abilities are powers too** (owner, 2026-10-07), which
   Brainstem grants every neuron by default: `inline_assembly` and
   `raw_memory`; `c_calls` is CNC's since 2026-10-10, granted to a neuron

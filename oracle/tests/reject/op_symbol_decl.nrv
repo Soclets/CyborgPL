@@ -1,0 +1,3 @@
+struct V { a: int32 }
+op % ['p': V, 'q': V] -> V { return 'p'; }
+MAIN { }

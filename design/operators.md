@@ -297,41 +297,24 @@ chosen.
 (Integer `div` (then `/`) and `mod` were decided 2026-09-20: floor division, the
 mathematician's `mod`; see the bitwise and wrapping paragraph above.)
 
-## `+` is not `plus`, and `*` is not `times` (owner, 2026-10-13)
+## Symbols spell the words (owner, 2026-10-14)
 
-Adding is `plus`. `+` is a joke built into the language, on purpose undocumented anywhere a
-user would trip over it ("These mfs better be reading Nerve before using Nerve"):
+The words are the language; each symbol below is another spelling of its word's most useful general
+form, and good practice writes the words (`style.md`). (On 2026-10-13 `+` and `*` were briefly jokes, a
+JavaScript `+` and a `bin16` `*` that changed on 1 April; the owner dropped them the next morning.)
 
-- **Text on either side: it joins, JavaScript's way.** `"1000" + 1` is `"10001"`, `1 + "2"`
-  is `"12"`, `"ab" + "cd"` is `"abcd"`; a number joins as it prints.
-- **Two numbers: it adds**, as `plus` does, **except on 1 April**, by the machine's own date
-  where the program runs, when `+` is `xxx`: tetration, a tower of powers (`x` was times, `xx`
-  was power; "it's not porn"). `3 + 3` is 3 to the 3 to the 3, 7625597484987, and anything
-  bigger overflows like any number would.
-- **No warning anywhere** ("For the love of the game, no warnings"). **The final build
-  refuses it** ("Until final build").
-- `op +`, as a declaration or a value, stays refused: an operator is declared and passed by
-  its word, `op plus`.
+| Symbol | Word |
+|---|---|
+| `+`, `-`, `*` between two values | `plus`, `minus`, `times` (plain: checked, exact) |
+| `/`, `%` | `div.trunc`, `mod.trunc`: toward zero, as C, Rust and Go |
+| `==`, `!=`, `<=`, `>=` | `equal_to`, `not_equal`, `at_most`, `at_least` (`<`, `>` as always) |
+| `**` | `pow` (cord's) |
+| `&`, `&&`, `\|\|` between two values | `and` (both sides), `and.then`, `or.else` |
 
-**`*`** ("It does its operations using `bin16`, and it also has Python's feature"):
-
-- **Text times a whole number repeats it, Python's way:** `"ab" * 3` is `"ababab"`,
-  `"3" * 2` is `"33"`.
-- **Numbers multiply in `bin16` and come back as their own type**, so a whole number
-  past 2048 drifts (`2049 * 1` is 2048, `1001 * 3` is 3004) and a product past 65504
-  overflows (`300 * 300`). It sits at `times`'s level.
-- **On 1 April the answer comes out negated** ("it would make the numbers negative"):
-  `2 * 3` is -6, and text repeated a negative number of times is empty, as Python's is.
-- `op *` is refused: a type's multiplication is `op times`.
-
-**Jokes are a power, `kin::power.jokes`** ("(b)", "yea"): granted without being listed,
-taken away by a program's `deny = [kin::power.jokes,]`, which refuses `+` and `*` at once;
-`.except["*"]`, `.for["a_dependency"]` narrow it as for any power. Future jokes join it.
-
-Design claude's readings, provisional in the oracle's README: 1 April's tower is for two
-whole numbers (other numbers add); the text form of a number is the one `print.useful`
-shows; `*` with a `deci` comes back as that `deci`'s width, with a `brain16` as a
-`brain16`, otherwise as the operands' family.
+`op +`, `op -`, `op *` declare `op plus`, `op minus`, `op times`; the other built-in symbols are not
+declared (`op %`: "`%` is the language's own spelling of `mod.trunc`"). `^`, `|`, `!` stay free to
+declare. The wrapping symbols (`+~`, `x~`, …) and `x` / `xx` stay old spellings. Borrows (`&'x'`, `&mut
+'x'`) are in `ownership-syntax.md`, pointers (`*const T`, `*'p'`) in `ffi.md`, `exactly` in `types.md`.
 
 ## Custom operators — `op` (decided 2026-09-20)
 
@@ -360,10 +343,10 @@ Four questions, one at a time:
    `<+>-`. Claude proposed a three-character cap; owner: "isn't `<+>-` an
    operator? if they wanted negative, they could put that inside `b`" —
    no cap. The language's own operators and its deliberate near-misses
-   (`!=`, `<=`, `>=`, `--`, `+=`, `-=`) cannot be redefined; `^`,
-   `%`, `&`, `|`, `!` are free to declare, and undeclared they still
-   point at `pow`, `mod`, `and`/`or`/`not` (`*` was too, until it became the
-   language's own on 2026-10-13, below).
+   (`--`, `+=`, `-=`, `<==`, `>==`) cannot be redefined; `^`, `|`, `!`
+   are free to declare, and undeclared they still point at `pow`, `or`,
+   `not`. (`*`, `%`, `&` were too, until they became the language's own
+   spellings on 2026-10-14, below.)
 3. **No precedence** (owner: "Require"). A custom operator next to any
    other operator is a compile error until parenthesised — the `mod`
    rule: where there is no settled reading, parens. Nobody memorises a

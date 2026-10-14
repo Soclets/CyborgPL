@@ -526,7 +526,6 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
             let segs: Vec<&str> = path.split('.').collect();
             let who = if root.is_empty() { "this Neuron".to_string() } else { format!("`{}`", limb.prefix) };
             let what = match (segs[0], segs.get(1).copied(), &thing) {
-                ("jokes", _, Some(t)) => format!("uses `{t}`"),
                 ("inline_assembly", _, _) => "runs assembly (`inline.ASM`)".to_string(),
                 ("c_calls", Some("functions"), Some(t)) => format!("calls C (`{t}`)"),
                 ("c_calls", Some("variables"), Some(t)) => format!("uses C's variable '{t}'"),
@@ -541,9 +540,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
             // (owner, 2026-10-12), vouching and the operator powers included
             // 2. listed by the Neuron
             let covers = |p: &PowerRef| p.path.len() <= segs.len() && p.path.iter().zip(&segs).all(|(a, b)| a == b) && (p.things.is_empty() || thing.as_ref().map_or(false, |t| p.things.contains(t)));
-            // jokes are granted without being listed (owner, 2026-10-13: "(b)", a program's `deny` only):
-            // a Neuron listing `jokes` would tell its readers
-            if segs[0] != "jokes" && !limb.powers.iter().any(covers) {
+            if !limb.powers.iter().any(covers) {
                 return Err(format!("{at}: {who} {what}, and its Kinesin.nrp does not list `{}`: add `kin::power.{}` to its `powers`", segs[0], segs[0]));
             }
             // 3. not denied by the program

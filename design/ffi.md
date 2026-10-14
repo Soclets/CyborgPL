@@ -75,6 +75,9 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
   ```
   All `no_check` sites. No pointer↔integer conversion; a pointer comes
   only from a lend or from C.
+- **Symbols** (owner, 2026-10-14): `*const T` is `ptr[T]`, `*mut T` is
+  `ptr.mut[T]` (Rust's raw-pointer spelling), `*'p'` reads (`ptr.read['p']`)
+  and `change *'p' = v;` writes (`ptr.write`), each still a `no_check` site.
 - **`ptr.cast[T]['p']` sees the same address as pointing at a `T`**
   (owner, 2026-09-30: a): `malloc`'s `ptr.mut[uint8]` becomes a
   `ptr.mut[Point]`. No byte moves and nothing converts — `ptr.read` then

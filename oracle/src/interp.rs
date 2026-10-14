@@ -3045,7 +3045,7 @@ impl<'p> Interp<'p> {
                 let Value::Bool(b) = b else { return rt(line, format!("`{op}` works on bools, got {}", b.kind())) };
                 Ok((Value::Bool(b), Prov::Plain))
             }
-            Expr::Binary(op, l, r, _) if !is_div_mod(op.strip_suffix(".ieee").unwrap_or(op)) && !matches!(op.strip_suffix(".ieee").unwrap_or(op), "+" | "+js" | "*py" | "-" | "x" | "xx" | "++" | "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least" | "and" | "or") => {
+            Expr::Binary(op, l, r, _) if !is_div_mod(op.strip_suffix(".ieee").unwrap_or(op)) && !matches!(op.strip_suffix(".ieee").unwrap_or(op), "+" | "-" | "x" | "xx" | "++" | "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least" | "and" | "or") => {
                 self.custom_op(op, l, r, line)
             }
             Expr::Binary(full, l, r, _) => {
@@ -3127,57 +3127,6 @@ impl<'p> Interp<'p> {
                         }
                     }
                     return Ok((Value::Str(format!("{}{}", a.show_stored(), b.show_stored())), Prov::Fresh));
-                }
-                if op == "*py" {
-                    // the cursed `*` (owner, 2026-10-13): text times a whole number repeats it, Python's way
-                    // ("ab" * 3 is "ababab"); numbers multiply in `bin16` and come back as their own type; on
-                    // 1 April the answer is negated, and text, repeated a negative number of times, is empty
-                    let april = april_first();
-                    let text = |v: &Value| match v { Value::Str(s) => Some(s.clone()), Value::Char(_, s) => Some(s.clone()), _ => None };
-                    match (text(&a), text(&b), &a, &b) {
-                        (Some(t), None, _, Value::Int(n)) | (None, Some(t), Value::Int(n), _) => {
-                            let n = if april { -*n } else { *n };
-                            let times = usize::try_from(n.max(0)).unwrap_or(0);
-                            return Ok((Value::Str(t.repeat(times)), Prov::Fresh));
-                        }
-                        (Some(_), _, _, _) | (_, Some(_), _, _) => return rt(line, format!("`*` repeats text a whole number of times, not {} and {}", a.kind(), b.kind())),
-                        _ => {}
-                    }
-                    let as_f = |v: &Value| -> Option<f64> { match v { Value::Int(i) => Some(*i as f64), Value::Bin(x) | Value::Brain(x) => Some(*x), Value::Deci(d) => Some(d.to_f64()), _ => None } };
-                    let (Some(x), Some(y)) = (as_f(&a), as_f(&b)) else { return rt(line, format!("`*` multiplies numbers, not {} and {}", a.kind(), b.kind())); };
-                    let p = round_f16(round_f16(x) * round_f16(y));
-                    if !p.is_finite() { return rt(line, format!("{} * {} overflows", a.show_useful(), b.show_useful())); }
-                    // no answer is -0 outside the `.ieee` forms (owner, 2026-10-07)
-                    let p = if april && p != 0.0 { -p } else { p };
-                    let v = match (&a, &b) {
-                        (Value::Int(_), Value::Int(_)) => Value::Int(p as i128),
-                        (Value::Deci(d), _) | (_, Value::Deci(d)) => match crate::deci::Deci::from_bin_useful(p, d.width) { Ok(r) => Value::Deci(r), Err(e) => return rt(line, e) },
-                        (Value::Brain(_), _) | (_, Value::Brain(_)) => Value::Brain(p),
-                        _ => Value::Bin(p),
-                    };
-                    return Ok((v, Prov::Fresh));
-                }
-                if op == "+js" {
-                    // the cursed `+` (owner, 2026-10-13): text on either side joins, JavaScript's way
-                    // (`"1000" + 1` is "10001"); two numbers add, except on 1 April, when they get `xxx`,
-                    // a tower of powers, until the type overflows ("it's not porn")
-                    let text = |v: &Value| match v { Value::Str(s) => Some(s.clone()), Value::Char(_, s) => Some(s.clone()), _ => None };
-                    if text(&a).is_some() || text(&b).is_some() {
-                        let shown = |v: &Value| text(v).unwrap_or_else(|| v.show_useful());
-                        return Ok((Value::Str(format!("{}{}", shown(&a), shown(&b))), Prov::Fresh));
-                    }
-                    // two numbers add as `plus` does, its limit in between included (compiler claude, 2026-10-13); on
-                    // 1 April two whole numbers make the tower, held to the same limit
-                    let whole = |v: &Value| matches!(v, Value::Int(_) | Value::Big(_));
-                    let v = if april_first() && whole(&a) && whole(&b) {
-                        let bits = self.in_between_bits(l, r);
-                        match tetration(&as_big(&a).unwrap(), &as_big(&b).unwrap(), bits) {
-                            Ok(t) => match t.to_i128() { Some(i) => Value::Int(i), None => Value::Big(t) },
-                            Err(m) => return site(line, m),
-                        }
-                    } else { self.binary("+", a, b, line)? };
-                    self.in_between(&v, l, r, "+", line)?;
-                    return Ok((v, Prov::Plain));
                 }
                 let both_lit = matches!(pa, Prov::Literal) && matches!(pb, Prov::Literal);
                 // a deci power's exponent is an integer or a whole literal, never a deci variable: the
@@ -5797,34 +5746,3 @@ fn elem_literal(elem: Option<&Ty>, v: Value, prov: &Prov) -> Value {
     }
 }
 
-/// 1 April where the program runs, by the machine's own date (`ORACLE_TODAY=MM-DD` stands in for it, for testing)
-fn april_first() -> bool {
-    let today = std::env::var("ORACLE_TODAY").ok().or_else(|| {
-        std::process::Command::new("date").arg("+%m-%d").output().ok().map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-    });
-    today.as_deref() == Some("04-01")
-}
-
-/// `x xxx n`: a tower of n copies of x, x^(x^(…)), stopped as soon as it passes `bits` (the limit in between)
-fn tetration(x: &crate::bigint::BigInt, n: &crate::bigint::BigInt, bits: u64) -> Result<crate::bigint::BigInt, String> {
-    use crate::bigint::BigInt;
-    let one = BigInt::from_i128(1);
-    let past = || format!("the answer goes past {bits} bits in between — `+` is exact, but no {bits}-bit type holds this");
-    if n.is_neg() || n.is_zero() { return Ok(one); }
-    if x.cmp(&one).is_eq() { return Ok(one); }
-    if x.is_zero() {
-        // 0, 0^0 = 1, 0^1 = 0, …: odd towers are 0
-        let odd = !n.mod_pow2(1).is_zero();
-        return Ok(if odd { BigInt::zero() } else { one });
-    }
-    let mut r = x.clone();
-    let mut left = n.sub(&one);
-    while !left.is_zero() {
-        if r.is_neg() { return Err("a negative exponent on integers would produce a fraction — a check site: Cortex proves the exponent is never negative, or the final build refuses".into()); }
-        let Some(e) = r.to_u64().filter(|e| *e <= bits) else { return Err(past()) };
-        r = x.pow(e);
-        if r.bits() > bits { return Err(past()); }
-        left = left.sub(&one);
-    }
-    Ok(r)
-}

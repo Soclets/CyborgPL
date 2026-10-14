@@ -1,7 +1,0 @@
-kin::manifest[
-    name = "jokes_denied_star",
-    prefix = "jokes_denied_star",
-    version = "1.0.0",
-    targets = [kin::target[name = "aarch64-macos"],],
-    deny = [kin::power.jokes.except["+"],]
-];

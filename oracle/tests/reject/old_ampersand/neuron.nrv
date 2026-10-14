@@ -1,3 +1,0 @@
-fn f [&'s': str.utf8] { }
-
-MAIN { }

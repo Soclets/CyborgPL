@@ -27,6 +27,9 @@ with nothing without `to.` — `to.bin32['w']` exact, `to.brain16['x']`
 rounding, `to.bin16['w']` a check site. A literal rounds to the nearest `brain16`
 (owner, 2026-10-02: a). The GPU is open.
 
+**`exactly`** (owner, 2026-10-14): `exactly 19.99` is the word for `*19.99`, and both take a whole
+number too, `exactly 1000` being a `deci` holding 1000 (until then `*1000` was refused as exact already).
+
 **`*0.1` means "exactly this"** (owner, 2026-10-02; in the oracle the same day): a
 decimal literal marked `*` is a `deci`, `let 'price' := *19.99;`; a plain
 one is a `bin`, meaning `bin64`'s answer: Cortex narrows it only where
