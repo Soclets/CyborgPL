@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-14 — Zag's names: Zomp, Strike, Rod, Ground, Cell, Coil, `std`, `.zv` (owner)
+### 2026-10-14 — Zag's names: Zomp, Strike, Ground, Cell, Coil, `std`, `.zv` (owner)
 
 **Owner's choice**, from design claude's lightning-themed table: "Seems good. Though, we'll just
 rename `cord claude` to `std claude`, so it would be stable. PM could be `strike`, and compiler
@@ -15,7 +15,7 @@ could be `zomp` instead (Zag Compiler). Runtime could just be normal name".
 |---|---|---|
 | compiler | Synapse | **Zomp** ("Zag Compiler", owner) |
 | package manager | Kinesin | **Strike** (owner; design claude had proposed it for the compiler, and Relay here) |
-| prover | Cortex | **Rod** |
+| prover | Cortex | part of **Zomp**, no name of its own (owner, below; Rod was proposed) |
 | runtime | Axon | no brand name: the runtime (owner: "just normal name") |
 | base language | Brainstem | **Ground** |
 | library | Neuron (`neuron.nrv`, `pub.neuron`) | **Cell** (`cell.zg`, `pub.cell`) |
@@ -31,8 +31,11 @@ std lib could just be `std`". So the standard library is **`std`**, not `wire`: 
 until 2026-10-09, when it became `cord` (spellings.nrp's old row `std` → `cord` turns round).
 
 Zomp's command is `zomp` alone, with no shorter form (design claude: it is already four
-letters; the owner: "Yeah, just zomp"). Broca (the Unicode extension) is still open. Nothing has
-moved yet.
+letters; the owner: "Yeah, just zomp"). Then the prover: the owner, "Rod sounds a bit too normal, might wanna name it Zomp too"; design
+claude asked whether that means the prover has no name of its own and is simply part of Zomp, as
+Cortex was always wired in ("Zomp proved it", "Zomp refused it"); the owner: "yeah". So **the
+prover is Zomp's**, with no name of its own; Rod is dropped. For Broca the owner said "you could
+just name it technically"; its name is still to be proposed. Nothing has moved yet.
 
 ### 2026-10-14 — Nerve becomes **Zag**, code ends `.zg`, home zag-lang.org (owner)
 
