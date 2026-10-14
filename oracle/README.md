@@ -120,7 +120,7 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 
 - **Symbols** (2026-10-14), design claude's picks: `op +`, `op -`, `op *` declare `op plus`, `op minus`, `op times`, and `op +` as a value is `op plus`; `&@x` / `&mut@x` name a lifetime group as `lent@x` / `lent.mut@x` do; `*'p'` and `change *'p'` take a quoted variable (`*` before anything else is `exactly`'s); `/` and `%` are `div.trunc` / `mod.trunc`.
 
-- **Argument words** (2026-10-14), design claude's picks: the word stands before a verb (`value give 'item'`); a call named after a `.` (`my.fold[…]`) or declared (`fn fold`) is not checked, only the language's and cord's calls; the check runs on the tokens before parsing, so a call's word list is one table in `parser.rs` (`ARGUMENT_WORDS`), not yet in `spellings.nrp`.
+- **Argument words** (2026-10-14), design claude's picks: the word stands before a verb (`value give 'item'`); a call named after a `.` (`my.fold[…]`) or declared (`fn fold`) is not checked, only the language's and cord's calls; the check runs on the tokens before parsing, from `spellings.nrp`'s `calls`: `spellings::call[name = "map.set", words = ["", "key", "value",], example = "…"]`, one word per argument, `""` for none.
 
 - **SIMD**: the oracle's target is fixed as ARM64 128-bit (the real one comes from the manifest (`Synthia.ttsr` / `Kinesin.nrp`)); a bare `simd.fill[0]` with no declared type is 16 lanes; `simd.sum` overflow is a check site but `max`/`min` are not; broadcasting a scalar against a vector (`'v' + 1`) is allowed, which `design/simd.md` does not mention either way.
 

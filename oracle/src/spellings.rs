@@ -19,6 +19,8 @@ pub struct Old {
     pub place: String,
 }
 
+pub struct Call { pub name: String, pub words: Vec<String>, pub example: String }
+
 pub struct NotOperator { pub written: String, pub says: String, pub since: Option<String> }
 
 pub struct Table {
@@ -29,6 +31,8 @@ pub struct Table {
     pub old: Vec<Old>,
     pub not_operators: Vec<NotOperator>,
     pub free_ops: Vec<(String, String)>,
+    /// the word each argument says, by call (owner, 2026-10-14)
+    pub calls: Vec<Call>,
 }
 
 const SOURCE: &str = include_str!("../../spellings.nrp");
@@ -53,7 +57,7 @@ fn read_inner(src: &str) -> Result<Table, String> {
     let toks = crate::lexer::lex(src).map_err(|e| format!("line {}:{}: {}", e.line, e.col, e.msg))?;
     let (shape, fields, _) = crate::parser::Parser::new(toks).one_value().map_err(|e| format!("line {}: {}", e.line, e.msg))?;
     if shape != "::spellings.table" { return Err(format!("the file is one `spellings::table[ … ]`, found `{shape}`")); }
-    let mut t = Table { keywords: Vec::new(), retired: Vec::new(), capitals: Vec::new(), old: Vec::new(), not_operators: Vec::new(), free_ops: Vec::new() };
+    let mut t = Table { keywords: Vec::new(), retired: Vec::new(), capitals: Vec::new(), old: Vec::new(), not_operators: Vec::new(), free_ops: Vec::new(), calls: Vec::new() };
     for (name, b) in &fields {
         match name.as_str() {
             "keywords" => t.keywords = texts(b)?,
@@ -71,6 +75,11 @@ fn read_inner(src: &str) -> Result<Table, String> {
             "not_operators" => for (shape, f, line) in constructs(b)? {
                 if shape != "::spellings.not_operator" { return Err(format!("line {line}: `not_operators` holds `spellings::not_operator[ … ]`")); }
                 t.not_operators.push(NotOperator { written: need(&f, "written", line)?, says: need(&f, "says", line)?, since: opt(&f, "since")? });
+            },
+            "calls" => for (shape, f, line) in constructs(b)? {
+                if shape != "::spellings.call" { return Err(format!("line {line}: `calls` holds `spellings::call[ … ]`")); }
+                let words = f.iter().find(|(n, _)| n == "words").map(|(_, b)| texts(b)).transpose()?.ok_or(format!("line {line}: a call lists its `words`"))?;
+                t.calls.push(Call { name: need(&f, "name", line)?, words, example: need(&f, "example", line)? });
             },
             "free_ops" => for (shape, f, line) in constructs(b)? {
                 if shape != "::spellings.free_op" { return Err(format!("line {line}: `free_ops` holds `spellings::free_op[ … ]`")); }
@@ -187,6 +196,14 @@ pub fn check() -> Vec<String> {
     for (op, h) in &t.free_ops { hints.push((op.clone(), h.clone())); }
     for (who, h) in &hints {
         for q in quoted(h) { if olds.contains(&q.as_str()) { bad.push(format!("the hint for `{who}` names `{q}`, an old spelling")); } }
+    }
+    for (i, c) in t.calls.iter().enumerate() {
+        if t.calls[..i].iter().any(|p| p.name == c.name) { bad.push(format!("call `{}` is listed twice", c.name)); }
+        if !c.example.starts_with(&format!("{}[", c.name)) { bad.push(format!("call `{}`'s example does not show it: `{}`", c.name, c.example)); }
+        for w in c.words.iter().filter(|w| !w.is_empty()) {
+            if !c.example.contains(&format!(" {w} ")) { bad.push(format!("call `{}`'s example does not say `{w}`", c.name)); }
+            if !lower(w) { bad.push(format!("call `{}`'s word `{w}` breaks the naming rule", c.name)); }
+        }
     }
     for n in &t.not_operators { if let Some(d) = &n.since { if !is_date(d) { bad.push(format!("`{}`'s `since` is not a date: `{d}`", n.written)); } } }
     bad
