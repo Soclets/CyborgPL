@@ -7,7 +7,7 @@ extern.C fn free ['p': ptr.mut[uint8]];
 extern.C fn exit ['code': int32];
 
 layout.C struct Point {
-    x: int32
+    x: int32,
     y: int32
 }
 

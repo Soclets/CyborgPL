@@ -1,7 +1,7 @@
 extern.C fn exit ['code': int32];
 enum Shape {
-    dot
-    line: int32
+    dot,
+    line: int32,
     box: int32
 }
 fn measure ['s': Shape] -> int32 {

@@ -293,7 +293,7 @@ impl Decls {
                             also.push((c.clone(), *v));
                         }
                     }
-                    self.push(&format!("type {}", name), format!("layout.C enum {} {{ {} }}", name, body.join("  ")));
+                    self.push(&format!("type {}", name), format!("layout.C enum {} {{ {} }}", name, body.join(", ")));
                     for (c, v) in also {
                         if usable(&c) && !self.defined.contains(&c) {
                             self.push(&c, format!("const '{}' := {};", c, v));
@@ -325,7 +325,7 @@ impl Decls {
             let name = self.names[&k].clone();
             if self.whole(&k) {
                 let fields: Vec<String> = self.records[&k].fields.iter().flatten().map(|(f, t)| format!("{}: {}", f, self.ty(t).unwrap())).collect();
-                self.push(&format!("type {}", name), format!("layout.C struct {} {{ {} }}", name, fields.join("  ")));
+                self.push(&format!("type {}", name), format!("layout.C struct {} {{ {} }}", name, fields.join(", ")));
             } else {
                 self.push(&format!("type {}", name), format!("layout.C struct {};", name));
             }

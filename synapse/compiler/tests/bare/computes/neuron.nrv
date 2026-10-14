@@ -8,7 +8,7 @@ fn fib ['n': int64] -> int64 {
 }
 
 struct Counter {
-    now: int32
+    now: int32,
     stop: int32
 }
 

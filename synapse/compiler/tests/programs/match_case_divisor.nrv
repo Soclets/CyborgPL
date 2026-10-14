@@ -3,7 +3,7 @@
 # kept only the first case's value, 1, and "proved" the division; and it
 # shifted a uint64 arithmetically. Now it traps, as the oracle stops.
 extern.C fn exit ['code': int32];
-enum E { a  b: uint64 }
+enum E { a, b: uint64 }
 MAIN {
     let 'v': uint64 = match E.b[284] { a { is 1; } b 'd' { is 'd' shr 35; } };
     let 'n': uint64 = 5 div.floor 'v';

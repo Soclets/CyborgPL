@@ -110,6 +110,7 @@ brain_width [fnv:7deee18239553328] :: `brain16` only
 bytes_to_ascii [fnv:3b82fac2d984055d] :: only `to.str.utf8` reads bytes as text
 bytes_to_text_needs_otherwise [fnv:b62e90d146e74936] :: `to.str.utf8` can fail (not_utf8)
 c_enum_data [fnv:792b602bfc2bed61] :: of the C enum `K` carries no data
+c_enum_no_comma [fnv:99137202b69c0bcc] :: items in braces are separated by `,`
 c_enum_number_missing [fnv:3721994c1fc31d28] :: of the C enum `K` says its number
 c_enum_param_number [fnv:0538729f27791a2b] :: `paint`'s parameter 'p1' (color), found an `integer`
 c_enum_same_number [fnv:c5cddd1ecd2bf563] :: each case has its own number
@@ -225,7 +226,6 @@ empty_quotes [fnv:2bda5f71e81ee00e] :: `""` is an old spelling: write `str.empty
 empty_walrus [fnv:7a096e3b41300cf6] :: write `list.empty` (Cortex picks the element type from what is appended later), or give it a type
 enum_bare_owned [fnv:463b06aecdfd81cb] :: say what happens to it
 enum_bind_without_data [fnv:85d1b2a55dade2b9] :: `a` carries nothing, so there is no value to name 'x'
-enum_comma_cases [fnv:935f43a00064d8d3] :: one per line, nothing between
 enum_data_missing [fnv:0547a7200940802f] :: write `S.a[…]` with the value
 enum_data_to_text [fnv:7e06b56a8f8949ce] :: a `Status` is not text: its case `claimed` carries data
 enum_data_unexpected [fnv:9ab7d8b2b03a72b6] :: `S.a` carries nothing; write it bare
@@ -235,6 +235,7 @@ enum_match_missing_case [fnv:b42f70eab9e1b344] :: every case of `S` must have an
 enum_match_on_int [fnv:f255111305f0853e] :: `match` takes an enum value, and this is an `integer`: use `if`
 enum_match_unknown_case [fnv:912ccf29227a6e3c] :: `S` has no case `z`: its cases are a, b
 enum_name_clash [fnv:590a2387e4587ab6] :: a struct and an enum cannot share a name
+enum_no_comma [fnv:99137202b69c0bcc] :: items in braces are separated by `,`
 enum_not_c [fnv:297ced9753bdbb93] :: the `extern.C fn f` parameter 'k' is not C-shaped
 enum_number_not_c [fnv:3d2b02ae1d3a34e4] :: only a `layout.C enum` has numbers
 enum_plain_case_to_text [fnv:0cb6696c30a5f896] :: a `Status` is not text: its case `claimed` carries data
@@ -350,6 +351,8 @@ iterator_given_away [fnv:4d1554c3deb74f7c] :: 'c' was given away
 kin_capital_old [fnv:81d5828a9253e998] :: `kin::Manifest` is an old spelling: write `kin::manifest`
 let_over_name_unrun [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
 let_over_param_uncalled [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
+level_no_comma [fnv:99137202b69c0bcc] :: items in braces are separated by `,`
+level_old_spelling [fnv:6fce767960c4e55b] :: level 2 { plus, minus } left_first
 lifetime_glued [fnv:56103fcd967d54ea] :: a space before the group: `lent @
 local_const_changed [fnv:a00cb535ae190c57] :: 'r' is a const and cannot be assigned to
 local_const_changed_unrun [fnv:a00cb535ae190c57] :: 'r' is a const and cannot be assigned to
@@ -430,7 +433,7 @@ level_bare [fnv:4f04c4a80920e0e4] :: say how a chain of this level reads
 level_bit_op [fnv:8d3148a71e0946dc] :: has no precedence in the language
 level_refused_chain [fnv:4d8b77dbb9ca92d4] :: this level does not chain
 level_two_numbers [fnv:c78764fe74dbd903] :: two levels numbered 1
-level_wrong_chain [fnv:a42fc63dbff8bf8e] :: must say `level.when_chained.left_first`
+level_wrong_chain [fnv:3cd9a30c0479a385] :: its level must say `left_first`
 lifetime_group_given [fnv:d0ed618004b47c50] :: 't' cannot be given away here: 'r' still borrows it and is used on line 8
 lifetime_local [fnv:03efc4b350c90153] :: which dies when it returns
 lifetime_local_uncalled [fnv:142125242d0b6c4e] :: hands back a borrow of 'loc', which dies when it returns
@@ -703,6 +706,7 @@ struct_immut_field_write [fnv:f7ba9b5ffa5f1947] :: `id` is an `immut` field of `
 struct_keyword_field [fnv:d10a27914bc3ae70] :: `return` is a keyword and cannot name a field
 struct_missing_field [fnv:81a9a1f64a8049f6] :: every field must be given
 struct_named_rust_alias [fnv:ce24587a783da6fe] :: `i32` is an old spelling: write `int32`
+struct_no_comma [fnv:99137202b69c0bcc] :: items in braces are separated by `,`
 struct_quoted_field [fnv:7597065160c99b01] :: a field's name is bare
 struct_semicolon_field [fnv:3b257eb63d7b8bb9] :: fields are not statements
 struct_to_text [fnv:eb005d494bc23a16] :: a `Point` is not text

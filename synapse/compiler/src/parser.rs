@@ -124,7 +124,7 @@ fn symbol_word(o: &str) -> Option<(BinOp, &'static str)> {
 }
 
 /// How a chain of one level reads (owner, 2026-10-03):
-/// `level.when_chained.left_first`, `.right_first`, or `.refused`.
+/// `level N { … } left_first`, `right_first` or `refused` (owner, 2026-10-14).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Chain {
     Left,
@@ -2003,6 +2003,15 @@ impl<'a> Parser<'a> {
         Ok(Param { kind, group: None, amp, mutability, variadic: false, name, ty, span })
     }
 
+    /// After an item in braces (owner, 2026-10-14): a `,`, or the closing
+    /// `}`, a `,` after the last allowed.
+    fn item_comma(&mut self) -> Result<()> {
+        if self.is(&Tok::RBrace) || self.eat(&Tok::Comma) {
+            return Ok(());
+        }
+        self.fail(format!("items in braces are separated by `,`: `{{ a, b }}` (owner, 2026-10-14); found {}", self.peek().describe()))
+    }
+
     fn struct_decl(&mut self, layout_c: bool) -> Result<StructDecl> {
         let name = self.ident("the struct's name")?;
         if let Some(t) = crate::resolve::rust_alias(&name.name) {
@@ -2054,12 +2063,10 @@ impl<'a> Parser<'a> {
             self.expect(&Tok::Colon, "`:` after the field's name")?;
             let ty = self.type_()?;
             if self.is(&Tok::Semi) {
-                return self.fail("no `;` after a field: fields are not statements — one per line, nothing between");
-            }
-            if self.is(&Tok::Comma) {
-                return self.fail("no `,` between fields: one per line, nothing between");
+                return self.fail("no `;` after a field: fields are not statements — `x: int32, y: int32`");
             }
             fields.push(Field { immut, name: fname, ty });
+            self.item_comma()?;
         }
         self.bump();
         Ok(StructDecl { name, announce, layout_c, fields, opaque: false })
@@ -2083,7 +2090,6 @@ impl<'a> Parser<'a> {
             let cname = match self.peek().clone() {
                 Tok::Word(_) => self.ident("a case name")?,
                 Tok::Name(n) => return self.fail(format!("a case's name is bare — `{}` — it is a path into the type, not a value you hold", n)),
-                Tok::Comma => return self.fail("no `,` between cases: one per line, nothing between"),
                 other => return self.fail(format!("expected a case name or `}}`, found {}", other.describe())),
             };
             let payload = if self.eat(&Tok::Colon) { Some(self.type_()?) } else { None };
@@ -2110,13 +2116,11 @@ impl<'a> Parser<'a> {
             } else {
                 None
             };
-            if self.is(&Tok::Comma) {
-                return self.fail("no `,` between cases: one per line, nothing between");
-            }
             if self.is(&Tok::Semi) {
                 return self.fail("no `;` after a case: cases are not statements");
             }
             cases.push(EnumCase { name: cname, payload, number });
+            self.item_comma()?;
         }
         self.bump();
         if cases.is_empty() {
@@ -3392,8 +3396,8 @@ impl<'a> Parser<'a> {
     /// The operator after `op`: any a value can be, whatever follows it.
     /// A Limb's `precedence` block (owner, 2026-10-03): `precedence.low_first`
     /// counts level 1 as the loosest, `precedence.high_first` as the
-    /// tightest; each `level.when_chained.left_first N { … }` (or
-    /// `.right_first`, `.refused`) lists operators by name. A language
+    /// tightest; each `level N { a, b } left_first` (or `right_first`,
+    /// `refused`; owner, 2026-10-14) lists operators by name. A language
     /// operator pins its level where the language has it, and must chain as
     /// it does; a level with none sits evenly between its neighbours — from
     /// 0 below, to the next language level above. Returns each named
@@ -3415,26 +3419,17 @@ impl<'a> Parser<'a> {
         while !self.eat(&Tok::RBrace) {
             let lat = self.span();
             if !self.eat_word("level") {
-                return self.fail(format!("a `precedence` block holds levels, `level.when_chained.left_first 1 {{ plus }}`; found {}", self.peek().describe()));
+                return self.fail(format!("a `precedence` block holds levels, `level 1 {{ plus, minus }} left_first`; found {}", self.peek().describe()));
             }
-            let how = "say how a chain of this level reads: `level.when_chained.left_first`, `level.when_chained.right_first` or `level.when_chained.refused`";
-            if !self.eat(&Tok::Dot) {
-                return self.fail_at(lat, how);
+            // `level 2 { plus, minus } left_first` (owner, 2026-10-14), the
+            // number first and how a chain of it reads after the braces.
+            if self.is(&Tok::Dot) && self.is_word_at(1, "when_chained") {
+                let said = crate::spellings::old_word("level.when_chained", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`level.when_chained` is an old spelling: write `level 2 { plus, minus } left_first`".into());
+                return self.fail_at(lat, said);
             }
-            let w = self.ident("`when_chained`")?;
-            if w.name != "when_chained" || !self.eat(&Tok::Dot) {
-                return self.fail_at(w.span, how);
-            }
-            let c = self.ident("`left_first`, `right_first` or `refused`")?;
-            let chain = match c.name.as_str() {
-                "left_first" => Chain::Left,
-                "right_first" => Chain::Right,
-                "refused" => Chain::Refused,
-                _ => return self.fail_at(c.span, how),
-            };
             let (n, nspan) = match self.peek().clone() {
                 Tok::Num { text, bin: false } => (text.replace('_', "").parse::<i128>().unwrap_or(0), self.bump().span),
-                other => return self.fail(format!("a level's number follows how it chains: `level.when_chained.left_first 1 {{ … }}`, found {}", other.describe())),
+                other => return self.fail(format!("a level's number follows `level`: `level 1 {{ plus, minus }} left_first`, found {}", other.describe())),
             };
             if let Some(first) = levels.iter().find(|l| l.0 == n) {
                 let _ = first;
@@ -3459,7 +3454,7 @@ impl<'a> Parser<'a> {
                         }
                         name
                     }
-                    other => return self.fail(format!("a level lists operators by name, `{{ plus  dot }}`; found {}", other.describe())),
+                    other => return self.fail(format!("a level lists operators by name, `{{ plus, dot }}`; found {}", other.describe())),
                 };
                 if let Some(old) = retired_spelling(&name) {
                     return self.fail_at(ospan, old.dated());
@@ -3468,7 +3463,16 @@ impl<'a> Parser<'a> {
                     return self.fail_at(ospan, format!("`{}` has no precedence in the language: a bitwise operator is parenthesised beside another, so no level holds it", name));
                 }
                 names.push((name, ospan));
+                self.item_comma()?;
             }
+            let how = "say how a chain of this level reads, after its operators: `left_first`, `right_first` or `refused` (`level 1 { plus, minus } left_first`)";
+            let chain = match self.peek().clone() {
+                Tok::Word(c) if c == "left_first" => Chain::Left,
+                Tok::Word(c) if c == "right_first" => Chain::Right,
+                Tok::Word(c) if c == "refused" => Chain::Refused,
+                _ => return self.fail(how),
+            };
+            self.bump();
             levels.push((n, chain, names, nspan));
         }
         // Loosest first.
@@ -3488,7 +3492,7 @@ impl<'a> Parser<'a> {
                             Chain::Right => "right_first",
                             Chain::Refused => "refused",
                         };
-                        return self.fail_at(*span, format!("`{}` chains {} in the language, so its level must say `level.when_chained.{}`", name, says.replace('_', " "), says));
+                        return self.fail_at(*span, format!("`{}` chains {} in the language, so its level must say `{}` after its braces", name, says.replace('_', " "), says));
                     }
                 }
                 match pin {
@@ -3945,7 +3949,7 @@ impl<'a> Parser<'a> {
                 if let (Some((a, Chain::Refused)), b) | (b, Some((a, Chain::Refused))) = (custom_level(op), custom_level(inner)) {
                     let b = b.map(|x| x.0).or_else(|| language_level(&inner.spelled()).map(|x| x.0)).or_else(|| language_level(&op.spelled()).map(|x| x.0));
                     if b == Some(a) {
-                        return self.fail_at(op_span, format!("`{}` next to `{}`: this level does not chain (`level.when_chained.refused`) — parenthesise one side", inner.spelled(), op.spelled()));
+                        return self.fail_at(op_span, format!("`{}` next to `{}`: this level does not chain (`refused`) — parenthesise one side", inner.spelled(), op.spelled()));
                     }
                 }
             }

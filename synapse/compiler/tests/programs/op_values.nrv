@@ -2,7 +2,7 @@
 # where it goes — a parameter, a typed declaration: 1+2+3+4 = 10,
 # 1x2x3x4 = 24, 17 mod 5 = 2, (1,2) dot (3,4) = 11 → 47 (the oracle agrees).
 extern.C fn exit ['code': int32];
-struct V { x: int32  y: int32 }
+struct V { x: int32, y: int32 }
 op dot ['a': V, 'b': V] -> int32 { return 'a'.x times 'b'.x plus 'a'.y times 'b'.y; }
 fn fold [lent 'xs': list[int32], 'start': int32, 'f': fn[int32, int32] -> int32] -> int32 {
     let mut 'acc' := 'start';

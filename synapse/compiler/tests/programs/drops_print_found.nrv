@@ -7,7 +7,7 @@
 extern.C fn exit ['code': int32];
 
 struct L {
-    owner: str.utf8
+    owner: str.utf8,
     items: list[int32]
 }
 

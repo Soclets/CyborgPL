@@ -409,7 +409,7 @@ impl Items {
             }
             ItemKind::Struct(decl) => {
                 if decl.name.name == "optional" {
-                    return err(Diagnostic::error("`optional` is the base's: every program has `enum optional <T: any> { value: <T>  none }`; name this struct something else").at(decl.name.span));
+                    return err(Diagnostic::error("`optional` is the base's: every program has `enum optional <T: any> { value: <T>, none }`; name this struct something else").at(decl.name.span));
                 }
                 let id = StructId(self.structs.len() as u32);
                 self.structs.push(StructInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), layout_c: decl.layout_c, opaque: decl.opaque, fields: Vec::new(), blanks: Vec::new(), bounds: Vec::new(), span: decl.name.span });
@@ -418,7 +418,7 @@ impl Items {
             }
             ItemKind::Enum(decl) => {
                 if decl.name.name == "optional" {
-                    return err(Diagnostic::error("`optional` is the base's: every program has `enum optional <T: any> { value: <T>  none }`; name this enum something else").at(decl.name.span));
+                    return err(Diagnostic::error("`optional` is the base's: every program has `enum optional <T: any> { value: <T>, none }`; name this enum something else").at(decl.name.span));
                 }
                 let id = EnumId(self.enums.len() as u32);
                 self.enums.push(EnumInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), cases: Vec::new(), numbers: decl.layout_c.then(Vec::new), blanks: Vec::new(), bounds: Vec::new(), span: decl.name.span });

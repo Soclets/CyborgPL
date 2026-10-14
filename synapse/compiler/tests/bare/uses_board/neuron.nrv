@@ -2,7 +2,7 @@
 # "c"): the bytes go to the board Neuron's serial port, and `exit` powers
 # the machine off. Printed as on an OS, with no heap.
 struct Point {
-    x: int32
+    x: int32,
     y: int32
 }
 

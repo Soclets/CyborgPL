@@ -8,7 +8,7 @@ extern.C fn exit ['code': int32];
 extern.C fn malloc ['bytes': uint64] -> ptr.mut[Mode];
 extern.C fn free ['p': ptr.mut[Mode]];
 extern.C mut 'optind': int32;
-layout.C enum Mode { emacs = 0  vi = 1 }
+layout.C enum Mode { emacs = 0, vi = 1 }
 fn mode_at ['p': ptr[Mode]] -> int32 {
     no_check let 'm' := ptr.read['p'] otherwise Mode.emacs;
     match 'm' {

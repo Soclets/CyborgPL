@@ -2,8 +2,8 @@
 # that is the value says `giveS` (owner, 2026-09-29): "mail" is 2, the price
 # 9 → 29 (examples/strict_nested_match.cpls as an exit code).
 extern.C fn exit ['code': int32];
-enum Order { cancelled  paid }
-enum Ship { pickup  post }
+enum Order { cancelled, paid }
+enum Ship { pickup, post }
 fn handle ['o': Order, 's': Ship] -> int32 {
     let mut 'went': int32 = 0;
     match 'o' {

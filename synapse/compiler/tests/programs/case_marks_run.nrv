@@ -6,7 +6,7 @@ case.any [fn, var];
 extern.C fn exit ['code': int32];
 
 case.any enum Mood {
-    Happy
+    Happy,
     Grumpy
 }
 

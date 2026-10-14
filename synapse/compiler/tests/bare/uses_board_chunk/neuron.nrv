@@ -1,7 +1,7 @@
 # The same as uses_board, its output taking a chunk a call (owner,
 # 2026-10-09: "both").
 struct Point {
-    x: int32
+    x: int32,
     y: int32
 }
 

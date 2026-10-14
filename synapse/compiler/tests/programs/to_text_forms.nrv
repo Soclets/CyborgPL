@@ -4,12 +4,12 @@
 extern.C fn exit ['code': int32];
 
 enum Size {
-    small
+    small,
     big
 }
 
 layout.C enum Mode {
-    off = 0
+    off = 0,
     lit = 7
 }
 

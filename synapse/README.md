@@ -726,3 +726,9 @@ Dated, with the alternative, so each can become a question later.
   table's special row. A text of at least 1 byte for `part`, `at` and
   `from` is cord's to say, in its types: Synapse builds no cord text
   function, and `str_split_empty` waits on the cord session (`!pending`).
+- **2026-10-14 — Commas in braces, and `level N { … } left_first`.** Enum
+  cases, struct fields (`layout.C` ones too) and a level's operators are
+  separated by `,`, one after the last allowed (`item_comma`); `incl.C`
+  writes its `layout.C` declarations with `, ` between items, as Synapse
+  reads them back. A level is `level 1 { plus, minus } left_first`, the old
+  `level.when_chained.…` refused from the table's special row.

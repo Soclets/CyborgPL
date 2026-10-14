@@ -10,7 +10,7 @@ extern.C fn calloc ['n': uint64, 'size': uint64] -> ptr.mut[Key];
 extern.C fn free ['p': ptr.mut[Key]];
 extern.C fn memset ['s': ptr.mut[Key], 'c': int32, 'n': uint64] -> ptr.mut[Key];
 extern.C fn memcpy ['d': ptr.mut[Key], 's': ptr[Key], 'n': uint64] -> ptr.mut[Key];
-layout.C enum Key { a = 65  b = 66  escape = 256 }
+layout.C enum Key { a = 65, b = 66, escape = 256 }
 
 fn num ['k': Key] -> int32 {
     match 'k' {

@@ -3,7 +3,7 @@
 # ends an endless one, and `perm` keeps its last item.
 extern.C fn exit ['code': int32];
 struct Counter {
-    now: int32
+    now: int32,
     stop: int32
 }
 

@@ -3,7 +3,7 @@
 # with int32 lanes, read out as an exit code).
 extern.C fn exit ['code': int32];
 
-struct Particle { place: simd[int32, 4]  vel: simd[int32, 4] }
+struct Particle { place: simd[int32, 4], vel: simd[int32, 4] }
 
 fn step ['p': Particle] -> Particle {
     return Particle[place = 'p'.place plus 'p'.vel, vel = 'p'.vel];

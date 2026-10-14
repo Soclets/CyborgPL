@@ -1,6 +1,6 @@
 extern.C fn exit ['code': int32];
 
-struct Point { x: int32  y: int32 }
+struct Point { x: int32, y: int32 }
 
 fn area [lent 'p': Point] -> int32 { return 'p'.x times 'p'.y; }
 

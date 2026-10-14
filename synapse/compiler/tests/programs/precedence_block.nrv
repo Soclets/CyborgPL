@@ -10,10 +10,10 @@
 extern.C fn exit ['code': int32];
 
 precedence.low_first {
-    level.when_chained.refused 1 { equal_to ~= }
-    level.when_chained.left_first 2 { plus }
-    level.when_chained.left_first 3 { gap }
-    level.when_chained.left_first 4 { times  dot }
+    level 1 { equal_to, ~= } refused
+    level 2 { plus } left_first
+    level 3 { gap } left_first
+    level 4 { times, dot } left_first
 }
 
 op dot ['a': int32, 'b': int32] -> int32 { return 'a' times 'b'; }

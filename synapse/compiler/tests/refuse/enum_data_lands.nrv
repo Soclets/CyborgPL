@@ -3,7 +3,7 @@
 # seed 15174): -5 into a `uint64` case wrapped to 2^64 - 5, unchecked.
 extern.C fn exit ['code': int32];
 enum E1 {
-    c1: uint32
+    c1: uint32,
     c4: uint64
 }
 MAIN {

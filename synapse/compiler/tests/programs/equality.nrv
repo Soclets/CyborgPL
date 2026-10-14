@@ -4,11 +4,11 @@
 extern.C fn exit ['code': int32];
 extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 enum Status {
-    empty
-    claimed: str.utf8
+    empty,
+    claimed: str.utf8,
     locked
 }
-struct P { x: int32  y: int32 }
+struct P { x: int32, y: int32 }
 MAIN {
     let 'k' := "abc";
     no_check let 'n': uint64 = strlen[lend 'k'];

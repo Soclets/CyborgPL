@@ -1,7 +1,7 @@
 # examples/operator_values.cpls as an exit code (owner, 2026-09-29): 10 + 24
 # + (-10) + (-5) + 2 + 11, and 100 when `op </==` said 3 </== 3 → 132.
 extern.C fn exit ['code': int32];
-struct Vec { x: bin64  y: bin64 }
+struct Vec { x: bin64, y: bin64 }
 op dot ['a': Vec, 'b': Vec] -> bin64 { return 'a'.x times 'b'.x plus 'a'.y times 'b'.y; }
 fn fold [lent 'xs': list[int32], 'start': int32, 'f': fn[int32, int32] -> int32] -> int32 {
     let mut 'acc' := 'start';
