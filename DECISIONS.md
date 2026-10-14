@@ -5,7 +5,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-14 — `'i' += 1;` and `'i'++;` spell `change 'i' = 'i' plus 1;` (owner: a)
+### 2026-10-14 — `'i' += 1;` and `'i'++;` spell `change 'i' = 'i' plus 1;`, and `concat` joins text (owner: a, a)
 
 The owner, on `change 'x' = 'x' plus 1;` for `i++` (2026-09-14 had ruled "No `++` / `+=`
 shorthand"): "We might wanna add it now". Design claude offered word forms (`change 'i' plus 1;`,
@@ -21,7 +21,12 @@ be used anyways". This replaces 2026-09-14's "No `++` / `+=` shorthand".
 Design claude's reading, not asked: every symbol that spells a two-sided arithmetic word gets an
 `=` form (`+=`, `-=`, `*=`, `/=` for `div.trunc`, `%=` for `mod.trunc`, `**=` for `pow`), and the
 result is checked where it lands, as any `change`. Not built. The owner added: "And we might also
-add a text form for `++`" (a word spelling for joining text); open.
+add a text form for `++`" (a word spelling for joining text). Offered (a) `concat`, recommended,
+(b) `then` (taken in spirit by `and.then`), (c) `joined`; `with` (a keyword) and `join` (`str.join`)
+ruled out. The owner asked "Is (a) accurate?": yes, `++` joins text to text only (the oracle refuses
+`"n = " ++ 5`), which is concatenation, `concat` short for it as `str` and `pos` are. The owner:
+"(a), `concat`". So **`concat` joins text**, `"Hello, " concat 'name'`, the good-practice word, and
+`++` becomes its symbol spelling, at the same precedence. Not built.
 
 ### 2026-10-14 — A final build's debug info goes beside the program (owner: a)
 
