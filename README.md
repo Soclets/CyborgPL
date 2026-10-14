@@ -1,8 +1,4 @@
-<p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="brand/nerve/wordmark-cross-mono-white.svg"><img src="brand/nerve/wordmark-cross-mono-black.svg" alt="Nerve" width="380"></picture>
-</p>
-
-<h3 align="center">Nerve™</h3>
+<h3 align="center">Zag™</h3>
 
 <p align="center">Just a small hobby lang 😊<br>
 Very slow at the development, fast &amp; safe at the final product (no warranty 🤣).</p>
@@ -11,48 +7,48 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 > **Not family friendly**.
 > "Not family friendly" means (the definition used in this place) **NOT FUCKING FAMILY FRIENDLY**
 >
-> Nerve is being experimented with, so please don't expect stability: any release may change or remove anything, and it comes with **no warranty**. **Only this repository and [nerve-lang.com](https://nerve-lang.com) speak for Nerve.** If something said elsewhere, for example in an article, a search result or an AI summary, doesn't match them, you should likely trust this repository and nerve-lang.com, not the other source. We aren't responsible for what others say. See our licences: [`LICENSE`](LICENSE) for the code and everything else, and [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) for the writing (this repo's Markdown files and the website's text) and the logos.
+> Zag is being experimented with, so please don't expect stability: any release may change or remove anything, and it comes with **no warranty**. **Only this repository and [zag-lang.org](https://zag-lang.org) speak for Zag.** If something said elsewhere, for example in an article, a search result or an AI summary, doesn't match them, you should likely trust this repository and zag-lang.org, not the other source. We aren't responsible for what others say. See our licences: [`LICENSE`](LICENSE) for the code and everything else, and [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) for the writing (this repo's Markdown files and the website's text) and the logos.
 
 - [`DECISIONS.md`](DECISIONS.md) — every settled design decision, dated, with what was proposed against it.
 - [`design/`](design/) — the design documents, one topic per file.
 - [`examples/`](examples/) — programs in settled syntax, each with its expected output.
 - [`oracle/`](oracle/) — the reference interpreter: the executable spec.
-- [`synapse/`](synapse/) — the compiler.
-- [`brand/`](brand/) — the official logo is the NERVE wordmark in [`brand/nerve/`](brand/nerve/) (owner, 2026-10-09: "Mono as official logo"): block letters with a nerve impulse through them, black on light backgrounds and white on dark, shown at the top with a medical cross after it, carrying its own impulse (`wordmark-cross-mono-*.svg`); and the icon, [`brand/nerve/icon.svg`](brand/nerve/icon.svg) (owner, 2026-10-09: "The last one, official now"), a white medical cross carrying a nerve impulse, on its own black rounded tile (owner, 2026-10-09: "Use that as the new icon"), always shown with its tile. The earlier mark (a circular C wrapping `:=`) is still in `brand/`.
+- [`synapse/`](synapse/) — the compiler, Zomp (the folder keeps its Nerve-era name until the code is renamed).
+- [`brand/`](brand/) — Zag has no logo yet. Nerve's (the NERVE wordmark and the medical-cross icon in [`brand/nerve/`](brand/nerve/)) and CyborgPL's earlier mark stay in `brand/` as history.
 - [`LICENSE`](LICENSE) — Apache-2.0 WITH LLVM-exception. Programs you compile owe nothing; a fork keeps the notices and may not use the name.
 - [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) — CC BY 4.0, for this repo's text (its Markdown files: this README, `DECISIONS.md`, `design/` and the other notes), the website's text (`website/`) and the logo files (`brand/`): copy them, translate, remix, use them anywhere, with credit. Credit them exactly as:
-  - this repo's text: `Nerve GitHub repo text: https://nerve-lang.com, https://github.com/Soclets/Nerve-lang`
-  - the website's text: `Nerve website text: https://nerve-lang.com, https://github.com/Soclets/Nerve-lang`
-  - the logos: `Nerve logo(s): https://nerve-lang.com, https://github.com/Soclets/Nerve-lang`
+  - this repo's text: `Zag GitHub repo text: https://zag-lang.org, https://github.com/Soclets/Zag-lang`
+  - the website's text: `Zag website text: https://zag-lang.org, https://github.com/Soclets/Zag-lang`
+  - the logos: `Zag logo(s): https://zag-lang.org, https://github.com/Soclets/Zag-lang`
 
   As the licence asks, also say they are under CC BY 4.0, and whether you changed them. The site's code stays under `LICENSE`.
 
 <details>
 <summary><b>Credits</b></summary>
 
-Nerve™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS.md`](DECISIONS.md). Everything below helped build it.
+Zag™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS.md`](DECISIONS.md). Everything below helped build it.
 
-**Claude**, by [Anthropic](https://www.anthropic.com), wrote most of the code and documents here under the owner's direction, as four [Claude Code](https://claude.com/claude-code) sessions: *design claude* (the design notes, the decision log, the oracle and the benchmarks in `bench/`), *compiler claude* (Synapse), *check claude* (the program generator, differential testing and translation validation in `check/`) and *website claude* (`website/`). Two more work in their own repos: *synthia claude* on [Synthia](https://github.com/Cyborg-Assembly-Manufacturing-Site/Synthia), and *RRx2-TV claude* on RRx2's translation validator. Each signs its commits with its house name; the models behind them include Claude Opus 5 and Claude Opus 5.5.
+**Claude**, by [Anthropic](https://www.anthropic.com), wrote most of the code and documents here under the owner's direction, as five [Claude Code](https://claude.com/claude-code) sessions: *design claude* (the design notes, the decision log, the oracle and the benchmarks in `bench/`), *compiler claude* (Zomp, in `synapse/`), *std claude* (the standard library, written in Zag), *check claude* (the program generator, differential testing and translation validation in `check/`) and *website claude* (`website/`). Two more work in their own repos: *synthia claude* on [Synthia](https://github.com/Cyborg-Assembly-Manufacturing-Site/Synthia), and *RRx2-TV claude* on RRx2's translation validator. Each signs its commits with its house name; the models behind them include Claude Opus 5 and Claude Opus 5.5.
 
 **Languages and tools**
-- [Rust](https://www.rust-lang.org) and Cargo: the oracle, Synapse and the verification harness.
-- [LLVM](https://llvm.org) 22: Synapse's code generator, through [llvm-sys](https://crates.io/crates/llvm-sys) and [Inkwell](https://github.com/TheDan64/inkwell).
-- [Z3](https://github.com/Z3Prover/z3) (Microsoft Research) and [cvc5](https://cvc5.github.io): the SMT solvers behind Cortex™'s proofs, and the independent check of them.
-- [Alive2](https://github.com/AliveToolkit/alive2): check claude's first translation validation, proving LLVM's rewrites of Synapse's code.
-- [Clang](https://clang.llvm.org): the C programs Synapse is benchmarked against (`synapse/bench/`, `bench/`), and the C side of `bench/gpu/`.
+- [Rust](https://www.rust-lang.org) and Cargo: the oracle, Zomp and the verification harness.
+- [LLVM](https://llvm.org) 22: Zomp's code generator, through [llvm-sys](https://crates.io/crates/llvm-sys) and [Inkwell](https://github.com/TheDan64/inkwell).
+- [Z3](https://github.com/Z3Prover/z3) (Microsoft Research) and [cvc5](https://cvc5.github.io): the SMT solvers behind Zomp's proofs, and the independent check of them.
+- [Alive2](https://github.com/AliveToolkit/alive2): check claude's first translation validation, proving LLVM's rewrites of Zomp's code.
+- [Clang](https://clang.llvm.org): the C programs Zomp is benchmarked against (`synapse/bench/`, `bench/`), and the C side of `bench/gpu/`.
 - Metal and Xcode's Metal Toolchain, by Apple: the GPU side of `bench/gpu/`.
 - The compilers and runtimes of `bench/`'s other languages (26 with C): C++, Rust, Go, Zig, Swift, Nim, Fortran (gfortran), OCaml, Dart, Java, Kotlin, C# (.NET), JavaScript and TypeScript (Node), Julia, LuaJIT, PyPy, Elixir, Erlang, Lust, Python, Ruby, Lua, Perl and R.
 - [Python](https://www.python.org): the benchmark runners.
 - [Node.js](https://nodejs.org) and npm: the website's build.
 - [Homebrew](https://brew.sh): LLVM, Z3, cvc5, Alive2 and most of the benchmark's toolchains on the build machine.
 - [Git](https://git-scm.com), [GitHub](https://github.com) and the [GitHub CLI](https://cli.github.com): hosting and history.
-- [Cloudflare](https://www.cloudflare.com) Workers and Wrangler: nerve-lang.com (and the old cyborgpl.dev).
+- [Cloudflare](https://www.cloudflare.com) Workers and Wrangler: the website (nerve-lang.com, and the old cyborgpl.dev).
 - macOS and Xcode's command-line tools, by Apple.
 
 **Data**
 - The [Unicode Character Database](https://www.unicode.org/ucd/) 17.0.0 and [UAX #29](https://www.unicode.org/reports/tr29/): grapheme clusters in `str` and `char`.
 
-**Rust crates** (Synapse, from `synapse/Cargo.lock`)
+**Rust crates** (Zomp, from `synapse/Cargo.lock`)
 
 `anyhow` 1.0.104, `bitflags` 2.13.2, `cc` 1.4.7, `find-msvc-tools` 0.1.13, `inkwell` 0.10.0, `inkwell_internals` 0.15.0, `lazy_static` 1.5.0, `libc` 0.2.189, `llvm-sys` 221.1.0, `proc-macro2` 1.0.107, `quote` 1.0.47, `regex-lite` 0.1.9, `semver` 1.0.28, `shlex` 2.0.1, `syn` 3.0.6, `thiserror` 2.0.20, `thiserror-impl` 2.0.20, `unicode-ident` 1.0.26, `unicode-segmentation` 1.13.3.
 
@@ -70,16 +66,16 @@ The oracle and the verification harness use no crates.
 </details>
 
 **Ideas taken from other languages**
-- **Rust**: ownership and borrowing, lifetime groups (`'a` there, `@x` here), interfaces and `<T: Ordered>` bounds (Rust's traits), diagnostics "helpful like Rust's", and `::` for stepping into another Neuron (Rust's paths, which took it from C++).
+- **Rust**: ownership and borrowing, lifetime groups (`'a` there, `@x` here), interfaces and `<T: Ordered>` bounds (Rust's traits), diagnostics "helpful like Rust's", and `::` for stepping into another Cell (Rust's paths, which took it from C++).
 - **Ada**: `and then` / `or else`, here `and.then` / `or.else`.
 - **Swift**, **Zig** and **C**: points of comparison in the SIMD, wrapping-arithmetic and enum decisions.
 - **IEEE 754**: `bin16`, `bin32` and `bin64` arithmetic and rounding.
 - **Lua**: the name *Lunae*.
-- **Kespar**, another of the owner's languages: Cortex's design notes and its first provisional limits.
-- **Xag**, the owner's C++ language: the reference for everything outside Cortex, and the licence.
+- **Kespar**, another of the owner's languages: the prover's design notes and its first provisional limits.
+- **Xag**, the owner's C++ language: the reference for everything outside the prover, and the licence.
 - **CyborgPL v1** ([CyborgPL-legacy](https://github.com/Artificial-IntelligenceAI/CyborgPL-legacy)): `x` and `xx`.
 
 </details>
 
 Copyright 2026 Tankun Sriket.
-Nerve™ (formerly CyborgPL™), Cortex™ (formerly Precog™) and Neuron™ (formerly Limb™) are names of this project, and the NERVE wordmark and its mark are its logos. They are trademarks, not registered. **You may use the names and logos anywhere** — in articles, talks, comparisons, links, your own projects about Nerve — **as long as you don't pretend to be us**: nothing that says or suggests it is the official Nerve, made or endorsed by this project, when it isn't.
+Zag™ (formerly Nerve™ and CyborgPL™), Zomp™ (formerly Synapse and Cortex™, before that Precog™) and Cell™ (formerly Neuron™ and Limb™) are names of this project, and its logos, when it has them, are its marks. They are trademarks, not registered. **You may use the names and logos anywhere** — in articles, talks, comparisons, links, your own projects about Zag — **as long as you don't pretend to be us**: nothing that says or suggests it is the official Zag, made or endorsed by this project, when it isn't.
