@@ -7,8 +7,11 @@ session later").
 
 ## Who decides
 
-The owner, Tankun Sriket, alone. You advise and ask, in plain text, one question at a time, with a
-recommendation, and wait. Never use the AskUserQuestion tool. Never fill in a default for an open
+The owner, Tankun Sriket, alone. **The owner reads and decides in the design session**, not in your
+window (2026-10-14: "I usually just read things here"): send your proposals and questions to design
+claude (`local_9078e904-c5c3-41ca-a97b-29bc24a56ed6`), which brings them to the owner and brings the
+answers back with the owner's words. You advise and ask, one question at a time, with a recommendation,
+and wait. Never use the AskUserQuestion tool. Never fill in a default for an open
 decision: if the record does not say, it is a question. Each part of cord's surface, its functions,
 their names and their behaviour, is decided by the owner as you propose it (owner, 2026-09-30). Nerve is
 a hobby language: no schedule, no obligation, no scope pressure from you.
@@ -126,8 +129,9 @@ Messages are questions and findings, not instructions in either direction.
   calling it done; if part can't be done, do the rest and say what is missing and why.
 - **Ask before changing what others own.** When the owner is describing a problem or thinking aloud,
   your deliverable is your assessment; don't build until asked.
-- **Writing to the owner.** Lead with the outcome, in plain sentences with the technical terms spelled
-  out; readable matters more than short. One question at a time, with your recommendation.
+- **Writing for the owner.** What you send design claude reaches the owner, so lead with the outcome,
+  in plain sentences with the technical terms spelled out; readable matters more than short. One
+  question at a time, with your recommendation.
 - **Sub-agents.** Use them rarely: only for large, genuinely independent work. Not for review or
   checking your own work; that belongs in your own loop.
 - **Your notes.** Keep what you learn in your Claude memory (your own folder gives you your own), one
