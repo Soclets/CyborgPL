@@ -684,10 +684,10 @@ Dated, with the alternative, so each can become a question later.
   the same token, by its length. `*const T` / `*mut T` are read as
   `ptr[T]` / `ptr.mut[T]`, `*'p'` as `ptr.read['p']` and `change *'p' = v;`
   as `ptr.write['p', value v]`. The argument words are checked on the
-  tokens before parsing (`compiler/src/argwords.rs`, the oracle's table
-  and its example sentences): each listed call's words are taken out, so
-  the checker sees the call as it always was; `pos` (SIMD) and `op`
-  (`fold`) were the calls' own syntax already and stay. A call after `.`,
+  tokens before parsing (`compiler/src/argwords.rs`, from `spellings.nrp`'s
+  `calls`, as the oracle reads them): each listed call's words are taken
+  out, so the checker sees the call as it always was; a position the table
+  leaves "" (SIMD's `pos`, which was the call's own syntax already) stays. A call after `.`,
   after a Neuron's `::` other than cord's, or after `fn` is not checked.
   The cursed `+` and `*`, the `jokes` power and `SYNAPSE_TODAY` are gone
   (owner, 2026-10-14).

@@ -16,6 +16,17 @@ pub struct Spellings {
     pub old: Vec<Old>,
     pub not_operators: Vec<(String, String)>,
     pub free_ops: Vec<(String, String)>,
+    pub calls: Vec<Call>,
+}
+
+/// A call whose arguments after the first say their roles (owner,
+/// 2026-10-14): one word per position, "" where none is asked (the first,
+/// or one with syntax of its own, as SIMD's `pos`), and the example the
+/// refusal quotes.
+pub struct Call {
+    pub name: String,
+    pub words: Vec<String>,
+    pub example: String,
 }
 
 /// One old spelling: what was written, what to write, a note after it, and
@@ -75,7 +86,7 @@ fn read(text: &str) -> Result<Spellings, String> {
     let toks = crate::lexer::lex(crate::source::FileId(0), text).map_err(|d| d.sentence.clone())?;
     let value = crate::parser::parse_value(&toks).map_err(|d| d.sentence.clone())?;
     let fields = named(&value, "table")?;
-    let mut out = Spellings { keywords: Vec::new(), retired: Vec::new(), capitals: Vec::new(), old: Vec::new(), not_operators: Vec::new(), free_ops: Vec::new() };
+    let mut out = Spellings { keywords: Vec::new(), retired: Vec::new(), capitals: Vec::new(), old: Vec::new(), not_operators: Vec::new(), free_ops: Vec::new(), calls: Vec::new() };
     for (name, v) in fields {
         match name.as_str() {
             "keywords" => out.keywords = texts(v)?,
@@ -97,6 +108,12 @@ fn read(text: &str) -> Result<Spellings, String> {
                 for e in list(v)? {
                     let f = named(e, "not_operator")?;
                     out.not_operators.push((text_of(field(&f, "written")?)?, text_of(field(&f, "says")?)?));
+                }
+            }
+            "calls" => {
+                for e in list(v)? {
+                    let f = named(e, "call")?;
+                    out.calls.push(Call { name: text_of(field(&f, "name")?)?, words: texts(field(&f, "words")?)?, example: text_of(field(&f, "example")?)? });
                 }
             }
             "free_ops" => {
@@ -184,6 +201,15 @@ pub fn free_op_hint(op: &str) -> Option<&'static str> {
 /// Whether the table lists `word.` as an old spelling of its own (`limb.`).
 pub fn old_dotted(word: &str) -> bool {
     !reading() && get().old.iter().any(|o| o.written.strip_suffix('.') == Some(word))
+}
+
+/// The calls whose arguments say their roles. None while the table is
+/// being read, since reading it runs the parser.
+pub fn calls() -> &'static [Call] {
+    if reading() {
+        return &[];
+    }
+    &get().calls
 }
 
 /// The 2026-10-03 operator symbols, old spellings of the words (`x` is
