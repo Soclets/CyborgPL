@@ -5,6 +5,30 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-14 — Zag's names: Zomp, Strike, Rod, Ground, Cell, Coil, `wire`, `.zv` (owner)
+
+**Owner's choice**, from design claude's lightning-themed table: "Seems good. Though, we'll just
+rename `cord claude` to `std claude`, so it would be stable. PM could be `strike`, and compiler
+could be `zomp` instead (Zag Compiler). Runtime could just be normal name".
+
+| What | Nerve | Zag |
+|---|---|---|
+| compiler | Synapse | **Zomp** ("Zag Compiler", owner) |
+| package manager | Kinesin | **Strike** (owner; design claude had proposed it for the compiler, and Relay here) |
+| prover | Cortex | **Rod** |
+| runtime | Axon | no brand name: the runtime (owner: "just normal name") |
+| base language | Brainstem | **Ground** |
+| library | Neuron (`neuron.nrv`, `pub.neuron`) | **Cell** (`cell.zg`, `pub.cell`) |
+| compiler extension | lobe | **Coil** |
+| standard library | `cord` | **`wire`** |
+| one-value file | `.nrp` | **`.zv`** |
+| build program, language date | `build.nrv`, `nerve_version.nrp` | `build.zg`, `zag_version.zv` |
+| session | cord claude | **std claude** (owner: "so it would be stable") |
+
+Broca (the Unicode extension) is still open. Not yet asked: the manifest's name and prefix
+(design claude's reading: `Strike.zv` with `strike::`, as `Kinesin.nrp` went with Kinesin), and
+whether Zomp has a shorter command beside `zomp`. Nothing has moved yet.
+
 ### 2026-10-14 — Nerve becomes **Zag**, code ends `.zg`, home zag-lang.org (owner)
 
 **Owner's choice.** The language is renamed Zag, the third name (CyborgPL, then Nerve on
