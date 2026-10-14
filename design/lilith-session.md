@@ -26,7 +26,7 @@ the chips, with other languages inline (assembly first) for low-level
 control. It reads like an incantation until you summon inline assembly.
 
 Everything the owner has said about it so far is in
-`/Users/ts/Nerve/secrets/lilith.md`, in the owner's words, with
+`/Users/ts/Zag/secrets/lilith.md`, in the owner's words, with
 design claude's notes marked as such. Read it before anything else. In
 short:
 
@@ -70,7 +70,7 @@ yours to propose to the owner; Nerve's habit — a `DECISIONS.md` with
 what the owner chose against what was proposed, and one topic per file
 under `design/` — is the example to offer.
 
-You may read Nerve's repo at `/Users/ts/Nerve` for its habits and
+You may read Nerve's repo at `/Users/ts/Zag` for its habits and
 for the owner's taste (its `DECISIONS.md` is long and full of the owner's
 reasoning). Never edit it; that is design claude's.
 

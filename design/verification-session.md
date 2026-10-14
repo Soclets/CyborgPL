@@ -56,7 +56,7 @@ their outputs, their reports. Reading their insides is not.
 ## Where you work
 
 The same repository, `Cyborg-Assembly-Manufacturing-Site/CyborgPL`, on
-`main` — no branch — in **your own clone** at `/Users/ts/Nerve
+`main` — no branch — in **your own clone** at `/Users/ts/Zag
 verification`. A separate folder because two sessions in one working
 tree step on each other's unsaved files, and because Claude's memory is
 per folder, so your own folder gives you your own memory. Your code

@@ -94,14 +94,14 @@ sentence` (`feature.tv.memory: …`, `fix.tv: …`), trailer
 README's toolchain and licence sections are the owner's wording; change
 them only when the owner asks.
 
-You read Nerve's repo at `/Users/ts/Nerve` and never edit it.
+You read Nerve's repo at `/Users/ts/Zag` and never edit it.
 
 ## What you have to work with
 
 - **Synapse writes its IR before and after LLVM's passes**: `synapse build
   file.nrv --emit-llvm DIR` writes `DIR/before.ll` and `DIR/after.ll`
   (ae478cd). A Synapse built at f497869 is at
-  `/Users/ts/Nerve/synapse/target/release/synapse`; running it is fine,
+  `/Users/ts/Zag/synapse/target/release/synapse`; running it is fine,
   reading its source is not. Synapse emits LLVM 22 IR (it builds against
   `llvm@22`); you read it with LLVM 23. Check that this holds.
 - **Programs to run it on**: Synapse's own test programs,
@@ -109,7 +109,7 @@ You read Nerve's repo at `/Users/ts/Nerve` and never edit it.
   the programs and the IR Synapse writes from them only, never Synapse's code, and
   their comments' expected answers are Synapse's author's, not truth;
   `examples/*.nrv` in Nerve's repo, and
-  check claude's corpus in `/Users/ts/Nerve
+  check claude's corpus in `/Users/ts/Zag
   verification/check/corpus/` (read-only).
 - **What Synapse's IR may rely on**: `design/precog.md` (what Cortex proves),
   `design/compiler-verification.md` ("Our own: RRx2-TV"),

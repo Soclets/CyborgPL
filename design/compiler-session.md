@@ -40,7 +40,7 @@ The full rule is in `CLAUDE.md` and `DECISIONS.md`.
 ## Where you work (owner, 2026-09-22)
 
 The same repository, `Artificial-IntelligenceAI/CyborgPL`, on `main` —
-no branch — in **your own clone** at `/Users/ts/Nerve compiler`.
+no branch — in **your own clone** at `/Users/ts/Zag compiler`.
 A separate folder for two reasons: two sessions in one working tree
 would step on each other's unsaved files, and Claude's memory is kept
 per folder, so a folder of your own gives you a memory of your own

@@ -1,8 +1,9 @@
-# Nerve
+# Zag
 
-Design repository for **Nerve**, a new programming language. **Nerve is what
-was called CyborgPL v2** until 2026-10-08, when the owner renamed it (the
-notes, `DECISIONS.md` and old commits say "CyborgPL" or "v2" for it). It is a
+Design repository for **Zag**, a new programming language. **Zag is what was
+called Nerve** (2026-10-08 to 2026-10-14) **and CyborgPL v2** before that; the
+owner renamed it each time (the notes, `DECISIONS.md` and old commits say
+"Nerve", "CyborgPL" or "v2" for it). It is a
 from-scratch design — **not** a continuation of CyborgPL v1, the owner's
 earlier, unrelated language (`Artificial-IntelligenceAI/CyborgPL-legacy`). No
 v1 syntax carries over unless the owner explicitly chooses it.
@@ -18,7 +19,7 @@ v1 syntax carries over unless the owner explicitly chooses it.
   chose versus what was proposed.
 - Stated identity (from the website hero): *"Very slow at the development,
   fast & safe at the final product."*
-- **Nerve is a hobby language** (owner, 2026-09-17, of CyborgPL). No timeline, no
+- **Zag is a hobby language** (owner, 2026-09-17, of CyborgPL). No timeline, no
   obligation to build any part by any date, no team unless the owner feels
   like one. Estimates, hiring notes, and the review policy in `design/` are
   for if-and-when, not commitments. Do not push for schedules or scope.
@@ -26,11 +27,11 @@ v1 syntax carries over unless the owner explicitly chooses it.
 ## Sessions
 
 - **Design session** ("design claude", this repo's default): decisions, `design/`, `DECISIONS.md`, the oracle. Commits carry `Co-Authored-By: design claude <noreply@anthropic.com>`.
-- **Compiler session** ("compiler claude"): Synapse, including its built-in package manager, Kinesin (manifest `Kinesin.nrp`, owner 2026-09-29). Its brief is `design/compiler-session.md`; it works in its own clone of this repo at `/Users/ts/Nerve compiler` (same `main`, no branch; its own folder so it has its own Claude memory), in `synapse/`; both clones `git pull --rebase` before pushing; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
+- **Compiler session** ("compiler claude"): Synapse, including its built-in package manager, Kinesin (manifest `Kinesin.nrp`, owner 2026-09-29). Its brief is `design/compiler-session.md`; it works in its own clone of this repo at `/Users/ts/Zag compiler` (same `main`, no branch; its own folder so it has its own Claude memory), in `synapse/`; both clones `git pull --rebase` before pushing; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
 - **Synthia session** ("synthia claude", owner 2026-09-29): Synthia, the separate package manager, written in Go, in its own repo (`Cyborg-Assembly-Manufacturing-Site/Synthia`, checked out at `/Users/ts/Synthia`), not this one. Its brief is `design/synthia-session.md`. Started 2026-09-29; Go only for now, and it never runs `cca`.
-- **Verification session** ("check claude"): the program generator, the differential harness, the Cortex oracle, translation validation. Its brief is `design/verification-session.md`; it works in its own clone at `/Users/ts/Nerve verification`, in `check/`. It reads `design/` and the tests, and **never `synapse/` or `oracle/src`** — it is a different author from Cortex's, which is what makes its checks mean anything. Commits carry `Co-Authored-By: check claude <noreply@anthropic.com>`.
+- **Verification session** ("check claude"): the program generator, the differential harness, the Cortex oracle, translation validation. Its brief is `design/verification-session.md`; it works in its own clone at `/Users/ts/Zag verification`, in `check/`. It reads `design/` and the tests, and **never `synapse/` or `oracle/src`** — it is a different author from Cortex's, which is what makes its checks mean anything. Commits carry `Co-Authored-By: check claude <noreply@anthropic.com>`.
 
-- **Website session** ("website claude", owner, 2026-09-24): the open-source site. It works in its own clone at `/Users/ts/Nerve website`, in `website/`, and updates the site only when the owner says so. Commits carry `Co-Authored-By: website claude <noreply@anthropic.com>`.
+- **Website session** ("website claude", owner, 2026-09-24): the open-source site. It works in its own clone at `/Users/ts/Zag website`, in `website/`, and updates the site only when the owner says so. Commits carry `Co-Authored-By: website claude <noreply@anthropic.com>`.
 - **Website ChatGPT** ("website chatgpt"): an OpenAI agent that also works on the site, in `website/`, beside website claude (first commit 2026-10-03, `ee2998d`). Its commits carry `Co-Authored-By: website chatgpt <noreply@openai.com>`. It is not a Claude session, so it has no session id here and cannot be messaged; the owner reaches it directly.
 - **Reaching another session** (owner, 2026-09-24: "find a way to be always messageable"): send by its permanent session id, never its display name. A name only reaches a session that is running right now, and an id goes through the desktop app:
   - design claude: `local_9078e904-c5c3-41ca-a97b-29bc24a56ed6`
@@ -40,7 +41,7 @@ v1 syntax carries over unless the owner explicitly chooses it.
   - synthia claude: `local_0ecdeff6-f87d-4d75-a395-6fc8add64f08`
   - RRx2-TV claude: `local_ee10d272-6c6e-41c5-9342-8afde6e61061` (RRx2's translation validator, `/Users/ts/RRx2 tv`; brief `design/rrx2-tv-session.md`; started 2026-10-01)
   - lth design claude: `local_99b2b5b4-0649-498b-ac03-14b9e13416a0` (Lilith, the owner's JIT language idea, `/Users/ts/Lilith`, public repo `Cyborg-Assembly-Manufacturing-Site/Lilith`; brief `design/lilith-session.md`; design only; started 2026-10-02)
-  - cord claude: `local_02a4d731-072e-42ff-a19f-14f4be88e58a` (started 2026-10-14; writes `cord`, the standard Neuron, in Nerve; `/Users/ts/Nerve cord`, in `cord/`; brief `design/cord-session.md`; may read `synapse/`, not `oracle/src`; takes turns with compiler claude; asks the owner through design claude)
+  - std claude (was cord claude): `local_02a4d731-072e-42ff-a19f-14f4be88e58a` (started 2026-10-14; writes the standard library, `cord` until the code rename and `std` after, in the language itself; `/Users/ts/Zag std`, in `cord/`; brief `design/cord-session.md`; may read `synapse/`, not `oracle/src`; takes turns with compiler claude; asks the owner through design claude)
   - troll license claude: `local_9c33c801-39cd-42c1-8cf2-8471921a2674` (OLLGS, the Optimized Long License Generator Software, public repo `Cyborg-Assembly-Manufacturing-Site/OLLGS`; notes in `secrets/defining-license.md`; no brief, started from a prompt, owner 2026-10-02)
 
 - **Cores** (owner, 2026-09-23: "How many cores do I have? Split it evenly"): the machine has 10 (4 performance, 6 efficiency). Each of the three sessions uses at most **3** at once, for builds, tests and any runs it starts, and 1 is left for the desktop. `oracle/.cargo/config.toml` holds this for the oracle, and each session holds it for its own work. Synthia claude has no bound, since it runs only Go for now (owner, 2026-09-29: "No core bounds, because Go only for now is stated"). CyborgPL resumed 2026-10-02 with the same split, 3 each for design, compiler and check claude (owner: "3 for 3"). RRx2 runs only when the owner starts one; during a run RRx2-TV claude uses **8**, and compiler and check claude hold off on builds and tests until it ends (owner, 2026-10-02: "Yeah"; memory, below, is why). cord claude (once started) and compiler claude take turns on compiler claude's 3: cord claude works only while compiler claude does not (owner, 2026-10-14: "Cord doesn't work when Compiler is."). troll license claude (OLLGS) has no bound (owner, 2026-10-02: "unbounded", asked about cores and memory while RRx2-TV is stopped). It is idle for now (owner, 2026-10-02).
@@ -52,12 +53,12 @@ v1 syntax carries over unless the owner explicitly chooses it.
 - `design/` — design documents, one topic per file, as they are written.
 - `examples/` — `.nrv` programs using settled syntax only, each with its
   expected `.out` (and `.exit` if non-zero). Run by the oracle's tests.
-- `website/` — the open-source Nerve website (owner, 2026-09-23), built by
+- `website/` — the open-source website (owner, 2026-09-23), built by
   the website session, which updates it only when the owner says so.
   **nerve-lang.com** serves it from `website/site/` (Cloudflare, since
   2026-10-08); cyborgpl.dev still serves the last CyborgPL build and gets no
   new deploys.
-- `bench/` — Nerve against every other language installed here (the owner's
+- `bench/` — Zag against every other language installed here (the owner's
   own languages excepted, contributed-to ones like Lust included), the same four
   programs each, checked against C's answers (owner, 2026-09-30). The design
   session's; `python3 bench/run.py`, results in `bench/RESULTS.md`.
@@ -67,25 +68,28 @@ v1 syntax carries over unless the owner explicitly chooses it.
   README lists every provisional pick it had to make; those are open
   questions, not decisions. `cd oracle && cargo test`.
 
-## Repository (moved 2026-10-08)
+## Repository (moved 2026-10-14)
 
-CyborgPL v2 is now **Nerve** (owner: "we'll likely rename to Nerve.
-But we'll do it cleanly, new GH repo, new local, but same code"). The
-repository is now **`Soclets/Nerve-lang`** (private, full history); the
-design clone is `/Users/ts/Nerve`, the others `/Users/ts/Nerve compiler`,
-`/Users/ts/Nerve verification`, `/Users/ts/Nerve website`. The old repo
-`Cyborg-Assembly-Manufacturing-Site/CyborgPL` and the `/Users/ts/CyborgPL v2…`
-folders are frozen at 087cdfc8: never push there. The prose says Nerve
-(step 1, 2026-10-08); the standard library is `cord` and a library is a
-Neuron, `pub.neuron`, Precog is Cortex, a core is a lobe, `lobes =
-[kin::lobe[…]]`, the base (Signatar) is the Brainstem, the runtime is Axon,
-and the built-in package manager is Kinesin (2026-10-09). Code ends **`.nrv`**
-(was `.cpls`), a Neuron's root is `neuron.nrv` (was `limb.cpls`), a file that
-is one value and never runs ends **`.nrp`**, and the manifest is
-`Kinesin.nrp` with `kin::` types (was `CCA.cplr`, `cca::`). The compiler is
-Synapse (`synapse` / `syn`, folder `synapse/`; `cca` refuses). A Neuron's
-build program is `build.nrv`, its language date `nerve_version.nrp`. The Nerve names are in
-`DECISIONS.md`.
+Nerve is now **Zag** (owner, 2026-10-14; "Zag feels better than Fale, though. Has
+more weight"). The repository is now **`Soclets/Zag-lang`** (private, full history);
+the design clone is `/Users/ts/Zag`, the others `/Users/ts/Zag compiler`,
+`/Users/ts/Zag verification`, `/Users/ts/Zag website`, `/Users/ts/Zag std`. The old
+repo `Soclets/Nerve-lang` and the `/Users/ts/Nerve…` folders are frozen (remote
+renamed `frozen-old`, push disabled): never push there. Older still,
+`Cyborg-Assembly-Manufacturing-Site/CyborgPL` and `/Users/ts/CyborgPL v2…`, frozen at
+087cdfc8. Home: **zag-lang.org** (the owner's).
+
+The Zag names (DECISIONS.md, 2026-10-14): code ends **`.zg`**, a one-value file
+**`.zv`**; the compiler is **Zomp** (`zomp`), the prover built into it with no name
+of its own (was Synapse and Cortex); the package manager **Strike**, manifest
+`Strike.zv` with `strike::` (was Kinesin, `Kinesin.nrp`, `kin::`); the runtime is
+just the runtime (was Axon); the base **Ground** (was Brainstem); a library a
+**Cell**, root `cell.zg`, `pub.cell` (was Neuron); a compiler extension a **Coil**
+(was lobe); the standard library **`std`** (was `cord`); the Unicode coil
+**`unicode`** (was Broca); `build.zg`, `zag_version.zv`. **The code has not moved
+yet**: until each part is renamed in code, it still says `.nrv`, `synapse/`, `cord`,
+`Kinesin.nrp` and the rest, as Nerve's rename went in steps (prose first, then
+the parts one at a time).
 
 ## Git
 

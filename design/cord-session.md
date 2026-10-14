@@ -48,8 +48,8 @@ caller's program can go through it; a function in Rust is a black box it can onl
 
 ## Where you work
 
-The same repository, `Soclets/Nerve-lang`, on `main`, no branch, in **your own clone** at
-`/Users/ts/Nerve cord`, with your code in **`cord/`** (owner, 2026-10-14: "Yeah"): a Neuron, `neuron.nrv` and
+The same repository, `Soclets/Zag-lang`, on `main`, no branch, in **your own clone** at
+`/Users/ts/Zag std`, with your code in **`cord/`** (owner, 2026-10-14: "Yeah"): a Neuron, `neuron.nrv` and
 its `Kinesin.nrp`, keeping cord's registry ID (`fff4302d…1936`). Your own folder gives you your own
 Claude memory, and keeps your unsaved files away from the other sessions'. Commit to `main`, and
 `git pull --rebase` before every push: four sessions push there. You edit only `cord/`. A change to

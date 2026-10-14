@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-14 — The repository moves to `Soclets/Zag-lang` (owner)
+
+Design claude asked whether to move as Nerve's did, a new repo with full history, new folders,
+the old ones frozen, and when; the owner: "Yeah, the others are paused for today". So the repo is
+**`Soclets/Zag-lang`** (private, full history to 23603d73), the clones `/Users/ts/Zag`,
+`/Users/ts/Zag compiler`, `/Users/ts/Zag verification`, `/Users/ts/Zag website` and
+`/Users/ts/Zag std` (was `/Users/ts/Nerve cord`), each session's Claude memory copied across.
+`Soclets/Nerve-lang` and the `/Users/ts/Nerve…` folders are frozen (remote `frozen-old`, push
+disabled). The code has not been renamed: as in Nerve's rename, the parts move in code one at a
+time, each with its session. Not touched, since they are licence wording the owner ruled: the
+README's credit lines ("Nerve GitHub repo text: https://nerve-lang.com, …") and
+`design/licensing.md`.
+
 ### 2026-10-14 — Zag's names: Zomp, Strike, Ground, Cell, Coil, `std`, `.zv` (owner)
 
 **Owner's choice**, from design claude's lightning-themed table: "Seems good. Though, we'll just

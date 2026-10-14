@@ -19,7 +19,7 @@ through it.
 
 In **the Synthia repo**, `Cyborg-Assembly-Manufacturing-Site/Synthia`,
 checked out at `/Users/ts/Synthia` (its own folder, so it has its own
-Claude memory). You read this repo (`/Users/ts/Nerve`: `design/`,
+Claude memory). You read this repo (`/Users/ts/Zag`: `design/`,
 `DECISIONS.md`, `examples/`) and never edit it. Commits: branch `main`,
 author Tankun Sriket (repo-local config, set), subjects
 `kind.folder.narrowing: sentence`, trailer `Co-Authored-By: synthia

@@ -88,7 +88,7 @@ sentence` (`feature.lang.rational: …`, `fix.lang: …`), trailer
 README's toolchain and licence sections are the owner's wording; change
 them only when the owner asks.
 
-You read Nerve's repo at `/Users/ts/Nerve` and never edit it.
+You read Nerve's repo at `/Users/ts/Zag` and never edit it.
 Nerve's number rules: `design/types.md`, `design/operators.md`,
 `design/conversion.md`, and the `deci` and `bin` entries in
 `DECISIONS.md`.
