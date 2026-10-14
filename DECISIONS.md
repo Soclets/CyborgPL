@@ -17,7 +17,11 @@ owner: "What if we just make Cord in both?" Offered (a) Rust now, Nerve later, (
 Nerve source what Cortex reads and Rust what runs, warned against, (c) Nerve calling a few runtime
 pieces, as ruled, recommended. The owner: "We'll do (c), but I'll start that session later." So
 **`cord` is written in Nerve, leaning on the Rust runtime only where Nerve cannot yet express something;
-Synapse builds none of it in Rust; the `cord` session starts when the owner says.**
+Synapse builds nothing more of it in Rust; the `cord` session starts when the owner says.** Design claude
+first wrote "Synapse builds none of it in Rust", which overstated the owner's "(c)": compiler claude asked
+whether `cord::print` (all its forms) and `cord::exit`, built in Rust under the 2026-10-09 ruling ("`b`,
+not the entire fucking neuron"), stay. Offered (a) they stay until the `cord` session writes them in
+Nerve, nothing else added, recommended by both, (b) they go now. The owner: "(a)".
 
 ### 2026-10-14 — `fold` taken out of the argument words: it is not the language's
 
