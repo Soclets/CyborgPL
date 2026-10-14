@@ -5,6 +5,67 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-14 — Every argument after the first says its role: `list.append[lend.mut 'xs', value 2]`, `map.set[lend.mut 'm', key "ann", value 5551]` (owner; being built)
+
+Asked why `ptr.write['p', 65]` has no word in front of the number, then: "`list.append[lend.mut 'xs', 2]`
+I think that's an inconsistent mistake. Look at the others, there are words like `value`, `from`, `to`,
+`before`, `by`". Design claude put it as a rule: **the first argument, the thing worked on, stays bare;
+every other argument says its role with a word**; print and format lists (every item one role) and an
+operator value (`op plus`, its own label) stay bare. The owner: "Seems good, but I thought `value` is
+already used" (it is: `list.fill[value 0, count 10]`, `simd.fill[value 0]`, 2026-10-07), then "Yeah" to a
+full list, then "Seems all good" to it:
+
+- lists: `list.append[lend.mut 'xs', value 2]` (`remove`, `fill`, `slice` unchanged);
+- maps: `map.get` / `map.has` / `map.remove[lend 'm', key "ann"]`, `map.set[lend.mut 'm', key "ann", value 5551]`;
+- text: `str.contains` / `str.starts_with` / `str.ends_with` / `str.find.grapheme[lend 's', part "ab"]`,
+  `str.split[lend 's', at ","]`, `str.join[lend 'parts', between ", "]`, `str.replace[lend 's', from "a", to "b"]`;
+- `channel.send[lend 'ch', value 5]`; `ptr.at['p', by 3]`; `ptr.write['p', value 65]`;
+- `simd.load.some[lend 'xs', pos 1, count 3]`, `simd.store[lend.mut 'xs', pos 1, value 'v']`,
+  `simd.store.some[lend.mut 'xs', pos 1, count 3, value 'v']`;
+- `fold[lend 'xs', from 0, op plus]`.
+
+New words: `key`, `part`, `at`, `between`; reused: `value`, `count`, `from`, `to`, `by`, `pos`. Design
+claude's picks among them, approved with the rest: `at` for split (`by` being a range's step), `between`
+for join (`with` being a keyword), `from` / `to` for replace (over `old` / `new`).
+
+### 2026-10-14 — Symbols come back as spellings of the words: `+ - * / % == != <= >= ** & && || &mut`, `*const T` / `*mut T` / `*'p'`, and `exactly` for the prefix `*` (owner; being built)
+
+The cursed `+` and `*` are dropped. The owner: "Actually, let's just let those ops do whatever is the most
+useful"; asked whether that meant the jokes' leftover details or the operators themselves: "(b)"; design
+claude offered `+` joining text with a number and `*` repeating text, two numbers refused; the owner: "Nah,
+nah. I mean they behave normally, like `plus` & `times`, but they pick the most useful forms", "Nah, it's
+just normal plus, just the most useful general variation". So **`+` is `plus` and `*` is `times`, the
+plain (checked, exact) forms**, not `.wrap` or `.ieee`; with no jokes left, **the `jokes` power goes**
+(design claude's proposal; the owner: "Yeah, but before you build. Using symbols shouldn't be good
+practice. Also, we should add more symbols").
+
+Design claude listed the candidates and what each runs into (`-` an old spelling since 2026-10-03, `/`
+refused since 2026-09-29 so that division says how it rounds, `%` and `**` free to declare, `==` / `!=`
+old since 2026-10-07, `<=` / `>=` refused since 2026-10-07), recommending `- / % == != <= >= **`. The
+owner: "Yeah, what about `&`? Maybe for `and` & `lend`/`lent`? Also, `&&` could also be for `&mut`
+aswell"; told that `&&x` in Rust is a borrow of a borrow, "What the fuck is borrow of a borrow?", then
+"`&mut`". On pointers design claude recommended `*const T` / `*mut T` and no symbol for reading through
+one; the owner: "I mean, you aren't supposed to use the symbols anyways". On `*1000`: "should `*` Infront
+like `*1000` become `exactly 1000`?"; design claude recommended (a) `exactly` as the word for the prefix
+`*` and (b) both allowed on whole numbers; the owner: "Yeah, your recommendation". Then "Yeah" to the full
+set, with `/` and `%` rounding toward zero and `||` beside `&&`. So, **each a spelling of its word's most
+useful general form**:
+
+| Symbol | Means |
+|---|---|
+| `+`, `-`, `*` between values | `plus`, `minus`, `times` |
+| `/`, `%` | `div.trunc`, `mod.trunc` (toward zero, as C, Rust, Go) |
+| `==`, `!=`, `<=`, `>=` | `equal_to`, `not_equal`, `at_most`, `at_least` (`<`, `>` as before) |
+| `**` | `pow` (cord's) |
+| `&`, `&&`, `\|\|` between values | `and`, `and.then`, `or.else` |
+| `&` before a value / parameter, `&mut` | `lend` / `lent`, `lend.mut` / `lent.mut`; `&@x`, `&mut@x` for a lifetime group (design claude's reading) |
+| `*const T`, `*mut T` | `ptr[T]`, `ptr.mut[T]` |
+| `*'p'`, `change *'p' = v;` | `ptr.read['p']`, `ptr.write['p', value v]` (still `no_check` sites) |
+| `exactly 19.99`, `*19.99`; `exactly 1000` | an exact `deci`; a whole number now allowed (a `deci` holding 1000) |
+
+`exactly` is a new keyword. `&`, `%` and `**` stop being free to declare. Good practice is to write the
+words; its wording is the owner's to approve.
+
 ### 2026-10-13 — Oracle fixes to the cursed `+` and `*`, found by compiler claude building them
 
 Compiler claude found four places where the oracle parted from the ruling's words, building the ruling's
