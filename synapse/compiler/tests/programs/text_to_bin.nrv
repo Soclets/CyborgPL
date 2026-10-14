@@ -24,7 +24,7 @@ fn unit ['t': str.utf8] -> bin64 {
 MAIN {
     let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
-    let mut 's' := "";
+    let mut 's' := str.empty;
     if 'there' { change 's' = "5"; }
     let mut 'got': int32 = 0;
     if b64["2.5e3"] equal_to 2500.0 and b64["-1E-2"] equal_to -0.01 and b64["+" ++ 's'] equal_to 5.0 { change 'got' = 'got' plus 1; }

@@ -720,3 +720,9 @@ Dated, with the alternative, so each can become a question later.
   `str.nrv` (cord's), `int32`, `bool`, `char`: only the table's keywords and
   the old words kept inside (`limb`, `nocheck`, `var`, `func`) are refused,
   as the oracle has it.
+- **2026-10-14 — `str.empty`.** The parser reads the path `str.empty` as
+  the empty text literal, so it goes wherever `""` went, `spellings.nrp`'s
+  own lists included; a written `""` (two quotes) is refused from the
+  table's special row. A text of at least 1 byte for `part`, `at` and
+  `from` is cord's to say, in its types: Synapse builds no cord text
+  function, and `str_split_empty` waits on the cord session (`!pending`).

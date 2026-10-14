@@ -9,7 +9,7 @@ fn round ['n': int32] -> int32 {
     for 'i': int32 from 1 to 20 by 1 {
         list.append[lend.mut 'xs', value 'i' plus 'n'];
     }
-    let mut 'text': str.utf8 = "";
+    let mut 'text': str.utf8 = str.empty;
     for 'j': int32 from 1 to 5 by 1 {
         change 'text' = copy 'text' ++ "ab";
     }

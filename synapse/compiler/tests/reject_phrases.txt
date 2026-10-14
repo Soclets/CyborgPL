@@ -221,6 +221,7 @@ duration_without_std [fnv:277c8171e7a593ab] :: `duration` is cord's
 else_if_bare [fnv:38697b0b1183ad5e] :: `else.if` became `else if`: two bare words
 empty_array [fnv:8e009c1193ae6fd2] :: an array is fixed at the size it was made with
 empty_int [fnv:46819038938fd6c9] :: `[]` is an empty list, but the declared type is an `int32`
+empty_quotes [fnv:2bda5f71e81ee00e] :: `""` is an old spelling: write `str.empty`
 empty_walrus [fnv:7a096e3b41300cf6] :: write `list.empty` (Cortex picks the element type from what is appended later), or give it a type
 enum_bare_owned [fnv:463b06aecdfd81cb] :: say what happens to it
 enum_bind_without_data [fnv:85d1b2a55dade2b9] :: `a` carries nothing, so there is no value to name 'x'
@@ -689,6 +690,7 @@ str_index [fnv:91ca5dc332f4c315] :: it would not say which unit
 str_length [fnv:b29f67be465dcbe6] :: `str.bytes`, `str.points` or `str.graphemes`
 str_less_than [fnv:96614208fa90f73f] :: byte order is never what anyone means, and a collation rule is cord's
 str_slice_byte_unknown [fnv:0407a6e8109d1ffb] :: `cord::str.slice.byte` does not exist
+str_split_empty [fnv:67635ac17613965c] :: !pending `cord::str.split` is the cord session's to write in Nerve (owner, 2026-10-14), whose `at` is a `str.utf8[min 1 bytes]`: Synapse's testing stand-in for cord accepts it until then
 strict_gone [fnv:70e4490d609cdd7e] :: `#strict` is gone
 struct_bare_owned_field [fnv:d926d44479584ac8] :: say what happens to it
 struct_bound_unkept [fnv:91778bbd2a224911] :: needs `<T>: Number`

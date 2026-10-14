@@ -14,7 +14,7 @@ MAIN {
     let mut 'codes': int64 = 0;
     for 'p' in str.each.point[lend 's'] { change 'points' = 'points' plus 1; change 'codes' = 'codes' plus to.int64[char.code['p']]; }
     let mut 'clusters': int32 = 0;
-    let mut 'last' := "";
+    let mut 'last' := str.empty;
     for 'g' in str.each.grapheme[lend 's'] { change 'clusters' = 'clusters' plus 1; change 'last' = to.str.utf8['g']; }
     let mut 'got': int32 = 0;
     if 'bytes' equal_to 21 and 'points' equal_to 8 { change 'got' = 'got' plus 1; }

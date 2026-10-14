@@ -275,6 +275,8 @@ fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
         return None;
     }
     match &toks[i].tok {
+        // `""` is `str.empty` (owner, 2026-10-14), spelled two quotes.
+        Tok::Str(t) if t.is_empty() && toks[i].span.end - toks[i].span.start == 2 => crate::spellings::old_word("\"\"", Some("special")).map(|o| o.dated()),
         // The `!` marks became words (owner, 2026-10-07).
         Tok::Op(o) if o == "!" => {
             if glued(1) {
@@ -4325,6 +4327,10 @@ impl<'a> Parser<'a> {
                         let args = self.args()?;
                         let span = start.to(self.prev_span());
                         let e = Expr { kind: ExprKind::Call { path, args, otherwise: None }, span };
+                        self.postfix_on(e)
+                    } else if path.is(&["str", "empty"]) {
+                        // The empty text (owner, 2026-10-14), `""` no more.
+                        let e = Expr { kind: ExprKind::Str(String::new()), span: path.span };
                         self.postfix_on(e)
                     } else {
                         let span = path.span;

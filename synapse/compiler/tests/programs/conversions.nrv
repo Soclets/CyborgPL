@@ -28,7 +28,7 @@ MAIN {
     if read["42"] equal_to 42 { change 'got' = 'got' plus 1; }
     let 'b' := to.int64["-7"] otherwise -1;
     if 'b' equal_to -7 { change 'got' = 'got' plus 2; }
-    if read["4x2"] equal_to -1 and read[""] equal_to -1 and read["-"] equal_to -1 { change 'got' = 'got' plus 4; }
+    if read["4x2"] equal_to -1 and read[str.empty] equal_to -1 and read["-"] equal_to -1 { change 'got' = 'got' plus 4; }
     if percent["150"] equal_to -2 and percent["-1"] equal_to -2 and percent["x"] equal_to -1 { change 'got' = 'got' plus 8; }
     if percent["+99"] equal_to 99 and percent["0"] equal_to 0 { change 'got' = 'got' plus 16; }
     if whole[2.0] equal_to 2 and whole[2.7] equal_to -1 and whole[-3.0] equal_to -3 and whole[10000000000.0] equal_to -4 { change 'got' = 'got' plus 32; }

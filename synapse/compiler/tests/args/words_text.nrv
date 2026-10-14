@@ -18,7 +18,7 @@ MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
             list.append[lend.mut 'raw', value 'b'];
             change 'k' = 'k' plus 1;
         }
-        let 'text' := to.str.utf8['raw'] otherwise "";
+        let 'text' := to.str.utf8['raw'] otherwise str.empty;
         if str.bytes[lend 'text'] equal_to 0 { change 'bad' = 'bad' plus 100; }
         change 'points' = 'points' plus str.points[lend 'text'];
         change 'bytes' = 'bytes' plus str.bytes[lend 'text'];
