@@ -9,44 +9,45 @@ written with `cord::` or without it (owner, 2026-10-06).
 - `neuron.nrv` — the root: the `bare.optional` mark for every kind.
 - `str.nrv` — `cord::str.contains`, `starts_with`, `ends_with`, `split`, `join`, `replace`
   (`design/strings.md`; the argument words are `spellings.nrp`'s). They work on the bytes and call
-  nothing in Axon.
+  nothing in Axon. Their `part`, `at` and `from` are texts of at least 1 byte, `str.utf8[min 1 bytes]`
+  (owner, 2026-10-14: "Error"), so an empty one is refused when building, or checked where it is
+  passed if it is worked out at run time. The oracle's built-in cord refuses it when the call runs:
+  the same rule, met at a different moment.
 
-Synapse does not load this folder as `cord::` yet: the owner ruled on 2026-10-14 that a Neuron listing
-the Nerve cord by `path` gets it under `cord::`, and compiler claude is building that. Until then, the
-built-in print and exit stay Synapse's Rust (owner, 2026-10-14: "(a)").
+A program uses this cord by listing it with cord's ID and a `path`, no `version` (owner, 2026-10-14;
+Synapse since `ac71ba1c`):
+`kin::dep[id = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936", path = "…/cord"]`.
+The ID lives in that listing, so `Kinesin.nrp` here carries none. Then every `cord::` in the build is
+this one, and what it does not define yet, `print` and `exit`, is still Synapse's Rust (owner,
+2026-10-14: "(a)").
 
-## How it is checked, until Synapse loads it
+## How it is checked
 
-A copy under the prefix `cordtest` (listing Synapse's built-in cord for print, exit and lists), called
-from small programs:
+- `examples/argument_words.nrv`, unchanged, built by Synapse against this folder, prints its `.out`
+  (2026-10-14), every one of its 54 sites proven.
+- In the oracle, each of the six beside the oracle's own built-in cord (a copy of this folder under the
+  prefix `cordtest`), over 820 cases (empty text, separators at the ends and side by side,
+  overlapping finds, `é`, `🍎`), printing the same; and the same cases built by Synapse against this
+  folder, written as a user writes them (`cord::str.split[lend 's', at lend 'p']`), printing what
+  the oracle's built-in cord prints.
+- Through Synapse, with the text read from the command line, so Cortex has to prove cord's sites from
+  cord's own code rather than by running the program: all of cord's are proven.
 
-- in the oracle, each of the six beside the oracle's own built-in cord, over 856 cases (empty text,
-  separators at the ends and side by side, overlapping finds, `é`, `🍎`), printing the same;
-- through Synapse, the same 856 cases printing what the oracle's built-in cord prints;
-- through Synapse, with the text read from the command line, so Cortex has to prove cord's sites from
-  cord's own code rather than by running the program.
-
-Synapse refuses `str` as a module name (it keeps the word reserved; the oracle does not), so the
-Synapse copy names the module `text`. That is for compiler claude, not a change to cord.
+Not yet: Synapse checks a written empty `part`, `at` or `from` (refused when building), but not one
+worked out at run time. A lent text going into a `str.utf8[min 1 bytes]` parameter makes no check
+site, so an empty one reaches cord (`contains` then says `true`), where the oracle stops the program.
+Reported to compiler claude, 2026-10-14.
 
 ## Provisional
 
 Each is a choice the record does not settle, dated, with the alternative. Each is an open question.
 
-- **2026-10-14 — an empty `at` (split) or `from` (replace) is refused through the signature**, typed
-  `str.utf8[min 1 bytes]`: a literal `""` does not compile and any other text is checked where it is
-  passed. This follows good practice 7: a public Neuron states its limits in its signatures. The
-  alternative is the oracle's current reading: split stops the program ("an empty separator"), and
-  replace puts `to` between every two characters and at both ends. Asked of the owner.
-- **2026-10-14 — an empty `part` is in every text**: contains, starts_with and ends_with give `true`,
-  as the oracle does. Asked with the above.
 - **2026-10-14 — replace goes left to right and never looks inside what it put in**
-  (`"aaa"` from `"aa"` to `"b"` is `"ba"`), as the oracle does.
+  (`"aaa"` from `"aa"` to `"b"` is `"ba"`); split keeps empty pieces (`",a"` at `","` is `str.empty`
+  and `"a"`); join of an empty list is `str.empty`. All as the oracle does; shown to the owner
+  unasked, 2026-10-14, and nothing came back against them.
 - **2026-10-14 — bytes cut on a character's edge become text with `to.str.utf8 … otherwise`**, and the
   `otherwise`, which cannot happen, prints `cord: a bug: …` on stderr and exits 101, the code of a
-  failed run-time check. The alternatives: a fallback value such as `""`, which would hide a bug, or a
+  failed run-time check. The alternatives: a fallback value such as `str.empty`, which would hide a bug, or a
   way to turn bytes known to be UTF-8 into text without a failure (an intrinsic, or something in the
   language), which nobody has asked for yet.
-- **2026-10-14 — `Kinesin.nrp` has no `id`**: Synapse reads none yet, and how cord carries its registry
-  ID (`fff4302d…1936`) belongs to compiler claude's loading work. Its `version` is the one Synapse
-  knows, `2026-10-06T12:57:14+07:00`.

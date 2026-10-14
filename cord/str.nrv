@@ -4,13 +4,12 @@
 # characters do, because no character's bytes begin in the middle of another's, so whatever is
 # cut out between two finds is UTF-8 text again.
 
-# Whether 'part' contains no bytes or appears somewhere in 's'.
-pub fn contains [lent 's': str.utf8, lent 'part': str.utf8] -> bool {
+# Whether 'part' appears somewhere in 's'.
+pub fn contains [lent 's': str.utf8, lent 'part': str.utf8[min 1 bytes]] -> bool {
     let 'text' := bytes_of[lend 's'];
     let 'want' := bytes_of[lend 'part'];
     let 'n' := list.length[lend 'text'];
     let 'm' := list.length[lend 'want'];
-    if 'm' equal_to 0 { return true; }
     if 'm' > 'n' { return false; }
     for 'pos': uint64 from 1 to ('n' minus 'm' plus 1) by 1 {
         if sits_at[lend 'text', lend 'want', 'pos'] { return true; }
@@ -19,14 +18,14 @@ pub fn contains [lent 's': str.utf8, lent 'part': str.utf8] -> bool {
 }
 
 # Whether 's' begins with 'part'.
-pub fn starts_with [lent 's': str.utf8, lent 'part': str.utf8] -> bool {
+pub fn starts_with [lent 's': str.utf8, lent 'part': str.utf8[min 1 bytes]] -> bool {
     let 'text' := bytes_of[lend 's'];
     let 'want' := bytes_of[lend 'part'];
     return sits_at[lend 'text', lend 'want', 1];
 }
 
 # Whether 's' ends with 'part'.
-pub fn ends_with [lent 's': str.utf8, lent 'part': str.utf8] -> bool {
+pub fn ends_with [lent 's': str.utf8, lent 'part': str.utf8[min 1 bytes]] -> bool {
     let 'text' := bytes_of[lend 's'];
     let 'want' := bytes_of[lend 'part'];
     let 'n' := list.length[lend 'text'];
@@ -35,7 +34,7 @@ pub fn ends_with [lent 's': str.utf8, lent 'part': str.utf8] -> bool {
     return sits_at[lend 'text', lend 'want', 'n' minus 'm' plus 1];
 }
 
-# The pieces of 's' between each 'at', left to right: "a,,b" at "," is "a", "", "b".
+# The pieces of 's' between each 'at', left to right: "a,,b" at "," is "a", `str.empty`, "b".
 pub fn split [lent 's': str.utf8, lent 'at': str.utf8[min 1 bytes]] -> list[str.utf8] {
     let 'text' := bytes_of[lend 's'];
     let 'sep' := bytes_of[lend 'at'];
@@ -102,7 +101,6 @@ fn bytes_of [lent 's': str.utf8] -> list[uint8] {
 fn sits_at [lent 'text': list[uint8], lent 'part': list[uint8], 'pos': uint64[min 1]] -> bool {
     let 'n' := list.length[lend 'text'];
     let 'm' := list.length[lend 'part'];
-    if 'm' equal_to 0 { return 'pos' at_most 'n' plus 1; }
     if 'm' > 'n' { return false; }
     if 'pos' > 'n' minus 'm' plus 1 { return false; }
     for 'k': uint64 from 'pos' to ('pos' plus 'm' minus 1) by 1 {
