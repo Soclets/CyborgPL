@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router";
 
 // The sky behind every page, and the site's top bar.
@@ -63,11 +63,33 @@ const LINKS = [["Home", "/#home"], ["Download", "/download"], ["Docs", "/docs"],
 export function Pill() {
   const { pathname } = useLocation();
   const here = pathname === "/" ? "/#home" : pathname;
+  // One white highlight slides from the last page's button to this one's (owner: "The pill
+  // buttons should slide when clicked"). It is placed without sliding the first time, so it
+  // doesn't fly in from the left as the page opens.
+  const links = useRef(null), thumb = useRef(null), placed = useRef(false);
+  useEffect(() => {
+    const place = () => {
+      const on = links.current.querySelector('[aria-current="page"]'), t = thumb.current;
+      t.style.opacity = on ? "1" : "0";
+      if (!on) return;
+      t.style.setProperty("--x", `${on.offsetLeft}px`);
+      t.style.setProperty("--w", `${on.offsetWidth}px`);
+      if (!placed.current) {
+        placed.current = true;
+        requestAnimationFrame(() => links.current?.parentElement.classList.add("ready"));
+      }
+    };
+    place();
+    document.fonts?.ready.then(place);
+    addEventListener("resize", place);
+    return () => removeEventListener("resize", place);
+  }, [here]);
   return (
     <nav className="pill" aria-label="Site">
       {/* The logo goes to the start of the intro, the first screen (owner, 2026-10-15). */}
       <Link className="brand" to="/" aria-label="Zag, from the start"><img src="/logo.svg" alt="" width="45" height="34" /></Link>
-      <div className="links">
+      <div className="links" ref={links}>
+        <span className="thumb" ref={thumb} aria-hidden="true" />
         {LINKS.map(([name, to]) => (
           <Link key={to} className="link" to={to} aria-current={to === here ? "page" : undefined}>{name}</Link>
         ))}
