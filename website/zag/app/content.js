@@ -138,3 +138,25 @@ export const COMPARISON = [
     java: "The Foreign Function & Memory API calls C without JNI; `jextract` turns headers into Java.",
     python: "`ctypes` in the standard library calls C libraries; extension modules are written against the C API.", },
 ];
+
+// Speed (owner, 2026-10-15: "yea", to benchmarks on Home). From bench/RESULTS.md, the run of
+// 2026-10-12 against C, Python, Go and Rust, made under the name Nerve with Synapse (now Zomp)'s
+// release build, on 10 threads. Seconds, best of 3, wall-clock from start to exit; every answer
+// checked against C's. Python is left off the charts and given in words (24× to 239× Zag on one
+// core). The all-cores bars are not like for like (owner, 2026-10-06: "note the nuance").
+export const BENCH = {
+  date: "12 Oct 2026",
+  bars: [
+    { id: "zag1", name: "Zag, one core", kind: "ours" },
+    { id: "c", name: "C", kind: "other" },
+    { id: "rust", name: "Rust", kind: "other" },
+    { id: "go", name: "Go", kind: "other" },
+    { id: "zagN", name: "Zag, all cores", kind: "ours-all" },
+  ],
+  programs: [
+    { id: "sum", what: "Adds up i × i mod 7 for 300 million numbers", times: { zag1: 0.087, c: 0.090, rust: 0.161, go: 0.137, zagN: 0.022 }, python: 16.335 },
+    { id: "fib", what: "Recursive Fibonacci of 35: all function calls", times: { zag1: 0.015, c: 0.015, rust: 0.016, go: 0.021, zagN: 0.017 }, python: 0.511 },
+    { id: "lists", what: "Appends 20 million numbers to a list, then sums it 10 times", times: { zag1: 0.038, c: 0.037, rust: 0.047, go: 0.096, zagN: 0.029 }, python: 9.084 },
+    { id: "sieve", what: "Counts the primes up to 100 million", times: { zag1: 0.373, c: 0.376, rust: 0.370, go: 0.353, zagN: 0.227 }, python: 9.100 },
+  ],
+};

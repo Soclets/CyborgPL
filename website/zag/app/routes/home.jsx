@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLoaderData } from "react-router";
 import { SITE_SCREEN } from "../sky.jsx";
-import { BUILT_WITH, COMPARED, COMPARISON, CONS, CORE, HOME_EXAMPLES, PROS } from "../content.js";
+import { BENCH, BUILT_WITH, COMPARED, COMPARISON, CONS, CORE, HOME_EXAMPLES, PROS } from "../content.js";
 import Icon from "../icons.jsx";
 import Md from "../md.jsx";
 import Dropdown from "../dropdown.jsx";
@@ -358,6 +358,50 @@ function Compare() {
   );
 }
 
+// Speed: the benchmark programs as small bar charts, lower is faster. Zag on one core is the fair
+// comparison and is drawn solid; Zag on all cores is hatched and labelled as not like for like; the
+// other languages are grey. Hovering a bar shows it against C.
+function Speed() {
+  const s = (t) => `${t.toFixed(3)} s`;
+  return (
+    <section className="speed" aria-labelledby="speed-title">
+      <h3 id="speed-title">Speed</h3>
+      <ul className="speed-legend">
+        <li><span className="swatch ours" />Zag, one core: the fair comparison</li>
+        <li><span className="swatch ours-all" />Zag, all cores: not like for like</li>
+        <li><span className="swatch other" />Other languages, one core</li>
+      </ul>
+      <div className="speed-grid">
+        {BENCH.programs.map((p) => {
+          const max = Math.max(...Object.values(p.times));
+          return (
+            <figure key={p.id} className="speed-card">
+              <figcaption><b><code>{p.id}</code></b><span>{p.what}</span></figcaption>
+              <ul className="bars">
+                {BENCH.bars.map((b) => {
+                  const t = p.times[b.id];
+                  return (
+                    <li key={b.id} className={`bar-row ${b.kind}`}>
+                      <span className="bar-name">{b.name}</span>
+                      <span className="bar-track"><span className="bar" style={{ width: `${(t / max) * 100}%` }} /></span>
+                      <span className="bar-value">{s(t)}<small>{b.id === "c" ? "C itself" : `${(t / p.times.c).toFixed(2)}× C’s time`}</small></span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </figure>
+          );
+        })}
+      </div>
+      <div className="speed-notes">
+        <p><b>The fair comparison is Zag on one core.</b> On all cores, Zag spreads a loop it has proven safe across them by itself, while C, Rust and Go run the plain single-threaded code anyone would write first. <code>fib</code> is all function calls, so it can’t be split.</p>
+        <p><b>Python isn’t drawn:</b> CPython took {BENCH.programs.map((p, i) => <span key={p.id}>{i ? ", " : ""}{p.python.toFixed(2)} s on <code>{p.id}</code></span>)}, between {Math.round(Math.min(...BENCH.programs.map((p) => p.python / p.times.zag1)))} and {Math.round(Math.max(...BENCH.programs.map((p) => p.python / p.times.zag1)))} times Zag’s time on one core.</p>
+        <p>Run on {BENCH.date}, on an Apple Silicon Mac with 10 cores, before the rename from Nerve; the compiler, Synapse then, is Zomp now. Each program is written the plain way in each language; the time is from start to exit, best of 3, and every answer is checked against C’s.</p>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const { examples } = useLoaderData();
   const frame = useRef(null), zomp = useRef(null), site = useRef(null);
@@ -415,6 +459,7 @@ export default function Home() {
                 </div>
               ))}
             </section>
+            <Speed />
             <Compare />
             {/* What Zag's own tools are made with (owner, 2026-10-15: "Yeah"). */}
             <section className="built" aria-labelledby="built-title">

@@ -253,6 +253,43 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 .compare-note a { color: var(--edge); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
+/* Speed: small bar charts, emphasis style (validated: #1757B0, #2F86F0, #868C94 on the card pass
+   the CVD, normal-vision and contrast checks). Zag on one core solid, on all cores hatched, others grey. */
+.speed { width: 100%; max-width: 1060px; margin-top: 8vh; display: flex; flex-direction: column; align-items: center; }
+.speed h3 { margin: 0 0 12px; text-align: center; font-weight: 700; font-size: clamp(26px, 3.6vw, 38px); paint-order: stroke fill; -webkit-text-stroke: 6px var(--edge); }
+.speed-legend { list-style: none; margin: 0 0 14px; padding: 8px 14px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; border-radius: 16px;
+  color: #0F2A5C; background: rgba(255, 255, 255, .8); font-size: 14px; font-weight: 600; }
+.speed-legend li { display: flex; align-items: center; gap: 8px; }
+.swatch { display: inline-block; width: 22px; height: 10px; border-radius: 3px; }
+.swatch.ours, .bar-row.ours .bar { background: #1757B0; }
+.swatch.ours-all, .bar-row.ours-all .bar { background: repeating-linear-gradient(135deg, #2F86F0 0 5px, #6FA9F2 5px 8px); }
+.swatch.other, .bar-row.other .bar { background: #868C94; }
+.speed-grid { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 760px) { .speed-grid { grid-template-columns: minmax(0, 1fr); } }
+.speed-card { margin: 0; padding: 16px 18px 14px; border-radius: 20px; color: #0F2A5C; background: rgba(255, 255, 255, .8); border: 1px solid rgba(255, 255, 255, .9);
+  -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); box-shadow: 0 12px 30px rgba(10, 50, 110, .16); }
+.speed-card figcaption { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
+.speed-card figcaption b code { font: 700 17px ui-monospace, "SF Mono", Menlo, monospace; color: var(--edge); }
+.speed-card figcaption span { font-size: 14px; color: #5A7299; }
+.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.bar-row { position: relative; display: grid; grid-template-columns: 112px 1fr 64px; align-items: center; gap: 10px; font-size: 14px; }
+.bar-name { font-weight: 600; color: #23406E; white-space: nowrap; }
+.bar-row.ours .bar-name { color: var(--edge); font-weight: 700; }
+.bar-track { height: 14px; }
+.bar { display: block; height: 100%; min-width: 3px; border-radius: 0 4px 4px 0; transition: filter .15s; }
+.bar-value { font: 600 13px ui-monospace, "SF Mono", Menlo, monospace; color: #23406E; white-space: nowrap; }
+/* Hover: the bar against C, in a small bubble above the value. */
+.bar-value small { position: absolute; right: 0; bottom: calc(100% + 4px); z-index: 2; padding: 4px 8px; border-radius: 8px; white-space: nowrap;
+  font: 600 12px ui-monospace, "SF Mono", Menlo, monospace; color: #fff; background: #0F2A5C; box-shadow: 0 6px 14px rgba(10, 50, 110, .25);
+  opacity: 0; transform: translateY(3px); pointer-events: none; transition: opacity .15s, transform .15s; }
+.bar-row:hover .bar { filter: brightness(1.12); }
+.bar-row:hover .bar-value small { opacity: 1; transform: none; }
+.speed-notes { width: 100%; margin-top: 14px; padding: 14px 18px; border-radius: 18px; color: #23406E; background: rgba(255, 255, 255, .8); font-size: 14.5px; line-height: 1.55; }
+.speed-notes p { margin: 0 0 8px; }
+.speed-notes p:last-child { margin: 0; color: #5A7299; }
+.speed-notes code { font: 600 .9em ui-monospace, "SF Mono", Menlo, monospace; padding: 1px 5px; border-radius: 5px; background: rgba(23, 87, 176, .1); color: var(--edge); }
+
+
 /* The top bar: a floating pill of frosted glass, the sky showing through (owner: "Glass"). */
 .pill { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 4px; max-width: calc(100% - 24px);
   opacity: var(--site-fade, 1);
