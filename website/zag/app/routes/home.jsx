@@ -170,7 +170,6 @@ const LINKS = [["Home", "/"], ["Download", "/download"], ["Docs", "/docs"], ["Ex
 function Pill({ here = "/" }) {
   return (
     <nav className="pill" aria-label="Site">
-      <a className="brand" href="/"><img src="/logo.svg" alt="Zag" width="45" height="34" /></a>
       <div className="links">
         {LINKS.map(([name, to]) => (
           <a key={to} className="link" href={to} aria-current={to === here ? "page" : undefined}>{name}</a>
