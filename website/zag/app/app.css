@@ -14,12 +14,9 @@
 }
 
 * { box-sizing: border-box; }
-/* No rubber-band bounce at the top or bottom of the page (owner, 2026-10-15). */
-html, body { margin: 0; overscroll-behavior: none; }
-/* Each scroll lands exactly on a screen: the sky, then Zomp (owner, 2026-10-15: "Each scroll should
-   be auto perfect in this area"). A screen taller than the window still scrolls freely inside. */
-html { scroll-snap-type: y mandatory; }
-.hero, .zomp { scroll-snap-align: start; scroll-snap-stop: always; }
+/* The document never scrolls, so there is nothing for Safari to rubber-band (owner, 2026-10-15).
+   The screens move inside .frame, one per gesture (home.jsx, usePager). */
+html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
 body { font-family: var(--sans); color: var(--ink); background: var(--sky-top); -webkit-font-smoothing: antialiased; }
 
 /* The backdrop stays put while the page scrolls over it: the sky, the storm fading in over it,
@@ -48,9 +45,12 @@ body { font-family: var(--sans); color: var(--ink); background: var(--sky-top); 
 @keyframes drift { from { transform: translateX(-110%); } to { transform: translateX(100vw); } }
 
 main { position: relative; z-index: 1; }
+.frame { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; }
+/* Each screen fills the window; one with more than fits scrolls inside. */
+.frame > section { height: 100svh; overflow-y: auto; overscroll-behavior: none; scrollbar-width: none; }
+.frame > section::-webkit-scrollbar { display: none; }
 
 .hero {
-  min-height: 100svh;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 24px 16px 12vh; text-align: center;
 }
@@ -65,8 +65,8 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 
 /* Zomp: arrives with a lightning strike once the storm is in. */
 .zomp {
-  position: relative; min-height: 100svh; max-width: 760px; margin: 0 auto;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: relative; max-width: 760px; margin: 0 auto;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; justify-content: safe center;
   padding: 18vh 16px 14vh; text-align: center;
 }
 .zomp h2 {
