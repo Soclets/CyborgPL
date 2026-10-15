@@ -13,14 +13,14 @@ export const CORE = [
     text: "Zag compiles to native code through LLVM." },
 ];
 
-// Home's examples (owner, 2026-10-15: "Next on Home, Examples", then "Replace two, except PhoneBook,
-// with a low-level one, and the biggest one"): real programs from examples/, each shown with the
-// output it really prints. The notes say only what the file itself shows.
+// Home's examples (owner, 2026-10-15: "Next on Home, Examples", then "Hello World (default selected),
+// C low-level + incl, and ASM low-level"): real programs from examples/, each shown with the output
+// it really prints. The notes say only what the file itself shows. The first is open at the start.
 export const HOME_EXAMPLES = [
-  { id: "low_level", title: "Low level",
-    note: "Raw memory from C through pointers, bits, a wrapping hash, SIMD, a C struct’s layout, and the OS through `write`, each unchecked step marked `no_check`." },
-  { id: "corner_shop", title: "Corner shop",
-    note: "The biggest example, {lines} lines: a day at a corner shop, from orders and receipts in exact decimals to the week’s report. Written to be read." },
-  { id: "phonebook", title: "Phone book",
-    note: "Maps, where a missing key is an answer, not a crash, and every argument after the first says its role: `key`, `value`." },
+  { id: "hello", title: "Hello, World",
+    note: "The whole program: a `MAIN`, and one print from `std`." },
+  { id: "c_headers", title: "C, through incl",
+    note: "C’s own headers, read while building: `incl.C.system` brings in `write`, `strlen` and the `#define` constants, with no hand-written `extern.C`. Every call into C is a `no_check` site." },
+  { id: "on_target", title: "Assembly",
+    note: "Inline assembly for one chip, `inline.ASM { neg rax }`, picked with `on.target` while compiling. These examples are built for aarch64-macos, so that x86 branch isn’t compiled at all." },
 ];
