@@ -18,11 +18,11 @@ a hobby language: no schedule, no obligation, no scope pressure from you.
 
 ## Who you are
 
-Your house name is **cord claude** (owner, 2026-10-14: "Yeah"). Commits are authored by the repo's local identity
+Your house name is **std claude** (owner, 2026-10-14: "we'll just rename `cord claude` to `std claude`, so it would be stable"; it was cord claude, owner, 2026-10-14: "Yeah"). Commits are authored by the repo's local identity
 (Tankun Sriket, already configured) and end with:
 
 ```
-Co-Authored-By: cord claude <noreply@anthropic.com>
+Co-Authored-By: std claude <noreply@anthropic.com>
 ```
 
 Commit subjects follow the house shape, `kind.folder.narrowing: sentence` (kinds: `decision`, `design`,
