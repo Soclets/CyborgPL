@@ -1,6 +1,6 @@
 # Nerve syntax grammar
 
-`nerve.tmLanguage.json` is a TextMate grammar for `.nrv` (and `.nrp`). The website uses
+`nerve.tmLanguage.json` is a TextMate grammar for Zag's `.zg` (and `.zv`; once Nerve's `.nrv` and `.nrp`). The website uses
 it to highlight every code sample; it also works in VS Code and anything else
 that reads TextMate grammars.
 
@@ -77,7 +77,7 @@ named `Shuffle` would be coloured as a type.
 
 ## Checking it
 
-`node website/grammar/audit.mjs` (with `website/site`'s packages installed) tokenises
+`node website/grammar/audit.mjs` (with `website/zag`'s packages installed) tokenises
 every program in `examples/` with the site's own highlighter. It prints every
 non-whitespace span left without a scope — there should be none — and, for each scope,
 every distinct word it was given, which is the list to read by hand for words in the
@@ -98,4 +98,8 @@ enums by their lowercase names (`color.BLUE`); `size.of[T]`; a struct built by i
 name (`buf[size = 42]`); and `case.any` / `case.exact` (`case.insensitive` / `case.sensitive`
 marked deprecated).
 
-Last run on 2026-10-12 against all 168 programs (`.nrv`): no unscoped spans.
+Last run on 2026-10-15 against all 174 programs (`.zg`): no unscoped spans, and no old spelling marked.
+Caught up then with 2026-10-14/15: `std::` is the standard library again (`cord::`, `stdkit::`, `cca::`, `kin::` are old),
+`pub.strike` (`pub.neuron`, `pub.limb` old), the symbols as spellings of the words (`+ - * / % == != <= >= ** & && ||`,
+`*const`/`*mut`/`*'p'`, `+=` and kin, `'i'++;`), `exactly`, `concat`, `str.empty`, the argument words (`key`, `part`, `at`,
+`between` beside `value`, `count`, `from`, `to`, `by`), and `level 2 { plus, minus } left_first`.

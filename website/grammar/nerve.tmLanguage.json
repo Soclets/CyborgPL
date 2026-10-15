@@ -4,6 +4,8 @@
   "displayName": "Nerve",
   "scopeName": "source.nerve",
   "fileTypes": [
+    "zv",
+    "zg",
     "nrv",
     "nrp"
   ],
@@ -58,6 +60,9 @@
     },
     {
       "include": "#bound"
+    },
+    {
+      "include": "#empty-value"
     },
     {
       "include": "#type"
@@ -597,6 +602,11 @@
     "keyword": {
       "patterns": [
         {
+          "comment": "`exactly 19.99`: an exact deci (2026-10-14), the word for the prefix `*`.",
+          "name": "keyword.other.exactly.nerve",
+          "match": "\\bexactly\\b"
+        },
+        {
           "comment": "Files included while building, each a const's value (2026-10-12): `incl.bytes[…]`, `incl.str.utf8[…]`, `incl.str.utf16.low_first[…]`; and C headers, through CNC: `incl.C.system[\"stdio.h\"]`, `incl.C[\"vendor/mylib.h\"]`.",
           "match": "\\b(incl)(\\.)(?:(C)(?:(\\.)(system))?\\b|(bytes)\\b|(str(?:\\.[a-z0-9_]+)*))",
           "captures": {
@@ -802,9 +812,9 @@
           "match": "\\b(?:give|copy|lend|lent)(?:\\.mut)?\\b"
         },
         {
-          "comment": "Loops and slices read as a sentence (2026-10-12): `for 'i' from 1 to 10 by 1`, `before 10`, `from pos 2, to pos 4`; bounds are labelled: `int32[min 0, max 100]`; and `list.fill[value 0, count 10]`.",
+          "comment": "Labels: a range's from/to/by/before/min/max/count, and the argument words (2026-10-14): value, key, part, at, between.",
           "name": "keyword.other.range.label.nerve",
-          "match": "\\b(?:from|before|by)\\b(?=\\s+[^\\s,\\]=:.])|\\bto\\b(?=\\s+[^\\s,\\]=:.])|(?<=\\[|,\\s)(?:value|count|min|max)\\b(?=\\s+[^\\s,\\]=:])"
+          "match": "\\b(?:from|before|by)\\b(?=\\s+[^\\s,\\]=:.])|\\bto\\b(?=\\s+[^\\s,\\]=:.])|(?<=\\[|,\\s)(?:value|count|min|max|key|part|at|between)\\b(?=\\s+[^\\s,\\]=:])"
         },
         {
           "comment": "`change` marks every assignment; `let` introduces a binding.",
@@ -824,7 +834,7 @@
         {
           "comment": "`&` and `&mut` are lend / lend.mut, and lent / lent.mut on a parameter.",
           "name": "keyword.other.ownership.nerve",
-          "match": "&(?:mut\\b)?"
+          "match": "(?<![&\\s]\\s)(?<!&)&(?!&)(?:mut\\b)?(?=['@(\\p{L}])|(?<!&)&mut\\b"
         },
         {
           "comment": "Failures in signatures, handled with `otherwise`.",
@@ -839,11 +849,11 @@
         {
           "comment": "`pub.limb` is `pub.neuron` since 2026-10-09: a library is a Neuron.",
           "name": "invalid.deprecated.nerve",
-          "match": "\\bpub\\.limb\\b"
+          "match": "\\bpub\\.(?:limb|neuron)\\b"
         },
         {
           "name": "keyword.declaration.nerve",
-          "match": "\\b(?:pub\\.neuron|let|fn|struct|enum|interface|module|limb|const|pub|op|extern|layout|inline|asm|ASM)\\b",
+          "match": "\\b(?:pub\\.strike|let|fn|struct|enum|interface|module|const|pub|op|extern|layout|inline|asm|ASM)\\b",
           "comment": "`pub.limb` is `pub` narrowed: visible across the limb."
         },
         {
@@ -886,8 +896,8 @@
           }
         },
         {
-          "comment": "Old Neuron paths: `stdkit::` and `std::` are `cord::` since 2026-10-09; `cca::` (the manifest's types) is `kin::`.",
-          "match": "\\b(stdkit|std|cca)(::)",
+          "comment": "Old prefixes (spellings.zv): cord and stdkit are std (2026-10-15, 2026-10-09); cca and kin are ricochet.",
+          "match": "\\b(stdkit|cord|cca|kin)(::)",
           "captures": {
             "1": {
               "name": "invalid.deprecated.nerve"
@@ -993,7 +1003,7 @@
         {
           "comment": "Arithmetic and comparison are words: `plus`, `equal_to`, `at_most` (2026-10-07). `.wrap` wraps, `.ieee` keeps IEEE's -0, div/mod name their rounding; `and.then` / `or.else` stop early.",
           "name": "keyword.operator.word.nerve",
-          "match": "\\b(?:and\\.then|or\\.else|(?:plus|minus|times|pow)(?:\\.wrap|\\.ieee)?|neg\\.ieee|(?:div|mod)\\.(?:floor|ceil|trunc|near)(?:\\.wrap|\\.ieee)?|equal_to|not_equal|at_most|at_least|and|or|not)\\b"
+          "match": "\\b(?:and\\.then|or\\.else|(?:plus|minus|times|pow)(?:\\.wrap|\\.ieee)?|neg\\.ieee|(?:div|mod)\\.(?:floor|ceil|trunc|near)(?:\\.wrap|\\.ieee)?|equal_to|not_equal|at_most|at_least|concat|and|or|not)\\b"
         },
         {
           "comment": "`$:=` / `$=` shadowed a name until 2026-10-08; it is `shadow 'x' := 2;` now.",
@@ -1021,6 +1031,43 @@
           "match": "<[!%&*+\\-/?@^|~]+>"
         },
         {
+          "comment": "`'i' += 1;` and the rest, and `'i'++;` / `'i'--;` as a whole statement (2026-10-14): spellings of `change`.",
+          "name": "keyword.operator.assignment.compound.nerve",
+          "match": "\\*\\*=|[+\\-*/%]=|(?:\\+\\+|--)(?=\\s*;)"
+        },
+        {
+          "comment": "`*const T`, `*mut T` (ptr[T], ptr.mut[T]) and `*'p'` (ptr.read), 2026-10-14.",
+          "match": "(\\*)(const|mut)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.operator.pointer.nerve"
+            },
+            "2": {
+              "name": "storage.modifier.nerve"
+            }
+          }
+        },
+        {
+          "name": "keyword.operator.pointer.nerve",
+          "match": "\\*(?=')",
+          "comment": "`*'p'` reads through a pointer, `change *'p' = v;` writes (2026-10-14); a times between values has spaces round it."
+        },
+        {
+          "comment": "`&&` and `||` are and.then and or.else; a spaced `&` is and (2026-10-14).",
+          "name": "keyword.operator.logical.nerve",
+          "match": "&&|\\|\\||(?<=\\s)&(?=\\s)"
+        },
+        {
+          "comment": "`==`, `!=`, `<=`, `>=` are equal_to, not_equal, at_most, at_least (2026-10-14).",
+          "name": "keyword.operator.comparison.nerve",
+          "match": "==|!=|<=|>="
+        },
+        {
+          "comment": "`**` is pow; `+`, `*`, `/`, `%` are plus, times, div.trunc, mod.trunc (2026-10-14).",
+          "name": "keyword.operator.arithmetic.nerve",
+          "match": "\\*\\*|(?<![!%&*+\\-/<>=?@^|~])[+*/%](?![!%&*+\\-/<>=?@^|~])"
+        },
+        {
           "comment": "++ joins text.",
           "name": "keyword.operator.join.nerve",
           "match": "\\+\\+"
@@ -1028,7 +1075,7 @@
         {
           "comment": "Retired 2026-10-07: `==`, `!==`, `</==`, `>/==` are `equal_to`, `not_equal`, `at_most`, `at_least`.",
           "name": "invalid.deprecated.nerve",
-          "match": "!==|</==|>/==|=="
+          "match": "!==|</==|>/=="
         },
         {
           "comment": "`<` and `>` stay glyphs; the rest of comparison is words (2026-10-07).",
@@ -1038,12 +1085,12 @@
         {
           "comment": "Retired spellings; `/` is now a named division and `<==` / `>==` are `</==` / `>/==`.",
           "name": "invalid.deprecated.nerve",
-          "match": "<==|>==|(?<![!%&*+\\-/<>=?@^|~])/(?![!%&*+\\-/<>=?@^|~])"
+          "match": "<==|>=="
         },
         {
           "comment": "Retired since 2026-10-03: `+` is `plus`, and `+~` / `-~` are `plus.wrap` / `minus.wrap`.",
           "name": "invalid.deprecated.nerve",
-          "match": "\\+~?|-~"
+          "match": "\\+~|-~"
         },
         {
           "comment": "A negative keeps the `-` sign; binary arithmetic uses words.",
@@ -1286,25 +1333,25 @@
           "include": "#comment"
         },
         {
-          "comment": "A level: how a chain of its operators reads, and its number.",
-          "match": "\\b(level)(\\.)(when_chained)(\\.)([a-z_]+)\\b",
+          "comment": "The old `level.when_chained.left_first 2` (spellings.zv).",
+          "name": "invalid.deprecated.nerve",
+          "match": "\\blevel\\.when_chained(?:\\.[a-z_]+)?\\b"
+        },
+        {
+          "match": "\\b(level)\\b",
           "captures": {
             "1": {
               "name": "keyword.other.precedence.nerve"
-            },
-            "2": {
-              "name": "punctuation.accessor.nerve"
-            },
-            "3": {
-              "name": "keyword.other.precedence.nerve"
-            },
-            "4": {
-              "name": "punctuation.accessor.nerve"
-            },
-            "5": {
-              "name": "keyword.other.precedence.nerve"
             }
           }
+        },
+        {
+          "name": "keyword.other.precedence.nerve",
+          "match": "\\b(?:left_first|right_first|refused)\\b"
+        },
+        {
+          "name": "punctuation.separator.comma.nerve",
+          "match": ","
         },
         {
           "include": "#number"
@@ -1375,6 +1422,21 @@
       "captures": {
         "1": {
           "name": "variable.language.register.nerve"
+        }
+      }
+    },
+    "empty-value": {
+      "comment": "An empty text, map or list (2026-10-14: `str.empty`, as `map.empty`).",
+      "match": "\\b(str|map|list)(\\.)(empty)\\b",
+      "captures": {
+        "1": {
+          "name": "support.type.nerve"
+        },
+        "2": {
+          "name": "punctuation.accessor.nerve"
+        },
+        "3": {
+          "name": "constant.language.empty.nerve"
         }
       }
     }
