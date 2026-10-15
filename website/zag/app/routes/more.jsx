@@ -133,14 +133,17 @@ export default function More() {
 
           <h3>Ideas taken from other languages</h3>
           <ul className="plain">
-            <li><b>Rust</b>: ownership and borrowing, lifetime groups (<code>'a</code> there, <code>@x</code> here), interfaces and <code>{"<T: Ordered>"}</code> bounds (Rust’s traits), diagnostics “helpful like Rust’s”, and <code>::</code> for stepping into another strike (Rust’s paths, which took it from C++).</li>
+            <li><b>Rust</b>: ownership and borrowing, lifetime groups (<code>'a</code> there, <code>@x</code> here), interfaces and <code>{"<T: Ordered>"}</code> bounds (Rust’s traits), diagnostics “helpful like Rust’s”, <code>::</code> for stepping into another strike (Rust’s paths, which took it from C++), and, as spellings of Zag’s words, <code>&amp;</code> and <code>&amp;mut</code> for <code>lend</code> and <code>lend.mut</code> (and <code>lent</code>, <code>lent.mut</code> on a parameter), <code>*const T</code> and <code>*mut T</code> for the pointer types.</li>
+            <li><b>C++</b>: <code>incl.C</code>, reading a C header, from <code>{"#include <>"}</code> (owner: “I wanna add C++’s <code>{"#include <>"}</code>”).</li>
+            <li><b>C</b>: <code>'i' += 1;</code> and <code>'i'++;</code> as spellings of <code>change 'i' = 'i' plus 1;</code>; with <b>Rust</b> and <b>Go</b>, <code>/</code> and <code>%</code> rounding toward zero (<code>div.trunc</code>, <code>mod.trunc</code>).</li>
+            <li><b>Python</b>: <code>**</code> for <code>pow</code>.</li>
             <li><b>Ada</b>: <code>and then</code> / <code>or else</code>, here <code>and.then</code> / <code>or.else</code>.</li>
             <li><b>Swift</b>, <b>Zig</b> and <b>C</b>: points of comparison in the SIMD, wrapping-arithmetic and enum decisions.</li>
             <li><b>IEEE 754</b>: <code>bin16</code>, <code>bin32</code> and <code>bin64</code> arithmetic and rounding.</li>
+            <li><b>Google Brain</b>: <code>brain16</code> is bfloat16, the 16-bit format from Google Brain.</li>
             <li><b>Lua</b>: the name <i>Lunae</i>.</li>
             <li><b>Kespar</b>, another of the owner’s languages: the prover’s design notes and its first provisional limits.</li>
             <li><b>Xag</b>, the owner’s C++ language: the reference for everything outside the prover, and the licence.</li>
-            <li><b>CyborgPL v1</b> (<a href="https://github.com/Artificial-IntelligenceAI/CyborgPL-legacy" {...out}>CyborgPL-legacy</a>): <code>x</code> and <code>xx</code>.</li>
           </ul>
           <p className="small">Copyright 2026 Tankun Sriket.</p>
         </section>
