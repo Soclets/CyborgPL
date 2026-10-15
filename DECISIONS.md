@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — Two downloads: ZDK (Zag Dev Kit) and ZCK (Zag Contribute Kit), both packaged (owner: a)
+
+The owner: "There would likely be two downloads, ZDK (Zag Dev Kit), and ZCK (Zag Contribute Kit)". Design
+claude sketched the contents (below, not ruled) and asked whether the ZCK is (a) a real download, packaged and
+versioned like the ZDK, or (b) the source repository itself with a setup script, recommended since
+contributing means editing the source. The owner: "(a)". So **Zag ships two downloads, the ZDK and the ZCK,
+both packaged and versioned**. `design/distribution.md` holds it, with the open questions.
+
 ### 2026-10-15 — Alive2 stays, beside RRx2-TV (owner)
 
 After check claude's per-function Alive2 runs on Zomp's no-inlining pair (`zomp build --emit-llvm-tv`; 56
