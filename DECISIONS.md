@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — The code moves to Zag's names in one sweep, later (owner: b)
+
+The owner: "Next thing we'll be doing is actually moving to Zag". Design claude listed the parts
+(file endings, `cord` to `std`, Synapse to Zomp, Kinesin to the package manager's name, Neuron to
+Cell, lobe to Coil, Broca, Axon, Brainstem, `nerve_version.nrp`, `spellings.nrp`) and offered
+(a) one part at a time, as Nerve's rename went, or (b) every part in one coordinated sweep: design
+claude first (oracle, examples, spellings, notes), then compiler claude (Synapse), std claude
+(cord) and check claude (its generator), other work paused until all is green; design claude
+recommended (b), one round of breakage instead of seven. The owner: "(b), but not yet. Kinda wanna
+change the PM's name". So **one sweep, not started**; the package manager's name (Zopm, 2026-10-14)
+is to be reopened first. Each old spelling becomes an old row in `spellings.zv` (design claude's
+reading, as Nerve's were).
+
 ### 2026-10-14 — `'i' += 1;` and `'i'++;` spell `change 'i' = 'i' plus 1;`, and `concat` joins text (owner: a, a)
 
 The owner, on `change 'x' = 'x' plus 1;` for `i++` (2026-09-14 had ruled "No `++` / `+=`
