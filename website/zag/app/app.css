@@ -265,6 +265,7 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 .swatch.ours-all, .bar-row.ours-all .bar { background: repeating-linear-gradient(135deg, #2F86F0 0 5px, #6FA9F2 5px 8px); }
 .swatch.other, .bar-row.other .bar { background: #868C94; }
 .speed-grid { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (min-width: 1000px) { .speed-grid.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .speed-grid.n3 .bar-row { grid-template-columns: 100px 1fr 60px; } }
 @media (max-width: 760px) { .speed-grid { grid-template-columns: minmax(0, 1fr); } }
 .speed-card { margin: 0; padding: 16px 18px 14px; border-radius: 20px; color: #0F2A5C; background: rgba(255, 255, 255, .8); border: 1px solid rgba(255, 255, 255, .9);
   -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); box-shadow: 0 12px 30px rgba(10, 50, 110, .16); }

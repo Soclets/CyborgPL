@@ -157,6 +157,9 @@ export const BENCH = {
     { id: "sum", what: "Adds up i × i mod 7 for 300 million numbers", times: { zag1: 0.092, c: 0.096, rust: 0.173, go: 0.143, zagN: 0.021 }, python: 16.433 },
     { id: "fib", what: "Recursive Fibonacci of 35: all function calls", times: { zag1: 0.016, c: 0.017, rust: 0.016, go: 0.023, zagN: 0.017 }, python: 0.516 },
     { id: "lists", what: "Appends 20 million numbers to a list, then sums it 10 times", times: { zag1: 0.040, c: 0.042, rust: 0.052, go: 0.105, zagN: 0.036 }, python: 8.788 },
-    { id: "sieve", what: "Counts the primes up to 100 million", times: { zag1: 0.394, c: 0.391, rust: 0.379, go: 0.362, zagN: 0.238 }, python: 9.141 },
   ],
+  // sieve is held back (design claude, 2026-10-15): in this run its final build failed on a proof
+  // regression in Zomp, and bench/run.py fell back to a working build with a bounds check in the hot
+  // loop. It comes back when RESULTS.md has the re-run after compiler claude's fix.
+  heldBack: "sieve",
 };
