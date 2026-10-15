@@ -1,4 +1,5 @@
-import { Link, useLoaderData } from "react-router";
+import { Link } from "react-router";
+import MORE from "../generated/more.json";
 import { useSiteSky } from "../sky.jsx";
 import { seo } from "../seo.js";
 
@@ -16,27 +17,7 @@ const CREDIT_LINES = [
 const out = { target: "_blank", rel: "noopener noreferrer" };
 
 // The full credits, as the README gives them (owner: "`more` should also have the full credit"). The
-// crate and package lists are read from the lockfiles when the site is built, so they can't go stale.
-export async function loader() {
-  const { readFileSync } = await import("node:fs");
-  const path = await import("node:path");
-  const read = (f) => readFileSync(path.resolve(f), "utf8");
-  // Every package in a package-lock.json, by name and version, once each.
-  const npm = (f) => {
-    const seen = new Set(), list = [];
-    for (const [key, pkg] of Object.entries(JSON.parse(read(f)).packages)) {
-      if (!key) continue;
-      const name = key.slice(key.lastIndexOf("node_modules/") + 13), id = `${name} ${pkg.version}`;
-      if (!seen.has(id)) { seen.add(id); list.push([name, pkg.version]); }
-    }
-    return list.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-  };
-  // The crates Zomp pulls in: the Cargo.lock entries with a source (its own have none).
-  const crates = read("../../zomp/Cargo.lock").split("[[package]]").slice(1)
-    .filter((b) => /^source = /m.test(b))
-    .map((b) => [b.match(/^name = "(.*)"/m)[1], b.match(/^version = "(.*)"/m)[1]]);
-  return { crates, site: npm("package-lock.json") };
-}
+// crate and package lists come from the lockfiles at build time (scripts/pre-build.mjs).
 
 // A long list of name and version pairs, run together as the README writes them.
 function Versions({ list }) {
@@ -52,7 +33,7 @@ function Versions({ list }) {
 
 export default function More() {
   useSiteSky();
-  const { crates, site } = useLoaderData();
+  const { crates, site } = MORE;
   return (
     <main className="page page-in">
       <div className="page-body">

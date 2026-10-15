@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "react-router dev",
-    "build": "react-router build && node scripts/post-build.mjs",
+    "dev": "node scripts/pre-build.mjs && react-router dev",
+    "build": "node scripts/pre-build.mjs && react-router build && node scripts/post-build.mjs",
     "preview": "wrangler dev",
     "deploy": "npm run build && wrangler deploy"
   },

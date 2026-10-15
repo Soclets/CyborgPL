@@ -394,3 +394,18 @@ html:has(main.frame):not(.moving) .pill { visibility: hidden; }
 @media (hover: none) and (pointer: coarse) {
   .card, .ex-card, .list-card, .built-table, .compare-card, .speed-card, .info { -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
+
+/* The loading screen (root.jsx): the sky without its clouds, the logo, and a bar that fills as the
+   site arrives. It shows only while <html> is .loading, which only a running script sets; the page
+   under it holds its own motion until it fades. If it is never taken away, it lets go at 10 s. */
+.loader { display: none; }
+html.loading .loader, html.loaded .loader { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px;
+  background: radial-gradient(60vmax 40vmax at 82% 8%, rgba(255, 255, 255, .28), transparent 60%), linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 52%, var(--sky-low) 100%); }
+html.loading .loader { animation: loader-give-up .5s ease 10s forwards; }
+html.loaded .loader { opacity: 0; visibility: hidden; transition: opacity .5s ease, visibility 0s .5s; }
+@keyframes loader-give-up { to { opacity: 0; visibility: hidden; } }
+.loader-logo { width: clamp(140px, 22vw, 196px); height: auto; animation: bob 2.4s ease-in-out infinite; filter: drop-shadow(0 12px 18px rgba(8, 40, 96, .28)); }
+.loader-bar { width: clamp(160px, 26vw, 240px); height: 6px; border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, .28); }
+.loader-bar span { display: block; height: 100%; border-radius: inherit; background: #fff; transform-origin: left; transition: transform .25s ease-out; }
+html.loading main, html.loading main * { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) { .loader-logo { animation: none; } }

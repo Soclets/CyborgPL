@@ -13,7 +13,7 @@ export default function NotFound() {
         <div className="lost-body">
           <h1>Nothing here, yet.</h1>
           <p>This page isn’t built, or it never was.</p>
-          <Link className="home-link" to="/" prefetch="render">Back to the sky</Link>
+          <Link className="home-link" to="/">Back to the sky</Link>
         </div>
       </main>
     </>

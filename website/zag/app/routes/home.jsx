@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useLoaderData } from "react-router";
+import { Link } from "react-router";
+// The examples, highlighted with the site's grammar at build time (scripts/pre-build.mjs).
+import HOME from "../generated/home.json";
 import { SITE_SCREEN } from "../sky.jsx";
 import { seo } from "../seo.js";
 import logo from "../logo.svg?url";
-import { BENCH, BUILT_WITH, COMPARED, COMPARISON, CONS, CORE, HOME_EXAMPLES, PROS } from "../content.js";
+import { BENCH, BUILT_WITH, COMPARED, COMPARISON, CONS, CORE, PROS } from "../content.js";
 import Icon from "../icons.jsx";
 import Md from "../md.jsx";
 import Dropdown from "../dropdown.jsx";
@@ -244,24 +246,6 @@ function useMotion(frame, zomp, site) {
   }, [frame, zomp, site]);
 }
 
-// At build time: each example's source, highlighted with the site's grammar, and its output.
-export async function loader() {
-  const { readFileSync } = await import("node:fs");
-  const path = await import("node:path");
-  const { createHighlighter } = await import("shiki");
-  const { ZAG_THEME } = await import("../zag-theme.js");
-  const grammar = JSON.parse(readFileSync(path.resolve("../grammar/nerve.tmLanguage.json"), "utf8"));
-  const hl = await createHighlighter({ themes: [ZAG_THEME], langs: [grammar] });
-  const dir = path.resolve("../../examples");
-  return {
-    examples: HOME_EXAMPLES.map((e) => {
-      const source = readFileSync(path.join(dir, `${e.id}.zg`), "utf8").replace(/\n$/, "");
-      const lines = source.split("\n").length;
-      return { ...e, note: e.note.replace("{lines}", String(lines)), file: `${e.id}.zg`, html: hl.codeToHtml(source, { lang: "nerve", theme: "zag-night" }), out: readFileSync(path.join(dir, `${e.id}.out`), "utf8").replace(/\n$/, "") };
-    }),
-  };
-}
-
 // The examples, one at a time behind tabs whose highlight slides as the pill's does: the code
 // full width, Zag's lines being long, and what it prints under it.
 function Examples({ examples }) {
@@ -302,7 +286,7 @@ function Examples({ examples }) {
           </figure>
         </div>
       </div>
-      <Link className="ex-all" to="/examples" prefetch="render">All examples</Link>
+      <Link className="ex-all" to="/examples">All examples</Link>
     </section>
   );
 }
@@ -402,7 +386,7 @@ function Speed() {
 }
 
 export default function Home() {
-  const { examples } = useLoaderData();
+  const { examples } = HOME;
   const frame = useRef(null), zomp = useRef(null), site = useRef(null);
   usePager(frame);
   useMotion(frame, zomp, site);
@@ -473,7 +457,7 @@ export default function Home() {
               </table>
             </section>
             {/* The licence, credits and trademarks live on More (owner: "Shouldn't that be for More?"). */}
-            <p className="home-end">The licence, credits and trademarks are on <Link to="/more" prefetch="render">More</Link>.</p>
+            <p className="home-end">The licence, credits and trademarks are on <Link to="/more">More</Link>.</p>
           </div>
         </section>
       </main>
