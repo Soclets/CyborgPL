@@ -108,10 +108,10 @@ def ts_build(src, d, b):
 LANGS = {
     "zag": (f"Zag (Zomp, final build, {os.environ.get('ZAG_BENCH_THREADS', os.environ.get('CYBORG_BENCH_THREADS', '3'))} threads)", None, "{b}.zg", zomp_build, lambda s, d, b: [os.path.join(d, b)]),
     "zag1": ("Zag (Zomp, final build, 1 thread)", None, "{b}.zg", zomp_build, lambda s, d, b: [os.path.join(d, b)]),
-    "c": ("C (clang -O2)", "clang", "{b}.c", native(lambda s, o: ["clang", "-O2", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
+    "c": ("C (clang -O3)", "clang", "{b}.c", native(lambda s, o: ["clang", "-O3", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "asm": ("Assembly (AArch64, hand-written)", "clang", "{b}.s", native(lambda s, o: ["clang", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
-    "cpp": ("C++ (clang++ -O2)", "clang++", "{b}.cpp", native(lambda s, o: ["clang++", "-O2", "-std=c++17", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
-    "rust": ("Rust (rustc -O)", "rustc", "{b}.rs", native(lambda s, o: ["rustc", "-C", "opt-level=3", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
+    "cpp": ("C++ (clang++ -O3)", "clang++", "{b}.cpp", native(lambda s, o: ["clang++", "-O3", "-std=c++17", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
+    "rust": ("Rust (rustc opt-level=3)", "rustc", "{b}.rs", native(lambda s, o: ["rustc", "-C", "opt-level=3", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "go": ("Go", "go", "{b}.go", native(lambda s, o: ["go", "build", "-o", o, s]), lambda s, d, b: [os.path.join(d, b)]),
     "zig": ("Zig (ReleaseFast)", "zig", "{b}.zig", native(lambda s, o: ["zig", "build-exe", "-O", "ReleaseFast", "-femit-bin=" + o, s]), lambda s, d, b: [os.path.join(d, b)]),
     "swift": ("Swift (-O)", "swiftc", "{b}.swift", native(lambda s, o: ["swiftc", "-O", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
