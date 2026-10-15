@@ -13,7 +13,7 @@ is recorded as a timeout.
     python3 run.py --quick           # tiny sizes, one run: does everything build and agree?
     SYNAPSE=/path/to/synapse LUST=/path/to/lust python3 run.py
 
-The results are written to RESULTS.md.
+The tables are written to latest.md; RESULTS.md is the dated history, kept by hand.
 """
 import os, platform, re, shutil, subprocess, sys, time
 
@@ -52,10 +52,18 @@ def native(cmd):
     return lambda src, d, b: sh(cmd(src, os.path.join(d, b)))
 
 
+# programs whose final build Zomp refused, so a working build (with run-time checks) was timed instead;
+# the tables say so (2026-10-15: sieve's silent fallback once passed as a final build)
+FELL_BACK = {}
+
+
 def synapse_build(src, d, b):
     out = os.path.join(d, b)
     r = subprocess.run([SYNAPSE, "build", "--final", src, "-o", out], capture_output=True, text=True)
     if r.returncode != 0:
+        why = next((l for l in (r.stderr or r.stdout).splitlines() if l.strip()), "refused")
+        FELL_BACK[b] = why
+        print(f"WARNING: Zomp's final build refused {b}: {why}; timing a WORKING build instead", file=sys.stderr, flush=True)
         sh([SYNAPSE, "build", src, "-o", out])
 
 
@@ -207,14 +215,17 @@ def write_results(keys, missing, results):
             t, status = results.get((key, name), (None, "not run"))
             if isinstance(t, float) and status == "ok":
                 rel = f"{t / base:.2f}×" if isinstance(base, float) else "—"
-                rows.append((t, f"| {LANGS[key][0]} | {t:.3f} s | {rel} |"))
+                label = LANGS[key][0]
+                if key.startswith("zag") and name in FELL_BACK:
+                    label = label.replace("final build", "**working build**: the final build was refused") 
+                rows.append((t, f"| {label} | {t:.3f} s | {rel} |"))
             else:
                 why = "timeout" if status == "ok" or t is None and status.startswith("answer timeout") else status
                 rows.append((float("inf"), f"| {LANGS[key][0]} | {why} | — |"))
         lines += [r for _, r in sorted(rows, key=lambda x: x[0])] + [""]
     if missing:
         lines += ["Not installed, so not run: " + ", ".join(LANGS[k][0] for k in missing) + ".", ""]
-    with open(os.path.join(HERE, "RESULTS.md"), "w") as f:
+    with open(os.path.join(HERE, "latest.md"), "w") as f:
         f.write("\n".join(lines))
 
 

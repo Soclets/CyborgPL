@@ -18,17 +18,19 @@ programs in today's syntax (`.zg`, `std::`).
 
   | | sum | fib | lists | sieve |
   |---|---|---|---|---|
-  | C (clang -O2) | 1.04× | 1.06× | 1.05× | 0.99× |
-  | Rust (rustc -O) | 1.88× | 1.00× | 1.30× | 0.96× |
-  | Go | 1.55× | 1.44× | 2.62× | 0.92× |
-  | Python | 178.62× | 32.25× | 219.70× | 23.20× |
+  | C (clang -O2) | 1.04× | 1.06× | 1.05× | (0.99×, working build) |
+  | Rust (rustc -O) | 1.88× | 1.00× | 1.30× | (0.96×, working build) |
+  | Go | 1.55× | 1.44× | 2.62× | (0.92×, working build) |
+  | Python | 178.62× | 32.25× | 219.70× | (23.20×, working build) |
 
-  So Zag ties C on all four (within run-to-run noise, which on sieve spreads more than the 1% between them), beats
-  Rust on sum and lists and ties it on fib, beats Go on three. **On sieve, single-threaded Zag is the slowest of
-  the compiled four**: Go is 8% faster, Rust 4%, C 1%; on 2026-10-12 it was 0.373 s to Rust's 0.370. Sieve's time
-  is memory, and its runs spread widely (2026-10-13: 0.38 to 0.44 s), so this is within noise of a tie with C, but
-  Go's lead holds across runs.
-- With 10 threads, Zag spreads sieve over the cores too (0.238 s, 1.66× its single thread).
+  So Zag ties C on sum, fib and lists, beats Rust on sum and lists and ties it on fib, and beats Go on all three.
+- **Correction, the same day: the sieve rows are not a final build.** Asked by the owner why Zag was slower on
+  sieve, design claude found Zomp at `ab80b214` refuses sieve's final build ("the position can be past the end",
+  the inner loop's `change 'comp'[pos to.uint64['m' plus 1]] = true;`; 21 of 22 sites proven), and `run.py`
+  then timed the working build without saying so: a bounds check on every write in the hot loop. On 2026-10-12
+  the same program proved fully and tied C (0.373 s against 0.370). A prover regression, sent to compiler claude;
+  sieve will be re-run when it proves again. `run.py` now says loudly when it falls back, labels the row, and
+  writes its tables to `latest.md` instead of over this file. Sum, fib and lists were final builds.
 
 ### sum (N = 300,000,000)
 
@@ -67,11 +69,11 @@ programs in today's syntax (`.zg`, `std::`).
 
 | Language | Time | vs Zag |
 |---|---|---|
-| Zag (Zomp, final build, 10 threads) | 0.238 s | 1.00× |
+| Zag (Zomp, **working build**: the final build was refused, 10 threads) | 0.238 s | 1.00× |
 | Go | 0.362 s | 1.52× |
 | Rust (rustc -O) | 0.379 s | 1.59× |
 | C (clang -O2) | 0.391 s | 1.64× |
-| Zag (Zomp, final build, 1 thread) | 0.394 s | 1.65× |
+| Zag (Zomp, **working build**: the final build was refused, 1 thread) | 0.394 s | 1.65× |
 | Python (CPython) | 9.141 s | 38.36× |
 
 ## 2026-10-13: Nerve against LuaJIT
