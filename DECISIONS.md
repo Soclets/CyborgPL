@@ -5,6 +5,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — `zomp prove` (owner: yea), and Alive2 tried as installed on Zomp's own pipeline (owner: c)
+
+**`zomp prove`.** The command that runs only the prover and reports what it proved was `synapse
+cortex`; with the prover nameless, compiler claude renamed it `zomp prove` in the sweep, `cortex`
+refused naming it. Asked to keep it, the owner: "yea".
+
+**Alive2.** The owner asked what translation validator runs now: LLVM's half is RRx2-TV (owner,
+2026-10-02: "We have RRx2 to replace Alive2"), idle since 2026-10-02 and still set up for CCA;
+Zag's half is check claude's own. Then "Can we use Alive2?" (installed, `check tv` kept for the
+record; Homebrew's is Alive2 21.0 built against LLVM 23.1.1, while Zomp is LLVM 22 through Inkwell
+0.10, whose newest release supports nothing past 22.1, so Zomp cannot move to 23 yet; Alive2's last
+release is v21.0, 2025-08-12, with none for 22 or 23). Offered (a) build Alive2 for LLVM 22 from a
+main-branch commit (possibly LLVM 22 from source too), or (c) try the installed one on Zomp's own
+pipeline, `before.ll` against `after.ll`, which LLVM 23 can likely read, recommended by design
+claude; the owner: "(c)". So **check claude tries the installed Alive2 on Zomp's `before.ll` /
+`after.ll`**, skipping the per-function check (it would test LLVM 23's optimiser, not Zomp's).
+Still open: whether Alive2 is a stopgap until RRx2-TV covers Zomp, or kept beside it.
+
 ### 2026-10-15 — No `ricochet` / `rico` command yet; preparing stays `zomp prepare` (owner: b)
 
 Compiler claude asked whether Ricochet gets its own binary now. Today the package manager is built
