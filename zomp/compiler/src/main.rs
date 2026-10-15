@@ -56,7 +56,7 @@ fn real_main() {
         // 2026-09-24): what a lock file will carry, in one place.
         "version" => {
             let (a, b, c) = unicode_segmentation::UNICODE_VERSION;
-            println!("synapse {}", env!("CARGO_PKG_VERSION"));
+            println!("zomp {}", env!("CARGO_PKG_VERSION"));
             println!("unicode {}.{}.{}", a, b, c);
         }
         // A collection's templates (owner, 2026-10-13): their members are

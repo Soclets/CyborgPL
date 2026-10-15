@@ -393,12 +393,15 @@ pub struct Input {
 /// Build the exact question for one site: *can any input reach here with a
 /// value this instruction cannot take?*
 pub fn encode(p: &Program, f: usize, site: SiteId, facts: &crate::cortex::Facts) -> Option<Query> {
-    encode_opts(p, f, site, facts, true)
+    encode_opts(p, f, site, facts, true, false)
 }
 
 /// `encode`, saying whether the landings walked before the site may be
-/// assumed to have passed.
-pub fn encode_opts(p: &Program, f: usize, site: SiteId, facts: &crate::cortex::Facts, assume: bool) -> Option<Query> {
+/// assumed to have passed, and whether a counting loop's counter may be
+/// assumed to stay on its side of its first value. The second is asked
+/// only when a question without it was not proved: it is true, and it
+/// makes some questions too heavy to answer (bench/sieve's nested loops).
+pub fn encode_opts(p: &Program, f: usize, site: SiteId, facts: &crate::cortex::Facts, assume: bool, counted: bool) -> Option<Query> {
     let mut aliased = std::collections::HashSet::new();
     for b in &p.functions[f].blocks {
         for s in &b.stmts {
@@ -408,7 +411,7 @@ pub fn encode_opts(p: &Program, f: usize, site: SiteId, facts: &crate::cortex::F
         }
     }
     let borrows = shared_borrows(&p.functions[f]);
-    let mut e = Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows, entries: HashMap::new(), assume, assumed: false, reach: Vec::new() };
+    let mut e = Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows, entries: HashMap::new(), assume, counted, assumed: false, reach: Vec::new() };
     e.build(site)?;
     if e.reached.is_empty() || e.unexpressible {
         return None;
@@ -477,6 +480,7 @@ struct Enc<'a> {
     /// Whether a landing walked before the site may be assumed to have
     /// passed, and whether one was.
     assume: bool,
+    counted: bool,
     assumed: bool,
     /// One term per copy of the site: it is reached, whatever the value.
     reach: Vec<String>,
@@ -1174,6 +1178,9 @@ impl<'a> Enc<'a> {
     /// minus 'pos' plus 1]` in `for 'k' from 'pos' to …` was given a `'k'`
     /// below `'pos'`).
     fn assume_counted(&mut self, env: &mut Env, head: usize, written: &std::collections::HashSet<LocalId>) {
+        if !self.counted {
+            return;
+        }
         let fors: Vec<_> = self.func().fors.iter().filter(|fl| fl.head.0 as usize == head).cloned().collect();
         for fl in fors {
             let (Some(start), Some(step)) = (fl.start.as_ref(), fl.step) else { continue };
@@ -1184,6 +1191,9 @@ impl<'a> Enc<'a> {
             let w = 130;
             let (k, first, by) = (self.resize(k, w, true), self.resize(first, w, true), self.resize(by, w, true));
             self.defs.push(format!("(assert (and (=> (bvsge {by} (_ bv0 {w})) (bvsge {k} {first})) (=> (bvslt {by} (_ bv0 {w})) (bvsle {k} {first}))))", by = by.term, k = k.term, first = first.term, w = w));
+            // An assumption like the landings: a proof leaning on it is
+            // checked for a site that can still be reached.
+            self.assumed = true;
         }
     }
 

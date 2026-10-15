@@ -266,12 +266,25 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
                 continue;
             }
             let (mut answer, mut each) = portfolio.ask(&q);
+            // Not proved: asked again with what a counting loop's counter
+            // never does, if the function has one and it changes the
+            // question. That answer is the better informed one, whichever
+            // it is: a way found without it may be a trip no loop takes.
+            let mut q = q;
+            if !matches!(answer, smt::Answer::Unsat) && p.functions[r.function].fors.iter().any(|fl| fl.start.is_some()) {
+                if let Some(counted) = smt::encode_opts(p, r.function, r.site, &facts, true, true) {
+                    if counted.text != q.text && counted.text.len() <= smt::QUERY_CAP {
+                        (answer, each) = portfolio.ask(&counted);
+                        q = counted;
+                    }
+                }
+            }
             // A proof that leaned on the landings before the site holds only
             // if the site can still be reached with them; if it cannot, the
             // assumptions were never all true together, and the site is
             // asked again without them (check claude, 2026-10-15).
             if matches!(answer, smt::Answer::Unsat) && q.assumed && !matches!(portfolio.ask_text(&q.reach), smt::Answer::Sat(_)) {
-                match smt::encode_opts(p, r.function, r.site, &facts, false) {
+                match smt::encode_opts(p, r.function, r.site, &facts, false, false) {
                     Some(bare) if bare.text.len() <= smt::QUERY_CAP => (answer, each) = portfolio.ask(&bare),
                     _ => {
                         r.note = "layer 3's question leaned on an assumption that cannot hold, and could not be asked without it".into();
