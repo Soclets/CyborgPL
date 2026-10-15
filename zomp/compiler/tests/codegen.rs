@@ -188,56 +188,56 @@ fn tests_run_and_report() {
     }
 }
 
-/// A Limb with a `path` dependency (owner, 2026-09-29): `areas::…` reaches
+/// A strike with a `path` dependency (owner, 2026-09-29): `areas::…` reaches
 /// its `pub` items, types, consts and modules, and the program runs; a
 /// cycle, and a dependency whose own `Kinesin.nrp` gives another name, are
 /// refused.
 #[test]
-fn limbs_reach_their_dependencies() {
+fn strikes_reach_their_dependencies() {
     assert!(runtime().is_some(), "the runtime is not built");
-    let limbs = dir().parent().unwrap().join("limbs");
-    // `uses_areas` reaches examples/limbs/areas, which `uses_a_limb` uses.
-    if !example_pending("uses_a_limb") {
-        let r = Command::new(cca()).arg("run").arg(limbs.join("uses_areas")).output().unwrap();
+    let strikes = dir().parent().unwrap().join("strikes");
+    // `uses_areas` reaches examples/strikes/areas, which `uses_a_strike` uses.
+    if !example_pending("uses_a_strike") {
+        let r = Command::new(cca()).arg("run").arg(strikes.join("uses_areas")).output().unwrap();
         assert_eq!(r.status.code(), Some(31), "uses_areas did not run to 31:\n{}", String::from_utf8_lossy(&r.stderr));
     }
-    // A dependency's MAIN runs when that Limb is run itself, and is left
+    // A dependency's MAIN runs when that strike is run itself, and is left
     // out when another uses it (owner, 2026-09-29: a).
     for (name, code) in [("uses_runnable", 8), ("runnable", 99), ("uses_area_ops", 49), ("bare_root", 7), ("uses_shout", 131), ("uses_bare_dep", 8)] {
-        let r = Command::new(cca()).arg("run").arg(limbs.join(name)).output().unwrap();
+        let r = Command::new(cca()).arg("run").arg(strikes.join(name)).output().unwrap();
         assert_eq!(r.status.code(), Some(code), "{} did not run to {}:\n{}", name, code, String::from_utf8_lossy(&r.stderr));
     }
     // A lone target saying `default = false` leaves no default (owner,
     // 2026-09-30): checking is fine, a build with no `--target` is
     // refused, and one naming it builds.
-    let r = Command::new(cca()).arg("check").arg(limbs.join("no_default")).output().unwrap();
-    assert!(r.status.success(), "checking a Limb with no default target was refused:\n{}", String::from_utf8_lossy(&r.stderr));
-    let r = Command::new(cca()).arg("run").arg(limbs.join("no_default")).output().unwrap();
-    assert!(r.status.code() == Some(1) && String::from_utf8_lossy(&r.stderr).contains("has no default target"), "a build of a Limb with no default target and no `--target` was not refused:\n{}", String::from_utf8_lossy(&r.stderr));
-    let r = Command::new(cca()).arg("run").arg("--target").arg("aarch64-macos").arg(limbs.join("no_default")).output().unwrap();
+    let r = Command::new(cca()).arg("check").arg(strikes.join("no_default")).output().unwrap();
+    assert!(r.status.success(), "checking a strike with no default target was refused:\n{}", String::from_utf8_lossy(&r.stderr));
+    let r = Command::new(cca()).arg("run").arg(strikes.join("no_default")).output().unwrap();
+    assert!(r.status.code() == Some(1) && String::from_utf8_lossy(&r.stderr).contains("has no default target"), "a build of a strike with no default target and no `--target` was not refused:\n{}", String::from_utf8_lossy(&r.stderr));
+    let r = Command::new(cca()).arg("run").arg("--target").arg("aarch64-macos").arg(strikes.join("no_default")).output().unwrap();
     assert_eq!(r.status.code(), Some(5), "`--target aarch64-macos` did not build and run it:\n{}", String::from_utf8_lossy(&r.stderr));
-    let r = Command::new(cca()).arg("run").arg("--target").arg("x86_64-linux").arg(limbs.join("no_default")).output().unwrap();
-    assert!(!r.status.success() && String::from_utf8_lossy(&r.stderr).contains("is not one of this strike's targets"), "a target the Limb does not list was built:\n{}", String::from_utf8_lossy(&r.stderr));
+    let r = Command::new(cca()).arg("run").arg("--target").arg("x86_64-linux").arg(strikes.join("no_default")).output().unwrap();
+    assert!(!r.status.success() && String::from_utf8_lossy(&r.stderr).contains("is not one of this strike's targets"), "a target the strike does not list was built:\n{}", String::from_utf8_lossy(&r.stderr));
     // A version may be any text of at most 256 bytes (owner, 2026-09-29).
-    let r = Command::new(cca()).arg("check").arg(limbs.join("long_version")).output().unwrap();
+    let r = Command::new(cca()).arg("check").arg(strikes.join("long_version")).output().unwrap();
     assert!(r.status.success(), "a 256-byte version was refused:\n{}", String::from_utf8_lossy(&r.stderr));
     for (name, says) in [("cycle_a", "go round in a circle: cycle_a → cycle_b → cycle_a")] {
-        let r = Command::new(cca()).arg("check").arg(limbs.join(name)).output().unwrap();
+        let r = Command::new(cca()).arg("check").arg(strikes.join(name)).output().unwrap();
         let err = String::from_utf8_lossy(&r.stderr);
         assert!(!r.status.success() && err.contains(says), "{} was not refused as it should be:\n{}", name, err);
     }
 }
 
 /// `cca prepare` (owner, 2026-09-29, 2026-09-30): the current folder's
-/// Limb; names are Limbs' `name`s, comma-separated with or without a space,
+/// strike; names are strikes' `name`s, comma-separated with or without a space,
 /// run in the order given; a shared name is refused and `--prefix` picks; `--all` runs dependencies first, each once, and stops
 /// at the first that fails. Each build.nrv stops with 9 unless it runs in
-/// its own Limb's folder.
+/// its own strike's folder.
 #[test]
 fn prepare_runs_build_scripts_in_their_folders() {
     assert!(runtime().is_some(), "the runtime is not built");
-    let limbs = dir().parent().unwrap().join("limbs");
-    let prep = |at: &str, words: &[&str]| Command::new(cca()).arg("prepare").args(words).current_dir(limbs.join(at)).output().unwrap();
+    let strikes = dir().parent().unwrap().join("strikes");
+    let prep = |at: &str, words: &[&str]| Command::new(cca()).arg("prepare").args(words).current_dir(strikes.join(at)).output().unwrap();
     let said = |r: &std::process::Output| String::from_utf8_lossy(&r.stdout).lines().filter(|l| !l.starts_with("prepare:")).collect::<Vec<_>>().join(" ");
     for (words, want) in [(&["--all"][..], "money geometry app"), (&["geometry,", "money"][..], "geometry money"), (&["geometry,money"][..], "geometry money"), (&["money,", "money"][..], "money"), (&["app"][..], "app")] {
         let r = prep("prep_app", words);
@@ -254,9 +254,9 @@ fn prepare_runs_build_scripts_in_their_folders() {
         let r = prep("prep_shared", words);
         assert!(r.status.success() && said(&r) == want, "`cca prepare {}` ran `{}`, not `{}`:\n{}", words.join(" "), said(&r), want, String::from_utf8_lossy(&r.stderr));
     }
-    // A word with a `/` is a folder (owner, 2026-09-30): the Limb there,
+    // A word with a `/` is a folder (owner, 2026-09-30): the strike there,
     // from anywhere.
-    // `.` and `..` are folders too, since no Limb is named that (owner,
+    // `.` and `..` are folders too, since no strike is named that (owner,
     // 2026-09-30).
     let r = prep("prep_app", &[".", "geometry"]);
     assert!(r.status.success() && said(&r) == "geometry", "`cca prepare . geometry` ran `{}`:\n{}", said(&r), String::from_utf8_lossy(&r.stderr));
@@ -695,16 +695,16 @@ fn generate_writes_what_the_oracle_wrote() {
 #[test]
 fn listing_the_nerve_cord_takes_over_cord() {
     assert!(runtime().is_some(), "the runtime is not built");
-    let limbs = dir().parent().unwrap().join("limbs");
-    let r = Command::new(cca()).arg("run").arg(limbs.join("uses_nerve_cord")).output().unwrap();
+    let strikes = dir().parent().unwrap().join("strikes");
+    let r = Command::new(cca()).arg("run").arg(strikes.join("uses_nerve_cord")).output().unwrap();
     assert_eq!((r.status.code(), String::from_utf8_lossy(&r.stdout).as_ref()), (Some(0), "8 10 12 6\nhi!\n"), "the Zag std did not take over:\n{}", String::from_utf8_lossy(&r.stderr));
     // `synapse build .` names the program after its folder (cord claude:
     // it panicked on `.`).
     let out = std::env::temp_dir().join("cca-build-dot");
-    let r = Command::new(cca()).arg("build").arg(".").arg("-o").arg(&out).current_dir(limbs.join("uses_nerve_cord")).output().unwrap();
+    let r = Command::new(cca()).arg("build").arg(".").arg("-o").arg(&out).current_dir(strikes.join("uses_nerve_cord")).output().unwrap();
     assert!(r.status.success(), "`zomp build .` failed:\n{}", String::from_utf8_lossy(&r.stderr));
     for (name, says) in [("cord_wrong_prefix", "the Zag std's prefix is `std`"), ("two_cords", "a program has one std")] {
-        let r = Command::new(cca()).arg("check").arg(limbs.join(name)).output().unwrap();
+        let r = Command::new(cca()).arg("check").arg(strikes.join(name)).output().unwrap();
         let err = String::from_utf8_lossy(&r.stderr);
         assert!(!r.status.success() && err.contains(says), "{} was not refused as it should be:\n{}", name, err);
     }

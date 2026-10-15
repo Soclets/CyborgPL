@@ -451,7 +451,7 @@ lifetime_wrong_group [fnv:b39bbc2e457836dc] :: `wrong` returns a borrow of 'b', 
 limb_bad_id [fnv:f04176e7cf7d5fef] :: `id` is 64 hex digits
 limb_dep_names_word [fnv:4e354bca24585094] :: a dependency names no word
 limb_prefix_clash [fnv:920cbf3b6dd0b623] :: two strikes have the prefix `areas`
-limb_prefix_std [fnv:a61ef9642d899fa3] :: has the prefix `std`, which names the built-in `std::`
+limb_prefix_std [fnv:aa626335347f697b] :: has the prefix `std`, which names the built-in `std::`
 limb_private [fnv:77a70983b610d2e1] :: is not `pub`, and another strike reaches only `pub` items
 limb_pub_limb [fnv:77a70983b610d2e1] :: is not `pub`, and another strike reaches only `pub` items
 limb_registry_needs_id [fnv:b0d86bac07abaf09] :: which knows a strike by its ID

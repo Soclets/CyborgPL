@@ -126,8 +126,8 @@ fn targets(dir: &Path) -> Vec<PathBuf> {
         // A folder is a program when it holds Nerve source or a manifest;
         // one of files a test reads (`incl_assets/`) is not.
         .filter(|p| p.extension().map(|x| x == "zg").unwrap_or(false) || (p.is_dir() && std::fs::read_dir(p).map(|rd| rd.filter_map(|e| e.ok()).any(|e| e.path().extension().is_some_and(|x| x == "zg" || x == "zv" || x == "nrv" || x == "nrp"))).unwrap_or(false)))
-        // A folder that only holds Limbs used as dependencies
-        // (`examples/limbs/`) is not a program of its own.
+        // A folder that only holds strikes used as dependencies
+        // (`examples/strikes/`) is not a program of its own.
         .filter(|p| !(p.is_dir() && !p.join("strike.zg").is_file() && std::fs::read_dir(p).map(|rd| rd.filter_map(|e| e.ok()).any(|e| e.path().join("strike.zg").is_file())).unwrap_or(false)))
         .collect();
     v.sort();
