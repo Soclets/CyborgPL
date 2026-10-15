@@ -82,7 +82,7 @@ renamed `frozen-old`, push disabled): never push there. Older still,
 The Zag names (DECISIONS.md, 2026-10-14): code ends **`.zg`**, a one-value file
 **`.zv`**; the compiler is **Zomp** (`zomp`), the prover built into it with no name
 of its own (was Synapse and Cortex); the package manager **Ricochet** ("Zag Ricochet", 2026-10-15; was Kinesin, and briefly Zopm),
-its command and manifest not yet named; the runtime is
+command `ricochet` / `rico`, manifest `Ricochet.zv` with `ricochet::`; the runtime is
 just the runtime (was Axon); the base **Ground** (was Brainstem); a library a
 **Cell**, root `cell.zg`, `pub.cell` (was Neuron); a compiler extension a **Coil**
 (was lobe); the standard library **`std`** (was `cord`); the Unicode coil

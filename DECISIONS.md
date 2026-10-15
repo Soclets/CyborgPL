@@ -11,8 +11,12 @@ The owner, deciding the code rename's order: "Kinda wanna change the PM's name",
 zpm". Design claude found `zpm` is one of Zig's community package indexes (beside zig.pm and
 zigistry), in the search results Zag already shares with Zig, and asked whether to keep it. The
 owner: "Ricochet (Zag Ricochet) is the PM. And yes, I know COD's anti-cheat is Ricochet." So **the
-package manager is Ricochet**, "Zag Ricochet" in full; Zopm (2026-10-14) is dropped. Not yet asked:
-its command, the manifest's name and its prefix (Zopm's were `Zopm.zv` and `zopm::`).
+package manager is Ricochet**, "Zag Ricochet" in full; Zopm (2026-10-14) is dropped. Then the command and
+manifest: offered (a) `ricochet` with `rico` as a short form, manifest `Ricochet.zv`, prefix
+`rico::`, recommended, (b) `ricochet` everywhere, (c) `rico` everywhere; the owner: "(a), full in
+code too". So **the command is `ricochet`, with `rico` as its short form; the manifest is
+`Ricochet.zv`; and in code the prefix is the full `ricochet::`** (`coils = [ricochet::coil[unicode]]`),
+not `rico::`.
 
 The owner also floated "we could also rename cell to lib, and coil to zmod"; design claude noted
 `zmod` sits beside zigmod, a known Zig package manager. Open, asked one at a time.
