@@ -134,11 +134,11 @@ export function Pill() {
   return (
     <nav className="pill" aria-label="Site">
       {/* The logo goes to the start of the intro, the first screen (owner, 2026-10-15). */}
-      <Link className="brand" to="/" aria-label="Zag, from the start"><img src={logo} alt="" width="45" height="34" /></Link>
+      <Link className="brand" to="/" prefetch="render" aria-label="Zag, from the start"><img src={logo} alt="" width="45" height="34" /></Link>
       <div className="links" ref={links}>
         <span className="thumb" ref={thumb} aria-hidden="true" />
         {LINKS.map(([name, to]) => (
-          <Link key={to} className="link" to={to} aria-current={to === here ? "page" : undefined}>{name}</Link>
+          <Link key={to} className="link" to={to} prefetch="render" aria-current={to === here ? "page" : undefined}>{name}</Link>
         ))}
       </div>
     </nav>

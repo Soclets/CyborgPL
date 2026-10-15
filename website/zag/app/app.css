@@ -387,3 +387,10 @@ html:has(main.frame):not(.moving) .pill { visibility: hidden; }
   .compare-table tbody th { grid-column: 1 / -1; position: static; width: auto; padding: 12px 14px 4px; border-bottom: 0; background: rgba(246, 250, 255, .96); }
   .compare-table th, .compare-table td { padding: 8px 12px 12px; font-size: 14px; }
 }
+
+/* No frosted glass on the cards on phones and tablets (owner, 2026-10-15: "no frost cards on mobile
+   only"): each card re-blurs the moving clouds behind it every frame, which a phone feels. The
+   cards keep their milky white; the pill, the tabs and the dropdowns stay glass. */
+@media (hover: none) and (pointer: coarse) {
+  .card, .ex-card, .list-card, .built-table, .compare-card, .speed-card, .info { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}

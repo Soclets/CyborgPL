@@ -302,7 +302,7 @@ function Examples({ examples }) {
           </figure>
         </div>
       </div>
-      <Link className="ex-all" to="/examples">All examples</Link>
+      <Link className="ex-all" to="/examples" prefetch="render">All examples</Link>
     </section>
   );
 }
@@ -473,7 +473,7 @@ export default function Home() {
               </table>
             </section>
             {/* The licence, credits and trademarks live on More (owner: "Shouldn't that be for More?"). */}
-            <p className="home-end">The licence, credits and trademarks are on <Link to="/more">More</Link>.</p>
+            <p className="home-end">The licence, credits and trademarks are on <Link to="/more" prefetch="render">More</Link>.</p>
           </div>
         </section>
       </main>
