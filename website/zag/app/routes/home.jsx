@@ -307,6 +307,57 @@ function Examples({ examples }) {
   );
 }
 
+// The comparison, as a picker (owner, 2026-10-15: "I want more of a picker"): chips for every
+// language, and the table shows the ones picked, up to three, in the chips' order. Picking a fourth
+// lets go of the oldest pick. It opens on Zag, Rust and Zig.
+const MAX_PICKED = 3;
+function Compare() {
+  const [picked, setPicked] = useState(["zag", "rust", "zig"]);
+  const toggle = (id) => setPicked((p) => p.includes(id)
+    ? (p.length > 1 ? p.filter((x) => x !== id) : p)
+    : [...(p.length >= MAX_PICKED ? p.slice(1) : p), id]);
+  const shown = COMPARED.filter((l) => picked.includes(l.id));
+  return (
+    <section className="compare" aria-labelledby="compare-title">
+      <h3 id="compare-title">Zag beside other languages</h3>
+      <p className="compare-hint">Pick up to three.</p>
+      <div className="compare-chips" role="group" aria-label="Languages to compare">
+        {COMPARED.map((l) => (
+          <button key={l.id} type="button" className="compare-chip" aria-pressed={picked.includes(l.id)} onClick={() => toggle(l.id)}>
+            {l.name}
+          </button>
+        ))}
+      </div>
+      <div className="compare-card">
+        <div className="compare-scroll">
+          <table className="compare-table" style={{ "--cols": shown.length }}>
+            <thead>
+              <tr>
+                <th scope="col"><span className="sr-only">Topic</span></th>
+                {shown.map((l) => (
+                  <th key={l.id} scope="col" className={l.id === "zag" ? "ours" : undefined}>
+                    <b>{l.name}</b>
+                    <small>{l.url ? <a href={l.url} target="_blank" rel="noopener noreferrer">{l.version}</a> : l.version}</small>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARISON.map((r) => (
+                <tr key={r.topic}>
+                  <th scope="row">{r.topic}</th>
+                  {shown.map((l) => <td key={l.id} className={l.id === "zag" ? "ours" : undefined}><Md text={r[l.id]} /></td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="compare-note">Checked 15 Oct 2026: versions from each language’s official release index; Rust from the <a href="https://doc.rust-lang.org/book/" target="_blank" rel="noopener noreferrer">Rust Book</a> and <a href="https://doc.rust-lang.org/reference/" target="_blank" rel="noopener noreferrer">Reference</a>, Zig from its <a href="https://ziglang.org/documentation/0.17.0/" target="_blank" rel="noopener noreferrer">0.17.0 language reference</a>, C and C++ from <a href="https://en.cppreference.com/" target="_blank" rel="noopener noreferrer">cppreference</a> (C23 and C++23 are the latest published standards; C++26 is finished, but not yet published by ISO), Go from its <a href="https://go.dev/ref/spec" target="_blank" rel="noopener noreferrer">spec</a> and <a href="https://pkg.go.dev/cmd/cgo" target="_blank" rel="noopener noreferrer">cgo docs</a>, Java from the <a href="https://docs.oracle.com/javase/specs/jls/se27/html/index.html" target="_blank" rel="noopener noreferrer">Java Language Specification</a> and <a href="https://openjdk.org/jeps/454" target="_blank" rel="noopener noreferrer">JEP 454</a>, Python (CPython) from its <a href="https://docs.python.org/3.15/" target="_blank" rel="noopener noreferrer">3.15 documentation</a>, Zag from its design notes. Stated behaviour, not benchmarks.</p>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const { examples } = useLoaderData();
   const frame = useRef(null), zomp = useRef(null), site = useRef(null);
@@ -364,36 +415,7 @@ export default function Home() {
                 </div>
               ))}
             </section>
-            {/* The comparison (owner, 2026-10-15): Zag beside other languages' latest stable versions. */}
-            <section className="compare" aria-labelledby="compare-title">
-              <h3 id="compare-title">Zag beside other languages</h3>
-              <div className="compare-card">
-                <div className="compare-scroll">
-                  <table className="compare-table">
-                    <thead>
-                      <tr>
-                        <th scope="col"><span className="sr-only">Topic</span></th>
-                        {COMPARED.map((l) => (
-                          <th key={l.id} scope="col" className={l.id === "zag" ? "ours" : undefined}>
-                            <b>{l.name}</b>
-                            <small>{l.url ? <a href={l.url} target="_blank" rel="noopener noreferrer">{l.version}</a> : l.version}</small>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {COMPARISON.map((r) => (
-                        <tr key={r.topic}>
-                          <th scope="row">{r.topic}</th>
-                          {COMPARED.map((l) => <td key={l.id} className={l.id === "zag" ? "ours" : undefined}><Md text={r[l.id]} /></td>)}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <p className="compare-note">Checked 15 Oct 2026: versions from each language’s official release index; Rust from the <a href="https://doc.rust-lang.org/book/" target="_blank" rel="noopener noreferrer">Rust Book</a> and <a href="https://doc.rust-lang.org/reference/" target="_blank" rel="noopener noreferrer">Reference</a>, Zig from its <a href="https://ziglang.org/documentation/0.17.0/" target="_blank" rel="noopener noreferrer">0.17.0 language reference</a>, C and C++ from <a href="https://en.cppreference.com/" target="_blank" rel="noopener noreferrer">cppreference</a> (C23 and C++23 are the latest published standards; C++26 is finished, but not yet published by ISO), Go from its <a href="https://go.dev/ref/spec" target="_blank" rel="noopener noreferrer">spec</a> and <a href="https://pkg.go.dev/cmd/cgo" target="_blank" rel="noopener noreferrer">cgo docs</a>, Java from the <a href="https://docs.oracle.com/javase/specs/jls/se27/html/index.html" target="_blank" rel="noopener noreferrer">Java Language Specification</a> and <a href="https://openjdk.org/jeps/454" target="_blank" rel="noopener noreferrer">JEP 454</a>, Python (CPython) from its <a href="https://docs.python.org/3.15/" target="_blank" rel="noopener noreferrer">3.15 documentation</a>, Zag from its design notes. Stated behaviour, not benchmarks.</p>
-              </div>
-            </section>
+            <Compare />
             {/* What Zag's own tools are made with (owner, 2026-10-15: "Yeah"). */}
             <section className="built" aria-labelledby="built-title">
               <h3 id="built-title">Built with</h3>
