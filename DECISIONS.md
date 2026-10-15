@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — Zomp emits a no-inlining before/after pair for Alive2 (owner: a)
+
+Check claude's Alive2 trial (89e9d7da): LLVM 23's Alive2 read all 87 programs' Zomp IR, but proved
+little: 7 correct, 0 incorrect, 116 not proved, 13 errors, mostly because Zomp inlines nearly
+everything into `main`, which the whole-module comparison cannot judge (plus timeouts, Z3 out of
+memory, functions that never return). Offered (a) Zomp emits, for validation only, a before/after
+pair with no inlining, so Alive2 checks each function against Zomp's own LLVM 22 pipeline,
+recommended by check claude and design claude; (b) Alive2 built for LLVM 22; (c) keep it as a smoke
+test. The owner: "(a)". So **Zomp gets a validation mode writing its IR before and after its own
+passes with inlining off**, which check claude's `check tv` runs per function. A program's shipped
+build is unchanged.
+
 ### 2026-10-15 — `zomp prove` (owner: yea), and Alive2 tried as installed on Zomp's own pipeline (owner: c)
 
 **`zomp prove`.** The command that runs only the prover and reports what it proved was `synapse
