@@ -1,0 +1,5 @@
+# A module named after a built-in type's word, as cord's `str.nrv` is: users write `std::str.shout`.
+
+pub bare.never fn shout [lent 's': str.utf8] -> str.utf8 {
+    return 's' ++ "!";
+}

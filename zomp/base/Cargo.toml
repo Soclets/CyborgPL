@@ -1,0 +1,10 @@
+[package]
+name = "zomp-base"
+version = "0.0.1"
+edition = "2021"
+description = "The power ledger of Ground, the compiler inside Zomp (zomp/PLUGINS.md)"
+publish = false
+
+[lib]
+name = "zomp_base"
+path = "src/lib.rs"

@@ -1,0 +1,23 @@
+# Examples Synapse does not build yet (`examples_run_as_the_oracle_prints`),
+# each `name :: words of its refusal`. Since `std::print` and `std::exit`
+# are built (owner, 2026-10-09), every other example builds, runs, and
+# prints what the oracle prints. The test insists each one here is still
+# refused with these words, and says to drop the line the day it builds.
+# Those in examples_nerve_cord.txt run against the Nerve cord in `cord/` too.
+
+argument_words :: `std::str.contains` is not available yet
+brain16 :: `std::print.format` is not built yet
+c_variables :: the linker (lld) refused the program:
+collections :: `std::str.upper` is not available yet
+corner_shop :: `std::print.format` is not built yet
+extern_data :: the linker (lld) refused the program:
+format_value :: `std::format` is not built yet
+input :: `std::input.line` is not available yet
+inventory :: `std::str.at.point` is not available yet
+keys :: `std::str.lower` is not available yet
+print_format :: `std::print.format` is not built yet
+shop :: `std::input.line` is not available yet
+std_bare :: `std::str.split` is not available yet
+text :: `std::str.split` is not available yet
+whichever :: `std::time.after` is not available yet
+whole :: `std::round` is not available yet

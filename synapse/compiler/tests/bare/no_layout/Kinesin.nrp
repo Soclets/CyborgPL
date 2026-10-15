@@ -1,6 +1,0 @@
-kin::manifest[
-    name = "no_layout",
-    prefix = "no_layout",
-    version = "0.1.0",
-    targets = [kin::target[name = "aarch64-none"],]
-];

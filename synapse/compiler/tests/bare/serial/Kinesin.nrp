@@ -1,7 +1,0 @@
-kin::manifest[
-    name = "serial",
-    prefix = "serial",
-    version = "0.1.0",
-    powers = [kin::power.vouch, kin::power.inline_assembly,],
-    targets = [kin::target[name = "aarch64-none", layout = "boards/virt.ld", output = "my.serial.write", exit = "my.serial.stop"],]
-];

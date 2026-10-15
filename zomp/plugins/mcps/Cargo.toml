@@ -1,0 +1,10 @@
+[package]
+name = "zomp-plugin-mcps"
+version = "0.0.1"
+edition = "2021"
+description = "MCPS, an official plugin (design/cores.md), built into Zomp; empty until its step of zomp/PLUGINS.md's build order"
+publish = false
+
+[lib]
+name = "zomp_plugin_mcps"
+path = "src/lib.rs"

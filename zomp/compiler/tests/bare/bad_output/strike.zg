@@ -1,0 +1,4 @@
+# An output takes one `uint8` or a `lent` `array[uint8]` (owner,
+# 2026-10-09); an `int32` is neither, so the target is refused.
+module serial { pub.strike fn write ['b': int32] { } }
+MAIN { }

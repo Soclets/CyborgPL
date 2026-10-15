@@ -1,0 +1,53 @@
+# cord's text shapes (cord claude, 2026-10-14), on bytes read from the command line, so Cortex
+# cannot run them: `sits_at`'s two positions in `for 'k' from 'pos' to …` (the counter is never
+# below 'pos'), and `count_pieces`' `'text'[pos 'pos']` (the landing of `'pos' plus 'm'` in a
+# `uint64[min 1]` passed, so 'pos' never wrapped round to 0). All three are proven.
+fn word ['argv': ptr[ptr[uint8]], 'i': int32] -> list[uint8] {
+    no_check let 'w' := ptr.read[ptr.at['argv', by 'i']];
+    let mut 'k': int32 = 0;
+    let mut 'bytes': list[uint8] = [];
+    loop {
+        no_check let 'b' := ptr.read[ptr.at['w', by 'k']];
+        if 'b' equal_to 0 { break; }
+        list.append[lend.mut 'bytes', value 'b'];
+        change 'k' = 'k' plus 1;
+    }
+    return give 'bytes';
+}
+
+fn sits_at [lent 'text': list[uint8], lent 'part': list[uint8], 'pos': uint64[min 1]] -> bool {
+    let 'n' := list.length[lend 'text'];
+    let 'm' := list.length[lend 'part'];
+    if 'm' equal_to 0 { return 'pos' at_most 'n' plus 1; }
+    if 'm' > 'n' { return false; }
+    if 'pos' > 'n' minus 'm' plus 1 { return false; }
+    for 'k': uint64 from 'pos' to ('pos' plus 'm' minus 1) by 1 {
+        if 'text'[pos 'k'] not_equal 'part'[pos 'k' minus 'pos' plus 1] { return false; }
+    }
+    return true;
+}
+
+fn count_pieces [lent 'text': list[uint8], lent 'sep': list[uint8]] -> uint64 {
+    let 'n' := list.length[lend 'text'];
+    let 'm' := list.length[lend 'sep'];
+    let mut 'pieces': uint64 = 1;
+    let mut 'piece': list[uint8] = [];
+    let mut 'pos': uint64[min 1] = 1;
+    while 'pos' at_most 'n' {
+        if sits_at[lend 'text', lend 'sep', 'pos'] {
+            change 'pieces' = 'pieces' plus 1;
+            change 'piece' = list.empty;
+            change 'pos' = 'pos' plus 'm';
+        } else {
+            list.append[lend.mut 'piece', value 'text'[pos 'pos']];
+            change 'pos' = 'pos' plus 1;
+        }
+    }
+    return 'pieces';
+}
+
+MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
+    let 'text' := word['argv', 1];
+    let 'sep' := word['argv', 2];
+    std::print.useful[sits_at[lend 'text', lend 'sep', 1], " ", count_pieces[lend 'text', lend 'sep'], newln];
+}

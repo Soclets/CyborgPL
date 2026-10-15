@@ -1,6 +1,0 @@
-kin::manifest[
-    name = "output_with_os",
-    prefix = "output_with_os",
-    version = "0.1.0",
-    targets = [kin::target[name = "aarch64-macos", exit = "my.board.exit"],]
-];
