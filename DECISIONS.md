@@ -5,6 +5,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — A library or program is a **strike**; a compiler extension a **plugin** (owner: yea)
+
+Continuing the renames before the code sweep. Of the owner's "we could also rename cell to lib,
+and coil to zmod": design claude noted a Neuron (2026-10-14: Cell) is every program too, `MAIN`
+living in its root file, so `lib` fits a dependency but not a program, and offered `pkg`; the owner
+asked about `pkg` while unpublished and `lib` once published (design claude: a name in code should
+not change on publishing), then: "Or call it a strike for a crate?" Design claude: like Rust's
+crate, one word for programs and libraries alike, and Ricochet sends strikes around. Then: "Should
+we rename coil to zmod or plugin?" Design claude recommended `plugin`, the standard term for code
+added to a compiler, over `zmod`, which sits beside Zig's zigmod and reads as "Zag module". Asked to
+rename coil to `plugin` and to confirm strike, the owner: "yea".
+
+So **the unit you build, depend on and publish is a strike**: root file **`strike.zg`**, the mark
+**`pub.strike`** (was Neuron, `neuron.nrv`, `pub.neuron`; Cell and `lib` dropped). "Library" and
+"program" are words for how a strike is used, not names in code. And **a compiler extension is a
+plugin** (was lobe; Coil and `zmod` dropped): `plugins = [ricochet::plugin[unicode]]` (design
+claude's reading of the manifest field, following `coils = [...]`). The Unicode plugin stays
+`unicode`.
+
 ### 2026-10-15 — The package manager is **Ricochet** (Zag Ricochet), not Zopm (owner)
 
 The owner, deciding the code rename's order: "Kinda wanna change the PM's name", then "It's just

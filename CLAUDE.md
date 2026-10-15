@@ -83,9 +83,9 @@ The Zag names (DECISIONS.md, 2026-10-14): code ends **`.zg`**, a one-value file
 **`.zv`**; the compiler is **Zomp** (`zomp`), the prover built into it with no name
 of its own (was Synapse and Cortex); the package manager **Ricochet** ("Zag Ricochet", 2026-10-15; was Kinesin, and briefly Zopm),
 command `ricochet` / `rico`, manifest `Ricochet.zv` with `ricochet::`; the runtime is
-just the runtime (was Axon); the base **Ground** (was Brainstem); a library a
-**Cell**, root `cell.zg`, `pub.cell` (was Neuron); a compiler extension a **Coil**
-(was lobe); the standard library **`std`** (was `cord`); the Unicode coil
+just the runtime (was Axon); the base **Ground** (was Brainstem); a library or program a
+**strike**, root `strike.zg`, `pub.strike` (was Neuron, briefly Cell); a compiler extension a **plugin**
+(was lobe, briefly Coil); the standard library **`std`** (was `cord`); the Unicode plugin
 **`unicode`** (was Broca); `build.zg`, `zag_version.zv`. **The code has not moved
 yet**: until each part is renamed in code, it still says `.nrv`, `synapse/`, `cord`,
 `Kinesin.nrp` and the rest, as Nerve's rename went in steps (prose first, then
