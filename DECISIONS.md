@@ -5,6 +5,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — If Zag goes back to CyborgPL: the plan so far (owner; no move decided)
+
+The owner is weighing CyborgPL against Kespar ("such a hard choice"); nothing has moved. Chosen for the
+CyborgPL option, should it be taken:
+- **The package manager would be CyJet** ("Cyborg/CyborgPL Jet"; owner: "CyJet it is"). JetPack, the original,
+  was weighed: the owner would leave it without a ™ ("no-one searches 'Cargo' anyways, they search 'Rust
+  Cargo'"), but it sits beside Android Jetpack and Automattic's registered "Jetpack"; design claude searched
+  CyJet: no software uses it (CYCJET, an inkjet-printer maker, and a Fortran routine `cyjet` are the nearest).
+- **The base language would be "base"**, lowercase, with no ™ (owner: "Signatar could just be called base, not
+  trademarked too").
+- **A library would be a kit, and a compiler extension a limb** (owner: "Should we make plugin limb, instead of
+  core? And a library is a kit?"), `kit.cpls`, `pub.kit`, `limbs = […]`; "Limb" meant a library until then.
+- The rest as design claude's table proposed: `.cpls` / `.cplr`, the compiler CCA (`cca`), the prover Precog,
+  the C-with-`:=` logo, cyborgpl.dev; open: `stdkit` or `std`, the kits' names (CDK/CCK), Ricochet dropped for CyJet.
+
 ### 2026-10-15 — Good practice 16: keep `MAIN` thin (owner: yea)
 
 The owner asked why `main.rs` has few lines (in Zomp, 719 of 44,324: it reads the command line and hands the
