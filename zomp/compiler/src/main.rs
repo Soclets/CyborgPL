@@ -14,9 +14,12 @@ fn usage() -> ! {
     eprintln!("       zomp test <file.zg | strike-dir>      run every `test fn`, each on its own, and report");
     eprintln!("       zomp prepare [folder/] [<name>, …] [--prefix <prefix>, …] | --all   run those strikes' build.zg, in their own folders");
     eprintln!("       zomp generate <file.zg | strike-dir>…   write each collection template's members under it");
-    eprintln!("       zomp version                  the compiler's version and the Unicode version it pins");
+    eprintln!("       zomp version                  the kit this Zomp belongs to and the Unicode version it pins");
     exit(2)
 }
+
+/// The ZDK this Zomp goes with (owner, 2026-10-15: "ZDK 1 Zomp").
+const KIT: u32 = 1;
 
 fn main() {
     // The environment's switches are `ZOMP_*` (owner, 2026-10-09: "`a`");
@@ -56,7 +59,11 @@ fn real_main() {
         // 2026-09-24): what a lock file will carry, in one place.
         "version" => {
             let (a, b, c) = unicode_segmentation::UNICODE_VERSION;
-            println!("zomp {}", env!("CARGO_PKG_VERSION"));
+            // Zomp is named by its kit, `ZDK 1 Zomp`, whole numbers and no
+            // dots (owner, 2026-10-15, distribution.md). ZDK 1 has not been
+            // released, and what a build before a release says is not ruled
+            // yet: until it is, it says so plainly.
+            println!("ZDK {} Zomp, a build before ZDK {}'s release", KIT, KIT);
             println!("unicode {}.{}.{}", a, b, c);
         }
         // A collection's templates (owner, 2026-10-13): their members are

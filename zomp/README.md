@@ -788,3 +788,18 @@ Dated, with the alternative, so each can become a question later.
   (`change 'i' = 'i' plus (e);`, the value bracketed); nothing else
   changes in the checker. A field is not one (`'p'.x += 2` is refused as
   before).
+- **2026-10-15 — A counting loop by a step the program computes comes
+  round into its body.** The step is taken only when there is room for it
+  before the stop, so the head's test — is the counter within the stop —
+  is already answered on the way round; the back edge skips it, leaving
+  one test a trip (bench/sieve's inner `by 'p'` loop, 5% faster). Not for
+  a step written as a number, where LLVM merges the two tests itself and
+  did worse with the room's alone (bench/lists 3% slower); not in a
+  slice whose room is measured to a stop folded to a constant, the whole
+  loop's rather than the slice's. Whether a loop runs in slices is asked
+  with a multiply (`span ≥ k × step`), not a 128-bit division on every
+  entry. The idea to look was design claude's (`llvm.loop.unroll.disable`;
+  Zomp's loop was never unrolled, and that changed nothing).
+- **2026-10-15 — `zomp version` says `ZDK 1 Zomp`** (owner: Zomp is
+  named by its kit, distribution.md), followed by "a build before ZDK 1's
+  release": what such a build calls itself is not ruled yet.
