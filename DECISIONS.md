@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — The old compiler commands stay, refusing, naming `zomp` (owner: a)
+
+Compiler claude, converting Synapse to Zomp in the sweep, asked what the old commands `synapse`,
+`syn`, `sng` and `suc` should do: (a) stay as small binaries that refuse naming `zomp`, as `cca`
+does today, recommended by compiler claude and design claude, or (b) go, leaving "command not
+found". The owner: "(a)". So **each old command name stays as a binary that refuses, naming
+`zomp`**.
+
 ### 2026-10-15 — A library or program is a **strike**; a compiler extension a **plugin** (owner: yea)
 
 Continuing the renames before the code sweep. Of the owner's "we could also rename cell to lib,
