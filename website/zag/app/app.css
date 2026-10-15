@@ -53,7 +53,6 @@ main { position: relative; z-index: 1; }
 /* A screen's content drifts and fades as it leaves, and rises into place as it comes, so one
    screen crossfades into the next instead of both sliding rigidly. */
 .moves { opacity: var(--fade, 1); transform: translateY(calc(var(--d, 0) * -30vh)) scale(calc(.94 + var(--fade, 1) * .06)); will-change: transform, opacity; }
-.site .pill { opacity: var(--fade, 1); }
 .frame { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; outline: none; }
 /* Each screen fills the window; one with more than fits scrolls inside. */
 .frame > section { height: 100svh; overflow-y: auto; overscroll-behavior: none; scrollbar-width: none; }
@@ -112,23 +111,31 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 @keyframes land { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
 
 /* The site itself: the storm has cleared. */
-.site { display: flex; flex-direction: column; align-items: center; padding: 16px 16px 10vh; }
+.site { display: flex; flex-direction: column; align-items: center; padding: 84px 16px 10vh; }
 .site-top { margin: auto 0; max-width: 820px; text-align: center; }
 .site-top h2 { margin: 0; font-weight: 700; font-size: clamp(30px, 5vw, 56px); line-height: 1.1; paint-order: stroke fill; -webkit-text-stroke: 8px var(--edge); }
 
 /* A page that isn't there. */
-.lost { position: relative; z-index: 1; height: 100svh; display: flex; flex-direction: column; align-items: center; padding: 16px; text-align: center; }
+.lost { position: relative; z-index: 1; height: 100svh; display: flex; flex-direction: column; align-items: center; padding: 84px 16px 16px; text-align: center; }
+/* A page arriving from another fades and rises in over the sky, which stays put. */
+.page-in { animation: page-in .45s cubic-bezier(.2, .8, .2, 1); }
+@keyframes page-in { from { opacity: 0; transform: translateY(14px); } }
 .lost-body { margin: auto 0; }
 .lost h1 { margin: 0; font-weight: 700; font-size: clamp(34px, 6vw, 64px); paint-order: stroke fill; -webkit-text-stroke: 8px var(--edge); }
 .lost p { margin: 12px 0 0; font-size: clamp(18px, 2.2vw, 22px); font-weight: 600; paint-order: stroke fill; -webkit-text-stroke: 5px var(--edge); }
 .home-link { display: inline-block; margin-top: 22px; padding: 12px 22px; border-radius: 999px; background: #fff; color: var(--edge); font-weight: 700; text-decoration: none; box-shadow: 0 10px 24px rgba(10, 50, 110, .2); }
 
 /* The top bar: a floating pill of frosted glass, the sky showing through (owner: "Glass"). */
-.pill { position: sticky; top: 14px; z-index: 5; display: flex; align-items: center; gap: 4px; max-width: 100%;
+.pill { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 4px; max-width: calc(100% - 24px);
+  opacity: var(--site-fade, 1);
   padding: 6px; border-radius: 999px;
   background: rgba(255, 255, 255, .2); border: 1px solid rgba(255, 255, 255, .5);
   -webkit-backdrop-filter: blur(16px) saturate(150%); backdrop-filter: blur(16px) saturate(150%);
   box-shadow: 0 12px 30px rgba(10, 50, 110, .18); }
+.pill-off .pill { visibility: hidden; pointer-events: none; }
+/* On the home page the pill waits for the page to say which screen it is on, so it never flashes
+   over the intro while the page starts. */
+html:has(main.frame):not(.moving) .pill { visibility: hidden; }
 .pill .brand { flex: none; display: block; padding: 2px 6px 0 8px; }
 .pill .brand img { display: block; height: 34px; width: auto; }
 .pill .links { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
@@ -143,6 +150,7 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .page-in { animation: none; }
   .moves, .clouds .layer { transform: none; }
   .clouds .cloud { animation-play-state: paused; }
   .logo { animation: none; }

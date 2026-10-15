@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Backdrop, Pill } from "../sky.jsx";
+import { SITE_SCREEN } from "../sky.jsx";
 
 export const meta = () => [
   { title: "Zag" },
@@ -119,7 +119,14 @@ function usePager(frame) {
     // A screen by its id: /#home opens on the site's own screen, and a link to it on this page
     // glides there in place of reloading.
     const start = index(location.hash.slice(1));
+    // Coming from another page of the site (which sits at the site screen's height): with no
+    // screen named, glide up from there to the start, so the sky moves rather than jumps.
+    const from = parseFloat(root.style.getPropertyValue("--y")) || 0;
     if (start > 0) { at = start; box.scrollTop = screens()[start].offsetTop; }
+    else if (start < 0 && Math.round(from) === SITE_SCREEN) {
+      at = SITE_SCREEN; box.scrollTop = screens()[SITE_SCREEN].offsetTop;
+      requestAnimationFrame(() => go(0));
+    }
     arrive(at);
     const onClick = (e) => {
       const a = e.target.closest?.("a[href]");
@@ -132,11 +139,11 @@ function usePager(frame) {
       history.replaceState(null, "", url.hash || location.pathname);
       go(i);
     };
-    addEventListener("click", onClick);
+    addEventListener("click", onClick, true);
     return () => {
       removeEventListener("wheel", onWheel); removeEventListener("touchstart", onTouchStart);
       removeEventListener("touchmove", onTouchMove); removeEventListener("touchend", onTouchEnd);
-      removeEventListener("keydown", onKey); removeEventListener("resize", onResize); removeEventListener("click", onClick); cancelAnimationFrame(raf); clearTimeout(finish); clearTimeout(arrival);
+      removeEventListener("keydown", onKey); removeEventListener("resize", onResize); removeEventListener("click", onClick, true); cancelAnimationFrame(raf); clearTimeout(finish); clearTimeout(arrival);
       root.classList.remove("struck"); delete root.dataset.screen;
     };
   }, [frame]);
@@ -163,12 +170,20 @@ function useMotion(frame, zomp, site) {
         el.style.setProperty("--d", d.toFixed(4));
         el.style.setProperty("--fade", Math.max(0, 1 - Math.abs(d) * 1.35).toFixed(4));
       }
+      // The pill belongs to the site screen: it fades in with it, and can't be clicked away from it.
+      const pill = Math.max(0, 1 - Math.abs((site.current.offsetTop - box.scrollTop) / h) * 1.35);
+      root.style.setProperty("--site-fade", pill.toFixed(4));
+      root.classList.toggle("pill-off", pill < 0.05);
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
     update();
+    root.classList.add("moving");
     box.addEventListener("scroll", onScroll, { passive: true });
     addEventListener("resize", onScroll);
-    return () => { box.removeEventListener("scroll", onScroll); removeEventListener("resize", onScroll); cancelAnimationFrame(raf); };
+    return () => {
+      box.removeEventListener("scroll", onScroll); removeEventListener("resize", onScroll); cancelAnimationFrame(raf);
+      root.classList.remove("moving", "pill-off");
+    };
   }, [frame, zomp, site]);
 }
 
@@ -178,7 +193,6 @@ export default function Home() {
   useMotion(frame, zomp, site);
   return (
     <>
-      <Backdrop />
       <main className="frame" ref={frame} tabIndex={-1}>
         <section className="hero" id="top">
           <div className="moves">
@@ -202,7 +216,6 @@ export default function Home() {
           </div>
         </section>
         <section className="site" id="home" ref={site}>
-          <Pill />
           <div className="site-top moves">
             <h2>Very slow at the development, fast &amp; safe at the final product.</h2>
           </div>

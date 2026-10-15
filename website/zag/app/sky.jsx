@@ -1,3 +1,6 @@
+import { useEffect } from "react";
+import { Link, useLocation } from "react-router";
+
 // The sky behind every page, and the site's top bar.
 
 // The sky (owner, 2026-10-15): "You land on the website, it has that blue sky with clouds
@@ -57,17 +60,32 @@ export function Backdrop() {
 // Home is the site's own screen, after the intro (owner: "Clicking home should tp back to Home, not
 // the first scroll"): /#home. On the home page itself a click glides there (home.jsx, usePager).
 const LINKS = [["Home", "/#home"], ["Download", "/download"], ["Docs", "/docs"], ["Examples", "/examples"], ["More", "/more"]];
-export function Pill({ here = "/#home" }) {
+export function Pill() {
+  const { pathname } = useLocation();
+  const here = pathname === "/" ? "/#home" : pathname;
   return (
     <nav className="pill" aria-label="Site">
       {/* The logo goes to the start of the intro, the first screen (owner, 2026-10-15). */}
-      <a className="brand" href="/" aria-label="Zag, from the start"><img src="/logo.svg" alt="" width="45" height="34" /></a>
+      <Link className="brand" to="/" aria-label="Zag, from the start"><img src="/logo.svg" alt="" width="45" height="34" /></Link>
       <div className="links">
         {LINKS.map(([name, to]) => (
-          <a key={to} className="link" href={to} aria-current={to === here ? "page" : undefined}>{name}</a>
+          <Link key={to} className="link" to={to} aria-current={to === here ? "page" : undefined}>{name}</Link>
         ))}
       </div>
     </nav>
   );
 }
 
+// Where the site's own screen is in the sky: the home page's third screen. Every other page sits
+// at the same height, with the storm cleared and the pill shown, so the clouds line up exactly
+// when you go between them.
+export const SITE_SCREEN = 2;
+export function useSiteSky() {
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--y", String(SITE_SCREEN));
+    root.style.setProperty("--storm", "0");
+    root.style.setProperty("--site-fade", "1");
+    root.classList.remove("pill-off");
+  }, []);
+}

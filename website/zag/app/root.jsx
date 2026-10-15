@@ -1,4 +1,5 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import { Backdrop, Pill } from "./sky.jsx";
 import "./app.css";
 
 export const links = () => [
@@ -27,6 +28,15 @@ export function Layout({ children }) {
   );
 }
 
+// The sky and the pill belong to the whole site, not to a page: pages change on top of them
+// without a reload, so the clouds drift on across a click and the pill never redraws (owner:
+// "The transition of clicking a pill button is still bad, because the background doesn't align").
 export default function App() {
-  return <Outlet />;
+  return (
+    <>
+      <Backdrop />
+      <Pill />
+      <Outlet />
+    </>
+  );
 }
