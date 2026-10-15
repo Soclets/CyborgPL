@@ -349,13 +349,13 @@ fn examples_run_as_the_oracle_prints() {
 
 use std::process::Command;
 
-/// The examples in `examples_nerve_cord.txt`, each built in a Neuron that
+/// The examples in `examples_zag_std.txt`, each built in a Neuron that
 /// lists the Nerve cord (`cord/`, by cord's ID and its path; owner,
 /// 2026-10-14), print what the oracle prints.
 #[test]
-fn examples_run_against_the_nerve_cord() {
+fn examples_run_against_the_zag_std() {
     let synapse = PathBuf::from(env!("CARGO_BIN_EXE_zomp"));
-    let text = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/examples_nerve_cord.txt")).unwrap();
+    let text = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/examples_zag_std.txt")).unwrap();
     let cord = repo().join("std");
     // The sweep to Zag's names (2026-10-15): `cord/` becomes `std/`, std
     // claude's, after Zomp's part; until then there is no Zag std to run.

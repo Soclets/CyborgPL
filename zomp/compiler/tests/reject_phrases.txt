@@ -160,10 +160,10 @@ check_on_fn [fnv:41ad0db2762fc011] :: the tiers are never global
 check_on_fn_in_body [fnv:e371561a00ed503f] :: a function's safety is the sum of its statements
 cnc_not_listed [fnv:6106189416e1860e] :: `incl.C` is CNC's, and this strike's Ricochet.zv does not list the plugin CNC
 collection_fn_inside [fnv:15e640714af8334d] :: a collection's members take no `fn`
-collection_generated_counting [fnv:fdc807f25075f2b0] :: does not match it: run `zomp generate`
-collection_generated_edited [fnv:fdc807f25075f2b0] :: does not match it: run `zomp generate`
-collection_generated_missing [fnv:fdc807f25075f2b0] :: does not match it: run `zomp generate`
-collection_generated_stale [fnv:fdc807f25075f2b0] :: does not match it: run `zomp generate`
+collection_generated_counting [fnv:312effc22ac31863] :: does not match it: run `zomp generate`
+collection_generated_edited [fnv:312effc22ac31863] :: does not match it: run `zomp generate`
+collection_generated_missing [fnv:312effc22ac31863] :: does not match it: run `zomp generate`
+collection_generated_stale [fnv:312effc22ac31863] :: does not match it: run `zomp generate`
 collection_handler_function [fnv:c05c70f47225809b] :: a `collection.handler` holds named `otherwise` blocks
 collection_handler_not_covering [fnv:1f6f1f5fd3f573a8] :: can also fail with `negative`
 collection_handler_pub [fnv:43b98232013fe90c] :: can be `pub` is not decided yet
@@ -724,7 +724,7 @@ struct_wrong_field_type [fnv:7d29ffc630950dd5] :: field `x` is an `int32` and th
 take_unhandled [fnv:0a69f5303bdb8818] :: `channel.take` can fail (closed): say what happens
 temp_after_loop [fnv:652fb6ee6f955c44] :: 'i' is not declared
 temp_after_name [fnv:64d751df57cc16a6] :: `temp` goes before the name
-test_fn_called [fnv:fc9ed5874a38cb00] :: is a `test fn`: `zomp test` runs it
+test_fn_called [fnv:c38c9a4f94f96d29] :: is a `test fn`: `zomp test` runs it
 test_fn_params [fnv:e6c6894b85ea10f6] :: takes no parameters
 text_bound_graphemes [fnv:a6dcaaa62d158116] :: this can take it outside the bound its type gives it (`str.utf8[min 1, max 2 graphemes]`)
 text_bound_no_unit [fnv:9c1acad0abdaf1b0] :: a text's length bound must say which unit it counts
