@@ -136,12 +136,12 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   without `to.…` (2026-09-14).
 - **`mod.floor` takes the divisor's sign**, as integer `mod.floor`: `-7.50 mod.floor 2` is
   `0.50`. Exact, then rounded like the rest.
-- **`xx` takes a whole exponent** and rounds like the other operations:
+- **`pow` takes a whole exponent** and rounds like the other operations:
   `1.05 pow 10` is `1.628894626777441` in a `deci64`, exact in a `deci128`; a
   negative exponent is one over the power. A fractional one (`2.0 pow 0.5`)
   is refused: roots are std's math. The exponent is an integer or a whole
   literal; a `deci` variable is refused even when it holds `3.00`, since the
-  compiler cannot know it is whole (owner, 2026-09-29: a): `'r' xx
+  compiler cannot know it is whole (owner, 2026-09-29: a): `'r' pow
   to.int32['k'] otherwise …`.
 - **A wider `deci` into a narrower one fails `too_many_digits`** when its
   digits do not fit (`to.deci32['x'] otherwise …`); `2.50` converts exactly.
