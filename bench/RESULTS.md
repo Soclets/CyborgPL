@@ -25,12 +25,17 @@ programs in today's syntax (`.zg`, `std::`).
 
   So Zag ties C on sum, fib and lists, beats Rust on sum and lists and ties it on fib, and beats Go on all three.
 - **Correction, the same day: the sieve rows are not a final build.** Asked by the owner why Zag was slower on
-  sieve, design claude found Zomp at `ab80b214` refuses sieve's final build ("the position can be past the end",
-  the inner loop's `change 'comp'[pos to.uint64['m' plus 1]] = true;`; 21 of 22 sites proven), and `run.py`
-  then timed the working build without saying so: a bounds check on every write in the hot loop. On 2026-10-12
-  the same program proved fully and tied C (0.373 s against 0.370). A prover regression, sent to compiler claude;
-  sieve will be re-run when it proves again. `run.py` now says loudly when it falls back, labels the row, and
-  writes its tables to `latest.md` instead of over this file. Sum, fib and lists were final builds.
+  sieve, design claude found Zomp refuses sieve's final build ("the position can be past the end", the inner
+  loop's `change 'comp'[pos to.uint64['m' plus 1]] = true;`; 21 of 22 sites proven), and `run.py` then timed the
+  working build without saying so. Compiler claude traced it: **not a regression**. Zomp has refused this
+  program's final build since `0f273b45` (2026-10-12 17:42), when sieve was rewritten with nested counting loops;
+  a counting loop nested in another runs out of the solver's step budget (the same store proves as a `while`, or
+  in a lone counting loop). So the **2026-10-12 and 2026-10-13 sieve rows were working builds too**. And the check
+  is worth only ~1–3%: on 9 interleaved single-thread runs, Zomp as benched 0.445 s median, Zomp with the store
+  unchecked 0.438, C 0.439, **Go 0.407**. Zomp ties C either way; **Go is ~7% ahead of C as much as of Zomp**,
+  most likely in how Go gets and zeroes the 100 MB array, not in the loop. `run.py` now times Zag only as a
+  final build and reports a refused one (`--allow-working` to time it anyway, labelled), and writes its tables
+  to `latest.md` instead of over this file. Sum, fib and lists were final builds.
 
 ### sum (N = 300,000,000)
 
@@ -78,6 +83,8 @@ programs in today's syntax (`.zg`, `std::`).
 
 ## 2026-10-13: Nerve against LuaJIT
 
+> **Correction (2026-10-15):** this run's Nerve sieve rows were a working build: the final build was refused (nested counting loops), and `run.py` fell back without saying so. See the 2026-10-15 section.
+
 Run at 08:25 (+07) with `python3 run.py nerve nerve1 c luajit` (the Synapse release build of 08:25 in compiler claude's clone, at `9af932c5`), with nothing else building. The owner: "Bench Nerve against LuaJIT. By AI stereotypes, it should beat Nerve." Nerve is held to 3 threads (design claude's core share), not 10; C is there as the reference every answer is checked against.
 
 **LuaJIT does not beat Nerve on any of the four.** Against single-threaded Nerve, the fair row, LuaJIT is 6.76× slower on sum, 2.02× on fib, 4.63× on lists and 1.96× on sieve (3.18× against Nerve's 3 threads). Why, as design claude reads it (not measured): LuaJIT is still a JIT on a dynamically typed language: its numbers are doubles unless it can prove otherwise, its tables carry type checks the trace has to guard, and it starts compiling only once a loop is hot. Nerve's programs are compiled ahead of time with every type known.
@@ -123,6 +130,8 @@ Run at 08:25 (+07) with `python3 run.py nerve nerve1 c luajit` (the Synapse rele
 | LuaJIT | 0.812 s | 3.18× |
 
 ## 2026-10-12: Nerve against C, Python, Go and Rust
+
+> **Correction (2026-10-15):** this run's Nerve sieve rows were a working build: the final build was refused (nested counting loops), and `run.py` fell back without saying so. See the 2026-10-15 section.
 
 Run at 17:53 (+07) with `CYBORG_BENCH_THREADS=10 python3 run.py nerve nerve1 c python rust go` (the Synapse release build of 14:04 in compiler claude's clone, committed as `2f8af0b0` at 14:08), with nothing else running. The owner asked, through website claude: "Could you ask design Claude to bench Nerve against C, Python, Go, and Rust?", then chose the uncapped run: "(a)". The first run under the Nerve name, and the first with Python and Rust; the Nerve programs are in today's syntax (`for 'i': int64 from 1 to 'n' by 1`, `int64[min 0, max 1_000_000_000]`).
 
