@@ -5,6 +5,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — Alive2 stays, beside RRx2-TV (owner)
+
+After check claude's per-function Alive2 runs on Zomp's no-inlining pair (`zomp build --emit-llvm-tv`; 56
+programs: 303 correct, 0 incorrect, 133 not proved, once compiler claude made the validation copy's functions
+weak), design claude asked whether Alive2 is kept for good beside RRx2-TV, recommended (two validators by
+different authors catch different bugs), or only until RRx2-TV covers Zomp. The owner: "Keep Alive2". So
+**Alive2 stays as a standing part of translation validation**, run by check claude (`check tv`), beside
+RRx2-TV when the owner runs it. This amends 2026-10-02 ("We have RRx2 to replace Alive2"): RRx2-TV no longer
+replaces it.
+
 ### 2026-10-15 — The runtime's thread cap is read from `THREAD_CAP` (owner: "whatever, man")
 
 Every Zag program's runtime reads one environment variable at start-up, capping the threads a proven `for` is

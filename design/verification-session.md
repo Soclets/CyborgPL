@@ -124,8 +124,9 @@ fourth are the deeper checks.
 4. **Translation validation.** The LLVM-IR half was Alive2, borrowed
    (owner, 2026-09-22); since 2026-09-30 it is **RRx2-TV**, our own,
    built by its own session (`design/rrx2-tv-session.md`) and run only
-   when the owner says it is time. This session no longer runs Alive2
-   (owner, 2026-10-02: "We have RRx2 to replace ALive2, lol"). Ours is the Cyborg half: that
+   when the owner says it is time. Alive2 runs again,
+   for good (owner, 2026-10-15: "Keep Alive2"), per function on Zomp's no-inlining pair
+   (`zomp build --emit-llvm-tv`), beside RRx2-TV; on 2026-10-02 RRx2 was to replace it. Ours is the Cyborg half: that
    the IR Zomp hands to LLVM means what the MIR meant.
 
 ## What a finding looks like
