@@ -203,20 +203,26 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 
 /* The comparison: one column per language, Zag's tinted; on a narrow screen it scrolls sideways
    with the topics held at the left. */
-.compare { width: 100%; max-width: 1100px; margin-top: 8vh; display: flex; flex-direction: column; align-items: center; }
-.compare-hint { margin: -6px 0 12px; font-weight: 600; paint-order: stroke fill; -webkit-text-stroke: 4px var(--edge); }
-.compare-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 6px; border-radius: 26px; margin-bottom: 14px;
-  background: rgba(28, 92, 196, .38); border: 1px solid rgba(255, 255, 255, .5); -webkit-backdrop-filter: blur(16px) saturate(150%); backdrop-filter: blur(16px) saturate(150%); }
-.compare-chip { padding: 9px 16px; border: 0; border-radius: 999px; background: none; font: 600 16px var(--sans); color: #fff; cursor: pointer; transition: background .2s, color .2s, transform .2s cubic-bezier(.25, 1.2, .4, 1); }
-.compare-chip:hover { background: rgba(255, 255, 255, .22); }
-.compare-chip[aria-pressed="true"] { background: #fff; color: var(--edge); box-shadow: 0 4px 12px rgba(10, 50, 110, .18); }
-.compare-chip:active { transform: scale(.94); }
+.compare { width: 100%; max-width: 900px; margin-top: 8vh; display: flex; flex-direction: column; align-items: center; }
+/* The two sides: pill dropdowns of blue glass facing each other, a swap button between them. */
+.compare-pick { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.compare-side { position: relative; }
+.compare-side::after { content: ""; position: absolute; right: 16px; top: 50%; width: 8px; height: 8px; margin-top: -6px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); pointer-events: none; }
+.compare-side select { -webkit-appearance: none; appearance: none; min-width: 170px; padding: 11px 42px 11px 20px; border-radius: 999px; font: 700 18px var(--sans); color: #fff; cursor: pointer;
+  background: rgba(28, 92, 196, .45); border: 1px solid rgba(255, 255, 255, .55); -webkit-backdrop-filter: blur(16px) saturate(150%); backdrop-filter: blur(16px) saturate(150%);
+  box-shadow: 0 8px 20px rgba(10, 50, 110, .18); }
+.compare-side select:focus-visible { outline: 3px solid #FFD43B; outline-offset: 2px; }
+.compare-side option { color: #0F2A5C; background: #fff; }
+.compare-swap { width: 46px; height: 46px; border: 0; border-radius: 50%; background: #fff; color: var(--edge); font: 700 20px var(--sans); cursor: pointer; box-shadow: 0 8px 20px rgba(10, 50, 110, .2); transition: transform .25s cubic-bezier(.25, 1.2, .4, 1); }
+.compare-swap:hover { transform: rotate(180deg); }
+@media (max-width: 520px) { .compare-side select { min-width: 0; width: 132px; font-size: 16px; padding: 10px 34px 10px 14px; } .compare-side::after { right: 12px; } }
+
 .compare-card { width: 100%; }
 .compare h3 { margin: 0 0 16px; text-align: center; font-weight: 700; font-size: clamp(26px, 3.6vw, 38px); paint-order: stroke fill; -webkit-text-stroke: 6px var(--edge); }
 .compare-card { border-radius: 22px; color: #0F2A5C; background: rgba(255, 255, 255, .78); border: 1px solid rgba(255, 255, 255, .9); overflow: hidden;
   -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); box-shadow: 0 12px 30px rgba(10, 50, 110, .18); }
 .compare-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
-.compare-table { width: 100%; min-width: calc(120px + var(--cols, 3) * 220px); table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+.compare-table { width: 100%; min-width: 520px; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
 .compare-table th, .compare-table td { padding: 14px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid #E3ECF8; font-size: 14.5px; line-height: 1.5; }
 .compare-table thead th { border-bottom: 1px solid #D6E4F7; }
 .compare-table thead b { display: block; font-size: 18px; }
@@ -266,7 +272,7 @@ html:has(main.frame):not(.moving) .pill { visibility: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .compare-chip { transition: none; }
+  .compare-swap { transition: none; }
   .ex-thumb { transition: none; }
   .pill.ready .thumb { transition: none; }
   .page-in { animation: none; }
@@ -283,4 +289,14 @@ html:has(main.frame):not(.moving) .pill { visibility: hidden; }
   .pill .brand { padding: 2px 3px 0 4px; }
   .pill .brand img { height: 26px; }
   .pill .link { padding: 8px 7px; font-size: 13px; }
+}
+
+/* On a phone the two languages sit side by side, each topic as a heading above its two answers. */
+@media (max-width: 640px) {
+  .compare-table, .compare-table thead, .compare-table tbody { display: block; min-width: 0; width: 100%; }
+  .compare-table thead tr, .compare-table tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .compare-table code { white-space: normal; overflow-wrap: anywhere; }
+  .compare-table thead th:first-child { display: none; }
+  .compare-table tbody th { grid-column: 1 / -1; position: static; width: auto; padding: 12px 14px 4px; border-bottom: 0; background: rgba(246, 250, 255, .96); }
+  .compare-table th, .compare-table td { padding: 8px 12px 12px; font-size: 14px; }
 }

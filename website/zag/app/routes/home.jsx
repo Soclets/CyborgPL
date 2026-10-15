@@ -307,30 +307,34 @@ function Examples({ examples }) {
   );
 }
 
-// The comparison, as a picker (owner, 2026-10-15: "I want more of a picker"): chips for every
-// language, and the table shows the ones picked, up to three, in the chips' order. Picking a fourth
-// lets go of the oldest pick. It opens on Zag, Rust and Zig.
-const MAX_PICKED = 3;
+// The comparison, one against one (owner, 2026-10-15: "I want more of a picker", then "I like 1v1,
+// each side is a dropdown picker"): a dropdown on each side, a language picked on one side greyed
+// out on the other, and a button to swap them. It opens on Zag against Rust.
+function Side({ label, value, other, onChange }) {
+  return (
+    <label className="compare-side">
+      <span className="sr-only">{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        {COMPARED.map((l) => <option key={l.id} value={l.id} disabled={l.id === other}>{l.name}</option>)}
+      </select>
+    </label>
+  );
+}
 function Compare() {
-  const [picked, setPicked] = useState(["zag", "rust", "zig"]);
-  const toggle = (id) => setPicked((p) => p.includes(id)
-    ? (p.length > 1 ? p.filter((x) => x !== id) : p)
-    : [...(p.length >= MAX_PICKED ? p.slice(1) : p), id]);
-  const shown = COMPARED.filter((l) => picked.includes(l.id));
+  const [pair, setPair] = useState(["zag", "rust"]);
+  const [left, right] = pair;
+  const shown = pair.map((id) => COMPARED.find((l) => l.id === id));
   return (
     <section className="compare" aria-labelledby="compare-title">
       <h3 id="compare-title">Zag beside other languages</h3>
-      <p className="compare-hint">Pick up to three.</p>
-      <div className="compare-chips" role="group" aria-label="Languages to compare">
-        {COMPARED.map((l) => (
-          <button key={l.id} type="button" className="compare-chip" aria-pressed={picked.includes(l.id)} onClick={() => toggle(l.id)}>
-            {l.name}
-          </button>
-        ))}
+      <div className="compare-pick" role="group" aria-label="Languages to compare">
+        <Side label="Left language" value={left} other={right} onChange={(id) => setPair([id, right])} />
+        <button type="button" className="compare-swap" aria-label="Swap the two sides" title="Swap" onClick={() => setPair([right, left])}>⇄</button>
+        <Side label="Right language" value={right} other={left} onChange={(id) => setPair([left, id])} />
       </div>
       <div className="compare-card">
         <div className="compare-scroll">
-          <table className="compare-table" style={{ "--cols": shown.length }}>
+          <table className="compare-table">
             <thead>
               <tr>
                 <th scope="col"><span className="sr-only">Topic</span></th>
