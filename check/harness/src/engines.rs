@@ -271,9 +271,7 @@ pub fn cca_run(bin: &Path, dir: &Path, env: &[(String, String)]) -> Exec {
 }
 
 /// `zomp prove --json <file>`: Zomp's prover, the part of the compiler that was
-/// Precog, then Cortex (no name of its own since 2026-10-14).
+/// Precog, then Cortex (no name of its own since 2026-10-14; `prove`, owner 2026-10-15).
 pub fn analyze(t: &Tools, file: &Path, dir: &Path, limit: Duration) -> Run {
-    // `prove` is compiler claude's name for it, not yet the owner's: CHECK_PROVE overrides it.
-    let verb = std::env::var("CHECK_PROVE").unwrap_or_else(|_| "prove".into());
-    run(Command::new(&t.cca).arg(verb).arg("--json").arg(file), dir, &[], false, limit)
+    run(Command::new(&t.cca).arg("prove").arg("--json").arg(file), dir, &[], false, limit)
 }

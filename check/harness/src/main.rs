@@ -824,7 +824,11 @@ fn tv_run(t: &Tools, a: &Args) {
         f: tv::Counts,
         p: tv::Counts,
         incorrect: u64,
+        unread: BTreeMap<String, u64>,
+        reasons: BTreeMap<String, u64>,
+        mistakes: u64,
     }
+    let per_function = a.flags.contains_key("per-function");
     let tally = Mutex::new(T::default());
     std::thread::scope(|s| {
         for w in 0..jobs {
@@ -836,12 +840,22 @@ fn tv_run(t: &Tools, a: &Args) {
                         return;
                     }
                     let p = generate(seed, cfg);
+                    // a mistake on purpose is refused, so there is no IR to check
+                    if p.expect_refused {
+                        tally.lock().unwrap().mistakes += 1;
+                        continue;
+                    }
                     let dir = work().join(format!("tv{w}"));
-                    let r = tv::validate(t, &p.render(), &dir);
+                    let r = tv::validate(t, &p.render(), &dir, per_function);
                     let mut tl = tally.lock().unwrap();
                     tl.programs += 1;
                     match r {
-                        Err(e) => {
+                        Err(tv::Fail::Unread(why)) => {
+                            tl.failed += 1;
+                            eprintln!("seed {seed}: Alive2 could not read the IR: {why}");
+                            *tl.unread.entry(normalise(&why)).or_default() += 1;
+                        }
+                        Err(tv::Fail::Other(e)) => {
                             tl.failed += 1;
                             eprintln!("seed {seed}: {e}");
                         }
@@ -855,6 +869,9 @@ fn tv_run(t: &Tools, a: &Args) {
                             add(&mut tl.f, &o.per_function);
                             add(&mut tl.p, &o.pipeline);
                             tl.incorrect += o.incorrect.len() as u64;
+                            for r in &o.reasons {
+                                *tl.reasons.entry(normalise(r)).or_default() += 1;
+                            }
                             if !o.incorrect.is_empty() {
                                 let keep = work().join("tv").join(seed.to_string());
                                 let _ = std::fs::create_dir_all(&keep);
@@ -871,9 +888,19 @@ fn tv_run(t: &Tools, a: &Args) {
     });
     let tl = tally.into_inner().unwrap();
     println!(
-        "\n{} programs ({} not validated); per function: {} correct, {} incorrect, {} not proved, {} Alive2 errors; CCA's pipeline: {} correct, {} incorrect, {} not proved, {} Alive2 errors",
-        tl.programs, tl.failed, tl.f.correct, tl.f.incorrect, tl.f.unproved, tl.f.errors, tl.p.correct, tl.p.incorrect, tl.p.unproved, tl.p.errors
+        "\n{} programs ({} not validated, {} of them IR Alive2 could not read); Zomp's pipeline: {} correct, {} incorrect, {} not proved, {} Alive2 errors",
+        tl.programs, tl.failed, tl.unread.values().sum::<u64>(), tl.p.correct, tl.p.incorrect, tl.p.unproved, tl.p.errors
     );
+    if per_function {
+        println!("per function: {} correct, {} incorrect, {} not proved, {} Alive2 errors", tl.f.correct, tl.f.incorrect, tl.f.unproved, tl.f.errors);
+    }
+    println!("  ({} mistakes on purpose skipped)", tl.mistakes);
+    for (why, n) in top(&tl.reasons, 12) {
+        println!("  Alive2: {n:>4}  {why}");
+    }
+    for (why, n) in top(&tl.unread, 10) {
+        println!("  not read: {n:>4}  {why}");
+    }
 }
 
 fn top(m: &BTreeMap<String, u64>, n: usize) -> Vec<(String, u64)> {

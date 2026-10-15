@@ -44,6 +44,9 @@ pub struct Outcome {
     pub pipeline: Counts,
     /// Each incorrect transformation: which check, and Alive2's report of it.
     pub incorrect: Vec<(String, String)>,
+    /// Alive2's `ERROR:` lines on the pipeline check (why a function was
+    /// not proved, or could not be checked), counted.
+    pub reasons: Vec<String>,
 }
 
 fn counts(out: &str) -> Counts {
@@ -88,41 +91,63 @@ fn callers_of_own(ir: &str) -> Vec<String> {
     out
 }
 
-fn alive(dir: &Path, src: &Path, tgt: &Path) -> Result<String, String> {
-    let r = engines::run(Command::new(ALIVE).arg("--smt-to=20000").arg(src).arg(tgt), dir, &[], false, ALIVE_LIMIT);
-    if r.timed_out {
-        return Err("alive-tv past its time limit".into());
-    }
-    Ok(String::from_utf8_lossy(&r.stdout).into_owned() + &r.stderr)
+/// What `validate` could not do: Alive2 could not read the IR (LLVM 23's
+/// parser on Zomp's LLVM 22 IR, owner 2026-10-15), or anything else.
+pub enum Fail {
+    Unread(String),
+    Other(String),
 }
 
-pub fn validate(t: &Tools, src: &str, dir: &Path) -> Result<Outcome, String> {
-    std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+fn alive(dir: &Path, src: &Path, tgt: &Path) -> Result<String, Fail> {
+    let r = engines::run(Command::new(ALIVE).arg("--smt-to=20000").arg(src).arg(tgt), dir, &[], false, ALIVE_LIMIT);
+    if r.timed_out {
+        return Err(Fail::Other("alive-tv past its time limit".into()));
+    }
+    let out = String::from_utf8_lossy(&r.stdout).into_owned() + &r.stderr;
+    // No summary: it stopped before checking anything, which is a file it
+    // could not read (the first line naming an error says why).
+    if !out.contains("Summary:") {
+        let why = out.lines().find(|l| l.to_lowercase().contains("error")).or(out.lines().find(|l| !l.trim().is_empty())).unwrap_or("no output");
+        return Err(Fail::Unread(why.trim().to_string()));
+    }
+    Ok(out)
+}
+
+/// `per_function` runs the per-function check too; off since 2026-10-15
+/// (owner): Homebrew's `opt` is LLVM 23's optimiser, not Zomp's (LLVM 22).
+pub fn validate(t: &Tools, src: &str, dir: &Path, per_function: bool) -> Result<Outcome, Fail> {
+    let io = |e: std::io::Error| Fail::Other(e.to_string());
+    std::fs::create_dir_all(dir).map_err(io)?;
     let file = dir.join("prog.zg");
-    std::fs::write(&file, src).map_err(|e| e.to_string())?;
+    std::fs::write(&file, src).map_err(io)?;
     let ir = dir.join("ir");
     let _ = std::fs::remove_dir_all(&ir);
     let r = engines::run(Command::new(&t.cca).arg("build").arg("--emit-llvm").arg(&ir).arg(&file).arg("-o").arg(dir.join("prog")), dir, &[], false, engines::build_limit());
     if r.code != Some(0) || !ir.join("before.ll").exists() {
-        return Err(format!("cca build did not write the IR: {}", r.stderr.lines().next().unwrap_or("")));
+        return Err(Fail::Other(format!("zomp build did not write the IR: {}", r.stderr.lines().next().unwrap_or(""))));
     }
-    let before = std::fs::read_to_string(ir.join("before.ll")).map_err(|e| e.to_string())?;
-    let ext = ir.join("external.ll");
-    std::fs::write(&ext, before.replace("\ndefine internal ", "\ndefine ")).map_err(|e| e.to_string())?;
-    let fnl = ir.join("functions.ll");
-    let o = engines::run(Command::new(OPT).arg(format!("-passes={FUNCTION_PASSES}")).arg(&ext).arg("-S").arg("-o").arg(&fnl), dir, &[], false, engines::build_limit());
-    if o.code != Some(0) {
-        return Err(format!("opt: {}", o.stderr.lines().next().unwrap_or("")));
-    }
-    let a = alive(dir, &ext, &fnl)?;
+    let before = std::fs::read_to_string(ir.join("before.ll")).map_err(io)?;
+    let a = if per_function {
+        let ext = ir.join("external.ll");
+        std::fs::write(&ext, before.replace("\ndefine internal ", "\ndefine ")).map_err(io)?;
+        let fnl = ir.join("functions.ll");
+        let o = engines::run(Command::new(OPT).arg(format!("-passes={FUNCTION_PASSES}")).arg(&ext).arg("-S").arg("-o").arg(&fnl), dir, &[], false, engines::build_limit());
+        if o.code != Some(0) {
+            return Err(Fail::Other(format!("opt: {}", o.stderr.lines().next().unwrap_or(""))));
+        }
+        alive(dir, &ext, &fnl)?
+    } else {
+        String::new()
+    };
     let b = alive(dir, &ir.join("before.ll"), &ir.join("after.ll"))?;
     let mut incorrect: Vec<(String, String)> = incorrect_reports(&a, &[]).into_iter().map(|r| ("per function".to_string(), r)).collect();
     let mut skip = callers_of_own(&before);
     skip.push("main".into());
     let skip: Vec<&str> = skip.iter().map(|s| s.as_str()).collect();
-    incorrect.extend(incorrect_reports(&b, &skip).into_iter().map(|r| ("CCA's pipeline".to_string(), r)));
+    incorrect.extend(incorrect_reports(&b, &skip).into_iter().map(|r| ("Zomp's pipeline".to_string(), r)));
     let mut pipeline = counts(&b);
     // `main`'s known false report is not counted as incorrect
-    pipeline.incorrect = incorrect.iter().filter(|x| x.0 == "CCA's pipeline").count() as u64;
-    Ok(Outcome { per_function: counts(&a), pipeline, incorrect })
+    pipeline.incorrect = incorrect.iter().filter(|x| x.0 == "Zomp's pipeline").count() as u64;
+    let reasons = b.lines().filter_map(|l| l.trim().strip_prefix("ERROR: ")).map(|r| r.to_string()).collect();
+    Ok(Outcome { per_function: counts(&a), pipeline, incorrect, reasons })
 }
