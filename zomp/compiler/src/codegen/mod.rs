@@ -4281,6 +4281,87 @@ fn machine() -> Result<TargetMachine, String> {
 /// The passes `write_object` runs, as `opt -passes=…` spells them.
 pub const PASSES: &str = "default<O3>";
 
+thread_local! {
+    /// Where `--emit-llvm-tv` writes (owner, 2026-10-15: "(a)").
+    static TV_DIR: std::cell::RefCell<Option<std::path::PathBuf>> = const { std::cell::RefCell::new(None) };
+}
+
+/// `--emit-llvm-tv <dir>`: the IR for translation validation (owner,
+/// 2026-10-15: "(a)", check claude's Alive2), beside a build that is
+/// otherwise the same.
+pub fn set_tv_dir(dir: Option<std::path::PathBuf>) {
+    TV_DIR.with(|d| *d.borrow_mut() = dir);
+}
+
+/// The module before and after Zomp's own passes with inlining off, for
+/// Alive2 to check function by function: a copy, each function with a body
+/// marked `noinline` and given external linkage (so no pass changes a
+/// function's signature or deletes it on the grounds that it sees every
+/// call), run through the same pipeline on the same machine with the same
+/// facts from the prover, and the attributes the passes inferred on a
+/// function taken off again. What is built is untouched.
+fn write_tv(module: &Module, machine: &TargetMachine, dir: &Path) -> Result<(), String> {
+    std::fs::create_dir_all(dir).map_err(|e| format!("cannot make {}: {}", dir.display(), e))?;
+    let copy = module.clone();
+    let noinline = inkwell::attributes::Attribute::get_named_enum_kind_id("noinline");
+    let always = inkwell::attributes::Attribute::get_named_enum_kind_id("alwaysinline");
+    for f in copy.get_functions() {
+        if f.count_basic_blocks() == 0 {
+            continue;
+        }
+        f.remove_enum_attribute(inkwell::attributes::AttributeLoc::Function, always);
+        f.add_attribute(inkwell::attributes::AttributeLoc::Function, copy.get_context().create_enum_attribute(noinline, 0));
+        // Visible from outside, so no pass may take it as knowing every
+        // call: a constant carried in, an argument dropped, a function
+        // deleted would change what is compared, function by function.
+        f.set_linkage(Linkage::External);
+    }
+    let write = |name: &str, what: &str| -> Result<(), String> {
+        let text = format!(
+            "; {}\n; for translation validation (--emit-llvm-tv): every function with a body `noinline` and external, the rest as built\n; passes: opt -passes='{}' (TargetMachine: {}, cpu {}, features {}, -O3, PIC)\n{}",
+            what,
+            PASSES,
+            machine.get_triple().as_str().to_string_lossy(),
+            machine.get_cpu().to_string(),
+            machine.get_feature_string().to_string_lossy(),
+            copy.print_to_string().to_string()
+        );
+        let file = dir.join(name);
+        std::fs::write(&file, text).map_err(|e| format!("cannot write {}: {}", file.display(), e))
+    };
+    write("tv-before.ll", "as Zomp hands it to LLVM, before any pass")?;
+    // What each function says of itself before the passes, so what they
+    // infer can be taken off again: attribute inference is about calls,
+    // and some of what it writes (`nofree`) Alive2 cannot read (check
+    // claude).
+    use inkwell::attributes::AttributeLoc;
+    let key = |a: &inkwell::attributes::Attribute| if a.is_string() { format!("s:{}", a.get_string_kind_id().to_string_lossy()) } else { format!("e:{}", a.get_enum_kind_id()) };
+    let places = |f: &inkwell::values::FunctionValue| -> Vec<AttributeLoc> { std::iter::once(AttributeLoc::Function).chain(std::iter::once(AttributeLoc::Return)).chain((0..f.count_params()).map(AttributeLoc::Param)).collect() };
+    let mut said: HashMap<(String, String), std::collections::HashSet<String>> = HashMap::new();
+    for f in copy.get_functions().filter(|f| f.count_basic_blocks() > 0) {
+        for loc in places(&f) {
+            said.insert((f.get_name().to_string_lossy().into_owned(), format!("{:?}", loc)), f.attributes(loc).iter().map(key).collect());
+        }
+    }
+    copy.run_passes(PASSES, machine, inkwell::passes::PassBuilderOptions::create()).map_err(|e| e.to_string())?;
+    for f in copy.get_functions().filter(|f| f.count_basic_blocks() > 0) {
+        for loc in places(&f) {
+            let before = said.get(&(f.get_name().to_string_lossy().into_owned(), format!("{:?}", loc))).cloned().unwrap_or_default();
+            for a in f.attributes(loc) {
+                if before.contains(&key(&a)) {
+                    continue;
+                }
+                if a.is_string() {
+                    f.remove_string_attribute(loc, &a.get_string_kind_id().to_string_lossy());
+                } else {
+                    f.remove_enum_attribute(loc, a.get_enum_kind_id());
+                }
+            }
+        }
+    }
+    write("tv-after.ll", "after Zomp's LLVM passes, inlining off, the attributes they inferred taken off")
+}
+
 /// With `emit`, the module is written there twice as text: `before.ll`, as
 /// CCA hands it to LLVM (Precog's `nsw`/`nuw` and facts in it), and
 /// `after.ll`, what LLVM's passes made of it and the backend gets.
@@ -4304,6 +4385,9 @@ pub fn write_object(module: &Module, path: &Path, emit: Option<&Path>) -> Result
         std::fs::write(&file, text).map_err(|e| format!("cannot write {}: {}", file.display(), e))
     };
     write_ll("before.ll", "as Zomp hands it to LLVM, before any pass")?;
+    if let Some(dir) = TV_DIR.with(|d| d.borrow().clone()) {
+        write_tv(module, &machine, &dir)?;
+    }
     // LLVM's whole pipeline, as clang -O3 runs it (owner: optimised
     // everywhere). Without it the module went to the backend as written —
     // every local in memory, nothing inlined, no loop touched — and ran at

@@ -9,7 +9,7 @@ fn usage() -> ! {
     eprintln!("       zomp check <file.zg | strike-dir>…   parse and check");
     eprintln!("       zomp mir <file.zg | strike-dir>       check, then print the flow graph");
     eprintln!("       zomp prove <file.zg | strike-dir>   check, lower, prove, and report");
-    eprintln!("       zomp build <file.zg | strike-dir> [-o out] [--target t] [--final] [--emit-llvm dir]   …then generate, assemble and link; --final refuses what is not proven and writes the debug info beside the program (out.dSYM, out.debug); dir/before.ll and dir/after.ll are the LLVM IR before and after LLVM's passes");
+    eprintln!("       zomp build <file.zg | strike-dir> [-o out] [--target t] [--final] [--emit-llvm dir] [--emit-llvm-tv dir]   …then generate, assemble and link; --final refuses what is not proven and writes the debug info beside the program (out.dSYM, out.debug); dir/before.ll and dir/after.ll are the LLVM IR before and after LLVM's passes, and --emit-llvm-tv writes dir/tv-before.ll and dir/tv-after.ll, the same with inlining off, for translation validation");
     eprintln!("       zomp run <file.zg | strike-dir> [-- words…]   build, then run it here with its words; its exit is zomp's");
     eprintln!("       zomp test <file.zg | strike-dir>      run every `test fn`, each on its own, and report");
     eprintln!("       zomp prepare [folder/] [<name>, …] [--prefix <prefix>, …] | --all   run those strikes' build.zg, in their own folders");
@@ -149,6 +149,10 @@ fn real_main() {
             while i < args.len() {
                 if args[i] == "--emit-llvm" && i + 1 < args.len() {
                     emit = Some(args[i + 1].clone());
+                    i += 2;
+                } else if args[i] == "--emit-llvm-tv" && i + 1 < args.len() {
+                    // For translation validation (owner, 2026-10-15: "(a)").
+                    ground::codegen::set_tv_dir(Some(std::path::PathBuf::from(&args[i + 1])));
                     i += 2;
                 } else if args[i] == "--assert-proofs" {
                     assert_proofs = true;

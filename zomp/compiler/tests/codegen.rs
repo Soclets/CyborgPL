@@ -779,3 +779,41 @@ fn a_final_build_writes_its_debug_info_beside_it() {
     let said = String::from_utf8_lossy(&r.stdout);
     assert!(said.contains("the vector table, `_start` in its first slot") && !said.contains("`_start`, Zomp's"), "the size report counts `_start` apart from the table:\n{}", said);
 }
+
+/// `--emit-llvm-tv <dir>` (owner, 2026-10-15: "(a)"): `tv-before.ll` and
+/// `tv-after.ll`, the IR before and after Zomp's own passes with inlining off, for check claude's Alive2 to
+/// compare function by function. Every function with a body is still there
+/// after the passes, under the same signature, and the program built
+/// beside it is the one a plain build makes.
+#[test]
+fn emit_llvm_tv_keeps_every_function() {
+    assert!(runtime().is_some(), "the runtime is not built");
+    let out = std::env::temp_dir().join(format!("zomp-tv-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&out);
+    std::fs::create_dir_all(&out).unwrap();
+    let src = out.join("t.zg");
+    std::fs::write(&src, "fn add ['a': int32, 'b': int32] -> int32 { return 'a' plus 'b'; }\nfn sum ['n': uint32] -> uint64 {\n    let mut 't': uint64 = 0;\n    for 'i': uint32 from 1 to 'n' by 1 { change 't' = 't' plus to.uint64['i']; }\n    return 't';\n}\nMAIN {\n    std::print.useful[add[2, 3], \" \", sum[10], newln];\n}\n").unwrap();
+    let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(out.join("t")).arg("--emit-llvm-tv").arg(out.join("tv")).output().unwrap();
+    assert!(r.status.success(), "the build failed:\n{}", String::from_utf8_lossy(&r.stderr));
+    let defined = |name: &str| -> Vec<String> {
+        let text = std::fs::read_to_string(out.join("tv").join(name)).unwrap();
+        let mut v: Vec<String> = text.lines().filter(|l| l.starts_with("define ")).map(|l| {
+            let at = l.find('@').unwrap();
+            let end = l[at..].find('(').unwrap();
+            l[at..at + end].to_string()
+        }).collect();
+        v.sort();
+        v
+    };
+    let (before, after) = (defined("tv-before.ll"), defined("tv-after.ll"));
+    assert!(before.len() >= 4 && before == after, "the passes dropped or renamed a function:\n before {:?}\n after  {:?}", before, after);
+    assert!(std::fs::read_to_string(out.join("tv/tv-before.ll")).unwrap().contains("noinline"), "the functions are not marked noinline");
+    // What the passes inferred on a function is taken off again: Alive2
+    // cannot read all of it (check claude), and it is about calls.
+    let after_text = std::fs::read_to_string(out.join("tv/tv-after.ll")).unwrap();
+    for l in after_text.lines().filter(|l| l.starts_with("define ")) {
+        assert!(!l.contains("noundef") && !l.contains("readonly") && !l.contains("captures"), "an inferred attribute is left: {}", l);
+    }
+    let ran = Command::new(out.join("t")).output().unwrap();
+    assert_eq!(String::from_utf8_lossy(&ran.stdout), "5 55\n");
+}

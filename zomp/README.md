@@ -766,3 +766,15 @@ Dated, with the alternative, so each can become a question later.
   trip's values, and the later trips were never asked (`'i'` of -2 on an
   outer loop's third trip "proven"; check claude, corpus `71a8d5a2`). The
   entry is now split by a fresh selector, one way or the other.
+- **2026-10-15 — `--emit-llvm-tv <dir>`, for translation validation.**
+  Beside a build that is otherwise the same, `dir/tv-before.ll` and
+  `dir/tv-after.ll` hold a copy of the module before and after Zomp's own
+  passes (`PASSES`, the same machine, the prover's `nsw`/`nuw` and facts),
+  with every function that has a body marked `noinline` and given external
+  linkage, so no pass deletes a function, drops an argument or carries a
+  constant in on the grounds that it sees every call. Alive2 (check
+  claude's `check tv`) can then compare them function by function (owner,
+  2026-10-15: "(a)"). The functions keep their signatures, and the
+  attributes the passes infer on a function (`nofree`, `noundef`, …) are
+  taken off again, since they are about calls and Alive2 cannot read all
+  of them; lifetime markers are check claude's to strip, on both sides.
