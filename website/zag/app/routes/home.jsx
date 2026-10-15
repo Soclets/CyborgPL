@@ -45,15 +45,32 @@ function usePager(frame) {
     const box = frame.current;
     const screens = () => [...box.children];
     const still = matchMedia("(prefers-reduced-motion: reduce)");
-    let at = 0, lockedUntil = 0, lastWheel = 0, touchY = null, recent = [];
+    let at = 0, lockedUntil = 0, lastDir = 0, lastWheel = 0, touchY = null, recent = [], raf = 0;
+    // The move itself: starts at full speed and eases out, so the page answers at once (owner:
+    // "it feels like there's a delay before a scroll registers"; the browser's smooth scroll
+    // started slowly). A new move takes over from wherever the last one is.
+    const glide = (to) => {
+      cancelAnimationFrame(raf);
+      if (still.matches) { box.scrollTop = to; return; }
+      const from = box.scrollTop, t0 = performance.now(), length = 460;
+      const step = (t) => {
+        const p = Math.min(1, (t - t0) / length);
+        box.scrollTop = from + (to - from) * (1 - Math.pow(1 - p, 3));
+        if (p < 1) raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+    };
     const go = (i) => {
       const list = screens();
       i = Math.max(0, Math.min(list.length - 1, i));
       if (i === at) return;
+      lastDir = Math.sign(i - at);
       at = i;
-      lockedUntil = performance.now() + 700;
-      box.scrollTo({ top: list[i].offsetTop, behavior: still.matches ? "auto" : "smooth" });
+      // Only a little while, and only for the same way: turning back works at any moment.
+      lockedUntil = performance.now() + 240;
+      glide(list[i].offsetTop);
     };
+    const ready = (dir) => performance.now() >= lockedUntil || dir !== lastDir;
     // Can the current screen still scroll this way by itself?
     const inner = (dir) => {
       const el = screens()[at];
@@ -70,10 +87,10 @@ function usePager(frame) {
       const now = performance.now(), size = Math.abs(e.deltaY);
       const paused = now - lastWheel > 180;
       const before = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
-      const faster = recent.length >= 3 && size > 8 && size > before * 1.6;
+      const faster = recent.length >= 2 && size > 6 && size > before * 1.5;
       lastWheel = now;
       recent = paused ? [size] : [...recent.slice(-4), size];
-      if (now < lockedUntil || !(paused || faster)) return;
+      if (!ready(dir) || !(paused || faster)) return;
       recent = [size];
       go(at + dir);
     };
@@ -87,7 +104,7 @@ function usePager(frame) {
       if (touchY === null) return;
       const dy = touchY - e.changedTouches[0].clientY;
       touchY = null;
-      if (Math.abs(dy) > 40 && !inner(Math.sign(dy)) && performance.now() >= lockedUntil) go(at + Math.sign(dy));
+      if (Math.abs(dy) > 30 && !inner(Math.sign(dy)) && ready(Math.sign(dy))) go(at + Math.sign(dy));
     };
     const onKey = (e) => {
       if (e.target.closest?.("input, textarea, select, [contenteditable]")) return;
@@ -96,7 +113,7 @@ function usePager(frame) {
       else if (e.key === "Home") { e.preventDefault(); go(0); }
       else if (e.key === "End") { e.preventDefault(); go(screens().length - 1); }
     };
-    const onResize = () => { box.scrollTo({ top: screens()[at].offsetTop }); };
+    const onResize = () => { cancelAnimationFrame(raf); box.scrollTop = screens()[at].offsetTop; };
     // On the window, not the frame: Safari only sent the frame its wheel events after a click
     // on the page (owner: "you have to click the screen before scrolling"). The frame also takes
     // focus, so the keys work straight away too.
@@ -110,7 +127,7 @@ function usePager(frame) {
     return () => {
       removeEventListener("wheel", onWheel); removeEventListener("touchstart", onTouchStart);
       removeEventListener("touchmove", onTouchMove); removeEventListener("touchend", onTouchEnd);
-      removeEventListener("keydown", onKey); removeEventListener("resize", onResize);
+      removeEventListener("keydown", onKey); removeEventListener("resize", onResize); cancelAnimationFrame(raf);
     };
   }, [frame]);
 }
