@@ -164,14 +164,17 @@ function useStorm(frame, zomp, site) {
   }, [frame, zomp, site]);
 }
 
-// The site's top bar: a floating pill (owner: "I think it should be an in-theme pill").
-const LINKS = [["Learn", "/learn"], ["Examples", "/examples"], ["Download", "/download"], ["Licence", "/licence"], ["Commits", "/commits"]];
-function Pill() {
+// The site's top bar: a floating pill of frosted glass (owner: "I think it should be an in-theme
+// pill", then "Glass. Remove Commits. new, exact arrangement: Home, Download, Docs, Examples, More").
+const LINKS = [["Home", "/"], ["Download", "/download"], ["Docs", "/docs"], ["Examples", "/examples"], ["More", "/more"]];
+function Pill({ here = "/" }) {
   return (
-    <nav className="pill cloud" aria-label="Site">
+    <nav className="pill" aria-label="Site">
       <a className="brand" href="/"><img src="/logo.svg" alt="Zag" width="45" height="34" /></a>
       <div className="links">
-        {LINKS.map(([name, to]) => <a key={to} className="link" href={to}>{name}</a>)}
+        {LINKS.map(([name, to]) => (
+          <a key={to} className="link" href={to} aria-current={to === here ? "page" : undefined}>{name}</a>
+        ))}
       </div>
     </nav>
   );
