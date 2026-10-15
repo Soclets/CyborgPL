@@ -1,6 +1,6 @@
 # std — Zag's standard library, in Zag
 
-Written by std claude (`design/cord-session.md`). std is Zag calling the runtime (Rust) only for what
+Written by std claude (`design/std-session.md`). std is Zag calling the runtime (Rust) only for what
 Zag cannot say yet (owner, 2026-09-14; again 2026-10-14, "(c)"). Every public item may be written with
 `std::` or without it (owner, 2026-10-06). It was `cord/`, Nerve's cord, until the sweep to Zag's
 names (2026-10-15).
