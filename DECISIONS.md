@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — CyborgPL's home is cyborgpl.org; .com and .dev point to it (owner)
+
+The owner: "CyborgPL.dev hasn't even gotten indexed yet. I kinda wanna buy the .com and .org too, and change main
+to cyborgpl.org", then bought both (cyborgpl.com, cyborgpl.org; cyborgpl.dev already the owner's). Design claude
+had suggested the .org as main, as language sites are (python.org, rust-lang.org, ziglang.org), with .com, which
+reads as a company's, and .dev pointing to it; the owner: ".com looks the best, but kinda misleading". So
+**cyborgpl.org is the home**, and cyborgpl.com and cyborgpl.dev lead to it (design claude's reading of "change
+main"). The README and the repository's link say so.
+
 ### 2026-10-15 — The language goes back to **CyborgPL** (owner)
 
 After weighing Kespar ("Kespar vs CyborgPL is such a hard choice") and then the CyborgPL family (the entry
