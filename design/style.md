@@ -92,3 +92,11 @@ recommended.
     another spelling of a word, there for whoever thinks in symbols, but the
     word says which form it is: `/` is `div.trunc`, and only the word tells a
     reader it rounds toward zero. That's why Zag is named for being read.
+
+## Shape of a program
+
+16. **Keep `MAIN` thin** (owner, 2026-10-15: "yea"). `MAIN` reads the input, calls the real work, and
+    reports the result; the work lives in modules, one topic per file, so `strike.zg` reads like a table of
+    contents. A reader sees the program's shape at once, and small focused functions are what the prover
+    proves best. As Zomp and the oracle do: their `main.rs` hands everything to the parser, checker, prover
+    and code generator.

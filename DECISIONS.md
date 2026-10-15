@@ -5,6 +5,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — Good practice 16: keep `MAIN` thin (owner: yea)
+
+The owner asked why `main.rs` has few lines (in Zomp, 719 of 44,324: it reads the command line and hands the
+work to the parser, checker, prover and code generator), then "Should that be good practice in Zag?". Design
+claude proposed item 16: `MAIN` reads the input, calls the real work and reports; the work lives in modules,
+one topic per file, so `strike.zg` reads like a table of contents; readability is Zag's core value, and small
+focused functions are what the prover proves best. The owner: "yea". In `design/style.md`.
+
 ### 2026-10-15 — Trademarks: Zag™, Zomp™ and Ricochet™; none on the old names (owner: b)
 
 Website claude found the README's trademark line still naming Cell™, dropped on 2026-10-15. Offered (a) Zag™
