@@ -114,7 +114,21 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 
 /* The site itself: the storm has cleared. */
 .site { display: flex; flex-direction: column; align-items: center; padding: 84px 16px 10vh; }
-.site-top { margin: auto 0; max-width: 820px; text-align: center; }
+.site-body { width: 100%; display: flex; flex-direction: column; align-items: center; }
+/* The tagline fills the first view; the features follow as the screen scrolls inside. */
+.site-top { min-height: calc(100svh - 84px - 22vh); display: flex; align-items: center; max-width: 820px; text-align: center; }
+
+/* Core features: frosted white glass with deep-blue text, so they read over sky and cloud alike. */
+.core { width: 100%; max-width: 1060px; margin-top: 4vh; }
+.core h3 { margin: 0 0 18px; text-align: center; font-weight: 700; font-size: clamp(26px, 3.6vw, 38px); paint-order: stroke fill; -webkit-text-stroke: 6px var(--edge); }
+.cards { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+.card { flex: 1 1 290px; max-width: 340px; padding: 20px 20px 22px; border-radius: 22px; color: #0F2A5C;
+  background: rgba(255, 255, 255, .74); border: 1px solid rgba(255, 255, 255, .9);
+  -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); box-shadow: 0 12px 30px rgba(10, 50, 110, .18); }
+.card-icon { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: var(--edge); color: #fff; }
+.card h4 { margin: 14px 0 6px; font-weight: 700; font-size: 20px; line-height: 1.2; color: #0F2A5C; }
+.card p { margin: 0; font-size: 16px; line-height: 1.5; color: #23406E; }
+.card code { font: 600 .9em ui-monospace, "SF Mono", Menlo, monospace; padding: 1px 6px; border-radius: 6px; background: rgba(23, 87, 176, .1); color: var(--edge); }
 .site-top h2 { margin: 0; font-weight: 700; font-size: clamp(30px, 5vw, 56px); line-height: 1.1; paint-order: stroke fill; -webkit-text-stroke: 8px var(--edge); }
 
 /* A page that isn't there. */
@@ -131,7 +145,7 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 .pill { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 4px; max-width: calc(100% - 24px);
   opacity: var(--site-fade, 1);
   padding: 6px; border-radius: 999px;
-  background: rgba(255, 255, 255, .2); border: 1px solid rgba(255, 255, 255, .5);
+  background: rgba(28, 92, 196, .38); border: 1px solid rgba(255, 255, 255, .5);
   -webkit-backdrop-filter: blur(16px) saturate(150%); backdrop-filter: blur(16px) saturate(150%);
   box-shadow: 0 12px 30px rgba(10, 50, 110, .18); }
 .pill-off .pill { visibility: hidden; pointer-events: none; }

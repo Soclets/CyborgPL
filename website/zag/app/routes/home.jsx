@@ -1,5 +1,8 @@
 import { useEffect, useRef } from "react";
 import { SITE_SCREEN } from "../sky.jsx";
+import { CORE } from "../content.js";
+import Icon from "../icons.jsx";
+import Md from "../md.jsx";
 
 export const meta = () => [
   { title: "Zag" },
@@ -135,7 +138,12 @@ function usePager(frame) {
     const onKey = (e) => {
       if (e.target.closest?.("input, textarea, select, [contenteditable]")) return;
       const dir = NEXT.includes(e.key) && !e.shiftKey ? 1 : PREV.includes(e.key) || (e.key === " " && e.shiftKey) ? -1 : 0;
-      if (dir) { if (inner(dir)) return; e.preventDefault(); go(at + dir); }
+      // A screen with more than fits pages through it first, by most of a window at a time.
+      if (dir) {
+        e.preventDefault();
+        if (inner(dir)) screens()[at].scrollBy({ top: dir * box.clientHeight * 0.8, behavior: still.matches ? "auto" : "smooth" });
+        else go(at + dir);
+      }
       else if (e.key === "Home") { e.preventDefault(); go(0); }
       else if (e.key === "End") { e.preventDefault(); go(screens().length - 1); }
     };
@@ -257,8 +265,23 @@ export default function Home() {
           </div>
         </section>
         <section className="site" id="home" ref={site}>
-          <div className="site-top moves">
-            <h2>Very slow at the development, fast &amp; safe at the final product.</h2>
+          <div className="moves site-body">
+            <div className="site-top">
+              <h2>Very slow at the development, fast &amp; safe at the final product.</h2>
+            </div>
+            {/* The core features (owner, 2026-10-15: "let's expand the Home. The Core Features"). */}
+            <section className="core" aria-labelledby="core-title">
+              <h3 id="core-title">Core features</h3>
+              <ul className="cards">
+                {CORE.map((f) => (
+                  <li key={f.title} className="card">
+                    <span className="card-icon"><Icon name={f.icon} /></span>
+                    <h4><Md text={f.title} /></h4>
+                    <p><Md text={f.text} /></p>
+                  </li>
+                ))}
+              </ul>
+            </section>
           </div>
         </section>
       </main>
