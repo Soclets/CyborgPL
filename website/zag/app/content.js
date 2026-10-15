@@ -70,29 +70,54 @@ export const BUILT_WITH = [
 // indexes (static.rust-lang.org's stable channel, ziglang.org/download/index.json); Rust's facts from
 // the Rust Book and Reference, Zig's from its 0.17.0 language reference (whose build modes are now
 // debug, safe, fast and small, and which translates C with `zig translate-c`, no @cImport); Zag's
-// from its design notes. Stated behaviour, not benchmarks or a score.
+// from its design notes. Then C, C++ and Go ("Do 3 more now"): C23 (ISO/IEC 9899:2024) and C++23
+// (ISO/IEC 14882:2024) are the latest published standards (C2y is in progress; C++26 is finished but
+// its ISO ballot runs to about late October 2026), facts from cppreference; Go 1.27.2 from go.dev's
+// release index, facts from the Go spec, the Go 1 compatibility promise and the cgo docs.
+// Stated behaviour, not benchmarks or a score.
 export const COMPARED = [
   { id: "zag", name: "Zag", version: "In development", url: null },
   { id: "rust", name: "Rust", version: "1.99.0", url: "https://blog.rust-lang.org/2026/10/01/Rust-1.99.0/" },
   { id: "zig", name: "Zig", version: "0.17.0", url: "https://ziglang.org/download/0.17.0/release-notes.html" },
+  { id: "c", name: "C", version: "C23", url: "https://en.cppreference.com/w/c/23" },
+  { id: "cpp", name: "C++", version: "C++23", url: "https://en.cppreference.com/w/cpp/23" },
+  { id: "go", name: "Go", version: "1.27.2", url: "https://go.dev/doc/go1.27" },
 ];
 export const COMPARISON = [
   { topic: "Maturity", zag: "A hobby language, being experimented with: no release, and no stability to expect.",
     rust: "Stable since 1.0. New editions are opt-in, and older ones keep compiling.",
-    zig: "Not yet 1.0: a release can change the language and its standard library." },
+    zig: "Not yet 1.0: a release can change the language and its standard library.",
+    c: "An ISO standard since 1989; C23 is the latest edition, and compilers keep older ones.",
+    cpp: "An ISO standard since 1998; C++23 is the latest published edition, and old code keeps compiling.",
+    go: "Stable: Go 1 promises that code keeps compiling with later 1.x releases, with documented exceptions.", },
   { topic: "Runs as", zag: "Native code: Zomp compiles through LLVM.",
     rust: "Native code, compiled ahead of time through LLVM.",
-    zig: "Native code, compiled ahead of time." },
+    zig: "Native code, compiled ahead of time.",
+    c: "Native code, compiled ahead of time by GCC, Clang, MSVC and others.",
+    cpp: "Native code, compiled ahead of time by GCC, Clang, MSVC and others.",
+    go: "Native code, with Go’s runtime built in for garbage collection and goroutines.", },
   { topic: "Memory", zag: "Ownership: every value has one owner, and each call says `lend`, `give` or `copy`. No garbage collector.",
     rust: "Ownership and borrowing, checked at compile time; values are dropped with their owner. No garbage collector.",
-    zig: "Manual: the language does no memory management for you. Allocators are passed explicitly; there is no default one." },
+    zig: "Manual: the language does no memory management for you. Allocators are passed explicitly; there is no default one.",
+    c: "Manual: `malloc` and `free`, with no garbage collector.",
+    cpp: "Manual, made safer by destructors (RAII) and smart pointers like `unique_ptr`. No garbage collector.",
+    go: "A garbage collector frees what’s no longer reachable.", },
   { topic: "Overflow and bounds", zag: "Proven at compile time; the final build carries no checks. What can’t be proven is refused until you write a guardrail or `no_check`.",
     rust: "Out-of-bounds indexing panics at run time. Integer overflow panics in debug builds and wraps in release builds by default.",
-    zig: "Checked at run time, with a panic, in the debug and safe modes; unchecked in the fast and small modes." },
+    zig: "Checked at run time, with a panic, in the debug and safe modes; unchecked in the fast and small modes.",
+    c: "Unchecked: signed overflow and out-of-bounds access are undefined behaviour; unsigned numbers wrap.",
+    cpp: "Unchecked by default: signed overflow is undefined behaviour and `[]` doesn’t check bounds; `.at()` does, throwing an exception.",
+    go: "Out-of-range indexing panics at run time. Integer overflow wraps without a panic, as the spec defines.", },
   { topic: "Errors", zag: "Failures are part of a function’s signature, and the caller must handle each with `otherwise`; forgetting is a compile error.",
     rust: "`Result` values and the `?` operator; ignoring a `Result` is a warning. Panics for the unrecoverable.",
-    zig: "Error unions (`!T`) with `try` and `catch`; an error can’t be silently ignored." },
+    zig: "Error unions (`!T`) with `try` and `catch`; an error can’t be silently ignored.",
+    c: "Return values and `errno`; nothing makes the caller check them.",
+    cpp: "Exceptions, and since C++23 `std::expected` for errors returned as values.",
+    go: "Errors are returned as values of the `error` type and checked with `if`; `panic` for the unrecoverable.", },
   { topic: "C", zag: "`incl.C` reads C headers while building, with Clang; `extern.C` declares by hand. Every call into C is a `no_check` site.",
     rust: "`extern \"C\"` declarations, called in `unsafe` code; headers are turned into Rust with tools such as bindgen.",
-    zig: "Calls C directly; headers are translated with `zig translate-c` or the build system, and Zig can export C libraries." },
+    zig: "Calls C directly; headers are translated with `zig translate-c` or the build system, and Zig can export C libraries.",
+    c: "It is C.",
+    cpp: "Includes C headers and calls C directly, with `extern \"C\"` for linking.",
+    go: "Through cgo: C declared in a comment above `import \"C\"`; each call has some overhead.", },
 ];
