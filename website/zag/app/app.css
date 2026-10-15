@@ -16,6 +16,10 @@
 * { box-sizing: border-box; }
 /* No rubber-band bounce at the top or bottom of the page (owner, 2026-10-15). */
 html, body { margin: 0; overscroll-behavior: none; }
+/* Each scroll lands exactly on a screen: the sky, then Zomp (owner, 2026-10-15: "Each scroll should
+   be auto perfect in this area"). A screen taller than the window still scrolls freely inside. */
+html { scroll-snap-type: y mandatory; }
+.hero, .zomp { scroll-snap-align: start; scroll-snap-stop: always; }
 body { font-family: var(--sans); color: var(--ink); background: var(--sky-top); -webkit-font-smoothing: antialiased; }
 
 /* The backdrop stays put while the page scrolls over it: the sky, the storm fading in over it,
