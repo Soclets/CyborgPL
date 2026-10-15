@@ -133,17 +133,20 @@ function usePager(frame) {
 }
 
 // Scrolling down turns the sky to storm (owner: "Zomp comes in with a lightning strike, and the
-// background turns storm"). --storm runs from 0 (sky) to 1 (storm) as the Zomp screen comes up;
-// the strike plays each time it arrives.
-function useStorm(frame, section) {
+// background turns storm"), and on to the site the storm clears again. --storm runs from 0 (sky)
+// to 1 (storm) as the Zomp screen comes up, and back to 0 as the site's screen does; the strike
+// plays each time Zomp arrives.
+function useStorm(frame, zomp, site) {
   useEffect(() => {
     const root = document.documentElement, box = frame.current;
     let raf = 0;
+    const rise = (el) => {
+      const r = el.getBoundingClientRect(), h = innerHeight;
+      return Math.min(1, Math.max(0, (h - r.top) / (h * 0.75)));
+    };
     const update = () => {
       raf = 0;
-      const r = section.current.getBoundingClientRect();
-      const h = innerHeight;
-      root.style.setProperty("--storm", Math.min(1, Math.max(0, (h - r.top) / (h * 0.75))).toFixed(3));
+      root.style.setProperty("--storm", Math.max(0, rise(zomp.current) - rise(site.current)).toFixed(3));
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
     update();
@@ -153,18 +156,31 @@ function useStorm(frame, section) {
       if (e.isIntersecting) root.classList.add("struck");
       else if (e.boundingClientRect.top > 0) root.classList.remove("struck");
     }, { threshold: 0.45 });
-    seen.observe(section.current);
+    seen.observe(zomp.current);
     return () => {
       box.removeEventListener("scroll", onScroll); removeEventListener("resize", onScroll);
       seen.disconnect(); cancelAnimationFrame(raf); root.classList.remove("struck");
     };
-  }, [frame, section]);
+  }, [frame, zomp, site]);
+}
+
+// The site's top bar: a floating pill (owner: "I think it should be an in-theme pill").
+const LINKS = [["Learn", "/learn"], ["Examples", "/examples"], ["Download", "/download"], ["Licence", "/licence"], ["Commits", "/commits"]];
+function Pill() {
+  return (
+    <nav className="pill cloud" aria-label="Site">
+      <a className="brand" href="/"><img src="/logo.svg" alt="Zag" width="45" height="34" /></a>
+      <div className="links">
+        {LINKS.map(([name, to]) => <a key={to} className="link" href={to}>{name}</a>)}
+      </div>
+    </nav>
+  );
 }
 
 export default function Home() {
-  const frame = useRef(null), zomp = useRef(null);
+  const frame = useRef(null), zomp = useRef(null), site = useRef(null);
   usePager(frame);
-  useStorm(frame, zomp);
+  useStorm(frame, zomp, site);
   return (
     <>
       <div className="backdrop" aria-hidden="true">
@@ -196,6 +212,12 @@ export default function Home() {
           <p>Zomp reads your whole program and proves, before it ever runs, that no number overflows and no index runs past the end. The final build carries none of those checks, or it doesn’t build.</p>
           <p>It takes its time: every build is a full one, with no fast mode. What comes out is native code, through LLVM.</p>
           <p className="cmd"><code>zomp</code></p>
+        </section>
+        <section className="site" ref={site}>
+          <Pill />
+          <div className="site-top">
+            <h2>Very slow at the development, fast &amp; safe at the final product.</h2>
+          </div>
         </section>
       </main>
     </>
