@@ -38,6 +38,15 @@ fn examples_produce_expected_output() {
         let out = Command::new(oracle()).arg(&src).args(if words.is_empty() { vec![] } else { std::iter::once("--".to_string()).chain(words).collect() }).output().unwrap();
         let got = String::from_utf8_lossy(&out.stdout).to_string();
         let code = out.status.code().unwrap_or(-1);
+        // a `.oracle` beside it: a program the oracle cannot run to the end, inline assembly (owner, 2026-10-15:
+        // "(a)"). Its `.out` is the compiled program's, checked by Zomp's tests; the oracle must stop with this text.
+        if let Ok(stop) = fs::read_to_string(src.with_extension("oracle")) {
+            let err = String::from_utf8_lossy(&out.stderr).to_string();
+            if code != 1 || !err.contains(stop.trim()) {
+                failures.push(format!("{}: the oracle should stop with `{}`; exit {code}, stderr: {err}", src.file_name().unwrap().to_string_lossy(), stop.trim()));
+            }
+            continue;
+        }
         // a `.test-out` beside it: its `test fn`s, run by `oracle --test` (owner, 2026-09-29), print that
         if let Ok(want_tests) = fs::read_to_string(src.with_extension("test-out")) {
             let t = Command::new(oracle()).arg("--test").arg(&src).output().unwrap();

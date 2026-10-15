@@ -52,7 +52,8 @@ v1 syntax carries over unless the owner explicitly chooses it.
 - `DECISIONS.md` — the running log of settled design decisions.
 - `design/` — design documents, one topic per file, as they are written.
 - `examples/` — `.zg` programs using settled syntax only, each with its
-  expected `.out` (and `.exit` if non-zero). Run by the oracle's tests.
+  expected `.out` (and `.exit` if non-zero; a `.oracle` for one the oracle cannot run to the end,
+  such as inline assembly). Run by the oracle's tests.
 - `website/` — the open-source website (owner, 2026-09-23), built by
   the website session, which updates it only when the owner says so.
   **nerve-lang.com** serves it from `website/site/` (Cloudflare, since

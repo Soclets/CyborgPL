@@ -5,6 +5,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — An example the oracle cannot run: `.oracle` beside it (owner: a); `examples/asm_beside_zag.zg`
+
+Website claude asked, for the new site's Home ("Hello World (default selected), C low-level +
+incl, and ASM low-level", owner), for an inline-assembly example that really runs on
+aarch64-macos (owner: "Yup"). Design claude wrote `asm_beside_zag.zg`: `madd` and `clz` in
+`inline.ASM`, each beside the same work in Zag; Zomp builds it, final build included (18 sites, all
+proven), and it prints the same from both sides. But every example must run in the oracle, which
+cannot run assembly (2026-09-20). Offered (a) keep it in `examples/`, with an exception: the oracle
+checks the file and must stop at the first assembly block, while Zomp's tests check its `.out`,
+recommended, or (b) put it in Zomp's own test programs. The owner: "(a)". So **an example the oracle
+cannot run to the end has a `.oracle` file beside it, holding the text the oracle must stop with**
+(here "the oracle cannot run assembly"); its `.out` is the compiled program's.
+
 ### 2026-10-15 — Zomp emits a no-inlining before/after pair for Alive2 (owner: a)
 
 Check claude's Alive2 trial (89e9d7da): LLVM 23's Alive2 read all 87 programs' Zomp IR, but proved
