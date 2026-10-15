@@ -8,12 +8,18 @@ and reads the printed answer instead. A run is timed from process start to exit,
 startup included; each case keeps the best of RUNS, and a run past TIMEOUT seconds
 is recorded as a timeout.
 
-    python3 run.py                   # every language that is installed
-    python3 run.py c rust zag   # only these
-    python3 run.py --quick           # tiny sizes, one run: does everything build and agree?
-    SYNAPSE=/path/to/synapse LUST=/path/to/lust python3 run.py
+    python3 run.py                     # every language that is installed
+    python3 run.py c rust zag          # only these
+    python3 run.py --quick             # tiny sizes, one run: does everything build and agree?
+    python3 run.py --allow-working     # time a working build where Zomp refuses the final one
+    ZOMP=/path/to/zomp LUST=/path/to/lust python3 run.py
+    ZAG_BENCH_THREADS=10 python3 run.py   # Zag's row on every core, when nothing else runs
 
-The tables are written to latest.md; RESULTS.md is the dated history, kept by hand.
+Zag is timed only as a final build. If Zomp refuses one (a check it cannot prove), that case is
+reported as refused and not timed, unless --allow-working is given; then the working build, which
+keeps run-time checks, is timed and its row says so. The run ends with a summary of anything that
+did not agree, was refused, or fell back. The tables are written to latest.md; RESULTS.md is the
+dated history, kept by hand.
 """
 import os, platform, re, shutil, subprocess, sys, time
 
@@ -22,12 +28,15 @@ BUILD = os.path.join(HERE, "build")
 CASES = [("sum", 300_000_000), ("fib", 35), ("lists", 20_000_000), ("sieve", 100_000_000)]
 RUNS = 3
 TIMEOUT = 60
+ALLOW_WORKING = "--allow-working" in sys.argv
+if ALLOW_WORKING:
+    sys.argv.remove("--allow-working")
 if "--quick" in sys.argv:  # tiny sizes, one run: checks every language builds and agrees
     sys.argv.remove("--quick")
     CASES = [("sum", 100_000), ("fib", 20), ("lists", 100_000), ("sieve", 100_000)]
     RUNS = 1
 _ZOMP = os.path.join(HERE, "..", "zomp", "target", "release", "zomp")
-SYNAPSE = os.environ.get("ZOMP", os.environ.get("SYNAPSE", _ZOMP if os.path.exists(_ZOMP) else os.path.join(HERE, "..", "synapse", "target", "release", "synapse")))
+ZOMP = os.environ.get("ZOMP", _ZOMP)
 LUST = os.environ.get("LUST", "lust")
 
 
@@ -52,19 +61,27 @@ def native(cmd):
     return lambda src, d, b: sh(cmd(src, os.path.join(d, b)))
 
 
-# programs whose final build Zomp refused, so a working build (with run-time checks) was timed instead;
-# the tables say so (2026-10-15: sieve's silent fallback once passed as a final build)
-FELL_BACK = {}
+# Zomp's final builds it refused, by program, with the first line of why (2026-10-15: a refused sieve
+# once fell back silently to a working build and passed as a final one)
+REFUSED = {}
 
 
-def synapse_build(src, d, b):
+class Refused(Exception):
+    pass
+
+
+def zomp_build(src, d, b):
     out = os.path.join(d, b)
-    r = subprocess.run([SYNAPSE, "build", "--final", src, "-o", out], capture_output=True, text=True)
-    if r.returncode != 0:
-        why = next((l for l in (r.stderr or r.stdout).splitlines() if l.strip()), "refused")
-        FELL_BACK[b] = why
-        print(f"WARNING: Zomp's final build refused {b}: {why}; timing a WORKING build instead", file=sys.stderr, flush=True)
-        sh([SYNAPSE, "build", src, "-o", out])
+    r = subprocess.run([ZOMP, "build", "--final", src, "-o", out], capture_output=True, text=True)
+    if r.returncode == 0:
+        return
+    lines = [l.strip() for l in (r.stderr or r.stdout).splitlines() if l.strip()]
+    why = " / ".join(lines[:2]) or "refused"
+    REFUSED[b] = why
+    if not ALLOW_WORKING:
+        raise Refused(f"final build refused: {why}")
+    print(f"  ! {b}: Zomp refused the final build ({why}); timing a WORKING build, as --allow-working asks", flush=True)
+    sh([ZOMP, "build", src, "-o", out])
 
 
 def ocaml_build(src, d, b):
@@ -89,8 +106,8 @@ def ts_build(src, d, b):
 
 
 LANGS = {
-    "zag": (f"Zag (Zomp, final build, {os.environ.get('CYBORG_BENCH_THREADS', '3')} threads)", None, "{b}.zg", synapse_build, lambda s, d, b: [os.path.join(d, b)]),
-    "zag1": ("Zag (Zomp, final build, 1 thread)", None, "{b}.zg", synapse_build, lambda s, d, b: [os.path.join(d, b)]),
+    "zag": (f"Zag (Zomp, final build, {os.environ.get('ZAG_BENCH_THREADS', os.environ.get('CYBORG_BENCH_THREADS', '3'))} threads)", None, "{b}.zg", zomp_build, lambda s, d, b: [os.path.join(d, b)]),
+    "zag1": ("Zag (Zomp, final build, 1 thread)", None, "{b}.zg", zomp_build, lambda s, d, b: [os.path.join(d, b)]),
     "c": ("C (clang -O2)", "clang", "{b}.c", native(lambda s, o: ["clang", "-O2", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "asm": ("Assembly (AArch64, hand-written)", "clang", "{b}.s", native(lambda s, o: ["clang", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "cpp": ("C++ (clang++ -O2)", "clang++", "{b}.cpp", native(lambda s, o: ["clang++", "-O2", "-std=c++17", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
@@ -124,7 +141,7 @@ LANGS = {
 def available(key):
     label, tool, *_ = LANGS[key]
     if key.startswith("zag"):
-        return os.path.exists(SYNAPSE)
+        return os.path.exists(ZOMP)
     if key == "lust":
         return shutil.which(LUST) is not None or os.path.exists(LUST)
     return shutil.which(tool) is not None
@@ -134,7 +151,8 @@ def available(key):
 # its plain code. It gets this session's share, 3 threads, and a second row pins it to 1.
 # `CYBORG_BENCH_THREADS=10 python3 run.py` gives it every core, when nothing else is running
 # (owner, 2026-10-06: "uncapped")
-THREADS = {"zag": os.environ.get("CYBORG_BENCH_THREADS", "3"), "zag1": "1"}
+ZAG_THREADS = os.environ.get("ZAG_BENCH_THREADS", os.environ.get("CYBORG_BENCH_THREADS", "3"))
+THREADS = {"zag": ZAG_THREADS, "zag1": "1"}
 
 
 def run_once(cmd, n, lust, key=""):
@@ -153,10 +171,21 @@ def run_once(cmd, n, lust, key=""):
     return took, r.returncode
 
 
+def zomp_version():
+    try:
+        return subprocess.run([ZOMP, "version"], capture_output=True, text=True).stdout.strip().splitlines()[0]
+    except Exception:
+        return "unknown version"
+
+
 def main():
     want = [a.lower() for a in sys.argv[1:]] or list(LANGS)
     keys = [k for k in LANGS if k in want and available(k)]
     missing = [k for k in LANGS if k in want and not available(k)]
+    if any(k.startswith("zag") for k in keys):
+        print(f"Zomp: {ZOMP} ({zomp_version()}); Zag's own row on {ZAG_THREADS} threads; "
+              f"{'working builds allowed where the final build is refused' if ALLOW_WORKING else 'final builds only'}", flush=True)
+    print(f"Best of {RUNS} runs each, checked against C's answer.\n", flush=True)
     os.makedirs(BUILD, exist_ok=True)
     expect = {}  # the C answer for each case
     for name, n in CASES:
@@ -177,6 +206,10 @@ def main():
                         g.write(f.read().replace("{{N}}", str(n)))
                 if build:
                     build(src, d, name)
+            except Refused as e:
+                results[key, name] = ("refused", str(e))
+                print(f"{key:11} {name:6} REFUSED   {e}", flush=True)
+                continue
             except Exception as e:
                 results[key, name] = ("build failed", str(e).splitlines()[0][:120])
                 print(f"{key:11} {name:6} build failed", flush=True)
@@ -199,6 +232,24 @@ def main():
             shown = f"{best:8.3f} s" if best is not None else "  timeout"
             print(f"{key:11} {name:6} {shown}  {'agree' if ok else results[key, name][1]}", flush=True)
     write_results(keys, missing, results)
+    summary(results)
+
+
+def summary(results):
+    """What a reader must know before trusting the numbers: what disagreed, was refused, or fell back."""
+    wrong = [(k, n, st) for (k, n), (t, st) in results.items() if isinstance(t, float) and st != "ok"]
+    refused = [(k, n, st) for (k, n), (t, st) in results.items() if t == "refused"]
+    failed = [(k, n, st) for (k, n), (t, st) in results.items() if t == "build failed"]
+    fell_back = sorted(REFUSED) if ALLOW_WORKING else []
+    print("\nSummary:")
+    if not (wrong or refused or failed or fell_back):
+        print("  every case built as asked and agreed with C. Tables in latest.md.")
+        return
+    for k, n, st in wrong: print(f"  WRONG ANSWER  {k} {n}: {st}")
+    for k, n, st in refused: print(f"  REFUSED       {k} {n}: {st} (not timed)")
+    for n in fell_back: print(f"  WORKING BUILD zag {n}: final build refused ({REFUSED[n]}); its rows are marked")
+    for k, n, st in failed: print(f"  BUILD FAILED  {k} {n}: {st}")
+    print("  Tables in latest.md.")
 
 
 def write_results(keys, missing, results):
@@ -216,7 +267,7 @@ def write_results(keys, missing, results):
             if isinstance(t, float) and status == "ok":
                 rel = f"{t / base:.2f}×" if isinstance(base, float) else "—"
                 label = LANGS[key][0]
-                if key.startswith("zag") and name in FELL_BACK:
+                if key.startswith("zag") and name in REFUSED:
                     label = label.replace("final build", "**working build**: the final build was refused") 
                 rows.append((t, f"| {label} | {t:.3f} s | {rel} |"))
             else:
