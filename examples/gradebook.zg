@@ -1,3 +1,4 @@
+# A small gradebook: structs, a failure for no scores, and a proven division.
 pub const 'passing' := 60;
 
 struct Student {

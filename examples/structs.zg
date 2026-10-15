@@ -1,3 +1,4 @@
+# Structs: building one, reading and changing its fields, an `immut` field.
 struct Locker {
     name: str.utf8,
     immut number: int32,

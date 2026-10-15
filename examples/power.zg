@@ -1,3 +1,4 @@
+# `pow`, and how it groups (to the right).
 MAIN {
     std::print.useful[(2 pow (3 pow 2)), newln];
     std::print.useful[((2 pow 3) pow 2), newln];

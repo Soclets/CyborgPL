@@ -1,3 +1,4 @@
+# `check`: proving a narrowing safe, with a guard the prover can see.
 fn draw ['y': bin16] { std::print.useful["drawing ", 'y', newln]; }
 MAIN {
     # A guardrail the compiler can see: past the `if`, the value is inside bin16's range,

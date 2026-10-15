@@ -1,3 +1,4 @@
+# Ownership: `lend`, `lend.mut`, `give` and `copy`.
 fn count [lent 'items': list[str.utf8]] -> int32 {
     let 'n' := 0;
     for 'item' in lend 'items' {

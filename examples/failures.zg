@@ -1,3 +1,4 @@
+# A function that can fail, its failures named, and `otherwise` handling them.
 struct Locker {
     owner: str.utf8,
     items: list[str.utf8]

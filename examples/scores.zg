@@ -1,3 +1,4 @@
+# Score handling: small functions, `if` / `else if`, and clamping a value into a range.
 fn is_even ['n': int32] -> bool {
     return ('n' mod.floor 2) equal_to 0;
 }

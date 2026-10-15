@@ -1,3 +1,4 @@
+# Reading, appending to and summing a list.
 fn sum [lent 'items': list[int32]] -> int32 {
     let 'total' := 0;
     for 'n' in lend 'items' {

@@ -1,3 +1,4 @@
+# A shop: an interface, an enum, structs and prices.
 interface Priced <T> {
     fn price [lent 'x': <T>] -> int32;
 }

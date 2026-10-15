@@ -1,3 +1,4 @@
+# An enum with a case that carries data, matched case by case.
 enum Status {
     empty,
     claimed: str.utf8,

@@ -1,3 +1,4 @@
+# Lockers with owners and items: structs, a constant, and lending one out to be changed.
 pub const 'capacity' := 12;
 
 struct Locker {

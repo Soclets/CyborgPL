@@ -1,3 +1,4 @@
+# Text in bytes, points and graphemes, and walking it one grapheme at a time.
 MAIN {
     let 's' := "héllo 👨‍👩‍👧 wörld";
 

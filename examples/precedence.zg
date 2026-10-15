@@ -1,3 +1,4 @@
+# Which operator binds first: `times` before `plus`, `pow` before both, and brackets.
 MAIN {
     std::print.useful[(1 plus 2 times 3), newln];
     std::print.useful[(2 times (3 pow 2)), newln];

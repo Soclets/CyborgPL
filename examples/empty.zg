@@ -1,3 +1,4 @@
+# Empty lists: `[]` with a type, and `list.empty`, then filled with `list.append`.
 MAIN {
     let 'xs': list[int32] = [];
     list.append[lend.mut 'xs', value 7];

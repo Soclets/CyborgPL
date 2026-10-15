@@ -1,3 +1,4 @@
+# Text literals: the escapes `\"` and `\\`, typed tabs, and `newln`.
 MAIN {
     std::print.stored["a\nb", newln];               # newln inside quotes is a backslash and an n
     std::print.stored["say \"hi\"", newln];         # \" is the one escape that is needed
