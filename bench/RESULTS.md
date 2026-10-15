@@ -5,8 +5,7 @@ Machine: arm64 (Apple Silicon, 10 cores: 4 performance, 6 efficiency), Darwin 27
 ## 2026-10-15: Zag against C, Python, Go and Rust
 
 Run at 14:10 (+07) with `ZOMP=… CYBORG_BENCH_THREADS=10 python3 run.py zag zag1 c python rust go` (Zomp's release
-build of `ab80b214` in compiler claude's clone), with every session paused and nothing else running (a Roblox
-window was closed first). The owner, through website claude, approved the numbers for the new site's Home and
+build of `ab80b214` in compiler claude's clone), with every session paused and nothing else running. The owner, through website claude, approved the numbers for the new site's Home and
 then asked for this re-run: "rerun". **The first run under the Zag name**, with the compiler as Zomp and the
 programs in today's syntax (`.zg`, `std::`).
 
