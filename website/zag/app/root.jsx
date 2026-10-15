@@ -3,6 +3,8 @@ import "./app.css";
 
 export const links = () => [
   { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+  { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
+  { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
   { rel: "preload", href: "/fonts/fredoka.woff2", as: "font", type: "font/woff2", crossOrigin: "anonymous" },
 ];
 

@@ -4,9 +4,12 @@
 /fonts/*
   Cache-Control: public, max-age=31536000, immutable
 
-# Security on every page, as on nerve-lang.com: the site loads nothing from anywhere else.
+# Security on every page, as on nerve-lang.com: the site loads nothing from anywhere else. Unlike
+# nerve-lang.com there is no upgrade-insecure-requests: Safari applies it to http://localhost too and
+# hangs fetching the page's files over https, and on the real site Cloudflare already serves
+# everything over https (Always Use HTTPS, HSTS).
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
