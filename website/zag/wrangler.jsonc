@@ -1,6 +1,7 @@
 // The Zag website (owner, 2026-10-15: "Let's make the new website"), for zag-lang.org.
-// Static files only, like nerve-lang.com's. Not deployed yet: the site goes up only when the
-// owner says so, and the zag-lang.org route is added then.
+// Static files only, like nerve-lang.com's, so every request is free. First deployed 2026-10-15
+// (owner: "I think we're ready to deploy"); `npm run deploy` builds and publishes, only when the
+// owner says so.
 {
   "name": "zag-website",
   "compatibility_date": "2026-10-01",
@@ -8,5 +9,6 @@
     "directory": "./build/client",
     "not_found_handling": "404-page",
     "html_handling": "drop-trailing-slash"
-  }
+  },
+  "routes": [{ "pattern": "zag-lang.org", "custom_domain": true }]
 }
