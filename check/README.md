@@ -238,7 +238,11 @@ counted as ambiguous and not asked (2026-09-29: four "refutations" in a
 100-program batch were such pairings, not CCA's). Instances of one site in
 several inlined calls share its node and are still asked together.
 
-## Translation validation (Alive2) — retired
+## Translation validation (Alive2)
+
+**Kept for good** (owner, 2026-10-15: "Keep Alive2"): Alive2 is part of translation validation,
+run per function on Zomp's no-inlining pair (`check tv`, below), beside RRx2-TV whenever the owner
+runs that; RRx2-TV no longer replaces it (`design/verification-session.md` item 4).
 
 **Alive2 per function on Zomp's passes** (owner, 2026-10-15: "(a)"): `check tv --cases N` builds
 with `zomp build --emit-llvm-tv <dir>` (c530643c): the module before and after Zomp's own LLVM 22
@@ -262,11 +266,9 @@ more defined" (`main` and functions with inlined callees, the known false report
 as incorrect), 17 timeouts, 12 never return, 6 Z3 out of memory, 3 incomplete quantifiers, and 2
 `llvm.lifetime.start(ptr)` without a size, LLVM 22's form, unsupported by Alive2 21.
 
-**Not run any more** (owner, 2026-10-02: "We have RRx2 to replace Alive2"):
-the LLVM-IR half of translation validation is RRx2-TV's, run when the
-owner says (`design/verification-session.md` item 4, c42ac8f). Mine is the
-Cyborg half, that the IR CCA hands to LLVM means what the MIR meant. The
-command below stays for the record.
+**History: retired 2026-10-02 to 2026-10-15** (owner, 2026-10-02: "We have RRx2 to replace
+Alive2"), when the LLVM-IR half was RRx2-TV's alone; the CCA-era command below is the record of
+that time.
 
 `check tv --cases N` (owner: Alive2 installed 2026-09-30; CCA's
 `--emit-llvm`, ae478cd): for each program, Alive2 checks that LLVM's
