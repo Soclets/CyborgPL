@@ -71,14 +71,17 @@ The oracle and the verification harness use no crates.
 </details>
 
 **Ideas taken from other languages**
-- **Rust**: ownership and borrowing, lifetime groups (`'a` there, `@x` here), interfaces and `<T: Ordered>` bounds (Rust's traits), diagnostics "helpful like Rust's", and `::` for stepping into another strike (Rust's paths, which took it from C++).
+- **Rust**: ownership and borrowing, lifetime groups (`'a` there, `@x` here), interfaces and `<T: Ordered>` bounds (Rust's traits), diagnostics "helpful like Rust's", `::` for stepping into another strike (Rust's paths, which took it from C++), and, as spellings of Zag's words, `&` and `&mut` for `lend` and `lend.mut` (and `lent`, `lent.mut` on a parameter), `*const T` and `*mut T` for the pointer types.
+- **C++**: `incl.C`, reading a C header, from `#include <>` (owner: "I wanna add C++'s `#include <>`").
+- **C**: `'i' += 1;` and `'i'++;` as spellings of `change 'i' = 'i' plus 1;`; with **Rust** and **Go**, `/` and `%` rounding toward zero (`div.trunc`, `mod.trunc`).
+- **Python**: `**` for `pow`.
 - **Ada**: `and then` / `or else`, here `and.then` / `or.else`.
 - **Swift**, **Zig** and **C**: points of comparison in the SIMD, wrapping-arithmetic and enum decisions.
 - **IEEE 754**: `bin16`, `bin32` and `bin64` arithmetic and rounding.
+- **Google Brain**: `brain16` is bfloat16, the 16-bit format from Google Brain.
 - **Lua**: the name *Lunae*.
 - **Kespar**, another of the owner's languages: the prover's design notes and its first provisional limits.
 - **Xag**, the owner's C++ language: the reference for everything outside the prover, and the licence.
-- **CyborgPL v1** ([CyborgPL-legacy](https://github.com/Artificial-IntelligenceAI/CyborgPL-legacy)): `x` and `xx`.
 
 </details>
 
