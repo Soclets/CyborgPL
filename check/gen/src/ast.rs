@@ -826,13 +826,14 @@ impl<'a> Wr<'a> {
         let s1 = self.out.len();
         let step = matches!(&**b, Expr::Lit(1)) && matches!(op, Add | Sub) && self.compounds % 2 == 1;
         if step {
-            self.out.push_str(&format!("{}{};", q(name), if *op == Add { "++" } else { "--" }));
+            self.out.push_str(&format!("{}{}", q(name), if *op == Add { "++" } else { "--" }));
         } else {
             self.out.push_str(&format!("{} {sym} ", q(name)));
             self.e(b);
-            self.out.push(';');
         }
+        // the operator's sites span the change without its `;`, as Zomp's do
         self.expr.push((addr(value), s1, self.out.len()));
+        self.out.push(';');
         self.stmt.push((addr(s), s0, s1, self.out.len()));
         self.out.push('\n');
         true
