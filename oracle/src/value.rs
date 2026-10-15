@@ -354,6 +354,52 @@ pub fn round_brain_direct(x: f64) -> f64 {
     if y.abs() > max { if y < 0.0 { f64::NEG_INFINITY } else { f64::INFINITY } } else { y }
 }
 
+/// The nearest brain float to a number written in decimal (a literal, or text), rounded once from its exact
+/// value. Its 64-bit value can land exactly on a brain16 half step the decimal is not on (check claude,
+/// 2026-10-15, corpus 9e7f0e0b: 1.01171874999999999999); only then is the decimal itself compared with the
+/// half step, exactly. Rounding to 64 bits never crosses a half step, which 64 bits holds exactly.
+pub fn round_brain_text(text: &str) -> Option<f64> {
+    let t: String = text.chars().filter(|c| *c != '_').collect();
+    let x: f64 = t.parse().ok()?;
+    let r = round_brain_direct(x);
+    if !r.is_finite() || r == x { return Some(r); }
+    let up = |v: f64| -> f64 {   // the next brain float away from zero
+        let b = (v as f32).to_bits();
+        f32::from_bits(b + 0x1_0000) as f64
+    };
+    let down = |v: f64| -> f64 { let b = (v as f32).to_bits(); if b & 0x7FFF_FFFF == 0 { v } else { f32::from_bits(b - 0x1_0000) as f64 } };
+    let other = if x.abs() > r.abs() { up(r) } else { down(r) };
+    if (r + other) / 2.0 != x { return Some(r); }
+    let ord = cmp_decimal_with(&t, x)?;
+    Some(match ord {
+        std::cmp::Ordering::Equal => r,
+        std::cmp::Ordering::Less => r.min(other),
+        std::cmp::Ordering::Greater => r.max(other),
+    })
+}
+
+/// A decimal written as text against a 64-bit value, exactly
+fn cmp_decimal_with(text: &str, m: f64) -> Option<std::cmp::Ordering> {
+    use crate::bigint::BigInt;
+    let (neg, t) = match text.strip_prefix('-') { Some(r) => (true, r), None => (false, text.strip_prefix('+').unwrap_or(text)) };
+    let (mant, exp) = match t.find(['e', 'E']) { Some(i) => (&t[..i], t[i + 1..].parse::<i64>().ok()?), None => (t, 0) };
+    let (int, frac) = mant.split_once('.').unwrap_or((mant, ""));
+    let mut d = BigInt::parse(&format!("{int}{frac}"))?;
+    if neg { d = d.neg(); }
+    let p = exp - frac.len() as i64;                 // text = d x 10^p
+    let bits = m.to_bits();
+    let e = ((bits >> 52) & 0x7FF) as i64;
+    let mant_m = (bits & ((1u64 << 52) - 1)) | if e == 0 { 0 } else { 1u64 << 52 };
+    let mut mm = BigInt::from_i128(mant_m as i128);
+    if m < 0.0 { mm = mm.neg(); }
+    let q = if e == 0 { -1074 } else { e - 1075 };   // m = mm x 2^q
+    let ten = BigInt::from_i128(10);
+    let (mut l, mut r) = (d, mm);
+    if p >= 0 { l = l.mul(&ten.pow(p as u64)); } else { r = r.mul(&ten.pow((-p) as u64)); }
+    if q >= 0 { r = r.mul(&BigInt::pow2(q as u64)); } else { l = l.mul(&BigInt::pow2((-q) as u64)); }
+    Some(l.cmp(&r))
+}
+
 /// `print.useful` for a brain float: the shortest decimal that rounds back to the same value.
 pub fn brain_useful(x: f64) -> String {
     if x == 0.0 { return if x.is_sign_negative() { "-0".into() } else { "0".into() }; }

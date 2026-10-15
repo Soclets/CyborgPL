@@ -1292,7 +1292,7 @@ impl<'p> Interp<'p> {
             (Ty::Brain, Value::Int(i), Prov::Literal) => Value::Brain(crate::value::round_brain_int(*i as i128)),
             (Ty::Brain, Value::Bin(x), Prov::Literal) => {
                 let exact = lit.as_ref().and_then(|d| d.parse::<f64>().ok()).unwrap_or(*x);
-                let b = crate::value::round_brain_direct(exact);
+                let b = lit.as_ref().and_then(|d| crate::value::round_brain_text(d)).unwrap_or_else(|| crate::value::round_brain_direct(exact));
                 if b.is_infinite() { return site(line, format!("{} does not fit brain16: it rounds past the largest value", shown(exact))); }
                 Value::Brain(b)
             }
@@ -2465,7 +2465,7 @@ impl<'p> Interp<'p> {
                         Value::Brain(r)
                     }
                     (Ty::Brain, Value::Deci(d)) => {
-                        let r = crate::value::round_brain_direct(d.show_stored().parse::<f64>().unwrap_or(d.to_f64()));
+                        let r = crate::value::round_brain_text(&d.show_stored()).unwrap_or_else(|| crate::value::round_brain_direct(d.to_f64()));
                         if r.is_infinite() { return site(line, format!("{} does not fit brain16: it rounds past the largest value", d.show_stored())); }
                         Value::Brain(r)
                     }
@@ -2477,7 +2477,7 @@ impl<'p> Interp<'p> {
                         let digits = |d: &str| !d.is_empty() && d.bytes().all(|b| b.is_ascii_digit());
                         let ok = digits(int) && frac.map_or(true, digits) && exp.map_or(true, |e| digits(e.strip_prefix(['-', '+']).unwrap_or(e)));
                         let why = match s.parse::<f64>() {
-                            Ok(x) if ok => { let r = crate::value::round_brain_direct(x); if r.is_infinite() { "out_of_range" } else { fit_base!(Value::Brain(r)); return Ok((Value::Brain(r), Prov::Plain)); } }
+                            Ok(x) if ok => { let r = crate::value::round_brain_text(s).unwrap_or_else(|| crate::value::round_brain_direct(x)); if r.is_infinite() { "out_of_range" } else { fit_base!(Value::Brain(r)); return Ok((Value::Brain(r), Prov::Plain)); } }
                             _ => "not_a_number",
                         };
                         let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.{target}"), why.into(), None, true)?;
@@ -3104,7 +3104,7 @@ impl<'p> Interp<'p> {
                 // A bare literal beside a brain16 is a brain16, rounded to the nearest (owner, 2026-10-02)
                 let lit_brain = |v: &Value, digits: &Option<String>| -> Option<Value> { match v {
                     Value::Int(i) => Some(Value::Brain(crate::value::round_brain_int(*i as i128))),
-                    Value::Bin(x) => Some(Value::Brain(crate::value::round_brain_direct(digits.as_ref().and_then(|d| d.parse::<f64>().ok()).unwrap_or(*x)))),
+                    Value::Bin(x) => Some(Value::Brain(digits.as_ref().and_then(|d| crate::value::round_brain_text(d)).unwrap_or_else(|| crate::value::round_brain_direct(*x)))),
                     _ => None } };
                 let (a, b) = match (&a, &b) {
                     (Value::Brain(_), Value::Int(_) | Value::Bin(_)) if matches!(pb, Prov::Literal) => (a.clone(), lit_brain(&b, &lb).unwrap()),

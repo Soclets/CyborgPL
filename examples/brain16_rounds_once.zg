@@ -11,4 +11,10 @@ MAIN {
     # would drop the 2^-30 and tie down to 1 (compiler claude's case)
     let 'x': bin64 = 1.0039062509313226;
     std::print.stored[to.brain16['x'], newln];
+    # a decimal rounds from its exact value: just below the half step 1.01171875 rounds down, though as
+    # a bin64 it would be the half step itself and tie up (check claude, 2026-10-15); the half step ties to even
+    let 'below': brain16 = 1.01171874999999999999;
+    let 'tie': brain16 = 1.01171875;
+    let 'text' := to.brain16["1.01171874999999999999"] otherwise 1.0;
+    std::print.stored['below', " ", 'tie', " ", 'text', newln];
 }
