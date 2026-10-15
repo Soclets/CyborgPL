@@ -45,7 +45,7 @@ body { font-family: var(--sans); color: var(--ink); background: var(--sky-top); 
 @keyframes drift { from { transform: translateX(-110%); } to { transform: translateX(100vw); } }
 
 main { position: relative; z-index: 1; }
-.frame { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; }
+.frame { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; outline: none; }
 /* Each screen fills the window; one with more than fits scrolls inside. */
 .frame > section { height: 100svh; overflow-y: auto; overscroll-behavior: none; scrollbar-width: none; }
 .frame > section::-webkit-scrollbar { display: none; }

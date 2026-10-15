@@ -90,15 +90,19 @@ function usePager(frame) {
       else if (e.key === "End") { e.preventDefault(); go(screens().length - 1); }
     };
     const onResize = () => { box.scrollTo({ top: screens()[at].offsetTop }); };
-    box.addEventListener("wheel", onWheel, { passive: false });
-    box.addEventListener("touchstart", onTouchStart, { passive: true });
-    box.addEventListener("touchmove", onTouchMove, { passive: false });
-    box.addEventListener("touchend", onTouchEnd);
+    // On the window, not the frame: Safari only sent the frame its wheel events after a click
+    // on the page (owner: "you have to click the screen before scrolling"). The frame also takes
+    // focus, so the keys work straight away too.
+    addEventListener("wheel", onWheel, { passive: false });
+    addEventListener("touchstart", onTouchStart, { passive: true });
+    addEventListener("touchmove", onTouchMove, { passive: false });
+    addEventListener("touchend", onTouchEnd);
     addEventListener("keydown", onKey);
     addEventListener("resize", onResize);
+    box.focus({ preventScroll: true });
     return () => {
-      box.removeEventListener("wheel", onWheel); box.removeEventListener("touchstart", onTouchStart);
-      box.removeEventListener("touchmove", onTouchMove); box.removeEventListener("touchend", onTouchEnd);
+      removeEventListener("wheel", onWheel); removeEventListener("touchstart", onTouchStart);
+      removeEventListener("touchmove", onTouchMove); removeEventListener("touchend", onTouchEnd);
       removeEventListener("keydown", onKey); removeEventListener("resize", onResize);
     };
   }, [frame]);
@@ -151,7 +155,7 @@ export default function Home() {
         </div>
         <div className="flash" />
       </div>
-      <main className="frame" ref={frame}>
+      <main className="frame" ref={frame} tabIndex={-1}>
         <section className="hero">
           <img className="logo" src="/logo.svg" alt="Zag" width="392" height="294" />
           <h1>Zag, a Zig ripoff?</h1>
