@@ -12,3 +12,11 @@ export const CORE = [
   { icon: "chip", title: "Native code, through LLVM",
     text: "Zag compiles to native code through LLVM." },
 ];
+
+// Home's examples (owner, 2026-10-15: "Next on Home, Examples"): real programs from examples/, each
+// shown with the output it really prints. The notes say only what the file itself shows.
+export const HOME_EXAMPLES = [
+  { id: "fizzbuzz", title: "FizzBuzz", note: "The classic, in Zag’s words: `mod.floor`, `equal_to`, `at_most`, and `change` for every change." },
+  { id: "bounded", title: "A bounded list", note: "A list that can never hold more than five. Going over is a failure, and the caller says what happens with `otherwise`." },
+  { id: "phonebook", title: "A phone book", note: "Maps, where a missing key is an answer, not a crash, and every argument after the first says its role: `key`, `value`." },
+];

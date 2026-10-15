@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLoaderData } from "react-router";
 import { SITE_SCREEN } from "../sky.jsx";
-import { CORE } from "../content.js";
+import { CORE, HOME_EXAMPLES } from "../content.js";
 import Icon from "../icons.jsx";
 import Md from "../md.jsx";
 
@@ -236,7 +237,70 @@ function useMotion(frame, zomp, site) {
   }, [frame, zomp, site]);
 }
 
+// At build time: each example's source, highlighted with the site's grammar, and its output.
+export async function loader() {
+  const { readFileSync } = await import("node:fs");
+  const path = await import("node:path");
+  const { createHighlighter } = await import("shiki");
+  const { ZAG_THEME } = await import("../zag-theme.js");
+  const grammar = JSON.parse(readFileSync(path.resolve("../grammar/nerve.tmLanguage.json"), "utf8"));
+  const hl = await createHighlighter({ themes: [ZAG_THEME], langs: [grammar] });
+  const dir = path.resolve("../../examples");
+  return {
+    examples: HOME_EXAMPLES.map((e) => {
+      const source = readFileSync(path.join(dir, `${e.id}.zg`), "utf8").replace(/\n$/, "");
+      return { ...e, file: `${e.id}.zg`, html: hl.codeToHtml(source, { lang: "nerve", theme: "zag-night" }), out: readFileSync(path.join(dir, `${e.id}.out`), "utf8").replace(/\n$/, "") };
+    }),
+  };
+}
+
+// The examples, one at a time behind tabs whose highlight slides as the pill's does: the code
+// full width, Zag's lines being long, and what it prints under it.
+function Examples({ examples }) {
+  const [on, setOn] = useState(0);
+  const tabs = useRef(null), thumb = useRef(null);
+  useEffect(() => {
+    const place = () => {
+      const b = tabs.current?.children[on + 1];
+      if (!b) return;
+      thumb.current.style.setProperty("--x", `${b.offsetLeft}px`);
+      thumb.current.style.setProperty("--w", `${b.offsetWidth}px`);
+    };
+    place();
+    document.fonts?.ready.then(place);
+    addEventListener("resize", place);
+    return () => removeEventListener("resize", place);
+  }, [on]);
+  const ex = examples[on];
+  return (
+    <section className="ex" aria-labelledby="ex-title">
+      <h3 id="ex-title">Examples</h3>
+      <div className="ex-tabs" ref={tabs} role="tablist">
+        <span className="ex-thumb" ref={thumb} aria-hidden="true" />
+        {examples.map((e, i) => (
+          <button key={e.id} role="tab" aria-selected={i === on} className="ex-tab" onClick={() => setOn(i)}>{e.title}</button>
+        ))}
+      </div>
+      <div className="ex-card" role="tabpanel">
+        <p className="ex-note"><Md text={ex.note} /></p>
+        <div className="ex-panes">
+          <figure className="ex-code">
+            <figcaption>{ex.file}</figcaption>
+            <div dangerouslySetInnerHTML={{ __html: ex.html }} />
+          </figure>
+          <figure className="ex-out">
+            <figcaption>Output</figcaption>
+            <pre>{ex.out}</pre>
+          </figure>
+        </div>
+      </div>
+      <a className="ex-all" href="/examples">All examples</a>
+    </section>
+  );
+}
+
 export default function Home() {
+  const { examples } = useLoaderData();
   const frame = useRef(null), zomp = useRef(null), site = useRef(null);
   usePager(frame);
   useMotion(frame, zomp, site);
@@ -282,6 +346,7 @@ export default function Home() {
                 ))}
               </ul>
             </section>
+            <Examples examples={examples} />
           </div>
         </section>
       </main>
