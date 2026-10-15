@@ -2,6 +2,79 @@
 
 Machine: arm64 (Apple Silicon, 10 cores: 4 performance, 6 efficiency), Darwin 27.0.0. Best of 3 runs, wall-clock from process start to exit (startup included); runs past 60 s are timeouts. Every answer is checked against C's, and every one agreed.
 
+## 2026-10-15: Zag against C, Python, Go and Rust
+
+Run at 14:10 (+07) with `ZOMP=… CYBORG_BENCH_THREADS=10 python3 run.py zag zag1 c python rust go` (Zomp's release
+build of `ab80b214` in compiler claude's clone), with every session paused and nothing else running (a Roblox
+window was closed first). The owner, through website claude, approved the numbers for the new site's Home and
+then asked for this re-run: "rerun". **The first run under the Zag name**, with the compiler as Zomp and the
+programs in today's syntax (`.zg`, `std::`).
+
+**The nuance** (owner 2026-10-06: "note the nuance"):
+
+- **The 10-thread row is not like for like.** Zag spreads a proven `for` loop over the cores by itself; the C,
+  Rust, Go and Python programs are the plain single-threaded code anyone would write first. **The 1-thread row is
+  the fair comparison.**
+- On it, single-threaded Zag against each, as their time over Zag's (above 1 means Zag is faster):
+
+  | | sum | fib | lists | sieve |
+  |---|---|---|---|---|
+  | C (clang -O2) | 1.04× | 1.06× | 1.05× | 0.99× |
+  | Rust (rustc -O) | 1.88× | 1.00× | 1.30× | 0.96× |
+  | Go | 1.55× | 1.44× | 2.62× | 0.92× |
+  | Python | 178.62× | 32.25× | 219.70× | 23.20× |
+
+  So Zag ties C on all four (within run-to-run noise, which on sieve spreads more than the 1% between them), beats
+  Rust on sum and lists and ties it on fib, beats Go on three. **On sieve, single-threaded Zag is the slowest of
+  the compiled four**: Go is 8% faster, Rust 4%, C 1%; on 2026-10-12 it was 0.373 s to Rust's 0.370. Sieve's time
+  is memory, and its runs spread widely (2026-10-13: 0.38 to 0.44 s), so this is within noise of a tie with C, but
+  Go's lead holds across runs.
+- With 10 threads, Zag spreads sieve over the cores too (0.238 s, 1.66× its single thread).
+
+### sum (N = 300,000,000)
+
+| Language | Time | vs Zag |
+|---|---|---|
+| Zag (Zomp, final build, 10 threads) | 0.021 s | 1.00× |
+| Zag (Zomp, final build, 1 thread) | 0.092 s | 4.32× |
+| C (clang -O2) | 0.096 s | 4.50× |
+| Go | 0.143 s | 6.69× |
+| Rust (rustc -O) | 0.173 s | 8.10× |
+| Python (CPython) | 16.433 s | 770.56× |
+
+### fib (N = 35)
+
+| Language | Time | vs Zag |
+|---|---|---|
+| Zag (Zomp, final build, 1 thread) | 0.016 s | 0.91× |
+| Rust (rustc -O) | 0.016 s | 0.93× |
+| C (clang -O2) | 0.017 s | 0.96× |
+| Zag (Zomp, final build, 10 threads) | 0.017 s | 1.00× |
+| Go | 0.023 s | 1.30× |
+| Python (CPython) | 0.516 s | 29.82× |
+
+### lists (N = 20,000,000)
+
+| Language | Time | vs Zag |
+|---|---|---|
+| Zag (Zomp, final build, 10 threads) | 0.036 s | 1.00× |
+| Zag (Zomp, final build, 1 thread) | 0.040 s | 1.13× |
+| C (clang -O2) | 0.042 s | 1.18× |
+| Rust (rustc -O) | 0.052 s | 1.46× |
+| Go | 0.105 s | 2.92× |
+| Python (CPython) | 8.788 s | 244.78× |
+
+### sieve (N = 100,000,000)
+
+| Language | Time | vs Zag |
+|---|---|---|
+| Zag (Zomp, final build, 10 threads) | 0.238 s | 1.00× |
+| Go | 0.362 s | 1.52× |
+| Rust (rustc -O) | 0.379 s | 1.59× |
+| C (clang -O2) | 0.391 s | 1.64× |
+| Zag (Zomp, final build, 1 thread) | 0.394 s | 1.65× |
+| Python (CPython) | 9.141 s | 38.36× |
+
 ## 2026-10-13: Nerve against LuaJIT
 
 Run at 08:25 (+07) with `python3 run.py nerve nerve1 c luajit` (the Synapse release build of 08:25 in compiler claude's clone, at `9af932c5`), with nothing else building. The owner: "Bench Nerve against LuaJIT. By AI stereotypes, it should beat Nerve." Nerve is held to 3 threads (design claude's core share), not 10; C is there as the reference every answer is checked against.
