@@ -23,7 +23,7 @@ agreed with C.
 | Rust, parallel | 0.024 s | 0.008 s | 0.023 s | 0.120 s |
 | Go, parallel | 0.040 s | 0.007 s | 0.023 s | 0.120 s |
 
-- **One thread:** Zag ties C on sum, fib and lists, and beats Go on all four. **Sieve is not like for like**:
+- **One thread:** Zag ties C on sum, fib and lists, and beats Go on those three. **Sieve is not like for like**:
   C's, Rust's and Go's proper sieves cross off only up to √N and count in a second pass, while Zag's (the one
   from `bench/`) walks every p to N and counts as it goes. That, more than the compiler, is C's 14% there.
 - **Zag's proper code, as written,** already runs sum on every core (0.020 s, level with C's hand-threaded
