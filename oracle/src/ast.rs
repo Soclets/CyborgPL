@@ -170,7 +170,7 @@ pub struct Func {
     /// `op NAME ['a': T, 'b': T] -> R { }` — a custom operator (design/operators.md, 2026-09-20):
     /// used between two operands, never called with `[…]`; operands lent unless `give`
     pub is_op: bool,
-    /// `test fn name [] { … }` (owner, 2026-09-29): run by `synapse test`, never called, left out of builds
+    /// `test fn name [] { … }` (owner, 2026-09-29): run by `zomp test`, never called, left out of builds
     pub is_test: bool,
     /// `fn Counter.next` / `fn cum.quick` (2026-10-09), and every member of a `collection`: the last
     /// segment of `module` is the owner's name, not a module, so a const is found in the file around it

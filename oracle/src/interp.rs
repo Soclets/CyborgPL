@@ -250,7 +250,7 @@ impl<'p> Interp<'p> {
         }
     }
 
-    /// `synapse test` (owner, 2026-09-29): every `test fn`, in the order written, each on its own;
+    /// `zomp test` (owner, 2026-09-29): every `test fn`, in the order written, each on its own;
     /// a test passes unless a `must` does not hold or something else stops it. Exit 0 when all pass.
     pub fn run_tests(&mut self) -> Result<u8, RuntimeError> {
         self.prepare()?;
@@ -268,7 +268,7 @@ impl<'p> Interp<'p> {
         Ok(if failed == 0 { 0 } else { 1 })
     }
 
-    /// `synapse generate`'s names (owner, 2026-10-13): run each named function (no parameters, text back),
+    /// `zomp generate`'s names (owner, 2026-10-13): run each named function (no parameters, text back),
     /// after the consts are ready, and hand back the texts in order
     pub fn call_texts(&mut self, names: &[(Vec<String>, String)]) -> Result<Vec<String>, RuntimeError> {
         self.prepare()?;
@@ -4093,7 +4093,7 @@ impl<'p> Interp<'p> {
             return rt(c.line, private_msg(&c.from, &func.module, &format!("`{}`", join_path(&func.module, name))));
         }
         if func.is_op { return rt(c.line, format!("`{name}` is an operator; it goes between its operands (`'a' {name} 'b'`), never called with `[…]`")); }
-        if func.is_test { return rt(c.line, format!("`{name}` is a `test fn`: `synapse test` runs it, and nothing calls it")); }
+        if func.is_test { return rt(c.line, format!("`{name}` is a `test fn`: `zomp test` runs it, and nothing calls it")); }
         if func.is_extern {
             if self.nocheck_depth == 0 && self.marks_needed() { return rt(c.line, format!("`{name}` is extern; nothing about it can be proven — the call is a no_check site: `no_check … {name}[…]`")); }
             let ranged_ret = matches!(func.ret, Some(Ty::Ranged(..)));

@@ -21,7 +21,7 @@ collection.fn greet {
 
 # A template (owner, 2026-10-13) makes members whose names follow a pattern. It loops with the usual
 # `for` forms over values known before building, its first line `named` works out each member's name
-# like text, and `synapse generate` (here `oracle --generate`) writes what it makes into this file,
+# like text, and `zomp generate` (here `oracle --generate`) writes what it makes into this file,
 # under the `#generated_N_lines_below` marker. The build only reads that part, and refuses it when it
 # no longer matches the template; it is never edited by hand. Members that only fix an argument are
 # presets, as `scale.times_2` here (Good practice 14): a template is for what a preset cannot make,

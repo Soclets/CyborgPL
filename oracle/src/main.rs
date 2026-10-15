@@ -1009,7 +1009,7 @@ pub fn run_path(path: &Path, out: Box<dyn std::io::Write>) -> Result<u8, String>
     run_path_as(path, out, false)
 }
 
-/// `tests`: run every `test fn` instead of MAIN (`synapse test`, owner 2026-09-29).
+/// `tests`: run every `test fn` instead of MAIN (`zomp test`, owner 2026-09-29).
 pub fn run_path_as(path: &Path, out: Box<dyn std::io::Write>, tests: bool) -> Result<u8, String> {
     run_with_args(path, out, tests, Vec::new())
 }
@@ -1018,7 +1018,7 @@ pub fn run_path_as(path: &Path, out: Box<dyn std::io::Write>, tests: bool) -> Re
 pub fn run_with_args(path: &Path, out: Box<dyn std::io::Write>, tests: bool, args: Vec<String>) -> Result<u8, String> {
     interp::set_shown_file(&if path.is_dir() { "strike.zg".to_string() } else { path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default() });
     let mut prog = load(path)?;
-    // what `synapse generate` wrote must still be what the templates make (owner, 2026-10-13)
+    // what `zomp generate` wrote must still be what the templates make (owner, 2026-10-13)
     if GENERATE.with(|g| g.get()) {
         let n = generate::write(&mut prog)?;
         println!("generated {n} part(s)");

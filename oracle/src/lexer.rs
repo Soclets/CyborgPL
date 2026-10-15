@@ -413,7 +413,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 let mut word = String::new();
                 while j < chars.len() && (chars[j].is_ascii_alphanumeric() || chars[j] == '_') { word.push(chars[j]); j += 1; }
                 let skip_lines: usize;   // full lines to skip after this one
-                // `#generated_21_lines_below` (owner, 2026-10-13): the next 21 lines are what `synapse generate`
+                // `#generated_21_lines_below` (owner, 2026-10-13): the next 21 lines are what `zomp generate`
                 // wrote from the template above; they are ordinary code, the marker a comment noted for the check
                 if let Some(n) = word.strip_prefix("generated_").and_then(|r| r.strip_suffix("_lines_below")).and_then(|d| d.parse::<usize>().ok()) {
                     GENERATED.with(|g| g.borrow_mut().push((tl, n)));

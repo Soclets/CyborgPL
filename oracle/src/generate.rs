@@ -1,4 +1,4 @@
-//! Collection templates (owner, 2026-10-13): `synapse generate` runs each template in a collection and
+//! Collection templates (owner, 2026-10-13): `zomp generate` runs each template in a collection and
 //! writes what it makes into the source, under `#generated_N_lines_below`; a build only reads, and
 //! refuses a generated part that no longer matches its template. The oracle does both: it checks every
 //! program it loads, and `oracle --generate <path>` rewrites the generated parts.
@@ -197,7 +197,7 @@ pub fn check(prog: &mut crate::ast::Program) -> Result<(), String> {
             let want = format!("#generated_{}_lines_below", made.len());
             let have: Vec<&str> = lines.iter().skip(t.close_line + 1).take(made.len()).copied().collect();
             if marker != want || have.iter().map(|l| l.trim_end()).ne(made.iter().map(|l| l.trim_end())) {
-                return Err(format!("{}: line {}: the generated part under the template at line {} does not match it: run `synapse generate` (in the oracle, `oracle --generate {}`) (owner, 2026-10-13)", path.display(), t.close_line + 1, t.for_line, path.display()));
+                return Err(format!("{}: line {}: the generated part under the template at line {} does not match it: run `zomp generate` (in the oracle, `oracle --generate {}`) (owner, 2026-10-13)", path.display(), t.close_line + 1, t.for_line, path.display()));
             }
         }
     }

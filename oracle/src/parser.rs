@@ -200,7 +200,7 @@ type PResult<T> = Result<T, ParseError>;
 thread_local! {
     /// The paths that are a type's name with its functions under it (`fn Counter.next`, 2026-10-09), not modules
     pub static TYPE_PATHS: std::cell::RefCell<Vec<Vec<String>>> = std::cell::RefCell::new(Vec::new());
-    /// Each collection template seen: (file, collection, line), for the check of what `synapse generate` wrote
+    /// Each collection template seen: (file, collection, line), for the check of what `zomp generate` wrote
     pub static TEMPLATES: std::cell::RefCell<Vec<(std::path::PathBuf, String, usize)>> = std::cell::RefCell::new(Vec::new());
     /// The file being parsed, for TEMPLATES
     pub static CURRENT_FILE: std::cell::RefCell<std::path::PathBuf> = std::cell::RefCell::new(std::path::PathBuf::new());
@@ -738,9 +738,9 @@ impl Parser {
                 }
             }
             match self.peek().clone() {
-                // `test fn name [] { … }` (owner, 2026-09-29): run by `synapse test`, never called
+                // `test fn name [] { … }` (owner, 2026-09-29): run by `zomp test`, never called
                 Tok::Word(w) if w == "test" && matches!(self.peek_at(1), Tok::Word(f) if f == "fn") => {
-                    if vis != Vis::Private { return self.err("a `test fn` is never `pub`: nothing calls it, `synapse test` runs it"); }
+                    if vis != Vis::Private { return self.err("a `test fn` is never `pub`: nothing calls it, `zomp test` runs it"); }
                     self.advance();
                     self.in_test = true;
                     let f = self.func();
@@ -2606,7 +2606,7 @@ impl Parser {
                     self.expect(Tok::Semi, "`;` after the collection's `bare.` mark")?;
                 }
                 Tok::Word(w) if w == "for" => {
-                    // a template: what `synapse generate` reads; skipped here, its output being ordinary members below
+                    // a template: what `zomp generate` reads; skipped here, its output being ordinary members below
                     let tline = self.line();
                     let file = CURRENT_FILE.with(|f| f.borrow().clone());
                     TEMPLATES.with(|t| { let mut t = t.borrow_mut(); if !t.iter().any(|(f, _, l)| *f == file && *l == tline) { t.push((file, name.clone(), tline)); } });
