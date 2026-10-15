@@ -158,7 +158,7 @@ THREADS = {"zag": ZAG_THREADS, "zag1": "1"}
 def run_once(cmd, n, lust, key=""):
     env = dict(os.environ, N=str(n))
     if key in THREADS:
-        env["CYBORG_THREADS"] = THREADS[key]
+        env["THREAD_CAP"] = THREADS[key]; env["CYBORG_THREADS"] = THREADS[key]  # until every build reads THREAD_CAP
     t = time.perf_counter()
     try:
         r = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=TIMEOUT)

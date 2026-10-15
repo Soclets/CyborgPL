@@ -5,6 +5,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — The runtime's thread cap is read from `THREAD_CAP` (owner: "whatever, man")
+
+Every Zag program's runtime reads one environment variable at start-up, capping the threads a proven `for` is
+spread over; it was still `CYBORG_THREADS`, left alone by the sweep as no compiler switch. Compiler claude
+offered `ZAG_THREADS`, `ZOMP_THREADS` or keeping it; the owner: "Shit should just be stable", then, asked
+whether that meant keeping `CYBORG_THREADS` or a neutral name that survives any rename: "neutral". Offered
+`MAX_THREADS` (plain, but used by other tools), `THREAD_CAP` (what it does, rarer), `THREADS` (generic); design
+claude recommended `THREAD_CAP`; the owner: "whatever, man". So **the runtime reads `THREAD_CAP`**. Design
+claude's reading, as compiler claude suggested: `CYBORG_THREADS` simply stops being read (a program cannot refuse
+an environment variable without failing at start-up).
+
 ### 2026-10-15 — An example the oracle cannot run: `.oracle` beside it (owner: a); `examples/asm_beside_zag.zg`
 
 Website claude asked, for the new site's Home ("Hello World (default selected), C low-level +
