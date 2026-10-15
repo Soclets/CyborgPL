@@ -82,6 +82,19 @@ function usePager(frame) {
       const dir = Math.sign(e.deltaY);
       if (!dir || inner(dir)) return;
       e.preventDefault();
+      // A mouse wheel and a trackpad are told apart (owner: "you could sniff if mouse or
+      // trackpad"), and a wheel click, having no coasting to see through, is simply a move once
+      // the last move the same way has had its moment. Only clear signs count as a wheel: Firefox
+      // counting in lines, or Safari's and Chrome's old wheelDeltaY in whole notches of 120 that
+      // aren't a trackpad's -3 times deltaY. Anything less clear is read as a trackpad, which
+      // works for a wheel too, a little more cautiously.
+      const w = e.wheelDeltaY || 0;
+      const wheel = e.deltaMode !== 0 || (w !== 0 && w % 120 === 0 && Math.abs(w + 3 * e.deltaY) >= 3);
+      if (wheel) {
+        lastWheel = performance.now();
+        if (ready(dir)) go(at + dir);
+        return;
+      }
       // A trackpad keeps sending wheel events for a second or two as it coasts, each smaller
       // than the last. A new swipe is told apart by coming after a pause, or by speeding up
       // again; a swipe made while the last one still coasts used to be ignored until a click
@@ -89,16 +102,18 @@ function usePager(frame) {
       // One swipe is one move (owner: "scroll could be somehow two", then "still here. But not
       // so reproducible"). A trackpad's events are judged by their smoothed speed, not one by
       // one, so a single uneven event can't pass for a new swipe; and a gap in them counts as the
-      // pause before a new swipe only when the scrolling had nearly stopped, or the gap is long,
-      // because Safari can hold events back for a moment while it draws a move.
-      const now = performance.now(), size = Math.abs(e.deltaY), gap = now - lastWheel, was = speed;
+      // pause before a new swipe only when it is long, because Safari can hold events back for a
+      // moment while it draws a move.
+      const now = performance.now(), size = Math.abs(e.deltaY), gap = now - lastWheel;
       lastWheel = now;
       if (gap > 350) { speed = size; peak = size; trough = size; slowed = true; }
       else speed = speed * 0.6 + size * 0.4;
       peak = Math.max(peak, speed);
       if (speed < peak * 0.6) slowed = true;
       trough = slowed ? Math.min(trough, speed) : speed;
-      const fresh = gap > 350 || (gap > 140 && was < 6);
+      // A long gap is a new swipe; a short one, even at the coast's tail, is only Safari busy
+      // drawing (a new swipe then shows by speeding up again, below).
+      const fresh = gap > 350;
       // A swipe made while the last one still coasts: it speeds up again after slowing down.
       const again = slowed && speed > 10 && speed > trough * 1.8 && size > trough * 2.2;
       if (!(fresh || again) || !ready(dir)) return;
