@@ -77,14 +77,20 @@ function usePager(frame) {
     // Can the current screen still scroll this way by itself?
     // Not while its content is still drifting into place: the drift pokes past the screen's
     // edge and would look like more to scroll through.
-    const inner = (dir) => {
+    // So can a panel inside it under the pointer, the examples' code for one: it scrolls first.
+    const inner = (dir, target) => {
       const el = screens()[at];
       if (Math.abs(parseFloat(el.style.getPropertyValue("--d")) || 0) > 0.01) return false;
-      return dir > 0 ? el.scrollTop + el.clientHeight < el.scrollHeight - 1 : el.scrollTop > 0;
+      const can = (x) => dir > 0 ? x.scrollTop + x.clientHeight < x.scrollHeight - 1 : x.scrollTop > 0;
+      for (let x = target instanceof Element ? target : null; x && x !== el && el.contains(x); x = x.parentElement) {
+        const y = getComputedStyle(x).overflowY;
+        if ((y === "auto" || y === "scroll") && x.scrollHeight > x.clientHeight && can(x)) return true;
+      }
+      return can(el);
     };
     const onWheel = (e) => {
       const dir = Math.sign(e.deltaY);
-      if (!dir || inner(dir)) return;
+      if (!dir || inner(dir, e.target)) return;
       e.preventDefault();
       // A mouse wheel and a trackpad are told apart (owner: "you could sniff if mouse or
       // trackpad"), and a wheel click, having no coasting to see through, is simply a move once
@@ -124,17 +130,18 @@ function usePager(frame) {
       peak = speed; trough = speed; slowed = false;
       go(at + dir);
     };
-    const onTouchStart = (e) => { touchY = e.touches[0].clientY; };
+    let touchAt = null;
+    const onTouchStart = (e) => { touchY = e.touches[0].clientY; touchAt = e.target; };
     const onTouchMove = (e) => {
       if (touchY === null) return;
       const dir = Math.sign(touchY - e.touches[0].clientY);
-      if (dir && !inner(dir)) e.preventDefault();
+      if (dir && !inner(dir, touchAt)) e.preventDefault();
     };
     const onTouchEnd = (e) => {
       if (touchY === null) return;
       const dy = touchY - e.changedTouches[0].clientY;
       touchY = null;
-      if (Math.abs(dy) > 30 && !inner(Math.sign(dy)) && ready(Math.sign(dy))) go(at + Math.sign(dy));
+      if (Math.abs(dy) > 30 && !inner(Math.sign(dy), touchAt) && ready(Math.sign(dy))) go(at + Math.sign(dy));
     };
     const onKey = (e) => {
       if (e.target.closest?.("input, textarea, select, [contenteditable]")) return;
@@ -249,7 +256,8 @@ export async function loader() {
   return {
     examples: HOME_EXAMPLES.map((e) => {
       const source = readFileSync(path.join(dir, `${e.id}.zg`), "utf8").replace(/\n$/, "");
-      return { ...e, file: `${e.id}.zg`, html: hl.codeToHtml(source, { lang: "nerve", theme: "zag-night" }), out: readFileSync(path.join(dir, `${e.id}.out`), "utf8").replace(/\n$/, "") };
+      const lines = source.split("\n").length;
+      return { ...e, note: e.note.replace("{lines}", String(lines)), file: `${e.id}.zg`, html: hl.codeToHtml(source, { lang: "nerve", theme: "zag-night" }), out: readFileSync(path.join(dir, `${e.id}.out`), "utf8").replace(/\n$/, "") };
     }),
   };
 }

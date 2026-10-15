@@ -160,10 +160,10 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 .ex-panes figcaption { padding: 8px 14px; font: 600 13px ui-monospace, "SF Mono", Menlo, monospace; }
 .ex-code { background: #0D2244; }
 .ex-code figcaption { color: #9FB4D8; border-bottom: 1px solid rgba(255, 255, 255, .08); }
-.ex-code pre { margin: 0; padding: 14px; overflow-x: auto; font: 14px/1.55 ui-monospace, "SF Mono", Menlo, monospace; background: none !important; }
+.ex-code pre { margin: 0; padding: 14px; overflow: auto; max-height: 62vh; overscroll-behavior: contain; font: 14px/1.55 ui-monospace, "SF Mono", Menlo, monospace; background: none !important; }
 .ex-out { background: #F3F8FF; border: 1px solid #D6E4F7; }
 .ex-out figcaption { color: #5A7299; border-bottom: 1px solid #D6E4F7; }
-.ex-out pre { margin: 0; padding: 14px; overflow-x: auto; font: 14px/1.55 ui-monospace, "SF Mono", Menlo, monospace; color: #0F2A5C; }
+.ex-out pre { margin: 0; padding: 14px; overflow: auto; max-height: 36vh; overscroll-behavior: contain; font: 14px/1.55 ui-monospace, "SF Mono", Menlo, monospace; color: #0F2A5C; }
 .ex-all { margin-top: 16px; padding: 12px 22px; border-radius: 999px; background: #fff; color: var(--edge); font-weight: 700; text-decoration: none; box-shadow: 0 10px 24px rgba(10, 50, 110, .2); }
 @media (max-width: 760px) { .ex-tab { padding: 9px 12px; font-size: 15px; } }
 
