@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — No `ricochet` / `rico` command yet; preparing stays `zomp prepare` (owner: b)
+
+Compiler claude asked whether Ricochet gets its own binary now. Today the package manager is built
+into the compiler, and its one job, running a strike's `build.zg`, is `synapse prepare`. Offered
+(a) a `ricochet` / `rico` command now, `prepare` moving there, or (b) only the names now
+(`Ricochet.zv`, `ricochet::`), the command when Ricochet has more to do (adding, fetching, updating,
+publishing), recommended by design claude. The owner asked "What's the `rico` command for" (the
+package manager's jobs, as `cargo` and `npm`: `rico add`, `rico fetch`, `rico update`, `rico
+publish`, `rico prepare`; only `prepare` exists today), then: "(b)". So **no `ricochet` / `rico`
+binary yet: preparing is `zomp prepare`**, and the command (2026-10-15: `ricochet`, short `rico`)
+comes with Ricochet's other jobs.
+
 ### 2026-10-15 — The old compiler commands stay, refusing, naming `zomp` (owner: a)
 
 Compiler claude, converting Synapse to Zomp in the sweep, asked what the old commands `synapse`,
