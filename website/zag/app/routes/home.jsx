@@ -18,9 +18,10 @@ function usePager(frame) {
     const screens = () => [...box.children];
     const index = (id) => screens().findIndex((el) => el.id === id);
     const still = matchMedia("(prefers-reduced-motion: reduce)");
-    let at = 0, lockedUntil = 0, lastDir = 0, lastWheel = 0, touchY = null, recent = [], raf = 0;
-    // Since the last move: the swipe's biggest step so far, and whether it has started slowing.
-    let peak = 0, slowed = true;
+    let at = 0, lockedUntil = 0, lastDir = 0, lastWheel = 0, touchY = null, raf = 0;
+    // The swipe's smoothed speed, and since the last move: its fastest, whether it has started
+    // to slow, and its slowest since then.
+    let speed = 0, peak = 0, slowed = true, trough = 0;
     // The move itself: starts at full speed and eases out, so the page answers at once (owner:
     // "it feels like there's a delay before a scroll registers"; the browser's smooth scroll
     // started slowly). A new move takes over from wherever the last one is.
@@ -61,8 +62,8 @@ function usePager(frame) {
       const away = Math.abs(i - at), was = at;
       lastDir = Math.sign(i - at);
       at = i;
-      // Only a little while, and only for the same way: turning back works at any moment.
-      lockedUntil = performance.now() + 240;
+      // A while, and only for the same way: turning back works at any moment.
+      lockedUntil = performance.now() + 450;
       const length = glide(list[i].offsetTop, away);
       // Arrive a little before the move ends, so the strike lands as Zomp settles in.
       clearTimeout(arrival);
@@ -85,20 +86,23 @@ function usePager(frame) {
       // than the last. A new swipe is told apart by coming after a pause, or by speeding up
       // again; a swipe made while the last one still coasts used to be ignored until a click
       // stopped the coasting (owner: "only the first scroll works, unless you click").
-      const now = performance.now(), size = Math.abs(e.deltaY);
-      const paused = now - lastWheel > 180;
-      const before = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
-      // A swipe moves the page on its first event but keeps speeding up for a moment after; that
-      // isn't a second swipe (owner: "scroll could be somehow two"). Speeding up only counts once
-      // this swipe has started to slow down.
-      peak = Math.max(peak, size);
-      if (size < peak * 0.7) slowed = true;
-      const faster = slowed && recent.length >= 2 && size > 6 && size > before * 1.5;
+      // One swipe is one move (owner: "scroll could be somehow two", then "still here. But not
+      // so reproducible"). A trackpad's events are judged by their smoothed speed, not one by
+      // one, so a single uneven event can't pass for a new swipe; and a gap in them counts as the
+      // pause before a new swipe only when the scrolling had nearly stopped, or the gap is long,
+      // because Safari can hold events back for a moment while it draws a move.
+      const now = performance.now(), size = Math.abs(e.deltaY), gap = now - lastWheel, was = speed;
       lastWheel = now;
-      recent = paused ? [size] : [...recent.slice(-4), size];
-      if (!ready(dir) || !(paused || faster)) return;
-      recent = [size];
-      peak = size; slowed = false;
+      if (gap > 350) { speed = size; peak = size; trough = size; slowed = true; }
+      else speed = speed * 0.6 + size * 0.4;
+      peak = Math.max(peak, speed);
+      if (speed < peak * 0.6) slowed = true;
+      trough = slowed ? Math.min(trough, speed) : speed;
+      const fresh = gap > 350 || (gap > 140 && was < 6);
+      // A swipe made while the last one still coasts: it speeds up again after slowing down.
+      const again = slowed && speed > 10 && speed > trough * 1.8 && size > trough * 2.2;
+      if (!(fresh || again) || !ready(dir)) return;
+      peak = speed; trough = speed; slowed = false;
       go(at + dir);
     };
     const onTouchStart = (e) => { touchY = e.touches[0].clientY; };
