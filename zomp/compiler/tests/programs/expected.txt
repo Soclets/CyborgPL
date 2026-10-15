@@ -322,3 +322,5 @@ vacuous_after_exact_quotient trap
 past_the_inner_unrolling trap
 # A counting loop comes round into its body, not its head: the room for the step already said it is within the stop (2026-10-15).
 count_round_shortcut 67
+# A deci power with coefficient 1, to a negative power, is exact at its own exponent: 1 pow -1 is 1, not 1.0 (check claude, 2026-10-15, corpus ffe48e05).
+deci_reciprocal_one 8

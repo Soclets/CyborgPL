@@ -1314,6 +1314,14 @@ fn power(a: Dec, n: i64, w: Width) -> Result<Dec, Stop> {
     let mut rem = Nat::of(1);
     let mut q: u128 = 0;
     let mut s: i128 = 0;
+    // The whole digit first: a power whose coefficient is 1 (1 or -1, or
+    // 0.01, to any power) is its own reciprocal's coefficient, at exponent
+    // `-exp`. Starting with a tenth made it a 10 one place down, and 1 xx
+    // -1 printed 1.0 (check claude, 2026-10-15, corpus ffe48e05).
+    if rem.cmp(&acc) != core::cmp::Ordering::Less {
+        rem.sub(&acc);
+        q = 1;
+    }
     while !rem.is_zero() && q < pow10(w.digits + 1) {
         rem.mul_small(10);
         let mut digit = 0u128;
