@@ -21,8 +21,9 @@ function usePager(frame) {
     // The move itself: starts at full speed and eases out, so the page answers at once (owner:
     // "it feels like there's a delay before a scroll registers"; the browser's smooth scroll
     // started slowly). A new move takes over from wherever the last one is.
+    let finish = 0;
     const glide = (to) => {
-      cancelAnimationFrame(raf);
+      cancelAnimationFrame(raf); clearTimeout(finish);
       if (still.matches) { box.scrollTop = to; return; }
       const from = box.scrollTop, t0 = performance.now(), length = 460;
       const step = (t) => {
@@ -31,6 +32,8 @@ function usePager(frame) {
         if (p < 1) raf = requestAnimationFrame(step);
       };
       raf = requestAnimationFrame(step);
+      // If the browser stops drawing frames part-way (a hidden tab), still end on the screen.
+      finish = setTimeout(() => { cancelAnimationFrame(raf); box.scrollTop = to; }, length + 200);
     };
     const go = (i) => {
       const list = screens();
@@ -85,7 +88,7 @@ function usePager(frame) {
       else if (e.key === "Home") { e.preventDefault(); go(0); }
       else if (e.key === "End") { e.preventDefault(); go(screens().length - 1); }
     };
-    const onResize = () => { cancelAnimationFrame(raf); box.scrollTop = screens()[at].offsetTop; };
+    const onResize = () => { cancelAnimationFrame(raf); clearTimeout(finish); box.scrollTop = screens()[at].offsetTop; };
     // On the window, not the frame: Safari only sent the frame its wheel events after a click
     // on the page (owner: "you have to click the screen before scrolling"). The frame also takes
     // focus, so the keys work straight away too.
@@ -116,7 +119,7 @@ function usePager(frame) {
     return () => {
       removeEventListener("wheel", onWheel); removeEventListener("touchstart", onTouchStart);
       removeEventListener("touchmove", onTouchMove); removeEventListener("touchend", onTouchEnd);
-      removeEventListener("keydown", onKey); removeEventListener("resize", onResize); removeEventListener("click", onClick); cancelAnimationFrame(raf);
+      removeEventListener("keydown", onKey); removeEventListener("resize", onResize); removeEventListener("click", onClick); cancelAnimationFrame(raf); clearTimeout(finish);
     };
   }, [frame]);
 }

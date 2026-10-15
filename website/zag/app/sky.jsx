@@ -56,6 +56,8 @@ const LINKS = [["Home", "/#home"], ["Download", "/download"], ["Docs", "/docs"],
 export function Pill({ here = "/#home" }) {
   return (
     <nav className="pill" aria-label="Site">
+      {/* The logo goes to the start of the intro, the first screen (owner, 2026-10-15). */}
+      <a className="brand" href="/" aria-label="Zag, from the start"><img src="/logo.svg" alt="" width="45" height="34" /></a>
       <div className="links">
         {LINKS.map(([name, to]) => (
           <a key={to} className="link" href={to} aria-current={to === here ? "page" : undefined}>{name}</a>
