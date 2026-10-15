@@ -24,3 +24,25 @@ export const HOME_EXAMPLES = [
   { id: "asm_beside_zag", title: "Assembly",
     note: "ARM64 assembly inline, beside the same work in plain Zag: `madd` multiplies and adds in one instruction, `clz` counts leading zeros. `with` binds variables to registers, and assembly is always a `no_check` site." },
 ];
+
+// Features beside what they cost (owner, 2026-09-28, for Nerve's site: an honest table; 2026-10-15,
+// for Zag's: "Yea"). Every line is the design's own words, from design/core-features.md,
+// design/failures.md and DECISIONS.md, in Zag's names; no cost is invented.
+export const TRADEOFFS = [
+  { get: "Zomp proves every overflow and bounds check at compile time; the final build carries none of them.",
+    cost: "Compile time is not a cost the language cares about: builds are slow, and every build is a full one. There is no fast development mode." },
+  { get: "The working build checks what Zomp can’t prove yet, whatever that costs when it runs.",
+    cost: "The final build refuses that code until you write a guardrail, a tighter type, or `no_check`." },
+  { get: "Ownership and no garbage collector: every value has one owner, so the compiler knows when to free it.",
+    cost: "Every call says what happens to a value: `lend`, `give` or `copy`." },
+  { get: "`:=` works out the best type from the whole program.",
+    cost: "A value from outside the program has no bound, so there you write its type; `:=` on it is an error." },
+  { get: "Failures are part of a function’s signature, not exceptions.",
+    cost: "The caller must handle every one; forgetting is a compile error." },
+  { get: "`and` and `or` always work out both sides: nothing written is skipped.",
+    cost: "A check that guards the next step takes two `if`s, or `and.then`." },
+  { get: "An old spelling is refused with an error that names the new one.",
+    cost: "Zag is being experimented with, so please don’t expect stability: any release may change or remove anything." },
+  { get: "Native code, through LLVM.",
+    cost: "In development: no release yet, nothing to download." },
+];
