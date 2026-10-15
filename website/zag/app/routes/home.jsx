@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLoaderData } from "react-router";
 import { SITE_SCREEN } from "../sky.jsx";
+import { seo } from "../seo.js";
+import logo from "../logo.svg?url";
 import { BENCH, BUILT_WITH, COMPARED, COMPARISON, CONS, CORE, HOME_EXAMPLES, PROS } from "../content.js";
 import Icon from "../icons.jsx";
 import Md from "../md.jsx";
 import Dropdown from "../dropdown.jsx";
 
-export const meta = () => [
-  { title: "Zag" },
-  { name: "description", content: "Zag, a programming language: very slow at the development, fast & safe at the final product." },
-];
+export const meta = () => seo({ title: "Zag", path: "/", description: "Zag, a programming language: very slow at the development, fast & safe at the final product." });
 
 // The screens move one at a time inside a fixed frame (owner, 2026-10-15: "Each scroll should be
 // auto perfect in this area", then "There's still rubber-banding, and some scrolls don't
@@ -412,7 +411,7 @@ export default function Home() {
       <main className="frame" ref={frame} tabIndex={-1}>
         <section className="hero" id="top">
           <div className="moves">
-            <img className="logo" src="/logo.svg" alt="Zag" width="392" height="294" />
+            <img className="logo" src={logo} alt="Zag" width="392" height="294" />
             <h1>Zag, a Zig ripoff?</h1>
             <p className="aside">Hm, maybe not...</p>
           </div>

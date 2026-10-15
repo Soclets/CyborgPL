@@ -1,10 +1,8 @@
 import { Link, useLoaderData } from "react-router";
 import { useSiteSky } from "../sky.jsx";
+import { seo } from "../seo.js";
 
-export const meta = () => [
-  { title: "More · Zag" },
-  { name: "description", content: "Zag's licences, its names and logo, the warning, and the credits." },
-];
+export const meta = () => seo({ title: "More · Zag", path: "/more", description: "Zag's licences, its names and logo, the warning, and the credits." });
 
 // More (owner, 2026-10-15: "Do `More`"): the licence, the names, the warning and the credits, which
 // Home leaves here (owner: "Shouldn't that be for More?"). The wording follows the repo's README,
