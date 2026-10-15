@@ -50,23 +50,19 @@ export function Backdrop() {
       if (next === away) return;
       away = next;
       root.classList.toggle("away", next);
-      cancelAnimationFrame(ramp);
+      cancelAnimationFrame(ramp); clearTimeout(ramp);
       const list = moving();
       // A pause otherwise waits for the next frame, which a tab being hidden may never draw: the
       // clock is pinned where it is, so the pause holds at once.
-      if (next) { for (const a of list) { const t = a.currentTime; a.pause(); a.currentTime = t; a.playbackRate = 1; } return; }
+      if (next) { for (const a of list) { const t = a.currentTime; a.pause(); a.currentTime = t; } return; }
       if (still.matches) return;
-      // Coming back, Safari's first frames are slow while it redraws the page; starting the clouds
-      // at full speed then read as a laggy fast-forward (owner: "there's still the return lag").
-      // They wait two frames, then ease from still to their usual pace over 0.7 s.
-      ramp = requestAnimationFrame(() => { ramp = requestAnimationFrame((t0) => {
-        for (const a of list) { a.playbackRate = 0; a.play(); }
-        const step = (t) => {
-          const p = Math.min(1, (t - t0) / 700), r = p * p * (3 - 2 * p);
-          for (const a of list) a.updatePlaybackRate(r);
-          if (p < 1) ramp = requestAnimationFrame(step);
-        };
-        ramp = requestAnimationFrame(step);
+      // Coming back, Safari's first frames are slow while it redraws the page, and the clouds
+      // moving through them read as a laggy fast-forward (owner: "there's still the return lag").
+      // They wait for those frames to pass, then carry on at their usual pace. (A ramp of the speed
+      // stuttered instead, owner: "It speeds up, slow down, then speed up": changing the rate every
+      // frame takes the animations off Safari's smooth path.)
+      ramp = requestAnimationFrame(() => { ramp = requestAnimationFrame(() => {
+        ramp = setTimeout(() => { if (!away) for (const a of list) a.play(); }, 250);
       }); });
     };
     const leave = () => set(true);
@@ -80,7 +76,7 @@ export function Backdrop() {
     return () => {
       removeEventListener("blur", leave); removeEventListener("pagehide", leave); removeEventListener("focus", check);
       removeEventListener("pageshow", check); document.removeEventListener("visibilitychange", check);
-      root.classList.remove("away"); cancelAnimationFrame(ramp);
+      root.classList.remove("away"); cancelAnimationFrame(ramp); clearTimeout(ramp);
     };
   }, []);
   return (
