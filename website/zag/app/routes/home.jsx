@@ -19,6 +19,8 @@ function usePager(frame) {
     const index = (id) => screens().findIndex((el) => el.id === id);
     const still = matchMedia("(prefers-reduced-motion: reduce)");
     let at = 0, lockedUntil = 0, lastDir = 0, lastWheel = 0, touchY = null, recent = [], raf = 0;
+    // Since the last move: the swipe's biggest step so far, and whether it has started slowing.
+    let peak = 0, slowed = true;
     // The move itself: starts at full speed and eases out, so the page answers at once (owner:
     // "it feels like there's a delay before a scroll registers"; the browser's smooth scroll
     // started slowly). A new move takes over from wherever the last one is.
@@ -86,11 +88,17 @@ function usePager(frame) {
       const now = performance.now(), size = Math.abs(e.deltaY);
       const paused = now - lastWheel > 180;
       const before = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
-      const faster = recent.length >= 2 && size > 6 && size > before * 1.5;
+      // A swipe moves the page on its first event but keeps speeding up for a moment after; that
+      // isn't a second swipe (owner: "scroll could be somehow two"). Speeding up only counts once
+      // this swipe has started to slow down.
+      peak = Math.max(peak, size);
+      if (size < peak * 0.7) slowed = true;
+      const faster = slowed && recent.length >= 2 && size > 6 && size > before * 1.5;
       lastWheel = now;
       recent = paused ? [size] : [...recent.slice(-4), size];
       if (!ready(dir) || !(paused || faster)) return;
       recent = [size];
+      peak = size; slowed = false;
       go(at + dir);
     };
     const onTouchStart = (e) => { touchY = e.touches[0].clientY; };
