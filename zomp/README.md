@@ -527,7 +527,8 @@ Dated, with the alternative, so each can become a question later.
     calls C stays in order unless `para`.
   - *The pool*: threads made at the first sliced loop, one per core (the
     caller is one), at most 64 slices; a loop sliced inside another runs
-    inline. `CYBORG_THREADS` in the environment caps the threads; the
+    inline. `THREAD_CAP` in the environment caps the threads (owner,
+    2026-10-15: a neutral name; `CYBORG_THREADS` is no longer read); the
     tests set 3, this session's share of the machine.
 - **2026-09-30 — `--target <name>` names the target to build (ruled:
   owner, 2026-09-30, "yea").** A lone

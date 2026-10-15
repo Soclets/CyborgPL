@@ -19,7 +19,7 @@ fn dir() -> PathBuf {
 fn cca() -> PathBuf {
     // Programs built here run parallel `for` loops on at most this
     // session's share of the machine's cores (CLAUDE.md: 3 each).
-    std::env::set_var("CYBORG_THREADS", "3");
+    std::env::set_var("THREAD_CAP", "3");
     PathBuf::from(env!("CARGO_BIN_EXE_zomp"))
 }
 
@@ -472,7 +472,7 @@ fn parallel_for_runs_in_slices() {
         let exe = std::env::temp_dir().join("cca-codegen-tests/par_for");
         let r = Command::new(cca()).arg("build").arg(dir().join("par_for.zg")).arg("-o").arg(&exe).output().unwrap();
         assert!(r.status.success(), "{}", String::from_utf8_lossy(&r.stderr));
-        let r = Command::new(&exe).env("CYBORG_THREADS", threads).output().unwrap();
+        let r = Command::new(&exe).env("THREAD_CAP", threads).output().unwrap();
         assert_eq!(r.status.code(), Some(160), "par_for gave another answer on {} thread(s)", threads);
     }
 }

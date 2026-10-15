@@ -9,7 +9,7 @@
 //! A loop started while another runs — one inside another's slice, or from
 //! a second task — runs inline, in one slice, on the thread that asked.
 //!
-//! `CYBORG_THREADS` in the environment caps the threads (the machine's
+//! `THREAD_CAP` in the environment caps the threads (the machine's
 //! cores otherwise): how many cores a program may take is the person
 //! running it's to say, never the program's.
 
@@ -82,7 +82,7 @@ static BUSY: AtomicBool = AtomicBool::new(false);
 static STARTED: AtomicBool = AtomicBool::new(false);
 
 unsafe fn thread_count() -> u64 {
-    let v = getenv(b"CYBORG_THREADS\0".as_ptr());
+    let v = getenv(b"THREAD_CAP\0".as_ptr());
     if !v.is_null() {
         let mut n: u64 = 0;
         let mut p = v;
