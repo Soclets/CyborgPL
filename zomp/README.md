@@ -780,3 +780,10 @@ Dated, with the alternative, so each can become a question later.
   attributes the passes infer on a function (`nofree`, `noundef`, …) are
   taken off again, since they are about calls and Alive2 cannot read all
   of them; lifetime markers are check claude's to strip, on both sides.
+- **2026-10-15 — `concat`, and `'i'++;`, `'i' += e;`.** `concat` is the
+  word for joining text, at `++`'s level, and messages name it. A name at
+  the start of a statement followed by `++` / `--` and `;`, or by `+=`,
+  `-=`, `*=`, `/=`, `%=`, `**=` and a value, is read as the long `change`
+  (`change 'i' = 'i' plus (e);`, the value bracketed); nothing else
+  changes in the checker. A field is not one (`'p'.x += 2` is refused as
+  before).

@@ -1083,16 +1083,16 @@ impl Checker {
                     if lt.is_char() && rt.is_text() || lt.is_char() && rt.is_char() {
                         // a char joins as text
                     } else if lt.is_numeric() {
-                        return err(Diagnostic::error(format!("`++` joins text, and its left side is {}: convert it first — `to.str.utf8[…] ++ …`", article(&self.spell(&lt)))).at(lhs.span));
+                        return err(Diagnostic::error(format!("`concat` joins text, and its left side is {}: convert it first — `to.str.utf8[…] concat …`", article(&self.spell(&lt)))).at(lhs.span));
                     } else {
-                        return err(Diagnostic::error(format!("`++` joins text, and its left side is {}", crate::types::a_type(&self.spell(&lt)))).at(lhs.span));
+                        return err(Diagnostic::error(format!("`concat` joins text, and its left side is {}", crate::types::a_type(&self.spell(&lt)))).at(lhs.span));
                     }
                 }
                 if !rt.is_text() && !rt.is_char() {
                     if rt.is_numeric() {
-                        return err(Diagnostic::error(format!("`++` joins text, and its right side is {}: convert it first — `… ++ to.str.utf8[…]`", article(&self.spell(&rt)))).at(rhs.span));
+                        return err(Diagnostic::error(format!("`concat` joins text, and its right side is {}: convert it first — `… concat to.str.utf8[…]`", article(&self.spell(&rt)))).at(rhs.span));
                     }
-                    return err(Diagnostic::error(format!("`++` joins text, and its right side is {}", crate::types::a_type(&self.spell(&rt)))).at(rhs.span));
+                    return err(Diagnostic::error(format!("`concat` joins text, and its right side is {}", crate::types::a_type(&self.spell(&rt)))).at(rhs.span));
                 }
                 let enc = match (lt.base(), rt.base()) {
                     (Ty::Str(e), _) if !matches!(e, Enc::Free(_)) => *e,
@@ -3312,7 +3312,7 @@ impl Checker {
                 }
                 fails.push("not_utf8");
             }
-            (Ty::Seq { .. }, Ty::Str(_)) => return err(Diagnostic::error("a list is not text: only a list of `uint8` converts, read as UTF-8 bytes (`to.str.utf8['bytes'] otherwise …`); join the items with `++`, or print the list directly (owner, 2026-09-30)").at(span)),
+            (Ty::Seq { .. }, Ty::Str(_)) => return err(Diagnostic::error("a list is not text: only a list of `uint8` converts, read as UTF-8 bytes (`to.str.utf8['bytes'] otherwise …`); join the items with `concat`, or print the list directly (owner, 2026-09-30)").at(span)),
             (_, Ty::Seq { .. }) => return err(Diagnostic::error("there is no conversion to a list").at(span)),
             // A number from C becomes a C enum only through a check (owner,
             // 2026-09-27): one no case has fails `out_of_range`.

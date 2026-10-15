@@ -2618,6 +2618,44 @@ impl<'a> Parser<'a> {
         Ok(Stmt { kind, span: start.to(self.prev_span()) })
     }
 
+    /// `'i'++;`, `'i'--;`, `'i' += e;` and `-=`, `*=`, `/=`, `%=`, `**=`
+    /// (owner, 2026-10-14: "we add it as an alt"): spellings of `change 'i'
+    /// = 'i' plus 1;` and the others, the right side taken whole, as if
+    /// bracketed. Only after a name, at the start of a statement; `++` and
+    /// `--` only as the whole statement.
+    fn compound_change(&mut self, n: &str, o: &str) -> Result<Option<StmtKind>> {
+        let (op, takes_value) = match o {
+            "++" => (BinOp::Add, false),
+            "--" => (BinOp::Sub, false),
+            "+=" => (BinOp::Add, true),
+            "-=" => (BinOp::Sub, true),
+            "*=" => (BinOp::Mul, true),
+            "/=" => (BinOp::Div(Round::Trunc), true),
+            "%=" => (BinOp::Mod(Round::Trunc), true),
+            "**=" => (BinOp::Pow, true),
+            _ => return Ok(None),
+        };
+        if !takes_value && !matches!(self.peek_at(2), Tok::Semi) {
+            return Ok(None);
+        }
+        let at = self.bump().span;
+        let name = Expr { kind: ExprKind::Name(QName { name: n.to_string(), span: at }), span: at };
+        let op_span = self.bump().span;
+        let value = if takes_value {
+            if self.is(&Tok::Semi) {
+                return self.fail_at(at.to(op_span), format!("`'{n}' {o}` needs a value after it, `'{n}' {o} 1;`"));
+            }
+            let e = self.expr_top()?;
+            Expr { span: e.span, kind: ExprKind::Paren(Box::new(e)) }
+        } else {
+            Expr { kind: ExprKind::Int("1".into()), span: op_span }
+        };
+        self.expect_semi("the change")?;
+        let span = at.to(value.span);
+        let value = Expr { kind: ExprKind::Binary { op, op_span, lhs: Box::new(name.clone()), rhs: Box::new(value) }, span };
+        Ok(Some(StmtKind::Assign { target: name, value }))
+    }
+
     /// A declaration, from `let` to its `;` (owner, 2026-10-02): `let 'x'
     /// := …`, `let 'x': T = …`, `mut`/`immut`/`!mut` and `!$` between `let`
     /// and the name, `$` before the `:=`/`=` to shadow.
@@ -2679,6 +2717,11 @@ impl<'a> Parser<'a> {
             Tok::Strict => return self.fail("`#strict` goes once, at the top of the file, before any item"),
             // A declaration starts with `let` (owner, 2026-10-02).
             Tok::Name(n) => {
+                if let Tok::Op(o) = self.peek_at(1).clone() {
+                    if let Some(kind) = self.compound_change(&n, &o)? {
+                        return Ok(kind);
+                    }
+                }
                 return match self.peek_at(1) {
                     Tok::Colon | Tok::Walrus | Tok::Dollar => self.fail(format!("a declaration starts with `let`: `let '{}' := …;`", n)),
                     Tok::Word(m) if m == "mut" || m == "immut" => self.fail_at(self.span(), format!("a declaration starts with `let`, and `{}` goes before the name: `let {} '{}' := …;`", m, m, n)),
@@ -3773,6 +3816,8 @@ impl<'a> Parser<'a> {
                     "or" if matches!(self.peek_at(1), Tok::Dot) => nofix(BinOp::OrBit),
                     "and" => lang(BinOp::And, AND_LEVEL, Chain::Left),
                     "or" => lang(BinOp::Or, OR_LEVEL, Chain::Left),
+                    // `concat` joins text, `++` its symbol (owner, 2026-10-14).
+                    "concat" => lang(BinOp::Join, JOIN_LEVEL, Chain::Left),
                     "xor" => nofix(BinOp::Xor),
                     "shl" => nofix(BinOp::Shl),
                     "shr" => nofix(BinOp::Shr),
@@ -3903,7 +3948,7 @@ impl<'a> Parser<'a> {
                 }
             }
             if op == BinOp::Join && self.is(&Tok::Semi) {
-                return self.fail_at(op_span, "`++` joins text; there is no increment — write `change 'i' = 'i' plus 1;`");
+                return self.fail_at(op_span, "`++` joins text here, and `'i'++;` changes a variable only as a whole statement: `'i'++;`, or `change 'i' = 'i' plus 1;`");
             }
             // The near-misses the language refuses by name.
             if let BinOp::Custom(c) = &op {
@@ -4488,7 +4533,7 @@ impl<'a> Parser<'a> {
         match self.peek() {
             Tok::Str(_) | Tok::Char(_) | Tok::Newline | Tok::Num { .. } | Tok::Name(_) => {
                 let here = self.span();
-                return self.fail_at(e.span.to(here), "two values next to each other with nothing between: join text with `++`, separate values with `,`");
+                return self.fail_at(e.span.to(here), "two values next to each other with nothing between: join text with `concat`, separate values with `,`");
             }
             _ => {}
         }

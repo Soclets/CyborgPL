@@ -178,6 +178,7 @@ collection_preset_unknown [fnv:175c636485763a06] :: 'nope' is not one of `c`'s p
 collection_template_unnamed [fnv:87469e40dd99c652] :: a template names what it makes first
 collection_two_marks [fnv:401613ec619e0361] :: a collection has one `bare.` mark, for every member
 comma_grouping [fnv:05b8c86a9cd8fe27] :: `,` is not a digit separator
+compound_change_no_value [fnv:95d473a908342b67] :: needs a value after it
 concur_fail_unhandled [fnv:cbccfc56a451bded] :: this `concur` can fail (bad), so it needs an `otherwise` saying what happens when it does
 concur_return [fnv:d6776a53deac7dcb] :: `return` cannot leave it
 const_assign [fnv:2abf94f737eafc08] :: it is a value known at compile time
@@ -343,6 +344,7 @@ incl_utf16_no_order [fnv:a38c86203af03e08] :: `incl.str.utf16` says its byte ord
 incl_utf16_odd_length [fnv:e5a4010bd620fdec] :: is 3 bytes, not a whole number of 2-byte units
 incl_utf32_wrong_order [fnv:f0029112c7b2f2ce] :: is not valid str.utf32 text in that byte order
 incl_utf8_no_order [fnv:d692fc595199f040] :: `str.utf8` has no byte order
+increment_in_expression [fnv:7bc354939d76583e] :: two values next to each other
 index_needs_pos [fnv:4bc10e32735f4756] :: a read says it is a position: `'xs'[pos 2]`
 index_needs_pos_change [fnv:7fbb95940493767c] :: an index says it is a position: `'xs'[pos 2]`
 inline_ll_not_built [fnv:674487bbd2ac8b76] :: `inline.LL`, LLVM IR in place, is the Ground's
@@ -417,8 +419,8 @@ input_with_args [fnv:53d190f847e97a96] :: `std::input.line` takes no arguments
 int8_overflow [fnv:388d1c9b5cc5a035] :: the value can be outside what an `int8` holds
 int_into_bin_var [fnv:bb249fe14c123783] :: there is no implicit conversion between numeric families
 int_with_params [fnv:cd6cedbd18d65cb2] :: `int32` takes no type parameters; a bracket after it is a range
-join_outside_bracket [fnv:80a1ba96be64706e] :: join text with `++`, separate values with `,`
-join_outside_bracket_newline [fnv:80a1ba96be64706e] :: join text with `++`, separate values with `,`
+join_outside_bracket [fnv:3e405bccbb9115b4] :: join text with `concat`
+join_outside_bracket_newline [fnv:3e405bccbb9115b4] :: join text with `concat`
 keyword_fn_bare [fnv:6db39b67a64f5e13] :: a function named with one is reached only through a path
 lang_prefix [fnv:c1d124ba1f70ae44] :: `lang:` was removed: keywords are bare
 layout_c_bad_field [fnv:fc8e6737a324ce6d] :: only numbers, `bool`, `ptr[…]` and other `layout.C` structs and enums can cross to C
@@ -537,7 +539,7 @@ no_zero_value [fnv:84b2ff3a065836c5] :: there is no implicit zero
 nocheck_lied [fnv:8dd9381da0d5ffe7] :: !by-design CCA builds it and emits a note, which is the rule (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
 not_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading
 not_glued [fnv:a2433dca0ab88933] :: `!` is not an operator since 2026-10-07: a value's not is `not '
-number_next_to_text [fnv:7bc354939d76583e] :: join text with `++`, separate values with `,`
+number_next_to_text [fnv:7bc354939d76583e] :: join text with `concat`, separate values with `,`
 number_to_char [fnv:12ef8394243841eb] :: `char.point.from_code[…] otherwise …` builds one from a code
 on_bare [fnv:5498c2f32cd9b7fa] :: `on` is narrowed: `on.target …`
 on_else_if [fnv:48319131dc22b511] :: an `on` chain goes on with `else on.…` or ends with `else { }`
@@ -573,9 +575,8 @@ owning_function_bare [fnv:a8b589ea7248e723] :: is an owned `fn[] -> uint64`: say
 param_lent_chain [fnv:1b310f9423971d5e] :: `lent` (looks at it) or `lent.mut` (may modify it)
 param_type_first [fnv:3a5e01bd7a977ab9] :: a parameter is written name first, then its type: `'a': int32`
 param_var [fnv:565659dbb62e1df1] :: an owning parameter is bare
-plus_plus [fnv:b59243419dd75691] :: `++` joins text; there is no increment
-plusplus_needs_conversion [fnv:a6e724baccce5e1b] :: `++` joins text, and its right side is an `integer`: convert it first
-plusplus_numbers [fnv:4cdcad9affc5f4d9] :: `++` joins text, and its left side is an `integer`: convert it first
+plusplus_needs_conversion [fnv:a6e724baccce5e1b] :: `concat` joins text, and its right side is an `integer`: convert it first
+plusplus_numbers [fnv:4cdcad9affc5f4d9] :: `concat` joins text, and its left side is an `integer`: convert it first
 pow_old [fnv:5b6c854d86c4d818] :: `xx` is an old spelling: write `pow`
 power_denied [fnv:e4991c31af0c7cf7] :: which this program denies (`deny`: `ricochet::power.c_calls.functions`)
 power_deny_for [fnv:b37efe31805baa2c] :: `shapes` defines the operator `mean` on built-in types, which this program denies
@@ -746,7 +747,7 @@ to_unhandled [fnv:769294ffd6316ce9] :: `to.int32` can fail (not_a_number, out_of
 to_without_dot [fnv:8da39602590be550] :: `to.int32[…]`, `to.str.utf8[…]`
 true_as_func [fnv:535ae37c9ac4c8fb] :: bare `true` is the boolean, so `true[…]` is no call
 truthiness [fnv:4ba41cbcf10ca2e1] :: there is no truthiness
-two_bare_numbers [fnv:7bc354939d76583e] :: join text with `++`, separate values with `,`
+two_bare_numbers [fnv:7bc354939d76583e] :: join text with `concat`, separate values with `,`
 two_points_as_point [fnv:b2efd7393835f156] :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
 type_before_name [fnv:5dc41176090cdaf6] :: a type goes after the name
 type_name_unknown [fnv:89a5ec489926ad73] :: there is no item `nosuchtype`

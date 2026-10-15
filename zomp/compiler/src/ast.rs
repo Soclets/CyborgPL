@@ -250,7 +250,7 @@ impl BinOp {
             BinOp::WrapSub => "minus.wrap".into(),
             BinOp::WrapMul => "times.wrap".into(),
             BinOp::WrapPow => "pow.wrap".into(),
-            BinOp::Join => "++".into(),
+            BinOp::Join => "concat".into(),
             BinOp::Eq => "equal_to".into(),
             BinOp::Ne => "not_equal".into(),
             BinOp::Lt => "<".into(),
