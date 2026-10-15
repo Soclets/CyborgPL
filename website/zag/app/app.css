@@ -178,6 +178,29 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 .list-card.cons li::before { background: #FFC21A; box-shadow: 0 0 0 2px #E2A400 inset; }
 .list-card code { font: 600 .9em ui-monospace, "SF Mono", Menlo, monospace; padding: 1px 6px; border-radius: 6px; background: rgba(23, 87, 176, .1); color: var(--edge); }
 
+/* Built with: one frosted card, a part and what it is made with on each line. */
+.built { width: 100%; max-width: 860px; margin-top: 4vh; }
+.built h3 { margin: 0 0 16px; text-align: center; font-weight: 700; font-size: clamp(26px, 3.6vw, 38px); paint-order: stroke fill; -webkit-text-stroke: 6px var(--edge); }
+.built-table { width: 100%; border-collapse: separate; border-spacing: 0; overflow: hidden; border-radius: 22px; color: #0F2A5C;
+  background: rgba(255, 255, 255, .74); border: 1px solid rgba(255, 255, 255, .9);
+  -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); box-shadow: 0 12px 30px rgba(10, 50, 110, .18); }
+.built-table th { padding: 13px 20px; text-align: left; font: 700 13px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--edge); border-bottom: 1px solid #D6E4F7; }
+.built-table td { padding: 12px 20px; font-size: 16px; line-height: 1.45; border-bottom: 1px solid #E3ECF8; vertical-align: top; }
+.built-table td:first-child { width: 48%; font-weight: 600; }
+.built-table td:last-child { color: #23406E; border-left: 1px solid #E3ECF8; }
+.built-table tr:last-child td { border-bottom: 0; }
+.built-table code { font: 600 .9em ui-monospace, "SF Mono", Menlo, monospace; padding: 1px 6px; border-radius: 6px; background: rgba(23, 87, 176, .1); color: var(--edge); }
+@media (max-width: 640px) {
+  .built-table thead { display: none; }
+  .built-table, .built-table tbody, .built-table tr, .built-table td { display: block; width: auto !important; }
+  .built-table tr { padding: 12px 18px; border-bottom: 1px solid #E3ECF8; }
+  .built-table tr:last-child { border-bottom: 0; }
+  .built-table td { padding: 0; border: 0 !important; }
+  .built-table td:last-child { margin-top: 2px; font-size: 15px; }
+}
+.home-end { margin: 5vh 0 6vh; font-size: 16px; font-weight: 600; text-align: center; paint-order: stroke fill; -webkit-text-stroke: 4px var(--edge); }
+.home-end a { color: #FFD43B; }
+
 /* The top bar: a floating pill of frosted glass, the sky showing through (owner: "Glass"). */
 .pill { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 4px; max-width: calc(100% - 24px);
   opacity: var(--site-fade, 1);

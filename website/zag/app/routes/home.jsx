@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { SITE_SCREEN } from "../sky.jsx";
-import { CONS, CORE, HOME_EXAMPLES, PROS } from "../content.js";
+import { BUILT_WITH, CONS, CORE, HOME_EXAMPLES, PROS } from "../content.js";
 import Icon from "../icons.jsx";
 import Md from "../md.jsx";
 
@@ -302,7 +302,7 @@ function Examples({ examples }) {
           </figure>
         </div>
       </div>
-      <a className="ex-all" href="/examples">All examples</a>
+      <Link className="ex-all" to="/examples">All examples</Link>
     </section>
   );
 }
@@ -364,6 +364,20 @@ export default function Home() {
                 </div>
               ))}
             </section>
+            {/* What Zag's own tools are made with (owner, 2026-10-15: "Yeah"). */}
+            <section className="built" aria-labelledby="built-title">
+              <h3 id="built-title">Built with</h3>
+              <table className="built-table">
+                <thead><tr><th scope="col">Part</th><th scope="col">Made with</th></tr></thead>
+                <tbody>
+                  {BUILT_WITH.map((b) => (
+                    <tr key={b.part}><td><Md text={b.part} /></td><td><Md text={b.made} /></td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+            {/* The licence, credits and trademarks live on More (owner: "Shouldn't that be for More?"). */}
+            <p className="home-end">The licence, credits and trademarks are on <Link to="/more">More</Link>.</p>
           </div>
         </section>
       </main>

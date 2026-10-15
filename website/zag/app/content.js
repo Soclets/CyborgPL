@@ -49,3 +49,18 @@ export const CONS = [
   "When one check guards the next, it takes two `if`s, or `and.then`.",
   "Zag is being experimented with, so please don’t expect stability: any release may change or remove anything.",
 ];
+
+// What Zag's own tools are made with (owner, 2026-10-12 for Nerve's Home: "add host langs", and "we'll
+// eventually have to use C++ too"; 2026-10-15 for Zag's: "Yeah"), as zomp/README.md, each crate's
+// Cargo.toml and design/implementation-languages.md say.
+export const BUILT_WITH = [
+  { part: "Zomp, the compiler, and its prover", made: "Rust" },
+  { part: "Its code generation", made: "LLVM 22" },
+  { part: "Its linking", made: "lld 22, through lld’s library and a small C++ shim" },
+  { part: "What LLVM’s C API lacks, like custom passes", made: "C++, eventually: a small wrapper, as Rust’s own compiler has" },
+  { part: "Reading C headers (`incl.C`)", made: "Clang 22" },
+  { part: "The runtime in every program", made: "Rust, `no_std`" },
+  { part: "The reference interpreter", made: "Rust" },
+  { part: "The checker that tests Zomp against it", made: "Rust" },
+  { part: "This website", made: "React Router, Shiki, Cloudflare Workers" },
+];
