@@ -8,7 +8,7 @@ const DIR = resolve("../../examples");
 // What a program is called: its opening comment's name when it gives one ("# Collections (owner,
 // …): …"), else its file name. Then the comment's first sentence, without the design notes'
 // sources in brackets (dates, decisions, who found it), which mean something only in the repo.
-const UPPER = { c: "C", zag: "Zag", fizzbuzz: "FizzBuzz", simd: "SIMD", asm: "assembly", utf8: "UTF-8", ascii: "ASCII", os: "OS", ffi: "FFI", bin: "bin", deci: "deci", io: "I/O" };
+const UPPER = { c: "C", zag: "Zag", fizzbuzz: "FizzBuzz", wstn: "WSTN", simd: "SIMD", asm: "assembly", utf8: "UTF-8", ascii: "ASCII", os: "OS", ffi: "FFI", bin: "bin", deci: "deci", io: "I/O" };
 const fromName = (id) => {
   const words = id.split("_").map((w) => UPPER[w] ?? w);
   const s = words.join(" ");
