@@ -121,11 +121,15 @@ pub struct Config {
     pub consts: bool,
     /// `!mut`, `!check` and `! 'x'` (owner, 9a9e573) on most programs.
     pub new_words: bool,
+    /// Exact bare constants at 2^63, 2^64 - 1 and -2^63 landing early in a
+    /// function, before its other sites (Synapse's layer 3 read 2^63 at 64
+    /// bits and proved every later site vacuously, f4d99bd1; b63fed46).
+    pub edge_landings: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, cord: true, iterators: true, print: true, written: true, consts: true, new_words: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, cord: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true }
     }
 }
 
@@ -687,6 +691,10 @@ impl Gen {
             self.declare(rname.clone(), ret, ret_iv, false);
             self.mark_unseen(&rname);
         }
+        if self.cfg.edge_landings && self.rng.chance(30) {
+            let st = self.edge_landing();
+            body.push(st);
+        }
         let n = self.stmt_count() / 2 + 1;
         body.extend(self.stmts(n, self.depth().saturating_sub(1).max(1)));
         let (e, _) = self.value_in(ret, ret_iv);
@@ -750,6 +758,7 @@ impl Gen {
             if self.iter_ready && self.in_check == 0 { 2 } else { 0 },             // iterator, optional
             if self.cfg.print && (!self.lists().is_empty() || !self.simd_vars(None).is_empty() || !self.enum_vars().is_empty()) { 1 } else { 0 }, // print a whole value
             if self.cfg.consts { 2 } else { 0 },                                     // a const in a body
+            if self.cfg.edge_landings { 1 } else { 0 },                              // 2^63 and its neighbours, exactly
         ];
         match self.rng.weighted(&w) {
             0 => self.let_stmt(),
@@ -777,6 +786,7 @@ impl Gen {
             24 => self.iter_episode(),
             25 => self.print_whole(),
             26 => self.const_stmt(),
+            27 => self.edge_landing(),
             6 if self.rng.chance(8) => self.min_by_minus_one(),
             6 => {
                 let t = self.int_ty();
@@ -1701,6 +1711,48 @@ impl Gen {
     /// on an int8 is 128 in `put_i`'s int64. An int64's minimum gives 2^63,
     /// which a uint64 holds (design claude, 2026-10-02): into `put_u`, or into
     /// `put_i`'s int64 as a risk taken, where it does not fit.
+    /// An exact bare constant at an edge of the 64-bit types, written as a
+    /// sum, product, quotient or power of bare numbers, landing in a
+    /// `uint64` or `int64` name or printed: 2^63 (past int64), 2^64 - 1,
+    /// 2^63 - 1 and -2^63. Later sites in the function come after it, so a
+    /// prover that reads the constant at the wrong width and assumes the
+    /// landing passed proves them vacuously (f4d99bd1).
+    fn edge_landing(&mut self) -> Stmt {
+        use BinOp::*;
+        let l = |v: i128| Box::new(Expr::Lit(v));
+        let b = |op: BinOp, x: i128, y: i128| Expr::Bin(op, l(x), l(y));
+        let p63: i128 = 1 << 63;
+        let mut forms: Vec<(i128, Expr)> = vec![
+            (p63, b(Div, -p63, -1)),
+            (p63, b(Mul, -p63, -1)),
+            (p63, b(Add, p63 - 1, 1)),
+            (p63, b(Mul, 4294967296, 2147483648)),
+            (p63, Expr::Lit(p63)),
+            (p63 + 1, b(Sub, p63 + 2, 1)),
+            ((1 << 64) - 1, Expr::Lit((1 << 64) - 1)),
+            ((1 << 64) - 1, b(Add, p63, p63 - 1)),
+            ((1 << 64) - 1, b(Mul, 4294967295, 4294967297)),
+            (p63 - 1, b(Sub, p63, 1)),
+            (p63 - 1, b(Div, p63 * 2 - 2, 2)),
+            (-p63, b(Sub, -p63 + 1, 1)),
+            (-p63, b(Mul, p63 / 2, -2)),
+            (-p63, Expr::Neg(Box::new(b(Add, p63 - 1, 1)))),
+        ];
+        if self.cfg.pow {
+            forms.push((p63, b(Pow, 2, 63)));
+            forms.push(((1 << 64) - 1, Expr::Bin(Sub, Box::new(b(Pow, 2, 64)), l(1))));
+            forms.push((-p63, Expr::Neg(Box::new(b(Pow, 2, 63)))));
+        }
+        let (v, e) = forms[self.rng.below(forms.len() as u64) as usize].clone();
+        let t = if v > i64::MAX as i128 { Ty::U64 } else if v < 0 { Ty::I64 } else if self.rng.chance(50) { Ty::U64 } else { Ty::I64 };
+        if self.rng.chance(40) {
+            return Stmt::Print { signed: t == Ty::I64, value: e };
+        }
+        let name = self.name("e");
+        self.declare(name.clone(), t, Iv::point(v), false);
+        Stmt::Let { tier: Tier::Default, name, mutability: Mutability::Plain, ty: t.into(), value: e }
+    }
+
     fn min_by_minus_one(&mut self) -> Stmt {
         use BinOp::*;
         let t = *self.rng.pick(&[Ty::I8, Ty::I16, Ty::I32, Ty::I64]);

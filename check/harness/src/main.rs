@@ -118,6 +118,7 @@ impl Args {
             written: !avoid.contains("written"),
             consts: !avoid.contains("consts"),
             new_words: !avoid.contains("new-words"),
+            edge_landings: !avoid.contains("edge-landings"),
         }
     }
 }
