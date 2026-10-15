@@ -110,12 +110,12 @@ fn sits_at [lent 'text': list[uint8], lent 'part': list[uint8], 'pos': uint64[mi
 }
 
 # Bytes cut from UTF-8 text where characters start and end, back into text. They are always
-# UTF-8; if they ever are not, cord has a bug, and the program stops saying so.
+# UTF-8; if they ever are not, std has a bug, and the program stops saying so.
 fn text_of ['bytes': list[uint8]] -> str.utf8 {
     let 't' := to.str.utf8['bytes'] otherwise {
         not_utf8 {
-            cord::print.useful.stderr["cord: a bug: text cut on a character's edge was not UTF-8", newln];
-            cord::exit[101];
+            std::print.useful.stderr["std: a bug: text cut on a character's edge was not UTF-8", newln];
+            std::exit[101];
         }
     };
     return give 't';
