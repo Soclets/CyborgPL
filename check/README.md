@@ -242,16 +242,15 @@ several inlined calls share its node and are still asked together.
 
 **Alive2 per function on Zomp's passes** (owner, 2026-10-15: "(a)"): `check tv --cases N` builds
 with `zomp build --emit-llvm-tv <dir>` (c530643c): the module before and after Zomp's own LLVM 22
-passes, inlining off, every defined function `noinline` and external, inferred attributes taken
-off again. `llvm.lifetime.start/end` calls are taken out of both files here (Alive2 21 cannot
-check LLVM 22's form). Each function is checked against its rewrite. `main` is never counted
-incorrect (its argc store). An incorrect report in a function that calls one of the module's own
-functions is counted apart, "leans on a callee", not judged: LLVM's interprocedural passes still
-use a `noinline` callee's body (one returning its argument, one ignoring an argument), which
-Alive2, seeing the caller alone, reads as wrong (all 5 incorrect reports of the first run, seeds
-3, 32, 35, 50, 58). When alive-tv stops part way, the functions it reached are counted. First
-run, 56 programs: 117 correct, 46 not proved, no incorrect transformation that did not lean on
-a callee; 22 timeouts, 14 never return, 5 Z3 out of memory.
+passes, inlining off, every defined function but `main` `noinline` and `weak` (aa5c2e17), so no
+pass uses a callee's body across a call, and inferred attributes taken off again.
+`llvm.lifetime.start/end` calls are taken out of both files here (Alive2 21 cannot check LLVM 22's
+form). Each function is checked against its rewrite. `main` is never counted incorrect (its argc
+store). When alive-tv stops part way, the functions it reached are counted. Before the copy was
+weak, all 5 incorrect reports of the first run (seeds 3, 32, 35, 50, 58) were LLVM using a
+callee's body, which Alive2, seeing the caller alone, reads as wrong; with it, none. Run on
+aa5c2e17, 56 programs: 303 correct, 0 incorrect, 133 not proved (79 timeouts, 33 never return,
+18 Z3 out of memory); 3 programs refused by Zomp, so no IR.
 
 **Alive2 on trial, Zomp's whole pipeline** (owner, 2026-10-15: "(c)", replaced by "(a)" the same day): `check tv --cases N` runs Homebrew's Alive2
 (21.0, built on LLVM 23.1.1) on Zomp's own pipeline only, `before.ll` against `after.ll` from

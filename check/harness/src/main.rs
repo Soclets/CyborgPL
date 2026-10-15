@@ -827,7 +827,6 @@ fn tv_run(t: &Tools, a: &Args) {
         reasons: BTreeMap<String, u64>,
         mistakes: u64,
         stopped: u64,
-        leaning: u64,
     }
     let tally = Mutex::new(T::default());
     std::thread::scope(|s| {
@@ -868,18 +867,14 @@ fn tv_run(t: &Tools, a: &Args) {
                             };
                             add(&mut tl.c, &o.counts);
                             tl.stopped += o.stopped as u64;
-                            tl.leaning += o.leaning.len() as u64;
                             tl.incorrect += o.incorrect.len() as u64;
                             for r in &o.reasons {
                                 *tl.reasons.entry(normalise(r)).or_default() += 1;
                             }
-                            if !o.incorrect.is_empty() || !o.leaning.is_empty() {
+                            if !o.incorrect.is_empty() {
                                 let keep = work().join("tv").join(seed.to_string());
                                 let _ = std::fs::create_dir_all(&keep);
                                 let _ = std::process::Command::new("cp").arg("-R").arg(dir.join("prog.zg")).arg(dir.join("ir")).arg(&keep).status();
-                                for (which, _) in &o.leaning {
-                                    println!("seed {seed}: @{which} leans on a callee's body, not judged, files in {}", keep.display());
-                                }
                                 for (which, report) in &o.incorrect {
                                     println!("seed {seed}: INCORRECT (@{which}), files in {}\n{}", keep.display(), report.lines().take(12).collect::<Vec<_>>().join("\n"));
                                 }
@@ -895,7 +890,7 @@ fn tv_run(t: &Tools, a: &Args) {
         "\n{} programs ({} not validated, {} of them IR Alive2 could not read); per function, Zomp's passes without inlining: {} correct, {} incorrect, {} not proved, {} Alive2 errors",
         tl.programs, tl.failed, tl.unread.values().sum::<u64>(), tl.c.correct, tl.c.incorrect, tl.c.unproved, tl.c.errors
     );
-    println!("  ({} mistakes on purpose skipped; alive-tv stopped part way on {}, counted as far as it got; {} reports leaned on a callee's body, not judged)", tl.mistakes, tl.stopped, tl.leaning);
+    println!("  ({} mistakes on purpose skipped; alive-tv stopped part way on {}, counted as far as it got)", tl.mistakes, tl.stopped);
     for (why, n) in top(&tl.reasons, 12) {
         println!("  Alive2: {n:>4}  {why}");
     }

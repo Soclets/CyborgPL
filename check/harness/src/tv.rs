@@ -5,8 +5,9 @@
 //! `zomp build --emit-llvm-tv <dir>` (c530643c) writes the module as Zomp
 //! hands it to LLVM (`tv-before.ll`) and after Zomp's own LLVM 22 passes with
 //! inlining off (`tv-after.ll`): every defined function `noinline` and
-//! external, the same functions and signatures on both sides, and what the
-//! passes inferred taken off again. Alive2 checks each function against its
+//! `weak` (no pass may use a callee's body across a call, aa5c2e17), the
+//! same functions and signatures on both sides, and what the passes inferred
+//! taken off again. Alive2 checks each function against its
 //! own rewrite, with the flags and facts Zomp added from its prover's proofs,
 //! which LLVM's rewrites rely on.
 //!
@@ -42,32 +43,6 @@ pub struct Outcome {
     pub reasons: Vec<String>,
     /// alive-tv stopped before its summary; the counts are what it reached.
     pub stopped: bool,
-    /// Incorrect reports in functions that call one of the module's own
-    /// functions: LLVM's interprocedural passes use a callee's body even when
-    /// it is `noinline` (a callee that returns its argument, one that ignores
-    /// an argument, so `poison` is passed), which Alive2, checking the caller
-    /// alone, reads as wrong (seeds 3, 32, 35, 50, 58, 2026-10-15). Not judged.
-    pub leaning: Vec<(String, String)>,
-}
-
-/// The functions in `ir` that call a function the module itself defines.
-fn callers_of_own(ir: &str) -> Vec<String> {
-    let name_of = |l: &str| l.split('@').nth(1).and_then(|l| l.split('(').next()).unwrap_or("").to_string();
-    let defined: Vec<String> = ir.lines().filter(|l| l.starts_with("define")).map(name_of).collect();
-    let mut out = vec![];
-    let mut cur: Option<String> = None;
-    for l in ir.lines() {
-        if l.starts_with("define") {
-            cur = Some(name_of(l));
-        } else if l.starts_with('}') {
-            cur = None;
-        } else if let Some(c) = &cur {
-            if l.contains("call ") && defined.iter().any(|d| l.contains(&format!("@{d}("))) && !out.contains(c) {
-                out.push(c.clone());
-            }
-        }
-    }
-    out
 }
 
 /// What `validate` could not do: Alive2 could not read the IR (LLVM 23's
@@ -151,11 +126,9 @@ pub fn validate(t: &Tools, src: &str, dir: &Path) -> Result<Outcome, Fail> {
         std::fs::write(to, strip_lifetimes(&text)).map_err(io)?;
     }
     let (out, stopped) = alive(dir, &src_ll, &tgt_ll)?;
-    let callers = callers_of_own(&std::fs::read_to_string(&src_ll).map_err(io)?);
-    let (leaning, incorrect): (Vec<(String, String)>, Vec<(String, String)>) =
-        incorrect_reports(&out).into_iter().filter(|(name, _)| name != "main").partition(|(name, _)| callers.contains(name));
+    let incorrect: Vec<(String, String)> = incorrect_reports(&out).into_iter().filter(|(name, _)| name != "main").collect();
     let mut c = counts(&out);
     c.incorrect = incorrect.len() as u64;
     let reasons = out.lines().filter_map(|l| l.trim().strip_prefix("ERROR: ")).map(|r| r.to_string()).collect();
-    Ok(Outcome { counts: c, incorrect, reasons, stopped, leaning })
+    Ok(Outcome { counts: c, incorrect, reasons, stopped })
 }
