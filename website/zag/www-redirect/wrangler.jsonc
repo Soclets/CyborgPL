@@ -1,0 +1,8 @@
+// www.zag-lang.org → zag-lang.org, path and query kept (owner, 2026-10-15: "yea"). A separate
+// Worker so the main site stays static-only (free and unlimited); only www visits run code.
+{
+  "name": "zag-www-redirect",
+  "main": "index.js",
+  "compatibility_date": "2026-10-01",
+  "routes": [{ "pattern": "www.zag-lang.org", "custom_domain": true }]
+}
