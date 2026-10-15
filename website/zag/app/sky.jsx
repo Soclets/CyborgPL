@@ -45,17 +45,29 @@ export function Backdrop() {
     const root = document.documentElement;
     const still = matchMedia("(prefers-reduced-motion: reduce)");
     const moving = () => document.getAnimations().filter((a) => ["drift", "bob"].includes(a.animationName));
-    let away = null;
+    let away = null, ramp = 0;
     const set = (next) => {
       if (next === away) return;
       away = next;
       root.classList.toggle("away", next);
+      cancelAnimationFrame(ramp);
+      const list = moving();
       // A pause otherwise waits for the next frame, which a tab being hidden may never draw: the
       // clock is pinned where it is, so the pause holds at once.
-      for (const a of moving()) {
-        if (next) { const t = a.currentTime; a.pause(); a.currentTime = t; }
-        else if (!still.matches) a.play();
-      }
+      if (next) { for (const a of list) { const t = a.currentTime; a.pause(); a.currentTime = t; a.playbackRate = 1; } return; }
+      if (still.matches) return;
+      // Coming back, Safari's first frames are slow while it redraws the page; starting the clouds
+      // at full speed then read as a laggy fast-forward (owner: "there's still the return lag").
+      // They wait two frames, then ease from still to their usual pace over 0.7 s.
+      ramp = requestAnimationFrame(() => { ramp = requestAnimationFrame((t0) => {
+        for (const a of list) { a.playbackRate = 0; a.play(); }
+        const step = (t) => {
+          const p = Math.min(1, (t - t0) / 700), r = p * p * (3 - 2 * p);
+          for (const a of list) a.updatePlaybackRate(r);
+          if (p < 1) ramp = requestAnimationFrame(step);
+        };
+        ramp = requestAnimationFrame(step);
+      }); });
     };
     const leave = () => set(true);
     const check = () => set(document.hidden || !document.hasFocus());
@@ -68,7 +80,7 @@ export function Backdrop() {
     return () => {
       removeEventListener("blur", leave); removeEventListener("pagehide", leave); removeEventListener("focus", check);
       removeEventListener("pageshow", check); document.removeEventListener("visibilitychange", check);
-      root.classList.remove("away");
+      root.classList.remove("away"); cancelAnimationFrame(ramp);
     };
   }, []);
   return (

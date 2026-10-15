@@ -46,7 +46,7 @@ body { font-family: var(--sans); color: var(--ink); background: var(--sky-top); 
 .cloud .shade { fill: var(--cloud-shade); }
 .cloud.far { opacity: .5; }
 .cloud.mid { opacity: .78; }
-.cloud.near { opacity: .95; filter: drop-shadow(0 10px 14px rgba(10, 50, 110, .12)); }
+.cloud.near { opacity: .95; }
 @keyframes drift { from { transform: translateX(-110%); } to { transform: translateX(100vw); } }
 
 main { position: relative; z-index: 1; }
