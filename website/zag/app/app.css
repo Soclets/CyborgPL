@@ -47,6 +47,8 @@ body { font-family: var(--sans); color: var(--ink); background: var(--sky-top); 
 .cloud.far { opacity: .5; }
 .cloud.mid { opacity: .78; }
 .cloud.near { opacity: .95; filter: drop-shadow(0 10px 14px rgba(10, 50, 110, .12)); }
+/* Away from the tab or the window, everything that drifts or bobs holds still (sky.jsx). */
+.away .clouds .cloud, .away .logo { animation-play-state: paused; }
 @keyframes drift { from { transform: translateX(-110%); } to { transform: translateX(100vw); } }
 
 main { position: relative; z-index: 1; }

@@ -35,6 +35,23 @@ function Cloud({ id }) {
 // The backdrop stays put while the page moves over it: the sky, the storm that fades in over it,
 // the clouds, and the lightning's flash.
 export function Backdrop() {
+  // The sky holds still while you're away (owner, 2026-10-15: "Make it so that the background stops
+  // moving, after the user exits the screen", then "number 1": leaving the tab or the window), and
+  // carries on from where it was when you come back.
+  useEffect(() => {
+    const root = document.documentElement;
+    const update = () => root.classList.toggle("away", document.hidden || !document.hasFocus());
+    update();
+    addEventListener("visibilitychange", update);
+    addEventListener("blur", update);
+    addEventListener("focus", update);
+    addEventListener("pagehide", update);
+    addEventListener("pageshow", update);
+    return () => {
+      removeEventListener("visibilitychange", update); removeEventListener("blur", update); removeEventListener("focus", update);
+      removeEventListener("pagehide", update); removeEventListener("pageshow", update); root.classList.remove("away");
+    };
+  }, []);
   return (
     <div className="backdrop" aria-hidden="true">
       <div className="storm" />
