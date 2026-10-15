@@ -5,6 +5,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+
+### 2026-10-16 — CyborgPL's standard library stays `std` (owner)
+
+Asked `std` or `stdkit` for the move, the owner: "`std`". Design claude had recommended it: "kit" is already
+the word for a library, so `stdkit` would say it twice. So the folder stays `std/`, the prefix `std::`, and std
+claude keeps its name.
+
 ### 2026-10-15 — CyborgPL's home is cyborgpl.org; .com and .dev point to it (owner)
 
 The owner: "CyborgPL.dev hasn't even gotten indexed yet. I kinda wanna buy the .com and .org too, and change main
