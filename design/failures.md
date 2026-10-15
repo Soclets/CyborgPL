@@ -10,7 +10,7 @@ A function that can fail says so in its signature and hands the failure back
 as a value. The caller **must** say what happens before the value can be
 used; forgetting is a compile error. No exceptions (implied control flow —
 against "nothing is implied"), no sentinel values nobody checks. Rust's
-`Result` and Zig's error sets landed here for the same reasons; Cortex sees
+`Result` and Zig's error sets landed here for the same reasons; the prover sees
 every failure path as it sees any other value.
 
 ## A failure has a name and may carry data
@@ -57,9 +57,9 @@ let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise return false;   # leave, 
 let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise fail;           # pass it up unchanged
 let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise {               # one arm per reason
     full           { break; }
-    bad_item 'why' { cord::print.stored["bad: ", 'why', newln]; continue; }
+    bad_item 'why' { std::print.stored["bad: ", 'why', newln]; continue; }
 };
-save[lend 'mine'] otherwise { disk_full { cord::print.stored["not saved", newln]; } };
+save[lend 'mine'] otherwise { disk_full { std::print.stored["not saved", newln]; } };
 ```
 
 - **A value** — used instead. **A leaving statement** (`return …`, `fail …`,
@@ -82,7 +82,7 @@ save[lend 'mine'] otherwise { disk_full { cord::print.stored["not saved", newln]
 Enforces all of it, and checks the caller's side *before* running the call,
 as the compiler would: an unhandled failing call, `otherwise` on a safe call,
 a missing or unknown arm, a propagation the enclosing function does not
-list, a payload of the wrong type. `examples/failures.nrv`, eighteen reject
+list, a payload of the wrong type. `examples/failures.zg`, eighteen reject
 tests.
 
 ## Open

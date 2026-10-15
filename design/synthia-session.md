@@ -1,6 +1,6 @@
 # The Synthia session — a brief
 
-For the session that builds **Synthia**, Nerve's separate package
+For the session that builds **Synthia**, Zag's separate package
 manager ("synthia claude"). Written 2026-09-29 by the design session, at
 the owner's request. Read this first; then everything it points at.
 
@@ -9,7 +9,7 @@ the owner's request. Read this first; then everything it points at.
 The owner, Tankun Sriket, alone. You advise and ask — in plain text,
 one question at a time, with a recommendation — and wait. Never use the
 AskUserQuestion tool. Never fill in a default for an open decision: if
-the docs do not say, it is a question, not a pick. Nerve is a hobby
+the docs do not say, it is a question, not a pick. Zag is a hobby
 language (owner, 2026-09-17): no timeline, no obligation. The design
 session ("design claude") records decisions in this repo's
 `DECISIONS.md`; a Synthia question goes to the owner, directly or
@@ -27,8 +27,8 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
 
 ## What is decided
 
-- **Two package managers** (owner, 2026-09-29): Synapse has one built in
-  (`synapse add`, manifest `Kinesin.nrp` in Nerve syntax — compiler claude's).
+- **Two package managers** (owner, 2026-09-29): Zomp has one built in
+  (`synapse add`, manifest `Ricochet.zv` in Zag syntax — compiler claude's).
   **Synthia is the separate one**, "fast, reliable, and easy-to-use".
 - **Go** (owner, 2026-09-29). Its standard library covers what a package
   manager does: fetching, archives, hashing, running `cca`.
@@ -37,22 +37,22 @@ claude <noreply@anthropic.com>`, `git pull --rebase` before pushing.
   `design/synthia-manifest.md` (owner, 2026-09-29), and its one open point
   is there.
 - **Synthia is an automatic programmer** (owner, 2026-09-30): it does
-  whatever a programmer using Synapse would do by hand, writing a `Kinesin.nrp`
-  for a Neuron that has only a `Synthia.ttsr`. Synapse never knows Synthia
-  exists. The project's own `Kinesin.nrp` goes beside `Synthia.ttsr`,
+  whatever a programmer using Zomp would do by hand, writing a `Ricochet.zv`
+  for a strike that has only a `Synthia.ttsr`. Zomp never knows Synthia
+  exists. The project's own `Ricochet.zv` goes beside `Synthia.ttsr`,
   rewritten from it each time, its first line saying it is generated
   (owner, 2026-09-30: a): `# Written by Synthia from Synthia.ttsr, and
-  rewritten each time: edit Synthia.ttsr, not this file.` (owner: "yea"). A `Kinesin.nrp` there without that line is not Synthia's: Synthia
+  rewritten each time: edit Synthia.ttsr, not this file.` (owner: "yea"). A `Ricochet.zv` there without that line is not Synthia's: Synthia
   refuses to write and leaves it, and `synthia takeover` overrides (owner: "`a`,
   and there should be an override command"; then "`a`" for `takeover`).
-- **How it connects**: Synthia reads its manifest, fetches the Neurons,
-  and calls `synapse build …` saying where each is. Synapse never reads
-  `Synthia.ttsr` and never depends on Synthia (owner, 2026-09-29): Synapse
+- **How it connects**: Synthia reads its manifest, fetches the strikes,
+  and calls `synapse build …` saying where each is. Zomp never reads
+  `Synthia.ttsr` and never depends on Synthia (owner, 2026-09-29): Zomp
   builds, runs and tests on its own.
-- **What a manifest holds** (from earlier rulings): the Neuron's name (never
+- **What a manifest holds** (from earlier rulings): the strike's name (never
   in source, 2026-09-23), its dependencies (never in source), the target
   (reproducible builds: never the host's), a version.
-- **Licence**: Apache-2.0 WITH LLVM-exception, as Nerve (owner,
+- **Licence**: Apache-2.0 WITH LLVM-exception, as Zag (owner,
   2026-09-29: "same license").
 - **Marks**: Synthia™. ™, never ®.
 
@@ -73,9 +73,9 @@ list is from 898ad6d).
 
 Commands other than `synthia show` (`synthia-manifest.md`) and
 `synthia prepare` (`tooling.md`); `synthia build/final/run/test` are
-named in `tooling.md` from before Synapse had its own; lock files,
-publishing, where Neurons are fetched from; how Synapse takes the list of Neurons
-(ask compiler claude, who owns Synapse's command line). `design/tooling.md`,
+named in `tooling.md` from before Zomp had its own; lock files,
+publishing, where strikes are fetched from; how Zomp takes the list of strikes
+(ask compiler claude, who owns Zomp's command line). `design/tooling.md`,
 `design/limbs.md`, `design/reproducible-builds.md`.
 
 ## Reaching the other sessions

@@ -10,7 +10,7 @@ Ownership covers almost every program, proven and free at run time. It
 cannot cover data whose longest holder is known only while running: a
 node with two parents, data several threads share and drop in any order,
 an entity that dies when the game says. Rust answers that with reference
-counting (`Rc`, `Arc`); Nerve answers it with **manual memory the language
+counting (`Rc`, `Arc`); Zag answers it with **manual memory the language
 checks**, instead (owner).
 
 The layers, then:
@@ -18,7 +18,7 @@ The layers, then:
 1. **Ownership** — almost everything; proven, no run-time cost.
 2. **Checked manual memory** — data that really is shared; you allocate
    and free, the language makes a wrong use a caught failure.
-3. **`malloc` / `free` through C** (`ffi.md`, CNC lobe) — every pointer use
+3. **`malloc` / `free` through C** (`ffi.md`, CNC plugin) — every pointer use
    `no_check`; for C, custom allocators, the last bit of speed.
 
 ## The handle: `manual[T]` (owner, 2026-10-13: "Manual it is")
@@ -51,19 +51,19 @@ struct Node {
 - **Freeing bumps the generation.** A use compares the two: different means
   freed, and the use fails instead of reading reused memory. A second free
   is caught the same way.
-- **Cortex removes the comparison** wherever it proves the handle alive.
+- **the prover removes the comparison** wherever it proves the handle alive.
 - Leaks stay possible (a handle never freed is safe but wasteful).
 
 ## Where the memory comes from (owner, 2026-10-13)
 
-- **The checking is the Brainstem's** (owner: "(a)"): handles, generations,
-  caught use after free and double free, Cortex's proofs, the same on bare
+- **The checking is the Ground's** (owner: "(a)"): handles, generations,
+  caught use after free and double free, the prover's proofs, the same on bare
   metal as on an OS. Only the OS allocator is outside it (design claude's
-  reading: in `cord`, with everything else that needs an OS).
+  reading: in `std`, with everything else that needs an OS).
 
 - **A handle works on its own** (owner: "Like, manual"): allocated
   anywhere, freed by the program, no pool to carry around.
-- **Nerve ships an allocator only for targets with an OS**, taking its
+- **Zag ships an allocator only for targets with an OS**, taking its
   memory from the OS (owner: "We're no shipping our own freestanding one,
   only OS one").
 - **Freestanding, the program brings its own allocator** (pools, bump,
@@ -73,11 +73,11 @@ struct Node {
 - **Each allocation names its allocator** (owner, 2026-10-13: "(b)", over
   one for the whole program), as Zig does: different memory can serve
   different things, fast RAM for one buffer, DMA-reachable RAM for another.
-  **The OS one is named too** (owner: "(a)"), so a Neuron that allocates
+  **The OS one is named too** (owner: "(a)"), so a strike that allocates
   takes its allocator from its caller and builds for bare metal unchanged.
 - **Who keeps freed memory: both ways** (owner, 2026-10-13: "Both"):
-  - **By default, Nerve.** The program's allocator only supplies fresh
-    memory (as the OS is to mimalloc) and never sees a free; Nerve reuses
+  - **By default, Zag.** The program's allocator only supplies fresh
+    memory (as the OS is to mimalloc) and never sees a free; Zag reuses
     a freed block only for an allocation of its size, from per-thread
     lists, so no allocator can break the checks. **Checked arenas** are
     built in: everything from one source freed at once, by bumping one
@@ -97,7 +97,7 @@ The checks follow the rule every check follows (`core-features.md`,
 - **Working build**: an unproven use of a handle is checked at run time and
   fails loudly at its line.
 - **Final build**: an unproven use is refused, with a counterexample. It is
-  proven, or guarded by a written "is it alive" test that Cortex reads, or
+  proven, or guarded by a written "is it alive" test that the prover reads, or
   `no_check`. The final product holds no inserted check; the generation
   stays in memory for the written guards.
 
@@ -105,8 +105,8 @@ The checks follow the rule every check follows (`core-features.md`,
 
 - The spelling: allocating, freeing, the alive test.
 - The generation's width (64 bits never wraps; 32 makes handles smaller):
-  Synapse's, unless the owner wants it.
+  Zomp's, unless the owner wants it.
 - Handles across threads and tasks (`concurrency.md`).
-- What Cortex proves about handles.
+- What the prover proves about handles.
 - Whether a garbage collector is ruled out (asked 2026-10-13, not ruled;
   design claude advised against one).

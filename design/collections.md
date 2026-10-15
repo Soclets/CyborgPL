@@ -1,8 +1,8 @@
 # Collections
 
-Decided 2026-10-13 (owner), built the same day in the oracle and Synapse.
+Decided 2026-10-13 (owner), built the same day in the oracle and Zomp.
 The rulings, with the owner's words, are in `DECISIONS.md` under 2026-10-13;
-this note says what they add up to. The example is `examples/collections.nrv`.
+this note says what they add up to. The example is `examples/collections.zg`.
 
 > **2026-10-13, later (owner):** a collection always says its kind, and a
 > bare `collection` is refused. Most of this note is **`collection.fn`**;
@@ -27,7 +27,7 @@ pub collection.fn cum {
 - `collection.fn`, then the name, bare as a function's is (`cum`, never
   `'cum'`), then `{ }`.
 - **The own function** carries the collection's name: `cum [ … ] -> T
-  { … }`, called `cum[…]`, or `name::cum[…]` from another Neuron. ("Own
+  { … }`, called `cum[…]`, or `name::cum[…]` from another strike. ("Own
   function" is design claude's word for it; it has nothing to do with
   `MAIN`.)
 - **A member** is a name, its parameters and its body, `double [ … ] -> T
@@ -56,8 +56,8 @@ pub collection.fn cum {
 ## A collection with no own function
 
 Allowed (owner, 2026-10-13: "(a)"). The name then only groups its members,
-as `cord::print` does: `cord::print.useful[…]` and `cord::print.stored[…]`
-exist, a bare `cord::print[…]` does not.
+as `std::print` does: `std::print.useful[…]` and `std::print.stored[…]`
+exist, a bare `std::print[…]` does not.
 
 ```
 collection.fn zero {
@@ -152,5 +152,5 @@ let 'b' := half[-4] otherwise cum_failed.flow_back_to_bladder;
 - As built, design claude's picks until the owner rules: a member is
   checked at each use, as the arms written there would be; a handler is
   used in its own file; `pub`, a `bare.` mark and templates are refused as
-  not decided. `examples/collection_handlers.nrv`.
+  not decided. `examples/collection_handlers.zg`.
 

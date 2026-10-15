@@ -65,7 +65,7 @@ shared `lent`), the field must not be `!mut`.
 **A struct is always an owned value** (decided 2026-09-18), even when every
 field is plain: a struct owns its fields, so `give` / `copy` / `lend` /
 `lend.mut` always apply to the whole. One rule, and adding a `str` field
-later never changes how the struct is passed around. Cortex elides the
+later never changes how the struct is passed around. the prover elides the
 copies it can prove unnecessary. For the parts:
 
 - A plain-value field (`'mine'.number`) copies freely, like any plain value.

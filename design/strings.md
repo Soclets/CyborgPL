@@ -19,7 +19,7 @@ asked whether it works; it doesn't — the oracle stores the backslash.)
 ## `std::print.useful.auto_newline` — the line ended for you (owner, 2026-09-30)
 
 ```
-cord::print.useful.auto_newln["Hello, World!"];
+std::print.useful.auto_newln["Hello, World!"];
 ```
 
 `print.useful` with a newline after the values, the same as writing `\n`
@@ -28,20 +28,20 @@ the first chain word with `_` in it. The owner wrote it "for fun", after
 comparing the Hello World with Java's; `std::rs.println` (2026-09-19,
 removed a day later) had done the same as a borrowed Rust print. Only this
 form is decided: `print` and `print.format` have no `auto_newline`.
-`examples/print_auto_newline.nrv`.
+`examples/print_auto_newline.zg`.
 
 ## `std::print.weird` — C++'s `cout <<`, with arrows (owner, 2026-10-01)
 
 ```
-cord::print.weird.useful <- "tenth is " <- 'tenth' <- ", n is " <- 'n' <- newln;
-cord::print.weird.stored <- "stored: " <- 'tenth' <- newln;
+std::print.weird.useful <- "tenth is " <- 'tenth' <- ", n is " <- 'n' <- newln;
+std::print.weird.stored <- "stored: " <- 'tenth' <- newln;
 ```
 
 A print in the shape of C++'s `std::cout << …` (owner: "`std::print.weird`
 seems like a good name, maybe use `->` arrows"). Each value follows a
 **`<--`**, pointing into the output, as C++'s `<<` points into `cout`
 and as `<-` points into a variable in `inline.ASM` (owner: "`<-`", over
-`-->`, which would point away from the screen — Nerve's arrows point
+`-->`, which would point away from the screen — Zag's arrows point
 where the value goes). It takes no `[ ]`, and at least one value. **`.weird.stored`**
 shows the stored form, as `print.stored`; **`.weird.useful`** the
 useful form, as `print.useful` (a bare `.weird` said "stored" until
@@ -50,16 +50,16 @@ useful form, as `print.useful` (a bare `.weird` said "stored" until
 `.weird` changes the whole call's shape, `.useful` only how values
 look, so `print.useful.weird` is refused. The first borrowed-language
 print since `std::c.printf` / `std::rs.println` were removed
-(2026-09-20). `examples/print_weird.nrv`; reject tests
+(2026-09-20). `examples/print_weird.zg`; reject tests
 print_weird_brackets, print_weird_order.
 
 ## `std::print.format` — the formatting print, with `{}` holes (2026-09-22; holes since 2026-10-01)
 
 ```
-cord::print.format["{}: {} at ${:.2}, 50% off\n", 'name', 'count', 'price'];
-cord::print.format["0x{:x} 0b{:08b} [{:>6}] [{:+}]\n", 255, 10, 42, 5];
-cord::print.format["{2} vs {1}, and {2} wins\n", "a", "b"];
-cord::print.format.stderr["error: {}\n", 'msg'];
+std::print.format["{}: {} at ${:.2}, 50% off\n", 'name', 'count', 'price'];
+std::print.format["0x{:x} 0b{:08b} [{:>6}] [{:+}]\n", 255, 10, 42, 5];
+std::print.format["{2} vs {1}, and {2} wins\n", "a", "b"];
+std::print.format.stderr["error: {}\n", 'msg'];
 ```
 
 The third print, beside `print.stored` (stored form) and `print.useful` (useful
@@ -100,13 +100,13 @@ holes"):
 
 Before 2026-10-01 it was C's `printf` language (`%d %x %.2f`, `%%`, then
 `\%`), named `printf` until 2026-09-29. The borrowed `std::c.printf` /
-`std::rs.println` of 2026-09-19 stay removed. `examples/print_format.nrv`;
+`std::rs.println` of 2026-09-19 stay removed. `examples/print_format.zg`;
 reject tests `print_format_*`.
 
 ## A length bound names its unit (decided 2026-09-22)
 
 ```
-let 'name': str.utf8[min 1, max 40 graphemes] = cord::input.line[] otherwise "";
+let 'name': str.utf8[min 1, max 40 graphemes] = std::input.line[] otherwise "";
 fn greet [lent 'who': str.utf8[min 1, max 10 graphemes]] { … }
 let 'field': str.utf8[min 0, max 255 bytes] = …;
 let 'code': str.utf8[min 4, max 4 points] = …;
@@ -118,7 +118,7 @@ and, because a text has three lengths and no single one, the bound
 high bound. `str.utf8[0, 20]` with no unit is a compile error. Every
 change to a bounded text (assignment, `++`) is a check site against the
 bound; a conversion into one (`to.str.utf8[min 0, max 3 bytes][…]`) fails
-`out_of_range` like any conversion into a range type. Cortex carries
+`out_of_range` like any conversion into a range type. the prover carries
 the length interval per unit already. Proposed: bytes always, graphemes
 always, or say which; owner chose "say which".
 
@@ -147,7 +147,7 @@ for 'b' in str.each.byte[lend 's'] { … }         # 'b': uint8
 
 A bare `for 'c' in lend 's'` is an error: a text is not a list of anything
 until you say what. `each.<unit>` yields the units without building a
-list (Cortex lowers it to a loop over the bytes; the oracle builds the
+list (the prover lowers it to a loop over the bytes; the oracle builds the
 list).
 
 ## No `[i]` on a text
@@ -165,18 +165,18 @@ to walk them. Everything else is ordinary library code, and case tables
 change with every Unicode release, so they belong in something updatable:
 
 ```
-cord::str.split[lend 's', at " "]          -> list[str.utf8]
-cord::str.join[lend 'parts', between "_"]
-cord::str.contains / starts_with / ends_with[lend 's', "x"]   -> bool
-cord::str.trim / upper / lower[lend 's']
-cord::str.replace[lend 's', from "a", to "b"]
-cord::str.find.grapheme[lend 's', part "x"]  -> int32 or fail[missing]   (1-based grapheme position)
-cord::str.at.<unit>[lend 's', pos 3]        -> that unit, or fail[out_of_range]
-cord::str.slice.grapheme[lend 's', from pos 1, to pos 5] -> str, or fail[out_of_range]
+std::str.split[lend 's', at " "]          -> list[str.utf8]
+std::str.join[lend 'parts', between "_"]
+std::str.contains / starts_with / ends_with[lend 's', "x"]   -> bool
+std::str.trim / upper / lower[lend 's']
+std::str.replace[lend 's', from "a", to "b"]
+std::str.find.grapheme[lend 's', part "x"]  -> int32 or fail[missing]   (1-based grapheme position)
+std::str.at.<unit>[lend 's', pos 3]        -> that unit, or fail[out_of_range]
+std::str.slice.grapheme[lend 's', from pos 1, to pos 5] -> str, or fail[out_of_range]
 ```
 
-The oracle emulates these so examples run (`examples/text.nrv`); std's
-real versions will be Nerve.
+The oracle emulates these so examples run (`examples/text.zg`); std's
+real versions will be Zag.
 
 ## Comparison
 
@@ -193,7 +193,7 @@ real versions will be Nerve.
 - A collation / locale-aware compare in std.
 - Normalisation (NFC/NFD) in std.
 - Building text piece by piece efficiently (a builder) — `++` allocates
-  each time; Cortex may fold chains, but a `list[str]` + `std::str.join`
+  each time; the prover may fold chains, but a `list[str]` + `std::str.join`
   is the honest shape today.
 
 ## The empty text, and looking for nothing (owner, 2026-10-14)

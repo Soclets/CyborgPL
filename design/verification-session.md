@@ -1,7 +1,7 @@
 # The verification session — a brief
 
 For the session that builds the tools which attack the compiler: the
-program generator, the differential harness, the Cortex oracle, and
+program generator, the differential harness, the the prover oracle, and
 translation validation. Written 2026-09-23 by the design session, at the
 owner's request. Read this first; then everything it points at.
 
@@ -10,7 +10,7 @@ owner's request. Read this first; then everything it points at.
 The owner, Tankun Sriket, alone. You advise and ask — in plain text,
 one question at a time, with a recommendation — and wait. Never use the
 AskUserQuestion tool. Never fill in a default for an open decision: if
-the docs do not say, it is a question, not a pick. Nerve is a hobby
+the docs do not say, it is a question, not a pick. Zag is a hobby
 language: no schedule, no obligation, no scope pressure from you.
 
 ## Who you are
@@ -37,11 +37,11 @@ The full rule is in `CLAUDE.md` and `DECISIONS.md`.
 ## Why you exist, and the rule that makes it work
 
 The compiler cannot check its own work. **You are a different author
-from Cortex's**, and that is the whole point of this session existing
+from the prover's**, and that is the whole point of this session existing
 separately (`design/compiler-verification.md`, owner 2026-09-21). So:
 
 - **Never read `synapse/`.** Not the source, not the comments. You attack
-  what Synapse *claims* — its output, its binaries, its proof report —
+  what Zomp *claims* — its output, its binaries, its proof report —
   never its reasoning. A bug you inherit from reading its code is a bug
   you cannot find.
 - **Never read `oracle/src` either.** Same reason: the interpreter is
@@ -76,7 +76,7 @@ name reaches a session only while it runs:
   specification does not say. It asks the owner and answers you, or
   answers from the record.
 - **"CyborgPL compiler"** — compiler claude. Send it findings: a
-  program, what Synapse did, what the oracle did, and which one the
+  program, what Zomp did, what the oracle did, and which one the
   specification says is wrong. Do not send it fixes; you do not read
   its code, and it does not need your patch.
 
@@ -89,31 +89,31 @@ direction. If a session is not running, ask the owner.
 2. `design/compiler-verification.md` — the three oracles and what each
    answers. Then `design/precog.md`, which is what you are attacking
    most of the time, and the rest of `design/*.md` as you need them.
-3. `examples/*.nrv` with their `.out` and `.exit`, and
-   `oracle/tests/reject/*.nrv` with their `.err` — the corpus that
+3. `examples/*.zg` with their `.out` and `.exit`, and
+   `oracle/tests/reject/*.zg` with their `.err` — the corpus that
    already exists, and the shape of a test.
 4. `~/Kespar/design/generator.md` and `~/Kespar/design/oracle.md` — the
    owner's proof-of-concept did this once, at 2,173 lines of generator;
    its findings are in `design/precog.md`'s Kespar section. Read its
-   *source* only if you want to, and never Synapse's.
+   *source* only if you want to, and never Zomp's.
 
 ## What to build, in the order that pays
 
 Not a schedule. The first two are what find bugs today; the third and
 fourth are the deeper checks.
 
-1. **The program generator.** Random *valid* Nerve programs, built
+1. **The program generator.** Random *valid* Zag programs, built
    from the grammar so they are correct by construction, with a seed so
-   any finding replays exactly. Kespar's found three Cortex bugs in one
+   any finding replays exactly. Kespar's found three the prover bugs in one
    commit. Cover what the corpus does not: deep call chains, nested
    loops, every operator at its boundaries, failures and handlers,
    ownership verbs, generics and interfaces.
 2. **The differential harness.** Each generated program through the
-   oracle and through Synapse; compare stdout byte for byte, the exit code,
+   oracle and through Zomp; compare stdout byte for byte, the exit code,
    and where a check fired. A difference is a bug in one of them —
    `design/` decides which. Shrink a failing program to its smallest
    form before reporting it.
-3. **The Cortex oracle** — three attacks on every claim in Synapse's proof
+3. **The the prover oracle** — three attacks on every claim in Zomp's proof
    report (`design/precog.md`, owner 2026-09-22):
    - exhaustive and random execution over the domains (every `int8`,
      every list to length 4; random plus edge values beyond that);
@@ -126,7 +126,7 @@ fourth are the deeper checks.
    built by its own session (`design/rrx2-tv-session.md`) and run only
    when the owner says it is time. This session no longer runs Alive2
    (owner, 2026-10-02: "We have RRx2 to replace ALive2, lol"). Ours is the Cyborg half: that
-   the IR Synapse hands to LLVM means what the MIR meant.
+   the IR Zomp hands to LLVM means what the MIR meant.
 
 ## What a finding looks like
 

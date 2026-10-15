@@ -30,7 +30,7 @@ process[lend.mut 's'];   # temporary exclusive access, may modify
   `'u'`. To read and change one list, pass it once with `lend.mut` (it can
   read too); to keep how it was, `copy` it first. Proposed: (a) refuse, as
   Rust does; (b) refuse only when a change actually happens while the other
-  borrow is in use, as the oracle and Synapse did. Compiler claude and design
+  borrow is in use, as the oracle and Zomp did. Compiler claude and design
   claude recommended a: the mistake shows at the call, a later change
   inside the function cannot break callers far away, and the compiler can
   tell LLVM the two never overlap.
@@ -92,7 +92,7 @@ behind the word that means none.
 
 ## Mutability: statable, not standard (decided 2026-09-14)
 
-A plain `let 'x' := 1000;` is the standard practice — Cortex already knows
+A plain `let 'x' := 1000;` is the standard practice — the prover already knows
 whether `'x'` is ever reassigned, so nothing needs saying. The programmer
 *may* state it, as a bare word before the name (revised 2026-09-19; it was
 a chain segment, `var.!mut.int32`), and the compiler then holds them to it:
@@ -110,13 +110,13 @@ the word can never lie; it was documentation until then. Neither is
 expected in ordinary code.
 
 Not the same thing as a constant (a value known at compile time, baked into
-the binary): Cortex finds those itself, and since 2026-10-10 a body may
+the binary): the prover finds those itself, and since 2026-10-10 a body may
 also say so with `const` (`limbs.md`, "`pub` and `const`").
 
 ## Why explicit
 
 Rust moves silently; the line that killed a variable says nothing, and the
-error appears two lines later. In Nerve nothing is implied, and these are
+error appears two lines later. In Zag nothing is implied, and these are
 exactly the assignments that cost something at runtime — so they are the
 ones that should be visible.
 
@@ -146,7 +146,7 @@ mirror over the type-position, 2026-09-19.
 Caller verb and parameter kind must agree; a mismatch is a compile error
 with an obvious message ("`count` only looks at `'text'`; you tried to give
 it away"). A reader knows from the signature alone whether their value comes
-back, and Cortex has the contract without the body.
+back, and the prover has the contract without the body.
 
 The words pair: the caller *lends*, the parameter is *lent*.
 
@@ -157,7 +157,7 @@ freed after; nothing else can reach it, so nothing is implied. (Decided
 
 A lend may be given its own name (decided 2026-09-14):
 `let 'r' := lend 's';` — `'r'` looks at `'s'` without owning it: readable,
-not assignable, not give-able. Cortex's lifetime inference keeps it from
+not assignable, not give-able. the prover's lifetime inference keeps it from
 outliving `'s'`.
 
 ## Handing back a borrow: `--> lent@x T` (owner, 2026-09-29)
@@ -171,7 +171,7 @@ fn pick [@x, @y] [lent @x 'a': str.utf8, lent @y 'b': str.utf8] -> lent @x str.u
 ```
 
 A function may hand back a borrow of what it was lent (2026-09-21: a lend
-may leave the call, and Cortex proves it lives long enough). The return
+may leave the call, and the prover proves it lives long enough). The return
 says so, `--> lent T` or `--> lent.mut T`. **`@x` names a lifetime group**:
 everything marked `@x` lives and dies together, so `longer`'s result is
 good while both `'a` and `'b` are, and `pick`'s needs only `'a`. The name
@@ -186,11 +186,11 @@ from something that dies at the return, and a function returning one
 must say so. Proposed alternatives: naming the parameters instead of a
 group (`--> lent str.utf8 from 'a', 'b'`, recommended by design claude
 and not chosen); `~` for the mark (it already means wrapping); a Rust-style
-list up front (`fn longer <@x> …`). `examples/lifetimes.nrv`.
+list up front (`fn longer <@x> …`). `examples/lifetimes.zg`.
 
 **The group is optional outside `#strict`** (owner, 2026-09-29:
 "`-> lent str.utf8` is legal in normal"): `fn first [lent 'a': str.utf8]
---> lent str.utf8` is fine, and Cortex works out from the body what the
+--> lent str.utf8` is fine, and the prover works out from the body what the
 result depends on, as "optional, verified" (2026-09-14) had it. **A
 `#strict` file must write it** (owner: "yeah, required in strict"): a
 strict caller sees only signatures, and the reader should see what the

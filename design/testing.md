@@ -14,7 +14,7 @@ test fn adds_up [] {
 }
 ```
 
-`synapse test` (Synapse runs and tests on its own, 2026-09-29) runs every `test fn`
+`synapse test` (Zomp runs and tests on its own, 2026-09-29) runs every `test fn`
 in the order written, each on its own, and reports each one, then a
 count; it exits 0 when all pass.
 
@@ -24,7 +24,7 @@ count; it exits 0 when all pass.
   out. Proposed alternatives: every function in a `module tests { }`; a
   `#test` file mode.
 - **`must` states what must hold** (owner: "the fam"), and only inside a
-  `test fn` (in a program, Cortex and `check` do this job, at compile
+  `test fn` (in a program, the prover and `check` do this job, at compile
   time). A comparison that does not hold shows both sides: "the left side
   is 6, and it must be `==` 5".
 - **`must.fail`** expects a failure — Cyborg's named `fail` / `otherwise`
@@ -45,7 +45,7 @@ with a dot, `must.be`, which reads well only between two values), then
 
 ## Oracle
 
-`oracle --test file-or-Limb` runs the tests. `examples/testing.nrv` (two
+`oracle --test file-or-Limb` runs the tests. `examples/testing.zg` (two
 of its tests fail on purpose; `.test-out` holds the report); reject tests
 must_outside_test, test_fn_params, test_fn_called, must_fail_not_a_call.
 A failed comparison's sides are worked out a second time for the message

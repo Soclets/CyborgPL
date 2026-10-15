@@ -25,13 +25,13 @@ nearest value the type holds (`7.5 div.near 2.0` is 3.75), and
 Python's `//`); so `mod.near` is refused there, since it leaves nothing
 over (design claude's slip: it had first called it IEEE's `remainder()`).
 Proposed for bins: `div.near` naming the rounding (chosen), `div.real`,
-`div.frac`. `examples/div_rounding.nrv`.
+`div.frac`. `examples/div_rounding.zg`.
 
 **The operators are words** (owner, 2026-10-02/03): `plus`, `minus`,
 `times`, `.wrap` for the wrapping ones, and std's `pow`; the symbols `+`,
 two-number `-`, `x`, `xx` and the tilde forms are refused, naming the
 word. A type defines its own with `op plus […]`; an operator as a value
-is `op plus`. `examples/word_operators.nrv`. Older passages below keep
+is `op plus`. `examples/word_operators.zg`. Older passages below keep
 the symbols where they quote a ruling's day.
 
 | Operator | Meaning |
@@ -44,7 +44,7 @@ the symbols where they quote a ruling's day.
 | `pow`, `pow.wrap` | power: std's operators since 2026-10-03 (the language's `xx`, `xx~` before); bare or `std::pow`; above a negative, right pair first, as `xx` was (`-2 pow 2` is -4, `2 pow 3 pow 2` is 512) |
 | `div.floor` `div.ceil` `div.trunc` `div.near` | divide, rounding as named (`div` until 2026-10-02, `/` until 2026-09-29) |
 | `mod.floor` `mod.ceil` `mod.trunc` `mod.near` | what the same `div` leaves over |
-| `plus.ieee` `minus.ieee` `times.ieee` `pow.ieee` `div.floor.ieee` `div.ceil.ieee` `div.trunc.ieee` `div.near.ieee` `mod.floor.ieee` `mod.ceil.ieee` `mod.trunc.ieee`, and `neg.ieee 'x'` | IEEE 754's own answer, keeping a `-0`; on a bin or `brain16` only. Every other bin or `brain16` result is never `-0`: a zero times a negative, `-'x'` of a zero, a product too small to hold are all `0` (owner, 2026-10-07: "`a`", then "yea" to the family and to `neg.ieee`; `-.ieee 'x'` "defeats the purpose of a symbol"; `mod` and `pow` too, "yea."). `examples/zero_everywhere.nrv` |
+| `plus.ieee` `minus.ieee` `times.ieee` `pow.ieee` `div.floor.ieee` `div.ceil.ieee` `div.trunc.ieee` `div.near.ieee` `mod.floor.ieee` `mod.ceil.ieee` `mod.trunc.ieee`, and `neg.ieee 'x'` | IEEE 754's own answer, keeping a `-0`; on a bin or `brain16` only. Every other bin or `brain16` result is never `-0`: a zero times a negative, `-'x'` of a zero, a product too small to hold are all `0` (owner, 2026-10-07: "`a`", then "yea" to the family and to `neg.ieee`; `-.ieee 'x'` "defeats the purpose of a symbol"; `mod` and `pow` too, "yea."). `examples/zero_everywhere.zg` |
 | `==` | equal |
 | `!==` | not equal — built from `==` |
 | `<`, `>` | less than, greater than |
@@ -71,7 +71,7 @@ operators chain left as usual.
 ## No increment or compound assignment (decided 2026-09-14)
 
 There is no `++`, `--`, `+=`, or any other shorthand. Adding one is written
-in full: `change 'i' = 'i' plus 1;`. Cortex emits the same instruction either way;
+in full: `change 'i' = 'i' plus 1;`. the prover emits the same instruction either way;
 the shorthand would exist only for the reader, and the owner chose not to
 have it.
 
@@ -94,7 +94,7 @@ Tightest to loosest:
 | 7 | `and` | ∧ before ∨, as in logic |
 | 8 | `or` | |
 
-**Bitwise** (decided 2026-09-21): `and.bit`, `or.bit`, `not.bit`, `xor`, `shl`, `shr`. A bitwise `and` is the boolean `and` applied to every bit position at once (`1100 and.bit 1010 = 1000`: a column keeps a 1 only if both have one), so the spelling narrows the boolean word with `.bit` rather than inventing a second word — C's `&` vs `&&` confusion is what a separate spelling invites; `xor` has no boolean twin so it stands alone; shifts extend nothing. Integers only; the result is the operand's type; `shl` past the width or into overflow is a check site. No precedence: mathematics has no reading for a bitwise operator beside an arithmetic one, so parentheses whenever one meets another operator. **Wrapping arithmetic** (decided 2026-09-20): `+~`, `-~`, `x~`, `xx~` — "plus, but modulo the type's size" — always defined, never a check, nothing to `no_check`; same precedence as the plain forms. For hashes, ring counters, PRNGs, where wrapping *is* the algorithm; plain `+ - x xx` stay overflow-checked, exact and checked where they land (2026-09-23, below). Owner chose the tilde ("wraps around") over Zig's `+%` (`%` reads as percent — and `mod` is a word here for that reason) and Swift's `&+` (`&` reads as borrow to a Rust hire). The width is the operand's type — any operand whose type is known, see below. **`div` on integers floors and `mod` is the mathematician's** (decided 2026-09-20): `-7 div 2 = -4`, `-7 mod 2 = 1` — the result of `mod` has the divisor's sign, so `x mod 12` is always 0–11 and a clock, a hash, a ring buffer never go negative (the classic C `%` bug). The identity `a == (a div b) x b + (a mod b)` holds. Hardware truncation (`-7 div 2 = -3`, `-7 mod 2 = -1`) is by name, for matching a C library bit for bit: **`a div.trunc b`, `a mod.trunc b`, operators in the language** (owner, 2026-10-02: "I think `div.trunc` should be in base", then "`a`", an operator narrowing `div` as `.bit` narrows `and`, over a built-in `div.trunc[a, b]`; and "yea", `mod.trunc` with it), at `div`'s precedence and under `mod`'s parenthesis rule. Until then they were std's, `std::div.trunc[a, b]`, now refused naming the operator. `div.trunc` takes integers; `mod.trunc` integers, bins and `brain16`. Cost: a few one-cycle instructions beside a 10–40-cycle divide, and only where Cortex cannot prove a sign (unsigned types, counters, positions, lengths need nothing); the fix-up is the operator's meaning, not a check, so it is neither `no_check`-able nor an error in the final build. Owner asked about performance and whether it ships; chose floor and std for truncation. **The same on a bin and `brain16`** (owner, 2026-10-02: a, compiler claude's question): `-370.0 mod 360.0` is `350`, `7.5 mod -2.0` is `-0.5`; C's `fmod` is `mod.trunc` there too. The oracle had given the dividend's sign by accident (Rust's `%`). It costs a compare and an add beside the `fmod` routine, none where Cortex proves both signs. A tiny negative over a large divisor would round up to the divisor itself (`-1e-20 mod 360.0` gives `360.0` in Python); here it is `0`, so the answer is always below the divisor (owner, 2026-10-02: b, "basically none" of a cost: one compare). `++` joins text (decided 2026-09-19): below `+ -`, above comparisons, left-associative; at least one side text, the other rendered in stored form. So `1 + 2 x 3` = 7, `2 x 3 xx 2` = 18, `'a' + 1 > 'b' - 2 and ! ('a' == 'b')` reads as expected, and `6 div 2 x 3`, `10 mod 3 + 1`, `not 1 == 2`, `'i' mod 2 == 0` are errors that say "parenthesise" (`('i' mod 2) == 0`).
+**Bitwise** (decided 2026-09-21): `and.bit`, `or.bit`, `not.bit`, `xor`, `shl`, `shr`. A bitwise `and` is the boolean `and` applied to every bit position at once (`1100 and.bit 1010 = 1000`: a column keeps a 1 only if both have one), so the spelling narrows the boolean word with `.bit` rather than inventing a second word — C's `&` vs `&&` confusion is what a separate spelling invites; `xor` has no boolean twin so it stands alone; shifts extend nothing. Integers only; the result is the operand's type; `shl` past the width or into overflow is a check site. No precedence: mathematics has no reading for a bitwise operator beside an arithmetic one, so parentheses whenever one meets another operator. **Wrapping arithmetic** (decided 2026-09-20): `+~`, `-~`, `x~`, `xx~` — "plus, but modulo the type's size" — always defined, never a check, nothing to `no_check`; same precedence as the plain forms. For hashes, ring counters, PRNGs, where wrapping *is* the algorithm; plain `+ - x xx` stay overflow-checked, exact and checked where they land (2026-09-23, below). Owner chose the tilde ("wraps around") over Zig's `+%` (`%` reads as percent — and `mod` is a word here for that reason) and Swift's `&+` (`&` reads as borrow to a Rust hire). The width is the operand's type — any operand whose type is known, see below. **`div` on integers floors and `mod` is the mathematician's** (decided 2026-09-20): `-7 div 2 = -4`, `-7 mod 2 = 1` — the result of `mod` has the divisor's sign, so `x mod 12` is always 0–11 and a clock, a hash, a ring buffer never go negative (the classic C `%` bug). The identity `a == (a div b) x b + (a mod b)` holds. Hardware truncation (`-7 div 2 = -3`, `-7 mod 2 = -1`) is by name, for matching a C library bit for bit: **`a div.trunc b`, `a mod.trunc b`, operators in the language** (owner, 2026-10-02: "I think `div.trunc` should be in base", then "`a`", an operator narrowing `div` as `.bit` narrows `and`, over a built-in `div.trunc[a, b]`; and "yea", `mod.trunc` with it), at `div`'s precedence and under `mod`'s parenthesis rule. Until then they were std's, `std::div.trunc[a, b]`, now refused naming the operator. `div.trunc` takes integers; `mod.trunc` integers, bins and `brain16`. Cost: a few one-cycle instructions beside a 10–40-cycle divide, and only where the prover cannot prove a sign (unsigned types, counters, positions, lengths need nothing); the fix-up is the operator's meaning, not a check, so it is neither `no_check`-able nor an error in the final build. Owner asked about performance and whether it ships; chose floor and std for truncation. **The same on a bin and `brain16`** (owner, 2026-10-02: a, compiler claude's question): `-370.0 mod 360.0` is `350`, `7.5 mod -2.0` is `-0.5`; C's `fmod` is `mod.trunc` there too. The oracle had given the dividend's sign by accident (Rust's `%`). It costs a compare and an add beside the `fmod` routine, none where the prover proves both signs. A tiny negative over a large divisor would round up to the divisor itself (`-1e-20 mod 360.0` gives `360.0` in Python); here it is `0`, so the answer is always below the divisor (owner, 2026-10-02: b, "basically none" of a cost: one compare). `++` joins text (decided 2026-09-19): below `+ -`, above comparisons, left-associative; at least one side text, the other rendered in stored form. So `1 + 2 x 3` = 7, `2 x 3 xx 2` = 18, `'a' + 1 > 'b' - 2 and ! ('a' == 'b')` reads as expected, and `6 div 2 x 3`, `10 mod 3 + 1`, `not 1 == 2`, `'i' mod 2 == 0` are errors that say "parenthesise" (`('i' mod 2) == 0`).
 
 ## A shift's count (owner, 2026-09-23: a)
 
@@ -106,7 +106,7 @@ two directions are already two words: the owner's reading, "why don't
 they just use minus?", is the argument — `'v' shr (-1)` means `'v' shl
 1`, so a negative count is a variable that came out wrong. C and LLVM
 leave both cases undefined, which is the other reason to check rather
-than define them: a count Cortex cannot bound becomes a guardrail, not
+than define them: a count the prover cannot bound becomes a guardrail, not
 a silent 0. Proposed alternatives: `shr` by the width or more is
 defined as 0 and only a negative count is checked; that for `shr` and
 the strict rule for `shl`.
@@ -162,7 +162,7 @@ subtraction when `'w'` is a `uint32`. And the other side does size it: in
 
 The sentence above — "the compiler knows every width; the oracle needs
 the left operand declared" — was always about the oracle's limit, not
-the language's rule. Synapse had read it as a rule and refused both lines;
+the language's rule. Zomp had read it as a rule and refused both lines;
 it is the one that changes. Found by the generator on its first run: it
 was two-thirds of every disagreement until check claude steered around
 it.
@@ -187,8 +187,8 @@ going. In between, the one limit is the machine's 64 bits, or the widest
 operand's width when that is wider (owner, 2026-10-03: two
 `!std.uint256`s work at 256 bits, two `int128`s at 128): a value no type
 of that width holds is a check site (`'a' times 'a'` on two huge `int64`s),
-which Cortex removes wherever it proves the values smaller. Bare
-numbers alone are worked out exactly at compile time. Cortex still uses
+which the prover removes wherever it proves the values smaller. Bare
+numbers alone are worked out exactly at compile time. the prover still uses
 narrow sizes where it proves they fit, for SIMD especially, since the
 answer is the same.
 
@@ -205,7 +205,7 @@ placeholder).
 
 **A negative exponent is a check site** (owner, 2026-09-24: a), for `xx`
 and `xx~` alike: `2 pow -1` is a half, which no integer holds, and a
-fraction is not something wrapping answers. Cortex sees the whole
+fraction is not something wrapping answers. the prover sees the whole
 program and proves the exponent never negative, the working build
 checks where it cannot, and the final build refuses an unproven one.
 Proposed alternatives: a fixed answer such as 0, so `xx~` stays
@@ -231,7 +231,7 @@ answers mixed sizes (`int16 plus int64`), which nothing had decided.
 An operation whose `bin` result would be an infinity or a NaN is a check
 site, like integer overflow: `'big' times 10.0` past the largest `bin64`,
 `1.0 div.near 0.0` and `0.0 div.near 0.0` (division by zero), `-1.0 pow 0.5` (no
-number). Cortex proves them away where it can, the working build checks,
+number). the prover proves them away where it can, the working build checks,
 the final build refuses the rest. Text never makes one either
 (2026-09-24). Proposed alternative: IEEE's infinities and NaN, as C has
 them.
@@ -270,7 +270,7 @@ guard. The read runs when `'i'` is past the end, so it stops the working
 build and the final build refuses it. It is safe either way, never
 silent. The owner's reason: the code does exactly what it says ("so the
 code isn't lying"). Proposed alternatives: stop early, as C, Rust, Python,
-Go and JavaScript do, so the one-line guard works and Cortex narrows the
+Go and JavaScript do, so the one-line guard works and the prover narrows the
 right side by the left (recommended by check claude and design claude);
 run both and refuse such lines at compile time.
 
@@ -285,7 +285,7 @@ if 'n' equal_to 0 or.else 100 div.floor 'n' < 2 { … }
 A variant of `and`/`or` by the dot rule, like `and.bit`. It reads as the
 English: "A, and then B" (only if A held) and "A, or else B" (only if A
 failed), the spelling Ada uses (`and then` / `or else`). Same precedence as
-`and` / `or`. Cortex narrows the right side by the left, so the read and
+`and` / `or`. the prover narrows the right side by the left, so the read and
 the division above are proven. Names considered: `and.guard`, `and.early`,
 `and.short`. Handling it with `otherwise` was asked about and does not
 apply: a list read out of range or a division by zero is a check site,
@@ -308,7 +308,7 @@ JavaScript `+` and a `bin16` `*` that changed on 1 April; the owner dropped them
 | `+`, `-`, `*` between two values | `plus`, `minus`, `times` (plain: checked, exact) |
 | `/`, `%` | `div.trunc`, `mod.trunc`: toward zero, as C, Rust and Go |
 | `==`, `!=`, `<=`, `>=` | `equal_to`, `not_equal`, `at_most`, `at_least` (`<`, `>` as always) |
-| `**` | `pow` (cord's) |
+| `**` | `pow` (std's) |
 | `&`, `&&`, `\|\|` between two values | `and` (both sides), `and.then`, `or.else` |
 
 `op +`, `op -`, `op *` declare `op plus`, `op minus`, `op times`; the other built-in symbols are not
@@ -358,7 +358,7 @@ Four questions, one at a time:
    always-lent reads like arithmetic but cannot reuse a dead operand's
    buffer (`s = s + "x"` in a loop). The middle keeps `'u' <+> 'v'` for
    the common case and lets an `op` say `give 'a'` when it wants the
-   memory. Cortex may elide the copy in the lent case when the operand is
+   memory. the prover may elide the copy in the lent case when the operand is
    dead; the `give` form guarantees it.
 
 Rules that follow: exactly two operands; `--> T` required; an operator
@@ -368,7 +368,7 @@ for a user type** (`op plus ['a': Vec, 'b': Vec]`, decided 2026-09-20 with
 interfaces) but never changed for the language's own types. Prefix (one-operand) custom
 operators are not offered.
 
-### A Neuron's precedence (owner, 2026-10-03)
+### A strike's precedence (owner, 2026-10-03)
 
 ```
 precedence.low_first {                          # level 1 binds loosest (good practice)
@@ -379,7 +379,7 @@ precedence.low_first {                          # level 1 binds loosest (good pr
 }
 ```
 
-A Neuron may give its operators a precedence in one block; `precedence.high_first`
+A strike may give its operators a precedence in one block; `precedence.high_first`
 counts the other way, and a bare `precedence` is refused. Each level is `level N { … }`,
 its operators separated by `,`, and after the braces it says how a chain of it reads
 (`left_first`, `right_first`, `refused`), which must agree with any language operator
@@ -387,33 +387,33 @@ in it. This spelling is the owner's of 2026-10-14 ("That syntax seems good, but 
 commas are bothering me."); it was `level.when_chained.left_first 2 { plus }`, now
 refused naming the new one. A level may hold `neg` (a negative), so std's `pow` sits above it. An
 operator in no level keeps the custom-operator rule: brackets beside any other.
-Operators of two Neurons in the same gap need brackets between them. The language's
+Operators of two strikes in the same gap need brackets between them. The language's
 bitwise operators have no precedence and cannot be given one.
-`examples/precedence_levels.nrv`.
+`examples/precedence_levels.zg`.
 
-### From another Neuron (owner, 2026-09-23: a)
+### From another strike (owner, 2026-09-23: a)
 
 **Since 2026-10-02 (owner; built 2026-10-03): a word operator may also carry
-its path, `'a' std::pow 'b'`, and a Neuron may declare narrowed forms after
+its path, `'a' std::pow 'b'`, and a strike may declare narrowed forms after
 a dot, `pub op pow.wrap […]`, used `'a' std::pow.wrap 'b'`. Bare and
-with a path are both legal; the official Neuron registry refuses a
-published Neuron that writes another Neuron's word operator bare, unless the
+with a path are both legal; the official strike registry refuses a
+published strike that writes another strike's word operator bare, unless the
 owner overrides it ("Always refuse, unless I override"). A glyph operator
 (`~=`) has no path.** The paragraph below is the 2026-09-23 rule.
 
-A `pub op` is usable by every Neuron that depends on the one that wrote
+A `pub op` is usable by every strike that depends on the one that wrote
 it, with nothing written: an operator has no place for a path, so
 `'u' dot 'v'` finds the `dot` written for what `'u'` and `'v'` are. Any
-Neuron may share an operator for any types, the language's own included
+strike may share an operator for any types, the language's own included
 (`op ~= ['a': bin64, 'b': bin64] -> bool` for "equal within a margin").
 **Two meanings of one operator for the same types is a compile error**
 (owner: "shouldn't two meanings of `~=` just err?"), whether they come
-from two Neurons or from a Neuron and your own code. With no path to pick
-one, the fix is to drop a Neuron, or copy one operator into your own
+from two strikes or from a strike and your own code. With no path to pick
+one, the fix is to drop a strike, or copy one operator into your own
 code and edit it. Proposed alternative (design claude's
-recommendation): only the Neuron that owns one of the operand types may
+recommendation): only the strike that owns one of the operand types may
 share an operator, as in Rust, so two can never clash. That would stop
-a Neuron from sharing `~=` or `+|` for the language's own types.
+a strike from sharing `~=` or `+|` for the language's own types.
 
-Oracle: `examples/operators.nrv`, thirteen reject tests. It runs one
-Neuron, so an operator is found by name across the whole program.
+Oracle: `examples/operators.zg`, thirteen reject tests. It runs one
+strike, so an operator is found by name across the whole program.

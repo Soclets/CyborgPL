@@ -3,7 +3,7 @@
 Decided 2026-09-22, one question at a time. A CPU has registers that
 hold several numbers side by side and instructions that work on all of
 them at once. A plain `for` over an `array` should reach the same
-instructions by itself — Cortex proves the checks away, LLVM's
+instructions by itself — the prover proves the checks away, LLVM's
 vectoriser does the rest — and that is the path to take first. These
 types are for when it does not, or when the algorithm is a vector
 algorithm.
@@ -46,7 +46,7 @@ owner: "shouldn't they just use the normal way?" A program reaching for
 lies; portability is the plain loop. A `simd` program built for another
 target fails to build rather than running slowly — the honesty
 `inline.ASM` already has. The shapes come from the target description
-in the manifest (`Synthia.ttsr` / `Kinesin.nrp`), never from the host.
+in the manifest (`Synthia.ttsr` / `Ricochet.zv`), never from the host.
 
 ## The operators, element-wise (owner: a)
 
@@ -81,18 +81,18 @@ that names the fold to use.
   do the other option too", then "yea"). Until 2026-10-07 this said "`sum` is
   a check site (it can overflow `T`)".
 
-## What Cortex knows
+## What the prover knows
 
 A lane is a plain value, so a vector carries **a domain per lane** and
 every operator's rule is the scalar rule applied lane-wise. A load
 whose index is proven inside the array needs no check; `simd.sum` whose
 lanes are proven small needs no overflow check. Nothing about SIMD is
-special to Cortex — it is N of what it already does.
+special to the prover — it is N of what it already does.
 
 ## In the oracle (2026-09-22)
 
 All of the above, with the oracle's target fixed as ARM64's 128 bits.
-`examples/simd.nrv` is the `is_ascii` program plus arithmetic,
+`examples/simd.zg` is the `is_ascii` program plus arithmetic,
 comparisons, folds and a store; five reject tests cover a shape the
 target does not have, a vector used as a condition, a load past the
 end, and a bad element type. Two things the
@@ -113,7 +113,7 @@ take a mask and a declaration can name one. It has as many lanes as the
 vectors it compares: 2, 4, 8 or 16 on a 128-bit target. `simd.fill[true]`,
 `simd.all`, `simd.any` apply, and `not`, `and`, `or` work lane by lane.
 Proposed alternative: a mask exists only as a comparison's result, used
-on the spot. `examples/simd_mask.nrv`.
+on the spot. `examples/simd_mask.zg`.
 
 ## The leftover end: `simd.load.some` / `simd.store.some` (owner, 2026-09-27: a)
 
@@ -125,12 +125,12 @@ simd.store.some[lend.mut 'xs', pos 9, count 2, value 'v'];               # write
 Every vector loop over a list whose length is not a multiple of N has a
 tail. With these the tail is one more trip of the same loop, not a second
 scalar loop. k is 0 to N, and the k items must lie in the list, a check
-site Cortex proves like `simd.load`'s. The other lanes of a load are the
+site the prover proves like `simd.load`'s. The other lanes of a load are the
 element type's zero. Newer hardware does this directly (SVE predicates,
 AVX-512 masks), and elsewhere the compiler lowers it. Proposed
 alternative: leave the tail a plain loop. The names `load.some` /
 `store.some` were design claude's proposal, flagged as placeholders, and
-went through with a. `examples/simd_tail.nrv`.
+went through with a. `examples/simd_tail.zg`.
 
 ## A simd value goes anywhere a number does (owner, 2026-09-27: a)
 
@@ -144,7 +144,7 @@ fixed-size value that copies by itself, like a number, and the compiler
 aligns it to the register width (16 bytes on a 128-bit target). Graphics
 and physics keep positions this way. Proposed alternative: SIMD values
 local only, with plain numbers stored and reloaded each time.
-`examples/simd_fields.nrv`.
+`examples/simd_fields.zg`.
 
 ## Rearranging lanes: `simd.shuffle` (owner, 2026-09-27: a)
 
@@ -157,10 +157,10 @@ let 'b' := simd.shuffle['v', [1, 1, 1, 1]];      # lane 1 everywhere
 One operation for every rearrangement: the vector, then its new order as
 lane numbers (1-based, as positions are), one per lane, and repeats are
 allowed. The order must be fixed numbers known when compiling, so it is
-one instruction on every chip and Cortex sees through it. A lane that
+one instruction on every chip and the prover sees through it. A lane that
 does not exist is an error. Proposed alternative: nothing yet, since the
 folds cover the common cases. Shuffling two vectors together
-(interleave) was not asked. `examples/simd_shuffle.nrv`.
+(interleave) was not asked. `examples/simd_shuffle.zg`.
 
 ## Open
 

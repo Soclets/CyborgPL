@@ -3,7 +3,7 @@
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
 Decided 2026-09-22, one question at a time. Not parallelism
-(`parallelism.md`: the same work on many pieces, Cortex spreads a `for`
+(`parallelism.md`: the same work on many pieces, the prover spreads a `for`
 over cores or a GPU, the programmer writes nothing). Concurrency is
 *different* things that wait on the outside world — ten connections, a
 download beside a keyboard — where the waiting is the point.
@@ -15,7 +15,7 @@ concur with [lend 'results', give 'a'] { channel.send[lend 'results', value fetc
 concur with [lend 'results'] { channel.send[lend 'results', value fetch["b.com"]]; }
 for 'i' from 1 to 2 by 1 {
     let 'page' := channel.take[lend 'results'] otherwise "";    # waits; whichever finished first
-    cord::print.useful[str.bytes[lend 'page'], newln];
+    std::print.useful[str.bytes[lend 'page'], newln];
 }
 ```
 
@@ -23,8 +23,8 @@ for 'i' from 1 to 2 by 1 {
 
 A word starts a task; tasks talk through channels; a value sent is
 `give`n, so no two tasks ever hold one thing — no locks, because nothing
-is shared, and Cortex checks that nothing is. Ownership does the work
-the language already paid for. Proposed alternatives: Cortex overlaps
+is shared, and the prover checks that nothing is. Ownership does the work
+the language already paid for. Proposed alternatives: the prover overlaps
 waiting calls automatically (would rarely fire — real concurrent
 programs are about shared state); `async`/`await` (colours every
 caller).
@@ -45,7 +45,7 @@ reading ("agree") against `task` and chose `concur`.
 A task can outlive the code around it, so it names what it takes, as an
 anonymous function does (`functions-as-values.md`): `with [give 'url',
 copy 'n', lend 'results']`. `give` moves it in; `copy` duplicates;
-**`lend` is a check site** — Cortex proves the task ends before the
+**`lend` is a check site** — the prover proves the task ends before the
 lender's scope does (structured tasks make that provable; see below);
 unproven, the tiers. Proposed alternative: `give` and `copy` only.
 
@@ -66,7 +66,7 @@ the goroutine leak).
 
 ```
 concur with [give 'url'] { let 'p' := fetch['url'] otherwise fail; … }
-    otherwise { no_network { cord::print.useful["offline", newln]; } };
+    otherwise { no_network { std::print.useful["offline", newln]; } };
 ```
 
 A task that can fail says so where it is written, like every failing
@@ -87,7 +87,7 @@ fn setup [give 'doc': Document] {
 It can print, log, or retry; it cannot `return` or fail outward, since
 there is nobody left to return to. The body's own work is unwound
 first, but **the captures are still alive while the handler runs**, so
-a retry has what it was given (Synapse, 2026-09-23). Proposed alternatives: a detached
+a retry has what it was given (Zomp, 2026-09-23). Proposed alternatives: a detached
 task may not fail at all (the checker refuses `fail` inside one); its
 failure ends the program with the reason named. The autosave that could
 not write is why detached tasks exist, and it should be able to say so
@@ -107,8 +107,8 @@ default — a meeting point, not a box); `[0, N]` is a bounded queue.
 Unbounded is refused: the classic way to hide a slow consumer until the
 machine dies. `take` fails `closed` exactly as `std::input.line[]`
 does at end of input. A `send` nobody will ever take is a check site
-(Cortex sees every taker). Two tasks each waiting on the other is a
-check site too — a deadlock Cortex can see.
+(the prover sees every taker). Two tasks each waiting on the other is a
+check site too — a deadlock the prover can see.
 
 ## `whichever` — whichever comes first (owner: a; the word, owner)
 
@@ -133,12 +133,12 @@ without it). The word: first `pick`; owner asked why not `pick_first`
 Time is the outside world, so it is std's, like input:
 
 ```
-cord::time.wait[5 seconds];
-let 'deadline' := cord::time.after[500 millis];     # a channel that sends once
-let 'tick' := cord::time.every[1 second];           # a channel that sends every second
+std::time.wait[5 seconds];
+let 'deadline' := std::time.after[500 millis];     # a channel that sends once
+let 'tick' := std::time.every[1 second];           # a channel that sends every second
 whichever {
     'msg' from lend 'inbox'     { … }
-    'now' from lend 'deadline'  { cord::print.useful["timed out", newln]; }
+    'now' from lend 'deadline'  { std::print.useful["timed out", newln]; }
 }
 ```
 
@@ -155,7 +155,7 @@ an integer wide enough for centuries); `5 seconds == 5_000 millis`.
 **A duration is never negative** (owner, 2026-09-22): it is a length of
 time, and every use here is a wait, a timeout or a tick. `5 seconds -
 6 seconds` is refused — a check site like any narrowing past a bound,
-an error when Cortex sees it is certain. Proposed alternatives: a
+an error when the prover sees it is certain. Proposed alternatives: a
 signed duration (`-1 second`, which the integer underneath gives for
 free, and which would be the natural way to say "how far past the
 deadline" — but that is a difference of two *instants*, a type not
@@ -178,10 +178,10 @@ case it does not answer is a holder stuck waiting on something else,
 which keeps the channel open and the take waiting — that is a
 deadlock, already a check site above.
 
-**And Cortex deletes the counting wherever it proves the last sender
+**And the prover deletes the counting wherever it proves the last sender
 is done** — structured concurrency tells it when every task that could
 send has ended, so the close is emitted at that point and the counters
-are not built. Proposed alternatives: the counting alone; Cortex alone
+are not built. Proposed alternatives: the counting alone; the prover alone
 (it will not prove every case, so something is still needed for the
 rest). Owner: both, the counting built first.
 
@@ -196,7 +196,7 @@ slot inline versus through a pointer is 2.44 ns against 2.47 ns —
 nothing. The reason to choose inline is the allocation count, not the
 access.)
 
-**Cortex's three parts**, each the usual "pay for what you use":
+**the prover's three parts**, each the usual "pay for what you use":
 
 - **The stack, not the heap.** A structured task cannot outlive the
   block that started it, and a detached one cannot *lend* anything
@@ -206,7 +206,7 @@ access.)
   the heap against 0.9 ns on the stack, which is worth most where
   channels are made in a loop (one per connection).
 - **Fewer slots than the type allows.** `[0, 100]` is the writer's
-  ceiling, not a measurement; where Cortex proves the channel never
+  ceiling, not a measurement; where the prover proves the channel never
   holds more than 3 at once, it allocates 3.
 - **No channel at all.** One sender, one taker, one value, all inside
   one block: the hand-off becomes a plain variable the task writes

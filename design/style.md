@@ -2,7 +2,7 @@
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
-How Nerve is meant to be written: the practices the language's rules
+How Zag is meant to be written: the practices the language's rules
 make easy, collected in one place. Proposed by design claude and approved
 by the owner, 2026-10-02 ("all that you said there seems like a good
 practice", then "write"). They are advice, not rules: the compiler
@@ -14,14 +14,14 @@ recommended.
 
 ## Types and values
 
-1. **Let Cortex choose inside the program; write types at the doors.**
+1. **Let the prover choose inside the program; write types at the doors.**
    `:=` everywhere inside; an explicit type where the outside world comes
    in — input, `extern`, struct fields, public functions. That is the
    third pillar used as meant (`core-features.md`).
 2. **Narrow an outside value once, where it arrives, with a range type.**
 
    ```
-   let 'text' := cord::input.line[] otherwise "";
+   let 'text' := std::input.line[] otherwise "";
    let 'n' := to.int32[min 1, max 99]['text'] otherwise 1;
    ```
 
@@ -38,14 +38,14 @@ recommended.
 4. **The proven path first, then `check`.** A guard `if` in front of the
    site, and `check` on the ones that matter, so the compiler says whether
    the guard is enough. `no_check` is for what no guard can prove, mostly C.
-5. **Wrap `no_check` once.** As `cord` does: one small function holds the
+5. **Wrap `no_check` once.** As `std` does: one small function holds the
    `no_check` C call, and everything else calls that safe wrapper. The
    build's `no_check` list stays short enough to review.
 6. **`NO_FUCKING_CHECKS` only after measuring.** Never a first resort.
-7. **A public Neuron states its limits in its signatures** (owner,
+7. **A public strike states its limits in its signatures** (owner,
    2026-10-12: "(b), if it's actually valid"; `#strict` did this until
    2026-10-07). A library's safety should not depend on who calls it, and
-   Cortex proves a site partly from its callers. So range types on public
+   the prover proves a site partly from its callers. So range types on public
    parameters (`'p': int32[min 0, max 100]`): the function is proven from
    its signature, and a bad value is refused at the caller's line. And
    lifetime groups (`@x`) on returned borrows even where they could be
@@ -65,12 +65,12 @@ recommended.
 
 ## Loops and output
 
-11. **A plain `for`; Cortex parallelises.** `seq` only when order matters,
+11. **A plain `for`; the prover parallelises.** `seq` only when order matters,
     `para` only after measuring, `simd` only when the plain loop did not
     vectorise, `no_cheat` only for timing code.
 12. **`print.useful` for people, `print.stored` for debugging numbers,
     `print.format` for shaped output** (columns, hex, places).
-13. **`precedence.low_first` for a Neuron's operator levels** (owner,
+13. **`precedence.low_first` for a strike's operator levels** (owner,
     2026-10-03: "low_first is good practice"): level 1 binds loosest, as a
     precedence table is read top to bottom. `precedence.high_first` is
     there for whoever thinks the other way.
@@ -91,4 +91,4 @@ recommended.
     `lend 'name'`, `ptr.read['p']`. Each symbol (`+`, `==`, `&`, `*'p'`) is
     another spelling of a word, there for whoever thinks in symbols, but the
     word says which form it is: `/` is `div.trunc`, and only the word tells a
-    reader it rounds toward zero. That's why Nerve is named for being read.
+    reader it rounds toward zero. That's why Zag is named for being read.

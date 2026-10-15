@@ -6,30 +6,30 @@ counsel to draft; this records what they must achieve.
 ## Intent
 
 1. **Using the language is free, with no credit required anywhere.** Writing
-   Nerve, compiling it, shipping the binary: nothing owed, nothing to
-   mention. The code that lands in a user's binary — Axon (the runtime) and the
-   standard Neuron — must carry no attribution obligation for compiled output.
+   Zag, compiling it, shipping the binary: nothing owed, nothing to
+   mention. The code that lands in a user's binary — the runtime (the runtime) and the
+   standard strike — must carry no attribution obligation for compiled output.
 2. **Modifying the compiler is free, with credit everywhere** — in the
    source *and* wherever the user of the modified compiler can see: its
    version output, its documentation, its website, its distribution page.
-   A fork must say it is derived from Nerve in every place a person would
+   A fork must say it is derived from Zag in every place a person would
    look.
 
 ## Decided 2026-09-23 (owner): one standard licence, plus trademark
 
 **Apache-2.0 WITH LLVM-exception for everything that is code** — the
-runtime, the standard Neuron, the compiler, Cortex, Synthia, the oracle
-and the verification tools. **Trademark on the names** — Nerve,
-Cortex, Neuron, Synthia — as the instrument for "credit everywhere".
+runtime, the standard strike, the compiler, the prover, Synthia, the oracle
+and the verification tools. **Trademark on the names** — Zag,
+the prover, strike, Synthia — as the instrument for "credit everywhere".
 
 What that achieves against the intent above: a user of the language
 owes nothing, because the exception waives notice for compiled output
 (intent 1, unchanged); a fork of the compiler must keep the Apache
-notices in the source, and may not call itself Nerve or Cortex,
+notices in the source, and may not call itself Zag or the prover,
 because the names are not licensed with the code.
 
 What it gives up, and the owner weighed it: a fork need not credit
-Nerve in its *documentation or version output* — only in the source
+Zag in its *documentation or version output* — only in the source
 and by not using the name. The attribution term that would have
 required that (below) was the owner's original intent, reconsidered on
 2026-09-23: a non-standard licence is rejected on sight by many
@@ -44,24 +44,24 @@ its code (the generator, TypeScript, CSS) is Apache-2.0 WITH
 LLVM-exception like the rest of the repo; its text (copy, documentation
 prose) is CC BY 4.0, so anyone may copy, translate, republish or
 remix it, commercially too, with credit, a link to the licence, and a
-note of changes; and the Nerve name and logo are reserved, since
+note of changes; and the Zag name and logo are reserved, since
 neither licence grants trademark rights. The code-only wording above
 had left prose unaddressed. The rest of the repo's prose (`design/`,
 `DECISIONS.md`, this file) has no separate ruling and stays under the
 repo's licence. **Revised 2026-10-09: the repo's prose is CC BY 4.0 too** (owner:
 "`b`"): every Markdown file in the repository (README, `DECISIONS.md`,
-`design/`, the other notes), credited `Nerve GitHub repo text:
-https://nerve-lang.com, https://github.com/Soclets/Nerve-lang` (owner's
+`design/`, the other notes), credited `Zag GitHub repo text:
+https://nerve-lang.com, https://github.com/Soclets/Zag-lang` (owner's
 words); code and code comments stay Apache-2.0 WITH LLVM-exception.
 
 **The names and logos are trademarks, not registered, and anyone may use
 them anywhere, as long as they don't pretend to be the project** (owner,
 2026-10-09: "The logos should be trademarked (not registered yet), but using
 it anywhere is possible, but shouldn't pretend to be us"). What is reserved
-is only passing off: claiming or implying to be the official Nerve, or made
+is only passing off: claiming or implying to be the official Zag, or made
 or endorsed by this project. **The logo files in `brand/` are CC BY 4.0**,
-like the website's text, credited `Nerve logo(s): https://nerve-lang.com,
-https://github.com/Soclets/Nerve-lang`; the website's text is credited `Nerve
+like the website's text, credited `Zag logo(s): https://nerve-lang.com,
+https://github.com/Soclets/Zag-lang`; the website's text is credited `Zag
 website text: …` with the same two links (owner, 2026-10-09). The README
 says so.
 
@@ -71,10 +71,10 @@ The trademark flags below still stand and are the thing to act on.
 
 | Piece | Licence | Effect |
 |---|---|---|
-| Runtime, standard Neuron | Apache-2.0 WITH LLVM-exception | The exception waives notice requirements for compiled binaries — users owe nothing. Same licence LLVM uses and Xag used. |
-| Compiler, Cortex, Synthia | Apache-2.0 **plus a Nerve attribution term** | Apache alone requires credit in source (licence, copyright, `NOTICE`, marking of changed files). The additional term extends it to user-visible places. |
+| Runtime, standard strike | Apache-2.0 WITH LLVM-exception | The exception waives notice requirements for compiled binaries — users owe nothing. Same licence LLVM uses and Xag used. |
+| Compiler, the prover, Synthia | Apache-2.0 **plus a Zag attribution term** | Apache alone requires credit in source (licence, copyright, `NOTICE`, marking of changed files). The additional term extends it to user-visible places. |
 | Spec, docs, decision log | CC BY 4.0 | Anyone may implement the language; the text is credited. |
-| Names — Nerve, Cortex, Neuron, Synthia | Trademark (separate from copyright) | A fork credits Nerve but may not call itself Nerve. The stronger tool for "credit everywhere". |
+| Names — Zag, the prover, strike, Synthia | Trademark (separate from copyright) | A fork credits Zag but may not call itself Zag. The stronger tool for "credit everywhere". |
 
 ## Known consequences of the attribution term (for counsel to weigh)
 
@@ -97,7 +97,7 @@ The trademark flags below still stand and are the thing to act on.
   rather than programming) and **Synthesia** (the AI video company —
   a different word, close enough to be misheard). Judged acceptable:
   neither is in this lane.
-- **Cortex** is used by unrelated companies (an AI platform; a
+- **the prover** is used by unrelated companies (an AI platform; a
   vulnerability scanner). Lower risk, still worth a look.
 - Dependencies (LLVM: Apache-2.0 + LLVM exception; Z3: MIT; Rust crates:
   MIT/Apache) impose nothing that conflicts with any of the above.

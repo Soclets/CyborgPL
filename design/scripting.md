@@ -2,22 +2,22 @@
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
-Owner's direction, 2026-09-18. A higher-level language on top of Nerve.
+Owner's direction, 2026-09-18. A higher-level language on top of Zag.
 
 ## What is decided
 
 - **It exists.** Writers of it do not think about the low-level parts of
-  Nerve — widths (`bin16`), streams (`stdout`), the entry point (`MAIN`),
+  Zag — widths (`bin16`), streams (`stdout`), the entry point (`MAIN`),
   and the like.
 - **The final product is compiled with Cyborg.** A script is lowered to
-  Nerve and goes through Cortex like anything else: full proofs, the
+  Zag and goes through the prover like anything else: full proofs, the
   three tiers, LLVM.
 - **While iterating, it compiles itself.** It has its own fast path for the
   edit-run loop. That path may assume what the real build will later prove,
   because the real build always runs — this is how the "slow everyday
   edits" concern is answered *without* a development mode in Cyborg itself
   (see `core-features.md`, "No development mode": Cyborg never skips
-  Cortex; the scripting language's iteration compiler is not Cyborg).
+  the prover; the scripting language's iteration compiler is not Cyborg).
 
 ## The iteration rule (owner, 2026-09-18)
 
@@ -36,20 +36,20 @@ liked Lua's name) — its own language, distinct from both
 Cyborg and the owner's earlier N# (`nsharp`). **Its own syntax, not
 Cyborg's.** Designer-friendly; fast to compile; safest by default; does not
 care about performance until it is handed to Cyborg. The hand-off is
-therefore a real translation — Lunae source → Nerve source → Cortex — not
+therefore a real translation — Lunae source → Zag source → the prover — not
 an insertion of defaults into Cyborg syntax; the translator is the
 component that has to be right, and the differential harness (Lunae's own
-compiler vs. the lowered Nerve through the oracle) is how that is known.
+compiler vs. the lowered Zag through the oracle) is how that is known.
 
 ## What it implies (open)
 
 1. **What the writer doesn't see:** probably also the ownership verbs, the
    typed form, `std::` paths. `print["hi"]` rather than
    `std::print.useful.stdout["hi", \n]`; a script file is its own `MAIN`.
-2. **The boundary problem.** Cortex refuses `:=` on a value it cannot bound;
+2. **The boundary problem.** the prover refuses `:=` on a value it cannot bound;
    a script writer never writes a type, so the lowering must supply wide
    defaults at every boundary (`int64`, `str.utf8`, unbounded `list`) and
-   let the default tier keep its runtime checks. Cortex still proves what it
+   let the default tier keep its runtime checks. the prover still proves what it
    can; the writer never sees a refusal.
 3. **The iteration compiler must agree with the real build** — same program,
    same output — or the writer debugs a different program than they ship.
@@ -57,4 +57,4 @@ compiler vs. the lowered Nerve through the oracle) is how that is known.
    testing applies.
 4. ~~Syntax~~ — decided: its own (above).
 5. ~~A name~~ — decided: N%, renamed **Lunae** (2026-09-27).
-6. The translator Lunae → Nerve, and its verification.
+6. The translator Lunae → Zag, and its verification.

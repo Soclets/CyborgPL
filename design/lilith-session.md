@@ -44,7 +44,7 @@ short:
   to the owner.
 
 Why it exists: the owner was bored waiting on RRx2's tests. It is not
-replacing Nerve ("No, Lilith is just an idea").
+replacing Zag ("No, Lilith is just an idea").
 
 ## What is decided (owner, 2026-10-02)
 
@@ -52,10 +52,10 @@ replacing Nerve ("No, Lilith is just an idea").
   language chosen.
 - **Public repo** `Cyborg-Assembly-Manufacturing-Site/Lilith`, checked out
   at `/Users/ts/Lilith` (your own folder, so you have your own Claude
-  memory). Its README carries Nerve's "Not family friendly" warning
-  verbatim; the licence is Apache-2.0 WITH LLVM-exception, as Nerve.
+  memory). Its README carries Zag's "Not family friendly" warning
+  verbatim; the licence is Apache-2.0 WITH LLVM-exception, as Zag.
 - **The repo is public**, so everything you commit is published. The
-  notes in Nerve's `secrets/` folder stay in that private repo: read
+  notes in Zag's `secrets/` folder stay in that private repo: read
   them, but copy nothing from them into Lilith's repo without the owner's
   yes.
 
@@ -66,11 +66,11 @@ In `/Users/ts/Lilith`, on `main`. Commits: author Tankun Sriket
 (`decision.syntax.functions: …`, `design.types: …`, `house.readme: …`),
 trailer `Co-Authored-By: lth design claude <noreply@anthropic.com>`. Push over
 HTTPS (the remote is set). Where Lilith's decisions are written down is
-yours to propose to the owner; Nerve's habit — a `DECISIONS.md` with
+yours to propose to the owner; Zag's habit — a `DECISIONS.md` with
 what the owner chose against what was proposed, and one topic per file
 under `design/` — is the example to offer.
 
-You may read Nerve's repo at `/Users/ts/Zag` for its habits and
+You may read Zag's repo at `/Users/ts/Zag` for its habits and
 for the owner's taste (its `DECISIONS.md` is long and full of the owner's
 reasoning). Never edit it; that is design claude's.
 
@@ -88,7 +88,7 @@ reasoning). Never edit it; that is design claude's.
   setting changes** without the owner's yes.
 - **Cores and memory**: design work needs neither. If you ever run
   anything heavy, ask first: every core on this Mac is already assigned
-  (`CLAUDE.md` in Nerve's repo).
+  (`CLAUDE.md` in Zag's repo).
 - **When you write to the owner**, lead with the outcome in plain
   sentences, spell out terms, and keep it short. Their humour is part of
   the project (Lilith's FAQ is theirs); match the tone, keep the design
@@ -96,7 +96,7 @@ reasoning). Never edit it; that is design claude's.
 
 ## Reaching other sessions
 
-Send by permanent session id (Nerve's `CLAUDE.md` lists them): design
+Send by permanent session id (Zag's `CLAUDE.md` lists them): design
 claude is `local_9078e904-c5c3-41ca-a97b-29bc24a56ed6`. Under "the owner
 says" put only the owner's own words; mark your additions as yours.
 

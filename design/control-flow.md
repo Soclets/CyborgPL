@@ -22,7 +22,7 @@ if 'x' > 10 {
 - `else if` — two bare words (was `else.if` until 2026-09-19).
 - Braces are mandatory, even around one statement. Because construction
   uses `[`, not `{`, a struct value in a condition is never ambiguous.
-- Cortex narrows the range of every variable inside a branch by its
+- the prover narrows the range of every variable inside a branch by its
   condition; this is where guardrails live.
 
 ## Scopes
@@ -81,7 +81,7 @@ body never ran. One rule for every way a loop can end.
 for perm 'i' from 0 to 100 by 1 {
     if found['i'] { break; }
 }
-cord::print.useful["stopped at ", 'i', newln];
+std::print.useful["stopped at ", 'i', newln];
 ```
 
 `perm` on a list loop keeps the last element visited (an empty list is an
@@ -142,7 +142,7 @@ it is undecided and the oracle refuses it.
 **The body cannot assign to the counter** (or to a list loop's element): it
 belongs to the loop, so the header alone says how many times the body runs
 and what `'i'` is on every pass — which is what keeps `range` loops easy for
-Cortex. Skipping ahead is a `while` with your own counter.
+the prover. Skipping ahead is a `while` with your own counter.
 
 ### Modifier order
 
@@ -164,6 +164,6 @@ Labelled `break` (leave an outer loop from an inner one: use a flag, or a
   same verbs: `lend 'items'` lends each element; `give 'items'` consumes the
   list. A list loop's variable takes no type: the element's type is the
   list's.
-- For Cortex: `range` and a list loop have a bound for free; `loop` and
+- For the prover: `range` and a list loop have a bound for free; `loop` and
   `while` are where invariant inference or a programmer-supplied bound is
   needed for `check` to succeed.

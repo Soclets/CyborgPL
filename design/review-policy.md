@@ -5,15 +5,15 @@ risk, not line count.
 
 ## Tier 1 — every line human-reviewed (the trusted base)
 
-A bug here does not crash Nerve; it makes Nerve *lie*.
+A bug here does not crash Zag; it makes Zag *lie*.
 
-- **Cortex** — a wrong proof removes a check that was needed.
+- **the prover** — a wrong proof removes a check that was needed.
 - **Borrow checker and lifetime inference** — a wrong "ok" is a
   use-after-free in a user's binary.
 - **Proof-feeding into LLVM** — a wrong `nsw`/`nuw`/`!range`/`assume` is a
   silent miscompile.
-- **Intrinsic contracts** between the standard Neuron and Axon (the runtime) —
-  hand-declared facts Cortex trusts without proof.
+- **Intrinsic contracts** between the standard strike and the runtime (the runtime) —
+  hand-declared facts the prover trusts without proof.
 
 ## Tier 2 — tested and sampled, not fully reviewed
 
@@ -26,9 +26,9 @@ Bugs here are ordinary: visible, reproducible, caught by the oracle or tests.
 - The oracle interpreter — its correctness comes from disagreement-hunting
   against the compiler, not from reading.
 
-## Tier 3 — reviewed by Cortex
+## Tier 3 — reviewed by the prover
 
-The standard Neuron is Nerve source; the language's own guarantees apply to
+The standard strike is Zag source; the language's own guarantees apply to
 it.
 
 ## Why

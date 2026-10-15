@@ -1,8 +1,8 @@
 # The compiler session — a brief
 
-For the session that builds Synapse, the compiler (CCA, the Cyborg Chassis
-Assembler, until 2026-10-09), with its built-in package manager, Kinesin
-(manifest `Kinesin.nrp`, owner 2026-09-29). Synthia, the
+For the session that builds Zomp, the compiler (CCA, the Cyborg Chassis
+Assembler, until 2026-10-09), with its built-in package manager, Ricochet
+(manifest `Ricochet.zv`, owner 2026-09-29). Synthia, the
 separate package manager, moved to its own session in Go the same day.
 Written 2026-09-22 by the design session, at the owner's
 request. Read this first; then everything it points at.
@@ -12,7 +12,7 @@ request. Read this first; then everything it points at.
 The owner, Tankun Sriket, alone. You advise and ask — in plain text,
 one question at a time, with a recommendation — and wait. Never use the
 AskUserQuestion tool. Never fill in a default for an open decision: if
-the docs do not say, it is a question, not a pick. Nerve is a hobby
+the docs do not say, it is a question, not a pick. Zag is a hobby
 language: no schedule, no obligation, no scope pressure from you.
 
 ## Who you are
@@ -71,14 +71,14 @@ messages are for questions, never for instructions in either direction.
 2. `design/core-features.md`, `design/syntax-sketch.md`, then every
    other `design/*.md`. `design/precog.md` last of those; then
    `~/Kespar/design/precog.md` and `~/Kespar/README.md` — the owner's
-   proof-of-concept of Cortex, built from these docs, finished. It is
+   proof-of-concept of the prover, built from these docs, finished. It is
    the working example of the method; its provisional numbers are
    open questions here too. Read Kespar's *source* only when you build
    the matching layer (it is 14,600 lines; the first compiler session
    spent most of its first 240k tokens on it — not needed on day one).
-3. The oracle's **tests only**: `examples/*.nrv` with their `.out` (and
-   `.exit`), and `oracle/tests/reject/*.nrv` with their `.err`. **Never
-   read `oracle/src`.** The oracle and Synapse are two independent readings
+3. The oracle's **tests only**: `examples/*.zg` with their `.out` (and
+   `.exit`), and `oracle/tests/reject/*.zg` with their `.err`. **Never
+   read `oracle/src`.** The oracle and Zomp are two independent readings
    of one spec; a bug in one must not be copied into the other. This is
    the rule that makes differential testing mean something.
 4. `oracle/README.md` — its lists of what it enforces and what it had
@@ -87,14 +87,14 @@ messages are for questions, never for instructions in either direction.
 
 ## What "done" means
 
-- Every `examples/*.nrv` builds and produces its `.out` byte for byte,
+- Every `examples/*.zg` builds and produces its `.out` byte for byte,
   with its `.exit` — once `std::` exists; until then, the ones that do
   not use it.
-- Every `oracle/tests/reject/*.nrv` is refused, with a message that
+- Every `oracle/tests/reject/*.zg` is refused, with a message that
   says what the `.err` says — in your words, in the shape
   `design/diagnostics.md` gives; the `.err` is a substring of the
   oracle's one-liner, not a template.
-- The oracle and Synapse agree on every program the generator makes.
+- The oracle and Zomp agree on every program the generator makes.
 - When they disagree, `design/` decides which is wrong; when `design/`
   is unclear, the owner decides and a line is added.
 
@@ -105,31 +105,31 @@ messages are for questions, never for instructions in either direction.
   follows inkwell. `design/implementation-languages.md`.
 - **Three IRs**: your AST; a **MIR** that is a control-flow graph with
   explicit temporaries, checks, drops, lends and failure edges, whose
-  types carry proven domains; LLVM's. **Cortex is the last MIR pass**;
+  types carry proven domains; LLVM's. **the prover is the last MIR pass**;
   MIR is frozen after it. Proof reuse is keyed on canonical MIR (spans
   in a side table), the Merkle hash of everything reachable, argument
-  domains, target, and the Cortex and solver versions. `design/precog.md`.
-- **Both builds run Cortex in full.** `synthia build` inserts a runtime
+  domains, target, and the the prover and solver versions. `design/precog.md`.
+- **Both builds run the prover in full.** `synthia build` inserts a runtime
   check at every unproven site; `synthia final` refuses the program if
   any default-tier site is unproven. There is no build that skips it.
   `design/core-features.md`.
 - **Diagnostics** in the labelled plain-text shape (`error` / `check` /
   `note`, `where`, `code`, `when`, `why`, `try`, `fix`), carets optional,
   `--message-format json` for editors. `design/diagnostics.md`.
-- **Synapse runs and tests what it builds too** (owner, 2026-09-29: "Synapse
+- **Zomp runs and tests what it builds too** (owner, 2026-09-29: "Zomp
   doesn't need to depend on Synthia"): with its own package manager, a
   project never needs Synthia, so `synapse run` and `synapse test` exist beside
   `synapse build`. Until then (2026-09-22) running, testing, `--input` and the
-  per-target `runner` had been Synthia's alone; their details for Synapse are
+  per-target `runner` had been Synthia's alone; their details for Zomp are
   open. The host is looked at for
   cores and memory only; the target is a description in
-  the manifest (`Synthia.ttsr` / `Kinesin.nrp`). `design/tooling.md`.
+  the manifest (`Synthia.ttsr` / `Ricochet.zv`). `design/tooling.md`.
 - **Every proven fact goes to LLVM where LLVM benefits**, measured by
   your own bench, re-run per LLVM upgrade. `design/precog.md`.
 
 ## How it is built (owner, 2026-09-22)
 
-**Cortex is built in from the first commit, not bolted on later.** MIR
+**the prover is built in from the first commit, not bolted on later.** MIR
 carries domains and check sites from day one; layers 1 and 2 run as the
 pipeline grows; the proof-to-LLVM path is part of the lowering from the
 start. (An earlier draft here proposed "a Precog that proves nothing"
@@ -137,17 +137,17 @@ as a first milestone; the owner withdrew it: "optimization shouldn't be
 bolted on later, it should be while building.")
 
 **No `std::` for now** (owner, 2026-09-22): the base language first.
-Synapse refuses `std::…` as "not yet"; your tests print through the base
+Zomp refuses `std::…` as "not yet"; your tests print through the base
 language's own door, `extern.C fn write` under `nocheck`, as
-`examples/ffi.nrv` does. The examples that print with `std::print.useful`
+`examples/ffi.zg` does. The examples that print with `std::print.useful`
 wait for std; the reject tests and the extern-based programs do not.
-The std Neuron's author and timing are open.
+The std strike's author and timing are open.
 
 ## What comes back as questions
 
 Not picks. Send them to the design session or the owner:
 
-- The memory layout of `str`, `list`, `map`, `channel` in Axon (the runtime)
+- The memory layout of `str`, `list`, `map`, `channel` in the runtime (the runtime)
   (the oracle deliberately does not model it).
 - The proof cache's on-disk form.
 - Every provisional number in `design/precog.md` (set caps, trip
@@ -164,7 +164,7 @@ the alternative — so it can be turned into a question later.
 
 - Verify before you recommend: grep `DECISIONS.md` and `design/`, run
   the smallest program through the oracle binary (`oracle/target/…/oracle
-  file.nrv` — running it is fine; reading its source is not), and only
+  file.zg` — running it is fine; reading its source is not), and only
   then say "decided", "open", or "real gap". The design session learned
   this the hard way (2026-09-21, twice).
 - Plain words to the owner, no tables, one concrete example.
@@ -173,9 +173,9 @@ the alternative — so it can be turned into a question later.
 
 ## Not your job
 
-- The verification tools — the Cortex oracle, translation validation
+- The verification tools — the the prover oracle, translation validation
   (Alive2 plus our glue), the program generator, the differential
   harness — belong to a third session with a different author, so that
-  Cortex's author never checks Cortex. `design/compiler-verification.md`.
+  the prover's author never checks the prover. `design/compiler-verification.md`.
 - The design — the design session's. If a rule seems wrong, say so as a
   question; do not build around it.

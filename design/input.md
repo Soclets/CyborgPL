@@ -26,22 +26,22 @@ limit. Owner chose words, as with `x`, `mod`, `and`, `shl`.
 ## Reading — a boundary in std
 
 ```
-let 'text' := cord::input.line[] otherwise "";      # one line, newline removed; fails with `closed`
-let 'all'  := cord::input.all[] otherwise "";       # everything until the end
+let 'text' := std::input.line[] otherwise "";      # one line, newline removed; fails with `closed`
+let 'all'  := std::input.all[] otherwise "";       # everything until the end
 ```
 
 Text as it came, `str.utf8`, no interpretation. A number is that plus the
 conversion: two lines, two failures, each handled where it happens —
 
 ```
-let 'text' := cord::input.line[] otherwise "";
+let 'text' := std::input.line[] otherwise "";
 let 'n' := to.int32['text'] otherwise 0;
 ```
 
 (A failing call must be the whole right-hand side, so they cannot nest;
 Claude first wrote them nested and the owner caught the `]`.)
 
-## What Cortex knows about an outside value
+## What the prover knows about an outside value
 
 After `to.int32['text']`, `'n'` is any `int32`. **The type is the first
 annotation** (owner: "doesn't `int32` already say it?"): `for 'i' in
@@ -79,7 +79,7 @@ let 'unit': bin64[min 0.0, max 1.0] = 0.25;
   **fails** with `out_of_range` (beside `not_a_number`), so a bad outside
   value is a failure you handle, never a crash; past it, `'n'` is
   `int32[min 0, max 100]`.
-- Cortex carries the bounds through arithmetic: `'n' plus 1` is an
+- the prover carries the bounds through arithmetic: `'n' plus 1` is an
   `int32[min 1, max 101]`; storing it back into an `int32[min 0, max 100]` is a check
   site; `'xs'['n']` on a 100-element list is proven.
 - A range type cannot cross to C (C has no ranges — use the plain type).
@@ -88,8 +88,8 @@ let 'unit': bin64[min 0.0, max 1.0] = 0.25;
 ## Oracle
 
 `std::input.line` / `.all` read the process's stdin (`closed` on EOF —
-the test harness runs with no stdin, so `examples/input.nrv` prints its
-fallback). Range types: `examples/ranges.nrv`; assignment out of range
+the test harness runs with no stdin, so `examples/input.zg` prints its
+fallback). Range types: `examples/ranges.zg`; assignment out of range
 is a site error (a "lied" under `no_check`), conversion out of range is
 the `out_of_range` failure; ten reject tests. The oracle does not track
 arithmetic ranges (`'n' plus 1`) — a value is checked when stored.

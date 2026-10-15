@@ -5,23 +5,23 @@
 Decided 2026-09-14. Same source, same compiler, same *named* target →
 byte-identical binary, on any machine, any day.
 
-## Why Nerve is more exposed than other compilers
+## Why Zag is more exposed than other compilers
 
 In C or Rust, nondeterministic optimisation yields a slower or faster binary
-that does the same thing. In Nerve, Cortex's proofs decide **behaviour**:
+that does the same thing. In Zag, the prover's proofs decide **behaviour**:
 a bound proven on one machine and not on another means one binary has no
 runtime check and the other has one — two different programs. SMT solvers
 are nondeterministic by default (time limits, seeds, memory, clause order),
 and "compile for the exact machine" makes the target part of the input.
 
-## Requirements on Cortex and the build
+## Requirements on the prover and the build
 
-1. **No wall-clock anywhere in Cortex.** Every budget is a step count —
+1. **No wall-clock anywhere in the prover.** Every budget is a step count —
    solver steps, unroll depth, invariant candidates tried — never seconds.
 2. **Solver determinism pinned.** Fixed seeds and configuration; results may
    not depend on thread scheduling. The solver's version is part of the
    compiler's version: a solver upgrade is a compiler change.
-3. **Compile-time I/O is always a boundary.** Cortex never reads a file,
+3. **Compile-time I/O is always a boundary.** the prover never reads a file,
    clock, or environment variable at compile time. Those are bounded values
    with explicit types like any other input. (Closes the earlier open
    question.) **Revised 2026-10-08** (owner: "We should have env vars"):
@@ -29,25 +29,25 @@ and "compile for the exact machine" makes the target part of the input.
    (owner: "`c`"); a build that reads one is repeatable only with the same
    values, which nothing records. **Revised 2026-10-10**: a build may also
    put a file's bytes into the program (include bytes), from any path; the
-   registry refuses a published Neuron that reads a file outside its own
-   folder (owner: "(c)"), so a Neuron built from source elsewhere finds
+   registry refuses a published strike that reads a file outside its own
+   folder (owner: "(c)"), so a strike built from source elsewhere finds
    every file it includes. The file counts as source: its bytes are part
    of what the build depends on. It is spelled `incl.bytes["logo.png"]`, is
-   the Brainstem's (no lobe, no `cord`), and gives an `array[uint8]` held
+   the Ground's (no plugin, no `std`), and gives an `array[uint8]` held
    in the program file; it is a const's value only (`const 'logo' :=
    incl.bytes[…];`), read where it sits and copied only where something
    takes it to keep or change. Its text twin names the type, `incl.str.utf8[…]`
    (or `.ascii`, or `.utf16` / `.utf32` with UniTect, which always say their
    byte order: `incl.str.utf16.low_first[…]` / `.high_first`), and the build refuses
-   a file not valid in it; it is a const's value only, as bytes are. A path is from the Neuron's root, as `my.` is.
+   a file not valid in it; it is a const's value only, as bytes are. A path is from the strike's root, as `my.` is.
    DECISIONS 2026-10-10 has the rulings.
 4. **Measurements are inputs too** (owner, 2026-09-28): `synapse tune` times
-   loops once, on purpose, and writes `tune.nrp` (`synthia tune` runs it); builds read the file
+   loops once, on purpose, and writes `tune.zv` (`synthia tune` runs it); builds read the file
    and never time anything themselves (`gpu.md`).
-5. **The target is an explicit, recorded input** — in the manifest (`Synthia.ttsr` / `Kinesin.nrp`) or the
+5. **The target is an explicit, recorded input** — in the manifest (`Synthia.ttsr` / `Ricochet.zv`) or the
    lock file — never sniffed from the host. "Native" is a convenience that
    resolves to a named target and writes it down.
-6. **Deterministic ordering** across Neurons and within the analysis: parallel
+6. **Deterministic ordering** across strikes and within the analysis: parallel
    inside the compiler is fine only where the result cannot depend on who
    finishes first.
 7. **Compile-time arithmetic matches the target.** A `bin16` folded at

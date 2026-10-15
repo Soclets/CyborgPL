@@ -91,7 +91,7 @@ checks this against the interface; the oracle does not).
 
 A `<T>` may be filled with an owned type or a plain one, so generic code
 is written for the owned case — `return give 'a'`, `copy 'x'` — and for a
-plain `T` the verb does nothing (Cortex specialises it away). Without this
+plain `T` the verb does nothing (the prover specialises it away). Without this
 rule no generic body could return its parameter. Consequence set by
 Claude 2026-09-20, from "verbs on a plain value are an error" meeting
 generics.
@@ -119,7 +119,7 @@ is the built-in `any` (`generics.md`). Not built yet.
 
 ## Oracle
 
-`examples/interfaces.nrv`, nine reject tests. Satisfaction is checked
+`examples/interfaces.zg`, nine reject tests. Satisfaction is checked
 by shape (kind or struct/enum name), for claims at load and for bounds
 when a call fills the blank; an operator defined for several types picks
 the definition by its left operand's type; the body-only-uses-promised

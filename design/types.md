@@ -32,17 +32,17 @@ number too, `exactly 1000` being a `deci` holding 1000 (until then `*1000` was r
 
 **`*0.1` means "exactly this"** (owner, 2026-10-02; in the oracle the same day): a
 decimal literal marked `*` is a `deci`, `let 'price' := *19.99;`; a plain
-one is a `bin`, meaning `bin64`'s answer: Cortex narrows it only where
+one is a `bin`, meaning `bin64`'s answer: the prover narrows it only where
 it proves the whole program gives the same results (owner, 2026-10-02),
 so `brain16` is never chosen, only written.
 
 **Removed 2026-10-07** (owner: "MTM is gone."): Rust's names are refused, naming
-Nerve's (`i32` → "write `int32`"). What follows is their history. **Rust's names
+Zag's (`i32` → "write `int32`"). What follows is their history. **Rust's names
 are aliases** (owner, 2026-10-02; in the oracle the same day): `i8`–`i128`
 for `int8`–`int128`, `u8`–`u128` for `uint8`–`uint128`, `f16` `f32` `f64`
 for `bin16` `bin32` `bin64`. Nothing else: not `bool` (the same word),
 not `char` (a unit must be said), no `deci` (Rust has none), not
-`String`, `&str`, `usize`, `isize` or `Vec<T>` (`DECISIONS.md`). Only these and Nerve's
+`String`, `&str`, `usize`, `isize` or `Vec<T>` (`DECISIONS.md`). Only these and Zag's
 own names (owner, same day: "only include the Rust ones and ours"): C's
 exact names, recorded first, were withdrawn, and no long spellings
 (`binary_float16`) are added.
@@ -65,7 +65,7 @@ what hashes and big counters want, and `std::uenr` is built on them.
 Owner's condition, recorded as a requirement rather than a wish:
 **`std::uenr` had better be optimised.** It is now the only answer for
 precision beyond 64 bits, so its performance is not a nice-to-have —
-see `implementation-languages.md`, where Axon, the runtime, is `no_std` Rust
+see `implementation-languages.md`, where the runtime, the runtime, is `no_std` Rust
 and `deci`/`uenr` are ours to write rather than vendored.
 
 ## Integers of any width: `!std.int24` (owner, 2026-10-03; the `.` since 2026-10-06)
@@ -85,8 +85,8 @@ width. Proposed: whole bytes only, or a short list, and a cap of 4,096
 bits; the owner chose any width ("there's already a disclaimer in
 front"). LLVM's widest is 8,388,608 bits (2^23); past it is refused. In
 between, the maths is limited by the widest operand's width, at least 64
-bits (`operators.md`). `examples/any_width.nrv`,
-`examples/wide_integers.nrv`.
+bits (`operators.md`). `examples/any_width.zg`,
+`examples/wide_integers.zg`.
 
 ## A declaration always has a value (owner, 2026-09-23)
 
@@ -171,15 +171,15 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   and a length** — plus the bytes it points at. No capacity field: a
   text is never grown in place, since `++` makes a new one, so a third
   number would be dead weight in every list, struct and array of texts.
-  **Where Cortex proves a text is built by repeated `++`** — the
+  **Where the prover proves a text is built by repeated `++`** — the
   builder pattern, a loop appending to the same name — *that* text
   gets a hidden capacity and grows in place, one allocation instead of
   N. The field exists only in the values that earn it; the type stays
   16 bytes. (Proposed: 16 bytes always; 24 bytes always; owner: both,
-  Cortex deciding — the same trick as `list` vs `array` and a map's
-  order list.) Known-at-compile-time texts need no heap: Cortex bakes
+  the prover deciding — the same trick as `list` vs `array` and a map's
+  order list.) Known-at-compile-time texts need no heap: the prover bakes
   them into the binary as constant data. **Which memory a text points
-  at is Cortex's to know, not the value's to carry** (owner,
+  at is the prover's to know, not the value's to carry** (owner,
   2026-09-22): it emits a free only where the value can actually be on
   the heap — a name that only ever holds constants is never freed, and
   no runtime test is paid. Where a name may hold either (a constant in
@@ -208,18 +208,18 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   A character literal is written in **backticks**: `` let 'c' := `1`; ``
   (decided 2026-09-14). Three quote styles, three token classes: `"…"` text,
   `'…'` name, `` `…` `` one character. The literal must be exactly one unit
-  of the chosen or inferred kind. With `:=`, Cortex picks the unit from the
+  of the chosen or inferred kind. With `:=`, the prover picks the unit from the
   content and its use (`` `a` `` may be a byte; `` `🍎` `` needs `point`;
   `` `กี่` `` can only be `grapheme`).
 - **The typed form is always fully explicit** (decided 2026-09-14): no bare
   `int`, `str`, or `char`. `int32`, `str.utf8`,
-  `char.point`. `:=` means Cortex chooses; `=` means you said
+  `char.point`. `:=` means the prover chooses; `=` means you said
   everything.
 - **`uenr` — Unbounded Exact Numerical Representation** (owner, 2026-09-14). A number
   type with no fixed width that never rounds: it grows to hold whatever
-  value it is given. Provided by the **standard Neuron**, not built into the
-  language — so it is Nerve source Cortex can see through, and it takes
-  the role legacy's `bignum`/`bigint` had. Reached through the Neuron
+  value it is given. Provided by the **standard strike**, not built into the
+  language — so it is Zag source the prover can see through, and it takes
+  the role legacy's `bignum`/`bigint` had. Reached through the strike
   boundary: `let 'n': std::uenr = 1000;`. **Exact is exact**: fractions are
   held as true rationals, so `(1/3) times 3` is exactly `1` (decided
   2026-09-14).

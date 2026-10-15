@@ -1,6 +1,6 @@
 # Debug info
 
-Decided 2026-10-08 and 2026-10-14 (owner). Not yet built: Zomp (Synapse at c90b4186) puts debug info
+Decided 2026-10-08 and 2026-10-14 (owner). Not yet built: Zomp (Zomp at c90b4186) puts debug info
 inside every build, the final one included.
 
 **Zomp emits debug info** (owner, 2026-10-08: "There should be"): the tables that map machine code

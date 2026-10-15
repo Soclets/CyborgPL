@@ -18,7 +18,7 @@ for types is now: `.` picks a *fixed variant* (`str.utf8`, `char.grapheme`),
 `[ ]` supplies a *type* — Scala's spelling, and the `[ ]`-builds rule applied
 to types. Until then the element type rode on the chain (`list.int32`).
 
-With `:=`, Cortex chooses: a sequence nothing ever appends to becomes an
+With `:=`, the prover chooses: a sequence nothing ever appends to becomes an
 `array` — known length, provable indexes, placed wherever is fastest. The
 programmer only says which at a boundary.
 
@@ -31,14 +31,14 @@ let 'none' := list.slice[lend 'xs', from pos 3, to pos 2];     # empty: last is 
 ```
 
 **A slice owns its elements**, like any list: the copy is the meaning.
-Cortex elides it wherever nobody can tell — a slice that is read and
+the prover elides it wherever nobody can tell — a slice that is read and
 dropped while the original is untouched becomes a pointer and a length,
 the same machine code a borrowed view would give. The copy appears only
 where it must: when the slice outlives the original, or when either is
 written to. Proposed alternative: a borrowed view, as Rust's `&[T]` and
 Go's slices are — faster always, but a third category beside owned and
 lent, needing its own type everywhere and refusing programs that escape
-it. The owner asked whether Cortex could help, and it is what decides
+it. The owner asked whether the prover could help, and it is what decides
 this: **(a) always compiles and sometimes copies; (b) never copies and
 sometimes refuses.**
 
@@ -49,7 +49,7 @@ because everything in std fails. `array` gets it too (owner): slicing
 reads, so the reason an array has no `append` does not apply.
 
 **Either way, a slice is a `list[T]`** (owner, 2026-09-23, as part of
-the same answer): `array.slice` gives a list too, and Cortex makes it an
+the same answer): `array.slice` gives a list too, and the prover makes it an
 array wherever it proves the length, which it usually can, the way any
 list nobody appends to becomes one. So `list.append` onto a slice of an
 array is allowed. (Written down late: the answer was given with the
@@ -87,7 +87,7 @@ reason (`types.md`). Each type is exactly as big as it needs to be,
 rather than one handle shape for all three (proposed, and declined: it
 would put 8 unused bytes on every text).
 
-Cortex's part is the type itself, as it always was: a sequence nothing
+the prover's part is the type itself, as it always was: a sequence nothing
 ever appends to becomes an `array`, so the capacity is gone before
 layout is asked. And **a `list` whose final size it can prove** — it
 grows to exactly N and stops — **needs no capacity field either**: the
@@ -102,7 +102,7 @@ list (`[7]` is the number seven). `[[1, 2], [3, 4]]` nests.
 
 A bare number in a literal takes its family from the other items (owner,
 2026-09-30: a): `[1, 2.5]` is a list of bins, the `1` a bin like the `2.5`
-beside it; a list still holds one element type. With `:=`, Cortex picks
+beside it; a list still holds one element type. With `:=`, the prover picks
 list or array and the width, as ever. Proposed alternative: a mixed
 literal needs a declared type or `1.0`.
 
@@ -122,7 +122,7 @@ ordinal, the way people count,
 which lines up with inclusive ranges:
 `for 'i' from 1 to list.length[lend 'xs']` walks the whole list
 with no `- 1` anywhere. An out-of-range position is a runtime check in the
-default tier, proven away by Cortex where it can be.
+default tier, proven away by the prover where it can be.
 
 **Element assignment** (decided 2026-09-17) is the same shape on the left of `=`:
 
@@ -176,7 +176,7 @@ run[list.remove[lend.mut 'queue', pos 1]];    # straight into a call: moved, nev
 let 'm' := array.length[lend 'fixed'];
 ```
 
-They are language operations (the compiler implements them; Cortex knows
+They are language operations (the compiler implements them; the prover knows
 `array.length` is a constant and `list.length` is the tracked length), spelled
 as calls with the ownership verbs: `lend` to look, `lend.mut` to change. No
 `std::`, no reserved verb names, no chain hanging off a variable. `list` and
@@ -185,7 +185,7 @@ as calls with the ownership verbs: `lend` to look, `lend.mut` to change. No
 **A length is a `uint64`** (decided 2026-09-21): a count is never negative
 and never too big for 64 bits. `let 'n' := list.length[lend 'xs'];` makes
 `'n'` a `uint64`; `let 'm': int32 = list.length[lend 'xs'];` is a narrowing
-check site — Cortex proves it wherever it can see the list (a literal, a
+check site — the prover proves it wherever it can see the list (a literal, a
 guarded `if`), and the tiers handle the rest. The written type is the
 promise; the final build stores a length it has proven small in whatever
 is fastest.
@@ -203,7 +203,7 @@ Decided 2026-09-21: the thing, then its bounds — the same shape as
 code, so everything downstream knows it: the list's length is a
 `uint64[lo, hi]`, and narrowing it is proven. Every change to the list
 (a construction, an assignment, `append`, `remove`) is checked against the
-bound — a check site like writing 101 into an `int32[min 0, max 100]`: Cortex
+bound — a check site like writing 101 into an `int32[min 0, max 100]`: the prover
 proves it where it can see the list, the tiers handle the rest. The low
 bound is 0 or more; an `array` takes no bound (its one length is already
 known). Inside a call the parameter is written the same way:
@@ -240,7 +240,7 @@ is an error.
 
 ```
 for 'i', 'x' in lend 'xs' {
-    cord::print.useful['i', ". ", 'x', newln];      # 1. ann  2. bob  3. cy
+    std::print.useful['i', ". ", 'x', newln];      # 1. ann  2. bob  3. cy
 }
 ```
 
@@ -250,7 +250,7 @@ none, since its counter is already the position, so `for 'i', 'x' in
 range[…]` is refused. With `perm`, both outlive the loop (the oracle's
 reading, not asked). Proposed alternative: leave it, looping over
 `range[1, list.length[…]]` and reading `'xs'['i']`, one extra line.
-`examples/for_position.nrv`.
+`examples/for_position.zg`.
 
 ## Open
 
@@ -265,9 +265,9 @@ The value, then the count, as `simd.fill[7]` fills every lane. A count
 below 0 is a check site. A **`#strict` file labels the count**,
 `list.fill[0, count 10]` (owner: "count"), since `list.fill[0, 10]`
 could be ten 0s or zero 10s; elsewhere `count` is refused, as `pos` is.
-With it, Synapse can ask for memory already zeroed (C's `calloc`) where the
+With it, Zomp can ask for memory already zeroed (C's `calloc`) where the
 value is `false` or `0`, instead of growing a list one append at a time.
 Proposed alternatives: `list.repeat[…]`, Rust's `[0; 10]`; for strict,
 both labelled (`value 0, count 10`) or no change. `array.fill` was
-mentioned, not asked. `examples/list_fill.nrv`, `list_fill_strict.nrv`.
+mentioned, not asked. `examples/list_fill.zg`, `list_fill_strict.zg`.
 

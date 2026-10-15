@@ -1,16 +1,16 @@
-# Core features of Nerve
+# Core features of Zag
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
 > The compile-time technology described under "Everything at compile time"
-> is named **Cortex** (decided 2026-09-14).
+> is named **the prover** (decided 2026-09-14).
 
 Decided by the owner, 2026-09-14. These are the five pillars every later
 design decision is measured against.
 
 ## Everything at compile time
 
-Nerve runs every possible thing at compile time to check for issues,
+Zag runs every possible thing at compile time to check for issues,
 ensuring final-product safety without sacrificing runtime performance.
 
 Compile time is not a cost the language cares about. The developer waits;
@@ -32,7 +32,7 @@ Most of the syntax uses dot chaining, so a reader can "flow with the code".
 
 ## LLVM as the backend
 
-Nerve compiles to native code through LLVM.
+Zag compiles to native code through LLVM.
 
 ### What "best" means (decided 2026-09-14)
 
@@ -70,9 +70,9 @@ the compiler can see, not from compiler checks left behind.
 
 ### No development mode (decided 2026-09-16)
 
-There is no build that skips Cortex, no "prove later" tier, no fast path for
+There is no build that skips the prover, no "prove later" tier, no fast path for
 everyday edits. Every build is a full build; the tagline is the contract.
-Cortex gets faster by engineering — including not re-proving functions
+the prover gets faster by engineering — including not re-proving functions
 whose bodies and inputs are byte-identical to the last build, which reuses
 proofs rather than skipping them — never by doing less.
 
@@ -85,7 +85,7 @@ proofs rather than skipping them — never by doing less.
   runtime-check rule "was when building around, dev testing, not the
   final product") the same site is a **compile error with a
   counterexample** — the default behaves as `check`. Both builds run
-  Cortex in full; the final build is stricter, never looser, so this is
+  the prover in full; the final build is stricter, never looser, so this is
   not the rejected development mode. The final product contains no
   runtime checks: every site is proven, `check`-confirmed, or `no_check`.
   Proposed: `synthia build` / `synthia final`, Synthia's, so no file-wide
@@ -98,10 +98,10 @@ proofs rather than skipping them — never by doing less.
   verification. The one place the final product's safety rests on the
   programmer alone. The build output lists every `no_check` site.
   **A certain failure gets a note, never a refusal** (owner,
-  2026-09-22): when Cortex's ordinary work happens to show that a
+  2026-09-22): when the prover's ordinary work happens to show that a
   `no_check` site fails on *every* run — `no_check let 'q' := 1 div.floor 'z';`
   with `'z'` proven to be 0 — the build says so (`note:`, the third
-  kind in `diagnostics.md`) and builds anyway. Cortex never goes
+  kind in `diagnostics.md`) and builds anyway. the prover never goes
   looking; it only refuses to stay silent about what it could not
   avoid noticing. A `no_check` that fails on *some* inputs ships with
   nothing said, so "no verification" holds everywhere it matters.
@@ -142,7 +142,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
 - **`#strict`: every reason written where it is used** (owner, 2026-09-27:
   a). In a file marked `#strict`, a check site must be proven from what
   is written in its own function: a guardrail `if`, a range type (on a
-  parameter, a variable, a declared return), or a loop's bounds. Cortex
+  parameter, a variable, a declared return), or a loop's bounds. the prover
   still checks the proof, but may not use facts from callers or other
   functions' bodies, so a reader sees why each site is safe, and a
   function stays safe whoever calls it later. "Verbose, but for a
@@ -156,7 +156,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   **`no_check` is allowed** in a strict file (owner: a): it is a written
   reason too, and listed. Otherwise a C call could never sit in one.
 
-  **And the file writes out what others leave to Cortex** (owner, same
+  **And the file writes out what others leave to the prover** (owner, same
   day: "`#strict` gives a fuck about the reader too"):
   - `pos` on every position: `'xs'[pos 2]`, `list.slice[lend 'xs', from pos 2, to pos 4]`, `simd.load[lend 'xs', pos 'i']`. Only strict files have it;
     elsewhere `pos` is gone. So a list read never looks like a call.
@@ -177,7 +177,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   - the count of a `list.fill` labelled: `list.fill[0, count 10]`
     (2026-09-30, `lists.md`).
   Proposed and not chosen: a type on every variable, since `:=` letting
-  Cortex pick the best type is a pillar and a written type can be a worse
+  the prover pick the best type is a pillar and a written type can be a worse
   choice. Also proposed for mutability: `mut` only on variables that
   change (4a), or nothing, since `change` already marks each change (4c).
   The owner chose `mut` or `!mut` everywhere (4b).
@@ -190,7 +190,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   written, so you find out at once. Proposed alternative: the working
   build checks at run time, as elsewhere.
 - **The ladder** (clarified 2026-09-19): a guardrail that is good enough
-  already removes the check under the default tier — Cortex proves it and
+  already removes the check under the default tier — the prover proves it and
   emits nothing; a proven check can never fire, so keeping it would be pure
   cost. `check` does not remove anything extra; it makes the compiler *tell
   you* when the guardrail is not enough. So the finish line is a passed
@@ -199,7 +199,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
 - Build output lists every `no_check` site and every passed `check` (owner,
   2026-09-19). Proposed, unanswered: also the default-tier sites still
   carrying a runtime check — the "where to add a guardrail" list.
-- A guardrail is an ordinary `if` in front of the site; `check` asks Cortex
+- A guardrail is an ordinary `if` in front of the site; `check` asks the prover
   to confirm the `if` is enough:
 
   ```

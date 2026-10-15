@@ -18,7 +18,7 @@ let 'count' := map.length[lend 'phones'];                # uint64
 
 `map[K, V]` is a language type with type-headed operations — `map.empty`,
 `map.length`, `map.has`, `map.get`, `map.set`, `map.remove` — like
-`list.length`. Cortex knows its shape natively (a length interval, a key
+`list.length`. the prover knows its shape natively (a length interval, a key
 domain, a value domain) and the compiler owns the implementation: open
 addressing, the kind that won the 2026-09-21 benchmark, never a linked
 bucket per entry. Proposed alternatives: a std struct of lists (needs a
@@ -50,7 +50,7 @@ check site guarded by `has`; a found/missing enum to `match`.
   compares and hashes by its own `op ==` and `fn hash` — a
   case-insensitive username, a normalised path. **Consistency is a check
   site** (owner: yes): "equal keys hash the same" must be proven by
-  Cortex for any type used as a key this way, or the final build
+  the prover for any type used as a key this way, or the final build
   refuses the map; `no_check` is the way out. This is the bug every other
   language's custom-hash map has and cannot catch; the oracle tests the
   rule on every comparison it makes.
@@ -107,14 +107,14 @@ order (unspecified output punches a hole in differential testing — the
 oracle and the compiler would be allowed to disagree); sorted by key
 (a sort per walk; structs have no `<`).
 
-## The variant is Cortex's to pick, or the writer's (owner: yes, a)
+## The variant is the prover's to pick, or the writer's (owner: yes, a)
 
-The order costs only the list that serves the walks. Cortex sees the
+The order costs only the list that serves the walks. the prover sees the
 whole program: a map that is never walked gets the unordered
 representation — the 13% and the bytes back, automatically — the same
 trick as `list` vs `array`. And the writer may say, by the dot rule:
 
-- `map[K, V]` — Cortex decides.
+- `map[K, V]` — the prover decides.
 - `map.ordered[K, V]` — always insertion-ordered, walkable.
 - `map.unordered[K, V]` — never keeps order and **cannot be walked**:
   `map.keys` on it is a compile error. Choosing it *is* the promise, so
@@ -131,10 +131,10 @@ One flat table, open addressing (never a linked bucket per entry). An
 count, a capacity (24 bytes) — and an **ordered map's is four**, the
 fourth pointing at the insertion-order list. Two shapes, not one with a
 null pointer (proposed, and declined: a map that is never walked would
-carry 8 bytes for a list it does not have). Cortex already knows which
+carry 8 bytes for a list it does not have). the prover already knows which
 a given map is, since it chose the variant; a `map.unordered` written
 by hand is always the small one.
 
 ## Open
 
-- Cortex's key and value domains in detail (`precog.md`).
+- the prover's key and value domains in detail (`precog.md`).

@@ -62,7 +62,7 @@ fn describe [lent 'l': Locker] -> str.utf8 {
 
 ## Oracle
 
-Enforces all of the above (`examples/enums.nrv`, thirteen reject tests).
+Enforces all of the above (`examples/enums.zg`, thirteen reject tests).
 Note for the compiler: `Status.claimed["x"]` and `shapes.area[…]` have the
 same shape; the oracle resolves by name at run time, the compiler by the
 symbol table — no ambiguity, since a type and a module cannot share a name
@@ -93,8 +93,8 @@ files, as `pos` does, and the bare value is refused there. Proposed
 alternative: an arrow, `empty -> "free"`, which collides with `->` for
 return types. "`match` is a statement" (2026-09-20) was design claude's
 detail, not a ruling. The owner asked what `match` is for and why the
-word, since that is `enums.md` above. `examples/match_value.nrv`,
-`examples/strict_match.nrv`.
+word, since that is `enums.md` above. `examples/match_value.zg`,
+`examples/strict_match.zg`.
 
 **A `match` alone in a case: the outer match decides** (owner,
 2026-09-29: a). In a `match` used as a statement, a case holding only

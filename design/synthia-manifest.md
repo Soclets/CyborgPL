@@ -1,7 +1,7 @@
 # `Synthia.ttsr` — Synthia's manifest (owner, 2026-09-29, in progress)
 
 *Tankun's TOML Syntax Ripoff*: sections and `key = value` lines like TOML,
-in the Neuron's own voice, with dotted keys and no quotes.
+in the strike's own voice, with dotted keys and no quotes.
 
 ```
 [my identity]
@@ -28,26 +28,26 @@ aarch64-linux.runner = qemu-aarch64
 x86_64-windows.runner = wine
 ```
 
-- **The powers a Neuron uses are `power.` lines in `[my needed things]`**,
+- **The powers a strike uses are `power.` lines in `[my needed things]`**,
   beside `core.` and `limb.` (owner, 2026-10-08: "`a`", relayed by synthia
   claude, over a `[my powers]` section; asked "Does this say what it needs,
   or what it allows the others", synthia claude answered that it is what the
-  Neuron itself uses, allowing or forbidding others being `deny`).
-  `power.c_calls.functions = sqrt, sin` is written to `Kinesin.nrp` as
-  `kin::power.c_calls.functions["sqrt", "sin"]`; only the shape is checked,
-  since lobes may add powers; `= no` is refused (an unused power has no
+  strike itself uses, allowing or forbidding others being `deny`).
+  `power.c_calls.functions = sqrt, sin` is written to `Ricochet.zv` as
+  `ricochet::power.c_calls.functions["sqrt", "sin"]`; only the shape is checked,
+  since plugins may add powers; `= no` is refused (an unused power has no
   line). **A program takes powers away in a `[my denied powers]` section**
   (owner, 2026-10-08: "`a`", relayed by synthia claude, over `deny.` lines in
   `[my needed things]`; a denial is a rule set for others, not a need),
-  written to `Kinesin.nrp`'s `deny`: `raw_memory = yes` (all of it),
+  written to `Ricochet.zv`'s `deny`: `raw_memory = yes` (all of it),
   `c_calls.functions = system` (the things named), `c_calls.except = sqrt,
-  sin` (all but these), `inline_assembly.for = fastjson` (only to that Neuron,
+  sin` (all but these), `inline_assembly.for = fastjson` (only to that strike,
   by prefix); `= no` is refused.
 - **The sections are the owner's**: `[my identity]` (proposed by the owner
   as `[my credentials]`; renamed because "credentials" reads as passwords
   and tokens — owner: b), `[my needed things]`, `[my target]`.
 - **Times** are ISO 8601 with the zone, `2026-09-29T17:40:00+07:00` (owner:
-  a). `time.created` is when the Neuron was first made; `time.stated_ver.created`
+  a). `time.created` is when the strike was first made; `time.stated_ver.created`
   when the version stated in `version` was made. **The publish time is the
   registry's**, recorded in its index, never written into the manifest
   (owner: b). A readable form of a time is a Synthia command's job, not a
@@ -68,71 +68,71 @@ x86_64-windows.runner = wine
   synthia claude: "`core.asp.id`, I think, and `limb.geometry.id`", then
   "yea" to a whole section; until then `geometry.version = 1.2`,
   `money.path = ../money`, a form now refused naming `limb.geometry.id`):
-  `limb.geometry.version = 1.2`, `limb.money.path = ../money`. **A lobe is
+  `limb.geometry.version = 1.2`, `limb.money.path = ../money`. **A plugin is
   listed there by its ID and version** (`core.asp.id = …`,
   `core.asp.version = …`), not in a section of its own (owner: "inside
   `[my needed things]`", over a `[my cores]` section, which synthia claude
-  recommended); a lobe and a Neuron may share a label. As in `Kinesin.nrp`
-  (2026-10-06: a lobe by registry ID; official IDs only until lobes can
-  be loaded, and `core.x.path` refused for now; std needs the lobe ASP). A published one is named by **its ID**, which
+  recommended); a plugin and a strike may share a label. As in `Ricochet.zv`
+  (2026-10-06: a plugin by registry ID; official IDs only until plugins can
+  be loaded, and `core.x.path` refused for now; std needs the plugin ASP). A published one is named by **its ID**, which
   its creator generates: **256 bits of randomness, as 64 hex digits**,
-  needed to register in the Neuron registry (owner). The value takes no quotes
+  needed to register in the strike registry (owner). The value takes no quotes
   or braces: the key already says it is an ID, and a line ends where its
   value does (owner: "yeah", after asking about `{}` and `""`).
 
-- **A Neuron states its own ID in `[my identity]`** (owner: a), generated
+- **A strike states its own ID in `[my identity]`** (owner: a), generated
   once when it is created and never changed; the registry checks it
-  matches when the Neuron registers.
+  matches when the strike registers.
 - **The registry refuses an ID it already has, and a registered ID is
-  permanent** (owner): it belongs to that Neuron for good, never released or
+  permanent** (owner): it belongs to that strike for good, never released or
   reused. By accident two IDs never match — 2²⁵⁶ ≈ 1.16 × 10⁷⁷, and eight
-  billion people making a billion Neurons each would share one with chance
+  billion people making a billion strikes each would share one with chance
   ≈ 2.8 × 10⁻⁴⁰ — so the rule is against a copied ID, someone passing their
-  Neuron off as another.
+  strike off as another.
 
 - **`[my target]` holds several targets, each with its settings** (owner:
   b), as dotted keys: a `runner` for a cross target's tests, `default` for
   the one built when none is named. One target is one line.
 
-**Synapse's package manager can do whatever Synthia can** (owner, 2026-09-29:
-"yea"), in its plainer Nerve-syntax way; Synthia's edge is convenience,
-never capability, so Synapse never needs it. The owner asked whether Synapse's
+**Zomp's package manager can do whatever Synthia can** (owner, 2026-09-29:
+"yea"), in its plainer Zag-syntax way; Synthia's edge is convenience,
+never capability, so Zomp never needs it. The owner asked whether Zomp's
 package manager could do "some Synthia shit", since otherwise "that feels
-like the base lang not being able to do inline ASM". So `Kinesin.nrp`'s
-`target` became `targets`, a list of `kin::target[name = …, runner = …]`.
+like the base lang not being able to do inline ASM". So `Ricochet.zv`'s
+`target` became `targets`, a list of `ricochet::target[name = …, runner = …]`.
 
 - **Needed in every manifest: `name`, `version`, and at least one
   target** (owner, 2026-09-29: b). `id`, `time.created` and
   `time.stated_ver.created` are needed only to publish, and checked then:
-  a Neuron that never leaves its machine needs no ID.
-- **A Neuron's own `version` is any text, at most 256 bytes** (owner,
+  a strike that never leaves its machine needs no ID.
+- **A strike's own `version` is any text, at most 256 bytes** (owner,
   2026-09-29: "256 bytes it is"; "it doesn't require `.`"): room for a
-  version written in Thai. What a needed Neuron's `version` means is the
+  version written in Thai. What a needed strike's `version` means is the
   registry's, and open.
 - **`prefix = cash`** in `[my identity]` is the word code writes in front
-  of `::` to reach this Neuron (owner, 2026-09-29: "`prefix`"), as
-  `Kinesin.nrp`'s `'prefix'`; its `name` is a label apart from it.
-  Required, as in `Kinesin.nrp` (owner: "if it's not always required, it
-  could be weird to CyborgPL users"). **Synthia's easy override** for two Neurons with one
-  prefix does what a Synapse user does by hand (owner, 2026-09-29: "Synthia
-  just does what the CyborgPL programmer had to do"): it copies that Neuron
+  of `::` to reach this strike (owner, 2026-09-29: "`prefix`"), as
+  `Ricochet.zv`'s `'prefix'`; its `name` is a label apart from it.
+  Required, as in `Ricochet.zv` (owner: "if it's not always required, it
+  could be weird to CyborgPL users"). **Synthia's easy override** for two strikes with one
+  prefix does what a Zomp user does by hand (owner, 2026-09-29: "Synthia
+  just does what the CyborgPL programmer had to do"): it copies that strike
   into a folder of its own, changes the `prefix` in the copy, and hands
-  Synapse an ordinary path dependency. The override is a dotted `prefix` line
-  on the needed Neuron's key (owner, 2026-09-30: "Prefix shall be narrowed
+  Zomp an ordinary path dependency. The override is a dotted `prefix` line
+  on the needed strike's key (owner, 2026-09-30: "Prefix shall be narrowed
   using a dot", "yea"): `money.path = ../money` with `money.prefix =
   cash2` (`limb.money.path`, `limb.money.prefix` since 2026-10-06), and code writes `cash2::`. The key (`money`) is this
-  manifest's label for the Neuron, following the name rule; without a
-  `prefix` line code writes the Neuron's own prefix. The copy lives in the
+  manifest's label for the strike, following the name rule; without a
+  `prefix` line code writes the strike's own prefix. The copy lives in the
   project, in Synthia's own `.synthia/` folder beside `Synthia.ttsr`
   (owner, 2026-09-30: a): always safe to delete, since Synthia remakes
   it, and kept out of git.
 - **Names follow the module-name rule** (owner, 2026-09-29: "yea"): a
-  Neuron's `name` and each local name in `[my needed things]` are lowercase
+  strike's `name` and each local name in `[my needed things]` are lowercase
   ASCII letters, digits and `_`, starting with a letter, not a keyword,
   not a Windows device name — each is written in code as `name::`.
   The prefix later took that job; `name` stays strict all the same, in
   both manifests (owner, 2026-09-30: "strict").
-- **Comments are `#`**, a space after it, as in Nerve (owner).
+- **Comments are `#`**, a space after it, as in Zag (owner).
 - **A line is written one way** (owner, 2026-09-29: "refuse"): `key =
   value` with one space each side of `=`, no indentation, and a comment on
   its own line. `name=shop`, an indented line, and a comment after a value
@@ -141,28 +141,28 @@ like the base lang not being able to do inline ASM". So `Kinesin.nrp`'s
   starts a value or follows a space is a comment after a value, and
   refused; a `#` inside a word is part of the value (`../money#2`; owner,
   2026-09-29: "yea").
-- **A refusal is written in Synapse's message shape** (`diagnostics.md`;
+- **A refusal is written in Zomp's message shape** (`diagnostics.md`;
   owner, 2026-09-29: "yea"): `error:`, `where:` (file, line, column,
   section), `code:`, and `fix:` when there is one right line to write.
 - **Names may repeat; IDs never do** (owner: "Names could be the same, IDs
   can't"). A name is a label; the key before `.id` in `[my needed things]` is
-  what this Neuron's code calls that dependency (`geometry.id = …`, now `limb.geometry.id`, →
-  `geometry::area[…]`), so two Neurons both called "geometry" live side by
+  what this strike's code calls that dependency (`geometry.id = …`, now `limb.geometry.id`, →
+  `geometry::area[…]`), so two strikes both called "geometry" live side by
   side as `geometry.id` and `geo2.id`, and a clash never breaks a build.
   Proposed alternative: names unique in the registry too, first come.
-  Superseded the same day for `Kinesin.nrp`: the word in front of `::` is
-  the Neuron's own `'prefix'`, apart from its `name`, and a dependency names
-  no word (`kin::dep[id = "…", version = "1.2"]`); see `tooling.md`. The
+  Superseded the same day for `Ricochet.zv`: the word in front of `::` is
+  the strike's own `'prefix'`, apart from its `name`, and a dependency names
+  no word (`ricochet::dep[id = "…", version = "1.2"]`); see `tooling.md`. The
   `Synthia.ttsr` side is synthia claude's to ask.
 
-- **`default` is `yes` or `no`** (owner, 2026-09-30: b), as `Kinesin.nrp`'s
+- **`default` is `yes` or `no`** (owner, 2026-09-30: b), as `Ricochet.zv`'s
   `true` or `false`.
-- **A target must be one Synapse can build** (owner, 2026-09-29: "Only
-  what's actually doable"), from Synapse's own list, not any
+- **A target must be one Zomp can build** (owner, 2026-09-29: "Only
+  what's actually doable"), from Zomp's own list, not any
   `architecture-system` name.
 - **One target is marked the default** (owner, 2026-09-29: b), the one
   built when none is named: `aarch64-macos.default = yes` here, `default =
-  true` on one `kin::target` in `Kinesin.nrp`. With several targets exactly one
+  true` on one `ricochet::target` in `Ricochet.zv`. With several targets exactly one
   is marked; a single target is the default by itself. Proposed
   alternatives: this machine's, if listed (compiler claude's suggestion,
   which takes the target from the host, against reproducible builds); the

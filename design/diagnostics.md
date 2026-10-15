@@ -5,12 +5,12 @@
 Decided 2026-09-22 (owner): "It should say what started the fail chain,
 it should be helpful like Rust's, there should be a human-readable
 location and an IDE-readable location." The oracle's one-line messages
-are a test tool's; Synapse's are these.
+are a test tool's; Zomp's are these.
 
 **Columns** (owner, 2026-10-06): the text message counts graphemes, what
 a reader counts; the JSON counts in the unit the editor asks for, UTF-16
 code units by default, as the Language Server Protocol does. This is
-Brainstem's rule (the owner then: "we can't force the other codextras to
+Ground's rule (the owner then: "we can't force the other codextras to
 use this anyways"; there are no others since 2026-10-07).
 
 ## The shape — plain text is the message (owner, 2026-09-22)
@@ -27,14 +27,14 @@ indentation by spaces only:
 
 ```
 check: 'k' can be past the end of 'xs'
-where: shop.nrv, line 31, column 20 — in `pick`, called from MAIN at line 48 of shop.nrv
+where: shop.zg, line 31, column 20 — in `pick`, called from MAIN at line 48 of shop.zg
 code:  'xs'['k']
 when:  'k' is 101 and 'xs' has 100 elements — there is no element to take
 
 why:   'k' comes from 'n'
        'n' is read from the user at line 4, with no limit
 
-try:   synthia run shop.nrv --input "101"
+try:   synthia run shop.zg --input "101"
 
 fix:   limit the number where it is read — line 4:
        let 'n' := to.int32[min 1, max 99]['text'] otherwise 0;
@@ -45,7 +45,7 @@ fix:   limit the number where it is read — line 4:
 
 ```
 error: 'xs' is an `array`, which cannot grow or shrink
-where: shop.nrv, line 12, column 5 — in `restock`
+where: shop.zg, line 12, column 5 — in `restock`
 code:  list.append[lend.mut 'xs', value 4]
 
 why:   'xs' was declared an array at line 10
@@ -85,7 +85,7 @@ fix, and the message names the later use:
 
 ```
 error: 's' cannot be changed here: 'r' still borrows it and is used on line 25
-where: shop.nrv, line 24, column 5 — in MAIN
+where: shop.zg, line 24, column 5 — in MAIN
 code:  list.append[lend.mut 's', value 4]
 ```
 
@@ -98,7 +98,7 @@ Proposed alternative: the later use.
    index at line 31 unproven — the message is about the *root*, names
    it (`why:`), and lists what it drags along, once. Never twenty
    messages from one cause; never the last link without the first.
-   Cortex knows the chain because it built it: the unproven domain at
+   the prover knows the chain because it built it: the unproven domain at
    the root is the same domain object at every site downstream.
 2. **Helpful like Rust's.** Every message has: the sentence (what was
    found, why it matters, what to write instead); the code quoted; a
@@ -109,7 +109,7 @@ Proposed alternative: the later use.
    reproduces it.
 3. **Two locations, always.** A human-readable one — *where in the
    program's own terms*: "in `pick`, the loop starting at line 9 of
-   shop.nrv, called from MAIN at line 48 of shop.nrv" (every place it
+   shop.zg, called from MAIN at line 48 of shop.zg" (every place it
    names gives its file, owner 2026-10-08: "yea") — and an IDE-readable
    one, `file:line:col`,
    plus a machine format (`--message-format json`, as rustc: severity,
@@ -143,7 +143,7 @@ Proposed alternative: the later use.
 ## The report
 
 Beside the three lists (`no_check` sites, `check` sites passed, default
-sites still checked), a line per `for` Cortex considered (owner,
+sites still checked), a line per `for` the prover considered (owner,
 2026-09-22): `offloaded to GPU`, `parallel on N CPU cores` ("CPU" added
 2026-10-06, since a core is also a compiler mod), `sequential —
 body calls extern at line 14`, `sequential — 40 iterations, below the
