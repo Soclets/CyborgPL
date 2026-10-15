@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="brand/logo.svg" alt="CyborgPL" width="160">
+  <img src="brand/logo.svg" alt="CyborgPL" width="96">
 </p>
 
 <h3 align="center">CyborgPL</h3>
