@@ -7,11 +7,16 @@
 # Security on every page, as on nerve-lang.com: the site loads nothing from anywhere else, except
 # Cloudflare's Web Analytics, which Cloudflare adds to each page (owner, 2026-10-15: "(a)"; no
 # cookies): its script from static.cloudflareinsights.com, its report to cloudflareinsights.com.
+# Inline scripts run only if their fingerprint is listed (owner, 2026-10-15: "yea" to securing it):
+# scripts/post-build.mjs puts the sha256 of every inline script the built pages hold in place of
+# SCRIPT_HASHES, so nothing slipped into a page can run. Strict-Transport-Security keeps browsers on
+# https for 180 days, subdomains too; it is not on the browsers' preload list, which is hard to undo.
 # Unlike nerve-lang.com there is no upgrade-insecure-requests: Safari applies it to http://localhost
 # too and hangs fetching the page's files over https, and on the real site Cloudflare already sends
 # http to https (Always Use HTTPS).
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' SCRIPT_HASHES https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Strict-Transport-Security: max-age=15552000; includeSubDomains
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
