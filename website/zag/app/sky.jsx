@@ -36,10 +36,14 @@ export function Backdrop() {
     <div className="backdrop" aria-hidden="true">
       <div className="storm" />
       <div className="clouds">
-        {CLOUDS.map(([layer, top, w, s, at], i) => (
-          <div key={i} className={`cloud ${layer}`}
-            style={{ top: `${top}%`, "--w": `${w}px`, animationDuration: `${s}s`, animationDelay: `${-at * s}s` }}>
-            <Cloud id={i} />
+        {["far", "mid", "near"].map((layer) => (
+          <div key={layer} className={`layer ${layer}`}>
+            {CLOUDS.map(([l, top, w, s, at], i) => l === layer && (
+              <div key={i} className={`cloud ${layer}`}
+                style={{ top: `${top}%`, "--w": `${w}px`, animationDuration: `${s}s`, animationDelay: `${-at * s}s` }}>
+                <Cloud id={i} />
+              </div>
+            ))}
           </div>
         ))}
       </div>

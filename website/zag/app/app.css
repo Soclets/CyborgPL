@@ -35,6 +35,11 @@ body { font-family: var(--sans); color: var(--ink); background: var(--sky-top); 
 }
 
 .clouds { position: absolute; inset: 0; }
+/* Depth: as the page moves down, the far clouds barely move and the near ones sweep up past. */
+.clouds .layer { position: absolute; inset: 0; will-change: transform; }
+.clouds .layer.far { transform: translateY(calc(var(--y, 0) * -2vh)); }
+.clouds .layer.mid { transform: translateY(calc(var(--y, 0) * -5vh)); }
+.clouds .layer.near { transform: translateY(calc(var(--y, 0) * -10vh)); }
 .clouds .cloud { position: absolute; left: 0; width: calc(var(--w) * var(--scale, 1)); animation: drift linear infinite; will-change: transform; }
 .cloud svg { display: block; width: 100%; height: auto; }
 .cloud .lit { fill: var(--cloud-lit); }
@@ -45,6 +50,10 @@ body { font-family: var(--sans); color: var(--ink); background: var(--sky-top); 
 @keyframes drift { from { transform: translateX(-110%); } to { transform: translateX(100vw); } }
 
 main { position: relative; z-index: 1; }
+/* A screen's content drifts and fades as it leaves, and rises into place as it comes, so one
+   screen crossfades into the next instead of both sliding rigidly. */
+.moves { opacity: var(--fade, 1); transform: translateY(calc(var(--d, 0) * -30vh)) scale(calc(.94 + var(--fade, 1) * .06)); will-change: transform, opacity; }
+.site .pill { opacity: var(--fade, 1); }
 .frame { position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; outline: none; }
 /* Each screen fills the window; one with more than fits scrolls inside. */
 .frame > section { height: 100svh; overflow-y: auto; overscroll-behavior: none; scrollbar-width: none; }
@@ -54,6 +63,7 @@ main { position: relative; z-index: 1; }
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 24px 16px 12vh; text-align: center;
 }
+.hero .moves, .zomp .moves { display: flex; flex-direction: column; align-items: center; }
 .logo { width: clamp(220px, 34vw, 380px); height: auto; animation: bob 6s ease-in-out infinite; filter: drop-shadow(0 16px 22px rgba(8, 40, 96, .28)); }
 @keyframes bob { 50% { transform: translateY(-10px); } }
 
@@ -133,6 +143,7 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .moves, .clouds .layer { transform: none; }
   .clouds .cloud { animation-play-state: paused; }
   .logo { animation: none; }
   .aside, .zomp h2, .zomp p { animation: none !important; opacity: 1; transform: none; }
