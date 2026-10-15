@@ -1,0 +1,2 @@
+# another strike's private function is not reachable (limbs.md)
+MAIN { let 'x' := areas::hidden[]; }

@@ -1,0 +1,7 @@
+ricochet::manifest[
+    name = "x",
+    prefix = "x",
+    version = "1.0.0",
+    plugins = [ricochet::plugin[path = "../mycore"],],
+    targets = [ricochet::target[name = "aarch64-macos"],]
+];

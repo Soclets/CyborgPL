@@ -1,6 +1,0 @@
-kin::manifest[
-    name = "brainstem_practical",
-    prefix = "brainstem_practical",
-    version = "1.0.0",
-    targets = [kin::target[name = "aarch64-macos"],]
-];

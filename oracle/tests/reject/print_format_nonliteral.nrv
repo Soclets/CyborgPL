@@ -1,1 +1,0 @@
-MAIN { let 'f' := "{}"; cord::print.format['f', 1]; }

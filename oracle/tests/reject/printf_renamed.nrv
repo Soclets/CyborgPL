@@ -1,2 +1,0 @@
-# printf is spelled print.format (owner, 2026-09-29)
-MAIN { cord::printf.stdout["%d\n", 1]; }

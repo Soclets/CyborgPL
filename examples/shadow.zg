@@ -1,0 +1,10 @@
+MAIN {
+    let 'x' := 1;
+    if true {
+        shadow 'x' := 2;
+        std::print.useful['x', newln];
+    }
+    std::print.useful['x', newln];
+    shadow 'x': int32 = 3;
+    std::print.useful['x', newln];
+}

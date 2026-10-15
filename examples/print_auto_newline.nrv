@@ -1,7 +1,0 @@
-# `cord::print.useful.auto_newln` ends the line itself, so no `newln` is written (owner, 2026-09-30).
-MAIN {
-    cord::print.useful.auto_newln["Hello, World!"];
-    let 'n' := 3;
-    cord::print.useful.auto_newln["n is ", 'n'];
-    cord::print.useful["the same, by hand: ", 'n', newln];
-}

@@ -1,0 +1,18 @@
+fn count <T: any> [lent 'items': list[<T>]] -> int32 {
+    let 'n' := 0;
+    for 'item' in lend 'items' {
+        change 'n' = 'n' plus 1;
+    }
+    return 'n';
+}
+
+MAIN {
+    let 'grid' := [[1, 2], [3, 4]];
+    std::print.useful['grid', newln];
+    for 'row' in lend 'grid' {
+        std::print.useful[count[lend 'row'], newln];
+    }
+    std::print.useful[count[["a", "b", "c"]], newln];
+    let 'one' := [7,];
+    std::print.useful['one', " ", count[lend 'one'], newln];
+}

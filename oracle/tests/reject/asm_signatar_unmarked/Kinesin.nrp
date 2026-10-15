@@ -1,7 +1,0 @@
-kin::manifest[
-    name = "x",
-    prefix = "x",
-    version = "1.0.0",
-    powers = [kin::power.inline_assembly,],
-    targets = [kin::target[name = "aarch64-macos"],]
-];

@@ -1,9 +1,0 @@
-kin::manifest[
-    name = "x",
-    prefix = "x",
-    version = "1.0.0",
-    lobes = [kin::lobe[id = "04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1", version = "2026-10-10T16:42:00+07:00"],],  # CNC
-    powers = [kin::power.c_calls,],
-    deny = [kin::power.c_calls.functions["write"],],
-    targets = [kin::target[name = "aarch64-macos"],]
-];

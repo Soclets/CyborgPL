@@ -5,7 +5,7 @@
 //!
 //! A template is `for 'v' in [ … ] { named <text>; [ … ] -> T { … } }`, or a counting `for 'v' from A to B by
 //! C { … }` (`before` too), over what is known before building: number and text literals, consts, and
-//! types. The `named` line is Nerve, run with `'v'` set (a type is its name, as text); the member under it
+//! types. The `named` line is Zag, run with `'v'` set (a type is its name, as text); the member under it
 //! is copied with `'v'` written as the value itself.
 
 use std::path::PathBuf;

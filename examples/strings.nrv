@@ -1,8 +1,0 @@
-MAIN {
-    cord::print.stored["a\nb", newln];               # newln inside quotes is a backslash and an n
-    cord::print.stored["say \"hi\"", newln];         # \" is the one escape that is needed
-    cord::print.stored["back\\slash", newln];        # and \\ for the backslash itself
-    cord::print.stored["tab	here", newln];           # a tab is typed, not escaped
-    let 'nl' := newln;                              # the newline is the bare newln outside quotes
-    cord::print.stored["one", 'nl', "two", 'nl'];
-}

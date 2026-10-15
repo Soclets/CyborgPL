@@ -1,4 +1,4 @@
-/* For the oracle's tests: a struct with a field named like a Nerve keyword, a function too, and an
+/* For the oracle's tests: a struct with a field named like a Zag keyword, a function too, and an
    opaque struct (its definition is never given). */
 struct buf { long size; int count; };
 typedef struct handle handle_t;

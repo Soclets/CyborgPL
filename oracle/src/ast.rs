@@ -34,7 +34,7 @@ pub enum Ty {
     Channel(Box<Ty>),
     /// `std::duration` — a span of time, from a duration literal `5 seconds`
     Duration,
-    /// `map[K, V]` — a language collection (decided 2026-09-22); the order variant is Cortex's
+    /// `map[K, V]` — a language collection (decided 2026-09-22); the order variant is the prover's
     /// to pick unless written: `map.ordered` keeps insertion order, `map.unordered` cannot be walked
     Map(Box<Ty>, Box<Ty>, MapOrder),
     /// `simd[uint8, 16]` — N plain values in one register (design/simd.md, 2026-09-22)
@@ -73,12 +73,12 @@ pub struct Field {
 }
 
 /// Visibility (decided 2026-09-19): nothing = this module (and its descendants),
-/// `pub.neuron` = the whole Neuron, `pub` = other Neurons too.
+/// `pub.strike` = the whole strike, `pub` = other strikes too.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Vis { Private, Limb, Pub }
 
-/// A module: a file of the Neuron (`shapes.nrv` → `shapes`, `shapes/circle.nrv`
-/// → `shapes.circle`) or a `module name { … }` block. The root, `neuron.nrv`,
+/// A module: a file of the strike (`shapes.zg` → `shapes`, `shapes/circle.zg`
+/// → `shapes.circle`) or a `module name { … }` block. The root, `strike.zg`,
 /// is the empty path.
 #[derive(Debug, Clone)]
 pub struct ModuleDef {
@@ -108,7 +108,7 @@ pub struct StructDef {
     pub name: String,
     /// `layout.C struct`: C's layout, C-shaped fields only; may cross to C
     pub layout_c: bool,
-    /// a C struct Nerve never looks inside (owner, 2026-10-10: `ptr.mut[FILE]`): only pointed at, never
+    /// a C struct Zag never looks inside (owner, 2026-10-10: `ptr.mut[FILE]`): only pointed at, never
     /// built, sized or read; it comes only from a C header, having no spelling of its own
     pub opaque: bool,
     /// type variables, in the order announced (design/generics.md, 2026-10-02)
@@ -136,7 +136,7 @@ pub enum ParamKind { Owned, Lent, LentMut }
 pub enum Verb { Give, Copy, Lend, LendMut }
 
 /// Stated mutability (design/ownership-syntax.md). `None` = not stated;
-/// Cortex infers, and stating it is not standard practice.
+/// the prover infers, and stating it is not standard practice.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Mutability { Mut, Immut }
 
@@ -257,18 +257,18 @@ pub struct Claim {
     pub line: usize,
 }
 
-/// How other Neurons write the path to a `pub` thing (owner, 2026-10-06): `bare.never` (the path is
+/// How other strikes write the path to a `pub` thing (owner, 2026-10-06): `bare.never` (the path is
 /// required), `bare.optional`, `bare.only` (the path is forbidden). There is no default.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Bare { Never, Optional, Only }
 
 /// What a `bare` mark covers: one item (its kind and canonical name), a block module (everything in
-/// it), a file (its module and the block modules written in it), or a kind across the Neuron.
+/// it), a file (its module and the block modules written in it), or a kind across the strike.
 #[derive(Debug, Clone)]
 pub enum BareTarget { Item(String, String), Block(Vec<String>), File(Vec<String>), Kind(String) }
 
 /// `case.any` / `case.exact` (owner, 2026-10-06): on an item, a block module, a file, or
-/// kinds across the Neuron (`fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var`), as the
+/// kinds across the strike (`fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var`), as the
 /// `bare` marks are; names are exact unless marked.
 #[derive(Debug, Clone)]
 pub struct CaseMark { pub target: BareTarget, pub insensitive: bool, pub line: usize, pub limb_root: Vec<String> }
@@ -374,15 +374,15 @@ pub enum Tier { Check, NoCheck, NoChecksAtAll }   // NO_FUCKING_CHECKS (owner, 2
 pub struct Call {
     /// `otherwise …` after the call, if any
     pub handler: Option<Handler>,
-    pub limb: Option<String>,   // None = this Neuron; Some("std") = std::
-    /// std: print.stored.stdout → ["print", "stored", "stdout"]; this Neuron: the canonical path from
+    pub limb: Option<String>,   // None = this strike; Some("std") = std::
+    /// std: print.stored.stdout → ["print", "stored", "stdout"]; this strike: the canonical path from
     /// the root, `limb.` stripped, the calling module prefixed to a relative one
     pub path: Vec<String>,
     /// the module the call is written in (for visibility)
     pub from: Vec<String>,
     pub args: Bracket,
     pub line: usize,
-    /// written with no path (no `x::`, no `my.`), so another Neuron's `bare.optional` / `bare.only`
+    /// written with no path (no `x::`, no `my.`), so another strike's `bare.optional` / `bare.only`
     /// name may be meant (owner, 2026-10-06); `written` is the path as written
     pub bare: bool,
     pub written: Vec<String>,
@@ -409,7 +409,7 @@ pub enum Value {
 #[derive(Debug, Clone)]
 pub enum Expr {
     Int(i128, usize),
-    /// a whole-number literal in a Neuron without ASP: a bit pattern, as the machine's (owner, 2026-10-06)
+    /// a whole-number literal in a strike without ASP: a bit pattern, as the machine's (owner, 2026-10-06)
     RawInt(i128, usize),
     /// a literal past i128: its digits (owner, 2026-10-03)
     BigInt(String, usize),
@@ -450,7 +450,7 @@ pub enum Expr {
     /// `size.of[T]` / `align.of[T]` — compile-time constants (design/ffi.md)
     SizeOf(Ty, bool, usize),
     /// `incl.bytes["assets/logo.png"]` / `incl.str.utf8["assets/help.txt"]` (owner, 2026-10-10): a
-    /// file's bytes, read while building, from the Neuron's root; the text type for `incl.str.…`, none
+    /// file's bytes, read while building, from the strike's root; the text type for `incl.str.…`, none
     /// for `incl.bytes`
     Incl(std::rc::Rc<Vec<u8>>, Option<Encoding>, usize),
     /// `average` — a function as a value (canonical path); bare name, no brackets

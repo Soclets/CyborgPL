@@ -1,2 +1,0 @@
-# `pub.neuron` stays in its own Neuron (limbs.md)
-MAIN { let 'x' := areas::internal[]; }

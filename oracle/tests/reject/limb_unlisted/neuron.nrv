@@ -1,2 +1,0 @@
-# a Neuron is used only when Kinesin.nrp lists it
-MAIN { let 'x' := geometry::area[1]; }

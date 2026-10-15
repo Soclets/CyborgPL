@@ -1,4 +1,0 @@
-MAIN {
-    let 's' := "abc";
-    let 'c' := cord::str.at.point[lend 's', 1] otherwise `?`;
-}

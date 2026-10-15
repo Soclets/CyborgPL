@@ -1,5 +1,0 @@
-MAIN {
-    let 's' := "a,b";
-    let 'e' := str.empty;
-    let 'p' := cord::str.split[lend 's', at lend 'e'];
-}

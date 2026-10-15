@@ -1,7 +1,0 @@
-MAIN {
-    cord::print.useful[(2 pow (3 pow 2)), newln];
-    cord::print.useful[((2 pow 3) pow 2), newln];
-    let 'kilo' := 2 pow 10;
-    cord::print.useful['kilo', newln];
-    cord::print.useful[(10 minus 3 minus 2), newln];
-}

@@ -1,4 +1,0 @@
-fn f [] -> int32 or fail[a] { fail a; }
-MAIN {
-    let 'x' := f[] otherwise { a { cord::exit[1]; } z { cord::exit[1]; } };
-}

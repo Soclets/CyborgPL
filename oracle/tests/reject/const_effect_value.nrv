@@ -1,3 +1,0 @@
-const 'x' := cord::exit[1];
-MAIN {
-}

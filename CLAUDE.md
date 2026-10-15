@@ -51,7 +51,7 @@ v1 syntax carries over unless the owner explicitly chooses it.
 
 - `DECISIONS.md` — the running log of settled design decisions.
 - `design/` — design documents, one topic per file, as they are written.
-- `examples/` — `.nrv` programs using settled syntax only, each with its
+- `examples/` — `.zg` programs using settled syntax only, each with its
   expected `.out` (and `.exit` if non-zero). Run by the oracle's tests.
 - `website/` — the open-source website (owner, 2026-09-23), built by
   the website session, which updates it only when the owner says so.

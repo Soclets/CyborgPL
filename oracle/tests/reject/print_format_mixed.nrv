@@ -1,1 +1,0 @@
-MAIN { cord::print.format["{1} and {}\n", 1, 2]; }

@@ -1,1 +1,1 @@
-a `case` mark on kinds (`case.any [fn, struct];`) covers the whole Neuron, so it is written in `neuron.nrv`
+a `case` mark on kinds (`case.any [fn, struct];`) covers the whole strike, so it is written in `strike.zg`

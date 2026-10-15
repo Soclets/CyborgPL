@@ -1,3 +1,0 @@
-MAIN {
-    cord::exit[300];
-}

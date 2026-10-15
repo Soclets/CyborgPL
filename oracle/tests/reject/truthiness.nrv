@@ -1,6 +1,0 @@
-MAIN {
-    let 'n' := 1;
-    if 'n' {
-        cord::print.stored["yes"];
-    }
-}

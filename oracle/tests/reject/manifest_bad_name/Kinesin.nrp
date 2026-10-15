@@ -1,6 +1,0 @@
-kin::manifest[
-    name = "Areas of shapes",
-    prefix = "areas",
-    version = "1.0.0",
-    targets = [kin::target[name = "aarch64-macos"],]
-];

@@ -1,4 +1,0 @@
-pub const 'pi': bin64 = 3.141_592_653_589_793;
-pub struct Circle { radius: bin64 }
-pub fn area ['r': bin64] -> bin64 { return 'pi' times 'r' times 'r'; }
-pub.neuron fn name [] -> str.utf8 { return "circle"; }

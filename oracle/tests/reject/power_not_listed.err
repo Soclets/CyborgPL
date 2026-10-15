@@ -1,1 +1,1 @@
-this Neuron calls C (`write`), and its Kinesin.nrp does not list `c_calls`: add `kin::power.c_calls` to its `powers`
+this strike calls C (`write`), and its Ricochet.zv does not list `c_calls`: add `ricochet::power.c_calls` to its `powers`

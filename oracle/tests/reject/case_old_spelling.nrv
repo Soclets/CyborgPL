@@ -1,5 +1,0 @@
-case.insensitive [fn];
-
-MAIN {
-    cord::print.useful["x", newln];
-}

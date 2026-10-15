@@ -1,0 +1,2 @@
+# a strike is used only when Ricochet.zv lists it
+MAIN { let 'x' := geometry::area[1]; }

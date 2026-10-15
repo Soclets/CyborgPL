@@ -1,4 +1,0 @@
-MAIN {
-    let 's' := "abc";
-    let 'c' := cord::str.at.grapheme[lend 's', pos 9];
-}

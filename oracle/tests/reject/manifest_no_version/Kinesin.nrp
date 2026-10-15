@@ -1,5 +1,0 @@
-kin::manifest[
-    name = "x",
-    prefix = "x",
-    targets = [kin::target[name = "aarch64-macos"],]
-];

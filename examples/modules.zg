@@ -1,0 +1,29 @@
+# Modules as blocks in one file (a strike of one root file). See examples/geometry/ for files.
+
+bare.never [fn, struct];
+
+const 'scale' := 10;
+
+module counter {
+    pub const 'start' := 1;
+    pub struct Count { n: int32 }
+    pub fn bump ['c': Count] -> Count {
+        return Count[n = 'c'.n plus step[]];
+    }
+    fn step [] -> int32 { return my.'scale'; }      # private; reaches the root's const
+    pub.strike module inner {
+        pub.strike fn twice ['n': int32] -> int32 { return 'n' times 2; }
+    }
+}
+
+fn show ['c': counter.Count] {
+    std::print.useful["count ", 'c'.n, newln];
+}
+
+MAIN {
+    let 'c' := counter.Count[n = counter.'start'];
+    show[copy 'c'];
+    let 'd' := counter.bump[give 'c'];
+    show[copy 'd'];
+    std::print.useful[counter.inner.twice['d'.n], newln];
+}

@@ -1,5 +1,5 @@
-//! `case.any` / `case.exact` (owner, 2026-10-06): a Neuron's writer may make its names
-//! case-insensitive, in its own code and as reached from other Neurons; the default is `case.exact`;
+//! `case.any` / `case.exact` (owner, 2026-10-06): a strike's writer may make its names
+//! case-insensitive, in its own code and as reached from other strikes; the default is `case.exact`;
 //! marks that disagree are an error; insensitive means Unicode's full case folding. The oracle reads the
 //! program once, works out which names are insensitive, and then rewrites every spelling of such a name
 //! to the one it was declared with before the program is read again, so the rest of the oracle stays
@@ -15,18 +15,18 @@ pub fn fold(s: &str) -> String { s.to_uppercase().to_lowercase() }
 
 #[derive(Default, Debug)]
 pub struct LimbCase {
-    /// covered bare names in this Neuron: fn, struct, enum, interface, case, field (fold → as declared)
+    /// covered bare names in this strike: fn, struct, enum, interface, case, field (fold → as declared)
     words: HashMap<String, String>,
-    /// those another Neuron may reach with the path, and the fields and cases of its pub types
+    /// those another strike may reach with the path, and the fields and cases of its pub types
     pub_words: HashMap<String, String>,
-    /// those another Neuron may write without the path (`bare.optional` / `bare.only`)
+    /// those another strike may write without the path (`bare.optional` / `bare.only`)
     bare_words: HashMap<String, String>,
     /// the fields of its pub structs and the cases of its pub enums, met without a path
     members: HashMap<String, String>,
     /// covered consts (fold → as declared), and the pub ones
     vars: HashMap<String, String>,
     pub_vars: HashMap<String, String>,
-    /// local variables: insensitive across the Neuron, or in these modules (and their blocks)
+    /// local variables: insensitive across the strike, or in these modules (and their blocks)
     locals_all: bool,
     local_modules: Vec<Vec<String>>,
 }
@@ -61,7 +61,7 @@ fn covered(prog: &Program, kind: &str, module: &[String], last: Option<&str>, li
 pub fn plan(prog: &Program, bare: &HashMap<String, ast::Bare>) -> Result<HashMap<String, LimbCase>, String> {
     let mut plan: HashMap<String, LimbCase> = HashMap::new();
     if prog.case_marks.is_empty() { return Ok(plan); }
-    // every bare name each Neuron declares, to refuse two that differ only in case
+    // every bare name each strike declares, to refuse two that differ only in case
     let mut declared: HashMap<String, Vec<(String, usize)>> = HashMap::new();
     // (root, word?, fold, as declared, line, pub, bare-reachable, a member)
     let mut found: Vec<(String, bool, String, String, usize, bool, bool, bool)> = Vec::new();
@@ -164,18 +164,18 @@ pub fn plan(prog: &Program, bare: &HashMap<String, ast::Bare>) -> Result<HashMap
 fn builtin_word(w: &str) -> bool {
     let num = |p: &str| w.strip_prefix(p).map_or(false, |d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit()));
     crate::spellings::is_reserved(&w) || crate::parser::STD_BARE_HEADS.contains(&w) || w == "MAIN"
-        || ["bool", "str", "char", "brain16", "cord", "kin", "case", "any", "exact", "bare", "never", "optional", "only", "not", "neg", "plus", "minus", "times", "div", "mod", "pow", "and", "or"].contains(&w)
+        || ["bool", "str", "char", "brain16", "std", "kin", "case", "any", "exact", "bare", "never", "optional", "only", "not", "neg", "plus", "minus", "times", "div", "mod", "pow", "and", "or"].contains(&w)
         || num("int") || num("uint") || num("bin") || num("deci")
 }
 
-/// Rewrite one file's tokens: `limb_root` is its Neuron, `module` its module.
+/// Rewrite one file's tokens: `limb_root` is its strike, `module` its module.
 pub fn rewrite(toks: &mut [Token], limb_root: &[String], module: &[String]) {
     PLAN.with(|plan| {
         let plan = plan.borrow();
         if plan.is_empty() { return; }
         let own_key = limb_root.first().cloned().unwrap_or_default();
         let own = plan.get(&own_key);
-        // which Neuron a path's segment belongs to: Some(key) after `prefix::`, "" for built-in chains
+        // which strike a path's segment belongs to: Some(key) after `prefix::`, "" for built-in chains
         let mut owner: Vec<Option<String>> = vec![None; toks.len()];
         // the module each token sits in, for block modules
         let mut mods: Vec<Vec<String>> = vec![module.to_vec(); toks.len()];
@@ -199,7 +199,7 @@ pub fn rewrite(toks: &mut [Token], limb_root: &[String], module: &[String]) {
             if in_chain { if let Some(o) = owner[i - 2].clone() { owner[i] = Some(o); } }
             if let Tok::Word(w) = &toks[i].tok {
                 if owner[i].is_none() && toks.get(i + 1).map_or(false, |t| t.tok == Tok::ColonColon) && w != "my" { owner[i] = Some(format!("::{w}")); continue; }
-                // `my.` is this Neuron's root, so what follows it is this Neuron's
+                // `my.` is this strike's root, so what follows it is this strike's
                 if owner[i].is_none() && builtin_word(w) && w != "my" { owner[i] = Some(String::new()); continue; }
                 if w == "my" { continue; }
             }
@@ -211,7 +211,7 @@ pub fn rewrite(toks: &mut [Token], limb_root: &[String], module: &[String]) {
                 (Tok::Word(w), None) => {
                     let f = fold(w);
                     own.and_then(|lc| lc.words.get(&f)).cloned()
-                        // a field of another Neuron's type, after `.`; a bare name another Neuron lets be written bare
+                        // a field of another strike's type, after `.`; a bare name another strike lets be written bare
                         .or_else(|| plan.iter().filter(|(k, _)| **k != own_key).find_map(|(_, lc)| if after_dot { lc.members.get(&f) } else { lc.bare_words.get(&f).or_else(|| lc.members.get(&f)) }).cloned())
                 }
                 (Tok::Var(v), None) => {

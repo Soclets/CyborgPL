@@ -1,0 +1,7 @@
+MAIN {
+    std::print.useful[(2 pow (3 pow 2)), newln];
+    std::print.useful[((2 pow 3) pow 2), newln];
+    let 'kilo' := 2 pow 10;
+    std::print.useful['kilo', newln];
+    std::print.useful[(10 minus 3 minus 2), newln];
+}

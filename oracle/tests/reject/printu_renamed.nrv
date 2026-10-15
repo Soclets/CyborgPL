@@ -1,2 +1,0 @@
-# printu is spelled print.useful (owner, 2026-09-29)
-MAIN { cord::printu.stdout[1, newln]; }

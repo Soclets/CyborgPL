@@ -1,4 +1,0 @@
-MAIN {
-    let 'n' := 5;
-    cord::print.stored[to.str.utf8['n'], newln];
-}

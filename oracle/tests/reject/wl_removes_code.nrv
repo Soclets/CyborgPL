@@ -1,4 +1,0 @@
-MAIN {
-    let 'b' := 2; #wl
-    cord::print.useful['b'];
-}

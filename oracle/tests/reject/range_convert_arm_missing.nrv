@@ -1,3 +1,0 @@
-MAIN {
-    let 'n' := to.int32[min 0, max 100]["42"] otherwise { not_a_number { cord::exit[1]; } };
-}

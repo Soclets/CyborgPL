@@ -1,3 +1,0 @@
-MAIN {
-    cord::print.stored[10 20];
-}

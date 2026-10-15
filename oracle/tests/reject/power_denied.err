@@ -1,1 +1,1 @@
-this Neuron calls C (`write`), which this program denies (`deny`: `kin::power.c_calls.functions`)
+this strike calls C (`write`), which this program denies (`deny`: `ricochet::power.c_calls.functions`)

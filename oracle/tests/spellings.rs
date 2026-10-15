@@ -1,4 +1,4 @@
-//! `spellings.nrp`, the one table of the language's words (owner, 2026-10-13), checked against itself and the
+//! `spellings.zv`, the one table of the language's words (owner, 2026-10-13), checked against itself and the
 //! naming rule: no hint names an old spelling, nothing is both current and old, every keyword lowercase
 //! with `_` unless it is a capital the table allows.
 

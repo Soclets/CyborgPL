@@ -8,7 +8,7 @@
 //!     error; `give` kills the source; `lend`/`lent` cannot be given away or
 //!     assigned to; `lend.mut` writes through
 //!   - the default check tier: every integer operation is overflow-checked,
-//!     every division checks for zero — there is no Cortex here to remove them
+//!     every division checks for zero — there is no the prover here to remove them
 //!   - `if`/`while` conditions must be bool
 
 use crate::ast::*;
@@ -34,11 +34,11 @@ pub struct RuntimeError {
 
 thread_local! { static SHOWN_FILE: std::cell::RefCell<String> = std::cell::RefCell::new(String::new()); }
 
-/// The file a message's second places name, without its folders (`shop.nrv`).
+/// The file a message's second places name, without its folders (`shop.zg`).
 pub fn set_shown_file(name: &str) { SHOWN_FILE.with(|f| *f.borrow_mut() = name.to_string()); }
 
-/// A second place in a message gives its file, always (owner, 2026-10-08: "`a`"): `line 6 of shop.nrv`.
-/// A Neuron's places all name the program's root file: the oracle keeps no file per line.
+/// A second place in a message gives its file, always (owner, 2026-10-08: "`a`"): `line 6 of shop.zg`.
+/// A strike's places all name the program's root file: the oracle keeps no file per line.
 pub fn line_of(line: impl std::borrow::Borrow<usize>) -> String {
     let line = *line.borrow();
     SHOWN_FILE.with(|f| { let f = f.borrow(); if f.is_empty() { format!("line {line}") } else { format!("line {line} of {f}") } })
@@ -88,7 +88,7 @@ struct Task {
 /// What an evaluated expression *is*, for ownership and typing purposes.
 enum Prov {
     Literal,                             // a bare numeric literal: untyped, adopts its context's family
-    Raw,                                 // a whole-number literal in a Neuron without ASP: its bits land as they are
+    Raw,                                 // a whole-number literal in a strike without ASP: its bits land as they are
     Plain,                               // a plain value: copies freely
     Fresh,                               // a newly made owned value (literal, call result): storable
     Given,                               // `give 'x'`: ownership transferred here
@@ -132,7 +132,7 @@ pub struct Interp<'p> {
     args: Vec<String>,
     /// the matched case's data type, for the name an arm binds
     arm_ty: Option<Ty>,
-    /// Neuron-level `const`s by canonical key (`module/name`): never assignable, every read a fresh value.
+    /// strike-level `const`s by canonical key (`module/name`): never assignable, every read a fresh value.
     consts: HashMap<String, Slot>,
     /// the module the running code was written in (for bare names and visibility)
     module: Vec<String>,
@@ -177,7 +177,7 @@ pub struct Interp<'p> {
     /// its value is written back into the field (struct cell, field name, temp cell)
     field_borrows: Vec<(Rc<RefCell<Value>>, String, Rc<RefCell<Value>>)>,
     /// `for 'x' in lend.mut 'xs'` loops running now: the list may be read while 'x' is finished
-    /// for the trip, and sees the new values (owner, 2026-09-30: a, Synapse's liveness rule)
+    /// for the trip, and sees the new values (owner, 2026-09-30: a, Zomp's liveness rule)
     mut_walks: Vec<MutWalk>,
     scopes: Vec<HashMap<String, Slot>>,
     out: Box<dyn Write>,
@@ -194,16 +194,16 @@ impl<'p> Interp<'p> {
     pub fn set_args(&mut self, args: Vec<String>) { self.args = args; }
     pub fn set_bare(&mut self, b: HashMap<String, crate::ast::Bare>) { self.bare_of = b; }
 
-    /// Whether this code's Neuron has IEG, whose rule puts raw memory and unproven code under `!check`;
-    /// Brainstem alone marks nothing (owner, 2026-10-06: "Brainstem marks nothing", then "yes" to
+    /// Whether this code's strike has IEG, whose rule puts raw memory and unproven code under `!check`;
+    /// Ground alone marks nothing (owner, 2026-10-06: "Ground marks nothing", then "yes" to
     /// `inline.ASM` and the rest needing `!check` only where IEG is)
     fn marks_needed(&self) -> bool {
         let root: Vec<String> = self.module.first().filter(|r| r.starts_with("::")).cloned().into_iter().collect();
         !crate::parser::LACKS.with(|l| l.borrow().iter().any(|(r, lacks)| *r == root && lacks.iter().any(|c| c == "IEG")))
     }
 
-    /// Another Neuron's `pub` functions reached bare by `written`, from a call in `from` (owner, 2026-10-06):
-    /// those marked `bare.optional` or `bare.only`, in a Neuron other than the caller's.
+    /// Another strike's `pub` functions reached bare by `written`, from a call in `from` (owner, 2026-10-06):
+    /// those marked `bare.optional` or `bare.only`, in a strike other than the caller's.
     fn bare_fns_elsewhere(&self, from: &[String], written: &[String], op: bool) -> Vec<&'p Func> {
         let mine = from.first().filter(|r| r.starts_with("::")).cloned();
         let prog: &'p Program = self.prog;
@@ -220,7 +220,7 @@ impl<'p> Interp<'p> {
         self.prepare()?;
         let main = match &self.prog.main {
             Some(m) => m,
-            None => return rt(0, "this Neuron has no MAIN, so it is a library, not a program"),
+            None => return rt(0, "this strike has no MAIN, so it is a library, not a program"),
         };
         // `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`: C's own view of the command line — the
         // program's name first, each word NUL-ended, and a null pointer after the last (owner, 2026-09-29)
@@ -241,8 +241,8 @@ impl<'p> Interp<'p> {
         self.pop();
         match r {
             Ok(Flow::Normal) => Ok(0),
-            Ok(Flow::Return(_)) => rt(0, "`return` inside MAIN: MAIN is a block, not a function; use cord::exit[…] for a code"),
-            Ok(Flow::Fail(n, _)) => rt(0, format!("MAIN cannot fail (`{n}`); it exits — handle it, or cord::exit[…]")),
+            Ok(Flow::Return(_)) => rt(0, "`return` inside MAIN: MAIN is a block, not a function; use std::exit[…] for a code"),
+            Ok(Flow::Fail(n, _)) => rt(0, format!("MAIN cannot fail (`{n}`); it exits — handle it, or std::exit[…]")),
             Ok(Flow::Break) | Ok(Flow::Continue) => rt(0, "`break`/`continue` outside a loop"),
             Ok(Flow::Give(_)) => rt(0, "`is` outside a case"),
             Err(RuntimeError { exit: Some(code), .. }) => Ok(code),
@@ -288,7 +288,7 @@ impl<'p> Interp<'p> {
 
     /// The checks before anything runs, then the consts and C's variables.
     fn prepare(&mut self) -> Result<(), RuntimeError> {
-        // Consts first, in order: each may use the ones above it. Cortex would
+        // Consts first, in order: each may use the ones above it. the prover would
         // fold these at compile time; the oracle evaluates them before MAIN.
         self.check_duplicates()?;
         self.check_returned_borrows()?;
@@ -301,7 +301,7 @@ impl<'p> Interp<'p> {
             if self.consts.contains_key(&key) { return rt(c.line, format!("const '{}' is declared twice", c.name)); }
             self.module = c.module.clone();
             if let Some(call) = first_std_call(&c.value) {
-                return rt(c.line, format!("a const's value must be known at compile time; `cord::{call}` is an effect, not a value"));
+                return rt(c.line, format!("a const's value must be known at compile time; `std::{call}` is an effect, not a value"));
             }
             if c.value.values.is_empty() { return rt(c.line, format!("const '{}' needs a value", c.name)); }
             let (v, prov) = self.bracket(&c.value, c.line)?;
@@ -360,7 +360,7 @@ impl<'p> Interp<'p> {
         for (j, g) in ops.iter().enumerate() {
             for f in &ops[..j] {
                 if f.name != g.name { continue; }
-                // two Neurons may each define one word operator for the same types: the path tells them
+                // two strikes may each define one word operator for the same types: the path tells them
                 // apart (owner, 2026-10-02), and a bare use of it is refused where it is written; a glyph
                 // operator has no path, so two of them stay an error
                 if root(f) != root(g) && word(&f.name) { continue; }
@@ -392,14 +392,14 @@ impl<'p> Interp<'p> {
         for m in &self.prog.modules {
             let k = format!("module {}", m.path.join("."));
             if let Some(l) = seen.insert(k.clone(), m.line) { return rt(m.line, format!("module `{}` is defined twice (first at {}) — a file and a block cannot both be it", m.path.join("."), line_of(l))); }
-            // One name, one thing, per Neuron (decided 2026-09-21): a module and a type cannot share a name.
+            // One name, one thing, per strike (decided 2026-09-21): a module and a type cannot share a name.
             // A type's own functions (`fn Counter.next`) sit under its name, which is not a module.
             if crate::parser::TYPE_PATHS.with(|t| t.borrow().contains(&m.path)) { continue; }
             let path = m.path.join(".");
             let clash = self.prog.structs.iter().map(|d| (&d.name, d.line, "struct")).chain(self.prog.enums.iter().map(|e| (&e.name, e.line, "enum"))).chain(self.prog.interfaces.iter().map(|i| (&i.name, i.line, "interface"))).find(|(n, _, _)| **n == path);
             if let Some((_, l, what)) = clash {
-                let where_ = if m.line == 0 { format!("the file `{path}.nrv` and a {what} at {}", line_of(l)) } else { format!("a module block at {} and a {what} at {}", line_of(m.line), line_of(l)) };
-                return rt(l, format!("`{path}` is both a module and a {what} ({where_}); one name is one thing in a Neuron — rename one"));
+                let where_ = if m.line == 0 { format!("the file `{path}.zg` and a {what} at {}", line_of(l)) } else { format!("a module block at {} and a {what} at {}", line_of(m.line), line_of(l)) };
+                return rt(l, format!("`{path}` is both a module and a {what} ({where_}); one name is one thing in a strike — rename one"));
             }
         }
         Ok(())
@@ -412,7 +412,7 @@ impl<'p> Interp<'p> {
             Ty::Ptr(inner, _) => self.c_shaped(inner),
             Ty::Struct(n) => match self.prog.structs.iter().find(|d| &d.name == n) {
                 Some(d) if d.layout_c => Ok(()),
-                Some(_) => Err(format!("struct `{n}` is not `layout.C`; its layout is Cortex's, not C's")),
+                Some(_) => Err(format!("struct `{n}` is not `layout.C`; its layout is the prover's, not C's")),
                 None => match self.prog.enums.iter().find(|e| &e.name == n) {
                     Some(e) if e.c_values.is_some() => Ok(()),
                     Some(_) => Err(format!("enum `{n}` is not `layout.C`; a C enum is `layout.C enum {n} {{ a = 0 }}`")),
@@ -483,7 +483,7 @@ impl<'p> Interp<'p> {
             for s in stmts {
                 match s {
                     Stmt::Fail { name, payload, line } => {
-                        if who == "MAIN" { return rt(*line, "MAIN cannot fail; it exits (`cord::exit[…]`) or handles the failure"); }
+                        if who == "MAIN" { return rt(*line, "MAIN cannot fail; it exits (`std::exit[…]`) or handles the failure"); }
                         match fails.iter().find(|f| &f.name == name) {
                             None if fails.is_empty() => return rt(*line, format!("`{who}` cannot fail: its signature has no `fail[…]`; add `-> … or fail[{name}]`")),
                             None => return rt(*line, format!("`{who}` does not list `{name}` in its `fail[…]` (it lists {})", fails.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", "))),
@@ -507,11 +507,11 @@ impl<'p> Interp<'p> {
     }
 
     /// Visibility (decided 2026-09-19): an item declared in module `owner` with `vis`
-    /// is reachable from module `from` if it is `pub` / `pub.neuron` (one Neuron here, so
+    /// is reachable from module `from` if it is `pub` / `pub.strike` (one strike here, so
     /// both count) or `from` is `owner` or a descendant of it. Every module on the
     /// way is checked the same way.
     fn reachable(&self, from: &[String], owner: &[String], vis: Vis) -> bool {
-        // across a Neuron's edge only `pub` passes: `pub.neuron` stays home (limbs.md)
+        // across a strike's edge only `pub` passes: `pub.strike` stays home (limbs.md)
         if limb_of(from) != limb_of(owner) { return vis == Vis::Pub; }
         vis != Vis::Private || from.starts_with(owner)
     }
@@ -520,7 +520,7 @@ impl<'p> Interp<'p> {
         for i in 1..=module.len() {
             let path = &module[..i];
             let Some(m) = self.prog.modules.iter().find(|m| m.path == path) else {
-                return rt(line, format!("no module `{}` in {}", path.iter().map(|p| p.trim_start_matches("::")).collect::<Vec<_>>().join("."), if limb_of(path).is_empty() { "this Neuron".to_string() } else { format!("the Neuron `{}`", &limb_of(path)[2..]) }));
+                return rt(line, format!("no module `{}` in {}", path.iter().map(|p| p.trim_start_matches("::")).collect::<Vec<_>>().join("."), if limb_of(path).is_empty() { "this strike".to_string() } else { format!("the strike `{}`", &limb_of(path)[2..]) }));
             };
             if !self.reachable(from, &module[..i - 1], m.vis) {
                 return rt(line, format!("module `{}` is private to `{}`", path.join("."), root_or(&module[..i - 1])));
@@ -710,7 +710,7 @@ impl<'p> Interp<'p> {
             // variable and calls no effect; nobody owns it, it is never shadowed, and it lives in its block
             Stmt::LocalConst { name, ty, value, line } => {
                 if let Some(call) = first_std_call(value) {
-                    return rt(*line, format!("a const's value must be known at compile time; `cord::{call}` is an effect, not a value"));
+                    return rt(*line, format!("a const's value must be known at compile time; `std::{call}` is an effect, not a value"));
                 }
                 let text = format!("{value:?}");
                 for cap in text.split("Var(\"").skip(1).chain(text.split("Owned(").skip(1).filter_map(|t| t.split_once(", \"").map(|(_, r)| r))) {
@@ -1217,7 +1217,7 @@ impl<'p> Interp<'p> {
             }
             Stmt::BuiltinStmt { head, op, args, line } => { self.builtin(head, op, args, *line)?; Ok(Flow::Normal) }
             Stmt::Block { body, .. } => self.block(body),
-            // The tiers (decided 2026-09-19). The oracle has no Cortex, so it cannot
+            // The tiers (decided 2026-09-19). The oracle has no the prover, so it cannot
             // prove; it runs every check and reports what the compiler *would* have
             // found: a `check` whose site fires is the missing guardrail, shown with
             // the concrete value (the compiler's counterexample); a `nocheck` whose
@@ -1233,7 +1233,7 @@ impl<'p> Interp<'p> {
                 match r {
                     Err(e) if e.site => {
                         let msg = match tier {
-                            Tier::Check => format!("`check` at {} fails: {} — the guardrail is not enough (Cortex would refuse to compile; this value is the counterexample)", line_of(line), e.msg),
+                            Tier::Check => format!("`check` at {} fails: {} — the guardrail is not enough (the prover would refuse to compile; this value is the counterexample)", line_of(line), e.msg),
                             Tier::NoCheck => format!("`no_check` at {} lied: {} — the compiled program would be undefined here", line_of(line), e.msg),
                             Tier::NoChecksAtAll => format!("`NO_FUCKING_CHECKS` at {} lied: {} — the compiled program would be undefined here", line_of(line), e.msg),
                         };
@@ -1867,7 +1867,7 @@ impl<'p> Interp<'p> {
     }
 
     /// Is this expression, by its declared type, a `list` (false) or an `array` (true)?
-    /// `None` when it is neither, or when nothing fixes it (a literal, a `:=` Cortex picks).
+    /// `None` when it is neither, or when nothing fixes it (a literal, a `:=` the prover picks).
     fn coll_kind(&self, e: &Expr) -> Option<bool> {
         let kind = |t: &Ty| match t { Ty::List(_) => Some(false), Ty::Array(_) => Some(true), Ty::Ranged(b, _, _) => match &**b { Ty::List(_) => Some(false), Ty::Array(_) => Some(true), _ => None }, _ => None };
         match e {
@@ -2014,7 +2014,7 @@ impl<'p> Interp<'p> {
             Expr::RawInt(i, _) => Ok((Value::Int(*i), Prov::Raw)),
             Expr::BigInt(s, _) => Ok((Value::Big(crate::bigint::BigInt::parse(s).expect("lexed digits")), Prov::Literal)),
             // `*0.1` — exactly this, a deci (owner, 2026-10-02): of the width the place wants, or,
-            // under `:=`, deci64 — the oracle's pick; Cortex chooses the width
+            // under `:=`, deci64 — the oracle's pick; the prover chooses the width
             Expr::Exact(digits, _) => {
                 if let Some(t @ (Ty::Bin(_) | Ty::Brain | Ty::Int(_) | Ty::Uint(_))) = &self.expected {
                     return rt(line, format!("`*{digits}` is exact, a deci; a {} cannot hold it exactly: drop the `*`, or make this a deci", ty_name(t)));
@@ -2067,7 +2067,7 @@ impl<'p> Interp<'p> {
             Expr::Newline(_) => Ok((Value::Str("\n".into()), Prov::Fresh)),
             Expr::Char(c, _) => {
                 // With `:=`, the unit is inferred: the narrowest that holds the content
-                // (provisional — Cortex would also look at use).
+                // (provisional — the prover would also look at use).
                 let unit = if c.len() == 1 { CharUnit::Byte }
                     else if c.chars().count() == 1 { CharUnit::Point }
                     else if grapheme_count(c) == 1 { CharUnit::Grapheme }
@@ -2132,7 +2132,7 @@ impl<'p> Interp<'p> {
                 let items = match v {
                     // a vector's lane, 1-based like every position (simd.md; check claude, 2026-09-29)
                     Value::List(items) | Value::Simd(items) => items,
-                    Value::Str(_) => return rt(line, format!("'{name}' is a text: `[pos …]` would not say which unit — the 3rd byte or the 3rd grapheme; use `cord::str.at.grapheme[lend '{name}', pos …]` (decided 2026-09-20)")),
+                    Value::Str(_) => return rt(line, format!("'{name}' is a text: `[pos …]` would not say which unit — the 3rd byte or the 3rd grapheme; use `std::str.at.grapheme[lend '{name}', pos …]` (decided 2026-09-20)")),
                     other => return rt(line, format!("'{name}' is {}, not a list or array; it cannot be indexed", other.kind())),
                 };
                 let (i, _) = self.eval(idx)?;
@@ -2228,7 +2228,7 @@ impl<'p> Interp<'p> {
                 if !self.reachable(&from, &def.module, def.vis) {
                     return rt(line, private_msg(&self.module, &def.module, &format!("struct `{sname}`")));
                 }
-                // a generic struct's blanks are filled by the values given (Cortex: from use)
+                // a generic struct's blanks are filled by the values given (the prover: from use)
                 let saved_tvars = std::mem::take(&mut *self.tvars.borrow_mut());
                 let r = self.construct_fields(&def, sname, given, line);
                 *self.tvars.borrow_mut() = saved_tvars;
@@ -2241,7 +2241,7 @@ impl<'p> Interp<'p> {
                     None => return rt(line, format!("no const '{name}' in `{}`", root_or(module))),
                 };
                 if !self.reachable(from, module, def.vis) {
-                    return rt(line, format!("const '{name}' is private to `{}`; mark it `pub` or `pub.neuron`", root_or(module)));
+                    return rt(line, format!("const '{name}' is private to `{}`; mark it `pub` or `pub.strike`", root_or(module)));
                 }
                 let v = self.consts[&const_key(module, name)].cell.borrow().clone();
                 let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
@@ -2335,7 +2335,7 @@ impl<'p> Interp<'p> {
                             Some(t @ (Ty::Int(_) | Ty::Uint(_))) => crate::value::int_range(&t).map_or(true, |(lo, hi)| digits(lo).max(digits(hi)) > p),
                             Some(Ty::Ranged(_, Bound::Int(lo), Bound::Int(hi))) => digits(lo).max(digits(hi)) > p,
                             // a `:=` result or arithmetic: what its operands let it be (owner, 2026-10-12: "(a)")
-                            // nothing bounds it: it could have too many digits, so `otherwise` is asked for (as Synapse)
+                            // nothing bounds it: it could have too many digits, so `otherwise` is asked for (as Zomp)
                             _ => self.static_bound(e).map_or(true, |(lo, hi)| digits(lo).max(digits(hi)) > p),
                         }, _ => false },
                         _ => false,
@@ -2837,7 +2837,7 @@ impl<'p> Interp<'p> {
             }
             // Wrapping arithmetic (decided 2026-09-20): `+~ -~ x~ xx~` are always defined —
             // modulo the type's size. The oracle wraps at the left operand's declared
-            // integer width (Cortex knows every width; the oracle only knows declared ones).
+            // integer width (the prover knows every width; the oracle only knows declared ones).
             // `div.trunc.wrap` and the other three (owner, 2026-10-03): the true quotient, then wrapped at
             // the type's width, as ARM gives the smallest value divided by -1
             Expr::Binary(op, l, r, _) if op.starts_with("div.") && op.ends_with(".wrap") => {
@@ -2888,7 +2888,7 @@ impl<'p> Interp<'p> {
                     let raw = match op.as_str() {
                         "+~" => x.add(&y), "-~" => x.sub(&y), "x~" => x.mul(&y),
                         _ => {
-                            if y.is_neg() { return site(line, "a negative exponent on integers would produce a fraction — a check site: Cortex proves the exponent is never negative, or the final build refuses"); }
+                            if y.is_neg() { return site(line, "a negative exponent on integers would produce a fraction — a check site: the prover proves the exponent is never negative, or the final build refuses"); }
                             // square and multiply, taking the remainder at every step
                             let (mut base, mut e, mut acc) = (x.mod_pow2(bits as u64), y.clone(), crate::bigint::BigInt::from_i128(1));
                             let two = crate::bigint::BigInt::from_i128(2);
@@ -2909,7 +2909,7 @@ impl<'p> Interp<'p> {
                         "+~" => x.wrapping_add(y),
                         "-~" => x.wrapping_sub(y),
                         "x~" => x.wrapping_mul(y),
-                        _ => { if y < 0 { return site(line, "a negative exponent on integers would produce a fraction — a check site: Cortex proves the exponent is never negative, or the final build refuses"); } let mut acc: i128 = 1; for _ in 0..y { acc = acc.wrapping_mul(x); } acc }
+                        _ => { if y < 0 { return site(line, "a negative exponent on integers would produce a fraction — a check site: the prover proves the exponent is never negative, or the final build refuses"); } let mut acc: i128 = 1; for _ in 0..y { acc = acc.wrapping_mul(x); } acc }
                     };
                     let m: i128 = 1i128 << bits;
                     let mut v = raw.rem_euclid(m);
@@ -3317,7 +3317,7 @@ impl<'p> Interp<'p> {
             ("-", Int(x), Int(y)) => Int(x.checked_sub(y).ok_or_else(|| ovf("-"))?),
             ("x", Int(x), Int(y)) => Int(x.checked_mul(y).ok_or_else(|| ovf("x"))?),
             ("xx", Int(x), Int(y)) => {
-                if y < 0 { return site(line, "a negative exponent on integers would produce a fraction — a check site: Cortex proves the exponent is never negative, or the final build refuses"); }
+                if y < 0 { return site(line, "a negative exponent on integers would produce a fraction — a check site: the prover proves the exponent is never negative, or the final build refuses"); }
                 let mut acc: i128 = 1;
                 for _ in 0..y { acc = acc.checked_mul(x).ok_or_else(|| ovf("xx"))?; }
                 Int(acc)
@@ -3360,7 +3360,7 @@ impl<'p> Interp<'p> {
             // `mod` takes the divisor's sign, as integer `mod`; `xx` takes a whole exponent and rounds
             // like the other operations (owner, 2026-09-29: a, a)
             ("xx", Deci(x), Deci(y)) => {
-                let n = match y.to_int() { Some(Ok(n)) => n, _ => return rt(line, format!("a deci power takes a whole exponent, not {}: a fractional power is cord's math", y.show_stored())) };
+                let n = match y.to_int() { Some(Ok(n)) => n, _ => return rt(line, format!("a deci power takes a whole exponent, not {}: a fractional power is std's math", y.show_stored())) };
                 match x.pow_int(n) { None => return site(line, "zero to a negative power: division by zero"), Some(r) => Deci(r.or_else(|m| site(line, m))?) }
             }
             ("xx", Deci(x), Int(n)) => match x.pow_int(n) { None => return site(line, "zero to a negative power: division by zero"), Some(r) => Deci(r.or_else(|m| site(line, m))?) },
@@ -3391,7 +3391,7 @@ impl<'p> Interp<'p> {
             (">", Bin(x), Bin(y)) => Bool(x > y),
             ("at_most", Bin(x), Bin(y)) => Bool(x <= y),
             ("at_least", Bin(x), Bin(y)) => Bool(x >= y),
-            ("<" | ">" | "at_most" | "at_least", Str(_), Str(_)) => return rt(line, format!("`{op}` on text has no meaning yet: byte order is never what anyone means; a collation rule is cord's (decided 2026-09-20)")),
+            ("<" | ">" | "at_most" | "at_least", Str(_), Str(_)) => return rt(line, format!("`{op}` on text has no meaning yet: byte order is never what anyone means; a collation rule is std's (decided 2026-09-20)")),
             ("and", Bool(x), Bool(y)) => Bool(x && y),
             ("or", Bool(x), Bool(y)) => Bool(x || y),
             (op, x, y) => return rt(line, format!("`{op}` cannot combine {} and {}", x.kind(), y.kind())),
@@ -3402,7 +3402,7 @@ impl<'p> Interp<'p> {
     /// oracle knows one for: `list.length[…]` / `array.length[…]` are `uint64`
     /// (decided 2026-09-21). Everything else: unknown (a provisional gap, see README).
     /// Is the length of what this bracket produces known at this point? A literal list,
-    /// `list.empty`, or a value of a bounded type `list[T][lo, hi]` — the cases Cortex
+    /// `list.empty`, or a value of a bounded type `list[T][lo, hi]` — the cases the prover
     /// always knows. (It would know more; the oracle keeps to these.)
     fn sized_from(value: &Bracket, ty: Option<&Ty>) -> bool {
         if matches!(ty, Some(Ty::Ranged(b, _, _)) if matches!(**b, Ty::List(_))) { return true; }
@@ -3497,7 +3497,7 @@ impl<'p> Interp<'p> {
         }
         if op == "slice" {
             // A slice owns its elements, as a list always does (owner, 2026-09-23): the copy is
-            // the meaning, and Cortex elides it where nobody can tell. 1-based and inclusive,
+            // the meaning, and the prover elides it where nobody can tell. 1-based and inclusive,
             // like `[pos i]` and `range[…]`; a check site, like every language operation.
             if args.values.len() != 3 { return rt(line, format!("`{head}.slice` takes a list and two positions: `{head}.slice[lend 'xs', pos 2, pos 4]`")); }
             let (v, prov) = self.value(&args.values[0])?;
@@ -3567,7 +3567,7 @@ impl<'p> Interp<'p> {
                 // A length-bounded list (`list[T][lo, hi]`) is checked after every change (decided 2026-09-21).
                 let new_len = Value::List(items);
                 if let Some(t @ Ty::Ranged(..)) = self.lookup(&var_name).and_then(|s| s.ty.clone()) { self.check_type(&new_len, &t, line)?; }
-                else if let Some(s) = self.lookup_mut(&var_name) { s.sized = false; }   // Cortex would track it; the oracle does not
+                else if let Some(s) = self.lookup_mut(&var_name) { s.sized = false; }   // the prover would track it; the oracle does not
                 *cell.borrow_mut() = new_len;
                 Ok(removed.unwrap_or(Value::Nothing))
             }
@@ -3579,7 +3579,7 @@ impl<'p> Interp<'p> {
     // A language collection beside list and array. `map.get`/`map.remove` fail `missing`;
     // keys compare by structure, or by a type's own `op ==` / `fn hash` when it satisfies
     // `Key` — and then "equal keys hash the same" is a check site (the oracle tests it on
-    // every comparison it makes; Cortex proves it).
+    // every comparison it makes; the prover proves it).
 
     fn key_ok(&self, k: &Value, line: usize) -> Result<(), RuntimeError> {
         match k {
@@ -3674,7 +3674,7 @@ impl<'p> Interp<'p> {
                     let t = self.lookup(n).and_then(|s| s.ty.clone());
                     let t = match t { Some(Ty::Ranged(b, _, _)) => Some(*b), t => t };
                     if let Some(Ty::Map(_, _, MapOrder::Unordered)) = t {
-                        return rt(line, format!("'{n}' is a `map.unordered`, which promises never to be walked; `map.{op}` needs a `map.ordered` (or a plain `map`, and Cortex keeps the order)"));
+                        return rt(line, format!("'{n}' is a `map.unordered`, which promises never to be walked; `map.{op}` needs a `map.ordered` (or a plain `map`, and the prover keeps the order)"));
                     }
                 }
                 let pairs = match &*cell.borrow() { Value::Map(ps) => ps.clone(), _ => Vec::new() };
@@ -3944,7 +3944,7 @@ impl<'p> Interp<'p> {
 
     fn chan_send(&mut self, args: &Bracket, line: usize) -> Result<Value, RuntimeError> {
         let (c, rest) = self.chan_arg(args, 2, "send", line)?;
-        if c.borrow().timer.is_some() { return rt(line, "a timer channel (`cord::time.after`/`every`) only receives from time; nothing can send into it"); }
+        if c.borrow().timer.is_some() { return rt(line, "a timer channel (`std::time.after`/`every`) only receives from time; nothing can send into it"); }
         // The oracle cannot suspend a task mid-body, so a sender never waits here: a
         // hand-off or a full bounded channel simply queues (provisional — the waiting is
         // unobservable in output; only its absence in a deadlock would be). Takers wait.
@@ -4020,24 +4020,24 @@ impl<'p> Interp<'p> {
     fn call(&mut self, c: &Call) -> Result<Value, RuntimeError> {
         self.one_lend_mut(&c.args, c.line)?;
         let shown = c.written.join(".");
-        // a name written bare may be this Neuron's, std's, or another Neuron's `bare.optional` / `bare.only`
-        // one; more than one is an error where it is written, and this Neuron's own does not win
+        // a name written bare may be this strike's, std's, or another strike's `bare.optional` / `bare.only`
+        // one; more than one is an error where it is written, and this strike's own does not win
         // (owner, 2026-10-06: "`a`, and no")
         if c.bare {
             let own_module: Vec<String> = c.from.iter().cloned().chain(c.written[..c.written.len() - 1].iter().cloned()).collect();
             let own = self.prog.funcs.iter().any(|f| f.module == own_module && Some(&f.name) == c.written.last() && !f.is_op);
-            let std = c.limb.as_deref() == Some("cord");
+            let std = c.limb.as_deref() == Some("std");
             let others = self.bare_fns_elsewhere(&c.from, &c.written, false);
             let mut who: Vec<String> = Vec::new();
             if own {
                 let mine: Vec<&str> = own_module.iter().filter(|m| !m.starts_with("::")).map(String::as_str).chain(c.written.last().map(String::as_str)).collect();
-                who.push(format!("`my.{}` (this Neuron's)", mine.join(".")));
+                who.push(format!("`my.{}` (this strike's)", mine.join(".")));
             }
-            if std { who.push(format!("`cord::{shown}`")); }
+            if std { who.push(format!("`std::{shown}`")); }
             for f in &others { who.push(format!("`{}::{shown}`", f.module[0].trim_start_matches("::"))); }
             if who.len() > 1 { return rt(c.line, format!("`{shown}` could be any of {}: write the path", who.join(", "))); }
             if who.is_empty() {
-                // another Neuron's name that needs its path says so, rather than "no function"
+                // another strike's name that needs its path says so, rather than "no function"
                 let prog: &'p Program = self.prog;
                 if let Some(f) = prog.funcs.iter().find(|f| f.module.first().map_or(false, |r| r.starts_with("::")) && f.vis == crate::ast::Vis::Pub && !f.is_op
                     && f.module[1..].iter().map(String::as_str).chain(std::iter::once(f.name.as_str())).collect::<Vec<_>>() == c.written.iter().map(String::as_str).collect::<Vec<_>>()
@@ -4054,8 +4054,8 @@ impl<'p> Interp<'p> {
             }
         }
         match &c.limb {
-            Some(l) if l == "cord" => self.std_call(c),
-            // another Neuron, loaded from `Kinesin.nrp` under its own root (owner, 2026-09-29)
+            Some(l) if l == "std" => self.std_call(c),
+            // another strike, loaded from `Ricochet.zv` under its own root (owner, 2026-09-29)
             Some(l) if self.prog.modules.iter().any(|m| m.path == [format!("::{l}")]) => {
                 let mut local = c.clone();
                 local.limb = None;
@@ -4067,7 +4067,7 @@ impl<'p> Interp<'p> {
                 }
                 self.user_call(&local)
             }
-            Some(l) => rt(c.line, format!("no Neuron with the prefix `{l}`: a Neuron this one uses is listed in its `Kinesin.nrp` (`dependencies = [kin::dep[path = …],]`), and its own `Kinesin.nrp` says `prefix = \"{l}\"`")),
+            Some(l) => rt(c.line, format!("no strike with the prefix `{l}`: a strike this one uses is listed in its `Ricochet.zv` (`dependencies = [ricochet::dep[path = …],]`), and its own `Ricochet.zv` says `prefix = \"{l}\"`")),
             None => self.user_call(c),
         }
     }
@@ -4277,7 +4277,7 @@ impl<'p> Interp<'p> {
             Flow::Fail(reason, payload) => return self.handle_failure(c.handler.as_ref().unwrap(), c.line, name, reason, payload, value_used),
         };
         // `-> lent @x T`: the borrow must be of a parameter in group x — or of any lent parameter
-        // when no group is written (Cortex works it out) — never of something that dies here
+        // when no group is written (the prover works it out) — never of something that dies here
         let borrowed = self.ret_borrow.take();
         match (&func.ret_lent, borrowed) {
             (Some((_, life)), Some((cell, m))) => {
@@ -4289,7 +4289,7 @@ impl<'p> Interp<'p> {
                     Some((pn, plife, _)) => if let Some(l) = life { if plife.as_ref() != Some(l) { return rt(self.ret_line, format!("`{name}` returns a borrow of '{pn}', which is not in @{l}: say `lent @{l} '{pn}'`")); } },
                 }
                 // `@x`: the result lives while everything in the group does, whichever the body returned
-                // without a group, whatever the body may hand back, on any path (Cortex reads the body)
+                // without a group, whatever the body may hand back, on any path (the prover reads the body)
                 let deps = self.may_return(&func, 0);
                 self.call_deps = match life {
                     Some(l) => lent_params.iter().filter(|(_, pl, _)| pl.as_ref() == Some(l)).map(|(_, _, pc)| Rc::as_ptr(pc) as *const () as usize).collect(),
@@ -4428,7 +4428,7 @@ impl<'p> Interp<'p> {
         // pick the definition whose first operand's type matches the left value (an
         // operator may be defined for several types)
         let lshape = shape_of(&left.0);
-        // `vecmath::dot`: only that Neuron's `dot` (owner, 2026-10-02: a Neuron's word operator may carry its path)
+        // `vecmath::dot`: only that strike's `dot` (owner, 2026-10-02: a strike's word operator may carry its path)
         let (limb, name) = match op.split_once("::") { Some((l, n)) => (Some(format!("::{l}")), n), None => (None, op) };
         let candidates: Vec<Func> = self.prog.funcs.iter().filter(|f| f.is_op && f.name == name && limb.as_ref().map_or(true, |l| f.module.first() == Some(l))).cloned().collect();
         // the one written for this type, else a generic one (they never overlap: `check_duplicates`)
@@ -4437,19 +4437,19 @@ impl<'p> Interp<'p> {
             Some(f) => f.clone(),
             None => {
                 let hint = crate::spellings::free_op_hint(op).map(|h| format!("; {h}")).unwrap_or_default();
-                if let Some(l) = &limb { return rt(line, format!("the Neuron `{}` has no operator `{name}` for these values", &l[2..])); }
+                if let Some(l) = &limb { return rt(line, format!("the strike `{}` has no operator `{name}` for these values", &l[2..])); }
                 return rt(line, format!("`{op}` is not an operator here{hint} — declare it with `op {op} ['a': T, 'b': T] -> R {{ … }}`"));
             }
         };
-        // written bare, the same word operator for these types in two Neurons is a clash where it is
+        // written bare, the same word operator for these types in two strikes is a clash where it is
         // written, as a bare name is (owner, 2026-10-06: "`a`, and no")
         if limb.is_none() {
             let same: Vec<&Func> = candidates.iter().filter(|f| f.params.len() == def.params.len() && f.params.iter().zip(&def.params).all(|(a, b)| a.ty.as_ref().map(ty_shape) == b.ty.as_ref().map(ty_shape))).collect();
-            let mut roots: Vec<String> = same.iter().map(|f| f.module.first().filter(|r| r.starts_with("::")).map(|r| format!("`{}::{name}`", r.trim_start_matches("::"))).unwrap_or_else(|| format!("`{name}` (this Neuron's)"))).collect();
+            let mut roots: Vec<String> = same.iter().map(|f| f.module.first().filter(|r| r.starts_with("::")).map(|r| format!("`{}::{name}`", r.trim_start_matches("::"))).unwrap_or_else(|| format!("`{name}` (this strike's)"))).collect();
             roots.dedup();
             if roots.len() > 1 { return rt(line, format!("`{name}` could be any of {}: write the path", roots.join(", "))); }
         }
-        // another Neuron's word operator follows its `bare` mark (owner, 2026-10-06): `bare.never` needs its
+        // another strike's word operator follows its `bare` mark (owner, 2026-10-06): `bare.never` needs its
         // path, `bare.only` refuses it; a glyph operator has no path and no mark
         if let Some(root) = def.module.first().filter(|r| r.starts_with("::")) {
             let here = self.module.first().filter(|r| r.starts_with("::"));
@@ -4558,7 +4558,7 @@ impl<'p> Interp<'p> {
                     // a case that gives a value is the value (owner, 2026-09-29)
                     Flow::Give(v) if value_used => Ok(v),
                     Flow::Give(_) => rt(arm.line, format!("the `{reason}` case gives a value, but the value of `{name}` is not used")),
-                    Flow::Normal if value_used => rt(arm.line, format!("the `{reason}` arm must leave (return, fail, break, continue, or cord::exit) because the value of `{name}` is used")),
+                    Flow::Normal if value_used => rt(arm.line, format!("the `{reason}` arm must leave (return, fail, break, continue, or std::exit) because the value of `{name}` is used")),
                     Flow::Normal => Ok(Value::Nothing),
                     f => Err(leave(f)),
                 }
@@ -4664,7 +4664,7 @@ impl<'p> Interp<'p> {
         Ok(out)
     }
 
-    /// C's sizes and alignments; a normal struct gets the same rule (Cortex's real
+    /// C's sizes and alignments; a normal struct gets the same rule (the prover's real
     /// choice is not modelled), lists and strs are their 24-byte handle.
     fn size_align(&self, ty: &Ty, line: usize) -> Result<(usize, usize), RuntimeError> {
         Ok(match ty {
@@ -4687,7 +4687,7 @@ impl<'p> Interp<'p> {
             Ty::Inst(n, _) => return rt(line, format!("`size.of[{n}[…]]`: a generic struct's size is not modelled by the oracle")),
             Ty::Struct(n) => {
                 let d = match self.prog.structs.iter().find(|d| &d.name == n) { Some(d) => d, None => return rt(line, format!("no struct named `{n}`")) };
-                if d.opaque { return rt(line, format!("`{n}` is C's and opaque: its size is C's own, and Nerve only points at it")); }
+                if d.opaque { return rt(line, format!("`{n}` is C's and opaque: its size is C's own, and Zag only points at it")); }
                 let (mut off, mut al) = (0usize, 1usize);
                 for f in &d.fields {
                     let (s, a) = self.size_align(&f.ty, line)?;
@@ -4863,7 +4863,7 @@ impl<'p> Interp<'p> {
 
     }
 
-    /// What a whole-number expression can be, from its operands' types and literals: the range Cortex
+    /// What a whole-number expression can be, from its operands' types and literals: the range the prover
     /// works out (operators.md: plain maths is exact, a `:=` holds the true value). None when unknown.
     fn static_bound(&self, e: &Expr) -> Option<(i128, i128)> {
         let sat = |x: Option<i128>| x.unwrap_or(i128::MAX);
@@ -4935,7 +4935,7 @@ impl<'p> Interp<'p> {
         };
         let from = if from.is_empty() { self.module.clone() } else { from.to_vec() };
         self.check_path(&from, &def.module, line)?;
-        if !self.reachable(&from, &def.module, def.vis) { return rt(line, format!("enum `{tname}` is private to `{}`; mark it `pub` or `pub.neuron`", root_or(&def.module))); }
+        if !self.reachable(&from, &def.module, def.vis) { return rt(line, format!("enum `{tname}` is private to `{}`; mark it `pub` or `pub.strike`", root_or(&def.module))); }
         let cdef = match def.cases.iter().find(|c| c.name == case) {
             Some(c) => c,
             None => return rt(line, format!("`{tname}` has no case `{case}` (it has {})", def.cases.iter().map(|c| c.name.as_str()).collect::<Vec<_>>().join(", "))),
@@ -4977,17 +4977,17 @@ impl<'p> Interp<'p> {
             // one the oracle does not have says so first, before anything about its `otherwise` (check claude, 2026-10-08)
             let known = matches!(path.as_str(), "str.split" | "str.contains" | "str.starts_with" | "str.ends_with" | "str.trim" | "str.upper" | "str.lower" | "str.replace" | "str.join"
                 | "str.at.grapheme" | "str.at.point" | "str.at.byte" | "str.slice.grapheme" | "str.find.grapheme");
-            if !known { return rt(c.line, format!("cord::{path} is not in the oracle's cord (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.grapheme, str.find.grapheme)")); }
-            self.check_handler(c.handler.as_ref(), &fails, &format!("cord::{path}"), c.line)?;
+            if !known { return rt(c.line, format!("std::{path} is not in the oracle's std (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.grapheme, str.find.grapheme)")); }
+            self.check_handler(c.handler.as_ref(), &fails, &format!("std::{path}"), c.line)?;
             let mut vals = Vec::new();
             for a in &c.args.values {
                 let (v, prov) = self.value(a)?;
-                if let Prov::Bare(n) = prov { return rt(c.line, format!("cord::{path} looks at '{n}': `lend '{n}'`")); }
+                if let Prov::Bare(n) = prov { return rt(c.line, format!("std::{path} looks at '{n}': `lend '{n}'`")); }
                 vals.push(v);
             }
-            let text = |i: usize| -> Result<String, RuntimeError> { match vals.get(i) { Some(Value::Str(s)) => Ok(s.clone()), Some(Value::Char(_, ch)) => Ok(ch.clone()), Some(o) => rt(c.line, format!("cord::{path}: argument {} must be text, got {}", i + 1, o.kind())), None => rt(c.line, format!("cord::{path}: missing argument {}", i + 1)) } };
-            let int = |i: usize| -> Result<i128, RuntimeError> { match vals.get(i) { Some(Value::Int(n)) => Ok(*n), Some(o) => rt(c.line, format!("cord::{path}: argument {} must be an integer, got {}", i + 1, o.kind())), None => rt(c.line, format!("cord::{path}: missing argument {}", i + 1)) } };
-            let fail = |me: &mut Self, reason: &str| -> Result<Value, RuntimeError> { me.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("cord::{path}"), reason.into(), None, value_used) };
+            let text = |i: usize| -> Result<String, RuntimeError> { match vals.get(i) { Some(Value::Str(s)) => Ok(s.clone()), Some(Value::Char(_, ch)) => Ok(ch.clone()), Some(o) => rt(c.line, format!("std::{path}: argument {} must be text, got {}", i + 1, o.kind())), None => rt(c.line, format!("std::{path}: missing argument {}", i + 1)) } };
+            let int = |i: usize| -> Result<i128, RuntimeError> { match vals.get(i) { Some(Value::Int(n)) => Ok(*n), Some(o) => rt(c.line, format!("std::{path}: argument {} must be an integer, got {}", i + 1, o.kind())), None => rt(c.line, format!("std::{path}: missing argument {}", i + 1)) } };
+            let fail = |me: &mut Self, reason: &str| -> Result<Value, RuntimeError> { me.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("std::{path}"), reason.into(), None, value_used) };
             return match path.as_str() {
                 "str.split" => { let (s, sep) = (text(0)?, text(1)?); if sep.is_empty() { return rt(c.line, empty_part("at")); } Ok(Value::List(s.split(sep.as_str()).map(|p| Value::Str(p.to_string())).collect())) }
                 "str.contains" => { let part = text(1)?; if part.is_empty() { return rt(c.line, empty_part("part")); } Ok(Value::Bool(text(0)?.contains(part.as_str()))) }
@@ -4997,7 +4997,7 @@ impl<'p> Interp<'p> {
                 "str.upper" => Ok(Value::Str(text(0)?.to_uppercase())),
                 "str.lower" => Ok(Value::Str(text(0)?.to_lowercase())),
                 "str.replace" => { let from = text(1)?; if from.is_empty() { return rt(c.line, empty_part("from")); } Ok(Value::Str(text(0)?.replace(from.as_str(), &text(2)?))) }
-                "str.join" => match vals.get(0) { Some(Value::List(items)) => { let sep = text(1)?; let mut parts = Vec::new(); for it in items { match it { Value::Str(s) => parts.push(s.clone()), o => return rt(c.line, format!("cord::str.join: the list holds {}, not text", o.kind())) } } Ok(Value::Str(parts.join(&sep))) } _ => rt(c.line, "cord::str.join[lend 'parts', sep]") },
+                "str.join" => match vals.get(0) { Some(Value::List(items)) => { let sep = text(1)?; let mut parts = Vec::new(); for it in items { match it { Value::Str(s) => parts.push(s.clone()), o => return rt(c.line, format!("std::str.join: the list holds {}, not text", o.kind())) } } Ok(Value::Str(parts.join(&sep))) } _ => rt(c.line, "std::str.join[lend 'parts', sep]") },
                 "str.at.grapheme" | "str.at.point" | "str.at.byte" => {
                     let s = text(0)?; let i = int(1)?;
                     let units: Vec<Value> = match path.as_str() { "str.at.grapheme" => graphemes(&s).into_iter().map(|g| Value::Char(CharUnit::Grapheme, g)).collect(), "str.at.point" => s.chars().map(|ch| Value::Char(CharUnit::Point, ch.to_string())).collect(), _ => s.bytes().map(|b| Value::Int(b as i128)).collect() };
@@ -5013,16 +5013,16 @@ impl<'p> Interp<'p> {
                     let (s, sub) = (text(0)?, text(1)?);
                     match s.find(sub.as_str()) { Some(byte_ix) => Ok(Value::Int(grapheme_count(&s[..byte_ix]) as i128 + 1)), None => fail(self, "missing") }
                 }
-                other => rt(c.line, format!("cord::{other} is not in the oracle's cord (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.grapheme, str.find.grapheme)")),
+                other => rt(c.line, format!("std::{other} is not in the oracle's std (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.grapheme, str.find.grapheme)")),
             };
         }
-        if c.handler.is_some() && !path.starts_with("input.") { return rt(c.line, format!("cord::{path} cannot fail; drop the `otherwise`")); }
+        if c.handler.is_some() && !path.starts_with("input.") { return rt(c.line, format!("std::{path} cannot fail; drop the `otherwise`")); }
         match path.as_str() {
             "input.line" | "input.all" => {
                 // a boundary (decided 2026-09-20): text as it came; `closed` when there is none
-                if !c.args.values.is_empty() { return rt(c.line, format!("cord::{path} takes no arguments")); }
+                if !c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes no arguments")); }
                 let fails = vec![FailCase { name: "closed".into(), ty: None }];
-                self.check_handler(c.handler.as_ref(), &fails, &format!("cord::{path}"), c.line)?;
+                self.check_handler(c.handler.as_ref(), &fails, &format!("std::{path}"), c.line)?;
                 let mut text = String::new();
                 let got = if path == "input.line" {
                     match std::io::stdin().read_line(&mut text) { Ok(0) => false, Ok(_) => { if text.ends_with('\n') { text.pop(); if text.ends_with('\r') { text.pop(); } } true }, Err(_) => false }
@@ -5030,42 +5030,42 @@ impl<'p> Interp<'p> {
                     use std::io::Read;
                     match std::io::stdin().read_to_string(&mut text) { Ok(0) => false, Ok(_) => true, Err(_) => false }
                 };
-                if !got { return self.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("cord::{path}"), "closed".into(), None, value_used); }
+                if !got { return self.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("std::{path}"), "closed".into(), None, value_used); }
                 Ok(Value::Str(text))
             }
             "round" | "floor" | "ceil" | "trunc" => {
                 // the rounding toolbox (std, provisional names): a bin in, a whole bin out — then `to.int32[…]`
-                if c.args.values.len() != 1 { return rt(c.line, format!("cord::{path} takes one bin")); }
+                if c.args.values.len() != 1 { return rt(c.line, format!("std::{path} takes one bin")); }
                 let (a, _) = self.value(&c.args.values[0])?;
                 match a {
                     Value::Bin(x) => Ok(Value::Bin(no_new_neg_zero(x, match path.as_str() { "round" => x.round(), "floor" => x.floor(), "ceil" => x.ceil(), _ => x.trunc() }))),
-                    other => rt(c.line, format!("cord::{path} takes a bin, got {}", other.kind())),
+                    other => rt(c.line, format!("std::{path} takes a bin, got {}", other.kind())),
                 }
             }
             "time.wait" => {
                 // the oracle does not sleep: time is the outside world, and nothing here observes it
-                if c.args.values.len() != 1 { return rt(c.line, "cord::time.wait takes one duration: `cord::time.wait[5 seconds]`"); }
+                if c.args.values.len() != 1 { return rt(c.line, "std::time.wait takes one duration: `std::time.wait[5 seconds]`"); }
                 let (d, _) = self.value(&c.args.values[0])?;
-                if !matches!(d, Value::Duration(_)) { return rt(c.line, format!("cord::time.wait takes a duration (`5 seconds`), got {}", d.kind())); }
+                if !matches!(d, Value::Duration(_)) { return rt(c.line, format!("std::time.wait takes a duration (`5 seconds`), got {}", d.kind())); }
                 Ok(Value::Nothing)
             }
             "time.after" | "time.every" => {
-                if c.args.values.len() != 1 { return rt(c.line, format!("cord::{path} takes one duration")); }
+                if c.args.values.len() != 1 { return rt(c.line, format!("std::{path} takes one duration")); }
                 let (d, _) = self.value(&c.args.values[0])?;
-                let Value::Duration(n) = d else { return rt(c.line, format!("cord::{path} takes a duration (`5 seconds`), got {}", d.kind())) };
+                let Value::Duration(n) = d else { return rt(c.line, format!("std::{path} takes a duration (`5 seconds`), got {}", d.kind())) };
                 self.next_chan_id += 1;
                 let timer = if path == "time.after" { Timer::After { fired: false, nanos: n } } else { Timer::Every { nanos: n } };
                 Ok(Value::Chan(Rc::new(RefCell::new(Chan { queue: std::collections::VecDeque::new(), cap: None, timer: Some(timer), id: self.next_chan_id }))))
             }
             "div.trunc" | "mod.trunc" => {
                 // moved into the language as operators (owner, 2026-10-02)
-                rt(c.line, format!("`cord::{path}` is an operator in the language now: `'a' {path} 'b'` (owner, 2026-10-02)"))
+                rt(c.line, format!("`std::{path}` is an operator in the language now: `'a' {path} 'b'` (owner, 2026-10-02)"))
             }
-            "printu.stdout" | "printu.stderr" => rt(c.line, format!("cord::{path} is spelled cord::print.useful.{} now (owner, 2026-09-29)", &path[7..])),
-            "printf.stdout" | "printf.stderr" => rt(c.line, format!("cord::{path} is spelled cord::print.format.{} now (owner, 2026-09-29)", &path[7..])),
+            "printu.stdout" | "printu.stderr" => rt(c.line, format!("std::{path} is spelled std::print.useful.{} now (owner, 2026-09-29)", &path[7..])),
+            "printf.stdout" | "printf.stderr" => rt(c.line, format!("std::{path} is spelled std::print.format.{} now (owner, 2026-09-29)", &path[7..])),
             // a print says which form it shows (owner, 2026-10-02): `print.stored` or `print.useful`, never bare
-            "print.stdout" | "print.stderr" => rt(c.line, format!("say which form `cord::{path}` shows: `cord::print.stored.{0}[…]` (what is stored) or `cord::print.useful.{0}[…]` (the useful value) (owner, 2026-10-02)", &path[6..])),
-            "print.weird.stdout" | "print.weird.stderr" => rt(c.line, format!("say which form `cord::{path}` shows: `cord::print.weird.stored.{0}` or `cord::print.weird.useful.{0}` (owner, 2026-10-02)", &path[12..])),
+            "print.stdout" | "print.stderr" => rt(c.line, format!("say which form `std::{path}` shows: `std::print.stored.{0}[…]` (what is stored) or `std::print.useful.{0}[…]` (the useful value) (owner, 2026-10-02)", &path[6..])),
+            "print.weird.stdout" | "print.weird.stderr" => rt(c.line, format!("say which form `std::{path}` shows: `std::print.weird.stored.{0}` or `std::print.weird.useful.{0}` (owner, 2026-10-02)", &path[12..])),
             "print.stored.stdout" | "print.useful.stdout" | "print.stored.stderr" | "print.useful.stderr"
             | "print.useful.auto_newln.stdout" | "print.useful.auto_newln.stderr"
             | "print.weird.stored.stdout" | "print.weird.stored.stderr" | "print.weird.useful.stdout" | "print.weird.useful.stderr"
@@ -5078,7 +5078,7 @@ impl<'p> Interp<'p> {
                 // `print.weird` is `print` with arrows, `print.weird.useful` is `print.useful` (owner, 2026-10-01)
                 let useful = path.starts_with("print.useful") || path.starts_with("print.weird.useful") || path.starts_with("this_will_print_the_useful");
                 let path = if path.ends_with("standard_error") { "print.useful.stderr".to_string() } else { path };
-                if c.args.values.is_empty() { return rt(c.line, format!("cord::{path} takes at least one value")); }
+                if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes at least one value")); }
                 let mut text = String::new();
                 for a in &c.args.values {
                     // the useful form is the shortest text that gives the value back at its own
@@ -5099,12 +5099,12 @@ impl<'p> Interp<'p> {
                 // The formatting print (owner, 2026-09-22; `printf` until 2026-09-29; `{}` holes since
                 // 2026-10-01, C's `%` codes before): escapes and holes, checked against the values'
                 // types because the format is a literal — a non-literal format is a nocheck site.
-                if c.args.values.is_empty() { return rt(c.line, format!("cord::{path} takes a format text first: `cord::{path}[\"{{}} items\\n\", 'n']`")); }
+                if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes a format text first: `std::{path}[\"{{}} items\\n\", 'n']`")); }
                 let fmt = match &c.args.values[0] {
                     crate::ast::Value::Expr(Expr::Text(t, _)) => t.clone(),
                     _ => {
-                        if self.nocheck_depth == 0 && self.marks_needed() { return rt(c.line, format!("cord::{path}: the format is not a literal, so its holes cannot be checked against the values — that is a no_check site: `no_check cord::{path}[…]`")); }
-                        match self.value(&c.args.values[0])?.0 { Value::Str(t) => t, other => return rt(c.line, format!("cord::{path} takes a text as its format, got {}", other.kind())) }
+                        if self.nocheck_depth == 0 && self.marks_needed() { return rt(c.line, format!("std::{path}: the format is not a literal, so its holes cannot be checked against the values — that is a no_check site: `no_check std::{path}[…]`")); }
+                        match self.value(&c.args.values[0])?.0 { Value::Str(t) => t, other => return rt(c.line, format!("std::{path} takes a text as its format, got {}", other.kind())) }
                     }
                 };
                 let mut vals = Vec::new();
@@ -5113,7 +5113,7 @@ impl<'p> Interp<'p> {
                     let saved = self.expected.take(); let ty = self.expr_ty(e); self.expected = saved;
                     vals.push((self.value(a)?.0, ty));
                 }
-                let text = hole_format(&fmt, &vals).map_err(|m| RuntimeError { line: c.line, msg: format!("cord::{path}: {m}"), exit: None, site: false, leave: None })?;
+                let text = hole_format(&fmt, &vals).map_err(|m| RuntimeError { line: c.line, msg: format!("std::{path}: {m}"), exit: None, site: false, leave: None })?;
                 if path == "format" { return Ok(Value::Str(text)); }
                 if path.ends_with("stderr") { eprint!("{text}"); }
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
@@ -5121,16 +5121,16 @@ impl<'p> Interp<'p> {
             }
             "printc.stdout" | "printc.stderr" | "printrs.stdout" | "printrs.stderr" | "c.printf" | "c.fprintf.stderr"
             | "rs.print" | "rs.println" | "rs.eprint" | "rs.eprintln" =>
-                rt(c.line, format!("cord::{path} was removed (2026-09-20): the borrowed C/Rust prints are gone; use cord::print.stored / cord::print.useful")),
+                rt(c.line, format!("std::{path} was removed (2026-09-20): the borrowed C/Rust prints are gone; use std::print.stored / std::print.useful")),
             "exit" => {
                 let (v, _) = self.single(&c.args, c.line)?;
                 match v {
                     Value::Int(i) if (0..=255).contains(&i) => Err(RuntimeError { line: c.line, msg: String::new(), exit: Some(i as u8), site: false, leave: None }),
                     Value::Int(i) => site(c.line, format!("exit code {i} does not fit uint8 (0 to 255)")),
-                    o => rt(c.line, format!("cord::exit takes a uint8, got {}", o.kind())),
+                    o => rt(c.line, format!("std::exit takes a uint8, got {}", o.kind())),
                 }
             }
-            other => rt(c.line, format!("cord::{other} does not exist in the oracle (it knows print, print.useful, print.useful.auto_newln and print.format, each .stdout/.stderr; input.line/all; exit; round/floor/ceil/trunc; div.trunc, mod.trunc; time.after/every/wait; str.*)")),
+            other => rt(c.line, format!("std::{other} does not exist in the oracle (it knows print, print.useful, print.useful.auto_newln and print.format, each .stdout/.stderr; input.line/all; exit; round/floor/ceil/trunc; div.trunc, mod.trunc; time.after/every/wait; str.*)")),
         }
     }
 }
@@ -5175,7 +5175,7 @@ fn round_f16(x: f64) -> f64 {
 
 /// The digits of a bin literal as written (with a leading `-`), looking through parentheses.
 /// Without ASP a literal is a bit pattern, as the machine's: an `int8` holding `128` holds -128's bits,
-/// and one wider than the type's bits is refused (owner, 2026-10-06: "`a`", "Brainstem's, then").
+/// and one wider than the type's bits is refused (owner, 2026-10-06: "`a`", "Ground's, then").
 fn raw_land(v: Value, prov: Prov, t: &Ty, line: usize) -> Result<(Value, Prov), RuntimeError> {
     match (&prov, &v, t) {
         (Prov::Raw, Value::Int(i), Ty::Int(w) | Ty::Uint(w)) if int_range(t).is_some() => {
@@ -5187,7 +5187,7 @@ fn raw_land(v: Value, prov: Prov, t: &Ty, line: usize) -> Result<(Value, Prov), 
             Ok((Value::Int(v), Prov::Literal))
         }
         (Prov::Raw, Value::Int(_), Ty::Int(_) | Ty::Uint(_)) => rt(line, format!("a literal landing in {} without ASP is not built in the oracle", ty_name(t))),
-        (Prov::Raw, _, Ty::Bin(_) | Ty::Brain | Ty::Deci(_) | Ty::Ranged(..)) => rt(line, format!("what a literal means in {} without ASP is not decided: Brainstem's literals are bit patterns (owner, 2026-10-06), decided for whole-number types only", ty_name(t))),
+        (Prov::Raw, _, Ty::Bin(_) | Ty::Brain | Ty::Deci(_) | Ty::Ranged(..)) => rt(line, format!("what a literal means in {} without ASP is not decided: Ground's literals are bit patterns (owner, 2026-10-06), decided for whole-number types only", ty_name(t))),
         (Prov::Raw, _, _) => Ok((v, Prov::Literal)),
         _ => Ok((v, prov)),
     }
@@ -5365,7 +5365,7 @@ fn big_binary(op: &str, a: &Value, b: &Value, line: usize) -> Result<Option<Valu
         "-" => from_big(x.sub(&y)),
         "x" => from_big(x.mul(&y)),
         "xx" => {
-            if y.is_neg() { return site(line, "a negative exponent on integers would produce a fraction — a check site: Cortex proves the exponent is never negative, or the final build refuses"); }
+            if y.is_neg() { return site(line, "a negative exponent on integers would produce a fraction — a check site: the prover proves the exponent is never negative, or the final build refuses"); }
             let e = y.to_u64().filter(|e| x.bits().saturating_mul(*e) <= 16_777_216 || x.bits() <= 1);
             match e { Some(e) => from_big(x.pow(e)), None => return site(line, format!("{x} to the power {y} is past the widest integer there is (2^23 bits)")) }
         }
@@ -5439,7 +5439,7 @@ pub fn resolve_bound(base: &Ty, b: &Bound) -> Bound {
 
 fn const_key(module: &[String], name: &str) -> String { format!("{}/{name}", module.join(".")) }
 fn join_path(module: &[String], name: &str) -> String { if module.is_empty() { name.to_string() } else { format!("{}.{name}", module.join(".")) } }
-fn root_or(module: &[String]) -> String { if module.is_empty() { "the root (neuron.nrv)".into() } else { module.join(".") } }
+fn root_or(module: &[String]) -> String { if module.is_empty() { "the root (strike.zg)".into() } else { module.join(".") } }
 
 /// The first `std::` call inside a const's value, if any (an effect at compile time).
 fn first_std_call(b: &Bracket) -> Option<String> {
@@ -5716,18 +5716,18 @@ fn value_eq(a: &Value, b: &Value) -> bool {
     }
 }
 
-/// Which Neuron a module path belongs to: `""` for the Neuron being built, `"::geometry"` for a dependency.
+/// Which strike a module path belongs to: `""` for the strike being built, `"::geometry"` for a dependency.
 fn limb_of(path: &[String]) -> &str {
     match path.first() { Some(p) if p.starts_with("::") => p.as_str(), _ => "" }
 }
 
-/// Why an item cannot be reached: across a Neuron's edge only `pub` passes (limbs.md).
+/// Why an item cannot be reached: across a strike's edge only `pub` passes (limbs.md).
 fn private_msg(from: &[String], owner: &[String], what: &str) -> String {
     let what = what.replace("::", "").replacen('.', "::", if limb_of(owner).is_empty() { 0 } else { 1 });
     if limb_of(from) != limb_of(owner) {
-        format!("{what} is not `pub`, and another Neuron reaches only `pub` items")
+        format!("{what} is not `pub`, and another strike reaches only `pub` items")
     } else {
-        format!("{what} is private to `{}`; mark it `pub` or `pub.neuron`", root_or(owner))
+        format!("{what} is private to `{}`; mark it `pub` or `pub.strike`", root_or(owner))
     }
 }
 

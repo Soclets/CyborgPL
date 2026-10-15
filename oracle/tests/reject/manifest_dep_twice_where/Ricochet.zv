@@ -1,0 +1,3 @@
+ricochet::manifest[
+    dependencies = [ricochet::dep[path = "../x", version = "1.0"],]
+];

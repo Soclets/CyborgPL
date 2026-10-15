@@ -1,7 +1,0 @@
-kin::manifest[
-    name = "cnc_not_listed",
-    prefix = "cnc_not_listed",
-    version = "1.0.0",
-    powers = [kin::power.c_calls,],
-    targets = [kin::target[name = "aarch64-macos"],]
-];

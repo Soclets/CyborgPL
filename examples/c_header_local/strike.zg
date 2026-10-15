@@ -1,0 +1,9 @@
+# A header in the strike (owner, 2026-10-10): `incl.C["…"]`, from the strike's root. Its plain
+# `#define`s are consts (C's `0644` is octal, so 420); `MYLIB_MAX`, a macro that looks like a function,
+# is skipped; `mylib_add` is declared, as `extern.C fn mylib_add ['p1': int32, 'p2': int32] -> int32;`
+# would be, though the oracle cannot run it (Zomp links the library).
+incl.C["vendor/mylib.h"];
+
+MAIN {
+    std::print.useful['MYLIB_NAME', " ", 'MYLIB_VERSION', " ", 'MYLIB_FLAGS', newln];
+}

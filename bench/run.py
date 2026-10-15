@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Nerve against every other language installed here, on the same four programs.
+"""Zag against every other language installed here, on the same four programs.
 
 Each program reads N from the environment and exits with its answer's low byte, so
 nothing is worked out while compiling and every language is checked against C's
@@ -9,7 +9,7 @@ startup included; each case keeps the best of RUNS, and a run past TIMEOUT secon
 is recorded as a timeout.
 
     python3 run.py                   # every language that is installed
-    python3 run.py c rust nerve   # only these
+    python3 run.py c rust zag   # only these
     python3 run.py --quick           # tiny sizes, one run: does everything build and agree?
     SYNAPSE=/path/to/synapse LUST=/path/to/lust python3 run.py
 
@@ -26,7 +26,8 @@ if "--quick" in sys.argv:  # tiny sizes, one run: checks every language builds a
     sys.argv.remove("--quick")
     CASES = [("sum", 100_000), ("fib", 20), ("lists", 100_000), ("sieve", 100_000)]
     RUNS = 1
-SYNAPSE = os.environ.get("SYNAPSE", os.path.join(HERE, "..", "synapse", "target", "release", "synapse"))
+_ZOMP = os.path.join(HERE, "..", "zomp", "target", "release", "zomp")
+SYNAPSE = os.environ.get("ZOMP", os.environ.get("SYNAPSE", _ZOMP if os.path.exists(_ZOMP) else os.path.join(HERE, "..", "synapse", "target", "release", "synapse")))
 LUST = os.environ.get("LUST", "lust")
 
 
@@ -80,8 +81,8 @@ def ts_build(src, d, b):
 
 
 LANGS = {
-    "nerve": (f"Nerve (Synapse, final build, {os.environ.get('CYBORG_BENCH_THREADS', '3')} threads)", None, "{b}.nrv", synapse_build, lambda s, d, b: [os.path.join(d, b)]),
-    "nerve1": ("Nerve (Synapse, final build, 1 thread)", None, "{b}.nrv", synapse_build, lambda s, d, b: [os.path.join(d, b)]),
+    "zag": (f"Zag (Zomp, final build, {os.environ.get('CYBORG_BENCH_THREADS', '3')} threads)", None, "{b}.zg", synapse_build, lambda s, d, b: [os.path.join(d, b)]),
+    "zag1": ("Zag (Zomp, final build, 1 thread)", None, "{b}.zg", synapse_build, lambda s, d, b: [os.path.join(d, b)]),
     "c": ("C (clang -O2)", "clang", "{b}.c", native(lambda s, o: ["clang", "-O2", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "asm": ("Assembly (AArch64, hand-written)", "clang", "{b}.s", native(lambda s, o: ["clang", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "cpp": ("C++ (clang++ -O2)", "clang++", "{b}.cpp", native(lambda s, o: ["clang++", "-O2", "-std=c++17", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
@@ -114,7 +115,7 @@ LANGS = {
 
 def available(key):
     label, tool, *_ = LANGS[key]
-    if key.startswith("nerve"):
+    if key.startswith("zag"):
         return os.path.exists(SYNAPSE)
     if key == "lust":
         return shutil.which(LUST) is not None or os.path.exists(LUST)
@@ -125,7 +126,7 @@ def available(key):
 # its plain code. It gets this session's share, 3 threads, and a second row pins it to 1.
 # `CYBORG_BENCH_THREADS=10 python3 run.py` gives it every core, when nothing else is running
 # (owner, 2026-10-06: "uncapped")
-THREADS = {"nerve": os.environ.get("CYBORG_BENCH_THREADS", "3"), "nerve1": "1"}
+THREADS = {"zag": os.environ.get("CYBORG_BENCH_THREADS", "3"), "zag1": "1"}
 
 
 def run_once(cmd, n, lust, key=""):
@@ -199,8 +200,8 @@ def write_results(keys, missing, results):
              f"from process start to exit (startup included); runs past {TIMEOUT} s are timeouts. "
              "Every answer is checked against C's.", ""]
     for name, n in CASES:
-        lines += [f"## {name} (N = {n:,})", "", "| Language | Time | vs Nerve |", "|---|---|---|"]
-        base = results.get(("nerve", name), (None,))[0]
+        lines += [f"## {name} (N = {n:,})", "", "| Language | Time | vs Zag |", "|---|---|---|"]
+        base = results.get(("zag", name), (None,))[0]
         rows = []
         for key in keys:
             t, status = results.get((key, name), (None, "not run"))

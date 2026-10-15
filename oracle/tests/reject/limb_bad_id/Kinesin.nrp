@@ -1,3 +1,0 @@
-kin::manifest[
-    dependencies = [kin::dep[id = "zz", path = "../../../../examples/limbs/areas"],]
-];

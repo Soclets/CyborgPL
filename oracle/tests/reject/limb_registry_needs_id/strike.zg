@@ -1,0 +1,2 @@
+# the registry knows a strike by its ID, never its name (owner, 2026-09-29)
+MAIN { }

@@ -1,0 +1,6 @@
+ricochet::manifest[
+    name = "x",
+    prefix = "Cash-Handling",
+    version = "1.0.0",
+    targets = [ricochet::target[name = "aarch64-macos"],]
+];
