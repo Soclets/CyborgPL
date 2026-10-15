@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLoaderData } from "react-router";
 import { SITE_SCREEN } from "../sky.jsx";
-import { ASKS, CORE, GIVES, HOME_EXAMPLES } from "../content.js";
+import { CONS, CORE, HOME_EXAMPLES, PROS } from "../content.js";
 import Icon from "../icons.jsx";
 import Md from "../md.jsx";
 
@@ -355,9 +355,9 @@ export default function Home() {
               </ul>
             </section>
             <Examples examples={examples} />
-            {/* What Zag gives, and apart from it what it asks of you: two lists, not pairs (owner). */}
-            <section className="lists" aria-label="What you get, and what it asks of you">
-              {[["What you get", GIVES, "gives"], ["What it asks of you", ASKS, "asks"]].map(([title, items, kind]) => (
+            {/* Pros and cons: two lists, not pairs (owner). */}
+            <section className="lists" aria-label="Pros and cons">
+              {[["Pros", PROS, "pros"], ["Cons", CONS, "cons"]].map(([title, items, kind]) => (
                 <div key={kind} className={`list-card ${kind}`}>
                   <h3>{title}</h3>
                   <ul>{items.map((t) => <li key={t}><Md text={t} /></li>)}</ul>

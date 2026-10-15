@@ -167,7 +167,7 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 .ex-all { margin-top: 16px; padding: 12px 22px; border-radius: 999px; background: #fff; color: var(--edge); font-weight: 700; text-decoration: none; box-shadow: 0 10px 24px rgba(10, 50, 110, .2); }
 @media (max-width: 760px) { .ex-tab { padding: 9px 12px; font-size: 15px; } }
 
-/* What you get, and what it asks of you: two lists, one under the other, not read as pairs. */
+/* Pros and cons: two lists, one under the other, not read as pairs. */
 .lists { width: 100%; max-width: 860px; margin-top: 8vh; padding-bottom: 4vh; display: flex; flex-direction: column; gap: 16px; }
 .list-card { padding: 22px 24px 24px; border-radius: 22px; color: #0F2A5C; background: rgba(255, 255, 255, .74); border: 1px solid rgba(255, 255, 255, .9);
   -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); box-shadow: 0 12px 30px rgba(10, 50, 110, .18); }
@@ -175,7 +175,7 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 .list-card ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
 .list-card li { position: relative; padding-left: 24px; font-size: 16px; line-height: 1.5; color: #23406E; }
 .list-card li::before { content: ""; position: absolute; left: 4px; top: .62em; width: 9px; height: 9px; border-radius: 50%; background: var(--edge); }
-.list-card.asks li::before { background: #FFC21A; box-shadow: 0 0 0 2px #E2A400 inset; }
+.list-card.cons li::before { background: #FFC21A; box-shadow: 0 0 0 2px #E2A400 inset; }
 .list-card code { font: 600 .9em ui-monospace, "SF Mono", Menlo, monospace; padding: 1px 6px; border-radius: 6px; background: rgba(23, 87, 176, .1); color: var(--edge); }
 
 /* The top bar: a floating pill of frosted glass, the sky showing through (owner: "Glass"). */

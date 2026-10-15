@@ -25,12 +25,12 @@ export const HOME_EXAMPLES = [
     note: "ARM64 assembly inline, beside the same work in plain Zag: `madd` multiplies and adds in one instruction, `clz` counts leading zeros. `with` binds variables to registers, and assembly is always a `no_check` site." },
 ];
 
-// What Zag gives, and, apart from it, what it asks of you (owner, 2026-09-28, for Nerve's site: an
-// honest table; 2026-10-15, for Zag's: "I feel like the 'What it costs' isn't really accurate", then
-// "just make it not supposed to be read side-by-side as tradeoffs"). Two lists, each line standing on
-// its own. Every line is the design's own words, from design/core-features.md, design/failures.md and
-// DECISIONS.md, in Zag's names; nothing is invented.
-export const GIVES = [
+// Pros and cons (owner, 2026-09-28, for Nerve's site: an honest table; 2026-10-15, for Zag's: "I
+// feel like the 'What it costs' isn't really accurate", "just make it not supposed to be read
+// side-by-side as tradeoffs", then "just fucking say Pros and Cons"). Two lists, each line standing
+// on its own. Every line is the design's own words, from design/core-features.md, design/failures.md
+// and DECISIONS.md, in Zag's names; nothing is invented.
+export const PROS = [
   "Zomp proves every overflow and bounds check at compile time, and the final build carries none of them.",
   "The working build checks what Zomp can’t prove yet, whatever that costs when it runs.",
   "Ownership and no garbage collector: every value has one owner, so the compiler knows when to free it.",
@@ -40,12 +40,12 @@ export const GIVES = [
   "An old spelling is refused with an error that names the new one.",
   "Native code, through LLVM.",
 ];
-export const ASKS = [
-  "Patience: builds are slow, and every build is a full one. There is no fast development mode.",
-  "A guardrail where Zomp can’t prove something: the final build refuses that code until you write one, a tighter type, or `no_check`.",
-  "Saying what happens to each value you pass: `lend`, `give` or `copy`.",
-  "A written type where a value comes from outside the program; `:=` on it is an error.",
-  "Handling every failure a function can return; forgetting one is a compile error.",
-  "Two `if`s, or `and.then`, when one check guards the next.",
-  "Not expecting stability: Zag is being experimented with, and any release may change or remove anything.",
+export const CONS = [
+  "Builds are slow, and every build is a full one. There is no fast development mode.",
+  "Where Zomp can’t prove something, the final build refuses the code until you write a guardrail, a tighter type, or `no_check`.",
+  "Every value you pass says what happens to it: `lend`, `give` or `copy`.",
+  "A value from outside the program needs its type written; `:=` on it is an error.",
+  "Every failure a function can return must be handled; forgetting one is a compile error.",
+  "When one check guards the next, it takes two `if`s, or `and.then`.",
+  "Zag is being experimented with, so please don’t expect stability: any release may change or remove anything.",
 ];
