@@ -119,6 +119,8 @@ impl Args {
             consts: !avoid.contains("consts"),
             new_words: !avoid.contains("new-words"),
             edge_landings: !avoid.contains("edge-landings"),
+            // off until Zomp reads them: `--compound` turns them on
+            compound: self.flags.contains_key("compound"),
         }
     }
 }

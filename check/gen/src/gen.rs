@@ -125,11 +125,14 @@ pub struct Config {
     /// function, before its other sites (Synapse's layer 3 read 2^63 at 64
     /// bits and proved every later site vacuously, f4d99bd1; b63fed46).
     pub edge_landings: bool,
+    /// `'i' += e;`, `'i'++;` and the rest for `change 'i' = 'i' OP e;`
+    /// (owner, 2026-10-14; oracle 6eb4bf67). Off until Zomp has them.
+    pub compound: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: false }
     }
 }
 
@@ -370,7 +373,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     }
     let n = g.stmt_count();
     main.extend(g.stmts(n, g.depth()));
-    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() || g.shadow_mistake, strict, new_words, unevaluable: g.unevaluable }
+    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() || g.shadow_mistake, strict, new_words, compound: cfg.compound, unevaluable: g.unevaluable }
 }
 
 fn isqrt(n: i128) -> i128 {
@@ -2148,9 +2151,19 @@ impl Gen {
     fn assign_stmt(&mut self) -> Stmt {
         let targets: Vec<VarInfo> = self.vars().filter(|v| v.assignable).cloned().collect();
         let v = self.rng.pick(&targets).clone();
+        if self.cfg.compound && v.ty != Ty::Bool && self.rng.chance(35) {
+            if let Some(st) = self.compound_change(&v) {
+                return st;
+            }
+        }
         self.risky = false;
         self.positioned = false;
-        let value = if v.ty == Ty::Bool { { let d = self.expr_depth(); self.bool_expr(d) } } else { self.value_in(v.ty, v.iv).0 };
+        let value = if v.ty == Ty::Bool {
+            let d = self.expr_depth();
+            self.bool_expr(d)
+        } else {
+            self.value_in(v.ty, v.iv).0
+        };
         let value = if v.ty != Ty::Bool && !v.unseen && self.uses_unseen(&value) {
             // A seen name keeps what it holds visible: the guard is written
             // out, since a `check` earlier in a loop sees this value next trip.
@@ -2161,6 +2174,70 @@ impl Gen {
         self.positioned |= self.uses_unseen(&value);
         let tier = self.tier(self.risky);
         Stmt::Assign { tier, name: v.name, value }
+    }
+
+    /// `change 'x' = 'x' OP k;`, which the renderer writes `'x' += k;`,
+    /// `'x'++;` and the rest (owner, 2026-10-14). The name keeps the range
+    /// the rest of the program relies on, so the change is guarded where it
+    /// could leave it: `if 'x' at_most hi - k { 'x' += k; }`. A name whose
+    /// range is its whole type may instead take a risky change, unguarded,
+    /// which stops the program if it overflows.
+    fn compound_change(&mut self, v: &VarInfo) -> Option<Stmt> {
+        use BinOp::*;
+        let (lo, hi) = (v.iv.lo, v.iv.hi);
+        let r = v.ty.range();
+        let var = || Box::new(Expr::Var(v.name.clone()));
+        let lit = |x: i128| Box::new(Expr::Lit(x));
+        let at_most = |x: i128| Expr::Cmp(CmpOp::Le, var(), lit(x));
+        let at_least = |x: i128| Expr::Cmp(CmpOp::Ge, var(), lit(x));
+        let assign = |op: BinOp, k: i128| Stmt::Assign { tier: Tier::Default, name: v.name.clone(), value: Expr::Bin(op, var(), lit(k)) };
+        let guarded = |cond: Expr, st: Stmt| Stmt::If { arms: vec![(cond, vec![st])], otherwise: None };
+        if lo == r.lo && hi == r.hi && self.take_risk() {
+            let op = *self.rng.pick(&[Add, Sub, Mul]);
+            let k = if self.rng.chance(50) { 1 } else { self.rng.range(2, 100) };
+            return Some(assign(op, k));
+        }
+        let isqrt = |n: i128| { let mut x = (n as f64).sqrt() as i128; while x * x > n { x -= 1; } while (x + 1) * (x + 1) <= n { x += 1; } x };
+        let mut ops = vec![];
+        if hi > lo {
+            ops.extend([Add, Add, Sub, Sub]);
+        }
+        if lo >= 0 && lo * 2 <= hi {
+            ops.extend([Mul, DivTrunc]);
+        }
+        let kmod = if lo < 0 { hi.min(-lo) + 1 } else if lo == 0 { hi + 1 } else { 0 };
+        if kmod >= 2 {
+            ops.push(ModTrunc);
+        }
+        let sq_lo = if lo <= 0 { 0 } else { let s = isqrt(lo); if s * s == lo { s } else { s + 1 } };
+        if self.cfg.pow && lo >= 0 && sq_lo <= isqrt(hi) {
+            ops.push(Pow);
+        }
+        if ops.is_empty() {
+            return None;
+        }
+        let op = *self.rng.pick(&ops);
+        let st = match op {
+            Add | Sub => {
+                let k = if self.rng.chance(50) { 1 } else { self.rng.range(1, (hi - lo).min(1000)) };
+                if op == Add { guarded(at_most(hi - k), assign(Add, k)) } else { guarded(at_least(lo + k), assign(Sub, k)) }
+            }
+            Mul => {
+                let k = self.rng.range(2, (hi / lo.max(1)).min(16).max(2));
+                guarded(at_most(hi / k), assign(Mul, k))
+            }
+            DivTrunc => {
+                let k = self.rng.range(2, (hi / lo.max(1)).min(16).max(2));
+                if lo > 0 { guarded(at_least(lo * k), assign(DivTrunc, k)) } else { assign(DivTrunc, k) }
+            }
+            ModTrunc => assign(ModTrunc, self.rng.range(2, kmod.min(64))),
+            _ => {
+                let top = isqrt(hi);
+                let cond = if sq_lo > 0 { Expr::And(Box::new(at_least(sq_lo)), Box::new(at_most(top))) } else { at_most(top) };
+                guarded(cond, assign(Pow, 2))
+            }
+        };
+        Some(st)
     }
 
     fn if_stmt(&mut self, depth: u32) -> Stmt {

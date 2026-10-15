@@ -488,6 +488,9 @@ pub struct Program {
     /// Written in the main spellings of 9a9e573 (`!mut`, `!check`, `! 'x'`);
     /// otherwise in MTM's, which a lone file also takes.
     pub new_words: bool,
+    /// `change 'i' = 'i' plus e;` written `'i' += e;`, `'i'++;` and the
+    /// rest two times in three (owner, 2026-10-14; oracle 6eb4bf67).
+    pub compound: bool,
     /// Omit parentheses where design/operators.md says they are not needed.
     pub loose: bool,
     /// Holds values my exact evaluator does not model (deci, bin, text):
@@ -592,6 +595,9 @@ pub fn addr<T>(x: &T) -> usize {
 struct Wr<'a> {
     /// `!mut`, `!check` and `! 'x'` in place of `immut`, `nocheck` and `not`.
     new_words: bool,
+    compound: bool,
+    /// How many changes could have been written compound so far.
+    compounds: usize,
     /// The declarations something changes (see `changed_decls`), by address.
     changed: std::collections::HashSet<usize>,
     out: String,
@@ -792,6 +798,45 @@ impl<'a> Wr<'a> {
         }
     }
     /// A simple statement: `head`, then the expression, then `tail`.
+    /// `change 'i' = 'i' OP e;` as `'i' OP= e;`, or `'i'++;` / `'i'--;` for
+    /// plus or minus 1, two times in three. The operator's node spans the
+    /// whole statement, where its sites are.
+    fn compound_change(&mut self, s: &Stmt, pad: &str, tier: Tier, name: &str, value: &Expr) -> bool {
+        use BinOp::*;
+        let Expr::Bin(op, a, b) = value else { return false };
+        if !matches!(&**a, Expr::Var(n) if n == name) {
+            return false;
+        }
+        let sym = match op {
+            Add => "+=",
+            Sub => "-=",
+            Mul => "*=",
+            DivTrunc => "/=",
+            ModTrunc => "%=",
+            Pow => "**=",
+            _ => return false,
+        };
+        self.compounds += 1;
+        if self.compounds % 3 == 0 {
+            return false;
+        }
+        self.out.push_str(pad);
+        let s0 = self.out.len();
+        self.out.push_str(tier_prefix(tier, self.new_words));
+        let s1 = self.out.len();
+        let step = matches!(&**b, Expr::Lit(1)) && matches!(op, Add | Sub) && self.compounds % 2 == 1;
+        if step {
+            self.out.push_str(&format!("{}{};", q(name), if *op == Add { "++" } else { "--" }));
+        } else {
+            self.out.push_str(&format!("{} {sym} ", q(name)));
+            self.e(b);
+            self.out.push(';');
+        }
+        self.expr.push((addr(value), s1, self.out.len()));
+        self.stmt.push((addr(s), s0, s1, self.out.len()));
+        self.out.push('\n');
+        true
+    }
     fn simple(&mut self, s: &Stmt, pad: &str, tier: Tier, head: &str, e: &Expr, tail: &str) {
         self.out.push_str(pad);
         let s0 = self.out.len();
@@ -873,6 +918,9 @@ impl<'a> Wr<'a> {
                 self.simple(s, &pad, *tier, &head, value, ";");
             }
             Stmt::Assign { tier, name, value } => {
+                if self.compound && self.compound_change(s, &pad, *tier, name, value) {
+                    return;
+                }
                 let head = format!("change {} = ", q(name));
                 self.simple(s, &pad, *tier, &head, value, ";");
             }
@@ -993,7 +1041,7 @@ impl Program {
     /// The same text as `render`, with every node's place in it.
     pub fn render_spans(&self) -> (String, Spans) {
         let changed = changed_decls(self);
-        let mut w = Wr { new_words: self.new_words, changed, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
+        let mut w = Wr { new_words: self.new_words, compound: self.compound, compounds: 0, changed, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
         w.out.push_str(&format!("# check claude generator, seed {}\n", self.seed));
         // `extern.C`, one line each, or as a block (owner, 2026-10-02: "both");
         // the block where there are three, so both forms are written
@@ -1086,21 +1134,36 @@ impl Program {
 /// divisor's sign. None if it is not bare numbers alone, or cannot be done
 /// (division by zero, a negative exponent, past i128).
 pub fn fold_bare(e: &Expr) -> Option<i128> {
+    // Exact however wide it gets in between (crate::big); an answer past
+    // i128 keeps its sign at the edge, where any landing refuses it.
+    let v = fold_big(e)?;
+    Some(v.to_i128().unwrap_or(if v.is_neg() { i128::MIN } else { i128::MAX }))
+}
+
+fn fold_big(e: &Expr) -> Option<crate::big::Big> {
+    use crate::big::Big;
     match e {
-        Expr::Lit(v) => Some(*v),
-        Expr::Neg(a) => fold_bare(a)?.checked_neg(),
+        Expr::Lit(v) => Some(Big::from_i128(*v)),
+        Expr::Neg(a) => Some(fold_big(a)?.neg()),
         Expr::Bin(op, a, b) => {
-            let (x, y) = (fold_bare(a)?, fold_bare(b)?);
+            let (x, y) = (fold_big(a)?, fold_big(b)?);
             match op {
-                BinOp::Add => x.checked_add(y),
-                BinOp::Sub => x.checked_sub(y),
-                BinOp::Mul => x.checked_mul(y),
-                _ if op.division().is_some() => op.divide(x, y),
+                BinOp::Add => Some(x.add(&y)),
+                BinOp::Sub => Some(x.sub(&y)),
+                BinOp::Mul => Some(x.mul(&y)),
+                _ if op.division().is_some() => x.divide(&y, *op),
                 BinOp::Pow => {
-                    if y < 0 || y > 200 {
+                    let n = y.to_i128()?;
+                    if n < 0 {
                         return None;
                     }
-                    x.checked_pow(y as u32)
+                    // 0, 1 and -1 to any power; anything else up to 200
+                    let small = x.to_i128().filter(|v| (-1..=1).contains(v));
+                    if n > 200 {
+                        let v = small?;
+                        return Some(Big::from_i128(if v == -1 && n % 2 == 1 { -1 } else if v == 0 { 0 } else { 1 }));
+                    }
+                    Some(x.pow(n as u32))
                 }
                 _ => None,
             }
