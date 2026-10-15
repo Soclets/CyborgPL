@@ -1,12 +1,16 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import { Backdrop, Pill } from "./sky.jsx";
 import "./app.css";
+// Fredoka, cut to the characters the site shows, its width fixed and its weights 300 to 700 kept
+// (owner, 2026-10-15: "optimize the website"). Built under a hashed name, so a new cut is never
+// stuck behind the year-long cache.
+import fredoka from "./fonts/fredoka.woff2?url";
 
 export const links = () => [
   { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
   { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
   { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
-  { rel: "preload", href: "/fonts/fredoka.woff2", as: "font", type: "font/woff2", crossOrigin: "anonymous" },
+  { rel: "preload", href: fredoka, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
 ];
 
 export function Layout({ children }) {
