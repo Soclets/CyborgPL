@@ -45,13 +45,13 @@ function usePager(frame) {
     const box = frame.current;
     const screens = () => [...box.children];
     const still = matchMedia("(prefers-reduced-motion: reduce)");
-    let at = 0, lockedUntil = 0, lastWheel = 0, touchY = null;
+    let at = 0, lockedUntil = 0, lastWheel = 0, touchY = null, recent = [];
     const go = (i) => {
       const list = screens();
       i = Math.max(0, Math.min(list.length - 1, i));
       if (i === at) return;
       at = i;
-      lockedUntil = performance.now() + 850;
+      lockedUntil = performance.now() + 700;
       box.scrollTo({ top: list[i].offsetTop, behavior: still.matches ? "auto" : "smooth" });
     };
     // Can the current screen still scroll this way by itself?
@@ -63,11 +63,18 @@ function usePager(frame) {
       const dir = Math.sign(e.deltaY);
       if (!dir || inner(dir)) return;
       e.preventDefault();
-      const now = performance.now(), gap = now - lastWheel;
+      // A trackpad keeps sending wheel events for a second or two as it coasts, each smaller
+      // than the last. A new swipe is told apart by coming after a pause, or by speeding up
+      // again; a swipe made while the last one still coasts used to be ignored until a click
+      // stopped the coasting (owner: "only the first scroll works, unless you click").
+      const now = performance.now(), size = Math.abs(e.deltaY);
+      const paused = now - lastWheel > 180;
+      const before = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : 0;
+      const faster = recent.length >= 3 && size > 8 && size > before * 1.6;
       lastWheel = now;
-      // A trackpad keeps sending wheel events as it coasts; only a fresh gesture, after a
-      // pause, moves on again.
-      if (now < lockedUntil || gap < 180) return;
+      recent = paused ? [size] : [...recent.slice(-4), size];
+      if (now < lockedUntil || !(paused || faster)) return;
+      recent = [size];
       go(at + dir);
     };
     const onTouchStart = (e) => { touchY = e.touches[0].clientY; };
