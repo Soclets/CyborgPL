@@ -1,6 +1,6 @@
 ricochet::manifest[
-    name = "slim_cores",
-    prefix = "slim_cores",
+    name = "slim_plugins",
+    prefix = "slim_plugins",
     version = "1.0.0",
     plugins = [
         ricochet::plugin[id = "8c723ccae25a719cd66eb44e95aeeef0557acec1467624ab91092c4ada766f21", version = "2026-10-07T20:22:24+07:00"],  # AI
