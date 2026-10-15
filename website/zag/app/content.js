@@ -140,9 +140,9 @@ export const COMPARISON = [
 ];
 
 // Speed (owner, 2026-10-15: "yea", to benchmarks on Home, then "rerun"). From bench/RESULTS.md's
-// "2026-10-15, second run" (31fc9204): Zomp's release build of cd41f34d, every program a real
-// final build (the runner now confirms none fell back; the first run of the day had sieve on a
-// working build, and so had 2026-10-12's), 10 threads and a 1-thread row, everything else paused.
+// "2026-10-15, third run" (owner: "yea"): Zomp's release build of 73bad7b9, every program a real
+// final build, 10 threads and a 1-thread row, everything else paused. C and C++ at -O3, the level
+// Zomp uses (owner: "yes"), and Rust at opt-level=3, as it always was.
 // Seconds, best of 3, wall-clock from start to exit; every answer checked against C's. Python is
 // left off the charts and given in words. The all-cores bars are not like for like (owner,
 // 2026-10-06: "note the nuance").
@@ -156,9 +156,9 @@ export const BENCH = {
     { id: "zagN", name: "Zag, all cores", kind: "ours-all" },
   ],
   programs: [
-    { id: "sum", what: "Adds up i × i mod 7 for 300 million numbers", times: { zag1: 0.091, c: 0.094, rust: 0.168, go: 0.141, zagN: 0.021 }, python: 15.833 },
-    { id: "fib", what: "Recursive Fibonacci of 35: all function calls", times: { zag1: 0.016, c: 0.016, rust: 0.016, go: 0.021, zagN: 0.016 }, python: 0.506 },
-    { id: "lists", what: "Appends 20 million numbers to a list, then sums it 10 times", times: { zag1: 0.039, c: 0.038, rust: 0.049, go: 0.098, zagN: 0.029 }, python: 9.006 },
-    { id: "sieve", what: "Counts the primes up to 100 million", times: { zag1: 0.375, c: 0.378, rust: 0.372, go: 0.355, zagN: 0.231 }, python: 9.443 },
+    { id: "sum", what: "Adds up i × i mod 7 for 300 million numbers", times: { zag1: 0.093, c: 0.092, rust: 0.173, go: 0.143, zagN: 0.030 }, python: 15.678 },
+    { id: "fib", what: "Recursive Fibonacci of 35: all function calls", times: { zag1: 0.016, c: 0.015, rust: 0.016, go: 0.023, zagN: 0.017 }, python: 0.520 },
+    { id: "lists", what: "Appends 20 million numbers to a list, then sums it 10 times", times: { zag1: 0.039, c: 0.037, rust: 0.048, go: 0.097, zagN: 0.034 }, python: 8.772 },
+    { id: "sieve", what: "Counts the primes up to 100 million", times: { zag1: 0.355, c: 0.389, rust: 0.397, go: 0.357, zagN: 0.228 }, python: 9.261 },
   ],
 };

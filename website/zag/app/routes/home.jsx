@@ -396,7 +396,7 @@ function Speed() {
       <div className="speed-notes">
         <p><b>The fair comparison is Zag on one core.</b> On all cores, Zag spreads a loop it has proven safe across them by itself, while C, Rust and Go run the plain single-threaded code anyone would write first. <code>fib</code> is all function calls, so it can’t be split.</p>
         <p><b>Python isn’t drawn:</b> CPython took {BENCH.programs.map((p, i) => <span key={p.id}>{i ? ", " : ""}{p.python.toFixed(2)} s on <code>{p.id}</code></span>)}, between {Math.round(Math.min(...BENCH.programs.map((p) => p.python / p.times.zag1)))} and {Math.round(Math.max(...BENCH.programs.map((p) => p.python / p.times.zag1)))} times Zag’s time on one core.</p>
-        <p>Run on {BENCH.date}, on an Apple Silicon Mac with 10 cores, with nothing else running; every Zag program is a real final build of Zomp’s. Each program is written the plain way in each language; the time is from start to exit, best of 3, and every answer is checked against C’s.</p>
+        <p>Run on {BENCH.date}, on an Apple Silicon Mac with 10 cores, with nothing else running; every Zag program is a real final build of Zomp’s, at the same optimisation level as C (clang <code>-O3</code>) and Rust (<code>opt-level=3</code>). Each program is written the plain way in each language; the time is from start to exit, best of 3, and every answer is checked against C’s.</p>
       </div>
     </section>
   );
