@@ -14,7 +14,8 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; }
+/* No rubber-band bounce at the top or bottom of the page (owner, 2026-10-15). */
+html, body { margin: 0; overscroll-behavior: none; }
 body { font-family: var(--sans); color: var(--ink); background: var(--sky-top); -webkit-font-smoothing: antialiased; }
 
 /* The backdrop stays put while the page scrolls over it: the sky, the storm fading in over it,
