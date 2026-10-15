@@ -5,6 +5,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — The package manager is **Ricochet** (Zag Ricochet), not Zopm (owner)
+
+The owner, deciding the code rename's order: "Kinda wanna change the PM's name", then "It's just
+zpm". Design claude found `zpm` is one of Zig's community package indexes (beside zig.pm and
+zigistry), in the search results Zag already shares with Zig, and asked whether to keep it. The
+owner: "Ricochet (Zag Ricochet) is the PM. And yes, I know COD's anti-cheat is Ricochet." So **the
+package manager is Ricochet**, "Zag Ricochet" in full; Zopm (2026-10-14) is dropped. Not yet asked:
+its command, the manifest's name and its prefix (Zopm's were `Zopm.zv` and `zopm::`).
+
+The owner also floated "we could also rename cell to lib, and coil to zmod"; design claude noted
+`zmod` sits beside zigmod, a known Zig package manager. Open, asked one at a time.
+
 ### 2026-10-15 — The code moves to Zag's names in one sweep, later (owner: b)
 
 The owner: "Next thing we'll be doing is actually moving to Zag". Design claude listed the parts
