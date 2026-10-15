@@ -1,4 +1,4 @@
-# A small strike used by examples/uses_a_limb (a dependency: it has no MAIN). Only `pub` items reach
+# A small strike used by examples/uses_a_strike (a dependency: it has no MAIN). Only `pub` items reach
 # another strike; `pub.strike` and private ones stay home. `my.` here is this strike's root.
 
 bare.never [fn, struct];

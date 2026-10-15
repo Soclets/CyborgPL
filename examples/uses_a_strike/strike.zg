@@ -1,4 +1,4 @@
-# A strike that uses another (owner, 2026-09-29): Ricochet.zv lists it, `ricochet::dep[path = "../limbs/areas"]`,
+# A strike that uses another (owner, 2026-09-29): Ricochet.zv lists it, `ricochet::dep[path = "../strikes/areas"]`,
 # and its `pub` items are reached with `::` after its own 'prefix', `areas` (limbs.md, tooling.md).
 MAIN {
     let 'c': areas::Circle = areas::Circle[radius = 2.0];

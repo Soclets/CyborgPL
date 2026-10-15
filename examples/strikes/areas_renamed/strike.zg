@@ -1,4 +1,4 @@
-# A copy of examples/limbs/areas under the prefix `shapes`, as Synthia makes one for
+# A copy of examples/strikes/areas under the prefix `shapes`, as Synthia makes one for
 # `limb.areas2.prefix = shapes` (owner, 2026-09-30); `my.` here is this strike's root.
 
 bare.never [fn, struct];
