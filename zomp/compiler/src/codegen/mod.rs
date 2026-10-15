@@ -855,7 +855,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         }
                     }
                     None => {
-                        let br = self.builder.build_unconditional_branch(blocks[t.0 as usize]);
+                        let to = back_to_body(f, b, *t, self.par_child.is_some()).unwrap_or(*t);
+                        let br = self.builder.build_unconditional_branch(blocks[to.0 as usize]);
                         // The way round a loop that may run in slices, in the
                         // copy that runs in order: that copy only ever takes
                         // the short runs, and vectorising it hoisted its
@@ -4546,4 +4547,49 @@ fn nocheat_blocks(p: &crate::mir::Program) -> std::collections::HashSet<(usize, 
         }
     }
     out
+}
+
+/// Where a counting loop's way round may go instead of its head: straight
+/// into its body. The head asks whether the counter is still within the
+/// stop, and coming round the answer is already known — the step was taken
+/// only because there was room for it below the stop (above it, counting
+/// down). Asking again cost the sieve's inner loop a second compare on
+/// every trip (2026-10-15). Only a head that asks nothing else: no checks,
+/// no `!cheat` barrier. In a slice the stop is the slice's last trip, and
+/// the room has to be measured to it, not to a constant the stop was folded
+/// to — which is the loop's own stop.
+fn back_to_body(f: &Function, b: usize, head: BlockId, in_slice: bool) -> Option<BlockId> {
+    let fl = f.fors.iter().find(|fl| fl.head == head && fl.pre.0 as usize != b && !fl.nocheat)?;
+    // A step written as a number LLVM already folds the two tests into one,
+    // and does better with the head's than with the room's alone (bench
+    // lists: 3% slower).
+    if fl.step.is_none_or(|st| step_is_const(f, st)) {
+        return None;
+    }
+    let room_reads_stop = || {
+        f.blocks.iter().flat_map(|blk| &blk.stmts).any(|s| matches!(&s.kind, StmtKind::Assign { rvalue: Rvalue::Convert { operand: Operand::Read(p), .. }, .. } if p.local == fl.stop && p.proj.is_empty()))
+    };
+    if in_slice && !room_reads_stop() {
+        return None;
+    }
+    let only_temps = |blk: BlockId| {
+        f.blocks[blk.0 as usize].stmts.iter().all(|s| match &s.kind {
+            StmtKind::Assign { place, rvalue: Rvalue::Binary { .. } | Rvalue::Use(Operand::Const(_)) } => place.proj.is_empty() && f.locals[place.local.0 as usize].name.is_none(),
+            _ => false,
+        })
+    };
+    let Terminator::If { then: up, else_: down, .. } = &f.blocks[head.0 as usize].term else { return None };
+    let Terminator::If { then: body, else_: out_up, .. } = &f.blocks[up.0 as usize].term else { return None };
+    let Terminator::If { then: body_down, else_: out_down, .. } = &f.blocks[down.0 as usize].term else { return None };
+    (body == body_down && *out_up == fl.exit && *out_down == fl.exit && only_temps(head) && only_temps(*up) && only_temps(*down)).then_some(*body)
+}
+
+/// Whether a counting loop's step is a number written in the program: the
+/// one place it is given a value is a constant.
+fn step_is_const(f: &Function, step: LocalId) -> bool {
+    let mut given = f.blocks.iter().flat_map(|b| &b.stmts).filter_map(|s| match &s.kind {
+        StmtKind::Assign { place, rvalue } if place.local == step && place.proj.is_empty() => Some(rvalue),
+        _ => None,
+    });
+    matches!((given.next(), given.next()), (Some(Rvalue::Use(Operand::Const(_))), None))
 }

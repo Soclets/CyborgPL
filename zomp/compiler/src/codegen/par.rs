@@ -136,9 +136,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let v = this.builder.build_load(ty, slot, "v").ok()?.into_int_value();
             this.builder.build_int_cast_sign_flag(v, w, signed, "wide").ok()
         };
-        // How many trips, in 128 bits: a range's from its first value to
-        // its stop by its step, a list's its length.
-        let (trips, go_ok) = match pl.fl.step {
+        // Whether slices pay: trips times the work of one at least `WORTH`,
+        // and at least two trips. A range's trips are its span over its step
+        // plus one, so that is a span of at least `least` steps, asked with a
+        // multiply: the division waits until the loop is sliced. It was asked
+        // on every entry, once per prime in bench/sieve, mostly for loops of
+        // no trips at all, and was the sieve's gap to C (2026-10-15).
+        let least = if pl.work == 0 { None } else { Some(WORTH.div_ceil(pl.work).saturating_sub(1).max(1)) };
+        let (go, range) = match pl.fl.step {
             Some(step_l) => {
                 let c0 = load_wide(self, pl.fl.counter, csigned)?;
                 let (_, ssigned) = crate::cortex::smt::int_shape(&f.locals[pl.fl.stop.0 as usize].ty)?;
@@ -150,24 +155,40 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let span_down = self.builder.build_int_sub(c0, stop, "span").ok()?;
                 let mag = self.builder.build_select(up, step, self.builder.build_int_neg(step, "neg").ok()?, "mag").ok()?.into_int_value();
                 let span = self.builder.build_select(up, span_up, span_down, "span").ok()?.into_int_value();
-                let nonneg = self.builder.build_int_compare(IntPredicate::SGE, span, zero, "reached").ok()?;
-                let safe_mag = self.builder.build_select(self.builder.build_int_compare(IntPredicate::EQ, mag, zero, "zero").ok()?, w.const_int(1, false), mag, "by").ok()?.into_int_value();
-                let q = self.builder.build_int_signed_div(span, safe_mag, "q").ok()?;
-                let n = self.builder.build_int_add(q, w.const_int(1, false), "n").ok()?;
-                let n = self.builder.build_select(nonneg, n, zero, "trips").ok()?.into_int_value();
-                let moving = self.builder.build_int_compare(IntPredicate::NE, step, zero, "moving").ok()?;
-                (n, moving)
+                let go = match least {
+                    // A step's size is below 2^64 and `least` below `WORTH`,
+                    // so the product holds in 128 bits.
+                    Some(k) => {
+                        let need = self.builder.build_int_mul(mag, w.const_int(k, false), "need").ok()?;
+                        let enough = self.builder.build_int_compare(IntPredicate::SGE, span, need, "pays").ok()?;
+                        let moving = self.builder.build_int_compare(IntPredicate::NE, step, zero, "moving").ok()?;
+                        self.builder.build_and(enough, moving, "go").ok()?
+                    }
+                    None => self.ctx.bool_type().const_zero(),
+                };
+                (go, Some((span, mag)))
             }
-            None => (load_wide(self, pl.fl.stop, false)?, self.ctx.bool_type().const_int(1, false)),
+            None => {
+                let trips = load_wide(self, pl.fl.stop, false)?;
+                let work = self.builder.build_int_mul(trips, w.const_int(pl.work, false), "work").ok()?;
+                let pays = self.builder.build_int_compare(IntPredicate::UGE, work, w.const_int(WORTH, false), "pays").ok()?;
+                let several = self.builder.build_int_compare(IntPredicate::SGE, trips, w.const_int(2, false), "several").ok()?;
+                (self.builder.build_and(pays, several, "go").ok()?, None)
+            }
         };
-        let work = self.builder.build_int_mul(trips, w.const_int(pl.work, false), "work").ok()?;
-        let pays = self.builder.build_int_compare(IntPredicate::UGE, work, w.const_int(WORTH, false), "pays").ok()?;
-        let several = self.builder.build_int_compare(IntPredicate::SGE, trips, w.const_int(2, false), "several").ok()?;
-        let go = self.builder.build_and(pays, several, "go").ok()?;
-        let go = self.builder.build_and(go, go_ok, "go").ok()?;
         let par_b = self.ctx.append_basic_block(func, "in_slices");
         let _ = self.builder.build_conditional_branch(go, par_b, head);
         self.builder.position_at_end(par_b);
+        // How many trips, in 128 bits: a range's from its first value to its
+        // stop by its step (a span of at least one step, here), a list's its
+        // length.
+        let trips = match range {
+            Some((span, mag)) => {
+                let q = self.builder.build_int_signed_div(span, mag, "q").ok()?;
+                self.builder.build_int_add(q, w.const_int(1, false), "trips").ok()?
+            }
+            None => load_wide(self, pl.fl.stop, false)?,
+        };
 
         let shared = self.par_shared(fi, pl);
         let child = self.par_child_fn(fi, pl, &shared)?;

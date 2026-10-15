@@ -320,3 +320,5 @@ named_by_function 66
 vacuous_after_exact_quotient trap
 # A loop head's last copy took entries on the same condition as the trips walked, so the later trips were never asked (check claude, 2026-10-15, corpus 71a8d5a2): it stops now.
 past_the_inner_unrolling trap
+# A counting loop comes round into its body, not its head: the room for the step already said it is within the stop (2026-10-15).
+count_round_shortcut 67
