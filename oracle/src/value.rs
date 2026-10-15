@@ -356,7 +356,7 @@ pub fn round_brain_direct(x: f64) -> f64 {
 
 /// The nearest brain float to a number written in decimal (a literal, or text), rounded once from its exact
 /// value. Its 64-bit value can land exactly on a brain16 half step the decimal is not on (check claude,
-/// 2026-10-15, corpus 9e7f0e0b: 1.01171874999999999999); only then is the decimal itself compared with the
+/// 2026-10-15, corpus 3877b6f7: 1.01171874999999999999); only then is the decimal itself compared with the
 /// half step, exactly. Rounding to 64 bits never crosses a half step, which 64 bits holds exactly.
 pub fn round_brain_text(text: &str) -> Option<f64> {
     let t: String = text.chars().filter(|c| *c != '_').collect();
