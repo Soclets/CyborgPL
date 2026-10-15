@@ -408,6 +408,32 @@ fn floor_div(a: i128, b: i128) -> i128 {
     }
 }
 
+/// A decimal written with digits after the point, one unit in its last
+/// place up (`by` 1) or down (-1); never crosses zero here.
+fn dec_step(t: &str, by: i32) -> String {
+    let mut d: Vec<u8> = t.bytes().collect();
+    let mut i = d.len();
+    loop {
+        i -= 1;
+        if d[i] == b'.' {
+            continue;
+        }
+        if by > 0 {
+            if d[i] == b'9' { d[i] = b'0'; } else { d[i] += 1; break; }
+        } else if d[i] == b'0' {
+            d[i] = b'9';
+        } else {
+            d[i] -= 1;
+            break;
+        }
+        if i == 0 {
+            d.insert(0, b'1');
+            break;
+        }
+    }
+    String::from_utf8(d).unwrap()
+}
+
 fn is_literal_only(e: &Expr) -> bool {
     match e {
         Expr::Lit(_) | Expr::Bool(_) => true,
@@ -1825,6 +1851,68 @@ impl Gen {
         Stmt::Block { tier: Tier::Default, body: lines.into_iter().map(Stmt::Src).collect() }
     }
 
+    /// A number at a brain16 half step, or a hair either side of it, where
+    /// rounding through bin32 or bin64 first lands on the tie and goes the
+    /// wrong way: rounded once, straight to the nearest brain16, it must not
+    /// (types.md; the oracle rounded twice, 7457b90a, cd32091f). From an
+    /// int64, a literal, a bin64 or text; its stored value is printed.
+    fn brain_half_step(&mut self, body: &mut Vec<Stmt>) -> Expr {
+        let k = self.rng.range(128, 255);
+        let neg = self.rng.chance(25);
+        let whole = self.rng.chance(50);
+        // the tie (2k + 1) x 2^(p - 1), written exactly
+        let (text, int) = if whole {
+            let p = self.rng.range(27, 55);
+            let tie = (2 * k + 1) << (p - 1);
+            // 1 or a power of two below bin32's or bin64's resolution there
+            let off = match self.rng.below(4) {
+                0 => 0,
+                1 => 1,
+                2 => 1i128 << self.rng.range(0, (p - 26).min(30)),
+                _ => -(1i128 << self.rng.range(0, (p - 26).min(30))),
+            };
+            let v = if self.rng.chance(50) { tie + off } else { tie - off };
+            (v.to_string(), Some(v))
+        } else {
+            let q = self.rng.range(1, 30) as u32;
+            // (2k + 1) / 2^q exactly: its digits are (2k + 1) x 5^q
+            let digits = ((2 * k + 1) * 5i128.pow(q)).to_string();
+            let digits = format!("{:0>w$}", digits, w = q as usize + 1);
+            let (ip, fp) = digits.split_at(digits.len() - q as usize);
+            let mut t = format!("{ip}.{fp}");
+            // a hair below or above, past bin32's or bin64's digits
+            match self.rng.below(3) {
+                0 => {}
+                n => {
+                    t.push_str(&"0".repeat(self.rng.range(4, 24) as usize));
+                    t = if n == 1 { dec_step(&t, -1) } else { dec_step(&t, 1) };
+                }
+            }
+            (t, None)
+        };
+        let text = if neg { format!("-{text}") } else { text };
+        let lit = if text.contains('.') { text.clone() } else { format!("{text}.0") };
+        let w = self.name("w");
+        let value = match (self.rng.below(4), int) {
+            (0, Some(v)) if v <= i64::MAX as i128 => {
+                let i = self.name("i");
+                body.push(Stmt::Src(format!("let '{i}': int64 = {}{v};", if neg { "-" } else { "" })));
+                Expr::Conv("brain16".into(), Box::new(Expr::Var(i)), None)
+            }
+            (1, _) => {
+                let g = self.name("g");
+                body.push(Stmt::TypedLet { name: g.clone(), mutable: false, ty: "bin64".into(), value: Expr::Num(lit.clone()) });
+                Expr::Conv("brain16".into(), Box::new(Expr::Var(g)), None)
+            }
+            (2, _) => Expr::Conv("brain16".into(), Box::new(Expr::Text(text.clone())), Some(Box::new(Expr::Num("1.0".into())))),
+            _ => Expr::Num(lit),
+        };
+        let typed = !matches!(value, Expr::Conv(..));
+        body.push(if typed { Stmt::TypedLet { name: w.clone(), mutable: false, ty: "brain16".into(), value } } else { Stmt::AutoLet { name: w.clone(), value } });
+        body.push(Stmt::Src(format!("std::print.stored['{w}', newln];")));
+        Expr::Var(w)
+    }
+
     fn brain_episode(&mut self) -> Stmt {
         self.unevaluable = true;
         const LITS: &[&str] = &["0.1", "0.2", "0.5", "1.5", "2.5", "-1.75", "3.0", "12.75", "300.7", "0.001", "1000.0", "-0.3"];
@@ -1850,6 +1938,8 @@ impl Gen {
                     _ => format!("'{x}' {}.ieee {y}", self.rng.pick(&ops)),
                 };
                 Expr::Src(format!("({src})"))
+            } else if self.rng.chance(15) {
+                self.brain_half_step(&mut body)
             } else { match self.rng.below(8) {
                 0..=3 => {
                     let op = self.fraction_op(self.cfg.brain_mod);
