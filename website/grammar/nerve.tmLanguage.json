@@ -32,6 +32,9 @@
       "include": "#variable"
     },
     {
+      "include": "#old-spelling"
+    },
+    {
       "include": "#newline-piece"
     },
     {
@@ -300,7 +303,7 @@
         },
         {
           "comment": "A custom operator, or an operator handed over as a value: `op dot [...]`, `op <+>`, `op div.floor`.",
-          "match": "\\b(op)\\s+([\\p{L}_][\\p{L}\\p{N}_]*(?:\\.[\\p{L}_][\\p{L}\\p{N}_]*)*|[!%&*+\\-/<>=?@^|~]+)",
+          "match": "\\b(op)\\s+([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*(?:\\.[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)*|[!%&*+\\-/<>=?@^|~]+)",
           "captures": {
             "1": {
               "name": "keyword.declaration.operator.nerve"
@@ -312,7 +315,7 @@
         },
         {
           "comment": "fn name [params] --> type",
-          "match": "\\b(fn)\\s+([\\p{L}_][\\p{L}\\p{N}_]*)",
+          "match": "\\b(fn)\\s+([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)",
           "captures": {
             "1": {
               "name": "keyword.declaration.function.nerve"
@@ -324,7 +327,7 @@
         },
         {
           "comment": "struct / enum / interface declare a type's bare name.",
-          "match": "\\b(struct|enum|interface)\\s+([\\p{L}_][\\p{L}\\p{N}_]*)",
+          "match": "\\b(struct|enum|interface)\\s+([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)",
           "captures": {
             "1": {
               "name": "keyword.declaration.nerve"
@@ -335,8 +338,8 @@
           }
         },
         {
-          "comment": "module and limb declare a namespace.",
-          "match": "\\b(module|limb)\\s+([\\p{Ll}_][\\p{L}\\p{N}_]*)",
+          "comment": "module declares a namespace.",
+          "match": "\\b(module)\\s+([\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*)",
           "captures": {
             "1": {
               "name": "keyword.declaration.nerve"
@@ -374,7 +377,7 @@
           }
         },
         {
-          "match": "\\b(fail)\\s+([\\p{Ll}_][\\p{L}\\p{N}_]*)",
+          "match": "\\b(fail)\\s+([\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*)",
           "captures": {
             "1": {
               "name": "keyword.control.failure.nerve"
@@ -390,7 +393,7 @@
       "patterns": [
         {
           "comment": "A generic blank in angle brackets, optionally constrained by an interface: `<T>`, `<T: Ordered>`.",
-          "match": "(<)([\\p{L}_][\\p{L}\\p{N}_]*)(?:\\s*(:)\\s*([\\p{L}_][\\p{L}\\p{N}_]*))?(>)",
+          "match": "(<)([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)(?:\\s*(:)\\s*([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*))?(>)",
           "captures": {
             "1": {
               "name": "punctuation.definition.generic.begin.nerve"
@@ -411,7 +414,7 @@
         },
         {
           "comment": "A generic's bound after its brackets (2026-10-02): `<T>: any`, `<T>: Ordered`.",
-          "match": "(?<=>)\\s*(:)\\s*([\\p{L}_][\\p{L}\\p{N}_]*)",
+          "match": "(?<=>)\\s*(:)\\s*([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)",
           "captures": {
             "1": {
               "name": "punctuation.separator.type.nerve"
@@ -438,14 +441,14 @@
     "struct-name": {
       "comment": "Structs, enums and interfaces are named in PascalCase in the examples; functions are snake_case. A bare capitalised word is therefore a type — including where one is built (`Locker[…]`) or narrowed (`Status.empty`).",
       "name": "entity.name.type.nerve",
-      "match": "\\b\\p{Lu}[\\p{L}\\p{N}_]*\\b"
+      "match": "\\b\\p{Lu}[\\p{L}\\p{M}\\p{N}_]*\\b"
     },
     "field": {
       "comment": "A struct field or enum case names itself with a bare word before `:`; variables are quoted, so there is no clash.",
       "patterns": [
         {
           "comment": "A struct field or enum case names itself with a bare word before `:`; variables are quoted, so there is no clash.",
-          "match": "\\b([\\p{L}_][\\p{L}\\p{N}_]*)\\s*(:)(?!:)",
+          "match": "\\b([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)\\s*(:)(?!:)",
           "captures": {
             "1": {
               "name": "variable.other.member.declaration.nerve"
@@ -457,7 +460,7 @@
         },
         {
           "comment": "A field label when a struct is built: `Locker[number = 1]`. A bare word before a single `=`; assignments name a quoted variable instead.",
-          "match": "\\b([\\p{L}_][\\p{L}\\p{N}_]*)\\s*(=)(?![=>])",
+          "match": "\\b([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)\\s*(=)(?![=>])",
           "captures": {
             "1": {
               "name": "variable.other.member.nerve"
@@ -473,7 +476,7 @@
       "patterns": [
         {
           "comment": "An enum's case through its type: `Aisle.fresh`, `Status.empty` (a call, `Ticket.next[…]`, is a function).",
-          "match": "(?<![.'\\p{L}\\p{N}_])(\\p{Lu}[\\p{L}\\p{N}_]*)(\\.)([\\p{Ll}_][\\p{L}\\p{N}_]*)\\b(?!\\s*\\[)",
+          "match": "(?<![.'\\p{L}\\p{M}\\p{N}_])(\\p{Lu}[\\p{L}\\p{M}\\p{N}_]*)(\\.)([\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*)\\b(?!\\s*\\[)",
           "captures": {
             "1": {
               "name": "entity.name.type.nerve"
@@ -488,7 +491,7 @@
         },
         {
           "comment": "C's types, each C's size on the machine built for (2026-10-12): `C.int`, `C.long`, `C.size_t`, `C.long_double`.",
-          "match": "(?<![.\\p{L}\\p{N}_])(C)(\\.)([\\p{Ll}_][\\p{L}\\p{N}_]*)\\b",
+          "match": "(?<![.\\p{L}\\p{M}\\p{N}_])(C)(\\.)([\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*)\\b",
           "captures": {
             "1": {
               "name": "support.type.nerve"
@@ -517,9 +520,9 @@
           }
         },
         {
-          "comment": "Rust's number names, aliases for Nerve's (2026-10-02): i8–i128, u8–u128, f16 f32 f64; and the brain float, brain16 / bfloat16 / bf16.",
+          "comment": "The brain float, brain16 (2026-10-02). Rust's short names (i8, u8, f64…) and bfloat16 / bf16 are old spellings since 2026-10-07 (#old-spelling); inside a path they are names like any other.",
           "name": "support.type.numeric.nerve",
-          "match": "\\b(?:[iu](?:8|16|32|64|128)|f(?:16|32|64)|brain16|bfloat16|bf16)\\b"
+          "match": "\\bbrain16\\b"
         },
         {
           "comment": "Integers of any other width, \"not standard\" (2026-10-07): `not_std.int24`, `not_std.u4`, `not_std.uint256`.",
@@ -605,7 +608,7 @@
         },
         {
           "comment": "A library call through a built-in type is one dotted name up to its brackets: list.length[…], str.each.grapheme[…], simd.load.some[…].",
-          "match": "\\b(str|char|list|array|seq|map|simd|channel|ptr|optional)(\\.)([\\p{Ll}_][\\p{L}\\p{N}_]*(?:\\.[\\p{Ll}_][\\p{L}\\p{N}_]*)*)(?=\\s*\\[)",
+          "match": "\\b(str|char|list|array|seq|map|simd|channel|ptr|optional)(\\.)([\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*(?:\\.[\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*)*)(?=\\s*\\[)",
           "captures": {
             "1": {
               "name": "support.type.nerve"
@@ -625,7 +628,7 @@
         },
         {
           "comment": "A type written after `:` or `-->` that is none of the above is a struct in this module.",
-          "match": "(?:(:)|(->))\\s*(\\p{Lu}[\\p{L}\\p{N}_]*)(?![.\\p{L}\\p{N}_])",
+          "match": "(?:(:)|(->))\\s*(\\p{Lu}[\\p{L}\\p{M}\\p{N}_]*)(?![.\\p{L}\\p{M}\\p{N}_])",
           "captures": {
             "1": {
               "name": "punctuation.separator.type.nerve"
@@ -676,7 +679,7 @@
         },
         {
           "comment": "`size.of[T]`: its argument is a type, even a C struct's lowercase name (`size.of[tm]`).",
-          "match": "\\b(size)(\\.)(of)(\\[)([\\p{L}_][\\p{L}\\p{N}_]*)(\\])",
+          "match": "\\b(size)(\\.)(of)(\\[)([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)(\\])",
           "captures": {
             "1": {
               "name": "storage.modifier.nerve"
@@ -700,7 +703,7 @@
         },
         {
           "comment": "A C enum's case through its lowercase name (2026-10-12): `color.BLUE`, `level_t.LOW`.",
-          "match": "(?<![.'\\p{L}\\p{N}_])([\\p{Ll}_][\\p{L}\\p{N}_]*)(\\.)([A-Z][A-Z0-9_]*)\\b(?![\\p{Ll}])",
+          "match": "(?<![.'\\p{L}\\p{M}\\p{N}_])([\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*)(\\.)([A-Z][A-Z0-9_]*)\\b(?![\\p{Ll}])",
           "captures": {
             "1": {
               "name": "entity.name.type.nerve"
@@ -728,8 +731,8 @@
           "match": "\\bis\\b"
         },
         {
-          "comment": "`my.` is the root of this Limb's own paths: `my.'scale'`, and `my.to[]`, a function a keyword's name can't reach otherwise (2026-10-06).",
-          "match": "\\b(my)(\\.)(?:([\\p{L}_][\\p{L}\\p{N}_]*)(?=\\s*\\[))?",
+          "comment": "`my.` is the root of this strike's own paths: `my.'scale'`, and `my.to[]`, a function a keyword's name can't reach otherwise (2026-10-06).",
+          "match": "\\b(my)(\\.)(?:([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)(?=\\s*\\[))?",
           "captures": {
             "1": {
               "name": "variable.language.root.nerve"
@@ -758,7 +761,7 @@
           }
         },
         {
-          "comment": "A Neuron's marks for its names: `bare.never`, `bare.only`, `bare.optional` (whether the path is needed) and `case.any` / `case.exact` (2026-10-12), optionally for kinds: `[fn, var]`.",
+          "comment": "A strike's marks for its names: `bare.never`, `bare.only`, `bare.optional` (whether the path is needed) and `case.any` / `case.exact` (2026-10-12), optionally for kinds: `[fn, var]`.",
           "match": "\\b(bare|case)(\\.)(never|only|optional|any|exact)\\b(?:\\s*(\\[)([^\\]]*)(\\]))?",
           "captures": {
             "1": {
@@ -831,7 +834,7 @@
         },
         {
           "comment": "`test fn name [] { … }` and its assertions (2026-09-29): `must`, `must.fail` (something fails; `.reason` names which), `must.stop` (a check site fires).",
-          "match": "\\b(test)(?=\\s+fn\\b)|\\b(must(?:\\.fail|\\.stop)?)\\b(?:(\\.)([\\p{Ll}_][\\p{L}\\p{N}_]*))?",
+          "match": "\\b(test)(?=\\s+fn\\b)|\\b(must(?:\\.fail|\\.stop)?)\\b(?:(\\.)([\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*))?",
           "captures": {
             "1": {
               "name": "keyword.other.test.nerve"
@@ -884,18 +887,17 @@
         },
         {
           "name": "keyword.control.nerve",
-          "match": "\\b(?:if|else|loop|while|for|in|break|continue|return|giveS|match|whichever|concur)\\b",
-          "comment": "`giveS` is a `#strict` match arm's value (2026-09-29; the capital S keeps it apart from `give`)."
+          "match": "\\b(?:if|else|loop|while|for|in|break|continue|return|match|whichever|concur)\\b"
         },
         {
-          "comment": "`pub.limb` is `pub.neuron` since 2026-10-09: a library is a Neuron.",
+          "comment": "`pub.limb` and `pub.neuron` are `pub.strike` (spellings.zv): a library is a strike.",
           "name": "invalid.deprecated.nerve",
           "match": "\\bpub\\.(?:limb|neuron)\\b"
         },
         {
           "name": "keyword.declaration.nerve",
           "match": "\\b(?:pub\\.strike|let|fn|struct|enum|interface|module|const|pub|op|extern|layout|inline|asm|ASM)\\b",
-          "comment": "`pub.limb` is `pub` narrowed: visible across the limb."
+          "comment": "`pub.strike` is `pub` narrowed: visible across the strike."
         },
         {
           "name": "storage.modifier.nerve",
@@ -916,7 +918,7 @@
           "match": "\\b(?:true|false)\\b"
         },
         {
-          "comment": "Retired, still reserved so the error can point at the new spelling: var/func and gives (now giveS).",
+          "comment": "Retired, still reserved so the error can point at the new spelling: var/func, and gives (now is).",
           "name": "invalid.deprecated.nerve",
           "match": "\\b(?:var|func|gives)\\b"
         }
@@ -926,7 +928,7 @@
       "patterns": [
         {
           "comment": "A capitalised name reached through a module is a type: `counter.Count`, `counter.Count[n = 1]`.",
-          "match": "(\\.)(\\p{Lu}[\\p{L}\\p{N}_]*)",
+          "match": "(\\.)(\\p{Lu}[\\p{L}\\p{M}\\p{N}_]*)",
           "captures": {
             "1": {
               "name": "punctuation.accessor.nerve"
@@ -949,8 +951,8 @@
           }
         },
         {
-          "comment": "Limb path: cord::print.useful[…]. The :: is a Limb boundary.",
-          "match": "\\b([\\p{L}_][\\p{L}\\p{N}_]*)(::)((?:[\\p{L}_][\\p{L}\\p{N}_]*)(?:\\.[\\p{L}_][\\p{L}\\p{N}_]*)*)",
+          "comment": "A strike's path: std::print.useful[…]. The :: is a strike's boundary.",
+          "match": "\\b([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)(::)((?:[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)(?:\\.[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)*)",
           "captures": {
             "1": {
               "name": "entity.name.namespace.nerve"
@@ -965,7 +967,7 @@
         },
         {
           "comment": "A conversion: to.int32[…], to.str.utf8[…].",
-          "match": "\\b(to)(\\.)((?:[\\p{L}_][\\p{L}\\p{N}_]*)(?:\\.[\\p{L}_][\\p{L}\\p{N}_]*)*)",
+          "match": "\\b(to)(\\.)((?:[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)(?:\\.[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)*)",
           "captures": {
             "1": {
               "name": "keyword.other.conversion.nerve"
@@ -980,7 +982,7 @@
         },
         {
           "comment": "A struct built with its fields named is a type, even a C struct's lowercase name: `buf[size = 42, count = 7]`.",
-          "match": "\\b([\\p{Ll}_][\\p{L}\\p{N}_]*)(?=\\[\\s*[\\p{L}_][\\p{L}\\p{N}_]*\\s*=(?![=>]))",
+          "match": "\\b([\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*)(?=\\[\\s*[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*\\s*=(?![=>]))",
           "captures": {
             "1": {
               "name": "entity.name.type.nerve"
@@ -989,7 +991,7 @@
         },
         {
           "comment": "Calls use brackets, never parentheses: add[1, 2].",
-          "match": "\\b([\\p{L}_][\\p{L}\\p{N}_]*)\\s*(?=\\[)",
+          "match": "\\b([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)\\s*(?=\\[)",
           "captures": {
             "1": {
               "name": "entity.name.function.nerve"
@@ -998,7 +1000,7 @@
         },
         {
           "comment": "A bare lowercase segment between dots, after a bare word, is a module: counter.inner.twice[…]. A quoted variable's field chain starts with ' and is left to the narrowing rule.",
-          "match": "(?<=[A-Za-z0-9_])(\\.)([\\p{Ll}_][\\p{L}\\p{N}_]*)(?=\\.[a-z_])",
+          "match": "(?<=[A-Za-z0-9_])(\\.)([\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*)(?=\\.[a-z_])",
           "captures": {
             "1": {
               "name": "punctuation.accessor.nerve"
@@ -1010,7 +1012,7 @@
         },
         {
           "comment": "A dotted name called with brackets is a function: `counter.bump[…]`, `map.remove[…]`.",
-          "match": "(\\.)([\\p{L}_][\\p{L}\\p{N}_]*)(?=\\s*\\[)",
+          "match": "(\\.)([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)(?=\\s*\\[)",
           "captures": {
             "1": {
               "name": "punctuation.accessor.nerve"
@@ -1022,7 +1024,7 @@
         },
         {
           "comment": "A dot narrows: 'xs'.length, str.utf8, lend.mut.",
-          "match": "(\\.)([\\p{L}_][\\p{L}\\p{N}_]*)",
+          "match": "(\\.)([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)",
           "captures": {
             "1": {
               "name": "punctuation.accessor.nerve"
@@ -1193,7 +1195,7 @@
     },
     "enum-body": {
       "comment": "Inside `enum Name { … }` every bare word is a case; a case with a payload is written `some: <T>`, and in a `layout.c enum` a case is given its number: `a = 65`.",
-      "begin": "\\b(enum)\\s+([\\p{L}_][\\p{L}\\p{N}_]*)\\s*(<[^>]*>)?\\s*(?:(:)\\s*([\\p{L}_][\\p{L}\\p{N}_]*))?\\s*(\\{)",
+      "begin": "\\b(enum)\\s+([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)\\s*(<[^>]*>)?\\s*(?:(:)\\s*([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*))?\\s*(\\{)",
       "end": "\\}",
       "beginCaptures": {
         "1": {
@@ -1245,7 +1247,7 @@
           "include": "#struct-name"
         },
         {
-          "match": "\\b([\\p{L}_][\\p{L}\\p{N}_]*)\\s*(:)(?!:)",
+          "match": "\\b([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)\\s*(:)(?!:)",
           "captures": {
             "1": {
               "name": "variable.other.enummember.nerve"
@@ -1257,7 +1259,7 @@
         },
         {
           "name": "variable.other.enummember.nerve",
-          "match": "\\b[\\p{L}_][\\p{L}\\p{N}_]*\\b"
+          "match": "\\b[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*\\b"
         },
         {
           "include": "#number"
@@ -1274,7 +1276,7 @@
     },
     "case-arm": {
       "comment": "An arm of `match` or of an `otherwise { … }` handler names an enum case or a failure: a bare word, optionally binding a quoted variable, before `{`. Keywords that open a block (`else`, `loop`, `concur`…) are matched earlier and win. A word straight after a value is an operator position (`'a' and 'b' {`), never an arm, so that position is excluded.",
-      "match": "(?<!['\\)\\]\\d] )\\b(?!(?:plus|minus|times|pow|div|mod|and|or|not|xor|shl|shr|equal_to|not_equal|at_most|at_least|is)\\b)([\\p{Ll}_][\\p{L}\\p{N}_]*)(?:\\s+('[^'\\n]+'))?\\s*(?=\\{)",
+      "match": "(?<!['\\)\\]\\d] )\\b(?!(?:plus|minus|times|pow|div|mod|and|or|not|xor|shl|shr|equal_to|not_equal|at_most|at_least|is)\\b)([\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*)(?:\\s+('[^'\\n]+'))?\\s*(?=\\{)",
       "captures": {
         "1": {
           "name": "variable.other.enummember.nerve"
@@ -1316,7 +1318,7 @@
     },
     "word-operator": {
       "comment": "A bare word between two values is a custom infix operator: `'u' dot 'v'`. Keywords at the same place (`in`) are matched earlier and win.",
-      "match": "(?<=['\\)\\]\\d] )([\\p{Ll}_][\\p{L}\\p{N}_]*)(?=\\s+['\\(\\d\\[])",
+      "match": "(?<=['\\)\\]\\d] )([\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*)(?=\\s+['\\(\\d\\[])",
       "captures": {
         "1": {
           "name": "keyword.operator.word.custom.nerve"
@@ -1325,7 +1327,7 @@
     },
     "module-path": {
       "comment": "A lowercase bare word before `.` is a module: `counter.Count`, `counter.inner.twice`. The parser enforces lowercase module names. Built-in types before a dot (`str.utf8`, `map.remove`) are matched earlier.",
-      "match": "\\b([\\p{Ll}_][\\p{L}\\p{N}_]*)(?=\\.[A-Za-z_'])",
+      "match": "\\b([\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*)(?=\\.[A-Za-z_'])",
       "captures": {
         "1": {
           "name": "entity.name.namespace.nerve"
@@ -1335,7 +1337,7 @@
     "function-ref": {
       "comment": "Variables are always quoted, so a bare lowercase word left over is a function named as a value: `first_by[…, by_number]`, `let 'f' := by_number;`.",
       "name": "entity.name.function.reference.nerve",
-      "match": "\\b[\\p{Ll}_][\\p{L}\\p{N}_]*\\b"
+      "match": "\\b[\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*\\b"
     },
     "strict": {
       "comment": "`#strict` was retired 2026-10-07; what it wrote out is every file's now.",
@@ -1358,7 +1360,7 @@
     },
     "lifetime": {
       "comment": "`@x` names a lifetime group on a returned borrow, `--> lent@x T`.",
-      "match": "(@)([\\p{L}_][\\p{L}\\p{N}_]*)",
+      "match": "(@)([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)",
       "captures": {
         "1": {
           "name": "punctuation.definition.lifetime.nerve"
@@ -1429,7 +1431,7 @@
       ]
     },
     "precedence-block": {
-      "comment": "A Limb's operator precedence (2026-10-03): `precedence.low_first { … }` or `precedence.high_first { … }`.",
+      "comment": "A strike's operator precedence (2026-10-03): `precedence.low_first { … }` or `precedence.high_first { … }`.",
       "begin": "\\b(precedence)(\\.)(low_first|high_first)\\s*(\\{)",
       "end": "\\}",
       "beginCaptures": {
@@ -1480,6 +1482,100 @@
           "name": "constant.language.empty.nerve"
         }
       }
+    },
+    "old-spelling": {
+      "comment": "The old spellings spellings.zv lists (76 rows, 2026-10-15), shown as errors where the language refuses them, each only in the place its row names: a type name outside a path, an operator between values, a word after `inline.`.",
+      "patterns": [
+        {
+          "comment": "Rust's and short number names: int8 and the rest, outside a path (not after :: or .).",
+          "name": "invalid.deprecated.nerve",
+          "match": "(?<![.:\\p{L}\\p{M}\\p{N}_'])(?:i8|i16|i32|i64|i128|u8|u16|u32|u64|u128|f16|f32|f64|bfloat16|bf16)\\b(?!::)"
+        },
+        {
+          "comment": "The same after a strike's path, as std::print.useful.auto_newline.",
+          "match": "\\b([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)(::)((?:[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*\\.)*)(auto_newline)\\b",
+          "captures": {
+            "1": {
+              "name": "entity.name.namespace.nerve"
+            },
+            "2": {
+              "name": "punctuation.separator.namespace.nerve"
+            },
+            "3": {
+              "name": "entity.name.function.nerve"
+            },
+            "4": {
+              "name": "invalid.deprecated.nerve"
+            }
+          }
+        },
+        {
+          "comment": "giveS and gives are `is`; auto_newline is auto_newln; limb and neuron are strike (limb. is my.).",
+          "match": "\\b((?:[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*\\.)*)(auto_newline)\\b",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.nerve"
+            },
+            "2": {
+              "name": "invalid.deprecated.nerve"
+            }
+          }
+        },
+        {
+          "name": "invalid.deprecated.nerve",
+          "match": "\\b(?:giveS|limb|neuron)\\b"
+        },
+        {
+          "comment": "inline.Assembly, inline.S, inline.LLVM and the long names are inline.ASM, inline.LL, inline.MSL.",
+          "match": "\\b(inline)(\\.)(Assembly|S|LLVM_Intermediate_Representation|LLVM|Metal_Shading_Language)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.declaration.nerve"
+            },
+            "2": {
+              "name": "punctuation.accessor.nerve"
+            },
+            "3": {
+              "name": "invalid.deprecated.nerve"
+            }
+          }
+        },
+        {
+          "comment": "x, xx, x~, xx~ between values are times, pow and their .wrap forms. Not a field (x: …), a member (.x), a lifetime (@x) or a register (x0).",
+          "name": "invalid.deprecated.nerve",
+          "match": "(?<![\\p{L}\\p{M}\\p{N}_'.@])(?:xx~|x~|xx|x)(?![\\p{L}\\p{M}\\p{N}_'~])(?!\\s*:(?!:))(?!\\s*=)"
+        },
+        {
+          "comment": "The arrows past the short ones, and the comparisons with = tacked on: -> and <- (and <->) are the only arrows; != <= >= or the words.",
+          "name": "invalid.deprecated.nerve",
+          "match": "<<<\\|>>>|<<\\|>>|<--\\|-->|<-\\|->|<---->|<<<>>>|<<>>|<-->|>>>|<<<|>>|<<|!==|</==|>/=="
+        },
+        {
+          "comment": "! in front of a value is `not`; between two values it is a custom operator (op_bang.zg).",
+          "name": "invalid.deprecated.nerve",
+          "match": "(?<![\\p{L}\\p{M}\\p{N}_'\\)\\]])!(?=['\\p{L}\\p{M}\\p{N}(\\[])(?!check|cheat|mut\\b|std\\.)"
+        },
+        {
+          "comment": "$:= and $= are shadow.",
+          "name": "invalid.deprecated.nerve",
+          "match": "\\$:?="
+        },
+        {
+          "comment": "A manifest's cores and lobes are its plugins.",
+          "name": "invalid.deprecated.nerve",
+          "match": "\\b(?:cores|lobes)\\b(?=\\s*=)"
+        },
+        {
+          "comment": "level.when_chained is `level 2 { plus, minus } left_first`.",
+          "name": "invalid.deprecated.nerve",
+          "match": "\\blevel\\.when_chained\\b"
+        },
+        {
+          "comment": "A bare \\n among a print's values is newln. Inside a text it stays text (print.format's \\n is its own).",
+          "name": "invalid.deprecated.nerve",
+          "match": "\\\\n\\b"
+        }
+      ]
     }
   }
 }
