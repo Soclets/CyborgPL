@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="brand/zag/logo.svg" alt="Zag" width="160">
+  <img src="brand/logo.svg" alt="CyborgPL" width="160">
 </p>
 
-<h3 align="center">ZAG</h3>
+<h3 align="center">CyborgPL</h3>
 
 <p align="center">Just a small hobby lang 😊<br>
 Very slow at the development, fast &amp; safe at the final product (no warranty 🤣).</p>
@@ -11,39 +11,39 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 > **Not family friendly**.
 > "Not family friendly" means (the definition used in this place) **NOT FUCKING FAMILY FRIENDLY**
 >
-> Zag is being experimented with, so please don't expect stability: any release may change or remove anything, and it comes with **no warranty**. **Only this repository and [zag-lang.org](https://zag-lang.org) speak for Zag.** If something said elsewhere, for example in an article, a search result or an AI summary, doesn't match them, you should likely trust this repository and zag-lang.org, not the other source. We aren't responsible for what others say. See our licences: [`LICENSE`](LICENSE) for the code and everything else, and [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) for the writing (this repo's Markdown files and the website's text) and the logos.
+> CyborgPL is being experimented with, so please don't expect stability: any release may change or remove anything, and it comes with **no warranty**. **Only this repository and [cyborgpl.dev](https://cyborgpl.dev) speak for CyborgPL.** If something said elsewhere, for example in an article, a search result or an AI summary, doesn't match them, you should likely trust this repository and cyborgpl.dev, not the other source. We aren't responsible for what others say. See our licences: [`LICENSE`](LICENSE) for the code and everything else, and [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) for the writing (this repo's Markdown files and the website's text) and the logos.
 
 - [`DECISIONS.md`](DECISIONS.md) — every settled design decision, dated, with what was proposed against it.
 - [`design/`](design/) — the design documents, one topic per file.
 - [`examples/`](examples/) — programs in settled syntax, each with its expected output.
 - [`oracle/`](oracle/) — the reference interpreter: the executable spec.
-- [`zomp/`](zomp/) — the compiler, Zomp.
-- [`brand/`](brand/) — the official logo is the Zag cloud in [`brand/zag/`](brand/zag/) (owner, 2026-10-14): a light-to-blue gradient cloud with "ZAG" in yellow, one logo at every size, shown at the top. Nerve's (the NERVE wordmark and the medical-cross icon in [`brand/nerve/`](brand/nerve/)) and CyborgPL's earlier mark stay in `brand/` as history.
+- [`zomp/`](zomp/) — the compiler, `KAYO\n` (`kayo` to type; the folder keeps its Zag-era name until the code moves).
+- [`brand/`](brand/) — the official logo is CyborgPL's again (owner, 2026-10-15): a thick C wrapping `:=`, the language's own declaration operator, white on black ([`brand/logo.svg`](brand/logo.svg), [`brand/mark-black.svg`](brand/mark-black.svg), [`brand/mark-white.svg`](brand/mark-white.svg), [`brand/avatar.svg`](brand/avatar.svg)), shown at the top. Zag's cloud ([`brand/zag/`](brand/zag/)) and Nerve's wordmark ([`brand/nerve/`](brand/nerve/)) stay as history.
 - [`LICENSE`](LICENSE) — Apache-2.0 WITH LLVM-exception. Programs you compile owe nothing; a fork keeps the notices and may not use the name.
 - [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) — CC BY 4.0, for this repo's text (its Markdown files: this README, `DECISIONS.md`, `design/` and the other notes), the website's text (`website/`) and the logo files (`brand/`): copy them, translate, remix, use them anywhere, with credit. Credit them exactly as:
-  - this repo's text: `Zag GitHub repo text: https://zag-lang.org, https://github.com/Soclets/Zag-lang`
-  - the website's text: `Zag website text: https://zag-lang.org, https://github.com/Soclets/Zag-lang`
-  - the logos: `Zag logo(s): https://zag-lang.org, https://github.com/Soclets/Zag-lang`
+  - this repo's text: `CyborgPL GitHub repo text: https://cyborgpl.dev, https://github.com/Soclets/CyborgPL`
+  - the website's text: `CyborgPL website text: https://cyborgpl.dev, https://github.com/Soclets/CyborgPL`
+  - the logos: `CyborgPL logo(s): https://cyborgpl.dev, https://github.com/Soclets/CyborgPL`
 
   As the licence asks, also say they are under CC BY 4.0, and whether you changed them. The site's code stays under `LICENSE`.
 
 <details>
 <summary><b>Credits</b></summary>
 
-Zag™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS.md`](DECISIONS.md). Everything below helped build it.
+CyborgPL™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS.md`](DECISIONS.md). Everything below helped build it.
 
-**Claude**, by [Anthropic](https://www.anthropic.com), wrote most of the code and documents here under the owner's direction, as five [Claude Code](https://claude.com/claude-code) sessions: *design claude* (the design notes, the decision log, the oracle and the benchmarks in `bench/`), *compiler claude* (Zomp, in `zomp/`), *std claude* (the standard library, written in Zag), *check claude* (the program generator, differential testing and translation validation in `check/`) and *website claude* (`website/`). Two more work in their own repos: *synthia claude* on [Synthia](https://github.com/Cyborg-Assembly-Manufacturing-Site/Synthia), and *RRx2-TV claude* on RRx2's translation validator. Each signs its commits with its house name; the models behind them include Claude Opus 5 and Claude Opus 5.5.
+**Claude**, by [Anthropic](https://www.anthropic.com), wrote most of the code and documents here under the owner's direction, as five [Claude Code](https://claude.com/claude-code) sessions: *design claude* (the design notes, the decision log, the oracle and the benchmarks in `bench/`), *compiler claude* (`KAYO\n`, in `zomp/`), *std claude* (the standard library, written in CyborgPL itself), *check claude* (the program generator, differential testing and translation validation in `check/`) and *website claude* (`website/`). Two more work in their own repos: *synthia claude* on [Synthia](https://github.com/Cyborg-Assembly-Manufacturing-Site/Synthia), and *RRx2-TV claude* on RRx2's translation validator. Each signs its commits with its house name; the models behind them include Claude Opus 5 and Claude Opus 5.5.
 
 **Languages and tools**
-- [Rust](https://www.rust-lang.org) and Cargo: the oracle, Zomp and the verification harness.
-- [LLVM](https://llvm.org) 22: Zomp's code generator, through [llvm-sys](https://crates.io/crates/llvm-sys) and [Inkwell](https://github.com/TheDan64/inkwell).
-- [Z3](https://github.com/Z3Prover/z3) (Microsoft Research) and [cvc5](https://cvc5.github.io): the SMT solvers behind Zomp's proofs, and the independent check of them.
-- [Alive2](https://github.com/AliveToolkit/alive2): check claude's first translation validation, proving LLVM's rewrites of Zomp's code.
-- [Clang](https://clang.llvm.org): the C programs Zomp is benchmarked against (`zomp/bench/`, `bench/`), and the C side of `bench/gpu/`.
+- [Rust](https://www.rust-lang.org) and Cargo: the oracle, `KAYO\n` and the verification harness.
+- [LLVM](https://llvm.org) 22: `KAYO\n`'s code generator, through [llvm-sys](https://crates.io/crates/llvm-sys) and [Inkwell](https://github.com/TheDan64/inkwell).
+- [Z3](https://github.com/Z3Prover/z3) (Microsoft Research) and [cvc5](https://cvc5.github.io): the SMT solvers behind Precog's proofs, and the independent check of them.
+- [Alive2](https://github.com/AliveToolkit/alive2): check claude's first translation validation, proving LLVM's rewrites of `KAYO\n`'s code.
+- [Clang](https://clang.llvm.org): the C programs `KAYO\n` is benchmarked against (`zomp/bench/`, `bench/`), and the C side of `bench/gpu/`.
 - Metal and Xcode's Metal Toolchain, by Apple: the GPU side of `bench/gpu/`.
 - The compilers and runtimes of `bench/`'s other languages (26 with C): C++, Rust, Go, Zig, Swift, Nim, Fortran (gfortran), OCaml, Dart, Java, Kotlin, C# (.NET), JavaScript and TypeScript (Node), Julia, LuaJIT, PyPy, Elixir, Erlang, Lust, Python, Ruby, Lua, Perl and R.
 - [Python](https://www.python.org): the benchmark runners.
-- [Bungee](https://github.com/djrrb/Bungee) (SIL Open Font License 1.1): the letters of the Zag logo, turned into outlines.
+- [Bungee](https://github.com/djrrb/Bungee) (SIL Open Font License 1.1): the letters of Zag's cloud logo (2026-10-14), turned into outlines.
 - [Node.js](https://nodejs.org) and npm: the website's build.
 - [Homebrew](https://brew.sh): LLVM, Z3, cvc5, Alive2 and most of the benchmark's toolchains on the build machine.
 - [Git](https://git-scm.com), [GitHub](https://github.com) and the [GitHub CLI](https://cli.github.com): hosting and history.
@@ -53,7 +53,7 @@ Zag™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS
 **Data**
 - The [Unicode Character Database](https://www.unicode.org/ucd/) 17.0.0 and [UAX #29](https://www.unicode.org/reports/tr29/): grapheme clusters in `str` and `char`.
 
-**Rust crates** (Zomp, from `zomp/Cargo.lock`)
+**Rust crates** (`KAYO\n`, from `zomp/Cargo.lock`)
 
 `anyhow` 1.0.104, `bitflags` 2.13.2, `cc` 1.4.7, `find-msvc-tools` 0.1.13, `inkwell` 0.10.0, `inkwell_internals` 0.15.0, `lazy_static` 1.5.0, `libc` 0.2.189, `llvm-sys` 221.1.0, `proc-macro2` 1.0.107, `quote` 1.0.47, `regex-lite` 0.1.9, `semver` 1.0.28, `shlex` 2.0.1, `syn` 3.0.6, `thiserror` 2.0.20, `thiserror-impl` 2.0.20, `unicode-ident` 1.0.26, `unicode-segmentation` 1.13.3.
 
@@ -86,4 +86,4 @@ The oracle and the verification harness use no crates.
 </details>
 
 Copyright 2026 Tankun Sriket.
-Zag™ (formerly Nerve and CyborgPL), Zomp™ (formerly Synapse) and Ricochet™ (formerly Kinesin) are names of this project, and the Zag cloud logo is its mark. They are trademarks, not registered. **You may use the names and logos anywhere** — in articles, talks, comparisons, links, your own projects about Zag — **as long as you don't pretend to be us**: nothing that says or suggests it is the official Zag, made or endorsed by this project, when it isn't.
+CyborgPL™, `KAYO\n`™ (written `kayo`), Precog™ and CyJet™ are names of this project, and the C-with-`:=` logo is its mark; the names it had along the way (Nerve and Zag for the language; Synapse, Cortex, Zomp, Kinesin and Ricochet for its tools) are history, with no ™. They are trademarks, not registered. **You may use the names and logos anywhere** — in articles, talks, comparisons, links, your own projects about CyborgPL — **as long as you don't pretend to be us**: nothing that says or suggests it is the official CyborgPL, made or endorsed by this project, when it isn't.
