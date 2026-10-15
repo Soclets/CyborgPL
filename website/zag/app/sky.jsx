@@ -106,7 +106,9 @@ export function Backdrop() {
 const LINKS = [["Home", "/#home"], ["Download", "/download"], ["Docs", "/docs"], ["Examples", "/examples"], ["More", "/more"]];
 export function Pill() {
   const { pathname } = useLocation();
-  const here = pathname === "/" ? "/#home" : pathname;
+  // A prerendered page is built at /more/, so a trailing slash is dropped before matching.
+  const path = pathname.replace(/\/+$/, "") || "/";
+  const here = path === "/" ? "/#home" : path;
   // One white highlight slides from the last page's button to this one's (owner: "The pill
   // buttons should slide when clicked"). It is placed without sliding the first time, so it
   // doesn't fly in from the left as the page opens.

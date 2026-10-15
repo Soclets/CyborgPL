@@ -291,6 +291,30 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 .speed-notes code { font: 600 .9em ui-monospace, "SF Mono", Menlo, monospace; padding: 1px 5px; border-radius: 5px; background: rgba(23, 87, 176, .1); color: var(--edge); }
 
 
+/* A page other than Home: it scrolls inside its own frame, the sky still behind it. */
+.page { position: fixed; inset: 0; z-index: 1; overflow-y: auto; overscroll-behavior: none; padding: 84px 16px 8vh; }
+.page-body { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.page-title { margin: 2vh 0 4px; text-align: center; font-weight: 700; font-size: clamp(36px, 6vw, 60px); paint-order: stroke fill; -webkit-text-stroke: 8px var(--edge); }
+.info { padding: 22px 24px; border-radius: 22px; color: #23406E; background: rgba(255, 255, 255, .8); border: 1px solid rgba(255, 255, 255, .9);
+  -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%); box-shadow: 0 12px 30px rgba(10, 50, 110, .16); font-size: 16px; line-height: 1.55; }
+.info h2 { margin: 0 0 10px; font-size: 24px; color: var(--edge); }
+.info h3 { margin: 14px 0 4px; font-size: 18px; color: #0F2A5C; }
+.info p { margin: 0 0 10px; }
+.info p:last-child { margin-bottom: 0; }
+.info b { color: #0F2A5C; }
+.info a { color: var(--edge); font-weight: 600; }
+.info .small { font-size: 14px; color: #5A7299; }
+.info.warn { background: rgba(255, 246, 214, .9); border-color: rgba(255, 212, 59, .7); }
+.info.warn h2 { color: #8A5A00; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.two h3 { margin-top: 0; }
+@media (max-width: 640px) { .two { grid-template-columns: 1fr; } }
+.credit-lines { list-style: none; margin: 4px 0 12px; padding: 0; display: grid; gap: 8px; }
+.credit-lines li { display: grid; gap: 2px; }
+.credit-lines span { font-size: 13px; font-weight: 700; color: #5A7299; }
+.credit-lines code { padding: 8px 12px; border-radius: 10px; background: rgba(23, 87, 176, .08); font: 600 13px/1.5 ui-monospace, "SF Mono", Menlo, monospace; color: #0F2A5C; overflow-wrap: anywhere; user-select: all; }
+.plain { margin: 6px 0 12px; padding-left: 20px; display: grid; gap: 6px; }
+
 /* The top bar: a floating pill of frosted glass, the sky showing through (owner: "Glass"). */
 .pill { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 4px; max-width: calc(100% - 24px);
   opacity: var(--site-fade, 1);
