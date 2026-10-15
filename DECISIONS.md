@@ -5,11 +5,12 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
-### 2026-10-15 — Kits are numbered with whole numbers: ZDK 1, then ZDK 2 (owner)
+### 2026-10-15 — Kits are numbered with whole numbers: ZDK 1, then ZDK 2; the ZCK matches (owner)
 
 The owner: "There are no dots, it's just ZDK 1, the next ZDK 2". So **a release of the ZDK is numbered by
-a whole number**, no `1.2.3`: ZDK 1, then ZDK 2. Not yet asked: whether the ZCK follows the same numbering and
-matches the ZDK release for release, and how Zomp's own `0.0.1` relates.
+a whole number**, no `1.2.3`: ZDK 1, then ZDK 2. Then design claude asked whether the ZCK follows it, release
+for release (ZCK 1 goes with ZDK 1, both move to 2 together), recommended; the owner: "yea". So **the ZCK
+carries the same number as the ZDK it goes with**. Not yet asked: how Zomp's own `0.0.1` relates.
 
 ### 2026-10-15 — Two downloads: ZDK (Zag Dev Kit) and ZCK (Zag Contribute Kit), both packaged (owner: a)
 
