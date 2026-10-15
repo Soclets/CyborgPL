@@ -1,0 +1,12 @@
+// The Zag website (owner, 2026-10-15: "Let's make the new website"), for zag-lang.org.
+// Static files only, like nerve-lang.com's. Not deployed yet: the site goes up only when the
+// owner says so, and the zag-lang.org route is added then.
+{
+  "name": "zag-website",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./build/client",
+    "not_found_handling": "404-page",
+    "html_handling": "drop-trailing-slash"
+  }
+}
