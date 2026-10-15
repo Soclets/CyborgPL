@@ -68,12 +68,24 @@ variable `'x'` times two. Legacy's `xxx` (tetration) is **not** included.
 override, even against convention: `(2 pow 3) pow 2` = 64. The other
 operators chain left as usual.
 
-## No increment or compound assignment (decided 2026-09-14)
+## Increment and compound assignment: symbol spellings (2026-10-14)
 
-There is no `++`, `--`, `+=`, or any other shorthand. Adding one is written
-in full: `change 'i' = 'i' plus 1;`. the prover emits the same instruction either way;
-the shorthand would exist only for the reader, and the owner chose not to
-have it.
+Adding one is written in full, `change 'i' = 'i' plus 1;`, and that stays the good-practice form.
+Since 2026-10-14 the symbols spell it (owner: "we add it as an alt", "(a), they aren't supposed to
+be used anyways"), as the other symbols spell their words:
+
+```
+'i'++;            # change 'i' = 'i' plus 1;
+'i'--;            # change 'i' = 'i' minus 1;
+'i' += 2;         # change 'i' = 'i' plus 2;
+'i' *= 3 plus 1;  # change 'i' = 'i' times (3 plus 1);
+'i' -= 4;   'i' /= 3;   'i' %= 5;   'i' **= 2;   # minus, div.trunc, mod.trunc, pow
+```
+
+The right side is taken whole, as if bracketed. `++` and `--` change a variable only as a whole
+statement (`'i'++;`): `++` between two values joins text, the symbol of `concat`. The result is
+checked where it lands, as any `change`. Until 2026-10-14 there was no shorthand at all (owner,
+2026-09-14). `examples/compound_change.zg`.
 
 ## Precedence (decided 2026-09-14)
 
@@ -94,7 +106,7 @@ Tightest to loosest:
 | 7 | `and` | ∧ before ∨, as in logic |
 | 8 | `or` | |
 
-**Bitwise** (decided 2026-09-21): `and.bit`, `or.bit`, `not.bit`, `xor`, `shl`, `shr`. A bitwise `and` is the boolean `and` applied to every bit position at once (`1100 and.bit 1010 = 1000`: a column keeps a 1 only if both have one), so the spelling narrows the boolean word with `.bit` rather than inventing a second word — C's `&` vs `&&` confusion is what a separate spelling invites; `xor` has no boolean twin so it stands alone; shifts extend nothing. Integers only; the result is the operand's type; `shl` past the width or into overflow is a check site. No precedence: mathematics has no reading for a bitwise operator beside an arithmetic one, so parentheses whenever one meets another operator. **Wrapping arithmetic** (decided 2026-09-20): `+~`, `-~`, `x~`, `xx~` — "plus, but modulo the type's size" — always defined, never a check, nothing to `no_check`; same precedence as the plain forms. For hashes, ring counters, PRNGs, where wrapping *is* the algorithm; plain `+ - x xx` stay overflow-checked, exact and checked where they land (2026-09-23, below). Owner chose the tilde ("wraps around") over Zig's `+%` (`%` reads as percent — and `mod` is a word here for that reason) and Swift's `&+` (`&` reads as borrow to a Rust hire). The width is the operand's type — any operand whose type is known, see below. **`div` on integers floors and `mod` is the mathematician's** (decided 2026-09-20): `-7 div 2 = -4`, `-7 mod 2 = 1` — the result of `mod` has the divisor's sign, so `x mod 12` is always 0–11 and a clock, a hash, a ring buffer never go negative (the classic C `%` bug). The identity `a == (a div b) x b + (a mod b)` holds. Hardware truncation (`-7 div 2 = -3`, `-7 mod 2 = -1`) is by name, for matching a C library bit for bit: **`a div.trunc b`, `a mod.trunc b`, operators in the language** (owner, 2026-10-02: "I think `div.trunc` should be in base", then "`a`", an operator narrowing `div` as `.bit` narrows `and`, over a built-in `div.trunc[a, b]`; and "yea", `mod.trunc` with it), at `div`'s precedence and under `mod`'s parenthesis rule. Until then they were std's, `std::div.trunc[a, b]`, now refused naming the operator. `div.trunc` takes integers; `mod.trunc` integers, bins and `brain16`. Cost: a few one-cycle instructions beside a 10–40-cycle divide, and only where the prover cannot prove a sign (unsigned types, counters, positions, lengths need nothing); the fix-up is the operator's meaning, not a check, so it is neither `no_check`-able nor an error in the final build. Owner asked about performance and whether it ships; chose floor and std for truncation. **The same on a bin and `brain16`** (owner, 2026-10-02: a, compiler claude's question): `-370.0 mod 360.0` is `350`, `7.5 mod -2.0` is `-0.5`; C's `fmod` is `mod.trunc` there too. The oracle had given the dividend's sign by accident (Rust's `%`). It costs a compare and an add beside the `fmod` routine, none where the prover proves both signs. A tiny negative over a large divisor would round up to the divisor itself (`-1e-20 mod 360.0` gives `360.0` in Python); here it is `0`, so the answer is always below the divisor (owner, 2026-10-02: b, "basically none" of a cost: one compare). `++` joins text (decided 2026-09-19): below `+ -`, above comparisons, left-associative; at least one side text, the other rendered in stored form. So `1 + 2 x 3` = 7, `2 x 3 xx 2` = 18, `'a' + 1 > 'b' - 2 and ! ('a' == 'b')` reads as expected, and `6 div 2 x 3`, `10 mod 3 + 1`, `not 1 == 2`, `'i' mod 2 == 0` are errors that say "parenthesise" (`('i' mod 2) == 0`).
+**Bitwise** (decided 2026-09-21): `and.bit`, `or.bit`, `not.bit`, `xor`, `shl`, `shr`. A bitwise `and` is the boolean `and` applied to every bit position at once (`1100 and.bit 1010 = 1000`: a column keeps a 1 only if both have one), so the spelling narrows the boolean word with `.bit` rather than inventing a second word — C's `&` vs `&&` confusion is what a separate spelling invites; `xor` has no boolean twin so it stands alone; shifts extend nothing. Integers only; the result is the operand's type; `shl` past the width or into overflow is a check site. No precedence: mathematics has no reading for a bitwise operator beside an arithmetic one, so parentheses whenever one meets another operator. **Wrapping arithmetic** (decided 2026-09-20): `+~`, `-~`, `x~`, `xx~` — "plus, but modulo the type's size" — always defined, never a check, nothing to `no_check`; same precedence as the plain forms. For hashes, ring counters, PRNGs, where wrapping *is* the algorithm; plain `+ - x xx` stay overflow-checked, exact and checked where they land (2026-09-23, below). Owner chose the tilde ("wraps around") over Zig's `+%` (`%` reads as percent — and `mod` is a word here for that reason) and Swift's `&+` (`&` reads as borrow to a Rust hire). The width is the operand's type — any operand whose type is known, see below. **`div` on integers floors and `mod` is the mathematician's** (decided 2026-09-20): `-7 div 2 = -4`, `-7 mod 2 = 1` — the result of `mod` has the divisor's sign, so `x mod 12` is always 0–11 and a clock, a hash, a ring buffer never go negative (the classic C `%` bug). The identity `a == (a div b) x b + (a mod b)` holds. Hardware truncation (`-7 div 2 = -3`, `-7 mod 2 = -1`) is by name, for matching a C library bit for bit: **`a div.trunc b`, `a mod.trunc b`, operators in the language** (owner, 2026-10-02: "I think `div.trunc` should be in base", then "`a`", an operator narrowing `div` as `.bit` narrows `and`, over a built-in `div.trunc[a, b]`; and "yea", `mod.trunc` with it), at `div`'s precedence and under `mod`'s parenthesis rule. Until then they were std's, `std::div.trunc[a, b]`, now refused naming the operator. `div.trunc` takes integers; `mod.trunc` integers, bins and `brain16`. Cost: a few one-cycle instructions beside a 10–40-cycle divide, and only where the prover cannot prove a sign (unsigned types, counters, positions, lengths need nothing); the fix-up is the operator's meaning, not a check, so it is neither `no_check`-able nor an error in the final build. Owner asked about performance and whether it ships; chose floor and std for truncation. **The same on a bin and `brain16`** (owner, 2026-10-02: a, compiler claude's question): `-370.0 mod 360.0` is `350`, `7.5 mod -2.0` is `-0.5`; C's `fmod` is `mod.trunc` there too. The oracle had given the dividend's sign by accident (Rust's `%`). It costs a compare and an add beside the `fmod` routine, none where the prover proves both signs. A tiny negative over a large divisor would round up to the divisor itself (`-1e-20 mod 360.0` gives `360.0` in Python); here it is `0`, so the answer is always below the divisor (owner, 2026-10-02: b, "basically none" of a cost: one compare). **`concat` joins text, and `++` is its symbol** (owner, 2026-10-14: "(a), `concat`"; `"Hello, " concat 'name'`). `++` joins text (decided 2026-09-19): below `+ -`, above comparisons, left-associative; at least one side text, the other rendered in stored form. So `1 + 2 x 3` = 7, `2 x 3 xx 2` = 18, `'a' + 1 > 'b' - 2 and ! ('a' == 'b')` reads as expected, and `6 div 2 x 3`, `10 mod 3 + 1`, `not 1 == 2`, `'i' mod 2 == 0` are errors that say "parenthesise" (`('i' mod 2) == 0`).
 
 ## A shift's count (owner, 2026-09-23: a)
 
@@ -343,7 +355,7 @@ Four questions, one at a time:
    `<+>-`. Claude proposed a three-character cap; owner: "isn't `<+>-` an
    operator? if they wanted negative, they could put that inside `b`" —
    no cap. The language's own operators and its deliberate near-misses
-   (`--`, `+=`, `-=`, `<==`, `>==`) cannot be redefined; `^`, `|`, `!`
+   (`<==`, `>==`, and the compound forms `+=`, `-=`, …) cannot be redefined; `^`, `|`, `!`
    are free to declare, and undeclared they still point at `pow`, `or`,
    `not`. (`*`, `%`, `&` were too, until they became the language's own
    spellings on 2026-10-14, below.)

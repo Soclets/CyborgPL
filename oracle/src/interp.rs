@@ -3123,7 +3123,7 @@ impl<'p> Interp<'p> {
                     let is_text = |v: &Value| matches!(v, Value::Str(_) | Value::Char(..));
                     for (side, v) in [("left", &a), ("right", &b)] {
                         if !is_text(v) {
-                            return rt(line, format!("`++` joins text, and its {side} side is {}; convert it first: `to.str.utf8[…]`", v.kind()));
+                            return rt(line, format!("`concat` joins text, and its {side} side is {}; convert it first: `to.str.utf8[…]`", v.kind()));
                         }
                     }
                     return Ok((Value::Str(format!("{}{}", a.show_stored(), b.show_stored())), Prov::Fresh));

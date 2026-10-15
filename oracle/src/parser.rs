@@ -2288,7 +2288,37 @@ impl Parser {
                 match self.peek() {
                     Tok::Word(w) if w == "mut" || w == "immut" => return self.err(format!("`{w}` goes before the name: `let {w} '{name}' := …;`")),
                     Tok::LBracket | Tok::Dot | Tok::Eq | Tok::ShadowEq => return self.err(format!("changing a variable says so: `change '{name}' = …;` (a declaration is `let '{name}' := …;`)")),
-                    Tok::Op(o) if o == "++" => return self.err(format!("`++` joins text; to add one write `change '{name}' = '{name}' + 1;`")),
+                    // `'i'++;`, `'i' += 1;` and the others spell `change 'i' = 'i' plus 1;` (owner, 2026-10-14: "(a), they
+                    // aren't supposed to be used anyways"): `++` and `--` only as a whole statement
+                    Tok::Op(o) if ["++", "--", "+=", "-=", "*=", "/=", "%=", "**="].contains(&o.as_str()) => {
+                        let o = o.clone();
+                        let at = self.pos;
+                        let (l2, c2) = (self.toks[at].line, self.toks[at].col);
+                        let t = |tok: Tok| Token { tok, line: l2, col: c2, mtm: None };
+                        let mut end = at + 1;
+                        let mut new = vec![t(Tok::Word("change".into())), t(Tok::Var(name.clone())), t(Tok::Eq), t(Tok::Var(name.clone()))];
+                        if o == "++" || o == "--" {
+                            if self.toks.get(at + 1).map(|x| &x.tok) != Some(&Tok::Semi) {
+                                return self.err(format!("`{o}` is a whole statement, `'{name}'{o};`; to join text write `concat`"));
+                            }
+                            new.extend([t(Tok::Op(o[..1].to_string())), t(Tok::Int(1))]);
+                        } else {
+                            let mut depth = 0i32;
+                            while end < self.toks.len() {
+                                match self.toks[end].tok { Tok::LBracket | Tok::LParen | Tok::LBrace => depth += 1, Tok::RBracket | Tok::RParen | Tok::RBrace => depth -= 1, Tok::Semi if depth == 0 => break, Tok::Eof => break, _ => {} }
+                                end += 1;
+                            }
+                            if end == at + 1 { return self.err(format!("`'{name}' {o}` needs a value after it, `'{name}' {o} 1;`")); }
+                            new.push(t(Tok::Op(o[..o.len() - 1].to_string())));
+                            new.push(t(Tok::LParen));
+                            new.extend(self.toks[at + 1..end].iter().cloned());
+                            new.push(t(Tok::RParen));
+                        }
+                        let start = at - 1;
+                        self.toks.splice(start..(if o == "++" || o == "--" { at + 1 } else { end }), new);
+                        self.pos = start;
+                        return self.stmt();
+                    }
                     other => return self.err(format!("expected `:=` to declare '{name}', `[…]` to call it, or `change '{name}' = …;` to change it; found {other}")),
                 }
             }
@@ -2914,7 +2944,7 @@ impl Parser {
         if *self.peek() == Tok::LBracket { return self.bracket(); }
         let mut e = self.expr()?;
         if self.starts_primary() {
-            return self.err(format!("two values next to each other (found {} after the value): join text with `++`", self.peek()));
+            return self.err(format!("two values next to each other (found {} after the value): join text with `concat`", self.peek()));
         }
         // `call[…] otherwise …` — only when the call is the whole right-hand side (decided 2026-09-19)
         if self.is_word("otherwise") {
@@ -3486,7 +3516,7 @@ impl Parser {
     fn value(&mut self) -> PResult<Value> {
         let e = self.expr()?;
         if self.starts_primary() {
-            return self.err(format!("two values next to each other (found {} after the value): join text with `++`, separate values with `,`", self.peek()));
+            return self.err(format!("two values next to each other (found {} after the value): join text with `concat`, separate values with `,`", self.peek()));
         }
         Ok(Value::Expr(e))
     }
@@ -3532,6 +3562,8 @@ impl Parser {
                 // `plus.ieee`: IEEE's own answer, a -0 kept (owner, 2026-10-07: "yea")
                 else if dot_word("ieee") { self.op_len.set(3); Some(format!("{base}.ieee")) } else { Some(base.into()) }
             }
+            // `concat` joins text, `++` its symbol (owner, 2026-10-14: "(a), `concat`")
+            Tok::Word(w) if w == "concat" => Some("++".into()),
             // std's `pow`, bare or with its path, and `pow.wrap` (owner, 2026-10-03)
             Tok::Word(w) if w == "pow" => { if dot_word("wrap") || dot_word("ieee") { self.op_len.set(3); Some(format!("pow.{}", if dot_word("wrap") { "wrap" } else { "ieee" })) } else { Some("pow".into()) } }
             Tok::Word(w) if w == "std" && *self.peek_at(k + 1) == Tok::ColonColon && matches!(self.peek_at(k + 2), Tok::Word(x) if x == "pow") => {

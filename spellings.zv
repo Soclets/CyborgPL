@@ -90,9 +90,6 @@ spellings::table[
     not_operators = [
         spellings::not_operator[written = "<==", says = "less-or-equal is `at_most`", since = "2026-10-07"],
         spellings::not_operator[written = ">==", says = "greater-or-equal is `at_least`", since = "2026-10-07"],
-        spellings::not_operator[written = "--", says = "write the change in full: `change 'i' = 'i' minus 1;`"],
-        spellings::not_operator[written = "+=", says = "write the change in full: `change 'i' = 'i' plus 1;`"],
-        spellings::not_operator[written = "-=", says = "write the change in full: `change 'i' = 'i' minus 1;`"],
     ],
     # every argument after the first says its role (owner, 2026-10-14): one word per argument, "" for none
     calls = [

@@ -131,13 +131,15 @@ be used anyways". This replaces 2026-09-14's "No `++` / `+=` shorthand".
 
 Design claude's reading, not asked: every symbol that spells a two-sided arithmetic word gets an
 `=` form (`+=`, `-=`, `*=`, `/=` for `div.trunc`, `%=` for `mod.trunc`, `**=` for `pow`), and the
-result is checked where it lands, as any `change`. Not built. The owner added: "And we might also
+result is checked where it lands, as any `change`. Built 2026-10-15 (below). The owner added: "And we might also
 add a text form for `++`" (a word spelling for joining text). Offered (a) `concat`, recommended,
 (b) `then` (taken in spirit by `and.then`), (c) `joined`; `with` (a keyword) and `join` (`str.join`)
 ruled out. The owner asked "Is (a) accurate?": yes, `++` joins text to text only (the oracle refuses
 `"n = " ++ 5`), which is concatenation, `concat` short for it as `str` and `pos` are. The owner:
 "(a), `concat`". So **`concat` joins text**, `"Hello, " concat 'name'`, the good-practice word, and
-`++` becomes its symbol spelling, at the same precedence. Not built.
+`++` becomes its symbol spelling, at the same precedence. Built 2026-10-15 (owner: "Yeah"), with the
+increment forms: `examples/compound_change.zg`, reject tests increment_in_expression and
+compound_change_no_value; `+=`, `-=` and `--` left `spellings.zv`'s not_operators.
 
 ### 2026-10-14 — A final build's debug info goes beside the program (owner: a)
 
