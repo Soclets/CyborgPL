@@ -110,10 +110,10 @@ pub struct Config {
     pub shadow: bool,
     pub shadow_wrong: u64,
     /// stdkit's `str.at` / `str.slice` (CCA has no stdkit yet).
-    pub cord: bool,
+    pub std_lib: bool,
     /// A `Counter` iterator and `optional` (owner, 2026-10-09).
     pub iterators: bool,
-    /// `cord::print` of decis and brain16, their own text (Synapse 252fa188).
+    /// `std::print` of decis and brain16, their own text (Synapse 252fa188).
     pub print: bool,
     /// `to.decN.written[…]` from text (owner, 2026-10-09).
     pub written: bool,
@@ -129,7 +129,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, cord: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true }
     }
 }
 
@@ -1663,7 +1663,7 @@ impl Gen {
         // printed by cord, its own text, stored or useful (Synapse 252fa188)
         if self.cfg.print && self.rng.chance(50) {
             let d = self.rng.pick(&decis).clone();
-            let line = self.cord_print(&d);
+            let line = self.std_print(&d);
             body.push(Stmt::Src(line));
         }
         // what is seen: scaled into an integer, compared, and as text
@@ -1894,7 +1894,7 @@ impl Gen {
         }
         if self.cfg.print && self.rng.chance(50) {
             let w = self.rng.pick(&bs).clone();
-            let line = self.cord_print(&w);
+            let line = self.std_print(&w);
             body.push(Stmt::Src(line));
         }
         for _ in 0..1 + self.rng.below(3) {
@@ -1936,18 +1936,18 @@ impl Gen {
         names.extend(self.simd_vars(None).into_iter().map(|v| v.name));
         names.extend(self.enum_vars().into_iter().map(|v| v.name));
         let n = self.rng.pick(&names).clone();
-        Stmt::Src(self.cord_print(&n))
+        Stmt::Src(self.std_print(&n))
     }
 
-    /// `cord::print.useful['x', newln];` or `.stored`, or `.auto_newln` with
+    /// `std::print.useful['x', newln];` or `.stored`, or `.auto_newln` with
     /// no newln: the value's own text, compared between the engines.
-    fn cord_print(&mut self, name: &str) -> String {
+    fn std_print(&mut self, name: &str) -> String {
         let form = if self.rng.chance(50) { "useful" } else { "stored" };
         // Synapse builds `auto_newln` only on `useful` (252fa188)
         if form == "useful" && self.rng.chance(40) {
-            format!("cord::print.{form}.auto_newln['{name}'];")
+            format!("std::print.{form}.auto_newln['{name}'];")
         } else {
-            format!("cord::print.{form}['{name}', newln];")
+            format!("std::print.{form}['{name}', newln];")
         }
     }
 
@@ -1956,7 +1956,7 @@ impl Gen {
         let q = |n: &str| format!("'{n}'");
         // `str.at.<unit>` and `str.slice.grapheme` by position, out of range
         // sometimes (owner, 2026-10-08); cord's (once stdkit), so not in CCA's runs yet
-        if self.cfg.cord && self.rng.chance(30) {
+        if self.cfg.std_lib && self.rng.chance(30) {
             let t = TEXTS[self.rng.below(TEXTS.len() as u64) as usize];
             let n = t.chars().count() as i128;
             let s = self.name("t");

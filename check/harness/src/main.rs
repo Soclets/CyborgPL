@@ -4,7 +4,7 @@
 //!   check one    --seed N [--size S] [--inputs K]         run one seed through both engines, verbose
 //!   check run    --cases N [--from S] [--size S] [--inputs K] [--jobs J] [--keep-going] [--no-shrink]
 //!   check shrink --seed N [--size S] [--inputs K]         shrink one seed's finding
-//!   check file   <prog.nrv>                              compare one hand-written program
+//!   check file   <prog.zg>                               compare one hand-written program
 //!   check corpus                                          re-run every past finding in check/corpus/
 
 mod claims;
@@ -76,7 +76,7 @@ impl Args {
     fn config(&self) -> Config {
         // Known CCA bugs the generator steers around until they are fixed
         // (`--avoid none` to aim straight at them).
-        let avoid = self.flags.get("avoid").cloned().unwrap_or("cord".into());
+        let avoid = self.flags.get("avoid").cloned().unwrap_or("std".into());
         check_gen::ast::NARROW_64.store(avoid.contains("u64-high"), std::sync::atomic::Ordering::Relaxed);
         check_gen::ast::PRINT_THROUGH_TO.store(avoid.contains("mixed-width"), std::sync::atomic::Ordering::Relaxed);
         Config {
@@ -112,7 +112,7 @@ impl Args {
             remove: !avoid.contains("remove"),
             shadow: !avoid.contains("shadow"),
             shadow_wrong: self.num("shadow-wrong", 50),
-            cord: !avoid.contains("cord") && !avoid.contains("stdkit"),
+            std_lib: !avoid.contains("std") && !avoid.contains("cord"),
             iterators: !avoid.contains("iterators"),
             print: !avoid.contains("print"),
             written: !avoid.contains("written"),
@@ -209,7 +209,7 @@ fn main() {
             let p = generate(a.num("seed", 1), &a.config());
             let dir = work().join("one");
             let v = compare::check_program(&t, &p, &dir, &envs(&p));
-            println!("program: {}", dir.join("prog.nrv").display());
+            println!("program: {}", dir.join("prog.zg").display());
             report(&v);
         }
         "shrink" => {
@@ -229,7 +229,7 @@ fn main() {
         }
         "file" => {
             let t = tools();
-            let path = a.rest.first().unwrap_or_else(|| die("file wants a .nrv path"));
+            let path = a.rest.first().unwrap_or_else(|| die("file wants a .zg path"));
             let (src, env) = read_case(Path::new(path));
             let v = check(&t, &src, &work().join("file"), &env);
             report(&v);
@@ -325,7 +325,7 @@ fn main() {
                 let (text, spans) = p.render_spans();
                 let dir = work().join("evaltest");
                 std::fs::create_dir_all(&dir).unwrap();
-                let f = dir.join("prog.nrv");
+                let f = dir.join("prog.zg");
                 std::fs::write(&f, &text).unwrap();
                 let sets = if p.inputs.is_empty() { vec![vec![]] } else { envs(&p) };
                 for env in sets {
@@ -406,7 +406,7 @@ fn read_case(path: &Path) -> (String, Vec<Env>) {
 
 fn corpus(t: &Tools) {
     let dir = repo().join("check/corpus");
-    let mut files: Vec<PathBuf> = std::fs::read_dir(&dir).unwrap().filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().map_or(false, |x| x == "nrv")).collect();
+    let mut files: Vec<PathBuf> = std::fs::read_dir(&dir).unwrap().filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().map_or(false, |x| x == "zg")).collect();
     files.sort();
     let (mut ok, mut bad) = (0, 0);
     for f in &files {
@@ -451,7 +451,7 @@ fn shrink(t: &Tools, p: Program, sig: &str, mode: engines::Mode, env: &Env, dir:
     let envs: Vec<Env> = if env.is_empty() { vec![] } else { vec![env.clone()] };
     let oracle_class = |src: &str, d: &Path| -> bool {
         std::fs::create_dir_all(d).unwrap();
-        let f = d.join("prog.nrv");
+        let f = d.join("prog.zg");
         std::fs::write(&f, src).unwrap();
         matches!(engines::oracle(t, &f, d, env), engines::Oracle::Ran { .. })
     };
@@ -531,7 +531,7 @@ fn keep_flaky(src: &str, note: &str) -> PathBuf {
     let d = work().join("flaky");
     std::fs::create_dir_all(&d).unwrap();
     let n = std::fs::read_dir(&d).map(|r| r.count()).unwrap_or(0);
-    let p = d.join(format!("{n}.nrv"));
+    let p = d.join(format!("{n}.zg"));
     std::fs::write(&p, src).unwrap();
     std::fs::write(d.join(format!("{n}.txt")), note).unwrap();
     p
@@ -589,14 +589,14 @@ fn run(t: &Tools, a: &Args) {
                             // finding, but a slow build is worth a look.
                             let sd = work().join("slow");
                             std::fs::create_dir_all(&sd).unwrap();
-                            std::fs::write(sd.join(format!("{seed}.nrv")), p.render()).unwrap();
+                            std::fs::write(sd.join(format!("{seed}.zg")), p.render()).unwrap();
                             tl.slow.push(seed)
                         }
                         Verdict::Finding(f) => {
                             println!("seed {seed}: FINDING ({})", f.kind);
                             let fd = work().join("findings").join(seed.to_string());
                             std::fs::create_dir_all(&fd).unwrap();
-                            std::fs::write(fd.join("prog.nrv"), p.render()).unwrap();
+                            std::fs::write(fd.join("prog.zg"), p.render()).unwrap();
                             std::fs::write(fd.join("report.txt"), format!("seed {seed}, {:?}\n{}", cfg, f.detail)).unwrap();
                             tl.findings.push((seed, f));
                             if !keep_going {
@@ -655,9 +655,9 @@ fn run(t: &Tools, a: &Args) {
             let p = generate(seed, &cfg);
             let small = shrink(t, p, &f.sig, f.mode, &f.env, &work().join("shrink"), jobs as usize);
             let fd = work().join("findings").join(seed.to_string());
-            std::fs::write(fd.join("shrunk.nrv"), format!("{}{}", env_header(&f.env), small.render())).unwrap();
+            std::fs::write(fd.join("shrunk.zg"), format!("{}{}", env_header(&f.env), small.render())).unwrap();
             let v = check(t, &small.render(), &fd.join("shrunk"), &if f.env.is_empty() { vec![] } else { vec![f.env.clone()] });
-            println!("\n=== {k}, seed {seed}, shrunk to {}:", fd.join("shrunk.nrv").display());
+            println!("\n=== {k}, seed {seed}, shrunk to {}:", fd.join("shrunk.zg").display());
             report(&v);
         }
     }
@@ -784,7 +784,7 @@ fn same_run(t: &Tools, a: &Args) {
                     let p = generate(seed, cfg);
                     let dir = work().join(format!("same{w}"));
                     let _ = std::fs::create_dir_all(&dir);
-                    let f = dir.join("prog.nrv");
+                    let f = dir.join("prog.zg");
                     std::fs::write(&f, p.render()).unwrap();
                     let once = || engines::analyze(&t, &f, &dir, engines::build_limit());
                     let (x, y) = (once(), once());
@@ -794,7 +794,7 @@ fn same_run(t: &Tools, a: &Args) {
                     if x.stdout != y.stdout {
                         let keep = work().join("same").join(seed.to_string());
                         let _ = std::fs::create_dir_all(&keep);
-                        let _ = std::fs::write(keep.join("prog.nrv"), p.render());
+                        let _ = std::fs::write(keep.join("prog.zg"), p.render());
                         let _ = std::fs::write(keep.join("first.json"), &x.stdout);
                         let _ = std::fs::write(keep.join("second.json"), &y.stdout);
                         println!("seed {seed}: the two reports differ; kept in {}", keep.display());
@@ -858,7 +858,7 @@ fn tv_run(t: &Tools, a: &Args) {
                             if !o.incorrect.is_empty() {
                                 let keep = work().join("tv").join(seed.to_string());
                                 let _ = std::fs::create_dir_all(&keep);
-                                let _ = std::process::Command::new("cp").arg("-R").arg(dir.join("prog.nrv")).arg(dir.join("ir")).arg(&keep).status();
+                                let _ = std::process::Command::new("cp").arg("-R").arg(dir.join("prog.zg")).arg(dir.join("ir")).arg(&keep).status();
                                 for (which, report) in &o.incorrect {
                                     println!("seed {seed}: INCORRECT ({which}), files in {}\n{}", keep.display(), report.lines().take(12).collect::<Vec<_>>().join("\n"));
                                 }

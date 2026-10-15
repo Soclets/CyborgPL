@@ -16,12 +16,12 @@ pub struct Tools {
 
 impl Tools {
     /// The binaries built in this repository (`cargo build --release` in
-    /// `oracle/` and `synapse/`). `cca` is Synapse, the compiler (CCA until
+    /// `oracle/` and `zomp/`). `cca` is Zomp, the compiler (CCA, then Synapse, until
     /// the owner's rename, 2026-10-09).
     pub fn find(repo: &Path) -> Result<Tools, String> {
         let oracle = repo.join("oracle/target/release/oracle");
-        let cca = repo.join("synapse/target/release/synapse");
-        for (p, dir) in [(&oracle, "oracle"), (&cca, "synapse")] {
+        let cca = repo.join("zomp/target/release/zomp");
+        for (p, dir) in [(&oracle, "oracle"), (&cca, "zomp")] {
             if !p.exists() {
                 return Err(format!("{} not found; run `cargo build --release` in {dir}/", p.display()));
             }
@@ -270,8 +270,10 @@ pub fn cca_run(bin: &Path, dir: &Path, env: &[(String, String)]) -> Exec {
     Exec::Stopped { out: r.stdout, code: r.code, line, msg }
 }
 
-/// `synapse cortex --json <file>`: Synapse's analyzer, Cortex (Precog until the
-/// owner's rename, 2026-10-09; `cca precog` is refused since).
+/// `zomp prove --json <file>`: Zomp's prover, the part of the compiler that was
+/// Precog, then Cortex (no name of its own since 2026-10-14).
 pub fn analyze(t: &Tools, file: &Path, dir: &Path, limit: Duration) -> Run {
-    run(Command::new(&t.cca).arg("cortex").arg("--json").arg(file), dir, &[], false, limit)
+    // `prove` is compiler claude's name for it, not yet the owner's: CHECK_PROVE overrides it.
+    let verb = std::env::var("CHECK_PROVE").unwrap_or_else(|_| "prove".into());
+    run(Command::new(&t.cca).arg(verb).arg("--json").arg(file), dir, &[], false, limit)
 }

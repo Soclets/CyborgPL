@@ -1,15 +1,23 @@
 # check — the verification session's tools
 
 check claude's code (`design/verification-session.md`). It attacks what
-CCA and the oracle *claim* — their output, exit codes, messages and
-reports — and never reads `cca/` or `oracle/src`.
+Zomp and the oracle *claim* — their output, exit codes, messages and
+reports — and never reads `zomp/` or `oracle/src`.
 
 ```
-cd check && cargo build --release        # needs oracle/ and cca/ built with --release
+cd check && cargo build --release -j 3   # needs oracle/ and zomp/ built with --release -j 3
 ./target/release/check run --cases 1000 --keep-going
 ./target/release/check corpus
 ```
 
+
+**Zag's names** (owner, 2026-10-15; DECISIONS 2026-10-15): the compiler is Zomp, run from
+`zomp/target/release/zomp`; its prover (Precog, then Cortex) is asked with `zomp prove --json`
+(compiler claude's verb, not yet the owner's: `CHECK_PROVE=<verb>` changes it). Programs and
+the corpus end `.zg` (moved with `git mv`), the harness writes `prog.zg` / `shrunk.zg`, and
+the standard library is `std`: the generator prints with `std::print.useful` / `.stored`, and
+the default avoid is `std` (`cord` still works as its old name). Older notes below keep the
+names of their day: CCA, Synapse, Cortex, cord, `.nrv`.
 
 **The 2026-10-07 revision** (design/revision-2026-10-07.md): the generator, the printer and the
 corpus are written in it — `->`, `equal_to` / `not_equal` / `at_most` / `at_least`, `not`,
