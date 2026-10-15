@@ -396,7 +396,8 @@ function Speed() {
       <div className="speed-notes">
         <p><b>The fair comparison is Zag on one core.</b> On all cores, Zag spreads a loop it has proven safe across them by itself, while C, Rust and Go run the plain single-threaded code anyone would write first. <code>fib</code> is all function calls, so it can’t be split.</p>
         <p><b>Python isn’t drawn:</b> CPython took {BENCH.programs.map((p, i) => <span key={p.id}>{i ? ", " : ""}{p.python.toFixed(2)} s on <code>{p.id}</code></span>)}, between {Math.round(Math.min(...BENCH.programs.map((p) => p.python / p.times.zag1)))} and {Math.round(Math.max(...BENCH.programs.map((p) => p.python / p.times.zag1)))} times Zag’s time on one core.</p>
-        <p>Run on {BENCH.date}, on an Apple Silicon Mac with 10 cores, before the rename from Nerve; the compiler, Synapse then, is Zomp now. Each program is written the plain way in each language; the time is from start to exit, best of 3, and every answer is checked against C’s.</p>
+        <p><b>On <code>sieve</code>, Zag on one core is the slowest of the four compiled languages:</b> Go is 8% faster, Rust 4% and C 1%, that last within the run-to-run noise. Its time is mostly memory, which spreads its runs widely.</p>
+        <p>Run on {BENCH.date}, on an Apple Silicon Mac with 10 cores, with Zomp’s release build and nothing else running. Each program is written the plain way in each language; the time is from start to exit, best of 3, and every answer is checked against C’s.</p>
       </div>
     </section>
   );
