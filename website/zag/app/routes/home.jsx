@@ -29,30 +29,34 @@ function usePager(frame) {
       cancelAnimationFrame(raf); clearTimeout(finish);
       if (still.matches) { box.scrollTop = to; return 0; }
       const from = box.scrollTop, t0 = performance.now(), length = 620 + 200 * (screensAway - 1);
+      const settle = () => { box.scrollTop = to; box.dispatchEvent(new Event("settled")); };
       const step = (t) => {
         const p = Math.min(1, (t - t0) / length);
         box.scrollTop = from + (to - from) * (1 - Math.pow(1 - p, 4));
-        if (p < 1) raf = requestAnimationFrame(step);
+        if (p < 1) raf = requestAnimationFrame(step); else settle();
       };
       raf = requestAnimationFrame(step);
       // If the browser stops drawing frames part-way (a hidden tab), still end on the screen.
-      finish = setTimeout(() => { cancelAnimationFrame(raf); box.scrollTop = to; }, length + 200);
+      finish = setTimeout(() => { cancelAnimationFrame(raf); settle(); }, length + 200);
       return length;
     };
     // The page knows which screen it is on: the lightning strikes only when Zomp is where you
     // land, not when a jump passes through it, and plays again after you go back up to the sky.
     const root = document.documentElement;
-    const arrive = (i) => {
-      const id = screens()[i].id;
+    // It strikes only when you come down to Zomp; coming up to it from below, Zomp is simply
+    // there (owner: "refreshing could trick the lightning to strike on Zomp, even though it's a
+    // scroll-up").
+    const arrive = (i, from) => {
+      const id = screens()[i].id, z = index("zomp");
       root.dataset.screen = id;
-      if (id === "zomp") root.classList.add("struck");
-      else if (i < index("zomp")) root.classList.remove("struck");
+      if (id === "zomp") root.classList.add(from < z ? "struck" : "calm");
+      else if (i < z) root.classList.remove("struck", "calm");
     };
     const go = (i) => {
       const list = screens();
       i = Math.max(0, Math.min(list.length - 1, i));
       if (i === at) return;
-      const away = Math.abs(i - at);
+      const away = Math.abs(i - at), was = at;
       lastDir = Math.sign(i - at);
       at = i;
       // Only a little while, and only for the same way: turning back works at any moment.
@@ -60,12 +64,15 @@ function usePager(frame) {
       const length = glide(list[i].offsetTop, away);
       // Arrive a little before the move ends, so the strike lands as Zomp settles in.
       clearTimeout(arrival);
-      arrival = setTimeout(() => arrive(i), length * 0.45);
+      arrival = setTimeout(() => arrive(i, was), length * 0.45);
     };
     const ready = (dir) => performance.now() >= lockedUntil || dir !== lastDir;
     // Can the current screen still scroll this way by itself?
+    // Not while its content is still drifting into place: the drift pokes past the screen's
+    // edge and would look like more to scroll through.
     const inner = (dir) => {
       const el = screens()[at];
+      if (Math.abs(parseFloat(el.style.getPropertyValue("--d")) || 0) > 0.01) return false;
       return dir > 0 ? el.scrollTop + el.clientHeight < el.scrollHeight - 1 : el.scrollTop > 0;
     };
     const onWheel = (e) => {
@@ -122,12 +129,16 @@ function usePager(frame) {
     // Coming from another page of the site (which sits at the site screen's height): with no
     // screen named, glide up from there to the start, so the sky moves rather than jumps.
     const from = parseFloat(root.style.getPropertyValue("--y")) || 0;
-    if (start > 0) { at = start; box.scrollTop = screens()[start].offsetTop; }
+    if (start > 0) at = start;
     else if (start < 0 && Math.round(from) === SITE_SCREEN) {
-      at = SITE_SCREEN; box.scrollTop = screens()[SITE_SCREEN].offsetTop;
+      at = SITE_SCREEN;
       requestAnimationFrame(() => go(0));
     }
-    arrive(at);
+    // Always open exactly on that screen: Safari may restore where the frame was scrolled to
+    // before a reload, which left the page between screens and unsure of where it was.
+    box.scrollTop = screens()[at].offsetTop;
+    box.dispatchEvent(new Event("settled"));
+    arrive(at, at);
     const onClick = (e) => {
       const a = e.target.closest?.("a[href]");
       if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
@@ -144,7 +155,7 @@ function usePager(frame) {
       removeEventListener("wheel", onWheel); removeEventListener("touchstart", onTouchStart);
       removeEventListener("touchmove", onTouchMove); removeEventListener("touchend", onTouchEnd);
       removeEventListener("keydown", onKey); removeEventListener("resize", onResize); removeEventListener("click", onClick, true); cancelAnimationFrame(raf); clearTimeout(finish); clearTimeout(arrival);
-      root.classList.remove("struck"); delete root.dataset.screen;
+      root.classList.remove("struck", "calm"); delete root.dataset.screen;
     };
   }, [frame]);
 }
@@ -178,10 +189,13 @@ function useMotion(frame, zomp, site) {
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
     update();
     root.classList.add("moving");
+    // When a move ends, place everything at once, without waiting for the next frame.
+    const onSettled = () => { cancelAnimationFrame(raf); update(); };
+    box.addEventListener("settled", onSettled);
     box.addEventListener("scroll", onScroll, { passive: true });
     addEventListener("resize", onScroll);
     return () => {
-      box.removeEventListener("scroll", onScroll); removeEventListener("resize", onScroll); cancelAnimationFrame(raf);
+      box.removeEventListener("scroll", onScroll); box.removeEventListener("settled", onSettled); removeEventListener("resize", onScroll); cancelAnimationFrame(raf);
       root.classList.remove("moving", "pill-off");
     };
   }, [frame, zomp, site]);

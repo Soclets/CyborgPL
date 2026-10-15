@@ -105,6 +105,8 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 .struck .zomp p:nth-of-type(2) { animation-delay: .6s; }
 .struck .zomp p:nth-of-type(3) { animation-delay: .75s; }
 .struck .zomp p:nth-of-type(4) { animation-delay: .9s; }
+/* Coming up to Zomp from below: no strike, it is simply there. */
+.calm:not(.struck) .zomp h2, .calm:not(.struck) .zomp p { opacity: 1; transform: none; }
 @keyframes bolt-show { 0% { opacity: 1; } 55% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes bolt-draw { to { stroke-dashoffset: 0; } }
 @keyframes flash { 0% { opacity: 0; } 12% { opacity: .55; } 100% { opacity: 0; } }
