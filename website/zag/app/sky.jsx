@@ -37,19 +37,38 @@ function Cloud({ id }) {
 export function Backdrop() {
   // The sky holds still while you're away (owner, 2026-10-15: "Make it so that the background stops
   // moving, after the user exits the screen", then "number 1": leaving the tab or the window), and
-  // carries on from where it was when you come back.
+  // carries on from the very frame it stopped on when you come back. Losing focus counts at once:
+  // Safari still reports focus during its blur event, and a change made once the tab is hidden waits
+  // for it to draw again, so the clouds ran on and caught up in a laggy rush (owner: "There's a
+  // laggy fast forward vibe when you focus back"). The animations' clocks are paused directly.
   useEffect(() => {
     const root = document.documentElement;
-    const update = () => root.classList.toggle("away", document.hidden || !document.hasFocus());
-    update();
-    addEventListener("visibilitychange", update);
-    addEventListener("blur", update);
-    addEventListener("focus", update);
-    addEventListener("pagehide", update);
-    addEventListener("pageshow", update);
+    const still = matchMedia("(prefers-reduced-motion: reduce)");
+    const moving = () => document.getAnimations().filter((a) => ["drift", "bob"].includes(a.animationName));
+    let away = null;
+    const set = (next) => {
+      if (next === away) return;
+      away = next;
+      root.classList.toggle("away", next);
+      // A pause otherwise waits for the next frame, which a tab being hidden may never draw: the
+      // clock is pinned where it is, so the pause holds at once.
+      for (const a of moving()) {
+        if (next) { const t = a.currentTime; a.pause(); a.currentTime = t; }
+        else if (!still.matches) a.play();
+      }
+    };
+    const leave = () => set(true);
+    const check = () => set(document.hidden || !document.hasFocus());
+    check();
+    addEventListener("blur", leave);
+    addEventListener("pagehide", leave);
+    addEventListener("focus", check);
+    addEventListener("pageshow", check);
+    document.addEventListener("visibilitychange", check);
     return () => {
-      removeEventListener("visibilitychange", update); removeEventListener("blur", update); removeEventListener("focus", update);
-      removeEventListener("pagehide", update); removeEventListener("pageshow", update); root.classList.remove("away");
+      removeEventListener("blur", leave); removeEventListener("pagehide", leave); removeEventListener("focus", check);
+      removeEventListener("pageshow", check); document.removeEventListener("visibilitychange", check);
+      root.classList.remove("away");
     };
   }, []);
   return (
