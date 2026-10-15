@@ -409,3 +409,39 @@ html.loaded .loader { opacity: 0; visibility: hidden; transition: opacity .5s ea
 .loader-bar span { display: block; height: 100%; border-radius: inherit; background: #fff; transform-origin: left; transition: transform .25s ease-out; }
 html.loading main, html.loading main * { animation-play-state: paused !important; }
 @media (prefers-reduced-motion: reduce) { .loader-logo { animation: none; } }
+
+/* Examples (owner, 2026-10-15: "Do Examples"): every program in the repo's examples/, a list to
+   search, and a page each with its files and what it prints. */
+.page-lead { margin: 0 auto 4px; max-width: 680px; text-align: center; font-size: 18px; line-height: 1.5; font-weight: 600; paint-order: stroke fill; -webkit-text-stroke: 5px var(--edge); }
+.page-lead code { font: 600 .88em ui-monospace, "SF Mono", Menlo, monospace; -webkit-text-stroke: 0; padding: 1px 6px; border-radius: 6px; background: rgba(255, 255, 255, .9); color: var(--edge); }
+.page-lead .home-link { -webkit-text-stroke: 0; }
+.back-link { align-self: flex-start; padding: 8px 14px; border-radius: 999px; background: rgba(255, 255, 255, .9); color: var(--edge); font-weight: 700; text-decoration: none; box-shadow: 0 6px 16px rgba(10, 50, 110, .16); }
+.ex-find { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 12px; }
+.ex-find h2 { margin: 0; }
+.ex-find input { flex: 1 1 220px; max-width: 340px; padding: 10px 16px; border: 1px solid #C9DAF2; border-radius: 999px; background: #fff; font: 600 16px var(--sans); color: #0F2A5C; outline: none; }
+.ex-find input:focus { border-color: var(--edge); box-shadow: 0 0 0 3px rgba(23, 87, 176, .18); }
+.ex-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.ex-item { display: flex; flex-direction: column; gap: 4px; height: 100%; padding: 12px 14px; border-radius: 14px; background: #fff; border: 1px solid #DCE7F7; text-decoration: none; color: #23406E; transition: border-color .15s, transform .15s, box-shadow .15s; }
+.ex-item:hover { border-color: var(--edge); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(10, 50, 110, .12); }
+.info .ex-item { font-weight: 400; color: #23406E; }
+.ex-item-title { font-weight: 700; font-size: 17px; color: #0F2A5C; }
+.ex-item-blurb { font-size: 14px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ex-item-file { margin-top: auto; padding-top: 2px; font: 600 12px ui-monospace, "SF Mono", Menlo, monospace; color: #5A7299; }
+.ex-one { margin-top: 0; }
+.ex-files { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.ex-files button { padding: 7px 12px; border: 1px solid #C9DAF2; border-radius: 999px; background: #fff; font: 600 13px ui-monospace, "SF Mono", Menlo, monospace; color: var(--edge); cursor: pointer; }
+.ex-files button[aria-selected="true"] { background: var(--edge); border-color: var(--edge); color: #fff; }
+.ex-lines { counter-reset: line; }
+.ex-line { counter-increment: line; }
+.ex-line::before { content: counter(line); display: inline-block; width: 2.6em; margin-right: 1em; text-align: right; color: #4E6690; user-select: none; -webkit-user-select: none; }
+.ex-binary { color: #9FB4D8; }
+.ex-out .ex-meta { margin: 0; padding: 10px 14px 0; font-size: 14px; color: #23406E; }
+.ex-out .ex-meta + pre { padding-top: 8px; }
+.ex-out .ex-meta code { font: 600 .92em ui-monospace, "SF Mono", Menlo, monospace; margin-right: 6px; padding: 1px 6px; border-radius: 6px; background: rgba(23, 87, 176, .1); color: var(--edge); }
+.ex-out pre + .ex-meta { padding: 0 14px 12px; }
+.ex-tests { border-top: 1px solid #D6E4F7; }
+.ex-quiet { color: #5A7299; font-style: italic; }
+.ex-nav { display: flex; justify-content: space-between; gap: 12px; }
+.ex-nav a { padding: 10px 16px; border-radius: 999px; background: rgba(255, 255, 255, .9); color: var(--edge); font-weight: 700; text-decoration: none; box-shadow: 0 6px 16px rgba(10, 50, 110, .16); }
+@media (min-width: 900px) { .ex-one .ex-panes { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); align-items: start; } .ex-one .ex-code pre { max-height: 72vh; } .ex-one .ex-out pre { max-height: 60vh; } }
+@media (hover: none) and (pointer: coarse) { .ex-item:hover { transform: none; } }

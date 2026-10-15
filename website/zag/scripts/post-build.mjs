@@ -44,4 +44,4 @@ const slot = "script-src 'self' SCRIPT_HASHES";
 if (!headers.includes(slot)) throw new Error("post-build: _headers has no script-src slot for the hashes");
 writeFileSync(`${out}/_headers`, headers.replace(slot, `script-src 'self' ${[...hashes].sort().join(" ")}`));
 
-console.log(`post-build: ${hashes.size} script hashes, 404.html, social-preview.png, sitemap.xml (${pages.join(", ")}), robots.txt`);
+console.log(`post-build: ${hashes.size} script hashes, 404.html, social-preview.png, sitemap.xml (${pages.length} pages), robots.txt`);

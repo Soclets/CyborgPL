@@ -108,8 +108,9 @@ const LINKS = [["Home", "/#home"], ["Download", "/download"], ["Docs", "/docs"],
 export function Pill() {
   const { pathname } = useLocation();
   // A prerendered page is built at /more/, so a trailing slash is dropped before matching.
+  // A page inside a section lights its section: /examples/hello lights Examples.
   const path = pathname.replace(/\/+$/, "") || "/";
-  const here = path === "/" ? "/#home" : path;
+  const here = path === "/" ? "/#home" : `/${path.split("/")[1]}`;
   // One white highlight slides from the last page's button to this one's (owner: "The pill
   // buttons should slide when clicked"). It is placed without sliding the first time, so it
   // doesn't fly in from the left as the page opens.

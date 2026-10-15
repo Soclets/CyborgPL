@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 import { createHighlighter } from "shiki";
 import { HOME_EXAMPLES } from "../app/content.js";
 import { ZAG_THEME } from "../app/zag-theme.js";
+import { readExamples } from "./examples-data.mjs";
 
 const read = (f) => readFileSync(resolve(f), "utf8");
 const out = "app/generated";
@@ -14,7 +15,7 @@ mkdirSync(out, { recursive: true });
 
 // Home: the examples, highlighted with the site's grammar, with their expected output.
 const grammar = JSON.parse(read("../grammar/nerve.tmLanguage.json"));
-const hl = await createHighlighter({ themes: [ZAG_THEME], langs: [grammar] });
+const hl = await createHighlighter({ themes: [ZAG_THEME], langs: [grammar, "c"] });
 const dir = resolve("../../examples");
 const examples = HOME_EXAMPLES.map((e) => {
   const source = readFileSync(join(dir, `${e.id}.zg`), "utf8").replace(/\n$/, "");
@@ -40,4 +41,31 @@ const crates = read("../../zomp/Cargo.lock").split("[[package]]").slice(1)
   .map((b) => [b.match(/^name = "(.*)"/m)[1], b.match(/^version = "(.*)"/m)[1]]);
 writeFileSync(`${out}/more.json`, JSON.stringify({ crates, site: npm("package-lock.json") }));
 
-console.log(`pre-build: ${examples.length} examples, ${crates.length} crates, home.json and more.json`);
+// Examples: every program, coloured once here. Each line is a list of [text, style] pairs, a style
+// being a number into one shared table of the theme's colours, which becomes CSS classes; that keeps
+// 190-odd programs small enough to load whole behind the loading screen.
+const styles = [], styleOf = new Map();
+const style = (t) => {
+  const key = `${t.color ?? ""}|${t.fontStyle ?? 0}`;
+  if (!styleOf.has(key)) { styleOf.set(key, styles.length); styles.push({ color: t.color, fontStyle: t.fontStyle ?? 0 }); }
+  return styleOf.get(key);
+};
+const LANG = { ".zg": "nerve", ".zv": "nerve", ".h": "c", ".c": "c" };
+const tokens = (name, source) => {
+  const lang = LANG[name.slice(name.lastIndexOf("."))];
+  if (!lang) return source.split("\n").map((line) => (line ? [[line, -1]] : []));
+  return hl.codeToTokens(source, { lang, theme: "zag-night" }).tokens.map((line) => {
+    const out = [];
+    for (const t of line) {
+      const k = style(t), last = out[out.length - 1];
+      if (last && last[1] === k) last[0] += t.content; else out.push([t.content, k]);
+    }
+    return out;
+  });
+};
+const programs = readExamples().map(({ files, ...p }) => ({ ...p, files: files.map((f) => ({ name: f.name, bytes: f.bytes, lines: f.source == null ? null : tokens(f.name, f.source) })) }));
+writeFileSync(`${out}/examples.json`, JSON.stringify({ programs }));
+const css = styles.map((st, i) => `.k${i}{color:${st.color}${st.fontStyle & 1 ? ";font-style:italic" : ""}${st.fontStyle & 2 ? ";font-weight:700" : ""}${st.fontStyle & 4 ? ";text-decoration:underline" : ""}}`).join("\n");
+writeFileSync(`${out}/code-styles.css`, `/* The theme's colours for the Examples page (scripts/pre-build.mjs). */\n${css}\n`);
+
+console.log(`pre-build: ${examples.length} examples for Home, ${programs.length} for Examples (${styles.length} styles), ${crates.length} crates`);
