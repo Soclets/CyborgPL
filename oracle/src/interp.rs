@@ -2460,7 +2460,7 @@ impl<'p> Interp<'p> {
                     // bin32/bin64 is exact, into a bin16 rounds (a check site past bin16's largest)
                     (Ty::Brain, Value::Int(i)) => Value::Brain(crate::value::round_brain_int(*i as i128)),
                     (Ty::Brain, Value::Bin(x)) => {
-                        let r = no_new_neg_zero(*x, crate::value::round_brain(*x));
+                        let r = no_new_neg_zero(*x, crate::value::round_brain_direct(*x));   // one rounding, as Zomp's fptrunc double → bfloat (compiler claude, 2026-10-15)
                         if r.is_infinite() { return site(line, format!("{x} does not fit brain16: it rounds past the largest value")); }
                         Value::Brain(r)
                     }
