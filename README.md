@@ -47,7 +47,7 @@ Zag™ is designed by **Tankun Sriket**, who makes every decision in [`DECISIONS
 - [Node.js](https://nodejs.org) and npm: the website's build.
 - [Homebrew](https://brew.sh): LLVM, Z3, cvc5, Alive2 and most of the benchmark's toolchains on the build machine.
 - [Git](https://git-scm.com), [GitHub](https://github.com) and the [GitHub CLI](https://cli.github.com): hosting and history.
-- [Cloudflare](https://www.cloudflare.com) Workers and Wrangler: the website, zag-lang.org.
+- [Cloudflare](https://www.cloudflare.com) Workers and Wrangler: hosting the website.
 - macOS and Xcode's command-line tools, by Apple.
 
 **Data**
