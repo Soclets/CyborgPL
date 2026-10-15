@@ -17,7 +17,8 @@ const fromName = (id) => {
 const NOTE = /\s*\((?:owner|decided|design\/|found by|check claude|check run|compiler claude|ffi\.md|types\.md|operators\.md|[a-z-]+\.md|20\d\d-)[^()]*(?:\([^()]*\)[^()]*)*\)/g;
 function describe(id, source) {
   const lines = [];
-  for (const line of source.split("\n")) {
+  // A file's case mark must be its first line (case_file.zg), so its comment starts after it.
+  for (const line of source.split("\n").filter((l, i) => !(i === 0 && /^case\.(?:any|exact)\b/.test(l)))) {
     if (!line.startsWith("#")) break;
     lines.push(line.replace(/^#\s?/, ""));
   }
