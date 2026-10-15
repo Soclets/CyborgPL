@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — Trademarks: Zag™, Zomp™ and Ricochet™; none on the old names (owner: b)
+
+Website claude found the README's trademark line still naming Cell™, dropped on 2026-10-15. Offered (a) Zag™
+and Zomp™ only, (b) and Ricochet™, the package manager, recommended ("strike" and "plugin" are common words,
+as Rust does not mark "crate"), (c) and strike™. The owner: "(b), and we shouldn't really TM on the old names.
+We aren't developing them anymore". So **the project's marks are Zag™, Zomp™ and Ricochet™**, with the Zag
+cloud logo; the old names (Nerve, CyborgPL, Synapse, Cortex, Precog, Neuron, Limb, Kinesin) are mentioned as
+history with no ™. The README's line reads so.
+
 ### 2026-10-15 — Kits are numbered with whole numbers: ZDK 1, then ZDK 2; the ZCK matches (owner)
 
 The owner: "There are no dots, it's just ZDK 1, the next ZDK 2". So **a release of the ZDK is numbered by

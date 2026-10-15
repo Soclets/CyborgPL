@@ -71,7 +71,7 @@ The oracle and the verification harness use no crates.
 </details>
 
 **Ideas taken from other languages**
-- **Rust**: ownership and borrowing, lifetime groups (`'a` there, `@x` here), interfaces and `<T: Ordered>` bounds (Rust's traits), diagnostics "helpful like Rust's", and `::` for stepping into another Cell (Rust's paths, which took it from C++).
+- **Rust**: ownership and borrowing, lifetime groups (`'a` there, `@x` here), interfaces and `<T: Ordered>` bounds (Rust's traits), diagnostics "helpful like Rust's", and `::` for stepping into another strike (Rust's paths, which took it from C++).
 - **Ada**: `and then` / `or else`, here `and.then` / `or.else`.
 - **Swift**, **Zig** and **C**: points of comparison in the SIMD, wrapping-arithmetic and enum decisions.
 - **IEEE 754**: `bin16`, `bin32` and `bin64` arithmetic and rounding.
@@ -83,4 +83,4 @@ The oracle and the verification harness use no crates.
 </details>
 
 Copyright 2026 Tankun Sriket.
-Zag™ (formerly Nerve™ and CyborgPL™), Zomp™ (formerly Synapse and Cortex™, before that Precog™) and Cell™ (formerly Neuron™ and Limb™) are names of this project, and the Zag cloud logo is its mark. They are trademarks, not registered. **You may use the names and logos anywhere** — in articles, talks, comparisons, links, your own projects about Zag — **as long as you don't pretend to be us**: nothing that says or suggests it is the official Zag, made or endorsed by this project, when it isn't.
+Zag™ (formerly Nerve and CyborgPL), Zomp™ (formerly Synapse) and Ricochet™ (formerly Kinesin) are names of this project, and the Zag cloud logo is its mark. They are trademarks, not registered. **You may use the names and logos anywhere** — in articles, talks, comparisons, links, your own projects about Zag — **as long as you don't pretend to be us**: nothing that says or suggests it is the official Zag, made or endorsed by this project, when it isn't.
