@@ -2,6 +2,80 @@
 
 Machine: arm64 (Apple Silicon, 10 cores: 4 performance, 6 efficiency), Darwin 27.0.0. Best of 3 runs, wall-clock from process start to exit (startup included); runs past 60 s are timeouts. Every answer is checked against C's, and every one agreed.
 
+## 2026-10-15, second run: Zag against C, Python, Go and Rust, all final builds
+
+Run at 14:48 (+07) with `ZOMP=… ZAG_BENCH_THREADS=10 python3 run.py zag zag1 c python rust go` (Zomp's release
+build of `cd41f34d`, runtime rebuilt, in compiler claude's clone), with every session paused and nothing else
+running. The runner, rewritten the same day, reported **every case built as asked (Zag as final builds only) and
+agreed with C**. This replaces the morning run's sieve, which was a working build (below).
+
+**The nuance** (owner 2026-10-06: "note the nuance"): the 10-thread row is not like for like, since Zag spreads a
+proven `for` over the cores by itself and the others are plain single-threaded code. **The 1-thread row is the
+fair comparison.** Each language's time over single-threaded Zag's (above 1 means Zag is faster):
+
+  | | sum | fib | lists | sieve |
+  |---|---|---|---|---|
+  | C (clang -O2) | 1.03× | 1.00× | 0.97× | 1.01× |
+  | Rust (rustc -O) | 1.85× | 1.00× | 1.26× | 0.99× |
+  | Go | 1.55× | 1.31× | 2.51× | 0.95× |
+  | Python | 173.99× | 31.62× | 230.92× | 25.18× |
+
+- **Zag ties C on all four**, and Rust on fib and sieve; it beats Rust on sum and lists, and Go on three.
+- **Sieve, now a real final build, ties C and Rust** (0.375 s against 0.378 and 0.372). **Go is ~5% ahead of all
+  three**, as compiler claude measured: Go's lead is over C as much as over Zag, most likely in how it gets and
+  zeroes the 100 MB array.
+- **Why sieve had fallen behind** (compiler claude, after first misdating it): a regression from `c9631fd3`
+  (2026-10-14 11:33): a true fact added to every prover question, that a counting loop's counter stays on its
+  side of its first value, made the nested counting loops too heavy for the solvers' budget, so the final build
+  was refused and the old runner timed the working build. Fixed in `0f3851b2`: each site is asked first without
+  that fact. So the 2026-10-12 and 2026-10-13 sieve rows were most likely real final builds after all; only runs
+  with Zomp from `c9631fd3` to `0f3851b2`, the morning run's among them, were not.
+- With 10 threads: sum 0.021 s (4.33× its single thread), sieve 0.231 s (1.62×).
+
+### sum (N = 300,000,000)
+
+| Language | Time | vs Zag |
+|---|---|---|
+| Zag (Zomp, final build, 10 threads) | 0.021 s | 1.00× |
+| Zag (Zomp, final build, 1 thread) | 0.091 s | 4.24× |
+| C (clang -O2) | 0.094 s | 4.37× |
+| Go | 0.141 s | 6.57× |
+| Rust (rustc -O) | 0.168 s | 7.83× |
+| Python (CPython) | 15.833 s | 737.95× |
+
+### fib (N = 35)
+
+| Language | Time | vs Zag |
+|---|---|---|
+| Zag (Zomp, final build, 1 thread) | 0.016 s | 0.94× |
+| C (clang -O2) | 0.016 s | 0.96× |
+| Rust (rustc -O) | 0.016 s | 0.97× |
+| Zag (Zomp, final build, 10 threads) | 0.016 s | 1.00× |
+| Go | 0.021 s | 1.30× |
+| Python (CPython) | 0.506 s | 30.77× |
+
+### lists (N = 20,000,000)
+
+| Language | Time | vs Zag |
+|---|---|---|
+| Zag (Zomp, final build, 10 threads) | 0.029 s | 1.00× |
+| C (clang -O2) | 0.038 s | 1.31× |
+| Zag (Zomp, final build, 1 thread) | 0.039 s | 1.32× |
+| Rust (rustc -O) | 0.049 s | 1.67× |
+| Go | 0.098 s | 3.36× |
+| Python (CPython) | 9.006 s | 308.31× |
+
+### sieve (N = 100,000,000)
+
+| Language | Time | vs Zag |
+|---|---|---|
+| Zag (Zomp, final build, 10 threads) | 0.231 s | 1.00× |
+| Go | 0.355 s | 1.54× |
+| Rust (rustc -O) | 0.372 s | 1.61× |
+| Zag (Zomp, final build, 1 thread) | 0.375 s | 1.62× |
+| C (clang -O2) | 0.378 s | 1.64× |
+| Python (CPython) | 9.443 s | 40.84× |
+
 ## 2026-10-15: Zag against C, Python, Go and Rust
 
 Run at 14:10 (+07) with `ZOMP=… CYBORG_BENCH_THREADS=10 python3 run.py zag zag1 c python rust go` (Zomp's release
@@ -27,10 +101,9 @@ programs in today's syntax (`.zg`, `std::`).
 - **Correction, the same day: the sieve rows are not a final build.** Asked by the owner why Zag was slower on
   sieve, design claude found Zomp refuses sieve's final build ("the position can be past the end", the inner
   loop's `change 'comp'[pos to.uint64['m' plus 1]] = true;`; 21 of 22 sites proven), and `run.py` then timed the
-  working build without saying so. Compiler claude traced it: **not a regression**. Zomp has refused this
-  program's final build since `0f273b45` (2026-10-12 17:42), when sieve was rewritten with nested counting loops;
-  a counting loop nested in another runs out of the solver's step budget (the same store proves as a `while`, or
-  in a lone counting loop). So the **2026-10-12 and 2026-10-13 sieve rows were working builds too**. And the check
+  working build without saying so. (Compiler claude first dated the refusal to `0f273b45`, which would have made
+  the 2026-10-12 and 2026-10-13 sieve rows working builds too; it then found it **was** a regression, from
+  `c9631fd3` on 2026-10-14, fixed in `0f3851b2`; see the second run above.) And the check
   is worth only ~1–3%: on 9 interleaved single-thread runs, Zomp as benched 0.445 s median, Zomp with the store
   unchecked 0.438, C 0.439, **Go 0.407**. Zomp ties C either way; **Go is ~7% ahead of C as much as of Zomp**,
   most likely in how Go gets and zeroes the 100 MB array, not in the loop. `run.py` now times Zag only as a
@@ -83,7 +156,7 @@ programs in today's syntax (`.zg`, `std::`).
 
 ## 2026-10-13: Nerve against LuaJIT
 
-> **Correction (2026-10-15):** this run's Nerve sieve rows were a working build: the final build was refused (nested counting loops), and `run.py` fell back without saying so. See the 2026-10-15 section.
+> **Note (2026-10-15):** this run's Nerve sieve rows were, as far as compiler claude could establish, real final builds: the refusal that made a later run time a working build began on 2026-10-14 (`c9631fd3`). See the 2026-10-15 sections.
 
 Run at 08:25 (+07) with `python3 run.py nerve nerve1 c luajit` (the Synapse release build of 08:25 in compiler claude's clone, at `9af932c5`), with nothing else building. The owner: "Bench Nerve against LuaJIT. By AI stereotypes, it should beat Nerve." Nerve is held to 3 threads (design claude's core share), not 10; C is there as the reference every answer is checked against.
 
@@ -131,7 +204,7 @@ Run at 08:25 (+07) with `python3 run.py nerve nerve1 c luajit` (the Synapse rele
 
 ## 2026-10-12: Nerve against C, Python, Go and Rust
 
-> **Correction (2026-10-15):** this run's Nerve sieve rows were a working build: the final build was refused (nested counting loops), and `run.py` fell back without saying so. See the 2026-10-15 section.
+> **Note (2026-10-15):** this run's Nerve sieve rows were, as far as compiler claude could establish, real final builds: the refusal that made a later run time a working build began on 2026-10-14 (`c9631fd3`). See the 2026-10-15 sections.
 
 Run at 17:53 (+07) with `CYBORG_BENCH_THREADS=10 python3 run.py nerve nerve1 c python rust go` (the Synapse release build of 14:04 in compiler claude's clone, committed as `2f8af0b0` at 14:08), with nothing else running. The owner asked, through website claude: "Could you ask design Claude to bench Nerve against C, Python, Go, and Rust?", then chose the uncapped run: "(a)". The first run under the Nerve name, and the first with Python and Rust; the Nerve programs are in today's syntax (`for 'i': int64 from 1 to 'n' by 1`, `int64[min 0, max 1_000_000_000]`).
 
