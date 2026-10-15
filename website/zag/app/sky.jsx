@@ -50,8 +50,10 @@ export function Backdrop() {
 
 // The site's top bar: a floating pill of frosted glass (owner: "I think it should be an in-theme
 // pill", then "Glass. Remove Commits. new, exact arrangement: Home, Download, Docs, Examples, More").
-const LINKS = [["Home", "/"], ["Download", "/download"], ["Docs", "/docs"], ["Examples", "/examples"], ["More", "/more"]];
-export function Pill({ here = "/" }) {
+// Home is the site's own screen, after the intro (owner: "Clicking home should tp back to Home, not
+// the first scroll"): /#home. On the home page itself a click glides there (home.jsx, usePager).
+const LINKS = [["Home", "/#home"], ["Download", "/download"], ["Docs", "/docs"], ["Examples", "/examples"], ["More", "/more"]];
+export function Pill({ here = "/#home" }) {
   return (
     <nav className="pill" aria-label="Site">
       <div className="links">

@@ -96,10 +96,27 @@ function usePager(frame) {
     addEventListener("keydown", onKey);
     addEventListener("resize", onResize);
     box.focus({ preventScroll: true });
+    // A screen by its id: /#home opens on the site's own screen, and a link to it on this page
+    // glides there in place of reloading.
+    const index = (id) => screens().findIndex((el) => el.id === id);
+    const start = index(location.hash.slice(1));
+    if (start > 0) { at = start; box.scrollTop = screens()[start].offsetTop; }
+    const onClick = (e) => {
+      const a = e.target.closest?.("a[href]");
+      if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+      const url = new URL(a.href, location.href);
+      if (url.origin !== location.origin || url.pathname !== location.pathname) return;
+      const i = url.hash ? index(url.hash.slice(1)) : 0;
+      if (i < 0) return;
+      e.preventDefault();
+      history.replaceState(null, "", url.hash || location.pathname);
+      go(i);
+    };
+    addEventListener("click", onClick);
     return () => {
       removeEventListener("wheel", onWheel); removeEventListener("touchstart", onTouchStart);
       removeEventListener("touchmove", onTouchMove); removeEventListener("touchend", onTouchEnd);
-      removeEventListener("keydown", onKey); removeEventListener("resize", onResize); cancelAnimationFrame(raf);
+      removeEventListener("keydown", onKey); removeEventListener("resize", onResize); removeEventListener("click", onClick); cancelAnimationFrame(raf);
     };
   }, [frame]);
 }
@@ -161,7 +178,7 @@ export default function Home() {
           <p>It takes its time: every build is a full one, with no fast mode. What comes out is native code, through LLVM.</p>
           <p className="cmd"><code>zomp</code></p>
         </section>
-        <section className="site" ref={site}>
+        <section className="site" id="home" ref={site}>
           <Pill />
           <div className="site-top">
             <h2>Very slow at the development, fast &amp; safe at the final product.</h2>
