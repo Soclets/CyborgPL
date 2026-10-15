@@ -1,5 +1,5 @@
 # Code for one target (owner, 2026-10-06): `on.target` is chosen when compiling, and a branch it rules
-# out is not compiled at all; `on.machine` asks the actual machine once, when running (IEG's).
+# out is not compiled at all; `on.machine` asks the actual machine once, when running.
 # The oracle's target is aarch64-macos.
 
 on.target.os windows {

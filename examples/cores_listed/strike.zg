@@ -1,5 +1,6 @@
-# Each plugin's words work once the strike lists the plugin (owner, 2026-10-05/06): ASP's `to.` and
-# `check`, IEG's `no_check`, Genny's generics, MCPS's `concur`; std for the operators and printing.
+# Each plugin's words work once the strike lists the plugin (owner, 2026-10-05/06): here MCPS's `concur`.
+# `to.`, `check`, `no_check` and generics were ASP's, IEG's and Genny's then and are the base's now; std
+# for printing.
 
 fn first <T: any> ['a': <T>, 'b': <T>] -> <T> {
     return 'a';

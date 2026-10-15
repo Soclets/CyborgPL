@@ -1,4 +1,4 @@
-# ASP keeps a way to write numbers like the hardware, never the default (owner, 2026-10-06):
+# The base keeps a way to write numbers like the hardware, never the default (owner, 2026-10-06):
 # `to.T.bits[…]` reads a value's bits as T's.
 
 MAIN {

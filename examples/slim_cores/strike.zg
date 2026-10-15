@@ -1,6 +1,6 @@
-# What the base was slimmed into (owner, 2026-10-07), each from the plugin this strike lists: testing
-# (TAS), `brain16` (AI), `int128` and the other widths (WSMW), `deci` (Money), Unicode text
-# (UniTect), the case marks (CAPS); range types are ASP's.
+# What the base was slimmed into (owner, 2026-10-07), each from the plugin this strike lists: `brain16`
+# (AI), `int128` and the other widths (WSMW), `deci` (Money), Unicode text and the case marks (`unicode`,
+# which took in UniTect and CAPS on 2026-10-12). Testing (TAS) and range types (ASP) are the base's again.
 case.any [fn];
 
 fn Halve ['n': int128] -> int128 {
