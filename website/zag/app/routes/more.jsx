@@ -50,7 +50,7 @@ export default function More() {
 
         <section className="info" aria-labelledby="names-title">
           <h2 id="names-title">Names and logo</h2>
-          <p>Zag™ (formerly Nerve™ and CyborgPL™) and Zomp™ (formerly Synapse and Cortex™, before that Precog™) are names of this project, and the Zag cloud logo is its mark. They are trademarks, not registered.</p>
+          <p>Zag™ (formerly Nerve and CyborgPL), Zomp™ (formerly Synapse) and Ricochet™ (formerly Kinesin) are names of this project, and the Zag cloud logo is its mark. They are trademarks, not registered.</p>
           <p><b>You may use the names and logo anywhere</b> (in articles, talks, comparisons, links, your own projects about Zag) <b>as long as you don’t pretend to be us</b>: nothing that says or suggests it is the official Zag, made or endorsed by this project, when it isn’t.</p>
         </section>
 
