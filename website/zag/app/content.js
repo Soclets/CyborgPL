@@ -139,11 +139,13 @@ export const COMPARISON = [
     python: "`ctypes` in the standard library calls C libraries; extension modules are written against the C API.", },
 ];
 
-// Speed (owner, 2026-10-15: "yea", to benchmarks on Home, then "rerun"). From bench/RESULTS.md, the
-// run of 2026-10-15, the first under the name Zag (Zomp's release build of ab80b214, 10 threads
-// and a 1-thread row, everything else paused). Seconds, best of 3, wall-clock from start to exit;
-// every answer checked against C's. Python is left off the charts and given in words. The all-cores
-// bars are not like for like (owner, 2026-10-06: "note the nuance").
+// Speed (owner, 2026-10-15: "yea", to benchmarks on Home, then "rerun"). From bench/RESULTS.md's
+// "2026-10-15, second run" (31fc9204): Zomp's release build of cd41f34d, every program a real
+// final build (the runner now confirms none fell back; the first run of the day had sieve on a
+// working build, and so had 2026-10-12's), 10 threads and a 1-thread row, everything else paused.
+// Seconds, best of 3, wall-clock from start to exit; every answer checked against C's. Python is
+// left off the charts and given in words. The all-cores bars are not like for like (owner,
+// 2026-10-06: "note the nuance").
 export const BENCH = {
   date: "15 Oct 2026",
   bars: [
@@ -154,12 +156,9 @@ export const BENCH = {
     { id: "zagN", name: "Zag, all cores", kind: "ours-all" },
   ],
   programs: [
-    { id: "sum", what: "Adds up i × i mod 7 for 300 million numbers", times: { zag1: 0.092, c: 0.096, rust: 0.173, go: 0.143, zagN: 0.021 }, python: 16.433 },
-    { id: "fib", what: "Recursive Fibonacci of 35: all function calls", times: { zag1: 0.016, c: 0.017, rust: 0.016, go: 0.023, zagN: 0.017 }, python: 0.516 },
-    { id: "lists", what: "Appends 20 million numbers to a list, then sums it 10 times", times: { zag1: 0.040, c: 0.042, rust: 0.052, go: 0.105, zagN: 0.036 }, python: 8.788 },
+    { id: "sum", what: "Adds up i × i mod 7 for 300 million numbers", times: { zag1: 0.091, c: 0.094, rust: 0.168, go: 0.141, zagN: 0.021 }, python: 15.833 },
+    { id: "fib", what: "Recursive Fibonacci of 35: all function calls", times: { zag1: 0.016, c: 0.016, rust: 0.016, go: 0.021, zagN: 0.016 }, python: 0.506 },
+    { id: "lists", what: "Appends 20 million numbers to a list, then sums it 10 times", times: { zag1: 0.039, c: 0.038, rust: 0.049, go: 0.098, zagN: 0.029 }, python: 9.006 },
+    { id: "sieve", what: "Counts the primes up to 100 million", times: { zag1: 0.375, c: 0.378, rust: 0.372, go: 0.355, zagN: 0.231 }, python: 9.443 },
   ],
-  // sieve is held back (design claude, 2026-10-15): in this run its final build failed on a proof
-  // regression in Zomp, and bench/run.py fell back to a working build with a bounds check in the hot
-  // loop. It comes back when RESULTS.md has the re-run after compiler claude's fix.
-  heldBack: "sieve",
 };
