@@ -9,7 +9,8 @@ not just the repository).
 
 **Numbering: whole numbers, no dots** (owner, 2026-10-15: "There are no dots, it's just ZDK 1, the next
 ZDK 2"): ZDK 1, then ZDK 2. **The ZCK carries the same number** as the ZDK it goes with, release for release
-(owner: "yea"): ZCK 1 with ZDK 1.
+(owner: "yea"): ZCK 1 with ZDK 1. **Zomp names itself by its kit**, `ZDK 1 Zomp` (owner), with no dotted
+version of its own.
 
 ## Contents (design claude's sketch, not ruled)
 
@@ -25,6 +26,6 @@ or fetched by the kit; open.
 
 - What exactly each holds, and whether the ZCK contains the ZDK or sits beside it.
 - Platforms (Zomp builds for aarch64-macos and aarch64-none today) and package formats.
-- How Zomp's own `0.0.1` and the
-  language's date (`zag_version.zv`) relate to the kit's number.
+- What a build between releases calls itself; how the language's date (`zag_version.zv`) relates to the
+  kit's number.
 - How a ZCK user's changes get back: the ZCK is packaged, so it is not the repository itself.

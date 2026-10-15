@@ -10,7 +10,9 @@ Nothing here is final until the owner says so; open questions live at the bottom
 The owner: "There are no dots, it's just ZDK 1, the next ZDK 2". So **a release of the ZDK is numbered by
 a whole number**, no `1.2.3`: ZDK 1, then ZDK 2. Then design claude asked whether the ZCK follows it, release
 for release (ZCK 1 goes with ZDK 1, both move to 2 together), recommended; the owner: "yea". So **the ZCK
-carries the same number as the ZDK it goes with**. Not yet asked: how Zomp's own `0.0.1` relates.
+carries the same number as the ZDK it goes with**. Then, asked whether Zomp (which said `0.0.1`) should report
+the kit it ships in: "ZDK 1 Zomp". So **Zomp's version is the kit's, written `ZDK 1 Zomp`**, no dotted number
+of its own. Not yet asked: what a build between releases says.
 
 ### 2026-10-15 — Two downloads: ZDK (Zag Dev Kit) and ZCK (Zag Contribute Kit), both packaged (owner: a)
 
