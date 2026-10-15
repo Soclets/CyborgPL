@@ -1,0 +1,10 @@
+# A number into a brain16 rounds once, to the nearest brain16 (types.md). 25262379159781017 lies between
+# 179 x 2^47 and 180 x 2^47, just below half way, so it rounds down. Through bin32 first it would land
+# exactly half way and tie up (check claude, 2026-10-15).
+MAIN {
+    let 'v': int64 = 25262379159781017;
+    let 'w' := to.brain16['v'];
+    let 'l': brain16 = 25262379159781017.0;
+    std::print.stored['w', newln];
+    std::print.stored['l', newln];
+}

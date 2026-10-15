@@ -325,6 +325,35 @@ pub fn round_brain(x: f64) -> f64 {
     f32::from_bits(rounded) as f64
 }
 
+/// The nearest brain float to an integer, rounded once (types.md: a number "rounds to the nearest brain16"),
+/// not through 32 bits first, which can round twice and miss the nearest (check claude, 2026-10-15, corpus
+/// 7457b90a: 25262379159781017 lands on a half step at 32 bits and tied up to 180 x 2^47).
+pub fn round_brain_int(i: i128) -> f64 {
+    if i == 0 { return 0.0; }
+    let m = i.unsigned_abs();
+    let len = 128 - m.leading_zeros();
+    let mag = if len <= 8 { m as f64 } else {
+        let shift = len - 8;
+        let mut kept = m >> shift;
+        let rem = m & ((1u128 << shift) - 1);
+        let half = 1u128 << (shift - 1);
+        if rem > half || (rem == half && kept & 1 == 1) { kept += 1; }
+        (kept as f64) * 2f64.powi(shift as i32)
+    };
+    if i < 0 { -mag } else { mag }
+}
+
+/// The nearest brain float to a 64-bit value, rounded once (as `round_brain_int`); a value below 32-bit
+/// floats' normal range keeps the 32-bit path
+pub fn round_brain_direct(x: f64) -> f64 {
+    if !x.is_finite() || x == 0.0 || x.abs() < f32::MIN_POSITIVE as f64 { return round_brain(x); }
+    let bits = x.to_bits();
+    let rounded = bits.wrapping_add((1u64 << 44) - 1 + ((bits >> 45) & 1)) & !((1u64 << 45) - 1);
+    let y = f64::from_bits(rounded);
+    let max = f32::from_bits(0x7F7F_0000) as f64;   // the largest brain float
+    if y.abs() > max { if y < 0.0 { f64::NEG_INFINITY } else { f64::INFINITY } } else { y }
+}
+
 /// `print.useful` for a brain float: the shortest decimal that rounds back to the same value.
 pub fn brain_useful(x: f64) -> String {
     if x == 0.0 { return if x.is_sign_negative() { "-0".into() } else { "0".into() }; }
