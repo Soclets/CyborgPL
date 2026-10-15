@@ -314,6 +314,15 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 .credit-lines span { font-size: 13px; font-weight: 700; color: #5A7299; }
 .credit-lines code { padding: 8px 12px; border-radius: 10px; background: rgba(23, 87, 176, .08); font: 600 13px/1.5 ui-monospace, "SF Mono", Menlo, monospace; color: #0F2A5C; overflow-wrap: anywhere; user-select: all; }
 .plain { margin: 6px 0 12px; padding-left: 20px; display: grid; gap: 6px; }
+.info h3 { margin-top: 20px; }
+.info code { font: 600 .88em ui-monospace, "SF Mono", Menlo, monospace; padding: 1px 5px; border-radius: 6px; background: rgba(23, 87, 176, .08); color: #0F2A5C; }
+.info a code { color: inherit; }
+/* The crate and package lists: long runs of names, small, wrapping anywhere. */
+.versions { font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+.versions code { font-size: 12.5px; }
+.every { margin: 0 0 12px; border-radius: 14px; background: rgba(23, 87, 176, .06); padding: 10px 14px; }
+.every summary { cursor: pointer; font-weight: 600; color: var(--edge); }
+.every[open] summary { margin-bottom: 8px; }
 
 /* The top bar: a floating pill of frosted glass, the sky showing through (owner: "Glass"). */
 .pill { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 4px; max-width: calc(100% - 24px);
