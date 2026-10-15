@@ -2,6 +2,77 @@
 
 Machine: arm64 (Apple Silicon, 10 cores: 4 performance, 6 efficiency), Darwin 27.0.0. Best of 3 runs, wall-clock from process start to exit (startup included); runs past 60 s are timeouts. Every answer is checked against C's, and every one agreed.
 
+## 2026-10-15, third run: C and C++ at -O3, Zomp with the faster counting loops
+
+Run at 15:37 (+07) with `ZOMP=… ZAG_BENCH_THREADS=10 python3 run.py zag zag1 c python rust go` (Zomp's release
+build of `73bad7b9`, `ZDK 1 Zomp`, runtime current; every session paused). Two changes since the second run:
+**C and C++ are built with `-O3`**, the level Zomp always uses (owner, asked "If our is O3, are the others O3
+too?", then "yes"; they were `-O2`), and Rust's label now says `opt-level=3`, which it always used; and Zomp's
+`db17747d` (compiler claude, following design claude's sieve question): a counting loop with a computed step
+runs one test a trip instead of two, and its split across threads is decided by a multiply, not a 128-bit
+division per prime. Every case built final and agreed with C.
+
+**The 1-thread row is the fair comparison** (the 10-thread row is not like for like). Each language's time over
+single-threaded Zag's (above 1 means Zag is faster):
+
+  | | sum | fib | lists | sieve |
+  |---|---|---|---|---|
+  | C (clang -O3) | 0.99× | 0.94× | 0.95× | 1.10× |
+  | Rust (opt-level=3) | 1.86× | 1.00× | 1.23× | 1.12× |
+  | Go | 1.54× | 1.44× | 2.49× | 1.01× |
+  | Python | 168.58× | 32.50× | 224.92× | 26.09× |
+
+- **Sieve: Zag now leads C by 10% and Rust by 12%, and ties Go** (0.355 s against 0.389, 0.397, 0.357).
+- **C at -O3 is a hair ahead on fib and lists** (0.015 against 0.016, 0.037 against 0.039); both are 1–2 ms on
+  runs this short, at the edge of what best-of-3 resolves. Sum ties.
+- Rust and Go as before: Zag ahead of Rust on sum, lists and sieve, level on fib; ahead of Go on all four.
+- The 10-thread sum came out 0.030 s, against 0.021 s in the two runs before; the single-thread rows did not
+  move, so likely run-to-run variance in spreading a 0.02-second job over 10 threads.
+
+### sum (N = 300,000,000)
+
+| Language | Time | vs Zag |
+|---|---|---|
+| Zag (Zomp, final build, 10 threads) | 0.030 s | 1.00× |
+| C (clang -O3) | 0.092 s | 3.05× |
+| Zag (Zomp, final build, 1 thread) | 0.093 s | 3.06× |
+| Go | 0.143 s | 4.73× |
+| Rust (rustc opt-level=3) | 0.173 s | 5.74× |
+| Python (CPython) | 15.678 s | 518.72× |
+
+### fib (N = 35)
+
+| Language | Time | vs Zag |
+|---|---|---|
+| C (clang -O3) | 0.015 s | 0.88× |
+| Zag (Zomp, final build, 1 thread) | 0.016 s | 0.92× |
+| Rust (rustc opt-level=3) | 0.016 s | 0.97× |
+| Zag (Zomp, final build, 10 threads) | 0.017 s | 1.00× |
+| Go | 0.023 s | 1.38× |
+| Python (CPython) | 0.520 s | 30.67× |
+
+### lists (N = 20,000,000)
+
+| Language | Time | vs Zag |
+|---|---|---|
+| Zag (Zomp, final build, 10 threads) | 0.034 s | 1.00× |
+| C (clang -O3) | 0.037 s | 1.10× |
+| Zag (Zomp, final build, 1 thread) | 0.039 s | 1.15× |
+| Rust (rustc opt-level=3) | 0.048 s | 1.43× |
+| Go | 0.097 s | 2.87× |
+| Python (CPython) | 8.772 s | 258.50× |
+
+### sieve (N = 100,000,000)
+
+| Language | Time | vs Zag |
+|---|---|---|
+| Zag (Zomp, final build, 10 threads) | 0.228 s | 1.00× |
+| Zag (Zomp, final build, 1 thread) | 0.355 s | 1.55× |
+| Go | 0.357 s | 1.56× |
+| C (clang -O3) | 0.389 s | 1.70× |
+| Rust (rustc opt-level=3) | 0.397 s | 1.74× |
+| Python (CPython) | 9.261 s | 40.57× |
+
 ## 2026-10-15, second run: Zag against C, Python, Go and Rust, all final builds
 
 Run at 14:48 (+07) with `ZOMP=… ZAG_BENCH_THREADS=10 python3 run.py zag zag1 c python rust go` (Zomp's release
