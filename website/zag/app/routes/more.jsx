@@ -37,7 +37,7 @@ export async function loader() {
   const crates = read("../../zomp/Cargo.lock").split("[[package]]").slice(1)
     .filter((b) => /^source = /m.test(b))
     .map((b) => [b.match(/^name = "(.*)"/m)[1], b.match(/^version = "(.*)"/m)[1]]);
-  return { crates, site: npm("package-lock.json"), oldSite: npm("../site/package-lock.json") };
+  return { crates, site: npm("package-lock.json") };
 }
 
 // A long list of name and version pairs, run together as the README writes them.
@@ -54,7 +54,7 @@ function Versions({ list }) {
 
 export default function More() {
   useSiteSky();
-  const { crates, site, oldSite } = useLoaderData();
+  const { crates, site } = useLoaderData();
   return (
     <main className="page page-in">
       <div className="page-body">
@@ -107,10 +107,10 @@ export default function More() {
             <li><a href="https://www.python.org" {...out}>Python</a>: the benchmark runners.</li>
             <li><a href="https://github.com/djrrb/Bungee" {...out}>Bungee</a>, by The Bungee Project Authors (SIL Open Font License 1.1): the letters of the Zag logo, turned into outlines.</li>
             <li><a href="https://github.com/hafontia/Fredoka-One" {...out}>Fredoka</a>, by The Fredoka Project Authors (SIL Open Font License 1.1): this site’s text.</li>
-            <li><a href="https://nodejs.org" {...out}>Node.js</a> and npm: the websites’ builds.</li>
+            <li><a href="https://nodejs.org" {...out}>Node.js</a> and npm: this site’s build.</li>
             <li><a href="https://brew.sh" {...out}>Homebrew</a>: LLVM, Z3, cvc5, Alive2 and most of the benchmark’s toolchains on the build machine.</li>
             <li><a href="https://git-scm.com" {...out}>Git</a>, <a href="https://github.com" {...out}>GitHub</a> and the <a href="https://cli.github.com" {...out}>GitHub CLI</a>: hosting and history.</li>
-            <li><a href="https://www.cloudflare.com" {...out}>Cloudflare</a> Workers and Wrangler: the websites.</li>
+            <li><a href="https://www.cloudflare.com" {...out}>Cloudflare</a> Workers and Wrangler: this site.</li>
             <li>macOS and Xcode’s command-line tools, by Apple.</li>
           </ul>
 
@@ -129,11 +129,6 @@ export default function More() {
           <details className="every">
             <summary>Every package in this site’s <code>package-lock.json</code> ({site.length})</summary>
             <Versions list={site} />
-          </details>
-          <p>The Nerve site before it (<code>website/site</code>): the same, plus <a href="https://motion.dev" {...out}>Motion</a> and <a href="https://github.com/thx/resvg-js" {...out}>resvg-js</a>.</p>
-          <details className="every">
-            <summary>Every package in its <code>package-lock.json</code> ({oldSite.length})</summary>
-            <Versions list={oldSite} />
           </details>
 
           <h3>Ideas taken from other languages</h3>
