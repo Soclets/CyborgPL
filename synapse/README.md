@@ -742,3 +742,12 @@ Dated, with the alternative, so each can become a question later.
   lists `cord/` by cord's ID and its path, and must print the oracle's
   `.out` (`examples_run_against_the_nerve_cord`); built as a lone file,
   with the built-in cord, it stays on the not-yet-built list.
+- **2026-10-14 — A final build's debug info beside it, and the no-OS
+  image's start.** `--final` runs LLVM's `dsymutil` (macOS, `out.dSYM`) or
+  `llvm-objcopy --only-keep-debug` and `--strip-debug
+  --add-gnu-debuglink` (Linux and no OS, `out.debug`) after linking, before
+  the size is measured; a working build keeps the info inside. With no OS
+  the vector table opens `.text._start`, 2 KiB aligned, and `_start` sits
+  in its first slot (taken only by an exception on `SP_EL0`, which the
+  program never runs on): no padding before the table. A const array read
+  in place (`incl.bytes`) has its length in Cortex's domain.

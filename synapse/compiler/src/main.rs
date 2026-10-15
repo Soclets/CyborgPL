@@ -9,7 +9,7 @@ fn usage() -> ! {
     eprintln!("       synapse check <file.nrv | neuron-dir>…   parse and check");
     eprintln!("       synapse mir <file.nrv | neuron-dir>       check, then print the flow graph");
     eprintln!("       synapse cortex <file.nrv | neuron-dir>  check, lower, prove, and report");
-    eprintln!("       synapse build <file.nrv | neuron-dir> [-o out] [--target t] [--emit-llvm dir]   …then generate, assemble and link; dir/before.ll and dir/after.ll are the LLVM IR before and after LLVM's passes");
+    eprintln!("       synapse build <file.nrv | neuron-dir> [-o out] [--target t] [--final] [--emit-llvm dir]   …then generate, assemble and link; --final refuses what is not proven and writes the debug info beside the program (out.dSYM, out.debug); dir/before.ll and dir/after.ll are the LLVM IR before and after LLVM's passes");
     eprintln!("       synapse run <file.nrv | neuron-dir> [-- words…]   build, then run it here with its words; its exit is synapse's");
     eprintln!("       synapse test <file.nrv | neuron-dir>      run every `test fn`, each on its own, and report");
     eprintln!("       synapse prepare [folder/] [<name>, …] [--prefix <prefix>, …] | --all   run those Neurons' build.nrv, in their own folders");
@@ -567,6 +567,9 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     let obj = out.with_extension("o");
     brainstem::codegen::write_object(&lowered.module, &obj, emit).map_err(|e| format!("error: {}\n", e))?;
     brainstem::codegen::link(&obj, out).map_err(|e| format!("error: {}\n", e))?;
+    // A final build's debug info goes beside it (owner, 2026-10-14); a
+    // working build keeps it inside.
+    let debug = if final_build { Some(brainstem::codegen::split_debug(out).map_err(|e| format!("error: {}\n", e))?) } else { None };
     // Every build ends with its size, broken down (owner, 2026-10-08).
     let size = brainstem::codegen::size::report(&mir, &obj, out);
     let _ = std::fs::remove_file(&obj);
@@ -582,6 +585,9 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     say(size.unwrap_or_else(|e| format!("size: not measured: {}\n", e)));
     if !quiet {
         println!("wrote {}", out.display());
+        if let Some(d) = &debug {
+            println!("wrote {}, its debug info", d.display());
+        }
     }
     Ok(test_names)
 }

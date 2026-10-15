@@ -1809,6 +1809,14 @@ impl Precog {
                 Domain::Seq { len, .. } => Domain::Ints(len),
                 _ => Domain::Ints(ISet::Range { lo: 0, hi: i64::MAX as i128 }),
             },
+            // A const array read in place (owner, 2026-10-10): its bytes are
+            // known while building, so its length is (design claude: a
+            // final build refused `'tiny'[pos 4]` of a 4-byte file).
+            Op::ConstView => match args.first() {
+                Some(Operand::Const(Const::Bytes(b))) => Domain::Seq { len: ISet::one(b.len() as i128), elem: Box::new(Domain::Ints(ISet::Range { lo: 0, hi: 255 })) },
+                Some(Operand::Const(Const::Array { items, .. })) => Domain::Seq { len: ISet::one(items.len() as i128), elem: Box::new(Domain::Any) },
+                _ => Domain::Seq { len: ISet::Range { lo: 0, hi: i64::MAX as i128 }, elem: Box::new(Domain::Any) },
+            },
             // The same elements, the same count: only whether it can grow.
             Op::ToList | Op::ToArray => match arg(self, 0) {
                 d @ Domain::Seq { .. } => d,

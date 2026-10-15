@@ -4337,6 +4337,45 @@ extern "C" {
 /// linker. On macOS, the arguments clang gives the system linker: the
 /// architecture, the platform and SDK versions, the SDK as the system
 /// root, the runtime, and libSystem.
+/// A final build's debug info, written beside the program and taken out
+/// of it (owner, 2026-10-08: "`a`"; 2026-10-14: "(a)", "(a)";
+/// `debug-info.md`): `hello.dSYM` on macOS, `hello.debug` (DWARF, with a
+/// `.gnu_debuglink` to it) on Linux and with no OS. LLVM's own tools,
+/// beside the LLVM Synapse is built with; the object file must still be
+/// there, since macOS's debug map points into it. Gives back the file.
+pub fn split_debug(out: &Path) -> Result<std::path::PathBuf, String> {
+    let tool = |name: &str| Path::new(env!("SYNAPSE_LLVM_PREFIX")).join("bin").join(name);
+    let run = |name: &str, args: &[&std::ffi::OsStr]| -> Result<(), String> {
+        let o = std::process::Command::new(tool(name)).args(args).output().map_err(|e| format!("`{}` would not start, and a final build writes its debug info with it: {}", name, e))?;
+        if o.status.success() {
+            Ok(())
+        } else {
+            Err(format!("`{}` could not write the debug info: {}", name, String::from_utf8_lossy(&o.stderr).trim()))
+        }
+    };
+    let beside = |ending: &str| {
+        let mut p = out.as_os_str().to_os_string();
+        p.push(ending);
+        std::path::PathBuf::from(p)
+    };
+    let target = crate::target::name();
+    if target.ends_with("-macos") {
+        let dsym = beside(".dSYM");
+        let _ = std::fs::remove_dir_all(&dsym);
+        run("dsymutil", &[out.as_os_str(), "-o".as_ref(), dsym.as_os_str()])?;
+        run("llvm-strip", &["--strip-debug".as_ref(), out.as_os_str()])?;
+        return Ok(dsym);
+    }
+    if target.ends_with("-linux") || target.ends_with("-none") {
+        let debug = beside(".debug");
+        run("llvm-objcopy", &["--only-keep-debug".as_ref(), out.as_os_str(), debug.as_os_str()])?;
+        let link = std::ffi::OsString::from(format!("--add-gnu-debuglink={}", debug.display()));
+        run("llvm-objcopy", &["--strip-debug".as_ref(), link.as_os_str(), out.as_os_str()])?;
+        return Ok(debug);
+    }
+    Err(format!("not yet: a final build for `{}` writes its debug info beside the program, and Synapse knows that file only for macOS (`.dSYM`), Linux and no OS (`.debug`) so far", target))
+}
+
 pub fn link(obj: &Path, out: &Path) -> Result<(), String> {
     if crate::target::bare() {
         let Some(script) = crate::target::layout() else {

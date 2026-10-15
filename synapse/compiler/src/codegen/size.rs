@@ -178,8 +178,18 @@ pub fn report(p: &Program, obj: &Path, exe: &Path) -> Result<String, String> {
     const GLUE: [&str; 8] = ["main", "_start", "cy_vectors", "memcpy", "memmove", "memset", "memcmp", "bcmp"];
     let mut glue: Vec<(&String, &u64)> = code.iter().filter(|(n, _)| !is_function(n) && (GLUE.contains(&n.as_str()) || n.starts_with("cy_test"))).collect();
     glue.sort();
+    // With no OS, `_start` sits in the vector table's first slot: counted
+    // once, in the table's row.
+    let in_table = code.contains_key("cy_vectors");
     for (n, s) in glue {
-        let name = if n == "main" { "the entry, `main`, which runs MAIN".to_string() } else { format!("`{}`, Synapse's", n) };
+        if n == "_start" && in_table {
+            continue;
+        }
+        let name = match n.as_str() {
+            "main" => "the entry, `main`, which runs MAIN".to_string(),
+            "cy_vectors" => "the vector table, `_start` in its first slot, Synapse's".to_string(),
+            _ => format!("`{}`, Synapse's", n),
+        };
         own += *s;
         rows.push(("this Neuron".into(), name, None, *s));
     }

@@ -742,3 +742,40 @@ fn a_length_bound_is_checked_at_the_call() {
         assert_eq!((r.status.code(), String::from_utf8_lossy(&r.stdout).as_ref()), (Some(0), "before\n1\n"), "{} did not run without an argument:\n{}", name, String::from_utf8_lossy(&r.stderr));
     }
 }
+
+/// A final build writes its debug info beside the program, with the
+/// platform's own ending, and the program carries none (owner, 2026-10-14;
+/// `debug-info.md`): `hello.dSYM` on macOS, `hello.debug` with no OS. And
+/// with no OS the image starts with the vector table, `_start` in its
+/// first slot, so nothing pads the table (design claude: 1.8 KB did); and
+/// a const array's length is known while building, so `'tiny'[pos 4]` of
+/// a 4-byte file is proven and the final build goes through.
+#[test]
+fn a_final_build_writes_its_debug_info_beside_it() {
+    assert!(runtime().is_some(), "the runtime is not built");
+    let out = std::env::temp_dir().join(format!("synapse-final-debug-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&out);
+    std::fs::create_dir_all(&out).unwrap();
+    let hello = out.join("hello.nrv");
+    std::fs::write(&hello, "MAIN {\n    cord::print.useful[\"hello\", newln];\n}\n").unwrap();
+    let r = Command::new(cca()).args(["build", "--final"]).arg(&hello).arg("-o").arg(out.join("hello")).output().unwrap();
+    assert!(r.status.success(), "the final build failed:\n{}", String::from_utf8_lossy(&r.stderr));
+    assert!(out.join("hello.dSYM/Contents/Resources/DWARF/hello").is_file(), "no hello.dSYM beside the program");
+    let ran = Command::new(out.join("hello")).output().unwrap();
+    assert_eq!(String::from_utf8_lossy(&ran.stdout), "hello\n");
+    // A working build keeps it inside: nothing is written beside it.
+    let r = Command::new(cca()).arg("build").arg(&hello).arg("-o").arg(out.join("work")).output().unwrap();
+    assert!(r.status.success() && !out.join("work.dSYM").exists(), "a working build wrote its debug info apart");
+    // With no OS: `hello.debug`, and no `.debug_info` left in the program.
+    let board = dir().parent().unwrap().join("bare/uses_board");
+    let image = out.join("board");
+    let r = Command::new(cca()).args(["build", "--target", "aarch64-none", "--final"]).arg(&board).arg("-o").arg(&image).output().unwrap();
+    assert!(r.status.success(), "the no-OS final build failed:\n{}", String::from_utf8_lossy(&r.stderr));
+    let debug = std::fs::read(out.join("board.debug")).expect("no board.debug beside the program");
+    let has = |bytes: &[u8], what: &[u8]| bytes.windows(what.len()).any(|w| w == what);
+    assert!(has(&debug, b".debug_info"), "board.debug holds no DWARF");
+    let program = std::fs::read(&image).unwrap();
+    assert!(!has(&program, b".debug_info") && has(&program, b".gnu_debuglink"), "the program still carries its debug info, or does not name its file");
+    let said = String::from_utf8_lossy(&r.stdout);
+    assert!(said.contains("the vector table, `_start` in its first slot") && !said.contains("`_start`, Synapse's"), "the size report counts `_start` apart from the table:\n{}", said);
+}

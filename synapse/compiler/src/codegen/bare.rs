@@ -126,7 +126,11 @@ pub fn why_missing(name: &str) -> String {
 /// The entry: the first code the CPU runs. Only the first core goes on
 /// (any other sleeps); the FP and SIMD unit is turned on, or the first
 /// float or vector instruction would trap; an exception — a failed check's
-/// `brk` — stops in a table that waits forever, `ELR_EL1` holding the
+/// `brk` — stops in a table that waits forever (the table is the start of
+/// the image, 2 KiB aligned as `VBAR_EL1` asks, and the entry sits in the
+/// first slot's 128 bytes, which only an exception taken on `SP_EL0` would
+/// reach, and the program runs on `SP_EL1`: no padding before the table,
+/// which after the code cost up to 2 KiB), `ELR_EL1` holding the
 /// trap's address and `ESR_EL1` saying it was one; the stack is set and
 /// zeroed memory cleared; then `MAIN` runs through `main`, and when it ends
 /// the CPU sleeps there.
@@ -134,7 +138,8 @@ pub const ENTRY_ASM: &str = r#"
 .section .text._start,"ax",@progbits
 .globl _start
 .type _start, %function
-.p2align 2
+.p2align 11
+cy_vectors:
 _start:
     mrs x0, mpidr_el1
     and x0, x0, #0xff
@@ -163,11 +168,7 @@ _start:
 9:  wfe
     b 9b
 .size _start, .-_start
-
-.section .text.cy_vectors,"ax",@progbits
-.p2align 11
-cy_vectors:
-.rept 16
+.rept 15
 .p2align 7
 1:  wfe
     b 1b
