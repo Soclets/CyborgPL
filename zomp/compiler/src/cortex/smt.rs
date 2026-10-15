@@ -878,7 +878,7 @@ impl<'a> Enc<'a> {
             }
             // Where it goes, and what each successor then knows.
             let term = self.func().blocks[b].term.clone();
-            let mut send = |this: &mut Self, to: BlockId, g: String, mut e: Env| {
+            let mut send = |this: &mut Self, to: BlockId, mut g: String, mut e: Env| {
                 let ti = to.0 as usize;
                 let is_back = crate::cortex::back_edges(this.func()).contains(&(b, ti));
                 let lvl = if is_back { level + 1 } else { level };
@@ -914,7 +914,17 @@ impl<'a> Enc<'a> {
                         let written = last_trip.get(&ti).cloned().unwrap_or_default();
                         this.assume_counted(&mut late, ti, &written);
                         this.forget_aliased(&mut late);
-                        incoming.entry((ti, UNROLL_PER_LOOP)).or_default().push((g.clone(), late));
+                        // Either the trips go on as walked, or this entry is
+                        // one of the later ones the last copy stands for:
+                        // one or the other, never both. Sharing the entry's
+                        // own condition made both hold at once, and the join
+                        // took the walked trip's values, so the later trips
+                        // were never asked (check claude, corpus 71a8d5a2:
+                        // `'i'` of -2 on an outer loop's third trip, after
+                        // its inner loop had used the levels up).
+                        let ways = this.choices(&g, 2);
+                        g = ways[0].clone();
+                        incoming.entry((ti, UNROLL_PER_LOOP)).or_default().push((ways[1].clone(), late));
                     }
                 }
                 if entering {

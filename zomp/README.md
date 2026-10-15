@@ -758,3 +758,11 @@ Dated, with the alternative, so each can become a question later.
   `f4d99bd1`). And a layer 3 `unsat` that assumed the landings before its
   site counts only if the site can still be reached with them (`reach`):
   if not, the site is asked again without them.
+- **2026-10-15 — A widened loop head's entries are a choice of their own.**
+  When a loop's last unrolled head copy stands for the later trips
+  (widened, because an inner loop used the levels up), each entry into
+  the loop also arrives there; it did on the entry's own condition, so the
+  walked trip and the later ones held together, the join took the walked
+  trip's values, and the later trips were never asked (`'i'` of -2 on an
+  outer loop's third trip "proven"; check claude, corpus `71a8d5a2`). The
+  entry is now split by a fresh selector, one way or the other.
