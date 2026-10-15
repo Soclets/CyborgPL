@@ -130,7 +130,7 @@
       ]
     },
     "asm-block": {
-      "comment": "inline.ASM { … } is taken verbatim to the matching brace.",
+      "comment": "inline.ASM { … } runs to the matching brace; inside, the assembly is coloured as assembly: instructions, registers, numbers, labels and comments (ARM64 and x86-64).",
       "name": "meta.embedded.asm.nerve",
       "begin": "\\b(inline)(\\.)(ASM)\\s*(\\{)",
       "end": "\\}",
@@ -153,7 +153,48 @@
           "name": "punctuation.section.braces.end.nerve"
         }
       },
-      "contentName": "meta.embedded.block.asm"
+      "contentName": "meta.embedded.block.asm",
+      "patterns": [
+        {
+          "name": "comment.line.asm.nerve",
+          "match": "(?://|;|#(?![0-9-])).*$"
+        },
+        {
+          "match": "^\\s*([A-Za-z_.][\\w.]*)(:)",
+          "captures": {
+            "1": {
+              "name": "entity.name.label.nerve"
+            },
+            "2": {
+              "name": "punctuation.separator.nerve"
+            }
+          }
+        },
+        {
+          "match": "(?:^|(?<=\\{))\\s*([a-z][a-z0-9.]*)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.other.instruction.nerve"
+            }
+          }
+        },
+        {
+          "name": "variable.language.register.nerve",
+          "match": "\\b(?:[xwvqdsbh](?:[12]?[0-9]|3[01])|sp|wsp|xzr|wzr|lr|fp|pc|r[a-d]x|r[sd]i|r[sb]p|r(?:[89]|1[0-5])[dwb]?|e[a-d]x|e[sd]i|e[sb]p|[a-d][lhx])\\b"
+        },
+        {
+          "name": "constant.numeric.integer.nerve",
+          "match": "#?-?\\b(?:0x[0-9A-Fa-f]+|[0-9]+)\\b"
+        },
+        {
+          "name": "punctuation.separator.comma.nerve",
+          "match": ","
+        },
+        {
+          "name": "punctuation.section.brackets.nerve",
+          "match": "[\\[\\]]"
+        }
+      ]
     },
     "text": {
       "comment": "A text literal is exactly its characters; only \\\" and \\\\ escape. A backslash before anything else is literal.",

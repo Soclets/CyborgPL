@@ -98,8 +98,9 @@ enums by their lowercase names (`color.BLUE`); `size.of[T]`; a struct built by i
 name (`buf[size = 42]`); and `case.any` / `case.exact` (`case.insensitive` / `case.sensitive`
 marked deprecated).
 
-Last run on 2026-10-15 against all 174 programs (`.zg`): no unscoped spans, and no old spelling marked.
+Last run on 2026-10-15 against all 175 programs (`.zg`): no unscoped spans, and no old spelling marked.
 Caught up then with 2026-10-14/15: `std::` is the standard library again (`cord::`, `stdkit::`, `cca::`, `kin::` are old),
 `pub.strike` (`pub.neuron`, `pub.limb` old), the symbols as spellings of the words (`+ - * / % == != <= >= ** & && ||`,
 `*const`/`*mut`/`*'p'`, `+=` and kin, `'i'++;`), `exactly`, `concat`, `str.empty`, the argument words (`key`, `part`, `at`,
-`between` beside `value`, `count`, `from`, `to`, `by`), and `level 2 { plus, minus } left_first`.
+`between` beside `value`, `count`, `from`, `to`, `by`), and `level 2 { plus, minus } left_first`. The inside of an `inline.ASM` block is coloured as assembly
+(instructions, registers, numbers, labels, comments; ARM64 and x86-64).

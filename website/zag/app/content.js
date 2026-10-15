@@ -21,6 +21,6 @@ export const HOME_EXAMPLES = [
     note: "The whole program: a `MAIN`, and one print from `std`." },
   { id: "c_headers", title: "C, through incl",
     note: "C’s own headers, read while building: `incl.C.system` brings in `write`, `strlen` and the `#define` constants, with no hand-written `extern.C`. Every call into C is a `no_check` site." },
-  { id: "on_target", title: "Assembly",
-    note: "Inline assembly for one chip, `inline.ASM { neg rax }`, picked with `on.target` while compiling. These examples are built for aarch64-macos, so that x86 branch isn’t compiled at all." },
+  { id: "asm_beside_zag", title: "Assembly",
+    note: "ARM64 assembly inline, beside the same work in plain Zag: `madd` multiplies and adds in one instruction, `clz` counts leading zeros. `with` binds variables to registers, and assembly is always a `no_check` site." },
 ];
