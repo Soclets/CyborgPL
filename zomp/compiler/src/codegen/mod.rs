@@ -4295,9 +4295,8 @@ pub fn set_tv_dir(dir: Option<std::path::PathBuf>) {
 
 /// The module before and after Zomp's own passes with inlining off, for
 /// Alive2 to check function by function: a copy, each function with a body
-/// marked `noinline` and given external linkage (so no pass changes a
-/// function's signature or deletes it on the grounds that it sees every
-/// call), run through the same pipeline on the same machine with the same
+/// marked `noinline` and given weak linkage (so no pass changes a
+/// function's signature, deletes it, or uses its body across a call), run through the same pipeline on the same machine with the same
 /// facts from the prover, and the attributes the passes inferred on a
 /// function taken off again. What is built is untouched.
 fn write_tv(module: &Module, machine: &TargetMachine, dir: &Path) -> Result<(), String> {
@@ -4311,14 +4310,19 @@ fn write_tv(module: &Module, machine: &TargetMachine, dir: &Path) -> Result<(), 
         }
         f.remove_enum_attribute(inkwell::attributes::AttributeLoc::Function, always);
         f.add_attribute(inkwell::attributes::AttributeLoc::Function, copy.get_context().create_enum_attribute(noinline, 0));
-        // Visible from outside, so no pass may take it as knowing every
-        // call: a constant carried in, an argument dropped, a function
-        // deleted would change what is compared, function by function.
-        f.set_linkage(Linkage::External);
+        // Weak, so no pass may take it as knowing every call, nor its body
+        // as the one that runs: a constant carried in, an argument made
+        // poison, a call replaced by what the body returns, a function
+        // deleted would each change what is compared, function by function
+        // (check claude: external still let `ret ptr %0` replace its
+        // callers' calls). `main` stays as it is.
+        if f.get_name().to_bytes() != b"main" {
+            f.set_linkage(Linkage::WeakAny);
+        }
     }
     let write = |name: &str, what: &str| -> Result<(), String> {
         let text = format!(
-            "; {}\n; for translation validation (--emit-llvm-tv): every function with a body `noinline` and external, the rest as built\n; passes: opt -passes='{}' (TargetMachine: {}, cpu {}, features {}, -O3, PIC)\n{}",
+            "; {}\n; for translation validation (--emit-llvm-tv): every function with a body `noinline` and weak (`main` kept), the rest as built\n; passes: opt -passes='{}' (TargetMachine: {}, cpu {}, features {}, -O3, PIC)\n{}",
             what,
             PASSES,
             machine.get_triple().as_str().to_string_lossy(),

@@ -770,9 +770,11 @@ Dated, with the alternative, so each can become a question later.
   Beside a build that is otherwise the same, `dir/tv-before.ll` and
   `dir/tv-after.ll` hold a copy of the module before and after Zomp's own
   passes (`PASSES`, the same machine, the prover's `nsw`/`nuw` and facts),
-  with every function that has a body marked `noinline` and given external
-  linkage, so no pass deletes a function, drops an argument or carries a
-  constant in on the grounds that it sees every call. Alive2 (check
+  with every function that has a body (but `main`) marked `noinline` and
+  given weak linkage, so no pass deletes a function, drops an argument,
+  carries a constant in or replaces a call by what the body returns: a
+  weak body is not the one that must run (check claude: external still let
+  `ret ptr %0` replace its callers' calls). Alive2 (check
   claude's `check tv`) can then compare them function by function (owner,
   2026-10-15: "(a)"). The functions keep their signatures, and the
   attributes the passes infer on a function (`nofree`, `noundef`, …) are
