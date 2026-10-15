@@ -821,14 +821,14 @@ fn tv_run(t: &Tools, a: &Args) {
     struct T {
         programs: u64,
         failed: u64,
-        f: tv::Counts,
-        p: tv::Counts,
+        c: tv::Counts,
         incorrect: u64,
         unread: BTreeMap<String, u64>,
         reasons: BTreeMap<String, u64>,
         mistakes: u64,
+        stopped: u64,
+        leaning: u64,
     }
-    let per_function = a.flags.contains_key("per-function");
     let tally = Mutex::new(T::default());
     std::thread::scope(|s| {
         for w in 0..jobs {
@@ -846,7 +846,7 @@ fn tv_run(t: &Tools, a: &Args) {
                         continue;
                     }
                     let dir = work().join(format!("tv{w}"));
-                    let r = tv::validate(t, &p.render(), &dir, per_function);
+                    let r = tv::validate(t, &p.render(), &dir);
                     let mut tl = tally.lock().unwrap();
                     tl.programs += 1;
                     match r {
@@ -866,18 +866,22 @@ fn tv_run(t: &Tools, a: &Args) {
                                 c.unproved += d.unproved;
                                 c.errors += d.errors;
                             };
-                            add(&mut tl.f, &o.per_function);
-                            add(&mut tl.p, &o.pipeline);
+                            add(&mut tl.c, &o.counts);
+                            tl.stopped += o.stopped as u64;
+                            tl.leaning += o.leaning.len() as u64;
                             tl.incorrect += o.incorrect.len() as u64;
                             for r in &o.reasons {
                                 *tl.reasons.entry(normalise(r)).or_default() += 1;
                             }
-                            if !o.incorrect.is_empty() {
+                            if !o.incorrect.is_empty() || !o.leaning.is_empty() {
                                 let keep = work().join("tv").join(seed.to_string());
                                 let _ = std::fs::create_dir_all(&keep);
                                 let _ = std::process::Command::new("cp").arg("-R").arg(dir.join("prog.zg")).arg(dir.join("ir")).arg(&keep).status();
+                                for (which, _) in &o.leaning {
+                                    println!("seed {seed}: @{which} leans on a callee's body, not judged, files in {}", keep.display());
+                                }
                                 for (which, report) in &o.incorrect {
-                                    println!("seed {seed}: INCORRECT ({which}), files in {}\n{}", keep.display(), report.lines().take(12).collect::<Vec<_>>().join("\n"));
+                                    println!("seed {seed}: INCORRECT (@{which}), files in {}\n{}", keep.display(), report.lines().take(12).collect::<Vec<_>>().join("\n"));
                                 }
                             }
                         }
@@ -888,13 +892,10 @@ fn tv_run(t: &Tools, a: &Args) {
     });
     let tl = tally.into_inner().unwrap();
     println!(
-        "\n{} programs ({} not validated, {} of them IR Alive2 could not read); Zomp's pipeline: {} correct, {} incorrect, {} not proved, {} Alive2 errors",
-        tl.programs, tl.failed, tl.unread.values().sum::<u64>(), tl.p.correct, tl.p.incorrect, tl.p.unproved, tl.p.errors
+        "\n{} programs ({} not validated, {} of them IR Alive2 could not read); per function, Zomp's passes without inlining: {} correct, {} incorrect, {} not proved, {} Alive2 errors",
+        tl.programs, tl.failed, tl.unread.values().sum::<u64>(), tl.c.correct, tl.c.incorrect, tl.c.unproved, tl.c.errors
     );
-    if per_function {
-        println!("per function: {} correct, {} incorrect, {} not proved, {} Alive2 errors", tl.f.correct, tl.f.incorrect, tl.f.unproved, tl.f.errors);
-    }
-    println!("  ({} mistakes on purpose skipped)", tl.mistakes);
+    println!("  ({} mistakes on purpose skipped; alive-tv stopped part way on {}, counted as far as it got; {} reports leaned on a callee's body, not judged)", tl.mistakes, tl.stopped, tl.leaning);
     for (why, n) in top(&tl.reasons, 12) {
         println!("  Alive2: {n:>4}  {why}");
     }
