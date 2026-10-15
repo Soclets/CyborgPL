@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLoaderData } from "react-router";
 import { SITE_SCREEN } from "../sky.jsx";
-import { BUILT_WITH, CONS, CORE, HOME_EXAMPLES, PROS } from "../content.js";
+import { BUILT_WITH, COMPARED, COMPARISON, CONS, CORE, HOME_EXAMPLES, PROS } from "../content.js";
 import Icon from "../icons.jsx";
 import Md from "../md.jsx";
 
@@ -363,6 +363,36 @@ export default function Home() {
                   <ul>{items.map((t) => <li key={t}><Md text={t} /></li>)}</ul>
                 </div>
               ))}
+            </section>
+            {/* The comparison (owner, 2026-10-15): Zag beside other languages' latest stable versions. */}
+            <section className="compare" aria-labelledby="compare-title">
+              <h3 id="compare-title">Zag beside other languages</h3>
+              <div className="compare-card">
+                <div className="compare-scroll">
+                  <table className="compare-table">
+                    <thead>
+                      <tr>
+                        <th scope="col"><span className="sr-only">Topic</span></th>
+                        {COMPARED.map((l) => (
+                          <th key={l.id} scope="col" className={l.id === "zag" ? "ours" : undefined}>
+                            <b>{l.name}</b>
+                            <small>{l.url ? <a href={l.url} target="_blank" rel="noopener noreferrer">{l.version}</a> : l.version}</small>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {COMPARISON.map((r) => (
+                        <tr key={r.topic}>
+                          <th scope="row">{r.topic}</th>
+                          {COMPARED.map((l) => <td key={l.id} className={l.id === "zag" ? "ours" : undefined}><Md text={r[l.id]} /></td>)}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="compare-note">Checked 15 Oct 2026: versions from each language’s official release index; Rust from the <a href="https://doc.rust-lang.org/book/" target="_blank" rel="noopener noreferrer">Rust Book</a> and <a href="https://doc.rust-lang.org/reference/" target="_blank" rel="noopener noreferrer">Reference</a>, Zig from its <a href="https://ziglang.org/documentation/0.17.0/" target="_blank" rel="noopener noreferrer">0.17.0 language reference</a>, Zag from its design notes. Stated behaviour, not benchmarks.</p>
+              </div>
             </section>
             {/* What Zag's own tools are made with (owner, 2026-10-15: "Yeah"). */}
             <section className="built" aria-labelledby="built-title">

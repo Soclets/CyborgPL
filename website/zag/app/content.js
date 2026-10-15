@@ -64,3 +64,35 @@ export const BUILT_WITH = [
   { part: "The checker that tests Zomp against it", made: "Rust" },
   { part: "This website", made: "React Router, Shiki, Cloudflare Workers" },
 ];
+
+// The comparison table (owner, 2026-10-15: "Latest stable versions of Go, Zig, Rust, C, Zag, Java,
+// Python, and C++. Start with 3 first"). Checked on 2026-10-15: versions from the official release
+// indexes (static.rust-lang.org's stable channel, ziglang.org/download/index.json); Rust's facts from
+// the Rust Book and Reference, Zig's from its 0.17.0 language reference (whose build modes are now
+// debug, safe, fast and small, and which translates C with `zig translate-c`, no @cImport); Zag's
+// from its design notes. Stated behaviour, not benchmarks or a score.
+export const COMPARED = [
+  { id: "zag", name: "Zag", version: "In development", url: null },
+  { id: "rust", name: "Rust", version: "1.99.0", url: "https://blog.rust-lang.org/2026/10/01/Rust-1.99.0/" },
+  { id: "zig", name: "Zig", version: "0.17.0", url: "https://ziglang.org/download/0.17.0/release-notes.html" },
+];
+export const COMPARISON = [
+  { topic: "Maturity", zag: "A hobby language, being experimented with: no release, and no stability to expect.",
+    rust: "Stable since 1.0. New editions are opt-in, and older ones keep compiling.",
+    zig: "Not yet 1.0: a release can change the language and its standard library." },
+  { topic: "Runs as", zag: "Native code: Zomp compiles through LLVM.",
+    rust: "Native code, compiled ahead of time through LLVM.",
+    zig: "Native code, compiled ahead of time." },
+  { topic: "Memory", zag: "Ownership: every value has one owner, and each call says `lend`, `give` or `copy`. No garbage collector.",
+    rust: "Ownership and borrowing, checked at compile time; values are dropped with their owner. No garbage collector.",
+    zig: "Manual: the language does no memory management for you. Allocators are passed explicitly; there is no default one." },
+  { topic: "Overflow and bounds", zag: "Proven at compile time; the final build carries no checks. What can’t be proven is refused until you write a guardrail or `no_check`.",
+    rust: "Out-of-bounds indexing panics at run time. Integer overflow panics in debug builds and wraps in release builds by default.",
+    zig: "Checked at run time, with a panic, in the debug and safe modes; unchecked in the fast and small modes." },
+  { topic: "Errors", zag: "Failures are part of a function’s signature, and the caller must handle each with `otherwise`; forgetting is a compile error.",
+    rust: "`Result` values and the `?` operator; ignoring a `Result` is a warning. Panics for the unrecoverable.",
+    zig: "Error unions (`!T`) with `try` and `catch`; an error can’t be silently ignored." },
+  { topic: "C", zag: "`incl.C` reads C headers while building, with Clang; `extern.C` declares by hand. Every call into C is a `no_check` site.",
+    rust: "`extern \"C\"` declarations, called in `unsafe` code; headers are turned into Rust with tools such as bindgen.",
+    zig: "Calls C directly; headers are translated with `zig translate-c` or the build system, and Zig can export C libraries." },
+];
