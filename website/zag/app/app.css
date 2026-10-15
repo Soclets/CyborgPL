@@ -206,16 +206,30 @@ h1 { --stroke: 8px; margin: 22px 0 0; font-weight: 700; font-size: clamp(34px, 6
 .compare { width: 100%; max-width: 900px; margin-top: 8vh; display: flex; flex-direction: column; align-items: center; }
 /* The two sides: pill dropdowns of blue glass facing each other, a swap button between them. */
 .compare-pick { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.compare-side { position: relative; }
-.compare-side::after { content: ""; position: absolute; right: 16px; top: 50%; width: 8px; height: 8px; margin-top: -6px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); pointer-events: none; }
-.compare-side select { -webkit-appearance: none; appearance: none; min-width: 170px; padding: 11px 42px 11px 20px; border-radius: 999px; font: 700 18px var(--sans); color: #fff; cursor: pointer;
-  background: rgba(28, 92, 196, .45); border: 1px solid rgba(255, 255, 255, .55); -webkit-backdrop-filter: blur(16px) saturate(150%); backdrop-filter: blur(16px) saturate(150%);
-  box-shadow: 0 8px 20px rgba(10, 50, 110, .18); }
-.compare-side select:focus-visible { outline: 3px solid #FFD43B; outline-offset: 2px; }
-.compare-side option { color: #0F2A5C; background: #fff; }
+/* The site's own dropdown: a glass pill, and a frosted list that springs open below it. */
+.dropdown { position: relative; }
+.dropdown-button { display: inline-flex; align-items: center; justify-content: space-between; gap: 14px; min-width: 170px; padding: 11px 18px 11px 20px; border-radius: 999px;
+  font: 700 18px var(--sans); color: #fff; cursor: pointer; background: rgba(28, 92, 196, .45); border: 1px solid rgba(255, 255, 255, .55);
+  -webkit-backdrop-filter: blur(16px) saturate(150%); backdrop-filter: blur(16px) saturate(150%); box-shadow: 0 8px 20px rgba(10, 50, 110, .18); transition: background .2s; }
+.dropdown-button:hover { background: rgba(28, 92, 196, .6); }
+.dropdown-button:focus-visible { outline: 3px solid #FFD43B; outline-offset: 2px; }
+.dropdown-chevron { transition: transform .25s cubic-bezier(.25, 1.2, .4, 1); }
+.dropdown.open .dropdown-chevron { transform: rotate(180deg); }
+.dropdown-list { position: absolute; z-index: 20; top: calc(100% + 8px); left: 0; min-width: 100%; margin: 0; padding: 6px; list-style: none; border-radius: 18px; outline: none;
+  color: #0F2A5C; background: rgba(255, 255, 255, .9); border: 1px solid rgba(255, 255, 255, .95);
+  -webkit-backdrop-filter: blur(20px) saturate(170%); backdrop-filter: blur(20px) saturate(170%); box-shadow: 0 18px 40px rgba(10, 50, 110, .28);
+  transform-origin: top center; animation: dropdown-in .22s cubic-bezier(.25, 1.25, .4, 1); }
+.dropdown-list[hidden] { display: none; }
+@keyframes dropdown-in { from { opacity: 0; transform: translateY(-6px) scale(.96); } }
+.dropdown-option { display: grid; grid-template-columns: 18px 1fr auto; align-items: baseline; gap: 6px; padding: 9px 12px; border-radius: 12px; font-weight: 600; font-size: 16px; cursor: pointer; white-space: nowrap; }
+.dropdown-option.active { background: rgba(23, 87, 176, .12); }
+.dropdown-option[aria-selected="true"] { color: var(--edge); }
+.dropdown-option[aria-disabled="true"] { opacity: .38; cursor: not-allowed; }
+.dropdown-option small { font: 600 12px ui-monospace, "SF Mono", Menlo, monospace; color: #5A7299; }
+.dropdown-check { color: var(--edge); font-weight: 700; }
 .compare-swap { width: 46px; height: 46px; border: 0; border-radius: 50%; background: #fff; color: var(--edge); font: 700 20px var(--sans); cursor: pointer; box-shadow: 0 8px 20px rgba(10, 50, 110, .2); transition: transform .25s cubic-bezier(.25, 1.2, .4, 1); }
 .compare-swap:hover { transform: rotate(180deg); }
-@media (max-width: 520px) { .compare-side select { min-width: 0; width: 132px; font-size: 16px; padding: 10px 34px 10px 14px; } .compare-side::after { right: 12px; } }
+@media (max-width: 520px) { .dropdown-button { min-width: 132px; font-size: 16px; padding: 10px 14px 10px 16px; } }
 
 .compare-card { width: 100%; }
 .compare h3 { margin: 0 0 16px; text-align: center; font-weight: 700; font-size: clamp(26px, 3.6vw, 38px); paint-order: stroke fill; -webkit-text-stroke: 6px var(--edge); }
@@ -272,6 +286,8 @@ html:has(main.frame):not(.moving) .pill { visibility: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .dropdown-list { animation: none; }
+  .dropdown-chevron { transition: none; }
   .compare-swap { transition: none; }
   .ex-thumb { transition: none; }
   .pill.ready .thumb { transition: none; }

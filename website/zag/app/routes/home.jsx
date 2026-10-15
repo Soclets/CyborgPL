@@ -4,6 +4,7 @@ import { SITE_SCREEN } from "../sky.jsx";
 import { BUILT_WITH, COMPARED, COMPARISON, CONS, CORE, HOME_EXAMPLES, PROS } from "../content.js";
 import Icon from "../icons.jsx";
 import Md from "../md.jsx";
+import Dropdown from "../dropdown.jsx";
 
 export const meta = () => [
   { title: "Zag" },
@@ -144,7 +145,7 @@ function usePager(frame) {
       if (Math.abs(dy) > 30 && !inner(Math.sign(dy), touchAt) && ready(Math.sign(dy))) go(at + Math.sign(dy));
     };
     const onKey = (e) => {
-      if (e.target.closest?.("input, textarea, select, [contenteditable]")) return;
+      if (e.target.closest?.("input, textarea, select, [contenteditable], .dropdown")) return;
       const dir = NEXT.includes(e.key) && !e.shiftKey ? 1 : PREV.includes(e.key) || (e.key === " " && e.shiftKey) ? -1 : 0;
       // A screen with more than fits pages through it first, by most of a window at a time.
       if (dir) {
@@ -309,16 +310,11 @@ function Examples({ examples }) {
 
 // The comparison, one against one (owner, 2026-10-15: "I want more of a picker", then "I like 1v1,
 // each side is a dropdown picker"): a dropdown on each side, a language picked on one side greyed
-// out on the other, and a button to swap them. It opens on Zag against Rust.
+// out on the other, and a button to swap them. It opens on Zag against Rust. The dropdowns are the
+// site's own (owner: "Make it use our own dropdown"), in dropdown.jsx.
 function Side({ label, value, other, onChange }) {
-  return (
-    <label className="compare-side">
-      <span className="sr-only">{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
-        {COMPARED.map((l) => <option key={l.id} value={l.id} disabled={l.id === other}>{l.name}</option>)}
-      </select>
-    </label>
-  );
+  const options = COMPARED.map((l) => ({ value: l.id, label: l.name, note: l.version, disabled: l.id === other }));
+  return <Dropdown label={label} options={options} value={value} onChange={onChange} />;
 }
 function Compare() {
   const [pair, setPair] = useState(["zag", "rust"]);
