@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLoaderData } from "react-router";
 import { SITE_SCREEN } from "../sky.jsx";
-import { CORE, HOME_EXAMPLES, TRADEOFFS } from "../content.js";
+import { ASKS, CORE, GIVES, HOME_EXAMPLES } from "../content.js";
 import Icon from "../icons.jsx";
 import Md from "../md.jsx";
 
@@ -355,17 +355,14 @@ export default function Home() {
               </ul>
             </section>
             <Examples examples={examples} />
-            {/* What each feature costs (owner, 2026-10-15: "What's next for Home?", then "Yea"). */}
-            <section className="costs" aria-labelledby="costs-title">
-              <h3 id="costs-title">What you get, and what it costs</h3>
-              <table className="costs-table">
-                <thead><tr><th scope="col">What you get</th><th scope="col">What it costs</th></tr></thead>
-                <tbody>
-                  {TRADEOFFS.map((t) => (
-                    <tr key={t.get}><td><Md text={t.get} /></td><td><Md text={t.cost} /></td></tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* What Zag gives, and apart from it what it asks of you: two lists, not pairs (owner). */}
+            <section className="lists" aria-label="What you get, and what it asks of you">
+              {[["What you get", GIVES, "gives"], ["What it asks of you", ASKS, "asks"]].map(([title, items, kind]) => (
+                <div key={kind} className={`list-card ${kind}`}>
+                  <h3>{title}</h3>
+                  <ul>{items.map((t) => <li key={t}><Md text={t} /></li>)}</ul>
+                </div>
+              ))}
             </section>
           </div>
         </section>
