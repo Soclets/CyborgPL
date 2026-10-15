@@ -19,6 +19,12 @@ CyborgPL option, should it be taken:
   core? And a library is a kit?"), `kit.cpls`, `pub.kit`, `limbs = […]`; "Limb" meant a library until then.
 - The rest as design claude's table proposed: `.cpls` / `.cplr`, the compiler CCA (`cca`), the prover Precog,
   the C-with-`:=` logo, cyborgpl.dev; open: `stdkit` or `std`, the kits' names (CDK/CCK), Ricochet dropped for CyJet.
+- **The compiler would be `KAYO\n`**, written plainly `kayo` (the command, files, anything a machine types),
+  as C# is `csharp` (owner: "yup"). From Valorant's initiator KAY/O, the slash swapped for a newline escape so
+  the name is the plain word "Kayo" (a knockout) in a compiler's joke, away from Riot's styling; the owner had
+  asked "isn't it a different field?" (design claude: partly; games and compilers are both software, and the
+  slash points at Riot) and "Idk about not including it in name". Over CCA, Weld, Rivet and Cylang. Not yet
+  searched for clashes.
 - **The repository would be a new `Soclets/CyborgPL`** (owner: "(b)"), staying in the Soclets org, over (a)
   unarchiving the old `Cyborg-Assembly-Manufacturing-Site/CyborgPL` and fast-forwarding it (its last commit,
   `087cdfc8`, is in today's history), which design claude recommended.
