@@ -240,6 +240,16 @@ several inlined calls share its node and are still asked together.
 
 ## Translation validation (Alive2) — retired
 
+**Alive2 on trial** (owner, 2026-10-15: "(c)"): `check tv --cases N` runs Homebrew's Alive2
+(21.0, built on LLVM 23.1.1) on Zomp's own pipeline only, `before.ll` against `after.ll` from
+`zomp build --emit-llvm`; Zomp is LLVM 22, so the per-function check (Homebrew's `opt`, LLVM 23's
+optimiser) is off unless `--per-function`. A program whose IR Alive2 cannot read is counted with
+its error, and Alive2's `ERROR:` reasons are tallied. First runs (87 programs): every file read;
+7 correct, 0 incorrect, 116 not proved, 13 Alive2 errors. Of the last 27, the reasons: 25 "source
+more defined" (`main` and functions with inlined callees, the known false reports, not counted
+as incorrect), 17 timeouts, 12 never return, 6 Z3 out of memory, 3 incomplete quantifiers, and 2
+`llvm.lifetime.start(ptr)` without a size, LLVM 22's form, unsupported by Alive2 21.
+
 **Not run any more** (owner, 2026-10-02: "We have RRx2 to replace Alive2"):
 the LLVM-IR half of translation validation is RRx2-TV's, run when the
 owner says (`design/verification-session.md` item 4, c42ac8f). Mine is the
