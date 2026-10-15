@@ -112,7 +112,7 @@ impl Portfolio {
     /// program.
     pub fn ask_text(&self, text: &str) -> Answer {
         let Some(s) = self.members.first() else { return Answer::Unknown };
-        run(s, &Query { text: text.to_string(), assumptions: String::new(), truncated: false, inputs: Vec::new() })
+        run(s, &Query { text: text.to_string(), assumptions: String::new(), truncated: false, assumed: false, reach: String::new(), inputs: Vec::new() })
     }
 }
 
@@ -370,6 +370,12 @@ pub struct Query {
     /// The unrolling had to cut a path, so an `unsat` is a proof about a
     /// prefix and not about the program.
     pub truncated: bool,
+    /// Landings before the site were assumed to have passed: an `unsat`
+    /// is a proof only if the site can still be reached with them, which
+    /// `reach` asks (check claude, 2026-10-15: an assumption that could
+    /// never hold made every later site of a function "proven").
+    pub assumed: bool,
+    pub reach: String,
     /// What the query knows nothing about, and so what a counterexample
     /// is made of.
     pub inputs: Vec<Input>,
@@ -387,6 +393,12 @@ pub struct Input {
 /// Build the exact question for one site: *can any input reach here with a
 /// value this instruction cannot take?*
 pub fn encode(p: &Program, f: usize, site: SiteId, facts: &crate::cortex::Facts) -> Option<Query> {
+    encode_opts(p, f, site, facts, true)
+}
+
+/// `encode`, saying whether the landings walked before the site may be
+/// assumed to have passed.
+pub fn encode_opts(p: &Program, f: usize, site: SiteId, facts: &crate::cortex::Facts, assume: bool) -> Option<Query> {
     let mut aliased = std::collections::HashSet::new();
     for b in &p.functions[f].blocks {
         for s in &b.stmts {
@@ -396,7 +408,7 @@ pub fn encode(p: &Program, f: usize, site: SiteId, facts: &crate::cortex::Facts)
         }
     }
     let borrows = shared_borrows(&p.functions[f]);
-    let mut e = Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows, entries: HashMap::new() };
+    let mut e = Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows, entries: HashMap::new(), assume, assumed: false, reach: Vec::new() };
     e.build(site)?;
     if e.reached.is_empty() || e.unexpressible {
         return None;
@@ -410,6 +422,7 @@ pub fn encode(p: &Program, f: usize, site: SiteId, facts: &crate::cortex::Facts)
         let _ = writeln!(text, "{}", d);
     }
     let assumptions = format!("{}(check-sat)\n", text);
+    let reach = format!("{}(assert (or false {}))\n(check-sat)\n", text, e.reach.join(" "));
     let _ = writeln!(text, "(assert (or {}))", e.reached.join(" "));
     let _ = writeln!(text, "(check-sat)");
     // Only the inputs' values, never the whole model: a model of a query
@@ -418,7 +431,7 @@ pub fn encode(p: &Program, f: usize, site: SiteId, facts: &crate::cortex::Facts)
     if !e.inputs.is_empty() {
         let _ = writeln!(text, "(get-value ({}))", e.inputs.iter().map(|i| i.sym.clone()).collect::<Vec<_>>().join(" "));
     }
-    Some(Query { text, assumptions, truncated: e.truncated, inputs: e.inputs })
+    Some(Query { text, assumptions, truncated: e.truncated, assumed: e.assumed, reach, inputs: e.inputs })
 }
 
 fn describe_site(p: &Program, f: usize, site: SiteId) -> String {
@@ -461,6 +474,12 @@ struct Enc<'a> {
     borrows: HashMap<LocalId, Place>,
     /// Per loop head, the states it was entered with from outside it.
     entries: HashMap<usize, Vec<Env>>,
+    /// Whether a landing walked before the site may be assumed to have
+    /// passed, and whether one was.
+    assume: bool,
+    assumed: bool,
+    /// One term per copy of the site: it is reached, whatever the value.
+    reach: Vec<String>,
 }
 
 /// What the query knows at one point: the value of each whole-number
@@ -814,6 +833,7 @@ impl<'a> Enc<'a> {
                             Some(bad) => {
                                 let both = self.define_bool(&format!("(and {} {})", guard, bad));
                                 self.reached.push(both);
+                                self.reach.push(guard.clone());
                             }
                             // A copy of the site the query cannot put into
                             // words. Leaving it out would ask only about the
@@ -839,7 +859,7 @@ impl<'a> Enc<'a> {
                         // it says nothing new and is left out too.
                         let steps_counter = matches!(stmts.get(si + 1).map(|n| &n.kind), Some(StmtKind::Assign { place, .. }) if place.proj.is_empty() && self.func().fors.iter().any(|fl| fl.counter == place.local));
                         let landing = matches!(other.kind, SiteKind::Narrow { .. }) && !steps_counter;
-                        if !trusted && landing {
+                        if self.assume && !trusted && landing {
                             if let Some(bad) = self.bad_value(*id, &env) {
                                 // Only while no copy of the asked site walked
                                 // so far went wrong: past one that did, the
@@ -849,6 +869,7 @@ impl<'a> Enc<'a> {
                                 // 'v' was never 0).
                                 let ok = if self.reached.is_empty() { "true".to_string() } else { format!("(not (or false {}))", self.reached.join(" ")) };
                                 self.defs.push(format!("(assert (=> (and {} {}) (not {})))", guard, ok, bad));
+                                self.assumed = true;
                             }
                         }
                     }
@@ -1227,8 +1248,13 @@ impl<'a> Enc<'a> {
 
     fn operand(&mut self, o: &Operand, env: &Env) -> Option<Val> {
         match o {
+            // At a width that holds it: 2^63, the exact `(-2^63) div.floor
+            // (-1)` folded, read at 64 bits was -2^63 (check claude,
+            // 2026-10-15), and a landing assumed passed on that value was
+            // false, so every site after it was "proven".
             Operand::Const(Const::Int(v)) => {
-                let bits = 64;
+                let need = if *v >= 0 { 129 - v.leading_zeros() } else { 129 - (!*v).leading_zeros() };
+                let bits = need.max(64);
                 Some(self.define(bits, &bv(*v, bits), true))
             }
             Operand::Const(Const::Bool(b)) => Some(self.define(1, &bv(*b as i128, 1), false)),

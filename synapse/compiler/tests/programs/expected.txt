@@ -316,3 +316,5 @@ generic_local 48
 collection_presets 192
 # A template named by a function of the file (owner, 2026-10-13).
 named_by_function 66
+# Layer 3 proved a division by zero safe, leaning on a landing of 2^63 read at 64 bits as -2^63 (check claude, 2026-10-15, corpus f4d99bd1): it stops now.
+vacuous_after_exact_quotient trap

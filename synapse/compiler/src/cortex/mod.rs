@@ -265,7 +265,20 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
                 r.note = format!("layer 3's question came out too big to ask ({} MB)", q.text.len() / 1_000_000);
                 continue;
             }
-            let (answer, each) = portfolio.ask(&q);
+            let (mut answer, mut each) = portfolio.ask(&q);
+            // A proof that leaned on the landings before the site holds only
+            // if the site can still be reached with them; if it cannot, the
+            // assumptions were never all true together, and the site is
+            // asked again without them (check claude, 2026-10-15).
+            if matches!(answer, smt::Answer::Unsat) && q.assumed && !matches!(portfolio.ask_text(&q.reach), smt::Answer::Sat(_)) {
+                match smt::encode_opts(p, r.function, r.site, &facts, false) {
+                    Some(bare) if bare.text.len() <= smt::QUERY_CAP => (answer, each) = portfolio.ask(&bare),
+                    _ => {
+                        r.note = "layer 3's question leaned on an assumption that cannot hold, and could not be asked without it".into();
+                        continue;
+                    }
+                }
+            }
             if smt::disagreed(&each) {
                 // Run the counterexample and see which side was right
                 // (`precog.md`, owner: c). Until the Precog oracle exists,

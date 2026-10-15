@@ -751,3 +751,10 @@ Dated, with the alternative, so each can become a question later.
   in its first slot (taken only by an exception on `SP_EL0`, which the
   program never runs on): no padding before the table. A const array read
   in place (`incl.bytes`) has its length in Cortex's domain.
+- **2026-10-15 — No proof leans on an assumption that cannot hold.**
+  A whole-number constant is read at a width that holds it (2^63 was read
+  at 64 bits as -2^63, so a landing assumed passed was false and every
+  later site of the function was "proven"; check claude, corpus
+  `f4d99bd1`). And a layer 3 `unsat` that assumed the landings before its
+  site counts only if the site can still be reached with them (`reach`):
+  if not, the site is asked again without them.
