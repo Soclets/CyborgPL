@@ -5,6 +5,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 ## Decided
 
+### 2026-10-15 — The language goes back to **CyborgPL** (owner)
+
+After weighing Kespar ("Kespar vs CyborgPL is such a hard choice") and then the CyborgPL family (the entry
+below: `KAYO\n`, Precog, CyJet, kit, limb, base), the owner: "Yeah, I'm fucking sold on CyborgPL too. Shits so
+good". So **Zag becomes CyborgPL again**: the fourth name and the first returned to (CyborgPL until 2026-10-08,
+Nerve, Zag from 2026-10-14). The plan below stands, with its repository a new `Soclets/CyborgPL`, the C-with-`:=`
+logo, cyborgpl.dev and `.cpls` / `.cplr`. Not yet asked: when the code moves (one sweep, as Zag's was), `stdkit`
+or `std`, and the kits' names.
+
 ### 2026-10-15 — If Zag goes back to CyborgPL: the plan so far (owner; no move decided)
 
 The owner is weighing CyborgPL against Kespar ("such a hard choice"); nothing has moved. Chosen for the
