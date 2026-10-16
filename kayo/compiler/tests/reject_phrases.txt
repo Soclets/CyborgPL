@@ -491,6 +491,8 @@ mut_changed_only_by_shadow [fnv:0328a401ef015859] :: 'x' is `mut`, but nothing c
 mut_never_changed [fnv:fcfb6c057425e599] :: 'total' is `mut`, but nothing changes it
 mut_never_changed_unused_generic [fnv:79e50e733f2b5bd7] :: 'x' is `mut`, but nothing changes it
 my_alone [fnv:8b049ab55a911000] :: `my` is followed by `.` and the root item it reaches: `my.helper[…]`
+name_with_dot [fnv:67dedc148261df0a] :: a quoted name cannot hold `.`, which narrows (`'x'.field`): `'two_parts'`
+name_with_space [fnv:bee0fc3573942a06] :: a quoted name cannot hold a space: `'two_words'`
 neg_word_old [fnv:5ffcc4c67615fa7e] :: `neg` is an old spelling: write `negate`
 negate_ieee_on_int [fnv:9e324904143d499c] :: `negate.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `-'x'`
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction

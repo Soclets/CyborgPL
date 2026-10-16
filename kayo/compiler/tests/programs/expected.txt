@@ -324,3 +324,5 @@ past_the_inner_unrolling trap
 count_round_shortcut 67
 # A deci power with coefficient 1, to a negative power, is exact at its own exponent: 1 pow -1 is 1, not 1.0 (check claude, 2026-10-15, corpus ffe48e05).
 deci_reciprocal_one 8
+# A quoted name holds symbols, through LLVM and the debug info (owner, 2026-10-16).
+quoted_symbol_names 8

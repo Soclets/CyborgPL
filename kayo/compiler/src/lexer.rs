@@ -443,6 +443,17 @@ impl<'a> Lexer<'a> {
         if name.is_empty() {
             return self.fail(start, "a name cannot be empty: write something between the quotes");
         }
+        // A quoted name holds any printable character but `'`, `.` and
+        // whitespace (owner, 2026-10-16: "Yeah, allow it"): `'80%'`.
+        if name.contains('.') {
+            return self.fail(start, "a quoted name cannot hold `.`, which narrows (`'x'.field`): `'two_parts'`");
+        }
+        if name.contains(|c: char| c == ' ' || c == '\t' || c.is_whitespace()) {
+            return self.fail(start, "a quoted name cannot hold a space: `'two_words'`");
+        }
+        if name.contains(char::is_control) {
+            return self.fail(start, "a quoted name cannot hold a control character: only printable ones");
+        }
         self.push(Tok::Name(name), start);
         Ok(())
     }
