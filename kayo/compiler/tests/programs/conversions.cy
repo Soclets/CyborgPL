@@ -9,7 +9,7 @@ fn read ['t': str.utf8] -> int32 {
     };
     return 'v';
 }
-fn percent ['t': str.utf8] -> int32 {
+fn share ['t': str.utf8] -> int32 {
     let 'v' := to.int32[min 0, max 100]['t'] otherwise {
         not_a_number { return -1; }
         out_of_range { return -2; }
@@ -29,8 +29,8 @@ MAIN {
     let 'b' := to.int64["-7"] otherwise -1;
     if 'b' equal_to -7 { change 'got' = 'got' plus 2; }
     if read["4x2"] equal_to -1 and read[str.empty] equal_to -1 and read["-"] equal_to -1 { change 'got' = 'got' plus 4; }
-    if percent["150"] equal_to -2 and percent["-1"] equal_to -2 and percent["x"] equal_to -1 { change 'got' = 'got' plus 8; }
-    if percent["+99"] equal_to 99 and percent["0"] equal_to 0 { change 'got' = 'got' plus 16; }
+    if share["150"] equal_to -2 and share["-1"] equal_to -2 and share["x"] equal_to -1 { change 'got' = 'got' plus 8; }
+    if share["+99"] equal_to 99 and share["0"] equal_to 0 { change 'got' = 'got' plus 16; }
     if whole[2.0] equal_to 2 and whole[2.7] equal_to -1 and whole[-3.0] equal_to -3 and whole[10000000000.0] equal_to -4 { change 'got' = 'got' plus 32; }
     let 'n': int64 = 150;
     let 'h' := to.int32[min 0, max 100]['n'] otherwise 7;

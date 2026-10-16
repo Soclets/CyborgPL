@@ -98,6 +98,20 @@ pub struct Token {
 
 pub const OP_CHARS: &str = "!%&*+-/<>=?@^|~";
 
+/// A number's digits with the point two places left: `80` is `0.80`,
+/// `0.0001` is `0.000001`, `12345` is `123.45`.
+fn over_100(text: &str) -> String {
+    let (whole, frac) = text.split_once('.').unwrap_or((text, ""));
+    let digits = format!("{}{}", whole, frac);
+    let point = whole.len() as isize - 2;
+    let (int, rest) = if point > 0 {
+        (digits[..point as usize].trim_start_matches('0').to_string(), digits[point as usize..].to_string())
+    } else {
+        (String::new(), format!("{}{}", "0".repeat((-point) as usize), digits))
+    };
+    format!("{}.{}", if int.is_empty() { "0" } else { &int }, rest)
+}
+
 pub fn is_op_char(c: char) -> bool {
     OP_CHARS.contains(c)
 }
@@ -531,6 +545,21 @@ impl<'a> Lexer<'a> {
             let at = self.pos;
             self.bump();
             return err(Diagnostic::error("`,` is not a digit separator — use `_` (1_000_000); a comma separates values, and one directly between digits reads as neither").at(Span::new(self.file, at, at + 1)));
+        }
+        // A percentage (owner, 2026-10-16): `80%` or `80 percent` is the
+        // number over 100, a bin as `0.80` is, and `exactly 80%` a deci. The
+        // `%` touches the number, and is the old `%` of `mod` when an
+        // operator, a digit, `'` or `(` follows it (`7%2`); `percent` comes
+        // after a space and runs into no letter.
+        let sign = self.peek() == Some('%') && !self.peek_at(1).is_some_and(|c| is_op_char(c) || c.is_ascii_digit() || c == '\'' || c == '(');
+        let spaces = (0..).take_while(|&k| self.peek_at(k) == Some(' ')).count();
+        let word = spaces > 0 && self.src[self.pos + spaces..].starts_with("percent") && !self.src[self.pos + spaces + 7..].chars().next().is_some_and(is_word_char);
+        if sign || word {
+            for _ in 0..if sign { 1 } else { spaces + 7 } {
+                self.bump();
+            }
+            self.push(Tok::Num { text: over_100(&text), bin: true }, start);
+            return Ok(());
         }
         // A number running straight into a letter: `1e3`, `0x10`, `5seconds`.
         if let Some(c) = self.peek() {

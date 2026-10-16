@@ -817,3 +817,9 @@ Dated, with the alternative, so each can become a question later.
   them (after a value `*` is `x` and `&` is `and`; `*19.99`, `*const`,
   `*mut`, `*'p'`, `change *'p' =`, `&mut`, `&'x'`). `op x` declares
   `times`; `op xx` is refused, `pow` being std's.
+- **2026-10-16 — Percentages** (owner, DECISIONS "Percentages"). The lexer
+  reads `80%` and `80 percent` as the bin `0.80`: the number's digits with
+  the point two places left, so `exactly 80%` is the deci. The `%` touches
+  the number and is the old `%` of `mod` when an operator character, a
+  digit, `'` or `(` follows (`7%2`); `percent` comes after a space and
+  runs into no letter.

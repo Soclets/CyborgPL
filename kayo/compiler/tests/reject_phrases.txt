@@ -663,6 +663,8 @@ shadow_sealed [fnv:41a31805c19e5721] :: cannot be shadowed: it is `no_shadow`
 shadow_with_let [fnv:46b3a25a780cf743] :: `shadow` takes `let`'s place: `shadow 'x' := …;`
 shift_count_huge [fnv:ec9fe2cc1e68af45] :: the shift count can be outside 0 to the width - 1
 shift_operand_too_wide [fnv:597323e2494de8f5] :: `minus` can leave what the type holds
+shift_widthless_in_conversion [fnv:507523dacedbfa20] :: `shr` needs a width, and nothing here gives one
+shift_widthless_in_print [fnv:507523dacedbfa20] :: `shr` needs a width, and nothing here gives one
 shift_widthless_not_run [fnv:507523dacedbfa20] :: `shr` needs a width, and nothing here gives one
 shl_no_width [fnv:93c25ad48c4751b2] :: `shl` needs a width, and nothing here gives one
 short_name_one_kit [fnv:a74a1112bb620a25] :: gives other kits a shorter name
