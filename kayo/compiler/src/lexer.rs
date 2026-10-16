@@ -49,7 +49,7 @@ pub enum Tok {
 impl Tok {
     pub fn describe(&self) -> String {
         match self {
-            Tok::Name(n) => format!("'{}'", n),
+            Tok::Name(n) => format!("'{}'", n.replace('\\', "\\\\").replace('\'', "\\'")),
             Tok::Str(_) => "a text".into(),
             Tok::Char(_) => "a character".into(),
             Tok::Num { text, .. } => text.clone(),
@@ -431,28 +431,28 @@ impl<'a> Lexer<'a> {
 
     fn quoted(&mut self, start: usize) -> Result<()> {
         self.bump(); // '
-        let body = self.pos;
+        // A quoted name holds any printable character (owner, 2026-10-16:
+        // "Yeah, allow it", then "Allow 1, 2, and 4"): symbols, a `.`
+        // (`'v1.2'`, another name than `'v1'.2`), single spaces between
+        // words, and a `'` written `\'`, a `\` written `\\`.
+        let mut name = String::new();
         loop {
             match self.bump() {
                 None | Some('\n') => return self.fail(start, "this `'` never closes: a name is written between two single quotes on one line"),
                 Some('\'') => break,
-                Some(_) => {}
+                Some('\\') => match self.bump() {
+                    Some(c @ ('\'' | '\\')) => name.push(c),
+                    _ => return self.fail(start, "in a quoted name, `\\` comes before `'` or `\\`: `'it\\'s'`, `'a\\\\b'`"),
+                },
+                Some(c) if c == ' ' || !c.is_whitespace() && !c.is_control() => name.push(c),
+                Some(_) => return self.fail(start, "a quoted name holds printable characters and single spaces: no tab, line break or control character"),
             }
         }
-        let name = self.src[body..self.pos - 1].to_string();
         if name.is_empty() {
             return self.fail(start, "a name cannot be empty: write something between the quotes");
         }
-        // A quoted name holds any printable character but `'`, `.` and
-        // whitespace (owner, 2026-10-16: "Yeah, allow it"): `'80%'`.
-        if name.contains('.') {
-            return self.fail(start, "a quoted name cannot hold `.`, which narrows (`'x'.field`): `'two_parts'`");
-        }
-        if name.contains(|c: char| c == ' ' || c == '\t' || c.is_whitespace()) {
-            return self.fail(start, "a quoted name cannot hold a space: `'two_words'`");
-        }
-        if name.contains(char::is_control) {
-            return self.fail(start, "a quoted name cannot hold a control character: only printable ones");
+        if name.starts_with(' ') || name.ends_with(' ') || name.contains("  ") {
+            return self.fail(start, "a quoted name's spaces come one at a time, between words: `'total due'`");
         }
         self.push(Tok::Name(name), start);
         Ok(())
