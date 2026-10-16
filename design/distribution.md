@@ -13,7 +13,7 @@ ZDK 2"): CyDT 1, then CyDT 2. **The CyCT carries the same number** as the CyDT i
 release (owner: "yea"): CyCT 1 with CyDT 1. **The compiler names itself by its tools**, `CyDT 1 KAYO\n` (owner,
 of Zag's: "ZDK 1 Zomp"), with no dotted version of its own. **A build between releases names its commit
 instead of a number**, `CyDT 5eac982a KAYO\n` (owner, 2026-10-16: "it should just be `CyDT 5eac982a`", the name
-kept: "Keep").
+kept: "Keep"); a build with uncommitted changes adds `+`, `CyDT ad73b84a+ KAYO\n` ("Yeah, add the +").
 
 ## Contents (design claude's sketch, not ruled)
 

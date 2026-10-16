@@ -14,6 +14,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — A build with uncommitted changes adds `+`: `CyDT ad73b84a+ KAYO\n` (owner)
+
+Compiler claude's `kayo version` (a69f98b7) named the HEAD commit even when the tree had uncommitted changes.
+Design claude suggested a `+` after the commit in that case, "this commit plus changes"; the owner: "Yeah, add
+the +". So **a build from a tree with uncommitted changes prints `CyDT <commit>+ KAYO\n`**. A build with no git
+at all prints `CyDT unknown KAYO\n` (compiler claude's pick, not yet asked).
+
 ### 2026-10-16 — cyjet.org is CyJet's website and the kit registry (owner)
 
 The owner bought cyjet.org and asked for an "Official websites" section in the README (cyborgpl.com, .org and
