@@ -14,7 +14,7 @@ fn usage() -> ! {
     eprintln!("       kayo test <file.cy | kit-dir>      run every `test fn`, each on its own, and report");
     eprintln!("       kayo prepare [folder/] [<name>, …] [--prefix <prefix>, …] | --all   run those kits' build.cy, in their own folders");
     eprintln!("       kayo generate <file.cy | kit-dir>…   write each collection template's members under it");
-    eprintln!("       kayo version                  the tools this KAYO\\n belongs to and the Unicode version it pins");
+    eprintln!("       kayo version                  the tools this kayo belongs to and the Unicode version it pins");
     exit(2)
 }
 
@@ -437,7 +437,7 @@ fn take_target(args: &[String]) -> (Vec<String>, Option<String>) {
             match args.get(i + 1) {
                 Some(t) if target.is_none() => target = Some(t.clone()),
                 Some(_) => {
-                    eprintln!("error: one `--target` at a time: KAYO\\n builds one target per build");
+                    eprintln!("error: one `--target` at a time: kayo builds one target per build");
                     exit(2);
                 }
                 None => {
@@ -528,7 +528,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     checker.std_stubs = std::env::var("KAYO_STD_STUBS").is_ok();
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
     let mut mir = kayo::mir::build::build(program);
-    kayo::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in KAYO\\n:\n  {}\n", p.join("\n  ")))?;
+    kayo::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in kayo:\n  {}\n", p.join("\n  ")))?;
     let owned = kayo::mir::ownership::check(&mut mir, &sources);
     if !owned.problems.is_empty() {
         return Err(owned.problems.join(""));
@@ -575,7 +575,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
             if let Some(sp) = p.span {
                 d = d.at(sp);
             }
-            d = d.why("KAYO\\n can check, prove and report this program; what it cannot do yet is write the machine code for that part");
+            d = d.why("kayo can check, prove and report this program; what it cannot do yet is write the machine code for that part");
             s.push_str(&d.render(&sources));
         }
         s
@@ -618,7 +618,7 @@ fn precog_one(path: &Path, json: bool) -> Result<(), String> {
     checker.std_stubs = std::env::var("KAYO_STD_STUBS").is_ok();
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
     let mut mir = kayo::mir::build::build(program);
-    kayo::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in KAYO\\n:\n  {}\n", p.join("\n  ")))?;
+    kayo::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in kayo:\n  {}\n", p.join("\n  ")))?;
     let owned = kayo::mir::ownership::check(&mut mir, &sources);
     if !owned.problems.is_empty() {
         return Err(owned.problems.join(""));
@@ -656,7 +656,7 @@ fn mir_one(path: &Path) -> Result<(), String> {
         println!();
     }
     if let Err(problems) = problems {
-        return Err(format!("error: the flow graph is not well formed — this is a bug in KAYO\\n, not in the program:\n  {}\n", problems.join("\n  ")));
+        return Err(format!("error: the flow graph is not well formed — this is a bug in kayo, not in the program:\n  {}\n", problems.join("\n  ")));
     }
     Ok(())
 }

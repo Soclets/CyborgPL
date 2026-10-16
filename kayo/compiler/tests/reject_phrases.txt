@@ -123,7 +123,7 @@ c_header_lowercase [fnv:3e5988e32c743ee7] :: C is written capitalized here
 c_header_macro_skipped [fnv:35d1b390269120dc] :: no item `MYLIB_MAX`
 c_header_missing_local [fnv:818c5feae6a3f90d] :: `incl.C["incl_assets/none.h"]`: cannot read "incl_assets/none.h"
 c_header_missing_system [fnv:06314181a44929f1] :: `incl.C.system["no_such_header.h"]`: the C compiler says: 'no_such_header.h' file not found
-c_header_not_linked [fnv:79acf4e468df98b0] :: !by-design KAYO\n declares `mylib_add` from the header and compiles the call, the C library being the linker's to find; the oracle refuses it because an interpreter cannot link C
+c_header_not_linked [fnv:79acf4e468df98b0] :: !by-design kayo declares `mylib_add` from the header and compiles the call, the C library being the linker's to find; the oracle refuses it because an interpreter cannot link C
 c_header_opaque_built [fnv:4008c41276aaadd3] :: `handle_t` is C's and opaque
 c_header_opaque_held [fnv:a20f17cb314eaeb8] :: `FILE` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[FILE]`, never held
 c_header_opaque_mixed [fnv:a23e6966eb398dba] :: `fclose` wants a pointer to `FILE` for 'p1', and this points at `uint8`
@@ -194,7 +194,7 @@ core_by_name [fnv:af9659b066a72179] :: a limb is listed by its registry ID since
 core_by_path [fnv:0eeb296276c1555a] :: the limb at `../mycore` is not registered, so not verified; loading another limb is not built yet
 core_no_version [fnv:9bd3b79a57576222] :: a limb needs its `version`, as a registry kit does
 core_type_old_spelling [fnv:ccff30cbee749de6] :: `kin::Core` is an old spelling: write `cyjet::limb`
-core_wrong_version [fnv:6782989e05d7e599] :: KAYO\n knows MCPS `2026-10-06T18:04:29+07:00` only
+core_wrong_version [fnv:6782989e05d7e599] :: kayo knows MCPS `2026-10-06T18:04:29+07:00` only
 cores_old_spelling [fnv:a92c2548911efc23] :: `cores` is an old spelling: write `limbs`
 count_commas [fnv:4203df364bce8d0b] :: no commas in a counting loop
 deci_family_mix [fnv:08ea65ffe19d9d06] :: between a deci and another number family
@@ -695,7 +695,7 @@ std_too_wide [fnv:685422467bc9f0ae] :: past the widest integer there is
 std_twice [fnv:1cb81788bbd8b55f] :: std is listed twice
 std_underscore_old [fnv:10bd3366d6968a05] :: `!std.` is an old spelling: write `not_std.`
 std_width_overflow [fnv:d15cb0d6ab33d980] :: the value can be outside what a `not_std.uint4` holds
-std_wrong_version [fnv:e6eb7f796f0ecbd9] :: KAYO\n knows std `2026-10-06T12:57:14+07:00` only
+std_wrong_version [fnv:e6eb7f796f0ecbd9] :: kayo knows std `2026-10-06T12:57:14+07:00` only
 stdkit_old_spelling [fnv:d2a19052483e24d9] :: `stdkit` is an old spelling: write `std`
 step_zero [fnv:55c8afa1959f5058] :: the counter must move
 str_at_needs_pos [fnv:00020b3adbd35515] :: a position says `pos`: `std::str.at.point[lend 's', pos 3]`

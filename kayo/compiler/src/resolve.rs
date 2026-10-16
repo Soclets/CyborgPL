@@ -1,6 +1,6 @@
 //! Item collection: the module tree of a Kit, every declared function,
 //! struct, enum, interface, operator, const and extern, and how a path
-//! written in one module reaches an item in another (`limbs.md`).
+//! written in one module reaches an item in another (`kits.md`).
 
 use std::collections::{HashMap, HashSet};
 
@@ -746,7 +746,7 @@ impl Items {
                 }
             }
             if !fails.is_empty() {
-                return err(Diagnostic::error("not yet: a function that hands back a borrow and can also fail has no shape in KAYO\\n yet").at(rl.span));
+                return err(Diagnostic::error("not yet: a function that hands back a borrow and can also fail has no shape in kayo yet").at(rl.span));
             }
         }
         if let Some(o) = &op {
@@ -1024,7 +1024,7 @@ impl Items {
     }
 
     fn visible(&self, vis: Vis, declared_in: ModuleId, from: ModuleId) -> bool {
-        // Only `pub` crosses a Kit's edge (`limbs.md`).
+        // Only `pub` crosses a Kit's edge (`kits.md`).
         if self.kit_root(declared_in) != self.kit_root(from) {
             return vis == Vis::Pub;
         }
@@ -1249,7 +1249,7 @@ impl Items {
                 for e in [lo, hi] {
                     if let ast::ExprKind::Path(p) = &e.kind {
                         if p.is(&["min"]) || p.is(&["max"]) {
-                            return err(Diagnostic::error(format!("not yet: a deci's bound with a side left out — KAYO\\n writes both sides of a deci's range so far: `deci{}[min 0.0, max 1.0]`", bits)).at(span));
+                            return err(Diagnostic::error(format!("not yet: a deci's bound with a side left out — kayo writes both sides of a deci's range so far: `deci{}[min 0.0, max 1.0]`", bits)).at(span));
                         }
                     }
                 }

@@ -827,7 +827,7 @@ impl<'a> Parser<'a> {
                 self.bump();
                 let f = self.ident("a chip or a feature")?;
                 if !ON_FEATURES.contains(&f.name.as_str()) {
-                    return self.fail_at(f.span, format!("`{}` is not a chip or feature KAYO\\n can ask about: {}", f.name, list(&ON_FEATURES)));
+                    return self.fail_at(f.span, format!("`{}` is not a chip or feature kayo can ask about: {}", f.name, list(&ON_FEATURES)));
                 }
                 Ok(Err(f.name))
             }
@@ -1727,7 +1727,7 @@ impl<'a> Parser<'a> {
             return self.fail("the return type goes after the parameters — `fn name [params] -> int32 { … }` — not on `fn`");
         }
         // A keyword may name a function — `fn true`, `fn to` — reached by
-        // path, never bare (limbs.md, 2026-09-19): `kit.true[…]`.
+        // path, never bare (kits.md, 2026-09-19): `kit.true[…]`.
         let mut name = self.ident("the function's name")?;
         // `fn Counter.next […]`: a function belonging to a type (owner,
         // 2026-10-09: "`b`"), called `Counter.next[…]`.
@@ -1876,7 +1876,7 @@ impl<'a> Parser<'a> {
     fn params(&mut self, ctx: ParamContext) -> Result<Vec<Param>> {
         if !self.is(&Tok::LBracket) {
             if ctx == ParamContext::Fn && self.is_op("=") {
-                return self.fail("not yet: `pub fn short = module.name;` gives other kits a shorter name (owner, 2026-09-23), and KAYO\\n builds one kit so far");
+                return self.fail("not yet: `pub fn short = module.name;` gives other kits a shorter name (owner, 2026-09-23), and kayo builds one kit so far");
             }
             return self.fail(format!("expected `[` starting the parameters, found {}", self.peek().describe()));
         }
@@ -3237,8 +3237,8 @@ impl<'a> Parser<'a> {
             // `inline.ASM`"); `inline.Assembly` and `inline.S` are MTM's.
             "ASM" | "Assembly" | "S" => {}
             // IEG's and Metal's, named but not read yet.
-            "LL" | "LLVM" | "LLVM_Intermediate_Representation" => return self.fail_at(lang.span, "`inline.LL`, LLVM IR in place, is the base's, and KAYO\\n does not read it yet"),
-            "MSL" | "Metal_Shading_Language" => return self.fail_at(lang.span, "`inline.MSL`, the Metal Shading Language, is the Metal limb's, and KAYO\\n does not read it yet"),
+            "LL" | "LLVM" | "LLVM_Intermediate_Representation" => return self.fail_at(lang.span, "`inline.LL`, LLVM IR in place, is the base's, and kayo does not read it yet"),
+            "MSL" | "Metal_Shading_Language" => return self.fail_at(lang.span, "`inline.MSL`, the Metal Shading Language, is the Metal limb's, and kayo does not read it yet"),
             "asm" | "s" | "assembly" => return self.fail_at(lang.span, "an inline language's name is in capitals: `inline.ASM`"),
             "ll" | "llvm" => return self.fail_at(lang.span, "an inline language's name is in capitals: `inline.LL`"),
             "msl" => return self.fail_at(lang.span, "an inline language's name is in capitals: `inline.MSL`"),
@@ -4171,7 +4171,7 @@ impl<'a> Parser<'a> {
                 "true" | "false" => {
                     self.bump();
                     // Bare, it is the boolean; a function of that name is
-                    // reached by path (limbs.md, 2026-09-19).
+                    // reached by path (kits.md, 2026-09-19).
                     if self.is(&Tok::LBracket) {
                         return self.fail(format!("bare `{}` is the boolean, so `{}[…]` is no call: a function named `{}` is reached by path — `kit.{}[…]`", w, w, w, w));
                     }
@@ -4334,7 +4334,7 @@ impl<'a> Parser<'a> {
                     self.fail(format!("expected a value, found `{}`", w))
                 }
                 // Another Kit's const, straight after `::`: `areas::'pi'`
-                // (`limbs.md`).
+                // (`kits.md`).
                 _ if matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(2), Tok::Name(_)) => {
                     let kit = self.ident("a kit's name")?;
                     self.bump();

@@ -100,7 +100,7 @@ pub fn lower_for<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, nam
     // LLVM's own check on what we handed it. A module it refuses is a bug
     // in CCA, not in the program — the same reasoning as the MIR verifier.
     if let Err(e) = module.verify() {
-        return Err(vec![NotYet { what: format!("LLVM refused the code KAYO\\n generated — this is a bug in KAYO\\n, not in the program:\n       {}", e.to_string().replace('\n', "\n       ")), span: None }]);
+        return Err(vec![NotYet { what: format!("LLVM refused the code kayo generated — this is a bug in kayo, not in the program:\n       {}", e.to_string().replace('\n', "\n       ")), span: None }]);
     }
     Ok(Lowered { module })
 }
@@ -4334,7 +4334,7 @@ fn write_tv(module: &Module, machine: &TargetMachine, dir: &Path) -> Result<(), 
         let file = dir.join(name);
         std::fs::write(&file, text).map_err(|e| format!("cannot write {}: {}", file.display(), e))
     };
-    write("tv-before.ll", "as KAYO\\n hands it to LLVM, before any pass")?;
+    write("tv-before.ll", "as kayo hands it to LLVM, before any pass")?;
     // What each function says of itself before the passes, so what they
     // infer can be taken off again: attribute inference is about calls,
     // and some of what it writes (`nofree`) Alive2 cannot read (check
@@ -4364,7 +4364,7 @@ fn write_tv(module: &Module, machine: &TargetMachine, dir: &Path) -> Result<(), 
             }
         }
     }
-    write("tv-after.ll", "after KAYO\\n's LLVM passes, inlining off, the attributes they inferred taken off")
+    write("tv-after.ll", "after kayo's LLVM passes, inlining off, the attributes they inferred taken off")
 }
 
 /// With `emit`, the module is written there twice as text: `before.ll`, as
@@ -4389,7 +4389,7 @@ pub fn write_object(module: &Module, path: &Path, emit: Option<&Path>) -> Result
         let file = dir.join(name);
         std::fs::write(&file, text).map_err(|e| format!("cannot write {}: {}", file.display(), e))
     };
-    write_ll("before.ll", "as KAYO\\n hands it to LLVM, before any pass")?;
+    write_ll("before.ll", "as kayo hands it to LLVM, before any pass")?;
     if let Some(dir) = TV_DIR.with(|d| d.borrow().clone()) {
         write_tv(module, &machine, &dir)?;
     }
@@ -4462,7 +4462,7 @@ pub fn split_debug(out: &Path) -> Result<std::path::PathBuf, String> {
         run("llvm-objcopy", &["--strip-debug".as_ref(), link.as_os_str(), out.as_os_str()])?;
         return Ok(debug);
     }
-    Err(format!("not yet: a final build for `{}` writes its debug info beside the program, and KAYO\\n knows that file only for macOS (`.dSYM`), Linux and no OS (`.debug`) so far", target))
+    Err(format!("not yet: a final build for `{}` writes its debug info beside the program, and kayo knows that file only for macOS (`.dSYM`), Linux and no OS (`.debug`) so far", target))
 }
 
 pub fn link(obj: &Path, out: &Path) -> Result<(), String> {

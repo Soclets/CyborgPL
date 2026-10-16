@@ -2271,7 +2271,7 @@ impl Checker {
             }
             if name == "format" || name.starts_with("print.") {
                 let shown = name.replace("auto_newline", "auto_newln");
-                return err(Diagnostic::error(format!("`std::{}` is not built yet: of std, KAYO\\n builds `std::print.useful`, `std::print.stored` (each with `.stdout` or `.stderr`), `std::print.useful.auto_newln`, the two `.weird` forms and `std::exit` (owner, 2026-10-09)", shown)).at(path.span));
+                return err(Diagnostic::error(format!("`std::{}` is not built yet: of std, kayo builds `std::print.useful`, `std::print.stored` (each with `.stdout` or `.stderr`), `std::print.useful.auto_newln`, the two `.weird` forms and `std::exit` (owner, 2026-10-09)", shown)).at(path.span));
             }
         }
         // Language operations first.

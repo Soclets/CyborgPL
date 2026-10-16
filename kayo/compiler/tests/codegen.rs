@@ -647,7 +647,7 @@ fn bare_metal_runs_in_qemu() {
 fn every_name_of_the_command_runs() {
     let out = Command::new(env!("CARGO_BIN_EXE_kayo")).output().unwrap();
     let said = String::from_utf8_lossy(&out.stderr).to_string() + &String::from_utf8_lossy(&out.stdout);
-    assert!(said.contains("usage: kayo parse"), "`kayo` did not answer as KAYO\\n:\n{}", said);
+    assert!(said.contains("usage: kayo parse"), "`kayo` did not answer as kayo:\n{}", said);
     for (old, exe) in [("cca", env!("CARGO_BIN_EXE_cca")), ("synapse", env!("CARGO_BIN_EXE_synapse")), ("syn", env!("CARGO_BIN_EXE_syn")), ("sng", env!("CARGO_BIN_EXE_sng")), ("suc", env!("CARGO_BIN_EXE_suc")), ("zomp", env!("CARGO_BIN_EXE_zomp"))] {
         let out = Command::new(exe).output().unwrap();
         assert!(!out.status.success() && String::from_utf8_lossy(&out.stderr).contains(&format!("`{}` is an old name: write `kayo`", old)), "`{}` was not refused naming `kayo`", old);
@@ -783,7 +783,7 @@ fn a_final_build_writes_its_debug_info_beside_it() {
     let program = std::fs::read(&image).unwrap();
     assert!(!has(&program, b".debug_info") && has(&program, b".gnu_debuglink"), "the program still carries its debug info, or does not name its file");
     let said = String::from_utf8_lossy(&r.stdout);
-    assert!(said.contains("the vector table, `_start` in its first slot") && !said.contains("`_start`, KAYO\\n's"), "the size report counts `_start` apart from the table:\n{}", said);
+    assert!(said.contains("the vector table, `_start` in its first slot") && !said.contains("`_start`, kayo's"), "the size report counts `_start` apart from the table:\n{}", said);
 }
 
 /// `--emit-llvm-tv <dir>` (owner, 2026-10-15: "(a)"): `tv-before.ll` and

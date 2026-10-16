@@ -187,8 +187,8 @@ pub fn report(p: &Program, obj: &Path, exe: &Path) -> Result<String, String> {
         }
         let name = match n.as_str() {
             "main" => "the entry, `main`, which runs MAIN".to_string(),
-            "cy_vectors" => "the vector table, `_start` in its first slot, KAYO\\n's".to_string(),
-            _ => format!("`{}`, KAYO\\n's", n),
+            "cy_vectors" => "the vector table, `_start` in its first slot, kayo's".to_string(),
+            _ => format!("`{}`, kayo's", n),
         };
         own += *s;
         rows.push(("this kit".into(), name, None, *s));

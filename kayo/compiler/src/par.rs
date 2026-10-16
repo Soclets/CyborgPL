@@ -424,7 +424,7 @@ fn analyse(p: &Program, f: &Function, fl: &ForLoop, eff: &[Effects], live_fn: &[
         match &blk.term {
             Terminator::Call { callee, .. } => match callee {
                 Callee::Extern(_) => effects_here.outside = true,
-                Callee::Value(_) => return conflict("it calls a function held as a value, which KAYO\\n cannot see into".into()),
+                Callee::Value(_) => return conflict("it calls a function held as a value, which kayo cannot see into".into()),
                 Callee::Op(op) => {
                     effects_here.join(op_effects(op));
                 }

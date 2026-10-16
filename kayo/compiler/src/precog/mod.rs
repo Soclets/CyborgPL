@@ -3292,7 +3292,7 @@ fn describe_disagreement(p: &Program, r: &SiteResult, each: &[(&'static str, smt
     let _ = std::fs::write(&path, query);
     let said = each.iter().map(|(n, a)| format!("{} said {}", n, match a { smt::Answer::Unsat => "it cannot happen", smt::Answer::Sat(_) => "it can", smt::Answer::Unknown => "it could not tell" })).collect::<Vec<_>>().join(", and ");
     format!(
-        "the solvers disagree about `{}` in `{}`: {}.\n  This is a bug in one of them, or in the question KAYO\\n asked them — both of them received the same question — and never in the program.\n  The question is written out in {} ; please open an issue at Cyborg's tracker with it attached.\n  The build carries on with the safe answer: the site keeps its check.",
+        "the solvers disagree about `{}` in `{}`: {}.\n  This is a bug in one of them, or in the question kayo asked them — both of them received the same question — and never in the program.\n  The question is written out in {} ; please open an issue at Cyborg's tracker with it attached.\n  The build carries on with the safe answer: the site keeps its check.",
         site.sentence(&spell),
         f.name,
         said,

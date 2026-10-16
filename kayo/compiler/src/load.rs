@@ -1,6 +1,6 @@
 //! Loading a Kit: one `.cpls` file, or a directory whose `limb.cpls` is
 //! the root and whose other files and directories are its modules
-//! (`limbs.md`).
+//! (`kits.md`).
 
 use std::path::{Path, PathBuf};
 
@@ -239,7 +239,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         // A no-OS target is built on another machine (owner, 2026-10-09:
         // `aarch64-none`), from any.
         if t != here && !t.ends_with("-none") {
-            let d = Diagnostic::error(format!("not yet: the target is `{}`, and KAYO\\n builds it only on a `{}` machine so far — this one is `{}`", t, t, here));
+            let d = Diagnostic::error(format!("not yet: the target is `{}`, and kayo builds it only on a `{}` machine so far — this one is `{}`", t, t, here));
             return err(match span {
                 Some(s) => d.at(s),
                 None => d,
@@ -918,7 +918,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     // Until cores can be loaded, only the official ones
                     // (owner, 2026-10-06: "`a`").
                     if let Some((p, at)) = where_ {
-                        return err(Diagnostic::error(format!("the limb at `{}` is not registered, so not verified; loading another limb is not built yet (a limb, which KAYO\\n cannot load yet)", p)).at(at));
+                        return err(Diagnostic::error(format!("the limb at `{}` is not registered, so not verified; loading another limb is not built yet (a limb, which kayo cannot load yet)", p)).at(at));
                     }
                     let Some((i, ispan)) = id else {
                         return err(Diagnostic::error("a `cyjet::limb` says which limb: `cyjet::limb[id = \"…\", version = \"…\"]`").at(e.span));
@@ -934,13 +934,13 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                         return err(Diagnostic::error(format!("{} is part of unicode since 2026-10-12: list `{}` instead", n, crate::ast::core_line("unicode"))).at(ispan));
                     }
                     let Some(&(n, _, known)) = OFFICIAL_CORES.iter().find(|(_, oid, _)| *oid == i) else {
-                        return err(Diagnostic::error(format!("the limb `{}…` is not an official one; loading another limb is not built yet (a limb, which KAYO\\n cannot load yet)", &i[..i.len().min(8)])).at(ispan));
+                        return err(Diagnostic::error(format!("the limb `{}…` is not an official one; loading another limb is not built yet (a limb, which kayo cannot load yet)", &i[..i.len().min(8)])).at(ispan));
                     };
                     let Some((v, vspan)) = version else {
                         return err(Diagnostic::error("a limb needs its `version`, as a registry kit does").at(e.span));
                     };
                     if v != known {
-                        return err(Diagnostic::error(format!("KAYO\\n knows {} `{}` only, the installed one; this asks for `{}`", n, known, v)).at(vspan));
+                        return err(Diagnostic::error(format!("kayo knows {} `{}` only, the installed one; this asks for `{}`", n, known, v)).at(vspan));
                     }
                     if names.iter().any(|x| x == n) {
                         return err(Diagnostic::error(format!("the limb {} is listed twice", n)).at(ispan));
@@ -988,7 +988,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     if let (Some((i, ispan)), Some((v, vspan))) = (&id, &version) {
                         if i == crate::parser::STD_ID {
                             if v != crate::parser::STD_VERSION {
-                                return err(Diagnostic::error(format!("KAYO\\n knows std `{}` only, and this asks for `{}`: write `version = \"{}\"`", crate::parser::STD_VERSION, v, crate::parser::STD_VERSION)).at(*vspan));
+                                return err(Diagnostic::error(format!("kayo knows std `{}` only, and this asks for `{}`: write `version = \"{}\"`", crate::parser::STD_VERSION, v, crate::parser::STD_VERSION)).at(*vspan));
                             }
                             if out.has_std {
                                 return err(Diagnostic::error("std is listed twice in `dependencies`").at(*ispan));
