@@ -623,7 +623,7 @@ fn check_type_names(prog: &ast::Program) -> Result<(), String> {
 /// dfce8e06: the oracle refused it only where it ran, as kayo refuses it when building). A shift's width comes
 /// from its left operand or where the value goes (operators.md, 2026-09-23), never from the count (4866c834);
 /// this finds the cases where neither can give one: the shifted side is plain numbers, and it sits in a
-/// comparison whose other side is plain numbers too, or in an untyped `let`.
+/// comparison whose other side is plain numbers too, an untyped `let`, a conversion or std's printing.
 fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
     use ast::{Expr, Stmt, Handler, Value};
     fn plain(e: &Expr) -> bool {
@@ -648,6 +648,12 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
         let op = op.split('.').next().unwrap_or("shl").to_string();
         Err(format!("line {line}: `{op}` needs a width, and nothing here gives one: declare where the value goes (`let 'v': uint32 = 1 {op} 3;`) or write `to.uint32[1] {op} 3`"))
     }
+    fn printing(c: &ast::Call) -> Result<(), String> {
+        if c.kit.as_deref() == Some("std") && c.path.first().map(|p| p.as_str()) == Some("print") {
+            for Value::Expr(v) in &c.args.values { if let Some(s) = bare_shift(v) { return refuse(s); } }
+        }
+        Ok(())
+    }
     fn bracket(b: &ast::Bracket) -> Result<(), String> { for Value::Expr(e) in &b.values { expr(e)?; } Ok(()) }
     fn handler(h: &Option<Handler>) -> Result<(), String> {
         match h {
@@ -665,6 +671,13 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
                 if plain(r) { if let Some(s) = bare_shift(l) { return refuse(s); } }
                 if plain(l) { if let Some(s) = bare_shift(r) { return refuse(s); } }
             }
+        }
+        // a conversion and std's printing give what is inside them no width (check claude, 2026-10-16, corpus
+        // 909a4a18): `to.int64[5 shr …]` and `std::print.useful[5 shr …]`
+        match e {
+            Expr::Convert(_, b, _, _, _) => for Value::Expr(v) in &b.values { if let Some(s) = bare_shift(v) { return refuse(s); } },
+            Expr::Call(c) => printing(c)?,
+            _ => {}
         }
         match e {
             Expr::Call(c) => { bracket(&c.args)?; handler(&c.handler) }
@@ -695,7 +708,7 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
             Stmt::For { over, body: b, .. } => { bracket(over)?; body(b) }
             Stmt::Range { bounds, body: b, .. } => { bracket(bounds)?; body(b) }
             Stmt::Return { value: Some(v), .. } => bracket(v),
-            Stmt::Call { call, .. } => { bracket(&call.args)?; handler(&call.handler) }
+            Stmt::Call { call, .. } => { printing(call)?; bracket(&call.args)?; handler(&call.handler) }
             Stmt::BuiltinStmt { args, .. } => bracket(args),
             Stmt::Tier { body: b, .. } => stmt(b),
             Stmt::Fail { payload: Some(p), .. } => bracket(p),
