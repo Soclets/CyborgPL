@@ -11,14 +11,14 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 > **Not family friendly**.
 > "Not family friendly" means (the definition used in this place) **NOT FUCKING FAMILY FRIENDLY**
 >
-> CyborgPL is being experimented with, so please don't expect stability: any release may change or remove anything, and it comes with **no warranty**. **Only this repository and [cyborgpl.org](https://cyborgpl.org) speak for CyborgPL.** If something said elsewhere, for example in an article, a search result or an AI summary, doesn't match them, you should likely trust this repository and cyborgpl.org, not the other source. We aren't responsible for what others say. See our licences: [`LICENSE`](LICENSE) for the code and everything else, and [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) for the writing (this repo's Markdown files and the website's text) and the logos.
+> CyborgPL is being experimented with, so please don't expect stability: any release may change or remove anything, and it comes with **no warranty**. **Only this repository and [cyborgpl.dev](https://cyborgpl.dev) speak for CyborgPL.** If something said elsewhere, for example in an article, a search result or an AI summary, doesn't match them, you should likely trust this repository and cyborgpl.dev, not the other source. We aren't responsible for what others say. See our licences: [`LICENSE`](LICENSE) for the code and everything else, and [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) for the writing (this repo's Markdown files and the website's text) and the logos.
 
 ### Official websites
 
 All four are the owner's:
 
-- [cyborgpl.org](https://cyborgpl.org) — CyborgPL's home.
-- [cyborgpl.com](https://cyborgpl.com) and [cyborgpl.dev](https://cyborgpl.dev) — lead to cyborgpl.org.
+- [cyborgpl.dev](https://cyborgpl.dev) — CyborgPL's home.
+- [cyborgpl.com](https://cyborgpl.com) and [cyborgpl.org](https://cyborgpl.org) — lead to cyborgpl.dev.
 - [cyjet.org](https://cyjet.org) — CyJet's website and the kit registry.
 
 ### In this repository
@@ -31,9 +31,9 @@ All four are the owner's:
 - [`brand/`](brand/) — the official logo is CyborgPL's again (owner, 2026-10-15): a thick C wrapping `:=`, the language's own declaration operator, white on black ([`brand/logo.svg`](brand/logo.svg), [`brand/mark-black.svg`](brand/mark-black.svg), [`brand/mark-white.svg`](brand/mark-white.svg), [`brand/avatar.svg`](brand/avatar.svg)), shown at the top. Zag's cloud ([`brand/zag/`](brand/zag/)) and Nerve's wordmark ([`brand/nerve/`](brand/nerve/)) stay as history.
 - [`LICENSE`](LICENSE) — Apache-2.0 WITH LLVM-exception. Programs you compile owe nothing; a fork keeps the notices and may not use the name.
 - [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) — CC BY 4.0, for this repo's text (its Markdown files: this README, `DECISIONS.md`, `design/` and the other notes), the website's text (`website/`) and the logo files (`brand/`): copy them, translate, remix, use them anywhere, with credit. Credit them exactly as:
-  - this repo's text: `CyborgPL GitHub repo text: https://cyborgpl.org, https://github.com/Soclets/CyborgPL`
-  - the website's text: `CyborgPL website text: https://cyborgpl.org, https://github.com/Soclets/CyborgPL`
-  - the logos: `CyborgPL logo(s): https://cyborgpl.org, https://github.com/Soclets/CyborgPL`
+  - this repo's text: `CyborgPL GitHub repo text: https://cyborgpl.dev, https://github.com/Soclets/CyborgPL`
+  - the website's text: `CyborgPL website text: https://cyborgpl.dev, https://github.com/Soclets/CyborgPL`
+  - the logos: `CyborgPL logo(s): https://cyborgpl.dev, https://github.com/Soclets/CyborgPL`
 
   As the licence asks, also say they are under CC BY 4.0, and whether you changed them. The site's code stays under `LICENSE`.
 

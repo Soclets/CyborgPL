@@ -16,6 +16,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — CyborgPL's home stays cyborgpl.dev; .com and .org lead to it (owner)
+
+A day after "change main to cyborgpl.org" (2026-10-15, below), the owner, with a screenshot of Google answering
+"CyborgPL programming language" from cyborgpl.dev (AI Overview and results): "Nvm, I'll keep the `.dev` as main.
+Funnily, you have to type programming language." So **cyborgpl.dev is the home**, and cyborgpl.com and
+cyborgpl.org lead to it (design claude's reading, as the 2026-10-15 entry had them the other way round). The
+README, CLAUDE.md and the repository's link say so.
+
 ### 2026-10-16 — The language's stable codename is `v2` (owner)
 
 After three renames (CyborgPL, Nerve, Zag, CyborgPL again), the owner: "we might need a stable name", then "In
