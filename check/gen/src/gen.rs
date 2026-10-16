@@ -129,8 +129,9 @@ pub struct Config {
     /// compound spellings (`+=`, `'i'++;`) are refused since 2026-10-16
     /// (owner), so it is written in full.
     pub compound: bool,
-    /// Quoted names with a symbol in them, `'v12?'`, `'d3%'`: any printable
-    /// ASCII but `'`, `.` and whitespace (owner, 2026-10-16: "Yeah, allow it").
+    /// Quoted names with a symbol in them, `'v12?'`, `'d3%'`, `'v4.x'`,
+    /// `'t5 a'`, `'k6\''`: any printable ASCII, single spaces between words,
+    /// `\\` and `\'` escaped (owner, 2026-10-16).
     pub symbol_names: bool,
 }
 
@@ -451,8 +452,10 @@ impl Gen {
     fn name(&mut self, prefix: &str) -> String {
         self.fresh += 1;
         if self.cfg.symbol_names && self.rng.chance(12) {
-            const SYMS: &[u8] = br##"!"#$%&()*+,-/:;<=>?@[\]^_`{|}~"##;
-            let c = SYMS[self.rng.below(SYMS.len() as u64) as usize] as char;
+            // written as in the source: `\\` is a `\`, `\'` a `'`, a single
+            // space between words (owner, 2026-10-16: "Allow 1, 2, and 4")
+            const SYMS: &[&str] = &["!", "\"", "#", "$", "%", "&", "(", ")", "*", "+", ",", "-", "/", ":", ";", "<", "=", ">", "?", "@", "[", "\\\\", "]", "^", "_", "`", "{", "|", "}", "~", ".x", " a", "\\'"];
+            let c = SYMS[self.rng.below(SYMS.len() as u64) as usize];
             return format!("{prefix}{}{c}", self.fresh);
         }
         format!("{prefix}{}", self.fresh)
