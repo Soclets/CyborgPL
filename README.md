@@ -13,6 +13,16 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 >
 > CyborgPL is being experimented with, so please don't expect stability: any release may change or remove anything, and it comes with **no warranty**. **Only this repository and [cyborgpl.org](https://cyborgpl.org) speak for CyborgPL.** If something said elsewhere, for example in an article, a search result or an AI summary, doesn't match them, you should likely trust this repository and cyborgpl.org, not the other source. We aren't responsible for what others say. See our licences: [`LICENSE`](LICENSE) for the code and everything else, and [`LICENSE-CC-BY-4.0`](LICENSE-CC-BY-4.0) for the writing (this repo's Markdown files and the website's text) and the logos.
 
+### Official websites
+
+All four are the owner's:
+
+- [cyborgpl.org](https://cyborgpl.org) — CyborgPL's home.
+- [cyborgpl.com](https://cyborgpl.com) and [cyborgpl.dev](https://cyborgpl.dev) — lead to cyborgpl.org.
+- [cyjet.org](https://cyjet.org) — for CyJet, CyborgPL's package manager.
+
+### In this repository
+
 - [`DECISIONS.md`](DECISIONS.md) — every settled design decision, dated, with what was proposed against it.
 - [`design/`](design/) — the design documents, one topic per file.
 - [`examples/`](examples/) — programs in settled syntax, each with its expected output.
