@@ -74,7 +74,7 @@ Zag is **CyborgPL** again (owner, 2026-10-15). The repository is now **`Soclets/
 (private, full history, homepage cyborgpl.org); the design clone is `/Users/ts/CyborgPL`, the
 others `/Users/ts/CyborgPL compiler`, `/Users/ts/CyborgPL verification`, `/Users/ts/CyborgPL website`,
 `/Users/ts/CyborgPL std`. The old repo `Soclets/Zag-lang` and the `/Users/ts/Zag…` folders are frozen
-(remote renamed `frozen-old`, push disabled, 2026-10-16): never push there. Older still, `Soclets/Nerve-lang`
+(remote renamed `frozen-old`, push disabled, 2026-10-16; Zag-lang archived on GitHub, owner: "Archive"): never push there. Older still, `Soclets/Nerve-lang`
 and `/Users/ts/Nerve…`, and `Cyborg-Assembly-Manufacturing-Site/CyborgPL` with `/Users/ts/CyborgPL v2…`
 (frozen at 087cdfc8).
 
