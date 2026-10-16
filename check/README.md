@@ -1,15 +1,21 @@
 # check — the verification session's tools
 
 check claude's code (`design/verification-session.md`). It attacks what
-Zomp and the oracle *claim* — their output, exit codes, messages and
-reports — and never reads `zomp/` or `oracle/src`.
+`KAYO\n` and the oracle *claim* — their output, exit codes, messages and
+reports — and never reads `kayo/` or `oracle/src`.
 
 ```
-cd check && cargo build --release -j 3   # needs oracle/ and zomp/ built with --release -j 3
+cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with --release -j 3 --workspace
 ./target/release/check run --cases 1000 --keep-going
 ./target/release/check corpus
 ```
 
+
+**CyborgPL's names** (owner, 2026-10-15/16; DECISIONS): the language is CyborgPL again. The
+compiler is `KAYO\n`, run as `kayo/target/release/kayo` (`kayo build`, `kayo prove --json`,
+`--emit-llvm-tv`); its prover is Precog again. Programs and the corpus end `.cy` (moved with
+`git mv`), the harness writes `prog.cy` / `shrunk.cy`; `std::print` is unchanged. Older notes
+below keep the names of their day: Zomp, Zag, `.zg`, Synapse, Cortex, `.nrv`, CCA.
 
 **Zag's names** (owner, 2026-10-15; DECISIONS 2026-10-15): the compiler is Zomp, run from
 `zomp/target/release/zomp`; its prover (Precog, then Cortex) is asked with `zomp prove --json`

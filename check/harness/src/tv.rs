@@ -1,14 +1,14 @@
 //! Translation validation, the LLVM half (design/verification-session.md,
 //! item 4; Alive2 borrowed, owner 2026-09-22 and 2026-09-30; tried again on
-//! Zomp, owner 2026-10-15: "(c)", then "(a)").
+//! Zomp, now `KAYO\n`, owner 2026-10-15: "(c)", then "(a)").
 //!
-//! `zomp build --emit-llvm-tv <dir>` (c530643c) writes the module as Zomp
-//! hands it to LLVM (`tv-before.ll`) and after Zomp's own LLVM 22 passes with
+//! `kayo build --emit-llvm-tv <dir>` (c530643c) writes the module as `KAYO\n`
+//! hands it to LLVM (`tv-before.ll`) and after its own LLVM 22 passes with
 //! inlining off (`tv-after.ll`): every defined function `noinline` and
 //! `weak` (no pass may use a callee's body across a call, aa5c2e17), the
 //! same functions and signatures on both sides, and what the passes inferred
 //! taken off again. Alive2 checks each function against its
-//! own rewrite, with the flags and facts Zomp added from its prover's proofs,
+//! own rewrite, with the flags and facts the compiler added from Precog's proofs,
 //! which LLVM's rewrites rely on.
 //!
 //! Alive2 is Homebrew's 21.0 (built on LLVM 23), which cannot check LLVM 22's
@@ -46,7 +46,7 @@ pub struct Outcome {
 }
 
 /// What `validate` could not do: Alive2 could not read the IR (LLVM 23's
-/// parser on Zomp's LLVM 22 IR), or anything else.
+/// parser on `KAYO\n`'s LLVM 22 IR), or anything else.
 pub enum Fail {
     Unread(String),
     Other(String),
@@ -112,13 +112,13 @@ fn alive(dir: &Path, src: &Path, tgt: &Path) -> Result<(String, bool), Fail> {
 pub fn validate(t: &Tools, src: &str, dir: &Path) -> Result<Outcome, Fail> {
     let io = |e: std::io::Error| Fail::Other(e.to_string());
     std::fs::create_dir_all(dir).map_err(io)?;
-    let file = dir.join("prog.zg");
+    let file = dir.join("prog.cy");
     std::fs::write(&file, src).map_err(io)?;
     let ir = dir.join("ir");
     let _ = std::fs::remove_dir_all(&ir);
     let r = engines::run(Command::new(&t.cca).arg("build").arg(&file).arg("-o").arg(dir.join("prog")).arg("--emit-llvm-tv").arg(&ir), dir, &[], false, engines::build_limit());
     if r.code != Some(0) || !ir.join("tv-before.ll").exists() || !ir.join("tv-after.ll").exists() {
-        return Err(Fail::Other(format!("zomp build did not write the IR: {}", r.stderr.lines().next().unwrap_or(""))));
+        return Err(Fail::Other(format!("kayo build did not write the IR: {}", r.stderr.lines().next().unwrap_or(""))));
     }
     let (src_ll, tgt_ll) = (ir.join("before.ll"), ir.join("after.ll"));
     for (from, to) in [("tv-before.ll", &src_ll), ("tv-after.ll", &tgt_ll)] {

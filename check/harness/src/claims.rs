@@ -162,7 +162,7 @@ pub fn check_claims(t: &Tools, p: &Program, dir: &Path) -> Result<Outcome, Strin
     }
     std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     let (text, spans) = p.render_spans();
-    let file = dir.join("prog.zg");
+    let file = dir.join("prog.cy");
     std::fs::write(&file, &text).map_err(|e| e.to_string())?;
     let r = engines::analyze(t, &file, dir, engines::BUILD_LIMIT);
     if r.timed_out {

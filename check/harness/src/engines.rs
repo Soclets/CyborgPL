@@ -16,12 +16,12 @@ pub struct Tools {
 
 impl Tools {
     /// The binaries built in this repository (`cargo build --release` in
-    /// `oracle/` and `zomp/`). `cca` is Zomp, the compiler (CCA, then Synapse, until
+    /// `oracle/` and `kayo/`). `cca` is `KAYO\n`, the compiler (CCA, Synapse, then Zomp, until
     /// the owner's rename, 2026-10-09).
     pub fn find(repo: &Path) -> Result<Tools, String> {
         let oracle = repo.join("oracle/target/release/oracle");
-        let cca = repo.join("zomp/target/release/zomp");
-        for (p, dir) in [(&oracle, "oracle"), (&cca, "zomp")] {
+        let cca = repo.join("kayo/target/release/kayo");
+        for (p, dir) in [(&oracle, "oracle"), (&cca, "kayo")] {
             if !p.exists() {
                 return Err(format!("{} not found; run `cargo build --release` in {dir}/", p.display()));
             }
@@ -270,8 +270,8 @@ pub fn cca_run(bin: &Path, dir: &Path, env: &[(String, String)]) -> Exec {
     Exec::Stopped { out: r.stdout, code: r.code, line, msg }
 }
 
-/// `zomp prove --json <file>`: Zomp's prover, the part of the compiler that was
-/// Precog, then Cortex (no name of its own since 2026-10-14; `prove`, owner 2026-10-15).
+/// `kayo prove --json <file>`: Precog, the compiler's prover (Precog, then Cortex,
+/// then nameless 2026-10-14, Precog again 2026-10-16; `prove`, owner 2026-10-15).
 pub fn analyze(t: &Tools, file: &Path, dir: &Path, limit: Duration) -> Run {
     run(Command::new(&t.cca).arg("prove").arg("--json").arg(file), dir, &[], false, limit)
 }

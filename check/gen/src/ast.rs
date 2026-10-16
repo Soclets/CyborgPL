@@ -831,7 +831,7 @@ impl<'a> Wr<'a> {
             self.out.push_str(&format!("{} {sym} ", q(name)));
             self.e(b);
         }
-        // the operator's sites span the change without its `;`, as Zomp's do
+        // the operator's sites span the change without its `;`, as `KAYO\n`'s do
         self.expr.push((addr(value), s1, self.out.len()));
         self.out.push(';');
         self.stmt.push((addr(s), s0, s1, self.out.len()));
