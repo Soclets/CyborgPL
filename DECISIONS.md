@@ -12,6 +12,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — A build between releases calls itself by its commit: `CyDT 5eac982a KAYO\n` (owner)
+
+Compiler claude's `kayo version` printed "CyDT 1 KAYO\n, a build before CyDT 1's release". Design claude offered
+(A) that, or (B) `CyDT 1 KAYO\n (dev, 5eac982a)`, naming the commit, recommended. The owner: "B, but it isn't 1,
+it should just be `CyDT 5eac982a`". Asked whether the program's name stays on the end, the owner asked what it
+helps with (only telling, in a line pasted alone, which tool printed it; little today, with one tool), and design
+claude suggested dropping it; the owner: "Keep". So **a release prints `CyDT 1 KAYO\n`, and a build between
+releases prints `CyDT` and the commit it was built from, `CyDT 5eac982a KAYO\n`**, with no release number.
+
 ### 2026-10-16 — The move to CyborgPL: Soclets/CyborgPL, new folders, and the code in one sweep (owner)
 
 Done the day after the owner chose CyborgPL ("tomorrow. Though, you could do the GH repo shit right now"):

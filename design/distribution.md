@@ -11,7 +11,9 @@ not just the repository). For CyborgPL (2026-10-16) they are tools, not kits, si
 **Numbering: whole numbers, no dots** (owner, 2026-10-15: "There are no dots, it's just ZDK 1, the next
 ZDK 2"): CyDT 1, then CyDT 2. **The CyCT carries the same number** as the CyDT it goes with, release for
 release (owner: "yea"): CyCT 1 with CyDT 1. **The compiler names itself by its tools**, `CyDT 1 KAYO\n` (owner,
-of Zag's: "ZDK 1 Zomp"), with no dotted version of its own.
+of Zag's: "ZDK 1 Zomp"), with no dotted version of its own. **A build between releases names its commit
+instead of a number**, `CyDT 5eac982a KAYO\n` (owner, 2026-10-16: "it should just be `CyDT 5eac982a`", the name
+kept: "Keep").
 
 ## Contents (design claude's sketch, not ruled)
 
@@ -27,6 +29,5 @@ or fetched by the tools; open.
 
 - What exactly each holds, and whether the CyCT contains the CyDT or sits beside it.
 - Platforms (`kayo` builds for aarch64-macos and aarch64-none today) and package formats.
-- What a build between releases calls itself; how the language's date (`cy_ver.cyr`) relates to the
-  kit's number.
+- How the language's date (`cy_ver.cyr`) relates to the tools' number.
 - How a CyCT user's changes get back: the CyCT is packaged, so it is not the repository itself.
