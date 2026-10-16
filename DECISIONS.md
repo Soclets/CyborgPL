@@ -10,6 +10,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — The CyborgPL sweep's names: `CyJet.cyr` / `cyjet::`, `kayo/`, `cy_ver.cyr`, `kayo prove` (owner)
+
+Design claude's name table for the sweep (Zag to CyborgPL) had four rows of its own proposing: (1) the manifest
+`CyJet.cyr` with the prefix `cyjet::` (was `Ricochet.zv`, `ricochet::`); (2) the compiler's folder `kayo/` (was
+`zomp/`); (3) the language-date file `cyborgpl_version.cyr` (was `zag_version.zv`); (4) `kayo prove` and `kayo
+prepare` (were `zomp prove`, `zomp prepare`). The owner: "Yes, but number 3 becomes `cy_ver.cyr`". So all four
+stand, with **the language-date file `cy_ver.cyr`**. The rest of the table was already decided: `.cy` / `.cyr`,
+`KAYO\n` (`kayo`), Precog, CyJet, kit (`kit.cy`, `pub.kit`), limb (`limbs = […]`), base, `std`, CyDT / CyCT;
+unchanged: `build.cy`, the `unicode` limb, `THREAD_CAP`. Every Zag name is to be refused, naming the CyborgPL one.
+
 ### 2026-10-16 — The one-value file ends `.cyr`, not `.cystatic` (owner)
 
 Minutes after `.cystatic` (below), the owner: "Hm, maybe we should change `cystatic`. What is a broken Cyborg?";
