@@ -255,6 +255,25 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             if i < chars.len() && chars[i] == ',' && i + 1 < chars.len() && chars[i + 1].is_ascii_digit() {
                 return err(tl, tc, "`,` is not a digit separator — use `_` (1_000_000); a comma separates values".into());
             }
+            // a percentage, `80%` or `80 percent` (owner, 2026-10-16: "Yup", "yeah"): the number over 100, a bin as
+            // `0.80` is, and exact as `exactly 80%` (an `exactly` form, as every decimal has); any digits
+            // (a value right after it, `7%2`, is the old `%` for mod, refused by name as such)
+            let glued = i < chars.len() && chars[i] == '%' && !chars.get(i + 1).map_or(false, |c| OP_CHARS.contains(*c) || c.is_ascii_digit() || *c == '\'' || *c == '(');
+            let worded = {
+                let mut k = i;
+                while k < chars.len() && chars[k] == ' ' { k += 1; }
+                let w: String = chars[k..].iter().take(8).collect();
+                k > i && w.starts_with("percent") && !w[7..].chars().next().map_or(false, |c| c.is_alphanumeric() || c == '_')
+            };
+            if glued || worded {
+                let n = if glued { 1 } else { chars[i..].iter().take_while(|c| **c == ' ').count() + 7 };
+                i += n; col += n;
+                let (int, frac) = s.split_once('.').unwrap_or((s.as_str(), ""));
+                let t = if int.len() <= 2 { format!("0.{}{int}{frac}", "0".repeat(2 - int.len())) } else { format!("{}.{}{frac}", &int[..int.len() - 2], &int[int.len() - 2..]) };
+                let v: f64 = t.parse().map_err(|_| LexError { line: tl, col: tc, msg: format!("bad percentage `{s}%`") })?;
+                push(Tok::Bin(v, t), &mut toks);
+                continue;
+            }
             if i < chars.len() && (chars[i].is_alphabetic() || chars[i] == '\'') {
                 return err(tl, tc, format!("a number runs straight into `{}`", chars[i]));
             }

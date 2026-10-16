@@ -21,6 +21,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — Percentages: `80%` and `80 percent`, with an `exactly` form (owner)
+
+The owner sketched `let '80%' := 80%;`, `75 percent`, `'24%': percentage` and `'62%': %`: "Should we add that?"
+Design claude: `80%` reads correctly (so the freed `%` fits today's symbols rule), `75 percent` is its word, a `%`
+type only changes how it prints (owner: "No shit, it just tells you how to format it"; names with `%` came out of
+that, entries above). Asked whether `80%` and `80 percent` are the exact number 0.80: "Yup, should we allow % to
+be hella precise?" (yes: any digits, to the `deci` width's 34); then "Should % have an `exactly` form?", design
+claude recommending it so `80%` follows the rule every decimal does (`0.8` a bin, `exactly 0.8` a deci): "yeah".
+So **`80%` and `80 percent` are the number over 100, a `bin` as `0.80` is, and `exactly 80%` / `exactly 80
+percent` an exact `deci`**; `exactly 12.3456789%` is 0.123456789. `percent` is a keyword. The `%` sits on the
+number with nothing between; `7%2` and `7 % 2` are still the old `%` of mod, refused by name. Not yet ruled: a
+type that prints as a percentage (`'24%': percentage`). `examples/percent.cy`.
+
 ### 2026-10-16 — Quoted names also take `.`, single spaces and an escaped `'` (owner)
 
 Right after the entry below, the owner: "I mean, should we allow more stuff as a var name?" Design claude listed

@@ -27,6 +27,10 @@ with nothing without `to.` — `to.bin32['w']` exact, `to.brain16['x']`
 rounding, `to.bin16['w']` a check site. A literal rounds to the nearest `brain16`
 (owner, 2026-10-02: a). The GPU is open.
 
+**Percentages** (owner, 2026-10-16): `80%` or `80 percent` is the number over 100, a `bin` as `0.80` is;
+`exactly 80%` is an exact `deci`, any digits (`exactly 12.3456789%` is 0.123456789). The `%` sits on the number;
+`7%2` is the old `%` of mod. A type that prints as a percentage is not yet ruled.
+
 **`exactly`** (owner, 2026-10-14): `exactly 19.99`, the only spelling since 2026-10-16 (the prefix `*`, `*19.99`,
 is an old spelling: a symbol spells only an operator, owner: "Yeah, drop it too"). It was the word for `*19.99`, and both took a whole
 number too, `exactly 1000` being a `deci` holding 1000 (until then `*1000` was refused as exact already).
