@@ -475,9 +475,10 @@ impl Parser {
         // every argument after the first says its role (owner, 2026-10-14: "Seems all good"): checked here and
         // the word taken out, so the calls read as before
         self.argument_words()?;
-        // the base's names are English letters, digits and `_`, bare or quoted (owner, 2026-10-06: "Bare
-        // names should be English only", "English only too, crazy ones from the core"); WSTN allows every
-        // script and emoji ("`b`"). Text values are not names.
+        // the base's names are English: bare ones letters, digits and `_` (owner, 2026-10-06: "Bare names should
+        // be English only", "English only too, crazy ones from the core"); a quoted one may also hold symbols,
+        // `'80%'` (owner, 2026-10-16: "Yeah, allow it"); the unicode limb allows every script and emoji ("`b`").
+        // Text values are not names.
         if self.lacks.iter().any(|c| c == "unicode") {
             for i in 0..self.toks.len() {
                 let (name, shown) = match &self.toks[i].tok { Tok::Word(w) => (w, w.clone()), Tok::Var(v) => (v, format!("'{v}'")), _ => continue };

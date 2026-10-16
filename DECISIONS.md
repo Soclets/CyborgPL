@@ -19,6 +19,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — A quoted name may hold symbols, `'80%'`; good naming is what you would use (owner)
+
+The owner sketched percentages, `let '80%' := 80%;`, and asked, told the base's names are English letters,
+digits and `_` (2026-10-06): "Wait, I thought we allowed everything in var nams". Design claude leaned against
+symbols in names ("`'a+b'` reads like an expression inside the quotes"); the owner: "By that standard, `let 'x'
+:= "a+b";` should be an error". Design claude agreed the quotes already mark where a name starts and ends, and
+recommended **any printable character in a quoted name except `'`, `.` and whitespace**; the owner: "Yeah, allow
+it. Our good practice guide should say that good naming depends on what you would use." So `'80%'`, `'a+b'`,
+`'ready?'` are names; `.` stays out (it narrows, `'x'.field`, as 2026-09-29 already had it) and so does a space;
+other scripts and emoji still come from the `unicode` limb (design claude's reading: the base's characters stay
+ASCII). Bare names (functions, types, fields) are unchanged: letters, digits and `_`. The oracle had accepted any
+character in quotes all along, `.` and spaces included, looser than 2026-10-06's rule; it now refuses those two.
+`style.md` 17 holds the good-practice line. The percentage literal itself (`80%`, `75 percent`, a `%` type) is
+not yet ruled.
+
 ### 2026-10-16 — Symbols only where they read correctly, and then they are the good practice: `+ - x xx < >` (owner)
 
 The owner first: "we only allow operators as symbols, I mean … we allow `+`, but not `&mut` or `*const`"; design

@@ -95,6 +95,12 @@ recommended.
     `concat`, `lend`, `ptr[T]`, `exactly`. A change is written out, `change 'i' = 'i' + 1;`. (2026-10-14
     to 16 this item said the opposite: "Write the words, not the symbols".)
 
+## Names
+
+17. **Good naming depends on what you would use** (owner, 2026-10-16). A quoted name may hold any printable
+    character but `'`, `.` and whitespace, so `'80%'`, `'ready?'` and `'total_due'` are all names; pick the
+    one that says what the code using it means.
+
 ## Shape of a program
 
 16. **Keep `MAIN` thin** (owner, 2026-10-15: "yea"). `MAIN` reads the input, calls the real work, and

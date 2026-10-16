@@ -198,6 +198,11 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 let d = chars[i];
                 if d == '\'' { i += 1; col += 1; break; }
                 if d == '\n' { return err(tl, tc, "a variable name cannot span lines".into()); }
+                // a quoted name holds any printable character but `'`, `.` and whitespace (owner, 2026-10-16:
+                // "Yeah, allow it"): `'80%'` is a name; `.` narrows, `'x'.field`, and a space ends a word
+                if d == '.' { return err(tl, tc, "a quoted name cannot hold `.`, which narrows (`'x'.field`): `'two_parts'`".into()); }
+                if d.is_whitespace() { return err(tl, tc, "a quoted name cannot hold a space: `'two_words'`".into()); }
+                if d.is_control() { return err(tl, tc, "a quoted name cannot hold a control character".into()); }
                 s.push(d);
                 i += 1; col += 1;
             }
