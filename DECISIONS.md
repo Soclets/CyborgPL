@@ -7,6 +7,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — CyborgPL code ends `.cy` (owner)
+
+The owner, before the sweep: "Kinda wanna change `.`", then, after asking how much `.rs` clashes (Android
+RenderScript and Sun Raster images used it; Rust took it anyway): "`.cy` it is, and maybe `.<openssl rand>` as a
+backup". So **a CyborgPL code file ends `.cy`**, replacing `.cpls` (2026-10-15). Design claude had found `.cy`
+used lightly: Ren'Py game data files and Cycript, a dormant iOS tool; no programming language. The one-value
+file's ending (was to be `.cplr`) is asked next.
+
 ### 2026-10-16 — CyborgPL's downloads are the CyDT and the CyCT (owner)
 
 The ZDK and ZCK become tools, not kits, since a kit is now a library (owner: "CDT, we could. So it won't clash
