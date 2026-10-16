@@ -243,7 +243,9 @@ pub fn cca_build(t: &Tools, file: &Path, dir: &Path, mode: Mode) -> Build {
         return Build::Built(bin);
     }
     let text = r.stderr.clone();
-    if NOT_YET.iter().any(|m| text.contains(m)) {
+    // "(not yet known)" is kayo naming a type it could not work out: a
+    // refusal, not a missing feature (2026-10-16)
+    if NOT_YET.iter().any(|m| text.replace("(not yet known)", "").contains(m)) {
         let first = text.lines().find(|l| NOT_YET.iter().any(|m| l.contains(m))).unwrap_or("").to_string();
         return Build::NotYet { msg: first };
     }

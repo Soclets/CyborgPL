@@ -133,11 +133,16 @@ pub struct Config {
     /// `'t5 a'`, `'k6\''`: any printable ASCII, single spaces between words,
     /// `\\` and `\'` escaped (owner, 2026-10-16).
     pub symbol_names: bool,
+    /// Now and then a shift of a bare number in a branch never taken, in
+    /// one of many places: it must be refused before the program runs
+    /// wherever nothing gives it a width (4866c834; the oracle checked only
+    /// where run, dfce8e06, then two shapes before running, 59c45ac6).
+    pub width_probes: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true }
     }
 }
 
@@ -376,9 +381,48 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     for _ in 0..1 + g.rng.below(3) {
         main.push(g.let_stmt());
     }
+    if g.cfg.width_probes && g.rng.chance(5) {
+        let probe = g.width_probe();
+        main.extend(probe);
+    }
     let n = g.stmt_count();
     main.extend(g.stmts(n, g.depth()));
     Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() || g.shadow_mistake, strict, new_words, unevaluable: g.unevaluable }
+}
+
+impl Gen {
+    /// `let 'p': bool = to.int64[1] equal_to to.int64[2]; if 'p' { … }`
+    /// with a bare number shifted by a typed count in one of these places:
+    /// whether each gives the shift a width is the engines' to agree on.
+    fn width_probe(&mut self) -> Vec<Stmt> {
+        let p = self.name("p");
+        let q = |n: &str| format!("'{n}'");
+        let n = self.rng.range(1, 99);
+        let k = self.rng.range(0, 5);
+        let op = if self.rng.chance(50) { "shr" } else { "shl" };
+        let sh = format!("{n} {op} to.uint8[{k}]");
+        let r = q(&self.name("r"));
+        let line = match self.rng.below(13) {
+            0 => format!("put_i[{sh}];"),
+            1 => format!("let {r}: int32 = {sh};"),
+            2 => format!("let {r} := to.int64[{sh}];"),
+            3 => format!("let {r}: bool = ({sh}) equal_to to.int32[5];"),
+            4 => format!("let {r}: list[int16] = [{sh}, 1];"),
+            5 => format!("let {r}: int64 = to.int64[1] shl ({sh});"),
+            6 => format!("let {r}: int32 = ({sh}) plus 1;"),
+            7 => format!("let {r}: simd[int32, 4] = simd.fill[value {sh}];"),
+            8 => format!("let {r}: bool = ({sh}) < 9;"),
+            9 => format!("let {r} := ({sh}) mod.floor 7;"),
+            10 => format!("let {r}: int32 = 0 minus ({sh});"),
+            11 => format!("std::print.useful[{sh}, newln];"),
+            _ => format!("let {r}: bool = to.int16[3] at_most ({sh});"),
+        };
+        let guard = Expr::Cmp(CmpOp::Eq, Box::new(Expr::To(Ty::I64, Box::new(Expr::Lit(1)))), Box::new(Expr::To(Ty::I64, Box::new(Expr::Lit(2)))));
+        vec![
+            Stmt::Let { tier: Tier::Default, name: p.clone(), mutability: Mutability::Plain, ty: Ty::Bool.into(), value: guard },
+            Stmt::If { arms: vec![(Expr::Var(p), vec![Stmt::Src(line)])], otherwise: None },
+        ]
+    }
 }
 
 fn isqrt(n: i128) -> i128 {
