@@ -129,11 +129,14 @@ pub struct Config {
     /// compound spellings (`+=`, `'i'++;`) are refused since 2026-10-16
     /// (owner), so it is written in full.
     pub compound: bool,
+    /// Quoted names with a symbol in them, `'v12?'`, `'d3%'`: any printable
+    /// ASCII but `'`, `.` and whitespace (owner, 2026-10-16: "Yeah, allow it").
+    pub symbol_names: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true }
     }
 }
 
@@ -447,6 +450,11 @@ fn is_literal_only(e: &Expr) -> bool {
 impl Gen {
     fn name(&mut self, prefix: &str) -> String {
         self.fresh += 1;
+        if self.cfg.symbol_names && self.rng.chance(12) {
+            const SYMS: &[u8] = br##"!"#$%&()*+,-/:;<=>?@[\]^_`{|}~"##;
+            let c = SYMS[self.rng.below(SYMS.len() as u64) as usize] as char;
+            return format!("{prefix}{}{c}", self.fresh);
+        }
         format!("{prefix}{}", self.fresh)
     }
 

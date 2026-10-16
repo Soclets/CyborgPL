@@ -120,6 +120,7 @@ impl Args {
             new_words: !avoid.contains("new-words"),
             edge_landings: !avoid.contains("edge-landings"),
             compound: !avoid.contains("compound"),
+            symbol_names: !avoid.contains("symbol-names"),
         }
     }
 }
