@@ -1729,12 +1729,26 @@ impl Gen {
         }
         if self.rng.chance(35) {
             let b = self.name("b");
-            let bin = *self.rng.pick(&["0.1", "0.2", "2.5", "-1.75", "3.0", "0.001", "123.456"]);
-            body.push(Stmt::TypedLet { name: b.clone(), mutable: false, ty: "bin64".into(), value: Expr::Num(bin.into()) });
+            // a percentage is the number over 100, a bin (owner, 2026-10-16; c3918678)
+            let bin = if self.rng.chance(40) {
+                let v = *self.rng.pick(&["80", "12.5", "0.5", "250", "100", "7", "33.3"]);
+                if self.rng.chance(50) { format!("{v}%") } else { format!("{v} percent") }
+            } else {
+                self.rng.pick(&["0.1", "0.2", "2.5", "-1.75", "3.0", "0.001", "123.456"]).to_string()
+            };
+            body.push(Stmt::TypedLet { name: b.clone(), mutable: false, ty: "bin64".into(), value: Expr::Num(bin) });
             // a bin into a deci says which form (owner, 2026-10-02)
             let conv = if self.cfg.deci_useful && self.rng.chance(50) { format!("useful.{ty}") } else { format!("stored.{ty}") };
             let name = self.name("d");
             body.push(Stmt::AutoLet { name: name.clone(), value: Expr::Conv(conv, Box::new(Expr::Var(b)), None) });
+            decis.push(name);
+        }
+        // an exact percentage, a deci of any digits (owner, 2026-10-16; c3918678)
+        if self.rng.chance(30) {
+            let name = self.name("d");
+            let v = format!("{}.{}", self.rng.range(0, 999), self.rng.range(0, 99));
+            let word = if self.rng.chance(50) { "%".to_string() } else { " percent".to_string() };
+            body.push(Stmt::TypedLet { name: name.clone(), mutable: false, ty: ty.clone(), value: Expr::Num(format!("exactly {v}{word}")) });
             decis.push(name);
         }
         // a range type, sometimes pushed outside by a risk taken
