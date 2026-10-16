@@ -361,7 +361,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                 if count > 1 && defaults != 1 { return Err(format!("{shown}: line {line}: with several targets, exactly one says `default = true` — the one built when none is named ({defaults} do)")); }
                 // only a target kayo can build (owner, 2026-09-30: "refuse", as Synthia.ttsr's "Only what's
                 // actually doable"); the one list is kayo's
-                let doable: Vec<&str> = include_str!("../../zomp/targets.txt").lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).collect();
+                let doable: Vec<&str> = include_str!("../../kayo/targets.txt").lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).collect();
                 for (t, line) in names {
                     if !doable.contains(&t.as_str()) { return Err(format!("{shown}: line {line}: `{t}` is not a target kayo can build; it builds for {}", doable.iter().map(|d| format!("`{d}`")).collect::<Vec<_>>().join(", "))); }
                 }
