@@ -12,3 +12,8 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
   Cross-Origin-Opener-Policy: same-origin
+
+# The text files (llms.txt, llms-full.txt, robots.txt) are UTF-8: said, so a browser shows "—" and
+# "→" as themselves.
+/*.txt
+  Content-Type: text/plain; charset=utf-8
