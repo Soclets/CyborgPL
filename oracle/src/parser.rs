@@ -477,7 +477,7 @@ impl Parser {
         self.argument_words()?;
         // the base's names are English: bare ones letters, digits and `_` (owner, 2026-10-06: "Bare names should
         // be English only", "English only too, crazy ones from the core"); a quoted one may also hold symbols,
-        // `'80%'` (owner, 2026-10-16: "Yeah, allow it"); the unicode limb allows every script and emoji ("`b`").
+        // `'80%'`, `'v1.2'`, `'total due'` (owner, 2026-10-16: "Yeah, allow it", "Allow 1, 2, and 4"); the unicode limb allows every script and emoji ("`b`").
         // Text values are not names.
         if self.lacks.iter().any(|c| c == "unicode") {
             for i in 0..self.toks.len() {

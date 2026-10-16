@@ -98,8 +98,8 @@ recommended.
 ## Names
 
 17. **Good naming depends on what you would use** (owner, 2026-10-16). A quoted name may hold any printable
-    character but `'`, `.` and whitespace, so `'80%'`, `'ready?'` and `'total_due'` are all names; pick the
-    one that says what the code using it means.
+    ASCII character (owner, 2026-10-16), a `'` written `\'` and spaces one at a time, so `'80%'`, `'v1.2'`,
+    `'total due'` and `'it\'s'` are all names; pick the one that says what the code using it means.
 
 ## Shape of a program
 

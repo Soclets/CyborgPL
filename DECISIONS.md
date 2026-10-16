@@ -20,13 +20,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — Quoted names also take `.`, single spaces and an escaped `'` (owner)
+
+Right after the entry below, the owner: "I mean, should we allow more stuff as a var name?" Design claude listed
+what was left: (1) `.` (`'v1.2'`; the quotes mark the edges, so `'a.b'` is not `'a'.b`), (2) spaces (`'total
+due'`, single spaces only, none at the ends, so two names cannot look alike), (3) other scripts and emoji without
+the `unicode` limb (reversing 2026-10-06), (4) `'` itself, escaped (`'it\'s'`), recommending 1 and 2. The owner:
+"Allow 1, 2, and 4." So **a quoted name holds any printable ASCII character**: `.`, spaces one at a time between
+words, and a `'` written `\'`. Design claude's readings: `\\` is a `\` (any other `\` in a name is refused),
+and tabs and control characters stay out. Other scripts and emoji still come from the `unicode` limb.
+
 ### 2026-10-16 — A quoted name may hold symbols, `'80%'`; good naming is what you would use (owner)
 
 The owner sketched percentages, `let '80%' := 80%;`, and asked, told the base's names are English letters,
 digits and `_` (2026-10-06): "Wait, I thought we allowed everything in var nams". Design claude leaned against
 symbols in names ("`'a+b'` reads like an expression inside the quotes"); the owner: "By that standard, `let 'x'
 := "a+b";` should be an error". Design claude agreed the quotes already mark where a name starts and ends, and
-recommended **any printable character in a quoted name except `'`, `.` and whitespace**; the owner: "Yeah, allow
+recommended **any printable character in a quoted name except `'`, `.` and whitespace** (all three allowed
+since, the entry above); the owner: "Yeah, allow
 it. Our good practice guide should say that good naming depends on what you would use." So `'80%'`, `'a+b'`,
 `'ready?'` are names; `.` stays out (it narrows, `'x'.field`, as 2026-09-29 already had it) and so does a space;
 other scripts and emoji still come from the `unicode` limb (design claude's reading: the base's characters stay

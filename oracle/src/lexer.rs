@@ -198,15 +198,24 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 let d = chars[i];
                 if d == '\'' { i += 1; col += 1; break; }
                 if d == '\n' { return err(tl, tc, "a variable name cannot span lines".into()); }
-                // a quoted name holds any printable character but `'`, `.` and whitespace (owner, 2026-10-16:
-                // "Yeah, allow it"): `'80%'` is a name; `.` narrows, `'x'.field`, and a space ends a word
-                if d == '.' { return err(tl, tc, "a quoted name cannot hold `.`, which narrows (`'x'.field`): `'two_parts'`".into()); }
-                if d.is_whitespace() { return err(tl, tc, "a quoted name cannot hold a space: `'two_words'`".into()); }
+                // a quoted name holds any printable character (owner, 2026-10-16: "Yeah, allow it", then "Allow 1,
+                // 2, and 4"): `'80%'`, `'v1.2'`, `'total due'`, and `'it\'s'`, a `'` written `\'`; design claude's
+                // readings: `\\` is a `\`, one space at a time and none at the ends, no tab or control character
+                if d == '\\' {
+                    match chars.get(i + 1) {
+                        Some('\'') => { s.push('\''); i += 2; col += 2; continue; }
+                        Some('\\') => { s.push('\\'); i += 2; col += 2; continue; }
+                        _ => return err(tl, tc, "in a quoted name, `\\` comes before `'` or `\\`: `'it\\'s'`".into()),
+                    }
+                }
+                if d == ' ' && (s.is_empty() || s.ends_with(' ')) { return err(tl, tc, "a quoted name's spaces come one at a time, between words: `'total due'`".into()); }
+                if d.is_whitespace() && d != ' ' { return err(tl, tc, "a quoted name holds spaces, not tabs or other gaps".into()); }
                 if d.is_control() { return err(tl, tc, "a quoted name cannot hold a control character".into()); }
                 s.push(d);
                 i += 1; col += 1;
             }
             if s.is_empty() { return err(tl, tc, "empty variable name ''".into()); }
+            if s.ends_with(' ') { return err(tl, tc, "a quoted name's spaces come one at a time, between words: `'total due'`".into()); }
             push(Tok::Var(s), &mut toks);
             continue;
         }
