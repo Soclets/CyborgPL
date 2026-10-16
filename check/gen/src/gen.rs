@@ -101,7 +101,7 @@ pub struct Config {
     /// The `m1` call lending one list to change and another to read
     /// (38c91e7); the evaluator does not follow it.
     pub mutator: bool,
-    /// The `.ieee` operators and `neg.ieee` in brain16 blocks (owner, 2026-10-07).
+    /// The `.ieee` operators and `negate.ieee` in brain16 blocks (owner, 2026-10-07).
     pub ieee: bool,
     /// `list.remove` (owner, 2026-10-08).
     pub remove: bool,
@@ -125,8 +125,9 @@ pub struct Config {
     /// function, before its other sites (Synapse's layer 3 read 2^63 at 64
     /// bits and proved every later site vacuously, f4d99bd1; b63fed46).
     pub edge_landings: bool,
-    /// `'i' += e;`, `'i'++;` and the rest for `change 'i' = 'i' OP e;`
-    /// (owner, 2026-10-14; oracle 6eb4bf67, Zomp ab80b214).
+    /// `change 'i' = 'i' OP e;`, guarded to keep the name's range. Its
+    /// compound spellings (`+=`, `'i'++;`) are refused since 2026-10-16
+    /// (owner), so it is written in full.
     pub compound: bool,
 }
 
@@ -373,7 +374,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     }
     let n = g.stmt_count();
     main.extend(g.stmts(n, g.depth()));
-    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() || g.shadow_mistake, strict, new_words, compound: cfg.compound, unevaluable: g.unevaluable }
+    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() || g.shadow_mistake, strict, new_words, unevaluable: g.unevaluable }
 }
 
 fn isqrt(n: i128) -> i128 {
@@ -1933,7 +1934,7 @@ impl Gen {
                 let y = if self.rng.chance(50) { format!("'{}'", self.rng.pick(&bs)) } else { format!("({})", self.rng.pick(LITS)) };
                 let ops = ["plus", "minus", "times", "div.floor", "div.ceil", "div.trunc", "div.near", "mod.floor", "mod.ceil", "mod.trunc"];
                 let src = match self.rng.below(12) {
-                    0 => format!("neg.ieee '{x}'"),
+                    0 => format!("negate.ieee '{x}'"),
                     1 => format!("'{x}' pow.ieee {}", self.rng.range(0, 2)),
                     _ => format!("'{x}' {}.ieee {y}", self.rng.pick(&ops)),
                 };

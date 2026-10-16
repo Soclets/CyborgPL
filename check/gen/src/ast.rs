@@ -232,6 +232,17 @@ impl BinOp {
         }
     }
 
+    /// Its symbol, for the operators that have one (owner, 2026-10-16).
+    pub fn symbol(self) -> Option<&'static str> {
+        match self {
+            BinOp::Add => Some("+"),
+            BinOp::Sub => Some("-"),
+            BinOp::Mul => Some("x"),
+            BinOp::Pow => Some("xx"),
+            _ => None,
+        }
+    }
+
     pub fn text(self) -> &'static str {
         match self {
             BinOp::Add => "plus",
@@ -269,12 +280,21 @@ pub enum CmpOp {
 }
 
 impl CmpOp {
+    /// `<` and `>`; the others are words only (owner, 2026-10-16).
+    pub fn symbol(self) -> Option<&'static str> {
+        match self {
+            CmpOp::Lt => Some("<"),
+            CmpOp::Gt => Some(">"),
+            _ => None,
+        }
+    }
+
     pub fn text(self) -> &'static str {
         match self {
             CmpOp::Eq => "equal_to",
             CmpOp::Ne => "not_equal",
-            CmpOp::Lt => "<",
-            CmpOp::Gt => ">",
+            CmpOp::Lt => "less_than",
+            CmpOp::Gt => "greater_than",
             CmpOp::Le => "at_most",
             CmpOp::Ge => "at_least",
         }
@@ -488,9 +508,6 @@ pub struct Program {
     /// Written in the main spellings of 9a9e573 (`!mut`, `!check`, `! 'x'`);
     /// otherwise in MTM's, which a lone file also takes.
     pub new_words: bool,
-    /// `change 'i' = 'i' plus e;` written `'i' += e;`, `'i'++;` and the
-    /// rest two times in three (owner, 2026-10-14; oracle 6eb4bf67).
-    pub compound: bool,
     /// Omit parentheses where design/operators.md says they are not needed.
     pub loose: bool,
     /// Holds values my exact evaluator does not model (deci, bin, text):
@@ -595,9 +612,9 @@ pub fn addr<T>(x: &T) -> usize {
 struct Wr<'a> {
     /// `!mut`, `!check` and `! 'x'` in place of `immut`, `nocheck` and `not`.
     new_words: bool,
-    compound: bool,
-    /// How many changes could have been written compound so far.
-    compounds: usize,
+    /// How many operators with a symbol spelling were written so far:
+    /// every other one is written as its symbol (owner, 2026-10-16).
+    syms: usize,
     /// The declarations something changes (see `changed_decls`), by address.
     changed: std::collections::HashSet<usize>,
     out: String,
@@ -641,6 +658,14 @@ impl<'a> Wr<'a> {
             self.expr.push((addr(child), s, self.out.len()));
         }
     }
+    /// The word, or every other time its symbol where it has one: `+ - x xx
+    /// < >` read correctly and are good practice, the words name the
+    /// variations (owner, 2026-10-16: "Symbols only where they read correctly").
+    fn spell(&mut self, word: &'static str, symbol: Option<&'static str>) -> &'static str {
+        let Some(sym) = symbol else { return word };
+        self.syms += 1;
+        if self.syms % 2 == 0 { sym } else { word }
+    }
     fn inner(&mut self, e: &Expr) {
         match e {
             Expr::Lit(v) => self.out.push_str(&v.to_string()),
@@ -648,7 +673,8 @@ impl<'a> Wr<'a> {
             Expr::Var(n) => self.out.push_str(&q(n)),
             Expr::Bin(op, a, b) => {
                 self.operand(e, a, true);
-                self.out.push_str(&format!(" {} ", op.text()));
+                let t = self.spell(op.text(), op.symbol());
+                self.out.push_str(&format!(" {t} "));
                 self.operand(e, b, false);
             }
             Expr::Neg(a) => {
@@ -666,7 +692,8 @@ impl<'a> Wr<'a> {
             }
             Expr::Cmp(op, a, b) => {
                 self.operand(e, a, true);
-                self.out.push_str(&format!(" {} ", op.text()));
+                let t = self.spell(op.text(), op.symbol());
+                self.out.push_str(&format!(" {t} "));
                 self.operand(e, b, false);
             }
             Expr::And(a, b) => {
@@ -798,46 +825,6 @@ impl<'a> Wr<'a> {
         }
     }
     /// A simple statement: `head`, then the expression, then `tail`.
-    /// `change 'i' = 'i' OP e;` as `'i' OP= e;`, or `'i'++;` / `'i'--;` for
-    /// plus or minus 1, two times in three. The operator's node spans the
-    /// whole statement, where its sites are.
-    fn compound_change(&mut self, s: &Stmt, pad: &str, tier: Tier, name: &str, value: &Expr) -> bool {
-        use BinOp::*;
-        let Expr::Bin(op, a, b) = value else { return false };
-        if !matches!(&**a, Expr::Var(n) if n == name) {
-            return false;
-        }
-        let sym = match op {
-            Add => "+=",
-            Sub => "-=",
-            Mul => "*=",
-            DivTrunc => "/=",
-            ModTrunc => "%=",
-            Pow => "**=",
-            _ => return false,
-        };
-        self.compounds += 1;
-        if self.compounds % 3 == 0 {
-            return false;
-        }
-        self.out.push_str(pad);
-        let s0 = self.out.len();
-        self.out.push_str(tier_prefix(tier, self.new_words));
-        let s1 = self.out.len();
-        let step = matches!(&**b, Expr::Lit(1)) && matches!(op, Add | Sub) && self.compounds % 2 == 1;
-        if step {
-            self.out.push_str(&format!("{}{}", q(name), if *op == Add { "++" } else { "--" }));
-        } else {
-            self.out.push_str(&format!("{} {sym} ", q(name)));
-            self.e(b);
-        }
-        // the operator's sites span the change without its `;`, as `KAYO\n`'s do
-        self.expr.push((addr(value), s1, self.out.len()));
-        self.out.push(';');
-        self.stmt.push((addr(s), s0, s1, self.out.len()));
-        self.out.push('\n');
-        true
-    }
     fn simple(&mut self, s: &Stmt, pad: &str, tier: Tier, head: &str, e: &Expr, tail: &str) {
         self.out.push_str(pad);
         let s0 = self.out.len();
@@ -919,9 +906,6 @@ impl<'a> Wr<'a> {
                 self.simple(s, &pad, *tier, &head, value, ";");
             }
             Stmt::Assign { tier, name, value } => {
-                if self.compound && self.compound_change(s, &pad, *tier, name, value) {
-                    return;
-                }
                 let head = format!("change {} = ", q(name));
                 self.simple(s, &pad, *tier, &head, value, ";");
             }
@@ -1042,7 +1026,7 @@ impl Program {
     /// The same text as `render`, with every node's place in it.
     pub fn render_spans(&self) -> (String, Spans) {
         let changed = changed_decls(self);
-        let mut w = Wr { new_words: self.new_words, compound: self.compound, compounds: 0, changed, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
+        let mut w = Wr { new_words: self.new_words, syms: 0, changed, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
         w.out.push_str(&format!("# check claude generator, seed {}\n", self.seed));
         // `extern.C`, one line each, or as a block (owner, 2026-10-02: "both");
         // the block where there are three, so both forms are written

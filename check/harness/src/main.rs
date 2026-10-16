@@ -200,6 +200,7 @@ fn main() {
     engines::reap_leftovers();
     let a = parse();
     let tools = || Tools::find(&repo()).unwrap_or_else(|e| die(&e));
+    let oracle_only = || Tools::find_oracle(&repo()).unwrap_or_else(|e| die(&e));
     match a.cmd.as_str() {
         "gen" => {
             let p = generate(a.num("seed", 1), &a.config());
@@ -316,7 +317,7 @@ fn main() {
         }
         "evaltest" => {
             // check_gen::eval against the oracle: stops or not, and where.
-            let t = tools();
+            let t = oracle_only();
             let (mut same, mut differ) = (0, 0);
             for seed in a.num("from", 1)..a.num("from", 1) + a.num("cases", 20) {
                 let p = generate(seed, &a.config_modelled());

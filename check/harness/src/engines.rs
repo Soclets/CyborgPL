@@ -28,6 +28,16 @@ impl Tools {
         }
         Ok(Tools { oracle, cca })
     }
+
+    /// The oracle alone, for the commands that never run the compiler
+    /// (evaltest): they work while `kayo/` is not built.
+    pub fn find_oracle(repo: &Path) -> Result<Tools, String> {
+        let oracle = repo.join("oracle/target/release/oracle");
+        if !oracle.exists() {
+            return Err(format!("{} not found; run `cargo build --release` in oracle/", oracle.display()));
+        }
+        Ok(Tools { oracle, cca: repo.join("kayo/target/release/kayo") })
+    }
 }
 
 /// Wall-clock limits — a safety net against a hang, never a verdict of
