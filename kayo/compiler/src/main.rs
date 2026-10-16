@@ -18,9 +18,10 @@ fn usage() -> ! {
     exit(2)
 }
 
-/// The CyDT this KAYO\n goes with (owner, 2026-10-16: it names itself
-/// `CyDT 1 KAYO\n`).
-const TOOLS: u32 = 1;
+/// The CyDT release this KAYO\n is, when it is one (owner, 2026-10-16: a
+/// release names itself `CyDT 1 KAYO\n`); none between releases, where it
+/// names the commit it was built from instead.
+const RELEASE: Option<u32> = None;
 
 fn main() {
     // The environment's switches take the command's name, `KAYO_*`
@@ -61,11 +62,14 @@ fn real_main() {
         // 2026-09-24): what a lock file will carry, in one place.
         "version" => {
             let (a, b, c) = unicode_segmentation::UNICODE_VERSION;
-            // KAYO\n is named by its tools, `CyDT 1 KAYO\n`, whole numbers and
-            // no dots (owner, 2026-10-16, distribution.md). CyDT 1 has not
-            // been released, and what a build before a release says is not
-            // ruled yet: until it is, it says so plainly.
-            println!("CyDT {} KAYO\\n, a build before CyDT {}'s release", TOOLS, TOOLS);
+            // KAYO\n is named by its tools: a release by its number, `CyDT 1
+            // KAYO\n`, whole numbers and no dots, and a build between
+            // releases by its commit, `CyDT 5eac982a KAYO\n` (owner,
+            // 2026-10-16, distribution.md).
+            match RELEASE {
+                Some(n) => println!("CyDT {} KAYO\\n", n),
+                None => println!("CyDT {} KAYO\\n", env!("KAYO_COMMIT")),
+            }
             println!("unicode {}.{}.{}", a, b, c);
         }
         // A collection's templates (owner, 2026-10-13): their members are

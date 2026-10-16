@@ -15,7 +15,9 @@ ones. The crates take the full name (owner, 2026-10-08: "Yeah"):
 `kayo-limb-*`. It holds the base (the language's lowest level,
 `compiler/`), the limbs (`limbs/`), Precog, the prover
 (`compiler/src/precog`), and the runtime (`runtime/`). It names itself by
-its tools, `CyDT 1 KAYO\n` (owner, 2026-10-16).
+its tools (owner, 2026-10-16): a release by its number, `CyDT 1 KAYO\n`,
+and a build between releases by the commit it was built from,
+`CyDT 5eac982a KAYO\n`.
 
 ```
 cd kayo

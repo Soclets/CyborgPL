@@ -643,11 +643,18 @@ fn bare_metal_runs_in_qemu() {
 
 /// The command is `kayo` alone (owner, 2026-10-16); `cca`, `synapse`,
 /// `syn`, `sng`, `suc` and `zomp`, its old names, are refused naming it.
+/// Between releases it names itself by the commit it was built from,
+/// `CyDT 5eac982a KAYO\n` (owner, 2026-10-16).
 #[test]
 fn every_name_of_the_command_runs() {
     let out = Command::new(env!("CARGO_BIN_EXE_kayo")).output().unwrap();
     let said = String::from_utf8_lossy(&out.stderr).to_string() + &String::from_utf8_lossy(&out.stdout);
     assert!(said.contains("usage: kayo parse"), "`kayo` did not answer as kayo:\n{}", said);
+    let out = Command::new(env!("CARGO_BIN_EXE_kayo")).arg("version").output().unwrap();
+    let first = String::from_utf8_lossy(&out.stdout).lines().next().unwrap_or_default().to_string();
+    let head = Command::new("git").args(["rev-parse", "HEAD"]).current_dir(env!("CARGO_MANIFEST_DIR")).output().unwrap();
+    let head = String::from_utf8_lossy(&head.stdout).trim().chars().take(8).collect::<String>();
+    assert_eq!(first, format!("CyDT {} KAYO\\n", head), "`kayo version` does not name the commit it was built from");
     for (old, exe) in [("cca", env!("CARGO_BIN_EXE_cca")), ("synapse", env!("CARGO_BIN_EXE_synapse")), ("syn", env!("CARGO_BIN_EXE_syn")), ("sng", env!("CARGO_BIN_EXE_sng")), ("suc", env!("CARGO_BIN_EXE_suc")), ("zomp", env!("CARGO_BIN_EXE_zomp"))] {
         let out = Command::new(exe).output().unwrap();
         assert!(!out.status.success() && String::from_utf8_lossy(&out.stderr).contains(&format!("`{}` is an old name: write `kayo`", old)), "`{}` was not refused naming `kayo`", old);
