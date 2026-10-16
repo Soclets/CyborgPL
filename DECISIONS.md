@@ -15,6 +15,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — The language's stable codename is `v2` (owner)
+
+After three renames (CyborgPL, Nerve, Zag, CyborgPL again), the owner: "we might need a stable name", then "In
+all seriousness, what should its stable name be?". Design claude proposed a codename for internal use only,
+the public name free to change around it, offering `v2` (what it was called from day one, "CyborgPL v2", already
+in DECISIONS and old commits; never a public brand; could be mistaken for a version) or `0914` (its birthday;
+starts with a digit), recommending `v2`. The owner: "`v2` it is". So **`v2` is the language's stable codename**.
+Proposed with it, not yet ruled: nothing internal (environment variables, bench keys, test and file names,
+notes) uses the public name, so a rename touches only the README, the site and the brand.
+
 ### 2026-10-16 — A build with uncommitted changes adds `+`: `CyDT ad73b84a+ KAYO\n` (owner)
 
 Compiler claude's `kayo version` (a69f98b7) named the HEAD commit even when the tree had uncommitted changes.
