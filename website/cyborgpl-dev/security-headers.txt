@@ -1,0 +1,14 @@
+
+# Security on every page, as on zag-lang.org (added 2026-10-16): the site loads nothing from
+# anywhere else but Cloudflare's Web Analytics, and HSTS keeps browsers on https for 180 days.
+# Inline scripts are allowed here, unlike zag-lang.org: each of this build's 153 pages carries its
+# own data script, 169 sha256s in all, a 9,453-character policy line, past Cloudflare's 2,000 a
+# line. The redesign builds its pages without them, so it lists its scripts by sha256 again.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cloudflareinsights.com; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Strict-Transport-Security: max-age=15552000; includeSubDomains
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
+  Cross-Origin-Opener-Policy: same-origin

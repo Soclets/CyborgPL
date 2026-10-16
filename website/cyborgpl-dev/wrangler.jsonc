@@ -1,0 +1,14 @@
+// https://cyborgpl.dev — CyborgPL's home (owner, 2026-10-16: "I'll keep the `.dev` as main").
+// Until the redesign it serves the last CyborgPL build unchanged, now with security headers
+// (owner: "We'll make the website secure first"). `node secure.mjs` assembles it, then
+// `npx wrangler deploy`; only when the owner says so.
+{
+  "name": "cyborgpl-website",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./build/client",
+    "not_found_handling": "404-page",
+    "html_handling": "drop-trailing-slash"
+  },
+  "routes": [{ "pattern": "cyborgpl.dev", "custom_domain": true }]
+}

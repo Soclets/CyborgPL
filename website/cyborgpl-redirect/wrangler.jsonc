@@ -1,0 +1,14 @@
+// cyborgpl.com and cyborgpl.org (and their www) → cyborgpl.dev, path and query kept (owner,
+// 2026-10-16: "I'll keep the `.dev` as main", then "setup the redirect"). A separate Worker so the
+// main site stays static-only; only visits to these addresses run code. `npx wrangler deploy`.
+{
+  "name": "cyborgpl-redirect",
+  "main": "index.js",
+  "compatibility_date": "2026-10-01",
+  "routes": [
+    { "pattern": "cyborgpl.com", "custom_domain": true },
+    { "pattern": "www.cyborgpl.com", "custom_domain": true },
+    { "pattern": "cyborgpl.org", "custom_domain": true },
+    { "pattern": "www.cyborgpl.org", "custom_domain": true }
+  ]
+}
