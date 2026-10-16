@@ -23,8 +23,11 @@ all seriousness, what should its stable name be?". Design claude proposed a code
 the public name free to change around it, offering `v2` (what it was called from day one, "CyborgPL v2", already
 in DECISIONS and old commits; never a public brand; could be mistaken for a version) or `0914` (its birthday;
 starts with a digit), recommending `v2`. The owner: "`v2` it is". So **`v2` is the language's stable codename**.
-Proposed with it, not yet ruled: nothing internal (environment variables, bench keys, test and file names,
-notes) uses the public name, so a rename touches only the README, the site and the brand.
+Proposed with it: nothing internal (environment variables, bench keys, test and file names, notes) uses the
+public name, so a rename touches only the README, the site and the brand. Asked "Why?" (design claude: it saves a
+few internal names per sweep, not most of the work, since endings, `kayo`, CyJet, kit and limb are public), the
+owner: "Nah, it'll be stable next rename (if ever)". So **nothing moves to `v2` now**; design claude's reading:
+the internal names take `v2` at the next rename, should one come.
 
 ### 2026-10-16 — A build with uncommitted changes adds `+`: `CyDT ad73b84a+ KAYO\n` (owner)
 
