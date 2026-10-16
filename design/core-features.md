@@ -1,4 +1,4 @@
-# Core features of Zag
+# Core features of CyborgPL
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
@@ -10,7 +10,7 @@ design decision is measured against.
 
 ## Everything at compile time
 
-Zag runs every possible thing at compile time to check for issues,
+CyborgPL runs every possible thing at compile time to check for issues,
 ensuring final-product safety without sacrificing runtime performance.
 
 Compile time is not a cost the language cares about. The developer waits;
@@ -32,7 +32,7 @@ Most of the syntax uses dot chaining, so a reader can "flow with the code".
 
 ## LLVM as the backend
 
-Zag compiles to native code through LLVM.
+CyborgPL compiles to native code through LLVM.
 
 ### What "best" means (decided 2026-09-14)
 

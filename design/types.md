@@ -37,12 +37,12 @@ it proves the whole program gives the same results (owner, 2026-10-02),
 so `brain16` is never chosen, only written.
 
 **Removed 2026-10-07** (owner: "MTM is gone."): Rust's names are refused, naming
-Zag's (`i32` → "write `int32`"). What follows is their history. **Rust's names
+CyborgPL's (`i32` → "write `int32`"). What follows is their history. **Rust's names
 are aliases** (owner, 2026-10-02; in the oracle the same day): `i8`–`i128`
 for `int8`–`int128`, `u8`–`u128` for `uint8`–`uint128`, `f16` `f32` `f64`
 for `bin16` `bin32` `bin64`. Nothing else: not `bool` (the same word),
 not `char` (a unit must be said), no `deci` (Rust has none), not
-`String`, `&str`, `usize`, `isize` or `Vec<T>` (`DECISIONS.md`). Only these and Zag's
+`String`, `&str`, `usize`, `isize` or `Vec<T>` (`DECISIONS.md`). Only these and CyborgPL's
 own names (owner, same day: "only include the Rust ones and ours"): C's
 exact names, recorded first, were withdrawn, and no long spellings
 (`binary_float16`) are added.
@@ -85,8 +85,8 @@ width. Proposed: whole bytes only, or a short list, and a cap of 4,096
 bits; the owner chose any width ("there's already a disclaimer in
 front"). LLVM's widest is 8,388,608 bits (2^23); past it is refused. In
 between, the maths is limited by the widest operand's width, at least 64
-bits (`operators.md`). `examples/any_width.zg`,
-`examples/wide_integers.zg`.
+bits (`operators.md`). `examples/any_width.cy`,
+`examples/wide_integers.cy`.
 
 ## A declaration always has a value (owner, 2026-09-23)
 
@@ -217,9 +217,9 @@ IEEE 754 decimal: `deci32` holds 7 digits, `deci64` 16, `deci128` 34, and
   everything.
 - **`uenr` — Unbounded Exact Numerical Representation** (owner, 2026-09-14). A number
   type with no fixed width that never rounds: it grows to hold whatever
-  value it is given. Provided by the **standard strike**, not built into the
-  language — so it is Zag source the prover can see through, and it takes
-  the role legacy's `bignum`/`bigint` had. Reached through the strike
+  value it is given. Provided by the **standard kit**, not built into the
+  language — so it is CyborgPL source the prover can see through, and it takes
+  the role legacy's `bignum`/`bigint` had. Reached through the kit
   boundary: `let 'n': std::uenr = 1000;`. **Exact is exact**: fractions are
   held as true rationals, so `(1/3) times 3` is exactly `1` (decided
   2026-09-14).

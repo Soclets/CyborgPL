@@ -2,7 +2,7 @@
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
-How Zag is meant to be written: the practices the language's rules
+How CyborgPL is meant to be written: the practices the language's rules
 make easy, collected in one place. Proposed by design claude and approved
 by the owner, 2026-10-02 ("all that you said there seems like a good
 practice", then "write"). They are advice, not rules: the compiler
@@ -42,7 +42,7 @@ recommended.
    `no_check` C call, and everything else calls that safe wrapper. The
    build's `no_check` list stays short enough to review.
 6. **`NO_FUCKING_CHECKS` only after measuring.** Never a first resort.
-7. **A public strike states its limits in its signatures** (owner,
+7. **A public kit states its limits in its signatures** (owner,
    2026-10-12: "(b), if it's actually valid"; `#strict` did this until
    2026-10-07). A library's safety should not depend on who calls it, and
    the prover proves a site partly from its callers. So range types on public
@@ -70,7 +70,7 @@ recommended.
     vectorise, `no_cheat` only for timing code.
 12. **`print.useful` for people, `print.stored` for debugging numbers,
     `print.format` for shaped output** (columns, hex, places).
-13. **`precedence.low_first` for a strike's operator levels** (owner,
+13. **`precedence.low_first` for a kit's operator levels** (owner,
     2026-10-03: "low_first is good practice"): level 1 binds loosest, as a
     precedence table is read top to bottom. `precedence.high_first` is
     there for whoever thinks the other way.
@@ -91,12 +91,12 @@ recommended.
     `lend 'name'`, `ptr.read['p']`. Each symbol (`+`, `==`, `&`, `*'p'`) is
     another spelling of a word, there for whoever thinks in symbols, but the
     word says which form it is: `/` is `div.trunc`, and only the word tells a
-    reader it rounds toward zero. That's why Zag is named for being read.
+    reader it rounds toward zero. That's why CyborgPL is named for being read.
 
 ## Shape of a program
 
 16. **Keep `MAIN` thin** (owner, 2026-10-15: "yea"). `MAIN` reads the input, calls the real work, and
-    reports the result; the work lives in modules, one topic per file, so `strike.zg` reads like a table of
+    reports the result; the work lives in modules, one topic per file, so `kit.cy` reads like a table of
     contents. A reader sees the program's shape at once, and small focused functions are what the prover
-    proves best. As Zomp and the oracle do: their `main.rs` hands everything to the parser, checker, prover
+    proves best. As kayo and the oracle do: their `main.rs` hands everything to the parser, checker, prover
     and code generator.

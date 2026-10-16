@@ -40,8 +40,8 @@ let 'x' := 1000;                 # Precog picks the best type
 let 'x': bin16 = 1000;           # explicit type; must be fully explicit
 let mut 'n': int32 = 0;          # mutability, when stated, before the name
 let immut 'limit' := 10;
-let 'r': std::uenr = 1000;        # a Limb-provided type: `::` crosses, `.` narrows
-pub const 'max' := 8;            # a Limb-level value: top level only, see limbs.md
+let 'r': std::uenr = 1000;        # a Kit-provided type: `::` crosses, `.` narrows
+pub const 'max' := 8;            # a Kit-level value: top level only, see kits.md
 ```
 
 - **`let` declares, `change` changes** (owner, 2026-10-02: "Kinda want
@@ -75,7 +75,7 @@ without the rest of that redesign. See `DECISIONS.md`.
 
 ## What the sample establishes
 
-- **Dot chains narrow general→specific inside a type and inside a strike
+- **Dot chains narrow general→specific inside a type and inside a kit
   path** — `str.utf8`, `char.grapheme`, `std::print.useful.stdout`, `lend.mut`.
   A *type parameter* is bracketed, not chained: `list[int32]`,
   `array[list[str.utf8]]` (decided 2026-09-19). They no longer carry the name-to-type job (that is `:`) and no
@@ -85,15 +85,15 @@ without the rest of that redesign. See `DECISIONS.md`.
   words — `fn`, `change`, `return`, `if`, `else`, `loop`, `while`, `for`, `in`,
   `break`, `continue`, `give`, `copy`, `lend`, `lent`, `op`, `check`,
   `no_check`, `true`, `false`, `mut`, `immut`, `temp`, `perm`, `range`, `seq`,
-  `list`, `array`, `struct`, `pub`, `const`, `module`, `strike`, `my`, `fail`, `otherwise`, `to`, `incl`, `with` (and the retired `var`, `func`; the full list is the oracle's `KEYWORDS`) — cannot
+  `list`, `array`, `struct`, `pub`, `const`, `module`, `kit`, `my`, `fail`, `otherwise`, `to`, `incl`, `with` (and the retired `var`, `func`; the full list is the oracle's `KEYWORDS`) — cannot
   be used bare as function names; a function *may* be named with one, and
   is then reached only through a path (`std::to[…]`, `my.to[…]`;
-  `limbs.md`, 2026-09-19). Variables are quoted and can never collide with
+  `kits.md`, 2026-09-19). Variables are quoted and can never collide with
   anything.
-- **`::` crosses into a strike; `.` narrows within** (decided 2026-09-14).
+- **`::` crosses into a kit; `.` narrows within** (decided 2026-09-14).
   `std::print.stored.stdout[…]`, `'r': std::uenr`, `crate_x::Locker[…]`. Inside a
-  strike the same `.` walks modules: `shapes.circle.area[…]`, `my.helper[…]`
-  for the root (`limbs.md`, 2026-09-19; `limb.` until 2026-10-06).
+  kit the same `.` walks modules: `shapes.circle.area[…]`, `my.helper[…]`
+  for the root (`kits.md`, 2026-09-19; `limb.` until 2026-10-06).
 - **User names are quoted** (`'x'`, `'s'`). **Settled and reaffirmed — see
   `DECISIONS.md`; not open for relitigation.** The word operators (`x`,
   `mod`, `and`, …) and the bare keywords depend on it.
@@ -165,7 +165,7 @@ without the rest of that redesign. See `DECISIONS.md`.
 ## How the language's own names are written (owner, 2026-10-13)
 
 1. **The language's own names are lowercase**: keywords, types, `std`,
-   `ricochet::` and `reserved::` names (`ricochet::manifest`, `reserved::free_op`).
+   `cyjet::` and `reserved::` names (`cyjet::manifest`, `reserved::free_op`).
 2. **Capitals only for a language's name** (`extern.C`, `inline.ASM`,
    `inline.MSL`, 2026-10-02), and for `MAIN` and `NO_FUCKING_CHECKS`.
 3. **`_` joins the words of one name**: `no_check`, `not_equal`,
@@ -175,7 +175,7 @@ without the rest of that redesign. See `DECISIONS.md`.
 5. **Your own names are free** (2026-09-24, 2026-10-02): `struct Range` or
    `struct range`, as you like.
 
-`spellings.zv`'s self-check refuses a built-in name that breaks 1 to 3.
+`spellings.cyr`'s self-check refuses a built-in name that breaks 1 to 3.
 
 ## Every argument after the first says its role (owner, 2026-10-14)
 

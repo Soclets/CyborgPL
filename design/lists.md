@@ -250,7 +250,7 @@ none, since its counter is already the position, so `for 'i', 'x' in
 range[…]` is refused. With `perm`, both outlive the loop (the oracle's
 reading, not asked). Proposed alternative: leave it, looping over
 `range[1, list.length[…]]` and reading `'xs'['i']`, one extra line.
-`examples/for_position.zg`.
+`examples/for_position.cy`.
 
 ## Open
 
@@ -265,9 +265,9 @@ The value, then the count, as `simd.fill[7]` fills every lane. A count
 below 0 is a check site. A **`#strict` file labels the count**,
 `list.fill[0, count 10]` (owner: "count"), since `list.fill[0, 10]`
 could be ten 0s or zero 10s; elsewhere `count` is refused, as `pos` is.
-With it, Zomp can ask for memory already zeroed (C's `calloc`) where the
+With it, kayo can ask for memory already zeroed (C's `calloc`) where the
 value is `false` or `0`, instead of growing a list one append at a time.
 Proposed alternatives: `list.repeat[…]`, Rust's `[0; 10]`; for strict,
 both labelled (`value 0, count 10`) or no change. `array.fill` was
-mentioned, not asked. `examples/list_fill.zg`, `list_fill_strict.zg`.
+mentioned, not asked. `examples/list_fill.cy`, `list_fill_strict.cy`.
 

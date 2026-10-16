@@ -14,7 +14,7 @@ AskUserQuestion tool. Never fill in a default for an open decision: if
 the docs do not say, it is a question, not a pick. **That includes
 RR's syntax, which is entirely undecided**: propose, never
 choose. RRx2 is a hobby project: no timeline, no obligation. The design
-session ("design claude") records decisions in Zag's
+session ("design claude") records decisions in CyborgPL's
 `DECISIONS.md`; your questions go to the owner, directly or through it.
 
 The owner answers "what" when a question is too dense. Ask in plain
@@ -22,26 +22,26 @@ words, with what each option means in practice.
 
 ## Why RR exists
 
-A language that never rounds, used to judge Zag's numbers. It is
-the opposite of Zag on speed — in the owner's words, it "doesn't
+A language that never rounds, used to judge CyborgPL's numbers. It is
+the opposite of CyborgPL on speed — in the owner's words, it "doesn't
 give a flying fuck about runtime perf" — and exact on everything:
 `1/3 plus 1/3 plus 1/3` is exactly 1, and what `0.1 plus 0.2` must give in a
-`bin64` is known to the last bit. When Zag resumes, its tools can
+`bin64` is known to the last bit. When CyborgPL resumes, its tools can
 ask RR what a computation should give and compare.
 
-**It is for Zag** (owner, 2026-09-30), not a general maths system.
+**It is for CyborgPL** (owner, 2026-09-30), not a general maths system.
 Its character, the owner's: "RRx2 feels like a big old thing" — the old,
-serious one beside the corporate Synthia and the foul-mouthed Zag.
+serious one beside the corporate Synthia and the foul-mouthed CyborgPL.
 
 **A reference is only worth something if its answers are right.** A
 crash is a nuisance; a calm wrong answer is worse than no reference,
-because Zag would be judged against it. Everything below serves
+because CyborgPL would be judged against it. Everything below serves
 that.
 
-**You are a different author from Zag's.** RR must share no
-code with Zag's `std::uenr` or with Zomp, or it cannot judge them.
-Learn Zag's number rules from `design/` and `DECISIONS.md`; never
-read `synapse/` or `oracle/src` in Zag's repo.
+**You are a different author from CyborgPL's.** RR must share no
+code with CyborgPL's `std::uenr` or with kayo, or it cannot judge them.
+Learn CyborgPL's number rules from `design/` and `DECISIONS.md`; never
+read `synapse/` or `oracle/src` in CyborgPL's repo.
 
 ## What is decided (owner, 2026-09-30)
 
@@ -53,11 +53,11 @@ read `synapse/` or `oracle/src` in Zag's repo.
   translating into another language, whose own number rules would then
   stand between a program and its answer.
 - **What it holds** ("1 to 3's second"):
-  1. An exact model of Zag's numbers: unbounded whole numbers and
+  1. An exact model of CyborgPL's numbers: unbounded whole numbers and
      true fractions (as `std::uenr`); the fixed-width integers with
-     Zag's wrapping, overflow, flooring `/` and `mod`; `bin` as the
+     CyborgPL's wrapping, overflow, flooring `/` and `mod`; `bin` as the
      exact fraction each float is, with correctly rounded results; `deci`
-     with Zag's rounding.
+     with CyborgPL's rounding.
   2. Judging the prover: interval arithmetic with guaranteed bounds, and
      "for all" over finite types, checked exhaustively.
   3. Algebraic numbers (`√2` as the positive root of x² − 2, so `√2 × √2`
@@ -88,8 +88,8 @@ sentence` (`feature.lang.rational: …`, `fix.lang: …`), trailer
 README's toolchain and licence sections are the owner's wording; change
 them only when the owner asks.
 
-You read Zag's repo at `/Users/ts/Zag` and never edit it.
-Zag's number rules: `design/types.md`, `design/operators.md`,
+You read CyborgPL's repo at `/Users/ts/CyborgPL` and never edit it.
+CyborgPL's number rules: `design/types.md`, `design/operators.md`,
 `design/conversion.md`, and the `deci` and `bin` entries in
 `DECISIONS.md`.
 
@@ -115,7 +115,7 @@ Zag's number rules: `design/types.md`, `design/operators.md`,
 
 ## Reaching other sessions
 
-Send by permanent session id (Zag's `CLAUDE.md` lists them):
+Send by permanent session id (CyborgPL's `CLAUDE.md` lists them):
 design claude is `local_9078e904-c5c3-41ca-a97b-29bc24a56ed6`. Under
 "the owner says" put only the owner's own words; mark your additions as
 yours.
@@ -129,4 +129,4 @@ Ask these, one at a time, when the work reaches them:
    pieces with examples; the owner picks.
 2. ~~File extension~~ **`.RR`**, either case accepted, as R's `.R`
    (owner, 2026-10-01). Still open: the command that runs a program.
-3. How Zag's tools will ask it questions once Zag resumes.
+3. How CyborgPL's tools will ask it questions once CyborgPL resumes.

@@ -1,9 +1,9 @@
 # Debug info
 
-Decided 2026-10-08 and 2026-10-14 (owner). Not yet built: Zomp (Zomp at c90b4186) puts debug info
+Decided 2026-10-08 and 2026-10-14 (owner). Not yet built: kayo (kayo at c90b4186) puts debug info
 inside every build, the final one included.
 
-**Zomp emits debug info** (owner, 2026-10-08: "There should be"): the tables that map machine code
+**kayo emits debug info** (owner, 2026-10-08: "There should be"): the tables that map machine code
 back to lines, variables and types, for debuggers and readable crash reports. Compiler messages are
 not in the program, and a final build has no run-time checks, so the info is all a final build
 carries about its source.

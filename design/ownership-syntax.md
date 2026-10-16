@@ -30,7 +30,7 @@ process[lend.mut 's'];   # temporary exclusive access, may modify
   `'u'`. To read and change one list, pass it once with `lend.mut` (it can
   read too); to keep how it was, `copy` it first. Proposed: (a) refuse, as
   Rust does; (b) refuse only when a change actually happens while the other
-  borrow is in use, as the oracle and Zomp did. Compiler claude and design
+  borrow is in use, as the oracle and kayo did. Compiler claude and design
   claude recommended a: the mistake shows at the call, a later change
   inside the function cannot break callers far away, and the compiler can
   tell LLVM the two never overlap.
@@ -111,12 +111,12 @@ expected in ordinary code.
 
 Not the same thing as a constant (a value known at compile time, baked into
 the binary): the prover finds those itself, and since 2026-10-10 a body may
-also say so with `const` (`limbs.md`, "`pub` and `const`").
+also say so with `const` (`kits.md`, "`pub` and `const`").
 
 ## Why explicit
 
 Rust moves silently; the line that killed a variable says nothing, and the
-error appears two lines later. In Zag nothing is implied, and these are
+error appears two lines later. In CyborgPL nothing is implied, and these are
 exactly the assignments that cost something at runtime — so they are the
 ones that should be visible.
 
@@ -186,7 +186,7 @@ from something that dies at the return, and a function returning one
 must say so. Proposed alternatives: naming the parameters instead of a
 group (`--> lent str.utf8 from 'a', 'b'`, recommended by design claude
 and not chosen); `~` for the mark (it already means wrapping); a Rust-style
-list up front (`fn longer <@x> …`). `examples/lifetimes.zg`.
+list up front (`fn longer <@x> …`). `examples/lifetimes.cy`.
 
 **The group is optional outside `#strict`** (owner, 2026-09-29:
 "`-> lent str.utf8` is legal in normal"): `fn first [lent 'a': str.utf8]

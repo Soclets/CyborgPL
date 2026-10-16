@@ -25,13 +25,13 @@ nearest value the type holds (`7.5 div.near 2.0` is 3.75), and
 Python's `//`); so `mod.near` is refused there, since it leaves nothing
 over (design claude's slip: it had first called it IEEE's `remainder()`).
 Proposed for bins: `div.near` naming the rounding (chosen), `div.real`,
-`div.frac`. `examples/div_rounding.zg`.
+`div.frac`. `examples/div_rounding.cy`.
 
 **The operators are words** (owner, 2026-10-02/03): `plus`, `minus`,
 `times`, `.wrap` for the wrapping ones, and std's `pow`; the symbols `+`,
 two-number `-`, `x`, `xx` and the tilde forms are refused, naming the
 word. A type defines its own with `op plus […]`; an operator as a value
-is `op plus`. `examples/word_operators.zg`. Older passages below keep
+is `op plus`. `examples/word_operators.cy`. Older passages below keep
 the symbols where they quote a ruling's day.
 
 | Operator | Meaning |
@@ -44,7 +44,7 @@ the symbols where they quote a ruling's day.
 | `pow`, `pow.wrap` | power: std's operators since 2026-10-03 (the language's `xx`, `xx~` before); bare or `std::pow`; above a negative, right pair first, as `xx` was (`-2 pow 2` is -4, `2 pow 3 pow 2` is 512) |
 | `div.floor` `div.ceil` `div.trunc` `div.near` | divide, rounding as named (`div` until 2026-10-02, `/` until 2026-09-29) |
 | `mod.floor` `mod.ceil` `mod.trunc` `mod.near` | what the same `div` leaves over |
-| `plus.ieee` `minus.ieee` `times.ieee` `pow.ieee` `div.floor.ieee` `div.ceil.ieee` `div.trunc.ieee` `div.near.ieee` `mod.floor.ieee` `mod.ceil.ieee` `mod.trunc.ieee`, and `neg.ieee 'x'` | IEEE 754's own answer, keeping a `-0`; on a bin or `brain16` only. Every other bin or `brain16` result is never `-0`: a zero times a negative, `-'x'` of a zero, a product too small to hold are all `0` (owner, 2026-10-07: "`a`", then "yea" to the family and to `neg.ieee`; `-.ieee 'x'` "defeats the purpose of a symbol"; `mod` and `pow` too, "yea."). `examples/zero_everywhere.zg` |
+| `plus.ieee` `minus.ieee` `times.ieee` `pow.ieee` `div.floor.ieee` `div.ceil.ieee` `div.trunc.ieee` `div.near.ieee` `mod.floor.ieee` `mod.ceil.ieee` `mod.trunc.ieee`, and `neg.ieee 'x'` | IEEE 754's own answer, keeping a `-0`; on a bin or `brain16` only. Every other bin or `brain16` result is never `-0`: a zero times a negative, `-'x'` of a zero, a product too small to hold are all `0` (owner, 2026-10-07: "`a`", then "yea" to the family and to `neg.ieee`; `-.ieee 'x'` "defeats the purpose of a symbol"; `mod` and `pow` too, "yea."). `examples/zero_everywhere.cy` |
 | `==` | equal |
 | `!==` | not equal — built from `==` |
 | `<`, `>` | less than, greater than |
@@ -85,7 +85,7 @@ be used anyways"), as the other symbols spell their words:
 The right side is taken whole, as if bracketed. `++` and `--` change a variable only as a whole
 statement (`'i'++;`): `++` between two values joins text, the symbol of `concat`. The result is
 checked where it lands, as any `change`. Until 2026-10-14 there was no shorthand at all (owner,
-2026-09-14). `examples/compound_change.zg`.
+2026-09-14). `examples/compound_change.cy`.
 
 ## Precedence (decided 2026-09-14)
 
@@ -174,7 +174,7 @@ subtraction when `'w'` is a `uint32`. And the other side does size it: in
 
 The sentence above — "the compiler knows every width; the oracle needs
 the left operand declared" — was always about the oracle's limit, not
-the language's rule. Zomp had read it as a rule and refused both lines;
+the language's rule. kayo had read it as a rule and refused both lines;
 it is the one that changes. Found by the generator on its first run: it
 was two-thirds of every disagreement until check claude steered around
 it.
@@ -380,7 +380,7 @@ for a user type** (`op plus ['a': Vec, 'b': Vec]`, decided 2026-09-20 with
 interfaces) but never changed for the language's own types. Prefix (one-operand) custom
 operators are not offered.
 
-### A strike's precedence (owner, 2026-10-03)
+### A kit's precedence (owner, 2026-10-03)
 
 ```
 precedence.low_first {                          # level 1 binds loosest (good practice)
@@ -391,7 +391,7 @@ precedence.low_first {                          # level 1 binds loosest (good pr
 }
 ```
 
-A strike may give its operators a precedence in one block; `precedence.high_first`
+A kit may give its operators a precedence in one block; `precedence.high_first`
 counts the other way, and a bare `precedence` is refused. Each level is `level N { … }`,
 its operators separated by `,`, and after the braces it says how a chain of it reads
 (`left_first`, `right_first`, `refused`), which must agree with any language operator
@@ -399,33 +399,33 @@ in it. This spelling is the owner's of 2026-10-14 ("That syntax seems good, but 
 commas are bothering me."); it was `level.when_chained.left_first 2 { plus }`, now
 refused naming the new one. A level may hold `neg` (a negative), so std's `pow` sits above it. An
 operator in no level keeps the custom-operator rule: brackets beside any other.
-Operators of two strikes in the same gap need brackets between them. The language's
+Operators of two kits in the same gap need brackets between them. The language's
 bitwise operators have no precedence and cannot be given one.
-`examples/precedence_levels.zg`.
+`examples/precedence_levels.cy`.
 
-### From another strike (owner, 2026-09-23: a)
+### From another kit (owner, 2026-09-23: a)
 
 **Since 2026-10-02 (owner; built 2026-10-03): a word operator may also carry
-its path, `'a' std::pow 'b'`, and a strike may declare narrowed forms after
+its path, `'a' std::pow 'b'`, and a kit may declare narrowed forms after
 a dot, `pub op pow.wrap […]`, used `'a' std::pow.wrap 'b'`. Bare and
-with a path are both legal; the official strike registry refuses a
-published strike that writes another strike's word operator bare, unless the
+with a path are both legal; the official kit registry refuses a
+published kit that writes another kit's word operator bare, unless the
 owner overrides it ("Always refuse, unless I override"). A glyph operator
 (`~=`) has no path.** The paragraph below is the 2026-09-23 rule.
 
-A `pub op` is usable by every strike that depends on the one that wrote
+A `pub op` is usable by every kit that depends on the one that wrote
 it, with nothing written: an operator has no place for a path, so
 `'u' dot 'v'` finds the `dot` written for what `'u'` and `'v'` are. Any
-strike may share an operator for any types, the language's own included
+kit may share an operator for any types, the language's own included
 (`op ~= ['a': bin64, 'b': bin64] -> bool` for "equal within a margin").
 **Two meanings of one operator for the same types is a compile error**
 (owner: "shouldn't two meanings of `~=` just err?"), whether they come
-from two strikes or from a strike and your own code. With no path to pick
-one, the fix is to drop a strike, or copy one operator into your own
+from two kits or from a kit and your own code. With no path to pick
+one, the fix is to drop a kit, or copy one operator into your own
 code and edit it. Proposed alternative (design claude's
-recommendation): only the strike that owns one of the operand types may
+recommendation): only the kit that owns one of the operand types may
 share an operator, as in Rust, so two can never clash. That would stop
-a strike from sharing `~=` or `+|` for the language's own types.
+a kit from sharing `~=` or `+|` for the language's own types.
 
-Oracle: `examples/operators.zg`, thirteen reject tests. It runs one
-strike, so an operator is found by name across the whole program.
+Oracle: `examples/operators.cy`, thirteen reject tests. It runs one
+kit, so an operator is found by name across the whole program.

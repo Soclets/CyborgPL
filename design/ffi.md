@@ -2,16 +2,16 @@
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
-> Since 2026-10-10 everything about C here (`extern.C`, `layout.C`, callbacks, and `incl.C`, C headers) is the CNC plugin's (`cores.md`): a strike lists CNC to use it. `ptr`, raw memory and inline assembly stay the Ground's.
+> Since 2026-10-10 everything about C here (`extern.C`, `layout.C`, callbacks, and `incl.C`, C headers) is the CNC limb's (`cores.md`): a kit lists CNC to use it. `ptr`, raw memory and inline assembly stay the base's.
 
 Decided 2026-09-19, one question at a time, after the owner asked how
 std's print gets made and then: "Syscall and lower-level stuff should be
 able to do, using the base Cyborg language." So the door to the OS is the
-language's, open to every strike (as in C and Rust); std is the library
+language's, open to every kit (as in C and Rust); std is the library
 everyone uses, not a privileged one. Inline assembly is also in — spelling
 not yet designed. In the oracle since 2026-09-20: every rule below is
 enforced; the oracle cannot link C, so it emulates `write`, `exit`,
-`getenv`, `strlen`, `malloc`, `free` (`examples/ffi.zg`).
+`getenv`, `strlen`, `malloc`, `free` (`examples/ffi.cy`).
 
 ## `extern.C` — a function whose body is somewhere else
 
@@ -34,15 +34,15 @@ block of `fn` lines and C globals with `extern.C` written once; both stay.
 The `.C` is every language's capitalized name, as `layout.C`; a bare
 `extern fn` and `extern.c` are refused. Design claude had recommended a
 plain `extern { … }`, since `extern` reaches only C. **Each line may say
-its own `pub` / `pub.strike`, and a `pub` before the block overrides them
+its own `pub` / `pub.kit`, and a `pub` before the block overrides them
 all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 `extern.C { … }` a line is private unless it says `pub fn …`; in
 `pub extern.C { … }` every line is public. One-line: `pub extern.C fn …`.
-`examples/low_level.zg`, `examples/extern_block_pub.zg`.
+`examples/low_level.cy`, `examples/extern_block_pub.cy`.
 
 - `extern` before `fn`, like `pub`; no body, a `;` instead. A normal
   signature otherwise. Which library provides it is Synthia's business
-  (the manifest (`Synthia.ttsr` / `Ricochet.zv`)), never the source's. One calling convention: C's.
+  (the manifest (`Synthia.ttsr` / `CyJet.cyr`)), never the source's. One calling convention: C's.
 - **An `extern` call is a `no_check` site** — the prover cannot see inside it,
   so nothing about it can be proven; `no_check` already means "on my
   word", and the build output already lists every such site, so it now
@@ -86,7 +86,7 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
   C-shaped, as anything a pointer points at. **A cast keeps whether the
   pointer may write** (owner: a): a `ptr` stays read-only, a `ptr.mut`
   stays writable. It compiles to nothing — LLVM has one pointer type.
-  `examples/ptr_cast.zg`.
+  `examples/ptr_cast.cy`.
 - No raw-allocation primitive: bytes you can name are a `list[uint8]` /
   `array[uint8]` (owned, checked, lent to C); bytes nobody owns are
   `malloc`/`free`, two externs.
@@ -139,7 +139,7 @@ guard `if` after each call; (b) a trusted range, unverified — a
 `no_check` in disguise, rejected; (c) this. Owner asked the safety and
 performance difference against (a): none — same compare, same proofs;
 written once in the signature instead of after every call. Owner: c.
-`examples/extern_range.zg`.
+`examples/extern_range.cy`.
 
 ## Where C's numbers are checked (owner, 2026-09-27)
 
@@ -179,7 +179,7 @@ Proposed and not chosen: `nocheck` vouching for the number where it is
 already written (b); stopping the program on a bad number (c); a fourth
 tier trusting C's answers too. The owner asked whether `no_check` was then
 "lying" (it isn't, for the reason above), then chose this rule.
-`examples/c_enum_convert.zg`.
+`examples/c_enum_convert.cy`.
 
 ## A range type as a C struct's field (owner, 2026-09-27: a)
 
@@ -193,7 +193,7 @@ checked at the door when a struct comes from C, failing `out_of_range`,
 the ranged-return rule applied to fields. Proposed alternative: keep
 refusing it, with plain fields checked by hand. A range on an `extern.C fn`
 *parameter* is still refused; that was not asked.
-`examples/c_struct_ranges.zg`.
+`examples/c_struct_ranges.cy`.
 
 ## `layout.C enum` — C's enum (owner, 2026-09-27: a)
 
@@ -214,7 +214,7 @@ at the door, like a ranged return: C can send any number. Only a
 boundary, plain numbers with named constants, which loses the names in
 types and the exhaustive `match`. Written numbers required, and 32 bits:
 design claude's recommendation with a, not asked separately.
-`examples/c_enum.zg`.
+`examples/c_enum.cy`.
 
 ## `extern.C 'x': T` — a C global (decided 2026-09-21; `let` dropped 2026-09-25)
 
@@ -238,12 +238,12 @@ other declaration on 2026-09-25.
 
 **`errno` is not a plain global** on macOS and Linux — it is a macro
 that calls a function — so `extern.C 'errno': int32;` would be wrong
-there; the std strike offers `std::c.errno[]` backed by the real thing.
-`extern.C 'x': T` is for genuinely plain C globals. `examples/extern_data.zg`.
+there; the std kit offers `std::c.errno[]` backed by the real thing.
+`extern.C 'x': T` is for genuinely plain C globals. `examples/extern_data.cy`.
 
 ## `layout.C` — a struct in C's shape
 
-**A language's name is capitalized wherever Zag writes it** (owner,
+**A language's name is capitalized wherever CyborgPL writes it** (owner,
 2026-10-02: "BIG"): `layout.C`, `inline.ASM`, `inline.MSL`, `inline.C`
 when it comes. The owner said "inline.C has a big c" on 2026-10-01;
 design claude generalized it then without recording it, and `layout.c`
@@ -275,7 +275,7 @@ replacing 2026-10-06's whole names; **the whole names and the older short
 ones are MTM's** (owner: "`a`"): `inline.Assembly` and `inline.S` for
 `inline.ASM`, `inline.LLVM_Intermediate_Representation` and `inline.LLVM`
 for `inline.LL` (IEG's), `inline.Metal_Shading_Language` for `inline.MSL`
-(the Metal plugin's). `inline.S` came first as an alias (owner, 2026-10-02:
+(the Metal limb's). `inline.S` came first as an alias (owner, 2026-10-02:
 "Add `S` as an alias to `ASM`"), as assembly's `.S` files: the same
 block, the same rules. Capitals, as every language's name: `inline.s` is
 refused.

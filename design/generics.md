@@ -96,7 +96,7 @@ do. To give one type its own meaning, bound the generic one so that type
 does not keep it. Proposed alternative: the specific one wins
 (specialisation, as C++ templates do and Rust is working towards). Two
 generic ones of one name are refused (the oracle's reading: they may meet
-on some type). `examples/generic_op.zg`.
+on some type). `examples/generic_op.cy`.
 
 ## Not decided
 
@@ -109,6 +109,6 @@ Binds each `<T>` to the first value's kind and checks every later one
 checks `Pair[int32, str.utf8]` against a value field by field with the
 blanks substituted, and each filled type against its blank's bound. A
 listed type is matched by family (`int32` admits any integer): widths are
-the compiler's. `examples/generics.zg`, `examples/interface_types.zg`,
+the compiler's. `examples/generics.cy`, `examples/interface_types.cy`,
 and the reject tests `generic_*`, `iface_*`, `lifetime_unannounced`,
 `struct_bound_unkept`.

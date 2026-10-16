@@ -11,6 +11,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — The move to CyborgPL: Soclets/CyborgPL, new folders, and the code in one sweep (owner)
+
+Done the day after the owner chose CyborgPL ("tomorrow. Though, you could do the GH repo shit right now"):
+`Soclets/CyborgPL` took Zag-lang's `main`; the five clones are `/Users/ts/CyborgPL`, `… compiler`,
+`… verification`, `… website` and `… std` (owner: "Yup"), each session moved by `change_directory` with the
+owner at the MacBook ("I'm at MacBook now"); the `/Users/ts/Zag…` clones are frozen (remote `frozen-old`, push
+disabled). The sweep, as Zag's: the oracle, examples, tests, spellings and bench first (662ea84c), with every
+Zag name refused naming the CyborgPL one (`.zg`, `.zv`, `strike.zg`, `Ricochet.zv`, `build.zg`,
+`zag_version.zv`, `strike`, `ricochet::`, `ricochet::plugin`, `plugins`), then the design notes, the README and
+CLAUDE.md, then `kayo/`, `std/` and `check/` by their sessions. Design claude's readings in the sweep: "limb"
+in its old sense, a library (until 2026-10-09), became "kit", and `pub.limb` is refused naming `pub.kit`;
+`limbs.md` became `kits.md`; the Synthia notes (Synthia paused) and the owner's Zag-site draft
+(`website-intro.md`) were left as written. Still open: the published archive ending (`.limb`, from when a limb
+was a library) and the registry's domain (`limbs.xxx`, chosen 2026-09-29 for libraries).
+
 ### 2026-10-16 — The CyborgPL sweep's names: `CyJet.cyr` / `cyjet::`, `kayo/`, `cy_ver.cyr`, `kayo prove` (owner)
 
 Design claude's name table for the sweep (Zag to CyborgPL) had four rows of its own proposing: (1) the manifest

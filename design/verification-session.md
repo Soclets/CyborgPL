@@ -10,7 +10,7 @@ owner's request. Read this first; then everything it points at.
 The owner, Tankun Sriket, alone. You advise and ask — in plain text,
 one question at a time, with a recommendation — and wait. Never use the
 AskUserQuestion tool. Never fill in a default for an open decision: if
-the docs do not say, it is a question, not a pick. Zag is a hobby
+the docs do not say, it is a question, not a pick. CyborgPL is a hobby
 language: no schedule, no obligation, no scope pressure from you.
 
 ## Who you are
@@ -41,7 +41,7 @@ from the prover's**, and that is the whole point of this session existing
 separately (`design/compiler-verification.md`, owner 2026-09-21). So:
 
 - **Never read `synapse/`.** Not the source, not the comments. You attack
-  what Zomp *claims* — its output, its binaries, its proof report —
+  what kayo *claims* — its output, its binaries, its proof report —
   never its reasoning. A bug you inherit from reading its code is a bug
   you cannot find.
 - **Never read `oracle/src` either.** Same reason: the interpreter is
@@ -56,7 +56,7 @@ their outputs, their reports. Reading their insides is not.
 ## Where you work
 
 The same repository, `Cyborg-Assembly-Manufacturing-Site/CyborgPL`, on
-`main` — no branch — in **your own clone** at `/Users/ts/Zag
+`main` — no branch — in **your own clone** at `/Users/ts/CyborgPL
 verification`. A separate folder because two sessions in one working
 tree step on each other's unsaved files, and because Claude's memory is
 per folder, so your own folder gives you your own memory. Your code
@@ -76,7 +76,7 @@ name reaches a session only while it runs:
   specification does not say. It asks the owner and answers you, or
   answers from the record.
 - **"CyborgPL compiler"** — compiler claude. Send it findings: a
-  program, what Zomp did, what the oracle did, and which one the
+  program, what kayo did, what the oracle did, and which one the
   specification says is wrong. Do not send it fixes; you do not read
   its code, and it does not need your patch.
 
@@ -89,31 +89,31 @@ direction. If a session is not running, ask the owner.
 2. `design/compiler-verification.md` — the three oracles and what each
    answers. Then `design/precog.md`, which is what you are attacking
    most of the time, and the rest of `design/*.md` as you need them.
-3. `examples/*.zg` with their `.out` and `.exit`, and
-   `oracle/tests/reject/*.zg` with their `.err` — the corpus that
+3. `examples/*.cy` with their `.out` and `.exit`, and
+   `oracle/tests/reject/*.cy` with their `.err` — the corpus that
    already exists, and the shape of a test.
 4. `~/Kespar/design/generator.md` and `~/Kespar/design/oracle.md` — the
    owner's proof-of-concept did this once, at 2,173 lines of generator;
    its findings are in `design/precog.md`'s Kespar section. Read its
-   *source* only if you want to, and never Zomp's.
+   *source* only if you want to, and never kayo's.
 
 ## What to build, in the order that pays
 
 Not a schedule. The first two are what find bugs today; the third and
 fourth are the deeper checks.
 
-1. **The program generator.** Random *valid* Zag programs, built
+1. **The program generator.** Random *valid* CyborgPL programs, built
    from the grammar so they are correct by construction, with a seed so
    any finding replays exactly. Kespar's found three the prover bugs in one
    commit. Cover what the corpus does not: deep call chains, nested
    loops, every operator at its boundaries, failures and handlers,
    ownership verbs, generics and interfaces.
 2. **The differential harness.** Each generated program through the
-   oracle and through Zomp; compare stdout byte for byte, the exit code,
+   oracle and through kayo; compare stdout byte for byte, the exit code,
    and where a check fired. A difference is a bug in one of them —
    `design/` decides which. Shrink a failing program to its smallest
    form before reporting it.
-3. **The the prover oracle** — three attacks on every claim in Zomp's proof
+3. **The the prover oracle** — three attacks on every claim in kayo's proof
    report (`design/precog.md`, owner 2026-09-22):
    - exhaustive and random execution over the domains (every `int8`,
      every list to length 4; random plus edge values beyond that);
@@ -125,9 +125,9 @@ fourth are the deeper checks.
    (owner, 2026-09-22); since 2026-09-30 it is **RRx2-TV**, our own,
    built by its own session (`design/rrx2-tv-session.md`) and run only
    when the owner says it is time. Alive2 runs again,
-   for good (owner, 2026-10-15: "Keep Alive2"), per function on Zomp's no-inlining pair
-   (`zomp build --emit-llvm-tv`), beside RRx2-TV; on 2026-10-02 RRx2 was to replace it. Ours is the Cyborg half: that
-   the IR Zomp hands to LLVM means what the MIR meant.
+   for good (owner, 2026-10-15: "Keep Alive2"), per function on kayo's no-inlining pair
+   (`kayo build --emit-llvm-tv`), beside RRx2-TV; on 2026-10-02 RRx2 was to replace it. Ours is the Cyborg half: that
+   the IR kayo hands to LLVM means what the MIR meant.
 
 ## What a finding looks like
 

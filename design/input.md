@@ -88,8 +88,8 @@ let 'unit': bin64[min 0.0, max 1.0] = 0.25;
 ## Oracle
 
 `std::input.line` / `.all` read the process's stdin (`closed` on EOF —
-the test harness runs with no stdin, so `examples/input.zg` prints its
-fallback). Range types: `examples/ranges.zg`; assignment out of range
+the test harness runs with no stdin, so `examples/input.cy` prints its
+fallback). Range types: `examples/ranges.cy`; assignment out of range
 is a site error (a "lied" under `no_check`), conversion out of range is
 the `out_of_range` failure; ten reject tests. The oracle does not track
 arithmetic ranges (`'n' plus 1`) — a value is checked when stored.

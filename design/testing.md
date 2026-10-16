@@ -14,7 +14,7 @@ test fn adds_up [] {
 }
 ```
 
-`synapse test` (Zomp runs and tests on its own, 2026-09-29) runs every `test fn`
+`synapse test` (kayo runs and tests on its own, 2026-09-29) runs every `test fn`
 in the order written, each on its own, and reports each one, then a
 count; it exits 0 when all pass.
 
@@ -45,7 +45,7 @@ with a dot, `must.be`, which reads well only between two values), then
 
 ## Oracle
 
-`oracle --test file-or-Limb` runs the tests. `examples/testing.zg` (two
+`oracle --test file-or-Kit` runs the tests. `examples/testing.cy` (two
 of its tests fail on purpose; `.test-out` holds the report); reject tests
 must_outside_test, test_fn_params, test_fn_called, must_fail_not_a_call.
 A failed comparison's sides are worked out a second time for the message

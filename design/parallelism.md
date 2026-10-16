@@ -18,7 +18,7 @@ parallel:
   a short loop is not worth waking a thread for. **the prover estimates it
   itself** (owner, 2026-09-30: "Bro, Precog exists"), from the trips and
   the work of each, never from a number someone picks or from timing the
-  machine — and **a measurement in `tune.zv` wins where there is one**
+  machine — and **a measurement in `tune.cyr` wins where there is one**
   (owner: a), as for the GPU: `synapse tune` times the undecided loops once,
   outside the build (`gpu.md`). A missing or stale entry only costs speed,
   never correctness. Proposed: a fixed trip threshold; the estimate alone
@@ -80,12 +80,12 @@ for no_cheat para 'i' from 1 to 'n' by 1 { … }
 
 **`!cheat`, "no cheat"** (`!c` until 2026-10-06): every round's work really happens at run time. The
 compiler may not replace the loop with its answer (clang turns
-`acc += i` over a known range into n(n+1)/2, and Zomp's slices fold the
+`acc += i` over a known range into n(n+1)/2, and kayo's slices fold the
 same way) nor drop rounds whose results look unused. It may still do the
 work faster — SIMD, or across cores — so `!cheat` is about whether the work
 happens, not how; add `seq` for one round at a time, in order (owner:
 "Skipping work, because `seq` could be used with `!c`"). Written in
-Zag for timing code and the like, where today an empty
+CyborgPL for timing code and the like, where today an empty
 `inline.ASM` passing the value through a register does the job.
 
 **The strongest modifier comes first** (owner: "yeah, strongest first"):
@@ -93,7 +93,7 @@ Zag for timing code and the like, where today an empty
 are scheduled, so `for !cheat seq`, never `for seq !cheat` (refused). It is the
 rule `.useful` already follows in `print.useful.stdout` and
 `to.useful.str.utf8`. `!cheat` is a token of its own, not a reserved name.
-`examples/for_no_cheat.zg`; reject test for_no_cheat_order.
+`examples/for_no_cheat.cy`; reject test for_no_cheat_order.
 
 ## The GPU (owner, 2026-09-21: automatic)
 

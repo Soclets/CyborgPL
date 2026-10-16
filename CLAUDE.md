@@ -1,9 +1,9 @@
-# Zag
+# CyborgPL
 
-Design repository for **Zag**, a new programming language. **Zag is what was
-called Nerve** (2026-10-08 to 2026-10-14) **and CyborgPL v2** before that; the
-owner renamed it each time (the notes, `DECISIONS.md` and old commits say
-"Nerve", "CyborgPL" or "v2" for it). It is a
+Design repository for **CyborgPL**, a new programming language. It was
+**CyborgPL v2** until 2026-10-08, then **Nerve**, then **Zag** (2026-10-14), and
+**CyborgPL again from 2026-10-15** (owner: "Yeah, I'm fucking sold on CyborgPL too");
+the notes, `DECISIONS.md` and old commits say "v2", "Nerve" or "Zag" for it. It is a
 from-scratch design — **not** a continuation of CyborgPL v1, the owner's
 earlier, unrelated language (`Artificial-IntelligenceAI/CyborgPL-legacy`). No
 v1 syntax carries over unless the owner explicitly chooses it.
@@ -19,7 +19,7 @@ v1 syntax carries over unless the owner explicitly chooses it.
   chose versus what was proposed.
 - Stated identity (from the website hero): *"Very slow at the development,
   fast & safe at the final product."*
-- **Zag is a hobby language** (owner, 2026-09-17, of CyborgPL). No timeline, no
+- **CyborgPL is a hobby language** (owner, 2026-09-17, of CyborgPL). No timeline, no
   obligation to build any part by any date, no team unless the owner feels
   like one. Estimates, hiring notes, and the review policy in `design/` are
   for if-and-when, not commitments. Do not push for schedules or scope.
@@ -27,11 +27,11 @@ v1 syntax carries over unless the owner explicitly chooses it.
 ## Sessions
 
 - **Design session** ("design claude", this repo's default): decisions, `design/`, `DECISIONS.md`, the oracle. Commits carry `Co-Authored-By: design claude <noreply@anthropic.com>`.
-- **Compiler session** ("compiler claude"): Zomp (was Synapse), including the built-in package manager, Ricochet (manifest `Ricochet.zv`; no command of its own yet, owner 2026-10-15). Its brief is `design/compiler-session.md`; it works in its own clone of this repo at `/Users/ts/Zag compiler` (same `main`, no branch; its own folder so it has its own Claude memory), in `zomp/`; both clones `git pull --rebase` before pushing; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
+- **Compiler session** ("compiler claude"): `KAYO\n` (`kayo`; was Zomp, Synapse, CCA), with Precog built in, including the built-in package manager, CyJet (manifest `CyJet.cyr`; no command of its own yet, owner 2026-10-15). Its brief is `design/compiler-session.md`; it works in its own clone of this repo at `/Users/ts/CyborgPL compiler` (same `main`, no branch; its own folder so it has its own Claude memory), in `kayo/`; both clones `git pull --rebase` before pushing; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
 - **Synthia session** ("synthia claude", owner 2026-09-29): Synthia, the separate package manager, written in Go, in its own repo (`Cyborg-Assembly-Manufacturing-Site/Synthia`, checked out at `/Users/ts/Synthia`), not this one. Its brief is `design/synthia-session.md`. Started 2026-09-29; Go only for now, and it never runs `cca`.
-- **Verification session** ("check claude"): the program generator, the differential harness, the prover's oracle, translation validation. Its brief is `design/verification-session.md`; it works in its own clone at `/Users/ts/Zag verification`, in `check/`. It reads `design/` and the tests, and **never `zomp/` or `oracle/src`** — it is a different author from the prover's, which is what makes its checks mean anything. Commits carry `Co-Authored-By: check claude <noreply@anthropic.com>`.
+- **Verification session** ("check claude"): the program generator, the differential harness, the prover's oracle, translation validation. Its brief is `design/verification-session.md`; it works in its own clone at `/Users/ts/CyborgPL verification`, in `check/`. It reads `design/` and the tests, and **never `kayo/` or `oracle/src`** — it is a different author from the prover's, which is what makes its checks mean anything. Commits carry `Co-Authored-By: check claude <noreply@anthropic.com>`.
 
-- **Website session** ("website claude", owner, 2026-09-24): the open-source site. It works in its own clone at `/Users/ts/Zag website`, in `website/`, and updates the site only when the owner says so. Commits carry `Co-Authored-By: website claude <noreply@anthropic.com>`.
+- **Website session** ("website claude", owner, 2026-09-24): the open-source site. It works in its own clone at `/Users/ts/CyborgPL website`, in `website/`, and updates the site only when the owner says so. Commits carry `Co-Authored-By: website claude <noreply@anthropic.com>`.
 - **Website ChatGPT** ("website chatgpt"): an OpenAI agent that also works on the site, in `website/`, beside website claude (first commit 2026-10-03, `ee2998d`). Its commits carry `Co-Authored-By: website chatgpt <noreply@openai.com>`. It is not a Claude session, so it has no session id here and cannot be messaged; the owner reaches it directly.
 - **Reaching another session** (owner, 2026-09-24: "find a way to be always messageable"): send by its permanent session id, never its display name. A name only reaches a session that is running right now, and an id goes through the desktop app:
   - design claude: `local_9078e904-c5c3-41ca-a97b-29bc24a56ed6`
@@ -41,7 +41,7 @@ v1 syntax carries over unless the owner explicitly chooses it.
   - synthia claude: `local_0ecdeff6-f87d-4d75-a395-6fc8add64f08`
   - RRx2-TV claude: `local_ee10d272-6c6e-41c5-9342-8afde6e61061` (RRx2's translation validator, `/Users/ts/RRx2 tv`; brief `design/rrx2-tv-session.md`; started 2026-10-01)
   - lth design claude: `local_99b2b5b4-0649-498b-ac03-14b9e13416a0` (Lilith, the owner's JIT language idea, `/Users/ts/Lilith`, public repo `Cyborg-Assembly-Manufacturing-Site/Lilith`; brief `design/lilith-session.md`; design only; started 2026-10-02)
-  - std claude (was cord claude): `local_02a4d731-072e-42ff-a19f-14f4be88e58a` (started 2026-10-14; writes the standard library, `std` (was `cord`), in the language itself; `/Users/ts/Zag std`, in `std/`; brief `design/std-session.md`; may read `zomp/`, not `oracle/src`; takes turns with compiler claude; asks the owner through design claude)
+  - std claude (was cord claude): `local_02a4d731-072e-42ff-a19f-14f4be88e58a` (started 2026-10-14; writes the standard library, `std` (was `cord`), in the language itself; `/Users/ts/CyborgPL std`, in `std/`; brief `design/std-session.md`; may read `kayo/`, not `oracle/src`; takes turns with compiler claude; asks the owner through design claude)
   - troll license claude: `local_9c33c801-39cd-42c1-8cf2-8471921a2674` (OLLGS, the Optimized Long License Generator Software, public repo `Cyborg-Assembly-Manufacturing-Site/OLLGS`; notes in `secrets/defining-license.md`; no brief, started from a prompt, owner 2026-10-02)
 
 - **Cores** (owner, 2026-09-23: "How many cores do I have? Split it evenly"): the machine has 10 (4 performance, 6 efficiency). Each of the three sessions uses at most **3** at once, for builds, tests and any runs it starts, and 1 is left for the desktop. `oracle/.cargo/config.toml` holds this for the oracle, and each session holds it for its own work. Synthia claude has no bound, since it runs only Go for now (owner, 2026-09-29: "No core bounds, because Go only for now is stated"). CyborgPL resumed 2026-10-02 with the same split, 3 each for design, compiler and check claude (owner: "3 for 3"). RRx2 runs only when the owner starts one; during a run RRx2-TV claude uses **8**, and compiler and check claude hold off on builds and tests until it ends (owner, 2026-10-02: "Yeah"; memory, below, is why). std claude (was cord claude) and compiler claude take turns on compiler claude's 3: std claude works only while compiler claude does not (owner, 2026-10-14: "Cord doesn't work when Compiler is."). troll license claude (OLLGS) has no bound (owner, 2026-10-02: "unbounded", asked about cores and memory while RRx2-TV is stopped). It is idle for now (owner, 2026-10-02).
@@ -51,15 +51,14 @@ v1 syntax carries over unless the owner explicitly chooses it.
 
 - `DECISIONS.md` — the running log of settled design decisions.
 - `design/` — design documents, one topic per file, as they are written.
-- `examples/` — `.zg` programs using settled syntax only, each with its
+- `examples/` — `.cy` programs using settled syntax only, each with its
   expected `.out` (and `.exit` if non-zero; a `.oracle` for one the oracle cannot run to the end,
   such as inline assembly). Run by the oracle's tests.
 - `website/` — the open-source website (owner, 2026-09-23), built by
   the website session, which updates it only when the owner says so.
-  **nerve-lang.com** serves it from `website/site/` (Cloudflare, since
-  2026-10-08); cyborgpl.dev still serves the last CyborgPL build and gets no
-  new deploys.
-- `bench/` — Zag against every other language installed here (the owner's
+  CyborgPL's home is **cyborgpl.org** (owner, 2026-10-15), with cyborgpl.com and
+  cyborgpl.dev leading to it; nerve-lang.com and zag-lang.org served the old builds.
+- `bench/` — CyborgPL against every other language installed here (the owner's
   own languages excepted, contributed-to ones like Lust included), the same four
   programs each, checked against C's answers (owner, 2026-09-30). The design
   session's; `python3 bench/run.py`, results in `bench/RESULTS.md`.
@@ -69,34 +68,32 @@ v1 syntax carries over unless the owner explicitly chooses it.
   README lists every provisional pick it had to make; those are open
   questions, not decisions. `cd oracle && cargo test`.
 
-## Repository (moved 2026-10-14)
+## Repository (moved 2026-10-16)
 
-Nerve is now **Zag** (owner, 2026-10-14; "Zag feels better than Fale, though. Has
-more weight"). The repository is now **`Soclets/Zag-lang`** (private, full history);
-the design clone is `/Users/ts/Zag`, the others `/Users/ts/Zag compiler`,
-`/Users/ts/Zag verification`, `/Users/ts/Zag website`, `/Users/ts/Zag std`. The old
-repo `Soclets/Nerve-lang` and the `/Users/ts/Nerve…` folders are frozen (remote
-renamed `frozen-old`, push disabled): never push there. Older still,
-`Cyborg-Assembly-Manufacturing-Site/CyborgPL` and `/Users/ts/CyborgPL v2…`, frozen at
-087cdfc8. Home: **zag-lang.org** (the owner's).
+Zag is **CyborgPL** again (owner, 2026-10-15). The repository is now **`Soclets/CyborgPL`**
+(private, full history, homepage cyborgpl.org); the design clone is `/Users/ts/CyborgPL`, the
+others `/Users/ts/CyborgPL compiler`, `/Users/ts/CyborgPL verification`, `/Users/ts/CyborgPL website`,
+`/Users/ts/CyborgPL std`. The old repo `Soclets/Zag-lang` and the `/Users/ts/Zag…` folders are frozen
+(remote renamed `frozen-old`, push disabled, 2026-10-16): never push there. Older still, `Soclets/Nerve-lang`
+and `/Users/ts/Nerve…`, and `Cyborg-Assembly-Manufacturing-Site/CyborgPL` with `/Users/ts/CyborgPL v2…`
+(frozen at 087cdfc8).
 
-The Zag names (DECISIONS.md, 2026-10-14): code ends **`.zg`**, a one-value file
-**`.zv`**; the compiler is **Zomp** (`zomp`), the prover built into it with no name
-of its own (was Synapse and Cortex); the package manager **Ricochet** ("Zag Ricochet", 2026-10-15; was Kinesin, and briefly Zopm),
-command `ricochet` / `rico`, manifest `Ricochet.zv` with `ricochet::`; the runtime is
-just the runtime (was Axon); the base **Ground** (was Brainstem); a library or program a
-**strike**, root `strike.zg`, `pub.strike` (was Neuron, briefly Cell); a compiler extension a **plugin**
-(was lobe, briefly Coil); the standard library **`std`** (was `cord`); the Unicode plugin
-**`unicode`** (was Broca); `build.zg`, `zag_version.zv`. **The code moved on 2026-10-15** in one sweep (owner: "(b)", then "Yeah, go now"): the oracle,
-examples and spellings first, then Zomp (`zomp/`), then `std/` and `check/`. Every Nerve name is refused,
-naming the Zag one.
+The CyborgPL names (DECISIONS.md, 2026-10-15/16): code ends **`.cy`**, a one-value file **`.cyr`**; the
+compiler is **`KAYO\n`**, written `kayo` (folder `kayo/`, `kayo build`, `kayo prove`, `kayo prepare`); the
+prover built into it **Precog**; the package manager **CyJet**, manifest `CyJet.cyr` with `cyjet::`; a library
+or program a **kit**, root `kit.cy`, `pub.kit`; a compiler extension a **limb**, `limbs = [cyjet::limb[…]]`;
+the base language **the base** (lowercase, no ™); the standard library **`std`**; the Unicode limb
+**`unicode`**; `build.cy`, `cy_ver.cyr`, `spellings.cyr`; the downloads **CyDT** and **CyCT**. Zag's names
+(Zomp, Ricochet, strike, plugin, Ground, `.zg` / `.zv`) are history, each refused naming the CyborgPL one.
+The code moved on 2026-10-16 in one sweep: the oracle, examples and spellings first (662ea84c), then
+`kayo/`, `std/` and `check/` by their sessions.
 
 ## Git
 
 - Branch: `main`. Author: `Tankun Sriket <tankunsriket63741ecff056.invalid>`
   (repo-local config, already set).
 - Every commit ends with the trailer in the session's house name — `Co-Authored-By: design claude <noreply@anthropic.com>` from this session, `compiler claude` from the compiler session. A house name says which session wrote it and stays put when the model changes (owner, 2026-09-23).
-- Commit subjects are `kind.folder.narrowing: sentence` (owner, 2026-09-23). Kinds: `decision`, `design`, `feature`, `fix`, `test`, `house`. The second word is the folder (`cca`, `synthia`, `oracle`, `check`, `examples`), or the topic for `decision`/`design` and for `house` (`house.license`, `house.readme`, `house.brand`). The third word is optional, and there is never a fourth. E.g. `fix.oracle.width: the context type leaked into a call's arguments`. `DECISIONS.md` has the full entry.
+- Commit subjects are `kind.folder.narrowing: sentence` (owner, 2026-09-23). Kinds: `decision`, `design`, `feature`, `fix`, `test`, `house`. The second word is the folder (`kayo`, `synthia`, `oracle`, `check`, `examples`), or the topic for `decision`/`design` and for `house` (`house.license`, `house.readme`, `house.brand`). The third word is optional, and there is never a fourth. E.g. `fix.oracle.width: the context type leaked into a call's arguments`. `DECISIONS.md` has the full entry.
 
 ## Related
 

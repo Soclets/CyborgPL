@@ -6,7 +6,7 @@ Opened 2026-09-22. Part of v1 (owner, 2026-09-21). The rule is
 `parallelism.md`'s, extended: the programmer writes `for`, the prover
 decides CPU cores or GPU, `for seq` says no. No GPU syntax. Underneath,
 the loop body is compiled for the GPU target (by LLVM for Vulkan, by
-Zomp's own Metal generator for Metal) and the runtime, the runtime, launches it and
+kayo's own Metal generator for Metal) and the runtime, the runtime, launches it and
 moves the data. This document is what the prover needs to
 decide, and what the runtime does.
 
@@ -63,7 +63,7 @@ runtime), Vulkan / SPIR-V for everyone else — AMD, Intel, NVIDIA,
 phones — the portable one. CUDA / PTX is not in v1: NVIDIA runs Vulkan,
 and CUDA would need NVIDIA's driver found (never bundled) and hardware
 to test on. the prover's decisions are the same for any GPU; a target is a
-runtime module for launching and memory plus a the manifest (`Synthia.ttsr` / `Ricochet.zv`) line, so
+runtime module for launching and memory plus a the manifest (`Synthia.ttsr` / `CyJet.cyr`) line, so
 CUDA later is an addition, not a change. Proposed: Metal only; Metal +
 CUDA; all three. Owner: Metal and Vulkan.
 
@@ -73,7 +73,7 @@ and tested here.
 The first public GitHub release needs only Metal (owner, 2026-10-01).
 
 **How each is compiled** (owner, 2026-09-30: direct text). Vulkan: LLVM
-compiles the body to SPIR-V. Metal: Zomp writes Metal Shading Language
+compiles the body to SPIR-V. Metal: kayo writes Metal Shading Language
 text straight from its own MIR, which Apple's compiler then builds. This
 takes the place of making SPIR-V once and converting it. Direct text can
 use Metal-only features (operations across a SIMD group, threadgroup
@@ -87,7 +87,7 @@ expected, not measured. No C++: the Metal runtime is reached from Rust.
 A line per `for` the prover considered — offloaded, parallel on CPU cores,
 sequential and why (`diagnostics.md`).
 
-## Measured once, on purpose: `synapse tune` (owner, 2026-09-28; Zomp's since 2026-09-30)
+## Measured once, on purpose: `synapse tune` (owner, 2026-09-28; kayo's since 2026-09-30)
 
 By default a cost model decides CPU or GPU: the loop's work (trips times
 the body's cost) against the GPU's launch cost. The owner asked whether
@@ -98,36 +98,36 @@ profile-guided optimisation, a separate command measures once:
 
 ```
 synapse tune              # builds a measuring version, runs it on this machine with the inputs given,
-                      # times each undecided loop on CPU and GPU, and writes tune.zv
-synapse build --final     # reads tune.zv as an input, like the lock file
+                      # times each undecided loop on CPU and GPU, and writes tune.cyr
+synapse build --final     # reads tune.cyr as an input, like the lock file
 ```
 
-**The measuring is Zomp's** (owner, 2026-09-30: a): Zomp's package manager
-can do whatever Synthia can, and Synthia does what a Zomp user would, so
+**The measuring is kayo's** (owner, 2026-09-30: a): kayo's package manager
+can do whatever Synthia can, and Synthia does what a kayo user would, so
 `synthia tune` runs `synapse tune`. **Synthia also shows the results
 readably** (owner: "synthia should have a readable version"), as
 `synthia show --readable` does a manifest's times; its spelling is open.
 Proposed and not chosen: both implementing the measuring; Synthia only,
 as this section first had it (written 2026-09-28, when Synthia was to be
-Zag's one package manager).
+CyborgPL's one package manager).
 
-`tune.zv` records the target, the compiler version and, per loop, the
+`tune.cyr` records the target, the compiler version and, per loop, the
 winner and its times. It is committed with the code, so a build of the
 same source and the same file is always the same program. An entry is
 ignored, and the build says so, when its loop has changed since it was
 measured, or when the file was made for a different target. Then the cost
 model decides. Proposed alternative: the cost model only. The file name
 was design claude's proposal, accepted with the rest; it was `tune.cplt`
-until the owner made it **`tune.zv`** (2026-09-30: a), Zag syntax
-like `Ricochet.zv`, plain `const`s only, as `.zv` (was `.cplr`) is the ending for
-Zag-syntax files that never run.
+until the owner made it **`tune.cyr`** (2026-09-30: a), CyborgPL syntax
+like `CyJet.cyr`, plain `const`s only, as `.cyr` (was `.cplr`) is the ending for
+CyborgPL-syntax files that never run.
 
 ## Explicit control and raw GPU code (owner, 2026-10-01)
 
 Beside the automatic loops, a program may take the GPU in hand: **std**
 moves data to GPU memory and back, launches GPU code with N threads, and
 forces a loop onto the GPU over the prover's choice (as `for para` forces
-plugins); the **base language** has **`inline.MSL { … }`**, Metal Shading
+limbs); the **base language** has **`inline.MSL { … }`**, Metal Shading
 Language written inline — a `no_check` site like `inline.ASM`, checked by
 Apple's Metal compiler at build time. A block runs where it is
 written, as `inline.ASM` does, and needs no std (owner): reuse is a
@@ -162,11 +162,11 @@ matching the kernel's `[[buffer(0)]]`, as `inline.ASM` writes ARM's `x0`
   LNIR when we do GPU loops? It's a hobby lang, and I think that's more
   fun. Only if it doesn't reduce perf"; it had been "only if offload gets
   serious", `precog.md`, three IRs). **It never makes a program slower**:
-  it changes a loop only when the prover's estimate, or a `tune.zv`
+  it changes a loop only when the prover's estimate, or a `tune.cyr`
   measurement, says the change wins, and otherwise passes the loop
   through as MIR would have it; the bench builds with and without it to
   check. It **it is our own, in Rust, not MLIR** (owner, 2026-10-01: "our
   own"), and it is called **LNIR**, *Loop-Nest IR* (owner): built from MIR after the prover, it reads the prover's proofs directly,
   so it can transform loops MLIR's analysis could not see into; MLIR's
   ready-made passes would be faster to get, and it has no Metal output
-  anyway (Metal is Zomp's own text).
+  anyway (Metal is kayo's own text).

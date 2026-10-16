@@ -2,7 +2,7 @@
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
-For Zag's own developers — not for users of Zag. Nothing here
+For CyborgPL's own developers — not for users of CyborgPL. Nothing here
 ships or is user-configurable. Owner's direction, 2026-09-14: an oracle plus
 the optimised generator.
 
@@ -11,13 +11,13 @@ the optimised generator.
 - **The oracle** — a reference interpreter: slow, small, written for
   obviousness, straight from the spec. No the prover, no LLVM, no optimisation.
   Correct by inspection. It is also the *executable specification*: what
-  Zag does in a given case is what the oracle does.
+  CyborgPL does in a given case is what the oracle does.
 - **The generator** — the real compiler: the prover + LLVM, targeting the exact
   machine and using everything the hardware has.
 
 ## The method: differential testing
 
-A program generator produces large numbers of random, valid Zag programs
+A program generator produces large numbers of random, valid CyborgPL programs
 (as Csmith / YARPGen do for C and C++). Each runs through both
 implementations. Any difference in output is a bug in one of them, and either
 way it has been found. This runs continuously in the compiler's CI.
@@ -35,12 +35,12 @@ way it has been found. This runs continuously in the compiler's CI.
 ## Printing while there is no std (owner, 2026-09-23)
 
 A generated program must print something, or the harness has nothing to
-compare but the exit code. Zomp refuses every `std::` call until std
+compare but the exit code. kayo refuses every `std::` call until std
 exists (owner, 2026-09-22), so **each generated program carries a small
 printer written in the base language**: the number turned into ASCII
 digits in a `list[uint8]`, handed to C's `write` under `no_check`, as
-`examples/ffi.zg` does. Both implementations already agree on it.
-The printer is ordinary Zag, so a bug in *it* is a finding too.
+`examples/ffi.cy` does. Both implementations already agree on it.
+The printer is ordinary CyborgPL, so a bug in *it* is a finding too.
 When std has a print, the generator switches to `std::print.useful` and the
 printer goes. Proposed alternative: wait for std, and compare only the
 exit code and where a check fired — which would delay every output bug
@@ -61,7 +61,7 @@ conversion. It switches to `std::input` when std has one. Proposed
 alternative: wait for std, and test only what a fully known program
 tests.
 
-This channel found three Zomp bugs on the day it was proposed, probed by
+This channel found three kayo bugs on the day it was proposed, probed by
 hand — the worst a **wrong proof**: `'n' times 10000000000000000000` into a
 `uint64` reported proven, with the binary silently overflowing at n = 2
 where the oracle stops. That is the class of bug the proofs-as-
@@ -99,9 +99,9 @@ asks the clever one. The interpreter stays ours — it is the spec.
 **Our own: `RRx2-TV`** (owner, 2026-09-30: "Nah, `RRx2-TV` seems more
 fun"). Translation validation for the LLVM half becomes ours, not
 borrowed: a checker named RRx2-TV, which can check a whole program where
-Alive2 checks one function at a time (Zomp folds most of a program into
+Alive2 checks one function at a time (kayo folds most of a program into
 `main`), and can read the prover's facts directly. Check claude ran
-Alive2 first (93c6e49); Zag is paused until RRx2-TV exists (owner). The paragraph above is why "Borrow it"
+Alive2 first (93c6e49); CyborgPL is paused until RRx2-TV exists (owner). The paragraph above is why "Borrow it"
 was chosen, and it still holds as the cost: most of Alive2 is an exact
 meaning for every LLVM instruction, and a mistake there says "proven"
 where nothing is. Like check claude's tools, it must not share the prover's
@@ -109,7 +109,7 @@ author. Open: who writes it, in what language, in which repo, and
 whether it starts from Alive2's code (MIT) or from nothing.
 
 **Sessions** (owner, 2026-09-22): (1) this one — design and the
-oracle, never a line of the compiler; (2) a fresh session — Zomp
+oracle, never a line of the compiler; (2) a fresh session — kayo
 (front end, checker, MIR, the prover, lowering, runtime) and Synthia,
 reading `design/` and the oracle's tests, never its source; (3) later,
 another fresh session — verification: the the prover oracle, translation
@@ -118,7 +118,7 @@ author than the prover's.
 
 **4. Twin programs — other languages as oracles** (owner, 2026-09-21).
 A Cyborg program and the same algorithm in C, Rust, or Python, expected
-to print the same thing (`examples/pi.zg` has all three). Covers what
+to print the same thing (`examples/pi.cy` has all three). Covers what
 both languages define alike — arithmetic, widths, text output, lists —
 and cannot share a misreading of our spec, having never read it. Cannot
 cover what only Cyborg has: failures, ownership, check sites, range

@@ -18,7 +18,7 @@ struct Locker {
 }
 ```
 
-- Top level, beside `fn`; `pub struct` exports it (`limbs.md`). The name is
+- Top level, beside `fn`; `pub struct` exports it (`kits.md`). The name is
   bare (a type, like `int32`); **field names are bare too** (decided
   2026-09-19, after a cold read caught `'number': int32` in the declaration
   but `'l'.number` at access): a field is a path *into* a struct, not a

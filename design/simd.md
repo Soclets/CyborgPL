@@ -46,7 +46,7 @@ owner: "shouldn't they just use the normal way?" A program reaching for
 lies; portability is the plain loop. A `simd` program built for another
 target fails to build rather than running slowly — the honesty
 `inline.ASM` already has. The shapes come from the target description
-in the manifest (`Synthia.ttsr` / `Ricochet.zv`), never from the host.
+in the manifest (`Synthia.ttsr` / `CyJet.cyr`), never from the host.
 
 ## The operators, element-wise (owner: a)
 
@@ -92,7 +92,7 @@ special to the prover — it is N of what it already does.
 ## In the oracle (2026-09-22)
 
 All of the above, with the oracle's target fixed as ARM64's 128 bits.
-`examples/simd.zg` is the `is_ascii` program plus arithmetic,
+`examples/simd.cy` is the `is_ascii` program plus arithmetic,
 comparisons, folds and a store; five reject tests cover a shape the
 target does not have, a vector used as a condition, a load past the
 end, and a bad element type. Two things the
@@ -113,7 +113,7 @@ take a mask and a declaration can name one. It has as many lanes as the
 vectors it compares: 2, 4, 8 or 16 on a 128-bit target. `simd.fill[true]`,
 `simd.all`, `simd.any` apply, and `not`, `and`, `or` work lane by lane.
 Proposed alternative: a mask exists only as a comparison's result, used
-on the spot. `examples/simd_mask.zg`.
+on the spot. `examples/simd_mask.cy`.
 
 ## The leftover end: `simd.load.some` / `simd.store.some` (owner, 2026-09-27: a)
 
@@ -130,7 +130,7 @@ element type's zero. Newer hardware does this directly (SVE predicates,
 AVX-512 masks), and elsewhere the compiler lowers it. Proposed
 alternative: leave the tail a plain loop. The names `load.some` /
 `store.some` were design claude's proposal, flagged as placeholders, and
-went through with a. `examples/simd_tail.zg`.
+went through with a. `examples/simd_tail.cy`.
 
 ## A simd value goes anywhere a number does (owner, 2026-09-27: a)
 
@@ -144,7 +144,7 @@ fixed-size value that copies by itself, like a number, and the compiler
 aligns it to the register width (16 bytes on a 128-bit target). Graphics
 and physics keep positions this way. Proposed alternative: SIMD values
 local only, with plain numbers stored and reloaded each time.
-`examples/simd_fields.zg`.
+`examples/simd_fields.cy`.
 
 ## Rearranging lanes: `simd.shuffle` (owner, 2026-09-27: a)
 
@@ -160,7 +160,7 @@ allowed. The order must be fixed numbers known when compiling, so it is
 one instruction on every chip and the prover sees through it. A lane that
 does not exist is an error. Proposed alternative: nothing yet, since the
 folds cover the common cases. Shuffling two vectors together
-(interleave) was not asked. `examples/simd_shuffle.zg`.
+(interleave) was not asked. `examples/simd_shuffle.cy`.
 
 ## Open
 

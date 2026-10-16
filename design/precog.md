@@ -20,7 +20,7 @@ still provisional here, listed under Open. What Kespar could not do
 ## The pipeline
 
 ```
-.zg ──parse──▶ AST ──check──▶ typed AST ──build──▶ MIR ──Precog──▶ MIR + proofs ──lower──▶ LLVM IR ──▶ binary
+.cy ──parse──▶ AST ──check──▶ typed AST ──build──▶ MIR ──Precog──▶ MIR + proofs ──lower──▶ LLVM IR ──▶ binary
                                                           │
                                                           ▼
                                                      proof report
@@ -141,7 +141,7 @@ line fails whenever it runs, and a compile error with the
 counterexample in the final build. The working build never refuses to
 compile (2026-09-14), and this is why it matters: the prover's sets widen,
 so it sometimes believes values reach a line that never do. The
-generator found exactly that — a program with no input at all where Zomp
+generator found exactly that — a program with no input at all where kayo
 refused a line inside an `else` the oracle shows is never taken. Under
 the stricter reading, the analyser's imprecision becomes the
 programmer's error. Proposed alternatives: refuse any such site,
@@ -216,7 +216,7 @@ inductively (true before the first trip; true after a trip if true before
 it): a counter stays within the range's ends; a sum is bounded by trips
 times the largest element — which is what makes an average fit the
 element type, since a sum bounded by *n* × max divided by *n* is at
-most max (`examples/gradebook.zg`, proven by Zomp since dd04991, 2026-09-24); an index never decreases and never passes the
+most max (`examples/gradebook.cy`, proven by kayo since dd04991, 2026-09-24); an index never decreases and never passes the
 length; a running max/min stays within the elements' domain; a count
 never exceeds the trips so far. A confirmed guess is a proof, never an
 assumption. If no shape fits or none is confirmed, the loop's sites are
@@ -277,7 +277,7 @@ since a bin's width changes values (owner, 2026-10-02). `*0.1` is a
   (`rlimit`); results do not depend on thread scheduling.
 - Sites are analysed and reported in source order.
 - Compile-time arithmetic is performed at the exact width the target uses;
-  the target is a description in the manifest (`Synthia.ttsr` / `Ricochet.zv`), never the host.
+  the target is a description in the manifest (`Synthia.ttsr` / `CyJet.cyr`), never the host.
 - Nothing is read at compile time except the source and the config: no
   files, clock, environment, network.
 - The compiler's and both solvers' versions are in the report header.
@@ -364,15 +364,15 @@ leaves layer-2 proofs covered only by testing; b covers them by analysis.
   states joined in place, exact sets reference-counted, ranges not spelled
   out past 64 values. Trip-by-trip following is where compile time goes.
 - **Trip-by-trip is where the proofs come from, not only where the
-  compile time goes** (Zomp, 2026-09-22). Joining at a loop head cannot
+  compile time goes** (kayo, 2026-09-22). Joining at a loop head cannot
   see that a counter and a sum move together, so it gives the counter
   every value from 0 upwards and the sum overflows in the analysis
-  though never in the program. `examples/scores.zg` went from 4 of 9
+  though never in the program. `examples/scores.cy` went from 4 of 9
   sites proven to 9 of 9 — and from 1675 steps to 170.
 - Narrowing must reach through operations and fields, not only names:
   `if list.length[lend 's'.scores] > 0` has to teach the *list* its
   length, so that a second `list.length` of it proves the divisor
-  non-zero (`examples/gradebook.zg`'s comment, now true).
+  non-zero (`examples/gradebook.cy`'s comment, now true).
 - Z3 goes quadratic on nested loops past ~16 unrolls.
 - Big lists are carried as a summary (length interval + element domain),
   not a value per element.
@@ -387,7 +387,7 @@ leaves layer-2 proofs covered only by testing; b covers them by analysis.
   programs.
 - Every provisional number: set cap 4096 / re-set at 64, trips 2M
   across the program (100k per loop is ruled), induction over at most
-  4,096 argument tuples per recursive function (Zomp's pick, 59c3f56), recursion depth 8, unroll 16 / 64, `rlimit` 10M. Kespar's picks;
+  4,096 argument tuples per recursive function (kayo's pick, 59c3f56), recursion depth 8, unroll 16 / 64, `rlimit` 10M. Kespar's picks;
   to be measured, not guessed.
 - The character-class vocabulary for text (which classes; how each std
   text operation maps them) — decided in principle (c), list open.

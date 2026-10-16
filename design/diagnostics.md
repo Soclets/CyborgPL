@@ -5,12 +5,12 @@
 Decided 2026-09-22 (owner): "It should say what started the fail chain,
 it should be helpful like Rust's, there should be a human-readable
 location and an IDE-readable location." The oracle's one-line messages
-are a test tool's; Zomp's are these.
+are a test tool's; kayo's are these.
 
 **Columns** (owner, 2026-10-06): the text message counts graphemes, what
 a reader counts; the JSON counts in the unit the editor asks for, UTF-16
 code units by default, as the Language Server Protocol does. This is
-Ground's rule (the owner then: "we can't force the other codextras to
+the base's rule (the owner then: "we can't force the other codextras to
 use this anyways"; there are no others since 2026-10-07).
 
 ## The shape — plain text is the message (owner, 2026-09-22)
@@ -27,14 +27,14 @@ indentation by spaces only:
 
 ```
 check: 'k' can be past the end of 'xs'
-where: shop.zg, line 31, column 20 — in `pick`, called from MAIN at line 48 of shop.zg
+where: shop.cy, line 31, column 20 — in `pick`, called from MAIN at line 48 of shop.cy
 code:  'xs'['k']
 when:  'k' is 101 and 'xs' has 100 elements — there is no element to take
 
 why:   'k' comes from 'n'
        'n' is read from the user at line 4, with no limit
 
-try:   synthia run shop.zg --input "101"
+try:   synthia run shop.cy --input "101"
 
 fix:   limit the number where it is read — line 4:
        let 'n' := to.int32[min 1, max 99]['text'] otherwise 0;
@@ -45,7 +45,7 @@ fix:   limit the number where it is read — line 4:
 
 ```
 error: 'xs' is an `array`, which cannot grow or shrink
-where: shop.zg, line 12, column 5 — in `restock`
+where: shop.cy, line 12, column 5 — in `restock`
 code:  list.append[lend.mut 'xs', value 4]
 
 why:   'xs' was declared an array at line 10
@@ -85,7 +85,7 @@ fix, and the message names the later use:
 
 ```
 error: 's' cannot be changed here: 'r' still borrows it and is used on line 25
-where: shop.zg, line 24, column 5 — in MAIN
+where: shop.cy, line 24, column 5 — in MAIN
 code:  list.append[lend.mut 's', value 4]
 ```
 

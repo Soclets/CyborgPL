@@ -9,8 +9,8 @@ parameters, `--> T`).
 fn add ['a': int32, 'b': int32] -> int32 {
     return 'a' plus 'b';
 }
-let 'sum' := add[10, 20];              # this Limb: bare
-let 'big' := mathstuff::pow[2, 64];    # another Limb: Limb::path
+let 'sum' := add[10, 20];              # this Kit: bare
+let 'big' := mathstuff::pow[2, 64];    # another Kit: Kit::path
 ```
 
 ## Definition
@@ -23,7 +23,7 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
 ```
 
 - **`fn`**, bare name, parameters in one `[ ]`, optional `--> type`, body in
-  `{ }`. `pub fn` makes it visible to other strikes (`limbs.md`).
+  `{ }`. `pub fn` makes it visible to other kits (`kits.md`).
 - **Parameters are `'name': type`.** The ownership verb, when there is one,
   sits before the name and mirrors the caller exactly: the caller writes
   `lend 's'`, the parameter reads `lent 'text': …`; `lend.mut` ↔ `lent.mut`.
@@ -45,7 +45,7 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   compile-time constant there). `...` because it is the ellipsis — "and so
   on" — the mark C, Java, Go, JS, Swift all use; owner asked and chose it
   over `many` (reads like an array) and `vararg`. Open: a union-typed
-  variadic (`int32 or bin16`) waits on union types. `examples/variadic.zg`.
+  variadic (`int32 or bin16`) waits on union types. `examples/variadic.cy`.
 - **Unpacking a list into a call: `...'xs'`** (decided 2026-09-21).
   `sum[...'xs']` with `'xs'` holding `1, 2, 3` is `sum[1, 2, 3]`; it may
   sit among hand-typed values (`sum[10, ...'xs', 20]`) and a bundle may be
@@ -62,7 +62,7 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   list empty (a give never leaves holes). No verb, into a `lent ...`,
   lends each element; plain elements take no verb (they copy by
   themselves). Owner chose this over "always copy" and "always give".
-  `examples/spread.zg`.
+  `examples/spread.cy`.
 - **The return type is `--> T`** after the parameter list (Rust's arrow),
   not `: T` — `:` attaches a type to a *name*, and a function's result is not
   the function's type. No arrow: the prover picks the best return type from every
@@ -76,15 +76,15 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   (the arrows were short until that day; the long ones came first as the
   aliases, "Implement the `-->` alias"), and so are **`>>` and `>>>`** of
   `-->`, and **`<<` and `<<<`** of `<--`, and the both-ways binding's main spelling is **`<-->`**, with `<->`, `<<>>`, `<<<>>>`, `<---->`, `<--|-->`, `<-|->`, `<<|>>` and `<<<|>>>` (owner, 2026-10-06: "yea.", "`<<>>` too", "Two long arrows", "`b`"); an
-  arrow cannot name a strike's operator. `examples/long_arrow.zg`,
-  `examples/short_arrow.zg`, `examples/chevron_arrows.zg`.
+  arrow cannot name a kit's operator. `examples/long_arrow.cy`,
+  `examples/short_arrow.cy`, `examples/chevron_arrows.cy`.
 
 ## Calling (decided 2026-09-14)
 
-A function is a member of a strike. In the strike where it is defined it is
-called **bare**: `add[10, 20]`. From any other strike it is reached through
+A function is a member of a kit. In the kit where it is defined it is
+called **bare**: `add[10, 20]`. From any other kit it is reached through
 the boundary: `mathstuff::pow[2, 64]`, `std::print.stored.stdout[…]`, and
-never bare (owner, 2026-09-23: no strike can offer a shortcut).
+never bare (owner, 2026-09-23: no kit can offer a shortcut).
 
 **Function names are bare at the definition too**: quotes mean *variable*,
 and a function is not one. A function name is a plain identifier — no
@@ -134,8 +134,8 @@ whole-program analysis and owns the program's top-level values. Next to
 that reason: its distinctness is the feature, and Rust's `fn main` being an
 ordinary callable function was the thing disliked.
 
-A strike with a `MAIN` is a program; without one, a library. A strike another
-depends on may have one too, run only when that strike is run itself
+A kit with a `MAIN` is a program; without one, a library. A kit another
+depends on may have one too, run only when that kit is run itself
 (owner, 2026-09-29).
 
 **Command-line arguments arrive as C has them** (owner, 2026-09-29:
@@ -151,11 +151,11 @@ MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
 Exactly these two types (the names are free); the program's name comes
 first, each word ends in a NUL, and `argv[argc]` is a null pointer. Reading
 them is C's world, so `no_check`. Anything friendlier — a list of text,
-flags, `--help` — is written in Zag on top, in std or a strike. The
+flags, `--help` — is written in CyborgPL on top, in std or a kit. The
 2026-09-14 line here said the arguments "come from the std Limb"; the
 owner put the door in the base language instead. Proposed alternatives: a
 ready `list[str.utf8]` (design claude's recommendation); `std::args[]`;
-nothing until std. `examples/args.zg`.
+nothing until std. `examples/args.cy`.
 
 History: first decided as `func.int32 MAIN` with a mandatory `return`, then
 simplified the same day; `func` became `fn` on 2026-09-19.
