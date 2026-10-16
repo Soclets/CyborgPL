@@ -6,6 +6,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 ## Decided
 
 
+
+### 2026-10-16 — CyborgPL's downloads are the CyDT and the CyCT (owner)
+
+The ZDK and ZCK become tools, not kits, since a kit is now a library (owner: "CDT, we could. So it won't clash
+with our kits"). Design claude asked whether that was CyborgPL Dev Tools with a contribute twin, CCT; the owner:
+"Yup, or we could ad Cy". Design claude laid out CDT/CCT beside CyDT/CyCT and recommended the latter (one family
+with CyJet, and clear of Eclipse CDT); the owner: "Yup". So **CyDT, the CyborgPL Dev Tools**, for writing
+CyborgPL, and **CyCT, the CyborgPL Contribute Tools**, for working on it, numbered as the ZDK and ZCK were: whole
+numbers, CyDT 1 with CyCT 1, and the compiler names itself `CyDT 1 KAYO\n`.
+
 ### 2026-10-16 — CyborgPL's standard library stays `std` (owner)
 
 Asked `std` or `stdkit` for the move, the owner: "`std`". Design claude had recommended it: "kit" is already
