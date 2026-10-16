@@ -1,6 +1,0 @@
-ricochet::manifest[
-    name = "traps",
-    prefix = "traps",
-    version = "0.1.0",
-    targets = [ricochet::target[name = "aarch64-none", layout = "boards/virt.ld"],]
-];

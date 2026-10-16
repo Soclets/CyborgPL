@@ -1,0 +1,795 @@
+# What CCA must keep saying to refuse each of the oracle's reject programs.
+# One line per test: `name [fnv:HASH] :: phrase`. The phrase is a substring of
+# CCA's own first line, reviewed against the oracle's `.err` (which is the
+# oracle's wording, not a template — design/compiler-session.md); HASH is the
+# FNV-1a 64 of the `.err` it was reviewed against (owner, 2026-09-24): when the
+# `.err` changes, the test says to re-check the phrase and record the new one.
+# Baseline 2026-09-24: every `.err` git shows changing after it was written was
+# re-reviewed that day; the rest are the bytes their phrase was written for.
+# `!pending` marks a program CCA cannot refuse yet: it needs Precog, which
+# decides values, not spellings; a reason may follow the marker. The test
+# insists it is not refused, so the line is updated the moment it starts
+# being. `!by-design` marks one CCA is *right* to accept: the oracle refuses
+# it for a reason that is not a rule, and the line says which.
+
+
+ai_missing [fnv:72a06f2d6464308c] :: `brain16` is AI's
+and_does_not_guard [fnv:73a43ee7964ee933] :: the position can be past the end
+append_as_value [fnv:962f0b75bc91959f] :: it changes the list in place
+append_to_array [fnv:5b0ab95e546066e1] :: declare it a `list` to append
+append_without_mut [fnv:ed12d99652ef7144] :: `list.append` changes the collection, so it takes `lend.mut`, not `lend`
+append_wrong_type [fnv:5d724d7f0bf1eafb] :: there is no implicit conversion between numeric families
+argument_word_missing [fnv:a61406b077c34010] :: each argument after the first says what it is: `list.append[lend.mut 'xs', value 2]`
+argument_word_wrong [fnv:5e004537c841e21b] :: each argument after the first says what it is: `map.get[lend 'm', key "ann"]`
+arith_overflow [fnv:7eddcdfe6e78e8b0] :: the value can be outside what an `int32` holds
+array_into_list [fnv:fd7150cb07b4b796] :: is a `list[int32]`, and 'f' is an `array[int32]`
+array_slice_is_list [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
+asm_bare_word [fnv:e899c7f54b468354] :: is `inline.ASM { … }`
+asm_in_word [fnv:8f17864520850285] :: the arrow is the direction
+asm_lend [fnv:5a896b6b4ce67e10] :: !by-design CCA compiles inline.ASM with a lend bound to a register and hands it to the assembler (it prints Hello, world!); the oracle refuses it because an interpreter cannot run assembly
+asm_lend_mut_immut [fnv:af116253c2e3ddaf] :: is `immut`, so `lend.mut 'buf'`
+asm_lend_out [fnv:5a7f5f03e1b890b3] :: a lend goes into a register only
+asm_long_arrows [fnv:4b6fbabf0d368c63] :: !by-design CCA compiles inline.ASM, its bindings written with the long arrows, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
+asm_long_both [fnv:887f27e4fb022f16] :: !by-design CCA compiles inline.ASM, its both-ways binding written `<-->`, and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly
+asm_lowercase [fnv:3684b810cb4d2028] :: an inline language's name is in capitals: `inline.ASM`
+asm_refused [fnv:d5dd81bedd413e46] :: !by-design CCA compiles inline.ASM and hands it to the assembler; the oracle refuses it because an interpreter cannot run assembly, which is the interpreter's nature rather than a rule
+asm_s_lowercase [fnv:3684b810cb4d2028] :: an inline language's name is in capitals: `inline.ASM`
+asm_signatar_unmarked [fnv:98a39490f4c80db0] :: an inline block is a no_check site
+asm_strings [fnv:c9b7ee31e6eab60e] :: not a list of strings
+asm_top_level [fnv:f8444caf9620e916] :: goes inside a body
+asm_unknown_var [fnv:652fb6ee6f955c44] :: 'zzz' is not declared
+asm_without_nocheck [fnv:b05717fcb97887c8] :: no_check site
+asp_retired [fnv:e38eabae15b4d557] :: ASP is retired: since 2026-10-08 it is part of the base; take it out of `limbs`
+assign_counter [fnv:e6ba851195255f72] :: belongs to the loop and cannot be changed
+assign_elem_immut [fnv:3fec8bc09c3281b1] :: cannot be changed: it is `immut`
+assign_elem_past_end [fnv:7914d123bba99015] :: the position can be past the end
+assign_immut [fnv:2276edc1d8291184] :: cannot be changed: it is `immut`
+assign_needs_change [fnv:f405d0a490121ee9] :: changing a variable says so: `change 'x' = …;`
+assign_to_lent [fnv:6538114fa50ad28c] :: it belongs to whoever lent it
+assign_with_colon [fnv:a19ee1e93ed328a3] :: is already declared in this scope
+bad_comment_form [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
+bad_comment_suffix [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
+bare_char [fnv:b78f2a1f98dce47b] :: `char` is never bare: say the unit
+bare_clash_not_run [fnv:452b9461c2cce104] :: `round` could be any of `my.m.round` (this kit's), `std::round`: write the path
+bare_const_item [fnv:1d7c838e9fed072b] :: a const takes no `bare` mark
+bare_const_kind [fnv:1d7c838e9fed072b] :: a const takes no `bare` mark
+bare_disagree [fnv:2b664eb8db1601d1] :: `fn shapes.area` is marked both
+bare_file_not_first [fnv:7a0881d6b01f89e3] :: a file's `bare` mark is its first line
+bare_glyph_op [fnv:ff9fd24907e07e6b] :: is a glyph operator, which has nowhere to write a path
+bare_int [fnv:ef16210764d8ed79] :: the typed form is always fully explicit
+bare_kind_disagree [fnv:e3a4fefd8054dcfd] :: marks that disagree are an error
+bare_kind_unknown [fnv:61121c79d3fb4bbd] :: `module` is not a kind a `bare` mark covers
+bare_kinds_in_module [fnv:ff1372acc2f0b348] :: covers the whole kit, so it is written in `kit.cy`
+bare_list_type [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type parameter, the element type: `list[int32]`
+bare_never_op [fnv:d5a8c10e8fadaad1] :: `merge` is `greet`'s and `bare.never`: write `greet::merge`
+bare_never_without_path [fnv:fb7503be4f3b3837] :: `formal` is `greet`'s and `bare.never`: `greet` requires its path, so write `greet::formal[…]`
+bare_no_pub [fnv:2b46ad50cede3431] :: a `bare` mark is `bare.never;` at the top of a file
+bare_only_clash [fnv:8d848622a11f25cf] :: both forbid the path to `fn wave` (`bare.only`)
+bare_only_with_path [fnv:53a2f9ce7fabbd40] :: `greet::wave` is `bare.only`: `greet` forbids its path, so write `wave[…]`
+bare_optional_clash [fnv:04651577553f08b9] :: `hello` could be any of `greet::hello`, `wave::hello`: write the path
+bare_own_does_not_win [fnv:bd95c996ebb74a27] :: `hello` could be any of `my.hello` (this kit's), `greet::hello`: write the path
+bare_owned_assign [fnv:53ce1c0805c37af3] :: say what happens to it
+bare_plain [fnv:0b88d482d372e883] :: a plain `bare` does not say
+bare_pub_kit [fnv:58623945bcf25673] :: a `pub.kit` thing is never reached from them
+bare_str [fnv:b78f2a1f98dce47b] :: `str` is never bare: say the encoding
+bare_type_never [fnv:037dc0ed954fe338] :: no struct named `Tally`
+bare_type_only_with_path [fnv:ab3895b0a748dd52] :: `greet::Tone` is `bare.only`: `greet` forbids its path, so write `Tone`
+bare_type_own_does_not_win [fnv:7d33cba838a9774d] :: `Note` could be any of `my.Note` (this kit's), `greet::Note`: write the path
+bare_unknown_mode [fnv:4c3063f476958c3e] :: no `bare.sometimes`
+bare_unmarked [fnv:57c56fb00b4f8e36] :: `fn area` is `pub`, and nothing says how other kits write its path
+bin16_rounds_past [fnv:10faad936b06526e] :: the value can be outside what a `bin16` holds
+bin32_literal_past [fnv:0d44a148ed0c4e0f] :: the value can be outside what a `bin32` holds
+bin_bound_printed [fnv:1069ed4132bffb34] :: the value can be outside what a `bin64[min 0.0, max 1.0]` holds
+bin_infinity [fnv:5042776272302d97] :: can go past the largest bin (it would be infinity)
+bin_into_untyped_int_list [fnv:d7cb425ec9fe165b] :: there is no implicit conversion between numeric families
+bin_nan [fnv:da5fa56ba74549ff] :: nothing can be divided by zero
+bin_to_int_unhandled [fnv:19f1e20a8a83665c] :: `to.int32` can fail (not_whole, out_of_range)
+bit_ampersand [fnv:9caeeba957df596b] :: the left side of `and` must be a `bool`
+bit_mixed_needs_parens [fnv:d936cef674e6c908] :: a bitwise operator has no precedence
+bit_not_untyped [fnv:6f6393d70a590740] :: `not.bit` needs a width, and nothing here gives one
+bit_on_bin [fnv:a3920de02aa7e4cd] :: `xor` works on integers, and this is a `bin`
+bit_shl_overflow [fnv:c5fefa909a258208] :: the shift can move bits out of the type
+bit_shl_too_far [fnv:ec9fe2cc1e68af45] :: the shift can move bits out of the type
+bitwise_operand_too_wide [fnv:73ad90f0d2a05341] :: the value can be outside what a `uint32` holds
+borrow_after_append [fnv:edbe062db4b885e9] :: 's' cannot be changed here: 'r' still borrows it and is used on line 7
+borrow_after_change [fnv:ff276a932d706c72] :: 's' cannot be changed here: 'r' still borrows it and is used on line 6
+borrow_after_give [fnv:37eec041911a30e1] :: 's' cannot be given away here: 'r' still borrows it and is used on line 6
+borrow_chain_through_local [fnv:0b277a9492cf82e4] :: 'o2' cannot be given away here: 's' still borrows it and is used on line 24
+borrow_choice_needs_group [fnv:1e7e66e4f7d01460] :: `longer` hands back a borrow and borrows more than one input: say which with a group, `fn longer [@x] [lent @x 'a': …, lent 'b': …] -> lent @x …`
+borrow_ungrouped_may_return [fnv:ed533803bcb93efa] :: 't' cannot be given away here: 'r' still borrows it and is used on line 13
+borrow_untaken_branch [fnv:dc66446cd05dbc61] :: 't' cannot be changed here: 'q' still borrows it and is used on line 8
+bound_append_over [fnv:86001c6b523795e5] :: this can take it outside the bound its type gives it (`list[int32][max 3]`)
+bound_backwards [fnv:0657eb87a916e1c7] :: the low bound is at most the high one
+bound_max_as_value [fnv:9c484b42a2770889] :: `min` and `max` label a bound now; a side left out is the type's own limit
+bound_old_spelling [fnv:a0a0af0d024fcead] :: a bound says which it is: `int32[min 0, max 100]`
+bound_on_array [fnv:d5be1883ea268628] :: an `array` has one length, already known
+bound_too_short [fnv:9806ce6df3c3ab28] :: this can take it outside the bound its type gives it (`list[int32][min 3, max 5]`)
+brain_into_bin [fnv:45daa7e478d16952] :: is a brain16, not bin32
+brain_mixed_bin [fnv:f96220f94a68d5be] :: the brain float is a family of its own
+brain_overflow [fnv:6c45f1780f2082f5] :: past the largest brain16
+brain_width [fnv:7deee18239553328] :: `brain16` only
+bytes_to_ascii [fnv:3b82fac2d984055d] :: only `to.str.utf8` reads bytes as text
+bytes_to_text_needs_otherwise [fnv:b62e90d146e74936] :: `to.str.utf8` can fail (not_utf8)
+c_enum_data [fnv:792b602bfc2bed61] :: of the C enum `K` carries no data
+c_enum_no_comma [fnv:99137202b69c0bcc] :: items in braces are separated by `,`
+c_enum_number_missing [fnv:3721994c1fc31d28] :: of the C enum `K` says its number
+c_enum_param_number [fnv:0538729f27791a2b] :: `paint`'s parameter 'p1' (color), found an `integer`
+c_enum_same_number [fnv:c5cddd1ecd2bf563] :: each case has its own number
+c_header_call_needs_no_check [fnv:4bd7c98b872aba34] :: nothing about `strlen` can be proven
+c_header_clash [fnv:6a1251337c7d821a] :: `strlen` is defined twice
+c_header_in_body [fnv:4b685b0459c1d2ba] :: `incl.C` sits at the top level of a file or in a `module` block
+c_header_keyword_fn_bare [fnv:a666bcf5cc077ec0] :: a function named `size`, a C header's say, is reached through a path, `my.size[…]`
+c_header_lowercase [fnv:3e5988e32c743ee7] :: C is written capitalized here
+c_header_macro_skipped [fnv:35d1b390269120dc] :: no item `MYLIB_MAX`
+c_header_missing_local [fnv:818c5feae6a3f90d] :: `incl.C["incl_assets/none.h"]`: cannot read "incl_assets/none.h"
+c_header_missing_system [fnv:06314181a44929f1] :: `incl.C.system["no_such_header.h"]`: the C compiler says: 'no_such_header.h' file not found
+c_header_not_linked [fnv:79acf4e468df98b0] :: !by-design KAYO\n declares `mylib_add` from the header and compiles the call, the C library being the linker's to find; the oracle refuses it because an interpreter cannot link C
+c_header_opaque_built [fnv:4008c41276aaadd3] :: `handle_t` is C's and opaque
+c_header_opaque_held [fnv:a20f17cb314eaeb8] :: `FILE` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[FILE]`, never held
+c_header_opaque_mixed [fnv:a23e6966eb398dba] :: `fclose` wants a pointer to `FILE` for 'p1', and this points at `uint8`
+c_header_opaque_size [fnv:82ce9b870b863694] :: `FILE` is C's and opaque: its size is C's own
+c_struct_range_out [fnv:6eb2d478488cbb38] :: the value can be outside what an `int32[min 0, max 4096]` holds
+c_type_needs_cnc [fnv:b56c42adb32e9166] :: `C.int` is CNC's, and this kit's CyJet.cyr does not list the limb CNC
+c_type_unknown [fnv:100c43f929842da7] :: `C.integer` is not one of C's machine-sized types
+c_var_c_enum [fnv:a4ee21bbf8d87688] :: a C variable cannot be `Mode`
+call_main [fnv:b4fc56b21cf49ce6] :: it is the program's one block
+call_without_bracket [fnv:93fa5962e0fc877b] :: a call needs `[…]`
+callback_c_enum [fnv:ba1492734bc49737] :: a callback's parameter cannot be `Key`
+callback_fails [fnv:35748b82590d3e88] :: the `extern.C fn f` parameter 'cb' is not C-shaped
+callback_lent_param [fnv:acc6e686bfb5348a] :: the `extern.C fn f` parameter 'cb' is not C-shaped
+callback_str_param [fnv:fc8e6737a324ce6d] :: the `extern.C fn f` parameter 'cb' is not C-shaped
+callback_with_capture [fnv:857b4698d5db52ac] :: C has nowhere to keep them
+callback_wrong_shape [fnv:6250f1a435863168] :: `qsort`'s parameter 'cmp' wants a function taking 2 argument(s); got a function taking 1 argument(s)
+caps_missing [fnv:ae0e7ff10740e178] :: a `case` mark is unicode's
+case_bad_kind [fnv:1784123126ebe5b3] :: `op` is not a kind a `case` mark covers: `fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var` (a module is marked on itself)
+case_differ_only [fnv:f6ddde3346dac008] :: `Area` and `area` (line 2 of case_differ_only.cy) differ only in case, and `area` is `case.any`: they would be one name
+case_disagree [fnv:2e64febe632c3277] :: `fn Area` is marked both `case.any` (line 1 of case_disagree.cy) and `case.exact` (line 2 of case_disagree.cy): marks that disagree are an error (owner, 2026-10-06)
+case_file_not_first [fnv:d2bc60ae9c5750c7] :: a file's `case` mark is at its top, before anything else; a block module takes `case.any module name { … }`
+case_kinds_in_module [fnv:026455ceafbbafa5] :: a `case` mark on kinds (`case.any [fn, struct];`) covers the whole kit, so it is written in `kit.cy`
+case_old_spelling [fnv:24c1c00fd0f09897] :: `case.insensitive` is an old spelling: write `case.any`
+case_pub_after [fnv:11f985d8ef005006] :: `pub` comes first: `pub case.any fn …`
+case_sensitive_default [fnv:ba2f044e0441b6e0] :: there is no item `area` in the root (`kit.cy`)
+case_value_needs_is [fnv:381bbe93e82606db] :: a case says its value with `is`: `a { is …; }`
+cca_prefix_old [fnv:006fa47b1ab51b20] :: `cca::` is an old spelling: write `cyjet::`
+chained_cmp [fnv:fb46d9317941f47c] :: comparisons do not chain
+char_to_number [fnv:f0322c3a10514c25] :: `to.int32[`7`]` could mean 55 (its code) or 7 (its digit)
+check_bare [fnv:413f5a3fb67ec940] :: `check` goes in front of a statement
+check_fails [fnv:be678e17da79103a] :: the position can be past the end
+check_in_value [fnv:e7e32bc71274232c] :: if half a statement needs it, split the statement
+check_nocheck [fnv:fd645963528e9ebf] :: `check` and `nocheck` cannot both cover it
+check_on_fn [fnv:a3d84a1688d9bcbd] :: the tiers are never global
+check_on_fn_in_body [fnv:e371561a00ed503f] :: a function's safety is the sum of its statements
+cnc_not_listed [fnv:a6139830d5b2c749] :: `incl.C` is CNC's, and this kit's CyJet.cyr does not list the limb CNC
+collection_fn_inside [fnv:15e640714af8334d] :: a collection's members take no `fn`
+collection_generated_counting [fnv:bafbe02453ae4ffd] :: does not match it: run `kayo generate`
+collection_generated_edited [fnv:bafbe02453ae4ffd] :: does not match it: run `kayo generate`
+collection_generated_missing [fnv:bafbe02453ae4ffd] :: does not match it: run `kayo generate`
+collection_generated_stale [fnv:bafbe02453ae4ffd] :: does not match it: run `kayo generate`
+collection_handler_function [fnv:c05c70f47225809b] :: a `collection.handler` holds named `otherwise` blocks
+collection_handler_not_covering [fnv:1f6f1f5fd3f573a8] :: can also fail with `negative`
+collection_handler_pub [fnv:43b98232013fe90c] :: can be `pub` is not decided yet
+collection_handler_template [fnv:79a7543712d85b5f] :: templates are for `collection.fn`
+collection_handler_unknown_member [fnv:3b6c2fde5b80f184] :: `h` has no handler `nope`; it has `zero`
+collection_kind_missing [fnv:684db8875c74ea16] :: a collection says its kind
+collection_kind_unknown [fnv:e227340f7bdab53b] :: there is no `collection.fun`
+collection_name_quoted [fnv:febf8670ce6f8fe2] :: a collection's name is bare, as a function's
+collection_named_outside [fnv:a0cca1ab550658b1] :: `named` names what a template generates
+collection_preset_no_main [fnv:22a7543a7381b537] :: a preset fills the main function's arguments, and collection `c` has none
+collection_preset_unknown [fnv:175c636485763a06] :: 'nope' is not one of `c`'s parameters
+collection_template_unnamed [fnv:87469e40dd99c652] :: a template names what it makes first
+collection_two_marks [fnv:401613ec619e0361] :: a collection has one `bare.` mark, for every member
+comma_grouping [fnv:05b8c86a9cd8fe27] :: `,` is not a digit separator
+compound_change_no_value [fnv:95d473a908342b67] :: needs a value after it
+concur_fail_unhandled [fnv:cbccfc56a451bded] :: this `concur` can fail (bad), so it needs an `otherwise` saying what happens when it does
+concur_return [fnv:d6776a53deac7dcb] :: `return` cannot leave it
+const_assign [fnv:2abf94f737eafc08] :: it is a value known at compile time
+const_bare_name [fnv:c290386092499bc9] :: `const 'max' := …;`
+const_effect_value [fnv:1221654939803659] :: `std::exit` has an effect, so it cannot make one
+const_from_variable [fnv:652fb6ee6f955c44] :: 'y' is not declared
+const_mut [fnv:9f30cb564f340919] :: neither `mut` nor `immut`
+const_shadow [fnv:e1b51c069042fda4] :: 'max' is a const and cannot be shadowed
+const_verb [fnv:d48a3137f8878e3c] :: it is a value known at compile time
+construct_quoted_field [fnv:7597065160c99b01] :: `x = …`, not `'x' = …`
+core_by_name [fnv:af9659b066a72179] :: a limb is listed by its registry ID since 2026-10-06
+core_by_path [fnv:0eeb296276c1555a] :: the limb at `../mycore` is not registered, so not verified; loading another limb is not built yet
+core_no_version [fnv:9bd3b79a57576222] :: a limb needs its `version`, as a registry kit does
+core_type_old_spelling [fnv:ccff30cbee749de6] :: `kin::Core` is an old spelling: write `cyjet::limb`
+core_wrong_version [fnv:6782989e05d7e599] :: KAYO\n knows MCPS `2026-10-06T18:04:29+07:00` only
+cores_old_spelling [fnv:a92c2548911efc23] :: `cores` is an old spelling: write `limbs`
+count_commas [fnv:4203df364bce8d0b] :: no commas in a counting loop
+deci_family_mix [fnv:08ea65ffe19d9d06] :: between a deci and another number family
+deci_fractional_power [fnv:bb5918d5dddef02d] :: exponent is an integer or a whole literal
+deci_from_bin_bare [fnv:24a8031c925aa8d8] :: say which value
+deci_from_wide_result [fnv:8240ee7d1812e7fd] :: `to.deci64` can fail (too_many_digits)
+deci_int_needs_otherwise [fnv:d07bc7b3701143a5] :: can fail (too_many_digits)
+deci_literal_digits [fnv:1d5b181bc964df20] :: has 9 digits; deci32 holds 7
+deci_narrow_needs_otherwise [fnv:d07bc7b3701143a5] :: can fail (too_many_digits)
+deci_power_deci_exponent [fnv:d453e77170273b0b] :: exponent is an integer or a whole literal
+deci_widths_mix [fnv:557616dea39aac01] :: between a deci64 and a deci32: say which width
+detached_lend [fnv:3faba8a8fbccffe8] :: no scope protects it, so 'x' could be gone while the task still looks at it
+dir_badname [fnv:bfe56ff8eb188642] :: module names are lowercase ASCII letters, digits and `_`, starting with a letter
+dir_device_name [fnv:4718e7decb462654] :: is a reserved device name on Windows and cannot name a module
+dir_file_and_block [fnv:df3acd94ef8806e5] :: a module cannot be both
+dir_main_in_module [fnv:ff7321078df83975] :: `MAIN` lives at the root of the kit (`kit.cy`), not in a module
+dir_no_root [fnv:6b8ef1b171c8350e] :: is a kit directory, and a kit needs its root file `kit.cy`: none is there
+dir_private_across_files [fnv:f537c2f7d773d954] :: it is visible there and in the modules nested inside it
+div_bare [fnv:d40c9ab3e6d5809c] :: say how `div` rounds
+div_lands_too_small [fnv:cd716c13c720d27d] :: the value can be outside what an `int8` holds
+div_trunc_std_moved [fnv:c49e7eedef3eb706] :: is an operator in the language now
+div_unknown_rounding [fnv:75fa1273c8a55e85] :: no `div.round`
+div_zero [fnv:55d00aed3abcab4f] :: the divisor can be zero, and nothing can be divided by zero
+duration_literal_without_std [fnv:d76b53959c2e44e5] :: a duration literal (`5 seconds`) is std's
+duration_negative [fnv:8b34ab9b24a2319a] :: a duration is a length of time, and this can take it below zero
+duration_without_std [fnv:2a0041e9693a95da] :: `duration` is std's
+else_if_bare [fnv:38697b0b1183ad5e] :: `else.if` became `else if`: two bare words
+empty_array [fnv:8e009c1193ae6fd2] :: an array is fixed at the size it was made with
+empty_int [fnv:46819038938fd6c9] :: `[]` is an empty list, but the declared type is an `int32`
+empty_quotes [fnv:2bda5f71e81ee00e] :: `""` is an old spelling: write `str.empty`
+empty_walrus [fnv:7a096e3b41300cf6] :: write `list.empty` (the prover picks the element type from what is appended later), or give it a type
+enum_bare_owned [fnv:463b06aecdfd81cb] :: say what happens to it
+enum_bind_without_data [fnv:85d1b2a55dade2b9] :: `a` carries nothing, so there is no value to name 'x'
+enum_data_missing [fnv:0547a7200940802f] :: write `S.a[…]` with the value
+enum_data_to_text [fnv:7e06b56a8f8949ce] :: a `Status` is not text: its case `claimed` carries data
+enum_data_unexpected [fnv:9ab7d8b2b03a72b6] :: `S.a` carries nothing; write it bare
+enum_data_wrong_type [fnv:7d29ffc630950dd5] :: `a`'s data is an `int32` and this value is text: convert it first
+enum_in_body [fnv:9b3a6a83cc747ff7] :: an `enum` sits at the top level of a file or a module, not inside a body
+enum_match_missing_case [fnv:b42f70eab9e1b344] :: every case of `S` must have an arm
+enum_match_on_int [fnv:f255111305f0853e] :: `match` takes an enum value, and this is an `integer`: use `if`
+enum_match_unknown_case [fnv:912ccf29227a6e3c] :: `S` has no case `z`: its cases are a, b
+enum_name_clash [fnv:590a2387e4587ab6] :: a struct and an enum cannot share a name
+enum_no_comma [fnv:99137202b69c0bcc] :: items in braces are separated by `,`
+enum_not_c [fnv:297ced9753bdbb93] :: the `extern.C fn f` parameter 'k' is not C-shaped
+enum_number_not_c [fnv:3d2b02ae1d3a34e4] :: only a `layout.C enum` has numbers
+enum_plain_case_to_text [fnv:0cb6696c30a5f896] :: a `Status` is not text: its case `claimed` carries data
+enum_quoted_case [fnv:c6233fb8356caa36] :: a case's name is bare
+enum_unknown_case [fnv:297e3ae595f8a01e] :: `S` has no case `zz`: its cases are a, b
+eq_in_value [fnv:8bd4b76183bb4396] :: equality is `equal_to`
+eq_without_type [fnv:b34002b1a60ea4e5] :: changing a variable says so
+exact_into_bin [fnv:5b84c614a3bd1fec] :: cannot hold it exactly
+exactly_text [fnv:6198506425e0eda2] :: `exactly` is followed by a number
+exit_range [fnv:66ac7011902821d4] :: !pending `std::exit` is a stub until std exists; its `uint8` argument gets no narrowing site yet
+extern_block_line_private [fnv:1db24bc0518461c4] :: is private to module `text`
+extern_block_unclosed [fnv:ca752e2459d18446] :: is its `}` missing
+extern_fail [fnv:258154190b2df28e] :: an `extern fn` cannot `fail`: C has no failures
+extern_lent_param [fnv:b7762a1e487d808d] :: ptr[T]` and hand it a lend at the call
+extern_lowercase_c [fnv:13e4bd3b5f70abf7] :: C is written capitalized here
+extern_no_language [fnv:3a252789c569e7d5] :: names its language
+extern_not_c_shaped [fnv:6ab69c7163e3c53f] :: is not C-shaped
+extern_otherwise [fnv:d2a17dcd21891cc1] :: an `extern fn` cannot fail; drop the `otherwise` after `f`
+extern_range_unhandled [fnv:ebfccc6b5bcb6642] :: its return is a range C promised, checked at the door
+extern_read_checked [fnv:2d7e2869398f29d6] :: is a no_check site
+extern_str_param [fnv:fc8e6737a324ce6d] :: the `extern.C fn f` parameter 'a' is not C-shaped
+extern_struct_not_layout [fnv:6e53a6db9ecbfb65] :: a pointer points at something C-shaped
+extern_untyped_param [fnv:b3256d101222c168] :: parameter 'a' says its type: `'a': int32`
+extern_with_body [fnv:5f5a8b37640106ae] :: an `extern fn` has no body: `f`'s body is in C
+extern_with_value [fnv:0e76e80fcde2593f] :: C owns it; write only its type
+extern_without_nocheck [fnv:b05717fcb97887c8] :: no_check site
+extern_write_checked [fnv:5aebd8ba09b7843e] :: writing C's variable 'a' is a no_check site
+extern_write_readonly [fnv:7cecff9be0233900] :: …` says C's variable may be written
+fail_arm_falls_through [fnv:0128c6a13e88b457] :: must give the call's value (`{ 0 }`) or leave
+fail_arm_missing [fnv:0d8968bfe13e437e] :: every reason needs an arm
+fail_arm_unknown [fnv:966c45cc418112c6] :: this call never fails with `z`: it fails with `a`
+fail_bind_without_payload [fnv:4a8104e6fc802f53] :: `why` carries nothing, so there is no value to name 'w'
+fail_in_expression [fnv:8e85d9d910f738f8] :: put it in its own declaration, then use the result
+fail_in_main [fnv:2fc68f9bf7a1593d] :: `MAIN` cannot fail: it exits
+fail_no_list [fnv:57cd3eb8a3ffa049] :: its signature has no `fail[…]`
+fail_not_listed [fnv:c5ee76c688706bfd] :: its signature says fail[oops]
+fail_or_keyword_collision [fnv:65aeb77203450837] :: `f` can fail (a): say what happens
+fail_otherwise_alone [fnv:372a37a4f5b11cb7] :: `let 'x' := f[] otherwise 0;`
+fail_otherwise_empty [fnv:1a46eb3395cc974a] :: a value, `return …`, `fail`, `break`, `continue`, or `{ reason { … } … }` arms
+fail_otherwise_on_safe [fnv:da3b3f11872f9179] :: `f` cannot fail; drop the `otherwise`
+fail_payload_missing [fnv:4028eeeae43379a3] :: `why` carries a `str.utf8`, and `fail why` needs it: `fail why[…]`
+fail_payload_unexpected [fnv:85d1b2a55dade2b9] :: write `fail why;` with no value
+fail_payload_wrong_type [fnv:7d29ffc630950dd5] :: the failure's payload is an `int32` and this value is text: convert it first
+fail_propagate_unlisted [fnv:f6414896eca05a40] :: its signature says fail[b]
+fail_quoted_name [fnv:a24dda5e1530d482] :: a failure's name is bare
+fail_unhandled [fnv:65aeb77203450837] :: `f` can fail (oops): say what happens
+fill_needs_count [fnv:f4468750416e48a0] :: the count says `count`: `list.fill[value 0, count 10]`
+fill_needs_value [fnv:296889cf1bdcb264] :: the value says `value`: `list.fill[value 0, count 10]`
+fill_negative [fnv:4596c7fcd5b0d0ef] :: a count is 0 or more
+fnval_call_not_function [fnv:aebd5e80ae2bdfd7] :: 'n' is an `integer`, not a function
+fnval_capture_without_verb [fnv:6651c83f112f16d2] :: say how 'limit' comes in
+fnval_give_captured_used [fnv:144c19a252fdb2b8] :: was given away and no longer owns anything
+fnval_op_as_value [fnv:62b0125508bce133] :: an operator sits between two values
+fnval_silent_capture [fnv:b296dee211a9f22b] :: it sees nothing of the surrounding scope unless `with [lend 'limit']` (or `copy` / `give`) says so
+fnval_type_with_names [fnv:3c0e576199d23fb9] :: no parameter names
+fnval_unknown_name [fnv:30b76508228be70e] :: a bare name is the function as a value, and none by that name is declared in the root (`kit.cy`)
+fnval_wrong_return [fnv:13cc98448e4ae7f5] :: expected `apply`'s parameter 'f' (fn[int32] -> int32), found a `fn[int32] -> bool`
+fnval_wrong_shape [fnv:6250f1a435863168] :: expected `apply`'s parameter 'f' (fn[int32, int32] -> int32), found a `fn[int32] -> int32`
+fnval_wrong_verb [fnv:e7a82c8acfe26976] :: expected `apply`'s parameter 'f' (fn[str.utf8] -> int32), found a `fn[lent str.utf8] -> int32`
+for_bare_list [fnv:18b1a4df3e7b57c4] :: `for 'i' in lend 'xs'` looks at each element, `give 'xs'` consumes the list
+for_lend_element_change [fnv:be5f6615821c3f27] :: 'x' belongs to the loop and cannot be changed
+for_lend_mut_length_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it `lent.mut`
+for_lend_mut_read_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it `lent.mut`
+for_list_typed [fnv:df6b9ecc22e597b6] :: each element's type is the list's
+for_loop_chain [fnv:443eefc427c541ef] :: `loop.temp.for` / `loop.range` became `for`
+for_no_cheat_order [fnv:a36668e619deea07] :: `no_cheat` comes first
+for_no_next [fnv:ce601e91e7d21e30] :: which has no `fn Point.next`: `for` walks a list, or an iterator
+for_position_range [fnv:207789db02876035] :: a counting loop's counter already is the position
+for_seq_and_para [fnv:7936e43d22d1f2db] :: `seq` or `para`, not both
+for_without_in [fnv:64d751df57cc16a6] :: expected `in` or `from` after the loop variable, found `[`
+func_keyword [fnv:06228e3da7cced76] :: became `fn`
+generic_any_and [fnv:a8a533fe624275bd] :: `any` stands alone
+generic_arg_count [fnv:36a98e3c765ffd71] :: `Pair` has 2 blank(s) (<A>, <B>), and 1 type(s) were given
+generic_bound_on_mention [fnv:2425d9af29f34ce4] :: is said once, where it is announced
+generic_groups_no_bar [fnv:356d827af6099aef] :: lifetime groups go in a bracket of their own, before the parameters
+generic_inconsistent [fnv:81336ef057ec73fd] :: `<T>` is filled by an earlier argument as `integer`, and 'b' would make it something else
+generic_inst_mismatch [fnv:7d29ffc630950dd5] :: expected a value of the declared type (Box[int32]), found a `Box[str]`
+generic_no_bound [fnv:ea71e74c4327a5eb] :: says what it accepts
+generic_no_space_arrow [fnv:436cf28ab247e3e5] :: put a space after `->` (`-> <T>`)
+generic_old_form [fnv:933f3f4e3a90c52c] :: what `<T>` accepts goes inside the brackets: `<T: any>`
+generic_op_overlap [fnv:b7796ce436e91928] :: `~=` for int32 and the generic `~=` both cover int32
+generic_quoted_var [fnv:00d462dc38c9d0b4] :: a type variable's name is bare: `<T>`, not `<'T'>`
+generic_size_of [fnv:cf20c2fa7cc04da7] :: `size.of` takes a concrete type
+generic_to_c [fnv:89768fbb7f2f8a1a] :: a blank `<T>` cannot appear here
+generic_unannounced [fnv:767c6e1b89d185ef] :: `<T>` was never announced
+generic_wrong_return [fnv:81336ef057ec73fd] :: the return type is an `integer` and this value is text: convert it first
+give_plain [fnv:0b0079f7332adfe9] :: an `integer` is a plain value that owns nothing (no allocation behind it), so it copies by itself
+give_to_lent_param [fnv:a3589766a127e65e] :: `look` only looks at 'text' (it is `lent`); you tried to give it away
+give_twice [fnv:553f0d0b814e2e86] :: was already given away, so there is nothing left to give
+gives_renamed [fnv:2eabd18c6643101e] :: `gives` is an old spelling: write `is`
+grapheme_from_code [fnv:094cc6a08b067653] :: `char.point.from_code[…]` or `char.byte.from_code[…]`
+grapheme_ok_point_bad [fnv:adacdff75cb7ecad] :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
+ieee_on_int [fnv:0558ea36e12221de] :: `div.ceil.ieee` keeps a -0, which only a bin or brain16 has
+ieee_on_mod [fnv:2473cab7e2c3596a] :: `.ieee` goes on an operator that can make a -0, `plus`, `minus`, `times`, `pow`, a `div.X`, `mod.floor`, `mod.ceil` or `mod.trunc`; `mod.near` has no `.ieee` form
+ieg_retired [fnv:29021e6dcb12c71e] :: IEG is retired: since 2026-10-12 it is part of the base
+iface_bound_on_own_t [fnv:f270907c7555b421] :: accepts nothing in particular
+iface_empty [fnv:f5b372b2009be52e] :: list at least one `fn` or `op` signature
+iface_false_claim [fnv:6d0a1bbebbb84659] :: the claim `V satisfies Ordered` is false: no `op <` for it
+iface_false_claim_fn [fnv:099e7904d43c98bb] :: no `fn show` for it
+iface_named_any [fnv:ce7427091dbe0bbc] :: `any` is the built-in
+iface_type_not_listed [fnv:c02c556b784e5ed9] :: is not one of the types it lists
+iface_types_one_line [fnv:4426b1eae38e25b6] :: one per line
+iface_unknown_in_bound [fnv:2d41798402b31028] :: there is no interface named `Nope`
+iface_unsatisfied_bound [fnv:f047b3b93b1031a0] :: `str` is not `Ordered`: no `op <` for it
+iface_with_body [fnv:7529b88ba149365d] :: end the signature with `;` and leave the body out
+incl_bytes_const_changed [fnv:2795471c8b84119c] :: 'b' is a const and cannot be assigned to
+incl_bytes_not_const [fnv:885dbcf9b8190f1c] :: `incl.bytes` is a constant: give it a name with `const 'logo' := incl.bytes
+incl_missing_file [fnv:ccc27d01ee109bb5] :: `incl.bytes` cannot read "incl_assets/missing.png"
+incl_not_ascii [fnv:9787487b6b1cfb1e] :: "incl_assets/cafe.txt" is not ASCII text (byte 4 is 195)
+incl_not_utf8 [fnv:0369459831e72f55] :: "incl_assets/not_text.bin" is not valid UTF-8 text (byte 3 is not)
+incl_path_not_literal [fnv:ff6559bace5af893] :: an `incl` path is written in quotes, as text
+incl_str_not_const [fnv:4c9e85747b5cd57e] :: `incl.str.…` is a constant, as `incl.bytes` is
+incl_utf16_bom_disagrees [fnv:43c2f44c661984cf] :: starts with a byte-order mark saying high byte first, but `incl.str.utf16.low_first` says low byte first
+incl_utf16_no_order [fnv:a38c86203af03e08] :: `incl.str.utf16` says its byte order
+incl_utf16_odd_length [fnv:e5a4010bd620fdec] :: is 3 bytes, not a whole number of 2-byte units
+incl_utf32_wrong_order [fnv:f0029112c7b2f2ce] :: is not valid str.utf32 text in that byte order
+incl_utf8_no_order [fnv:d692fc595199f040] :: `str.utf8` has no byte order
+increment_in_expression [fnv:7bc354939d76583e] :: two values next to each other
+index_needs_pos [fnv:4bc10e32735f4756] :: a read says it is a position: `'xs'[pos 2]`
+index_needs_pos_change [fnv:7fbb95940493767c] :: an index says it is a position: `'xs'[pos 2]`
+index_past_end [fnv:7914d123bba99015] :: the position can be past the end
+index_zero [fnv:7914d123bba99015] :: the position can be past the end
+inline_c [fnv:d5c6f5df25514a20] :: `inline.C` is not decided
+inline_ll_not_built [fnv:c9d7e8907faa7850] :: `inline.LL`, LLVM IR in place, is the base's
+inline_msl_not_built [fnv:25154247b4885290] :: `inline.MSL`, the Metal Shading Language, is the Metal limb's
+input_unhandled [fnv:42153828b7c05b82] :: `std::input.line` can fail (closed): say what happens
+input_with_args [fnv:53d190f847e97a96] :: `std::input.line` takes no arguments
+int8_overflow [fnv:388d1c9b5cc5a035] :: the value can be outside what an `int8` holds
+int_into_bin_var [fnv:bb249fe14c123783] :: there is no implicit conversion between numeric families
+int_with_params [fnv:cd6cedbd18d65cb2] :: `int32` takes no type parameters; a bracket after it is a range
+iterator_given_away [fnv:4d1554c3deb74f7c] :: 'c' was given away
+join_outside_bracket [fnv:3e405bccbb9115b4] :: join text with `concat`
+join_outside_bracket_newline [fnv:3e405bccbb9115b4] :: join text with `concat`
+keyword_fn_bare [fnv:6db39b67a64f5e13] :: a function named with one is reached only through a path
+kin_capital_old [fnv:a8377afabd659561] :: `kin::Manifest` is an old spelling: write `cyjet::manifest`
+kin_prefix_old [fnv:b4ef0139fc7c1344] :: `kin::` is an old spelling: write `cyjet::` (owner, 2026-10-15)
+kit_bad_id [fnv:f04176e7cf7d5fef] :: `id` is 64 hex digits
+kit_dep_names_word [fnv:4e354bca24585094] :: a dependency names no word
+kit_prefix_clash [fnv:743a90e0c0b93c5f] :: two kits have the prefix `areas`
+kit_prefix_std [fnv:d13ec265c4ac0c25] :: has the prefix `std`, which names the built-in `std::`
+kit_private [fnv:968cdc96cbfd912d] :: is not `pub`, and another kit reaches only `pub` items
+kit_pub_kit [fnv:968cdc96cbfd912d] :: is not `pub`, and another kit reaches only `pub` items
+kit_registry_needs_id [fnv:1ddecde5e8116785] :: which knows a kit by its ID
+kit_unlisted [fnv:ac674bce9f4d5771] :: no kit with the prefix `geometry`
+kit_version_dep [fnv:103c76d08dd5f6ea] :: the registry does not exist yet
+lang_prefix [fnv:c1d124ba1f70ae44] :: `lang:` was removed: keywords are bare
+layout_c_bad_field [fnv:fc8e6737a324ce6d] :: only numbers, `bool`, `ptr[…]` and other `layout.C` structs and enums can cross to C
+layout_lowercase_c [fnv:13e4bd3b5f70abf7] :: C is written capitalized here
+layout_not_c [fnv:97c96f596f7b8b40] :: the only layout is `layout.C`, C's shape; `layout.rust` does not exist
+leading_zero [fnv:cd43e7e5f661968a] :: `007` starts with a zero, and leading zeros are illegal: write `7`
+lend_mut_and_lend [fnv:162b1b57a7351c56] :: lent again in the same call
+lend_mut_via_return [fnv:162b1b57a7351c56] :: lent again in the same call
+lend_to_lent_mut [fnv:c679086eecdd878a] :: `edit` may modify 'text' (it is `lent.mut`): write `lend.mut`
+lend_to_var_param [fnv:17f65879404b0710] :: write `give` (it moves) or `copy` (a second one)
+lend_width_mismatch [fnv:ec3345969ad6a916] :: a lend hands over the value where it is, so the sizes must match
+length_bare [fnv:db83e090996e37b9] :: `list.length` takes a lend: write `lend 'xs'`
+length_is_uint64 [fnv:f5d77dd82552d1de] :: the value can be outside what a `uint64` holds
+let_chain [fnv:4d7d73671053951c] :: `let` is a word of its own
+let_missing [fnv:ccd63909d593c858] :: a declaration starts with `let`
+let_over_name_unrun [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
+let_over_param_uncalled [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
+let_top_level [fnv:53be71ba4bab946c] :: a kit-level value is a `const`
+level_bare [fnv:4f04c4a80920e0e4] :: say how a chain of this level reads
+level_bit_op [fnv:8d3148a71e0946dc] :: has no precedence in the language
+level_no_comma [fnv:99137202b69c0bcc] :: items in braces are separated by `,`
+level_old_spelling [fnv:6fce767960c4e55b] :: level 2 { plus, minus } left_first
+level_refused_chain [fnv:4d8b77dbb9ca92d4] :: this level does not chain
+level_two_numbers [fnv:c78764fe74dbd903] :: two levels numbered 1
+level_wrong_chain [fnv:3cd9a30c0479a385] :: its level must say `left_first`
+lifetime_glued [fnv:56103fcd967d54ea] :: a space before the group: `lent @
+lifetime_group_given [fnv:d0ed618004b47c50] :: 't' cannot be given away here: 'r' still borrows it and is used on line 8
+lifetime_local [fnv:03efc4b350c90153] :: which dies when it returns
+lifetime_local_uncalled [fnv:142125242d0b6c4e] :: hands back a borrow of 'loc', which dies when it returns
+lifetime_unannounced [fnv:a45d01df7619f11b] :: `@x` was never announced
+lifetime_unsaid [fnv:aa05f2b37ee52d7a] :: returns a borrow, so its signature must say so
+lifetime_wrong_group [fnv:b39bbc2e457836dc] :: `wrong` returns a borrow of 'b', which is not in @x
+limb_root_old [fnv:e4faaa5b2378ab56] :: the root of this kit is `my.` since 2026-10-06, no longer `limb.`
+list_dot_type [fnv:e3dedab2278effd3] :: `list[int32]`, not `list.int32` (a dot picks a fixed variant, brackets supply a type)
+list_fill_too_big [fnv:8e5c8e7e946ba51c] :: the value can be outside what an `int8` holds
+list_into_array [fnv:25040c8ec84b53a4] :: the declared type is an `array` and this is a `list`
+list_mixed_types [fnv:7d29ffc630950dd5] :: the list's element type is an `integer` and this value is text: convert it first
+list_to_text [fnv:0534c45cc9322638] :: a list is not text
+list_two_params [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type parameter, the element type: `list[int32]`
+lobes_old [fnv:e0b19d240bd419c3] :: `lobes` is an old spelling: write `limbs` (owner, 2026-10-15)
+local_const_changed [fnv:a00cb535ae190c57] :: 'r' is a const and cannot be assigned to
+local_const_changed_unrun [fnv:a00cb535ae190c57] :: 'r' is a const and cannot be assigned to
+local_const_from_variable [fnv:b9010530f45efa68] :: a const's value must be known at compile time; 'n' is a variable
+local_const_out_of_block [fnv:5c93bad6458ad0aa] :: 'r' is not declared
+local_const_shadowed [fnv:977cd1fe25a3944f] :: 'r' is a const and cannot be shadowed
+loop_list_changed [fnv:03a098de8f149bca] :: the loop on line 4 of loop_list_changed.cy is still going through it
+lte_retired [fnv:d3273b1a4ee04243] :: `<==` is not an operator; less-or-equal is `at_most`
+main_args_one [fnv:a01f160c881421a0] :: `,` and the second parameter
+main_args_type [fnv:0fbaeb76c89973a8] :: is C's `argc`, whose type is `int32`
+main_as_func [fnv:d88745ab93f13dde] :: write `MAIN { … }` with no `fn`, no return type, no `return`
+manifest_bad_name [fnv:141f1cec70f82c3f] :: `Areas of shapes` cannot name a kit
+manifest_bad_prefix [fnv:142ba3472cf5fe78] :: cannot be a prefix, written in code as `Cash-Handling::`
+manifest_core_twice [fnv:a30a2f55de752c36] :: the limb MCPS is listed twice
+manifest_core_unofficial [fnv:cba92fd0dca717e1] :: is not an official one; loading another limb is not built yet
+manifest_dep_twice_where [fnv:22cee5cf4ecd7ef3] :: says where it comes from once
+manifest_field_twice [fnv:dd4b619356aeb955] :: `name` is given twice
+manifest_long_version [fnv:a46141b25a099c4e] :: `version` is at most 256 bytes, and this one is 257
+manifest_no_default [fnv:79ff64b431237349] :: exactly one says `default = true`
+manifest_no_name [fnv:4d3f43697b4ab2f9] :: the manifest has no `name`
+manifest_no_prefix [fnv:400ab5e5ebd0c0b4] :: the manifest has no `prefix`
+manifest_no_target [fnv:0ec242e08a4049e9] :: the manifest has no target
+manifest_no_version [fnv:4888a0212dce5aa4] :: the manifest has no `version`
+manifest_not_a_manifest [fnv:8998ab9309f9aada] :: CyJet.cyr is one value: `cyjet::manifest[
+manifest_old_consts [fnv:b7041583a1e96bf0] :: settings are no longer `const`s
+manifest_one_target [fnv:469b29d703804c8a] :: so the field is `targets`
+manifest_undoable_target [fnv:6b920319bfe4e352] :: `x86_64-linux` is not a target kayo can build
+manifest_unknown_field [fnv:d3a56151ce47e5e1] :: a `cyjet::manifest` has no field `versoin`
+map_bad_key_type [fnv:3ebc5e71c74c0d11] :: keys are plain values, text, chars, structs, enums and lists of keys
+map_bad_variant [fnv:cd84c84831efd0e0] :: `map` (the prover decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)
+map_bound_over [fnv:0e4ebc4a07b99fd9] :: this can take it outside the bound its type gives it
+map_get_unhandled [fnv:fb19a18b0ea9877e] :: `map.get` can fail (missing): say what happens
+map_hash_disagrees [fnv:bffd9b036fb4e87b] :: !pending its `op ==` and `hash` are written with `std::str.lower` / `std::str.at.point`, so Precog can only settle "equal keys hash the same" once std exists; until then the working build checks it at run time (the map asks on a miss) and the final build refuses the map
+map_literal_dup_key [fnv:2c22ea3aaf3284e2] :: this key is written twice in the literal
+map_literal_empty [fnv:49c9f3063523764e] :: an empty map is `map.empty`; `map[]` builds nothing
+map_literal_no_pair [fnv:29d9d93486c67e90] :: `map["ann" = 5551, "bob" = 5552]`
+map_set_needs_mut [fnv:0522b20ca28e7b3b] :: `map.set` changes the collection, so it takes `lend.mut`, not `lend`
+map_to_text [fnv:a985b1bfd8ca8afa] :: a map is not text
+map_unordered_walk [fnv:5169287ec337a31d] :: `map.keys` needs a `map` or `map.ordered`
+map_value_out_of_range [fnv:1c9a8051ba28c5f4] :: the value can be outside what an `int32[min 0, max 10]` holds
+match_value_unused [fnv:02489215508528d6] :: gives a value, but this `match` is not used as one
+missing_return_type_value [fnv:b6b32cd3a621d22b] :: every path must `return` a value (or `fail`)
+mix_families [fnv:bb249fe14c123783] :: there is no implicit conversion between numeric families
+mod_bare [fnv:142b817e3a94675b] :: say how `mod` rounds
+mod_beside_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading for `mod.floor` beside another operator
+mod_mixed [fnv:c019255d74965b33] :: mathematics has no settled reading for `mod.floor` beside another operator
+mod_near_fraction [fnv:134e0296bec94776] :: leaves nothing over
+mod_trunc_beside [fnv:9d0efe113095066a] :: parenthesise
+mod_wrap [fnv:be9f9597514259ce] :: `mod` never overflows
+module_bare_name_from_root [fnv:0936952b4389389e] :: there is no item `f` in the root (`kit.cy`)
+module_in_body [fnv:ff095bdb85c4c377] :: a `module` sits at the top level of a file, not inside a body
+module_include_line [fnv:e6545bf351dc2847] :: a file module is found by its file name, and `module a { … }` is a block
+module_main_inside [fnv:ff7321078df83975] :: `MAIN` lives at the root of the kit (`kit.cy`), not in a module
+module_mod_keyword [fnv:6d4cb506dcd6ef18] :: `mod` is the remainder operator; a module is `module name { … }`
+module_private_const [fnv:f537c2f7d773d954] :: add `pub` (other kits too) or `pub.kit` (this kit) where it is declared
+module_private_fn [fnv:f537c2f7d773d954] :: it is visible there and in the modules nested inside it
+module_private_nested [fnv:d04f26a4f52170cd] :: it is visible there and in the modules nested inside it
+module_private_struct [fnv:f537c2f7d773d954] :: it is visible there and in the modules nested inside it
+module_relative_from_inside [fnv:427be5d564d39335] :: there is no item `g` in module `a`
+module_twice [fnv:590a2387e4587ab6] :: a module of that name is already declared
+module_type_clash [fnv:9a463632e47ae022] :: a module and a type cannot share a name
+module_uppercase [fnv:f6e5aa143a6e5454] :: module names are lowercase ASCII letters, digits and `_`, starting with a letter (lowercase only, so the name
+money_missing [fnv:55c193a2f84e0f3e] :: `deci64` is Money's
+must_fail_not_a_call [fnv:9484e22cead68df6] :: takes something that can fail
+must_outside_test [fnv:ed4eca753ea7258a] :: `must` belongs in a `test fn`
+mut_after_name [fnv:28b25637b1aadc1c] :: goes before the name
+mut_changed_only_by_shadow [fnv:0328a401ef015859] :: 'x' is `mut`, but nothing changes it
+mut_never_changed [fnv:fcfb6c057425e599] :: 'total' is `mut`, but nothing changes it
+mut_never_changed_unused_generic [fnv:79e50e733f2b5bd7] :: 'x' is `mut`, but nothing changes it
+my_alone [fnv:8b049ab55a911000] :: `my` is followed by `.` and the root item it reaches: `my.helper[…]`
+neg_ieee_on_int [fnv:49dd57d5cf27f472] :: `neg.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `-'x'`
+negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
+neuron_word_old [fnv:80ffff166656de74] :: `neuron` is an old spelling: write `kit` (owner, 2026-10-15)
+no_bin128 [fnv:65f2adec4a0637da] :: there is no `bin128`
+no_cheat_old [fnv:fc0169759787cd18] :: `!c` is `no_cheat` now
+no_checks_lied [fnv:0bec22d994061742] :: !by-design CCA builds it and emits a note naming `NO_FUCKING_CHECKS`, which is the rule for a vouch that fails every run (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
+no_mcps_concur [fnv:85f83276fc15bc2c] :: `concur` is MCPS's
+no_mcps_para [fnv:80b8efddb44c83df] :: `for para` is MCPS's
+no_precedence [fnv:c019255d74965b33] :: mathematics has no settled reading here (`6 div.floor 2 times 3`)
+no_std_list [fnv:9722ce7973a65431] :: a growing list (`list`) is std's
+no_std_map [fnv:948ea297c44df56a] :: a map (`map`) is std's
+no_std_print [fnv:63984011840f2bbe] :: `std::print` is std's
+no_std_text [fnv:75f33ba2cee9cf5b] :: a text operation (`str.…`) is std's
+no_zero_value [fnv:84b2ff3a065836c5] :: there is no implicit zero
+nocheck_lied [fnv:5e774167b538b020] :: !by-design CCA builds it and emits a note, which is the rule (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
+not_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading
+not_glued [fnv:a2433dca0ab88933] :: `!` is not an operator since 2026-10-07: a value's not is `not '
+number_next_to_text [fnv:7bc354939d76583e] :: join text with `concat`, separate values with `,`
+number_to_char [fnv:12ef8394243841eb] :: `char.point.from_code[…] otherwise …` builds one from a code
+old_auto_newline [fnv:3557516c4c015da6] :: `auto_newline` is an old spelling: write `auto_newln`
+old_backslash_n [fnv:d7a6d3312369f1b8] :: `\n` is an old spelling: write `newln`
+old_bang_cheat [fnv:8e0f85183eb6fdcb] :: `!cheat` is an old spelling: write `no_cheat`
+old_bang_check [fnv:a0138db0859142d5] :: `!check` is an old spelling: write `no_check`
+old_bang_mut [fnv:84b6146b48e828b9] :: `!mut` is an old spelling: write `immut`
+old_bang_not [fnv:8a10fba72a0c2f1a] :: `!` is an old spelling: write `not`
+old_bang_shadow [fnv:7c66670daa4752d3] :: `!$` is an old spelling: write `no_shadow`
+old_build_name [fnv:49c76d041f262d53] :: `build.cplr` has the old name: rename it to `build.cy`
+old_cord_path [fnv:3252c49415482eea] :: `cord` is an old spelling: write `std` (owner, 2026-10-15)
+old_ending_cpls [fnv:4a8288a45725c0aa] :: `helper.cpls` has the old name: rename it to `helper.cy`
+old_ending_nrv [fnv:72fc26ba5873a0c2] :: `helper.nrv` has the old name: rename it to `helper.cy`
+old_ending_zg [fnv:008d2259fa4e1021] :: `helper.zg` has the old name: rename it to `helper.cy`
+old_ge [fnv:3c2099159bf1fd6a] :: `>/==` is an old spelling: write `at_least`
+old_inline_assembly [fnv:c077e953beb2d9ef] :: `inline.Assembly` is an old spelling: write `inline.ASM`
+old_inline_s [fnv:36fd7bec575e37a8] :: `inline.S` is an old spelling: write `inline.ASM`
+old_le [fnv:1955b6f224223830] :: `</==` is an old spelling: write `at_most`
+old_long_arrow [fnv:e6d19b625f1236c7] :: `-->` is an old spelling: write `->`
+old_manifest_kinesin [fnv:035b95067da85734] :: `Kinesin.nrp` has the old name: rename it to `CyJet.cyr`
+old_manifest_name [fnv:e156fa693c24c6cd] :: `CCA.cplr` has the old name: rename it to `CyJet.cyr`
+old_manifest_ricochet [fnv:1815a6bfd0caf6be] :: `Ricochet.zv` has the old name: rename it to `CyJet.cyr`
+old_ne [fnv:89de9a5280038433] :: `!==` is an old spelling: write `not_equal`
+old_nocheck [fnv:1c0978e44051946b] :: `nocheck` is an old spelling: write `no_check`
+old_root_neuron [fnv:be61c2daabc5717b] :: `neuron.nrv` has the old name: rename it to `kit.cy`
+old_rust_name [fnv:ce24587a783da6fe] :: `i32` is an old spelling: write `int32`
+old_shadow_eq [fnv:3ef9fe1da93b0bfc] :: `$=` is an old spelling: write `shadow 'x': T = …`
+old_shadow_walrus [fnv:2b12b45390216440] :: `$:=` is an old spelling: write `shadow 'x' := …`
+old_std_i [fnv:2c5376858ebb8036] :: `not_std.i24` is an old spelling: write `not_std.int24`
+old_two_long_arrows [fnv:472bf2fa455f76eb] :: `<---->` is an old spelling: write `<->`
+on_bare [fnv:5498c2f32cd9b7fa] :: `on` is narrowed: `on.target …`
+on_else_if [fnv:48319131dc22b511] :: an `on` chain goes on with `else on.…` or ends with `else { }`
+on_machine_top_level [fnv:b86c139ea15f48e6] :: `on.machine` chooses when running, so it goes inside a body
+on_target_half [fnv:cd13379047ebb6c8] :: `aarch64` is a chip; a whole target is chip-os
+on_target_os_version [fnv:c6206898ad46136d] :: an OS minimum (`on.target.os macos 15`) is not built
+on_target_unknown_chip [fnv:7417416629ca9575] :: `arm64` is not a chip `on.target.chip` knows
+one_ended_below [fnv:52e8dca3a8ec09b2] :: the value can be outside what an `int8[min 1]` holds
+op_amp_undeclared [fnv:9caeeba957df596b] :: the left side of `and` must be a `bool`
+op_bang_undeclared [fnv:86d806aeb202da87] :: `!` is not an operator here; not is `not`
+op_builtin_for_int [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `int32` may not
+op_builtin_for_struct_ok_then_misuse [fnv:8cd6b76c300bff74] :: expected a value of the operand (V), found an `integer`
+op_called_as_fn [fnv:205c076f0bd07158] :: `'a' dot 'b'`, never `dot[…]`
+op_chevron_reserved [fnv:71bbd54de1a8e769] :: `>>` is an old spelling: write `->`
+op_div_bare [fnv:d40c9ab3e6d5809c] :: say how `div` rounds
+op_give_needs_give [fnv:675ca27f7d116f95] :: write `give 'u'` so the value moves in
+op_lent_word [fnv:771913f827ed9a38] :: T` takes it by value
+op_next_to_plus [fnv:9d0efe113095066a] :: a custom operator has no precedence
+op_no_precedence [fnv:9d0efe113095066a] :: a custom operator has no precedence
+op_no_return_type [fnv:afe154068b1dbc9d] :: is required on an operator
+op_path_wrong_kit [fnv:187048be1e4f36d9] :: the kit `runnable` has no operator `mean`
+op_pipe_undeclared [fnv:3e1e33f26aad5836] :: a bitwise or is `or.bit`
+op_redefine_builtin [fnv:32696bdc53fd9faa] :: a struct or enum may define `op plus` for itself, `int32` may not
+op_redefine_word [fnv:32696bdc53fd9faa] :: a struct or enum may define `op mod` for itself, `int32` may not
+op_run_no_space [fnv:fc83d9208bcfbb43] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
+op_same_types_twice [fnv:52110c077b433821] :: `<+>` is defined twice for A, A
+op_symbol_decl [fnv:9faa9fcf67a2c71c] :: `%` is the language's own spelling of `mod.trunc`: it is not declared
+op_three_operands [fnv:88d3d9d2c04c25a1] :: an operator takes exactly two operands; `<+>` is declared with 3
+op_value_and_then [fnv:a093a0ddfbdcf82d] :: cannot skip anything
+op_value_minus [fnv:c7639dd8d2554ca7] :: negation as a value is `op neg`
+op_value_untyped [fnv:f5fb837892a1661a] :: alone does not say which
+op_word_undefined [fnv:b1acc1385341e3b7] :: an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`
+optional_taken [fnv:36e85e806de22b47] :: `optional` is the base's
+other_kit [fnv:9a3101a002654daf] :: no kit with the prefix `math`
+overflow_lands [fnv:106012fcbb102c23] :: the value can be outside what an `int8` holds
+overflow_past_64_bits [fnv:3fe9bf00838316b2] :: goes past 64 bits in between
+owning_function_bare [fnv:a8b589ea7248e723] :: is an owned `fn[] -> uint64`: say what happens to it
+param_lent_chain [fnv:1b310f9423971d5e] :: `lent` (looks at it) or `lent.mut` (may modify it)
+param_type_first [fnv:3a5e01bd7a977ab9] :: a parameter is written name first, then its type: `'a': int32`
+param_var [fnv:565659dbb62e1df1] :: an owning parameter is bare
+plugins_old [fnv:d184ef5b289d45cb] :: `plugins` is an old spelling: write `limbs` (owner, 2026-10-16)
+plus_ieee_on_int [fnv:cf2096d03cb58e67] :: `plus.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `plus`
+plusplus_needs_conversion [fnv:a6e724baccce5e1b] :: `concat` joins text, and its right side is an `integer`: convert it first
+plusplus_numbers [fnv:4cdcad9affc5f4d9] :: `concat` joins text, and its left side is an `integer`: convert it first
+pow_old [fnv:5b6c854d86c4d818] :: `xx` is an old spelling: write `pow`
+power_denied [fnv:c61e5e2f40546bd5] :: which this program denies (`deny`: `cyjet::power.c_calls.functions`)
+power_deny_for [fnv:b37efe31805baa2c] :: `shapes` defines the operator `mean` on built-in types, which this program denies
+power_except_in_powers [fnv:54b297f6474bc3b4] :: `.except` and `.for` belong to `deny`
+power_listed_too_narrow [fnv:230e2928cd405e42] :: does not list `c_calls`
+power_not_listed [fnv:5ea0ea606a374671] :: its CyJet.cyr does not list `c_calls`: add `cyjet::power.c_calls` to its `powers`
+precedence_bare [fnv:2c52bed853d4921b] :: say which way the levels count
+print_bare [fnv:7587d85df41ba149] :: say which form
+print_format_backslash_percent [fnv:ad50ed3dcd7f1187] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_extra_arg [fnv:40f9185c6f51c2e6] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_hash [fnv:b053127aa853d749] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_hole_zero [fnv:d041555e923d0b74] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_lone_brace [fnv:d885f76e08ed722d] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_missing_arg [fnv:a9458c5dbdc79cc8] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_mixed [fnv:dee02034a539ce5c] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_nonliteral [fnv:146ba22f5015b1e0] :: !pending `stdkit::print.format`'s holes are stdkit's to check, and stdkit does not exist yet
+print_format_type [fnv:68e54257a01e89be] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_unused_numbered [fnv:0c9676228756aeee] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_stored_weird_order [fnv:6a37cab2993bdfdf] :: `.weird` comes first
+print_weird_brackets [fnv:5c46b85e34e5d282] :: with arrows, not
+print_weird_order [fnv:6a37cab2993bdfdf] :: `.weird` comes first
+printf_renamed [fnv:1732984806b6cbb0] :: is spelled std::print.format.stdout now
+printu_renamed [fnv:a2613067643c96b3] :: is spelled std::print.useful.stdout now
+ptr_bad_op [fnv:456eec83964b4a42] :: a pointer has `read`, `write`, `at`, `is_null`
+ptr_cast_keeps_readonly [fnv:8094e2137b68463e] :: `ptr.write` needs a `ptr.mut`
+ptr_cast_needs_nocheck [fnv:e2d596a2bd4a2610] :: `ptr.cast` says the bytes are a different type
+ptr_cast_not_c [fnv:4cf595f3bcc2be7a] :: casts only to a C-shaped type
+ptr_declared [fnv:8b3687f28fe9a9dd] :: in an `extern fn` signature or a `layout.C` field
+ptr_in_let_still_refused [fnv:8b3687f28fe9a9dd] :: in an `extern fn` signature or a `layout.C` field
+ptr_lend_mut_needed [fnv:ed12d99652ef7144] :: C may write through it, so write `lend.mut`
+ptr_read_c_enum_unhandled [fnv:32fe4958b7e20764] :: `ptr.read` of a `Mode` from C can fail (out_of_range)
+ptr_read_null_lied [fnv:4d31d6e728a30b8b] :: !by-design a `nocheck` read through C's pointer; nothing at compile time can know what C returned, and `nocheck` says so — the oracle catches it only by running it
+ptr_read_past_end_lied [fnv:bf3aa6ad6940e787] :: !by-design a `nocheck` read past what C allocated; nothing at compile time can know that, and `nocheck` says so — the oracle catches it only by running it
+ptr_read_without_nocheck [fnv:b05717fcb97887c8] :: no_check site
+ptr_write_readonly [fnv:9e0b87326584f59b] :: this pointer is read-only
+pub_in_body [fnv:f825901e8ec3da8a] :: `pub` goes at the top level, on a `fn`, `struct`, `enum` or `const`
+pub_let [fnv:db37187357d70c69] :: is a `const`, not a variable
+pub_limb_old_spelling [fnv:95849f1ba91f7acd] :: `pub.limb` is an old spelling: write `pub.kit`
+pub_main [fnv:71b5050bf3081fb0] :: it is the program's block, not something another kit can reach
+pub_narrowing_bad [fnv:a97d696cbedd855e] :: the only narrowing of `pub` is `pub.kit` (this kit only); plain `pub` is other kits too
+quoted_func_name [fnv:ae3cce4260d5cad9] :: `fn add […]`, not `fn 'add'`
+quoted_main [fnv:e070af1b394ec349] :: `fn main […]`, not `fn 'main'`
+range_as_value [fnv:7ef7f0bec22d7c9f] :: `range[…]` is only decided as what a `for` runs over
+range_assign_out [fnv:8458c49b7a375900] :: the value can be outside what an `int32[min 0, max 100]` holds
+range_bin_bounds_on_int [fnv:3864723dd6ff74d9] :: an integer's bounds are integers
+range_bound_below_unsigned [fnv:3bc29ab37d272cda] :: -1 does not fit uint8
+range_bound_markers [fnv:7138c2c8a9eefd10] :: expected a value, found `:=`
+range_bound_outside_type [fnv:2be735d451118719] :: 300 does not fit uint8
+range_bounds_order [fnv:15adcb907214545a] :: the low bound comes first
+range_convert_arm_missing [fnv:7d69be2b3de665e6] :: every reason needs an arm
+range_convert_unhandled [fnv:769294ffd6316ce9] :: `to.int32[min 0, max 100]` can fail (not_a_number, out_of_range): say what happens
+range_field_out [fnv:763f052c38237301] :: the value can be outside what a `uint8[min 0, max 100]` holds
+range_needs_by [fnv:7c7f64cdc0e3b031] :: a counting loop writes its step too, even when it is 1
+range_old_spelling [fnv:b3cf2031603ca627] :: a counting loop reads as a sentence now: `for 'i' from 1 to 10 by 1`
+range_overflows_type [fnv:cd716c13c720d27d] :: the value can be outside what an `int8` holds
+range_reassign_out [fnv:b42274efa1720c0d] :: the value can be outside what an `int32[min 0, max 100]` holds
+range_to_c [fnv:89768fbb7f2f8a1a] :: 'a' is written as the plain `int32`
+raw_too_wide [fnv:111760fc3883c66f] :: the value can be outside what an `int8` holds
+raw_too_wide_return [fnv:9e8ff85c86758b25] :: the value can be outside what a `uint16` holds
+remove_needs_pos [fnv:ab2e9906df557f37] :: the position says `pos`: `list.remove[lend.mut 'xs', pos 2]`
+return_group_through_call [fnv:0d648b1bc81e861d] :: returns a borrow of 'c', which is not in @x
+return_in_main [fnv:3c8cbdc32042028c] :: `MAIN` is a block, not a function: it has no `return`
+return_needs_type [fnv:3bf50314ac10e1f2] :: `three` returns a value, so it says its type: `-> int32`
+return_shadowed_name_unrun [fnv:9dc746dde455db84] :: expected a value of the return type (uint8), found a `bool`
+return_type_colon [fnv:940ae1aff445aa14] :: the return type is `-> int32`, not `: int32`
+return_type_on_fn [fnv:031126c3980e54ca] :: the return type goes after the parameters
+return_wrong_kind_unrun [fnv:65c8529ba8f58ea7] :: expected a value of the return type (uint8), found a `bool`
+ricochet_plugin_old [fnv:9566d8f9c8940d55] :: `ricochet::plugin` is an old spelling: write `cyjet::limb` (owner, 2026-10-16)
+ricochet_prefix_old [fnv:7ee567ddf1c32548] :: `ricochet::` is an old spelling: write `cyjet::` (owner, 2026-10-16)
+rust_string [fnv:ffdc0506a249c7be] :: text is `str.utf8`
+rust_usize [fnv:6bb0e8d9e2e18eb7] :: as big as the machine
+send_lend [fnv:39b4c67c5c98f0f5] :: write `give` (it moves) or `copy` (a second one)
+seq_after_perm [fnv:2fa17448182bc9f0] :: `seq` or `para` goes first, then `temp` / `perm`, then the name
+shadow [fnv:6f58e8bff03be94f] :: to shadow it deliberately write `shadow 'x' := …;`
+shadow_nothing [fnv:21615fa293366dc7] :: and none is visible here
+shadow_sealed [fnv:41a31805c19e5721] :: cannot be shadowed: it is `no_shadow`
+shadow_with_let [fnv:46b3a25a780cf743] :: `shadow` takes `let`'s place: `shadow 'x' := …;`
+shift_count_huge [fnv:ec9fe2cc1e68af45] :: the shift count can be outside 0 to the width - 1
+shift_operand_too_wide [fnv:597323e2494de8f5] :: `minus` can leave what the type holds
+shl_no_width [fnv:93c25ad48c4751b2] :: `shl` needs a width, and nothing here gives one
+short_name_one_kit [fnv:a74a1112bb620a25] :: gives other kits a shorter name
+shr_no_width [fnv:507523dacedbfa20] :: `shr` needs a width, and nothing here gives one
+simd_bad_element [fnv:6d4c89bc3637c80b] :: a `simd` holds plain numbers or bools
+simd_fill_needs_value [fnv:68d864bfb7249c51] :: the value says `value`: `simd.fill[value 0]`
+simd_fill_shift_past_lane [fnv:abc84e96d5549b25] :: the shift count can be outside 0 to the width - 1
+simd_lane_step [fnv:693bf5e5af5f3ed9] :: `plus` can leave what the type holds
+simd_lane_write_range [fnv:b4f9f50732c31370] :: the position can be past the end
+simd_load_past_end [fnv:00802e6e1064a8bf] :: the 16 lanes can run past the end
+simd_mask_lanes [fnv:51d1f37b90e986ac] :: a mask has as many lanes as the vectors it compares
+simd_not_a_bool [fnv:cf5039b775bdbbc1] :: a vector is never a single answer
+simd_shuffle_lane [fnv:9019a13509c2627b] :: lane 5 does not exist
+simd_shuffle_not_fixed [fnv:10de2b5101aae9ec] :: takes the new order as fixed lane numbers
+simd_some_past_end [fnv:d61a5c2bc9a6904f] :: the items for 4 lanes can run past the end
+simd_std_lane [fnv:5ea45cd90b3704c8] :: a vector's lanes are a standard width
+simd_sum_lane_past [fnv:b4b58287404c8c2f] :: the value can be outside what an `int32` holds
+simd_wrong_shape [fnv:813bb50692db0740] :: this target has no `simd[uint8, 64]`: its vector register holds 16 lanes
+single_quote_char [fnv:857025279acbd88a] :: 'a' is not declared
+size_of_alone [fnv:1c30f4b3569e6800] :: `size` is a keyword: a type's size is `size.of[int32]` (`.of` after `size`)
+slice_needs_pos [fnv:bbcf4577f909ab6f] :: a slice starts `from pos …`
+slice_old_spelling [fnv:b91a123caf5e48b1] :: a slice says where it runs: `list.slice[lend 'xs', from pos 2, to pos 4]`
+slice_past_end [fnv:9addc01545809a6f] :: the slice can run outside the list
+spread_lent_no_verb [fnv:4aeae176b5f51db7] :: `...` with no verb lends each element
+spread_lent_unbounded [fnv:c06c4e8a33a43f63] :: a call's shape is fixed per call
+spread_not_variadic [fnv:cc7616f86d73c00f] :: the values would land on a fixed parameter
+spread_outside_call [fnv:160372a00bcbe789] :: it unpacks a list into a call's arguments
+spread_owned_needs_verb [fnv:b64e38d86c3a19e9] :: say `...copy 'w'` or `...give 'w'`
+spread_plain_no_verb [fnv:c21efae9ad74426b] :: its elements are plain `integer` values, which copy by themselves
+spread_unknown_length [fnv:c06c4e8a33a43f63] :: a call's shape is fixed per call
+std_not_a_type [fnv:e456092e8ffcd94f] :: is not a type: a non-standard integer
+std_on_standard [fnv:b6b921c48995d42b] :: `int32` is standard: write `int32`
+std_too_wide [fnv:685422467bc9f0ae] :: past the widest integer there is
+std_twice [fnv:1cb81788bbd8b55f] :: std is listed twice
+std_underscore_old [fnv:10bd3366d6968a05] :: `!std.` is an old spelling: write `not_std.`
+std_width_overflow [fnv:d15cb0d6ab33d980] :: the value can be outside what a `not_std.uint4` holds
+std_wrong_version [fnv:e6eb7f796f0ecbd9] :: KAYO\n knows std `2026-10-06T12:57:14+07:00` only
+stdkit_old_spelling [fnv:d2a19052483e24d9] :: `stdkit` is an old spelling: write `std`
+step_zero [fnv:55c8afa1959f5058] :: the counter must move
+str_at_needs_pos [fnv:00020b3adbd35515] :: a position says `pos`: `std::str.at.point[lend 's', pos 3]`
+str_at_unhandled [fnv:211b54cbdeaa8bbc] :: `std::str.at.grapheme` can fail (out_of_range): say what happens
+str_each_no_unit [fnv:907197bb8f8f64c1] :: `str.each.grapheme[…]`, `.point`, or `.byte`
+str_for_bare [fnv:9ff91050c5cd382f] :: `str.each.grapheme[lend 's']`, `.point`, or `.byte`
+str_index [fnv:91ca5dc332f4c315] :: it would not say which unit
+str_length [fnv:b29f67be465dcbe6] :: `str.bytes`, `str.points` or `str.graphemes`
+str_less_than [fnv:96614208fa90f73f] :: byte order is never what anyone means, and a collation rule is std's
+str_slice_byte_unknown [fnv:50b421ff9c28cd61] :: `std::str.slice.byte` does not exist
+str_split_empty [fnv:67635ac17613965c] :: !pending `std::str.split` is the std session's to write in CyborgPL (owner, 2026-10-14), whose `at` is a `str.utf8[min 1 bytes]`: Zomp's testing stand-in for std accepts it until then
+strict_gone [fnv:70e4490d609cdd7e] :: `#strict` is gone
+strike_word_old [fnv:4a3c4f88880a3f14] :: `strike` is an old spelling: write `kit` (owner, 2026-10-16)
+struct_bare_owned_field [fnv:d926d44479584ac8] :: say what happens to it
+struct_bound_unkept [fnv:91778bbd2a224911] :: needs `<T>: Number`
+struct_field_no_colon [fnv:1b310f9423971d5e] :: a field's type follows its name after `:`
+struct_field_unbracketed [fnv:3a5e01bd7a977ab9] :: a field is written name first, then its type: `x: int32`
+struct_field_walrus [fnv:009d28a4f96e3205] :: the blueprint fixed the types
+struct_give_field_kills [fnv:144c19a252fdb2b8] :: was given away and no longer owns anything
+struct_immut_chain [fnv:e46e498118fabc2a] :: `immut` goes before the field's name
+struct_immut_field_write [fnv:f7ba9b5ffa5f1947] :: `id` is an `immut` field of `P` and cannot be written
+struct_keyword_field [fnv:d10a27914bc3ae70] :: `return` is a keyword and cannot name a field
+struct_missing_field [fnv:81a9a1f64a8049f6] :: every field must be given
+struct_named_rust_alias [fnv:ce24587a783da6fe] :: `i32` is an old spelling: write `int32`
+struct_no_comma [fnv:99137202b69c0bcc] :: items in braces are separated by `,`
+struct_quoted_field [fnv:7597065160c99b01] :: a field's name is bare
+struct_semicolon_field [fnv:3b257eb63d7b8bb9] :: fields are not statements
+struct_to_text [fnv:eb005d494bc23a16] :: a `Point` is not text
+struct_undeclared [fnv:2d477e42508272da] :: there is no struct named `Nope` here
+struct_unknown_field [fnv:7f2b848787e41330] :: `P` has no field `z`: its fields are x
+struct_var_in_field [fnv:dfa77d3a540c2949] :: a struct always owns its fields
+struct_write_through_lent [fnv:a2d4141c48d32f8c] :: it belongs to whoever lent it
+struct_wrong_field_type [fnv:7d29ffc630950dd5] :: field `x` is an `int32` and this value is text: convert it first
+take_unhandled [fnv:0a69f5303bdb8818] :: `channel.take` can fail (closed): say what happens
+temp_after_loop [fnv:652fb6ee6f955c44] :: 'i' is not declared
+temp_after_name [fnv:64d751df57cc16a6] :: `temp` goes before the name
+test_fn_called [fnv:7c28a2fd52cda7d7] :: is a `test fn`: `kayo test` runs it
+test_fn_params [fnv:e6c6894b85ea10f6] :: takes no parameters
+text_bound_graphemes [fnv:a6dcaaa62d158116] :: this can take it outside the bound its type gives it (`str.utf8[min 1, max 2 graphemes]`)
+text_bound_no_unit [fnv:9c1acad0abdaf1b0] :: a text's length bound must say which unit it counts
+text_bound_over [fnv:ab895cf7a7c48b5d] :: this can take it outside the bound its type gives it (`str.utf8[max 20 bytes]`)
+text_to_char_unhandled [fnv:04c58d3d4a6fac63] :: `to.char.point` can fail (not_one_char): say what happens
+times_old [fnv:d0b9b9ea787f730a] :: `x` is an old spelling: write `times`
+to_array_bare [fnv:edaa77f80a93e8a4] :: converting bare 'l' would copy it without saying so
+to_ascii_needs_otherwise [fnv:44581da139b15bb0] :: `to.str.ascii` can fail (not_ascii)
+to_bits_bin [fnv:c018fb9e467c5ade] :: `.bits` is for whole-number types
+to_bits_too_wide [fnv:9e1dae2bebcc5f70] :: `256` does not fit the 8 bits of int8
+to_bool [fnv:fef2b7077f153711] :: there is no truthiness
+to_c_enum_unhandled [fnv:d5c360ddcb700642] :: `to.Key` can fail (out_of_range)
+to_list [fnv:fe57458270798005] :: keeps the element type, so it is not written
+to_narrowing_fails [fnv:cd716c13c720d27d] :: the value can be outside what an `int8` holds
+to_otherwise_on_safe [fnv:71d90a0143267704] :: `to.str.utf8` cannot fail here; drop the `otherwise`
+to_struct [fnv:42da10e4738cde3f] :: a struct or enum value is built by name
+to_text_bare [fnv:589fd0e7e6b542ec] :: say which text
+to_unhandled [fnv:769294ffd6316ce9] :: `to.int32` can fail (not_a_number, out_of_range): say what happens
+to_without_dot [fnv:8da39602590be550] :: `to.int32[…]`, `to.str.utf8[…]`
+true_as_func [fnv:535ae37c9ac4c8fb] :: bare `true` is the boolean, so `true[…]` is no call
+truthiness [fnv:4ba41cbcf10ca2e1] :: there is no truthiness
+two_bare_numbers [fnv:7bc354939d76583e] :: join text with `concat`, separate values with `,`
+two_points_as_point [fnv:b2efd7393835f156] :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
+type_before_name [fnv:5dc41176090cdaf6] :: a type goes after the name
+type_name_unknown [fnv:89a5ec489926ad73] :: there is no item `nosuchtype`
+types_two_prefixes [fnv:a01733d380e5e9a7] :: expected a value of the declared type (areas::Circle), found a `shapes::Circle`
+uint_negative [fnv:66ac7011902821d4] :: the value can be outside what a `uint8` holds
+unitect_missing [fnv:87d5f79ffcb7aeaf] :: `char.grapheme` is unicode's
+unknown_std [fnv:46c62b9861ef3858] :: `std::println` does not exist
+use_after_give [fnv:7b0240d30516a476] :: was given away and no longer owns anything
+useful_after_type [fnv:9996cbd34a84574b] :: `.useful` follows the verb: `to.useful.deci64[…]`
+useful_to_int [fnv:a30aee9b51a7b709] :: `to.useful` makes text or a deci
+var_keyword [fnv:aa699dd452726953] :: `var` is gone
+variadic_ellipsis_after_name [fnv:a6d51e15cd0b1ed9] :: the dots go before the name
+variadic_not_last [fnv:e0b808d1821a4725] :: the rest of the arguments go to it
+variadic_too_few [fnv:9b911531dc4f9325] :: `f` takes at least 1 argument, and 0 were given
+variadic_typed_mismatch [fnv:7d29ffc630950dd5] :: `f`'s parameter 'nums' is an `int32` and this value is text: convert it first
+vouch_not_listed [fnv:df84e03a08b9d15b] :: this kit vouches with `no_check`, and its CyJet.cyr does not list `vouch`
+vouch_not_listed_no_checks [fnv:6a2b2e44709a903a] :: this kit vouches with `NO_FUCKING_CHECKS`, and its CyJet.cyr does not list `vouch`
+walrus_with_type [fnv:5af2a4fecf1666a4] :: `:=` means the prover chooses the type, so it takes no type; with a type written, use `=`
+whichever_unhandled [fnv:86bb5570c3022d11] :: `whichever` can fail (closed) when every channel is closed, so it needs an `otherwise`
+while_keyword [fnv:eb07551a9069b239] :: `while 'x' < 3 { … }`
+wide_does_not_fit [fnv:385d629b5c9cf365] :: the value can be outside what an `int64` holds
+wide_past_in_between [fnv:663f85c9ec3ce93b] :: goes past 256 bits in between
+wide_shl_overflow [fnv:24fd0c3c5fbfa228] :: the shift can move bits out of the type
+wl_removes_code [fnv:652fb6ee6f955c44] :: 'b' is not declared
+word_op_two_kits [fnv:336891dcfa99baf6] :: `mean` could be any of `areas::mean`, `shapes::mean`: write the path
+wrap_amp_form [fnv:b1acc1385341e3b7] :: wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`
+wrap_into_bool [fnv:c689ac7fee6b711f] :: expected a value of the declared type (bool), found a whole number
+wrap_mixed_sizes [fnv:6be13d9666b31633] :: wraps at one size, and this mixes int8 and int16
+wrap_old [fnv:89c8098afbbe3355] :: `+~` is an old spelling: write `plus.wrap`
+wrap_on_bin [fnv:cafed6afa93a0c84] :: it only knows a declared integer width
+wrap_percent_form [fnv:b1acc1385341e3b7] :: wrapping arithmetic is `plus.wrap`, `minus.wrap`, `times.wrap`, `pow.wrap`
+wrap_untyped_left [fnv:1dd0601c6eead672] :: `plus.wrap` needs a width, and nothing here gives one
+wrong_arg_count [fnv:eb88fab86c650ec3] :: `one` takes 1 argument, and 2 were given
+wsmw_missing [fnv:c135fab3bfb61b07] :: `int128` is WSMW's
+wsmw_not_std_missing [fnv:737bb9a2ca26bdc9] :: a `not_std.` width is WSMW's
+wstn_emoji_fn [fnv:05b489393a3281fd] :: is not an English name: the base's names are English letters, digits and `_`
+wstn_now_broca [fnv:e4e203174655892f] :: WSTN is part of unicode since 2026-10-12: list `cyjet::limb[id = "55a2e2de
+wstn_thai_name [fnv:05b489393a3281fd] :: is not an English name: the base's names are English letters, digits and `_`

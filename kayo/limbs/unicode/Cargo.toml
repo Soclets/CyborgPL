@@ -1,0 +1,10 @@
+[package]
+name = "kayo-limb-unicode"
+version = "0.0.1"
+edition = "2021"
+description = "Broca, an official limb (design/cores.md), built into KAYO\n; empty until its step of kayo/LIMBS.md's build order"
+publish = false
+
+[lib]
+name = "kayo_limb_unicode"
+path = "src/lib.rs"

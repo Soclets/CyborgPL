@@ -1,7 +1,0 @@
-ricochet::manifest[
-    name = "virt",
-    prefix = "virt",
-    version = "0.1.0",
-    powers = [ricochet::power.vouch, ricochet::power.inline_assembly,],
-    targets = [ricochet::target[name = "aarch64-none", layout = "boards/virt.ld"],]
-];

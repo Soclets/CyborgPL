@@ -1,6 +1,0 @@
-ricochet::manifest[
-    name = "no_layout",
-    prefix = "no_layout",
-    version = "0.1.0",
-    targets = [ricochet::target[name = "aarch64-none"],]
-];

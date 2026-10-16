@@ -1,8 +1,0 @@
-# Examples that need more of std than Zomp builds in, and that run against
-# the Zag std in the repository's `std/` (owner, 2026-10-14: listing it
-# takes over `std::`). `examples_run_against_the_zag_std` builds each in a
-# strike listing `std/` by std's ID and its path, and insists it prints the
-# oracle's `.out`. They stay in examples_unbuilt.txt too: built as a lone
-# file, with the built-in std, each is still refused.
-
-argument_words
