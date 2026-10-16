@@ -133,8 +133,8 @@ MAIN {
     check let 'v33': uint8 = ((0 div.trunc 1) mod.floor 17) plus 232;
     check let 'v34': uint32 = ((((to.uint32['v33'] mod.floor 4) pow 11) or.bit (278533995 times 0)) mod.floor 311) plus 660;
     let 'v36': uint16 = match E1.c1 {
-        c1 { ((14 minus 9 plus to.uint16['v33']) mod.floor 35) plus 65501 }
-        c2 'd35' { ((((((40959 times 1) mod.floor 256) times (2 minus (to.uint16['v34'] mod.floor 3))) mod.floor 256) times 218) mod.floor 35) plus 65501 }
+        c1 { is ((14 minus 9 plus to.uint16['v33']) mod.floor 35) plus 65501; }
+        c2 'd35' { is ((((((40959 times 1) mod.floor 256) times (2 minus (to.uint16['v34'] mod.floor 3))) mod.floor 256) times 218) mod.floor 35) plus 65501; }
     };
     let mut 's37': simd[int32, 4] = simd.fill[value f1[917]];
     change 'v34' = ((((to.uint32['v36'] times ((3626913585 minus 'v34' plus 'v34') mod.floor 65536)) mod.floor 311) plus 660) mod.floor 311) plus 660;

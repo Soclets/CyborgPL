@@ -47,7 +47,7 @@ fn f1 ['pr': int32[min 0, max 8], 'p1': bool, 'p2': uint16, 'p3': uint64] -> uin
         return (to.uint8['p3' mod.floor 256] shl 0) minus ((to.uint8['pr'] plus 127) mod.floor 1);
     }
     let 'r1': uint8 = f1['pr' plus 1, 'p1' or (((117 div.floor 15) div.near (((12 mod.floor ((to.int8['pr'] mod.floor 62) minus 62)) mod.floor 62) minus 62)) not_equal ((-128) plus (((to.int8['p3' mod.floor 128] or.bit (-11)) mod.floor 127) plus 1))), 32768 plus ((('p2' times 1) mod.floor (((to.uint16[('p2' minus ('p2' mod.floor 1)) minus (('p2' plus 0) mod.floor 1)] times.wrap to.uint16['p3' mod.floor 65536]) mod.floor 43388) plus 1)) mod.floor 32768), ((to.uint64['p2'] plus 9223372036854775807) mod.floor ((to.uint64['p2'] mod.floor 10) plus 1)) mod.floor 15663594281552694135];
-    let mut 'v2': uint32[min 0, max 198] = 2 pow 4;
+    let 'v2': uint32[min 0, max 198] = 2 pow 4;
     {
         let mut 'w3': uint8 = 3;
         loop {
@@ -64,17 +64,17 @@ fn f1 ['pr': int32[min 0, max 8], 'p1': bool, 'p2': uint16, 'p3': uint64] -> uin
 
 fn f2 ['p1': uint16] -> uint16 {
     if ((49 div.floor 19) > to.uint8['p1' mod.floor 256]) and true {
-        let mut 'e4': E1 = E1.c1;
+        let 'e4': E1 = E1.c1;
         let 'v5': int16[max 100] = (to.int16['p1' mod.floor 32768] mod.floor 32767) minus 32758;
     }
     let 'v7': int32 = match E1.c1 {
-        c1 { (to.int32['p1'] mod.floor 523) minus 592 }
-        c2 'd6' { -141 }
+        c1 { is (to.int32['p1'] mod.floor 523) minus 592; }
+        c2 'd6' { is -141; }
     };
     let mut 'v8': int64 = ((to.int64[(to.int64['v7'] minus 15) minus (9223372036854775806 div.floor 4611686018427387904)] shl to.int64[(to.int64['p1'] or.bit to.int64['v7']) times (to.int64['v7'] div.trunc (-4611686018427387904))]) mod.floor 868) minus 324;
-    for !c 'i9': int64 from 9223372036854775786 to 9223372036854775807 by 2 {
+    for no_cheat 'i9': int64 from 9223372036854775786 to 9223372036854775807 by 2 {
         change 'v8' = (((to.int64[(-5054614212144933731) plus 'i9'] minus.wrap 'v8') plus (('i9' minus 'i9') mod.floor 1)) mod.floor 868) minus 324;
-        let mut 'v10': int16 = ((to.int16[('i9' mod.floor 65536) minus 32768] mod.trunc ((((to.int16['v8'] shr 13) plus (((-16384) minus to.int16['v7']) mod.floor 1)) mod.floor 3) plus 1)) mod.floor 45) plus 32723;
+        let 'v10': int16 = ((to.int16[('i9' mod.floor 65536) minus 32768] mod.trunc ((((to.int16['v8'] shr 13) plus (((-16384) minus to.int16['v7']) mod.floor 1)) mod.floor 3) plus 1)) mod.floor 45) plus 32723;
     }
     return ((('p1' plus 0) plus (('p1' div.trunc (('p1' mod.floor 7) plus 1)) mod.floor 1)) mod.floor 60) plus 65476;
 }
@@ -88,8 +88,8 @@ MAIN {
             let immut 'v14': uint16[min 111] = ('v12' mod.floor 65425) plus 111;
             put_i[to.int16['v14' mod.floor 32768]];
             let 'v16': int16[max -110] = match 'e13' {
-                c1 { ((1 times ((((-8590) plus to.int16['v12']) mod.floor 363) minus 181)) mod.floor 32658) minus 32767 }
-                c2 'd15' { ((to.int16[to.int16['d15'] minus to.int16['v14' mod.floor 32768]] shr to.int16[to.int16[to.int16['d15'] minus 17535] mod.floor 16]) mod.floor 32658) minus 32767 }
+                c1 { is ((1 times ((((-8590) plus to.int16['v12']) mod.floor 363) minus 181)) mod.floor 32658) minus 32767; }
+                c2 'd15' { is ((to.int16[to.int16['d15'] minus to.int16['v14' mod.floor 32768]] shr to.int16[to.int16[to.int16['d15'] minus 17535] mod.floor 16]) mod.floor 32658) minus 32767; }
             };
         } else if (to.int8[(-9) minus 26] and.bit 2) equal_to (-9) {
             NO_FUCKING_CHECKS let mut 'v17': int64 = (((-15) times to.int64['v12']) mod.floor 954) minus 988;
@@ -107,12 +107,12 @@ MAIN {
             c2 'd21' {
                 put_i[(-7) times (((to.int8['v12'] plus (-40)) mod.floor 23) minus 11)];
                 put_i[to.int16['v12'] times ((3 pow to.int16['v12']) mod.trunc (((to.int16['d21'] mod.floor (-32767)) mod.floor 4) plus 1))];
-                let mut 'e22': E1 = E1.c1;
+                let 'e22': E1 = E1.c1;
             }
         }
         let 'v24': uint64 = match E1.c1 {
-            c1 { ((to.uint64[0 div.floor (13170323352803615965 div.ceil 8773915497413217533)] or.bit to.uint64[(10497958590430486209 mod.floor ((to.uint64['v12'] mod.floor 8) plus 1)) mod.floor (((to.uint64['v12'] div.floor 8) mod.floor 4) plus 1)]) mod.floor 328) plus 57 }
-            c2 'd23' { ((to.uint64[(2 div.trunc ((to.uint64['v12'] mod.floor 8202440049947476054) plus 1)) div.trunc ((to.uint64['d23'] mod.floor 9612966461674267916) plus 1)] shr 15) mod.floor 328) plus 57 }
+            c1 { is ((to.uint64[0 div.floor (13170323352803615965 div.ceil 8773915497413217533)] or.bit to.uint64[(10497958590430486209 mod.floor ((to.uint64['v12'] mod.floor 8) plus 1)) mod.floor (((to.uint64['v12'] div.floor 8) mod.floor 4) plus 1)]) mod.floor 328) plus 57; }
+            c2 'd23' { is ((to.uint64[(2 div.trunc ((to.uint64['v12'] mod.floor 8202440049947476054) plus 1)) div.trunc ((to.uint64['d23'] mod.floor 9612966461674267916) plus 1)] shr 15) mod.floor 328) plus 57; }
         };
     } else {
         let 'v25': uint8 = ((to.uint8[f1[1 and.bit to.int32[405190320 minus to.int32['v12']], (('v12' not_equal 2) and.then ((47 div.floor ('v12' minus 2)) < 0)) and (to.int8['v12'] at_least (-16)), 16, to.uint64['v12']] times to.uint8['v12']] shl to.uint8[to.uint8['v12'] plus to.uint8['v12']]) mod.floor 56) plus 200;
@@ -151,8 +151,8 @@ MAIN {
             if 2 not_equal ((10922990468106277506 mod.floor ((to.uint64['d33'] mod.floor 4) plus 1)) minus (to.uint64['v12'] minus 0)) {
                 let immut 'v34': bool = (to.uint64['v12'] at_most to.uint64['v12']) or 'v11';
                 let immut 'v36': int16[min 1] = match E1.c2['d33'] {
-                    c1 { (((1 div.near (((to.int16['d33'] and.bit (-19)) mod.floor 5) plus 1)) mod.ceil ((-16383) div.ceil (((0 mod.trunc 9) mod.floor 10) plus 1))) mod.floor 32767) plus 1 }
-                    c2 'd35' { ((1 mod.floor ((-32768) plus 31630)) mod.floor 32767) plus 1 }
+                    c1 { is (((1 div.near (((to.int16['d33'] and.bit (-19)) mod.floor 5) plus 1)) mod.ceil ((-16383) div.ceil (((0 mod.trunc 9) mod.floor 10) plus 1))) mod.floor 32767) plus 1; }
+                    c2 'd35' { is ((1 mod.floor ((-32768) plus 31630)) mod.floor 32767) plus 1; }
                 };
             } else if ((2040893491 div.near ((((-752746485) mod.floor 11) mod.floor 5) plus 1)) at_most ((1494455099 plus to.int32['v12']) mod.floor 6)) and 'v11' {
                 let 'v37': uint8 = ((('d33' minus.wrap to.uint8['d33' or.bit to.uint8['v12']]) mod.floor (('d33' mod.floor 6) plus 1)) mod.floor 51) plus 100;

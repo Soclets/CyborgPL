@@ -46,12 +46,12 @@ enum E1 {
 
 fn f3 [] -> uint64[max 100] {
     let 'v9': uint16 = match E1.c2 {
-        c1 'd6' { ((0 times 16852) mod.floor 58) plus 651 }
+        c1 'd6' { is ((0 times 16852) mod.floor 58) plus 651; }
         c2 {
             return ((13 plus (3628437621139716329 plus 1)) mod.floor ((8997704354644785536 shr 42) plus (4 plus 14))) mod.floor 101;
         }
-        c3 'd7' { ((to.uint16['d7' mod.floor 65536] minus ((((to.uint16['d7' mod.floor 65536] shr 3) mod.floor 4) pow (to.uint16['d7' mod.floor 65536] mod.floor 11)) mod.floor 1)) mod.floor 58) plus 651 }
-        c4 'd8' { (('d8' times ('d8' div.floor 9)) mod.floor 58) plus 651 }
+        c3 'd7' { is ((to.uint16['d7' mod.floor 65536] minus ((((to.uint16['d7' mod.floor 65536] shr 3) mod.floor 4) pow (to.uint16['d7' mod.floor 65536] mod.floor 11)) mod.floor 1)) mod.floor 58) plus 651; }
+        c4 'd8' { is (('d8' times ('d8' div.floor 9)) mod.floor 58) plus 651; }
     };
     return 0;
 }
