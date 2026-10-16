@@ -1,3 +1,0 @@
-ricochet::manifest[
-    dependencies = [ricochet::dep[version = "0.1.0"],]
-];

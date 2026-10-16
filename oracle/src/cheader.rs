@@ -1,7 +1,7 @@
 //! `incl.C.system["stdio.h"];` / `incl.C["vendor/mylib.h"];` (owner, 2026-10-10): a C header read while
 //! building, so C's functions need no hand-written `extern.C`. The header's functions, globals and plain
 //! `#define` constants come through; a function-like macro is skipped (owner: "(a)"). The oracle asks
-//! Clang to read the header and turns each declaration it can say in Zag into the line a person would
+//! Clang to read the header and turns each declaration it can say in CyborgPL into the line a person would
 //! write: `extern.C fn strlen ['p1': ptr[uint8]] -> uint64;`, `const 'BUFSIZ' := 1024;`. Everything else
 //! (structs, unions, function pointers, `long double`, …) is left out for now, a provisional pick in the
 //! oracle's README. The parser reads the lines as if written where the `incl.C` line is.
@@ -16,7 +16,7 @@ thread_local! {
     static CACHE: std::cell::RefCell<HashMap<(bool, String, PathBuf), Result<Header, String>>> = std::cell::RefCell::new(HashMap::new());
 }
 
-/// What a header stands for: the Zag lines a person would write, and the C structs Zag only points
+/// What a header stands for: the CyborgPL lines a person would write, and the C structs CyborgPL only points
 /// at (owner, 2026-10-10: `ptr.mut[FILE]`), which have no spelling of their own.
 #[derive(Clone)]
 pub struct Header { pub lines: Vec<String>, pub opaque: Vec<String> }
@@ -49,9 +49,9 @@ fn clang(args: &[&str], input: &str, dir: &Path) -> Result<String, String> {
 
 fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
     let include = if system { format!("#include <{path}>\n") } else {
-        // a header in the strike is found from its root, as every `incl` path is
+        // a header in the kit is found from its root, as every `incl` path is
         let full = dir.join(path);
-        if !full.is_file() { return Err(format!("cannot read \"{path}\" ({}, from the strike's root)", full.display())); }
+        if !full.is_file() { return Err(format!("cannot read \"{path}\" ({}, from the kit's root)", full.display())); }
         format!("#include \"{}\"\n", full.display())
     };
     // `-fno-builtin`: Clang would otherwise declare `fread`, `calloc`, … itself and merge its own words
@@ -107,7 +107,7 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
         let cases: Vec<(String, i128)> = cases.into_iter().map(|(n, x)| { v = x.unwrap_or(v + 1); (n, v) }).collect();
         if !cases.is_empty() { enums.push((name, cases)); }
     }
-    // C's structs: each tag's fields (None when some part is beyond a plain field), and its Zag name,
+    // C's structs: each tag's fields (None when some part is beyond a plain field), and its CyborgPL name,
     // C's type name when it has one, else the tag (owner, 2026-10-10: `FILE`, `tm`)
     let mut records: HashMap<String, Option<Vec<(String, String)>>> = HashMap::new();
     let mut current: Option<(String, Option<Vec<(String, String)>>)> = None;
@@ -150,7 +150,7 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
     for (alias, target) in &td {
         if let Some(tag) = target.strip_prefix("struct ") { if good_name(alias) && !alias.starts_with('_') { names.entry(tag.to_string()).or_insert_with(|| alias.clone()); } }
     }
-    // a named enum's Zag name: C's type name for it when it has one, else its tag (as for structs)
+    // a named enum's CyborgPL name: C's type name for it when it has one, else its tag (as for structs)
     let mut enum_names: HashMap<String, String> = HashMap::new();
     for (tag, _) in enums.iter().filter_map(|(n, c)| n.as_ref().map(|n| (n, c))) {
         let alias = td.iter().find(|(a, t)| t.as_str() == format!("enum {tag}") && *a != tag && good_name(a) && !a.starts_with('_')).map(|(a, _)| a.clone());
@@ -173,7 +173,7 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
         let ty = &after[..e];
         let mut tail = &after[e + 1..];
         if let Some(d) = tail.strip_prefix(":'") { if let Some(e2) = d.find('\'') { tail = &d[e2 + 1..]; } }
-        // 2. `__attribute__((noreturn))` and its kind say nothing Zag's declaration holds (compiler claude)
+        // 2. `__attribute__((noreturn))` and its kind say nothing CyborgPL's declaration holds (compiler claude)
         let cleaned = strip_attributes(ty);
         let ty = cleaned.as_str();
         if tail.split_whitespace().any(|w| w == "static") { continue; }   // a header's own inline helpers: nothing to link
@@ -219,7 +219,7 @@ fn read(system: bool, path: &str, dir: &Path) -> Result<Header, String> {
             None => {}
         }
     }
-    // every struct of the header that has a name, whole when Zag can spell its fields, else opaque
+    // every struct of the header that has a name, whole when CyborgPL can spell its fields, else opaque
     let mut tags: Vec<&String> = records.keys().collect();
     tags.sort();
     for tag in tags { let _ = map(&format!("struct {tag}"), &mut cx, 0); }
@@ -241,24 +241,24 @@ struct Cx<'a> {
     td: &'a HashMap<String, String>,
     records: &'a HashMap<String, Option<Vec<(String, String)>>>,
     names: &'a HashMap<String, String>,
-    /// named enums: tag → Zag name
+    /// named enums: tag → CyborgPL name
     enums: &'a HashMap<String, String>,
     /// structs that come through whole: tag → its `layout.C struct` line
     layout: HashMap<String, String>,
-    /// Zag names of structs that come through opaque
+    /// CyborgPL names of structs that come through opaque
     opaque: Vec<String>,
     /// tags being worked out, so a struct that points at itself is not followed forever
     busy: Vec<String>,
 }
 
-/// A C name Zag can hold: no leading `__` (the C library's own insides). A Zag keyword is held
+/// A C name CyborgPL can hold: no leading `__` (the C library's own insides). A CyborgPL keyword is held
 /// too (owner, 2026-10-10: "(b)"): a field is read after its dot, a function reached by path.
 fn good_name(n: &str) -> bool {
     !n.is_empty() && !n.starts_with("__") && n.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
         && !n.starts_with(|c: char| c.is_ascii_digit())
 }
 
-/// A struct's Zag name: C's type name for it, else its tag; None for the C library's own (`__x`).
+/// A struct's CyborgPL name: C's type name for it, else its tag; None for the C library's own (`__x`).
 fn struct_name(tag: &str, cx: &Cx) -> Option<String> {
     let n = cx.names.get(tag).cloned().unwrap_or_else(|| tag.to_string());
     (good_name(&n) && !crate::spellings::is_reserved(&n)).then_some(n)
@@ -287,7 +287,7 @@ fn record(tag: &str, cx: &mut Cx, depth: usize, by_value: bool) -> Option<String
     if by_value { None } else { Some(name) }
 }
 
-/// `int (const char *, ...)` as an `extern.C fn` line, or None when some part has no Zag spelling yet.
+/// `int (const char *, ...)` as an `extern.C fn` line, or None when some part has no CyborgPL spelling yet.
 fn function(name: &str, ty: &str, cx: &mut Cx) -> Option<String> {
     let open = ty.find('(')?;
     if !ty.ends_with(')') || ty[..open].contains(')') { return None; }
@@ -304,17 +304,17 @@ fn function(name: &str, ty: &str, cx: &mut Cx) -> Option<String> {
     Some(format!("extern.C fn {name} [{}]{ret};", params.join(", ")))
 }
 
-/// A C type without the words that change nothing Zag can say (`restrict`, the nullability marks).
+/// A C type without the words that change nothing CyborgPL can say (`restrict`, the nullability marks).
 fn strip(t: &str) -> &str { t.trim() }
 
-/// A C type as Zag writes it at the C boundary; `const` before a pointer's target makes it `ptr`, else
+/// A C type as CyborgPL writes it at the C boundary; `const` before a pointer's target makes it `ptr`, else
 /// `ptr.mut`. `void *` points at bytes, `uint8`.
 fn map(t: &str, cx: &mut Cx, depth: usize) -> Option<String> {
     if depth > 16 { return None; }
     let mut t = t.to_string();
     for mark in ["__restrict", "restrict", "_Nullable", "_Nonnull", "_Null_unspecified", "volatile", "__unsafe_indexable", "__single"] { t = t.replace(mark, " "); }
     let t = t.split_whitespace().collect::<Vec<_>>().join(" ");
-    // a function pointer, `int (*)(const void *, const void *)`: Zag's callback type, `fn[…] -> T`
+    // a function pointer, `int (*)(const void *, const void *)`: CyborgPL's callback type, `fn[…] -> T`
     // (2026-09-21), parameters by value
     if let Some(p) = t.find("(*") {
         let close = p + t[p..].find(')')?;
@@ -346,10 +346,10 @@ fn map(t: &str, cx: &mut Cx, depth: usize) -> Option<String> {
     }
     let base = t.strip_prefix("const ").unwrap_or(&t).trim();
     if let Some(tag) = struct_tag(base, cx) { return record(&tag, cx, depth, true); }
-    // a named enum is its Zag enum (owner, 2026-10-10); one Zag has no name for is an `int`, as C's are
+    // a named enum is its CyborgPL enum (owner, 2026-10-10); one CyborgPL has no name for is an `int`, as C's are
     if let Some(tag) = base.strip_prefix("enum ") { return Some(cx.enums.get(tag.trim()).cloned().unwrap_or_else(|| "C.int".to_string())); }
     // C's machine-sized types are the `C.` types (owner, 2026-10-10), C's words kept; a type the same size
-    // everywhere is Zag's own (`int32_t` is `int32`, `double` is `bin64`)
+    // everywhere is CyborgPL's own (`int32_t` is `int32`, `double` is `bin64`)
     Some(match base {
         "char" => "C.char", "signed char" => "C.signed_char", "unsigned char" => "C.unsigned_char",
         "short" | "short int" | "signed short" | "signed short int" => "C.short", "unsigned short" | "unsigned short int" => "C.unsigned_short",
@@ -367,7 +367,7 @@ fn map(t: &str, cx: &mut Cx, depth: usize) -> Option<String> {
     }.to_string())
 }
 
-/// A `#define`'s value as a Zag literal, when it is a plain number (in decimal: C's `0644` is octal)
+/// A `#define`'s value as a CyborgPL literal, when it is a plain number (in decimal: C's `0644` is octal)
 /// or plain text; anything that names something else or computes is left out.
 fn constant(v: &str) -> Option<String> {
     let mut v = v.trim();

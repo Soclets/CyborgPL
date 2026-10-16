@@ -11,7 +11,7 @@ use crate::value::ty_name;
 
 const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1_000), ("micros", 1_000), ("milli", 1_000_000), ("millis", 1_000_000), ("second", 1_000_000_000), ("seconds", 1_000_000_000), ("minute", 60_000_000_000), ("minutes", 60_000_000_000), ("hour", 3_600_000_000_000), ("hours", 3_600_000_000_000)];
 
-// the keywords live in `spellings.zv` (owner, 2026-10-13), asked through `crate::spellings::is_reserved`
+// the keywords live in `spellings.cyr` (owner, 2026-10-13), asked through `crate::spellings::is_reserved`
 
 /// A core is listed by its registry ID and version (owner, 2026-10-06: "ID", then "`a`"); the
 /// official ones, from `openssl rand -hex 32` (owner: "yea"), all first released at `CORE_VERSION`
@@ -33,7 +33,7 @@ pub const CORE_IDS: [(&str, &str); 17] = [
     ("Money", "d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f"),
     ("UniTect", "137a9a35afc69ec6ee796bc39eeefc75680db17ce8a04443126a492812a0ae96"),
     ("CAPS", "90d0813dc72a0c7d54a4ded7a2c9577e77f0036958b245ab01808f9a8568bd01"),
-    // CNC, "CNC Not C" (owner, 2026-10-10): everything about C, the Ground keeping none of it
+    // CNC, "CNC Not C" (owner, 2026-10-10): everything about C, the base keeping none of it
     ("CNC", "04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1"),
     // unicode (owner, 2026-10-12): names and text in every human language, WSTN, UniTect and CAPS in one
     ("unicode", "55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece"),
@@ -50,10 +50,10 @@ pub const CORE_VERSION: &str = "2026-10-06T18:04:29+07:00";
 /// The manifest line that lists an official core, for a message to show
 pub fn core_line(core: &str) -> String {
     let id = CORE_IDS.iter().find(|(n, _)| *n == core).map(|(_, i)| *i).unwrap_or("");
-    format!("ricochet::plugin[id = \"{id}\", version = \"{}\"]", core_version(core))
+    format!("cyjet::limb[id = \"{id}\", version = \"{}\"]", core_version(core))
 }
 
-/// C's machine-sized types (owner, 2026-10-10: "(a)" twice): their Zag names, C's words kept
+/// C's machine-sized types (owner, 2026-10-10: "(a)" twice): their CyborgPL names, C's words kept
 pub const C_TYPES: [&str; 18] = ["char", "signed_char", "unsigned_char", "short", "unsigned_short", "int", "unsigned_int",
     "long", "unsigned_long", "long_long", "unsigned_long_long", "size_t", "ssize_t", "ptrdiff_t", "intptr_t", "uintptr_t", "wchar_t", "long_double"];
 
@@ -108,7 +108,7 @@ pub const STD_ID: &str = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d80010
 pub const STD_VERSION: &str = "2026-10-06T12:57:14+07:00";
 
 /// The operators that are std's (owner, 2026-10-05/06), as the oracle spells them inside; `and.then` and
-/// `or.else` stay Ground's, and a strike's own operators are that strike's.
+/// `or.else` stay the base's, and a kit's own operators are that kit's.
 /// The operators moved into the base on 2026-10-08 (owner: "`a`"); only `++`, which builds growing
 /// text and lists, still needs std
 fn is_std_op(op: &str) -> bool {
@@ -140,7 +140,7 @@ pub struct ParseError {
 pub struct Parser {
     toks: Vec<Token>,
     pos: usize,
-    /// the module being parsed: [] for strike.zg, ["shapes"] for shapes.zg,
+    /// the module being parsed: [] for kit.cy, ["shapes"] for shapes.cy,
     /// extended by each `module name { … }` block
     module: Vec<String>,
     /// set while parsing the type in `to.<type>[…]`: the bracket belongs to the
@@ -163,7 +163,7 @@ pub struct Parser {
     in_interface: bool,
     /// set while parsing a const's value: `incl.bytes[…]` may stand there and nowhere else (owner, 2026-10-10)
     in_const_value: bool,
-    /// set while reading the lines a C header stands for (`incl.C`): C's names may be Zag keywords
+    /// set while reading the lines a C header stands for (`incl.C`): C's names may be CyborgPL keywords
     from_c: bool,
     /// set while reading a counting loop's bounds: `to`, `before` and `by` end a bound (owner, 2026-10-12)
     in_count: bool,
@@ -175,9 +175,9 @@ pub struct Parser {
     groups: Vec<String>,
     /// captures of the anonymous function just parsed
     pending_captures: Vec<(Verb, String)>,
-    /// where `my.` points: `[]` for the strike being built, `["::geometry"]` for a dependency
+    /// where `my.` points: `[]` for the kit being built, `["::geometry"]` for a dependency
     /// loaded beside it (a segment no source can write, so the two never meet)
-    limb_root: Vec<String>,
+    kit_root: Vec<String>,
     /// inside a `test fn`'s body: `must` may appear (owner, 2026-09-29)
     in_test: bool,
     /// how many tokens the operator `binop` just read takes (`plus` 1, `times.wrap` 3, `std::pow` 3)
@@ -186,12 +186,12 @@ pub struct Parser {
     op_old: std::cell::Cell<bool>,
     /// the oracle's own stand-in functions (`op plus` as a value) are written with the symbols
     pub internal_ops: bool,
-    /// this strike's operator levels from its `precedence` block: name → (level, how a chain reads:
+    /// this kit's operator levels from its `precedence` block: name → (level, how a chain reads:
     /// 0 left first, 1 right first, 2 refused), on the language's scale (`base_level`)
     pub user_levels: std::collections::HashMap<String, (u16, u8)>,
-    /// this file's strike does not list std in its `Ricochet.zv` (owner, 2026-10-06)
+    /// this file's kit does not list std in its `CyJet.cyr` (owner, 2026-10-06)
     no_std: bool,
-    /// the official cores this file's strike does not list
+    /// the official cores this file's kit does not list
     lacks: Vec<String>,
 }
 
@@ -200,31 +200,31 @@ type PResult<T> = Result<T, ParseError>;
 thread_local! {
     /// The paths that are a type's name with its functions under it (`fn Counter.next`, 2026-10-09), not modules
     pub static TYPE_PATHS: std::cell::RefCell<Vec<Vec<String>>> = std::cell::RefCell::new(Vec::new());
-    /// Each collection template seen: (file, collection, line), for the check of what `zomp generate` wrote
+    /// Each collection template seen: (file, collection, line), for the check of what `kayo generate` wrote
     pub static TEMPLATES: std::cell::RefCell<Vec<(std::path::PathBuf, String, usize)>> = std::cell::RefCell::new(Vec::new());
     /// The file being parsed, for TEMPLATES
     pub static CURRENT_FILE: std::cell::RefCell<std::path::PathBuf> = std::cell::RefCell::new(std::path::PathBuf::new());
-    /// The folder of the strike whose file is being parsed: an `incl.…` path starts there (owner, 2026-10-10)
+    /// The folder of the kit whose file is being parsed: an `incl.…` path starts there (owner, 2026-10-10)
     pub static NEURON_DIR: std::cell::RefCell<std::path::PathBuf> = std::cell::RefCell::new(std::path::PathBuf::new());
 }
 
 thread_local! {
-    /// Every `precedence` block of the program, all its strikes' (owner, 2026-10-03: a strike's levels
+    /// Every `precedence` block of the program, all its kits' (owner, 2026-10-03: a kit's levels
     /// apply wherever its operators are used); filled by a first pass over every file (`main.rs`)
-    /// What each strike's `Ricochet.zv` does not list, by the strike's root (`[]` for the one being built,
+    /// What each kit's `CyJet.cyr` does not list, by the kit's root (`[]` for the one being built,
     /// `["::areas"]` for a dependency): `std`, and the official cores by name (owner, 2026-10-05/06:
-    /// "Limbs should say what cores they are built for"). A strike with no `Ricochet.zv` lacks nothing.
+    /// "Limbs should say what cores they are built for"). A kit with no `CyJet.cyr` lacks nothing.
     pub static LACKS: std::cell::RefCell<Vec<(Vec<String>, Vec<String>)>> = std::cell::RefCell::new(Vec::new());
-    /// Other strikes' structs and enums that may be written bare (`bare.optional` / `bare.only`): the path
-    /// as written, the canonical name, the strike's root, and whether it is `bare.only` (owner, 2026-10-06)
+    /// Other kits' structs and enums that may be written bare (`bare.optional` / `bare.only`): the path
+    /// as written, the canonical name, the kit's root, and whether it is `bare.only` (owner, 2026-10-06)
     pub static BARE_TYPES: std::cell::RefCell<Vec<(Vec<String>, String, String, bool)>> = std::cell::RefCell::new(Vec::new());
-    /// Bare type names that resolved to another strike's: (this strike's would-be name, theirs, as written,
-    /// their root), checked once every file is read, since this strike's own does not win
+    /// Bare type names that resolved to another kit's: (this kit's would-be name, theirs, as written,
+    /// their root), checked once every file is read, since this kit's own does not win
     pub static BARE_TYPE_USES: std::cell::RefCell<Vec<(String, String, String, String)>> = std::cell::RefCell::new(Vec::new());
     /// Every call written with no path: (the module it is in, the path as written, whether std may be
     /// meant, its line), checked for clashes once the program is read, whether or not it runs
     pub static BARE_CALLS: std::cell::RefCell<Vec<(Vec<String>, Vec<String>, bool, usize)>> = std::cell::RefCell::new(Vec::new());
-    /// Power uses seen while parsing (owner, 2026-10-07): the strike's root, the power's path, the thing
+    /// Power uses seen while parsing (owner, 2026-10-07): the kit's root, the power's path, the thing
     /// named, the line. C calls and C variables are found once the program is read (CALL_SITES, VAR_SITES).
     pub static POWER_USES: std::cell::RefCell<Vec<(Vec<String>, String, Option<String>, usize)>> = std::cell::RefCell::new(Vec::new());
     pub static CALL_SITES: std::cell::RefCell<Vec<(Vec<String>, Vec<String>, usize)>> = std::cell::RefCell::new(Vec::new());
@@ -233,30 +233,30 @@ thread_local! {
 }
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, from_c: false, in_count: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, from_c: false, in_count: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), kit_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, from_c: false, in_count: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), limb_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, from_c: false, in_count: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), kit_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
 
     /// A path written in this module, made canonical (from the root):
     /// `my.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
-    /// A parser for a dependency strike's file: its modules sit under `limb_root`.
-    pub fn new_in_limb(toks: Vec<Token>, module: Vec<String>, limb_root: Vec<String>) -> Self {
+    /// A parser for a dependency kit's file: its modules sit under `kit_root`.
+    pub fn new_in_kit(toks: Vec<Token>, module: Vec<String>, kit_root: Vec<String>) -> Self {
         let mut p = Parser::new_in(toks, module);
-        p.lacks = LACKS.with(|l| l.borrow().iter().find(|(r, _)| *r == limb_root).map(|(_, v)| v.clone()).unwrap_or_default());
+        p.lacks = LACKS.with(|l| l.borrow().iter().find(|(r, _)| *r == kit_root).map(|(_, v)| v.clone()).unwrap_or_default());
         p.no_std = p.lacks.iter().any(|c| c == "std");
-        p.limb_root = limb_root;
+        p.kit_root = kit_root;
         p
     }
 
-    /// What a core brings is refused in a strike whose `Ricochet.zv` does not list that core (owner, 2026-10-05:
+    /// What a core brings is refused in a kit whose `CyJet.cyr` does not list that core (owner, 2026-10-05:
     /// "Limbs should say what cores they are built for").
     fn core_missing<T>(&self, core: &str, what: &str) -> PResult<T> {
-        self.err(format!("{what} is {core}'s, and this strike's Ricochet.zv does not list the plugin {core}: add `{}` to its `plugins` ({core})", core_line(core)))
+        self.err(format!("{what} is {core}'s, and this kit's CyJet.cyr does not list the limb {core}: add `{}` to its `limbs` ({core})", core_line(core)))
     }
 
     /// A use of a power, for the check once every file is read (owner, 2026-10-07)
     fn use_power(&self, path: &str, thing: Option<String>, line: usize) {
-        POWER_USES.with(|u| u.borrow_mut().push((self.limb_root.clone(), path.to_string(), thing, line)));
+        POWER_USES.with(|u| u.borrow_mut().push((self.kit_root.clone(), path.to_string(), thing, line)));
     }
 
     /// `bare.never`, `bare.optional` or `bare.only`, at the cursor's `bare` (owner, 2026-10-06); a plain
@@ -270,7 +270,7 @@ impl Parser {
                 return self.err(format!("no `bare.{m}`: a path is `bare.never` (required), `bare.optional` or `bare.only` (forbidden)"));
             }
         }
-        self.err("say how other strikes write the path: `bare.never` (required), `bare.optional` or `bare.only` (forbidden); a plain `bare` does not say")
+        self.err("say how other kits write the path: `bare.never` (required), `bare.optional` or `bare.only` (forbidden); a plain `bare` does not say")
     }
 
     /// `case.any` / `case.exact` at the cursor (owner, 2026-10-10: "(a)"; `case.insensitive` /
@@ -288,14 +288,14 @@ impl Parser {
         }
     }
 
-    /// Everything std brings is refused in a strike whose `Ricochet.zv` does not list it (owner, 2026-10-06:
-    /// the operators, printing and the rest are std's, and a manifest lists std like any limb).
+    /// Everything std brings is refused in a kit whose `CyJet.cyr` does not list it (owner, 2026-10-06:
+    /// the operators, printing and the rest are std's, and a manifest lists std like any kit).
     fn std_missing<T>(&self, what: &str) -> PResult<T> {
-        self.err(format!("{what} is std's, and this strike's Ricochet.zv does not list std: add `ricochet::dep[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
+        self.err(format!("{what} is std's, and this kit's CyJet.cyr does not list std: add `cyjet::dep[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
     }
 
     fn resolve(&self, segs: &[String]) -> Vec<String> {
-        if segs.first().map(|s| s == "my").unwrap_or(false) { let mut out = self.limb_root.clone(); out.extend(segs[1..].iter().cloned()); return out; }
+        if segs.first().map(|s| s == "my").unwrap_or(false) { let mut out = self.kit_root.clone(); out.extend(segs[1..].iter().cloned()); return out; }
         let mut out = self.module.clone();
         out.extend(segs.iter().cloned());
         out
@@ -303,12 +303,12 @@ impl Parser {
 
     fn canonical(&self, segs: &[String]) -> String { self.resolve(segs).join(".") }
 
-    /// A struct or enum name as written: this strike's, or another strike's `bare.optional` / `bare.only` one
-    /// (owner, 2026-10-06); two other strikes' are an error where written
+    /// A struct or enum name as written: this kit's, or another kit's `bare.optional` / `bare.only` one
+    /// (owner, 2026-10-06); two other kits' are an error where written
     fn type_name(&self, segs: &[String]) -> PResult<String> {
         let own = self.canonical(segs);
         if segs.first().map_or(true, |s| s == "my") { return Ok(own); }
-        let mine = self.limb_root.first().cloned();
+        let mine = self.kit_root.first().cloned();
         let hits: Vec<(String, String)> = BARE_TYPES.with(|t| t.borrow().iter().filter(|(rel, _, root, _)| rel.as_slice() == segs && Some(root) != mine.as_ref()).map(|(_, c, r, _)| (c.clone(), r.clone())).collect());
         match hits.as_slice() {
             [] => Ok(own),
@@ -349,9 +349,9 @@ impl Parser {
         if self.is_word(w) { self.advance(); Ok(()) } else { self.err(format!("expected `{w}`, found {}", self.peek())) }
     }
 
-    /// `Ricochet.zv`: one value, `ricochet::manifest[ … ];` and nothing else (owner, 2026-10-06). `None` when the
+    /// `CyJet.cyr`: one value, `cyjet::manifest[ … ];` and nothing else (owner, 2026-10-06). `None` when the
     /// file holds something else; the fields and the line of the value otherwise.
-    /// One value and nothing after it, as `spellings.zv` holds: its shape, its fields and its line
+    /// One value and nothing after it, as `spellings.cyr` holds: its shape, its fields and its line
     pub fn one_value(&mut self) -> PResult<(String, Vec<(String, Bracket)>, usize)> {
         let b = self.rhs()?;
         self.expect(Tok::Semi, "`;` after the value")?;
@@ -363,8 +363,8 @@ impl Parser {
     }
 
     pub fn manifest(&mut self) -> PResult<Option<(Vec<(String, Bracket)>, usize)>> {
-        // the manifest's types are `ricochet::` since 2026-10-15 (owner: "(a), full in code too"); they were
-        // `kin::` (2026-10-09) and `cca::` before that, both old spellings
+        // the manifest's types are `cyjet::` since 2026-10-16 (CyborgPL's names); they were `ricochet::`
+        // (2026-10-15), `kin::` (2026-10-09) and `cca::` before that, all old spellings
         if let Some(i) = (0..self.toks.len().saturating_sub(1)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "cca") && self.toks[i + 1].tok == Tok::ColonColon) {
             self.pos = i;
             return self.err(crate::spellings::message(crate::spellings::old("cca::")));
@@ -378,11 +378,17 @@ impl Parser {
             self.pos = i;
             return self.err(crate::spellings::message(crate::spellings::old(&row)));
         }
-        // `ricochet::power.c_calls.functions["write"].except["x"]` is read whole, as text the manifest reader
+        // `ricochet::` is Zag's prefix (2026-10-15); `ricochet::plugin` names its own row
+        if let Some(i) = (0..self.toks.len().saturating_sub(2)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "ricochet") && self.toks[i + 1].tok == Tok::ColonColon) {
+            let row = if matches!(&self.toks[i + 2].tok, Tok::Word(w) if w == "plugin") { "ricochet::plugin" } else { "ricochet::" };
+            self.pos = i;
+            return self.err(crate::spellings::message(crate::spellings::old(row)));
+        }
+        // `cyjet::power.c_calls.functions["write"].except["x"]` is read whole, as text the manifest reader
         // takes apart (owner, 2026-10-07: powers narrow with `.` and name things in `[ ]`)
         let mut i = 0;
         while i + 2 < self.toks.len() {
-            if matches!(&self.toks[i].tok, Tok::Word(w) if w == "ricochet") && self.toks[i + 1].tok == Tok::ColonColon && matches!(&self.toks[i + 2].tok, Tok::Word(w) if w == "power") {
+            if matches!(&self.toks[i].tok, Tok::Word(w) if w == "cyjet") && self.toks[i + 1].tok == Tok::ColonColon && matches!(&self.toks[i + 2].tok, Tok::Word(w) if w == "power") {
                 let mut j = i + 3;
                 let mut text = String::new();
                 loop {
@@ -396,7 +402,7 @@ impl Parser {
                                     Tok::Text(t, _) => { things.push(t.clone()); j += 1; }
                                     Tok::Comma => j += 1,
                                     Tok::RBracket => { j += 1; break; }
-                                    other => { self.pos = j; return self.err(format!("a power names things as texts: `ricochet::power.c_calls[\"write\"]`, found {other}")); }
+                                    other => { self.pos = j; return self.err(format!("a power names things as texts: `cyjet::power.c_calls[\"write\"]`, found {other}")); }
                                 }
                             }
                             text.push('[');
@@ -413,23 +419,23 @@ impl Parser {
         }
         let b = self.rhs()?;
         self.expect(Tok::Semi, "`;` after the manifest")?;
-        if *self.peek() != Tok::Eof { return self.err("Ricochet.zv holds one value, the `ricochet::manifest[ … ];`, and nothing after it"); }
+        if *self.peek() != Tok::Eof { return self.err("CyJet.cyr holds one value, the `cyjet::manifest[ … ];`, and nothing after it"); }
         match b.values.as_slice() {
-            [Value::Expr(Expr::Construct(shape, fields, line))] if shape == "::ricochet.manifest" => Ok(Some((fields.clone(), *line))),
+            [Value::Expr(Expr::Construct(shape, fields, line))] if shape == "::cyjet.manifest" => Ok(Some((fields.clone(), *line))),
             _ => Ok(None),
         }
     }
 
     // program := item* Eof
-    // item := ('pub' ('.' 'limb')?)? (fn | struct | const | module) | MAIN block
+    // item := ('pub' ('.' 'kit')?)? (fn | struct | const | module) | MAIN block
     pub fn program(&mut self) -> PResult<Program> {
         let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new(), bare_marks: Vec::new(), case_marks: Vec::new() };
         // every quoted name, for finding C's variables once the program is read (owner, 2026-10-07)
-        for t in &self.toks { if let Tok::Var(v) = &t.tok { VAR_SITES.with(|vs| vs.borrow_mut().push((self.limb_root.clone(), v.clone(), t.line))); } }
-        // the root is `my.` (owner, 2026-10-06), no longer `limb.`; `pub.strike` became `pub.strike` (2026-10-09)
+        for t in &self.toks { if let Tok::Var(v) = &t.tok { VAR_SITES.with(|vs| vs.borrow_mut().push((self.kit_root.clone(), v.clone(), t.line))); } }
+        // the root is `my.` (owner, 2026-10-06), no longer `limb.`; `pub.kit` became `pub.kit` (2026-10-09)
         if let Some(i) = (0..self.toks.len().saturating_sub(1)).find(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "limb") && self.toks[i + 1].tok == Tok::Dot && (i == 0 || self.toks[i - 1].tok != Tok::Dot)) {
             self.pos = i;
-            return self.err("the root of this strike is `my.` since 2026-10-06, no longer `limb.`: `my.helper[]`, `my.'pi'`");
+            return self.err("the root of this kit is `my.` since 2026-10-06, no longer `limb.`: `my.helper[]`, `my.'pi'`");
         }
         // `&` and `!` are free to declare as custom operators (`operators.md`), so `op &`, `op !` and their use
         // between two values are not the old `&` (`lend`) or `!` (`not`): read them as operators first
@@ -469,7 +475,7 @@ impl Parser {
         // every argument after the first says its role (owner, 2026-10-14: "Seems all good"): checked here and
         // the word taken out, so the calls read as before
         self.argument_words()?;
-        // Ground's names are English letters, digits and `_`, bare or quoted (owner, 2026-10-06: "Bare
+        // the base's names are English letters, digits and `_`, bare or quoted (owner, 2026-10-06: "Bare
         // names should be English only", "English only too, crazy ones from the core"); WSTN allows every
         // script and emoji ("`b`"). Text values are not names.
         if self.lacks.iter().any(|c| c == "unicode") {
@@ -477,7 +483,7 @@ impl Parser {
                 let (name, shown) = match &self.toks[i].tok { Tok::Word(w) => (w, w.clone()), Tok::Var(v) => (v, format!("'{v}'")), _ => continue };
                 if name.is_ascii() { continue; }
                 self.pos = i;
-                return self.err(format!("`{shown}` is not an English name: Ground's names are English letters, digits and `_`; a name in another script, or an emoji, needs the plugin unicode in this strike's `plugins` (`{}`)", core_line("unicode")));
+                return self.err(format!("`{shown}` is not an English name: the base's names are English letters, digits and `_`; a name in another script, or an emoji, needs the limb unicode in this kit's `limbs` (`{}`)", core_line("unicode")));
             }
         }
         // the words a core brings (design/cores.md): ASP `to.` and `check`; IEG `nocheck` and
@@ -534,7 +540,7 @@ impl Parser {
             }
         }
         // growing lists, maps and text operations are std's; fixed arrays and text literals are
-        // Ground's (owner, 2026-10-06)
+        // the base's (owner, 2026-10-06)
         if self.no_std {
             for i in 0..self.toks.len() {
                 let Tok::Word(w) = &self.toks[i].tok else { continue };
@@ -606,7 +612,7 @@ impl Parser {
             if *self.peek() == Tok::Strict {
                 return self.err("`#strict` is gone (owner, 2026-10-07): its labels, `pos`, `count`, the types and `is` are every file's now; take the line out");
             }
-            // `case.any;` as a file's first line, `case.any [fn, struct];` in `strike.zg`
+            // `case.any;` as a file's first line, `case.any [fn, struct];` in `kit.cy`
             // (owner, 2026-10-06), as the `bare` marks are; on an item it is read with the item below
             if self.is_case_mark() && matches!(self.peek_at(3), Tok::Semi | Tok::LBracket) {
                 let line = self.line();
@@ -617,17 +623,17 @@ impl Parser {
                     if depth > 0 || started || prog.case_marks.iter().any(|m| matches!(m.target, BareTarget::File(_))) {
                         return Err(ParseError { line, col: 0, msg: "a file's `case` mark is at its top, before anything else; a block module takes `case.any module name { … }`".into() });
                     }
-                    prog.case_marks.push(CaseMark { target: BareTarget::File(self.module.clone()), insensitive, line, limb_root: self.limb_root.clone() });
+                    prog.case_marks.push(CaseMark { target: BareTarget::File(self.module.clone()), insensitive, line, kit_root: self.kit_root.clone() });
                     continue;
                 }
-                if depth > 0 || self.module != self.limb_root { return self.err("a `case` mark on kinds (`case.any [fn, struct];`) covers the whole strike, so it is written in `strike.zg`"); }
+                if depth > 0 || self.module != self.kit_root { return self.err("a `case` mark on kinds (`case.any [fn, struct];`) covers the whole kit, so it is written in `kit.cy`"); }
                 self.advance();
                 loop {
                     let kind = match self.advance().tok { Tok::Word(k) => k, other => return self.err(format!("expected a kind (`fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var`), found {other}")) };
                     if !["fn", "struct", "enum", "interface", "const", "case", "field", "var"].contains(&kind.as_str()) {
                         return self.err(format!("`{kind}` is not a kind a `case` mark covers: `fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var` (a module is marked on itself)"));
                     }
-                    prog.case_marks.push(CaseMark { target: BareTarget::Kind(kind), insensitive, line, limb_root: self.limb_root.clone() });
+                    prog.case_marks.push(CaseMark { target: BareTarget::Kind(kind), insensitive, line, kit_root: self.kit_root.clone() });
                     if *self.peek() == Tok::Comma { self.advance(); if *self.peek() == Tok::RBracket { break; } continue; }
                     break;
                 }
@@ -636,7 +642,7 @@ impl Parser {
                 continue;
             }
             // `bare.optional;` at the top of a file marks the file's module; `bare.never [fn, op];` in
-            // `strike.zg` marks kinds across the strike (owner, 2026-10-06)
+            // `kit.cy` marks kinds across the kit (owner, 2026-10-06)
             if self.is_word("bare") {
                 let line = self.line();
                 let started = !(prog.funcs.is_empty() && prog.structs.is_empty() && prog.enums.is_empty() && prog.consts.is_empty() && prog.externs.is_empty() && prog.modules.is_empty() && prog.main.is_none() && prog.interfaces.is_empty());
@@ -646,19 +652,19 @@ impl Parser {
                     if depth > 0 || started || prog.bare_marks.iter().any(|m| matches!(m.target, BareTarget::File(_))) {
                         return Err(ParseError { line, col: 0, msg: "a file's `bare` mark is its first line, before anything else; a block module takes `pub bare.… module name { … }`".into() });
                     }
-                    prog.bare_marks.push(BareMark { target: BareTarget::File(self.module.clone()), mode, line, limb_root: self.limb_root.clone() });
+                    prog.bare_marks.push(BareMark { target: BareTarget::File(self.module.clone()), mode, line, kit_root: self.kit_root.clone() });
                     continue;
                 }
                 if *self.peek() == Tok::LBracket {
-                    if depth > 0 || self.module != self.limb_root { return self.err("a `bare` mark on kinds (`bare.never [fn, op];`) covers the whole strike, so it is written in `strike.zg`"); }
+                    if depth > 0 || self.module != self.kit_root { return self.err("a `bare` mark on kinds (`bare.never [fn, op];`) covers the whole kit, so it is written in `kit.cy`"); }
                     self.advance();
                     loop {
                         let kind = match self.advance().tok { Tok::Word(k) => k, other => return self.err(format!("expected a kind (`fn`, `op`, `struct`, `enum`, `interface`), found {other}")) };
-                        if kind == "const" { return self.err("a const takes no `bare` mark: `'pi'` alone is a variable, so another strike's const always has its path (owner, 2026-10-06)"); }
+                        if kind == "const" { return self.err("a const takes no `bare` mark: `'pi'` alone is a variable, so another kit's const always has its path (owner, 2026-10-06)"); }
                         if !["fn", "op", "struct", "enum", "interface"].contains(&kind.as_str()) {
                             return self.err(format!("`{kind}` is not a kind a `bare` mark covers: `fn`, `op`, `struct`, `enum`, `interface` (a module is marked on itself)"));
                         }
-                        prog.bare_marks.push(BareMark { target: BareTarget::Kind(kind), mode, line, limb_root: self.limb_root.clone() });
+                        prog.bare_marks.push(BareMark { target: BareTarget::Kind(kind), mode, line, kit_root: self.kit_root.clone() });
                         if *self.peek() == Tok::Comma { self.advance(); if *self.peek() == Tok::RBracket { break; } continue; }
                         break;
                     }
@@ -666,7 +672,7 @@ impl Parser {
                     self.expect(Tok::Semi, "`;` after the `bare` mark")?;
                     continue;
                 }
-                return self.err("a `bare` mark is `bare.optional;` at the top of a file, `bare.optional [fn, op];` in `strike.zg`, or `pub bare.optional fn …` on an item");
+                return self.err("a `bare` mark is `bare.optional;` at the top of a file, `bare.optional [fn, op];` in `kit.cy`, or `pub bare.optional fn …` on an item");
             }
             // `on.target … { items } else { items }` at the top level: only the chosen branch's items exist
             // (owner, 2026-10-06: a compile-time choice around any code)
@@ -696,10 +702,10 @@ impl Parser {
                 let line = self.line(); pending_case = Some((self.case_mode()?, line));
                 if self.is_word("pub") { return self.err("`pub` comes first: `pub case.any fn …`"); }
                 if !matches!(self.peek(), Tok::Word(w) if ["fn", "struct", "enum", "interface", "const", "module", "op", "extern", "layout"].contains(&w.as_str())) {
-                    return self.err("a `case` mark is `case.any;` at the top of a file, `case.any [fn, struct];` in `strike.zg`, or `case.any fn …` on an item");
+                    return self.err("a `case` mark is `case.any;` at the top of a file, `case.any [fn, struct];` in `kit.cy`, or `case.any fn …` on an item");
                 }
             }
-            // visibility (decided 2026-09-19): nothing, `pub.strike`, `pub`
+            // visibility (decided 2026-09-19): nothing, `pub.kit`, `pub`
             let mut vis = Vis::Private;
             if self.is_word("pub") {
                 self.advance();
@@ -707,21 +713,23 @@ impl Parser {
                 if *self.peek() == Tok::Dot {
                     self.advance();
                     match self.advance().tok {
-                        Tok::Word(w) if w == "strike" => vis = Vis::Limb,
+                        Tok::Word(w) if w == "kit" => vis = Vis::Kit,
+                        // a library was a limb until 2026-10-09; a limb is a compiler extension since 2026-10-15
+                        Tok::Word(w) if w == "limb" => return self.err(crate::spellings::message(crate::spellings::old("pub.limb"))),
                         Tok::Word(w) if w == "bare" => return self.err("`bare` is its own word after `pub`, not a narrowing: `pub bare.optional fn …`"),
-                        other => return self.err(format!("the only narrowing of `pub` is `pub.strike` (visible in this strike only), found {other}")),
+                        other => return self.err(format!("the only narrowing of `pub` is `pub.kit` (visible in this kit only), found {other}")),
                     }
                 }
-                // `pub fn area = shapes.circle.area;` — a shorter name for other strikes (owner,
-                // 2026-09-23). The oracle runs one strike, where it has no outside to serve.
+                // `pub fn area = shapes.circle.area;` — a shorter name for other kits (owner,
+                // 2026-09-23). The oracle runs one kit, where it has no outside to serve.
                 if matches!(self.peek(), Tok::Word(k) if ["fn", "struct", "enum", "interface", "const", "module"].contains(&k.as_str()))
                     && matches!(self.peek_at(1), Tok::Word(_) | Tok::Var(_)) && *self.peek_at(2) == Tok::Eq {
-                    return self.err("`pub fn area = shapes.circle.area;` gives other strikes a shorter name; the oracle runs one strike, so it is not in the oracle yet");
+                    return self.err("`pub fn area = shapes.circle.area;` gives other kits a shorter name; the oracle runs one kit, so it is not in the oracle yet");
                 }
-                // `pub bare.optional fn …`: how other strikes write the path to this item (owner, 2026-10-06)
+                // `pub bare.optional fn …`: how other kits write the path to this item (owner, 2026-10-06)
                 if self.is_word("bare") {
                     let line = self.line();
-                    if vis == Vis::Limb { return self.err("a `bare` mark says how other strikes write the path, and a `pub.strike` thing is never reached from them"); }
+                    if vis == Vis::Kit { return self.err("a `bare` mark says how other kits write the path, and a `pub.kit` thing is never reached from them"); }
                     pending_bare = Some((self.bare_mode()?, line));
                 }
                 if self.is_case_mark() {
@@ -731,16 +739,16 @@ impl Parser {
                 }
                 match self.peek().clone() {
                     Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" || w == "interface" || w == "incl" || w == "collection" => {}
-                    Tok::Word(w) if w == "let" => return self.err("a strike-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
-                    Tok::Var(_) => return self.err("a strike-level value is a `const`, not a variable: `pub const 'x' := 1;`"),
+                    Tok::Word(w) if w == "let" => return self.err("a kit-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
+                    Tok::Var(_) => return self.err("a kit-level value is a `const`, not a variable: `pub const 'x' := 1;`"),
                     Tok::Word(w) if w == "MAIN" => return self.err("MAIN is the program's entry, never `pub`"),
                     other => return self.err(format!("`pub` goes before `fn`, `struct`, `const`, or `module`, found {other}")),
                 }
             }
             match self.peek().clone() {
-                // `test fn name [] { … }` (owner, 2026-09-29): run by `zomp test`, never called
+                // `test fn name [] { … }` (owner, 2026-09-29): run by `kayo test`, never called
                 Tok::Word(w) if w == "test" && matches!(self.peek_at(1), Tok::Word(f) if f == "fn") => {
-                    if vis != Vis::Private { return self.err("a `test fn` is never `pub`: nothing calls it, `zomp test` runs it"); }
+                    if vis != Vis::Private { return self.err("a `test fn` is never `pub`: nothing calls it, `kayo test` runs it"); }
                     self.advance();
                     self.in_test = true;
                     let f = self.func();
@@ -772,11 +780,11 @@ impl Parser {
                     let mut f = self.func()?;
                     f.vis = vis;
                     // `fn Counter.next`: the type's name is a path its functions sit under (2026-10-09); a function
-                    // with no `pub` is seen where its type is declared, here across the strike (provisional)
+                    // with no `pub` is seen where its type is declared, here across the kit (provisional)
                     if f.module.len() > self.module.len() {
                         if !prog.modules.iter().any(|m| m.path == f.module) { prog.modules.push(ModuleDef { path: f.module.clone(), vis: Vis::Pub, line: f.line }); }
                         TYPE_PATHS.with(|t| { let mut t = t.borrow_mut(); if !t.contains(&f.module) { t.push(f.module.clone()); } });
-                        if f.vis == Vis::Private { f.vis = Vis::Limb; }
+                        if f.vis == Vis::Private { f.vis = Vis::Kit; }
                     }
                     prog.funcs.push(f)
                 }
@@ -827,7 +835,7 @@ impl Parser {
                         self.advance();
                         match self.advance().tok {
                             Tok::Word(s) if s == "system" => true,
-                            other => return self.err(format!("after `incl.C` comes `.system` for the system's headers (`incl.C.system[\"stdio.h\"]`), or the bracket for a header in the strike, found {other}")),
+                            other => return self.err(format!("after `incl.C` comes `.system` for the system's headers (`incl.C.system[\"stdio.h\"]`), or the bracket for a header in the kit, found {other}")),
                         }
                     } else { false };
                     let what = if system { "incl.C.system" } else { "incl.C" };
@@ -846,16 +854,16 @@ impl Parser {
                     let dir = NEURON_DIR.with(|d| d.borrow().clone());
                     for path in paths {
                         let header = crate::cheader::lines(system, &path, &dir).map_err(|m| ParseError { line, col: 0, msg: format!("`{what}[\"{path}\"]`: {m}") })?;
-                        // a struct Zag only points at (owner, 2026-10-10: `ptr.mut[FILE]`)
+                        // a struct CyborgPL only points at (owner, 2026-10-10: `ptr.mut[FILE]`)
                         for o in &header.opaque {
                             let canonical = self.canonical(&[o.clone()]);
                             if prog.structs.iter().any(|d| d.name == canonical) { continue; }
                             prog.structs.push(StructDef { name: canonical, module: self.module.clone(), vis: vis.clone(), layout_c: true, opaque: true, params: Vec::new(), bounds: Vec::new(), fields: Vec::new(), line });
                         }
                         for text in header.lines {
-                            // each line as if written here; one Zag cannot say yet is left out, as the reader does
+                            // each line as if written here; one CyborgPL cannot say yet is left out, as the reader does
                             let Ok(toks) = crate::lexer::lex(&text) else { continue };
-                            let mut sub = Parser::new_in_limb(toks, self.module.clone(), self.limb_root.clone());
+                            let mut sub = Parser::new_in_kit(toks, self.module.clone(), self.kit_root.clone());
                             sub.from_c = true;
                             let Ok(mut part) = sub.program() else { continue };
                             for d in &mut part.structs { d.line = line; d.vis = vis.clone(); }
@@ -896,7 +904,7 @@ impl Parser {
                         self.advance();
                         while *self.peek() != Tok::RBrace {
                             if *self.peek() == Tok::Eof { return self.err("an `extern.C { … }` block is missing its `}`"); }
-                            // a line may say its own `pub` / `pub.strike`; a `pub` written on the block
+                            // a line may say its own `pub` / `pub.kit`; a `pub` written on the block
                             // overrides every line's (owner, 2026-10-02: "allow mixing, but block overrides")
                             let mut line_vis = Vis::Private;
                             if self.is_word("pub") {
@@ -905,8 +913,8 @@ impl Parser {
                                 if *self.peek() == Tok::Dot {
                                     self.advance();
                                     match self.advance().tok {
-                                        Tok::Word(w) if w == "strike" => line_vis = Vis::Limb,
-                                        other => return self.err(format!("the only narrowing of `pub` is `pub.strike` (visible in this strike only), found {other}")),
+                                        Tok::Word(w) if w == "kit" => line_vis = Vis::Kit,
+                                        other => return self.err(format!("the only narrowing of `pub` is `pub.kit` (visible in this kit only), found {other}")),
                                     }
                                 }
                             }
@@ -988,7 +996,7 @@ impl Parser {
                         other => return self.err(format!("expected a module name, found {other}")),
                     };
                     if let Err(m) = module_name_ok(&name) { return self.err(format!("`{name}` cannot name a module: {m}")); }
-                    if *self.peek() == Tok::Semi { return self.err(format!("a module is a file (`{name}.zg`) or a block (`module {name} {{ … }}`); there is no `module {name};` include line")); }
+                    if *self.peek() == Tok::Semi { return self.err(format!("a module is a file (`{name}.cy`) or a block (`module {name} {{ … }}`); there is no `module {name};` include line")); }
                     self.expect(Tok::LBrace, "`{` to open the module")?;
                     self.module.push(name);
                     prog.modules.push(ModuleDef { path: self.module.clone(), vis, line });
@@ -996,11 +1004,11 @@ impl Parser {
                     self.module.pop();
                 }
                 Tok::Word(w) if w == "MAIN" => {
-                    if self.module != self.limb_root { return self.err("MAIN lives at the root of the strike (`strike.zg`, outside any module)"); }
+                    if self.module != self.kit_root { return self.err("MAIN lives at the root of the kit (`kit.cy`, outside any module)"); }
                     if prog.main.is_some() { return self.err("a program has exactly one MAIN"); }
                     self.advance();
                     // the command line, as C hands it over: a count and the words (owner, 2026-09-29:
-                    // "low-level shit, decided"); anything friendlier is written in Zag on top
+                    // "low-level shit, decided"); anything friendlier is written in CyborgPL on top
                     if *self.peek() == Tok::LBracket {
                         self.advance();
                         let mut names = Vec::new();
@@ -1087,10 +1095,10 @@ impl Parser {
                     prog.claims.push(Claim { ty, iface: self.type_name(&segs)?, line });
                 }
                 Tok::Word(w) if w == "func" => return self.err("`func` became `fn` (2026-09-19): `fn add ['a': int32] -> int32 { … }`"),
-                Tok::Word(w) if w == "let" || w == "var" => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a strike-level value is a `const`: `const 'x' := 1;`"),
-                Tok::Var(_) => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a strike-level value is a `const`: `const 'x' := 1;`"),
+                Tok::Word(w) if w == "let" || w == "var" => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a kit-level value is a `const`: `const 'x' := 1;`"),
+                Tok::Var(_) => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a kit-level value is a `const`: `const 'x' := 1;`"),
                 Tok::Word(w) if w == "mod" => return self.err("`mod` is the remainder operator; a module block is `module name { … }`"),
-                Tok::Word(w) if w == "check" || w == "no_check" || w == "NO_FUCKING_CHECKS" => return self.err(format!("`{w}` goes in front of a statement inside a body; there is no file-wide or strike-wide tier")),
+                Tok::Word(w) if w == "check" || w == "no_check" || w == "NO_FUCKING_CHECKS" => return self.err(format!("`{w}` goes in front of a statement inside a body; there is no file-wide or kit-wide tier")),
                 Tok::RBrace => return self.err("`}` with nothing open"),
                 other => return self.err(format!("expected `fn`, `struct`, `const`, `module`, or `MAIN` at the top level, found {other}")),
             }
@@ -1107,7 +1115,7 @@ impl Parser {
                 else if prog.consts.len() > before.3 { BareTarget::Item("const".into(), prog.consts[before.3].name.clone()) }
                 else if prog.interfaces.len() > before.4 { BareTarget::Item("interface".into(), prog.interfaces[before.4].name.clone()) }
                 else { return Err(ParseError { line, col: 0, msg: "a `case` mark goes on a `fn`, `op`, `struct`, `enum`, `interface`, `const` or `module`".into() }); };
-                prog.case_marks.push(CaseMark { target, insensitive, line, limb_root: self.limb_root.clone() });
+                prog.case_marks.push(CaseMark { target, insensitive, line, kit_root: self.kit_root.clone() });
             }
             // the item a `pub bare.…` mark was written on (owner, 2026-10-06)
             if let Some((mode, line)) = pending_bare {
@@ -1122,10 +1130,10 @@ impl Parser {
                     BareTarget::Item(if f.is_op { "op".into() } else { "fn".into() }, f.module.iter().cloned().chain(std::iter::once(f.name.clone())).collect::<Vec<_>>().join("."))
                 } else if prog.structs.len() > before.1 { BareTarget::Item("struct".into(), prog.structs[before.1].name.clone()) }
                 else if prog.enums.len() > before.2 { BareTarget::Item("enum".into(), prog.enums[before.2].name.clone()) }
-                else if prog.consts.len() > before.3 { return Err(ParseError { line, col: 0, msg: "a const takes no `bare` mark: `'pi'` alone is a variable, so another strike's const always has its path (owner, 2026-10-06)".into() }); }
+                else if prog.consts.len() > before.3 { return Err(ParseError { line, col: 0, msg: "a const takes no `bare` mark: `'pi'` alone is a variable, so another kit's const always has its path (owner, 2026-10-06)".into() }); }
                 else if prog.interfaces.len() > before.4 { BareTarget::Item("interface".into(), prog.interfaces[before.4].name.clone()) }
                 else { return Err(ParseError { line, col: 0, msg: "a `bare` mark goes on a `fn`, `op`, `struct`, `enum`, `interface` or `module`".into() }); };
-                prog.bare_marks.push(BareMark { target, mode, line, limb_root: self.limb_root.clone() });
+                prog.bare_marks.push(BareMark { target, mode, line, kit_root: self.kit_root.clone() });
             }
         }
     }
@@ -1706,13 +1714,13 @@ impl Parser {
             if matches!(self.peek_at(2), Tok::Word(w) if w == "duration") { self.advance(); self.advance(); self.advance(); return Ok(Ty::Duration); }
             return self.err("the only std type the oracle knows is `std::duration`");
         }
-        // another strike's type: `geometry::Circle` (limbs.md)
+        // another kit's type: `geometry::Circle` (kits.md)
         if matches!(self.peek(), Tok::Word(w) if w != "std") && *self.peek_at(1) == Tok::ColonColon {
-            let limb = match self.advance().tok { Tok::Word(w) => w, _ => unreachable!() };
+            let kit = match self.advance().tok { Tok::Word(w) => w, _ => unreachable!() };
             self.advance();
-            let mut segs = vec![format!("::{limb}")];
+            let mut segs = vec![format!("::{kit}")];
             loop {
-                match self.advance().tok { Tok::Word(w) => segs.push(w), other => return self.err(format!("expected a type name after `{limb}::`, found {other}")) }
+                match self.advance().tok { Tok::Word(w) => segs.push(w), other => return self.err(format!("expected a type name after `{kit}::`, found {other}")) }
                 if *self.peek() == Tok::Dot { self.advance(); continue; }
                 break;
             }
@@ -1733,7 +1741,7 @@ impl Parser {
         // Rust names that are not aliases say why (owner, 2026-10-02: only the number names)
         if segs.len() == 1 {
             match segs[0].as_str() {
-                "usize" | "isize" => return self.err(format!("`{}` is as big as the machine's pointer, which no Zag type is: say the width, `{}`", segs[0], if segs[0] == "usize" { "uint64" } else { "int64" })),
+                "usize" | "isize" => return self.err(format!("`{}` is as big as the machine's pointer, which no CyborgPL type is: say the width, `{}`", segs[0], if segs[0] == "usize" { "uint64" } else { "int64" })),
                 "String" => return self.err("text is `str.utf8`; Rust's `String` is not an alias"),
                 "f128" => return self.err("there is no `bin128` (2026-09-23), so no `f128`: `std::uenr` is exact rather than wider"),
                 _ => {}
@@ -2198,10 +2206,10 @@ impl Parser {
                         // and `inline.S` were MTM's, refused before here as old spellings (MTM is gone, owner 2026-10-07)
                         Tok::Word(l) if l == "ASM" || l == "Assembly" || l == "S" => { self.use_power("inline_assembly", None, self.line()); }
                         Tok::Word(l) if l == "asm" || l == "s" || l == "assembly" => return self.err("an inline language's name is in capitals: `inline.ASM`".to_string()),
-                        Tok::Word(l) if l == "LL" || l == "LLVM" || l == "LLVM_Intermediate_Representation" => return self.err("`inline.LL`, LLVM IR in place, is the Ground's (owner, 2026-10-12, IEG being dissolved); the oracle does not read it yet"),
-                        Tok::Word(l) if l == "MSL" || l == "Metal_Shading_Language" => return self.err("`inline.MSL`, the Metal Shading Language, is the Metal plugin's (owner, 2026-10-07); the oracle does not read it yet"),
+                        Tok::Word(l) if l == "LL" || l == "LLVM" || l == "LLVM_Intermediate_Representation" => return self.err("`inline.LL`, LLVM IR in place, is the base's (owner, 2026-10-12, IEG being dissolved); the oracle does not read it yet"),
+                        Tok::Word(l) if l == "MSL" || l == "Metal_Shading_Language" => return self.err("`inline.MSL`, the Metal Shading Language, is the Metal limb's (owner, 2026-10-07); the oracle does not read it yet"),
                         Tok::Word(l) if l == "ll" || l == "msl" => return self.err(format!("an inline language's name is in capitals: `inline.{}`", l.to_uppercase())),
-                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; the inline languages are `inline.ASM` (Ground's), `inline.LL` (the Ground's) and `inline.MSL` (the Metal plugin's) (`inline.C` is possible later — LLVM ships clang)")),
+                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; the inline languages are `inline.ASM` (the base's), `inline.LL` (the base's) and `inline.MSL` (the Metal limb's) (`inline.C` is possible later — LLVM ships clang)")),
                         other => return self.err(format!("expected `ASM` after `inline.`, found {other}")),
                     }
                     let text = match self.advance().tok {
@@ -2636,7 +2644,7 @@ impl Parser {
                     self.expect(Tok::Semi, "`;` after the collection's `bare.` mark")?;
                 }
                 Tok::Word(w) if w == "for" => {
-                    // a template: what `zomp generate` reads; skipped here, its output being ordinary members below
+                    // a template: what `kayo generate` reads; skipped here, its output being ordinary members below
                     let tline = self.line();
                     let file = CURRENT_FILE.with(|f| f.borrow().clone());
                     TEMPLATES.with(|t| { let mut t = t.borrow_mut(); if !t.iter().any(|(f, _, l)| *f == file && *l == tline) { t.push((file, name.clone(), tline)); } });
@@ -2712,7 +2720,7 @@ impl Parser {
         let w = |s: &str, l: usize| Token { tok: Tok::Word(s.to_string()), line: l, col: 0, mtm: None };
         let prefix = |l: usize| -> Vec<Token> {
             let mut p = Vec::new();
-            match vis { Vis::Pub => p.push(w("pub", l)), Vis::Limb => { p.push(w("pub", l)); p.push(tk(Tok::Dot, l)); p.push(w("strike", l)); } Vis::Private => {} }
+            match vis { Vis::Pub => p.push(w("pub", l)), Vis::Kit => { p.push(w("pub", l)); p.push(tk(Tok::Dot, l)); p.push(w("kit", l)); } Vis::Private => {} }
             if let (Some(m), true) = (mode, vis != Vis::Private) {
                 p.push(w("bare", l)); p.push(tk(Tok::Dot, l));
                 p.push(w(match m { Bare::Never => "never", Bare::Optional => "optional", Bare::Only => "only" }, l));
@@ -3135,7 +3143,7 @@ impl Parser {
             if !matches!(self.peek_at(i), Tok::Word(_)) { return false; }
             match self.peek_at(i + 1) {
                 Tok::Dot if matches!(self.peek_at(i + 2), Tok::Word(_)) => { i += 2; dots += 1; }
-                Tok::Dot | Tok::LBracket | Tok::ColonColon => return false,   // a const path, a call, a strike
+                Tok::Dot | Tok::LBracket | Tok::ColonColon => return false,   // a const path, a call, a kit
                 _ => return dots >= 1,
             }
         }
@@ -3180,7 +3188,7 @@ impl Parser {
     }
 
     /// `geometry::Circle[radius = …]` or `geometry::'pi'` (not `std::`, whose calls go through `call`)
-    fn is_limb_item(&self) -> bool {
+    fn is_kit_item(&self) -> bool {
         if !matches!(self.peek(), Tok::Word(w) if w != "std") || *self.peek_at(1) != Tok::ColonColon { return false; }
         let mut i = 2;
         loop {
@@ -3254,7 +3262,7 @@ impl Parser {
         if crate::spellings::is_reserved(&first) && first != "my" && *self.peek() != Tok::ColonColon {
             return self.err(format!("`{first}` is a keyword; a function named `{first}` is reached through a path, never bare: `my.{first}[…]`"));
         }
-        let (limb, mut path) = if *self.peek() == Tok::ColonColon {
+        let (kit, mut path) = if *self.peek() == Tok::ColonColon {
             self.advance();
             let seg = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected a name after `::`, found {other}")) };
             (Some(first), vec![seg])
@@ -3265,39 +3273,39 @@ impl Parser {
             self.advance();
             match self.advance().tok { Tok::Word(w) => path.push(w), other => return self.err(format!("expected a name after `.`, found {other}")) }
         }
-        // written with no path at all: another strike's bare name may be meant (owner, 2026-10-06)
-        let bare = limb.is_none() && path[0] != "my";
+        // written with no path at all: another kit's bare name may be meant (owner, 2026-10-06)
+        let bare = kit.is_none() && path[0] != "my";
         let written = if path[0] == "my" { path[1..].to_vec() } else { path.clone() };
         // std's names come bare too (owner, 2026-10-06: std is "optional for all"), where std is listed
-        let limb = if bare && !self.no_std && (STD_BARE_HEADS.contains(&path[0].as_str()) || (path[0] == "str" && path.get(1).map_or(false, |o| STD_STR_OPS.contains(&o.as_str())))) { Some("std".to_string()) } else { limb };
+        let kit = if bare && !self.no_std && (STD_BARE_HEADS.contains(&path[0].as_str()) || (path[0] == "str" && path.get(1).map_or(false, |o| STD_STR_OPS.contains(&o.as_str())))) { Some("std".to_string()) } else { kit };
         // a print goes to stdout unless it says `.stderr` (owner, 2026-10-07: "default to out")
         let mut path = path;
-        if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && !matches!(path.last().map(|s| s.as_str()), Some("stdout" | "stderr")) {
+        if kit.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && !matches!(path.last().map(|s| s.as_str()), Some("stdout" | "stderr")) {
             path.push("stdout".into());
         }
-        // `std::print.weird.stored.stdout <- "n is " <- 'n' <- \n;` — C++'s `cout <<`, with Zag's
+        // `std::print.weird.stored.stdout <- "n is " <- 'n' <- \n;` — C++'s `cout <<`, with CyborgPL's
         // arrow pointing where the values go (owner, 2026-10-01): values follow, one per `<-`
-        if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.iter().skip(2).any(|w| w == "weird") {
+        if kit.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.iter().skip(2).any(|w| w == "weird") {
             return self.err("`.weird` comes first, the strongest modifier: `std::print.weird.useful.stdout <- …`");
         }
-        if limb.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.get(1).map(|s| s.as_str()) == Some("weird") {
+        if kit.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.get(1).map(|s| s.as_str()) == Some("weird") {
             if *self.peek() == Tok::LBracket { return self.err(format!("`std::{}` takes its values with arrows, not `[…]`: `std::{} <- \"text\" <- 'n' <- newln;`", path.join("."), path.join("."))); }
             let bline = self.line();
             let mut values = Vec::new();
             while *self.peek() == Tok::LeftArrow { self.advance(); values.push(self.value()?); }
             if values.is_empty() { return self.err(format!("`std::{}` needs at least one value: `std::{} <- \"text\";`", path.join("."), path.join("."))); }
-            return Ok(Call { handler: None, limb, path, from: self.module.clone(), args: Bracket { values, line: bline, one_list: false }, line, bare, written });
+            return Ok(Call { handler: None, kit, path, from: self.module.clone(), args: Bracket { values, line: bline, one_list: false }, line, bare, written });
         }
         if *self.peek() != Tok::LBracket {
-            let shown = match &limb { Some(l) => format!("{l}::{}", path.join(".")), None => path.join(".") };
-            if limb.is_none() && path.len() >= 2 { return self.err(format!("`{shown}`: a call needs `[…]`; an enum case with no data is written bare (`Status.empty`) — is `{}` an enum?", path[path.len() - 2])); }
+            let shown = match &kit { Some(l) => format!("{l}::{}", path.join(".")), None => path.join(".") };
+            if kit.is_none() && path.len() >= 2 { return self.err(format!("`{shown}`: a call needs `[…]`; an enum case with no data is written bare (`Status.empty`) — is `{}` an enum?", path[path.len() - 2])); }
             // `lang:let` is the 2026-09-14 spelling: say that, not "a call needs […]"
-            if limb.is_none() && shown == "lang" && *self.peek() == Tok::Colon { return self.err("`lang:` was removed (2026-09-14): keywords are bare — `let`, not `lang:let`"); }
+            if kit.is_none() && shown == "lang" && *self.peek() == Tok::Colon { return self.err("`lang:` was removed (2026-09-14): keywords are bare — `let`, not `lang:let`"); }
             return self.err(format!("`{shown}` is followed by {}; a call needs `[…]`", self.peek()));
         }
         // `print.format` reads its format text as typed, with its own escapes, in one pass
         // (owner, 2026-10-01: "Format print has its own rules"): `\\` there is one backslash
-        let raw_format = match (limb.as_deref(), path.first().map(|s| s.as_str()), path.get(1).map(|s| s.as_str()), self.peek_at(1)) {
+        let raw_format = match (kit.as_deref(), path.first().map(|s| s.as_str()), path.get(1).map(|s| s.as_str()), self.peek_at(1)) {
             (Some("std"), Some("print"), Some("format"), Tok::Text(_, raw)) => Some(raw.clone()),
             // `format[…]` makes the text `print.format` prints (owner, 2026-10-07: "`a`")
             (Some("std"), Some("format"), None, Tok::Text(_, raw)) => Some(raw.clone()),
@@ -3305,7 +3313,7 @@ impl Parser {
         };
         // `str.at.grapheme[lend 's', pos 3]`, `str.slice.grapheme[lend 's', pos 1, pos 4]`: positions say
         // `pos` (owner, 2026-10-08: "`a`, if it's correct")
-        let positional = limb.as_deref() == Some("std") && path.len() == 3 && path[0] == "str" && (path[1] == "at" || path[1] == "slice");
+        let positional = kit.as_deref() == Some("std") && path.len() == 3 && path[0] == "str" && (path[1] == "at" || path[1] == "slice");
         let mut args = if positional {
             let bline = self.line();
             self.expect(Tok::LBracket, "`[`")?;
@@ -3324,10 +3332,10 @@ impl Parser {
             Bracket { values, line: bline, one_list: false }
         } else { self.bracket()? };
         if let (Some(raw), Some(crate::ast::Value::Expr(Expr::Text(t, _)))) = (raw_format, args.values.first_mut()) { *t = raw; }
-        let path = if limb.is_none() { self.resolve(&path) } else { path };
-        if bare { BARE_CALLS.with(|b| b.borrow_mut().push((self.module.clone(), written.clone(), limb.as_deref() == Some("std"), line))); }
-        if limb.is_none() { CALL_SITES.with(|c| c.borrow_mut().push((self.limb_root.clone(), path.clone(), line))); }
-        Ok(Call { handler: None, limb, path, from: self.module.clone(), args, line, bare, written })
+        let path = if kit.is_none() { self.resolve(&path) } else { path };
+        if bare { BARE_CALLS.with(|b| b.borrow_mut().push((self.module.clone(), written.clone(), kit.as_deref() == Some("std"), line))); }
+        if kit.is_none() { CALL_SITES.with(|c| c.borrow_mut().push((self.kit_root.clone(), path.clone(), line))); }
+        Ok(Call { handler: None, kit, path, from: self.module.clone(), args, line, bare, written })
     }
 
     /// A slice's span, as a counting loop's words (owner, 2026-10-12): `, from pos 2, to pos 4`, or
@@ -3593,7 +3601,7 @@ impl Parser {
             Tok::Word(w) if w == "x" || w == "xx" => { self.op_old.set(true); Some(w.clone()) }
             Tok::Word(w) if OP_WORDS.contains(&w.as_str()) => Some(w.clone()),
             Tok::Word(w) if w == "xor" || w == "shl" || w == "shr" => Some(w.clone()),
-            // a strike's word operator with its path, `vecmath::dot`, `vecmath::dot.fast` (owner, 2026-10-02/03)
+            // a kit's word operator with its path, `vecmath::dot`, `vecmath::dot.fast` (owner, 2026-10-02/03)
             Tok::Word(p) if *self.peek_at(k + 1) == Tok::ColonColon && matches!(self.peek_at(k + 2), Tok::Word(n) if !crate::spellings::is_reserved(&n)) && !matches!(self.peek_at(k + 3), Tok::LBracket | Tok::ColonColon) => {
                 let Tok::Word(n) = self.peek_at(k + 2).clone() else { unreachable!() };
                 if *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(_)) && *self.peek_at(k + 5) != Tok::LBracket {
@@ -3642,7 +3650,7 @@ impl Parser {
         Ok(e)
     }
 
-    /// The language's own operator levels, in hundreds so a strike's levels fit between them
+    /// The language's own operator levels, in hundreds so a kit's levels fit between them
     /// (owner, 2026-10-03); 0 = no level (brackets beside any other operator).
     fn base_level(op: &str) -> u16 {
         match op {
@@ -3740,7 +3748,7 @@ impl Parser {
             let mut pin: Option<u16> = None;
             for name in names {
                 if BIT_OPS.contains(&name.as_str()) || name == "not.bit" || name == "not" {
-                    return bad(*line, format!("`{name}` has no precedence in the language, and a strike cannot give it one"));
+                    return bad(*line, format!("`{name}` has no precedence in the language, and a kit cannot give it one"));
                 }
                 let base = Parser::base_level(name);
                 if base == 0 { continue; }
@@ -3772,11 +3780,11 @@ impl Parser {
             for name in names {
                 if Parser::base_level(name) != 0 { continue; }
                 // the same block read twice (the first pass and this file's own parse) agrees with itself;
-                // two strikes giving one operator different levels do not
+                // two kits giving one operator different levels do not
                 if let Some(old) = self.user_levels.get(name) { if *old != (values[i], *chain) { return bad(*line, format!("`{name}` is in two levels")); } }
                 self.user_levels.insert(name.clone(), (values[i], *chain));
                 let clash = SHARED_LEVELS.with(|l| { let mut l = l.borrow_mut(); match l.get(name) { Some(old) if *old != (values[i], *chain) => true, _ => { l.insert(name.clone(), (values[i], *chain)); false } } });
-                if clash { return bad(*line, format!("`{name}` has a different precedence in another strike")); }
+                if clash { return bad(*line, format!("`{name}` has a different precedence in another kit")); }
             }
         }
         Ok(())
@@ -3819,7 +3827,7 @@ impl Parser {
             let (lv, chain) = self.lvl(&op);
             if lv < min || lv == 0 { break; }
             // a level whose chains are refused (owner, 2026-10-03): the language's comparisons are
-            // checked in `validate`; a strike's here
+            // checked in `validate`; a kit's here
             if chain == 2 && self.user_levels.contains_key(&op) {
                 if let Expr::Binary(prev, ..) = &lhs { if self.lvl(prev).0 == lv { return self.err(format!("`{prev}` then `{op}`: this level does not chain (`refused`) — parenthesise")); } }
             }
@@ -4144,7 +4152,7 @@ impl Parser {
                 }
                 "incl" => {
                     // incl.bytes["…"] / incl.str.utf8["…"] (owner, 2026-10-10): the file is read now, while
-                    // building, from the strike's root; text is checked against the encoding it names
+                    // building, from the kit's root; text is checked against the encoding it names
                     self.advance();
                     self.expect(Tok::Dot, "`.bytes` or `.str.…` after `incl` (`incl.bytes[\"assets/logo.png\"]`)")?;
                     let mut incl_order: Option<bool> = None;   // UTF-16 / UTF-32: low byte first?
@@ -4192,7 +4200,7 @@ impl Parser {
                         Some(e) => format!("incl.{}{}", crate::value::ty_name(&Ty::Str(e.clone())), match incl_order { Some(true) => ".low_first", Some(false) => ".high_first", None => "" }),
                     };
                     let full = NEURON_DIR.with(|d| d.borrow().join(&path));
-                    let bytes = std::fs::read(&full).map_err(|e| ParseError { line, col: 0, msg: format!("`{what}` cannot read \"{path}\" ({}, from the strike's root): {e}", full.display()) })?;
+                    let bytes = std::fs::read(&full).map_err(|e| ParseError { line, col: 0, msg: format!("`{what}` cannot read \"{path}\" ({}, from the kit's root): {e}", full.display()) })?;
                     match enc.clone() {
                         Some(Encoding::Utf8) => if let Err(e) = std::str::from_utf8(&bytes) {
                             return self.err(format!("\"{path}\" is not valid UTF-8 text (byte {} is not), so `{what}` cannot hold it; `incl.bytes` takes any file", e.valid_up_to() + 1));
@@ -4353,7 +4361,7 @@ impl Parser {
                 "true" | "false" if matches!(self.peek_at(1), Tok::LBracket) => self.err(format!("bare `{w}` is the boolean, so `{w}[…]` is no call; a function named `{w}` is reached by path: `my.{w}[…]`")),
                 "true" => { self.advance(); Ok(Expr::Bool(true, line)) }
                 "false" => { self.advance(); Ok(Expr::Bool(false, line)) }
-                "my" if !matches!(self.peek_at(1), Tok::Dot) => self.err("`my` is the root of this strike and is followed by `.`: `my.helper[]`, `my.'pi'`"),
+                "my" if !matches!(self.peek_at(1), Tok::Dot) => self.err("`my` is the root of this kit and is followed by `.`: `my.helper[]`, `my.'pi'`"),
                 "fn" => {
                     // fn [params] -> T with [lend 'v', give 'w'] { … } — an anonymous function (2026-09-21)
                     let saved_bounds = std::mem::take(&mut self.bounds);
@@ -4398,17 +4406,17 @@ impl Parser {
                     let name = match self.advance().tok { Tok::Var(v) => v, _ => unreachable!() };
                     Ok(Expr::ConstPath(self.resolve(&segs), name, self.module.clone(), line))
                 }
-                // another strike's struct or const: `geometry::Circle[radius = 2.0]`, `geometry::'pi'`
-                // (limbs.md: `::` crosses into another strike)
-                _ if self.is_limb_item() => {
-                    let limb = match self.advance().tok { Tok::Word(w) => w, _ => unreachable!() };
+                // another kit's struct or const: `geometry::Circle[radius = 2.0]`, `geometry::'pi'`
+                // (kits.md: `::` crosses into another kit)
+                _ if self.is_kit_item() => {
+                    let kit = match self.advance().tok { Tok::Word(w) => w, _ => unreachable!() };
                     self.advance(); // ::
-                    let mut segs = vec![format!("::{limb}")];
+                    let mut segs = vec![format!("::{kit}")];
                     loop {
                         match self.peek().clone() {
                             Tok::Var(v) => { self.advance(); return Ok(Expr::ConstPath(segs, v, self.module.clone(), line)); }
                             Tok::Word(w) => { self.advance(); segs.push(w); }
-                            other => return self.err(format!("expected a name after `{limb}::`, found {other}")),
+                            other => return self.err(format!("expected a name after `{kit}::`, found {other}")),
                         }
                         if *self.peek() == Tok::Dot { self.advance(); continue; }
                         break;
@@ -4460,10 +4468,10 @@ pub fn module_name_ok(name: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// Other names for Zag's types (owner, 2026-10-02): Rust's number names, and the brain
+/// Other names for CyborgPL's types (owner, 2026-10-02): Rust's number names, and the brain
 /// float's `bfloat16` / `bf16` — the only aliases a type has.
 pub fn rust_alias(name: &str) -> Option<&'static str> {
-    // Rust's names for Zag's types are old spellings in `spellings.zv`, the ones refused outside a path
+    // Rust's names for CyborgPL's types are old spellings in `spellings.cyr`, the ones refused outside a path
     if crate::spellings::loading() { return None; }
     crate::spellings::table().old.iter().find(|o| o.place == "outside a path" && o.written == name).map(|o| o.write[0].as_str())
 }

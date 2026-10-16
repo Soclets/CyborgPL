@@ -1,1 +1,1 @@
-this strike calls C (`write`), which this program denies (`deny`: `ricochet::power.c_calls.functions`)
+this kit calls C (`write`), which this program denies (`deny`: `cyjet::power.c_calls.functions`)

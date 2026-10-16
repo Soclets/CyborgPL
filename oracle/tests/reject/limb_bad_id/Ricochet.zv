@@ -1,3 +1,0 @@
-ricochet::manifest[
-    dependencies = [ricochet::dep[id = "zz", path = "../../../../examples/strikes/areas"],]
-];

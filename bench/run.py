@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Zag against every other language installed here, on the same four programs.
+"""CyborgPL against every other language installed here, on the same four programs.
 
 Each program reads N from the environment and exits with its answer's low byte, so
 nothing is worked out while compiling and every language is checked against C's
@@ -9,13 +9,13 @@ startup included; each case keeps the best of RUNS, and a run past TIMEOUT secon
 is recorded as a timeout.
 
     python3 run.py                     # every language that is installed
-    python3 run.py c rust zag          # only these
+    python3 run.py c rust cyborgpl          # only these
     python3 run.py --quick             # tiny sizes, one run: does everything build and agree?
-    python3 run.py --allow-working     # time a working build where Zomp refuses the final one
-    ZOMP=/path/to/zomp LUST=/path/to/lust python3 run.py
-    ZAG_BENCH_THREADS=10 python3 run.py   # Zag's row on every core, when nothing else runs
+    python3 run.py --allow-working     # time a working build where kayo refuses the final one
+    KAYO=/path/to/kayo LUST=/path/to/lust python3 run.py
+    CYBORGPL_BENCH_THREADS=10 python3 run.py   # CyborgPL's row on every core, when nothing else runs
 
-Zag is timed only as a final build. If Zomp refuses one (a check it cannot prove), that case is
+CyborgPL is timed only as a final build. If kayo refuses one (a check it cannot prove), that case is
 reported as refused and not timed, unless --allow-working is given; then the working build, which
 keeps run-time checks, is timed and its row says so. The run ends with a summary of anything that
 did not agree, was refused, or fell back. The tables are written to latest.md; RESULTS.md is the
@@ -35,8 +35,8 @@ if "--quick" in sys.argv:  # tiny sizes, one run: checks every language builds a
     sys.argv.remove("--quick")
     CASES = [("sum", 100_000), ("fib", 20), ("lists", 100_000), ("sieve", 100_000)]
     RUNS = 1
-_ZOMP = os.path.join(HERE, "..", "zomp", "target", "release", "zomp")
-ZOMP = os.environ.get("ZOMP", _ZOMP)
+_KAYO = os.path.join(HERE, "..", "kayo", "target", "release", "kayo")
+KAYO = os.environ.get("KAYO", _KAYO)
 LUST = os.environ.get("LUST", "lust")
 
 
@@ -61,7 +61,7 @@ def native(cmd):
     return lambda src, d, b: sh(cmd(src, os.path.join(d, b)))
 
 
-# Zomp's final builds it refused, by program, with the first line of why (2026-10-15: a refused sieve
+# kayo's final builds it refused, by program, with the first line of why (2026-10-15: a refused sieve
 # once fell back silently to a working build and passed as a final one)
 REFUSED = {}
 
@@ -70,9 +70,9 @@ class Refused(Exception):
     pass
 
 
-def zomp_build(src, d, b):
+def kayo_build(src, d, b):
     out = os.path.join(d, b)
-    r = subprocess.run([ZOMP, "build", "--final", src, "-o", out], capture_output=True, text=True)
+    r = subprocess.run([KAYO, "build", "--final", src, "-o", out], capture_output=True, text=True)
     if r.returncode == 0:
         return
     lines = [l.strip() for l in (r.stderr or r.stdout).splitlines() if l.strip()]
@@ -80,8 +80,8 @@ def zomp_build(src, d, b):
     REFUSED[b] = why
     if not ALLOW_WORKING:
         raise Refused(f"final build refused: {why}")
-    print(f"  ! {b}: Zomp refused the final build ({why}); timing a WORKING build, as --allow-working asks", flush=True)
-    sh([ZOMP, "build", src, "-o", out])
+    print(f"  ! {b}: kayo refused the final build ({why}); timing a WORKING build, as --allow-working asks", flush=True)
+    sh([KAYO, "build", src, "-o", out])
 
 
 def ocaml_build(src, d, b):
@@ -106,8 +106,8 @@ def ts_build(src, d, b):
 
 
 LANGS = {
-    "zag": (f"Zag (Zomp, final build, {os.environ.get('ZAG_BENCH_THREADS', os.environ.get('CYBORG_BENCH_THREADS', '3'))} threads)", None, "{b}.zg", zomp_build, lambda s, d, b: [os.path.join(d, b)]),
-    "zag1": ("Zag (Zomp, final build, 1 thread)", None, "{b}.zg", zomp_build, lambda s, d, b: [os.path.join(d, b)]),
+    "cyborgpl": (f"CyborgPL (kayo, final build, {os.environ.get('CYBORGPL_BENCH_THREADS', os.environ.get('CYBORG_BENCH_THREADS', '3'))} threads)", None, "{b}.cy", kayo_build, lambda s, d, b: [os.path.join(d, b)]),
+    "cyborgpl1": ("CyborgPL (kayo, final build, 1 thread)", None, "{b}.cy", kayo_build, lambda s, d, b: [os.path.join(d, b)]),
     "c": ("C (clang -O3)", "clang", "{b}.c", native(lambda s, o: ["clang", "-O3", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "asm": ("Assembly (AArch64, hand-written)", "clang", "{b}.s", native(lambda s, o: ["clang", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "cpp": ("C++ (clang++ -O3)", "clang++", "{b}.cpp", native(lambda s, o: ["clang++", "-O3", "-std=c++17", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
@@ -140,8 +140,8 @@ LANGS = {
 
 def available(key):
     label, tool, *_ = LANGS[key]
-    if key.startswith("zag"):
-        return os.path.exists(ZOMP)
+    if key.startswith("cyborgpl"):
+        return os.path.exists(KAYO)
     if key == "lust":
         return shutil.which(LUST) is not None or os.path.exists(LUST)
     return shutil.which(tool) is not None
@@ -151,8 +151,8 @@ def available(key):
 # its plain code. It gets this session's share, 3 threads, and a second row pins it to 1.
 # `CYBORG_BENCH_THREADS=10 python3 run.py` gives it every core, when nothing else is running
 # (owner, 2026-10-06: "uncapped")
-ZAG_THREADS = os.environ.get("ZAG_BENCH_THREADS", os.environ.get("CYBORG_BENCH_THREADS", "3"))
-THREADS = {"zag": ZAG_THREADS, "zag1": "1"}
+CYBORGPL_THREADS = os.environ.get("CYBORGPL_BENCH_THREADS", os.environ.get("CYBORG_BENCH_THREADS", "3"))
+THREADS = {"cyborgpl": CYBORGPL_THREADS, "cyborgpl1": "1"}
 
 
 def run_once(cmd, n, lust, key=""):
@@ -171,9 +171,9 @@ def run_once(cmd, n, lust, key=""):
     return took, r.returncode
 
 
-def zomp_version():
+def kayo_version():
     try:
-        return subprocess.run([ZOMP, "version"], capture_output=True, text=True).stdout.strip().splitlines()[0]
+        return subprocess.run([KAYO, "version"], capture_output=True, text=True).stdout.strip().splitlines()[0]
     except Exception:
         return "unknown version"
 
@@ -182,8 +182,8 @@ def main():
     want = [a.lower() for a in sys.argv[1:]] or list(LANGS)
     keys = [k for k in LANGS if k in want and available(k)]
     missing = [k for k in LANGS if k in want and not available(k)]
-    if any(k.startswith("zag") for k in keys):
-        print(f"Zomp: {ZOMP} ({zomp_version()}); Zag's own row on {ZAG_THREADS} threads; "
+    if any(k.startswith("cyborgpl") for k in keys):
+        print(f"kayo: {KAYO} ({kayo_version()}); CyborgPL's own row on {CYBORGPL_THREADS} threads; "
               f"{'working builds allowed where the final build is refused' if ALLOW_WORKING else 'final builds only'}", flush=True)
     print(f"Best of {RUNS} runs each, checked against C's answer.\n", flush=True)
     os.makedirs(BUILD, exist_ok=True)
@@ -247,7 +247,7 @@ def summary(results):
         return
     for k, n, st in wrong: print(f"  WRONG ANSWER  {k} {n}: {st}")
     for k, n, st in refused: print(f"  REFUSED       {k} {n}: {st} (not timed)")
-    for n in fell_back: print(f"  WORKING BUILD zag {n}: final build refused ({REFUSED[n]}); its rows are marked")
+    for n in fell_back: print(f"  WORKING BUILD cyborgpl {n}: final build refused ({REFUSED[n]}); its rows are marked")
     for k, n, st in failed: print(f"  BUILD FAILED  {k} {n}: {st}")
     print("  Tables in latest.md.")
 
@@ -259,15 +259,15 @@ def write_results(keys, missing, results):
              f"from process start to exit (startup included); runs past {TIMEOUT} s are timeouts. "
              "Every answer is checked against C's.", ""]
     for name, n in CASES:
-        lines += [f"## {name} (N = {n:,})", "", "| Language | Time | vs Zag |", "|---|---|---|"]
-        base = results.get(("zag", name), (None,))[0]
+        lines += [f"## {name} (N = {n:,})", "", "| Language | Time | vs CyborgPL |", "|---|---|---|"]
+        base = results.get(("cyborgpl", name), (None,))[0]
         rows = []
         for key in keys:
             t, status = results.get((key, name), (None, "not run"))
             if isinstance(t, float) and status == "ok":
                 rel = f"{t / base:.2f}×" if isinstance(base, float) else "—"
                 label = LANGS[key][0]
-                if key.startswith("zag") and name in REFUSED:
+                if key.startswith("cyborgpl") and name in REFUSED:
                     label = label.replace("final build", "**working build**: the final build was refused") 
                 rows.append((t, f"| {label} | {t:.3f} s | {rel} |"))
             else:

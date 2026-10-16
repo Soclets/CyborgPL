@@ -1,4 +1,4 @@
-//! `oracle file.zg` — run a Zag program the slow, obvious way.
+//! `oracle file.cy` — run a CyborgPL program the slow, obvious way.
 //!
 //! This is the reference interpreter: the executable specification. It knows
 //! exactly what `design/` has decided and refuses everything else with a
@@ -32,44 +32,44 @@ thread_local! {
     /// `oracle --generate <path>`: write the templates' generated parts instead of running
     static GENERATE: std::cell::Cell<bool> = std::cell::Cell::new(false);
     /// The first pass over a program's files reads only their `precedence` blocks (owner, 2026-10-03:
-    /// a strike's levels apply wherever its operators are used)
+    /// a kit's levels apply wherever its operators are used)
     static LEVELS_ONLY: std::cell::Cell<bool> = std::cell::Cell::new(false);
 }
 
-/// Parse one file of the strike rooted at `limb_root` (`[]` for the strike being built).
-fn parse_file_in(path: &Path, module: Vec<String>, limb_root: Vec<String>) -> Result<ast::Program, String> {
+/// Parse one file of the kit rooted at `kit_root` (`[]` for the kit being built).
+fn parse_file_in(path: &Path, module: Vec<String>, kit_root: Vec<String>) -> Result<ast::Program, String> {
     let src = std::fs::read_to_string(path).map_err(|e| format!("{}: cannot read: {e}", path.display()))?;
     let mut toks = lexer::lex(&src).map_err(|e| format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg))?;
-    case::rewrite(&mut toks, &limb_root, &module);
-    // the strike's folder, where an `incl.…` path starts (owner, 2026-10-10): up from the file's own folder
-    // once per module level below the root (`ui/header.zg` is `ui.header`, one folder down)
+    case::rewrite(&mut toks, &kit_root, &module);
+    // the kit's folder, where an `incl.…` path starts (owner, 2026-10-10): up from the file's own folder
+    // once per module level below the root (`ui/header.cy` is `ui.header`, one folder down)
     let mut dir = path.parent().map(Path::to_path_buf).unwrap_or_default();
-    for _ in 0..(module.len().saturating_sub(limb_root.len())).saturating_sub(1) { dir.pop(); }
-    // a file named bare (`oracle t.zg`) has the empty path as its folder, which is "here" (compiler claude)
+    for _ in 0..(module.len().saturating_sub(kit_root.len())).saturating_sub(1) { dir.pop(); }
+    // a file named bare (`oracle t.cy`) has the empty path as its folder, which is "here" (compiler claude)
     if dir.as_os_str().is_empty() { dir = PathBuf::from("."); }
     parser::NEURON_DIR.with(|d| *d.borrow_mut() = dir);
-    if LEVELS_ONLY.with(|f| f.get()) && path.file_name().map_or(true, |n| n != "Ricochet.zv") {
-        parser::Parser::new_in_limb(toks, module, limb_root).scan_levels()
+    if LEVELS_ONLY.with(|f| f.get()) && path.file_name().map_or(true, |n| n != "CyJet.cyr") {
+        parser::Parser::new_in_kit(toks, module, kit_root).scan_levels()
             .map_err(|e| format!("{}: line {}: {}", path.display(), e.line, e.msg))?;
         return Ok(ast::Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new(), bare_marks: Vec::new(), case_marks: Vec::new() });
     }
     parser::CURRENT_FILE.with(|f| *f.borrow_mut() = path.to_path_buf());
-    let r = parser::Parser::new_in_limb(toks, module.clone(), limb_root.clone()).program()
+    let r = parser::Parser::new_in_kit(toks, module.clone(), kit_root.clone()).program()
         .map_err(|e| if e.col == 0 { format!("{}: line {}: {}", path.display(), e.line, e.msg) } else { format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg) })?;
     // a file with collection templates is kept for the check of its generated parts (owner, 2026-10-13)
     if parser::TEMPLATES.with(|t| t.borrow().iter().any(|(f, _, _)| f == path)) {
         generate::PENDING.with(|p| {
             let mut p = p.borrow_mut();
             p.retain(|x| x.path != path);
-            p.push(generate::Pending { path: path.to_path_buf(), src: src.clone(), module, limb_root });
+            p.push(generate::Pending { path: path.to_path_buf(), src: src.clone(), module, kit_root });
         });
     }
     Ok(r)
 }
 
-/// A strike is a directory: `strike.zg` is the root; every other `.zg` file is
+/// A kit is a directory: `kit.cy` is the root; every other `.cy` file is
 /// a module named after it, directories nesting (decided 2026-09-19). A lone
-/// `.zg` file is a strike of one root file.
+/// `.cy` file is a kit of one root file.
 fn load(path: &Path) -> Result<ast::Program, String> {
     // first every file's `precedence` blocks, then the program with all of them known
     parser::SHARED_LEVELS.with(|l| l.borrow_mut().clear());
@@ -82,7 +82,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     let first = load_files(path);
     LEVELS_ONLY.with(|f| f.set(false));
     first?;
-    // then the program once to learn which of other strikes' structs and enums may be written bare
+    // then the program once to learn which of other kits' structs and enums may be written bare
     // (owner, 2026-10-06), and again with that known
     parser::BARE_TYPES.with(|t| t.borrow_mut().clear());
     let once = load_files(path)?;
@@ -101,7 +101,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     parser::BARE_TYPES.with(|t| *t.borrow_mut() = bare_types);
     parser::BARE_TYPE_USES.with(|u| u.borrow_mut().clear());
     parser::BARE_CALLS.with(|b| b.borrow_mut().clear());
-    LIMB_POWERS.with(|l| l.borrow_mut().clear());
+    KIT_POWERS.with(|l| l.borrow_mut().clear());
     parser::POWER_USES.with(|u| u.borrow_mut().clear());
     parser::CALL_SITES.with(|u| u.borrow_mut().clear());
     parser::VAR_SITES.with(|u| u.borrow_mut().clear());
@@ -128,7 +128,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
         let own = prog.funcs.iter().any(|f| f.module == own_module && Some(&f.name) == written.last() && !f.is_op);
         let mine = from.first().filter(|r| r.starts_with("::")).cloned();
         let mut who: Vec<String> = Vec::new();
-        if own { who.push(format!("`my.{}` (this strike's)", own_module.iter().filter(|m| !m.starts_with("::")).chain(written.last()).cloned().collect::<Vec<_>>().join("."))); }
+        if own { who.push(format!("`my.{}` (this kit's)", own_module.iter().filter(|m| !m.starts_with("::")).chain(written.last()).cloned().collect::<Vec<_>>().join("."))); }
         if std { who.push(format!("`std::{shown}`")); }
         for f in &prog.funcs {
             let Some(root) = f.module.first().filter(|r| r.starts_with("::")) else { continue };
@@ -139,30 +139,30 @@ fn load(path: &Path) -> Result<ast::Program, String> {
         }
         if who.len() > 1 { return Err(format!("{}: line {line}: `{shown}` could be any of {}: write the path", path.display(), who.join(", "))); }
     }
-    // this strike's own struct or enum does not win over another strike's bare one (owner, 2026-10-06: "no")
+    // this kit's own struct or enum does not win over another kit's bare one (owner, 2026-10-06: "no")
     for (own, theirs, written, root) in parser::BARE_TYPE_USES.with(|u| u.borrow().clone()) {
         if prog.structs.iter().any(|d| d.name == own) || prog.enums.iter().any(|d| d.name == own) || prog.interfaces.iter().any(|d| d.name == own) {
             let _ = theirs;
-            return Err(format!("{}: `{written}` could be any of `my.{written}` (this strike's), `{}::{written}`: write the path", path.display(), match root.trim_start_matches("::") { "std" => "std", r => r }));
+            return Err(format!("{}: `{written}` could be any of `my.{written}` (this kit's), `{}::{written}`: write the path", path.display(), match root.trim_start_matches("::") { "std" => "std", r => r }));
         }
     }
     Ok(prog)
 }
 
-/// A strike whose `Ricochet.zv` does not list std or a core reaches none of it (owner, 2026-10-05/06). One with no
-/// `Ricochet.zv` gets what the machine's package installed, and the oracle stands in for the full package.
+/// A kit whose `CyJet.cyr` does not list std or a core reaches none of it (owner, 2026-10-05/06). One with no
+/// `CyJet.cyr` gets what the machine's package installed, and the oracle stands in for the full package.
 /// A power as a manifest names it (owner, 2026-10-07): its path, the things named in `[ ]`, and for a
 /// `deny` its `.except[ … ]` and `.for[ … ]`.
 #[derive(Clone, Debug, Default)]
 struct PowerRef { path: Vec<String>, things: Vec<String>, except: Vec<String>, for_: Vec<String> }
 
-/// Each strike's manifest, as the power check needs it: its root, prefix, cores, listed powers and denies.
-struct LimbPowers { root: Vec<String>, prefix: String, cores: Vec<String>, powers: Vec<PowerRef>, deny: Vec<PowerRef> }
+/// Each kit's manifest, as the power check needs it: its root, prefix, cores, listed powers and denies.
+struct KitPowers { root: Vec<String>, prefix: String, cores: Vec<String>, powers: Vec<PowerRef>, deny: Vec<PowerRef> }
 
 thread_local! {
     /// the `powers` and `deny` of the manifest just read
     static MANIFEST_POWERS: std::cell::RefCell<Option<(Vec<PowerRef>, Vec<PowerRef>)>> = std::cell::RefCell::new(None);
-    static LIMB_POWERS: std::cell::RefCell<Vec<LimbPowers>> = std::cell::RefCell::new(Vec::new());
+    static KIT_POWERS: std::cell::RefCell<Vec<KitPowers>> = std::cell::RefCell::new(Vec::new());
 }
 
 /// `c_calls.functions["write"].except["x"]`, as the parser turned it into text
@@ -184,20 +184,20 @@ fn parse_power(text: &str) -> Result<PowerRef, String> {
         if word == "except" || word == "for" { last = Some(word.to_string()); } else { p.path.push(word.to_string()); last = None; }
         rest = &r[end..];
     }
-    if p.path.is_empty() { return Err("a power names its path: `ricochet::power.c_calls`".into()); }
+    if p.path.is_empty() { return Err("a power names its path: `cyjet::power.c_calls`".into()); }
     Ok(p)
 }
 
-/// A file under an old name, and the name it has now: Zag's names (owner, 2026-10-15: "Yeah, go now"),
-/// Nerve's (2026-10-09) before them
+/// A file under an old name, and the name it has now: CyborgPL's names (owner, 2026-10-16), Zag's
+/// (2026-10-15) and Nerve's (2026-10-09) before them
 fn renamed_file(name: &str) -> Option<String> {
     Some(match name {
-        "neuron.nrv" | "limb.cpls" => "strike.zg".into(),
-        "Kinesin.nrp" | "CCA.cplr" => "Ricochet.zv".into(),
-        "build.nrv" | "build.cplr" => "build.zg".into(),
-        "nerve_version.nrp" => "zag_version.zv".into(),
+        "strike.zg" | "neuron.nrv" | "limb.cpls" => "kit.cy".into(),
+        "Ricochet.zv" | "Kinesin.nrp" | "CCA.cplr" => "CyJet.cyr".into(),
+        "build.zg" | "build.nrv" | "build.cplr" => "build.cy".into(),
+        "zag_version.zv" | "nerve_version.nrp" => "cy_ver.cyr".into(),
         _ => {
-            for (old, new) in [(".nrv", ".zg"), (".cpls", ".zg"), (".nrp", ".zv")] {
+            for (old, new) in [(".zg", ".cy"), (".zv", ".cyr"), (".nrv", ".cy"), (".cpls", ".cy"), (".nrp", ".cyr"), (".cplr", ".cyr")] {
                 if let Some(stem) = name.strip_suffix(old) { return Some(format!("{stem}{new}")); }
             }
             return None;
@@ -206,10 +206,10 @@ fn renamed_file(name: &str) -> Option<String> {
 }
 
 fn mark_lacks(dir: &Path, root: &[String]) -> Result<(), String> {
-    if !dir.join("Ricochet.zv").is_file() { return Ok(()); }
+    if !dir.join("CyJet.cyr").is_file() { return Ok(()); }
     let (prefix, deps, cores) = read_manifest(dir)?;
     let (powers, deny) = MANIFEST_POWERS.with(|m| m.borrow_mut().take()).unwrap_or_default();
-    LIMB_POWERS.with(|l| l.borrow_mut().push(LimbPowers { root: root.to_vec(), prefix: prefix.unwrap_or_default(), cores: cores.clone(), powers, deny }));
+    KIT_POWERS.with(|l| l.borrow_mut().push(KitPowers { root: root.to_vec(), prefix: prefix.unwrap_or_default(), cores: cores.clone(), powers, deny }));
     let mut lacks: Vec<String> = OFFICIAL_CORES.iter().filter(|c| !cores.iter().any(|x| x == *c)).map(|c| c.to_string()).collect();
     if !deps.iter().any(Dep::is_std) { lacks.push("std".into()); }
     parser::LACKS.with(|n| n.borrow_mut().push((root.to_vec(), lacks)));
@@ -219,25 +219,25 @@ fn mark_lacks(dir: &Path, root: &[String]) -> Result<(), String> {
 fn load_files(path: &Path) -> Result<ast::Program, String> {
     if path.is_file() {
         if let Some(new) = path.file_name().and_then(|n| renamed_file(&n.to_string_lossy())) { return Err(format!("{}: the old ending: rename the file to `{new}`", path.display())); }
-        if path.extension().map(|x| x != "zg").unwrap_or(true) { return Err("oracle: a Zag source file ends in .zg".into()); }
+        if path.extension().map(|x| x != "cy").unwrap_or(true) { return Err("oracle: a CyborgPL source file ends in .cy".into()); }
         return parse_file(path, Vec::new());
     }
-    if !path.is_dir() { return Err(format!("oracle: {} is neither a .zg file nor a strike directory", path.display())); }
+    if !path.is_dir() { return Err(format!("oracle: {} is neither a .cy file nor a kit directory", path.display())); }
     mark_lacks(path, &[])?;
-    let mut prog = load_limb(path, Vec::new())?;
-    // the strikes it depends on, from its `Ricochet.zv` (owner, 2026-09-29), each under a root of its own
+    let mut prog = load_kit(path, Vec::new())?;
+    // the kits it depends on, from its `CyJet.cyr` (owner, 2026-09-29), each under a root of its own
     let mut loaded: Vec<(String, PathBuf)> = Vec::new();
     load_deps(path, &mut prog, &mut loaded, &mut Vec::new())?;
     Ok(prog)
 }
 
-/// One strike directory, its modules under `root` (`[]` for the strike being built).
-fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
-    for old in ["limb.cpls", "neuron.nrv", "Kinesin.nrp", "CCA.cplr"] {
+/// One kit directory, its modules under `root` (`[]` for the kit being built).
+fn load_kit(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
+    for old in ["strike.zg", "Ricochet.zv", "limb.cpls", "neuron.nrv", "Kinesin.nrp", "CCA.cplr"] {
         if path.join(old).is_file() { return Err(format!("{}: `{old}` has the old name: rename it to `{}`", path.display(), renamed_file(old).unwrap())); }
     }
-    let rootfile = path.join("strike.zg");
-    if !rootfile.is_file() { return Err(format!("{}: a strike directory needs its root file, strike.zg", path.display())); }
+    let rootfile = path.join("kit.cy");
+    if !rootfile.is_file() { return Err(format!("{}: a kit directory needs its root file, kit.cy", path.display())); }
     let mut prog = parse_file_in(&rootfile, root.clone(), root.clone())?;
     let mut files = Vec::new();
     collect(path, &mut Vec::new(), &mut files)?;
@@ -256,7 +256,7 @@ fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
         }
         prog.modules.push(ast::ModuleDef { path: module.clone(), vis: ast::Vis::Pub, line: 0 });
         let part = parse_file_in(&file, module, root.clone())?;
-        if part.main.is_some() { return Err(format!("{}: MAIN lives in strike.zg, the root of the strike", file.display())); }
+        if part.main.is_some() { return Err(format!("{}: MAIN lives in kit.cy, the root of the kit", file.display())); }
         prog.funcs.extend(part.funcs);
         prog.structs.extend(part.structs);
         prog.consts.extend(part.consts);
@@ -272,28 +272,28 @@ fn load_limb(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
     Ok(prog)
 }
 
-/// A dependency from `Ricochet.zv`: `ricochet::dep[path = "../geometry"]` (or an `id` and `version`, from
-/// the registry, which the oracle cannot fetch). It names no word: code writes the strike's own 'prefix'.
+/// A dependency from `CyJet.cyr`: `cyjet::dep[path = "../geometry"]` (or an `id` and `version`, from
+/// the registry, which the oracle cannot fetch). It names no word: code writes the kit's own 'prefix'.
 struct Dep { what: String, path: Option<String>, version: Option<String>, id: Option<String> }
 
 impl Dep { fn is_std(&self) -> bool { self.id.as_deref() == Some(parser::STD_ID) } }
 
-/// The official cores (design/cores.md, 2026-10-06). Another core is a Rust plugin, which the oracle
+/// The official cores (design/cores.md, 2026-10-06). Another core is a Rust limb, which the oracle
 /// cannot load.
 const OFFICIAL_CORES: [&str; 10] = ["MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan", "AI", "WSMW", "Money", "CNC", "unicode"];
 
 use parser::CORE_IDS;
 
-/// Read a strike's `Ricochet.zv`: one Zag value, `ricochet::manifest[ … ]` (owner, 2026-10-06: "`c`. It may
+/// Read a kit's `CyJet.cyr`: one CyborgPL value, `cyjet::manifest[ … ]` (owner, 2026-10-06: "`c`. It may
 /// not look as complex, but at least it's not much of a roleplay"), replacing 2026-09-29's one `const`
-/// per setting. Returns its 'prefix' (none when there is no `Ricochet.zv`), its dependencies and its cores.
+/// per setting. Returns its 'prefix' (none when there is no `CyJet.cyr`), its dependencies and its cores.
 fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), String> {
-    let file = dir.join("Ricochet.zv");
+    let file = dir.join("CyJet.cyr");
     if !file.is_file() { return Ok((None, Vec::new(), Vec::new())); }
     let shown = file.display();
     let src = std::fs::read_to_string(&file).map_err(|e| format!("{shown}: cannot read: {e}"))?;
     let toks = lexer::lex(&src).map_err(|e| format!("{shown}: line {}:{}: {}", e.line, e.col, e.msg))?;
-    let one = "Ricochet.zv is one value: `ricochet::manifest[name = \"shop\", prefix = \"shop\", version = \"1.0.0\", targets = [ricochet::target[name = \"aarch64-macos\"],]];`";
+    let one = "CyJet.cyr is one value: `cyjet::manifest[name = \"shop\", prefix = \"shop\", version = \"1.0.0\", targets = [cyjet::target[name = \"aarch64-macos\"],]];`";
     if matches!(toks.first().map(|t| &t.tok), Some(lexer::Tok::Word(w)) if w == "const" || w == "pub") {
         return Err(format!("{shown}: line {}: settings are no longer `const`s (2026-10-06): {one}", toks[0].line));
     }
@@ -318,10 +318,10 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
             // strict: the module-name rule (owner, 2026-09-30: "strict"), though code writes the prefix
             "name" => {
                 let n = text(value).ok_or_else(|| format!("{shown}: line {line}: `name` is a text: `name = \"shop\"`"))?;
-                parser::module_name_ok(&n).map_err(|m| format!("{shown}: line {line}: `{n}` cannot name a strike: {m}"))?;
+                parser::module_name_ok(&n).map_err(|m| format!("{shown}: line {line}: `{n}` cannot name a kit: {m}"))?;
                 name = true;
             }
-            // the word code writes in front of `::` to reach this strike, its maker's pick (owner, 2026-09-29: b, "required")
+            // the word code writes in front of `::` to reach this kit, its maker's pick (owner, 2026-09-29: b, "required")
             "prefix" => {
                 let p = text(value).ok_or_else(|| format!("{shown}: line {line}: `prefix` is a text: `prefix = \"shop\"`"))?;
                 parser::module_name_ok(&p).map_err(|m| format!("{shown}: line {line}: `{p}` cannot be a prefix, written in code as `{p}::`: {m}"))?;
@@ -329,12 +329,12 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
             }
             "version" => {
                 let v = text(value).ok_or_else(|| format!("{shown}: line {line}: `version` is a text"))?;
-                // any text, at most 256 bytes, as in Synthia.ttsr (owner, 2026-09-29: "256 bytes it is"; for Ricochet.zv: "same")
+                // any text, at most 256 bytes, as in Synthia.ttsr (owner, 2026-09-29: "256 bytes it is"; for CyJet.cyr: "same")
                 if v.len() > 256 { return Err(format!("{shown}: line {line}: `version` is at most 256 bytes, and this one is {}", v.len())); }
                 has_version = true;
             }
-            "target" => return Err(format!("{shown}: line {line}: a strike builds for several targets, so the field is `targets`: `targets = [ricochet::target[name = \"aarch64-macos\"],]`")),
-            // several targets, each with its settings (owner, 2026-09-29): Zomp's package manager can do
+            "target" => return Err(format!("{shown}: line {line}: a kit builds for several targets, so the field is `targets`: `targets = [cyjet::target[name = \"aarch64-macos\"],]`")),
+            // several targets, each with its settings (owner, 2026-09-29): kayo's package manager can do
             // whatever Synthia can, in its plainer way
             "targets" => {
                 let items = items(value);
@@ -343,8 +343,8 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                 let mut defaults = 0;
                 let mut names = Vec::new();
                 for it in items {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a target is `ricochet::target[name = …]`, with a `runner` if it has one")) };
-                    if shape != "::ricochet.target" { return Err(format!("{shown}: line {line}: a target is a `ricochet::target`")); }
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a target is `cyjet::target[name = …]`, with a `runner` if it has one")) };
+                    if shape != "::cyjet.target" { return Err(format!("{shown}: line {line}: a target is a `cyjet::target`")); }
                     if !fields.iter().any(|(f, _)| f == "name") { return Err(format!("{shown}: line {line}: a target needs its `name`")); }
                     for (f, b) in &fields {
                         // the one built when none is named (owner, 2026-09-29: b)
@@ -353,41 +353,41 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                                 _ => return Err(format!("{shown}: line {line}: `default` is `true` or `false`")) }
                             continue;
                         }
-                        if f != "name" && f != "runner" { return Err(format!("{shown}: line {line}: a `ricochet::target` has no `{f}`; it has `name`, `runner` and `default`")); }
+                        if f != "name" && f != "runner" { return Err(format!("{shown}: line {line}: a `cyjet::target` has no `{f}`; it has `name`, `runner` and `default`")); }
                         let t = text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
                         if f == "name" { names.push((t, line)); }
                     }
                 }
                 if count > 1 && defaults != 1 { return Err(format!("{shown}: line {line}: with several targets, exactly one says `default = true` — the one built when none is named ({defaults} do)")); }
-                // only a target Zomp can build (owner, 2026-09-30: "refuse", as Synthia.ttsr's "Only what's
-                // actually doable"); the one list is Zomp's
+                // only a target kayo can build (owner, 2026-09-30: "refuse", as Synthia.ttsr's "Only what's
+                // actually doable"); the one list is kayo's
                 let doable: Vec<&str> = include_str!("../../zomp/targets.txt").lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).collect();
                 for (t, line) in names {
-                    if !doable.contains(&t.as_str()) { return Err(format!("{shown}: line {line}: `{t}` is not a target Zomp can build; it builds for {}", doable.iter().map(|d| format!("`{d}`")).collect::<Vec<_>>().join(", "))); }
+                    if !doable.contains(&t.as_str()) { return Err(format!("{shown}: line {line}: `{t}` is not a target kayo can build; it builds for {}", doable.iter().map(|d| format!("`{d}`")).collect::<Vec<_>>().join(", "))); }
                 }
             }
             "dependencies" => {
                 for it in items(value) {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a dependency is `ricochet::dep[path = …]` or `ricochet::dep[id = …, version = …]`")) };
-                    if shape != "::ricochet.dep" { return Err(format!("{shown}: line {line}: a dependency is a `ricochet::dep`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a dependency is `cyjet::dep[path = …]` or `cyjet::dep[id = …, version = …]`")) };
+                    if shape != "::cyjet.dep" { return Err(format!("{shown}: line {line}: a dependency is a `cyjet::dep`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
                     let mut d = Dep { what: String::new(), path: None, version: None, id: None };
                     for (f, b) in &fields {
-                        // two strikes with one prefix are an error, fixed by editing a strike's source (owner, 2026-09-29:
+                        // two kits with one prefix are an error, fixed by editing a kit's source (owner, 2026-09-29:
                         // "Just edit the source code"), so a dependency names no word
-                        if f == "name" || f == "prefix" { return Err(format!("{shown}: line {line}: a dependency names no word: code writes the strike's own 'prefix', from its `Ricochet.zv`")); }
+                        if f == "name" || f == "prefix" { return Err(format!("{shown}: line {line}: a dependency names no word: code writes the kit's own 'prefix', from its `CyJet.cyr`")); }
                         let t = text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
                         match f.as_str() { "path" => d.path = Some(t), "version" => d.version = Some(t), "id" => d.id = Some(t),
-                            other => return Err(format!("{shown}: line {line}: a `ricochet::dep` has no `{other}`; it has `path`, or `id` and `version`")) }
+                            other => return Err(format!("{shown}: line {line}: a `cyjet::dep` has no `{other}`; it has `path`, or `id` and `version`")) }
                     }
-                    d.what = match (&d.path, &d.id) { (Some(p), _) => format!("the strike at `{p}`"), (None, Some(i)) => format!("the strike `{}…`", &i[..i.len().min(8)]), _ => "the dependency".into() };
+                    d.what = match (&d.path, &d.id) { (Some(p), _) => format!("the kit at `{p}`"), (None, Some(i)) => format!("the kit `{}…`", &i[..i.len().min(8)]), _ => "the dependency".into() };
                     if d.path.is_some() == d.version.is_some() { return Err(format!("{shown}: line {line}: a dependency says where it comes from once: a `path` on this machine, or an `id` and `version` from the registry")); }
-                    // the registry knows a strike by its ID, never its name (owner, 2026-09-29): names may repeat
+                    // the registry knows a kit by its ID, never its name (owner, 2026-09-29): names may repeat
                     // an ID is 64 hex digits wherever it is written (the owner's definition; compiler claude, 2026-09-29)
                     if let Some(i) = &d.id {
                         if i.len() != 64 || !i.bytes().all(|b| b.is_ascii_hexdigit()) { return Err(format!("{shown}: line {line}: an id is 64 hex digits, 256 random bits")); }
                     }
-                    if d.version.is_some() && d.id.is_none() { return Err(format!("{shown}: line {line}: a `version` comes from the registry, which knows a strike by its ID: `id = \"…\"`, 64 hex digits")); }
-                    // std is listed like any limb, by its ID and version; Zomp uses the installed copy when they
+                    if d.version.is_some() && d.id.is_none() { return Err(format!("{shown}: line {line}: a `version` comes from the registry, which knows a kit by its ID: `id = \"…\"`, 64 hex digits")); }
+                    // std is listed like any kit, by its ID and version; kayo uses the installed copy when they
                     // match (owner, 2026-10-06), and the oracle stands in for that copy
                     if d.is_std() {
                         if deps.iter().any(|x: &Dep| x.is_std()) { return Err(format!("{shown}: line {line}: std is listed twice")); }
@@ -397,85 +397,86 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     deps.push(d);
                 }
             }
-            // the cores a strike is built for (owner, 2026-10-05: "Limbs should say what cores they are built
+            // the cores a kit is built for (owner, 2026-10-05: "Limbs should say what cores they are built
             // for"), each by its registry ID and version, or a `path` for one never registered (2026-10-06)
-            // a core is a plugin (owner, 2026-10-09); `cores` and `ricochet::Core` are the old spellings
+            // a core is a limb (owner, 2026-10-09); `cores` and `cyjet::Core` are the old spellings
             "cores" => return Err(format!("{shown}: line {line}: {}", spellings::message(spellings::old("cores")))),
             "lobes" => return Err(format!("{shown}: line {line}: {}", spellings::message(spellings::old("lobes")))),
-            "plugins" => {
+            "plugins" => return Err(format!("{shown}: line {line}: {}", spellings::message(spellings::old("plugins")))),
+            "limbs" => {
                 for it in items(value) {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a plugin is `ricochet::plugin[id = \"…\", version = \"…\"]`")) };
-                    if shape != "::ricochet.plugin" { return Err(format!("{shown}: line {line}: a plugin is a `ricochet::plugin`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a limb is `cyjet::limb[id = \"…\", version = \"…\"]`")) };
+                    if shape != "::cyjet.limb" { return Err(format!("{shown}: line {line}: a limb is a `cyjet::limb`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
                     let (mut id, mut version, mut cpath) = (None, None, None);
                     for (f, b) in &fields {
-                        let t = text(b).ok_or_else(|| format!("{shown}: line {line}: a plugin's `{f}` is a text"))?;
+                        let t = text(b).ok_or_else(|| format!("{shown}: line {line}: a limb's `{f}` is a text"))?;
                         match f.as_str() {
                             "id" => id = Some(t), "version" => version = Some(t), "path" => cpath = Some(t),
-                            "name" => return Err(format!("{shown}: line {line}: a plugin is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `ricochet::plugin[id = \"…\", version = \"…\"]`{}", CORE_IDS.iter().find(|(n, _)| *n == t).map(|(n, i)| format!("; {n}'s is `{i}`")).unwrap_or_default())),
-                            other => return Err(format!("{shown}: line {line}: a `ricochet::plugin` has no `{other}`; it has `id` and `version`, or a `path`")),
+                            "name" => return Err(format!("{shown}: line {line}: a limb is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `cyjet::limb[id = \"…\", version = \"…\"]`{}", CORE_IDS.iter().find(|(n, _)| *n == t).map(|(n, i)| format!("; {n}'s is `{i}`")).unwrap_or_default())),
+                            other => return Err(format!("{shown}: line {line}: a `cyjet::limb` has no `{other}`; it has `id` and `version`, or a `path`")),
                         }
                     }
                     if cpath.is_some() {
-                        if id.is_some() || version.is_some() { return Err(format!("{shown}: line {line}: a plugin says where it comes from once: an `id` and `version` from the registry, or a `path` on this machine")); }
-                        return Err(format!("{shown}: line {line}: the plugin at `{}` is not registered, so not verified; loading another plugin is not built yet (a Rust plugin, which the oracle cannot load)", cpath.unwrap()));
+                        if id.is_some() || version.is_some() { return Err(format!("{shown}: line {line}: a limb says where it comes from once: an `id` and `version` from the registry, or a `path` on this machine")); }
+                        return Err(format!("{shown}: line {line}: the limb at `{}` is not registered, so not verified; loading another limb is not built yet (a Rust limb, which the oracle cannot load)", cpath.unwrap()));
                     }
-                    let id = id.ok_or_else(|| format!("{shown}: line {line}: a plugin needs its `id` (64 hex digits) and `version`"))?;
+                    let id = id.ok_or_else(|| format!("{shown}: line {line}: a limb needs its `id` (64 hex digits) and `version`"))?;
                     if id.len() != 64 || !id.bytes().all(|b| b.is_ascii_hexdigit()) { return Err(format!("{shown}: line {line}: an id is 64 hex digits, 256 random bits")); }
-                    let version = version.ok_or_else(|| format!("{shown}: line {line}: a plugin needs its `version`, as a registry limb does"))?;
-                    if id == parser::MTM_ID { return Err(format!("{shown}: line {line}: MTM is gone (owner, 2026-10-07): every other spelling is refused, naming the one to write; take this plugin out")); }
+                    let version = version.ok_or_else(|| format!("{shown}: line {line}: a limb needs its `version`, as a registry kit does"))?;
+                    if id == parser::MTM_ID { return Err(format!("{shown}: line {line}: MTM is gone (owner, 2026-10-07): every other spelling is refused, naming the one to write; take this limb out")); }
                     let Some((core, _)) = CORE_IDS.iter().find(|(_, i)| *i == id) else {
-                        return Err(format!("{shown}: line {line}: the plugin `{}…` is not an official one; loading another plugin is not built yet (a Rust plugin, which the oracle cannot load)", &id[..8]));
+                        return Err(format!("{shown}: line {line}: the limb `{}…` is not an official one; loading another limb is not built yet (a Rust limb, which the oracle cannot load)", &id[..8]));
                     };
-                    // ASP and Genny folded into the base (owner, 2026-10-08: "`a`" to both); their IDs no longer name a plugin
-                    if *core == "ASP" || *core == "Genny" { return Err(format!("{shown}: line {line}: {core} is retired: since 2026-10-08 it is part of the Ground, Zag's base; take it out of `plugins`")); }
-                    // the plugins regrouped by expertise (owner, 2026-10-12): IEG and TAS dissolved into the Ground,
+                    // ASP and Genny folded into the base (owner, 2026-10-08: "`a`" to both); their IDs no longer name a limb
+                    if *core == "ASP" || *core == "Genny" { return Err(format!("{shown}: line {line}: {core} is retired: since 2026-10-08 it is part of the base; take it out of `limbs`")); }
+                    // the limbs regrouped by expertise (owner, 2026-10-12): IEG and TAS dissolved into the base,
                     // WSTN, UniTect and CAPS joined into unicode
-                    if *core == "IEG" || *core == "TAS" { return Err(format!("{shown}: line {line}: {core} is retired: since 2026-10-12 it is part of the Ground, Zag's base; take it out of `plugins`")); }
+                    if *core == "IEG" || *core == "TAS" { return Err(format!("{shown}: line {line}: {core} is retired: since 2026-10-12 it is part of the base; take it out of `limbs`")); }
                     if ["WSTN", "UniTect", "CAPS"].contains(core) { return Err(format!("{shown}: line {line}: {core} is part of unicode since 2026-10-12: list `{}` instead", parser::core_line("unicode"))); }
                     let want = parser::core_version(core);
                     if version != want { return Err(format!("{shown}: line {line}: the oracle stands in for {core} `{want}` only, the installed one; this asks for `{version}`")); }
                     let core = core.to_string();
-                    if cores.contains(&core) { return Err(format!("{shown}: line {line}: the plugin {core} is listed twice")); }
+                    if cores.contains(&core) { return Err(format!("{shown}: line {line}: the limb {core} is listed twice")); }
                     cores.push(core);
                 }
             }
-            // the powers a strike uses, and what the program takes away (owner, 2026-10-07)
+            // the powers a kit uses, and what the program takes away (owner, 2026-10-07)
             "powers" | "deny" => {
                 let mut list = Vec::new();
                 for it in items(value) {
-                    let ast::Expr::Text(t, _) = &it else { return Err(format!("{shown}: line {line}: a power is `ricochet::power.c_calls`, narrowed with `.` and naming things in `[ ]`")) };
-                    let Some(text) = t.strip_prefix("power:") else { return Err(format!("{shown}: line {line}: a power is `ricochet::power.c_calls`, not a text")) };
+                    let ast::Expr::Text(t, _) = &it else { return Err(format!("{shown}: line {line}: a power is `cyjet::power.c_calls`, narrowed with `.` and naming things in `[ ]`")) };
+                    let Some(text) = t.strip_prefix("power:") else { return Err(format!("{shown}: line {line}: a power is `cyjet::power.c_calls`, not a text")) };
                     let pw = parse_power(text).map_err(|m| format!("{shown}: line {line}: {m}"))?;
-                    if f == "powers" && (!pw.except.is_empty() || !pw.for_.is_empty()) { return Err(format!("{shown}: line {line}: `.except` and `.for` belong to `deny`; `powers` lists what this strike uses")); }
+                    if f == "powers" && (!pw.except.is_empty() || !pw.for_.is_empty()) { return Err(format!("{shown}: line {line}: `.except` and `.for` belong to `deny`; `powers` lists what this kit uses")); }
                     list.push(pw);
                 }
                 if f == "powers" { powers_seen = list; } else { deny_seen = list; }
             }
-            other => return Err(format!("{shown}: line {line}: a `ricochet::manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies`, `plugins`, `powers` and `deny`")),
+            other => return Err(format!("{shown}: line {line}: a `cyjet::manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies`, `limbs`, `powers` and `deny`")),
         }
     }
-    // a build needs the strike's name, version and a target; only publishing needs more (owner, 2026-09-29:
+    // a build needs the kit's name, version and a target; only publishing needs more (owner, 2026-09-29:
     // "yea", matching Synthia.ttsr)
-    let why = "a build needs the strike's `name`, `prefix`, `version` and at least one target";
+    let why = "a build needs the kit's `name`, `prefix`, `version` and at least one target";
     if !name { return Err(format!("{shown}: line {mline}: the manifest has no `name`: {why}: `name = \"shop\"`")); }
-    if prefix.is_none() { return Err(format!("{shown}: line {mline}: the manifest has no `prefix`, the word code writes in front of `::` to reach this strike: {why}: `prefix = \"shop\"`")); }
+    if prefix.is_none() { return Err(format!("{shown}: line {mline}: the manifest has no `prefix`, the word code writes in front of `::` to reach this kit: {why}: `prefix = \"shop\"`")); }
     if !has_version { return Err(format!("{shown}: line {mline}: the manifest has no `version`: {why}: `version = \"1.0.0\"`")); }
-    if targets == 0 { return Err(format!("{shown}: line {mline}: the manifest has no target: {why}: `targets = [ricochet::target[name = \"aarch64-macos\"],]`")); }
+    if targets == 0 { return Err(format!("{shown}: line {mline}: the manifest has no target: {why}: `targets = [cyjet::target[name = \"aarch64-macos\"],]`")); }
     // std needed ASP and IEG until 2026-10-08, when the operators and ASP's number rules moved into
-    // the base (owner: "`a`" to both); it needs no plugin now (design claude's reading)
+    // the base (owner: "`a`" to both); it needs no limb now (design claude's reading)
     // cores depend on cores (owner, 2026-10-05); MCPS "Needs IEG, not std" (owner, 2026-10-06)
-    // MCPS needed IEG until 2026-10-12, when IEG was dissolved into the Ground
+    // MCPS needed IEG until 2026-10-12, when IEG was dissolved into the base
     MANIFEST_POWERS.with(|m| *m.borrow_mut() = Some((powers_seen, deny_seen)));
     Ok((prefix, deps, cores))
 }
 
-/// Load every strike `dir` depends on, and theirs, each once, under `::prefix`.
+/// Load every kit `dir` depends on, and theirs, each once, under `::prefix`.
 fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, PathBuf)>, chain: &mut Vec<PathBuf>) -> Result<(), String> {
     let (_, deps, _) = read_manifest(dir)?;
     let here = dir.canonicalize().map_err(|e| format!("{}: {e}", dir.display()))?;
     chain.push(here);
     for d in deps {
-        let here_file = dir.join("Ricochet.zv");
+        let here_file = dir.join("CyJet.cyr");
         if d.is_std() { continue; }
         let Some(rel) = &d.path else {
             return Err(format!("{}: {} comes from the registry; the oracle takes `path` dependencies only", here_file.display(), d.what));
@@ -483,20 +484,20 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
         let depdir = dir.join(rel);
         let canon = depdir.canonicalize().map_err(|_| format!("{}: a dependency is at `{rel}`, and there is no directory there", here_file.display()))?;
         if chain.contains(&canon) { return Err(format!("{}: {} depends, through its dependencies, on itself", here_file.display(), d.what)); }
-        if !depdir.join("Ricochet.zv").is_file() { return Err(format!("{}: {} has no `Ricochet.zv`, so no 'prefix' for code to reach it by", here_file.display(), d.what)); }
+        if !depdir.join("CyJet.cyr").is_file() { return Err(format!("{}: {} has no `CyJet.cyr`, so no 'prefix' for code to reach it by", here_file.display(), d.what)); }
         let (Some(prefix), _, _) = read_manifest(&depdir)? else { unreachable!() };
-        // a strike may pick `std` or `cca`; it just clashes with the built-in one (owner, 2026-09-29)
+        // a kit may pick `std` or `cca`; it just clashes with the built-in one (owner, 2026-09-29)
         // `std` is the built-in's name since 2026-10-09; `std` (2026-10-07) and `std` are its old ones, refused in code
-        if ["std", "stdkit", "cord", "cca", "kin", "ricochet"].contains(&prefix.as_str()) { return Err(format!("{}: {} has the prefix `{prefix}`, which names the built-in `{}::`; edit its 'prefix'", here_file.display(), d.what, if prefix == "cca" { "cca" } else { "std" })); }
+        if ["std", "stdkit", "cord", "cca", "kin", "cyjet"].contains(&prefix.as_str()) { return Err(format!("{}: {} has the prefix `{prefix}`, which names the built-in `{}::`; edit its 'prefix'", here_file.display(), d.what, if prefix == "cca" { "cca" } else { "std" })); }
         if let Some((_, p)) = loaded.iter().find(|(n, _)| *n == prefix) {
-            if *p != canon { return Err(format!("{}: two strikes have the prefix `{prefix}` ({} and {}); edit one strike's 'prefix'", here_file.display(), p.display(), canon.display())); }
+            if *p != canon { return Err(format!("{}: two kits have the prefix `{prefix}` ({} and {}); edit one kit's 'prefix'", here_file.display(), p.display(), canon.display())); }
             continue;
         }
         loaded.push((prefix.clone(), canon.clone()));
         let root = vec![format!("::{prefix}")];
         mark_lacks(&depdir, &root)?;
-        let mut dep = load_limb(&depdir, root.clone())?;
-        // a dependency's MAIN never runs: only the strike being built has one (the oracle's reading)
+        let mut dep = load_kit(&depdir, root.clone())?;
+        // a dependency's MAIN never runs: only the kit being built has one (the oracle's reading)
         dep.main = None;
         dep.main_args = None;
         prog.modules.push(ast::ModuleDef { path: root, vis: ast::Vis::Pub, line: 0 });
@@ -509,9 +510,9 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
     Ok(())
 }
 
-/// The power check (owner, 2026-10-07): each use is granted (Ground grants the dangerous powers to
-/// every limb, IEG grants vouching and the operator powers to the limbs that list it), listed in the
-/// using strike's `powers`, and not taken away by the program's `deny`. A strike with no `Ricochet.zv` has
+/// The power check (owner, 2026-10-07): each use is granted (the base grants the dangerous powers to
+/// every kit, IEG grants vouching and the operator powers to the kits that list it), listed in the
+/// using kit's `powers`, and not taken away by the program's `deny`. A kit with no `CyJet.cyr` has
 /// every power, and nothing is checked.
 fn check_powers(prog: &ast::Program) -> Result<(), String> {
     use ast::Ty;
@@ -523,7 +524,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
             uses.push((root, "c_calls.functions".into(), name.first().cloned(), line));
         }
     }
-    // C variables: a quoted name that is an extern variable of the same strike
+    // C variables: a quoted name that is an extern variable of the same kit
     for (root, name, line) in parser::VAR_SITES.with(|c| c.borrow().clone()) {
         let in_root = |m: &[String]| m.first().filter(|r| r.starts_with("::")).cloned().into_iter().collect::<Vec<_>>() == root;
         if prog.externs.iter().any(|e| e.name == name && in_root(&e.module)) { uses.push((root, "c_calls.variables".into(), Some(name), line)); }
@@ -537,13 +538,13 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
             uses.push((root, what.into(), Some(f.name.rsplit('.').next().unwrap_or(&f.name).to_string()), f.line));
         }
     }
-    LIMB_POWERS.with(|lp| {
+    KIT_POWERS.with(|lp| {
         let lp = lp.borrow();
         let program = lp.iter().find(|l| l.root.is_empty());
         for (root, path, thing, line) in uses {
-            let Some(limb) = lp.iter().find(|l| l.root == root) else { continue };
+            let Some(kit) = lp.iter().find(|l| l.root == root) else { continue };
             let segs: Vec<&str> = path.split('.').collect();
-            let who = if root.is_empty() { "this strike".to_string() } else { format!("`{}`", limb.prefix) };
+            let who = if root.is_empty() { "this kit".to_string() } else { format!("`{}`", kit.prefix) };
             let what = match (segs[0], segs.get(1).copied(), &thing) {
                 ("inline_assembly", _, _) => "runs assembly (`inline.ASM`)".to_string(),
                 ("c_calls", Some("functions"), Some(t)) => format!("calls C (`{t}`)"),
@@ -554,23 +555,23 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
                 (_, _, Some(t)) => format!("defines the operator `{t}` on built-in types"),
                 _ => format!("uses `{path}`"),
             };
-            let at = if root.is_empty() { format!("line {line}") } else { format!("line {line} of `{}`", limb.prefix) };
-            // 1. granted: every power here is the Ground's to every limb since IEG was dissolved into it
+            let at = if root.is_empty() { format!("line {line}") } else { format!("line {line} of `{}`", kit.prefix) };
+            // 1. granted: every power here is the base's to every kit since IEG was dissolved into it
             // (owner, 2026-10-12), vouching and the operator powers included
-            // 2. listed by the strike
+            // 2. listed by the kit
             let covers = |p: &PowerRef| p.path.len() <= segs.len() && p.path.iter().zip(&segs).all(|(a, b)| a == b) && (p.things.is_empty() || thing.as_ref().map_or(false, |t| p.things.contains(t)));
-            if !limb.powers.iter().any(covers) {
-                return Err(format!("{at}: {who} {what}, and its Ricochet.zv does not list `{}`: add `ricochet::power.{}` to its `powers`", segs[0], segs[0]));
+            if !kit.powers.iter().any(covers) {
+                return Err(format!("{at}: {who} {what}, and its CyJet.cyr does not list `{}`: add `cyjet::power.{}` to its `powers`", segs[0], segs[0]));
             }
             // 3. not denied by the program
-            if let Some(prog_limb) = program {
-                for d in &prog_limb.deny {
+            if let Some(prog_kit) = program {
+                for d in &prog_kit.deny {
                     let path_ok = d.path.len() <= segs.len() && d.path.iter().zip(&segs).all(|(a, b)| a == b);
                     let things_ok = d.things.is_empty() || thing.as_ref().map_or(false, |t| d.things.contains(t));
-                    let for_ok = d.for_.is_empty() || d.for_.contains(&limb.prefix);
+                    let for_ok = d.for_.is_empty() || d.for_.contains(&kit.prefix);
                     let except_hit = thing.as_ref().map_or(false, |t| d.except.contains(t));
                     if path_ok && things_ok && for_ok && !except_hit {
-                        return Err(format!("{at}: {who} {what}, which this program denies (`deny`: `ricochet::power.{}`)", d.path.join(".")));
+                        return Err(format!("{at}: {who} {what}, which this program denies (`deny`: `cyjet::power.{}`)", d.path.join(".")));
                     }
                 }
             }
@@ -579,7 +580,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
     })
 }
 
-/// Every `pub` thing says how other strikes write its path, on itself, its module or its kind, and the
+/// Every `pub` thing says how other kits write its path, on itself, its module or its kind, and the
 /// marks that cover it agree (owner, 2026-10-06: "I don't think there should be a default"; "`c`").
 /// Every type a signature, field, payload, const or C variable names is declared somewhere, even in
 /// a function nothing calls (found 2026-10-07: `fn f ['v': nosuchtype] { }` ran).
@@ -795,7 +796,7 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
     Ok(unkept)
 }
 
-/// A C struct Zag never looks inside (owner, 2026-10-10: `ptr.mut[FILE]`) is only pointed at: held
+/// A C struct CyborgPL never looks inside (owner, 2026-10-10: `ptr.mut[FILE]`) is only pointed at: held
 /// anywhere else (a parameter, a return, a field, a variable, a list's element) it is refused, in code
 /// that runs or not, since holding it needs its size, which is C's own (compiler claude's reading).
 fn check_opaque_held(prog: &ast::Program) -> Result<(), String> {
@@ -939,7 +940,7 @@ fn check_bare(prog: &ast::Program) -> Result<std::collections::HashMap<String, a
     for d in &prog.interfaces { if d.vis == Vis::Pub { items.push(("interface", &d.name, d.module.clone(), d.line)); } }
     for (kind, name, module, line) in items {
         let root: Vec<String> = match module.first() { Some(r) if r.starts_with("::") => vec![r.clone()], _ => Vec::new() };
-        // `shapes.area` in this strike, `areas::shapes.area` in a dependency
+        // `shapes.area` in this kit, `areas::shapes.area` in a dependency
         let last = name.rsplit('.').next().unwrap_or(name);
         let mut segs: Vec<String> = module.iter().map(|m| m.trim_start_matches("::").to_string()).collect();
         segs.push(last.to_string());
@@ -948,18 +949,18 @@ fn check_bare(prog: &ast::Program) -> Result<std::collections::HashMap<String, a
             BareTarget::Item(k, n) => k == kind && *n == module.iter().map(String::as_str).chain(std::iter::once(last)).collect::<Vec<_>>().join("."),
             BareTarget::Block(p) => module.starts_with(p),
             BareTarget::File(p) => module.starts_with(p) && (p.len()..module.len()).all(|i| block(&module[..=i])),
-            BareTarget::Kind(k) => k == kind && m.limb_root == root,
+            BareTarget::Kind(k) => k == kind && m.kit_root == root,
         }).collect();
         let Some(first) = covering.first() else {
-            return Err(format!("line {line}: `{kind} {shown}` is `pub`, and nothing says how other strikes write its path: mark it (`pub bare.never {kind} …`), its module, or its kind in `strike.zg` (`bare.never [{kind}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default"));
+            return Err(format!("line {line}: `{kind} {shown}` is `pub`, and nothing says how other kits write its path: mark it (`pub bare.never {kind} …`), its module, or its kind in `kit.cy` (`bare.never [{kind}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default"));
         };
         if let Some(other) = covering.iter().find(|m| m.mode != first.mode) {
             return Err(format!("line {line}: `{kind} {shown}` is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error", word(first.mode), crate::interp::line_of(first.line), word(other.mode), crate::interp::line_of(other.line)));
         }
         marks.insert(interp::bare_key(kind, &module, last), first.mode);
     }
-    // two strikes forbidding the path to one name clash as soon as both are depended on (owner,
-    // 2026-10-06: "`a`"), fixed as a prefix clash is, by editing one strike's source
+    // two kits forbidding the path to one name clash as soon as both are depended on (owner,
+    // 2026-10-06: "`a`"), fixed as a prefix clash is, by editing one kit's source
     let mut only: Vec<(String, String)> = Vec::new();
     for (key, mode) in &marks {
         if *mode != Bare::Only { continue; }
@@ -969,7 +970,7 @@ fn check_bare(prog: &ast::Program) -> Result<std::collections::HashMap<String, a
         let rel = format!("{kind} {rel}");
         if let Some((other, _)) = only.iter().find(|(r, x)| *x == rel && r != root) {
             let mut two = [other.clone(), root.to_string()]; two.sort();
-            return Err(format!("`{}` and `{}` both forbid the path to `{rel}` (`bare.only`), so it cannot tell them apart: edit one strike's source, as for a prefix clash", two[0], two[1]));
+            return Err(format!("`{}` and `{}` both forbid the path to `{rel}` (`bare.only`), so it cannot tell them apart: edit one kit's source, as for a prefix clash", two[0], two[1]));
         }
         only.push((root.to_string(), rel));
     }
@@ -990,11 +991,11 @@ fn collect(dir: &Path, prefix: &mut Vec<String>, out: &mut Vec<(Vec<String>, Pat
             prefix.pop();
         } else if let Some(new) = renamed_file(&name) {
             return Err(format!("{}: `{name}` has the old name: rename it to `{new}`", p.display()));
-        } else if let Some(stem) = name.strip_suffix(".zg") {
-            if prefix.is_empty() && stem == "strike" { continue; }
-            // a strike's `build.zg` is its build program, run by `zomp prepare`, not a module (owner, 2026-10-09: "yea")
+        } else if let Some(stem) = name.strip_suffix(".cy") {
+            if prefix.is_empty() && stem == "kit" { continue; }
+            // a kit's `build.cy` is its build program, run by `kayo prepare`, not a module (owner, 2026-10-09: "yea")
             if prefix.is_empty() && stem == "build" { continue; }
-            if stem == "strike" { return Err(format!("{}: `strike` names the root; a module cannot be called that", p.display())); }
+            if stem == "kit" { return Err(format!("{}: `kit` names the root; a module cannot be called that", p.display())); }
             if stem == "my" { return Err(format!("{}: `my` is the root's path (`my.helper[]`); a module cannot be called that", p.display())); }
             parser::module_name_ok(stem).map_err(|m| format!("{}: `{stem}` cannot name a module: {m}", p.display()))?;
             let mut module = prefix.clone();
@@ -1009,16 +1010,16 @@ pub fn run_path(path: &Path, out: Box<dyn std::io::Write>) -> Result<u8, String>
     run_path_as(path, out, false)
 }
 
-/// `tests`: run every `test fn` instead of MAIN (`zomp test`, owner 2026-09-29).
+/// `tests`: run every `test fn` instead of MAIN (`kayo test`, owner 2026-09-29).
 pub fn run_path_as(path: &Path, out: Box<dyn std::io::Write>, tests: bool) -> Result<u8, String> {
     run_with_args(path, out, tests, Vec::new())
 }
 
 /// `args`: the words after `--`, which MAIN reads as C's argc/argv (owner, 2026-09-29).
 pub fn run_with_args(path: &Path, out: Box<dyn std::io::Write>, tests: bool, args: Vec<String>) -> Result<u8, String> {
-    interp::set_shown_file(&if path.is_dir() { "strike.zg".to_string() } else { path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default() });
+    interp::set_shown_file(&if path.is_dir() { "kit.cy".to_string() } else { path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default() });
     let mut prog = load(path)?;
-    // what `zomp generate` wrote must still be what the templates make (owner, 2026-10-13)
+    // what `kayo generate` wrote must still be what the templates make (owner, 2026-10-13)
     if GENERATE.with(|g| g.get()) {
         let n = generate::write(&mut prog)?;
         println!("generated {n} part(s)");
@@ -1050,18 +1051,18 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     // `oracle [--test] <program> [-- words for the program's argv]`
     let (head, rest) = match args.iter().position(|a| a == "--") { Some(i) => (&args[..i], args[i + 1..].to_vec()), None => (&args[..], Vec::new()) };
-    // `oracle --check-spellings`: `spellings.zv` checked against itself and the naming rule (owner, 2026-10-13)
+    // `oracle --check-spellings`: `spellings.cyr` checked against itself and the naming rule (owner, 2026-10-13)
     if matches!(head, [_, flag] if flag == "--check-spellings") {
         let bad = spellings::check();
-        for b in &bad { eprintln!("spellings.zv: {b}"); }
-        if bad.is_empty() { println!("spellings.zv: fine"); }
+        for b in &bad { eprintln!("spellings.cyr: {b}"); }
+        if bad.is_empty() { println!("spellings.cyr: fine"); }
         exit(if bad.is_empty() { 0 } else { 1 });
     }
     let (tests, target) = match head {
         [_, t] if t != "--check-spellings" => (false, t),
         [_, flag, t] if flag == "--test" => (true, t),
         [_, flag, t] if flag == "--generate" => { GENERATE.with(|g| g.set(true)); (false, t) }
-        _ => { eprintln!("usage: oracle [--test | --generate] <file.zg | limb-directory> [-- program arguments], or oracle --check-spellings"); exit(2); }
+        _ => { eprintln!("usage: oracle [--test | --generate] <file.cy | kit-directory> [-- program arguments], or oracle --check-spellings"); exit(2); }
     };
     // the parser and the interpreter recurse, so a call nested a few thousand deep in one expression
     // needs more than the main thread's 8 MB (check claude, seed 32299): 1 GB, only what is used is touched

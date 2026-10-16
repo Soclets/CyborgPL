@@ -1,0 +1,19 @@
+# Callbacks (design/ffi.md, 2026-09-21): a capture-free, C-shaped CyborgPL function handed to C.
+extern.C fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64,
+                 'cmp': fn[ptr[int32], ptr[int32]] -> int32];
+
+fn ascending ['a': ptr[int32], 'b': ptr[int32]] -> int32 {
+    no_check return ptr.read['a'] minus ptr.read['b'];        # C hands pointers to two elements
+}
+
+fn descending ['a': ptr[int32], 'b': ptr[int32]] -> int32 {
+    no_check return ptr.read['b'] minus ptr.read['a'];
+}
+
+MAIN {
+    let 'nums' := [5, 1, 4, 2, 3];
+    no_check qsort[lend.mut 'nums', 5, size.of[int32], ascending];
+    std::print.useful['nums', newln];
+    no_check qsort[lend.mut 'nums', 5, size.of[int32], descending];
+    std::print.useful['nums', newln];
+}

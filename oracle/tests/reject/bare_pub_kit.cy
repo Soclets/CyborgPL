@@ -1,0 +1,5 @@
+pub.kit bare.never fn area [] -> int32 {
+    return 1;
+}
+
+MAIN { }

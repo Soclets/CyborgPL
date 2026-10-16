@@ -1,0 +1,7 @@
+cyjet::manifest[
+    name = "x",
+    prefix = "x",
+    version = "1.0.0",
+    limbs = [cyjet::limb[id = "7d0ccfe6e41eed3a4d8ffe00ccaada9b89a4b9a3ea553a9d869cb6902e2ca75d"],],
+    targets = [cyjet::target[name = "aarch64-macos"],]
+];

@@ -1,4 +1,4 @@
-/* A C library's header, kept in the strike (examples/c_header_local). */
+/* A C library's header, kept in the kit (examples/c_header_local). */
 #define MYLIB_VERSION 3
 #define MYLIB_FLAGS 0644
 #define MYLIB_NAME "mylib"

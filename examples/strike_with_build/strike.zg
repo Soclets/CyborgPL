@@ -1,5 +1,0 @@
-# A strike's build.zg is its build program, run by `zomp prepare`, not one of its modules
-# (owner, 2026-10-09: build.cplr became build.zg); the oracle skips it.
-MAIN {
-    std::print.useful["built", newln];
-}

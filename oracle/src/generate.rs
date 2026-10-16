@@ -1,17 +1,17 @@
-//! Collection templates (owner, 2026-10-13): `zomp generate` runs each template in a collection and
+//! Collection templates (owner, 2026-10-13): `kayo generate` runs each template in a collection and
 //! writes what it makes into the source, under `#generated_N_lines_below`; a build only reads, and
 //! refuses a generated part that no longer matches its template. The oracle does both: it checks every
 //! program it loads, and `oracle --generate <path>` rewrites the generated parts.
 //!
 //! A template is `for 'v' in [ … ] { named <text>; [ … ] -> T { … } }`, or a counting `for 'v' from A to B by
 //! C { … }` (`before` too), over what is known before building: number and text literals, consts, and
-//! types. The `named` line is Zag, run with `'v'` set (a type is its name, as text); the member under it
+//! types. The `named` line is CyborgPL, run with `'v'` set (a type is its name, as text); the member under it
 //! is copied with `'v'` written as the value itself.
 
 use std::path::PathBuf;
 
 /// A file with templates, kept from parsing for the check: its path, its text and its module.
-pub struct Pending { pub path: PathBuf, pub src: String, pub module: Vec<String>, pub limb_root: Vec<String> }
+pub struct Pending { pub path: PathBuf, pub src: String, pub module: Vec<String>, pub kit_root: Vec<String> }
 
 thread_local! {
     pub static PENDING: std::cell::RefCell<Vec<Pending>> = std::cell::RefCell::new(Vec::new());
@@ -117,7 +117,7 @@ fn put(text: &str, var: &str, value: &str) -> String {
 fn expected(prog: &mut crate::ast::Program) -> Result<Vec<(usize, Vec<(Template, Vec<String>)>)>, String> {
     let files: Vec<(PathBuf, String, Vec<String>, Vec<String>, Vec<usize>)> = PENDING.with(|p| p.borrow().iter().map(|f| {
         let lines = crate::parser::TEMPLATES.with(|t| t.borrow().iter().filter(|(path, _, _)| *path == f.path).map(|(_, _, l)| *l).collect());
-        (f.path.clone(), f.src.clone(), f.module.clone(), f.limb_root.clone(), lines)
+        (f.path.clone(), f.src.clone(), f.module.clone(), f.kit_root.clone(), lines)
     }).collect());
     let mut plans = Vec::new();
     let mut calls: Vec<(Vec<String>, String)> = Vec::new();
@@ -149,7 +149,7 @@ fn expected(prog: &mut crate::ast::Program) -> Result<Vec<(usize, Vec<(Template,
                     format!("fn {fname} [] -> str.utf8 {{ let '{}' := {v}; return {}; }}", t.var, t.named)
                 };
                 let toks = crate::lexer::lex(&src_fn).map_err(|e| format!("{}: line {}: the `named` line: {}", path.display(), t.for_line, e.msg))?;
-                let part = crate::parser::Parser::new_in_limb(toks, module.clone(), root.clone()).program().map_err(|e| format!("{}: line {}: the `named` line: {}", path.display(), t.for_line, e.msg))?;
+                let part = crate::parser::Parser::new_in_kit(toks, module.clone(), root.clone()).program().map_err(|e| format!("{}: line {}: the `named` line: {}", path.display(), t.for_line, e.msg))?;
                 prog.funcs.extend(part.funcs);
                 calls.push((module.clone(), fname));
                 made.push(v.clone());
@@ -197,7 +197,7 @@ pub fn check(prog: &mut crate::ast::Program) -> Result<(), String> {
             let want = format!("#generated_{}_lines_below", made.len());
             let have: Vec<&str> = lines.iter().skip(t.close_line + 1).take(made.len()).copied().collect();
             if marker != want || have.iter().map(|l| l.trim_end()).ne(made.iter().map(|l| l.trim_end())) {
-                return Err(format!("{}: line {}: the generated part under the template at line {} does not match it: run `zomp generate` (in the oracle, `oracle --generate {}`) (owner, 2026-10-13)", path.display(), t.close_line + 1, t.for_line, path.display()));
+                return Err(format!("{}: line {}: the generated part under the template at line {} does not match it: run `kayo generate` (in the oracle, `oracle --generate {}`) (owner, 2026-10-13)", path.display(), t.close_line + 1, t.for_line, path.display()));
             }
         }
     }

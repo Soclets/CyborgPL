@@ -1,7 +1,0 @@
-ricochet::manifest[
-    name = "cnc_not_listed",
-    prefix = "cnc_not_listed",
-    version = "1.0.0",
-    powers = [ricochet::power.c_calls,],
-    targets = [ricochet::target[name = "aarch64-macos"],]
-];

@@ -1,0 +1,6 @@
+cyjet::manifest[
+    name = "c_type_needs_cnc",
+    prefix = "c_type_needs_cnc",
+    version = "1.0.0",
+    targets = [cyjet::target[name = "aarch64-macos"],]
+];

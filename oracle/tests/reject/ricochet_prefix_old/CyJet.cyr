@@ -1,0 +1,6 @@
+ricochet::manifest[
+    name = "ricochet_prefix_old",
+    prefix = "ricochet_prefix_old",
+    version = "1.0.0",
+    targets = [ricochet::target[name = "aarch64-macos"],]
+];

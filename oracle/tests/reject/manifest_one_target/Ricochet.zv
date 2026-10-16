@@ -1,3 +1,0 @@
-ricochet::manifest[
-    target = "aarch64-macos"
-];

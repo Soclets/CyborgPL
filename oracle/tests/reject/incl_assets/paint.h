@@ -1,4 +1,4 @@
-/* For examples/c_types.zg: enums, a function pointer, and C's machine-sized types. */
+/* For examples/c_types.cy: enums, a function pointer, and C's machine-sized types. */
 #include <stddef.h>
 #include <stdint.h>
 enum color { RED, GREEN = 5, BLUE };

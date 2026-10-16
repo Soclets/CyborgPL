@@ -1,2 +1,0 @@
-# `pub.strike` stays in its own strike (limbs.md)
-MAIN { let 'x' := areas::internal[]; }

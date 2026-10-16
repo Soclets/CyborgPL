@@ -1,0 +1,7 @@
+cyjet::manifest[
+    name = "x",
+    prefix = "x",
+    version = "1.0.0",
+    powers = [cyjet::power.inline_assembly,],
+    targets = [cyjet::target[name = "aarch64-macos"],]
+];

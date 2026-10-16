@@ -1,6 +1,0 @@
-ricochet::manifest[
-    name = "x",
-    prefix = "x",
-    version = "1.0.0",
-    targets = [ricochet::target[name = "aarch64-macos", default = true], ricochet::target[name = "x86_64-linux", runner = "qemu-x86_64"],]
-];

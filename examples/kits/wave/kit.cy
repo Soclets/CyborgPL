@@ -1,0 +1,5 @@
+# Another kit with a `bare.optional` `hello`, so a bare `hello` beside `greet` is ambiguous.
+
+pub bare.optional fn hello [] -> str.utf8 {
+    return "hi";
+}

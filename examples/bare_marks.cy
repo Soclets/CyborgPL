@@ -1,0 +1,25 @@
+# How other kits write the path to each `pub` thing (owner, 2026-10-06): every one is covered by a
+# mark on itself, its module or its kind, and the marks that cover it agree. There is no default.
+
+bare.never [fn, struct];                 # every pub fn and struct in this kit: the path is required
+
+pub const 'unit' := 1;                    # a const takes no mark: its path is always written
+
+pub bare.never module shapes {            # everything in this block module
+    pub fn area ['side': int32] -> int32 {
+        return 'side' times 'side';
+    }
+
+    pub struct Square {
+        side: int32
+    }
+}
+
+pub bare.only enum Mood {                 # this enum: written bare only, never with the path
+    calm,
+    loud
+}
+
+MAIN {
+    std::print.useful[shapes.area[3], " ", my.'unit', newln];
+}

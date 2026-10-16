@@ -1,5 +1,0 @@
-ricochet::manifest[
-    name = "x",
-    prefix = "x",
-    targets = [ricochet::target[name = "aarch64-macos"],]
-];

@@ -1,6 +1,0 @@
-ricochet::manifest[
-    name = "Areas of shapes",
-    prefix = "areas",
-    version = "1.0.0",
-    targets = [ricochet::target[name = "aarch64-macos"],]
-];

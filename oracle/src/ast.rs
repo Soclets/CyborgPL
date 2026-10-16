@@ -73,12 +73,12 @@ pub struct Field {
 }
 
 /// Visibility (decided 2026-09-19): nothing = this module (and its descendants),
-/// `pub.strike` = the whole strike, `pub` = other strikes too.
+/// `pub.kit` = the whole kit, `pub` = other kits too.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Vis { Private, Limb, Pub }
+pub enum Vis { Private, Kit, Pub }
 
-/// A module: a file of the strike (`shapes.zg` → `shapes`, `shapes/circle.zg`
-/// → `shapes.circle`) or a `module name { … }` block. The root, `strike.zg`,
+/// A module: a file of the kit (`shapes.cy` → `shapes`, `shapes/circle.cy`
+/// → `shapes.circle`) or a `module name { … }` block. The root, `kit.cy`,
 /// is the empty path.
 #[derive(Debug, Clone)]
 pub struct ModuleDef {
@@ -108,7 +108,7 @@ pub struct StructDef {
     pub name: String,
     /// `layout.C struct`: C's layout, C-shaped fields only; may cross to C
     pub layout_c: bool,
-    /// a C struct Zag never looks inside (owner, 2026-10-10: `ptr.mut[FILE]`): only pointed at, never
+    /// a C struct CyborgPL never looks inside (owner, 2026-10-10: `ptr.mut[FILE]`): only pointed at, never
     /// built, sized or read; it comes only from a C header, having no spelling of its own
     pub opaque: bool,
     /// type variables, in the order announced (design/generics.md, 2026-10-02)
@@ -170,7 +170,7 @@ pub struct Func {
     /// `op NAME ['a': T, 'b': T] -> R { }` — a custom operator (design/operators.md, 2026-09-20):
     /// used between two operands, never called with `[…]`; operands lent unless `give`
     pub is_op: bool,
-    /// `test fn name [] { … }` (owner, 2026-09-29): run by `zomp test`, never called, left out of builds
+    /// `test fn name [] { … }` (owner, 2026-09-29): run by `kayo test`, never called, left out of builds
     pub is_test: bool,
     /// `fn Counter.next` / `fn cum.quick` (2026-10-09), and every member of a `collection`: the last
     /// segment of `module` is the owner's name, not a module, so a const is found in the file around it
@@ -257,24 +257,24 @@ pub struct Claim {
     pub line: usize,
 }
 
-/// How other strikes write the path to a `pub` thing (owner, 2026-10-06): `bare.never` (the path is
+/// How other kits write the path to a `pub` thing (owner, 2026-10-06): `bare.never` (the path is
 /// required), `bare.optional`, `bare.only` (the path is forbidden). There is no default.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Bare { Never, Optional, Only }
 
 /// What a `bare` mark covers: one item (its kind and canonical name), a block module (everything in
-/// it), a file (its module and the block modules written in it), or a kind across the strike.
+/// it), a file (its module and the block modules written in it), or a kind across the kit.
 #[derive(Debug, Clone)]
 pub enum BareTarget { Item(String, String), Block(Vec<String>), File(Vec<String>), Kind(String) }
 
 /// `case.any` / `case.exact` (owner, 2026-10-06): on an item, a block module, a file, or
-/// kinds across the strike (`fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var`), as the
+/// kinds across the kit (`fn`, `struct`, `enum`, `interface`, `const`, `case`, `field`, `var`), as the
 /// `bare` marks are; names are exact unless marked.
 #[derive(Debug, Clone)]
-pub struct CaseMark { pub target: BareTarget, pub insensitive: bool, pub line: usize, pub limb_root: Vec<String> }
+pub struct CaseMark { pub target: BareTarget, pub insensitive: bool, pub line: usize, pub kit_root: Vec<String> }
 
 #[derive(Debug, Clone)]
-pub struct BareMark { pub target: BareTarget, pub mode: Bare, pub line: usize, pub limb_root: Vec<String> }
+pub struct BareMark { pub target: BareTarget, pub mode: Bare, pub line: usize, pub kit_root: Vec<String> }
 
 pub struct Program {
     pub funcs: Vec<Func>,
@@ -374,15 +374,15 @@ pub enum Tier { Check, NoCheck, NoChecksAtAll }   // NO_FUCKING_CHECKS (owner, 2
 pub struct Call {
     /// `otherwise …` after the call, if any
     pub handler: Option<Handler>,
-    pub limb: Option<String>,   // None = this strike; Some("std") = std::
-    /// std: print.stored.stdout → ["print", "stored", "stdout"]; this strike: the canonical path from
+    pub kit: Option<String>,   // None = this kit; Some("std") = std::
+    /// std: print.stored.stdout → ["print", "stored", "stdout"]; this kit: the canonical path from
     /// the root, `limb.` stripped, the calling module prefixed to a relative one
     pub path: Vec<String>,
     /// the module the call is written in (for visibility)
     pub from: Vec<String>,
     pub args: Bracket,
     pub line: usize,
-    /// written with no path (no `x::`, no `my.`), so another strike's `bare.optional` / `bare.only`
+    /// written with no path (no `x::`, no `my.`), so another kit's `bare.optional` / `bare.only`
     /// name may be meant (owner, 2026-10-06); `written` is the path as written
     pub bare: bool,
     pub written: Vec<String>,
@@ -409,7 +409,7 @@ pub enum Value {
 #[derive(Debug, Clone)]
 pub enum Expr {
     Int(i128, usize),
-    /// a whole-number literal in a strike without ASP: a bit pattern, as the machine's (owner, 2026-10-06)
+    /// a whole-number literal in a kit without ASP: a bit pattern, as the machine's (owner, 2026-10-06)
     RawInt(i128, usize),
     /// a literal past i128: its digits (owner, 2026-10-03)
     BigInt(String, usize),
@@ -440,7 +440,7 @@ pub enum Expr {
     OwnedField(Verb, String, String, usize),
     /// `lend 'xs'[pos i]` / `copy 'xs'[pos i]` — an element handed over with a verb
     OwnedElem(Verb, String, Box<Expr>, usize),
-    /// `shapes.'pi'` / `limb.'pi'` — a const reached by module path (canonical), from a module
+    /// `shapes.'pi'` / `kit.'pi'` — a const reached by module path (canonical), from a module
     ConstPath(Vec<String>, String, Vec<String>, usize),
     /// `to.int32[v]` — an explicit conversion to a type (decided 2026-09-19); text → number can
     /// fail (`not_a_number`), so it may carry an `otherwise` handler
@@ -450,7 +450,7 @@ pub enum Expr {
     /// `size.of[T]` / `align.of[T]` — compile-time constants (design/ffi.md)
     SizeOf(Ty, bool, usize),
     /// `incl.bytes["assets/logo.png"]` / `incl.str.utf8["assets/help.txt"]` (owner, 2026-10-10): a
-    /// file's bytes, read while building, from the strike's root; the text type for `incl.str.…`, none
+    /// file's bytes, read while building, from the kit's root; the text type for `incl.str.…`, none
     /// for `incl.bytes`
     Incl(std::rc::Rc<Vec<u8>>, Option<Encoding>, usize),
     /// `average` — a function as a value (canonical path); bare name, no brackets

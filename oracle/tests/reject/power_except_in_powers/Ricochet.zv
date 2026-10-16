@@ -1,7 +1,0 @@
-ricochet::manifest[
-    name = "x",
-    prefix = "x",
-    version = "1.0.0",
-    powers = [ricochet::power.c_calls.except["x"],],
-    targets = [ricochet::target[name = "aarch64-macos"],]
-];

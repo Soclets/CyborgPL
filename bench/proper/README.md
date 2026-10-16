@@ -1,7 +1,7 @@
 # The proper benchmark
 
 The same four programs as [`bench/`](../README.md), each written **the way that language's own practice says**,
-in Zag, C, Rust and Go, each in two versions: **proper** (one thread, what an expert writes first) and
+in CyborgPL, C, Rust and Go, each in two versions: **proper** (one thread, what an expert writes first) and
 **parallel** (every core, with the language's own threads; owner, 2026-10-15: "Make para versions too").
 Java, Python, Julia and LuaJIT have proper versions from the first run (2026-10-01),
 using only what the language comes with (owner, 2026-10-01). `bench/` asks every

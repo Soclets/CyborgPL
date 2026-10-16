@@ -1,4 +1,4 @@
-//! `spellings.zv` (owner, 2026-10-02, and 2026-10-13: "Yeah, if it's correct"): one table of the language's
+//! `spellings.cyr` (owner, 2026-10-02, and 2026-10-13: "Yeah, if it's correct"): one table of the language's
 //! words for every tool. The keywords, each old spelling and what to write instead, the near-misses that are
 //! not operators, and the operators free to declare with the hint shown when one is used undeclared. The
 //! oracle keeps no lists of its own: the lexer, the parser and the interpreter ask here. Design claude keeps
@@ -35,7 +35,7 @@ pub struct Table {
     pub calls: Vec<Call>,
 }
 
-const SOURCE: &str = include_str!("../../spellings.zv");
+const SOURCE: &str = include_str!("../../spellings.cyr");
 static TABLE: OnceLock<Table> = OnceLock::new();
 /// set while the table itself is read, so the lexer does not ask for it then
 static LOADING: AtomicBool = AtomicBool::new(false);
@@ -43,7 +43,7 @@ static LOADING: AtomicBool = AtomicBool::new(false);
 pub fn loading() -> bool { LOADING.load(Ordering::SeqCst) }
 
 pub fn table() -> &'static Table {
-    TABLE.get_or_init(|| read(SOURCE).unwrap_or_else(|e| panic!("spellings.zv: {e}")))
+    TABLE.get_or_init(|| read(SOURCE).unwrap_or_else(|e| panic!("spellings.cyr: {e}")))
 }
 
 fn read(src: &str) -> Result<Table, String> {
@@ -145,7 +145,7 @@ pub fn old_at(written: &str, after_inline: bool, in_path: bool) -> Option<&'stat
 
 /// An old spelling the code finds itself (`place = "special"`), named by how it is written
 pub fn old(written: &str) -> &'static Old {
-    table().old.iter().find(|o| o.written == written).unwrap_or_else(|| panic!("spellings.zv has no old spelling `{written}`"))
+    table().old.iter().find(|o| o.written == written).unwrap_or_else(|| panic!("spellings.cyr has no old spelling `{written}`"))
 }
 
 /// "`&` is an old spelling: write `lend` / `lent`; a bitwise and is `and.bit` (owner, 2026-10-07; …)"

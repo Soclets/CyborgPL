@@ -1,0 +1,7 @@
+cyjet::manifest[
+    name = "cnc_not_listed",
+    prefix = "cnc_not_listed",
+    version = "1.0.0",
+    powers = [cyjet::power.c_calls,],
+    targets = [cyjet::target[name = "aarch64-macos"],]
+];

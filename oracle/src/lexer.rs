@@ -4,7 +4,7 @@
 //!   "…"   text literal (exactly its characters; `\"` and `\\` only)   '…'   variable name   `…`   one character
 //!   bare word                    keyword, function name, or operator word
 //!   [ ] { } ( )                  value slot, body, arithmetic grouping
-//!   ::  .  :=  =  ;  ,           strike boundary, chain, best-type bind, typed bind, end, separator
+//!   ::  .  :=  =  ;  ,           kit boundary, chain, best-type bind, typed bind, end, separator
 //!   :  ->                        name-to-type, function return type (decided 2026-09-19)
 //!   newln                        a newline piece (owner, 2026-10-07; `\n` before)
 //!   ++                           joins text (decided 2026-09-19)
@@ -108,7 +108,7 @@ pub struct LexError {
 }
 
 /// A message's column counts graphemes, what a reader counts (owner, 2026-10-06: "our error messages
-/// are gonna be graphemes"; Ground's rule). The lexer walks code points, so its columns are mapped
+/// are gonna be graphemes"; the base's rule). The lexer walks code points, so its columns are mapped
 /// here, a line at a time, with the oracle's grapheme approximation.
 pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
     let lines: Vec<Vec<char>> = src.split('\n').map(|l| l.chars().collect()).collect();
@@ -125,7 +125,7 @@ pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
 }
 
 /// A name's characters: English letters, digits and `_`, and, for WSTN to allow (owner, 2026-10-06), any
-/// other script or emoji; Ground refuses those in the parser, where it knows the cores.
+/// other script or emoji; the base refuses those in the parser, where it knows the cores.
 fn name_start(c: char) -> bool { c.is_alphabetic() || c == '_' || (!c.is_ascii() && !c.is_whitespace() && !c.is_control()) }
 fn name_char(c: char) -> bool { c.is_alphanumeric() || c == '_' || (!c.is_ascii() && !c.is_whitespace() && !c.is_control()) }
 
@@ -281,7 +281,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             // the words that replaced `!` and the comparison symbols (owner, 2026-10-07) are read as the
             // tokens the oracle has always used inside; the old spellings are kept, to be refused by name
             let after_bang = matches!(toks.last().map(|t| &t.tok), Some(Tok::Op(o)) if o == "!");
-            // an old spelling, from `spellings.zv` (owner, 2026-10-13): kept as written, to be refused by name
+            // an old spelling, from `spellings.cyr` (owner, 2026-10-13): kept as written, to be refused by name
             let in_path = matches!(toks.last().map(|t| &t.tok), Some(Tok::Dot | Tok::ColonColon));
             let main: Option<&'static crate::spellings::Old> = if after_bang { None } else { crate::spellings::old_at(&s, after_inline, in_path) };
             let inside: Option<Tok> = match s.as_str() {
@@ -413,7 +413,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 let mut word = String::new();
                 while j < chars.len() && (chars[j].is_ascii_alphanumeric() || chars[j] == '_') { word.push(chars[j]); j += 1; }
                 let skip_lines: usize;   // full lines to skip after this one
-                // `#generated_21_lines_below` (owner, 2026-10-13): the next 21 lines are what `zomp generate`
+                // `#generated_21_lines_below` (owner, 2026-10-13): the next 21 lines are what `kayo generate`
                 // wrote from the template above; they are ordinary code, the marker a comment noted for the check
                 if let Some(n) = word.strip_prefix("generated_").and_then(|r| r.strip_suffix("_lines_below")).and_then(|d| d.parse::<usize>().ok()) {
                     GENERATED.with(|g| g.borrow_mut().push((tl, n)));

@@ -1,1 +1,1 @@
-this strike calls C (`write`), and its Ricochet.zv does not list `c_calls`: add `ricochet::power.c_calls` to its `powers`
+this kit calls C (`write`), and its CyJet.cyr does not list `c_calls`: add `cyjet::power.c_calls` to its `powers`

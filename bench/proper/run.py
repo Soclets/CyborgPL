@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""The proper benchmark: Zag, C, Rust and Go, each written the way that language's own practice
+"""The proper benchmark: CyborgPL, C, Rust and Go, each written the way that language's own practice
 says, with only what the language comes with, in two versions per program: proper (one thread, what
 an expert writes first) and parallel (every core, with the language's own threads: pthreads,
-std::thread::scope, goroutines, Zag's `for para` and `concur`). Zag is timed only as a final build.
+std::thread::scope, goroutines, CyborgPL's `for para` and `concur`). CyborgPL is timed only as a final build.
 
 Each program reads N from the environment and exits with its answer's low byte; every answer is
 checked against C's. Times are wall-clock from start to exit, best of RUNS, after one untimed warm-up.
 
-    python3 run.py               # Zag, C, Rust and Go, proper and parallel
-    python3 run.py c zag         # only these (java, python, julia, luajit: proper only)
+    python3 run.py               # CyborgPL, C, Rust and Go, proper and parallel
+    python3 run.py c cyborgpl         # only these (java, python, julia, luajit: proper only)
     python3 run.py --quick       # tiny sizes, one run: does everything build and agree?
 
 The tables go to latest.md; RESULTS.md is the dated history, kept by hand.
@@ -23,7 +23,7 @@ if "--quick" in sys.argv:
     sys.argv.remove("--quick")
     CASES = [("sum", 100_000), ("fib", 20), ("lists", 100_000), ("sieve", 100_000)]
     RUNS = 1
-ZOMP = os.environ.get("ZOMP", os.path.join(HERE, "..", "..", "zomp", "target", "release", "zomp"))
+KAYO = os.environ.get("KAYO", os.path.join(HERE, "..", "..", "kayo", "target", "release", "kayo"))
 REFUSED = {}
 
 
@@ -57,8 +57,8 @@ def build(lang, name, para):
     if lang == "go":
         sh(["go", "build", "-o", out, os.path.join(src, stem + ".go")])
         return [out]
-    if lang == "zag":
-        r = subprocess.run([ZOMP, "build", "--final", os.path.join(src, stem + ".zg"), "-o", out], capture_output=True, text=True)
+    if lang == "cyborgpl":
+        r = subprocess.run([KAYO, "build", "--final", os.path.join(src, stem + ".cy"), "-o", out], capture_output=True, text=True)
         if r.returncode != 0:
             why = " / ".join(l.strip() for l in (r.stderr or r.stdout).splitlines() if l.strip())[:200]
             REFUSED[stem] = why
@@ -78,9 +78,9 @@ def build(lang, name, para):
     raise ValueError(lang)
 
 
-LABELS = {"zag": "Zag (Zomp, final build)", "c": "C (clang -O3)", "rust": "Rust (rustc opt-level=3)", "go": "Go",
+LABELS = {"cyborgpl": "CyborgPL (kayo, final build)", "c": "C (clang -O3)", "rust": "Rust (rustc opt-level=3)", "go": "Go",
           "java": "Java", "python": "Python (CPython)", "julia": "Julia (-t auto)", "luajit": "LuaJIT"}
-DEFAULT = ["zag", "c", "rust", "go"]
+DEFAULT = ["cyborgpl", "c", "rust", "go"]
 
 
 def run(cmd, n, threads=None):
@@ -97,18 +97,18 @@ def run(cmd, n, threads=None):
 def main():
     want = [a.lower() for a in sys.argv[1:]] or DEFAULT
     langs = [l for l in LABELS if l in want]
-    print(f"Zomp: {ZOMP}. Proper versions single-threaded (Zag capped to 1 thread, and also shown uncapped, "
+    print(f"kayo: {KAYO}. Proper versions single-threaded (CyborgPL capped to 1 thread, and also shown uncapped, "
           f"as written); parallel versions on every core. Final builds only.\n", flush=True)
     expect = {name: run(build("c", name, False), n)[1] for name, n in CASES}
     # (row label, lang, para, THREAD_CAP)
     rows_plan = []
     for lang in langs:
-        if lang == "zag":
-            rows_plan += [("Zag, proper, 1 thread", lang, False, "1"), ("Zag, proper, as written (Zomp splits proven loops itself)", lang, False, None)]
+        if lang == "cyborgpl":
+            rows_plan += [("CyborgPL, proper, 1 thread", lang, False, "1"), ("CyborgPL, proper, as written (kayo splits proven loops itself)", lang, False, None)]
         else:
             rows_plan.append((f"{LABELS[lang]}, proper", lang, False, None))
     for lang in langs:
-        if lang in ("zag", "c", "rust", "go"):
+        if lang in ("cyborgpl", "c", "rust", "go"):
             rows_plan.append((f"{LABELS[lang].split(' (')[0]}, parallel", lang, True, None))
     results = {}
     for label, lang, para, threads in rows_plan:

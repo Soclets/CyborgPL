@@ -1,7 +1,0 @@
-ricochet::manifest[
-    name = "x",
-    prefix = "x",
-    version = "1.0.0",
-    plugins = [ricochet::plugin[name = "MCPS"],],
-    targets = [ricochet::target[name = "aarch64-macos"],]
-];

@@ -1,0 +1,19 @@
+# A C enum (owner, 2026-09-27: a): `layout.C enum`, a number per case as the C header
+# gives it, no data. It is a CyborgPL enum in every other way — `match` covers every
+# case, and it is owned like every enum (2026-09-20) — and C-shaped, so `extern.C fn`
+# can take and return it. A number C hands back that no case has fails `out_of_range`.
+layout.C enum Key { a = 65, b = 66, escape = 256 }
+extern.C fn IsKeyDown ['key': Key] -> bool;
+
+fn name ['k': Key] -> str.utf8 {
+    match 'k' {
+        a { return "A"; }
+        b { return "B"; }
+        escape { return "Esc"; }
+    }
+}
+
+MAIN {
+    let 'k' := Key.escape;
+    std::print.useful[name[copy 'k'], " ", name[Key.a], newln];
+}

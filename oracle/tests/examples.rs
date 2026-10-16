@@ -1,5 +1,5 @@
-//! Every `examples/*.zg` must produce its `.out` (and its `.exit` code, if
-//! present). Every `tests/reject/*.zg` must fail with a message containing
+//! Every `examples/*.cy` must produce its `.out` (and its `.exit` code, if
+//! present). Every `tests/reject/*.cy` must fail with a message containing
 //! its `.err`. Run: `cargo test` in oracle/.
 
 use std::fs;
@@ -14,12 +14,12 @@ fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_path_buf()
 }
 
-/// `.zg` files, plus Limb directories (a directory holding `strike.zg`);
-/// a directory's expected `.out` / `.err` sits beside it, named after it.
+/// `.cy` files, plus kit directories (a directory holding `kit.cy`, or one with a `.err` beside it, whose
+/// root may be under an old name); a directory's expected `.out` / `.err` sits beside it, named after it.
 fn cpls_files(dir: &Path) -> Vec<PathBuf> {
     let mut v: Vec<PathBuf> = fs::read_dir(dir).unwrap()
         .filter_map(|e| e.ok().map(|e| e.path()))
-        .filter(|p| p.extension().map(|x| x == "zg").unwrap_or(false) || p.join("strike.zg").is_file())
+        .filter(|p| p.extension().map(|x| x == "cy").unwrap_or(false) || p.join("kit.cy").is_file() || (p.is_dir() && p.with_extension("err").is_file()))
         .collect();
     v.sort();
     v
@@ -39,7 +39,7 @@ fn examples_produce_expected_output() {
         let got = String::from_utf8_lossy(&out.stdout).to_string();
         let code = out.status.code().unwrap_or(-1);
         // a `.oracle` beside it: a program the oracle cannot run to the end, inline assembly (owner, 2026-10-15:
-        // "(a)"). Its `.out` is the compiled program's, checked by Zomp's tests; the oracle must stop with this text.
+        // "(a)"). Its `.out` is the compiled program's, checked by kayo's tests; the oracle must stop with this text.
         if let Ok(stop) = fs::read_to_string(src.with_extension("oracle")) {
             let err = String::from_utf8_lossy(&out.stderr).to_string();
             if code != 1 || !err.contains(stop.trim()) {
@@ -82,12 +82,12 @@ fn rejected_programs_fail_with_the_right_message() {
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
 }
 
-/// A file named bare, run from its own folder (`cd dir && oracle t.zg`), finds what it includes there
+/// A file named bare, run from its own folder (`cd dir && oracle t.cy`), finds what it includes there
 /// too (compiler claude, 2026-10-10: the empty path reached Clang as its input).
 #[test]
 fn a_bare_file_name_includes_from_its_folder() {
     let dir = root().join("examples");
-    let out = Command::new(oracle()).current_dir(&dir).arg("c_headers.zg").output().unwrap();
+    let out = Command::new(oracle()).current_dir(&dir).arg("c_headers.cy").output().unwrap();
     let want = fs::read_to_string(dir.join("c_headers.out")).unwrap();
     assert_eq!(String::from_utf8_lossy(&out.stdout), want, "stderr: {}", String::from_utf8_lossy(&out.stderr));
 }

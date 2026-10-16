@@ -1,5 +1,5 @@
-//! `case.any` / `case.exact` (owner, 2026-10-06): a strike's writer may make its names
-//! case-insensitive, in its own code and as reached from other strikes; the default is `case.exact`;
+//! `case.any` / `case.exact` (owner, 2026-10-06): a kit's writer may make its names
+//! case-insensitive, in its own code and as reached from other kits; the default is `case.exact`;
 //! marks that disagree are an error; insensitive means Unicode's full case folding. The oracle reads the
 //! program once, works out which names are insensitive, and then rewrites every spelling of such a name
 //! to the one it was declared with before the program is read again, so the rest of the oracle stays
@@ -14,25 +14,25 @@ use std::collections::HashMap;
 pub fn fold(s: &str) -> String { s.to_uppercase().to_lowercase() }
 
 #[derive(Default, Debug)]
-pub struct LimbCase {
-    /// covered bare names in this strike: fn, struct, enum, interface, case, field (fold → as declared)
+pub struct KitCase {
+    /// covered bare names in this kit: fn, struct, enum, interface, case, field (fold → as declared)
     words: HashMap<String, String>,
-    /// those another strike may reach with the path, and the fields and cases of its pub types
+    /// those another kit may reach with the path, and the fields and cases of its pub types
     pub_words: HashMap<String, String>,
-    /// those another strike may write without the path (`bare.optional` / `bare.only`)
+    /// those another kit may write without the path (`bare.optional` / `bare.only`)
     bare_words: HashMap<String, String>,
     /// the fields of its pub structs and the cases of its pub enums, met without a path
     members: HashMap<String, String>,
     /// covered consts (fold → as declared), and the pub ones
     vars: HashMap<String, String>,
     pub_vars: HashMap<String, String>,
-    /// local variables: insensitive across the strike, or in these modules (and their blocks)
+    /// local variables: insensitive across the kit, or in these modules (and their blocks)
     locals_all: bool,
     local_modules: Vec<Vec<String>>,
 }
 
 thread_local! {
-    pub static PLAN: std::cell::RefCell<HashMap<String, LimbCase>> = std::cell::RefCell::new(HashMap::new());
+    pub static PLAN: std::cell::RefCell<HashMap<String, KitCase>> = std::cell::RefCell::new(HashMap::new());
 }
 
 fn root_key(module: &[String]) -> String { module.first().filter(|r| r.starts_with("::")).cloned().unwrap_or_default() }
@@ -47,7 +47,7 @@ fn covered(prog: &Program, kind: &str, module: &[String], last: Option<&str>, li
         BareTarget::Item(k, n) => last.is_some() && (k == kind || (k == "op" && kind == "fn")) && *n == module.iter().map(String::as_str).chain(last).collect::<Vec<_>>().join("."),
         BareTarget::Block(p) => module.starts_with(p),
         BareTarget::File(p) => module.starts_with(p) && (p.len()..module.len()).all(|i| block(&module[..=i])),
-        BareTarget::Kind(k) => k == kind && m.limb_root == root,
+        BareTarget::Kind(k) => k == kind && m.kit_root == root,
     }).collect();
     let Some(first) = marks.first() else { return Ok(false) };
     if let Some(other) = marks.iter().find(|m| m.insensitive != first.insensitive) {
@@ -58,10 +58,10 @@ fn covered(prog: &Program, kind: &str, module: &[String], last: Option<&str>, li
 
 /// Work out the plan from a first reading of the whole program. `bare` holds the `bare` marks
 /// (`check_bare`'s keys, `kind:path`).
-pub fn plan(prog: &Program, bare: &HashMap<String, ast::Bare>) -> Result<HashMap<String, LimbCase>, String> {
-    let mut plan: HashMap<String, LimbCase> = HashMap::new();
+pub fn plan(prog: &Program, bare: &HashMap<String, ast::Bare>) -> Result<HashMap<String, KitCase>, String> {
+    let mut plan: HashMap<String, KitCase> = HashMap::new();
     if prog.case_marks.is_empty() { return Ok(plan); }
-    // every bare name each strike declares, to refuse two that differ only in case
+    // every bare name each kit declares, to refuse two that differ only in case
     let mut declared: HashMap<String, Vec<(String, usize)>> = HashMap::new();
     // (root, word?, fold, as declared, line, pub, bare-reachable, a member)
     let mut found: Vec<(String, bool, String, String, usize, bool, bool, bool)> = Vec::new();
@@ -142,7 +142,7 @@ pub fn plan(prog: &Program, bare: &HashMap<String, ast::Bare>) -> Result<HashMap
     }
     // local variables: a `var` kind mark, or a file or block module marked insensitive
     for m in &prog.case_marks {
-        let root = m.limb_root.first().cloned().unwrap_or_default();
+        let root = m.kit_root.first().cloned().unwrap_or_default();
         match &m.target {
             BareTarget::Kind(k) if k == "var" && m.insensitive => plan.entry(root).or_default().locals_all = true,
             BareTarget::File(p) | BareTarget::Block(p) if m.insensitive => plan.entry(root).or_default().local_modules.push(p.clone()),
@@ -152,7 +152,7 @@ pub fn plan(prog: &Program, bare: &HashMap<String, ast::Bare>) -> Result<HashMap
     // a `var` mark and a module mark that disagree, over the variables in that module
     for m in &prog.case_marks {
         if let (BareTarget::File(p) | BareTarget::Block(p), false) = (&m.target, m.insensitive) {
-            if let Some(k) = prog.case_marks.iter().find(|k| matches!(&k.target, BareTarget::Kind(x) if x == "var") && k.insensitive && k.limb_root == m.limb_root) {
+            if let Some(k) = prog.case_marks.iter().find(|k| matches!(&k.target, BareTarget::Kind(x) if x == "var") && k.insensitive && k.kit_root == m.kit_root) {
                 return Err(format!("line {}: the variables of `{}` are marked both `case.any` ({}) and `case.exact` ({}): marks that disagree are an error (owner, 2026-10-06)", m.line, p.iter().map(|s| s.trim_start_matches("::")).collect::<Vec<_>>().join("."), crate::interp::line_of(k.line), crate::interp::line_of(m.line)));
             }
         }
@@ -168,14 +168,14 @@ fn builtin_word(w: &str) -> bool {
         || num("int") || num("uint") || num("bin") || num("deci")
 }
 
-/// Rewrite one file's tokens: `limb_root` is its strike, `module` its module.
-pub fn rewrite(toks: &mut [Token], limb_root: &[String], module: &[String]) {
+/// Rewrite one file's tokens: `kit_root` is its kit, `module` its module.
+pub fn rewrite(toks: &mut [Token], kit_root: &[String], module: &[String]) {
     PLAN.with(|plan| {
         let plan = plan.borrow();
         if plan.is_empty() { return; }
-        let own_key = limb_root.first().cloned().unwrap_or_default();
+        let own_key = kit_root.first().cloned().unwrap_or_default();
         let own = plan.get(&own_key);
-        // which strike a path's segment belongs to: Some(key) after `prefix::`, "" for built-in chains
+        // which kit a path's segment belongs to: Some(key) after `prefix::`, "" for built-in chains
         let mut owner: Vec<Option<String>> = vec![None; toks.len()];
         // the module each token sits in, for block modules
         let mut mods: Vec<Vec<String>> = vec![module.to_vec(); toks.len()];
@@ -199,7 +199,7 @@ pub fn rewrite(toks: &mut [Token], limb_root: &[String], module: &[String]) {
             if in_chain { if let Some(o) = owner[i - 2].clone() { owner[i] = Some(o); } }
             if let Tok::Word(w) = &toks[i].tok {
                 if owner[i].is_none() && toks.get(i + 1).map_or(false, |t| t.tok == Tok::ColonColon) && w != "my" { owner[i] = Some(format!("::{w}")); continue; }
-                // `my.` is this strike's root, so what follows it is this strike's
+                // `my.` is this kit's root, so what follows it is this kit's
                 if owner[i].is_none() && builtin_word(w) && w != "my" { owner[i] = Some(String::new()); continue; }
                 if w == "my" { continue; }
             }
@@ -211,7 +211,7 @@ pub fn rewrite(toks: &mut [Token], limb_root: &[String], module: &[String]) {
                 (Tok::Word(w), None) => {
                     let f = fold(w);
                     own.and_then(|lc| lc.words.get(&f)).cloned()
-                        // a field of another strike's type, after `.`; a bare name another strike lets be written bare
+                        // a field of another kit's type, after `.`; a bare name another kit lets be written bare
                         .or_else(|| plan.iter().filter(|(k, _)| **k != own_key).find_map(|(_, lc)| if after_dot { lc.members.get(&f) } else { lc.bare_words.get(&f).or_else(|| lc.members.get(&f)) }).cloned())
                 }
                 (Tok::Var(v), None) => {

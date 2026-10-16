@@ -34,11 +34,11 @@ pub struct RuntimeError {
 
 thread_local! { static SHOWN_FILE: std::cell::RefCell<String> = std::cell::RefCell::new(String::new()); }
 
-/// The file a message's second places name, without its folders (`shop.zg`).
+/// The file a message's second places name, without its folders (`shop.cy`).
 pub fn set_shown_file(name: &str) { SHOWN_FILE.with(|f| *f.borrow_mut() = name.to_string()); }
 
-/// A second place in a message gives its file, always (owner, 2026-10-08: "`a`"): `line 6 of shop.zg`.
-/// A strike's places all name the program's root file: the oracle keeps no file per line.
+/// A second place in a message gives its file, always (owner, 2026-10-08: "`a`"): `line 6 of shop.cy`.
+/// A kit's places all name the program's root file: the oracle keeps no file per line.
 pub fn line_of(line: impl std::borrow::Borrow<usize>) -> String {
     let line = *line.borrow();
     SHOWN_FILE.with(|f| { let f = f.borrow(); if f.is_empty() { format!("line {line}") } else { format!("line {line} of {f}") } })
@@ -88,7 +88,7 @@ struct Task {
 /// What an evaluated expression *is*, for ownership and typing purposes.
 enum Prov {
     Literal,                             // a bare numeric literal: untyped, adopts its context's family
-    Raw,                                 // a whole-number literal in a strike without ASP: its bits land as they are
+    Raw,                                 // a whole-number literal in a kit without ASP: its bits land as they are
     Plain,                               // a plain value: copies freely
     Fresh,                               // a newly made owned value (literal, call result): storable
     Given,                               // `give 'x'`: ownership transferred here
@@ -132,7 +132,7 @@ pub struct Interp<'p> {
     args: Vec<String>,
     /// the matched case's data type, for the name an arm binds
     arm_ty: Option<Ty>,
-    /// strike-level `const`s by canonical key (`module/name`): never assignable, every read a fresh value.
+    /// kit-level `const`s by canonical key (`module/name`): never assignable, every read a fresh value.
     consts: HashMap<String, Slot>,
     /// the module the running code was written in (for bare names and visibility)
     module: Vec<String>,
@@ -177,7 +177,7 @@ pub struct Interp<'p> {
     /// its value is written back into the field (struct cell, field name, temp cell)
     field_borrows: Vec<(Rc<RefCell<Value>>, String, Rc<RefCell<Value>>)>,
     /// `for 'x' in lend.mut 'xs'` loops running now: the list may be read while 'x' is finished
-    /// for the trip, and sees the new values (owner, 2026-09-30: a, Zomp's liveness rule)
+    /// for the trip, and sees the new values (owner, 2026-09-30: a, kayo's liveness rule)
     mut_walks: Vec<MutWalk>,
     scopes: Vec<HashMap<String, Slot>>,
     out: Box<dyn Write>,
@@ -194,16 +194,16 @@ impl<'p> Interp<'p> {
     pub fn set_args(&mut self, args: Vec<String>) { self.args = args; }
     pub fn set_bare(&mut self, b: HashMap<String, crate::ast::Bare>) { self.bare_of = b; }
 
-    /// Whether this code's strike has IEG, whose rule puts raw memory and unproven code under `!check`;
-    /// Ground alone marks nothing (owner, 2026-10-06: "Ground marks nothing", then "yes" to
+    /// Whether this code's kit has IEG, whose rule puts raw memory and unproven code under `!check`;
+    /// the base alone marks nothing (owner, 2026-10-06: "the base marks nothing", then "yes" to
     /// `inline.ASM` and the rest needing `!check` only where IEG is)
     fn marks_needed(&self) -> bool {
         let root: Vec<String> = self.module.first().filter(|r| r.starts_with("::")).cloned().into_iter().collect();
         !crate::parser::LACKS.with(|l| l.borrow().iter().any(|(r, lacks)| *r == root && lacks.iter().any(|c| c == "IEG")))
     }
 
-    /// Another strike's `pub` functions reached bare by `written`, from a call in `from` (owner, 2026-10-06):
-    /// those marked `bare.optional` or `bare.only`, in a strike other than the caller's.
+    /// Another kit's `pub` functions reached bare by `written`, from a call in `from` (owner, 2026-10-06):
+    /// those marked `bare.optional` or `bare.only`, in a kit other than the caller's.
     fn bare_fns_elsewhere(&self, from: &[String], written: &[String], op: bool) -> Vec<&'p Func> {
         let mine = from.first().filter(|r| r.starts_with("::")).cloned();
         let prog: &'p Program = self.prog;
@@ -220,7 +220,7 @@ impl<'p> Interp<'p> {
         self.prepare()?;
         let main = match &self.prog.main {
             Some(m) => m,
-            None => return rt(0, "this strike has no MAIN, so it is a library, not a program"),
+            None => return rt(0, "this kit has no MAIN, so it is a library, not a program"),
         };
         // `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`: C's own view of the command line — the
         // program's name first, each word NUL-ended, and a null pointer after the last (owner, 2026-09-29)
@@ -250,7 +250,7 @@ impl<'p> Interp<'p> {
         }
     }
 
-    /// `zomp test` (owner, 2026-09-29): every `test fn`, in the order written, each on its own;
+    /// `kayo test` (owner, 2026-09-29): every `test fn`, in the order written, each on its own;
     /// a test passes unless a `must` does not hold or something else stops it. Exit 0 when all pass.
     pub fn run_tests(&mut self) -> Result<u8, RuntimeError> {
         self.prepare()?;
@@ -268,7 +268,7 @@ impl<'p> Interp<'p> {
         Ok(if failed == 0 { 0 } else { 1 })
     }
 
-    /// `zomp generate`'s names (owner, 2026-10-13): run each named function (no parameters, text back),
+    /// `kayo generate`'s names (owner, 2026-10-13): run each named function (no parameters, text back),
     /// after the consts are ready, and hand back the texts in order
     pub fn call_texts(&mut self, names: &[(Vec<String>, String)]) -> Result<Vec<String>, RuntimeError> {
         self.prepare()?;
@@ -360,7 +360,7 @@ impl<'p> Interp<'p> {
         for (j, g) in ops.iter().enumerate() {
             for f in &ops[..j] {
                 if f.name != g.name { continue; }
-                // two strikes may each define one word operator for the same types: the path tells them
+                // two kits may each define one word operator for the same types: the path tells them
                 // apart (owner, 2026-10-02), and a bare use of it is refused where it is written; a glyph
                 // operator has no path, so two of them stay an error
                 if root(f) != root(g) && word(&f.name) { continue; }
@@ -392,14 +392,14 @@ impl<'p> Interp<'p> {
         for m in &self.prog.modules {
             let k = format!("module {}", m.path.join("."));
             if let Some(l) = seen.insert(k.clone(), m.line) { return rt(m.line, format!("module `{}` is defined twice (first at {}) — a file and a block cannot both be it", m.path.join("."), line_of(l))); }
-            // One name, one thing, per strike (decided 2026-09-21): a module and a type cannot share a name.
+            // One name, one thing, per kit (decided 2026-09-21): a module and a type cannot share a name.
             // A type's own functions (`fn Counter.next`) sit under its name, which is not a module.
             if crate::parser::TYPE_PATHS.with(|t| t.borrow().contains(&m.path)) { continue; }
             let path = m.path.join(".");
             let clash = self.prog.structs.iter().map(|d| (&d.name, d.line, "struct")).chain(self.prog.enums.iter().map(|e| (&e.name, e.line, "enum"))).chain(self.prog.interfaces.iter().map(|i| (&i.name, i.line, "interface"))).find(|(n, _, _)| **n == path);
             if let Some((_, l, what)) = clash {
-                let where_ = if m.line == 0 { format!("the file `{path}.zg` and a {what} at {}", line_of(l)) } else { format!("a module block at {} and a {what} at {}", line_of(m.line), line_of(l)) };
-                return rt(l, format!("`{path}` is both a module and a {what} ({where_}); one name is one thing in a strike — rename one"));
+                let where_ = if m.line == 0 { format!("the file `{path}.cy` and a {what} at {}", line_of(l)) } else { format!("a module block at {} and a {what} at {}", line_of(m.line), line_of(l)) };
+                return rt(l, format!("`{path}` is both a module and a {what} ({where_}); one name is one thing in a kit — rename one"));
             }
         }
         Ok(())
@@ -507,12 +507,12 @@ impl<'p> Interp<'p> {
     }
 
     /// Visibility (decided 2026-09-19): an item declared in module `owner` with `vis`
-    /// is reachable from module `from` if it is `pub` / `pub.strike` (one strike here, so
+    /// is reachable from module `from` if it is `pub` / `pub.kit` (one kit here, so
     /// both count) or `from` is `owner` or a descendant of it. Every module on the
     /// way is checked the same way.
     fn reachable(&self, from: &[String], owner: &[String], vis: Vis) -> bool {
-        // across a strike's edge only `pub` passes: `pub.strike` stays home (limbs.md)
-        if limb_of(from) != limb_of(owner) { return vis == Vis::Pub; }
+        // across a kit's edge only `pub` passes: `pub.kit` stays home (kits.md)
+        if kit_of(from) != kit_of(owner) { return vis == Vis::Pub; }
         vis != Vis::Private || from.starts_with(owner)
     }
 
@@ -520,7 +520,7 @@ impl<'p> Interp<'p> {
         for i in 1..=module.len() {
             let path = &module[..i];
             let Some(m) = self.prog.modules.iter().find(|m| m.path == path) else {
-                return rt(line, format!("no module `{}` in {}", path.iter().map(|p| p.trim_start_matches("::")).collect::<Vec<_>>().join("."), if limb_of(path).is_empty() { "this strike".to_string() } else { format!("the strike `{}`", &limb_of(path)[2..]) }));
+                return rt(line, format!("no module `{}` in {}", path.iter().map(|p| p.trim_start_matches("::")).collect::<Vec<_>>().join("."), if kit_of(path).is_empty() { "this kit".to_string() } else { format!("the kit `{}`", &kit_of(path)[2..]) }));
             };
             if !self.reachable(from, &module[..i - 1], m.vis) {
                 return rt(line, format!("module `{}` is private to `{}`", path.join("."), root_or(&module[..i - 1])));
@@ -908,7 +908,7 @@ impl<'p> Interp<'p> {
                             };
                             if index.is_some() { return rt(*line, "an iterator has no positions: `for 'x' in lend.mut 'it'`"); }
                             let call = Expr::Call(Call {
-                                handler: None, limb: None, from: self.module.clone(), line: *line, bare: false,
+                                handler: None, kit: None, from: self.module.clone(), line: *line, bare: false,
                                 path: next_mod.iter().cloned().chain(std::iter::once("next".to_string())).collect(),
                                 written: vec![tname.clone(), "next".into()],
                                 args: Bracket { values: vec![crate::ast::Value::Expr(Expr::Owned(Verb::LendMut, n.clone(), *line))], line: *line, one_list: false },
@@ -1588,7 +1588,7 @@ impl<'p> Interp<'p> {
             }
             // a call's return type answers for it (operators.md, 2026-09-23 a: any operand whose type
             // is known; check claude, seeds 55 and 123, after `shl` came to need a width)
-            Expr::Call(c) if c.limb.is_none() => {
+            Expr::Call(c) if c.kit.is_none() => {
                 let (module, name) = c.path.split_at(c.path.len().max(1) - 1);
                 self.prog.funcs.iter().find(|f| f.module == module && name.first() == Some(&f.name) && !f.is_op)
                     .and_then(|f| f.ret.clone()).filter(|t| !matches!(t, Ty::Var(_) | Ty::Inst(..)))
@@ -1876,7 +1876,7 @@ impl<'p> Interp<'p> {
             Expr::Convert(t, ..) => kind(t),
             // a slice is a list, of an array too (owner, 2026-09-23)
             Expr::Builtin(h, op, ..) if (h == "list" || h == "array") && op == "slice" => Some(false),
-            Expr::Call(c) if c.limb.is_none() => {
+            Expr::Call(c) if c.kit.is_none() => {
                 let (module, name) = c.path.split_at(c.path.len() - 1);
                 self.prog.funcs.iter().find(|f| f.module == module && f.name == name[0]).and_then(|f| f.ret.as_ref().and_then(kind))
             }
@@ -1911,7 +1911,7 @@ impl<'p> Interp<'p> {
             Expr::Convert(t, ..) => w(Some(t.clone())),
             Expr::Paren(inner, _) | Expr::Unary(_, inner, _) => self.bin_width(inner),
             Expr::Binary(_, l, r, _) => match (self.bin_width(l), self.bin_width(r)) { (Some(a), Some(b)) => Some(a.max(b)), (a, b) => a.or(b) },
-            Expr::Call(c) if c.limb.is_none() => {
+            Expr::Call(c) if c.kit.is_none() => {
                 let (module, name) = c.path.split_at(c.path.len() - 1);
                 w(self.prog.funcs.iter().find(|f| f.module == module && f.name == name[0]).and_then(|f| f.ret.clone()))
             }
@@ -2241,7 +2241,7 @@ impl<'p> Interp<'p> {
                     None => return rt(line, format!("no const '{name}' in `{}`", root_or(module))),
                 };
                 if !self.reachable(from, module, def.vis) {
-                    return rt(line, format!("const '{name}' is private to `{}`; mark it `pub` or `pub.strike`", root_or(module)));
+                    return rt(line, format!("const '{name}' is private to `{}`; mark it `pub` or `pub.kit`", root_or(module)));
                 }
                 let v = self.consts[&const_key(module, name)].cell.borrow().clone();
                 let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
@@ -2335,7 +2335,7 @@ impl<'p> Interp<'p> {
                             Some(t @ (Ty::Int(_) | Ty::Uint(_))) => crate::value::int_range(&t).map_or(true, |(lo, hi)| digits(lo).max(digits(hi)) > p),
                             Some(Ty::Ranged(_, Bound::Int(lo), Bound::Int(hi))) => digits(lo).max(digits(hi)) > p,
                             // a `:=` result or arithmetic: what its operands let it be (owner, 2026-10-12: "(a)")
-                            // nothing bounds it: it could have too many digits, so `otherwise` is asked for (as Zomp)
+                            // nothing bounds it: it could have too many digits, so `otherwise` is asked for (as kayo)
                             _ => self.static_bound(e).map_or(true, |(lo, hi)| digits(lo).max(digits(hi)) > p),
                         }, _ => false },
                         _ => false,
@@ -2460,7 +2460,7 @@ impl<'p> Interp<'p> {
                     // bin32/bin64 is exact, into a bin16 rounds (a check site past bin16's largest)
                     (Ty::Brain, Value::Int(i)) => Value::Brain(crate::value::round_brain_int(*i as i128)),
                     (Ty::Brain, Value::Bin(x)) => {
-                        let r = no_new_neg_zero(*x, crate::value::round_brain_direct(*x));   // one rounding, as Zomp's fptrunc double → bfloat (compiler claude, 2026-10-15)
+                        let r = no_new_neg_zero(*x, crate::value::round_brain_direct(*x));   // one rounding, as kayo's fptrunc double → bfloat (compiler claude, 2026-10-15)
                         if r.is_infinite() { return site(line, format!("{x} does not fit brain16: it rounds past the largest value")); }
                         Value::Brain(r)
                     }
@@ -4020,24 +4020,24 @@ impl<'p> Interp<'p> {
     fn call(&mut self, c: &Call) -> Result<Value, RuntimeError> {
         self.one_lend_mut(&c.args, c.line)?;
         let shown = c.written.join(".");
-        // a name written bare may be this strike's, std's, or another strike's `bare.optional` / `bare.only`
-        // one; more than one is an error where it is written, and this strike's own does not win
+        // a name written bare may be this kit's, std's, or another kit's `bare.optional` / `bare.only`
+        // one; more than one is an error where it is written, and this kit's own does not win
         // (owner, 2026-10-06: "`a`, and no")
         if c.bare {
             let own_module: Vec<String> = c.from.iter().cloned().chain(c.written[..c.written.len() - 1].iter().cloned()).collect();
             let own = self.prog.funcs.iter().any(|f| f.module == own_module && Some(&f.name) == c.written.last() && !f.is_op);
-            let std = c.limb.as_deref() == Some("std");
+            let std = c.kit.as_deref() == Some("std");
             let others = self.bare_fns_elsewhere(&c.from, &c.written, false);
             let mut who: Vec<String> = Vec::new();
             if own {
                 let mine: Vec<&str> = own_module.iter().filter(|m| !m.starts_with("::")).map(String::as_str).chain(c.written.last().map(String::as_str)).collect();
-                who.push(format!("`my.{}` (this strike's)", mine.join(".")));
+                who.push(format!("`my.{}` (this kit's)", mine.join(".")));
             }
             if std { who.push(format!("`std::{shown}`")); }
             for f in &others { who.push(format!("`{}::{shown}`", f.module[0].trim_start_matches("::"))); }
             if who.len() > 1 { return rt(c.line, format!("`{shown}` could be any of {}: write the path", who.join(", "))); }
             if who.is_empty() {
-                // another strike's name that needs its path says so, rather than "no function"
+                // another kit's name that needs its path says so, rather than "no function"
                 let prog: &'p Program = self.prog;
                 if let Some(f) = prog.funcs.iter().find(|f| f.module.first().map_or(false, |r| r.starts_with("::")) && f.vis == crate::ast::Vis::Pub && !f.is_op
                     && f.module[1..].iter().map(String::as_str).chain(std::iter::once(f.name.as_str())).collect::<Vec<_>>() == c.written.iter().map(String::as_str).collect::<Vec<_>>()
@@ -4053,12 +4053,12 @@ impl<'p> Interp<'p> {
                 return self.user_call(&local);
             }
         }
-        match &c.limb {
+        match &c.kit {
             Some(l) if l == "std" => self.std_call(c),
-            // another strike, loaded from `Ricochet.zv` under its own root (owner, 2026-09-29)
+            // another kit, loaded from `CyJet.cyr` under its own root (owner, 2026-09-29)
             Some(l) if self.prog.modules.iter().any(|m| m.path == [format!("::{l}")]) => {
                 let mut local = c.clone();
-                local.limb = None;
+                local.kit = None;
                 local.path.insert(0, format!("::{l}"));
                 // a `bare.only` name forbids its path (owner, 2026-10-06)
                 let (module, name) = local.path.split_at(local.path.len() - 1);
@@ -4067,7 +4067,7 @@ impl<'p> Interp<'p> {
                 }
                 self.user_call(&local)
             }
-            Some(l) => rt(c.line, format!("no strike with the prefix `{l}`: a strike this one uses is listed in its `Ricochet.zv` (`dependencies = [ricochet::dep[path = …],]`), and its own `Ricochet.zv` says `prefix = \"{l}\"`")),
+            Some(l) => rt(c.line, format!("no kit with the prefix `{l}`: a kit this one uses is listed in its `CyJet.cyr` (`dependencies = [cyjet::dep[path = …],]`), and its own `CyJet.cyr` says `prefix = \"{l}\"`")),
             None => self.user_call(c),
         }
     }
@@ -4093,7 +4093,7 @@ impl<'p> Interp<'p> {
             return rt(c.line, private_msg(&c.from, &func.module, &format!("`{}`", join_path(&func.module, name))));
         }
         if func.is_op { return rt(c.line, format!("`{name}` is an operator; it goes between its operands (`'a' {name} 'b'`), never called with `[…]`")); }
-        if func.is_test { return rt(c.line, format!("`{name}` is a `test fn`: `zomp test` runs it, and nothing calls it")); }
+        if func.is_test { return rt(c.line, format!("`{name}` is a `test fn`: `kayo test` runs it, and nothing calls it")); }
         if func.is_extern {
             if self.nocheck_depth == 0 && self.marks_needed() { return rt(c.line, format!("`{name}` is extern; nothing about it can be proven — the call is a no_check site: `no_check … {name}[…]`")); }
             let ranged_ret = matches!(func.ret, Some(Ty::Ranged(..)));
@@ -4359,7 +4359,7 @@ impl<'p> Interp<'p> {
         self.call_is_stmt = false;
         self.check_handler(handler, &func.fails, name, line)?;
         let saved_tvars = std::mem::take(&mut *self.tvars.borrow_mut());
-        let synthetic = Call { handler: handler.cloned(), limb: None, path: vec![func.name.clone()], from: self.module.clone(), args: args.clone(), line, bare: false, written: vec![func.name.clone()] };
+        let synthetic = Call { handler: handler.cloned(), kit: None, path: vec![func.name.clone()], from: self.module.clone(), args: args.clone(), line, bare: false, written: vec![func.name.clone()] };
         let r = self.call_func_with(&func, &synthetic, name, value_used, fv.captures.clone());
         *self.tvars.borrow_mut() = saved_tvars;
         r
@@ -4428,33 +4428,33 @@ impl<'p> Interp<'p> {
         // pick the definition whose first operand's type matches the left value (an
         // operator may be defined for several types)
         let lshape = shape_of(&left.0);
-        // `vecmath::dot`: only that strike's `dot` (owner, 2026-10-02: a strike's word operator may carry its path)
-        let (limb, name) = match op.split_once("::") { Some((l, n)) => (Some(format!("::{l}")), n), None => (None, op) };
-        let candidates: Vec<Func> = self.prog.funcs.iter().filter(|f| f.is_op && f.name == name && limb.as_ref().map_or(true, |l| f.module.first() == Some(l))).cloned().collect();
+        // `vecmath::dot`: only that kit's `dot` (owner, 2026-10-02: a kit's word operator may carry its path)
+        let (kit, name) = match op.split_once("::") { Some((l, n)) => (Some(format!("::{l}")), n), None => (None, op) };
+        let candidates: Vec<Func> = self.prog.funcs.iter().filter(|f| f.is_op && f.name == name && kit.as_ref().map_or(true, |l| f.module.first() == Some(l))).cloned().collect();
         // the one written for this type, else a generic one (they never overlap: `check_duplicates`)
         let def = match candidates.iter().find(|f| f.params[0].ty.as_ref().map(|t| ty_shape(t) == lshape).unwrap_or(false))
             .or_else(|| candidates.iter().find(|f| f.params[0].ty.as_ref().map(|t| matches!(t, Ty::Var(_))).unwrap_or(true))).or(candidates.first()) {
             Some(f) => f.clone(),
             None => {
                 let hint = crate::spellings::free_op_hint(op).map(|h| format!("; {h}")).unwrap_or_default();
-                if let Some(l) = &limb { return rt(line, format!("the strike `{}` has no operator `{name}` for these values", &l[2..])); }
+                if let Some(l) = &kit { return rt(line, format!("the kit `{}` has no operator `{name}` for these values", &l[2..])); }
                 return rt(line, format!("`{op}` is not an operator here{hint} — declare it with `op {op} ['a': T, 'b': T] -> R {{ … }}`"));
             }
         };
-        // written bare, the same word operator for these types in two strikes is a clash where it is
+        // written bare, the same word operator for these types in two kits is a clash where it is
         // written, as a bare name is (owner, 2026-10-06: "`a`, and no")
-        if limb.is_none() {
+        if kit.is_none() {
             let same: Vec<&Func> = candidates.iter().filter(|f| f.params.len() == def.params.len() && f.params.iter().zip(&def.params).all(|(a, b)| a.ty.as_ref().map(ty_shape) == b.ty.as_ref().map(ty_shape))).collect();
-            let mut roots: Vec<String> = same.iter().map(|f| f.module.first().filter(|r| r.starts_with("::")).map(|r| format!("`{}::{name}`", r.trim_start_matches("::"))).unwrap_or_else(|| format!("`{name}` (this strike's)"))).collect();
+            let mut roots: Vec<String> = same.iter().map(|f| f.module.first().filter(|r| r.starts_with("::")).map(|r| format!("`{}::{name}`", r.trim_start_matches("::"))).unwrap_or_else(|| format!("`{name}` (this kit's)"))).collect();
             roots.dedup();
             if roots.len() > 1 { return rt(line, format!("`{name}` could be any of {}: write the path", roots.join(", "))); }
         }
-        // another strike's word operator follows its `bare` mark (owner, 2026-10-06): `bare.never` needs its
+        // another kit's word operator follows its `bare` mark (owner, 2026-10-06): `bare.never` needs its
         // path, `bare.only` refuses it; a glyph operator has no path and no mark
         if let Some(root) = def.module.first().filter(|r| r.starts_with("::")) {
             let here = self.module.first().filter(|r| r.starts_with("::"));
             let l = root.trim_start_matches("::");
-            match (self.bare_of.get(&bare_key("op", &def.module, &def.name)), &limb) {
+            match (self.bare_of.get(&bare_key("op", &def.module, &def.name)), &kit) {
                 (Some(crate::ast::Bare::Never), None) if here != Some(root) => return rt(line, format!("`{name}` is `{l}`'s and `bare.never`: write `{l}::{name}`")),
                 (Some(crate::ast::Bare::Only), Some(_)) => return rt(line, format!("`{l}::{name}` is `bare.only`: `{l}` forbids its path, so write `{name}`")),
                 _ => {}
@@ -4687,7 +4687,7 @@ impl<'p> Interp<'p> {
             Ty::Inst(n, _) => return rt(line, format!("`size.of[{n}[…]]`: a generic struct's size is not modelled by the oracle")),
             Ty::Struct(n) => {
                 let d = match self.prog.structs.iter().find(|d| &d.name == n) { Some(d) => d, None => return rt(line, format!("no struct named `{n}`")) };
-                if d.opaque { return rt(line, format!("`{n}` is C's and opaque: its size is C's own, and Zag only points at it")); }
+                if d.opaque { return rt(line, format!("`{n}` is C's and opaque: its size is C's own, and CyborgPL only points at it")); }
                 let (mut off, mut al) = (0usize, 1usize);
                 for f in &d.fields {
                     let (s, a) = self.size_align(&f.ty, line)?;
@@ -4935,7 +4935,7 @@ impl<'p> Interp<'p> {
         };
         let from = if from.is_empty() { self.module.clone() } else { from.to_vec() };
         self.check_path(&from, &def.module, line)?;
-        if !self.reachable(&from, &def.module, def.vis) { return rt(line, format!("enum `{tname}` is private to `{}`; mark it `pub` or `pub.strike`", root_or(&def.module))); }
+        if !self.reachable(&from, &def.module, def.vis) { return rt(line, format!("enum `{tname}` is private to `{}`; mark it `pub` or `pub.kit`", root_or(&def.module))); }
         let cdef = match def.cases.iter().find(|c| c.name == case) {
             Some(c) => c,
             None => return rt(line, format!("`{tname}` has no case `{case}` (it has {})", def.cases.iter().map(|c| c.name.as_str()).collect::<Vec<_>>().join(", "))),
@@ -5175,7 +5175,7 @@ fn round_f16(x: f64) -> f64 {
 
 /// The digits of a bin literal as written (with a leading `-`), looking through parentheses.
 /// Without ASP a literal is a bit pattern, as the machine's: an `int8` holding `128` holds -128's bits,
-/// and one wider than the type's bits is refused (owner, 2026-10-06: "`a`", "Ground's, then").
+/// and one wider than the type's bits is refused (owner, 2026-10-06: "`a`", "the base's, then").
 fn raw_land(v: Value, prov: Prov, t: &Ty, line: usize) -> Result<(Value, Prov), RuntimeError> {
     match (&prov, &v, t) {
         (Prov::Raw, Value::Int(i), Ty::Int(w) | Ty::Uint(w)) if int_range(t).is_some() => {
@@ -5187,7 +5187,7 @@ fn raw_land(v: Value, prov: Prov, t: &Ty, line: usize) -> Result<(Value, Prov), 
             Ok((Value::Int(v), Prov::Literal))
         }
         (Prov::Raw, Value::Int(_), Ty::Int(_) | Ty::Uint(_)) => rt(line, format!("a literal landing in {} without ASP is not built in the oracle", ty_name(t))),
-        (Prov::Raw, _, Ty::Bin(_) | Ty::Brain | Ty::Deci(_) | Ty::Ranged(..)) => rt(line, format!("what a literal means in {} without ASP is not decided: Ground's literals are bit patterns (owner, 2026-10-06), decided for whole-number types only", ty_name(t))),
+        (Prov::Raw, _, Ty::Bin(_) | Ty::Brain | Ty::Deci(_) | Ty::Ranged(..)) => rt(line, format!("what a literal means in {} without ASP is not decided: the base's literals are bit patterns (owner, 2026-10-06), decided for whole-number types only", ty_name(t))),
         (Prov::Raw, _, _) => Ok((v, Prov::Literal)),
         _ => Ok((v, prov)),
     }
@@ -5439,13 +5439,13 @@ pub fn resolve_bound(base: &Ty, b: &Bound) -> Bound {
 
 fn const_key(module: &[String], name: &str) -> String { format!("{}/{name}", module.join(".")) }
 fn join_path(module: &[String], name: &str) -> String { if module.is_empty() { name.to_string() } else { format!("{}.{name}", module.join(".")) } }
-fn root_or(module: &[String]) -> String { if module.is_empty() { "the root (strike.zg)".into() } else { module.join(".") } }
+fn root_or(module: &[String]) -> String { if module.is_empty() { "the root (kit.cy)".into() } else { module.join(".") } }
 
 /// The first `std::` call inside a const's value, if any (an effect at compile time).
 fn first_std_call(b: &Bracket) -> Option<String> {
     fn in_expr(e: &Expr) -> Option<String> {
         match e {
-            Expr::Call(c) => { if c.limb.is_some() { return Some(c.path.join(".")); } in_bracket(&c.args) }
+            Expr::Call(c) => { if c.kit.is_some() { return Some(c.path.join(".")); } in_bracket(&c.args) }
             Expr::Nested(b) => in_bracket(b),
             Expr::Builtin(_, _, b, _) => in_bracket(b),
             Expr::Construct(_, fs, _) => fs.iter().find_map(|(_, b)| in_bracket(b)),
@@ -5716,18 +5716,18 @@ fn value_eq(a: &Value, b: &Value) -> bool {
     }
 }
 
-/// Which strike a module path belongs to: `""` for the strike being built, `"::geometry"` for a dependency.
-fn limb_of(path: &[String]) -> &str {
+/// Which kit a module path belongs to: `""` for the kit being built, `"::geometry"` for a dependency.
+fn kit_of(path: &[String]) -> &str {
     match path.first() { Some(p) if p.starts_with("::") => p.as_str(), _ => "" }
 }
 
-/// Why an item cannot be reached: across a strike's edge only `pub` passes (limbs.md).
+/// Why an item cannot be reached: across a kit's edge only `pub` passes (kits.md).
 fn private_msg(from: &[String], owner: &[String], what: &str) -> String {
-    let what = what.replace("::", "").replacen('.', "::", if limb_of(owner).is_empty() { 0 } else { 1 });
-    if limb_of(from) != limb_of(owner) {
-        format!("{what} is not `pub`, and another strike reaches only `pub` items")
+    let what = what.replace("::", "").replacen('.', "::", if kit_of(owner).is_empty() { 0 } else { 1 });
+    if kit_of(from) != kit_of(owner) {
+        format!("{what} is not `pub`, and another kit reaches only `pub` items")
     } else {
-        format!("{what} is private to `{}`; mark it `pub` or `pub.strike`", root_or(owner))
+        format!("{what} is private to `{}`; mark it `pub` or `pub.kit`", root_or(owner))
     }
 }
 

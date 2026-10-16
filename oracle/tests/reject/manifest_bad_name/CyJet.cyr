@@ -1,0 +1,6 @@
+cyjet::manifest[
+    name = "Areas of shapes",
+    prefix = "areas",
+    version = "1.0.0",
+    targets = [cyjet::target[name = "aarch64-macos"],]
+];
