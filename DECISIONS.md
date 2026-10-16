@@ -17,6 +17,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — `.cy` stays, over `.cyb` (owner)
+
+GitHub's Linguist files `.cy` under Cycript (hidden with `.gitattributes`, same day). The owner asked "Should we
+change to `.cyb`?"; design claude found it unclaimed (Linguist and file-type sites) and leaned to switching for
+the even `.cyb` / `.cyr` pair, then, asked whether RenderScript has a Linguist entry, found Rust, RenderScript and
+XML sharing `.rs`, told apart by a content rule (`^(use |fn |mod |pub |…)` is Rust), so CyborgPL could share `.cy`
+with Cycript the same way once eligible. The owner: "Keep `.cy`, and I mean our syntax is very distinct. So,
+it's likely fine." So **code still ends `.cy`**.
+
 ### 2026-10-16 — CyborgPL's home stays cyborgpl.dev; .com and .org lead to it (owner)
 
 A day after "change main to cyborgpl.org" (2026-10-15, below), the owner, with a screenshot of Google answering
