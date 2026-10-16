@@ -22,6 +22,6 @@ MAIN {
     if 't' not_equal Status.claimed["Al"] { change 'got' = 'got' plus 8; }
     let 'a' := P[x = to.int32['n'], y = 2];
     if 'a' equal_to P[x = 3, y = 2] { change 'got' = 'got' plus 16; }
-    if "a" ++ "bc" equal_to 'k' { change 'got' = 'got' plus 32; }
+    if "a" concat "bc" equal_to 'k' { change 'got' = 'got' plus 32; }
     no_check my.exit['got'];
 }

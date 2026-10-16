@@ -1,6 +1,6 @@
 extern.C fn exit ['code': int32];
 fn greet [lent 'who': str.utf8] -> str.utf8 {
-    return "hello, " ++ 'who';
+    return "hello, " concat 'who';
 }
 MAIN {
     let 'name': str.utf8 = "world";

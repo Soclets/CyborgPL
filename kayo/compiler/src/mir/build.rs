@@ -96,7 +96,7 @@ fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Ite
         }
         hir::ExprKind::Unary { op, expr } => match (op, const_eval(expr, done, items)?) {
             (U::Neg, Const::Int(v)) => Some(Const::Int(v.checked_neg()?)),
-            // `-'x'` of a zero is `0`, `neg.ieee` IEEE's `-0` (owner, 2026-10-07).
+            // `-'x'` of a zero is `0`, `negate.ieee` IEEE's `-0` (owner, 2026-10-07).
             (U::Neg, Const::Bin(s)) if bin64(e) => Some(Const::Bin(format!("{:?}", -s.replace('_', "").parse::<f64>().ok()? + 0.0))),
             (U::NegIeee, Const::Bin(s)) if bin64(e) => Some(Const::Bin(format!("{:?}", -s.replace('_', "").parse::<f64>().ok()?))),
             (U::Not, Const::Bool(b)) => Some(Const::Bool(!b)),

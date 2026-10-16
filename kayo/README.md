@@ -807,3 +807,13 @@ Dated, with the alternative, so each can become a question later.
 - **2026-10-15 — `kayo version` says `CyDT 1 KAYO\n`** (owner: KAYO\n is
   named by its kit, distribution.md), followed by "a build before CyDT 1's
   release": what such a build calls itself is not ruled yet.
+- **2026-10-16 — Symbols only where they read correctly** (owner, DECISIONS
+  "Symbols only where they read correctly"). `+`, `-`, `x` (`times`), `xx`
+  (std's `pow`), `<`, `>` and a leading `-` are the good-practice spellings;
+  `less_than`, `greater_than` and `negate` are new words (`neg` refused).
+  Every other symbol is refused before parsing, naming its word from
+  spellings.cyr's row: `== != <= >= / % && || ** ++`, the compound changes
+  (gone), and `*` and `&` by what stands around them, as the oracle reads
+  them (after a value `*` is `x` and `&` is `and`; `*19.99`, `*const`,
+  `*mut`, `*'p'`, `change *'p' =`, `&mut`, `&'x'`). `op x` declares
+  `times`; `op xx` is refused, `pow` being std's.

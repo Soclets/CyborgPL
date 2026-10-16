@@ -31,7 +31,7 @@ MAIN {
     let mut 'small': int64 = 999;
     if 'there' { change 'small' = 'small' plus 1; }
     if short['small'] equal_to "?" and short[-12] equal_to "-12" { change 'got' = 'got' plus 32; }
-    let 'joined' := "n=" ++ to.stored.str.utf8['small' plus 4];
+    let 'joined' := "n=" concat to.stored.str.utf8['small' plus 4];
     if 'joined' equal_to "n=1004" { change 'got' = 'got' plus 64; }
     no_check my.exit['got'];
 }

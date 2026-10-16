@@ -212,10 +212,10 @@ pub fn calls() -> &'static [Call] {
     &get().calls
 }
 
-/// The 2026-10-03 operator symbols, old spellings of the words (`x` is
-/// `times`), found by the parser where an operator stands.
+/// The 2026-10-03 wrapping symbols, old spellings of the words (`x~` is
+/// `times.wrap`), found by the parser where an operator stands.
 pub fn old_symbol(s: &str) -> Option<&'static Old> {
-    if reading() || !matches!(s, "+" | "-" | "x" | "xx" | "+~" | "-~" | "x~" | "xx~") {
+    if reading() || !matches!(s, "+~" | "-~" | "x~" | "xx~") {
         return None;
     }
     get().old.iter().find(|o| o.written == s && o.where_.as_deref() == Some("special"))

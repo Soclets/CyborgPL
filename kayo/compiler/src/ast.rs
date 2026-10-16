@@ -118,7 +118,7 @@ impl Verb {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnOp {
     Neg,
-    /// `neg.ieee 'x'` (owner, 2026-10-07: "yea"): IEEE's negation, a `-0`
+    /// `negate.ieee 'x'` (owner, 2026-10-07: "yea"): IEEE's negation, a `-0`
     /// of a zero, where `-'x'` gives `0`. A bin or brain16 only.
     NegIeee,
     Not,

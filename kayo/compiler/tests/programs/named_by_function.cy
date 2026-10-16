@@ -12,7 +12,7 @@ fn size_name ['n': int32] -> str.utf8 {
         change 'm' = 'm' div.floor 2;
         change 'k' = 'k' plus 1;
     }
-    return "pow" ++ to.stored.str.utf8['k'];
+    return "pow" concat to.stored.str.utf8['k'];
 }
 
 collection.fn block {

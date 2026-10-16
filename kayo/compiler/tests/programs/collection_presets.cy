@@ -12,7 +12,7 @@ collection.fn mix {
     seven ['a' = 7];
     both ['a' = 1, 'b' = 2];
     for 'n' from 1 to 2 by 1 {
-        named "plus_" ++ to.stored.str.utf8['n'];
+        named "plus_" concat to.stored.str.utf8['n'];
         ['x': int32] -> int32 { return 'x' plus 'n'; }
     }
     #generated_2_lines_below

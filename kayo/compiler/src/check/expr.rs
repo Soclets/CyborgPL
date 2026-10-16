@@ -875,9 +875,9 @@ impl Checker {
         let v = self.expr(ctx, operand)?;
         let vt = self.resolve(&v.ty);
         match op {
-            // `neg.ieee 'x'` (owner, 2026-10-07: "yea").
+            // `negate.ieee 'x'` (owner, 2026-10-07: "yea").
             UnOp::NegIeee => {
-                self.ieee_takes("neg.ieee", "-'x'", &vt, span)?;
+                self.ieee_takes("negate.ieee", "-'x'", &vt, span)?;
                 let ty = vt.base().clone();
                 Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty, span })
             }

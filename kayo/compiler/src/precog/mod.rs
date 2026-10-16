@@ -1406,7 +1406,7 @@ impl Precog {
             Rvalue::Duplicate(p) => self.read(f, env, p),
             Rvalue::Lend { place, .. } => self.read(f, env, place),
             Rvalue::Unary { op, operand } => {
-                // `neg.ieee` is `-` but for a zero's sign, which no domain holds.
+                // `negate.ieee` is `-` but for a zero's sign, which no domain holds.
                 let op = &op.plain();
                 let d = self.read_operand(f, env, operand);
                 match (op, &d) {

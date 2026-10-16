@@ -6,7 +6,7 @@ fn total [lent 'xs': list[int32]] -> int32 {
 }
 MAIN {
     let 'xs': list[int32] = [1, 2, 3];
-    let 'name': str.utf8 = "task" ++ "s";
+    let 'name': str.utf8 = "task" concat "s";
     let mut 'out': list[int32] = [];
     for 'k': int32 from 1 to 50 by 1 {
         concur with [copy 'xs', give 'name', lend.mut 'out'] {

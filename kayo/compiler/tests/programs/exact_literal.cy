@@ -3,10 +3,10 @@
 # = 3 + 1999 + 1 = 2003, 211 mod 256; the oracle agrees.
 extern.C fn exit ['code': int32];
 MAIN {
-    let 'price' := *19.99;
-    let 'tenth' := *0.1;
-    let 'total' := 'tenth' plus *0.2;
-    let 'half': deci32 = *0.5;
+    let 'price' := exactly 19.99;
+    let 'tenth' := exactly 0.1;
+    let 'total' := 'tenth' plus exactly 0.2;
+    let 'half': deci32 = exactly 0.5;
     let 'n': int32 = to.int32[('total' times 10) plus ('price' times 100) plus to.stored.deci64['half' times 2]] otherwise 0;
     no_check my.exit['n' mod.floor 256];
 }

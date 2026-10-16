@@ -161,12 +161,12 @@ fn language_level(name: &str) -> Option<(u16, Option<Chain>)> {
     Some(match (name, base) {
         ("or" | "or.else", _) => (OR_LEVEL, Some(Chain::Left)),
         ("and" | "and.then", _) => (AND_LEVEL, Some(Chain::Left)),
-        ("==" | "!==" | "<" | ">" | "</==" | ">/==" | "equal_to" | "not_equal" | "at_most" | "at_least", _) => (CMP_LEVEL, Some(Chain::Refused)),
+        ("==" | "!==" | "<" | ">" | "</==" | ">/==" | "equal_to" | "not_equal" | "at_most" | "at_least" | "less_than" | "greater_than", _) => (CMP_LEVEL, Some(Chain::Refused)),
         ("++", _) => (JOIN_LEVEL, Some(Chain::Left)),
         ("plus" | "minus" | "plus.wrap" | "minus.wrap", _) => (ADD_LEVEL, Some(Chain::Left)),
         ("times" | "times.wrap", _) | (_, "div" | "mod") => (MUL_LEVEL, Some(Chain::Left)),
         // A negative is one value's: any chain may hold it.
-        ("neg", _) => (NEG_LEVEL, None),
+        ("negate", _) => (NEG_LEVEL, None),
         ("pow" | "pow.wrap", _) => (POW_LEVEL, Some(Chain::Right)),
         _ => return None,
     })
@@ -276,8 +276,41 @@ fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
         _ => false,
     };
     let operator = i > 0 && (toks[i - 1].tok == Tok::Word("op".into()) || (ends_value(&toks[i - 1].tok) && next(1).is_some_and(starts_value)));
-    if operator && matches!(&toks[i].tok, Tok::Op(o) if o == "&" || o == "!") {
+    if operator && matches!(&toks[i].tok, Tok::Op(o) if o == "!") {
         return None;
+    }
+    // Symbols only where they read correctly (owner, 2026-10-16): `+ - x
+    // xx < >` and a leading `-`. Every other symbol is an old spelling of
+    // its word, each as spellings.cyr's row says it; `*` and `&` by what
+    // stands around them.
+    if let Tok::Op(o) = &toks[i].tok {
+        let row = |w: &str, special: bool| crate::spellings::old_word(w, special.then_some("special")).map(|o| o.dated());
+        let after_value = i > 0 && ends_value(&toks[i - 1].tok);
+        let written = toks[i].span.end - toks[i].span.start;
+        match o.as_str() {
+            // `equal_to` is this token inside, written in full.
+            "==" if written == 2 => return row("==", false),
+            "!=" | "<=" | ">=" | "/" | "%" | "&&" | "||" | "**" | "++" | "--" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=" => return row(o, false),
+            "*" => {
+                return match next(1) {
+                    _ if after_value => row("*", true),
+                    Some(Tok::Num { .. }) => row("*19.99", true),
+                    Some(Tok::Word(w)) if w == "const" => row("*const", true),
+                    Some(Tok::Word(w)) if w == "mut" => row("*mut", true),
+                    Some(Tok::Name(_)) if after(1, &Tok::Word("change".into())) => row("change *'p' =", true),
+                    Some(Tok::Name(_)) => row("*'p'", true),
+                    _ => row("*", true),
+                };
+            }
+            "&" => {
+                return match next(1) {
+                    _ if after_value => row("'a' & 'b'", true),
+                    Some(Tok::Word(w)) if w == "mut" => row("&mut", true),
+                    _ => row("&", true),
+                };
+            }
+            _ => {}
+        }
     }
     match &toks[i].tok {
         // `""` is `str.empty` (owner, 2026-10-14), spelled two quotes.
@@ -2628,44 +2661,6 @@ impl<'a> Parser<'a> {
         Ok(Stmt { kind, span: start.to(self.prev_span()) })
     }
 
-    /// `'i'++;`, `'i'--;`, `'i' += e;` and `-=`, `*=`, `/=`, `%=`, `**=`
-    /// (owner, 2026-10-14: "we add it as an alt"): spellings of `change 'i'
-    /// = 'i' plus 1;` and the others, the right side taken whole, as if
-    /// bracketed. Only after a name, at the start of a statement; `++` and
-    /// `--` only as the whole statement.
-    fn compound_change(&mut self, n: &str, o: &str) -> Result<Option<StmtKind>> {
-        let (op, takes_value) = match o {
-            "++" => (BinOp::Add, false),
-            "--" => (BinOp::Sub, false),
-            "+=" => (BinOp::Add, true),
-            "-=" => (BinOp::Sub, true),
-            "*=" => (BinOp::Mul, true),
-            "/=" => (BinOp::Div(Round::Trunc), true),
-            "%=" => (BinOp::Mod(Round::Trunc), true),
-            "**=" => (BinOp::Pow, true),
-            _ => return Ok(None),
-        };
-        if !takes_value && !matches!(self.peek_at(2), Tok::Semi) {
-            return Ok(None);
-        }
-        let at = self.bump().span;
-        let name = Expr { kind: ExprKind::Name(QName { name: n.to_string(), span: at }), span: at };
-        let op_span = self.bump().span;
-        let value = if takes_value {
-            if self.is(&Tok::Semi) {
-                return self.fail_at(at.to(op_span), format!("`'{n}' {o}` needs a value after it, `'{n}' {o} 1;`"));
-            }
-            let e = self.expr_top()?;
-            Expr { span: e.span, kind: ExprKind::Paren(Box::new(e)) }
-        } else {
-            Expr { kind: ExprKind::Int("1".into()), span: op_span }
-        };
-        self.expect_semi("the change")?;
-        let span = at.to(value.span);
-        let value = Expr { kind: ExprKind::Binary { op, op_span, lhs: Box::new(name.clone()), rhs: Box::new(value) }, span };
-        Ok(Some(StmtKind::Assign { target: name, value }))
-    }
-
     /// A declaration, from `let` to its `;` (owner, 2026-10-02): `let 'x'
     /// := …`, `let 'x': T = …`, `mut`/`immut`/`!mut` and `!$` between `let`
     /// and the name, `$` before the `:=`/`=` to shadow.
@@ -2727,11 +2722,6 @@ impl<'a> Parser<'a> {
             Tok::Strict => return self.fail("`#strict` goes once, at the top of the file, before any item"),
             // A declaration starts with `let` (owner, 2026-10-02).
             Tok::Name(n) => {
-                if let Tok::Op(o) = self.peek_at(1).clone() {
-                    if let Some(kind) = self.compound_change(&n, &o)? {
-                        return Ok(kind);
-                    }
-                }
                 return match self.peek_at(1) {
                     Tok::Colon | Tok::Walrus | Tok::Dollar => self.fail(format!("a declaration starts with `let`: `let '{}' := …;`", n)),
                     Tok::Word(m) if m == "mut" || m == "immut" => self.fail_at(self.span(), format!("a declaration starts with `let`, and `{}` goes before the name: `let {} '{}' := …;`", m, m, n)),
@@ -3666,11 +3656,17 @@ impl<'a> Parser<'a> {
                 let wraps = self.is_op_at(1, "~") && self.adjacent(0, 1);
                 self.bump();
                 match w.as_str() {
-                    "x" | "xx" => {
-                        let old = if wraps { format!("{}~", w) } else { w.clone() };
+                    "x" | "xx" if wraps => {
+                        let old = format!("{}~", w);
                         let sentence = retired_spelling(&old).map_or_else(|| format!("`{}` is an old spelling", old), |o| o.dated());
                         return self.fail_at(at, sentence);
                     }
+                    // `op x` is `op times`; `xx` is std's `pow`, declared
+                    // by its word (owner, 2026-10-16).
+                    "x" => BinOp::Mul,
+                    "xx" => return self.fail_at(at, "`xx` is the language's spelling of std's `pow`, which is not declared again: `op pow` is the operator as a value"),
+                    "less_than" => BinOp::Lt,
+                    "greater_than" => BinOp::Gt,
                     "plus" | "minus" | "times" | "pow" => {
                         let wrap = self.is(&Tok::Dot) && self.is_word_at(1, "wrap");
                         if wrap {
@@ -3785,8 +3781,13 @@ impl<'a> Parser<'a> {
                 match w.as_str() {
                     "x" if wraps => OpTok { len: 2, old: Some("times.wrap"), ..lang(BinOp::WrapMul, MUL_LEVEL, Chain::Left) },
                     "xx" if wraps => OpTok { len: 2, old: Some("pow.wrap"), ..lang(BinOp::WrapPow, POW_LEVEL, Chain::Right) },
-                    "x" => OpTok { old: Some("times"), ..lang(BinOp::Mul, MUL_LEVEL, Chain::Left) },
-                    "xx" => OpTok { old: Some("pow"), ..lang(BinOp::Pow, POW_LEVEL, Chain::Right) },
+                    // `x` and `xx` are `times` and std's `pow` (owner,
+                    // 2026-10-16: "`x` and `xx`"), as `<` and `>` are
+                    // `less_than` and `greater_than`.
+                    "x" => lang(BinOp::Mul, MUL_LEVEL, Chain::Left),
+                    "xx" => lang(BinOp::Pow, POW_LEVEL, Chain::Right),
+                    "less_than" => lang(BinOp::Lt, CMP_LEVEL, Chain::Refused),
+                    "greater_than" => lang(BinOp::Gt, CMP_LEVEL, Chain::Refused),
                     // The operators are words (owner, 2026-10-02/03), and
                     // `.wrap` narrows them to the wrapping forms.
                     // `.ieee` keeps IEEE's -0 (owner, 2026-10-07: "yea").
@@ -4077,15 +4078,22 @@ impl<'a> Parser<'a> {
                 let span = start.to(operand.span);
                 Ok(Expr { kind: ExprKind::Unary { op: UnOp::Neg, expr: Box::new(operand) }, span })
             }
-            // `neg.ieee 'x'` (owner, 2026-10-07: "yea"): IEEE's negation,
-            // binding as `-` does.
-            Tok::Word(w) if w == "neg" && matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "ieee") => {
+            // `negate.ieee 'x'` (owner, 2026-10-07: "yea"; `neg` until
+            // 2026-10-16): IEEE's negation, binding as `-` does.
+            Tok::Word(w) if w == "negate" && matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "ieee") => {
                 self.bump();
                 self.bump();
                 self.bump();
                 let operand = self.expr(2 * NEG_LEVEL)?;
                 let span = start.to(operand.span);
                 Ok(Expr { kind: ExprKind::Unary { op: UnOp::NegIeee, expr: Box::new(operand) }, span })
+            }
+            // `negate 'x'` is `-'x'` (owner, 2026-10-16).
+            Tok::Word(w) if w == "negate" && !matches!(self.peek_at(1), Tok::Dot) => {
+                self.bump();
+                let operand = self.expr(2 * NEG_LEVEL)?;
+                let span = start.to(operand.span);
+                Ok(Expr { kind: ExprKind::Unary { op: UnOp::Neg, expr: Box::new(operand) }, span })
             }
             Tok::Op(o) if o == "&" => {
                 self.bump();
@@ -4295,10 +4303,10 @@ impl<'a> Parser<'a> {
                 // `op +` (owner, 2026-09-29): the operator as a value.
                 "op" if !matches!(self.peek_at(1), Tok::LBracket) => {
                     let start = self.bump().span;
-                    // `op neg` / `op not`: the operators of one operand.
-                    let unary = if self.is_word("neg") {
+                    // `op negate` / `op not`: the operators of one operand.
+                    let unary = if self.is_word("negate") {
                         self.bump();
-                        Some((UnOp::Neg, "neg"))
+                        Some((UnOp::Neg, "negate"))
                     } else if self.is_word("not") && !matches!(self.peek_at(1), Tok::Dot) {
                         self.bump();
                         Some((UnOp::Not, "not"))

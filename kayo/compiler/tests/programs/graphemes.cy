@@ -18,13 +18,13 @@ MAIN {
     let 'g': char.grapheme = `é`;
     let 'p' := to.char.point['g'] otherwise `?`;
     if char.code['p'] equal_to 233 and 'g' equal_to `é` { change 'got' = 'got' plus 2; }
-    let 'one' := to.char.grapheme["x" ++ 'w'] otherwise `?`;
+    let 'one' := to.char.grapheme["x" concat 'w'] otherwise `?`;
     let 'syl' := to.char.grapheme["เกี่ยว"] otherwise `?`;
     let 'acc' := to.char.grapheme["é"] otherwise `?`;
     let 'at' := to.str.utf8['acc'];
     if 'one' equal_to `?` and 'syl' equal_to `?` and str.bytes[lend 'at'] equal_to 3 { change 'got' = 'got' plus 4; }
     let 'up' := to.char.grapheme[`x`];
-    if to.str.utf8['up'] ++ "!" equal_to "x!" { change 'got' = 'got' plus 8; }
+    if to.str.utf8['up'] concat "!" equal_to "x!" { change 'got' = 'got' plus 8; }
     if short[lend 'w'] equal_to 0 and short["ab"] equal_to 1 and short["abc"] equal_to 0 { change 'got' = 'got' plus 16; }
     no_check my.exit['got'];
 }

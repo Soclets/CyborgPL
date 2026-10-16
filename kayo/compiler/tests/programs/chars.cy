@@ -30,14 +30,14 @@ MAIN {
     let 'p' := to.char.point['e'] otherwise `?`;
     let 'y' := to.char.byte['p'] otherwise `?`;
     if char.code['p'] equal_to 233 and 'y' equal_to `?` { change 'got' = 'got' plus 8; }
-    let 'two' := to.char.point['e' ++ "x"] otherwise `?`;
-    let 'none' := to.char.byte[str.empty ++ 'e'] otherwise `!`;
+    let 'two' := to.char.point['e' concat "x"] otherwise `?`;
+    let 'none' := to.char.byte[str.empty concat 'e'] otherwise `!`;
     if 'two' equal_to `?` and 'none' equal_to `!` { change 'got' = 'got' plus 16; }
     let 'bb': char.byte = `A`;
     let mut 'pp': char.point = `B`;
     if 'there' { change 'pp' = `A`; }
     if 'bb' equal_to 'pp' { change 'got' = 'got' plus 32; }
-    let 'j' := 'p' ++ "!" ++ 'pp';
+    let 'j' := 'p' concat "!" concat 'pp';
     if 'j' equal_to "é!A" { change 'got' = 'got' plus 64; }
     no_check my.exit['got'];
 }

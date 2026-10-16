@@ -7,7 +7,7 @@ MAIN {
     let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 's' := "ab";
-    if 'there' { change 's' = "aé" ++ "เกี่ยว"; }
+    if 'there' { change 's' = "aé" concat "เกี่ยว"; }
     let mut 'bytes': int32 = 0;
     for 'b' in str.each.byte[lend 's'] { change 'bytes' = 'bytes' plus 1; }
     let mut 'points': int32 = 0;

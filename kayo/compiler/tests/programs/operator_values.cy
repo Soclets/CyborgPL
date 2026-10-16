@@ -16,7 +16,7 @@ MAIN {
     let 'sum' := fold[lend 'xs', 0, op plus];
     let 'product' := fold[lend 'xs', 1, op times];
     let 'down' := fold[lend 'xs', 0, op minus];
-    let 'n' := apply1[5, op neg];
+    let 'n' := apply1[5, op negate];
     let 'le' := test2[3, 3, op at_most ];
     let 'f': fn[int32, int32] -> int32 = op mod.floor;
     let 'm' := 'f'[-7, 3];

@@ -8,7 +8,7 @@ extern.C fn strlen ['s': ptr[uint8]] -> uint64;
 pub const 'max' := 8;
 const 'pi': bin64 = 3.141_592_653_589_793;
 const 'twice_max' := 'max' times 2;
-const 'greeting' := "hello " ++ "world";
+const 'greeting' := "hello " concat "world";
 const 'big': int64 = 'max' pow 20;
 pub struct P { x: int32 }
 pub fn area ['r': bin64] -> bin64 { return 'pi' times 'r' times 'r'; }

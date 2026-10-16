@@ -11,7 +11,7 @@ fn round ['n': int32] -> int32 {
     }
     let mut 'text': str.utf8 = str.empty;
     for 'j': int32 from 1 to 5 by 1 {
-        change 'text' = copy 'text' ++ "ab";
+        change 'text' = copy 'text' concat "ab";
     }
     let mut 'm': map[str.utf8, list[int32]] = map.empty;
     map.set[lend.mut 'm', key copy 'text', value copy 'xs'];

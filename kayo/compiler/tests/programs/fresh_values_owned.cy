@@ -3,7 +3,7 @@
 # twice. Both were wrong until 2026-09-29: an answer held in a variable was
 # never freed, which only hid the second.
 extern.C fn exit ['code': int32];
-fn page [lent 'u': str.utf8] -> str.utf8 { return "page of " ++ 'u'; }
+fn page [lent 'u': str.utf8] -> str.utf8 { return "page of " concat 'u'; }
 fn run [] -> int32 {
     let mut 'xs': list[str.utf8] = [];
     let 'a' := "a";
