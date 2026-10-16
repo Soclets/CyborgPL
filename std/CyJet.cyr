@@ -1,6 +1,6 @@
-ricochet::manifest[
+cyjet::manifest[
     name = "std",
     prefix = "std",
     version = "2026-10-06T12:57:14+07:00",
-    targets = [ricochet::target[name = "aarch64-macos"],]
+    targets = [cyjet::target[name = "aarch64-macos"],]
 ];
