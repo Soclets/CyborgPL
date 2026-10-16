@@ -13,6 +13,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — cyjet.org is CyJet's website and the kit registry (owner)
+
+The owner bought cyjet.org and asked for an "Official websites" section in the README (cyborgpl.com, .org and
+.dev, and cyjet.org); asked what cyjet.org is for: "`cyjet.org` serves both as the PM's website, and the
+registry". So **the kit registry lives at cyjet.org**, with CyJet's own site. This replaces `limbs.xxx`
+(2026-09-29), chosen when a library was a limb and never bought (design claude's reading: one registry, one home).
+
 ### 2026-10-16 — A build between releases calls itself by its commit: `CyDT 5eac982a KAYO\n` (owner)
 
 Compiler claude's `kayo version` printed "CyDT 1 KAYO\n, a build before CyDT 1's release". Design claude offered

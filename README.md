@@ -19,7 +19,7 @@ All four are the owner's:
 
 - [cyborgpl.org](https://cyborgpl.org) — CyborgPL's home.
 - [cyborgpl.com](https://cyborgpl.com) and [cyborgpl.dev](https://cyborgpl.dev) — lead to cyborgpl.org.
-- [cyjet.org](https://cyjet.org) — for CyJet, CyborgPL's package manager.
+- [cyjet.org](https://cyjet.org) — CyJet's website and the kit registry.
 
 ### In this repository
 
