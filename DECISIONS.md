@@ -8,6 +8,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — A CyborgPL one-value file ends `.cystatic` (owner)
+
+The twin of `.cy`: a file that is one value and never runs (the manifest, the version file, tuning). Design
+claude offered `.cyv` (v for value, as Zag's `.zv`), recommended, or `.cv` (CodeView debug files, and read as a
+résumé). The owner asked whether the file is static (yes: it never runs, it is read as one value), then "what
+about `.cystatic`?"; design claude searched it (unused; nearest `.cys`, Cytoscape sessions) and, as it says what
+the file is, now recommended it over `.cyv`. The owner: "`.cystatic` it is". So **a one-value file ends
+`.cystatic`**, replacing `.cplr`: the manifest would be `CyJet.cystatic`.
+
 ### 2026-10-16 — CyborgPL code ends `.cy` (owner)
 
 The owner, before the sweep: "Kinda wanna change `.`", then, after asking how much `.rs` clashes (Android
