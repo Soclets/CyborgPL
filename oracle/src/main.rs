@@ -117,6 +117,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     check_powers(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_type_names(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     let unkept = check_redeclared(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
+    check_widthless_shifts(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_return_literals(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     if let Some(m) = unkept { return Err(format!("{}: {m}", path.display())); }
     check_opaque_held(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
@@ -615,6 +616,100 @@ fn check_type_names(prog: &ast::Program) -> Result<(), String> {
             return Err(format!("line {line}: no type named `{shown}` is declared"));
         }
     }
+    Ok(())
+}
+
+/// A shift with no width anywhere is refused in code that runs or not (check claude, 2026-10-16, corpus
+/// dfce8e06: the oracle refused it only where it ran, as kayo refuses it when building). A shift's width comes
+/// from its left operand or where the value goes (operators.md, 2026-09-23), never from the count (4866c834);
+/// this finds the cases where neither can give one: the shifted side is plain numbers, and it sits in a
+/// comparison whose other side is plain numbers too, or in an untyped `let`.
+fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
+    use ast::{Expr, Stmt, Handler, Value};
+    fn plain(e: &Expr) -> bool {
+        match e {
+            Expr::Int(..) | Expr::RawInt(..) | Expr::BigInt(..) => true,
+            Expr::Paren(i, _) | Expr::Unary(_, i, _) => plain(i),
+            Expr::Binary(_, l, r, _) => plain(l) && plain(r),
+            _ => false,
+        }
+    }
+    // a shift of plain numbers, reached through what passes the context along
+    fn bare_shift(e: &Expr) -> Option<(String, usize)> {
+        match e {
+            Expr::Binary(op, l, _, line) if op.starts_with("shl") || op.starts_with("shr") => if plain(l) { Some((op.clone(), *line)) } else { None },
+            Expr::Paren(i, _) | Expr::Unary(_, i, _) => bare_shift(i),
+            Expr::Binary(op, l, r, _) if !is_cmp(op) => bare_shift(l).or_else(|| bare_shift(r)),
+            _ => None,
+        }
+    }
+    fn is_cmp(op: &str) -> bool { matches!(op, "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least") }
+    fn refuse((op, line): (String, usize)) -> Result<(), String> {
+        let op = op.split('.').next().unwrap_or("shl").to_string();
+        Err(format!("line {line}: `{op}` needs a width, and nothing here gives one: declare where the value goes (`let 'v': uint32 = 1 {op} 3;`) or write `to.uint32[1] {op} 3`"))
+    }
+    fn bracket(b: &ast::Bracket) -> Result<(), String> { for Value::Expr(e) in &b.values { expr(e)?; } Ok(()) }
+    fn handler(h: &Option<Handler>) -> Result<(), String> {
+        match h {
+            Some(Handler::Value(b)) => bracket(b),
+            Some(Handler::Leave(st)) => stmt(st),
+            Some(Handler::Arms(a)) => arms(a),
+            _ => Ok(()),
+        }
+    }
+    fn arms(a: &[ast::Arm]) -> Result<(), String> { for arm in a { if let Some(v) = &arm.value { expr(v)?; } body(&arm.body)?; } Ok(()) }
+    fn body(b: &[Stmt]) -> Result<(), String> { for st in b { stmt(st)?; } Ok(()) }
+    fn expr(e: &Expr) -> Result<(), String> {
+        if let Expr::Binary(op, l, r, _) = e {
+            if is_cmp(op) {
+                if plain(r) { if let Some(s) = bare_shift(l) { return refuse(s); } }
+                if plain(l) { if let Some(s) = bare_shift(r) { return refuse(s); } }
+            }
+        }
+        match e {
+            Expr::Call(c) => { bracket(&c.args)?; handler(&c.handler) }
+            Expr::Nested(b) | Expr::PtrCast(_, b, _) => bracket(b),
+            Expr::Index(_, i, _) | Expr::FieldIndex(_, _, i, _) | Expr::OwnedElem(_, _, i, _) | Expr::Paren(i, _) | Expr::Unary(_, i, _) => expr(i),
+            Expr::Builtin(_, _, b, _) => bracket(b),
+            Expr::Construct(_, fields, _) => { for (_, b) in fields { bracket(b)?; } Ok(()) }
+            Expr::Convert(_, b, h, _, _) | Expr::MapFail(_, b, h, _) | Expr::PtrReadChecked(b, h, _) | Expr::CharFromCode(_, b, h, _) | Expr::CallValue(_, b, h, _) => { bracket(b)?; handler(h) }
+            Expr::MapLit(items, _) => { for (k, v) in items { expr(k)?; bracket(v)?; } Ok(()) }
+            Expr::Match(v, a, _) => { bracket(v)?; arms(a) }
+            Expr::Lambda(f, _, _) => body(&f.body),
+            Expr::EnumValue(_, _, Some(b), _) => bracket(b),
+            Expr::Binary(_, l, r, _) => { expr(l)?; expr(r) }
+            _ => Ok(()),
+        }
+    }
+    fn stmt(st: &Stmt) -> Result<(), String> {
+        match st {
+            Stmt::Decl { ty: None, value, .. } | Stmt::LocalConst { ty: None, value, .. } => {
+                if let [Value::Expr(e)] = value.values.as_slice() { if let Some(s) = bare_shift(e) { return refuse(s); } }
+                bracket(value)
+            }
+            Stmt::Decl { value, .. } | Stmt::LocalConst { value, .. } | Stmt::Assign { value, .. } | Stmt::AssignField { value, .. } | Stmt::Gives { value, .. } => bracket(value),
+            Stmt::AssignElem { index, value, .. } => { expr(index)?; bracket(value) }
+            Stmt::If { arms: a, otherwise, .. } => { for (c, b) in a { bracket(c)?; body(b)?; } if let Some(o) = otherwise { body(o)?; } Ok(()) }
+            Stmt::Loop { body: b, .. } | Stmt::Block { body: b, .. } => body(b),
+            Stmt::While { cond, body: b, .. } => { bracket(cond)?; body(b) }
+            Stmt::For { over, body: b, .. } => { bracket(over)?; body(b) }
+            Stmt::Range { bounds, body: b, .. } => { bracket(bounds)?; body(b) }
+            Stmt::Return { value: Some(v), .. } => bracket(v),
+            Stmt::Call { call, .. } => { bracket(&call.args)?; handler(&call.handler) }
+            Stmt::BuiltinStmt { args, .. } => bracket(args),
+            Stmt::Tier { body: b, .. } => stmt(b),
+            Stmt::Fail { payload: Some(p), .. } => bracket(p),
+            Stmt::Match { value, arms: a, .. } => { bracket(value)?; arms(a) }
+            Stmt::Must { cond: e, .. } | Stmt::MustFail { expr: e, .. } | Stmt::MustStop { expr: e, .. } => expr(e),
+            Stmt::Concur { body: b, handler: h, .. } => { body(b)?; handler(h) }
+            Stmt::Whichever { arms: a, handler: h, .. } => { for arm in a { bracket(&arm.chan)?; body(&arm.body)?; } handler(h) }
+            Stmt::MapFailStmt { args, handler: h, .. } | Stmt::CallValue { args, handler: h, .. } => { bracket(args)?; handler(h) }
+            _ => Ok(()),
+        }
+    }
+    for f in &prog.funcs { body(&f.body)?; }
+    for c in &prog.consts { bracket(&c.value)?; }
+    if let Some(m) = &prog.main { body(m)?; }
     Ok(())
 }
 
