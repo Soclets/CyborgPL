@@ -761,11 +761,30 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
     }
     // a `lend.mut` in text the walk does not take apart further
     fn lends_mut(w: &mut W, text: &str) {
+        // the name as `{:?}` wrote it, its `"` and `\` escaped (check claude, 2026-10-16, corpus 65f59c7a: a
+        // name holding either was cut short), and what follows its closing quote
+        fn debug_str(rest: &str) -> Option<(String, &str)> {
+            let mut out = String::new();
+            let mut it = rest.char_indices();
+            while let Some((k, c)) = it.next() {
+                match c {
+                    '"' => return Some((out, &rest[k + 1..])),
+                    '\\' => match it.next() {
+                        Some((_, 'n')) => out.push('\n'), Some((_, 't')) => out.push('\t'), Some((_, 'r')) => out.push('\r'),
+                        Some((_, '0')) => out.push('\0'),
+                        Some((_, e)) => out.push(e),
+                        None => return None,
+                    },
+                    c => out.push(c),
+                }
+            }
+            None
+        }
         for pat in ["Owned(LendMut, \"", "OwnedField(LendMut, \"", "OwnedElem(LendMut, \""] {
-            for rest in text.split(pat).skip(1) { if let Some(n) = rest.split('"').next() { changes(w, n); } }
+            for rest in text.split(pat).skip(1) { if let Some((n, _)) = debug_str(rest) { changes(w, &n); } }
         }
         for rest in text.split("Spread(\"").skip(1) {
-            if let Some((n, after)) = rest.split_once('"') { if after.starts_with(", Some(LendMut)") { changes(w, n); } }
+            if let Some((n, after)) = debug_str(rest) { if after.starts_with(", Some(LendMut)") { changes(w, &n); } }
         }
     }
     // the bodies inside an expression that the walk visits in their own scopes
