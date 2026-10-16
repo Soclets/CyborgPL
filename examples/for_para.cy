@@ -4,7 +4,7 @@ MAIN {
     let 'xs': list[int64] = [1, 2, 3, 4];
     let mut 'total': int64 = 0;
     for para 'x' in lend 'xs' {
-        change 'total' = 'total' plus 'x';
+        change 'total' = 'total' + 'x';
     }
     for seq 'x' in lend 'xs' {
         std::print.stored['x', " "];

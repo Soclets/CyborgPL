@@ -8,18 +8,18 @@ MAIN {
     let mut 'acc': simd[int32, 4] = simd.fill[value 0];
     let mut 'i': uint64 = 1;
     while 'i' at_most 'n' {
-        let 'left' := 'n' minus 'i' plus 1;
+        let 'left' := 'n' - 'i' + 1;
         if 'left' at_least 4 {
             let 'v': simd[int32, 4] = simd.load[lend 'xs', pos 'i'];
-            change 'acc' = 'acc' plus 'v';
+            change 'acc' = 'acc' + 'v';
         } else {
             let 'v': simd[int32, 4] = simd.load.some[lend 'xs', pos 'i', count 'left'];
-            change 'acc' = 'acc' plus 'v';
+            change 'acc' = 'acc' + 'v';
         }
-        change 'i' = 'i' plus 4;
+        change 'i' = 'i' + 4;
     }
     let 'twice': simd[int32, 4] = simd.fill[value 2];
     let 'last': simd[int32, 4] = simd.load[lend 'xs', pos 7];
-    simd.store.some[lend.mut 'xs', pos 9, count 2, value 'last' times 'twice'];
+    simd.store.some[lend.mut 'xs', pos 9, count 2, value 'last' x 'twice'];
     std::print.useful[simd.sum['acc'], " ", 'xs', newln];
 }

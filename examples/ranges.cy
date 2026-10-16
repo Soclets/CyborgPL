@@ -2,7 +2,7 @@
 struct Percent { value: uint8[min 0, max 100] }
 
 fn scale ['p': Percent, 'total': int32[min 0, max 1000]] -> int32[min 0, max 1000] {
-    return ('total' times to.int32['p'.value]) div.floor 100;
+    return ('total' x to.int32['p'.value]) div.floor 100;
 }
 
 MAIN {

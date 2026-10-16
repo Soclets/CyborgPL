@@ -11,7 +11,7 @@ MAIN {
     std::print.useful["x is ", 'x', newln];
 
     # a joined text is already text: print and print.useful agree on it
-    let 'line' := 'name' ++ " scored " ++ to.stored.str.utf8['count'];
+    let 'line' := 'name' concat " scored " concat to.stored.str.utf8['count'];
     std::print.stored['line', newln];
     std::print.useful['line', newln];
 

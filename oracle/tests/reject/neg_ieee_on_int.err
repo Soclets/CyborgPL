@@ -1,1 +1,0 @@
-`neg.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `-'x'`

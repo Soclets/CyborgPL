@@ -9,7 +9,7 @@ struct Point {
 }
 
 fn Sum ['p': Point] -> int32 {
-    return 'P'.x plus 'p'.y plus 'LIMIT';
+    return 'P'.x + 'p'.y + 'LIMIT';
 }
 
 MAIN {

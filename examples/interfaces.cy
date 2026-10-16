@@ -12,9 +12,9 @@ struct Vec { x: bin64, y: bin64 }
 
 # a struct keeps a promise by having the operations — the language's own operators
 # may be defined for a user type (never for the language's types)
-op < ['a': Vec, 'b': Vec] -> bool { return ('a'.x times 'a'.x plus 'a'.y times 'a'.y) < ('b'.x times 'b'.x plus 'b'.y times 'b'.y); }
+op < ['a': Vec, 'b': Vec] -> bool { return ('a'.x x 'a'.x + 'a'.y x 'a'.y) < ('b'.x x 'b'.x + 'b'.y x 'b'.y); }
 op equal_to ['a': Vec, 'b': Vec] -> bool { return 'a'.x equal_to 'b'.x and 'a'.y equal_to 'b'.y; }
-fn show [lent 'v': Vec] -> str.utf8 { return "(" ++ to.stored.str.utf8['v'.x] ++ ", " ++ to.stored.str.utf8['v'.y] ++ ")"; }
+fn show [lent 'v': Vec] -> str.utf8 { return "(" concat to.stored.str.utf8['v'.x] concat ", " concat to.stored.str.utf8['v'.y] concat ")"; }
 
 Vec satisfies Ordered;        # optional: a claim the compiler checks
 Vec satisfies Printable;
@@ -26,7 +26,7 @@ fn max <T: Ordered> ['a': <T>, 'b': <T>] -> <T> {
 }
 
 fn describe <T: Printable> [lent 'x': <T>] -> str.utf8 {
-    return "value " ++ show[lend 'x'];
+    return "value " concat show[lend 'x'];
 }
 
 MAIN {

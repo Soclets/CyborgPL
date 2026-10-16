@@ -4,7 +4,7 @@ MAIN {
     let 'v': uint32 = 3;
     let 'a': uint32 = 2 shl 3;
     let 'b': uint32 = ('v' mod.floor 16) shl 2;
-    let 'c': uint32 = not.bit ('v' plus 1);
-    let 'd': uint32 = ('v' plus 1) plus.wrap 5;
+    let 'c': uint32 = not.bit ('v' + 1);
+    let 'd': uint32 = ('v' + 1) plus.wrap 5;
     std::print.useful['a', " ", 'b', " ", 'c', " ", 'd', newln];
 }

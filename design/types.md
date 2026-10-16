@@ -27,7 +27,8 @@ with nothing without `to.` — `to.bin32['w']` exact, `to.brain16['x']`
 rounding, `to.bin16['w']` a check site. A literal rounds to the nearest `brain16`
 (owner, 2026-10-02: a). The GPU is open.
 
-**`exactly`** (owner, 2026-10-14): `exactly 19.99` is the word for `*19.99`, and both take a whole
+**`exactly`** (owner, 2026-10-14): `exactly 19.99`, the only spelling since 2026-10-16 (the prefix `*`, `*19.99`,
+is an old spelling: a symbol spells only an operator, owner: "Yeah, drop it too"). It was the word for `*19.99`, and both took a whole
 number too, `exactly 1000` being a `deci` holding 1000 (until then `*1000` was refused as exact already).
 
 **`*0.1` means "exactly this"** (owner, 2026-10-02; in the oracle the same day): a

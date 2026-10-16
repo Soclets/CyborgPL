@@ -18,6 +18,6 @@ MAIN {
     let 'i' := 1;
     while 'i' at_most 'limit' {
         say['i'];
-        change 'i' = 'i' plus 1;
+        change 'i' = 'i' + 1;
     }
 }

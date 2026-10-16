@@ -1,7 +1,7 @@
 # Functions that take any number of arguments, typed or not.
 fn sum [...'nums'] -> bin64 {
     let 'total': bin64 = 0;
-    for 'n' in lend 'nums' { change 'total' = 'total' plus to.bin64['n']; }
+    for 'n' in lend 'nums' { change 'total' = 'total' + to.bin64['n']; }
     return 'total';
 }
 

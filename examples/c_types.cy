@@ -11,7 +11,7 @@ MAIN {
     let 'c': C.char = -3;
     let 'd': C.long_double = 1.5;
     std::print.useful[to.int32[color.BLUE], " ", to.int32[level_t.LOW], " ", 'SEEK_B', newln];
-    std::print.useful['n' plus 2, " ", 'c', " ", 'd', " ", size.of[C.long], " ", size.of[C.int], newln];
+    std::print.useful['n' + 2, " ", 'c', " ", 'd', " ", size.of[C.long], " ", size.of[C.int], newln];
     # a header's last struct comes through whole too (compiler claude found it opaque once): 16 bytes
     std::print.useful[size.of[last], newln];
     # an unnamed struct named by its `typedef` comes through whole as well: `pair_t`, 8 bytes

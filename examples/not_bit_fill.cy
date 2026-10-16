@@ -12,16 +12,16 @@ fn emit ['m': uint64, 'neg': bool] {
     if 'neg' { list.append[lend.mut 'buf', value 45]; }
     let mut 'v': uint64 = 'm';
     let mut 'ds': list[uint8] = [];
-    list.append[lend.mut 'ds', value to.uint8[48 plus ('v' mod.floor 10)]];
+    list.append[lend.mut 'ds', value to.uint8[48 + ('v' mod.floor 10)]];
     change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', value to.uint8[48 plus ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', value to.uint8[48 + ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
     }
     let mut 'k': uint64 = list.length[lend 'ds'];
     while 'k' at_least 1 {
         list.append[lend.mut 'buf', value 'ds'[pos 'k']];
-        change 'k' = 'k' minus 1;
+        change 'k' = 'k' - 1;
     }
     list.append[lend.mut 'buf', value 10];
     no_check write[1, lend 'buf', list.length[lend 'buf']];
@@ -33,13 +33,13 @@ fn put_u ['n': uint64] {
 
 fn put_i ['n': int64] {
     if 'n' < 0 {
-        emit[to.uint64[0 minus ('n' plus 1)] plus 1, true];
+        emit[to.uint64[0 - ('n' + 1)] + 1, true];
     } else {
         emit[to.uint64['n'], false];
     }
 }
 MAIN {
     let 'v17': uint16 = 0;
-    let 's21': simd[uint16, 8] = simd.fill[value not.bit (5 plus 'v17')];
+    let 's21': simd[uint16, 8] = simd.fill[value not.bit (5 + 'v17')];
     put_u[to.uint64[simd.max['s21']]];
 }

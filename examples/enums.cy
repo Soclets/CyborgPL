@@ -13,7 +13,7 @@ struct Locker {
 fn describe [lent 'l': Locker] -> str.utf8 {
     match 'l'.status {
         empty         { return "free"; }
-        claimed 'who' { return "taken by " ++ 'who'; }
+        claimed 'who' { return "taken by " concat 'who'; }
         locked        { return "locked"; }
     }
 }

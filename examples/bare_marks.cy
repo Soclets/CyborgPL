@@ -7,7 +7,7 @@ pub const 'unit' := 1;                    # a const takes no mark: its path is a
 
 pub bare.never module shapes {            # everything in this block module
     pub fn area ['side': int32] -> int32 {
-        return 'side' times 'side';
+        return 'side' x 'side';
     }
 
     pub struct Square {

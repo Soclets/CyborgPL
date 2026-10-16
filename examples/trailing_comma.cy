@@ -6,5 +6,5 @@ struct P {
 enum S { a, b, }
 MAIN {
     let 'p' := P[x = 1, y = 2];
-    std::print.useful['p'.x plus 'p'.y, newln];
+    std::print.useful['p'.x + 'p'.y, newln];
 }

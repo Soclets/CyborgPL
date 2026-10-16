@@ -8,7 +8,7 @@ struct Locker {
 }
 
 fn free_slots [lent 'l': Locker] -> int32 {
-    return 'capacity' minus list.length[lend 'l'.items];
+    return 'capacity' - list.length[lend 'l'.items];
 }
 
 fn stash [lent.mut 'l': Locker, 'item': str.utf8] -> bool {
@@ -18,7 +18,7 @@ fn stash [lent.mut 'l': Locker, 'item': str.utf8] -> bool {
 }
 
 fn label [lent 'l': Locker] -> str.utf8 {
-    return "#" ++ to.stored.str.utf8['l'.number] ++ " (" ++ 'l'.owner ++ ")";
+    return "#" concat to.stored.str.utf8['l'.number] concat " (" concat 'l'.owner concat ")";
 }
 
 MAIN {
@@ -27,7 +27,7 @@ MAIN {
     let mut 'stored': int32 = 0;
 
     for 'n' in lend 'names' {
-        if stash[lend.mut 'mine', copy 'n'] { change 'stored' = 'stored' plus 1; }
+        if stash[lend.mut 'mine', copy 'n'] { change 'stored' = 'stored' + 1; }
     }
     std::print.useful[label[lend 'mine'], ": ", 'stored', " stored, ", free_slots[lend 'mine'], " free", newln];
 

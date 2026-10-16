@@ -3,13 +3,13 @@
 # itself, and the compiler keeps it on its register-width boundary (16 bytes here).
 struct Particle { place: simd[bin32, 4], vel: simd[bin32, 4] }
 fn step ['p': Particle] -> Particle {
-    return Particle[place = 'p'.place plus 'p'.vel, vel = 'p'.vel];
+    return Particle[place = 'p'.place + 'p'.vel, vel = 'p'.vel];
 }
 MAIN {
     let 'p' := Particle[place = simd.fill[value 0.0], vel = simd.fill[value 0.5]];
     let 'q' := step[give 'p'];
     let mut 'history': list[simd[bin32, 4]] = [];
     list.append[lend.mut 'history', value 'q'.place];
-    list.append[lend.mut 'history', value 'q'.place plus 'q'.vel];
+    list.append[lend.mut 'history', value 'q'.place + 'q'.vel];
     std::print.useful[simd.sum['q'.place], " ", list.length[lend 'history'], " ", simd.sum['history'[pos 2]], newln];
 }

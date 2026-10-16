@@ -7,6 +7,6 @@ MAIN {
     let 'up': uint8 = 'b' shl.masked 1;        # 510 cut to 8 bits: 254
     let 'far': int64 = 'x' shl.masked 70;      # 70 masked to 6: 64
     let 'down': uint8 = 'b' shr.masked 9;      # 9 masked to 1: 127
-    let 'neg': uint32 = (0 minus 1) shr.masked 1;   # -1's bits, then shifted: 2147483647
+    let 'neg': uint32 = (0 - 1) shr.masked 1;   # -1's bits, then shifted: 2147483647
     std::print.useful['up', " ", 'far', " ", 'down', " ", 'neg', newln];
 }

@@ -3,18 +3,18 @@ struct Vec { x: bin64, y: bin64 }
 
 # a glyph operator: any run of  not % & * plus minus / < > = ? @ ^ | ~
 op <+> ['a': Vec, 'b': Vec] -> Vec {
-    return Vec[x = 'a'.x plus 'b'.x, y = 'a'.y plus 'b'.y];
+    return Vec[x = 'a'.x + 'b'.x, y = 'a'.y + 'b'.y];
 }
 
 # a word operator, like times / pow / mod.floor
 op dot ['a': Vec, 'b': Vec] -> bin64 {
-    return 'a'.x times 'b'.x plus 'a'.y times 'b'.y;
+    return 'a'.x x 'b'.x + 'a'.y x 'b'.y;
 }
 
 # operands are lent unless the op says give; then the caller says give too
 op <*> [give 'a': Vec, 'b': bin64] -> Vec {
-    change 'a'.x = 'a'.x times 'b';
-    change 'a'.y = 'a'.y times 'b';
+    change 'a'.x = 'a'.x x 'b';
+    change 'a'.y = 'a'.y x 'b';
     return give 'a';
 }
 

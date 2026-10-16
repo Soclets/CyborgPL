@@ -6,7 +6,7 @@ MAIN {
     let 'count' := fn [] -> uint64 with [copy 'xs'] { return list.length[lend 'xs']; };
     let 'again' := copy 'count';        # its own copy of the list inside
     let 'moved' := give 'count';        # 'count' is gone after this
-    let 'inc' := fn ['a': int32] -> int32 { return 'a' plus 1; };
+    let 'inc' := fn ['a': int32] -> int32 { return 'a' + 1; };
     let 'inc2' := 'inc';                # carries nothing: no word needed
     std::print.useful['again'[], " ", 'moved'[], " ", 'inc2'[41], newln];
 }

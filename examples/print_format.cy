@@ -7,7 +7,7 @@ MAIN {
     let 'name' := "rope";
     let 'count' := 3;
     let 'price': bin64 = 12.5;
-    let 'pay': deci64 = 37.5 times 12.40;
+    let 'pay': deci64 = 37.5 x 12.40;
     let 'tenth': bin64 = 0.1;
     std::print.format["{}: {} at ${:.2}, 50% off\n", 'name', 'count', 'price'];
     std::print.format["pay ${:.2}, readable {}, stored {:?}\n", 'pay', 'pay', 'pay'];

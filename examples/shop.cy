@@ -27,11 +27,11 @@ fn cheapest <T: Priced> [lent 'xs': list[<T>]] -> <T> or fail[empty] {
 }
 
 fn describe [lent 'i': Item] -> str.utf8 {
-    let 'dollars' := to.stored.str.utf8['i'.cents div.floor 100] ++ "." ++ to.stored.str.utf8['i'.cents mod.floor 100];
+    let 'dollars' := to.stored.str.utf8['i'.cents div.floor 100] concat "." concat to.stored.str.utf8['i'.cents mod.floor 100];
     match 'i'.stock {
-        out      { return 'i'.name ++ " — sold out"; }
-        few 'n'  { return 'i'.name ++ " — only " ++ to.stored.str.utf8['n'] ++ " left at $" ++ 'dollars'; }
-        plenty   { return 'i'.name ++ " — $" ++ 'dollars'; }
+        out      { return 'i'.name concat " — sold out"; }
+        few 'n'  { return 'i'.name concat " — only " concat to.stored.str.utf8['n'] concat " left at $" concat 'dollars'; }
+        plenty   { return 'i'.name concat " — $" concat 'dollars'; }
     }
 }
 

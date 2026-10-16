@@ -19,7 +19,7 @@ fn initial [lent 'name': str.utf8] -> char.point {
     let 'first' := std::str.at.point[lend 'name', pos 1] otherwise `?`;
     let 'code' := char.code['first'];
     if 'code' at_least 97 and 'code' at_most 122 {
-        return char.point.from_code['code' minus 32] otherwise `?`;
+        return char.point.from_code['code' - 32] otherwise `?`;
     }
     return 'first';
 }
@@ -31,7 +31,7 @@ MAIN {
     list.append[lend.mut 'shelf', value Item[name = "tent", grams = 4_000]];
 
     let 'count' := list.length[lend 'shelf'];
-    let 'left': int8 = 4 minus 'count';
+    let 'left': int8 = 4 - 'count';
     std::print.useful['count', " items, room for ", 'left', " more", newln];
 
     let 'top' := heaviest[...copy 'shelf'] otherwise { none { std::print.useful["empty shelf", newln]; std::exit[0]; } };

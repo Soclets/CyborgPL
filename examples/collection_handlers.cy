@@ -4,7 +4,7 @@
 # is used, and a member that misses a way the call can fail is refused there.
 fn half ['n': int32] -> int32 or fail[odd, negative: int32] {
     if 'n' < 0 { fail negative['n']; }
-    if ('n' div.floor 2) times 2 not_equal 'n' { fail odd; }
+    if ('n' div.floor 2) x 2 not_equal 'n' { fail odd; }
     return 'n' div.floor 2;
 }
 
@@ -33,10 +33,10 @@ fn sum_of_halves [lent 'xs': list[int32], 'until_bad': bool] -> int32 {
     for 'x' in lend 'xs' {
         if 'until_bad' {
             let 'h' := half['x'] otherwise half_failed.stop;
-            change 'sum' = 'sum' plus 'h';
+            change 'sum' = 'sum' + 'h';
         } else {
             let 'h' := half['x'] otherwise half_failed.skip;
-            change 'sum' = 'sum' plus 'h';
+            change 'sum' = 'sum' + 'h';
         }
     }
     return 'sum';

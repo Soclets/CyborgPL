@@ -1,7 +1,7 @@
 # A lend satisfies a pointer in an asm binding (owner, 2026-09-30: a): it checks, then the oracle
 # refuses to run assembly, as for any asm block.
 MAIN {
-    let 'text' := "Hello, world!" ++ newln;
+    let 'text' := "Hello, world!" concat newln;
     let 'fd': int64 = 1;
     let 'len': int64 = 14;
     no_check inline.ASM {

@@ -4,11 +4,11 @@
 MAIN {
     let mut 'acc': int64 = 0;
     for no_cheat 'i': int64 from 1 to 1000 by 1 {
-        change 'acc' = 'acc' plus 'i';
+        change 'acc' = 'acc' + 'i';
     }
     let mut 'more': int64 = 0;
     for no_cheat seq 'i': int64 from 1 to 10 by 1 {
-        change 'more' = 'more' plus 'i';
+        change 'more' = 'more' + 'i';
     }
     std::print.useful.auto_newln['acc', " ", 'more'];
 }

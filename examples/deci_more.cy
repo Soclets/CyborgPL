@@ -6,11 +6,11 @@ MAIN {
     let 'm': deci64 = -7.50;
     std::print.stored['t' mod.floor 2, " ", 'm' mod.floor 2, " ", 't' mod.floor -2, newln];
     let 'r': deci64 = 1.05;
-    std::print.stored['r' pow 10, " ", 'r' pow 0, " ", 'r' pow -1, newln];
+    std::print.stored['r' xx 10, " ", 'r' xx 0, " ", 'r' xx -1, newln];
     let 'r2': deci128 = 1.05;
-    std::print.stored['r2' pow 10, newln];
+    std::print.stored['r2' xx 10, newln];
     let 'n': int32 = 3;
-    std::print.stored['r' pow 'n', newln];
+    std::print.stored['r' xx 'n', newln];
     let 'x': deci64 = 3.141592653589793;
     let 'y' := to.deci32['x'] otherwise 0;
     let 'z': deci64 = 2.50;

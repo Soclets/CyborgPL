@@ -2,7 +2,7 @@
 fn count <T: any> [lent 'items': list[<T>]] -> int32 {
     let 'n' := 0;
     for 'item' in lend 'items' {
-        change 'n' = 'n' plus 1;
+        change 'n' = 'n' + 1;
     }
     return 'n';
 }

@@ -6,13 +6,13 @@ interface Number <T> {
     op < ['a': <T>, 'b': <T>] -> bool;
 }
 op ~= <T: Number> ['a': <T>, 'b': <T>] -> bool {
-    if 'a' < 'b' { return 'b' minus 'a' < 10; }
-    return 'a' minus 'b' < 10;
+    if 'a' < 'b' { return 'b' - 'a' < 10; }
+    return 'a' - 'b' < 10;
 }
 struct A { x: int32 }
 struct B { y: int32 }
-op <+> ['a': A, 'b': A] -> int32 { return 'a'.x plus 'b'.x; }
-op <+> ['a': B, 'b': B] -> int32 { return 'a'.y times 'b'.y; }
+op <+> ['a': A, 'b': A] -> int32 { return 'a'.x + 'b'.x; }
+op <+> ['a': B, 'b': B] -> int32 { return 'a'.y x 'b'.y; }
 MAIN {
     let 'm': int32 = 100;
     std::print.useful[95 ~= 'm', " ", 50 ~= 'm', newln];

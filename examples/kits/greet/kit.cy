@@ -17,7 +17,7 @@ pub bare.never struct Tally {
 }
 
 pub bare.never op merge ['a': Tally, 'b': Tally] -> Tally {
-    return Tally[n = 'a'.n plus 'b'.n];
+    return Tally[n = 'a'.n + 'b'.n];
 }
 
 pub bare.optional struct Note {

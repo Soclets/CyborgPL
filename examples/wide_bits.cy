@@ -1,12 +1,12 @@
 # Bitwise operators and shifts on integers past 128 bits (owner, 2026-10-03: "Do the bit shit"),
 # at the type's true width: and int128/uint128 shifts and `not.bit` at all 128 bits.
 MAIN {
-    let 'a': not_std.uint256 = 2 pow 200 plus 12345;
-    let 'b': not_std.uint256 = (2 pow 255) minus 1;
+    let 'a': not_std.uint256 = 2 xx 200 + 12345;
+    let 'b': not_std.uint256 = (2 xx 255) - 1;
     std::print.useful[('a' and.bit 'b'), newln];
     std::print.useful[('a' xor 'b'), newln];
     std::print.useful[('a' shl 55), " ", ('a' shr 190), newln];
-    let 'n': not_std.int256 = -(2 pow 200);
+    let 'n': not_std.int256 = -(2 xx 200);
     std::print.useful[('n' or.bit 7), " ", ('n' shr 3), newln];
     let 'z': not_std.uint256 = 0;
     let 'all': not_std.uint256 = not.bit 'z';

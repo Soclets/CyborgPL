@@ -10,7 +10,7 @@ struct Counter {
 
 fn Counter.next [lent.mut 'c': Counter] -> optional[int32] {
     if 'c'.now equal_to 'c'.stop { return optional.none; }
-    change 'c'.now = 'c'.now plus 1;
+    change 'c'.now = 'c'.now + 1;
     return optional.value['c'.now];
 }
 
@@ -19,7 +19,7 @@ struct Forever {
 }
 
 fn Forever.next [lent.mut 'f': Forever] -> optional[int32] {
-    change 'f'.n = 'f'.n plus 1;
+    change 'f'.n = 'f'.n + 1;
     return optional.value['f'.n];
 }
 

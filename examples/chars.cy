@@ -15,5 +15,5 @@ MAIN {
     let 'y' := to.char.byte['p'] otherwise `?`;                    # é is two bytes: not_one_byte
     std::print.useful['p', 'y', newln];                              # é?
     let 'up' := to.char.grapheme[`x`];                             # up never loses anything: no otherwise
-    std::print.useful[to.str.utf8['up'] ++ "!", newln];               # x!
+    std::print.useful[to.str.utf8['up'] concat "!", newln];               # x!
 }

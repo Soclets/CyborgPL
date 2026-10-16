@@ -1,3 +1,3 @@
 MAIN {
-    let 'x': bin64 = *0.1;
+    let 'x': bin64 = exactly 0.1;
 }

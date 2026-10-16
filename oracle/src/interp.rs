@@ -2827,9 +2827,9 @@ impl<'p> Interp<'p> {
                     // plain negation never gives -0; `neg.ieee` flips the sign, so 0 becomes -0 (owner, 2026-10-07: "yea")
                     ("-", Value::Bin(b)) => Ok((Value::Bin(-b + 0.0), keep)),
                     ("-", Value::Brain(b)) => Ok((Value::Brain(-b + 0.0), keep)),
-                    ("neg.ieee", Value::Bin(b)) => Ok((Value::Bin(-b), keep)),
-                    ("neg.ieee", Value::Brain(b)) => Ok((Value::Brain(-b), keep)),
-                    ("neg.ieee", o) => rt(line, format!("`neg.ieee` keeps a -0, which only a bin or brain16 has, and {} {} has none: write `-'x'`", if o.kind().starts_with(['a', 'e', 'i', 'o', 'u']) { "an" } else { "a" }, o.kind())),
+                    ("negate.ieee", Value::Bin(b)) => Ok((Value::Bin(-b), keep)),
+                    ("negate.ieee", Value::Brain(b)) => Ok((Value::Brain(-b), keep)),
+                    ("negate.ieee", o) => rt(line, format!("`negate.ieee` keeps a -0, which only a bin or brain16 has, and {} {} has none: write `-'x'`", if o.kind().starts_with(['a', 'e', 'i', 'o', 'u']) { "an" } else { "a" }, o.kind())),
                     ("-", Value::Deci(d)) => Ok((Value::Deci(d.neg()), keep)),
                     ("-", o) => rt(line, format!("`-` needs a number, got {}", o.kind())),
                     _ => unreachable!(),

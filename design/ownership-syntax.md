@@ -35,6 +35,8 @@ process[lend.mut 's'];   # temporary exclusive access, may modify
   inside the function cannot break callers far away, and the compiler can
   tell LLVM the two never overlap.
 
+**Old spellings since 2026-10-16**: a symbol spells only an operator that reads correctly (`operators.md`),
+so `&'x'`, `&mut 'x'`, `&@x` and `&mut@x` are refused, naming `lend` / `lent` and `lend.mut` / `lent.mut`.
 **Back 2026-10-14** (owner: "Yeah, what about `&`? Maybe for `and` &
 `lend`/`lent`?", then "`&mut`"): `&'x'` and `&mut 'x'` spell `lend` / `lent`
 and `lend.mut` / `lent.mut` again, everywhere they go, `&@x` and `&mut@x`

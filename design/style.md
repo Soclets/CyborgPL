@@ -86,12 +86,14 @@ recommended.
 
 ## Words and symbols
 
-15. **Write the words, not the symbols** (owner, 2026-10-14: "Using symbols
-    shouldn't be good practice", then "Yeah"). `'a' plus 'b'`, `'x' equal_to 0`,
-    `lend 'name'`, `ptr.read['p']`. Each symbol (`+`, `==`, `&`, `*'p'`) is
-    another spelling of a word, there for whoever thinks in symbols, but the
-    word says which form it is: `/` is `div.trunc`, and only the word tells a
-    reader it rounds toward zero. That's why CyborgPL is named for being read.
+15. **Use the symbols for the plain form; write the word for a variation** (owner, 2026-10-16: "make
+    it good practice to use symbols, and when you want another variation, you use the word form").
+    `'a' + 'b'`, `'a' x 'b'`, `'b' xx 10`, `'i' < 10`, `-'x'`; but `'a' plus.wrap 'b'`, `'a' div.floor
+    'b'`, `negate.ieee 'x'`. Code with words "takes long to skim", so a symbol is kept only where it reads
+    correctly (`+ - x xx < >`, a leading `-`); everything else has no symbol and is always the word:
+    `equal_to`, `not_equal`, `at_most`, `at_least`, `div.…`, `mod.…`, `and`, `and.then`, `or.else`,
+    `concat`, `lend`, `ptr[T]`, `exactly`. A change is written out, `change 'i' = 'i' + 1;`. (2026-10-14
+    to 16 this item said the opposite: "Write the words, not the symbols".)
 
 ## Shape of a program
 

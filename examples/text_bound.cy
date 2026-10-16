@@ -7,7 +7,7 @@ MAIN {
     greet[lend 'thai'];
     greet[lend 'ascii'];
     let mut 'line': str.utf8[min 0, max 20 bytes] = str.empty;
-    change 'line' = 'line' ++ "twelve chars";                      # 12 bytes: fits
+    change 'line' = 'line' concat "twelve chars";                      # 12 bytes: fits
     std::print.useful[str.bytes[lend 'line'], newln];
     let 'short' := to.stored.str.utf8[min 0, max 3 bytes][12345] otherwise "?";     # into a bounded text: fails out_of_range
     std::print.useful['short', newln];

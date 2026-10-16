@@ -6,11 +6,11 @@ bare.never [struct];
 pub const 'Volume' := 11;
 
 pub bare.never fn Shout ['s': str.utf8] -> str.utf8 {
-    return 's' ++ "!";
+    return 's' concat "!";
 }
 
 pub bare.optional fn Whisper [] -> str.utf8 {
-    return "psst, " ++ shout["volume " ++ to.useful.str.utf8[my.'VOLUME']];
+    return "psst, " concat shout["volume " concat to.useful.str.utf8[my.'VOLUME']];
 }
 
 pub struct Level {

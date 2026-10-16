@@ -4,8 +4,8 @@
 MAIN {
     let 'a': int32 = 7;
     let 'b': int32 = 3;
-    std::print.useful[('a' plus 'b'), " ", ('a' minus 'b'), " ", ('a' times 'b'), " ", ('a' pow 'b'), " ", ('a' std::pow 2), " ", -'a', newln];
+    std::print.useful[('a' + 'b'), " ", ('a' - 'b'), " ", ('a' x 'b'), " ", ('a' xx 'b'), " ", ('a' std::pow 2), " ", -'a', newln];
     let 'h': uint8 = 200;
     std::print.useful[('h' plus.wrap 100), " ", ('h' times.wrap 2), " ", ('h' pow.wrap 2), newln];
-    std::print.useful[(2 pow 3) plus 1, " ", 1 plus 2 times 3, newln];
+    std::print.useful[(2 xx 3) + 1, " ", 1 + 2 x 3, newln];
 }

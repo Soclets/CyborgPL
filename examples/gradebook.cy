@@ -9,7 +9,7 @@ struct Student {
 fn average [lent 's': Student] -> int32 or fail[no_scores] {
     if list.length[lend 's'.scores] equal_to 0 { fail no_scores; }
     let 'total' := 0;
-    for 'x' in lend 's'.scores { change 'total' = 'total' plus 'x'; }
+    for 'x' in lend 's'.scores { change 'total' = 'total' + 'x'; }
     check return 'total' div.floor list.length[lend 's'.scores];     # the if above proves the divisor is not 0
 }
 
@@ -19,9 +19,9 @@ fn record [lent.mut 's': Student, 'score': int32] -> fail[out_of_range: int32] {
 }
 
 fn grade [lent 's': Student] -> str.utf8 {
-    let 'avg' := average[lend 's'] otherwise return to.stored.str.utf8['passing'] ++ "? no scores";
-    if 'avg' at_least 'passing' { return "pass (" ++ to.stored.str.utf8['avg'] ++ ")"; }
-    return "fail (" ++ to.stored.str.utf8['avg'] ++ ")";
+    let 'avg' := average[lend 's'] otherwise return to.stored.str.utf8['passing'] concat "? no scores";
+    if 'avg' at_least 'passing' { return "pass (" concat to.stored.str.utf8['avg'] concat ")"; }
+    return "fail (" concat to.stored.str.utf8['avg'] concat ")";
 }
 
 MAIN {
@@ -41,7 +41,7 @@ MAIN {
     for 's' in lend 'students' {
         std::print.stored['s'.name, ": ", grade[lend 's'], newln];
         let 'avg' := average[lend 's'] otherwise 0;
-        if 'avg' at_least 'passing' { change 'passed' = 'passed' plus 1; }
+        if 'avg' at_least 'passing' { change 'passed' = 'passed' + 1; }
     }
     std::print.useful['passed', " of ", list.length[lend 'students'], " passed", newln];
 }

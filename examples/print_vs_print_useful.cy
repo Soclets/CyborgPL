@@ -5,9 +5,9 @@ MAIN {
     std::print.useful['x', newln];
     let 'y': bin16 = 1000;
     std::print.useful['y', newln];
-    let 'big' := 1_000_000 times 1_000_000;
+    let 'big' := 1_000_000 x 1_000_000;
     std::print.stored['big', newln];
-    let 's' := "x is " ++ to.stored.str.utf8['x'];
+    let 's' := "x is " concat to.stored.str.utf8['x'];
     std::print.stored['s', newln];
     std::print.useful['s', newln];
     std::print.useful["x is ", 'x', newln];

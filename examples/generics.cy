@@ -21,7 +21,7 @@ struct Pair <A: any, B: any> { left: <A>, right: <B> }     # blanks in the order
 enum Maybe <T: any> { none, some: <T> }
 
 fn describe [lent 'p': Pair[int32, str.utf8]] -> str.utf8 {
-    return to.stored.str.utf8['p'.left] ++ " " ++ 'p'.right;
+    return to.stored.str.utf8['p'.left] concat " " concat 'p'.right;
 }
 
 MAIN {

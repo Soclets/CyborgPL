@@ -5,6 +5,6 @@ MAIN {
     let 'n' := 3;
     let 'line' := format["{} items at {:.2} each, 0x{:x}\n", 'n', 1.5, 255];
     print.useful['line'];
-    print.weird.useful <- "hex: " <- format["{:x}", 'n' times 100] <- newln;
+    print.weird.useful <- "hex: " <- format["{:x}", 'n' x 100] <- newln;
     print.useful.stdout["said ", "stdout", newln];
 }

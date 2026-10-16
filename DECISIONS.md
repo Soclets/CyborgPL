@@ -18,6 +18,39 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — Symbols only where they read correctly, and then they are the good practice: `+ - x xx < >` (owner)
+
+The owner first: "we only allow operators as symbols, I mean … we allow `+`, but not `&mut` or `*const`"; design
+claude asked about the twin, the prefix `*` of `*19.99`: "Yeah, drop it too". Then "Actually, let's remove all of
+them"; asked whether that took in the compound changes and `<` / `>` too: "Do all three. What should we replace
+number 3 with?" Offered `less_than` / `greater_than` (or `below` / `above`); the owner: "`greater` instead?";
+design claude kept the `_than` for reading and for `equal_to`'s pattern; the owner: "the long". On the leading
+minus: "`-5`, and `negate 'x'`?", and "yup" to renaming the existing `neg` (`neg.ieee`, `op neg`, levels) to
+`negate`. Then, before the build: "I think the code with words takes long to skim. So, we might wanna add symbols
+(like +, -. and stuff), only if it reads correctly (unlike `%` as mod)", "And also make it good practice to use
+symbols, and when you want another variation, you use the word form". Design claude's table kept `+ - * ==
+!= < > <= >= && || **` and the compound changes; the owner dropped `== != <= >=` ("do you really read `!=` as not
+equal?"), then "Keep < >"; on "the `x` versions" (`*` → `x`, `**` → `xx`): "`x` and `xx`"; asked "what the fuck
+is `+=`?", offered (a) no compound forms, (b) only `'i'++;` / `'i'--;`, (c) all, design claude recommending (a);
+shown the table: "`x` and `xx`", and of `&&` / `||` ("and, but stop early"): "Yeah, drop them". So:
+
+- **The symbols, each the good-practice spelling of its word's plain form:** `+` (`plus`), `-` (`minus`), `x`
+  (`times`), `xx` (std's `pow`), `<` (`less_than`), `>` (`greater_than`), and a leading `-` (`-5`, `-'x'`,
+  `negate`). **A variation is written as the word**: `plus.wrap`, `times.ieee`, `div.floor`, `negate.ieee`.
+- **New words:** `less_than`, `greater_than`, and `negate`, which replaces `neg` everywhere (`negate.ieee 'x'`,
+  `op negate`, `level N { negate }`); `neg` becomes an old spelling.
+- **Words only, every symbol for them an old spelling refused naming the word:** `equal_to`, `not_equal`,
+  `at_most`, `at_least` (`==`, `!=`, `<=`, `>=`); `div.…` (`/`); `mod.…` (`%`); `and` (`&` between values);
+  `and.then`, `or.else` (`&&`, `||`); `concat` (`++` between values); `lend` / `lent` and `lend.mut` / `lent.mut`
+  (`&'x'`, `&mut 'x'`, `&@x`); `ptr[T]`, `ptr.mut[T]`, `ptr.read`, `ptr.write` (`*const T`, `*mut T`, `*'p'`,
+  `change *'p' = v;`); `exactly` (`*19.99`); `times` (`*`) and `pow` (`**`), whose symbols are now `x` and `xx`.
+- **No compound changes** (a): `change 'i' = 'i' + 2;`. `+=`, `-=`, `*=`, `/=`, `%=`, `**=`, `'i'++;` and
+  `'i'--;` (2026-10-14/15) become old spellings.
+
+This replaces 2026-10-14's "Symbols come back as spellings of the words" and its "good practice writes the
+words". Custom operators (`op <+>`) and the structural `<T>`, `->`, `<-`, `<->` are untouched.
+
 ### 2026-10-16 — `.cy` stays, over `.cyb` (owner)
 
 GitHub's Linguist files `.cy` under Cycript (hidden with `.gitattributes`, same day). The owner asked "Should we

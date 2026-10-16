@@ -1,6 +1,6 @@
 collection.fn c {
     for 'n' from 1 before 3 by 1 {
-        named "t" ++ to.stored.str.utf8['n'];
+        named "t" concat to.stored.str.utf8['n'];
         [] -> int32 { return 'n'; }
     }
     #generated_3_lines_below

@@ -22,7 +22,7 @@ fn popcount ['x': uint32] -> uint32 {
     let mut 'n': uint32 = 'x';
     let mut 'count': uint32 = 0;
     while 'n' > 0 {
-        change 'count' = 'count' plus ('n' and.bit 1);
+        change 'count' = 'count' + ('n' and.bit 1);
         change 'n' = 'n' shr 1;
     }
     return 'count';
@@ -38,7 +38,7 @@ MAIN {
     # 8 bytes nobody owns: C's memory, written and read through a pointer
     no_check let 'raw' := malloc[8];
     for 'i' from 0 to 7 by 1 {
-        no_check ptr.write[ptr.at['raw', by 'i'], value 65 plus 'i'];          # 'A' 'B' 'C' …
+        no_check ptr.write[ptr.at['raw', by 'i'], value 65 + 'i'];          # 'A' 'B' 'C' …
     }
     no_check let 'third' := ptr.read[ptr.at['raw', by 2]];
     no_check free['raw'];

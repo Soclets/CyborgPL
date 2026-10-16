@@ -13,11 +13,11 @@ MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
             no_check let 'b' := ptr.read[ptr.at['word', by 'k']];
             if 'b' equal_to 0 { break; }
             list.append[lend.mut 'bytes', value 'b'];
-            change 'k' = 'k' plus 1;
+            change 'k' = 'k' + 1;
         }
         let 'text' := to.str.utf8['bytes'] otherwise "(not UTF-8)";      # bytes into text (owner, 2026-09-30)
         std::print.stored["argument ", 'i', ": ", 'text', newln];
-        change 'i' = 'i' plus 1;
+        change 'i' = 'i' + 1;
     }
     no_check let 'end' := ptr.read[ptr.at['argv', by 'argc']];
     std::print.stored["argv[argc] is null: ", ptr.is_null['end'], newln];

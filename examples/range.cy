@@ -13,7 +13,7 @@ MAIN {
     }
     std::print.stored[newln];
     for perm 'stop' from 0 to 100 by 1 {
-        if ('stop' times 'stop') > 50 { break; }
+        if ('stop' x 'stop') > 50 { break; }
     }
     std::print.useful["stopped at ", 'stop', newln];
     for perm 'never' from 5 to 2 by 1 {

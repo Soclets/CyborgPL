@@ -1,6 +1,6 @@
 # Every argument after the first says its role (owner, 2026-10-14): the first, the thing worked on, is bare;
 # each other starts with a word. The list is `spellings.cyr`'s `calls`.
-fn add ['a': int32, 'b': int32] -> int32 { return 'a' plus 'b'; }
+fn add ['a': int32, 'b': int32] -> int32 { return 'a' + 'b'; }
 
 MAIN {
     let 'xs': list[int32] = [];

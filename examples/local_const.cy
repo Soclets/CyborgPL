@@ -5,12 +5,12 @@ const 'base' := 100;
 
 fn tries ['n': int32] -> int32 {
     const 'extra' := 2;
-    return 'n' plus 'extra';
+    return 'n' + 'extra';
 }
 
 MAIN {
     const 'retries' := 3;
     const 'greeting': str.utf8 = "hi";
-    const 'limit' := 'base' times 'retries';
+    const 'limit' := 'base' x 'retries';
     std::print.useful['greeting', " ", 'retries', " ", 'limit', " ", tries['retries'], newln];
 }

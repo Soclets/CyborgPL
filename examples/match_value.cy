@@ -5,7 +5,7 @@ enum Status { empty, claimed: str.utf8, locked }
 fn label ['s': Status] -> str.utf8 {
     let 'text' := match 's' {
         empty         { is "free"; }
-        claimed 'who' { is "taken by " ++ 'who'; }
+        claimed 'who' { is "taken by " concat 'who'; }
         locked        { return "(locked)"; }
     };
     return give 'text';

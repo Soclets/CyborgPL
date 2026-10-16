@@ -3,7 +3,7 @@
 fn g ['p': bool] -> uint8 { return 0; }
 MAIN {
     let 'x': int64 = 0;
-    let 'v': uint8 = g[0 > (-1) minus 'x'];       # the (-1) minus 'x' is int64 arithmetic, not uint8
+    let 'v': uint8 = g[0 > (-1) - 'x'];       # the (-1) minus 'x' is int64 arithmetic, not uint8
     let 'w': uint32 = 2 shl 3;                # but a bare literal still takes its width from here
     std::print.useful['v', " ", 'w', newln];
 }

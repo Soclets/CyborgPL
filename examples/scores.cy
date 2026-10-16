@@ -22,10 +22,10 @@ MAIN {
     let 'best' := 0;
 
     for 'score' in lend 'scores' {
-        change 'count' = 'count' plus 1;
-        change 'total' = 'total' plus 'score';
+        change 'count' = 'count' + 1;
+        change 'total' = 'total' + 'score';
         if is_even['score'] {
-            change 'evens' = 'evens' plus 1;
+            change 'evens' = 'evens' + 1;
         }
         if 'score' > 'best' {
             change 'best' = 'score';
@@ -33,7 +33,7 @@ MAIN {
     }
 
     let 'average' := 'total' div.floor 'count';
-    let 'curved' := clamp['average' plus 10, 0, 100];
+    let 'curved' := clamp['average' + 10, 0, 100];
 
     std::print.useful["scored ", 'count', " tests", newln];
     std::print.useful["total ", 'total', ", best ", 'best', newln];

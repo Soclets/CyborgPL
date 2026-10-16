@@ -5,8 +5,8 @@ fn judge ['n': int32] -> fail[small] { if 'n' < 10 { fail small; } }
 MAIN {
     let mut 'seen': int32 = 0;
     {
-        concur { judge[3] otherwise fail; } otherwise { small { change 'seen' = 'seen' plus 1; } };
-        concur { judge[4] otherwise fail; } otherwise { small { change 'seen' = 'seen' plus 10; } };
+        concur { judge[3] otherwise fail; } otherwise { small { change 'seen' = 'seen' + 1; } };
+        concur { judge[4] otherwise fail; } otherwise { small { change 'seen' = 'seen' + 10; } };
     }
     no_check my.exit['seen'];   # bare `exit` could be C's or std's (owner, 2026-10-06: a kit's own does not win)
 }

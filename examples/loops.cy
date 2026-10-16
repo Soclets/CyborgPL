@@ -3,11 +3,11 @@ MAIN {
     let 'i' := 0;
     while 'i' < 3 {
         std::print.useful["while ", 'i', newln];
-        change 'i' = 'i' plus 1;
+        change 'i' = 'i' + 1;
     }
     let 'n' := 0;
     loop {
-        change 'n' = 'n' plus 1;
+        change 'n' = 'n' + 1;
         if 'n' equal_to 2 {
             continue;
         }

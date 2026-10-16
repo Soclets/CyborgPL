@@ -18,6 +18,6 @@ MAIN {
     let 'word' := "hello";
     no_check let 'n' := text.strlen[lend 'word'];
     std::print.useful["strlen: ", 'n', newln];
-    let 'line' := "written by the wrapper" ++ newln;
+    let 'line' := "written by the wrapper" concat newln;
     text.say[lend 'line'];
 }

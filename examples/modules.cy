@@ -8,11 +8,11 @@ module counter {
     pub const 'start' := 1;
     pub struct Count { n: int32 }
     pub fn bump ['c': Count] -> Count {
-        return Count[n = 'c'.n plus step[]];
+        return Count[n = 'c'.n + step[]];
     }
     fn step [] -> int32 { return my.'scale'; }      # private; reaches the root's const
     pub.kit module inner {
-        pub.kit fn twice ['n': int32] -> int32 { return 'n' times 2; }
+        pub.kit fn twice ['n': int32] -> int32 { return 'n' x 2; }
     }
 }
 

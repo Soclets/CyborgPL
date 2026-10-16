@@ -1,8 +1,8 @@
 # An operator as a value (owner, 2026-09-29): `op +`, handed wherever a function goes. Its type
-# comes from where it goes. `op -` subtracts; negation is `op neg`. A custom operator's operands
+# comes from where it goes. `op -` subtracts; negation is `op negate`. A custom operator's operands
 # are lent, so `op dot` is a fn[lent Vec, lent Vec] -> bin64.
 struct Vec { x: bin64, y: bin64 }
-op dot ['a': Vec, 'b': Vec] -> bin64 { return 'a'.x times 'b'.x plus 'a'.y times 'b'.y; }
+op dot ['a': Vec, 'b': Vec] -> bin64 { return 'a'.x x 'b'.x + 'a'.y x 'b'.y; }
 fn fold [lent 'xs': list[int32], 'start': int32, 'f': fn[int32, int32] -> int32] -> int32 {
     let mut 'acc' := 'start';
     for 'x' in lend 'xs' { change 'acc' = 'f'['acc', 'x']; }
@@ -16,7 +16,7 @@ MAIN {
     let 'sum' := fold[lend 'xs', 0, op plus];
     let 'product' := fold[lend 'xs', 1, op times];
     let 'down' := fold[lend 'xs', 0, op minus];
-    let 'n' := apply1[5, op neg];
+    let 'n' := apply1[5, op negate];
     let 'le' := test2[3, 3, op at_most ];
     let 'f': fn[int32, int32] -> int32 = op mod.floor;
     let 'm' := 'f'[-7, 3];

@@ -437,11 +437,11 @@ impl Parser {
             self.pos = i;
             return self.err("the root of this kit is `my.` since 2026-10-06, no longer `limb.`: `my.helper[]`, `my.'pi'`");
         }
-        // `&` and `!` are free to declare as custom operators (`operators.md`), so `op &`, `op !` and their use
-        // between two values are not the old `&` (`lend`) or `!` (`not`): read them as operators first
+        // `!` is free to declare as a custom operator (`operators.md`), so `op !` and its use between two values
+        // are not the old `!` (`not`): read them as operators first. `&` is old in every place since 2026-10-16.
         for i in 1..self.toks.len() {
             let Some((w, _)) = self.toks[i].mtm.clone() else { continue };
-            if w != "&" && w != "!" { continue; }
+            if w != "!" { continue; }
             let prev = &self.toks[i - 1].tok;
             let declared = matches!(prev, Tok::Word(o) if o == "op");
             let between = matches!(prev, Tok::Var(_) | Tok::Int(_) | Tok::BigInt(_) | Tok::Bin(..) | Tok::Text(..) | Tok::Char(_) | Tok::RParen | Tok::RBracket)
@@ -513,14 +513,11 @@ impl Parser {
                 let prev_word = |k: usize| -> Option<&str> { if i >= k { if let Tok::Word(w) = &self.toks[i - k].tok { return Some(w.as_str()); } } None };
                 let after_dot = i > 0 && self.toks[i - 1].tok == Tok::Dot;
                 let next = self.toks.get(i + 1).map(|t| &t.tok);
-                // a `*` straight after a value multiplies; only a prefix `*` is exact
-                let after_value = |i: usize| i > 0 && matches!(&self.toks[i - 1].tok, Tok::Var(_) | Tok::Int(_) | Tok::BigInt(_) | Tok::Bin(..) | Tok::Text(..) | Tok::RParen | Tok::RBracket);
                 let found: Option<(&str, String)> = match &self.toks[i].tok {
                     Tok::Word(w) if w == "brain16" => Some(("AI", "`brain16`".into())),
                     Tok::Word(w) if w == "int128" || w == "uint128" => Some(("WSMW", format!("`{w}`"))),
                     Tok::Word(w) if w == "not_std" => Some(("WSMW", "a `not_std.` width".into())),
                     Tok::Word(w) if w.starts_with("deci") && w[4..].parse::<u32>().is_ok() => Some(("Money", format!("`{w}`"))),
-                    Tok::Op(o) if o == "*" && matches!(next, Some(Tok::Bin(..) | Tok::Int(_))) && !after_value(i) => Some(("Money", "an exact decimal literal (`exactly 0.1`)".into())),
                     Tok::Word(w) if w == "exactly" => Some(("Money", "an exact decimal literal (`exactly 0.1`)".into())),
                     Tok::Word(w) if after_dot && prev_word(2) == Some("str") && (w == "utf16" || w == "utf32") => Some(("unicode", format!("`str.{w}`"))),
                     Tok::Word(w) if after_dot && prev_word(2) == Some("char") && (w == "point" || w == "grapheme") => Some(("unicode", format!("`char.{w}`"))),
@@ -1180,10 +1177,10 @@ impl Parser {
             Tok::Word(n) if n == "plus" => "+".into(),
             Tok::Word(n) if n == "minus" => "-".into(),
             Tok::Word(n) if n == "times" => "x".into(),
-            Tok::Word(n) if (n == "x" || n == "xx") && !self.internal_ops => { return self.err(format!("`op {n}`: {}", crate::spellings::message(crate::spellings::old(&n)))); }
-            // `op +`, `op -`, `op *` are `op plus`, `op minus`, `op times` (owner, 2026-10-14: symbols spell the words)
+            // `op +`, `op -`, `op x` are `op plus`, `op minus`, `op times` (owner, 2026-10-14/16: symbols spell the words)
+            Tok::Word(n) if n == "x" => "x".into(),
+            Tok::Word(n) if n == "xx" && !self.internal_ops => return self.err("`xx` is the language's own spelling of std's `pow`: it is not declared"),
             Tok::Op(o) if o == "+" || o == "-" => o,
-            Tok::Op(o) if o == "*" => "x".into(),
             Tok::Op(o) if symbol_word(&o).is_some() && !self.internal_ops => return self.err(format!("`{o}` is the language's own spelling of `{}`: it is not declared", symbol_word(&o).unwrap())),
             // a narrowed form, `op dot.fast […]` (owner, 2026-10-02/03)
             Tok::Word(n) if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(_)) => { self.advance(); let Tok::Word(b) = self.advance().tok else { unreachable!() }; format!("{n}.{b}") }
@@ -1526,6 +1523,12 @@ impl Parser {
 
     /// After `&`: `mut`, then a lifetime group (`&mut@x`); or the group's name straight after `&@`.
     fn amp_rest(&mut self, glued_at: bool) -> PResult<(bool, Option<String>)> {
+        // a symbol spells only an operator between two values (owner, 2026-10-16): `&` / `&mut` for a borrow
+        // are old spellings of `lend` / `lent` and `lend.mut` / `lent.mut`
+        let _ = glued_at;
+        let row = if self.is_word("mut") || matches!(self.peek(), Tok::Word(w) if w.starts_with("mut@")) { "&mut" } else { "&" };
+        return self.err(crate::spellings::message(crate::spellings::old(row)));
+        #[allow(unreachable_code)]
         if glued_at {
             return match self.advance().tok {
                 Tok::Word(w) => {
@@ -1620,7 +1623,7 @@ impl Parser {
         }
     }
 
-    /// After `exactly` or the prefix `*`: a number, which is then an exact `deci`
+    /// After `exactly`: a number, which is then an exact `deci`
     fn exact_literal(&mut self, line: usize) -> PResult<Expr> {
         match self.advance().tok {
             Tok::Bin(_, t) => Ok(Expr::Exact(t, line)),
@@ -1630,8 +1633,12 @@ impl Parser {
     }
 
     fn ty_inner(&mut self) -> PResult<Ty> {
-        // `*const T` / `*mut T`: `ptr[T]` / `ptr.mut[T]`, Rust's spelling (owner, 2026-10-14)
+        // `*const T` / `*mut T` were Rust's spelling of `ptr[T]` / `ptr.mut[T]` (owner, 2026-10-14); old spellings
+        // since a symbol spells only an operator between two values (owner, 2026-10-16)
         if matches!(self.peek(), Tok::Op(o) if o == "*") && matches!(self.peek_at(1), Tok::Word(w) if w == "const" || w == "mut") {
+            let row = if matches!(self.peek_at(1), Tok::Word(w) if w == "mut") { "*mut" } else { "*const" };
+            return self.err(crate::spellings::message(crate::spellings::old(row)));
+            #[allow(unreachable_code)]
             self.advance();
             let mutable = matches!(self.advance().tok, Tok::Word(ref w) if w == "mut");
             if !self.at_boundary { return bad_ptr(self); }
@@ -1679,7 +1686,7 @@ impl Parser {
                 loop {
                     let kind = match self.peek().clone() {
                         Tok::Word(w) if w == "lent" => { self.advance(); if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(m) if m == "mut") { self.advance(); self.advance(); ParamKind::LentMut } else { ParamKind::Lent } }
-                        Tok::Op(o) if o == "&" => { self.advance(); if self.is_word("mut") { self.advance(); ParamKind::LentMut } else { ParamKind::Lent } }
+                        Tok::Op(o) if o == "&" => { self.advance(); let row = if self.is_word("mut") { "&mut" } else { "&" }; return self.err(crate::spellings::message(crate::spellings::old(row))); }
                         Tok::Var(v) => return self.err(format!("a function type has no parameter names: `fn[lent Locker]`, not `fn[lent '{v}': Locker]`")),
                         _ => ParamKind::Owned,
                     };
@@ -2336,8 +2343,10 @@ impl Parser {
 
     // change := 'change' Var ( '[' pos … ']' | '.' field )? '=' rhs ';'   (owner, 2026-09-25)
     fn change_stmt(&mut self, line: usize) -> PResult<Stmt> {
-        // `change *'p' = v;` writes through a pointer, `ptr.write['p', v];` (owner, 2026-10-14)
+        // `change *'p' = v;` was `ptr.write['p', value v];` (owner, 2026-10-14); an old spelling since 2026-10-16
         if matches!(self.peek(), Tok::Op(o) if o == "*") && matches!(self.peek_at(1), Tok::Var(_)) && *self.peek_at(2) == Tok::Eq {
+            return self.err(crate::spellings::message(crate::spellings::old("change *'p' =")));
+            #[allow(unreachable_code)]
             let start = self.pos;
             let mut j = start + 3;
             let mut depth = 0i32;
@@ -3598,7 +3607,9 @@ impl Parser {
                 Tok::Word(b) => { self.op_len.set(3); Some(format!("{w}.{b}")) }
                 _ => Some(w.clone())
             },
-            Tok::Word(w) if w == "x" || w == "xx" => { self.op_old.set(true); Some(w.clone()) }
+            // `x` and `xx`, the symbols of `times` and std's `pow` (owner, 2026-10-16: "`x` and `xx`")
+            Tok::Word(w) if w == "x" => Some("x".into()),
+            Tok::Word(w) if w == "xx" => Some("pow".into()),
             Tok::Word(w) if OP_WORDS.contains(&w.as_str()) => Some(w.clone()),
             Tok::Word(w) if w == "xor" || w == "shl" || w == "shr" => Some(w.clone()),
             // a kit's word operator with its path, `vecmath::dot`, `vecmath::dot.fast` (owner, 2026-10-02/03)
@@ -3661,7 +3672,7 @@ impl Parser {
             "+" | "-" | "+~" | "-~" => 500,
             "x" | "x~" => 600,
             o if o.starts_with("div.") || o.starts_with("mod.") => 600,
-            "neg" => 700,
+            "negate" => 700,
             // std's `pow` binds above a negative, right pair first, as `xx` did (owner, 2026-10-03)
             "xx" | "xx~" | "pow" | "pow.wrap" | "pow.ieee" => 800,
             _ => 0,
@@ -3718,8 +3729,8 @@ impl Parser {
                 let name = match name.as_str() {
                     "plus" => "+".to_string(), "minus" => "-".into(), "times" => "x".into(),
                     "plus.wrap" => "+~".into(), "minus.wrap" => "-~".into(), "times.wrap" => "x~".into(),
-                    "*" => "x".into(),
-                    "x" | "xx" | "+~" | "-~" | "x~" | "xx~" => { self.op_len.set(1); return self.old_op_error(&name).map(|_| Vec::new()); }
+                    "x" => "x".into(), "xx" => "pow".into(),
+                    "+~" | "-~" | "x~" | "xx~" => { self.op_len.set(1); return self.old_op_error(&name).map(|_| Vec::new()); }
                     _ => name,
                 };
                 self.item_comma("level 2 { plus, minus } left_first")?;
@@ -3752,7 +3763,7 @@ impl Parser {
                 }
                 let base = Parser::base_level(name);
                 if base == 0 { continue; }
-                if name != "neg" && Parser::base_chain(name) != *chain {
+                if name != "negate" && Parser::base_chain(name) != *chain {
                     let says = ["left_first", "right_first", "refused"][Parser::base_chain(name) as usize];
                     let shown = match name.as_str() { "+" => "plus", "-" => "minus", "x" => "times", "+~" => "plus.wrap", "-~" => "minus.wrap", "x~" => "times.wrap", o => o };
                     return bad(*line, format!("`{shown}`'s chains read `{says}`: its level must say `{says}`"));
@@ -3817,7 +3828,7 @@ impl Parser {
                 // follow the same rule (2026-09-21): mathematics has no reading for them.
                 if min > 0 { break; }
                 let what = if BIT_OPS.contains(&op.as_str()) { "a bitwise operator" } else { "a custom operator" };
-                if matches!(lhs, Expr::Binary(..)) || matches!(&lhs, Expr::Unary(u, ..) if u == "-" || u == "neg.ieee") { return self.err(format!("`{op}` next to another operator: {what} has no precedence — parenthesise")); }
+                if matches!(lhs, Expr::Binary(..)) || matches!(&lhs, Expr::Unary(u, ..) if u == "-" || u == "negate.ieee") { return self.err(format!("`{op}` next to another operator: {what} has no precedence — parenthesise")); }
                 for _ in 0..self.op_len.get() { self.advance(); }
                 let rhs = self.unary()?;
                 if let Some(next) = self.binop() { if next != "=" { return self.err(format!("`{next}` after `{op}`: {what} has no precedence — parenthesise")); } }
@@ -3877,11 +3888,14 @@ impl Parser {
     // unary := ('not' | '-') unary | primary
     fn unary(&mut self) -> PResult<Expr> {
         let line = self.line();
-        // `neg.ieee 'x'`: IEEE's negation, 0 becoming -0 (owner, 2026-10-07: "yea"); it binds as `-` does
-        if self.is_word("neg") && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "ieee") {
+        // `negate.ieee 'x'`: IEEE's negation, 0 becoming -0 (owner, 2026-10-07: "yea"; `neg.ieee` until
+        // 2026-10-16); it binds as `-` does
+        if self.is_word("negate") && *self.peek() != Tok::Eof && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "ieee") {
             self.advance(); self.advance(); self.advance();
-            return Ok(Expr::Unary("neg.ieee".into(), Box::new(self.climb(701)?), line));
+            return Ok(Expr::Unary("negate.ieee".into(), Box::new(self.climb(701)?), line));
         }
+        // `negate 'x'`, the word `-'x'` spells (owner, 2026-10-16: "`-5`, and `negate 'x'`?")
+        if self.is_word("negate") { self.advance(); return Ok(Expr::Unary("-".into(), Box::new(self.climb(701)?), line)); }
         if self.is_word("not") {
             self.advance();
             if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(b) if b == "bit") {
@@ -3922,17 +3936,20 @@ impl Parser {
                 self.advance(); self.advance(); self.advance();
                 Ok(Expr::Text(String::new(), line))
             }
-            // `*'p'` reads through a pointer, `ptr.read['p']` (owner, 2026-10-14)
+            // `*'p'` was `ptr.read['p']` (owner, 2026-10-14); an old spelling since 2026-10-16
             Tok::Op(o) if o == "*" && matches!(self.peek_at(1), Tok::Var(_)) => {
+                return self.err(crate::spellings::message(crate::spellings::old("*'p'")));
+                #[allow(unreachable_code)]
                 let (l2, c2) = (self.toks[self.pos].line, self.toks[self.pos].col);
                 let t = |tok: Tok| Token { tok, line: l2, col: c2, mtm: None };
                 let v = self.toks[self.pos + 1].clone();
                 self.toks.splice(self.pos..self.pos + 2, [t(Tok::Word("ptr".into())), t(Tok::Dot), t(Tok::Word("read".into())), t(Tok::LBracket), v, t(Tok::RBracket)]);
                 self.primary()
             }
-            // `exactly 0.1`, or `*0.1` — "I want exactly this" (owner, 2026-10-02): a deci; a whole number too
-            // (owner, 2026-10-14: "your recommendation"), `exactly 1000`
-            Tok::Op(o) if o == "*" => { self.advance(); self.exact_literal(line) }
+            // `exactly 0.1` — "I want exactly this" (owner, 2026-10-02): a deci; a whole number too (owner,
+            // 2026-10-14: "your recommendation"), `exactly 1000`. The prefix `*` (`*0.1`) is an old spelling since
+            // 2026-10-16: a symbol spells only an operator between two values
+            Tok::Op(o) if o == "*" && matches!(self.peek_at(1), Tok::Bin(..) | Tok::Int(_)) => self.err(crate::spellings::message(crate::spellings::old("*19.99"))),
             Tok::Word(w) if w == "exactly" => { self.advance(); self.exact_literal(line) }
             Tok::Text(t, _) => { self.advance(); Ok(Expr::Text(t, line)) }
             Tok::Char(c) => { self.advance(); Ok(Expr::Char(c, line)) }
@@ -3984,8 +4001,12 @@ impl Parser {
                 }
             }
             Tok::Op(o) if o == "&" => {
-                // `&'s'` / `&mut 's'` — Rust's spelling, an alternative to `lend` / `lend.mut` (owner, 2026-09-21)
+                // `&'s'` / `&mut 's'` were Rust's spelling of `lend` / `lend.mut` (owner, 2026-09-21); old spellings
+                // since a symbol spells only an operator between two values (owner, 2026-10-16)
                 self.advance();
+                let row = if self.is_word("mut") { "&mut" } else { "&" };
+                return self.err(crate::spellings::message(crate::spellings::old(row)));
+                #[allow(unreachable_code)]
                 let verb = if self.is_word("mut") { self.advance(); Verb::LendMut } else { Verb::Lend };
                 match self.advance().tok {
                     Tok::Var(v) => {
@@ -4319,7 +4340,7 @@ impl Parser {
                     // since `op -` is subtraction
                     self.advance();
                     let op = match self.peek().clone() {
-                        Tok::Word(w) if w == "neg" => { self.advance(); w }
+                        Tok::Word(w) if w == "negate" => { self.advance(); w }
                         Tok::Word(w) if w == "not" => {
                             self.advance();
                             if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(b) if b == "bit") { self.advance(); self.advance(); "not.bit".to_string() } else { w }
@@ -4338,7 +4359,7 @@ impl Parser {
                     }
                     let cmp = matches!(op.as_str(), "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least");
                     let src = match op.as_str() {
-                        "neg" => "fn ['a': <T>] -> <T> { return -'a'; }".to_string(),
+                        "negate" => "fn ['a': <T>] -> <T> { return -'a'; }".to_string(),
                         "not" => "fn ['a': bool] -> bool { return not 'a'; }".to_string(),
                         "not.bit" => "fn ['a': <T>] -> <T> { return not.bit 'a'; }".to_string(),
                         "and" | "or" => format!("fn ['a': bool, 'b': bool] -> bool {{ return 'a' {op} 'b'; }}"),

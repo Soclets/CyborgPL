@@ -2,7 +2,7 @@
 fn sum [lent 'items': list[int32]] -> int32 {
     let 'total' := 0;
     for 'n' in lend 'items' {
-        change 'total' = 'total' plus 'n';
+        change 'total' = 'total' + 'n';
     }
     return 'total';
 }

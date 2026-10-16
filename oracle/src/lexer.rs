@@ -287,6 +287,9 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             let inside: Option<Tok> = match s.as_str() {
                 "no_shadow" => Some(Tok::NoShadow),
                 "equal_to" => Some(Tok::Op("equal_to".into())),
+                // the words of `<` and `>` (owner, 2026-10-16: "the long"), read as the symbols inside
+                "less_than" => Some(Tok::Op("<".into())),
+                "greater_than" => Some(Tok::Op(">".into())),
                 "not_equal" => Some(Tok::Op("not_equal".into())),
                 "at_most" => Some(Tok::Op("at_most".into())),
                 "at_least" => Some(Tok::Op("at_least".into())),
@@ -375,7 +378,26 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             // the arrows are short, `->`, `<-`, `<->` (owner, 2026-10-07: "Short, the neck & eye movement
             // is less"); the comparisons are words (`equal_to`, `not_equal`, `at_most`, `at_least`); every
             // other spelling is refused by name, MTM being gone
-            let main: Option<&'static crate::spellings::Old> = crate::spellings::old_at(&run, false, false);
+            let mut main: Option<&'static crate::spellings::Old> = crate::spellings::old_at(&run, false, false);
+            // a symbol spells only an operator that reads correctly (owner, 2026-10-16): `*` and `&` are old in
+            // every place, each place naming its own word
+            if !crate::spellings::loading() && (run == "*" || run == "&" || run == "&@") {
+                let after_value = matches!(toks.last().map(|t| &t.tok), Some(Tok::Var(_) | Tok::Int(_) | Tok::BigInt(_) | Tok::Bin(..) | Tok::Text(..) | Tok::Char(_) | Tok::RParen | Tok::RBracket))
+                    || matches!(toks.last().map(|t| &t.tok), Some(Tok::Word(b)) if b == "true" || b == "false");
+                let rest: String = chars[j..].iter().skip_while(|c| **c == ' ').take(6).collect();
+                let starts_word = |w: &str| rest.starts_with(w) && !rest[w.len()..].chars().next().map_or(false, |c| c.is_ascii_alphanumeric() || c == '_');
+                let row = if run == "*" {
+                    if after_value { "*" }
+                    else if starts_word("const") { "*const" }
+                    else if starts_word("mut") { "*mut" }
+                    else if rest.starts_with('\'') { if matches!(toks.last().map(|t| &t.tok), Some(Tok::Word(c)) if c == "change") { "change *'p' =" } else { "*'p'" } }
+                    else if rest.starts_with(|c: char| c.is_ascii_digit()) { "*19.99" }
+                    else { "*" }
+                } else if run == "&" && after_value { "'a' & 'b'" }
+                else if run == "&" && (starts_word("mut") || rest.starts_with("mut@")) { "&mut" }
+                else { "&" };
+                main = Some(crate::spellings::old(row));
+            }
             if !crate::spellings::loading() {
                 if let Some(m) = crate::spellings::not_operator(&run) { return err(tl, tc, m); }
             }

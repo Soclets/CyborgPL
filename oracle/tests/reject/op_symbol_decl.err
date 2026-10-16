@@ -1,1 +1,1 @@
-`%` is the language's own spelling of `mod.trunc`: it is not declared
+`%` is an old spelling: write `mod.trunc`

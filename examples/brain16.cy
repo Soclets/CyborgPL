@@ -3,7 +3,7 @@
 MAIN {
     let 'a': brain16 = 0.1;                     # a literal rounds to the nearest: 0.10009765625
     let 'b': brain16 = 0.2;
-    let 'c': brain16 = 'a' plus 'b';
+    let 'c': brain16 = 'a' + 'b';
     std::print.stored['a', " ", 'c', newln];       # what is stored
     std::print.useful['a', " ", 'c', newln];  # the shortest text that rounds back to it
     let 'x': bin64 = 300.7;

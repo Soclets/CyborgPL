@@ -3,7 +3,7 @@
 MAIN {
     let 'x': deci64 = 3.141592653589793;
     let 'y' := to.deci32['x'] otherwise 0;
-    let 'z' := to.int64['y' times 1000000] otherwise -1;
+    let 'z' := to.int64['y' x 1000000] otherwise -1;
     let 'b': bin64 = to.bin64["not a number"] otherwise 0;
     std::print.stored['y', " ", 'z', " ", 'b', newln];
 }

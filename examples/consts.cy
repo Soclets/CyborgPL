@@ -3,10 +3,10 @@ bare.never [fn, struct];
 
 pub const 'max' := 8;
 const 'pi': bin64 = 3.141_592_653_589_793;
-const 'twice_max' := 'max' times 2;
-const 'greeting' := "hello " ++ "world";
+const 'twice_max' := 'max' x 2;
+const 'greeting' := "hello " concat "world";
 pub struct P { x: int32 }
-pub fn area ['r': bin64] -> bin64 { return 'pi' times 'r' times 'r'; }
+pub fn area ['r': bin64] -> bin64 { return 'pi' x 'r' x 'r'; }
 MAIN {
     std::print.useful['max', " ", 'twice_max', " ", 'greeting', " ", area[2.0], newln];
     let 's' := 'greeting';

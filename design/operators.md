@@ -68,24 +68,13 @@ variable `'x'` times two. Legacy's `xxx` (tetration) is **not** included.
 override, even against convention: `(2 pow 3) pow 2` = 64. The other
 operators chain left as usual.
 
-## Increment and compound assignment: symbol spellings (2026-10-14)
+## No compound changes (owner, 2026-10-16: (a))
 
-Adding one is written in full, `change 'i' = 'i' plus 1;`, and that stays the good-practice form.
-Since 2026-10-14 the symbols spell it (owner: "we add it as an alt", "(a), they aren't supposed to
-be used anyways"), as the other symbols spell their words:
-
-```
-'i'++;            # change 'i' = 'i' plus 1;
-'i'--;            # change 'i' = 'i' minus 1;
-'i' += 2;         # change 'i' = 'i' plus 2;
-'i' *= 3 plus 1;  # change 'i' = 'i' times (3 plus 1);
-'i' -= 4;   'i' /= 3;   'i' %= 5;   'i' **= 2;   # minus, div.trunc, mod.trunc, pow
-```
-
-The right side is taken whole, as if bracketed. `++` and `--` change a variable only as a whole
-statement (`'i'++;`): `++` between two values joins text, the symbol of `concat`. The result is
-checked where it lands, as any `change`. Until 2026-10-14 there was no shorthand at all (owner,
-2026-09-14). `examples/compound_change.cy`.
+A change is always written out: `change 'i' = 'i' + 1;`, `change 'total' = 'total' x 2;`. From 2026-10-14
+to 16 the symbols `'i'++;`, `'i'--;`, `+=`, `-=`, `*=`, `/=`, `%=` and `**=` spelled these (owner then: "we
+add it as an alt"); asked "what the fuck is `+=`?", offered (a) none, (b) only `++` / `--`, (c) all, the owner
+took (a), as design claude recommended: they do not read as what they do, and `change` already marks every
+change. Each is now an old spelling, refused naming the `change` to write.
 
 ## Precedence (decided 2026-09-14)
 
@@ -309,24 +298,30 @@ chosen.
 (Integer `div` (then `/`) and `mod` were decided 2026-09-20: floor division, the
 mathematician's `mod`; see the bitwise and wrapping paragraph above.)
 
-## Symbols spell the words (owner, 2026-10-14)
+## Symbols, only where they read correctly (owner, 2026-10-16)
 
-The words are the language; each symbol below is another spelling of its word's most useful general
-form, and good practice writes the words (`style.md`). (On 2026-10-13 `+` and `*` were briefly jokes, a
-JavaScript `+` and a `bin16` `*` that changed on 1 April; the owner dropped them the next morning.)
+The owner: "the code with words takes long to skim. So, we might wanna add symbols (like +, -. and stuff),
+only if it reads correctly (unlike `%` as mod)", "And also make it good practice to use symbols, and when you
+want another variation, you use the word form" (`style.md` 15). Each symbol spells its word's plain form:
 
 | Symbol | Word |
 |---|---|
-| `+`, `-`, `*` between two values | `plus`, `minus`, `times` (plain: checked, exact) |
-| `/`, `%` | `div.trunc`, `mod.trunc`: toward zero, as C, Rust and Go |
-| `==`, `!=`, `<=`, `>=` | `equal_to`, `not_equal`, `at_most`, `at_least` (`<`, `>` as always) |
-| `**` | `pow` (std's) |
-| `&`, `&&`, `\|\|` between two values | `and` (both sides), `and.then`, `or.else` |
+| `+`, `-` between two values | `plus`, `minus` (checked, exact) |
+| `x` | `times` (owner: "`x` and `xx`"; the language's spelling until 2026-10-03, then old, now back) |
+| `xx` | std's `pow` |
+| `<`, `>` | `less_than`, `greater_than` (owner: "Keep < >", and "the long" over `less` / `greater`) |
+| a leading `-`: `-5`, `-'x'` | a negative; `negate 'x'` (owner: "`-5`, and `negate 'x'`?") |
 
-`op +`, `op -`, `op *` declare `op plus`, `op minus`, `op times`; the other built-in symbols are not
-declared (`op %`: "`%` is the language's own spelling of `mod.trunc`"). `^`, `|`, `!` stay free to
-declare. The wrapping symbols (`+~`, `x~`, …) and `x` / `xx` stay old spellings. Borrows (`&'x'`, `&mut
-'x'`) are in `ownership-syntax.md`, pointers (`*const T`, `*'p'`) in `ffi.md`, `exactly` in `types.md`.
+A variation is the word: `plus.wrap`, `times.ieee`, `div.floor`, `negate.ieee`. `negate` replaced `neg`
+everywhere (`op negate`, `level N { negate }`), `neg` now old. **No symbol, always the word** (each symbol
+below an old spelling, refused naming the word): `equal_to`, `not_equal`, `at_most`, `at_least` (`==`, `!=`,
+`<=`, `>=`: "do you really read `!=` as not equal?"); `div.…` (`/`), `mod.…` (`%`), which say how they round;
+`and` (`&` between values), `and.then`, `or.else` (`&&`, `||`, "Yeah, drop them"); `concat` (`++`); and the
+non-operators, `lend` / `lent`, `lend.mut` / `lent.mut` (`&'x'`, `&mut 'x'`, `&@x`), `ptr[T]`, `ptr.mut[T]`,
+`ptr.read`, `ptr.write` (`*const T`, `*mut T`, `*'p'`, `change *'p' = v;`) and `exactly` (`*19.99`). `*` and
+`**` are old too, their symbols now being `x` and `xx`. `op +`, `op -`, `op x` declare `op plus`, `op minus`,
+`op times`; `op xx` is not declared. `^`, `|` and `!` stay free to declare. Until 2026-10-16 (from 2026-10-14)
+every one of these symbols spelled its word, and good practice was the words. `examples/symbols.cy`.
 
 ## Custom operators — `op` (decided 2026-09-20)
 

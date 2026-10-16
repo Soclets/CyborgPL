@@ -9,9 +9,9 @@ collection.fn greet {
         if str.bytes[lend 'who'] > 20 { fail too_long; }
         let 'out' := str.empty;
         for 'i' from 1 to 'times' by 1 {
-            change 'out' = 'out' ++ 'word' ++ ", ";
+            change 'out' = 'out' concat 'word' concat ", ";
         }
-        return 'out' ++ 'who';
+        return 'out' concat 'who';
     }
 
     hi ['word' = "hi", 'times' = 1];
@@ -29,7 +29,7 @@ collection.fn greet {
 const 'big' := 100;
 
 collection.fn scale {
-    scale ['x': int32, 'by': int32] -> int32 { return 'x' times 'by'; }
+    scale ['x': int32, 'by': int32] -> int32 { return 'x' x 'by'; }
     times_2 ['by' = 2];
     times_10 ['by' = 10];
     times_100 ['by' = 'big'];
@@ -39,7 +39,7 @@ collection.fn scale {
 # text in `named`.
 collection.fn zero {
     for 'T' in [int16, int64] {
-        named "of_" ++ 'T';
+        named "of_" concat 'T';
         [] -> 'T' { return 0; }
     }
     #generated_2_lines_below
@@ -57,11 +57,11 @@ fn width_name ['t': str.utf8] -> str.utf8 {
 collection.fn twice {
     for 'T' in [int16, int64] {
         named width_name['T'];
-        ['x': 'T'] -> 'T' { return 'x' times 2; }
+        ['x': 'T'] -> 'T' { return 'x' x 2; }
     }
     #generated_2_lines_below
-    small ['x': int16] -> int16 { return 'x' times 2; }
-    big ['x': int64] -> int64 { return 'x' times 2; }
+    small ['x': int16] -> int16 { return 'x' x 2; }
+    big ['x': int64] -> int64 { return 'x' x 2; }
 }
 
 MAIN {

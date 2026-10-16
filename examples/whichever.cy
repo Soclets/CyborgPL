@@ -1,7 +1,7 @@
 # whichever, timers, structured tasks, a task that fails (design/concurrency.md, 2026-09-22).
 fn fetch [lent 'url': str.utf8] -> str.utf8 or fail[no_network] {
     if 'url' equal_to "down.com" { fail no_network; }
-    return "page of " ++ 'url';
+    return "page of " concat 'url';
 }
 
 MAIN {

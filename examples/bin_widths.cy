@@ -15,9 +15,9 @@ MAIN {
     # bin32 math rounds after every step, as the hardware does (owner, 2026-09-24: a):
     # 16777216 plus 1 rounds back to 16777216 at bin32, while bin64 holds 16777218
     let 'x': bin32 = 16777216.0;
-    let 'y': bin32 = 'x' plus 1.0 plus 1.0;
+    let 'y': bin32 = 'x' + 1.0 + 1.0;
     let 'x64': bin64 = 16777216.0;
-    let 'y64': bin64 = 'x64' plus 1.0 plus 1.0;
+    let 'y64': bin64 = 'x64' + 1.0 + 1.0;
     std::print.useful['y', " ", 'y64', newln];
     # a literal is rounded once, from its digits, straight to its width (never to 64 bits first)
     let 'top': bin32 = 340282356779733661637539395458142568447.0;   # just under the limit: bin32's largest
