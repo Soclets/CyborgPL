@@ -1,5 +1,8 @@
 # Finding 2026-09-29 (check run, seed 6241, not shrunk: shrinking it ran 79 minutes): cca build aborts
 # with "thread 'main' has overflowed its stack" (exit 134). The oracle runs it until a division by zero.
+# Since the 2026-10-07 shift ruling (4866c834) both engines refuse it at line 95, several bare shifts
+# there having no width, so it now checks only that they refuse alike; deep nesting is covered by
+# 2026-10-07-oracle-stack-overflow-on-deep-calls (noted 2026-10-16).
 # check claude generator, seed 6241
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 

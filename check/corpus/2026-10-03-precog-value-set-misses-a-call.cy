@@ -122,7 +122,7 @@ MAIN {
             change 'v25' = ((('v25' mod.floor 'v25') minus ('v25' mod.floor 1)) mod.floor 56) plus 200;
             change 'v25' = 'v25' plus (f1[0 times (-'v26'), not (to.int16['v26'] at_most to.int16['v26']), 'v12', to.uint64[0 plus to.uint64['v25']] or.bit 6429869190640371940] mod.floor 1);
             change 'v25' = ((('v25' mod.floor 16) times ('v25' mod.floor 16)) mod.floor 56) plus 200;
-        } else if 'v11' and.then ((3 shr to.int64['v12']) at_least 9223372036854775806) {
+        } else if 'v11' and.then ((to.int64[3] shr to.int64['v12']) at_least 9223372036854775806) {
             put_i[(-25260) plus to.int16['v26']];
             change 'v25' = (to.uint8['v26'] mod.floor 56) plus 200;
         } else if 'v11' {
