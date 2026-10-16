@@ -9,6 +9,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-16 — The one-value file ends `.cyr`, not `.cystatic` (owner)
+
+Minutes after `.cystatic` (below), the owner: "Hm, maybe we should change `cystatic`. What is a broken Cyborg?";
+design claude offered husk, scrap, wreck, hulk, inert and offline (`.cyhusk` recommended). Then the owner: "What
+about `.cyr`, CyborgPL related. I mean, it looks alot better." Design claude searched it: Crysis level files (game
+data, never opened by hand, a mild clash like `.cy`'s Ren'Py one) and a Debian command `cyr` for Cyrillic
+consoles; "Cyr" is also short for Cyrillic. The owner: "`.cyr` it is". So **a one-value file ends `.cyr`**:
+`CyJet.cyr`. `.cystatic` is dropped before it was used.
+
 ### 2026-10-16 — A CyborgPL one-value file ends `.cystatic` (owner)
 
 The twin of `.cy`: a file that is one value and never runs (the manifest, the version file, tuning). Design
