@@ -14,7 +14,9 @@ fn main() {
     // add the +"). Run again whenever the checkout moves or one of those
     // files changes.
     let here = std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
-    let built_from: Vec<std::path::PathBuf> = ["src", "build.rs", "Cargo.toml", "lld", "../base", "../limbs", "../Cargo.toml", "../Cargo.lock", "../targets.txt", "../../spellings.cyr"].iter().map(|p| here.join(p)).collect();
+    // The runtime counts too: every program it builds links it (design
+    // claude, 2026-10-16).
+    let built_from: Vec<std::path::PathBuf> = ["src", "build.rs", "Cargo.toml", "lld", "../base", "../limbs", "../runtime", "../Cargo.toml", "../Cargo.lock", "../targets.txt", "../../spellings.cyr"].iter().map(|p| here.join(p)).collect();
     let git = |args: &[&str]| {
         std::process::Command::new("git").args(args).current_dir(&here).output().ok().filter(|o| o.status.success()).map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
     };
