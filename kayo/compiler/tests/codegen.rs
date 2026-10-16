@@ -654,7 +654,12 @@ fn every_name_of_the_command_runs() {
     let first = String::from_utf8_lossy(&out.stdout).lines().next().unwrap_or_default().to_string();
     let head = Command::new("git").args(["rev-parse", "HEAD"]).current_dir(env!("CARGO_MANIFEST_DIR")).output().unwrap();
     let head = String::from_utf8_lossy(&head.stdout).trim().chars().take(8).collect::<String>();
-    assert_eq!(first, format!("CyDT {} KAYO\\n", head), "`kayo version` does not name the commit it was built from");
+    // With changes not committed to what it is built from, a `+` after the
+    // commit (owner, 2026-10-16): the tests run on such a tree as often as
+    // not, so either is right unless the compiler's own source has changes.
+    let changed = Command::new("git").args(["status", "--porcelain", "--", "src", "build.rs"]).current_dir(env!("CARGO_MANIFEST_DIR")).output().unwrap();
+    let plus = if changed.stdout.is_empty() { vec![format!("CyDT {} KAYO\\n", head), format!("CyDT {}+ KAYO\\n", head)] } else { vec![format!("CyDT {}+ KAYO\\n", head)] };
+    assert!(plus.contains(&first), "`kayo version` does not name the commit it was built from: {} (HEAD {})", first, head);
     for (old, exe) in [("cca", env!("CARGO_BIN_EXE_cca")), ("synapse", env!("CARGO_BIN_EXE_synapse")), ("syn", env!("CARGO_BIN_EXE_syn")), ("sng", env!("CARGO_BIN_EXE_sng")), ("suc", env!("CARGO_BIN_EXE_suc")), ("zomp", env!("CARGO_BIN_EXE_zomp"))] {
         let out = Command::new(exe).output().unwrap();
         assert!(!out.status.success() && String::from_utf8_lossy(&out.stderr).contains(&format!("`{}` is an old name: write `kayo`", old)), "`{}` was not refused naming `kayo`", old);

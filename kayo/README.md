@@ -17,7 +17,8 @@ ones. The crates take the full name (owner, 2026-10-08: "Yeah"):
 (`compiler/src/precog`), and the runtime (`runtime/`). It names itself by
 its tools (owner, 2026-10-16): a release by its number, `CyDT 1 KAYO\n`,
 and a build between releases by the commit it was built from,
-`CyDT 5eac982a KAYO\n`.
+`CyDT 5eac982a KAYO\n`, with a `+` after it when what it is built from
+has changes not committed (`CyDT 5eac982a+ KAYO\n`; "Yeah, add the +").
 
 ```
 cd kayo
