@@ -11,7 +11,7 @@ pub fn contains [lent 's': str.utf8, lent 'part': str.utf8[min 1 bytes]] -> bool
     let 'n' := list.length[lend 'text'];
     let 'm' := list.length[lend 'want'];
     if 'm' > 'n' { return false; }
-    for 'pos': uint64 from 1 to ('n' minus 'm' plus 1) by 1 {
+    for 'pos': uint64 from 1 to ('n' - 'm' + 1) by 1 {
         if sits_at[lend 'text', lend 'want', 'pos'] { return true; }
     }
     return false;
@@ -31,7 +31,7 @@ pub fn ends_with [lent 's': str.utf8, lent 'part': str.utf8[min 1 bytes]] -> boo
     let 'n' := list.length[lend 'text'];
     let 'm' := list.length[lend 'want'];
     if 'm' > 'n' { return false; }
-    return sits_at[lend 'text', lend 'want', 'n' minus 'm' plus 1];
+    return sits_at[lend 'text', lend 'want', 'n' - 'm' + 1];
 }
 
 # The pieces of 's' between each 'at', left to right: "a,,b" at "," is "a", `str.empty`, "b".
@@ -47,10 +47,10 @@ pub fn split [lent 's': str.utf8, lent 'at': str.utf8[min 1 bytes]] -> list[str.
         if sits_at[lend 'text', lend 'sep', 'pos'] {
             list.append[lend.mut 'pieces', value text_of[give 'piece']];
             change 'piece' = list.empty;
-            change 'pos' = 'pos' plus 'm';
+            change 'pos' = 'pos' + 'm';
         } else {
             list.append[lend.mut 'piece', value 'text'[pos 'pos']];
-            change 'pos' = 'pos' plus 1;
+            change 'pos' = 'pos' + 1;
         }
     }
     list.append[lend.mut 'pieces', value text_of[give 'piece']];
@@ -81,10 +81,10 @@ pub fn replace [lent 's': str.utf8, lent 'from': str.utf8[min 1 bytes], lent 'to
     while 'pos' at_most 'n' {
         if sits_at[lend 'text', lend 'old', 'pos'] {
             for 'b' in str.each.byte[lend 'to'] { list.append[lend.mut 'out', value 'b']; }
-            change 'pos' = 'pos' plus 'm';
+            change 'pos' = 'pos' + 'm';
         } else {
             list.append[lend.mut 'out', value 'text'[pos 'pos']];
-            change 'pos' = 'pos' plus 1;
+            change 'pos' = 'pos' + 1;
         }
     }
     return text_of[give 'out'];
@@ -102,9 +102,9 @@ fn sits_at [lent 'text': list[uint8], lent 'part': list[uint8], 'pos': uint64[mi
     let 'n' := list.length[lend 'text'];
     let 'm' := list.length[lend 'part'];
     if 'm' > 'n' { return false; }
-    if 'pos' > 'n' minus 'm' plus 1 { return false; }
-    for 'k': uint64 from 'pos' to ('pos' plus 'm' minus 1) by 1 {
-        if 'text'[pos 'k'] not_equal 'part'[pos 'k' minus 'pos' plus 1] { return false; }
+    if 'pos' > 'n' - 'm' + 1 { return false; }
+    for 'k': uint64 from 'pos' to ('pos' + 'm' - 1) by 1 {
+        if 'text'[pos 'k'] not_equal 'part'[pos 'k' - 'pos' + 1] { return false; }
     }
     return true;
 }
