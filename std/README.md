@@ -28,8 +28,9 @@ this one, and what it does not define yet, `print` and `exit`, is still KAYO's R
 ## How it is checked
 
 - `examples/argument_words.cy` and `examples/inventory.cy`, unchanged, built by KAYO against this
-  folder, print their `.out`, every one of their sites proven. It is in KAYO's own tests against this folder
-  (`kayo/compiler/tests/examples_cyborgpl_std.txt`).
+  folder, print their `.out`, every one of their sites proven. Both are in KAYO's own tests against this
+  folder (`kayo/compiler/tests/examples_cyborgpl_std.txt`; `inventory +unicode`, as it uses `char.point`
+  itself).
 - In the oracle, each of the six beside the oracle's own built-in std (a copy of this folder under
   another prefix), over 820 cases (empty text, separators at the ends and side by side, overlapping
   finds, `é`, `🍎`), printing the same; and the same cases built by KAYO against this folder, written as
