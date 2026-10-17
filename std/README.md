@@ -15,7 +15,10 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
   is passed if it is worked out at run time. The oracle's built-in std refuses it when the call runs:
   the same rule, met at a different moment. `std::str.at.byte[lend 's', pos 2]` is the byte at a
   position (a `uint8`), and `std::str.at.point[lend 's', pos 2]` the character (a `char.point`), each
-  failing `out_of_range` past the last one (owner, 2026-10-17: str.at next).
+  failing `out_of_range` past the last one (owner, 2026-10-17: str.at next). A position is
+  `uint64[min 1]` (owner, 2026-10-17: "(a)"): a written `pos 0` is refused when building, and a position
+  worked out while running is proven or converted where it is passed (`to.uint64[min 1]['i'] otherwise 1`),
+  so `out_of_range` means only past the end.
 - `CyJet.cyr` lists the `unicode` limb, std's first, since `char.point` is unicode's (owner, 2026-10-17:
   "(a)"). A program using std does not inherit it: `argument_words` lists no limb.
 
@@ -54,7 +57,3 @@ Each is a choice the record does not settle, dated, with the alternative. Each i
   failed run-time check. The alternatives: a fallback value such as `str.empty`, which would hide a
   bug, or a way to turn bytes known to be UTF-8 into text without a failure (an intrinsic, or something
   in the language), which nobody has asked for yet.
-- **2026-10-17 — a position is `uint64[min 1]`**, so `pos 0` is refused when building and a position
-  worked out at run time is checked where it is passed, as a list's position 0 "does not exist and is
-  an error" (`lists.md`). The oracle's built-in std fails `out_of_range` for 0 and -1 instead. Asked
-  of the owner next.
