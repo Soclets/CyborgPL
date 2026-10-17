@@ -328,3 +328,5 @@ deci_reciprocal_one 8
 quoted_symbol_names 23
 # A function that calls itself, inlined into itself a few levels, computes the same (owner, 2026-10-17).
 recursion_unfolded 31
+# Mutual recursion past the call depth keeps every value its deepest calls give (check claude, 2026-10-17, corpus ab280a72): it stops now.
+mutual_recursion_past_the_depth trap

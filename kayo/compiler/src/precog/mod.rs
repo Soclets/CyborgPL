@@ -93,7 +93,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
 /// worked out: a proof-checking build (`--assert-proofs`) has to compute
 /// what Precog claimed, not be handed the claim.
 pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), operand_ranges: HashMap::new(), borrows: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cut: false, ran_out: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, induction_at: HashMap::new(), induction_failed: Default::default(), induction_fell_short: false, no_induction: Default::default(), induction_calls: HashMap::new(), walks: HashMap::new(), induction_done: HashMap::new() };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), operand_ranges: HashMap::new(), borrows: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cut: false, cut_walked: Default::default(), ran_out: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, induction_at: HashMap::new(), induction_failed: Default::default(), induction_fell_short: false, no_induction: Default::default(), induction_calls: HashMap::new(), walks: HashMap::new(), induction_done: HashMap::new() };
     // A `#strict` file's functions (owner, 2026-09-27): each site is proven
     // from what its own function says, never from a caller's arguments or
     // another function's body.
@@ -393,6 +393,9 @@ struct Precog {
     gave_up: bool,
     /// Inside a walk past the call depth: every call is its return type.
     cut: bool,
+    /// The functions a cut-off call's walk has walked on their own terms
+    /// so far: each once, so mutual recursion ends.
+    cut_walked: std::collections::HashSet<usize>,
     /// The step budget ran out mid-walk, so some states were never seen.
     /// Kept across the strict functions' own walks.
     ran_out: bool,
@@ -2121,14 +2124,26 @@ impl Precog {
                     // site reached only down there kept the verdict and the
                     // values the shallower calls gave it (check claude,
                     // seed 17021: `{4}` where 6 came too).
+                    // A function that walk calls is walked on its own
+                    // terms too, once: in mutual recursion it is the one
+                    // the deeper calls reach, and its sites kept only the
+                    // shallower calls' values (check claude, corpus
+                    // ab280a72: `od`'s divisor proven never 0 from {2, 4, 6,
+                    // 8}, where the call past the depth gave 0).
                     if self.cut {
+                        if self.cut_walked.insert(i) {
+                            let own = self.entry_env(i);
+                            let _ = self.run_function(i, own, depth + 1);
+                        }
                         return whole;
                     }
                     let _ = callee_env;
                     let own = self.entry_env(i);
                     self.cut = true;
+                    self.cut_walked.insert(i);
                     let _ = self.run_function(i, own, depth + 1);
                     self.cut = false;
+                    self.cut_walked.clear();
                     return whole;
                 }
                 // Mark it before walking, so a recursive call finds something.
