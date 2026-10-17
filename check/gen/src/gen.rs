@@ -2199,14 +2199,17 @@ impl Gen {
             let s = self.name("t");
             body.push(Stmt::TypedLet { name: s.clone(), mutable: false, ty: "str.utf8".into(), value: Expr::Text(t.into()) });
             let r = self.name("t");
-            let k = self.rng.range(0, n + 2);
+            // a position is uint64[min 1]: 0 is refused, past the end is
+            // what `otherwise` catches (owner, 2026-10-17: a; 09061256)
+            let k = self.rng.range(1, n + 2);
             let line = match self.rng.below(4) {
                 0 => format!("let {} := str.at.byte[lend {}, pos {k}] otherwise 7;\nput_u[to.uint64[{}]];", q(&r), q(&s), q(&r)),
                 1 => format!("let {} := str.at.point[lend {}, pos {k}] otherwise `?`;\nput_u[to.uint64[char.code[{}]]];", q(&r), q(&s), q(&r)),
-                2 => format!("let {} := str.at.grapheme[lend {}, pos {k}] otherwise `?`;\nput_u[str.bytes[lend {}]];", q(&r), q(&s), q(&r)),
+                // a grapheme here is a plain char: it is printed, not lent
+                2 => format!("let {} := str.at.grapheme[lend {}, pos {k}] otherwise `?`;\nstd::print.useful[{}, newln];", q(&r), q(&s), q(&r)),
                 _ => {
-                    let a = self.rng.range(0, n + 1);
-                    let b = self.rng.range(a.max(1) - 1, n + 2);
+                    let a = self.rng.range(1, n + 1);
+                    let b = self.rng.range(a - 1, n + 2).max(1);
                     format!("let {} := str.slice.grapheme[lend {}, from pos {a}, to pos {b}] otherwise str.empty;\nput_u[str.bytes[lend {}]];", q(&r), q(&s), q(&r))
                 }
             };

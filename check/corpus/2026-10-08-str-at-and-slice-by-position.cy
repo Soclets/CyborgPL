@@ -62,7 +62,7 @@ MAIN {
     let 'c' := str.at.point[lend 's', pos 2] otherwise `?`;
     put_u[to.uint64[char.code['c']]];
     let 'g' := str.at.grapheme[lend 's', pos 9] otherwise `?`;
-    put_u[str.bytes[lend 'g']];
+    std::print.useful['g', newln];
     let 'sl' := str.slice.grapheme[lend 's', from pos 2, to pos 4] otherwise str.empty;
     put_u[str.bytes[lend 'sl']];
     let 'none' := str.slice.grapheme[lend 's', from pos 4, to pos 9] otherwise "-";
