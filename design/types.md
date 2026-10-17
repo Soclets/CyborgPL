@@ -27,6 +27,13 @@ with nothing without `to.` — `to.bin32['w']` exact, `to.brain16['x']`
 rounding, `to.bin16['w']` a check site. A literal rounds to the nearest `brain16`
 (owner, 2026-10-02: a). The GPU is open.
 
+**The `percent` type and limits** (owner, 2026-10-17; not built yet): `percent[deci32]` (symbol `%[deci32]`)
+holds a `deci` of that width and prints with `%`; a written one names its size, `:=` lets Precog pick. A second
+bracket holds limits, on a `deci` or a `percent`: `deci64[min 0, max 1000000, max_decimals 2]`,
+`percent[deci32][min 0%, max 100%, max_decimals 1]`; `max_decimals` refuses a literal with more and asks a
+result that could have more to be rounded on purpose; `min_decimals` only pads when printing. Open: how a
+rounding is written; whether `:= exactly 7%` is a `percent`.
+
 **Percentages** (owner, 2026-10-16): `80%` or `80 percent` is the number over 100, a `bin` as `0.80` is;
 `exactly 80%` is an exact `deci`, any digits (`exactly 12.3456789%` is 0.123456789). The `%` sits on the number;
 `7%2` is the old `%` of mod. A type that prints as a percentage is not yet ruled.

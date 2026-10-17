@@ -95,6 +95,10 @@ recommended.
     `concat`, `lend`, `ptr[T]`, `exactly`. A change is written out, `change 'i' = 'i' + 1;`. (2026-10-14
     to 16 this item said the opposite: "Write the words, not the symbols".)
 
+18. **Percentages: the `%` after the number, `percent` as the type** (owner, 2026-10-17: "For good practice,
+    use `%` behind, and `percent` as the type"): `let 'rate': percent[deci32] = exactly 7.5%;`, not
+    `7.5 percent` or `%[deci32]`, though both are allowed.
+
 ## Names
 
 17. **Good naming depends on what you would use** (owner, 2026-10-16). A quoted name may hold any printable

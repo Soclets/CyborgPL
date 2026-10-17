@@ -24,6 +24,34 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-17 — The `percent` type, and limits in a second bracket: `min`, `max`, `min_decimals`, `max_decimals` (owner)
+
+Asked the number inside a percentage type, design claude recommending an exact `deci64`, the owner: "Depends on
+how much they used", then "Actually, you should be able to pick a size, if you use `=` instead of `:=`". Offered
+(a) `percentage[deci32]`, (b) `percentage.deci32`, (c) `percentage32`, recommending (a), with a bare
+`percentage` letting Precog pick; the owner: "Wouldn't that be inconsistent?" (yes: a written type always says
+its size, and `:=` is how Precog picks), then "yea, go with that". Asked about bounds: "like how you could with
+`int32[min 200, max 300]`", design claude proposing a second bracket as a list's length bound has. The owner
+then: "What about limiting decimal in both % and deci"; offered `places`, `decimals`, `scale`, `dp`
+(recommending `decimals`), the owner proposed "`min_decimal_value` and `max_decimal_value`?", then "yea,
+min_decimals and max_decimals"; asked to shorten to `max_decimal` or `max_deci`, design claude advised the
+plural: "keep max_decimals". The type's name: "`percentage` should be shortened to `percent`, since
+`percentage[deci32]` isn't really Englishy anyways". Good practice: "use `%` behind, and `percent` as the type".
+So:
+- **`percent[deciN]`** is a percentage holding a `deci` of that width, printed with `%` (0.075 as `7.5%`);
+  `%[deciN]` is its symbol spelling. A written `percent` or `%` names its size; bare, it is refused (write `:=`
+  to let Precog pick). `percent` is also the word of the literal (`7.5 percent`); after a number it is the
+  literal, after `:` the type.
+- **A second bracket of limits**, on a `deci` and on a `percent`: `deci64[min 0, max 1000000, max_decimals 2]`,
+  `percent[deci32][min 0%, max 100%, max_decimals 1]`. `min` / `max` bound the value (a percent's written in
+  `%`), proven as any range. **`max_decimals`**: a literal with more decimals is refused, and a result that
+  could have more must be rounded on purpose. **`min_decimals`**: printing only (19.9 as `19.90`). A percent's
+  decimals count as written (`7.25%` has 2).
+- **Good practice** (`style.md`): the `%` after a number, not `percent`; the type `percent`, not `%`.
+Not yet ruled: how a rounding is written (which `max_decimals` needs), and whether `let 'x' := exactly 7%;` is a
+`percent` or a plain `deci`. Not built yet.
+
 ### 2026-10-17 — Beating GCC on recursion: kayo inlines recursion, and Precog precomputes small pure functions (owner)
 
 The benchmark against Fortran (bench/RESULTS.md, 2026-10-17): CyborgPL won sum, lists and sieve, but gfortran
