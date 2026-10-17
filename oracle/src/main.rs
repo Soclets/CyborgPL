@@ -648,6 +648,17 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
         let op = op.split('.').next().unwrap_or("shl").to_string();
         Err(format!("line {line}: `{op}` needs a width, and nothing here gives one: declare where the value goes (`let 'v': uint32 = 1 {op} 3;`) or write `to.uint32[1] {op} 3`"))
     }
+    // a written position below 1 in std's text calls is refused when building (owner, 2026-10-17: "(a)")
+    fn positions(c: &ast::Call) -> Result<(), String> {
+        let p = c.path.join(".");
+        if c.kit.as_deref() == Some("std") && (p.starts_with("str.at.") || p.starts_with("str.slice.")) {
+            for Value::Expr(v) in c.args.values.iter().skip(1) {
+                let lit = match v { Expr::Int(n, _) => Some(*n), Expr::Unary(op, inner, _) if op == "-" => match &**inner { Expr::Int(n, _) => Some(-*n), _ => None }, _ => None };
+                if let Some(n) = lit { if n < 1 { return Err(format!("line {}: {n} is no position: a position is `uint64[min 1]`, counting from 1 (owner, 2026-10-17)", c.line)); } }
+            }
+        }
+        Ok(())
+    }
     fn printing(c: &ast::Call) -> Result<(), String> {
         if c.kit.as_deref() == Some("std") && c.path.first().map(|p| p.as_str()) == Some("print") {
             for Value::Expr(v) in &c.args.values { if let Some(s) = bare_shift(v) { return refuse(s); } }
@@ -676,7 +687,7 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
         // 909a4a18): `to.int64[5 shr …]` and `std::print.useful[5 shr …]`
         match e {
             Expr::Convert(_, b, _, _, _) => for Value::Expr(v) in &b.values { if let Some(s) = bare_shift(v) { return refuse(s); } },
-            Expr::Call(c) => printing(c)?,
+            Expr::Call(c) => { printing(c)?; positions(c)? }
             _ => {}
         }
         match e {
@@ -708,7 +719,7 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
             Stmt::For { over, body: b, .. } => { bracket(over)?; body(b) }
             Stmt::Range { bounds, body: b, .. } => { bracket(bounds)?; body(b) }
             Stmt::Return { value: Some(v), .. } => bracket(v),
-            Stmt::Call { call, .. } => { printing(call)?; bracket(&call.args)?; handler(&call.handler) }
+            Stmt::Call { call, .. } => { printing(call)?; positions(call)?; bracket(&call.args)?; handler(&call.handler) }
             Stmt::BuiltinStmt { args, .. } => bracket(args),
             Stmt::Tier { body: b, .. } => stmt(b),
             Stmt::Fail { payload: Some(p), .. } => bracket(p),

@@ -5014,13 +5014,18 @@ impl<'p> Interp<'p> {
                 "str.join" => match vals.get(0) { Some(Value::List(items)) => { let sep = text(1)?; let mut parts = Vec::new(); for it in items { match it { Value::Str(s) => parts.push(s.clone()), o => return rt(c.line, format!("std::str.join: the list holds {}, not text", o.kind())) } } Ok(Value::Str(parts.join(&sep))) } _ => rt(c.line, "std::str.join[lend 'parts', sep]") },
                 "str.at.grapheme" | "str.at.point" | "str.at.byte" => {
                     let s = text(0)?; let i = int(1)?;
+                    // a position is `uint64[min 1]` (owner, 2026-10-17: "(a)"): 0 or a negative is no position at all,
+                    // not one past the end; `out_of_range` is only past the last unit
+                    if i < 1 { return rt(c.line, no_position(i)); }
                     let units: Vec<Value> = match path.as_str() { "str.at.grapheme" => graphemes(&s).into_iter().map(|g| Value::Char(CharUnit::Grapheme, g)).collect(), "str.at.point" => s.chars().map(|ch| Value::Char(CharUnit::Point, ch.to_string())).collect(), _ => s.bytes().map(|b| Value::Int(b as i128)).collect() };
                     match usize::try_from(i - 1).ok().and_then(|k| units.get(k)) { Some(v) if i >= 1 => Ok(v.clone()), _ => fail(self, "out_of_range") }
                 }
                 "str.slice.grapheme" => {
                     let s = text(0)?; let (a, b) = (int(1)?, int(2)?);
                     let gs = graphemes(&s);
-                    if a < 1 || b < a || b as usize > gs.len() { return fail(self, "out_of_range"); }
+                    if a < 1 { return rt(c.line, no_position(a)); }
+                    if b < 1 { return rt(c.line, no_position(b)); }
+                    if b < a || b as usize > gs.len() { return fail(self, "out_of_range"); }
                     Ok(Value::Str(gs[(a - 1) as usize..b as usize].concat()))
                 }
                 "str.find.grapheme" => {
@@ -5762,6 +5767,10 @@ fn elem_literal(elem: Option<&Ty>, v: Value, prov: &Prov) -> Value {
 
 
 /// An empty `part`, `at` or `from` (owner, 2026-10-14: "Error"): each is a text of at least 1 byte
+fn no_position(i: i128) -> String {
+    format!("{i} is no position: a position is `uint64[min 1]`, counting from 1 (owner, 2026-10-17); convert one worked out while running, `to.uint64[min 1]['i'] otherwise 1`")
+}
+
 fn empty_part(word: &str) -> String {
     format!("`{word}` is a text of at least 1 byte (`str.utf8[min 1 bytes]`): an empty one finds nothing (owner, 2026-10-14)")
 }
