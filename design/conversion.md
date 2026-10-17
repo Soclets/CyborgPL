@@ -118,3 +118,24 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   `examples/chars.cy`.
 - Not decided, refused by the oracle: anything → `bool` (no truthiness —
   compare instead); to or from lists, structs.
+
+## A typed literal — `5: uint8` (owner, 2026-10-17)
+
+A literal may carry its type after `:`, as a name does in `'x': uint8`. The `:` covers only the literal right
+before it, so no brackets are needed inside maths (owner: "(a)", over brackets required):
+
+```
+let 'r': int64 = to.int64[1] shl (5: uint8 shr 1);   # the count gives no width, so the literal says it
+let 'a' := 200: uint8;
+let 'p' := 5: uint64[min 1];
+let 'd' := exactly 0.1: deci64;
+```
+
+- **Literals only.** A variable is converted with `to.uint8['x']`; `'x': uint8` in an expression is refused,
+  naming the conversion.
+- **It must fit, shown when building**: `300: uint8` and `0: uint64[min 1]` are refused, so it never fails
+  when it runs and needs no `otherwise`.
+- Design claude's readings, not asked: a leading `-` belongs to the literal (`-128: int8`); a whole literal may
+  take an int, bin or deci type; `1.5: int32` is refused (not whole); `0.1: deci64` is refused, pointing at
+  `exactly 0.1: deci64`, since what a bin literal's digits mean as a deci is not decided; a typed `exactly`
+  takes only a deci type; any type that is not a number is refused.

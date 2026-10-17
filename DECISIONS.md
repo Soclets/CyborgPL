@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-17 — A typed literal: `5: uint8`, the `:` on the literal alone, no brackets (owner: yea, a)
+
+Asked after the shift-as-count ruling, from the owner's "wouldn't it be `5: uint8`?". Proposed: a literal may
+carry its type after `:`, as a name does in `'x': uint8`; literals only (Precog checks it fits, so `300: uint8`
+is refused when building); a variable is still converted with `to.uint8['x']`. The owner: "yea, but why `()`?"
+(the proposal wrote `(5: uint8)` inside maths). Offered (a) no brackets: the `:` covers only the literal right
+before it, recommended, or (b) brackets required inside maths. The owner: "(a)". So
+`to.int64[1] shl (5: uint8 shr 1)`, `3: uint8 x 2`, `let 'p' := 5: uint64[min 1];`. Design claude's readings,
+not asked: a leading `-` belongs to the literal (`-128: int8` fits); `exactly 0.1: deci64` gives a deci of a
+size; a bin literal typed as a deci (`0.1: deci64`) is refused, pointing at `exactly`, since what its digits
+mean there is not decided; a whole literal may take a bin or deci type; any other type is refused.
+
 ### 2026-10-17 — A shift as another shift's count gets no width from that place (owner: a)
 
 Check claude's open corpus program (2026-10-16-open-a-shift-as-another-shifts-count.cy): in
