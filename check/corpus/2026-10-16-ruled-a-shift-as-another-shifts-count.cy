@@ -1,8 +1,7 @@
-# Finding 2026-10-16 (a width probe, by hand): a shift of a bare number used as another shift's count,
-# to.int64[1] shl (5 shr to.uint8[1]). The oracle runs it (prints 4 then 7: the count is 2); kayo
-# refuses it: "`shl` works on integers, and this is a `(not yet known)`", a message that names no
-# rule. 4866c834 says a shift's width "never" comes from its count; whether a count's place gives a
-# shift inside it a width is not ruled. Open: the owner's.
+# Finding 2026-10-16 (a width probe, by hand), ruled 2026-10-17 (owner: "(a)"; oracle 915c0426,
+# DECISIONS 4478729d): a shift's count gives nothing inside it a width, so the bare 5 shifted in
+# to.int64[1] shl (5 shr to.uint8[1]) has none: "`shr` needs a width", refused by both engines,
+# whether or not the code runs. Before the ruling the oracle ran it (count 2, printing 4).
 # check claude generator (printer only)
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
 
