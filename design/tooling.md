@@ -151,14 +151,15 @@ Owner, 2026-09-14.
   Synthia stays the separate tool, with `Synthia.ttsr` in its own syntax
   (above). What goes in
   `CyJet.cyr`, and how the two relate, is open.
-- **`.limb`** — a *published* kit: the kit's directory (its manifest +
-  `.cy` files) packaged as one file for Synthia to upload, download, and
-  checksum. Same relationship as a Rust crate folder to its `.crate` tarball.
-  Checked 2026-09-14: no existing `.limb` format is registered.
+- **`.cykit`** — a *published* kit (owner, 2026-10-17: "yup"; it was `.limb`, from when a library was a limb):
+  the kit's directory (its manifest + `.cy` files) packaged as one file to upload, download, and
+  checksum. Same relationship as a Rust crate folder to its `.crate` tarball. Checked 2026-10-17: no
+  file format uses `.cykit` (a small PyPI package is named cykit); `.kit` was weighed and has several
+  (CodeKit, NVIDIA Omniverse manifests, 2020 Design, samplers).
 
   A kit can never be an opaque precompiled binary: whole-program analysis
   must see inside every kit to prove ranges, borrows, and guardrails across
-  the call boundary. A `.limb` therefore always contains analysable source
+  the call boundary. A `.cykit` therefore always contains analysable source
   (optionally plus a cached front-end result, an optimisation for later).
 
 ## The IDE — what it should have (owner, 2026-10-02)

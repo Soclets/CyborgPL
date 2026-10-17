@@ -30,6 +30,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-17 — A published kit is a `.cykit` file (owner: yup)
+
+The packaged form of a kit was `.limb` (2026-09-14), chosen when a library was a limb; since 2026-10-15 a limb is
+a compiler extension. The owner: "Uhhh, isn't a lib a kit?" Design claude offered `.kit`, searched it (CodeKit's
+HTML files, NVIDIA Omniverse app manifests, 2020 Design Live projects, sampler kits, KOMPAS-3D's `*.kit.config`),
+then `.cykit` (no file format; only a small PyPI package named cykit), recommending `.cykit`. The owner: "yup".
+So **a published kit is a `.cykit`**: the kit's folder packaged as one file to upload, download and checksum, as a
+`.crate` is to a Rust crate.
+
 ### 2026-10-17 — `std` may list the `unicode` limb (owner: a)
 
 Std claude wrote `str.at.byte` (committed) and `str.at.point`, which hands back a `char.point`, a type of the
