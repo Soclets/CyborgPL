@@ -32,6 +32,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-17 — A text position is `uint64[min 1]`: `pos 0` and negatives are refused when building (owner: a)
+
+Std claude asked what type a position in std takes (`str.at`, later `str.slice`): (a) `uint64[min 1]`, a written
+`pos 0` refused when building, a worked-out position proven or converted where it is passed, a negative never a
+`uint64`, so `out_of_range` means only "past the last unit" (as lists count from 1, lists.md; good practice 7); or
+(b) any whole number, 0 and negatives failing `out_of_range` as past the end does (the oracle's built-in). Std
+claude and design claude recommended (a). The owner: "(a), does `otherwise` also work?" (yes: an unproven
+position is converted, `to.uint64[min 1]['i'] otherwise 1`, and `str.at`'s own `otherwise` handles past the end),
+then "yea". So **a position is `uint64[min 1]`**. The oracle's built-in `str.at` follows (design claude's to
+align).
+
 ### 2026-10-17 — `percent` is its own number family: percents combine, a plain number needs a conversion (owner)
 
 Design claude proposed percent maths: with a plain number a plain number ('price' x 7%), with a percent a percent
