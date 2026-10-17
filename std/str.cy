@@ -90,7 +90,7 @@ pub fn replace [lent 's': str.utf8, lent 'from': str.utf8[min 1 bytes], lent 'to
     return text_of[give 'out'];
 }
 
-# One unit of 's' by its position, counting from 1: `std::str.at.byte[lend 's', pos 2]`.
+# One unit of 's' by its position, counting from 1: `std::str.at.byte[lend 's', pos 2]`, `at.point`.
 # A position past the last unit fails out_of_range.
 pub collection.fn at {
     bare.optional;
@@ -99,6 +99,14 @@ pub collection.fn at {
     byte [lent 's': str.utf8, 'pos': uint64[min 1]] -> uint8 or fail[out_of_range] {
         for 'i', 'b' in str.each.byte[lend 's'] {
             if 'i' equal_to 'pos' { return 'b'; }
+        }
+        fail out_of_range;
+    }
+
+    # The character (Unicode code point) at 'pos'.
+    point [lent 's': str.utf8, 'pos': uint64[min 1]] -> char.point or fail[out_of_range] {
+        for 'i', 'p' in str.each.point[lend 's'] {
+            if 'i' equal_to 'pos' { return 'p'; }
         }
         fail out_of_range;
     }

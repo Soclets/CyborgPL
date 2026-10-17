@@ -14,9 +14,10 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
   bytes]` (owner, 2026-10-14: "Error"), so an empty one is refused when building, or checked where it
   is passed if it is worked out at run time. The oracle's built-in std refuses it when the call runs:
   the same rule, met at a different moment. `std::str.at.byte[lend 's', pos 2]` is the byte at a
-  position (a `uint8`), failing `out_of_range` past the last byte (owner, 2026-10-17: str.at next).
-  `str.at.point` is written and waits on whether std may list the `unicode` limb, `char.point`
-  being unicode's.
+  position (a `uint8`), and `std::str.at.point[lend 's', pos 2]` the character (a `char.point`), each
+  failing `out_of_range` past the last one (owner, 2026-10-17: str.at next).
+- `CyJet.cyr` lists the `unicode` limb, std's first, since `char.point` is unicode's (owner, 2026-10-17:
+  "(a)"). A program using std does not inherit it: `argument_words` lists no limb.
 
 A program uses this std by listing it with std's ID and a `path`, no `version` (owner, 2026-10-14):
 `cyjet::dep[id = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936", path = "…/std"]`.
@@ -26,8 +27,8 @@ this one, and what it does not define yet, `print` and `exit`, is still KAYO's R
 
 ## How it is checked
 
-- `examples/argument_words.cy`, unchanged, built by KAYO against this folder, prints its `.out`, every
-  one of its sites proven. It is in KAYO's own tests against this folder
+- `examples/argument_words.cy` and `examples/inventory.cy`, unchanged, built by KAYO against this
+  folder, print their `.out`, every one of their sites proven. It is in KAYO's own tests against this folder
   (`kayo/compiler/tests/examples_cyborgpl_std.txt`).
 - In the oracle, each of the six beside the oracle's own built-in std (a copy of this folder under
   another prefix), over 820 cases (empty text, separators at the ends and side by side, overlapping
