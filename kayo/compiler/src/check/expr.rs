@@ -1161,7 +1161,18 @@ impl Checker {
                 }
                 let (lt, rt) = (self.resolve(&l.ty), self.resolve(&r.ty));
                 if !lt.is_int() || !rt.is_int() {
-                    let bad = if !lt.is_int() { &lt } else { &rt };
+                    let (bad, side) = if !lt.is_int() { (&lt, &l) } else { (&rt, &r) };
+                    // A shift whose width is not known yet is a widthless
+                    // shift: a count gives nothing inside it a width (owner,
+                    // 2026-10-17: "(a)", check claude's `to.int64[1] shl (5
+                    // shr to.uint8[1])`).
+                    if bad.is_infer() {
+                        if let K::Binary { op: inner, op_span: at, .. } = &side.kind {
+                            if inner.is_shift() {
+                                return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: declare where the value goes (`let 'v': uint32 = 1 {} 3;`) or write `to.uint32[1] {} 3`", inner.spelled(), inner.spelled(), inner.spelled())).at(*at));
+                            }
+                        }
+                    }
                     return err(Diagnostic::error(format!("`{}` works on integers, and this is {}", op.spelled(), crate::types::a_type(&self.spell(bad)))).at(op_span));
                 }
                 // A shift works at the width of what it shifts: its count is
