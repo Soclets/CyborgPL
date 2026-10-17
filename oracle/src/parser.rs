@@ -3374,20 +3374,8 @@ impl Parser {
         if rounding && !(path.len() == 2 && ROUND_WAYS.contains(&path[1].as_str())) {
             return self.err(format!("`std::{}` is not a way to round: `round.near`, `round.half_up`, `round.floor`, `round.ceil` or `round.trunc`", path.join(".")));
         }
-        let mut args = if rounding {
-            // `round.near['x']`, to a whole number, or `round.near['x', decimals 2]`
-            let bline = self.line();
-            self.expect(Tok::LBracket, "`[`")?;
-            let mut values = vec![self.value()?];
-            if *self.peek() == Tok::Comma {
-                self.advance();
-                if !self.is_word("decimals") { return self.err(format!("the number of decimals says `decimals`: `std::{}['x', decimals 2]` (owner, 2026-10-17)", path.join("."))); }
-                self.advance();
-                values.push(self.value()?);
-            }
-            self.expect(Tok::RBracket, "`]`")?;
-            Bracket { values, line: bline, one_list: false }
-        } else if positional {
+        // `round.near['x']`, or `round.near['x', decimals 2]`: the word comes from spellings.cyr's `calls`
+        let mut args = if positional {
             let bline = self.line();
             self.expect(Tok::LBracket, "`[`")?;
             let mut values = vec![self.value()?];
