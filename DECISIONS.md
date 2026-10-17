@@ -33,6 +33,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-17 — A shift as another shift's count gets no width from that place (owner: a)
+
+Check claude's open corpus program (2026-10-16-open-a-shift-as-another-shifts-count.cy): in
+`to.int64[1] shl (5 shr to.uint8[1])`, does the count's position give the inner shift, of a bare `5`, a width?
+The oracle ran it (count 2, printing 4); kayo refused it with "`shl` works on integers, and this is a `(not yet
+known)`". Offered (a) no, refused as "needs a width" (a count never gives a width, 4866c834), recommended, or (b)
+yes. The owner: "(a), but wouldn't it be `5: uint8`?" (a typed literal, asked next). So **a shift's count gives
+nothing inside it a width**: `5 shr 1` as a count is refused like any widthless shift; the oracle is to follow and
+kayo's message to name the rule.
+
 ### 2026-10-17 — A text position is `uint64[min 1]`: `pos 0` and negatives are refused when building (owner: a)
 
 Std claude asked what type a position in std takes (`str.at`, later `str.slice`): (a) `uint64[min 1]`, a written
