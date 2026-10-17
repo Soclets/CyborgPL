@@ -325,7 +325,7 @@ generic_to_c [fnv:89768fbb7f2f8a1a] :: a blank `<T>` cannot appear here
 generic_unannounced [fnv:767c6e1b89d185ef] :: `<T>` was never announced
 generic_wrong_return [fnv:81336ef057ec73fd] :: the return type is an `integer` and this value is text: convert it first
 give_plain [fnv:0b0079f7332adfe9] :: an `integer` is a plain value that owns nothing (no allocation behind it), so it copies by itself
-give_to_lent_param [fnv:a3589766a127e65e] :: `look` only looks at 'text' (it is `lent`); you tried to give it away
+give_to_lent_param [fnv:a3589766a127e65e] :: it is `lent`, so the caller writes `lend`, not `give`
 give_twice [fnv:553f0d0b814e2e86] :: was already given away, so there is nothing left to give
 gives_renamed [fnv:2eabd18c6643101e] :: `gives` is an old spelling: write `is`
 grapheme_from_code [fnv:094cc6a08b067653] :: `char.point.from_code[…]` or `char.byte.from_code[…]`
@@ -713,6 +713,7 @@ str_at_needs_pos [fnv:00020b3adbd35515] :: a position says `pos`: `std::str.at.p
 str_at_position_zero [fnv:e3725662a6dac0c2] :: 0 is no position: a position is `uint64[min 1]`
 str_at_position_zero_running [fnv:9439f04ede5c0ed7] :: 0 is no position
 str_at_unhandled [fnv:211b54cbdeaa8bbc] :: `std::str.at.grapheme` can fail (out_of_range): say what happens
+str_contains_copy [fnv:08533467a2f3cd93] :: `lent`, so the caller writes `lend`, not `copy`
 str_each_no_unit [fnv:907197bb8f8f64c1] :: `str.each.grapheme[…]`, `.point`, or `.byte`
 str_for_bare [fnv:9ff91050c5cd382f] :: `str.each.grapheme[lend 's']`, `.point`, or `.byte`
 str_index [fnv:91ca5dc332f4c315] :: it would not say which unit

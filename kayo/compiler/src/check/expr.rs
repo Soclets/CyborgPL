@@ -2806,8 +2806,8 @@ impl Checker {
                 };
                 // The verb must agree with the parameter.
                 match (kind, verb) {
-                    (ParamKind::Lent, Verb::Give) => return err(Diagnostic::error(format!("`{}` only looks at '{}' (it is `lent`); you tried to give it away — write `lend`", fname, pname)).at(e.span)),
-                    (ParamKind::Lent, Verb::Copy) => return err(Diagnostic::error(format!("`{}` only looks at '{}' (it is `lent`): a copy is not needed — write `lend`", fname, pname)).at(e.span)),
+                    // As the oracle says it.
+                    (ParamKind::Lent, Verb::Give | Verb::Copy) => return err(Diagnostic::error(format!("`{}` only looks at '{}': it is `lent`, so the caller writes `lend`, not `{}`", fname, pname, verb.spelled())).at(e.span)),
                     (ParamKind::Lent, Verb::LendMut) => return err(Diagnostic::error(format!("`{}` only looks at '{}' (it is `lent`): `lend.mut` offers more than it takes — write `lend`", fname, pname)).at(e.span)),
                     (ParamKind::LentMut, Verb::Lend) => return err(Diagnostic::error(format!("`{}` may modify '{}' (it is `lent.mut`): write `lend.mut`", fname, pname)).at(e.span)),
                     (ParamKind::LentMut, Verb::Give | Verb::Copy) => return err(Diagnostic::error(format!("`{}` may modify '{}' (it is `lent.mut`): write `lend.mut`, not `{}`", fname, pname, verb.spelled())).at(e.span)),

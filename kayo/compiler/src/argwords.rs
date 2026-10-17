@@ -28,7 +28,7 @@ fn call_at(toks: &[Token], i: usize) -> Option<(&'static Call, usize)> {
         _ => None,
     };
     let mut best: Option<(&'static Call, usize)> = None;
-    'calls: for c in calls().iter().chain(round_calls()) {
+    'calls: for c in calls() {
         let mut k = i;
         for (n, seg) in c.name.split('.').enumerate() {
             if n > 0 {
@@ -78,9 +78,6 @@ pub fn strip(toks: &[Token]) -> Result<Vec<Token>> {
                 continue;
             }
             let says = matches!(&toks[at].tok, Tok::Word(w) if w == word) && at + 1 < close && !matches!(toks[at + 1].tok, Tok::Comma);
-            if !says && call.name.starts_with("round.") {
-                return err(Diagnostic::error(format!("the number of decimals says `decimals`: `std::{}` (owner, 2026-10-17)", call.example)).at(toks[at].span));
-            }
             if !says {
                 return err(Diagnostic::error(format!("each argument after the first says what it is: `{}` (owner, 2026-10-14)", call.example)).at(toks[at].span));
             }
@@ -90,15 +87,3 @@ pub fn strip(toks: &[Token]) -> Result<Vec<Token>> {
     Ok(toks.iter().zip(drop).filter(|(_, d)| !d).map(|(t, _)| t.clone()).collect())
 }
 
-/// std's rounding family (owner, 2026-10-17: "(c)"): `round.near['x',
-/// decimals 2]`, the decimals optional. spellings.cyr has no row for them,
-/// so they are kayo's own until it does.
-fn round_calls() -> &'static [Call] {
-    static ROWS: std::sync::OnceLock<Vec<Call>> = std::sync::OnceLock::new();
-    ROWS.get_or_init(|| {
-        ["near", "half_up", "floor", "ceil", "trunc"]
-            .iter()
-            .map(|w| Call { name: format!("round.{}", w), words: vec![String::new(), "decimals".into()], example: format!("round.{}['x', decimals 2]", w) })
-            .collect()
-    })
-}
