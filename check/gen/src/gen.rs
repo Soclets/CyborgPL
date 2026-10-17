@@ -150,11 +150,12 @@ pub struct Config {
     pub reborrows: bool,
     /// Typed literals, `5: uint8`, for `to.uint8[5]` (owner, 2026-10-17).
     pub typed_literals: bool,
+    pub std_all: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: false }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: false, std_all: false }
     }
 }
 
@@ -2208,15 +2209,17 @@ impl Gen {
             // a position is uint64[min 1]: 0 is refused, past the end is
             // what `otherwise` catches (owner, 2026-10-17: a; 09061256)
             let k = self.rng.range(1, n + 2);
-            let line = match self.rng.below(4) {
-                0 => format!("let {} := str.at.byte[lend {}, pos {k}] otherwise 7;\nput_u[to.uint64[{}]];", q(&r), q(&s), q(&r)),
-                1 => format!("let {} := str.at.point[lend {}, pos {k}] otherwise `?`;\nput_u[to.uint64[char.code[{}]]];", q(&r), q(&s), q(&r)),
+            // std/ has str.at.byte and .point; .grapheme and str.slice only with
+            // --std-all until it has them too (2026-10-17)
+            let line = match self.rng.below(if self.cfg.std_all { 4 } else { 2 }) {
+                0 => format!("let {} := std::str.at.byte[lend {}, pos {k}] otherwise 7;\nput_u[to.uint64[{}]];", q(&r), q(&s), q(&r)),
+                1 => format!("let {} := std::str.at.point[lend {}, pos {k}] otherwise `?`;\nput_u[to.uint64[char.code[{}]]];", q(&r), q(&s), q(&r)),
                 // a grapheme here is a plain char: it is printed, not lent
-                2 => format!("let {} := str.at.grapheme[lend {}, pos {k}] otherwise `?`;\nstd::print.useful[{}, newln];", q(&r), q(&s), q(&r)),
+                2 => format!("let {} := std::str.at.grapheme[lend {}, pos {k}] otherwise `?`;\nstd::print.useful[{}, newln];", q(&r), q(&s), q(&r)),
                 _ => {
                     let a = self.rng.range(1, n + 1);
                     let b = self.rng.range(a - 1, n + 2).max(1);
-                    format!("let {} := str.slice.grapheme[lend {}, from pos {a}, to pos {b}] otherwise str.empty;\nput_u[str.bytes[lend {}]];", q(&r), q(&s), q(&r))
+                    format!("let {} := std::str.slice.grapheme[lend {}, from pos {a}, to pos {b}] otherwise str.empty;\nput_u[str.bytes[lend {}]];", q(&r), q(&s), q(&r))
                 }
             };
             for l in line.split('\n') {

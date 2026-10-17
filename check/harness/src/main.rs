@@ -76,7 +76,7 @@ impl Args {
     fn config(&self) -> Config {
         // Known CCA bugs the generator steers around until they are fixed
         // (`--avoid none` to aim straight at them).
-        let avoid = self.flags.get("avoid").cloned().unwrap_or("std".into());
+        let avoid = self.flags.get("avoid").cloned().unwrap_or("".into());
         check_gen::ast::NARROW_64.store(avoid.contains("u64-high"), std::sync::atomic::Ordering::Relaxed);
         check_gen::ast::PRINT_THROUGH_TO.store(avoid.contains("mixed-width"), std::sync::atomic::Ordering::Relaxed);
         Config {
@@ -128,6 +128,7 @@ impl Args {
             reborrows: !avoid.contains("reborrows"),
             // off until kayo reads them: `--typed-literals` turns them on
             typed_literals: self.flags.contains_key("typed-literals"),
+            std_all: self.flags.contains_key("std-all"),
         }
     }
 }

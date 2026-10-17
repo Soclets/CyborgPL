@@ -227,6 +227,30 @@ pub enum Mode {
     Asserted,
 }
 
+/// A program that uses std's own functions is built as a kit: kayo gives a
+/// lone file only its built-in print and exit (compiler claude, 2026-10-17).
+/// `kit/kit.cy` beside the program, the same text, so lines are unchanged,
+/// and a CyJet.cyr listing this repository's std/, every limb a generated
+/// program may use (AI for brain16, WSMW for the odd widths, Money for deci,
+/// unicode for char.point, CNC for the printer's extern.C; a lone file has
+/// them all) and the powers the printer needs (design/cores.md ids).
+fn as_kit(t: &Tools, file: &Path, dir: &Path) -> Option<std::path::PathBuf> {
+    let src = fs::read_to_string(file).ok()?;
+    if !src.contains("std::str.") {
+        return None;
+    }
+    let repo = t.cca.ancestors().nth(4)?;
+    let kit = dir.join("kit");
+    let _ = fs::create_dir_all(&kit);
+    fs::write(kit.join("kit.cy"), &src).ok()?;
+    let manifest = format!(
+        "cyjet::manifest[\n    name = \"prog\",\n    prefix = \"prog\",\n    version = \"0.1.0\",\n    dependencies = [\n        cyjet::dep[id = \"fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936\", path = \"{}\"],\n    ],\n    limbs = [\n        cyjet::limb[id = \"8c723ccae25a719cd66eb44e95aeeef0557acec1467624ab91092c4ada766f21\", version = \"2026-10-07T20:22:24+07:00\"],\n        cyjet::limb[id = \"0fb49902b57b8bc0b72caf424d80e17d035038e2cac58292d92f18b792d205a0\", version = \"2026-10-07T20:22:24+07:00\"],\n        cyjet::limb[id = \"d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f\", version = \"2026-10-07T20:22:24+07:00\"],\n        cyjet::limb[id = \"55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece\", version = \"2026-10-12T10:19:44+07:00\"],\n        cyjet::limb[id = \"04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1\", version = \"2026-10-10T16:42:00+07:00\"],\n    ],\n    powers = [cyjet::power.vouch, cyjet::power.c_calls,],\n    targets = [cyjet::target[name = \"aarch64-macos\"],]\n];\n",
+        repo.join("std").display()
+    );
+    fs::write(kit.join("CyJet.cyr"), manifest).ok()?;
+    Some(kit)
+}
+
 pub fn cca_build(t: &Tools, file: &Path, dir: &Path, mode: Mode) -> Build {
     let bin = dir.join(if mode == Mode::Asserted { "prog-asserted" } else { "prog" });
     let _ = fs::remove_file(&bin);
@@ -235,7 +259,8 @@ pub fn cca_build(t: &Tools, file: &Path, dir: &Path, mode: Mode) -> Build {
     if mode == Mode::Asserted {
         cmd.arg("--assert-proofs");
     }
-    let r = run(cmd.arg(file).arg("-o").arg(&bin), dir, &[], false, build_limit());
+    let target = as_kit(t, file, dir).unwrap_or_else(|| file.to_path_buf());
+    let r = run(cmd.arg(&target).arg("-o").arg(&bin), dir, &[], false, build_limit());
     if r.timed_out {
         return Build::Timeout;
     }
@@ -245,8 +270,10 @@ pub fn cca_build(t: &Tools, file: &Path, dir: &Path, mode: Mode) -> Build {
     let text = r.stderr.clone();
     // "(not yet known)" is kayo naming a type it could not work out: a
     // refusal, not a missing feature (2026-10-16)
-    if NOT_YET.iter().any(|m| text.replace("(not yet known)", "").contains(m)) {
-        let first = text.lines().find(|l| NOT_YET.iter().any(|m| l.contains(m))).unwrap_or("").to_string();
+    // an item std/ does not have yet (str.at.grapheme, str.slice, 2026-10-17)
+    let std_lacks = text.lines().any(|l| l.contains("there is no") && l.contains("in module `std::"));
+    if std_lacks || NOT_YET.iter().any(|m| text.replace("(not yet known)", "").contains(m)) {
+        let first = text.lines().find(|l| NOT_YET.iter().any(|m| l.contains(m)) || (l.contains("there is no") && l.contains("in module `std::"))).unwrap_or("").to_string();
         return Build::NotYet { msg: first };
     }
     let msg = text.lines().find(|l| l.starts_with("error") || l.starts_with("check")).unwrap_or(text.lines().next().unwrap_or("")).to_string();

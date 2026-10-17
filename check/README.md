@@ -11,6 +11,14 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 ```
 
 
+**std as a kit** (2026-10-17): kayo gives a lone file only its built-in print and exit, so a
+program that uses `std::str.` is built as a kit: `kit/kit.cy` beside it (the same text) and a
+CyJet.cyr listing this repository's `std/`, every limb a generated program may use (AI, WSMW,
+Money, unicode, CNC; ids from design/cores.md) and the `vouch` and `c_calls` powers. The oracle
+reads the file itself. A kayo "there is no item … in module `std::…`" counts as not yet: std/
+has `str.at.byte` / `.point`, not `.grapheme` or `str.slice`, which the generator writes only with
+`--std-all`. The default avoid is now empty.
+
 **CyborgPL's names** (owner, 2026-10-15/16; DECISIONS): the language is CyborgPL again. The
 compiler is `KAYO\n`, run as `kayo/target/release/kayo` (`kayo build`, `kayo prove --json`,
 `--emit-llvm-tv`); its prover is Precog again. Programs and the corpus end `.cy` (moved with

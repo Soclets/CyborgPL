@@ -1,4 +1,4 @@
-# Coverage 2026-10-08 (owner: "yea, ask it to cover them"): str.at in each unit and str.slice.grapheme,
+# Coverage 2026-10-08 (owner: "yea, ask it to cover them"): str.at in each unit and std::str.slice.grapheme,
 # with pos (f2f3879b), in range and out of it (the otherwise). CCA has no stdkit yet: "not yet" there.
 # check claude generator, seed 1
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
@@ -57,14 +57,14 @@ fn b4 [@y, @x] [lent @y 'a': list[uint16], lent @y 'b': list[uint16], lent @x 'c
 
 MAIN {
     let 's': str.utf8 = "héllo";
-    let 'b' := str.at.byte[lend 's', pos 2] otherwise 7;
+    let 'b' := std::str.at.byte[lend 's', pos 2] otherwise 7;
     put_u[to.uint64['b']];
-    let 'c' := str.at.point[lend 's', pos 2] otherwise `?`;
+    let 'c' := std::str.at.point[lend 's', pos 2] otherwise `?`;
     put_u[to.uint64[char.code['c']]];
-    let 'g' := str.at.grapheme[lend 's', pos 9] otherwise `?`;
+    let 'g' := std::str.at.grapheme[lend 's', pos 9] otherwise `?`;
     std::print.useful['g', newln];
-    let 'sl' := str.slice.grapheme[lend 's', from pos 2, to pos 4] otherwise str.empty;
+    let 'sl' := std::str.slice.grapheme[lend 's', from pos 2, to pos 4] otherwise str.empty;
     put_u[str.bytes[lend 'sl']];
-    let 'none' := str.slice.grapheme[lend 's', from pos 4, to pos 9] otherwise "-";
+    let 'none' := std::str.slice.grapheme[lend 's', from pos 4, to pos 9] otherwise "-";
     put_u[str.bytes[lend 'none']];
 }
