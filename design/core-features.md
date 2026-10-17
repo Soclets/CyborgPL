@@ -139,7 +139,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   missing map key); those are answers, not checks. That limit is design
   claude's reading of "no checks", not asked. The owner chose the name.
   Proposed first as `nocheck.all`.
-- **`#strict`: every reason written where it is used** (owner, 2026-09-27:
+- **History: `#strict` is gone since the 2026-10-07 revision, refused by name** (owner, 2026-10-10: "isn't `#strict` deprecated?"); what it asked for moved into the language itself (the `pos` labels, written loop bounds). What it was: **`#strict`: every reason written where it is used** (owner, 2026-09-27:
   a). In a file marked `#strict`, a check site must be proven from what
   is written in its own function: a guardrail `if`, a range type (on a
   parameter, a variable, a declared return), or a loop's bounds. the prover
