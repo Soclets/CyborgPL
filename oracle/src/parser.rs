@@ -1625,6 +1625,45 @@ impl Parser {
     }
 
     /// After `exactly`: a number, which is then an exact `deci`
+    /// `5: uint8` — a typed literal (owner, 2026-10-17: "yea", and "(a)": no brackets needed): the `:` covers
+    /// only the literal right before it, as it covers only the name in `'x': uint8`. Literals only; a variable
+    /// is converted with `to.uint8['x']`. A literal that does not fit is refused when building. It is the
+    /// conversion of a literal that fits, so it runs as `to.uint8[5]`.
+    fn typed_literal(&mut self, lit: Expr, line: usize) -> PResult<Expr> {
+        if *self.peek() != Tok::Colon { return Ok(lit); }
+        self.advance();
+        let ty = self.ty()?;
+        let written = match &lit { Expr::Int(i, _) => i.to_string(), Expr::BigInt(d, _) => d.clone(), Expr::Bin(_, t, _) => t.clone(), Expr::Exact(t, _) => format!("exactly {t}"), _ => String::new() };
+        let base = match &ty { Ty::Ranged(b, _, _) => (**b).clone(), t => t.clone() };
+        let shown = ty_name(&ty);
+        let why: Option<String> = match (&lit, &base) {
+            (Expr::Int(i, _), Ty::Int(_) | Ty::Uint(_)) => {
+                let range = crate::value::int_range(&base);
+                let (below, above) = match &ty {
+                    Ty::Ranged(_, lo, hi) => (matches!(lo, Bound::Int(l) if i < l), matches!(hi, Bound::Int(h) if i > h)),
+                    _ => (false, false),
+                };
+                match range {
+                    Some((lo, hi)) if *i < lo || *i > hi => Some(format!("does not fit: {} holds {lo} to {hi}", ty_name(&base))),
+                    _ if below || above => Some("is outside the type's limits".into()),
+                    _ => None,
+                }
+            }
+            (Expr::BigInt(..), Ty::Int(_) | Ty::Uint(_)) => Some("does not fit".into()),
+            (Expr::Int(..) | Expr::Bin(..), Ty::Bin(_)) | (Expr::Int(..) | Expr::Exact(..), Ty::Deci(_)) => None,
+            // what the digits of a bin literal mean as a deci is not decided; `exactly` says it
+            (Expr::Bin(..), Ty::Deci(_)) => Some(format!("takes a deci from a bin literal, which is not decided: write `exactly {written}: {shown}`")),
+            (Expr::Bin(..), Ty::Int(_) | Ty::Uint(_)) => Some("is not a whole number".into()),
+            (Expr::Exact(..), _) => Some("is a deci: an `exactly` literal takes a deci type".into()),
+            _ => Some("needs a number type".into()),
+        };
+        if let Some(why) = why { return self.err(format!("`{written}: {shown}` {why}")); }
+        // into a type with limits the fit is already shown, so the conversion's `otherwise` never runs
+        let b = Bracket { values: vec![Value::Expr(lit)], line, one_list: false };
+        let h = if matches!(ty, Ty::Ranged(..)) { Some(Handler::Value(b.clone())) } else { None };
+        Ok(Expr::Convert(ty, b, h, 0, line))
+    }
+
     fn exact_literal(&mut self, line: usize) -> PResult<Expr> {
         match self.advance().tok {
             Tok::Bin(_, t) => Ok(Expr::Exact(t, line)),
@@ -3907,6 +3946,12 @@ impl Parser {
             return Ok(Expr::Unary("not".into(), Box::new(self.unary()?), line));
         }
         // unary minus sits below xx: -2 xx 2 is -(2 xx 2), as in mathematics
+        if *self.peek() == Tok::Op("-".into()) && matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..)) && *self.peek_at(2) == Tok::Colon {
+            // `-128: int8`: the type is on the whole literal, sign included
+            self.advance();
+            let lit = match self.advance().tok { Tok::Int(i) => Expr::Int(-i, line), Tok::Bin(b, t) => Expr::Bin(-b, format!("-{t}"), line), _ => unreachable!() };
+            return self.typed_literal(lit, line);
+        }
         if *self.peek() == Tok::Op("-".into()) { self.advance(); return Ok(Expr::Unary("-".into(), Box::new(self.climb(701)?), line)); }
         self.primary()
     }
@@ -3927,10 +3972,10 @@ impl Parser {
                     }
                 }
                 // a literal means its true value in the base (owner, 2026-10-08: ASP's number rules moved in)
-                Ok(Expr::Int(i, line))
+                self.typed_literal(Expr::Int(i, line), line)
             }
-            Tok::BigInt(s) => { self.advance(); Ok(Expr::BigInt(s, line)) }
-            Tok::Bin(b, t) => { self.advance(); Ok(Expr::Bin(b, t, line)) }
+            Tok::BigInt(s) => { self.advance(); self.typed_literal(Expr::BigInt(s, line), line) }
+            Tok::Bin(b, t) => { self.advance(); self.typed_literal(Expr::Bin(b, t, line), line) }
             // `*0.1` — "I want exactly this" (owner, 2026-10-02): a decimal literal that is a deci
             // `str.empty`: the empty text (owner, 2026-10-14), as `map.empty` is the empty map
             Tok::Word(w) if w == "str" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(e) if e == "empty") && *self.peek_at(3) != Tok::LBracket => {
@@ -3951,12 +3996,16 @@ impl Parser {
             // 2026-10-14: "your recommendation"), `exactly 1000`. The prefix `*` (`*0.1`) is an old spelling since
             // 2026-10-16: a symbol spells only an operator between two values
             Tok::Op(o) if o == "*" && matches!(self.peek_at(1), Tok::Bin(..) | Tok::Int(_)) => self.err(crate::spellings::message(crate::spellings::old("*19.99"))),
-            Tok::Word(w) if w == "exactly" => { self.advance(); self.exact_literal(line) }
+            Tok::Word(w) if w == "exactly" => { self.advance(); let e = self.exact_literal(line)?; self.typed_literal(e, line) }
             Tok::Text(t, _) => { self.advance(); Ok(Expr::Text(t, line)) }
             Tok::Char(c) => { self.advance(); Ok(Expr::Char(c, line)) }
             Tok::Newline => { self.advance(); Ok(Expr::Newline(line)) }
             Tok::Var(v) => {
                 self.advance();
+                // a type follows only a literal in an expression (owner, 2026-10-17); a variable converts
+                if let (Tok::Colon, Tok::Word(t)) = (self.peek().clone(), self.peek_at(1).clone()) {
+                    return self.err(format!("only a literal takes a type with `:` here (`5: {t}`); convert a variable: `to.{t}['{v}']`"));
+                }
                 if *self.peek() == Tok::LBracket {
                     // 'xs'[pos 2] reads a list, 'f'[args] calls a function value (owner, 2026-10-07: every
                     // index says `pos`)
