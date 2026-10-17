@@ -23,6 +23,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-17 — Beating GCC on recursion: kayo inlines recursion, and Precog precomputes small pure functions (owner)
+
+The benchmark against Fortran (bench/RESULTS.md, 2026-10-17): CyborgPL won sum, lists and sieve, but gfortran
+took fib in 0.006 s against kayo's 0.016 s, and the same fib.c under GCC 16 -O3 took 0.009 s against clang's
+0.016 s, so the lead is GCC's back end (it inlines a recursive function into itself several levels), not
+Fortran. Asked "any way to beat that", design claude offered (1) kayo does recursive inlining as GCC does, its
+own pass or LLVM's inliner tuned, for every recursive function; (2) since Precog proves a function pure and its
+input range small (fib's is 0 to 92), compute every answer at compile time and make the function a table
+lookup ("compile time is free"), a change of algorithm and so the owner's call; recommending (1) first and (2)
+later. The owner: "Oh hell yeah, we're doing 1 and 2. And I don't give a flying fuck if we need cp. Shit, C++".
+So **both: (1) recursive inlining in kayo, and (2) Precog precomputing pure functions over a small proven input
+range into a table at compile time**, and **C++ may be used for this LLVM work** beyond the minimal wrapper
+(`implementation-languages.md`: until now the wrapper was "the only non-Rust code ... kept minimal"; design
+claude's reading of "cp", corrected by the owner to "C++"). Not yet asked: what counts as "small" for (2) (a
+table size or compile-time budget), whether (2) shows in diagnostics or `kayo prove`, and when compiler claude
+starts (CyborgPL is paused for 2026-10-16/17).
+
 ### 2026-10-17 — cyjet.dev is CyJet's home; cyjet.org leads to it (owner)
 
 The owner bought cyjet.dev (shown in the Cloudflare list beside cyjet.org). Design claude asked whether it should
