@@ -25,6 +25,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-17 — Rounding to decimals: `round.near`, `round.half_up`, `round.floor`, `round.ceil`, `round.trunc` (owner: yup)
+
+`max_decimals` (entry below) needs a rounding said on purpose. Design claude proposed extending std's provisional
+whole-number toolbox (`round`, `floor`, `ceil`, `trunc`, conversion.md) to decimals, the modes named as `div`'s
+are: **`round.near`** (nearest, a tie to even, as `div.near`), **`round.half_up`** (nearest, a tie away from
+zero, as shop receipts do), **`round.floor`**, **`round.ceil`**, **`round.trunc`** (toward zero), each with the
+argument word **`decimals`**: `let 'total': deci64[max_decimals 2] = round.near['price' x 'tax', decimals 2];`
+(19.99 x 0.07 = 1.3993 becomes 1.40). The owner, after asking what that line means: "yup". They are std's, as
+the toolbox is. Not built yet.
+
 ### 2026-10-17 — The `percent` type, and limits in a second bracket: `min`, `max`, `min_decimals`, `max_decimals` (owner)
 
 Asked the number inside a percentage type, design claude recommending an exact `deci64`, the owner: "Depends on

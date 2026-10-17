@@ -89,7 +89,9 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   Nothing is thrown away silently — rounding is said first, and the
   reader sees where: `to.int32[std::round['x']]`. The rounding toolbox
   (`std::round`, `floor`, `ceil`, `trunc`: a bin in, a whole bin out) is
-  std's; names provisional. Owner chose this over C's
+  std's; names provisional. To a number of decimals (owner, 2026-10-17: "yup"): `round.near`
+  (a tie to even), `round.half_up` (a tie away from zero), `round.floor`, `round.ceil`, `round.trunc`, each
+  `[value, decimals N]`, as `max_decimals` needs (types.md). Owner chose this over C's
   quiet truncation and over floor (which would match `div`).
   `examples/whole.cy`.
 - **`char`** (decided 2026-09-21, three questions):
