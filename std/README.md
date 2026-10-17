@@ -13,7 +13,10 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
   nothing in the runtime. Their `part`, `at` and `from` are texts of at least 1 byte, `str.utf8[min 1
   bytes]` (owner, 2026-10-14: "Error"), so an empty one is refused when building, or checked where it
   is passed if it is worked out at run time. The oracle's built-in std refuses it when the call runs:
-  the same rule, met at a different moment.
+  the same rule, met at a different moment. `std::str.at.byte[lend 's', pos 2]` is the byte at a
+  position (a `uint8`), failing `out_of_range` past the last byte (owner, 2026-10-17: str.at next).
+  `str.at.point` is written and waits on whether std may list the `unicode` limb, `char.point`
+  being unicode's.
 
 A program uses this std by listing it with std's ID and a `path`, no `version` (owner, 2026-10-14):
 `cyjet::dep[id = "fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936", path = "…/std"]`.
@@ -49,3 +52,7 @@ Each is a choice the record does not settle, dated, with the alternative. Each i
   failed run-time check. The alternatives: a fallback value such as `str.empty`, which would hide a
   bug, or a way to turn bytes known to be UTF-8 into text without a failure (an intrinsic, or something
   in the language), which nobody has asked for yet.
+- **2026-10-17 — a position is `uint64[min 1]`**, so `pos 0` is refused when building and a position
+  worked out at run time is checked where it is passed, as a list's position 0 "does not exist and is
+  an error" (`lists.md`). The oracle's built-in std fails `out_of_range` for 0 and -1 instead. Asked
+  of the owner next.

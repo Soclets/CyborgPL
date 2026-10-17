@@ -90,6 +90,20 @@ pub fn replace [lent 's': str.utf8, lent 'from': str.utf8[min 1 bytes], lent 'to
     return text_of[give 'out'];
 }
 
+# One unit of 's' by its position, counting from 1: `std::str.at.byte[lend 's', pos 2]`.
+# A position past the last unit fails out_of_range.
+pub collection.fn at {
+    bare.optional;
+
+    # The byte at 'pos'.
+    byte [lent 's': str.utf8, 'pos': uint64[min 1]] -> uint8 or fail[out_of_range] {
+        for 'i', 'b' in str.each.byte[lend 's'] {
+            if 'i' equal_to 'pos' { return 'b'; }
+        }
+        fail out_of_range;
+    }
+}
+
 # The bytes of 's', in order.
 fn bytes_of [lent 's': str.utf8] -> list[uint8] {
     let 'out': list[uint8] = [];
