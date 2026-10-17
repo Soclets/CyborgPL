@@ -29,6 +29,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-17 — `std` may list the `unicode` limb (owner: a)
+
+Std claude wrote `str.at.byte` (committed) and `str.at.point`, which hands back a `char.point`, a type of the
+`unicode` limb (2026-10-12), so std's own `CyJet.cyr` must list `unicode`. Offered (a) std lists `unicode`, only
+std's own build needing it (a program using std but no characters still lists nothing: `argument_words` builds
+without it), recommended by std claude and design claude, or (b) std stays free of limbs, `str.at.point` moving
+into `unicode` or waiting. The owner: "(a)". So **`std` lists the `unicode` limb, its first**; a program using std
+does not inherit the listing.
+
 ### 2026-10-17 — `print.written`: a literal as it was typed, proven at compile time, or `otherwise` (owner)
 
 The owner: "Should we have `print.written`?"; design claude first read it as a value printed as code (`exactly
