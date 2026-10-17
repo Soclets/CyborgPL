@@ -1,1 +1,1 @@
-`round` could be any of `my.m.round` (this kit's), `std::round`: write the path
+`exit` could be any of `my.m.exit` (this kit's), `std::exit`: write the path

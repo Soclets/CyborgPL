@@ -6,5 +6,5 @@ MAIN {
     let 'parts' := str.split[lend 's', at " "];
     let 'same' := std::str.split[lend 's', at " "];
     print.useful[list.length[lend 'parts'], " ", std::list.length[lend 'same'], newln];
-    std::print.useful[round[2.5], newln];
+    std::print.useful[round.half_up[2.5], newln];
 }

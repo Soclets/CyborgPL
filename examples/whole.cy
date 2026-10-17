@@ -5,9 +5,9 @@ MAIN {
     let 'y': bin64 = 2.7;
     let 'a' := to.int32['x'] otherwise -1;                    # whole: 2
     let 'b' := to.int32['y'] otherwise -1;                    # not whole: fails → -1
-    let 'c' := to.int32[std::round['y']] otherwise -1;        # said: 3
-    let 'd' := to.int32[std::floor['y']] otherwise -1;        # said: 2
-    let 'e' := to.int32[std::trunc[0.0 - 'y']] otherwise -1;  # said: -2
+    let 'c' := to.int32[std::round.near['y']] otherwise -1;   # said: 3
+    let 'd' := to.int32[std::round.floor['y']] otherwise -1;  # said: 2
+    let 'e' := to.int32[std::round.trunc[0.0 - 'y']] otherwise -1;  # said: -2
     std::print.useful['a', " ", 'b', " ", 'c', " ", 'd', " ", 'e', newln];
     let 'big': bin64 = 10000000000.0;
     let 'g' := to.int32['big'] otherwise -1;                 # whole but too big for an int32: out_of_range → -1

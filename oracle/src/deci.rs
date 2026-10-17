@@ -271,6 +271,8 @@ impl Deci {
                 Ordering::Less => false,
                 Ordering::Equal => q0.last().map_or(false, |d| d % 2 == 1),
             },
+            // half away from zero (`round.half_up`, owner 2026-10-17)
+            "half_up" => rest && cmp_mag(&mul_mag(&r0, &[2]), &y) != Ordering::Less,
             _ => false,
         };
         let (q, r, rneg) = if away { (add_mag(&q0, &[1]), sub_mag(&y, &r0), !self.neg) } else { (q0, r0, self.neg) };

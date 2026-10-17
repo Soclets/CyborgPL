@@ -5052,13 +5052,31 @@ impl<'p> Interp<'p> {
                 if !got { return self.handle_failure(c.handler.as_ref().unwrap(), c.line, &format!("std::{path}"), "closed".into(), None, value_used); }
                 Ok(Value::Str(text))
             }
-            "round" | "floor" | "ceil" | "trunc" => {
-                // the rounding toolbox (std, provisional names): a bin in, a whole bin out — then `to.int32[…]`
-                if c.args.values.len() != 1 { return rt(c.line, format!("std::{path} takes one bin")); }
+            p if p.starts_with("round.") => {
+                // one family (owner, 2026-10-17: "(c)"): to a whole number, or to `decimals N`; a bin or a deci in,
+                // the same kind out, then `to.int32[…]` for a whole one
+                let way = &p["round.".len()..];
                 let (a, _) = self.value(&c.args.values[0])?;
+                let n = match c.args.values.get(1) {
+                    None => 0,
+                    Some(v) => match self.value(v)?.0 {
+                        Value::Int(n) if n >= 0 => n as usize,
+                        other => return rt(c.line, format!("`decimals` is a whole number, 0 or more; got {}", other.show_useful())),
+                    },
+                };
                 match a {
-                    Value::Bin(x) => Ok(Value::Bin(no_new_neg_zero(x, match path.as_str() { "round" => x.round(), "floor" => x.floor(), "ceil" => x.ceil(), _ => x.trunc() }))),
-                    other => rt(c.line, format!("std::{path} takes a bin, got {}", other.kind())),
+                    Value::Bin(x) => Ok(Value::Bin(no_new_neg_zero(x, round_bin(x, n, way)))),
+                    Value::Deci(d) => {
+                        let unit = if n == 0 { "1".to_string() } else { format!("0.{}1", "0".repeat(n - 1)) };
+                        let unit = match crate::deci::Deci::parse(&unit, d.width) { Ok(Some(u)) => u, _ => return rt(c.line, format!("{n} decimals is past what a deci{} holds", d.width)) };
+                        let mode = if way == "near" { "near" } else { way };
+                        match d.divmod_whole(&unit, mode) {
+                            Some(Ok((q, _))) => match q.mul(&unit) { Ok(r) => Ok(Value::Deci(r)), Err(m) => rt(c.line, m) },
+                            Some(Err(m)) => rt(c.line, m),
+                            None => unreachable!(),
+                        }
+                    }
+                    other => rt(c.line, format!("std::{p} takes a bin or a deci, got {}", other.kind())),
                 }
             }
             "time.wait" => {
@@ -5767,6 +5785,38 @@ fn elem_literal(elem: Option<&Ty>, v: Value, prov: &Prov) -> Value {
 
 
 /// An empty `part`, `at` or `from` (owner, 2026-10-14: "Error"): each is a text of at least 1 byte
+/// a bin rounded to `n` decimals, from its exact decimal digits, then the nearest bin to that
+fn round_bin(x: f64, n: usize, way: &str) -> f64 {
+    if !x.is_finite() || n > 1074 { return x; }
+    let neg = x < 0.0;
+    let exact = format!("{:.1100}", x.abs());
+    let (whole, frac) = exact.split_once('.').unwrap();
+    let (keep, rest) = frac.split_at(n);
+    let rest_nonzero = rest.bytes().any(|b| b != b'0');
+    let first = rest.as_bytes().first().copied().unwrap_or(b'0');
+    let tail_nonzero = rest.bytes().skip(1).any(|b| b != b'0');
+    let mut digits: Vec<u8> = whole.bytes().chain(keep.bytes()).collect();
+    let last_odd = digits.last().map_or(false, |d| (d - b'0') % 2 == 1);
+    let away = match way {
+        "floor" => neg && rest_nonzero,
+        "ceil" => !neg && rest_nonzero,
+        "half_up" => first >= b'5',
+        "near" => first > b'5' || (first == b'5' && (tail_nonzero || last_odd)),
+        _ => false,
+    };
+    if away {
+        let mut i = digits.len();
+        loop {
+            if i == 0 { digits.insert(0, b'1'); break; }
+            i -= 1;
+            if digits[i] == b'9' { digits[i] = b'0'; } else { digits[i] += 1; break; }
+        }
+    }
+    let (w, f) = digits.split_at(digits.len() - n);
+    let text = format!("{}{}.{}0", if neg { "-" } else { "" }, String::from_utf8_lossy(w), String::from_utf8_lossy(f));
+    text.parse().unwrap()
+}
+
 fn no_position(i: i128) -> String {
     format!("{i} is no position: a position is `uint64[min 1]`, counting from 1 (owner, 2026-10-17); convert one worked out while running, `to.uint64[min 1]['i'] otherwise 1`")
 }

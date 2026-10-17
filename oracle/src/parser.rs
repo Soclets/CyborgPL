@@ -117,6 +117,8 @@ fn is_std_op(op: &str) -> bool {
 
 /// std's names the oracle emulates, which may be written without `std::` since std marks everything
 /// `bare.optional` (owner, 2026-10-06: "optional for all")
+/// the ways `std::round` rounds (owner, 2026-10-17)
+pub const ROUND_WAYS: &[&str] = &["near", "half_up", "floor", "ceil", "trunc"];
 pub const STD_BARE_HEADS: &[&str] = &["print", "printu", "printf", "format", "exit", "time", "input", "round", "floor", "ceil", "trunc"];
 const STD_STR_OPS: &[&str] = &["split", "find", "contains", "trim", "upper", "lower", "replace", "starts_with", "ends_with", "at", "slice", "join"];
 
@@ -3334,6 +3336,11 @@ impl Parser {
         }
         // `std::print.weird.stored.stdout <- "n is " <- 'n' <- \n;` — C++'s `cout <<`, with CyborgPL's
         // arrow pointing where the values go (owner, 2026-10-01): values follow, one per `<-`
+        // rounding is one family, `round.near` … `round.trunc`, `decimals` optional (owner, 2026-10-17: "(c)"); a bare
+        // `round` names no way to round a tie (owner: "(a)")
+        if kit.as_deref() == Some("std") && path.len() == 1 && matches!(path[0].as_str(), "round" | "floor" | "ceil" | "trunc") {
+            return self.err(crate::spellings::message(crate::spellings::old(&format!("std::{}", path[0]))));
+        }
         if kit.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && path.iter().skip(2).any(|w| w == "weird") {
             return self.err("`.weird` comes first, the strongest modifier: `std::print.weird.useful.stdout <- …`");
         }
@@ -3363,7 +3370,24 @@ impl Parser {
         // `str.at.grapheme[lend 's', pos 3]`, `str.slice.grapheme[lend 's', pos 1, pos 4]`: positions say
         // `pos` (owner, 2026-10-08: "`a`, if it's correct")
         let positional = kit.as_deref() == Some("std") && path.len() == 3 && path[0] == "str" && (path[1] == "at" || path[1] == "slice");
-        let mut args = if positional {
+        let rounding = kit.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("round");
+        if rounding && !(path.len() == 2 && ROUND_WAYS.contains(&path[1].as_str())) {
+            return self.err(format!("`std::{}` is not a way to round: `round.near`, `round.half_up`, `round.floor`, `round.ceil` or `round.trunc`", path.join(".")));
+        }
+        let mut args = if rounding {
+            // `round.near['x']`, to a whole number, or `round.near['x', decimals 2]`
+            let bline = self.line();
+            self.expect(Tok::LBracket, "`[`")?;
+            let mut values = vec![self.value()?];
+            if *self.peek() == Tok::Comma {
+                self.advance();
+                if !self.is_word("decimals") { return self.err(format!("the number of decimals says `decimals`: `std::{}['x', decimals 2]` (owner, 2026-10-17)", path.join("."))); }
+                self.advance();
+                values.push(self.value()?);
+            }
+            self.expect(Tok::RBracket, "`]`")?;
+            Bracket { values, line: bline, one_list: false }
+        } else if positional {
             let bline = self.line();
             self.expect(Tok::LBracket, "`[`")?;
             let mut values = vec![self.value()?];
