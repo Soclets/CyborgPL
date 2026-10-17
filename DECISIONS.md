@@ -31,6 +31,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-17 — `percent` is its own number family: percents combine, a plain number needs a conversion (owner)
+
+Design claude proposed percent maths: with a plain number a plain number ('price' x 7%), with a percent a percent
+(7% + 3%), and 'price' + 7% refused. The owner: "Don't you have to convert?" Checked in the oracle: mixing number
+families is already refused ("`times` between a deci and another number family: there is no implicit conversion
+between numeric families; `to.deci64[…]`"), while widths of one family mix. So, design claude recommending it, the
+owner: "yea". **A `percent` is its own number family**: percents combine with percents (`'tax' + 'other_tax'` is
+a percent); with a plain number it must be converted, `'price' x to.deci64['tax']` (7% gives 0.07), and back,
+`to.percent[deci64][0.07]` (7%). Not built yet.
+
 ### 2026-10-17 — A published kit is a `.cykit` file (owner: yup)
 
 The packaged form of a kit was `.limb` (2026-09-14), chosen when a library was a limb; since 2026-10-15 a limb is
