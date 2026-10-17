@@ -148,11 +148,13 @@ pub struct Config {
     /// A chain of functions each passing its `lent.mut` list on with
     /// `lend.mut` and changing it again after the call (oracle c322239b).
     pub reborrows: bool,
+    /// Typed literals, `5: uint8`, for `to.uint8[5]` (owner, 2026-10-17).
+    pub typed_literals: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: false }
     }
 }
 
@@ -405,7 +407,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     }
     let n = g.stmt_count();
     main.extend(g.stmts(n, g.depth()));
-    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() || g.shadow_mistake, strict, new_words, unevaluable: g.unevaluable }
+    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() || g.shadow_mistake, strict, new_words, typed_lits: cfg.typed_literals, unevaluable: g.unevaluable }
 }
 
 impl Gen {
@@ -469,12 +471,16 @@ impl Gen {
     /// with a bare number shifted by a typed count in one of these places:
     /// whether each gives the shift a width is the engines' to agree on.
     fn width_probe(&mut self) -> Vec<Stmt> {
+        // the engines may refuse it before running, which my evaluator, not
+        // running source text, cannot see: compared between the engines only
+        self.unevaluable = true;
         let p = self.name("p");
         let q = |n: &str| format!("'{n}'");
         let n = self.rng.range(1, 99);
         let k = self.rng.range(0, 5);
         let op = if self.rng.chance(50) { "shr" } else { "shl" };
-        let sh = format!("{n} {op} to.uint8[{k}]");
+        // a typed literal gives the shift a width wherever it sits (owner, 2026-10-17)
+        let sh = if self.cfg.typed_literals && self.rng.chance(30) { format!("{n}: uint8 {op} to.uint8[{k}]") } else { format!("{n} {op} to.uint8[{k}]") };
         let r = q(&self.name("r"));
         let line = match self.rng.below(13) {
             0 => format!("put_i[{sh}];"),

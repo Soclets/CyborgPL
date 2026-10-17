@@ -508,6 +508,9 @@ pub struct Program {
     /// Written in the main spellings of 9a9e573 (`!mut`, `!check`, `! 'x'`);
     /// otherwise in MTM's, which a lone file also takes.
     pub new_words: bool,
+    /// `to.uint8[5]` written `5: uint8` every other time (owner, 2026-10-17;
+    /// oracle e88f86be): the colon covers only the literal before it.
+    pub typed_lits: bool,
     /// Omit parentheses where design/operators.md says they are not needed.
     pub loose: bool,
     /// Holds values my exact evaluator does not model (deci, bin, text):
@@ -615,6 +618,9 @@ struct Wr<'a> {
     /// How many operators with a symbol spelling were written so far:
     /// every other one is written as its symbol (owner, 2026-10-16).
     syms: usize,
+    typed_lits: bool,
+    /// How many literal conversions could be typed literals so far.
+    tlits: usize,
     /// The declarations something changes (see `changed_decls`), by address.
     changed: std::collections::HashSet<usize>,
     out: String,
@@ -715,6 +721,15 @@ impl<'a> Wr<'a> {
                 self.operand(e, a, true);
                 self.out.push_str(" or.else ");
                 self.operand(e, b, false);
+            }
+            Expr::To(t, a) if self.typed_lits && matches!(&**a, Expr::Lit(v) if t.range().has(*v)) && { self.tlits += 1; self.tlits % 2 == 0 } => {
+                let Expr::Lit(v) = &**a else { unreachable!() };
+                // the sign is the literal's; a negative one is bracketed whole
+                if *v < 0 {
+                    self.out.push_str(&format!("({v}: {})", t.name()));
+                } else {
+                    self.out.push_str(&format!("{v}: {}", t.name()));
+                }
             }
             Expr::To(t, a) => {
                 self.out.push_str(&format!("to.{}[", t.name()));
@@ -1026,7 +1041,7 @@ impl Program {
     /// The same text as `render`, with every node's place in it.
     pub fn render_spans(&self) -> (String, Spans) {
         let changed = changed_decls(self);
-        let mut w = Wr { new_words: self.new_words, syms: 0, changed, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
+        let mut w = Wr { new_words: self.new_words, syms: 0, typed_lits: self.typed_lits, tlits: 0, changed, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
         w.out.push_str(&format!("# check claude generator, seed {}\n", self.seed));
         // `extern.C`, one line each, or as a block (owner, 2026-10-02: "both");
         // the block where there are three, so both forms are written

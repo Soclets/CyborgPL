@@ -126,6 +126,8 @@ impl Args {
             rec_depth: self.num("rec-depth", 10) as i128,
             mutual: !avoid.contains("mutual"),
             reborrows: !avoid.contains("reborrows"),
+            // off until kayo reads them: `--typed-literals` turns them on
+            typed_literals: self.flags.contains_key("typed-literals"),
         }
     }
 }
