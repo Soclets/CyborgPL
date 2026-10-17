@@ -2770,8 +2770,10 @@ impl Checker {
                         let name = self.place_name(ctx, place);
                         return match kind {
                             ParamKind::Owned => err(Diagnostic::error(format!("{} takes ownership: say what happens to {} — `give {}` (it moves) or `copy {}` (a second one)", what, name, name, name)).at(e.span)),
-                            ParamKind::Lent => err(Diagnostic::error(format!("{} looks at its value: write `lend {}`", what, name)).at(e.span)),
-                            ParamKind::LentMut => err(Diagnostic::error(format!("{} may modify its value: write `lend.mut {}`", what, name)).at(e.span)),
+                            // As the oracle says it (c322239b): the function,
+                            // what it does with the value, and the verb.
+                            ParamKind::Lent => err(Diagnostic::error(format!("`{}` only looks at {} — pass `lend {}`", fname, name, name)).at(e.span)),
+                            ParamKind::LentMut => err(Diagnostic::error(format!("`{}` may modify {} — pass `lend.mut {}`", fname, name, name)).at(e.span)),
                         };
                     }
                 }

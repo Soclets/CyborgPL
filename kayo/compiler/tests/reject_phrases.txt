@@ -395,6 +395,7 @@ lend_to_var_param [fnv:17f65879404b0710] :: write `give` (it moves) or `copy` (a
 lend_width_mismatch [fnv:ec3345969ad6a916] :: a lend hands over the value where it is, so the sizes must match
 length_bare [fnv:db83e090996e37b9] :: `list.length` takes a lend: write `lend 'xs'`
 length_is_uint64 [fnv:f5d77dd82552d1de] :: the value can be outside what a `uint64` holds
+lent_mut_passed_bare [fnv:f5eb750ca1676baa] :: `add1` may modify 'out' — pass `lend.mut 'out'`
 let_chain [fnv:4d7d73671053951c] :: `let` is a word of its own
 let_missing [fnv:ccd63909d593c858] :: a declaration starts with `let`
 let_over_name_unrun [fnv:84ae4a31fe5df2c9] :: 'x' is already declared in an enclosing scope
