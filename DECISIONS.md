@@ -23,11 +23,12 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
-### 2026-10-17 — cyjet.dev leads to cyjet.org (owner)
+### 2026-10-17 — cyjet.dev is CyJet's home; cyjet.org leads to it (owner)
 
 The owner bought cyjet.dev (shown in the Cloudflare list beside cyjet.org). Design claude asked whether it should
-lead to cyjet.org, with the README saying so; the owner: "I know. Add it now". So **cyjet.dev leads to
-cyjet.org**, CyJet's website and the kit registry, as cyborgpl.com and cyborgpl.org lead to cyborgpl.dev.
+lead to cyjet.org, with the README saying so; the owner: "I know. Add it now", then, once it was in: ".dev is
+main". So **cyjet.dev is CyJet's website and the kit registry, and cyjet.org leads to it**, as cyborgpl.com and
+cyborgpl.org lead to cyborgpl.dev. This amends 2026-10-16 ("cyjet.org is CyJet's website and the kit registry").
 
 ### 2026-10-16 — Percentages: `80%` and `80 percent`, with an `exactly` form (owner)
 

@@ -220,7 +220,7 @@ owner's order:
    changed — and edits nothing; Synthia's applies them, from the IDE's
    button or its own command. Both read `spellings.cyr` and
    `cy_ver.cyr`. Names open.
-2. **kit registry search** — searching the index (on `cyjet.org`) from the
+2. **kit registry search** — searching the index (on `cyjet.dev`) from the
    editor.
 3. **Solarized themes** — Solarized Light and Dark.
 4. **Highlighting**.
@@ -279,4 +279,4 @@ with the rest of Synthia.
 ## Open
 
 - Synthia's own syntax for `Synthia.ttsr`, and how Synthia and kayo's package manager relate.
-- **The kit registry is an index only** (owner, 2026-09-29): small files naming each kit's versions and linking to each version's release where its author keeps it; the registry never stores code, so it costs nothing to host (static files). A release lives **on GitHub**; the index keeps **a checksum of every release**; **registering a new kit is a reviewed pull request, and a new version needs no review**; and **malware-free is not guaranteed**, which the registry says plainly. Open: how an update proves it comes from the kit's owner. Its home is **`cyjet.org`**, which is also CyJet's website (owner, 2026-10-16: "`cyjet.org` serves both as the PM's website, and the registry"). Chosen before, when a library was a limb: `limbs.xxx` (owner, 2026-09-29: "`limbs.xxx` it is, I'll just wait until there's a limbs registery"; never bought).
+- **The kit registry is an index only** (owner, 2026-09-29): small files naming each kit's versions and linking to each version's release where its author keeps it; the registry never stores code, so it costs nothing to host (static files). A release lives **on GitHub**; the index keeps **a checksum of every release**; **registering a new kit is a reviewed pull request, and a new version needs no review**; and **malware-free is not guaranteed**, which the registry says plainly. Open: how an update proves it comes from the kit's owner. Its home is **`cyjet.dev`** (owner, 2026-10-17: ".dev is main"; cyjet.org leads to it), which is also CyJet's website (owner, 2026-10-16: "`cyjet.org` serves both as the PM's website, and the registry"). Chosen before, when a library was a limb: `limbs.xxx` (owner, 2026-09-29: "`limbs.xxx` it is, I'll just wait until there's a limbs registery"; never bought).

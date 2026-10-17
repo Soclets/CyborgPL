@@ -19,8 +19,8 @@ All of these are the owner's:
 
 - [cyborgpl.dev](https://cyborgpl.dev) — CyborgPL's home.
 - [cyborgpl.com](https://cyborgpl.com) and [cyborgpl.org](https://cyborgpl.org) — lead to cyborgpl.dev.
-- [cyjet.org](https://cyjet.org) — CyJet's website and the kit registry.
-- [cyjet.dev](https://cyjet.dev) — leads to cyjet.org.
+- [cyjet.dev](https://cyjet.dev) — CyJet's website and the kit registry.
+- [cyjet.org](https://cyjet.org) — leads to cyjet.dev.
 
 ### In this repository
 
