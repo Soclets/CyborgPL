@@ -116,7 +116,7 @@ LANGS = {
     "zig": ("Zig (ReleaseFast)", "zig", "{b}.zig", native(lambda s, o: ["zig", "build-exe", "-O", "ReleaseFast", "-femit-bin=" + o, s]), lambda s, d, b: [os.path.join(d, b)]),
     "swift": ("Swift (-O)", "swiftc", "{b}.swift", native(lambda s, o: ["swiftc", "-O", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "nim": ("Nim (release)", "nim", "{b}.nim", native(lambda s, o: ["nim", "c", "-d:release", "--hints:off", "--nimcache:" + o + ".cache", "-o:" + o, s]), lambda s, d, b: [os.path.join(d, b)]),
-    "fortran": ("Fortran (gfortran -O2)", "gfortran", "{b}.f90", native(lambda s, o: ["gfortran", "-O2", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
+    "fortran": ("Fortran (gfortran -O3)", "gfortran", "{b}.f90", native(lambda s, o: ["gfortran", "-O3", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "ocaml": ("OCaml (ocamlopt)", "ocamlopt", "{b}.ml", ocaml_build, lambda s, d, b: [os.path.join(d, b)]),
     "dart": ("Dart (AOT)", "dart", "{b}.dart", native(lambda s, o: ["dart", "compile", "exe", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "java": ("Java", "javac", "{B}.java", native(lambda s, o: ["javac", "-d", os.path.dirname(o), s]), lambda s, d, b: ["java", "-cp", d, cap(b)]),
