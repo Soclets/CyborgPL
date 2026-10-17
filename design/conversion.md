@@ -87,11 +87,12 @@ to.int32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exi
   (owner, 2026-09-30: a), as text does: `to.int32[10000000000.0]
   otherwise -1` is `-1`, and one `otherwise` handles both reasons.
   Nothing is thrown away silently — rounding is said first, and the
-  reader sees where: `to.int32[std::round['x']]`. The rounding toolbox
-  (`std::round`, `floor`, `ceil`, `trunc`: a bin in, a whole bin out) is
-  std's; names provisional. To a number of decimals (owner, 2026-10-17: "yup"): `round.near`
-  (a tie to even), `round.half_up` (a tie away from zero), `round.floor`, `round.ceil`, `round.trunc`, each
-  `[value, decimals N]`, as `max_decimals` needs (types.md). Owner chose this over C's
+  reader sees where: `to.int32[std::round.near['x']]`. Rounding is std's, one family (owner,
+  2026-10-17: "(c)"): `round.near` (a tie to even), `round.half_up` (a tie away from zero), `round.floor`,
+  `round.ceil`, `round.trunc`, each `[value]` for a whole number or `[value, decimals N]`, as `max_decimals`
+  needs (types.md). A bare `round` is refused, since it names no way to round a tie (owner: "(a)"); the old
+  `std::round`, `floor`, `ceil` and `trunc` are refused naming theirs. A bin is rounded from its exact digits
+  (`round.near[2.675, decimals 2]` is 2.67), and the answer is the kind that went in (design claude's readings). Owner chose this over C's
   quiet truncation and over floor (which would match `div`).
   `examples/whole.cy`.
 - **`char`** (decided 2026-09-21, three questions):

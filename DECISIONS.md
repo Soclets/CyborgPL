@@ -34,6 +34,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-17 — Rounding is one family, `round.X`, `decimals` optional; a bare `round` is refused (owner: c, a)
+
+Std claude asked whether the whole-number toolbox (`std::round`, `floor`, `ceil`, `trunc`, provisional names)
+stays beside the new `round.near` … `round.trunc` with `decimals` (a), or folds into them with `decimals 0` (b).
+The owner: "Isn't it `round.`?" Design claude offered (c): one family, `decimals` optional, left out meaning a
+whole number, recommended. The owner: "(c), but does `round` make sense?" Design claude: yes, IEEE 754 calls
+all five rounding; the weak spot is a bare `round['x']`, which says no way to round a tie (Python's `round(2.5)` is
+2, C's is 3): (a) refused, name the way, recommended, or (b) shorthand for `round.near`. The owner: "(a)". So
+**`round.near['x']`, `round.half_up['x']`, `round.floor['x']`, `round.ceil['x']`, `round.trunc['x']`, each with
+an optional `decimals N`**; `std::round`, `std::floor`, `std::ceil` and `std::trunc` are old spellings, each
+refused naming its `round.` one. Design claude's readings, not asked: a bin is rounded from its exact digits
+(`round.near[2.675, decimals 2]` is 2.67, since the bin is a little under), then the nearest bin to that; the
+answer is the kind that went in, bin or deci.
+
 ### 2026-10-17 — A typed literal: `5: uint8`, the `:` on the literal alone, no brackets (owner: yea, a)
 
 Asked after the shift-as-count ruling, from the owner's "wouldn't it be `5: uint8`?". Proposed: a literal may
