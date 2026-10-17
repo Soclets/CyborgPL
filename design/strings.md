@@ -16,6 +16,14 @@ and `\\`. A newline is written outside the quotes and joined:
 (Restated after Claude wrote `"hello\n"` in an example and the owner
 asked whether it works; it doesn't — the oracle stores the backslash.)
 
+## `std::print.written` — a literal as it was typed (owner, 2026-10-17; not built)
+
+A third form beside `print.stored` and `print.useful`: each value printed as its literal was typed in the source,
+even past what the type holds (`let 'x': bin16 = 0.123456789;` prints `0.123456789`; stored `0.12347412109375`,
+useful `0.1235`). Precog proves at compile time that every value printed is a typed literal; where it cannot,
+the print says what to do, `std::print.written['total', newln] otherwise std::print.useful;`, or it is refused.
+Decided when building: no source text is carried at run time.
+
 ## `std::print.useful.auto_newline` — the line ended for you (owner, 2026-09-30)
 
 ```

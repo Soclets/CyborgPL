@@ -28,6 +28,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-17 — `print.written`: a literal as it was typed, proven at compile time, or `otherwise` (owner)
+
+The owner: "Should we have `print.written`?"; design claude first read it as a value printed as code (`exactly
+7.5%`, `"hi"`); the owner: "No, I meant it would print like written. Say, a bin16 with 0.1, it would print 0.1.
+And if the written isn't useful, it'll still print it". So `let 'x': bin16 = 0.123456789;` prints
+`0.12347412109375` stored, `0.1235` useful, and `0.123456789` written. A value that was never typed (computed,
+read) has no written form: offered (a) falling back to `useful`, (b) refusing at compile time unless Precog proves
+the value comes straight from a literal, recommending (b) (one meaning, no source text carried at run time). The
+owner: "(b), and could you use `otherwise`?", then, shown `std::print.written['total', newln] otherwise
+std::print.useful;`: "yea". So **`print.written` prints each value as its literal was typed; Precog proves at
+compile time that every value is a typed literal, or the print says `otherwise` what to print instead; without
+either it is refused**. The choice is made when building, per print: no source text is carried at run time.
+Not built yet.
+
 ### 2026-10-17 — A `%` literal under `:=` is always a `percent`, and only `print.useful` shows the `%` (owner)
 
 The twin of the entry below: a plain `80%` is a `bin` (2026-10-16); asked whether `let 'x' := 80%;` is a percent
