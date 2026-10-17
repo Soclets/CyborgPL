@@ -26,6 +26,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-17 — `let 'tax' := exactly 7%;` is a `percent` (owner: yea)
+
+Asked whether a `%` literal under `:=` makes a `percent` (printing `7%`) or a plain `deci` (printing `0.07`),
+design claude recommending the `percent` ("you wrote a `%`, so you meant a percentage"; Precog picks the size),
+the owner: "yea". So **an exact `%` literal under `:=` is a `percent`**, its width Precog's; a plain `0.07` stays
+a plain number.
+
 ### 2026-10-17 — Rounding to decimals: `round.near`, `round.half_up`, `round.floor`, `round.ceil`, `round.trunc` (owner: yup)
 
 `max_decimals` (entry below) needs a rounding said on purpose. Design claude proposed extending std's provisional
@@ -60,8 +68,8 @@ So:
   could have more must be rounded on purpose. **`min_decimals`**: printing only (19.9 as `19.90`). A percent's
   decimals count as written (`7.25%` has 2).
 - **Good practice** (`style.md`): the `%` after a number, not `percent`; the type `percent`, not `%`.
-Not yet ruled: how a rounding is written (which `max_decimals` needs), and whether `let 'x' := exactly 7%;` is a
-`percent` or a plain `deci`. Not built yet.
+Both open points were ruled the same day (entries above): `round.near` and the rest, and `:= exactly 7%` is a
+`percent`. Not built yet.
 
 ### 2026-10-17 — Beating GCC on recursion: kayo inlines recursion, and Precog precomputes small pure functions (owner)
 
