@@ -4230,6 +4230,11 @@ impl<'p> Interp<'p> {
                             if let Some(t) = &param.ty { self.check_type(&v, t, c.line)?; }
                             Slot { cell, ty: param.ty.clone(), kind, alive: true, immut: false, sized: false, sealed: false , since: 0, deps: Vec::new() }
                         }
+                        // a `lent.mut` parameter changes what it is given (compiler claude, 2026-10-17: the message said
+                        // "only looks at" for it too)
+                        Prov::Bare(n) if want_mut => return rt(c.line, format!("`{name}` may modify '{pn}' — pass `lend.mut '{n}'`")),
+                        Prov::Given if want_mut => return rt(c.line, format!("`{name}` may modify '{pn}': it is `lent.mut`, so the caller writes `lend.mut`, not `give`")),
+                        Prov::Copied if want_mut => return rt(c.line, format!("`{name}` may modify '{pn}': it is `lent.mut`, so the caller writes `lend.mut`, not `copy`")),
                         Prov::Bare(n) => return rt(c.line, format!("`{name}` only looks at '{pn}' — pass `lend '{n}'`")),
                         Prov::Given => return rt(c.line, format!("`{name}` only looks at '{pn}': it is `lent`, so the caller writes `lend`, not `give`")),
                         Prov::Copied => return rt(c.line, format!("`{name}` only looks at '{pn}': it is `lent`, so the caller writes `lend`, not `copy`")),
@@ -4268,6 +4273,15 @@ impl<'p> Interp<'p> {
             .collect();
         self.ret_borrow = None;
         let flow = self.run_body(func, bound);
+        // a `lend.mut` of the caller's own `lent.mut` reborrows it, as Rust's `&mut *x`: the callee's writes went
+        // through the caller's borrow, so once the call returns that borrow is fresh again (compiler claude,
+        // 2026-10-17: `walk` lending its `'out'` to `add1`, then using `'out'`, was refused)
+        let now = self.write_count;
+        for crate::ast::Value::Expr(e) in &c.args.values {
+            if let Expr::Owned(Verb::LendMut, an, _) | Expr::OwnedField(Verb::LendMut, an, _, _) | Expr::OwnedElem(Verb::LendMut, an, _, _) = e {
+                if let Some(sl) = self.lookup_mut(an) { if sl.kind == SlotKind::LentMut { sl.since = now; } }
+            }
+        }
         // this call's blanks are its own; the body's `let 'y': <T>` and the return check use them
         let result = match flow? {
             Flow::Return(v) => v,
