@@ -2491,6 +2491,17 @@ impl Precog {
                     Verdict::Fails { counterexample: format!("the count can be {}", lo) }
                 }
             }
+            SiteKind::Position => {
+                let Some(Domain::Ints(c)) = ds.first() else { return Verdict::Unproven };
+                let Some((lo, hi)) = c.bounds() else { return Verdict::Unproven };
+                if lo >= 1 {
+                    Verdict::Proven { how: "the position is never below 1" }
+                } else if hi < 1 {
+                    Verdict::Fails { counterexample: format!("every time: the position is {}", describe_ints(c)) }
+                } else {
+                    Verdict::Fails { counterexample: format!("the position can be {}", lo) }
+                }
+            }
             SiteKind::SliceRange => {
                 let (Some(Domain::Ints(a)), Some(Domain::Ints(b)), Some(Domain::Ints(n))) = (ds.first(), ds.get(1), ds.get(2)) else { return Verdict::Unproven };
                 let (Some((alo, ahi)), Some((blo, bhi)), Some((nlo, nhi))) = (a.bounds(), b.bounds(), n.bounds()) else { return Verdict::Unproven };
@@ -3635,7 +3646,7 @@ fn claimed_value(kind: &SiteKind, ds: &[Domain]) -> Option<Domain> {
             };
             Some(Domain::Ints(r))
         }
-        SiteKind::Narrow { .. } | SiteKind::LengthBound { .. } | SiteKind::DivZero | SiteKind::ModZero | SiteKind::Bounds | SiteKind::NegativeExponent | SiteKind::FillCount => ds.first().cloned(),
+        SiteKind::Narrow { .. } | SiteKind::LengthBound { .. } | SiteKind::DivZero | SiteKind::ModZero | SiteKind::Bounds | SiteKind::NegativeExponent | SiteKind::FillCount | SiteKind::Position => ds.first().cloned(),
         SiteKind::ShiftWidth | SiteKind::ShiftCount => ds.get(1).cloned(),
         _ => None,
     }

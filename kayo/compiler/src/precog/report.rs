@@ -142,6 +142,7 @@ pub fn render_json(a: &Analysis, p: &Program, sources: &SourceMap) -> String {
             SiteKind::ShiftCount => ("shift_count", "shl/shr".into()),
             SiteKind::NegativeExponent => ("negative_exponent", "pow".into()),
             SiteKind::FillCount => ("fill_count", "list.fill".into()),
+            SiteKind::Position => ("position", "str.at".into()),
             SiteKind::SliceRange => ("slice_range", "slice".into()),
             SiteKind::SimdRange { .. } => ("simd_range", "simd.load/store".into()),
             SiteKind::SimdSome { .. } => ("simd_some", "simd.load.some/store.some".into()),

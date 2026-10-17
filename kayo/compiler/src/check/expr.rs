@@ -2357,6 +2357,7 @@ impl Checker {
             for (k, a) in args.iter().enumerate() {
                 out.push(match a {
                     ast::Arg::Positional(e) if k >= 1 => match &e.kind {
+                        AK::Pos(inner) if written_below_one(inner) => return err(Diagnostic::error(NO_POSITION).at(inner.span)),
                         AK::Pos(inner) => ast::Arg::Positional((**inner).clone()),
                         _ => return err(Diagnostic::error(format!("a position says `pos`: `std::{}[lend 's', pos 3]`", short)).at(e.span)),
                     },
@@ -4694,6 +4695,7 @@ impl Checker {
                 let positions = name.starts_with("str.at.") || name.starts_with("str.slice.");
                 for (k, e) in positional.iter().enumerate() {
                     let e: &ast::Expr = match (&e.kind, positions && k >= 1) {
+                        (AK::Pos(inner), true) if written_below_one(inner) => return err(Diagnostic::error(NO_POSITION).at(inner.span)),
                         (AK::Pos(inner), true) => inner,
                         (_, true) => return err(Diagnostic::error(format!("a position says `pos`: `std::{}[lend 's', pos 3]`", name)).at(e.span)),
                         _ => e,
@@ -4718,9 +4720,11 @@ impl Checker {
                         fails.push(("out_of_range".into(), None));
                         Ty::Char(Unit::Point)
                     }
+                    // A `uint8`, as std's own `str.at.byte` gives it
+                    // (a022de88).
                     "at.byte" => {
                         fails.push(("out_of_range".into(), None));
-                        Ty::Char(Unit::Byte)
+                        Ty::int(false, 8)
                     }
                     "slice.grapheme" | "slice.point" => {
                         fails.push(("out_of_range".into(), None));
@@ -4911,5 +4915,19 @@ impl Checker {
             }
             _ => typed(&e.ty),
         }
+    }
+}
+
+/// A text position is `uint64[min 1]` (owner, 2026-10-17: "(a)"): a written
+/// one of 0 or below is refused before the program runs.
+const NO_POSITION: &str = "0 is no position: a position is `uint64[min 1]`, and `pos 1` is the first";
+
+/// Whether a written position is a number below 1: `0`, `-3`.
+fn written_below_one(e: &ast::Expr) -> bool {
+    match &e.kind {
+        AK::Int(t) => t.trim_start_matches('0').is_empty(),
+        AK::Unary { op: ast::UnOp::Neg, expr } => matches!(&expr.kind, AK::Int(_)),
+        AK::Paren(inner) => written_below_one(inner),
+        _ => false,
     }
 }

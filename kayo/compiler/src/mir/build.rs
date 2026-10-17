@@ -2009,6 +2009,15 @@ impl<'a> FnBuilder<'a> {
 
     /// The sites an operation carries before it runs.
     fn before_op_sites(&mut self, op: &Op, args: &[Arg], ty: &Ty, span: SpanId) {
+        // A text position is 1 or more (owner, 2026-10-17): one worked out
+        // as 0 or below while running stops the program.
+        if let Op::Std(n) = op {
+            if n.starts_with("str.at.") || n.starts_with("str.slice.") {
+                for a in args.iter().skip(1) {
+                    self.site(SiteKind::Position, vec![arg_as_operand(a)], span);
+                }
+            }
+        }
         // The position `list.remove` takes is within the list, as a read's
         // is (check claude, 2026-10-08: past the end it read freed memory).
         if *op == Op::ListRemove {

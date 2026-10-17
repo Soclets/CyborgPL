@@ -706,6 +706,8 @@ std_wrong_version [fnv:e6eb7f796f0ecbd9] :: kayo knows std `2026-10-06T12:57:14+
 stdkit_old_spelling [fnv:d2a19052483e24d9] :: `stdkit` is an old spelling: write `std`
 step_zero [fnv:55c8afa1959f5058] :: the counter must move
 str_at_needs_pos [fnv:00020b3adbd35515] :: a position says `pos`: `std::str.at.point[lend 's', pos 3]`
+str_at_position_zero [fnv:e3725662a6dac0c2] :: 0 is no position: a position is `uint64[min 1]`
+str_at_position_zero_running [fnv:9439f04ede5c0ed7] :: 0 is no position
 str_at_unhandled [fnv:211b54cbdeaa8bbc] :: `std::str.at.grapheme` can fail (out_of_range): say what happens
 str_each_no_unit [fnv:907197bb8f8f64c1] :: `str.each.grapheme[…]`, `.point`, or `.byte`
 str_for_bare [fnv:9ff91050c5cd382f] :: `str.each.grapheme[lend 's']`, `.point`, or `.byte`

@@ -259,6 +259,10 @@ pub enum SiteKind {
     NegativeExponent,
     /// `list.fill`'s count: a count is 0 or more (owner, 2026-09-30).
     FillCount,
+    /// A text position, `std::str.at.X` / `str.slice.X`'s: 1 or more, a
+    /// `uint64[min 1]` (owner, 2026-10-17: "(a)"); past the end is the
+    /// call's `out_of_range`, not this.
+    Position,
     /// `list.slice[…, a, b]`: `1 <= a <= b + 1 <= length + 1` —
     /// inside the list, and not backwards; `pos n, n - 1` is empty.
     SliceRange,
@@ -295,6 +299,7 @@ impl SiteKind {
             SiteKind::SliceRange => "the slice can run outside the list, or backwards".into(),
             SiteKind::NegativeExponent => "a negative exponent on integers would produce a fraction".into(),
             SiteKind::FillCount => "`list.fill` of fewer than 0 copies: a count is 0 or more".into(),
+            SiteKind::Position => "0 is no position: a position is `uint64[min 1]`".into(),
             SiteKind::SimdRange { lanes } => format!("the {} lanes can run past the end", lanes),
             SiteKind::SimdSome { lanes } => format!("the items for {} lanes can run past the end, or be more than the lanes", lanes),
             SiteKind::KeyHashAgrees => "two keys this says are equal can hash differently, and the map would hold both".into(),

@@ -1627,6 +1627,10 @@ impl<'a> Enc<'a> {
                 let e = ops.first().cloned().flatten()?;
                 self.cmp_const(&e, "bvslt", 0)
             }
+            SiteKind::Position => {
+                let e = ops.first().cloned().flatten()?;
+                self.cmp_const(&e, "bvslt", 1)
+            }
             SiteKind::SliceRange => {
                 let a = ops.first().cloned().flatten()?;
                 let b = ops.get(1).cloned().flatten()?;

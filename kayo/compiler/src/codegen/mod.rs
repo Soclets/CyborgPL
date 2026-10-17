@@ -728,6 +728,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     SiteKind::SliceRange => self.slice_check(fi, *id, slots, func),
                     // Both ask only whether a number is below 0.
                     SiteKind::NegativeExponent | SiteKind::FillCount => self.negative_exponent_check(fi, *id, slots, func),
+                    SiteKind::Position => self.position_check(fi, *id, slots, func),
                     SiteKind::SimdRange { lanes } => self.simd_range_check(fi, *id, lanes, slots, func),
                     SiteKind::SimdSome { lanes } => self.simd_some_check(fi, *id, lanes, slots, func),
                     SiteKind::Narrow { .. } => self.narrow_check(fi, *id, slots, func),
@@ -3968,6 +3969,25 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let Some(BasicValueEnum::IntValue(e)) = self.operand(fi, &read, slots) else { return };
         let Ok(neg) = self.builder.build_int_compare(IntPredicate::SLT, e, e.get_type().const_zero(), "negative") else { return };
         let _ = self.guard(fi, id, neg, func);
+    }
+
+    /// A text position is 1 or more: below 1 (0 for an unsigned one) stops
+    /// the program.
+    fn position_check(&mut self, fi: usize, id: SiteId, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) {
+        let site = self.p.functions[fi].site(id).clone();
+        if !self.gets_check(&site.verdict) {
+            return;
+        }
+        let Some(o) = site.operands.first() else { return };
+        let signed = self.operand_signed(fi, o) != Some(false);
+        let read = match o.place() {
+            Some(p) => Operand::Read(p.clone()),
+            None => o.clone(),
+        };
+        let Some(BasicValueEnum::IntValue(e)) = self.operand(fi, &read, slots) else { return };
+        let pred = if signed { IntPredicate::SLT } else { IntPredicate::ULT };
+        let Ok(below) = self.builder.build_int_compare(pred, e, e.get_type().const_int(1, false), "no_position") else { return };
+        let _ = self.guard(fi, id, below, func);
     }
 
     /// `simd.load` / `simd.store` (`simd.md`): every lane from `pos i` is
