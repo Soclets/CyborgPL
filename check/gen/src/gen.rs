@@ -138,11 +138,18 @@ pub struct Config {
     /// wherever nothing gives it a width (4866c834; the oracle checked only
     /// where run, dfce8e06, then two shapes before running, 59c45ac6).
     pub width_probes: bool,
+    /// Percent of functions that recurse, and their deepest counter
+    /// (30 and 10 before 2026-10-17); `mutual` adds a pair of functions
+    /// calling each other, now and then failing at a depth. For kayo's
+    /// recursion inlining (9fa412d2), which must leave output unchanged.
+    pub rec_rate: u64,
+    pub rec_depth: i128,
+    pub mutual: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true }
     }
 }
 
@@ -381,6 +388,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     for _ in 0..1 + g.rng.below(3) {
         main.push(g.let_stmt());
     }
+    if g.cfg.recursion && g.cfg.mutual && g.rng.chance(15) {
+        let call = g.mutual_pair();
+        main.push(Stmt::Src(call));
+    }
     if g.cfg.width_probes && g.rng.chance(5) {
         let probe = g.width_probe();
         main.extend(probe);
@@ -391,6 +402,27 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
 }
 
 impl Gen {
+    /// Two functions calling each other down a range-typed counter, each
+    /// printing on the way, and sometimes a `mod` by zero at one depth; the
+    /// call from MAIN is returned. My evaluator does not run them, so the
+    /// program is compared between the engines only.
+    fn mutual_pair(&mut self) -> String {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let (a, b) = (format!("ev{}", self.fresh), format!("od{}", self.fresh));
+        let top = self.rng.range(2, (self.cfg.rec_depth * 4).max(3));
+        let ty = format!("uint32[min 0, max {top}]");
+        let (k1, k2, m1, m2) = (self.rng.range(1, 50), self.rng.range(2, 9), self.rng.range(100, 9999), self.rng.range(100, 9999));
+        // a failure at one depth: `mod.floor ('n' - f)` is a mod by zero there
+        let div = if self.rng.chance(30) { format!("('n' - {})", self.rng.range(1, top)) } else { m2.to_string() };
+        let base = if self.rng.chance(50) { "'acc'".to_string() } else { "'acc' x 2".to_string() };
+        self.extra_fns.push(format!(
+            "fn {a} ['n': {ty}, 'acc': int64] -> int64 {{\n    if 'n' equal_to 0 {{ return 'acc'; }}\n    put_i['acc'];\n    return {b}['n' - 1, ('acc' + {k1}) mod.floor {m1}];\n}}\n\nfn {b} ['n': {ty}, 'acc': int64] -> int64 {{\n    if 'n' equal_to 0 {{ return {base}; }}\n    return {a}['n' - 1, ('acc' x {k2}) mod.floor {div}];\n}}"
+        ));
+        let n = self.rng.range(0, top);
+        format!("put_i[{a}[{n}, {}]];", self.rng.range(-50, 50))
+    }
+
     /// `let 'p': bool = to.int64[1] equal_to to.int64[2]; if 'p' { … }`
     /// with a bare number shifted by a typed count in one of these places:
     /// whether each gives the shift a width is the engines' to agree on.
@@ -727,8 +759,8 @@ impl Gen {
         // that every self-call moves one step toward the base case, so each
         // call ends. Downward to 0, or upward to the top — the upward shape is
         // one CCA's induction must not prove by mistake (compiler claude).
-        let rec = if self.cfg.recursion && self.rng.chance(30) {
-            let top = self.rng.range(1, 10);
+        let rec = if self.cfg.recursion && self.rng.chance(self.cfg.rec_rate) {
+            let top = self.rng.range(1, self.cfg.rec_depth.max(1));
             let up = self.rng.chance(30);
             let ct = *self.rng.pick(&[Ty::I32, Ty::I64, Ty::U8, Ty::U32]);
             params.insert(0, ("pr".to_string(), ct, Iv::new(0, top)));

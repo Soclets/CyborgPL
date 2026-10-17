@@ -122,6 +122,9 @@ impl Args {
             compound: !avoid.contains("compound"),
             symbol_names: !avoid.contains("symbol-names"),
             width_probes: !avoid.contains("width-probes"),
+            rec_rate: self.num("rec-rate", 30),
+            rec_depth: self.num("rec-depth", 10) as i128,
+            mutual: !avoid.contains("mutual"),
         }
     }
 }
@@ -302,6 +305,7 @@ fn main() {
         "claims-run" => claims_run(&tools(), &a),
         "tv" => tv_run(&tools(), &a),
         "same" => same_run(&tools(), &a),
+        "recref" => recref_run(&tools(), &a),
         "evalsite" => {
             // What the exact evaluator saw at every site on one line.
             let p = generate(a.num("seed", 1), &a.config_modelled());
@@ -769,6 +773,69 @@ fn claims_run(t: &Tools, a: &Args) {
 /// Two runs of `cca precog --json` on one program must give the same
 /// report (CCA c8cd316: a query that depended on hash-set order proved in
 /// some builds and not in others).
+/// kayo's recursion inlining (0ed08993) against its reference build
+/// (`KAYO_RECURSION_DEPTH=0`): each program built both ways and run; the
+/// output and exit must be the same (design claude, 2026-10-17). Alive2
+/// cannot see the pass: `--emit-llvm-tv` marks every function `noinline`.
+fn recref_run(t: &Tools, a: &Args) {
+    let cfg = a.config();
+    let cases = a.num("cases", 50);
+    let from = a.num("from", 1);
+    let jobs = a.num("jobs", default_jobs()).min(JOBS_CAP);
+    let next = AtomicU64::new(from);
+    let tally = Mutex::new((0u64, 0u64, vec![]));
+    std::thread::scope(|s| {
+        for w in 0..jobs {
+            let (next, tally, cfg) = (&next, &tally, &cfg);
+            big_stack()
+                .spawn_scoped(s, move || loop {
+                    let seed = next.fetch_add(1, Ordering::SeqCst);
+                    if seed >= from + cases {
+                        return;
+                    }
+                    let p = generate(seed, cfg);
+                    if p.expect_refused {
+                        continue;
+                    }
+                    let dir = work().join(format!("recref{w}"));
+                    let _ = std::fs::create_dir_all(&dir);
+                    let f = dir.join("prog.cy");
+                    std::fs::write(&f, p.render()).unwrap();
+                    let build = |out: &str, depth: Option<&str>| {
+                        let bin = dir.join(out);
+                        let _ = std::fs::remove_file(&bin);
+                        let env: Vec<(String, String)> = depth.map(|d| vec![("KAYO_RECURSION_DEPTH".to_string(), d.to_string())]).unwrap_or_default();
+                        let r = engines::run(std::process::Command::new(&t.cca).arg("build").arg(&f).arg("-o").arg(&bin), &dir, &env, false, engines::build_limit());
+                        (r.code == Some(0) && bin.exists()).then_some(bin)
+                    };
+                    let (Some(x), Some(y)) = (build("inlined", None), build("reference", Some("0"))) else { continue };
+                    let go = |b: &std::path::Path| engines::run(&mut std::process::Command::new(b), &dir, &[], false, engines::RUN_LIMIT);
+                    let (rx, ry) = (go(&x), go(&y));
+                    let mut tl = tally.lock().unwrap();
+                    tl.0 += 1;
+                    if rx.timed_out || ry.timed_out {
+                        continue;
+                    }
+                    if rx.stdout != ry.stdout || rx.code != ry.code {
+                        tl.1 += 1;
+                        let keep = work().join("recref").join(seed.to_string());
+                        let _ = std::fs::create_dir_all(&keep);
+                        let _ = std::fs::write(keep.join("prog.cy"), p.render());
+                        let _ = std::fs::write(keep.join("inlined.out"), &rx.stdout);
+                        let _ = std::fs::write(keep.join("reference.out"), &ry.stdout);
+                        tl.2.push(format!("seed {seed}: inlined exit {:?}, reference exit {:?}, files in {}", rx.code, ry.code, keep.display()));
+                    }
+                })
+                .expect("spawn");
+        }
+    });
+    let (built, differ, lines) = tally.into_inner().unwrap();
+    for l in &lines {
+        println!("{l}");
+    }
+    println!("{built} programs built both ways, {differ} differ");
+}
+
 fn same_run(t: &Tools, a: &Args) {
     let cfg = a.config();
     let cases = a.num("cases", 50);
