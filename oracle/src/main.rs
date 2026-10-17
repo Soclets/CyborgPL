@@ -622,7 +622,7 @@ fn check_type_names(prog: &ast::Program) -> Result<(), String> {
 /// A shift with no width anywhere is refused in code that runs or not (check claude, 2026-10-16, corpus
 /// dfce8e06: the oracle refused it only where it ran, as kayo refuses it when building). A shift's width comes
 /// from its left operand or where the value goes (operators.md, 2026-09-23), never from the count (4866c834);
-/// this finds the cases where neither can give one: the shifted side is plain numbers, and it sits in a
+/// this finds the cases where neither can give one: the shifted side is plain numbers, and it sits in another shift's count, a
 /// comparison whose other side is plain numbers too, an untyped `let`, a conversion or std's printing.
 fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
     use ast::{Expr, Stmt, Handler, Value};
@@ -682,6 +682,9 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
                 if plain(r) { if let Some(s) = bare_shift(l) { return refuse(s); } }
                 if plain(l) { if let Some(s) = bare_shift(r) { return refuse(s); } }
             }
+            // a shift's count gives nothing inside it a width (owner, 2026-10-17: "(a)"):
+            // `to.int64[1] shl (5 shr to.uint8[1])`
+            if op.starts_with("shl") || op.starts_with("shr") { if let Some(s) = bare_shift(r) { return refuse(s); } }
         }
         // a conversion and std's printing give what is inside them no width (check claude, 2026-10-16, corpus
         // 909a4a18): `to.int64[5 shr …]` and `std::print.useful[5 shr …]`
