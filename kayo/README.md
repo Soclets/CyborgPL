@@ -838,3 +838,10 @@ Dated, with the alternative, so each can become a question later.
   repeated pure calls the levels hold, so bench fib(35) went from 0.0150 s
   to 0.0020 s (GCC 16 -O3: 0.0085 s). `tests/llvm_passes.rs` runs the pass
   under AddressSanitizer and UBSan on hand-written IR.
+- **2026-10-17 — Typed literals, `5: uint8`** (owner: "yea", "(a)": no
+  brackets). The parser reads a `: T` right after a literal (a number,
+  `-128`, `exactly 0.1`) as a `Typed` node, and after a name too, for the
+  checker to refuse naming `to.T['x']`. The checker takes only literals,
+  of a number type, that fit the type and its limits, with the oracle's
+  sentences: `300: uint8` does not fit, `0: uint64[min 1]` is outside the
+  limits, `1.5: int32` is not whole, `0.1: deci64` points at `exactly`.

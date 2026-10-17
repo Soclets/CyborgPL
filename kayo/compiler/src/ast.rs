@@ -392,6 +392,10 @@ pub enum ExprKind {
     Bin(String),
     /// `*0.1`: "exactly this", a `deci` (owner, 2026-10-02).
     Exact(String),
+    /// `5: uint8`, `-128: int8`, `exactly 0.1: deci64` (owner, 2026-10-17):
+    /// a literal of the type after the `:`, which it must fit. The checker
+    /// refuses anything but a literal here, naming `to.T[…]`.
+    Typed { value: Box<Expr>, ty: Type },
     Str(String),
     Char(String),
     /// The bare `\n`.

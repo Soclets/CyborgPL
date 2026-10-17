@@ -784,6 +784,9 @@ two_bare_numbers [fnv:7bc354939d76583e] :: join text with `concat`, separate val
 two_points_as_point [fnv:b2efd7393835f156] :: it is 2 code points, so it fits `char.grapheme`, not `char.point`
 type_before_name [fnv:5dc41176090cdaf6] :: a type goes after the name
 type_name_unknown [fnv:89a5ec489926ad73] :: there is no item `nosuchtype`
+typed_literal_bin_as_deci [fnv:6aeb8319adcf2964] :: write `exactly 0.1: deci64`
+typed_literal_too_big [fnv:58eddfe31c0b15aa] :: `300: uint8` does not fit: uint8 holds 0 to 255
+typed_literal_variable [fnv:f09a4404ab447ac6] :: only a literal takes a type with `:` here
 types_two_prefixes [fnv:a01733d380e5e9a7] :: expected a value of the declared type (areas::Circle), found a `shapes::Circle`
 uint_negative [fnv:66ac7011902821d4] :: the value can be outside what a `uint8` holds
 unitect_missing [fnv:87d5f79ffcb7aeaf] :: `char.grapheme` is unicode's

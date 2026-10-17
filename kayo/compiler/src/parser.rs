@@ -4046,7 +4046,21 @@ impl<'a> Parser<'a> {
             return self.fail(format!("`exactly` is followed by a number: `exactly 19.99`, `exactly 1000`; found {}", self.peek().describe()));
         };
         let at = self.bump().span;
-        self.postfix_on(Expr { kind: ExprKind::Exact(text.replace('_', "")), span: start.to(at) })
+        let e = self.typed_suffix(Expr { kind: ExprKind::Exact(text.replace('_', "")), span: start.to(at) })?;
+        self.postfix_on(e)
+    }
+
+    /// A `: T` right after a literal (owner, 2026-10-17: "(a)", no
+    /// brackets): it covers that literal only, as it covers the name in
+    /// `'x': uint8`. After a name it is read too, for the checker to refuse.
+    fn typed_suffix(&mut self, e: Expr) -> Result<Expr> {
+        if !self.is(&Tok::Colon) || !matches!(self.peek_at(1), Tok::Word(_)) {
+            return Ok(e);
+        }
+        self.bump();
+        let ty = self.type_()?;
+        let span = e.span.to(self.prev_span());
+        Ok(Expr { kind: ExprKind::Typed { value: Box::new(e), ty }, span })
     }
 
     fn prefix(&mut self) -> Result<Expr> {
@@ -4070,6 +4084,16 @@ impl<'a> Parser<'a> {
                 let at = self.bump().span;
                 let p = Expr { kind: ExprKind::Name(QName { name: n, span: at }), span: at };
                 Ok(Expr { kind: ExprKind::Call { path: ptr_path("read", star), args: vec![Arg::Positional(p)], otherwise: None }, span: start.to(at) })
+            }
+            // `-128: int8`: the `-` belongs to the typed literal.
+            Tok::Op(o) if o == "-" && matches!(self.peek_at(1), Tok::Num { .. }) && matches!(self.peek_at(2), Tok::Colon) => {
+                self.bump();
+                let at = self.span();
+                let Tok::Num { text, bin } = self.bump().tok else { unreachable!() };
+                let lit = Expr { kind: if bin { ExprKind::Bin(text) } else { ExprKind::Int(text) }, span: at };
+                let neg = Expr { kind: ExprKind::Unary { op: UnOp::Neg, expr: Box::new(lit) }, span: start.to(at) };
+                let e = self.typed_suffix(neg)?;
+                self.postfix_on(e)
             }
             Tok::Op(o) if o == "-" => {
                 self.bump();
@@ -4435,7 +4459,7 @@ impl<'a> Parser<'a> {
         let e = match self.peek().clone() {
             Tok::Name(n) => {
                 self.bump();
-                Expr { kind: ExprKind::Name(QName { name: n, span: start }), span: start }
+                self.typed_suffix(Expr { kind: ExprKind::Name(QName { name: n, span: start }), span: start })?
             }
             Tok::Str(s) => {
                 self.bump();
@@ -4461,7 +4485,7 @@ impl<'a> Parser<'a> {
                         return Ok(Expr { kind: ExprKind::Duration { value: text, unit }, span });
                     }
                 }
-                Expr { kind: if bin { ExprKind::Bin(text) } else { ExprKind::Int(text) }, span: start }
+                self.typed_suffix(Expr { kind: if bin { ExprKind::Bin(text) } else { ExprKind::Int(text) }, span: start })?
             }
             Tok::LParen => {
                 self.bump();

@@ -69,6 +69,7 @@ impl Checker {
             AK::Bin(t) => Ok(Expr { kind: K::Bin(t.clone()), ty: FREE_BIN, span }),
             // A deci whose width its place gives: `deci64` under `:=`.
             AK::Exact(t) => Ok(Expr { kind: K::Bin(t.clone()), ty: Ty::Deci(EXACT_FREE), span }),
+            AK::Typed { value, ty } => self.typed_literal(ctx, value, ty, span),
             AK::Str(s) => Ok(Expr { kind: K::Str(s.clone()), ty: Ty::Str(Enc::Free(InferId(0))), span }),
             AK::Newline => Ok(Expr { kind: K::Str("\n".into()), ty: Ty::Str(Enc::Free(InferId(0))), span }),
             AK::Char(c) => {
@@ -661,6 +662,67 @@ impl Checker {
     /// Make `v` acceptable where a `target` is stored: a bare literal adopts
     /// the family; families must match; widths and bounds are Precog's
     /// check sites, not the checker's.
+    /// `5: uint8` (owner, 2026-10-17): a literal, of the type after it,
+    /// which it must fit, refused when building otherwise; never a name,
+    /// which `to.T[…]` converts. A leading `-` is the literal's.
+    fn typed_literal(&mut self, ctx: &mut FnCtx, value: &ast::Expr, ty: &ast::Type, span: Span) -> Result<Expr> {
+        let t = self.body_type(ctx, ty)?;
+        let tname = self.spell(&t);
+        let (neg, lit) = match &value.kind {
+            AK::Unary { op: ast::UnOp::Neg, expr } => (true, &**expr),
+            _ => (false, value),
+        };
+        let (text, exact, whole) = match &lit.kind {
+            AK::Int(x) => (x.replace('_', ""), false, true),
+            AK::Bin(x) => (x.replace('_', ""), false, false),
+            AK::Exact(x) => (x.replace('_', ""), true, !x.contains('.')),
+            _ => {
+                let what = match &value.kind {
+                    AK::Name(q) => format!("'{}'", q.name),
+                    _ => "…".to_string(),
+                };
+                return err(Diagnostic::error(format!("only a literal takes a type with `:` here (`5: uint8`); convert a variable: `to.{}[{}]`", tname, what)).at(value.span));
+            }
+        };
+        let written = format!("{}{}{}", if exact { "exactly " } else { "" }, if neg { "-" } else { "" }, text);
+        let shown = format!("`{}: {}`", written, tname);
+        match t.base() {
+            Ty::Int(_) | Ty::Bin(_) if exact => err(Diagnostic::error(format!("{} is a deci: an `exactly` literal takes a deci type", shown)).at(span)),
+            Ty::Int(_) if !whole => err(Diagnostic::error(format!("{} is not a whole number", shown)).at(span)),
+            Ty::Int(_) => {
+                let v = text.parse::<i128>().ok().map(|v| if neg { -v } else { v });
+                let range = |ty: &Ty, items: &crate::resolve::Items| match crate::mir::domain::Domain::of_ty(ty, items) {
+                    crate::mir::domain::Domain::Ints(set) => set.bounds(),
+                    _ => None,
+                };
+                let base = range(t.base(), &self.items);
+                let limits = range(&t, &self.items);
+                let inside = |r: Option<(i128, i128)>| match (v, r) {
+                    (Some(v), Some((lo, hi))) => lo <= v && v <= hi,
+                    (_, None) => true,
+                    (None, Some(_)) => false,
+                };
+                if !inside(base) {
+                    let (lo, hi) = base.unwrap_or_default();
+                    let bare = self.spell(t.base());
+                    return err(Diagnostic::error(format!("{} does not fit: {} holds {} to {}", shown, bare, lo, hi)).at(span));
+                }
+                if !inside(limits) {
+                    return err(Diagnostic::error(format!("{} is outside the type's limits", shown)).at(span));
+                }
+                Ok(Expr { kind: K::Int(v.unwrap_or_default()), ty: t, span })
+            }
+            Ty::Deci(_) if !exact && !whole => err(Diagnostic::error(format!("{} takes a deci from a bin literal, which is not decided: write `exactly {}: {}`", shown, written, tname)).at(span)),
+            Ty::Bin(_) | Ty::Deci(_) | Ty::Brain => {
+                let v = self.expr(ctx, value)?;
+                let mut v = self.expect_store(ctx, v, &t, &shown)?;
+                v.ty = t;
+                Ok(v)
+            }
+            _ => err(Diagnostic::error(format!("{} needs a number type", shown)).at(span)),
+        }
+    }
+
     pub fn expect_store(&mut self, ctx: &mut FnCtx, v: Expr, target: &Ty, what: &str) -> Result<Expr> {
         let _ = ctx;
         let t = self.resolve(target);
