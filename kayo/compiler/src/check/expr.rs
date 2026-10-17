@@ -2252,6 +2252,22 @@ impl Checker {
     // ------------------------------------------------------------ calls
 
     fn call(&mut self, ctx: &mut FnCtx, path: &ast::Path, args: &[AArg], otherwise: Option<&ast::Otherwise>, span: Span, used: bool) -> Result<Expr> {
+        // `std::round`, `floor`, `ceil`, `trunc` became one family (owner,
+        // 2026-10-17): each refused from spellings.cyr's row.
+        if path.kit.as_ref().is_some_and(|l| l.name == "std") {
+            if let [one] = path.segs.as_slice() {
+                if matches!(one.name.as_str(), "round" | "floor" | "ceil" | "trunc") {
+                    if let Some(o) = crate::spellings::old_word(&format!("std::{}", one.name), Some("special")) {
+                        return err(Diagnostic::error(o.dated()).at(path.span));
+                    }
+                }
+            }
+            if let [r, way] = path.segs.as_slice() {
+                if r.name == "round" && !matches!(way.name.as_str(), "near" | "half_up" | "floor" | "ceil" | "trunc") {
+                    return err(Diagnostic::error(format!("`std::round.{}` is not a way to round: `round.near`, `round.half_up`, `round.floor`, `round.ceil` or `round.trunc`", way.name)).at(path.span));
+                }
+            }
+        }
         // std marks everything `bare.optional` (owner, 2026-10-06): its
         // names may drop `std::`, and the built-ins it owns may carry it.
         if path.kit.as_ref().is_some_and(|l| l.name == "std") && std_builtin(path) {
@@ -4370,6 +4386,7 @@ fn std_name(path: &ast::Path) -> bool {
     match segs.as_slice() {
         ["print" | "printu" | "printf" | "format", ..] => true,
         ["exit" | "round" | "floor" | "ceil" | "trunc"] => true,
+        ["round", _] => true,
         ["time" | "input", _, ..] => true,
         ["str", op] => matches!(*op, "split" | "find" | "contains" | "trim" | "upper" | "lower" | "replace" | "starts_with" | "ends_with" | "at" | "slice" | "join"),
         _ => false,
@@ -4754,11 +4771,36 @@ impl Checker {
                 hargs.push(Arg::Value(v));
                 Ty::Channel(Box::new(Ty::Duration))
             }
-            "round" | "floor" | "ceil" | "trunc" => {
-                let a = self.expr(ctx, positional[0])?;
+            // std's rounding family (owner, 2026-10-17): `round.near`,
+            // `half_up`, `floor`, `ceil`, `trunc`, on a bin or a deci, to a
+            // whole number or to `decimals N`; the answer is the kind that
+            // went in.
+            _ if name.starts_with("round.") => {
+                let way = &name[6..];
+                if !matches!(way, "near" | "half_up" | "floor" | "ceil" | "trunc") {
+                    return err(Diagnostic::error(format!("`std::{}` is not a way to round: `round.near`, `round.half_up`, `round.floor`, `round.ceil` or `round.trunc`", name)).at(span));
+                }
+                let Some(first) = positional.first() else {
+                    return err(Diagnostic::error(format!("`std::{}` takes the number to round: `std::{}['x']`", name, name)).at(span));
+                };
+                let a = self.expr(ctx, first)?;
                 let a = self.as_operand(ctx, a)?;
                 let t = self.resolve(&a.ty);
+                if !matches!(t.base(), Ty::Bin(_) | Ty::Deci(_) | Ty::Brain) {
+                    return err(Diagnostic::error(format!("std::{} takes a bin or a deci, got {}", name, crate::types::a_type(&self.spell(&t)))).at(first.span));
+                }
                 hargs.push(Arg::Value(a));
+                if let Some(d) = positional.get(1) {
+                    if let AK::Unary { op: ast::UnOp::Neg, .. } = &d.kind {
+                        return err(Diagnostic::error("`decimals` is a whole number, 0 or more").at(d.span));
+                    }
+                    let n = self.expr(ctx, d)?;
+                    let n = self.as_operand(ctx, n)?;
+                    if !self.resolve(&n.ty).is_int() {
+                        return err(Diagnostic::error("`decimals` is a whole number, 0 or more").at(d.span));
+                    }
+                    hargs.push(Arg::Value(n));
+                }
                 t
             }
             "c.errno" => Ty::int(true, 32),

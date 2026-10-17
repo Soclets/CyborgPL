@@ -50,7 +50,7 @@ assign_with_colon [fnv:a19ee1e93ed328a3] :: is already declared in this scope
 bad_comment_form [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
 bad_comment_suffix [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
 bare_char [fnv:b78f2a1f98dce47b] :: `char` is never bare: say the unit
-bare_clash_not_run [fnv:452b9461c2cce104] :: `round` could be any of `my.m.round` (this kit's), `std::round`: write the path
+bare_clash_not_run [fnv:e924dc5e8c677692] :: `exit` could be any of `my.m.exit` (this kit's), `std::exit`: write the path
 bare_const_item [fnv:1d7c838e9fed072b] :: a const takes no `bare` mark
 bare_const_kind [fnv:1d7c838e9fed072b] :: a const takes no `bare` mark
 bare_disagree [fnv:2b664eb8db1601d1] :: `fn shapes.area` is marked both
@@ -654,6 +654,9 @@ return_type_on_fn [fnv:031126c3980e54ca] :: the return type goes after the param
 return_wrong_kind_unrun [fnv:65c8529ba8f58ea7] :: expected a value of the return type (uint8), found a `bool`
 ricochet_plugin_old [fnv:9566d8f9c8940d55] :: `ricochet::plugin` is an old spelling: write `cyjet::limb` (owner, 2026-10-16)
 ricochet_prefix_old [fnv:7ee567ddf1c32548] :: `ricochet::` is an old spelling: write `cyjet::` (owner, 2026-10-16)
+round_bare [fnv:50332863be706ea5] :: `std::round` is an old spelling: write `round.near['x']` / `round.half_up['x']`
+round_floor_old [fnv:49742a083f6a08af] :: `std::floor` is an old spelling: write `round.floor['x']`
+round_unknown_way [fnv:4b951c0ea841a459] :: is not a way to round
 rust_string [fnv:ffdc0506a249c7be] :: text is `str.utf8`
 rust_usize [fnv:6bb0e8d9e2e18eb7] :: as big as the machine
 send_lend [fnv:39b4c67c5c98f0f5] :: write `give` (it moves) or `copy` (a second one)
