@@ -125,6 +125,7 @@ impl Args {
             rec_rate: self.num("rec-rate", 30),
             rec_depth: self.num("rec-depth", 10) as i128,
             mutual: !avoid.contains("mutual"),
+            reborrows: !avoid.contains("reborrows"),
         }
     }
 }

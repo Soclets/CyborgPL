@@ -145,11 +145,14 @@ pub struct Config {
     pub rec_rate: u64,
     pub rec_depth: i128,
     pub mutual: bool,
+    /// A chain of functions each passing its `lent.mut` list on with
+    /// `lend.mut` and changing it again after the call (oracle c322239b).
+    pub reborrows: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true }
     }
 }
 
@@ -392,6 +395,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let call = g.mutual_pair();
         main.push(Stmt::Src(call));
     }
+    if g.cfg.reborrows && g.cfg.borrows && g.cfg.print && g.rng.chance(12) {
+        let lines = g.reborrow_chain();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
     if g.cfg.width_probes && g.rng.chance(5) {
         let probe = g.width_probe();
         main.extend(probe);
@@ -402,6 +409,41 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
 }
 
 impl Gen {
+    /// `a` changes its `lent.mut` list, passes it on to `b` with `lend.mut`,
+    /// and changes it again once `b` returns; `b` the same to `c`; the last
+    /// appends the length. The whole list is printed, so the order of every
+    /// change shows. Compared between the engines only.
+    fn reborrow_chain(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        let n = self.rng.range(2, 4) as usize;
+        let names: Vec<String> = (1..=n).map(|i| format!("rb{id}_{i}")).collect();
+        for i in 0..n {
+            let v = self.rng.range(-99, 99);
+            let v = if v < 0 { format!("({v})") } else { v.to_string() };
+            let mut body = vec![format!("    list.append[lend.mut 'a', value {v}];")];
+            if i + 1 < n {
+                body.push(format!("    {}[lend.mut 'a'];", names[i + 1]));
+                body.push(match self.rng.below(3) {
+                    0 => format!("    list.append[lend.mut 'a', value {}];", self.rng.range(100, 199)),
+                    1 => "    change 'a'[pos 1] = to.int32[list.length[lend 'a']];".to_string(),
+                    _ => format!("    list.remove[lend.mut 'a', pos list.length[lend 'a']];\n    list.append[lend.mut 'a', value {}];", self.rng.range(200, 299)),
+                });
+            } else {
+                body.push("    list.append[lend.mut 'a', value to.int32[list.length[lend 'a']]];".to_string());
+            }
+            self.extra_fns.push(format!("fn {} [lent.mut 'a': list[int32]] {{\n{}\n}}", names[i], body.join("\n")));
+        }
+        let xs = format!("'xs{id}'");
+        vec![
+            // `[7,]` is a one-item list, `[7]` the number seven (lists.md)
+            format!("let mut {xs}: list[int32] = [{},];", self.rng.range(0, 9)),
+            format!("{}[lend.mut {xs}];", names[0]),
+            format!("std::print.useful[{xs}, newln];"),
+        ]
+    }
+
     /// Two functions calling each other down a range-typed counter, each
     /// printing on the way, and sometimes a `mod` by zero at one depth; the
     /// call from MAIN is returned. My evaluator does not run them, so the
