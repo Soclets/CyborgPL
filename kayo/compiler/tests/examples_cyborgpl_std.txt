@@ -3,6 +3,9 @@
 # takes over `std::`). `examples_run_against_the_cyborgpl_std` builds each in a
 # kit listing `std/` by std's ID and its path, and insists it prints the
 # oracle's `.out`. They stay in examples_unbuilt.txt too: built as a lone
-# file, with the built-in std, each is still refused.
+# file, with the built-in std, each is still refused. A name followed by
+# `+unicode` is built in a kit that lists the unicode limb too, for an
+# example that uses `char.point` itself.
 
 argument_words
+inventory +unicode

@@ -364,15 +364,21 @@ fn examples_run_against_the_cyborgpl_std() {
         return;
     }
     let mut failures = Vec::new();
-    for name in text.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')) {
+    for line in text.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')) {
+        let (name, unicode) = match line.split_once(' ') {
+            Some((n, rest)) => (n, rest.trim() == "+unicode"),
+            None => (line, false),
+        };
+        let limbs = if unicode { "    limbs = [cyjet::limb[id = \"55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece\", version = \"2026-10-12T10:19:44+07:00\"],],\n" } else { "" };
         let dir = std::env::temp_dir().join(format!("cca-nerve-std/{}", name));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::copy(repo().join(format!("examples/{}.cy", name)), dir.join("kit.cy")).unwrap();
         let manifest = format!(
-            "cyjet::manifest[\n    name = \"{n}\",\n    prefix = \"{n}\",\n    version = \"0.1.0\",\n    dependencies = [\n        cyjet::dep[id = \"fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936\", path = \"{c}\"],\n    ],\n    targets = [cyjet::target[name = \"aarch64-macos\"],]\n];\n",
+            "cyjet::manifest[\n    name = \"{n}\",\n    prefix = \"{n}\",\n    version = \"0.1.0\",\n    dependencies = [\n        cyjet::dep[id = \"fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936\", path = \"{c}\"],\n    ],\n{l}    targets = [cyjet::target[name = \"aarch64-macos\"],]\n];\n",
             n = name,
-            c = cord.display()
+            c = cord.display(),
+            l = limbs
         );
         std::fs::write(dir.join("CyJet.cyr"), manifest).unwrap();
         let want = std::fs::read(repo().join(format!("examples/{}.out", name))).unwrap();
