@@ -22,6 +22,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-17 — cyjet.dev leads to cyjet.org (owner)
+
+The owner bought cyjet.dev (shown in the Cloudflare list beside cyjet.org). Design claude asked whether it should
+lead to cyjet.org, with the README saying so; the owner: "I know. Add it now". So **cyjet.dev leads to
+cyjet.org**, CyJet's website and the kit registry, as cyborgpl.com and cyborgpl.org lead to cyborgpl.dev.
+
 ### 2026-10-16 — Percentages: `80%` and `80 percent`, with an `exactly` form (owner)
 
 The owner sketched `let '80%' := 80%;`, `75 percent`, `'24%': percentage` and `'62%': %`: "Should we add that?"

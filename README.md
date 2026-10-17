@@ -15,11 +15,12 @@ Very slow at the development, fast &amp; safe at the final product (no warranty 
 
 ### Official websites
 
-All four are the owner's:
+All of these are the owner's:
 
 - [cyborgpl.dev](https://cyborgpl.dev) — CyborgPL's home.
 - [cyborgpl.com](https://cyborgpl.com) and [cyborgpl.org](https://cyborgpl.org) — lead to cyborgpl.dev.
 - [cyjet.org](https://cyjet.org) — CyJet's website and the kit registry.
+- [cyjet.dev](https://cyjet.dev) — leads to cyjet.org.
 
 ### In this repository
 
