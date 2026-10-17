@@ -4279,6 +4279,31 @@ fn machine() -> Result<TargetMachine, String> {
         .ok_or_else(|| "this machine has no target description".to_string())
 }
 
+extern "C" {
+    /// `kayo/llvm-passes/pipeline.cpp`: `default<O3>` with kayo's own
+    /// passes in it.
+    fn kayo_optimize(module: llvm_sys::prelude::LLVMModuleRef, machine: llvm_sys::target_machine::LLVMTargetMachineRef, depth: u32, max_size: u32, inlined: *mut u32);
+}
+
+/// LLVM's whole pipeline, `default<O3>` as clang -O3 runs it, with
+/// recursive inlining in it (owner, 2026-10-17): a function that calls
+/// itself is inlined into itself `RECURSION_DEPTH` levels, while it stays
+/// under `RECURSION_SIZE` instructions.
+fn optimize(module: &Module<'_>, machine: &TargetMachine) -> u32 {
+    // `KAYO_RECURSION_DEPTH=0` leaves recursion as written, to compare.
+    let depth = std::env::var("KAYO_RECURSION_DEPTH").ok().and_then(|d| d.parse().ok()).unwrap_or(RECURSION_DEPTH);
+    let mut inlined = 0u32;
+    unsafe { kayo_optimize(module.as_mut_ptr(), machine.as_mut_ptr(), depth, RECURSION_SIZE, &mut inlined) };
+    inlined
+}
+
+/// Levels a function is inlined into itself: past 3, bench fib gains
+/// nothing (GCC's default is 8).
+pub const RECURSION_DEPTH: u32 = 4;
+/// Instructions a function may grow to by it, counted after the early
+/// simplification (GCC's is 450 of its own).
+pub const RECURSION_SIZE: u32 = 1000;
+
 /// The passes `write_object` runs, as `opt -passes=…` spells them.
 pub const PASSES: &str = "default<O3>";
 
@@ -4348,7 +4373,7 @@ fn write_tv(module: &Module, machine: &TargetMachine, dir: &Path) -> Result<(), 
             said.insert((f.get_name().to_string_lossy().into_owned(), format!("{:?}", loc)), f.attributes(loc).iter().map(key).collect());
         }
     }
-    copy.run_passes(PASSES, machine, inkwell::passes::PassBuilderOptions::create()).map_err(|e| e.to_string())?;
+    optimize(&copy, machine);
     for f in copy.get_functions().filter(|f| f.count_basic_blocks() > 0) {
         for loc in places(&f) {
             let before = said.get(&(f.get_name().to_string_lossy().into_owned(), format!("{:?}", loc))).cloned().unwrap_or_default();
@@ -4398,9 +4423,7 @@ pub fn write_object(module: &Module, path: &Path, emit: Option<&Path>) -> Result
     // every local in memory, nothing inlined, no loop touched — and ran at
     // up to 5.6x C's time. Precog's proofs reach it as `nsw`/`nuw` and as
     // checks that are simply not there.
-    module
-        .run_passes(PASSES, &machine, inkwell::passes::PassBuilderOptions::create())
-        .map_err(|e| e.to_string())?;
+    optimize(module, &machine);
     write_ll("after.ll", "after LLVM's passes, as the backend gets it")?;
     // With no OS, nothing will define what LLVM's code still calls; the
     // entry and the memory routines are the program's own.

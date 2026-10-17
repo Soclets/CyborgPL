@@ -835,3 +835,35 @@ fn emit_llvm_tv_keeps_every_function() {
     let ran = Command::new(out.join("t")).output().unwrap();
     assert_eq!(String::from_utf8_lossy(&ran.stdout), "5 55\n");
 }
+
+/// A function that calls itself is inlined into itself a few levels (owner,
+/// 2026-10-17): `fib` holds more calls to itself after LLVM's passes than
+/// with `KAYO_RECURSION_DEPTH=0`, and the program gives the same answer.
+#[test]
+fn recursion_is_unfolded() {
+    let src = dir().join("recursion_unfolded.cy");
+    let out = std::env::temp_dir().join(format!("kayo-recursion-{}", std::process::id()));
+    let calls = |depth: Option<&str>| -> (usize, Option<i32>) {
+        let ir = out.join(depth.unwrap_or("default"));
+        let exe = ir.join("prog");
+        let _ = std::fs::create_dir_all(&ir);
+        let mut c = Command::new(cca());
+        c.arg("build").arg(&src).arg("-o").arg(&exe).arg("--emit-llvm").arg(&ir);
+        if let Some(d) = depth {
+            c.env("KAYO_RECURSION_DEPTH", d);
+        }
+        let r = c.output().unwrap();
+        assert!(r.status.success(), "recursion_unfolded would not build:\n{}", String::from_utf8_lossy(&r.stderr));
+        let after = std::fs::read_to_string(ir.join("after.ll")).unwrap();
+        let fib = after.lines().find_map(|l| l.strip_prefix("define internal fastcc i64 @").and_then(|r| r.split('(').next()).filter(|n| n.ends_with("_fib"))).expect("no fib in the IR").to_string();
+        let start = after.find(&format!("define internal fastcc i64 @{}(", fib)).unwrap();
+        let body = after[start..].split("\n}\n").next().unwrap_or("");
+        let n = body.matches(&format!("call fastcc i64 @{}(", fib)).count();
+        (n, Command::new(&exe).output().unwrap().status.code())
+    };
+    let (unfolded, a) = calls(None);
+    let (plain, b) = calls(Some("0"));
+    let _ = std::fs::remove_dir_all(&out);
+    assert!(unfolded > plain && unfolded >= 3, "fib was not unfolded: {} calls to itself, {} without the pass", unfolded, plain);
+    assert_eq!((a, b), (Some(31), Some(31)), "the program answered differently unfolded");
+}

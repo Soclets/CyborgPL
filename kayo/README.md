@@ -823,3 +823,18 @@ Dated, with the alternative, so each can become a question later.
   the number and is the old `%` of `mod` when an operator character, a
   digit, `'` or `(` follows (`7%2`); `percent` comes after a space and
   runs into no letter.
+- **2026-10-17 — Recursion is inlined into itself** (owner, DECISIONS
+  "Beating GCC on recursion": "Oh hell yeah, we're doing 1 and 2"; C++
+  allowed for kayo's own LLVM passes). `llvm-passes/` holds them, C++20
+  with `-Wall -Wextra -Werror`, one static library called through
+  `extern "C"`: `pipeline.cpp` builds `default<O3>` as `LLVMRunPasses`
+  does, and `recursive_inline.cpp` runs after the early simplification,
+  ahead of the inliner. A function that calls itself has its body copied
+  to a snapshot; each self-call is pointed at the snapshot and inlined,
+  `RECURSION_DEPTH` (4) levels while the function stays under
+  `RECURSION_SIZE` (1000) instructions; `noinline` functions (what
+  `--emit-llvm-tv` marks) and mutual recursion are left alone.
+  `KAYO_RECURSION_DEPTH=0` turns it off to compare. LLVM then also folds the
+  repeated pure calls the levels hold, so bench fib(35) went from 0.0150 s
+  to 0.0020 s (GCC 16 -O3: 0.0085 s). `tests/llvm_passes.rs` runs the pass
+  under AddressSanitizer and UBSan on hand-written IR.

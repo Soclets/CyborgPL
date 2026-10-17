@@ -16,7 +16,7 @@ fn main() {
     let here = std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
     // The runtime counts too: every program it builds links it (design
     // claude, 2026-10-16).
-    let built_from: Vec<std::path::PathBuf> = ["src", "build.rs", "Cargo.toml", "lld", "../base", "../limbs", "../runtime", "../Cargo.toml", "../Cargo.lock", "../targets.txt", "../../spellings.cyr"].iter().map(|p| here.join(p)).collect();
+    let built_from: Vec<std::path::PathBuf> = ["src", "build.rs", "Cargo.toml", "lld", "../llvm-passes", "../base", "../limbs", "../runtime", "../Cargo.toml", "../Cargo.lock", "../targets.txt", "../../spellings.cyr"].iter().map(|p| here.join(p)).collect();
     let git = |args: &[&str]| {
         std::process::Command::new("git").args(args).current_dir(&here).output().ok().filter(|o| o.status.success()).map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
     };
@@ -56,6 +56,21 @@ fn main() {
         compile_shim(&lld, &llvm);
         let _ = std::fs::write(&key_at, &key);
     }
+    // kayo's own LLVM passes, in C++ (owner, 2026-10-17: "I don't give a
+    // flying fuck if we need cp. Shit, C++"): one folder, one static
+    // library, called through `extern "C"`.
+    let mut sources: Vec<std::path::PathBuf> = std::fs::read_dir(here.join("../llvm-passes")).map(|rd| rd.filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "cpp" || x == "h")).collect()).unwrap_or_default();
+    sources.sort();
+    let passes: Vec<std::path::PathBuf> = sources.iter().filter(|p| p.extension().is_some_and(|x| x == "cpp")).cloned().collect();
+    let key = format!("{}\n{}", llvm, sources.iter().map(|p| std::fs::read_to_string(p).unwrap_or_default()).collect::<Vec<_>>().join("\n"));
+    let key_at = out.join("kayo_llvm_passes.key");
+    if out.join("libkayo_llvm_passes.a").is_file() && std::fs::read_to_string(&key_at).ok().as_deref() == Some(key.as_str()) {
+        println!("cargo:rustc-link-search=native={}", out.display());
+        println!("cargo:rustc-link-lib=static=kayo_llvm_passes");
+    } else {
+        compile_passes(&llvm, &passes);
+        let _ = std::fs::write(&key_at, &key);
+    }
     println!("cargo:rustc-link-search=native={}/lib", lld);
     for lib in ["lldMachO", "lldELF", "lldCOFF", "lldWasm", "lldCommon"] {
         println!("cargo:rustc-link-lib=dylib={}", lib);
@@ -77,4 +92,28 @@ fn compile_shim(lld: &str, llvm: &str) {
         .flag("-fno-exceptions")
         .warnings(false)
         .compile("cca_lld");
+}
+
+/// kayo's LLVM passes (`kayo/llvm-passes/`): C++20, every warning an error,
+/// against the headers of the LLVM inkwell links, which is built without
+/// RTTI or exceptions.
+fn compile_passes(llvm: &str, files: &[std::path::PathBuf]) {
+    let mut b = cc::Build::new();
+    b.cpp(true)
+        // LLVM's own headers are not held to these warnings.
+        .flag(format!("-isystem{}/include", llvm))
+        .flag("-std=c++20")
+        .flag("-fno-rtti")
+        .flag("-fno-exceptions")
+        .flag("-Wall")
+        .flag("-Wextra")
+        .flag("-Werror")
+        .define("__STDC_CONSTANT_MACROS", None)
+        .define("__STDC_FORMAT_MACROS", None)
+        .define("__STDC_LIMIT_MACROS", None)
+        .warnings(false);
+    for f in files {
+        b.file(f);
+    }
+    b.compile("kayo_llvm_passes");
 }
