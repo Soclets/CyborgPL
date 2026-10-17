@@ -27,6 +27,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+
+### 2026-10-17 — A `%` literal under `:=` is always a `percent`, and only `print.useful` shows the `%` (owner)
+
+The twin of the entry below: a plain `80%` is a `bin` (2026-10-16); asked whether `let 'x' := 80%;` is a percent
+holding a `bin` or a plain `bin`, design claude recommending the percent: "80%. And I forgot nuanced, only in
+`useful`". So **`let 'x' := 80%;` is a `percent` holding a `bin`** (`percent[bin64]` is a valid type, beside
+`percent[deciN]`), and **only `print.useful` shows the `%`**: `print.useful` prints `80%`, `print.stored` the stored
+number (`0.8`, or a `bin`'s exact digits), as the two forms already split (2026-10-02). Asked next: a third
+form, `print.written`.
+
 ### 2026-10-17 — `let 'tax' := exactly 7%;` is a `percent` (owner: yea)
 
 Asked whether a `%` literal under `:=` makes a `percent` (printing `7%`) or a plain `deci` (printing `0.07`),
