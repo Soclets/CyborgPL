@@ -2346,6 +2346,28 @@ impl Checker {
         }
         let fixed = param_tys.iter().filter(|p| !p.2).count();
         let has_variadic = param_tys.iter().any(|p| p.2);
+        // std's `str.at.X` and `str.slice.X`, written in CyborgPL, say each
+        // position with `pos` as the built-in ones do (owner, 2026-10-08:
+        // "pos on every position, list.remove and str.at / str.slice too"):
+        // checked here, and handed on as the number.
+        let unpos: Vec<ast::Arg>;
+        let args = if self.items.nerve_cord.is_some_and(|c| self.items.kit_root(decl.module) == c) && (decl.path.starts_with("std::str.at.") || decl.path.starts_with("std::str.slice.")) {
+            let short = decl.path.trim_start_matches("std::").to_string();
+            let mut out = Vec::new();
+            for (k, a) in args.iter().enumerate() {
+                out.push(match a {
+                    ast::Arg::Positional(e) if k >= 1 => match &e.kind {
+                        AK::Pos(inner) => ast::Arg::Positional((**inner).clone()),
+                        _ => return err(Diagnostic::error(format!("a position says `pos`: `std::{}[lend 's', pos 3]`", short)).at(e.span)),
+                    },
+                    other => other.clone(),
+                });
+            }
+            unpos = out;
+            &unpos[..]
+        } else {
+            args
+        };
         // Unpack the arguments: spreads count as their length.
         let flat = self.flatten_args(ctx, args, span)?;
         if !has_variadic && flat.len() != fixed {

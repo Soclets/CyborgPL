@@ -709,19 +709,20 @@ fn generate_writes_what_the_oracle_wrote() {
 /// a `path` gets it under `cord::`, for the whole program, name by name —
 /// `twice` and `total` are its, `print` falls back to the built-in, and its
 /// `exit` takes over, so the run ends 0 where the built-in's would end 7.
+/// Its `str.at.byte` takes the position with `pos`, and without is refused.
 /// Its prefix must be `cord`, and a program has one.
 #[test]
 fn listing_the_nerve_cord_takes_over_cord() {
     assert!(runtime().is_some(), "the runtime is not built");
     let kits = dir().parent().unwrap().join("kits");
     let r = Command::new(cca()).arg("run").arg(kits.join("uses_nerve_cord")).output().unwrap();
-    assert_eq!((r.status.code(), String::from_utf8_lossy(&r.stdout).as_ref()), (Some(0), "8 10 12 6\nhi!\n"), "the CyborgPL std did not take over:\n{}", String::from_utf8_lossy(&r.stderr));
+    assert_eq!((r.status.code(), String::from_utf8_lossy(&r.stdout).as_ref()), (Some(0), "8 10 12 6\nhi! 105\n"), "the CyborgPL std did not take over:\n{}", String::from_utf8_lossy(&r.stderr));
     // `synapse build .` names the program after its folder (cord claude:
     // it panicked on `.`).
     let out = std::env::temp_dir().join("cca-build-dot");
     let r = Command::new(cca()).arg("build").arg(".").arg("-o").arg(&out).current_dir(kits.join("uses_nerve_cord")).output().unwrap();
     assert!(r.status.success(), "`kayo build .` failed:\n{}", String::from_utf8_lossy(&r.stderr));
-    for (name, says) in [("cord_wrong_prefix", "the CyborgPL std's prefix is `std`"), ("two_cords", "a program has one std")] {
+    for (name, says) in [("cord_wrong_prefix", "the CyborgPL std's prefix is `std`"), ("two_cords", "a program has one std"), ("std_at_needs_pos", "a position says `pos`: `std::str.at.byte[lend 's', pos 3]`")] {
         let r = Command::new(cca()).arg("check").arg(kits.join(name)).output().unwrap();
         let err = String::from_utf8_lossy(&r.stderr);
         assert!(!r.status.success() && err.contains(says), "{} was not refused as it should be:\n{}", name, err);
