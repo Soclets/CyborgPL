@@ -2,6 +2,22 @@
 
 Machine: arm64 (Apple Silicon, 10 cores: 4 performance, 6 efficiency), Darwin 27.0.0. Best of 3 runs, wall-clock from process start to exit (startup included); runs past 60 s are timeouts. Every answer is checked against C's, and every one agreed.
 
+## 2026-10-17: CyborgPL against Fortran (owner: "CyborgPL vs Fortran bench now")
+
+kayo `CyDT c3918678+ KAYO\n` (compiler claude's build); final builds only; best of 3; every answer agreed with C.
+Fortran raised from `-O2` to `-O3` first, to match C.
+
+| | sum | fib | lists | sieve |
+|---|---|---|---|---|
+| CyborgPL, 3 threads | 0.032 s | 0.017 s | 0.036 s | 0.239 s |
+| CyborgPL, 1 thread | 0.092 s | 0.016 s | 0.037 s | 0.350 s |
+| C (clang -O3) | 0.092 s | 0.015 s | 0.037 s | 0.382 s |
+| Fortran (gfortran -O3) | 0.131 s | **0.006 s** | 0.082 s | 0.528 s |
+
+Fortran wins only fib, and that is mostly GCC's back end, not Fortran: the same `fib.c` built with GCC 16
+`-O3` took 0.009 s against clang's 0.016 s (best of 5), gfortran's 0.003 s. GCC turns the double recursion
+into much less work than LLVM does. On the other three, single-threaded CyborgPL ties C and beats Fortran.
+
 ## 2026-10-15, third run: C and C++ at -O3, Zomp with the faster counting loops
 
 Run at 15:37 (+07) with `ZOMP=… ZAG_BENCH_THREADS=10 python3 run.py zag zag1 c python rust go` (Zomp's release
