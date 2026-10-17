@@ -140,6 +140,10 @@ pub fn report(p: &Program, obj: &Path, exe: &Path) -> Result<String, String> {
     let mut inlined: Vec<String> = Vec::new();
     let mut own = 0u64;
     for (i, f) in p.functions.iter().enumerate() {
+        // Nothing reaches it, so nothing of it is in the program.
+        if f.dropped {
+            continue;
+        }
         let symbol = if p.main.is_some_and(|m| m.0 as usize == i) { format!("cy_main_{}", i) } else { format!("cy_{}_{}", i, super::sanitise(&f.name)) };
         // `MAIN`'s instance belongs to no declared function.
         let found = f.inst.and_then(|inst| p.instances.get(inst.0 as usize)).and_then(|inst| p.items.fns.get(inst.key.fn_id.0 as usize).map(|d| (inst, d)));

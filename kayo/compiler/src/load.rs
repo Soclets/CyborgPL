@@ -90,6 +90,18 @@ fn old_names(path: &Path) -> Result<()> {
     Ok(())
 }
 
+/// The std a file with no CyJet.cyr gets: the one the machine's package
+/// installed, which for now is the repository's `std/` beside kayo's
+/// source (`KAYO_STD` names another); none if it is not there, and then
+/// the built-in print and exit are all there is.
+fn installed_std() -> Option<PathBuf> {
+    let dir = match std::env::var_os("KAYO_STD") {
+        Some(d) => PathBuf::from(d),
+        None => Path::new(env!("CARGO_MANIFEST_DIR")).join("../../std"),
+    };
+    dir.join(MANIFEST).is_file().then_some(dir)
+}
+
 pub fn load(path: &Path, sources: &mut SourceMap) -> Result<Items> {
     load_for(path, sources, Purpose::Check)
 }
@@ -250,11 +262,23 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         let m = new_module(&mut items, "kit", None, Vis::Pub);
         let dir = path.parent().map(|p| if p.as_os_str().is_empty() { Path::new(".") } else { p }).unwrap_or(Path::new(".")).to_path_buf();
         crate::parser::set_neuron_root(&dir);
-        items.neuron_dirs.insert(m, dir);
+        items.neuron_dirs.insert(m, dir.clone());
         let file = parse_file(sources, path)?;
         check_bare(sources, &mut items, &file, "", true)?;
         check_case(sources, &mut items, &file, true)?;
         items.collect_file(&file, m, true)?;
+        // A file with no CyJet.cyr gets what the machine's package installed
+        // (owner, 2026-10-06: "yea"): with the std package, std. Until an
+        // installer writes where it is, the repository's `std/` stands in
+        // for it, as the oracle stands in for the full package.
+        if let Some(std_dir) = installed_std() {
+            let mut state = Loading { stack: Vec::new(), done: std::collections::HashMap::new(), prefixes: std::collections::HashMap::new(), root: None, root_layouts: Vec::new(), root_outputs: Vec::new(), root_exits: Vec::new(), root_dir: None, cord: None };
+            let from = std_dir.join(MANIFEST);
+            let (r, _) = load_kit(sources, &mut items, &std_dir, Some((&from, "std")), true, &mut state)?;
+            items.nerve_cord = Some(r);
+            items.kit_deps.insert(m, std::collections::HashMap::new());
+            crate::parser::set_neuron_root(&dir);
+        }
     }
     // The Brainstem's `optional` (owner, 2026-10-08), every program's.
     let base_id = sources.add(Path::new("the base"), BASE_SOURCE.to_string());

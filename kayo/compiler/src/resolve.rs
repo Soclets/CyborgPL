@@ -923,7 +923,16 @@ impl Items {
         let mut cur = m;
         if let Some(kit) = &path.kit {
             match (kit.name.as_str(), self.nerve_cord) {
-                ("std", Some(root)) => cur = root,
+                // What std has not written yet is not there, whichever of
+                // its modules the path goes through (`std::str.upper` while
+                // std has a `str`).
+                ("std", Some(root)) => {
+                    let inner = ast::Path { kit: None, segs: path.segs.clone(), span: path.span };
+                    if !path.segs.is_empty() && self.lookup_pub_from(&inner, root).is_none() {
+                        return err(Diagnostic::error(format!("`{}` is not available yet: the CyborgPL std has not written it", path.spelled())).at(path.span));
+                    }
+                    cur = root
+                }
                 ("std", None) => return err(Diagnostic::error(format!("`{}` is not available yet: there is no `std` kit for now — the base language comes first", path.spelled())).at(path.span)),
                 _ => cur = self.dependency(kit, m)?,
             }

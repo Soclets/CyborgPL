@@ -45,7 +45,56 @@ pub fn build(checked: Checked) -> Program {
     // Precog's half of `closed` (owner, 2026-09-23): the maker lets go of a
     // channel where it provably never names it again.
     crate::mir::channels::release_early(&mut p);
+    drop_unreached(&mut p);
     p
+}
+
+/// A function of std no start of the program reaches — `MAIN`, a `test
+/// fn`, and whatever they call, hold, or start as a task — is emptied: no
+/// body, no sites, so nothing is analysed, checked or generated for it. A file with
+/// no CyJet.cyr gets all of std (owner, 2026-10-06), and its every function
+/// was being proven and compiled into every program. A kit with no `MAIN`
+/// is a library, and a board names its own functions: both keep everything.
+fn drop_unreached(p: &mut Program) {
+    let Some(main) = p.main else { return };
+    if p.items.board_output.is_some() || p.items.board_exit.is_some() {
+        return;
+    }
+    let n = p.functions.len();
+    // Every way a body names a function — a call, a held function, a
+    // closure, a task and its outcome — prints as `FnIdx(n)`.
+    let named = |f: &Function| -> Vec<usize> {
+        let text = format!("{:?}", f.blocks);
+        text.match_indices("FnIdx(").filter_map(|(at, w)| text[at + w.len()..].split(')').next().and_then(|d| d.parse().ok())).collect()
+    };
+    let mut seen = vec![false; n];
+    let mut work: Vec<usize> = std::iter::once(main.0 as usize).chain((0..n).filter(|&f| p.functions[f].is_test)).collect();
+    while let Some(f) = work.pop() {
+        if f >= n || std::mem::replace(&mut seen[f], true) {
+            continue;
+        }
+        work.extend(named(&p.functions[f]));
+    }
+    // Only std's: a program's own functions can be reached in ways no body
+    // names them (a key type's `hash` and `equal_to`, found by the map code
+    // itself), and they were all compiled before std was given to every file.
+    let std_root = p.items.nerve_cord;
+    let of_std: Vec<bool> = p.functions.iter().map(|f| {
+        let Some(root) = std_root else { return false };
+        f.inst.and_then(|i| p.instances.get(i.0 as usize)).and_then(|i| p.items.fns.get(i.key.fn_id.0 as usize)).is_some_and(|d| p.items.kit_root(d.module) == root)
+    }).collect();
+    for (f, func) in p.functions.iter_mut().enumerate() {
+        if seen[f] || !of_std[f] {
+            continue;
+        }
+        let span = func.blocks.first().map(|b| b.term_span).unwrap_or(SpanId(0));
+        func.dropped = true;
+        func.blocks = vec![BasicBlock { stmts: Vec::new(), term: Terminator::Unreachable, term_span: span }];
+        func.sites.clear();
+        func.fors.clear();
+        func.ranges.clear();
+        func.operand_ranges.clear();
+    }
 }
 
 pub struct Arena {
@@ -531,6 +580,7 @@ impl<'a> FnBuilder<'a> {
         self.widen_bare_ints();
         let params = body.params.iter().map(|p| LocalId(p.0)).collect();
         Function {
+            dropped: false,
             name: body.name.clone(),
             inst: self.inst,
             params,
@@ -1868,8 +1918,24 @@ impl<'a> FnBuilder<'a> {
                     (hir::Callee::Builtin(hir::Builtin::SimdFill), Ty::Simd { elem, .. }) => vec![(**elem).clone()],
                     _ => self.param_tys(callee),
                 };
+                // std's own `str.at.X` / `str.slice.X`: each position after
+                // the text is 1 or more (owner, 2026-10-17), asked before the
+                // parameter's own bound so the message says so.
+                let positions = match callee {
+                    hir::Callee::Fn(inst) => {
+                        let decl = &self.arena.items.fns[self.arena.instances[inst.0 as usize].key.fn_id.0 as usize];
+                        self.arena.items.nerve_cord.is_some_and(|c| self.arena.items.kit_root(decl.module) == c) && (decl.path.starts_with("std::str.at.") || decl.path.starts_with("std::str.slice."))
+                    }
+                    _ => false,
+                };
                 let mut i = 0usize;
                 for (a, m) in args.iter().zip(&margs) {
+                    if positions && i >= 1 {
+                        if let Arg::Value(op) = m {
+                            let at = self.span_id(a.span());
+                            self.site(SiteKind::Position, vec![op.clone()], at);
+                        }
+                    }
                     // An unpacked list stands for as many values as it holds.
                     if let Arg::Spread { count, .. } = m {
                         i += *count;
@@ -2330,6 +2396,7 @@ impl<'a> FnBuilder<'a> {
 
 fn placeholder(body: &hir::Body) -> Function {
     Function {
+        dropped: false,
         name: body.name.clone(),
         inst: None,
         params: Vec::new(),

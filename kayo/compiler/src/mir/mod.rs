@@ -472,6 +472,9 @@ pub struct BasicBlock {
 #[derive(Debug, Clone)]
 pub struct Function {
     pub name: String,
+    /// Nothing the program starts from reaches it: its body was taken away
+    /// (`build::drop_unreached`).
+    pub dropped: bool,
     /// The instance this is: one source function, one shape. A task body
     /// is nobody's instance.
     pub inst: Option<FnInst>,

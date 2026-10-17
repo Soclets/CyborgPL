@@ -716,7 +716,7 @@ str_index [fnv:91ca5dc332f4c315] :: it would not say which unit
 str_length [fnv:b29f67be465dcbe6] :: `str.bytes`, `str.points` or `str.graphemes`
 str_less_than [fnv:96614208fa90f73f] :: byte order is never what anyone means, and a collation rule is std's
 str_slice_byte_unknown [fnv:50b421ff9c28cd61] :: `std::str.slice.byte` does not exist
-str_split_empty [fnv:67635ac17613965c] :: !pending `std::str.split` is the std session's to write in CyborgPL (owner, 2026-10-14), whose `at` is a `str.utf8[min 1 bytes]`: Zomp's testing stand-in for std accepts it until then
+str_split_empty [fnv:67635ac17613965c] :: outside the bound its type gives it (`str.utf8[min 1 bytes]`)
 strict_gone [fnv:70e4490d609cdd7e] :: `#strict` is gone
 strike_word_old [fnv:4a3c4f88880a3f14] :: `strike` is an old spelling: write `kit` (owner, 2026-10-16)
 struct_bare_owned_field [fnv:d926d44479584ac8] :: say what happens to it

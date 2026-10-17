@@ -118,8 +118,9 @@ pub fn function(f: &Function, n_functions: usize) -> Result<(), Vec<String>> {
         }
     }
 
-    // A block anyone can reach must say where it goes.
-    let reachable = reachable(f);
+    // A block anyone can reach must say where it goes; a dropped function
+    // has no body to go anywhere.
+    let reachable = if f.dropped { Vec::new() } else { reachable(f) };
     for bi in &reachable {
         if matches!(f.blocks[*bi].term, Terminator::Unreachable) {
             p.push(format!("b{} can be reached and falls off the end", bi));

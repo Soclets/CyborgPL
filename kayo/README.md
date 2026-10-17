@@ -845,3 +845,13 @@ Dated, with the alternative, so each can become a question later.
   of a number type, that fit the type and its limits, with the oracle's
   sentences: `300: uint8` does not fit, `0: uint64[min 1]` is outside the
   limits, `1.5: int32` is not whole, `0.1: deci64` points at `exactly`.
+- **2026-10-17 — A file with no CyJet.cyr gets std** (owner, 2026-10-06:
+  what the machine's package installed; with the std package, std). Until
+  an installer writes where it is, the repository's `std/` stands in
+  (`KAYO_STD` names another), loaded as a manifest's std dependency would
+  be; what it has not written yet says "not available yet", and the
+  built-in print and exit stay where std has none. std's functions no start
+  of the program reaches are emptied after lowering (`drop_unreached`), so
+  nothing of them is proven or generated. std's own `str.at.X` and
+  `str.slice.X` ask each position to be 1 or more before their parameter's
+  bound, so a computed 0 says "0 is no position".
