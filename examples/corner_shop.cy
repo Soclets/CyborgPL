@@ -444,7 +444,7 @@ fn count_shelves [lent 'items': list[Item], lent 'stock': map[str.utf8, int32]] 
 fn names_starting [lent 'items': list[Item], lent 'start': str.utf8] -> list[str.utf8] {
     let 'out': list[str.utf8] = list.empty;
     for 'it' in lend 'items' {
-        if std::str.starts_with[lend 'it'.name, part copy 'start'] {
+        if std::str.starts_with[lend 'it'.name, part lend 'start'] {
             list.append[lend.mut 'out', value copy 'it'.name];
         }
     }
@@ -454,7 +454,7 @@ fn names_starting [lent 'items': list[Item], lent 'start': str.utf8] -> list[str
 fn names_containing [lent 'items': list[Item], lent 'part': str.utf8] -> list[str.utf8] {
     let 'out': list[str.utf8] = list.empty;
     for 'it' in lend 'items' {
-        if std::str.contains[lend 'it'.name, part copy 'part'] {
+        if std::str.contains[lend 'it'.name, part lend 'part'] {
             list.append[lend.mut 'out', value copy 'it'.name];
         }
     }

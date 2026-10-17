@@ -4997,6 +4997,13 @@ impl<'p> Interp<'p> {
             for a in &c.args.values {
                 let (v, prov) = self.value(a)?;
                 if let Prov::Bare(n) = prov { return rt(c.line, format!("std::{path} looks at '{n}': `lend '{n}'`")); }
+                // std's own take every text `lent` (std/str.cy), so a copy or a give is refused as for any `lent`
+                // (compiler claude, 2026-10-17: corner_shop passed `part copy 'part'`)
+                let lent_all = matches!(path.as_str(), "str.split" | "str.contains" | "str.starts_with" | "str.ends_with" | "str.join" | "str.replace");
+                if lent_all && matches!(prov, Prov::Copied | Prov::Given) {
+                    let verb = if matches!(prov, Prov::Copied) { "copy" } else { "give" };
+                    return rt(c.line, format!("`std::{path}` only looks at its values: they are `lent`, so the caller writes `lend`, not `{verb}`"));
+                }
                 vals.push(v);
             }
             let text = |i: usize| -> Result<String, RuntimeError> { match vals.get(i) { Some(Value::Str(s)) => Ok(s.clone()), Some(Value::Char(_, ch)) => Ok(ch.clone()), Some(o) => rt(c.line, format!("std::{path}: argument {} must be text, got {}", i + 1, o.kind())), None => rt(c.line, format!("std::{path}: missing argument {}", i + 1)) } };
