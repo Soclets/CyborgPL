@@ -2,6 +2,37 @@
 
 Machine: arm64 (Apple Silicon, 10 cores: 4 performance, 6 efficiency), Darwin 27.0.0. Best of 3 runs, wall-clock from process start to exit (startup included); runs past 60 s are timeouts. Every answer is checked against C's, and every one agreed.
 
+## 2026-10-18: CyborgPL against C, Rust, Go, Zig and Fortran (owner: "run a fresh one")
+
+kayo `CyDT 1d7a651a KAYO\n`, built fresh in the design clone (release, with the recursive-inlining LLVM pass);
+final builds only; best of 3; every answer agreed with C. Languages chosen by the owner: "Do C, Fortran, Go,
+CyborgPL, Zig, and Rust."
+
+| | sum | fib | lists | sieve |
+|---|---|---|---|---|
+| CyborgPL, 3 threads | 0.033 s | **0.002 s** | 0.035 s | **0.242 s** |
+| CyborgPL, 1 thread | 0.088 s | 0.003 s | 0.038 s | 0.354 s |
+| C (clang -O3) | 0.089 s | 0.014 s | 0.037 s | 0.382 s |
+| Rust (opt-level=3) | 0.163 s | 0.016 s | 0.048 s | 0.374 s |
+| Go | 0.137 s | 0.023 s | 0.098 s | 0.352 s |
+| Zig (ReleaseFast) | 0.138 s | 0.016 s | 0.065 s | 0.346 s |
+| Fortran (gfortran -O3) | 0.127 s | 0.006 s | 0.084 s | 0.520 s |
+
+Each language's time over single-threaded CyborgPL's (above 1 means CyborgPL is faster):
+
+| | sum | fib | lists | sieve |
+|---|---|---|---|---|
+| C | 1.01× | 4.67× | 0.97× | 1.08× |
+| Rust | 1.85× | 5.33× | 1.26× | 1.06× |
+| Go | 1.56× | 7.67× | 2.58× | 0.99× |
+| Zig | 1.57× | 5.33× | 1.71× | 0.98× |
+| Fortran | 1.44× | 2.00× | 2.21× | 1.47× |
+
+- **fib is the change since 10-17**: 0.016 s then, 0.003 s now on one thread, from kayo's own LLVM pass inlining
+  self-recursion four levels deep. It now beats GCC's Fortran (0.006 s), which won fib last time.
+- Single-threaded, CyborgPL ties C on sum and lists and leads everything else there.
+- **Sieve is a near tie on one thread**: Zig 0.346 s and Go 0.352 s against CyborgPL's 0.354 s, within run-to-run noise.
+
 ## 2026-10-17: CyborgPL against Fortran (owner: "CyborgPL vs Fortran bench now")
 
 kayo `CyDT c3918678+ KAYO\n` (compiler claude's build); final builds only; best of 3; every answer agreed with C.
