@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-18 — Any optimization pass that gives the right answer is allowed; `no_cheat` is for the honest number (owner: c)
+
+Listing custom LLVM passes for kayo (noalias from ownership, bit-packed `list[bool]`, Precog's tables, mutual
+recursion), design claude added a rule of its own: "honest passes only, nothing that special-cases a benchmark".
+The owner: "I don't know if that's a good rule." Offered (a) keep it, (b) refine it (recognizing patterns real
+code has is fine; matching a benchmark specifically is not), recommended, or (c) drop it. The owner: "(c)". So
+**there is no rule against a pass that pays off mostly or only in a benchmark, as long as the answer is right**;
+when the real amount of work matters, `no_cheat` is how it is asked for, and the bench can show a `no_cheat` row.
+
 ### 2026-10-18 — `no_cheat for …`, never `for no_cheat …`: the word goes only in front (owner: a; not built)
 
 Since `no_cheat` now goes in front of any statement (entry below), a loop could be written both
