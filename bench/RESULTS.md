@@ -30,6 +30,13 @@ Each language's time over single-threaded CyborgPL's (above 1 means CyborgPL is 
 
 - **fib is the change since 10-17**: 0.016 s then, 0.003 s now on one thread, from kayo's own LLVM pass inlining
   self-recursion four levels deep. It now beats GCC's Fortran (0.006 s), which won fib last time.
+  **But it is less work, not the same work faster** (checked 2026-10-18 for the owner and Learning Zig): the answers are
+  right for N = 30 to 65, yet kayo's time grows about 1.30× per N (N=60 0.082 s, N=65 0.308 s) where clang's grows about
+  1.5× (N=40 0.145 s, N=44 0.987 s; kayo 0.002 s there). The optimized IR has `fib` call itself 10 times, at n-5 to n-10,
+  a recurrence growing about 1.36× per N. Design claude's reading, unverified in LLVM's pass logs: with four levels
+  inlined, LLVM computes repeated pure calls once. Legal, the answer is the same, but fib is no longer a like-for-like
+  call-speed test for CyborgPL. Final builds confirmed (fib 8/8 sites proven, sieve 22/22), and `THREAD_CAP=1` holds
+  the 1-thread row to one core (sieve CPU/wall 0.99, against 2.45 at 3).
 - Single-threaded, CyborgPL ties C on sum and lists and leads everything else there.
 - **Sieve is a near tie on one thread**: Zig 0.346 s and Go 0.352 s against CyborgPL's 0.354 s, within run-to-run noise.
 
