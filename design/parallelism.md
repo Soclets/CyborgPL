@@ -70,7 +70,7 @@ until `para` joined it.
 (`seq` and `para` sit before `temp`/`perm`: `for seq perm 'i'` — see
 `control-flow.md`. The old chain spelling had them the other way round.)
 
-## No cheating: `for !cheat` (owner, 2026-10-01)
+## No cheating: `no_cheat` (owner, 2026-10-01; any statement since 2026-10-18)
 
 ```
 for no_cheat 'i': int64 from 1 to 'n' by 1 { change 'acc' = 'acc' plus 'i'; }
@@ -78,21 +78,27 @@ for no_cheat seq 'i' in lend 'xs' { … }
 for no_cheat para 'i' from 1 to 'n' by 1 { … }
 ```
 
-**`!cheat`, "no cheat"** (`!c` until 2026-10-06): every round's work really happens at run time. The
+**`no_cheat`, "no cheat"** (`!c` until 2026-10-06, `!cheat` until 2026-10-07): every round's work really happens at run time. The
 compiler may not replace the loop with its answer (clang turns
 `acc += i` over a known range into n(n+1)/2, and kayo's slices fold the
 same way) nor drop rounds whose results look unused. It may still do the
-work faster — SIMD, or across cores — so `!cheat` is about whether the work
+work faster — SIMD, or across cores — so `no_cheat` is about whether the work
 happens, not how; add `seq` for one round at a time, in order (owner:
 "Skipping work, because `seq` could be used with `!c`"). Written in
 CyborgPL for timing code and the like, where today an empty
 `inline.ASM` passing the value through a register does the job.
 
 **The strongest modifier comes first** (owner: "yeah, strongest first"):
-`!cheat` changes what the loop must do, `seq` and `para` only how its rounds
-are scheduled, so `for !cheat seq`, never `for seq !cheat` (refused). It is the
+`no_cheat` changes what the loop must do, `seq` and `para` only how its rounds
+are scheduled, so `for no_cheat seq`, never `for seq no_cheat` (refused). It is the
 rule `.useful` already follows in `print.useful.stdout` and
-`to.useful.str.utf8`. `!cheat` is a token of its own, not a reserved name.
+`to.useful.str.utf8`.
+
+**Any statement or block, calls included** (owner, 2026-10-18: "(b)"; not built): `no_cheat let 'f' := fib['n'];`,
+`no_cheat { … }`. It goes where `no_check` goes and covers everything the statement runs, calls and recursion
+all the way down: no folding to the answer, no dropped work, and no computing calls that look alike once (what
+kayo's fib did after four levels of inlining, `bench/RESULTS.md` 2026-10-18). Faster ways to do the same work stay
+allowed.
 `examples/for_no_cheat.cy`; reject test for_no_cheat_order.
 
 ## The GPU (owner, 2026-09-21: automatic)

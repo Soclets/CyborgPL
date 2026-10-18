@@ -34,6 +34,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-18 — `no_cheat` goes in front of any statement or block, like `no_check`, covering calls too (owner: b; not built)
+
+From the fresh bench (e1db4b11): kayo's fib gave the right answers but did less work, its time growing about
+1.30× per N against clang's 1.5×; after four levels of inlining, LLVM evidently computes repeated pure calls once
+(a3e7b316). `for no_cheat` (2026-10-01) cannot forbid that, since there is no loop, and the owner had left open
+"whether `while` and `loop` take `!c` too". Offered (a) only `while` and `loop`, (b) a word in front of any
+statement or block, as `no_check` is, covering everything inside it, calls and recursion included
+(recommended), or (c) `for` only. The owner: "(b)". So **`no_cheat let 'f' := fib['n'];`, `no_cheat { … }`, and
+loops as before (`for no_cheat seq 'i' …`)**: the work written runs at run time, not folded to its answer, not
+dropped, and not shared between calls that look alike; doing it faster (inlining, SIMD, cores) stays allowed.
+Design claude's readings, not asked: it covers every call the statement makes, all the way down, as a tier word
+covers its statement; and it sits where `no_check` sits, with the same rules (a statement or block, never an
+expression, never on a `fn`), the order between the two words to be asked when built.
+
 ### 2026-10-17 — Rounding is one family, `round.X`, `decimals` optional; a bare `round` is refused (owner: c, a)
 
 Std claude asked whether the whole-number toolbox (`std::round`, `floor`, `ceil`, `trunc`, provisional names)
