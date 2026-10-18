@@ -73,9 +73,9 @@ until `para` joined it.
 ## No cheating: `no_cheat` (owner, 2026-10-01; any statement since 2026-10-18)
 
 ```
-for no_cheat 'i': int64 from 1 to 'n' by 1 { change 'acc' = 'acc' plus 'i'; }
-for no_cheat seq 'i' in lend 'xs' { … }
-for no_cheat para 'i' from 1 to 'n' by 1 { … }
+no_cheat for 'i': int64 from 1 to 'n' by 1 { change 'acc' = 'acc' plus 'i'; }
+no_cheat for seq 'i' in lend 'xs' { … }
+no_cheat for para 'i' from 1 to 'n' by 1 { … }
 ```
 
 **`no_cheat`, "no cheat"** (`!c` until 2026-10-06, `!cheat` until 2026-10-07): every round's work really happens at run time. The
@@ -90,7 +90,8 @@ CyborgPL for timing code and the like, where today an empty
 
 **The strongest modifier comes first** (owner: "yeah, strongest first"):
 `no_cheat` changes what the loop must do, `seq` and `para` only how its rounds
-are scheduled, so `for no_cheat seq`, never `for seq no_cheat` (refused). It is the
+are scheduled, so it read `for no_cheat seq`, never `for seq no_cheat`. **Since 2026-10-18 it goes in front of the `for`
+(owner: "(a)"): `no_cheat for seq 'i' …`, and `for no_cheat` is an old spelling** (not built). It is the
 rule `.useful` already follows in `print.useful.stdout` and
 `to.useful.str.utf8`.
 

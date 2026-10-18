@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-18 — `no_cheat for …`, never `for no_cheat …`: the word goes only in front (owner: a; not built)
+
+Since `no_cheat` now goes in front of any statement (entry below), a loop could be written both
+`no_cheat for 'i' …` and `for no_cheat 'i' …`. The owner: "Should it be `no_cheat for`?" Offered (a) only in
+front, as `no_check for …` is, with `for no_cheat` an old spelling refused naming the new place (recommended),
+or (b) both. The owner: "(a)". So **`no_cheat for seq 'i' from 1 to 'n' by 1 { … }`**; `for no_cheat …` is
+refused. The strongest-first order inside the loop stays for `seq` / `para` / `temp` / `perm`.
+
 ### 2026-10-18 — `no_cheat` goes in front of any statement or block, like `no_check`, covering calls too (owner: b; not built)
 
 From the fresh bench (e1db4b11): kayo's fib gave the right answers but did less work, its time growing about
