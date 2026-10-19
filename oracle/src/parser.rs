@@ -4117,7 +4117,8 @@ impl Parser {
         if *self.peek() == Tok::Op("-".into()) && matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..)) && *self.peek_at(2) == Tok::Colon {
             // `-128: int8`: the type is on the whole literal, sign included
             self.advance();
-            let lit = match self.advance().tok { Tok::Int(i) => Expr::Int(-i, line), Tok::Bin(b, t) => Expr::Bin(-b, format!("-{t}"), line), _ => unreachable!() };
+            // a written -0.0 is 0: no bin is -0 but through `.ieee` (owner, 2026-10-07)
+            let lit = match self.advance().tok { Tok::Int(i) => Expr::Int(-i, line), Tok::Bin(b, t) => if b == 0.0 { Expr::Bin(0.0, t, line) } else { Expr::Bin(-b, format!("-{t}"), line) }, _ => unreachable!() };
             return self.typed_literal(lit, line);
         }
         if *self.peek() == Tok::Op("-".into()) { self.advance(); return Ok(Expr::Unary("-".into(), Box::new(self.climb(701)?), line)); }

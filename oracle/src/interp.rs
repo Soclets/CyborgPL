@@ -5413,7 +5413,14 @@ fn cmp_decimal(a: &str, b: &str) -> std::cmp::Ordering {
 
 /// A decimal written in source, rounded once to a bin of width `w` (IEEE nearest-even), not
 /// first to 64 bits and then again: the two roundings can land one step apart.
+/// A written number's value at a bin width. A written `-0.0` is 0: no bin is -0 except through the `.ieee` forms
+/// (owner, 2026-10-07: "a"; check claude, 2026-10-19, corpus 3878ea56: a written -0.0 kept its sign)
 fn round_decimal(d: &str, w: u8) -> f64 {
+    let v = round_decimal_raw(d, w);
+    if v == 0.0 { 0.0 } else { v }
+}
+
+fn round_decimal_raw(d: &str, w: u8) -> f64 {
     let x: f64 = d.parse().unwrap_or(f64::NAN);
     match w {
         32 => d.parse::<f32>().map(|f| f as f64).unwrap_or(x),
