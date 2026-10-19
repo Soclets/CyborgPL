@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "react-router dev",
-    "build": "react-router build && node scripts/post-build.ts",
-    "typecheck": "react-router typegen && tsc",
+    "dev": "node scripts/pre-build.ts && react-router dev",
+    "build": "node scripts/pre-build.ts && react-router build && node scripts/post-build.ts",
+    "typecheck": "node scripts/pre-build.ts && react-router typegen && tsc",
     "preview": "wrangler dev"
   },
   "dependencies": {

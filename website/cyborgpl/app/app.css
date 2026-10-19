@@ -131,3 +131,18 @@ html.ready .topbar { animation: drop .7s cubic-bezier(.2, .8, .2, 1) both; }
 .chart-ghost { display: block; height: 12px; border: 1px dashed rgba(255, 255, 255, .22); border-radius: 0 4px 4px 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (max-width: 860px) { .wait { grid-template-columns: 1fr; padding: 80px 20px 100px; } }
+
+/* The examples (app/components/examples.tsx): three programs, their code and what they print. */
+.ex-section { max-width: 1180px; margin: 0 auto; padding: 40px 24px 140px; }
+.ex-tabs { display: inline-flex; gap: 2px; padding: 5px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255, 255, 255, .025); }
+.ex-tab { position: relative; padding: 9px 18px; border: 0; border-radius: 999px; background: none; color: rgba(255, 255, 255, .7); font: 500 15px var(--sans); cursor: pointer; transition: color .15s; }
+.ex-tab[aria-selected="true"] { color: #000; }
+.ex-tab-on { position: absolute; inset: 0; border-radius: 999px; background: var(--ink); }
+.ex-tab-label { position: relative; z-index: 1; }
+.ex-panes { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 14px; margin-top: 18px; align-items: start; }
+.ex-panes figure { margin: 0; min-width: 0; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: rgba(255, 255, 255, .02); }
+.ex-panes figcaption { display: flex; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--line); font: 12px var(--mono); color: rgba(255, 255, 255, .55); }
+.ex-panes pre { margin: 0; padding: 16px; overflow: auto; font: 13.5px/1.6 var(--mono); color: rgba(255, 255, 255, .9); overscroll-behavior: contain; }
+.ex-code pre { max-height: 62vh; }
+.ex-out pre { max-height: 62vh; white-space: pre-wrap; }
+@media (max-width: 860px) { .ex-panes { grid-template-columns: 1fr; } .ex-code pre { max-height: 52vh; } .ex-out pre { max-height: 36vh; } .ex-tabs { max-width: 100%; overflow-x: auto; } }

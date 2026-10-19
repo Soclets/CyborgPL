@@ -5,6 +5,7 @@ import type { Route } from "./+types/home";
 import { CompileChart } from "../components/compile-chart";
 import { COMPILE } from "../data/compile-times";
 import { RUN } from "../data/run-times";
+import { Examples } from "../components/examples";
 
 export const meta: Route.MetaFunction = () => [
   { title: "CyborgPL" },
@@ -67,6 +68,12 @@ export default function Home() {
           <CompileChart run={RUN} label="Run time" lead="Running the four bench programs, final builds, best of 3" />
         </motion.div>
       </section>
+
+      {/* Further down again (owner, 2026-10-19: "Scroll down, and you get 3 examples: Hello World, C
+          stuff, and the biggest."). */}
+      <motion.section className="ex-section" initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ type: "spring", stiffness: 90, damping: 20 }}>
+        <Examples />
+      </motion.section>
     </main>
   );
 }
