@@ -228,6 +228,7 @@ fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
         "extern" if dot_then(&["C"]) => ("`extern.C`", "CNC"),
         "incl" if dot_then(&["C"]) => ("`incl.C`", "CNC"),
         "layout" if dot_then(&["C"]) => ("`layout.C`", "CNC"),
+        "C" if dot_then(&["str"]) => ("`C.str`", "CNC"),
         "int128" | "uint128" => (if w == "int128" { "`int128`" } else { "`uint128`" }, "WSMW"),
         "not_std" => ("a `not_std.` width", "WSMW"),
         "deci32" | "deci64" | "deci128" => (match w.as_str() { "deci32" => "`deci32`", "deci64" => "`deci64`", _ => "`deci128`" }, "Money"),
@@ -1250,8 +1251,14 @@ impl<'a> Parser<'a> {
                 if self.eat_word("enum") {
                     return Ok(ItemKind::Enum(self.enum_decl(true)?));
                 }
+                // C's union (owner, 2026-10-19): one field at a time.
+                if self.eat_word("union") {
+                    let mut d = self.struct_decl(true)?;
+                    d.union = true;
+                    return Ok(ItemKind::Struct(d));
+                }
                 if !self.is_word("struct") {
-                    return self.fail(format!("`layout.C` is followed by `struct` or `enum`, found {}", self.peek().describe()));
+                    return self.fail(format!("`layout.C` is followed by `struct`, `union` or `enum`, found {}", self.peek().describe()));
                 }
                 self.bump();
                 Ok(ItemKind::Struct(self.struct_decl(true)?))
@@ -1858,6 +1865,18 @@ impl<'a> Parser<'a> {
             owner = Some(own);
         }
         let announce = self.announce(&name.name, "fn")?;
+        // A C function under another name (owner, 2026-10-19: "(c)"):
+        // `extern.C fn length = C.strlen […]`.
+        let mut c_name = None;
+        if !has_body && self.is_op("=") {
+            self.bump();
+            if !(self.is_word("C") && matches!(self.peek_at(1), Tok::Dot)) {
+                return self.fail(format!("a C function under another name says whose it is: `extern.C fn printf_count = C.printf […]`, so `= C.{}`", self.word_text()));
+            }
+            self.bump();
+            self.bump();
+            c_name = Some(self.ident("the C function's own name")?.name);
+        }
         let params = self.params(if has_body { ParamContext::Fn } else { ParamContext::Extern })?;
         if self.is(&Tok::Colon) {
             return self.fail("the return type is `-> int32`, not `: int32` — `:` attaches a type to a name, and a result is not the function's type");
@@ -1889,7 +1908,7 @@ impl<'a> Parser<'a> {
             self.expect_semi("the extern declaration")?;
             None
         };
-        Ok(FnDecl { name, owner, announce, params, ret, ret_lent, fails, body, test: false, table_bytes: None })
+        Ok(FnDecl { name, owner, announce, params, ret, ret_lent, fails, body, test: false, table_bytes: None, c_name })
     }
 
     /// The group's name, right after its `@`.
@@ -2007,7 +2026,9 @@ impl<'a> Parser<'a> {
                 break;
             }
             let p = self.param(ctx)?;
-            let variadic = p.variadic;
+            // C's fixed shape (owner, 2026-10-19): `...'n': int32` starts
+            // the extras, each named and typed, and more may follow.
+            let variadic = p.variadic && !(ctx == ParamContext::Extern && p.ty.is_some());
             params.push(p);
             if !self.eat(&Tok::Comma) {
                 break;
@@ -2156,7 +2177,7 @@ impl<'a> Parser<'a> {
             return self.fail_at(announce.groups[0].span, "not yet: a struct holding a borrow, and so a lifetime group, is not decided (asked)");
         }
         if self.from_c && layout_c && self.eat(&Tok::Semi) {
-            return Ok(StructDecl { name, announce, layout_c, fields: Vec::new(), opaque: true });
+            return Ok(StructDecl { name, announce, layout_c, fields: Vec::new(), opaque: true, union: false });
         }
         self.expect(&Tok::LBrace, "`{` after the struct's name")?;
         let mut fields = Vec::new();
@@ -2203,7 +2224,7 @@ impl<'a> Parser<'a> {
             self.item_comma()?;
         }
         self.bump();
-        Ok(StructDecl { name, announce, layout_c, fields, opaque: false })
+        Ok(StructDecl { name, announce, layout_c, fields, opaque: false, union: false })
     }
 
     fn enum_decl(&mut self, layout_c: bool) -> Result<EnumDecl> {
@@ -2621,6 +2642,23 @@ impl<'a> Parser<'a> {
         // A bound (owner, 2026-10-12): `T[min 0, max 100]`, `T[min 1]` (at
         // least 1), `str.utf8[min 1, max 40 graphemes]`, `list[T][max 10]`.
         while self.is(&Tok::LBracket) && self.bracket_is_bound() {
+            // A C bit-field (owner, 2026-10-19): `uint8[bits 3]`.
+            if self.is_word_at(1, "bits") {
+                let bstart = self.bump().span;
+                self.bump();
+                let n = match self.peek().clone() {
+                    Tok::Num { text, bin: false } => text.parse::<u32>().ok(),
+                    _ => None,
+                };
+                let Some(n) = n else {
+                    return self.fail("a bit-field's width is a whole number of bits: `uint8[bits 3]`");
+                };
+                self.bump();
+                self.expect(&Tok::RBracket, "`]` closing the bit-field's width")?;
+                let span = bstart.to(self.prev_span());
+                ty = Type { span: start.to(self.prev_span()), kind: TypeKind::Bits { inner: Box::new(ty), bits: n, span } };
+                continue;
+            }
             let (lo, hi, unit, span, old) = if self.is_word_at(1, "min") || self.is_word_at(1, "max") {
                 let (lo, hi, unit, span) = self.labelled_bound()?;
                 (lo, hi, unit, span, false)
@@ -2685,6 +2723,9 @@ impl<'a> Parser<'a> {
     /// the old `[lo, hi]`, read to be refused naming the new spelling.
     fn bracket_is_bound(&mut self) -> bool {
         if (self.is_word_at(1, "min") || self.is_word_at(1, "max")) && !matches!(self.peek_at(2), Tok::Comma | Tok::RBracket) {
+            return true;
+        }
+        if self.is_word_at(1, "bits") && matches!(self.peek_at(2), Tok::Num { .. }) {
             return true;
         }
         let save = self.pos;
@@ -4742,6 +4783,24 @@ impl<'a> Parser<'a> {
             // no-OS target's linker script, owner 2026-10-09), a C struct's
             // `size` (owner, 2026-10-10: `buf[size = 42]`) — as no keyword
             // stands before `=` otherwise.
+            // `C.libs = […]` in a manifest (owner, 2026-10-19): a field
+            // named with a dot.
+            if let (Tok::Word(a), Tok::Dot, Tok::Word(b)) = (self.peek().clone(), self.peek_at(1).clone(), self.peek_at(2).clone()) {
+                if self.is_op_at(3, "=") {
+                    let start = self.span();
+                    self.bump();
+                    self.bump();
+                    self.bump();
+                    let name = Ident { name: format!("{}.{}", a, b), span: start.to(self.prev_span()) };
+                    self.bump(); // =
+                    let value = self.expr(0)?;
+                    args.push(Arg::Named(name, value));
+                    if !self.eat(&Tok::Comma) {
+                        break;
+                    }
+                    continue;
+                }
+            }
             if let Tok::Word(_) = self.peek() {
                 if self.is_op_at(1, "=") {
                     let name = self.ident("a field")?;
@@ -4922,6 +4981,7 @@ fn preset(main: &FnDecl, owner: &Ident, name: Ident, fills: &[(QName, Expr)], sp
         body: Some(Block { stmts: vec![Stmt { kind: stmt, span }], span }),
         test: false,
         table_bytes: main.table_bytes,
+        c_name: None,
     }
 }
 

@@ -78,6 +78,9 @@ pub enum TypeKind {
     /// `count N` where a type parameter goes: the lane count of a
     /// `simd[uint8, count 16]` (owner, 2026-10-19). Nothing else takes one.
     Count(u32),
+    /// `uint8[bits 3]`: a C bit-field's type (owner, 2026-10-19), only a
+    /// `layout.C` field's.
+    Bits { inner: Box<Type>, bits: u32, span: Span },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -660,6 +663,9 @@ pub struct FnDecl {
     /// `table_bytes N fn …` (owner, 2026-10-19): the largest table Precog
     /// may make of this function, over the target's; 0 is never.
     pub table_bytes: Option<u64>,
+    /// `extern.C fn length = C.strlen […]` (owner, 2026-10-19): the C
+    /// function this one is, under another name.
+    pub c_name: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -678,6 +684,8 @@ pub struct StructDecl {
     /// A C struct Nerve never looks inside (owner, 2026-10-10): only
     /// pointed at, never built or sized.
     pub opaque: bool,
+    /// `layout.C union` (owner, 2026-10-19): one field at a time.
+    pub union: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]

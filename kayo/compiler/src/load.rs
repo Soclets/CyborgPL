@@ -291,6 +291,16 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
     let base = crate::parser::parse_file(&crate::lexer::lex(base_id, BASE_SOURCE)?)?;
     items.add_base(&base)?;
     items.resolve_all()?;
+    // Every kit's C libraries, once each, in the order they were read.
+    let mut libs: Vec<String> = Vec::new();
+    for k in &items.report_kits {
+        for l in &k.c_libs {
+            if !libs.contains(l) {
+                libs.push(l.clone());
+            }
+        }
+    }
+    crate::target::set_c_libs(libs);
     // The board's output and exit, now that its functions are known.
     if let Some((f, at)) = board.0 {
         items.board_output = Some(board_fn(&items, &f, at, "output")?);
@@ -566,6 +576,7 @@ fn load_kit(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Option
         targets: manifest.targets.clone(),
         default_target: manifest.default_target.as_ref().map(|(t, _)| t.clone()),
         table_bytes: manifest.table_bytes.clone(),
+        c_libs: manifest.c_libs.clone(),
     });
     if from.is_none() && dir.join(MANIFEST).is_file() {
         state.root = Some((manifest.targets.clone(), manifest.default_target.clone()));
@@ -696,6 +707,8 @@ struct Manifest {
     has_std: bool,
     /// `version`, as written.
     version: Option<String>,
+    /// `C.libs` (owner, 2026-10-19): the C libraries to link.
+    c_libs: Vec<String>,
     /// Each target's `table_bytes` (owner, 2026-10-19), where written.
     table_bytes: Vec<(String, u64)>,
     /// The cores listed (owner, 2026-10-06).
@@ -714,7 +727,7 @@ struct Dep {
     cord: bool,
 }
 
-const FIELDS: [&str; 8] = ["name", "prefix", "version", "targets", "dependencies", "limbs", "powers", "deny"];
+const FIELDS: [&str; 9] = ["name", "prefix", "version", "targets", "dependencies", "limbs", "powers", "deny", "C.libs"];
 
 use crate::ast::OFFICIAL_CORES;
 
@@ -723,7 +736,7 @@ const MANIFEST_SHAPE: &str = "`cyjet::manifest[name = \"areas\", prefix = \"area
 fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     use crate::ast::{Arg as AArg, ExprKind};
     use crate::lexer::Tok;
-    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new(), layouts: Vec::new(), outputs: Vec::new(), exits: Vec::new(), has_std: false, version: None, table_bytes: Vec::new(), cores: Vec::new(), powers: Vec::new(), deny: Vec::new() };
+    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new(), layouts: Vec::new(), outputs: Vec::new(), exits: Vec::new(), has_std: false, version: None, c_libs: Vec::new(), table_bytes: Vec::new(), cores: Vec::new(), powers: Vec::new(), deny: Vec::new() };
     let at = dir.join(MANIFEST);
     if !at.is_file() {
         return Ok(out);
@@ -941,6 +954,37 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             // The cores a Kit's code is built by (`design/cores.md`):
             // official ones only, each once. A Kit reaches only the words
             // of the cores it lists; CCA's code is built the same either way.
+            // The C libraries to link (owner, 2026-10-19: "Isn't it
+            // `C.lib`?"), each named as C's linker names it: `sqlite3`,
+            // never `libsqlite3.dylib`.
+            "C.libs" => {
+                let ExprKind::List(entries) = &v.kind else {
+                    return err(Diagnostic::error("`C.libs` is a list of `cyjet::C.lib[name = …]`: `C.libs = [cyjet::C.lib[name = \"sqlite3\"],]`").at(v.span));
+                };
+                for e in entries {
+                    let ExprKind::Call { path, args, .. } = &e.kind else {
+                        return err(Diagnostic::error("each C library is a `cyjet::C.lib[name = \"…\"]`").at(e.span));
+                    };
+                    if path.kit.as_ref().map(|l| l.name.as_str()) != Some("cyjet") || !path.segs.iter().map(|s| s.name.as_str()).eq(["C", "lib"]) {
+                        return err(Diagnostic::error(format!("each C library is a `cyjet::C.lib[name = \"…\"]`, and this is `{}`", path.spelled())).at(e.span));
+                    }
+                    let [AArg::Named(f, nv)] = args.as_slice() else {
+                        return err(Diagnostic::error("a `cyjet::C.lib` is its `name`: `cyjet::C.lib[name = \"sqlite3\"]`").at(e.span));
+                    };
+                    if f.name != "name" {
+                        return err(Diagnostic::error(format!("a `cyjet::C.lib` has no field `{}`: it is its `name`", f.name)).at(f.span));
+                    }
+                    let n = text(nv, "a C library's `name`")?;
+                    if n.starts_with("lib") || n.contains('.') || n.contains('/') || n.is_empty() {
+                        let bare = n.rsplit('/').next().unwrap_or(&n).trim_start_matches("lib").split('.').next().unwrap_or("").to_string();
+                        return err(Diagnostic::error(format!("a C library is named as the linker names it, without `lib` or a file ending: `cyjet::C.lib[name = \"{}\"]`, not `{}`", bare, n)).at(nv.span));
+                    }
+                    if out.c_libs.contains(&n) {
+                        return err(Diagnostic::error(format!("the C library `{}` is listed twice in `C.libs`", n)).at(nv.span));
+                    }
+                    out.c_libs.push(n);
+                }
+            }
             "limbs" => {
                 let ExprKind::List(entries) = &v.kind else {
                     return err(Diagnostic::error(format!("`limbs` is a list of `cyjet::limb[…]`: `[{},]`", crate::ast::core_line("MCPS"))).at(v.span));

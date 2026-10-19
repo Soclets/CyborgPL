@@ -40,6 +40,8 @@ use crate::types::{BinW, IntW, Ty};
 
 mod bits;
 mod cabi;
+mod clayout;
+mod cstr;
 mod deci;
 mod heap;
 pub mod bare;
@@ -269,6 +271,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 _ => Some(self.handle(4).into()),
             },
             Ty::Struct { id, args } => {
+                // A C union, or a C struct with a bit-field: C's own layout.
+                if let Some(l) = self.c_layout(t) {
+                    return Some(self.c_layout_shape(&l));
+                }
                 let info = self.p.items.structs[id.0 as usize].clone();
                 let mut fields = Vec::new();
                 for f in &info.fields {
@@ -435,7 +441,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             if sret.is_some() {
                 params.push(self.ctx.ptr_type(AddressSpace::default()).into());
             }
-            for (_, t) in &e.params {
+            // C's `...`: the fixed parameters are the function's type, and
+            // the extras travel as C's variadic ones do (owner, 2026-10-19:
+            // on Apple silicon apart from the fixed ones).
+            let fixed = e.var_from.unwrap_or(e.params.len());
+            let vararg = e.variadic || e.var_from.is_some();
+            for (_, t) in &e.params[..fixed] {
                 // A callback slot holds an address and nothing else (`ffi.md`).
                 if matches!(t.base(), Ty::Fn(_)) {
                     params.push(self.ctx.ptr_type(AddressSpace::default()).into());
@@ -453,18 +464,24 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 continue;
             }
             let fty = match &e.ret {
-                Ty::Nothing => self.ctx.void_type().fn_type(&params, e.variadic),
-                _ if sret.is_some() => self.ctx.void_type().fn_type(&params, e.variadic),
+                Ty::Nothing => self.ctx.void_type().fn_type(&params, vararg),
+                _ if sret.is_some() => self.ctx.void_type().fn_type(&params, vararg),
                 r => match (self.ty(&r.base().clone()), self.c_pass(&r.base().clone(), true)) {
-                    (Some(t), Some(cabi::CPass::Direct)) => t.fn_type(&params, e.variadic),
-                    (Some(_), Some(cabi::CPass::Coerce(c))) => c.fn_type(&params, e.variadic),
+                    (Some(t), Some(cabi::CPass::Direct)) => t.fn_type(&params, vararg),
+                    (Some(_), Some(cabi::CPass::Coerce(c))) => c.fn_type(&params, vararg),
                     _ => {
                         self.cannot(format!("the `extern.C fn {}` returns something the generated code has no shape for yet", e.name), None);
                         continue;
                     }
                 },
             };
-            let v = self.module.add_function(&e.name, fty, Some(Linkage::External));
+            // C's own name (`= C.printf`), declared once however many
+            // names of ours it has.
+            let symbol = e.c_name.clone().unwrap_or_else(|| e.name.clone());
+            let v = match self.module.get_function(&symbol) {
+                Some(f) if f.get_type() == fty => f,
+                _ => self.module.add_function(&symbol, fty, Some(Linkage::External)),
+            };
             if let Some(t) = sret {
                 let kind = inkwell::attributes::Attribute::get_named_enum_kind_id("sret");
                 v.add_attribute(inkwell::attributes::AttributeLoc::Param(0), self.ctx.create_type_attribute(kind, inkwell::types::AnyType::as_any_type_enum(&t)));
@@ -970,6 +987,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     let _ = self.builder.build_unreachable();
                 }
             }
+            Terminator::Call { callee: Callee::Op(op @ (Op::CStrMake | Op::CStrRead)), args, dest, ok, fail } if !fail.is_empty() => {
+                if self.cstr_call(fi, op, args, dest, *ok, fail, blocks, slots, func).is_none() {
+                    self.cannot("this C string has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
+                    let _ = self.builder.build_unreachable();
+                }
+            }
             Terminator::Call { callee: Callee::Op(op @ (Op::MapGet | Op::MapRemove)), args, dest, ok, fail } if !fail.is_empty() => {
                 if self.map_lookup(fi, op, args, dest, *ok, fail, blocks, slots, func).is_none() {
                     self.cannot("this map lookup has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
@@ -1111,6 +1134,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         for pr in &p.proj {
             match pr {
                 Proj::Field(i) => {
+                    // A union's field, or a field of a struct with
+                    // bit-fields: where C puts it (a bit-field's unit).
+                    if let Some(l) = self.c_layout(&ty) {
+                        slot = self.c_field_at(slot, l.fields[*i])?;
+                        ty = crate::mir::build::projected_ty(&ty, std::slice::from_ref(pr), &self.p.items);
+                        continue;
+                    }
                     if matches!(ty.base(), Ty::Enum { .. }) {
                         // A field of an enum is one of its cases: what the
                         // arm of a `match` binds.
@@ -1179,6 +1209,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         match o {
             Operand::Const(c) => self.constant(fi, c),
             Operand::Read(p) | Operand::Move(p) if self.is_bit(fi, p) => self.bit_read(fi, p, slots),
+            // A C bit-field: its bits.
+            Operand::Read(p) | Operand::Move(p) if self.c_field(fi, p).is_some_and(|c| c.2.width.is_some()) => {
+                let (outer, _, f, ft) = self.c_field(fi, p)?;
+                let (base, _) = self.slot_of(fi, &outer, slots)?;
+                let at = self.c_field_at(base, f)?;
+                self.c_bits_read(at, f, &ft)
+            }
             Operand::Read(p) | Operand::Move(p) => {
                 let (slot, ty) = self.slot_of(fi, p, slots)?;
                 let t = self.ty(&ty)?;
@@ -1752,6 +1789,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 Some(slot.into())
             }
             Rvalue::MakeStruct { fields, .. } => {
+                if let Some(t) = want_ty.clone() {
+                    if let Some(l) = self.c_layout(&t) {
+                        return self.c_make(fi, &t, &l, fields, slots);
+                    }
+                }
                 let shape = match want {
                     Some(BasicTypeEnum::StructType(s)) => Some(s),
                     _ => None,
@@ -3190,6 +3232,22 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
             }
         }
+        // C's extras get C's default promotions: a whole number narrower
+        // than an `int` widens to one, a `float` to a `double`.
+        if f.get_type().is_var_arg() {
+            let i32t = self.ctx.i32_type();
+            for i in want.len()..vals.len() {
+                let Ok(v) = BasicValueEnum::try_from(vals[i]) else { continue };
+                vals[i] = match v {
+                    BasicValueEnum::IntValue(x) if x.get_type().get_bit_width() < 32 => {
+                        let signed = x.get_type().get_bit_width() > 1 && signs.get(i).copied().unwrap_or(true);
+                        self.builder.build_int_cast_sign_flag(x, i32t, signed, "promoted").ok()?.into()
+                    }
+                    BasicValueEnum::FloatValue(x) if x.get_type() != self.ctx.f64_type() => self.builder.build_float_ext(x, self.ctx.f64_type(), "promoted").ok()?.into(),
+                    _ => vals[i],
+                };
+            }
+        }
         let call = self.builder.build_call(f, &vals, "call").ok()?;
         if let (Some(_), cabi::CPass::Indirect(t)) = (sret_slot, ret_pass) {
             let kind = inkwell::attributes::Attribute::get_named_enum_kind_id("sret");
@@ -3266,6 +3324,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 Some(None)
             }
             Op::ListFill => Some(Some(self.list_fill(fi, args, &dest_ty?, slots, func)?)),
+            // A literal with no 0 byte: `C.str.make` that cannot fail.
+            Op::CStrMake => {
+                let out = dest_ty.unwrap_or_else(|| Ty::list(Ty::int(false, 8)));
+                Some(Some(self.cstr_make(fi, &Arg::Value(args.first()?.clone()), &out, slots)?.0))
+            }
             Op::ListRemove => Some(Some(self.list_remove(fi, args, slots)?)),
             // SIMD (`simd.md`): a vector is N lanes of T in one register.
             Op::SimdFill => {
@@ -4264,6 +4327,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let _ = self.bit_write(fi, p, v, slots);
             return;
         }
+        if let Some((outer, _, f, _)) = self.c_field(fi, p).filter(|c| c.2.width.is_some()) {
+            if let (Some((base, _)), BasicValueEnum::IntValue(x)) = (self.slot_of(fi, &outer, slots), v) {
+                if let Some(at) = self.c_field_at(base, f) {
+                    let _ = self.c_bits_write(at, f, x);
+                }
+            }
+            return;
+        }
         if let Some((slot, ty)) = self.slot_of(fi, p, slots) {
             // The slot's width is what the type says; a value computed at a
             // different width is fitted to it, which is the store the check
@@ -4668,7 +4739,7 @@ pub fn link(obj: &Path, out: &Path) -> Result<(), String> {
         "aarch64" => "arm64",
         other => other,
     };
-    let args: Vec<String> = vec![
+    let mut args: Vec<String> = vec![
         "ld64.lld".into(),
         "-arch".into(),
         arch.into(),
@@ -4684,6 +4755,17 @@ pub fn link(obj: &Path, out: &Path) -> Result<(), String> {
         runtime.to_string_lossy().into_owned(),
         "-lSystem".into(),
     ];
+    // The C libraries the kits list (owner, 2026-10-19), found in the
+    // system's folders (the SDK) and Homebrew's.
+    let libs = crate::target::c_libs();
+    if !libs.is_empty() {
+        for dir in ["/opt/homebrew/lib", "/usr/local/lib"] {
+            if Path::new(dir).is_dir() {
+                args.push(format!("-L{}", dir));
+            }
+        }
+        args.extend(libs.iter().map(|l| format!("-l{}", l)));
+    }
     let c: Vec<std::ffi::CString> = args.iter().map(|a| std::ffi::CString::new(a.as_str()).map_err(|_| format!("a path holds a NUL byte: {}", a))).collect::<Result<_, _>>()?;
     let argv: Vec<*const std::os::raw::c_char> = c.iter().map(|a| a.as_ptr()).collect();
     let mut said = vec![0 as std::os::raw::c_char; 16 * 1024];
@@ -4786,6 +4868,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let mut out = Vec::new();
         for t in seen {
             let Ty::Struct { id, args } = &t else { continue };
+            // A C union or bit-field struct: where C puts each field (a
+            // bit-field's unit; its type says its bits).
+            if let Some(l) = self.c_layout(&t) {
+                let info = self.p.items.structs[id.0 as usize].clone();
+                let fields = info.fields.iter().zip(&l.fields).map(|(f, c)| (f.name.clone(), spell(self.p, &f.ty.subst(args)), c.byte, c.unit, 0)).collect();
+                out.push(StructLayout { name: spell(self.p, &t), size: l.size, align: l.align as u32, fields });
+                continue;
+            }
             let Some(BasicTypeEnum::StructType(st)) = self.ty(&t) else { continue };
             let info = self.p.items.structs[id.0 as usize].clone();
             let size = self.target.get_abi_size(&st);

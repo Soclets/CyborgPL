@@ -345,6 +345,42 @@ pub unsafe extern "C" fn cyborg_str_from_bytes(out: *mut Text, src: *const u8, l
     0
 }
 
+/// `C.str.make` (owner, 2026-10-19): the text's bytes and a 0, the C string
+/// C reads, into a new buffer; 0, or 1 (`has_zero_byte`, with nothing made)
+/// when the text holds a 0 byte, where C would cut it short.
+///
+/// # Safety
+/// `src` must point at `len` readable bytes, and `out` at a pointer to set.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_cstr_make(out: *mut *mut u8, src: *const u8, len: u64) -> u8 {
+    let len = len & !STATIC;
+    let b = if len == 0 { &[][..] } else { core::slice::from_raw_parts(src, len as usize) };
+    if b.contains(&0) {
+        return 1;
+    }
+    let p = cyborg_alloc(len + 1);
+    if len != 0 {
+        memcpy(p, src, len as usize);
+    }
+    *p.add(len as usize) = 0;
+    *out = p;
+    0
+}
+
+/// `C.str.read` (owner, 2026-10-19): a C string's bytes up to its 0, read
+/// as UTF-8 into a new text; 0, or 1 (`not_utf8`, with nothing made).
+///
+/// # Safety
+/// `src` must point at bytes ending in a 0, and `out` at a text to fill.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_cstr_read(out: *mut Text, src: *const u8) -> u8 {
+    let mut n = 0u64;
+    while *src.add(n as usize) != 0 {
+        n += 1;
+    }
+    cyborg_str_from_bytes(out, src, n)
+}
+
 /// A second, independent text. A constant one is already independent —
 /// nothing can write to it — so it is handed back as it is.
 ///

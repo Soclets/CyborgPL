@@ -981,3 +981,33 @@ Dated, with the alternative, so each can become a question later.
   nothing from outside; and a length bound's counterexample showed the
   largest length (`9223372036854775807 bytes`) where the empty text was the
   one out of range: it now shows the end that is out.
+- **2026-10-19 — C for public v1** (owner; `design/ffi.md`).
+  - **C strings.** `C.str.make[lend 's']` is the text's bytes and a 0, a
+    `list[uint8]` the program owns (`lend` it to C for a call, `give` it if
+    C keeps it), failing `has_zero_byte`; a literal with no 0 byte cannot
+    fail. `C.str.read['p']` (or `lend 'cs'`) reads up to the 0 into a text,
+    failing `not_utf8`. The runtime does both (`cyborg_cstr_make`,
+    `cyborg_cstr_read`); `C.str` is CNC's. kayo's own output flushes C's
+    stdio first, so `printf` and `print` come out in the order written.
+  - **`extern.C fn length = C.strlen […]`**, a C function under another
+    name, declared once under C's name however many it has here. A fixed
+    variadic shape, `...'n': int32`, takes exactly what it names; the
+    open `...'args'` stays; both are `no_check` sites. The fixed parameters
+    are the function's type and the extras travel as C's variadic ones do,
+    with C's promotions (a narrow whole number to `int`, `float` to
+    `double`). A lent list or text among the extras is a pointer to its
+    first element.
+  - **`layout.C union`** and **bit-fields** (`mode: uint8[bits 3]`, only in a
+    `layout.C` field; `bool[bits 1]` too). Both are laid out as clang lays
+    them out on macOS (`codegen/clayout.rs`; checked against clang byte for
+    byte on a 1-byte and a 12-byte struct): held as words of their
+    alignment, a field at its byte and a bit-field at its bit, read by
+    shifting and written read-modify-write. A union is built with exactly
+    one field; reading one is a `no_check` site, and Precog takes it as
+    anything its type holds. A bit-field's type is its N-bit range
+    (`uint8[bits 3]`, printed so), so a write is checked to fit, and a
+    written number that does not is refused as the oracle refuses it.
+  - **`C.libs = [cyjet::C.lib[name = "sqlite3"]]`**, named as the linker
+    names them, handed to lld as `-l`, with Homebrew's folders searched
+    after the SDK's (sqlite3 from the SDK and zstd from Homebrew linked and
+    called). A file name (`libsqlite3.dylib`) is refused.

@@ -842,3 +842,13 @@ coll_pointer_missing [fnv:f12e812a5c20b960] :: names no function
 collection_old_word [fnv:c622aae12d578b33] :: `collection.` is an old spelling: write `coll.fn` / `coll.handler`
 coll_handler_short_name [fnv:8853fb27f165af7f] :: a member writes the collection's name in front: `h.as_zero { … }`
 coll_mark_in_front [fnv:b901af5c66f743a6] :: a collection's `bare.` mark is written in its block
+bits_outside_layout [fnv:2bef197147f98ff3] :: it is for a `layout.C` struct's fields
+bits_too_wide [fnv:d8f68d98ca413a72] :: a `uint8` bit-field is 1 to 8 bits, not 9
+bits_write_too_big [fnv:2e2ab858533613a8] :: 8 does not fit
+c_fixed_shape_count [fnv:7f7b57792c6b9789] :: takes exactly 2 argument(s), as its shape says
+c_rename_needs_c [fnv:b6aecd3c65918281] :: says whose it is: `extern.C fn printf_count = C.printf
+c_str_make_needs_otherwise [fnv:8d7356383ea14f29] :: has_zero_byte
+c_str_unknown [fnv:277a6b68047c3a03] :: C strings are `C.str.read['p']` and `C.str.make[lend 's']`
+union_read_unchecked [fnv:dbe9fbc4c272acfe] :: reading 'n'.i is a `no_check` site
+union_two_fields [fnv:0ae2b27570af8ade] :: it holds one field at a time, so give exactly one
+c_lib_named_file [fnv:ab4a4d692af538d5] :: without `lib` or a file ending

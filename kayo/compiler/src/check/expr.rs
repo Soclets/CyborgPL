@@ -428,6 +428,15 @@ impl Checker {
                     return err(Diagnostic::error(format!("`{}` has no field `{}`: its fields are {}", info.name, field.name, info.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>().join(", "))).at(field.span));
                 };
                 let f = &info.fields[fi];
+                // A union holds one field at a time and only C knows which
+                // (owner, 2026-10-19): reading a field is on your word.
+                if info.union && !matches!(use_, PlaceUse::Write | PlaceUse::LendMut) && self.needs_mark(ctx) {
+                    let whose = match &base.kind {
+                        AK::Name(q) => format!("'{}'.{}", q.name, field.name),
+                        _ => format!("`.{}`", field.name),
+                    };
+                    return err(Diagnostic::error(format!("reading {} is a `no_check` site: a `layout.C union` holds one field at a time, and only C knows which — write `no_check` in front of the statement", whose)).at(e.span));
+                }
                 if use_ == PlaceUse::Write && f.immut {
                     return err(Diagnostic::error(format!("`{}` is an `immut` field of `{}` and cannot be written", field.name, info.name)).at(field.span));
                 }
@@ -640,6 +649,22 @@ impl Checker {
     pub fn check_stored_value(&self, ctx: &FnCtx, v: &Expr, target: &Ty) -> Result<()> {
         let t = self.resolve(target);
         let _ = ctx;
+        // A number written into a C bit-field fits its bits (owner,
+        // 2026-10-19); a written one is checked here, anything else where
+        // it lands.
+        if let Some(Bound::Int { lo, hi, said: crate::types::Said { bits: Some(n), .. } }) = t.bound() {
+            let written = match &v.kind {
+                K::Int(i) => Some(*i),
+                K::Unary { op: UnOp::Neg, expr } => match &expr.kind {
+                    K::Int(i) => Some(-*i),
+                    _ => None,
+                },
+                _ => None,
+            };
+            if let Some(x) = written.filter(|x| x < lo || x > hi) {
+                return err(Diagnostic::error(format!("{} does not fit a {}-bit field: `{}` holds {} to {}", x, n, self.spell(&t), lo, hi)).at(v.span));
+            }
+        }
         if let K::Read(place) = &v.kind {
             let pt = self.resolve(&place.ty);
             if pt.is_owned() {
@@ -2233,6 +2258,15 @@ impl Checker {
                 AArg::Pair(k, _) => return err(Diagnostic::error(format!("a struct is built by field name: `{}[{} = …]`", info.name, info.fields.first().map(|f| f.name.as_str()).unwrap_or("field"))).at(k.span)),
             }
         }
+        // A union is built from one field (owner, 2026-10-19); the others
+        // are left as nothing, and the code generator writes the one given.
+        if info.union {
+            if given.iter().filter(|g| g.is_some()).count() != 1 {
+                return err(Diagnostic::error(format!("`{}` is a `layout.C union`: it holds one field at a time, so give exactly one: `{}[{} = …]`", info.name, info.name, info.fields.first().map(|f| f.name.as_str()).unwrap_or("field"))).at(span));
+            }
+            let fields = given.into_iter().map(|g| g.unwrap_or(Arg::Value(Expr { kind: K::Nothing, ty: Ty::Nothing, span }))).collect();
+            return Ok(Expr { kind: K::Construct { id, fields }, ty: Ty::Struct { id, args: targs }, span });
+        }
         let missing: Vec<&str> = info.fields.iter().enumerate().filter(|(i, _)| given[*i].is_none()).map(|(_, f)| f.name.as_str()).collect();
         if !missing.is_empty() {
             return err(Diagnostic::error(format!("`{}` is missing {}: every field must be given — there are no zero values", info.name, missing.iter().map(|m| format!("`{}`", m)).collect::<Vec<_>>().join(", "))).at(span));
@@ -2978,6 +3012,11 @@ impl Checker {
             return err(Diagnostic::error(format!("a call into C is a no_check site: nothing about `{}` can be proven — write `no_check` in front of the statement", info.name)).at(span).fix(None, format!("!check … {}[…] …;", info.name)));
         }
         let flat = self.flatten_args(ctx, args, span)?;
+        // A fixed shape takes what it names, no more and no fewer (owner,
+        // 2026-10-19).
+        if !info.variadic && info.var_from.is_some() && flat.len() != info.params.len() {
+            return err(Diagnostic::error(format!("`{}` takes exactly {} argument(s), as its shape says, and {} {} given", info.name, info.params.len(), flat.len(), if flat.len() == 1 { "was" } else { "were" })).at(span));
+        }
         if !info.variadic && flat.len() != info.params.len() {
             return err(Diagnostic::error(format!("`{}` takes {} argument{}, and {} {} given", info.name, info.params.len(), if info.params.len() == 1 { "" } else { "s" }, flat.len(), if flat.len() == 1 { "was" } else { "were" })).at(span));
         }
@@ -2992,6 +3031,11 @@ impl Checker {
             if i < info.params.len() {
                 let (pname, pty) = info.params[i].clone();
                 hargs.push(self.c_argument(ctx, &e, &pty, &info.name, &pname)?);
+            } else if matches!(e.kind, AK::Verb { verb: Verb::Lend | Verb::LendMut, .. }) {
+                // A lent list or text among C's extras is a pointer to its
+                // first element (owner, 2026-10-19).
+                let to = Ty::Ptr { elem: Box::new(Ty::int(false, 8)), mutable: matches!(e.kind, AK::Verb { verb: Verb::LendMut, .. }) };
+                hargs.push(self.c_argument(ctx, &e, &to, &info.name, &format!("{}", i + 1))?);
             } else {
                 // C's own varargs: each extra argument must be C-shaped.
                 let v = self.expr(ctx, &e)?;
@@ -3603,6 +3647,10 @@ impl Checker {
             },
             ("char", [..]) => return err(Diagnostic::error(format!("`{}` does not exist: `char.code[…]`, `char.point.from_code[…]`, `char.byte.from_code[…]`", path.spelled())).at(span)),
             ("ptr", ["read"]) => BuiltinHead::B(Builtin::PtrRead),
+            // C strings (owner, 2026-10-19), C's own vocabulary under `C.`.
+            ("C", ["str", "read"]) => BuiltinHead::B(Builtin::CStrRead),
+            ("C", ["str", "make"]) => BuiltinHead::B(Builtin::CStrMake),
+            ("C", ["str", ..]) => return err(Diagnostic::error("C strings are `C.str.read['p']` and `C.str.make[lend 's']`: a C string read into a text, and a text made into one").at(span)),
             ("ptr", ["write"]) => BuiltinHead::B(Builtin::PtrWrite),
             ("ptr", ["at"]) => BuiltinHead::B(Builtin::PtrAt),
             ("ptr", ["is_null"]) => BuiltinHead::B(Builtin::PtrIsNull),
@@ -3917,6 +3965,45 @@ impl Checker {
                 fails.push(("not_a_char".into(), None));
                 (vec![Arg::Value(v)], Ty::Char(*unit))
             }
+            // A C string read up to its 0 byte into a text (owner,
+            // 2026-10-19): from a pointer C handed over, or a C string this
+            // program made (`lend 'cs'`). Fails `not_utf8`.
+            Builtin::CStrRead => {
+                arity(1, self)?;
+                let a = match &positional[0].kind {
+                    AK::Verb { .. } => self.lent_arg(ctx, positional[0], &name, false)?,
+                    _ => Arg::Value(self.expr(ctx, positional[0])?),
+                };
+                let at = self.resolve(&self.arg_type(&a));
+                let bytes = |t: &Ty| matches!(t.base(), Ty::Int(IntW::Fixed { bits: 8, .. }));
+                match at.base() {
+                    Ty::Ptr { elem, .. } if bytes(elem) => {}
+                    Ty::Seq { elem, .. } if bytes(elem) => {}
+                    other => return err(Diagnostic::error(format!("`C.str.read` reads bytes ending in a 0: a `ptr[uint8]` or a C string `C.str.make` made, and this is {}", crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                }
+                fails.push(("not_utf8".into(), None));
+                (vec![a], Ty::utf8())
+            }
+            // A text's bytes and a 0, what C reads (owner, 2026-10-19). A
+            // literal with no 0 byte cannot fail, so it needs no
+            // `otherwise`; anything else may hold one, and fails
+            // `has_zero_byte`.
+            Builtin::CStrMake => {
+                arity(1, self)?;
+                let a = match &positional[0].kind {
+                    AK::Verb { .. } => self.lent_arg(ctx, positional[0], &name, false)?,
+                    _ => Arg::Value(self.expr(ctx, positional[0])?),
+                };
+                let at = self.resolve(&self.arg_type(&a));
+                if !matches!(at.base(), Ty::Str(_)) {
+                    return err(Diagnostic::error(format!("`C.str.make` makes a C string of a text, and this is {}", crate::types::a_type(&self.spell(&at)))).at(positional[0].span));
+                }
+                let literal_without_zero = matches!(&a, Arg::Value(Expr { kind: K::Str(s), .. }) if !s.contains('\0'));
+                if !literal_without_zero {
+                    fails.push(("has_zero_byte".into(), None));
+                }
+                (vec![a], Ty::list(Ty::int(false, 8)))
+            }
             Builtin::PtrRead | Builtin::PtrWrite | Builtin::PtrAt | Builtin::PtrIsNull => {
                 match b {
                     Builtin::PtrRead => self.power_use(ctx, &["raw_memory", "read"], None, "reads raw memory (`ptr.read`)".into(), span),
@@ -4187,7 +4274,7 @@ impl Checker {
             Some(i) => StructId(i as u32),
             None => {
                 let id = StructId(self.items.structs.len() as u32);
-                self.items.structs.push(StructInfo { name: name.into(), path: name.into(), layout_c: false, opaque: false, fields: vec![FieldInfo { name: "key".into(), immut: true, ty: kt }, FieldInfo { name: "value".into(), immut: true, ty: vt }], blanks: Vec::new(), bounds: Vec::new(), span: Span::new(crate::source::FileId(0), 0, 0) });
+                self.items.structs.push(StructInfo { name: name.into(), path: name.into(), layout_c: false, opaque: false, fields: vec![FieldInfo { name: "key".into(), immut: true, ty: kt, bits: None }, FieldInfo { name: "value".into(), immut: true, ty: vt, bits: None }], union: false, blanks: Vec::new(), bounds: Vec::new(), span: Span::new(crate::source::FileId(0), 0, 0) });
                 id
             }
         };

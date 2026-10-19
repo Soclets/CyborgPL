@@ -156,6 +156,12 @@ pub struct ExternInfo {
     pub name: String,
     pub params: Vec<(String, Ty)>,
     pub variadic: bool,
+    /// Where C's `...` begins: the open form takes any extras from here,
+    /// a fixed shape (owner, 2026-10-19) exactly the typed ones it names.
+    pub var_from: Option<usize>,
+    /// The C function's own name, when it is called something else here
+    /// (`= C.printf`).
+    pub c_name: Option<String>,
     pub ret: Ty,
     /// A ranged return: fails `out_of_range` at the door.
     pub ranged: bool,
@@ -190,6 +196,8 @@ pub struct KitReport {
     pub default_target: Option<String>,
     /// Each target's `table_bytes`, where written.
     pub table_bytes: Vec<(String, u64)>,
+    /// `C.libs`: the C libraries it links.
+    pub c_libs: Vec<String>,
 }
 
 #[derive(Debug, Default)]
@@ -428,19 +436,19 @@ impl Items {
             ItemKind::Op(op) => {
                 let id = FnId(self.fns.len() as u32);
                 self.fns.push(placeholder_fn(&op.op.name, m, vis, item.span, op.op.span));
-                let decl = ast::FnDecl { name: op.op.clone(), announce: op.announce.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false, owner: None, table_bytes: None };
+                let decl = ast::FnDecl { name: op.op.clone(), announce: op.announce.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false, owner: None, table_bytes: None, c_name: None };
                 self.pending_fns.push((id, decl, m, Some(op.op.name.clone())));
                 self.ops.entry(op.op.name.clone()).or_default().push(id);
             }
             ItemKind::ExternFn(decl) => {
                 let id = crate::hir::ExternId(self.externs.len() as u32);
-                self.externs.push(ExternInfo { name: decl.name.name.clone(), params: Vec::new(), variadic: false, ret: Ty::Nothing, ranged: false, is_let: false, mutable: false, span: item.span });
+                self.externs.push(ExternInfo { name: decl.name.name.clone(), params: Vec::new(), variadic: false, var_from: None, c_name: decl.c_name.clone(), ret: Ty::Nothing, ranged: false, is_let: false, mutable: false, span: item.span });
                 self.declare(m, &decl.name.name, ItemRef::ExternFn(id), vis, decl.name.span)?;
                 self.pending_externs.push((id, decl.clone(), m));
             }
             ItemKind::ExternLet { mutable, name, ty } => {
                 let id = crate::hir::ExternId(self.externs.len() as u32);
-                self.externs.push(ExternInfo { name: name.name.clone(), params: Vec::new(), variadic: false, ret: Ty::Nothing, ranged: false, is_let: true, mutable: *mutable, span: item.span });
+                self.externs.push(ExternInfo { name: name.name.clone(), params: Vec::new(), variadic: false, var_from: None, c_name: None, ret: Ty::Nothing, ranged: false, is_let: true, mutable: *mutable, span: item.span });
                 // An extern variable is a value: it lives in the value namespace with the consts.
                 let module = &mut self.modules[m.0 as usize];
                 if module.consts.contains_key(&name.name) {
@@ -454,7 +462,7 @@ impl Items {
                     return err(Diagnostic::error("`optional` is the base's: every program has `enum optional <T: any> { value: <T>, none }`; name this struct something else").at(decl.name.span));
                 }
                 let id = StructId(self.structs.len() as u32);
-                self.structs.push(StructInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), layout_c: decl.layout_c, opaque: decl.opaque, fields: Vec::new(), blanks: Vec::new(), bounds: Vec::new(), span: decl.name.span });
+                self.structs.push(StructInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), layout_c: decl.layout_c, opaque: decl.opaque, union: decl.union, fields: Vec::new(), blanks: Vec::new(), bounds: Vec::new(), span: decl.name.span });
                 self.declare(m, &decl.name.name, ItemRef::Struct(id), vis, decl.name.span)?;
                 self.pending_structs.push((id, decl.clone(), m));
             }
@@ -514,7 +522,35 @@ impl Items {
             let mut blanks = self.announced(&decl.announce, *m)?;
             let mut fields = Vec::new();
             for f in &decl.fields {
-                let ty = self.resolve_type(&f.ty, *m, &mut blanks, true)?;
+                // A C bit-field (owner, 2026-10-19): a whole number or a
+                // `bool`, 1 to its type's own bits wide, holding what that
+                // many bits hold.
+                let (ty, bits) = match &f.ty.kind {
+                    ast::TypeKind::Bits { inner, bits, span } if decl.layout_c => {
+                        let t = self.resolve_type(inner, *m, &mut blanks, true)?;
+                        let spelled = spell(&t, self);
+                        let width = match t.base() {
+                            Ty::Int(IntW::Fixed { bits, .. }) => *bits,
+                            Ty::Bool => 1,
+                            _ => return err(Diagnostic::error(format!("a bit-field is a whole number or a `bool`, and `{}` is neither", spelled)).at(f.ty.span)),
+                        };
+                        if t.bound().is_some() {
+                            return err(Diagnostic::error(format!("a bit-field's range is its bits: write `{}[bits {}]` alone", spell(&t.base().clone(), self), bits)).at(f.ty.span));
+                        }
+                        if *bits == 0 || *bits > width {
+                            return err(Diagnostic::error(format!("a `{}` bit-field is 1 to {} bits, not {}", spelled, width, bits)).at(*span));
+                        }
+                        let ty = match t.base() {
+                            Ty::Int(IntW::Fixed { signed, .. }) => {
+                                let (lo, hi) = if *signed { (-(1i128 << (bits - 1)), (1i128 << (bits - 1)) - 1) } else { (0, (1i128 << bits) - 1) };
+                                if *bits == width { t.clone() } else { Ty::Bounded { inner: Box::new(t.clone()), bound: Bound::Int { lo, hi, said: Said { lo: true, hi: true, bits: Some(*bits) } } } }
+                            }
+                            _ => t.clone(),
+                        };
+                        (ty, Some(*bits))
+                    }
+                    _ => (self.resolve_type(&f.ty, *m, &mut blanks, true)?, None),
+                };
                 if fields.iter().any(|x: &FieldInfo| x.name == f.name.name) {
                     return err(Diagnostic::error(format!("field `{}` is declared twice in `{}`", f.name.name, decl.name.name)).at(f.name.span));
                 }
@@ -523,7 +559,7 @@ impl Items {
                 if decl.layout_c && !ty.base().is_c_shaped(&self.structs, &self.enums) {
                     return err(Diagnostic::error(format!("field `{}` of the `layout.C` struct `{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and other `layout.C` structs and enums can cross to C", f.name.name, decl.name.name)).at(f.ty.span));
                 }
-                fields.push(FieldInfo { name: f.name.name.clone(), immut: f.immut, ty });
+                fields.push(FieldInfo { name: f.name.name.clone(), immut: f.immut, ty, bits });
             }
             let s = &mut self.structs[id.0 as usize];
             s.fields = fields;
@@ -677,11 +713,16 @@ impl Items {
         for (id, decl, m) in &externs {
             let mut params = Vec::new();
             let mut variadic = false;
+            let mut var_from = None;
             let mut blanks = Vec::new();
             for p in &decl.params {
                 if p.variadic {
-                    variadic = true;
-                    continue;
+                    var_from = Some(params.len());
+                    // The open form: any extras, untyped.
+                    if p.ty.is_none() {
+                        variadic = true;
+                        continue;
+                    }
                 }
                 let Some(t) = &p.ty else {
                     return err(Diagnostic::error(format!("the `extern.C fn {}` parameter '{}' needs a type: C's signature is written in full", decl.name.name, p.name.name)).at(p.span));
@@ -722,6 +763,7 @@ impl Items {
             let e = &mut self.externs[id.0 as usize];
             e.params = params;
             e.variadic = variadic;
+            e.var_from = var_from;
             e.ret = ret;
             e.ranged = ranged;
         }
@@ -1221,6 +1263,10 @@ impl Items {
                 }
                 Ok(Ty::Fn(Box::new(FnTy { params: ps, ret: r, fails: fs, owning: false })))
             }
+            ast::TypeKind::Bits { inner, bits, span } => {
+                let inner_ty = self.resolve_type(inner, m, blanks, allow_blanks)?;
+                err(Diagnostic::error(format!("`{}[bits {}]` is a C bit-field: it is for a `layout.C` struct's fields, where C packs them", spell(&inner_ty, self), bits)).at(*span))
+            }
             ast::TypeKind::Bound { inner, lo, hi, unit, span, old } => {
                 let base = self.resolve_type(inner, m, blanks, allow_blanks)?;
                 if *old {
@@ -1275,7 +1321,7 @@ impl Items {
                 if l > h {
                     return err(Diagnostic::error(format!("the low bound comes first: `[min {}, max {}]`", h, l)).at(span));
                 }
-                let said = Said { lo: !left_out(lo, "min"), hi: !left_out(hi, "max") };
+                let said = Said { lo: !left_out(lo, "min"), hi: !left_out(hi, "max"), bits: None };
                 if let Ty::Int(IntW::Fixed { signed, bits }) = &base {
                     let (min, max) = int_range(*signed, *bits);
                     // A bound is a value of its type (owner, 2026-09-23):
@@ -1330,7 +1376,7 @@ impl Items {
                 if l.parse::<f64>().unwrap_or(0.0) > h.parse::<f64>().unwrap_or(0.0) {
                     return err(Diagnostic::error(format!("the low bound comes first: `[min {}, max {}]`", h, l)).at(span));
                 }
-                Bound::Bin { lo: l, hi: h, said: Said { lo: !left_out(lo, "min"), hi: !left_out(hi, "max") } }
+                Bound::Bin { lo: l, hi: h, said: Said { lo: !left_out(lo, "min"), hi: !left_out(hi, "max"), bits: None } }
             }
             // With `bin`'s rules (owner, 2026-09-29): the bounds are
             // written with a point, and each is a value of the width.

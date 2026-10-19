@@ -2737,6 +2737,8 @@ fn builtin_op(b: &Builtin) -> Op {
         Builtin::MachineHas(f) => Op::MachineHas(*f),
         Builtin::CharFromCode(u) => Op::CharFromCode(*u),
         Builtin::PtrRead => Op::PtrRead,
+        Builtin::CStrRead => Op::CStrRead,
+        Builtin::CStrMake => Op::CStrMake,
         Builtin::PtrWrite => Op::PtrWrite,
         Builtin::PtrAt => Op::PtrAt,
         Builtin::PtrIsNull => Op::PtrIsNull,

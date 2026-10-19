@@ -112,11 +112,13 @@ pub enum Bound {
 pub struct Said {
     pub lo: bool,
     pub hi: bool,
+    /// A C bit-field's width, `uint8[bits 3]` (owner, 2026-10-19).
+    pub bits: Option<u32>,
 }
 
 impl Default for Said {
     fn default() -> Self {
-        Said { lo: true, hi: true }
+        Said { lo: true, hi: true, bits: None }
     }
 }
 
@@ -358,6 +360,9 @@ pub struct FieldInfo {
     pub name: String,
     pub immut: bool,
     pub ty: Ty,
+    /// A C bit-field's width (owner, 2026-10-19): its type holds what
+    /// that many bits hold, and it sits packed as clang packs it.
+    pub bits: Option<u32>,
 }
 
 #[derive(Debug, Clone)]
@@ -367,6 +372,8 @@ pub struct StructInfo {
     pub layout_c: bool,
     /// A C struct only pointed at (owner, 2026-10-10).
     pub opaque: bool,
+    /// `layout.C union` (owner, 2026-10-19).
+    pub union: bool,
     pub fields: Vec<FieldInfo>,
     /// The generic blanks, in order of first appearance.
     pub blanks: Vec<String>,
@@ -517,6 +524,7 @@ impl<'a> fmt::Display for TySpelling<'a> {
                     (None, None) => String::new(),
                 };
                 let text = match bound {
+                    Bound::Int { said: Said { bits: Some(n), .. }, .. } => format!("[bits {}]", n),
                     Bound::Int { lo, hi, said } => labelled(said.lo.then(|| lo.to_string()), said.hi.then(|| hi.to_string()), ""),
                     Bound::Bin { lo, hi, said } => labelled(said.lo.then(|| lo.clone()), said.hi.then(|| hi.clone()), ""),
                     Bound::Len { lo, hi, unit } => {

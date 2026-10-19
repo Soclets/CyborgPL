@@ -9,6 +9,17 @@ use std::cell::RefCell;
 thread_local! {
     static TARGET: RefCell<Option<String>> = const { RefCell::new(None) };
     static LAYOUT: RefCell<Option<(std::path::PathBuf, String)>> = const { RefCell::new(None) };
+    static C_LIBS: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
+}
+
+/// The C libraries the program's kits list (owner, 2026-10-19:
+/// `C.libs`), named as the linker names them, for lld.
+pub fn set_c_libs(libs: Vec<String>) {
+    C_LIBS.with(|c| *c.borrow_mut() = libs);
+}
+
+pub fn c_libs() -> Vec<String> {
+    C_LIBS.with(|c| c.borrow().clone())
 }
 
 /// The linker script a no-OS Neuron brings (owner, 2026-10-09: "`c`

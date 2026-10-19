@@ -38,6 +38,7 @@ pub struct Out {
 #[cfg(not(target_os = "none"))]
 extern "C" {
     fn write(fd: i32, buf: *const u8, count: usize) -> isize;
+    fn fflush(stream: *mut u8) -> i32;
 }
 
 /// A lent `array[uint8]` as a function receives one.
@@ -72,6 +73,10 @@ pub unsafe extern "C" fn cyborg_out_flush(o: *mut Out) {
         // A file descriptor is the OS's; with none there is never one.
         #[cfg(not(target_os = "none"))]
         0 => {
+            // What C's own stdio holds goes first (`printf` through
+            // `= C.printf`, owner 2026-10-19): the output reads in the
+            // order the program wrote it.
+            fflush(core::ptr::null_mut());
             let mut done = 0;
             while done < n {
                 let w = write((*o).to as i32, p.add(done), n - done);

@@ -238,6 +238,9 @@ pub enum Builtin {
     MachineHas(u32),
     CharFromCode(crate::types::Unit),
     PtrRead,
+    /// `C.str.read` and `C.str.make` (owner, 2026-10-19).
+    CStrRead,
+    CStrMake,
     PtrWrite,
     PtrAt,
     PtrIsNull,

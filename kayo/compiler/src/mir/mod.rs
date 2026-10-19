@@ -180,6 +180,10 @@ pub enum Op {
     MachineHas(u32),
     CharFromCode(Unit),
     PtrRead,
+    /// `C.str.read`: a C string into a text, or `not_utf8`.
+    CStrRead,
+    /// `C.str.make`: a text's bytes and a 0, or `has_zero_byte`.
+    CStrMake,
     PtrWrite,
     PtrAt,
     PtrIsNull,

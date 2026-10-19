@@ -1295,7 +1295,16 @@ impl Precog {
         // Reaching into a value: what is known about the part, when the
         // whole says something about it.
         let mut d = env.get(&p.local).cloned().unwrap_or_else(|| Domain::of_ty(&self.local_ty(f, p.local), &self.prog().items));
+        let mut ty = self.local_ty(f, p.local);
         for pr in &p.proj {
+            // A union's field holds whatever the bytes say as that field's
+            // type (owner, 2026-10-19): only C knows which field was written.
+            let union = matches!(ty.base(), Ty::Struct { id, .. } if self.prog().items.structs[id.0 as usize].union);
+            ty = crate::mir::build::projected_ty(&ty, std::slice::from_ref(pr), &self.prog().items);
+            if union {
+                d = Domain::Any;
+                continue;
+            }
             d = match (pr, &d) {
                 (Proj::Field(i), Domain::Struct(fields)) => fields.get(*i).cloned().unwrap_or(Domain::Any),
                 (Proj::Index(_), Domain::Seq { elem, .. }) => (**elem).clone(),

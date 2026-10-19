@@ -46,6 +46,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             "cyborg_str_is_ascii" => self.ctx.i8_type().fn_type(&[p.into(), w.into()], false),
             "cyborg_bin_to_text_useful" => self.ctx.void_type().fn_type(&[p.into(), self.ctx.f64_type().into(), self.ctx.i32_type().into()], false),
             "cyborg_str_from_bytes" => self.ctx.i8_type().fn_type(&[p.into(), p.into(), w.into()], false),
+            "cyborg_cstr_make" => self.ctx.i8_type().fn_type(&[p.into(), p.into(), w.into()], false),
+            "cyborg_cstr_read" => self.ctx.i8_type().fn_type(&[p.into(), p.into()], false),
             "cyborg_str_decode_points" | "cyborg_str_split_graphemes" => w.fn_type(&[p.into(), w.into(), p.into()], false),
             "cyborg_parse_bin" => self.ctx.i8_type().fn_type(&[p.into(), w.into(), self.ctx.i32_type().into(), p.into()], false),
             "cyborg_char_to_text" => self.ctx.void_type().fn_type(&[p.into(), self.ctx.i32_type().into()], false),
@@ -1287,7 +1289,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             Ty::Struct { id, args } => {
                 let info = self.p.items.structs[id.0 as usize].clone();
-                if !info.layout_c {
+                // A union's fields are read on your word, and a bit-field
+                // holds only what its bits hold: nothing to check at the door.
+                if !info.layout_c || info.union || info.fields.iter().any(|f| f.bits.is_some()) {
                     return Some(kept);
                 }
                 let sv = v.into_struct_value();
