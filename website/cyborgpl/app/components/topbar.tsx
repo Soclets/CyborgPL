@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import mark from "../assets/mark-white.svg?url";
-import { NAV, PRIMARY, SECONDARY, type NavLink } from "./nav";
+import { NAV, PRIMARY, type NavLink } from "./nav";
 
 // The topbar (owner, 2026-10-19, after x.ai's: "there's also a smooth animation when you hover
 // slide over the buttons"). One highlight glides from item to item under the pointer (Motion's
@@ -159,9 +159,6 @@ export function Topbar() {
       </nav>
 
       <div className="topbar-actions">
-        <motion.span className="pressable" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} transition={glide}>
-          <Link className="button-dark" to={SECONDARY.to}>{SECONDARY.label}</Link>
-        </motion.span>
         <motion.div className="split" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} transition={glide}>
           <Link className="split-main" to={PRIMARY.to}>{PRIMARY.label}</Link>
           <button className="split-more" aria-label="Downloads" aria-expanded={open === "primary"} aria-haspopup="menu" onClick={() => setOpen(open === "primary" ? null : "primary")}>
