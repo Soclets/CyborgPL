@@ -781,7 +781,9 @@ impl Parser {
                 Tok::Word(w) if w == "collection" => return self.err(crate::spellings::message(crate::spellings::old("collection."))),
                 Tok::Word(w) if w == "coll" => {
                     match (self.peek_at(1).clone(), self.peek_at(2).clone()) {
-                        (Tok::Dot, Tok::Word(k)) if k == "fn" => self.expand_collection(vis.clone(), pending_bare.map(|(m, _)| m))?,
+                        // the collection's one `bare.` mark is written in the block (collections.md, owner 2026-10-13)
+                        (Tok::Dot, Tok::Word(k)) if k == "fn" && pending_bare.is_some() => return self.err("a collection's `bare.` mark is written in its block: `pub coll.fn area { bare.never; … }`"),
+                        (Tok::Dot, Tok::Word(k)) if k == "fn" => self.expand_collection(vis.clone(), None)?,
                         (Tok::Dot, Tok::Word(k)) if k == "handler" => {
                             if vis != Vis::Private { return self.err("whether a `coll.handler` can be `pub` is not decided yet (2026-10-13)"); }
                             if pending_bare.is_some() { return self.err("a `bare.` mark is for what is `pub`, and a `coll.handler` is not `pub`"); }

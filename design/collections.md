@@ -53,7 +53,8 @@ naming `cum.quick`. Generated members are written the same way.
 A member may point at a function written elsewhere in the kit, so a kit's `kit.cy` can be its front door:
 
 ```
-pub bare.never coll.fn area {
+pub coll.fn area {
+    bare.never;
     area ['w': int64, 'h': int64] -> int64 { return 'w' x 'h'; }
     area.square = shapes.square.area;           # body in shapes/square.cy
     area.triangle = shapes.triangle.area;
@@ -68,7 +69,7 @@ its new name, with the collection's visibility. `examples/coll_front_door/`. The
 
 ## Who sees it
 
-- A collection is **private unless `pub collection`**, as everything else
+- A collection is **private unless `pub coll`**, as everything else
   is (owner: "(a)").
 - A `pub` collection makes every member public, under **one `bare.` mark**
   for them all, written in the block: `bare.never;` (first, by habit, as in
