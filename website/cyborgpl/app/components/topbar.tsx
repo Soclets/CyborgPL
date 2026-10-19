@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
 import mark from "../assets/mark-white.svg?url";
 import { NAV, PRIMARY, SECONDARY, type NavLink } from "./nav";
@@ -32,6 +32,60 @@ function Menu({ links, onPick, align = "left" }: { links: NavLink[]; onPick: () 
   );
 }
 
+// The menus share one panel (owner, 2026-10-19: "The dropdown things could be warped into the next
+// thing in topbar"). Moving from one item to the next, the panel glides under the new item and
+// takes its size, while the old links slide out and the new ones slide in, the way the pointer went.
+function SharedMenu({ index, from, x, onPick }: { index: number; from: number; x: number; onPick: () => void }) {
+  const item = NAV[index]!;
+  const content = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = content.current;
+    if (!el) return;
+    const measure = () => setSize({ w: el.offsetWidth, h: el.offsetHeight });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [index]);
+  const dir = Math.sign(index - from) || 0;
+  return (
+    <motion.div
+      className="menu menu-shared"
+      role="menu"
+      initial={{ opacity: 0, y: -6, scale: 0.98, x }}
+      animate={{ opacity: 1, y: 0, scale: 1, x, ...(size ? { width: size.w, height: size.h } : {}) }}
+      exit={{ opacity: 0, y: -4, scale: 0.98, transition: { duration: 0.14 } }}
+      transition={{ ...glide, opacity: { duration: 0.16 } }}
+    >
+      <AnimatePresence initial={false} mode="popLayout" custom={dir}>
+        <motion.div
+          key={item.label}
+          ref={content}
+          className="menu-content"
+          custom={dir}
+          variants={{
+            enter: (d: number) => ({ opacity: 0, x: d * 48 }),
+            center: { opacity: 1, x: 0 },
+            leave: (d: number) => ({ opacity: 0, x: d * -48 }),
+          }}
+          initial="enter"
+          animate="center"
+          exit="leave"
+          transition={{ ...glide, opacity: { duration: 0.18 } }}
+        >
+          {item.menu!.map((l) => (
+            <Link key={l.to + l.label} className="menu-link" to={l.to} role="menuitem" onClick={onPick}>
+              <span className="menu-label">{l.label}</span>
+              {l.note && <span className="menu-note">{l.note}</span>}
+            </Link>
+          ))}
+        </motion.div>
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 export function Topbar() {
   // One highlight: it sits under the item last pointed at, slides to the next (layoutId), and
   // fades out, staying put, when the pointer leaves the bar.
@@ -40,6 +94,10 @@ export function Topbar() {
   const [open, setOpen] = useState<number | "primary" | null>(null);
   const [sheet, setSheet] = useState(false);
   const bar = useRef<HTMLElement>(null);
+  const items = useRef<(HTMLDivElement | null)[]>([]);
+  const [from, setFrom] = useState(0);
+  // Which menu the panel is coming from, so its contents slide the way the pointer moved.
+  const openMenu = (i: number) => { setFrom(typeof open === "number" ? open : i); setOpen(i); };
   const closeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const { pathname } = useLocation();
 
@@ -56,7 +114,7 @@ export function Topbar() {
 
   // Hovering opens a menu at once and leaving closes it after a beat, so the pointer can travel
   // from the item down into its menu.
-  const enter = (i: number) => { clearTimeout(closeTimer.current); setHover(i); setLast(i); if (NAV[i]!.menu) setOpen(i); else setOpen(null); };
+  const enter = (i: number) => { clearTimeout(closeTimer.current); setHover(i); setLast(i); if (NAV[i]!.menu) openMenu(i); else setOpen(null); };
   const leave = () => { setHover(null); closeTimer.current = setTimeout(() => setOpen((o) => (o === "primary" ? o : null)), 140); };
 
   return (
@@ -76,16 +134,20 @@ export function Topbar() {
             </>
           );
           return (
-            <div key={item.label} className="nav-item" onPointerEnter={() => enter(i)}>
+            <div key={item.label} className="nav-item" ref={(el) => { items.current[i] = el; }} onPointerEnter={() => enter(i)}>
               {item.menu ? (
-                <button className="nav-button" aria-expanded={isOpen} aria-haspopup="menu" onClick={() => setOpen(isOpen ? null : i)} onFocus={() => { setHover(i); setLast(i); }} onBlur={() => setHover(null)}>{inner}</button>
+                <button className="nav-button" aria-expanded={isOpen} aria-haspopup="menu" onClick={() => (isOpen ? setOpen(null) : openMenu(i))} onFocus={() => { setHover(i); setLast(i); }} onBlur={() => setHover(null)}>{inner}</button>
               ) : (
                 <Link className="nav-button" to={item.to!} onFocus={() => { setHover(i); setLast(i); }} onBlur={() => setHover(null)}>{inner}</Link>
               )}
-              <AnimatePresence>{isOpen && item.menu && <Menu links={item.menu} onPick={() => setOpen(null)} />}</AnimatePresence>
             </div>
           );
         })}
+        <AnimatePresence>
+          {typeof open === "number" && NAV[open]!.menu && (
+            <SharedMenu index={open} from={from} x={items.current[open]?.offsetLeft ?? 0} onPick={() => setOpen(null)} />
+          )}
+        </AnimatePresence>
       </nav>
 
       <div className="topbar-actions">
