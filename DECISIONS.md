@@ -34,6 +34,12 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — If CyborgPL ever has a stable edition, its compiler is `OKAY\n` (owner)
+
+The owner: "IF CyborgPL ever has a "stable" edition, its compiler would be called `OKAY\n`" (`KAYO\n`'s letters
+rearranged). A name kept for later, not a plan: no stable edition is planned, and nothing about what "stable"
+would mean is decided.
+
 ### 2026-10-19 — The build report sits beside the program: `build/fib.report.md` (owner: a)
 
 Offered (a) beside the built program, named after it, as the debug info `fib.dSYM` already is (recommended), (b) a
