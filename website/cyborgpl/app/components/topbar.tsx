@@ -81,12 +81,12 @@ function SharedMenu({ index, from, x, onPick }: { index: number; from: number; x
           exit="leave"
           transition={{ ...glide, opacity: { duration: 0.18 } }}
         >
-          {item.menu!.map((l) => (
-            <Link key={l.to + l.label} className="menu-link" to={l.to} role="menuitem" onClick={onPick}>
-              <span className="menu-label">{l.label}</span>
-              {l.note && <span className="menu-note">{l.note}</span>}
-            </Link>
-          ))}
+          {item.menu!.map((l) => {
+            const inner = <><span className="menu-label">{l.label}{l.to.startsWith("https://") && <span className="menu-out" aria-hidden="true"> ↗</span>}</span>{l.note && <span className="menu-note">{l.note}</span>}</>;
+            return l.to.startsWith("https://")
+              ? <a key={l.to + l.label} className="menu-link" href={l.to} target="_blank" rel="noopener noreferrer" role="menuitem" onClick={onPick}>{inner}</a>
+              : <Link key={l.to + l.label} className="menu-link" to={l.to} role="menuitem" onClick={onPick}>{inner}</Link>;
+          })}
         </motion.div>
       </AnimatePresence>
     </motion.div>
@@ -182,7 +182,9 @@ export function Topbar() {
                 {item.menu ? (
                   <>
                     <p className="sheet-heading">{item.label}</p>
-                    {item.menu.map((l) => <Link key={l.label} className="sheet-link" to={l.to}>{l.label}</Link>)}
+                    {item.menu.map((l) => (l.to.startsWith("https://")
+                      ? <a key={l.label} className="sheet-link" href={l.to} target="_blank" rel="noopener noreferrer">{l.label} ↗</a>
+                      : <Link key={l.label} className="sheet-link" to={l.to}>{l.label}</Link>))}
                   </>
                 ) : (
                   <Link className="sheet-link sheet-top" to={item.to!}>{item.label}</Link>

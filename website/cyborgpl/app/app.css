@@ -79,6 +79,7 @@ html.ready .hero-underline::after { animation: draw .7s cubic-bezier(.6, 0, .2, 
 .menu-link:hover, .menu-link:focus-visible { background: rgba(255, 255, 255, .07); outline: none; }
 .menu-label { font-size: 15px; font-weight: 500; }
 .menu-note { font-size: 13px; color: rgba(255, 255, 255, .55); }
+.menu-out { color: rgba(255, 255, 255, .5); font-weight: 400; }
 
 .topbar-actions { position: relative; display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .button-dark { display: inline-flex; align-items: center; padding: 12px 22px; border-radius: 999px; background: #1f1f1f; color: var(--ink); font-size: 16px; text-decoration: none; transition: background .15s; }
