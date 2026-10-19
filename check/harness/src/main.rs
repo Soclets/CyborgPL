@@ -128,6 +128,7 @@ impl Args {
             reborrows: !avoid.contains("reborrows"),
             bool_lists: !avoid.contains("bool-lists"),
             tables: !avoid.contains("tables"),
+            collections: !avoid.contains("collections"),
             typed_literals: !avoid.contains("typed-literals"),
             std_all: self.flags.contains_key("std-all"),
         }

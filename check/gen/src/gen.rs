@@ -160,11 +160,15 @@ pub struct Config {
     /// `table_bytes` limit, called over many arguments and under `no_cheat`.
     /// Compared with KAYO_TABLES=0 by `check recref`.
     pub tables: bool,
+    /// A `coll.fn` (own function, presets, a member with its body, a member
+    /// pointing at a function written elsewhere) and a `coll.handler` used
+    /// through `otherwise` (owner, 2026-10-19; oracle 8ae7abd3, kayo 3776553e).
+    pub collections: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: false, bool_lists: true, tables: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: false, bool_lists: true, tables: true, collections: true }
     }
 }
 
@@ -407,6 +411,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let call = g.mutual_pair();
         main.push(Stmt::Src(call));
     }
+    if g.cfg.collections && g.rng.chance(12) {
+        let lines = g.collection();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
     if g.cfg.tables && g.rng.chance(15) {
         let lines = g.table_fn();
         main.extend(lines.into_iter().map(Stmt::Src));
@@ -429,6 +437,43 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
 }
 
 impl Gen {
+    /// A `coll.fn` with its own function, two presets, a member with its own
+    /// body and one pointing at a function written elsewhere, and a fallible
+    /// function with a `coll.handler` of two members, used through
+    /// `otherwise` in functions whose `return` the arms take. The MAIN lines
+    /// calling every member are returned; compared between the engines only.
+    fn collection(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        let (c, h, hf, help) = (format!("cf{id}"), format!("hh{id}"), format!("hf{id}"), format!("help{id}"));
+        let (a, m1, d) = (self.rng.range(2, 13), self.rng.range(2, 97), self.rng.range(2, 9));
+        let (k1, mm1, mm2) = (self.rng.range(-9, 9), self.rng.range(1, 97), self.rng.range(1, 97));
+        self.extra_fns.push(format!("fn {help} ['x': int32] -> int32 {{\n    return ('x' mod.floor {m1}) + {a};\n}}"));
+        self.extra_fns.push(format!(
+            "coll.fn {c} {{\n    {c} ['x': int32, 'k': int32, 'm': int32[min 1, max 97]] -> int32 {{ return ('x' x 'k') mod.floor 'm'; }}\n    {c}.p1 ['k' = {}, 'm' = {mm1}];\n    {c}.p2 ['m' = {mm2}];\n    {c}.flip ['x': int32] -> int32 {{ return 0 - ('x' mod.floor {m1}); }}\n    {c}.other = {help};\n}}",
+            if k1 < 0 { format!("({k1})") } else { k1.to_string() }
+        ));
+        self.extra_fns.push(format!(
+            "fn {hf} ['n': int32] -> int32 or fail[odd, negative: int32] {{\n    if 'n' < 0 {{ fail negative['n']; }}\n    if ('n' mod.floor {d}) not_equal 0 {{ fail odd; }}\n    return 'n' div.floor {d};\n}}"
+        ));
+        let (z1, z2) = (self.rng.range(-5, 5), self.rng.range(-5, 5));
+        let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
+        self.extra_fns.push(format!(
+            "coll.handler {h} {{\n    {h}.as_a {{\n        odd {{ return {}; }}\n        negative 'v' {{ return 'v'; }}\n    }}\n    {h}.as_b {{\n        odd {{ return {}; }}\n        negative 'v' {{ return 0 - 'v'; }}\n    }}\n}}",
+            lit(z1), lit(z2)
+        ));
+        self.extra_fns.push(format!("fn use_a{id} ['n': int32] -> int32 {{\n    let 'h' := {hf}['n'] otherwise {h}.as_a;\n    return 'h' + 100;\n}}"));
+        self.extra_fns.push(format!("fn use_b{id} ['n': int32] -> int32 {{\n    let 'h' := {hf}['n'] otherwise {h}.as_b;\n    return 'h' + 200;\n}}"));
+        let mut r = |lo: i128, hi: i128| lit(self.rng.range(lo, hi));
+        let (x1, k, mm, x2, x3, x4, x5, x6) = (r(-500, 500), r(-20, 20), r(1, 97), r(-500, 500), r(-500, 500), r(-500, 500), r(-500, 500), r(-50, 50));
+        let (n1, n2, n3) = (r(-30, 30), r(-30, 30), r(-30, 30));
+        vec![
+            format!("std::print.useful[{c}[{x1}, {k}, {mm}], \" \", {c}.p1[{x2}], \" \", {c}.p2[{x3}, {k}], \" \", {c}.flip[{x4}], \" \", {c}.other[{x5}], \" \", {c}.other[{x6}], newln];"),
+            format!("std::print.useful[use_a{id}[{n1}], \" \", use_a{id}[{n2}], \" \", use_b{id}[{n3}], \" \", use_b{id}[{n1}], newln];"),
+        ]
+    }
+
     /// A pure function of one small whole-number parameter, sometimes
     /// recursive down a range-typed counter and sometimes marked with a
     /// `table_bytes` limit (owner, 2026-10-19), and the MAIN lines that call
