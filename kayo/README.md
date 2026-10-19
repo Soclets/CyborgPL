@@ -864,3 +864,15 @@ Dated, with the alternative, so each can become a question later.
   entry, so its work is neither folded, dropped, nor shared with a
   look-alike call, while inlining stays. Precog folds nothing in any of
   them. Beside `check` / `no_check` it is refused, the order not decided.
+- **2026-10-19 — A `list[bool]` held as bits** (owner, 2026-10-18: "Pack
+  a `list[bool]` into bits"). `mir::bits` finds each owned `list[bool]` a
+  function makes with `list.fill` and then only reads and writes by
+  position, asks the length of, and drops; anything else (a call, a lend, a
+  copy, an append, a walk, a capture, a return) keeps it a byte an element.
+  Such a list is a byte for every eight elements (`codegen/bits.rs`), its
+  length and capacity still counted in elements; a write sets or clears its
+  own bit, and inside a parallel `for`'s slices, where the slice beside it
+  may hold the same byte, it is one atomic `or` or `and` (two for a value
+  not known as written) and a read is an atomic load. `KAYO_BITS=0` turns it
+  off to compare. bench sieve to 200,000,000: 192 MB to 25 MB, 0.49 s to
+  0.35 s on 3 threads, 0.77 s to 0.62 s on 1.

@@ -15,6 +15,7 @@
 //! which is what makes the reuse key in `precog.md` hash canonical MIR
 //! without a comment invalidating every proof.
 
+pub mod bits;
 pub mod borrows;
 pub mod build;
 pub mod channels;

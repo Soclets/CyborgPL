@@ -38,6 +38,7 @@ use crate::mir::*;
 use crate::source::SourceMap;
 use crate::types::{BinW, IntW, Ty};
 
+mod bits;
 mod cabi;
 mod deci;
 mod heap;
@@ -88,7 +89,7 @@ pub fn lower_for<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, nam
         }
         Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
     };
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, const_arrays: HashMap::new(), op_sites: Vec::new(), par: crate::par::plan(p), par_child: None, nocheat: nocheat_blocks(p) };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, const_arrays: HashMap::new(), op_sites: Vec::new(), par: crate::par::plan(p), par_child: None, nocheat: nocheat_blocks(p), bits: crate::mir::bits::bit_lists(p) };
     cg.declare_all();
     for i in 0..p.functions.len() {
         cg.define(i);
@@ -157,6 +158,8 @@ struct Cg<'a, 'ctx> {
     par_child: Option<par::ParChild<'ctx>>,
     /// The blocks of `for !cheat` loops: (function, block).
     nocheat: std::collections::HashSet<(usize, usize)>,
+    /// The `list[bool]` locals held as bits (`mir::bits`).
+    bits: std::collections::HashSet<(usize, u32)>,
 }
 
 impl<'a, 'ctx> Cg<'a, 'ctx> {
@@ -824,7 +827,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     // The sites guarding this operation (`simd.sum`'s).
                     self.op_sites = std::mem::take(&mut pending);
                     let dest_ty = dest.as_ref().and_then(|d| self.slot_of(fi, d, slots)).map(|(_, t)| t);
-                    match self.op(fi, op, args, slots, func, dest_ty) {
+                    let as_bits = matches!(op, Op::ListFill) && dest.as_ref().is_some_and(|d| d.proj.is_empty() && self.bits.contains(&(fi, d.local.0)));
+                    let done = if as_bits { dest_ty.and_then(|t| self.bit_fill(fi, args, &t, slots, func)).map(Some) } else { self.op(fi, op, args, slots, func, dest_ty) };
+                    match done {
                         Some(v) => {
                             if let (Some(d), Some(v)) = (dest, v) {
                                 self.store_place(fi, d, v, slots);
@@ -1127,6 +1132,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     fn operand(&mut self, fi: usize, o: &Operand, slots: &[Option<PointerValue<'ctx>>]) -> Option<BasicValueEnum<'ctx>> {
         match o {
             Operand::Const(c) => self.constant(fi, c),
+            Operand::Read(p) | Operand::Move(p) if self.is_bit(fi, p) => self.bit_read(fi, p, slots),
             Operand::Read(p) | Operand::Move(p) => {
                 let (slot, ty) = self.slot_of(fi, p, slots)?;
                 let t = self.ty(&ty)?;
@@ -4185,6 +4191,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     }
 
     fn store_place(&mut self, fi: usize, p: &Place, v: BasicValueEnum<'ctx>, slots: &[Option<PointerValue<'ctx>>]) {
+        if self.is_bit(fi, p) {
+            let _ = self.bit_write(fi, p, v, slots);
+            return;
+        }
         if let Some((slot, ty)) = self.slot_of(fi, p, slots) {
             // The slot's width is what the type says; a value computed at a
             // different width is fitted to it, which is the store the check

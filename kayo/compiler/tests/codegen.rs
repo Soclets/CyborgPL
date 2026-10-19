@@ -869,6 +869,24 @@ fn recursion_is_unfolded() {
     assert_eq!((a, b), (Some(63), Some(63)), "the program answered differently unfolded");
 }
 
+/// A `list[bool]` used only by position is held as bits (owner,
+/// 2026-10-18): the sieve's 100,001 flags take 12,501 bytes, and the list
+/// handed to a call keeps its byte an element. `bits_list` itself, run in
+/// `programs_build_run_and_give_back`, says the answers are the same.
+#[test]
+fn bool_lists_are_bits() {
+    let src = dir().join("bits_list.cy");
+    let out = std::env::temp_dir().join(format!("kayo-bits-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&out);
+    let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(out.join("prog")).arg("--emit-llvm").arg(&out).output().unwrap();
+    assert!(r.status.success(), "bits_list would not build:\n{}", String::from_utf8_lossy(&r.stderr));
+    let after = std::fs::read_to_string(out.join("after.ll")).unwrap();
+    let _ = std::fs::remove_dir_all(&out);
+    assert!(after.contains("@cyborg_alloc_zeroed(i64 12501)"), "the sieve's list is not bits:\n{}", indent(&after));
+    assert!(after.contains("@cyborg_alloc_zeroed(i64 3)"), "the list handed to a call is not bytes:\n{}", indent(&after));
+    assert!(after.contains("atomicrmw or"), "a slice's write is not atomic:\n{}", indent(&after));
+}
+
 /// `no_cheat` covers the calls a statement makes (owner, 2026-10-18): the
 /// copy of `fib` the statement calls passes its parameter through a barrier
 /// LLVM cannot see into (an ordinary `fib` has none), and the answer, 6765,
