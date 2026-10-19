@@ -2,6 +2,8 @@ import { motion } from "motion/react";
 import type { CSSProperties } from "react";
 import { Link } from "react-router";
 import type { Route } from "./+types/home";
+import { CompileChart } from "../components/compile-chart";
+import { COMPILE } from "../data/compile-times";
 
 export const meta: Route.MetaFunction = () => [
   { title: "CyborgPL" },
@@ -40,6 +42,18 @@ export default function Home() {
             </Link>
           </motion.span>
         </div>
+      </section>
+
+      {/* Below the hero (owner, 2026-10-19: "Scroll down, and you'll get "Don't script, don't
+          iterate, but fucking wait." on the right side, and compilation time benchmark on the
+          right"): the line, then KAYO's compile times beside it. */}
+      <section className="wait">
+        <motion.h2 className="wait-line" initial={{ opacity: 0, x: -28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.5 }} transition={{ type: "spring", stiffness: 90, damping: 20 }}>
+          Don't script, don't iterate, but fucking <span className="wait-word">wait</span>.
+        </motion.h2>
+        <motion.div initial={{ opacity: 0, x: 28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.4 }} transition={{ type: "spring", stiffness: 90, damping: 20, delay: 0.1 }}>
+          <CompileChart run={COMPILE} />
+        </motion.div>
       </section>
     </main>
   );
