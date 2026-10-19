@@ -1013,8 +1013,23 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                         return err(Diagnostic::error("each dependency is a `cyjet::dep.path[\"…\"]` (a folder), or a `cyjet::dep.reg[id = …, version = …]` (the registry)").at(e.span));
                     };
                     let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
-                    if path.kit.as_ref().map(|l| l.name.as_str()) != Some("cyjet") || !matches!(segs.as_slice(), ["dep"] | ["dep", "path"] | ["dep", "reg"]) {
-                        return err(Diagnostic::error(format!("each dependency is a `cyjet::dep.path[…]` or a `cyjet::dep.reg[…]`, and this is `{}`", path.spelled())).at(e.span));
+                    if path.kit.as_ref().map(|l| l.name.as_str()) != Some("cyjet") || !matches!(segs.as_slice(), ["dep"] | ["dep", "path"] | ["dep", "reg"] | ["dep", "std"]) {
+                        return err(Diagnostic::error(format!("each dependency is a `cyjet::dep.path[…]`, a `cyjet::dep.reg[…]` or a `cyjet::dep.std[…]`, and this is `{}`", path.spelled())).at(e.span));
+                    }
+                    // std from the folder it is being written in (owner,
+                    // 2026-10-14, spelled 2026-10-19: "(b)"): one text, the
+                    // folder; it takes over `std::` for the whole program.
+                    if segs == ["dep", "std"] {
+                        let [AArg::Positional(folder)] = args.as_slice() else {
+                            return err(Diagnostic::error("std from its folder is one text, the folder: `cyjet::dep.std[\"../std\"]`").at(e.span));
+                        };
+                        let p = text(folder, "std's folder")?;
+                        if out.has_std {
+                            return err(Diagnostic::error("std is listed twice in `dependencies`").at(e.span));
+                        }
+                        out.has_std = true;
+                        out.deps.push(Dep { path: p, cord: true });
+                        continue;
                     }
                     // The kind of dependency is in its name (owner,
                     // 2026-10-19): a folder, one text, or the registry.
@@ -1047,12 +1062,10 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                         *slot = Some((text(v, &format!("`{}`", field.name))?, field.span));
                     }
                     // The old `cyjet::dep[…]` (owner, 2026-10-19), refused
-                    // naming whichever its fields meant; but std by its ID
-                    // and the folder it is being written in (owner,
-                    // 2026-10-14), which has no new spelling yet (asked).
-                    let std_folder = id.as_ref().is_some_and(|(i, _)| i == crate::parser::STD_ID) && dpath.is_some() && version.is_none();
-                    if old && !std_folder {
-                        let row = if dpath.is_some() { "cyjet::dep[path = …]" } else { "cyjet::dep[id = …, version = …]" };
+                    // naming whichever its fields meant.
+                    if old {
+                        let std_folder = id.as_ref().is_some_and(|(i, _)| i == crate::parser::STD_ID) && dpath.is_some() && version.is_none();
+                        let row = if std_folder { "cyjet::dep[id = <std's>, path = …]" } else if dpath.is_some() { "cyjet::dep[path = …]" } else { "cyjet::dep[id = …, version = …]" };
                         let said = crate::spellings::old_word(row, Some("special")).map(|o| o.dated()).unwrap_or_else(|| format!("`{}` is an old spelling", row));
                         return err(Diagnostic::error(said).at(e.span));
                     }
@@ -1076,19 +1089,6 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                                 return err(Diagnostic::error("std is listed twice in `dependencies`").at(*ispan));
                             }
                             out.has_std = true;
-                            continue;
-                        }
-                    }
-                    // The Nerve cord, listed by its ID and the folder it is
-                    // being written in (owner, 2026-10-14: "shouldn't listing
-                    // the real std hijack it?").
-                    if let (Some((i, ispan)), Some((p, _)), None) = (&id, &dpath, &version) {
-                        if i == crate::parser::STD_ID {
-                            if out.has_std {
-                                return err(Diagnostic::error("std is listed twice in `dependencies`").at(*ispan));
-                            }
-                            out.has_std = true;
-                            out.deps.push(Dep { path: p.clone(), cord: true });
                             continue;
                         }
                     }
