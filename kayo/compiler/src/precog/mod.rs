@@ -198,9 +198,33 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
             honest.extend(crate::par::loop_blocks(func, fl).into_iter().map(|b| (fi, b)));
         }
     }
+    // Inside a counted loop, what reads its stop, counter or step is not
+    // folded: a parallel `for`'s slice gives them its own values, and a read
+    // folded to the whole loop's stop ran every slice to the loop's end (check
+    // claude, 2026-10-19: 8000 ones summed to 16001 after a long write loop).
+    let mut loop_reads: std::collections::HashSet<(usize, usize, usize)> = std::collections::HashSet::new();
+    for (fi, func) in p.functions.iter().enumerate() {
+        for fl in &func.fors {
+            let own = [Some(fl.stop), Some(fl.counter), fl.step];
+            let reads = |o: &Operand| o.place().is_some_and(|q| own.contains(&Some(q.local)));
+            for b in crate::par::loop_blocks(func, fl) {
+                for (si, st) in func.blocks[b].stmts.iter().enumerate() {
+                    let StmtKind::Assign { rvalue, .. } = &st.kind else { continue };
+                    let hit = match rvalue {
+                        Rvalue::Use(o) | Rvalue::Unary { operand: o, .. } | Rvalue::Convert { operand: o, .. } => reads(o),
+                        Rvalue::Binary { lhs, rhs, .. } => reads(lhs) || reads(rhs),
+                        _ => false,
+                    };
+                    if hit {
+                        loop_reads.insert((fi, b, si));
+                    }
+                }
+            }
+        }
+    }
     for ((f, b, si), known) in &folds {
         let Some(c) = known else { continue };
-        if honest.contains(&(*f, *b)) {
+        if honest.contains(&(*f, *b)) || loop_reads.contains(&(*f, *b, *si)) {
             continue;
         }
         // Not in a `#strict` function: its sites are proven from what it

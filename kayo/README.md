@@ -927,3 +927,9 @@ Dated, with the alternative, so each can become a question later.
   off to compare. bench fib is a 93-entry table of 744 bytes, made in 7.8 ms
   of Precog. The report lists each table under Optimizations and Sizes, and
   the near misses with why.
+- **2026-10-19 — A slice ran to the loop's end** (check claude: 8000 ones
+  summed to 16001 after a long write loop). Precog knew the list's length,
+  folded the sum loop's read of its stop to it, and the step round in each
+  parallel slice compared with that constant instead of the slice's own
+  stop. Inside a counted loop, an instruction reading its stop, counter or
+  step is no longer folded (`tests/programs/par_sum_after_write.cy`).
