@@ -2,6 +2,29 @@
 
 Machine: arm64 (Apple Silicon, 10 cores: 4 performance, 6 efficiency), Darwin 27.0.0. Best of 3 runs, wall-clock from process start to exit (startup included); runs past 60 s are timeouts. Every answer is checked against C's, and every one agreed.
 
+## 2026-10-19: compile time, source to final executable (owner, through website claude)
+
+For the website's "Don't script, don't iterate, but fucking wait." section. `python3 bench/compile_time.py`; kayo
+`CyDT f84c8a7a KAYO\n`; best of 3 cold builds per program, wall-clock, one build at a time, load average about 2.
+Go and Zig get a fresh, empty cache for every build (their standard libraries compiled again each time); clang,
+rustc, gfortran and kayo keep no cache. CyborgPL's is a final build: Precog proves every check site before LLVM runs.
+
+| Language | sum | fib | lists | sieve | total |
+|---|---|---|---|---|---|
+| CyborgPL (`kayo build --final`) | 2.11 s | 0.10 s | 5.48 s | 10.49 s | **18.18 s** |
+| Zig (`-O ReleaseFast`, empty cache) | 4.38 s | 4.39 s | 4.55 s | 4.52 s | 17.85 s |
+| Go (`go build`, empty `GOCACHE`) | 1.28 s | 1.26 s | 1.24 s | 1.25 s | 5.02 s |
+| Rust (`rustc -C opt-level=3`) | 0.08 s | 0.08 s | 0.10 s | 0.08 s | 0.33 s |
+| Fortran (`gfortran -O3`) | 0.07 s | 0.08 s | 0.08 s | 0.07 s | 0.29 s |
+| C (`clang -O3`) | 0.04 s | 0.04 s | 0.04 s | 0.04 s | 0.16 s |
+
+- CyborgPL is the slowest to build, about 110× C on these four, as designed ("very slow at the development, fast &
+  safe at the final product"); its time goes where the program has the most to prove: sieve's 22 sites with a
+  list and nested loops take 10.5 s, fib's 8 take 0.1 s.
+- Zig's total is close only because an empty cache makes it rebuild its standard library every time; Go likewise.
+  With warm caches both would drop far below; kayo has no cache to warm.
+- Run times for the same programs are in the sections below; the fastest builds (C, Rust) are not the fastest programs.
+
 ## 2026-10-18: CyborgPL against C, Rust, Go, Zig and Fortran (owner: "run a fresh one")
 
 kayo `CyDT 1d7a651a KAYO\n`, built fresh in the design clone (release, with the recursive-inlining LLVM pass);
