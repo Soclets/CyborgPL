@@ -141,8 +141,19 @@ html.ready .topbar { animation: drop .7s cubic-bezier(.2, .8, .2, 1) both; }
 .ex-tab-label { position: relative; z-index: 1; }
 .ex-panes { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 14px; margin-top: 18px; align-items: start; }
 .ex-panes figure { margin: 0; min-width: 0; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: rgba(255, 255, 255, .02); }
-.ex-panes figcaption { display: flex; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--line); font: 12px var(--mono); color: rgba(255, 255, 255, .55); }
+.ex-panes figcaption { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px 8px 16px; border-bottom: 1px solid var(--line); font: 12px var(--mono); color: rgba(255, 255, 255, .55); }
 .ex-panes pre { margin: 0; padding: 16px; overflow: auto; font: 13.5px/1.6 var(--mono); color: rgba(255, 255, 255, .9); overscroll-behavior: contain; }
 .ex-code pre { max-height: 62vh; }
 .ex-out pre { max-height: 62vh; white-space: pre-wrap; }
 @media (max-width: 860px) { .ex-panes { grid-template-columns: 1fr; } .ex-code pre { max-height: 52vh; } .ex-out pre { max-height: 36vh; } .ex-tabs { max-width: 100%; overflow-x: auto; } }
+
+/* Fullscreen for a code or output box: the box grows over a dark backdrop to fill the window. */
+.fs-side { display: inline-flex; align-items: center; gap: 10px; }
+.fs-button { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 0; border-radius: 8px; background: none; color: rgba(255, 255, 255, .7); cursor: pointer; transition: background .15s, color .15s; }
+.fs-button:hover, .fs-button:focus-visible { background: rgba(255, 255, 255, .08); color: var(--ink); outline: none; }
+.fs-backdrop { position: fixed; inset: 0; z-index: 200; padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); background: rgba(0, 0, 0, .86); }
+.fs-panel { margin: 0; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; height: 100%; background: #0d0d0d; }
+.fs-panel figcaption { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px 8px 16px; border-bottom: 1px solid var(--line); font: 12px var(--mono); color: rgba(255, 255, 255, .55); }
+.fs-panel pre { flex: 1; margin: 0; padding: 18px; overflow: auto; max-height: none; font: 14.5px/1.6 var(--mono); color: rgba(255, 255, 255, .9); white-space: pre; }
+.fs-panel.ex-out pre { white-space: pre-wrap; }
+html.fs-open { overflow: hidden; }
