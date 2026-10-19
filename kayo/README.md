@@ -967,6 +967,5 @@ Dated, with the alternative, so each can become a question later.
   for a collection with no own function), and makes the member a copy of
   that function under its own name and visibility, once every function is
   resolved, a pointer to a pointer a round later. The own function pointing
-  elsewhere is refused. A `pub` collection's one `bare.` mark may stand in
-  front, `pub bare.never coll.fn area { … }`, as `examples/coll_front_door`
-  writes it, or inside the block as before; two are refused.
+  elsewhere is refused. A `pub` collection's one `bare.` mark is written in its
+  block, `pub coll.fn area { bare.never; … }`; in front it is refused.

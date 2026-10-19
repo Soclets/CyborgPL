@@ -841,3 +841,4 @@ coll_member_short_name [fnv:2e2233858d06600a] :: a member writes the collection'
 coll_pointer_missing [fnv:f12e812a5c20b960] :: names no function
 collection_old_word [fnv:c622aae12d578b33] :: `collection.` is an old spelling: write `coll.fn` / `coll.handler`
 coll_handler_short_name [fnv:8853fb27f165af7f] :: a member writes the collection's name in front: `h.as_zero { … }`
+coll_mark_in_front [fnv:b901af5c66f743a6] :: a collection's `bare.` mark is written in its block

@@ -831,7 +831,11 @@ impl<'a> Parser<'a> {
             let kind = self.ident("the collection's kind")?;
             match kind.name.as_str() {
                 "fn" => {
-                    let (lines, mark) = self.collection(vis, bare)?;
+                    // The one mark is written in the block (owner, 2026-10-13).
+                    if let Some((_, at)) = bare {
+                        return self.fail_at(at, "a collection's `bare.` mark is written in its block: `pub coll.fn area { bare.never; … }`");
+                    }
+                    let (lines, mark) = self.collection(vis, None)?;
                     let span = start.to(self.prev_span());
                     return Ok(Item { vis, kind: ItemKind::ExternBlock(lines), span, bare: mark, case });
                 }
