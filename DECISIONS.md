@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — Any `layout.C` struct may cross to C by value, going in and coming back (owner: a)
+
+The fourth of public v1's six C gaps. Offered (a) any `layout.C` struct by value, in and out, kayo following the
+platform's C rules for how a struct travels (recommended), or (b) only up to 16 bytes, the ones that travel in
+registers, bigger ones by pointer. The owner asked the difference (none for small ones; a big one under (b) needs a
+C wrapper) and the performance difference (none from the choice: a big struct is copied as C itself copies it), then
+"(a)". So **`extern.C fn move_by ['p': Point, 'dx': bin32] -> Point;` takes and returns a `layout.C struct` by value,
+whatever its size**. A struct by value is a plain value: copied with no verb, as a struct of numbers already is.
+
 ### 2026-10-19 — A C header's simple `#define`s come through as `C.NAME` (owner: a)
 
 The third of public v1's six C gaps. C libraries name their numbers in headers (`#define SQLITE_OK 0`). Offered (a)

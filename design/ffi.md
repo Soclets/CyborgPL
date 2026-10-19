@@ -348,6 +348,13 @@ C.SQLITE_OK { … }`. One that computes, takes arguments or names something else
 report's C section. Design claude's readings, not asked: a sign, parentheses, a C suffix (`0x10u`, `1.5f`) and a
 `#define` naming another plain one still count as plain; a number takes the type C gives it. Not built yet.
 
+## A struct by value (owner, 2026-10-19)
+
+A `layout.C struct` may be passed to C and returned from it by value, whatever its size:
+`extern.C fn move_by ['p': Point, 'dx': bin32] -> Point;`. kayo follows the platform's C rules (on Apple silicon, up to
+16 bytes in registers, bigger ones copied with a hidden pointer, as C does), so it costs what the same call costs from
+C. Not built yet.
+
 ## Open
 
 - (History: reading a C string was build-it-yourself until 2026-10-19; see "C strings" above.)
