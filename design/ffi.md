@@ -364,11 +364,12 @@ incl.C.system["stdio.h"];                                        # printf comes 
 no_check printf[lend 'fmt', 5, lend 'name'];                     # the open form: any extras, on your word
 
 extern.C fn printf_count = C.printf ['format': ptr[uint8], ... 'n': int32] -> int32;
-printf_count[lend 'fmt', 5];                                     # a fixed shape: checked, no `no_check`
+no_check printf_count[lend 'fmt', 5];                            # a fixed shape: its extras' types checked
 ```
 
 - The open form takes any extras; each call is a `no_check` site, since C cannot check them against the format.
-- A fixed shape names and types its extras after the `...`; it still marks where the `...` starts, because on Apple
+- A fixed shape names and types its extras after the `...`, and those are checked; the call is still a `no_check` site,
+  as every C call is (owner, 2026-10-19: "(a)"), since the format text can still disagree. It marks where the `...` starts, because on Apple
   silicon a variadic function's extras travel apart from its fixed arguments.
 - `= C.printf` gives a C function another name in CyborgPL (owner: "(c)"); design claude's reading: any C function.
 - Not built yet.

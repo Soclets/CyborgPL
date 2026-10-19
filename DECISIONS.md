@@ -34,6 +34,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — Correction: a fixed variadic shape is still a `no_check` site, as every C call is (owner: a)
+
+Design claude's slip, owned: the "six C gaps" were offered without checking what was decided. Three were not gaps:
+`#define`s already come through (2026-10-10, as `const 'NAME'`), a `layout.C` struct already crossed to C by value
+(`ffi.md`), and variadic externs were already decided (`...'args'`, C-shaped extras, C's promotions) — and **every C
+call is a `no_check` site** ("the mark lives in wrappers"), which the 2026-10-19 variadic entry contradicted by
+calling fixed shapes "checked, no `no_check`". Asked whether a fixed shape should be an exception, the owner asked "Is
+it really not checked?" (the CyborgPL side is: argument types, ranged returns at the door, pointer kinds; what C does
+inside is not, and a format text can still disagree with the declared extras), then "(a)". So **a fixed shape is a
+`no_check` site like every C call**: `no_check printf_count[lend 'fmt', 5];`; what it adds is that its extras' types
+are checked. Still to settle against the earlier rulings: `C.NAME` (2026-10-19) vs `const 'NAME'` (2026-10-10) for a
+`#define`, and `...` vs `...'args'` for the open variadic form.
+
 ### 2026-10-19 — C bit-fields: `mode: uint8[bits 3]` in a `layout.C struct` (owner: a)
 
 The second half of public v1's sixth C gap, and the last of the six. C packs small numbers into one integer
