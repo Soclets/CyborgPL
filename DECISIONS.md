@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — A C function under another name: `extern.C fn printf_count = C.printf […] -> int32;` (owner: c)
+
+For variadic fixed shapes (entry below), how a declaration names the C function it really calls. Offered (a)
+`= printf`, a cousin of `pub fn area = …` (recommended at first), (b) `extern.C["printf"] fn printf_count …`. The owner:
+"Where do you say what `printf` is?" (nowhere in CyborgPL: it is C's, found by the linker), which showed `= printf`
+looks like a CyborgPL path; design claude offered (c) `= C.printf`, matching `C.str`, `C.int`, `C.SQLITE_OK`. The owner:
+"(c)". So **`extern.C fn printf_count = C.printf ['format': ptr[uint8], ... 'n': int32] -> int32;`**: the name after
+`fn` is yours, `C.` names C's. Design claude's reading, not asked: it works for any C function, not only variadic
+ones, and the extras after `...` are named and typed like parameters, which makes the shape checked.
+
 ### 2026-10-19 — A `coll.handler`'s members write the collection's name in front too: `cum_failed.flow_back { … }` (owner: a)
 
 The twin of the `coll.fn` entry below. Offered (a) full names in handlers too, so both kinds read alike
