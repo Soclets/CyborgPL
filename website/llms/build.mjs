@@ -19,7 +19,7 @@ const NAMES = `## Names
 Current names (2026-10-16):
 
 - Source files end in \`.cy\`; a one-value file (a manifest, a table) ends in \`.cyr\`.
-- The compiler is KAYO, typed \`kayo\` (\`kayo build\`, \`kayo prove\`, \`kayo prepare\`).
+- The compiler is KAYO\\n (the name ends in the two characters \\ and n), typed \`kayo\` (\`kayo build\`, \`kayo prove\`, \`kayo prepare\`).
 - Precog is the prover built into the compiler.
 - CyJet is the package manager; a kit's manifest is \`CyJet.cyr\`, and its paths start \`cyjet::\`.
 - A library or program is a kit, with its root in \`kit.cy\` and \`pub.kit\` for what it shares.

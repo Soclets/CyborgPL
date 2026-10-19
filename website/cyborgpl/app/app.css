@@ -157,3 +157,19 @@ html.ready .topbar { animation: drop .7s cubic-bezier(.2, .8, .2, 1) both; }
 .fs-panel pre { flex: 1; margin: 0; padding: 18px; overflow: auto; max-height: none; font: 14.5px/1.6 var(--mono); color: rgba(255, 255, 255, .9); white-space: pre; }
 .fs-panel.ex-out pre { white-space: pre-wrap; }
 html.fs-open { overflow: hidden; }
+
+/* Fullscreen boxes wear Solarized, Dark or Light as the system is set (owner, 2026-10-19: "Make it
+   become Solarized Dark/Light follows system, when fullscreen"). Ethan Schoonover's palette. */
+.fs-panel {
+  --sol-bg: #002b36; --sol-bar: #073642; --sol-line: #0a4553; --sol-text: #93a1a1; --sol-muted: #657b83; --sol-strong: #eee8d5;
+  background: var(--sol-bg); border-color: var(--sol-line); color: var(--sol-text);
+}
+@media (prefers-color-scheme: light) {
+  .fs-panel { --sol-bg: #fdf6e3; --sol-bar: #eee8d5; --sol-line: #e2dcc8; --sol-text: #586e75; --sol-muted: #93a1a1; --sol-strong: #073642; }
+  .fs-backdrop { background: rgba(253, 246, 227, .7); }
+}
+.fs-panel figcaption { background: var(--sol-bar); border-bottom-color: var(--sol-line); color: var(--sol-muted); }
+.fs-panel pre { color: var(--sol-text); }
+.fs-panel .fs-button { color: var(--sol-muted); }
+.fs-panel .fs-button:hover, .fs-panel .fs-button:focus-visible { background: color-mix(in srgb, var(--sol-muted) 18%, transparent); color: var(--sol-strong); }
+.fs-panel .fs-note { color: var(--sol-muted); }

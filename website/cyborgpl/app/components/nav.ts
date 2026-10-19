@@ -15,7 +15,7 @@ export const NAV: NavItem[] = [
     { label: "Good practice", to: "/good-practice", note: "How CyborgPL is meant to be written" },
   ] },
   { label: "Tools", menu: [
-    { label: "KAYO", to: "/kayo", note: "The compiler" },
+    { label: "KAYO\\n", to: "/kayo", note: "The compiler" },
     { label: "CyJet", to: "/cyjet", note: "The package manager" },
     { label: "CyDT and CyCT", to: "/download", note: "The dev kit and the contribute kit" },
   ] },

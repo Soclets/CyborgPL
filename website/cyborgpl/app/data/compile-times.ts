@@ -14,7 +14,7 @@ export const COMPILE: CompileRun | null = {
   date: "19 Oct 2026",
   machine: "an Apple Silicon Mac",
   commands: "kayo build --final · zig -O ReleaseFast (empty cache) · go build (empty GOCACHE) · rustc -C opt-level=3 · gfortran -O3 · clang -O3",
-  caveat: "Zig and Go come close only because an empty cache makes them rebuild their standard libraries every time; warm, they'd be far faster. KAYO has no cache to warm: its time is Precog proving every check, so it grows with what there is to prove.",
+  caveat: "Zig and Go come close only because an empty cache makes them rebuild their standard libraries every time; warm, they'd be far faster. KAYO\\n has no cache to warm: its time is Precog proving every check, so it grows with what there is to prove.",
   rows: [
     { name: "CyborgPL", total: 18.18, ours: true, seconds: { sum: 2.11, fib: 0.10, lists: 5.48, sieve: 10.49 } },
     { name: "Zig", total: 17.85, seconds: { sum: 4.38, fib: 4.39, lists: 4.55, sieve: 4.52 } },

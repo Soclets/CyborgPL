@@ -48,7 +48,7 @@ export default function Home() {
 
       {/* Below the hero (owner, 2026-10-19: "Scroll down, and you'll get "Don't script, don't
           iterate, but fucking wait." on the right side, and compilation time benchmark on the
-          right"): the line, then KAYO's compile times beside it. */}
+          right"): the line, then KAYO\n's compile times beside it. */}
       <section className="wait">
         <motion.h2 className="wait-line" initial={{ opacity: 0, x: -28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.5 }} transition={{ type: "spring", stiffness: 90, damping: 20 }}>
           Don't script, don't iterate, but fucking <strong>wait</strong>.
