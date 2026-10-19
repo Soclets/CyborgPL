@@ -855,3 +855,12 @@ Dated, with the alternative, so each can become a question later.
   nothing of them is proven or generated. std's own `str.at.X` and
   `str.slice.X` ask each position to be 1 or more before their parameter's
   bound, so a computed 0 says "0 is no position".
+- **2026-10-18 — `no_cheat` in front of any statement or block, calls
+  included** (owner: "(b)"; and "(a)": `no_cheat for`, `for no_cheat`
+  refused from its row). The blocks it writes are marked, its loops are
+  `no_cheat` loops, and where it starts the locals it touches pass through
+  the barrier; every function it calls, and everything those call, is a
+  `no_cheat` copy (`nocheat_clones`) whose parameters pass through it at
+  entry, so its work is neither folded, dropped, nor shared with a
+  look-alike call, while inlining stays. Precog folds nothing in any of
+  them. Beside `check` / `no_check` it is refused, the order not decided.

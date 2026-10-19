@@ -85,6 +85,10 @@ pub struct Stmt {
 
 #[derive(Debug, Clone)]
 pub enum StmtKind {
+    /// `no_cheat` in front of a statement (owner, 2026-10-18): what it
+    /// covers really runs, the functions it calls too. No scope of its own:
+    /// `no_cheat let 'f' := …;` declares `'f'` after it as well.
+    NoCheat(Vec<Stmt>),
     /// `'x' … = value;` — a store into a fresh local; a typed `=` is a check site.
     Let { local: LocalId, value: Expr, typed: bool },
     /// `place = value;`

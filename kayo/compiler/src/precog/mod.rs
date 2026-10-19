@@ -168,8 +168,24 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
     }
     let mut folded = 0usize;
     let folds: Vec<((usize, usize, usize), Option<Const>)> = if a.gave_up || !fold { Vec::new() } else { a.folds.iter().map(|(k, v)| (*k, v.clone())).collect() };
+    // Nothing is folded where the work has to really run (`no_cheat`,
+    // owner, 2026-10-01 and 2026-10-18): its loops, its statements, and the
+    // copies of the functions they call.
+    let mut honest: std::collections::HashSet<(usize, usize)> = std::collections::HashSet::new();
+    for (fi, func) in p.functions.iter().enumerate() {
+        if func.nocheat {
+            honest.extend((0..func.blocks.len()).map(|b| (fi, b)));
+        }
+        honest.extend(func.nocheat_blocks.iter().map(|b| (fi, *b as usize)));
+        for fl in func.fors.iter().filter(|fl| fl.nocheat) {
+            honest.extend(crate::par::loop_blocks(func, fl).into_iter().map(|b| (fi, b)));
+        }
+    }
     for ((f, b, si), known) in &folds {
         let Some(c) = known else { continue };
+        if honest.contains(&(*f, *b)) {
+            continue;
+        }
         // Not in a `#strict` function: its sites are proven from what it
         // writes, and layer 3 reads the graph after this. A branch every
         // call settled, folded, took the function's own guard with it —

@@ -583,6 +583,9 @@ pub enum StmtKind {
     Continue,
     Block(Block),
     Tier { tier: Tier, stmt: Box<Stmt> },
+    /// `no_cheat` in front of a statement or block (owner, 2026-10-18:
+    /// "(b)"): the work written really runs, calls included.
+    NoCheat { stmt: Box<Stmt> },
     Concur { detached: bool, captures: Vec<Capture>, body: ConcurBody, otherwise: Option<Otherwise> },
     Whichever { arms: Vec<WhicheverArm>, otherwise: Option<Otherwise> },
     Match { value: Expr, arms: Vec<MatchArm> },

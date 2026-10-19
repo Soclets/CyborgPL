@@ -475,6 +475,14 @@ pub struct Function {
     /// Nothing the program starts from reaches it: its body was taken away
     /// (`build::drop_unreached`).
     pub dropped: bool,
+    /// A copy made for a `no_cheat` statement's calls (owner, 2026-10-18):
+    /// its work really runs, so its parameters pass through a barrier and
+    /// Precog folds nothing in it.
+    pub nocheat: bool,
+    /// The blocks a `no_cheat` statement wrote, and where each starts with
+    /// the locals it touches.
+    pub nocheat_blocks: Vec<u32>,
+    pub nocheat_entries: Vec<(u32, u32, Vec<LocalId>)>,
     /// The instance this is: one source function, one shape. A task body
     /// is nobody's instance.
     pub inst: Option<FnInst>,

@@ -45,8 +45,52 @@ pub fn build(checked: Checked) -> Program {
     // Precog's half of `closed` (owner, 2026-09-23): the maker lets go of a
     // channel where it provably never names it again.
     crate::mir::channels::release_early(&mut p);
+    nocheat_clones(&mut p);
     drop_unreached(&mut p);
     p
+}
+
+/// The calls a `no_cheat` statement makes go to copies of their functions
+/// that really do the work (owner, 2026-10-18: "(b)", calls and recursion
+/// included), and so do the calls those copies make, all the way down: a
+/// function called both ways keeps its ordinary body for the ordinary
+/// calls. A copy's loops are `no_cheat` loops.
+fn nocheat_clones(p: &mut Program) {
+    let mut copy_of: HashMap<usize, usize> = HashMap::new();
+    let mut work: Vec<(usize, Option<Vec<u32>>)> = (0..p.functions.len()).filter(|&f| !p.functions[f].nocheat_blocks.is_empty()).map(|f| (f, Some(p.functions[f].nocheat_blocks.clone()))).collect();
+    while let Some((f, only)) = work.pop() {
+        let blocks: Vec<usize> = match &only {
+            Some(bs) => bs.iter().map(|b| *b as usize).collect(),
+            None => (0..p.functions[f].blocks.len()).collect(),
+        };
+        for b in blocks {
+            let Terminator::Call { callee: Callee::Fn(idx), .. } = &p.functions[f].blocks[b].term else { continue };
+            let idx = idx.0 as usize;
+            let copy = if p.functions[idx].nocheat {
+                idx
+            } else if let Some(c) = copy_of.get(&idx) {
+                *c
+            } else {
+                let mut g = p.functions[idx].clone();
+                g.nocheat = true;
+                g.is_main = false;
+                g.is_test = false;
+                g.nocheat_blocks.clear();
+                g.nocheat_entries.clear();
+                for fl in &mut g.fors {
+                    fl.nocheat = true;
+                }
+                let c = p.functions.len();
+                p.functions.push(g);
+                copy_of.insert(idx, c);
+                work.push((c, None));
+                c
+            };
+            if let Terminator::Call { callee: Callee::Fn(i), .. } = &mut p.functions[f].blocks[b].term {
+                *i = FnIdx(copy as u32);
+            }
+        }
+    }
 }
 
 /// A function of std no start of the program reaches — `MAIN`, a `test
@@ -287,6 +331,14 @@ struct FnBuilder<'a> {
     fors: Vec<ForLoop>,
     /// The next loop built is a `for !cheat`.
     nocheat_next: bool,
+    /// Inside a `no_cheat` statement (owner, 2026-10-18), how deep.
+    nocheat_depth: u32,
+    /// The blocks written inside the `no_cheat` statement being lowered.
+    nocheat_region: std::collections::BTreeSet<u32>,
+    /// Every block written inside a `no_cheat` statement.
+    nocheat_blocks: std::collections::BTreeSet<u32>,
+    /// Where each `no_cheat` statement starts, and the locals it touches.
+    nocheat_entries: Vec<(u32, u32, Vec<LocalId>)>,
     /// Per scope: the group its tasks join, made when the first one starts.
     task_group: Vec<Option<u32>>,
     next_group: u32,
@@ -330,6 +382,10 @@ impl<'a> FnBuilder<'a> {
             task_fails: vec![Vec::new()],
             fors: Vec::new(),
             nocheat_next: false,
+            nocheat_depth: 0,
+            nocheat_region: Default::default(),
+            nocheat_blocks: Default::default(),
+            nocheat_entries: Vec::new(),
             task_group: vec![None],
             next_group: 0,
             next_task: 0,
@@ -395,11 +451,17 @@ impl<'a> FnBuilder<'a> {
 
     fn push(&mut self, kind: StmtKind, span: SpanId) {
         self.last_span = span;
+        if self.nocheat_depth > 0 {
+            self.nocheat_region.insert(self.cur.0);
+        }
         self.blocks[self.cur.0 as usize].stmts.push(Statement { kind, span });
     }
 
     fn terminate(&mut self, term: Terminator) {
         let span = self.last_span;
+        if self.nocheat_depth > 0 {
+            self.nocheat_region.insert(self.cur.0);
+        }
         let b = &mut self.blocks[self.cur.0 as usize];
         if matches!(b.term, Terminator::Unreachable) {
             b.term = term;
@@ -409,6 +471,9 @@ impl<'a> FnBuilder<'a> {
 
     /// Terminate with the span this instruction came from.
     fn terminate_at(&mut self, term: Terminator, span: SpanId) {
+        if self.nocheat_depth > 0 {
+            self.nocheat_region.insert(self.cur.0);
+        }
         let b = &mut self.blocks[self.cur.0 as usize];
         if matches!(b.term, Terminator::Unreachable) {
             b.term = term;
@@ -581,6 +646,9 @@ impl<'a> FnBuilder<'a> {
         let params = body.params.iter().map(|p| LocalId(p.0)).collect();
         Function {
             dropped: false,
+            nocheat: false,
+            nocheat_blocks: self.nocheat_blocks.iter().copied().collect(),
+            nocheat_entries: std::mem::take(&mut self.nocheat_entries),
             name: body.name.clone(),
             inst: self.inst,
             params,
@@ -736,6 +804,31 @@ impl<'a> FnBuilder<'a> {
 
     fn stmt_kind(&mut self, s: &hir::Stmt, span: SpanId) {
         match &s.kind {
+            // `no_cheat` (owner, 2026-10-18): its blocks are marked, its
+            // loops are `no_cheat` loops, and where it starts the locals it
+            // touches pass through a barrier, so nothing in it is worked out
+            // beforehand. The calls in it go to no-cheat copies
+            // (`nocheat_clones`).
+            hir::StmtKind::NoCheat(stmts) => {
+                let entry = (self.cur.0, self.blocks[self.cur.0 as usize].stmts.len() as u32);
+                let outer = std::mem::take(&mut self.nocheat_region);
+                self.nocheat_depth += 1;
+                for st in stmts {
+                    self.stmt(st);
+                }
+                self.nocheat_depth -= 1;
+                let region = std::mem::replace(&mut self.nocheat_region, outer);
+                let mut touched: std::collections::BTreeSet<u32> = Default::default();
+                for b in &region {
+                    let text = format!("{:?}", self.blocks[*b as usize]);
+                    touched.extend(text.match_indices("LocalId(").filter_map(|(at, w)| text[at + w.len()..].split(')').next().and_then(|d| d.parse::<u32>().ok())));
+                }
+                self.nocheat_entries.push((entry.0, entry.1, touched.into_iter().map(LocalId).collect()));
+                self.nocheat_blocks.extend(region.iter().copied());
+                if self.nocheat_depth > 0 {
+                    self.nocheat_region.extend(region);
+                }
+            }
             hir::StmtKind::Let { local, value, typed } => {
                 let place = Place::local(LocalId(local.0));
                 let ty = self.locals[local.0 as usize].ty.clone();
@@ -989,7 +1082,7 @@ impl<'a> FnBuilder<'a> {
         let room_down = self.new_block();
         let step_b = self.new_block();
         self.terminate(Terminator::If { cond: up2, then: room_up, else_: room_down });
-        self.fors.push(ForLoop { pre, head, exit, counter: c, stop: stop_t, step: Some(step_t), start: Some(first_v), exits_from: vec![up_b, down_b, room_up, room_down], seq, para, perm, nocheat: std::mem::take(&mut self.nocheat_next), span });
+        self.fors.push(ForLoop { pre, head, exit, counter: c, stop: stop_t, step: Some(step_t), start: Some(first_v), exits_from: vec![up_b, down_b, room_up, room_down], seq, para, perm, nocheat: std::mem::take(&mut self.nocheat_next) || self.nocheat_depth > 0, span });
         self.cur = room_up;
         let more_up = self.into_temp(Rvalue::Binary { op: BinOp::Ge, lhs: rem.clone(), rhs: by.clone() }, &Ty::Bool, span);
         self.terminate(Terminator::If { cond: more_up, then: step_b, else_: exit });
@@ -1055,7 +1148,7 @@ impl<'a> FnBuilder<'a> {
         let exit = self.new_block();
         let pre = self.cur;
         self.terminate(Terminator::Goto(head));
-        self.fors.push(ForLoop { pre, head, exit, counter: i, stop: len, step: None, start: None, exits_from: vec![head], seq: seq_word, para, perm, nocheat: std::mem::take(&mut self.nocheat_next), span });
+        self.fors.push(ForLoop { pre, head, exit, counter: i, stop: len, step: None, start: None, exits_from: vec![head], seq: seq_word, para, perm, nocheat: std::mem::take(&mut self.nocheat_next) || self.nocheat_depth > 0, span });
 
         self.cur = head;
         let cmp = self.into_temp(
@@ -2397,6 +2490,9 @@ impl<'a> FnBuilder<'a> {
 fn placeholder(body: &hir::Body) -> Function {
     Function {
         dropped: false,
+        nocheat: false,
+        nocheat_blocks: Vec::new(),
+        nocheat_entries: Vec::new(),
         name: body.name.clone(),
         inst: None,
         params: Vec::new(),

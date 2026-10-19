@@ -303,7 +303,8 @@ for_lend_mut_length_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it 
 for_lend_mut_read_then_element [fnv:bb81dd22690ea890] :: 'x' still borrows it `lent.mut`
 for_list_typed [fnv:df6b9ecc22e597b6] :: each element's type is the list's
 for_loop_chain [fnv:443eefc427c541ef] :: `loop.temp.for` / `loop.range` became `for`
-for_no_cheat_order [fnv:a36668e619deea07] :: `no_cheat` comes first
+for_no_cheat_inside [fnv:0016dc8bc54aae3c] :: `for no_cheat` is an old spelling: write `no_cheat for`
+for_no_cheat_order [fnv:7311d036f904b2ec] :: `no_cheat` goes in front of the loop
 for_no_next [fnv:ce601e91e7d21e30] :: which has no `fn Point.next`: `for` walks a list, or an iterator
 for_position_range [fnv:207789db02876035] :: a counting loop's counter already is the position
 for_seq_and_para [fnv:7936e43d22d1f2db] :: `seq` or `para`, not both
@@ -499,6 +500,8 @@ negate_ieee_on_int [fnv:9e324904143d499c] :: `negate.ieee` keeps a -0, which onl
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
 neuron_word_old [fnv:80ffff166656de74] :: `neuron` is an old spelling: write `kit` (owner, 2026-10-15)
 no_bin128 [fnv:65f2adec4a0637da] :: there is no `bin128`
+no_cheat_beside_tier [fnv:93d3b0e7911be0fc] :: which of the two comes first is not decided
+no_cheat_in_value [fnv:89e6a22b4d2f89ee] :: `no_cheat` goes in front of a statement, not inside a value
 no_cheat_old [fnv:fc0169759787cd18] :: `!c` is `no_cheat` now
 no_checks_lied [fnv:0bec22d994061742] :: !by-design CCA builds it and emits a note naming `NO_FUCKING_CHECKS`, which is the rule for a vouch that fails every run (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
 no_mcps_concur [fnv:85f83276fc15bc2c] :: `concur` is MCPS's

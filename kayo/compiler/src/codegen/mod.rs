@@ -675,6 +675,17 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let _ = self.builder.build_store(slot, v);
             }
         }
+        // A `no_cheat` copy's parameters are unknown to LLVM, and taking
+        // them is a step it may not skip: its work is not folded to the
+        // answer, dropped, or shared with a look-alike call (owner,
+        // 2026-10-18).
+        if f.nocheat {
+            for p in &f.params {
+                if !lent[p.0 as usize] {
+                    self.no_cheat_barrier(i, *p, &slots);
+                }
+            }
+        }
         let _ = self.builder.build_unconditional_branch(blocks[0]);
         for b in 0..f.blocks.len() {
             self.builder.position_at_end(blocks[b]);
@@ -695,10 +706,23 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // work is folded away or dropped.
         let nocheat = self.nocheat.contains(&(fi, b));
         let mut barrier_due: Option<LocalId> = None;
+        // Where a `no_cheat` statement starts: what it touches is unknown to
+        // LLVM from there on.
+        let entries: Vec<(u32, Vec<LocalId>)> = f.nocheat_entries.iter().filter(|e| e.0 as usize == b).map(|e| (e.1, e.2.clone())).collect();
+        let starts_at = |this: &mut Self, si: usize| {
+            for (at, locals) in &entries {
+                if *at as usize == si {
+                    for l in locals {
+                        this.no_cheat_barrier(fi, *l, slots);
+                    }
+                }
+            }
+        };
         for (si, s) in stmts.iter().enumerate() {
             if let Some(l) = barrier_due.take() {
                 self.no_cheat_barrier(fi, l, slots);
             }
+            starts_at(self, si);
             if nocheat {
                 if let StmtKind::Assign { place, .. } = &s.kind {
                     if place.proj.is_empty() {
@@ -841,6 +865,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         if let Some(l) = barrier_due.take() {
             self.no_cheat_barrier(fi, l, slots);
         }
+        starts_at(self, stmts.len());
         // The sites guarding a call that ends the block (`map.get`'s).
         self.op_sites = std::mem::take(&mut pending);
         let term = f.blocks[b].term.clone();
@@ -4579,10 +4604,15 @@ fn runtime_path() -> Option<std::path::PathBuf> {
     None
 }
 
-/// Every block of a `for !cheat` loop, by function.
+/// Every block of a `no_cheat` loop, a `no_cheat` statement and a
+/// `no_cheat` copy of a function, by function.
 fn nocheat_blocks(p: &crate::mir::Program) -> std::collections::HashSet<(usize, usize)> {
     let mut out = std::collections::HashSet::new();
     for (fi, f) in p.functions.iter().enumerate() {
+        if f.nocheat {
+            out.extend((0..f.blocks.len()).map(|b| (fi, b)));
+        }
+        out.extend(f.nocheat_blocks.iter().map(|b| (fi, *b as usize)));
         for fl in f.fors.iter().filter(|fl| fl.nocheat) {
             for b in crate::par::loop_blocks(f, fl) {
                 out.insert((fi, b));

@@ -868,3 +868,22 @@ fn recursion_is_unfolded() {
     assert!(unfolded > plain && unfolded >= 3, "fib was not unfolded: {} calls to itself, {} without the pass", unfolded, plain);
     assert_eq!((a, b), (Some(31), Some(31)), "the program answered differently unfolded");
 }
+
+/// `no_cheat` covers the calls a statement makes (owner, 2026-10-18): the
+/// copy of `fib` the statement calls passes its parameter through a barrier
+/// LLVM cannot see into (an ordinary `fib` has none), and the answer, 6765,
+/// is nowhere in the optimised IR (a guard: LLVM does not fold it today
+/// without `no_cheat` either).
+#[test]
+fn no_cheat_calls_really_run() {
+    let src = dir().join("no_cheat_calls.cy");
+    let out = std::env::temp_dir().join(format!("kayo-no-cheat-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&out);
+    let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(out.join("prog")).arg("--emit-llvm").arg(&out).output().unwrap();
+    assert!(r.status.success(), "no_cheat_calls would not build:\n{}", String::from_utf8_lossy(&r.stderr));
+    let after = std::fs::read_to_string(out.join("after.ll")).unwrap();
+    let _ = std::fs::remove_dir_all(&out);
+    assert!(!after.contains("6765"), "fib[20] was folded to its answer under `no_cheat`:\n{}", indent(&after));
+    let fib = after.split("\ndefine ").find(|d| d.contains("_fib(")).expect("no copy of fib in the IR");
+    assert!(fib.contains("asm sideeffect"), "the no_cheat copy of fib has no barrier:\n{}", indent(fib));
+}

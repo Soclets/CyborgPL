@@ -2798,6 +2798,11 @@ impl<'a> Parser<'a> {
                 if self.is_word("check") || self.is_word("nocheck") || self.is_word("NO_FUCKING_CHECKS") {
                     return self.fail(format!("one tier per statement: `{}` and `{}` cannot both cover it", w, self.word_text()));
                 }
+                // Which of a tier and `no_cheat` comes first is not decided
+                // (2026-10-18).
+                if self.is_word("no_cheat") {
+                    return self.fail(format!("`{} no_cheat`: which of the two comes first is not decided; nest them with a block for now: `{} {{ no_cheat … }}`", w, w));
+                }
                 if self.is_word("fn") {
                     return self.fail(format!("`{}` goes in front of a statement, not a `fn`: a function's safety is the sum of its statements", w));
                 }
@@ -2806,6 +2811,27 @@ impl<'a> Parser<'a> {
                 }
                 let stmt = self.stmt()?;
                 Ok(StmtKind::Tier { tier, stmt: Box::new(stmt) })
+            }
+            // `no_cheat` in front of any statement or block (owner,
+            // 2026-10-18: "(b)"), as `no_check` goes: the work written
+            // really runs, calls included.
+            "no_cheat" => {
+                let at = self.bump().span;
+                if self.is(&Tok::Semi) {
+                    return self.fail_at(at, "`no_cheat` goes in front of a statement: `no_cheat let 'f' := fib['n'];` or `no_cheat { … }`");
+                }
+                if self.is_word("check") || self.is_word("nocheck") || self.is_word("NO_FUCKING_CHECKS") {
+                    let t = if self.is_word("nocheck") { "no_check".to_string() } else { self.word_text() };
+                    return self.fail(format!("`no_cheat {}`: which of the two comes first is not decided; nest them with a block for now: `no_cheat {{ {} … }}`", t, t));
+                }
+                if self.is_word("fn") || self.is_word("struct") || self.is_word("const") || self.is_word("module") || self.is_word("enum") {
+                    return self.fail(format!("`no_cheat` covers a statement, not a `{}`", self.word_text()));
+                }
+                let mut stmt = self.stmt()?;
+                if let StmtKind::For { nocheat, .. } = &mut stmt.kind {
+                    *nocheat = true;
+                }
+                Ok(StmtKind::NoCheat { stmt: Box::new(stmt) })
             }
             "if" => {
                 self.bump();
@@ -2964,9 +2990,13 @@ impl<'a> Parser<'a> {
         let mut seq = false;
         let mut para = false;
         let mut perm = false;
-        // `no_cheat` first: the strongest modifier (owner, 2026-10-01;
-        // `!c`, then `!cheat`, before 2026-10-07).
-        let nocheat = self.eat_word("no_cheat");
+        // `no_cheat` goes in front of the loop, as of any statement (owner,
+        // 2026-10-18: "(a)"); the `no_cheat` statement sets this.
+        let nocheat = false;
+        if self.is_word("no_cheat") {
+            let said = crate::spellings::old_word("for no_cheat", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`for no_cheat` is an old spelling: write `no_cheat for`".into());
+            return self.fail(said);
+        }
         // `seq` keeps a loop in order, `para` makes it parallel (owner,
         // 2026-09-30); never both. CCA runs every loop in order so far.
         if self.eat_word("seq") {
@@ -2978,7 +3008,7 @@ impl<'a> Parser<'a> {
             return self.fail("a `for` is `seq` or `para`, not both");
         }
         if self.is_word("no_cheat") {
-            return self.fail("`no_cheat` comes first, the strongest modifier first: `for no_cheat seq …`, `for no_cheat para …`");
+            return self.fail("`no_cheat` goes in front of the loop: `no_cheat for seq 'i' in …` (owner, 2026-10-18)");
         }
         if self.eat_word("perm") {
             perm = true;
@@ -4200,6 +4230,7 @@ impl<'a> Parser<'a> {
                 }
                 "lent" => self.fail("`lent` is the parameter's word; at a call the caller writes `lend 'x'` (or `lend.mut 'x'`)"),
                 "check" | "nocheck" => self.fail(format!("`{}` goes in front of a statement, not inside a value: if half a statement needs it, split the statement", w)),
+                "no_cheat" => self.fail("`no_cheat` goes in front of a statement, not inside a value; if half a statement needs it, split the statement"),
                 "true" | "false" => {
                     self.bump();
                     // Bare, it is the boolean; a function of that name is

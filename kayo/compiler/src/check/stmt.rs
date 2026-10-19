@@ -128,6 +128,10 @@ impl Checker {
             ctx.tier = saved;
             return Ok(inner);
         }
+        if let ast::StmtKind::NoCheat { stmt } = &s.kind {
+            let inner = self.stmt(ctx, stmt)?;
+            return Ok(hir::Stmt { kind: hir::StmtKind::NoCheat(vec![inner]), span: s.span, tier: ctx.tier });
+        }
         let tier = ctx.tier;
         let kind = self.stmt_kind(ctx, s)?;
         Ok(hir::Stmt { kind, span: s.span, tier })
@@ -252,7 +256,7 @@ impl Checker {
             // `match` used as one (or of an `otherwise` arm).
             ast::StmtKind::Gives { bare: true, .. } => err(Diagnostic::error("a value alone is not a statement: assign it, or call something with it").at(s.span)),
             ast::StmtKind::Gives { bare: false, .. } => err(Diagnostic::error("`giveS` ends a case of a `match` used as a value, and says that value; this is not the end of one").at(s.span)),
-            ast::StmtKind::Tier { .. } => unreachable!("handled in stmt"),
+            ast::StmtKind::Tier { .. } | ast::StmtKind::NoCheat { .. } => unreachable!("handled in stmt"),
             ast::StmtKind::Const(d) => self.local_const(ctx, d, s.span),
             ast::StmtKind::Let { mutability, name, ty, shadow, value, sealed } => {
                 // A const is never shadowed (owner, 2026-10-10).

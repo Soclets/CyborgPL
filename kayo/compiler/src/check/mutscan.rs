@@ -174,7 +174,7 @@ impl Scan {
                 }
             }
             StmtKind::Break | StmtKind::Continue => {}
-            StmtKind::Tier { stmt, .. } => self.stmt(stmt),
+            StmtKind::Tier { stmt, .. } | StmtKind::NoCheat { stmt } => self.stmt(stmt),
             StmtKind::Concur { captures, body, otherwise, .. } => {
                 self.captures(captures);
                 // Inside, the captures are the task's own names.
