@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — Everything a build did goes in a Markdown report file, a lot more detailed (owner: a; contents being asked)
+
+Asked how a Precog table is reported, the owner: "I think we should move some stuff to a file that says everything
+that happened during compilation. And that file should be easy to find each section, and stuff". Offered (a)
+Markdown with a contents line and one heading per section (recommended), (b) a `.cyr` value, (c) plain text. The
+owner: "(a), but it should be a lot more detailed". So **each build writes a Markdown report** (design claude's
+sketch: `fib.report.md` beside the program); the terminal keeps errors, warnings and one summary line. Which
+sections it holds is being asked next; the file's name and place are design claude's sketch, not asked.
+
 ### 2026-10-19 — Precog's tables: the limit is the programmer's, per target in `CyJet.cyr` and per function (owner: c, a, a; not built)
 
 Open since 2026-10-17: what counts as "small" when Precog turns a pure function over a small proven input range
