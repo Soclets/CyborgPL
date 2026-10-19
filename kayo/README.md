@@ -937,3 +937,8 @@ Dated, with the alternative, so each can become a question later.
   `simd[int32, count 4]`, as `simd.load.some[…, count 3]` says it; the bare
   `simd[int32, 4]` is refused from `spellings.cyr`'s row, and types print
   with the word. kayo's own simd test programs are rewritten.
+- **2026-10-19 — `simd.fill` into a declared vector** (owner: "yea" to
+  (a)): the declared lanes win, and the value is fitted into one as a
+  typed `let` fits it, so `simd.fill[value 5: uint8]` into a
+  `simd[int32, count 4]` is four `int32` lanes of 5 (`expect_store`); a value
+  that does not fit, `-1` into `uint32` lanes, is refused as a `let` would be.

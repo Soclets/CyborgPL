@@ -724,9 +724,32 @@ impl Checker {
     }
 
     pub fn expect_store(&mut self, ctx: &mut FnCtx, v: Expr, target: &Ty, what: &str) -> Result<Expr> {
-        let _ = ctx;
         let t = self.resolve(target);
         let vt = self.resolve(&v.ty);
+        // `simd.fill` into a declared vector: the declared lanes win, and
+        // the value is fitted into one as a typed `let` fits it (owner,
+        // 2026-10-19: "yea" to (a)). `simd.fill[value 5: uint8]` into a
+        // `simd[int32, count 4]` is four `int32` lanes of 5.
+        let fill_lane = match (t.base(), vt.base(), &v.kind) {
+            (Ty::Simd { elem: lane, .. }, Ty::Simd { elem: had, .. }, K::Call { callee: hir::Callee::Builtin(hir::Builtin::SimdFill), args, .. })
+                if matches!(args.first(), Some(hir::Arg::Value(_))) && self.resolve(lane) != self.resolve(had) && !matches!(self.resolve(had).base(), Ty::Var(_)) =>
+            {
+                Some((**lane).clone())
+            }
+            _ => None,
+        };
+        if let Some(lane) = fill_lane {
+            let mut v = v;
+            let span = v.span;
+            if let K::Call { args, .. } = &mut v.kind {
+                if let Some(hir::Arg::Value(inner)) = args.first_mut() {
+                    let taken = std::mem::replace(inner, Expr { kind: K::Bool(false), ty: Ty::Bool, span });
+                    *inner = self.expect_store(ctx, taken, &lane, "every lane")?;
+                }
+            }
+            v.ty = t.base().clone();
+            return Ok(v);
+        }
         // A bare integer literal takes its context's family; a *name* never
         // does (owner, 2026-09-22): Precog's freedom is over representation —
         // width, list or array, map order, which checks survive — never over
