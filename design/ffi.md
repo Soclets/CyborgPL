@@ -353,7 +353,8 @@ which stay `'SQLITE_OK'` as since 2026-10-10 (the morning's `C.SQLITE_OK` was wi
 A `layout.C struct` may be passed to C and returned from it by value, whatever its size:
 `extern.C fn move_by ['p': Point, 'dx': bin32] -> Point;`. kayo follows the platform's C rules (on Apple silicon, up to
 16 bytes in registers, bigger ones copied with a hidden pointer, as C does), so it costs what the same call costs from
-C. Not built yet.
+C. Already allowed before 2026-10-19 ("Only a `layout.C` struct may cross to C (in a signature …)"); the ruling only
+said any size. The calling rules are kayo's; the oracle has nothing to stand in for.
 
 ## Variadic C functions, and a C function under another name (owner, 2026-10-19)
 
