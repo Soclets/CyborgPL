@@ -840,3 +840,4 @@ old_dep_std_short [fnv:28f955d257f4a1eb] :: `cyjet::dep.std` is an old spelling:
 coll_member_short_name [fnv:2e2233858d06600a] :: a member writes the collection's name in front: `greet.hi`
 coll_pointer_missing [fnv:f12e812a5c20b960] :: names no function
 collection_old_word [fnv:c622aae12d578b33] :: `collection.` is an old spelling: write `coll.fn` / `coll.handler`
+coll_handler_short_name [fnv:8853fb27f165af7f] :: a member writes the collection's name in front: `h.as_zero { … }`

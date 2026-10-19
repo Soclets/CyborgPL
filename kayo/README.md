@@ -955,3 +955,18 @@ Dated, with the alternative, so each can become a question later.
   the folder, taking over `std::` as before; the old
   `cyjet::dep[id = <std's>, path = …]` and the day-old `cyjet::dep.std` are
   each refused from their own row.
+- **2026-10-19 — `coll.fn`, `coll.handler`, full member names, members
+  written elsewhere** (owner). `collection.` is refused from its
+  `spellings.cyr` row, a bare `collection c {` too. Every member line writes
+  the collection's name in front, in a `coll.fn` (`area.ring […]`, presets
+  `area.unit ['w' = 1];`) and in a `coll.handler` (`h.as_zero { … }`); a short
+  name is refused naming the full one, and `kayo generate` writes templates'
+  members with it. A member may point at a function written elsewhere,
+  `area.square = shapes.square.area;` (`ItemKind::FnPointer`): the resolver
+  reads the path from where the collection is written (the module around it,
+  for a collection with no own function), and makes the member a copy of
+  that function under its own name and visibility, once every function is
+  resolved, a pointer to a pointer a round later. The own function pointing
+  elsewhere is refused. A `pub` collection's one `bare.` mark may stand in
+  front, `pub bare.never coll.fn area { … }`, as `examples/coll_front_door`
+  writes it, or inside the block as before; two are refused.

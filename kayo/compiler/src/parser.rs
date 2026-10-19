@@ -471,6 +471,11 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     // The file's handlers first: a use may come before the definition.
     for i in 0..toks.len() {
         if matches!(&toks[i].tok, Tok::Word(w) if w == "coll") && matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(w)) if w == "handler") && (i == 0 || !matches!(toks[i - 1].tok, Tok::Dot)) {
+            // A `pub` one is refused where it stands, before its members
+            // are read.
+            if i > 0 && matches!(&toks[i - 1].tok, Tok::Word(w) if w == "pub") {
+                continue;
+            }
             p.pos = i + 3;
             let (name, members) = p.handler_def()?;
             p.handlers.insert(name, members);
