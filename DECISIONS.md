@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — Public v1 gets more C interop: all six gaps (owner)
+
+The owner: "Also, to the v1 pub list: more CNC". Design claude listed what CNC lacks against real C libraries:
+(1) C strings both ways, (2) linking C libraries from `CyJet.cyr`, (3) `#define` constants from headers, (4)
+structs passed by value, (5) variadic functions like `printf`, (6) unions and bit-fields in `layout.C`;
+recommending 1 to 3 for v1, and noting 5 and 6 depend on the platform's calling rules and the compiler's layout
+(fine while v1 is macOS on Apple silicon). The owner: "everything?", then "yes" to all six in v1, designed one at
+a time, C strings first. Each gets its own questions.
+
 ### 2026-10-19 — Public v1: C interop in, Metal in through `inline.MSL`, no automatic GPU loops yet (owner)
 
 Asked what a public v1 should hold, design claude listed must / nice / later (the base language settled and built,
