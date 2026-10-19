@@ -92,7 +92,6 @@ The oracle and the verification harness use no crates.
 - **Lua**: the name *Lunae*.
 - **GCC**: inlining a recursive function into itself several levels deep, which `KAYO\n`'s own LLVM pass does after gfortran's fib beat it (2026-10-17).
 - **Kespar**, another of the owner's languages: the prover's design notes and its first provisional limits.
-- **Xag**, the owner's C++ language: the reference for everything outside the prover, and the licence.
 
 </details>
 
