@@ -341,6 +341,13 @@ puts[lend 'cs'];
   `give` it when C keeps it, and C frees it then. No `C.str.free`.
 - Part of public v1's six C gaps (2026-10-19). Not built yet.
 
+## A header's `#define`s — `C.NAME` (owner, 2026-10-19)
+
+A `#define` whose body is a plain number or text comes through from `incl.C` as `C.NAME`: `if 'rc' equal_to
+C.SQLITE_OK { … }`. One that computes, takes arguments or names something else is skipped and listed in the build
+report's C section. Design claude's readings, not asked: a sign, parentheses, a C suffix (`0x10u`, `1.5f`) and a
+`#define` naming another plain one still count as plain; a number takes the type C gives it. Not built yet.
+
 ## Open
 
 - (History: reading a C string was build-it-yourself until 2026-10-19; see "C strings" above.)

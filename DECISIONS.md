@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — A C header's simple `#define`s come through as `C.NAME` (owner: a)
+
+The third of public v1's six C gaps. C libraries name their numbers in headers (`#define SQLITE_OK 0`). Offered (a)
+every simple one automatically, as `C.SQLITE_OK` (recommended), (b) only the ones listed beside the header, (c) none,
+copied into `const`s by hand. The owner asked "what" (shown `if 'rc' equal_to C.SQLITE_OK { … }`), then "(a)". So **a
+`#define` whose body is a plain number or text comes through as `C.NAME`**; one that computes, takes arguments or
+names something else is skipped and listed in the build report's C section. Design claude's readings, not asked:
+"plain" takes a sign, parentheses, a C suffix (`0x10u`, `1.5f`) and a `#define` naming another plain one; a number
+takes the type C would give it, refused only where it does not fit where it is used.
+
 ### 2026-10-19 — std from its folder is `cyjet::dep.std["…"]` (owner: b)
 
 A gap in the entry below, found by compiler claude: std listed by its ID plus the folder it is being written in
