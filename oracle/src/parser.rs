@@ -2136,7 +2136,10 @@ impl Parser {
                         Tok::Semi => return self.err("`no_cheat` goes in front of a statement: `no_cheat let 'f' := fib['n'];` or `no_cheat { … }`"),
                         Tok::Word(k) if k == "fn" || k == "struct" || k == "const" || k == "module" => return self.err(format!("`no_cheat` covers a statement, not a `{k}`")),
                         Tok::Word(k) if k == "no_cheat" => return self.err("`no_cheat no_cheat`: once is enough"),
-                        Tok::Word(k) if k == "check" || k == "no_check" || k == "NO_FUCKING_CHECKS" => return self.err(format!("`no_cheat {k}`: which of the two comes first is not decided; nest them with a block for now: `no_cheat {{ {k} … }}`")),
+                        // the stronger word comes first, and `no_check` is the stronger: it can let a wrong program do harm, where
+                        // `no_cheat` at worst runs slower; and the unchecked part should be what a reader sees first (owner, 2026-10-19)
+                        Tok::Word(k) if k == "no_check" || k == "NO_FUCKING_CHECKS" => return self.err(format!("`{k}` comes first, the stronger word: `{k} no_cheat …` (owner, 2026-10-19)")),
+                        Tok::Word(k) if k == "check" => return self.err("`no_cheat check`: which of the two comes first is not decided; nest them with a block for now: `no_cheat { check … }`"),
                         _ => {}
                     }
                     self.stmt()
@@ -2152,7 +2155,7 @@ impl Parser {
                         Tok::Semi => return self.err(format!("`{w}` goes in front of a statement: `{w} 'xs'[pos 'i'] = 5;` or `{w} {{ … }}`")),
                         Tok::Word(k) if k == "fn" || k == "struct" || k == "const" || k == "module" => return self.err(format!("`{w}` covers a statement, not a `{k}` — a function's safety is the sum of its statements")),
                         Tok::Word(k) if k == "check" || k == "no_check" || k == "NO_FUCKING_CHECKS" => return self.err(format!("`{w} {k}`: one tier per statement; the innermost wins when they nest")),
-                        Tok::Word(k) if k == "no_cheat" => return self.err(format!("`{w} no_cheat`: which of the two comes first is not decided; nest them with a block for now: `{w} {{ no_cheat … }}`")),
+                        Tok::Word(k) if k == "no_cheat" && w == "check" => return self.err("`check no_cheat`: which of the two comes first is not decided; nest them with a block for now: `check { no_cheat … }`"),
                         _ => {}
                     }
                     let body = self.stmt()?;

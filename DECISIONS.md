@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — Beside `no_cheat`, `no_check` comes first: `no_check no_cheat for …` (owner: b)
+
+Asked which word comes first when both stand. Design claude first recommended `no_cheat` first, calling it the
+stronger by the "strongest first" rule (2026-10-01), then noted the rule's other reading ("next to the action").
+The owner: "the point of `no_check` being in front, is because people can easily see this is NOT checked", and
+"what do you think is stronger? Your thing can possibly become UB, or just gonna run?" Design claude agreed it
+had it backwards: `no_cheat` at worst runs slower, `no_check` can let a wrong program do harm. The owner: "yea".
+So **`no_check no_cheat …`**, and `NO_FUCKING_CHECKS no_cheat …` the same; `no_cheat no_check` is refused naming the
+order. Not asked yet: `check` beside `no_cheat` (still refused side by side in the oracle).
+
 ### 2026-10-19 — `no_cheat` covers everything the statement runs: calls through a variable and tasks too (owner: a)
 
 Compiler claude, building `no_cheat` in kayo (3cb4a8e1), covered direct calls all the way down, but not a

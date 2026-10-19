@@ -21,5 +21,8 @@ MAIN {
     no_cheat {
         change 'both' = 'acc' + 'more';
     }
-    std::print.useful.auto_newln['acc', " ", 'more', " ", 'f', " ", 'both'];
+    # beside `no_check`, `no_check` comes first: the stronger word, and the unchecked part seen first (owner, 2026-10-19)
+    let mut 'last': int64 = 0;
+    no_check no_cheat change 'last' = 'f';
+    std::print.useful.auto_newln['acc', " ", 'more', " ", 'f', " ", 'both', " ", 'last'];
 }
