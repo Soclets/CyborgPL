@@ -34,6 +34,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — Precog's tables: the limit is the programmer's, per target in `CyJet.cyr` and per function (owner: c, a, a; not built)
+
+Open since 2026-10-17: what counts as "small" when Precog turns a pure function over a small proven input range
+into a table. Design claude explained why a cap matters (a big table makes the program bigger and can be slower
+than computing, once it no longer fits the fast cache) and offered (a) a size cap, (b) an entry cap, (c) a
+compile-time cap. The owner: "What if we let the programmer set it themselves? Since, they might know their
+target's specs". Offered (a) in `CyJet.cyr`, (b) per function, (c) both; the owner: "(c)". Then where in the
+manifest: (a) on each target, (b) one kit-wide field; the owner: "(a)". Then the per-function spelling: (a) in
+front of `fn`, where the `bare` markers sit, (b) after the signature; the owner: "(a)". So:
+
+- **`cyjet::target[name = "thumbv7em-none", table_bytes = 4_096]`**: each target its own limit, in bytes; when
+  not written, **65,536** (64 KB, about the fast cache of this Mac's cores; design claude's number, not asked).
+- **`table_bytes 262_144 fn sine […] -> bin32 { … }`**: one function's own limit, overriding the target's;
+  `table_bytes 0` turns tables off for it.
+- A function whose table would be bigger than its limit is compiled as written, nothing else changes. Under
+  `no_cheat` no table is used (2026-10-18).
+
+Still open: whether a table shows in diagnostics or `kayo prove`, and how.
+
 ### 2026-10-19 — `check` also comes before `no_cheat`: the check word always comes first (owner: a)
 
 The twin of the entry below. Offered (a) `check` first too, so the rule is simply "the check word always comes
