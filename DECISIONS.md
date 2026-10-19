@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — A bounded C string says whether its 0 counts: `C.str[max 255 bytes, exclude zero]` (owner: a)
+
+After `C.str` (entry below), the owner asked about bounded text ("Do we have bounded `str`s yet": yes, `str.utf8[min 1,
+max 40 graphemes]`, the unit always written) and wanted the same for a C string. Bytes only, since C has no
+graphemes. Whether the closing 0 counts was offered as (a) it does not, as C's `strlen` counts, or (b) it does, as
+`char name[256]` counts; the owner: "Maybe like that, but `exclude` or something". Offered (a) always written,
+`exclude zero` or `include zero`, no default (recommended), or (b) excluding by default. The owner: "(a)". So
+**`C.str[max 255 bytes, exclude zero]`** (255 bytes of text, the 0 on top) and **`C.str[max 256 bytes, include zero]`**
+(the whole buffer); a bounded `C.str` without one is refused. Design claude's readings, not asked: the unit is
+`bytes` only; `C.str.make` into a bounded `C.str` fails `out_of_range` when the text does not fit, as a conversion into
+any range type does (strings.md), beside `has_zero_byte`.
+
 ### 2026-10-19 — A made C string's type is `C.str` (owner: a)
 
 Compiler claude's reading, building `C.str.make` in kayo (6ae65a5f): the result was a `list[uint8]` holding the bytes
