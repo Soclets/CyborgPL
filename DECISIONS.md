@@ -34,6 +34,12 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — `check` also comes before `no_cheat`: the check word always comes first (owner: a)
+
+The twin of the entry below. Offered (a) `check` first too, so the rule is simply "the check word always comes
+before `no_cheat`" (recommended), or (b) `no_cheat` first beside `check`, since `check` cannot do harm. The owner:
+"(a)". So **`check no_cheat …`, `no_check no_cheat …`, `NO_FUCKING_CHECKS no_cheat …`**; `no_cheat check` is refused.
+
 ### 2026-10-19 — Beside `no_cheat`, `no_check` comes first: `no_check no_cheat for …` (owner: b)
 
 Asked which word comes first when both stand. Design claude first recommended `no_cheat` first, calling it the

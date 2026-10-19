@@ -95,7 +95,7 @@ are scheduled, so it read `for no_cheat seq`, never `for seq no_cheat`. **Since 
 rule `.useful` already follows in `print.useful.stdout` and
 `to.useful.str.utf8`.
 
-**Any statement or block, calls included** (owner, 2026-10-18: "(b)"; built in the oracle 2026-10-19, which reads the word and runs everything anyway; beside `no_check` or `NO_FUCKING_CHECKS`, that word comes first, the stronger one and the one a reader should see first: `no_check no_cheat for …` (owner, 2026-10-19); beside `check` the order is not decided yet, so the oracle refuses that pair side by side): `no_cheat let 'f' := fib['n'];`,
+**Any statement or block, calls included** (owner, 2026-10-18: "(b)"; built in the oracle 2026-10-19, which reads the word and runs everything anyway; the check word always comes first: `no_check no_cheat for …`, `NO_FUCKING_CHECKS no_cheat …`, `check no_cheat …` (owner, 2026-10-19; `no_check` is the stronger word and the unchecked part should be seen first, and `check` follows for one rule)): `no_cheat let 'f' := fib['n'];`,
 `no_cheat { … }`. It goes where `no_check` goes and covers everything the statement runs, calls and recursion
 all the way down, a call through a variable and a task started inside included (owner, 2026-10-19: "(a)"): no folding to the answer, no dropped work, and no computing calls that look alike once (what
 kayo's fib did after four levels of inlining, `bench/RESULTS.md` 2026-10-18). Faster ways to do the same work stay

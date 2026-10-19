@@ -2139,7 +2139,8 @@ impl Parser {
                         // the stronger word comes first, and `no_check` is the stronger: it can let a wrong program do harm, where
                         // `no_cheat` at worst runs slower; and the unchecked part should be what a reader sees first (owner, 2026-10-19)
                         Tok::Word(k) if k == "no_check" || k == "NO_FUCKING_CHECKS" => return self.err(format!("`{k}` comes first, the stronger word: `{k} no_cheat …` (owner, 2026-10-19)")),
-                        Tok::Word(k) if k == "check" => return self.err("`no_cheat check`: which of the two comes first is not decided; nest them with a block for now: `no_cheat { check … }`"),
+                        // `check` too: the check word always comes before `no_cheat` (owner, 2026-10-19: "(a)")
+                        Tok::Word(k) if k == "check" => return self.err("`check` comes first: the check word always comes before `no_cheat`: `check no_cheat …` (owner, 2026-10-19)"),
                         _ => {}
                     }
                     self.stmt()
@@ -2155,7 +2156,6 @@ impl Parser {
                         Tok::Semi => return self.err(format!("`{w}` goes in front of a statement: `{w} 'xs'[pos 'i'] = 5;` or `{w} {{ … }}`")),
                         Tok::Word(k) if k == "fn" || k == "struct" || k == "const" || k == "module" => return self.err(format!("`{w}` covers a statement, not a `{k}` — a function's safety is the sum of its statements")),
                         Tok::Word(k) if k == "check" || k == "no_check" || k == "NO_FUCKING_CHECKS" => return self.err(format!("`{w} {k}`: one tier per statement; the innermost wins when they nest")),
-                        Tok::Word(k) if k == "no_cheat" && w == "check" => return self.err("`check no_cheat`: which of the two comes first is not decided; nest them with a block for now: `check { no_cheat … }`"),
                         _ => {}
                     }
                     let body = self.stmt()?;
