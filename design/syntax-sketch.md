@@ -171,7 +171,7 @@ without the rest of that redesign. See `DECISIONS.md`.
 3. **`_` joins the words of one name**: `no_check`, `not_equal`,
    `at_most`, `free_op`.
 4. **`.` narrows**, for a variant of something: `print.useful`,
-   `lend.mut`, `div.floor`, `collection.fn`.
+   `lend.mut`, `div.floor`, `coll.fn`.
 5. **Your own names are free** (2026-09-24, 2026-10-02): `struct Range` or
    `struct range`, as you like.
 

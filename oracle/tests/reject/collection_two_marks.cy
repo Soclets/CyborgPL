@@ -1,4 +1,4 @@
-pub collection.fn c {
+pub coll.fn c {
     bare.never;
     bare.only;
 }

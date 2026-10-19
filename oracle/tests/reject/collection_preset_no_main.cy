@@ -1,4 +1,4 @@
-collection.fn c {
-    q ['x' = 1];
+coll.fn c {
+    c.q ['x' = 1];
 }
 MAIN { }

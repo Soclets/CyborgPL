@@ -1,5 +1,5 @@
-collection.fn c {
+coll.fn c {
     c ['x': int32] -> int32 { return 'x'; }
-    q ['nope' = 1];
+    c.q ['nope' = 1];
 }
 MAIN { }

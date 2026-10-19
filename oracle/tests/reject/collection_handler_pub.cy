@@ -1,4 +1,4 @@
-pub collection.handler h {
+pub coll.handler h {
     a { odd { } }
 }
 MAIN { }

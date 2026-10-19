@@ -204,6 +204,9 @@ thread_local! {
     pub static TYPE_PATHS: std::cell::RefCell<Vec<Vec<String>>> = std::cell::RefCell::new(Vec::new());
     /// Each collection template seen: (file, collection, line), for the check of what `kayo generate` wrote
     pub static TEMPLATES: std::cell::RefCell<Vec<(std::path::PathBuf, String, usize)>> = std::cell::RefCell::new(Vec::new());
+    /// `coll.fn area { area.square = shapes.square.area; }` (owner, 2026-10-19): a member whose body is written elsewhere
+    /// in the kit, resolved once every file is read: (the collection's module, its name, the member, the path, its visibility, line)
+    pub static COLL_POINTERS: std::cell::RefCell<Vec<(Vec<String>, String, String, Vec<String>, Vis, usize)>> = std::cell::RefCell::new(Vec::new());
     /// The file being parsed, for TEMPLATES
     pub static CURRENT_FILE: std::cell::RefCell<std::path::PathBuf> = std::cell::RefCell::new(std::path::PathBuf::new());
     /// The folder of the kit whose file is being parsed: an `incl.…` path starts there (owner, 2026-10-10)
@@ -738,7 +741,7 @@ impl Parser {
                     if pending_bare.is_none() && self.is_word("bare") { let line = self.line(); pending_bare = Some((self.bare_mode()?, line)); }
                 }
                 match self.peek().clone() {
-                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" || w == "interface" || w == "incl" || w == "collection" || w == "table_bytes" => {}
+                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" || w == "interface" || w == "incl" || w == "collection" || w == "coll" || w == "table_bytes" => {}
                     Tok::Word(w) if w == "let" => return self.err("a kit-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
                     Tok::Var(_) => return self.err("a kit-level value is a `const`, not a variable: `pub const 'x' := 1;`"),
                     Tok::Word(w) if w == "MAIN" => return self.err("MAIN is the program's entry, never `pub`"),
@@ -774,16 +777,18 @@ impl Parser {
                 // `.type`"): `collection.fn cum { … }`, a function and its dot narrowings in one block, read as
                 // the `fn cum …` and `fn cum.quick …` items it stands for; `collection.handler h { … }`, named
                 // `otherwise` blocks, used as `otherwise h.member` and read as if written there
-                Tok::Word(w) if w == "collection" => {
+                // `coll.fn` / `coll.handler` since 2026-10-19 (owner: "(b)"); `collection.` is the old spelling
+                Tok::Word(w) if w == "collection" => return self.err(crate::spellings::message(crate::spellings::old("collection."))),
+                Tok::Word(w) if w == "coll" => {
                     match (self.peek_at(1).clone(), self.peek_at(2).clone()) {
                         (Tok::Dot, Tok::Word(k)) if k == "fn" => self.expand_collection(vis.clone(), pending_bare.map(|(m, _)| m))?,
                         (Tok::Dot, Tok::Word(k)) if k == "handler" => {
-                            if vis != Vis::Private { return self.err("whether a `collection.handler` can be `pub` is not decided yet (2026-10-13)"); }
-                            if pending_bare.is_some() { return self.err("a `bare.` mark is for what is `pub`, and a `collection.handler` is not `pub`"); }
+                            if vis != Vis::Private { return self.err("whether a `coll.handler` can be `pub` is not decided yet (2026-10-13)"); }
+                            if pending_bare.is_some() { return self.err("a `bare.` mark is for what is `pub`, and a `coll.handler` is not `pub`"); }
                             self.handler_collection()?;
                         }
-                        (Tok::Dot, Tok::Word(k)) => return self.err(format!("there is no `collection.{k}`: a collection is `collection.fn` (a function and its narrowings) or `collection.handler` (named `otherwise` blocks) (owner, 2026-10-13)")),
-                        _ => return self.err("a collection says its kind: `collection.fn cum { … }` (a function and its narrowings) or `collection.handler cum_failed { … }` (named `otherwise` blocks) (owner, 2026-10-13)"),
+                        (Tok::Dot, Tok::Word(k)) => return self.err(format!("there is no `coll.{k}`: a collection is `coll.fn` (a function and its narrowings) or `coll.handler` (named `otherwise` blocks) (owner, 2026-10-13)")),
+                        _ => return self.err("a collection says its kind: `coll.fn cum { … }` (a function and its narrowings) or `coll.handler cum_failed { … }` (named `otherwise` blocks) (owner, 2026-10-13)"),
                     }
                     continue;
                 }
@@ -2711,8 +2716,8 @@ impl Parser {
         let name = match self.advance().tok {
             Tok::Word(n) if crate::spellings::is_reserved(&n) => return self.err(format!("`{n}` is a keyword and cannot name a collection")),
             Tok::Word(n) => n,
-            Tok::Text(t, _) => return self.err(format!("a collection's name is bare, as a function's: `collection.fn {t} {{ … }}`")),
-            other => return self.err(format!("expected the collection's name after `collection.fn`, found {other}")),
+            Tok::Text(t, _) => return self.err(format!("a collection's name is bare, as a function's: `coll.fn {t} {{ … }}`")),
+            other => return self.err(format!("expected the collection's name after `coll.fn`, found {other}")),
         };
         self.expect(Tok::LBrace, "`{` after the collection's name")?;
         let mut mode = mark;
@@ -2738,16 +2743,43 @@ impl Parser {
                     self.skip_braces()?;
                 }
                 Tok::Word(w) if w == "named" => return self.err("`named` names what a template generates: it stands inside a `for` in a collection"),
-                Tok::Word(w) if w == "fn" => return self.err(format!("a collection's members take no `fn`: `{name} [ … ] -> T {{ … }}`, `quick [ … ] -> T {{ … }}` (owner, 2026-10-13)")),
-                Tok::Word(m) => {
+                Tok::Word(w) if w == "fn" => return self.err(format!("a collection's members take no `fn`: `{name} [ … ] -> T {{ … }}`, `{name}.quick [ … ] -> T {{ … }}` (owner, 2026-10-13)")),
+                Tok::Word(first) => {
                     let mline = self.line();
                     self.advance();
+                    // every member line writes its full name, so the line says what it makes (owner, 2026-10-19: "yes"):
+                    // `area [ … ]` is the own function, `area.ring [ … ]` a member, `area.unit ['r' = 1.0];` a preset
+                    let m = if first == name && *self.peek() == Tok::Dot {
+                        self.advance();
+                        match self.advance().tok { Tok::Word(x) => x, other => return self.err(format!("expected the member's name after `{name}.`, found {other}")) }
+                    } else if first == name {
+                        first
+                    } else {
+                        return self.err(format!("a member writes the collection's name in front: `{name}.{first}` (owner, 2026-10-19)"));
+                    };
+                    // `area.square = shapes.square.area;`: a member whose body is written elsewhere in the kit (owner, 2026-10-19)
+                    if *self.peek() == Tok::Eq && m != name {
+                        self.advance();
+                        let mut path = Vec::new();
+                        loop {
+                            match self.advance().tok { Tok::Word(x) => path.push(x), other => return self.err(format!("`{name}.{m} = …` names a function by its path: `{name}.{m} = shapes.square.area;`, found {other}")) }
+                            if *self.peek() == Tok::Dot { self.advance(); continue; }
+                            break;
+                        }
+                        self.expect(Tok::Semi, "`;` after the path")?;
+                        if members.iter().any(|(n, _)| *n == m) || presets.iter().any(|(n, _, _)| *n == m) { return self.err(format!("`{name}.{m}` is written twice")); }
+                        let module = self.module.clone();
+                        COLL_POINTERS.with(|c| c.borrow_mut().push((module, name.clone(), m.clone(), path, vis.clone(), mline)));
+                        members.push((m, Vec::new()));
+                        continue;
+                    }
+                    if *self.peek() == Tok::Eq { return self.err(format!("the own function `{name}` is written here; only a member points elsewhere: `{name}.square = shapes.square.area;`")); }
                     // a preset: `quick ['step' = 2];`, filling arguments of the main function
                     if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Var(_)) && *self.peek_at(2) == Tok::Eq {
                         self.advance();
                         let mut fills = Vec::new();
                         loop {
-                            let Tok::Var(p) = self.advance().tok else { return self.err(format!("a preset fills parameters by name: `{m} ['step' = 2];`")) };
+                            let Tok::Var(p) = self.advance().tok else { return self.err(format!("a preset fills parameters by name: `{name}.{m} ['step' = 2];`")) };
                             self.expect(Tok::Eq, "`=` after the parameter's name")?;
                             let mut value = Vec::new();
                             let mut depth = 0i32;
@@ -2781,7 +2813,7 @@ impl Parser {
                             Tok::LBracket | Tok::LParen => depth += 1,
                             Tok::RBracket | Tok::RParen => depth -= 1,
                             Tok::LBrace if depth == 0 => break,
-                            Tok::Semi | Tok::Eof if depth == 0 => return self.err(format!("`{m}` in collection `{name}` has no body: a member is `{m} [ … ] -> T {{ … }}`, a preset `{m} ['step' = 2];`")),
+                            Tok::Semi | Tok::Eof if depth == 0 => return self.err(format!("`{name}.{m}` in collection `{name}` has no body: a member is `{name}.{m} [ … ] -> T {{ … }}`, a preset `{name}.{m} ['step' = 2];`")),
                             _ => {}
                         }
                         self.advance();
@@ -2797,7 +2829,7 @@ impl Parser {
                         members.push((m, toks));
                     }
                 }
-                other => return self.err(format!("a collection holds its main function (`{name} [ … ] -> T {{ … }}`), members (`quick [ … ] -> T {{ … }}`), presets (`quick ['step' = 2];`), one `bare.` mark, and templates (`for … {{ named …; … }}`); found {other}")),
+                other => return self.err(format!("a collection holds its own function (`{name} [ … ] -> T {{ … }}`), members (`{name}.quick [ … ] -> T {{ … }}`, or `{name}.quick = path.to.fn;`), presets (`{name}.quick ['step' = 2];`), one `bare.` mark, and templates (`for … {{ named …; … }}`); found {other}")),
             }
         }
         let end = self.pos;
@@ -2818,6 +2850,7 @@ impl Parser {
             out.extend(prefix(l)); out.push(w("fn", l)); out.push(w(&name, l)); out.extend(m.iter().cloned());
         }
         for (m, toks) in &members {
+            if toks.is_empty() { continue; }   // a pointing member, made once every file is read
             let l = toks.first().map(|t| t.line).unwrap_or(line);
             out.extend(prefix(l)); out.push(w("fn", l)); out.push(w(&name, l)); out.push(tk(Tok::Dot, l)); out.push(w(m, l)); out.extend(toks.iter().cloned());
         }
@@ -2909,8 +2942,8 @@ impl Parser {
         let name = match self.advance().tok {
             Tok::Word(n) if crate::spellings::is_reserved(&n) => return self.err(format!("`{n}` is a keyword and cannot name a collection")),
             Tok::Word(n) => n,
-            Tok::Text(t, _) => return self.err(format!("a collection's name is bare, as a function's: `collection.handler {t} {{ … }}`")),
-            other => return self.err(format!("expected the collection's name after `collection.handler`, found {other}")),
+            Tok::Text(t, _) => return self.err(format!("a collection's name is bare, as a function's: `coll.handler {t} {{ … }}`")),
+            other => return self.err(format!("expected the collection's name after `coll.handler`, found {other}")),
         };
         self.expect(Tok::LBrace, "`{` after the collection's name")?;
         let mut seen: Vec<String> = Vec::new();
@@ -2918,8 +2951,8 @@ impl Parser {
             match self.peek().clone() {
                 Tok::RBrace => { self.advance(); break; }
                 Tok::Eof => return self.err(format!("collection `{name}` is never closed: a `}}` is missing")),
-                Tok::Word(w) if w == "bare" => return self.err("a `bare.` mark is for what is `pub`, and a `collection.handler` is not `pub`"),
-                Tok::Word(w) if w == "for" => return self.err("templates are for `collection.fn`; whether a `collection.handler` has them is not decided yet (2026-10-13)"),
+                Tok::Word(w) if w == "bare" => return self.err("a `bare.` mark is for what is `pub`, and a `coll.handler` is not `pub`"),
+                Tok::Word(w) if w == "for" => return self.err("templates are for `coll.fn`; whether a `coll.handler` has them is not decided yet (2026-10-13)"),
                 Tok::Word(m) if *self.peek_at(1) == Tok::LBrace => {
                     if crate::spellings::is_reserved(&m) { return self.err(format!("`{m}` is a keyword and cannot name a handler")); }
                     if seen.contains(&m) { return self.err(format!("`{m}` is written twice in `{name}`")); }
@@ -2928,8 +2961,8 @@ impl Parser {
                     if *self.peek_at(1) == Tok::RBrace { return self.err("a handler with no arms handles nothing: one arm per failure, as after `otherwise`"); }
                     self.skip_braces()?;
                 }
-                Tok::Word(m) => return self.err(format!("a `collection.handler` holds named `otherwise` blocks: `{m} {{ odd {{ … }} negative 'v' {{ … }} }}`, found `{m}` followed by {}", self.peek_at(1))),
-                other => return self.err(format!("a `collection.handler` holds named `otherwise` blocks (`flow_back {{ odd {{ … }} }}`), found {other}")),
+                Tok::Word(m) => return self.err(format!("a `coll.handler` holds named `otherwise` blocks: `{m} {{ odd {{ … }} negative 'v' {{ … }} }}`, found `{m}` followed by {}", self.peek_at(1))),
+                other => return self.err(format!("a `coll.handler` holds named `otherwise` blocks (`flow_back {{ odd {{ … }} }}`), found {other}")),
             }
         }
         Ok(())
@@ -2941,7 +2974,7 @@ impl Parser {
         let t = &self.toks;
         let mut i = 0;
         while i + 4 < t.len() {
-            let head = matches!(&t[i].tok, Tok::Word(w) if w == "collection") && t[i + 1].tok == Tok::Dot
+            let head = matches!(&t[i].tok, Tok::Word(w) if w == "coll") && t[i + 1].tok == Tok::Dot
                 && matches!(&t[i + 2].tok, Tok::Word(w) if w == "handler") && matches!(&t[i + 3].tok, Tok::Word(n) if n == coll)
                 && t[i + 4].tok == Tok::LBrace;
             if !head { i += 1; continue; }

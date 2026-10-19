@@ -105,7 +105,28 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     parser::POWER_USES.with(|u| u.borrow_mut().clear());
     parser::CALL_SITES.with(|u| u.borrow_mut().clear());
     parser::VAR_SITES.with(|u| u.borrow_mut().clear());
+    parser::COLL_POINTERS.with(|c| c.borrow_mut().clear());
     let mut prog = load_files(path)?;
+    // a collection member written elsewhere (owner, 2026-10-19): `area.square = shapes.square.area;` is that function under
+    // the member's name, its path read from the collection's module, or from the kit's root after `my.`
+    for (module, coll, member, tpath, vis, line) in parser::COLL_POINTERS.with(|c| c.borrow().clone()) {
+        let (base, rel) = if tpath.first().map(|p| p.as_str()) == Some("my") { (module.iter().take(1).cloned().collect::<Vec<_>>(), &tpath[1..]) } else { (module.clone(), &tpath[..]) };
+        let (fname, dirs) = rel.split_last().ok_or_else(|| format!("{}: line {line}: `{coll}.{member} = …` names a function", path_display(path)))?;
+        let want: Vec<String> = base.iter().cloned().chain(dirs.iter().cloned()).collect();
+        let Some(target) = prog.funcs.iter().find(|f| f.module == want && f.name == *fname && !f.is_op).cloned() else {
+            return Err(format!("{}: line {line}: `{coll}.{member} = {}` names no function: there is no `{}` there", path_display(path), tpath.join("."), tpath.join(".")));
+        };
+        let mut f = target;
+        f.module = module.iter().cloned().chain([coll.clone()]).collect();
+        f.name = member.clone();
+        // a member with no `pub` is seen across the kit, as `fn area.ring` is (provisional, as there)
+        f.vis = if vis == ast::Vis::Private { ast::Vis::Kit } else { vis.clone() };
+        f.owned = true;
+        if prog.funcs.iter().any(|g| g.module == f.module && g.name == f.name) { return Err(format!("line {line}: `{coll}.{member}` is written twice")); }
+        // the collection's name is a path its members sit under, as `fn area.ring` makes it
+        if !prog.modules.iter().any(|m| m.path == f.module) { prog.modules.push(ast::ModuleDef { path: f.module.clone(), vis: ast::Vis::Pub, line }); }
+        prog.funcs.push(f);
+    }
     // the base's `optional` (owner, 2026-10-08: "an iterator's next returns an Option-like value", named
     // `optional` with `value` and `none`): every program has it, as it has `list`
     let prelude = lexer::lex("enum optional <T: any> { value: <T>, none }").map_err(|e| format!("the base's optional: {}", e.msg))?;
@@ -233,6 +254,8 @@ fn load_files(path: &Path) -> Result<ast::Program, String> {
 }
 
 /// One kit directory, its modules under `root` (`[]` for the kit being built).
+fn path_display(p: &Path) -> String { p.display().to_string() }
+
 fn load_kit(path: &Path, root: Vec<String>) -> Result<ast::Program, String> {
     for old in ["strike.zg", "Ricochet.zv", "limb.cpls", "neuron.nrv", "Kinesin.nrp", "CCA.cplr"] {
         if path.join(old).is_file() { return Err(format!("{}: `{old}` has the old name: rename it to `{}`", path.display(), renamed_file(old).unwrap())); }

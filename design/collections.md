@@ -5,8 +5,8 @@ The rulings, with the owner's words, are in `DECISIONS.md` under 2026-10-13;
 this note says what they add up to. The example is `examples/collections.cy`.
 
 > **2026-10-13, later (owner):** a collection always says its kind, and a
-> bare `collection` is refused. Most of this note is **`collection.fn`**;
-> the second kind, **`collection.handler`**, holds named `otherwise` blocks
+> bare `coll` is refused (and `collection.`, the spelling until 2026-10-19). Most of this note is **`coll.fn`**;
+> the second kind, **`coll.handler`**, holds named `otherwise` blocks
 > (the last section). Both built in the oracle the same day.
 
 A collection writes a function and its dot narrowings (`cum`, `cum.quick`,
@@ -16,15 +16,15 @@ A collection writes a function and its dot narrowings (`cum`, `cum.quick`,
 ## The shape
 
 ```
-pub collection.fn cum {
+pub coll.fn cum {
     bare.never;
     cum ['x': int32, 'step': int32] -> int32 { return 'x' plus 'step'; }
-    quick ['step' = 2];
-    double ['x': int32] -> int32 { return 'x' times 2; }
+    cum.quick ['step' = 2];
+    cum.double ['x': int32] -> int32 { return 'x' times 2; }
 }
 ```
 
-- `collection.fn`, then the name, bare as a function's is (`cum`, never
+- `coll.fn`, then the name, bare as a function's is (`cum`, never
   `'cum'`), then `{ }`.
 - **The own function** carries the collection's name: `cum [ … ] -> T
   { … }`, called `cum[…]`, or `name::cum[…]` from another kit. ("Own
@@ -43,6 +43,29 @@ pub collection.fn cum {
   preset fails the same ways. A preset names only the own function's
   parameters, and needs an own function to fill.
 
+**Since 2026-10-19 (owner): `coll.`, and every member line writes its full name.** The header is `coll.fn` /
+`coll.handler` (`collection.` refused as the old spelling), and each member line says what it makes:
+`cum.quick ['step' = 2];`, `cum.double […] { … }`, so a line alone shows its name. A short `quick [ … ]` is refused,
+naming `cum.quick`. Generated members are written the same way.
+
+### A member written elsewhere (owner, 2026-10-19)
+
+A member may point at a function written elsewhere in the kit, so a kit's `kit.cy` can be its front door:
+
+```
+pub bare.never coll.fn area {
+    area ['w': int64, 'h': int64] -> int64 { return 'w' x 'h'; }
+    area.square = shapes.square.area;           # body in shapes/square.cy
+    area.triangle = shapes.triangle.area;
+    area.unit ['w' = 1, 'h' = 1];               # a preset of the own function
+}
+# users write geometry::area.square[5]
+```
+
+The path is read from the collection's module (`my.` for the kit's root), and the member is that function under
+its new name, with the collection's visibility. `examples/coll_front_door/`. The single-line `pub fn area = …;`
+(2026-09-23) stays for a one-off name.
+
 ## Who sees it
 
 - A collection is **private unless `pub collection`**, as everything else
@@ -60,9 +83,9 @@ as `std::print` does: `std::print.useful[…]` and `std::print.stored[…]`
 exist, a bare `std::print[…]` does not.
 
 ```
-collection.fn zero {
-    of_int16 [] -> int16 { return 0; }
-    of_int64 [] -> int64 { return 0; }
+coll.fn zero {
+    zero.of_int16 [] -> int16 { return 0; }
+    zero.of_int64 [] -> int64 { return 0; }
 }
 ```
 
@@ -76,14 +99,14 @@ cannot do (Good practice 14, `style.md`): where the value changes a
 member's signature, or no own function takes it.
 
 ```
-collection.fn zero {
+coll.fn zero {
     for 'T' in [int16, int64] {
         named "of_" ++ 'T';
         [] -> 'T' { return 0; }
     }
     #generated_2_lines_below
-    of_int16 [] -> int16 { return 0; }
-    of_int64 [] -> int64 { return 0; }
+    zero.of_int16 [] -> int16 { return 0; }
+    zero.of_int64 [] -> int64 { return 0; }
 }
 ```
 
@@ -127,10 +150,10 @@ owner rules:
   list, so a const stays its name (`times 'big'`), while `named` sees its
   value (`times_100`).
 
-## `collection.handler` (owner, 2026-10-13; built in the oracle)
+## `coll.handler` (owner, 2026-10-13; built in the oracle)
 
 ```
-collection.handler cum_failed {
+coll.handler cum_failed {
     flow_back_to_bladder {
         odd { return 0; }
         negative 'v' { report['v']; return 0; }

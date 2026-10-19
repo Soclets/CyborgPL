@@ -1,4 +1,4 @@
-collection.fn c {
+coll.fn c {
     named "x";
 }
 MAIN { }

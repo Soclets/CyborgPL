@@ -1,4 +1,4 @@
-collection.fn c {
+coll.fn c {
     for 'n' in [1, 2] {
         [] -> int32 { return 'n'; }
     }

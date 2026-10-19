@@ -1,10 +1,10 @@
-# Collections (owner, 2026-10-13): `collection.fn` writes a function and its dot narrowings in one
-# block (the other kind, `collection.handler`, is in collection_handlers.cy). The own function carries
+# Collections (owner, 2026-10-13): `coll.fn` writes a function and its dot narrowings in one
+# block (the other kind, `coll.handler`, is in collection_handlers.cy). The own function carries
 # the collection's name (no `fn`), a member with its own body is reached as `greet.loud`, and a preset,
 # a member that only fills some of the own function's arguments, is one line: `greet.hi['who']` is
-# `greet[lend 'who', "hi", 1]`. Private here, so no `pub` and no `bare.` mark; a `pub collection.fn`
+# `greet[lend 'who', "hi", 1]`. Private here, so no `pub` and no `bare.` mark; a `pub coll.fn`
 # makes every member public under its one `bare.` mark.
-collection.fn greet {
+coll.fn greet {
     greet [lent 'who': str.utf8, 'word': str.utf8, 'times': int32[min 1, max 5]] -> str.utf8 or fail[too_long] {
         if str.bytes[lend 'who'] > 20 { fail too_long; }
         let 'out' := str.empty;
@@ -14,9 +14,9 @@ collection.fn greet {
         return 'out' concat 'who';
     }
 
-    hi ['word' = "hi", 'times' = 1];
-    cheer ['word' = "hooray", 'times' = 3];
-    loud [lent 'who': str.utf8] -> str.utf8 { return std::str.upper[lend 'who']; }
+    greet.hi ['word' = "hi", 'times' = 1];
+    greet.cheer ['word' = "hooray", 'times' = 3];
+    greet.loud [lent 'who': str.utf8] -> str.utf8 { return std::str.upper[lend 'who']; }
 }
 
 # A template (owner, 2026-10-13) makes members whose names follow a pattern. It loops with the usual
@@ -28,23 +28,23 @@ collection.fn greet {
 # such as a member whose signature changes with the value, as `zero`'s below.
 const 'big' := 100;
 
-collection.fn scale {
+coll.fn scale {
     scale ['x': int32, 'by': int32] -> int32 { return 'x' x 'by'; }
-    times_2 ['by' = 2];
-    times_10 ['by' = 10];
-    times_100 ['by' = 'big'];
+    scale.times_2 ['by' = 2];
+    scale.times_10 ['by' = 10];
+    scale.times_100 ['by' = 'big'];
 }
 
 # A template over types: each member returns its own type, which no preset can do. A type's name is
 # text in `named`.
-collection.fn zero {
+coll.fn zero {
     for 'T' in [int16, int64] {
         named "of_" concat 'T';
         [] -> 'T' { return 0; }
     }
     #generated_2_lines_below
-    of_int16 [] -> int16 { return 0; }
-    of_int64 [] -> int64 { return 0; }
+    zero.of_int16 [] -> int16 { return 0; }
+    zero.of_int64 [] -> int64 { return 0; }
 }
 
 # `named` may call a function, run while generating, when a name needs logic (owner, 2026-10-13:
@@ -54,14 +54,23 @@ fn width_name ['t': str.utf8] -> str.utf8 {
     return "big";
 }
 
-collection.fn twice {
+coll.fn twice {
     for 'T' in [int16, int64] {
         named width_name['T'];
         ['x': 'T'] -> 'T' { return 'x' x 2; }
     }
     #generated_2_lines_below
-    small ['x': int16] -> int16 { return 'x' x 2; }
-    big ['x': int64] -> int64 { return 'x' x 2; }
+    twice.small ['x': int16] -> int16 { return 'x' x 2; }
+    twice.big ['x': int64] -> int64 { return 'x' x 2; }
+}
+
+# A member whose body is written elsewhere (owner, 2026-10-19): `area.square = square_area;` is that function under
+# the member's name, its path read as any path from here (`shapes.square.area` in a kit's root file).
+fn square_area ['s': int32] -> int32 { return 's' x 's'; }
+
+coll.fn area {
+    area ['w': int32, 'h': int32] -> int32 { return 'w' x 'h'; }
+    area.square = square_area;
 }
 
 MAIN {
@@ -74,4 +83,5 @@ MAIN {
     let 'd' := greet.hi[lend 'long'] otherwise "too long";
     std::print.useful['d', newln];
     std::print.useful[scale[7, 3], " ", scale.times_2[7], " ", scale.times_10[7], " ", scale.times_100[7], " ", zero.of_int64[], " ", twice.small[300], " ", twice.big[5_000_000_000], newln];
+    std::print.useful[area[3, 4], " ", area.square[5], newln];
 }

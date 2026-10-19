@@ -119,6 +119,8 @@ fn expected(prog: &mut crate::ast::Program) -> Result<Vec<(usize, Vec<(Template,
         let lines = crate::parser::TEMPLATES.with(|t| t.borrow().iter().filter(|(path, _, _)| *path == f.path).map(|(_, _, l)| *l).collect());
         (f.path.clone(), f.src.clone(), f.module.clone(), f.kit_root.clone(), lines)
     }).collect());
+    // each template's collection, by file and line: a generated member writes its full name (owner, 2026-10-19)
+    let coll_of = |path: &PathBuf, line: usize| crate::parser::TEMPLATES.with(|t| t.borrow().iter().find(|(p, _, l)| p == path && *l == line).map(|(_, c, _)| c.clone()).unwrap_or_default());
     let mut plans = Vec::new();
     let mut calls: Vec<(Vec<String>, String)> = Vec::new();
     let mut k = 0;
@@ -154,7 +156,8 @@ fn expected(prog: &mut crate::ast::Program) -> Result<Vec<(usize, Vec<(Template,
                 calls.push((module.clone(), fname));
                 made.push(v.clone());
             }
-            per.push((t, made));
+            let coll = coll_of(path, t.for_line);
+            per.push((t, made, coll));
         }
         plans.push((fi, per));
     }
@@ -168,14 +171,14 @@ fn expected(prog: &mut crate::ast::Program) -> Result<Vec<(usize, Vec<(Template,
     let mut out = Vec::new();
     for (fi, per) in plans {
         let mut ts = Vec::new();
-        for (t, values) in per {
+        for (t, values, coll) in per {
             let mut lines = Vec::new();
             let base = indent_of(t.member.first().map(String::as_str).unwrap_or(""));
             for v in &values {
                 let name = n.next().unwrap_or_default();
                 for (li, l) in t.member.iter().enumerate() {
                     let body = put(l.strip_prefix(base.as_str()).unwrap_or(l.trim_start()), &t.var, v);
-                    lines.push(if li == 0 { format!("{}{name} {body}", t.indent) } else { format!("{}{body}", t.indent) });
+                    lines.push(if li == 0 { format!("{}{coll}.{name} {body}", t.indent) } else { format!("{}{body}", t.indent) });
                 }
             }
             ts.push((t, lines));

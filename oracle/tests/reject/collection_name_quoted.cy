@@ -1,3 +1,3 @@
-collection.fn "cum" {
+coll.fn "cum" {
 }
 MAIN { }

@@ -1,4 +1,5 @@
-collection c {
+coll c {
     c [] -> int32 { return 1; }
 }
+
 MAIN { }
