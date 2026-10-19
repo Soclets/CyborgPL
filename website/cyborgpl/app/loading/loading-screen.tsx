@@ -27,22 +27,26 @@ export function LoadingScreen() {
 
     preloadSite((f) => { real.current = Math.max(real.current, f); });
     const giveUp = setTimeout(() => { real.current = 1; }, GIVE_UP_MS);
-    let last = performance.now(), frame = 0, value = 0;
+    // Animation frames drive the bar while the page is watched. A tab in the background gets
+    // none, so there a timer steps it instead, and nobody returns to a screen stuck halfway.
+    let last = performance.now(), value = 0, frame = 0, timer: ReturnType<typeof setTimeout> | undefined;
     const tick = (now: number) => {
       value = Math.min(real.current, value + ((now - last) / 1000) * RATE);
       last = now;
       setShown(value);
       if (value >= 1) { setPhase("online"); return; }
-      frame = requestAnimationFrame(tick);
+      if (document.hidden) timer = setTimeout(() => tick(performance.now()), 100);
+      else frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(frame); clearTimeout(giveUp); };
+    return () => { cancelAnimationFrame(frame); clearTimeout(timer); clearTimeout(giveUp); };
   }, []);
 
   useEffect(() => {
     if (phase !== "online") return;
     const t = setTimeout(() => {
-      document.documentElement.classList.add("revealing");
+      // .ready lets the page's own entrance start as the screen fades (app.css).
+      document.documentElement.classList.add("ready");
       setPhase("gone");
     }, HOLD_MS);
     return () => clearTimeout(t);
@@ -53,7 +57,7 @@ export function LoadingScreen() {
   const status = done < 10 ? `Attaching ${PARTS[done]!.name}` : "Online.";
 
   return (
-    <AnimatePresence onExitComplete={() => document.documentElement.classList.remove("loading", "revealing")}>
+    <AnimatePresence onExitComplete={() => document.documentElement.classList.remove("loading")}>
       {phase !== "gone" && (
         <motion.div
           className="loader"
