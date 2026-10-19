@@ -320,6 +320,30 @@ default sites still checked (working build only; a final build has none).
 decided it. The the prover oracle (`compiler-verification.md`) reads this
 report to know which claims to attack.
 
+## Tables: a small pure function computed at compile time (owner, 2026-10-17; limits 2026-10-19)
+
+When Precog proves a function pure and its input range small (fib's is 0 to 92), it computes every answer at
+compile time and the function becomes a lookup in a table ("compile time is free"). The limit is the programmer's,
+who knows the target:
+
+```
+targets = [
+    cyjet::target[name = "aarch64-macos", default = true, table_bytes = 262_144],
+    cyjet::target[name = "aarch64-none", table_bytes = 4_096],      # a small board: small tables
+]
+
+table_bytes 1_024 fn square ['x': uint8] -> uint16 { … }    # this function's own limit
+table_bytes 0 fn fib ['n': int64[min 0, max 92]] -> int64 { … }   # never a table
+```
+
+- Per target in `CyJet.cyr`, in bytes; **65,536** when not written (design claude's number: about the fast cache
+  of this Mac's cores, past which a lookup can be slower than computing).
+- Per function, `table_bytes N` in front of `fn`, where the `bare` marks sit; it overrides the target's.
+- A table bigger than its limit is not made: the function compiles as written. Under `no_cheat` no table is used.
+- The build report lists each table (entries, bytes, which limit applied) under Optimizations and Sizes.
+- The oracle reads both and computes every call: the answers are the same with or without a table.
+  `examples/table_limits/`, reject tests `table_bytes_*`.
+
 ## The the prover oracle (decided 2026-09-22, owner: a + b + c)
 
 The second of the three oracles in `compiler-verification.md`, attacking

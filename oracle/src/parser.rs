@@ -738,12 +738,23 @@ impl Parser {
                     if pending_bare.is_none() && self.is_word("bare") { let line = self.line(); pending_bare = Some((self.bare_mode()?, line)); }
                 }
                 match self.peek().clone() {
-                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" || w == "interface" || w == "incl" || w == "collection" => {}
+                    Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" || w == "interface" || w == "incl" || w == "collection" || w == "table_bytes" => {}
                     Tok::Word(w) if w == "let" => return self.err("a kit-level value is a `const`, not a `let`: `pub const 'x' := 1;`"),
                     Tok::Var(_) => return self.err("a kit-level value is a `const`, not a variable: `pub const 'x' := 1;`"),
                     Tok::Word(w) if w == "MAIN" => return self.err("MAIN is the program's entry, never `pub`"),
                     other => return self.err(format!("`pub` goes before `fn`, `struct`, `const`, or `module`, found {other}")),
                 }
+            }
+            // `table_bytes 262_144 fn sine …`: how big a table Precog may turn this function into, overriding the
+            // target's `table_bytes` in `CyJet.cyr`; `table_bytes 0` turns tables off for it (owner, 2026-10-19: "(c)",
+            // then "(a)", in front of `fn` where the `bare` marks sit). The oracle computes every call, so it reads the number.
+            if self.is_word("table_bytes") {
+                self.advance();
+                match self.advance().tok {
+                    Tok::Int(n) if n >= 0 => {}
+                    other => return self.err(format!("`table_bytes` takes a whole number of bytes, 0 or more: `table_bytes 262_144 fn sine …`, found {other}")),
+                }
+                if !self.is_word("fn") { return self.err("`table_bytes` goes in front of a `fn`: `table_bytes 262_144 fn sine […] -> bin32 { … }`"); }
             }
             match self.peek().clone() {
                 // `test fn name [] { … }` (owner, 2026-09-29): run by `kayo test`, never called

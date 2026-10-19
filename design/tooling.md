@@ -277,6 +277,35 @@ Feeds the given text to the program as its input, so a diagnostic's
 `try:` line reproduces a counterexample with one paste. Spelling open
 with the rest of Synthia.
 
+## The build report (owner, 2026-10-19)
+
+Every build writes a Markdown file of everything it did, **beside the program**: `kayo build fib.cy -o build/fib`
+writes `build/fib`, `build/fib.dSYM` and `build/fib.report.md` (with no `-o`, beside the source). The terminal keeps
+errors, warnings and one summary line. The owner: "a file that says everything that happened during compilation …
+easy to find each section", "a lot more detailed".
+
+One heading per section, a contents line at the top, in this order:
+
+1. **Summary**: result, build kind (working / final), target, kayo version, date, total time, a count per section.
+2. **Inputs**: every source file, kit and limb with its version; the `CyJet.cyr` settings that applied (targets,
+   `table_bytes`).
+3. **Proofs**: every check site, file:line, its kind (overflow, bounds, division by zero, conversion, position) and
+   how it was proven (range type, guardrail `if`, loop bounds); in a working build, the sites left as run-time checks.
+4. **Your markers**: every passed `check` and what it proved, every `no_check` and `NO_FUCKING_CHECKS` site, the
+   certain-failure notes.
+5. **Types Precog picked**: each `:=`, its type and the range that decided it.
+6. **Optimizations**: inlining and recursion unrolling; tables (entries, bytes, which limit); loops split across
+   cores, and why others were not; SIMD loops; every `no_cheat` region and the copies it made.
+7. **Removed**: code never reached.
+8. **C**: `extern.C` functions, C headers, the types they mapped to.
+9. **Sizes**: totals per category first, then every function (inlined ones marked), every table, every const, text
+   literal and included file, every struct's size, alignment and padding per field, the runtime and what the linker
+   adds, and the debug info apart.
+10. **Timing**: each compile phase.
+11. **Warnings and notes**: the full text.
+
+Not built yet (the oracle builds nothing).
+
 ## Open
 
 - Synthia's own syntax for `Synthia.ttsr`, and how Synthia and kayo's package manager relate.

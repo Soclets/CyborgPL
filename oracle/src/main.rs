@@ -354,7 +354,13 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                                 _ => return Err(format!("{shown}: line {line}: `default` is `true` or `false`")) }
                             continue;
                         }
-                        if f != "name" && f != "runner" { return Err(format!("{shown}: line {line}: a `cyjet::target` has no `{f}`; it has `name`, `runner` and `default`")); }
+                        // the largest table Precog may make on this target, in bytes; 65,536 when not written (owner, 2026-10-19: "(a)")
+                        if f == "table_bytes" {
+                            match b.values.as_slice() { [ast::Value::Expr(ast::Expr::Int(n, _))] if *n >= 0 => {},
+                                _ => return Err(format!("{shown}: line {line}: `table_bytes` is a whole number of bytes, 0 or more: `table_bytes = 65_536`")) }
+                            continue;
+                        }
+                        if f != "name" && f != "runner" { return Err(format!("{shown}: line {line}: a `cyjet::target` has no `{f}`; it has `name`, `runner`, `default` and `table_bytes`")); }
                         let t = text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
                         if f == "name" { names.push((t, line)); }
                     }

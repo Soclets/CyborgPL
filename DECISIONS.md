@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — The build report sits beside the program: `build/fib.report.md` (owner: a)
+
+Offered (a) beside the built program, named after it, as the debug info `fib.dSYM` already is (recommended), (b) a
+fixed folder in the kit, (c) both. The owner asked "Where is a?" (wherever `-o` puts the program, or beside the
+source with no `-o`), then "(a)". So **`kayo build fib.cy -o build/fib` writes `build/fib`, `build/fib.dSYM` and
+`build/fib.report.md`**. `table_bytes` (entry below) is built in the oracle the same day, which reads it: it
+computes every call anyway.
+
 ### 2026-10-19 — The build report's sections, and a size for every single thing (owner: yup, yup)
 
 Design claude proposed eleven sections, each a heading; the owner: "yup, but would it show size for each specific
