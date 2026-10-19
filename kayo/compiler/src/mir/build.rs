@@ -58,37 +58,97 @@ pub fn build(checked: Checked) -> Program {
 fn nocheat_clones(p: &mut Program) {
     let mut copy_of: HashMap<usize, usize> = HashMap::new();
     let mut work: Vec<(usize, Option<Vec<u32>>)> = (0..p.functions.len()).filter(|&f| !p.functions[f].nocheat_blocks.is_empty()).map(|f| (f, Some(p.functions[f].nocheat_blocks.clone()))).collect();
-    while let Some((f, only)) = work.pop() {
-        let blocks: Vec<usize> = match &only {
-            Some(bs) => bs.iter().map(|b| *b as usize).collect(),
-            None => (0..p.functions[f].blocks.len()).collect(),
-        };
-        for b in blocks {
-            let Terminator::Call { callee: Callee::Fn(idx), .. } = &p.functions[f].blocks[b].term else { continue };
-            let idx = idx.0 as usize;
-            let copy = if p.functions[idx].nocheat {
-                idx
-            } else if let Some(c) = copy_of.get(&idx) {
-                *c
-            } else {
-                let mut g = p.functions[idx].clone();
-                g.nocheat = true;
-                g.is_main = false;
-                g.is_test = false;
-                g.nocheat_blocks.clear();
-                g.nocheat_entries.clear();
-                for fl in &mut g.fors {
-                    fl.nocheat = true;
-                }
-                let c = p.functions.len();
-                p.functions.push(g);
-                copy_of.insert(idx, c);
-                work.push((c, None));
-                c
+    // The copy of `idx`, made the first time it is asked for.
+    fn copy(p: &mut Program, idx: usize, copy_of: &mut HashMap<usize, usize>, work: &mut Vec<(usize, Option<Vec<u32>>)>) -> usize {
+        if p.functions[idx].nocheat {
+            return idx;
+        }
+        if let Some(c) = copy_of.get(&idx) {
+            return *c;
+        }
+        let mut g = p.functions[idx].clone();
+        g.nocheat = true;
+        g.nocheat_of = Some(FnIdx(idx as u32));
+        g.is_main = false;
+        g.is_test = false;
+        g.nocheat_blocks.clear();
+        g.nocheat_entries.clear();
+        for fl in &mut g.fors {
+            fl.nocheat = true;
+        }
+        let c = p.functions.len();
+        p.functions.push(g);
+        copy_of.insert(idx, c);
+        work.push((c, None));
+        c
+    }
+    // A call through a held function (owner, 2026-10-19: "(a)") cannot be
+    // pointed at a copy here: which function it holds is known as it runs.
+    // Every function the program holds gets a copy, and the generated code
+    // calls the copy of the one held (`codegen`, `nocheat_held`).
+    let mut held = false;
+    let mut all_held = false;
+    loop {
+        while let Some((f, only)) = work.pop() {
+            let blocks: Vec<usize> = match &only {
+                Some(bs) => bs.iter().map(|b| *b as usize).collect(),
+                None => (0..p.functions[f].blocks.len()).collect(),
             };
-            if let Terminator::Call { callee: Callee::Fn(i), .. } = &mut p.functions[f].blocks[b].term {
-                *i = FnIdx(copy as u32);
+            let mut tasks: HashMap<u32, usize> = HashMap::new();
+            for b in blocks {
+                // A task started inside runs no_cheat too (owner, 2026-10-19).
+                for si in 0..p.functions[f].blocks[b].stmts.len() {
+                    let StmtKind::Task { body, id, .. } = &p.functions[f].blocks[b].stmts[si].kind else { continue };
+                    let (idx, id) = (body.0 as usize, *id);
+                    let c = copy(p, idx, &mut copy_of, &mut work);
+                    tasks.insert(id, c);
+                    if let StmtKind::Task { body, .. } = &mut p.functions[f].blocks[b].stmts[si].kind {
+                        *body = FnIdx(c as u32);
+                    }
+                }
+                match &p.functions[f].blocks[b].term {
+                    Terminator::Call { callee: Callee::Value(_), .. } => held = true,
+                    Terminator::Call { callee: Callee::Fn(idx), .. } => {
+                        let c = copy(p, idx.0 as usize, &mut copy_of, &mut work);
+                        if let Terminator::Call { callee: Callee::Fn(i), .. } = &mut p.functions[f].blocks[b].term {
+                            *i = FnIdx(c as u32);
+                        }
+                    }
+                    _ => {}
+                }
             }
+            // A started task's failure is read where its block ends, which
+            // may be past the statement: by the copy's reasons, the same.
+            if !tasks.is_empty() {
+                for b in &mut p.functions[f].blocks {
+                    if let Terminator::TaskOutcome { id, body, .. } = &mut b.term {
+                        if let Some(c) = tasks.get(id) {
+                            *body = FnIdx(*c as u32);
+                        }
+                    }
+                }
+            }
+        }
+        if !held || all_held {
+            break;
+        }
+        all_held = true;
+        let mut named: Vec<usize> = Vec::new();
+        for g in &p.functions {
+            for b in &g.blocks {
+                for s in &b.stmts {
+                    match &s.kind {
+                        StmtKind::Assign { rvalue: Rvalue::FnRef(i), .. } => named.push(i.0 as usize),
+                        StmtKind::Assign { rvalue: Rvalue::Closure { body, .. }, .. } => named.push(body.0 as usize),
+                        _ => {}
+                    }
+                }
+            }
+        }
+        named.sort_unstable();
+        named.dedup();
+        for idx in named {
+            copy(p, idx, &mut copy_of, &mut work);
         }
     }
 }
@@ -111,6 +171,15 @@ fn drop_unreached(p: &mut Program) {
         let text = format!("{:?}", f.blocks);
         text.match_indices("FnIdx(").filter_map(|(at, w)| text[at + w.len()..].split(')').next().and_then(|d| d.parse().ok())).collect()
     };
+    // A function reached is reached in its `no_cheat` copy too: a call
+    // through a held function names the original, and the generated code
+    // calls the copy (`nocheat_clones`).
+    let mut copies: HashMap<usize, Vec<usize>> = HashMap::new();
+    for (c, g) in p.functions.iter().enumerate() {
+        if let Some(o) = g.nocheat_of {
+            copies.entry(o.0 as usize).or_default().push(c);
+        }
+    }
     let mut seen = vec![false; n];
     let mut work: Vec<usize> = std::iter::once(main.0 as usize).chain((0..n).filter(|&f| p.functions[f].is_test)).collect();
     while let Some(f) = work.pop() {
@@ -118,6 +187,7 @@ fn drop_unreached(p: &mut Program) {
             continue;
         }
         work.extend(named(&p.functions[f]));
+        work.extend(copies.get(&f).into_iter().flatten().copied());
     }
     // Only std's: a program's own functions can be reached in ways no body
     // names them (a key type's `hash` and `equal_to`, found by the map code
@@ -647,6 +717,7 @@ impl<'a> FnBuilder<'a> {
         Function {
             dropped: false,
             nocheat: false,
+            nocheat_of: None,
             nocheat_blocks: self.nocheat_blocks.iter().copied().collect(),
             nocheat_entries: std::mem::take(&mut self.nocheat_entries),
             name: body.name.clone(),
@@ -2491,6 +2562,7 @@ fn placeholder(body: &hir::Body) -> Function {
     Function {
         dropped: false,
         nocheat: false,
+        nocheat_of: None,
         nocheat_blocks: Vec::new(),
         nocheat_entries: Vec::new(),
         name: body.name.clone(),

@@ -869,6 +869,29 @@ fn recursion_is_unfolded() {
     assert_eq!((a, b), (Some(63), Some(63)), "the program answered differently unfolded");
 }
 
+/// `no_cheat` covers what a statement runs however it is called (owner,
+/// 2026-10-19: "(a)"): a held `fib`, a literal function and a task's body
+/// are all `no_cheat` copies, so every `fib` left in the optimised IR has a
+/// barrier, and none of the answers is folded in.
+#[test]
+fn no_cheat_reaches_held_functions_and_tasks() {
+    let src = dir().join("no_cheat_held.cy");
+    let out = std::env::temp_dir().join(format!("kayo-no-cheat-held-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&out);
+    let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(out.join("prog")).arg("--emit-llvm").arg(&out).output().unwrap();
+    assert!(r.status.success(), "no_cheat_held would not build:\n{}", String::from_utf8_lossy(&r.stderr));
+    let after = std::fs::read_to_string(out.join("after.ll")).unwrap();
+    let _ = std::fs::remove_dir_all(&out);
+    for folded in ["6765", " 58", " 610"] {
+        assert!(!after.contains(folded), "an answer ({}) was folded in under `no_cheat`:\n{}", folded.trim(), indent(&after));
+    }
+    let fibs: Vec<&str> = after.split("\ndefine ").filter(|d| d.lines().next().is_some_and(|l| l.contains("_fib("))).collect();
+    assert!(!fibs.is_empty(), "no fib in the IR:\n{}", indent(&after));
+    for f in fibs {
+        assert!(f.contains("asm sideeffect"), "a fib without a barrier is called:\n{}", indent(f));
+    }
+}
+
 /// A `list[bool]` used only by position is held as bits (owner,
 /// 2026-10-18): the sieve's 100,001 flags take 12,501 bytes, and the list
 /// handed to a call keeps its byte an element. `bits_list` itself, run in

@@ -316,6 +316,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
             }
         }
+        // A `no_cheat` copy of a function that captures takes its captures too.
+        for (i, f) in self.p.functions.iter().enumerate() {
+            if let Some(n) = f.nocheat_of.and_then(|o| self.env_fns.get(&(o.0 as usize)).copied()) {
+                self.env_fns.insert(i, n);
+            }
+        }
         for (i, f) in self.p.functions.iter().enumerate() {
             // A normal build leaves the tests out (owner, 2026-09-29).
             if f.is_main || (f.is_test && !self.tests) {
@@ -874,6 +880,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // The sites guarding a call that ends the block (`map.get`'s).
         self.op_sites = std::mem::take(&mut pending);
         let term = f.blocks[b].term.clone();
+        self.here = (b as u32, f.blocks[b].stmts.len() as u32);
         match &term {
             Terminator::Goto(t) => {
                 // Into a loop that may run in slices (`crate::par`).
@@ -2803,6 +2810,28 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// Calling a function held as a value, with the arguments already made:
     /// with no captures its code is the plain function; with some, the
     /// block of them goes first. Which one is known only at run time.
+    /// A call through a held function in `no_cheat` code (owner,
+    /// 2026-10-19: "(a)") calls the `no_cheat` copy of the function held:
+    /// which one is known only as it runs, so the code is compared with
+    /// every function that has a copy. LLVM folds the comparisons away
+    /// where it knows which function is held.
+    fn nocheat_held(&mut self, code: PointerValue<'ctx>) -> Option<PointerValue<'ctx>> {
+        let fi = self.cur_fi;
+        if !self.p.functions[fi].nocheat && !self.nocheat.contains(&(fi, self.here.0 as usize)) {
+            return Some(code);
+        }
+        let pairs: Vec<(usize, usize)> = self.p.functions.iter().enumerate().filter_map(|(c, g)| g.nocheat_of.map(|o| (o.0 as usize, c))).collect();
+        let mut code = code;
+        for (o, c) in pairs {
+            let (Some(of), Some(cf)) = (self.fns.get(&o).copied(), self.fns.get(&c).copied()) else { continue };
+            let of = of.as_global_value().as_pointer_value();
+            let cf = cf.as_global_value().as_pointer_value();
+            let is = self.builder.build_int_compare(IntPredicate::EQ, code, of, "held").ok()?;
+            code = self.builder.build_select(is, cf, code, "held").ok()?.into_pointer_value();
+        }
+        Some(code)
+    }
+
     fn call_held(&mut self, fv: BasicValueEnum<'ctx>, ft: &crate::types::FnTy, vals: &mut Vec<BasicMetadataValueEnum<'ctx>>, signs: &[bool]) -> Option<Option<BasicValueEnum<'ctx>>> {
         let p = self.ctx.ptr_type(AddressSpace::default());
         let mut params: Vec<BasicMetadataTypeEnum> = Vec::new();
@@ -2842,6 +2871,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         };
         let s = fv.into_struct_value();
         let code = self.builder.build_extract_value(s, 0, "code").ok()?.into_pointer_value();
+        let code = self.nocheat_held(code)?;
         let env = self.builder.build_extract_value(s, 1, "env").ok()?.into_pointer_value();
         let func = self.builder.get_insert_block()?.get_parent()?;
         let bare = self.ctx.append_basic_block(func, "no_captures");

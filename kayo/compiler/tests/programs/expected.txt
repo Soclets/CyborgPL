@@ -333,3 +333,4 @@ recursion_unfolded 63
 mutual_recursion_past_the_depth trap
 # `no_cheat` covers the calls a statement makes (owner, 2026-10-18).
 no_cheat_calls 109
+no_cheat_held 9

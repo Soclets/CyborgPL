@@ -876,3 +876,15 @@ Dated, with the alternative, so each can become a question later.
   not known as written) and a read is an atomic load. `KAYO_BITS=0` turns it
   off to compare. bench sieve to 200,000,000: 192 MB to 25 MB, 0.49 s to
   0.35 s on 3 threads, 0.77 s to 0.62 s on 1.
+- **2026-10-19 — `no_cheat` covers everything the statement runs** (owner:
+  "(a)"). A task started inside runs a `no_cheat` copy of its body. A call
+  through a held function cannot be pointed at a copy before it runs, so
+  once `no_cheat` code makes one, every function the program holds (`fn`
+  by name, or a literal) gets a copy, and the generated code compares the
+  held code with each and calls the copy (`nocheat_held`); where LLVM knows
+  which function is held, the comparisons fold to a direct call. A copy is
+  kept wherever its function is reached.
+- **2026-10-19 — The check word comes before `no_cheat`** (owner: "(b)",
+  then "(a)"): `check no_cheat …`, `no_check no_cheat …`,
+  `NO_FUCKING_CHECKS no_cheat …`. `no_cheat` in front of a check word is
+  refused with the order to write.

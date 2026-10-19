@@ -480,6 +480,8 @@ pub struct Function {
     /// its work really runs, so its parameters pass through a barrier and
     /// Precog folds nothing in it.
     pub nocheat: bool,
+    /// The function a `no_cheat` copy was made from.
+    pub nocheat_of: Option<FnIdx>,
     /// The blocks a `no_cheat` statement wrote, and where each starts with
     /// the locals it touches.
     pub nocheat_blocks: Vec<u32>,
