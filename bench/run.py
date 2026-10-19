@@ -108,6 +108,9 @@ def ts_build(src, d, b):
 LANGS = {
     "cyborgpl": (f"CyborgPL (kayo, final build, {os.environ.get('CYBORGPL_BENCH_THREADS', os.environ.get('CYBORG_BENCH_THREADS', '3'))} threads)", None, "{b}.cy", kayo_build, lambda s, d, b: [os.path.join(d, b)]),
     "cyborgpl1": ("CyborgPL (kayo, final build, 1 thread)", None, "{b}.cy", kayo_build, lambda s, d, b: [os.path.join(d, b)]),
+    # `no_cheat` in front of the work (owner, 2026-10-19: "with cheat and no_cheat"): every round really runs
+    "cyborgpl_nc": (f"CyborgPL no_cheat (kayo, final build, {os.environ.get('CYBORGPL_BENCH_THREADS', os.environ.get('CYBORG_BENCH_THREADS', '3'))} threads)", None, "{b}_no_cheat.cy", kayo_build, lambda s, d, b: [os.path.join(d, b)]),
+    "cyborgpl1_nc": ("CyborgPL no_cheat (kayo, final build, 1 thread)", None, "{b}_no_cheat.cy", kayo_build, lambda s, d, b: [os.path.join(d, b)]),
     "c": ("C (clang -O3)", "clang", "{b}.c", native(lambda s, o: ["clang", "-O3", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "asm": ("Assembly (AArch64, hand-written)", "clang", "{b}.s", native(lambda s, o: ["clang", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "cpp": ("C++ (clang++ -O3)", "clang++", "{b}.cpp", native(lambda s, o: ["clang++", "-O3", "-std=c++17", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
@@ -152,7 +155,7 @@ def available(key):
 # `CYBORG_BENCH_THREADS=10 python3 run.py` gives it every core, when nothing else is running
 # (owner, 2026-10-06: "uncapped")
 CYBORGPL_THREADS = os.environ.get("CYBORGPL_BENCH_THREADS", os.environ.get("CYBORG_BENCH_THREADS", "3"))
-THREADS = {"cyborgpl": CYBORGPL_THREADS, "cyborgpl1": "1"}
+THREADS = {"cyborgpl": CYBORGPL_THREADS, "cyborgpl1": "1", "cyborgpl_nc": CYBORGPL_THREADS, "cyborgpl1_nc": "1"}
 
 
 def run_once(cmd, n, lust, key=""):

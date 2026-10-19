@@ -2,6 +2,62 @@
 
 Machine: arm64 (Apple Silicon, 10 cores: 4 performance, 6 efficiency), Darwin 27.0.0. Best of 3 runs, wall-clock from process start to exit (startup included); runs past 60 s are timeouts. Every answer is checked against C's, and every one agreed.
 
+## 2026-10-19, later: run time with cheat and no_cheat (owner, through website claude)
+
+The owner's words, relayed by website claude: "Ask design claude to run a fresh one, with cheat and no_cheat".
+`python3 bench/run.py cyborgpl cyborgpl1 cyborgpl_nc cyborgpl1_nc c fortran go zig rust`; kayo `CyDT f84c8a7a
+KAYO\n` (it holds every kayo commit to date, the last 67aa5472); final builds only (every site proven); best of 3;
+every answer agreed with C; load average about 2.2 (compiler, check and std claude paused).
+
+- **Cheat** is the program as written. kayo may do anything that gives the right answer (owner, 2026-10-18: any pass
+  is allowed): fib, for one, is a 93-entry Precog table, every answer worked out while building, so a run reads one entry.
+- **no_cheat** is the same program with `no_cheat` in front of the work (`no_cheat let 'code' := run[] otherwise 2;`
+  in `MAIN`, files `{b}_no_cheat.cy`). It covers every call down, so the work written really runs: nothing folded
+  to its answer, dropped, or shared between look-alike calls, and no tables. Inlining, SIMD and cores stay allowed.
+  It is applied the same way to all four programs.
+
+| | sum | fib | lists | sieve |
+|---|---|---|---|---|
+| CyborgPL, 3 threads | 0.033 s | 0.002 s | 0.039 s | 0.166 s |
+| CyborgPL, 1 thread | 0.091 s | 0.002 s | 0.041 s | 0.302 s |
+| CyborgPL no_cheat, 3 threads | 0.050 s | 0.012 s | 0.040 s | 0.204 s |
+| CyborgPL no_cheat, 1 thread | 0.142 s | 0.012 s | 0.079 s | 0.341 s |
+| C (clang -O3) | 0.094 s | 0.017 s | 0.042 s | 0.413 s |
+| Rust (opt-level=3) | 0.174 s | 0.017 s | 0.053 s | 0.397 s |
+| Go | 0.145 s | 0.024 s | 0.111 s | 0.386 s |
+| Zig (ReleaseFast) | 0.148 s | 0.016 s | 0.071 s | 0.367 s |
+| Fortran (gfortran -O3) | 0.135 s | 0.003 s | 0.091 s | 0.541 s |
+
+Each language's time over single-threaded no_cheat CyborgPL's (above 1 means CyborgPL is faster):
+
+| | sum | fib | lists | sieve |
+|---|---|---|---|---|
+| C | 0.66× | 1.42× | 0.53× | 1.21× |
+| Rust | 1.23× | 1.42× | 0.67× | 1.16× |
+| Go | 1.02× | 2.00× | 1.41× | 1.13× |
+| Zig | 1.04× | 1.33× | 0.90× | 1.08× |
+| Fortran | 0.95× | 0.25× | 1.15× | 1.59× |
+
+What no_cheat costs, its time over the cheat build's: 3 threads sum 1.52×, fib 6.00×, lists 1.03×, sieve 1.23×;
+1 thread sum 1.56×, fib 6.00×, lists 1.93×, sieve 1.13×.
+
+- **no_cheat fib is the like-for-like call-speed number**, measured: its time grows 1.604× per N (N = 38 to 43, one
+  thread), clang's 1.609×, φ being 1.618, so it makes every call; it is still about 1.4× faster than C's from
+  inlining. The cheat build's 0.002 s is the table.
+- **Fortran's fib is not like-for-like either**: gfortran -O3 gives the right answers (checked at N = 30, 38, 43, 50
+  against C) in flat time, 0.004 s at both N = 38 and N = 43, so it does far less work than the recursion written.
+  How, design claude did not look.
+- **Both no_cheat rows use the cores**: CPU over wall time 2.86 for sum on 3 threads, 0.99 on 1.
+- **Where no_cheat costs more than it should**, kayo gaps (owed to compiler claude when CyborgPL resumes; it is paused):
+  - sum (and likely sieve): under `no_cheat` kayo keeps the loop's step `by 1` as a value worked out at run time, so
+    the loop takes the general form (signed step, 128-bit trip-count arithmetic; seen in the machine code). Knowing
+    the step is not skipping work, so this is slower than the ruling asks.
+  - lists on one thread, 1.93×: design claude's reading, not verified in the IR: the cheat build sums `'xs'` once
+    for the 10 identical rounds, which `no_cheat` rightly forbids; C's 0.042 s suggests clang does the same.
+  - The build report under `no_cheat` lists some functions and loops twice, says sum's loop "stays in order" though
+    it is split across cores, and gives fib's missing table the wrong reason ("a check … is not proven" instead of
+    `no_cheat`).
+
 ## 2026-10-19: compile time, source to final executable (owner, through website claude)
 
 For the website's "Don't script, don't iterate, but fucking wait." section. `python3 bench/compile_time.py`; kayo
