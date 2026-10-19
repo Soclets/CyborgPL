@@ -1,7 +1,7 @@
 // The recursive inliner on hand-written IR, built with AddressSanitizer and
 // UndefinedBehaviorSanitizer (kayo/compiler/tests/llvm_passes.rs): the module
-// still verifies; a function calling itself is unfolded; one marked
-// `noinline`, one calling another that calls it back, and one too big for
+// still verifies; a function calling itself is unfolded; two calling each
+// other are joined and unfolded; one marked `noinline` and one too big for
 // the size are left as they are.
 
 #include "../recursive_inline.h"
@@ -125,10 +125,14 @@ int main() {
     if (calls_to(*m->getFunction("kept"), *m->getFunction("kept")) != 1) {
         return fail("a noinline function was unfolded");
     }
-    if (calls_to(*m->getFunction("even"), *m->getFunction("odd")) != 1 || calls_to(*m->getFunction("odd"), *m->getFunction("even")) != 1) {
-        return fail("mutual recursion was touched");
+    // Mutual recursion is joined: each partner inlined where the other calls
+    // it, so each calls itself, and is unfolded three levels.
+    Function &even = *m->getFunction("even");
+    Function &odd = *m->getFunction("odd");
+    if (calls_to(even, odd) != 0 || calls_to(odd, even) != 0 || calls_to(even, even) != 1 || calls_to(odd, odd) != 1) {
+        return fail("mutual recursion was not joined into self-recursion");
     }
-    if (inlined != 2 + 4 + 8 + 3) {
+    if (inlined != 2 + 4 + 8 + 3 + 2 + 3 + 3) {
         errs() << "inlined " << inlined << "\n";
         return fail("the count of inlined calls is off");
     }

@@ -8,7 +8,9 @@
 // leaves calls to the function itself one level further down; repeated to a
 // depth, and stopped where the function would grow past a size. The snapshot
 // is then dropped. What the program computes does not change: the same body
-// runs, only without the call between two levels.
+// runs, only without the call between two levels. Two functions calling
+// each other are first joined: each partner is inlined where the other
+// calls it, which leaves each calling itself.
 
 #include "recursive_inline.h"
 
@@ -38,14 +40,87 @@ std::vector<CallBase *> self_calls(Function &f) {
     return out;
 }
 
-/// Whether `f` may be inlined into itself: a body, its own calls, nothing
-/// that asks it to stay whole (`noinline`, what `--emit-llvm-tv` marks), and
-/// no call another function can see the return address of.
+/// Whether `f` may be inlined anywhere: a body, nothing that asks it to stay
+/// whole (`noinline`, what `--emit-llvm-tv` marks).
+bool inlinable(const Function &f) {
+    return !f.isDeclaration() && !f.hasFnAttribute(Attribute::NoInline) && !f.hasFnAttribute(Attribute::OptimizeNone) && !f.isVarArg();
+}
+
+/// Whether `f` may be inlined into itself: inlinable, and calling itself.
 bool may_unfold(Function &f) {
-    if (f.isDeclaration() || f.hasFnAttribute(Attribute::NoInline) || f.hasFnAttribute(Attribute::OptimizeNone) || f.isVarArg()) {
-        return false;
+    return inlinable(f) && !self_calls(f).empty();
+}
+
+/// Whether `f` calls `g` directly.
+bool calls(const Function &f, const Function &g) {
+    for (const Instruction &i : instructions(f)) {
+        if (const auto *cb = dyn_cast<CallBase>(&i)) {
+            if (cb->getCalledFunction() == &g) {
+                return true;
+            }
+        }
     }
-    return !self_calls(f).empty();
+    return false;
+}
+
+/// Two functions calling each other (owner, 2026-10-18: "Extend your
+/// recursive-inline pass to mutual recursion"): where `f` calls a `g` that
+/// calls `f` back, `g`'s body, as it was before anything here, is inlined
+/// into `f`, so `f` calls itself and is unfolded as any function that does.
+/// Gives back how many calls were inlined.
+unsigned join_pairs(Module &m, unsigned max_size) {
+    struct Pair {
+        Function *f;
+        CallBase *call;
+        Function *g;
+    };
+    std::vector<Pair> pairs;
+    for (Function &f : m) {
+        if (!inlinable(f)) {
+            continue;
+        }
+        for (Instruction &i : instructions(f)) {
+            auto *cb = dyn_cast<CallBase>(&i);
+            Function *g = cb ? cb->getCalledFunction() : nullptr;
+            if (g != nullptr && g != &f && inlinable(*g) && g->getInstructionCount() <= max_size && calls(*g, f)) {
+                pairs.push_back({&f, cb, g});
+            }
+        }
+    }
+    // Every partner's body as it was, before any of them changes.
+    std::vector<std::pair<Function *, Function *>> snapshots;
+    auto snapshot_of = [&](Function *g) {
+        for (auto &[orig, snap] : snapshots) {
+            if (orig == g) {
+                return snap;
+            }
+        }
+        ValueToValueMapTy map;
+        Function *snap = CloneFunction(g, map);
+        snap->setLinkage(GlobalValue::InternalLinkage);
+        snapshots.emplace_back(g, snap);
+        return snap;
+    };
+    for (const Pair &p : pairs) {
+        snapshot_of(p.g);
+    }
+    unsigned inlined = 0;
+    for (const Pair &p : pairs) {
+        if (p.f->getInstructionCount() + p.g->getInstructionCount() > max_size) {
+            continue;
+        }
+        p.call->setCalledFunction(snapshot_of(p.g));
+        InlineFunctionInfo info;
+        if (InlineFunction(*p.call, info).isSuccess()) {
+            ++inlined;
+        } else {
+            p.call->setCalledFunction(p.g);
+        }
+    }
+    for (auto &[orig, snap] : snapshots) {
+        snap->eraseFromParent();
+    }
+    return inlined;
 }
 
 /// Inline `f` into itself up to `depth` levels, while it stays within
@@ -80,13 +155,14 @@ unsigned unfold(Function &f, unsigned depth, unsigned max_size) {
 namespace kayo {
 
 llvm::PreservedAnalyses RecursiveInlinePass::run(Module &m, ModuleAnalysisManager &) {
+    unsigned joined = join_pairs(m, max_size);
     std::vector<Function *> recursive;
     for (Function &f : m) {
         if (may_unfold(f)) {
             recursive.push_back(&f);
         }
     }
-    unsigned count = 0;
+    unsigned count = joined;
     for (Function *f : recursive) {
         count += unfold(*f, depth, max_size);
     }

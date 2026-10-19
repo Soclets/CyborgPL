@@ -1,8 +1,8 @@
 # kayo inlines a function that calls itself into itself a few levels
 # (owner, 2026-10-17): what each computes stays the same. The order of
 # effects (a walk writing before and after its call), a failure climbing
-# out from deep down, two calls with different arguments, and recursion far
-# deeper than the levels unfolded.
+# out from deep down, two calls with different arguments, recursion far
+# deeper than the levels unfolded, and two functions calling each other.
 extern.C fn exit ['code': int32];
 
 fn fib ['n': int64[min 0, max 92]] -> int64 {
@@ -35,6 +35,16 @@ fn ack ['m': int64[min 0, max 2], 'n': int64[min 0, max 20]] -> int64 {
     return ack['m' - 1, 'inner'];
 }
 
+fn even ['n': int32[min 0, max 5000]] -> bool {
+    if 'n' equal_to 0 { return true; }
+    return odd['n' - 1];
+}
+
+fn odd ['n': int32[min 0, max 5000]] -> bool {
+    if 'n' equal_to 0 { return false; }
+    return even['n' - 1];
+}
+
 MAIN {
     let mut 'got': int32 = 0;
     if fib[30] equal_to 832040 { change 'got' = 'got' + 1; }
@@ -44,5 +54,6 @@ MAIN {
     let 'b' := find[5] otherwise -1;
     if 'a' equal_to 20 and 'b' equal_to -1 { change 'got' = 'got' + 8; }
     if ack[2, 3] equal_to 9 { change 'got' = 'got' + 16; }
+    if even[4000] and odd[3999] and not even[777] { change 'got' = 'got' + 32; }
     no_check my.exit['got'];
 }

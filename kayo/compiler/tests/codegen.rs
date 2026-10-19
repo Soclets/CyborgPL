@@ -866,7 +866,7 @@ fn recursion_is_unfolded() {
     let (plain, b) = calls(Some("0"));
     let _ = std::fs::remove_dir_all(&out);
     assert!(unfolded > plain && unfolded >= 3, "fib was not unfolded: {} calls to itself, {} without the pass", unfolded, plain);
-    assert_eq!((a, b), (Some(31), Some(31)), "the program answered differently unfolded");
+    assert_eq!((a, b), (Some(63), Some(63)), "the program answered differently unfolded");
 }
 
 /// `no_cheat` covers the calls a statement makes (owner, 2026-10-18): the
