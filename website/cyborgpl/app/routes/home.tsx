@@ -61,7 +61,7 @@ export default function Home() {
           is... Above average?" on the left, and benchmark on the right."): the run times. */}
       <section className="wait">
         <motion.h2 className="wait-line" initial={{ opacity: 0, x: -28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.5 }} transition={{ type: "spring", stiffness: 90, damping: 20 }}>
-          Hey, at least the final result is... Above average?
+          Hey, at least the final result is... <strong>Above average</strong>?
         </motion.h2>
         <motion.div initial={{ opacity: 0, x: 28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.4 }} transition={{ type: "spring", stiffness: 90, damping: 20, delay: 0.1 }}>
           <CompileChart run={RUN} label="Run times" lead="Running the four bench programs, final builds, best of 3" />
