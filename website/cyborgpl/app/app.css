@@ -104,7 +104,6 @@ html.ready .topbar { animation: drop .7s cubic-bezier(.2, .8, .2, 1) both; }
 /* "Don't script, don't iterate, but fucking wait.", and the compile times beside it. */
 .wait { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; gap: clamp(32px, 6vw, 96px); max-width: 1180px; margin: 0 auto; padding: 120px 24px 140px; }
 .wait-line { margin: 0; font-weight: 500; font-size: clamp(36px, 5vw, 64px); line-height: 1.04; letter-spacing: -.03em; }
-.wait-word { font-style: italic; }
 .chart { margin: 0; padding: 24px; border: 1px solid var(--line); border-radius: 22px; background: rgba(255, 255, 255, .02); }
 .chart-rows { display: grid; gap: 14px; }
 .chart-row { position: relative; display: grid; grid-template-columns: 76px minmax(0, 1fr) 64px; align-items: center; gap: 12px; }
