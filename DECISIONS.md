@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — Variadic C functions: both the open `...` (each call `no_check`) and fixed shapes you declare (checked) (owner)
+
+The fifth of public v1's six C gaps (`printf` and friends). Offered (a) C's own `...`, each call a `no_check` site
+since C cannot check the extras against the format (recommended), or (b) one fixed signature per shape, each checked.
+Shown how (a) looks (`incl.C.system["stdio.h"]` brings `printf` with its `...`; `extern.C` by hand is for tighter
+types, headerless libraries, or only what is used), the owner: "What about both?", then "yea". So **both: the open
+form, `['format': ptr[uint8], ...]`, any extras, each call `no_check`; and fixed shapes declared by hand, their extras
+named and typed after the `...`, checked like any C call**. A fixed shape still marks where the `...` starts, since
+on Apple silicon a variadic function's extras travel apart from its fixed arguments (design claude's note). How a
+fixed shape names the C function it calls (sketched `extern.C fn printf_count = printf […]`) is the next question.
+
 ### 2026-10-19 — std from its folder is `cyjet::dep.path.std["…"]`, a folder narrowed to std (owner: a)
 
 The owner, of the entry below: "Shouldn't it be `cyjet::dep.path.std` or `cyjet::dep.std.path`?" Design claude agreed
