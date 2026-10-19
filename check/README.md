@@ -11,6 +11,14 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 ```
 
 
+**C layout against clang** (owner, 2026-10-19: "(a)"): `check clayout --cases N` makes a random
+`layout.C` struct (plain whole numbers, `bool`, `uint8` / `int8` / `bool` bit-fields of random
+widths) or union, and builds it in CyborgPL with kayo and in C with `/usr/bin/clang`. Each prints
+its size and alignment, then the object's bytes with one field at a time all ones (kayo's through
+C's own `write`, given the object's address). Size and alignment must be equal, each dump equal
+under the mask of bits clang's fields cover. A difference keeps both files in `work/clayout/<seed>/`.
+First run: 500 layouts, all the same as clang's (a C file with two fields swapped is caught).
+
 **std as a kit** (2026-10-17): kayo gives a lone file only its built-in print and exit, so a
 program that uses `std::str.` is built as a kit: `kit/kit.cy` beside it (the same text) and a
 CyJet.cyr listing this repository's `std/`, every limb a generated program may use (AI, WSMW,

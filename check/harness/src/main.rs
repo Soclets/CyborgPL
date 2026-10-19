@@ -8,6 +8,7 @@
 //!   check corpus                                          re-run every past finding in check/corpus/
 
 mod claims;
+mod clayout;
 mod compare;
 mod engines;
 mod json;
@@ -313,6 +314,7 @@ fn main() {
         "tv" => tv_run(&tools(), &a),
         "same" => same_run(&tools(), &a),
         "recref" => recref_run(&tools(), &a),
+        "clayout" => clayout_run(&tools(), &a),
         "evalsite" => {
             // What the exact evaluator saw at every site on one line.
             let p = generate(a.num("seed", 1), &a.config_modelled());
@@ -780,6 +782,56 @@ fn claims_run(t: &Tools, a: &Args) {
 /// Two runs of `cca precog --json` on one program must give the same
 /// report (CCA c8cd316: a query that depended on hash-set order proved in
 /// some builds and not in others).
+/// `layout.C` structs and unions laid out by kayo and by clang (owner,
+/// 2026-10-19: "(a)"): see clayout.rs.
+fn clayout_run(t: &Tools, a: &Args) {
+    let cases = a.num("cases", 100);
+    let from = a.num("from", 1);
+    let jobs = a.num("jobs", default_jobs()).min(JOBS_CAP);
+    let next = AtomicU64::new(from);
+    let tally = Mutex::new((0u64, 0u64, 0u64, vec![]));
+    std::thread::scope(|s| {
+        for w in 0..jobs {
+            let (next, tally) = (&next, &tally);
+            big_stack()
+                .spawn_scoped(s, move || loop {
+                    let seed = next.fetch_add(1, Ordering::SeqCst);
+                    if seed >= from + cases {
+                        return;
+                    }
+                    let l = clayout::Layout::random(seed);
+                    let dir = work().join(format!("clayout{w}"));
+                    let out = clayout::check(t, &l, &dir);
+                    let mut tl = tally.lock().unwrap();
+                    let keep = |why: &str, tl: &mut (u64, u64, u64, Vec<String>)| {
+                        let k = work().join("clayout").join(seed.to_string());
+                        let _ = std::fs::create_dir_all(&k);
+                        let _ = std::fs::write(k.join("k.cy"), l.cy());
+                        let _ = std::fs::write(k.join("c.c"), l.c());
+                        tl.3.push(format!("seed {seed}: {why}, files in {}", k.display()));
+                    };
+                    match out {
+                        clayout::Outcome::Same => tl.0 += 1,
+                        clayout::Outcome::Differ(why) => {
+                            tl.1 += 1;
+                            keep(&format!("DIFFER {why}"), &mut tl);
+                        }
+                        clayout::Outcome::Failed(why) => {
+                            tl.2 += 1;
+                            keep(&format!("failed: {why}"), &mut tl);
+                        }
+                    }
+                })
+                .expect("spawn");
+        }
+    });
+    let (same, differ, failed, lines) = tally.into_inner().unwrap();
+    for l in lines.iter().take(20) {
+        println!("{l}");
+    }
+    println!("{} layouts: {same} the same as clang's, {differ} differ, {failed} not built or run", same + differ + failed);
+}
+
 /// kayo's recursion inlining (0ed08993) against its reference build
 /// (`KAYO_RECURSION_DEPTH=0`): each program built both ways and run; the
 /// output and exit must be the same (design claude, 2026-10-17). Alive2
