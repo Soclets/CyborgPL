@@ -22,6 +22,7 @@ spellings::table[
         spellings::old[written = "!cheat", write = ["no_cheat",], since = "2026-10-07", where = "special"],
         spellings::old[written = "cyjet::dep[path = …]", write = ["cyjet::dep.path[\"…\"]",], note = "the kind of dependency is in its name", since = "2026-10-19", where = "special"],
         spellings::old[written = "cyjet::dep[id = …, version = …]", write = ["cyjet::dep.reg[id = …, version = …]",], note = "the kind of dependency is in its name", since = "2026-10-19", where = "special"],
+        spellings::old[written = "cyjet::dep[id = <std's>, path = …]", write = ["cyjet::dep.std[\"…\"]",], note = "std from the folder it is being written in", since = "2026-10-19", where = "special"],
         spellings::old[written = "simd[T, N]", write = ["simd[T, count N]",], note = "the lane count says what it is, as `simd.load.some`'s `count` does", since = "2026-10-19", where = "special"],
         spellings::old[written = "for no_cheat", write = ["no_cheat for",], note = "`no_cheat` goes in front of a statement, as `no_check` does", since = "2026-10-18", where = "special"],
         spellings::old[written = "!mut", write = ["immut",], since = "2026-10-07", where = "special"],

@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — std from its folder is `cyjet::dep.std["…"]` (owner: b)
+
+A gap in the entry below, found by compiler claude: std listed by its ID plus the folder it is being written in
+(owner, 2026-10-14: listing the real std takes its place), `cyjet::dep[id = <std's ID>, path = "…/std"]`, used by std's
+README and five of kayo's test kits, had no new spelling. Offered (a) plain `cyjet::dep.path["…/std"]`, std known by
+the ID in its own manifest (recommended), (b) a third kind, `cyjet::dep.std["…/std"]`, (c) `dep.reg` with a `path`
+for std's ID only. The owner: "(b)". So **`cyjet::dep.std["../std"]`**: one text, the folder; the old form is
+refused naming it. Built in the oracle; `examples/std_from_folder/`, reject test `old_dep_std`.
+
 ### 2026-10-19 — A dependency says its kind in its name: `cyjet::dep.path["…"]`, `cyjet::dep.reg[id = …, version = …]` (owner: a)
 
 Asked whether any CyJet thing should use `.` but does not (after `C.libs`), design claude found one: the two

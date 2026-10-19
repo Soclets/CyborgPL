@@ -382,10 +382,21 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                             let [ast::Value::Expr(ast::Expr::Text(t, _))] = c.args.values.as_slice() else { return Err(format!("{shown}: line {}: a folder dependency is one text, the folder: `cyjet::dep.path[\"../kits/areas\"]`", c.line)) };
                             ("::cyjet.dep.path".to_string(), vec![("path".to_string(), ast::Bracket { values: vec![ast::Value::Expr(ast::Expr::Text(t.clone(), c.line))], line: c.line, one_list: false })], c.line)
                         }
+                        // std from the folder it is being written in (owner, 2026-10-14: listing it takes std's place; 2026-10-19: "(b)")
+                        ast::Expr::Call(c) if c.kit.as_deref() == Some("cyjet") && c.path == ["dep", "std"] => {
+                            let [ast::Value::Expr(ast::Expr::Text(t, _))] = c.args.values.as_slice() else { return Err(format!("{shown}: line {}: std from a folder is one text, the folder: `cyjet::dep.std[\"../std\"]`", c.line)) };
+                            if deps.iter().any(|x: &Dep| x.is_std()) { return Err(format!("{shown}: line {}: std is listed twice", c.line)); }
+                            // the oracle stands in for std wherever it is listed from
+                            deps.push(Dep { what: "std".into(), path: Some(t.clone()), version: None, id: Some(parser::STD_ID.into()) });
+                            continue;
+                        }
                         ast::Expr::Construct(shape, fields, line) => (shape, fields, line),
-                        _ => return Err(format!("{shown}: line {line}: a dependency is `cyjet::dep.path[\"…\"]` (a folder) or `cyjet::dep.reg[id = …, version = …]` (the registry)")),
+                        _ => return Err(format!("{shown}: line {line}: a dependency is `cyjet::dep.path[\"…\"]` (a folder), `cyjet::dep.reg[id = …, version = …]` (the registry) or `cyjet::dep.std[\"…\"]` (std from its folder)")),
                     };
                     if shape == "::cyjet.dep" {
+                        // std by its ID from a folder was `cyjet::dep[id = <std's>, path = …]` (owner, 2026-10-14)
+                        let std_folder = fields.iter().any(|(f, b)| f == "id" && text(b).as_deref() == Some(parser::STD_ID)) && fields.iter().any(|(f, _)| f == "path");
+                        if std_folder { return Err(format!("{shown}: line {line}: {}", crate::spellings::message(crate::spellings::old("cyjet::dep[id = <std's>, path = …]")))); }
                         let reg = fields.iter().any(|(f, _)| f == "id" || f == "version");
                         let row = crate::spellings::old(if reg { "cyjet::dep[id = …, version = …]" } else { "cyjet::dep[path = …]" });
                         return Err(format!("{shown}: line {line}: {}", crate::spellings::message(row)));

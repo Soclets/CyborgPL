@@ -293,7 +293,7 @@ impl Parser {
     /// Everything std brings is refused in a kit whose `CyJet.cyr` does not list it (owner, 2026-10-06:
     /// the operators, printing and the rest are std's, and a manifest lists std like any kit).
     fn std_missing<T>(&self, what: &str) -> PResult<T> {
-        self.err(format!("{what} is std's, and this kit's CyJet.cyr does not list std: add `cyjet::dep[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
+        self.err(format!("{what} is std's, and this kit's CyJet.cyr does not list std: add `cyjet::dep.reg[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
     }
 
     fn resolve(&self, segs: &[String]) -> Vec<String> {
