@@ -119,7 +119,9 @@ fn is_std_op(op: &str) -> bool {
 /// `bare.optional` (owner, 2026-10-06: "optional for all")
 /// the ways `std::round` rounds (owner, 2026-10-17)
 pub const ROUND_WAYS: &[&str] = &["near", "half_up", "floor", "ceil", "trunc"];
-pub const STD_BARE_HEADS: &[&str] = &["print", "printu", "printf", "format", "exit", "time", "input", "round", "floor", "ceil", "trunc"];
+// `printu` and `printf` were std's old spellings (now `print.useful`, `print.format`); `std::printf` still names the new form,
+// but bare they are free, so C's `printf` from `stdio.h` is not taken for std's (2026-10-19)
+pub const STD_BARE_HEADS: &[&str] = &["print", "format", "exit", "time", "input", "round", "floor", "ceil", "trunc"];
 const STD_STR_OPS: &[&str] = &["split", "find", "contains", "trim", "upper", "lower", "replace", "starts_with", "ends_with", "at", "slice", "join"];
 
 /// An operator as code writes it (`+` inside is `plus`).
