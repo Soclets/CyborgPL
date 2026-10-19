@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import { LoadingScreen } from "./loading/loading-screen";
+import { Topbar } from "./components/topbar";
 import "./app.css";
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -25,6 +26,12 @@ export function Layout({ children }: { children: ReactNode }) {
   );
 }
 
+// The topbar belongs to the whole site, so it stays put while pages change under it.
 export default function App() {
-  return <Outlet />;
+  return (
+    <>
+      <Topbar />
+      <Outlet />
+    </>
+  );
 }
