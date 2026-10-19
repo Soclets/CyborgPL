@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — `no_cheat` covers everything the statement runs: calls through a variable and tasks too (owner: a)
+
+Compiler claude, building `no_cheat` in kayo (3cb4a8e1), covered direct calls all the way down, but not a
+function held as a value and called later, nor a task's body started inside the statement, and asked whether
+those count. Offered (a) yes, everything that runs inside counts however it is called (recommended), or (b)
+direct calls only. The owner: "(a)". So under `no_cheat`, `let 'f' := fib; 'f'[30];` and a `concur` task's
+body started there get the same treatment as `fib[30]`. Nothing changes in the oracle, which never takes a
+shortcut.
+
 ### 2026-10-18 — Any optimization pass that gives the right answer is allowed; `no_cheat` is for the honest number (owner: c)
 
 Listing custom LLVM passes for kayo (noalias from ownership, bit-packed `list[bool]`, Precog's tables, mutual

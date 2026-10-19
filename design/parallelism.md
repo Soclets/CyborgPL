@@ -97,7 +97,7 @@ rule `.useful` already follows in `print.useful.stdout` and
 
 **Any statement or block, calls included** (owner, 2026-10-18: "(b)"; built in the oracle 2026-10-19, which reads the word and runs everything anyway; beside `check` / `no_check` / `NO_FUCKING_CHECKS` the order is not decided, so the oracle refuses the two side by side and asks for a block): `no_cheat let 'f' := fib['n'];`,
 `no_cheat { … }`. It goes where `no_check` goes and covers everything the statement runs, calls and recursion
-all the way down: no folding to the answer, no dropped work, and no computing calls that look alike once (what
+all the way down, a call through a variable and a task started inside included (owner, 2026-10-19: "(a)"): no folding to the answer, no dropped work, and no computing calls that look alike once (what
 kayo's fib did after four levels of inlining, `bench/RESULTS.md` 2026-10-18). Faster ways to do the same work stay
 allowed.
 `examples/for_no_cheat.cy`; reject test for_no_cheat_order.
