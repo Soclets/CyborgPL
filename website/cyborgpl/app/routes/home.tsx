@@ -64,7 +64,7 @@ export default function Home() {
           Hey, at least the final result is... <strong>Above average</strong>?
         </motion.h2>
         <motion.div initial={{ opacity: 0, x: 28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.4 }} transition={{ type: "spring", stiffness: 90, damping: 20, delay: 0.1 }}>
-          <CompileChart run={RUN} label="Run times" lead="Running the four bench programs, final builds, best of 3" />
+          <CompileChart run={RUN} label="Run time" lead="Running the four bench programs, final builds, best of 3" />
         </motion.div>
       </section>
     </main>

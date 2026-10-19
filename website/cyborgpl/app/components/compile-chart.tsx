@@ -9,19 +9,20 @@ const PROGRAMS = ["sum", "fib", "lists", "sieve"] as const;
 const total = (r: CompileRow) => r.total;
 const fmt = (s: number) => (s >= 1 ? `${s.toFixed(1)} s` : `${Math.round(s * 1000)} ms`);
 
-export function CompileChart({ run, label = "Compile times", lead = "Building the four bench programs from source to a final executable, best of 3" }: { run: CompileRun | null; label?: string; lead?: string }) {
+export function CompileChart({ run, label = "Compile time", lead = "Building the four bench programs from source to a final executable, best of 3" }: { run: CompileRun | null; label?: string; lead?: string }) {
   const [hover, setHover] = useState<string | null>(null);
   if (!run) {
     // Nothing measured yet: a blueprint of the chart, dashed like the loading screen's.
     return (
       <div className="chart chart-pending" role="img" aria-label={`${label}: being measured`}>
+        <p className="chart-title">{label}</p>
         {[92, 18, 24, 12, 30].map((w, i) => (
           <div className="chart-row" key={i}>
             <span className="chart-name chart-ghost-text" />
             <span className="chart-track"><span className="chart-ghost" style={{ width: `${w}%` }} /></span>
           </div>
         ))}
-        <p className="chart-note">The {label.toLowerCase()} are being measured.</p>
+        <p className="chart-note">Being measured.</p>
       </div>
     );
   }
@@ -29,6 +30,8 @@ export function CompileChart({ run, label = "Compile times", lead = "Building th
   const max = Math.max(...rows.map(total));
   return (
     <figure className="chart">
+      {/* The box says what it measures (owner, 2026-10-19: "The compile time box, say that it's compile time"). */}
+      <p className="chart-title">{label}</p>
       <div className="chart-rows" aria-hidden="true">
         {rows.map((r, i) => (
           <div className={`chart-row${r.ours ? " is-ours" : ""}`} key={r.name} onPointerEnter={() => setHover(r.name)} onPointerLeave={() => setHover(null)}>
