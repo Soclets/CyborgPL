@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — `coll.fn` and `coll.handler`, not `collection.` (owner: b)
+
+Asked before ("Should we change `collection.` to `coll.`?"), set aside when the owner noted `para` is just as
+ambiguous ("could be parachute"), and asked again once every member line wrote its full name (entry below), when
+the header word stands once per block. Offered (a) keep `collection.`, (b) `coll.fn` / `coll.handler`. The owner:
+"(b)". So **`coll.fn area { … }`, `coll.handler h { … }`**; `collection.` is an old spelling, refused naming `coll.`.
+
 ### 2026-10-19 — A `collection.fn` member may point elsewhere, and every member line writes its full name (owner)
 
 From `pub fn area = shapes.circle.area;` (2026-09-23, a shorter name for users): the owner asked whether it should be
