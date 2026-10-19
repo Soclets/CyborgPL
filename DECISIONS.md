@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — The open variadic form stays `...'args'`, as decided before (owner: a)
+
+The third conflict from the correction below: today's variadic entry wrote the open form `['format': ptr[uint8],
+...]`, but `ffi.md` already had `...'args'`. Offered (a) keep `...'args'`, matching CyborgPL's own variadic functions,
+or (b) bare `...` as C writes it. The owner asked what the name is for in a declaration with no body (as every
+`extern.C` parameter name: documentation and error messages) and whether it is a variable (a parameter is, quoted as
+any), then "(a)". So **`extern.C fn printf ['format': ptr[uint8], ...'args'] -> int32;`**, and a fixed shape names its
+extras the same way: **`extern.C fn printf_count = C.printf ['format': ptr[uint8], ...'n': int32] -> int32;`**. That
+settles the three conflicts.
+
 ### 2026-10-19 — `C.` is C's own vocabulary; what a header brings is plain: `#define`s stay `'SQLITE_OK'` (owner: a)
 
 The second conflict from the correction below: a `#define` was ruled `C.SQLITE_OK` today, but has come through as

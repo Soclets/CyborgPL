@@ -363,11 +363,11 @@ Both forms (owner: "What about both?"):
 incl.C.system["stdio.h"];                                        # printf comes with C's `...`
 no_check printf[lend 'fmt', 5, lend 'name'];                     # the open form: any extras, on your word
 
-extern.C fn printf_count = C.printf ['format': ptr[uint8], ... 'n': int32] -> int32;
+extern.C fn printf_count = C.printf ['format': ptr[uint8], ...'n': int32] -> int32;
 no_check printf_count[lend 'fmt', 5];                            # a fixed shape: its extras' types checked
 ```
 
-- The open form takes any extras; each call is a `no_check` site, since C cannot check them against the format.
+- The open form is `...'args'` (owner, 2026-10-19: "(a)", as decided before), any extras, each call a `no_check` site.
 - A fixed shape names and types its extras after the `...`, and those are checked; the call is still a `no_check` site,
   as every C call is (owner, 2026-10-19: "(a)"), since the format text can still disagree. It marks where the `...` starts, because on Apple
   silicon a variadic function's extras travel apart from its fixed arguments.
