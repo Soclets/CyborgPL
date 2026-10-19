@@ -126,6 +126,7 @@ impl Args {
             rec_depth: self.num("rec-depth", 10) as i128,
             mutual: !avoid.contains("mutual"),
             reborrows: !avoid.contains("reborrows"),
+            bool_lists: !avoid.contains("bool-lists"),
             typed_literals: !avoid.contains("typed-literals"),
             std_all: self.flags.contains_key("std-all"),
         }
@@ -787,6 +788,12 @@ fn recref_run(t: &Tools, a: &Args) {
     let jobs = a.num("jobs", default_jobs()).min(JOBS_CAP);
     let next = AtomicU64::new(from);
     let tally = Mutex::new((0u64, 0u64, vec![]));
+    // the reference build: `--env NAME=VALUE`, kayo's recursion inlining off
+    // by default (KAYO_RECURSION_DEPTH=0); KAYO_BITS=0 for bit-packed lists
+    let spec = a.flags.get("env").cloned().unwrap_or("KAYO_RECURSION_DEPTH=0".into());
+    let (k, v) = spec.split_once('=').unwrap_or_else(|| die("--env wants NAME=VALUE"));
+    let switch = (k.to_string(), v.to_string());
+    let switch = &switch;
     std::thread::scope(|s| {
         for w in 0..jobs {
             let (next, tally, cfg) = (&next, &tally, &cfg);
@@ -804,14 +811,14 @@ fn recref_run(t: &Tools, a: &Args) {
                     let _ = std::fs::create_dir_all(&dir);
                     let f = dir.join("prog.cy");
                     std::fs::write(&f, p.render()).unwrap();
-                    let build = |out: &str, depth: Option<&str>| {
+                    let build = |out: &str, switch: Option<&(String, String)>| {
                         let bin = dir.join(out);
                         let _ = std::fs::remove_file(&bin);
-                        let env: Vec<(String, String)> = depth.map(|d| vec![("KAYO_RECURSION_DEPTH".to_string(), d.to_string())]).unwrap_or_default();
+                        let env: Vec<(String, String)> = switch.map(|kv| vec![kv.clone()]).unwrap_or_default();
                         let r = engines::run(std::process::Command::new(&t.cca).arg("build").arg(&f).arg("-o").arg(&bin), &dir, &env, false, engines::build_limit());
                         (r.code == Some(0) && bin.exists()).then_some(bin)
                     };
-                    let (Some(x), Some(y)) = (build("inlined", None), build("reference", Some("0"))) else { continue };
+                    let (Some(x), Some(y)) = (build("inlined", None), build("reference", Some(switch))) else { continue };
                     let go = |b: &std::path::Path| engines::run(&mut std::process::Command::new(b), &dir, &[], false, engines::RUN_LIMIT);
                     let (rx, ry) = (go(&x), go(&y));
                     let mut tl = tally.lock().unwrap();

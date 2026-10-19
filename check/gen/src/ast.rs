@@ -920,9 +920,9 @@ impl<'a> Wr<'a> {
                     Mutability::Immut => self.im(),
                 };
                 // `no_cheat` in front of a statement, calls in it included (owner,
-                // 2026-10-18: "(b)"): every third plain let of a call. Never beside
-                // `check` and the like, whose order with it is not decided.
-                let cheat = if *tier == Tier::Default && matches!(value, Expr::Call(..)) && { self.cheats += 1; self.cheats % 3 == 0 } { "no_cheat " } else { "" };
+                // 2026-10-18: "(b)"): every third let of a call, after the check
+                // word if there is one (owner, 2026-10-19; oracle 89d1eaf2)
+                let cheat = if matches!(value, Expr::Call(..)) && { self.cheats += 1; self.cheats % 3 == 0 } { "no_cheat " } else { "" };
                 let head = format!("{cheat}let {m}{}: {} = ", q(name), ty.text());
                 self.simple(s, &pad, *tier, &head, value, ";");
             }

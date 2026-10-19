@@ -151,11 +151,15 @@ pub struct Config {
     /// Typed literals, `5: uint8`, for `to.uint8[5]` (owner, 2026-10-17).
     pub typed_literals: bool,
     pub std_all: bool,
+    /// A `list[bool]` made by list.fill and used only by position, which kayo
+    /// holds as bits (abd0ef6d); now and then handed to a call, which keeps
+    /// it a byte per item. Compared with KAYO_BITS=0 by `check recref`.
+    pub bool_lists: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: false }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: false, bool_lists: true }
     }
 }
 
@@ -398,6 +402,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let call = g.mutual_pair();
         main.push(Stmt::Src(call));
     }
+    if g.cfg.bool_lists && g.cfg.lists && g.rng.chance(12) {
+        let call = g.bool_list();
+        main.push(Stmt::Src(call));
+    }
     if g.cfg.reborrows && g.cfg.borrows && g.cfg.print && g.rng.chance(12) {
         let lines = g.reborrow_chain();
         main.extend(lines.into_iter().map(Stmt::Src));
@@ -412,6 +420,44 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
 }
 
 impl Gen {
+    /// A function filling a `list[bool]` (true, false or a value worked out
+    /// while running), writing it by position with values known only then
+    /// (step 1 to 5, sometimes `for para`, long enough to run in slices),
+    /// and counting its trues inline or through a call. The call from MAIN
+    /// is returned; compared between the engines only.
+    fn bool_list(&mut self) -> String {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        let f = format!("bits{id}");
+        let fill = match self.rng.below(3) { 0 => "true".to_string(), 1 => "false".to_string(), _ => format!("('seed' mod.floor {}) equal_to 0", self.rng.range(2, 5)) };
+        let step = if self.rng.chance(50) { 1 } else { self.rng.range(2, 5) };
+        let para = if self.rng.chance(30) { "para " } else { "" };
+        let (m, r) = (self.rng.range(2, 9), self.rng.range(2, 5));
+        let write = match self.rng.below(3) {
+            0 => format!("((to.int64['i'] x {m} + 'seed') mod.floor {r}) equal_to 0"),
+            1 => format!("('seed' + to.int64['i']) < {}", self.rng.range(0, 9000)),
+            _ => "not 'b'[pos 'i']".to_string(),
+        };
+        // `not 'b'[pos 'i']` reads the place it writes: never under `para`
+        let para = if write.starts_with("not") { "" } else { para };
+        let by_call = self.rng.chance(35);
+        let count = if by_call {
+            if !self.extra_fns.iter().any(|x| x.starts_with("fn count_true ")) {
+                self.extra_fns.push("fn count_true [lent 'b': list[bool]] -> uint64 {\n    let mut 'c': uint64 = 0;\n    for 'i': uint64 from 1 to list.length[lend 'b'] by 1 {\n        if 'b'[pos 'i'] { change 'c' = 'c' + 1; }\n    }\n    return 'c';\n}".to_string());
+            }
+            "    return count_true[lend 'b'];".to_string()
+        } else {
+            "    let mut 'c': uint64 = 0;\n    for 'i': uint64 from 1 to list.length[lend 'b'] by 1 {\n        if 'b'[pos 'i'] { change 'c' = 'c' + 1; }\n    }\n    return 'c';".to_string()
+        };
+        self.extra_fns.push(format!(
+            "fn {f} ['n': uint64[min 1, max 30000], 'seed': int64] -> uint64 {{\n    let mut 'b': list[bool] = list.fill[value {fill}, count 'n'];\n    for {para}'i': uint64 from 1 to 'n' by {step} {{\n        change 'b'[pos 'i'] = {write};\n    }}\n{count}\n}}"
+        ));
+        // lengths of every size, most not a multiple of 8, some long enough for slices
+        let n = if self.rng.chance(40) { self.rng.range(3999 * step, 3999 * step + 2000) } else { self.rng.range(1, 70) };
+        format!("put_u[{f}[{n}, {}]];", self.rng.range(-50, 50))
+    }
+
     /// `a` changes its `lent.mut` list, passes it on to `b` with `lend.mut`,
     /// and changes it again once `b` returns; `b` the same to `c`; the last
     /// appends the length. The whole list is printed, so the order of every
