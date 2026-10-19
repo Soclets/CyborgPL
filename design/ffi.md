@@ -373,8 +373,27 @@ printf_count[lend 'fmt', 5];                                     # a fixed shape
 - `= C.printf` gives a C function another name in CyborgPL (owner: "(c)"); design claude's reading: any C function.
 - Not built yet.
 
+## Unions and bit-fields (owner, 2026-10-19)
+
+```
+layout.C union Number { i: int32, f: bin32 }        # one of them at a time; C knows which
+no_check let 'x' := 'n'.i;                          # reading a field: on your word, listed in the build report
+change 'n'.f = 1.5;                                 # writing: always safe
+
+layout.C struct Status { mode: uint8[bits 3], ready: bool[bits 1], level: uint8[bits 4] }
+change 's'.mode = 5;                                # checked to fit: 3 bits hold 0 to 7
+```
+
+- A union's read is a `no_check` site (owner: a); a write needs nothing.
+- A bit-field is `bits N` in the field type's limits bracket (owner: a; the placement is design claude's reading),
+  laid out as clang does on macOS; reads always safe, writes checked to fit; only in `layout.C`.
+- Not built yet. With these, the six C gaps of public v1 are designed (C strings, `C.libs`, `#define`s, structs by
+  value, variadic functions, unions and bit-fields).
+
 ## Open
 
 - (History: reading a C string was build-it-yourself until 2026-10-19; see "C strings" above.)
+- Linking C libraries: `C.libs = [cyjet::C.lib[name = "sqlite3"]]` in `CyJet.cyr` (owner, 2026-10-19); where a library
+  is looked for beyond the system's and Homebrew's folders, and a lone file's libraries, are not asked yet.
 - A text's length is decided (`strings.md`: `str.bytes`, `str.points`,
   `str.graphemes`); this line is kept only to say so.

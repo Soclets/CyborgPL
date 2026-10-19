@@ -34,6 +34,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — C bit-fields: `mode: uint8[bits 3]` in a `layout.C struct` (owner: a)
+
+The second half of public v1's sixth C gap, and the last of the six. C packs small numbers into one integer
+(hardware registers, system headers). Offered (a) a `bits N` limit on a `layout.C` field, reads always safe, writes
+checked to fit (a 3-bit field holds 0 to 7), laid out as clang lays it out on macOS (recommended), or (b) none, the
+bits picked out by hand with `shr` and `and.bit`. The owner: "(a)". So **`layout.C struct Status { mode: uint8[bits
+3], ready: bool[bits 1], level: uint8[bits 4] }`**. Design claude's readings, not asked: `bits N` goes in the type's
+limits bracket beside `min` / `max`; a signed bit-field holds what N two's-complement bits hold; `bits` is only for
+`layout.C` fields.
+
+With this, all six C gaps are designed: C strings, `C.libs`, `#define`s as `C.NAME`, structs by value, variadic
+functions (open `...` and fixed shapes, `= C.name`), unions and bit-fields. None is built yet.
+
 ### 2026-10-19 — A C union: `layout.C union`, reading a field is a `no_check` site (owner: a)
 
 The first half of public v1's sixth C gap. A C union holds one of several things at a time, and nothing in it says
