@@ -19,9 +19,9 @@ export default function Home() {
           <motion.span className="pressable" {...springy}>
           <Link className="badge" to="/download">
             <span className="badge-new">New</span>
-            <span className="badge-name">Meet CyDT 1</span>
+            <span className="badge-name">CyDT 1</span>
             <span className="badge-dot" aria-hidden="true" />
-            <span className="badge-sub">Our new model</span>
+            <span className="badge-sub">try out our latest innovation</span>
             <span className="badge-arrow" aria-hidden="true">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3.5 8.5 8.5 3.5M4.5 3.5h4v4" /></svg>
             </span>
