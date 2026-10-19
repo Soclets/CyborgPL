@@ -516,7 +516,57 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
+    /// The digits after `binary`, `hex` or `octal`, as the decimal number
+    /// they are.
+    fn based(&mut self, start: usize, word: &str, radix: u32) -> Result<()> {
+        let digits_at = self.pos;
+        while self.peek().is_some_and(|c| c.is_ascii_alphanumeric() || c == '_') {
+            self.bump();
+        }
+        let written = &self.src[digits_at..self.pos];
+        // `_` groups digits: one, between two of them.
+        if written.starts_with('_') || written.ends_with('_') || written.contains("__") {
+            let shown = match radix {
+                2 => "binary 1_0",
+                8 => "octal 7_0",
+                _ => "hex F_0",
+            };
+            return self.fail(start, format!("`_` groups digits: one between two of them (`{}`)", shown));
+        }
+        let mut value = crate::bigint::Big::zero();
+        let base = crate::bigint::Big::from_i128(radix as i128);
+        for c in written.chars().filter(|c| *c != '_') {
+            let Some(d) = c.to_digit(radix) else {
+                return self.fail(start, match radix {
+                    2 => format!("a binary number has only the digits 0 and 1: `{}` in `{} {}`", c, word, written),
+                    8 => format!("an octal number has only the digits 0 to 7: `{}` in `{} {}`", c, word, written),
+                    _ => format!("a hex number has only 0-9 and A-F: `{}` in `{} {}`", c, word, written),
+                });
+            };
+            value = value.mul(&base).add(&crate::bigint::Big::from_i128(d as i128));
+        }
+        self.push(Tok::Num { text: value.to_string(), bin: false }, start);
+        Ok(())
+    }
+
     fn number(&mut self, start: usize) -> Result<()> {
+        // `0x1F`, `0b1010`, `0o755`: another base is a word in front now
+        // (owner, 2026-10-19).
+        if self.peek() == Some('0') && matches!(self.peek_at(1), Some('x' | 'X' | 'b' | 'B' | 'o' | 'O')) && self.peek_at(2).is_some_and(|c| c.is_ascii_alphanumeric()) {
+            let word = match self.peek_at(1) {
+                Some('x' | 'X') => "hex",
+                Some('b' | 'B') => "binary",
+                _ => "octal",
+            };
+            self.bump();
+            self.bump();
+            let at = self.pos;
+            while self.peek().is_some_and(|c| c.is_ascii_alphanumeric() || c == '_') {
+                self.bump();
+            }
+            let digits = self.src[at..self.pos].to_string();
+            return self.fail(start, format!("a number in another base is written with a word in front: `{} {}` (owner, 2026-10-19)", word, digits));
+        }
         let mut text = String::new();
         let mut bin = false;
         while let Some(c) = self.peek() {
@@ -576,6 +626,22 @@ impl<'a> Lexer<'a> {
             self.bump();
         }
         let text = self.src[start..self.pos].to_string();
+        // A whole number in another base (owner, 2026-10-19: "(a)"): a word
+        // in front, then its digits, the same number a decimal one is.
+        if let Some(radix) = match text.as_str() {
+            "binary" => Some(2u32),
+            "hex" => Some(16),
+            "octal" => Some(8),
+            _ => None,
+        } {
+            let spaces = (0..).take_while(|&k| matches!(self.peek_at(k), Some(' ') | Some('\t'))).count();
+            if spaces > 0 && self.peek_at(spaces).is_some_and(|c| c.is_ascii_alphanumeric()) {
+                for _ in 0..spaces {
+                    self.bump();
+                }
+                return self.based(start, &text, radix);
+            }
+        }
         // The 2026-10-07 revision's words (owner), read as the tokens the
         // compiler always used: `no_check` is the old `!check`, the
         // comparisons are their glyphs, `newln` the newline piece, `stdkit`

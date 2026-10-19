@@ -854,3 +854,8 @@ union_two_fields [fnv:0ae2b27570af8ade] :: it holds one field at a time, so give
 c_lib_named_file [fnv:ab4a4d692af538d5] :: without `lib` or a file ending
 cstr_bound_needs_zero [fnv:cce691df7d8c3123] :: says whether its closing 0 counts
 cstr_bound_graphemes [fnv:c0026764164a0267] :: a C string is counted in bytes, not graphemes
+base_binary_bad_digit [fnv:416d2dca78eee831] :: a binary number has only the digits 0 and 1
+base_octal_bad_digit [fnv:958021aa004d8f9d] :: an octal number has only the digits 0 to 7
+base_hex_bad_digit [fnv:08f788733a8bc6a3] :: a hex number has only 0-9 and A-F
+base_prefix_0x [fnv:0ee49085d48160cd] :: written with a word in front: `hex 1F`
+base_grouping [fnv:fa328efeee84f3c8] :: `_` groups digits

@@ -1022,3 +1022,9 @@ Dated, with the alternative, so each can become a question later.
   reading); a literal that fits cannot fail. Precog knows a made string's
   length (the text's bytes and 1, within the bound), so storing one is
   proven.
+- **2026-10-19 — Whole numbers in other bases** (owner: "(a)"): `binary
+  1010_0101`, `hex FF00_00FF` (either case), `octal 755`, read by the lexer
+  after the word and its spaces into the same number token a decimal is
+  (`Lexer::based`, through `Big`, so as wide as a decimal may be). `_`
+  groups only between two digits; a digit the base has not, and `0x` /
+  `0b` / `0o`, are refused as the oracle refuses them.
