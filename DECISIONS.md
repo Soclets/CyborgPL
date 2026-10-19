@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — `C.` is C's own vocabulary; what a header brings is plain: `#define`s stay `'SQLITE_OK'` (owner: a)
+
+The second conflict from the correction below: a `#define` was ruled `C.SQLITE_OK` today, but has come through as
+`const 'NAME'` since 2026-10-10. The owner: "Does everything with C need `C.`?" Design claude laid out the mix (`C.int`,
+`C.str.*`, `C.libs`, `= C.printf` with it; C functions, globals, `#define`s and `layout.C` structs without) and offered
+one rule: (a) **`C.` is for C's own vocabulary, what CyborgPL provides for talking to C (its types, the string tools,
+the manifest field, a raw C symbol after `=`); names a header brings into a file act as the file's own declarations,
+plain** (recommended), or (b) everything from C under `C.` (`C.printf[…]`, `C.SQLITE_OK`). The owner: "(a)". So
+**`#define SQLITE_OK 0` is `'SQLITE_OK'`, as built since 2026-10-10**; the 2026-10-19 `C.NAME` entry is withdrawn.
+
 ### 2026-10-19 — Correction: a fixed variadic shape is still a `no_check` site, as every C call is (owner: a)
 
 Design claude's slip, owned: the "six C gaps" were offered without checking what was decided. Three were not gaps:
