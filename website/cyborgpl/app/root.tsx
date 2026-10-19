@@ -1,16 +1,22 @@
 import type { ReactNode } from "react";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import { LoadingScreen } from "./loading/loading-screen";
+import "./app.css";
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    // The early script adds .loading to <html> before React starts, on purpose.
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        {/* The loading screen shows only when scripts run, since only they can take it away. */}
+        <script dangerouslySetInnerHTML={{ __html: 'document.documentElement.classList.add("loading")' }} />
         <Meta />
         <Links />
       </head>
       <body>
+        <LoadingScreen />
         {children}
         <ScrollRestoration />
         <Scripts />
