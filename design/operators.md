@@ -27,12 +27,18 @@ over (design claude's slip: it had first called it IEEE's `remainder()`).
 Proposed for bins: `div.near` naming the rounding (chosen), `div.real`,
 `div.frac`. `examples/div_rounding.cy`.
 
-**The operators are words** (owner, 2026-10-02/03): `plus`, `minus`,
-`times`, `.wrap` for the wrapping ones, and std's `pow`; the symbols `+`,
-two-number `-`, `x`, `xx` and the tilde forms are refused, naming the
-word. A type defines its own with `op plus […]`; an operator as a value
-is `op plus`. `examples/word_operators.cy`. Older passages below keep
-the symbols where they quote a ruling's day.
+**Current spelling (2026-10-16): symbols only where they read correctly, and then they are the good
+practice.** `+` (`plus`), `-` (`minus`), `x` (`times`), `xx` (std's `pow`), `<` (`less_than`), `>`
+(`greater_than`) and a leading `-` (`-5`, `-'x'`, `negate`); each word stays a valid spelling of the same
+operator, and **a variation is always the word**: `plus.wrap`, `times.ieee`, `div.floor`, `negate.ieee`. Words
+only, their symbols refused as old spellings naming the word: `equal_to`, `not_equal`, `at_most`, `at_least`
+(`==`, `!=`, `<=`, `>=`); `div.…` (`/`); `mod.…` (`%`); `and`, `and.then`, `or.else` (`&`, `&&`, `||`);
+`concat` (`++`). No compound changes: `change 'i' = 'i' + 2;`. A type defines its own with `op plus […]`; an
+operator as a value is `op plus`. `DECISIONS.md` 2026-10-16 has the whole list.
+
+History: from 2026-10-02/03 to 2026-10-14 the operators were words only (`plus`, `minus`, `times`) and the
+symbols were refused; 2026-10-14 brought the symbols back as spellings of the words, and 2026-10-16 narrowed
+them to the list above. Passages below keep whatever spelling their ruling's day used.
 
 | Operator | Meaning |
 |---|---|
