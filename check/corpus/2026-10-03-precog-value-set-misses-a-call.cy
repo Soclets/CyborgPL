@@ -72,7 +72,7 @@ fn f2 ['p1': uint16] -> uint16 {
         c2 'd6' { is -141; }
     };
     let mut 'v8': int64 = ((to.int64[(to.int64['v7'] minus 15) minus (9223372036854775806 div.floor 4611686018427387904)] shl to.int64[(to.int64['p1'] or.bit to.int64['v7']) times (to.int64['v7'] div.trunc (-4611686018427387904))]) mod.floor 868) minus 324;
-    for no_cheat 'i9': int64 from 9223372036854775786 to 9223372036854775807 by 2 {
+    no_cheat for 'i9': int64 from 9223372036854775786 to 9223372036854775807 by 2 {
         change 'v8' = (((to.int64[(-5054614212144933731) plus 'i9'] minus.wrap 'v8') plus (('i9' minus 'i9') mod.floor 1)) mod.floor 868) minus 324;
         let 'v10': int16 = ((to.int16[('i9' mod.floor 65536) minus 32768] mod.trunc ((((to.int16['v8'] shr 13) plus (((-16384) minus to.int16['v7']) mod.floor 1)) mod.floor 3) plus 1)) mod.floor 45) plus 32723;
     }

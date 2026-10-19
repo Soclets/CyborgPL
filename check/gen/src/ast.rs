@@ -621,6 +621,8 @@ struct Wr<'a> {
     typed_lits: bool,
     /// How many literal conversions could be typed literals so far.
     tlits: usize,
+    /// How many plain lets of a call so far, for `no_cheat`.
+    cheats: usize,
     /// The declarations something changes (see `changed_decls`), by address.
     changed: std::collections::HashSet<usize>,
     out: String,
@@ -917,7 +919,11 @@ impl<'a> Wr<'a> {
                     Mutability::Mut => "",
                     Mutability::Immut => self.im(),
                 };
-                let head = format!("let {m}{}: {} = ", q(name), ty.text());
+                // `no_cheat` in front of a statement, calls in it included (owner,
+                // 2026-10-18: "(b)"): every third plain let of a call. Never beside
+                // `check` and the like, whose order with it is not decided.
+                let cheat = if *tier == Tier::Default && matches!(value, Expr::Call(..)) && { self.cheats += 1; self.cheats % 3 == 0 } { "no_cheat " } else { "" };
+                let head = format!("{cheat}let {m}{}: {} = ", q(name), ty.text());
                 self.simple(s, &pad, *tier, &head, value, ";");
             }
             Stmt::Assign { tier, name, value } => {
@@ -940,11 +946,11 @@ impl<'a> Wr<'a> {
             }
             Stmt::For { perm, cheat, name, ty, start, stop, step, body } => {
                 let perm = if *perm { "perm " } else if self.strict { "temp " } else { "" };
-                // the strongest modifier first: `for !cheat seq perm` (owner, 2026-10-01;
-                // `!cheat` since 2b7f336, 2026-10-06)
-                let cheat = ["", "no_cheat ", "no_cheat seq "][*cheat as usize];
+                // `no_cheat` only in front of the `for`, `seq` after it (owner,
+                // 2026-10-18: "(a)"; `for no_cheat seq perm` before)
+                let (cheat, seq) = [("", ""), ("no_cheat ", ""), ("no_cheat ", "seq ")][*cheat as usize];
                 // `for 'i' from A to B by C`, `by` always written (owner, 2026-10-12)
-                self.out.push_str(&format!("{pad}for {cheat}{perm}{}: {} from ", q(name), ty.name()));
+                self.out.push_str(&format!("{pad}{cheat}for {seq}{perm}{}: {} from ", q(name), ty.name()));
                 self.e(start);
                 self.out.push_str(" to ");
                 self.e(stop);
@@ -1041,7 +1047,7 @@ impl Program {
     /// The same text as `render`, with every node's place in it.
     pub fn render_spans(&self) -> (String, Spans) {
         let changed = changed_decls(self);
-        let mut w = Wr { new_words: self.new_words, syms: 0, typed_lits: self.typed_lits, tlits: 0, changed, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
+        let mut w = Wr { new_words: self.new_words, syms: 0, typed_lits: self.typed_lits, tlits: 0, cheats: 0, changed, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
         w.out.push_str(&format!("# check claude generator, seed {}\n", self.seed));
         // `extern.C`, one line each, or as a block (owner, 2026-10-02: "both");
         // the block where there are three, so both forms are written
