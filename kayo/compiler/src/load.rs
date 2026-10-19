@@ -1006,28 +1006,55 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             }
             _ => {
                 let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error("`dependencies` is a list of `cyjet::dep[…]`: `[cyjet::dep[path = \"../areas\"],]`").at(v.span));
+                    return err(Diagnostic::error("`dependencies` is a list of `cyjet::dep.path[…]` and `cyjet::dep.reg[…]`: `[cyjet::dep.path[\"../areas\"],]`").at(v.span));
                 };
                 for e in entries {
                     let ExprKind::Call { path, args, .. } = &e.kind else {
-                        return err(Diagnostic::error("each dependency is a `cyjet::dep[path = …]`, or a `cyjet::dep[id = …, version = …]`").at(e.span));
+                        return err(Diagnostic::error("each dependency is a `cyjet::dep.path[\"…\"]` (a folder), or a `cyjet::dep.reg[id = …, version = …]` (the registry)").at(e.span));
                     };
-                    if path.kit.as_ref().map(|l| l.name.as_str()) != Some("cyjet") || !path.segs.iter().map(|s| s.name.as_str()).eq(["dep"]) {
-                        return err(Diagnostic::error(format!("each dependency is a `cyjet::dep[…]`, and this is `{}`", path.spelled())).at(e.span));
+                    let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
+                    if path.kit.as_ref().map(|l| l.name.as_str()) != Some("cyjet") || !matches!(segs.as_slice(), ["dep"] | ["dep", "path"] | ["dep", "reg"]) {
+                        return err(Diagnostic::error(format!("each dependency is a `cyjet::dep.path[…]` or a `cyjet::dep.reg[…]`, and this is `{}`", path.spelled())).at(e.span));
                     }
+                    // The kind of dependency is in its name (owner,
+                    // 2026-10-19): a folder, one text, or the registry.
+                    if segs == ["dep", "path"] {
+                        let [AArg::Positional(folder)] = args.as_slice() else {
+                            return err(Diagnostic::error("a folder dependency is one text, the folder: `cyjet::dep.path[\"../kits/areas\"]`").at(e.span));
+                        };
+                        let p = text(folder, "a folder dependency")?;
+                        if out.deps.iter().any(|d| d.path == p) {
+                            return err(Diagnostic::error(format!("`{}` is listed twice in `dependencies`", p)).at(folder.span));
+                        }
+                        out.deps.push(Dep { path: p, cord: false });
+                        continue;
+                    }
+                    let old = segs == ["dep"];
                     let (mut dpath, mut version, mut id) = (None, None, None);
                     for a in args {
                         let AArg::Named(field, v) = a else {
-                            return err(Diagnostic::error("a `cyjet::dep` names its fields: a `path = …`, or an `id = …` and a `version = …`").at(a.span()));
+                            return err(Diagnostic::error("a `cyjet::dep.reg` names its fields: `cyjet::dep.reg[id = \"…\", version = \"…\"]`").at(a.span()));
                         };
                         let slot = match field.name.as_str() {
-                            "name" | "prefix" => return err(Diagnostic::error("a dependency names no word: code writes the kit's own `prefix`, from its `CyJet.cyr`").at(field.span)),
+                            "name" | "prefix" if !old => return err(Diagnostic::error("a dependency names no word: code writes the kit's own `prefix`, from its `CyJet.cyr`").at(field.span)),
+                            "path" if !old => return err(Diagnostic::error("a folder is `cyjet::dep.path[\"…\"]`; `cyjet::dep.reg` takes `id` and `version`").at(field.span)),
                             "path" => &mut dpath,
                             "version" => &mut version,
                             "id" => &mut id,
-                            other => return err(Diagnostic::error(format!("a `cyjet::dep` has no field `{}`: it is a `path`, or an `id` and a `version`", other)).at(field.span)),
+                            _ if old => continue,
+                            other => return err(Diagnostic::error(format!("a `cyjet::dep.reg` has no field `{}`: it is an `id` and a `version`", other)).at(field.span)),
                         };
                         *slot = Some((text(v, &format!("`{}`", field.name))?, field.span));
+                    }
+                    // The old `cyjet::dep[…]` (owner, 2026-10-19), refused
+                    // naming whichever its fields meant; but std by its ID
+                    // and the folder it is being written in (owner,
+                    // 2026-10-14), which has no new spelling yet (asked).
+                    let std_folder = id.as_ref().is_some_and(|(i, _)| i == crate::parser::STD_ID) && dpath.is_some() && version.is_none();
+                    if old && !std_folder {
+                        let row = if dpath.is_some() { "cyjet::dep[path = …]" } else { "cyjet::dep[id = …, version = …]" };
+                        let said = crate::spellings::old_word(row, Some("special")).map(|o| o.dated()).unwrap_or_else(|| format!("`{}` is an old spelling", row));
+                        return err(Diagnostic::error(said).at(e.span));
                     }
                     // The registry knows a Kit by the ID its creator made —
                     // 256 random bits, 64 hex digits — never by its name
@@ -1073,10 +1100,10 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                             return err(Diagnostic::error("this dependency comes from the registry, which knows a kit by its ID, never its name: add `id = \"…\"`, the 64 hex digits its creator made").at(e.span));
                         }
                         (None, Some((_, vspan))) => {
-                            return err(Diagnostic::error("not yet: this dependency asks the registry for a `version`, and the registry does not exist yet — give its folder with `path = \"…\"`").at(vspan));
+                            return err(Diagnostic::error("not yet: this dependency asks the registry for a `version`, and the registry does not exist yet — give its folder with `cyjet::dep.path[\"…\"]`").at(vspan));
                         }
                         (None, None) => {
-                            return err(Diagnostic::error("a dependency says where it comes from: a `path = \"…\"` (a folder on this machine), or an `id` and a `version` (the registry)").at(e.span));
+                            return err(Diagnostic::error("a registry dependency says which kit and which version: `cyjet::dep.reg[id = \"…\", version = \"…\"]`").at(e.span));
                         }
                         (Some((p, pspan)), None) => {
                             if out.deps.iter().any(|d| d.path == p) {

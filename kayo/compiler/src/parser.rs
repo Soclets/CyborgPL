@@ -408,7 +408,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
             // "Time: std, with duration literals"; d690ed91).
             if let (Tok::Num { .. }, Some(Tok::Word(u))) = (&toks[i].tok, toks.get(i + 1).map(|t| &t.tok)) {
                 if DURATION_UNITS.contains(&u.as_str()) {
-                    return err(Diagnostic::error(format!("a duration literal (`5 seconds`) is std's, and this kit's CyJet.cyr does not list std: add `cyjet::dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", STD_ID, STD_VERSION)).at(toks[i].span));
+                    return err(Diagnostic::error(format!("a duration literal (`5 seconds`) is std's, and this kit's CyJet.cyr does not list std: add `cyjet::dep.reg[id = \"{}\", version = \"{}\"]` to its `dependencies`", STD_ID, STD_VERSION)).at(toks[i].span));
                 }
             }
             let Tok::Word(w) = &toks[i].tok else { continue };
@@ -423,7 +423,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                 ("str", Some(Tok::Dot)) if matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(u)) if matches!(u.as_str(), "bytes" | "points" | "graphemes" | "each" | "split" | "find" | "contains" | "trim" | "upper" | "lower" | "replace" | "starts_with" | "ends_with" | "at" | "slice" | "join")) => "a text operation (`str.…`)",
                 _ => continue,
             };
-            return err(Diagnostic::error(format!("{} is std's, and this kit's CyJet.cyr does not list std: add `cyjet::dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION)).at(toks[i].span));
+            return err(Diagnostic::error(format!("{} is std's, and this kit's CyJet.cyr does not list std: add `cyjet::dep.reg[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION)).at(toks[i].span));
         }
     }
     // Signatar's names are English letters, digits and `_`, bare or
@@ -620,7 +620,7 @@ impl<'a> Parser<'a> {
         if !self.no_std {
             return Ok(());
         }
-        self.fail_at(span, format!("`{}` is std's, and this kit's CyJet.cyr does not list std: add `cyjet::dep[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION))
+        self.fail_at(span, format!("`{}` is std's, and this kit's CyJet.cyr does not list std: add `cyjet::dep.reg[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION))
     }
 
     fn fail<T>(&self, msg: impl Into<String>) -> Result<T> {

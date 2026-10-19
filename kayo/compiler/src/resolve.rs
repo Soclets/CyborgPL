@@ -1049,7 +1049,7 @@ impl Items {
         let here = self.kit_root(m);
         match self.kit_deps.get(&here).and_then(|d| d.get(&kit.name)) {
             Some(r) => Ok(*r),
-            None => err(Diagnostic::error(format!("no kit with the prefix `{}`: a kit this one uses is listed in its `CyJet.cyr` (`dependencies = [cyjet::dep[path = …],]`), and its own `CyJet.cyr` says `prefix = \"{}\"`", kit.name, kit.name)).at(kit.span)),
+            None => err(Diagnostic::error(format!("no kit with the prefix `{}`: a kit this one uses is listed in its `CyJet.cyr` (`dependencies = [cyjet::dep.path[\"…\"],]`), and its own `CyJet.cyr` says `prefix = \"{}\"`", kit.name, kit.name)).at(kit.span)),
         }
     }
 

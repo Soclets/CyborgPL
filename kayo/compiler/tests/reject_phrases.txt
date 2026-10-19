@@ -438,7 +438,7 @@ manifest_bad_name [fnv:141f1cec70f82c3f] :: `Areas of shapes` cannot name a kit
 manifest_bad_prefix [fnv:142ba3472cf5fe78] :: cannot be a prefix, written in code as `Cash-Handling::`
 manifest_core_twice [fnv:a30a2f55de752c36] :: the limb MCPS is listed twice
 manifest_core_unofficial [fnv:cba92fd0dca717e1] :: is not an official one; loading another limb is not built yet
-manifest_dep_twice_where [fnv:22cee5cf4ecd7ef3] :: says where it comes from once
+manifest_dep_twice_where [fnv:e556bfb8f9133dbf] :: a folder is `cyjet::dep.path["…"]`
 manifest_field_twice [fnv:dd4b619356aeb955] :: `name` is given twice
 manifest_long_version [fnv:a46141b25a099c4e] :: `version` is at most 256 bytes, and this one is 257
 manifest_no_default [fnv:79ff64b431237349] :: exactly one says `default = true`
@@ -833,3 +833,5 @@ wstn_now_broca [fnv:e4e203174655892f] :: WSTN is part of unicode since 2026-10-1
 wstn_thai_name [fnv:05b489393a3281fd] :: is not an English name: the base's names are English letters, digits and `_`
 table_bytes_negative [fnv:4799d10599c99d18] :: `table_bytes` is a whole number of bytes, 0 or more
 table_bytes_not_fn [fnv:6d6af225e959b337] :: `table_bytes` goes in front of a `fn`
+old_dep_path [fnv:f60ab70a86722f5f] :: `cyjet::dep[path = …]` is an old spelling: write `cyjet::dep.path["…"]`
+old_dep_reg [fnv:a07cb76a65767c9c] :: `cyjet::dep[id = …, version = …]` is an old spelling: write `cyjet::dep.reg[id = …, version = …]`

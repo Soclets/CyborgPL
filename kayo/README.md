@@ -942,3 +942,11 @@ Dated, with the alternative, so each can become a question later.
   typed `let` fits it, so `simd.fill[value 5: uint8]` into a
   `simd[int32, count 4]` is four `int32` lanes of 5 (`expect_store`); a value
   that does not fit, `-1` into `uint32` lanes, is refused as a `let` would be.
+- **2026-10-19 — A dependency says its kind** (owner: "(a)", "dep.reg"):
+  `cyjet::dep.path["../kits/areas"]`, one text, and
+  `cyjet::dep.reg[id = …, version = …]`. The old `cyjet::dep[…]` is refused
+  from `spellings.cyr`'s two rows, naming whichever its fields meant; a
+  field on `dep.path`, or a `path` on `dep.reg`, is refused as the oracle
+  refuses it. std by its ID and the folder it is written in,
+  `cyjet::dep[id = <std's>, path = "…"]`, has no new spelling yet (asked):
+  it is still taken as it was.
