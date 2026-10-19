@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — `simd.fill` fits its value into the declared lanes: the declared type wins (owner: a)
+
+check claude's open program (check f73ee281): `let 'r': simd[int32, count 4] = simd.fill[value 5: uint8];` — the
+oracle widened each lane, kayo built `simd[uint8, count 16]` from the value and refused. Offered (a) the declared
+type wins, the value fitted as a typed `let` fits it (recommended), or (b) the value's type wins, refused. The
+owner: "Why would they even declare `uint8` there?" (a literal rarely would; a `uint8` variable, a byte read from a
+file, is the real case), then "doesn't doing `let 'x': int32` say this var is int32? So, the final should be int32?",
+and "yea". So **the lanes are what the declaration says**; the value is fitted into them, refused only when it does
+not fit (`-1` into `uint32` lanes). The oracle already did this; `examples/simd_fill_declared.cy`.
+
 ### 2026-10-19 — A simd type's lane count says `count`: `simd[int32, count 4]` (owner)
 
 Shown check claude's `simd[int32, 4]`, the owner: "`simd[int32, 4]` looks a bit incons[istent]": the one bare

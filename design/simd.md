@@ -68,7 +68,9 @@ that names the fold to use.
 - `change 'v'[3] = 30;` — one lane written, like a list item; a position
   outside the vector is a check site (owner, 2026-09-29: a). One
   instruction (`INS` on ARM).
-- `simd.fill[7]` — every lane the same value.
+- `simd.fill[value 7]` — every lane the same value. The lanes are what the declared type says, and the value is
+  fitted into them as a typed `let` fits it (owner, 2026-10-19): `let 'r': simd[int32, count 4] = simd.fill[value 'b'];`
+  with a `uint8` 'b' gives four `int32` lanes; a value that does not fit is refused.
 - `simd.load[lend 'xs', 'i']` — N elements of an `array` or `list`
   into a vector; a check site (is `'i' plus N minus 1` inside?).
 - `simd.store[lend.mut 'xs', 'i', value 'v']` — the other way.
