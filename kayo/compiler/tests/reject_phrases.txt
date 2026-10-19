@@ -165,13 +165,13 @@ collection_generated_counting [fnv:bafbe02453ae4ffd] :: does not match it: run `
 collection_generated_edited [fnv:bafbe02453ae4ffd] :: does not match it: run `kayo generate`
 collection_generated_missing [fnv:bafbe02453ae4ffd] :: does not match it: run `kayo generate`
 collection_generated_stale [fnv:bafbe02453ae4ffd] :: does not match it: run `kayo generate`
-collection_handler_function [fnv:c05c70f47225809b] :: a `collection.handler` holds named `otherwise` blocks
+collection_handler_function [fnv:8cb2fb7d92016e4d] :: a `coll.handler` holds named `otherwise` blocks
 collection_handler_not_covering [fnv:1f6f1f5fd3f573a8] :: can also fail with `negative`
 collection_handler_pub [fnv:43b98232013fe90c] :: can be `pub` is not decided yet
-collection_handler_template [fnv:79a7543712d85b5f] :: templates are for `collection.fn`
+collection_handler_template [fnv:c319195f2d7c8f19] :: templates are for `coll.fn`
 collection_handler_unknown_member [fnv:3b6c2fde5b80f184] :: `h` has no handler `nope`; it has `zero`
 collection_kind_missing [fnv:684db8875c74ea16] :: a collection says its kind
-collection_kind_unknown [fnv:e227340f7bdab53b] :: there is no `collection.fun`
+collection_kind_unknown [fnv:0ebe8a5eea6df325] :: there is no `coll.fun`
 collection_name_quoted [fnv:febf8670ce6f8fe2] :: a collection's name is bare, as a function's
 collection_named_outside [fnv:a0cca1ab550658b1] :: `named` names what a template generates
 collection_preset_no_main [fnv:22a7543a7381b537] :: a preset fills the main function's arguments, and collection `c` has none
@@ -837,3 +837,6 @@ old_dep_path [fnv:f60ab70a86722f5f] :: `cyjet::dep[path = …]` is an old spelli
 old_dep_reg [fnv:a07cb76a65767c9c] :: `cyjet::dep[id = …, version = …]` is an old spelling: write `cyjet::dep.reg[id = …, version = …]`
 old_dep_std [fnv:f1b132269a58fe76] :: is an old spelling: write `cyjet::dep.path.std["…"]`
 old_dep_std_short [fnv:28f955d257f4a1eb] :: `cyjet::dep.std` is an old spelling: write `cyjet::dep.path.std["…"]`
+coll_member_short_name [fnv:2e2233858d06600a] :: a member writes the collection's name in front: `greet.hi`
+coll_pointer_missing [fnv:f12e812a5c20b960] :: names no function
+collection_old_word [fnv:c622aae12d578b33] :: `collection.` is an old spelling: write `coll.fn` / `coll.handler`

@@ -772,6 +772,11 @@ pub enum ItemKind {
     /// file's items as it is read.
     ExternBlock(Vec<(Vis, ItemKind)>),
     Fn(FnDecl),
+    /// A collection's member written elsewhere (owner, 2026-10-19):
+    /// `area.square = shapes.square.area;`, that function under the
+    /// member's name. `owner` is the collection when it has its own
+    /// function; with none, the member sits in the collection's module.
+    FnPointer { owner: Option<Ident>, name: Ident, target: Path },
     ExternFn(FnDecl),
     ExternLet { mutable: bool, name: QName, ty: Type },
     Struct(StructDecl),
@@ -927,6 +932,9 @@ pub struct Template {
     pub close: Span,
     /// `#generated_N_lines_below` under it, if there is one.
     pub marker: Option<(u32, Span)>,
+    /// The collection it is in: each member it makes is written
+    /// `coll.member` (owner, 2026-10-19).
+    pub coll: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]

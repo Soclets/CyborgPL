@@ -381,7 +381,8 @@ fn block(t: &Template, text: &str, file: &File, consts: &HashMap<String, Val>) -
         }
         for (i, l) in body.lines().enumerate() {
             if i == 0 {
-                lines.push(format!("{}{} {}", base, name, l));
+                // The collection's name in front (owner, 2026-10-19).
+                lines.push(format!("{}{}.{} {}", base, t.coll, name, l));
             } else {
                 let cut = l.chars().take(deeper).take_while(|c| *c == ' ' || *c == '\t').count();
                 lines.push(format!("{}{}", base, &l[cut..]));

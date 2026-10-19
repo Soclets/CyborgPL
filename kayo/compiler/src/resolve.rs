@@ -262,6 +262,9 @@ pub struct Items {
     pending_claims: Vec<(ast::Type, ast::Path, ModuleId, Span)>,
     /// `fn Counter.next`: each function's type, as written, where it is.
     pending_type_fns: Vec<(FnId, ast::Ident, ModuleId)>,
+    /// A collection's members written elsewhere (owner, 2026-10-19): the
+    /// member, the function it names, and the module the path is read from.
+    pending_pointers: Vec<(FnId, ast::Path, ModuleId)>,
     /// The functions belonging to a type (owner, 2026-10-09: "`b`"), by
     /// the type and the name after the dot.
     pub type_fns: HashMap<(ItemRef, String), FnId>,
@@ -397,6 +400,24 @@ impl Items {
                 self.fns.push(placeholder_fn(&name, m, vis, item.span, decl.name.span));
                 self.pending_type_fns.push((id, owner, m));
                 self.pending_fns.push((id, decl.clone(), m, None));
+            }
+            ItemKind::FnPointer { owner, name, target } => {
+                let id = FnId(self.fns.len() as u32);
+                match owner {
+                    Some(o) => {
+                        self.fns.push(placeholder_fn(&format!("{}.{}", o.name, name.name), m, vis, item.span, name.span));
+                        self.pending_type_fns.push((id, o.clone(), m));
+                    }
+                    None => {
+                        self.fns.push(placeholder_fn(&name.name, m, vis, item.span, name.span));
+                        self.declare(m, &name.name, ItemRef::Fn(id), vis, name.span)?;
+                    }
+                }
+                // The path is read from where the collection is written: a
+                // collection with no own function is a module of its name,
+                // and its pointers read from the module around it.
+                let from = if owner.is_some() { m } else { self.modules[m.0 as usize].parent.unwrap_or(m) };
+                self.pending_pointers.push((id, target.clone(), from));
             }
             ItemKind::Fn(decl) => {
                 let id = FnId(self.fns.len() as u32);
@@ -610,6 +631,47 @@ impl Items {
         for (id, decl, m, op) in &fns {
             let info = self.resolve_fn_decl(decl, *m, op.clone(), self.fns[id.0 as usize].vis, self.fns[id.0 as usize].span)?;
             self.fns[id.0 as usize] = info;
+        }
+        // Each member written elsewhere is a copy of the function it names,
+        // under its own name and visibility. One may name another, so each
+        // round takes the ones whose function is done.
+        let mut pointers = std::mem::take(&mut self.pending_pointers);
+        let mut waiting: HashSet<u32> = pointers.iter().map(|(id, _, _)| id.0).collect();
+        while !pointers.is_empty() {
+            let mut left = Vec::new();
+            let before = pointers.len();
+            for (id, target, m) in pointers {
+                let spelled = target.spelled();
+                let found = match self.lookup_path(&target, m) {
+                    Ok(ItemRef::Fn(f)) => Some(f),
+                    _ => self.lookup_type_fn(&target, m).ok().flatten(),
+                };
+                let Some(f) = found else {
+                    let me = &self.fns[id.0 as usize];
+                    let module = &self.modules[me.module.0 as usize];
+                    let full = if me.name.contains('.') || module.parent.is_none() { me.name.clone() } else { format!("{}.{}", module.name, me.name) };
+                    return err(Diagnostic::error(format!("`{} = {}` names no function: there is no `{}` there", full, spelled, spelled)).at(target.span));
+                };
+                // The function it names is a member written elsewhere that
+                // is not copied yet: next round.
+                if waiting.contains(&f.0) {
+                    left.push((id, target, m));
+                    continue;
+                }
+                let placeholder = self.fns[id.0 as usize].clone();
+                let mut info = self.fns[f.0 as usize].clone();
+                info.name = placeholder.name;
+                info.vis = placeholder.vis;
+                info.span = placeholder.span;
+                info.name_span = placeholder.name_span;
+                self.fns[id.0 as usize] = info;
+                waiting.remove(&id.0);
+            }
+            if left.len() == before {
+                let (id, target, _) = &left[0];
+                return err(Diagnostic::error(format!("`{}` points round in a circle: a member names a function, not itself", self.fns[id.0 as usize].name)).at(target.span));
+            }
+            pointers = left;
         }
         let externs = std::mem::take(&mut self.pending_externs);
         for (id, decl, m) in &externs {

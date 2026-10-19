@@ -15,15 +15,15 @@ fn size_name ['n': int32] -> str.utf8 {
     return "pow" concat to.stored.str.utf8['k'];
 }
 
-collection.fn block {
+coll.fn block {
     for 'n' in [1024, 1048576, 64] {
         named size_name['n'];
         [] -> int32 { return 'n'; }
     }
     #generated_3_lines_below
-    kb [] -> int32 { return 1024; }
-    mb [] -> int32 { return 1048576; }
-    pow6 [] -> int32 { return 64; }
+    block.kb [] -> int32 { return 1024; }
+    block.mb [] -> int32 { return 1048576; }
+    block.pow6 [] -> int32 { return 64; }
 }
 
 MAIN {

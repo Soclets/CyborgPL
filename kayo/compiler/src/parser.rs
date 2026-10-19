@@ -65,7 +65,7 @@ struct Parser<'a> {
     count_bound: bool,
     /// The collections' templates read so far (owner, 2026-10-13).
     templates: Vec<Template>,
-    /// This file's `collection.handler`s (owner, 2026-10-13): each member's
+    /// This file's `coll.handler`s (owner, 2026-10-13): each member's
     /// arms, read before the file is, so `otherwise h.member` anywhere in
     /// it reads them as if written there.
     handlers: std::collections::HashMap<String, Vec<(String, Vec<FailArm>)>>,
@@ -470,7 +470,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     }
     // The file's handlers first: a use may come before the definition.
     for i in 0..toks.len() {
-        if matches!(&toks[i].tok, Tok::Word(w) if w == "collection") && matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(w)) if w == "handler") && (i == 0 || !matches!(toks[i - 1].tok, Tok::Dot)) {
+        if matches!(&toks[i].tok, Tok::Word(w) if w == "coll") && matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(w)) if w == "handler") && (i == 0 || !matches!(toks[i - 1].tok, Tok::Dot)) {
             p.pos = i + 3;
             let (name, members) = p.handler_def()?;
             p.handlers.insert(name, members);
@@ -809,33 +809,39 @@ impl<'a> Parser<'a> {
             let span = start.to(self.prev_span());
             return Ok(Item { vis, kind, span, bare, case });
         }
-        // A collection (owner, 2026-10-13) says its kind: `collection.fn`,
-        // a function and its narrowings, its one `bare.` mark inside, or
-        // `collection.handler`, named `otherwise` blocks.
+        // `collection.` was the word until 2026-10-19 (owner): `coll.fn`,
+        // `coll.handler`, and a bare `collection c {` is told the same.
         if self.is_word("collection") {
-            if let Some((_, at)) = bare {
-                return self.fail_at(at, "a collection's `bare.` mark goes inside it, once, for every member: `pub collection.fn cum { bare.never; … }`");
-            }
+            let said = crate::spellings::old_word("collection.", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`collection.` is an old spelling: write `coll.fn` / `coll.handler`".into());
+            return self.fail(said);
+        }
+        // A collection (owner, 2026-10-13) says its kind: `coll.fn`, a
+        // function and its narrowings, under one `bare.` mark (in front, or
+        // inside the block), or `coll.handler`, named `otherwise` blocks.
+        if self.is_word("coll") {
             let kw = self.bump().span;
             if !self.eat(&Tok::Dot) {
-                return self.fail_at(kw, "a collection says its kind: `collection.fn cum { … }` (a function and its narrowings) or `collection.handler h { … }` (named `otherwise` blocks) (owner, 2026-10-13)");
+                return self.fail_at(kw, "a collection says its kind: `coll.fn cum { … }` (a function and its narrowings) or `coll.handler h { … }` (named `otherwise` blocks) (owner, 2026-10-13)");
             }
             let kind = self.ident("the collection's kind")?;
             match kind.name.as_str() {
                 "fn" => {
-                    let (lines, mark) = self.collection(vis)?;
+                    let (lines, mark) = self.collection(vis, bare)?;
                     let span = start.to(self.prev_span());
                     return Ok(Item { vis, kind: ItemKind::ExternBlock(lines), span, bare: mark, case });
                 }
                 "handler" => {
+                    if let Some((_, at)) = bare {
+                        return self.fail_at(at, "a `coll.handler` takes no `bare.` mark: it is read where it is written, in its own file");
+                    }
                     if vis != Vis::Private {
-                        return self.fail_at(start, "whether a `collection.handler` can be `pub` is not decided yet: it is read where it is written, in its own file");
+                        return self.fail_at(start, "whether a `coll.handler` can be `pub` is not decided yet: it is read where it is written, in its own file");
                     }
                     self.handler_def()?;
                     let span = start.to(self.prev_span());
                     return Ok(Item { vis, kind: ItemKind::ExternBlock(Vec::new()), span, bare: None, case });
                 }
-                other => return self.fail_at(kind.span, format!("there is no `collection.{}`: a collection is `collection.fn` (a function and its narrowings) or `collection.handler` (named `otherwise` blocks)", other)),
+                other => return self.fail_at(kind.span, format!("there is no `coll.{}`: a collection is `coll.fn` (a function and its narrowings) or `coll.handler` (named `otherwise` blocks)", other)),
             }
         }
         let mut kind = self.item_kind(vis)?;
@@ -1494,19 +1500,23 @@ impl<'a> Parser<'a> {
     /// (`quick ['step' = 2];`, the main function with some arguments
     /// filled), templates, and one `bare.` mark. It comes back as the
     /// functions it is: `fn cum`, `fn cum.double`, `fn cum.quick`.
-    fn collection(&mut self, vis: Vis) -> Result<(Vec<(Vis, ItemKind)>, Option<(Bare, Span)>)> {
+    fn collection(&mut self, vis: Vis, front: Option<(Bare, Span)>) -> Result<(Vec<(Vis, ItemKind)>, Option<(Bare, Span)>)> {
         let name = match self.peek().clone() {
             Tok::Word(_) => self.ident("the collection's name")?,
-            Tok::Str(s) => return self.fail(format!("a collection's name is bare, as a function's: `collection.fn {} {{ … }}`", s)),
-            Tok::Name(n) => return self.fail(format!("a collection's name is bare, as a function's: `collection.fn {} {{ … }}`", n)),
+            Tok::Str(s) => return self.fail(format!("a collection's name is bare, as a function's: `coll.fn {} {{ … }}`", s)),
+            Tok::Name(n) => return self.fail(format!("a collection's name is bare, as a function's: `coll.fn {} {{ … }}`", n)),
             other => return self.fail(format!("expected the collection's name, found {}", other.describe())),
         };
         let open = self.span();
         self.expect(&Tok::LBrace, "`{` after the collection's name")?;
-        let mut mark: Option<(Bare, Span)> = None;
+        let mut mark: Option<(Bare, Span)> = front;
         let mut main: Option<FnDecl> = None;
         let mut members: Vec<FnDecl> = Vec::new();
+        let mut pointers: Vec<(Ident, Path)> = Vec::new();
         let mut presets: Vec<(Ident, Vec<(QName, Expr)>, Span)> = Vec::new();
+        // Every member line writes the collection's name in front (owner,
+        // 2026-10-19): `greet.hi`, never `hi`.
+        let short = |member: &str| format!("a member writes the collection's name in front: `{}.{}` (owner, 2026-10-19)", name.name, member);
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
                 return self.fail_at(open, format!("collection `{}` is never closed", name.name));
@@ -1522,22 +1532,52 @@ impl<'a> Parser<'a> {
                 continue;
             }
             if self.is_word("fn") {
-                return self.fail(format!("a collection's members take no `fn`: `double […] -> T {{ … }}`, reached as `{}.double`", name.name));
+                return self.fail(format!("a collection's members take no `fn`: `{}.double […] -> T {{ … }}`", name.name));
             }
             if self.is_word("named") {
                 return self.fail("`named` names what a template generates: it is the first line inside a template's `for`");
             }
             if self.is_word("for") {
-                let t = self.template()?;
+                let mut t = self.template()?;
+                t.coll = name.name.clone();
                 self.templates.push(t);
                 continue;
             }
             if let Tok::Generated(_) = self.peek() {
                 return self.fail("a `#generated_N_lines_below` marker stands right under a template's closing `}`");
             }
-            // A preset: `quick ['step' = 2];`.
-            if matches!(self.peek(), Tok::Word(_)) && matches!(self.peek_at(1), Tok::LBracket) && matches!(self.peek_at(2), Tok::Name(_)) && self.is_op_at(3, "=") {
+            // The own function pointing elsewhere: only a member may.
+            if matches!(self.peek(), Tok::Word(w) if *w == name.name) && self.is_op_at(1, "=") {
+                return self.fail(format!("the own function `{}` is written here; only a member points elsewhere", name.name));
+            }
+            // A short name, `hi […]` or `hi = …;`.
+            if let Tok::Word(w) = self.peek().clone() {
+                if w != name.name && (matches!(self.peek_at(1), Tok::LBracket) || self.is_op_at(1, "=")) {
+                    return self.fail(short(&w));
+                }
+            }
+            // `other.hi`: the name in front is not this collection's.
+            if let (Tok::Word(w), Tok::Dot, Tok::Word(m)) = (self.peek().clone(), self.peek_at(1).clone(), self.peek_at(2).clone()) {
+                if w != name.name {
+                    return self.fail(short(&m));
+                }
+            }
+            // A member written elsewhere: `area.square = shapes.square.area;`.
+            if matches!(self.peek(), Tok::Word(_)) && matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(_)) && self.is_op_at(3, "=") {
+                self.bump();
+                self.bump();
+                let member = self.ident("the member's name")?;
+                self.bump();
+                let target = self.path()?;
+                self.expect_semi("the member")?;
+                pointers.push((member, target));
+                continue;
+            }
+            // A preset: `greet.quick ['step' = 2];`.
+            if matches!(self.peek(), Tok::Word(_)) && matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(_)) && matches!(self.peek_at(3), Tok::LBracket) && matches!(self.peek_at(4), Tok::Name(_)) && self.is_op_at(5, "=") {
                 let start = self.span();
+                self.bump();
+                self.bump();
                 let pname = self.ident("the preset's name")?;
                 self.bump();
                 let mut fills = Vec::new();
@@ -1558,17 +1598,19 @@ impl<'a> Parser<'a> {
                 continue;
             }
             let mut d = self.fn_decl(true)?;
-            if d.owner.is_some() {
-                return self.fail_at(d.name.span, format!("a member is named once, inside its collection: `{} […]`, reached as `{}.{}`", d.name.name, name.name, d.name.name));
-            }
-            if d.name.name == name.name {
-                if main.is_some() {
-                    return self.fail_at(d.name.span, format!("collection `{}` has one main function", name.name));
+            match &d.owner {
+                None if d.name.name == name.name => {
+                    if main.is_some() {
+                        return self.fail_at(d.name.span, format!("collection `{}` has one main function", name.name));
+                    }
+                    main = Some(d);
                 }
-                main = Some(d);
-            } else {
-                d.owner = Some(name.clone());
-                members.push(d);
+                None => return self.fail(short(&d.name.name.clone())),
+                Some(o) if o.name != name.name => return self.fail(short(&d.name.name.clone())),
+                Some(_) => {
+                    d.owner = Some(name.clone());
+                    members.push(d);
+                }
             }
         }
         self.bump();
@@ -1588,6 +1630,7 @@ impl<'a> Parser<'a> {
             Some(m) => {
                 lines.insert(0, (Vis::Private, ItemKind::Fn(m)));
                 lines.extend(members.into_iter().map(|d| (Vis::Private, ItemKind::Fn(d))));
+                lines.extend(pointers.into_iter().map(|(member, target)| (Vis::Private, ItemKind::FnPointer { owner: Some(name.clone()), name: member, target })));
             }
             // With no main function there is nothing for the members to
             // belong to: they are a module of the collection's name, reached
@@ -1596,26 +1639,27 @@ impl<'a> Parser<'a> {
             None => {
                 let inner = if vis == Vis::Private { Vis::Kit } else { vis };
                 let span = name.span;
-                let items = members
+                let mut items: Vec<Item> = members
                     .into_iter()
                     .map(|mut d| {
                         d.owner = None;
                         Item { vis: inner, kind: ItemKind::Fn(d), span, bare: mark, case: None }
                     })
                     .collect();
+                items.extend(pointers.into_iter().map(|(member, target)| Item { vis: inner, kind: ItemKind::FnPointer { owner: None, name: member, target }, span, bare: mark, case: None }));
                 lines.push((Vis::Private, ItemKind::Module { name: name.clone(), items }));
             }
         }
         Ok((lines, mark))
     }
 
-    /// `collection.handler h { as_zero { odd { … } negative 'v' { … } } … }`
+    /// `coll.handler h { as_zero { odd { … } negative 'v' { … } } … }`
     /// (owner, 2026-10-13), from after `handler`: each member an
     /// `otherwise`'s arms, named.
     fn handler_def(&mut self) -> Result<(String, Vec<(String, Vec<FailArm>)>)> {
         let name = match self.peek().clone() {
             Tok::Word(_) => self.ident("the collection's name")?,
-            Tok::Str(s) => return self.fail(format!("a collection's name is bare, as a function's: `collection.handler {} {{ … }}`", s)),
+            Tok::Str(s) => return self.fail(format!("a collection's name is bare, as a function's: `coll.handler {} {{ … }}`", s)),
             other => return self.fail(format!("expected the collection's name, found {}", other.describe())),
         };
         let open = self.span();
@@ -1626,14 +1670,26 @@ impl<'a> Parser<'a> {
                 return self.fail_at(open, format!("collection `{}` is never closed", name.name));
             }
             if self.is_word("for") || self.is_word("named") {
-                return self.fail("templates are for `collection.fn`: a `collection.handler` holds named `otherwise` blocks, each written out");
+                return self.fail("templates are for `coll.fn`: a `coll.handler` holds named `otherwise` blocks, each written out");
             }
             if self.is_word("bare") {
-                return self.fail("a `collection.handler` is read in its own file, so it has no `bare.` mark");
+                return self.fail("a `coll.handler` is read in its own file, so it has no `bare.` mark");
             }
-            let member = self.ident("a handler's name")?;
+            // `h.as_zero { … }`: the collection's name in front, as a
+            // `coll.fn`'s members write it (owner, 2026-10-19).
+            let first = self.ident("a handler's name")?;
+            let full = first.name == name.name && self.is(&Tok::Dot);
+            let member = if full {
+                self.bump();
+                self.ident("a handler's name")?
+            } else {
+                first
+            };
             if !self.is(&Tok::LBrace) {
-                return self.fail_at(member.span, format!("a `collection.handler` holds named `otherwise` blocks: `{} {{ odd {{ … }} }}`, one arm per way a call can fail", member.name));
+                return self.fail_at(member.span, format!("a `coll.handler` holds named `otherwise` blocks: `{}.{} {{ odd {{ … }} }}`, one arm per way a call can fail", name.name, member.name));
+            }
+            if !full {
+                return self.fail_at(member.span, format!("a member writes the collection's name in front: `{}.{} {{ … }}` (owner, 2026-10-19)", name.name, member.name));
             }
             let (arms, _) = self.arms_block()?;
             if members.iter().any(|(m, _)| *m == member.name) {
@@ -1740,7 +1796,7 @@ impl<'a> Parser<'a> {
             Tok::Generated(n) => Some((n, self.bump().span)),
             _ => None,
         };
-        Ok(Template { at, var, values, named, member, close, marker })
+        Ok(Template { at, var, values, named, member, close, marker, coll: String::new() })
     }
 
     /// One of C's names after `extern.C`, alone or in its block: `fn …;`,
