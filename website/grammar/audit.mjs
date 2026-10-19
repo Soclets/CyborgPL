@@ -24,7 +24,7 @@ const files = [];
   for (const name of readdirSync(dir).sort()) {
     const full = path.join(dir, name), r = rel ? `${rel}/${name}` : name;
     if (statSync(full).isDirectory()) walk(full, r);
-    else if (/\.(zg|zv|nrv)$/.test(name)) files.push(r);
+    else if (/\.(cy|cyr)$/.test(name)) files.push(r);
   }
 })(examples, "");
 for (const f of files) {
