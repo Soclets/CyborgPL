@@ -111,6 +111,8 @@ pub struct StructDef {
     /// a C struct CyborgPL never looks inside (owner, 2026-10-10: `ptr.mut[FILE]`): only pointed at, never
     /// built, sized or read; it comes only from a C header, having no spelling of its own
     pub opaque: bool,
+    /// `layout.C union` (owner, 2026-10-19): one field at a time; reading a field is a `no_check` site
+    pub is_union: bool,
     /// type variables, in the order announced (design/generics.md, 2026-10-02)
     pub params: Vec<String>,
     /// what each accepts: (blank, interface), one pair per interface; `any` adds none
@@ -180,6 +182,8 @@ pub struct Func {
     pub params: Vec<Param>,
     pub body: Vec<Stmt>,
     pub line: usize,
+    /// `extern.C fn printf_count = C.printf […]` (owner, 2026-10-19): the C function this name calls
+    pub link: Option<String>,
 }
 
 /// `pub const 'name' := v;` at the top level (decided 2026-09-19): a value

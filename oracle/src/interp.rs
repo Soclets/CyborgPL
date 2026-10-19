@@ -867,6 +867,8 @@ impl<'p> Interp<'p> {
                 }
                 let v = self.fit(v, prov, Some(&fdef.ty), *line)?;
                 if let Value::Struct(_, fields) = &mut *cell.borrow_mut() {
+                    // writing a union's field makes it the one held (owner, 2026-10-19: a write is always safe)
+                    if def.is_union { *fields = vec![(field.clone(), v)]; return Ok(Flow::Normal); }
                     for (k, slot) in fields.iter_mut() { if k == field { *slot = v; break; } }
                 }
                 Ok(Flow::Normal)
@@ -2167,6 +2169,35 @@ impl<'p> Interp<'p> {
             Expr::Field(name, field, _) => {
                 let v = self.read_var(name, line)?;
                 let (sname, fields) = match v { Value::Struct(n, f) => (n, f), other => return rt(line, format!("'{name}' is {}, not a struct; it has no field `{field}`", other.kind())) };
+                // reading a union's field: only C knows which is held, so it is on your word (owner, 2026-10-19: "(a)")
+                if let Some(def) = self.prog.structs.iter().find(|d| d.name == sname && d.is_union).cloned() {
+                    if self.nocheck_depth == 0 { return rt(line, format!("{sname} is a union, and nothing shows which field it holds: reading '{name}'.{field} is a `no_check` site: `no_check let 'x' := '{name}'.{field};`")); }
+                    let Some(want) = def.fields.iter().find(|f| &f.name == field) else { return rt(line, format!("{sname} has no field `{field}`")) };
+                    let (held, hv) = fields.into_iter().next().unwrap();
+                    if &held == field { return Ok((hv, Prov::Plain)); }
+                    // another field: its bytes, read as this one's type, where the oracle can say what they are
+                    let bits = |t: &Ty| match t { Ty::Int(w) | Ty::Uint(w) => match w { IntWidth::W8 => Some(8), IntWidth::W16 => Some(16), IntWidth::W32 => Some(32), IntWidth::W64 => Some(64), _ => None }, Ty::Bin(32) => Some(32), Ty::Bin(64) => Some(64), _ => None };
+                    let have_ty = def.fields.iter().find(|f| f.name == held).map(|f| f.ty.clone()).unwrap();
+                    let raw: Option<u64> = match (&hv, &have_ty) {
+                        (Value::Int(i), Ty::Int(_) | Ty::Uint(_)) => Some(*i as u64),
+                        (Value::Bin(x), Ty::Bin(32)) => Some((*x as f32).to_bits() as u64),
+                        (Value::Bin(x), Ty::Bin(64)) => Some(x.to_bits()),
+                        _ => None,
+                    };
+                    return match (raw, bits(&have_ty), bits(&want.ty)) {
+                        (Some(r), Some(a), Some(b)) if a == b => {
+                            let r = if b == 64 { r } else { r & ((1u64 << b) - 1) };
+                            let v = match &want.ty {
+                                Ty::Bin(32) => Value::Bin(f32::from_bits(r as u32) as f64),
+                                Ty::Bin(_) => Value::Bin(f64::from_bits(r)),
+                                Ty::Int(_) => Value::Int(((r << (64 - b)) as i64 >> (64 - b)) as i128),
+                                _ => Value::Int(r as i128),
+                            };
+                            Ok((v, Prov::Plain))
+                        }
+                        _ => rt(line, format!("'{name}' holds `{held}`; the oracle cannot say what its bytes read as `{field}` (only same-size numbers)")),
+                    };
+                }
                 match fields.into_iter().find(|(k, _)| k == field) {
                     Some((_, fv)) => {
                         let prov = if fv.is_owned() { Prov::Bare(format!("{name}'.{field} (write `copy '{name}'.{field}` or `lend '{name}'.{field}`; the field is owned by '{name}")) } else { Prov::Plain };
@@ -4055,6 +4086,7 @@ impl<'p> Interp<'p> {
         }
         match &c.kit {
             Some(l) if l == "std" => self.std_call(c),
+            Some(l) if l == "C" => self.c_str_call(c),
             // another kit, loaded from `CyJet.cyr` under its own root (owner, 2026-09-29)
             Some(l) if self.prog.modules.iter().any(|m| m.path == [format!("::{l}")]) => {
                 let mut local = c.clone();
@@ -4783,14 +4815,21 @@ impl<'p> Interp<'p> {
                     v
                 }
                 (Some(t), _, prov) => self.fit(v, prov, Some(t), c.line)?,
+                // a lent list, array or text is a pointer to its first element, as for a `ptr[…]` parameter (a C string's `lend 'cs'`)
+                (None, Value::Str(_) | Value::List(_), Prov::Borrowed(cell, is_mut)) => Value::Ptr(Ptr { cell: Some(cell), index: 0, mutable: is_mut }),
                 (None, Value::Str(_) | Value::List(_) | Value::Char(..), _) => return rt(c.line, format!("`{}` is a variadic extern; its extra arguments must be C-shaped, not {}", func.name, v.kind())),
                 (None, _, _) => v,
             };
             args.push(v);
         }
-        let fixed = func.params.iter().filter(|p| !p.variadic).count();
-        if args.len() < fixed || (args.len() > fixed && !func.params.last().map(|p| p.variadic).unwrap_or(false)) {
-            return rt(c.line, format!("`{}` takes {} argument(s), given {}", func.name, fixed, args.len()));
+        // a fixed shape (`= C.printf [ …, ...'n': int32]`, owner 2026-10-19) takes exactly what it names
+        if func.link.is_some() && func.params.iter().any(|p| p.variadic && p.ty.is_some()) {
+            if args.len() != func.params.len() { return rt(c.line, format!("`{}` takes exactly {} argument(s), as its shape says; given {}", func.name, func.params.len(), args.len())); }
+        } else {
+            let fixed = func.params.iter().filter(|p| !p.variadic).count();
+            if args.len() < fixed || (args.len() > fixed && !func.params.last().map(|p| p.variadic).unwrap_or(false)) {
+                return rt(c.line, format!("`{}` takes {} argument(s), given {}", func.name, fixed, args.len()));
+            }
         }
         let read_bytes = |p: &Ptr, len: Option<usize>| -> Vec<u8> {
             let Some(cell) = &p.cell else { return Vec::new() };
@@ -4800,13 +4839,42 @@ impl<'p> Interp<'p> {
             let rest = &all[start..];
             match len { Some(n) => rest[..n.min(rest.len())].to_vec(), None => rest.iter().take_while(|b| **b != 0).cloned().collect() }
         };
-        match func.name.as_str() {
+        // the C function called: its own name, or the one after `= C.` (owner, 2026-10-19)
+        match func.link.as_deref().unwrap_or(func.name.as_str()) {
             "write" => {
                 let (fd, p, len) = match (&args[0], &args[1], &args[2]) { (Value::Int(fd), Value::Ptr(p), Value::Int(len)) => (*fd, p.clone(), *len as usize), _ => return rt(c.line, "write[fd, ptr, len]") };
                 let bytes = read_bytes(&p, Some(len));
                 let text = String::from_utf8_lossy(&bytes).to_string();
                 if fd == 2 { eprint!("{text}"); } else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
                 Ok(Value::Int(bytes.len() as i128))
+            }
+            // C's `printf`, for the variadic forms (owner, 2026-10-19): `%d %i %u %ld %lld %lu %llu %x %c %s %%`, as C reads them
+            "printf" => {
+                let fmt = match &args[0] { Value::Ptr(p) => read_bytes(p, None), _ => return rt(c.line, "printf's format is a pointer to a C string") };
+                let mut out = String::new();
+                let mut rest = args[1..].iter();
+                let mut i = 0;
+                let f = String::from_utf8_lossy(&fmt).to_string();
+                let b: Vec<char> = f.chars().collect();
+                while i < b.len() {
+                    if b[i] != '%' { out.push(b[i]); i += 1; continue; }
+                    i += 1;
+                    while i < b.len() && (b[i] == 'l' || b[i] == 'h' || b[i] == 'z') { i += 1; }
+                    let Some(&k) = b.get(i) else { break };
+                    i += 1;
+                    if k == '%' { out.push('%'); continue; }
+                    let Some(a) = rest.next() else { return rt(c.line, "printf's format asks for more values than were given: C would read garbage") };
+                    match (k, a) {
+                        ('d' | 'i' | 'u', Value::Int(n)) => out.push_str(&n.to_string()),
+                        ('x', Value::Int(n)) => out.push_str(&format!("{:x}", n)),
+                        ('c', Value::Int(n)) => out.push(char::from_u32(*n as u32).unwrap_or('?')),
+                        ('s', Value::Ptr(p)) => out.push_str(&String::from_utf8_lossy(&read_bytes(p, None))),
+                        (k, a) => return rt(c.line, format!("printf's `%{k}` was given {}: C would read garbage, which is why the call is `no_check`", a.kind())),
+                    }
+                }
+                let n = out.len();
+                self.out.write_all(out.as_bytes()).map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?;
+                Ok(Value::Int(n as i128))
             }
             "exit" => match &args[0] { Value::Int(i) => Err(RuntimeError { line: c.line, msg: String::new(), exit: Some((*i & 0xff) as u8), site: false, leave: None }), _ => rt(c.line, "exit[code]") },
             "strlen" => match &args[0] { Value::Ptr(p) => Ok(Value::Int(read_bytes(p, None).len() as i128)), _ => rt(c.line, "strlen[ptr]") },
@@ -4850,8 +4918,11 @@ impl<'p> Interp<'p> {
     /// Fill a struct's fields by name; every field required, types checked (a `<T>` field binds).
     fn construct_fields(&mut self, def: &StructDef, sname: &str, given: &[(String, Bracket)], line: usize) -> Result<(Value, Prov), RuntimeError> {
         for (k, _) in given { if !def.fields.iter().any(|f| &f.name == k) { return rt(line, format!("{sname} has no field `{k}`")); } }
+        // a union holds one field at a time (owner, 2026-10-19)
+        if def.is_union && given.len() != 1 { return rt(line, format!("{sname} is a union: it holds one field at a time, so give exactly one, as `{sname}[{} = …]`", def.fields[0].name)); }
         let mut out = Vec::new();
         for f in &def.fields {
+            if def.is_union && !given.iter().any(|(k, _)| k == &f.name) { continue; }
             let b = match given.iter().find(|(k, _)| k == &f.name) {
                 Some((_, b)) => b,
                 None => return rt(line, format!("{sname} is missing `{}`: every field must be given — there are no zero values", f.name)),
@@ -4974,6 +5045,41 @@ impl<'p> Interp<'p> {
             }
         };
         Ok((Value::Enum(tname.to_string(), case.to_string(), data), Prov::Fresh))
+    }
+
+    /// `C.str.read['p']` and `C.str.make[lend 's']` (owner, 2026-10-19): a C string is its bytes and a 0
+    fn c_str_call(&mut self, c: &Call) -> Result<Value, RuntimeError> {
+        let value_used = !self.call_is_stmt;
+        self.call_is_stmt = false;
+        let op = c.path.get(1).map(String::as_str).unwrap_or("");
+        let (v, prov) = self.value(&c.args.values[0])?;
+        if op == "read" {
+            let fails = vec![FailCase { name: "not_utf8".into(), ty: None }];
+            self.check_handler(c.handler.as_ref(), &fails, "C.str.read", c.line)?;
+            // a lent C string made here reads as a pointer to its first byte
+            let v = match (&v, &prov) { (Value::List(_) | Value::Str(_), Prov::Borrowed(cell, m)) => Value::Ptr(Ptr { cell: Some(cell.clone()), index: 0, mutable: *m }), _ => v.clone() };
+            let Value::Ptr(p) = &v else { return rt(c.line, format!("`C.str.read` reads a C string through a pointer, `ptr[uint8]`; got {}", v.kind())) };
+            let Some(cell) = &p.cell else { return site(c.line, "`C.str.read` was given a null pointer") };
+            let all: Vec<u8> = match &*cell.borrow() { Value::List(items) => items.iter().map(|x| if let Value::Int(i) = x { *i as u8 } else { 0 }).collect(), Value::Str(s) => s.as_bytes().to_vec(), other => return rt(c.line, format!("a pointer into {} is not a C string", other.kind())) };
+            let start = (p.index.max(0) as usize).min(all.len());
+            let bytes: Vec<u8> = all[start..].iter().take_while(|b| **b != 0).cloned().collect();
+            return match String::from_utf8(bytes) {
+                Ok(t) => Ok(Value::Str(t)),
+                Err(_) => self.handle_failure(c.handler.as_ref().unwrap(), c.line, "C.str.read", "not_utf8".into(), None, value_used),
+            };
+        }
+        // `make`: lent, as std's text functions are
+        if !matches!(prov, Prov::Borrowed(..) | Prov::Literal | Prov::Fresh) { return rt(c.line, "`C.str.make` only looks at its text: `C.str.make[lend 's']`"); }
+        let Value::Str(t) = &v else { return rt(c.line, format!("`C.str.make` makes a C string from a text; got {}", v.kind())) };
+        // a literal with no 0 byte cannot fail, so it needs no `otherwise` (owner: the check dropped where proven)
+        let literal = matches!(&c.args.values[0], crate::ast::Value::Expr(crate::ast::Expr::Text(..)));
+        let proven = literal && !t.contains('\0');
+        let fails = if proven { Vec::new() } else { vec![FailCase { name: "has_zero_byte".into(), ty: None }] };
+        self.check_handler(c.handler.as_ref(), &fails, "C.str.make", c.line)?;
+        if t.contains('\0') { return self.handle_failure(c.handler.as_ref().unwrap(), c.line, "C.str.make", "has_zero_byte".into(), None, value_used); }
+        let mut items: Vec<Value> = t.bytes().map(|b| Value::Int(b as i128)).collect();
+        items.push(Value::Int(0));
+        Ok(Value::List(items))
     }
 
     fn std_call(&mut self, c: &Call) -> Result<Value, RuntimeError> {

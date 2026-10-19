@@ -1,0 +1,7 @@
+cyjet::manifest[
+    name = "t",
+    prefix = "t",
+    version = "1.0.0",
+    C.libs = [cyjet::C.lib[name = "libsqlite3.dylib"],],
+    targets = [cyjet::target[name = "aarch64-macos"],]
+];

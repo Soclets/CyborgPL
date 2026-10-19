@@ -339,7 +339,7 @@ puts[lend 'cs'];
   Precog proves there is none, a literal say (owner: a).
 - A made C string is owned like any value (owner: a): freed when its owner's scope ends; `lend` it to C for a call,
   `give` it when C keeps it, and C frees it then. No `C.str.free`.
-- Part of public v1's six C gaps (2026-10-19). Not built yet.
+- Built in the oracle 2026-10-19: `examples/c_strings.cy`, reject tests `c_str_*`.
 
 ## What `C.` is for (owner, 2026-10-19)
 
@@ -372,7 +372,8 @@ no_check printf_count[lend 'fmt', 5];                            # a fixed shape
   as every C call is (owner, 2026-10-19: "(a)"), since the format text can still disagree. It marks where the `...` starts, because on Apple
   silicon a variadic function's extras travel apart from its fixed arguments.
 - `= C.printf` gives a C function another name in CyborgPL (owner: "(c)"); design claude's reading: any C function.
-- Not built yet.
+- Built in the oracle 2026-10-19, which stands in for `printf` (`%d %i %u %x %c %s %%`): `examples/c_strings.cy`,
+  reject tests `c_rename_needs_c`, `c_fixed_shape_count`.
 
 ## Unions and bit-fields (owner, 2026-10-19)
 
@@ -388,13 +389,14 @@ change 's'.mode = 5;                                # checked to fit: 3 bits hol
 - A union's read is a `no_check` site (owner: a); a write needs nothing.
 - A bit-field is `bits N` in the field type's limits bracket (owner: a; the placement is design claude's reading),
   laid out as clang does on macOS; reads always safe, writes checked to fit; only in `layout.C`.
-- Not built yet. With these, the six C gaps of public v1 are designed (C strings, `C.libs`, `#define`s, structs by
-  value, variadic functions, unions and bit-fields).
+- Built in the oracle 2026-10-19: `examples/c_union_bits.cy`, reject tests `union_*`, `bits_*`. Reading another field
+  of a union gives its bytes as that field's type where the oracle can say (same-size numbers).
 
 ## Open
 
 - (History: reading a C string was build-it-yourself until 2026-10-19; see "C strings" above.)
 - Linking C libraries: `C.libs = [cyjet::C.lib[name = "sqlite3"]]` in `CyJet.cyr` (owner, 2026-10-19); where a library
-  is looked for beyond the system's and Homebrew's folders, and a lone file's libraries, are not asked yet.
+  is looked for beyond the system's and Homebrew's folders, and a lone file's libraries, are not asked yet. Read in the
+  oracle (it links nothing): `examples/c_libs_listed/`, reject test `c_lib_named_file`.
 - A text's length is decided (`strings.md`: `str.bytes`, `str.points`,
   `str.graphemes`); this line is kept only to say so.

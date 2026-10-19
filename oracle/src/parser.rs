@@ -161,6 +161,10 @@ pub struct Parser {
     in_map_key: bool,
     /// set while parsing an extern signature or a layout.C struct: `ptr[T]` is allowed
     at_boundary: bool,
+    /// inside an `extern.C fn name = C.x [ … ]`: parameters may follow the `...` one, each a fixed extra
+    fixed_shape: bool,
+    /// inside a `layout.C` struct or union: a field's type may say `bits N` (owner, 2026-10-19)
+    in_layout_c: bool,
     /// set while parsing an interface's entries: signatures end with `;`, no body
     in_interface: bool,
     /// set while parsing a const's value: `incl.bytes[…]` may stand there and nowhere else (owner, 2026-10-10)
@@ -238,9 +242,9 @@ thread_local! {
 }
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, from_c: false, in_count: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), kit_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, fixed_shape: false, in_layout_c: false, in_interface: false, in_const_value: false, from_c: false, in_count: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), kit_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, in_interface: false, in_const_value: false, from_c: false, in_count: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), kit_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, fixed_shape: false, in_layout_c: false, in_interface: false, in_const_value: false, from_c: false, in_count: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), kit_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
 
     /// A path written in this module, made canonical (from the root):
     /// `my.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -531,6 +535,8 @@ impl Parser {
                     Tok::Word(w) if w == "case" && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(m)) if ["any", "exact", "insensitive", "sensitive"].contains(&m.as_str())) => Some(("unicode", "a `case` mark".into())),
                     // everything about C is CNC's (owner, 2026-10-10): `extern.C`, `incl.C`, `layout.C`
                     Tok::Word(w) if ["extern", "incl", "layout"].contains(&w.as_str()) && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(c)) if c == "C") => Some(("CNC", format!("`{w}.C`"))),
+                    // the C string tools are CNC's too (owner, 2026-10-19)
+                    Tok::Word(w) if w == "C" && !after_dot && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(c)) if c == "str") => Some(("CNC", "`C.str`".to_string())),
                     Tok::Word(w) if w == "C" && !after_dot && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(c)) if C_TYPES.contains(&c.as_str())) => {
                         let Some(Tok::Word(c)) = self.toks.get(i + 2).map(|t| &t.tok) else { unreachable!() };
                         Some(("CNC", format!("`C.{c}`")))
@@ -876,7 +882,7 @@ impl Parser {
                         for o in &header.opaque {
                             let canonical = self.canonical(&[o.clone()]);
                             if prog.structs.iter().any(|d| d.name == canonical) { continue; }
-                            prog.structs.push(StructDef { name: canonical, module: self.module.clone(), vis: vis.clone(), layout_c: true, opaque: true, params: Vec::new(), bounds: Vec::new(), fields: Vec::new(), line });
+                            prog.structs.push(StructDef { name: canonical, module: self.module.clone(), vis: vis.clone(), layout_c: true, opaque: true, is_union: false, params: Vec::new(), bounds: Vec::new(), fields: Vec::new(), line });
                         }
                         for text in header.lines {
                             // each line as if written here; one CyborgPL cannot say yet is left out, as the reader does
@@ -995,12 +1001,17 @@ impl Parser {
                         prog.enums.push(EnumDef { name: self.canonical(&[name]), module: self.module.clone(), vis, cases, params: Vec::new(), bounds: Vec::new(), c_values: Some(values), line });
                         continue;
                     }
-                    if !self.is_word("struct") { return self.err("`layout.C` goes before `struct` or `enum`: `layout.C struct Timeval { … }`, `layout.C enum Key { a = 65 }`"); }
+                    // `layout.C union Number { i: int32, f: bin32 }` (owner, 2026-10-19): read as a struct, one field held at a time
+                    let union = self.is_word("union");
+                    if union { self.toks[self.pos].tok = Tok::Word("struct".into()); }
+                    if !self.is_word("struct") { return self.err("`layout.C` goes before `struct`, `union` or `enum`: `layout.C struct Timeval { … }`, `layout.C union Number { … }`, `layout.C enum Key { a = 65 }`"); }
                     self.at_boundary = true;
+                    self.in_layout_c = true;
                     let d = self.struct_def();
+                    self.in_layout_c = false;
                     self.at_boundary = false;
                     let mut d = d?;
-                    d.vis = vis; d.layout_c = true;
+                    d.vis = vis; d.layout_c = true; d.is_union = union;
                     prog.structs.push(d);
                 }
                 Tok::Word(w) if w == "asm" || w == "ASM" || w == "inline" => return self.err("an `inline.ASM` block is a statement; it goes inside a body, under `no_check`"),
@@ -1245,7 +1256,7 @@ impl Parser {
         } else { self.block()? };
         let bounds = Self::flat_bounds(&gens);
         if !self.in_interface { self.declared = None; self.groups.clear(); }
-        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails: Vec::new(), is_extern: false, is_op: true, is_test: false, owned: false, bounds, params, body, line })
+        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails: Vec::new(), is_extern: false, is_op: true, is_test: false, owned: false, bounds, params, body, line, link: None })
     }
 
     // struct := 'struct' Word '{' (('mut' | 'immut')? Word ':' type)* '}'   — no `;`, no `let`
@@ -1293,7 +1304,7 @@ impl Parser {
         let params: Vec<String> = gens.iter().map(|(g, _)| g.clone()).collect();
         let bounds = Self::flat_bounds(&gens);
         self.declared = None;
-        Ok(StructDef { name: self.canonical(&[name]), module: self.module.clone(), vis: Vis::Private, layout_c: false, opaque: false, params, bounds, fields, line })
+        Ok(StructDef { name: self.canonical(&[name]), module: self.module.clone(), vis: Vis::Private, layout_c: false, opaque: false, is_union: false, params, bounds, fields, line })
     }
 
     // fn := 'fn' Word '[' params ']' ('->' type)? block
@@ -1392,7 +1403,7 @@ impl Parser {
         let mut module = self.module.clone();
         let owned = owner.is_some();
         if let Some(t) = owner { module.push(t); }
-        Ok(Func { name, module, vis: Vis::Private, ret, ret_lent, fails, is_extern: false, is_op: false, is_test: false, owned, bounds, params, body, line })
+        Ok(Func { name, module, vis: Vis::Private, ret, ret_lent, fails, is_extern: false, is_op: false, is_test: false, owned, bounds, params, body, line, link: None })
     }
 
     // fail list := 'fail' '[' Word (':' type)? (',' Word (':' type)?)* ']'
@@ -1447,11 +1458,22 @@ impl Parser {
             return Ok(());
         }
         if !self.is_word("fn") { return self.err("after `extern.C` comes `fn` or a quoted name: `extern.C fn write [...] -> int64;`, `extern.C 'errno': int32;`"); }
+        // `extern.C fn printf_count = C.printf ['format': ptr[uint8], ...'n': int32] -> int32;` (owner, 2026-10-19: "(c)"):
+        // the name is yours, `C.` names C's; after `...` a fixed shape names and types each extra
+        let mut link = None;
+        if matches!(self.peek_at(1), Tok::Word(_)) && *self.peek_at(2) == Tok::Eq {
+            match (self.peek_at(3).clone(), self.peek_at(4).clone(), self.peek_at(5).clone()) {
+                (Tok::Word(c), Tok::Dot, Tok::Word(n)) if c == "C" => { link = Some(n); self.toks.drain(self.pos + 2..self.pos + 6); }
+                _ => return self.err("a C function under another name says whose it is: `extern.C fn printf_count = C.printf [ … ] -> int32;`"),
+            }
+        }
         self.at_boundary = true;
+        self.fixed_shape = link.is_some();
         let f = self.func();
+        self.fixed_shape = false;
         self.at_boundary = false;
         let mut f = f?;
-        f.vis = vis; f.is_extern = true;
+        f.vis = vis; f.is_extern = true; f.link = link;
         prog.funcs.push(f);
         Ok(())
     }
@@ -1621,7 +1643,7 @@ impl Parser {
         let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()) } else { None };
         self.at_boundary = saved;
         let ty = match ty { Some(t) => Some(t?), None => None };
-        if variadic && *self.peek() == Tok::Comma { return self.err(format!("`...'{name}'` takes the rest of the arguments, so it must be the last parameter")); }
+        if variadic && *self.peek() == Tok::Comma && !self.fixed_shape { return self.err(format!("`...'{name}'` takes the rest of the arguments, so it must be the last parameter")); }
         Ok(Param { kind, mutability, ty, name, variadic, life, line })
     }
 
@@ -1631,7 +1653,32 @@ impl Parser {
     // through modules is a dotted path (`shapes.Locker`, `my.Locker`).
     /// A type; a range or a length bound is ASP's (owner, 2026-10-07: "move"), refused without it
     fn ty(&mut self) -> PResult<Ty> {
+        // a C bit-field, `mode: uint8[bits 3]` (owner, 2026-10-19: "(a)"): N bits of the field's integer, written in
+        // its limits bracket; only in a `layout.C` struct or union. It holds what N bits hold, checked when written
+        if matches!(self.peek(), Tok::Word(_)) && *self.peek_at(1) == Tok::LBracket && matches!(self.peek_at(2), Tok::Word(b) if b == "bits") {
+            if !self.in_layout_c { return self.err("`bits` makes a C bit-field: it is for a `layout.C` struct's fields, `mode: uint8[bits 3]`"); }
+            let Tok::Word(base) = self.peek().clone() else { unreachable!() };
+            let n = match self.peek_at(3).clone() { Tok::Int(n) => n, other => return self.err(format!("a bit-field's width is a whole number: `{base}[bits 3]`, found {other}")) };
+            if *self.peek_at(4) != Tok::RBracket { return self.err(format!("a bit-field says only its width: `{base}[bits {n}]`")); }
+            let t = self.ty_inner_word_only()?;
+            for _ in 0..5 { self.advance(); }   // `base [ bits N ]`
+            let width = match &t { Ty::Int(w) | Ty::Uint(w) => crate::value::int_range(&t).map(|_| match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, _ => 128 }).unwrap_or(128), Ty::Bool => 1, _ => return self.err(format!("a bit-field is a whole number or a `bool`, not {}", ty_name(&t))) };
+            if n < 1 || n > width { return self.err(format!("a `{}` bit-field is 1 to {width} bits, not {n}", ty_name(&t))); }
+            if matches!(t, Ty::Bool) { return Ok(t); }
+            let (lo, hi) = if matches!(t, Ty::Int(_)) { (-(1i128 << (n - 1)), (1i128 << (n - 1)) - 1) } else { (0, (1i128 << n) - 1) };
+            return Ok(Ty::Ranged(Box::new(t), Bound::Int(lo), Bound::Int(hi)));
+        }
         let t = self.ty_inner()?;
+        Ok(t)
+    }
+
+    /// The type a lone word names, the cursor left on it (for `uint8[bits 3]`).
+    fn ty_inner_word_only(&mut self) -> PResult<Ty> {
+        let Tok::Word(w) = self.peek().clone() else { return self.err("expected a type") };
+        let toks = vec![self.toks[self.pos].clone(), Token { tok: Tok::Semi, line: self.line(), col: 0, mtm: None }];
+        let mut p = Parser::new_in(toks, self.module.clone());
+        let t = p.ty_inner().map_err(|e| ParseError { line: self.line(), col: 0, msg: e.msg })?;
+        let _ = w;
         Ok(t)
     }
 
@@ -3231,7 +3278,7 @@ impl Parser {
         self.saw_value_return = saved_ret;
         self.pending_captures = caps;
         let bounds = std::mem::take(&mut self.bounds);
-        Ok(Func { name: String::new(), module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails, is_extern: false, is_op: false, is_test: false, owned: false, bounds, params, body, line })
+        Ok(Func { name: String::new(), module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails, is_extern: false, is_op: false, is_test: false, owned: false, bounds, params, body, line, link: None })
     }
 
     /// `with [lend 'a', give 'b']` — explicit captures, for an anonymous fn and for `concur`.
@@ -3291,11 +3338,16 @@ impl Parser {
     fn construct_body(&mut self, w: String, line: usize) -> PResult<Expr> {
         let mut fields = Vec::new();
         loop {
-            let fname = match self.advance().tok {
+            let mut fname = match self.advance().tok {
                 Tok::Word(w) => w,
                 Tok::Var(v) => return self.err(format!("a field's name is bare: `{v} = …` (decided 2026-09-19)")),
                 other => return self.err(format!("expected a field name, found {other}")),
             };
+            // a dotted field, `C.libs = […]` in `CyJet.cyr` (owner, 2026-10-19); a struct has none, so it is refused there
+            while *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(_)) {
+                self.advance();
+                if let Tok::Word(more) = self.advance().tok { fname = format!("{fname}.{more}"); }
+            }
             match self.peek() {
                 Tok::Eq => { self.advance(); }
                 Tok::Walrus => return self.err(format!("a field's type is fixed by the struct: `{fname} = …`, not `:=`")),
@@ -4065,6 +4117,21 @@ impl Parser {
             Tok::Bin(b, t) => { self.advance(); self.typed_literal(Expr::Bin(b, t, line), line) }
             // `*0.1` — "I want exactly this" (owner, 2026-10-02): a decimal literal that is a deci
             // `str.empty`: the empty text (owner, 2026-10-14), as `map.empty` is the empty map
+            // C strings (owner, 2026-10-19): `C.str.read['p']`, a C string to a `str.utf8`, failing `not_utf8`;
+            // `C.str.make[lend 's']`, a text to a C string (its bytes and a 0), failing `has_zero_byte`
+            Tok::Word(w) if w == "C" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(x) if x == "str") && *self.peek_at(3) == Tok::Dot => {
+                let op = match self.peek_at(4).clone() {
+                    Tok::Word(o) if o == "read" || o == "make" => o,
+                    Tok::Word(o) => return self.err(format!("C strings are `C.str.read['p']` and `C.str.make[lend 's']`; there is no `C.str.{o}`")),
+                    other => return self.err(format!("C strings are `C.str.read['p']` and `C.str.make[lend 's']`, found {other}")),
+                };
+                for _ in 0..5 { self.advance(); }
+                if *self.peek() != Tok::LBracket { return self.err(format!("`C.str.{op}` takes its value in brackets: `C.str.{op}[…]`")); }
+                let args = self.bracket()?;
+                if args.values.len() != 1 { return self.err(format!("`C.str.{op}` takes one value")); }
+                let written = vec!["C".to_string(), "str".to_string(), op.clone()];
+                return Ok(Expr::Call(Call { handler: None, kit: Some("C".into()), path: vec!["str".into(), op], from: self.module.clone(), args, line, bare: false, written }));
+            }
             Tok::Word(w) if w == "str" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(e) if e == "empty") && *self.peek_at(3) != Tok::LBracket => {
                 self.advance(); self.advance(); self.advance();
                 Ok(Expr::Text(String::new(), line))

@@ -396,6 +396,20 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                     if !doable.contains(&t.as_str()) { return Err(format!("{shown}: line {line}: `{t}` is not a target kayo can build; it builds for {}", doable.iter().map(|d| format!("`{d}`")).collect::<Vec<_>>().join(", "))); }
                 }
             }
+            // the C libraries to link (owner, 2026-10-19: "Isn't it `C.lib`?"), found where the system's are: the oracle
+            // links nothing, so it reads the list and checks its shape
+            "C.libs" => {
+                for it in items(value) {
+                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a C library is `cyjet::C.lib[name = \"sqlite3\"]`")) };
+                    if shape != "::cyjet.C.lib" { return Err(format!("{shown}: line {line}: a C library is a `cyjet::C.lib[name = \"…\"]`")); }
+                    for (f, b) in &fields {
+                        if f != "name" { return Err(format!("{shown}: line {line}: a `cyjet::C.lib` has no `{f}`; it has `name`")); }
+                        let t = text(b).ok_or_else(|| format!("{shown}: line {line}: a C library's `name` is a text: `name = \"sqlite3\"`"))?;
+                        if t.is_empty() || t.starts_with("lib") || t.contains('/') || t.contains('.') { return Err(format!("{shown}: line {line}: a C library is named as C's linker names it, without `lib` or a file ending: `name = \"sqlite3\"` for libsqlite3")); }
+                    }
+                    if !fields.iter().any(|(f, _)| f == "name") { return Err(format!("{shown}: line {line}: a C library needs its `name`")); }
+                }
+            }
             "dependencies" => {
                 for it in items(value) {
                     // the kind is in the name (owner, 2026-10-19: "(a), maybe short it to `dep.reg`", then "yea"):
@@ -513,7 +527,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                 }
                 if f == "powers" { powers_seen = list; } else { deny_seen = list; }
             }
-            other => return Err(format!("{shown}: line {line}: a `cyjet::manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies`, `limbs`, `powers` and `deny`")),
+            other => return Err(format!("{shown}: line {line}: a `cyjet::manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies`, `limbs`, `powers`, `deny` and `C.libs`")),
         }
     }
     // a build needs the kit's name, version and a target; only publishing needs more (owner, 2026-09-29:
