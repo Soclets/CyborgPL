@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — A `coll.handler`'s members write the collection's name in front too: `cum_failed.flow_back { … }` (owner: a)
+
+The twin of the `coll.fn` entry below. Offered (a) full names in handlers too, so both kinds read alike
+(recommended), or (b) handlers stay short, their members only ever named after `otherwise`. The owner: "(a)". So
+**`coll.handler half_failed { half_failed.as_zero { odd { … } } }`**, still used as `otherwise half_failed.as_zero`;
+a short member is refused naming the full one. Built in the oracle the same day.
+
 ### 2026-10-19 — `coll.fn` and `coll.handler`, not `collection.` (owner: b)
 
 Asked before ("Should we change `collection.` to `coll.`?"), set aside when the owner noted `para` is just as

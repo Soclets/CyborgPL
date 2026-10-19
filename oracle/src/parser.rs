@@ -2953,16 +2953,19 @@ impl Parser {
                 Tok::Eof => return self.err(format!("collection `{name}` is never closed: a `}}` is missing")),
                 Tok::Word(w) if w == "bare" => return self.err("a `bare.` mark is for what is `pub`, and a `coll.handler` is not `pub`"),
                 Tok::Word(w) if w == "for" => return self.err("templates are for `coll.fn`; whether a `coll.handler` has them is not decided yet (2026-10-13)"),
-                Tok::Word(m) if *self.peek_at(1) == Tok::LBrace => {
+                // a member writes the collection's name in front, as a `coll.fn` member does (owner, 2026-10-19: "(a)")
+                Tok::Word(m) if m != name && *self.peek_at(1) == Tok::LBrace => return self.err(format!("a member writes the collection's name in front: `{name}.{m} {{ … }}` (owner, 2026-10-19)")),
+                Tok::Word(c) if c == name && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(_)) && *self.peek_at(3) == Tok::LBrace => {
+                    let Tok::Word(m) = self.peek_at(2).clone() else { unreachable!() };
                     if crate::spellings::is_reserved(&m) { return self.err(format!("`{m}` is a keyword and cannot name a handler")); }
-                    if seen.contains(&m) { return self.err(format!("`{m}` is written twice in `{name}`")); }
+                    if seen.contains(&m) { return self.err(format!("`{name}.{m}` is written twice")); }
                     seen.push(m);
-                    self.advance();
+                    self.advance(); self.advance(); self.advance();
                     if *self.peek_at(1) == Tok::RBrace { return self.err("a handler with no arms handles nothing: one arm per failure, as after `otherwise`"); }
                     self.skip_braces()?;
                 }
-                Tok::Word(m) => return self.err(format!("a `coll.handler` holds named `otherwise` blocks: `{m} {{ odd {{ … }} negative 'v' {{ … }} }}`, found `{m}` followed by {}", self.peek_at(1))),
-                other => return self.err(format!("a `coll.handler` holds named `otherwise` blocks (`flow_back {{ odd {{ … }} }}`), found {other}")),
+                Tok::Word(m) => return self.err(format!("a `coll.handler` holds named `otherwise` blocks: `{name}.{m} {{ odd {{ … }} negative 'v' {{ … }} }}`, found `{m}` followed by {}", self.peek_at(1))),
+                other => return self.err(format!("a `coll.handler` holds named `otherwise` blocks (`{name}.flow_back {{ odd {{ … }} }}`), found {other}")),
             }
         }
         Ok(())
@@ -2982,8 +2985,11 @@ impl Parser {
             let mut names = Vec::new();
             while j < t.len() {
                 match &t[j].tok {
-                    Tok::Word(m) if j + 1 < t.len() && t[j + 1].tok == Tok::LBrace => {
-                        let (s, mut d, mut k) = (j + 1, 0i32, j + 1);
+                    // `coll.flow_back { … }`: the member written with the collection's name in front (owner, 2026-10-19)
+                    Tok::Word(c) if c == coll && j + 3 < t.len() && t[j + 1].tok == Tok::Dot && matches!(&t[j + 2].tok, Tok::Word(_)) && t[j + 3].tok == Tok::LBrace => {
+                        let Tok::Word(m) = &t[j + 2].tok else { unreachable!() };
+                        let open = j + 3;
+                        let (s, mut d, mut k) = (open, 0i32, open);
                         while k < t.len() {
                             match t[k].tok { Tok::LBrace => d += 1, Tok::RBrace => { d -= 1; if d == 0 { break; } } _ => {} }
                             k += 1;

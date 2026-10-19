@@ -154,7 +154,7 @@ owner rules:
 
 ```
 coll.handler cum_failed {
-    flow_back_to_bladder {
+    cum_failed.flow_back_to_bladder {
         odd { return 0; }
         negative 'v' { report['v']; return 0; }
     }

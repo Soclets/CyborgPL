@@ -9,15 +9,15 @@ fn half ['n': int32] -> int32 or fail[odd, negative: int32] {
 }
 
 coll.handler half_failed {
-    as_zero {
+    half_failed.as_zero {
         odd { return 0; }
         negative 'v' { std::print.useful["negative: ", 'v', newln]; return 0; }
     }
-    skip {
+    half_failed.skip {
         odd { continue; }
         negative 'v' { continue; }
     }
-    stop {
+    half_failed.stop {
         odd { break; }
         negative 'v' { break; }
     }

@@ -3,7 +3,7 @@ fn half ['n': int32] -> int32 or fail[odd, negative: int32] {
     return 'n';
 }
 coll.handler h {
-    zero { odd { return 0; } }
+    h.zero { odd { return 0; } }
 }
 fn f [] -> int32 {
     let 'v' := half[3] otherwise h.zero;
