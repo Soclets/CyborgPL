@@ -34,8 +34,8 @@ export function CompileChart({ run, label = "Compile time", lead = "Building the
       <p className="chart-title">{label}</p>
       <div className="chart-rows" aria-hidden="true">
         {rows.map((r, i) => (
-          <div className={`chart-row${r.ours ? " is-ours" : ""}`} key={r.name} onPointerEnter={() => setHover(r.name)} onPointerLeave={() => setHover(null)}>
-            <span className="chart-name">{r.name}</span>
+          <div className={`chart-row${r.ours ? " is-ours" : ""}${r.threads ? " is-threads" : ""}`} key={r.name + (r.detail ?? "")} onPointerEnter={() => setHover(r.name + (r.detail ?? ""))} onPointerLeave={() => setHover(null)}>
+            <span className="chart-name">{r.name}{r.detail && <small>{r.detail}</small>}</span>
             <span className="chart-track">
               <motion.span
                 className="chart-bar"
@@ -46,7 +46,7 @@ export function CompileChart({ run, label = "Compile time", lead = "Building the
               />
             </span>
             <span className="chart-value">{fmt(total(r))}</span>
-            {hover === r.name && (
+            {hover === r.name + (r.detail ?? "") && (
               <motion.span className="chart-tip" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15 }}>
                 {PROGRAMS.map((p) => <span key={p}>{p} <b>{fmt(r.seconds[p])}</b></span>)}
               </motion.span>
@@ -60,7 +60,7 @@ export function CompileChart({ run, label = "Compile time", lead = "Building the
       <table className="sr-only">
         <caption>{label} per language</caption>
         <thead><tr><th>Language</th>{PROGRAMS.map((p) => <th key={p}>{p}</th>)}<th>Total</th></tr></thead>
-        <tbody>{rows.map((r) => <tr key={r.name}><td>{r.name}</td>{PROGRAMS.map((p) => <td key={p}>{fmt(r.seconds[p])}</td>)}<td>{fmt(total(r))}</td></tr>)}</tbody>
+        <tbody>{rows.map((r) => <tr key={r.name + (r.detail ?? "")}><td>{r.name}{r.detail ? `, ${r.detail}` : ""}</td>{PROGRAMS.map((p) => <td key={p}>{fmt(r.seconds[p])}</td>)}<td>{fmt(total(r))}</td></tr>)}</tbody>
       </table>
     </figure>
   );

@@ -3,7 +3,7 @@
 // from source to a final executable, best of 3, no build cache. Null until those numbers exist: the
 // chart shows a placeholder rather than anything made up.
 // `total` is RESULTS.md's own total (for run times, the four programs' times added up): the per-program times are rounded, so summing them can be off by 0.01.
-export type CompileRow = { name: string; ours?: boolean; total: number; seconds: { sum: number; fib: number; lists: number; sieve: number } };
+export type CompileRow = { name: string; detail?: string; ours?: boolean; threads?: boolean; total: number; seconds: { sum: number; fib: number; lists: number; sieve: number } };
 export type CompileRun = { date: string; machine: string; commands: string; caveat: string; rows: CompileRow[] };
 export type BenchRow = CompileRow;
 export type BenchRun = CompileRun;
