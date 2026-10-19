@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — C strings: `C.str.read['p']` and `C.str.make[lend 's']` (owner: a, "Isn't it `str`?")
+
+The first of the six C gaps. Offered (a) under `C.`, beside `C.int` and `C.size_t`, as `C.string.read` /
+`C.string.make` (recommended), or (b) as conversions, `to.str.utf8.from_c[…]` / `to.c_string[…]`. The owner: "Isn't
+it `str`?", then "yes" to **`C.str.read['p']`** (a `char*` read to its 0 byte into a `str.utf8`, failing
+`not_utf8` when the bytes are not UTF-8) and **`C.str.make[lend 's']`** (a C string made from a text, to hand to C).
+Still to ask: a text holding a 0 byte, and who frees a made C string. Replaces the 2026-09-30 "build it yourself"
+in `ffi.md`'s Open list.
+
 ### 2026-10-19 — Public v1 gets more C interop: all six gaps (owner)
 
 The owner: "Also, to the v1 pub list: more CNC". Design claude listed what CNC lacks against real C libraries:
