@@ -1,0 +1,11 @@
+// The new CyborgPL site, for cyborgpl.dev once the owner says it replaces the old build
+// (website/cyborgpl-dev). Static files only. No route yet: nothing here is live.
+{
+  "name": "cyborgpl-site",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./build/client",
+    "not_found_handling": "404-page",
+    "html_handling": "drop-trailing-slash"
+  }
+}
