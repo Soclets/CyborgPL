@@ -37,7 +37,7 @@ pub enum Ty {
     /// `map[K, V]` — a language collection (decided 2026-09-22); the order variant is the prover's
     /// to pick unless written: `map.ordered` keeps insertion order, `map.unordered` cannot be walked
     Map(Box<Ty>, Box<Ty>, MapOrder),
-    /// `simd[uint8, 16]` — N plain values in one register (design/simd.md, 2026-09-22)
+    /// `simd[uint8, count 16]` — N plain values in one register (design/simd.md, 2026-09-22)
     Simd(Box<Ty>, usize),
     /// `fn[lent T, U] -> R or fail[…]` — a function's type (design/functions-as-values.md,
     /// 2026-09-21): its signature with the names removed

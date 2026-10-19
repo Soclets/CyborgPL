@@ -30,7 +30,7 @@ fn popcount ['x': uint32] -> uint32 {
 
 # 16 bytes at once: is every byte ASCII (below 128)?
 fn all_ascii [lent 'bytes': array[uint8]] -> bool {
-    let 'v': simd[uint8, 16] = simd.load[lend 'bytes', pos 1];
+    let 'v': simd[uint8, count 16] = simd.load[lend 'bytes', pos 1];
     return simd.all['v' < simd.fill[value 128]];
 }
 

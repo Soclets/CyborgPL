@@ -1,5 +1,5 @@
 # Finding 2026-10-05 (check run --borrow-wrong 1000 --avoid none, seeds 24107 and 24126, shrunk and
-# cut down by hand): `simd.fill[value not.bit (5 plus 'v17')]` with a uint16 'v17', for a simd[uint16, 8].
+# cut down by hand): `simd.fill[value not.bit (5 plus 'v17')]` with a uint16 'v17', for a simd[uint16, count 8].
 # The width comes from any operand whose type is known (owner: a, 2026-09-23), here 'v17', and the
 # lanes are uint16 besides. The oracle stops: "`not.bit` flips a type's bits, so it needs to know how
 # many". With ('v17' plus 5) it runs, as it does for not.bit (5 plus 'v17') in a comparison or a
@@ -40,6 +40,6 @@ fn put_i ['n': int64] {
 }
 MAIN {
     let 'v17': uint16 = 0;
-    let 's21': simd[uint16, 8] = simd.fill[value not.bit (5 + 'v17')];
+    let 's21': simd[uint16, count 8] = simd.fill[value not.bit (5 + 'v17')];
     put_u[to.uint64[simd.max['s21']]];
 }

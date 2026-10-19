@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — A simd type's lane count says `count`: `simd[int32, count 4]` (owner)
+
+Shown check claude's `simd[int32, 4]`, the owner: "`simd[int32, 4]` looks a bit incons[istent]": the one bare
+number left since every argument after the first says its role (2026-10-14). Offered `lanes 4`, `count 4`, or
+unchanged; asked "why is it `lanes`, but `count`?", design claude found `count` already says "how many lanes" in
+`simd.load.some[…, count 3]` and `simd.store.some`, and turned to recommend `count`. The owner asked about the
+plural (`lanes` names the things counted, `count` the number, as `decimals 2` and `count 10` already differ) and
+whether a `type` label on the first part would add anything (no: `int32` can only be a type). Then "yea". So
+**`simd[int32, count 4]`**; `simd[int32, 4]` is an old spelling, refused naming the new form. Built in the oracle
+the same day (types print as `simd[int32, count 4]` too); every example and test rewritten.
+
 ### 2026-10-19 — `concur` stays, over `task { }` (owner)
 
 Going through words that could mislead (`perm`, `concur`, `mod`, `bin`, `incl`, …), design claude flagged

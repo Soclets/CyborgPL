@@ -1846,12 +1846,16 @@ impl Parser {
         // `[` followed by a number is a bound (`str.utf8[1, 40 graphemes]`), not type parameters
         // `simd[T, N]` — a type and a count, not two types (design/simd.md, 2026-09-22)
         if segs[0] == "simd" {
-            if segs.len() > 1 { return self.err("`simd` takes its type and count in brackets: `simd[uint8, 16]`"); }
-            if *self.peek() != Tok::LBracket { return self.err("`simd` says what and how many: `simd[uint8, 16]`"); }
+            if segs.len() > 1 { return self.err("`simd` takes its type and count in brackets: `simd[uint8, count 16]`"); }
+            if *self.peek() != Tok::LBracket { return self.err("`simd` says what and how many: `simd[uint8, count 16]`"); }
             self.advance();
             let t = self.ty()?;
             self.expect(Tok::Comma, "`,` between a simd's type and its lane count")?;
-            let n = match self.advance().tok { Tok::Int(i) if i > 0 => i as usize, other => return self.err(format!("a simd's lane count is a whole number: `simd[uint8, 16]`, found {other}")) };
+            // the lane count says what it is (owner, 2026-10-19: "yea" to `count`, as `simd.load.some[…, count 3]`)
+            if matches!(self.peek(), Tok::Int(_)) { return self.err(crate::spellings::message(crate::spellings::old("simd[T, N]"))); }
+            if !self.is_word("count") { return self.err("a simd's lane count says `count`: `simd[uint8, count 16]` (owner, 2026-10-19)"); }
+            self.advance();
+            let n = match self.advance().tok { Tok::Int(i) if i > 0 => i as usize, other => return self.err(format!("a simd's lane count is a whole number: `simd[uint8, count 16]`, found {other}")) };
             self.expect(Tok::RBracket, "`]` after the lane count")?;
             if !matches!(t, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Bool) { return self.err(format!("a simd holds plain numbers or bools, not {}", ty_name(&t))); }
             // Only the target's own register shapes. The oracle's target is the owner's

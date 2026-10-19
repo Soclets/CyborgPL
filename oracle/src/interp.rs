@@ -1845,7 +1845,7 @@ impl<'p> Interp<'p> {
         // It stops at a comparison too: a `bool` holds the comparison's answer, never its
         // operands, which take their width from each other (verification session, seed 93).
         // …except `simd.load` / `simd.fill`, which take their lane count from the declared type
-        // (design/simd.md) — the stop had cut that off, so a `simd[int32, 4]` loaded 16 lanes
+        // (design/simd.md) — the stop had cut that off, so a `simd[int32, count 4]` loaded 16 lanes
         // …and `list.fill`, whose value takes the element type, as a list literal's values do
         // (compiler claude, 2026-09-30: `list.fill[0.25, 'n']` into `list[deci64]` was refused)
         let simd_shape = matches!(e, Expr::Builtin(h, op, ..) if (h == "simd" && (op == "load" || op == "fill" || op == "load.some")) || (h == "list" && op == "fill"));
@@ -3826,7 +3826,7 @@ impl<'p> Interp<'p> {
                 let items = match &*cell.borrow() { Value::List(i) => i.clone(), other => return rt(line, format!("`simd.{op}` needs a list or array, got {}", other.kind())) };
                 let (iv, _) = self.value(&args.values[1])?;
                 let i = match iv { Value::Int(i) => i, other => return rt(line, format!("a position is an integer, got {}", other.kind())) };
-                // the lane count comes from the declared type (`'a': simd[int32, 4] = simd.load[…]`);
+                // the lane count comes from the declared type (`'a': simd[int32, count 4] = simd.load[…]`);
                 // 16 when nothing states one
                 let n = match &self.expected { Some(Ty::Simd(_, n)) => *n, _ => 16usize };
                 let n = match &args.values[2..] { [a] => { let (v, _) = self.value(a)?; match v { Value::Simd(l) => l.len(), _ => n } } _ => n };
