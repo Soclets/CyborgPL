@@ -91,11 +91,11 @@ CyborgPL for timing code and the like, where today an empty
 **The strongest modifier comes first** (owner: "yeah, strongest first"):
 `no_cheat` changes what the loop must do, `seq` and `para` only how its rounds
 are scheduled, so it read `for no_cheat seq`, never `for seq no_cheat`. **Since 2026-10-18 it goes in front of the `for`
-(owner: "(a)"): `no_cheat for seq 'i' …`, and `for no_cheat` is an old spelling** (not built). It is the
+(owner: "(a)"): `no_cheat for seq 'i' …`, and `for no_cheat` is an old spelling** (built in the oracle 2026-10-19). It is the
 rule `.useful` already follows in `print.useful.stdout` and
 `to.useful.str.utf8`.
 
-**Any statement or block, calls included** (owner, 2026-10-18: "(b)"; not built): `no_cheat let 'f' := fib['n'];`,
+**Any statement or block, calls included** (owner, 2026-10-18: "(b)"; built in the oracle 2026-10-19, which reads the word and runs everything anyway; beside `check` / `no_check` / `NO_FUCKING_CHECKS` the order is not decided, so the oracle refuses the two side by side and asks for a block): `no_cheat let 'f' := fib['n'];`,
 `no_cheat { … }`. It goes where `no_check` goes and covers everything the statement runs, calls and recursion
 all the way down: no folding to the answer, no dropped work, and no computing calls that look alike once (what
 kayo's fib did after four levels of inlining, `bench/RESULTS.md` 2026-10-18). Faster ways to do the same work stay

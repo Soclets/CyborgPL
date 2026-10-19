@@ -1,14 +1,25 @@
-# `for no_cheat` — "no cheat" (owner, 2026-10-01): every round's work really happens, so the compiler may
-# not replace the loop with its answer (here n(n+1)/2) or drop rounds; SIMD and cores are still
-# allowed. The strongest modifier comes first: `for no_cheat seq`, `for no_cheat para`.
+# `no_cheat` — "no cheat" (owner, 2026-10-01): the work written really happens, so the compiler may not
+# replace it with its answer (here n(n+1)/2), drop it, or compute look-alike calls once; SIMD, cores and
+# inlining are still allowed. It goes in front of any statement or block, as `no_check` does, calls
+# included (owner, 2026-10-18: "(b)"), and in front of a `for`, never inside it (owner: "(a)").
+fn fib ['n': int64[min 0, max 92]] -> int64 {
+    if 'n' < 2 { return 'n'; }
+    return fib['n' - 1] + fib['n' - 2];
+}
+
 MAIN {
     let mut 'acc': int64 = 0;
-    for no_cheat 'i': int64 from 1 to 1000 by 1 {
+    no_cheat for 'i': int64 from 1 to 1000 by 1 {
         change 'acc' = 'acc' + 'i';
     }
     let mut 'more': int64 = 0;
-    for no_cheat seq 'i': int64 from 1 to 10 by 1 {
+    no_cheat for seq 'i': int64 from 1 to 10 by 1 {
         change 'more' = 'more' + 'i';
     }
-    std::print.useful.auto_newln['acc', " ", 'more'];
+    no_cheat let 'f' := fib[20];
+    let mut 'both': int64 = 0;
+    no_cheat {
+        change 'both' = 'acc' + 'more';
+    }
+    std::print.useful.auto_newln['acc', " ", 'more', " ", 'f', " ", 'both'];
 }

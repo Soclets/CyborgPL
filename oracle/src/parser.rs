@@ -1098,7 +1098,7 @@ impl Parser {
                 Tok::Word(w) if w == "let" || w == "var" => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a kit-level value is a `const`: `const 'x' := 1;`"),
                 Tok::Var(_) => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a kit-level value is a `const`: `const 'x' := 1;`"),
                 Tok::Word(w) if w == "mod" => return self.err("`mod` is the remainder operator; a module block is `module name { … }`"),
-                Tok::Word(w) if w == "check" || w == "no_check" || w == "NO_FUCKING_CHECKS" => return self.err(format!("`{w}` goes in front of a statement inside a body; there is no file-wide or kit-wide tier")),
+                Tok::Word(w) if w == "check" || w == "no_check" || w == "NO_FUCKING_CHECKS" || w == "no_cheat" => return self.err(format!("`{w}` goes in front of a statement inside a body; there is no file-wide or kit-wide tier")),
                 Tok::RBrace => return self.err("`}` with nothing open"),
                 other => return self.err(format!("expected `fn`, `struct`, `const`, `module`, or `MAIN` at the top level, found {other}")),
             }
@@ -2127,6 +2127,20 @@ impl Parser {
                 "module" => self.err("a `module` block sits at the top level of a file, not inside a body"),
                 "MAIN" => self.err("MAIN cannot be nested or called"),
                 "else" => self.err("`else` without an `if`"),
+                // `no_cheat`: the work written really runs, calls included (owner, 2026-10-18: "(b)", in front of any
+                // statement or block as `no_check` is). The oracle never takes a shortcut, so it reads the word and runs
+                // the statement. Which comes first beside a tier word is not decided, so that is refused for now.
+                "no_cheat" => {
+                    self.advance();
+                    match self.peek().clone() {
+                        Tok::Semi => return self.err("`no_cheat` goes in front of a statement: `no_cheat let 'f' := fib['n'];` or `no_cheat { … }`"),
+                        Tok::Word(k) if k == "fn" || k == "struct" || k == "const" || k == "module" => return self.err(format!("`no_cheat` covers a statement, not a `{k}`")),
+                        Tok::Word(k) if k == "no_cheat" => return self.err("`no_cheat no_cheat`: once is enough"),
+                        Tok::Word(k) if k == "check" || k == "no_check" || k == "NO_FUCKING_CHECKS" => return self.err(format!("`no_cheat {k}`: which of the two comes first is not decided; nest them with a block for now: `no_cheat {{ {k} … }}`")),
+                        _ => {}
+                    }
+                    self.stmt()
+                }
                 "check" | "no_check" | "NO_FUCKING_CHECKS" => {
                     // decided 2026-09-19: a word before a statement (or a `{ }` block).
                     // `NO_FUCKING_CHECKS` (owner, 2026-09-27): `nocheck`, and C's answers trusted too
@@ -2138,6 +2152,7 @@ impl Parser {
                         Tok::Semi => return self.err(format!("`{w}` goes in front of a statement: `{w} 'xs'[pos 'i'] = 5;` or `{w} {{ … }}`")),
                         Tok::Word(k) if k == "fn" || k == "struct" || k == "const" || k == "module" => return self.err(format!("`{w}` covers a statement, not a `{k}` — a function's safety is the sum of its statements")),
                         Tok::Word(k) if k == "check" || k == "no_check" || k == "NO_FUCKING_CHECKS" => return self.err(format!("`{w} {k}`: one tier per statement; the innermost wins when they nest")),
+                        Tok::Word(k) if k == "no_cheat" => return self.err(format!("`{w} no_cheat`: which of the two comes first is not decided; nest them with a block for now: `{w} {{ no_cheat … }}`")),
                         _ => {}
                     }
                     let body = self.stmt()?;
@@ -2617,15 +2632,16 @@ impl Parser {
         // may not replace the loop with its result or drop rounds, though it may still use SIMD or
         // cores. The strongest modifier comes first, so `!cheat` precedes `seq` / `para`. The oracle
         // runs every round of every loop already, so it only reads the word.
-        if self.is_word("!c") { return self.err("`!c` is `no_cheat` now: `for no_cheat 'i' in …` (owner, 2026-10-06)"); }
-        if self.is_word("no_cheat") { self.advance(); }
+        if self.is_word("!c") { return self.err("`!c` is `no_cheat` now, in front of the loop: `no_cheat for 'i' in …` (owner, 2026-10-06, 2026-10-18)"); }
+        // `no_cheat` goes in front of the `for`, as `no_check` does (owner, 2026-10-18: "(a)")
+        if self.is_word("no_cheat") { return self.err(crate::spellings::message(crate::spellings::old("for no_cheat"))); }
         let mut seq = false;
         if self.is_word("seq") { self.advance(); seq = true; }
         // `for para` forces a loop parallel, as `for seq` forces it in order (owner, 2026-09-30); the
         // oracle runs every loop in order, one schedule of the design's, so it only reads the word
         else if self.is_word("para") { self.advance(); }
         if self.is_word("seq") || self.is_word("para") { return self.err("a `for` is `seq` or `para`, not both"); }
-        if self.is_word("no_cheat") || self.is_word("!c") { return self.err("`no_cheat` comes first, the strongest modifier: `for no_cheat seq 'i' in …`"); }
+        if self.is_word("no_cheat") || self.is_word("!c") { return self.err("`no_cheat` goes in front of the loop: `no_cheat for seq 'i' in …` (owner, 2026-10-18)"); }
         let perm = match self.peek().clone() {
             Tok::Word(w) if w == "temp" => { self.advance(); false }
             Tok::Word(w) if w == "perm" => { self.advance(); true }
@@ -4114,7 +4130,7 @@ impl Parser {
                 }
                 "lent" => self.err("`lent` describes a parameter; a caller writes `lend`"),
                 "range" => self.err("`range[…]` is only decided as what a `for` runs over: `for temp 'i' in range[1, 10]`"),
-                "check" | "no_check" | "NO_FUCKING_CHECKS" => self.err(format!("`{w}` goes in front of a statement, not inside a value; if half a statement needs it, split the statement")),
+                "check" | "no_check" | "NO_FUCKING_CHECKS" | "no_cheat" => self.err(format!("`{w}` goes in front of a statement, not inside a value; if half a statement needs it, split the statement")),
                 "list" | "array" => { let (h, o, a) = self.builtin()?; Ok(Expr::Builtin(h, o, a, line)) }
                 "channel" if *self.peek_at(1) == Tok::LBracket => {
                     // channel[T] / channel[T][0, N] as a value: a new channel
