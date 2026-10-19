@@ -84,14 +84,13 @@ The oracle and the verification harness use no crates.
 **Ideas taken from others**
 - **Rust**: ownership and borrowing, lifetime groups (`'a` there, `@x` here), interfaces and `<T: Ordered>` bounds (Rust's traits), diagnostics "helpful like Rust's", and `::` for stepping into another kit (Rust's paths, which took it from C++).
 - **C++**: `incl.C`, reading a C header, from `#include <>` (owner: "I wanna add C++'s `#include <>`").
-- **C**, with **Rust** and **Go**: division and remainder rounding toward zero, here `div.trunc` and `mod.trunc`.
 - **Ada**: `and then` / `or else`, here `and.then` / `or.else`.
 - **Swift**, **Zig** and **C**: points of comparison in the SIMD, wrapping-arithmetic and enum decisions.
 - **IEEE 754**: the binary floats `bin16`, `bin32` and `bin64`, and the decimal floats `deci32`, `deci64` and `deci128` (IEEE 754-2008's decimal32, decimal64 and decimal128), their arithmetic and rounding.
 - **Google Brain**: `brain16` is bfloat16, the 16-bit format from Google Brain.
 - **Lua**: the name *Lunae*.
 - **GCC**: inlining a recursive function into itself several levels deep, which `KAYO\n`'s own LLVM pass does after gfortran's fib beat it (2026-10-17).
-- **Kespar**, another of the owner's languages: the prover's design notes and its first provisional limits.
+- **Kespar**, the owner's proof of concept for Precog: its design notes and first provisional limits.
 
 </details>
 
