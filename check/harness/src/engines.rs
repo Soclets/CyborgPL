@@ -230,7 +230,8 @@ pub enum Mode {
 /// A program that uses std's own functions is built as a kit: kayo gives a
 /// lone file only its built-in print and exit (compiler claude, 2026-10-17).
 /// `kit/kit.cy` beside the program, the same text, so lines are unchanged,
-/// and a CyJet.cyr listing this repository's std/, every limb a generated
+/// and a CyJet.cyr listing this repository's std/ (`cyjet::dep.std["…"]`, owner
+/// 2026-10-19: b; kayo 0a145dcd), every limb a generated
 /// program may use (AI for brain16, WSMW for the odd widths, Money for deci,
 /// unicode for char.point, CNC for the printer's extern.C, MCPS for `for para`;
 /// a lone file has
@@ -245,7 +246,7 @@ fn as_kit(t: &Tools, file: &Path, dir: &Path) -> Option<std::path::PathBuf> {
     let _ = fs::create_dir_all(&kit);
     fs::write(kit.join("kit.cy"), &src).ok()?;
     let manifest = format!(
-        "cyjet::manifest[\n    name = \"prog\",\n    prefix = \"prog\",\n    version = \"0.1.0\",\n    dependencies = [\n        cyjet::dep[id = \"fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936\", path = \"{}\"],\n    ],\n    limbs = [\n        cyjet::limb[id = \"8c723ccae25a719cd66eb44e95aeeef0557acec1467624ab91092c4ada766f21\", version = \"2026-10-07T20:22:24+07:00\"],\n        cyjet::limb[id = \"0fb49902b57b8bc0b72caf424d80e17d035038e2cac58292d92f18b792d205a0\", version = \"2026-10-07T20:22:24+07:00\"],\n        cyjet::limb[id = \"d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f\", version = \"2026-10-07T20:22:24+07:00\"],\n        cyjet::limb[id = \"55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece\", version = \"2026-10-12T10:19:44+07:00\"],\n        cyjet::limb[id = \"04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1\", version = \"2026-10-10T16:42:00+07:00\"],\n        cyjet::limb[id = \"7d0ccfe6e41eed3a4d8ffe00ccaada9b89a4b9a3ea553a9d869cb6902e2ca75d\", version = \"2026-10-06T18:04:29+07:00\"],\n    ],\n    powers = [cyjet::power.vouch, cyjet::power.c_calls,],\n    targets = [cyjet::target[name = \"aarch64-macos\"],]\n];\n",
+        "cyjet::manifest[\n    name = \"prog\",\n    prefix = \"prog\",\n    version = \"0.1.0\",\n    dependencies = [\n        cyjet::dep.std[\"{}\"],\n    ],\n    limbs = [\n        cyjet::limb[id = \"8c723ccae25a719cd66eb44e95aeeef0557acec1467624ab91092c4ada766f21\", version = \"2026-10-07T20:22:24+07:00\"],\n        cyjet::limb[id = \"0fb49902b57b8bc0b72caf424d80e17d035038e2cac58292d92f18b792d205a0\", version = \"2026-10-07T20:22:24+07:00\"],\n        cyjet::limb[id = \"d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f\", version = \"2026-10-07T20:22:24+07:00\"],\n        cyjet::limb[id = \"55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece\", version = \"2026-10-12T10:19:44+07:00\"],\n        cyjet::limb[id = \"04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1\", version = \"2026-10-10T16:42:00+07:00\"],\n        cyjet::limb[id = \"7d0ccfe6e41eed3a4d8ffe00ccaada9b89a4b9a3ea553a9d869cb6902e2ca75d\", version = \"2026-10-06T18:04:29+07:00\"],\n    ],\n    powers = [cyjet::power.vouch, cyjet::power.c_calls,],\n    targets = [cyjet::target[name = \"aarch64-macos\"],]\n];\n",
         repo.join("std").display()
     );
     fs::write(kit.join("CyJet.cyr"), manifest).ok()?;
