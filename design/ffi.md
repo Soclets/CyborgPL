@@ -337,6 +337,7 @@ puts[lend 'cs'];
 - `C.str.read` fails `not_utf8` when the bytes are not UTF-8.
 - `C.str.make` fails `has_zero_byte` when the text holds a 0 byte (C would cut it there), the check dropped where
   Precog proves there is none, a literal say (owner: a).
+- A made C string's type is **`C.str`** (owner, 2026-10-19: "(a)"): `let 'cs': C.str = C.str.make[…]`.
 - A made C string is owned like any value (owner: a): freed when its owner's scope ends; `lend` it to C for a call,
   `give` it when C keeps it, and C frees it then. No `C.str.free`.
 - Built in the oracle 2026-10-19: `examples/c_strings.cy`, reject tests `c_str_*`.

@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — A made C string's type is `C.str` (owner: a)
+
+Compiler claude's reading, building `C.str.make` in kayo (6ae65a5f): the result was a `list[uint8]` holding the bytes
+and the 0, with no type name of its own. Offered keeping `list[uint8]` or a name; the owner: "Its own name, but what
+name?" Offered (a) `C.str`, matching the tools (`C.str.make` makes one, `C.str.read` reads one) and `C.int`
+(recommended), (b) `C.string`, (c) `C.char_ptr`. The owner: "(a)". So **`let 'cs': C.str = C.str.make[lend 'name']
+otherwise …;`**: a C string is a `C.str`, owned like any value, lent to C as a pointer to its first byte. Design
+claude's reading, not asked: underneath it is still the bytes and the 0, so it lends where a `ptr[uint8]` is wanted.
+
 ### 2026-10-19 — The open variadic form stays `...'args'`, as decided before (owner: a)
 
 The third conflict from the correction below: today's variadic entry wrote the open form `['format': ptr[uint8],
