@@ -235,7 +235,7 @@ cyjet::manifest[
     name = "shop",
     prefix = "shop",
     limbs = [cyjet::limb[id = "5d0e846b…44b4085", version = "2026-10-06T18:04:29+07:00"],],   # IEG
-    dependencies = [cyjet::dep[path = "std"],],
+    dependencies = [cyjet::dep.path["std"],],
     powers = [cyjet::power.operators_on_builtin_types,],
     deny = [cyjet::power.inline_assembly,],
 ];

@@ -81,8 +81,8 @@ Owner, 2026-09-14.
       version = "1.0.0",
       limbs = [cyjet::limb[id = "5d0e846b…44b4085", version = "2026-10-06T18:04:29+07:00"],],   # IEG
       dependencies = [
-          cyjet::dep[id = "3f9a…4a5b", version = "1.2"],
-          cyjet::dep[path = "../money"],
+          cyjet::dep.reg[id = "3f9a…4a5b", version = "1.2"],
+          cyjet::dep.path["../money"],
       ],
       targets = [cyjet::target[name = "aarch64-macos"],]
   ];
@@ -104,7 +104,7 @@ Owner, 2026-09-14.
   its `name` (owner, 2026-09-29: "yea", then b): `prefix = "cash"`. Required (owner: "required"). Two kits with the
   same prefix are an error, fixed by editing one kit's source (owner:
   "Just edit the source code"), so a dependency line names no word:
-  `cyjet::dep[path = "../money"]`. Not in the oracle yet. **A
+  `cyjet::dep.path["../money"]`. Not in the oracle yet. **A
   manifest is data only** (owner, 2026-09-29): anything that must be
   computed lives in **`build.cy`**, a full CyborgPL program (functions,
   loops, a `MAIN`), which **never runs by itself** — a special command runs
@@ -142,7 +142,7 @@ Owner, 2026-09-14.
   **`cyjet::dep` is an `id` and `version`** (from the registry) **or a
   `path`** (a folder on this machine) (owner, 2026-09-29: a; its `name`
   was dropped when the prefix became the kit's own):
-  `cyjet::dep[path = "../money"]`. The settings the oracle
+  `cyjet::dep.path["../money"]`. The settings the oracle
   knows: `name`, `prefix`, `version`, `dependencies`, `targets` (a list of
   `cyjet::target[name = "aarch64-linux", runner = "qemu-aarch64"]`: several
   targets, since kayo's package manager can do whatever Synthia can, owner

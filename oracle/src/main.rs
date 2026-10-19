@@ -375,8 +375,24 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
             }
             "dependencies" => {
                 for it in items(value) {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a dependency is `cyjet::dep[path = …]` or `cyjet::dep[id = …, version = …]`")) };
-                    if shape != "::cyjet.dep" { return Err(format!("{shown}: line {line}: a dependency is a `cyjet::dep`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
+                    // the kind is in the name (owner, 2026-10-19: "(a), maybe short it to `dep.reg`", then "yea"):
+                    // `cyjet::dep.path["../kits/areas"]`, a kit in a folder; `cyjet::dep.reg[id = …, version = …]`, from the registry
+                    let (shape, fields, line) = match it {
+                        ast::Expr::Call(c) if c.kit.as_deref() == Some("cyjet") && c.path == ["dep", "path"] => {
+                            let [ast::Value::Expr(ast::Expr::Text(t, _))] = c.args.values.as_slice() else { return Err(format!("{shown}: line {}: a folder dependency is one text, the folder: `cyjet::dep.path[\"../kits/areas\"]`", c.line)) };
+                            ("::cyjet.dep.path".to_string(), vec![("path".to_string(), ast::Bracket { values: vec![ast::Value::Expr(ast::Expr::Text(t.clone(), c.line))], line: c.line, one_list: false })], c.line)
+                        }
+                        ast::Expr::Construct(shape, fields, line) => (shape, fields, line),
+                        _ => return Err(format!("{shown}: line {line}: a dependency is `cyjet::dep.path[\"…\"]` (a folder) or `cyjet::dep.reg[id = …, version = …]` (the registry)")),
+                    };
+                    if shape == "::cyjet.dep" {
+                        let reg = fields.iter().any(|(f, _)| f == "id" || f == "version");
+                        let row = crate::spellings::old(if reg { "cyjet::dep[id = …, version = …]" } else { "cyjet::dep[path = …]" });
+                        return Err(format!("{shown}: line {line}: {}", crate::spellings::message(row)));
+                    }
+                    if shape == "::cyjet.dep.path" && fields.iter().any(|(f, _)| f != "path") { return Err(format!("{shown}: line {line}: a folder dependency is one text, the folder: `cyjet::dep.path[\"../kits/areas\"]`")); }
+                    if shape == "::cyjet.dep.reg" && fields.iter().any(|(f, _)| f == "path") { return Err(format!("{shown}: line {line}: a folder is `cyjet::dep.path[\"…\"]`; `cyjet::dep.reg` takes `id` and `version`")); }
+                    if shape != "::cyjet.dep.path" && shape != "::cyjet.dep.reg" { return Err(format!("{shown}: line {line}: a dependency is a `cyjet::dep.path` or a `cyjet::dep.reg`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
                     let mut d = Dep { what: String::new(), path: None, version: None, id: None };
                     for (f, b) in &fields {
                         // two kits with one prefix are an error, fixed by editing a kit's source (owner, 2026-09-29:
@@ -384,7 +400,7 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                         if f == "name" || f == "prefix" { return Err(format!("{shown}: line {line}: a dependency names no word: code writes the kit's own 'prefix', from its `CyJet.cyr`")); }
                         let t = text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
                         match f.as_str() { "path" => d.path = Some(t), "version" => d.version = Some(t), "id" => d.id = Some(t),
-                            other => return Err(format!("{shown}: line {line}: a `cyjet::dep` has no `{other}`; it has `path`, or `id` and `version`")) }
+                            other => return Err(format!("{shown}: line {line}: a `cyjet::dep.reg` has no `{other}`; it has `id` and `version`")) }
                     }
                     d.what = match (&d.path, &d.id) { (Some(p), _) => format!("the kit at `{p}`"), (None, Some(i)) => format!("the kit `{}…`", &i[..i.len().min(8)]), _ => "the dependency".into() };
                     if d.path.is_some() == d.version.is_some() { return Err(format!("{shown}: line {line}: a dependency says where it comes from once: a `path` on this machine, or an `id` and `version` from the registry")); }

@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — A dependency says its kind in its name: `cyjet::dep.path["…"]`, `cyjet::dep.reg[id = …, version = …]` (owner: a)
+
+Asked whether any CyJet thing should use `.` but does not (after `C.libs`), design claude found one: the two
+kinds of dependency shared `cyjet::dep[…]`, told apart by which fields were filled. Offered (a) the kind in the
+name, as `collection.fn` / `collection.handler`, or (b) unchanged, leaning (b). The owner: "(a), maybe short it to
+`dep.reg`", then "yea". So **`cyjet::dep.path["../kits/areas"]`** (one text, the folder) and
+**`cyjet::dep.reg[id = "…", version = "…"]`** (the registry); `cyjet::dep[…]` is an old spelling, refused naming
+whichever its fields meant. Built in the oracle the same day; every manifest in examples and tests rewritten.
+
 ### 2026-10-19 — C libraries to link are listed in `CyJet.cyr`: `C.libs = [cyjet::C.lib[name = "sqlite3"]]` (owner: a, "Isn't it `C.lib`?")
 
 The second of public v1's six C gaps: `incl.C` brings a library's header, but nothing named the library to link.
