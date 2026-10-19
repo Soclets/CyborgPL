@@ -147,6 +147,7 @@ fn run(s: &Solver, q: &Query) -> Answer {
         }
     }
     cmd.stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::null());
+    let started = std::time::Instant::now();
     let Ok(mut child) = cmd.spawn() else { return Answer::Unknown };
     if let Some(mut input) = child.stdin.take() {
         use std::io::Write as _;
@@ -157,6 +158,10 @@ fn run(s: &Solver, q: &Query) -> Answer {
     // Not the first line: a solver may print `unsupported`, a warning, or
     // an echo before it answers. The answer is the first line that is one.
     let said = text.lines().map(str::trim).find(|l| matches!(*l, "sat" | "unsat" | "unknown"));
+    // `KAYO_SMT_TIMES=1`: each question, how big, how long, what came back.
+    if std::env::var("KAYO_SMT_TIMES").is_ok() {
+        eprintln!("smt: {} {} bytes, {:.2} s, {}", s.name, q.text.len(), started.elapsed().as_secs_f64(), said.unwrap_or("no answer"));
+    }
     match said {
         Some("unsat") => Answer::Unsat,
         Some("sat") => Answer::Sat(model_of(&text, &q.inputs)),

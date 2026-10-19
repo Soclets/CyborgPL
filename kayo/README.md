@@ -969,3 +969,15 @@ Dated, with the alternative, so each can become a question later.
   resolved, a pointer to a pointer a round later. The own function pointing
   elsewhere is refused. A `pub` collection's one `bare.` mark is written in its
   block, `pub coll.fn area { bare.never; … }`; in front it is refused.
+- **2026-10-19 — Layer 3 asks three sites at once** (std claude: a
+  30-line argv program took 78 s to build). The time was CVC5: three
+  questions of about 120 KB took 26, 18 and 8 s one after another. Each
+  site's questions (`precog::layer3`) are now asked on one of three threads,
+  each running one solver at a time, and the answers are applied in site
+  order, so the build says the same whichever finished first: 72 s to 34 s,
+  the same verdicts. `KAYO_SMT_TIMES=1` prints each question's size, time
+  and answer. Two report slips from the same program: a program reading
+  memory through `ptr.read`, or taking C's `argc`/`argv`, was said to read
+  nothing from outside; and a length bound's counterexample showed the
+  largest length (`9223372036854775807 bytes`) where the empty text was the
+  one out of range: it now shows the end that is out.

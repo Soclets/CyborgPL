@@ -114,6 +114,10 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
     match p.main {
         Some(m) => {
             let entry = a.entry_env(m.0 as usize);
+            // `MAIN ['argc', 'argv']`: C's arguments come from outside.
+            if !p.functions[m.0 as usize].params.is_empty() {
+                a.reads_outside = true;
+            }
             a.run_function(m.0 as usize, entry, 0);
             // Each `test fn` is a start of its own (owner, 2026-09-29):
             // `cca test` runs it, and what it calls is called from there
@@ -302,82 +306,50 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
     let mut solved = 0usize;
     let mut disagreements = Vec::new();
     if !portfolio.members.is_empty() {
-        for r in sites.iter_mut() {
-            let ask = match &r.verdict {
+        let asked: Vec<usize> = sites
+            .iter()
+            .enumerate()
+            .filter(|(_, r)| match &r.verdict {
                 Verdict::Proven { .. } | Verdict::Trusted => false,
                 Verdict::Fails { counterexample } => !counterexample.starts_with("every"),
                 Verdict::Unproven => true,
-            };
-            if !ask {
-                continue;
+            })
+            .map(|(i, _)| i)
+            .collect();
+        // Each site's questions are its own: three sites are asked at once
+        // (this session's share of the cores, one solver each at a time),
+        // and the answers are applied in site order, so the build says the
+        // same whichever finished first. A slow CVC5 question no longer
+        // holds up the rest (std claude, 2026-10-19: 78 s, three of them).
+        let outcomes: Vec<std::sync::Mutex<Option<Layer3>>> = asked.iter().map(|_| std::sync::Mutex::new(None)).collect();
+        let next = std::sync::atomic::AtomicUsize::new(0);
+        {
+            let (prog, sites_ref, facts_ref, portfolio_ref): (&Program, &Vec<SiteResult>, &Facts, &smt::Portfolio) = (&*p, &sites, &facts, &portfolio);
+            std::thread::scope(|scope| {
+                for _ in 0..LAYER3_AT_ONCE.min(asked.len()) {
+                    scope.spawn(|| loop {
+                        let k = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        let Some(&i) = asked.get(k) else { break };
+                        let out = layer3(prog, &sites_ref[i], facts_ref, portfolio_ref);
+                        *outcomes[k].lock().unwrap() = Some(out);
+                    });
+                }
+            });
+        }
+        for (k, &i) in asked.iter().enumerate() {
+            let Some(out) = outcomes[k].lock().unwrap().take() else { continue };
+            let r = &mut sites[i];
+            if let Some(v) = out.verdict {
+                r.verdict = v;
             }
-            let Some(q) = smt::encode(p, r.function, r.site, &facts) else {
-                // A site whose values bit-vectors do not describe — what a
-                // task computes, a horizontal sum across lanes. Layer 3
-                // ran; it had nothing it could ask.
-                r.note = "layer 3 has no way to ask about this one yet".into();
-                continue;
-            };
-            if q.text.len() > smt::QUERY_CAP {
-                r.note = format!("layer 3's question came out too big to ask ({} MB)", q.text.len() / 1_000_000);
-                continue;
+            if let Some(n) = out.note {
+                r.note = n;
             }
-            let (mut answer, mut each) = portfolio.ask(&q);
-            // Not proved: asked again with what a counting loop's counter
-            // never does, if the function has one and it changes the
-            // question. That answer is the better informed one, whichever
-            // it is: a way found without it may be a trip no loop takes.
-            let mut q = q;
-            if !matches!(answer, smt::Answer::Unsat) && p.functions[r.function].fors.iter().any(|fl| fl.start.is_some()) {
-                if let Some(counted) = smt::encode_opts(p, r.function, r.site, &facts, true, true) {
-                    if counted.text != q.text && counted.text.len() <= smt::QUERY_CAP {
-                        (answer, each) = portfolio.ask(&counted);
-                        q = counted;
-                    }
-                }
+            if out.solved {
+                solved += 1;
             }
-            // A proof that leaned on the landings before the site holds only
-            // if the site can still be reached with them; if it cannot, the
-            // assumptions were never all true together, and the site is
-            // asked again without them (check claude, 2026-10-15).
-            if matches!(answer, smt::Answer::Unsat) && q.assumed && !matches!(portfolio.ask_text(&q.reach), smt::Answer::Sat(_)) {
-                match smt::encode_opts(p, r.function, r.site, &facts, false, false) {
-                    Some(bare) if bare.text.len() <= smt::QUERY_CAP => (answer, each) = portfolio.ask(&bare),
-                    _ => {
-                        r.note = "layer 3's question leaned on an assumption that cannot hold, and could not be asked without it".into();
-                        continue;
-                    }
-                }
-            }
-            if smt::disagreed(&each) {
-                // Run the counterexample and see which side was right
-                // (`precog.md`, owner: c). Until the Precog oracle exists,
-                // the safe answer is taken and the disagreement reported.
-                disagreements.push(describe_disagreement(p, r, &each, &q.text));
-                r.verdict = Verdict::Unproven;
-                r.note = "the solvers disagreed; the safe answer was taken".into();
-                continue;
-            }
-            match answer {
-                smt::Answer::Unsat if !q.truncated => {
-                    r.verdict = Verdict::Proven { how: "layer 3" };
-                    r.note = "layer 3: no input reaches it with a bad value".into();
-                    solved += 1;
-                }
-                smt::Answer::Unsat => {
-                    // Proven for the trips the unrolling reached, which is
-                    // not the same as proven.
-                    r.note = "layer 3 proved the first trips of a loop, which is not the whole loop".into();
-                }
-                smt::Answer::Sat(model) => {
-                    let when = if model.is_empty() { "the solver found a way".to_string() } else { model };
-                    r.verdict = Verdict::Fails { counterexample: when.clone() };
-                    r.note = format!("layer 3: {}", when);
-                    solved += 1;
-                }
-                smt::Answer::Unknown => {
-                    r.note = "layer 3 asked, and the solvers reached their step budget without an answer".into();
-                }
+            if let Some(d) = out.disagreement {
+                disagreements.push(d);
             }
         }
     }
@@ -1905,6 +1877,12 @@ impl Precog {
 
     fn eval_op(&mut self, f: usize, op: &Op, args: &[Operand], env: &Env) -> Domain {
         let arg = |this: &mut Self, i: usize| -> Domain { args.get(i).map(|a| this.read_operand(f, env, a)).unwrap_or(Domain::Any) };
+        // Memory behind a pointer is the outside world's: what it reads
+        // is not the program's to know (std claude, 2026-10-19: a program
+        // reading `argv` was said to read nothing from outside).
+        if matches!(op, Op::PtrRead) {
+            self.reads_outside = true;
+        }
         match op {
             Op::ListLength | Op::ArrayLength => match arg(self, 0) {
                 Domain::Seq { len, .. } => Domain::Ints(len),
@@ -2743,7 +2721,7 @@ impl Precog {
                 } else if b < lo || a > hi {
                     Verdict::Fails { counterexample: format!("every time: {} element(s), and its type holds {} to {}", describe_ints(len), lo, hi) }
                 } else {
-                    Verdict::Fails { counterexample: format!("it can hold {} element(s), and its type holds {} to {}", b, lo, hi) }
+                    Verdict::Fails { counterexample: format!("it can hold {} element(s), and its type holds {} to {}", if b > hi { b } else { a }, lo, hi) }
                 }
             }
             (Domain::Text { len, .. }, Domain::Text { len: limit, .. }) => {
@@ -2759,7 +2737,9 @@ impl Precog {
                     if b < lo || a > hi {
                         return Verdict::Fails { counterexample: format!("every time: {} {}, and its type holds {} to {}", describe_ints(have), unit_word(u), lo, hi) };
                     }
-                    return Verdict::Fails { counterexample: format!("it can be {} {}, and its type holds {} to {}", b, unit_word(u), lo, hi) };
+                    // The end that is out: an empty text against `min 1`
+                    // said its largest length (std claude, 2026-10-19).
+                    return Verdict::Fails { counterexample: format!("it can be {} {}, and its type holds {} to {}", if b > hi { b } else { a }, unit_word(u), lo, hi) };
                 }
                 Verdict::Unproven
             }
@@ -2770,7 +2750,7 @@ impl Precog {
                 } else if b < lo || a > hi {
                     Verdict::Fails { counterexample: format!("every time: {} entries, and its type holds {} to {}", describe_ints(len), lo, hi) }
                 } else {
-                    Verdict::Fails { counterexample: format!("it can hold {} entries, and its type holds {} to {}", b, lo, hi) }
+                    Verdict::Fails { counterexample: format!("it can hold {} entries, and its type holds {} to {}", if b > hi { b } else { a }, lo, hi) }
                 }
             }
             _ => Verdict::Unproven,
@@ -4027,4 +4007,72 @@ fn plain_number(t: &str) -> Option<f64> {
         return None;
     }
     t.parse::<f64>().ok().filter(|x| x.is_finite())
+}
+
+/// How many sites layer 3 asks at once: this session's three cores.
+const LAYER3_AT_ONCE: usize = 3;
+
+/// What layer 3 made of one site.
+struct Layer3 {
+    verdict: Option<Verdict>,
+    note: Option<String>,
+    solved: bool,
+    disagreement: Option<String>,
+}
+
+/// One site, asked exactly: its question, the counted-loop question if
+/// that one is better informed, and the reach check a proof leaning on
+/// landings needs.
+fn layer3(p: &Program, r: &SiteResult, facts: &Facts, portfolio: &smt::Portfolio) -> Layer3 {
+    let note = |n: &str| Layer3 { verdict: None, note: Some(n.to_string()), solved: false, disagreement: None };
+    let Some(q) = smt::encode(p, r.function, r.site, facts) else {
+        // A site whose values bit-vectors do not describe — what a task
+        // computes, a horizontal sum across lanes. Layer 3 ran; it had
+        // nothing it could ask.
+        return note("layer 3 has no way to ask about this one yet");
+    };
+    if q.text.len() > smt::QUERY_CAP {
+        return note(&format!("layer 3's question came out too big to ask ({} MB)", q.text.len() / 1_000_000));
+    }
+    let (mut answer, mut each) = portfolio.ask(&q);
+    // Not proved: asked again with what a counting loop's counter never
+    // does, if the function has one and it changes the question. That
+    // answer is the better informed one, whichever it is: a way found
+    // without it may be a trip no loop takes.
+    let mut q = q;
+    if !matches!(answer, smt::Answer::Unsat) && p.functions[r.function].fors.iter().any(|fl| fl.start.is_some()) {
+        if let Some(counted) = smt::encode_opts(p, r.function, r.site, facts, true, true) {
+            if counted.text != q.text && counted.text.len() <= smt::QUERY_CAP {
+                (answer, each) = portfolio.ask(&counted);
+                q = counted;
+            }
+        }
+    }
+    // A proof that leaned on the landings before the site holds only if
+    // the site can still be reached with them; if it cannot, the
+    // assumptions were never all true together, and the site is asked
+    // again without them (check claude, 2026-10-15).
+    if matches!(answer, smt::Answer::Unsat) && q.assumed && !matches!(portfolio.ask_text(&q.reach), smt::Answer::Sat(_)) {
+        match smt::encode_opts(p, r.function, r.site, facts, false, false) {
+            Some(bare) if bare.text.len() <= smt::QUERY_CAP => (answer, each) = portfolio.ask(&bare),
+            _ => return note("layer 3's question leaned on an assumption that cannot hold, and could not be asked without it"),
+        }
+    }
+    if smt::disagreed(&each) {
+        // Run the counterexample and see which side was right (`precog.md`,
+        // owner: c). Until the Precog oracle exists, the safe answer is
+        // taken and the disagreement reported.
+        return Layer3 { verdict: Some(Verdict::Unproven), note: Some("the solvers disagreed; the safe answer was taken".into()), solved: false, disagreement: Some(describe_disagreement(p, r, &each, &q.text)) };
+    }
+    match answer {
+        smt::Answer::Unsat if !q.truncated => Layer3 { verdict: Some(Verdict::Proven { how: "layer 3" }), note: Some("layer 3: no input reaches it with a bad value".into()), solved: true, disagreement: None },
+        // Proven for the trips the unrolling reached, which is not the
+        // same as proven.
+        smt::Answer::Unsat => note("layer 3 proved the first trips of a loop, which is not the whole loop"),
+        smt::Answer::Sat(model) => {
+            let when = if model.is_empty() { "the solver found a way".to_string() } else { model };
+            Layer3 { verdict: Some(Verdict::Fails { counterexample: when.clone() }), note: Some(format!("layer 3: {}", when)), solved: true, disagreement: None }
+        }
+        smt::Answer::Unknown => note("layer 3 asked, and the solvers reached their step budget without an answer"),
+    }
 }
