@@ -1,5 +1,5 @@
 # Finding 2026-09-29 (by hand): the oracle refuses a wrapping operator on simd ("`+~` wraps modulo an
-# integer's size, and simd[uint8, 16] is not an integer"); simd.md: every operator a plain T has works
+# integer's size, and simd[uint8, count 16] is not an integer"); simd.md: every operator a plain T has works
 # lane by lane, the wrapping forms included. CCA builds it: 200 +~ 200 is 144 in every lane.
 # check claude generator, seed 1
 extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
@@ -38,7 +38,7 @@ fn put_i ['n': int64] {
 }
 
 MAIN {
-    let 'a': simd[uint8, 16] = simd.fill[value 200];
-    let 'b': simd[uint8, 16] = 'a' plus.wrap 'a';
+    let 'a': simd[uint8, count 16] = simd.fill[value 200];
+    let 'b': simd[uint8, count 16] = 'a' plus.wrap 'a';
     put_u[to.uint64[simd.max['b']]];
 }

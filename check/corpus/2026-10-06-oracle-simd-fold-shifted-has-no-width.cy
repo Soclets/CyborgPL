@@ -1,5 +1,5 @@
 # Finding 2026-10-06 (check evaltest --risk 30, seed 4094, cut down by hand): simd.max['s'] shl 1
-# with 's' a simd[uint8, 16]. A fold's result has the lane type, so the shift has a width (owner: a,
+# with 's' a simd[uint8, count 16]. A fold's result has the lane type, so the shift has a width (owner: a,
 # 2026-09-23), as a call's return type does since f679f11. The oracle stops: "`shl` needs a width,
 # and nothing here gives one". CCA runs it and prints 6.
 # check claude generator, seed 1
@@ -57,6 +57,6 @@ fn b3 [@x] [lent @x 'a': list[int16], lent @x 'b': list[int16]] -> lent @x list[
 }
 
 MAIN {
-    let 's': simd[uint8, 16] = simd.fill[value 3];
+    let 's': simd[uint8, count 16] = simd.fill[value 3];
     put_u[to.uint64[simd.max['s'] shl 1]];
 }

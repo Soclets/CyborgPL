@@ -47,7 +47,7 @@ fn b1 [@y, @x] [lent @y 'a': list[int8], lent @x 'b': list[int8]] -> lent @x lis
 }
 
 fn f1 ['p1': uint8[min 1], 'p2': int16] -> uint64 {
-    let mut 's1': simd[int32, 4] = simd.fill[value ((1073741823 minus to.int32['p1']) shr 10) plus (-25999) times (((to.int32['p1'] and.bit (-257893692)) mod.floor 92681) minus 46340)];
+    let mut 's1': simd[int32, count 4] = simd.fill[value ((1073741823 minus to.int32['p1']) shr 10) plus (-25999) times (((to.int32['p1'] and.bit (-257893692)) mod.floor 92681) minus 46340)];
     change 's1'[pos 2] = simd.sum['s1'] mod.floor 1;
     return 0;
 }

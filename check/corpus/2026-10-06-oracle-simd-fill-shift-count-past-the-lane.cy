@@ -58,6 +58,6 @@ fn b3 [@x] [lent @x 'a': list[int16], lent @x 'b': list[int16]] -> lent @x list[
 
 MAIN {
     let 'c': int8 = 9;
-    let 's': simd[int8, 16] = simd.fill[value ((-53) shr 'c') mod.floor 23];
+    let 's': simd[int8, count 16] = simd.fill[value ((-53) shr 'c') mod.floor 23];
     put_i[to.int64[simd.max['s']]];
 }

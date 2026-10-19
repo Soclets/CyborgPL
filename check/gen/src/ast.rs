@@ -443,7 +443,7 @@ pub enum Stmt {
     /// A declaration written with `const` in `let`'s place, inside a body
     /// (owner, 2026-10-10): known at compile time, never changed or shadowed.
     Const(Box<Stmt>),
-    /// `mut 's': simd[int32, 4] = …;`
+    /// `mut 's': simd[int32, count 4] = …;` (count, owner 2026-10-19)
     SimdLet { name: String, mutable: bool, elem: Ty, lanes: usize, value: Expr },
 }
 
@@ -900,7 +900,7 @@ impl<'a> Wr<'a> {
             }
             Stmt::SimdLet { name, mutable, elem, lanes, value } => {
                 let m = if *mutable && self.changed(s) { "mut " } else if self.strict { self.im() } else { "" };
-                let head = format!("let {m}{}: simd[{}, {lanes}] = ", q(name), elem.name());
+                let head = format!("let {m}{}: simd[{}, count {lanes}] = ", q(name), elem.name());
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::MatchStmt { scrut, arms } => {

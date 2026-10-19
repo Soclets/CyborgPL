@@ -53,7 +53,7 @@ fn f1 ['p1': uint16] -> int32[min -181, max 64] {
             }
             change 'w1' = 'w1' minus 1;
             let 'v2': uint32 = (to.uint32['p1'] mod.floor 12) plus 4294967284;
-            let 's3': simd[int64, 2] = simd.fill[value ((18 mod.floor to.int64['p1']) plus (to.int64['p1'] plus to.int64['w1'])) mod.near ((((-to.int64['w1']) times (((7638060362594655029 minus to.int64['v2']) mod.floor 6074000999) minus 3037000499)) mod.floor 7) plus 1)];
+            let 's3': simd[int64, count 2] = simd.fill[value ((18 mod.floor to.int64['p1']) plus (to.int64['p1'] plus to.int64['w1'])) mod.near ((((-to.int64['w1']) times (((7638060362594655029 minus to.int64['v2']) mod.floor 6074000999) minus 3037000499)) mod.floor 7) plus 1)];
             check change 'v2' = (((to.uint32['w1'] plus ('v2' mod.floor 4294967289)) plus.wrap 'v2') mod.floor 12) plus 4294967284;
         }
     }
@@ -136,7 +136,7 @@ MAIN {
         c1 { is ((14 minus 9 plus to.uint16['v33']) mod.floor 35) plus 65501; }
         c2 'd35' { is ((((((40959 times 1) mod.floor 256) times (2 minus (to.uint16['v34'] mod.floor 3))) mod.floor 256) times 218) mod.floor 35) plus 65501; }
     };
-    let mut 's37': simd[int32, 4] = simd.fill[value f1[917]];
+    let mut 's37': simd[int32, count 4] = simd.fill[value f1[917]];
     change 'v34' = ((((to.uint32['v36'] times ((3626913585 minus 'v34' plus 'v34') mod.floor 65536)) mod.floor 311) plus 660) mod.floor 311) plus 660;
     {
         if false and to.uint64['v36'] minus 60550 equal_to 4044568063511618629 {
@@ -178,7 +178,7 @@ MAIN {
                 put_u[str.bytes[lend 't55']];
             }
         }
-        let 's56': simd[uint32, 4] = simd.fill[value (('v34' minus.wrap 2147483648) or.bit (12 plus 943786366)) mod.floor (((0 div.floor (to.uint32['v33'] plus to.uint32['v33'])) mod.floor 521607920) plus 1)];
+        let 's56': simd[uint32, count 4] = simd.fill[value (('v34' minus.wrap 2147483648) or.bit (12 plus 943786366)) mod.floor (((0 div.floor (to.uint32['v33'] plus to.uint32['v33'])) mod.floor 521607920) plus 1)];
         put_i[to.int64['v34'] plus to.int64['v33'] minus 5058769046726752839];
         change 's37' = simd.fill[value (((simd.max['s37'] mod.floor 7) minus 3) pow (simd.max['s37'] mod.floor 20) div.floor (-(-9))) mod.floor ((((to.int32['v36'] mod.ceil (-2)) xor (to.int32['v34'] minus ((simd.sum['s37'] mod.floor 2147483647) minus 351439531))) mod.floor 854227907) plus 1)];
     }

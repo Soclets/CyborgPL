@@ -64,7 +64,7 @@ fn f1 ['p1': uint8[max 153], 'p2': int64[min 0, max 9223372036854775807], 'p3': 
         put_i[(-22677) plus to.int16['p3']];
         let immut 'v2': uint8[max 12] = 11 times ('p3' div.floor 'p3');
         put_u[174 plus ((to.uint8['v2' div.floor (('v2' mod.floor 8) plus 1)] or.bit to.uint8[191 plus ('p3' mod.floor 65)]) mod.floor 82)];
-        let 's3': simd[int64, 2] = simd.fill[value -1];
+        let 's3': simd[int64, count 2] = simd.fill[value -1];
     }
     let 'xs4': list[uint32] = [((0 plus to.uint32['i1']) mod.floor 494) plus 349, (to.uint32['i1'] mod.floor 494) plus 349];
     for 'x5' in lend 'xs4' {
@@ -73,7 +73,7 @@ fn f1 ['p1': uint8[max 153], 'p2': int64[min 0, max 9223372036854775807], 'p3': 
         let immut 'v7': uint64 = 13 plus to.uint64['p3'];
     }
     for 'i8': uint32 from 17 to 17 by 1 {
-        let mut 's9': simd[uint64, 2] = simd.fill[value ((to.uint64['i8'] shl ((to.uint64['p1'] mod.floor 64) mod.floor 60)) mod.floor 4294967296) times (10 plus 6)];
+        let mut 's9': simd[uint64, count 2] = simd.fill[value ((to.uint64['i8'] shl ((to.uint64['p1'] mod.floor 64) mod.floor 60)) mod.floor 4294967296) times (10 plus 6)];
         put_i[to.int8[('p2' mod.floor 256) minus 128]];
         change 's9' = simd.fill[value 's9'[pos 2]];
     }
@@ -81,9 +81,9 @@ fn f1 ['p1': uint8[max 153], 'p2': int64[min 0, max 9223372036854775807], 'p3': 
 }
 
 fn f2 ['p1': bool, 'p2': uint8, 'p3': uint32] -> uint8 {
-    let 's10': simd[int16, 8] = simd.fill[value to.int16[16383 mod.floor to.int16['p2']] and.bit to.int16[(-7192) shr (to.int16['p2'] mod.floor 16)]];
+    let 's10': simd[int16, count 8] = simd.fill[value to.int16[16383 mod.floor to.int16['p2']] and.bit to.int16[(-7192) shr (to.int16['p2'] mod.floor 16)]];
     if ((not (((-0) div.floor ((-2) div.floor to.int8['p2'])) at_most ((to.int8['p3' mod.floor 128] minus 71) minus (((to.int8['p3' mod.floor 128] xor (-17)) mod.floor 127) minus 71)))) and ('p1' or (to.int8['p2'] < (-5)))) or (('p3' not_equal 0) and.then ((49 mod.floor 'p3') not_equal 0)) {
-        let 's11': simd[uint32, 4] = simd.fill[value to.uint32[('p3' shl 0) mod.floor (((('p3' mod.floor 65536) times ('p3' mod.floor 65536)) mod.floor 8) plus 1)] shr (to.uint32[(6 minus 4) times (('p3' plus 0) mod.floor 65536)] mod.floor 32)];
+        let 's11': simd[uint32, count 4] = simd.fill[value to.uint32[('p3' shl 0) mod.floor (((('p3' mod.floor 65536) times ('p3' mod.floor 65536)) mod.floor 8) plus 1)] shr (to.uint32[(6 minus 4) times (('p3' plus 0) mod.floor 65536)] mod.floor 32)];
         let 'xs12': list[uint8] = [(to.uint8['p3' mod.floor 256] mod.floor 13) plus 186, 198, (('p2' div.floor 151) mod.floor 13) plus 186, (((('p2' minus ('p2' mod.floor 29)) mod.floor (((('p2' mod.floor 16) times ('p2' mod.floor 16)) mod.floor 6) plus 1)) mod.floor (((to.uint8[to.uint8['p3' mod.floor 256] mod.floor 'p2'] minus.wrap to.uint8[('p2' mod.floor 16) times (to.uint8['p3' mod.floor 256] mod.floor 16)]) mod.floor 57) plus 1)) mod.floor 13) plus 186];
         put_u[to.uint64['p2'] minus (to.uint64['p3'] mod.floor 29)];
     } else {

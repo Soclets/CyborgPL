@@ -1,5 +1,5 @@
 # Finding 2026-09-29 (check run, seed 5120, shrunk then cut by hand): simd.fill[15059671820752541943 div 3]
-# into simd[uint64, 2] is 5019890606917513981 (bare numbers alone are exact). The normal build and the
+# into simd[uint64, count 2] is 5019890606917513981 (bare numbers alone are exact). The normal build and the
 # oracle agree; the --assert-proofs build stops (proof failed: the value can be outside what a uint64
 # holds), as if the literal past int64 were divided as a signed int64. A plain fill of the literal,
 # or of a uint64 name holding the quotient, is fine. The same family as assert-proofs-match-arm-bare-div.
@@ -40,6 +40,6 @@ fn put_i ['n': int64] {
 }
 
 MAIN {
-    let 's': simd[uint64, 2] = simd.fill[value 15059671820752541943 div.floor 3];
+    let 's': simd[uint64, count 2] = simd.fill[value 15059671820752541943 div.floor 3];
     put_u[to.uint64[simd.max['s']]];
 }

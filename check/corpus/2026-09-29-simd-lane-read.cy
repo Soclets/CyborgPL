@@ -1,6 +1,6 @@
 # Finding 2026-09-29 (by hand, probing simd before generating it): a lane read gives the wrong value
-# in CCA's binary. simd.fill[4] into simd[int32, 4], then 'a'[1] prints garbage ("000"); a
-# simd[uint8, 16] of 200 reads back 144 in lane 1; an int64 lane prints nothing. simd.max and
+# in CCA's binary. simd.fill[4] into simd[int32, count 4], then 'a'[1] prints garbage ("000"); a
+# simd[uint8, count 16] of 200 reads back 144 in lane 1; an int64 lane prints nothing. simd.max and
 # simd.sum are right. The oracle refuses 'a'[1] ("'a'[pos …] indexes"): pos has been gone outside
 # #strict since 2026-09-27, so that is the oracle's to fix.
 # check claude generator, seed 1
@@ -40,11 +40,11 @@ fn put_i ['n': int64] {
 }
 
 MAIN {
-    let 'a': simd[int32, 4] = simd.fill[value 4];
+    let 'a': simd[int32, count 4] = simd.fill[value 4];
     put_i[to.int64['a'[pos 1]]];
     put_i[to.int64['a'[pos 4]]];
-    let 'b': simd[uint8, 16] = simd.fill[value 200];
+    let 'b': simd[uint8, count 16] = simd.fill[value 200];
     put_u[to.uint64['b'[pos 1]]];
-    let 'c': simd[int64, 2] = simd.fill[value -5];
+    let 'c': simd[int64, count 2] = simd.fill[value -5];
     put_i['c'[pos 2]];
 }

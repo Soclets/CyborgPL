@@ -155,11 +155,16 @@ pub struct Config {
     /// holds as bits (abd0ef6d); now and then handed to a call, which keeps
     /// it a byte per item. Compared with KAYO_BITS=0 by `check recref`.
     pub bool_lists: bool,
+    /// Pure functions of a small whole-number parameter, which Precog may
+    /// turn into a table of answers (3f065caa), sometimes with a
+    /// `table_bytes` limit, called over many arguments and under `no_cheat`.
+    /// Compared with KAYO_TABLES=0 by `check recref`.
+    pub tables: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: false, bool_lists: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: false, bool_lists: true, tables: true }
     }
 }
 
@@ -402,6 +407,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let call = g.mutual_pair();
         main.push(Stmt::Src(call));
     }
+    if g.cfg.tables && g.rng.chance(15) {
+        let lines = g.table_fn();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
     if g.cfg.bool_lists && g.cfg.lists && g.rng.chance(12) {
         let call = g.bool_list();
         main.push(Stmt::Src(call));
@@ -420,6 +429,47 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
 }
 
 impl Gen {
+    /// A pure function of one small whole-number parameter, sometimes
+    /// recursive down a range-typed counter and sometimes marked with a
+    /// `table_bytes` limit (owner, 2026-10-19), and the MAIN lines that call
+    /// it over many arguments, once directly and sometimes under `no_cheat`.
+    /// Compared between the engines only.
+    fn table_fn(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let f = format!("tab{}", self.fresh);
+        let limit = match self.rng.below(5) { 0 => "table_bytes 0 ".to_string(), 1 => format!("table_bytes {} ", self.rng.range(1, 600)), 2 => "table_bytes 1000000 ".to_string(), _ => String::new() };
+        let (a, b, m, c) = (self.rng.range(2, 97), self.rng.range(0, 999), self.rng.range(2, 9999), self.rng.range(0, 500));
+        let (param, top) = match self.rng.below(3) {
+            0 => ("uint8".to_string(), 255),
+            1 => { let t = self.rng.range(3, 40); (format!("uint8[min 0, max {t}]"), t) }
+            _ => ("int16[min 0, max 600]".to_string(), 600),
+        };
+        let body = if self.rng.chance(35) && top <= 40 {
+            // recursive down the counter
+            format!("    if 'x' equal_to 0 {{ return {b}; }}\n    return ({f}['x' - 1] x {a} + to.int64['x']) mod.floor {m};")
+        } else if self.rng.chance(50) {
+            format!("    if ('x' mod.floor 3) equal_to 0 {{ return (to.int64['x'] x {a}) mod.floor {m}; }}\n    return (to.int64['x'] x to.int64['x'] + {b}) mod.floor {m} - {c};")
+        } else {
+            format!("    return ((to.int64['x'] x {a} + {b}) mod.floor {m}) - {c};")
+        };
+        self.extra_fns.push(format!("{limit}fn {f} ['x': {param}] -> int64 {{\n{body}\n}}"));
+        let pt = if param.starts_with("int16") { "int16" } else { "uint8" };
+        let step = self.rng.range(1, 7);
+        let acc = format!("'tacc{}'", self.fresh);
+        let mut lines = vec![
+            format!("let mut {acc}: int64 = 0;"),
+            format!("for 'ti{}': uint64 from 0 to {top} by {step} {{ change {acc} = ({acc} + {f}[to.{pt}['ti{}']]) mod.floor 1000000007; }}", self.fresh, self.fresh),
+            format!("put_i[{acc}];"),
+            format!("put_i[{f}[{}]];", self.rng.range(0, top)),
+        ];
+        if self.rng.chance(40) {
+            lines.push(format!("no_cheat let 'tq{}' := {f}[{}];", self.fresh, self.rng.range(0, top)));
+            lines.push(format!("put_i['tq{}'];", self.fresh));
+        }
+        lines
+    }
+
     /// A function filling a `list[bool]` (true, false or a value worked out
     /// while running), writing it by position with values known only then
     /// (step 1 to 5, sometimes `for para`, long enough to run in slices),
@@ -537,7 +587,7 @@ impl Gen {
             4 => format!("let {r}: list[int16] = [{sh}, 1];"),
             5 => format!("let {r}: int64 = to.int64[1] shl ({sh});"),
             6 => format!("let {r}: int32 = ({sh}) plus 1;"),
-            7 => format!("let {r}: simd[int32, 4] = simd.fill[value {sh}];"),
+            7 => format!("let {r}: simd[int32, count 4] = simd.fill[value {sh}];"),
             8 => format!("let {r}: bool = ({sh}) < 9;"),
             9 => format!("let {r} := ({sh}) mod.floor 7;"),
             10 => format!("let {r}: int32 = 0 minus ({sh});"),

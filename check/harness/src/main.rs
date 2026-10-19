@@ -127,6 +127,7 @@ impl Args {
             mutual: !avoid.contains("mutual"),
             reborrows: !avoid.contains("reborrows"),
             bool_lists: !avoid.contains("bool-lists"),
+            tables: !avoid.contains("tables"),
             typed_literals: !avoid.contains("typed-literals"),
             std_all: self.flags.contains_key("std-all"),
         }

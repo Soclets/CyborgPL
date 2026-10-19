@@ -1,5 +1,5 @@
 # Finding 2026-10-09 (check run --borrow-wrong 1000, seed 42640, cut down by hand): 's'[pos 2] shr 2, a
-# lane of a simd[uint64, 2], in a comparison. A lane has the lane type, so the shift has a width (owner,
+# lane of a simd[uint64, count 2], in a comparison. A lane has the lane type, so the shift has a width (owner,
 # 2026-10-07: from the shifted number), as a list item does since 328b04b1. The oracle stops: "`shr`
 # needs a width, and nothing here gives one". Synapse runs it and prints 1.
 # check claude generator, seed 1
@@ -61,6 +61,6 @@ fn b4 [@x] [lent 'a': list[uint16], lent 'b': list[uint16], lent @x 'c': list[ui
 }
 
 MAIN {
-    let 's': simd[uint64, 2] = simd.fill[value 40];
+    let 's': simd[uint64, count 2] = simd.fill[value 40];
     if 3 < ('s'[pos 2] shr 2) { put_u[1]; } else { put_u[0]; }
 }
