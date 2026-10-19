@@ -679,6 +679,7 @@ shl_no_width [fnv:93c25ad48c4751b2] :: `shl` needs a width, and nothing here giv
 short_name_one_kit [fnv:a74a1112bb620a25] :: gives other kits a shorter name
 shr_no_width [fnv:507523dacedbfa20] :: `shr` needs a width, and nothing here gives one
 simd_bad_element [fnv:6d4c89bc3637c80b] :: a `simd` holds plain numbers or bools
+simd_count_bare [fnv:4ee8c5f4ad82bc55] :: `simd[T, N]` is an old spelling: write `simd[T, count N]`
 simd_fill_needs_value [fnv:68d864bfb7249c51] :: the value says `value`: `simd.fill[value 0]`
 simd_fill_shift_past_lane [fnv:abc84e96d5549b25] :: the shift count can be outside 0 to the width - 1
 simd_lane_step [fnv:693bf5e5af5f3ed9] :: `plus` can leave what the type holds
@@ -691,7 +692,7 @@ simd_shuffle_not_fixed [fnv:10de2b5101aae9ec] :: takes the new order as fixed la
 simd_some_past_end [fnv:d61a5c2bc9a6904f] :: the items for 4 lanes can run past the end
 simd_std_lane [fnv:5ea45cd90b3704c8] :: a vector's lanes are a standard width
 simd_sum_lane_past [fnv:b4b58287404c8c2f] :: the value can be outside what an `int32` holds
-simd_wrong_shape [fnv:813bb50692db0740] :: this target has no `simd[uint8, 64]`: its vector register holds 16 lanes
+simd_wrong_shape [fnv:813bb50692db0740] :: this target has no `simd[uint8, count 64]`: its vector register holds 16 lanes
 single_quote_char [fnv:857025279acbd88a] :: 'a' is not declared
 size_of_alone [fnv:1c30f4b3569e6800] :: `size` is a keyword: a type's size is `size.of[int32]` (`.of` after `size`)
 slice_needs_pos [fnv:bbcf4577f909ab6f] :: a slice starts `from pos …`

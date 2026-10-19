@@ -10,8 +10,8 @@ MAIN {
     let 'p' := three[];
     let 'x' := to.int64['p'] plus (((-656682024) pow 15) mod.floor 2147483647);
     let 'a' := 5;
-    let 'v': simd[int32, 4] = simd.fill[value 1200000000];
-    let 'w': simd[int32, 4] = simd.fill[value 12];
+    let 'v': simd[int32, count 4] = simd.fill[value 1200000000];
+    let 'w': simd[int32, count 4] = simd.fill[value 12];
     let 'y' := to.int8['a'] xor (simd.sum['v'] minus 4800000000);
     let 'z' := (simd.sum['w'] plus 0) xor (simd.sum['w'] minus 1);
     no_check my.exit[to.int32[('x' mod.floor 256) plus 'y' plus 'z']];

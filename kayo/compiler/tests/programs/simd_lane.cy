@@ -6,12 +6,12 @@
 # 2.5 x 2 + 30 = 58.
 extern.C fn exit ['code': int32];
 MAIN {
-    let 'a': simd[int32, 4] = simd.fill[value 4];
-    let 'b': simd[uint8, 16] = simd.fill[value 200];
-    let 'c': simd[int64, 2] = simd.fill[value -5];
-    let 'w': simd[bin64, 2] = simd.fill[value 2.5];
+    let 'a': simd[int32, count 4] = simd.fill[value 4];
+    let 'b': simd[uint8, count 16] = simd.fill[value 200];
+    let 'c': simd[int64, count 2] = simd.fill[value -5];
+    let 'w': simd[bin64, count 2] = simd.fill[value 2.5];
     let 'xs': list[int32] = [10, 20, 30, 40];
-    let 'v': simd[int32, 4] = simd.load[lend 'xs', pos 1];
+    let 'v': simd[int32, count 4] = simd.load[lend 'xs', pos 1];
     let 'k': int64 = 3;
     let 'x1': int32 = 'a'[pos 1];
     let 'x2': uint8 = 'b'[pos 16];

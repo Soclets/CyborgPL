@@ -933,3 +933,7 @@ Dated, with the alternative, so each can become a question later.
   parallel slice compared with that constant instead of the slice's own
   stop. Inside a counted loop, an instruction reading its stop, counter or
   step is no longer folded (`tests/programs/par_sum_after_write.cy`).
+- **2026-10-19 — A simd's lane count says `count`** (owner):
+  `simd[int32, count 4]`, as `simd.load.some[…, count 3]` says it; the bare
+  `simd[int32, 4]` is refused from `spellings.cyr`'s row, and types print
+  with the word. kayo's own simd test programs are rewritten.

@@ -2399,7 +2399,15 @@ impl<'a> Parser<'a> {
     fn type_in(&mut self, conv: bool) -> Result<Type> {
         let start = self.span();
         let kind = match self.peek().clone() {
-            Tok::Num { text, bin } => {
+            // A simd's lane count says `count` (owner, 2026-10-19):
+            // `simd[int32, count 4]`; the bare number is the old spelling.
+            Tok::Num { .. } => {
+                let said = crate::spellings::old_word("simd[T, N]", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`simd[T, N]` is an old spelling: write `simd[T, count N]`".into());
+                return self.fail(said);
+            }
+            Tok::Word(w) if w == "count" && matches!(self.peek_at(1), Tok::Num { .. }) => {
+                self.bump();
+                let Tok::Num { text, bin } = self.peek().clone() else { unreachable!() };
                 let span = self.bump().span;
                 if bin {
                     return self.fail_at(span, "a count is a whole number");

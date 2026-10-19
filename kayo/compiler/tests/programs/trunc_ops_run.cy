@@ -23,8 +23,8 @@ MAIN {
     let mut 'code': int32 = 4;
     if 'bad' not_equal 0 { change 'code' = 3; }
     let 'xs': list[int32] = [-7, 7, -8, 9];
-    let 'v': simd[int32, 4] = simd.load[lend 'xs', pos 1];
-    let 'two': simd[int32, 4] = simd.fill[value -2];
+    let 'v': simd[int32, count 4] = simd.load[lend 'xs', pos 1];
+    let 'two': simd[int32, count 4] = simd.fill[value -2];
     let 'q' := 'v' div.trunc 'two';
     let 'r' := 'v' mod.trunc 'two';
     if ('q'[pos 1] equal_to 3) and ('q'[pos 2] equal_to -3) and ('q'[pos 3] equal_to 4) and ('q'[pos 4] equal_to -4) and ('r'[pos 1] equal_to -1) and ('r'[pos 2] equal_to 1) and ('r'[pos 3] equal_to 0) and ('r'[pos 4] equal_to 1) {

@@ -4,7 +4,7 @@
 # about a stored element was folded to false.
 extern.C fn exit ['code': int32];
 fn is_ascii [lent 'bytes': array[uint8]] -> bool {
-    let mut 'acc': simd[uint8, 16] = simd.fill[value 0];
+    let mut 'acc': simd[uint8, count 16] = simd.fill[value 0];
     for 'i' from 1 to array.length[lend 'bytes'] by 16 {
         change 'acc' = 'acc' or.bit simd.load[lend 'bytes', pos 'i'];
     }
@@ -16,8 +16,8 @@ MAIN {
     let mut 'got': int32 = 0;
     if is_ascii[lend 'plain'] { change 'got' = 'got' plus 1; }
     if not is_ascii[lend 'thai'] { change 'got' = 'got' plus 2; }
-    let 'a': simd[int32, 4] = simd.fill[value 10];
-    let 'b': simd[int32, 4] = simd.fill[value 3];
+    let 'a': simd[int32, count 4] = simd.fill[value 10];
+    let 'b': simd[int32, count 4] = simd.fill[value 3];
     if simd.sum['a'] equal_to 40 { change 'got' = 'got' plus 4; }
     if simd.max['a' times 'b'] equal_to 30 { change 'got' = 'got' plus 8; }
     let 'm' := 'a' > 'b';

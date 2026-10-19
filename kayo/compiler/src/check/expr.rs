@@ -4086,7 +4086,7 @@ impl Checker {
                 let vt = self.resolve(&v.ty);
                 let lanes = match vt.base() {
                     Ty::Simd { lanes, .. } if *lanes > 0 => *lanes,
-                    Ty::Simd { .. } => return err(Diagnostic::error("`simd.shuffle` needs to know how many lanes the vector has: give it a type (`let 'v': simd[int32, 4] = …`)").at(positional[0].span)),
+                    Ty::Simd { .. } => return err(Diagnostic::error("`simd.shuffle` needs to know how many lanes the vector has: give it a type (`let 'v': simd[int32, count 4] = …`)").at(positional[0].span)),
                     other => return err(Diagnostic::error(format!("`simd.shuffle` rearranges a vector's lanes, and this is {}", crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
                 };
                 let fixed = "`simd.shuffle` takes the new order as fixed lane numbers, known when compiling: `[4, 3, 2, 1]`";

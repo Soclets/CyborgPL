@@ -3,7 +3,7 @@
 # with int32 lanes, read out as an exit code).
 extern.C fn exit ['code': int32];
 
-struct Particle { place: simd[int32, 4], vel: simd[int32, 4] }
+struct Particle { place: simd[int32, count 4], vel: simd[int32, count 4] }
 
 fn step ['p': Particle] -> Particle {
     return Particle[place = 'p'.place plus 'p'.vel, vel = 'p'.vel];
@@ -12,7 +12,7 @@ fn step ['p': Particle] -> Particle {
 MAIN {
     let 'p' := Particle[place = simd.fill[value 1], vel = simd.fill[value 2]];
     let 'q' := step[give 'p'];
-    let mut 'history': list[simd[int32, 4]] = [];
+    let mut 'history': list[simd[int32, count 4]] = [];
     list.append[lend.mut 'history', value 'q'.place];
     list.append[lend.mut 'history', value 'q'.place plus 'q'.vel];
     list.append[lend.mut 'history', value simd.shuffle['q'.vel, [1, 2, 3, 4]]];

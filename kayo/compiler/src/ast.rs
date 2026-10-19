@@ -75,8 +75,8 @@ pub enum TypeKind {
     Var { name: Ident, bound: Option<Path> },
     /// `fn[lent T, T] -> R or fail[…]`.
     Fn { params: Vec<FnTypeParam>, ret: Option<Box<Type>>, fails: Vec<FailSpec> },
-    /// A plain number where a type parameter goes: the lane count of a
-    /// `simd[uint8, 16]`. Nothing else takes one.
+    /// `count N` where a type parameter goes: the lane count of a
+    /// `simd[uint8, count 16]` (owner, 2026-10-19). Nothing else takes one.
     Count(u32),
 }
 

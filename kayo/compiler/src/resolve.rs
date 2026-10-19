@@ -1172,7 +1172,7 @@ impl Items {
                 }
                 self.resolve_bound(base, lo, hi, unit.as_ref(), *span)
             }
-            ast::TypeKind::Count(n) => err(Diagnostic::error(format!("`{}` is a number, not a type: only a `simd[T, N]` takes one, as its lane count", n)).at(t.span)),
+            ast::TypeKind::Count(n) => err(Diagnostic::error(format!("`count {}` is a lane count, not a type: only a `simd[T, count N]` takes one", n)).at(t.span)),
             ast::TypeKind::Path { path, args } => {
                 POINTEE.with(|p| p.set(pointee));
                 self.resolve_type_path(path, args, m, blanks, allow_blanks, t.span)
@@ -1445,14 +1445,14 @@ impl Items {
                 }
                 "simd" => {
                     if path.segs.len() > 1 {
-                        return err(Diagnostic::error(format!("`simd` takes its lane type and count in brackets: `simd[uint8, 16]`, not `{}`", path.spelled())).at(span));
+                        return err(Diagnostic::error(format!("`simd` takes its lane type and count in brackets: `simd[uint8, count 16]`, not `{}`", path.spelled())).at(span));
                     }
                     if args.len() != 2 {
-                        return err(Diagnostic::error("`simd` takes two things in brackets, the lane type and how many lanes: `simd[uint8, 16]`").at(span));
+                        return err(Diagnostic::error("`simd` takes two things in brackets, the lane type and how many lanes: `simd[uint8, count 16]`").at(span));
                     }
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     let Some(lanes) = lane_count(&args[1]) else {
-                        return err(Diagnostic::error("the second thing in a `simd` is how many lanes, written as a number: `simd[uint8, 16]`").at(args[1].span));
+                        return err(Diagnostic::error("a simd's lane count says `count`: `simd[uint8, count 16]`").at(args[1].span));
                     };
                     // A mask (owner, 2026-09-27: a): one answer per lane of
                     // the vectors it compares, so as many lanes as they have.
@@ -1475,10 +1475,10 @@ impl Items {
                     }
                     if !simd_shape_ok(&elem, lanes) {
                         let has = simd_shapes_for(&elem).unwrap_or(0);
-                        return err(Diagnostic::error(format!("this target has no `simd[{}, {}]`: its vector register holds {} lanes of `{}`, not {}", spell(&elem, self), lanes, has, spell(&elem, self), lanes))
+                        return err(Diagnostic::error(format!("this target has no `simd[{}, count {}]`: its vector register holds {} lanes of `{}`, not {}", spell(&elem, self), lanes, has, spell(&elem, self), lanes))
                             .at(span)
                             .why(format!("a `simd` is only ever a shape the machine has ({}-bit registers here); portability is the plain `for` loop, which the prover and LLVM vectorise by themselves", TARGET_SIMD_BITS))
-                            .fix(None, format!("simd[{}, {}]", spell(&elem, self), has)));
+                            .fix(None, format!("simd[{}, count {}]", spell(&elem, self), has)));
                     }
                     return Ok(Ty::Simd { elem: Box::new(elem), lanes });
                 }
@@ -1822,7 +1822,7 @@ pub fn with_article(s: &str) -> String {
     }
 }
 
-/// The lane count written in a `simd[T, N]`.
+/// The lane count written in a `simd[T, count N]`.
 fn lane_count(t: &ast::Type) -> Option<u32> {
     match &t.kind {
         ast::TypeKind::Count(n) => Some(*n),

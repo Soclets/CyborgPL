@@ -6,6 +6,6 @@ MAIN {
     let 'xs': list[int32] = [1, 2, 3];
     no_check let 'p': int32 = getpid[];
     let 'k': uint64 = to.uint64[('p' minus 'p') plus 3];
-    let 'v': simd[int32, 4] = simd.load.some[lend 'xs', pos 2, count 'k'];
+    let 'v': simd[int32, count 4] = simd.load.some[lend 'xs', pos 2, count 'k'];
     no_check my.exit[simd.sum['v']];
 }

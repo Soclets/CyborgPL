@@ -5,11 +5,11 @@
 # 4 + 144 + 30 + 30 = 208.
 extern.C fn exit ['code': int32];
 MAIN {
-    let 'a': simd[int32, 4] = simd.fill[value 4];
+    let 'a': simd[int32, count 4] = simd.fill[value 4];
     let 'x': int32 = 'a'[pos 1];
-    let 'u': simd[uint8, 16] = simd.fill[value 200];
+    let 'u': simd[uint8, count 16] = simd.fill[value 200];
     let 'w' := 'u' plus.wrap 'u';
-    let mut 'v': simd[int32, 4] = simd.fill[value 0];
+    let mut 'v': simd[int32, count 4] = simd.fill[value 0];
     change 'v'[pos 3] = 30;
     let 'y': int32 = 'v'[pos 3];
     let 's': int32 = simd.sum['v'];

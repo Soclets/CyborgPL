@@ -146,7 +146,7 @@ pub enum Ty {
     Seq { elem: Box<Ty>, kind: SeqKind },
     Map { key: Box<Ty>, val: Box<Ty>, order: MapOrder },
     Channel(Box<Ty>),
-    /// `simd[T, N]` — N plain values in one register (`simd.md`). Legal
+    /// `simd[T, count N]` — N plain values in one register (`simd.md`). Legal
     /// only in a shape the target actually has.
     Simd { elem: Box<Ty>, lanes: u32 },
     Struct { id: StructId, args: Vec<Ty> },
@@ -475,7 +475,7 @@ impl<'a> fmt::Display for TySpelling<'a> {
                 write!(f, "{}[{}, {}]", o, sp(key), sp(val))
             }
             Ty::Channel(e) => write!(f, "channel[{}]", sp(e)),
-            Ty::Simd { elem, lanes } => write!(f, "simd[{}, {}]", sp(elem), lanes),
+            Ty::Simd { elem, lanes } => write!(f, "simd[{}, count {}]", sp(elem), lanes),
             Ty::Struct { id, args } => {
                 write!(f, "{}", self.structs[id.0 as usize].name)?;
                 if !args.is_empty() {

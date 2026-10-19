@@ -33,9 +33,9 @@ MAIN {
     let 'w': bin32 = to.bin32['t' times (-1.0)];
     let 'k': bin32 = to.bin32['m'];
     let 'h' := plus[to.bin64['w']] plus ieee[to.bin64['k']] plus plus[to.bin64[to.brain16['t' times (-1.0)]]];
-    let 'vz': simd[bin64, 2] = simd.fill[value 'z'];
-    let 'vm': simd[bin64, 2] = simd.fill[value 'm'];
-    let 'vn': simd[bin64, 2] = simd.fill[value 'n'];
+    let 'vz': simd[bin64, count 2] = simd.fill[value 'z'];
+    let 'vm': simd[bin64, count 2] = simd.fill[value 'm'];
+    let 'vn': simd[bin64, count 2] = simd.fill[value 'n'];
     let 's' := plus[simd.max['vm']] plus plus[simd.min['vm']] plus plus[simd.sum['vm']] plus plus[simd.max['vz' times 'vn']] plus plus[simd.max['vz' times.ieee 'vn']];
     let 'r' := three[];
     let 'x' := plus[(-'r') mod.trunc 'r'] plus ieee[(-'r') mod.trunc.ieee 'r'] plus ieee['r' mod.floor.ieee (-'r')] plus plus[(-'t') pow 3] plus ieee[(-'t') pow.ieee 3] plus ieee[(-'t') std::pow.ieee 3];
