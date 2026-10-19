@@ -322,10 +322,27 @@ no_check inline.ASM {
 - The oracle parses and checks all of this and then refuses to run it
   ("the oracle cannot run assembly"), with nine reject tests.
 
+## C strings — `C.str.read` and `C.str.make` (owner, 2026-10-19)
+
+A C string is bytes ending in a 0 byte; a `str.utf8` knows its own length. Two ways across, under `C.` beside
+`C.int` (owner: "Isn't it `str`?"):
+
+```
+extern.C fn puts ['s': ptr[uint8]] -> int32;
+let 'name' := C.str.read['p'] otherwise { not_utf8 { … } };              # a char* to its 0 byte → str.utf8
+let 'cs' := C.str.make[lend 'name'] otherwise { has_zero_byte { … } };   # str.utf8 → a C string
+puts[lend 'cs'];
+```
+
+- `C.str.read` fails `not_utf8` when the bytes are not UTF-8.
+- `C.str.make` fails `has_zero_byte` when the text holds a 0 byte (C would cut it there), the check dropped where
+  Precog proves there is none, a literal say (owner: a).
+- A made C string is owned like any value (owner: a): freed when its owner's scope ends; `lend` it to C for a call,
+  `give` it when C keeps it, and C frees it then. No `C.str.free`.
+- Part of public v1's six C gaps (2026-10-19). Not built yet.
+
 ## Open
 
-- Reading a C string into a `str.utf8`: decided as build-it-yourself —
-  walk the bytes to the 0 into a `list[uint8]`, then `to.str.utf8[…]
-  otherwise …` (`conversion.md`, owner 2026-09-30); std may wrap it.
+- (History: reading a C string was build-it-yourself until 2026-10-19; see "C strings" above.)
 - A text's length is decided (`strings.md`: `str.bytes`, `str.points`,
   `str.graphemes`); this line is kept only to say so.

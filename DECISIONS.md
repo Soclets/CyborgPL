@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — A made C string is owned like any value: lent to C for a call, given when C keeps it (owner: a)
+
+Who frees what `C.str.make` makes? Offered (a) CyborgPL owns it as it owns any value: freed when its owner's scope
+ends; `lend` it when C only reads it during the call, `give` it when C keeps it, and C frees it then (recommended),
+or (b) never freed by itself, freed by hand with `C.str.free`. The owner asked what `C.str.make` is for (text in the
+form C functions take: the bytes and a 0 at the end, for `puts`, `fopen` and the like), then "(a)". So **a made C
+string follows the ownership rules: freed with its owner, `lend` for a call, `give` to hand it over**; no
+`C.str.free`. That closes the C-string questions: `C.str.read`, `C.str.make`, `has_zero_byte`, ownership.
+
 ### 2026-10-19 — `simd.fill` fits its value into the declared lanes: the declared type wins (owner: a)
 
 check claude's open program (check f73ee281): `let 'r': simd[int32, count 4] = simd.fill[value 5: uint8];` — the
