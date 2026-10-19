@@ -34,6 +34,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — A `collection.fn` member may point elsewhere, and every member line writes its full name (owner)
+
+From `pub fn area = shapes.circle.area;` (2026-09-23, a shorter name for users): the owner asked whether it should be
+a collection, then "Isn't it supposed to be `collection.fn`?" Design claude showed members whose bodies live elsewhere
+in the kit, and the owner wanted each line to "say what it becomes": `::area` was tried and dropped (pointless on a
+member defined right there), and when the owner asked which part says what comes in front ("Nothing on that line
+itself; it comes from the header"), "yes" to the full name on every member line. So:
+
+```
+pub collection.fn area {
+    area ['r': bin64] -> bin64 { … }            # the own function, defined here
+    area.square = shapes.square.area;           # a member whose body is in shapes/square.cy
+    area.ring ['outer': bin64, 'inner': bin64] -> bin64 { … }
+    area.unit ['r' = 1.0];                      # a preset
+}
+```
+
+**A member may point at a function written elsewhere, `area.square = shapes.square.area;`, and every member line
+writes the collection's name in front** (`area.ring`, `area.unit`), so a line alone says what it makes. Design claude's
+reading, not asked: the old short member names (`hi […]`, `loud […]` inside `collection.fn greet`) become an old
+spelling, refused naming `greet.hi`. Not built yet; asked next: `coll.` for `collection.`.
+
 ### 2026-10-19 — Variadic C functions: both the open `...` (each call `no_check`) and fixed shapes you declare (checked) (owner)
 
 The fifth of public v1's six C gaps (`printf` and friends). Offered (a) C's own `...`, each call a `no_check` site
