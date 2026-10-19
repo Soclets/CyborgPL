@@ -1,5 +1,8 @@
-:root { --ink: #fff; --ground: #0b0b0b; --soft: rgba(255, 255, 255, .78); --line: rgba(255, 255, 255, .14); --sans: system-ui, -apple-system, "Segoe UI", sans-serif; --mono: ui-monospace, "SF Mono", Menlo, monospace; }
+:root { --accent: #ff7a3d; --ink: #fff; --ground: #0b0b0b; --soft: rgba(255, 255, 255, .78); --line: rgba(255, 255, 255, .14); --sans: system-ui, -apple-system, "Segoe UI", sans-serif; --mono: ui-monospace, "SF Mono", Menlo, monospace; }
 * { box-sizing: border-box; }
+/* Bold is the "New" tag's orange, the site's one colour (owner, 2026-10-19: "Bold should use the
+   `new` orange"). */
+strong, b { color: var(--accent); font-weight: 700; }
 html, body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
 
 /* The loading screen (app/loading). It shows only while <html> is .loading, which only a running
@@ -25,7 +28,7 @@ html.loading:not(.ready) main, html.loading:not(.ready) main * { animation-play-
    underline draws last. While the screen is up they wait hidden; with scripts off they just show. */
 .hero { min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 96px 16px 72px; text-align: center; }
 .badge { display: inline-flex; align-items: center; gap: 10px; padding: 6px 6px 6px 8px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255, 255, 255, .025); color: var(--ink); text-decoration: none; font-size: 15px; }
-.badge-new { padding: 3px 10px; border-radius: 999px; background: rgba(255, 106, 43, .14); color: #ff7a3d; font-size: 13px; }
+.badge-new { padding: 3px 10px; border-radius: 999px; background: rgba(255, 106, 43, .14); color: var(--accent); font-size: 13px; }
 .badge-name { font-weight: 500; }
 .badge-dot { width: 3px; height: 3px; border-radius: 50%; background: rgba(255, 255, 255, .35); }
 .badge-sub { color: var(--soft); }
