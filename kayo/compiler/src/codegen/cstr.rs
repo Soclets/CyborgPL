@@ -72,16 +72,44 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     #[allow(clippy::too_many_arguments)]
     pub(super) fn cstr_call(&mut self, fi: usize, op: &Op, args: &[Arg], dest: &Option<Place>, ok: BlockId, fail: &[FailArm], blocks: &[LlBlock<'ctx>], slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<()> {
         let arg = args.first()?;
-        let arm = fail.first().map(|a| blocks[a.block.0 as usize])?;
+        let arm_of = |i: usize| fail.iter().find(|a| a.index == i).or_else(|| fail.first()).map(|a| blocks[a.block.0 as usize]);
         let good = self.ctx.append_basic_block(func, "cstr_ok");
         match op {
             Op::CStrMake => {
                 let out = match dest {
                     Some(d) => self.slot_of(fi, d, slots)?.1,
-                    None => crate::types::Ty::list(crate::types::Ty::int(false, 8)),
+                    None => Ty::Seq { elem: Box::new(Ty::int(false, 8)), kind: crate::types::SeqKind::CStr(true) },
                 };
                 let (l, bad) = self.cstr_make(fi, arg, &out, slots)?;
-                let _ = self.builder.build_conditional_branch(bad, arm, good);
+                // A bounded `C.str` (owner, 2026-10-19): whether the text
+                // can hold a 0 byte (so `has_zero_byte` is reason 0), and the
+                // length with its 0 that fits.
+                let bounded = match (args.get(1), args.get(2), args.get(3)) {
+                    (Some(Arg::Value(Operand::Const(Const::Bool(z)))), Some(Arg::Value(Operand::Const(Const::Int(lo)))), Some(Arg::Value(Operand::Const(Const::Int(hi))))) => Some((*z, *lo as u64, *hi as u64)),
+                    _ => None,
+                };
+                let zero_arm = arm_of(0)?;
+                if let Some((zero_reason, lo, hi)) = bounded {
+                    if zero_reason {
+                        let made = self.ctx.append_basic_block(func, "cstr_made");
+                        let _ = self.builder.build_conditional_branch(bad, zero_arm, made);
+                        self.builder.position_at_end(made);
+                    }
+                    let n = self.builder.build_extract_value(l.into_struct_value(), 1, "len").ok()?.into_int_value();
+                    let w = self.ctx.i64_type();
+                    let short = self.builder.build_int_compare(IntPredicate::ULT, n, w.const_int(lo, false), "short").ok()?;
+                    let long = self.builder.build_int_compare(IntPredicate::UGT, n, w.const_int(hi, false), "long").ok()?;
+                    let out_ = self.builder.build_or(short, long, "out_of_range").ok()?;
+                    let off = self.ctx.append_basic_block(func, "cstr_out_of_range");
+                    let _ = self.builder.build_conditional_branch(out_, off, good);
+                    // Too long or too short: what was made is given back.
+                    self.builder.position_at_end(off);
+                    let data = self.builder.build_extract_value(l.into_struct_value(), 0, "data").ok()?.into_pointer_value();
+                    self.free_mem(data);
+                    let _ = self.builder.build_unconditional_branch(arm_of(if zero_reason { 1 } else { 0 })?);
+                } else {
+                    let _ = self.builder.build_conditional_branch(bad, zero_arm, good);
+                }
                 self.builder.position_at_end(good);
                 if let Some(d) = dest {
                     self.store_place(fi, d, l, slots);
@@ -91,6 +119,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
             }
             Op::CStrRead => {
+                let arm = arm_of(0)?;
                 let src = self.cstr_start(fi, arg, slots)?;
                 let text_ty = self.ty(&crate::types::Ty::utf8())?;
                 let out = self.stack(text_ty, "text").ok()?;

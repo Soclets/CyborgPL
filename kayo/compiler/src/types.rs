@@ -48,12 +48,44 @@ pub enum Unit {
     Free(InferId),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy)]
 pub enum SeqKind {
     List,
     Array,
     /// Never grown → array; Precog decides.
     Free(InferId),
+    /// A C string, `C.str` (owner, 2026-10-19): its bytes and the closing 0,
+    /// lent to C as a pointer. Its length counts the 0; the flag is whether
+    /// a bound counts it too (`include zero`) or not (`exclude zero`).
+    CStr(bool),
+}
+
+/// A C string's `include zero` is how its bound is written, not what it
+/// is: every two `C.str`s compare equal, as `Said` does.
+impl PartialEq for SeqKind {
+    fn eq(&self, o: &Self) -> bool {
+        match (self, o) {
+            (SeqKind::List, SeqKind::List) | (SeqKind::Array, SeqKind::Array) | (SeqKind::CStr(_), SeqKind::CStr(_)) => true,
+            (SeqKind::Free(a), SeqKind::Free(b)) => a == b,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for SeqKind {}
+
+impl std::hash::Hash for SeqKind {
+    fn hash<H: std::hash::Hasher>(&self, h: &mut H) {
+        match self {
+            SeqKind::List => 0u8.hash(h),
+            SeqKind::Array => 1u8.hash(h),
+            SeqKind::Free(a) => {
+                2u8.hash(h);
+                a.hash(h);
+            }
+            SeqKind::CStr(_) => 3u8.hash(h),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -465,11 +497,12 @@ impl<'a> fmt::Display for TySpelling<'a> {
                 Unit::Grapheme => write!(f, "char.grapheme"),
                 Unit::Free(_) => write!(f, "char"),
             },
+            Ty::Seq { kind: SeqKind::CStr(_), .. } => write!(f, "C.str"),
             Ty::Seq { elem, kind } => {
                 let k = match kind {
                     SeqKind::List => "list",
                     SeqKind::Array => "array",
-                    SeqKind::Free(_) => "list",
+                    SeqKind::Free(_) | SeqKind::CStr(_) => "list",
                 };
                 write!(f, "{}[{}]", k, sp(elem))
             }
@@ -515,6 +548,21 @@ impl<'a> fmt::Display for TySpelling<'a> {
             Ty::Var(i) => write!(f, "<blank {}>", i),
             // As a bound is written (owner, 2026-10-12): labelled, a number's
             // sides as they were written, a length's 0 and no limit left out.
+            // A bounded C string, as written: its length without the 0, or
+            // with it, and which (owner, 2026-10-19).
+            Ty::Bounded { inner, bound: Bound::Len { lo, hi, .. } } if matches!(inner.base(), Ty::Seq { kind: SeqKind::CStr(_), .. }) => {
+                let Ty::Seq { kind: SeqKind::CStr(zero), .. } = inner.base() else { unreachable!() };
+                let shown = |n: u64| if *zero { n } else { n.saturating_sub(1) };
+                let mut parts = Vec::new();
+                if shown(*lo) > 0 {
+                    parts.push(format!("min {}", shown(*lo)));
+                }
+                if *hi != u64::MAX {
+                    parts.push(format!("max {} bytes", shown(*hi)));
+                }
+                parts.push(if *zero { "include zero".to_string() } else { "exclude zero".to_string() });
+                write!(f, "C.str[{}]", parts.join(", "))
+            }
             Ty::Bounded { inner, bound } => {
                 write!(f, "{}", sp(inner))?;
                 let labelled = |lo: Option<String>, hi: Option<String>, unit: &str| match (lo, hi) {

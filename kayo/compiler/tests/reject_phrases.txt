@@ -852,3 +852,5 @@ c_str_unknown [fnv:277a6b68047c3a03] :: C strings are `C.str.read['p']` and `C.s
 union_read_unchecked [fnv:dbe9fbc4c272acfe] :: reading 'n'.i is a `no_check` site
 union_two_fields [fnv:0ae2b27570af8ade] :: it holds one field at a time, so give exactly one
 c_lib_named_file [fnv:ab4a4d692af538d5] :: without `lib` or a file ending
+cstr_bound_needs_zero [fnv:cce691df7d8c3123] :: says whether its closing 0 counts
+cstr_bound_graphemes [fnv:c0026764164a0267] :: a C string is counted in bytes, not graphemes

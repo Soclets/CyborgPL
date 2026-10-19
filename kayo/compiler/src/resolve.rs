@@ -1267,8 +1267,25 @@ impl Items {
                 let inner_ty = self.resolve_type(inner, m, blanks, allow_blanks)?;
                 err(Diagnostic::error(format!("`{}[bits {}]` is a C bit-field: it is for a `layout.C` struct's fields, where C packs them", spell(&inner_ty, self), bits)).at(*span))
             }
-            ast::TypeKind::Bound { inner, lo, hi, unit, span, old } => {
+            ast::TypeKind::Bound { inner, lo, hi, unit, span, old, zero } => {
                 let base = self.resolve_type(inner, m, blanks, allow_blanks)?;
+                // A C string's bound (owner, 2026-10-19): in bytes, and
+                // whether its closing 0 counts, said every time.
+                if let Ty::Seq { kind: SeqKind::CStr(_), elem } = &base {
+                    if let Some(u) = unit.as_ref().filter(|u| !matches!(u.name.as_str(), "bytes" | "byte")) {
+                        return err(Diagnostic::error(format!("a C string is counted in bytes, not {}: C has no {}", u.name, u.name)).at(u.span));
+                    }
+                    let Some((include, _)) = zero else {
+                        return err(Diagnostic::error("a bounded C string says whether its closing 0 counts: `C.str[max 255 bytes, exclude zero]` (the text, the 0 on top) or `C.str[max 256 bytes, include zero]` (the whole buffer) (owner, 2026-10-19)").at(*span));
+                    };
+                    let (l, h) = len_bounds(lo, hi, *span)?;
+                    // Held as the length with the 0, which a C string always has.
+                    let (l, h) = if *include { (l.max(1), h) } else { (l.saturating_add(1), h.saturating_add(1)) };
+                    return Ok(Ty::Bounded { inner: Box::new(Ty::Seq { elem: elem.clone(), kind: SeqKind::CStr(*include) }), bound: Bound::Len { lo: l, hi: h, unit: Some(Unit::Byte) } });
+                }
+                if let Some((_, at)) = zero {
+                    return err(Diagnostic::error("`exclude zero` and `include zero` are for a C string's bound, `C.str[max 255 bytes, exclude zero]`").at(*at));
+                }
                 if *old {
                     // Whether it takes a bound comes before how one is
                     // written (owner, 2026-10-12, labelled bounds).
@@ -1485,6 +1502,11 @@ impl Items {
             match head {
                 // C's machine-sized types (owner, 2026-10-10), CNC's: each
                 // read as the Nerve type it is on the target.
+                // A C string (owner, 2026-10-19), made by `C.str.make`.
+                "C" if path.segs.len() == 2 && path.seg(1) == Some("str") => {
+                    no_args("C.str")?;
+                    return Ok(Ty::Seq { elem: Box::new(Ty::int(false, 8)), kind: SeqKind::CStr(true) });
+                }
                 "C" if path.segs.len() == 2 => {
                     no_args(&path.spelled())?;
                     let name = path.seg(1).unwrap_or("");

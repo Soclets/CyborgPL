@@ -3998,11 +3998,37 @@ impl Checker {
                 if !matches!(at.base(), Ty::Str(_)) {
                     return err(Diagnostic::error(format!("`C.str.make` makes a C string of a text, and this is {}", crate::types::a_type(&self.spell(&at)))).at(positional[0].span));
                 }
-                let literal_without_zero = matches!(&a, Arg::Value(Expr { kind: K::Str(s), .. }) if !s.contains('\0'));
-                if !literal_without_zero {
+                let literal = match &a {
+                    Arg::Value(Expr { kind: K::Str(s), .. }) => Some(s.clone()),
+                    _ => None,
+                };
+                let zero_fail = !literal.as_ref().is_some_and(|s| !s.contains('\0'));
+                if zero_fail {
                     fails.push(("has_zero_byte".into(), None));
                 }
-                (vec![a], Ty::list(Ty::int(false, 8)))
+                // Written straight into a bounded `C.str`, it is made that
+                // type, and fails `out_of_range` when it does not fit (design
+                // claude's reading, as any conversion into a range type);
+                // a literal that fits cannot.
+                let cstr = Ty::Seq { elem: Box::new(Ty::int(false, 8)), kind: SeqKind::CStr(true) };
+                let hint = self.store_hint.clone().filter(|(t, s)| *s == span && matches!(t.base(), Ty::Seq { kind: SeqKind::CStr(_), .. }));
+                let mut args = vec![a];
+                let ty = match hint {
+                    Some((t, _)) => {
+                        if let Some(Bound::Len { lo, hi, .. }) = t.bound() {
+                            let fits = literal.as_ref().is_some_and(|s| (s.len() as u64 + 1) >= *lo && (s.len() as u64 + 1) <= *hi);
+                            if !fits {
+                                fails.push(("out_of_range".into(), None));
+                                args.push(Arg::Value(Expr { kind: K::Bool(zero_fail), ty: Ty::Bool, span }));
+                                args.push(Arg::Value(Expr { kind: K::Int(*lo as i128), ty: Ty::u64(), span }));
+                                args.push(Arg::Value(Expr { kind: K::Int(*hi as i128), ty: Ty::u64(), span }));
+                            }
+                        }
+                        t
+                    }
+                    None => cstr,
+                };
+                (args, ty)
             }
             Builtin::PtrRead | Builtin::PtrWrite | Builtin::PtrAt | Builtin::PtrIsNull => {
                 match b {
@@ -4494,7 +4520,9 @@ impl Checker {
 fn std_name(path: &ast::Path) -> bool {
     let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
     match segs.as_slice() {
-        ["print" | "printu" | "printf" | "format", ..] => true,
+        // `printu` and `printf` are std's old spellings, refused written
+        // with `std::`; bare, `printf` is C's (design claude, 2026-10-19).
+        ["print" | "format", ..] => true,
         ["exit" | "round" | "floor" | "ceil" | "trunc"] => true,
         ["round", _] => true,
         ["time" | "input", _, ..] => true,
@@ -5027,9 +5055,9 @@ fn conv_form(target: &ast::Type) -> Result<(Option<bool>, Option<ast::Type>)> {
             p.segs.remove(0);
             Ok((Some(path.segs[0].name == "useful"), Some(ast::Type { kind: ast::TypeKind::Path { path: p, args: args.clone() }, span: target.span })))
         }
-        ast::TypeKind::Bound { inner, lo, hi, unit, span, old } => {
+        ast::TypeKind::Bound { inner, lo, hi, unit, span, old, zero } => {
             let (form, inner2) = conv_form(inner)?;
-            Ok((form, inner2.map(|i| ast::Type { kind: ast::TypeKind::Bound { inner: Box::new(i), lo: lo.clone(), hi: hi.clone(), unit: unit.clone(), span: *span, old: *old }, span: target.span })))
+            Ok((form, inner2.map(|i| ast::Type { kind: ast::TypeKind::Bound { inner: Box::new(i), lo: lo.clone(), hi: hi.clone(), unit: unit.clone(), span: *span, old: *old, zero: *zero }, span: target.span })))
         }
         _ => Ok((None, None)),
     }

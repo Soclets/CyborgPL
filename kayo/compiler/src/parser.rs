@@ -2659,8 +2659,10 @@ impl<'a> Parser<'a> {
                 ty = Type { span: start.to(self.prev_span()), kind: TypeKind::Bits { inner: Box::new(ty), bits: n, span } };
                 continue;
             }
+            let mut zero = None;
             let (lo, hi, unit, span, old) = if self.is_word_at(1, "min") || self.is_word_at(1, "max") {
-                let (lo, hi, unit, span) = self.labelled_bound()?;
+                let (lo, hi, unit, span, z) = self.labelled_bound()?;
+                zero = z;
                 (lo, hi, unit, span, false)
             } else {
                 // `[lo, hi]`: read as it was, to be refused once the type is
@@ -2674,7 +2676,7 @@ impl<'a> Parser<'a> {
             };
             let side = |e: Option<Expr>, w: &str| e.unwrap_or_else(|| Expr { kind: ExprKind::Path(Path { kit: None, segs: vec![Ident { name: w.into(), span }], span }), span });
             let (lo, hi) = (side(lo, "min"), side(hi, "max"));
-            ty = Type { span: start.to(self.prev_span()), kind: TypeKind::Bound { inner: Box::new(ty), lo: Box::new(lo), hi: Box::new(hi), unit, span, old } };
+            ty = Type { span: start.to(self.prev_span()), kind: TypeKind::Bound { inner: Box::new(ty), lo: Box::new(lo), hi: Box::new(hi), unit, span, old, zero } };
         }
         Ok(ty)
     }
@@ -2682,7 +2684,7 @@ impl<'a> Parser<'a> {
     /// `[min 0, max 100]`, `[min 1]`, `[max 100]`, a unit after the last
     /// number (`[min 1, max 40 graphemes]`), from the `[` at the cursor: each
     /// side said, `None` for one left out.
-    fn labelled_bound(&mut self) -> Result<(Option<Expr>, Option<Expr>, Option<Ident>, Span)> {
+    fn labelled_bound(&mut self) -> Result<(Option<Expr>, Option<Expr>, Option<Ident>, Span, Option<(bool, Span)>)> {
         let bstart = self.bump().span;
         if !(self.is_word("min") || self.is_word("max")) {
             return self.fail_at(bstart, "a bound says which it is: `int32[min 0, max 100]` (`[min 1]` alone is \"at least 1\") (owner, 2026-10-12)");
@@ -2714,8 +2716,20 @@ impl<'a> Parser<'a> {
         } else {
             None
         };
+        // A C string's bound says whether its closing 0 counts (owner,
+        // 2026-10-19): `exclude zero` or `include zero`.
+        let mut zero = None;
+        if self.is(&Tok::Comma) && (self.is_word_at(1, "exclude") || self.is_word_at(1, "include")) {
+            self.bump();
+            let at = self.span();
+            let include = self.bump().tok == Tok::Word("include".into());
+            if !self.eat_word("zero") {
+                return self.fail("a C string's bound says `exclude zero` or `include zero`: whether its closing 0 counts");
+            }
+            zero = Some((include, at.to(self.prev_span())));
+        }
         self.expect(&Tok::RBracket, "`]` closing the bound")?;
-        Ok((lo, hi, unit, bstart.to(self.prev_span())))
+        Ok((lo, hi, unit, bstart.to(self.prev_span()), zero))
     }
 
     /// Is the bracket at the cursor a bound rather than type arguments or a
@@ -4394,7 +4408,7 @@ impl<'a> Parser<'a> {
                     // `channel[T][max 10]` (owner, 2026-10-12): a `min`
                     // written is 0; with no bound it is a hand-off.
                     let bound = if self.is(&Tok::LBracket) {
-                        let (lo, hi, _, span) = self.labelled_bound()?;
+                        let (lo, hi, _, span, _) = self.labelled_bound()?;
                         let Some(hi) = hi else {
                             return self.fail_at(span, "a bounded channel says how much it holds: `channel[T][max 100]`; with no bound it is a hand-off");
                         };

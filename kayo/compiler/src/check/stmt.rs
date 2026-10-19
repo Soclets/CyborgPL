@@ -322,11 +322,13 @@ impl Checker {
                     ctx.lend_call_ok = Some(value.span);
                 }
                 // `let 'f': fn[…] = op +;` takes its type from the declaration.
+                self.store_hint = declared.as_ref().map(|t| (self.resolve(t), value.span));
                 let v = match (&value.kind, declared.as_ref().map(|t| self.resolve(t))) {
                     (ast::ExprKind::OpValue { op, spelled, unary }, Some(Ty::Fn(ft))) => self.op_value(ctx, op, spelled, *unary, &ft, value.span),
                     _ => self.expr_top(ctx, value, true),
                 };
                 ctx.lend_call_ok = saved;
+                self.store_hint = None;
                 let v = v?;
                 let lends = self.call_lends(&v);
                 if let hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::ListAppend), .. } = &v.kind {
@@ -425,7 +427,10 @@ impl Checker {
             }
             ast::StmtKind::Assign { target, value } => {
                 let place = self.place(ctx, target, PlaceUse::Write)?;
-                let v = self.expr_top(ctx, value, true)?;
+                self.store_hint = Some((self.resolve(&place.ty), value.span));
+                let v = self.expr_top(ctx, value, true);
+                self.store_hint = None;
+                let v = v?;
                 let pt = self.resolve(&place.ty);
                 let what = self.place_name(ctx, &place);
                 let v = self.expect_store(ctx, v, &pt, &what)?;

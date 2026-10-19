@@ -71,6 +71,10 @@ pub struct PowerUse {
 pub struct Checker {
     /// Every use of a power met while checking (owner, 2026-10-07).
     pub power_uses: Vec<PowerUse>,
+    /// The type a value is stored into, and where the value is: what a
+    /// `C.str.make` written there makes (owner, 2026-10-19: a bounded
+    /// `C.str` it may not fit).
+    pub store_hint: Option<(Ty, Span)>,
     pub items: Items,
     pub instances: Vec<Instance>,
     inst_index: HashMap<InstKey, FnInst>,
@@ -212,7 +216,7 @@ impl FnCtx {
 impl Checker {
     pub fn new(items: Items) -> Checker {
         let n = items.consts.len();
-        Checker { power_uses: Vec::new(), items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new(), mut_seen: HashMap::new() }
+        Checker { power_uses: Vec::new(), store_hint: None, items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new(), mut_seen: HashMap::new() }
     }
 
     pub fn fresh(&mut self) -> Ty {

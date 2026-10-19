@@ -983,7 +983,8 @@ Dated, with the alternative, so each can become a question later.
   one out of range: it now shows the end that is out.
 - **2026-10-19 — C for public v1** (owner; `design/ffi.md`).
   - **C strings.** `C.str.make[lend 's']` is the text's bytes and a 0, a
-    `list[uint8]` the program owns (`lend` it to C for a call, `give` it if
+    `C.str` (owner: its type; held as a list of bytes, `SeqKind::CStr`) the
+    program owns (`lend` it to C for a call, `give` it if
     C keeps it), failing `has_zero_byte`; a literal with no 0 byte cannot
     fail. `C.str.read['p']` (or `lend 'cs'`) reads up to the 0 into a text,
     failing `not_utf8`. The runtime does both (`cyborg_cstr_make`,
@@ -1011,3 +1012,13 @@ Dated, with the alternative, so each can become a question later.
     names them, handed to lld as `-l`, with Homebrew's folders searched
     after the SDK's (sqlite3 from the SDK and zstd from Homebrew linked and
     called). A file name (`libsqlite3.dylib`) is refused.
+- **2026-10-19 — A bounded `C.str`** (owner: "(a)"): `C.str[max 255 bytes,
+  exclude zero]` (the text, the 0 on top) or `C.str[max 256 bytes, include
+  zero]` (the whole buffer), always saying which, in bytes only; `min` too.
+  Held as the length with the 0, which every C string has, and spelled back
+  as written; two `C.str`s are one type whichever they say. `C.str.make`
+  written straight into one is made that type and fails `out_of_range`
+  when it does not fit, the string made given back (design claude's
+  reading); a literal that fits cannot fail. Precog knows a made string's
+  length (the text's bytes and 1, within the bound), so storing one is
+  proven.

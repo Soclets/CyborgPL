@@ -1892,6 +1892,22 @@ impl Precog {
         if matches!(op, Op::PtrRead) {
             self.reads_outside = true;
         }
+        // A made C string (owner, 2026-10-19): the text's bytes and its 0,
+        // and within its bound when the make checks one.
+        if matches!(op, Op::CStrMake) {
+            let bytes = match arg(self, 0) {
+                Domain::Text { len, .. } => len.get(crate::types::Unit::Byte).bounds(),
+                _ => None,
+            };
+            let mut len = match bytes {
+                Some((lo, hi)) => ISet::Range { lo: lo + 1, hi: hi.saturating_add(1) },
+                None => ISet::Range { lo: 1, hi: i64::MAX as i128 },
+            };
+            if let (Some(Operand::Const(Const::Int(lo))), Some(Operand::Const(Const::Int(hi)))) = (args.get(2), args.get(3)) {
+                len = len.clamp(*lo, *hi);
+            }
+            return Domain::Seq { len, elem: Box::new(Domain::of_ty(&Ty::int(false, 8), &self.prog().items)) };
+        }
         match op {
             Op::ListLength | Op::ArrayLength => match arg(self, 0) {
                 Domain::Seq { len, .. } => Domain::Ints(len),
