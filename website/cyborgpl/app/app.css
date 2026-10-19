@@ -115,7 +115,7 @@ html.ready .topbar { animation: drop .7s cubic-bezier(.2, .8, .2, 1) both; }
 .chart-row.is-ours .chart-name { color: var(--accent); font-weight: 700; }
 .chart-track { height: 12px; }
 .chart-bar { display: block; height: 100%; border-radius: 0 4px 4px 0; background: #6e6e6e; transform-origin: left; }
-.chart-row.is-ours .chart-bar { background: var(--ink); }
+.chart-row.is-ours .chart-bar { background: var(--accent); }
 .chart-value { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; text-align: right; color: rgba(255, 255, 255, .7); }
 .chart-row.is-ours .chart-value { color: var(--accent); font-weight: 700; }
 .chart-tip { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 2; display: flex; gap: 12px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: #161616; font: 12px var(--mono); color: rgba(255, 255, 255, .7); white-space: nowrap; pointer-events: none; }

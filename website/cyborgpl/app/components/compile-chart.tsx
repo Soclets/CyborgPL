@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { CompileRow, CompileRun } from "../data/compile-times";
 
 // How long each language takes to build the four bench programs, as one bar each on one linear
-// axis: CyborgPL's in white, the others in grey, every bar named and labelled with its time, the
+// axis: CyborgPL's in bold's orange, the others in grey, every bar named and labelled with its time, the
 // per-program split on hover, and a table for screen readers.
 const PROGRAMS = ["sum", "fib", "lists", "sieve"] as const;
 const total = (r: CompileRow) => r.total;
