@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — A C union: `layout.C union`, reading a field is a `no_check` site (owner: a)
+
+The first half of public v1's sixth C gap. A C union holds one of several things at a time, and nothing in it says
+which. Offered (a) `layout.C union Number { i: int32, f: bin32 }`, reading a field a `no_check` site (the programmer
+vouches which field is live), writing always safe (recommended), or (b) reading freely, as C does. The owner: "(a)".
+So **`no_check let 'x' := 'n'.i;`**: a read of a union's field is on the programmer's word and listed in the build
+report; a write needs nothing. Bit-fields are asked next.
+
 ### 2026-10-19 — A C function under another name: `extern.C fn printf_count = C.printf […] -> int32;` (owner: c)
 
 For variadic fixed shapes (entry below), how a declaration names the C function it really calls. Offered (a)
