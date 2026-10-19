@@ -383,15 +383,19 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                             ("::cyjet.dep.path".to_string(), vec![("path".to_string(), ast::Bracket { values: vec![ast::Value::Expr(ast::Expr::Text(t.clone(), c.line))], line: c.line, one_list: false })], c.line)
                         }
                         // std from the folder it is being written in (owner, 2026-10-14: listing it takes std's place; 2026-10-19: "(b)")
+                        // `cyjet::dep.std` was this for a few hours (owner: "(b)"), then a folder narrowed to std: "(a)", same day
                         ast::Expr::Call(c) if c.kit.as_deref() == Some("cyjet") && c.path == ["dep", "std"] => {
-                            let [ast::Value::Expr(ast::Expr::Text(t, _))] = c.args.values.as_slice() else { return Err(format!("{shown}: line {}: std from a folder is one text, the folder: `cyjet::dep.std[\"../std\"]`", c.line)) };
+                            return Err(format!("{shown}: line {}: {}", c.line, crate::spellings::message(crate::spellings::old("cyjet::dep.std"))));
+                        }
+                        ast::Expr::Call(c) if c.kit.as_deref() == Some("cyjet") && c.path == ["dep", "path", "std"] => {
+                            let [ast::Value::Expr(ast::Expr::Text(t, _))] = c.args.values.as_slice() else { return Err(format!("{shown}: line {}: std from a folder is one text, the folder: `cyjet::dep.path.std[\"../std\"]`", c.line)) };
                             if deps.iter().any(|x: &Dep| x.is_std()) { return Err(format!("{shown}: line {}: std is listed twice", c.line)); }
                             // the oracle stands in for std wherever it is listed from
                             deps.push(Dep { what: "std".into(), path: Some(t.clone()), version: None, id: Some(parser::STD_ID.into()) });
                             continue;
                         }
                         ast::Expr::Construct(shape, fields, line) => (shape, fields, line),
-                        _ => return Err(format!("{shown}: line {line}: a dependency is `cyjet::dep.path[\"…\"]` (a folder), `cyjet::dep.reg[id = …, version = …]` (the registry) or `cyjet::dep.std[\"…\"]` (std from its folder)")),
+                        _ => return Err(format!("{shown}: line {line}: a dependency is `cyjet::dep.path[\"…\"]` (a folder), `cyjet::dep.reg[id = …, version = …]` (the registry) or `cyjet::dep.path.std[\"…\"]` (std from its folder)")),
                     };
                     if shape == "::cyjet.dep" {
                         // std by its ID from a folder was `cyjet::dep[id = <std's>, path = …]` (owner, 2026-10-14)

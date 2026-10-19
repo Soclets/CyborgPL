@@ -1,0 +1,7 @@
+cyjet::manifest[
+    name = "t",
+    prefix = "t",
+    version = "1.0.0",
+    dependencies = [cyjet::dep.std["../../../../std"],],
+    targets = [cyjet::target[name = "aarch64-macos"],]
+];

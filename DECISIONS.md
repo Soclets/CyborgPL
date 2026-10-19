@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — std from its folder is `cyjet::dep.path.std["…"]`, a folder narrowed to std (owner: a)
+
+The owner, of the entry below: "Shouldn't it be `cyjet::dep.path.std` or `cyjet::dep.std.path`?" Design claude agreed
+std is not a third kind of source (the installed std still comes through `dep.reg` with std's ID): it is a folder
+that is std. Offered (a) `cyjet::dep.path.std`, general to specific as `div.floor` and `simd.load.some` go
+(recommended), or (b) `cyjet::dep.std.path`. The owner: "(a)". So **`cyjet::dep.path.std["../std"]`**; `cyjet::dep.std`
+(hours old) and the 2026-10-14 `cyjet::dep[id = <std's>, path = …]` are refused naming it.
+
 ### 2026-10-19 — Any `layout.C` struct may cross to C by value, going in and coming back (owner: a)
 
 The fourth of public v1's six C gaps. Offered (a) any `layout.C` struct by value, in and out, kayo following the

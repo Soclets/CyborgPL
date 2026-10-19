@@ -3,6 +3,6 @@ cyjet::manifest[
     prefix = "std_from_folder",
     version = "1.0.0",
     # std from the folder it is being written in, in place of the installed one (owner, 2026-10-14; 2026-10-19: "(b)")
-    dependencies = [cyjet::dep.std["../../std"],],
+    dependencies = [cyjet::dep.path.std["../../std"],],
     targets = [cyjet::target[name = "aarch64-macos"],]
 ];
