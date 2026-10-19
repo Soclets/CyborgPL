@@ -52,11 +52,16 @@ What no_cheat costs, its time over the cheat build's: 3 threads sum 1.52×, fib 
   - sum (and likely sieve): under `no_cheat` kayo keeps the loop's step `by 1` as a value worked out at run time, so
     the loop takes the general form (signed step, 128-bit trip-count arithmetic; seen in the machine code). Knowing
     the step is not skipping work, so this is slower than the ruling asks.
-  - lists on one thread, 1.93×: design claude's reading, not verified in the IR: the cheat build sums `'xs'` once
-    for the 10 identical rounds, which `no_cheat` rightly forbids; C's 0.042 s suggests clang does the same.
+  - lists on one thread, 1.93×: not skipped rounds (measured below); the no_cheat inner loop is slower, 5.6 ms a
+    round against 2.1 ms for the cheat build and for C, likely the same general loop form as sum's.
   - The build report under `no_cheat` lists some functions and loops twice, says sum's loop "stays in order" though
     it is split across cores, and gives fib's missing table the wrong reason ("a check … is not proven" instead of
     `no_cheat`).
+- **Are the other languages' numbers fair?** Checked for the owner the same day, on one thread: fib's time per N
+  grows 1.599 to 1.611× in CyborgPL no_cheat, C, Rust, Go and Zig (every call made; φ = 1.618), Fortran's 0.97×
+  (flat). lists with 40 rounds instead of 10 takes 2.3 to 3.3× as long in every language, CyborgPL's cheat build
+  included (2.55×), so nobody skips rounds. sum and sieve at double N take 1.97 to 2.22× as long everywhere. So
+  **every number is like-for-like except Fortran's fib** (and CyborgPL's cheat fib, the table).
 
 ## 2026-10-19: compile time, source to final executable (owner, through website claude)
 
