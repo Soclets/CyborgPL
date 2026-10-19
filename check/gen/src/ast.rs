@@ -511,6 +511,9 @@ pub struct Program {
     /// `to.uint8[5]` written `5: uint8` every other time (owner, 2026-10-17;
     /// oracle e88f86be): the colon covers only the literal before it.
     pub typed_lits: bool,
+    /// Every third whole literal of 0 or more written `binary …`, `hex …`
+    /// or `octal …` in turn (owner, 2026-10-19): the same number.
+    pub based_lits: bool,
     /// Omit parentheses where design/operators.md says they are not needed.
     pub loose: bool,
     /// Holds values my exact evaluator does not model (deci, bin, text):
@@ -623,6 +626,9 @@ struct Wr<'a> {
     tlits: usize,
     /// How many plain lets of a call so far, for `no_cheat`.
     cheats: usize,
+    based_lits: bool,
+    /// How many whole literals of 0 or more so far, for the bases.
+    bases: usize,
     /// The declarations something changes (see `changed_decls`), by address.
     changed: std::collections::HashSet<usize>,
     out: String,
@@ -676,6 +682,28 @@ impl<'a> Wr<'a> {
     }
     fn inner(&mut self, e: &Expr) {
         match e {
+            Expr::Lit(v) if self.based_lits && *v >= 0 && { self.bases += 1; self.bases % 3 == 0 } => {
+                let (word, digits) = match (self.bases / 3) % 3 {
+                    0 => ("binary", format!("{v:b}")),
+                    1 => ("hex", if (self.bases / 9) % 2 == 0 { format!("{v:X}") } else { format!("{v:x}") }),
+                    _ => ("octal", format!("{v:o}")),
+                };
+                // `_` grouping, as in decimals, in fours from the right when long
+                let grouped = if digits.len() > 4 && (self.bases / 3) % 2 == 1 {
+                    let d: Vec<char> = digits.chars().collect();
+                    let mut out = String::new();
+                    for (i, c) in d.iter().enumerate() {
+                        if i > 0 && (d.len() - i) % 4 == 0 {
+                            out.push('_');
+                        }
+                        out.push(*c);
+                    }
+                    out
+                } else {
+                    digits
+                };
+                self.out.push_str(&format!("{word} {grouped}"));
+            }
             Expr::Lit(v) => self.out.push_str(&v.to_string()),
             Expr::Bool(b) => self.out.push_str(&b.to_string()),
             Expr::Var(n) => self.out.push_str(&q(n)),
@@ -1047,7 +1075,7 @@ impl Program {
     /// The same text as `render`, with every node's place in it.
     pub fn render_spans(&self) -> (String, Spans) {
         let changed = changed_decls(self);
-        let mut w = Wr { new_words: self.new_words, syms: 0, typed_lits: self.typed_lits, tlits: 0, cheats: 0, changed, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
+        let mut w = Wr { new_words: self.new_words, syms: 0, typed_lits: self.typed_lits, tlits: 0, cheats: 0, based_lits: self.based_lits, bases: 0, changed, out: String::new(), loose: self.loose, expr: vec![], stmt: vec![], indent: 0, strict: self.strict, _p: std::marker::PhantomData };
         w.out.push_str(&format!("# check claude generator, seed {}\n", self.seed));
         // `extern.C`, one line each, or as a block (owner, 2026-10-02: "both");
         // the block where there are three, so both forms are written
