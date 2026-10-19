@@ -3162,7 +3162,7 @@ impl Checker {
         };
         let body = crate::ast::Block { stmts: vec![crate::ast::Stmt { kind: crate::ast::StmtKind::Return(Some(value)), span }], span };
         let fn_id = FnId(self.items.fns.len() as u32);
-        self.items.fns.push(crate::resolve::FnDeclInfo { name: format!("op {}", spelled), path: String::new(), module: ctx.module, vis: crate::ast::Vis::Private, params, ret: ft.ret.clone(), ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: Some(body), op: None, is_literal: true, test: false, span, name_span: span });
+        self.items.fns.push(crate::resolve::FnDeclInfo { name: format!("op {}", spelled), path: String::new(), module: ctx.module, vis: crate::ast::Vis::Private, params, ret: ft.ret.clone(), ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: Some(body), op: None, is_literal: true, test: false, table_bytes: None, span, name_span: span });
         let key = InstKey { fn_id, blanks: Vec::new(), bundle: None, owning: Vec::new() };
         let inst = self.instance(key);
         self.check_literal_now(inst, Vec::new())?;

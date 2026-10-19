@@ -32,9 +32,27 @@ fn clang() -> PathBuf {
     }
 }
 
+thread_local! {
+    /// Every `incl.C` line read in this build, as written, and how many
+    /// declarations it brought: for the build report (owner, 2026-10-19).
+    static READ: std::cell::RefCell<Vec<(String, usize)>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// The `incl.C` lines this build read, and how many declarations each brought.
+pub fn read_lines() -> Vec<(String, usize)> {
+    READ.with(|r| r.borrow().clone())
+}
+
 /// The Nerve declarations an `incl.C` line stands for, as source text, one
 /// item a line; or why there are none, said after the line's own spelling.
 pub fn declare(system: bool, paths: &[String], root: &Path) -> Result<Vec<Decl>, String> {
+    let found = declare_inner(system, paths, root)?;
+    let spelled = format!("incl.C{}[{}]", if system { ".system" } else { "" }, paths.iter().map(|p| format!("\"{}\"", p)).collect::<Vec<_>>().join(", "));
+    READ.with(|r| r.borrow_mut().push((spelled, found.len())));
+    Ok(found)
+}
+
+fn declare_inner(system: bool, paths: &[String], root: &Path) -> Result<Vec<Decl>, String> {
     let mut unit = String::new();
     for p in paths {
         if system {

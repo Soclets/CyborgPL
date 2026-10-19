@@ -57,6 +57,32 @@ pub struct NotYet {
 
 pub struct Lowered<'ctx> {
     pub module: Module<'ctx>,
+    /// Every struct the program holds, laid out for the target: for the
+    /// build report's Sizes (owner, 2026-10-19).
+    pub structs: Vec<StructLayout>,
+    /// Every kit-level `const` with a size the target gives it.
+    pub consts: Vec<(String, String, u64)>,
+}
+
+/// One struct as the target lays it out.
+pub struct StructLayout {
+    pub name: String,
+    pub size: u64,
+    pub align: u32,
+    /// Each field: its name, type, where it starts, its size, and the
+    /// padding after it.
+    pub fields: Vec<(String, String, u64, u64, u64)>,
+}
+
+/// What the object's writing did, for the build report.
+#[derive(Default)]
+pub struct ObjectFacts {
+    /// Calls the recursive inliner inlined (`llvm-passes/`).
+    pub recursion_inlined: u32,
+    /// Functions whose optimised code works on vectors (SIMD), by symbol.
+    pub vector_fns: Vec<String>,
+    pub optimize_time: std::time::Duration,
+    pub emit_time: std::time::Duration,
 }
 
 pub fn lower<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, name: &str) -> Result<Lowered<'ctx>, Vec<NotYet>> {
@@ -103,7 +129,9 @@ pub fn lower_for<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, nam
     if let Err(e) = module.verify() {
         return Err(vec![NotYet { what: format!("LLVM refused the code kayo generated — this is a bug in kayo, not in the program:\n       {}", e.to_string().replace('\n', "\n       ")), span: None }]);
     }
-    Ok(Lowered { module })
+    let structs = cg.struct_layouts();
+    let consts = cg.const_sizes();
+    Ok(Lowered { module, structs, consts })
 }
 
 struct Cg<'a, 'ctx> {
@@ -4485,7 +4513,8 @@ fn write_tv(module: &Module, machine: &TargetMachine, dir: &Path) -> Result<(), 
 /// With `emit`, the module is written there twice as text: `before.ll`, as
 /// CCA hands it to LLVM (Precog's `nsw`/`nuw` and facts in it), and
 /// `after.ll`, what LLVM's passes made of it and the backend gets.
-pub fn write_object(module: &Module, path: &Path, emit: Option<&Path>) -> Result<(), String> {
+pub fn write_object(module: &Module, path: &Path, emit: Option<&Path>) -> Result<ObjectFacts, String> {
+    let mut facts = ObjectFacts::default();
     let machine = machine()?;
     module.set_triple(&host_triple());
     module.set_data_layout(&machine.get_target_data().get_data_layout());
@@ -4513,7 +4542,10 @@ pub fn write_object(module: &Module, path: &Path, emit: Option<&Path>) -> Result
     // every local in memory, nothing inlined, no loop touched — and ran at
     // up to 5.6x C's time. Precog's proofs reach it as `nsw`/`nuw` and as
     // checks that are simply not there.
-    optimize(module, &machine);
+    let started = std::time::Instant::now();
+    facts.recursion_inlined = optimize(module, &machine);
+    facts.optimize_time = started.elapsed();
+    facts.vector_fns = vector_fns(module);
     write_ll("after.ll", "after LLVM's passes, as the backend gets it")?;
     // With no OS, nothing will define what LLVM's code still calls; the
     // entry and the memory routines are the program's own.
@@ -4523,7 +4555,28 @@ pub fn write_object(module: &Module, path: &Path, emit: Option<&Path>) -> Result
         }
         module.set_inline_assembly(&format!("{}\n{}", bare::ENTRY_ASM, bare::MEMORY_ASM));
     }
-    machine.write_to_file(module, FileType::Object, path).map_err(|e| e.to_string())
+    let started = std::time::Instant::now();
+    machine.write_to_file(module, FileType::Object, path).map_err(|e| e.to_string())?;
+    facts.emit_time = started.elapsed();
+    Ok(facts)
+}
+
+/// The functions whose optimised code computes on vectors: where LLVM's
+/// loop and SLP vectorisers (or a `simd` value) put SIMD instructions.
+fn vector_fns(module: &Module) -> Vec<String> {
+    use inkwell::types::AnyTypeEnum;
+    let mut out = Vec::new();
+    let mut f = module.get_first_function();
+    while let Some(func) = f {
+        let vector = func.get_basic_block_iter().any(|b| {
+            b.get_instructions().any(|i| matches!(i.get_type(), AnyTypeEnum::VectorType(_)) && !matches!(i.get_opcode(), inkwell::values::InstructionOpcode::Load | inkwell::values::InstructionOpcode::Store))
+        });
+        if vector {
+            out.push(func.get_name().to_string_lossy().to_string());
+        }
+        f = func.get_next_function();
+    }
+    out
 }
 
 pub use inkwell;
@@ -4651,6 +4704,84 @@ fn runtime_path() -> Option<std::path::PathBuf> {
 
 /// Every block of a `no_cheat` loop, a `no_cheat` statement and a
 /// `no_cheat` copy of a function, by function.
+impl<'a, 'ctx> Cg<'a, 'ctx> {
+    /// Every struct a live function holds, as the target lays it out.
+    fn struct_layouts(&mut self) -> Vec<StructLayout> {
+        let mut seen: Vec<Ty> = Vec::new();
+        let mut work: Vec<Ty> = Vec::new();
+        for f in self.p.functions.iter().filter(|f| !f.dropped) {
+            work.extend(f.locals.iter().map(|l| l.ty.clone()));
+        }
+        while let Some(t) = work.pop() {
+            match t.base() {
+                Ty::Struct { id, args } => {
+                    if seen.contains(t.base()) {
+                        continue;
+                    }
+                    let info = &self.p.items.structs[id.0 as usize];
+                    if info.opaque {
+                        continue;
+                    }
+                    work.extend(info.fields.iter().map(|f| f.ty.subst(args)));
+                    seen.push(t.base().clone());
+                }
+                Ty::Seq { elem, .. } | Ty::Channel(elem) => work.push((**elem).clone()),
+                Ty::Map { key, val, .. } => {
+                    work.push((**key).clone());
+                    work.push((**val).clone());
+                }
+                Ty::Bundle(ts) => work.extend(ts.iter().cloned()),
+                _ => {}
+            }
+        }
+        let spell = |p: &Program, t: &Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
+        let mut out = Vec::new();
+        for t in seen {
+            let Ty::Struct { id, args } = &t else { continue };
+            let Some(BasicTypeEnum::StructType(st)) = self.ty(&t) else { continue };
+            let info = self.p.items.structs[id.0 as usize].clone();
+            let size = self.target.get_abi_size(&st);
+            let align = self.target.get_abi_alignment(&st);
+            let mut fields = Vec::new();
+            for (i, fi) in info.fields.iter().enumerate() {
+                let ft = fi.ty.subst(args);
+                let at = self.target.offset_of_element(&st, i as u32).unwrap_or(0);
+                let fsize = st.get_field_type_at_index(i as u32).map(|f| self.target.get_abi_size(&f)).unwrap_or(0);
+                let next = if i + 1 < info.fields.len() { self.target.offset_of_element(&st, i as u32 + 1).unwrap_or(size) } else { size };
+                fields.push((fi.name.clone(), spell(self.p, &ft), at, fsize, next.saturating_sub(at + fsize)));
+            }
+            out.push(StructLayout { name: spell(self.p, &t), size, align, fields });
+        }
+        out.sort_by(|a, b| a.name.cmp(&b.name));
+        out
+    }
+
+    /// Every kit-level `const` whose type the target gives a size: its
+    /// name, type and bytes. An `incl.…` file's are the file's.
+    fn const_sizes(&mut self) -> Vec<(String, String, u64)> {
+        let mut out = Vec::new();
+        for c in self.p.items.consts.clone() {
+            let Some(t) = &c.ty else { continue };
+            let mut spelled = crate::types::TySpelling { ty: t, structs: &self.p.items.structs, enums: &self.p.items.enums }.to_string();
+            match t.base() {
+                Ty::Int(IntW::Free(_)) => spelled.push_str(" (built as int64)"),
+                Ty::Bin(BinW::Free(_)) => spelled.push_str(" (built as bin64)"),
+                _ => {}
+            }
+            if let crate::ast::ExprKind::Incl { path, .. } = &c.value.kind {
+                let dir = self.p.items.neuron_dirs.get(&self.p.items.kit_root(c.module)).cloned().unwrap_or_default();
+                let bytes = std::fs::metadata(dir.join(path)).map(|m| m.len()).unwrap_or(0);
+                out.push((c.name.clone(), format!("{}, from `{}`", spelled, path), bytes));
+                continue;
+            }
+            if let Some(size) = self.size_of_ty(t) {
+                out.push((c.name.clone(), spelled, size));
+            }
+        }
+        out
+    }
+}
+
 fn nocheat_blocks(p: &crate::mir::Program) -> std::collections::HashSet<(usize, usize)> {
     let mut out = std::collections::HashSet::new();
     for (fi, f) in p.functions.iter().enumerate() {

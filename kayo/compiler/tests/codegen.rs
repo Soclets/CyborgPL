@@ -795,8 +795,40 @@ fn a_final_build_writes_its_debug_info_beside_it() {
     assert!(has(&debug, b".debug_info"), "board.debug holds no DWARF");
     let program = std::fs::read(&image).unwrap();
     assert!(!has(&program, b".debug_info") && has(&program, b".gnu_debuglink"), "the program still carries its debug info, or does not name its file");
-    let said = String::from_utf8_lossy(&r.stdout);
+    let said = std::fs::read_to_string(out.join("board.report.md")).expect("no board.report.md beside the program");
     assert!(said.contains("the vector table, `_start` in its first slot") && !said.contains("`_start`, kayo's"), "the size report counts `_start` apart from the table:\n{}", said);
+}
+
+/// Every build writes its report beside the program (owner, 2026-10-19):
+/// `build/fib` gets `build/fib.report.md`, its eleven sections in order,
+/// each a heading the contents line links to, and the terminal says one
+/// line naming it.
+#[test]
+fn a_build_writes_its_report_beside_it() {
+    assert!(runtime().is_some(), "the runtime is not built");
+    let out = std::env::temp_dir().join(format!("kayo-report-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&out);
+    std::fs::create_dir_all(&out).unwrap();
+    let src = dir().join("fn_values.cy");
+    let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(out.join("fib")).output().unwrap();
+    assert!(r.status.success(), "the build failed:\n{}", String::from_utf8_lossy(&r.stderr));
+    let said = String::from_utf8_lossy(&r.stdout).to_string();
+    assert_eq!(said.lines().count(), 1, "the terminal says more than one line:\n{}", said);
+    assert!(said.contains("fib.report.md") && said.contains("37 sites"), "the line does not name the report or count the sites:\n{}", said);
+    let report = std::fs::read_to_string(out.join("fib.report.md")).expect("no fib.report.md beside the program");
+    let _ = std::fs::remove_dir_all(&out);
+    let sections = ["Summary", "Inputs", "Proofs", "Your markers", "Types Precog picked", "Optimizations", "Removed", "C", "Sizes", "Timing", "Warnings and notes"];
+    let mut at = 0;
+    for s in sections {
+        let heading = format!("\n## {}\n", s);
+        let found = report[at..].find(&heading).unwrap_or_else(|| panic!("no `## {}` after the sections before it:\n{}", s, report));
+        at += found + heading.len();
+        let link = format!("[{}](#{})", s, s.to_lowercase().replace(' ', "-"));
+        assert!(report.lines().nth(2).is_some_and(|l| l.contains(&link)), "the contents line has no {}", link);
+    }
+    for what in ["| `'lockers'` | `list[Locker]` |", "`Locker`: 24 bytes, aligned to 8, 4 bytes of padding", "| `number` | `int32` | 0 | 4 | 4 |", "| Precog |"] {
+        assert!(report.contains(what), "the report has no `{}`:\n{}", what, report);
+    }
 }
 
 /// `--emit-llvm-tv <dir>` (owner, 2026-10-15: "(a)"): `tv-before.ll` and

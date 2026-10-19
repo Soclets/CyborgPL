@@ -830,3 +830,5 @@ wsmw_not_std_missing [fnv:737bb9a2ca26bdc9] :: a `not_std.` width is WSMW's
 wstn_emoji_fn [fnv:05b489393a3281fd] :: is not an English name: the base's names are English letters, digits and `_`
 wstn_now_broca [fnv:e4e203174655892f] :: WSTN is part of unicode since 2026-10-12: list `cyjet::limb[id = "55a2e2de
 wstn_thai_name [fnv:05b489393a3281fd] :: is not an English name: the base's names are English letters, digits and `_`
+table_bytes_negative [fnv:4799d10599c99d18] :: `table_bytes` is a whole number of bytes, 0 or more
+table_bytes_not_fn [fnv:6d6af225e959b337] :: `table_bytes` goes in front of a `fn`

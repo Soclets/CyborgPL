@@ -80,6 +80,8 @@ pub struct Analysis {
     /// Sites reached on every run of the program (owner, 2026-09-23): only
     /// there is a certain failure a compile error.
     pub always_reached: std::collections::HashSet<(usize, u32)>,
+    /// Every value each local was given, joined, by (function, local).
+    pub held: HashMap<(usize, u32), Domain>,
 }
 
 /// One local's value, as far as this path knows.
@@ -93,7 +95,7 @@ pub fn analyse(p: &mut Program) -> Analysis {
 /// worked out: a proof-checking build (`--assert-proofs`) has to compute
 /// what Precog claimed, not be handed the claim.
 pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
-    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), operand_ranges: HashMap::new(), borrows: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cut: false, cut_walked: Default::default(), ran_out: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, induction_at: HashMap::new(), induction_failed: Default::default(), induction_fell_short: false, no_induction: Default::default(), induction_calls: HashMap::new(), walks: HashMap::new(), induction_done: HashMap::new() };
+    let mut a = Precog { p: p as *mut Program, steps: 0, trips: 0, results: HashMap::new(), claims: HashMap::new(), lies: Vec::new(), folds: HashMap::new(), ranges: HashMap::new(), operand_ranges: HashMap::new(), borrows: HashMap::new(), loop_entry: HashMap::new(), loop_bound: HashMap::new(), acc_step: HashMap::new(), induction: HashMap::new(), induction_missing: HashMap::new(), induction_wide: false, dry: false, dry_cache: Vec::new(), gave_up: false, cut: false, cut_walked: Default::default(), ran_out: false, cache: HashMap::new(), reads_outside: false, block_facts: HashMap::new(), edges: std::collections::HashSet::new(), strict_fns: std::collections::HashSet::new(), own_terms: None, induction_at: HashMap::new(), induction_failed: Default::default(), induction_fell_short: false, no_induction: Default::default(), induction_calls: HashMap::new(), walks: HashMap::new(), induction_done: HashMap::new(), held: HashMap::new() };
     // A `#strict` file's functions (owner, 2026-09-27): each site is proven
     // from what its own function says, never from a caller's arguments or
     // another function's body.
@@ -353,10 +355,13 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
         eprintln!("precog: {} step(s) in all", a.steps);
     }
     let always_reached = if a.gave_up { std::collections::HashSet::new() } else { reached_every_run(p, &a.edges) };
-    Analysis { sites, certain, certain_under_nocheck, steps: a.steps, whole_program: !a.reads_outside, folded, portfolio: portfolio.describe(), solved, disagreements, always_reached }
+    Analysis { sites, certain, certain_under_nocheck, steps: a.steps, whole_program: !a.reads_outside, folded, portfolio: portfolio.describe(), solved, disagreements, always_reached, held: a.held }
 }
 
 struct Precog {
+    /// Every value each local was given, joined over every visit: the
+    /// range the build report gives a `:=` (owner, 2026-10-19).
+    held: HashMap<(usize, u32), Domain>,
     /// The graph. Held raw so a call can read another function while this
     /// one is being walked; nothing is written through it.
     p: *mut Program,
@@ -1406,6 +1411,13 @@ impl Precog {
             _ => d,
         };
         if p.proj.is_empty() {
+            if !self.dry {
+                let joined = match self.held.get(&(f, p.local.0)) {
+                    Some(old) => old.union(&d),
+                    None => d.clone(),
+                };
+                self.held.insert((f, p.local.0), joined);
+            }
             env.insert(p.local, d);
             return;
         }

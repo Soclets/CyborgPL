@@ -657,6 +657,9 @@ pub struct FnDecl {
     /// `test fn` (owner, 2026-09-29): run by `cca test`, never called,
     /// left out of a normal build.
     pub test: bool,
+    /// `table_bytes N fn …` (owner, 2026-10-19): the largest table Precog
+    /// may make of this function, over the target's; 0 is never.
+    pub table_bytes: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

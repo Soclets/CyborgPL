@@ -888,3 +888,25 @@ Dated, with the alternative, so each can become a question later.
   then "(a)"): `check no_cheat …`, `no_check no_cheat …`,
   `NO_FUCKING_CHECKS no_cheat …`. `no_cheat` in front of a check word is
   refused with the order to write.
+- **2026-10-19 — `table_bytes`, read** (owner: "(c)", "(a)", "(a)"):
+  `cyjet::target[…, table_bytes = N]` per target and `table_bytes N fn …`
+  in front of a function (after `pub` and `bare`), each a whole number of
+  bytes; anything else is refused as the oracle refuses it. Kept for the
+  tables, which come next, and listed in the build report. A no-OS target
+  listed without a `layout` is now refused when it is built, not when it is
+  listed (`examples/table_limits` lists `aarch64-none` beside the Mac).
+- **2026-10-19 — The build report** (owner; `design/tooling.md` § The build
+  report). Every build writes `<program>.report.md` beside the program
+  (`src/report.rs`): a contents line, then Summary, Inputs, Proofs, Your
+  markers, Types Precog picked, Optimizations, Removed, C, Sizes, Timing,
+  and Warnings and notes, each a `##` heading. The terminal keeps errors,
+  Precog's notes and one line: `built build/fib (final build,
+  aarch64-macos): 22 sites: 22 proven, 0 checked at run time, 461,392
+  bytes, in 14.71 s; report build/fib.report.md`. What it reads: every
+  file and kit loaded (`Items::report_kits`), every `:=` (`Function::picked`)
+  with every value Precog saw it take (`Analysis::held`, joined at each
+  store), the struct layouts and const sizes the code generator worked out
+  (`Lowered`), the recursive inliner's count and the functions LLVM left
+  vector code in (`ObjectFacts`), each `incl.C` line (`cheader::read_lines`),
+  and each phase's time. Precog's tables are not built yet, so the report
+  says none were made.

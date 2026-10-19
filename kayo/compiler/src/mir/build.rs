@@ -409,6 +409,8 @@ struct FnBuilder<'a> {
     nocheat_blocks: std::collections::BTreeSet<u32>,
     /// Where each `no_cheat` statement starts, and the locals it touches.
     nocheat_entries: Vec<(u32, u32, Vec<LocalId>)>,
+    /// Named locals declared with `:=`, whose type Precog picked.
+    picked: Vec<LocalId>,
     /// Per scope: the group its tasks join, made when the first one starts.
     task_group: Vec<Option<u32>>,
     next_group: u32,
@@ -456,6 +458,7 @@ impl<'a> FnBuilder<'a> {
             nocheat_region: Default::default(),
             nocheat_blocks: Default::default(),
             nocheat_entries: Vec::new(),
+            picked: Vec::new(),
             task_group: vec![None],
             next_group: 0,
             next_task: 0,
@@ -720,6 +723,7 @@ impl<'a> FnBuilder<'a> {
             nocheat_of: None,
             nocheat_blocks: self.nocheat_blocks.iter().copied().collect(),
             nocheat_entries: std::mem::take(&mut self.nocheat_entries),
+            picked: std::mem::take(&mut self.picked),
             name: body.name.clone(),
             inst: self.inst,
             params,
@@ -901,6 +905,9 @@ impl<'a> FnBuilder<'a> {
                 }
             }
             hir::StmtKind::Let { local, value, typed } => {
+                if !*typed && self.locals[local.0 as usize].name.is_some() {
+                    self.picked.push(LocalId(local.0));
+                }
                 let place = Place::local(LocalId(local.0));
                 let ty = self.locals[local.0 as usize].ty.clone();
                 self.store(place.clone(), value, &ty, *typed, span);
@@ -2565,6 +2572,7 @@ fn placeholder(body: &hir::Body) -> Function {
         nocheat_of: None,
         nocheat_blocks: Vec::new(),
         nocheat_entries: Vec::new(),
+        picked: Vec::new(),
         name: body.name.clone(),
         inst: None,
         params: Vec::new(),

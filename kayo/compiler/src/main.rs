@@ -508,6 +508,19 @@ fn stem_of(path: &Path) -> String {
     full.as_deref().and_then(|p| p.file_stem()).map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| "program".into())
 }
 
+/// Each compile phase and how long it took, for the build report.
+struct Laps {
+    lap: std::time::Instant,
+    phases: Vec<(&'static str, std::time::Duration)>,
+}
+
+impl Laps {
+    fn mark(&mut self, name: &'static str) {
+        self.phases.push((name, self.lap.elapsed()));
+        self.lap = std::time::Instant::now();
+    }
+}
+
 fn build_one(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, quiet: bool, target: Option<&str>) -> Result<(), String> {
     build_opts(path, out, assert_proofs, final_build, quiet, false, target, None).map(|_| ())
 }
@@ -526,25 +539,35 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
             print!("{}", s);
         }
     };
+    // Every phase timed, for the build report (owner, 2026-10-19).
+    let started_at = std::time::SystemTime::now();
+    let started = std::time::Instant::now();
+    let mut laps = Laps { lap: std::time::Instant::now(), phases: Vec::new() };
     let mut sources = SourceMap::default();
     let items = kayo::load::load_for(path, &mut sources, kayo::load::Purpose::Compile(target)).map_err(|d| d.render(&sources))?;
+    laps.mark("Reading the files and kits");
     let mut checker = kayo::check::Checker::new(items);
     checker.std_stubs = std::env::var("KAYO_STD_STUBS").is_ok();
     let program = checker.check_program().map_err(|d| d.render(&sources))?;
+    laps.mark("Checking");
     let mut mir = kayo::mir::build::build(program);
     kayo::mir::verify::program(&mir).map_err(|p| format!("error: the flow graph is not well formed — a bug in kayo:\n  {}\n", p.join("\n  ")))?;
+    laps.mark("Lowering to the flow graph");
     let owned = kayo::mir::ownership::check(&mut mir, &sources);
     if !owned.problems.is_empty() {
         return Err(owned.problems.join(""));
     }
+    laps.mark("Ownership and borrows");
     let analysis = kayo::precog::analyse_opts(&mut mir, !assert_proofs);
-    for n in kayo::precog::notes(&analysis, &mir, &sources) {
+    let notes = kayo::precog::notes(&analysis, &mir, &sources);
+    for n in &notes {
         say(format!("\n{}", n));
     }
     let refusals = kayo::precog::refusals_opts(&analysis, &mir, &sources, final_build);
     if !refusals.is_empty() {
         return Err(refusals.join(""));
     }
+    laps.mark("Precog");
     // Parallel `for` (`parallelism.md`): a `for para` whose iterations
     // conflict is an error; the rest is decided as the loops are written.
     let plan = kayo::par::plan(&mir);
@@ -569,6 +592,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
         }
         return Err(s);
     }
+    laps.mark("Planning parallel loops");
     let ctx = kayo::codegen::inkwell::context::Context::create();
     let name = stem_of(path);
     let test_names: Vec<String> = mir.functions.iter().filter(|f| f.is_test).map(|f| f.name.clone()).collect();
@@ -587,31 +611,53 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     if std::env::var("KAYO_IR").is_ok() {
         println!("{}", lowered.module.print_to_string().to_string());
     }
+    laps.mark("Generating LLVM IR");
     let obj = out.with_extension("o");
-    kayo::codegen::write_object(&lowered.module, &obj, emit).map_err(|e| format!("error: {}\n", e))?;
+    let object = kayo::codegen::write_object(&lowered.module, &obj, emit).map_err(|e| format!("error: {}\n", e))?;
+    laps.lap = std::time::Instant::now();
+    laps.phases.push(("LLVM's passes", object.optimize_time));
+    laps.phases.push(("Writing the object", object.emit_time));
     kayo::codegen::link(&obj, out).map_err(|e| format!("error: {}\n", e))?;
+    laps.mark("Linking");
     // A final build's debug info goes beside it (owner, 2026-10-14); a
     // working build keeps it inside.
     let debug = if final_build { Some(kayo::codegen::split_debug(out).map_err(|e| format!("error: {}\n", e))?) } else { None };
-    // Every build ends with its size, broken down (owner, 2026-10-08).
-    let size = kayo::codegen::size::report(&mir, &obj, out);
+    if debug.is_some() {
+        laps.mark("Writing the debug info apart");
+    }
+    // Every build measures its size, broken down (owner, 2026-10-08).
+    let sizes = kayo::codegen::size::sizes(&mir, &obj, out);
     let _ = std::fs::remove_file(&obj);
-    // `nocheck` sites carry no check: counted apart, not as "checked".
-    let proven = analysis.sites.iter().filter(|r| matches!(r.verdict, kayo::mir::Verdict::Proven { .. })).count();
-    let trusted = analysis.sites.iter().filter(|r| matches!(r.verdict, kayo::mir::Verdict::Trusted)).count();
-    let checked = analysis.sites.len() - proven - trusted;
-    if trusted > 0 {
-        say(format!("{} sites: {} proven, {} checked at run time, {} !check\n", analysis.sites.len(), proven, checked, trusted));
-    } else {
-        say(format!("{} sites: {} proven, {} checked at run time\n", analysis.sites.len(), proven, checked));
+    laps.mark("Measuring sizes");
+    // Everything else goes in the report beside the program (owner,
+    // 2026-10-19); the terminal keeps errors, warnings and one line.
+    let c_lines = kayo::cheader::read_lines();
+    let facts = kayo::report::Facts {
+        source: path,
+        program: out,
+        final_build,
+        assert_proofs,
+        started: started_at,
+        total: started.elapsed(),
+        phases: &laps.phases,
+        mir: &mir,
+        sources: &sources,
+        analysis: &analysis,
+        plan: &plan,
+        sizes: sizes.as_ref().map_err(|e| e.as_str()),
+        structs: &lowered.structs,
+        consts: &lowered.consts,
+        object: &object,
+        notes: &notes,
+        debug: debug.as_deref(),
+        c_lines: &c_lines,
+        tests,
+    };
+    let report = kayo::report::path_for(out);
+    if let Err(e) = std::fs::write(&report, kayo::report::render(&facts)) {
+        eprintln!("warning: the build report could not be written to {}: {}", report.display(), e);
     }
-    say(size.unwrap_or_else(|e| format!("size: not measured: {}\n", e)));
-    if !quiet {
-        println!("wrote {}", out.display());
-        if let Some(d) = &debug {
-            println!("wrote {}, its debug info", d.display());
-        }
-    }
+    say(kayo::report::summary_line(&facts, &report));
     Ok(test_names)
 }
 

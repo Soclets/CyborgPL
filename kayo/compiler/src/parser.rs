@@ -773,6 +773,24 @@ impl<'a> Parser<'a> {
                 return self.fail(format!("a kit-level value is a `const`, not a variable: `pub const '{}' := …;`", n));
             }
         }
+        // `table_bytes N` in front of a `fn`, after its `pub` and `bare`
+        // marks (owner, 2026-10-19): the largest table of it, in bytes.
+        let mut table_bytes = None;
+        if self.is_word("table_bytes") {
+            let at = self.bump().span;
+            let n = match self.peek().clone() {
+                Tok::Num { text, bin: false } => text.parse::<u64>().ok(),
+                _ => None,
+            };
+            let Some(n) = n else {
+                return self.fail("`table_bytes` is a whole number of bytes, 0 or more: `table_bytes 1_024 fn square […]`");
+            };
+            self.bump();
+            if !self.is_word("fn") && !(self.is_word("test") && self.is_word_at(1, "fn")) {
+                return self.fail_at(at, "`table_bytes` goes in front of a `fn`: it is the largest table Precog may make of that function");
+            }
+            table_bytes = Some(n);
+        }
         // `test fn` (owner, 2026-09-29): never `pub`, run by `cca test`.
         if self.is_word("test") && self.is_word_at(1, "fn") {
             if vis != Vis::Private {
@@ -783,6 +801,7 @@ impl<'a> Parser<'a> {
             let kind = match kind {
                 ItemKind::Fn(mut d) => {
                     d.test = true;
+                    d.table_bytes = table_bytes;
                     ItemKind::Fn(d)
                 }
                 other => other,
@@ -819,7 +838,10 @@ impl<'a> Parser<'a> {
                 other => return self.fail_at(kind.span, format!("there is no `collection.{}`: a collection is `collection.fn` (a function and its narrowings) or `collection.handler` (named `otherwise` blocks)", other)),
             }
         }
-        let kind = self.item_kind(vis)?;
+        let mut kind = self.item_kind(vis)?;
+        if let ItemKind::Fn(d) = &mut kind {
+            d.table_bytes = table_bytes;
+        }
         if let (ItemKind::Const(_), Some((_, at))) = (&kind, &bare) {
             return self.fail_at(*at, CONST_TAKES_NO_MARK);
         }
@@ -1802,7 +1824,7 @@ impl<'a> Parser<'a> {
             self.expect_semi("the extern declaration")?;
             None
         };
-        Ok(FnDecl { name, owner, announce, params, ret, ret_lent, fails, body, test: false })
+        Ok(FnDecl { name, owner, announce, params, ret, ret_lent, fails, body, test: false, table_bytes: None })
     }
 
     /// The group's name, right after its `@`.
@@ -4826,6 +4848,7 @@ fn preset(main: &FnDecl, owner: &Ident, name: Ident, fills: &[(QName, Expr)], sp
         fails: main.fails.clone(),
         body: Some(Block { stmts: vec![Stmt { kind: stmt, span }], span }),
         test: false,
+        table_bytes: main.table_bytes,
     }
 }
 

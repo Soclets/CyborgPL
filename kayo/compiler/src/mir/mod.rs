@@ -486,6 +486,9 @@ pub struct Function {
     /// the locals it touches.
     pub nocheat_blocks: Vec<u32>,
     pub nocheat_entries: Vec<(u32, u32, Vec<LocalId>)>,
+    /// Named locals declared with `:=`: Precog picked their type, which
+    /// the build report lists (owner, 2026-10-19).
+    pub picked: Vec<LocalId>,
     /// The instance this is: one source function, one shape. A task body
     /// is nobody's instance.
     pub inst: Option<FnInst>,

@@ -29,3 +29,4 @@ pub mod precog;
 pub mod par;
 
 pub mod codegen;
+pub mod report;

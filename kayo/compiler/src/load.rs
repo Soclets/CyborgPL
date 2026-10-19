@@ -236,8 +236,14 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
                 None => d,
             });
         };
+        // Refused when built for it, not when listed: a kit may list a
+        // board beside the machine it is built on (`examples/table_limits`).
         let Some((_, file, at)) = layouts.iter().find(|(n, _, _)| n == t) else {
-            unreachable!("a no-OS target without a `layout` is refused where the manifest is read")
+            let d = Diagnostic::error(format!("the target `{t}` has no `layout`: a program with no OS brings its own linker script, saying where it sits in the board's memory — `cyjet::target[name = \"{t}\", layout = \"boards/virt.ld\"]`, the path from the kit's folder"));
+            return err(match span {
+                Some(s) => d.at(*s),
+                None => d,
+            });
         };
         let script = dir.join(file);
         if !script.is_file() {
@@ -548,6 +554,19 @@ fn load_kit(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Option
         }
         state.prefixes.insert(prefix.clone(), key.clone());
     }
+    // What the build report lists of it (owner, 2026-10-19).
+    items.report_kits.push(crate::resolve::KitReport {
+        dir: dir.to_path_buf(),
+        name: manifest.name.as_ref().map(|(n, _)| n.clone()),
+        prefix: prefix.clone(),
+        version: manifest.version.clone(),
+        program: from.is_none(),
+        std: as_cord,
+        limbs: manifest.cores.clone(),
+        targets: manifest.targets.clone(),
+        default_target: manifest.default_target.as_ref().map(|(t, _)| t.clone()),
+        table_bytes: manifest.table_bytes.clone(),
+    });
     if from.is_none() && dir.join(MANIFEST).is_file() {
         state.root = Some((manifest.targets.clone(), manifest.default_target.clone()));
         state.root_layouts = manifest.layouts.clone();
@@ -675,6 +694,10 @@ struct Manifest {
     /// std is listed, by its ID and version (owner, 2026-10-06); a Kit
     /// that does not list it reaches no operator and no `std::`.
     has_std: bool,
+    /// `version`, as written.
+    version: Option<String>,
+    /// Each target's `table_bytes` (owner, 2026-10-19), where written.
+    table_bytes: Vec<(String, u64)>,
     /// The cores listed (owner, 2026-10-06).
     cores: Vec<String>,
     /// The powers this Kit uses (owner, 2026-10-07).
@@ -700,7 +723,7 @@ const MANIFEST_SHAPE: &str = "`cyjet::manifest[name = \"areas\", prefix = \"area
 fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     use crate::ast::{Arg as AArg, ExprKind};
     use crate::lexer::Tok;
-    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new(), layouts: Vec::new(), outputs: Vec::new(), exits: Vec::new(), has_std: false, cores: Vec::new(), powers: Vec::new(), deny: Vec::new() };
+    let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new(), layouts: Vec::new(), outputs: Vec::new(), exits: Vec::new(), has_std: false, version: None, table_bytes: Vec::new(), cores: Vec::new(), powers: Vec::new(), deny: Vec::new() };
     let at = dir.join(MANIFEST);
     if !at.is_file() {
         return Ok(out);
@@ -783,6 +806,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                 if version.len() > 256 {
                     return err(Diagnostic::error(format!("`version` is at most 256 bytes, and this one is {}", version.len())).at(v.span));
                 }
+                out.version = Some(version);
             }
             // The targets a Kit is built for (owner, 2026-09-29): each a
             // `cca::Target` with a `name` and, for one this machine cannot
@@ -808,6 +832,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     let mut board: Vec<(&str, String, crate::source::Span)> = Vec::new();
                     let mut is_default = false;
                     let mut said_not = false;
+                    let mut table_bytes = None;
                     for a in args {
                         let AArg::Named(field, v) = a else {
                             return err(Diagnostic::error("a `cyjet::target` names its fields: `name = …`, and `runner = …` when it needs one").at(a.span()));
@@ -834,6 +859,12 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                                 }
                                 _ => return err(Diagnostic::error("a target's `default` is `true` or `false`").at(v.span)),
                             },
+                            // The largest table Precog may make, in bytes
+                            // (owner, 2026-10-19).
+                            "table_bytes" => match &v.kind {
+                                ExprKind::Int(d) if d.parse::<u64>().is_ok() => table_bytes = d.parse::<u64>().ok(),
+                                _ => return err(Diagnostic::error("`table_bytes` is a whole number of bytes, 0 or more: `cyjet::target[name = \"aarch64-none\", table_bytes = 4_096]`").at(v.span)),
+                            },
                             other => return err(Diagnostic::error(format!("a `cyjet::target` has no field `{}`: it is a `name`, a `runner` when this machine cannot run it, `default = true` on the one built when none is named, and on one with no OS a `layout`, an `output` and an `exit`", other)).at(field.span)),
                         }
                     }
@@ -852,10 +883,10 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     match layout {
                         Some((file, at)) if n.ends_with("-none") => out.layouts.push((n.clone(), file, at)),
                         Some((_, at)) => return err(Diagnostic::error(format!("`layout` is for a target with no OS, whose program says where it sits in memory; on `{}` the OS places it", n)).at(at)),
-                        None if n.ends_with("-none") => {
-                            return err(Diagnostic::error(format!("the target `{n}` has no `layout`: a program with no OS brings its own linker script, saying where it sits in the board's memory — `cyjet::target[name = \"{n}\", layout = \"boards/virt.ld\"]`, the path from the kit's folder")).at(span));
-                        }
                         None => {}
+                    }
+                    if let Some(t) = table_bytes {
+                        out.table_bytes.push((n.clone(), t));
                     }
                     if is_default {
                         defaults.push((n.clone(), span));

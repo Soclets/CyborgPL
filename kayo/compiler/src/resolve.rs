@@ -145,6 +145,8 @@ pub struct FnDeclInfo {
     pub is_literal: bool,
     /// `test fn` (owner, 2026-09-29).
     pub test: bool,
+    /// `table_bytes N fn …` (owner, 2026-10-19).
+    pub table_bytes: Option<u64>,
     pub span: Span,
     pub name_span: Span,
 }
@@ -171,6 +173,23 @@ pub struct ConstInfo {
     pub ty: Option<Ty>,
     pub value: ast::Expr,
     pub span: Span,
+}
+
+/// One kit as the build report lists it (owner, 2026-10-19).
+#[derive(Debug, Clone, Default)]
+pub struct KitReport {
+    pub dir: std::path::PathBuf,
+    pub name: Option<String>,
+    pub prefix: String,
+    pub version: Option<String>,
+    /// The program's own kit.
+    pub program: bool,
+    pub std: bool,
+    pub limbs: Vec<String>,
+    pub targets: Vec<String>,
+    pub default_target: Option<String>,
+    /// Each target's `table_bytes`, where written.
+    pub table_bytes: Vec<(String, u64)>,
 }
 
 #[derive(Debug, Default)]
@@ -252,6 +271,8 @@ pub struct Items {
     /// 2026-10-09).
     pub board_output: Option<(FnId, OutputForm)>,
     pub board_exit: Option<FnId>,
+    /// Every kit loaded, in the order it was read, for the build report.
+    pub report_kits: Vec<KitReport>,
 }
 
 pub const ROOT: ModuleId = ModuleId(0);
@@ -386,7 +407,7 @@ impl Items {
             ItemKind::Op(op) => {
                 let id = FnId(self.fns.len() as u32);
                 self.fns.push(placeholder_fn(&op.op.name, m, vis, item.span, op.op.span));
-                let decl = ast::FnDecl { name: op.op.clone(), announce: op.announce.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false, owner: None };
+                let decl = ast::FnDecl { name: op.op.clone(), announce: op.announce.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false, owner: None, table_bytes: None };
                 self.pending_fns.push((id, decl, m, Some(op.op.name.clone())));
                 self.ops.entry(op.op.name.clone()).or_default().push(id);
             }
@@ -766,7 +787,7 @@ impl Items {
             }
         }
         let path = if op.is_some() { decl.name.name.clone() } else { qualify(self, m, &decl.name.name) };
-        Ok(FnDeclInfo { name: decl.name.name.clone(), path, module: m, vis, params, ret, ret_lent: decl.ret_lent.as_ref().map(|r| (r.mutable, r.group.as_ref().map(|g| g.name.clone()))), fails, blanks, body: decl.body.clone(), op, is_literal: false, test: decl.test, span, name_span: decl.name.span })
+        Ok(FnDeclInfo { name: decl.name.name.clone(), path, module: m, vis, params, ret, ret_lent: decl.ret_lent.as_ref().map(|r| (r.mutable, r.group.as_ref().map(|g| g.name.clone()))), fails, blanks, body: decl.body.clone(), op, is_literal: false, test: decl.test, table_bytes: decl.table_bytes, span, name_span: decl.name.span })
     }
 
     pub fn resolve_fails(&mut self, fails: &[ast::FailSpec], m: ModuleId, blanks: &mut Vec<(String, Vec<IfaceId>)>) -> Result<Vec<(String, Option<Ty>)>> {
@@ -1553,7 +1574,7 @@ pub fn conv_kind(k: ast::ParamKind) -> ParamKind {
 }
 
 fn placeholder_fn(name: &str, m: ModuleId, vis: Vis, span: Span, name_span: Span) -> FnDeclInfo {
-    FnDeclInfo { name: name.to_string(), path: name.to_string(), module: m, vis, params: Vec::new(), ret: Ty::Nothing, ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: None, op: None, is_literal: false, test: false, span, name_span }
+    FnDeclInfo { name: name.to_string(), path: name.to_string(), module: m, vis, params: Vec::new(), ret: Ty::Nothing, ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: None, op: None, is_literal: false, test: false, table_bytes: None, span, name_span }
 }
 
 fn qualify(items: &Items, m: ModuleId, name: &str) -> String {

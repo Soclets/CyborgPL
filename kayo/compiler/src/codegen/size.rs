@@ -127,8 +127,42 @@ fn bytes(n: u64) -> String {
     format!("{} byte{}", out, if n == 1 { "" } else { "s" })
 }
 
-/// The report, from the object written for `p` and the file linked from it.
+/// One row of the breakdown: the kit, the name, the generic it is a copy
+/// of, and its bytes of code.
+pub struct SizeRow {
+    pub kit: String,
+    pub name: String,
+    pub generic: Option<String>,
+    pub bytes: u64,
+}
+
+/// What a build's program measures (owner, 2026-10-08), and what the build
+/// report's Sizes section lists (owner, 2026-10-19).
+pub struct Sizes {
+    pub on_disk: u64,
+    /// The program's own code, kayo's glue included.
+    pub own: u64,
+    pub data: u64,
+    /// The runtime's functions, with no OS (where the linked file is measured).
+    pub runtime_fns: usize,
+    pub runtime: u64,
+    pub bare: bool,
+    pub rows: Vec<SizeRow>,
+    /// Functions every caller inlined, as named in `rows`.
+    pub inlined: Vec<String>,
+}
+
+pub fn bytes_text(n: u64) -> String {
+    bytes(n)
+}
+
+/// The terminal's old report, from the object written for `p` and the file linked from it.
 pub fn report(p: &Program, obj: &Path, exe: &Path) -> Result<String, String> {
+    sizes(p, obj, exe).map(|s| s.text())
+}
+
+/// The measurement, from the object written for `p` and the file linked from it.
+pub fn sizes(p: &Program, obj: &Path, exe: &Path) -> Result<Sizes, String> {
     // With no OS the linked file is all the program's, and only what the
     // link kept is in it; otherwise the object, before Axon joins it.
     let (code, data) = measure(if crate::target::bare() { exe } else { obj })?;
@@ -198,47 +232,78 @@ pub fn report(p: &Program, obj: &Path, exe: &Path) -> Result<String, String> {
         rows.push(("this kit".into(), name, None, *s));
     }
     let axon: Vec<u64> = code.iter().filter(|(n, _)| !is_function(n) && !GLUE.contains(&n.as_str()) && !n.starts_with("cy_test")).map(|(_, s)| *s).collect();
-    let mut out = if crate::target::bare() {
-        format!(
-            "size: {} on disk; the program's own code is {}, the runtime's {} in {} function{}, and the data {}, the runtime's tables included; the rest is the file's own layout\n",
-            bytes(on_disk),
-            bytes(own),
-            bytes(axon.iter().sum()),
-            axon.len(),
-            if axon.len() == 1 { "" } else { "s" },
-            bytes(data)
-        )
-    } else {
-        format!("size: {} on disk; the program's own code is {} and its data {}; the rest is the runtime and what the linker adds\n", bytes(on_disk), bytes(own), bytes(data))
-    };
-    let mut neurons: Vec<String> = rows.iter().map(|r| r.0.clone()).collect();
-    neurons.sort();
-    neurons.dedup();
-    // This Neuron first, then each dependency by its prefix.
-    neurons.sort_by_key(|n| n != "this kit");
-    let width = rows.iter().map(|r| r.1.chars().count()).max().unwrap_or(0);
-    for n in &neurons {
-        let mut mine: Vec<&(String, String, Option<String>, u64)> = rows.iter().filter(|r| &r.0 == n).collect();
-        mine.sort_by(|a, b| b.3.cmp(&a.3).then(a.1.cmp(&b.1)));
-        if neurons.len() > 1 {
-            out.push_str(&format!("  {}: {}\n", n, bytes(mine.iter().map(|r| r.3).sum())));
+    inlined.sort();
+    Ok(Sizes {
+        on_disk,
+        own,
+        data,
+        runtime_fns: axon.len(),
+        runtime: axon.iter().sum(),
+        bare: crate::target::bare(),
+        rows: rows.into_iter().map(|(kit, name, generic, bytes)| SizeRow { kit, name, generic, bytes }).collect(),
+        inlined,
+    })
+}
+
+impl Sizes {
+    /// The breakdown as the terminal printed it.
+    pub fn text(&self) -> String {
+        let mut out = if self.bare {
+            format!(
+                "size: {} on disk; the program's own code is {}, the runtime's {} in {} function{}, and the data {}, the runtime's tables included; the rest is the file's own layout\n",
+                bytes(self.on_disk),
+                bytes(self.own),
+                bytes(self.runtime),
+                self.runtime_fns,
+                if self.runtime_fns == 1 { "" } else { "s" },
+                bytes(self.data)
+            )
+        } else {
+            format!("size: {} on disk; the program's own code is {} and its data {}; the rest is the runtime and what the linker adds\n", bytes(self.on_disk), bytes(self.own), bytes(self.data))
+        };
+        let kits = self.kits();
+        let width = self.rows.iter().map(|r| r.name.chars().count()).max().unwrap_or(0);
+        for n in &kits {
+            let mine = self.rows_of(n);
+            if kits.len() > 1 {
+                out.push_str(&format!("  {}: {}\n", n, bytes(mine.iter().map(|r| r.bytes).sum())));
+            }
+            let indent = if kits.len() > 1 { "    " } else { "  " };
+            for r in mine {
+                out.push_str(&format!("{}{:<width$}  {:>8}{}\n", indent, r.name, r.bytes, self.copy_note(r), width = width));
+            }
         }
-        let indent = if neurons.len() > 1 { "    " } else { "  " };
-        for (_, name, generic, size) in mine {
-            let copy = match generic {
-                Some(g) => {
-                    let copies = rows.iter().filter(|r| r.2.as_deref() == Some(g.as_str())).count();
-                    format!("   a copy of the generic `{}` ({} in all)", g, copies)
-                }
-                None => String::new(),
-            };
-            out.push_str(&format!("{}{:<width$}  {:>8}{}\n", indent, name, size, copy, width = width));
+        if !self.inlined.is_empty() {
+            let one = self.inlined.len() == 1;
+            out.push_str(&format!("  inlined into {} callers, taking no room of {} own: {}\n", if one { "its" } else { "their" }, if one { "its" } else { "their" }, self.inlined.join(", ")));
+        }
+        out
+    }
+
+    /// The kits with rows: this one first, then each dependency by its prefix.
+    pub fn kits(&self) -> Vec<String> {
+        let mut kits: Vec<String> = self.rows.iter().map(|r| r.kit.clone()).collect();
+        kits.sort();
+        kits.dedup();
+        kits.sort_by_key(|n| n != "this kit");
+        kits
+    }
+
+    /// A kit's rows, largest first.
+    pub fn rows_of(&self, kit: &str) -> Vec<&SizeRow> {
+        let mut mine: Vec<&SizeRow> = self.rows.iter().filter(|r| r.kit == kit).collect();
+        mine.sort_by(|a, b| b.bytes.cmp(&a.bytes).then(a.name.cmp(&b.name)));
+        mine
+    }
+
+    /// "a copy of the generic `g` (n in all)", for a generic's copy.
+    pub fn copy_note(&self, r: &SizeRow) -> String {
+        match &r.generic {
+            Some(g) => {
+                let copies = self.rows.iter().filter(|x| x.generic.as_deref() == Some(g.as_str())).count();
+                format!("   a copy of the generic `{}` ({} in all)", g, copies)
+            }
+            None => String::new(),
         }
     }
-    if !inlined.is_empty() {
-        inlined.sort();
-        let one = inlined.len() == 1;
-        out.push_str(&format!("  inlined into {} callers, taking no room of {} own: {}\n", if one { "its" } else { "their" }, if one { "its" } else { "their" }, inlined.join(", ")));
-    }
-    Ok(out)
 }

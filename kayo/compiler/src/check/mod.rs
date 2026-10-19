@@ -696,7 +696,7 @@ impl Checker {
             return err(Diagnostic::error("an anonymous function has no blanks: write the types").at(span));
         }
         let id = FnId(self.items.fns.len() as u32);
-        self.items.fns.push(crate::resolve::FnDeclInfo { name: "an anonymous function".into(), path: String::new(), module, vis: ast::Vis::Private, params, ret, ret_lent: None, fails, blanks: Vec::new(), body: Some(lit.body.clone()), op: None, is_literal: true, test: false, span, name_span: span });
+        self.items.fns.push(crate::resolve::FnDeclInfo { name: "an anonymous function".into(), path: String::new(), module, vis: ast::Vis::Private, params, ret, ret_lent: None, fails, blanks: Vec::new(), body: Some(lit.body.clone()), op: None, is_literal: true, test: false, table_bytes: None, span, name_span: span });
         self.literal_fns.push((lit.clone(), module));
         Ok(id)
     }
