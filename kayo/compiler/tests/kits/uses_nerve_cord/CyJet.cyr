@@ -3,7 +3,7 @@ cyjet::manifest[
     prefix = "uses_nerve_cord",
     version = "0.1.0",
     dependencies = [
-        cyjet::dep.std["../nerve_cord"],
+        cyjet::dep.path.std["../nerve_cord"],
         cyjet::dep.path["../nerve_cord_dep"],
     ],
     targets = [cyjet::target[name = "aarch64-macos"],]

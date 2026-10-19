@@ -835,4 +835,5 @@ table_bytes_negative [fnv:4799d10599c99d18] :: `table_bytes` is a whole number o
 table_bytes_not_fn [fnv:6d6af225e959b337] :: `table_bytes` goes in front of a `fn`
 old_dep_path [fnv:f60ab70a86722f5f] :: `cyjet::dep[path = …]` is an old spelling: write `cyjet::dep.path["…"]`
 old_dep_reg [fnv:a07cb76a65767c9c] :: `cyjet::dep[id = …, version = …]` is an old spelling: write `cyjet::dep.reg[id = …, version = …]`
-old_dep_std [fnv:a05f476c719ded49] :: is an old spelling: write `cyjet::dep.std["…"]`
+old_dep_std [fnv:f1b132269a58fe76] :: is an old spelling: write `cyjet::dep.path.std["…"]`
+old_dep_std_short [fnv:28f955d257f4a1eb] :: `cyjet::dep.std` is an old spelling: write `cyjet::dep.path.std["…"]`

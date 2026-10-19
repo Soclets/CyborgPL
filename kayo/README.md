@@ -950,6 +950,8 @@ Dated, with the alternative, so each can become a question later.
   refuses it. std by its ID and the folder it is written in,
   `cyjet::dep[id = <std's>, path = "…"]`, has no new spelling yet (asked):
   it is still taken as it was.
-- **2026-10-19 — std from its folder is `cyjet::dep.std["…"]`** (owner:
-  "(b)"): one text, the folder, taking over `std::` as before; the old
-  `cyjet::dep[id = <std's>, path = …]` is refused from its own row now.
+- **2026-10-19 — std from its folder is `cyjet::dep.path.std["…"]`**
+  (owner: "(b)", then "Shouldn't it be `cyjet::dep.path.std`?"): one text,
+  the folder, taking over `std::` as before; the old
+  `cyjet::dep[id = <std's>, path = …]` and the day-old `cyjet::dep.std` are
+  each refused from their own row.

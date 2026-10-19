@@ -1013,15 +1013,21 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                         return err(Diagnostic::error("each dependency is a `cyjet::dep.path[\"…\"]` (a folder), or a `cyjet::dep.reg[id = …, version = …]` (the registry)").at(e.span));
                     };
                     let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
-                    if path.kit.as_ref().map(|l| l.name.as_str()) != Some("cyjet") || !matches!(segs.as_slice(), ["dep"] | ["dep", "path"] | ["dep", "reg"] | ["dep", "std"]) {
-                        return err(Diagnostic::error(format!("each dependency is a `cyjet::dep.path[…]`, a `cyjet::dep.reg[…]` or a `cyjet::dep.std[…]`, and this is `{}`", path.spelled())).at(e.span));
+                    if path.kit.as_ref().map(|l| l.name.as_str()) != Some("cyjet") || !matches!(segs.as_slice(), ["dep"] | ["dep", "path"] | ["dep", "reg"] | ["dep", "std"] | ["dep", "path", "std"]) {
+                        return err(Diagnostic::error(format!("each dependency is a `cyjet::dep.path[…]`, a `cyjet::dep.path.std[…]` or a `cyjet::dep.reg[…]`, and this is `{}`", path.spelled())).at(e.span));
+                    }
+                    // `cyjet::dep.std` (one day, 2026-10-19) is an old spelling.
+                    if segs == ["dep", "std"] {
+                        let said = crate::spellings::old_word("cyjet::dep.std", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`cyjet::dep.std` is an old spelling".into());
+                        return err(Diagnostic::error(said).at(e.span));
                     }
                     // std from the folder it is being written in (owner,
-                    // 2026-10-14, spelled 2026-10-19: "(b)"): one text, the
-                    // folder; it takes over `std::` for the whole program.
-                    if segs == ["dep", "std"] {
+                    // 2026-10-14; spelled 2026-10-19: a folder dependency
+                    // that is std): one text, the folder; it takes over
+                    // `std::` for the whole program.
+                    if segs == ["dep", "path", "std"] {
                         let [AArg::Positional(folder)] = args.as_slice() else {
-                            return err(Diagnostic::error("std from its folder is one text, the folder: `cyjet::dep.std[\"../std\"]`").at(e.span));
+                            return err(Diagnostic::error("std from its folder is one text, the folder: `cyjet::dep.path.std[\"../std\"]`").at(e.span));
                         };
                         let p = text(folder, "std's folder")?;
                         if out.has_std {

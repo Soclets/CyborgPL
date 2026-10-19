@@ -375,7 +375,7 @@ fn examples_run_against_the_cyborgpl_std() {
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::copy(repo().join(format!("examples/{}.cy", name)), dir.join("kit.cy")).unwrap();
         let manifest = format!(
-            "cyjet::manifest[\n    name = \"{n}\",\n    prefix = \"{n}\",\n    version = \"0.1.0\",\n    dependencies = [\n        cyjet::dep.std[\"{c}\"],\n    ],\n{l}    targets = [cyjet::target[name = \"aarch64-macos\"],]\n];\n",
+            "cyjet::manifest[\n    name = \"{n}\",\n    prefix = \"{n}\",\n    version = \"0.1.0\",\n    dependencies = [\n        cyjet::dep.path.std[\"{c}\"],\n    ],\n{l}    targets = [cyjet::target[name = \"aarch64-macos\"],]\n];\n",
             n = name,
             c = cord.display(),
             l = limbs
