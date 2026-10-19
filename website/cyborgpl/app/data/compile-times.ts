@@ -2,9 +2,11 @@
 // benchmark"). Measured by design claude in bench/ (asked 2026-10-19): the four bench programs built
 // from source to a final executable, best of 3, no build cache. Null until those numbers exist: the
 // chart shows a placeholder rather than anything made up.
-// `total` is RESULTS.md's own total: the per-program times are rounded, so summing them can be off by 0.01.
+// `total` is RESULTS.md's own total (for run times, the four programs' times added up): the per-program times are rounded, so summing them can be off by 0.01.
 export type CompileRow = { name: string; ours?: boolean; total: number; seconds: { sum: number; fib: number; lists: number; sieve: number } };
 export type CompileRun = { date: string; machine: string; commands: string; caveat: string; rows: CompileRow[] };
+export type BenchRow = CompileRow;
+export type BenchRun = CompileRun;
 
 // bench/RESULTS.md, "2026-10-19: compile time, source to final executable" (bench/compile_time.py,
 // kayo `CyDT f84c8a7a KAYO\n`): best of 3 cold builds per program, wall-clock, one build at a time.

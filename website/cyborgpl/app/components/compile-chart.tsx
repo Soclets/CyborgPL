@@ -9,19 +9,19 @@ const PROGRAMS = ["sum", "fib", "lists", "sieve"] as const;
 const total = (r: CompileRow) => r.total;
 const fmt = (s: number) => (s >= 1 ? `${s.toFixed(1)} s` : `${Math.round(s * 1000)} ms`);
 
-export function CompileChart({ run }: { run: CompileRun | null }) {
+export function CompileChart({ run, label = "Compile times", lead = "Building the four bench programs from source to a final executable, best of 3" }: { run: CompileRun | null; label?: string; lead?: string }) {
   const [hover, setHover] = useState<string | null>(null);
   if (!run) {
     // Nothing measured yet: a blueprint of the chart, dashed like the loading screen's.
     return (
-      <div className="chart chart-pending" role="img" aria-label="Compile times: being measured">
+      <div className="chart chart-pending" role="img" aria-label={`${label}: being measured`}>
         {[92, 18, 24, 12, 30].map((w, i) => (
           <div className="chart-row" key={i}>
             <span className="chart-name chart-ghost-text" />
             <span className="chart-track"><span className="chart-ghost" style={{ width: `${w}%` }} /></span>
           </div>
         ))}
-        <p className="chart-note">The compile times are being measured.</p>
+        <p className="chart-note">The {label.toLowerCase()} are being measured.</p>
       </div>
     );
   }
@@ -52,10 +52,10 @@ export function CompileChart({ run }: { run: CompileRun | null }) {
         ))}
       </div>
       <figcaption className="chart-note">
-        Building the four bench programs from source to a final executable, best of 3, {run.date}, on {run.machine}. {run.caveat}
+        {lead}, {run.date}, on {run.machine}. {run.caveat}
       </figcaption>
       <table className="sr-only">
-        <caption>Compile time per language</caption>
+        <caption>{label} per language</caption>
         <thead><tr><th>Language</th>{PROGRAMS.map((p) => <th key={p}>{p}</th>)}<th>Total</th></tr></thead>
         <tbody>{rows.map((r) => <tr key={r.name}><td>{r.name}</td>{PROGRAMS.map((p) => <td key={p}>{fmt(r.seconds[p])}</td>)}<td>{fmt(total(r))}</td></tr>)}</tbody>
       </table>
