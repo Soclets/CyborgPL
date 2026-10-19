@@ -4,6 +4,8 @@
   "displayName": "Nerve",
   "scopeName": "source.nerve",
   "fileTypes": [
+    "cy",
+    "cyr",
     "zv",
     "zg",
     "nrv",
@@ -42,6 +44,9 @@
     },
     {
       "include": "#number"
+    },
+    {
+      "include": "#symbol-word"
     },
     {
       "include": "#precedence-block"
@@ -238,14 +243,16 @@
       }
     },
     "variable": {
-      "comment": "Every variable name is quoted: 'x'. It cannot span lines.",
+      "comment": "A quoted name: any printable characters, a `.`, single spaces, and `\\'` / `\\\\` escaped (owner, 2026-10-16): '80%', 'v1.2', 'total due', 'it\\'s'. Only a quote that closes on the same line opens one.",
       "name": "variable.other.nerve",
-      "match": "'[^'\\n]+'",
-      "captures": {
-        "0": {
-          "name": "variable.other.nerve"
+      "begin": "'(?=(?:[^'\\\\\\n]|\\\\.)+')",
+      "end": "'",
+      "patterns": [
+        {
+          "name": "constant.character.escape.nerve",
+          "match": "\\\\['\\\\]"
         }
-      }
+      ]
     },
     "newline-piece": {
       "patterns": [
@@ -264,8 +271,49 @@
     "number": {
       "patterns": [
         {
-          "comment": "`*0.1` — \"exactly this\", a deci (2026-10-02). The * belongs to the number.",
-          "name": "constant.numeric.exact.nerve",
+          "comment": "A whole number in another base, with its word (2026-10-19): binary 1010_0101, hex FF00_00FF, octal 755.",
+          "match": "\\b(binary)\\s+([01][01_]*)\\b|\\b(hex)\\s+([0-9A-Fa-f][0-9A-Fa-f_]*)\\b|\\b(octal)\\s+([0-7][0-7_]*)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.other.base.nerve"
+            },
+            "2": {
+              "name": "constant.numeric.integer.nerve"
+            },
+            "3": {
+              "name": "keyword.other.base.nerve"
+            },
+            "4": {
+              "name": "constant.numeric.integer.nerve"
+            },
+            "5": {
+              "name": "keyword.other.base.nerve"
+            },
+            "6": {
+              "name": "constant.numeric.integer.nerve"
+            }
+          }
+        },
+        {
+          "comment": "A percentage (2026-10-16): 80%, 12.5%, written with the % on the number.",
+          "name": "constant.numeric.percent.nerve",
+          "match": "(?<![\\p{L}\\p{M}\\p{N}_.])\\d[\\d_]*(?:\\.\\d[\\d_]*)?%"
+        },
+        {
+          "comment": "A percentage written as a word: 80 percent, 12.5 percent.",
+          "match": "(?<![\\p{L}\\p{M}\\p{N}_.])(\\d[\\d_]*(?:\\.\\d[\\d_]*)?)\\s+(percent)\\b",
+          "captures": {
+            "1": {
+              "name": "constant.numeric.decimal.nerve"
+            },
+            "2": {
+              "name": "keyword.other.unit.nerve"
+            }
+          }
+        },
+        {
+          "comment": "`*19.99` is `exactly 19.99` (spellings.cyr, 2026-10-16).",
+          "name": "invalid.deprecated.nerve",
           "match": "\\*\\d[\\d_]*(?:\\.\\d[\\d_]*)?\\b"
         },
         {
@@ -281,6 +329,24 @@
     },
     "declaration": {
       "patterns": [
+        {
+          "comment": "A collection (2026-10-19): `coll.fn greet { … }`, `coll.handler half_failed { … }`.",
+          "match": "\\b(coll)(\\.)(fn|handler)\\s+([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.declaration.nerve"
+            },
+            "2": {
+              "name": "punctuation.accessor.nerve"
+            },
+            "3": {
+              "name": "keyword.declaration.nerve"
+            },
+            "4": {
+              "name": "entity.name.function.nerve"
+            }
+          }
+        },
         {
           "comment": "`shadow 'x' := 2;` makes a new variable under an old name (2026-10-08), in `let`'s place.",
           "name": "keyword.declaration.nerve",
@@ -327,7 +393,7 @@
         },
         {
           "comment": "struct / enum / interface declare a type's bare name.",
-          "match": "\\b(struct|enum|interface)\\s+([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)",
+          "match": "\\b(struct|enum|interface|union)\\s+([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)",
           "captures": {
             "1": {
               "name": "keyword.declaration.nerve"
@@ -623,7 +689,7 @@
         },
         {
           "name": "support.type.nerve",
-          "match": "\\b(?:bool|str|char|list|array|seq|map|simd|channel|ptr|any|duration|optional)\\b",
+          "match": "\\b(?:bool|str|char|list|array|seq|map|simd|channel|ptr|any|duration|optional|percent)\\b",
           "comment": "The bare built-in types; `any` accepts every type (2026-10-02); `duration` is std's, written bare."
         },
         {
@@ -645,6 +711,56 @@
     },
     "keyword": {
       "patterns": [
+        {
+          "comment": "Rounding is one family (2026-10-17): round.near, round.half_up, round.floor, round.ceil, round.trunc.",
+          "match": "\\b(round)(\\.)(near|half_up|floor|ceil|trunc)\\b",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.nerve"
+            },
+            "2": {
+              "name": "punctuation.accessor.nerve"
+            },
+            "3": {
+              "name": "entity.name.function.nerve"
+            }
+          }
+        },
+        {
+          "comment": "A kit's prefix before a quoted name: areas::'pi'.",
+          "match": "\\b([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)(::)(?=')",
+          "captures": {
+            "1": {
+              "name": "entity.name.namespace.nerve"
+            },
+            "2": {
+              "name": "punctuation.separator.namespace.nerve"
+            }
+          }
+        },
+        {
+          "comment": "A function's own table limit, in front of it (2026-10-19): `table_bytes 1_024 fn square …`.",
+          "match": "\\b(table_bytes)(?=\\s+\\d)",
+          "captures": {
+            "1": {
+              "name": "storage.modifier.nerve"
+            }
+          }
+        },
+        {
+          "comment": "A coll.fn member names itself with `named` (2026-10-19).",
+          "name": "keyword.other.named.nerve",
+          "match": "\\bnamed\\b(?=\\s+[\"'\\p{L}])"
+        },
+        {
+          "comment": "`exclude zero` / `include zero` in a C string's bound (2026-10-19).",
+          "match": "(?<=\\b(?:exclude|include)\\s)(zero)\\b",
+          "captures": {
+            "1": {
+              "name": "constant.language.nerve"
+            }
+          }
+        },
         {
           "comment": "`exactly 19.99`: an exact deci (2026-10-14), the word for the prefix `*`.",
           "name": "keyword.other.exactly.nerve",
@@ -731,7 +847,7 @@
           "match": "\\bis\\b"
         },
         {
-          "comment": "`my.` is the root of this strike's own paths: `my.'scale'`, and `my.to[]`, a function a keyword's name can't reach otherwise (2026-10-06).",
+          "comment": "`my.` is the root of this kit's own paths: `my.'scale'`, and `my.to[]`, a function a keyword's name can't reach otherwise (2026-10-06).",
           "match": "\\b(my)(\\.)(?:([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)(?=\\s*\\[))?",
           "captures": {
             "1": {
@@ -761,7 +877,7 @@
           }
         },
         {
-          "comment": "A strike's marks for its names: `bare.never`, `bare.only`, `bare.optional` (whether the path is needed) and `case.any` / `case.exact` (2026-10-12), optionally for kinds: `[fn, var]`.",
+          "comment": "A kit's marks for its names: `bare.never`, `bare.only`, `bare.optional` (whether the path is needed) and `case.any` / `case.exact` (2026-10-12), optionally for kinds: `[fn, var]`.",
           "match": "\\b(bare|case)(\\.)(never|only|optional|any|exact)\\b(?:\\s*(\\[)([^\\]]*)(\\]))?",
           "captures": {
             "1": {
@@ -819,7 +935,7 @@
         },
         {
           "comment": "A loop's modifiers come right after `for`, the strongest first: `for no_cheat seq 'i' in …`, `for para 'x' in …`. `seq` here is a word, not the type.",
-          "match": "\\b(for)\\b(\\s+no_cheat\\b)?(\\s+(?:seq|para)\\b)?",
+          "match": "\\b(for)\\b(\\s+(?:seq|para)\\b)?",
           "captures": {
             "1": {
               "name": "keyword.control.nerve"
@@ -856,9 +972,9 @@
           "match": "\\b(?:give|copy|lend|lent)(?:\\.mut)?\\b"
         },
         {
-          "comment": "Labels: a range's from/to/by/before/min/max/count, and the argument words (2026-10-14): value, key, part, at, between.",
+          "comment": "An argument's role word (2026-10-14): value, count, key, decimals, bits, exclude…: a lowercase word that opens an argument and has a value after it.",
           "name": "keyword.other.range.label.nerve",
-          "match": "\\b(?:from|before|by)\\b(?=\\s+[^\\s,\\]=:.])|\\bto\\b(?=\\s+[^\\s,\\]=:.])|(?<=\\[|,\\s)(?:value|count|min|max|key|part|at|between)\\b(?=\\s+[^\\s,\\]=:])"
+          "match": "\\b(?:from|before|by)\\b(?=\\s+[^\\s,\\]=:.])|\\bto\\b(?=\\s+[^\\s,\\]=:.])|(?<=\\[|,\\s)(?!(?:not|negate|mut|immut|temp|perm|and|or|op|fn|copy|give|lend|lent|exactly|binary|hex|octal|check|no_check|no_cheat|true|false|empty|newln)\\b)[\\p{Ll}_][\\p{L}\\p{M}\\p{N}_]*\\b(?=\\s+[^\\s,\\]=:.\\[])"
         },
         {
           "comment": "`change` marks every assignment; `let` introduces a binding.",
@@ -890,14 +1006,14 @@
           "match": "\\b(?:if|else|loop|while|for|in|break|continue|return|match|whichever|concur)\\b"
         },
         {
-          "comment": "`pub.limb` and `pub.neuron` are `pub.strike` (spellings.zv): a library is a strike.",
+          "comment": "`pub.limb`, `pub.neuron` and `pub.strike` are `pub.kit` (spellings.cyr): a library is a kit.",
           "name": "invalid.deprecated.nerve",
           "match": "\\bpub\\.(?:limb|neuron)\\b"
         },
         {
           "name": "keyword.declaration.nerve",
-          "match": "\\b(?:pub\\.strike|let|fn|struct|enum|interface|module|const|pub|op|extern|layout|inline|asm|ASM)\\b",
-          "comment": "`pub.strike` is `pub` narrowed: visible across the strike."
+          "match": "\\b(?:pub\\.kit|let|fn|struct|enum|interface|module|const|pub|op|extern|layout|inline|asm|ASM)\\b",
+          "comment": "`pub.kit` is `pub` narrowed: visible across the kit."
         },
         {
           "name": "storage.modifier.nerve",
@@ -939,7 +1055,7 @@
           }
         },
         {
-          "comment": "Old prefixes (spellings.zv): cord and stdkit are std (2026-10-15, 2026-10-09); cca and kin are ricochet.",
+          "comment": "Old prefixes (spellings.cyr): cord and stdkit are std; cca, kin and ricochet are cyjet.",
           "match": "\\b(stdkit|cord|cca|kin)(::)",
           "captures": {
             "1": {
@@ -951,7 +1067,7 @@
           }
         },
         {
-          "comment": "A strike's path: std::print.useful[…]. The :: is a strike's boundary.",
+          "comment": "A kit's path: std::print.useful[…]. The :: is a kit's boundary.",
           "match": "\\b([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)(::)((?:[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)(?:\\.[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)*)",
           "captures": {
             "1": {
@@ -1046,7 +1162,7 @@
         {
           "comment": "Arithmetic and comparison are words: `plus`, `equal_to`, `at_most` (2026-10-07). `.wrap` wraps, `.ieee` keeps IEEE's -0, div/mod name their rounding; `and.then` / `or.else` stop early.",
           "name": "keyword.operator.word.nerve",
-          "match": "\\b(?:and\\.then|or\\.else|(?:plus|minus|times|pow)(?:\\.wrap|\\.ieee)?|neg\\.ieee|(?:div|mod)\\.(?:floor|ceil|trunc|near)(?:\\.wrap|\\.ieee)?|equal_to|not_equal|at_most|at_least|concat|and|or|not)\\b"
+          "match": "\\b(?:and\\.then|or\\.else|(?:plus|minus|times|pow)(?:\\.wrap|\\.ieee)?|negate\\.ieee|(?:div|mod)\\.(?:floor|ceil|trunc|near)(?:\\.wrap|\\.ieee)?|equal_to|less_than|greater_than|not_equal|at_most|at_least|concat|and|or|not)\\b"
         },
         {
           "comment": "`$:=` / `$=` shadowed a name until 2026-10-08; it is `shadow 'x' := 2;` now.",
@@ -1431,7 +1547,7 @@
       ]
     },
     "precedence-block": {
-      "comment": "A strike's operator precedence (2026-10-03): `precedence.low_first { … }` or `precedence.high_first { … }`.",
+      "comment": "A kit's operator precedence (2026-10-03): `precedence.low_first { … }` or `precedence.high_first { … }`.",
       "begin": "\\b(precedence)(\\.)(low_first|high_first)\\s*(\\{)",
       "end": "\\}",
       "beginCaptures": {
@@ -1487,12 +1603,79 @@
       "comment": "The old spellings spellings.zv lists (76 rows, 2026-10-15), shown as errors where the language refuses them, each only in the place its row names: a type name outside a path, an operator between values, a word after `inline.`.",
       "patterns": [
         {
+          "comment": "The symbols spellings.cyr retires (2026-10-16): == != <= >= are equal_to not_equal at_most at_least; / and % between values are div.X and mod.X; && || are and.then or.else; & is `and` between values and lend/lent before one; * is x, ** is xx, *const *mut are ptr / ptr.mut, a prefix * reads a pointer or marks exactly; ++ -- += -= *= /= %= **= are spelled with change. `<`, `>`, `+`, `-`, `x`, `xx` and the arrows stay. Percentages (80%) are numbers, matched before reaching here.",
+          "name": "invalid.deprecated.nerve",
+          "match": "==|!=|<=|>=|&&|\\|\\||&mut\\b|&|\\*\\*=?|\\*=|\\*(?=const\\b|mut\\b)|\\*(?=['(\\p{L}\\d])|(?<=\\s)\\*(?=\\s)|\\+\\+|--(?!>)|[+\\-/%]=|(?<=\\s)%(?=\\s)|(?<![<>/*])/(?![/*>])"
+        },
+        {
+          "comment": "Old kit-manager prefixes and words: ricochet::, kin::, cca:: are cyjet::; collection. is coll.fn / coll.handler.",
+          "name": "invalid.deprecated.nerve",
+          "match": "\\b(?:ricochet|kin|cca)(?=::)|\\bcollection(?=\\.)"
+        },
+        {
+          "comment": "`for no_cheat` is `no_cheat for` (2026-10-18): the word goes in front.",
+          "match": "\\b(for)\\s+(no_cheat)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.control.nerve"
+            },
+            "2": {
+              "name": "invalid.deprecated.nerve"
+            }
+          }
+        },
+        {
+          "comment": "std::round / floor / ceil / trunc are the round.X family (2026-10-17).",
+          "match": "\\b(std)(::)(round|floor|ceil|trunc)(?=\\s*\\[)",
+          "captures": {
+            "1": {
+              "name": "entity.name.namespace.nerve"
+            },
+            "2": {
+              "name": "punctuation.separator.namespace.nerve"
+            },
+            "3": {
+              "name": "invalid.deprecated.nerve"
+            }
+          }
+        },
+        {
+          "comment": "A dependency says its kind (2026-10-19): cyjet::dep[…] is cyjet::dep.path[…] or cyjet::dep.reg[…]; cyjet::dep.std is cyjet::dep.path.std[…].",
+          "match": "\\b(cyjet)(::)(dep(?=\\s*\\[)|dep\\.std\\b)",
+          "captures": {
+            "1": {
+              "name": "entity.name.namespace.nerve"
+            },
+            "2": {
+              "name": "punctuation.separator.namespace.nerve"
+            },
+            "3": {
+              "name": "invalid.deprecated.nerve"
+            }
+          }
+        },
+        {
+          "comment": "A simd type's lane count says `count` (2026-10-19): simd[int32, 4] is simd[int32, count 4].",
+          "match": "\\b(simd)(\\[)([^\\],\\[]+)(,)\\s*(\\d+)(?=\\s*\\])",
+          "captures": {
+            "1": {
+              "name": "support.type.nerve"
+            },
+            "2": {
+              "name": "punctuation.section.brackets.nerve"
+            },
+            "5": {
+              "name": "invalid.deprecated.nerve"
+            }
+          }
+        },
+        {
           "comment": "Rust's and short number names: int8 and the rest, outside a path (not after :: or .).",
           "name": "invalid.deprecated.nerve",
           "match": "(?<![.:\\p{L}\\p{M}\\p{N}_'])(?:i8|i16|i32|i64|i128|u8|u16|u32|u64|u128|f16|f32|f64|bfloat16|bf16)\\b(?!::)"
         },
         {
-          "comment": "The same after a strike's path, as std::print.useful.auto_newline.",
+          "comment": "The same after a kit's path, as std::print.useful.auto_newline.",
           "match": "\\b([\\p{L}_][\\p{L}\\p{M}\\p{N}_]*)(::)((?:[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*\\.)*)(auto_newline)\\b",
           "captures": {
             "1": {
@@ -1510,7 +1693,7 @@
           }
         },
         {
-          "comment": "giveS and gives are `is`; auto_newline is auto_newln; limb and neuron are strike (limb. is my.).",
+          "comment": "giveS and gives are `is`; auto_newline is auto_newln.",
           "match": "\\b((?:[\\p{L}_][\\p{L}\\p{M}\\p{N}_]*\\.)*)(auto_newline)\\b",
           "captures": {
             "1": {
@@ -1523,7 +1706,8 @@
         },
         {
           "name": "invalid.deprecated.nerve",
-          "match": "\\b(?:giveS|limb|neuron)\\b"
+          "match": "\\b(?:giveS|neuron|strike)\\b|\\blimb(?=\\.)|\\bpub\\.(?:limb|strike|neuron)\\b",
+          "comment": "giveS is `is`; neuron and strike are `kit`; `limb.` is `my.` and `pub.limb` / `pub.strike` are `pub.kit`. A bare `limb` is current: a compiler extension (cyjet::limb)."
         },
         {
           "comment": "inline.Assembly, inline.S, inline.LLVM and the long names are inline.ASM, inline.LL, inline.MSL.",
@@ -1541,9 +1725,9 @@
           }
         },
         {
-          "comment": "x, xx, x~, xx~ between values are times, pow and their .wrap forms. Not a field (x: …), a member (.x), a lifetime (@x) or a register (x0).",
+          "comment": "x~ and xx~ are times.wrap and pow.wrap; x and xx themselves are the current symbols (2026-10-16).",
           "name": "invalid.deprecated.nerve",
-          "match": "(?<![\\p{L}\\p{M}\\p{N}_'.@])(?:xx~|x~|xx|x)(?![\\p{L}\\p{M}\\p{N}_'~])(?!\\s*:(?!:))(?!\\s*=)"
+          "match": "(?<![\\p{L}\\p{M}\\p{N}_'.@])(?:xx~|x~)(?![\\p{L}\\p{M}\\p{N}_'])"
         },
         {
           "comment": "The arrows past the short ones, and the comparisons with = tacked on: -> and <- (and <->) are the only arrows; != <= >= or the words.",
@@ -1561,9 +1745,9 @@
           "match": "\\$:?="
         },
         {
-          "comment": "A manifest's cores and lobes are its plugins.",
+          "comment": "A manifest's cores, lobes and plugins are its limbs.",
           "name": "invalid.deprecated.nerve",
-          "match": "\\b(?:cores|lobes)\\b(?=\\s*=)"
+          "match": "\\b(?:cores|lobes|plugins)\\b(?=\\s*=)"
         },
         {
           "comment": "level.when_chained is `level 2 { plus, minus } left_first`.",
@@ -1574,6 +1758,24 @@
           "comment": "A bare \\n among a print's values is newln. Inside a text it stays text (print.format's \\n is its own).",
           "name": "invalid.deprecated.nerve",
           "match": "\\\\n\\b"
+        },
+        {
+          "comment": "`neg` is `negate` (spellings.cyr), `neg.ieee` too.",
+          "name": "invalid.deprecated.nerve",
+          "match": "\\bneg\\b"
+        }
+      ]
+    },
+    "symbol-word": {
+      "comment": "`x` (times) and `xx` (pow) are the current symbols (2026-10-16), between values; never a field (`x: …`), a named argument (`x = …`) or a name ('x', @x, .x). `negate` is a prefix word.",
+      "patterns": [
+        {
+          "name": "keyword.operator.arithmetic.nerve",
+          "match": "(?<=[\\s(\\[])(?:xx|x)(?=\\s+[^\\s=:,\\];)])"
+        },
+        {
+          "name": "keyword.operator.word.nerve",
+          "match": "\\bnegate\\b(?=\\s+\\S)"
         }
       ]
     }
