@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — C libraries to link are listed in `CyJet.cyr`: `C.libs = [cyjet::C.lib[name = "sqlite3"]]` (owner: a, "Isn't it `C.lib`?")
+
+The second of public v1's six C gaps: `incl.C` brings a library's header, but nothing named the library to link.
+Offered (a) a list in `CyJet.cyr`, found through the system's library folders and Homebrew's (recommended), or (b)
+beside the header in code, `incl.C.system["sqlite3.h", link "sqlite3"];`. The owner: "Isn't it `C.lib`?", then
+"yea" to **`C.libs = [cyjet::C.lib[name = "sqlite3"], cyjet::C.lib[name = "curl"]]`**, the manifest's first field
+with a dot, so C things are spelled `C.` in code and manifest alike. Where a library is looked for beyond the
+system's folders and Homebrew's, and a lone file's libraries, are not asked yet.
+
 ### 2026-10-19 — A made C string is owned like any value: lent to C for a call, given when C keeps it (owner: a)
 
 Who frees what `C.str.make` makes? Offered (a) CyborgPL owns it as it owns any value: freed when its owner's scope
