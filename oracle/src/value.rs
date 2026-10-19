@@ -230,6 +230,8 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::Channel(t) => format!("channel[{}]", ty_name(t)),
         Ty::Duration => "std::duration".into(),
         Ty::Simd(t, n) => format!("simd[{}, count {n}]", ty_name(t)),
+        Ty::CStr(None) => "C.str".into(),
+        Ty::CStr(Some((lo, hi, z))) => format!("C.str[min {lo}, max {hi} bytes, {} zero]", if *z { "include" } else { "exclude" }),
         Ty::Map(k, v, o) => format!("map{}[{}, {}]", match o { crate::ast::MapOrder::Any => "", crate::ast::MapOrder::Ordered => ".ordered", crate::ast::MapOrder::Unordered => ".unordered" }, ty_name(k), ty_name(v)),
         Ty::TextRanged(e, lo, hi, u) => {
             let mut sides = Vec::new();

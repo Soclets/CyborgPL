@@ -1320,6 +1320,16 @@ impl<'p> Interp<'p> {
     fn check_type(&self, v: &Value, ty: &Ty, line: usize) -> Result<(), RuntimeError> {
         let name = ty_name(ty);
         match (ty, v) {
+            // a C string: its bytes and a 0; a bound counts the 0 or not, as it says (owner, 2026-10-19)
+            (Ty::CStr(bound), Value::List(items)) => {
+                if items.last() != Some(&Value::Int(0)) || !items.iter().all(|x| matches!(x, Value::Int(b) if (0..=255).contains(b))) { return rt(line, format!("a {name} is bytes ending in a 0, made with `C.str.make`")); }
+                if let Some((lo, hi, z)) = bound {
+                    let n = items.len() as i128 - if *z { 0 } else { 1 };
+                    if n < *lo || n > *hi { return site(line, format!("a C string of {n} bytes does not fit {name}")); }
+                }
+                Ok(())
+            }
+            (Ty::CStr(_), other) => rt(line, format!("a {name} is made with `C.str.make`, not {}", other.kind())),
             (Ty::Int(_) | Ty::Uint(_), Value::Int(_) | Value::Big(_)) => {
                 // at any width (owner, 2026-10-03); the standard ones stay on i128
                 if let (Some((lo, hi)), Value::Int(i)) = (int_range(ty), v) {
@@ -1850,7 +1860,9 @@ impl<'p> Interp<'p> {
         // (design/simd.md) — the stop had cut that off, so a `simd[int32, count 4]` loaded 16 lanes
         // …and `list.fill`, whose value takes the element type, as a list literal's values do
         // (compiler claude, 2026-09-30: `list.fill[0.25, 'n']` into `list[deci64]` was refused)
-        let simd_shape = matches!(e, Expr::Builtin(h, op, ..) if (h == "simd" && (op == "load" || op == "fill" || op == "load.some")) || (h == "list" && op == "fill"));
+        let simd_shape = matches!(e, Expr::Builtin(h, op, ..) if (h == "simd" && (op == "load" || op == "fill" || op == "load.some")) || (h == "list" && op == "fill"))
+            // `C.str.make` into a bounded `C.str` sees the bound, to fail `out_of_range` (2026-10-19)
+            || matches!(e, Expr::Call(c) if c.kit.as_deref() == Some("C"));
         let fresh = !simd_shape && matches!(e, Expr::Call(_) | Expr::CallValue(..) | Expr::Builtin(..) | Expr::Convert(..)
             | Expr::Construct(..) | Expr::MapFail(..) | Expr::MapLit(..) | Expr::CharFromCode(..)
             | Expr::Lambda(..) | Expr::ChannelNew(..) | Expr::EnumValue(..))
@@ -4729,6 +4741,7 @@ impl<'p> Interp<'p> {
             Ty::Simd(t, n) => { let (sz, _) = self.size_align(t, line)?; (sz * n, sz * n) }
             Ty::Channel(_) => (8, 8),
             Ty::Duration => (8, 8),
+            Ty::CStr(_) => (24, 8),   // a list's handle, as `list[uint8]`
             Ty::Fn(..) => (8, 8),
             Ty::Inst(n, _) => return rt(line, format!("`size.of[{n}[…]]`: a generic struct's size is not modelled by the oracle")),
             Ty::Struct(n) => {
@@ -5052,6 +5065,8 @@ impl<'p> Interp<'p> {
         let value_used = !self.call_is_stmt;
         self.call_is_stmt = false;
         let op = c.path.get(1).map(String::as_str).unwrap_or("");
+        // where the C string goes, read before the argument resets it
+        let bound = match &self.expected { Some(Ty::CStr(Some(b))) => Some(*b), _ => None };
         let (v, prov) = self.value(&c.args.values[0])?;
         if op == "read" {
             let fails = vec![FailCase { name: "not_utf8".into(), ty: None }];
@@ -5074,11 +5089,15 @@ impl<'p> Interp<'p> {
         // a literal with no 0 byte cannot fail, so it needs no `otherwise` (owner: the check dropped where proven)
         let literal = matches!(&c.args.values[0], crate::ast::Value::Expr(crate::ast::Expr::Text(..)));
         let proven = literal && !t.contains('\0');
-        let fails = if proven { Vec::new() } else { vec![FailCase { name: "has_zero_byte".into(), ty: None }] };
-        self.check_handler(c.handler.as_ref(), &fails, "C.str.make", c.line)?;
-        if t.contains('\0') { return self.handle_failure(c.handler.as_ref().unwrap(), c.line, "C.str.make", "has_zero_byte".into(), None, value_used); }
+        // made into a bounded `C.str`, it can be too long: `out_of_range` (design claude's reading, 2026-10-19)
         let mut items: Vec<Value> = t.bytes().map(|b| Value::Int(b as i128)).collect();
         items.push(Value::Int(0));
+        let fits = |n: usize| bound.map_or(true, |(lo, hi, z)| { let k = n as i128 - if z { 0 } else { 1 }; k >= lo && k <= hi });
+        let mut fails = if proven { Vec::new() } else { vec![FailCase { name: "has_zero_byte".into(), ty: None }] };
+        if bound.is_some() && !(literal && fits(items.len())) { fails.push(FailCase { name: "out_of_range".into(), ty: None }); }
+        self.check_handler(c.handler.as_ref(), &fails, "C.str.make", c.line)?;
+        if t.contains('\0') { return self.handle_failure(c.handler.as_ref().unwrap(), c.line, "C.str.make", "has_zero_byte".into(), None, value_used); }
+        if !fits(items.len()) { return self.handle_failure(c.handler.as_ref().unwrap(), c.line, "C.str.make", "out_of_range".into(), None, value_used); }
         Ok(Value::List(items))
     }
 
@@ -5290,7 +5309,7 @@ fn ty_shape(t: &Ty) -> String {
     match t {
         Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) => "bin".into(), Ty::Brain => "brain16".into(), Ty::Deci(_) => "deci".into(), Ty::Bool => "bool".into(),
         Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_) | Ty::Array(_) => "list".into(),
-        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Simd(..) => "simd".into(), Ty::Channel(_) => "channel".into(), Ty::Duration => "duration".into(), Ty::Fn(..) => "function".into(),
+        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Simd(..) => "simd".into(), Ty::Channel(_) => "channel".into(), Ty::Duration => "duration".into(), Ty::Fn(..) => "function".into(), Ty::CStr(_) => "list".into(),
     }
 }
 

@@ -1653,6 +1653,33 @@ impl Parser {
     // through modules is a dotted path (`shapes.Locker`, `my.Locker`).
     /// A type; a range or a length bound is ASP's (owner, 2026-10-07: "move"), refused without it
     fn ty(&mut self) -> PResult<Ty> {
+        // `C.str`, a C string (owner, 2026-10-19: "(a)"), bounded as `C.str[max 255 bytes, exclude zero]`: bytes only, and
+        // always whether the closing 0 counts (owner: "(a)")
+        if self.is_word("C") && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(w) if w == "str") && *self.peek_at(3) != Tok::Dot {
+            self.advance(); self.advance(); self.advance();
+            if *self.peek() != Tok::LBracket { return Ok(Ty::CStr(None)); }
+            self.advance();
+            let (mut lo, mut hi, mut zero): (i128, Option<i128>, Option<bool>) = (0, None, None);
+            loop {
+                match self.advance().tok {
+                    Tok::Word(w) if w == "min" => { lo = match self.advance().tok { Tok::Int(n) if n >= 0 => n, other => return self.err(format!("a C string's `min` is a whole number of bytes, found {other}")) }; if self.is_word("bytes") { self.advance(); } }
+                    Tok::Word(w) if w == "max" => {
+                        hi = Some(match self.advance().tok { Tok::Int(n) if n >= 0 => n, other => return self.err(format!("a C string's `max` is a whole number of bytes, found {other}")) });
+                        match self.advance().tok { Tok::Word(u) if u == "bytes" => {}, Tok::Word(u) if u == "points" || u == "graphemes" => return self.err(format!("a C string is counted in bytes, not {u}: C has no {u}")), other => return self.err(format!("a C string's bound says its unit, bytes: `max 255 bytes`, found {other}")) }
+                    }
+                    Tok::Word(w) if (w == "exclude" || w == "include") && self.is_word("zero") => { self.advance(); zero = Some(w == "include"); }
+                    other => return self.err(format!("a bounded C string is `C.str[max 255 bytes, exclude zero]` or `[…, include zero]`; found {other}")),
+                }
+                if *self.peek() == Tok::Comma { self.advance(); continue; }
+                break;
+            }
+            self.expect(Tok::RBracket, "`]` after the C string's bound")?;
+            let Some(hi) = hi else { return self.err("a bounded C string says its most: `C.str[max 255 bytes, exclude zero]`") };
+            let Some(z) = zero else { return self.err(format!("a bounded C string says whether its closing 0 counts: `C.str[max {hi} bytes, exclude zero]` (the text) or `include zero` (the whole buffer) (owner, 2026-10-19)")) };
+            if lo > hi { return self.err(format!("{lo} is more than {hi}")); }
+            if z && hi < 1 { return self.err("a buffer that includes its 0 holds at least 1 byte"); }
+            return Ok(Ty::CStr(Some((lo, hi, z))));
+        }
         // a C bit-field, `mode: uint8[bits 3]` (owner, 2026-10-19: "(a)"): N bits of the field's integer, written in
         // its limits bracket; only in a `layout.C` struct or union. It holds what N bits hold, checked when written
         if matches!(self.peek(), Tok::Word(_)) && *self.peek_at(1) == Tok::LBracket && matches!(self.peek_at(2), Tok::Word(b) if b == "bits") {
