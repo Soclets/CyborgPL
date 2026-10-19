@@ -81,7 +81,7 @@ The oracle and the verification harness use no crates.
 
 </details>
 
-**Ideas taken from other languages**
+**Ideas taken from others**
 - **Rust**: ownership and borrowing, lifetime groups (`'a` there, `@x` here), interfaces and `<T: Ordered>` bounds (Rust's traits), diagnostics "helpful like Rust's", and `::` for stepping into another kit (Rust's paths, which took it from C++).
 - **C++**: `incl.C`, reading a C header, from `#include <>` (owner: "I wanna add C++'s `#include <>`").
 - **C**, with **Rust** and **Go**: division and remainder rounding toward zero, here `div.trunc` and `mod.trunc`.
