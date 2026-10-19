@@ -195,3 +195,28 @@ html.fs-open { overflow: hidden; }
 .tk-punct { color: var(--tk-punct); }
 .tk-comment { color: var(--tk-comment); font-style: italic; }
 .tk-old { color: var(--tk-old); text-decoration: underline wavy; }
+
+/* Reading pages (Legal, Credits): one column under the topbar. */
+.doc { max-width: 760px; margin: 0 auto; padding: 120px 24px 120px; font-size: 16.5px; line-height: 1.65; color: rgba(255, 255, 255, .86); }
+.doc h1 { margin: 0 0 28px; font-weight: 500; font-size: clamp(40px, 6vw, 64px); letter-spacing: -.03em; color: var(--ink); }
+.doc h2 { margin: 44px 0 12px; font-weight: 500; font-size: 24px; letter-spacing: -.01em; color: var(--ink); }
+.doc p { margin: 0 0 14px; }
+.doc ul { margin: 0 0 16px; padding-left: 20px; display: grid; gap: 6px; }
+.doc a { color: var(--ink); text-decoration-color: rgba(255, 255, 255, .35); text-underline-offset: 3px; }
+.doc a:hover { text-decoration-color: var(--accent); }
+.doc code { font: .88em var(--mono); padding: 1px 6px; border-radius: 6px; background: rgba(255, 255, 255, .07); color: var(--ink); }
+.doc-warning { padding: 18px 20px; border: 1px solid rgba(255, 122, 61, .4); border-radius: 16px; background: rgba(255, 122, 61, .06); }
+.doc-warning p:last-child { margin: 0; }
+.doc-credit-lines { list-style: none; padding: 0 !important; }
+.doc-credit-lines code { display: inline-block; user-select: all; }
+.doc-small { font-size: 14px; color: rgba(255, 255, 255, .5); }
+.doc-logos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin: 18px 0 12px; }
+.doc .doc-logo { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; text-decoration: none; transition: border-color .15s, transform .15s; }
+.doc .doc-logo:hover { border-color: rgba(255, 255, 255, .35); transform: translateY(-1px); }
+.doc-logo-art { display: grid; place-items: center; height: 96px; border-radius: 10px; background: #000; }
+.doc-logo-art.on-light { background: #f2f2f2; }
+.doc-logo-art img { max-height: 72px; max-width: 80%; }
+.doc-logo-label { font-size: 14px; font-weight: 600; color: var(--ink); }
+.doc-logo-note { font-size: 12.5px; color: rgba(255, 255, 255, .5); }
+.doc-list summary { cursor: pointer; color: var(--ink); }
+.doc-list p { margin-top: 10px; font: 12.5px/1.7 var(--mono); color: rgba(255, 255, 255, .6); overflow-wrap: anywhere; }

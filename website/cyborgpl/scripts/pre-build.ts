@@ -44,3 +44,46 @@ const examples = picks.map((p) => {
 mkdirSync("app/generated", { recursive: true });
 writeFileSync("app/generated/examples.json", JSON.stringify(examples));
 console.log(`pre-build: examples ${examples.map((e) => `${e.file} (${e.lines} lines)`).join(", ")}`);
+
+// Legal and Credits (owner, 2026-10-19: More holds "Legal" (licences, trademarks and logo, privacy)
+// and "Credits"): their official wording is read from the README, which the owner approved and
+// design claude keeps, so the pages always say what it says. Blocks are kept as Markdown; the page
+// renders the little it uses (app/components/md.tsx).
+type Block = { kind: "p"; md: string } | { kind: "h"; md: string } | { kind: "ul"; items: string[] };
+const README = readFileSync("../../README.md", "utf8").split("\n");
+const paragraphs = (lines: string[]) => lines.join("\n").split(/\n\s*\n/).map((p) => p.replace(/\s*\n\s*/g, " ").trim()).filter(Boolean);
+const warning = paragraphs(README.filter((l) => l.startsWith(">")).map((l) => l.replace(/^>\s?/, "")).filter((l) => !l.startsWith("[!WARNING]")));
+const licences = README.filter((l) => /^- \[`LICENSE/.test(l)).map((l) => l.replace(/^- /, ""));
+const creditLines = README.filter((l) => /^ {2}- (this repo's|the website's|the logos)/.test(l)).map((l) => l.replace(/^ {2}- /, ""));
+const asked = README.find((l) => /^ {2}As the licence asks/.test(l))?.trim() ?? "";
+const trademark = README.find((l) => l.includes("names of this project")) ?? "";
+const copyright = README.find((l) => /^Copyright /.test(l)) ?? "";
+// The Credits <details>: paragraphs, bold headings and lists, without the README's crate and
+// website-package lists (this page builds its own from the lockfiles).
+const from = README.findIndex((l) => l.includes("<summary><b>Credits</b></summary>"));
+const to = README.findIndex((l, i) => i > from && /^Copyright /.test(l));
+const credits: Block[] = [];
+let skip = false;
+for (const raw of README.slice(from + 1, to)) {
+  const line = raw.trim();
+  if (!line || /^<\/?(details|summary)/.test(line)) continue;
+  // A heading is a bold line on its own, maybe with a note in brackets: "**Rust crates** (…)".
+  const heading = line.match(/^\*\*([^*]+)\*\*(\s*\(.*\))?$/);
+  if (heading) {
+    skip = /^(Rust crates|Website packages)/.test(heading[1]!);
+    if (!skip) credits.push({ kind: "h", md: heading[1]! });
+    continue;
+  }
+  if (skip) continue;
+  if (line.startsWith("- ")) {
+    const last = credits[credits.length - 1];
+    if (last?.kind === "ul") last.items.push(line.slice(2)); else credits.push({ kind: "ul", items: [line.slice(2)] });
+  } else credits.push({ kind: "p", md: line });
+}
+const crates = readFileSync("../../kayo/Cargo.lock", "utf8").split("[[package]]").slice(1)
+  .filter((b) => /^source = /m.test(b)).map((b) => `${b.match(/^name = "(.*)"/m)![1]} ${b.match(/^version = "(.*)"/m)![1]}`);
+const lock = JSON.parse(readFileSync("package-lock.json", "utf8")).packages as Record<string, { version?: string }>;
+const packages = [...new Set(Object.entries(lock).filter(([k]) => k).map(([k, v]) => `${k.slice(k.lastIndexOf("node_modules/") + 13)} ${v.version}`))].sort();
+const direct = Object.keys({ ...JSON.parse(readFileSync("package.json", "utf8")).dependencies, ...JSON.parse(readFileSync("package.json", "utf8")).devDependencies }).sort();
+writeFileSync("app/generated/about.json", JSON.stringify({ warning, licences, creditLines, asked, trademark, copyright, credits, crates, packages, direct }));
+console.log(`pre-build: about.json, ${credits.length} credit blocks, ${crates.length} crates, ${packages.length} packages`);
