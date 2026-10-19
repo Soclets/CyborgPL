@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — Numbers in other bases are written with a word: `binary 1010_0101`, `hex FF00`, `octal 755` (owner: a; not built)
+
+From the `bin` naming talk ("You said `bin` could collide with a binary integer"): CyborgPL had no way to write a
+number in base 2, 16 or 8 (the oracle refused `0b1010`: "a number runs straight into `b`"). Offered (a) `0b` / `0x` /
+`0o`, (b) the same without octal, (c) none; the owner: "Should we make it a word infront? Like `format` or
+`exactly`?" Then offered (a) words, `binary`, `hex`, `octal` (recommended: reads as English, matches `exactly`, and
+`binary` is not `bin`, the float type), or (b) the prefixes. The owner: "(a), don't build yet, btw. Have some
+questions". So **`let 'flags': uint8 = binary 1010_0101;`, `hex FF00_00FF`, `octal 755`**, `_` grouping as in decimals,
+whole numbers only. Not built until the owner's questions are answered.
+
 ### 2026-10-19 — A bounded C string says whether its 0 counts: `C.str[max 255 bytes, exclude zero]` (owner: a)
 
 After `C.str` (entry below), the owner asked about bounded text ("Do we have bounded `str`s yet": yes, `str.utf8[min 1,
