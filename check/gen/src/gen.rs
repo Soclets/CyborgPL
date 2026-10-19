@@ -164,11 +164,16 @@ pub struct Config {
     /// pointing at a function written elsewhere) and a `coll.handler` used
     /// through `otherwise` (owner, 2026-10-19; oracle 8ae7abd3, kayo 3776553e).
     pub collections: bool,
+    /// C interop (owner, 2026-10-19; oracle 927b1905, kayo 6ae65a5f): a
+    /// `layout.C union` written through one field and read through another,
+    /// a `layout.C struct` of bit-fields written at and past their limits,
+    /// and C's printf between our own prints.
+    pub c_interop: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: false, bool_lists: true, tables: true, collections: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: false, bool_lists: true, tables: true, collections: true, c_interop: true }
     }
 }
 
@@ -411,6 +416,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let call = g.mutual_pair();
         main.push(Stmt::Src(call));
     }
+    if g.cfg.c_interop && g.rng.chance(10) {
+        let lines = g.c_episode();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
     if g.cfg.collections && g.rng.chance(12) {
         let lines = g.collection();
         main.extend(lines.into_iter().map(Stmt::Src));
@@ -437,6 +446,50 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
 }
 
 impl Gen {
+    /// A union of same-size fields (the oracle reads one field's bytes as
+    /// another only between numbers of one size), a bit-field struct set at
+    /// its edges and sometimes pushed past one in a loop, and C's printf.
+    /// Compared between the engines only.
+    fn c_episode(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        let wide = self.rng.chance(40);
+        let (i, u, f) = if wide { ("int64", "uint64", "bin64") } else { ("int32", "uint32", "bin32") };
+        self.extra_fns.push(format!("layout.C union Un{id} {{ i: {i}, u: {u}, f: {f} }}"));
+        let (na, nl, nw) = (self.rng.range(1, 7), self.rng.range(2, 7), self.rng.range(1, 7));
+        self.extra_fns.push(format!("layout.C struct Bf{id} {{ a: uint8[bits {na}], r: bool[bits 1], l: int8[bits {nl}], w: uint8[bits {nw}] }}"));
+        if !self.extra_fns.iter().any(|x| x.contains("fn c_printf")) {
+            self.extra_fns.push("extern.C fn c_printf = C.printf ['format': ptr[uint8], ...'args'] -> int32;".to_string());
+        }
+        let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
+        let (amax, lmin, lmax, wmax) = ((1i128 << na) - 1, -(1i128 << (nl - 1)), (1i128 << (nl - 1)) - 1, (1i128 << nw) - 1);
+        let first = self.rng.range(-2_000_000_000, 2_000_000_000);
+        let (u_, s_) = (format!("'un{id}'"), format!("'bf{id}'"));
+        let mut lines = vec![
+            format!("let mut {u_} := Un{id}[i = {}];", lit(first)),
+            format!("no_check let 'ux{id}' := {u_}.u;"),
+            format!("change {u_}.f = {};", *self.rng.pick(&["1.5", "-2.25", "0.1", "1000000.0", "-0.0"])),
+            format!("no_check let 'ui{id}' := {u_}.i;"),
+            format!("no_check let 'uu{id}' := {u_}.u;"),
+            format!("std::print.useful['ux{id}', \" \", 'ui{id}', \" \", 'uu{id}', newln];"),
+            format!("let mut {s_} := Bf{id}[a = {amax}, r = true, l = {}, w = 0];", lit(lmin)),
+            format!("change {s_}.l = {lmax};"),
+            format!("change {s_}.w = {wmax};"),
+            format!("change {s_}.a = {};", self.rng.range(0, amax)),
+            format!("std::print.useful[{s_}.a, \" \", {s_}.r, \" \", {s_}.l, \" \", {s_}.w, newln];"),
+            format!("let 'fm{id}' := C.str.make[\"c: %d %d; \"];"),
+            format!("no_check c_printf[lend 'fm{id}', to.int32[{s_}.w], to.int32[{s_}.l]];"),
+            "std::print.useful[\"ours\", newln];".to_string(),
+        ];
+        if self.rng.chance(30) {
+            // past the field's top on the last trip: a check where it lands
+            lines.push(format!("for 'bk{id}': uint8 from {} to {} by 1 {{ change {s_}.a = 'bk{id}'; }}", (amax - 1).max(0), amax + 1));
+            lines.push(format!("std::print.useful[{s_}.a, newln];"));
+        }
+        lines
+    }
+
     /// A `coll.fn` with its own function, two presets, a member with its own
     /// body and one pointing at a function written elsewhere, and a fallible
     /// function with a `coll.handler` of two members, used through
