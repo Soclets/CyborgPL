@@ -39,11 +39,14 @@ this one, and what it does not define yet, `print` and `exit`, is still KAYO's R
   finds, `é`, `🍎`), printing the same; and the same cases built by KAYO against this folder, written as
   a user writes them (`std::str.split[lend 's', at lend 'p']`), printing what the oracle's built-in std
   prints.
-- Through KAYO, with the text read from the command line, so Precog has to prove std's sites from
-  std's own code rather than by running the program. **Unconfirmed (2026-10-19):** Precog marked all
-  of std's sites proven, but compiler claude found it treated that test as reading nothing from
-  outside (argv's `ptr.read` not counted), so it may have run the program instead of proving. To be
-  rerun once KAYO is fixed.
+- Through KAYO, with the text read from the command line, so Precog has to prove std's sites for any
+  text rather than by running the program on one. Rerun at KAYO 730f09df, once Precog counted argv's
+  `ptr.read` as outside input (until then it had not, so the earlier "all proven" was unconfirmed):
+  Precog "ran the program over what its inputs allow", and all 49 of std's sites in that program are
+  proven, none checked at run time. 36 are proven by layer 2, from std's own code alone. 11 are
+  proven by layer 3 ("no input reaches it with a bad value"), so they hold for any text this program
+  reads but rest on the calls it makes (it calls `str.at` only at position 2). 2 are proven because
+  "the position is always inside".
 - An empty `part`, `at` or `from` is refused when building if written, and stops the program where it
   is passed if worked out at run time (exit 101), as the oracle does.
 
