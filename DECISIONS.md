@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — `C.str.make` fails `has_zero_byte` on a text holding a 0 byte (owner: a)
+
+In C a 0 byte ends the string, so `"ab\0cd"` would reach C as `"ab"`. Offered (a) `C.str.make` fails
+`has_zero_byte`, handled with `otherwise`, the check dropped where Precog proves no 0 byte (a literal, say)
+(recommended), (b) cut at the first 0 byte, (c) refused at build time unless proven. The owner: "(a)". So
+**`C.str.make[lend 's'] otherwise { has_zero_byte { … } }`**, nothing cut off silently. Still to ask: who frees a made
+C string.
+
 ### 2026-10-19 — C strings: `C.str.read['p']` and `C.str.make[lend 's']` (owner: a, "Isn't it `str`?")
 
 The first of the six C gaps. Offered (a) under `C.`, beside `C.int` and `C.size_t`, as `C.string.read` /
