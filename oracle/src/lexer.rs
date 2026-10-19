@@ -275,6 +275,12 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 continue;
             }
             if i < chars.len() && (chars[i].is_alphabetic() || chars[i] == '\'') {
+                // `0b1010` / `0x1F` / `0o17` are other languages' spelling (owner, 2026-10-19: "(a)", a word in front)
+                if s == "0" && matches!(chars[i], 'b' | 'x' | 'o') {
+                    let w = match chars[i] { 'b' => "binary", 'x' => "hex", _ => "octal" };
+                    let rest: String = chars[i + 1..].iter().take_while(|c| c.is_ascii_alphanumeric() || **c == '_').collect();
+                    return err(tl, tc, format!("a number in another base is written with a word in front: `{w} {rest}` (owner, 2026-10-19)"));
+                }
                 return err(tl, tc, format!("a number runs straight into `{}`", chars[i]));
             }
             if is_bin {
@@ -299,6 +305,27 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             while i < chars.len() && name_char(chars[i]) {
                 s.push(chars[i]);
                 i += 1; col += 1;
+            }
+            // `binary 1010_0101`, `hex FF00_00FF`, `octal 755` (owner, 2026-10-19: "(a)"): a whole number in another
+            // base, the word in front as `exactly` is; the digits are read here, `_` grouping as in decimals
+            if s == "binary" || s == "hex" || s == "octal" {
+                let mut k = i;
+                while k < chars.len() && chars[k] == ' ' { k += 1; }
+                let run: String = chars[k..].iter().take_while(|c| c.is_ascii_alphanumeric() || **c == '_').collect();
+                let starts = run.chars().next().map_or(false, |c| c.is_ascii_digit() || c == '_' || (s == "hex" && c.is_ascii_hexdigit()));
+                if k > i && starts {
+                    let radix = match s.as_str() { "binary" => 2, "hex" => 16, _ => 8 };
+                    let what = match radix { 2 => "a binary number has only the digits 0 and 1", 16 => "a hex number has only 0-9 and A-F", _ => "an octal number has only the digits 0 to 7" };
+                    if let Some(bad) = run.chars().find(|c| *c != '_' && !c.is_digit(radix)) { return err(tl, tc, format!("{what}: `{bad}` in `{s} {run}`")); }
+                    if run.starts_with('_') || run.ends_with('_') || run.contains("__") { return err(tl, tc, format!("`_` groups digits: one between two of them (`{s} {}`)", run.trim_matches('_').replace("__", "_"))); }
+                    let digits: String = run.chars().filter(|c| *c != '_').collect();
+                    let v = u128::from_str_radix(&digits, radix).ok().filter(|v| *v <= i128::MAX as u128);
+                    let Some(v) = v else { return err(tl, tc, format!("`{s} {run}` is past the oracle's whole numbers (i128)")); };
+                    let n = k - i + run.chars().count();
+                    i += n; col += n;
+                    push(Tok::Int(v as i128), &mut toks);
+                    continue;
+                }
             }
             // `inline.ASM { … }` — the braces hold raw assembly, taken verbatim up to
             // the matching `}` (design/ffi.md, 2026-09-20)

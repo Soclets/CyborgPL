@@ -101,6 +101,20 @@ between, the maths is limited by the widest operand's width, at least 64
 bits (`operators.md`). `examples/any_width.cy`,
 `examples/wide_integers.cy`.
 
+## A whole number in another base: `binary`, `hex`, `octal` (owner, 2026-10-19)
+
+```
+let 'flags': uint8 = binary 1010_0101;    # 165
+let 'mask': uint32 = hex FF00_00FF;       # A-F in either case
+let 'mode': uint16 = octal 755;
+```
+
+A word in front, as `exactly` is (owner: "Should we make it a word infront? Like `format` or `exactly`?", then "(a)"),
+over C's `0b` / `0x` / `0o`, which are refused naming the word. It is the same number written another way: there is no
+"binary integer" type. `binary` is not `bin`, the binary float. Whole numbers only; `_` groups digits as in decimals,
+one between two digits; a wrong digit is refused naming it. A leading `-` negates as usual (`-hex 10`). `binary`,
+`hex` and `octal` are keywords. `examples/number_bases.cy`, reject tests `base_*`.
+
 ## A declaration always has a value (owner, 2026-09-23)
 
 `let 'n': int32;` is refused — write the `0`. There is no implicit

@@ -42,7 +42,7 @@ number in base 2, 16 or 8 (the oracle refused `0b1010`: "a number runs straight 
 `exactly`?" Then offered (a) words, `binary`, `hex`, `octal` (recommended: reads as English, matches `exactly`, and
 `binary` is not `bin`, the float type), or (b) the prefixes. The owner: "(a), don't build yet, btw. Have some
 questions". So **`let 'flags': uint8 = binary 1010_0101;`, `hex FF00_00FF`, `octal 755`**, `_` grouping as in decimals,
-whole numbers only. Not built until the owner's questions are answered.
+whole numbers only. Built in the oracle the same day, after the owner's "Build the binary hex shit" (design/types.md).
 
 ### 2026-10-19 — A bounded C string says whether its 0 counts: `C.str[max 255 bytes, exclude zero]` (owner: a)
 
