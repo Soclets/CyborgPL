@@ -500,7 +500,8 @@ negate_ieee_on_int [fnv:9e324904143d499c] :: `negate.ieee` keeps a -0, which onl
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
 neuron_word_old [fnv:80ffff166656de74] :: `neuron` is an old spelling: write `kit` (owner, 2026-10-15)
 no_bin128 [fnv:65f2adec4a0637da] :: there is no `bin128`
-no_cheat_beside_tier [fnv:93d3b0e7911be0fc] :: which of the two comes first is not decided
+no_cheat_before_check [fnv:ece7acadc792ca4d] :: `check` comes first: the check word always comes before `no_cheat`
+no_cheat_beside_tier [fnv:d9795463df3250d5] :: `no_check` comes first, the stronger word: `no_check no_cheat …`
 no_cheat_in_value [fnv:89e6a22b4d2f89ee] :: `no_cheat` goes in front of a statement, not inside a value
 no_cheat_old [fnv:fc0169759787cd18] :: `!c` is `no_cheat` now
 no_checks_lied [fnv:0bec22d994061742] :: !by-design CCA builds it and emits a note naming `NO_FUCKING_CHECKS`, which is the rule for a vouch that fails every run (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division

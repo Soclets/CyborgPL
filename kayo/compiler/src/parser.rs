@@ -2798,11 +2798,6 @@ impl<'a> Parser<'a> {
                 if self.is_word("check") || self.is_word("nocheck") || self.is_word("NO_FUCKING_CHECKS") {
                     return self.fail(format!("one tier per statement: `{}` and `{}` cannot both cover it", w, self.word_text()));
                 }
-                // Which of a tier and `no_cheat` comes first is not decided
-                // (2026-10-18).
-                if self.is_word("no_cheat") {
-                    return self.fail(format!("`{} no_cheat`: which of the two comes first is not decided; nest them with a block for now: `{} {{ no_cheat … }}`", w, w));
-                }
                 if self.is_word("fn") {
                     return self.fail(format!("`{}` goes in front of a statement, not a `fn`: a function's safety is the sum of its statements", w));
                 }
@@ -2820,9 +2815,15 @@ impl<'a> Parser<'a> {
                 if self.is(&Tok::Semi) {
                     return self.fail_at(at, "`no_cheat` goes in front of a statement: `no_cheat let 'f' := fib['n'];` or `no_cheat { … }`");
                 }
-                if self.is_word("check") || self.is_word("nocheck") || self.is_word("NO_FUCKING_CHECKS") {
+                // The check word always comes first (owner, 2026-10-19: "(b)",
+                // then "(a)"): the stronger word, and the unchecked part is
+                // what a reader sees first.
+                if self.is_word("check") {
+                    return self.fail("`check` comes first: the check word always comes before `no_cheat`: `check no_cheat …` (owner, 2026-10-19)");
+                }
+                if self.is_word("nocheck") || self.is_word("NO_FUCKING_CHECKS") {
                     let t = if self.is_word("nocheck") { "no_check".to_string() } else { self.word_text() };
-                    return self.fail(format!("`no_cheat {}`: which of the two comes first is not decided; nest them with a block for now: `no_cheat {{ {} … }}`", t, t));
+                    return self.fail(format!("`{}` comes first, the stronger word: `{} no_cheat …` (owner, 2026-10-19)", t, t));
                 }
                 if self.is_word("fn") || self.is_word("struct") || self.is_word("const") || self.is_word("module") || self.is_word("enum") {
                     return self.fail(format!("`no_cheat` covers a statement, not a `{}`", self.word_text()));
