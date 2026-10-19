@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — `concur` stays, over `task { }` (owner)
+
+Going through words that could mislead (`perm`, `concur`, `mod`, `bin`, `incl`, …), design claude flagged
+`concur` ("agree" in plain English); after Roblox's `task.wait()` / `task.spawn`, the owner asked about `task.`.
+Offered (a) `task { … }` / `task.detached { … }`, (b) `task.spawn { … }`, (c) keep `concur`. The owner: "Keep
+`concur`", as chosen over `task` the first time. Design claude's view on the rest of the list, given when asked
+"do you think changing `perm` is worth it?": no, context settles them and every rename has a cost; no ruling was
+asked on `perm`, `temp` or `collection` vs `coll`, so they stay.
+
 ### 2026-10-19 — `C.str.make` fails `has_zero_byte` on a text holding a 0 byte (owner: a)
 
 In C a 0 byte ends the string, so `"ab\0cd"` would reach C as `"ab"`. Offered (a) `C.str.make` fails
