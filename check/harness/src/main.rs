@@ -131,8 +131,7 @@ impl Args {
             tables: !avoid.contains("tables"),
             collections: !avoid.contains("collections"),
             c_interop: !avoid.contains("c-interop"),
-            // off until kayo reads them: `--based-literals` turns them on
-            based_literals: self.flags.contains_key("based-literals"),
+            based_literals: !avoid.contains("based-literals"),
             typed_literals: !avoid.contains("typed-literals"),
             std_all: self.flags.contains_key("std-all"),
         }
