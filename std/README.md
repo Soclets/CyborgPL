@@ -22,10 +22,11 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
 - `CyJet.cyr` lists the `unicode` limb, std's first, since `char.point` is unicode's (owner, 2026-10-17:
   "(a)"). A program using std does not inherit it: `argument_words` lists no limb.
 
-A program uses this std, the folder it is written in, by listing it as `cyjet::dep.std["…/std"]`
-(owner, 2026-10-14; the spelling 2026-10-19: "(b)"). A lone file built by KAYO uses it too, as the
-installed std's stand-in. Then every `std::` in the build is this one, and what it does not define
-yet, `print` and `exit`, is still KAYO's Rust (owner, 2026-10-14: "(a)").
+A program uses this std, the folder it is written in, by listing it as
+`cyjet::dep.path.std["…/std"]`, a folder narrowed to std (owner, 2026-10-14; the spelling 2026-10-19). A
+lone file built by KAYO uses it too, as the installed std's stand-in. Then every `std::` in the build is
+this one, and what it does not define yet, `print` and `exit`, is still KAYO's Rust (owner, 2026-10-14:
+"(a)").
 
 ## How it is checked
 
