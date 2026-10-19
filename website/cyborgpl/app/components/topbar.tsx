@@ -49,14 +49,21 @@ function SharedMenu({ index, from, x, onPick }: { index: number; from: number; x
     return () => ro.disconnect();
   }, [index]);
   const dir = Math.sign(index - from) || 0;
+  // The outer layer carries the glide and bridges the gap under the bar with clear padding, so the
+  // pointer never leaves the bar on its way down; the inner panel sizes itself and clips the slides.
   return (
+    <motion.div
+      className="menu-bridge"
+      initial={{ opacity: 0, y: -6, scale: 0.98, x }}
+      animate={{ opacity: 1, y: 0, scale: 1, x }}
+      exit={{ opacity: 0, y: -4, scale: 0.98, transition: { duration: 0.14 } }}
+      transition={{ ...glide, opacity: { duration: 0.16 } }}
+    >
     <motion.div
       className="menu menu-shared"
       role="menu"
-      initial={{ opacity: 0, y: -6, scale: 0.98, x }}
-      animate={{ opacity: 1, y: 0, scale: 1, x, ...(size ? { width: size.w, height: size.h } : {}) }}
-      exit={{ opacity: 0, y: -4, scale: 0.98, transition: { duration: 0.14 } }}
-      transition={{ ...glide, opacity: { duration: 0.16 } }}
+      animate={size ? { width: size.w, height: size.h } : undefined}
+      transition={glide}
     >
       <AnimatePresence initial={false} mode="popLayout" custom={dir}>
         <motion.div
@@ -82,6 +89,7 @@ function SharedMenu({ index, from, x, onPick }: { index: number; from: number; x
           ))}
         </motion.div>
       </AnimatePresence>
+    </motion.div>
     </motion.div>
   );
 }
@@ -123,12 +131,12 @@ export function Topbar() {
         <img src={mark} alt="" width="30" height="30" />
       </Link>
 
-      <nav className="topbar-nav" aria-label="Main" onPointerLeave={leave}>
+      <nav className="topbar-nav" aria-label="Main" onPointerLeave={leave} onPointerEnter={() => clearTimeout(closeTimer.current)}>
         {NAV.map((item, i) => {
           const isOpen = open === i;
           const inner = (
             <>
-              {last === i && <motion.span className="nav-hover" layoutId="nav-hover" transition={glide} initial={{ opacity: 0 }} animate={{ opacity: hover === null ? 0 : 1 }} />}
+              {last === i && <motion.span className="nav-hover" layoutId="nav-hover" transition={glide} initial={{ opacity: 0 }} animate={{ opacity: hover === null && open !== i ? 0 : 1 }} />}
               <span className="nav-label">{item.label}</span>
               {item.menu && <Chevron open={isOpen} />}
             </>

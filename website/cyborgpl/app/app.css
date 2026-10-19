@@ -67,7 +67,9 @@ html.ready .hero-underline::after { animation: draw .7s cubic-bezier(.6, 0, .2, 
 .menu-right { left: auto; right: 0; transform-origin: top right; }
 /* The shared panel: it sizes itself to the menu inside (set by Motion as it glides), and clips the
    menus sliding in and out. */
-.menu-shared { display: block; min-width: 0; padding: 0; overflow: hidden; transform-origin: top center; }
+.menu-bridge { position: absolute; top: 100%; left: 0; z-index: 60; padding-top: 10px; transform-origin: top left; }
+.menu-shared { position: static; display: block; min-width: 0; padding: 0; overflow: hidden; }
+.menu-shared::before { content: none; }
 .menu-content { display: grid; gap: 2px; width: max-content; min-width: 280px; padding: 8px; }
 .menu::before { content: ""; position: absolute; left: 0; right: 0; top: -12px; height: 12px; }
 .menu-link { display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; color: var(--ink); text-decoration: none; transition: background .15s; }
