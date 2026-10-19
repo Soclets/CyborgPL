@@ -300,6 +300,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // writes it (it never does).
         if let (Some(s), Some(addr)) = (pl.fl.step, parent_step) {
             slots[s.0 as usize] = Some(addr);
+            // A step written as a number is that number here too: read from
+            // the parent, `by 1` was a step LLVM could not know, and no
+            // slice of any loop was vectorised.
+            if let Some(v) = super::step_const(f, s) {
+                let st = self.ty(&f.locals[s.0 as usize].ty.clone())?.into_int_type();
+                let own = self.stack(st, "step").ok()?;
+                let _ = self.builder.build_store(own, st.const_int(v as u64, true));
+                slots[s.0 as usize] = Some(own);
+            }
         }
         // The slice's counter and stop: its first and last iteration.
         let cty_c = f.locals[pl.fl.counter.0 as usize].ty.clone();

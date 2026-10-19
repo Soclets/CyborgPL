@@ -888,7 +888,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         // the short runs, and vectorising it hoisted its
                         // 128-bit trip arithmetic into the loop around it —
                         // once per outer round, the sieve at two thirds speed.
-                        let back = self.par_child.is_none() && self.par.loops.iter().any(|((g, _), pl)| *g == fi && pl.fl.head == *t && pl.blocks.contains(&b));
+                        // Only a loop whose step the program works out: one
+                        // counting by a number written is vectorised as any
+                        // loop is (the in-order copy of every loop that may
+                        // run in slices was kept scalar, two lists added
+                        // element by element among them).
+                        let back = self.par_child.is_none() && self.par.loops.iter().any(|((g, _), pl)| *g == fi && pl.fl.head == *t && pl.blocks.contains(&b) && pl.fl.step.is_some_and(|st| !step_is_const(f, st)));
                         if let (true, Ok(br)) = (back, br) {
                             self.no_vectorize(br);
                         }
@@ -4655,6 +4660,18 @@ fn back_to_body(f: &Function, b: usize, head: BlockId, in_slice: bool) -> Option
     let Terminator::If { then: body, else_: out_up, .. } = &f.blocks[up.0 as usize].term else { return None };
     let Terminator::If { then: body_down, else_: out_down, .. } = &f.blocks[down.0 as usize].term else { return None };
     (body == body_down && *out_up == fl.exit && *out_down == fl.exit && only_temps(head) && only_temps(*up) && only_temps(*down)).then_some(*body)
+}
+
+/// A counting loop's step when it is a number written in the program.
+pub(super) fn step_const(f: &Function, step: LocalId) -> Option<i128> {
+    let mut given = f.blocks.iter().flat_map(|b| &b.stmts).filter_map(|s| match &s.kind {
+        StmtKind::Assign { place, rvalue } if place.local == step && place.proj.is_empty() => Some(rvalue),
+        _ => None,
+    });
+    match (given.next(), given.next()) {
+        (Some(Rvalue::Use(Operand::Const(Const::Int(v)))), None) => Some(*v),
+        _ => None,
+    }
 }
 
 /// Whether a counting loop's step is a number written in the program: the
