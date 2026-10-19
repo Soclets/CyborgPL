@@ -91,7 +91,9 @@ export function Examples() {
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={ex.id} className="ex-panes" role="tabpanel" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18, ease: "easeOut" }}>
           <Panel id={`${ex.id}-code`} className="ex-code" title={ex.file} extra={<span className="fs-note">{ex.lines} {ex.lines === 1 ? "line" : "lines"}</span>}>
-            <pre><code>{ex.source}</code></pre>
+            <pre><code>{ex.code.map((line, i) => (
+              <span className="code-line" key={i}>{line.map(([text, kind], j) => (kind ? <span key={j} className={`tk-${kind}`}>{text}</span> : text))}{"\n"}</span>
+            ))}</code></pre>
           </Panel>
           <Panel id={`${ex.id}-out`} className="ex-out" title="Output">
             <pre>{ex.out}</pre>

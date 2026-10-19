@@ -173,3 +173,24 @@ html.fs-open { overflow: hidden; }
 .fs-panel .fs-button { color: var(--sol-muted); }
 .fs-panel .fs-button:hover, .fs-panel .fs-button:focus-visible { background: color-mix(in srgb, var(--sol-muted) 18%, transparent); color: var(--sol-strong); }
 .fs-panel .fs-note { color: var(--sol-muted); }
+
+/* Code colours, by kind (scripts/pre-build.ts). On the page: black and white, with the site's orange
+   for keywords and the quiet greys for punctuation and comments. Fullscreen: Solarized's own accents. */
+.ex-code { --tk-keyword: var(--accent); --tk-type: #f2f2f2; --tk-function: #ffffff; --tk-name: #d9d9d9; --tk-member: #c8c8c8; --tk-namespace: #a6a6a6;
+  --tk-string: #b5b5b5; --tk-escape: #ffb38a; --tk-number: #ffb38a; --tk-tag: #ffb38a; --tk-operator: #9a9a9a; --tk-punct: #7a7a7a; --tk-comment: #6a6a6a; --tk-old: #ff5f56; }
+.fs-panel.ex-code { --tk-keyword: #859900; --tk-type: #b58900; --tk-function: #268bd2; --tk-name: var(--sol-text); --tk-member: #2aa198; --tk-namespace: #6c71c4;
+  --tk-string: #2aa198; --tk-escape: #cb4b16; --tk-number: #d33682; --tk-tag: #cb4b16; --tk-operator: var(--sol-muted); --tk-punct: var(--sol-muted); --tk-comment: var(--sol-muted); --tk-old: #dc322f; }
+.tk-keyword { color: var(--tk-keyword); }
+.tk-type { color: var(--tk-type); font-weight: 600; }
+.tk-function { color: var(--tk-function); }
+.tk-name { color: var(--tk-name); }
+.tk-member { color: var(--tk-member); }
+.tk-namespace { color: var(--tk-namespace); }
+.tk-string { color: var(--tk-string); }
+.tk-escape { color: var(--tk-escape); }
+.tk-number { color: var(--tk-number); }
+.tk-tag { color: var(--tk-tag); }
+.tk-operator { color: var(--tk-operator); }
+.tk-punct { color: var(--tk-punct); }
+.tk-comment { color: var(--tk-comment); font-style: italic; }
+.tk-old { color: var(--tk-old); text-decoration: underline wavy; }
