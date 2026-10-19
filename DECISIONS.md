@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — Public v1: C interop in, Metal in through `inline.MSL`, no automatic GPU loops yet (owner)
+
+Asked what a public v1 should hold, design claude listed must / nice / later (the base language settled and built,
+final builds with the build report, std basics with maths, CyJet by path, docs including an AI cheat sheet, the
+macOS download; C interop under "nice to have"). The owner: "CNC already has most stuff built. What i'll add is Metal
+support. but no auto GPU loops yet". So for v1: **C interop (the CNC limb) is in**; **Metal support is in**, which
+design claude reads as the explicit control `gpu.md` describes (the Metal limb's `inline.MSL { … }`, with the thread
+count after the name, and std moving data and launching; reading, not asked); and **automatic GPU loops, where
+Precog moves a plain `for` to the GPU, are not in v1**, a change from 2026-09-21's "Part of v1". The rest of the list
+was not answered, nor whether Linux is a v1 target.
+
 ### 2026-10-19 — If CyborgPL ever has a stable edition, its compiler is `OKAY\n` (owner)
 
 The owner: "IF CyborgPL ever has a "stable" edition, its compiler would be called `OKAY\n`" (`KAYO\n`'s letters

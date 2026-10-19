@@ -2,7 +2,8 @@
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
-Opened 2026-09-22. Part of v1 (owner, 2026-09-21). The rule is
+Opened 2026-09-22. Part of v1 (owner, 2026-09-21), **revised 2026-10-19: v1 has Metal through `inline.MSL` and
+std's explicit control, but not the automatic loops** (owner: "no auto GPU loops yet"). The rule is
 `parallelism.md`'s, extended: the programmer writes `for`, the prover
 decides CPU cores or GPU, `for seq` says no. No GPU syntax. Underneath,
 the loop body is compiled for the GPU target (by LLVM for Vulkan, by
