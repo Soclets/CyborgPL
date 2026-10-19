@@ -40,7 +40,10 @@ this one, and what it does not define yet, `print` and `exit`, is still KAYO's R
   a user writes them (`std::str.split[lend 's', at lend 'p']`), printing what the oracle's built-in std
   prints.
 - Through KAYO, with the text read from the command line, so Precog has to prove std's sites from
-  std's own code rather than by running the program: all of std's are proven.
+  std's own code rather than by running the program. **Unconfirmed (2026-10-19):** Precog marked all
+  of std's sites proven, but compiler claude found it treated that test as reading nothing from
+  outside (argv's `ptr.read` not counted), so it may have run the program instead of proving. To be
+  rerun once KAYO is fixed.
 - An empty `part`, `at` or `from` is refused when building if written, and stops the program where it
   is passed if worked out at run time (exit 101), as the oracle does.
 
