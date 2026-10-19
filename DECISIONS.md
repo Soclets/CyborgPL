@@ -34,6 +34,22 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-19 — The build report's sections, and a size for every single thing (owner: yup, yup)
+
+Design claude proposed eleven sections, each a heading; the owner: "yup, but would it show size for each specific
+thing?", then "yup" to the size breakdown. So the report holds, in order: **Summary** (result, build kind, target,
+kayo version, date, total time, a count per section); **Inputs** (every source file, kit and limb with its version,
+and the `CyJet.cyr` settings that applied); **Proofs** (every check site, file:line, its kind, and how it was proven:
+range type, guardrail `if` or loop bounds; in a working build, the sites left as run-time checks); **Your markers**
+(every passed `check` and what it proved, every `no_check` and `NO_FUCKING_CHECKS` site, certain-failure notes);
+**Types Precog picked** (each `:=`, its type and proven range); **Optimizations** (inlining and recursion unrolling,
+tables with entries, bytes and where the limit came from, loops split across cores and why others were not, SIMD
+loops, every `no_cheat` region and its copies); **Removed** (code never reached); **C** (`extern.C` functions, C
+headers, the types they mapped to); **Sizes** (totals per category first, then every function, inlined ones marked,
+every table, every const, text literal and included file, every struct's size, alignment and padding per field, the
+runtime and what the linker adds, and the debug info apart); **Timing** (each compile phase); **Warnings and notes**
+(the full text). This also answers how a table is reported: in Optimizations and Sizes.
+
 ### 2026-10-19 — Everything a build did goes in a Markdown report file, a lot more detailed (owner: a; contents being asked)
 
 Asked how a Precog table is reported, the owner: "I think we should move some stuff to a file that says everything
