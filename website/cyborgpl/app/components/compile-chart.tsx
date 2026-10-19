@@ -6,8 +6,8 @@ import type { CompileRow, CompileRun } from "../data/compile-times";
 // axis: CyborgPL's in white, the others in grey, every bar named and labelled with its time, the
 // per-program split on hover, and a table for screen readers.
 const PROGRAMS = ["sum", "fib", "lists", "sieve"] as const;
-const total = (r: CompileRow) => PROGRAMS.reduce((s, p) => s + r.seconds[p], 0);
-const fmt = (s: number) => (s >= 10 ? `${s.toFixed(0)} s` : s >= 1 ? `${s.toFixed(1)} s` : `${(s * 1000).toFixed(0)} ms`);
+const total = (r: CompileRow) => r.total;
+const fmt = (s: number) => (s >= 1 ? `${s.toFixed(1)} s` : `${Math.round(s * 1000)} ms`);
 
 export function CompileChart({ run }: { run: CompileRun | null }) {
   const [hover, setHover] = useState<string | null>(null);
@@ -51,7 +51,9 @@ export function CompileChart({ run }: { run: CompileRun | null }) {
           </div>
         ))}
       </div>
-      <figcaption className="chart-note">Building the four bench programs from source, best of 3, no cache. {run.date}, {run.machine}.</figcaption>
+      <figcaption className="chart-note">
+        Building the four bench programs from source to a final executable, best of 3, {run.date}, on {run.machine}. {run.caveat}
+      </figcaption>
       <table className="sr-only">
         <caption>Compile time per language</caption>
         <thead><tr><th>Language</th>{PROGRAMS.map((p) => <th key={p}>{p}</th>)}<th>Total</th></tr></thead>
