@@ -22,6 +22,8 @@ pub mod smt;
 
 use std::collections::HashMap;
 
+pub mod tables;
+
 use crate::ast::{BinOp, Tier, UnOp};
 use crate::mir::domain::{Class, Cmp, Domain, ISet, Lengths};
 use crate::mir::*;
@@ -82,6 +84,9 @@ pub struct Analysis {
     pub always_reached: std::collections::HashSet<(usize, u32)>,
     /// Every value each local was given, joined, by (function, local).
     pub held: HashMap<(usize, u32), Domain>,
+    /// The functions made tables, and the near misses.
+    pub tables: Vec<tables::Table>,
+    pub not_tables: Vec<tables::NotTable>,
 }
 
 /// One local's value, as far as this path knows.
@@ -149,6 +154,16 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
             a.block_facts.retain(|(g, _), _| *g != f);
         }
     }
+    // Tables (owner, 2026-10-17) are worked out from the functions as
+    // written, before any fold: a fold holds only for the calls the program
+    // makes, and a table's every entry is the function's own answer.
+    let table_answers = if fold {
+        let target = crate::target::name();
+        let limit = p.items.report_kits.iter().find(|k| k.program).and_then(|k| k.table_bytes.iter().find(|(t, _)| *t == target).map(|(_, b)| *b));
+        a.make_tables(limit, &target)
+    } else {
+        (Vec::new(), Vec::new())
+    };
     // Fold what layer 1 settled, before anything reads the graph again —
     // and only when it settled *everything*. A recursion deeper than the
     // limit means `'n' < 2` looked false on every trip the analysis took
@@ -251,7 +266,7 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
         }
     }
     let certain: Vec<usize> = sites.iter().enumerate().filter(|(_, r)| matches!(&r.verdict, Verdict::Fails { counterexample } if counterexample.starts_with("every"))).map(|(i, _)| i).collect();
-    let mut certain_under_nocheck = a.lies;
+    let mut certain_under_nocheck = std::mem::take(&mut a.lies);
     certain_under_nocheck.sort_by_key(|(f, s, _)| (*f, s.0));
     certain_under_nocheck.dedup_by_key(|(f, s, _)| (*f, s.0));
     // Layer 3: what is left after layer 2 is asked exactly.
@@ -355,7 +370,12 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
         eprintln!("precog: {} step(s) in all", a.steps);
     }
     let always_reached = if a.gave_up { std::collections::HashSet::new() } else { reached_every_run(p, &a.edges) };
-    Analysis { sites, certain, certain_under_nocheck, steps: a.steps, whole_program: !a.reads_outside, folded, portfolio: portfolio.describe(), solved, disagreements, always_reached, held: a.held }
+    // Tables (owner, 2026-10-17), from the final verdicts; never in a
+    // build that checks the proofs, which keeps every check in place.
+    let proven: std::collections::HashSet<(usize, u32)> = sites.iter().filter(|r| matches!(r.verdict, Verdict::Proven { .. })).map(|r| (r.function, r.site.0)).collect();
+    let (tables, not_tables) = tables::keep_proven(p, table_answers, &proven);
+    p.tables = tables.clone();
+    Analysis { sites, certain, certain_under_nocheck, steps: a.steps, whole_program: !a.reads_outside, folded, portfolio: portfolio.describe(), solved, disagreements, always_reached, held: a.held, tables, not_tables }
 }
 
 struct Precog {

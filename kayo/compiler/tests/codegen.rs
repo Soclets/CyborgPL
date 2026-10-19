@@ -799,6 +799,29 @@ fn a_final_build_writes_its_debug_info_beside_it() {
     assert!(said.contains("the vector table, `_start` in its first slot") && !said.contains("`_start`, kayo's"), "the size report counts `_start` apart from the table:\n{}", said);
 }
 
+/// Precog's tables (owner, 2026-10-17; limits 2026-10-19): `square` over a
+/// `uint8`, 256 answers of 2 bytes under its own `table_bytes 1_024`, is a
+/// lookup in a table of them, worked out from the function as written (not
+/// from the one call the program makes, which Precog folds); `fib`, with
+/// `table_bytes 0`, is never one. `examples/table_limits` itself, run in
+/// the conformance tests, says the answers are the same.
+#[test]
+fn pure_functions_become_tables() {
+    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/table_limits");
+    let out = std::env::temp_dir().join(format!("kayo-tables-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&out);
+    let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(out.join("prog")).arg("--emit-llvm").arg(&out).output().unwrap();
+    assert!(r.status.success(), "table_limits would not build:\n{}", String::from_utf8_lossy(&r.stderr));
+    let before = std::fs::read_to_string(out.join("before.ll")).unwrap();
+    let report = std::fs::read_to_string(out.join("prog.report.md")).unwrap();
+    let _ = std::fs::remove_dir_all(&out);
+    let tables: Vec<&str> = before.lines().filter(|l| l.starts_with("@cy_table_")).collect();
+    assert_eq!(tables.len(), 1, "not one table:\n{}", tables.join("\n"));
+    assert!(tables[0].contains("[256 x i16] [i16 0, i16 1, i16 4, i16 9,") && tables[0].ends_with("i16 -511]"), "square's table is not 0, 1, 4, 9, … 65025:\n{}", &tables[0][..tables[0].len().min(200)]);
+    assert!(report.contains("- `square`: 256 entries (0 to 255), 2 bytes each, 512 bytes in all; the limit is 1,024 bytes, its own `table_bytes`"), "the report does not list square's table:\n{}", report);
+    assert!(report.contains("- `fib`: not a table: `table_bytes 0`"), "the report does not say why fib is no table:\n{}", report);
+}
+
 /// Every build writes its report beside the program (owner, 2026-10-19):
 /// `build/fib` gets `build/fib.report.md`, its eleven sections in order,
 /// each a heading the contents line links to, and the terminal says one
@@ -882,6 +905,8 @@ fn recursion_is_unfolded() {
         let _ = std::fs::create_dir_all(&ir);
         let mut c = Command::new(cca());
         c.arg("build").arg(&src).arg("-o").arg(&exe).arg("--emit-llvm").arg(&ir);
+        // The recursion as written: as a table it is no call at all.
+        c.env("KAYO_TABLES", "0");
         if let Some(d) = depth {
             c.env("KAYO_RECURSION_DEPTH", d);
         }

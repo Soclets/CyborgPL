@@ -910,3 +910,20 @@ Dated, with the alternative, so each can become a question later.
   vector code in (`ObjectFacts`), each `incl.C` line (`cheader::read_lines`),
   and each phase's time. Precog's tables are not built yet, so the report
   says none were made.
+- **2026-10-19 — Precog's tables** (owner, 2026-10-17; limits
+  2026-10-19, `design/precog.md` § Tables; `precog/tables.rs`). A function
+  whose parameters are whole numbers with ranges, which returns a whole
+  number or a `bool` and fails with no reason, and which with everything it
+  calls does nothing but compute on plain values (no C, no held function,
+  no task, no assembly, no list, text or other memory), gets every answer
+  worked out while building: Precog runs it on each argument tuple, dry, on
+  the graph as written (before any fold: `square` called only with 200 was
+  already folded to 40000, and every entry read 40000). A table is kept when
+  every answer is one exact value, it fits its limit (`table_bytes N fn`,
+  else the target's in `CyJet.cyr`, else 65,536; 0 is never), and every
+  check in the function and in what it calls is proven. The code generator
+  writes the function as a lookup in a private constant array. Never a
+  `no_cheat` copy, never with `--assert-proofs`; `KAYO_TABLES=0` turns it
+  off to compare. bench fib is a 93-entry table of 744 bytes, made in 7.8 ms
+  of Precog. The report lists each table under Optimizations and Sizes, and
+  the near misses with why.

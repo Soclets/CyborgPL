@@ -601,6 +601,17 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 None => return,
             }
         };
+        // A table Precog made (owner, 2026-10-17): the body is a lookup.
+        // Never in the build that checks the proofs.
+        if !self.assert_proofs && !self.env_fns.contains_key(&i) {
+            if let Some(t) = self.p.tables.iter().find(|t| t.function == i) {
+                if self.define_table(i, func, t).is_some() {
+                    return;
+                }
+                self.cannot(format!("the table of `{}` has no shape in the generated code yet", f.name), None);
+                return;
+            }
+        }
         let entry = self.ctx.append_basic_block(func, "entry");
         // One LLVM block per MIR block, made first so an edge can name one
         // that has not been filled in.
@@ -4705,6 +4716,43 @@ fn runtime_path() -> Option<std::path::PathBuf> {
 /// Every block of a `no_cheat` loop, a `no_cheat` statement and a
 /// `no_cheat` copy of a function, by function.
 impl<'a, 'ctx> Cg<'a, 'ctx> {
+    /// A function Precog made a table of: its answers in a constant array,
+    /// and a body that reads the one its arguments name. Each argument is
+    /// within its type's range, which is what the table covers.
+    fn define_table(&mut self, i: usize, func: FunctionValue<'ctx>, t: &crate::precog::tables::Table) -> Option<()> {
+        let f = &self.p.functions[i];
+        let BasicTypeEnum::IntType(rt) = self.ty(&f.ret)? else { return None };
+        let vals: Vec<IntValue<'ctx>> = t.entries.iter().map(|c| match c {
+            Const::Int(v) => Some(const_i128(rt, *v)),
+            Const::Bool(b) => Some(rt.const_int(*b as u64, false)),
+            _ => None,
+        }).collect::<Option<_>>()?;
+        let arr = rt.const_array(&vals);
+        let g = self.module.add_global(arr.get_type(), None, &format!("cy_table_{}", i));
+        g.set_initializer(&arr);
+        g.set_constant(true);
+        g.set_linkage(Linkage::Private);
+        g.set_unnamed_addr(true);
+        let entry = self.ctx.append_basic_block(func, "table");
+        self.builder.position_at_end(entry);
+        let w = self.ctx.i64_type();
+        let sizes: Vec<u64> = t.ranges.iter().map(|(lo, hi)| (hi - lo + 1) as u64).collect();
+        let mut idx = w.const_zero();
+        for (k, (p, (lo, _))) in f.params.iter().zip(&t.ranges).enumerate() {
+            let pv = func.get_nth_param(k as u32)?.into_int_value();
+            let signed = int_signed(&f.locals[p.0 as usize].ty).unwrap_or(true);
+            let x = self.builder.build_int_cast_sign_flag(pv, w, signed, "arg").ok()?;
+            let off = self.builder.build_int_sub(x, const_i128(w, *lo), "from_lowest").ok()?;
+            let stride: u64 = sizes[k + 1..].iter().product();
+            let part = self.builder.build_int_mul(off, w.const_int(stride, false), "part").ok()?;
+            idx = self.builder.build_int_add(idx, part, "index").ok()?;
+        }
+        let at = unsafe { self.builder.build_in_bounds_gep(arr.get_type(), g.as_pointer_value(), &[w.const_zero(), idx], "answer").ok()? };
+        let v = self.builder.build_load(rt, at, "answer").ok()?;
+        self.builder.build_return(Some(&v)).ok()?;
+        Some(())
+    }
+
     /// Every struct a live function holds, as the target lays it out.
     fn struct_layouts(&mut self) -> Vec<StructLayout> {
         let mut seen: Vec<Ty> = Vec::new();

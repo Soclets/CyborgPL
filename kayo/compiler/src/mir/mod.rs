@@ -470,6 +470,33 @@ pub struct BasicBlock {
     pub term_span: SpanId,
 }
 
+/// A `check`, `no_check` or `NO_FUCKING_CHECKS` in front of a statement:
+/// the statement, and the blocks and sites its lowering made.
+#[derive(Debug, Clone)]
+pub struct Marker {
+    pub tier: crate::ast::Tier,
+    pub span: SpanId,
+    /// The block the statement began in, the blocks it made (`from..to`),
+    /// and the block it ended in.
+    pub start: u32,
+    pub from: u32,
+    pub to: u32,
+    pub end: u32,
+    /// The sites it made, `from..to`.
+    pub sites: (u32, u32),
+}
+
+impl Marker {
+    /// The blocks whose way out the statement wrote: where it began, when
+    /// it left it, and every block it made but the one it ended in.
+    pub fn exits(&self) -> Vec<u32> {
+        if self.from == self.to {
+            return Vec::new();
+        }
+        std::iter::once(self.start).chain(self.from..self.to).filter(|b| *b != self.end).collect()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Function {
     pub name: String,
@@ -489,6 +516,9 @@ pub struct Function {
     /// Named locals declared with `:=`: Precog picked their type, which
     /// the build report lists (owner, 2026-10-19).
     pub picked: Vec<LocalId>,
+    /// Every check word written in front of a statement, for the build
+    /// report's Your markers (owner, 2026-10-19).
+    pub markers: Vec<Marker>,
     /// The instance this is: one source function, one shape. A task body
     /// is nobody's instance.
     pub inst: Option<FnInst>,
@@ -604,6 +634,9 @@ pub struct Program {
     pub items: crate::resolve::Items,
     /// The instances the checker made, for their signatures.
     pub instances: Vec<crate::check::Instance>,
+    /// The functions Precog made tables of (owner, 2026-10-17): the code
+    /// generator writes each as a lookup.
+    pub tables: Vec<crate::precog::tables::Table>,
 }
 
 impl Program {

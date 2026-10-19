@@ -192,29 +192,60 @@ pub fn render(f: &Facts) -> String {
     let mut n_markers = 0;
     let mut passed = Vec::new();
     let mut unchecked = Vec::new();
-    for r in &f.analysis.sites {
-        let func = &p.functions[r.function];
-        let site = func.site(r.site);
-        let span = func.span(site.span);
-        match (site.tier, &r.verdict) {
-            (Some(Tier::Check), Verdict::Proven { .. }) => passed.push(format!("| {} | {} | {} |", cell(&where_(span)), code(&code_at(span)), cell(&site.sentence(&spell)))),
-            (Some(Tier::Nocheck | Tier::NoChecks), _) => unchecked.push(format!("| {} | `{}` | {} | {} |", cell(&where_(span)), tier_word(site.tier), code(&code_at(span)), cell(&site.sentence(&spell)))),
-            _ => {}
+    for (fi, func) in p.functions.iter().enumerate() {
+        if !live(fi) || func.nocheat_of.is_some() {
+            continue;
+        }
+        for m in &func.markers {
+            let span = func.span(m.span);
+            // What it covers: its sites, and the calls it makes.
+            let mut covers: Vec<String> = (m.sites.0..m.sites.1).filter_map(|si| func.sites.get(si as usize)).map(|site| site.sentence(&spell)).collect();
+            for b in m.exits() {
+                let Some(bl) = func.blocks.get(b as usize) else { continue };
+                if let Terminator::Call { callee, .. } = &bl.term {
+                    match callee {
+                        crate::mir::Callee::Extern(id) => {
+                            let e = &p.items.externs[id.0 as usize];
+                            // Only `NO_FUCKING_CHECKS` trusts a ranged answer; under
+                            // `no_check` the door still checks it.
+                            covers.push(match (e.ranged, m.tier) {
+                                (true, Tier::NoChecks) => format!("trusts that C's `{}` answers within `{}`, unchecked", e.name, spell(&e.ret)),
+                                (true, _) => format!("vouches for C's `{}` (its answer is still checked to be within `{}`)", e.name, spell(&e.ret)),
+                                _ => format!("vouches for C's `{}`", e.name),
+                            });
+                        }
+                        crate::mir::Callee::Fn(g) => covers.push(format!("calls `{}`", fname(&p.functions[g.0 as usize]))),
+                        crate::mir::Callee::Value(_) => covers.push("calls a held function".to_string()),
+                        _ => {}
+                    }
+                }
+            }
+            covers.dedup();
+            let what = if covers.is_empty() { "nothing Precog would have checked".to_string() } else { covers.join("; ") };
+            let row = (where_(span), tier_word(Some(m.tier)), code_at(span), what);
+            match m.tier {
+                Tier::Check => passed.push(row),
+                _ => unchecked.push(row),
+            }
         }
     }
+    passed.sort();
+    passed.dedup();
+    unchecked.sort();
+    unchecked.dedup();
     n_markers += passed.len() + unchecked.len() + f.analysis.certain_under_nocheck.len();
-    let _ = writeln!(markers, "**`check` that passed** ({}): each proven, so it costs nothing at run time.\n", passed.len());
+    let _ = writeln!(markers, "**`check`** ({}): what each must prove; a build that could not prove one would have been refused.\n", passed.len());
     if !passed.is_empty() {
-        let _ = writeln!(markers, "| Where | Code | What it proved |\n|---|---|---|");
-        for r in &passed {
-            let _ = writeln!(markers, "{}", r);
+        let _ = writeln!(markers, "| Where | Statement | What it proved |\n|---|---|---|");
+        for (w, _, c, what) in &passed {
+            let _ = writeln!(markers, "| {} | {} | {} |", cell(w), code(c), cell(what));
         }
     }
-    let _ = writeln!(markers, "\n**`no_check` and `NO_FUCKING_CHECKS`** ({}): not checked, on your word.\n", unchecked.len());
+    let _ = writeln!(markers, "\n**`no_check` and `NO_FUCKING_CHECKS`** ({}): each rests on your word.\n", unchecked.len());
     if !unchecked.is_empty() {
-        let _ = writeln!(markers, "| Where | Word | Code | What is not checked |\n|---|---|---|---|");
-        for r in &unchecked {
-            let _ = writeln!(markers, "{}", r);
+        let _ = writeln!(markers, "| Where | Word | Statement | What it covers |\n|---|---|---|---|");
+        for (w, word, c, what) in &unchecked {
+            let _ = writeln!(markers, "| {} | `{}` | {} | {} |", cell(w), word, code(c), cell(what));
         }
     }
     let _ = writeln!(markers, "\n**Certain failures under your word** ({}):\n", f.analysis.certain_under_nocheck.len());
@@ -279,7 +310,23 @@ pub fn render(f: &Facts) -> String {
     }
     let _ = writeln!(opt, "- Recursion unrolled: {} call{} of a function to itself (or to a partner calling it back) inlined, up to {} levels and {} instructions a function.\n", f.object.recursion_inlined, plural(f.object.recursion_inlined as usize), crate::codegen::RECURSION_DEPTH, group(crate::codegen::RECURSION_SIZE as u64));
     n_opt += (f.object.recursion_inlined > 0) as usize;
-    let _ = writeln!(opt, "**Tables**: none made (Precog's tables are not built in kayo yet).\n");
+    let tname = |i: usize| -> String {
+        let func = &p.functions[i];
+        func.inst.and_then(|x| p.instances.get(x.0 as usize)).and_then(|x| p.items.fns.get(x.key.fn_id.0 as usize)).map(|d| d.name.clone()).unwrap_or_else(|| fname(func))
+    };
+    let _ = writeln!(opt, "**Tables** ({}): pure functions over few enough argument values, every answer worked out while building; each call reads its answer.\n", p.tables.len());
+    for t in &p.tables {
+        let over = t.ranges.iter().map(|(lo, hi)| format!("{} to {}", lo, hi)).collect::<Vec<_>>().join(" × ");
+        let _ = writeln!(opt, "- `{}`: {} entries ({}), {} bytes each, {} in all; the limit is {}, {}", tname(t.function), group(t.entries.len() as u64), over, t.entry_bytes, bytes_text(t.bytes), bytes_text(t.limit), t.limit_from);
+    }
+    n_opt += p.tables.len();
+    let mut nots: Vec<String> = f.analysis.not_tables.iter().map(|n| format!("- `{}`: not a table: {}", tname(n.function), n.why)).collect();
+    nots.sort();
+    nots.dedup();
+    for n in &nots {
+        let _ = writeln!(opt, "{}", n);
+    }
+    let _ = writeln!(opt);
     let _ = writeln!(opt, "**Loops split across cores** ({}):\n", f.plan.loops.len());
     let mut par_rows: Vec<String> = f.plan.loops.iter().map(|((fi, _), pl)| {
         let func = &p.functions[*fi];
@@ -441,7 +488,15 @@ pub fn render(f: &Facts) -> String {
             let _ = writeln!(sizes, "Not measured: {}", e);
         }
     }
-    let _ = writeln!(sizes, "\n**Tables**: none.\n");
+    let _ = writeln!(sizes, "\n**Tables** ({}, {} in all):\n", p.tables.len(), bytes_text(p.tables.iter().map(|t| t.bytes).sum()));
+    if !p.tables.is_empty() {
+        let _ = writeln!(sizes, "| Function | Entries | Bytes |\n|---|---:|---:|");
+        for t in &p.tables {
+            let _ = writeln!(sizes, "| `{}` | {} | {} |", tname(t.function), group(t.entries.len() as u64), group(t.bytes));
+        }
+    }
+    n_sizes += p.tables.len();
+    let _ = writeln!(sizes);
     let _ = writeln!(sizes, "**Consts** ({}):\n", f.consts.len());
     if !f.consts.is_empty() {
         let _ = writeln!(sizes, "| Name | Type | Bytes |\n|---|---|---:|");

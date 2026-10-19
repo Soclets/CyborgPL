@@ -41,7 +41,7 @@ pub fn build(checked: Checked) -> Program {
         b.functions[idx.0 as usize] = f;
     }
     let main = checked.main.and_then(|m| b.inst_idx.get(&m).copied());
-    let mut p = Program { functions: b.functions, main, items: b.items, instances: b.instances };
+    let mut p = Program { functions: b.functions, main, items: b.items, instances: b.instances, tables: Vec::new() };
     // Precog's half of `closed` (owner, 2026-09-23): the maker lets go of a
     // channel where it provably never names it again.
     crate::mir::channels::release_early(&mut p);
@@ -411,6 +411,8 @@ struct FnBuilder<'a> {
     nocheat_entries: Vec<(u32, u32, Vec<LocalId>)>,
     /// Named locals declared with `:=`, whose type Precog picked.
     picked: Vec<LocalId>,
+    /// Every `check`, `no_check` and `NO_FUCKING_CHECKS` written.
+    markers: Vec<Marker>,
     /// Per scope: the group its tasks join, made when the first one starts.
     task_group: Vec<Option<u32>>,
     next_group: u32,
@@ -459,6 +461,7 @@ impl<'a> FnBuilder<'a> {
             nocheat_blocks: Default::default(),
             nocheat_entries: Vec::new(),
             picked: Vec::new(),
+            markers: Vec::new(),
             task_group: vec![None],
             next_group: 0,
             next_task: 0,
@@ -724,6 +727,7 @@ impl<'a> FnBuilder<'a> {
             nocheat_blocks: self.nocheat_blocks.iter().copied().collect(),
             nocheat_entries: std::mem::take(&mut self.nocheat_entries),
             picked: std::mem::take(&mut self.picked),
+            markers: std::mem::take(&mut self.markers),
             name: body.name.clone(),
             inst: self.inst,
             params,
@@ -873,7 +877,14 @@ impl<'a> FnBuilder<'a> {
         if s.tier.is_some() {
             self.tier = s.tier;
         }
+        // A check word written here, not one this statement only sits
+        // under: what it covers is listed in the build report.
+        let written = s.tier.filter(|t| Some(*t) != saved_tier);
+        let at = (self.cur.0, self.blocks.len() as u32, self.sites.len() as u32);
         self.stmt_kind(s, span);
+        if let Some(tier) = written {
+            self.markers.push(Marker { tier, span, start: at.0, from: at.1, to: self.blocks.len() as u32, end: self.cur.0, sites: (at.2, self.sites.len() as u32) });
+        }
         self.tier = saved_tier;
     }
 
@@ -2573,6 +2584,7 @@ fn placeholder(body: &hir::Body) -> Function {
         nocheat_blocks: Vec::new(),
         nocheat_entries: Vec::new(),
         picked: Vec::new(),
+        markers: Vec::new(),
         name: body.name.clone(),
         inst: None,
         params: Vec::new(),
