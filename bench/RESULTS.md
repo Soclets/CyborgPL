@@ -48,15 +48,15 @@ What no_cheat costs, its time over the cheat build's: 3 threads sum 1.52×, fib 
   against C) in flat time, 0.004 s at both N = 38 and N = 43, so it does far less work than the recursion written.
   How, design claude did not look.
 - **Both no_cheat rows use the cores**: CPU over wall time 2.86 for sum on 3 threads, 0.99 on 1.
-- **Where no_cheat costs more than it should**, kayo gaps (owed to compiler claude when CyborgPL resumes; it is paused):
-  - sum (and likely sieve): under `no_cheat` kayo keeps the loop's step `by 1` as a value worked out at run time, so
-    the loop takes the general form (signed step, 128-bit trip-count arithmetic; seen in the machine code). Knowing
-    the step is not skipping work, so this is slower than the ruling asks.
-  - lists on one thread, 1.93×: not skipped rounds (measured below); the no_cheat inner loop is slower, 5.6 ms a
-    round against 2.1 ms for the cheat build and for C, likely the same general loop form as sum's.
-  - The build report under `no_cheat` lists some functions and loops twice, says sum's loop "stays in order" though
-    it is split across cores, and gives fib's missing table the wrong reason ("a check … is not proven" instead of
-    `no_cheat`).
+- **Where no_cheat costs more than it should**, kayo gaps (sent to compiler claude 2026-10-20):
+  - **Corrected 2026-10-20 by compiler claude's measurement**: the cost is not the loop's step, as design claude had
+    read from the machine code. Compiler claude fixed the step (b20af56c) and timed both builds, best of 9: no change
+    (sum 1.57× → 1.56×, lists 1.91× → 1.94×). The cost is kayo's barrier on each round's stores, which stops LLVM
+    vectorising; that goes further than `no_cheat` means (2026-10-01: "SIMD and cores stay allowed"; 2026-10-18:
+    "doing it faster (inlining, SIMD, cores) stays allowed"), so a barrier that keeps every round but lets rounds share
+    an instruction is owed in kayo. lists' slower inner loop (5.6 ms a round against 2.1 ms) is likely the same cause.
+  - The build report's three problems under `no_cheat` are fixed (b20af56c): copies are marked "(no_cheat copy)", a
+    loop split in one copy is listed once, and fib's missing table says every call to it is under `no_cheat`.
 - **Are the other languages' numbers fair?** Checked for the owner the same day, on one thread: fib's time per N
   grows 1.599 to 1.611× in CyborgPL no_cheat, C, Rust, Go and Zig (every call made; φ = 1.618), Fortran's 0.97×
   (flat). lists with 40 rounds instead of 10 takes 2.3 to 3.3× as long in every language, CyborgPL's cheat build
