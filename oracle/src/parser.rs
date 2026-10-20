@@ -1693,6 +1693,23 @@ impl Parser {
     // through modules is a dotted path (`shapes.Locker`, `my.Locker`).
     /// A type; a range or a length bound is ASP's (owner, 2026-10-07: "move"), refused without it
     fn ty(&mut self) -> PResult<Ty> {
+        // `percent[d32]` / `percent[f64]`, and the symbol spelling `%[d32]` (owner, 2026-10-17): a percentage holding
+        // that number; its size is always written (`:=` lets Precog pick). A second bracket bounds it, in `%`.
+        if self.is_word("percent") || matches!(self.peek(), Tok::Op(o) if o == "%") {
+            self.advance();
+            if *self.peek() != Tok::LBracket { return self.err("a written percent names its number: `percent[d64]` or `percent[f64]`; `:=` lets Precog pick (owner, 2026-10-17)"); }
+            self.advance();
+            let inner = self.ty()?;
+            self.expect(Tok::RBracket, "`]` after the percent's number")?;
+            if !matches!(inner, Ty::Deci(_) | Ty::Bin(_)) { return self.err(format!("a percent holds a `d` or an `f`: `percent[d64]`, not `percent[{}]`", ty_name(&inner))); }
+            let t = Ty::Percent(Box::new(inner));
+            if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max") {
+                let (lo, hi) = self.labelled_bounds("percent[d32][min: 0%, max: 100%]")?;
+                self.expect(Tok::RBracket, "`]` after the bounds")?;
+                return Ok(Ty::Ranged(Box::new(t), lo, hi));
+            }
+            return Ok(t);
+        }
         // `C.str`, a C string (owner, 2026-10-19: "(a)"), bounded as `C.str[max: 255 bytes, exclude zero]`: bytes only, and
         // always whether the closing 0 counts (owner: "(a)")
         if self.is_word("C") && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(w) if w == "str") && *self.peek_at(3) != Tok::Dot {
@@ -1813,6 +1830,7 @@ impl Parser {
     fn exact_literal(&mut self, line: usize) -> PResult<Expr> {
         match self.advance().tok {
             Tok::Bin(_, t) => Ok(Expr::Exact(t, line)),
+            Tok::PercentLit(_, t) => Ok(Expr::Percent(Box::new(Expr::Exact(t, line)), line)),
             Tok::Int(i) => Ok(Expr::Exact(i.to_string(), line)),
             other => self.err(format!("`exactly` is followed by a number: `exactly 19.99`, `exactly 1000`; found {other}")),
         }
@@ -3326,6 +3344,8 @@ impl Parser {
         match self.advance().tok {
             Tok::Int(i) => Ok(Bound::Int(if neg { -i } else { i })),
             Tok::Bin(b, _) => Ok(Bound::Bin(if neg { -b } else { b })),
+            // a percent's bounds are written in `%` (owner, 2026-10-17): `percent[d32][min: 0%, max: 100%]`
+            Tok::PercentLit(b, _) => Ok(Bound::Bin(if neg { -b } else { b })),
             other => self.err(format!("a range's bounds are numeric literals, or `min` / `max` for the type's own limit, found {other}")),
         }
     }
@@ -3821,7 +3841,7 @@ impl Parser {
 
     fn starts_primary(&self) -> bool {
         match self.peek() {
-            Tok::Int(_) | Tok::Bin(..) | Tok::Text(..) | Tok::Char(_) | Tok::Newline | Tok::Var(_) | Tok::LParen => true,
+            Tok::Int(_) | Tok::Bin(..) | Tok::PercentLit(..) | Tok::Text(..) | Tok::Char(_) | Tok::Newline | Tok::Var(_) | Tok::LParen => true,
             Tok::Word(w) => !OP_WORDS.contains(&w.as_str()) && w != "not" && w != "otherwise",
             _ => false,
         }
@@ -4218,6 +4238,7 @@ impl Parser {
             }
             Tok::BigInt(s) => { self.advance(); self.typed_literal(Expr::BigInt(s, line), line) }
             Tok::Bin(b, t) => { self.advance(); self.typed_literal(Expr::Bin(b, t, line), line) }
+            Tok::PercentLit(b, t) => { self.advance(); Ok(Expr::Percent(Box::new(Expr::Bin(b, t, line)), line)) }
             // `*0.1` — "I want exactly this" (owner, 2026-10-02): a decimal literal that is a deci
             // `str.empty`: the empty text (owner, 2026-10-14), as `map.empty` is the empty map
             // C strings (owner, 2026-10-19): `C.str.read['p']`, a C string to a `str.utf8`, failing `not_utf8`;

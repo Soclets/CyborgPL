@@ -22,6 +22,8 @@ pub enum Tok {
     /// a whole number past i128, for the wide `!std_` integers (owner, 2026-10-03): its digits
     BigInt(String),
     Bin(f64, String),   // the value, and its digits as written (to round once, at a narrower width)
+    /// `7.5%` / `7.5 percent` (owner, 2026-10-16): the fraction, as `Bin`, marked a percentage literal
+    PercentLit(f64, String),
     Newline,        // bare \n
     LBracket, RBracket,
     LBrace, RBrace,
@@ -54,6 +56,7 @@ impl fmt::Display for Tok {
             Tok::Text(t, _) => write!(f, "\"{t}\""),
             Tok::Char(c) => write!(f, "`{c}`"),
             Tok::Int(i) => write!(f, "{i}"),
+            Tok::PercentLit(_, t) => write!(f, "{}%", crate::value::percent_digits(t)),
             Tok::BigInt(s) => write!(f, "{s}"),
             Tok::Bin(b, _) => write!(f, "{b}"),
             Tok::Newline => write!(f, "\\n"),
@@ -273,7 +276,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 let (int, frac) = s.split_once('.').unwrap_or((s.as_str(), ""));
                 let t = if int.len() <= 2 { format!("0.{}{int}{frac}", "0".repeat(2 - int.len())) } else { format!("{}.{}{frac}", &int[..int.len() - 2], &int[int.len() - 2..]) };
                 let v: f64 = t.parse().map_err(|_| LexError { line: tl, col: tc, msg: format!("bad percentage `{s}%`") })?;
-                push(Tok::Bin(v, t), &mut toks);
+                push(Tok::PercentLit(v, t), &mut toks);
                 continue;
             }
             if i < chars.len() && (chars[i].is_alphabetic() || chars[i] == '\'') {

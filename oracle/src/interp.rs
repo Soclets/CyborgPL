@@ -1468,6 +1468,10 @@ impl<'p> Interp<'p> {
                 Ok(())
             }
             (Ty::CStr(_), other) => rt(line, format!("a {name} is made with `C.str.make`, not {}", other.kind())),
+            // a percent is its own number family (owner, 2026-10-17: "Don't you have to convert?")
+            (Ty::Percent(t), Value::Percent(x)) => self.check_type(x, t, line),
+            (Ty::Percent(_), other) => rt(line, format!("{} is not a percent; a plain number becomes one with `to.{name}[…]` (0.07 → 7%)", other.show_useful())),
+            (t, Value::Percent(_)) if !matches!(t, Ty::Ranged(..) | Ty::Var(_) | Ty::Inst(..)) => rt(line, format!("{} is a percent, not {name}; a percent becomes a plain number with `to.{name}[…]` (7% → 0.07)", v.show_useful())),
             (Ty::Int(_) | Ty::Uint(_), Value::Int(_) | Value::Big(_)) => {
                 // at any width (owner, 2026-10-03); the standard ones stay on i128
                 if let (Some((lo, hi)), Value::Int(i)) = (int_range(ty), v) {
@@ -1527,6 +1531,9 @@ impl<'p> Interp<'p> {
                 // `min` / `max` mean the base type's own limit (owner, 2026-09-23)
                 let lo = &resolve_bound(base, lo);
                 let hi = &resolve_bound(base, hi);
+                // a percent's bounds are in `%`, held as the fractions (`min: 0%` is 0.0)
+                let shown = v.show_useful();
+                let v = match v { Value::Percent(x) => &**x, v => v };
                 let inside = match (v, lo, hi) {
                     (Value::Int(i), Bound::Int(a), Bound::Int(b)) => a <= i && i <= b,
                     (Value::Bin(x), Bound::Bin(a), Bound::Bin(b)) => a <= x && x <= b,
@@ -1546,7 +1553,7 @@ impl<'p> Interp<'p> {
                     }
                     _ => true,
                 };
-                if inside { Ok(()) } else { site(line, format!("{} does not fit {name}", v.show_useful())) }
+                if inside { Ok(()) } else { site(line, format!("{shown} does not fit {name}")) }
             }
             (Ty::Fn(ps, ret, fails), Value::Func(fv)) => {
                 let f = &fv.def;
@@ -2172,6 +2179,28 @@ impl<'p> Interp<'p> {
             // digits for the width is an error, never rounded
             Expr::Int(i, _) if self.deci_ctx().is_some() => { let w = self.deci_ctx().unwrap(); Ok((Value::Deci(crate::deci::Deci::from_int(*i, w).or_else(|m| rt(line, format!("`{i}` {m}: write fewer digits, or use a wider deci")))?), Prov::Literal)) }
             Expr::Bin(_, digits, _) if self.deci_ctx().is_some() => { let w = self.deci_ctx().unwrap(); Ok((Value::Deci(self.deci_literal(digits, w, line)?), Prov::Literal)) }
+            // a percentage literal (owner, 2026-10-16/17): a `percent` under `:=` or into a `percent` type, the fraction
+            // into a plain number's place (`let 'x': f64 = 80%;` is 0.8)
+            Expr::Percent(inner, _) => {
+                let place = match &self.expected { Some(Ty::Ranged(b, _, _)) => Some((**b).clone()), t => t.clone() };
+                match place {
+                    Some(Ty::Percent(t)) => {
+                        let saved = std::mem::replace(&mut self.expected, Some((*t).clone()));
+                        let r = self.eval_inner(inner);
+                        self.expected = saved;
+                        let (v, _) = r?;
+                        Ok((Value::Percent(Box::new(round_to_width(&t, v))), Prov::Literal))
+                    }
+                    Some(Ty::Bin(_) | Ty::Deci(_) | Ty::Int(_) | Ty::Uint(_) | Ty::Brain) => self.eval_inner(inner),
+                    _ => {
+                        let saved = self.expected.take();
+                        let r = self.eval_inner(inner);
+                        self.expected = saved;
+                        let (v, _) = r?;
+                        Ok((Value::Percent(Box::new(v)), Prov::Literal))
+                    }
+                }
+            }
             Expr::Int(i, _) => Ok((Value::Int(*i), Prov::Literal)),
             Expr::RawInt(i, _) => Ok((Value::Int(*i), Prov::Raw)),
             Expr::BigInt(s, _) => Ok((Value::Big(crate::bigint::BigInt::parse(s).expect("lexed digits")), Prov::Literal)),
@@ -2495,11 +2524,19 @@ impl<'p> Interp<'p> {
                 let out = if matches!(ty, Ty::Int(_)) && u >= 1i128 << (bits - 1) { u - (1i128 << bits) } else { u };
                 Ok((Value::Int(out), Prov::Fresh))
             }
+            // `to.percent[d64][0.07]`: a plain number into a percent, 7% (owner, 2026-10-17), converted to its number first
+            Expr::Convert(Ty::Percent(t), b, handler, form, l) => {
+                let inner = Expr::Convert((**t).clone(), b.clone(), handler.clone(), *form, *l);
+                let (v, _) = self.eval_inner(&inner)?;
+                Ok((match v { Value::Percent(_) => v, v => Value::Percent(Box::new(v)) }, Prov::Fresh))
+            }
             Expr::Convert(ty, b, handler, form, _) => {
                 let form = *form;
                 let useful_flag = form == 2;
                 let useful = &useful_flag;
                 let (v, _) = self.single(b, line)?;
+                // a percent into a plain number is its fraction (owner, 2026-10-17: `to.d64['tax']`, 7% → 0.07)
+                let v = match v { Value::Percent(x) => *x, v => v };
                 // a fallback takes the conversion's type: `to.d32['x'] otherwise 0` is a d32 0
                 self.fallback_ty = match ty { Ty::Ranged(bt, ..) => Some((**bt).clone()), Ty::TextRanged(e, ..) => Some(Ty::Str(e.clone())), t @ (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Brain | Ty::Deci(_) | Ty::Str(_) | Ty::Char(_) | Ty::Bool) => Some(t.clone()), _ => None };
                 let target = ty_name(ty);
@@ -3485,6 +3522,21 @@ impl<'p> Interp<'p> {
     }
 
     fn binary_at(&self, op: &str, a: Value, b: Value, line: usize, ieee: bool) -> Result<Value, RuntimeError> {
+        // percents combine with percents (owner, 2026-10-17): `+` and `-` give a percent, a comparison a bool; with a
+        // plain number one is converted first. Multiplying or dividing two percents is not decided.
+        match (&a, &b) {
+            (Value::Percent(x), Value::Percent(y)) => {
+                return match op {
+                    "+" | "-" => Ok(Value::Percent(Box::new(self.binary_at(op, (**x).clone(), (**y).clone(), line, ieee)?))),
+                    "<" | ">" | "at_most" | "at_least" | "equal_to" | "not_equal" => self.binary_at(op, (**x).clone(), (**y).clone(), line, ieee),
+                    _ => rt(line, format!("`{op}` between two percents is not decided; convert them: `to.d64['a'] {op} to.d64['b']`")),
+                };
+            }
+            (Value::Percent(_), _) | (_, Value::Percent(_)) => {
+                return rt(line, format!("`{op}` between a percent and a {}: a percent is its own number family; convert it, `to.d64['tax']` (7% → 0.07), or the number, `to.percent[d64][0.07]`", if matches!(a, Value::Percent(_)) { b.kind() } else { a.kind() }));
+            }
+            _ => {}
+        }
         // A vector is N of what the operator already does (design/simd.md, 2026-09-22):
         // lane by lane, the scalar rule. A comparison gives a simd of bools, never one bool.
         match (&a, &b) {
@@ -4910,6 +4962,7 @@ impl<'p> Interp<'p> {
         Ok(match ty {
             Ty::Int(w) | Ty::Uint(w) => { let n = match w { IntWidth::Other(b) => ((*b as usize + 7) / 8).next_power_of_two(), IntWidth::W8 => 1, IntWidth::W16 => 2, IntWidth::W32 => 4, IntWidth::W64 => 8, IntWidth::W128 => 16 }; (n, n) }
             Ty::Bin(b) | Ty::Deci(b) => { let n = (*b as usize) / 8; (n, n) }
+            Ty::Percent(t) => self.size_align(t, line)?,
             Ty::Brain => (2, 2),
             Ty::Bool => (1, 1),
             Ty::Char(CharUnit::Byte) => (1, 1),
@@ -5559,7 +5612,7 @@ fn ty_shape(t: &Ty) -> String {
     match t {
         Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) => "bin".into(), Ty::Brain => "brain16".into(), Ty::Deci(_) => "deci".into(), Ty::Bool => "bool".into(),
         Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_) | Ty::Array(_) => "list".into(),
-        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Simd(..) => "simd".into(), Ty::Channel(_) => "channel".into(), Ty::Duration => "duration".into(), Ty::Fn(..) => "function".into(), Ty::CStr(_) => "list".into(),
+        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Simd(..) => "simd".into(), Ty::Channel(_) => "channel".into(), Ty::Duration => "duration".into(), Ty::Fn(..) => "function".into(), Ty::CStr(_) => "list".into(), Ty::Percent(_) => "percent".into(),
     }
 }
 
@@ -5944,7 +5997,7 @@ fn first_std_call(b: &Bracket) -> Option<String> {
 
 fn same_family(a: &Value, b: &Value, line: usize, op: &str) -> Result<(), RuntimeError> {
     let ok = matches!((a, b),
-        (Value::Int(_), Value::Int(_)) | (Value::Bin(_), Value::Bin(_)) | (Value::Brain(_), Value::Brain(_)) | (Value::Bool(_), Value::Bool(_))
+        (Value::Int(_), Value::Int(_)) | (Value::Bin(_), Value::Bin(_)) | (Value::Brain(_), Value::Brain(_)) | (Value::Bool(_), Value::Bool(_)) | (Value::Percent(_), Value::Percent(_))
         | (Value::Str(_), Value::Str(_)) | (Value::Char(..), Value::Char(..)) | (Value::List(_), Value::List(_))
         | (Value::Enum(..), Value::Enum(..)) | (Value::Struct(..), Value::Struct(..)));
     if ok { Ok(()) } else { rt(line, format!("`{op}` between {} and {}: no implicit conversion", a.kind(), b.kind())) }

@@ -45,6 +45,9 @@ pub enum Ty {
     /// `fn[lent T, U] -> R or fail[…]` — a function's type (design/functions-as-values.md,
     /// 2026-09-21): its signature with the names removed
     Fn(Vec<(ParamKind, Ty)>, Option<Box<Ty>>, Vec<String>),
+    /// `percent[d32]` / `percent[f64]` (owner, 2026-10-17): a percentage holding that number, its own family;
+    /// `%[d32]` the symbol spelling; the held number is the fraction (7.5% holds 0.075)
+    Percent(Box<Ty>),
 }
 
 /// A range type's bound: a numeric literal.
@@ -423,6 +426,9 @@ pub enum Expr {
     /// a literal past i128: its digits (owner, 2026-10-03)
     BigInt(String, usize),
     Bin(f64, String, usize),   // value, digits as written, line
+    /// `7.5%` / `exactly 7.5%` (owner, 2026-10-16/17): a percentage literal, the fraction inside (a `Bin` or an
+    /// `Exact`); a `percent` under `:=` or into a `percent` type, the plain number into a plain one
+    Percent(Box<Expr>, usize),
     /// `*0.1` — "exactly this" (owner, 2026-10-02): a decimal literal that is a `deci`; its digits, line
     Exact(String, usize),
     Bool(bool, usize),
@@ -500,7 +506,7 @@ pub enum Expr {
 impl Expr {
     pub fn line(&self) -> usize {
         match self {
-            Expr::Int(_, l) | Expr::RawInt(_, l) | Expr::BigInt(_, l) | Expr::Bin(_, _, l) | Expr::Exact(_, l) | Expr::Bool(_, l) | Expr::Text(_, l) | Expr::Char(_, l)
+            Expr::Int(_, l) | Expr::RawInt(_, l) | Expr::BigInt(_, l) | Expr::Bin(_, _, l) | Expr::Exact(_, l) | Expr::Percent(_, l) | Expr::Bool(_, l) | Expr::Text(_, l) | Expr::Char(_, l)
             | Expr::Newline(l) | Expr::Var(_, l) | Expr::Owned(_, _, l)
             | Expr::Unary(_, _, l) | Expr::Binary(_, _, _, l) | Expr::Paren(_, l) => *l,
             Expr::Call(c) => c.line,

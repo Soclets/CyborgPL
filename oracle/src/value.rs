@@ -17,6 +17,8 @@ pub enum Value {
     Brain(f64),
     /// IEEE decimal (design/types.md, owner 2026-09-29)
     Deci(crate::deci::Deci),
+    /// a percentage (owner, 2026-10-17): the fraction it holds, a bin or a deci (7.5% holds 0.075)
+    Percent(Box<Value>),
     Bool(bool),
     Str(String),
     Char(CharUnit, String),
@@ -93,6 +95,7 @@ impl Value {
             Value::Bin(_) => "bin",
             Value::Brain(_) => "brain16",
             Value::Deci(_) => "deci",
+            Value::Percent(_) => "percent",
             Value::Bool(_) => "bool",
             Value::Str(_) => "str",
             Value::Char(..) => "char",
@@ -117,6 +120,8 @@ impl Value {
             Value::Bin(b) => exact_decimal(*b),
             Value::Brain(b) => exact_decimal(*b),
             Value::Deci(d) => d.show_stored(),
+            // the stored number, the fraction (owner, 2026-10-17: `print.stored` shows `0.075`)
+            Value::Percent(x) => x.show_stored(),
             Value::Bool(b) => if *b { "true".into() } else { "false".into() },
             Value::Str(s) => s.clone(),
             Value::Char(_, c) => c.clone(),
@@ -140,6 +145,8 @@ impl Value {
             Value::Bin(b) => format!("{b}"),
             Value::Brain(b) => brain_useful(*b),
             Value::Deci(d) => d.show_useful(),
+            // only `print.useful` shows the `%` (owner, 2026-10-17: "only in `useful`"): 0.075 as `7.5%`
+            Value::Percent(x) => format!("{}%", percent_digits(&x.show_useful())),
             Value::List(items) => format!("[{}]", items.iter().map(|v| v.show_useful()).collect::<Vec<_>>().join(", ")),
             Value::Map(ps) => format!("map[{}]", ps.iter().map(|(k, v)| format!("{} = {}", k.show_useful(), v.show_useful())).collect::<Vec<_>>().join(", ")),
             Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("{k} = {}", v.show_useful())).collect::<Vec<_>>().join(", ")),
@@ -202,8 +209,22 @@ pub fn show_duration(n: i128) -> String {
 
 pub fn unit_word(u: &CharUnit) -> &'static str { match u { CharUnit::Byte => "bytes", CharUnit::Point => "points", CharUnit::Grapheme => "graphemes" } }
 
+/// A fraction's digits as a percentage's, the point moved two places right (`0.075` → `7.5`, `1.2` → `120`).
+pub fn percent_digits(t: &str) -> String {
+    if t.contains(['e', 'E']) { return t.parse::<f64>().map(|x| format!("{}", x * 100.0)).unwrap_or_else(|_| t.to_string()); }
+    let (neg, t) = match t.strip_prefix('-') { Some(r) => (true, r), None => (false, t) };
+    let (int, frac) = t.split_once('.').unwrap_or((t, ""));
+    let padded = format!("{frac}00");
+    let whole = format!("{int}{}", &padded[..2]);
+    let whole = whole.trim_start_matches('0');
+    let whole = if whole.is_empty() { "0" } else { whole };
+    let tail = if frac.len() > 2 { frac[2..].trim_end_matches('0') } else { "" };
+    format!("{}{whole}{}", if neg { "-" } else { "" }, if tail.is_empty() { String::new() } else { format!(".{tail}") })
+}
+
 pub fn ty_name(ty: &Ty) -> String {
     match ty {
+        Ty::Percent(t) => format!("percent[{}]", ty_name(t)),
         Ty::Int(w) => format!("{}i{}", if matches!(w, IntWidth::Other(_)) { "not_std." } else { "" }, w_num(w)),
         Ty::Uint(w) => format!("{}u{}", if matches!(w, IntWidth::Other(_)) { "not_std." } else { "" }, w_num(w)),
         Ty::Bin(n) => format!("f{n}"),
@@ -223,8 +244,10 @@ pub fn ty_name(ty: &Ty) -> String {
             let lo_open = matches!(lo, crate::ast::Bound::Min) || (length && *lo == crate::ast::Bound::Int(0));
             let hi_open = matches!(hi, crate::ast::Bound::Max) || (length && *hi == crate::ast::Bound::Int(i128::MAX));
             let mut sides = Vec::new();
-            if !lo_open { sides.push(format!("min: {}", bound_name(lo))); }
-            if !hi_open { sides.push(format!("max: {}", bound_name(hi))); }
+            // a percent's bounds are written in `%` (owner, 2026-10-17), the fractions shown as percentages
+            let shown = |b: &crate::ast::Bound| if matches!(**t, Ty::Percent(_)) { format!("{}%", percent_digits(&bound_name(b))) } else { bound_name(b) };
+            if !lo_open { sides.push(format!("min: {}", shown(lo))); }
+            if !hi_open { sides.push(format!("max: {}", shown(hi))); }
             if sides.is_empty() { ty_name(t) } else { format!("{}[{}]", ty_name(t), sides.join(", ")) }
         }
         Ty::Channel(t) => format!("channel[{}]", ty_name(t)),
