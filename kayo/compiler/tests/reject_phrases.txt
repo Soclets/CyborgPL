@@ -724,7 +724,7 @@ str_for_bare [fnv:9ff91050c5cd382f] :: `str.each.grapheme[lend 's']`, `.point`, 
 str_index [fnv:91ca5dc332f4c315] :: it would not say which unit
 str_length [fnv:b29f67be465dcbe6] :: `str.bytes`, `str.points` or `str.graphemes`
 str_less_than [fnv:96614208fa90f73f] :: byte order is never what anyone means, and a collation rule is std's
-str_slice_byte_unknown [fnv:50b421ff9c28cd61] :: `std::str.slice.byte` does not exist
+str_slice_byte_unknown [fnv:50b421ff9c28cd61] :: expected a value of the fallback value (list[uint8]), found a `str`
 str_split_empty [fnv:67635ac17613965c] :: outside the bound its type gives it (`str.utf8[min 1 bytes]`)
 strict_gone [fnv:70e4490d609cdd7e] :: `#strict` is gone
 strike_word_old [fnv:4a3c4f88880a3f14] :: `strike` is an old spelling: write `kit` (owner, 2026-10-16)
@@ -859,3 +859,6 @@ base_octal_bad_digit [fnv:958021aa004d8f9d] :: an octal number has only the digi
 base_hex_bad_digit [fnv:08f788733a8bc6a3] :: a hex number has only 0-9 and A-F
 base_prefix_0x [fnv:0ee49085d48160cd] :: written with a word in front: `hex 1F`
 base_grouping [fnv:fa328efeee84f3c8] :: `_` groups digits
+overload_plain [fnv:4d7e85536de4500f] :: versions of one function are written together in a `coll.fn f` block
+overload_same [fnv:7394cf01ac8d8696] :: has two versions for int64
+overload_lit [fnv:3421916dcaa15ca1] :: versions of `f` could take this call

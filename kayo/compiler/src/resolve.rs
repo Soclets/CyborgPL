@@ -284,6 +284,11 @@ pub struct Items {
     pub board_exit: Option<FnId>,
     /// Every kit loaded, in the order it was read, for the build report.
     pub report_kits: Vec<KitReport>,
+    /// A function written in several versions inside a `coll.fn` (owner,
+    /// 2026-10-20), by its first version: every version, in order.
+    pub versions: HashMap<FnId, Vec<FnId>>,
+    /// The functions written inside a `coll.fn`.
+    coll_fns: HashSet<FnId>,
 }
 
 pub const ROOT: ModuleId = ModuleId(0);
@@ -404,6 +409,9 @@ impl Items {
             ItemKind::Fn(decl) if decl.owner.is_some() => {
                 let owner = decl.owner.clone().unwrap();
                 let id = FnId(self.fns.len() as u32);
+                if decl.in_coll {
+                    self.coll_fns.insert(id);
+                }
                 let name = format!("{}.{}", owner.name, decl.name.name);
                 self.fns.push(placeholder_fn(&name, m, vis, item.span, decl.name.span));
                 self.pending_type_fns.push((id, owner, m));
@@ -430,13 +438,26 @@ impl Items {
             ItemKind::Fn(decl) => {
                 let id = FnId(self.fns.len() as u32);
                 self.fns.push(placeholder_fn(&decl.name.name, m, vis, item.span, decl.name.span));
+                if decl.in_coll {
+                    self.coll_fns.insert(id);
+                }
+                // Several versions of one function (owner, 2026-10-20): only
+                // inside a `coll.fn`, joined under the first.
+                if let Some((ItemRef::Fn(prev), _, prev_span)) = self.modules[m.0 as usize].items.get(&decl.name.name).cloned() {
+                    if self.coll_fns.contains(&prev) && decl.in_coll {
+                        self.versions.entry(prev).or_insert_with(|| vec![prev]).push(id);
+                        self.pending_fns.push((id, decl.clone(), m, None));
+                        return Ok(());
+                    }
+                    return err(Diagnostic::error(format!("`{n}` is written twice: versions of one function are written together in a `coll.fn {n}` block (owner, 2026-10-20)", n = decl.name.name)).at(decl.name.span).why_at(prev_span, format!("the first `{}` is declared here", decl.name.name)));
+                }
                 self.declare(m, &decl.name.name, ItemRef::Fn(id), vis, decl.name.span)?;
                 self.pending_fns.push((id, decl.clone(), m, None));
             }
             ItemKind::Op(op) => {
                 let id = FnId(self.fns.len() as u32);
                 self.fns.push(placeholder_fn(&op.op.name, m, vis, item.span, op.op.span));
-                let decl = ast::FnDecl { name: op.op.clone(), announce: op.announce.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false, owner: None, table_bytes: None, c_name: None };
+                let decl = ast::FnDecl { name: op.op.clone(), announce: op.announce.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false, owner: None, table_bytes: None, c_name: None, in_coll: false };
                 self.pending_fns.push((id, decl, m, Some(op.op.name.clone())));
                 self.ops.entry(op.op.name.clone()).or_default().push(id);
             }
@@ -658,7 +679,13 @@ impl Items {
                     return err(Diagnostic::error(format!("`{}` is a case of `{}`, so `fn {}` cannot take its name", after, owner.name, name)).at(self.fns[id.0 as usize].name_span));
                 }
             }
-            if let Some(prev) = self.type_fns.get(&(ty, after.clone())) {
+            if let Some(prev) = self.type_fns.get(&(ty, after.clone())).copied() {
+                // A member's versions, written in its `coll.fn` (owner,
+                // 2026-10-20).
+                if self.coll_fns.contains(&prev) && self.coll_fns.contains(id) {
+                    self.versions.entry(prev).or_insert_with(|| vec![prev]).push(*id);
+                    continue;
+                }
                 return err(Diagnostic::error(format!("`fn {}` is defined twice", name)).at(self.fns[id.0 as usize].name_span).why_at(self.fns[prev.0 as usize].name_span, format!("the first `fn {}` is declared here", name)));
             }
             self.type_fns.insert((ty, after), *id);
@@ -667,6 +694,22 @@ impl Items {
         for (id, decl, m, op) in &fns {
             let info = self.resolve_fn_decl(decl, *m, op.clone(), self.fns[id.0 as usize].vis, self.fns[id.0 as usize].span)?;
             self.fns[id.0 as usize] = info;
+        }
+        // Two versions with the same types, a range's bounds aside, could
+        // never be told apart (owner, 2026-10-20): refused where written.
+        let mut sets: Vec<Vec<FnId>> = self.versions.values().cloned().collect();
+        sets.sort_by_key(|s| s.first().map(|f| f.0));
+        for set in sets {
+            for (k, b) in set.iter().enumerate() {
+                for a in &set[..k] {
+                    let (fa, fb) = (&self.fns[a.0 as usize], &self.fns[b.0 as usize]);
+                    let same = fa.params.len() == fb.params.len() && fa.params.iter().zip(&fb.params).all(|(x, y)| x.ty.as_ref().map(|t| t.base().clone()) == y.ty.as_ref().map(|t| t.base().clone()));
+                    if same {
+                        let types = if fb.params.is_empty() { "no arguments".to_string() } else { fb.params.iter().map(|p| p.ty.as_ref().map(|t| spell(&t.base().clone(), self)).unwrap_or_else(|| "?".into())).collect::<Vec<_>>().join(", ") };
+                        return err(Diagnostic::error(format!("`{}` has two versions for {}: versions differ by how many arguments they take or their types (owner, 2026-10-20)", fb.name, types)).at(fb.name_span).why_at(fa.name_span, "the first is written here"));
+                    }
+                }
+            }
         }
         // Each member written elsewhere is a copy of the function it names,
         // under its own name and visibility. One may name another, so each
@@ -1190,11 +1233,26 @@ impl Items {
         // Is it somewhere else? Say where.
         for (i, module) in self.modules.iter().enumerate() {
             if module.items.contains_key(name) && ModuleId(i as u32) != m {
-                let from_here = if i == 0 { format!("kit.{}", name) } else { format!("kit.{}.{}", module.path, name) };
+                // From the kit's root, `my.` (std claude, 2026-10-20: the
+                // hint said `kit.std::str.text_of`); from another kit, its
+                // prefix.
+                let inside = module.path.split_once("::").map(|(_, rest)| rest).unwrap_or(&module.path);
+                let inside = inside.trim_start_matches("kit").trim_start_matches('.');
+                let from_here = if self.kit_root(ModuleId(i as u32)) != self.kit_root(m) {
+                    match module.path.split_once("::") {
+                        Some((prefix, _)) if !inside.is_empty() => format!("{}::{}.{}", prefix, inside, name),
+                        Some((prefix, _)) => format!("{}::{}", prefix, name),
+                        None => format!("my.{}", name),
+                    }
+                } else if inside.is_empty() {
+                    format!("my.{}", name)
+                } else {
+                    format!("my.{}.{}", inside, name)
+                };
                 return format!("`{}` is declared in {} — from here that is `{}`; a bare name is this module's, a dotted path is relative to it", name, describe_module(&module.path), from_here);
             }
         }
-        "a bare name is this module's own; another module's item is reached by its path, `kit.` starts at the root".to_string()
+        "a bare name is this module's own; another module's item is reached by its path, `my.` starts at the root".to_string()
     }
 
     /// Resolve a written type in module `m`. `blanks` collects `<T>` by first

@@ -666,6 +666,9 @@ pub struct FnDecl {
     /// `extern.C fn length = C.strlen […]` (owner, 2026-10-19): the C
     /// function this one is, under another name.
     pub c_name: Option<String>,
+    /// Written inside a `coll.fn`, where several versions of one function
+    /// may stand (owner, 2026-10-20).
+    pub in_coll: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]

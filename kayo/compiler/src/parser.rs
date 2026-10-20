@@ -1526,7 +1526,9 @@ impl<'a> Parser<'a> {
         let open = self.span();
         self.expect(&Tok::LBrace, "`{` after the collection's name")?;
         let mut mark: Option<(Bare, Span)> = front;
-        let mut main: Option<FnDecl> = None;
+        // Its own function, and each member, may stand in several versions
+        // (owner, 2026-10-20: overloading is written inside a `coll.fn`).
+        let mut mains: Vec<FnDecl> = Vec::new();
         let mut members: Vec<FnDecl> = Vec::new();
         let mut pointers: Vec<(Ident, Path)> = Vec::new();
         let mut presets: Vec<(Ident, Vec<(QName, Expr)>, Span)> = Vec::new();
@@ -1614,12 +1616,10 @@ impl<'a> Parser<'a> {
                 continue;
             }
             let mut d = self.fn_decl(true)?;
+            d.in_coll = true;
             match &d.owner {
                 None if d.name.name == name.name => {
-                    if main.is_some() {
-                        return self.fail_at(d.name.span, format!("collection `{}` has one main function", name.name));
-                    }
-                    main = Some(d);
+                    mains.push(d);
                 }
                 None => return self.fail(short(&d.name.name.clone())),
                 Some(o) if o.name != name.name => return self.fail(short(&d.name.name.clone())),
@@ -1631,10 +1631,16 @@ impl<'a> Parser<'a> {
         }
         self.bump();
         let mut lines: Vec<(Vis, ItemKind)> = Vec::new();
+        let main = mains.first().cloned();
         for (pname, fills, span) in presets {
             let Some(m) = &main else {
                 return self.fail_at(span, format!("a preset fills the main function's arguments, and collection `{}` has none", name.name));
             };
+            // Which version a preset fills is not decided (design claude's
+            // reading, 2026-10-20).
+            if mains.len() > 1 {
+                return self.fail_at(span, format!("a preset beside several versions of `{}`: which version it fills is not decided", name.name));
+            }
             for (q, _) in &fills {
                 if !m.params.iter().any(|p| p.name.name == q.name) {
                     return self.fail_at(q.span, format!("'{}' is not one of `{}`'s parameters", q.name, name.name));
@@ -1643,8 +1649,10 @@ impl<'a> Parser<'a> {
             lines.push((Vis::Private, ItemKind::Fn(preset(m, &name, pname, &fills, span))));
         }
         match main {
-            Some(m) => {
-                lines.insert(0, (Vis::Private, ItemKind::Fn(m)));
+            Some(_) => {
+                for (k, m) in mains.into_iter().enumerate() {
+                    lines.insert(k, (Vis::Private, ItemKind::Fn(m)));
+                }
                 lines.extend(members.into_iter().map(|d| (Vis::Private, ItemKind::Fn(d))));
                 lines.extend(pointers.into_iter().map(|(member, target)| (Vis::Private, ItemKind::FnPointer { owner: Some(name.clone()), name: member, target })));
             }
@@ -1908,7 +1916,7 @@ impl<'a> Parser<'a> {
             self.expect_semi("the extern declaration")?;
             None
         };
-        Ok(FnDecl { name, owner, announce, params, ret, ret_lent, fails, body, test: false, table_bytes: None, c_name })
+        Ok(FnDecl { name, owner, announce, params, ret, ret_lent, fails, body, test: false, table_bytes: None, c_name, in_coll: false })
     }
 
     /// The group's name, right after its `@`.
@@ -4996,6 +5004,7 @@ fn preset(main: &FnDecl, owner: &Ident, name: Ident, fills: &[(QName, Expr)], sp
         test: false,
         table_bytes: main.table_bytes,
         c_name: None,
+        in_coll: true,
     }
 }
 

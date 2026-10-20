@@ -1028,3 +1028,21 @@ Dated, with the alternative, so each can become a question later.
   (`Lexer::based`, through `Big`, so as wide as a decimal may be). `_`
   groups only between two digits; a digit the base has not, and `0x` /
   `0b` / `0o`, are refused as the oracle refuses them.
+- **2026-10-20 — Versions of one function** (owner: "(a)", "(b)", "(a)",
+  "(b)", "(a)"; `design/collections.md` § Versions). Only inside a
+  `coll.fn`: its own function, or a member, written again with other
+  parameters. The resolver joins them under the first (`Items::versions`);
+  the same `fn` twice anywhere else is refused naming `coll.fn`, and two
+  versions with the same types (a range's bounds aside) are refused where
+  written. A call picks by its argument count and its arguments' types as
+  written (`pick_version`, `peek_arg`), widths counting: a typed value or
+  variable fits its own type, a bare literal every type that holds it, a
+  text not yet settled any text. More than one taking a call is refused,
+  naming the typed literal to write (`2.5: bin64`). A preset beside several
+  versions, and an overloaded name held as a value, are refused (design
+  claude's readings).
+- **2026-10-20 — std's own slice and a root path** (std claude). A call to
+  std's `str.slice.X` takes `from pos …`, `to pos …` and `before pos …` as
+  the built-in slice does (`slice_args`); a call that can fail is named as
+  it is written (`std::str.at.grapheme`, not `grapheme`); and the hint for
+  a name declared elsewhere says `my.str.text_of`, not `kit.std::str.text_of`.

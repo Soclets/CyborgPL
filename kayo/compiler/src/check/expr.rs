@@ -341,6 +341,11 @@ impl Checker {
                 if decl.op.is_some() {
                     return err(Diagnostic::error(format!("`{}` is an operator; it goes between two values and is not a value itself", decl.name)).at(span));
                 }
+                // Which version would be held is not decided (design
+                // claude's reading, 2026-10-20), as an operator's is not.
+                if self.items.versions.contains_key(&id) {
+                    return err(Diagnostic::error(format!("`{}` has several versions, so it is no single value to hold: wrap the one you mean in a function", decl.name)).at(span));
+                }
                 if decl.test {
                     return err(Diagnostic::error(format!("`{}` is a `test fn`: `kayo test` runs it, and it is not a value to hold", decl.name)).at(span));
                 }
@@ -2471,6 +2476,83 @@ impl Checker {
     }
 
     pub(crate) fn fn_call(&mut self, ctx: &mut FnCtx, id: FnId, args: &[AArg], otherwise: Option<&ast::Otherwise>, span: Span, used: bool, path: &ast::Path) -> Result<Expr> {
+        // A function with versions (owner, 2026-10-20): the one this call's
+        // argument count and types pick.
+        let id = match self.items.versions.get(&id).cloned() {
+            Some(set) => self.pick_version(ctx, &set, args, span, path)?,
+            None => id,
+        };
+        self.fn_call_one(ctx, id, args, otherwise, span, used, path)
+    }
+
+    /// Which version a call takes: the one whose parameters its arguments
+    /// fit exactly, widths counting (owner, 2026-10-20: "(a)"). A bare
+    /// literal fits every type that holds it, so two versions it fits are
+    /// two it could take, and the call is refused naming the typed literal.
+    fn pick_version(&mut self, ctx: &FnCtx, set: &[FnId], args: &[AArg], span: Span, path: &ast::Path) -> Result<FnId> {
+        let name = path.spelled();
+        let given: Vec<&ast::Expr> = args.iter().filter_map(|a| match a {
+            AArg::Positional(e) => Some(e),
+            _ => None,
+        }).collect();
+        let peeks: Vec<Peek> = given.iter().map(|e| self.peek_arg(ctx, e)).collect();
+        let fits = |this: &Self, f: FnId| -> bool {
+            let decl = &this.items.fns[f.0 as usize];
+            decl.params.len() == peeks.len() && decl.params.iter().zip(&peeks).all(|(p, k)| p.ty.as_ref().is_some_and(|t| peek_fits(k, t.base())))
+        };
+        let took: Vec<FnId> = set.iter().copied().filter(|f| fits(self, *f)).collect();
+        match took.as_slice() {
+            [one] => Ok(*one),
+            [] => {
+                let shapes = set.iter().map(|f| {
+                    let d = &self.items.fns[f.0 as usize];
+                    format!("[{}]", d.params.iter().map(|p| p.ty.as_ref().map(|t| self.spell(t)).unwrap_or_default()).collect::<Vec<_>>().join(", "))
+                }).collect::<Vec<_>>().join(", ");
+                err(Diagnostic::error(format!("no version of `{}` takes this call: its versions take {}", name, shapes)).at(span))
+            }
+            several => {
+                // The bare literal that more than one version takes, typed
+                // as the last of them takes it.
+                let last = &self.items.fns[several[several.len() - 1].0 as usize];
+                let hint = peeks.iter().enumerate().find_map(|(i, k)| match k {
+                    Peek::Int(t) | Peek::Bin(t) => last.params.get(i).and_then(|p| p.ty.as_ref()).map(|ty| format!("`{}: {}`", t, self.spell(&ty.base().clone()))),
+                    _ => None,
+                });
+                let why = match hint {
+                    Some(h) => format!("a bare literal fits more than one; say which, {}", h),
+                    None => "say the arguments' types".to_string(),
+                };
+                err(Diagnostic::error(format!("versions of `{}` could take this call: {} (owner, 2026-10-20)", name, why)).at(span))
+            }
+        }
+    }
+
+    /// An argument's type as it is written, without checking it: what
+    /// picks a version.
+    fn peek_arg(&self, ctx: &FnCtx, e: &ast::Expr) -> Peek {
+        match &e.kind {
+            AK::Int(t) => Peek::Int(t.replace('_', "")),
+            AK::Bin(t) => Peek::Bin(t.replace('_', "")),
+            AK::Str(_) => Peek::Text,
+            AK::Unary { op: UnOp::Neg, expr } => match &expr.kind {
+                AK::Int(t) => Peek::Int(format!("-{}", t.replace('_', ""))),
+                AK::Bin(t) => Peek::Bin(format!("-{}", t.replace('_', ""))),
+                _ => Peek::Unknown,
+            },
+            AK::Typed { ty, .. } => self.body_type(ctx, ty).map(|t| Peek::Ty(self.resolve(&t))).unwrap_or(Peek::Unknown),
+            AK::Name(q) => match ctx.lookup(&q.name) {
+                Some(id) => match self.resolve(&ctx.locals[id.0 as usize].ty) {
+                    t @ Ty::Int(IntW::Free(_)) | t @ Ty::Bin(BinW::Free(_)) => Peek::Free(t),
+                    t => Peek::Ty(t),
+                },
+                None => Peek::Unknown,
+            },
+            AK::Verb { expr, .. } => self.peek_arg(ctx, expr),
+            _ => Peek::Unknown,
+        }
+    }
+
+    pub(crate) fn fn_call_one(&mut self, ctx: &mut FnCtx, id: FnId, args: &[AArg], otherwise: Option<&ast::Otherwise>, span: Span, used: bool, path: &ast::Path) -> Result<Expr> {
         let decl = self.items.fns[id.0 as usize].clone();
         if decl.op.is_some() {
             return err(Diagnostic::error(format!("`{}` is an operator; it goes between two values: `'a' {} 'b'`, never `{}[…]`", decl.name, decl.name, decl.name)).at(span));
@@ -2497,8 +2579,17 @@ impl Checker {
         // "pos on every position, list.remove and str.at / str.slice too"):
         // checked here, and handed on as the number.
         let unpos: Vec<ast::Arg>;
+        let sliced: Vec<ast::Arg>;
         let args = if self.items.nerve_cord.is_some_and(|c| self.items.kit_root(decl.module) == c) && (decl.path.starts_with("std::str.at.") || decl.path.starts_with("std::str.slice.")) {
             let short = decl.path.trim_start_matches("std::").to_string();
+            // A slice says where it runs, `from pos 2, to pos 4` or `before
+            // pos 5`, as the built-in one does (std claude, 2026-10-20).
+            let args = if decl.path.starts_with("std::str.slice.") {
+                sliced = slice_args(&format!("std::{}", short), args, span)?;
+                &sliced[..]
+            } else {
+                args
+            };
             let mut out = Vec::new();
             for (k, a) in args.iter().enumerate() {
                 out.push(match a {
@@ -2608,7 +2699,8 @@ impl Checker {
         let inst = self.instance(key);
         let sig = self.instances[inst.0 as usize].sig.clone();
         let _ = path;
-        let ow = self.call_otherwise(ctx, otherwise, &sig.fails, &sig.ret, used, span, &decl.name)?;
+        // Named as the call writes it: `std::str.at.grapheme`, `area.square`.
+        let ow = self.call_otherwise(ctx, otherwise, &sig.fails, &sig.ret, used, span, &path.spelled())?;
         // A borrow handed back is held by a name, handed straight to a
         // parameter or a print, or handed back again by a function that
         // says so (owner, 2026-09-29) — anywhere else it would be a second
@@ -5184,3 +5276,40 @@ fn written_below_one(e: &ast::Expr) -> bool {
         _ => false,
     }
 }
+
+/// An argument as it is written, for picking a version.
+enum Peek {
+    Ty(Ty),
+    /// A variable whose width is not settled yet: any of its family.
+    Free(Ty),
+    Int(String),
+    Bin(String),
+    Text,
+    Unknown,
+}
+
+/// Whether an argument fits a version's parameter of type `t`.
+fn peek_fits(k: &Peek, t: &Ty) -> bool {
+    match k {
+        // A text whose encoding is not settled yet fits any text.
+        Peek::Ty(a) => a.base() == t || (matches!(a.base(), Ty::Str(crate::types::Enc::Free(_))) && matches!(t, Ty::Str(_))),
+        Peek::Free(Ty::Int(_)) => matches!(t, Ty::Int(_)),
+        Peek::Free(_) => matches!(t, Ty::Bin(_)),
+        Peek::Int(v) => match t {
+            Ty::Int(IntW::Fixed { signed, bits }) => match v.parse::<i128>() {
+                Ok(n) => {
+                    let (lo, hi) = crate::bigint::type_range(*signed, *bits);
+                    let n = crate::bigint::Big::from_i128(n);
+                    n.sub(&lo).is_neg() == false && hi.sub(&n).is_neg() == false
+                }
+                Err(_) => *bits > 128,
+            },
+            Ty::Int(_) | Ty::Bin(_) | Ty::Brain => true,
+            _ => false,
+        },
+        Peek::Bin(_) => matches!(t, Ty::Bin(_) | Ty::Brain),
+        Peek::Text => matches!(t, Ty::Str(_)),
+        Peek::Unknown => true,
+    }
+}
+
