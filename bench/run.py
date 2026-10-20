@@ -181,8 +181,14 @@ def kayo_version():
         return "unknown version"
 
 
+# The main set (owner, 2026-10-21): what a plain `python3 run.py` runs; `all` runs every language above,
+# and naming languages runs those. CyborgPL's rows: 3 threads and 1, each normal and no_cheat.
+MAIN_SET = ["cyborgpl", "cyborgpl1", "cyborgpl_nc", "cyborgpl1_nc", "c", "cpp", "fortran", "zig", "rust", "go", "java", "python"]
+
+
 def main():
-    want = [a.lower() for a in sys.argv[1:]] or list(LANGS)
+    args = [a.lower() for a in sys.argv[1:]]
+    want = list(LANGS) if args == ["all"] else (args or MAIN_SET)
     keys = [k for k in LANGS if k in want and available(k)]
     missing = [k for k in LANGS if k in want and not available(k)]
     if any(k.startswith("cyborgpl") for k in keys):

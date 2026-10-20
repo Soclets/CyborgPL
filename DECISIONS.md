@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-21 — The bench's main set: C, C++, Fortran, Zig, Rust, CyborgPL, Go, Java, Python (owner)
+
+The owner: "The main bench set are gonna have these languages: C, C++, Fortran, Zig, Rust, CyborgPL, Go, Java, and
+Python." So **a plain `python3 bench/run.py` runs those nine** (CyborgPL as its four rows: 3 threads and 1, each
+normal and `no_cheat`); `python3 bench/run.py all` runs every installed language as before, and naming languages runs
+those. `bench/compile_time.py` gains C++ and Java (`javac`); Python has no build step.
+
 ### 2026-10-20 — `bare.` names the prefix it drops: `bare.kit_prefix.X` (was `bare.X`) and the new `bare.enum_prefix.X` (owner: a; built in the oracle)
 
 From the case languages (`lang: casing.tr`): the owner first asked for "a special kind of enum type that hides the

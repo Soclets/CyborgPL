@@ -6,7 +6,7 @@ Asked for the website's "Don't script, don't iterate, but fucking wait." section
 for each build, so nothing compiled earlier is reused (Go's and Zig's standard libraries included); clang, rustc,
 gfortran and kayo keep no cache between runs. Each build runs alone, one after another.
 
-    python3 compile_time.py                  # every language below
+    python3 compile_time.py                  # every language below (Python, the main set's ninth, has no build)
     python3 compile_time.py cyborgpl c rust  # some of them
 """
 import os, subprocess, sys, tempfile, time
@@ -24,19 +24,22 @@ LANGS = {
     "go": ("Go (go build, empty cache)", "go", lambda s, o, t: (["go", "build", "-o", o, s], {"GOCACHE": os.path.join(t, "gocache")})),
     "zig": ("Zig (ReleaseFast, empty cache)", "zig", lambda s, o, t: (["zig", "build-exe", "-O", "ReleaseFast", "-femit-bin=" + o, "--cache-dir", os.path.join(t, "zc"), "--global-cache-dir", os.path.join(t, "zg"), s], {})),
     "fortran": ("Fortran (gfortran -O3)", "f90", lambda s, o, t: (["gfortran", "-O3", s, "-o", o], {})),
+    "cpp": ("C++ (clang++ -O3)", "cpp", lambda s, o, t: (["clang++", "-O3", "-std=c++17", s, "-o", o], {})),
+    # Java's build is javac to class files, its JIT the rest at run time; the output is a directory of them
+    "java": ("Java (javac)", "java", lambda s, o, t: (["javac", "-d", o, s], {})),
 }
 
 
 def build_once(lang, prog):
     label, ext, make = LANGS[lang]
-    src = os.path.join(HERE, prog, f"{prog}.{ext}")
+    src = os.path.join(HERE, prog, f"{prog[0].upper() + prog[1:] if ext == 'java' else prog}.{ext}")
     with tempfile.TemporaryDirectory(prefix="ctime-") as t:
         out = os.path.join(t, prog)
         argv, env = make(src, out, t)
         start = time.perf_counter()
         r = subprocess.run(argv, cwd=t, env={**os.environ, **env}, capture_output=True, text=True)
         took = time.perf_counter() - start
-        if r.returncode != 0 or not os.path.exists(out):
+        if r.returncode != 0 or not os.path.exists(out) or (os.path.isdir(out) and not os.listdir(out)):
             raise SystemExit(f"{lang} {prog}: the build failed:\n{(r.stderr or r.stdout)[-2000:]}")
         return took
 
