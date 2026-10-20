@@ -34,6 +34,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-20 — Number types are `i`, `u`, `f`, `d` with their widths; the base words become `bin`, `hex`, `oct` (owner; not built)
+
+The owner: "I kinda want to switch to u, i, f, d. And yes, I know it's ambiguous, but we could just say in the docs
+what they map to" (asked 2026-10-19, then "nvm"). Design claude noted that Rust's `i32`, `u8`, `f64` were accepted
+spellings until 2026-10-07 and refused since, and proposed: **`i8` … `i128`, `u8` … `u128`, `f16` `f32` `f64`
+(IEEE 754 binary float, was `bin`), `d32` `d64` `d128` (IEEE 754 decimal float, was `deci`)**, the width always
+written, `brain16` unchanged, each old name refused naming its new one. The owner: "Ha, float doesn't say which
+either. So, we'll still need a note", so the docs say **`f` is the IEEE 754 binary float, `d` the decimal one**.
+Asked about the names a type name sits in: **they all follow** (owner: "Yes, don't implement it yet"):
+`to.i32[…]`, `to.f64[…]`, `to.d64[…]`, `to.d32.written[…]`, `to.i8.bits[…]`, `to.stored.d64`, `not_std.i24`,
+`not_std.f80`, and every type inside brackets (`list[i32]`, `simd[i32, count 4]`, `percent[d32]`, `i32[min 0]`).
+Unchanged: `str.utf8`, `char.point`, `bool`, `brain16`, C's `C.int` and the like.
+
+With `bin` no longer a type, **the number-base words shorten to `bin`, `hex`, `oct`** (owner: "now we could shorten
+binary to bin", then "(a)", over (b) keeping `binary` and `octal`; design claude recommended the three alike, as
+Python's `bin()`, `hex()`, `oct()`): `bin 1010_0101`, `hex FF00`, `oct 755`; `binary` and `octal` become old
+spellings. `exactly` stays (owner: "I don't mean to change `exactly`"). Not built: the owner asked to wait.
+Still to ask: the family word used alone (`to.useful.deci`, "a bin" in messages), and `decimals 2`.
+
 ### 2026-10-20 — Functions may be overloaded: one name, picked by the arguments' types (owner; details open, not built)
 
 std claude, to write `round.near` and its siblings once for every bin and deci, asked how, since two functions may
