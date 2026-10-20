@@ -52,12 +52,14 @@ once where it is read. Only Turkish, Azerbaijani and Lithuanian have rules of th
 
 **Its values are ISO codes, `tr`, `az`, `lt`, and `root` for every other language** (owner: "(b)", over English
 names; `root` over `std`, which would read as the standard library's, Unicode's name for its language-independent
-rules), **written bare after the label, as `by: 1` is** (owner: "why isn't `lang:` just bare like `by:`"):
-`str.upper.full[lend 's', lang: tr]`. The type is named only where a variable holds one; **its name is open**:
-design claude's pick `case_lang` (the owner asked `case_lang` or `lang_case`, then whether a `lang.case` family would
-have other narrowings: none today, so one name, by the 2026-10-13 rule), not yet confirmed. Design claude had said a bare `root` could clash with a function named `root`; the owner:
-"How is `lang:` gonna call a `fn`?", the parameter's type telling them apart. Elsewhere an enum value keeps its
-prefix (2026-09-20). Not built (owner: "don't go yet").
+rules), **written with the enum's name, as every enum value outside a `match` arm is**: `str.upper.full[lend 's',
+lang: case_rule.tr]`. The owner first asked "why isn't `lang:` just bare like `by:`" and design claude recorded bare;
+then: "`by:` accepts anything, `lang:` doesn't", "it's a enum, `by:` isn't, `min:` isn't", and asked to switch "Only
+if it's actually correct". Checked: enum values are built with the type's name (2026-09-20; `optional`'s ruling:
+bare refused, `match` arms the one exception), and the oracle refuses `show[tr]` for an enum parameter ("no function
+`tr`"). So the prefix stays. **The type's name is open**: design claude first picked `case_lang` (the owner asked `case_lang` or
+`lang_case`, then whether a `lang.case` family would have other narrowings: none today, so one name, by the 2026-10-13
+rule); the owner then offered `case_rule`, which design claude recommended (`root` is not a language), not yet confirmed. Not built (owner: "don't go yet").
 
 ### 2026-10-20 — Precog's table of facts becomes a persistent map, from the `im` library (owner)
 
