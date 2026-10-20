@@ -53,9 +53,9 @@ once where it is read. Only Turkish, Azerbaijani and Lithuanian have rules of th
 **Its values are ISO codes, `tr`, `az`, `lt`, and `root` for every other language** (owner: "(b)", over English
 names; `root` over `std`, which would read as the standard library's, Unicode's name for its language-independent
 rules), **written bare after the label, as `by: 1` is** (owner: "why isn't `lang:` just bare like `by:`"):
-`str.upper.full[lend 's', lang: tr]`. The type is named only where a variable holds one, **`case_lang`** (owner asked
-`case_lang` or `lang_case`, then whether a `lang.case` family would have other narrowings: none today, so one name,
-by the 2026-10-13 rule). Design claude had said a bare `root` could clash with a function named `root`; the owner:
+`str.upper.full[lend 's', lang: tr]`. The type is named only where a variable holds one; **its name is open**:
+design claude's pick `case_lang` (the owner asked `case_lang` or `lang_case`, then whether a `lang.case` family would
+have other narrowings: none today, so one name, by the 2026-10-13 rule), not yet confirmed. Design claude had said a bare `root` could clash with a function named `root`; the owner:
 "How is `lang:` gonna call a `fn`?", the parameter's type telling them apart. Elsewhere an enum value keeps its
 prefix (2026-09-20). Not built (owner: "don't go yet").
 
