@@ -30,11 +30,13 @@ export function Features() {
         <motion.article
           key={i}
           className="feature"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ type: "spring", stiffness: 110, damping: 20, delay: 0.08 * i }}
-          whileHover={{ y: -4 }}
+          // The hero's entrance (owner, 2026-10-20: "make it have that smooth load anim"): each card
+          // rises and comes into focus, one after another, as the row scrolls into view.
+          initial={{ opacity: 0, y: 18, filter: "blur(6px)" }}
+          whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.8, ease: [0.2, 0.8, 0.2, 1], delay: 0.11 * i }}
+          whileHover={{ y: -4, transition: { type: "spring", stiffness: 400, damping: 26 } }}
         >
           <span className="feature-index">{String(i + 1).padStart(2, "0")}</span>
           <h3>{f.title}</h3>
