@@ -137,6 +137,15 @@ fn load(path: &Path) -> Result<ast::Program, String> {
         return Err(format!("{}: `optional` is the base's (`optional.value[…]` / `optional.none`); an enum cannot take its name", path.display()));
     }
     prog.enums.extend(base.enums);
+    // std's `casing` (owner, 2026-10-20: "casing, go"): which language's case rules `str.upper.full` / `str.lower.full`
+    // use, `lang: tr`; its values may drop `casing.` (std is `bare.enum_prefix.optional`, owner: "optional for all")
+    let casing = lexer::lex("enum casing { tr, az, lt, root }").map_err(|e| format!("std's casing: {}", e.msg))?;
+    let casing = parser::Parser::new(casing).program().map_err(|e| format!("std's casing: {}", e.msg))?;
+    if prog.enums.iter().any(|e| e.name == "casing") {
+        return Err(format!("{}: `casing` is std's (`lang: tr`, `casing.root`); an enum cannot take its name", path.display()));
+    }
+    prog.enums.extend(casing.enums);
+    prog.bare_marks.push(ast::BareMark { target: ast::BareTarget::Item("enum".into(), "casing".into()), mode: ast::Bare::Optional, line: 0, kit_root: Vec::new(), enum_prefix: true });
     check_powers(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_type_names(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     let unkept = check_redeclared(&prog).map_err(|m| format!("{}: {m}", path.display()))?;

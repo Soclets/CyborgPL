@@ -152,6 +152,8 @@ spellings::table[
         spellings::call[name = "str.find.grapheme", words = [str.empty, "part",], example = "str.find.grapheme[lend 's', part: \"x\"]"],
         spellings::call[name = "str.find.point", words = [str.empty, "part",], example = "str.find.point[lend 's', part: \"x\"]"],
         spellings::call[name = "str.find.byte", words = [str.empty, "part",], example = "str.find.byte[lend 's', part: \"x\"]"],
+        spellings::call[name = "str.upper.full", words = [str.empty, "lang",], example = "str.upper.full[lend 's', lang: tr]"],
+        spellings::call[name = "str.lower.full", words = [str.empty, "lang",], example = "str.lower.full[lend 's', lang: tr]"],
         spellings::call[name = "str.split", words = [str.empty, "at",], example = "str.split[lend 's', at: \",\"]"],
         spellings::call[name = "str.join", words = [str.empty, "between",], example = "str.join[lend 'parts', between: \", \"]"],
         spellings::call[name = "str.replace", words = [str.empty, "from", "to",], example = "str.replace[lend 's', from: \"a\", to: \"b\"]"],

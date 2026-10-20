@@ -69,12 +69,15 @@ much clarity?" (design claude: little, since a clash is refused anyway). So std'
 `bare.kit_prefix.optional` and `bare.enum_prefix.optional`: `print.useful[…]`, `str.join[…]`, `optional.none` or
 `none` where the type is known, `lang: tr`; the long forms stay allowed for whoever wants them. The one-at-a-time
 review of std's marks is not needed.
+Correction (design claude, building it): **`optional` is the base's, not std's** (2026-10-08, in every program), so this
+ruling does not reach it; the base's enum is private, so its values keep `optional.` as before. Design claude had told
+the owner std's `optional` would go bare.
 Good practice for it (owner: "What should the Good Practice say?"): **19, write std's names bare, the prefix where a
 bare one could be misread** (owner: "yea"), and **20, mark your own names `optional` as std does, `never` only to make
 users see your kit's name** (owner: "Or just `bare.optional`?", meaning the advice, "number 1", over design claude's
 draft marking common words `never`; a clash is refused, never silent). `style.md` 19 and 20.
 
-### 2026-10-20 — Case changes say their mapping: `str.upper.ascii`, `.simple`, `.full`; a bare `str.upper` is refused (owner: a, a)
+### 2026-10-20 — Case changes say their mapping: `str.upper.ascii`, `.simple`, `.full`; a bare `str.upper` is refused (owner: a, a; built in the oracle's std stand-in)
 
 std claude asked whether `str.upper` / `str.lower` are ASCII only or Unicode's. The owner: "There's obviously another
 option, add narrowings". Asked what a bare `str.upper` does, (a) refused naming the narrowings (recommended) or (b)

@@ -176,7 +176,8 @@ change with every Unicode release, so they belong in something updatable:
 std::str.split[lend 's', at: " "]          -> list[str.utf8]
 std::str.join[lend 'parts', between: "_"]
 std::str.contains / starts_with / ends_with[lend 's', "x"]   -> bool
-std::str.trim / upper / lower[lend 's']
+std::str.trim[lend 's']
+std::str.upper.ascii / .simple / .full[lend 's']          (and str.lower.…; `.full[…, lang: tr]`)
 std::str.replace[lend 's', from: "a", to: "b"]
 std::str.find.grapheme[lend 's', part: "x"]  -> i32 or fail[missing]   (1-based grapheme position)
 std::str.at.<unit>[lend 's', pos: 3]        -> that unit, or fail[out_of_range]
@@ -184,6 +185,15 @@ std::str.slice.grapheme[lend 's', from: pos 1, to: pos 5] -> str, or fail[out_of
 std::str.slice.point[lend 's', from: pos 1, before: pos 5]  -> str, or fail[out_of_range]
 std::str.slice.byte[lend 's', from: pos 1, to: pos 5]     -> list[u8], or fail[out_of_range]
 ```
+
+**A case change says its mapping** (owner, 2026-10-20): `str.upper.ascii` changes a to z only (`café` → `CAFé`),
+`.simple` is one character for one (`ß` stays `ß`), `.full` is Unicode's (`straße` → `STRASSE`; the length may change
+in every unit, `ŉ` → `ʼN`); the same for `str.lower`. A bare `str.upper` is refused naming them. The full mapping takes
+a language's own rules with `lang:`, a value of std's enum **`casing`**: `tr`, `az`, `lt`, or `root` for every language
+without rules of its own (Unicode's name for its language-independent rules): `str.upper.full[lend 's', lang: tr]`
+gives `İSTANBUL`. std's enums let their values drop the enum's name, so `lang: tr` is `lang: casing.tr`. A language
+tag from the system becomes one with `to.casing['tag']`, its first part deciding (`"tr-TR"` → `tr`, `"en-GB"` →
+`root`), never failing. `examples/case_mappings.cy`.
 
 **A byte slice gives bytes, not text** (owner, 2026-10-20: "(a)"). A cut by bytes can land inside a character
 (`"é"` is 2 bytes), so `str.slice.byte` hands back a `list[u8]`, as `str.at.byte` hands back a `u8`; text

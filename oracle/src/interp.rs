@@ -2451,6 +2451,16 @@ impl<'p> Interp<'p> {
             }
             // `to.Key['n']` — a number into a C enum: a case with that number, or `out_of_range`
             // (owner, 2026-09-27: what comes from C as a plain number is converted this way)
+            // `to.casing['tag']`: a BCP 47 language tag ("tr", "az-Latn", "en-GB") into std's `casing`, its first part
+            // deciding; a language without rules of its own is `root`, so it never fails (design claude's pick, 2026-10-20)
+            Expr::Convert(Ty::Struct(tname), b, handler, _, _) if tname == "casing" => {
+                if handler.is_some() { return rt(line, "`to.casing` cannot fail: a language without case rules of its own is `casing.root`; drop the `otherwise`"); }
+                let (v, _) = self.single(b, line)?;
+                let Value::Str(tag) = v else { return rt(line, format!("`to.casing` takes a language tag, as text (\"tr\", \"en-GB\"), not {}", v.kind())) };
+                let first = tag.split(['-', '_']).next().unwrap_or("").to_ascii_lowercase();
+                let case = match first.as_str() { "tr" | "tur" => "tr", "az" | "aze" => "az", "lt" | "lit" => "lt", _ => "root" };
+                Ok((Value::Enum("casing".into(), case.into(), None), Prov::Fresh))
+            }
             Expr::Convert(Ty::Struct(tname), b, handler, _, _) => {
                 let def = match self.prog.enums.iter().find(|e| &e.name == tname) {
                     Some(e) if e.c_values.is_some() => e.clone(),
@@ -5302,13 +5312,22 @@ impl<'p> Interp<'p> {
         };
         if path.starts_with("str.") {
             // one the oracle does not have says so first, before anything about its `otherwise` (check claude, 2026-10-08)
-            let known = matches!(path.as_str(), "str.split" | "str.contains" | "str.starts_with" | "str.ends_with" | "str.trim" | "str.upper" | "str.lower" | "str.replace" | "str.join"
+            // a case change says its mapping (owner, 2026-10-20: "(a)"): a bare `str.upper` is refused naming them
+            if path == "str.upper" || path == "str.lower" {
+                return rt(c.line, format!("say which mapping: `std::{path}.ascii` (a to z only), `std::{path}.simple` (one character for one) or `std::{path}.full` (Unicode's, `ß` → `SS`), with `lang:` for a language's own rules (owner, 2026-10-20)"));
+            }
+            let known = matches!(path.as_str(), "str.split" | "str.contains" | "str.starts_with" | "str.ends_with" | "str.trim" | "str.upper.ascii" | "str.upper.simple" | "str.upper.full" | "str.lower.ascii" | "str.lower.simple" | "str.lower.full" | "str.replace" | "str.join"
                 | "str.at.grapheme" | "str.at.point" | "str.at.byte" | "str.slice.grapheme" | "str.slice.point" | "str.slice.byte" | "str.find.grapheme");
             if !known { return rt(c.line, format!("std::{path} is not in the oracle's std (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.<unit>, str.find.grapheme)")); }
             self.check_handler(c.handler.as_ref(), &fails, &format!("std::{path}"), c.line)?;
             let mut vals = Vec::new();
-            for a in &c.args.values {
-                let (v, prov) = self.value(a)?;
+            for (k, a) in c.args.values.iter().enumerate() {
+                // `lang:` expects a `casing`, so `lang: tr` needs no `casing.` (std's enum_prefix is optional)
+                let want = if k == 1 && path.ends_with(".full") && (path.starts_with("str.upper") || path.starts_with("str.lower")) { Some(Ty::Struct("casing".into())) } else { None };
+                let saved = if want.is_some() { Some(std::mem::replace(&mut self.expected, want)) } else { None };
+                let r = self.value(a);
+                if let Some(old) = saved { self.expected = old; }
+                let (v, prov) = r?;
                 if let Prov::Bare(n) = prov { return rt(c.line, format!("std::{path} looks at '{n}': `lend '{n}'`")); }
                 // std's own take every text `lent` (std/str.cy), so a copy or a give is refused as for any `lent`
                 // (compiler claude, 2026-10-17: corner_shop passed `part copy 'part'`)
@@ -5328,8 +5347,18 @@ impl<'p> Interp<'p> {
                 "str.starts_with" => { let part = text(1)?; if part.is_empty() { return rt(c.line, empty_part("part")); } Ok(Value::Bool(text(0)?.starts_with(part.as_str()))) }
                 "str.ends_with" => { let part = text(1)?; if part.is_empty() { return rt(c.line, empty_part("part")); } Ok(Value::Bool(text(0)?.ends_with(part.as_str()))) }
                 "str.trim" => Ok(Value::Str(text(0)?.trim().to_string())),
-                "str.upper" => Ok(Value::Str(text(0)?.to_uppercase())),
-                "str.lower" => Ok(Value::Str(text(0)?.to_lowercase())),
+                "str.upper.ascii" | "str.upper.simple" | "str.upper.full" | "str.lower.ascii" | "str.lower.simple" | "str.lower.full" => {
+                    let s = text(0)?;
+                    let upper = path.starts_with("str.upper");
+                    let lang = match vals.get(1) {
+                        None => "root".to_string(),
+                        Some(Value::Enum(t, case, _)) if t == "casing" => case.clone(),
+                        Some(other) => return rt(c.line, format!("`lang:` is a `casing` (`lang: tr`, `az`, `lt` or `root`), not {}", other.kind())),
+                    };
+                    if vals.len() > 1 && !path.ends_with(".full") { return rt(c.line, format!("`lang:` is for the full mapping, whose language rules Unicode keeps: `std::{}.full[…, lang: …]`", &path[..path.rfind('.').unwrap()])); }
+                    if vals.len() > 2 { return rt(c.line, format!("std::{path} takes the text and `lang:`")); }
+                    Ok(Value::Str(change_case(&s, upper, path.rsplit('.').next().unwrap(), &lang)))
+                }
                 "str.replace" => { let from = text(1)?; if from.is_empty() { return rt(c.line, empty_part("from")); } Ok(Value::Str(text(0)?.replace(from.as_str(), &text(2)?))) }
                 "str.join" => match vals.get(0) { Some(Value::List(items)) => { let sep = text(1)?; let mut parts = Vec::new(); for it in items { match it { Value::Str(s) => parts.push(s.clone()), o => return rt(c.line, format!("std::str.join: the list holds {}, not text", o.kind())) } } Ok(Value::Str(parts.join(&sep))) } _ => rt(c.line, "std::str.join[lend 'parts', sep]") },
                 "str.at.grapheme" | "str.at.point" | "str.at.byte" => {
@@ -5580,6 +5609,61 @@ fn raw_land(v: Value, prov: Prov, t: &Ty, line: usize) -> Result<(Value, Prov), 
         (Prov::Raw, _, Ty::Bin(_) | Ty::Brain | Ty::Deci(_) | Ty::Ranged(..)) => rt(line, format!("what a literal means in {} without ASP is not decided: the base's literals are bit patterns (owner, 2026-10-06), decided for whole-number types only", ty_name(t))),
         (Prov::Raw, _, _) => Ok((v, Prov::Literal)),
         _ => Ok((v, prov)),
+    }
+}
+
+/// `str.upper.X` / `str.lower.X` (owner, 2026-10-20): `ascii` changes a to z only; `full` is Unicode's full mapping
+/// (`ß` → `SS`, Rust's `to_uppercase`, which follows SpecialCasing's unconditional rules and final sigma); `simple`
+/// is one character for one: the full mapping where it is one character, else the character kept, with the few
+/// Greek letters whose simple uppercase is a titlecase form, and `İ` lowering to `i`. `lang` adds a language's own
+/// rules from SpecialCasing to the full mapping: `tr` / `az` (dotted and dotless i), `lt` (the dot kept on an `i`
+/// under an accent). The oracle's approximation of Unicode's tables; std's own is written from them.
+fn change_case(s: &str, upper: bool, way: &str, lang: &str) -> String {
+    let combining_above = |c: char| matches!(c as u32, 0x0300..=0x0314 | 0x033D..=0x0344 | 0x0346 | 0x034A..=0x034C | 0x0350..=0x0352 | 0x0357 | 0x035B | 0x0363..=0x036F);
+    match way {
+        "ascii" => if upper { s.to_ascii_uppercase() } else { s.to_ascii_lowercase() },
+        "simple" => s.chars().map(|c| {
+            let cp = c as u32;
+            if upper {
+                // the Greek letters with ypogegrammeni: their simple uppercase is the titlecase letter
+                match cp {
+                    0x1F80..=0x1F87 | 0x1F90..=0x1F97 | 0x1FA0..=0x1FA7 => return char::from_u32(cp + 8).unwrap(),
+                    0x1FB3 => return '\u{1FBC}', 0x1FC3 => return '\u{1FCC}', 0x1FF3 => return '\u{1FFC}',
+                    _ => {}
+                }
+                let mut u = c.to_uppercase(); match (u.next(), u.next()) { (Some(x), None) => x, _ => c }
+            } else {
+                if c == '\u{0130}' { return 'i'; }
+                let mut l = c.to_lowercase(); match (l.next(), l.next()) { (Some(x), None) => x, _ => c }
+            }
+        }).collect(),
+        _ => {
+            let chars: Vec<char> = s.chars().collect();
+            let mut out = String::new();
+            for (k, &c) in chars.iter().enumerate() {
+                let next_above = chars.get(k + 1).map_or(false, |n| combining_above(*n));
+                match (upper, lang, c) {
+                    (true, "tr" | "az", 'i') => out.push('\u{0130}'),
+                    (false, "tr" | "az", 'I') => out.push('\u{0131}'),
+                    (false, "tr" | "az", '\u{0130}') => out.push('i'),
+                    // Lithuanian keeps the dot of a lowercase i or j under an accent above
+                    (false, "lt", 'I') if next_above => out.push_str("i\u{0307}"),
+                    (false, "lt", 'J') if next_above => out.push_str("j\u{0307}"),
+                    (false, "lt", '\u{012E}') if next_above => out.push_str("\u{012F}\u{0307}"),
+                    (false, "lt", '\u{00CC}') => out.push_str("i\u{0307}\u{0300}"),
+                    (false, "lt", '\u{00CD}') => out.push_str("i\u{0307}\u{0301}"),
+                    (false, "lt", '\u{0128}') => out.push_str("i\u{0307}\u{0303}"),
+                    // and drops it uppercasing, after a soft-dotted letter
+                    (true, "lt", '\u{0307}') if k > 0 && matches!(chars[k - 1], 'i' | 'j' | '\u{012F}' | 'I' | 'J' | '\u{012E}') => {}
+                    _ => if upper { out.extend(c.to_uppercase()) } else {
+                        // a capital sigma at a word's end lowers to the final form, as Rust's `str::to_lowercase` does
+                        if c == '\u{03A3}' { out.push_str(&String::from(c).to_lowercase()); let final_ = k > 0 && chars[k - 1].is_alphabetic() && !chars.get(k + 1).map_or(false, |n| n.is_alphabetic()); if final_ { out.pop(); out.push('\u{03C2}'); } }
+                        else { out.extend(c.to_lowercase()) }
+                    },
+                }
+            }
+            out
+        }
     }
 }
 

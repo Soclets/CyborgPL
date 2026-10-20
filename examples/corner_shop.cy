@@ -475,7 +475,7 @@ fn show_search [lent 'items': list[Item]] {
     let 'has_an' := names_containing[lend 'items', "an"];
     std::print.useful["  containing \"an\": ", std::str.join[lend 'has_an', between: ", "], newln];
     let 'sign' := 'shop_name';                     # a const is a fresh value each use, so it is named to lend
-    let 'loud' := std::str.upper[lend 'sign'];
+    let 'loud' := std::str.upper.full[lend 'sign'];
     std::print.useful["  the sign over the door says ", 'loud', newln];
 }
 

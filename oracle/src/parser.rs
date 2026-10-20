@@ -4831,6 +4831,24 @@ impl Parser {
                 name.push_str(w);
                 if self.toks.get(j + 1).map(|t| &t.tok) == Some(&Tok::Dot) && matches!(self.toks.get(j + 2).map(|t| &t.tok), Some(Tok::Word(_))) { j += 2; } else { j += 1; break; }
             }
+            // `lang:` belongs to the full mapping only (owner, 2026-10-20), so on `.ascii` / `.simple` it is named as such
+            if matches!(name.as_str(), "str.upper.ascii" | "str.upper.simple" | "str.lower.ascii" | "str.lower.simple") && self.toks.get(j).map(|t| &t.tok) == Some(&Tok::LBracket) {
+                let mut k = j + 1; let mut depth = 0i32;
+                while k + 1 < self.toks.len() {
+                    match &self.toks[k].tok {
+                        Tok::LBracket | Tok::LParen => depth += 1,
+                        Tok::RBracket | Tok::RParen if depth == 0 => break,
+                        Tok::RBracket | Tok::RParen => depth -= 1,
+                        Tok::Word(w) if depth == 0 && w == "lang" && self.toks[k + 1].tok == Tok::Colon => {
+                            self.pos = k;
+                            let full = format!("{}.full", &name[..name.rfind('.').unwrap()]);
+                            return self.err(format!("`lang:` is for the full mapping, whose language rules Unicode keeps: `{full}[lend 's', lang: tr]`"));
+                        }
+                        _ => {}
+                    }
+                    k += 1;
+                }
+            }
             let Some(call) = crate::spellings::table().calls.iter().find(|c| c.name == name) else { i += 1; continue };
             let (words, shown) = (&call.words, &call.example);
             if self.toks.get(j).map(|t| &t.tok) != Some(&Tok::LBracket) { i += 1; continue; }

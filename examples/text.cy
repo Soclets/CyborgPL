@@ -15,7 +15,7 @@ MAIN {
     # the toolbox is std's
     let 'words' := std::str.split[lend 's', at: " "];
     std::print.useful[list.length[lend 'words'], " words; first is ", 'words'[pos: 1], newln];
-    std::print.useful[std::str.upper[lend 's'], newln];
+    std::print.useful[std::str.upper.full[lend 's'], newln];
     std::print.useful[std::str.contains[lend 's', part: "wör"], " ", std::str.starts_with[lend 's', part: "hé"], newln];
     let 'third' := std::str.at.grapheme[lend 's', pos: 3] otherwise `?`;
     let 'family' := std::str.at.grapheme[lend 's', pos: 7] otherwise `?`;

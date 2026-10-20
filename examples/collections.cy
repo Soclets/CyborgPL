@@ -16,7 +16,7 @@ coll.fn greet {
 
     greet.hi ['word' = "hi", 'times' = 1];
     greet.cheer ['word' = "hooray", 'times' = 3];
-    greet.loud [lent 'who': str.utf8] -> str.utf8 { return std::str.upper[lend 'who']; }
+    greet.loud [lent 'who': str.utf8] -> str.utf8 { return std::str.upper.full[lend 'who']; }
 }
 
 # A template (owner, 2026-10-13) makes members whose names follow a pattern. It loops with the usual

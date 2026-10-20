@@ -6,8 +6,8 @@ interface Key <T> { op equal_to ['a': <T>, 'b': <T>] -> bool;  fn hash [lent 'v'
 struct Point { x: i32, y: i32 }                      # structural: fields decide
 
 struct User { name: str.utf8 }                           # its own rule: names compare lowercased
-op equal_to ['a': User, 'b': User] -> bool { return std::str.lower[lend 'a'.name] equal_to std::str.lower[lend 'b'.name]; }
-fn hash [lent 'v': User] -> u64 { let 'low' := std::str.lower[lend 'v'.name]; return str.bytes[lend 'low']; }
+op equal_to ['a': User, 'b': User] -> bool { return std::str.lower.full[lend 'a'.name] equal_to std::str.lower.full[lend 'b'.name]; }
+fn hash [lent 'v': User] -> u64 { let 'low' := std::str.lower.full[lend 'v'.name]; return str.bytes[lend 'low']; }
 User satisfies Key;
 
 MAIN {
