@@ -54,8 +54,11 @@ recommended; the owner: "yea". So:
 - **A `for` with two or more words takes `[ ]` and commas**: `for 'i': i64 [from: 1, to: 'n', by: 1] { … }`;
   without the brackets it is refused. One word stays bare.
 
-Not built; not yet asked: whether a type's limits follow (`i32[min: 0, max: 100]`, `d64[max_places: 2]`), how
-`pos` reads in a slice (`from: pos 2`), and words that take no value (`exclude zero`).
+**A type's limits follow** (owner: "(a)", over (b) limits keeping plain words; recommended, one rule for
+everything inside `[ ]`): `i32[min: 0, max: 100]`, `d64[max_places: 2]`, `str.utf8[min: 1, max: 40 graphemes]`,
+`simd[i32, count: 4]`.
+
+Not built; not yet asked: how `pos` reads in a slice (`from: pos 2`), and words that take no value (`exclude zero`).
 
 ### 2026-10-20 — Number types are `i`, `u`, `f`, `d` with their widths; the base words become `bin`, `hex`, `oct` (owner; not built)
 
