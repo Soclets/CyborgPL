@@ -72,6 +72,11 @@ pub coll.fn round {
 }
 ```
 
+**Versions differ by exact type, widths counting, and a call two could take is refused at the call** (owner:
+"(a)", over (b) refusing versions a bare literal could both fit; recommended, since std needs a version per width):
+`bin16` and `bin64` versions stand side by side; `round.near[2.5]`, whose bare literal fits both, is refused there,
+naming `2.5: bin64`; a variable has its type, so `round.near['x']` never is. Built in the oracle (939b5bf3).
+
 ### 2026-10-20 — `str.slice.byte` gives bytes, a `list[uint8]`, not text (owner: a)
 
 std claude, writing `str.slice.<unit>`, asked what a byte slice does when an end lands inside a character (`"é"`

@@ -411,7 +411,7 @@ impl<'p> Interp<'p> {
         match fitting.len() {
             1 => Ok(fitting[0]),
             0 => rt(c.line, format!("no `{name}` takes these arguments' types")),
-            // a bare literal fits several widths: the call says which (design claude's pick, owner asked 2026-10-20)
+            // a bare literal fits several widths: the call says which (owner, 2026-10-20: a)
             _ => rt(c.line, format!("{} versions of `{name}` could take this call (lines {}): give the argument its type, `5: int64`, or pass a variable", fitting.len(), fitting.iter().map(|f| f.line.to_string()).collect::<Vec<_>>().join(", "))),
         }
     }

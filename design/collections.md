@@ -88,9 +88,10 @@ pub coll.fn round {
 - **The count picks too** (owner: "(a)"): a function has no optional arguments, so `round.near['x']` and
   `round.near['x', decimals 2]` are two versions.
 - Design claude's readings, not asked: a member may have versions as the own function may (std's `round.near`
-  above); versions differ by exact type, widths counting; a preset beside several versions is refused until it
-  is decided which one it fills. Open, asked: a call that a bare literal lets two versions take
-  (`round.near[2.5]` with `bin16` and `bin64` versions); the oracle refuses it at the call, naming `2.5: bin64`.
+  above); a preset beside several versions is refused until it is decided which one it fills.
+- **Versions differ by exact type, widths counting** (owner: "(a)"): `bin16` and `bin64` versions stand side by
+  side, and a call two could take is refused at the call: `round.near[2.5]`, a bare literal fitting both, names
+  `2.5: bin64`. A variable has its type, so `round.near['x']` never is.
 
 ## Who sees it
 
