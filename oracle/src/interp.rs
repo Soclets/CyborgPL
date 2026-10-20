@@ -1710,6 +1710,16 @@ impl<'p> Interp<'p> {
 
     fn expr_ty_own(&self, e: &Expr) -> Option<Ty> {
         match e {
+            // a call has the type it hands back: `round.X` the type that went in (std claude, 2026-10-20: a rounded
+            // f16 prints as one, `2.7`), a function with one version its declared return type
+            Expr::Call(c) if c.kit.as_deref() == Some("std") && c.path.first().map(|s| s.as_str()) == Some("round") => {
+                match c.args.values.first() { Some(crate::ast::Value::Expr(a)) => self.expr_ty_own(a), None => None }
+            }
+            Expr::Call(c) if c.kit.is_none() && !c.path.is_empty() => {
+                let (module, name) = c.path.split_at(c.path.len() - 1);
+                let fs: Vec<&Func> = self.prog.funcs.iter().filter(|f| f.module == module && f.name == name[0] && !f.is_op).collect();
+                match fs.as_slice() { [f] => f.ret.clone().filter(|t| { let mut v = Vec::new(); t.vars_into(&mut v); v.is_empty() }), _ => None }
+            }
             Expr::Var(name, _) => self.lookup(name).and_then(|s| s.ty.clone()),
             Expr::Paren(inner, _) => self.expr_ty_own(inner),
             Expr::Convert(t, _, _, _, _) => Some(t.clone()),

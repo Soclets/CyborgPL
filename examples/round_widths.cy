@@ -1,4 +1,4 @@
-# A rounded bin is the type that went in, width and all: the f16 nearest 2.7 is 2.69921875.
+# A rounded bin is the type that went in, width and all: the f16 nearest 2.7 (2.69921875 stored), which prints `2.7`.
 MAIN {
     let 'h': f16 = 2.675;
     std::print.useful[round.near['h', places: 1], newln];
