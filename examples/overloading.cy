@@ -13,6 +13,11 @@ coll.fn width {
     width ['x': bin64] -> str.utf8 { return "a bin64"; }
 }
 
+coll.fn which {
+    which ['x': bin32] -> str.utf8 { return "bin32"; }
+    which ['x': bin64] -> str.utf8 { return "bin64"; }
+}
+
 coll.fn area {
     area.rect ['side': int64] -> int64 { return 'side' x 'side'; }
     area.rect ['w': int64, 'h': int64] -> int64 { return 'w' x 'h'; }
@@ -28,5 +33,7 @@ MAIN {
     std::print.useful[area.rect[3], " ", area.rect[3, 4], newln];
     let 'small': int16 = 5;
     let 'half': bin32 = 0.5;
+    let 'y': bin64 = 2.5;
+    std::print.useful[which[0.0 - 'y'], " ", which[-'half'], " ", which[('half' x 2.0)], newln];
     std::print.useful[width['small'], ", ", width['n'], ", ", width['half'], ", ", width['x'], ", ", width[2.5: bin32], newln];
 }

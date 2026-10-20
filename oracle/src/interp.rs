@@ -406,6 +406,11 @@ impl<'p> Interp<'p> {
                     },
                     // a typed literal (`2.5: bin32`) or a `to.` conversion says its type outright
                     Expr::Convert(t, ..) => { if ty_name(&unranged(t)) != ty_name(&unranged(pt)) { ok = false; break; } continue; }
+                    // arithmetic has its operands' type (`0.0 - 'y'` is 'y''s), found without running it
+                    Expr::Binary(..) | Expr::Unary(..) | Expr::Paren(..) => match self.static_ty(e) {
+                        Some(t) => { if ty_name(&unranged(&t)) != ty_name(&unranged(pt)) { ok = false; break; } continue; }
+                        None => continue,
+                    },
                     Expr::Int(..) | Expr::RawInt(..) | Expr::BigInt(..) | Expr::Bin(..) | Expr::Exact(..) | Expr::Text(..) | Expr::Char(..) | Expr::Bool(..) => {
                         let saved = std::mem::replace(&mut self.expected, Some(pt.clone()));
                         let r = self.value(arg);
@@ -442,6 +447,24 @@ impl<'p> Interp<'p> {
             self.pick_overload(cands, c, &name[0])?;
         }
         Ok(())
+    }
+
+    /// An expression's type where it can be read without running anything: a variable's declared type, a
+    /// conversion's, and arithmetic's, which is its operands' (a literal beside a typed operand takes its type).
+    /// None where it cannot be told (a call, a comparison, two literals).
+    fn static_ty(&self, e: &Expr) -> Option<Ty> {
+        match e {
+            Expr::Var(n, _) | Expr::Owned(_, n, _) => self.lookup(n).and_then(|s| s.ty.clone()).filter(|t| !matches!(t, Ty::Var(_) | Ty::Inst(..))),
+            Expr::Convert(t, ..) => Some(t.clone()),
+            Expr::Paren(i, _) => self.static_ty(i),
+            Expr::Unary(op, i, _) if op == "-" => self.static_ty(i),
+            Expr::Binary(op, l, r, _) => {
+                let arith = matches!(op.as_str(), "+" | "-" | "x" | "plus" | "minus" | "times" | "xx" | "/" | "div.trunc" | "div.floor" | "div.ceil" | "div.near" | "mod.trunc" | "mod.floor" | "mod.ceil" | "mod.near");
+                if !arith { return None; }
+                self.static_ty(l).or_else(|| self.static_ty(r))
+            }
+            _ => None,
+        }
     }
 
     /// Two items with one canonical name, or a module declared twice (a file and a block).

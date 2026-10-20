@@ -3,8 +3,8 @@
 MAIN {
     let 'y': bin64 = 2.5;
     std::print.useful[round.near['y'], " ", round.half_up['y'], " ", round.floor['y'], " ", round.ceil['y'], " ", round.trunc[0.0 - 'y'], newln];
-    std::print.useful[round.near[2.675, decimals 2], " ", round.floor[-1.234, decimals 1], newln];
+    std::print.useful[round.near[2.675: bin64, decimals 2], " ", round.floor[-1.234: bin64, decimals 1], newln];
     let 'd' := exactly 2.675;
     std::print.useful[round.near['d', decimals 2], " ", round.half_up['d', decimals 2], " ", round.floor[0.0 - 'd', decimals 2], " ", round.ceil['d', decimals 1], newln];
-    std::print.useful[round.near[exactly 2.665, decimals 2], " ", round.trunc[exactly 2.665, decimals 1], newln];
+    std::print.useful[round.near[exactly 2.665: deci64, decimals 2], " ", round.trunc[exactly 2.665: deci64, decimals 1], newln];
 }
