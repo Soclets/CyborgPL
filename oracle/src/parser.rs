@@ -1750,7 +1750,15 @@ impl Parser {
                 }
             }
             (Expr::BigInt(..), Ty::Int(_) | Ty::Uint(_)) => Some("does not fit".into()),
-            (Expr::Int(..) | Expr::Bin(..), Ty::Bin(_)) | (Expr::Int(..) | Expr::Exact(..), Ty::Deci(_)) => None,
+            (Expr::Int(..) | Expr::Bin(..), Ty::Bin(_)) => None,
+            // a deci literal's digits are counted where it is written (std claude, 2026-10-20: `exactly 2.5: deci32`
+            // asked for an `otherwise`): 7, 16 or 34, leading zeros aside, so one that fits never fails
+            (Expr::Int(..) | Expr::Exact(..), Ty::Deci(w)) => {
+                let digits: String = written.trim_start_matches("exactly ").chars().filter(|c| c.is_ascii_digit()).collect();
+                let n = digits.trim_start_matches('0').len().max(1);
+                let holds = match w { 32 => 7, 64 => 16, _ => 34 };
+                if n > holds { Some(format!("has {n} digits; a {} holds {holds}", ty_name(&base))) } else { None }
+            }
             // what the digits of a bin literal mean as a deci is not decided; `exactly` says it
             (Expr::Bin(..), Ty::Deci(_)) => Some(format!("takes a deci from a bin literal, which is not decided: write `exactly {written}: {shown}`")),
             (Expr::Bin(..), Ty::Int(_) | Ty::Uint(_)) => Some("is not a whole number".into()),
@@ -1760,7 +1768,7 @@ impl Parser {
         if let Some(why) = why { return self.err(format!("`{written}: {shown}` {why}")); }
         // into a type with limits the fit is already shown, so the conversion's `otherwise` never runs
         let b = Bracket { values: vec![Value::Expr(lit)], line, one_list: false };
-        let h = if matches!(ty, Ty::Ranged(..)) { Some(Handler::Value(b.clone())) } else { None };
+        let h = if matches!(ty, Ty::Ranged(..) | Ty::Deci(32)) { Some(Handler::Value(b.clone())) } else { None };
         Ok(Expr::Convert(ty, b, h, 0, line))
     }
 

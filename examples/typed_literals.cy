@@ -11,6 +11,8 @@ MAIN {
     std::print.useful[3: uint8 x 2, newln];
     let 'd' := exactly 0.1: deci64;
     std::print.useful['d' + exactly 0.2, newln];
+    let 'small' := exactly 2.5: deci32;
+    std::print.useful['small', newln];
     let 'p' := 5: uint64[min 1];
     std::print.useful['p', newln];
 }
