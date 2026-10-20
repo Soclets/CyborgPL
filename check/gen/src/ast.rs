@@ -31,14 +31,14 @@ pub const INTS: [Ty; 8] = [Ty::I8, Ty::I16, Ty::I32, Ty::I64, Ty::U8, Ty::U16, T
 impl Ty {
     pub fn name(self) -> &'static str {
         match self {
-            Ty::I8 => "int8",
-            Ty::I16 => "int16",
-            Ty::I32 => "int32",
-            Ty::I64 => "int64",
-            Ty::U8 => "uint8",
-            Ty::U16 => "uint16",
-            Ty::U32 => "uint32",
-            Ty::U64 => "uint64",
+            Ty::I8 => "i8",
+            Ty::I16 => "i16",
+            Ty::I32 => "i32",
+            Ty::I64 => "i64",
+            Ty::U8 => "u8",
+            Ty::U16 => "u16",
+            Ty::U32 => "u32",
+            Ty::U64 => "u64",
             Ty::Bool => "bool",
         }
     }
@@ -102,10 +102,10 @@ impl TyR {
             Some((lo, hi)) => {
                 let mut parts = vec![];
                 if let Some(v) = lo {
-                    parts.push(format!("min {v}"));
+                    parts.push(format!("min: {v}"));
                 }
                 if let Some(v) = hi {
-                    parts.push(format!("max {v}"));
+                    parts.push(format!("max: {v}"));
                 }
                 if parts.is_empty() {
                     return self.base.name().to_string();
@@ -684,9 +684,9 @@ impl<'a> Wr<'a> {
         match e {
             Expr::Lit(v) if self.based_lits && *v >= 0 && { self.bases += 1; self.bases % 3 == 0 } => {
                 let (word, digits) = match (self.bases / 3) % 3 {
-                    0 => ("binary", format!("{v:b}")),
+                    0 => ("bin", format!("{v:b}")),
                     1 => ("hex", if (self.bases / 9) % 2 == 0 { format!("{v:X}") } else { format!("{v:x}") }),
-                    _ => ("octal", format!("{v:o}")),
+                    _ => ("oct", format!("{v:o}")),
                 };
                 // `_` grouping, as in decimals, in fours from the right when long
                 let grouped = if digits.len() > 4 && (self.bases / 3) % 2 == 1 {
@@ -779,7 +779,7 @@ impl<'a> Wr<'a> {
             }
             Expr::At(n, p) => {
                 self.out.push_str(&q(n));
-                self.out.push_str("[pos ");
+                self.out.push_str("[pos: ");
                 self.e(p);
                 self.out.push(']');
             }
@@ -787,7 +787,7 @@ impl<'a> Wr<'a> {
             Expr::Lend(n) => self.out.push_str(&format!("lend {}", q(n))),
             Expr::Num(t) | Expr::Src(t) => self.out.push_str(t),
             Expr::Remove(n, p) => {
-                self.out.push_str(&format!("list.remove[lend.mut {}, pos ", q(n)));
+                self.out.push_str(&format!("list.remove[lend.mut {}, pos: ", q(n)));
                 self.e(p);
                 self.out.push(']');
             }
@@ -812,7 +812,7 @@ impl<'a> Wr<'a> {
                 self.out.push_str("; } }");
             }
             Expr::SimdFill(v) => {
-                self.out.push_str("simd.fill[value ");
+                self.out.push_str("simd.fill[value: ");
                 self.e(v);
                 self.out.push(']');
             }
@@ -893,9 +893,9 @@ impl<'a> Wr<'a> {
                 let m = if *mutable && self.changed(s) { "mut " } else if self.strict { self.im() } else { "" };
                 self.out.push_str(&pad);
                 let s0 = self.out.len();
-                self.out.push_str(&format!("let {m}{}: list[{}] = list.fill[value ", q(name), elem.name()));
+                self.out.push_str(&format!("let {m}{}: list[{}] = list.fill[value: ", q(name), elem.name()));
                 self.e(value);
-                self.out.push_str(", count ");
+                self.out.push_str(", count: ");
                 self.e(count);
                 self.out.push_str("];");
                 self.stmt.push((addr(s), s0, s0, self.out.len()));
@@ -903,7 +903,7 @@ impl<'a> Wr<'a> {
             }
             Stmt::Src(t) => self.out.push_str(&format!("{pad}{t}\n")),
             Stmt::Remove { name, pos } => {
-                self.out.push_str(&format!("{pad}list.remove[lend.mut {}, pos ", q(name)));
+                self.out.push_str(&format!("{pad}list.remove[lend.mut {}, pos: ", q(name)));
                 self.e(pos);
                 self.out.push_str("];\n");
             }
@@ -928,7 +928,7 @@ impl<'a> Wr<'a> {
             }
             Stmt::SimdLet { name, mutable, elem, lanes, value } => {
                 let m = if *mutable && self.changed(s) { "mut " } else if self.strict { self.im() } else { "" };
-                let head = format!("let {m}{}: simd[{}, count {lanes}] = ", q(name), elem.name());
+                let head = format!("let {m}{}: simd[{}, count: {lanes}] = ", q(name), elem.name());
                 self.simple(s, &pad, Tier::Default, &head, value, ";");
             }
             Stmt::MatchStmt { scrut, arms } => {
@@ -978,11 +978,11 @@ impl<'a> Wr<'a> {
                 // 2026-10-18: "(a)"; `for no_cheat seq perm` before)
                 let (cheat, seq) = [("", ""), ("no_cheat ", ""), ("no_cheat ", "seq ")][*cheat as usize];
                 // `for 'i' from A to B by C`, `by` always written (owner, 2026-10-12)
-                self.out.push_str(&format!("{pad}{cheat}for {seq}{perm}{}: {} from ", q(name), ty.name()));
+                self.out.push_str(&format!("{pad}{cheat}for {seq}{perm}{}: {} [from: ", q(name), ty.name()));
                 self.e(start);
-                self.out.push_str(" to ");
+                self.out.push_str(", to: ");
                 self.e(stop);
-                self.out.push_str(&format!(" by {}", step.unwrap_or(1)));
+                self.out.push_str(&format!(", by: {}]", step.unwrap_or(1)));
                 self.out.push_str(" {\n");
                 self.block(body, indent + 1);
                 self.out.push_str(&format!("{pad}}}\n"));
@@ -1007,7 +1007,7 @@ impl<'a> Wr<'a> {
             Stmt::Break => self.out.push_str(&format!("{pad}break;\n")),
             Stmt::Continue => self.out.push_str(&format!("{pad}continue;\n")),
             Stmt::Print { signed, value } => {
-                let (f, to) = if *signed { ("put_i", "int64") } else { ("put_u", "uint64") };
+                let (f, to) = if *signed { ("put_i", "i64") } else { ("put_u", "u64") };
                 if PRINT_THROUGH_TO.load(Ordering::Relaxed) {
                     self.simple(s, &pad, Tier::Default, &format!("{f}[to.{to}["), value, "]];");
                 } else {
@@ -1036,7 +1036,7 @@ impl<'a> Wr<'a> {
                 let s0 = self.out.len();
                 self.out.push_str(tier_prefix(*tier, self.new_words));
                 let s1 = self.out.len();
-                self.out.push_str(&format!("change {}[pos ", q(name)));
+                self.out.push_str(&format!("change {}[pos: ", q(name)));
                 self.e(pos);
                 self.out.push_str("] = ");
                 self.e(value);
@@ -1045,7 +1045,7 @@ impl<'a> Wr<'a> {
                 self.out.push('\n');
             }
             Stmt::Append { name, value } => {
-                let head = format!("list.append[lend.mut {}, value ", q(name));
+                let head = format!("list.append[lend.mut {}, value: ", q(name));
                 self.simple(s, &pad, Tier::Default, &head, value, "];");
             }
             Stmt::Borrow { name, value } => {
@@ -1079,11 +1079,11 @@ impl Program {
         w.out.push_str(&format!("# check claude generator, seed {}\n", self.seed));
         // `extern.C`, one line each, or as a block (owner, 2026-10-02: "both");
         // the block where there are three, so both forms are written
-        let write = "fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;\n";
+        let write = "fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;\n";
         if self.inputs.is_empty() {
             w.out.push_str(&format!("extern.C {write}"));
         } else {
-            w.out.push_str(&format!("extern.C {{\n    {write}    fn getenv ['name': ptr[uint8]] -> ptr[uint8];\n    fn strlen ['s': ptr[uint8]] -> uint64;\n}}\n"));
+            w.out.push_str(&format!("extern.C {{\n    {write}    fn getenv ['name': ptr[u8]] -> ptr[u8];\n    fn strlen ['s': ptr[u8]] -> u64;\n}}\n"));
         }
         w.out.push('\n');
         w.out.push_str(&self.printer);
@@ -1136,7 +1136,7 @@ impl Program {
             let im = if self.strict { w.im() } else { "" };
             w.out.push_str(&format!("    let {im}{} := \"{}\";\n", q(&key), i.var));
             let vouch = "no_check";
-            w.out.push_str(&format!("    {vouch} let {im}{}: uint64 = strlen[getenv[lend {}]];\n", q(&i.name), q(&key)));
+            w.out.push_str(&format!("    {vouch} let {im}{}: u64 = strlen[getenv[lend {}]];\n", q(&i.name), q(&key)));
         }
         w.block(&self.main, 1);
         w.out.push_str("}\n");

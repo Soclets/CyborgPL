@@ -369,7 +369,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         }
         if g.rng.chance(50) && g.cfg.mutator {
             let t = g.belem.name();
-            g.extra_fns.push(format!("fn m1 [lent.mut 'a': list[{t}], lent 'b': list[{t}]] {{\n    if list.length[lend 'b'] > 0 {{\n        list.append[lend.mut 'a', value 1];\n    }}\n}}\n"));
+            g.extra_fns.push(format!("fn m1 [lent.mut 'a': list[{t}], lent 'b': list[{t}]] {{\n    if list.length[lend 'b'] > 0 {{\n        list.append[lend.mut 'a', value: 1];\n    }}\n}}\n"));
             g.mutator = true;
         }
         if mistake {
@@ -379,7 +379,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     // An iterator and an `optional` (owner, 2026-10-09, 5c52ba8a): a type
     // with its own `next`, walked by `for`, and a function that may give none.
     if cfg.iterators && g.rng.chance(30) {
-        g.extra_fns.push("struct Counter {\n    now: int32,\n    stop: int32\n}\n\nfn Counter.next [lent.mut 'c': Counter] -> optional[int32] {\n    if 'c'.now at_least 'c'.stop { return optional.none; }\n    change 'c'.now = 'c'.now plus 1;\n    return optional.value['c'.now];\n}\n\nfn half ['n': int32] -> optional[int32] {\n    if ('n' mod.floor 2) equal_to 0 { return optional.value['n' div.floor 2]; }\n    return optional.none;\n}\n".to_string());
+        g.extra_fns.push("struct Counter {\n    now: i32,\n    stop: i32\n}\n\nfn Counter.next [lent.mut 'c': Counter] -> optional[i32] {\n    if 'c'.now at_least 'c'.stop { return optional.none; }\n    change 'c'.now = 'c'.now plus 1;\n    return optional.value['c'.now];\n}\n\nfn half ['n': i32] -> optional[i32] {\n    if ('n' mod.floor 2) equal_to 0 { return optional.value['n' div.floor 2]; }\n    return optional.none;\n}\n".to_string());
         g.iter_ready = true;
     }
     // MAIN
@@ -457,12 +457,12 @@ impl Gen {
         self.fresh += 1;
         let id = self.fresh;
         let wide = self.rng.chance(40);
-        let (i, u, f) = if wide { ("int64", "uint64", "bin64") } else { ("int32", "uint32", "bin32") };
+        let (i, u, f) = if wide { ("i64", "u64", "f64") } else { ("i32", "u32", "f32") };
         self.extra_fns.push(format!("layout.C union Un{id} {{ i: {i}, u: {u}, f: {f} }}"));
         let (na, nl, nw) = (self.rng.range(1, 7), self.rng.range(2, 7), self.rng.range(1, 7));
-        self.extra_fns.push(format!("layout.C struct Bf{id} {{ a: uint8[bits {na}], r: bool[bits 1], l: int8[bits {nl}], w: uint8[bits {nw}] }}"));
+        self.extra_fns.push(format!("layout.C struct Bf{id} {{ a: u8[bits: {na}], r: bool[bits: 1], l: i8[bits: {nl}], w: u8[bits: {nw}] }}"));
         if !self.extra_fns.iter().any(|x| x.contains("fn c_printf")) {
-            self.extra_fns.push("extern.C fn c_printf = C.printf ['format': ptr[uint8], ...'args'] -> int32;".to_string());
+            self.extra_fns.push("extern.C fn c_printf = C.printf ['format': ptr[u8], ...'args'] -> i32;".to_string());
         }
         let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
         let (amax, lmin, lmax, wmax) = ((1i128 << na) - 1, -(1i128 << (nl - 1)), (1i128 << (nl - 1)) - 1, (1i128 << nw) - 1);
@@ -481,12 +481,12 @@ impl Gen {
             format!("change {s_}.a = {};", self.rng.range(0, amax)),
             format!("std::print.useful[{s_}.a, \" \", {s_}.r, \" \", {s_}.l, \" \", {s_}.w, newln];"),
             format!("let 'fm{id}' := C.str.make[\"c: %d %d; \"];"),
-            format!("no_check c_printf[lend 'fm{id}', to.int32[{s_}.w], to.int32[{s_}.l]];"),
+            format!("no_check c_printf[lend 'fm{id}', to.i32[{s_}.w], to.i32[{s_}.l]];"),
             "std::print.useful[\"ours\", newln];".to_string(),
         ];
         if self.rng.chance(30) {
             // past the field's top on the last trip: a check where it lands
-            lines.push(format!("for 'bk{id}': uint8 from {} to {} by 1 {{ change {s_}.a = 'bk{id}'; }}", (amax - 1).max(0), amax + 1));
+            lines.push(format!("for 'bk{id}': u8 [from: {}, to: {}, by: 1] {{ change {s_}.a = 'bk{id}'; }}", (amax - 1).max(0), amax + 1));
             lines.push(format!("std::print.useful[{s_}.a, newln];"));
         }
         lines
@@ -504,13 +504,13 @@ impl Gen {
         let (c, h, hf, help) = (format!("cf{id}"), format!("hh{id}"), format!("hf{id}"), format!("help{id}"));
         let (a, m1, d) = (self.rng.range(2, 13), self.rng.range(2, 97), self.rng.range(2, 9));
         let (k1, mm1, mm2) = (self.rng.range(-9, 9), self.rng.range(1, 97), self.rng.range(1, 97));
-        self.extra_fns.push(format!("fn {help} ['x': int32] -> int32 {{\n    return ('x' mod.floor {m1}) + {a};\n}}"));
+        self.extra_fns.push(format!("fn {help} ['x': i32] -> i32 {{\n    return ('x' mod.floor {m1}) + {a};\n}}"));
         self.extra_fns.push(format!(
-            "coll.fn {c} {{\n    {c} ['x': int32, 'k': int32, 'm': int32[min 1, max 97]] -> int32 {{ return ('x' x 'k') mod.floor 'm'; }}\n    {c}.p1 ['k' = {}, 'm' = {mm1}];\n    {c}.p2 ['m' = {mm2}];\n    {c}.flip ['x': int32] -> int32 {{ return 0 - ('x' mod.floor {m1}); }}\n    {c}.other = {help};\n}}",
+            "coll.fn {c} {{\n    {c} ['x': i32, 'k': i32, 'm': i32[min: 1, max: 97]] -> i32 {{ return ('x' x 'k') mod.floor 'm'; }}\n    {c}.p1 ['k' = {}, 'm' = {mm1}];\n    {c}.p2 ['m' = {mm2}];\n    {c}.flip ['x': i32] -> i32 {{ return 0 - ('x' mod.floor {m1}); }}\n    {c}.other = {help};\n}}",
             if k1 < 0 { format!("({k1})") } else { k1.to_string() }
         ));
         self.extra_fns.push(format!(
-            "fn {hf} ['n': int32] -> int32 or fail[odd, negative: int32] {{\n    if 'n' < 0 {{ fail negative['n']; }}\n    if ('n' mod.floor {d}) not_equal 0 {{ fail odd; }}\n    return 'n' div.floor {d};\n}}"
+            "fn {hf} ['n': i32] -> i32 or fail[odd, negative: i32] {{\n    if 'n' < 0 {{ fail negative['n']; }}\n    if ('n' mod.floor {d}) not_equal 0 {{ fail odd; }}\n    return 'n' div.floor {d};\n}}"
         ));
         let (z1, z2) = (self.rng.range(-5, 5), self.rng.range(-5, 5));
         let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
@@ -518,22 +518,24 @@ impl Gen {
             "coll.handler {h} {{\n    {h}.as_a {{\n        odd {{ return {}; }}\n        negative 'v' {{ return 'v'; }}\n    }}\n    {h}.as_b {{\n        odd {{ return {}; }}\n        negative 'v' {{ return 0 - 'v'; }}\n    }}\n}}",
             lit(z1), lit(z2)
         ));
-        self.extra_fns.push(format!("fn use_a{id} ['n': int32] -> int32 {{\n    let 'h' := {hf}['n'] otherwise {h}.as_a;\n    return 'h' + 100;\n}}"));
+        self.extra_fns.push(format!("fn use_a{id} ['n': i32] -> i32 {{\n    let 'h' := {hf}['n'] otherwise {h}.as_a;\n    return 'h' + 100;\n}}"));
         // versions (owner, 2026-10-20): one name picked by its arguments' count
         // and exact types; in a coll.fn of their own, since a preset beside
         // versions is not decided; every call typed, so none is ambiguous
         let ov = format!("ov{id}");
         let (q1, q2) = (self.rng.range(2, 999), self.rng.range(2, 9));
         self.extra_fns.push(format!(
-            "coll.fn {ov} {{\n    {ov} ['x': int32, 'k': int32] -> int32 {{ return ('x' x 'k') mod.floor {q1}; }}\n    {ov} ['x': int64] -> int32 {{ return to.int32['x' mod.floor {q1}]; }}\n    {ov} ['x': int16] -> int32 {{ return to.int32['x'] x {q2}; }}\n    {ov}.flip ['x': int32] -> int32 {{ return 0 - ('x' mod.floor {q1}); }}\n    {ov}.flip ['x': int64] -> int32 {{ return to.int32['x' mod.floor {q1}] + 1; }}\n}}"
+            "coll.fn {ov} {{\n    {ov} ['x': i32, 'k': i32] -> i32 {{ return ('x' x 'k') mod.floor {q1}; }}\n    {ov} ['x': i64] -> i32 {{ return to.i32['x' mod.floor {q1}]; }}\n    {ov} ['x': i16] -> i32 {{ return to.i32['x'] x {q2}; }}\n    {ov} ['x': bool] -> i32 {{ if 'x' {{ return {q2}; }} return 0 - {q2}; }}\n    {ov}.flip ['x': i32] -> i32 {{ return 0 - ('x' mod.floor {q1}); }}\n    {ov}.flip ['x': i64] -> i32 {{ return to.i32['x' mod.floor {q1}] + 1; }}\n}}"
         ));
-        self.extra_fns.push(format!("fn use_b{id} ['n': int32] -> int32 {{\n    let 'h' := {hf}['n'] otherwise {h}.as_b;\n    return 'h' + 200;\n}}"));
+        self.extra_fns.push(format!("fn use_b{id} ['n': i32] -> i32 {{\n    let 'h' := {hf}['n'] otherwise {h}.as_b;\n    return 'h' + 200;\n}}"));
         let mut r = |lo: i128, hi: i128| lit(self.rng.range(lo, hi));
         let (x1, k, mm, x2, x3, x4, x5, x6) = (r(-500, 500), r(-20, 20), r(1, 97), r(-500, 500), r(-500, 500), r(-500, 500), r(-500, 500), r(-50, 50));
         let (n1, n2, n3) = (r(-30, 30), r(-30, 30), r(-30, 30));
         let (o1, o2, o3, o4, o5) = (self.rng.range(0, 99999), self.rng.range(0, 30000), self.rng.range(-500, 500), self.rng.range(0, 99999), self.rng.range(0, 99999));
         let mut lines = vec![
-            format!("std::print.useful[{ov}[{o1}: int64], \" \", {ov}[{o2}: int16], \" \", {ov}[{}, {}], \" \", {ov}.flip[{o4}: int32], \" \", {ov}.flip[{o5}: int64], \" \", {ov}[to.int16[{}]], newln];", lit(o3), self.rng.range(1, 9), self.rng.range(-300, 300)),
+            format!("std::print.useful[{ov}[{o1}: i64], \" \", {ov}[{o2}: i16], \" \", {ov}[{}, {}], \" \", {ov}.flip[{o4}: i32], \" \", {ov}.flip[{o5}: i64], \" \", {ov}[to.i16[{}]], newln];", lit(o3), self.rng.range(1, 9), self.rng.range(-300, 300)),
+            // a bool, and arithmetic typed by its operand (kayo c8a27e08)
+            format!("std::print.useful[{ov}[{}], \" \", {ov}[to.i64[{}] x {}], \" \", {ov}.flip[(to.i32[{}] + {}) mod.floor 97], newln];", if o1 % 2 == 0 { "true" } else { "false" }, self.rng.range(0, 9999), self.rng.range(1, 9), self.rng.range(0, 999), self.rng.range(0, 99)),
         ];
         lines.extend(vec![
             format!("std::print.useful[{c}[{x1}, {k}, {mm}], \" \", {c}.p1[{x2}], \" \", {c}.p2[{x3}, {k}], \" \", {c}.flip[{x4}], \" \", {c}.other[{x5}], \" \", {c}.other[{x6}], newln];"),
@@ -554,25 +556,25 @@ impl Gen {
         let limit = match self.rng.below(5) { 0 => "table_bytes 0 ".to_string(), 1 => format!("table_bytes {} ", self.rng.range(1, 600)), 2 => "table_bytes 1000000 ".to_string(), _ => String::new() };
         let (a, b, m, c) = (self.rng.range(2, 97), self.rng.range(0, 999), self.rng.range(2, 9999), self.rng.range(0, 500));
         let (param, top) = match self.rng.below(3) {
-            0 => ("uint8".to_string(), 255),
-            1 => { let t = self.rng.range(3, 40); (format!("uint8[min 0, max {t}]"), t) }
-            _ => ("int16[min 0, max 600]".to_string(), 600),
+            0 => ("u8".to_string(), 255),
+            1 => { let t = self.rng.range(3, 40); (format!("u8[min: 0, max: {t}]"), t) }
+            _ => ("i16[min: 0, max: 600]".to_string(), 600),
         };
         let body = if self.rng.chance(35) && top <= 40 {
             // recursive down the counter
-            format!("    if 'x' equal_to 0 {{ return {b}; }}\n    return ({f}['x' - 1] x {a} + to.int64['x']) mod.floor {m};")
+            format!("    if 'x' equal_to 0 {{ return {b}; }}\n    return ({f}['x' - 1] x {a} + to.i64['x']) mod.floor {m};")
         } else if self.rng.chance(50) {
-            format!("    if ('x' mod.floor 3) equal_to 0 {{ return (to.int64['x'] x {a}) mod.floor {m}; }}\n    return (to.int64['x'] x to.int64['x'] + {b}) mod.floor {m} - {c};")
+            format!("    if ('x' mod.floor 3) equal_to 0 {{ return (to.i64['x'] x {a}) mod.floor {m}; }}\n    return (to.i64['x'] x to.i64['x'] + {b}) mod.floor {m} - {c};")
         } else {
-            format!("    return ((to.int64['x'] x {a} + {b}) mod.floor {m}) - {c};")
+            format!("    return ((to.i64['x'] x {a} + {b}) mod.floor {m}) - {c};")
         };
-        self.extra_fns.push(format!("{limit}fn {f} ['x': {param}] -> int64 {{\n{body}\n}}"));
-        let pt = if param.starts_with("int16") { "int16" } else { "uint8" };
+        self.extra_fns.push(format!("{limit}fn {f} ['x': {param}] -> i64 {{\n{body}\n}}"));
+        let pt = if param.starts_with("i16") { "i16" } else { "u8" };
         let step = self.rng.range(1, 7);
         let acc = format!("'tacc{}'", self.fresh);
         let mut lines = vec![
-            format!("let mut {acc}: int64 = 0;"),
-            format!("for 'ti{}': uint64 from 0 to {top} by {step} {{ change {acc} = ({acc} + {f}[to.{pt}['ti{}']]) mod.floor 1000000007; }}", self.fresh, self.fresh),
+            format!("let mut {acc}: i64 = 0;"),
+            format!("for 'ti{}': u64 [from: 0, to: {top}, by: {step}] {{ change {acc} = ({acc} + {f}[to.{pt}['ti{}']]) mod.floor 1000000007; }}", self.fresh, self.fresh),
             format!("put_i[{acc}];"),
             format!("put_i[{f}[{}]];", self.rng.range(0, top)),
         ];
@@ -598,23 +600,23 @@ impl Gen {
         let para = if self.rng.chance(30) { "para " } else { "" };
         let (m, r) = (self.rng.range(2, 9), self.rng.range(2, 5));
         let write = match self.rng.below(3) {
-            0 => format!("((to.int64['i'] x {m} + 'seed') mod.floor {r}) equal_to 0"),
-            1 => format!("('seed' + to.int64['i']) < {}", self.rng.range(0, 9000)),
-            _ => "not 'b'[pos 'i']".to_string(),
+            0 => format!("((to.i64['i'] x {m} + 'seed') mod.floor {r}) equal_to 0"),
+            1 => format!("('seed' + to.i64['i']) < {}", self.rng.range(0, 9000)),
+            _ => "not 'b'[pos: 'i']".to_string(),
         };
         // `not 'b'[pos 'i']` reads the place it writes: never under `para`
         let para = if write.starts_with("not") { "" } else { para };
         let by_call = self.rng.chance(35);
         let count = if by_call {
             if !self.extra_fns.iter().any(|x| x.starts_with("fn count_true ")) {
-                self.extra_fns.push("fn count_true [lent 'b': list[bool]] -> uint64 {\n    let mut 'c': uint64 = 0;\n    for 'i': uint64 from 1 to list.length[lend 'b'] by 1 {\n        if 'b'[pos 'i'] { change 'c' = 'c' + 1; }\n    }\n    return 'c';\n}".to_string());
+                self.extra_fns.push("fn count_true [lent 'b': list[bool]] -> u64 {\n    let mut 'c': u64 = 0;\n    for 'i': u64 [from: 1, to: list.length[lend 'b'], by: 1] {\n        if 'b'[pos: 'i'] { change 'c' = 'c' + 1; }\n    }\n    return 'c';\n}".to_string());
             }
             "    return count_true[lend 'b'];".to_string()
         } else {
-            "    let mut 'c': uint64 = 0;\n    for 'i': uint64 from 1 to list.length[lend 'b'] by 1 {\n        if 'b'[pos 'i'] { change 'c' = 'c' + 1; }\n    }\n    return 'c';".to_string()
+            "    let mut 'c': u64 = 0;\n    for 'i': u64 [from: 1, to: list.length[lend 'b'], by: 1] {\n        if 'b'[pos: 'i'] { change 'c' = 'c' + 1; }\n    }\n    return 'c';".to_string()
         };
         self.extra_fns.push(format!(
-            "fn {f} ['n': uint64[min 1, max 30000], 'seed': int64] -> uint64 {{\n    let mut 'b': list[bool] = list.fill[value {fill}, count 'n'];\n    for {para}'i': uint64 from 1 to 'n' by {step} {{\n        change 'b'[pos 'i'] = {write};\n    }}\n{count}\n}}"
+            "fn {f} ['n': u64[min: 1, max: 30000], 'seed': i64] -> u64 {{\n    let mut 'b': list[bool] = list.fill[value: {fill}, count: 'n'];\n    for {para}'i': u64 [from: 1, to: 'n', by: {step}] {{\n        change 'b'[pos: 'i'] = {write};\n    }}\n{count}\n}}"
         ));
         // lengths of every size, most not a multiple of 8, some long enough for slices
         let n = if self.rng.chance(40) { self.rng.range(3999 * step, 3999 * step + 2000) } else { self.rng.range(1, 70) };
@@ -634,23 +636,23 @@ impl Gen {
         for i in 0..n {
             let v = self.rng.range(-99, 99);
             let v = if v < 0 { format!("({v})") } else { v.to_string() };
-            let mut body = vec![format!("    list.append[lend.mut 'a', value {v}];")];
+            let mut body = vec![format!("    list.append[lend.mut 'a', value: {v}];")];
             if i + 1 < n {
                 body.push(format!("    {}[lend.mut 'a'];", names[i + 1]));
                 body.push(match self.rng.below(3) {
-                    0 => format!("    list.append[lend.mut 'a', value {}];", self.rng.range(100, 199)),
-                    1 => "    change 'a'[pos 1] = to.int32[list.length[lend 'a']];".to_string(),
-                    _ => format!("    list.remove[lend.mut 'a', pos list.length[lend 'a']];\n    list.append[lend.mut 'a', value {}];", self.rng.range(200, 299)),
+                    0 => format!("    list.append[lend.mut 'a', value: {}];", self.rng.range(100, 199)),
+                    1 => "    change 'a'[pos: 1] = to.i32[list.length[lend 'a']];".to_string(),
+                    _ => format!("    list.remove[lend.mut 'a', pos: list.length[lend 'a']];\n    list.append[lend.mut 'a', value: {}];", self.rng.range(200, 299)),
                 });
             } else {
-                body.push("    list.append[lend.mut 'a', value to.int32[list.length[lend 'a']]];".to_string());
+                body.push("    list.append[lend.mut 'a', value: to.i32[list.length[lend 'a']]];".to_string());
             }
-            self.extra_fns.push(format!("fn {} [lent.mut 'a': list[int32]] {{\n{}\n}}", names[i], body.join("\n")));
+            self.extra_fns.push(format!("fn {} [lent.mut 'a': list[i32]] {{\n{}\n}}", names[i], body.join("\n")));
         }
         let xs = format!("'xs{id}'");
         vec![
             // `[7,]` is a one-item list, `[7]` the number seven (lists.md)
-            format!("let mut {xs}: list[int32] = [{},];", self.rng.range(0, 9)),
+            format!("let mut {xs}: list[i32] = [{},];", self.rng.range(0, 9)),
             format!("{}[lend.mut {xs}];", names[0]),
             format!("std::print.useful[{xs}, newln];"),
         ]
@@ -665,13 +667,13 @@ impl Gen {
         self.fresh += 1;
         let (a, b) = (format!("ev{}", self.fresh), format!("od{}", self.fresh));
         let top = self.rng.range(2, (self.cfg.rec_depth * 4).max(3));
-        let ty = format!("uint32[min 0, max {top}]");
+        let ty = format!("u32[min: 0, max: {top}]");
         let (k1, k2, m1, m2) = (self.rng.range(1, 50), self.rng.range(2, 9), self.rng.range(100, 9999), self.rng.range(100, 9999));
         // a failure at one depth: `mod.floor ('n' - f)` is a mod by zero there
         let div = if self.rng.chance(30) { format!("('n' - {})", self.rng.range(1, top)) } else { m2.to_string() };
         let base = if self.rng.chance(50) { "'acc'".to_string() } else { "'acc' x 2".to_string() };
         self.extra_fns.push(format!(
-            "fn {a} ['n': {ty}, 'acc': int64] -> int64 {{\n    if 'n' equal_to 0 {{ return 'acc'; }}\n    put_i['acc'];\n    return {b}['n' - 1, ('acc' + {k1}) mod.floor {m1}];\n}}\n\nfn {b} ['n': {ty}, 'acc': int64] -> int64 {{\n    if 'n' equal_to 0 {{ return {base}; }}\n    return {a}['n' - 1, ('acc' x {k2}) mod.floor {div}];\n}}"
+            "fn {a} ['n': {ty}, 'acc': i64] -> i64 {{\n    if 'n' equal_to 0 {{ return 'acc'; }}\n    put_i['acc'];\n    return {b}['n' - 1, ('acc' + {k1}) mod.floor {m1}];\n}}\n\nfn {b} ['n': {ty}, 'acc': i64] -> i64 {{\n    if 'n' equal_to 0 {{ return {base}; }}\n    return {a}['n' - 1, ('acc' x {k2}) mod.floor {div}];\n}}"
         ));
         let n = self.rng.range(0, top);
         format!("put_i[{a}[{n}, {}]];", self.rng.range(-50, 50))
@@ -690,22 +692,22 @@ impl Gen {
         let k = self.rng.range(0, 5);
         let op = if self.rng.chance(50) { "shr" } else { "shl" };
         // a typed literal gives the shift a width wherever it sits (owner, 2026-10-17)
-        let sh = if self.cfg.typed_literals && self.rng.chance(30) { format!("{n}: uint8 {op} to.uint8[{k}]") } else { format!("{n} {op} to.uint8[{k}]") };
+        let sh = if self.cfg.typed_literals && self.rng.chance(30) { format!("{n}: u8 {op} to.u8[{k}]") } else { format!("{n} {op} to.u8[{k}]") };
         let r = q(&self.name("r"));
         let line = match self.rng.below(13) {
             0 => format!("put_i[{sh}];"),
-            1 => format!("let {r}: int32 = {sh};"),
-            2 => format!("let {r} := to.int64[{sh}];"),
-            3 => format!("let {r}: bool = ({sh}) equal_to to.int32[5];"),
-            4 => format!("let {r}: list[int16] = [{sh}, 1];"),
-            5 => format!("let {r}: int64 = to.int64[1] shl ({sh});"),
-            6 => format!("let {r}: int32 = ({sh}) plus 1;"),
-            7 => format!("let {r}: simd[int32, count 4] = simd.fill[value {sh}];"),
+            1 => format!("let {r}: i32 = {sh};"),
+            2 => format!("let {r} := to.i64[{sh}];"),
+            3 => format!("let {r}: bool = ({sh}) equal_to to.i32[5];"),
+            4 => format!("let {r}: list[i16] = [{sh}, 1];"),
+            5 => format!("let {r}: i64 = to.i64[1] shl ({sh});"),
+            6 => format!("let {r}: i32 = ({sh}) plus 1;"),
+            7 => format!("let {r}: simd[i32, count: 4] = simd.fill[value: {sh}];"),
             8 => format!("let {r}: bool = ({sh}) < 9;"),
             9 => format!("let {r} := ({sh}) mod.floor 7;"),
-            10 => format!("let {r}: int32 = 0 minus ({sh});"),
+            10 => format!("let {r}: i32 = 0 minus ({sh});"),
             11 => format!("std::print.useful[{sh}, newln];"),
-            _ => format!("let {r}: bool = to.int16[3] at_most ({sh});"),
+            _ => format!("let {r}: bool = to.i16[3] at_most ({sh});"),
         };
         let guard = Expr::Cmp(CmpOp::Eq, Box::new(Expr::To(Ty::I64, Box::new(Expr::Lit(1)))), Box::new(Expr::To(Ty::I64, Box::new(Expr::Lit(2)))));
         vec![
@@ -1956,7 +1958,7 @@ impl Gen {
     fn deci_episode(&mut self) -> Stmt {
         self.unevaluable = true;
         let w = *self.rng.pick(&[32u32, 64, 64, 128]);
-        let ty = format!("deci{w}");
+        let ty = format!("d{w}");
         let digits = match w { 32 => 7, 64 => 16, _ => 34 };
         let mut body = vec![];
         let mut decis: Vec<String> = vec![];
@@ -2008,13 +2010,13 @@ impl Gen {
         }
         // between widths, and from a bin
         if self.rng.chance(40) {
-            let (to, to_digits) = if w == 32 { ("deci64", 16) } else { ("deci32", 7) };
+            let (to, to_digits) = if w == 32 { ("d64", 16) } else { ("d32", 7) };
             let src = Expr::Var(self.rng.pick(&decis).clone());
             let name = self.name("d");
             let fb = Box::new(Expr::Num(self.deci_lit(to_digits)));
-            body.push(Stmt::AutoLet { name: name.clone(), value: Expr::Conv(to.into(), Box::new(src), (to == "deci32").then_some(fb)) });
+            body.push(Stmt::AutoLet { name: name.clone(), value: Expr::Conv(to.into(), Box::new(src), (to == "d32").then_some(fb)) });
             let z = self.name("z");
-            body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("int64".into(), Box::new(Expr::Bin(BinOp::Mul, Box::new(Expr::Var(name)), Box::new(Expr::Num("1000".into())))), Some(Box::new(Expr::Lit(-1)))) });
+            body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("i64".into(), Box::new(Expr::Bin(BinOp::Mul, Box::new(Expr::Var(name)), Box::new(Expr::Num("1000".into())))), Some(Box::new(Expr::Lit(-1)))) });
             body.push(Stmt::Print { signed: true, value: Expr::Var(z) });
         }
         if self.rng.chance(35) {
@@ -2026,7 +2028,7 @@ impl Gen {
             } else {
                 self.rng.pick(&["0.1", "0.2", "2.5", "-1.75", "3.0", "0.001", "123.456"]).to_string()
             };
-            body.push(Stmt::TypedLet { name: b.clone(), mutable: false, ty: "bin64".into(), value: Expr::Num(bin) });
+            body.push(Stmt::TypedLet { name: b.clone(), mutable: false, ty: "f64".into(), value: Expr::Num(bin) });
             // a bin into a deci says which form (owner, 2026-10-02)
             let conv = if self.cfg.deci_useful && self.rng.chance(50) { format!("useful.{ty}") } else { format!("stored.{ty}") };
             let name = self.name("d");
@@ -2046,7 +2048,7 @@ impl Gen {
             let name = self.name("d");
             let inside = format!("0.{}", self.rng.range(1, 99));
             let value = if self.take_risk() { Expr::Bin(BinOp::Mul, Box::new(Expr::Var(self.rng.pick(&decis).clone())), Box::new(Expr::Num("3.0".into()))) } else { Expr::Num(inside) };
-            body.push(Stmt::TypedLet { name: name.clone(), mutable: false, ty: "deci64[min 0.0, max 1.0]".into(), value });
+            body.push(Stmt::TypedLet { name: name.clone(), mutable: false, ty: "d64[min: 0.0, max: 1.0]".into(), value });
             decis.push(name);
         }
         // printed by cord, its own text, stored or useful (Synapse 252fa188)
@@ -2062,7 +2064,7 @@ impl Gen {
                 0 => {
                     let scale = *self.rng.pick(&["1", "10", "100", "1000", "1000000"]);
                     let z = self.name("z");
-                    body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("int64".into(), Box::new(Expr::Bin(BinOp::Mul, Box::new(d), Box::new(Expr::Num(scale.into())))), Some(Box::new(Expr::Lit(-1)))) });
+                    body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("i64".into(), Box::new(Expr::Bin(BinOp::Mul, Box::new(d), Box::new(Expr::Num(scale.into())))), Some(Box::new(Expr::Lit(-1)))) });
                     body.push(Stmt::Print { signed: true, value: Expr::Var(z) });
                 }
                 1 => {
@@ -2187,23 +2189,23 @@ impl Gen {
         let mut lines = vec![format!("let MUT{} := Counter[now = {now}, stop = {stop}];", q(&c))];
         if self.rng.chance(60) {
             let x = self.name("x");
-            lines.push(format!("match Counter.next[lend.mut {}] {{ value {} {{ put_i[to.int64[{}]]; }} none {{ put_u[0]; }} }}", q(&c), q(&x), q(&x)));
+            lines.push(format!("match Counter.next[lend.mut {}] {{ value {} {{ put_i[to.i64[{}]]; }} none {{ put_u[0]; }} }}", q(&c), q(&x), q(&x)));
         }
         if self.rng.chance(70) {
             let x = self.name("x");
             let stop_at = self.rng.range(now, stop.max(now) + 1);
             let brk = if self.rng.chance(50) { format!(" if {} equal_to {stop_at} {{ break; }}", q(&x)) } else { String::new() };
-            lines.push(format!("for {} in lend.mut {} {{{brk} put_i[to.int64[{}]]; }}", q(&x), q(&c), q(&x)));
+            lines.push(format!("for {} in lend.mut {} {{{brk} put_i[to.i64[{}]]; }}", q(&x), q(&c), q(&x)));
         }
         if self.rng.chance(60) {
             let x = self.name("x");
-            lines.push(format!("for {} in give {} {{ put_i[to.int64[{}]]; }}", q(&x), q(&c), q(&x)));
+            lines.push(format!("for {} in give {} {{ put_i[to.i64[{}]]; }}", q(&x), q(&c), q(&x)));
         }
         let ints: Vec<VarInfo> = self.vars().filter(|v| matches!(v.ty, Ty::I8 | Ty::I16 | Ty::I32 | Ty::U8 | Ty::U16)).cloned().collect();
         if !ints.is_empty() && self.rng.chance(60) {
             let v = self.rng.pick(&ints).clone();
             let h = self.name("x");
-            lines.push(format!("match half[to.int32[{}]] {{ value {} {{ put_i[to.int64[{}]]; }} none {{ put_u[1]; }} }}", q(&v.name), q(&h), q(&h)));
+            lines.push(format!("match half[to.i32[{}]] {{ value {} {{ put_i[to.i64[{}]]; }} none {{ put_u[1]; }} }}", q(&v.name), q(&h), q(&h)));
         }
         // `mut` only if a `lend.mut` changes it (owner, 2026-10-10)
         let changes = lines.iter().any(|l| l.contains(&format!("lend.mut {}", q(&c))));
@@ -2256,12 +2258,12 @@ impl Gen {
         let value = match (self.rng.below(4), int) {
             (0, Some(v)) if v <= i64::MAX as i128 => {
                 let i = self.name("i");
-                body.push(Stmt::Src(format!("let '{i}': int64 = {}{v};", if neg { "-" } else { "" })));
+                body.push(Stmt::Src(format!("let '{i}': i64 = {}{v};", if neg { "-" } else { "" })));
                 Expr::Conv("brain16".into(), Box::new(Expr::Var(i)), None)
             }
             (1, _) => {
                 let g = self.name("g");
-                body.push(Stmt::TypedLet { name: g.clone(), mutable: false, ty: "bin64".into(), value: Expr::Num(lit.clone()) });
+                body.push(Stmt::TypedLet { name: g.clone(), mutable: false, ty: "f64".into(), value: Expr::Num(lit.clone()) });
                 Expr::Conv("brain16".into(), Box::new(Expr::Var(g)), None)
             }
             (2, _) => Expr::Conv("brain16".into(), Box::new(Expr::Text(text.clone())), Some(Box::new(Expr::Num("1.0".into())))),
@@ -2322,7 +2324,7 @@ impl Gen {
                 6 => Expr::Conv("brain16".into(), Box::new(Expr::Text(self.number_text())), Some(Box::new(Expr::Num(self.rng.pick(LITS).to_string())))),
                 _ => {
                     // from a deci or a bin, rounding
-                    let (d, ty) = if self.rng.chance(50) { (self.name("d"), "deci64") } else { (self.name("g"), "bin64") };
+                    let (d, ty) = if self.rng.chance(50) { (self.name("d"), "d64") } else { (self.name("g"), "f64") };
                     body.push(Stmt::TypedLet { name: d.clone(), mutable: false, ty: ty.into(), value: Expr::Num(self.rng.pick(LITS).to_string()) });
                     Expr::Conv("brain16".into(), Box::new(Expr::Var(d)), None)
                 }
@@ -2338,11 +2340,11 @@ impl Gen {
             let w = if self.take_risk() { Expr::Bin(BinOp::Mul, Box::new(w), Box::new(Expr::Num("70000.0".into()))) } else { w };
             let (v, h) = (self.name("w"), self.name("h"));
             body.push(Stmt::TypedLet { name: v.clone(), mutable: false, ty: "brain16".into(), value: w });
-            body.push(Stmt::AutoLet { name: h.clone(), value: Expr::Conv("bin16".into(), Box::new(Expr::Var(v)), None) });
+            body.push(Stmt::AutoLet { name: h.clone(), value: Expr::Conv("f16".into(), Box::new(Expr::Var(v)), None) });
             let d = self.name("d");
-            body.push(Stmt::AutoLet { name: d.clone(), value: Expr::Conv("useful.deci64".into(), Box::new(Expr::Var(h)), None) });
+            body.push(Stmt::AutoLet { name: d.clone(), value: Expr::Conv("useful.d64".into(), Box::new(Expr::Var(h)), None) });
             let z = self.name("z");
-            body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("int64".into(), Box::new(Expr::Var(d)), Some(Box::new(Expr::Lit(-1)))) });
+            body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("i64".into(), Box::new(Expr::Var(d)), Some(Box::new(Expr::Lit(-1)))) });
             body.push(Stmt::Print { signed: true, value: Expr::Var(z) });
         }
         if self.cfg.print && self.rng.chance(50) {
@@ -2355,15 +2357,15 @@ impl Gen {
             match self.rng.below(4) {
                 0 => {
                     let z = self.name("z");
-                    body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("int64".into(), Box::new(w), Some(Box::new(Expr::Lit(-1)))) });
+                    body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("i64".into(), Box::new(w), Some(Box::new(Expr::Lit(-1)))) });
                     body.push(Stmt::Print { signed: true, value: Expr::Var(z) });
                 }
                 1 => {
-                    let form = if self.rng.chance(50) { "useful.deci64" } else { "stored.deci64" };
+                    let form = if self.rng.chance(50) { "useful.d64" } else { "stored.d64" };
                     let scale = *self.rng.pick(&["1", "100", "1000000"]);
                     let (d, z) = (self.name("d"), self.name("z"));
                     body.push(Stmt::AutoLet { name: d.clone(), value: Expr::Conv(form.into(), Box::new(w), None) });
-                    body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("int64".into(), Box::new(Expr::Bin(BinOp::Mul, Box::new(Expr::Var(d)), Box::new(Expr::Num(scale.into())))), Some(Box::new(Expr::Lit(-1)))) });
+                    body.push(Stmt::AutoLet { name: z.clone(), value: Expr::Conv("i64".into(), Box::new(Expr::Bin(BinOp::Mul, Box::new(Expr::Var(d)), Box::new(Expr::Num(scale.into())))), Some(Box::new(Expr::Lit(-1)))) });
                     body.push(Stmt::Print { signed: true, value: Expr::Var(z) });
                 }
                 2 => {
@@ -2422,14 +2424,14 @@ impl Gen {
             // std/ has str.at by byte, point and grapheme; str.slice only with
             // --std-all until kayo reads std's from / to (2026-10-20)
             let line = match self.rng.below(if self.cfg.std_all { 4 } else { 3 }) {
-                0 => format!("let {} := std::str.at.byte[lend {}, pos {k}] otherwise 7;\nput_u[to.uint64[{}]];", q(&r), q(&s), q(&r)),
-                1 => format!("let {} := std::str.at.point[lend {}, pos {k}] otherwise `?`;\nput_u[to.uint64[char.code[{}]]];", q(&r), q(&s), q(&r)),
+                0 => format!("let {} := std::str.at.byte[lend {}, pos: {k}] otherwise 7;\nput_u[to.u64[{}]];", q(&r), q(&s), q(&r)),
+                1 => format!("let {} := std::str.at.point[lend {}, pos: {k}] otherwise `?`;\nput_u[to.u64[char.code[{}]]];", q(&r), q(&s), q(&r)),
                 // a grapheme here is a plain char: it is printed, not lent
-                2 => format!("let {} := std::str.at.grapheme[lend {}, pos {k}] otherwise `?`;\nstd::print.useful[{}, newln];", q(&r), q(&s), q(&r)),
+                2 => format!("let {} := std::str.at.grapheme[lend {}, pos: {k}] otherwise `?`;\nstd::print.useful[{}, newln];", q(&r), q(&s), q(&r)),
                 _ => {
                     let a = self.rng.range(1, n + 1);
                     let b = self.rng.range(a - 1, n + 2).max(1);
-                    format!("let {} := std::str.slice.grapheme[lend {}, from pos {a}, to pos {b}] otherwise str.empty;\nput_u[str.bytes[lend {}]];", q(&r), q(&s), q(&r))
+                    format!("let {} := std::str.slice.grapheme[lend {}, from: pos {a}, to: pos {b}] otherwise str.empty;\nput_u[str.bytes[lend {}]];", q(&r), q(&s), q(&r))
                 }
             };
             for l in line.split('\n') {
@@ -2457,7 +2459,7 @@ impl Gen {
                 }
                 let list = if bytes.len() == 1 { format!("[{},]", bytes[0]) } else { format!("[{}]", bytes.iter().map(|b| b.to_string()).collect::<Vec<_>>().join(", ")) };
                 let (l, t) = (self.name("l"), self.name("t"));
-                body.push(Stmt::TypedLet { name: l.clone(), mutable: false, ty: "list[uint8]".into(), value: Expr::Src(list) });
+                body.push(Stmt::TypedLet { name: l.clone(), mutable: false, ty: "list[u8]".into(), value: Expr::Src(list) });
                 body.push(Stmt::AutoLet { name: t.clone(), value: Expr::Conv("str.utf8".into(), Box::new(Expr::Var(l)), Some(Box::new(Expr::Text("?".into())))) });
                 let count = if self.rng.chance(50) { "bytes" } else { "points" };
                 body.push(Stmt::Print { signed: false, value: Expr::Src(format!("str.{count}[lend {}]", q(&t))) });
@@ -2480,7 +2482,7 @@ impl Gen {
                 // a digit's value is a text parse; other encodings never fail
                 let d = *self.rng.pick(&["7", "0", "x", "9"]);
                 let k = self.name("k");
-                body.push(Stmt::AutoLet { name: k.clone(), value: Expr::Conv("int32".into(), Box::new(Expr::Conv("str.utf8".into(), Box::new(Expr::Src(format!("`{d}`"))), None)), Some(Box::new(Expr::Lit(-1)))) });
+                body.push(Stmt::AutoLet { name: k.clone(), value: Expr::Conv("i32".into(), Box::new(Expr::Conv("str.utf8".into(), Box::new(Expr::Src(format!("`{d}`"))), None)), Some(Box::new(Expr::Lit(-1)))) });
                 body.push(Stmt::Print { signed: true, value: Expr::To(Ty::I64, Box::new(Expr::Var(k))) });
                 let t = TEXTS[self.rng.below(TEXTS.len() as u64) as usize];
                 let (s, w) = (self.name("t"), self.name("t"));

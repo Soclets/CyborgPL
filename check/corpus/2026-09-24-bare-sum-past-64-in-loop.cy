@@ -4,46 +4,46 @@
 # env CHK_IN1 0
 # env CHK_IN2 0
 # check claude generator, seed 3061
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
+extern.C fn strlen ['s': ptr[u8]] -> u64;
 
-fn emit ['m': uint64, 'neg': bool] {
-    let mut 'buf': list[uint8] = [];
-    if 'neg' { list.append[lend.mut 'buf', value 45]; }
-    let mut 'v': uint64 = 'm';
-    let mut 'ds': list[uint8] = [];
+fn emit ['m': u64, 'neg': bool] {
+    let mut 'buf': list[u8] = [];
+    if 'neg' { list.append[lend.mut 'buf', value: 45]; }
+    let mut 'v': u64 = 'm';
+    let mut 'ds': list[u8] = [];
     loop {
-        list.append[lend.mut 'ds', value to.uint8[48 plus ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
         if 'v' equal_to 0 { break; }
     }
-    for 'k': uint64 from list.length[lend 'ds'] to 1 by -1 {
-        list.append[lend.mut 'buf', value 'ds'[pos 'k']];
+    for 'k': u64 [from: list.length[lend 'ds'], to: 1, by: -1] {
+        list.append[lend.mut 'buf', value: 'ds'[pos: 'k']];
     }
-    list.append[lend.mut 'buf', value 10];
+    list.append[lend.mut 'buf', value: 10];
     no_check write[1, lend 'buf', list.length[lend 'buf']];
 }
 
-fn put_u ['n': uint64] {
+fn put_u ['n': u64] {
     emit['n', false];
 }
 
-fn put_i ['n': int64] {
+fn put_i ['n': i64] {
     if 'n' < 0 {
-        emit[to.uint64[0 minus ('n' plus 1)] plus 1, true];
+        emit[to.u64[0 minus ('n' plus 1)] plus 1, true];
     } else {
-        emit[to.uint64['n'], false];
+        emit[to.u64['n'], false];
     }
 }
 
 MAIN {
     let 'in1_key' := "CHK_IN1";
-    no_check let 'in1': uint64 = strlen[getenv[lend 'in1_key']];
+    no_check let 'in1': u64 = strlen[getenv[lend 'in1_key']];
     let 'in2_key' := "CHK_IN2";
-    no_check let 'in2': uint64 = strlen[getenv[lend 'in2_key']];
-    let 'v20': uint64 = 0;
-    let 'w23': uint16 = 2;
+    no_check let 'in2': u64 = strlen[getenv[lend 'in2_key']];
+    let 'v20': u64 = 0;
+    let 'w23': u16 = 2;
     loop {
         if 'w23' equal_to 0 {
             break;

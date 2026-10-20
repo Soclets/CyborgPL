@@ -1,7 +1,7 @@
 # Owner's ruling 2026-09-23 (88da73f): a shift's width comes from any operand
 # whose type is known, or the type it is stored into. CCA at 61a8554 refuses both.
 MAIN {
-    let 'v': uint32 = 3;
-    let 'a': uint32 = 2 shl 3;
-    let 'b': uint32 = ('v' mod.floor 16) shl 2;
+    let 'v': u32 = 3;
+    let 'a': u32 = 2 shl 3;
+    let 'b': u32 = ('v' mod.floor 16) shl 2;
 }

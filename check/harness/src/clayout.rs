@@ -58,10 +58,10 @@ impl Layout {
 
     fn cy_type(k: Kind) -> String {
         match k {
-            Kind::Int(b, s) => format!("{}int{b}", if s { "" } else { "u" }),
+            Kind::Int(b, s) => format!("{}{b}", if s { "i" } else { "u" }),
             Kind::Bool => "bool".into(),
-            Kind::Bits(n, s) => format!("{}int8[bits {n}]", if s { "" } else { "u" }),
-            Kind::BoolBit => "bool[bits 1]".into(),
+            Kind::Bits(n, s) => format!("{}8[bits: {n}]", if s { "i" } else { "u" }),
+            Kind::BoolBit => "bool[bits: 1]".into(),
         }
     }
 
@@ -93,7 +93,7 @@ impl Layout {
     pub fn cy(&self) -> String {
         let decl = self.fields.iter().map(|f| format!("{}: {}", f.name, Self::cy_type(f.kind))).collect::<Vec<_>>().join(", ");
         let mut s = format!("layout.C {} L {{ {decl} }}\n", if self.union { "union" } else { "struct" });
-        s.push_str("extern.C fn dump_l = C.write ['fd': int32, 'buf': ptr[L], 'len': uint64] -> int64;\n\nMAIN {\n");
+        s.push_str("extern.C fn dump_l = C.write ['fd': i32, 'buf': ptr[L], 'len': u64] -> i64;\n\nMAIN {\n");
         s.push_str("    std::print.useful[\"size \", size.of[L], \" align \", align.of[L], newln];\n");
         for (i, f) in self.fields.iter().enumerate() {
             let init = if self.union {

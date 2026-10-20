@@ -2,15 +2,15 @@
 # groups, so Precog works out from its body what its result borrows (ownership-syntax.md): only
 # 'b'. b2 lends its @x 'b' there, so b2's result is in @x. CCA refuses b2 ("returns a borrow
 # of 'a', which is not in @x"), as if b1's result could borrow every argument. The oracle runs it.
-fn b1 [@x] [lent @x 'a': list[int32], lent @x 'b': list[int32]] -> lent @x list[int32] {
+fn b1 [@x] [lent @x 'a': list[i32], lent @x 'b': list[i32]] -> lent @x list[i32] {
     return lend 'b';
 }
-fn b2 [@y, @x] [lent @y 'a': list[int32], lent @x 'b': list[int32]] -> lent @x list[int32] {
+fn b2 [@y, @x] [lent @y 'a': list[i32], lent @x 'b': list[i32]] -> lent @x list[i32] {
     return b1[lend 'a', lend 'b'];
 }
 MAIN {
-    let 's': list[int32] = [1,];
-    let 't': list[int32] = [2, 3];
+    let 's': list[i32] = [1,];
+    let 't': list[i32] = [2, 3];
     let 'r' := b2[lend 's', lend 't'];
     let 'n' := list.length[lend 'r'];
 }

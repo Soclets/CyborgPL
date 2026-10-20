@@ -1,28 +1,28 @@
 # Finding 2026-09-29 (by hand): a borrow handed back by a call, 'r' := first[lend 's'], is
 # used after 1000 appends to 's' have moved its storage. CCA's binary reads freed memory
 # (prints 1, then an empty line); the oracle prints 1 and 1003. Both should refuse the appends.
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
-fn put_u ['m': uint64] {
-    let mut 'buf': list[uint8] = [];
-    let mut 'v': uint64 = 'm';
-    let mut 'p': uint64 = 1;
+extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+fn put_u ['m': u64] {
+    let mut 'buf': list[u8] = [];
+    let mut 'v': u64 = 'm';
+    let mut 'p': u64 = 1;
     while 'v' div.floor 'p' at_least 10 { change 'p' = 'p' times 10; }
     loop {
-        list.append[lend.mut 'buf', value to.uint8[48 plus ('v' div.floor 'p')]];
+        list.append[lend.mut 'buf', value: to.u8[48 plus ('v' div.floor 'p')]];
         change 'v' = 'v' mod.floor 'p';
         if 'p' equal_to 1 { break; }
         change 'p' = 'p' div.floor 10;
     }
-    list.append[lend.mut 'buf', value 10];
+    list.append[lend.mut 'buf', value: 10];
     no_check write[1, lend 'buf', list.length[lend 'buf']];
 }
 
-fn first [lent 'a': list[int32]] -> lent list[int32] { return lend 'a'; }
+fn first [lent 'a': list[i32]] -> lent list[i32] { return lend 'a'; }
 
 MAIN {
-    let mut 's': list[int32] = [1, 2, 3];
+    let mut 's': list[i32] = [1, 2, 3];
     let 'r' := first[lend 's'];
-    for 'k': int32 from 1 to 1000 by 1 { list.append[lend.mut 's', value 'k']; }
-    put_u[to.uint64['r'[pos 1]]];
+    for 'k': i32 [from: 1, to: 1000, by: 1] { list.append[lend.mut 's', value: 'k']; }
+    put_u[to.u64['r'[pos: 1]]];
     put_u[list.length[lend 'r']];
 }

@@ -1,7 +1,7 @@
 # Finding 2026-09-29 (check run, seed 197, cut down by hand): a bare-number item in a list literal
-# is worked out at int64 by CCA, not exactly (owner, dc83c05: bare numbers alone are exact).
+# is worked out at i64 by CCA, not exactly (owner, dc83c05: bare numbers alone are exact).
 # CCA builds it as proven, then its --assert-proofs binary stops: `-` can leave what the type
-# holds. The same subtraction in a uint64 let is fine. The oracle runs it.
+# holds. The same subtraction in a u64 let is fine. The oracle runs it.
 MAIN {
-    let 'xs': list[uint64] = [9692729768110883998 minus 3166240359165959856,];
+    let 'xs': list[u64] = [9692729768110883998 minus 3166240359165959856,];
 }

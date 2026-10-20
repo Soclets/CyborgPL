@@ -3,44 +3,44 @@
 # is 16777216 (2^32 - 2 is -4 modulo 2^31 + 1, and (-4)^12 = 2^24), which the oracle prints. CCA
 # refuses: "`pow` goes past 64 bits in between". A product of the same size with times agrees.
 # check claude generator, seed 20665
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
-fn emit ['m': uint64, 'neg': bool] {
-    let mut 'buf': list[uint8] = [];
-    if 'neg' { list.append[lend.mut 'buf', value 45]; }
-    let mut 'v': uint64 = 'm';
-    let mut 'ds': list[uint8] = [];
+fn emit ['m': u64, 'neg': bool] {
+    let mut 'buf': list[u8] = [];
+    if 'neg' { list.append[lend.mut 'buf', value: 45]; }
+    let mut 'v': u64 = 'm';
+    let mut 'ds': list[u8] = [];
     loop {
-        list.append[lend.mut 'ds', value to.uint8[48 plus ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
         if 'v' equal_to 0 { break; }
     }
-    for 'k': uint64 from list.length[lend 'ds'] to 1 by -1 {
-        list.append[lend.mut 'buf', value 'ds'[pos 'k']];
+    for 'k': u64 [from: list.length[lend 'ds'], to: 1, by: -1] {
+        list.append[lend.mut 'buf', value: 'ds'[pos: 'k']];
     }
-    list.append[lend.mut 'buf', value 10];
+    list.append[lend.mut 'buf', value: 10];
     NO_FUCKING_CHECKS write[1, lend 'buf', list.length[lend 'buf']];
 }
 
-fn put_u ['n': uint64] {
+fn put_u ['n': u64] {
     emit['n', false];
 }
 
-fn put_i ['n': int64] {
+fn put_i ['n': i64] {
     if 'n' < 0 {
-        emit[to.uint64[0 minus ('n' plus 1)] plus 1, true];
+        emit[to.u64[0 minus ('n' plus 1)] plus 1, true];
     } else {
-        emit[to.uint64['n'], false];
+        emit[to.u64['n'], false];
     }
 }
 
 enum E1 {
-    c1: uint32,
+    c1: u32,
     c2,
     c3
 }
 
 MAIN {
-    let 'n': uint64 = (4294967294 pow 12) mod.floor 2147483649;
+    let 'n': u64 = (4294967294 pow 12) mod.floor 2147483649;
     put_u['n'];
 }

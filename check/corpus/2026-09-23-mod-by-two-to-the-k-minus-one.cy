@@ -2,45 +2,45 @@
 # 'in1' mod 65535 give 0 in CCA's binary (c845110) when 'in1' is 27796; other divisors are right.
 # env CHK_IN1 27796
 # check claude generator, seed 106
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn strlen ['s': ptr[uint8]] -> uint64;
+extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
+extern.C fn strlen ['s': ptr[u8]] -> u64;
 
-fn emit ['m': uint64, 'neg': bool] {
-    let mut 'buf': list[uint8] = [];
-    if 'neg' { list.append[lend.mut 'buf', value 45]; }
-    let mut 'v': uint64 = 'm';
-    let mut 'ds': list[uint8] = [];
-    list.append[lend.mut 'ds', value to.uint8[48 plus ('v' mod.floor 10)]];
+fn emit ['m': u64, 'neg': bool] {
+    let mut 'buf': list[u8] = [];
+    if 'neg' { list.append[lend.mut 'buf', value: 45]; }
+    let mut 'v': u64 = 'm';
+    let mut 'ds': list[u8] = [];
+    list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
     change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', value to.uint8[48 plus ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
     }
-    let mut 'k': uint64 = list.length[lend 'ds'];
+    let mut 'k': u64 = list.length[lend 'ds'];
     while 'k' at_least 1 {
-        list.append[lend.mut 'buf', value 'ds'[pos 'k']];
+        list.append[lend.mut 'buf', value: 'ds'[pos: 'k']];
         change 'k' = 'k' minus 1;
     }
-    list.append[lend.mut 'buf', value 10];
+    list.append[lend.mut 'buf', value: 10];
     no_check write[1, lend 'buf', list.length[lend 'buf']];
 }
 
-fn put_u ['n': uint64] {
+fn put_u ['n': u64] {
     emit['n', false];
 }
 
-fn put_i ['n': int64] {
+fn put_i ['n': i64] {
     if 'n' < 0 {
-        emit[to.uint64[0 minus ('n' plus 1)] plus 1, true];
+        emit[to.u64[0 minus ('n' plus 1)] plus 1, true];
     } else {
-        emit[to.uint64['n'], false];
+        emit[to.u64['n'], false];
     }
 }
 
 MAIN {
     let 'k' := "CHK_IN1";
-    no_check let 'in1': uint64 = strlen[getenv[lend 'k']];
+    no_check let 'in1': u64 = strlen[getenv[lend 'k']];
     put_u['in1' mod.floor 100];
     put_u['in1' mod.floor 255];
     put_u['in1' mod.floor 256];

@@ -4,7 +4,7 @@
 # runs (in code that runs it refuses; a shadow of the const it refuses even unrun).
 MAIN {
     if false {
-        const 'r': int32 = 3;
+        const 'r': i32 = 3;
         change 'r' = 4;
     }
     put_u[1];

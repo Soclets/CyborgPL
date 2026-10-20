@@ -2,5 +2,5 @@
 # 88da73f — the type stored into gives a wrapping operator its width.
 # CCA (76e5339) refuses.
 MAIN {
-    let 'v10': int32 = (0 shr 0) plus.wrap 0;
+    let 'v10': i32 = (0 shr 0) plus.wrap 0;
 }

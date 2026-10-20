@@ -11,6 +11,14 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 ```
 
 
+**Short number names and words with a colon** (owner, 2026-10-20; oracle 79464782, 6faeaa3c):
+the generator, its printer, `check clayout` and the corpus write `i8`…`u128`, `f16`/`f32`/`f64`,
+`d32`/`d64`/`d128` (`brain16` unchanged), `bin`/`hex`/`oct` literals, argument words and limits
+with `:` (`value: 2`, `pos: 3`, `i32[min: 0, max: 100]`, `simd[i32, count: 4]`, `u8[bits: 3]`; a
+slice keeps `from: pos 2`), and counting loops `for 'i': i64 [from: 1, to: 'n', by: 1]`. Converted
+in one pass, only inside the generator's string literals, then checked on the oracle. Older notes
+below keep the spellings of their day.
+
 **C layout against clang** (owner, 2026-10-19: "(a)"): `check clayout --cases N` makes a random
 `layout.C` struct (plain whole numbers, `bool`, `uint8` / `int8` / `bool` bit-fields of random
 widths) or union, and builds it in CyborgPL with kayo and in C with `/usr/bin/clang`. Each prints
