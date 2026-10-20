@@ -5317,8 +5317,16 @@ impl<'p> Interp<'p> {
                         other => return rt(c.line, format!("`decimals` is a whole number, 0 or more; got {}", other.show_useful())),
                     },
                 };
+                // the answer is the type that went in, width and all (std claude, 2026-10-20): a bin16 rounded to 1
+                // decimal is the bin16 nearest 2.7, not a bin64
+                let crate::ast::Value::Expr(arg) = &c.args.values[0];
+                let in_ty: Option<Ty> = match arg {
+                    Expr::Var(n, _) | Expr::Owned(_, n, _) => self.lookup(n).and_then(|s| s.ty.clone()),
+                    Expr::Convert(t, ..) => Some(t.clone()),
+                    _ => self.expected.clone(),
+                };
                 match a {
-                    Value::Bin(x) => Ok(Value::Bin(no_new_neg_zero(x, round_bin(x, n, way)))),
+                    Value::Bin(x) => { let r = Value::Bin(no_new_neg_zero(x, round_bin(x, n, way))); Ok(match &in_ty { Some(t) => round_to_width(t, r), None => r }) }
                     Value::Deci(d) => {
                         let unit = if n == 0 { "1".to_string() } else { format!("0.{}1", "0".repeat(n - 1)) };
                         let unit = match crate::deci::Deci::parse(&unit, d.width) { Ok(Some(u)) => u, _ => return rt(c.line, format!("{n} decimals is past what a deci{} holds", d.width)) };
