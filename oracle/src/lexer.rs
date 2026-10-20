@@ -111,12 +111,14 @@ pub struct LexError {
 /// are gonna be graphemes"; the base's rule). The lexer walks code points, so its columns are mapped
 /// here, a line at a time, with the oracle's grapheme approximation.
 pub fn lex(src: &str) -> Result<Vec<Token>, LexError> {
-    let lines: Vec<Vec<char>> = src.split('\n').map(|l| l.chars().collect()).collect();
-    let to_graphemes = |line: usize, col: usize| -> usize {
+    // each line counted once, only the lines a column is asked of
+    let lines: Vec<&str> = src.split('\n').collect();
+    let mut counted: std::collections::HashMap<usize, Vec<usize>> = std::collections::HashMap::new();
+    let mut to_graphemes = |line: usize, col: usize| -> usize {
         if col <= 1 { return col; }
         let Some(l) = lines.get(line - 1) else { return col };
-        let before: String = l[..(col - 1).min(l.len())].iter().collect();
-        crate::interp::grapheme_count(&before) + 1
+        let pre = counted.entry(line).or_insert_with(|| crate::interp::grapheme_prefixes(&l.chars().collect::<Vec<_>>()));
+        pre[(col - 1).min(pre.len() - 1)] + 1
     };
     match lex_points(src) {
         Ok(mut toks) => { for t in &mut toks { t.col = to_graphemes(t.line, t.col); } Ok(toks) }

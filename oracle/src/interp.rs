@@ -5772,7 +5772,42 @@ fn graphemes(s: &str) -> Vec<String> {
     out
 }
 
-pub fn grapheme_count(s: &str) -> usize { graphemes(s).len() }
+/// For each code point of a line, how many graphemes come before it: the lexer's columns, the whole line in one
+/// pass (a 108 KB line was counted again for every token).
+pub fn grapheme_prefixes(chars: &[char]) -> Vec<usize> {
+    let mut out = Vec::with_capacity(chars.len() + 1);
+    let (mut n, mut prev_zwj, mut open_ri) = (0usize, false, false);
+    out.push(0);
+    for &ch in chars {
+        let cp = ch as u32;
+        let combining = (0x0300..=0x036F).contains(&cp) || (0x0E31..=0x0E3A).contains(&cp) || (0x0E47..=0x0E4E).contains(&cp)
+            || (0x1AB0..=0x1AFF).contains(&cp) || (0x20D0..=0x20FF).contains(&cp) || (0xFE00..=0xFE0F).contains(&cp)
+            || (0x1F3FB..=0x1F3FF).contains(&cp);
+        let ri = (0x1F1E6..=0x1F1FF).contains(&cp);
+        if cp == 0x200D { prev_zwj = true; open_ri = false; }
+        else if ri && open_ri && n > 0 { open_ri = false; prev_zwj = false; }
+        else { if !((combining || prev_zwj) && n > 0) { n += 1; open_ri = ri; } prev_zwj = false; }
+        out.push(n);
+    }
+    out
+}
+
+/// The same split as `graphemes`, counted without building them.
+pub fn grapheme_count(s: &str) -> usize {
+    let (mut n, mut prev_zwj, mut open_ri) = (0usize, false, false);
+    for ch in s.chars() {
+        let cp = ch as u32;
+        let combining = (0x0300..=0x036F).contains(&cp) || (0x0E31..=0x0E3A).contains(&cp) || (0x0E47..=0x0E4E).contains(&cp)
+            || (0x1AB0..=0x1AFF).contains(&cp) || (0x20D0..=0x20FF).contains(&cp) || (0xFE00..=0xFE0F).contains(&cp)
+            || (0x1F3FB..=0x1F3FF).contains(&cp);
+        let ri = (0x1F1E6..=0x1F1FF).contains(&cp);
+        if cp == 0x200D { prev_zwj = true; open_ri = false; continue; }
+        if ri && open_ri && n > 0 { open_ri = false; prev_zwj = false; continue; }
+        if !((combining || prev_zwj) && n > 0) { n += 1; open_ri = ri; }
+        prev_zwj = false;
+    }
+    n
+}
 
 
 
