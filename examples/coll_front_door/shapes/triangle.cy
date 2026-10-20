@@ -1,1 +1,1 @@
-pub.kit fn area ['b': int64, 'h': int64] -> int64 { return ('b' x 'h') div.floor 2; }
+pub.kit fn area ['b': i64, 'h': i64] -> i64 { return ('b' x 'h') div.floor 2; }

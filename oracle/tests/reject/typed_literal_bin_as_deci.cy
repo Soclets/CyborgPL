@@ -1,3 +1,3 @@
 MAIN {
-    let 'v' := 0.1: deci64;
+    let 'v' := 0.1: d64;
 }

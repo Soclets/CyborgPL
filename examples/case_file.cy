@@ -4,11 +4,11 @@ case.any;
 const 'Limit' := 3;
 
 struct Point {
-    X: int32,
-    Y: int32
+    X: i32,
+    Y: i32
 }
 
-fn Sum ['p': Point] -> int32 {
+fn Sum ['p': Point] -> i32 {
     return 'P'.x + 'p'.y + 'LIMIT';
 }
 

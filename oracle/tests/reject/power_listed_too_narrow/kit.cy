@@ -1,4 +1,4 @@
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 MAIN {
     let 't' := "hi";

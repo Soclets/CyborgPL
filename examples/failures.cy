@@ -11,12 +11,12 @@ fn stash [lent.mut 'l': Locker, 'item': str.utf8] -> bool or fail[full, bad_item
     return true;
 }
 
-fn parse_digit ['t': str.utf8] -> int32 or fail[not_a_digit] {
+fn parse_digit ['t': str.utf8] -> i32 or fail[not_a_digit] {
     if 't' equal_to "7" { return 7; }
     fail not_a_digit;
 }
 
-fn double_digit ['t': str.utf8] -> int32 or fail[not_a_digit] {
+fn double_digit ['t': str.utf8] -> i32 or fail[not_a_digit] {
     let 'd' := parse_digit[copy 't'] otherwise fail;      # pass it up
     return 'd' x 2;
 }

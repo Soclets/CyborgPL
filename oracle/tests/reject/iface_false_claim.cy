@@ -1,5 +1,5 @@
 interface Ordered <T> { op < ['a': <T>, 'b': <T>] -> bool; }
-struct V { x: int32 }
+struct V { x: i32 }
 V satisfies Ordered;
 MAIN {
 }

@@ -7,10 +7,10 @@ fn loud ['name': str.utf8, 'answer': bool] -> bool {
 }
 MAIN {
     let 'xs' := [3, 5, 8];
-    let 'i': uint64 = 7;
+    let 'i': u64 = 7;
     # 'i' is past the end, so the list is never read
     if 'i' at_most list.length[lend 'xs'] and.then 'xs'[pos 'i'] equal_to 5 { std::print.useful["found", newln]; }
-    let 'n': int32 = 0;
+    let 'n': i32 = 0;
     if 'n' equal_to 0 or.else 100 div.floor 'n' < 2 { std::print.useful["small or nothing", newln]; }
     let 'a' := loud["first", false] and.then loud["second", true];
     let 'b' := loud["third", true] or.else loud["fourth", true];

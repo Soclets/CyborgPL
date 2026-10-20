@@ -1,3 +1,3 @@
-op plus ['a': int32, 'b': int32] -> int32 { return 'a'; }
+op plus ['a': i32, 'b': i32] -> i32 { return 'a'; }
 MAIN {
 }

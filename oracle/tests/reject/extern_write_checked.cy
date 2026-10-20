@@ -1,2 +1,2 @@
-extern.C mut 'a': int32;
+extern.C mut 'a': i32;
 MAIN { change 'a' = 2; }

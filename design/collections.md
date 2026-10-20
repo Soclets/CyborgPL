@@ -18,9 +18,9 @@ A collection writes a function and its dot narrowings (`cum`, `cum.quick`,
 ```
 pub coll.fn cum {
     bare.never;
-    cum ['x': int32, 'step': int32] -> int32 { return 'x' plus 'step'; }
+    cum ['x': i32, 'step': i32] -> i32 { return 'x' plus 'step'; }
     cum.quick ['step' = 2];
-    cum.double ['x': int32] -> int32 { return 'x' times 2; }
+    cum.double ['x': i32] -> i32 { return 'x' times 2; }
 }
 ```
 
@@ -55,7 +55,7 @@ A member may point at a function written elsewhere in the kit, so a kit's `kit.c
 ```
 pub coll.fn area {
     bare.never;
-    area ['w': int64, 'h': int64] -> int64 { return 'w' x 'h'; }
+    area ['w': i64, 'h': i64] -> i64 { return 'w' x 'h'; }
     area.square = shapes.square.area;           # body in shapes/square.cy
     area.triangle = shapes.triangle.area;
     area.unit ['w' = 1, 'h' = 1];               # a preset of the own function
@@ -76,9 +76,9 @@ picked by how many arguments it has and their types. This is the only place over
 ```
 pub coll.fn round {
     bare.optional;
-    round.near ['x': bin64] -> bin64 { … }
-    round.near ['x': deci64] -> deci64 { … }
-    round.near ['x': bin64, 'decimals': int32] -> bin64 { … }
+    round.near ['x': f64] -> f64 { … }
+    round.near ['x': d64] -> d64 { … }
+    round.near ['x': f64, 'decimals': i32] -> f64 { … }
 }
 ```
 
@@ -89,9 +89,9 @@ pub coll.fn round {
   `round.near['x', decimals 2]` are two versions.
 - Design claude's readings, not asked: a member may have versions as the own function may (std's `round.near`
   above); a preset beside several versions is refused until it is decided which one it fills.
-- **Versions differ by exact type, widths counting** (owner: "(a)"): `bin16` and `bin64` versions stand side by
+- **Versions differ by exact type, widths counting** (owner: "(a)"): `f16` and `f64` versions stand side by
   side, and a call two could take is refused at the call: `round.near[2.5]`, a bare literal fitting both, names
-  `2.5: bin64`. A variable has its type, so `round.near['x']` never is.
+  `2.5: f64`. A variable has its type, so `round.near['x']` never is.
 
 ## Who sees it
 
@@ -111,8 +111,8 @@ exist, a bare `std::print[…]` does not.
 
 ```
 coll.fn zero {
-    zero.of_int16 [] -> int16 { return 0; }
-    zero.of_int64 [] -> int64 { return 0; }
+    zero.of_int16 [] -> i16 { return 0; }
+    zero.of_int64 [] -> i64 { return 0; }
 }
 ```
 
@@ -127,26 +127,26 @@ member's signature, or no own function takes it.
 
 ```
 coll.fn zero {
-    for 'T' in [int16, int64] {
+    for 'T' in [i16, i64] {
         named "of_" ++ 'T';
         [] -> 'T' { return 0; }
     }
     #generated_2_lines_below
-    zero.of_int16 [] -> int16 { return 0; }
-    zero.of_int64 [] -> int64 { return 0; }
+    zero.of_int16 [] -> i16 { return 0; }
+    zero.of_int64 [] -> i64 { return 0; }
 }
 ```
 
 - **The loop is the usual `for`** (owner: "(a)"): over a list, `for 'n' in
   [2, 4, 8]`, or counting, `for 'n' from 1 to 8 by 1` (`before` too). Its
   values are known before building: literals, consts, and type names
-  (`for 'T' in [int16, int32]`, allowed only in a template). Inside a
+  (`for 'T' in [i16, i32]`, allowed only in a template). Inside a
   collection a `for` can only be a template.
 - **`named` comes first** and works out the member's name like text
   (owner: "(b)", over a `times_{'n'}` hole): `named "times_" ++
   to.stored.str.utf8['n'];`. A name that needs logic calls a function of the
   file, run while generating: `named size_name['n'];`, the function written
-  with ordinary `if`s. A type is its name's text there (`"int16"`). `named`
+  with ordinary `if`s. A type is its name's text there (`"i16"`). `named`
   anywhere else is refused, and so is a template without it.
 - **Then the member, with no name**: `[ … ] -> T { … }`, using the loop's
   value as `'n'` or `'T'`.

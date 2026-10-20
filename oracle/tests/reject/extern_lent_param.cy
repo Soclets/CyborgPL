@@ -1,3 +1,3 @@
-extern.C fn f [lent 'a': int32];
+extern.C fn f [lent 'a': i32];
 MAIN {
 }

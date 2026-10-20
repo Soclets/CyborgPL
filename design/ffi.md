@@ -16,15 +16,15 @@ enforced; the oracle cannot link C, so it emulates `write`, `exit`,
 ## `extern.C` — a function whose body is somewhere else
 
 ```
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
-extern.C fn exit ['code': int32];
-extern.C fn printf ['fmt': ptr[uint8], ...'args'] -> int32;      # C's own varargs
+extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+extern.C fn exit ['code': i32];
+extern.C fn printf ['fmt': ptr[u8], ...'args'] -> i32;      # C's own varargs
 
 extern.C {                                  # a library's worth at once
-    fn malloc ['bytes': uint64] -> ptr.mut[uint8];
-    fn free ['p': ptr.mut[uint8]];
-    'lib_version': int32;
-    mut 'lib_verbose': int32;
+    fn malloc ['bytes': u64] -> ptr.mut[u8];
+    fn free ['p': ptr.mut[u8]];
+    'lib_version': i32;
+    mut 'lib_verbose': i32;
 }
 ```
 
@@ -52,7 +52,7 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 - A returned plain value is a boundary value (its type known, its range
   not) — the wrapper's `if 'n' < 0 { fail io; }` makes it ordinary.
 - Variadic externs use `...'args'`; each extra argument must be C-shaped;
-  C's promotions apply (`bin32` → `bin64`, small ints → `int32`); the
+  C's promotions apply (`f32` → `f64`, small ints → `i32`); the
   platform's varargs convention (Apple arm64 differs) is the compiler's.
 
 ## `ptr[T]` — exists only at the boundary
@@ -80,7 +80,7 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
   `ptr.mut[T]` (Rust's raw-pointer spelling), `*'p'` reads (`ptr.read['p']`)
   and `change *'p' = v;` writes (`ptr.write`), each still a `no_check` site.
 - **`ptr.cast[T]['p']` sees the same address as pointing at a `T`**
-  (owner, 2026-09-30: a): `malloc`'s `ptr.mut[uint8]` becomes a
+  (owner, 2026-09-30: a): `malloc`'s `ptr.mut[u8]` becomes a
   `ptr.mut[Point]`. No byte moves and nothing converts — `ptr.read` then
   reads a `T`, `ptr.at` steps whole `T`s. Always a `no_check` site: only
   the programmer can say the bytes really are a `T`. The target is
@@ -88,20 +88,20 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
   pointer may write** (owner: a): a `ptr` stays read-only, a `ptr.mut`
   stays writable. It compiles to nothing — LLVM has one pointer type.
   `examples/ptr_cast.cy`.
-- No raw-allocation primitive: bytes you can name are a `list[uint8]` /
-  `array[uint8]` (owned, checked, lent to C); bytes nobody owns are
+- No raw-allocation primitive: bytes you can name are a `list[u8]` /
+  `array[u8]` (owned, checked, lent to C); bytes nobody owns are
   `malloc`/`free`, two externs.
 
 ## Callbacks — a Cyborg function C calls (decided 2026-09-21)
 
 ```
-extern.C fn qsort ['base': ptr.mut[int32], 'n': uint64, 'size': uint64,
-                 'cmp': fn[ptr[int32], ptr[int32]] -> int32];
+extern.C fn qsort ['base': ptr.mut[i32], 'n': u64, 'size': u64,
+                 'cmp': fn[ptr[i32], ptr[i32]] -> i32];
 
-fn ascending ['a': ptr[int32], 'b': ptr[int32]] -> int32 {
+fn ascending ['a': ptr[i32], 'b': ptr[i32]] -> i32 {
     no_check return ptr.read['a'] minus ptr.read['b'];
 }
-no_check qsort[lend.mut 'nums', 5, size.of[int32], ascending];
+no_check qsort[lend.mut 'nums', 5, size.of[i32], ascending];
 ```
 
 - **Only capture-free functions cross** (owner: a, over smuggling captures
@@ -122,7 +122,7 @@ no_check qsort[lend.mut 'nums', 5, size.of[int32], ascending];
 ## A ranged return — C's contract, checked at the door (decided 2026-09-22)
 
 ```
-extern.C fn strlen ['s': ptr[uint8]] -> uint64[min 0, max 1_000_000];
+extern.C fn strlen ['s': ptr[u8]] -> u64[min 0, max 1_000_000];
 no_check let 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
 ```
 
@@ -133,7 +133,7 @@ handles like any failure. Inside it, the prover knows the value's domain
 and everything downstream is provable. It is a failure, not a check
 site — so `no_check` (which the call needs) does not remove it, and the
 final build keeps it: one compare per call, the program's own logic,
-the same rule as `to.int32[min 0, max 100][…]` at the input boundary. An extern
+the same rule as `to.i32[min 0, max 100][…]` at the input boundary. An extern
 with a plain return still cannot fail. Parameters cannot be ranged (C
 receives what it is given). Proposed: (a) nothing on the extern, a
 guard `if` after each call; (b) a trusted range, unverified — a
@@ -152,15 +152,15 @@ checked when the call ends), and a `ptr.read`. Each is handled with
 
 **A C variable holds C's plain number** (owner, 2026-09-28: b): it is
 read by its name, and reading a variable never fails anywhere in
-Cyborg, so `extern.C 'm': Mode;` is refused. Declare it `int32` and
-convert. **`to.int32[Mode.vi]`** turns a C enum back into its number,
+Cyborg, so `extern.C 'm': Mode;` is refused. Declare it `i32` and
+convert. **`to.i32[Mode.vi]`** turns a C enum back into its number,
 which never fails but must fit the target, and that is how a C enum is
 written into a plain C variable. Proposed alternative: `otherwise` after
 a C variable's name (`'current' otherwise Mode.emacs`). The owner asked
 for missed use cases; writing a C library's mode variable was the one,
 and the conversion back answers it. Writing the
 type is the request to check. To skip the check, write the plain type
-(`int32`), and convert when you want the enum:
+(`i32`), and convert when you want the enum:
 
 ```
 let 'k' := to.Key['code'] otherwise { out_of_range { return; } };
@@ -185,7 +185,7 @@ tier trusting C's answers too. The owner asked whether `no_check` was then
 ## A range type as a C struct's field (owner, 2026-09-27: a)
 
 ```
-layout.C struct Rect { w: int32[min 0, max 4096], h: int32[min 0, max 4096] }
+layout.C struct Rect { w: i32[min 0, max 4096], h: i32[min 0, max 4096] }
 ```
 
 C sees the plain number, so the layout is unchanged (`Rect` is 8 bytes).
@@ -220,8 +220,8 @@ design claude's recommendation with a, not asked separately.
 ## `extern.C 'x': T` — a C global (decided 2026-09-21; `let` dropped 2026-09-25)
 
 ```
-extern.C 'lib_version': int32;        # C: extern int lib_version;   read-only
-extern.C mut 'lib_verbose': int32;    # C: extern int lib_verbose;   may be written
+extern.C 'lib_version': i32;        # C: extern int lib_version;   read-only
+extern.C mut 'lib_verbose': i32;    # C: extern int lib_verbose;   may be written
 
 no_check let 'v' := 'lib_version';       # reading C's variable is a no_check site
 no_check change 'lib_verbose' = 1;              # so is writing one
@@ -238,7 +238,7 @@ helper function per variable) and `extern.C 'x': ptr[T]` read through
 other declaration on 2026-09-25.
 
 **`errno` is not a plain global** on macOS and Linux — it is a macro
-that calls a function — so `extern.C 'errno': int32;` would be wrong
+that calls a function — so `extern.C 'errno': i32;` would be wrong
 there; the std kit offers `std::c.errno[]` backed by the real thing.
 `extern.C 'x': T` is for genuinely plain C globals. `examples/extern_data.cy`.
 
@@ -253,8 +253,8 @@ naming `layout.C`.
 
 ```
 layout.C struct Timeval {
-    sec: int64,
-    usec: int64
+    sec: i64,
+    usec: i64
 }
 ```
 
@@ -328,7 +328,7 @@ A C string is bytes ending in a 0 byte; a `str.utf8` knows its own length. Two w
 `C.int` (owner: "Isn't it `str`?"):
 
 ```
-extern.C fn puts ['s': ptr[uint8]] -> int32;
+extern.C fn puts ['s': ptr[u8]] -> i32;
 let 'name' := C.str.read['p'] otherwise { not_utf8 { … } };              # a char* to its 0 byte → str.utf8
 let 'cs' := C.str.make[lend 'name'] otherwise { has_zero_byte { … } };   # str.utf8 → a C string
 puts[lend 'cs'];
@@ -355,7 +355,7 @@ which stay `'SQLITE_OK'` as since 2026-10-10 (the morning's `C.SQLITE_OK` was wi
 ## A struct by value (owner, 2026-10-19)
 
 A `layout.C struct` may be passed to C and returned from it by value, whatever its size:
-`extern.C fn move_by ['p': Point, 'dx': bin32] -> Point;`. kayo follows the platform's C rules (on Apple silicon, up to
+`extern.C fn move_by ['p': Point, 'dx': f32] -> Point;`. kayo follows the platform's C rules (on Apple silicon, up to
 16 bytes in registers, bigger ones copied with a hidden pointer, as C does), so it costs what the same call costs from
 C. Already allowed before 2026-10-19 ("Only a `layout.C` struct may cross to C (in a signature …)"); the ruling only
 said any size. The calling rules are kayo's; the oracle has nothing to stand in for.
@@ -368,7 +368,7 @@ Both forms (owner: "What about both?"):
 incl.C.system["stdio.h"];                                        # printf comes with C's `...`
 no_check printf[lend 'fmt', 5, lend 'name'];                     # the open form: any extras, on your word
 
-extern.C fn printf_count = C.printf ['format': ptr[uint8], ...'n': int32] -> int32;
+extern.C fn printf_count = C.printf ['format': ptr[u8], ...'n': i32] -> i32;
 no_check printf_count[lend 'fmt', 5];                            # a fixed shape: its extras' types checked
 ```
 
@@ -383,11 +383,11 @@ no_check printf_count[lend 'fmt', 5];                            # a fixed shape
 ## Unions and bit-fields (owner, 2026-10-19)
 
 ```
-layout.C union Number { i: int32, f: bin32 }        # one of them at a time; C knows which
+layout.C union Number { i: i32, f: f32 }        # one of them at a time; C knows which
 no_check let 'x' := 'n'.i;                          # reading a field: on your word, listed in the build report
 change 'n'.f = 1.5;                                 # writing: always safe
 
-layout.C struct Status { mode: uint8[bits 3], ready: bool[bits 1], level: uint8[bits 4] }
+layout.C struct Status { mode: u8[bits 3], ready: bool[bits 1], level: u8[bits 4] }
 change 's'.mode = 5;                                # checked to fit: 3 bits hold 0 to 7
 ```
 

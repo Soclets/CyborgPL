@@ -75,7 +75,7 @@ is a text in `str.replace`; and (c) `from_pos: 'x'`): **`str.slice.grapheme[lend
 `zero: excluded`; recommended): `:` goes between a label and its value, so `C.str[max: 255 bytes, exclude zero]`;
 a unit after a value takes none either (`max: 255 bytes`). Not built.
 
-### 2026-10-20 — Number types are `i`, `u`, `f`, `d` with their widths; the base words become `bin`, `hex`, `oct` (owner; not built)
+### 2026-10-20 — Number types are `i`, `u`, `f`, `d` with their widths; the base words become `bin`, `hex`, `oct` (owner; built in the oracle)
 
 The owner: "I kinda want to switch to u, i, f, d. And yes, I know it's ambiguous, but we could just say in the docs
 what they map to" (asked 2026-10-19, then "nvm"). Design claude noted that Rust's `i32`, `u8`, `f64` were accepted
@@ -91,7 +91,8 @@ Unchanged: `str.utf8`, `char.point`, `bool`, `brain16`, C's `C.int` and the like
 With `bin` no longer a type, **the number-base words shorten to `bin`, `hex`, `oct`** (owner: "now we could shorten
 binary to bin", then "(a)", over (b) keeping `binary` and `octal`; design claude recommended the three alike, as
 Python's `bin()`, `hex()`, `oct()`): `bin 1010_0101`, `hex FF00`, `oct 755`; `binary` and `octal` become old
-spellings. `exactly` stays (owner: "I don't mean to change `exactly`"). Not built: the owner asked to wait.
+spellings. `exactly` stays (owner: "I don't mean to change `exactly`"). Built on the owner's "go" (oracle, examples,
+spellings.cyr, bench programs, the code in design notes); kayo, std and check by their sessions.
 Still to ask: the family word used alone (`to.useful.deci`, "a bin" in messages), and `decimals 2`.
 
 ### 2026-10-20 — Functions may be overloaded: one name, picked by the arguments' types (owner; details open, not built)

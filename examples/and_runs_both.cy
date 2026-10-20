@@ -10,7 +10,7 @@ MAIN {
     let 'ok' := loud["first", false] and loud["second", true];    # both print
     std::print.useful['ok', newln];
     let 'xs' := [3, 5, 8];
-    let 'i': uint64 = 7;
+    let 'i': u64 = 7;
     if 'i' at_most list.length[lend 'xs'] {
         if 'xs'[pos 'i'] equal_to 5 { std::print.useful["found", newln]; }
     }

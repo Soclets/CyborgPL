@@ -1,1 +1,1 @@
-does not fit bin16: it rounds past the largest value
+does not fit f16: it rounds past the largest value

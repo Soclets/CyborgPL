@@ -1,6 +1,6 @@
 coll.fn ov {
-    ov.flip ['x': int32] -> int32 { return 1; }
-    ov.flip ['x': int64] -> int32 { return 2; }
+    ov.flip ['x': i32] -> i32 { return 1; }
+    ov.flip ['x': i64] -> i32 { return 2; }
 }
 MAIN {
     let 'p' := false;

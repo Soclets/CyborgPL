@@ -1,4 +1,4 @@
-fn f [...'nums': int32] { }
+fn f [...'nums': i32] { }
 MAIN {
     f[1, "two"];
 }

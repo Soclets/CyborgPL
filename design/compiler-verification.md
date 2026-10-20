@@ -38,7 +38,7 @@ A generated program must print something, or the harness has nothing to
 compare but the exit code. kayo refuses every `std::` call until std
 exists (owner, 2026-09-22), so **each generated program carries a small
 printer written in the base language**: the number turned into ASCII
-digits in a `list[uint8]`, handed to C's `write` under `no_check`, as
+digits in a `list[u8]`, handed to C's `write` under `no_check`, as
 `examples/ffi.cy` does. Both implementations already agree on it.
 The printer is ordinary CyborgPL, so a bug in *it* is a finding too.
 When std has a print, the generator switches to `std::print.useful` and the
@@ -63,7 +63,7 @@ tests.
 
 This channel found three kayo bugs on the day it was proposed, probed by
 hand — the worst a **wrong proof**: `'n' times 10000000000000000000` into a
-`uint64` reported proven, with the binary silently overflowing at n = 2
+`u64` reported proven, with the binary silently overflowing at n = 2
 where the oracle stops. That is the class of bug the proofs-as-
 assertions mode exists for, and the reason the verification session
 does not read `synapse/`.

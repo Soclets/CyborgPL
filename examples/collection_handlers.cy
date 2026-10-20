@@ -2,7 +2,7 @@
 # after `otherwise` today, one per way the call can fail, and `otherwise half_failed.as_zero` reads them
 # as if they were written at the call: an arm may `return`, `break`, `continue` or `fail` from where it
 # is used, and a member that misses a way the call can fail is refused there.
-fn half ['n': int32] -> int32 or fail[odd, negative: int32] {
+fn half ['n': i32] -> i32 or fail[odd, negative: i32] {
     if 'n' < 0 { fail negative['n']; }
     if ('n' div.floor 2) x 2 not_equal 'n' { fail odd; }
     return 'n' div.floor 2;
@@ -23,12 +23,12 @@ coll.handler half_failed {
     }
 }
 
-fn half_or_zero ['n': int32] -> int32 {
+fn half_or_zero ['n': i32] -> i32 {
     let 'h' := half['n'] otherwise half_failed.as_zero;
     return 'h';
 }
 
-fn sum_of_halves [lent 'xs': list[int32], 'until_bad': bool] -> int32 {
+fn sum_of_halves [lent 'xs': list[i32], 'until_bad': bool] -> i32 {
     let 'sum' := 0;
     for 'x' in lend 'xs' {
         if 'until_bad' {
@@ -45,6 +45,6 @@ fn sum_of_halves [lent 'xs': list[int32], 'until_bad': bool] -> int32 {
 MAIN {
     std::print.useful[half_or_zero[10], " ", half_or_zero[7], newln];
     std::print.useful[half_or_zero[-4], newln];
-    let 'xs': list[int32] = [2, 4, 5, 8, -2, 10];
+    let 'xs': list[i32] = [2, 4, 5, 8, -2, 10];
     std::print.useful[sum_of_halves[lend 'xs', false], " ", sum_of_halves[lend 'xs', true], newln];
 }

@@ -1,1 +1,1 @@
-MAIN { let 'xs': array[uint8] = [1, 2, 3]; let 'v' := simd.load[lend 'xs', pos 1]; }
+MAIN { let 'xs': array[u8] = [1, 2, 3]; let 'v' := simd.load[lend 'xs', pos 1]; }

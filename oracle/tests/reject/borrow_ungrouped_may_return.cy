@@ -1,13 +1,13 @@
 # The result borrows both inputs, being in one group (since 2026-10-07 a function borrowing more than
 # one input says which with a group). This run returns 'a', but 'b' could have been returned, so
 # giving 't' away is refused.
-fn longer [@x] [lent @x 'a': list[int32], lent @x 'b': list[int32]] -> lent @x list[int32] {
+fn longer [@x] [lent @x 'a': list[i32], lent @x 'b': list[i32]] -> lent @x list[i32] {
     if list.length[lend 'a'] at_least list.length[lend 'b'] { return lend 'a'; }
     return lend 'b';
 }
 MAIN {
-    let 's': list[int32] = [1, 2, 3];
-    let 't': list[int32] = [4,];
+    let 's': list[i32] = [1, 2, 3];
+    let 't': list[i32] = [4,];
     let 'r' := longer[lend 's', lend 't'];
     let 'g' := give 't';
     std::print.useful[list.length[lend 'r'], newln];

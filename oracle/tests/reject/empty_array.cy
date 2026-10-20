@@ -1,3 +1,3 @@
 MAIN {
-    let 'xs': array[int32] = [];
+    let 'xs': array[i32] = [];
 }

@@ -6,9 +6,9 @@ enum Size {
 }
 
 MAIN {
-    let 'x': bin64 = 0.1;
-    let 'd': deci64 = 1.50;
-    let 'n': int32 = 42;
+    let 'x': f64 = 0.1;
+    let 'd': d64 = 1.50;
+    let 'n': i32 = 42;
     let 'ok' := true;
     let 's' := Size.big;
     std::print.stored[to.stored.str.utf8['x'], " | ", to.useful.str.utf8['x'], newln];

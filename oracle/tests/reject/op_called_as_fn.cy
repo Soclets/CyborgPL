@@ -1,4 +1,4 @@
-op dot ['a': int32, 'b': int32] -> int32 { return 'a' times 'b'; }
+op dot ['a': i32, 'b': i32] -> i32 { return 'a' times 'b'; }
 MAIN {
     let 'x' := dot[1, 2];
 }

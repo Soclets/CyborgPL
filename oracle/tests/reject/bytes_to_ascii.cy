@@ -1,4 +1,4 @@
 MAIN {
-    let 'b': list[uint8] = [104, 105];
+    let 'b': list[u8] = [104, 105];
     let 't' := to.str.ascii['b'] otherwise "?";
 }

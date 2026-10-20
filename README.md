@@ -86,7 +86,7 @@ The oracle and the verification harness use no crates.
 - **C++**: `incl.C`, reading a C header, from `#include <>` (owner: "I wanna add C++'s `#include <>`").
 - **Ada**: `and then` / `or else`, here `and.then` / `or.else`.
 - **Swift**, **Zig** and **C**: points of comparison in the SIMD, wrapping-arithmetic and enum decisions.
-- **IEEE 754**: the binary floats `bin16`, `bin32` and `bin64`, and the decimal floats `deci32`, `deci64` and `deci128` (IEEE 754-2008's decimal32, decimal64 and decimal128), their arithmetic and rounding.
+- **IEEE 754**: the binary floats `f16`, `f32` and `f64`, and the decimal floats `d32`, `d64` and `d128` (IEEE 754-2008's decimal32, decimal64 and decimal128), their arithmetic and rounding.
 - **Google Brain**: `brain16` is bfloat16, the 16-bit format from Google Brain.
 - **Lua**: the name *Lunae*.
 - **GCC**: inlining a recursive function into itself several levels deep, which `KAYO\n`'s own LLVM pass does after gfortran's fib beat it (2026-10-17).

@@ -6,13 +6,13 @@ const 'scale' := 10;
 
 module counter {
     pub const 'start' := 1;
-    pub struct Count { n: int32 }
+    pub struct Count { n: i32 }
     pub fn bump ['c': Count] -> Count {
         return Count[n = 'c'.n + step[]];
     }
-    fn step [] -> int32 { return my.'scale'; }      # private; reaches the root's const
+    fn step [] -> i32 { return my.'scale'; }      # private; reaches the root's const
     pub.kit module inner {
-        pub.kit fn twice ['n': int32] -> int32 { return 'n' x 2; }
+        pub.kit fn twice ['n': i32] -> i32 { return 'n' x 2; }
     }
 }
 

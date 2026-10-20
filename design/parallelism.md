@@ -73,7 +73,7 @@ until `para` joined it.
 ## No cheating: `no_cheat` (owner, 2026-10-01; any statement since 2026-10-18)
 
 ```
-no_cheat for 'i': int64 from 1 to 'n' by 1 { change 'acc' = 'acc' plus 'i'; }
+no_cheat for 'i': i64 from 1 to 'n' by 1 { change 'acc' = 'acc' plus 'i'; }
 no_cheat for seq 'i' in lend 'xs' { … }
 no_cheat for para 'i' from 1 to 'n' by 1 { … }
 ```

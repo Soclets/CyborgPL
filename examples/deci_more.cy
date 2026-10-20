@@ -2,21 +2,21 @@
 # exponent and rounds like the other operations; a wider deci into a narrower one fails
 # too_many_digits; a deci may be a range type, with bounds written as bins' are.
 MAIN {
-    let 't': deci64 = 7.50;
-    let 'm': deci64 = -7.50;
+    let 't': d64 = 7.50;
+    let 'm': d64 = -7.50;
     std::print.stored['t' mod.floor 2, " ", 'm' mod.floor 2, " ", 't' mod.floor -2, newln];
-    let 'r': deci64 = 1.05;
+    let 'r': d64 = 1.05;
     std::print.stored['r' xx 10, " ", 'r' xx 0, " ", 'r' xx -1, newln];
-    let 'r2': deci128 = 1.05;
+    let 'r2': d128 = 1.05;
     std::print.stored['r2' xx 10, newln];
-    let 'n': int32 = 3;
+    let 'n': i32 = 3;
     std::print.stored['r' xx 'n', newln];
-    let 'x': deci64 = 3.141592653589793;
-    let 'y' := to.deci32['x'] otherwise 0;
-    let 'z': deci64 = 2.50;
-    let 'zz' := to.deci32['z'] otherwise 0;
+    let 'x': d64 = 3.141592653589793;
+    let 'y' := to.d32['x'] otherwise 0;
+    let 'z': d64 = 2.50;
+    let 'zz' := to.d32['z'] otherwise 0;
     std::print.stored['y', " ", 'zz', newln];
-    let 'disc': deci64[min 0.0, max 1.0] = 0.15;
-    let 'p' := to.deci64[min 0.0, max 1.0]["1.5"] otherwise 'disc';
+    let 'disc': d64[min 0.0, max 1.0] = 0.15;
+    let 'p' := to.d64[min 0.0, max 1.0]["1.5"] otherwise 'disc';
     std::print.stored['disc', " ", 'p', newln];
 }

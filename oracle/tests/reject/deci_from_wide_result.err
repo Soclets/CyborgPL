@@ -1,1 +1,1 @@
-`to.deci64` can fail (too_many_digits)
+`to.d64` can fail (too_many_digits)

@@ -1,5 +1,5 @@
 # An inventory: range types, a function that takes any number of items, and failures.
-struct Item { name: str.utf8, grams: int32[min 1, max 50_000] }
+struct Item { name: str.utf8, grams: i32[min 1, max 50_000] }
 
 fn heaviest [...'items': Item] -> Item or fail[none] {
     if list.length[lend 'items'] equal_to 0 { fail none; }
@@ -10,9 +10,9 @@ fn heaviest [...'items': Item] -> Item or fail[none] {
     return give 'best';
 }
 
-fn kilos ['grams': int32] -> int32 or fail[not_whole, out_of_range] {
-    let 'k': bin64 = to.bin64['grams'] div.near 1000.0;
-    return to.int32['k'] otherwise fail;
+fn kilos ['grams': i32] -> i32 or fail[not_whole, out_of_range] {
+    let 'k': f64 = to.f64['grams'] div.near 1000.0;
+    return to.i32['k'] otherwise fail;
 }
 
 fn initial [lent 'name': str.utf8] -> char.point {
@@ -31,7 +31,7 @@ MAIN {
     list.append[lend.mut 'shelf', value Item[name = "tent", grams = 4_000]];
 
     let 'count' := list.length[lend 'shelf'];
-    let 'left': int8 = 4 - 'count';
+    let 'left': i8 = 4 - 'count';
     std::print.useful['count', " items, room for ", 'left', " more", newln];
 
     let 'top' := heaviest[...copy 'shelf'] otherwise { none { std::print.useful["empty shelf", newln]; std::exit[0]; } };

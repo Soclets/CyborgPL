@@ -1,5 +1,5 @@
-struct Counter { now: int32, stop: int32 }
-fn Counter.next [lent.mut 'c': Counter] -> optional[int32] {
+struct Counter { now: i32, stop: i32 }
+fn Counter.next [lent.mut 'c': Counter] -> optional[i32] {
     if 'c'.now equal_to 'c'.stop { return optional.none; }
     change 'c'.now = 'c'.now plus 1;
     return optional.value['c'.now];

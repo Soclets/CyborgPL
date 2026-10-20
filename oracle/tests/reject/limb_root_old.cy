@@ -1,4 +1,4 @@
-fn helper [] -> int32 {
+fn helper [] -> i32 {
     return 1;
 }
 

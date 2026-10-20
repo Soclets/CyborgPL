@@ -20,7 +20,7 @@ A bug here does not crash CyborgPL; it makes CyborgPL *lie*.
 Bugs here are ordinary: visible, reproducible, caught by the oracle or tests.
 
 - Front end (lexer, parser, name resolution).
-- Runtime arithmetic (`deci`, `bin128`) — algorithms reviewed, lines trusted
+- Runtime arithmetic (`deci`, `f128`) — algorithms reviewed, lines trusted
   to a large test corpus.
 - Synthia, the program generator, the test harness.
 - The oracle interpreter — its correctness comes from disagreement-hunting

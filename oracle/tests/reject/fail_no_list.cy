@@ -1,3 +1,3 @@
-fn f [] -> int32 { fail oops; }
+fn f [] -> i32 { fail oops; }
 MAIN {
 }

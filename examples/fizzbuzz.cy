@@ -1,5 +1,5 @@
 # FizzBuzz.
-fn say ['n': int32] {
+fn say ['n': i32] {
     let 'by3' := ('n' mod.floor 3) equal_to 0;
     let 'by5' := ('n' mod.floor 5) equal_to 0;
     if 'by3' and 'by5' {
@@ -14,7 +14,7 @@ fn say ['n': int32] {
 }
 
 MAIN {
-    let immut 'limit': int32 = 15;
+    let immut 'limit': i32 = 15;
     let 'i' := 1;
     while 'i' at_most 'limit' {
         say['i'];

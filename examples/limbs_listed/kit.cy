@@ -11,7 +11,7 @@ fn hello [] {
 }
 
 MAIN {
-    let 'n': int64 = to.int64["41"] otherwise 0;
+    let 'n': i64 = to.i64["41"] otherwise 0;
     check change 'n' = 'n' + 1;
     no_check change 'n' = 'n' x 1;
     std::print.useful[first['n', 7], newln];

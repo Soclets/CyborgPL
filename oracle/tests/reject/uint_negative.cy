@@ -1,3 +1,3 @@
 MAIN {
-    let 'x': uint8 = -1;
+    let 'x': u8 = -1;
 }

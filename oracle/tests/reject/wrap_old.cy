@@ -1,4 +1,4 @@
 MAIN {
-    let 'a': uint8 = 200;
+    let 'a': u8 = 200;
     let 'b' := 'a' +~ 100;
 }

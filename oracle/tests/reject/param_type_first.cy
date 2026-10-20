@@ -1,4 +1,4 @@
-fn f [int32 'a'] {
+fn f [i32 'a'] {
 }
 MAIN {
 }

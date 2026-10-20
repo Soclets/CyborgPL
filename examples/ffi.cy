@@ -1,14 +1,14 @@
 # The door to the OS (design/ffi.md). The oracle cannot link C; it emulates
 # write, exit, getenv, strlen, malloc, free so this runs.
-extern.C fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
-extern.C fn strlen ['s': ptr[uint8]] -> uint64;
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn malloc ['bytes': uint64] -> ptr.mut[uint8];
-extern.C fn free ['p': ptr.mut[uint8]];
+extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+extern.C fn strlen ['s': ptr[u8]] -> u64;
+extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
+extern.C fn malloc ['bytes': u64] -> ptr.mut[u8];
+extern.C fn free ['p': ptr.mut[u8]];
 
 layout.C struct Timeval {
-    sec: int64,
-    usec: int64
+    sec: i64,
+    usec: i64
 }
 
 fn say [lent 'text': str.utf8] -> fail[io] {
@@ -31,5 +31,5 @@ MAIN {
     no_check std::print.useful[ptr.read['buf'], " ", ptr.read[ptr.at['buf', by 1]], newln];
     no_check free['buf'];
 
-    std::print.useful[size.of[int32], " ", size.of[Timeval], " ", align.of[int64], " ", size.of[ptr[uint8]], newln];
+    std::print.useful[size.of[i32], " ", size.of[Timeval], " ", align.of[i64], " ", size.of[ptr[u8]], newln];
 }

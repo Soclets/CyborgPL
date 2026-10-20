@@ -8,7 +8,7 @@ interface Printable <T> {
     fn show [lent 'x': <T>] -> str.utf8;
 }
 
-struct Vec { x: bin64, y: bin64 }
+struct Vec { x: f64, y: f64 }
 
 # a struct keeps a promise by having the operations — the language's own operators
 # may be defined for a user type (never for the language's types)
@@ -22,7 +22,7 @@ Vec satisfies Printable;
 # a generic says what its blank accepts where it announces it (owner, 2026-10-02)
 fn max <T: Ordered> ['a': <T>, 'b': <T>] -> <T> {
     if 'b' < 'a' { return give 'a'; }     # a <T> may be owned, so generic code writes the verbs;
-    return give 'b';                       # for a plain T (int32) the verb does nothing
+    return give 'b';                       # for a plain T (i32) the verb does nothing
 }
 
 fn describe <T: Printable> [lent 'x': <T>] -> str.utf8 {

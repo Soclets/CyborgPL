@@ -1,11 +1,11 @@
 # Functions that take any number of arguments, typed or not.
-fn sum [...'nums'] -> bin64 {
-    let 'total': bin64 = 0;
-    for 'n' in lend 'nums' { change 'total' = 'total' + to.bin64['n']; }
+fn sum [...'nums'] -> f64 {
+    let 'total': f64 = 0;
+    for 'n' in lend 'nums' { change 'total' = 'total' + to.f64['n']; }
     return 'total';
 }
 
-fn count_ints [...'nums': int32] -> uint64 {
+fn count_ints [...'nums': i32] -> u64 {
     return list.length[lend 'nums'];
 }
 

@@ -1,4 +1,4 @@
-enum S { a: int32, b }
+enum S { a: i32, b }
 MAIN {
     let 's' := S.a;
 }

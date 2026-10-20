@@ -1,2 +1,2 @@
-extern.C 'a': int32 = 1;
+extern.C 'a': i32 = 1;
 MAIN { }

@@ -1,3 +1,3 @@
 MAIN {
-    let 'd': deci64 = 1.5;
+    let 'd': d64 = 1.5;
 }

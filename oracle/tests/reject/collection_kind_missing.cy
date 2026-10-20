@@ -1,5 +1,5 @@
 coll c {
-    c [] -> int32 { return 1; }
+    c [] -> i32 { return 1; }
 }
 
 MAIN { }

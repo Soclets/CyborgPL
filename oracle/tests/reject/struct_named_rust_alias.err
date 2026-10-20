@@ -1,1 +1,1 @@
-`i32` is an old spelling: write `int32`
+`i32` is one of the language's number types, so it cannot name a struct

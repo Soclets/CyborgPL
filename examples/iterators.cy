@@ -4,21 +4,21 @@
 # ("`c`"). `optional` is the base's: `optional.value[…]` / `optional.none`, matched bare.
 
 struct Counter {
-    now: int32,
-    stop: int32
+    now: i32,
+    stop: i32
 }
 
-fn Counter.next [lent.mut 'c': Counter] -> optional[int32] {
+fn Counter.next [lent.mut 'c': Counter] -> optional[i32] {
     if 'c'.now equal_to 'c'.stop { return optional.none; }
     change 'c'.now = 'c'.now + 1;
     return optional.value['c'.now];
 }
 
 struct Forever {
-    n: int32
+    n: i32
 }
 
-fn Forever.next [lent.mut 'f': Forever] -> optional[int32] {
+fn Forever.next [lent.mut 'f': Forever] -> optional[i32] {
     change 'f'.n = 'f'.n + 1;
     return optional.value['f'.n];
 }

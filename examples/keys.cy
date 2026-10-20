@@ -1,13 +1,13 @@
 # Map keys (decided 2026-09-22): plain values, text, chars, structs and enums by structure —
 # or a type's own `op equal_to ` and `fn hash` (it satisfies `Key`), with "equal keys hash the same"
 # a check site the compiler must prove.
-interface Key <T> { op equal_to ['a': <T>, 'b': <T>] -> bool;  fn hash [lent 'v': <T>] -> uint64; }
+interface Key <T> { op equal_to ['a': <T>, 'b': <T>] -> bool;  fn hash [lent 'v': <T>] -> u64; }
 
-struct Point { x: int32, y: int32 }                      # structural: fields decide
+struct Point { x: i32, y: i32 }                      # structural: fields decide
 
 struct User { name: str.utf8 }                           # its own rule: names compare lowercased
 op equal_to ['a': User, 'b': User] -> bool { return std::str.lower[lend 'a'.name] equal_to std::str.lower[lend 'b'.name]; }
-fn hash [lent 'v': User] -> uint64 { let 'low' := std::str.lower[lend 'v'.name]; return str.bytes[lend 'low']; }
+fn hash [lent 'v': User] -> u64 { let 'low' := std::str.lower[lend 'v'.name]; return str.bytes[lend 'low']; }
 User satisfies Key;
 
 MAIN {
@@ -15,7 +15,7 @@ MAIN {
     map.set[lend.mut 'grid', key Point[x = 1, y = 2], value "tree"];
     let 'at' := map.get[lend 'grid', key Point[x = 1, y = 2]] otherwise "nothing";
     std::print.useful['at', newln];
-    let mut 'users': map[User, int32] = map.empty;
+    let mut 'users': map[User, i32] = map.empty;
     map.set[lend.mut 'users', key User[name = "Ann"], value 1];
     let 'n' := map.get[lend 'users', key User[name = "ANN"]] otherwise 0;     # same key by User's own equal_to 
     std::print.useful['n', newln];

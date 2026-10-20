@@ -1,6 +1,6 @@
-extern.C fn malloc ['bytes': uint64] -> ptr.mut[uint8];
+extern.C fn malloc ['bytes': u64] -> ptr.mut[u8];
 struct Plain {
-    x: int32
+    x: i32
 }
 MAIN {
     no_check let 'raw' := malloc[4];

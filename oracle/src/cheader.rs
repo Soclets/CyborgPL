@@ -2,7 +2,7 @@
 //! building, so C's functions need no hand-written `extern.C`. The header's functions, globals and plain
 //! `#define` constants come through; a function-like macro is skipped (owner: "(a)"). The oracle asks
 //! Clang to read the header and turns each declaration it can say in CyborgPL into the line a person would
-//! write: `extern.C fn strlen ['p1': ptr[uint8]] -> uint64;`, `const 'BUFSIZ' := 1024;`. Everything else
+//! write: `extern.C fn strlen ['p1': ptr[u8]] -> u64;`, `const 'BUFSIZ' := 1024;`. Everything else
 //! (structs, unions, function pointers, `long double`, …) is left out for now, a provisional pick in the
 //! oracle's README. The parser reads the lines as if written where the `incl.C` line is.
 
@@ -308,7 +308,7 @@ fn function(name: &str, ty: &str, cx: &mut Cx) -> Option<String> {
 fn strip(t: &str) -> &str { t.trim() }
 
 /// A C type as CyborgPL writes it at the C boundary; `const` before a pointer's target makes it `ptr`, else
-/// `ptr.mut`. `void *` points at bytes, `uint8`.
+/// `ptr.mut`. `void *` points at bytes, `u8`.
 fn map(t: &str, cx: &mut Cx, depth: usize) -> Option<String> {
     if depth > 16 { return None; }
     let mut t = t.to_string();
@@ -339,7 +339,7 @@ fn map(t: &str, cx: &mut Cx, depth: usize) -> Option<String> {
             else if inner.ends_with('*') { (false, inner.to_string()) }
             else { match inner.strip_prefix("const ") { Some(b) => (true, b.trim().to_string()), None => match inner.strip_suffix(" const") { Some(b) => (true, b.trim().to_string()), None => (false, inner.to_string()) } } };
         let base = base.as_str();
-        let target = if base == "void" || cx.td.get(base).is_some_and(|t| t == "void") { "uint8".to_string() }
+        let target = if base == "void" || cx.td.get(base).is_some_and(|t| t == "void") { "u8".to_string() }
             else if let Some(tag) = struct_tag(base, cx) { record(&tag, cx, depth, false)? }
             else { map(base, cx, depth + 1)? };
         return Some(format!("ptr{}[{target}]", if is_const { "" } else { ".mut" }));
@@ -349,7 +349,7 @@ fn map(t: &str, cx: &mut Cx, depth: usize) -> Option<String> {
     // a named enum is its CyborgPL enum (owner, 2026-10-10); one CyborgPL has no name for is an `int`, as C's are
     if let Some(tag) = base.strip_prefix("enum ") { return Some(cx.enums.get(tag.trim()).cloned().unwrap_or_else(|| "C.int".to_string())); }
     // C's machine-sized types are the `C.` types (owner, 2026-10-10), C's words kept; a type the same size
-    // everywhere is CyborgPL's own (`int32_t` is `int32`, `double` is `bin64`)
+    // everywhere is CyborgPL's own (`int32_t` is `i32`, `double` is `f64`)
     Some(match base {
         "char" => "C.char", "signed char" => "C.signed_char", "unsigned char" => "C.unsigned_char",
         "short" | "short int" | "signed short" | "signed short int" => "C.short", "unsigned short" | "unsigned short int" => "C.unsigned_short",
@@ -359,9 +359,9 @@ fn map(t: &str, cx: &mut Cx, depth: usize) -> Option<String> {
         "unsigned long long" | "unsigned long long int" => "C.unsigned_long_long",
         "long double" => "C.long_double",
         "size_t" | "ssize_t" | "ptrdiff_t" | "intptr_t" | "uintptr_t" | "wchar_t" => return Some(format!("C.{base}")),
-        "int8_t" => "int8", "int16_t" => "int16", "int32_t" => "int32", "int64_t" => "int64",
-        "uint8_t" => "uint8", "uint16_t" => "uint16", "uint32_t" => "uint32", "uint64_t" => "uint64",
-        "float" => "bin32", "double" => "bin64", "_Bool" | "bool" => "bool",
+        "int8_t" => "i8", "int16_t" => "i16", "int32_t" => "i32", "int64_t" => "i64",
+        "uint8_t" => "u8", "uint16_t" => "u16", "uint32_t" => "u32", "uint64_t" => "u64",
+        "float" => "f32", "double" => "f64", "_Bool" | "bool" => "bool",
         // any other C type name stands for the type it names
         name => { let t = cx.td.get(name)?.clone(); return map(&t, cx, depth + 1); }
     }.to_string())

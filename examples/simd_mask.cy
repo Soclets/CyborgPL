@@ -5,8 +5,8 @@ fn count_on ['m': simd[bool, count 4]] -> bool {
     return simd.all['m'];
 }
 MAIN {
-    let 'xs': array[int32] = [5, 20, 30, 40];
-    let 'a': simd[int32, count 4] = simd.load[lend 'xs', pos 1];
+    let 'xs': array[i32] = [5, 20, 30, 40];
+    let 'a': simd[i32, count 4] = simd.load[lend 'xs', pos 1];
     let 'm': simd[bool, count 4] = 'a' > simd.fill[value 10];
     let 'all': simd[bool, count 4] = simd.fill[value true];
     let 'both' := 'm' and 'all';

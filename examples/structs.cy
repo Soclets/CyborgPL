@@ -1,12 +1,12 @@
 # Structs: building one, reading and changing its fields, an `immut` field.
 struct Locker {
     name: str.utf8,
-    immut number: int32,
-    capacity: int32,
+    immut number: i32,
+    capacity: i32,
     occupied: bool
 }
 
-fn free_space [lent 'l': Locker] -> int32 {
+fn free_space [lent 'l': Locker] -> i32 {
     if 'l'.occupied {
         return 0;
     }

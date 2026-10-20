@@ -65,8 +65,8 @@ Cost is counted in steps (one per AST node evaluated), never in time.
 ## Layer 2 — bounded values are tracked as sets
 
 A value from outside the program has a **domain**: what its type allows.
-`std::input.line[]` is any text; `to.int32[…] otherwise …` on it is any
-`int32`; `to.int32[min 0, max 100][…]` is `[0, 100]`; a `list[T][lo, hi]` has a
+`std::input.line[]` is any text; `to.i32[…] otherwise …` on it is any
+`i32`; `to.i32[min 0, max 100][…]` is `[0, 100]`; a `list[T][lo, hi]` has a
 length in `[lo, hi]`; an `extern` result is anything its C-shaped type
 holds — or, with a ranged return (`ffi.md`, 2026-09-22), the range,
 enforced at the door as a failure. the prover runs the program abstractly
@@ -82,7 +82,7 @@ every operation (`{1, 2, 3} times {10}` is `{10, 20, 30}`).
   intervals, at its fixed digit count. **`std::uenr`** (unbounded exact;
   decided 2026-09-22, owner: b) is tracked as an **interval over exact
   rationals** — no width, so no overflow site; its check sites are
-  division by zero and narrowing out of it (`to.int64[…]` fails
+  division by zero and narrowing out of it (`to.i64[…]` fails
   `out_of_range`) — **plus a digit-count bound** carried through
   arithmetic (`+` keeps the larger, `x` adds, `xx` multiplies). A
   computation whose digit count grows past a bound (provisional: 10⁶
@@ -150,8 +150,8 @@ note.
 
 Check sites are: integer overflow (plain operators, which are exact
 and checked where the value lands, or past 64 bits in between — owner,
-2026-09-23, `operators.md`; `+~` etc. are never sites), division and `mod` by zero, `[i]` bounds, narrowing (`uint64`
-into `int32`, a value into a range type), a length bound on a bounded
+2026-09-23, `operators.md`; `+~` etc. are never sites), division and `mod` by zero, `[i]` bounds, narrowing (`u64`
+into `i32`, a value into a range type), a length bound on a bounded
 list after every change, `to.…` conversions that are not failures, and
 the "must leave" rules the checker already enforces. Failures (`fail`) are
 not check sites: they are values with domains.
@@ -263,7 +263,7 @@ for the maximum (bounded binary search on "can it exceed K?"); failing
 that, `:=` at that boundary is the compile error `core-features.md`
 already specifies: write the type.
 
-A decimal literal under `:=` means `bin64`'s answer; a narrower bin is
+A decimal literal under `:=` means `f64`'s answer; a narrower bin is
 picked only where it gives identical results across the whole program,
 since a bin's width changes values (owner, 2026-10-02). `*0.1` is a
 `deci` instead.
@@ -332,8 +332,8 @@ targets = [
     cyjet::target[name = "aarch64-none", table_bytes = 4_096],      # a small board: small tables
 ]
 
-table_bytes 1_024 fn square ['x': uint8] -> uint16 { … }    # this function's own limit
-table_bytes 0 fn fib ['n': int64[min 0, max 92]] -> int64 { … }   # never a table
+table_bytes 1_024 fn square ['x': u8] -> u16 { … }    # this function's own limit
+table_bytes 0 fn fib ['n': i64[min 0, max 92]] -> i64 { … }   # never a table
 ```
 
 - Per target in `CyJet.cyr`, in bytes; **65,536** when not written (design claude's number: about the fast cache
@@ -352,7 +352,7 @@ code. Three attacks, one per way the prover can be wrong:
 
 - **a. Exhaustive and random execution.** For every site the prover calls
   proven, run the program through the interpreter oracle over every input
-  when the domains are small (all of `int8`, every list to length 4),
+  when the domains are small (all of `i8`, every list to length 4),
   and over random plus edge values (0, −1, min, max, empty, one past the
   bound) when they are not. A check that fires is a the prover bug. Kespar's
   generator did this and found three layer-2 bugs in one commit.

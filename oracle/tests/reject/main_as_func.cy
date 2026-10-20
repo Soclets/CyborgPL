@@ -1,3 +1,3 @@
-fn MAIN [] -> int32 {
+fn MAIN [] -> i32 {
     return 0;
 }

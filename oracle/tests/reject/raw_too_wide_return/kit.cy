@@ -1,4 +1,4 @@
-fn f [] -> uint16 {
+fn f [] -> u16 {
     return 65536;
 }
 

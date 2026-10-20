@@ -1,9 +1,9 @@
 # Generics (design/generics.md): a blank, <T>, filled per use by the compiler. Every blank is
 # announced after the name with what it accepts (owner, 2026-10-02): `<T>: Number`, `<T>: any`.
 interface Number {
-    int32
-    int64
-    bin64
+    i32
+    i64
+    f64
 }
 
 fn max <T: Number> ['a': <T>, 'b': <T>] -> <T> {
@@ -20,16 +20,16 @@ struct Pair <A: any, B: any> { left: <A>, right: <B> }     # blanks in the order
 
 enum Maybe <T: any> { none, some: <T> }
 
-fn describe [lent 'p': Pair[int32, str.utf8]] -> str.utf8 {
+fn describe [lent 'p': Pair[i32, str.utf8]] -> str.utf8 {
     return to.stored.str.utf8['p'.left] concat " " concat 'p'.right;
 }
 
 MAIN {
-    std::print.useful[max[3, 9], " ", max[2.5, 1.5], newln];       # int32 and bin64 versions, one source
+    std::print.useful[max[3, 9], " ", max[2.5, 1.5], newln];       # i32 and f64 versions, one source
     let 'nums' := [4, 5, 6];
     let 'f' := first[lend 'nums'] otherwise 0;
     std::print.useful['f', newln];
-    let 'p': Pair[int32, str.utf8] = Pair[left = 7, right = "seven"];
+    let 'p': Pair[i32, str.utf8] = Pair[left = 7, right = "seven"];
     std::print.useful[describe[lend 'p'], newln];
     let 'm' := Maybe.some[42];
     match 'm' {

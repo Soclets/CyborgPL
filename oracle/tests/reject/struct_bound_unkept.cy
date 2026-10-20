@@ -1,5 +1,5 @@
 interface Number {
-    int32
+    i32
 }
 struct Box <T: Number> { item: <T> }
 MAIN {

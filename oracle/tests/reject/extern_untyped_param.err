@@ -1,1 +1,1 @@
-parameter 'a' says its type: `'a': int32`
+parameter 'a' says its type: `'a': i32`

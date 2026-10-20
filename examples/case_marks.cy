@@ -9,7 +9,7 @@ case.any enum Mood {
 }
 
 case.exact struct Exact {
-    n: int32
+    n: i32
 }
 
 fn Describe ['m': Mood] -> str.utf8 {

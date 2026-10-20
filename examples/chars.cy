@@ -2,7 +2,7 @@
 MAIN {
     let 'a' := `A`;
     std::print.useful[char.code['a'], newln];                        # 65 — the number under it
-    let 'seven' := to.int32[to.str.utf8[`7`]] otherwise -1;        # 7 — a digit's value is a text parse
+    let 'seven' := to.i32[to.str.utf8[`7`]] otherwise -1;        # 7 — a digit's value is a text parse
     std::print.useful['seven', newln];
     let 'b' := char.point.from_code[66] otherwise `?`;
     let 'bad' := char.point.from_code[1_114_112] otherwise `?`;    # past the last code point: not_a_char

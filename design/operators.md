@@ -129,9 +129,9 @@ how wide the number is. **Any operand whose type it can work out is
 enough** — it does not have to be a declared name:
 
 ```
-let 'v': uint32 = 3;
-let 'a': uint32 = 2 shl 3;              # 16 — the literal takes the uint32 of its context
-let 'b': uint32 = ('v' mod.floor 16) shl 2;   # 12 — the expression is plainly a uint32
+let 'v': u32 = 3;
+let 'a': u32 = 2 shl 3;              # 16 — the literal takes the u32 of its context
+let 'b': u32 = ('v' mod.floor 16) shl 2;   # 12 — the expression is plainly a u32
 ```
 
 Same for `not.bit` and the wrapping operators. A literal takes its
@@ -142,13 +142,13 @@ in the operation itself; or that rule for bare literals only. Owner:
 the compiler can work it out, so it should.
 
 **A list literal's items take the element type** (owner, 2026-09-29: a):
-`let 'xs': list[uint8] = [0 minus.wrap 1,];` holds 255, exactly as `let 'x': uint8 = 0 -~
+`let 'xs': list[u8] = [0 minus.wrap 1,];` holds 255, exactly as `let 'x': uint8 = 0 -~
 1;` does, since each item lands in a `uint8` slot. So the "construction"
 below is a struct's or a call's, not a list literal. Raised by check
 claude; proposed alternative (b): the size stops at the brackets, so an
-item needing a size writes it (`[to.uint8[0] minus.wrap 1,]`). **An argument takes its
+item needing a size writes it (`[to.u8[0] minus.wrap 1,]`). **An argument takes its
 parameter's type the same way** (owner, same day: a): `show[0 minus.wrap 1]` into a
-`uint8` parameter wraps at 8 bits, and `list.append`'s value takes the
+`u8` parameter wraps at 8 bits, and `list.append`'s value takes the
 element type. Proposed alternative: an argument has no context, and says
 its size itself.
 
@@ -162,10 +162,10 @@ the arithmetic inside its arguments. So `'v': uint8 = g[0 > (-1) -
 
 It stops at a **comparison** as well: a `bool` holds the comparison's
 answer, never its operands, which take their width from each other by
-the rule above. So `let 'b': bool = (5 minus.wrap 'w') > 1;` is a `uint32`
-subtraction when `'w'` is a `uint32`. And the other side does size it: in
-`'n' > (0 minus.wrap 1)` with `'n'` a `uint64`, the literal group wraps in
-`uint64`.
+the rule above. So `let 'b': bool = (5 minus.wrap 'w') > 1;` is a `u32`
+subtraction when `'w'` is a `u32`. And the other side does size it: in
+`'n' > (0 minus.wrap 1)` with `'n'` a `u64`, the literal group wraps in
+`u64`.
 
 The sentence above — "the compiler knows every width; the oracle needs
 the left operand declared" — was always about the oracle's limit, not
@@ -177,23 +177,23 @@ it.
 ## Plain math is exact; it is checked where it lands (owner, 2026-09-23)
 
 ```
-let 'small': int16 = 5;
-let 'big': int64 = (20000 plus 20000) plus 'small';   # 40005: fits int64, fine
-let 'tiny': int8 = (100 plus 100) minus 150;           # 50: the 200 in between is fine
-let 'bad': int8 = 100 plus 100;                    # 200 does not fit int8: error
+let 'small': i16 = 5;
+let 'big': i64 = (20000 plus 20000) plus 'small';   # 40005: fits i64, fine
+let 'tiny': i8 = (100 plus 100) minus 150;           # 50: the 200 in between is fine
+let 'bad': i8 = 100 plus 100;                    # 200 does not fit i8: error
 ```
 
 `plus minus times` (and std's `pow`) on integers give the true answer, and so does every `div.X`
 and `mod.X` (owner, 2026-10-02: a; the one case is the smallest value
-divided by -1, `-128 div.trunc -1` on `int8`s, which is 128), and the
+divided by -1, `-128 div.trunc -1` on `i8`s, which is 128), and the
 check is where the value lands: a typed declaration, a `change`, an argument (the parameter's
 type), a return (the return type). A comparison compares true values,
 and a `:=` takes a type that holds its true value. You never get a
 wrong number, and never an error for an answer that fits where it is
 going. In between, the one limit is the machine's 64 bits, or the widest
 operand's width when that is wider (owner, 2026-10-03: two
-`!std.uint256`s work at 256 bits, two `int128`s at 128): a value no type
-of that width holds is a check site (`'a' times 'a'` on two huge `int64`s),
+`!std.uint256`s work at 256 bits, two `i128`s at 128): a value no type
+of that width holds is a check site (`'a' times 'a'` on two huge `i64`s),
 which the prover removes wherever it proves the values smaller. Bare
 numbers alone are worked out exactly at compile time. the prover still uses
 narrow sizes where it proves they fit, for SIMD especially, since the
@@ -201,10 +201,10 @@ answer is the same.
 
 **Wrapping is the exception**: `plus.wrap minus.wrap times.wrap` (and std's `pow.wrap`) wrap at the size of their
 values, never at where the result goes, so a hash gives the same number
-on any line (`'x' plus.wrap 'x'` on a `uint32` wraps at 32 bits even when
-stored into a `uint64`). **When the values mix sizes, you say which**
-(owner, 2026-09-23: b): `('a' plus 'b') plus.wrap 1` with an `int8` and an
-`int16` is an error until written `to.int16['a' plus 'b'] plus.wrap 1`, and so is
+on any line (`'x' plus.wrap 'x'` on a `u32` wraps at 32 bits even when
+stored into a `u64`). **When the values mix sizes, you say which**
+(owner, 2026-09-23: b): `('a' plus 'b') plus.wrap 1` with an `i8` and an
+`i16` is an error until written `to.i16['a' plus 'b'] plus.wrap 1`, and so is
 `'a' plus.wrap 'b'`. Wrapping exists for hashes and counters, where the size
 is the algorithm, so it is written and never guessed. Proposed
 alternatives: the bigger size; the left operand's (the oracle's old
@@ -221,8 +221,8 @@ size counts: the exponent is a count, like a shift's, not a value being
 wrapped (the oracle's reading, not ruled).
 
 How it was reached: check claude asked which size a group of bare
-numbers takes when the name beside it (`int16`) and the place it is
-stored (`int64`) disagree. Proposed: (a) the name beside decides; (b)
+numbers takes when the name beside it (`i16`) and the place it is
+stored (`i64`) disagree. Proposed: (a) the name beside decides; (b)
 the stored size decides; (c) split, plain by the stored size, wrapping
 by the values; (d) bare numbers exact, a mix of sizes done at the
 bigger. The owner first reasoned "the math is done inside `'big'`" (b),
@@ -231,30 +231,30 @@ this: every option before it either errors on answers that fit (a, and
 b in the middle of a narrower line) or can move a wrap (b). On today's
 processors a 16-bit and a 64-bit add cost the same, and the checks are
 what cost, and this has the fewest. Owner: "yes, that one". It also
-answers mixed sizes (`int16 plus int64`), which nothing had decided.
+answers mixed sizes (`i16 plus i64`), which nothing had decided.
 
 ## A `bin` never holds an infinity or a NaN (owner, 2026-09-29: a)
 
 An operation whose `bin` result would be an infinity or a NaN is a check
-site, like integer overflow: `'big' times 10.0` past the largest `bin64`,
+site, like integer overflow: `'big' times 10.0` past the largest `f64`,
 `1.0 div.near 0.0` and `0.0 div.near 0.0` (division by zero), `-1.0 pow 0.5` (no
 number). the prover proves them away where it can, the working build checks,
 the final build refuses the rest. Text never makes one either
 (2026-09-24). Proposed alternative: IEEE's infinities and NaN, as C has
 them.
 
-## `bin16` / `bin32` math rounds after every step (owner, 2026-09-24: a)
+## `f16` / `f32` math rounds after every step (owner, 2026-09-24: a)
 
 ```
-let 'x': bin32 = 16777216.0;
-let 'y': bin32 = 'x' plus 1.0 plus 1.0;      # 16777216: each plus rounds back at bin32
+let 'x': f32 = 16777216.0;
+let 'y': f32 = 'x' plus 1.0 plus 1.0;      # 16777216: each plus rounds back at f32
 ```
 
-Each operation on `bin16` or `bin32` values gives the IEEE result at their
+Each operation on `f16` or `f32` values gives the IEEE result at their
 width (nearest-even), as C and the processor do. A bare literal takes the
 width of the typed value beside it, and the place a result is stored never
 changes it. A result that rounds past the largest is a check site. Anyone
-who needs the exact sum chooses a bigger or exact type (`bin64`, an
+who needs the exact sum chooses a bigger or exact type (`f64`, an
 integer, `std::uenr`): "the programmer could've chose a better one". This is
 the opposite of plain integer math, which is exact because there 16- and
 64-bit cost the same. For bins, 64-bit intermediates would halve SIMD lanes
@@ -332,10 +332,10 @@ every one of these symbols spelled its word, and good practice was the words. `e
 ## Custom operators — `op` (decided 2026-09-20)
 
 ```
-struct Vec { x: bin64, y: bin64 }
+struct Vec { x: f64, y: f64 }
 op <+> ['a': Vec, 'b': Vec] -> Vec { return Vec[x = 'a'.x plus 'b'.x, y = 'a'.y plus 'b'.y]; }
-op dot ['a': Vec, 'b': Vec] -> bin64 { return 'a'.x times 'b'.x plus 'a'.y times 'b'.y; }
-op **  [give 'a': Vec, 'b': bin64] -> Vec { … return give 'a'; }
+op dot ['a': Vec, 'b': Vec] -> f64 { return 'a'.x times 'b'.x plus 'a'.y times 'b'.y; }
+op **  [give 'a': Vec, 'b': f64] -> Vec { … return give 'a'; }
 
 let 'w' := 'u' <+> 'v';                 # 'u' and 'v' both still yours
 let 'd' := ('u' <+> 'v') dot 'v';       # parenthesise when operators meet
@@ -418,7 +418,7 @@ A `pub op` is usable by every kit that depends on the one that wrote
 it, with nothing written: an operator has no place for a path, so
 `'u' dot 'v'` finds the `dot` written for what `'u'` and `'v'` are. Any
 kit may share an operator for any types, the language's own included
-(`op ~= ['a': bin64, 'b': bin64] -> bool` for "equal within a margin").
+(`op ~= ['a': f64, 'b': f64] -> bool` for "equal within a margin").
 **Two meanings of one operator for the same types is a compile error**
 (owner: "shouldn't two meanings of `~=` just err?"), whether they come
 from two kits or from a kit and your own code. With no path to pick

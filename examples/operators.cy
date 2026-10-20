@@ -1,5 +1,5 @@
 # Declaring operators: a symbol one, `<+>`, and a word one, `dot`.
-struct Vec { x: bin64, y: bin64 }
+struct Vec { x: f64, y: f64 }
 
 # a glyph operator: any run of  not % & * plus minus / < > = ? @ ^ | ~
 op <+> ['a': Vec, 'b': Vec] -> Vec {
@@ -7,12 +7,12 @@ op <+> ['a': Vec, 'b': Vec] -> Vec {
 }
 
 # a word operator, like times / pow / mod.floor
-op dot ['a': Vec, 'b': Vec] -> bin64 {
+op dot ['a': Vec, 'b': Vec] -> f64 {
     return 'a'.x x 'b'.x + 'a'.y x 'b'.y;
 }
 
 # operands are lent unless the op says give; then the caller says give too
-op <*> [give 'a': Vec, 'b': bin64] -> Vec {
+op <*> [give 'a': Vec, 'b': f64] -> Vec {
     change 'a'.x = 'a'.x x 'b';
     change 'a'.y = 'a'.y x 'b';
     return give 'a';

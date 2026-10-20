@@ -722,7 +722,7 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
     fn is_cmp(op: &str) -> bool { matches!(op, "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least") }
     fn refuse((op, line): (String, usize)) -> Result<(), String> {
         let op = op.split('.').next().unwrap_or("shl").to_string();
-        Err(format!("line {line}: `{op}` needs a width, and nothing here gives one: declare where the value goes (`let 'v': uint32 = 1 {op} 3;`) or write `to.uint32[1] {op} 3`"))
+        Err(format!("line {line}: `{op}` needs a width, and nothing here gives one: declare where the value goes (`let 'v': u32 = 1 {op} 3;`) or write `to.u32[1] {op} 3`"))
     }
     // a written position below 1 in std's text calls is refused when building (owner, 2026-10-17: "(a)")
     fn positions(c: &ast::Call) -> Result<(), String> {
@@ -730,7 +730,7 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
         if c.kit.as_deref() == Some("std") && (p.starts_with("str.at.") || p.starts_with("str.slice.")) {
             for Value::Expr(v) in c.args.values.iter().skip(1) {
                 let lit = match v { Expr::Int(n, _) => Some(*n), Expr::Unary(op, inner, _) if op == "-" => match &**inner { Expr::Int(n, _) => Some(-*n), _ => None }, _ => None };
-                if let Some(n) = lit { if n < 1 { return Err(format!("line {}: {n} is no position: a position is `uint64[min 1]`, counting from 1 (owner, 2026-10-17)", c.line)); } }
+                if let Some(n) = lit { if n < 1 { return Err(format!("line {}: {n} is no position: a position is `u64[min 1]`, counting from 1 (owner, 2026-10-17)", c.line)); } }
             }
         }
         Ok(())
@@ -759,11 +759,11 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
                 if plain(l) { if let Some(s) = bare_shift(r) { return refuse(s); } }
             }
             // a shift's count gives nothing inside it a width (owner, 2026-10-17: "(a)"):
-            // `to.int64[1] shl (5 shr to.uint8[1])`
+            // `to.i64[1] shl (5 shr to.u8[1])`
             if op.starts_with("shl") || op.starts_with("shr") { if let Some(s) = bare_shift(r) { return refuse(s); } }
         }
         // a conversion and std's printing give what is inside them no width (check claude, 2026-10-16, corpus
-        // 909a4a18): `to.int64[5 shr …]` and `std::print.useful[5 shr …]`
+        // 909a4a18): `to.i64[5 shr …]` and `std::print.useful[5 shr …]`
         match e {
             Expr::Convert(_, b, _, _, _) => for Value::Expr(v) in &b.values { if let Some(s) = bare_shift(v) { return refuse(s); } },
             Expr::Call(c) => { printing(c)?; positions(c)? }

@@ -2,8 +2,8 @@
 # refuses to run assembly, as for any asm block.
 MAIN {
     let 'text' := "Hello, world!" concat newln;
-    let 'fd': int64 = 1;
-    let 'len': int64 = 14;
+    let 'fd': i64 = 1;
+    let 'len': i64 = 14;
     no_check inline.ASM {
         mov x16, #4
         svc #0x80

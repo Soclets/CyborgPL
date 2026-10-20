@@ -23,9 +23,9 @@ pub enum Ty {
     /// `<T>` — a type variable (design/generics.md, 2026-09-20): a blank the compiler fills
     /// per use; every mention wears the `< >`
     Var(String),
-    /// `Stack[int32]` — a generic struct or enum with its blanks filled, in order of first appearance
+    /// `Stack[i32]` — a generic struct or enum with its blanks filled, in order of first appearance
     Inst(String, Vec<Ty>),
-    /// `int32[0, 100]` / `bin64[0.0, 1.0]` — a range type (design/input.md, 2026-09-20): the base
+    /// `i32[0, 100]` / `f64[0.0, 1.0]` — a range type (design/input.md, 2026-09-20): the base
     /// type, provably within inclusive bounds; assigning into it is a check site
     Ranged(Box<Ty>, Bound, Bound),
     /// `str.utf8[1, 40 graphemes]` — a length bound on text, in a named unit (decided 2026-09-22)
@@ -40,7 +40,7 @@ pub enum Ty {
     /// `map[K, V]` — a language collection (decided 2026-09-22); the order variant is the prover's
     /// to pick unless written: `map.ordered` keeps insertion order, `map.unordered` cannot be walked
     Map(Box<Ty>, Box<Ty>, MapOrder),
-    /// `simd[uint8, count 16]` — N plain values in one register (design/simd.md, 2026-09-22)
+    /// `simd[u8, count 16]` — N plain values in one register (design/simd.md, 2026-09-22)
     Simd(Box<Ty>, usize),
     /// `fn[lent T, U] -> R or fail[…]` — a function's type (design/functions-as-values.md,
     /// 2026-09-21): its signature with the names removed
@@ -49,7 +49,7 @@ pub enum Ty {
 
 /// A range type's bound: a numeric literal.
 #[derive(Debug, Clone, PartialEq)]
-pub enum Bound { Int(i128), Bin(f64), Min, Max }   // `int32[1, max]` — the type's own limit (2026-09-23)
+pub enum Bound { Int(i128), Bin(f64), Min, Max }   // `i32[1, max]` — the type's own limit (2026-09-23)
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MapOrder { Any, Ordered, Unordered }
@@ -191,7 +191,7 @@ pub struct Func {
 
 /// `pub const 'name' := v;` at the top level (decided 2026-09-19): a value
 /// known at compile time, baked in at every use, exportable; never assignable.
-/// `extern let 'errno': int32;` / `extern let mut 'x': T;` — a C global (design/ffi.md, decided 2026-09-21)
+/// `extern let 'errno': i32;` / `extern let mut 'x': T;` — a C global (design/ffi.md, decided 2026-09-21)
 #[derive(Debug, Clone)]
 pub struct ExternVar {
     pub name: String,
@@ -293,7 +293,7 @@ pub struct Program {
     pub externs: Vec<ExternVar>,
     pub modules: Vec<ModuleDef>,
     pub main: Option<Vec<Stmt>>,
-    /// `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]` — C's own arguments, raw (owner, 2026-09-29)
+    /// `MAIN ['argc': i32, 'argv': ptr[ptr[u8]]]` — C's own arguments, raw (owner, 2026-09-29)
     pub main_args: Option<(String, String)>,
     /// modules written under `#strict` (owner, 2026-09-27)
     pub strict_modules: Vec<Vec<String>>,
@@ -347,7 +347,7 @@ pub enum Stmt {
     Gives { value: Bracket, line: usize },
     /// `must 'x' == 5;` — in a `test fn` only (owner, 2026-09-29)
     Must { cond: Expr, line: usize },
-    /// `must.fail f[…];` / `must.fail.not_a_number to.int32["x"];` — it must fail (with that reason)
+    /// `must.fail f[…];` / `must.fail.not_a_number to.i32["x"];` — it must fail (with that reason)
     MustFail { expr: Expr, reason: Option<String>, line: usize },
     /// `must.stop 'xs'[99];` — a check site must fire
     MustStop { expr: Expr, line: usize },
@@ -449,9 +449,9 @@ pub enum Expr {
     OwnedElem(Verb, String, Box<Expr>, usize),
     /// `shapes.'pi'` / `kit.'pi'` — a const reached by module path (canonical), from a module
     ConstPath(Vec<String>, String, Vec<String>, usize),
-    /// `to.int32[v]` — an explicit conversion to a type (decided 2026-09-19); text → number can
+    /// `to.i32[v]` — an explicit conversion to a type (decided 2026-09-19); text → number can
     /// fail (`not_a_number`), so it may carry an `otherwise` handler
-    /// `to.T[v]`; the bool is `.useful` (`to.deci64.useful[…]`, owner 2026-09-29)
+    /// `to.T[v]`; the bool is `.useful` (`to.d64.useful[…]`, owner 2026-09-29)
     /// the form: 0 none written, 1 `to.stored.…`, 2 `to.useful.…` (owner, 2026-10-02: text says which)
     Convert(Ty, Bracket, Option<Handler>, u8, usize),
     /// `size.of[T]` / `align.of[T]` — compile-time constants (design/ffi.md)

@@ -1,3 +1,3 @@
-struct i32 { x: int32 }
+struct i32 { x: i32 }
 MAIN {
 }

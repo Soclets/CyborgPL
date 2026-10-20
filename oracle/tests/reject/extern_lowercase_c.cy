@@ -1,3 +1,3 @@
-extern.c fn exit ['code': int32];
+extern.c fn exit ['code': i32];
 MAIN {
 }

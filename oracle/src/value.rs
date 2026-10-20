@@ -178,7 +178,7 @@ pub fn int_range(ty: &Ty) -> Option<(i128, i128)> {
             IntWidth::W16 => (0, u16::MAX as i128),
             IntWidth::W32 => (0, u32::MAX as i128),
             IntWidth::W64 => (0, u64::MAX as i128),
-            IntWidth::W128 => (0, i128::MAX), // uint128's top half is beyond the oracle's i128
+            IntWidth::W128 => (0, i128::MAX), // u128's top half is beyond the oracle's i128
             IntWidth::Other(n) if *n > 127 => return None,
             IntWidth::Other(n) => (0, if *n >= 127 { i128::MAX } else { (1i128 << n) - 1 }),
         }),
@@ -204,11 +204,11 @@ pub fn unit_word(u: &CharUnit) -> &'static str { match u { CharUnit::Byte => "by
 
 pub fn ty_name(ty: &Ty) -> String {
     match ty {
-        Ty::Int(w) => format!("{}int{}", if matches!(w, IntWidth::Other(_)) { "not_std." } else { "" }, w_num(w)),
-        Ty::Uint(w) => format!("{}uint{}", if matches!(w, IntWidth::Other(_)) { "not_std." } else { "" }, w_num(w)),
-        Ty::Bin(n) => format!("bin{n}"),
+        Ty::Int(w) => format!("{}i{}", if matches!(w, IntWidth::Other(_)) { "not_std." } else { "" }, w_num(w)),
+        Ty::Uint(w) => format!("{}u{}", if matches!(w, IntWidth::Other(_)) { "not_std." } else { "" }, w_num(w)),
+        Ty::Bin(n) => format!("f{n}"),
         Ty::Brain => "brain16".into(),
-        Ty::Deci(n) => format!("deci{n}"),
+        Ty::Deci(n) => format!("d{n}"),
         Ty::Str(e) => format!("str.{}", match e { crate::ast::Encoding::Utf8 => "utf8", crate::ast::Encoding::Utf16 => "utf16", crate::ast::Encoding::Utf32 => "utf32", crate::ast::Encoding::Ascii => "ascii" }),
         Ty::Bool => "bool".into(),
         Ty::Char(u) => format!("char.{}", match u { CharUnit::Byte => "byte", CharUnit::Point => "point", CharUnit::Grapheme => "grapheme" }),

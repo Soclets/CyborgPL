@@ -1,4 +1,4 @@
 extern.C {
-    fn exit ['code': int32];
+    fn exit ['code': i32];
 MAIN {
 }

@@ -1,1 +1,1 @@
-0 is no position: a position is `uint64[min 1]`
+0 is no position: a position is `u64[min 1]`

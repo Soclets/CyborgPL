@@ -1,6 +1,6 @@
 # Empty lists: `[]` with a type, and `list.empty`, then filled with `list.append`.
 MAIN {
-    let 'xs': list[int32] = [];
+    let 'xs': list[i32] = [];
     list.append[lend.mut 'xs', value 7];
     list.append[lend.mut 'xs', value 8];
     std::print.useful['xs', " ", list.length[lend 'xs'], newln];

@@ -1,1 +1,1 @@
--6 does not fit uint32: a bitwise operand is taken at the operator's width (`and.bit.wrap` takes its bits instead)
+-6 does not fit u32: a bitwise operand is taken at the operator's width (`and.bit.wrap` takes its bits instead)

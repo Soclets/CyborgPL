@@ -1,6 +1,6 @@
 # A day at a corner shop: a longer CyborgPL program, written to be read.
 #
-# It keeps a small catalog, takes orders written as text, prices them in exact decimals (`deci64`,
+# It keeps a small catalog, takes orders written as text, prices them in exact decimals (`d64`,
 # so 0.10 plus 0.20 is 0.30), applies discounts that a range type keeps between 0 and 50 percent,
 # prints receipts, tracks stock and loyalty points in maps, and ends the day with a report, a
 # restocking plan, the day's busy hours, the week's trade and a catalog search. Along the way it
@@ -9,7 +9,7 @@
 #   structs and enums with data, `match`         ownership said aloud: `give`, `copy`, `lend`
 #   failures a caller must handle, `otherwise`    generics with an interface, and `Number`
 #   functions as values                          a type's own function as an iterator (`Ticket.next`)
-#   range types, `int32[min 0, max 50]`          counting loops, `for 'i' from 1 to 'n' by 1`
+#   range types, `i32[min 0, max 50]`          counting loops, `for 'i' from 1 to 'n' by 1`
 #   slices, `from pos 1, to pos 3`               consts, at the top and inside a body
 #   tasks and channels, `concur`                 `print.useful`, `print.stored`, `print.format`
 #
@@ -37,44 +37,44 @@ enum Aisle {
 struct Item {
     name: str.utf8,
     aisle: Aisle,
-    price: deci64
+    price: d64
 }
 
 # One line of an order: what, and how many.
 struct Line {
     name: str.utf8,
-    count: int32[min 1, max 99]
+    count: i32[min 1, max 99]
 }
 
 # How a customer pays. A card carries its last four digits, a voucher its value.
 enum Payment {
     cash,
     card: str.utf8,
-    voucher: deci64
+    voucher: d64
 }
 
 struct Order {
     customer: str.utf8,
     lines: list[Line],
     payment: Payment,
-    discount: int32[min 0, max 50]
+    discount: i32[min 0, max 50]
 }
 
 # What one order came to, kept for the end-of-day report.
 struct Sale {
-    ticket: int32,
+    ticket: i32,
     customer: str.utf8,
-    units: int32,
-    total: deci64
+    units: i32,
+    total: d64
 }
 
 # Receipt numbers come from a counter that hands out the next one each time it is asked.
 struct Ticket {
-    now: int32,
-    last: int32
+    now: i32,
+    last: i32
 }
 
-fn Ticket.next [lent.mut 't': Ticket] -> optional[int32] {
+fn Ticket.next [lent.mut 't': Ticket] -> optional[i32] {
     if 't'.now equal_to 't'.last { return optional.none; }
     change 't'.now = 't'.now + 1;
     return optional.value['t'.now];
@@ -85,9 +85,9 @@ fn Ticket.next [lent.mut 't': Ticket] -> optional[int32] {
 # ---------------------------------------------------------------------------------------------------
 
 interface Number {
-    int32
-    int64
-    bin64
+    i32
+    i64
+    f64
 }
 
 # The larger of two numbers, for any kind of number.
@@ -106,8 +106,8 @@ fn total_of <T: Number> [lent 'xs': list[<T>]] -> <T> {
 }
 
 # The list sorted from largest to smallest: a plain insertion sort, easy to check by eye.
-fn sorted_down [lent 'xs': list[int32]] -> list[int32] {
-    let 'out': list[int32] = list.empty;
+fn sorted_down [lent 'xs': list[i32]] -> list[i32] {
+    let 'out': list[i32] = list.empty;
     for 'x' in lend 'xs' {
         list.append[lend.mut 'out', value 'x'];
         let 'i' := list.length[lend 'out'];
@@ -140,8 +140,8 @@ fn catalog [] -> list[Item] {
     ];
 }
 
-fn opening_stock [] -> map[str.utf8, int32] {
-    let 'stock': map[str.utf8, int32] = map.empty;
+fn opening_stock [] -> map[str.utf8, i32] {
+    let 'stock': map[str.utf8, i32] = map.empty;
     map.set[lend.mut 'stock', key "apple", value 40];
     map.set[lend.mut 'stock', key "banana", value 30];
     map.set[lend.mut 'stock', key "milk", value 12];
@@ -181,7 +181,7 @@ fn parse_line [lent 'piece': str.utf8] -> Line or fail[bad_line: str.utf8] {
     let 'words' := std::str.split[lend 'piece', at " "];
     if list.length[lend 'words'] not_equal 2 { fail bad_line[copy 'piece']; }
     let 'name' := copy 'words'[pos 1];
-    let 'count': int32[min 1, max 99] = to.int32[min 1, max 99]['words'[pos 2]] otherwise {
+    let 'count': i32[min 1, max 99] = to.i32[min 1, max 99]['words'[pos 2]] otherwise {
         not_a_number { fail bad_line[copy 'piece']; }
         out_of_range { fail bad_line[copy 'piece']; }
     };
@@ -203,12 +203,12 @@ fn parse_order [lent 'text': str.utf8] -> list[Line] or fail[bad_line: str.utf8]
 # ---------------------------------------------------------------------------------------------------
 
 # A pricing rule takes a line's price before any rule and gives what the customer pays for it.
-fn no_rule ['line_total': deci64] -> deci64 { return 'line_total'; }
+fn no_rule ['line_total': d64] -> d64 { return 'line_total'; }
 
 # Bakery goods are 20% off after six in the evening; the shop runs this rule all day here.
-fn evening_bakery ['line_total': deci64] -> deci64 { return 'line_total' x 0.80; }
+fn evening_bakery ['line_total': d64] -> d64 { return 'line_total' x 0.80; }
 
-fn rule_for ['a': Aisle] -> fn[deci64] -> deci64 {
+fn rule_for ['a': Aisle] -> fn[d64] -> d64 {
     match 'a' {
         bakery { return evening_bakery; }
         fresh { return no_rule; }
@@ -218,9 +218,9 @@ fn rule_for ['a': Aisle] -> fn[deci64] -> deci64 {
 }
 
 # A whole-order discount, which the range type keeps between 0 and 50 percent.
-fn apply_discount ['amount': deci64, 'percent': int32[min 0, max 50]] -> deci64 {
-    let 'pct': deci64 = to.deci64['percent'];
-    let 'off': deci64 = ('amount' x 'pct') div.near 100;
+fn apply_discount ['amount': d64, 'percent': i32[min 0, max 50]] -> d64 {
+    let 'pct': d64 = to.d64['percent'];
+    let 'off': d64 = ('amount' x 'pct') div.near 100;
     return 'amount' - 'off';
 }
 
@@ -230,12 +230,12 @@ fn apply_discount ['amount': deci64, 'percent': int32[min 0, max 50]] -> deci64 
 
 fn take_order [
     lent 'items': list[Item],
-    lent.mut 'stock': map[str.utf8, int32],
+    lent.mut 'stock': map[str.utf8, i32],
     lent 'order': Order,
-    'ticket': int32
+    'ticket': i32
 ] -> Sale or fail[out_of_stock: str.utf8, unknown_item: str.utf8] {
     std::print.useful["--- receipt #", 'ticket', " for ", 'order'.customer, " ---", newln];
-    let 'subtotal': deci64 = 0;
+    let 'subtotal': d64 = 0;
     let 'units' := 0;
     for 'line' in lend 'order'.lines {
         let 'item' := find_item[lend 'items', lend 'line'.name] otherwise {
@@ -245,7 +245,7 @@ fn take_order [
         if 'have' < 'line'.count { fail out_of_stock[copy 'line'.name]; }
         map.set[lend.mut 'stock', key copy 'line'.name, value 'have' - 'line'.count];
         let 'rule' := rule_for[copy 'item'.aisle];
-        let 'count': deci64 = to.deci64['line'.count];
+        let 'count': d64 = to.d64['line'.count];
         let 'line_total' := 'rule'['item'.price x 'count'];
         change 'subtotal' = 'subtotal' + 'line_total';
         change 'units' = 'units' + 'line'.count;
@@ -260,7 +260,7 @@ fn take_order [
     return Sale[ticket = 'ticket', customer = copy 'order'.customer, units = 'units', total = 'total'];
 }
 
-fn payment_text [lent 'p': Payment, 'total': deci64] -> str.utf8 {
+fn payment_text [lent 'p': Payment, 'total': d64] -> str.utf8 {
     match 'p' {
         cash { return "cash"; }
         card 'last4' { return "card ending " concat 'last4'; }
@@ -296,7 +296,7 @@ fn todays_orders [] -> list[Order] {
             }
         };
         let 'payment' := choose_payment['i'];
-        let 'discount': int32[min 0, max 50] = 0;
+        let 'discount': i32[min 0, max 50] = 0;
         if 'i' equal_to 3 { change 'discount' = 10; }
         if 'i' equal_to 8 { change 'discount' = 25; }
         list.append[lend.mut 'orders', value Order[customer = copy 'customers'[pos 'i'], lines = give 'lines', payment = give 'payment', discount = 'discount']];
@@ -304,7 +304,7 @@ fn todays_orders [] -> list[Order] {
     return give 'orders';
 }
 
-fn choose_payment ['i': int32] -> Payment {
+fn choose_payment ['i': i32] -> Payment {
     if ('i' mod.floor 3) equal_to 0 { return Payment.voucher[5.00]; }
     if ('i' mod.floor 2) equal_to 0 { return Payment.card["4242"]; }
     return Payment.cash;
@@ -314,7 +314,7 @@ fn choose_payment ['i': int32] -> Payment {
 # Loyalty points
 # ---------------------------------------------------------------------------------------------------
 
-fn add_points [lent.mut 'points': map[str.utf8, int32], lent 'sale': Sale] {
+fn add_points [lent.mut 'points': map[str.utf8, i32], lent 'sale': Sale] {
     let 'earned' := 'sale'.units x 'points_per_item';
     let 'before' := map.get[lend 'points', key copy 'sale'.customer] otherwise 0;
     map.set[lend.mut 'points', key copy 'sale'.customer, value 'before' + 'earned'];
@@ -324,7 +324,7 @@ fn add_points [lent.mut 'points': map[str.utf8, int32], lent 'sale': Sale] {
 # The end-of-day report
 # ---------------------------------------------------------------------------------------------------
 
-fn reorder_list [lent 'items': list[Item], lent 'stock': map[str.utf8, int32]] -> list[str.utf8] {
+fn reorder_list [lent 'items': list[Item], lent 'stock': map[str.utf8, i32]] -> list[str.utf8] {
     let 'out': list[str.utf8] = list.empty;
     for 'it' in lend 'items' {
         let 'left' := map.get[lend 'stock', key copy 'it'.name] otherwise 0;
@@ -335,25 +335,25 @@ fn reorder_list [lent 'items': list[Item], lent 'stock': map[str.utf8, int32]] -
     return give 'out';
 }
 
-fn takings_by_aisle [lent 'items': list[Item], lent 'opening': map[str.utf8, int32], lent 'closing': map[str.utf8, int32], 'a': Aisle] -> deci64 {
-    let 'sum': deci64 = 0;
+fn takings_by_aisle [lent 'items': list[Item], lent 'opening': map[str.utf8, i32], lent 'closing': map[str.utf8, i32], 'a': Aisle] -> d64 {
+    let 'sum': d64 = 0;
     for 'it' in lend 'items' {
         if 'it'.aisle equal_to 'a' {
             let 'had' := map.get[lend 'opening', key copy 'it'.name] otherwise 0;
             let 'has' := map.get[lend 'closing', key copy 'it'.name] otherwise 0;
             let 'sold' := 'had' - 'has';
-            change 'sum' = 'sum' + 'it'.price x to.deci64['sold'];
+            change 'sum' = 'sum' + 'it'.price x to.d64['sold'];
         }
     }
     return 'sum';
 }
 
-fn report [lent 'sales': list[Sale], lent 'items': list[Item], lent 'opening': map[str.utf8, int32], lent 'stock': map[str.utf8, int32], lent 'points': map[str.utf8, int32]] {
+fn report [lent 'sales': list[Sale], lent 'items': list[Item], lent 'opening': map[str.utf8, i32], lent 'stock': map[str.utf8, i32], lent 'points': map[str.utf8, i32]] {
     std::print.useful[newln, "=== ", 'shop_name', ", end of day ===", newln];
 
     # Orders and units
-    let 'units': list[int32] = list.empty;
-    let 'takings': deci64 = 0;
+    let 'units': list[i32] = list.empty;
+    let 'takings': d64 = 0;
     for 's' in lend 'sales' {
         list.append[lend.mut 'units', value 's'.units];
         change 'takings' = 'takings' + 's'.total;
@@ -370,7 +370,7 @@ fn report [lent 'sales': list[Sale], lent 'items': list[Item], lent 'opening': m
     }
 
     # The best sale of the day
-    let 'best_total': deci64 = 0;
+    let 'best_total': d64 = 0;
     let 'best_ticket' := 0;
     let 'best_customer' := "nobody";
     for 's' in lend 'sales' {
@@ -410,7 +410,7 @@ fn report [lent 'sales': list[Sale], lent 'items': list[Item], lent 'opening': m
 # over a channel. The tasks run alongside each other; MAIN waits for every answer.
 # ---------------------------------------------------------------------------------------------------
 
-fn shelf_count [lent 'items': list[Item], lent 'stock': map[str.utf8, int32], 'a': Aisle] -> int32 {
+fn shelf_count [lent 'items': list[Item], lent 'stock': map[str.utf8, i32], 'a': Aisle] -> i32 {
     let 'n' := 0;
     for 'it' in lend 'items' {
         if 'it'.aisle equal_to 'a' {
@@ -421,11 +421,11 @@ fn shelf_count [lent 'items': list[Item], lent 'stock': map[str.utf8, int32], 'a
     return 'n';
 }
 
-fn count_shelves [lent 'items': list[Item], lent 'stock': map[str.utf8, int32]] {
-    let 'fresh_ch' := channel[int32];
-    let 'bakery_ch' := channel[int32];
-    let 'pantry_ch' := channel[int32];
-    let 'household_ch' := channel[int32];
+fn count_shelves [lent 'items': list[Item], lent 'stock': map[str.utf8, i32]] {
+    let 'fresh_ch' := channel[i32];
+    let 'bakery_ch' := channel[i32];
+    let 'pantry_ch' := channel[i32];
+    let 'household_ch' := channel[i32];
     concur with [lend 'fresh_ch', lend 'items', lend 'stock'] { channel.send[lend 'fresh_ch', value shelf_count[lend 'items', lend 'stock', Aisle.fresh]]; }
     concur with [lend 'bakery_ch', lend 'items', lend 'stock'] { channel.send[lend 'bakery_ch', value shelf_count[lend 'items', lend 'stock', Aisle.bakery]]; }
     concur with [lend 'pantry_ch', lend 'items', lend 'stock'] { channel.send[lend 'pantry_ch', value shelf_count[lend 'items', lend 'stock', Aisle.pantry]]; }
@@ -485,12 +485,12 @@ fn show_search [lent 'items': list[Item]] {
 
 struct Restock {
     name: str.utf8,
-    cases: int32,
-    cost: deci64
+    cases: i32,
+    cost: d64
 }
 
 # How many items one case holds, by aisle.
-fn case_size ['a': Aisle] -> int32 {
+fn case_size ['a': Aisle] -> i32 {
     let 'size' := match 'a' {
         fresh { is 10; }
         bakery { is 6; }
@@ -501,13 +501,13 @@ fn case_size ['a': Aisle] -> int32 {
 }
 
 # The supplier charges 60% of the shop's price for each item in a case.
-fn case_cost ['price': deci64, 'size': int32] -> deci64 {
-    let 'each': deci64 = 'price' x 0.60;
-    let 'n': deci64 = to.deci64['size'];
+fn case_cost ['price': d64, 'size': i32] -> d64 {
+    let 'each': d64 = 'price' x 0.60;
+    let 'n': d64 = to.d64['size'];
     return 'each' x 'n';
 }
 
-fn plan_restock [lent 'items': list[Item], lent 'opening': map[str.utf8, int32], lent 'stock': map[str.utf8, int32]] -> list[Restock] {
+fn plan_restock [lent 'items': list[Item], lent 'opening': map[str.utf8, i32], lent 'stock': map[str.utf8, i32]] -> list[Restock] {
     let 'plan': list[Restock] = list.empty;
     for 'it' in lend 'items' {
         let 'target' := map.get[lend 'opening', key copy 'it'.name] otherwise 0;
@@ -518,7 +518,7 @@ fn plan_restock [lent 'items': list[Item], lent 'opening': map[str.utf8, int32],
             # whole cases only: round the count of cases up
             let 'cases' := ('missing' + 'size' - 1) div.floor 'size';
             let 'one_case' := case_cost['it'.price, 'size'];
-            let 'n': deci64 = to.deci64['cases'];
+            let 'n': d64 = to.d64['cases'];
             list.append[lend.mut 'plan', value Restock[name = copy 'it'.name, cases = 'cases', cost = 'one_case' x 'n']];
         }
     }
@@ -527,7 +527,7 @@ fn plan_restock [lent 'items': list[Item], lent 'opening': map[str.utf8, int32],
 
 fn show_restock [lent 'plan': list[Restock]] {
     std::print.useful[newln, "tomorrow's delivery:", newln];
-    let 'bill': deci64 = 0;
+    let 'bill': d64 = 0;
     for 'r' in lend 'plan' {
         std::print.format["  {:<10} {:>2} case(s)  {:>7.2}\n", 'r'.name, 'r'.cases, 'r'.cost];
         change 'bill' = 'bill' + 'r'.cost;
@@ -540,7 +540,7 @@ fn show_restock [lent 'plan': list[Restock]] {
 # ---------------------------------------------------------------------------------------------------
 
 # Customers on day 'd' (1 is Monday): busier towards the weekend, quieter on Sunday.
-fn customers_on ['d': int32[min 1, max 7]] -> int32 {
+fn customers_on ['d': i32[min 1, max 7]] -> i32 {
     if 'd' equal_to 7 { return 18; }
     return 20 + 'd' x 4;
 }
@@ -548,7 +548,7 @@ fn customers_on ['d': int32[min 1, max 7]] -> int32 {
 fn show_week [] {
     const 'days' := 7;
     std::print.useful[newln, "this week:", newln];
-    let 'counts': list[int32] = list.empty;
+    let 'counts': list[i32] = list.empty;
     for 'd' from 1 to 'days' by 1 {
         let 'n' := customers_on['d'];
         list.append[lend.mut 'counts', value 'n'];
@@ -564,7 +564,7 @@ fn show_week [] {
         change 'busiest' = larger['busiest', 'n'];
     }
     let 'sum' := total_of[lend 'counts'];
-    let 'average': bin64 = to.bin64['sum'] div.near to.bin64['days'];
+    let 'average': f64 = to.f64['sum'] div.near to.f64['days'];
     std::print.format["  {} customers, {:.1} a day, {} on the busiest\n", 'sum', 'average', 'busiest'];
     let 'weekend' := list.slice[lend 'counts', from pos 6, to pos 7];
     let 'weekdays' := list.slice[lend 'counts', from pos 1, before pos 6];
@@ -575,7 +575,7 @@ fn show_week [] {
 # Sales by the hour: a bar for each opening hour, counted with `before`
 # ---------------------------------------------------------------------------------------------------
 
-fn show_hours ['open': int32, 'close': int32] {
+fn show_hours ['open': i32, 'close': i32] {
     std::print.useful[newln, "customers by the hour:", newln];
     let 'peak' := 0;
     let 'peak_hour' := 'open';
@@ -607,7 +607,7 @@ MAIN {
     let 'items' := catalog[];
     let 'stock' := opening_stock[];
     let 'opening' := copy 'stock';
-    let 'points': map[str.utf8, int32] = map.empty;
+    let 'points': map[str.utf8, i32] = map.empty;
     let 'sales': list[Sale] = list.empty;
 
     # The price list, three columns of a table
@@ -657,10 +657,10 @@ MAIN {
     show_week[];
     show_search[lend 'items'];
 
-    # Exact decimals: the reason money is `deci64` and not `bin64`
-    let 'dime': deci64 = 0.10;
-    let 'cents_sum': deci64 = 'dime' + 0.20;
-    let 'float_sum': bin64 = 0.1 + 0.2;
+    # Exact decimals: the reason money is `d64` and not `f64`
+    let 'dime': d64 = 0.10;
+    let 'cents_sum': d64 = 'dime' + 0.20;
+    let 'float_sum': f64 = 0.1 + 0.2;
     std::print.useful[newln, "0.10 plus 0.20, stored exactly as money: "];
     std::print.stored['cents_sum', newln];
     std::print.useful["0.1 plus 0.2, stored as a binary float: "];

@@ -7,7 +7,7 @@ const 'unit' := 1.0;
 fn helper [] -> str.utf8 { return "from the root"; }
 
 module report {
-    pub.kit fn line ['label': str.utf8, 'v': bin64] {
+    pub.kit fn line ['label': str.utf8, 'v': f64] {
         std::print.useful['label', ": ", 'v', newln];
     }
 }

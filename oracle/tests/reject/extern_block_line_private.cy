@@ -2,8 +2,8 @@ bare.never [fn];
 
 module text {
     extern.C {
-        pub fn strlen ['s': ptr[uint8]] -> uint64;
-        fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
+        pub fn strlen ['s': ptr[u8]] -> u64;
+        fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
     }
 }
 MAIN {

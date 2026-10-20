@@ -1,4 +1,4 @@
-fn f [var 'a': int32] {
+fn f [var 'a': i32] {
 }
 MAIN {
 }

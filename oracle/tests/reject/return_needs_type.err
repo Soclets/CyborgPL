@@ -1,1 +1,1 @@
-`three` returns a value, so it says its type: `-> int32`
+`three` returns a value, so it says its type: `-> i32`

@@ -1,7 +1,7 @@
 # a trailing `,` is allowed (owner, 2026-10-14)
 struct P {
-    x: int32,
-    y: int32,
+    x: i32,
+    y: i32,
 }
 enum S { a, b, }
 MAIN {

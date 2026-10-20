@@ -1,3 +1,3 @@
-extern.C fn strlen ['s': ptr[uint8]] -> uint32;
+extern.C fn strlen ['s': ptr[u8]] -> u32;
 incl.C.system["string.h"];
 MAIN { }

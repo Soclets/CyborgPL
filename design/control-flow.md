@@ -18,7 +18,7 @@ if 'x' > 10 {
 ```
 
 - The condition is a bare expression followed by `{`. It must be a `bool`.
-  No truthiness: `if 'n' { }` on an `int32` is a compile error.
+  No truthiness: `if 'n' { }` on an `i32` is a compile error.
 - `else if` — two bare words (was `else.if` until 2026-09-19).
 - Braces are mandatory, even around one statement. Because construction
   uses `[`, not `{`, a struct value in a condition is never ambiguous.
@@ -36,7 +36,7 @@ deliberately hidden with `shadow 'x' := …;` (owner, 2026-10-08; `$:=` / `$=` u
 let 'x' := 1;
 if true {
     shadow 'x' := 2;            # shadows the outer 'x' until the block ends
-    shadow 'y': int32 = 3;      # error: there is no 'y' to shadow
+    shadow 'y': i32 = 3;      # error: there is no 'y' to shadow
 }
 ```
 
@@ -106,16 +106,16 @@ a step of 0 is a compile error. Start past stop with a positive step runs
 zero times.
 
 The counter is declared like a variable: bare name → best type from the
-bounds; `'i': int32` → explicit, every value must fit. **The step is not
+bounds; `'i': i32` → explicit, every value must fit. **The step is not
 one of those values** (owner, 2026-09-23): it is its own signed number,
-an instruction to go up or down, so `for 'i': uint64 from 3 to 1 by -1`
-is legal — `'i'` is 3, 2, 1, every one a fine `uint64`. Counting down a
-list by position needs this, since a position is a `uint64`. Proposed
+an instruction to go up or down, so `for 'i': u64 from 3 to 1 by -1`
+is legal — `'i'` is 3, 2, 1, every one a fine `u64`. Counting down a
+list by position needs this, since a position is a `u64`. Proposed
 alternative: the step must fit the counter's type too, which would make
 a backwards walk impossible to write without a signed counter and a
 conversion at every index. **The compiler compares before it steps**:
 `range[3, 0, -1]` ends at 0, and computing "next = 0 − 1" to test would
-underflow a `uint64` — an implementation rule the difference in
+underflow a `u64` — an implementation rule the difference in
 behaviour would otherwise hide. The bounds carry no
 `:=`/`=` markers (they would say the same thing twice). In a `#strict`
 file each bound is labelled and the step always written,
@@ -123,7 +123,7 @@ file each bound is labelled and the step always written,
 
 ```
 for 'i' from 0 to 9 by 1 { }                 # like  'i' := 0;
-for 'i': int8 from 0 to 9 by 1 { }           # like  'i': int8 = 0;
+for 'i': i8 from 0 to 9 by 1 { }           # like  'i': i8 = 0;
 ```
 
 **`range[…]` stays part of the `for`** (owner, 2026-09-23): it is not a
@@ -131,7 +131,7 @@ value, cannot be stored, passed or returned. The four things a
 first-class range is used for elsewhere are answered otherwise here —
 slicing by `list.slice` / `std::str.slice` with position arguments like
 every other operation; bounds passed to a function as two parameters or
-a three-line `struct Span { from: int32, to: int32 }` the writer owns;
+a three-line `struct Span { from: i32, to: i32 }` the writer owns;
 looping twice by writing the loop twice; and chaining, which needs
 iterators the language does not have. Nothing had asked for it since it
 was opened on 2026-09-19.

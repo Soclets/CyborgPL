@@ -1,1 +1,1 @@
-`to.int32` can fail (not_whole, out_of_range)
+`to.i32` can fail (not_whole, out_of_range)

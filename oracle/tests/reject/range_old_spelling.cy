@@ -1,4 +1,4 @@
 MAIN {
-    for 'i' in range.int32[min 0, max 3] {
+    for 'i' in range.i32[min 0, max 3] {
     }
 }

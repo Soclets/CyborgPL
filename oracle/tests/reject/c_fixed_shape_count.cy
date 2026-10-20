@@ -1,4 +1,4 @@
-extern.C fn p_one = C.printf ['format': ptr[uint8], ...'n': int32] -> int32;
+extern.C fn p_one = C.printf ['format': ptr[u8], ...'n': i32] -> i32;
 
 MAIN {
     let 'f' := C.str.make["%d %d"];

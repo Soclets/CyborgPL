@@ -1,1 +1,1 @@
-256 does not fit int8 (range -128 to 127)
+256 does not fit i8 (range -128 to 127)

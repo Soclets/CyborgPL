@@ -1,4 +1,4 @@
 MAIN {
-    let mut 'i': int32 = 1;
+    let mut 'i': i32 = 1;
     'i' += ;
 }

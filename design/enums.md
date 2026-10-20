@@ -28,7 +28,7 @@ namespace. The keyword is `enum` (Rust/C/Swift/TypeScript) over `variant`.
 ```
 let 'a' := Status.empty;                 # a case with no data: bare
 let 'b' := Status.claimed["Tankun"];     # a case with data: the bracket builds it
-struct Locker { number: int32, status: Status }
+struct Locker { number: i32, status: Status }
 ```
 
 - **An enum value is always owned**, like a struct (one rule; adding a
@@ -83,7 +83,7 @@ either one value or statements that leave, never a mix, so there is no
 question of which line was the value. Every case is still covered, and a
 case that gives a value in a `match` used as a statement is an error.
 The same holds for `otherwise` with several reasons:
-`to.int32['t'] otherwise { not_a_number { -2 } out_of_range { -1 } }`.
+`to.i32['t'] otherwise { not_a_number { -2 } out_of_range { -1 } }`.
 
 **In a `#strict` file a case says it with `giveS`** (b; spelled `gives`
 until the owner renamed it the same day, the capital S keeping it apart

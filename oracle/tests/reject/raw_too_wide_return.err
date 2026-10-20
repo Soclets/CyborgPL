@@ -1,1 +1,1 @@
-65536 does not fit uint16 (range 0 to 65535)
+65536 does not fit u16 (range 0 to 65535)

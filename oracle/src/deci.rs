@@ -1,4 +1,4 @@
-//! `deci32` / `deci64` / `deci128` — IEEE 754 decimal (design/types.md, owner 2026-09-29).
+//! `d32` / `d64` / `d128` — IEEE 754 decimal (design/types.md, owner 2026-09-29).
 //! A value is a sign, a coefficient of at most 7 / 16 / 34 digits, and an exponent, so
 //! `1.50` (150 × 10⁻²) and `1.5` (15 × 10⁻¹) are equal but kept apart, as IEEE keeps them.
 //! Every operation is exact and then rounded to the width, half to even. Digits are held as
@@ -111,7 +111,7 @@ impl Deci {
             let need = (exp - qmax(width)) as usize;
             if is_zero(&coef) { exp = qmax(width); }
             else if need <= room { coef = shift(&coef, need); exp -= need as i32; }
-            else { return Err(format!("does not fit deci{width}: past the largest value")); }
+            else { return Err(format!("does not fit d{width}: past the largest value")); }
         }
         Ok(Deci::new(neg, coef, exp, width))
     }
@@ -133,18 +133,18 @@ impl Deci {
         // trailing zeros past the width move into the exponent, the value unchanged: 9220000000000000000
         // is 922 × 10^16 (check claude, seed 25294: a brain16's useful form is such a number)
         while coef.len() > p && coef.last() == Some(&0) { coef.pop(); exp += 1; }
-        if coef.len() > p { return Err(format!("has {} digits; deci{width} holds {p}", coef.len())); }
-        if exp > qmax(width) as i64 + p as i64 || exp < qmin(width) as i64 { return Err(format!("is past what deci{width} holds")); }
+        if coef.len() > p { return Err(format!("has {} digits; d{width} holds {p}", coef.len())); }
+        if exp > qmax(width) as i64 + p as i64 || exp < qmin(width) as i64 { return Err(format!("is past what d{width} holds")); }
         Deci::round(neg, coef, exp as i32, width, false).map(Some)
     }
 
     pub fn from_int(i: i128, width: u8) -> Result<Deci, String> {
         let coef: Vec<u8> = i.unsigned_abs().to_string().bytes().map(|b| b - b'0').collect();
-        if coef.len() > precision(width) { return Err(format!("has {} digits; deci{width} holds {}", coef.len(), precision(width))); }
+        if coef.len() > precision(width) { return Err(format!("has {} digits; d{width} holds {}", coef.len(), precision(width))); }
         Ok(Deci::new(i < 0, coef, 0, width))
     }
 
-    /// `to.deci64['w']`: the bin's exact value, rounded to the width
+    /// `to.d64['w']`: the bin's exact value, rounded to the width
     pub fn from_bin_exact(x: f64, width: u8) -> Result<Deci, String> {
         if x == 0.0 { return Ok(Deci::new(x.is_sign_negative(), vec![0], 0, width)); }
         let s = format!("{:.*e}", precision(width) - 1, x.abs());
@@ -153,7 +153,7 @@ impl Deci {
         let e: i32 = e.parse().unwrap();
         Deci::round(x < 0.0, coef, e - (precision(width) as i32 - 1), width, false)
     }
-    /// `to.deci64.useful['w']`: the shortest decimal that reads back as the same bin
+    /// `to.d64.useful['w']`: the shortest decimal that reads back as the same bin
     pub fn from_bin_useful(x: f64, width: u8) -> Result<Deci, String> {
         let s = format!("{}", x.abs());
         let (int, frac) = s.split_once('.').unwrap_or((&s, ""));
@@ -297,7 +297,7 @@ impl Deci {
             if m > 0 { base = mul_mag(&base, &base); bexp *= 2; }
         }
         let neg = self.neg && k % 2 == 1;
-        if exp > i32::MAX as i64 / 2 || exp < i32::MIN as i64 / 2 { return Some(Err(format!("does not fit deci{}: past the largest value", self.width))); }
+        if exp > i32::MAX as i64 / 2 || exp < i32::MIN as i64 / 2 { return Some(Err(format!("does not fit d{}: past the largest value", self.width))); }
         if n >= 0 { return Some(Deci::round(neg, coef, exp as i32, self.width, false)); }
         if self.is_zero() { return None; }
         // one over the exact power, rounded once
@@ -305,7 +305,7 @@ impl Deci {
         Deci { neg: false, coef: vec![1], exp: 0, width: self.width }.div(&exact)
     }
 
-    /// `to.deci32[a deci64]`: exact when its digits fit the narrower width, else `too_many_digits`
+    /// `to.d32[a d64]`: exact when its digits fit the narrower width, else `too_many_digits`
     pub fn narrow(&self, width: u8) -> Result<Deci, &'static str> {
         if self.coef.len() > precision(width) { return Err("too_many_digits"); }
         Deci::round(self.neg, self.coef.clone(), self.exp, width, false).map_err(|_| "out_of_range")

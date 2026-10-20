@@ -1,3 +1,3 @@
 MAIN {
-    let 'l' := to.list[int32][1];
+    let 'l' := to.list[i32][1];
 }

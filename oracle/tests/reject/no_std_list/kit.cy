@@ -1,3 +1,3 @@
-fn f [lent 'xs': list[int32]] { }
+fn f [lent 'xs': list[i32]] { }
 
 MAIN { }

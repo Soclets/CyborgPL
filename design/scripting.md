@@ -7,7 +7,7 @@ Owner's direction, 2026-09-18. A higher-level language on top of CyborgPL.
 ## What is decided
 
 - **It exists.** Writers of it do not think about the low-level parts of
-  CyborgPL — widths (`bin16`), streams (`stdout`), the entry point (`MAIN`),
+  CyborgPL — widths (`f16`), streams (`stdout`), the entry point (`MAIN`),
   and the like.
 - **The final product is compiled with Cyborg.** A script is lowered to
   CyborgPL and goes through the prover like anything else: full proofs, the
@@ -48,7 +48,7 @@ compiler vs. the lowered CyborgPL through the oracle) is how that is known.
    `std::print.useful.stdout["hi", \n]`; a script file is its own `MAIN`.
 2. **The boundary problem.** the prover refuses `:=` on a value it cannot bound;
    a script writer never writes a type, so the lowering must supply wide
-   defaults at every boundary (`int64`, `str.utf8`, unbounded `list`) and
+   defaults at every boundary (`i64`, `str.utf8`, unbounded `list`) and
    let the default tier keep its runtime checks. the prover still proves what it
    can; the writer never sees a refusal.
 3. **The iteration compiler must agree with the real build** — same program,

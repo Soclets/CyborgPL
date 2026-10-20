@@ -1,4 +1,4 @@
-fn g ['p': uint8] -> uint8 {
+fn g ['p': u8] -> u8 {
     if false { return true; }
     return 1;
 }

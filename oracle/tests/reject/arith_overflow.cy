@@ -1,4 +1,4 @@
-fn big ['a': int32] -> int32 {
+fn big ['a': i32] -> i32 {
     return 'a' times 'a';
 }
 MAIN {

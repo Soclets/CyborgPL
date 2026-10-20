@@ -21,7 +21,7 @@ op plus ['a': Vec, 'b': Vec] -> Vec { … }
 ```
 
 Revises 2026-09-19's "the language's operators cannot be redefined": they
-cannot be *changed* for the language's own types (`op plus ['a': int32, …]`
+cannot be *changed* for the language's own types (`op plus ['a': i32, …]`
 is an error), but a struct or enum may define them for itself, with the
 operator's normal precedence. This is what lets `'u' plus 'v'` read like
 arithmetic and what an interface needs. `not`, `and`, `or` stay the
@@ -38,9 +38,9 @@ interface Printable <T> {
     fn show [lent 'x': <T>] -> str.utf8;
 }
 interface Number {
-    int32
-    int64
-    bin64
+    i32
+    i64
+    f64
 }
 ```
 
@@ -100,7 +100,7 @@ generics.
 
 An interface may also list types instead of operations, one per line
 like enum cases (owner, 2026-10-02: "Or just let it fucking go down"):
-`interface Number {` then `int8`, `int16`, `int32`, … each on its own
+`interface Number {` then `i8`, `i16`, `i32`, … each on its own
 line, then `}`. It accepts exactly those, and
 a type written later can never join it; a list of operations stays open
 to future types. The writer picks per interface. **Both may mix**: one

@@ -1,4 +1,4 @@
-op <+> ['a': int32, 'b': int32] -> int32 { return 'a' plus 'b'; }
+op <+> ['a': i32, 'b': i32] -> i32 { return 'a' plus 'b'; }
 MAIN {
     let 'f' := <+>;
 }

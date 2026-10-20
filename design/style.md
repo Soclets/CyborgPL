@@ -22,7 +22,7 @@ recommended.
 
    ```
    let 'text' := std::input.line[] otherwise "";
-   let 'n' := to.int32[min 1, max 99]['text'] otherwise 1;
+   let 'n' := to.i32[min 1, max 99]['text'] otherwise 1;
    ```
 
    Everything downstream is then proven, with no guard at each use
@@ -46,7 +46,7 @@ recommended.
    2026-10-12: "(b), if it's actually valid"; `#strict` did this until
    2026-10-07). A library's safety should not depend on who calls it, and
    the prover proves a site partly from its callers. So range types on public
-   parameters (`'p': int32[min 0, max 100]`): the function is proven from
+   parameters (`'p': i32[min 0, max 100]`): the function is proven from
    its signature, and a bad value is refused at the caller's line. And
    lifetime groups (`@x`) on returned borrows even where they could be
    inferred, so a reader sees what the result depends on.
@@ -96,8 +96,8 @@ recommended.
     to 16 this item said the opposite: "Write the words, not the symbols".)
 
 18. **Percentages: the `%` after the number, `percent` as the type** (owner, 2026-10-17: "For good practice,
-    use `%` behind, and `percent` as the type"): `let 'rate': percent[deci32] = exactly 7.5%;`, not
-    `7.5 percent` or `%[deci32]`, though both are allowed.
+    use `%` behind, and `percent` as the type"): `let 'rate': percent[d32] = exactly 7.5%;`, not
+    `7.5 percent` or `%[d32]`, though both are allowed.
 
 ## Names
 

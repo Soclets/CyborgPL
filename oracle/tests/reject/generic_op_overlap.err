@@ -1,1 +1,1 @@
-`~=` for int32 (line 8 of generic_op_overlap.cy) and the generic `~=` (line 7 of generic_op_overlap.cy) both cover int32
+`~=` for i32 (line 8 of generic_op_overlap.cy) and the generic `~=` (line 7 of generic_op_overlap.cy) both cover i32

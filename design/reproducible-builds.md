@@ -33,7 +33,7 @@ and "compile for the exact machine" makes the target part of the input.
    folder (owner: "(c)"), so a kit built from source elsewhere finds
    every file it includes. The file counts as source: its bytes are part
    of what the build depends on. It is spelled `incl.bytes["logo.png"]`, is
-   the base's (no limb, no `std`), and gives an `array[uint8]` held
+   the base's (no limb, no `std`), and gives an `array[u8]` held
    in the program file; it is a const's value only (`const 'logo' :=
    incl.bytes[…];`), read where it sits and copied only where something
    takes it to keep or change. Its text twin names the type, `incl.str.utf8[…]`
@@ -50,8 +50,8 @@ and "compile for the exact machine" makes the target part of the input.
 6. **Deterministic ordering** across kits and within the analysis: parallel
    inside the compiler is fine only where the result cannot depend on who
    finishes first.
-7. **Compile-time arithmetic matches the target.** A `bin16` folded at
-   compile time rounds exactly as the target's `bin16` would.
+7. **Compile-time arithmetic matches the target.** A `f16` folded at
+   compile time rounds exactly as the target's `f16` would.
 8. **The Unicode version is pinned** (owner, 2026-09-24: "Pin it, but we
    should update when we should update"). Grapheme boundaries, case
    mapping and every other Unicode table come from one recorded version,

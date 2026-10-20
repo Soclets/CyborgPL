@@ -1,4 +1,4 @@
 MAIN {
-    let 'x': uint8 = 5;
-    let 'v' := 'x': uint8;
+    let 'x': u8 = 5;
+    let 'v' := 'x': u8;
 }

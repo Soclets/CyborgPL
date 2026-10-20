@@ -1,3 +1,3 @@
 MAIN {
-    let 'n': int128 = 5;
+    let 'n': i128 = 5;
 }

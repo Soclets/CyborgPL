@@ -1,4 +1,4 @@
-fn f ['a': int32, ...'rest'] { }
+fn f ['a': i32, ...'rest'] { }
 MAIN {
     f[];
 }

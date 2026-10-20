@@ -1,3 +1,3 @@
-extern.C fn f ['cb': fn[int32] -> int32 or fail[x]];
+extern.C fn f ['cb': fn[i32] -> i32 or fail[x]];
 MAIN {
 }

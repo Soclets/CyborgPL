@@ -1,5 +1,5 @@
 # Reading, appending to and summing a list.
-fn sum [lent 'items': list[int32]] -> int32 {
+fn sum [lent 'items': list[i32]] -> i32 {
     let 'total' := 0;
     for 'n' in lend 'items' {
         change 'total' = 'total' + 'n';
@@ -8,7 +8,7 @@ fn sum [lent 'items': list[int32]] -> int32 {
 }
 
 MAIN {
-    let 'xs': list[int32] = [10, 20, 30];
+    let 'xs': list[i32] = [10, 20, 30];
     std::print.useful["first ", 'xs'[pos 1], ", last ", 'xs'[pos 3], newln];
     let 'n' := list.length[lend 'xs'];
     std::print.useful["length ", 'n', newln];

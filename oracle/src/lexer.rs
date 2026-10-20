@@ -34,12 +34,12 @@ pub enum Tok {
     ShadowEq,       // $=
     Strict,         // #strict — the file's reasons are written out (owner, 2026-09-27)
     NoShadow,       // !$ — before a declaration: the name cannot be shadowed (owner, 2026-09-25)
-    Colon,          // :   'x': int32
+    Colon,          // :   'x': i32
     Ellipsis,       // ... a variadic parameter
     LeftArrow,      // <-  asm: register into variable
     BothArrow,      // <-> asm: both ways
     Raw(String),    // the verbatim text of an `asm { … }` block
-    Arrow,          // ->  fn f [...] -> int32
+    Arrow,          // ->  fn f [...] -> i32
     Semi,           // ;
     Comma,          // ,
     Op(String),     // + - ++ == !== < > </== >/==
@@ -279,7 +279,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             if i < chars.len() && (chars[i].is_alphabetic() || chars[i] == '\'') {
                 // `0b1010` / `0x1F` / `0o17` are other languages' spelling (owner, 2026-10-19: "(a)", a word in front)
                 if s == "0" && matches!(chars[i], 'b' | 'x' | 'o') {
-                    let w = match chars[i] { 'b' => "binary", 'x' => "hex", _ => "octal" };
+                    let w = match chars[i] { 'b' => "bin", 'x' => "hex", _ => "oct" };
                     let rest: String = chars[i + 1..].iter().take_while(|c| c.is_ascii_alphanumeric() || **c == '_').collect();
                     return err(tl, tc, format!("a number in another base is written with a word in front: `{w} {rest}` (owner, 2026-10-19)"));
                 }
@@ -308,15 +308,16 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 s.push(chars[i]);
                 i += 1; col += 1;
             }
-            // `binary 1010_0101`, `hex FF00_00FF`, `octal 755` (owner, 2026-10-19: "(a)"): a whole number in another
-            // base, the word in front as `exactly` is; the digits are read here, `_` grouping as in decimals
-            if s == "binary" || s == "hex" || s == "octal" {
+            // `bin 1010_0101`, `hex FF00_00FF`, `oct 755` (owner, 2026-10-19: "(a)"; shortened 2026-10-20, owner: "(a)"):
+            // a whole number in another base, the word in front as `exactly` is; the digits are read here, `_` grouping
+            // as in decimals. `binary` and `octal` are old spellings (spellings.cyr)
+            if s == "bin" || s == "hex" || s == "oct" {
                 let mut k = i;
                 while k < chars.len() && chars[k] == ' ' { k += 1; }
                 let run: String = chars[k..].iter().take_while(|c| c.is_ascii_alphanumeric() || **c == '_').collect();
                 let starts = run.chars().next().map_or(false, |c| c.is_ascii_digit() || c == '_' || (s == "hex" && c.is_ascii_hexdigit()));
                 if k > i && starts {
-                    let radix = match s.as_str() { "binary" => 2, "hex" => 16, _ => 8 };
+                    let radix = match s.as_str() { "bin" => 2, "hex" => 16, _ => 8 };
                     let what = match radix { 2 => "a binary number has only the digits 0 and 1", 16 => "a hex number has only 0-9 and A-F", _ => "an octal number has only the digits 0 to 7" };
                     if let Some(bad) = run.chars().find(|c| *c != '_' && !c.is_digit(radix)) { return err(tl, tc, format!("{what}: `{bad}` in `{s} {run}`")); }
                     if run.starts_with('_') || run.ends_with('_') || run.contains("__") { return err(tl, tc, format!("`_` groups digits: one between two of them (`{s} {}`)", run.trim_matches('_').replace("__", "_"))); }

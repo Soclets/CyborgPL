@@ -1,4 +1,4 @@
 MAIN {
-    let 'xs': list[int32] = [];
+    let 'xs': list[i32] = [];
     list.append[lend.mut 'xs', 2];
 }

@@ -2,7 +2,7 @@
 # matches `é`. Names beyond English come from WSTN, which a file with no CyJet.cyr has.
 case.any [fn, var];
 
-fn Größe [] -> int32 {
+fn Größe [] -> i32 {
     return 7;
 }
 

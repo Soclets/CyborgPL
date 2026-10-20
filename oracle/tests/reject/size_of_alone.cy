@@ -1,3 +1,3 @@
 MAIN {
-    let 'n' := size[int32];
+    let 'n' := size[i32];
 }

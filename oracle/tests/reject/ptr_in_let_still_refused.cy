@@ -1,3 +1,3 @@
 MAIN {
-    let 'p': ptr[int32] = 1;
+    let 'p': ptr[i32] = 1;
 }

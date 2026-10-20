@@ -1,5 +1,5 @@
 MAIN {
-    let 'fd': int64 = 1;
+    let 'fd': i64 = 1;
     no_check inline.ASM {
         mov x16, #4
         svc #0x80

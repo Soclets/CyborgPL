@@ -1,4 +1,4 @@
-layout.C union Number { i: int32, f: bin32 }
+layout.C union Number { i: i32, f: f32 }
 
 MAIN {
     let 'n' := Number[i = 1];

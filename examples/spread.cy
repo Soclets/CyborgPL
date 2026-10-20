@@ -1,7 +1,7 @@
 # `...'xs'` at a call: unpack a list into the variadic part (decided 2026-09-21).
 # Only where the list's length is known — a literal, a `list[T][lo, hi]`, a bundle.
 
-fn sum [...'nums': int32] -> int32 {
+fn sum [...'nums': i32] -> i32 {
     let mut 'total' := 0;
     for 'n' in lend 'nums' { change 'total' = 'total' + 'n'; }
     return 'total';
@@ -15,13 +15,13 @@ fn show [lent 'label': str.utf8, lent ...'parts'] {
 
 fn shout [lent ...'parts'] { show["loud", ...'parts']; }      # a bundle passed on: its count is known
 
-fn keep [...'names': str.utf8] -> uint64 { return list.length[lend 'names']; }   # takes ownership of each
+fn keep [...'names': str.utf8] -> u64 { return list.length[lend 'names']; }   # takes ownership of each
 
 MAIN {
     let 'xs' := [1, 2, 3];
     std::print.useful[sum[...'xs'], newln];                   # same as sum[1, 2, 3]
     std::print.useful[sum[10, ...'xs', 20], newln];           # mixed with hand-typed values
-    let mut 'ys': list[int32][min 0, max 4] = list.empty;
+    let mut 'ys': list[i32][min 0, max 4] = list.empty;
     list.append[lend.mut 'ys', value 7];
     list.append[lend.mut 'ys', value 8];
     std::print.useful[sum[...'ys'], newln];                   # bounded: at most four

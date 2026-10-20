@@ -1,4 +1,4 @@
 MAIN {
-    let 'x': bin64 = 0.1;
-    std::print.stored[to.deci64['x'], newln];
+    let 'x': f64 = 0.1;
+    std::print.stored[to.d64['x'], newln];
 }

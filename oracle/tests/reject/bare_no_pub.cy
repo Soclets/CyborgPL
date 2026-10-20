@@ -1,4 +1,4 @@
-bare.never fn area [] -> int32 {
+bare.never fn area [] -> i32 {
     return 1;
 }
 

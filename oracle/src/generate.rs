@@ -93,7 +93,9 @@ fn read_templates(src: &str, lines_at: &[usize]) -> Result<Vec<Template>, String
 
 fn is_type(item: &str) -> bool {
     let w = item.split(['[', '.']).next().unwrap_or("");
-    ["int", "uint", "bin", "deci", "bool", "str", "char", "C", "brain16", "list", "array", "map", "ptr"].iter().any(|p| w.starts_with(p) && w[p.len()..].chars().all(|c| c.is_ascii_digit()))
+    ["bool", "str", "char", "C", "brain16", "list", "array", "map", "ptr"].iter().any(|p| w.starts_with(p) && w[p.len()..].chars().all(|c| c.is_ascii_digit()))
+        // the number types, a letter and a width (owner, 2026-10-20)
+        || ["i", "u", "f", "d"].iter().any(|p| w.strip_prefix(p).is_some_and(|d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit())))
         || w.starts_with(|c: char| c.is_ascii_uppercase())
 }
 

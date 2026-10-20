@@ -1,4 +1,4 @@
-struct S { x: int32 }
+struct S { x: i32 }
 enum S { a }
 MAIN {
 }

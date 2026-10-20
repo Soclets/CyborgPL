@@ -3,17 +3,17 @@ pub const 'passing' := 60;
 
 struct Student {
     name: str.utf8,
-    scores: list[int32]
+    scores: list[i32]
 }
 
-fn average [lent 's': Student] -> int32 or fail[no_scores] {
+fn average [lent 's': Student] -> i32 or fail[no_scores] {
     if list.length[lend 's'.scores] equal_to 0 { fail no_scores; }
     let 'total' := 0;
     for 'x' in lend 's'.scores { change 'total' = 'total' + 'x'; }
     check return 'total' div.floor list.length[lend 's'.scores];     # the if above proves the divisor is not 0
 }
 
-fn record [lent.mut 's': Student, 'score': int32] -> fail[out_of_range: int32] {
+fn record [lent.mut 's': Student, 'score': i32] -> fail[out_of_range: i32] {
     if 'score' < 0 or 'score' > 100 { fail out_of_range['score']; }
     list.append[lend.mut 's'.scores, value 'score'];
 }

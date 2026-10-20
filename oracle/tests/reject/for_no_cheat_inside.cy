@@ -1,4 +1,4 @@
 MAIN {
-    let mut 'a': int64 = 0;
-    for no_cheat 'i': int64 from 1 to 3 by 1 { change 'a' = 'a' + 'i'; }
+    let mut 'a': i64 = 0;
+    for no_cheat 'i': i64 from 1 to 3 by 1 { change 'a' = 'a' + 'i'; }
 }

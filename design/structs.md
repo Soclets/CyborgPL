@@ -12,15 +12,15 @@ of every field.
 ```
 struct Locker {
     name: str.utf8,
-    number: int32,
-    capacity: int32,
+    number: i32,
+    capacity: i32,
     occupied: bool
 }
 ```
 
 - Top level, beside `fn`; `pub struct` exports it (`kits.md`). The name is
-  bare (a type, like `int32`); **field names are bare too** (decided
-  2026-09-19, after a cold read caught `'number': int32` in the declaration
+  bare (a type, like `i32`); **field names are bare too** (decided
+  2026-09-19, after a cold read caught `'number': i32` in the declaration
   but `'l'.number` at access): a field is a path *into* a struct, not a
   variable you hold. The quotes go on the whole — `'l'` — and the route
   into it (`.number`, like `[2]` into a list) is bare. `name: type`,
@@ -30,7 +30,7 @@ struct Locker {
 - No `;` after a field: fields are not statements. Fields are separated by `,`, and a
   `,` after the last is allowed (owner, 2026-10-14, as everywhere items sit in braces:
   enum cases, `layout.C` structs and enums, precedence levels).
-- `!mut` is allowed on a field — `!mut number: int32` — under the same
+- `!mut` is allowed on a field — `!mut number: i32` — under the same
   rule as `!mut` on a variable: a verified contract, allowed, not standard.
 - A field may be any type, including another struct or a list.
 

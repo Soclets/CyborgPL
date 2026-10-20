@@ -1,6 +1,6 @@
-fn f ['a': int64] -> deci64 {
+fn f ['a': i64] -> d64 {
     let 'b' := 'a' times 1000;
-    return to.deci64['b'];
+    return to.d64['b'];
 }
 MAIN {
     std::print.useful[f[5], newln];

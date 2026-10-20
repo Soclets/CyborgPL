@@ -1,5 +1,5 @@
 # Functions as values (design/functions-as-values.md, 2026-09-21).
-struct Locker { number: int32, owner: str.utf8 }
+struct Locker { number: i32, owner: str.utf8 }
 
 fn by_number [lent 'a': Locker, lent 'b': Locker] -> bool { return 'a'.number < 'b'.number; }
 fn by_owner  [lent 'a': Locker, lent 'b': Locker] -> bool { return str.bytes[lend 'a'.owner] < str.bytes[lend 'b'.owner]; }
@@ -14,8 +14,8 @@ fn first_by [lent 'xs': list[Locker], 'less': fn[lent Locker, lent Locker] -> bo
     return copy 'winner'.owner;
 }
 
-fn keep [lent 'xs': list[int32], 'test': fn[int32] -> bool] -> list[int32] {
-    let 'out': list[int32] = [];
+fn keep [lent 'xs': list[i32], 'test': fn[i32] -> bool] -> list[i32] {
+    let 'out': list[i32] = [];
     for 'x' in lend 'xs' { if 'test'['x'] { list.append[lend.mut 'out', value 'x']; } }
     return give 'out';
 }
@@ -30,9 +30,9 @@ MAIN {
 
     let 'limit' := 60;
     let 'scores' := [72, 40, 95, 55];
-    let 'passing' := keep[lend 'scores', fn ['s': int32] -> bool with [lend 'limit'] { return 's' at_least 'limit'; }];
+    let 'passing' := keep[lend 'scores', fn ['s': i32] -> bool with [lend 'limit'] { return 's' at_least 'limit'; }];
     std::print.useful['passing', newln];
 
-    let 'evens' := keep[lend 'scores', fn ['s': int32] -> bool { return ('s' mod.floor 2) equal_to 0; }];   # captures nothing
+    let 'evens' := keep[lend 'scores', fn ['s': i32] -> bool { return ('s' mod.floor 2) equal_to 0; }];   # captures nothing
     std::print.useful['evens', newln];
 }

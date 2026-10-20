@@ -1,1 +1,1 @@
-`g` returns uint8, but this `return` gives 'p', which is a `bool`
+`g` returns u8, but this `return` gives 'p', which is a `bool`

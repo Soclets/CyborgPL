@@ -1,7 +1,7 @@
 //! Recursive descent over the token list. Grammar is in the comments of each fn.
 //!
 //! Syntax revised 2026-09-19 (design/syntax-sketch.md): `let`/`fn`, the type
-//! after the name (`'x': int32`), `-> T` for a return type, bare `if`/`else if`/
+//! after the name (`'x': i32`), `-> T` for a return type, bare `if`/`else if`/
 //! `while`/`for`, and `[ ]` only where it builds a value (text join, list, call,
 //! construction, index, `range[…]`).
 
@@ -474,10 +474,12 @@ impl Parser {
                     (Some((_, o)), _) => Some(crate::spellings::message(o)),
                     // an empty text is `str.empty` (owner, 2026-10-14: "(a)"); `""` is refused naming it
                     (None, Tok::Text(t, raw)) if t.is_empty() && raw.is_empty() => Some(crate::spellings::message(crate::spellings::old("\"\""))),
-                    // `not_std.i24` / `not_std.u24`, Rust's way of writing the width
+                    // `not_std.i24` / `not_std.u24` / `not_std.f80`: the long names are old since the types became
+                    // `i`, `u`, `f`, `d` (owner, 2026-10-20)
                     (None, Tok::Word(w)) if i > 1 && matches!(&self.toks[i - 2].tok, Tok::Word(s) if s == "not_std") && self.toks[i - 1].tok == Tok::Dot
-                        && (w.starts_with('i') && !w.starts_with("int") || w.starts_with('u') && !w.starts_with("uint")) => {
-                        Some(format!("`not_std.{w}` is an old spelling: write `not_std.{}` (owner, 2026-10-07; MTM, which kept the old spellings, is gone)", w.replacen('i', "int", 1).replacen('u', "uint", 1)))
+                        && ["uint", "int", "bin", "deci"].iter().any(|p| w.strip_prefix(p).is_some_and(|d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit()))) => {
+                        let short = if let Some(d) = w.strip_prefix("uint") { format!("u{d}") } else if let Some(d) = w.strip_prefix("int") { format!("i{d}") } else if let Some(d) = w.strip_prefix("bin") { format!("f{d}") } else { format!("d{}", &w[4..]) };
+                        Some(format!("`not_std.{w}` is an old spelling: write `not_std.{short}` (owner, 2026-10-20)"))
                     }
                     _ => None,
                 };
@@ -521,7 +523,7 @@ impl Parser {
             }
         }
         // what the base was slimmed into (owner, 2026-10-07): testing is TAS's, `brain16` AI's,
-        // `int128` and the other widths WSMW's, `deci` Money's, Unicode text UniTect's, the case
+        // `i128` and the other widths WSMW's, `deci` Money's, Unicode text UniTect's, the case
         // marks CAPS's. A word after `::` names something in a path.
         if self.lacks.iter().any(|c| ["AI", "WSMW", "Money", "unicode", "CNC"].contains(&c.as_str())) {
             for i in 0..self.toks.len() {
@@ -531,9 +533,9 @@ impl Parser {
                 let next = self.toks.get(i + 1).map(|t| &t.tok);
                 let found: Option<(&str, String)> = match &self.toks[i].tok {
                     Tok::Word(w) if w == "brain16" => Some(("AI", "`brain16`".into())),
-                    Tok::Word(w) if w == "int128" || w == "uint128" => Some(("WSMW", format!("`{w}`"))),
+                    Tok::Word(w) if w == "i128" || w == "u128" => Some(("WSMW", format!("`{w}`"))),
                     Tok::Word(w) if w == "not_std" => Some(("WSMW", "a `not_std.` width".into())),
-                    Tok::Word(w) if w.starts_with("deci") && w[4..].parse::<u32>().is_ok() => Some(("Money", format!("`{w}`"))),
+                    Tok::Word(w) if w.starts_with('d') && w.len() > 1 && w[1..].parse::<u32>().is_ok() => Some(("Money", format!("`{w}`"))),
                     Tok::Word(w) if w == "exactly" => Some(("Money", "an exact decimal literal (`exactly 0.1`)".into())),
                     Tok::Word(w) if after_dot && prev_word(2) == Some("str") && (w == "utf16" || w == "utf32") => Some(("unicode", format!("`str.{w}`"))),
                     Tok::Word(w) if after_dot && prev_word(2) == Some("char") && (w == "point" || w == "grapheme") => Some(("unicode", format!("`char.{w}`"))),
@@ -769,7 +771,7 @@ impl Parser {
                     Tok::Int(n) if n >= 0 => {}
                     other => return self.err(format!("`table_bytes` takes a whole number of bytes, 0 or more: `table_bytes 262_144 fn sine …`, found {other}")),
                 }
-                if !self.is_word("fn") { return self.err("`table_bytes` goes in front of a `fn`: `table_bytes 262_144 fn sine […] -> bin32 { … }`"); }
+                if !self.is_word("fn") { return self.err("`table_bytes` goes in front of a `fn`: `table_bytes 262_144 fn sine […] -> f32 { … }`"); }
             }
             match self.peek().clone() {
                 // `test fn name [] { … }` (owner, 2026-09-29): run by `kayo test`, never called
@@ -922,7 +924,7 @@ impl Parser {
                     // the block and the `.C`, owner, 2026-10-02: "both", "`extern.C`, and one line too")
                     self.advance();
                     if *self.peek() != Tok::Dot {
-                        return self.err("`extern` names its language, as `layout.C` does: `extern.C fn write [...] -> int64;`, `extern.C 'errno': int32;`, or a block, `extern.C { … }`");
+                        return self.err("`extern` names its language, as `layout.C` does: `extern.C fn write [...] -> i64;`, `extern.C 'errno': i32;`, or a block, `extern.C { … }`");
                     }
                     self.advance();
                     match self.advance().tok {
@@ -1007,7 +1009,7 @@ impl Parser {
                         prog.enums.push(EnumDef { name: self.canonical(&[name]), module: self.module.clone(), vis, cases, params: Vec::new(), bounds: Vec::new(), c_values: Some(values), line });
                         continue;
                     }
-                    // `layout.C union Number { i: int32, f: bin32 }` (owner, 2026-10-19): read as a struct, one field held at a time
+                    // `layout.C union Number { i: i32, f: f32 }` (owner, 2026-10-19): read as a struct, one field held at a time
                     let union = self.is_word("union");
                     if union { self.toks[self.pos].tok = Tok::Word("struct".into()); }
                     if !self.is_word("struct") { return self.err("`layout.C` goes before `struct`, `union` or `enum`: `layout.C struct Timeval { … }`, `layout.C union Number { … }`, `layout.C enum Key { a = 65 }`"); }
@@ -1047,9 +1049,9 @@ impl Parser {
                     if *self.peek() == Tok::LBracket {
                         self.advance();
                         let mut names = Vec::new();
-                        let want = ["int32", "ptr[ptr[uint8]]"];
+                        let want = ["i32", "ptr[ptr[u8]]"];
                         for (k, w) in want.iter().enumerate() {
-                            let name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("MAIN's parameters are C's: `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`; found {other}")) };
+                            let name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("MAIN's parameters are C's: `MAIN ['argc': i32, 'argv': ptr[ptr[u8]]]`; found {other}")) };
                             self.expect(Tok::Colon, "`:` and the type")?;
                             self.at_boundary = true;
                             let t = self.ty();
@@ -1057,7 +1059,7 @@ impl Parser {
                             let t = t?;
                             if ty_name(&t) != *w { return self.err(format!("MAIN's parameters are C's: '{name}' is `{w}`, not `{}`", ty_name(&t))); }
                             names.push(name);
-                            if k == 0 { self.expect(Tok::Comma, "`,` and the second parameter, `'argv': ptr[ptr[uint8]]`")?; }
+                            if k == 0 { self.expect(Tok::Comma, "`,` and the second parameter, `'argv': ptr[ptr[u8]]`")?; }
                         }
                         self.expect(Tok::RBracket, "`]` after MAIN's two parameters")?;
                         prog.main_args = Some((names[0].clone(), names[1].clone()));
@@ -1129,7 +1131,7 @@ impl Parser {
                     self.expect(Tok::Semi, "`;` after the claim")?;
                     prog.claims.push(Claim { ty, iface: self.type_name(&segs)?, line });
                 }
-                Tok::Word(w) if w == "func" => return self.err("`func` became `fn` (2026-09-19): `fn add ['a': int32] -> int32 { … }`"),
+                Tok::Word(w) if w == "func" => return self.err("`func` became `fn` (2026-09-19): `fn add ['a': i32] -> i32 { … }`"),
                 Tok::Word(w) if w == "let" || w == "var" => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a kit-level value is a `const`: `const 'x' := 1;`"),
                 Tok::Var(_) => return self.err("a variable cannot sit at the top level; it goes inside MAIN or a fn — a kit-level value is a `const`: `const 'x' := 1;`"),
                 Tok::Word(w) if w == "mod" => return self.err("`mod` is the remainder operator; a module block is `module name { … }`"),
@@ -1278,30 +1280,34 @@ impl Parser {
         };
         if crate::spellings::is_reserved(&name) { return self.err(format!("`{name}` is a keyword and cannot name a struct")); }
         if let Some(own) = rust_alias(&name) { return self.err(format!("`{name}` is another name for `{own}`, so it cannot name a struct")); }
+        // `i32`, `u8`, `f64`, `d64` are the language's own number types (owner, 2026-10-20)
+        if ["i", "u", "f", "d"].iter().any(|p| name.strip_prefix(p).is_some_and(|d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit()))) {
+            return self.err(format!("`{name}` is one of the language's number types, so it cannot name a struct"));
+        }
         let gens = self.announce("struct")?;
         self.expect(Tok::LBrace, "`{`")?;
         let mut fields = Vec::new();
         while *self.peek() != Tok::RBrace {
             if *self.peek() == Tok::Eof { return self.err("unclosed `struct {`"); }
-            if self.is_word("let") || self.is_word("var") { return self.err("a struct field has no `let`: a struct always owns its fields — write `number: int32`"); }
+            if self.is_word("let") || self.is_word("var") { return self.err("a struct field has no `let`: a struct always owns its fields — write `number: i32`"); }
             let mut immut = false;
             if self.is_word("immut") { self.advance(); immut = true; }
             else if self.is_word("mut") { self.advance(); }
-            if *self.peek() == Tok::Dot { return self.err("`immut` is a bare word before the field's name: `immut number: int32`"); }
+            if *self.peek() == Tok::Dot { return self.err("`immut` is a bare word before the field's name: `immut number: i32`"); }
             let fname = match self.advance().tok {
                 // a C header's struct keeps C's field names, a keyword too, read after a dot (owner, 2026-10-10: "(b)")
                 Tok::Word(w) if crate::spellings::is_reserved(&w) && !self.from_c => return self.err(format!("`{w}` is a keyword and cannot name a field")),
                 Tok::Word(w) => w,
-                Tok::Var(v) => return self.err(format!("a field's name is bare: `{v}: int32` — a field is a path into the struct, not a variable (decided 2026-09-19)")),
+                Tok::Var(v) => return self.err(format!("a field's name is bare: `{v}: i32` — a field is a path into the struct, not a variable (decided 2026-09-19)")),
                 other => return self.err(format!("expected a field name, found {other}")),
             };
             if let Tok::Var(v) = self.peek().clone() { return self.err(format!("a field is `name: type` — the name first, bare: `{v}: {fname}`")); }
-            if *self.peek() != Tok::Colon { return self.err(format!("a field's type follows its name: `{fname}: int32`")); }
+            if *self.peek() != Tok::Colon { return self.err(format!("a field's type follows its name: `{fname}: i32`")); }
             self.advance();
             let ty = self.ty()?;
             if fields.iter().any(|f: &Field| f.name == fname) { return self.err(format!("field '{fname}' is declared twice")); }
             if *self.peek() == Tok::Semi { return self.err("no `;` after a struct field — fields are not statements"); }
-            self.item_comma("struct Locker { name: str.utf8, number: int32 }")?;
+            self.item_comma("struct Locker { name: str.utf8, number: i32 }")?;
             fields.push(Field { ty, name: fname, immut });
         }
         self.advance();
@@ -1318,7 +1324,7 @@ impl Parser {
         let line = self.line();
         self.bounds.clear();
         self.expect_word("fn")?;
-        if *self.peek() == Tok::Dot { return self.err("`fn` takes no chain; the return type goes after the parameters: `fn add [...] -> int32`"); }
+        if *self.peek() == Tok::Dot { return self.err("`fn` takes no chain; the return type goes after the parameters: `fn add [...] -> i32`"); }
         let name = match self.advance().tok {
             Tok::Word(w) => w,
             Tok::Var(v) => return self.err(format!("function names are bare: `fn {v}`, not `fn '{v}'` (quotes mean variable)")),
@@ -1378,14 +1384,14 @@ impl Parser {
                     }
                 }
             }
-            Tok::Colon => return self.err("a return type is written `-> int32`, not `: int32` (`:` attaches a type to a name)"),
+            Tok::Colon => return self.err("a return type is written `-> i32`, not `: i32` (`:` attaches a type to a name)"),
             Tok::Word(w) if w == "or" || w == "fail" => return self.err("a function that can fail says so after `->`: `-> bool or fail[full]` or `-> fail[full]`"),
-            Tok::Word(_) => return self.err("a return type is written `-> int32` after the parameter list"),
+            Tok::Word(_) => return self.err("a return type is written `-> i32` after the parameter list"),
             _ => {}
         }
         // every parameter says its type (owner, 2026-10-07: "`a`"); an untyped variadic keeps each
         // argument's own type (2026-09-19), left as it was until the owner says
-        if let Some(p) = params.iter().find(|p| p.ty.is_none() && !p.variadic) { return self.err(format!("parameter '{}' says its type: `'{}': int32` (owner, 2026-10-07)", p.name, p.name)); }
+        if let Some(p) = params.iter().find(|p| p.ty.is_none() && !p.variadic) { return self.err(format!("parameter '{}' says its type: `'{}': i32` (owner, 2026-10-07)", p.name, p.name)); }
         // a returned borrow names its group when there is a choice: two or more borrowed inputs (owner,
         // 2026-10-07: "`b`"); with one, it comes from that one
         if matches!(ret_lent, Some((_, None))) && params.iter().filter(|p| p.kind != ParamKind::Owned).count() >= 2 {
@@ -1403,7 +1409,7 @@ impl Parser {
             Vec::new()
         } else { self.block()? };
         // a function that returns a value says its type (owner, 2026-10-07: "`a`")
-        if ret.is_none() && ret_lent.is_none() && self.saw_value_return { return self.err(format!("`{name}` returns a value, so it says its type: `-> int32` (owner, 2026-10-07)")); }
+        if ret.is_none() && ret_lent.is_none() && self.saw_value_return { return self.err(format!("`{name}` returns a value, so it says its type: `-> i32` (owner, 2026-10-07)")); }
         let bounds = Self::flat_bounds(&gens);
         if !self.in_interface { self.declared = None; self.groups.clear(); }
         let mut module = self.module.clone();
@@ -1446,13 +1452,13 @@ impl Parser {
     /// `fn name [params] -> T;` or `['mut'] 'name': T;`.
     fn extern_item(&mut self, prog: &mut Program, vis: Vis) -> PResult<()> {
         let line = self.line();
-        if self.is_word("let") { return self.err("C's variable takes no `let`: `extern.C 'errno': int32;` (or `extern.C mut 'x': T;`)"); }
+        if self.is_word("let") { return self.err("C's variable takes no `let`: `extern.C 'errno': i32;` (or `extern.C mut 'x': T;`)"); }
         if self.is_word("mut") || self.is_word("immut") || matches!(self.peek(), Tok::Var(_)) {
             // a C global (decided 2026-09-21; no `let` since 2026-09-25)
             let mutable = if self.is_word("mut") { self.advance(); true } else { false };
             if self.is_word("immut") { return self.err("an extern variable is C's; it is read-only unless `mut`, never `immut`"); }
             let name = match self.advance().tok { Tok::Var(v) => v, Tok::Word(w) => return self.err(format!("an extern variable is named like a variable, quoted: `extern.C '{w}': …`")), other => return self.err(format!("expected a quoted name, found {other}")) };
-            if *self.peek() != Tok::Colon { return self.err(format!("the extern variable '{name}' needs a type; C has no inference: `extern.C '{name}': int32;`")); }
+            if *self.peek() != Tok::Colon { return self.err(format!("the extern variable '{name}' needs a type; C has no inference: `extern.C '{name}': i32;`")); }
             self.advance();
             self.at_boundary = true;
             let ty = self.ty();
@@ -1463,14 +1469,14 @@ impl Parser {
             prog.externs.push(ExternVar { name, module: self.module.clone(), vis, ty, mutable, line });
             return Ok(());
         }
-        if !self.is_word("fn") { return self.err("after `extern.C` comes `fn` or a quoted name: `extern.C fn write [...] -> int64;`, `extern.C 'errno': int32;`"); }
-        // `extern.C fn printf_count = C.printf ['format': ptr[uint8], ...'n': int32] -> int32;` (owner, 2026-10-19: "(c)"):
+        if !self.is_word("fn") { return self.err("after `extern.C` comes `fn` or a quoted name: `extern.C fn write [...] -> i64;`, `extern.C 'errno': i32;`"); }
+        // `extern.C fn printf_count = C.printf ['format': ptr[u8], ...'n': i32] -> i32;` (owner, 2026-10-19: "(c)"):
         // the name is yours, `C.` names C's; after `...` a fixed shape names and types each extra
         let mut link = None;
         if matches!(self.peek_at(1), Tok::Word(_)) && *self.peek_at(2) == Tok::Eq {
             match (self.peek_at(3).clone(), self.peek_at(4).clone(), self.peek_at(5).clone()) {
                 (Tok::Word(c), Tok::Dot, Tok::Word(n)) if c == "C" => { link = Some(n); self.toks.drain(self.pos + 2..self.pos + 6); }
-                _ => return self.err("a C function under another name says whose it is: `extern.C fn printf_count = C.printf [ … ] -> int32;`"),
+                _ => return self.err("a C function under another name says whose it is: `extern.C fn printf_count = C.printf [ … ] -> i32;`"),
             }
         }
         self.at_boundary = true;
@@ -1631,7 +1637,7 @@ impl Parser {
             }
             Tok::Word(w) if w == "mut" => { self.advance(); mutability = Some(Mutability::Mut); }
             Tok::Word(w) if w == "immut" => { self.advance(); mutability = Some(Mutability::Immut); }
-            Tok::Word(w) if w == "var" || w == "let" => return self.err(format!("an owning parameter has no `{w}`: `'a': int32`")),
+            Tok::Word(w) if w == "var" || w == "let" => return self.err(format!("an owning parameter has no `{w}`: `'a': i32`")),
             Tok::Word(w) if w == "lend" => return self.err("a parameter is `lent` (what it receives); `lend` is what the caller does"),
             _ => {}
         }
@@ -1655,7 +1661,7 @@ impl Parser {
 
     // type := Word ('.' Word)* ('[' type (',' type)* ']')?
     // Decided 2026-09-19: `.` picks a fixed variant (`str.utf8`, `char.grapheme`);
-    // `[ ]` supplies type parameters (`list[int32]`, `list[list[int32]]`). A struct
+    // `[ ]` supplies type parameters (`list[i32]`, `list[list[i32]]`). A struct
     // through modules is a dotted path (`shapes.Locker`, `my.Locker`).
     /// A type; a range or a length bound is ASP's (owner, 2026-10-07: "move"), refused without it
     fn ty(&mut self) -> PResult<Ty> {
@@ -1686,10 +1692,10 @@ impl Parser {
             if z && hi < 1 { return self.err("a buffer that includes its 0 holds at least 1 byte"); }
             return Ok(Ty::CStr(Some((lo, hi, z))));
         }
-        // a C bit-field, `mode: uint8[bits 3]` (owner, 2026-10-19: "(a)"): N bits of the field's integer, written in
+        // a C bit-field, `mode: u8[bits 3]` (owner, 2026-10-19: "(a)"): N bits of the field's integer, written in
         // its limits bracket; only in a `layout.C` struct or union. It holds what N bits hold, checked when written
         if matches!(self.peek(), Tok::Word(_)) && *self.peek_at(1) == Tok::LBracket && matches!(self.peek_at(2), Tok::Word(b) if b == "bits") {
-            if !self.in_layout_c { return self.err("`bits` makes a C bit-field: it is for a `layout.C` struct's fields, `mode: uint8[bits 3]`"); }
+            if !self.in_layout_c { return self.err("`bits` makes a C bit-field: it is for a `layout.C` struct's fields, `mode: u8[bits 3]`"); }
             let Tok::Word(base) = self.peek().clone() else { unreachable!() };
             let n = match self.peek_at(3).clone() { Tok::Int(n) => n, other => return self.err(format!("a bit-field's width is a whole number: `{base}[bits 3]`, found {other}")) };
             if *self.peek_at(4) != Tok::RBracket { return self.err(format!("a bit-field says only its width: `{base}[bits {n}]`")); }
@@ -1705,7 +1711,7 @@ impl Parser {
         Ok(t)
     }
 
-    /// The type a lone word names, the cursor left on it (for `uint8[bits 3]`).
+    /// The type a lone word names, the cursor left on it (for `u8[bits 3]`).
     fn ty_inner_word_only(&mut self) -> PResult<Ty> {
         let Tok::Word(w) = self.peek().clone() else { return self.err("expected a type") };
         let toks = vec![self.toks[self.pos].clone(), Token { tok: Tok::Semi, line: self.line(), col: 0, mtm: None }];
@@ -1725,10 +1731,10 @@ impl Parser {
     }
 
     /// After `exactly`: a number, which is then an exact `deci`
-    /// `5: uint8` — a typed literal (owner, 2026-10-17: "yea", and "(a)": no brackets needed): the `:` covers
-    /// only the literal right before it, as it covers only the name in `'x': uint8`. Literals only; a variable
-    /// is converted with `to.uint8['x']`. A literal that does not fit is refused when building. It is the
-    /// conversion of a literal that fits, so it runs as `to.uint8[5]`.
+    /// `5: u8` — a typed literal (owner, 2026-10-17: "yea", and "(a)": no brackets needed): the `:` covers
+    /// only the literal right before it, as it covers only the name in `'x': u8`. Literals only; a variable
+    /// is converted with `to.u8['x']`. A literal that does not fit is refused when building. It is the
+    /// conversion of a literal that fits, so it runs as `to.u8[5]`.
     fn typed_literal(&mut self, lit: Expr, line: usize) -> PResult<Expr> {
         if *self.peek() != Tok::Colon { return Ok(lit); }
         self.advance();
@@ -1751,11 +1757,11 @@ impl Parser {
             }
             (Expr::BigInt(..), Ty::Int(_) | Ty::Uint(_)) => Some("does not fit".into()),
             (Expr::Int(..) | Expr::Bin(..), Ty::Bin(_)) => None,
-            // a deci literal's digits are counted where it is written (std claude, 2026-10-20: `exactly 2.5: deci32`
+            // a deci literal's digits are counted where it is written (std claude, 2026-10-20: `exactly 2.5: d32`
             // asked for an `otherwise`): 7, 16 or 34, leading zeros aside, so one that fits never fails
             (Expr::Int(..) | Expr::Exact(..), Ty::Deci(w)) => {
                 // the same count as a declared deci's (an integer's trailing zeros go to the exponent: `exactly
-                // 10000000: deci32` fits, kayo's reading too)
+                // 10000000: d32` fits, kayo's reading too)
                 let text = written.trim_start_matches("exactly ").replace('_', "");
                 match crate::deci::Deci::parse(&text, *w) { Err(m) => Some(m), Ok(_) => None }
             }
@@ -1800,9 +1806,9 @@ impl Parser {
             let fixed = w.replacen("std_", "std.", 1);
             return self.err(format!("`!{w}` is `!{fixed}` since 2026-10-06: \"not standard\", narrowed with `.`"));
         }
-        // `not_std.int24` (owner, 2026-10-07): read as one name, `not_std.int24`, inside
+        // `not_std.i24` (owner, 2026-10-07): read as one name, `not_std.i24`, inside
         if matches!(self.peek(), Tok::Word(w) if w == "not_std") && *self.peek_at(1) == Tok::Dot {
-            let Tok::Word(w) = self.peek_at(2).clone() else { return self.err("`not_std.` is followed by a width: `not_std.int24`, `not_std.uint4`") };
+            let Tok::Word(w) = self.peek_at(2).clone() else { return self.err("`not_std.` is followed by a width: `not_std.i24`, `not_std.u4`") };
             self.toks.drain(self.pos..self.pos + 2);
             self.toks[self.pos].tok = Tok::Word(format!("not_std.{w}"));
         }
@@ -1828,7 +1834,7 @@ impl Parser {
         // `fn[lent T, U] -> R or fail[…]` — a function's type (2026-09-21)
         if self.is_word("fn") {
             self.advance();
-            self.expect(Tok::LBracket, "`[` after `fn` in a type: `fn[lent Locker, int32] -> bool`")?;
+            self.expect(Tok::LBracket, "`[` after `fn` in a type: `fn[lent Locker, i32] -> bool`")?;
             let mut ps = Vec::new();
             if *self.peek() != Tok::RBracket {
                 loop {
@@ -1891,21 +1897,21 @@ impl Parser {
             if *self.peek() == Tok::Dot { self.advance(); continue; }
             break;
         }
-        // Rust's number names are aliases (owner, 2026-10-02): `i32` is `int32`, `f64` is `bin64`
+        // Rust's number names are aliases (owner, 2026-10-02): `i32` is `i32`, `f64` is `f64`
         if let Some(own) = rust_alias(&segs[0]) { segs[0] = own.to_string(); }
         // Rust names that are not aliases say why (owner, 2026-10-02: only the number names)
         if segs.len() == 1 {
             match segs[0].as_str() {
-                "usize" | "isize" => return self.err(format!("`{}` is as big as the machine's pointer, which no CyborgPL type is: say the width, `{}`", segs[0], if segs[0] == "usize" { "uint64" } else { "int64" })),
+                "usize" | "isize" => return self.err(format!("`{}` is as big as the machine's pointer, which no CyborgPL type is: say the width, `{}`", segs[0], if segs[0] == "usize" { "u64" } else { "i64" })),
                 "String" => return self.err("text is `str.utf8`; Rust's `String` is not an alias"),
-                "f128" => return self.err("there is no `bin128` (2026-09-23), so no `f128`: `std::uenr` is exact rather than wider"),
+                "f128" => return self.err("there is no `f128` (2026-09-23): `std::uenr` is exact rather than wider"),
                 _ => {}
             }
         }
-        // `int32[0, 100]` — a range type (design/input.md): a numeric head with two bounds
+        // `i32[0, 100]` — a range type (design/input.md): a numeric head with two bounds
         {
             let head = segs[0].as_str();
-            let numeric = ["int", "uint", "bin", "deci"].iter().any(|p| head.strip_prefix(p).map(|w| w.parse::<u32>().is_ok()).unwrap_or(false));
+            let numeric = ["i", "u", "f", "d"].iter().any(|p| head.strip_prefix(p).map(|w| w.parse::<u32>().is_ok()).unwrap_or(false));
             let range_ahead = *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..))
                 || matches!(self.peek_at(1), Tok::Op(o) if o == "-")
                 || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max"));
@@ -1915,7 +1921,7 @@ impl Parser {
                 let base = Parser::new_in(vec![Token { tok: Tok::Word(head.to_string()), line: 0, col: 0, mtm: None }, Token { tok: Tok::Eof, line: 0, col: 0, mtm: None }], self.module.clone()).ty().map_err(|e| ParseError { line: self.line(), col: 0, msg: e.msg })?;
                 match (&base, &lo, &hi) {
                     (Ty::Int(_) | Ty::Uint(_), Bound::Bin(_), _) | (Ty::Int(_) | Ty::Uint(_), _, Bound::Bin(_)) => return self.err("an integer's bounds are integers"),
-                    (Ty::Bin(_) | Ty::Deci(_), Bound::Int(_), _) | (Ty::Bin(_) | Ty::Deci(_), _, Bound::Int(_)) => return self.err("a bin's bounds are written as bins: `bin64[0.0, 1.0]`"),
+                    (Ty::Bin(_) | Ty::Deci(_), Bound::Int(_), _) | (Ty::Bin(_) | Ty::Deci(_), _, Bound::Int(_)) => return self.err("a bin's bounds are written as bins: `f64[0.0, 1.0]`"),
                     _ => {}
                 }
                 // `min` / `max` are the base type's limits, so they order like any number
@@ -1931,8 +1937,8 @@ impl Parser {
                     if !fits { return self.err(format!("{} does not fit {head}: a range's bounds are values of its type", crate::value::bound_name(b))); }
                 }
                 let ok = match (&rlo, &rhi) { (Bound::Int(a), Bound::Int(b)) => a <= b, (Bound::Bin(a), Bound::Bin(b)) => a <= b, _ => true };
-                if !ok { return self.err("a range's low bound comes first: `int32[0, 100]`"); }
-                // `int32[min, max]` and `uint8[0, 255]` are the plain type written long: harmless,
+                if !ok { return self.err("a range's low bound comes first: `i32[0, 100]`"); }
+                // `i32[min, max]` and `u8[0, 255]` are the plain type written long: harmless,
                 // so allowed (owner, 2026-09-23: "they're harmless. So, no problem")
                 return Ok(Ty::Ranged(Box::new(base), lo, hi));
             }
@@ -1941,16 +1947,16 @@ impl Parser {
         // `[` followed by a number is a bound (`str.utf8[1, 40 graphemes]`), not type parameters
         // `simd[T, N]` — a type and a count, not two types (design/simd.md, 2026-09-22)
         if segs[0] == "simd" {
-            if segs.len() > 1 { return self.err("`simd` takes its type and count in brackets: `simd[uint8, count 16]`"); }
-            if *self.peek() != Tok::LBracket { return self.err("`simd` says what and how many: `simd[uint8, count 16]`"); }
+            if segs.len() > 1 { return self.err("`simd` takes its type and count in brackets: `simd[u8, count 16]`"); }
+            if *self.peek() != Tok::LBracket { return self.err("`simd` says what and how many: `simd[u8, count 16]`"); }
             self.advance();
             let t = self.ty()?;
             self.expect(Tok::Comma, "`,` between a simd's type and its lane count")?;
             // the lane count says what it is (owner, 2026-10-19: "yea" to `count`, as `simd.load.some[…, count 3]`)
             if matches!(self.peek(), Tok::Int(_)) { return self.err(crate::spellings::message(crate::spellings::old("simd[T, N]"))); }
-            if !self.is_word("count") { return self.err("a simd's lane count says `count`: `simd[uint8, count 16]` (owner, 2026-10-19)"); }
+            if !self.is_word("count") { return self.err("a simd's lane count says `count`: `simd[u8, count 16]` (owner, 2026-10-19)"); }
             self.advance();
-            let n = match self.advance().tok { Tok::Int(i) if i > 0 => i as usize, other => return self.err(format!("a simd's lane count is a whole number: `simd[uint8, count 16]`, found {other}")) };
+            let n = match self.advance().tok { Tok::Int(i) if i > 0 => i as usize, other => return self.err(format!("a simd's lane count is a whole number: `simd[u8, count 16]`, found {other}")) };
             self.expect(Tok::RBracket, "`]` after the lane count")?;
             if !matches!(t, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Bool) { return self.err(format!("a simd holds plain numbers or bools, not {}", ty_name(&t))); }
             // Only the target's own register shapes. The oracle's target is the owner's
@@ -1988,7 +1994,7 @@ impl Parser {
         if head == "ptr" {
             if !self.at_boundary { return bad_ptr(self); }
             let mutable = match segs.len() { 1 => false, 2 if segs[1] == "mut" => true, _ => return self.err("a pointer is `ptr[T]` or `ptr.mut[T]`") };
-            if params.len() != 1 { return self.err("a pointer says what it points at: `ptr[uint8]`, `ptr.mut[Timeval]`"); }
+            if params.len() != 1 { return self.err("a pointer says what it points at: `ptr[u8]`, `ptr.mut[Timeval]`"); }
             return Ok(Ty::Ptr(Box::new(params.pop().unwrap()), mutable));
         }
         // C's types whose size is the machine's (owner, 2026-10-10): each is what C's type is on the machine
@@ -2068,7 +2074,7 @@ impl Parser {
                     2 if segs[1] == "unordered" => MapOrder::Unordered,
                     _ => return bad(self, format!("`map` is `map[K, V]`, `map.ordered[K, V]`, or `map.unordered[K, V]`; `map.{}` is not a variant", segs[1..].join("."))),
                 };
-                if params.len() != 2 { return bad(self, "`map` takes a key type and a value type: `map[str.utf8, int32]`".into()); }
+                if params.len() != 2 { return bad(self, "`map` takes a key type and a value type: `map[str.utf8, i32]`".into()); }
                 let v = params.pop().unwrap(); let k = params.pop().unwrap();
                 match &k { Ty::Fn(..) | Ty::Ptr(..) | Ty::Map(..) => return bad(self, format!("{} cannot be a map key; keys are plain values, text, chars, structs, enums and lists of those, or a type that satisfies `Key`", ty_name(&k))), _ => {} }
                 let base = Ty::Map(Box::new(k), Box::new(v), order);
@@ -2087,30 +2093,32 @@ impl Parser {
             }
             "list" | "array" => {
                 if segs.len() > 1 { return bad(self, format!("`{head}` takes its element type in brackets: `{head}[{}]` (decided 2026-09-19), not `{}`", segs[1..].join("."), segs.join("."))); }
-                if params.len() != 1 { return bad(self, format!("`{head}` takes exactly one type parameter: `{head}[int32]`, `{head}[str.utf8]`, `{head}[list[int32]]`")); }
+                if params.len() != 1 { return bad(self, format!("`{head}` takes exactly one type parameter: `{head}[i32]`, `{head}[str.utf8]`, `{head}[list[i32]]`")); }
                 let inner = params.pop().unwrap();
                 let base = if head == "list" { Ty::List(Box::new(inner)) } else { Ty::Array(Box::new(inner)) };
-                // `list[int32][0, 1000]` — a length bound, the thing then its bounds like `int32[0, 100]` (decided 2026-09-21)
+                // `list[i32][0, 1000]` — a length bound, the thing then its bounds like `i32[0, 100]` (decided 2026-09-21)
                 if *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..)) || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max")) {
                     if head == "array" { return bad(self, "an `array` has one fixed length, so a bound on it says nothing; a length bound belongs on a `list`".to_string()); }
-                    let (lo, hi) = self.labelled_bounds("list[int32][min 0, max 1000]")?;
+                    let (lo, hi) = self.labelled_bounds("list[i32][min 0, max 1000]")?;
                     self.expect(Tok::RBracket, "`]` after the length bounds")?;
                     let lo = if lo == Bound::Min { Bound::Int(0) } else { lo };
                     let hi = if hi == Bound::Max { Bound::Int(i128::MAX) } else { hi };
-                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a length bound is whole numbers: `list[int32][min 0, max 1000]`".to_string()) };
+                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a length bound is whole numbers: `list[i32][min 0, max 1000]`".to_string()) };
                     if *a < 0 { return bad(self, "a length is never negative: the low bound is 0 or more".to_string()); }
-                    if a > b { return bad(self, "the low bound is at most the high one: `list[int32][min 0, max 1000]`".to_string()); }
+                    if a > b { return bad(self, "the low bound is at most the high one: `list[i32][min 0, max 1000]`".to_string()); }
                     return Ok(Ty::Ranged(Box::new(base), lo, hi));
                 }
                 Ok(base)
             }
-            "int" | "uint" | "bin" | "deci" => bad(self, format!("the typed form is fully explicit: `{head}` needs a width (e.g. `{head}32`)")),
+            "i" | "u" | "f" | "d" => bad(self, format!("the typed form is fully explicit: `{head}` needs a width (e.g. `{head}32`)")),
+            // the long family names are old since 2026-10-20 (owner: "switch to u, i, f, d")
+            "int" | "uint" | "bin" | "deci" => bad(self, format!("`{head}` is an old spelling: the types are `i`, `u`, `f`, `d` with a width (`{}32`) (owner, 2026-10-20)", match head { "int" => "i", "uint" => "u", "bin" => "f", _ => "d" })),
             _ if crate::spellings::is_reserved(&head) => bad(self, format!("`{head}` is a keyword, not a type")),
             _ => {
                 if !params.is_empty() {
-                    let builtin = ["int", "uint", "bin", "deci"].iter().any(|p| width(head, p).is_some());
+                    let builtin = ["i", "u", "f", "d"].iter().any(|p| width(head, p).is_some());
                     if builtin { return bad(self, format!("`{head}` takes no type parameters")); }
-                    // `Stack[int32]` — a generic struct or enum with its blanks filled
+                    // `Stack[i32]` — a generic struct or enum with its blanks filled
                     return Ok(Ty::Inst(self.type_name(&segs)?, params));
                 }
                 if segs.len() > 1 {
@@ -2121,27 +2129,30 @@ impl Parser {
                     return bad(self, format!("`{}` takes no narrowing", segs.join(".")));
                 }
                 if let Some(rest) = head.strip_prefix("not_std.") {
-                    let (signed, digits) = if let Some(d) = rest.strip_prefix("uint") { (false, d) } else if let Some(d) = rest.strip_prefix("int") { (true, d) }
-                        else if let Some(d) = rest.strip_prefix('u') { (false, d) } else if let Some(d) = rest.strip_prefix('i') { (true, d) } else { (true, "") };
-                    let n: u32 = match digits.parse() { Ok(n) if n >= 1 => n, _ => return bad(self, format!("`{}` is not a type: a non-standard integer is `not_std.int24` or `not_std.uint24`", head)) };
-                    let std_name = if signed { "int" } else { "uint" };
+                    let (signed, digits) = if let Some(d) = rest.strip_prefix('u') { (false, d) } else if let Some(d) = rest.strip_prefix('i') { (true, d) } else { (true, "") };
+                    let n: u32 = match digits.parse() { Ok(n) if n >= 1 => n, _ => return bad(self, format!("`{}` is not a type: a non-standard integer is `not_std.i24` or `not_std.u24`", head)) };
+                    let std_name = if signed { "i" } else { "u" };
                     if int_w(n).is_some() { return bad(self, format!("`{std_name}{n}` is standard: write `{std_name}{n}` (owner, 2026-10-03)")); }
                     // LLVM's widest integer is 2^23 bits (checked with `llvm-as`, 2026-10-03)
                     if n > 8_388_608 { return bad(self, format!("`{}` is past the widest integer there is: LLVM's integers go up to 8388608 bits", head)); }
                     return Ok(if signed { Ty::Int(IntWidth::Other(n)) } else { Ty::Uint(IntWidth::Other(n)) });
                 }
-                if let Some(n) = width(head, "int") { return int_w(n).map(Ty::Int).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; int is 8/16/32/64/128"))); }
-                if let Some(n) = width(head, "uint") { return int_w(n).map(Ty::Uint).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; uint is 8/16/32/64/128"))); }
-                // bin128 was dropped (owner, 2026-09-23): no hardware anywhere, and `std::uenr`
+                // the long names are old (owner, 2026-10-20): `i32` names `i32`, `f64` `f64`, `d64` `d64`
+                for (long, short) in [("uint", "u"), ("int", "i"), ("bin", "f"), ("deci", "d")] {
+                    if let Some(n) = width(head, long) { return bad(self, format!("`{head}` is an old spelling: write `{short}{n}` (owner, 2026-10-20)")); }
+                }
+                if let Some(n) = width(head, "i") { return int_w(n).map(Ty::Int).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; i is 8/16/32/64/128"))); }
+                if let Some(n) = width(head, "u") { return int_w(n).map(Ty::Uint).ok_or(()).or_else(|_| bad(self, format!("no such width `{head}`; u is 8/16/32/64/128"))); }
+                // f128 was dropped (owner, 2026-09-23): no hardware anywhere, and `std::uenr`
                 // answers "more precision than 64 bits" by being exact rather than wider.
                 // the brain float (owner, 2026-10-02): 16 bits only, a family of its own
                 if head == "brain16" { return Ok(Ty::Brain); }
                 if let Some(n) = width(head, "brain") { return bad(self, format!("no such width `brain{n}`; the brain float is `brain16` only")); }
-                if let Some(n) = width(head, "bin") {
-                    if n == 128 { return bad(self, "there is no `bin128`: quad precision has no hardware, and `std::uenr` is exact rather than merely wider".into()); }
-                    return if [16, 32, 64].contains(&n) { Ok(Ty::Bin(n as u8)) } else { bad(self, format!("no such width `{head}`; bin is 16/32/64")) };
+                if let Some(n) = width(head, "f") {
+                    if n == 128 { return bad(self, "there is no `f128`: quad precision has no hardware, and `std::uenr` is exact rather than merely wider".into()); }
+                    return if [16, 32, 64].contains(&n) { Ok(Ty::Bin(n as u8)) } else { bad(self, format!("no such width `{head}`; f is 16/32/64")) };
                 }
-                if let Some(n) = width(head, "deci") { return if [32, 64, 128].contains(&n) { Ok(Ty::Deci(n as u8)) } else { bad(self, format!("no such width `{head}`; deci is 32/64/128 (IEEE 754 defines only these)")) }; }
+                if let Some(n) = width(head, "d") { return if [32, 64, 128].contains(&n) { Ok(Ty::Deci(n as u8)) } else { bad(self, format!("no such width `{head}`; d is 32/64/128 (IEEE 754 defines only these)")) }; }
                 // anything else is a struct name in this module; the interpreter checks it was declared
                 Ok(Ty::Struct(self.type_name(&segs)?))
             }
@@ -2177,7 +2188,7 @@ impl Parser {
                     if self.is_word("let") { return self.err("`shadow` takes `let`'s place: `shadow 'x' := …;`"); }
                     self.decl(true)
                 }
-                "var" => self.err("`var` is gone: declare with `let 'x' := 1;` or `let 'x': int32 = 1;`"),
+                "var" => self.err("`var` is gone: declare with `let 'x' := 1;` or `let 'x': i32 = 1;`"),
                 "mut" | "immut" => self.err(format!("a declaration starts with `let`: `let {w} 'x' := …;`")),
                 _ if matches!(self.peek_at(1), Tok::Var(_)) && !crate::spellings::is_reserved(&w) => self.err(format!("a type goes after the name: `'x': {w} = …;`")),
                 "change" => { self.advance(); self.change_stmt(line) }
@@ -2346,7 +2357,7 @@ impl Parser {
                     Ok(Stmt::Fail { name, payload, line })
                 }
                 "otherwise" => self.err("`otherwise` follows a call that can fail: `stash[…] otherwise false;`"),
-                "to" => self.err("`to.…[…]` is a value; use it: `let 'n' := to.int32[\"42\"] otherwise 0;`"),
+                "to" => self.err("`to.…[…]` is a value; use it: `let 'n' := to.i32[\"42\"] otherwise 0;`"),
                 "ptr" => {
                     // ptr.write[…]; as a statement
                     let (head, op, args) = self.ptr_op()?;
@@ -2595,8 +2606,8 @@ impl Parser {
         }
         let value = self.rhs()?;
         if let ([Value::Expr(Expr::OpValue(op, ..))], None) = (value.values.as_slice(), &ty) {
-            // design claude's reading, not ruled: nothing says which `+` (int32? bin64? a Vec?)
-            return self.err(format!("`op {op}` alone does not say which `{op}`: give '{name}' a function type, `'{name}': fn[int32, int32] -> int32 = op {op};`"));
+            // design claude's reading, not ruled: nothing says which `+` (i32? f64? a Vec?)
+            return self.err(format!("`op {op}` alone does not say which `{op}`: give '{name}' a function type, `'{name}': fn[i32, i32] -> i32 = op {op};`"));
         }
         self.expect(Tok::Semi, "`;`")?;
         Ok(Stmt::Decl { name, mutability, ty, value, shadow, sealed, line })
@@ -3012,7 +3023,7 @@ impl Parser {
                     } else {
                         // a plain value passes itself; anything that owns something is handed over
                         let colon = g.iter().position(|t| t.tok == Tok::Colon);
-                        let plain = colon.and_then(|c| g.get(c + 1)).map_or(false, |t| matches!(&t.tok, Tok::Word(x) if ["int", "uint", "bin", "deci", "bool", "char", "C", "brain16"].iter().any(|p| x.starts_with(p))));
+                        let plain = colon.and_then(|c| g.get(c + 1)).map_or(false, |t| matches!(&t.tok, Tok::Word(x) if ["bool", "char", "C", "brain16"].iter().any(|p| x.starts_with(p)) || ["i", "u", "f", "d"].iter().any(|p| x.strip_prefix(p).is_some_and(|d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit())))));
                         if !plain { args.push(w("give", l)); }
                         args.push(tk(Tok::Var(var.clone()), l));
                     }
@@ -3149,7 +3160,7 @@ impl Parser {
         const LABELS: [&str; 3] = ["from", "to", "by"];
         loop {
             if matches!(self.peek(), Tok::Walrus | Tok::Eq) {
-                return self.err("range bounds are plain values: `range[from 0, to 9, by 1]` — the counter's type goes on its name (`'i': int32`)");
+                return self.err("range bounds are plain values: `range[from 0, to 9, by 1]` — the counter's type goes on its name (`'i': i32`)");
             }
             let k = values.len().min(2);
             let labelled = matches!(self.peek(), Tok::Word(w) if LABELS.contains(&w.as_str())) && !matches!(self.peek_at(1), Tok::Dot | Tok::LBracket | Tok::Comma | Tok::RBracket);
@@ -3260,13 +3271,13 @@ impl Parser {
     /// One bound's number (no `min` / `max` words: those are its labels since 2026-10-12).
     fn bound_value(&mut self) -> PResult<Bound> {
         if matches!(self.peek(), Tok::Word(w) if w == "min" || w == "max") {
-            return self.err("`min` and `max` label a bound now; a side left out is the type's own limit: `int32[min 1]` is \"at least 1\" (owner, 2026-10-12)");
+            return self.err("`min` and `max` label a bound now; a side left out is the type's own limit: `i32[min 1]` is \"at least 1\" (owner, 2026-10-12)");
         }
         self.bound()
     }
 
     fn bound(&mut self) -> PResult<Bound> {
-        // `min` / `max` are the type's own limits: `int32[1, max]` is "at least 1"
+        // `min` / `max` are the type's own limits: `i32[1, max]` is "at least 1"
         // (owner, 2026-09-23), so a one-ended range never writes a number that goes
         // stale when the width changes.
         if let Tok::Word(w) = self.peek().clone() {
@@ -3281,7 +3292,7 @@ impl Parser {
         }
     }
 
-    /// `[ … ][` — in `to.int32[0, 100]['text']` the first bracket is the range, the second the value.
+    /// `[ … ][` — in `to.i32[0, 100]['text']` the first bracket is the range, the second the value.
     fn bracket_then_bracket(&self) -> bool {
         let mut i = 0; let mut depth = 0;
         loop {
@@ -3321,11 +3332,11 @@ impl Parser {
             else { ret = Some(self.ty()?); if self.is_word("or") { self.advance(); if !self.is_word("fail") { return self.err("after `or` comes `fail[…]`"); } fails = self.fail_list()?; } }
         }
         let caps = self.captures()?;
-        if let Some(p) = params.iter().find(|p| p.ty.is_none() && !p.variadic) { return self.err(format!("parameter '{}' says its type: `'{}': int32` (owner, 2026-10-07)", p.name, p.name)); }
+        if let Some(p) = params.iter().find(|p| p.ty.is_none() && !p.variadic) { return self.err(format!("parameter '{}' says its type: `'{}': i32` (owner, 2026-10-07)", p.name, p.name)); }
         let saved_ret = self.saw_value_return;
         self.saw_value_return = false;
         let body = self.block()?;
-        if ret.is_none() && self.saw_value_return { return self.err("this function returns a value, so it says its type: `-> int32` (owner, 2026-10-07)"); }
+        if ret.is_none() && self.saw_value_return { return self.err("this function returns a value, so it says its type: `-> i32` (owner, 2026-10-07)"); }
         self.saw_value_return = saved_ret;
         self.pending_captures = caps;
         let bounds = std::mem::take(&mut self.bounds);
@@ -4141,7 +4152,7 @@ impl Parser {
         }
         // unary minus sits below xx: -2 xx 2 is -(2 xx 2), as in mathematics
         if *self.peek() == Tok::Op("-".into()) && matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..)) && *self.peek_at(2) == Tok::Colon {
-            // `-128: int8`: the type is on the whole literal, sign included
+            // `-128: i8`: the type is on the whole literal, sign included
             self.advance();
             // a written -0.0 is 0: no bin is -0 but through `.ieee` (owner, 2026-10-07)
             let lit = match self.advance().tok { Tok::Int(i) => Expr::Int(-i, line), Tok::Bin(b, t) => if b == 0.0 { Expr::Bin(0.0, t, line) } else { Expr::Bin(-b, format!("-{t}"), line) }, _ => unreachable!() };
@@ -4418,10 +4429,10 @@ impl Parser {
                 "size" | "align" => {
                     // size.of[T] / align.of[T]   (design/ffi.md)
                     if matches!(self.peek_at(1), Tok::LBracket) {
-                        return self.err(format!("`{w}` is a keyword: a type's {w} is `{w}.of[int32]` (`.of` after `{w}`), and a function named `{w}`, a C header's say, is reached through a path, `my.{w}[…]` or its module's (owner, 2026-09-19, 2026-10-10)"));
+                        return self.err(format!("`{w}` is a keyword: a type's {w} is `{w}.of[i32]` (`.of` after `{w}`), and a function named `{w}`, a C header's say, is reached through a path, `my.{w}[…]` or its module's (owner, 2026-09-19, 2026-10-10)"));
                     }
                     self.advance();
-                    self.expect(Tok::Dot, &format!("`.of` after `{w}` (`{w}.of[int32]`)"))?;
+                    self.expect(Tok::Dot, &format!("`.of` after `{w}` (`{w}.of[i32]`)"))?;
                     match self.advance().tok { Tok::Word(o) if o == "of" => {}, other => return self.err(format!("`{w}.of[…]` is the only form, found {other}")) }
                     self.expect(Tok::LBracket, "`[`")?;
                     let saved = self.at_boundary; self.at_boundary = true;
@@ -4520,7 +4531,7 @@ impl Parser {
                 "to" => {
                     // to.<type>[value]   (decided 2026-09-19)
                     self.advance();
-                    self.expect(Tok::Dot, "`.` after `to` (`to.int32[…]`, `to.str.utf8[…]`)")?;
+                    self.expect(Tok::Dot, "`.` after `to` (`to.i32[…]`, `to.str.utf8[…]`)")?;
                     // `to.array[give 'l']` / `to.list[give 'a']` (owner, 2026-09-23): the element type
                     // does not change, so it is not written
                     if let Tok::Word(k) = self.peek().clone() {
@@ -4533,12 +4544,12 @@ impl Parser {
                             return Ok(Expr::Convert(if k == "array" { Ty::Array(blank) } else { Ty::List(blank) }, b, None, 0, line));
                         }
                     }
-                    // `.useful` follows the verb (owner, 2026-09-30: b): `to.useful.str.utf8[…]`, `to.useful.deci64[…]`
+                    // `.useful` follows the verb (owner, 2026-09-30: b): `to.useful.str.utf8[…]`, `to.useful.d64[…]`
                     let useful_first = if matches!(self.peek(), Tok::Word(w) if w == "useful") && matches!(self.peek_at(1), Tok::Dot) { self.advance(); self.advance(); true } else { false };
                     // `to.stored.str.utf8[…]`: the stored form, said outright as prints say it (owner, 2026-10-02)
                     let stored_first = !useful_first && matches!(self.peek(), Tok::Word(w) if w == "stored") && matches!(self.peek_at(1), Tok::Dot);
                     if stored_first { self.advance(); self.advance(); }
-                    // `to.int8.bits[128]`: the raw form, the value's bits as the type's (owner, 2026-10-06:
+                    // `to.i8.bits[128]`: the raw form, the value's bits as the type's (owner, 2026-10-06:
                     // ASP keeps a way to write numbers like the hardware, never the default)
                     let bits = !useful_first && !stored_first && matches!(self.peek(), Tok::Word(_)) && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(b) if b == "bits");
                     if bits { self.toks.drain(self.pos + 1..self.pos + 3); }
@@ -4547,7 +4558,7 @@ impl Parser {
                     self.to_target = false;
                     let ty = ty?;
                     if bits {
-                        if !matches!(ty, Ty::Int(_) | Ty::Uint(_)) { return self.err(format!("`.bits` is for whole-number types (`to.int8.bits[…]`); what `to.{}.bits` means is not decided", ty_name(&ty))); }
+                        if !matches!(ty, Ty::Int(_) | Ty::Uint(_)) { return self.err(format!("`.bits` is for whole-number types (`to.i8.bits[…]`); what `to.{}.bits` means is not decided", ty_name(&ty))); }
                         if *self.peek() != Tok::LBracket { return self.err(format!("`to.{}.bits` converts a value: `to.{}.bits[…]`", ty_name(&ty), ty_name(&ty))); }
                         let b = self.bracket()?;
                         if b.values.len() != 1 { return self.err("`to.…[…]` converts exactly one value"); }
@@ -4557,27 +4568,27 @@ impl Parser {
                     // a named type is allowed here only if it is a `layout.C enum` (checked when it runs:
                     // the parser cannot yet tell a struct's name from an enum's)
                     if matches!(ty, Ty::Inst(..) | Ty::Var(_)) { return self.err(format!("no conversion to {}; conversions are between numbers, text, lists and arrays", ty_name(&ty))); }
-                    // `to.deci64.useful[…]`: the shortest decimal that reads back as the same bin (owner, 2026-09-29)
-                    // the type parser reads `deci64.useful` as one dotted name
-                    // `to.deci32.written["1234567.0"]`: count the digits as written, trailing zeros included (owner,
-                    // 2026-10-09: "yea, `.written`"); the plain form goes by the value, as `to.int32[2.0]` does
+                    // `to.d64.useful[…]`: the shortest decimal that reads back as the same bin (owner, 2026-09-29)
+                    // the type parser reads `d64.useful` as one dotted name
+                    // `to.d32.written["1234567.0"]`: count the digits as written, trailing zeros included (owner,
+                    // 2026-10-09: "yea, `.written`"); the plain form goes by the value, as `to.i32[2.0]` does
                     if let Ty::Struct(n) = &ty {
-                        if let Some(d) = n.strip_suffix(".written").filter(|d| matches!(*d, "deci32" | "deci64" | "deci128")) {
+                        if let Some(d) = n.strip_suffix(".written").filter(|d| matches!(*d, "d32" | "d64" | "d128")) {
                             if *self.peek() != Tok::LBracket { return self.err(format!("`to.{n}` converts a text: `to.{n}[\"…\"]`")); }
                             let b = self.bracket()?;
                             if b.values.len() != 1 { return self.err("`to.…[…]` converts exactly one value"); }
-                            return Ok(Expr::Convert(Ty::Deci(d[4..].parse().unwrap()), b, None, 4, line));
+                            return Ok(Expr::Convert(Ty::Deci(d[1..].parse().unwrap()), b, None, 4, line));
                         }
                     }
                     let (ty, dotted_useful) = match &ty {
-                        Ty::Struct(n) if n.ends_with(".useful") && matches!(&n[..n.len() - 7], "deci32" | "deci64" | "deci128") => (Ty::Deci(n[4..n.len() - 7].parse().unwrap()), true),
+                        Ty::Struct(n) if n.ends_with(".useful") && matches!(&n[..n.len() - 7], "d32" | "d64" | "d128") => (Ty::Deci(n[1..n.len() - 7].parse().unwrap()), true),
                         _ => (ty, false),
                     };
                     if dotted_useful || (*self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(w) if w == "useful")) {
                         return self.err(format!("`.useful` follows the verb: `to.useful.{}[…]` (owner, 2026-09-30)", ty_name(&ty)));
                     }
-                    if useful_first && !matches!(ty, Ty::Deci(_) | Ty::Str(_) | Ty::TextRanged(..)) && !matches!(&ty, Ty::Ranged(t, ..) if matches!(**t, Ty::Deci(_))) { return self.err(format!("`to.useful` makes text or a deci: `to.useful.str.utf8[…]`, `to.useful.deci64[…]`; `to.{}` has no useful form", ty_name(&ty))); }
-                    if stored_first && !matches!(ty, Ty::Str(_) | Ty::TextRanged(..) | Ty::Deci(_)) && !matches!(&ty, Ty::Ranged(t, ..) if matches!(**t, Ty::Deci(_))) { return self.err(format!("`to.stored` makes text or a deci: `to.stored.str.utf8[…]`, `to.stored.deci64[…]`; `to.{}` has one form", ty_name(&ty))); }
+                    if useful_first && !matches!(ty, Ty::Deci(_) | Ty::Str(_) | Ty::TextRanged(..)) && !matches!(&ty, Ty::Ranged(t, ..) if matches!(**t, Ty::Deci(_))) { return self.err(format!("`to.useful` makes text or a deci: `to.useful.str.utf8[…]`, `to.useful.d64[…]`; `to.{}` has no useful form", ty_name(&ty))); }
+                    if stored_first && !matches!(ty, Ty::Str(_) | Ty::TextRanged(..) | Ty::Deci(_)) && !matches!(&ty, Ty::Ranged(t, ..) if matches!(**t, Ty::Deci(_))) { return self.err(format!("`to.stored` makes text or a deci: `to.stored.str.utf8[…]`, `to.stored.d64[…]`; `to.{}` has one form", ty_name(&ty))); }
                     let useful: u8 = if useful_first { 2 } else if stored_first { 1 } else { 0 };
                     if matches!(ty, Ty::Ranged(..)) && *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }
                     if *self.peek() != Tok::LBracket { return self.err(format!("`to.{}` converts a value: `to.{}[…]`", ty_name(&ty), ty_name(&ty))); }

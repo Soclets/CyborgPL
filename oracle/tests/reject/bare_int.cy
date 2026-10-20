@@ -1,3 +1,3 @@
 MAIN {
-    let 'x': int = 1;
+    let 'x': i = 5;
 }

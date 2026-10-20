@@ -2,9 +2,9 @@
 # may list types, one per line, as well as operations; a blank may need several, joined with `and`;
 # lifetime groups come after the generics, a `|` between the two kinds.
 interface Number {
-    int32
-    int64
-    bin64
+    i32
+    i64
+    f64
 }
 
 interface Ordered <T> {
@@ -13,8 +13,8 @@ interface Ordered <T> {
 }
 
 interface WholeOrdered <T> {
-    int32
-    int64
+    i32
+    i64
     op < ['a': <T>, 'b': <T>] -> bool;
 }
 
@@ -36,6 +36,6 @@ MAIN {
     std::print.useful[bigger[3, 9], " ", bigger[2.5, 1.5], " ", smaller[3, 9], newln];
     let 'xs' := ["a", "b"];
     std::print.useful[whole[lend 'xs'], newln];
-    let 'b': Box[int32] = Box[item = 4];
+    let 'b': Box[i32] = Box[item = 4];
     std::print.useful['b'.item, newln];
 }

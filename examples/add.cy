@@ -1,5 +1,5 @@
 # A function that adds two numbers, called from MAIN.
-fn add ['a': int32, 'b': int32] -> int32 {
+fn add ['a': i32, 'b': i32] -> i32 {
     return 'a' + 'b';
 }
 

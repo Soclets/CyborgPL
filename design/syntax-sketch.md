@@ -14,15 +14,15 @@ The 2026-09-14 form is under **History** at the bottom.
 ```
 struct Locker {
     name: str.utf8,
-    immut number: int32,
+    immut number: i32,
     occupied: bool
 }
 
-fn count [lent 'text': str.utf8] -> int32 { … }
+fn count [lent 'text': str.utf8] -> i32 { … }
 
 MAIN {
     let 'mine' := Locker[name = "A", number = 7, occupied = false];
-    let mut 'total': int32 = 0;
+    let mut 'total': i32 = 0;
     for 'i' from 1 to 10 by 1 {
         if ('i' mod.floor 2) equal_to 0 { change 'total' = 'total' plus 'i'; }
         else if 'i' equal_to 7 { break; }
@@ -37,8 +37,8 @@ MAIN {
 
 ```
 let 'x' := 1000;                 # Precog picks the best type
-let 'x': bin16 = 1000;           # explicit type; must be fully explicit
-let mut 'n': int32 = 0;          # mutability, when stated, before the name
+let 'x': f16 = 1000;           # explicit type; must be fully explicit
+let mut 'n': i32 = 0;          # mutability, when stated, before the name
 let immut 'limit' := 10;
 let 'r': std::uenr = 1000;        # a Kit-provided type: `::` crosses, `.` narrows
 pub const 'max' := 8;            # a Kit-level value: top level only, see kits.md
@@ -53,8 +53,8 @@ pub const 'max' := 8;            # a Kit-level value: top level only, see kits.m
   word 2026-09-25 to 10-02 (when `change` arrived), `let` again since,
   with `change` kept. `change` is the word because it cannot be read as
   "make a new one".
-- **The type follows the name after `:`** — `'x': int32`, never
-  `int32 'x'`. The name comes first and long types no
+- **The type follows the name after `:`** — `'x': i32`, never
+  `i32 'x'`. The name comes first and long types no
   longer push it off the line. `:` is the one way to attach a type to a
   name: variables, parameters, struct fields, loop counters.
 - **`:=` only without a type, `=` only with one.** Unchanged. `:=` marks
@@ -77,7 +77,7 @@ without the rest of that redesign. See `DECISIONS.md`.
 
 - **Dot chains narrow general→specific inside a type and inside a kit
   path** — `str.utf8`, `char.grapheme`, `std::print.useful.stdout`, `lend.mut`.
-  A *type parameter* is bracketed, not chained: `list[int32]`,
+  A *type parameter* is bracketed, not chained: `list[i32]`,
   `array[list[str.utf8]]` (decided 2026-09-19). They no longer carry the name-to-type job (that is `:`) and no
   longer hold keywords together (`else if`, `while`, `for`). The chains
   that stay are the ones doing real work.
@@ -97,7 +97,7 @@ without the rest of that redesign. See `DECISIONS.md`.
 - **User names are quoted** (`'x'`, `'s'`). **Settled and reaffirmed — see
   `DECISIONS.md`; not open for relitigation.** The word operators (`x`,
   `mod`, `and`, …) and the bare keywords depend on it.
-- **`bin16` is IEEE 754 binary16** — a half-precision float.
+- **`f16` is IEEE 754 binary16** — a half-precision float.
 - **`[ ]` is written only where it builds a value** (decided 2026-09-19,
   replacing "mandatory in every value position"). It builds when it
   - collects a list: `[1, 2, 3]`, `[7,]` for one element, `[]` empty where a
@@ -136,7 +136,7 @@ without the rest of that redesign. See `DECISIONS.md`.
 - **`print.stored` vs `print.useful`** (decided 2026-09-14; both named since
   2026-10-02, owner: "it has to be required & compatible with `.weird`" —
   a bare `std::print.stdout` is refused, saying which to write):
-  `std::print.stored.stdout[…]` prints the real stored value (a `bin32` `0.1` prints as
+  `std::print.stored.stdout[…]` prints the real stored value (a `f32` `0.1` prints as
   `0.100000001490116119384765625`); `std::print.useful.stdout[…]` prints the
   useful value (`0.1`). Both take **any number of values, comma-separated**,
   render each and print them with nothing between (2026-09-19):
@@ -197,10 +197,10 @@ Closed 2026-09-14: the typed form is always fully explicit (no bare
 2026-09-14 → 2026-09-18 the same sample read:
 
 ```
-var.bin16 'x' = [1000];
+var.f16 'x' = [1000];
 var 's' := ["line 1" newln "line 2"];
-func.int32 add [var.int32 'a', var.int32 'b'] { return ['a' plus 'b']; }
-loop.temp.range.int32 'i' [= 0, = 9] { if ['i' equal_to 7] { break; } }
+func.i32 add [var.i32 'a', var.i32 'b'] { return ['a' plus 'b']; }
+loop.temp.range.i32 'i' [= 0, = 9] { if ['i' equal_to 7] { break; } }
 ```
 
 The type rode on the keyword chain, every value position wore `[ ]`, and

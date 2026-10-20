@@ -23,7 +23,7 @@ MAIN {
     for perm 'done' from 0 to 3 by 1 {
     }
     std::print.useful["ran out, holds ", 'done', newln];
-    for 'b': int8 from 126 to 127 by 1 {
+    for 'b': i8 from 126 to 127 by 1 {
         std::print.useful['b', " "];
     }
     std::print.stored[newln];

@@ -1,9 +1,9 @@
 # Two failing tasks in one block: each handler runs where its own `concur` was written
 # (found by the compiler session, 2026-09-23). Exits with 1 plus 10 = 11.
-extern.C fn exit ['code': int32];
-fn judge ['n': int32] -> fail[small] { if 'n' < 10 { fail small; } }
+extern.C fn exit ['code': i32];
+fn judge ['n': i32] -> fail[small] { if 'n' < 10 { fail small; } }
 MAIN {
-    let mut 'seen': int32 = 0;
+    let mut 'seen': i32 = 0;
     {
         concur { judge[3] otherwise fail; } otherwise { small { change 'seen' = 'seen' + 1; } };
         concur { judge[4] otherwise fail; } otherwise { small { change 'seen' = 'seen' + 10; } };

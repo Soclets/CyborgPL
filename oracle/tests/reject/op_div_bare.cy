@@ -1,3 +1,3 @@
 MAIN {
-    let 'f': fn[int32, int32] -> int32 = op div;
+    let 'f': fn[i32, i32] -> i32 = op div;
 }

@@ -4,22 +4,22 @@
 # "defeats the purpose of a symbol". Every operator that can make a -0 has its `.ieee` form, `mod`
 # and `pow` included ("yea").
 MAIN {
-    let 'z': bin64 = 0.0;
-    let 'n': bin64 = -2.0;
-    let 'e30': bin64 = 0.000000000000000000000000000001;
-    let 'e60': bin64 = 'e30' x 'e30';
-    let 'e120': bin64 = 'e60' x 'e60';
-    let 'tiny': bin64 = 'e120' x 'e120';
+    let 'z': f64 = 0.0;
+    let 'n': f64 = -2.0;
+    let 'e30': f64 = 0.000000000000000000000000000001;
+    let 'e60': f64 = 'e30' x 'e30';
+    let 'e120': f64 = 'e60' x 'e60';
+    let 'tiny': f64 = 'e120' x 'e120';
     std::print.useful['z' x 'n', " ", 'z' times.ieee 'n', newln];
     std::print.useful[-'z', " ", negate.ieee 'z', newln];
     std::print.useful['tiny' x (-'tiny'), " ", 'tiny' times.ieee (-'tiny'), newln];
     std::print.useful['z' div.near 'n', " ", 'z' div.near.ieee 'n', newln];
-    let 'm': bin64 = negate.ieee 'z';
+    let 'm': f64 = negate.ieee 'z';
     std::print.useful['m' + 'm', " ", 'm' plus.ieee 'm', " ", 'm' - 'z', " ", 'm' minus.ieee 'z', newln];
     let 'b': brain16 = 0.0;
     let 'c': brain16 = -3.0;
     std::print.useful['b' x 'c', " ", 'b' times.ieee 'c', " ", -'b', " ", negate.ieee 'b', newln];
-    let 'w': bin32 = 'e30' x 'e30' x (-1.0);
+    let 'w': f32 = 'e30' x 'e30' x (-1.0);
     std::print.useful['w', " ", 3.0 mod.floor (-3.0), " ", 3.0 mod.floor.ieee (-3.0), " ", (-3.0) mod.trunc 3.0, " ", (-3.0) mod.trunc.ieee 3.0, newln];
     # `mod` and `pow` keep it too (owner, 2026-10-07: "yea")
     std::print.useful[(-'e120') xx 3, " ", (-'e120') pow.ieee 3, " ", (-'e120') std::pow.ieee 3, newln];

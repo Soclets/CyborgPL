@@ -11,7 +11,7 @@ fn label ['s': Status] -> str.utf8 {
     return give 'text';
 }
 MAIN {
-    let 'n' := to.int32["12x"] otherwise { not_a_number { is -2; } out_of_range { is -1; } };
+    let 'n' := to.i32["12x"] otherwise { not_a_number { is -2; } out_of_range { is -1; } };
     std::print.useful[label[Status.empty], " / ", label[Status.claimed["ann"]], " / ", label[Status.locked], " / ", 'n', newln];
     match Status.empty {
         empty { std::print.useful["statement match still works", newln]; }

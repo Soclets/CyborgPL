@@ -6,6 +6,6 @@ MAIN {
         std::print.useful['x', newln];
     }
     std::print.useful['x', newln];
-    shadow 'x': int32 = 3;
+    shadow 'x': i32 = 3;
     std::print.useful['x', newln];
 }

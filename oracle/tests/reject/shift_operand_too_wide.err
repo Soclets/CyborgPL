@@ -1,1 +1,1 @@
--1 does not fit uint32: a shifted number is taken at its width (`shr.masked` takes its bits instead)
+-1 does not fit u32: a shifted number is taken at its width (`shr.masked` takes its bits instead)

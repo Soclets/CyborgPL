@@ -25,13 +25,13 @@ The layers, then:
 
 ```
 struct Node {
-    'value': int32;
+    'value': i32;
     'left': manual[Node];
     'right': manual[Node];
 }
 ```
 
-- `T` is any type: `manual[Node]`, `manual[int32]`, `manual[array[uint8, 64]]`.
+- `T` is any type: `manual[Node]`, `manual[i32]`, `manual[array[u8, 64]]`.
 - A **pointer type**, as `ptr[T]` is, not a number: inside, an address and
   the generation the handle was made with. No conversion to or from an
   integer.

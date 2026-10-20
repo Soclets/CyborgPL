@@ -6,7 +6,7 @@ enum Status {
 }
 
 struct Locker {
-    number: int32,
+    number: i32,
     status: Status
 }
 

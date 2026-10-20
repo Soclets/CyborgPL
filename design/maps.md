@@ -6,12 +6,12 @@ Decided 2026-09-22, one question at a time. The third collection, beside
 `list` and `array` (`lists.md`): look a value up by a key.
 
 ```
-let mut 'phones': map[str.utf8, int32] = map.empty;
+let mut 'phones': map[str.utf8, i32] = map.empty;
 map.set[lend.mut 'phones', key "ann", value 5551];                 # add, or replace an existing key's value
 let 'n' := map.get[lend 'phones', key "ann"] otherwise 0;    # a missing key is a failure
 if map.has[lend 'phones', key "bob"] { … }
 let 'v' := map.remove[lend.mut 'phones', key "bob"] otherwise 0;   # hands the value back, like list.remove
-let 'count' := map.length[lend 'phones'];                # uint64
+let 'count' := map.length[lend 'phones'];                # u64
 ```
 
 ## In the language (owner: a)
@@ -44,7 +44,7 @@ check site guarded by `has`; a found/missing enum to `match`.
 - **A type's own rule**: a struct or enum that satisfies
 
   ```
-  interface Key <T> { op == ['a': <T>, 'b': <T>] --> bool;  fn hash [lent 'v': <T>] --> uint64; }
+  interface Key <T> { op == ['a': <T>, 'b': <T>] --> bool;  fn hash [lent 'v': <T>] --> u64; }
   ```
 
   compares and hashes by its own `op ==` and `fn hash` — a
@@ -77,12 +77,12 @@ a compile error. Proposed alternatives: a list of two-element lists
 ## A count bound, and bounds inside (owner: yes)
 
 ```
-let mut 'small': map[str.utf8[min 1, max 3 bytes], int32[min 0, max 10]][min 0, max 2] = map.empty;
+let mut 'small': map[str.utf8[min 1, max 3 bytes], i32[min 0, max 10]][min 0, max 2] = map.empty;
 ```
 
 `map[K, V][lo, hi]` bounds the number of entries, as `list[T][lo, hi]`
 bounds a list: checked after every `set` and `remove`, and
-`map.length` of it is a `uint64[lo, hi]`. The key and value types are
+`map.length` of it is a `u64[lo, hi]`. The key and value types are
 ordinary types, so their own bounds compose: the key's text length and
 the value's range above are checked on `set`. Nothing new — the pieces
 fitting together (owner asked "what about the things inside?").
@@ -100,7 +100,7 @@ says its unit. Proposed alternatives: the key alone; the pair alone.
 
 The order is **insertion order**: entries come back as they were `set`
 (a replaced key keeps its place). Measured 2026-09-22 (Rust `HashMap`
-vs `IndexMap`, 5M `int64` entries): insertion-ordered is 13% slower on
+vs `IndexMap`, 5M `i64` entries): insertion-ordered is 13% slower on
 lookups and 11 bytes/entry larger, slightly faster on inserts, and 13×
 faster to walk. Proposed alternatives: an unspecified-but-deterministic
 order (unspecified output punches a hole in differential testing — the

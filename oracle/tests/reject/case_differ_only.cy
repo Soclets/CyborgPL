@@ -1,6 +1,6 @@
 case.any [fn];
-fn area [] -> int32 { return 1; }
-struct Area { n: int32 }
+fn area [] -> i32 { return 1; }
+struct Area { n: i32 }
 MAIN {
     let 'a' := area[];
 }

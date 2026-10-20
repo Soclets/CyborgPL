@@ -9,12 +9,12 @@ op ~= <T: Number> ['a': <T>, 'b': <T>] -> bool {
     if 'a' < 'b' { return 'b' - 'a' < 10; }
     return 'a' - 'b' < 10;
 }
-struct A { x: int32 }
-struct B { y: int32 }
-op <+> ['a': A, 'b': A] -> int32 { return 'a'.x + 'b'.x; }
-op <+> ['a': B, 'b': B] -> int32 { return 'a'.y x 'b'.y; }
+struct A { x: i32 }
+struct B { y: i32 }
+op <+> ['a': A, 'b': A] -> i32 { return 'a'.x + 'b'.x; }
+op <+> ['a': B, 'b': B] -> i32 { return 'a'.y x 'b'.y; }
 MAIN {
-    let 'm': int32 = 100;
+    let 'm': i32 = 100;
     std::print.useful[95 ~= 'm', " ", 50 ~= 'm', newln];
     let 'p' := A[x = 3];
     let 'q' := B[y = 3];

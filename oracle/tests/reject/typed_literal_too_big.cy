@@ -1,3 +1,3 @@
 MAIN {
-    let 'v' := 300: uint8;
+    let 'v' := 300: u8;
 }

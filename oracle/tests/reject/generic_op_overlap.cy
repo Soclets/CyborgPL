@@ -5,5 +5,5 @@ interface Number <T> {
     op < ['a': <T>, 'b': <T>] -> bool;
 }
 op ~= <T: Number> ['a': <T>, 'b': <T>] -> bool { return 'a' < 'b'; }
-op ~= ['a': int32, 'b': int32] -> bool { return true; }
+op ~= ['a': i32, 'b': i32] -> bool { return true; }
 MAIN { }

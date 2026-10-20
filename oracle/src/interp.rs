@@ -1,7 +1,7 @@
 //! Tree-walking evaluation. Slow, small, obvious — the point is to be right.
 //!
 //! What it enforces beyond the parser:
-//!   - the typed form's ranges and kinds (`let 'x': int8 = 300;` is an error)
+//!   - the typed form's ranges and kinds (`let 'x': i8 = 300;` is an error)
 //!   - no implicit conversion between numeric families; a bare numeric
 //!     *literal* is untyped and takes the family of its context
 //!   - ownership: a bare `'t'` where an owned value would be *stored* is an
@@ -152,7 +152,7 @@ pub struct Interp<'p> {
     /// ("nothing converts by itself", 2026-09-19; owner, 2026-09-23: `to.array[…]`, `to.list[…]`)
     last_kind: Option<bool>,
     /// the digits of the last value evaluated, when it was a bin literal: a literal is rounded
-    /// once, from its digits, to a bin16/bin32 (compiler session, 2026-09-24)
+    /// once, from its digits, to a f16/f32 (compiler session, 2026-09-24)
     last_lit: Option<String>,
     ret_kind: Option<bool>,
     /// a `return lend 'x'` in flight: the lent cell and whether it is mutable (owner, 2026-09-29)
@@ -222,7 +222,7 @@ impl<'p> Interp<'p> {
             Some(m) => m,
             None => return rt(0, "this kit has no MAIN, so it is a library, not a program"),
         };
-        // `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`: C's own view of the command line — the
+        // `MAIN ['argc': i32, 'argv': ptr[ptr[u8]]]`: C's own view of the command line — the
         // program's name first, each word NUL-ended, and a null pointer after the last (owner, 2026-09-29)
         self.push();
         if let Some((argc, argv)) = &self.prog.main_args {
@@ -366,7 +366,7 @@ impl<'p> Interp<'p> {
                 (Ty::Var(_), Ty::Var(_)) => true,
                 (Ty::Var(v), other) => match bound(f, v) { None => true, Some(i) => self.satisfies(&ty_shape(other), &i, f.line)?.is_ok() },
                 (other, Ty::Var(v)) => match bound(g, v) { None => true, Some(i) => self.satisfies(&ty_shape(other), &i, g.line)?.is_ok() },
-                // the exact type, widths included (a range's bounds aside): `bin16` and `bin64` are two
+                // the exact type, widths included (a range's bounds aside): `f16` and `f64` are two
                 _ => ty_name(&unranged(a)) == ty_name(&unranged(b)),
             };
             if !meet { return Ok(None); }
@@ -404,7 +404,7 @@ impl<'p> Interp<'p> {
                         },
                         None => continue,
                     },
-                    // a typed literal (`2.5: bin32`) or a `to.` conversion says its type outright
+                    // a typed literal (`2.5: f32`) or a `to.` conversion says its type outright
                     Expr::Convert(t, ..) => { if ty_name(&unranged(t)) != ty_name(&unranged(pt)) { ok = false; break; } continue; }
                     // arithmetic has its operands' type (`0.0 - 'y'` is 'y''s), found without running it
                     Expr::Binary(..) | Expr::Unary(..) | Expr::Paren(..) => match self.static_ty(e) {
@@ -427,7 +427,7 @@ impl<'p> Interp<'p> {
             1 => Ok(fitting[0]),
             0 => rt(c.line, format!("no `{name}` takes these arguments' types")),
             // a bare literal fits several widths: the call says which (owner, 2026-10-20: a)
-            _ => rt(c.line, format!("{} versions of `{name}` could take this call (lines {}): give the argument its type, `5: int64`, or pass a variable", fitting.len(), fitting.iter().map(|f| f.line.to_string()).collect::<Vec<_>>().join(", "))),
+            _ => rt(c.line, format!("{} versions of `{name}` could take this call (lines {}): give the argument its type, `5: i64`, or pass a variable", fitting.len(), fitting.iter().map(|f| f.line.to_string()).collect::<Vec<_>>().join(", "))),
         }
     }
 
@@ -594,7 +594,7 @@ impl<'p> Interp<'p> {
             if let Err(m) = self.c_shaped(&x.ty) { return rt(x.line, format!("`extern.C '{}'`: {m}", x.name)); }
             // a C variable is read by its name, and a read never fails, so it holds C's plain
             // number; convert it with `to.Key[…] otherwise …` (owner, 2026-09-28: b)
-            if let Some(n) = self.c_checked(&x.ty) { return rt(x.line, format!("`extern.C '{}'`: a C variable cannot be `{n}` — reading a variable never fails, so it holds C's plain number: declare it `int32` and convert, `to.{n}['{}'] otherwise …`", x.name, x.name)); }
+            if let Some(n) = self.c_checked(&x.ty) { return rt(x.line, format!("`extern.C '{}'`: a C variable cannot be `{n}` — reading a variable never fails, so it holds C's plain number: declare it `i32` and convert, `to.{n}['{}'] otherwise …`", x.name, x.name)); }
         }
         for f in self.prog.funcs.iter().filter(|f| f.is_extern) {
             for p in &f.params {
@@ -605,7 +605,7 @@ impl<'p> Interp<'p> {
                 }
                 if p.kind != ParamKind::Owned { return rt(f.line, format!("`extern.C fn {}`: C receives values and pointers, not `lent`; a lend is written at the call, against a `ptr` parameter", f.name)); }
             }
-            // A ranged return (`-> uint64[0, 1_000_000]`) is a contract checked at the door: the call
+            // A ranged return (`-> u64[0, 1_000_000]`) is a contract checked at the door: the call
             // fails `out_of_range` when C returns outside it (decided 2026-09-22). The base must be C-shaped.
             if let Some(t) = &f.ret {
                 let base = match t { Ty::Ranged(b, _, _) => &**b, t => t };
@@ -888,7 +888,7 @@ impl<'p> Interp<'p> {
                     _ => {
                         let v = self.fit(v, prov, ty.as_ref(), *line)?;
                         // `:=` takes the value's own type where the oracle knows it (only the length
-                        // operations so far: `uint64`, decided 2026-09-21) — so a later assignment is checked.
+                        // operations so far: `u64`, decided 2026-09-21) — so a later assignment is checked.
                         let ty = ty.clone().or_else(|| self.known_ty(value));
                         // its length is known here when it came from a literal list, `list.empty`, or a bound
                         let sized = Self::sized_from(value, ty.as_ref());
@@ -1158,7 +1158,7 @@ impl<'p> Interp<'p> {
                 for (k, v) in bounds.values.iter().enumerate() {
                     let (val, prov) = self.value(v)?;
                     // The step is its own signed number, not a value the counter takes
-                    // (owner, 2026-09-23): `for 'i': uint64 in range[3, 1, -1]` is legal.
+                    // (owner, 2026-09-23): `for 'i': u64 in range[3, 1, -1]` is legal.
                     // an end left out (`before`) is never the counter's value, so it need not fit its type
                     let val = if k == 0 || (k == 1 && !*exclusive) { self.fit(val, prov, ty.as_ref(), *line)? } else { val };
                     match val {
@@ -1420,7 +1420,7 @@ impl<'p> Interp<'p> {
         let Some(t) = ty else { return Ok(v) };
         let (v, prov) = raw_land(v, prov, t, line)?;
         let written = v.clone();
-        // a bin literal landing in a bin16/bin32 is rounded once, from its digits
+        // a bin literal landing in a f16/f32 is rounded once, from its digits
         let v = match (&v, &prov, &lit, bin_w(t)) {
             (Value::Bin(_), Prov::Literal, Some(d), Some(w @ (16 | 32))) => Value::Bin(round_decimal(d, w)),
             _ => v,
@@ -1444,8 +1444,8 @@ impl<'p> Interp<'p> {
             (Ty::Simd(_, n), Value::Simd(lanes), _) if lanes.len() != *n && lanes.iter().all(|l| *l == lanes[0]) => Value::Simd(vec![lanes[0].clone(); *n]),
             _ => v,
         };
-        // A bin16/bin32 holds what its width holds: the value is rounded to it where it lands
-        // (DECISIONS 2026-09-14: a bin32 0.1 is 0.100000001490116119384765625).
+        // A f16/f32 holds what its width holds: the value is rounded to it where it lands
+        // (DECISIONS 2026-09-14: a f32 0.1 is 0.100000001490116119384765625).
         let before = written;
         let v = round_to_width(t, v);
         if let (Value::Bin(a), Value::Bin(b)) = (&before, &v) {
@@ -1482,9 +1482,9 @@ impl<'p> Interp<'p> {
             (Ty::Int(_) | Ty::Uint(_), Value::Bin(b)) => rt(line, format!("{} is a bin, not {name}; there is no implicit conversion between numeric families", exact_decimal(*b))),
             (Ty::Bin(w), Value::Bin(b)) => {
                 match w {
-                    16 => if b.abs() > 65504.0 { return site(line, format!("{b} does not fit bin16 (max 65504)")); },
-                    32 => if b.abs() > f32::MAX as f64 { return site(line, format!("{b} does not fit bin32")); },
-                    128 => return rt(line, "bin128 is not implemented in the oracle"),
+                    16 => if b.abs() > 65504.0 { return site(line, format!("{b} does not fit f16 (max 65504)")); },
+                    32 => if b.abs() > f32::MAX as f64 { return site(line, format!("{b} does not fit f32")); },
+                    128 => return rt(line, "f128 is not implemented in the oracle"),
                     _ => {}
                 }
                 Ok(())
@@ -1494,7 +1494,7 @@ impl<'p> Interp<'p> {
             (Ty::Brain, Value::Brain(_)) => Ok(()),
             (Ty::Brain, v) => rt(line, format!("{} is {}, not brain16; there is no implicit conversion between numeric families: `to.brain16[…]`", v.show_stored(), v.kind())),
             (Ty::Bin(_) | Ty::Int(_) | Ty::Uint(_), Value::Brain(b)) => rt(line, format!("{} is a brain16, not {name}; there is no implicit conversion between numeric families: `to.{name}[…]`", exact_decimal(*b))),
-            (Ty::Deci(w), Value::Deci(d)) => if d.width == *w { Ok(()) } else { rt(line, format!("a deci{} is not {name}; widths do not change by themselves: `to.{name}[…]`", d.width)) },
+            (Ty::Deci(w), Value::Deci(d)) => if d.width == *w { Ok(()) } else { rt(line, format!("a d{} is not {name}; widths do not change by themselves: `to.{name}[…]`", d.width)) },
             (Ty::Deci(_), v) => rt(line, format!("{} is {}, not {name}; there is no implicit conversion between numeric families", v.show_stored(), v.kind())),
             (Ty::Str(enc), Value::Str(s)) => {
                 if *enc == Encoding::Ascii && !s.is_ascii() { return rt(line, "this text is not ASCII, so it cannot be str.ascii"); }
@@ -1645,7 +1645,7 @@ impl<'p> Interp<'p> {
             1 if !b.one_list => self.value(&b.values[0]),
             _ => {
                 // each item lands in an element slot, so the element type is its context, as a
-                // declaration's type is (owner, 2026-09-29: a): `[0 -~ 1,]` in a list[uint8] wraps at 8 bits
+                // declaration's type is (owner, 2026-09-29: a): `[0 -~ 1,]` in a list[u8] wraps at 8 bits
                 let elem = match &self.expected {
                     Some(Ty::List(t)) | Some(Ty::Array(t)) => Some((**t).clone()),
                     Some(Ty::Ranged(b, _, _)) => match &**b { Ty::List(t) | Ty::Array(t) => Some((**t).clone()), _ => None },
@@ -1703,7 +1703,7 @@ impl<'p> Interp<'p> {
     fn expr_ty(&self, e: &Expr) -> Option<Ty> {
         // the expression's own type first, both sides of it; where it goes only when it has none
         // (check claude, 2026-10-05: a bare left side took the context's type, and the right side's
-        // `uint16` was never asked)
+        // `u16` was never asked)
         let t = self.expr_ty_own(e).or_else(|| self.expected.clone());
         match t { Some(Ty::Ranged(b, _, _)) => Some(*b), t => t }
     }
@@ -1721,7 +1721,7 @@ impl<'p> Interp<'p> {
             Expr::Incl(_, Some(e), _) => Some(Ty::Str(e.clone())),
             Expr::Unary(_, inner, _) => self.expr_ty_own(inner),
             Expr::Binary(_, l, r, _) => self.expr_ty_own(l).or_else(|| self.expr_ty_own(r)),
-            // a length is a uint64, and an item has its list's element type (check claude, seeds 5018, 5054)
+            // a length is a u64, and an item has its list's element type (check claude, seeds 5018, 5054)
             Expr::Builtin(h, op, _, _) if (h == "list" || h == "array") && op == "length" => Some(Ty::Uint(IntWidth::W64)),
             Expr::Index(name, _, _) | Expr::CallValue(name, _, _, _) => match self.lookup(name).and_then(|s| s.ty.clone()) {
                 // a vector's lane, `'s'[pos 2]`, has the lane's type (check claude, seed 42640)
@@ -1995,9 +1995,9 @@ impl<'p> Interp<'p> {
         // It stops at a comparison too: a `bool` holds the comparison's answer, never its
         // operands, which take their width from each other (verification session, seed 93).
         // …except `simd.load` / `simd.fill`, which take their lane count from the declared type
-        // (design/simd.md) — the stop had cut that off, so a `simd[int32, count 4]` loaded 16 lanes
+        // (design/simd.md) — the stop had cut that off, so a `simd[i32, count 4]` loaded 16 lanes
         // …and `list.fill`, whose value takes the element type, as a list literal's values do
-        // (compiler claude, 2026-09-30: `list.fill[0.25, 'n']` into `list[deci64]` was refused)
+        // (compiler claude, 2026-09-30: `list.fill[0.25, 'n']` into `list[d64]` was refused)
         let simd_shape = matches!(e, Expr::Builtin(h, op, ..) if (h == "simd" && (op == "load" || op == "fill" || op == "load.some")) || (h == "list" && op == "fill"))
             // `C.str.make` into a bounded `C.str` sees the bound, to fail `out_of_range` (2026-10-19)
             || matches!(e, Expr::Call(c) if c.kit.as_deref() == Some("C"));
@@ -2166,7 +2166,7 @@ impl<'p> Interp<'p> {
             Expr::RawInt(i, _) => Ok((Value::Int(*i), Prov::Raw)),
             Expr::BigInt(s, _) => Ok((Value::Big(crate::bigint::BigInt::parse(s).expect("lexed digits")), Prov::Literal)),
             // `*0.1` — exactly this, a deci (owner, 2026-10-02): of the width the place wants, or,
-            // under `:=`, deci64 — the oracle's pick; the prover chooses the width
+            // under `:=`, d64 — the oracle's pick; the prover chooses the width
             Expr::Exact(digits, _) => {
                 if let Some(t @ (Ty::Bin(_) | Ty::Brain | Ty::Int(_) | Ty::Uint(_))) = &self.expected {
                     return rt(line, format!("`*{digits}` is exact, a deci; a {} cannot hold it exactly: drop the `*`, or make this a deci", ty_name(t)));
@@ -2461,7 +2461,7 @@ impl<'p> Interp<'p> {
                     }
                 }
             }
-            // `to.int8.bits[128]`: the value's bits read as the type's (owner, 2026-10-06), as a literal
+            // `to.i8.bits[128]`: the value's bits read as the type's (owner, 2026-10-06), as a literal
             // lands without ASP; a value the type's bits cannot hold is refused, as there
             Expr::Convert(ty @ (Ty::Int(w) | Ty::Uint(w)), b, _, 3, _) => {
                 let (v, _) = self.single(b, line)?;
@@ -2480,7 +2480,7 @@ impl<'p> Interp<'p> {
                 let useful_flag = form == 2;
                 let useful = &useful_flag;
                 let (v, _) = self.single(b, line)?;
-                // a fallback takes the conversion's type: `to.deci32['x'] otherwise 0` is a deci32 0
+                // a fallback takes the conversion's type: `to.d32['x'] otherwise 0` is a d32 0
                 self.fallback_ty = match ty { Ty::Ranged(bt, ..) => Some((**bt).clone()), Ty::TextRanged(e, ..) => Some(Ty::Str(e.clone())), t @ (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Brain | Ty::Deci(_) | Ty::Str(_) | Ty::Char(_) | Ty::Bool) => Some(t.clone()), _ => None };
                 let target = ty_name(ty);
                 let full_ty = ty;
@@ -2499,7 +2499,7 @@ impl<'p> Interp<'p> {
                 if matches!(v, Value::Bin(_) | Value::Brain(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_)) { fails.push(FailCase { name: "not_whole".into(), ty: None }); }
                 // deci (owner, 2026-09-29): a deci → integer fails `not_whole`, as a bin does; text or an
                 // integer with more digits than the width fails `too_many_digits` — an integer only when its
-                // type could have that many (an int32 into a deci64 always fits)
+                // type could have that many (an i32 into a d64 always fits)
                 if matches!(v, Value::Deci(_)) && matches!(base, Ty::Int(_) | Ty::Uint(_)) { fails.push(FailCase { name: "not_whole".into(), ty: None }); }
                 // a whole bin or deci too big for the integer fails `out_of_range`, as text does (owner,
                 // 2026-09-30: a); one `otherwise` handles both
@@ -2538,7 +2538,7 @@ impl<'p> Interp<'p> {
                 }
                 // text into ASCII fails `not_ascii` unless every character is ASCII (owner, 2026-09-30: "`otherwise`
                 // exists"); from ASCII text, a number or a byte it cannot
-                // bytes into text (owner, 2026-09-30: "yea"): a list or array of uint8 read as UTF-8, failing
+                // bytes into text (owner, 2026-09-30: "yea"): a list or array of u8 read as UTF-8, failing
                 // `not_utf8` when they are not; only utf8 reads bytes so far
                 let src_ty = match b.values.first() { Some(crate::ast::Value::Expr(e)) => self.expr_ty(e), _ => None };
                 let from_bytes = matches!(&src_ty, Some(Ty::List(t) | Ty::Array(t)) if **t == Ty::Uint(IntWidth::W8));
@@ -2593,7 +2593,7 @@ impl<'p> Interp<'p> {
                     }
                     // a list or array is not text (owner, 2026-09-30: b): bytes read as UTF-8 above, any other
                     // list is joined or printed by the writer
-                    (Ty::Str(_), Value::List(_)) => return rt(line, format!("a list is not text: only a list of `uint8` converts, read as UTF-8 bytes (`to.str.utf8['bytes'] otherwise …`); join the items with `++`, or print the list directly (owner, 2026-09-30)")),
+                    (Ty::Str(_), Value::List(_)) => return rt(line, format!("a list is not text: only a list of `u8` converts, read as UTF-8 bytes (`to.str.utf8['bytes'] otherwise …`); join the items with `++`, or print the list directly (owner, 2026-09-30)")),
                     // a struct, a map, or a case carrying data has no one text; the writer builds the text they want
                     // (owner, 2026-09-30: "refuse")
                     (Ty::Str(_), Value::Struct(n, _)) => return rt(line, format!("a `{n}` is not text: build the text you want from its fields, e.g. `to.str.utf8['p'.x] ++ …`, or print it directly (owner, 2026-09-30)")),
@@ -2621,7 +2621,7 @@ impl<'p> Interp<'p> {
                     (Ty::Bin(w), Value::Big(b)) => {
                         let x: f64 = b.to_string().parse().unwrap();
                         let x = if *w == 32 { (x as f32) as f64 } else if *w == 16 { round_f16(x) } else { x };
-                        if x.is_infinite() { return site(line, format!("{b} does not fit bin{w}: it rounds past the largest value")); }
+                        if x.is_infinite() { return site(line, format!("{b} does not fit f{w}: it rounds past the largest value")); }
                         Value::Bin(x)
                     }
                     (Ty::Brain, Value::Big(b)) => {
@@ -2633,12 +2633,12 @@ impl<'p> Interp<'p> {
                     // integer's does (compiler claude, 2026-10-05)
                     (Ty::Deci(w), Value::Big(b)) => match crate::deci::Deci::parse(&b.to_string(), *w) {
                         Ok(Some(d)) => Value::Deci(d),
-                        _ => match handler { Some(h) => { let v = self.handle_failure(h, line, &format!("to.{target}"), "too_many_digits".into(), None, true)?; let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain }; return Ok((v, prov)); } None => return rt(line, format!("{b} has too many digits for deci{w}")) },
+                        _ => match handler { Some(h) => { let v = self.handle_failure(h, line, &format!("to.{target}"), "too_many_digits".into(), None, true)?; let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain }; return Ok((v, prov)); } None => return rt(line, format!("{b} has too many digits for d{w}")) },
                     },
                     (Ty::Bin(_), Value::Int(i)) => { let b = Value::Bin(*i as f64); fit_base!(b.clone()); b }
                     (Ty::Bin(_), Value::Bin(x)) => { fit_base!(Value::Bin(*x)); Value::Bin(*x) }
                     // the brain float (owner, 2026-10-02): into it rounds to the nearest, out of it into a
-                    // bin32/bin64 is exact, into a bin16 rounds (a check site past bin16's largest)
+                    // f32/f64 is exact, into a f16 rounds (a check site past f16's largest)
                     (Ty::Brain, Value::Int(i)) => Value::Brain(crate::value::round_brain_int(*i as i128)),
                     (Ty::Brain, Value::Bin(x)) => {
                         let r = no_new_neg_zero(*x, crate::value::round_brain_direct(*x));   // one rounding, as kayo's fptrunc double → bfloat (compiler claude, 2026-10-15)
@@ -2667,7 +2667,7 @@ impl<'p> Interp<'p> {
                     }
                     (Ty::Bin(w), Value::Brain(x)) => {
                         let b = if *w == 16 { Value::Bin(round_f16(*x)) } else { Value::Bin(*x) };
-                        if let Value::Bin(y) = b { if y.is_infinite() { return site(line, format!("{} does not fit bin16: past its largest value, 65504", exact_decimal(*x))); } }
+                        if let Value::Bin(y) = b { if y.is_infinite() { return site(line, format!("{} does not fit f16: past its largest value, 65504", exact_decimal(*x))); } }
                         fit_base!(b.clone()); b
                     }
                     (Ty::Int(_) | Ty::Uint(_), Value::Brain(x)) => {
@@ -2748,7 +2748,7 @@ impl<'p> Interp<'p> {
                         fit_base!(k.clone());
                         k
                     }
-                    (Ty::Int(_) | Ty::Uint(_), Value::Char(_, c)) => return rt(line, format!("a character does not convert to a number: `char.code[`{c}`]` is its code, `to.int32[to.str.utf8[…]]` its digit value (decided 2026-09-21)")),
+                    (Ty::Int(_) | Ty::Uint(_), Value::Char(_, c)) => return rt(line, format!("a character does not convert to a number: `char.code[`{c}`]` is its code, `to.i32[to.str.utf8[…]]` its digit value (decided 2026-09-21)")),
                     (Ty::Char(_), Value::Int(_)) => return rt(line, "a number does not convert to a character: `char.point.from_code[…] otherwise …` (decided 2026-09-21)"),
                     (Ty::Char(unit), Value::Str(s) | Value::Char(_, s)) => {
                         let count = match unit { CharUnit::Byte => s.len(), CharUnit::Point => s.chars().count(), CharUnit::Grapheme => grapheme_count(s) };
@@ -2768,7 +2768,7 @@ impl<'p> Interp<'p> {
                     (Ty::Deci(w), Value::Bin(x)) => {
                         if !x.is_finite() { return rt(line, format!("a bin {} into a deci is not decided", if x.is_nan() { "NaN" } else { "infinity" })); }
                         // `.useful`: the shortest decimal that reads back as the same bin *at its own width*
-                        // (a bin32 0.1 is `0.1`, not its 64-bit widening; compiler session, 2026-09-29)
+                        // (a f32 0.1 is `0.1`, not its 64-bit widening; compiler session, 2026-09-29)
                         let src_ty = match b.values.first() { Some(crate::ast::Value::Expr(e)) => self.expr_ty(e), _ => None };
                         let d = if *useful {
                             let text = show_useful_as(&Value::Bin(*x), src_ty.as_ref());
@@ -2795,7 +2795,7 @@ impl<'p> Interp<'p> {
                         let digits: String = mant.chars().filter(|c| c.is_ascii_digit()).collect();
                         digits.trim_start_matches('0').len() > crate::deci::precision(*w)
                     } => {
-                        let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.deci{w}.written"), "too_many_digits".into(), None, true)?;
+                        let v = self.handle_failure(handler.as_ref().unwrap(), line, &format!("to.d{w}.written"), "too_many_digits".into(), None, true)?;
                         let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
                         return Ok((v, prov));
                     }
@@ -2829,7 +2829,7 @@ impl<'p> Interp<'p> {
                     (Ty::Bool, _) => return rt(line, "nothing converts to bool: there is no truthiness; compare instead"),
                     (t, other) => return rt(line, format!("no conversion from {} to {}", other.kind(), ty_name(t))),
                 };
-                // a converted bin16/bin32 holds what its width holds (DECISIONS 2026-09-14)
+                // a converted f16/f32 holds what its width holds (DECISIONS 2026-09-14)
                 let before = out.clone();
                 let out = round_to_width(ty, out);
                 if let (Value::Bin(a), Value::Bin(b)) = (&before, &out) {
@@ -2923,7 +2923,7 @@ impl<'p> Interp<'p> {
                 let prov = if v.is_owned() { Prov::Fresh } else { Prov::Plain };
                 Ok((v, prov))
             }
-            // the bytes sit in the program file (owner, 2026-10-10): an `array[uint8]`, or text as if written in quotes
+            // the bytes sit in the program file (owner, 2026-10-10): an `array[u8]`, or text as if written in quotes
             Expr::Incl(bytes, enc, _) => match enc {
                 None => Ok((Value::List(bytes.iter().map(|b| Value::Int(*b as i128)).collect()), Prov::Fresh)),
                 Some(_) => Ok((Value::Str(String::from_utf8_lossy(bytes).into_owned()), Prov::Literal)),
@@ -2986,7 +2986,7 @@ impl<'p> Interp<'p> {
                     // flip every bit, at the operand's declared width (the oracle needs a typed variable)
                     // a vector's lanes give the width, as for the wrapping operators
                     let width = match self.expr_ty(inner) { Some(Ty::Simd(e, _)) => Some(*e), w => w };
-                    let (bits, signed) = match width { Some(Ty::Int(w)) => (true_bits(&w), true), Some(Ty::Uint(w)) => (true_bits(&w), false), _ => return rt(line, "`not.bit` flips a type's bits, so it needs to know how many: give the value a type, or say it in the declaration (`let 'x': uint32 = not.bit 'v';`)") };
+                    let (bits, signed) = match width { Some(Ty::Int(w)) => (true_bits(&w), true), Some(Ty::Uint(w)) => (true_bits(&w), false), _ => return rt(line, "`not.bit` flips a type's bits, so it needs to know how many: give the value a type, or say it in the declaration (`let 'x': u32 = not.bit 'v';`)") };
                     // 127 bits and up, on big numbers (owner, 2026-10-03): not x is -x - 1, then taken at the width
                     if bits >= 127 || matches!(v, Value::Big(_)) {
                         let Some(x) = as_big(&v) else { return rt(line, format!("`not.bit` is integer arithmetic, got {}", v.kind())) };
@@ -3042,7 +3042,7 @@ impl<'p> Interp<'p> {
             }
             Expr::Binary(op, l, r, _) if matches!(op.as_str(), "+~" | "-~" | "x~" | "xx~") => {
                 // Wrapping is at one size, and it is always written, never guessed: operands of two
-                // sizes, or an exact sum that mixes them, need `to.int16[…]` (owner, 2026-09-23: b)
+                // sizes, or an exact sum that mixes them, need `to.i16[…]` (owner, 2026-09-23: b)
                 // a power's exponent is a count, like a shift's, not a value being wrapped: only the
                 // base's size counts for `xx~` (provisional, by analogy with shifts)
                 let (sl, sr) = (self.plain_size(l), if op == "xx~" { Ok(None) } else { self.plain_size(r) });
@@ -3051,7 +3051,7 @@ impl<'p> Interp<'p> {
                     (Ok(Some(a)), Ok(Some(b))) if ty_name(a) != ty_name(b) => Some(format!("{} and {}", ty_name(a), ty_name(b))),
                     _ => None,
                 };
-                if let Some(m) = mixed { return rt(line, format!("`{op}` wraps at one size, and this mixes {m}: say which, `to.int16[…]` around a side")); }
+                if let Some(m) = mixed { return rt(line, format!("`{op}` wraps at one size, and this mixes {m}: say which, `to.i16[…]` around a side")); }
                 let width = if op == "xx~" { self.expr_ty(l) } else { self.expr_ty(l).or_else(|| self.expr_ty(r)) };
                 // a vector wraps lane by lane at its element's size (simd.md; check claude, 2026-09-29)
                 let width = match width { Some(Ty::Simd(e, _)) => Some(*e), w => w };
@@ -3061,11 +3061,11 @@ impl<'p> Interp<'p> {
                     // the width can come from a name, a conversion, either side, or the type
                     // stored into (2026-09-23); a bare literal with none of those has no size to wrap in
                     Some(t) => return rt(line, format!("`{op}` wraps modulo an integer's size, and {} is not an integer", ty_name(&t))),
-                    None => return rt(line, format!("`{op}` wraps modulo a type's size, so it needs to know which: give a side a type, or say it in the declaration (`let 'x': uint64 = 'a' {op} 'b';`)")),
+                    None => return rt(line, format!("`{op}` wraps modulo a type's size, so it needs to know which: give a side a type, or say it in the declaration (`let 'x': u64 = 'a' {op} 'b';`)")),
                 };
                 let (a, _) = self.eval(l)?;
                 let (b, _) = self.eval(r)?;
-                // at 127 bits and up (int128, uint128, the wide `!std_` ones) the wrap is worked out
+                // at 127 bits and up (i128, u128, the wide `!std_` ones) the wrap is worked out
                 // on big numbers, exactly, then taken modulo 2^bits (owner, 2026-10-03)
                 let big_wrap = |x: &Value, y: &Value| -> Result<Value, RuntimeError> {
                     let (x, y) = (as_big(x).unwrap(), as_big(y).unwrap());
@@ -3121,7 +3121,7 @@ impl<'p> Interp<'p> {
                 let (a, _) = self.eval(l)?;
                 let (b, _) = self.eval(r)?;
                 let width_ty = self.expr_ty(l);
-                let Some(t @ (Ty::Int(w) | Ty::Uint(w))) = width_ty.as_ref() else { return rt(line, format!("`{op}` needs a width, and nothing here gives one: declare where the value goes, or write `to.uint32[…] {op} …`")) };
+                let Some(t @ (Ty::Int(w) | Ty::Uint(w))) = width_ty.as_ref() else { return rt(line, format!("`{op}` needs a width, and nothing here gives one: declare where the value goes, or write `to.u32[…] {op} …`")) };
                 let bits = true_bits(w);
                 if bits >= 127 { return rt(line, format!("`{op}` on {} is not built in the oracle", ty_name(t))); }
                 let (Value::Int(x), Value::Int(y)) = (a, b) else { return rt(line, format!("`{op}` works on integers")) };
@@ -3196,7 +3196,7 @@ impl<'p> Interp<'p> {
                         // `shl` pushes bits off the left end, so its width must be known (operators.md,
                         // owner 2026-09-23: from any operand or the context; context stops at a call)
                         if width_ty.is_none() {
-                            return rt(line, format!("`{op}` needs a width, and nothing here gives one: declare where the value goes (`let 'v': uint32 = 1 {op} 3;`) or write `to.uint32[1] {op} 3`"));
+                            return rt(line, format!("`{op}` needs a width, and nothing here gives one: declare where the value goes (`let 'v': u32 = 1 {op} 3;`) or write `to.u32[1] {op} 3`"));
                         }
                         let bits = match &width_ty { Some(Ty::Int(w)) | Some(Ty::Uint(w)) => int_bits(w), _ => 127 };
                         // the shifted number must fit its width first, as a bitwise operand must (owner,
@@ -3238,7 +3238,7 @@ impl<'p> Interp<'p> {
                 let op = &full.strip_suffix(".ieee").unwrap_or(full).to_string();
                 // A comparison's operands take their width from each other (2026-09-23): the
                 // stored `bool` says nothing, but a typed side sizes a literal group on the other
-                // (`'n' > (0 -~ 1)` wraps in uint64; verification session, seed 90).
+                // (`'n' > (0 -~ 1)` wraps in u64; verification session, seed 90).
                 let cmp = matches!(op.as_str(), "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least");
                 let saved_expected = self.expected.clone();
                 // beside a deci, a group of bare numbers takes the deci's width, as a literal does
@@ -3265,7 +3265,7 @@ impl<'p> Interp<'p> {
                 let lb = self.last_lit.take();
                 if cmp || deci_set { self.expected = saved_expected; }
                 let (b, pb) = r_b?;
-                // a bin literal meeting a bin16/bin32 value in arithmetic is at that width, rounded
+                // a bin literal meeting a f16/f32 value in arithmetic is at that width, rounded
                 // once from its digits (owner, 2026-09-24: bin math at its values' width)
                 let (a, b) = if cmp || op == "++" { (a, b) } else {
                     let a = match (&a, &pa, &la, self.bin_width(r)) { (Value::Bin(_), Prov::Literal, Some(d), Some(w @ (16 | 32))) => Value::Bin(round_decimal(d, w)), _ => a };
@@ -3316,12 +3316,12 @@ impl<'p> Interp<'p> {
                 // a deci power's exponent is an integer or a whole literal, never a deci variable: the
                 // compiler cannot know it is whole (owner, 2026-09-29: a)
                 if op == "xx" && matches!(a, Value::Deci(_)) && matches!(b, Value::Deci(_)) && !matches!(pb, Prov::Literal) {
-                    return rt(line, "a deci power's exponent is an integer or a whole literal, not a deci that may hold a fraction: `'r' xx to.int32['k'] otherwise …`");
+                    return rt(line, "a deci power's exponent is an integer or a whole literal, not a deci that may hold a fraction: `'r' xx to.i32['k'] otherwise …`");
                 }
                 let divisor = if op.starts_with("mod.") { if let Value::Bin(y) = &b { Some(*y) } else { None } } else { None };
                 let mut v = self.binary(full, a, b, line)?;
-                // a bin16/bin32 remainder is rounded where it lands, and that can reach the divisor
-                // again (-0.000001 mod.floor 360.0 is 360 in a bin32): still below it (owner, 2026-10-02: b)
+                // a f16/f32 remainder is rounded where it lands, and that can reach the divisor
+                // again (-0.000001 mod.floor 360.0 is 360 in a f32): still below it (owner, 2026-10-02: b)
                 if let (Some(y), Value::Bin(rem)) = (divisor, &v) {
                     let rounded = match self.bin_width(l).or_else(|| self.bin_width(r)) { Some(32) => (*rem as f32) as f64, Some(16) => round_f16(*rem), _ => *rem };
                     if rounded.abs() == y.abs() { v = Value::Bin(below_divisor(rounded, y, &op[4..])); }
@@ -3341,7 +3341,7 @@ impl<'p> Interp<'p> {
                         }
                     }
                 }
-                // bin16/bin32 math rounds after every operation, at its values' width, as the
+                // f16/f32 math rounds after every operation, at its values' width, as the
                 // hardware does (owner, 2026-09-24: a — "the programmer could've chose a better one")
                 if let Value::Bin(x) = v {
                     let w = match (self.bin_width(l), self.bin_width(r)) {
@@ -3352,7 +3352,7 @@ impl<'p> Interp<'p> {
                         // `.ieee` rounds as IEEE does, an underflow keeping its sign
                         let r = if ieee { Value::Bin(if w == 32 { (x as f32) as f64 } else { round_f16(x) }) } else { round_to_width(&Ty::Bin(w), Value::Bin(x)) };
                         if let Value::Bin(y) = r {
-                            if x.is_finite() && y.is_infinite() { return site(line, format!("{x} does not fit bin{w}: `{op}` rounds past the largest value")); }
+                            if x.is_finite() && y.is_infinite() { return site(line, format!("{x} does not fit f{w}: `{op}` rounds past the largest value")); }
                         }
                         return Ok((r, Prov::Plain));
                     }
@@ -3529,9 +3529,9 @@ impl<'p> Interp<'p> {
             ("at_most", Brain(x), Brain(y)) => Bool(x <= y),
             ("at_least", Brain(x), Brain(y)) => Bool(x >= y),
             (_, x, y) if (matches!(x, Brain(_)) || matches!(y, Brain(_))) && !matches!(op, "equal_to" | "not_equal") =>
-                return rt(line, format!("`{op}` between {} and {}: the brain float is a family of its own; convert one, `to.brain16[…]` or `to.bin32[…]`", x.kind(), y.kind())),
+                return rt(line, format!("`{op}` between {} and {}: the brain float is a family of its own; convert one, `to.brain16[…]` or `to.f32[…]`", x.kind(), y.kind())),
             // deci (owner, 2026-09-29): exact, then rounded to the width, half to even
-            (_, Deci(x), Deci(y)) if x.width != y.width => return rt(line, format!("`{op}` between a deci{} and a deci{}: say which width, `to.deci{}[…]`", x.width, y.width, x.width.max(y.width))),
+            (_, Deci(x), Deci(y)) if x.width != y.width => return rt(line, format!("`{op}` between a d{} and a d{}: say which width, `to.d{}[…]`", x.width, y.width, x.width.max(y.width))),
             ("+", Deci(x), Deci(y)) => Deci(x.add(&y).or_else(|m| site(line, m))?),
             ("-", Deci(x), Deci(y)) => Deci(x.sub(&y).or_else(|m| site(line, m))?),
             ("x", Deci(x), Deci(y)) => Deci(x.mul(&y).or_else(|m| site(line, m))?),
@@ -3549,7 +3549,7 @@ impl<'p> Interp<'p> {
             }
             ("xx", Deci(x), Int(n)) => match x.pow_int(n) { None => return site(line, "zero to a negative power: division by zero"), Some(r) => Deci(r.or_else(|m| site(line, m))?) },
             (_, Deci(_), Int(_) | Bin(_)) | (_, Int(_) | Bin(_), Deci(_)) =>
-                return rt(line, format!("`{op}` between a deci and another number family: there is no implicit conversion between numeric families; `to.deci64[…]`")),
+                return rt(line, format!("`{op}` between a deci and another number family: there is no implicit conversion between numeric families; `to.d64[…]`")),
             (_, Int(_), Bin(_)) | (_, Bin(_), Int(_)) if matches!(op, "+" | "-" | "x" | "xx") || op.starts_with("div.") || op.starts_with("mod.") =>
                 return rt(line, format!("`{op}` between an integer and a bin: there is no implicit conversion between numeric families")),
             // a char compares by its content, whatever unit it was declared in
@@ -3583,7 +3583,7 @@ impl<'p> Interp<'p> {
     }
 
     /// The static type of a single-expression bracket, for the few expressions the
-    /// oracle knows one for: `list.length[…]` / `array.length[…]` are `uint64`
+    /// oracle knows one for: `list.length[…]` / `array.length[…]` are `u64`
     /// (decided 2026-09-21). Everything else: unknown (a provisional gap, see README).
     /// Is the length of what this bracket produces known at this point? A literal list,
     /// `list.empty`, or a value of a bounded type `list[T][lo, hi]` — the cases the prover
@@ -3598,19 +3598,19 @@ impl<'p> Interp<'p> {
         match value.values.as_slice() {
             [crate::ast::Value::Expr(Expr::Builtin(head, op, args, _))] if (head == "list" || head == "array" || head == "map") && op == "length" => {
                 let u64 = Ty::Uint(crate::ast::IntWidth::W64);
-                // the length of a `list[T][lo, hi]` is a `uint64[lo, hi]`
+                // the length of a `list[T][lo, hi]` is a `u64[lo, hi]`
                 if let Some(crate::ast::Value::Expr(Expr::Owned(_, n, _))) = args.values.first() {
                     if let Some(Ty::Ranged(_, lo, hi)) = self.lookup(n).and_then(|s| s.ty.clone()) { return Some(Ty::Ranged(Box::new(u64), lo, hi)); }
                 }
                 Some(u64)
             }
-            // a pointer from C has the type C's declaration gives it (`malloc` → `ptr.mut[uint8]`), so handing
+            // a pointer from C has the type C's declaration gives it (`malloc` → `ptr.mut[u8]`), so handing
             // it where C wants another struct's pointer is refused (owner, 2026-10-10: `ptr.mut[FILE]`)
             [crate::ast::Value::Expr(e @ (Expr::Call(_) | Expr::PtrCast(..)))] => self.expr_ty_own(e).filter(|t| matches!(t, Ty::Ptr(..))),
-            // included bytes are an `array[uint8]`, included text its named type (owner, 2026-10-10)
+            // included bytes are an `array[u8]`, included text its named type (owner, 2026-10-10)
             [crate::ast::Value::Expr(e @ Expr::Incl(..))] => self.expr_ty_own(e),
             // `let 'a' := to.array[give 'l']` is an array of what 'l' held
-            // `'y' := to.deci32['x'] otherwise 0` is a deci32, whatever its fallback (check claude, 2026-09-30)
+            // `'y' := to.d32['x'] otherwise 0` is a d32, whatever its fallback (check claude, 2026-09-30)
             [crate::ast::Value::Expr(Expr::Convert(t @ (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Deci(_)), _, _, _, _))] => Some(t.clone()),
             [crate::ast::Value::Expr(Expr::Convert(t @ (Ty::List(_) | Ty::Array(_)), b, _, _, _))] => {
                 let elem = match b.values.first() {
@@ -4010,7 +4010,7 @@ impl<'p> Interp<'p> {
                 let items = match &*cell.borrow() { Value::List(i) => i.clone(), other => return rt(line, format!("`simd.{op}` needs a list or array, got {}", other.kind())) };
                 let (iv, _) = self.value(&args.values[1])?;
                 let i = match iv { Value::Int(i) => i, other => return rt(line, format!("a position is an integer, got {}", other.kind())) };
-                // the lane count comes from the declared type (`'a': simd[int32, count 4] = simd.load[…]`);
+                // the lane count comes from the declared type (`'a': simd[i32, count 4] = simd.load[…]`);
                 // 16 when nothing states one
                 let n = match &self.expected { Some(Ty::Simd(_, n)) => *n, _ => 16usize };
                 let n = match &args.values[2..] { [a] => { let (v, _) = self.value(a)?; match v { Value::Simd(l) => l.len(), _ => n } } _ => n };
@@ -4378,7 +4378,7 @@ impl<'p> Interp<'p> {
             // the declared type of a variable handed over by a verb, to hold a lend to its layout
             let src_ty = match &arg { Arg::Ast(crate::ast::Value::Expr(Expr::Owned(_, n, _))) => self.lookup(n).and_then(|s| s.ty.clone()), _ => None };
             // an argument lands in its parameter, so the parameter's type is its context, as a
-            // declaration's is (owner, 2026-09-29: a): `show[0 -~ 1]` into a uint8 wraps at 8 bits
+            // declaration's is (owner, 2026-09-29: a): `show[0 -~ 1]` into a u8 wraps at 8 bits
             let (v, prov) = match arg {
                 Arg::Ast(a) => {
                     let pt = param.ty.clone().filter(|t| !matches!(t, Ty::Var(_) | Ty::Inst(..)));
@@ -4516,7 +4516,7 @@ impl<'p> Interp<'p> {
     fn satisfies(&self, shape: &str, iface: &str, line: usize) -> Result<Result<(), String>, RuntimeError> {
         let def = match self.prog.interfaces.iter().find(|i| i.name == iface) { Some(i) => i, None => return rt(line, format!("no interface named `{iface}`")) };
         // a listed type is accepted, nothing else (owner, 2026-10-02). The oracle knows a value's
-        // family, not its width, so `int32` here admits any integer: the compiler checks the width.
+        // family, not its width, so `i32` here admits any integer: the compiler checks the width.
         if !def.types.is_empty() && !def.types.iter().any(|t| ty_shape(t) == shape) {
             return Ok(Err(format!("{shape} is not `{iface}`: it is not one of the types it lists")));
         }
@@ -4885,7 +4885,7 @@ impl<'p> Interp<'p> {
             Ty::Simd(t, n) => { let (sz, _) = self.size_align(t, line)?; (sz * n, sz * n) }
             Ty::Channel(_) => (8, 8),
             Ty::Duration => (8, 8),
-            Ty::CStr(_) => (24, 8),   // a list's handle, as `list[uint8]`
+            Ty::CStr(_) => (24, 8),   // a list's handle, as `list[u8]`
             Ty::Fn(..) => (8, 8),
             Ty::Inst(n, _) => return rt(line, format!("`size.of[{n}[…]]`: a generic struct's size is not modelled by the oracle")),
             Ty::Struct(n) => {
@@ -4955,7 +4955,7 @@ impl<'p> Interp<'p> {
                 }
                 (Some(Ty::Ptr(want, _)), Value::Ptr(_), _) => {
                     // a pointer to one C type where C wants another is refused (owner, 2026-10-10: "(a)"):
-                    // `FILE` is not `uint8`; `ptr.cast` says it on purpose
+                    // `FILE` is not `u8`; `ptr.cast` says it on purpose
                     let have = match a { crate::ast::Value::Expr(e) => self.expr_ty_own(e) };
                     if let Some(Ty::Ptr(have, _)) = have {
                         if *have != **want {
@@ -4979,7 +4979,7 @@ impl<'p> Interp<'p> {
             };
             args.push(v);
         }
-        // a fixed shape (`= C.printf [ …, ...'n': int32]`, owner 2026-10-19) takes exactly what it names
+        // a fixed shape (`= C.printf [ …, ...'n': i32]`, owner 2026-10-19) takes exactly what it names
         if func.link.is_some() && func.params.iter().any(|p| p.variadic && p.ty.is_some()) {
             if args.len() != func.params.len() { return rt(c.line, format!("`{}` takes exactly {} argument(s), as its shape says; given {}", func.name, func.params.len(), args.len())); }
         } else {
@@ -5056,7 +5056,7 @@ impl<'p> Interp<'p> {
                         let a = Value::Ptr(Ptr { cell: Some(cell.clone()), index: (j - 1) as i128, mutable: false });
                         let b = Value::Ptr(Ptr { cell: Some(cell.clone()), index: j as i128, mutable: false });
                         let r = self.call_func_value(&cmp, vec![a, b], c.line)?;
-                        let order = match r { Value::Int(o) => o, other => return rt(c.line, format!("the comparator returned {}, not an int32", other.kind())) };
+                        let order = match r { Value::Int(o) => o, other => return rt(c.line, format!("the comparator returned {}, not an i32", other.kind())) };
                         if order <= 0 { break; }
                         let mut v = cell.borrow_mut();
                         if let Value::List(items) = &mut *v { items.swap(j - 1, j); }
@@ -5086,7 +5086,7 @@ impl<'p> Interp<'p> {
             };
             if given.iter().filter(|(k, _)| k == &f.name).count() > 1 { return rt(line, format!("`{}` is given twice", f.name)); }
             // the field's type is its value's context, as a declared variable's is: `price = 0.45` into a
-            // `deci64` field is a deci
+            // `d64` field is a deci
             let saved = std::mem::replace(&mut self.expected, Some(f.ty.clone()));
             let r = self.bracket(b, line);
             self.expected = saved;
@@ -5136,7 +5136,7 @@ impl<'p> Interp<'p> {
                     _ => return None,
                 }
             }
-            // a field: its declared type (`'line'.count`, an `int32[min 1, max 99]`)
+            // a field: its declared type (`'line'.count`, an `i32[min 1, max 99]`)
             Expr::Field(var, field, _) => {
                 let slot = self.lookup(var)?;
                 let sname = match &*slot.cell.borrow() { Value::Struct(n, _) => n.clone(), _ => return None };
@@ -5217,7 +5217,7 @@ impl<'p> Interp<'p> {
             self.check_handler(c.handler.as_ref(), &fails, "C.str.read", c.line)?;
             // a lent C string made here reads as a pointer to its first byte
             let v = match (&v, &prov) { (Value::List(_) | Value::Str(_), Prov::Borrowed(cell, m)) => Value::Ptr(Ptr { cell: Some(cell.clone()), index: 0, mutable: *m }), _ => v.clone() };
-            let Value::Ptr(p) = &v else { return rt(c.line, format!("`C.str.read` reads a C string through a pointer, `ptr[uint8]`; got {}", v.kind())) };
+            let Value::Ptr(p) = &v else { return rt(c.line, format!("`C.str.read` reads a C string through a pointer, `ptr[u8]`; got {}", v.kind())) };
             let Some(cell) = &p.cell else { return site(c.line, "`C.str.read` was given a null pointer") };
             let all: Vec<u8> = match &*cell.borrow() { Value::List(items) => items.iter().map(|x| if let Value::Int(i) = x { *i as u8 } else { 0 }).collect(), Value::Str(s) => s.as_bytes().to_vec(), other => return rt(c.line, format!("a pointer into {} is not a C string", other.kind())) };
             let start = (p.index.max(0) as usize).min(all.len());
@@ -5290,7 +5290,7 @@ impl<'p> Interp<'p> {
                 "str.join" => match vals.get(0) { Some(Value::List(items)) => { let sep = text(1)?; let mut parts = Vec::new(); for it in items { match it { Value::Str(s) => parts.push(s.clone()), o => return rt(c.line, format!("std::str.join: the list holds {}, not text", o.kind())) } } Ok(Value::Str(parts.join(&sep))) } _ => rt(c.line, "std::str.join[lend 'parts', sep]") },
                 "str.at.grapheme" | "str.at.point" | "str.at.byte" => {
                     let s = text(0)?; let i = int(1)?;
-                    // a position is `uint64[min 1]` (owner, 2026-10-17: "(a)"): 0 or a negative is no position at all,
+                    // a position is `u64[min 1]` (owner, 2026-10-17: "(a)"): 0 or a negative is no position at all,
                     // not one past the end; `out_of_range` is only past the last unit
                     if i < 1 { return rt(c.line, no_position(i)); }
                     let units: Vec<Value> = match path.as_str() { "str.at.grapheme" => graphemes(&s).into_iter().map(|g| Value::Char(CharUnit::Grapheme, g)).collect(), "str.at.point" => s.chars().map(|ch| Value::Char(CharUnit::Point, ch.to_string())).collect(), _ => s.bytes().map(|b| Value::Int(b as i128)).collect() };
@@ -5330,7 +5330,7 @@ impl<'p> Interp<'p> {
             }
             p if p.starts_with("round.") => {
                 // one family (owner, 2026-10-17: "(c)"): to a whole number, or to `decimals N`; a bin or a deci in,
-                // the same kind out, then `to.int32[…]` for a whole one
+                // the same kind out, then `to.i32[…]` for a whole one
                 let way = &p["round.".len()..];
                 let (a, _) = self.value(&c.args.values[0])?;
                 let n = match c.args.values.get(1) {
@@ -5340,8 +5340,8 @@ impl<'p> Interp<'p> {
                         other => return rt(c.line, format!("`decimals` is a whole number, 0 or more; got {}", other.show_useful())),
                     },
                 };
-                // the answer is the type that went in, width and all (std claude, 2026-10-20): a bin16 rounded to 1
-                // decimal is the bin16 nearest 2.7, not a bin64
+                // the answer is the type that went in, width and all (std claude, 2026-10-20): a f16 rounded to 1
+                // decimal is the f16 nearest 2.7, not a f64
                 let crate::ast::Value::Expr(arg) = &c.args.values[0];
                 let in_ty: Option<Ty> = match arg {
                     Expr::Var(n, _) | Expr::Owned(_, n, _) => self.lookup(n).and_then(|s| s.ty.clone()),
@@ -5352,7 +5352,7 @@ impl<'p> Interp<'p> {
                     Value::Bin(x) => { let r = Value::Bin(no_new_neg_zero(x, round_bin(x, n, way))); Ok(match &in_ty { Some(t) => round_to_width(t, r), None => r }) }
                     Value::Deci(d) => {
                         let unit = if n == 0 { "1".to_string() } else { format!("0.{}1", "0".repeat(n - 1)) };
-                        let unit = match crate::deci::Deci::parse(&unit, d.width) { Ok(Some(u)) => u, _ => return rt(c.line, format!("{n} decimals is past what a deci{} holds", d.width)) };
+                        let unit = match crate::deci::Deci::parse(&unit, d.width) { Ok(Some(u)) => u, _ => return rt(c.line, format!("{n} decimals is past what a d{} holds", d.width)) };
                         let mode = if way == "near" { "near" } else { way };
                         match d.divmod_whole(&unit, mode) {
                             Some(Ok((q, _))) => match q.mul(&unit) { Ok(r) => Ok(Value::Deci(r)), Err(m) => rt(c.line, m) },
@@ -5403,7 +5403,7 @@ impl<'p> Interp<'p> {
                 let mut text = String::new();
                 for a in &c.args.values {
                     // the useful form is the shortest text that gives the value back at its own
-                    // width: a bin32 0.1 shows `0.1` (DECISIONS 2026-09-14)
+                    // width: a f32 0.1 shows `0.1` (DECISIONS 2026-09-14)
                     let crate::ast::Value::Expr(e) = a;
                     let saved = self.expected.take(); let ty = self.expr_ty(e); self.expected = saved;
                     let (v, _) = self.value_mode(a, !useful)?;
@@ -5447,8 +5447,8 @@ impl<'p> Interp<'p> {
                 let (v, _) = self.single(&c.args, c.line)?;
                 match v {
                     Value::Int(i) if (0..=255).contains(&i) => Err(RuntimeError { line: c.line, msg: String::new(), exit: Some(i as u8), site: false, leave: None }),
-                    Value::Int(i) => site(c.line, format!("exit code {i} does not fit uint8 (0 to 255)")),
-                    o => rt(c.line, format!("std::exit takes a uint8, got {}", o.kind())),
+                    Value::Int(i) => site(c.line, format!("exit code {i} does not fit u8 (0 to 255)")),
+                    o => rt(c.line, format!("std::exit takes a u8, got {}", o.kind())),
                 }
             }
             other => rt(c.line, format!("std::{other} does not exist in the oracle (it knows print, print.useful, print.useful.auto_newln and print.format, each .stdout/.stderr; input.line/all; exit; round.near/half_up/floor/ceil/trunc; div.trunc, mod.trunc; time.after/every/wait; str.*)")),
@@ -5497,7 +5497,7 @@ fn round_f16(x: f64) -> f64 {
 }
 
 /// The digits of a bin literal as written (with a leading `-`), looking through parentheses.
-/// Without ASP a literal is a bit pattern, as the machine's: an `int8` holding `128` holds -128's bits,
+/// Without ASP a literal is a bit pattern, as the machine's: an `i8` holding `128` holds -128's bits,
 /// and one wider than the type's bits is refused (owner, 2026-10-06: "`a`", "the base's, then").
 fn raw_land(v: Value, prov: Prov, t: &Ty, line: usize) -> Result<(Value, Prov), RuntimeError> {
     match (&prov, &v, t) {
@@ -5580,7 +5580,7 @@ fn round_decimal_raw(d: &str, w: u8) -> f64 {
         32 => d.parse::<f32>().map(|f| f as f64).unwrap_or(x),
         16 if x.is_finite() && x != 0.0 => {
             // reading at 64 bits first misleads only when it lands exactly halfway between two
-            // bin16 values; then the written digits decide which way
+            // f16 values; then the written digits decide which way
             let a = x.abs();
             let e = ((a.to_bits() >> 52) & 0x7ff) as i32 - 1023;
             let ulp = if a >= 2f64.powi(-14) { 2f64.powi(e - 10) } else { 2f64.powi(-24) };
@@ -5602,7 +5602,7 @@ fn round_decimal_raw(d: &str, w: u8) -> f64 {
     }
 }
 
-/// The useful form of a value whose static type is known: a bin16/bin32 is the shortest decimal
+/// The useful form of a value whose static type is known: a f16/f32 is the shortest decimal
 /// that rounds back to the same value at that width, not at 64 bits.
 /// The whole quotient of `x / y`, rounded `floor`, `ceil` or `trunc`, and what it leaves over
 /// (owner, 2026-10-02). C's `fmod` is exact, so the truncated pair is exact; one step away fixes
@@ -5647,7 +5647,7 @@ fn show_useful_as(v: &Value, ty: Option<&Ty>) -> String {
     }
 }
 
-/// Round every bin inside a value to the width its type gives it (bin16, bin32); bin64 is as held.
+/// Round every bin inside a value to the width its type gives it (f16, f32); f64 is as held.
 /// A bin or brain16 -0 made plain 0, lane by lane (owner, 2026-10-07: "`a`", no -0 in any result).
 fn no_neg_zero(v: Value) -> Value {
     match v {
@@ -5740,8 +5740,8 @@ fn int_bits(w: &IntWidth) -> u32 { match w { IntWidth::Other(n) => *n, IntWidth:
 fn kind_word(k: ParamKind) -> &'static str { match k { ParamKind::Owned => "owning", ParamKind::Lent => "lent", ParamKind::LentMut => "lent.mut" } }
 
 /// `min` / `max` in a range type are the base type's own limits (owner, 2026-09-23):
-/// `int32[1, max]` is "at least 1", and stays right if the width changes. The word says
-/// which limit, not the side it is written on: `int32[max, 5]` is not "up to 5" (compiler
+/// `i32[1, max]` is "at least 1", and stays right if the width changes. The word says
+/// which limit, not the side it is written on: `i32[max, 5]` is not "up to 5" (compiler
 /// session, 2026-09-23 — the side had been read instead of the word).
 pub fn resolve_bound(base: &Ty, b: &Bound) -> Bound {
     let high = matches!(b, Bound::Max);
@@ -5755,7 +5755,7 @@ pub fn resolve_bound(base: &Ty, b: &Bound) -> Bound {
                 let m = match w { 16 => 65504.0, 32 => f32::MAX as f64, _ => f64::MAX };
                 Bound::Bin(if high { m } else { -m })
             }
-            // a deci's largest (9.999999e96 for deci32; past a bin64 for the wider ones)
+            // a deci's largest (9.999999e96 for d32; past a f64 for the wider ones)
             Ty::Deci(w) => {
                 let m = if *w == 32 { 9.999999e96 } else { f64::INFINITY };
                 Bound::Bin(if high { m } else { -m })
@@ -6137,7 +6137,7 @@ fn round_bin(x: f64, n: usize, way: &str) -> f64 {
 }
 
 fn no_position(i: i128) -> String {
-    format!("{i} is no position: a position is `uint64[min 1]`, counting from 1 (owner, 2026-10-17); convert one worked out while running, `to.uint64[min 1]['i'] otherwise 1`")
+    format!("{i} is no position: a position is `u64[min 1]`, counting from 1 (owner, 2026-10-17); convert one worked out while running, `to.u64[min 1]['i'] otherwise 1`")
 }
 
 fn empty_part(word: &str) -> String {

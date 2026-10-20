@@ -1,3 +1,3 @@
 bare.never [fn];
 
-pub fn one [] -> int32 { give 1; }
+pub fn one [] -> i32 { give 1; }

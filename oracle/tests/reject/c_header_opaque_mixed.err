@@ -1,1 +1,1 @@
-`fclose` wants a pointer to `FILE` for 'p1', and this points at `uint8`
+`fclose` wants a pointer to `FILE` for 'p1', and this points at `u8`

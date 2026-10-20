@@ -2,6 +2,6 @@
 # protect the read on its right: position 7 is read, and it is out of range
 MAIN {
     let 'xs' := [3, 5, 8];
-    let 'i': uint64 = 7;
+    let 'i': u64 = 7;
     if 'i' at_most list.length[lend 'xs'] and 'xs'[pos 'i'] equal_to 5 { }
 }

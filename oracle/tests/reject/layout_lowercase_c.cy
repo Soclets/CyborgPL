@@ -1,3 +1,3 @@
-layout.c struct P { x: int32 }
+layout.c struct P { x: i32 }
 MAIN {
 }

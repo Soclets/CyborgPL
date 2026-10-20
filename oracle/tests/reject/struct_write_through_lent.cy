@@ -1,4 +1,4 @@
-struct P { x: int32 }
+struct P { x: i32 }
 fn poke [lent 'q': P] {
     change 'q'.x = 9;
 }

@@ -1,3 +1,3 @@
 MAIN {
-    let 'x': int32 = [];
+    let 'x': i32 = [];
 }

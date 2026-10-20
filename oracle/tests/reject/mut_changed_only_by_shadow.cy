@@ -1,6 +1,6 @@
 MAIN {
-    let mut 'x': int32 = 1;
-    shadow 'x': int32 = 2;
+    let mut 'x': i32 = 1;
+    shadow 'x': i32 = 2;
     change 'x' = 3;
     std::print.useful['x', newln];
 }

@@ -2,8 +2,8 @@
 # structs, `match`, and.then / or.else (the base's, since they skip their right side) still work.
 
 struct Point {
-    x: int32,
-    y: int32
+    x: i32,
+    y: i32
 }
 
 enum Light {
@@ -23,7 +23,7 @@ MAIN {
     let 'p' := origin[];
     let 'l' := Light.lit;
     if ready[] and.then false {
-        let 'unused': int32 = 1;
+        let 'unused': i32 = 1;
     }
     match 'l' {
         lit { }
@@ -36,7 +36,7 @@ fn greeting [] -> str.utf8 {
     return "hi";
 }
 
-fn three [] -> array[int32] {
+fn three [] -> array[i32] {
     return [1, 2, 3,];
 }
 

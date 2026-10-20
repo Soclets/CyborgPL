@@ -19,7 +19,7 @@ asked whether it works; it doesn't — the oracle stores the backslash.)
 ## `std::print.written` — a literal as it was typed (owner, 2026-10-17; not built)
 
 A third form beside `print.stored` and `print.useful`: each value printed as its literal was typed in the source,
-even past what the type holds (`let 'x': bin16 = 0.123456789;` prints `0.123456789`; stored `0.12347412109375`,
+even past what the type holds (`let 'x': f16 = 0.123456789;` prints `0.123456789`; stored `0.12347412109375`,
 useful `0.1235`). Precog proves at compile time that every value printed is a typed literal; where it cannot,
 the print says what to do, `std::print.written['total', newln] otherwise std::print.useful;`, or it is refused.
 Decided when building: no source text is carried at run time.
@@ -120,7 +120,7 @@ let 'field': str.utf8[min 0, max 255 bytes] = …;
 let 'code': str.utf8[min 4, max 4 points] = …;
 ```
 
-The thing, then its bounds, as `int32[min 0, max 100]` and `list[T][lo, hi]` —
+The thing, then its bounds, as `i32[min 0, max 100]` and `list[T][lo, hi]` —
 and, because a text has three lengths and no single one, the bound
 **says which it counts**: `bytes`, `points`, or `graphemes`, after the
 high bound. `str.utf8[0, 20]` with no unit is a compile error. Every
@@ -150,7 +150,7 @@ str.graphemes[lend 's']    # what a person counts as one character; O(n)
 ```
 for 'g' in str.each.grapheme[lend 's'] { … }     # 'g': char.grapheme
 for 'p' in str.each.point[lend 's'] { … }        # 'p': char.point
-for 'b' in str.each.byte[lend 's'] { … }         # 'b': uint8
+for 'b' in str.each.byte[lend 's'] { … }         # 'b': u8
 ```
 
 A bare `for 'c' in lend 's'` is an error: a text is not a list of anything
@@ -178,15 +178,15 @@ std::str.join[lend 'parts', between "_"]
 std::str.contains / starts_with / ends_with[lend 's', "x"]   -> bool
 std::str.trim / upper / lower[lend 's']
 std::str.replace[lend 's', from "a", to "b"]
-std::str.find.grapheme[lend 's', part "x"]  -> int32 or fail[missing]   (1-based grapheme position)
+std::str.find.grapheme[lend 's', part "x"]  -> i32 or fail[missing]   (1-based grapheme position)
 std::str.at.<unit>[lend 's', pos 3]        -> that unit, or fail[out_of_range]
 std::str.slice.grapheme[lend 's', from pos 1, to pos 5] -> str, or fail[out_of_range]
 std::str.slice.point[lend 's', from pos 1, before pos 5]  -> str, or fail[out_of_range]
-std::str.slice.byte[lend 's', from pos 1, to pos 5]     -> list[uint8], or fail[out_of_range]
+std::str.slice.byte[lend 's', from pos 1, to pos 5]     -> list[u8], or fail[out_of_range]
 ```
 
 **A byte slice gives bytes, not text** (owner, 2026-10-20: "(a)"). A cut by bytes can land inside a character
-(`"é"` is 2 bytes), so `str.slice.byte` hands back a `list[uint8]`, as `str.at.byte` hands back a `uint8`; text
+(`"é"` is 2 bytes), so `str.slice.byte` hands back a `list[u8]`, as `str.at.byte` hands back a `u8`; text
 is made from it with `to.str.utf8[…] otherwise …`, which fails `not_utf8` on a cut character, so a broken
 character is caught where it happens and never becomes a `str`. It is for where text meets something that counts
 bytes (a field's byte limit, a C buffer, an offset from a file or protocol); ordinary code slices by grapheme.

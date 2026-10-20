@@ -1,14 +1,14 @@
 # Every argument after the first says its role (owner, 2026-10-14): the first, the thing worked on, is bare;
 # each other starts with a word. The list is `spellings.cyr`'s `calls`.
-fn add ['a': int32, 'b': int32] -> int32 { return 'a' + 'b'; }
+fn add ['a': i32, 'b': i32] -> i32 { return 'a' + 'b'; }
 
 MAIN {
-    let 'xs': list[int32] = [];
+    let 'xs': list[i32] = [];
     list.append[lend.mut 'xs', value 3];
     list.append[lend.mut 'xs', value 4];
     std::print.useful[list.length[lend 'xs'], newln];
 
-    let 'phones': map[str.utf8, int32] = map.empty;
+    let 'phones': map[str.utf8, i32] = map.empty;
     map.set[lend.mut 'phones', key "ann", value 5551];
     map.set[lend.mut 'phones', key "bob", value 5552];
     let 'n' := map.get[lend 'phones', key "ann"] otherwise 0;

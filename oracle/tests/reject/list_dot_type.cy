@@ -1,3 +1,3 @@
 MAIN {
-    let 'xs': list.int32 = [1, 2];
+    let 'xs': list.i32 = [1, 2];
 }

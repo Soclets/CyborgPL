@@ -1,3 +1,3 @@
 MAIN {
-    let 'x': not_std.int32 = 1;
+    let 'x': not_std.i32 = 1;
 }

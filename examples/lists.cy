@@ -1,5 +1,5 @@
 # Lists of lists, and a generic function that counts any list.
-fn count <T: any> [lent 'items': list[<T>]] -> int32 {
+fn count <T: any> [lent 'items': list[<T>]] -> i32 {
     let 'n' := 0;
     for 'item' in lend 'items' {
         change 'n' = 'n' + 1;

@@ -1,4 +1,4 @@
 MAIN {
-    let mut 'a': int64 = 0;
+    let mut 'a': i64 = 0;
     no_cheat no_check change 'a' = 1;
 }

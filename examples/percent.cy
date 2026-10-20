@@ -6,6 +6,6 @@ MAIN {
     let 'off' := exactly 12.5 percent;
     std::print.useful['price' x 'tax', " ", 'price' x 'off', newln];
     std::print.useful[80%, " ", 5%, " ", 100%, " ", exactly 0.0001%, " ", exactly 12.3456789%, newln];
-    let 'f': bin64 = 80% x 2.0;
+    let 'f': f64 = 80% x 2.0;
     std::print.useful['f', newln];
 }

@@ -1,4 +1,4 @@
 coll.handler h {
-    zero ['x': int32] -> int32 { return 0; }
+    zero ['x': i32] -> i32 { return 0; }
 }
 MAIN { }

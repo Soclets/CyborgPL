@@ -1,1 +1,1 @@
-MAIN { let 'c' := channel[int32]; let 'v' := channel.take[lend 'c']; }
+MAIN { let 'c' := channel[i32]; let 'v' := channel.take[lend 'c']; }

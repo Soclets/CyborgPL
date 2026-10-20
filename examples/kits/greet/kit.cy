@@ -13,7 +13,7 @@ pub bare.never fn formal [] -> str.utf8 {
 }
 
 pub bare.never struct Tally {
-    n: int32
+    n: i32
 }
 
 pub bare.never op merge ['a': Tally, 'b': Tally] -> Tally {

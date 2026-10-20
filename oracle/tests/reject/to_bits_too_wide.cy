@@ -1,3 +1,3 @@
 MAIN {
-    let 'a' := to.int8.bits[256];
+    let 'a' := to.i8.bits[256];
 }

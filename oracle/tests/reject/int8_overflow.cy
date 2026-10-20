@@ -1,3 +1,3 @@
 MAIN {
-    let 'x': int8 = 300;
+    let 'x': i8 = 300;
 }

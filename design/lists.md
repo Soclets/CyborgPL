@@ -6,17 +6,17 @@ Decided 2026-09-17.
 
 ## Two types
 
-- **`list`** — grows and shrinks. `let 'xs': list[int32] = [1, 2, 3];`
-- **`array`** — fixed at the size it was made with. `let 'xs': array[int32] = [1, 2, 3];`
+- **`list`** — grows and shrinks. `let 'xs': list[i32] = [1, 2, 3];`
+- **`array`** — fixed at the size it was made with. `let 'xs': array[i32] = [1, 2, 3];`
 
 The words carry their everyday meanings: a list is something you add to, an
 array is an arrangement in place. **The element type is a type parameter in
 brackets** (decided 2026-09-19, after a cold read noted that a dot chain
-cannot carry two parameters — `map.str.utf8.int32` has no unambiguous
-reading): `list[int32]`, `list[str.utf8]`, `array[list[int32]]`. The rule
+cannot carry two parameters — `map.str.utf8.i32` has no unambiguous
+reading): `list[i32]`, `list[str.utf8]`, `array[list[i32]]`. The rule
 for types is now: `.` picks a *fixed variant* (`str.utf8`, `char.grapheme`),
 `[ ]` supplies a *type* — Scala's spelling, and the `[ ]`-builds rule applied
-to types. Until then the element type rode on the chain (`list.int32`).
+to types. Until then the element type rode on the chain (`list.i32`).
 
 With `:=`, the prover chooses: a sequence nothing ever appends to becomes an
 `array` — known length, provable indexes, placed wherever is fastest. The
@@ -68,7 +68,7 @@ itself (2026-09-19): a list given to an array variable, passed for an
 array parameter or returned as an array is refused, and the other way
 round too. A literal and a `:=` collection are neither yet, so they go
 either way, as before. The element type does not change, so it is not
-written (`to.array[int32][…]` is refused). `give` hands the elements
+written (`to.array[i32][…]` is refused). `give` hands the elements
 over without a copy, and `copy` keeps the original. **A bare name is
 refused** (owner: a): `to.array['l']` says neither, and a list always
 says `give`, `copy` or `lend`, so a copy is never made quietly. The
@@ -182,9 +182,9 @@ as calls with the ownership verbs: `lend` to look, `lend.mut` to change. No
 `std::`, no reserved verb names, no chain hanging off a variable. `list` and
 `array` are keywords.
 
-**A length is a `uint64`** (decided 2026-09-21): a count is never negative
+**A length is a `u64`** (decided 2026-09-21): a count is never negative
 and never too big for 64 bits. `let 'n' := list.length[lend 'xs'];` makes
-`'n'` a `uint64`; `let 'm': int32 = list.length[lend 'xs'];` is a narrowing
+`'n'` a `u64`; `let 'm': i32 = list.length[lend 'xs'];` is a narrowing
 check site — the prover proves it wherever it can see the list (a literal, a
 guarded `if`), and the tiers handle the rest. The written type is the
 promise; the final build stores a length it has proven small in whatever
@@ -193,21 +193,21 @@ is fastest.
 ## A length bound — `list[T][lo, hi]`
 
 ```
-let mut 'ys': list[int32][min 0, max 1000] = read_numbers[] otherwise list.empty;
-let 'n' := list.length[lend 'ys'];      # a uint64[min 0, max 1000]
-let 'm': int32 = 'n';                   # proven by the bound; no check
+let mut 'ys': list[i32][min 0, max 1000] = read_numbers[] otherwise list.empty;
+let 'n' := list.length[lend 'ys'];      # a u64[min 0, max 1000]
+let 'm': i32 = 'n';                   # proven by the bound; no check
 ```
 
 Decided 2026-09-21: the thing, then its bounds — the same shape as
-`int32[min 0, max 100]`. It is a fact about the data, not about one spot in the
+`i32[min 0, max 100]`. It is a fact about the data, not about one spot in the
 code, so everything downstream knows it: the list's length is a
-`uint64[lo, hi]`, and narrowing it is proven. Every change to the list
+`u64[lo, hi]`, and narrowing it is proven. Every change to the list
 (a construction, an assignment, `append`, `remove`) is checked against the
-bound — a check site like writing 101 into an `int32[min 0, max 100]`: the prover
+bound — a check site like writing 101 into an `i32[min 0, max 100]`: the prover
 proves it where it can see the list, the tiers handle the rest. The low
 bound is 0 or more; an `array` takes no bound (its one length is already
 known). Inside a call the parameter is written the same way:
-`lent 'ys': list[int32][min 0, max 1000]`.
+`lent 'ys': list[i32][min 0, max 1000]`.
 
 **`list.remove` hands the removed element back** (decided 2026-09-21): the
 list stops owning it, so the caller does — or drops it by not taking it.
@@ -226,7 +226,7 @@ fresh value, a `copy`, or a `give` — never a lend.
 ## The empty list (decided 2026-09-17)
 
 ```
-let 'xs': list[int32] = [];             # typed: the type says list, [] is empty
+let 'xs': list[i32] = [];             # typed: the type says list, [] is empty
 let 'ys' := list.empty;                # best-type: the value says list; Precog picks the
                                        # element type from what is appended later
 ```
@@ -245,7 +245,7 @@ for 'i', 'x' in lend 'xs' {
 ```
 
 The position first, then the item, the order of `'xs'['i']`. The position
-counts 1, 2, 3… and is a `uint64`, like every position. A range needs
+counts 1, 2, 3… and is a `u64`, like every position. A range needs
 none, since its counter is already the position, so `for 'i', 'x' in
 range[…]` is refused. With `perm`, both outlive the loop (the oracle's
 reading, not asked). Proposed alternative: leave it, looping over

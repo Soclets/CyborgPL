@@ -6,7 +6,7 @@ Decided 2026-09-14; spelling revised 2026-09-19 (`fn`, name-then-type
 parameters, `--> T`).
 
 ```
-fn add ['a': int32, 'b': int32] -> int32 {
+fn add ['a': i32, 'b': i32] -> i32 {
     return 'a' plus 'b';
 }
 let 'sum' := add[10, 20];              # this Kit: bare
@@ -16,10 +16,10 @@ let 'big' := mathstuff::pow[2, 64];    # another Kit: Kit::path
 ## Definition
 
 ```
-fn count [lent 'text': str.utf8] -> int32 { … }     # looks at it
+fn count [lent 'text': str.utf8] -> i32 { … }     # looks at it
 fn edit  [lent.mut 'text': str.utf8] { … }          # may modify it
 fn keep  ['text': str.utf8] { … }                   # owns it
-fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
+fn twice [immut 'n': i32] -> i32 { … }          # stated mutability
 ```
 
 - **`fn`**, bare name, parameters in one `[ ]`, optional `--> type`, body in
@@ -40,12 +40,12 @@ fn twice [immut 'n': int32] -> int32 { … }          # stated mutability
   shape — the same machinery generics will use — and with no type each
   argument keeps its own; the body's operations are the constraint,
   checked per call site (`sum[1, "two"]` fails to compile at that call).
-  `...'nums': int32` restricts every argument. Inside the body the bundle
+  `...'nums': i32` restricts every argument. Inside the body the bundle
   walks like a list (`for 'n' in lend 'nums'`, `list.length[…]` is a
   compile-time constant there). `...` because it is the ellipsis — "and so
   on" — the mark C, Java, Go, JS, Swift all use; owner asked and chose it
   over `many` (reads like an array) and `vararg`. Open: a union-typed
-  variadic (`int32 or bin16`) waits on union types. `examples/variadic.cy`.
+  variadic (`i32 or f16`) waits on union types. `examples/variadic.cy`.
 - **Unpacking a list into a call: `...'xs'`** (decided 2026-09-21).
   `sum[...'xs']` with `'xs'` holding `1, 2, 3` is `sum[1, 2, 3]`; it may
   sit among hand-typed values (`sum[10, ...'xs', 20]`) and a bundle may be
@@ -125,7 +125,7 @@ MAIN {
 `MAIN` is the program's block — not a function. No `fn`, no return type,
 no `return`. When the block ends, the process exits 0; that is the one
 implied thing in the language. Any other exit code is stated where it
-happens: `std::exit[1];`, typed `uint8` because an exit status is 0–255.
+happens: `std::exit[1];`, typed `u8` because an exit status is 0–255.
 
 `MAIN` is **unquoted** because it belongs to the language, not the user. It
 cannot be called: it is not a function. It is the single root of the prover's
@@ -142,7 +142,7 @@ depends on may have one too, run only when that kit is run itself
 "low-level shit, decided" — "we're at Rust, C, C++ level"):
 
 ```
-MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
+MAIN ['argc': i32, 'argv': ptr[ptr[u8]]] {
     no_check let 'first' := ptr.read[ptr.at['argv', by 1]];     # the first word after the program's name
     …
 }
@@ -157,7 +157,7 @@ owner put the door in the base language instead. Proposed alternatives: a
 ready `list[str.utf8]` (design claude's recommendation); `std::args[]`;
 nothing until std. `examples/args.cy`.
 
-History: first decided as `func.int32 MAIN` with a mandatory `return`, then
+History: first decided as `func.i32 MAIN` with a mandatory `return`, then
 simplified the same day; `func` became `fn` on 2026-09-19.
 
 ## `[ ]` — one separator

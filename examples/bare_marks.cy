@@ -6,12 +6,12 @@ bare.never [fn, struct];                 # every pub fn and struct in this kit: 
 pub const 'unit' := 1;                    # a const takes no mark: its path is always written
 
 pub bare.never module shapes {            # everything in this block module
-    pub fn area ['side': int32] -> int32 {
+    pub fn area ['side': i32] -> i32 {
         return 'side' x 'side';
     }
 
     pub struct Square {
-        side: int32
+        side: i32
     }
 }
 

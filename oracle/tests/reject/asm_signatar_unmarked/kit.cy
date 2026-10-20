@@ -1,6 +1,6 @@
 # the base alone marks nothing: assembly needs no `no_check` without IEG (owner, 2026-10-06); it
 # checks, then the oracle refuses to run assembly, as for any asm block.
 MAIN {
-    let mut 'v': int64 = 1;
+    let mut 'v': i64 = 1;
     inline.ASM { add x0, x0, #1 } with ['v' <-> x0];
 }

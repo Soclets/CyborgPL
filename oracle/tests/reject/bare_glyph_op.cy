@@ -1,5 +1,5 @@
 struct V {
-    n: int32
+    n: i32
 }
 
 pub bare.never op <+> ['a': V, 'b': V] -> V {

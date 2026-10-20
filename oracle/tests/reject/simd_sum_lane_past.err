@@ -1,1 +1,1 @@
-`simd.sum.lane` is 4800000000, which does not fit int32
+`simd.sum.lane` is 4800000000, which does not fit i32

@@ -124,9 +124,9 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
 - **SIMD**, `and.then` / `or.else` (they skip their right side, which an
   operator from std cannot), **`on.target`** (below);
 - **fixed arrays** (`array[T]`) and **text literals**, which need no heap;
-- **raw numbers**: literals are bit patterns, as the machine's (an `int8`
+- **raw numbers**: literals are bit patterns, as the machine's (an `i8`
   holding `128` holds -128's bits), with no negative literals; a literal
-  wider than its type's bits (`256` in an `int8`) is refused (owner,
+  wider than its type's bits (`256` in an `i8`) is refused (owner,
   2026-10-06);
 - **kernel-grade raw memory**, beside ownership: pointers as values,
   addresses as numbers and back, volatile access, memory with no owner;
@@ -154,11 +154,11 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
   It also brings **`on.machine`**, the startup check of the chip's
   features.
 - **ASP, "Abit Safer, Please".** Numbers mean their true values: literals
-  as values (`200` is two hundred, refused in an `int8`), exact in between
+  as values (`200` is two hundred, refused in an `i8`), exact in between
   and checked where they land, the middle limit (the widest operand's
   width, at least 64 bits), and `check` with the run-time checks. It
   brings the **`to.` syntax**: checked conversions and the raw
-  `to.int8.bits[128]`, never the default.
+  `to.i8.bits[128]`, never the default.
 - **Genny.** Generics (`<T>`, bounds, `and`, `any`), interfaces and
   `satisfies`. Needs only the base, so a kernel may take it; zero cost at
   run time, paid in program size and build time.
@@ -298,7 +298,7 @@ assembly; there is no base below it now.
   kit whose manifest does not list std reaches no operator and no
   `std::`, nor a limb's words when it does not list that limb
   (2026-10-06), and without ASP a whole-number literal lands as a bit
-  pattern; lists, maps and text need std; ASP's `to.int8.bits[…]`;
+  pattern; lists, maps and text need std; ASP's `to.i8.bits[…]`;
   `on.target` and `on.machine` (minimum versions not built: how a build
   names its oldest OS and chip features is open). Not built: IEG's raw
   operations, the powers, limbs as limbs, the installer.

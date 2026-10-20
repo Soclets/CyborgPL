@@ -1,6 +1,6 @@
 MAIN {
     let 'b': bool = false;
     if 'b' {
-        let 'r' := to.int64[5 shr to.uint8[1]];
+        let 'r' := to.i64[5 shr to.u8[1]];
     }
 }

@@ -1,1 +1,1 @@
-'argc' is `int32`, not `int64`
+'argc' is `i32`, not `i64`

@@ -44,7 +44,7 @@ included; between two values `&` is `and`. Removed 2026-10-07 with MTM, they
 were refused in between. Their history: **Alternative spelling (owner, 2026-09-21): `&` for
 `lend` / `lent`, `&mut` for `lend.mut` / `lent.mut`**, on both sides of a call —
 `count[&'s']`, `process[&mut 's']`, `fn count [&'text': str.utf8]`,
-`fn edit [&mut 'text': str.utf8]`, `fn[&str.utf8] --> int32`. Same
+`fn edit [&mut 'text': str.utf8]`, `fn[&str.utf8] --> i32`. Same
 meaning, same rules; a program may mix the two. Since 2026-10-02 it covers every
 place `lent` goes (owner: "Yes."): a handed-back borrow, `-> &str.utf8` /
 `--> &mut T`, and a lifetime group, `&@x 'a': T`, `&mut@x 'a': T`,
@@ -66,7 +66,7 @@ The words are the *owner's* — the keyword sits on the value being handed
 over, so "give" and "lend" read as what the owner does. (Rust's `move` /
 `borrow` are the receiver's words; the concepts are identical.)
 
-**Plain values** — `int32`, `bin64`, `bool`, `char.point`, … — own nothing:
+**Plain values** — `i32`, `f64`, `bool`, `char.point`, … — own nothing:
 the value sits directly in the variable, with no allocation behind it to be
 responsible for. So `change 's' = 't';` simply copies with no keyword, and
 `give`/`copy`/`lend` on a plain value is a **compile error** (decided
@@ -79,14 +79,14 @@ question: a parameter receives whatever the caller wrote.
 ## A lend's sizes must match (owner, 2026-09-24: a)
 
 ```
-fn total [lent 'xs': list[int32]] -> int64 { … }
-let 'big': list[int64] = [1, 2, 3];
-total[lend 'big'];          # error: a list[int64] lent where a list[int32] is looked at
+fn total [lent 'xs': list[i32]] -> i64 { … }
+let 'big': list[i64] = [1, 2, 3];
+total[lend 'big'];          # error: a list[i64] lent where a list[i32] is looked at
 ```
 
 A lend hands over the value where it is, with no copy, so what is lent
 must have the parameter's layout. Range bounds do not change the layout
-(a `list[int32][min 0, max 10]` lends as a `list[int32]`), and a `:=` collection
+(a `list[i32][min 0, max 10]` lends as a `list[i32]`), and a `:=` collection
 takes its width from its use. To take any width, make the parameter
 generic. Proposed alternative: a quiet converted copy, each element a
 narrowing site, written back for `lend.mut`, which would hide a copy
@@ -97,12 +97,12 @@ behind the word that means none.
 A plain `let 'x' := 1000;` is the standard practice — the prover already knows
 whether `'x'` is ever reassigned, so nothing needs saying. The programmer
 *may* state it, as a bare word before the name (revised 2026-09-19; it was
-a chain segment, `var.!mut.int32`), and the compiler then holds them to it:
+a chain segment, `var.!mut.i32`), and the compiler then holds them to it:
 
 ```
-let immut 'limit': int32 = 10;      # assigning to 'limit' later is an error
+let immut 'limit': i32 = 10;      # assigning to 'limit' later is an error
 let mut 'counter' := 0;             # a promise that it changes: refused if nothing does (2026-10-10)
-fn twice [immut 'n': int32] -> int32 { … }
+fn twice [immut 'n': i32] -> i32 { … }
 ```
 
 `!mut` is a verified contract, like `check` and the optional lifetime
@@ -128,7 +128,7 @@ A parameter declares what it accepts, so the signature *is* the ownership
 contract:
 
 ```
-fn count [lent 'text': str.utf8] -> int32 { … }    # looks at it
+fn count [lent 'text': str.utf8] -> i32 { … }    # looks at it
 fn edit  [lent.mut 'text': str.utf8] { … }         # may modify it
 fn keep  ['text': str.utf8] { … }                  # owns it
 ```

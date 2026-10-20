@@ -1,3 +1,3 @@
 MAIN {
-    let 'x': int32[int32] = 1;
+    let 'x': i32[i32] = 1;
 }

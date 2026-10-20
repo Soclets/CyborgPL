@@ -1,1 +1,1 @@
-returns bool, not int32
+returns bool, not i32

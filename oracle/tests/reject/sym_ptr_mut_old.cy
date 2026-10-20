@@ -1,2 +1,2 @@
-extern.C fn free ['p': *mut uint8];
+extern.C fn free ['p': *mut u8];
 MAIN { }

@@ -1,3 +1,3 @@
 MAIN {
-    let 'x': int8 = 256;
+    let 'x': i8 = 256;
 }

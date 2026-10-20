@@ -2,7 +2,7 @@
 # each line writing the full name it makes. Users write geometry::area.square[…] whatever the folders look like.
 pub coll.fn area {
     bare.never;
-    area ['w': int64, 'h': int64] -> int64 { return 'w' x 'h'; }
+    area ['w': i64, 'h': i64] -> i64 { return 'w' x 'h'; }
     area.square = shapes.square.area;
     area.triangle = shapes.triangle.area;
     area.unit ['w' = 1, 'h' = 1];

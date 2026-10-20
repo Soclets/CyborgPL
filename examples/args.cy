@@ -2,13 +2,13 @@
 # take 'argc' and 'argv', the program's name first, each word NUL-ended, a null pointer after the last.
 # Reading them is C's world, so it is no_check; a friendly list will be written in CyborgPL on top.
 # examples/args.args holds the words the test passes: apples, 3, hello world.
-MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
+MAIN ['argc': i32, 'argv': ptr[ptr[u8]]] {
     std::print.stored["argc = ", 'argc', newln];
-    let mut 'i': int32 = 1;
+    let mut 'i': i32 = 1;
     while 'i' < 'argc' {
         no_check let 'word' := ptr.read[ptr.at['argv', by 'i']];
-        let mut 'k': int32 = 0;
-        let mut 'bytes': list[uint8] = [];
+        let mut 'k': i32 = 0;
+        let mut 'bytes': list[u8] = [];
         loop {
             no_check let 'b' := ptr.read[ptr.at['word', by 'k']];
             if 'b' equal_to 0 { break; }

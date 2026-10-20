@@ -37,7 +37,7 @@ why:   'k' comes from 'n'
 try:   synthia run shop.cy --input "101"
 
 fix:   limit the number where it is read — line 4:
-       let 'n' := to.int32[min 1, max 99]['text'] otherwise 0;
+       let 'n' := to.i32[min 1, max 99]['text'] otherwise 0;
 
    or  check 'k' before using it — line 31:
        if 'k' </== list.length[lend 'xs'] { let 'x' := 'xs'['k']; … }
@@ -51,7 +51,7 @@ code:  list.append[lend.mut 'xs', value 4]
 why:   'xs' was declared an array at line 10
 
 fix:   declare it a list — line 10:
-       let 'xs': list[int32] = [1, 2, 3];
+       let 'xs': list[i32] = [1, 2, 3];
 ```
 
 ```

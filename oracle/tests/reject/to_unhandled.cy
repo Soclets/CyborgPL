@@ -1,3 +1,3 @@
 MAIN {
-    let 'n' := to.int32["42"];
+    let 'n' := to.i32["42"];
 }

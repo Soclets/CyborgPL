@@ -1,4 +1,4 @@
 MAIN {
-    let 'x': bin64 = 0.5;
-    let 'd' := to.deci64.useful['x'];
+    let 'x': f64 = 0.5;
+    let 'd' := to.d64.useful['x'];
 }

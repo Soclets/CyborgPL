@@ -1,5 +1,5 @@
 module m {
-    fn exit ['x': int32] -> int32 { return 'x'; }
+    fn exit ['x': i32] -> i32 { return 'x'; }
     fn go [] { let 'y' := exit[1]; }
 }
 

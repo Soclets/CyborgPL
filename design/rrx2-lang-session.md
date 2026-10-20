@@ -26,7 +26,7 @@ A language that never rounds, used to judge CyborgPL's numbers. It is
 the opposite of CyborgPL on speed — in the owner's words, it "doesn't
 give a flying fuck about runtime perf" — and exact on everything:
 `1/3 plus 1/3 plus 1/3` is exactly 1, and what `0.1 plus 0.2` must give in a
-`bin64` is known to the last bit. When CyborgPL resumes, its tools can
+`f64` is known to the last bit. When CyborgPL resumes, its tools can
 ask RR what a computation should give and compare.
 
 **It is for CyborgPL** (owner, 2026-09-30), not a general maths system.

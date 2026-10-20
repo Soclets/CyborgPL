@@ -3,7 +3,7 @@
 
 bare.never [fn];
 
-pub fn seven [] -> int32 { return 7; }
+pub fn seven [] -> i32 { return 7; }
 
 MAIN {
     std::print.stored["runnable on its own", newln];

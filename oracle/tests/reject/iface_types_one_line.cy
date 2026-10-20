@@ -1,3 +1,3 @@
-interface Number { int32 int64 }
+interface Number { i32 i64 }
 MAIN {
 }

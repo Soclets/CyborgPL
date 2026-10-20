@@ -1,9 +1,9 @@
 # Score handling: small functions, `if` / `else if`, and clamping a value into a range.
-fn is_even ['n': int32] -> bool {
+fn is_even ['n': i32] -> bool {
     return ('n' mod.floor 2) equal_to 0;
 }
 
-fn clamp ['n': int32, 'low': int32, 'high': int32] -> int32 {
+fn clamp ['n': i32, 'low': i32, 'high': i32] -> i32 {
     if 'n' < 'low' {
         return 'low';
     } else if 'n' > 'high' {

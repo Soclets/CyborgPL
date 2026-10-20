@@ -1,21 +1,21 @@
 # A shop: an interface, an enum, structs and prices.
 interface Priced <T> {
-    fn price [lent 'x': <T>] -> int32;
+    fn price [lent 'x': <T>] -> i32;
 }
 
 enum Stock {
     out,
-    few: int32,
+    few: i32,
     plenty
 }
 
 struct Item {
     name: str.utf8,
-    cents: int32[min 0, max 100_000],
+    cents: i32[min 0, max 100_000],
     stock: Stock
 }
 
-fn price [lent 'i': Item] -> int32 { return 'i'.cents; }
+fn price [lent 'i': Item] -> i32 { return 'i'.cents; }
 
 fn cheapest <T: Priced> [lent 'xs': list[<T>]] -> <T> or fail[empty] {
     if list.length[lend 'xs'] equal_to 0 { fail empty; }
@@ -57,7 +57,7 @@ MAIN {
     std::print.stored["cheapest: ", 'pick'.name, newln];
 
     let 'text' := std::input.line[] otherwise str.empty;
-    let 'budget' := to.int32[min 0, max 100_000]['text'] otherwise {
+    let 'budget' := to.i32[min 0, max 100_000]['text'] otherwise {
         not_a_number { std::print.stored["no budget given", newln]; std::exit[0]; }
         out_of_range { std::print.stored["budget must be 0..100000 cents", newln]; std::exit[1]; }
     };

@@ -6,7 +6,7 @@ fn ทักทาย ['ชื่อ': str.utf8] -> str.utf8 {
 }
 
 MAIN {
-    let '🍕': int32 = 3;
+    let '🍕': i32 = 3;
     let 'नमस्ते' := ทักทาย["โลก"];
     std::print.useful['नमस्ते', " ", '🍕', newln];
 }

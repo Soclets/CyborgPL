@@ -165,7 +165,7 @@ fn builtin_word(w: &str) -> bool {
     let num = |p: &str| w.strip_prefix(p).map_or(false, |d| !d.is_empty() && d.chars().all(|c| c.is_ascii_digit()));
     crate::spellings::is_reserved(&w) || crate::parser::STD_BARE_HEADS.contains(&w) || w == "MAIN"
         || ["bool", "str", "char", "brain16", "std", "kin", "case", "any", "exact", "bare", "never", "optional", "only", "not", "neg", "plus", "minus", "times", "div", "mod", "pow", "and", "or"].contains(&w)
-        || num("int") || num("uint") || num("bin") || num("deci")
+        || num("i") || num("u") || num("f") || num("d")
 }
 
 /// Rewrite one file's tokens: `kit_root` is its kit, `module` its module.

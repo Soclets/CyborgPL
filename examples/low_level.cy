@@ -1,26 +1,26 @@
 # Low level: raw memory from C, bits, a wrapping hash, SIMD, C layout, and the OS through `write`.
-# a block of C's functions (owner, 2026-10-02); one alone may be a line, `extern.C fn exit ['code': int32];`
+# a block of C's functions (owner, 2026-10-02); one alone may be a line, `extern.C fn exit ['code': i32];`
 extern.C {
-    fn write ['fd': int32, 'buf': ptr[uint8], 'len': uint64] -> int64;
-    fn malloc ['bytes': uint64] -> ptr.mut[uint8];
-    fn free ['p': ptr.mut[uint8]];
+    fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+    fn malloc ['bytes': u64] -> ptr.mut[u8];
+    fn free ['p': ptr.mut[u8]];
 }
 
-layout.C struct Header { magic: uint32, flags: uint8, length: uint64 }
+layout.C struct Header { magic: u32, flags: u8, length: u64 }
 
 # FNV-1a: the wrap *is* the algorithm, so `x~`, never a check
-fn fnv1a [lent 'bytes': array[uint8]] -> uint64 {
-    let mut 'h': uint64 = 14695981039346656037;
+fn fnv1a [lent 'bytes': array[u8]] -> u64 {
+    let mut 'h': u64 = 14695981039346656037;
     for 'b' in lend 'bytes' {
-        change 'h' = ('h' xor to.uint64['b']) times.wrap 1099511628211;
+        change 'h' = ('h' xor to.u64['b']) times.wrap 1099511628211;
     }
     return 'h';
 }
 
 # count the 1 bits, one shift at a time
-fn popcount ['x': uint32] -> uint32 {
-    let mut 'n': uint32 = 'x';
-    let mut 'count': uint32 = 0;
+fn popcount ['x': u32] -> u32 {
+    let mut 'n': u32 = 'x';
+    let mut 'count': u32 = 0;
     while 'n' > 0 {
         change 'count' = 'count' + ('n' and.bit 1);
         change 'n' = 'n' shr 1;
@@ -29,8 +29,8 @@ fn popcount ['x': uint32] -> uint32 {
 }
 
 # 16 bytes at once: is every byte ASCII (below 128)?
-fn all_ascii [lent 'bytes': array[uint8]] -> bool {
-    let 'v': simd[uint8, count 16] = simd.load[lend 'bytes', pos 1];
+fn all_ascii [lent 'bytes': array[u8]] -> bool {
+    let 'v': simd[u8, count 16] = simd.load[lend 'bytes', pos 1];
     return simd.all['v' < simd.fill[value 128]];
 }
 
@@ -43,7 +43,7 @@ MAIN {
     no_check let 'third' := ptr.read[ptr.at['raw', by 2]];
     no_check free['raw'];
 
-    let 'text': array[uint8] = [104, 101, 108, 108, 111, 44, 32, 108, 111, 119, 32, 108, 101, 118, 101, 108];
+    let 'text': array[u8] = [104, 101, 108, 108, 111, 44, 32, 108, 111, 119, 32, 108, 101, 118, 101, 108];
     let 'msg' := "straight to fd 1 via write(2)";
     no_check let 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];
 

@@ -115,7 +115,7 @@ fourth are the deeper checks.
    form before reporting it.
 3. **The the prover oracle** — three attacks on every claim in kayo's proof
    report (`design/precog.md`, owner 2026-09-22):
-   - exhaustive and random execution over the domains (every `int8`,
+   - exhaustive and random execution over the domains (every `i8`,
      every list to length 4; random plus edge values beyond that);
    - an independent, deliberately simple interval analysis, recomputing
      each site's range — this is where Kespar's bugs were;

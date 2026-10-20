@@ -41,8 +41,8 @@ analyses every value the binding will ever hold, across the whole program,
 and picks the type that is provably safe and fastest for that set of values.
 It can afford to do this because compile time is unlimited.
 
-"Best" is *not* "smallest". A lone `int8` scalar is no faster than an
-`int32` on a 32/64-bit register machine and sometimes slower; for scalars
+"Best" is *not* "smallest". A lone `i8` scalar is no faster than an
+`i32` on a 32/64-bit register machine and sometimes slower; for scalars
 the best width is usually the machine's natural one, while for lists and
 structs — where memory bandwidth and cache lines dominate — narrower is
 genuinely better. The larger runtime win is not the width at all but the
@@ -204,7 +204,7 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
 
   ```
   if 'x' > 65_504 { deny[]; } else {
-      check 'y': bin16 = 'x';     # proven from the branch: check removed
+      check 'y': f16 = 'x';     # proven from the branch: check removed
   }
   ```
   Without the `if`, the same line is a compile error: *"'x' does not fit

@@ -1,2 +1,2 @@
-extern.C fn strlen ['s': *const uint8] -> uint64;
+extern.C fn strlen ['s': *const u8] -> u64;
 MAIN { }

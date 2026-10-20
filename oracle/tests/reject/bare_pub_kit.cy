@@ -1,4 +1,4 @@
-pub.kit bare.never fn area [] -> int32 {
+pub.kit bare.never fn area [] -> i32 {
     return 1;
 }
 

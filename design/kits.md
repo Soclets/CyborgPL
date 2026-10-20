@@ -55,10 +55,10 @@ modules keep the strict rule — their names appear bare in type positions.
 ## `pub` and `const` (decided 2026-09-19)
 
 ```
-pub fn add ['a': int32, 'b': int32] -> int32 { … }
+pub fn add ['a': i32, 'b': i32] -> i32 { … }
 pub struct Locker { … }
 pub const 'max_players' := 8;
-const 'pi': bin64 = 3.141_592_653_589_793;      # private to the Kit
+const 'pi': f64 = 3.141_592_653_589_793;      # private to the Kit
 ```
 
 - **`pub`** is a bare word before `fn`, `struct`, or `const` at the top
@@ -186,8 +186,8 @@ refusal: nothing to disambiguate, for the reader or for the prover.
 
 ```
 # geometry/shapes/circle.cy
-pub.kit fn area ['r': bin64] -> bin64 { … }
-pub.kit struct Circle { r: bin64 }
+pub.kit fn area ['r': f64] -> f64 { … }
+pub.kit struct Circle { r: f64 }
 
 # geometry/kit.cy
 pub fn area = shapes.circle.area;          # users write geometry::area[…]

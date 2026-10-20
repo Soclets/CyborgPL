@@ -2,12 +2,12 @@
 pub const 'capacity' := 12;
 
 struct Locker {
-    immut number: int32,
+    immut number: i32,
     owner: str.utf8,
     items: list[str.utf8]
 }
 
-fn free_slots [lent 'l': Locker] -> int32 {
+fn free_slots [lent 'l': Locker] -> i32 {
     return 'capacity' - list.length[lend 'l'.items];
 }
 
@@ -24,7 +24,7 @@ fn label [lent 'l': Locker] -> str.utf8 {
 MAIN {
     let 'mine' := Locker[number = 7, owner = "Tankun", items = list.empty];
     let 'names' := ["helmet", "gloves", "rope"];
-    let mut 'stored': int32 = 0;
+    let mut 'stored': i32 = 0;
 
     for 'n' in lend 'names' {
         if stash[lend.mut 'mine', copy 'n'] { change 'stored' = 'stored' + 1; }
@@ -35,7 +35,7 @@ MAIN {
         check std::print.useful['i', ". ", 'mine'.items[pos 'i'], newln];
     }
 
-    let 'x': bin64 = 0.1;
+    let 'x': f64 = 0.1;
     std::print.stored['x', newln];
     std::print.useful['x', newln];
 
