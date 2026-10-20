@@ -61,6 +61,15 @@ The owner then: "Keep the rule, but ask me first, I'd like to start from std's `
 the owner's, asked one at a time, by that rule, starting with std's functions (`kit_prefix`)**; design claude's
 applications above are suggestions until asked.
 
+**Settled the same evening: everything in std is `optional`, both prefixes** (owner: "Or we could just let it be optional
+for all of `std`?", then "the writer could just write `std::` in front of that enum thngy"). On the way the owner tried
+a line, "the ones that are there themselves (like print) should require `::`", a call standing as a statement (`print`,
+`list.append`) needing `std::` and one used for its value (`str.join`, `round.near`) not, then asked "does `::` buy
+much clarity?" (design claude: little, since a clash is refused anyway). So std's `kit.cy` marks every kind
+`bare.kit_prefix.optional` and `bare.enum_prefix.optional`: `print.useful[…]`, `str.join[…]`, `optional.none` or
+`none` where the type is known, `lang: tr`; the long forms stay allowed for whoever wants them. The one-at-a-time
+review of std's marks is not needed.
+
 ### 2026-10-20 — Case changes say their mapping: `str.upper.ascii`, `.simple`, `.full`; a bare `str.upper` is refused (owner: a, a)
 
 std claude asked whether `str.upper` / `str.lower` are ASCII only or Unicode's. The owner: "There's obviously another
