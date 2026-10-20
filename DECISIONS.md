@@ -42,8 +42,12 @@ ask which type it has. Design claude offered (a) a function per type (`fn bin64.
 (b) rounding in the language, (c) bins only for now, and, asked "you sure?", corrected itself: one generic body
 can be written with arithmetic, exact for a deci but sometimes wrong near a tie for a bin. The owner: "Then, we'll
 make overloading". So **a function name may have several functions, picked by the types of the arguments**.
-Operators already could (generics.md). `fn Counter.next` (2026-10-09) stays. Being asked: who may overload, how a
-call that two could take is handled.
+Operators already could (generics.md). `fn Counter.next` (2026-10-09) stays.
+
+**Who: any function, std's and every kit's, under the operators' rules** (owner: "(a)", over (b) std only;
+recommended): each version covers its own argument types; two that could both take one call are an error where
+they are written, so a call never silently picks one; a generic version and a specific one for the same type are
+two that could both take it, so an error too (generics.md, 2026-09-23).
 
 ### 2026-10-20 — `str.slice.byte` gives bytes, a `list[uint8]`, not text (owner: a)
 
