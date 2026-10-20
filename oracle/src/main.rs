@@ -107,6 +107,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     parser::VAR_SITES.with(|u| u.borrow_mut().clear());
     parser::COLL_POINTERS.with(|c| c.borrow_mut().clear());
     parser::COLL_FNS.with(|c| c.borrow_mut().clear());
+    parser::CALLS.with(|c| c.borrow_mut().clear());
     let mut prog = load_files(path)?;
     // a collection member written elsewhere (owner, 2026-10-19): `area.square = shapes.square.area;` is that function under
     // the member's name, its path read from the collection's module, or from the kit's root after `my.`

@@ -291,6 +291,7 @@ impl<'p> Interp<'p> {
         // Consts first, in order: each may use the ones above it. the prover would
         // fold these at compile time; the oracle evaluates them before MAIN.
         self.check_duplicates()?;
+        self.check_version_calls()?;
         self.check_returned_borrows()?;
         self.check_borrow_order()?;
         self.check_fails()?;
@@ -423,6 +424,24 @@ impl<'p> Interp<'p> {
             // a bare literal fits several widths: the call says which (owner, 2026-10-20: a)
             _ => rt(c.line, format!("{} versions of `{name}` could take this call (lines {}): give the argument its type, `5: int64`, or pass a variable", fitting.len(), fitting.iter().map(|f| f.line.to_string()).collect::<Vec<_>>().join(", "))),
         }
+    }
+
+    /// A call to a function with versions whose arguments are all literals is picked before the program
+    /// runs, so one two versions could take is refused where it is written, run or not (check claude's
+    /// finding, 2026-10-20). Calls with a variable are picked when they run, from its declared type.
+    fn check_version_calls(&mut self) -> Result<(), RuntimeError> {
+        let prog: &'p Program = self.prog;
+        let calls = crate::parser::CALLS.with(|k| k.borrow().clone());
+        for c in &calls {
+            if c.kit.is_some() || c.path.is_empty() { continue; }
+            let (module, name) = c.path.split_at(c.path.len() - 1);
+            let cands: Vec<&Func> = prog.funcs.iter().filter(|f| f.module == module && f.name == name[0] && !f.is_op).collect();
+            if cands.len() < 2 { continue; }
+            let literal = |v: &crate::ast::Value| { let crate::ast::Value::Expr(e) = v; matches!(e, Expr::Int(..) | Expr::RawInt(..) | Expr::BigInt(..) | Expr::Bin(..) | Expr::Exact(..) | Expr::Text(..) | Expr::Char(..) | Expr::Bool(..) | Expr::Convert(..)) };
+            if !c.args.values.iter().all(literal) { continue; }
+            self.pick_overload(cands, c, &name[0])?;
+        }
+        Ok(())
     }
 
     /// Two items with one canonical name, or a module declared twice (a file and a block).

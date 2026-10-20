@@ -213,6 +213,8 @@ thread_local! {
     /// `coll.fn area { area.square = shapes.square.area; }` (owner, 2026-10-19): a member whose body is written elsewhere
     /// in the kit, resolved once every file is read: (the collection's module, its name, the member, the path, its visibility, line)
     /// (module, name) of every function a `coll.fn` writes: only those may be overloaded (owner, 2026-10-20: b)
+    /// every call written, for the checks before a run (a call two versions could take is refused where it is written)
+    pub static CALLS: std::cell::RefCell<Vec<Call>> = std::cell::RefCell::new(Vec::new());
     pub static COLL_FNS: std::cell::RefCell<Vec<(Vec<String>, String)>> = std::cell::RefCell::new(Vec::new());
     pub static COLL_POINTERS: std::cell::RefCell<Vec<(Vec<String>, String, String, Vec<String>, Vis, usize)>> = std::cell::RefCell::new(Vec::new());
     /// The file being parsed, for TEMPLATES
@@ -3518,7 +3520,9 @@ impl Parser {
             let mut values = Vec::new();
             while *self.peek() == Tok::LeftArrow { self.advance(); values.push(self.value()?); }
             if values.is_empty() { return self.err(format!("`std::{}` needs at least one value: `std::{} <- \"text\";`", path.join("."), path.join("."))); }
-            return Ok(Call { handler: None, kit, path, from: self.module.clone(), args: Bracket { values, line: bline, one_list: false }, line, bare, written });
+            let c = Call { handler: None, kit, path, from: self.module.clone(), args: Bracket { values, line: bline, one_list: false }, line, bare, written };
+            CALLS.with(|k| k.borrow_mut().push(c.clone()));
+            return Ok(c);
         }
         if *self.peek() != Tok::LBracket {
             let shown = match &kit { Some(l) => format!("{l}::{}", path.join(".")), None => path.join(".") };
@@ -3564,7 +3568,9 @@ impl Parser {
         let path = if kit.is_none() { self.resolve(&path) } else { path };
         if bare { BARE_CALLS.with(|b| b.borrow_mut().push((self.module.clone(), written.clone(), kit.as_deref() == Some("std"), line))); }
         if kit.is_none() { CALL_SITES.with(|c| c.borrow_mut().push((self.kit_root.clone(), path.clone(), line))); }
-        Ok(Call { handler: None, kit, path, from: self.module.clone(), args, line, bare, written })
+        let c = Call { handler: None, kit, path, from: self.module.clone(), args, line, bare, written };
+        CALLS.with(|k| k.borrow_mut().push(c.clone()));
+        Ok(c)
     }
 
     /// A slice's span, as a counting loop's words (owner, 2026-10-12): `, from pos 2, to pos 4`, or
