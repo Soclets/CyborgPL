@@ -90,7 +90,8 @@ pub fn replace [lent 's': str.utf8, lent 'from': str.utf8[min 1 bytes], lent 'to
     return text_of[give 'out'];
 }
 
-# One unit of 's' by its position, counting from 1: `std::str.at.byte[lend 's', pos 2]`, `at.point`.
+# One unit of 's' by its position, counting from 1: `std::str.at.byte[lend 's', pos 2]`, `at.point`,
+# `at.grapheme`.
 # A position past the last unit fails out_of_range.
 pub coll.fn at {
     bare.optional;
@@ -109,6 +110,49 @@ pub coll.fn at {
             if 'i' equal_to 'pos' { return 'p'; }
         }
         fail out_of_range;
+    }
+
+    # The grapheme (what a person counts as one character) at 'pos'.
+    at.grapheme [lent 's': str.utf8, 'pos': uint64[min 1]] -> char.grapheme or fail[out_of_range] {
+        for 'i', 'g' in str.each.grapheme[lend 's'] {
+            if 'i' equal_to 'pos' { return copy 'g'; }
+        }
+        fail out_of_range;
+    }
+}
+
+# The part of 's' from one position to another, both kept: `std::str.slice.grapheme[lend 's', from pos 2,
+# to pos 4]`, or `before pos 5` to leave the end out. It fails out_of_range when the end comes before the
+# start or past the last unit, so a slice is never empty.
+pub coll.fn slice {
+    bare.optional;
+
+    # Code points 'from' to 'to'.
+    slice.point [lent 's': str.utf8, 'from': uint64[min 1], 'to': uint64[min 1]] -> str.utf8 or fail[out_of_range] {
+        if 'to' < 'from' or 'to' > str.points[lend 's'] { fail out_of_range; }
+        let 'out': list[uint8] = [];
+        for 'i', 'p' in str.each.point[lend 's'] {
+            if 'i' > 'to' { break; }
+            if 'i' at_least 'from' {
+                let 't' := to.str.utf8['p'];
+                for 'b' in str.each.byte[lend 't'] { list.append[lend.mut 'out', value 'b']; }
+            }
+        }
+        return my.str.text_of[give 'out'];
+    }
+
+    # Graphemes 'from' to 'to'.
+    slice.grapheme [lent 's': str.utf8, 'from': uint64[min 1], 'to': uint64[min 1]] -> str.utf8 or fail[out_of_range] {
+        if 'to' < 'from' or 'to' > str.graphemes[lend 's'] { fail out_of_range; }
+        let 'out': list[uint8] = [];
+        for 'i', 'g' in str.each.grapheme[lend 's'] {
+            if 'i' > 'to' { break; }
+            if 'i' at_least 'from' {
+                let 't' := to.str.utf8[copy 'g'];
+                for 'b' in str.each.byte[lend 't'] { list.append[lend.mut 'out', value 'b']; }
+            }
+        }
+        return my.str.text_of[give 'out'];
     }
 }
 

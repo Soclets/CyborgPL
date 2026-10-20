@@ -14,8 +14,13 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
   bytes]` (owner, 2026-10-14: "Error"), so an empty one is refused when building, or checked where it
   is passed if it is worked out at run time. The oracle's built-in std refuses it when the call runs:
   the same rule, met at a different moment. `std::str.at.byte[lend 's', pos 2]` is the byte at a
-  position (a `uint8`), and `std::str.at.point[lend 's', pos 2]` the character (a `char.point`), each
-  failing `out_of_range` past the last one (owner, 2026-10-17: str.at next). A position is
+  position (a `uint8`), `std::str.at.point[lend 's', pos 2]` the character (a `char.point`) and
+  `std::str.at.grapheme[lend 's', pos 2]` the grapheme (a `char.grapheme`), each failing `out_of_range`
+  past the last one (owner, 2026-10-17: str.at next; 2026-10-20: "(a)", finish str.at and str.slice).
+  `std::str.slice.grapheme[lend 's', from pos 2, to pos 4]` and `str.slice.point` are the part from one
+  position to another, both kept, or `before pos 5` to leave the end out (2026-10-12); they fail
+  `out_of_range` when the end comes before the start or past the last unit, so a slice is never empty,
+  as the oracle's does. `str.slice.byte` waits on a question: a byte slice can cut a character. A position is
   `uint64[min 1]` (owner, 2026-10-17: "(a)"): a written `pos 0` is refused when building, and a position
   worked out while running is proven or converted where it is passed (`to.uint64[min 1]['i'] otherwise 1`),
   so `out_of_range` means only past the end.
