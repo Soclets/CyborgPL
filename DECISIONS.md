@@ -69,6 +69,10 @@ much clarity?" (design claude: little, since a clash is refused anyway). So std'
 `bare.kit_prefix.optional` and `bare.enum_prefix.optional`: `print.useful[…]`, `str.join[…]`, `optional.none` or
 `none` where the type is known, `lang: tr`; the long forms stay allowed for whoever wants them. The one-at-a-time
 review of std's marks is not needed.
+Good practice for it (owner: "What should the Good Practice say?"): **19, write std's names bare, the prefix where a
+bare one could be misread** (owner: "yea"), and **20, mark your own names `optional` as std does, `never` only to make
+users see your kit's name** (owner: "Or just `bare.optional`?", meaning the advice, "number 1", over design claude's
+draft marking common words `never`; a clash is refused, never silent). `style.md` 19 and 20.
 
 ### 2026-10-20 — Case changes say their mapping: `str.upper.ascii`, `.simple`, `.full`; a bare `str.upper` is refused (owner: a, a)
 

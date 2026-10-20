@@ -105,6 +105,17 @@ recommended.
     ASCII character (owner, 2026-10-16), a `'` written `\'` and spaces one at a time, so `'80%'`, `'v1.2'`,
     `'total due'` and `'it\'s'` are all names; pick the one that says what the code using it means.
 
+19. **Write std's names bare; add the prefix where a bare one could be misread** (owner, 2026-10-20: "yea").
+    Everything in std may drop `std::`, and its enums' values their enum's name: `print.useful[…]`, `str.join[…]`,
+    `round.near['x', places: 2]`, `lang: tr`. Write the prefix where the bare form could be taken for something
+    else: `optional.value[5]` beside a `value:` label, `std::str.join` in a kit with its own `str` functions, an
+    enum's value far from anything that says its type.
+
+20. **Mark your own names `optional`, as std does** (owner, 2026-10-20: "number 1"):
+    `bare.kit_prefix.optional [fn, op, struct, enum, interface];` and `bare.enum_prefix.optional [enum];` once in
+    `kit.cy`. A clash is never silent: where two kits' bare names meet, the use is refused and its writer adds the
+    path. Use `never` only when you want users always to see your kit's name.
+
 ## Shape of a program
 
 16. **Keep `MAIN` thin** (owner, 2026-10-15: "yea"). `MAIN` reads the input, calls the real work, and
