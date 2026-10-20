@@ -48,8 +48,16 @@ bytes and graphemes alike), plus language-tailored ones (Turkish `i` → `İ`); 
 no shit"; over (a) a BCP 47 tag as text, which design claude first recommended for run-time settings, until the
 owner: "won't you just use a var for a setting at runt?", a variable working either way, and the enum catching a
 mistyped literal). So `str.upper.full[lend 's', lang: 'user_lang']`, the system's text tag converted into the enum
-once where it is read. Only Turkish, Azerbaijani and Lithuanian have rules of their own in Unicode's tables. Being
-asked: the enum's and its cases' names. Not built (owner: "don't go yet").
+once where it is read. Only Turkish, Azerbaijani and Lithuanian have rules of their own in Unicode's tables.
+
+**Its values are ISO codes, `tr`, `az`, `lt`, and `root` for every other language** (owner: "(b)", over English
+names; `root` over `std`, which would read as the standard library's, Unicode's name for its language-independent
+rules), **written bare after the label, as `by: 1` is** (owner: "why isn't `lang:` just bare like `by:`"):
+`str.upper.full[lend 's', lang: tr]`. The type is named only where a variable holds one, **`case_lang`** (owner asked
+`case_lang` or `lang_case`, then whether a `lang.case` family would have other narrowings: none today, so one name,
+by the 2026-10-13 rule). Design claude had said a bare `root` could clash with a function named `root`; the owner:
+"How is `lang:` gonna call a `fn`?", the parameter's type telling them apart. Elsewhere an enum value keeps its
+prefix (2026-09-20). Not built (owner: "don't go yet").
 
 ### 2026-10-20 — Precog's table of facts becomes a persistent map, from the `im` library (owner)
 
