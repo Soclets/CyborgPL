@@ -1,8 +1,8 @@
 # A copy of examples/kits/areas under the prefix `shapes`, as Synthia makes one for
 # `kit.areas2.prefix = shapes` (owner, 2026-09-30); `my.` here is this kit's root.
 
-bare.never [fn, struct];
-bare.optional [op];
+bare.kit_prefix.never [fn, struct];
+bare.kit_prefix.optional [op];
 
 pub const 'pi': f64 = 3.14159;
 

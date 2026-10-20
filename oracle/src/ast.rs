@@ -264,8 +264,8 @@ pub struct Claim {
     pub line: usize,
 }
 
-/// How other kits write the path to a `pub` thing (owner, 2026-10-06): `bare.never` (the path is
-/// required), `bare.optional`, `bare.only` (the path is forbidden). There is no default.
+/// How other kits write the path to a `pub` thing (owner, 2026-10-06): `bare.kit_prefix.never` (the path is
+/// required), `bare.kit_prefix.optional`, `bare.kit_prefix.only` (the path is forbidden). There is no default.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Bare { Never, Optional, Only }
 
@@ -281,7 +281,9 @@ pub enum BareTarget { Item(String, String), Block(Vec<String>), File(Vec<String>
 pub struct CaseMark { pub target: BareTarget, pub insensitive: bool, pub line: usize, pub kit_root: Vec<String> }
 
 #[derive(Debug, Clone)]
-pub struct BareMark { pub target: BareTarget, pub mode: Bare, pub line: usize, pub kit_root: Vec<String> }
+/// `enum_prefix`: the mark is `bare.enum_prefix.…`, about an enum's values dropping the enum's name (owner, 2026-10-20);
+/// otherwise `bare.kit_prefix.…`, about a name dropping its kit's path
+pub struct BareMark { pub target: BareTarget, pub mode: Bare, pub line: usize, pub kit_root: Vec<String>, pub enum_prefix: bool }
 
 pub struct Program {
     pub funcs: Vec<Func>,
@@ -297,7 +299,7 @@ pub struct Program {
     pub main_args: Option<(String, String)>,
     /// modules written under `#strict` (owner, 2026-09-27)
     pub strict_modules: Vec<Vec<String>>,
-    /// `bare.never` / `bare.optional` / `bare.only` marks (owner, 2026-10-06)
+    /// `bare.kit_prefix.never` / `bare.kit_prefix.optional` / `bare.kit_prefix.only` marks (owner, 2026-10-06)
     pub bare_marks: Vec<BareMark>,
     pub case_marks: Vec<CaseMark>,
 }
@@ -389,7 +391,7 @@ pub struct Call {
     pub from: Vec<String>,
     pub args: Bracket,
     pub line: usize,
-    /// written with no path (no `x::`, no `my.`), so another kit's `bare.optional` / `bare.only`
+    /// written with no path (no `x::`, no `my.`), so another kit's `bare.kit_prefix.optional` / `bare.kit_prefix.only`
     /// name may be meant (owner, 2026-10-06); `written` is the path as written
     pub bare: bool,
     pub written: Vec<String>,

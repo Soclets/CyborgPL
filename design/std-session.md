@@ -80,7 +80,7 @@ as much as you like. Reading kayo is not editing it: changes there are compiler 
   `design/strings.md`); time (`time.after`, `time.every`, `time.wait`, durations;
   `design/concurrency.md`); maths (`pow`, `round`, `floor`, `ceil`, `trunc`). Grep `examples/` and
   `design/` for `std::` to see each in use.
-- **Every public item is `bare.optional`** (owner, 2026-10-06): `print.useful[…]` and
+- **Every public item is `bare.kit_prefix.optional`** (owner, 2026-10-06): `print.useful[…]` and
   `std::print.useful[…]` both work.
 - **Every argument after the first says its role**: `str.split[lend 's', at: ","]`,
   `str.replace[lend 's', from: "a", to: "b"]` (owner, 2026-10-14). The list is `spellings.cyr`'s `calls`.

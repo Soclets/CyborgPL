@@ -1,5 +1,5 @@
 pub coll.fn c {
-    bare.never;
-    bare.only;
+    bare.kit_prefix.never;
+    bare.kit_prefix.only;
 }
 MAIN { }

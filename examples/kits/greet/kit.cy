@@ -1,30 +1,30 @@
 # Names other kits may write with or without `greet::`, or only without it (owner, 2026-10-06).
 
-pub bare.optional fn hello [] -> str.utf8 {
+pub bare.kit_prefix.optional fn hello [] -> str.utf8 {
     return "hello";
 }
 
-pub bare.only fn wave [] -> str.utf8 {
+pub bare.kit_prefix.only fn wave [] -> str.utf8 {
     return "wave";
 }
 
-pub bare.never fn formal [] -> str.utf8 {
+pub bare.kit_prefix.never fn formal [] -> str.utf8 {
     return "good day";
 }
 
-pub bare.never struct Tally {
+pub bare.kit_prefix.never struct Tally {
     n: i32
 }
 
-pub bare.never op merge ['a': Tally, 'b': Tally] -> Tally {
+pub bare.kit_prefix.never op merge ['a': Tally, 'b': Tally] -> Tally {
     return Tally[n = 'a'.n + 'b'.n];
 }
 
-pub bare.optional struct Note {
+pub bare.kit_prefix.optional struct Note {
     text: str.utf8
 }
 
-pub bare.only enum Tone {
+pub bare.kit_prefix.only bare.enum_prefix.never enum Tone {
     soft,
     loud
 }

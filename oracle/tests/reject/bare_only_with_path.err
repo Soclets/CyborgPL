@@ -1,1 +1,1 @@
-`greet::wave` is `bare.only`: `greet` forbids its path, so write `wave[…]`
+`greet::wave` is `bare.kit_prefix.only`: `greet` forbids its path, so write `wave[…]`

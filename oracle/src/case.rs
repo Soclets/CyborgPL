@@ -19,7 +19,7 @@ pub struct KitCase {
     words: HashMap<String, String>,
     /// those another kit may reach with the path, and the fields and cases of its pub types
     pub_words: HashMap<String, String>,
-    /// those another kit may write without the path (`bare.optional` / `bare.only`)
+    /// those another kit may write without the path (`bare.kit_prefix.optional` / `bare.kit_prefix.only`)
     bare_words: HashMap<String, String>,
     /// the fields of its pub structs and the cases of its pub enums, met without a path
     members: HashMap<String, String>,

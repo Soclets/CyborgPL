@@ -116,7 +116,7 @@ fn is_std_op(op: &str) -> bool {
 }
 
 /// std's names the oracle emulates, which may be written without `std::` since std marks everything
-/// `bare.optional` (owner, 2026-10-06: "optional for all")
+/// `bare.kit_prefix.optional` (owner, 2026-10-06: "optional for all")
 /// the ways `std::round` rounds (owner, 2026-10-17)
 pub const ROUND_WAYS: &[&str] = &["near", "half_up", "floor", "ceil", "trunc"];
 // `printu` and `printf` were std's old spellings (now `print.useful`, `print.format`); `std::printf` still names the new form,
@@ -230,8 +230,8 @@ thread_local! {
     /// `["::areas"]` for a dependency): `std`, and the official cores by name (owner, 2026-10-05/06:
     /// "Limbs should say what cores they are built for"). A kit with no `CyJet.cyr` lacks nothing.
     pub static LACKS: std::cell::RefCell<Vec<(Vec<String>, Vec<String>)>> = std::cell::RefCell::new(Vec::new());
-    /// Other kits' structs and enums that may be written bare (`bare.optional` / `bare.only`): the path
-    /// as written, the canonical name, the kit's root, and whether it is `bare.only` (owner, 2026-10-06)
+    /// Other kits' structs and enums that may be written bare (`bare.kit_prefix.optional` / `bare.kit_prefix.only`): the path
+    /// as written, the canonical name, the kit's root, and whether it is `bare.kit_prefix.only` (owner, 2026-10-06)
     pub static BARE_TYPES: std::cell::RefCell<Vec<(Vec<String>, String, String, bool)>> = std::cell::RefCell::new(Vec::new());
     /// Bare type names that resolved to another kit's: (this kit's would-be name, theirs, as written,
     /// their root), checked once every file is read, since this kit's own does not win
@@ -274,18 +274,28 @@ impl Parser {
         POWER_USES.with(|u| u.borrow_mut().push((self.kit_root.clone(), path.to_string(), thing, line)));
     }
 
-    /// `bare.never`, `bare.optional` or `bare.only`, at the cursor's `bare` (owner, 2026-10-06); a plain
+    /// `bare.kit_prefix.never`, `bare.kit_prefix.optional` or `bare.kit_prefix.only`, at the cursor's `bare` (owner, 2026-10-06); a plain
     /// `bare` does not say whether the path is optional, so it is refused, as a plain `div` is.
-    fn bare_mode(&mut self) -> PResult<Bare> {
+    /// `bare.kit_prefix.X` or `bare.enum_prefix.X` (owner, 2026-10-20: "(a), shouldn't be `kit_prefix` & `enum_prefix`?"):
+    /// which prefix may be dropped, then whether it is required (`never`), `optional` or forbidden (`only`).
+    /// True when it is the enum's prefix. `bare.kit_prefix.never` and the like are old spellings.
+    fn bare_mode(&mut self) -> PResult<(bool, Bare)> {
         self.expect_word("bare")?;
+        let mode_of = |m: &str| match m { "never" => Some(Bare::Never), "optional" => Some(Bare::Optional), "only" => Some(Bare::Only), _ => None };
         if *self.peek() == Tok::Dot {
-            if let Tok::Word(m) = self.peek_at(1).clone() {
-                let mode = match m.as_str() { "never" => Some(Bare::Never), "optional" => Some(Bare::Optional), "only" => Some(Bare::Only), _ => None };
-                if let Some(mode) = mode { self.advance(); self.advance(); return Ok(mode); }
-                return self.err(format!("no `bare.{m}`: a path is `bare.never` (required), `bare.optional` or `bare.only` (forbidden)"));
+            if let Tok::Word(p) = self.peek_at(1).clone() {
+                if mode_of(&p).is_some() { return self.err(crate::spellings::message(crate::spellings::old(&format!("bare.{p}")))); }
+                if p == "kit_prefix" || p == "enum_prefix" {
+                    if *self.peek_at(2) == Tok::Dot { if let Tok::Word(m) = self.peek_at(3).clone() { if let Some(mode) = mode_of(&m) {
+                        for _ in 0..4 { self.advance(); }
+                        return Ok((p == "enum_prefix", mode));
+                    } } }
+                    return self.err(format!("`bare.{p}` says how: `bare.{p}.never` (the prefix written), `bare.{p}.optional` or `bare.{p}.only` (left out)"));
+                }
+                return self.err(format!("no `bare.{p}`: a mark says which prefix, `bare.kit_prefix.…` (the kit's path) or `bare.enum_prefix.…` (an enum's name before its values)"));
             }
         }
-        self.err("say how other kits write the path: `bare.never` (required), `bare.optional` or `bare.only` (forbidden); a plain `bare` does not say")
+        self.err("say which prefix and how: `bare.kit_prefix.never` / `.optional` / `.only`, or `bare.enum_prefix.…` on an enum; a plain `bare` does not say")
     }
 
     /// `case.any` / `case.exact` at the cursor (owner, 2026-10-10: "(a)"; `case.insensitive` /
@@ -318,7 +328,7 @@ impl Parser {
 
     fn canonical(&self, segs: &[String]) -> String { self.resolve(segs).join(".") }
 
-    /// A struct or enum name as written: this kit's, or another kit's `bare.optional` / `bare.only` one
+    /// A struct or enum name as written: this kit's, or another kit's `bare.kit_prefix.optional` / `bare.kit_prefix.only` one
     /// (owner, 2026-10-06); two other kits' are an error where written
     fn type_name(&self, segs: &[String]) -> PResult<String> {
         let own = self.canonical(segs);
@@ -335,11 +345,11 @@ impl Parser {
         }
     }
 
-    /// `greet::Tally` where `greet` marks `Tally` `bare.only`: the path is forbidden (owner, 2026-10-06)
+    /// `greet::Tally` where `greet` marks `Tally` `bare.kit_prefix.only`: the path is forbidden (owner, 2026-10-06)
     fn path_forbidden(&self, canonical: &str) -> PResult<()> {
         if let Some((rel, _, root, _)) = BARE_TYPES.with(|t| t.borrow().iter().find(|(_, c, _, only)| *only && c == canonical).cloned()) {
             let l = root.trim_start_matches("::");
-            return self.err(format!("`{l}::{}` is `bare.only`: `{l}` forbids its path, so write `{}`", rel.join("."), rel.join(".")));
+            return self.err(format!("`{l}::{}` is `bare.kit_prefix.only`: `{l}` forbids its path, so write `{}`", rel.join("."), rel.join(".")));
         }
         Ok(())
     }
@@ -580,7 +590,7 @@ impl Parser {
                 return self.std_missing(&what);
             }
         }
-        // `std::list.append[…]` is `list.append[…]`: std marks everything `bare.optional` (owner,
+        // `std::list.append[…]` is `list.append[…]`: std marks everything `bare.kit_prefix.optional` (owner,
         // 2026-10-06), and its lists, maps and text units are the oracle's built-ins
         let mut i = 0;
         while i + 3 < self.toks.len() {
@@ -658,22 +668,23 @@ impl Parser {
                 self.expect(Tok::Semi, "`;` after the `case` mark")?;
                 continue;
             }
-            // `bare.optional;` at the top of a file marks the file's module; `bare.never [fn, op];` in
+            // `bare.kit_prefix.optional;` at the top of a file marks the file's module; `bare.kit_prefix.never [fn, op];` in
             // `kit.cy` marks kinds across the kit (owner, 2026-10-06)
             if self.is_word("bare") {
                 let line = self.line();
                 let started = !(prog.funcs.is_empty() && prog.structs.is_empty() && prog.enums.is_empty() && prog.consts.is_empty() && prog.externs.is_empty() && prog.modules.is_empty() && prog.main.is_none() && prog.interfaces.is_empty());
-                let mode = self.bare_mode()?;
+                let (enum_prefix, mode) = self.bare_mode()?;
                 if *self.peek() == Tok::Semi {
                     self.advance();
-                    if depth > 0 || started || prog.bare_marks.iter().any(|m| matches!(m.target, BareTarget::File(_))) {
+                    if depth > 0 || started || prog.bare_marks.iter().any(|m| matches!(m.target, BareTarget::File(_)) && m.enum_prefix == enum_prefix) {
                         return Err(ParseError { line, col: 0, msg: "a file's `bare` mark is its first line, before anything else; a block module takes `pub bare.… module name { … }`".into() });
                     }
-                    prog.bare_marks.push(BareMark { target: BareTarget::File(self.module.clone()), mode, line, kit_root: self.kit_root.clone() });
+                    prog.bare_marks.push(BareMark { target: BareTarget::File(self.module.clone()), mode, line, kit_root: self.kit_root.clone(), enum_prefix });
+                    // a file may say both, one line each, before anything else
                     continue;
                 }
                 if *self.peek() == Tok::LBracket {
-                    if depth > 0 || self.module != self.kit_root { return self.err("a `bare` mark on kinds (`bare.never [fn, op];`) covers the whole kit, so it is written in `kit.cy`"); }
+                    if depth > 0 || self.module != self.kit_root { return self.err("a `bare` mark on kinds (`bare.kit_prefix.never [fn, op];`) covers the whole kit, so it is written in `kit.cy`"); }
                     self.advance();
                     loop {
                         let kind = match self.advance().tok { Tok::Word(k) => k, other => return self.err(format!("expected a kind (`fn`, `op`, `struct`, `enum`, `interface`), found {other}")) };
@@ -681,7 +692,8 @@ impl Parser {
                         if !["fn", "op", "struct", "enum", "interface"].contains(&kind.as_str()) {
                             return self.err(format!("`{kind}` is not a kind a `bare` mark covers: `fn`, `op`, `struct`, `enum`, `interface` (a module is marked on itself)"));
                         }
-                        prog.bare_marks.push(BareMark { target: BareTarget::Kind(kind), mode, line, kit_root: self.kit_root.clone() });
+                        if enum_prefix && kind != "enum" { return self.err(format!("`bare.enum_prefix` is about an enum's values, so its kind is `enum`, not `{kind}`: `bare.enum_prefix.optional [enum];`")); }
+                        prog.bare_marks.push(BareMark { target: BareTarget::Kind(kind), mode, line, kit_root: self.kit_root.clone(), enum_prefix });
                         if *self.peek() == Tok::Comma { self.advance(); if *self.peek() == Tok::RBracket { break; } continue; }
                         break;
                     }
@@ -689,7 +701,7 @@ impl Parser {
                     self.expect(Tok::Semi, "`;` after the `bare` mark")?;
                     continue;
                 }
-                return self.err("a `bare` mark is `bare.optional;` at the top of a file, `bare.optional [fn, op];` in `kit.cy`, or `pub bare.optional fn …` on an item");
+                return self.err("a `bare` mark is `bare.kit_prefix.optional;` at the top of a file, `bare.kit_prefix.optional [fn, op];` in `kit.cy`, or `pub bare.kit_prefix.optional fn …` on an item");
             }
             // `on.target … { items } else { items }` at the top level: only the chosen branch's items exist
             // (owner, 2026-10-06: a compile-time choice around any code)
@@ -711,7 +723,8 @@ impl Parser {
                 }
                 continue;
             }
-            let mut pending_bare: Option<(Bare, usize)> = None;
+            // up to one mark of each prefix: `pub bare.kit_prefix.optional bare.enum_prefix.optional enum casing { … }`
+            let mut pending_bare: Vec<(bool, Bare, usize)> = Vec::new();
             let mut pending_case: Option<(bool, usize)> = None;
             let before = (prog.funcs.len(), prog.structs.len(), prog.enums.len(), prog.consts.len(), prog.interfaces.len(), prog.modules.len());
             // `case.any fn area …` on an item (owner, 2026-10-06), before or after `pub` and `bare.…`
@@ -733,7 +746,7 @@ impl Parser {
                         Tok::Word(w) if w == "kit" => vis = Vis::Kit,
                         // a library was a limb until 2026-10-09; a limb is a compiler extension since 2026-10-15
                         Tok::Word(w) if w == "limb" => return self.err(crate::spellings::message(crate::spellings::old("pub.limb"))),
-                        Tok::Word(w) if w == "bare" => return self.err("`bare` is its own word after `pub`, not a narrowing: `pub bare.optional fn …`"),
+                        Tok::Word(w) if w == "bare" => return self.err("`bare` is its own word after `pub`, not a narrowing: `pub bare.kit_prefix.optional fn …`"),
                         other => return self.err(format!("the only narrowing of `pub` is `pub.kit` (visible in this kit only), found {other}")),
                     }
                 }
@@ -743,16 +756,28 @@ impl Parser {
                     && matches!(self.peek_at(1), Tok::Word(_) | Tok::Var(_)) && *self.peek_at(2) == Tok::Eq {
                     return self.err("`pub fn area = shapes.circle.area;` gives other kits a shorter name; the oracle runs one kit, so it is not in the oracle yet");
                 }
-                // `pub bare.optional fn …`: how other kits write the path to this item (owner, 2026-10-06)
+                // `pub bare.kit_prefix.optional fn …`: how other kits write the path to this item (owner, 2026-10-06)
                 if self.is_word("bare") {
                     let line = self.line();
                     if vis == Vis::Kit { return self.err("a `bare` mark says how other kits write the path, and a `pub.kit` thing is never reached from them"); }
-                    pending_bare = Some((self.bare_mode()?, line));
+                    let (e, m) = self.bare_mode()?;
+                    pending_bare.push((e, m, line));
+                    if self.is_word("bare") {
+                        let line = self.line();
+                        let (e2, m2) = self.bare_mode()?;
+                        if e2 == e { return self.err("one `bare.` mark of each prefix on an item"); }
+                        pending_bare.push((e2, m2, line));
+                    }
                 }
                 if self.is_case_mark() {
                     if pending_case.is_some() { return self.err("one `case` mark on an item"); }
                     let line = self.line(); pending_case = Some((self.case_mode()?, line));
-                    if pending_bare.is_none() && self.is_word("bare") { let line = self.line(); pending_bare = Some((self.bare_mode()?, line)); }
+                    while self.is_word("bare") {
+                        let line = self.line();
+                        let (e, m) = self.bare_mode()?;
+                        if pending_bare.iter().any(|(x, _, _)| *x == e) { return self.err("one `bare.` mark of each prefix on an item"); }
+                        pending_bare.push((e, m, line));
+                    }
                 }
                 match self.peek().clone() {
                     Tok::Word(w) if w == "fn" || w == "struct" || w == "const" || w == "module" || w == "extern" || w == "layout" || w == "enum" || w == "op" || w == "interface" || w == "incl" || w == "collection" || w == "coll" || w == "table_bytes" => {}
@@ -796,11 +821,11 @@ impl Parser {
                 Tok::Word(w) if w == "coll" => {
                     match (self.peek_at(1).clone(), self.peek_at(2).clone()) {
                         // the collection's one `bare.` mark is written in the block (collections.md, owner 2026-10-13)
-                        (Tok::Dot, Tok::Word(k)) if k == "fn" && pending_bare.is_some() => return self.err("a collection's `bare.` mark is written in its block: `pub coll.fn area { bare.never; … }`"),
+                        (Tok::Dot, Tok::Word(k)) if k == "fn" && !pending_bare.is_empty() => return self.err("a collection's `bare.` mark is written in its block: `pub coll.fn area { bare.kit_prefix.never; … }`"),
                         (Tok::Dot, Tok::Word(k)) if k == "fn" => self.expand_collection(vis.clone(), None)?,
                         (Tok::Dot, Tok::Word(k)) if k == "handler" => {
                             if vis != Vis::Private { return self.err("whether a `coll.handler` can be `pub` is not decided yet (2026-10-13)"); }
-                            if pending_bare.is_some() { return self.err("a `bare.` mark is for what is `pub`, and a `coll.handler` is not `pub`"); }
+                            if !pending_bare.is_empty() { return self.err("a `bare.` mark is for what is `pub`, and a `coll.handler` is not `pub`"); }
                             self.handler_collection()?;
                         }
                         (Tok::Dot, Tok::Word(k)) => return self.err(format!("there is no `coll.{k}`: a collection is `coll.fn` (a function and its narrowings) or `coll.handler` (named `otherwise` blocks) (owner, 2026-10-13)")),
@@ -1155,7 +1180,7 @@ impl Parser {
                 prog.case_marks.push(CaseMark { target, insensitive, line, kit_root: self.kit_root.clone() });
             }
             // the item a `pub bare.…` mark was written on (owner, 2026-10-06)
-            if let Some((mode, line)) = pending_bare {
+            for (enum_prefix, mode, line) in pending_bare {
                 let target = if prog.modules.len() > before.5 && prog.modules[before.5].line == line {
                     BareTarget::Block(prog.modules[before.5].path.clone())
                 } else if prog.funcs.len() > before.0 {
@@ -1170,7 +1195,10 @@ impl Parser {
                 else if prog.consts.len() > before.3 { return Err(ParseError { line, col: 0, msg: "a const takes no `bare` mark: `'pi'` alone is a variable, so another kit's const always has its path (owner, 2026-10-06)".into() }); }
                 else if prog.interfaces.len() > before.4 { BareTarget::Item("interface".into(), prog.interfaces[before.4].name.clone()) }
                 else { return Err(ParseError { line, col: 0, msg: "a `bare` mark goes on a `fn`, `op`, `struct`, `enum`, `interface` or `module`".into() }); };
-                prog.bare_marks.push(BareMark { target, mode, line, kit_root: self.kit_root.clone() });
+                if enum_prefix && !matches!(&target, BareTarget::Item(k, _) if k == "enum") && !matches!(target, BareTarget::Block(_)) {
+                    return Err(ParseError { line, col: 0, msg: "`bare.enum_prefix` is about an enum's values, so it goes on an `enum` (or a module, for the enums in it)".into() });
+                }
+                prog.bare_marks.push(BareMark { target, mode, line, kit_root: self.kit_root.clone(), enum_prefix });
             }
         }
     }
@@ -1867,7 +1895,7 @@ impl Parser {
             }
             return Ok(Ty::Fn(ps, ret, fails));
         }
-        // `duration` bare is std's `std::duration`: std marks everything `bare.optional` (owner, 2026-10-06:
+        // `duration` bare is std's `std::duration`: std marks everything `bare.kit_prefix.optional` (owner, 2026-10-06:
         // "optional for all")
         if self.is_word("duration") && !matches!(self.peek_at(1), Tok::Dot | Tok::ColonColon) {
             if self.no_std { return self.std_missing("`duration`"); }
@@ -2814,7 +2842,7 @@ impl Parser {
         Ok(Stmt::For { name, index, perm, seq, over, body, line })
     }
 
-    /// `collection cum { bare.never; cum [ … ] -> T { … }  quick ['step' = 2];  slow [ … ] -> T { … } }`
+    /// `collection cum { bare.kit_prefix.never; cum [ … ] -> T { … }  quick ['step' = 2];  slow [ … ] -> T { … } }`
     /// (owner, 2026-10-13): rewritten, in the tokens, into the items it stands for: `fn cum …`, `fn cum.slow …`,
     /// and for a preset a function that calls the main one with those arguments filled in. Each gets the
     /// collection's `pub` and its one `bare.` mark. A template (`for … { named …; … }`) is what `synapse
@@ -2841,7 +2869,9 @@ impl Parser {
                 Tok::Eof => return self.err(format!("collection `{name}` is never closed: a `}}` is missing")),
                 Tok::Word(w) if w == "bare" => {
                     if mode.is_some() { return self.err("a collection has one `bare.` mark, for every member"); }
-                    mode = Some(self.bare_mode()?);
+                    let (e, m) = self.bare_mode()?;
+                    if e { return self.err("a collection's members are functions: its mark is `bare.kit_prefix.…`"); }
+                    mode = Some(m);
                     self.expect(Tok::Semi, "`;` after the collection's `bare.` mark")?;
                 }
                 Tok::Word(w) if w == "for" => {
@@ -2950,7 +2980,7 @@ impl Parser {
             let mut p = Vec::new();
             match vis { Vis::Pub => p.push(w("pub", l)), Vis::Kit => { p.push(w("pub", l)); p.push(tk(Tok::Dot, l)); p.push(w("kit", l)); } Vis::Private => {} }
             if let (Some(m), true) = (mode, vis != Vis::Private) {
-                p.push(w("bare", l)); p.push(tk(Tok::Dot, l));
+                p.push(w("bare", l)); p.push(tk(Tok::Dot, l)); p.push(w("kit_prefix", l)); p.push(tk(Tok::Dot, l));
                 p.push(w(match m { Bare::Never => "never", Bare::Optional => "optional", Bare::Only => "only" }, l));
             }
             p
@@ -3802,7 +3832,7 @@ impl Parser {
     /// retired symbol (owner, 2026-10-03: the operators are words).
     fn binop(&self) -> Option<String> {
         // `'a' std::plus 'b'`: std's word operators with their path (owner, 2026-10-06: std is
-        // `bare.optional` for everything; `std::pow` since 2026-10-02)
+        // `bare.kit_prefix.optional` for everything; `std::pow` since 2026-10-02)
         if matches!(self.peek(), Tok::Word(w) if w == "std") && *self.peek_at(1) == Tok::ColonColon
             && matches!(self.peek_at(2), Tok::Word(x) if ["plus", "minus", "times", "div", "mod", "and", "or", "xor", "shl", "shr"].contains(&x.as_str())) {
             let r = self.binop_from(2);

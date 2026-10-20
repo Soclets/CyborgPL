@@ -1,13 +1,13 @@
 # Names other kits may write with or without `greet::`, or only without it (owner, 2026-10-06).
 
-pub bare.optional fn hello [] -> str.utf8 {
+pub bare.kit_prefix.optional fn hello [] -> str.utf8 {
     return "hello";
 }
 
-pub bare.only fn wave [] -> str.utf8 {
+pub bare.kit_prefix.only fn wave [] -> str.utf8 {
     return "wave";
 }
 
-pub bare.never fn formal [] -> str.utf8 {
+pub bare.kit_prefix.never fn formal [] -> str.utf8 {
     return "good day";
 }

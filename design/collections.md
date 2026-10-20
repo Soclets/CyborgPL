@@ -17,7 +17,7 @@ A collection writes a function and its dot narrowings (`cum`, `cum.quick`,
 
 ```
 pub coll.fn cum {
-    bare.never;
+    bare.kit_prefix.never;
     cum ['x': i32, 'step': i32] -> i32 { return 'x' plus 'step'; }
     cum.quick ['step' = 2];
     cum.double ['x': i32] -> i32 { return 'x' times 2; }
@@ -54,7 +54,7 @@ A member may point at a function written elsewhere in the kit, so a kit's `kit.c
 
 ```
 pub coll.fn area {
-    bare.never;
+    bare.kit_prefix.never;
     area ['w': i64, 'h': i64] -> i64 { return 'w' x 'h'; }
     area.square = shapes.square.area;           # body in shapes/square.cy
     area.triangle = shapes.triangle.area;
@@ -75,7 +75,7 @@ picked by how many arguments it has and their types. This is the only place over
 
 ```
 pub coll.fn round {
-    bare.optional;
+    bare.kit_prefix.optional;
     round.near ['x': f64] -> f64 { … }
     round.near ['x': d64] -> d64 { … }
     round.near ['x': f64, 'decimals': i32] -> f64 { … }
@@ -98,10 +98,10 @@ pub coll.fn round {
 - A collection is **private unless `pub coll`**, as everything else
   is (owner: "(a)").
 - A `pub` collection makes every member public, under **one `bare.` mark**
-  for them all, written in the block: `bare.never;` (first, by habit, as in
+  for them all, written in the block: `bare.kit_prefix.never;` (first, by habit, as in
   the sketch; the oracle takes it anywhere in the block). Two marks are
   refused. The mark is the usual one (`ownership-syntax.md`, 2026-10-06):
-  `bare.never`, `bare.optional` or `bare.only`, with no default.
+  `bare.kit_prefix.never`, `bare.kit_prefix.optional` or `bare.kit_prefix.only`, with no default.
 
 ## A collection with no own function
 

@@ -1,4 +1,4 @@
-bare.never [struct];
+bare.kit_prefix.never [struct];
 
 pub struct Note {
     text: str.utf8

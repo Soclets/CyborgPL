@@ -34,7 +34,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
-### 2026-10-20 — `bare.` names the prefix it drops: `bare.kit_prefix.X` (was `bare.X`) and the new `bare.enum_prefix.X` (owner: a; not built)
+### 2026-10-20 — `bare.` names the prefix it drops: `bare.kit_prefix.X` (was `bare.X`) and the new `bare.enum_prefix.X` (owner: a; built in the oracle)
 
 From the case languages (`lang: casing.tr`): the owner first asked for "a special kind of enum type that hides the
 prefix", then: "I meant to add `bare.optional` support for enums". Design claude noted `bare.` marks already apply to

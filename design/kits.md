@@ -41,6 +41,29 @@ been the only break in "the reader always sees where a thing comes
 from" (2026-09-14). Owner: "`mathstuff::pow` is fine", then "drop
 bare".
 
+## What may be left out in front of a name: `bare.kit_prefix` and `bare.enum_prefix` (owner, 2026-10-06; 2026-10-20)
+
+A kit says, for each `pub` thing, whether other kits write its path, and for each `pub` enum, whether its values
+are written with the enum's name. Each mark names the prefix it is about, then how:
+
+| Mark | The prefix | `never` | `optional` | `only` |
+|---|---|---|---|---|
+| `bare.kit_prefix.…` | the kit's path, `geometry::` | always written | either | never written |
+| `bare.enum_prefix.…` | an enum's name, `casing.` | always written | either | never written |
+
+- **Where:** on an item (`pub bare.kit_prefix.optional fn area …`, both on an enum: `pub bare.kit_prefix.optional
+  bare.enum_prefix.optional enum casing { tr, az, lt, root }`), on a block module, as a file's first line
+  (`bare.kit_prefix.never;`), or for a kind across the kit in `kit.cy` (`bare.kit_prefix.optional [fn, op];`,
+  `bare.enum_prefix.optional [enum];`). Marks that disagree are an error.
+- **No default for `pub`:** every `pub` thing is covered by a `kit_prefix` mark, and every `pub` enum by an
+  `enum_prefix` mark too. A private enum's values keep its name unless a file or module mark says otherwise.
+- **A bare value needs a place that names its enum:** a parameter (`str.upper.full[lend 's', lang: tr]`), a typed
+  declaration; `match` arms are bare as always. A bare word with nothing saying its type is not an enum value.
+- **std is `optional` for both**, everything in it (owner, 2026-10-20). Good practice 19 and 20 (`style.md`): write
+  std's names bare, adding the prefix where a bare one could be misread, and mark your own `optional` too.
+- `bare.never` / `bare.optional` / `bare.only` (2026-10-06 until 2026-10-20) are old spellings of `bare.kit_prefix.…`.
+  `examples/bare_marks.cy`; reject tests `enum_prefix_*`, `bare_mark_old`.
+
 ## A keyword may name a function — reached by path, never bare (decided 2026-09-19)
 
 `::` already says "what follows is a name in that Limb," so `std::to[…]`

@@ -1,3 +1,3 @@
-bare.never [module];
+bare.kit_prefix.never [module];
 
 MAIN { }

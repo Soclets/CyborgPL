@@ -1,8 +1,8 @@
 # A small kit used by examples/uses_a_kit (a dependency: it has no MAIN). Only `pub` items reach
 # another kit; `pub.kit` and private ones stay home. `my.` here is this kit's root.
 
-bare.never [fn, struct];
-bare.optional [op];
+bare.kit_prefix.never [fn, struct];
+bare.kit_prefix.optional [op];
 
 pub const 'pi': f64 = 3.14159;
 

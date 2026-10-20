@@ -1,7 +1,7 @@
 # A kit's front door (owner, 2026-10-19): a `coll.fn` whose members point at functions written elsewhere in the kit,
 # each line writing the full name it makes. Users write geometry::area.square[…] whatever the folders look like.
 pub coll.fn area {
-    bare.never;
+    bare.kit_prefix.never;
     area ['w': i64, 'h': i64] -> i64 { return 'w' x 'h'; }
     area.square = shapes.square.area;
     area.triangle = shapes.triangle.area;

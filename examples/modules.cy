@@ -1,6 +1,6 @@
 # Modules as blocks in one file (a kit of one root file). See examples/geometry/ for files.
 
-bare.never [fn, struct];
+bare.kit_prefix.never [fn, struct];
 
 const 'scale' := 10;
 

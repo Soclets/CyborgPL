@@ -203,7 +203,7 @@ impl<'p> Interp<'p> {
     }
 
     /// Another kit's `pub` functions reached bare by `written`, from a call in `from` (owner, 2026-10-06):
-    /// those marked `bare.optional` or `bare.only`, in a kit other than the caller's.
+    /// those marked `bare.kit_prefix.optional` or `bare.kit_prefix.only`, in a kit other than the caller's.
     fn bare_fns_elsewhere(&self, from: &[String], written: &[String], op: bool) -> Vec<&'p Func> {
         let mine = from.first().filter(|r| r.starts_with("::")).cloned();
         let prog: &'p Program = self.prog;
@@ -2868,7 +2868,16 @@ impl<'p> Interp<'p> {
                 let prov = if out.is_owned() { Prov::Fresh } else { Prov::Plain };
                 Ok((out, prov))
             }
-            Expr::EnumValue(tname, case, _, _) => self.enum_value(tname, case, None, &Vec::new(), line),
+            Expr::EnumValue(tname, case, _, _) => {
+                if let Some(def) = self.prog.enums.iter().find(|e| e.name == *tname) {
+                    if self.enum_prefix_of(def) == crate::ast::Bare::Only { return rt(line, format!("`{tname}` forbids its name before its values (`bare.enum_prefix.only`): write `{case}`")); }
+                }
+                self.enum_value(tname, case, None, &Vec::new(), line)
+            }
+            Expr::FnRef(path, from, _) if path.len() == 1 && self.bare_case_enum(&path[0]).is_some() => {
+                let t = self.bare_case_enum(&path[0]).unwrap();
+                self.enum_value(&t, &path[0], None, from, line)
+            }
             Expr::FnRef(path, from, _) => {
                 let (module, name) = path.split_at(path.len() - 1);
                 let name = &name[0];
@@ -4214,7 +4223,7 @@ impl<'p> Interp<'p> {
     fn call(&mut self, c: &Call) -> Result<Value, RuntimeError> {
         self.one_lend_mut(&c.args, c.line)?;
         let shown = c.written.join(".");
-        // a name written bare may be this kit's, std's, or another kit's `bare.optional` / `bare.only`
+        // a name written bare may be this kit's, std's, or another kit's `bare.kit_prefix.optional` / `bare.kit_prefix.only`
         // one; more than one is an error where it is written, and this kit's own does not win
         // (owner, 2026-10-06: "`a`, and no")
         if c.bare {
@@ -4237,7 +4246,7 @@ impl<'p> Interp<'p> {
                     && f.module[1..].iter().map(String::as_str).chain(std::iter::once(f.name.as_str())).collect::<Vec<_>>() == c.written.iter().map(String::as_str).collect::<Vec<_>>()
                     && self.bare_of.get(&bare_key("fn", &f.module, &f.name)) == Some(&crate::ast::Bare::Never)) {
                     let l = f.module[0].trim_start_matches("::");
-                    return rt(c.line, format!("`{shown}` is `{l}`'s and `bare.never`: `{l}` requires its path, so write `{l}::{shown}[…]`"));
+                    return rt(c.line, format!("`{shown}` is `{l}`'s and `bare.kit_prefix.never`: `{l}` requires its path, so write `{l}::{shown}[…]`"));
                 }
             }
             if !std && !own && others.len() == 1 {
@@ -4255,10 +4264,10 @@ impl<'p> Interp<'p> {
                 let mut local = c.clone();
                 local.kit = None;
                 local.path.insert(0, format!("::{l}"));
-                // a `bare.only` name forbids its path (owner, 2026-10-06)
+                // a `bare.kit_prefix.only` name forbids its path (owner, 2026-10-06)
                 let (module, name) = local.path.split_at(local.path.len() - 1);
                 if self.bare_of.get(&bare_key("fn", module, &name[0])) == Some(&crate::ast::Bare::Only) {
-                    return rt(c.line, format!("`{l}::{shown}` is `bare.only`: `{l}` forbids its path, so write `{shown}[…]`"));
+                    return rt(c.line, format!("`{l}::{shown}` is `bare.kit_prefix.only`: `{l}` forbids its path, so write `{shown}[…]`"));
                 }
                 self.user_call(&local)
             }
@@ -4270,10 +4279,19 @@ impl<'p> Interp<'p> {
     fn user_call(&mut self, c: &Call) -> Result<Value, RuntimeError> {
         let (module, name) = c.path.split_at(c.path.len() - 1);
         let name = &name[0];
+        // `value[5]` where an `optional` is expected and its values may go bare (owner, 2026-10-20)
+        if module.is_empty() && c.kit.is_none() {
+            if let Some(t) = self.bare_case_enum(name) {
+                if c.handler.is_some() { return rt(c.line, "an enum value cannot fail; drop the `otherwise`"); }
+                let from = c.from.clone();
+                return self.enum_value(&t, name, Some(&c.args), &from, c.line).map(|(v, _)| v);
+            }
+        }
         // `Status.claimed["x"]` — an enum case with data, spelled like a call
         if !module.is_empty() {
             let tname = module.join(".");
-            if self.prog.enums.iter().any(|e| e.name == tname) {
+            if let Some(def) = self.prog.enums.iter().find(|e| e.name == tname) {
+                if self.enum_prefix_of(def) == crate::ast::Bare::Only { return rt(c.line, format!("`{tname}` forbids its name before its values (`bare.enum_prefix.only`): write `{name}[…]`")); }
                 if c.handler.is_some() { return rt(c.line, "an enum value cannot fail; drop the `otherwise`"); }
                 let from = c.from.clone();
                 return self.enum_value(&tname, name, Some(&c.args), &from, c.line).map(|(v, _)| v);
@@ -4661,14 +4679,14 @@ impl<'p> Interp<'p> {
             roots.dedup();
             if roots.len() > 1 { return rt(line, format!("`{name}` could be any of {}: write the path", roots.join(", "))); }
         }
-        // another kit's word operator follows its `bare` mark (owner, 2026-10-06): `bare.never` needs its
-        // path, `bare.only` refuses it; a glyph operator has no path and no mark
+        // another kit's word operator follows its `bare` mark (owner, 2026-10-06): `bare.kit_prefix.never` needs its
+        // path, `bare.kit_prefix.only` refuses it; a glyph operator has no path and no mark
         if let Some(root) = def.module.first().filter(|r| r.starts_with("::")) {
             let here = self.module.first().filter(|r| r.starts_with("::"));
             let l = root.trim_start_matches("::");
             match (self.bare_of.get(&bare_key("op", &def.module, &def.name)), &kit) {
-                (Some(crate::ast::Bare::Never), None) if here != Some(root) => return rt(line, format!("`{name}` is `{l}`'s and `bare.never`: write `{l}::{name}`")),
-                (Some(crate::ast::Bare::Only), Some(_)) => return rt(line, format!("`{l}::{name}` is `bare.only`: `{l}` forbids its path, so write `{name}`")),
+                (Some(crate::ast::Bare::Never), None) if here != Some(root) => return rt(line, format!("`{name}` is `{l}`'s and `bare.kit_prefix.never`: write `{l}::{name}`")),
+                (Some(crate::ast::Bare::Only), Some(_)) => return rt(line, format!("`{l}::{name}` is `bare.kit_prefix.only`: `{l}` forbids its path, so write `{name}`")),
                 _ => {}
             }
         }
@@ -5180,6 +5198,22 @@ impl<'p> Interp<'p> {
     }
 
     /// Build an enum value: the case must exist; data exactly when the case carries some.
+    /// An enum's `bare.enum_prefix` mode (owner, 2026-10-20): its mark, or `never` for an unmarked private enum.
+    fn enum_prefix_of(&self, def: &crate::ast::EnumDef) -> crate::ast::Bare {
+        let last = def.name.rsplit('.').next().unwrap_or(&def.name);
+        self.bare_of.get(&bare_key("enum_prefix", &def.module, last)).copied().unwrap_or(crate::ast::Bare::Never)
+    }
+
+    /// A bare word that is a value of the enum the place expects (`lang: tr` where the parameter is a `casing`), when
+    /// that enum lets its values drop its name: the enum's name. None where nothing here says an enum.
+    fn bare_case_enum(&self, case: &str) -> Option<String> {
+        let t = match &self.expected { Some(Ty::Ranged(b, _, _)) => (**b).clone(), Some(t) => t.clone(), None => return None };
+        let Ty::Struct(n) = t else { return None };
+        let def = self.prog.enums.iter().find(|e| e.name == n)?;
+        if self.enum_prefix_of(def) == crate::ast::Bare::Never || !def.cases.iter().any(|c| c.name == case) { return None; }
+        Some(def.name.clone())
+    }
+
     fn enum_value(&mut self, tname: &str, case: &str, args: Option<&Bracket>, from: &[String], line: usize) -> Result<(Value, Prov), RuntimeError> {
         let def = match self.prog.enums.iter().find(|e| e.name == tname) {
             Some(d) => d.clone(),

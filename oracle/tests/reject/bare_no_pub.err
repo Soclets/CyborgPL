@@ -1,1 +1,1 @@
-a `bare` mark is `bare.optional;` at the top of a file
+a `bare` mark is `bare.kit_prefix.optional;` at the top of a file

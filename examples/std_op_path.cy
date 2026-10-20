@@ -1,4 +1,4 @@
-# std marks everything `bare.optional` (owner, 2026-10-06), so its word operators may carry `std::`
+# std marks everything `bare.kit_prefix.optional` (owner, 2026-10-06), so its word operators may carry `std::`
 # as `std::pow` has since 2026-10-02.
 
 MAIN {

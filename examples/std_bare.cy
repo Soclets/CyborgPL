@@ -1,4 +1,4 @@
-# std marks everything `bare.optional` (owner, 2026-10-06: "optional for all"): each of std's names
+# std marks everything `bare.kit_prefix.optional` (owner, 2026-10-06: "optional for all"): each of std's names
 # may be written with `std::` or without it.
 
 MAIN {

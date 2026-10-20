@@ -1,5 +1,5 @@
-# `greet` marks `hello` and `Note` bare.optional, `wave` and `Tone` bare.only, and `formal`, `Tally`
-# and `merge` bare.never (owner, 2026-10-06).
+# `greet` marks `hello` and `Note` bare.kit_prefix.optional, `wave` and `Tone` bare.kit_prefix.only, and `formal`, `Tally`
+# and `merge` bare.kit_prefix.never (owner, 2026-10-06).
 
 fn describe ['t': Tone] -> str.utf8 {
     return match 't' { soft { is "soft"; } loud { is "loud"; } };

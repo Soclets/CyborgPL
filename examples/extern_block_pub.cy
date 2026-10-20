@@ -2,7 +2,7 @@
 # overrides"): here `strlen` is public and `write` stays private behind a safe wrapper, as good
 # practice #5 says. A `pub` before the block would make every line public.
 
-bare.never [fn];
+bare.kit_prefix.never [fn];
 
 module text {
     extern.C {

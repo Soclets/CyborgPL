@@ -1,6 +1,6 @@
-bare.never [fn];
+bare.kit_prefix.never [fn];
 
-pub bare.only fn area [] -> i32 {
+pub bare.kit_prefix.only fn area [] -> i32 {
     return 1;
 }
 

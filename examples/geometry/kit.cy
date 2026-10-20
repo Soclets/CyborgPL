@@ -1,6 +1,6 @@
 # The root of the kit: its items are `geometry::…` from outside.
 
-bare.never [fn, struct];
+bare.kit_prefix.never [fn, struct];
 
 const 'unit' := 1.0;
 

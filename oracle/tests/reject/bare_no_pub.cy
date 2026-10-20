@@ -1,4 +1,4 @@
-bare.never fn area [] -> i32 {
+bare.kit_prefix.never fn area [] -> i32 {
     return 1;
 }
 
