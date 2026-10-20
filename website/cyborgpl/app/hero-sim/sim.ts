@@ -9,7 +9,8 @@
 //
 // Once growth ends, the circuit takes over: each connection hardens into a trace on a grid, at 0, 45
 // and 90 degrees, as spikes cross it, so the busiest pathways turn first, and a slow pressure turns
-// the rest. A cell body hardens into a pad as its connections do.
+// the rest. A cell body hardens into a pad as its connections do. The moment every part has turned,
+// the board is formed.
 
 export type Pt = { x: number; y: number };
 
@@ -32,8 +33,9 @@ export const CONVERT_AT = 900;    // ms: growth stops, the circuit takes over
 const CONVERT_SPAN = 2600;        // ms the pressure takes to turn everything
 const USE_FULL = 8;               // spikes that turn one connection by themselves
 const MORPH_RATE = 0.004;         // per ms, how fast a connection follows its target
-export const END = CONVERT_AT + CONVERT_SPAN + 1600;
-export const FADE = 150;          // ms at the end over which it fades before the next grows
+const FORMED = 0.97;              // how far every part must have turned for the board to count as formed
+const HOLD = 1500;                // ms the formed board stays…
+export const FADE = 150;          // …the last of which it fades over, before the next grows
 
 export type Neuron = {
   x: number; y: number;           // the cell body
@@ -60,6 +62,7 @@ export class Sim {
   cones: Cone[] = [];
   readonly edges: Edge[] = [];
   pulses: Pulse[] = [];
+  formedAt: number | null = null;
   private readonly rand: () => number;
   private readonly linked = new Set<number>();
 
@@ -85,7 +88,8 @@ export class Sim {
     }
   }
 
-  get done() { return this.t >= END; }
+  get end() { return this.formedAt === null ? Infinity : this.formedAt + HOLD; }
+  get done() { return this.t >= this.end; }
 
   /** Runs the model forward to `t` ms at once (for a still picture). */
   runTo(t: number) { while (this.t < t) this.step(); }
@@ -134,6 +138,7 @@ export class Sim {
         const target = n.degree ? sum[i]! / n.degree : pressure;
         n.hard += (target - n.hard) * MORPH_RATE;
       });
+      if (this.formedAt === null && this.edges.every((e) => e.morph > FORMED) && this.neurons.every((n) => n.hard > FORMED)) this.formedAt = t;
     }
   }
 
