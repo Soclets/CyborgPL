@@ -66,7 +66,7 @@ CyborgPL™ is designed by **Tankun Sriket**, who makes every decision in [`DECI
 
 **Rust crates** (`KAYO\n`, from `kayo/Cargo.lock`)
 
-`anyhow` 1.0.104, `bitflags` 2.13.2, `cc` 1.4.7, `find-msvc-tools` 0.1.13, `inkwell` 0.10.0, `inkwell_internals` 0.15.0, `lazy_static` 1.5.0, `libc` 0.2.189, `llvm-sys` 221.1.0, `proc-macro2` 1.0.107, `quote` 1.0.47, `regex-lite` 0.1.9, `semver` 1.0.28, `shlex` 2.0.1, `syn` 3.0.6, `thiserror` 2.0.20, `thiserror-impl` 2.0.20, `unicode-ident` 1.0.26, `unicode-segmentation` 1.13.3.
+`anyhow` 1.0.104, `bitflags` 2.13.2, `bitmaps` 2.1.0, `cc` 1.4.7, `find-msvc-tools` 0.1.13, `im` 15.1.0, `inkwell` 0.10.0, `inkwell_internals` 0.15.0, `lazy_static` 1.5.0, `libc` 0.2.189, `llvm-sys` 221.1.0, `proc-macro2` 1.0.107, `quote` 1.0.47, `rand_core` 0.6.4, `rand_xoshiro` 0.6.0, `regex-lite` 0.1.9, `semver` 1.0.28, `shlex` 2.0.1, `sized-chunks` 0.6.5, `syn` 3.0.6, `thiserror` 2.0.20, `thiserror-impl` 2.0.20, `typenum` 1.20.1, `unicode-ident` 1.0.26, `unicode-segmentation` 1.13.3, `version_check` 0.9.5. `im` (MPL-2.0) holds Precog's facts (owner, 2026-10-20: "use im").
 
 The oracle and the verification harness use no crates.
 
