@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-20 — `str.slice.byte` gives bytes, a `list[uint8]`, not text (owner: a)
+
+std claude, writing `str.slice.<unit>`, asked what a byte slice does when an end lands inside a character (`"é"`
+is 2 bytes). Offered (a) it gives bytes, a `list[uint8]`, as `str.at.byte` gives a `uint8`, text made from it
+with `to.str.utf8[…] otherwise …` (std claude's and design claude's recommendation); (b) it gives text and fails
+a second way, `not_utf8`; (c) no byte slice at all. The owner asked "Is there a safer alternative? This is only if
+they want bytes, right?" (yes; (a) can never make broken text, and (c) would need a text-to-bytes conversion not
+yet designed) and "What is `str.slice.bytes` for?" (a field's byte limit, a C buffer, a byte offset from a file
+or protocol). The owner: "(a)". So **`std::str.slice.byte[lend 's', from pos 1, to pos 5] -> list[uint8] or
+fail[out_of_range]`**. `strings.md`. std's to write; nothing in the oracle (no byte slice there).
+
 ### 2026-10-19 — Numbers in other bases are written with a word: `binary 1010_0101`, `hex FF00`, `octal 755` (owner: a; not built)
 
 From the `bin` naming talk ("You said `bin` could collide with a binary integer"): CyborgPL had no way to write a

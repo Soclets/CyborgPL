@@ -181,7 +181,15 @@ std::str.replace[lend 's', from "a", to "b"]
 std::str.find.grapheme[lend 's', part "x"]  -> int32 or fail[missing]   (1-based grapheme position)
 std::str.at.<unit>[lend 's', pos 3]        -> that unit, or fail[out_of_range]
 std::str.slice.grapheme[lend 's', from pos 1, to pos 5] -> str, or fail[out_of_range]
+std::str.slice.point[lend 's', from pos 1, before pos 5]  -> str, or fail[out_of_range]
+std::str.slice.byte[lend 's', from pos 1, to pos 5]     -> list[uint8], or fail[out_of_range]
 ```
+
+**A byte slice gives bytes, not text** (owner, 2026-10-20: "(a)"). A cut by bytes can land inside a character
+(`"é"` is 2 bytes), so `str.slice.byte` hands back a `list[uint8]`, as `str.at.byte` hands back a `uint8`; text
+is made from it with `to.str.utf8[…] otherwise …`, which fails `not_utf8` on a cut character, so a broken
+character is caught where it happens and never becomes a `str`. It is for where text meets something that counts
+bytes (a field's byte limit, a C buffer, an offset from a file or protocol); ordinary code slices by grapheme.
 
 The oracle emulates these so examples run (`examples/text.cy`); std's
 real versions will be CyborgPL.
