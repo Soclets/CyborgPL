@@ -93,13 +93,14 @@ once where it is read. Only Turkish, Azerbaijani and Lithuanian have rules of th
 **Its values are ISO codes, `tr`, `az`, `lt`, and `root` for every other language** (owner: "(b)", over English
 names; `root` over `std`, which would read as the standard library's, Unicode's name for its language-independent
 rules), **written with the enum's name, as every enum value outside a `match` arm is**: `str.upper.full[lend 's',
-lang: case_rule.tr]`. The owner first asked "why isn't `lang:` just bare like `by:`" and design claude recorded bare;
+lang: casing.tr]`. The owner first asked "why isn't `lang:` just bare like `by:`" and design claude recorded bare;
 then: "`by:` accepts anything, `lang:` doesn't", "it's a enum, `by:` isn't, `min:` isn't", and asked to switch "Only
 if it's actually correct". Checked: enum values are built with the type's name (2026-09-20; `optional`'s ruling:
 bare refused, `match` arms the one exception), and the oracle refuses `show[tr]` for an enum parameter ("no function
-`tr`"). So the prefix stays. **The type's name is open**: design claude first picked `case_lang` (the owner asked `case_lang` or
+`tr`"). So the prefix stays. **The type is `casing`** (owner: "casing, go"): design claude first picked `case_lang` (the owner asked `case_lang` or
 `lang_case`, then whether a `lang.case` family would have other narrowings: none today, so one name, by the 2026-10-13
-rule); the owner then offered `case_rule`, which design claude recommended (`root` is not a language), not yet confirmed. Not built (owner: "don't go yet").
+rule); the owner offered `case_rule`; design claude then recommended `casing`, the one name without the word `case`,
+which already means the `case.any` / `case.exact` marks and an enum's cases. Not built (owner: "don't go yet").
 
 ### 2026-10-20 — Precog's table of facts becomes a persistent map, from the `im` library (owner)
 
