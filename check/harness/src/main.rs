@@ -133,7 +133,8 @@ impl Args {
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             typed_literals: !avoid.contains("typed-literals"),
-            std_all: self.flags.contains_key("std-all"),
+            // str.slice by kayo since d6e0868b; `--avoid std-slices` leaves them out
+            std_all: !avoid.contains("std-slices"),
         }
     }
 }
@@ -426,12 +427,19 @@ fn corpus(t: &Tools) {
     let dir = repo().join("check/corpus");
     let mut files: Vec<PathBuf> = std::fs::read_dir(&dir).unwrap().filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().map_or(false, |x| x == "cy")).collect();
     files.sort();
-    let (mut ok, mut bad) = (0, 0);
+    let (mut ok, mut bad, mut known) = (0, 0, 0);
     for f in &files {
         let (src, env) = read_case(f);
         let name = f.file_stem().unwrap().to_string_lossy().to_string();
+        // `# known-difference: …`: a difference the design session has
+        // accepted (an oracle limit, say), shown but not counted as failing
+        let accepted = src.lines().find_map(|l| l.strip_prefix("# known-difference:")).map(|r| r.trim().to_string());
         let v = check(t, &src, &work().join("corpus").join(&name), &env);
         match &v {
+            Verdict::Finding(x) if accepted.is_some() => {
+                known += 1;
+                println!("known        {name}  ({}; {})", x.kind, accepted.as_deref().unwrap_or(""));
+            }
             Verdict::Finding(x) => {
                 bad += 1;
                 println!("STILL FAILS  {name}  ({})", x.kind);
@@ -440,11 +448,12 @@ fn corpus(t: &Tools) {
             Verdict::SlowBuild => println!("slow build   {name}"),
             Verdict::Agree { .. } => {
                 ok += 1;
-                println!("agrees       {name}");
+                let was = if accepted.is_some() { "  (marked known-difference: it agrees now, so the mark can go)" } else { "" };
+                println!("agrees       {name}{was}");
             }
         }
     }
-    println!("{} corpus programs: {ok} agree, {bad} still fail", files.len());
+    println!("{} corpus programs: {ok} agree, {bad} still fail, {known} known differences", files.len());
 }
 
 /// Greedy: take the first smaller candidate that still shows the same kind of

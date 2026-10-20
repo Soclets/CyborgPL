@@ -175,7 +175,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: false, bool_lists: true, tables: true, collections: true, c_interop: true, based_literals: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, c_interop: true, based_literals: true }
     }
 }
 
@@ -519,14 +519,27 @@ impl Gen {
             lit(z1), lit(z2)
         ));
         self.extra_fns.push(format!("fn use_a{id} ['n': int32] -> int32 {{\n    let 'h' := {hf}['n'] otherwise {h}.as_a;\n    return 'h' + 100;\n}}"));
+        // versions (owner, 2026-10-20): one name picked by its arguments' count
+        // and exact types; in a coll.fn of their own, since a preset beside
+        // versions is not decided; every call typed, so none is ambiguous
+        let ov = format!("ov{id}");
+        let (q1, q2) = (self.rng.range(2, 999), self.rng.range(2, 9));
+        self.extra_fns.push(format!(
+            "coll.fn {ov} {{\n    {ov} ['x': int32, 'k': int32] -> int32 {{ return ('x' x 'k') mod.floor {q1}; }}\n    {ov} ['x': int64] -> int32 {{ return to.int32['x' mod.floor {q1}]; }}\n    {ov} ['x': int16] -> int32 {{ return to.int32['x'] x {q2}; }}\n    {ov}.flip ['x': int32] -> int32 {{ return 0 - ('x' mod.floor {q1}); }}\n    {ov}.flip ['x': int64] -> int32 {{ return to.int32['x' mod.floor {q1}] + 1; }}\n}}"
+        ));
         self.extra_fns.push(format!("fn use_b{id} ['n': int32] -> int32 {{\n    let 'h' := {hf}['n'] otherwise {h}.as_b;\n    return 'h' + 200;\n}}"));
         let mut r = |lo: i128, hi: i128| lit(self.rng.range(lo, hi));
         let (x1, k, mm, x2, x3, x4, x5, x6) = (r(-500, 500), r(-20, 20), r(1, 97), r(-500, 500), r(-500, 500), r(-500, 500), r(-500, 500), r(-50, 50));
         let (n1, n2, n3) = (r(-30, 30), r(-30, 30), r(-30, 30));
-        vec![
+        let (o1, o2, o3, o4, o5) = (self.rng.range(0, 99999), self.rng.range(0, 30000), self.rng.range(-500, 500), self.rng.range(0, 99999), self.rng.range(0, 99999));
+        let mut lines = vec![
+            format!("std::print.useful[{ov}[{o1}: int64], \" \", {ov}[{o2}: int16], \" \", {ov}[{}, {}], \" \", {ov}.flip[{o4}: int32], \" \", {ov}.flip[{o5}: int64], \" \", {ov}[to.int16[{}]], newln];", lit(o3), self.rng.range(1, 9), self.rng.range(-300, 300)),
+        ];
+        lines.extend(vec![
             format!("std::print.useful[{c}[{x1}, {k}, {mm}], \" \", {c}.p1[{x2}], \" \", {c}.p2[{x3}, {k}], \" \", {c}.flip[{x4}], \" \", {c}.other[{x5}], \" \", {c}.other[{x6}], newln];"),
             format!("std::print.useful[use_a{id}[{n1}], \" \", use_a{id}[{n2}], \" \", use_b{id}[{n3}], \" \", use_b{id}[{n1}], newln];"),
-        ]
+        ]);
+        lines
     }
 
     /// A pure function of one small whole-number parameter, sometimes

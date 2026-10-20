@@ -3,6 +3,8 @@
 # fits both int32 and int64, so the call is refused (owner, 2026-10-20). In a branch never taken the
 # oracle prints "before" and "after"; kayo refuses it when building ("a bare literal fits more than
 # one; say which, `5: int64`"). The all-literal case is refused before running since 7ab59e76.
+# known-difference: an oracle limit (design claude, 2026-10-20, oracle/README.md): it picks a version
+# for a call with a variable only when the call runs; kayo refuses it while building, the language's way.
 coll.fn mx {
     mx ['a': int32, 'b': int32] -> int32 { return 'a' + 'b'; }
     mx ['a': int32, 'b': int64] -> int32 { return 'a' - to.int32['b']; }
