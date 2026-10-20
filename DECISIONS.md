@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-20 — Functions may be overloaded: one name, picked by the arguments' types (owner; details open, not built)
+
+std claude, to write `round.near` and its siblings once for every bin and deci, asked how, since two functions may
+not share a name (2026-10-09, when the owner chose `fn Counter.next` over overloading) and a generic body cannot
+ask which type it has. Design claude offered (a) a function per type (`fn bin64.round_near`) behind an interface,
+(b) rounding in the language, (c) bins only for now, and, asked "you sure?", corrected itself: one generic body
+can be written with arithmetic, exact for a deci but sometimes wrong near a tie for a bin. The owner: "Then, we'll
+make overloading". So **a function name may have several functions, picked by the types of the arguments**.
+Operators already could (generics.md). `fn Counter.next` (2026-10-09) stays. Being asked: who may overload, how a
+call that two could take is handled.
+
 ### 2026-10-20 — `str.slice.byte` gives bytes, a `list[uint8]`, not text (owner: a)
 
 std claude, writing `str.slice.<unit>`, asked what a byte slice does when an end lands inside a character (`"é"`
