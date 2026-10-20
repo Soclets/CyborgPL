@@ -137,6 +137,12 @@ pub coll.fn round {
 `bin16` and `bin64` versions stand side by side; `round.near[2.5]`, whose bare literal fits both, is refused there,
 naming `2.5: bin64`; a variable has its type, so `round.near['x']` never is. Built in the oracle (939b5bf3).
 
+**Kept, after asking again** (owner: "yup"): a bare literal that fits several versions is refused, and the line says
+which. Design claude offered (a) treating it as `:=` treats a literal (`bin64`'s answer, Precog narrowing), first
+recommended, then withdrew it: adding a `bin64` version would quietly change what an existing `f[2.675]` means,
+which the operators' rule forbids (generics.md, 2026-09-29), and the owner: "the line never said it gave itself to
+Precog" (`:=` is the programmer handing the type to Precog; a call is not). So `round.near[2.675: bin64, decimals 2]`.
+
 ### 2026-10-20 — `str.slice.byte` gives bytes, a `list[uint8]`, not text (owner: a)
 
 std claude, writing `str.slice.<unit>`, asked what a byte slice does when an end lands inside a character (`"é"`
