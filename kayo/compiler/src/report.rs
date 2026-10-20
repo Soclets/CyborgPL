@@ -333,11 +333,15 @@ pub fn render(f: &Facts) -> String {
         format!("- {} in {}: {} fold{}, about {} unit{} of work a trip; run in slices when trips × work pays for the threads", where_(func.span(pl.fl.span)), code(&fname(func)), pl.folds.len(), plural(pl.folds.len()), pl.work, plural(pl.work as usize))
     }).collect();
     par_rows.sort();
+    par_rows.dedup();
     n_opt += par_rows.len();
     for r in &par_rows {
         let _ = writeln!(opt, "{}", r);
     }
-    let mut kept: Vec<String> = f.plan.declined.iter().map(|(fi, span, why)| format!("- {} in {}: stays in order: {}", where_(p.functions[*fi].span(*span)), code(&fname(&p.functions[*fi])), why)).collect();
+    // A loop split in one copy of its function (a `no_cheat` copy, say) is
+    // not also said to stay in order.
+    let split: HashSet<String> = f.plan.loops.iter().map(|((fi, _), pl)| where_(p.functions[*fi].span(pl.fl.span))).collect();
+    let mut kept: Vec<String> = f.plan.declined.iter().filter(|(fi, span, _)| !split.contains(&where_(p.functions[*fi].span(*span)))).map(|(fi, span, why)| format!("- {} in {}: stays in order: {}", where_(p.functions[*fi].span(*span)), code(&fname(&p.functions[*fi])), why)).collect();
     kept.sort();
     kept.dedup();
     if !kept.is_empty() {

@@ -201,6 +201,9 @@ pub fn sizes(p: &Program, obj: &Path, exe: &Path) -> Result<Sizes, String> {
             }
             None => ("this kit".into(), f.name.clone(), None),
         };
+        // A `no_cheat` copy is the same function run honestly: said so, not
+        // listed as a second one of the name (design claude, 2026-10-20).
+        let name = if f.nocheat_of.is_some() { format!("{} (no_cheat copy)", name) } else { name };
         let Some(&size) = code.get(&symbol) else {
             inlined.push(if neuron == "this kit" { name } else { format!("{}{}", neuron.trim_matches('`'), name) });
             continue;

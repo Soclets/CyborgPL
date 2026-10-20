@@ -774,11 +774,17 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // Where a `no_cheat` statement starts: what it touches is unknown to
         // LLVM from there on.
         let entries: Vec<(u32, Vec<LocalId>)> = f.nocheat_entries.iter().filter(|e| e.0 as usize == b).map(|e| (e.1, e.2.clone())).collect();
+        // A counted loop's step is how it counts, not its work: known to
+        // LLVM under `no_cheat` too, so a `by 1` loop takes the plain form
+        // (bench sum ran 1.56× slow with its step behind a barrier).
+        let steps: std::collections::HashSet<LocalId> = f.fors.iter().filter_map(|fl| fl.step).collect();
         let starts_at = |this: &mut Self, si: usize| {
             for (at, locals) in &entries {
                 if *at as usize == si {
                     for l in locals {
-                        this.no_cheat_barrier(fi, *l, slots);
+                        if !steps.contains(l) {
+                            this.no_cheat_barrier(fi, *l, slots);
+                        }
                     }
                 }
             }
@@ -790,7 +796,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             starts_at(self, si);
             if nocheat {
                 if let StmtKind::Assign { place, .. } = &s.kind {
-                    if place.proj.is_empty() {
+                    if place.proj.is_empty() && !steps.contains(&place.local) {
                         barrier_due = Some(place.local);
                     }
                 }
