@@ -54,6 +54,9 @@ kits' versions joining when their types do not overlap, which design claude had 
 `round.near ['x': Money]` beside std's bare `round.near` is the clash of 2026-10-06 wherever `round.near` is written
 without a path: `my.round.near[…]` or `std::round.near[…]`.
 
+**The number of arguments picks too, with their types** (owner: "(a)", over (b) types only; recommended, since a
+function has no optional arguments, so `round.near['x']` and `round.near['x', decimals 2]` are two functions).
+
 ### 2026-10-20 — `str.slice.byte` gives bytes, a `list[uint8]`, not text (owner: a)
 
 std claude, writing `str.slice.<unit>`, asked what a byte slice does when an end lands inside a character (`"é"`
