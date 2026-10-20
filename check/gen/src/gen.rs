@@ -2392,7 +2392,8 @@ impl Gen {
     }
 
     fn text_part(&mut self, body: &mut Vec<Stmt>) {
-        const TEXTS: &[&str] = &["hello", "h\u{e9}llo", "", "Z", "ZZ", "7", "a b", "\u{65e5}\u{672c}", "caf\u{e9}!", "\u{e9}"];
+        // two regional indicators make one flag, one grapheme (UAX #29; 5b4b5200)
+        const TEXTS: &[&str] = &["hello", "h\u{e9}llo", "", "Z", "ZZ", "7", "a b", "\u{65e5}\u{672c}", "caf\u{e9}!", "\u{e9}", "\u{1f1f9}\u{1f1ed}\u{1f1ef}\u{1f1f5}!", "a\u{1f1fa}\u{1f1f8}b"];
         let q = |n: &str| format!("'{n}'");
         // `str.at.<unit>` and `str.slice.grapheme` by position, out of range
         // sometimes (owner, 2026-10-08); cord's (once stdkit), so not in CCA's runs yet
@@ -2405,9 +2406,9 @@ impl Gen {
             // a position is uint64[min 1]: 0 is refused, past the end is
             // what `otherwise` catches (owner, 2026-10-17: a; 09061256)
             let k = self.rng.range(1, n + 2);
-            // std/ has str.at.byte and .point; .grapheme and str.slice only with
-            // --std-all until it has them too (2026-10-17)
-            let line = match self.rng.below(if self.cfg.std_all { 4 } else { 2 }) {
+            // std/ has str.at by byte, point and grapheme; str.slice only with
+            // --std-all until kayo reads std's from / to (2026-10-20)
+            let line = match self.rng.below(if self.cfg.std_all { 4 } else { 3 }) {
                 0 => format!("let {} := std::str.at.byte[lend {}, pos {k}] otherwise 7;\nput_u[to.uint64[{}]];", q(&r), q(&s), q(&r)),
                 1 => format!("let {} := std::str.at.point[lend {}, pos {k}] otherwise `?`;\nput_u[to.uint64[char.code[{}]]];", q(&r), q(&s), q(&r)),
                 // a grapheme here is a plain char: it is printed, not lent
