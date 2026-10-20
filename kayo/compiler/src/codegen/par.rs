@@ -32,7 +32,8 @@ pub(super) struct ParChild<'ctx> {
     pub partials: Vec<PointerValue<'ctx>>,
     pub flags: Vec<Option<PointerValue<'ctx>>>,
     pub folds: Vec<Fold>,
-    /// `for !cheat`: each partial passes through the barrier after each add.
+    /// A loop under `no_cheat`: each round's term goes into the slice's sink
+    /// (`super::keep`), or, with none, the partial through a barrier.
     pub nocheat: bool,
 }
 
@@ -255,9 +256,18 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let saved_here = self.here;
         let saved_sites = std::mem::take(&mut self.op_sites);
         let saved_child = self.par_child.take();
+        let saved_sink = self.sink.take();
 
         let entry = self.ctx.append_basic_block(child, "entry");
         self.builder.position_at_end(entry);
+        // A loop under `no_cheat` (`super::keep`): the slice's own sink.
+        let keep = self.keep.get(&fi).is_some_and(|k| k.blocks.contains(&(pl.fl.head.0 as usize)));
+        if keep {
+            if let Ok(sink) = self.stack(i64t, "no_cheat_sink") {
+                let _ = self.builder.build_store(sink, i64t.const_zero());
+                self.sink = Some(sink);
+            }
+        }
         let env = child.get_nth_param(0)?.into_pointer_value();
         let first = child.get_nth_param(1)?.into_int_value();
         let end = child.get_nth_param(2)?.into_int_value();
@@ -357,7 +367,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 adds.insert((*b, *si), (r, x.clone()));
             }
         }
-        self.par_child = Some(ParChild { skip, adds, partials: partials.clone(), flags: flags_own.clone(), folds: pl.folds.clone(), nocheat: pl.fl.nocheat });
+        self.par_child = Some(ParChild { skip, adds, partials: partials.clone(), flags: flags_own.clone(), folds: pl.folds.clone(), nocheat: pl.fl.nocheat || keep });
         self.cur_flags = flags;
 
         let done = self.ctx.append_basic_block(child, "done");
@@ -382,6 +392,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         self.builder.position_at_end(nowhere);
         let _ = self.builder.build_unreachable();
         self.builder.position_at_end(done);
+        if let Some(sink) = self.sink {
+            self.barrier_on(sink, i64t.into());
+        }
         for (r, part) in partials.iter().enumerate() {
             let t = self.fold_ty(fi, &pl.folds[r])?;
             let parts_ty = t.array_type(MAX_SLICES as u32);
@@ -406,6 +419,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         self.here = saved_here;
         self.op_sites = saved_sites;
         self.par_child = saved_child;
+        self.sink = saved_sink;
         if let Some(b) = back {
             self.builder.position_at_end(b);
         }
@@ -451,8 +465,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let cur = self.builder.build_load(t, part, "partial").ok()?;
         let (next, over) = self.fold_step(fi, &fd, cur, xv, signed, func)?;
         let _ = self.builder.build_store(part, next);
+        // Under `no_cheat` each round's term goes into the sink: the
+        // partial still sums in vector lanes (`super::keep`).
         if self.par_child.as_ref().is_some_and(|pc| pc.nocheat) {
-            self.barrier_on(part, t);
+            if self.sink.is_some() {
+                self.mix_value(xv);
+            } else {
+                self.barrier_on(part, t);
+            }
         }
         if let (Some(flag), Some(o)) = (flag, over) {
             let was = self.builder.build_load(self.ctx.bool_type(), flag, "overflowed").ok()?.into_int_value();

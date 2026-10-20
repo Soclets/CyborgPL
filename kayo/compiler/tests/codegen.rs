@@ -949,6 +949,34 @@ fn no_cheat_reaches_held_functions_and_tasks() {
     }
 }
 
+/// A loop under `no_cheat` keeps every round and may still be vectorised
+/// (owner, 2026-10-01 and 2026-10-18; design claude, 2026-10-20): its
+/// barriers are at its edges (`codegen/keep.rs`). The sum is neither folded
+/// to its answer nor to its closed form, and runs in vector lanes; the value
+/// written over each round keeps its multiply in the loop, not only the
+/// last round's after it.
+#[test]
+fn no_cheat_loops_keep_rounds_and_vectorise() {
+    let src = dir().join("no_cheat_vector.cy");
+    let out = std::env::temp_dir().join(format!("kayo-no-cheat-vector-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&out);
+    let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(out.join("prog")).arg("--emit-llvm").arg(&out).output().unwrap();
+    assert!(r.status.success(), "no_cheat_vector would not build:\n{}", String::from_utf8_lossy(&r.stderr));
+    let after = std::fs::read_to_string(out.join("after.ll")).unwrap();
+    let _ = std::fs::remove_dir_all(&out);
+    for folded in ["5000050000", "1000000"] {
+        assert!(!after.contains(folded), "a loop's answer ({}) was worked out while building under `no_cheat`:\n{}", folded, indent(&after));
+    }
+    // A loop block: one that branches back to itself.
+    let blocks: Vec<&str> = after.split("\n\n").collect();
+    let looping: Vec<&str> = blocks.iter().copied().filter(|b| {
+        let label = b.lines().next().and_then(|l| l.split(':').next()).unwrap_or("");
+        !label.is_empty() && b.lines().last().is_some_and(|l| l.trim_start().starts_with("br ") && l.contains(&format!("label %{},", label)) || l.trim_end().ends_with(&format!("label %{}", label)))
+    }).collect();
+    assert!(looping.iter().any(|b| b.contains("add <") && b.contains("x i64>")), "the sum is not vectorised under `no_cheat`:\n{}", indent(&after));
+    assert!(looping.iter().any(|b| b.contains(" mul ")), "the value written over each round has no multiply in its loop:\n{}", indent(&after));
+}
+
 /// A `list[bool]` used only by position is held as bits (owner,
 /// 2026-10-18): the sieve's 100,001 flags take 12,501 bytes, and the list
 /// handed to a call keeps its byte an element. `bits_list` itself, run in

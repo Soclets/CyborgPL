@@ -14,6 +14,8 @@
 #include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/StandardInstrumentations.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Transforms/Utils/LoopUtils.h"
 #include "llvm/Target/TargetMachine.h"
 
 using namespace llvm;
@@ -45,6 +47,24 @@ extern "C" void kayo_optimize(LLVMModuleRef module, LLVMTargetMachineRef machine
             mpm.addPass(kayo::RecursiveInlinePass{{}, depth, max_size, inlined});
         });
     }
+    // A build with a loop under `no_cheat` (the module flag
+    // `kayo.keep_rounds`, `codegen/keep.rs`): no loop's answer is replaced
+    // by its closed form (`n x (n + 1) / 2` for a sum), so every round runs.
+    // LLVM's own option, `-replexitval=never`, set for this run only.
+    cl::opt<ReplaceExitVal> *rev = nullptr;
+    ReplaceExitVal was = OnlyCheapRepl;
+    if (m->getModuleFlag("kayo.keep_rounds")) {
+        auto &opts = cl::getRegisteredOptions();
+        auto it = opts.find("replexitval");
+        if (it != opts.end()) {
+            rev = static_cast<cl::opt<ReplaceExitVal> *>(it->second);
+            was = rev->getValue();
+            rev->setValue(NeverRepl);
+        }
+    }
     ModulePassManager mpm = pb.buildPerModuleDefaultPipeline(OptimizationLevel::O3);
     mpm.run(*m, mam);
+    if (rev) {
+        rev->setValue(was);
+    }
 }

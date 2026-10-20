@@ -1069,9 +1069,27 @@ Dated, with the alternative, so each can become a question later.
   aliases are gone, being the names now). The number bases are `bin 1010`,
   `hex FF`, `oct 755`; `binary` and `octal` are old. A message says "an
   `i32`", "a `u8`", "an `f64`", "a `d64`", as they are read. kayo's own
-  programs, tests and bench were swept by script, and `std/str.cy` too (one
-  file, so the suite can load std; std claude's to keep). Earlier entries
+  programs, tests and bench were swept by script; `std/` is std claude's,
+  and the suite was run against its converted copy. Earlier entries
   here keep the names of their day.
+- **2026-10-20 — A loop under `no_cheat` may be vectorised** (design
+  claude: "A barrier that keeps the rounds and still lets LLVM vectorise is
+  what the rulings ask for"; `codegen/keep.rs`). A loop in `no_cheat` code
+  has no barrier on each store any more. What it reads goes through one on
+  the way in, so its trips and values are unknown while building; each
+  round's value that the next round does not carry on (a term, a variable
+  written over) is added into a hidden sink, which LLVM vectorises as it
+  does a sum; and what it wrote, and the sink, go through one on the way
+  out. A build with such a loop runs LLVM with `replexitval` `never` (the
+  module flag `kayo.keep_rounds`, read in `llvm-passes/pipeline.cpp`), so a
+  sum is never replaced by its closed form. Code under `no_cheat` outside a
+  loop keeps a barrier on each store. Found while prototyping: barriers at
+  the edges alone let LLVM work out a written-over value's last round only;
+  the sink with a sum's every value in it stopped the sum vectorising, and
+  so did the loop's own counting (the room left before the stop), so a
+  value whose every use decides a branch or sets the counter stays out; and
+  `xor` let a value mixed in twice (`_23`, then `'last' = _23`) cancel, so
+  the sink adds.
 - **2026-10-20 — What picks a version, read further** (check claude, std
   claude; the oracle's rule, c8a27e08). `peek_arg` types more than
   literals and names: a `to.` conversion is its target, `true` a `bool`,

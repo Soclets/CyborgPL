@@ -50,7 +50,7 @@ fn place_locals(p: &Place, out: &mut Vec<LocalId>) {
     }
 }
 
-fn operand_locals(o: &Operand, out: &mut Vec<LocalId>) {
+pub(crate) fn operand_locals(o: &Operand, out: &mut Vec<LocalId>) {
     if let Some(p) = o.place() {
         place_locals(p, out);
     }
@@ -87,7 +87,7 @@ fn rvalue_locals(rv: &Rvalue, out: &mut Vec<LocalId>) {
 }
 
 /// Every local a statement reads — not what it drops or stops lending.
-fn stmt_reads(s: &Statement) -> Vec<LocalId> {
+pub(crate) fn stmt_reads(s: &Statement) -> Vec<LocalId> {
     let mut out = Vec::new();
     match &s.kind {
         StmtKind::Assign { place, rvalue } => {
@@ -117,7 +117,7 @@ fn stmt_reads(s: &Statement) -> Vec<LocalId> {
     out
 }
 
-fn term_reads(t: &Terminator) -> Vec<LocalId> {
+pub(crate) fn term_reads(t: &Terminator) -> Vec<LocalId> {
     let mut out = Vec::new();
     match t {
         Terminator::If { cond, .. } => operand_locals(cond, &mut out),

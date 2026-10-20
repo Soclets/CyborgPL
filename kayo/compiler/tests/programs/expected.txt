@@ -336,3 +336,5 @@ mutual_recursion_past_the_depth trap
 # `no_cheat` covers the calls a statement makes (owner, 2026-10-18).
 no_cheat_calls 109
 no_cheat_held 9
+# A loop under `no_cheat` keeps its rounds and is vectorised (design claude, 2026-10-20).
+no_cheat_vector 81

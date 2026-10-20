@@ -44,6 +44,7 @@ mod clayout;
 mod cstr;
 mod deci;
 mod heap;
+mod keep;
 pub mod bare;
 mod par;
 mod print;
@@ -117,7 +118,13 @@ pub fn lower_for<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, nam
         }
         Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
     };
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, const_arrays: HashMap::new(), op_sites: Vec::new(), par: crate::par::plan(p), par_child: None, nocheat: nocheat_blocks(p), bits: crate::mir::bits::bit_lists(p) };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, const_arrays: HashMap::new(), op_sites: Vec::new(), par: crate::par::plan(p), par_child: None, nocheat: nocheat_blocks(p), keep: HashMap::new(), sink: None, bits: crate::mir::bits::bit_lists(p) };
+    cg.keep = keep::keep_loops(p, &cg.nocheat);
+    // Read by the pipeline (`llvm-passes/pipeline.cpp`): a build with a loop
+    // under `no_cheat` never has a loop's answer replaced by its closed form.
+    if !cg.keep.is_empty() {
+        module.add_basic_value_flag("kayo.keep_rounds", inkwell::module::FlagBehavior::Override, ctx.i32_type().const_int(1, false));
+    }
     cg.declare_all();
     for i in 0..p.functions.len() {
         cg.define(i);
@@ -188,6 +195,11 @@ struct Cg<'a, 'ctx> {
     par_child: Option<par::ParChild<'ctx>>,
     /// The blocks of `for !cheat` loops: (function, block).
     nocheat: std::collections::HashSet<(usize, usize)>,
+    /// The loops under `no_cheat`, by function (`keep`): barriers at their
+    /// edges and a sink each round, which LLVM can still vectorise.
+    keep: HashMap<usize, keep::KeepLoops>,
+    /// The function's (or slice's) sink for those loops' rounds.
+    sink: Option<PointerValue<'ctx>>,
     /// The `list[bool]` locals held as bits (`mir::bits`).
     bits: std::collections::HashSet<(usize, u32)>,
 }
@@ -751,6 +763,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
             }
         }
+        self.sink = None;
+        if self.keep.contains_key(&i) {
+            let w = self.ctx.i64_type();
+            if let Ok(sink) = self.stack(w, "no_cheat_sink") {
+                let _ = self.builder.build_store(sink, w.const_zero());
+                self.sink = Some(sink);
+            }
+        }
         let _ = self.builder.build_unconditional_branch(blocks[0]);
         for b in 0..f.blocks.len() {
             self.builder.position_at_end(blocks[b]);
@@ -770,6 +790,19 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // passes through a barrier LLVM cannot see into, so no round's
         // work is folded away or dropped.
         let nocheat = self.nocheat.contains(&(fi, b));
+        // In a loop under `no_cheat` the barriers are at the loop's edges,
+        // and each round's own values go into the sink (`keep`).
+        let in_loop = self.keep.get(&fi).is_some_and(|k| k.blocks.contains(&b));
+        let mixed: std::collections::HashSet<LocalId> = if in_loop { self.keep[&fi].mixed.clone() } else { Default::default() };
+        let mut mix_due: Option<LocalId> = None;
+        if let Some(outs) = self.keep.get(&fi).and_then(|k| k.exit.get(&b)).cloned() {
+            for l in outs {
+                self.no_cheat_barrier(fi, l, slots);
+            }
+            if let Some(sink) = self.sink {
+                self.barrier_on(sink, self.ctx.i64_type().into());
+            }
+        }
         let mut barrier_due: Option<LocalId> = None;
         // Where a `no_cheat` statement starts: what it touches is unknown to
         // LLVM from there on.
@@ -793,8 +826,18 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             if let Some(l) = barrier_due.take() {
                 self.no_cheat_barrier(fi, l, slots);
             }
+            if let Some(l) = mix_due.take() {
+                self.mix_into_sink(fi, l, slots);
+            }
             starts_at(self, si);
-            if nocheat {
+            if in_loop {
+                let w = match &s.kind {
+                    StmtKind::Assign { place, .. } if place.proj.is_empty() => Some(place.local),
+                    StmtKind::Op { dest: Some(d), .. } if d.proj.is_empty() => Some(d.local),
+                    _ => None,
+                };
+                mix_due = w.filter(|l| mixed.contains(l));
+            } else if nocheat {
                 if let StmtKind::Assign { place, .. } = &s.kind {
                     if place.proj.is_empty() && !steps.contains(&place.local) {
                         barrier_due = Some(place.local);
@@ -938,7 +981,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         if let Some(l) = barrier_due.take() {
             self.no_cheat_barrier(fi, l, slots);
         }
+        if let Some(l) = mix_due.take() {
+            self.mix_into_sink(fi, l, slots);
+        }
         starts_at(self, stmts.len());
+        // A loop's way in: what it reads is unknown from here.
+        if let Some(ins) = self.keep.get(&fi).and_then(|k| k.pre.get(&b)).cloned() {
+            for l in ins {
+                self.no_cheat_barrier(fi, l, slots);
+            }
+        }
         // The sites guarding a call that ends the block (`map.get`'s).
         self.op_sites = std::mem::take(&mut pending);
         let term = f.blocks[b].term.clone();
@@ -3704,6 +3756,52 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let ty = local.ty.clone();
         let Some(t) = self.ty(&ty) else { return };
         self.barrier_on(slot, t);
+    }
+
+    /// A round's value into the sink: its bits, folded to 64, added in.
+    pub(super) fn mix_into_sink(&mut self, fi: usize, l: LocalId, slots: &[Option<PointerValue<'ctx>>]) {
+        let local = &self.p.functions[fi].locals[l.0 as usize];
+        if matches!(local.kind, LocalKind::Lent { .. }) {
+            return;
+        }
+        let Some(slot) = slots.get(l.0 as usize).copied().flatten() else { return };
+        let ty = local.ty.clone();
+        let Some(t) = self.ty(&ty) else { return };
+        let Ok(v) = self.builder.build_load(t, slot, "round") else { return };
+        self.mix_value(v);
+    }
+
+    /// A value into the sink, when there is one and the value is a number.
+    pub(super) fn mix_value(&mut self, v: BasicValueEnum<'ctx>) {
+        let Some(sink) = self.sink else { return };
+        let w = self.ctx.i64_type();
+        let bits = match v {
+            BasicValueEnum::IntValue(i) => i,
+            BasicValueEnum::FloatValue(x) => {
+                let n = x.get_type().get_bit_width();
+                let it = self.ctx.custom_width_int_type(std::num::NonZeroU32::new(n).unwrap()).unwrap();
+                let Ok(b) = self.builder.build_bit_cast(x, it, "round_bits") else { return };
+                b.into_int_value()
+            }
+            _ => return,
+        };
+        let n = bits.get_type().get_bit_width();
+        let folded = if n > 64 {
+            let Ok(hi) = self.builder.build_right_shift(bits, bits.get_type().const_int(64, false), false, "round_hi") else { return };
+            let Ok(x) = self.builder.build_xor(bits, hi, "round_fold") else { return };
+            let Ok(x) = self.builder.build_int_truncate(x, w, "round") else { return };
+            x
+        } else if n < 64 {
+            let Ok(x) = self.builder.build_int_z_extend(bits, w, "round") else { return };
+            x
+        } else {
+            bits
+        };
+        let Ok(cur) = self.builder.build_load(w, sink, "sink") else { return };
+        // Added, not `xor`ed: a value mixed in twice (`'last' = _23` after
+        // `_23`) cancelled under `xor`, and LLVM dropped the loop again.
+        let Ok(next) = self.builder.build_int_add(cur.into_int_value(), folded, "sink") else { return };
+        let _ = self.builder.build_store(sink, next);
     }
 
     /// The barrier on whatever a slot holds: a local, or a slice's partial.
