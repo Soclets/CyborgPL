@@ -5296,15 +5296,15 @@ impl<'p> Interp<'p> {
         // std's text toolbox (decided 2026-09-20: the toolbox is std's; the oracle
         // emulates a few so examples can run). The ones that can fail say so.
         let fails: Vec<FailCase> = match path.as_str() {
-            "str.at.grapheme" | "str.at.point" | "str.at.byte" | "str.slice.grapheme" => vec![FailCase { name: "out_of_range".into(), ty: None }],
+            "str.at.grapheme" | "str.at.point" | "str.at.byte" | "str.slice.grapheme" | "str.slice.point" | "str.slice.byte" => vec![FailCase { name: "out_of_range".into(), ty: None }],
             "str.find.grapheme" => vec![FailCase { name: "missing".into(), ty: None }],
             _ => Vec::new(),
         };
         if path.starts_with("str.") {
             // one the oracle does not have says so first, before anything about its `otherwise` (check claude, 2026-10-08)
             let known = matches!(path.as_str(), "str.split" | "str.contains" | "str.starts_with" | "str.ends_with" | "str.trim" | "str.upper" | "str.lower" | "str.replace" | "str.join"
-                | "str.at.grapheme" | "str.at.point" | "str.at.byte" | "str.slice.grapheme" | "str.find.grapheme");
-            if !known { return rt(c.line, format!("std::{path} is not in the oracle's std (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.grapheme, str.find.grapheme)")); }
+                | "str.at.grapheme" | "str.at.point" | "str.at.byte" | "str.slice.grapheme" | "str.slice.point" | "str.slice.byte" | "str.find.grapheme");
+            if !known { return rt(c.line, format!("std::{path} is not in the oracle's std (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.<unit>, str.find.grapheme)")); }
             self.check_handler(c.handler.as_ref(), &fails, &format!("std::{path}"), c.line)?;
             let mut vals = Vec::new();
             for a in &c.args.values {
@@ -5348,11 +5348,34 @@ impl<'p> Interp<'p> {
                     if b < a || b as usize > gs.len() { return fail(self, "out_of_range"); }
                     Ok(Value::Str(gs[(a - 1) as usize..b as usize].concat()))
                 }
+                // by code point a text, by byte a `list[u8]`: a cut may land inside a character (owner, 2026-10-20: "(a)")
+                "str.slice.point" => {
+                    let s = text(0)?; let (a, b) = (int(1)?, int(2)?);
+                    let ps: Vec<char> = s.chars().collect();
+                    if a < 1 { return rt(c.line, no_position(a)); }
+                    if b < 1 { return rt(c.line, no_position(b)); }
+                    if b < a || b as usize > ps.len() { return fail(self, "out_of_range"); }
+                    Ok(Value::Str(ps[(a - 1) as usize..b as usize].iter().collect()))
+                }
+                "str.slice.byte" => {
+                    // its answer is a list[u8], so a fallback of text cannot stand in for it (kayo refuses it too)
+                    if let Some(Handler::Value(fb)) = &c.handler {
+                        if matches!(fb.values.as_slice(), [crate::ast::Value::Expr(Expr::Text(..))]) {
+                            return rt(c.line, "`std::str.slice.byte` gives a `list[u8]`, and the `otherwise` gives text: a fallback is the same type, `otherwise []`");
+                        }
+                    }
+                    let s = text(0)?; let (a, b) = (int(1)?, int(2)?);
+                    let bs = s.as_bytes();
+                    if a < 1 { return rt(c.line, no_position(a)); }
+                    if b < 1 { return rt(c.line, no_position(b)); }
+                    if b < a || b as usize > bs.len() { return fail(self, "out_of_range"); }
+                    Ok(Value::List(bs[(a - 1) as usize..b as usize].iter().map(|x| Value::Int(*x as i128)).collect()))
+                }
                 "str.find.grapheme" => {
                     let (s, sub) = (text(0)?, text(1)?);
                     match s.find(sub.as_str()) { Some(byte_ix) => Ok(Value::Int(grapheme_count(&s[..byte_ix]) as i128 + 1)), None => fail(self, "missing") }
                 }
-                other => rt(c.line, format!("std::{other} is not in the oracle's std (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.grapheme, str.find.grapheme)")),
+                other => rt(c.line, format!("std::{other} is not in the oracle's std (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.<unit>, str.find.grapheme)")),
             };
         }
         if c.handler.is_some() && !path.starts_with("input.") { return rt(c.line, format!("std::{path} cannot fail; drop the `otherwise`")); }
