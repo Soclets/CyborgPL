@@ -34,6 +34,29 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-20 — An argument word inside `[ ]` takes `:`; `for` with several words takes `[ ]`; `decimals` becomes `places` (owner; not built)
+
+Asked whether `decimals` should shorten with the type names (`d` for `deci`), design claude recommended keeping it;
+the owner: "I personally think that `min_deci` doesn't read weird", then asked what `round.near['x', deci 2]` does
+(rounds to 2 places after the point), proposed `deci_digits` (design claude: "decimal digits" usually means every
+digit; offered `places`), and, shown `places`: "Feeling like making it `places:`, so words that read wrong don't
+read wrong (reading like that could make it sound like it ranks)". So **`round.near['x', places: 2]`**.
+
+Design claude noted `:` already means a type (`'x': d64`, `5: u8`); the owner: variables have `''`, so `'x': d64`
+is a type and `places: 2` a label. Shown `for 'i': i64 from: 1 to: 'n' by: 1`, the owner: "that's a problem with
+`for`, where are the commas, and `[]`?", then, over (a) every `for` bracketed and (c) none: "If we do (b), we could
+make it so that it requires `[]` when have `,`". Asked why `in:` has a colon, design claude offered the rule below,
+recommended; the owner: "yea". So:
+
+- **An argument word inside `[ ]` takes `:`**: `list.append[lend.mut 'xs', value: 2]`, `str.replace[lend 's',
+  from: "a", to: "b"]`, `round.near['x', places: 2]`.
+- **A bare word outside brackets takes none**: `for 'x' in lend 'xs' { … }`.
+- **A `for` with two or more words takes `[ ]` and commas**: `for 'i': i64 [from: 1, to: 'n', by: 1] { … }`;
+  without the brackets it is refused. One word stays bare.
+
+Not built; not yet asked: whether a type's limits follow (`i32[min: 0, max: 100]`, `d64[max_places: 2]`), how
+`pos` reads in a slice (`from: pos 2`), and words that take no value (`exclude zero`).
+
 ### 2026-10-20 — Number types are `i`, `u`, `f`, `d` with their widths; the base words become `bin`, `hex`, `oct` (owner; not built)
 
 The owner: "I kinda want to switch to u, i, f, d. And yes, I know it's ambiguous, but we could just say in the docs
