@@ -17,6 +17,11 @@ export function Layout({ children }: { children: ReactNode }) {
         <Links />
       </head>
       <body>
+        {/* Shown only with JavaScript off (owner, 2026-10-20: "We could display a "We need JS" message"):
+            the sections below the hero appear as scripts animate them in. */}
+        <noscript>
+          <div className="nojs" role="status"><strong>We need JavaScript.</strong> Turn it on to see the whole page.</div>
+        </noscript>
         <LoadingScreen />
         {children}
         <ScrollRestoration />
