@@ -57,6 +57,9 @@ enum). The same rule as `kit_prefix`'s (2026-10-06): every `pub` thing says how 
 depends on if it could be confused. Likely not confused is optional, and likely confused is never"). Design claude's
 application, not asked value by value: `optional` is `never` (`value` is also the label `value:`); `casing` is
 `optional`, unless the owner counts `root` as likely confused with a maths root (asked).
+The owner then: "Keep the rule, but ask me first, I'd like to start from std's `fn`s". So **each of std's marks is
+the owner's, asked one at a time, by that rule, starting with std's functions (`kit_prefix`)**; design claude's
+applications above are suggestions until asked.
 
 ### 2026-10-20 — Case changes say their mapping: `str.upper.ascii`, `.simple`, `.full`; a bare `str.upper` is refused (owner: a, a)
 
