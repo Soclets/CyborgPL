@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-20 — std lists the Money limb, for `round.X` on decis (owner: a)
+
+std claude, writing `round.X`, found its deci versions need the decis, which are the Money limb's ("`deci64` is
+Money's, and this kit's CyJet.cyr does not list the limb Money"). Offered (a) std lists Money, as it lists unicode
+for `str.at.point` (owner, 2026-10-17: "(a)"), only std's own build needing it (std claude's and design claude's
+recommendation), or (b) std rounds bins only, deci rounding in Money or later. The owner: "(a)". So **std's
+`CyJet.cyr` lists Money beside unicode**, and `round.X` has deci versions.
+
 ### 2026-10-20 — An argument word inside `[ ]` takes `:`; `for` with several words takes `[ ]`; `decimals` becomes `places` (owner; not built)
 
 Asked whether `decimals` should shorten with the type names (`d` for `deci`), design claude recommended keeping it;
