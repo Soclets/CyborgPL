@@ -43,7 +43,13 @@ mappings, simple (one character for one, `ß` stays `ß`) and full (`ß` → `SS
 bytes and graphemes alike), plus language-tailored ones (Turkish `i` → `İ`); offered (a) Unicode's own words,
 `.ascii` and `.full` now, (b) `.ascii` and `.unicode`. The owner: "(a). Build all, btw". So **`str.upper.ascii`,
 `str.upper.simple`, `str.upper.full`, and the same for `str.lower`**; a bare `str.upper[…]` is refused naming them.
-Being asked: whether "all" includes the language-tailored mappings, and how a call names its language.
+**The language-tailored mappings are in, named by `lang:`** (owner: "`lang:`", over a narrowing per language),
+**and `lang:` takes an enum value, not text** (owner, asked whether a program picks the language at run time: "Yea,
+no shit"; over (a) a BCP 47 tag as text, which design claude first recommended for run-time settings, until the
+owner: "won't you just use a var for a setting at runt?", a variable working either way, and the enum catching a
+mistyped literal). So `str.upper.full[lend 's', lang: 'user_lang']`, the system's text tag converted into the enum
+once where it is read. Only Turkish, Azerbaijani and Lithuanian have rules of their own in Unicode's tables. Being
+asked: the enum's and its cases' names. Not built (owner: "don't go yet").
 
 ### 2026-10-20 — Precog's table of facts becomes a persistent map, from the `im` library (owner)
 
