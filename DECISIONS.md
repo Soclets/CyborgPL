@@ -49,6 +49,11 @@ recommended): each version covers its own argument types; two that could both ta
 they are written, so a call never silently picks one; a generic version and a specific one for the same type are
 two that could both take it, so an error too (generics.md, 2026-09-23).
 
+**Across kits, nothing changes: overloads join only inside one kit** (owner: "error", then "(b)", over (a) two
+kits' versions joining when their types do not overlap, which design claude had recommended). So a kit's own
+`round.near ['x': Money]` beside std's bare `round.near` is the clash of 2026-10-06 wherever `round.near` is written
+without a path: `my.round.near[…]` or `std::round.near[…]`.
+
 ### 2026-10-20 — `str.slice.byte` gives bytes, a `list[uint8]`, not text (owner: a)
 
 std claude, writing `str.slice.<unit>`, asked what a byte slice does when an end lands inside a character (`"é"`
