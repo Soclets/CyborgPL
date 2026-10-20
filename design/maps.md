@@ -7,10 +7,10 @@ Decided 2026-09-22, one question at a time. The third collection, beside
 
 ```
 let mut 'phones': map[str.utf8, i32] = map.empty;
-map.set[lend.mut 'phones', key "ann", value 5551];                 # add, or replace an existing key's value
-let 'n' := map.get[lend 'phones', key "ann"] otherwise 0;    # a missing key is a failure
-if map.has[lend 'phones', key "bob"] { … }
-let 'v' := map.remove[lend.mut 'phones', key "bob"] otherwise 0;   # hands the value back, like list.remove
+map.set[lend.mut 'phones', key: "ann", value: 5551];                 # add, or replace an existing key's value
+let 'n' := map.get[lend 'phones', key: "ann"] otherwise 0;    # a missing key is a failure
+if map.has[lend 'phones', key: "bob"] { … }
+let 'v' := map.remove[lend.mut 'phones', key: "bob"] otherwise 0;   # hands the value back, like list.remove
 let 'count' := map.length[lend 'phones'];                # u64
 ```
 
@@ -77,7 +77,7 @@ a compile error. Proposed alternatives: a list of two-element lists
 ## A count bound, and bounds inside (owner: yes)
 
 ```
-let mut 'small': map[str.utf8[min 1, max 3 bytes], i32[min 0, max 10]][min 0, max 2] = map.empty;
+let mut 'small': map[str.utf8[min: 1, max: 3 bytes], i32[min: 0, max: 10]][min: 0, max: 2] = map.empty;
 ```
 
 `map[K, V][lo, hi]` bounds the number of entries, as `list[T][lo, hi]`

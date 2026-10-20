@@ -4,9 +4,9 @@ struct Job { name: str.utf8 }
 fn run ['job': Job] { std::print.useful["ran ", 'job'.name, newln]; }
 MAIN {
     let mut 'queue' := [Job[name = "a"], Job[name = "b"], Job[name = "c"]];
-    run[list.remove[lend.mut 'queue', pos 1]];              # straight into a call
-    let 'next' := list.remove[lend.mut 'queue', pos 1];     # or kept
+    run[list.remove[lend.mut 'queue', pos: 1]];              # straight into a call
+    let 'next' := list.remove[lend.mut 'queue', pos: 1];     # or kept
     run[give 'next'];
-    list.remove[lend.mut 'queue', pos 1];                   # or dropped
+    list.remove[lend.mut 'queue', pos: 1];                   # or dropped
     std::print.useful[list.length[lend 'queue'], newln];
 }

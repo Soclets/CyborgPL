@@ -30,17 +30,17 @@ fn popcount ['x': u32] -> u32 {
 
 # 16 bytes at once: is every byte ASCII (below 128)?
 fn all_ascii [lent 'bytes': array[u8]] -> bool {
-    let 'v': simd[u8, count 16] = simd.load[lend 'bytes', pos 1];
-    return simd.all['v' < simd.fill[value 128]];
+    let 'v': simd[u8, count: 16] = simd.load[lend 'bytes', pos: 1];
+    return simd.all['v' < simd.fill[value: 128]];
 }
 
 MAIN {
     # 8 bytes nobody owns: C's memory, written and read through a pointer
     no_check let 'raw' := malloc[8];
-    for 'i' from 0 to 7 by 1 {
-        no_check ptr.write[ptr.at['raw', by 'i'], value 65 + 'i'];          # 'A' 'B' 'C' …
+    for 'i' [from: 0, to: 7, by: 1] {
+        no_check ptr.write[ptr.at['raw', by: 'i'], value: 65 + 'i'];          # 'A' 'B' 'C' …
     }
-    no_check let 'third' := ptr.read[ptr.at['raw', by 2]];
+    no_check let 'third' := ptr.read[ptr.at['raw', by: 2]];
     no_check free['raw'];
 
     let 'text': array[u8] = [104, 101, 108, 108, 111, 44, 32, 108, 111, 119, 32, 108, 101, 118, 101, 108];

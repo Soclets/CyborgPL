@@ -1,4 +1,4 @@
-layout.C struct S { mode: u8[bits 3] }
+layout.C struct S { mode: u8[bits: 3] }
 
 MAIN {
     let mut 's' := S[mode = 1];

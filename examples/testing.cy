@@ -22,6 +22,6 @@ test fn wrong_reason [] {
 }
 test fn guards [] {
     let 'xs': list[i32] = [1, 2, 3];
-    must.stop 'xs'[pos 99];
+    must.stop 'xs'[pos: 99];
 }
 MAIN { std::print.useful[add[1, 1], newln]; }

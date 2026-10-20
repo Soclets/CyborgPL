@@ -4,7 +4,7 @@ MAIN {
     let mut 't': list[i32] = [5,];
     if 'n' > 5 {
         let 'q' := lend 't';
-        list.append[lend.mut 't', value 1];
+        list.append[lend.mut 't', value: 1];
         std::print.useful[list.length[lend 'q'], newln];
     }
 }

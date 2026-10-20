@@ -61,13 +61,16 @@ fn read_templates(src: &str, lines_at: &[usize]) -> Result<Vec<Template>, String
         let (items, counting) = if let Some(list) = rest.strip_prefix("in ") {
             let list = list.trim().strip_prefix('[').and_then(|l| l.strip_suffix(']')).ok_or(format!("line {at}: a template runs over a list written out, `in [2, 4, 8]`"))?;
             (split_top(list), None)
-        } else if let Some(c) = rest.strip_prefix("from ") {
-            let (a, r) = c.split_once(' ').ok_or(format!("line {at}: `from A to B by C`"))?;
-            let (word, r) = r.trim().split_once(' ').ok_or(format!("line {at}: `from A to B by C`"))?;
-            if word != "to" && word != "before" { return Err(format!("line {at}: after the start comes `to` or `before`")); }
-            let (b, r) = r.trim().split_once(" by ").ok_or(format!("line {at}: a counting template writes its step: `by 1`"))?;
-            (Vec::new(), Some((a.trim().to_string(), word == "before", b.trim().to_string(), r.trim().to_string())))
-        } else { return Err(format!("line {at}: a template runs `in [ … ]` or `from A to B by C`")); };
+        } else if let Some(c) = rest.strip_prefix("[from:") {
+            // `for 'n' [from: 1, to: 8, by: 1]` (owner, 2026-10-20: a `for` with several words takes `[ ]`)
+            let c = c.strip_suffix(']').ok_or(format!("line {at}: `[from: A, to: B, by: C]`"))?;
+            let parts = split_top(c);
+            if parts.len() != 3 { return Err(format!("line {at}: `[from: A, to: B, by: C]`")); }
+            let (word, b) = parts[1].trim().split_once(':').ok_or(format!("line {at}: after the start comes `to:` or `before:`"))?;
+            if word != "to" && word != "before" { return Err(format!("line {at}: after the start comes `to:` or `before:`")); }
+            let step = parts[2].trim().strip_prefix("by:").ok_or(format!("line {at}: a counting template writes its step: `by: 1`"))?;
+            (Vec::new(), Some((parts[0].trim().to_string(), word == "before", b.trim().to_string(), step.trim().to_string())))
+        } else { return Err(format!("line {at}: a template runs `in [ … ]` or `[from: A, to: B, by: C]`")); };
         // its body: up to the `}` closing the `for`
         let mut depth = 1;
         let mut j = i + 1;

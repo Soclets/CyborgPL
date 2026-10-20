@@ -36,11 +36,11 @@ rounding, `to.f16['w']` a check site. A literal rounds to the nearest `brain16`
 
 **The `percent` type and limits** (owner, 2026-10-17; not built yet): `percent[d32]` (symbol `%[d32]`)
 holds a `deci` of that width and prints with `%`; a written one names its size, `:=` lets Precog pick. A second
-bracket holds limits, on a `deci` or a `percent`: `d64[min 0, max 1000000, max_decimals 2]`,
-`percent[d32][min 0%, max 100%, max_decimals 1]`; `max_decimals` refuses a literal with more and asks a
+bracket holds limits, on a `deci` or a `percent`: `d64[min: 0, max: 1000000, max_places: 2]`,
+`percent[d32][min: 0%, max: 100%, max_places: 1]`; `max_decimals` refuses a literal with more and asks a
 result that could have more to be rounded on purpose; `min_decimals` only pads when printing. A `percent` is its own number family (2026-10-17): it
 combines with percents, and mixes with a plain number only through `to.d64[…]` / `to.percent[d64][…]`. Rounding is
-`round.near['x', decimals 2]` and its siblings (conversion.md); `let 'tax' := exactly 7%;` is a `percent`.
+`round.near['x', places: 2]` and its siblings (conversion.md); `let 'tax' := exactly 7%;` is a `percent`.
 
 **Percentages** (owner, 2026-10-16): `80%` or `80 percent` is the number over 100, a `bin` as `0.80` is;
 `exactly 80%` is an exact `deci`, any digits (`exactly 12.3456789%` is 0.123456789). The `%` sits on the number;
@@ -179,9 +179,9 @@ IEEE 754 decimal: `d32` holds 7 digits, `d64` 16, `d128` 34, and
   to.int32['k'] otherwise …`.
 - **A wider `deci` into a narrower one fails `too_many_digits`** when its
   digits do not fit (`to.d32['x'] otherwise …`); `2.50` converts exactly.
-- **A `deci` may be a range type**, with `bin`'s rules: `d64[min 0.0, max 1.0]`,
+- **A `deci` may be a range type**, with `bin`'s rules: `d64[min: 0.0, max: 1.0]`,
   the bounds written with a point; a value outside is a check site, and
-  `to.d64[min 0.0, max 1.0][…]` fails `out_of_range`.
+  `to.d64[min: 0.0, max: 1.0][…]` fails `out_of_range`.
 
 ## Notes (Claude, 2026-09-14)
 

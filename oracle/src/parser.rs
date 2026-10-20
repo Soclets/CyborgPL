@@ -1665,7 +1665,7 @@ impl Parser {
     // through modules is a dotted path (`shapes.Locker`, `my.Locker`).
     /// A type; a range or a length bound is ASP's (owner, 2026-10-07: "move"), refused without it
     fn ty(&mut self) -> PResult<Ty> {
-        // `C.str`, a C string (owner, 2026-10-19: "(a)"), bounded as `C.str[max 255 bytes, exclude zero]`: bytes only, and
+        // `C.str`, a C string (owner, 2026-10-19: "(a)"), bounded as `C.str[max: 255 bytes, exclude zero]`: bytes only, and
         // always whether the closing 0 counts (owner: "(a)")
         if self.is_word("C") && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(w) if w == "str") && *self.peek_at(3) != Tok::Dot {
             self.advance(); self.advance(); self.advance();
@@ -1674,33 +1674,37 @@ impl Parser {
             let (mut lo, mut hi, mut zero): (i128, Option<i128>, Option<bool>) = (0, None, None);
             loop {
                 match self.advance().tok {
-                    Tok::Word(w) if w == "min" => { lo = match self.advance().tok { Tok::Int(n) if n >= 0 => n, other => return self.err(format!("a C string's `min` is a whole number of bytes, found {other}")) }; if self.is_word("bytes") { self.advance(); } }
+                    Tok::Word(w) if (w == "min" || w == "max") && *self.peek() != Tok::Colon => return self.err(format!("inside `[ ]` a word takes `:` before its value: `{w}: …` (owner, 2026-10-20)")),
+                    Tok::Word(w) if w == "min" => { self.advance(); lo = match self.advance().tok { Tok::Int(n) if n >= 0 => n, other => return self.err(format!("a C string's `min` is a whole number of bytes, found {other}")) }; if self.is_word("bytes") { self.advance(); } }
                     Tok::Word(w) if w == "max" => {
+                        self.advance();
                         hi = Some(match self.advance().tok { Tok::Int(n) if n >= 0 => n, other => return self.err(format!("a C string's `max` is a whole number of bytes, found {other}")) });
                         match self.advance().tok { Tok::Word(u) if u == "bytes" => {}, Tok::Word(u) if u == "points" || u == "graphemes" => return self.err(format!("a C string is counted in bytes, not {u}: C has no {u}")), other => return self.err(format!("a C string's bound says its unit, bytes: `max 255 bytes`, found {other}")) }
                     }
                     Tok::Word(w) if (w == "exclude" || w == "include") && self.is_word("zero") => { self.advance(); zero = Some(w == "include"); }
-                    other => return self.err(format!("a bounded C string is `C.str[max 255 bytes, exclude zero]` or `[…, include zero]`; found {other}")),
+                    other => return self.err(format!("a bounded C string is `C.str[max: 255 bytes, exclude zero]` or `[…, include zero]`; found {other}")),
                 }
                 if *self.peek() == Tok::Comma { self.advance(); continue; }
                 break;
             }
             self.expect(Tok::RBracket, "`]` after the C string's bound")?;
-            let Some(hi) = hi else { return self.err("a bounded C string says its most: `C.str[max 255 bytes, exclude zero]`") };
-            let Some(z) = zero else { return self.err(format!("a bounded C string says whether its closing 0 counts: `C.str[max {hi} bytes, exclude zero]` (the text) or `include zero` (the whole buffer) (owner, 2026-10-19)")) };
+            let Some(hi) = hi else { return self.err("a bounded C string says its most: `C.str[max: 255 bytes, exclude zero]`") };
+            let Some(z) = zero else { return self.err(format!("a bounded C string says whether its closing 0 counts: `C.str[max: {hi} bytes, exclude zero]` (the text) or `include zero` (the whole buffer) (owner, 2026-10-19)")) };
             if lo > hi { return self.err(format!("{lo} is more than {hi}")); }
             if z && hi < 1 { return self.err("a buffer that includes its 0 holds at least 1 byte"); }
             return Ok(Ty::CStr(Some((lo, hi, z))));
         }
-        // a C bit-field, `mode: u8[bits 3]` (owner, 2026-10-19: "(a)"): N bits of the field's integer, written in
+        // a C bit-field, `mode: u8[bits: 3]` (owner, 2026-10-19: "(a)"): N bits of the field's integer, written in
         // its limits bracket; only in a `layout.C` struct or union. It holds what N bits hold, checked when written
         if matches!(self.peek(), Tok::Word(_)) && *self.peek_at(1) == Tok::LBracket && matches!(self.peek_at(2), Tok::Word(b) if b == "bits") {
-            if !self.in_layout_c { return self.err("`bits` makes a C bit-field: it is for a `layout.C` struct's fields, `mode: u8[bits 3]`"); }
+            if !self.in_layout_c { return self.err("`bits` makes a C bit-field: it is for a `layout.C` struct's fields, `mode: u8[bits: 3]`"); }
             let Tok::Word(base) = self.peek().clone() else { unreachable!() };
-            let n = match self.peek_at(3).clone() { Tok::Int(n) => n, other => return self.err(format!("a bit-field's width is a whole number: `{base}[bits 3]`, found {other}")) };
-            if *self.peek_at(4) != Tok::RBracket { return self.err(format!("a bit-field says only its width: `{base}[bits {n}]`")); }
+            // `bits:`, a label (owner, 2026-10-20)
+            if *self.peek_at(3) != Tok::Colon { return self.err(format!("inside `[ ]` a word takes `:` before its value: `{base}[bits: 3]` (owner, 2026-10-20)")); }
+            let n = match self.peek_at(4).clone() { Tok::Int(n) => n, other => return self.err(format!("a bit-field's width is a whole number: `{base}[bits: 3]`, found {other}")) };
+            if *self.peek_at(5) != Tok::RBracket { return self.err(format!("a bit-field says only its width: `{base}[bits: {n}]`")); }
             let t = self.ty_inner_word_only()?;
-            for _ in 0..5 { self.advance(); }   // `base [ bits N ]`
+            for _ in 0..6 { self.advance(); }   // `base [ bits : N ]`
             let width = match &t { Ty::Int(w) | Ty::Uint(w) => crate::value::int_range(&t).map(|_| match w { IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, _ => 128 }).unwrap_or(128), Ty::Bool => 1, _ => return self.err(format!("a bit-field is a whole number or a `bool`, not {}", ty_name(&t))) };
             if n < 1 || n > width { return self.err(format!("a `{}` bit-field is 1 to {width} bits, not {n}", ty_name(&t))); }
             if matches!(t, Ty::Bool) { return Ok(t); }
@@ -1711,7 +1715,7 @@ impl Parser {
         Ok(t)
     }
 
-    /// The type a lone word names, the cursor left on it (for `u8[bits 3]`).
+    /// The type a lone word names, the cursor left on it (for `u8[bits: 3]`).
     fn ty_inner_word_only(&mut self) -> PResult<Ty> {
         let Tok::Word(w) = self.peek().clone() else { return self.err("expected a type") };
         let toks = vec![self.toks[self.pos].clone(), Token { tok: Tok::Semi, line: self.line(), col: 0, mtm: None }];
@@ -1916,7 +1920,7 @@ impl Parser {
                 || matches!(self.peek_at(1), Tok::Op(o) if o == "-")
                 || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max"));
             if numeric && range_ahead && (!self.to_target || self.bracket_then_bracket()) {
-                let (lo, hi) = self.labelled_bounds(&format!("{head}[min 0, max 100]"))?;
+                let (lo, hi) = self.labelled_bounds(&format!("{head}[min: 0, max: 100]"))?;
                 self.expect(Tok::RBracket, "`]` after the bounds")?;
                 let base = Parser::new_in(vec![Token { tok: Tok::Word(head.to_string()), line: 0, col: 0, mtm: None }, Token { tok: Tok::Eof, line: 0, col: 0, mtm: None }], self.module.clone()).ty().map_err(|e| ParseError { line: self.line(), col: 0, msg: e.msg })?;
                 match (&base, &lo, &hi) {
@@ -1947,16 +1951,15 @@ impl Parser {
         // `[` followed by a number is a bound (`str.utf8[1, 40 graphemes]`), not type parameters
         // `simd[T, N]` — a type and a count, not two types (design/simd.md, 2026-09-22)
         if segs[0] == "simd" {
-            if segs.len() > 1 { return self.err("`simd` takes its type and count in brackets: `simd[u8, count 16]`"); }
-            if *self.peek() != Tok::LBracket { return self.err("`simd` says what and how many: `simd[u8, count 16]`"); }
+            if segs.len() > 1 { return self.err("`simd` takes its type and count in brackets: `simd[u8, count: 16]`"); }
+            if *self.peek() != Tok::LBracket { return self.err("`simd` says what and how many: `simd[u8, count: 16]`"); }
             self.advance();
             let t = self.ty()?;
             self.expect(Tok::Comma, "`,` between a simd's type and its lane count")?;
-            // the lane count says what it is (owner, 2026-10-19: "yea" to `count`, as `simd.load.some[…, count 3]`)
+            // the lane count says what it is (owner, 2026-10-19: "yea" to `count`, as `simd.load.some[…, count: 3]`)
             if matches!(self.peek(), Tok::Int(_)) { return self.err(crate::spellings::message(crate::spellings::old("simd[T, N]"))); }
-            if !self.is_word("count") { return self.err("a simd's lane count says `count`: `simd[u8, count 16]` (owner, 2026-10-19)"); }
-            self.advance();
-            let n = match self.advance().tok { Tok::Int(i) if i > 0 => i as usize, other => return self.err(format!("a simd's lane count is a whole number: `simd[u8, count 16]`, found {other}")) };
+            if !self.label("count")? { return self.err("a simd's lane count says `count`: `simd[u8, count: 16]` (owner, 2026-10-19)"); }
+            let n = match self.advance().tok { Tok::Int(i) if i > 0 => i as usize, other => return self.err(format!("a simd's lane count is a whole number: `simd[u8, count: 16]`, found {other}")) };
             self.expect(Tok::RBracket, "`]` after the lane count")?;
             if !matches!(t, Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Bool) { return self.err(format!("a simd holds plain numbers or bools, not {}", ty_name(&t))); }
             // Only the target's own register shapes. The oracle's target is the owner's
@@ -1980,8 +1983,10 @@ impl Parser {
             }
             return Ok(Ty::Simd(Box::new(t), n));
         }
-        // `[min …` / `[max …` is a bound too (owner, 2026-10-12), not type parameters
-        if *self.peek() == Tok::LBracket && !self.to_target && !matches!(self.peek_at(1), Tok::Int(_)) && !matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max") {
+        // `[min: …` / `[max: …` is a bound too (owner, 2026-10-12), not type parameters
+        // nor a counting loop's `[from: …]` after its counter's type (owner, 2026-10-20)
+        if *self.peek() == Tok::LBracket && !self.to_target && !matches!(self.peek_at(1), Tok::Int(_)) && !matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max")
+            && !(matches!(self.peek_at(1), Tok::Word(w) if w == "from") && *self.peek_at(2) == Tok::Colon) {
             self.advance();
             loop {
                 params.push(self.ty()?);
@@ -2022,7 +2027,7 @@ impl Parser {
                 // `str.utf8[1, 40 graphemes]` — a length bound in a named unit (decided 2026-09-22):
                 // text has three lengths, so the bound says which it counts.
                 if *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_)) || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max")) && (!self.to_target || self.bracket_then_bracket()) {
-                    let shown = format!("str.{}[min 1, max 40 graphemes]", segs[1]);
+                    let shown = format!("str.{}[min: 1, max: 40 graphemes]", segs[1]);
                     let (lo, hi) = self.labelled_bounds(&shown)?;
                     let whole = |b: &Bound, missing: i128| match b { Bound::Int(i) => Some(*i), Bound::Min | Bound::Max => Some(missing), _ => None };
                     let (Some(lo), Some(hi)) = (whole(&lo, 0), whole(&hi, i128::MAX)) else { return bad(self, "a text's length bounds are whole numbers".into()) };
@@ -2030,12 +2035,12 @@ impl Parser {
                         Tok::Word(w) if w == "bytes" => CharUnit::Byte,
                         Tok::Word(w) if w == "points" => CharUnit::Point,
                         Tok::Word(w) if w == "graphemes" => CharUnit::Grapheme,
-                        Tok::RBracket => return bad(self, "a text has three lengths: say which the bound counts — `str.utf8[min 1, max 40 graphemes]`, `[…bytes]`, or `[…points]`".into()),
+                        Tok::RBracket => return bad(self, "a text has three lengths: say which the bound counts — `str.utf8[min: 1, max: 40 graphemes]`, `[…bytes]`, or `[…points]`".into()),
                         other => return bad(self, format!("the unit after a text's bounds is `bytes`, `points`, or `graphemes`, found {other}")),
                     };
                     self.expect(Tok::RBracket, "`]` after the unit")?;
                     if lo < 0 { return bad(self, "a length is never negative: the low bound is 0 or more".into()); }
-                    if lo > hi { return bad(self, "the low bound is at most the high one: `str.utf8[min 0, max 100 bytes]`".into()); }
+                    if lo > hi { return bad(self, "the low bound is at most the high one: `str.utf8[min: 0, max: 100 bytes]`".into()); }
                     return Ok(Ty::TextRanged(enc, lo, hi, unit));
                 }
                 Ok(Ty::Str(enc))
@@ -2054,11 +2059,11 @@ impl Parser {
                 if params.len() != 1 { return bad(self, "`channel` takes exactly one type: `channel[str.utf8]`".into()); }
                 let base = Ty::Channel(Box::new(params.pop().unwrap()));
                 if *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_)) || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max")) {
-                    let (lo, hi) = self.labelled_bounds("channel[T][max 100]")?;
+                    let (lo, hi) = self.labelled_bounds("channel[T][max: 100]")?;
                     self.expect(Tok::RBracket, "`]` after the bounds")?;
                     let lo = if lo == Bound::Min { Bound::Int(0) } else { lo };
-                    if hi == Bound::Max { return bad(self, "a bounded channel says how much it holds: `channel[T][max 100]`; with no bound it is a hand-off".into()); }
-                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a channel's bound is whole numbers: `channel[T][max 100]`".into()) };
+                    if hi == Bound::Max { return bad(self, "a bounded channel says how much it holds: `channel[T][max: 100]`; with no bound it is a hand-off".into()); }
+                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a channel's bound is whole numbers: `channel[T][max: 100]`".into()) };
                     if *a != 0 { return bad(self, "a channel's low bound is 0: it may be empty".into()); }
                     if *b < 1 { return bad(self, "a channel that holds nothing is a hand-off: write `channel[T]` with no bound".into()); }
                     return Ok(Ty::Ranged(Box::new(base), lo, hi));
@@ -2080,13 +2085,13 @@ impl Parser {
                 let base = Ty::Map(Box::new(k), Box::new(v), order);
                 // `map[K, V][0, 100]` — an entry-count bound, as a list's (decided 2026-09-22)
                 if *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..)) || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max")) {
-                    let (lo, hi) = self.labelled_bounds("map[K, V][min 0, max 100]")?;
+                    let (lo, hi) = self.labelled_bounds("map[K, V][min: 0, max: 100]")?;
                     self.expect(Tok::RBracket, "`]` after the count bounds")?;
                     let lo = if lo == Bound::Min { Bound::Int(0) } else { lo };
                     let hi = if hi == Bound::Max { Bound::Int(i128::MAX) } else { hi };
-                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a map's count bounds are whole numbers: `map[K, V][min 0, max 100]`".to_string()) };
+                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a map's count bounds are whole numbers: `map[K, V][min: 0, max: 100]`".to_string()) };
                     if *a < 0 { return bad(self, "a count is never negative: the low bound is 0 or more".to_string()); }
-                    if a > b { return bad(self, "the low bound is at most the high one: `map[K, V][min 0, max 100]`".to_string()); }
+                    if a > b { return bad(self, "the low bound is at most the high one: `map[K, V][min: 0, max: 100]`".to_string()); }
                     return Ok(Ty::Ranged(Box::new(base), lo, hi));
                 }
                 Ok(base)
@@ -2099,13 +2104,13 @@ impl Parser {
                 // `list[i32][0, 1000]` — a length bound, the thing then its bounds like `i32[0, 100]` (decided 2026-09-21)
                 if *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..)) || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max")) {
                     if head == "array" { return bad(self, "an `array` has one fixed length, so a bound on it says nothing; a length bound belongs on a `list`".to_string()); }
-                    let (lo, hi) = self.labelled_bounds("list[i32][min 0, max 1000]")?;
+                    let (lo, hi) = self.labelled_bounds("list[i32][min: 0, max: 1000]")?;
                     self.expect(Tok::RBracket, "`]` after the length bounds")?;
                     let lo = if lo == Bound::Min { Bound::Int(0) } else { lo };
                     let hi = if hi == Bound::Max { Bound::Int(i128::MAX) } else { hi };
-                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a length bound is whole numbers: `list[i32][min 0, max 1000]`".to_string()) };
+                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a length bound is whole numbers: `list[i32][min: 0, max: 1000]`".to_string()) };
                     if *a < 0 { return bad(self, "a length is never negative: the low bound is 0 or more".to_string()); }
-                    if a > b { return bad(self, "the low bound is at most the high one: `list[i32][min 0, max 1000]`".to_string()); }
+                    if a > b { return bad(self, "the low bound is at most the high one: `list[i32][min: 0, max: 1000]`".to_string()); }
                     return Ok(Ty::Ranged(Box::new(base), lo, hi));
                 }
                 Ok(base)
@@ -2274,7 +2279,7 @@ impl Parser {
                     // vouching is a power IEG grants (owner, 2026-10-07: "`a`")
                     match tier { Tier::NoCheck => self.use_power("vouch", None, line), Tier::NoChecksAtAll => self.use_power("vouch.c", None, line), _ => {} }
                     match self.peek().clone() {
-                        Tok::Semi => return self.err(format!("`{w}` goes in front of a statement: `{w} 'xs'[pos 'i'] = 5;` or `{w} {{ … }}`")),
+                        Tok::Semi => return self.err(format!("`{w}` goes in front of a statement: `{w} 'xs'[pos: 'i'] = 5;` or `{w} {{ … }}`")),
                         Tok::Word(k) if k == "fn" || k == "struct" || k == "const" || k == "module" => return self.err(format!("`{w}` covers a statement, not a `{k}` — a function's safety is the sum of its statements")),
                         Tok::Word(k) if k == "check" || k == "no_check" || k == "NO_FUCKING_CHECKS" => return self.err(format!("`{w} {k}`: one tier per statement; the innermost wins when they nest")),
                         _ => {}
@@ -2524,7 +2529,7 @@ impl Parser {
 
     // change := 'change' Var ( '[' pos … ']' | '.' field )? '=' rhs ';'   (owner, 2026-09-25)
     fn change_stmt(&mut self, line: usize) -> PResult<Stmt> {
-        // `change *'p' = v;` was `ptr.write['p', value v];` (owner, 2026-10-14); an old spelling since 2026-10-16
+        // `change *'p' = v;` was `ptr.write['p', value: v];` (owner, 2026-10-14); an old spelling since 2026-10-16
         if matches!(self.peek(), Tok::Op(o) if o == "*") && matches!(self.peek_at(1), Tok::Var(_)) && *self.peek_at(2) == Tok::Eq {
             return self.err(crate::spellings::message(crate::spellings::old("change *'p' =")));
             #[allow(unreachable_code)]
@@ -2560,7 +2565,7 @@ impl Parser {
                     // 'mine'.field = v;  (decided 2026-09-18)
                     self.advance();
                     let field = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected a field name after `'{name}'.`, found {other}")) };
-                    if *self.peek() == Tok::LBracket { return self.err(format!("assigning into an element of a field (`'{name}'.{field}[pos …] = …`) is not modelled by the oracle; lend the list to a name first: `let 'xs' := lend.mut '{name}'.{field};`")); }
+                    if *self.peek() == Tok::LBracket { return self.err(format!("assigning into an element of a field (`'{name}'.{field}[pos: …] = …`) is not modelled by the oracle; lend the list to a name first: `let 'xs' := lend.mut '{name}'.{field};`")); }
                     self.expect(Tok::Eq, "`=` after the field")?;
                     let value = self.rhs()?;
                     self.expect(Tok::Semi, "`;`")?;
@@ -2782,12 +2787,16 @@ impl Parser {
             index = Some(std::mem::replace(&mut name, item));
         }
         let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
-        if *self.peek() == Tok::LBracket { return self.err("expected `in` before what the loop runs over"); }
-        // a counting loop reads as a sentence (owner, 2026-10-12): `for 'i' from 1 to 10 by 1`, `before`
+        if *self.peek() == Tok::LBracket && !matches!(self.peek_at(1), Tok::Word(w) if w == "from") { return self.err("expected `in` before what the loop runs over"); }
+        // a counting loop reads as a sentence (owner, 2026-10-12): `for 'i' [from: 1, to: 10, by: 1]`, `before`
         // leaving the end out; `in` walks over something, `from` counts
         if self.is_word("from") {
+            return self.err("a `for` with several words takes `[ ]` and commas: `for 'i': i64 [from: 1, to: 10, by: 1]` (owner, 2026-10-20)");
+        }
+        if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Word(w) if w == "from") {
             self.advance();
-            if index.is_some() { return self.err("a counting loop's counter already is the position: `for 'i' from 1 to 10 by 1`"); }
+            if !self.label("from")? { unreachable!() }
+            if index.is_some() { return self.err("a counting loop's counter already is the position: `for 'i': i64 [from: 1, to: 10, by: 1]`"); }
             let saved = std::mem::replace(&mut self.in_count, true);
             let r = self.count_bounds();
             self.in_count = saved;
@@ -2797,7 +2806,7 @@ impl Parser {
         }
         self.expect_word("in")?;
         if self.is_word("range") {
-            return self.err("a counting loop reads as a sentence now: `for 'i' from 1 to 10 by 1` (`before 10` leaves 10 out) (owner, 2026-10-12)");
+            return self.err("a counting loop reads as a sentence now: `for 'i' [from: 1, to: 10, by: 1]` (`before 10` leaves 10 out) (owner, 2026-10-12)");
         }
         if ty.is_some() { return self.err("a `for` over a list takes no type on its variable; the element's type is the list's"); }
         let over = self.rhs()?;
@@ -3129,52 +3138,51 @@ impl Parser {
         }
     }
 
-    // count := expr ('to' | 'before') expr 'by' expr   — start, the end (kept by `to`, left out by
-    // `before`), the step, always written; no commas (owner, 2026-10-12)
+    // count := '[' 'from:' expr ',' ('to:' | 'before:') expr ',' 'by:' expr ']'   — start, the end (kept by `to:`, left
+    // out by `before:`), the step, always written (owner, 2026-10-12); bracketed with commas since 2026-10-20 (owner:
+    // "requires `[]` when have `,`"). Called after `[from:`.
     fn count_bounds(&mut self) -> PResult<(Bracket, bool)> {
         let line = self.line();
         let start = self.expr()?;
-        if *self.peek() == Tok::Comma { return self.err("no commas in a counting loop: `for 'i' from 1 to 10 by 1` (a long bound groups with `( )`)"); }
-        let exclusive = match self.peek().clone() {
-            Tok::Word(w) if w == "to" => false,
-            Tok::Word(w) if w == "before" => true,
-            other => return self.err(format!("after the start comes `to` (the end kept) or `before` (the end left out): `for 'i' from 1 to 10 by 1`, found {other}")),
+        self.expect(Tok::Comma, "`,` after the start: `for 'i': i64 [from: 1, to: 10, by: 1]`")?;
+        let exclusive = if self.label("to")? { false } else if self.label("before")? { true } else {
+            return self.err(format!("after the start comes `to:` (the end kept) or `before:` (the end left out): `for 'i': i64 [from: 1, to: 10, by: 1]`, found {}", self.peek()));
         };
-        self.advance();
         let stop = self.expr()?;
-        if *self.peek() == Tok::Comma { return self.err("no commas in a counting loop: `for 'i' from 1 to 10 by 1` (a long bound groups with `( )`)"); }
-        if !self.is_word("by") { return self.err("a counting loop writes its step too, even when it is 1: `for 'i' from 1 to 10 by 1` (owner, 2026-10-07)"); }
-        self.advance();
+        if *self.peek() == Tok::RBracket { return self.err("a counting loop writes its step too, even when it is 1: `for 'i': i64 [from: 1, to: 10, by: 1]` (owner, 2026-10-07)"); }
+        self.expect(Tok::Comma, "`,` after the end: `for 'i': i64 [from: 1, to: 10, by: 1]`")?;
+        if !self.label("by")? { return self.err("a counting loop writes its step too, even when it is 1: `for 'i': i64 [from: 1, to: 10, by: 1]` (owner, 2026-10-07)"); }
         let step = self.expr()?;
+        self.expect(Tok::RBracket, "`]` after the step: `for 'i': i64 [from: 1, to: 10, by: 1]`")?;
         Ok((Bracket { values: vec![Value::Expr(start), Value::Expr(stop), Value::Expr(step)], line, one_list: false }, exclusive))
     }
 
     // range bounds := '[' expr ',' expr (',' expr)? ']'   — start, inclusive stop, step
     fn range_bounds(&mut self) -> PResult<Bracket> {
         let line = self.line();
-        if *self.peek() != Tok::LBracket { return self.err("`range` builds its bounds in `[ ]`: `range[from 1, to 10, by 1]`"); }
+        if *self.peek() != Tok::LBracket { return self.err("`range` builds its bounds in `[ ]`: `range[from: 1, to: 10, by: 1]`"); }
         self.advance();
         let mut values = Vec::new();
-        // Each bound says what it is — `range[from 2, to 8, by 2]` — and `by` is always written
+        // Each bound says what it is — `range[from: 2, to: 8, by: 2]` — and `by` is always written
         // (owner, 2026-09-27 for `#strict`; everywhere since 2026-10-07: "`a`").
         const LABELS: [&str; 3] = ["from", "to", "by"];
         loop {
             if matches!(self.peek(), Tok::Walrus | Tok::Eq) {
-                return self.err("range bounds are plain values: `range[from 0, to 9, by 1]` — the counter's type goes on its name (`'i': i32`)");
+                return self.err("range bounds are plain values: `range[from: 0, to: 9, by: 1]` — the counter's type goes on its name (`'i': i32`)");
             }
             let k = values.len().min(2);
             let labelled = matches!(self.peek(), Tok::Word(w) if LABELS.contains(&w.as_str())) && !matches!(self.peek_at(1), Tok::Dot | Tok::LBracket | Tok::Comma | Tok::RBracket);
             let _ = labelled;
-            if !self.is_word(LABELS[k]) { return self.err(format!("each bound says what it is: `range[from 2, to 8, by 1]` — this one is `{}` (owner, 2026-10-07)", LABELS[k])); }
+            if !self.is_word(LABELS[k]) { return self.err(format!("each bound says what it is: `range[from: 2, to: 8, by: 1]` — this one is `{}` (owner, 2026-10-07)", LABELS[k])); }
             self.advance();
             values.push(Value::Expr(self.expr()?));
             if *self.peek() == Tok::Comma { self.advance(); continue; }
             break;
         }
         self.expect(Tok::RBracket, "`]`")?;
-        if values.len() == 2 { return Err(ParseError { line, col: 0, msg: "a range writes its step too, even when it is 1: `range[from 2, to 8, by 1]` (owner, 2026-10-07)".into() }); }
+        if values.len() == 2 { return Err(ParseError { line, col: 0, msg: "a range writes its step too, even when it is 1: `range[from: 2, to: 8, by: 1]` (owner, 2026-10-07)".into() }); }
         if values.len() < 2 || values.len() > 3 {
-            return Err(ParseError { line, col: 0, msg: format!("a range is `range[from 2, to 8, by 1]`, not {} value(s)", values.len()) });
+            return Err(ParseError { line, col: 0, msg: format!("a range is `range[from: 2, to: 8, by: 1]`, not {} value(s)", values.len()) });
         }
         Ok(Bracket { values, line, one_list: false })
     }
@@ -3248,22 +3256,22 @@ impl Parser {
     }
 
     /// A range type's bound: a numeric literal, possibly negated.
-    /// `[min 0, max 100]`, `[min 1]`, `[max 100]` (owner, 2026-10-12: "(a)"): each bound says which it is,
+    /// `[min: 0, max: 100]`, `[min: 1]`, `[max: 100]` (owner, 2026-10-12: "(a)"): each bound says which it is,
     /// and a side left out is the type's own limit (`Bound::Min` / `Bound::Max`). The cursor is at `[`; for
     /// text, `unit` reads the unit after the last number before the `]`.
     fn labelled_bounds(&mut self, shown: &str) -> PResult<(Bound, Bound)> {
         self.advance();
         if matches!(self.peek(), Tok::Int(_) | Tok::Bin(..)) || matches!(self.peek(), Tok::Op(o) if o == "-") {
-            return self.err(format!("a bound says which it is: `{shown}` (`[min 1]` alone is \"at least 1\") (owner, 2026-10-12)"));
+            return self.err(format!("a bound says which it is: `{shown}` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)"));
         }
         let mut lo = Bound::Min;
         let mut hi = Bound::Max;
         let mut any = false;
-        if self.is_word("min") {
-            self.advance(); lo = self.bound_value()?; any = true;
-            if *self.peek() == Tok::Comma { self.advance(); if !self.is_word("max") { return self.err(format!("after `min …` comes `max …`: `{shown}`")); } }
+        if self.label("min")? {
+            lo = self.bound_value()?; any = true;
+            if *self.peek() == Tok::Comma { self.advance(); if !self.is_word("max") { return self.err(format!("after `min: …` comes `max: …`: `{shown}`")); } }
         }
-        if self.is_word("max") { self.advance(); hi = self.bound_value()?; any = true; }
+        if self.label("max")? { hi = self.bound_value()?; any = true; }
         if !any { return self.err(format!("a bound says which it is: `{shown}`")); }
         Ok((lo, hi))
     }
@@ -3271,7 +3279,7 @@ impl Parser {
     /// One bound's number (no `min` / `max` words: those are its labels since 2026-10-12).
     fn bound_value(&mut self) -> PResult<Bound> {
         if matches!(self.peek(), Tok::Word(w) if w == "min" || w == "max") {
-            return self.err("`min` and `max` label a bound now; a side left out is the type's own limit: `i32[min 1]` is \"at least 1\" (owner, 2026-10-12)");
+            return self.err("`min` and `max` label a bound now; a side left out is the type's own limit: `i32[min: 1]` is \"at least 1\" (owner, 2026-10-12)");
         }
         self.bound()
     }
@@ -3558,25 +3566,24 @@ impl Parser {
             (Some("std"), Some("format"), None, Tok::Text(_, raw)) => Some(raw.clone()),
             _ => None,
         };
-        // `str.at.grapheme[lend 's', pos 3]`, `str.slice.grapheme[lend 's', pos 1, pos 4]`: positions say
+        // `str.at.grapheme[lend 's', pos: 3]`, `str.slice.grapheme[lend 's', pos: 1, pos: 4]`: positions say
         // `pos` (owner, 2026-10-08: "`a`, if it's correct")
         let positional = kit.as_deref() == Some("std") && path.len() == 3 && path[0] == "str" && (path[1] == "at" || path[1] == "slice");
         let rounding = kit.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("round");
         if rounding && !(path.len() == 2 && ROUND_WAYS.contains(&path[1].as_str())) {
             return self.err(format!("`std::{}` is not a way to round: `round.near`, `round.half_up`, `round.floor`, `round.ceil` or `round.trunc`", path.join(".")));
         }
-        // `round.near['x']`, or `round.near['x', decimals 2]`: the word comes from spellings.cyr's `calls`
+        // `round.near['x']`, or `round.near['x', places: 2]`: the word comes from spellings.cyr's `calls`
         let mut args = if positional {
             let bline = self.line();
             self.expect(Tok::LBracket, "`[`")?;
             let mut values = vec![self.value()?];
             if path[1] == "slice" {
-                self.slice_span(&mut values, &format!("std::{}[lend 's', from pos 1, to pos 4]", path.join(".")), bline)?;
+                self.slice_span(&mut values, &format!("std::{}[lend 's', from: pos 1, to: pos 4]", path.join(".")), bline)?;
             } else {
             while *self.peek() == Tok::Comma {
                 self.advance();
-                if !self.is_word("pos") { return self.err(format!("a position says `pos`: `std::{}[lend 's', pos 3]` (owner, 2026-10-08)", path.join("."))); }
-                self.advance();
+                if !self.label("pos")? { return self.err(format!("a position says `pos`: `std::{}[lend 's', pos: 3]` (owner, 2026-10-08)", path.join("."))); }
                 values.push(self.value()?);
             }
             }
@@ -3592,23 +3599,20 @@ impl Parser {
         Ok(c)
     }
 
-    /// A slice's span, as a counting loop's words (owner, 2026-10-12): `, from pos 2, to pos 4`, or
+    /// A slice's span, as a counting loop's words (owner, 2026-10-12): `, from: pos 2, to: pos 4`, or
     /// `before pos 5`, which leaves 5 out (the oracle holds it as the last position kept, 5 minus 1)
     fn slice_span(&mut self, values: &mut Vec<Value>, shown: &str, line: usize) -> PResult<()> {
         self.expect(Tok::Comma, "`,` before `from pos …`")?;
-        if self.is_word("pos") { return self.err(format!("a slice says where it runs: `{shown}`, or `before pos 5` to leave 5 out (owner, 2026-10-12)")); }
-        if !self.is_word("from") { return self.err(format!("a slice starts `from pos …`: `{shown}`")); }
-        self.advance();
+        if self.is_word("pos") { return self.err(format!("a slice says where it runs: `{shown}`, or `before: pos 5` to leave 5 out (owner, 2026-10-12)")); }
+        if !self.label("from")? { return self.err(format!("a slice starts `from: pos …`: `{shown}`")); }
+        // after a label, `pos` stays a bare word: `from: pos 2` (owner, 2026-10-20: "(b)")
         if !self.is_word("pos") { return self.err(format!("positions say `pos`: `{shown}`")); }
         self.advance();
         values.push(self.value()?);
         self.expect(Tok::Comma, "`,` before `to pos …` or `before pos …`")?;
-        let before = match self.peek().clone() {
-            Tok::Word(w) if w == "to" => false,
-            Tok::Word(w) if w == "before" => true,
-            other => return self.err(format!("a slice's end is `to pos …` (kept) or `before pos …` (left out): `{shown}`, found {other}")),
+        let before = if self.label("to")? { false } else if self.label("before")? { true } else {
+            return self.err(format!("a slice's end is `to: pos …` (kept) or `before: pos …` (left out): `{shown}`, found {}", self.peek()));
         };
-        self.advance();
         if !self.is_word("pos") { return self.err(format!("positions say `pos`: `{shown}`")); }
         self.advance();
         let end = self.value()?;
@@ -3619,15 +3623,22 @@ impl Parser {
         Ok(())
     }
 
+    /// `word:`, a label inside `[ ]` (owner, 2026-10-20: "making it `places:`"): true when it stands here, taken with
+    /// its colon; the word alone is the old spelling, refused naming the colon
+    fn label(&mut self, w: &str) -> PResult<bool> {
+        if !self.is_word(w) { return Ok(false); }
+        if *self.peek_at(1) == Tok::Colon { self.advance(); self.advance(); return Ok(true); }
+        self.err(format!("inside `[ ]` a word takes `:` before its value: `{w}: …` (owner, 2026-10-20)"))
+    }
+
     // index := '[' 'pos' expr ']'   — 1-based; `pos` is mandatory (decided 2026-09-17)
     fn index_bracket(&mut self, name: &str) -> PResult<Expr> {
         self.expect(Tok::LBracket, "`[`")?;
         // every index says `pos` (owner, 2026-10-07: "`a`")
-        if !self.is_word("pos") {
-            let shown = if name.contains("'.") { format!("'{name}[pos 2]") } else { format!("'{name}'[pos 2]") };
+        if !self.label("pos")? {
+            let shown = if name.contains("'.") { format!("'{name}[pos: 2]") } else { format!("'{name}'[pos: 2]") };
             return self.err(format!("an index says it is a position: `{shown}` (owner, 2026-10-07)"));
         }
-        self.advance();
         let idx = self.expr()?;
         if *self.peek() == Tok::Comma { return self.err(format!("an index is one position: `'{name}'[3]`")); }
         self.expect(Tok::RBracket, "`]` after the position")?;
@@ -3675,52 +3686,48 @@ impl Parser {
             return Ok((head, op, Bracket { values: Vec::new(), line, one_list: false }));
         }
         if *self.peek() != Tok::LBracket { return self.err(format!("`{head}.{op}` is a call and needs `[…]`")); }
-        // `simd.load[lend 'xs', pos 'i']` — the position says `pos`, as every index does
+        // `simd.load[lend 'xs', pos: 'i']` — the position says `pos`, as every index does
         if (head == "list" || head == "array") && op == "slice" {
-            // `list.slice[lend 'xs', pos 2, pos 4]` — positions say `pos`, as every index does
+            // `list.slice[lend 'xs', pos: 2, pos: 4]` — positions say `pos`, as every index does
             let line = self.line();
             self.advance();
             let mut values = vec![self.value()?];
-            self.slice_span(&mut values, &format!("{head}.slice[lend 'xs', from pos 2, to pos 4]"), line)?;
+            self.slice_span(&mut values, &format!("{head}.slice[lend 'xs', from: pos 2, to: pos 4]"), line)?;
             self.expect(Tok::RBracket, "`]`")?;
             return Ok((head, op, Bracket { values, line, one_list: false }));
         }
-        // `list.remove[lend.mut 'xs', pos 2]`: the position says `pos`, as every position does (owner,
+        // `list.remove[lend.mut 'xs', pos: 2]`: the position says `pos`, as every position does (owner,
         // 2026-10-08: "`a`, if it's correct")
         if head == "list" && op == "remove" {
             let line = self.line();
             self.advance();
             let mut values = vec![self.value()?];
-            self.expect(Tok::Comma, "`,` before the position: `list.remove[lend.mut 'xs', pos 2]`")?;
-            if !self.is_word("pos") { return self.err("the position says `pos`: `list.remove[lend.mut 'xs', pos 2]` (owner, 2026-10-08)"); }
-            self.advance();
+            self.expect(Tok::Comma, "`,` before the position: `list.remove[lend.mut 'xs', pos: 2]`")?;
+            if !self.label("pos")? { return self.err("the position says `pos`: `list.remove[lend.mut 'xs', pos: 2]` (owner, 2026-10-08)"); }
             values.push(self.value()?);
             self.expect(Tok::RBracket, "`]` after the position")?;
             return Ok((head, op, Bracket { values, line, one_list: false }));
         }
-        // `list.fill[value 0, count 10]`: ten copies of 0 (owner, 2026-09-30); both say what they are
+        // `list.fill[value: 0, count: 10]`: ten copies of 0 (owner, 2026-09-30); both say what they are
         // (owner, 2026-10-07: "`a`", `count` everywhere, then "`b`", `value`)
         if head == "list" && op == "fill" {
             let line = self.line();
             self.advance();
-            if !self.is_word("value") { return self.err("the value says `value`: `list.fill[value 0, count 10]` (owner, 2026-10-07)"); }
-            self.advance();
+            if !self.label("value")? { return self.err("the value says `value`: `list.fill[value: 0, count: 10]` (owner, 2026-10-07)"); }
             let mut values = vec![self.value()?];
-            self.expect(Tok::Comma, "`,` before the count: `list.fill[value 0, count 10]`")?;
-            if !self.is_word("count") { return self.err("the count says `count`: `list.fill[value 0, count 10]` (owner, 2026-10-07)"); }
-            self.advance();
+            self.expect(Tok::Comma, "`,` before the count: `list.fill[value: 0, count: 10]`")?;
+            if !self.label("count")? { return self.err("the count says `count`: `list.fill[value: 0, count: 10]` (owner, 2026-10-07)"); }
             values.push(self.value()?);
-            self.expect(Tok::RBracket, "`]` after the count: `list.fill[value 0, count 10]`")?;
+            self.expect(Tok::RBracket, "`]` after the count: `list.fill[value: 0, count: 10]`")?;
             return Ok((head, op, Bracket { values, line, one_list: false }));
         }
-        // `simd.fill[value 0]`, as `list.fill` (owner, 2026-10-07: "`a`")
+        // `simd.fill[value: 0]`, as `list.fill` (owner, 2026-10-07: "`a`")
         if head == "simd" && op == "fill" {
             let line = self.line();
             self.advance();
-            if !self.is_word("value") { return self.err("the value says `value`: `simd.fill[value 0]` (owner, 2026-10-07)"); }
-            self.advance();
+            if !self.label("value")? { return self.err("the value says `value`: `simd.fill[value: 0]` (owner, 2026-10-07)"); }
             let values = vec![self.value()?];
-            self.expect(Tok::RBracket, "`]` after the value: `simd.fill[value 0]`")?;
+            self.expect(Tok::RBracket, "`]` after the value: `simd.fill[value: 0]`")?;
             return Ok((head, op, Bracket { values, line, one_list: false }));
         }
         if head == "simd" && op.starts_with("load") || head == "simd" && op.starts_with("store") {
@@ -3728,8 +3735,7 @@ impl Parser {
             self.advance();
             let mut values = vec![self.value()?];
             self.expect(Tok::Comma, "`,` after the list")?;
-            if !self.is_word("pos") { return self.err(format!("the position says `pos`: `simd.{op}[lend 'xs', pos 'i']` (owner, 2026-10-07)")); }
-            self.advance();
+            if !self.label("pos")? { return self.err(format!("the position says `pos`: `simd.{op}[lend 'xs', pos: 'i']` (owner, 2026-10-07)")); }
             values.push(self.value()?);
             while *self.peek() == Tok::Comma { self.advance(); values.push(self.value()?); }
             self.expect(Tok::RBracket, "`]`")?;
@@ -4332,10 +4338,10 @@ impl Parser {
                     self.expect(Tok::RBracket, "`]` after the channel's type")?;
                     let mut cap = None;
                     if *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_)) || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max")) {
-                        let (lo, hi) = self.labelled_bounds("channel[T][max 100]")?;
+                        let (lo, hi) = self.labelled_bounds("channel[T][max: 100]")?;
                         self.expect(Tok::RBracket, "`]` after the bounds")?;
                         let lo = if lo == Bound::Min { Bound::Int(0) } else { lo };
-                        match (lo, hi) { (Bound::Int(0), Bound::Int(b)) if b >= 1 => cap = Some(b as usize), _ => return self.err("a channel's bound is `[max N]` with N at least 1; no bound is a hand-off") }
+                        match (lo, hi) { (Bound::Int(0), Bound::Int(b)) if b >= 1 => cap = Some(b as usize), _ => return self.err("a channel's bound is `[max: N]` with N at least 1; no bound is a hand-off") }
                     }
                     Ok(Expr::ChannelNew(ty, cap, line))
                 }
@@ -4807,7 +4813,11 @@ impl Parser {
                 if at_start {
                     if let Some(word) = words.get(arg).filter(|w| !w.is_empty()) {
                         match &self.toks[k].tok {
-                            Tok::Word(w) if w == word => { self.toks.remove(k); }
+                            // `value: 2`, the word and its colon (owner, 2026-10-20)
+                            Tok::Word(w) if w == word && self.toks.get(k + 1).map(|t| &t.tok) == Some(&Tok::Colon) => { self.toks.remove(k); self.toks.remove(k); }
+                            Tok::Word(w) if w == word => { self.pos = k; return self.err(format!("inside `[ ]` a word takes `:` before its value: `{shown}` (owner, 2026-10-20)")); }
+                            // `decimals` became `places:` (owner, 2026-10-20)
+                            Tok::Word(w) if w == "decimals" && word == "places" => { self.pos = k; return self.err(format!("`decimals` is an old spelling: write `places:`, `{shown}` (owner, 2026-10-20)")); }
                             _ => { self.pos = k; return self.err(format!("each argument after the first says what it is: `{shown}` (owner, 2026-10-14)")); }
                         }
                     }
@@ -4823,7 +4833,7 @@ impl Parser {
                 }
                 k += 1;
             }
-            // carry on inside the arguments, where another call may stand (`ptr.write[ptr.at['p', by 1], value 7]`)
+            // carry on inside the arguments, where another call may stand (`ptr.write[ptr.at['p', by: 1], value: 7]`)
             i = j + 1;
         }
         Ok(())

@@ -5,7 +5,7 @@ MAIN {
     let mut 'seen': list[i32] = [];
     for 'x' in lend.mut 'xs' {
         change 'x' = 'x' x 10;
-        list.append[lend.mut 'seen', value 'xs'[pos 1]];
+        list.append[lend.mut 'seen', value: 'xs'[pos: 1]];
     }
     std::print.stored['xs', newln];
     std::print.stored['seen', newln];

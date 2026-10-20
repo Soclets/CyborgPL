@@ -82,8 +82,8 @@ as much as you like. Reading kayo is not editing it: changes there are compiler 
   `design/` for `std::` to see each in use.
 - **Every public item is `bare.optional`** (owner, 2026-10-06): `print.useful[…]` and
   `std::print.useful[…]` both work.
-- **Every argument after the first says its role**: `str.split[lend 's', at ","]`,
-  `str.replace[lend 's', from "a", to "b"]` (owner, 2026-10-14). The list is `spellings.cyr`'s `calls`.
+- **Every argument after the first says its role**: `str.split[lend 's', at: ","]`,
+  `str.replace[lend 's', from: "a", to: "b"]` (owner, 2026-10-14). The list is `spellings.cyr`'s `calls`.
 - **Text is bytes**, UTF-8 by default; the units (`byte`, `point`, `grapheme`) are said in the name
   (`design/strings.md`). Grapheme rules need Unicode's tables, which are the unicode limb's, so the
   byte- and point-level functions come first.

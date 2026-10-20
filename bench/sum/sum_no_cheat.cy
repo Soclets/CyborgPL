@@ -7,11 +7,11 @@
 # ends the program with exit code 2, as does no N at all.
 extern.C fn exit ['code': i32];
 extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
-extern.C fn atoll ['s': ptr[u8]] -> i64[min 0, max 1_000_000_000];
+extern.C fn atoll ['s': ptr[u8]] -> i64[min: 0, max: 1_000_000_000];
 
 # N, from the text in the environment: missing when there is none, and out
 # of range when it is not a number this program takes.
-fn read_n ['text': ptr[u8]] -> i64[min 0, max 1_000_000_000] or fail[missing, out_of_range] {
+fn read_n ['text': ptr[u8]] -> i64[min: 0, max: 1_000_000_000] or fail[missing, out_of_range] {
     if ptr.is_null['text'] { fail missing; }
     no_check let 'n' := atoll['text'] otherwise fail;
     return 'n';
@@ -21,7 +21,7 @@ fn run [] -> i32 or fail[missing, out_of_range] {
     let 'key' := "N";
     no_check let 'n' := read_n[getenv[lend 'key']] otherwise fail;
     let mut 'acc': i64 = 0;
-    for 'i': i64 from 1 to 'n' by 1 {
+    for 'i': i64 [from: 1, to: 'n', by: 1] {
         change 'acc' = 'acc' plus (('i' times 'i') mod.floor 7);
     }
     return to.i32[('acc' mod.floor 1_000_000_007) mod.floor 256];

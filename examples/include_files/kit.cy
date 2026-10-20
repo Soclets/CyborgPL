@@ -6,7 +6,7 @@
 
 MAIN {
     const 'tiny' := incl.bytes["assets/tiny.bin"];
-    std::print.useful[array.length['tiny'], " bytes, the last is ", 'tiny'[pos 4], newln];
+    std::print.useful[array.length['tiny'], " bytes, the last is ", 'tiny'[pos: 4], newln];
     std::print.useful[ui.header.greeting[]];
     const 'windows' := incl.str.utf16.low_first["assets/windows.txt"];
     std::print.useful['windows'];

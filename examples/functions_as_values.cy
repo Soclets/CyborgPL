@@ -7,16 +7,16 @@ fn by_owner  [lent 'a': Locker, lent 'b': Locker] -> bool { return str.bytes[len
 # a function that takes a function: the type is the signature without the names
 fn first_by [lent 'xs': list[Locker], 'less': fn[lent Locker, lent Locker] -> bool] -> str.utf8 {
     let 'best' := 1;
-    for 'i' from 2 to list.length[lend 'xs'] by 1 {
-        if 'less'[lend 'xs'[pos 'i'], lend 'xs'[pos 'best']] { change 'best' = 'i'; }
+    for 'i' [from: 2, to: list.length[lend 'xs'], by: 1] {
+        if 'less'[lend 'xs'[pos: 'i'], lend 'xs'[pos: 'best']] { change 'best' = 'i'; }
     }
-    let 'winner' := lend 'xs'[pos 'best'];
+    let 'winner' := lend 'xs'[pos: 'best'];
     return copy 'winner'.owner;
 }
 
 fn keep [lent 'xs': list[i32], 'test': fn[i32] -> bool] -> list[i32] {
     let 'out': list[i32] = [];
-    for 'x' in lend 'xs' { if 'test'['x'] { list.append[lend.mut 'out', value 'x']; } }
+    for 'x' in lend 'xs' { if 'test'['x'] { list.append[lend.mut 'out', value: 'x']; } }
     return give 'out';
 }
 
@@ -26,7 +26,7 @@ MAIN {
     std::print.stored[first_by[lend 'lockers', by_owner], newln];
 
     let 'f' := by_number;                                                 # held in a variable
-    std::print.useful['f'[lend 'lockers'[pos 1], lend 'lockers'[pos 2]], newln];   # called: 'f'[…]
+    std::print.useful['f'[lend 'lockers'[pos: 1], lend 'lockers'[pos: 2]], newln];   # called: 'f'[…]
 
     let 'limit' := 60;
     let 'scores' := [72, 40, 95, 55];

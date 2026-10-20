@@ -13,7 +13,7 @@ fn free_slots [lent 'l': Locker] -> i32 {
 
 fn stash [lent.mut 'l': Locker, 'item': str.utf8] -> bool {
     if free_slots[lend 'l'] equal_to 0 { return false; }
-    list.append[lend.mut 'l'.items, value give 'item'];
+    list.append[lend.mut 'l'.items, value: give 'item'];
     return true;
 }
 
@@ -31,8 +31,8 @@ MAIN {
     }
     std::print.useful[label[lend 'mine'], ": ", 'stored', " stored, ", free_slots[lend 'mine'], " free", newln];
 
-    for 'i' from 1 to list.length[lend 'mine'.items] by 1 {
-        check std::print.useful['i', ". ", 'mine'.items[pos 'i'], newln];
+    for 'i' [from: 1, to: list.length[lend 'mine'.items], by: 1] {
+        check std::print.useful['i', ". ", 'mine'.items[pos: 'i'], newln];
     }
 
     let 'x': f64 = 0.1;

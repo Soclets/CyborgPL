@@ -42,7 +42,7 @@ for `str.at.point` (owner, 2026-10-17: "(a)"), only std's own build needing it (
 recommendation), or (b) std rounds bins only, deci rounding in Money or later. The owner: "(a)". So **std's
 `CyJet.cyr` lists Money beside unicode**, and `round.X` has deci versions.
 
-### 2026-10-20 — An argument word inside `[ ]` takes `:`; `for` with several words takes `[ ]`; `decimals` becomes `places` (owner; not built)
+### 2026-10-20 — An argument word inside `[ ]` takes `:`; `for` with several words takes `[ ]`; `decimals` becomes `places` (owner; built in the oracle)
 
 Asked whether `decimals` should shorten with the type names (`d` for `deci`), design claude recommended keeping it;
 the owner: "I personally think that `min_deci` doesn't read weird", then asked what `round.near['x', deci 2]` does
@@ -73,7 +73,8 @@ is a text in `str.replace`; and (c) `from_pos: 'x'`): **`str.slice.grapheme[lend
 
 **A phrase with no value takes no colon** (owner: "`exclude zero`", (a), over (b) `exclude: zero` and (c)
 `zero: excluded`; recommended): `:` goes between a label and its value, so `C.str[max: 255 bytes, exclude zero]`;
-a unit after a value takes none either (`max: 255 bytes`). Not built.
+a unit after a value takes none either (`max: 255 bytes`). All of this entry built on the owner's "go" (oracle,
+examples, spellings.cyr, bench programs, the code in design notes); each bare word refused naming its `word:`.
 
 ### 2026-10-20 — Number types are `i`, `u`, `f`, `d` with their widths; the base words become `bin`, `hex`, `oct` (owner; built in the oracle)
 

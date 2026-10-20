@@ -730,7 +730,7 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
         if c.kit.as_deref() == Some("std") && (p.starts_with("str.at.") || p.starts_with("str.slice.")) {
             for Value::Expr(v) in c.args.values.iter().skip(1) {
                 let lit = match v { Expr::Int(n, _) => Some(*n), Expr::Unary(op, inner, _) if op == "-" => match &**inner { Expr::Int(n, _) => Some(-*n), _ => None }, _ => None };
-                if let Some(n) = lit { if n < 1 { return Err(format!("line {}: {n} is no position: a position is `u64[min 1]`, counting from 1 (owner, 2026-10-17)", c.line)); } }
+                if let Some(n) = lit { if n < 1 { return Err(format!("line {}: {n} is no position: a position is `u64[min: 1]`, counting from 1 (owner, 2026-10-17)", c.line)); } }
             }
         }
         Ok(())

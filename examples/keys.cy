@@ -12,11 +12,11 @@ User satisfies Key;
 
 MAIN {
     let mut 'grid': map[Point, str.utf8] = map.empty;
-    map.set[lend.mut 'grid', key Point[x = 1, y = 2], value "tree"];
-    let 'at' := map.get[lend 'grid', key Point[x = 1, y = 2]] otherwise "nothing";
+    map.set[lend.mut 'grid', key: Point[x = 1, y = 2], value: "tree"];
+    let 'at' := map.get[lend 'grid', key: Point[x = 1, y = 2]] otherwise "nothing";
     std::print.useful['at', newln];
     let mut 'users': map[User, i32] = map.empty;
-    map.set[lend.mut 'users', key User[name = "Ann"], value 1];
-    let 'n' := map.get[lend 'users', key User[name = "ANN"]] otherwise 0;     # same key by User's own equal_to 
+    map.set[lend.mut 'users', key: User[name = "Ann"], value: 1];
+    let 'n' := map.get[lend 'users', key: User[name = "ANN"]] otherwise 0;     # same key by User's own equal_to 
     std::print.useful['n', newln];
 }

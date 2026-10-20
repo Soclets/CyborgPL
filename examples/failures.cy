@@ -7,7 +7,7 @@ struct Locker {
 fn stash [lent.mut 'l': Locker, 'item': str.utf8] -> bool or fail[full, bad_item: str.utf8] {
     if list.length[lend 'l'.items] at_least 2 { fail full; }
     if 'item' equal_to str.empty { fail bad_item["(empty)"]; }
-    list.append[lend.mut 'l'.items, value give 'item'];
+    list.append[lend.mut 'l'.items, value: give 'item'];
     return true;
 }
 

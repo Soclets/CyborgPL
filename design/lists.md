@@ -25,9 +25,9 @@ programmer only says which at a boundary.
 ## Slicing — `list.slice`, `array.slice` (owner, 2026-09-23)
 
 ```
-let 'mid' := list.slice[lend 'xs', from pos 2, to pos 4];      # elements 2, 3 and 4
-let 'head' := array.slice[lend 'fixed', from pos 1, to pos 2];
-let 'none' := list.slice[lend 'xs', from pos 3, to pos 2];     # empty: last is first minus 1
+let 'mid' := list.slice[lend 'xs', from: pos 2, to: pos 4];      # elements 2, 3 and 4
+let 'head' := array.slice[lend 'fixed', from: pos 1, to: pos 2];
+let 'none' := list.slice[lend 'xs', from: pos 3, to: pos 2];     # empty: last is first minus 1
 ```
 
 **A slice owns its elements**, like any list: the copy is the meaning.
@@ -110,9 +110,9 @@ literal needs a declared type or `1.0`.
 
 `'xs'[1]` is the first element; `'xs'[0]` does not exist and is an
 error. The position is written bare (owner, 2026-09-27: "Remove `pos`").
-From 2026-09-17 every index said `pos` (`'xs'[pos 2]`), the owner's own
+From 2026-09-17 every index said `pos` (`'xs'[pos: 2]`), the owner's own
 proposal, so a reader never wondered whether `2` meant "the second" or
-"the value 2", and since 2026-09-21 it also told a list read (`'xs'[pos 2]`)
+"the value 2", and since 2026-09-21 it also told a list read (`'xs'[pos: 2]`)
 from a call of a function value (`'f'[2]`). Now both are `'x'[2]`, and
 what the variable holds decides: a list is read, a function is called.
 The compiler always knows which, and the owner's view is that a reader
@@ -139,7 +139,7 @@ Selecting by *value* (`'xs'[value-is 2]`) was considered and dropped: it is a
 search, and a search is a loop the reader should see —
 
 ```
-for perm 'i' from 1 to list.length[lend 'xs'] by 1 {
+for perm 'i' [from: 1, to: list.length[lend 'xs'], by: 1] {
     if 'xs'['i'] equal_to 2 { break; }
 }
 change 'xs'['i'] = 5;
@@ -169,10 +169,10 @@ growing or giving away the list inside stays refused for the whole loop.
 
 ```
 let 'n' := list.length[lend 'xs'];
-list.append[lend.mut 'xs', value 40];
-list.remove[lend.mut 'xs', pos 1];            # by 1-based position; the element is dropped
-let 'first' := list.remove[lend.mut 'xs', pos 1];   # or handed back (decided 2026-09-21)
-run[list.remove[lend.mut 'queue', pos 1]];    # straight into a call: moved, never copied
+list.append[lend.mut 'xs', value: 40];
+list.remove[lend.mut 'xs', pos: 1];            # by 1-based position; the element is dropped
+let 'first' := list.remove[lend.mut 'xs', pos: 1];   # or handed back (decided 2026-09-21)
+run[list.remove[lend.mut 'queue', pos: 1]];    # straight into a call: moved, never copied
 let 'm' := array.length[lend 'fixed'];
 ```
 
@@ -193,21 +193,21 @@ is fastest.
 ## A length bound — `list[T][lo, hi]`
 
 ```
-let mut 'ys': list[i32][min 0, max 1000] = read_numbers[] otherwise list.empty;
+let mut 'ys': list[i32][min: 0, max: 1000] = read_numbers[] otherwise list.empty;
 let 'n' := list.length[lend 'ys'];      # a u64[min 0, max 1000]
 let 'm': i32 = 'n';                   # proven by the bound; no check
 ```
 
 Decided 2026-09-21: the thing, then its bounds — the same shape as
-`i32[min 0, max 100]`. It is a fact about the data, not about one spot in the
+`i32[min: 0, max: 100]`. It is a fact about the data, not about one spot in the
 code, so everything downstream knows it: the list's length is a
 `u64[lo, hi]`, and narrowing it is proven. Every change to the list
 (a construction, an assignment, `append`, `remove`) is checked against the
-bound — a check site like writing 101 into an `i32[min 0, max 100]`: the prover
+bound — a check site like writing 101 into an `i32[min: 0, max: 100]`: the prover
 proves it where it can see the list, the tiers handle the rest. The low
 bound is 0 or more; an `array` takes no bound (its one length is already
 known). Inside a call the parameter is written the same way:
-`lent 'ys': list[i32][min 0, max 1000]`.
+`lent 'ys': list[i32][min: 0, max: 1000]`.
 
 **`list.remove` hands the removed element back** (decided 2026-09-21): the
 list stops owning it, so the caller does — or drops it by not taking it.
@@ -257,17 +257,17 @@ reading, not asked). Proposed alternative: leave it, looping over
 ## A list of n copies — `list.fill` (owner, 2026-09-30)
 
 ```
-let mut 'scores' := list.fill[value 0, count 10];              # ten 0s
-let 'flags': list[bool] = list.fill[value false, count 'n'];   # 'n' falses
+let mut 'scores' := list.fill[value: 0, count: 10];              # ten 0s
+let 'flags': list[bool] = list.fill[value: false, count: 'n'];   # 'n' falses
 ```
 
 The value, then the count, as `simd.fill[7]` fills every lane. A count
 below 0 is a check site. A **`#strict` file labels the count**,
-`list.fill[0, count 10]` (owner: "count"), since `list.fill[0, 10]`
+`list.fill[0, count: 10]` (owner: "count"), since `list.fill[0, 10]`
 could be ten 0s or zero 10s; elsewhere `count` is refused, as `pos` is.
 With it, kayo can ask for memory already zeroed (C's `calloc`) where the
 value is `false` or `0`, instead of growing a list one append at a time.
 Proposed alternatives: `list.repeat[…]`, Rust's `[0; 10]`; for strict,
-both labelled (`value 0, count 10`) or no change. `array.fill` was
+both labelled (`value 0, count: 10`) or no change. `array.fill` was
 mentioned, not asked. `examples/list_fill.cy`, `list_fill_strict.cy`.
 

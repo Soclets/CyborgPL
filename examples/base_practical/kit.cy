@@ -11,7 +11,7 @@ MAIN {
     let 'a': i32 = 2;
     let 'b': i32 = 'a' + 3 x 4;
     let 'small' := to.i8['b'];                     # proven to fit: 14
-    let 'level': i32[min 0, max 10] = 7;
+    let 'level': i32[min: 0, max: 10] = 7;
     let 'wrapped': u8 = 250 plus.wrap 10;
     let 'bigger' := biggest['b', 'a', 'b' > 'a'];
     let 'same' := 'bigger' equal_to 'b' and not ('small' < 0);

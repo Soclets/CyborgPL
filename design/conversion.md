@@ -89,10 +89,10 @@ to.i32["7"] otherwise { not_a_number { std::exit[2]; } out_of_range { std::exit[
   Nothing is thrown away silently — rounding is said first, and the
   reader sees where: `to.i32[std::round.near['x']]`. Rounding is std's, one family (owner,
   2026-10-17: "(c)"): `round.near` (a tie to even), `round.half_up` (a tie away from zero), `round.floor`,
-  `round.ceil`, `round.trunc`, each `[value]` for a whole number or `[value, decimals N]`, as `max_decimals`
+  `round.ceil`, `round.trunc`, each `[value]` for a whole number or `[value, places: N]`, as `max_decimals`
   needs (types.md). A bare `round` is refused, since it names no way to round a tie (owner: "(a)"); the old
   `std::round`, `floor`, `ceil` and `trunc` are refused naming theirs. A bin is rounded from its exact digits
-  (`round.near[2.675, decimals 2]` is 2.67), and the answer is the kind that went in (design claude's readings). Owner chose this over C's
+  (`round.near[2.675, places: 2]` is 2.67), and the answer is the kind that went in (design claude's readings). Owner chose this over C's
   quiet truncation and over floor (which would match `div`).
   `examples/whole.cy`.
 - **`char`** (decided 2026-09-21, three questions):
@@ -128,13 +128,13 @@ before it, so no brackets are needed inside maths (owner: "(a)", over brackets r
 ```
 let 'r': i64 = to.i64[1] shl (5: u8 shr 1);   # the count gives no width, so the literal says it
 let 'a' := 200: u8;
-let 'p' := 5: u64[min 1];
+let 'p' := 5: u64[min: 1];
 let 'd' := exactly 0.1: d64;
 ```
 
 - **Literals only.** A variable is converted with `to.u8['x']`; `'x': u8` in an expression is refused,
   naming the conversion.
-- **It must fit, shown when building**: `300: u8` and `0: u64[min 1]` are refused, so it never fails
+- **It must fit, shown when building**: `300: u8` and `0: u64[min: 1]` are refused, so it never fails
   when it runs and needs no `otherwise`.
 - Design claude's readings, not asked: a leading `-` belongs to the literal (`-128: i8`); a whole literal may
   take an int, bin or deci type; `1.5: i32` is refused (not whole); `0.1: d64` is refused, pointing at

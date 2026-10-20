@@ -4,22 +4,22 @@ fn add ['a': i32, 'b': i32] -> i32 { return 'a' + 'b'; }
 
 MAIN {
     let 'xs': list[i32] = [];
-    list.append[lend.mut 'xs', value 3];
-    list.append[lend.mut 'xs', value 4];
+    list.append[lend.mut 'xs', value: 3];
+    list.append[lend.mut 'xs', value: 4];
     std::print.useful[list.length[lend 'xs'], newln];
 
     let 'phones': map[str.utf8, i32] = map.empty;
-    map.set[lend.mut 'phones', key "ann", value 5551];
-    map.set[lend.mut 'phones', key "bob", value 5552];
-    let 'n' := map.get[lend 'phones', key "ann"] otherwise 0;
-    std::print.useful['n', " ", map.has[lend 'phones', key "bob"], newln];
-    let 'gone' := map.remove[lend.mut 'phones', key "bob"] otherwise 0;
-    std::print.useful['gone', " ", map.has[lend 'phones', key "bob"], newln];
+    map.set[lend.mut 'phones', key: "ann", value: 5551];
+    map.set[lend.mut 'phones', key: "bob", value: 5552];
+    let 'n' := map.get[lend 'phones', key: "ann"] otherwise 0;
+    std::print.useful['n', " ", map.has[lend 'phones', key: "bob"], newln];
+    let 'gone' := map.remove[lend.mut 'phones', key: "bob"] otherwise 0;
+    std::print.useful['gone', " ", map.has[lend 'phones', key: "bob"], newln];
 
     let 's' := "red,green,blue";
-    std::print.useful[std::str.contains[lend 's', part "green"], " ", std::str.starts_with[lend 's', part "red"], " ", std::str.ends_with[lend 's', part "blue"], newln];
-    let 'parts' := std::str.split[lend 's', at ","];
-    let 'joined' := std::str.join[lend 'parts', between " and "];
+    std::print.useful[std::str.contains[lend 's', part: "green"], " ", std::str.starts_with[lend 's', part: "red"], " ", std::str.ends_with[lend 's', part: "blue"], newln];
+    let 'parts' := std::str.split[lend 's', at: ","];
+    let 'joined' := std::str.join[lend 'parts', between: " and "];
     std::print.useful['joined', newln];
-    std::print.useful[std::str.replace[lend 's', from ",", to "; "], newln];
+    std::print.useful[std::str.replace[lend 's', from: ",", to: "; "], newln];
 }

@@ -3,5 +3,5 @@ MAIN {
     let 's': list[i32] = [1, 2, 3];
     let 'r' := lend 's';
     let 't' := give 's';
-    std::print.useful['r'[pos 1], newln];
+    std::print.useful['r'[pos: 1], newln];
 }

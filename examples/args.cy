@@ -6,19 +6,19 @@ MAIN ['argc': i32, 'argv': ptr[ptr[u8]]] {
     std::print.stored["argc = ", 'argc', newln];
     let mut 'i': i32 = 1;
     while 'i' < 'argc' {
-        no_check let 'word' := ptr.read[ptr.at['argv', by 'i']];
+        no_check let 'word' := ptr.read[ptr.at['argv', by: 'i']];
         let mut 'k': i32 = 0;
         let mut 'bytes': list[u8] = [];
         loop {
-            no_check let 'b' := ptr.read[ptr.at['word', by 'k']];
+            no_check let 'b' := ptr.read[ptr.at['word', by: 'k']];
             if 'b' equal_to 0 { break; }
-            list.append[lend.mut 'bytes', value 'b'];
+            list.append[lend.mut 'bytes', value: 'b'];
             change 'k' = 'k' + 1;
         }
         let 'text' := to.str.utf8['bytes'] otherwise "(not UTF-8)";      # bytes into text (owner, 2026-09-30)
         std::print.stored["argument ", 'i', ": ", 'text', newln];
         change 'i' = 'i' + 1;
     }
-    no_check let 'end' := ptr.read[ptr.at['argv', by 'argc']];
+    no_check let 'end' := ptr.read[ptr.at['argv', by: 'argc']];
     std::print.stored["argv[argc] is null: ", ptr.is_null['end'], newln];
 }

@@ -62,7 +62,7 @@ for 'item' in lend 'items' {                   # each element; 'item' gone after
     …
 }
 
-for 'i' from 0 to 1000 by 1 {                    # 'i' from 0 to 1000 inclusive
+for 'i' [from: 0, to: 1000, by: 1] {                    # 'i' from 0 to 1000 inclusive
     …
 }
 ```
@@ -78,7 +78,7 @@ body ran with after a full run (the stop value when the step lands on it; for
 body never ran. One rule for every way a loop can end.
 
 ```
-for perm 'i' from 0 to 100 by 1 {
+for perm 'i' [from: 0, to: 100, by: 1] {
     if found['i'] { break; }
 }
 std::print.useful["stopped at ", 'i', newln];
@@ -87,11 +87,15 @@ std::print.useful["stopped at ", 'i', newln];
 `perm` on a list loop keeps the last element visited (an empty list is an
 error: there is nothing to keep).
 
-### Counting: `for 'i' from 1 to 10 by 1` (owner, 2026-10-12)
+### Counting: `for 'i' [from: 1, to: 10, by: 1]` (owner, 2026-10-12)
+
+> **2026-10-20 (owner):** a `for` with several words takes `[ ]` and commas again, each word with `:`
+> ("requires `[]` when have `,`"), so the bracket the 2026-10-12 sentence dropped is back; `for 'x' in lend 'xs'`, one
+> word, stays bare. Code here is in the new form.
 
 **Since 2026-10-12 a counting loop reads as a sentence**, `in range[` and
-`]` gone: `for 'i' from 1 to 10 by 1 { … }`. `to` includes its end,
-**`before`** stops one short (`for 'i' from 0 before 10 by 1` is 0 … 9),
+`]` gone: `for 'i' [from: 1, to: 10, by: 1] { … }`. `to` includes its end,
+**`before`** stops one short (`for 'i' [from: 0, before: 10, by: 1]` is 0 … 9),
 exactly one of the two; the step is always written; no commas, and a long
 bound is grouped with `( )`. What follows describes the same loop in its
 2026-09 spelling, `range[…]`, and holds for the new one but for the words.
@@ -108,7 +112,7 @@ zero times.
 The counter is declared like a variable: bare name → best type from the
 bounds; `'i': i32` → explicit, every value must fit. **The step is not
 one of those values** (owner, 2026-09-23): it is its own signed number,
-an instruction to go up or down, so `for 'i': u64 from 3 to 1 by -1`
+an instruction to go up or down, so `for 'i': u64 [from: 3, to: 1, by: -1]`
 is legal — `'i'` is 3, 2, 1, every one a fine `u64`. Counting down a
 list by position needs this, since a position is a `u64`. Proposed
 alternative: the step must fit the counter's type too, which would make
@@ -119,11 +123,11 @@ underflow a `u64` — an implementation rule the difference in
 behaviour would otherwise hide. The bounds carry no
 `:=`/`=` markers (they would say the same thing twice). In a `#strict`
 file each bound is labelled and the step always written,
-`range[from 2, to 8, by 2]` (owner, 2026-09-27; `core-features.md`):
+`range[from: 2, to: 8, by: 2]` (owner, 2026-09-27; `core-features.md`):
 
 ```
-for 'i' from 0 to 9 by 1 { }                 # like  'i' := 0;
-for 'i': i8 from 0 to 9 by 1 { }           # like  'i': i8 = 0;
+for 'i' [from: 0, to: 9, by: 1] { }                 # like  'i' := 0;
+for 'i': i8 [from: 0, to: 9, by: 1] { }           # like  'i': i8 = 0;
 ```
 
 **`range[…]` stays part of the `for`** (owner, 2026-09-23): it is not a

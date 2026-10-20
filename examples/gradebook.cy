@@ -15,7 +15,7 @@ fn average [lent 's': Student] -> i32 or fail[no_scores] {
 
 fn record [lent.mut 's': Student, 'score': i32] -> fail[out_of_range: i32] {
     if 'score' < 0 or 'score' > 100 { fail out_of_range['score']; }
-    list.append[lend.mut 's'.scores, value 'score'];
+    list.append[lend.mut 's'.scores, value: 'score'];
 }
 
 fn grade [lent 's': Student] -> str.utf8 {

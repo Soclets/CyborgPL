@@ -7,6 +7,6 @@ MAIN {
     let 'f': f32 = 0.1;
     std::print.stored[to.useful.d64['f'], " ", to.stored.d64['f'], newln];
     let mut 'm': map[d64, i32] = map.empty;
-    map.set[lend.mut 'm', key 1.50, value 7];
-    std::print.stored[map.has[lend 'm', key 1.5], newln];
+    map.set[lend.mut 'm', key: 1.50, value: 7];
+    std::print.stored[map.has[lend 'm', key: 1.5], newln];
 }

@@ -5,12 +5,12 @@ fn fetch [lent 'url': str.utf8] -> str.utf8 or fail[no_network] {
 }
 
 MAIN {
-    let 'inbox' := channel[str.utf8][max 10];
+    let 'inbox' := channel[str.utf8][max: 10];
     let 'shutdown' := channel[bool];
-    concur with [lend 'inbox'] { channel.send[lend 'inbox', value "first"]; channel.send[lend 'inbox', value "second"]; }
-    concur with [lend 'shutdown'] { channel.send[lend 'shutdown', value true]; }
+    concur with [lend 'inbox'] { channel.send[lend 'inbox', value: "first"]; channel.send[lend 'inbox', value: "second"]; }
+    concur with [lend 'shutdown'] { channel.send[lend 'shutdown', value: true]; }
     let 'deadline' := std::time.after[5 seconds];
-    for 'i' from 1 to 4 by 1 {
+    for 'i' [from: 1, to: 4, by: 1] {
         whichever {
             'msg' from lend 'inbox'    { std::print.useful["got ", 'msg', newln]; }
             'why' from lend 'shutdown' { std::print.useful["shutdown", newln]; }
@@ -22,7 +22,7 @@ MAIN {
         std::print.useful["block body", newln];
     }
     std::print.useful["after the block", newln];
-    concur with [lend 'inbox'] { let 'p' := fetch["down.com"] otherwise fail; channel.send[lend 'inbox', value give 'p']; }
+    concur with [lend 'inbox'] { let 'p' := fetch["down.com"] otherwise fail; channel.send[lend 'inbox', value: give 'p']; }
         otherwise { no_network { std::print.useful["offline", newln]; } };
     let 'tick' := std::time.every[1 second];
     let 't' := channel.take[lend 'tick'] otherwise 0 seconds;

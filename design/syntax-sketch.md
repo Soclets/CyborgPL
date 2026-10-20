@@ -23,7 +23,7 @@ fn count [lent 'text': str.utf8] -> i32 { … }
 MAIN {
     let 'mine' := Locker[name = "A", number = 7, occupied = false];
     let mut 'total': i32 = 0;
-    for 'i' from 1 to 10 by 1 {
+    for 'i' [from: 1, to: 10, by: 1] {
         if ('i' mod.floor 2) equal_to 0 { change 'total' = 'total' plus 'i'; }
         else if 'i' equal_to 7 { break; }
         else { continue; }
@@ -180,8 +180,8 @@ without the rest of that redesign. See `DECISIONS.md`.
 ## Every argument after the first says its role (owner, 2026-10-14)
 
 The first argument, the thing worked on, is bare; each other argument starts with a word for its role:
-`list.append[lend.mut 'xs', value 2]`, `map.set[lend.mut 'm', key "ann", value 5551]`,
-`str.replace[lend 's', from "a", to "b"]`, `ptr.write['p', value 65]`, `range[from 1, to 4, by 1]`.
+`list.append[lend.mut 'xs', value: 2]`, `map.set[lend.mut 'm', key: "ann", value: 5551]`,
+`str.replace[lend 's', from: "a", to: "b"]`, `ptr.write['p', value: 65]`, `range[from: 1, to: 4, by: 1]`.
 The words: `value`, `key`, `part`, `at`, `between`, `from`, `to`, `before`, `by`, `count`, `pos`. A
 verb follows the word (`value give 'item'`). Print and format lists, every item having one role, and
 an operator value (`op plus`) stay bare. The full list is in `DECISIONS.md`, 2026-10-14.

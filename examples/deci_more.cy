@@ -16,7 +16,7 @@ MAIN {
     let 'z': d64 = 2.50;
     let 'zz' := to.d32['z'] otherwise 0;
     std::print.stored['y', " ", 'zz', newln];
-    let 'disc': d64[min 0.0, max 1.0] = 0.15;
-    let 'p' := to.d64[min 0.0, max 1.0]["1.5"] otherwise 'disc';
+    let 'disc': d64[min: 0.0, max: 1.0] = 0.15;
+    let 'p' := to.d64[min: 0.0, max: 1.0]["1.5"] otherwise 'disc';
     std::print.stored['disc', " ", 'p', newln];
 }

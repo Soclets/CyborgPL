@@ -114,18 +114,18 @@ reject tests `print_format_*`.
 ## A length bound names its unit (decided 2026-09-22)
 
 ```
-let 'name': str.utf8[min 1, max 40 graphemes] = std::input.line[] otherwise "";
-fn greet [lent 'who': str.utf8[min 1, max 10 graphemes]] { … }
-let 'field': str.utf8[min 0, max 255 bytes] = …;
-let 'code': str.utf8[min 4, max 4 points] = …;
+let 'name': str.utf8[min: 1, max: 40 graphemes] = std::input.line[] otherwise "";
+fn greet [lent 'who': str.utf8[min: 1, max: 10 graphemes]] { … }
+let 'field': str.utf8[min: 0, max: 255 bytes] = …;
+let 'code': str.utf8[min: 4, max: 4 points] = …;
 ```
 
-The thing, then its bounds, as `i32[min 0, max 100]` and `list[T][lo, hi]` —
+The thing, then its bounds, as `i32[min: 0, max: 100]` and `list[T][lo, hi]` —
 and, because a text has three lengths and no single one, the bound
 **says which it counts**: `bytes`, `points`, or `graphemes`, after the
 high bound. `str.utf8[0, 20]` with no unit is a compile error. Every
 change to a bounded text (assignment, `++`) is a check site against the
-bound; a conversion into one (`to.str.utf8[min 0, max 3 bytes][…]`) fails
+bound; a conversion into one (`to.str.utf8[min: 0, max: 3 bytes][…]`) fails
 `out_of_range` like any conversion into a range type. the prover carries
 the length interval per unit already. Proposed: bytes always, graphemes
 always, or say which; owner chose "say which".
@@ -162,8 +162,8 @@ list).
 
 `'s'[3]` is a compile error — the 3rd byte or the 3rd grapheme? The
 positional forms live in std with the unit spelled and a failure for out
-of range: `std::str.at.grapheme[lend 's', pos 3] otherwise …`,
-`std::str.slice.grapheme[lend 's', from pos 1, to pos 5] otherwise …`. Most "the 3rd
+of range: `std::str.at.grapheme[lend 's', pos: 3] otherwise …`,
+`std::str.slice.grapheme[lend 's', from: pos 1, to: pos 5] otherwise …`. Most "the 3rd
 character" code is a `split` or a `find` in disguise.
 
 ## The toolbox is std's
@@ -173,16 +173,16 @@ to walk them. Everything else is ordinary library code, and case tables
 change with every Unicode release, so they belong in something updatable:
 
 ```
-std::str.split[lend 's', at " "]          -> list[str.utf8]
-std::str.join[lend 'parts', between "_"]
+std::str.split[lend 's', at: " "]          -> list[str.utf8]
+std::str.join[lend 'parts', between: "_"]
 std::str.contains / starts_with / ends_with[lend 's', "x"]   -> bool
 std::str.trim / upper / lower[lend 's']
-std::str.replace[lend 's', from "a", to "b"]
-std::str.find.grapheme[lend 's', part "x"]  -> i32 or fail[missing]   (1-based grapheme position)
-std::str.at.<unit>[lend 's', pos 3]        -> that unit, or fail[out_of_range]
-std::str.slice.grapheme[lend 's', from pos 1, to pos 5] -> str, or fail[out_of_range]
-std::str.slice.point[lend 's', from pos 1, before pos 5]  -> str, or fail[out_of_range]
-std::str.slice.byte[lend 's', from pos 1, to pos 5]     -> list[u8], or fail[out_of_range]
+std::str.replace[lend 's', from: "a", to: "b"]
+std::str.find.grapheme[lend 's', part: "x"]  -> i32 or fail[missing]   (1-based grapheme position)
+std::str.at.<unit>[lend 's', pos: 3]        -> that unit, or fail[out_of_range]
+std::str.slice.grapheme[lend 's', from: pos 1, to: pos 5] -> str, or fail[out_of_range]
+std::str.slice.point[lend 's', from: pos 1, before: pos 5]  -> str, or fail[out_of_range]
+std::str.slice.byte[lend 's', from: pos 1, to: pos 5]     -> list[u8], or fail[out_of_range]
 ```
 
 **A byte slice gives bytes, not text** (owner, 2026-10-20: "(a)"). A cut by bytes can land inside a character
@@ -216,7 +216,7 @@ real versions will be CyborgPL.
 
 **An empty text is written `str.empty`** (owner: "(a)"), as `map.empty` is the empty map: `let 'out' :=
 str.empty;`. A written `""` is refused, naming it, so an empty text is always meant. **`part`, `at` and
-`from` are texts of at least 1 byte** (`str.utf8[min 1 bytes]`): `str.contains`, `starts_with`,
+`from` are texts of at least 1 byte** (`str.utf8[min: 1 bytes]`): `str.contains`, `starts_with`,
 `ends_with` and `find.*` with an empty `part`, `str.split` with an empty `at`, `str.replace` with an empty
 `from` are refused (owner: "Error"); an empty one finds nothing anyone means. Whether a text is empty is
 `'s' equal_to str.empty` or `str.bytes[lend 's'] equal_to 0`.

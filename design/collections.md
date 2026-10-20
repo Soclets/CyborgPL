@@ -86,7 +86,7 @@ pub coll.fn round {
 - **Across kits nothing joins** (owner: "(b)"): your `round.near ['x': Money]` beside std's bare one is the old
   clash wherever `round.near` is written without a path (`my.round.near[…]`, `std::round.near[…]`).
 - **The count picks too** (owner: "(a)"): a function has no optional arguments, so `round.near['x']` and
-  `round.near['x', decimals 2]` are two versions.
+  `round.near['x', places: 2]` are two versions.
 - Design claude's readings, not asked: a member may have versions as the own function may (std's `round.near`
   above); a preset beside several versions is refused until it is decided which one it fills.
 - **Versions differ by exact type, widths counting** (owner: "(a)"): `f16` and `f64` versions stand side by

@@ -21,9 +21,9 @@ MAIN {
     let 'xs' := [1, 2, 3];
     std::print.useful[sum[...'xs'], newln];                   # same as sum[1, 2, 3]
     std::print.useful[sum[10, ...'xs', 20], newln];           # mixed with hand-typed values
-    let mut 'ys': list[i32][min 0, max 4] = list.empty;
-    list.append[lend.mut 'ys', value 7];
-    list.append[lend.mut 'ys', value 8];
+    let mut 'ys': list[i32][min: 0, max: 4] = list.empty;
+    list.append[lend.mut 'ys', value: 7];
+    list.append[lend.mut 'ys', value: 8];
     std::print.useful[sum[...'ys'], newln];                   # bounded: at most four
     let 'words' := ["a", "b"];
     show["letters", ...'words'];                            # no verb: the elements are lent

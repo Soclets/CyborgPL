@@ -143,7 +143,7 @@ depends on may have one too, run only when that kit is run itself
 
 ```
 MAIN ['argc': i32, 'argv': ptr[ptr[u8]]] {
-    no_check let 'first' := ptr.read[ptr.at['argv', by 1]];     # the first word after the program's name
+    no_check let 'first' := ptr.read[ptr.at['argv', by: 1]];     # the first word after the program's name
     …
 }
 ```

@@ -7,6 +7,6 @@ MAIN {
     let 'v': u64 = to.u64[wide[2 shl 3]];
     std::print.useful['v', " ", wide[not.bit 0], newln];
     let mut 'xs': list[u8] = [1,];
-    list.append[lend.mut 'xs', value 0 minus.wrap 2];
-    std::print.useful['xs'[pos 2], newln];
+    list.append[lend.mut 'xs', value: 0 minus.wrap 2];
+    std::print.useful['xs'[pos: 2], newln];
 }

@@ -2,6 +2,6 @@
 MAIN {
     let mut 's': list[i32] = [1, 2, 3];
     let 'r' := lend 's';
-    change 's'[pos 1] = 99;
-    std::print.useful['r'[pos 1], newln];
+    change 's'[pos: 1] = 99;
+    std::print.useful['r'[pos: 1], newln];
 }

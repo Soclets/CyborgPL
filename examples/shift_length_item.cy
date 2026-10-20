@@ -2,5 +2,5 @@
 # (check claude, seeds 5018 and 5054, 2026-10-07).
 MAIN {
     let 'xs': list[u8] = [10, 20, 30,];
-    std::print.useful[(list.length[lend 'xs'] shl 1) > 5, " ", ('xs'[pos 1] shr 2) equal_to 2, newln];
+    std::print.useful[(list.length[lend 'xs'] shl 1) > 5, " ", ('xs'[pos: 1] shr 2) equal_to 2, newln];
 }

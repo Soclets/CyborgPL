@@ -11,7 +11,7 @@ enum Stock {
 
 struct Item {
     name: str.utf8,
-    cents: i32[min 0, max 100_000],
+    cents: i32[min: 0, max: 100_000],
     stock: Stock
 }
 
@@ -20,10 +20,10 @@ fn price [lent 'i': Item] -> i32 { return 'i'.cents; }
 fn cheapest <T: Priced> [lent 'xs': list[<T>]] -> <T> or fail[empty] {
     if list.length[lend 'xs'] equal_to 0 { fail empty; }
     let 'best' := 1;
-    for 'k' from 2 to list.length[lend 'xs'] by 1 {
-        if price[lend 'xs'[pos 'k']] < price[lend 'xs'[pos 'best']] { change 'best' = 'k'; }
+    for 'k' [from: 2, to: list.length[lend 'xs'], by: 1] {
+        if price[lend 'xs'[pos: 'k']] < price[lend 'xs'[pos: 'best']] { change 'best' = 'k'; }
     }
-    return copy 'xs'[pos 'best'];
+    return copy 'xs'[pos: 'best'];
 }
 
 fn describe [lent 'i': Item] -> str.utf8 {
@@ -37,7 +37,7 @@ fn describe [lent 'i': Item] -> str.utf8 {
 
 fn keep [lent 'xs': list[Item], 'test': fn[lent Item] -> bool] -> list[Item] {
     let 'out': list[Item] = [];
-    for 'x' in lend 'xs' { if 'test'[lend 'x'] { list.append[lend.mut 'out', value copy 'x']; } }
+    for 'x' in lend 'xs' { if 'test'[lend 'x'] { list.append[lend.mut 'out', value: copy 'x']; } }
     return give 'out';
 }
 
@@ -57,7 +57,7 @@ MAIN {
     std::print.stored["cheapest: ", 'pick'.name, newln];
 
     let 'text' := std::input.line[] otherwise str.empty;
-    let 'budget' := to.i32[min 0, max 100_000]['text'] otherwise {
+    let 'budget' := to.i32[min: 0, max: 100_000]['text'] otherwise {
         not_a_number { std::print.stored["no budget given", newln]; std::exit[0]; }
         out_of_range { std::print.stored["budget must be 0..100000 cents", newln]; std::exit[1]; }
     };

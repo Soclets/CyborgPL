@@ -1,1 +1,1 @@
-a counting loop reads as a sentence now: `for 'i' from 1 to 10 by 1`
+a counting loop reads as a sentence now: `for 'i' [from: 1, to: 10, by: 1]`

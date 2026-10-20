@@ -1724,7 +1724,7 @@ impl<'p> Interp<'p> {
             // a length is a u64, and an item has its list's element type (check claude, seeds 5018, 5054)
             Expr::Builtin(h, op, _, _) if (h == "list" || h == "array") && op == "length" => Some(Ty::Uint(IntWidth::W64)),
             Expr::Index(name, _, _) | Expr::CallValue(name, _, _, _) => match self.lookup(name).and_then(|s| s.ty.clone()) {
-                // a vector's lane, `'s'[pos 2]`, has the lane's type (check claude, seed 42640)
+                // a vector's lane, `'s'[pos: 2]`, has the lane's type (check claude, seed 42640)
                 Some(Ty::List(t)) | Some(Ty::Array(t)) | Some(Ty::Simd(t, _)) => Some(*t),
                 Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(t) | Ty::Array(t) => Some(*t), _ => None },
                 _ => None,
@@ -1995,7 +1995,7 @@ impl<'p> Interp<'p> {
         // It stops at a comparison too: a `bool` holds the comparison's answer, never its
         // operands, which take their width from each other (verification session, seed 93).
         // …except `simd.load` / `simd.fill`, which take their lane count from the declared type
-        // (design/simd.md) — the stop had cut that off, so a `simd[i32, count 4]` loaded 16 lanes
+        // (design/simd.md) — the stop had cut that off, so a `simd[i32, count: 4]` loaded 16 lanes
         // …and `list.fill`, whose value takes the element type, as a list literal's values do
         // (compiler claude, 2026-09-30: `list.fill[0.25, 'n']` into `list[d64]` was refused)
         let simd_shape = matches!(e, Expr::Builtin(h, op, ..) if (h == "simd" && (op == "load" || op == "fill" || op == "load.some")) || (h == "list" && op == "fill"))
@@ -2077,7 +2077,7 @@ impl<'p> Interp<'p> {
     fn as_index(&self, name: &str, _args: &Bracket, _has_handler: bool, line: usize) -> Result<Option<Expr>, RuntimeError> {
         let holds_list = self.lookup(name).map(|s| matches!(&*s.cell.borrow(), Value::List(_) | Value::Str(_) | Value::Simd(_))).unwrap_or(false);
         if !holds_list { return Ok(None); }
-        rt(line, format!("a read says it is a position: `'{name}'[pos 2]` (owner, 2026-10-07)"))
+        rt(line, format!("a read says it is a position: `'{name}'[pos: 2]` (owner, 2026-10-07)"))
     }
 
     /// A type C's numbers are checked against when they come in: a `layout.C enum`, a range,
@@ -2284,7 +2284,7 @@ impl<'p> Interp<'p> {
                 let items = match v {
                     // a vector's lane, 1-based like every position (simd.md; check claude, 2026-09-29)
                     Value::List(items) | Value::Simd(items) => items,
-                    Value::Str(_) => return rt(line, format!("'{name}' is a text: `[pos …]` would not say which unit — the 3rd byte or the 3rd grapheme; use `std::str.at.grapheme[lend '{name}', pos …]` (decided 2026-09-20)")),
+                    Value::Str(_) => return rt(line, format!("'{name}' is a text: `[pos: …]` would not say which unit — the 3rd byte or the 3rd grapheme; use `std::str.at.grapheme[lend '{name}', pos: …]` (decided 2026-09-20)")),
                     other => return rt(line, format!("'{name}' is {}, not a list or array; it cannot be indexed", other.kind())),
                 };
                 let (i, _) = self.eval(idx)?;
@@ -3682,8 +3682,8 @@ impl<'p> Interp<'p> {
         if op == "slice" {
             // A slice owns its elements, as a list always does (owner, 2026-09-23): the copy is
             // the meaning, and the prover elides it where nobody can tell. 1-based and inclusive,
-            // like `[pos i]` and `range[…]`; a check site, like every language operation.
-            if args.values.len() != 3 { return rt(line, format!("`{head}.slice` takes a list and two positions: `{head}.slice[lend 'xs', pos 2, pos 4]`")); }
+            // like `[pos: i]` and `range[…]`; a check site, like every language operation.
+            if args.values.len() != 3 { return rt(line, format!("`{head}.slice` takes a list and two positions: `{head}.slice[lend 'xs', pos: 2, pos: 4]`")); }
             let (v, prov) = self.value(&args.values[0])?;
             let items = match &v { Value::List(i) => i.clone(), other => return rt(line, format!("`{head}.slice` needs a list or array, got {}", other.kind())) };
             if let Prov::Bare(n) = &prov { return rt(line, format!("`{head}.slice` takes the list by `lend '{n}'`")); }
@@ -3695,7 +3695,7 @@ impl<'p> Interp<'p> {
             if from < 1 || to > items.len() as i128 {
                 return site(line, format!("`{head}.slice` from {from} to {to} runs outside a {} of {} element(s) (1 to {})", head, items.len(), items.len()));
             }
-            if to < from - 1 { return site(line, format!("`{head}.slice` from {from} to {to} runs backwards; an empty slice is `pos n, pos n - 1`")); }
+            if to < from - 1 { return site(line, format!("`{head}.slice` from {from} to {to} runs backwards; an empty slice is `pos n, pos: n - 1`")); }
             return Ok(Value::List(items[(from - 1) as usize..to as usize].to_vec()));
         }
         let want = match op { "length" => 1, "append" => 2, "remove" => 2, _ => unreachable!() };
@@ -3964,12 +3964,12 @@ impl<'p> Interp<'p> {
                 let n = match &self.expected { Some(Ty::Simd(_, n)) => *n, _ => 16usize };
                 Ok(Value::Simd(vec![v; n]))
             }
-            // `simd.load.some[lend 'xs', pos 'i', k]` loads k items, the other lanes zero;
-            // `simd.store.some[lend.mut 'xs', pos 'i', k, 'v']` writes the first k lanes (owner, 2026-09-27: a)
+            // `simd.load.some[lend 'xs', pos: 'i', k]` loads k items, the other lanes zero;
+            // `simd.store.some[lend.mut 'xs', pos: 'i', k, 'v']` writes the first k lanes (owner, 2026-09-27: a)
             "load.some" | "store.some" => {
                 let store = op == "store.some";
                 let want = if store { 4 } else { 3 };
-                if args.values.len() != want { return rt(line, format!("`simd.{op}` takes {want} arguments: `simd.{op}[{}, pos 'i', 'k'{}]`", if store { "lend.mut 'xs'" } else { "lend 'xs'" }, if store { ", 'v'" } else { "" })); }
+                if args.values.len() != want { return rt(line, format!("`simd.{op}` takes {want} arguments: `simd.{op}[{}, pos: 'i', 'k'{}]`", if store { "lend.mut 'xs'" } else { "lend 'xs'" }, if store { ", 'v'" } else { "" })); }
                 let (xs, prov) = self.value(&args.values[0])?;
                 let cell = match &prov { Prov::Borrowed(c, m) => { if store && !*m { return rt(line, "`simd.store.some` changes the list: pass `lend.mut`"); } c.clone() }
                     Prov::Bare(n) => return rt(line, format!("`simd.{op}` takes the list by `lend '{n}'`")), _ => Rc::new(RefCell::new(xs.clone())) };
@@ -4003,14 +4003,14 @@ impl<'p> Interp<'p> {
             }
             "load" | "store" => {
                 let want = if op == "load" { 2 } else { 3 };
-                if args.values.len() != want { return rt(line, format!("`simd.{op}` takes {want} arguments: `simd.{op}[lend 'xs', pos 'i'{}]`", if op == "store" { ", 'v'" } else { "" })); }
+                if args.values.len() != want { return rt(line, format!("`simd.{op}` takes {want} arguments: `simd.{op}[lend 'xs', pos: 'i'{}]`", if op == "store" { ", 'v'" } else { "" })); }
                 let (xs, prov) = self.value(&args.values[0])?;
                 let cell = match &prov { Prov::Borrowed(c, m) => { if op == "store" && !*m { return rt(line, "`simd.store` changes the list: pass `lend.mut`"); } c.clone() }
                     Prov::Bare(n) => return rt(line, format!("`simd.{op}` takes the list by `lend '{n}'`")), _ => Rc::new(RefCell::new(xs.clone())) };
                 let items = match &*cell.borrow() { Value::List(i) => i.clone(), other => return rt(line, format!("`simd.{op}` needs a list or array, got {}", other.kind())) };
                 let (iv, _) = self.value(&args.values[1])?;
                 let i = match iv { Value::Int(i) => i, other => return rt(line, format!("a position is an integer, got {}", other.kind())) };
-                // the lane count comes from the declared type (`'a': simd[i32, count 4] = simd.load[…]`);
+                // the lane count comes from the declared type (`'a': simd[i32, count: 4] = simd.load[…]`);
                 // 16 when nothing states one
                 let n = match &self.expected { Some(Ty::Simd(_, n)) => *n, _ => 16usize };
                 let n = match &args.values[2..] { [a] => { let (v, _) = self.value(a)?; match v { Value::Simd(l) => l.len(), _ => n } } _ => n };
@@ -4553,7 +4553,7 @@ impl<'p> Interp<'p> {
     fn call_value(&mut self, name: &str, args: &Bracket, handler: Option<&Handler>, line: usize) -> Result<Value, RuntimeError> {
         let fv = match self.lookup(name) {
             Some(s) if !s.alive => return rt(line, format!("'{name}' was already given away")),
-            Some(s) => match &*s.cell.borrow() { Value::Func(fv) => fv.clone(), other => return rt(line, format!("'{name}' is {}, not a function; `'{name}'[…]` calls, `'{name}'[pos …]` indexes", other.kind())) },
+            Some(s) => match &*s.cell.borrow() { Value::Func(fv) => fv.clone(), other => return rt(line, format!("'{name}' is {}, not a function; `'{name}'[…]` calls, `'{name}'[pos: …]` indexes", other.kind())) },
             None => return rt(line, format!("'{name}' is not declared")),
         };
         let func = fv.def.clone();
@@ -5136,7 +5136,7 @@ impl<'p> Interp<'p> {
                     _ => return None,
                 }
             }
-            // a field: its declared type (`'line'.count`, an `i32[min 1, max 99]`)
+            // a field: its declared type (`'line'.count`, an `i32[min: 1, max: 99]`)
             Expr::Field(var, field, _) => {
                 let slot = self.lookup(var)?;
                 let sname = match &*slot.cell.borrow() { Value::Struct(n, _) => n.clone(), _ => return None };
@@ -5290,7 +5290,7 @@ impl<'p> Interp<'p> {
                 "str.join" => match vals.get(0) { Some(Value::List(items)) => { let sep = text(1)?; let mut parts = Vec::new(); for it in items { match it { Value::Str(s) => parts.push(s.clone()), o => return rt(c.line, format!("std::str.join: the list holds {}, not text", o.kind())) } } Ok(Value::Str(parts.join(&sep))) } _ => rt(c.line, "std::str.join[lend 'parts', sep]") },
                 "str.at.grapheme" | "str.at.point" | "str.at.byte" => {
                     let s = text(0)?; let i = int(1)?;
-                    // a position is `u64[min 1]` (owner, 2026-10-17: "(a)"): 0 or a negative is no position at all,
+                    // a position is `u64[min: 1]` (owner, 2026-10-17: "(a)"): 0 or a negative is no position at all,
                     // not one past the end; `out_of_range` is only past the last unit
                     if i < 1 { return rt(c.line, no_position(i)); }
                     let units: Vec<Value> = match path.as_str() { "str.at.grapheme" => graphemes(&s).into_iter().map(|g| Value::Char(CharUnit::Grapheme, g)).collect(), "str.at.point" => s.chars().map(|ch| Value::Char(CharUnit::Point, ch.to_string())).collect(), _ => s.bytes().map(|b| Value::Int(b as i128)).collect() };
@@ -5337,7 +5337,7 @@ impl<'p> Interp<'p> {
                     None => 0,
                     Some(v) => match self.value(v)?.0 {
                         Value::Int(n) if n >= 0 => n as usize,
-                        other => return rt(c.line, format!("`decimals` is a whole number, 0 or more; got {}", other.show_useful())),
+                        other => return rt(c.line, format!("`places:` is a whole number, 0 or more; got {}", other.show_useful())),
                     },
                 };
                 // the answer is the type that went in, width and all (std claude, 2026-10-20): a f16 rounded to 1
@@ -5352,7 +5352,7 @@ impl<'p> Interp<'p> {
                     Value::Bin(x) => { let r = Value::Bin(no_new_neg_zero(x, round_bin(x, n, way))); Ok(match &in_ty { Some(t) => round_to_width(t, r), None => r }) }
                     Value::Deci(d) => {
                         let unit = if n == 0 { "1".to_string() } else { format!("0.{}1", "0".repeat(n - 1)) };
-                        let unit = match crate::deci::Deci::parse(&unit, d.width) { Ok(Some(u)) => u, _ => return rt(c.line, format!("{n} decimals is past what a d{} holds", d.width)) };
+                        let unit = match crate::deci::Deci::parse(&unit, d.width) { Ok(Some(u)) => u, _ => return rt(c.line, format!("{n} places is past what a d{} holds", d.width)) };
                         let mode = if way == "near" { "near" } else { way };
                         match d.divmod_whole(&unit, mode) {
                             Some(Ok((q, _))) => match q.mul(&unit) { Ok(r) => Ok(Value::Deci(r)), Err(m) => rt(c.line, m) },
@@ -6137,9 +6137,9 @@ fn round_bin(x: f64, n: usize, way: &str) -> f64 {
 }
 
 fn no_position(i: i128) -> String {
-    format!("{i} is no position: a position is `u64[min 1]`, counting from 1 (owner, 2026-10-17); convert one worked out while running, `to.u64[min 1]['i'] otherwise 1`")
+    format!("{i} is no position: a position is `u64[min: 1]`, counting from 1 (owner, 2026-10-17); convert one worked out while running, `to.u64[min: 1]['i'] otherwise 1`")
 }
 
 fn empty_part(word: &str) -> String {
-    format!("`{word}` is a text of at least 1 byte (`str.utf8[min 1 bytes]`): an empty one finds nothing (owner, 2026-10-14)")
+    format!("`{word}` is a text of at least 1 byte (`str.utf8[min: 1 bytes]`): an empty one finds nothing (owner, 2026-10-14)")
 }

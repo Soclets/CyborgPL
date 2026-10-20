@@ -1,6 +1,6 @@
 # A `mut` name kept changed through `lend.mut`, whatever it holds (check claude, 2026-10-16, corpus 65f59c7a:
 # the oracle missed the change when the name held a `"` or a `\`).
-fn add [lent.mut 'a': list[u16]] { list.append[lend.mut 'a', value 1]; }
+fn add [lent.mut 'a': list[u16]] { list.append[lend.mut 'a', value: 1]; }
 MAIN {
     let mut 'o"': list[u16] = [];
     add[lend.mut 'o"'];

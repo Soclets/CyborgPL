@@ -22,7 +22,7 @@ recommended.
 
    ```
    let 'text' := std::input.line[] otherwise "";
-   let 'n' := to.i32[min 1, max 99]['text'] otherwise 1;
+   let 'n' := to.i32[min: 1, max: 99]['text'] otherwise 1;
    ```
 
    Everything downstream is then proven, with no guard at each use
@@ -46,7 +46,7 @@ recommended.
    2026-10-12: "(b), if it's actually valid"; `#strict` did this until
    2026-10-07). A library's safety should not depend on who calls it, and
    the prover proves a site partly from its callers. So range types on public
-   parameters (`'p': i32[min 0, max 100]`): the function is proven from
+   parameters (`'p': i32[min: 0, max: 100]`): the function is proven from
    its signature, and a bad value is refused at the caller's line. And
    lifetime groups (`@x`) on returned borrows even where they could be
    inferred, so a reader sees what the result depends on.

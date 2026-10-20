@@ -17,9 +17,9 @@ MAIN {
     no_check let 'raw' := 'edit_mode';
     let 'current' := to.Mode['raw'] otherwise Mode.emacs;
     no_check let 'mem' := malloc[8];
-    no_check ptr.write['mem', value 1];
-    no_check ptr.write[ptr.at['mem', by 1], value 7];
+    no_check ptr.write['mem', value: 1];
+    no_check ptr.write[ptr.at['mem', by: 1], value: 7];
     no_check let 'a' := mode_at['mem'];
-    no_check let 'b' := mode_at[ptr.at['mem', by 1]];
+    no_check let 'b' := mode_at[ptr.at['mem', by: 1]];
     std::print.useful[to.i32['current'], " ", 'a', " ", 'b', newln];
 }

@@ -14,13 +14,13 @@ MAIN {
     }
     let 'xs' := [1, 2, 3];
     check {
-        for 'i' from 1 to list.length[lend 'xs'] by 1 {
-            std::print.useful['xs'[pos 'i'], " "];
+        for 'i' [from: 1, to: list.length[lend 'xs'], by: 1] {
+            std::print.useful['xs'[pos: 'i'], " "];
         }
     }
     std::print.stored[newln];
-    no_check change 'xs'[pos 2] = 9;
+    no_check change 'xs'[pos: 2] = 9;
     # crossing families is spelled, and it fails rather than rounds (`types.md`)
-    check if 'x' > 0.0 { change 'xs'[pos 1] = to.i32['x' div.near 2.0] otherwise 0; }
+    check if 'x' > 0.0 { change 'xs'[pos: 1] = to.i32['x' div.near 2.0] otherwise 0; }
     std::print.useful['xs', newln];
 }

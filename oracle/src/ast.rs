@@ -34,13 +34,13 @@ pub enum Ty {
     Channel(Box<Ty>),
     /// `std::duration` — a span of time, from a duration literal `5 seconds`
     Duration,
-    /// `C.str` (owner, 2026-10-19): a C string, its bytes and a 0; bounded `C.str[max 255 bytes, exclude zero]`:
+    /// `C.str` (owner, 2026-10-19): a C string, its bytes and a 0; bounded `C.str[max: 255 bytes, exclude zero]`:
     /// (low, high, whether the closing 0 counts)
     CStr(Option<(i128, i128, bool)>),
     /// `map[K, V]` — a language collection (decided 2026-09-22); the order variant is the prover's
     /// to pick unless written: `map.ordered` keeps insertion order, `map.unordered` cannot be walked
     Map(Box<Ty>, Box<Ty>, MapOrder),
-    /// `simd[u8, count 16]` — N plain values in one register (design/simd.md, 2026-09-22)
+    /// `simd[u8, count: 16]` — N plain values in one register (design/simd.md, 2026-09-22)
     Simd(Box<Ty>, usize),
     /// `fn[lent T, U] -> R or fail[…]` — a function's type (design/functions-as-values.md,
     /// 2026-09-21): its signature with the names removed
@@ -313,7 +313,7 @@ pub enum Stmt {
     LocalConst { name: String, ty: Option<Ty>, value: Bracket, line: usize },
     /// `'x' = v;`
     Assign { name: String, value: Bracket, line: usize },
-    /// `'xs'[pos i] = v;`
+    /// `'xs'[pos: i] = v;`
     AssignElem { name: String, index: Expr, value: Bracket, line: usize },
     /// `'mine'.field = v;`
     AssignField { name: String, field: String, value: Bracket, line: usize },
@@ -433,19 +433,19 @@ pub enum Expr {
     Call(Call),
     /// a `[ ]` used as a value inside another bracket: a list literal, or just grouping
     Nested(Bracket),
-    /// `'xs'[pos i]` — 1-based
+    /// `'xs'[pos: i]` — 1-based
     Index(String, Box<Expr>, usize),
     /// `list.length[…]`, `list.append[…]`, `list.remove[…]`, `array.length[…]`
     Builtin(String, String, Bracket, usize),
     /// `'mine'.field` — read a field
     Field(String, String, usize),
-    /// `'mine'.items[pos i]` — index a field (read only)
+    /// `'mine'.items[pos: i]` — index a field (read only)
     FieldIndex(String, String, Box<Expr>, usize),
     /// `Locker['name' = v, …]` — construct a struct value by field name
     Construct(String, Vec<(String, Bracket)>, usize),
     /// `give 'mine'.field` / `copy 'mine'.field` / `lend 'mine'.field`
     OwnedField(Verb, String, String, usize),
-    /// `lend 'xs'[pos i]` / `copy 'xs'[pos i]` — an element handed over with a verb
+    /// `lend 'xs'[pos: i]` / `copy 'xs'[pos: i]` — an element handed over with a verb
     OwnedElem(Verb, String, Box<Expr>, usize),
     /// `shapes.'pi'` / `kit.'pi'` — a const reached by module path (canonical), from a module
     ConstPath(Vec<String>, String, Vec<String>, usize),

@@ -1,3 +1,3 @@
 MAIN {
-    let 'xs' := list.fill[0, count 3];
+    let 'xs' := list.fill[0, count: 3];
 }

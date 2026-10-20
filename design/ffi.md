@@ -69,8 +69,8 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 
   ```
   no_check let 'c' := ptr.read['p'];       # the T at 'p'
-  no_check ptr.write['p', value 65];               # needs ptr.mut
-  no_check let 'q' := ptr.at['p', by 3];      # 3 elements further — in T units, never bytes
+  no_check ptr.write['p', value: 65];               # needs ptr.mut
+  no_check let 'q' := ptr.at['p', by: 3];      # 3 elements further — in T units, never bytes
   if ptr.is_null['f'] { fail not_found; }   # C's null; reading it would crash
   ```
   All `no_check` sites. No pointer↔integer conversion; a pointer comes
@@ -122,7 +122,7 @@ no_check qsort[lend.mut 'nums', 5, size.of[i32], ascending];
 ## A ranged return — C's contract, checked at the door (decided 2026-09-22)
 
 ```
-extern.C fn strlen ['s': ptr[u8]] -> u64[min 0, max 1_000_000];
+extern.C fn strlen ['s': ptr[u8]] -> u64[min: 0, max: 1_000_000];
 no_check let 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
 ```
 
@@ -133,7 +133,7 @@ handles like any failure. Inside it, the prover knows the value's domain
 and everything downstream is provable. It is a failure, not a check
 site — so `no_check` (which the call needs) does not remove it, and the
 final build keeps it: one compare per call, the program's own logic,
-the same rule as `to.i32[min 0, max 100][…]` at the input boundary. An extern
+the same rule as `to.i32[min: 0, max: 100][…]` at the input boundary. An extern
 with a plain return still cannot fail. Parameters cannot be ranged (C
 receives what it is given). Proposed: (a) nothing on the extern, a
 guard `if` after each call; (b) a trusted range, unverified — a
@@ -185,7 +185,7 @@ tier trusting C's answers too. The owner asked whether `no_check` was then
 ## A range type as a C struct's field (owner, 2026-09-27: a)
 
 ```
-layout.C struct Rect { w: i32[min 0, max 4096], h: i32[min 0, max 4096] }
+layout.C struct Rect { w: i32[min: 0, max: 4096], h: i32[min: 0, max: 4096] }
 ```
 
 C sees the plain number, so the layout is unchanged (`Rect` is 8 bytes).
@@ -311,7 +311,7 @@ no_check inline.ASM {
   for data the assembly may write through — the rule an `extern` call
   already has, "a lend satisfies a pointer". Into a register only: a
   `<--` or `<-->` after a lend is refused. A plain pointer variable (`'buf'
-  --> x1`, from `malloc`) still works, for memory the program manages
+  --> x1`, from: `malloc`) still works, for memory the program manages
   itself. The length, if the code needs one, is bound separately.
 - **Compiler rule (2026-09-21):** on AArch64 the lowering spells `x29` as
   `fp` and `x30` as `lr` in what it hands LLVM — the ABI names. LLVM 22
@@ -338,8 +338,8 @@ puts[lend 'cs'];
 - `C.str.make` fails `has_zero_byte` when the text holds a 0 byte (C would cut it there), the check dropped where
   Precog proves there is none, a literal say (owner: a).
 - A made C string's type is **`C.str`** (owner, 2026-10-19: "(a)"): `let 'cs': C.str = C.str.make[…]`.
-- A bounded one says, always, whether its closing 0 counts (owner, 2026-10-19: "(a)"): `C.str[max 255 bytes, exclude zero]`
-  (text up to 255 bytes, the 0 on top, as `strlen` counts) or `C.str[max 256 bytes, include zero]` (the whole buffer, as
+- A bounded one says, always, whether its closing 0 counts (owner, 2026-10-19: "(a)"): `C.str[max: 255 bytes, exclude zero]`
+  (text up to 255 bytes, the 0 on top, as `strlen` counts) or `C.str[max: 256 bytes, include zero]` (the whole buffer, as
   `char name[256]`). Bytes only. `C.str.make` into one fails `out_of_range` when the text does not fit (design claude's reading).
 - A made C string is owned like any value (owner: a): freed when its owner's scope ends; `lend` it to C for a call,
   `give` it when C keeps it, and C frees it then. No `C.str.free`.
@@ -387,7 +387,7 @@ layout.C union Number { i: i32, f: f32 }        # one of them at a time; C knows
 no_check let 'x' := 'n'.i;                          # reading a field: on your word, listed in the build report
 change 'n'.f = 1.5;                                 # writing: always safe
 
-layout.C struct Status { mode: u8[bits 3], ready: bool[bits 1], level: u8[bits 4] }
+layout.C struct Status { mode: u8[bits: 3], ready: bool[bits: 1], level: u8[bits: 4] }
 change 's'.mode = 5;                                # checked to fit: 3 bits hold 0 to 7
 ```
 

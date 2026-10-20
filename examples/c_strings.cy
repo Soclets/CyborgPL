@@ -17,6 +17,6 @@ MAIN {
     let 'back' := C.str.read[lend 'cs'] otherwise "?";
     std::print.useful['n', " ", 'back', newln];
     # a C string's type is `C.str`; a bounded one says whether its 0 counts (owner, 2026-10-19)
-    let 'fits': C.str[max 6 bytes, exclude zero] = C.str.make[lend 'name'] otherwise { has_zero_byte { std::exit[1]; } out_of_range { std::exit[2]; } };
-    let 'buffer': C.str[max 6 bytes, include zero] = C.str.make[lend 'name'] otherwise { has_zero_byte { std::exit[1]; } out_of_range { std::print.useful["Tankun and its 0 need 7 bytes", newln]; std::exit[0]; } };
+    let 'fits': C.str[max: 6 bytes, exclude zero] = C.str.make[lend 'name'] otherwise { has_zero_byte { std::exit[1]; } out_of_range { std::exit[2]; } };
+    let 'buffer': C.str[max: 6 bytes, include zero] = C.str.make[lend 'name'] otherwise { has_zero_byte { std::exit[1]; } out_of_range { std::print.useful["Tankun and its 0 need 7 bytes", newln]; std::exit[0]; } };
 }

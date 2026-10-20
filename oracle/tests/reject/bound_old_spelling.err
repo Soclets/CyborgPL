@@ -1,1 +1,1 @@
-a bound says which it is: `i32[min 0, max 100]`
+a bound says which it is: `i32[min: 0, max: 100]`

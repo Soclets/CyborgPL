@@ -1,1 +1,1 @@
-`change *'p' =` is an old spelling: write `ptr.write['p', value v]`
+`change *'p' =` is an old spelling: write `ptr.write['p', value: v]`

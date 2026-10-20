@@ -2,8 +2,8 @@
 # an element slot. `list.fill`'s value is the same. Here 1 and 2 are bins, 0.25 a d64.
 MAIN {
     let 'bs': list[f64] = [1, 2];
-    let 'more': list[f64] = list.fill[value 1, count 3];
-    let 'ds': list[d64] = list.fill[value 0.25, count 3];
+    let 'more': list[f64] = list.fill[value: 1, count: 3];
+    let 'ds': list[d64] = list.fill[value: 0.25, count: 3];
     std::print.stored['bs', newln];
     std::print.stored['more', newln];
     std::print.stored['ds', newln];

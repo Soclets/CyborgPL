@@ -6,8 +6,8 @@ MAIN {
     let 'from_a' := channel[str.utf8];
     let 'from_b' := channel[str.utf8];
     let 'a' := "a.com";
-    concur with [lend 'from_a', give 'a'] { channel.send[lend 'from_a', value fetch[lend 'a']]; }
-    concur with [lend 'from_b'] { channel.send[lend 'from_b', value fetch["b.com"]]; }
+    concur with [lend 'from_a', give 'a'] { channel.send[lend 'from_a', value: fetch[lend 'a']]; }
+    concur with [lend 'from_b'] { channel.send[lend 'from_b', value: fetch["b.com"]]; }
     let 'page_a' := channel.take[lend 'from_a'] otherwise str.empty;
     let 'page_b' := channel.take[lend 'from_b'] otherwise str.empty;
     std::print.useful['page_a', newln, 'page_b', newln];

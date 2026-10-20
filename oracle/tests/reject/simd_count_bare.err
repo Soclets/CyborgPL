@@ -1,1 +1,1 @@
-`simd[T, N]` is an old spelling: write `simd[T, count N]`
+`simd[T, N]` is an old spelling: write `simd[T, count: N]`

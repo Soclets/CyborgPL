@@ -10,9 +10,9 @@ algorithm.
 
 ```
 fn is_ascii [lent 'bytes': array[u8]] -> bool {
-    let mut 'acc' := simd.fill[value 0];                          # simd[u8, count 16]
-    for 'i' from 1 to array.length[lend 'bytes'] by 16 {
-        change 'acc' = 'acc' or.bit simd.load[lend 'bytes', pos 'i'];
+    let mut 'acc' := simd.fill[value: 0];                          # simd[u8, count 16]
+    for 'i' [from: 1, to: array.length[lend 'bytes'], by: 16] {
+        change 'acc' = 'acc' or.bit simd.load[lend 'bytes', pos: 'i'];
     }
     return simd.max['acc'] < 128;
 }
@@ -22,23 +22,23 @@ fn is_ascii [lent 'bytes': array[u8]] -> bool {
 **Lanes are checked at every operation, at the lane's type** (owner,
 2026-09-29: b) — not exact in between as plain numbers are (2026-09-23),
 since wider lanes would halve what a register holds. `('a' plus 'a') minus 'a'`
-on `simd[u8, count 16]` of 200s is a check site at the `+`. The wrapping
+on `simd[u8, count: 16]` of 200s is a check site at the `+`. The wrapping
 forms (`+~` …) wrap lane by lane and never check. For exact maths in
 between, use a plain loop.
 
 ## The spelling — `simd[T, N]` (owner)
 
 The language's bracket rule for type parameters, as `list[i32]` and
-`map[K, V]`: `simd[u8, count 16]`, `simd[f32, count 4]`. Proposed
+`map[K, V]`: `simd[u8, count: 16]`, `simd[f32, count: 4]`. Proposed
 alternatives: `uint8x16` (Swift's and Rust's look — a naming
 convention the parser must know), `u8[16]` (collides with the
-range-type shape `i32[min 0, max 100]`).
+range-type shape `i32[min: 0, max: 100]`).
 
 ## Only the target's own shapes (owner: b)
 
 `simd[T, N]` is legal only where the target has that register. On
-ARM64 (128-bit NEON): `simd[u8, count 16]`, `simd[i32, count 4]`,
-`simd[f32, count 4]`, `simd[f64, count 2]`, and the like. `simd[u8, count 64]` is
+ARM64 (128-bit NEON): `simd[u8, count: 16]`, `simd[i32, count: 4]`,
+`simd[f32, count: 4]`, `simd[f64, count: 2]`, and the like. `simd[u8, count: 64]` is
 a compile error naming what the target does have. Proposed
 alternative: any power-of-two N, the compiler splitting or padding —
 owner: "shouldn't they just use the normal way?" A program reaching for
@@ -58,7 +58,7 @@ done N times. Proposed alternative: named operations only
 everywhere.
 
 **Comparisons give a vector of answers**: `'a' < 'b'` on
-`simd[i32, count 4]` is a `simd[bool, count 4]`, one answer per lane. A vector
+`simd[i32, count: 4]` is a `simd[bool, count: 4]`, one answer per lane. A vector
 is never a single `bool`, so `if 'a' < 'b' { … }` is a compile error
 that names the fold to use.
 
@@ -68,12 +68,12 @@ that names the fold to use.
 - `change 'v'[3] = 30;` — one lane written, like a list item; a position
   outside the vector is a check site (owner, 2026-09-29: a). One
   instruction (`INS` on ARM).
-- `simd.fill[value 7]` — every lane the same value. The lanes are what the declared type says, and the value is
-  fitted into them as a typed `let` fits it (owner, 2026-10-19): `let 'r': simd[i32, count 4] = simd.fill[value 'b'];`
+- `simd.fill[value: 7]` — every lane the same value. The lanes are what the declared type says, and the value is
+  fitted into them as a typed `let` fits it (owner, 2026-10-19): `let 'r': simd[i32, count: 4] = simd.fill[value: 'b'];`
   with a `u8` 'b' gives four `i32` lanes; a value that does not fit is refused.
 - `simd.load[lend 'xs', 'i']` — N elements of an `array` or `list`
   into a vector; a check site (is `'i' plus N minus 1` inside?).
-- `simd.store[lend.mut 'xs', 'i', value 'v']` — the other way.
+- `simd.store[lend.mut 'xs', 'i', value: 'v']` — the other way.
 - `simd.all['m']` / `simd.any['m']` — a `simd[bool, N]` to one `bool`.
 - `simd.max['v']` / `simd.min['v']` / `simd.sum['v']` — a numeric
   vector to one value. `sum` is a plain number, worked out in full and
@@ -105,8 +105,8 @@ against a vector (`'v' plus 1`), and `simd.sum` is a check site while
 ## A mask is a type: `simd[bool, N]` (owner, 2026-09-27: a)
 
 ```
-fn all_on ['m': simd[bool, count 4]] -> bool { return simd.all['m']; }
-let 'm': simd[bool, count 4] = 'a' > simd.fill[value 10];
+fn all_on ['m': simd[bool, count: 4]] -> bool { return simd.all['m']; }
+let 'm': simd[bool, count: 4] = 'a' > simd.fill[value: 10];
 let 'flip' := not 'm';
 ```
 
@@ -120,8 +120,8 @@ on the spot. `examples/simd_mask.cy`.
 ## The leftover end: `simd.load.some` / `simd.store.some` (owner, 2026-09-27: a)
 
 ```
-let 'v': simd[i32, count 4] = simd.load.some[lend 'xs', pos 9, count 2];   # 2 items; lanes 3–4 are zero
-simd.store.some[lend.mut 'xs', pos 9, count 2, value 'v'];               # writes lanes 1–2 only
+let 'v': simd[i32, count: 4] = simd.load.some[lend 'xs', pos: 9, count: 2];   # 2 items; lanes 3–4 are zero
+simd.store.some[lend.mut 'xs', pos: 9, count: 2, value: 'v'];               # writes lanes 1–2 only
 ```
 
 Every vector loop over a list whose length is not a multiple of N has a
@@ -137,8 +137,8 @@ went through with a. `examples/simd_tail.cy`.
 ## A simd value goes anywhere a number does (owner, 2026-09-27: a)
 
 ```
-struct Particle { place: simd[f32, count 4], vel: simd[f32, count 4] }
-let 'history': list[simd[f32, count 4]] = [];
+struct Particle { place: simd[f32, count: 4], vel: simd[f32, count: 4] }
+let 'history': list[simd[f32, count: 4]] = [];
 ```
 
 Struct fields, list elements, parameters and returns. It is a plain,

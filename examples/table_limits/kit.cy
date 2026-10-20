@@ -5,7 +5,7 @@ table_bytes 1_024 fn square ['x': u8] -> u16 {
     return to.u16['x'] x to.u16['x'];
 }
 
-table_bytes 0 fn fib ['n': i64[min 0, max 92]] -> i64 {
+table_bytes 0 fn fib ['n': i64[min: 0, max: 92]] -> i64 {
     if 'n' < 2 { return 'n'; }
     return fib['n' - 1] + fib['n' - 2];
 }

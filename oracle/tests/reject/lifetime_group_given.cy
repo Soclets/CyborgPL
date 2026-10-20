@@ -5,5 +5,5 @@ MAIN {
     let 't': list[i32] = [6, 7];
     let 'r' := b1[lend 's', lend 't'];
     let 'g' := give 't';
-    std::print.useful['r'[pos 1], newln];
+    std::print.useful['r'[pos: 1], newln];
 }

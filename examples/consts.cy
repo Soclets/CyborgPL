@@ -11,6 +11,6 @@ MAIN {
     std::print.useful['max', " ", 'twice_max', " ", 'greeting', " ", area[2.0], newln];
     let 's' := 'greeting';
     let 'p' := P[x = 'max'];
-    for 'i' from 1 to 'max' by 4 { std::print.useful['i', " "]; }
+    for 'i' [from: 1, to: 'max', by: 4] { std::print.useful['i', " "]; }
     std::print.stored[newln];
 }

@@ -11,9 +11,9 @@ download beside a keyboard — where the waiting is the point.
 ```
 let 'results' := channel[str.utf8];
 let 'a' := "a.com";
-concur with [lend 'results', give 'a'] { channel.send[lend 'results', value fetch[lend 'a']]; }   # a call's result is fresh: no verb
-concur with [lend 'results'] { channel.send[lend 'results', value fetch["b.com"]]; }
-for 'i' from 1 to 2 by 1 {
+concur with [lend 'results', give 'a'] { channel.send[lend 'results', value: fetch[lend 'a']]; }   # a call's result is fresh: no verb
+concur with [lend 'results'] { channel.send[lend 'results', value: fetch["b.com"]]; }
+for 'i' [from: 1, to: 2, by: 1] {
     let 'page' := channel.take[lend 'results'] otherwise "";    # waits; whichever finished first
     std::print.useful[str.bytes[lend 'page'], newln];
 }
@@ -97,8 +97,8 @@ while the program carries on.
 
 ```
 let 'c' := channel[str.utf8];                    # hand-off: send waits for a taker
-let 'q' := channel[str.utf8][max 100];            # a buffer: send waits only when full
-channel.send[lend 'c', value give 'line'];             # a value is given, never lent
+let 'q' := channel[str.utf8][max: 100];            # a buffer: send waits only when full
+channel.send[lend 'c', value: give 'line'];             # a value is given, never lent
 let 'v' := channel.take[lend 'c'] otherwise …;   # waits; fails `closed` when no sender is left
 ```
 

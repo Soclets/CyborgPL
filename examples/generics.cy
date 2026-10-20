@@ -13,7 +13,7 @@ fn max <T: Number> ['a': <T>, 'b': <T>] -> <T> {
 
 fn first <T: any> [lent 'xs': list[<T>]] -> <T> or fail[empty] {
     if list.length[lend 'xs'] equal_to 0 { fail empty; }
-    return 'xs'[pos 1];
+    return 'xs'[pos: 1];
 }
 
 struct Pair <A: any, B: any> { left: <A>, right: <B> }     # blanks in the order announced: A, B

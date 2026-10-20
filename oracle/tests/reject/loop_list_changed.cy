@@ -2,6 +2,6 @@
 MAIN {
     let mut 's': list[i32] = [1, 2, 3];
     for 'x' in lend 's' {
-        if 'x' equal_to 1 { list.append[lend.mut 's', value 5]; }
+        if 'x' equal_to 1 { list.append[lend.mut 's', value: 5]; }
     }
 }
