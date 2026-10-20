@@ -238,6 +238,9 @@ pub enum Handler {
     Propagate,
     /// `otherwise { name ['bind'] { … } … }` — one arm per reason, all covered
     Arms(Vec<Arm>),
+    /// `std::print.written[…] otherwise std::print.useful;` (owner, 2026-10-17): print the whole call that way when a
+    /// value has no written form; the form's name (`useful`, `stored`)
+    PrintAs(String),
 }
 
 #[derive(Debug, Clone)]

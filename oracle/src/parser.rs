@@ -3277,6 +3277,14 @@ impl Parser {
                 self.pos -= 1; // hand the `;` back to the enclosing statement
                 Handler::Leave(Box::new(s))
             }
+            // `otherwise std::print.useful` after a `print.written` (owner, 2026-10-17: "could you use `otherwise`?")
+            Tok::Word(w) if (w == "std" && *self.peek_at(1) == Tok::ColonColon && matches!(self.peek_at(2), Tok::Word(p) if p == "print") && *self.peek_at(3) == Tok::Dot && matches!(self.peek_at(4), Tok::Word(f) if f == "useful" || f == "stored") && *self.peek_at(5) != Tok::LBracket && *self.peek_at(5) != Tok::Dot)
+                || (w == "print" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(f) if f == "useful" || f == "stored") && *self.peek_at(3) != Tok::LBracket && *self.peek_at(3) != Tok::Dot) => {
+                if w == "std" { self.advance(); self.advance(); }
+                self.advance(); self.advance();
+                let Tok::Word(form) = self.advance().tok else { unreachable!() };
+                Handler::PrintAs(form)
+            }
             Tok::LBrace => {
                 let arms = self.arms("otherwise")?;
                 if arms.is_empty() { return self.err("`otherwise { }` handles nothing; list the failures, or use `otherwise fail;`"); }

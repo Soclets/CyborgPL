@@ -34,7 +34,7 @@ with nothing without `to.` — `to.f32['w']` exact, `to.brain16['x']`
 rounding, `to.f16['w']` a check site. A literal rounds to the nearest `brain16`
 (owner, 2026-10-02: a). The GPU is open.
 
-**The `percent` type and limits** (owner, 2026-10-17; the type built in the oracle 2026-10-20, `examples/percent.cy`; the `places` limits built the same day, `examples/places.cy`; `print.written` next): `percent[d32]` (symbol `%[d32]`)
+**The `percent` type and limits** (owner, 2026-10-17; the type built in the oracle 2026-10-20, `examples/percent.cy`; the `places` limits built the same day, `examples/places.cy`, and `print.written`, `examples/print_written.cy`): `percent[d32]` (symbol `%[d32]`)
 holds a `deci` of that width and prints with `%`; a written one names its size, `:=` lets Precog pick. A second
 bracket holds limits, on a `deci` or a `percent`: `d64[min: 0, max: 1000000, max_places: 2]`,
 `percent[d32][min: 0%, max: 100%, max_places: 1]`; `max_decimals` refuses a literal with more and asks a

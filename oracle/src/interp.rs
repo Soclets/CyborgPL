@@ -183,11 +183,13 @@ pub struct Interp<'p> {
     out: Box<dyn Write>,
     /// each `pub` thing's `bare` mark, by `kind:module.name` (owner, 2026-10-06)
     bare_of: HashMap<String, crate::ast::Bare>,
+    /// each variable's literal as it was typed, while it still holds it (owner, 2026-10-17, for `print.written`): by its cell
+    written: HashMap<usize, String>,
 }
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { int_bounds: HashMap::new(), prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, fallback_ty: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), mut_walks: Vec::new(), scopes: vec![HashMap::new()], out, bare_of: HashMap::new() }
+        Interp { int_bounds: HashMap::new(), prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, fallback_ty: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), mut_walks: Vec::new(), scopes: vec![HashMap::new()], out, bare_of: HashMap::new(), written: HashMap::new() }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -900,6 +902,9 @@ impl<'p> Interp<'p> {
                                 if let Some(b) = self.static_bound(e) { self.int_bounds.insert(Rc::as_ptr(&cell) as usize, b); }
                             }
                         }
+                        if let [crate::ast::Value::Expr(e)] = value.values.as_slice() {
+                            if let Some(t) = written_text(e) { self.written.insert(Rc::as_ptr(&cell) as usize, t); }
+                        }
                         Slot { cell, ty, kind: SlotKind::Owned, alive: true, immut, sized, sealed: *sealed , since: 0, deps: Vec::new() }
                     }
                 };
@@ -931,6 +936,10 @@ impl<'p> Interp<'p> {
                 }
                 let v = self.fit(v, prov, ty.as_ref(), *line)?;
                 let sized = Self::sized_from(value, ty.as_ref());
+                if let Some(s) = self.lookup(name) {
+                    let key = Rc::as_ptr(&s.cell) as usize;
+                    match value.values.as_slice() { [crate::ast::Value::Expr(e)] if written_text(e).is_some() => { self.written.insert(key, written_text(e).unwrap()); } _ => { self.written.remove(&key); } }
+                }
                 if kind == SlotKind::ExternMut {
                     // C's variable: the cell lives beside the consts
                     *self.consts[&self.const_at(name)].cell.borrow_mut() = v;
@@ -4876,6 +4885,7 @@ impl<'p> Interp<'p> {
     fn handle_failure(&mut self, handler: &Handler, line: usize, name: &str, reason: String, payload: Option<Value>, value_used: bool) -> Result<Value, RuntimeError> {
         let leave = |f: Flow| RuntimeError { line, msg: String::new(), exit: None, site: false, leave: Some(f) };
         match handler {
+            Handler::PrintAs(_) => rt(line, format!("`otherwise std::print.…` says how a `print.written` prints a value with no written form; `{name}` failed with `{reason}`")),
             Handler::Value(b) => {
                 // only a conversion's own failure: a type left by an earlier conversion that did not fail
                 // must not reach another call's fallback
@@ -5511,7 +5521,9 @@ impl<'p> Interp<'p> {
                 other => rt(c.line, format!("std::{other} is not in the oracle's std (it has str.split/contains/starts_with/ends_with/trim/upper/lower/replace/join, str.at.<unit>, str.slice.<unit>, str.find.grapheme)")),
             };
         }
-        if c.handler.is_some() && !path.starts_with("input.") { return rt(c.line, format!("std::{path} cannot fail; drop the `otherwise`")); }
+        // `otherwise std::print.useful` belongs to `print.written` only (owner, 2026-10-17)
+        if matches!(c.handler, Some(Handler::PrintAs(_))) && !path.starts_with("print.written") { return rt(c.line, format!("`otherwise std::print.…` says how a `print.written` prints a value with no written form; std::{path} is not one")); }
+        if c.handler.is_some() && !path.starts_with("input.") && !(path.starts_with("print.written") && matches!(c.handler, Some(Handler::PrintAs(_)))) { return rt(c.line, format!("std::{path} cannot fail; drop the `otherwise`")); }
         match path.as_str() {
             "input.line" | "input.all" => {
                 // a boundary (decided 2026-09-20): text as it came; `closed` when there is none
@@ -5587,6 +5599,38 @@ impl<'p> Interp<'p> {
             // a print says which form it shows (owner, 2026-10-02): `print.stored` or `print.useful`, never bare
             "print.stdout" | "print.stderr" => rt(c.line, format!("say which form `std::{path}` shows: `std::print.stored.{0}[…]` (what is stored) or `std::print.useful.{0}[…]` (the useful value) (owner, 2026-10-02)", &path[6..])),
             "print.weird.stdout" | "print.weird.stderr" => rt(c.line, format!("say which form `std::{path}` shows: `std::print.weird.stored.{0}` or `std::print.weird.useful.{0}` (owner, 2026-10-02)", &path[12..])),
+            // `print.written` (owner, 2026-10-17): each value as its literal was typed; one that was not typed (computed, read,
+            // changed) has none, and then the print says `otherwise std::print.useful` (or `.stored`) or is refused
+            "print.written.stdout" | "print.written.stderr" => {
+                if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes at least one value")); }
+                let mut texts = Vec::new();
+                let mut missing: Option<String> = None;
+                for a in &c.args.values {
+                    let crate::ast::Value::Expr(e) = a;
+                    let t = match e {
+                        Expr::Var(n, _) | Expr::Owned(_, n, _) => self.lookup(n).and_then(|s| self.written.get(&(Rc::as_ptr(&s.cell) as usize)).cloned()),
+                        e => written_text(e),
+                    };
+                    match t { Some(t) => texts.push(t), None => { if missing.is_none() { missing = Some(match e { Expr::Var(n, _) | Expr::Owned(_, n, _) => format!("'{n}'"), _ => "a value here".into() }); } } }
+                }
+                let text = match (&missing, &c.handler) {
+                    (None, _) => texts.concat(),
+                    (Some(_), Some(Handler::PrintAs(form))) => {
+                        let mut out = String::new();
+                        for a in &c.args.values {
+                            let crate::ast::Value::Expr(e) = a;
+                            let saved = self.expected.take(); let ty = self.expr_ty(e); self.expected = saved;
+                            let (v, _) = self.value_mode(a, form != "useful")?;
+                            out.push_str(&if form == "useful" { show_useful_as(&v, ty.as_ref()) } else { v.show_stored() });
+                        }
+                        out
+                    }
+                    (Some(who), _) => return rt(c.line, format!("{who} was not typed as a literal here (it is computed, read or changed), so it has no written form: say what to print instead, `std::print.written[…] otherwise std::print.useful;`")),
+                };
+                if path.ends_with("stderr") { eprint!("{text}"); }
+                else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
+                return Ok(Value::Nothing);
+            }
             "print.stored.stdout" | "print.useful.stdout" | "print.stored.stderr" | "print.useful.stderr"
             | "print.useful.auto_newln.stdout" | "print.useful.auto_newln.stderr"
             | "print.weird.stored.stdout" | "print.weird.stored.stderr" | "print.weird.useful.stdout" | "print.weird.useful.stderr"
@@ -5768,6 +5812,23 @@ fn change_case(s: &str, upper: bool, way: &str, lang: &str) -> String {
             }
             out
         }
+    }
+}
+
+/// A literal as it was typed, for `print.written`: a number's digits (`0.123456789`, `-2.5`), a percent with its `%`
+/// (`7.5%`, the `exactly` aside), a text, a newline. None for anything that is not a literal.
+fn written_text(e: &Expr) -> Option<String> {
+    match e {
+        Expr::Int(i, _) => Some(i.to_string()),
+        Expr::Bin(_, t, _) | Expr::Exact(t, _) => Some(t.clone()),
+        Expr::Percent(inner, _) => written_text(inner).map(|t| format!("{}%", crate::value::percent_digits(&t))),
+        Expr::Text(t, _) => Some(t.clone()),
+        Expr::Newline(_) => Some("\n".into()),
+        Expr::Bool(b, _) => Some(if *b { "true".into() } else { "false".into() }),
+        Expr::Unary(op, i, _) if op == "-" => written_text(i).map(|t| format!("-{t}")),
+        // a typed literal (`0.1: f16`) is written as its literal
+        Expr::Convert(_, b, None, 0, _) => match b.values.as_slice() { [crate::ast::Value::Expr(i)] => written_text(i).filter(|_| matches!(i, Expr::Int(..) | Expr::Bin(..) | Expr::Exact(..) | Expr::Percent(..))), _ => None },
+        _ => None,
     }
 }
 

@@ -679,7 +679,7 @@ families is already refused ("`times` between a deci and another number family: 
 between numeric families; `to.deci64[…]`"), while widths of one family mix. So, design claude recommending it, the
 owner: "yea". **A `percent` is its own number family**: percents combine with percents (`'tax' + 'other_tax'` is
 a percent); with a plain number it must be converted, `'price' x to.deci64['tax']` (7% gives 0.07), and back,
-`to.percent[deci64][0.07]` (7%). Not built yet.
+`to.percent[deci64][0.07]` (7%). Built in the oracle 2026-10-20.
 
 ### 2026-10-17 — A published kit is a `.cykit` file (owner: yup)
 
@@ -764,7 +764,8 @@ So:
   decimals count as written (`7.25%` has 2).
 - **Good practice** (`style.md`): the `%` after a number, not `percent`; the type `percent`, not `%`.
 Both open points were ruled the same day (entries above): `round.near` and the rest, and `:= exactly 7%` is a
-`percent`. Not built yet.
+`percent`. Built in the oracle 2026-10-20 (`examples/percent.cy`, `examples/places.cy`), `decimals` named `places`
+since that day.
 
 ### 2026-10-17 — Beating GCC on recursion: kayo inlines recursion, and Precog precomputes small pure functions (owner)
 
