@@ -58,7 +58,12 @@ recommended; the owner: "yea". So:
 everything inside `[ ]`): `i32[min: 0, max: 100]`, `d64[max_places: 2]`, `str.utf8[min: 1, max: 40 graphemes]`,
 `simd[i32, count: 4]`.
 
-Not built; not yet asked: how `pos` reads in a slice (`from: pos 2`), and words that take no value (`exclude zero`).
+**`pos` stays after a label** (owner: "(b)", over (a) `from: 2` alone, which design claude first recommended and
+withdrew when the owner asked "does `from: 'x'` read as where x is, or from its value become pos?", since `from:`
+is a text in `str.replace`; and (c) `from_pos: 'x'`): **`str.slice.grapheme[lend 's', from: pos 2, to: pos 4]`**,
+`before: pos 'n'`, and a lone position `pos: 3` (`str.at.grapheme[lend 's', pos: 3]`, `'xs'[pos: 3]`).
+
+Not built; not yet asked: words that take no value (`exclude zero`).
 
 ### 2026-10-20 — Number types are `i`, `u`, `f`, `d` with their widths; the base words become `bin`, `hex`, `oct` (owner; not built)
 
