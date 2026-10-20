@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-21 — The core features are four: Precog, ownership, `::` and `.`, LLVM (owner, through website claude)
+
+Relayed by website claude, the owner on `design/core-features.md`: "That's pretty old. So, let's do a new one", and
+the list, in the owner's words: "1. Precog, <explain> 2. Ownership <explain> 3. `::` marks a kit, `.` narrows
+(`std::print.useful`) 4. LLVM as the backend", the explanations of 1 and 2 left to website claude; then "yea" to
+design claude updating the note. So **the core features are Precog, ownership, `::` marking a kit and `.` narrowing,
+and LLVM as the backend**, replacing the five pillars of 2026-09-14 (everything at compile time, now part of Precog;
+ownership; "`:=` isn't just lazy inference"; dot-chained syntax, now 3; LLVM). The rules decided under the old
+pillars (what "best" means, the check tiers, no development mode, ownership with borrowing) still stand, kept in the
+note under "The rules behind them". Design claude's rewording of website claude's line for Precog adds the check
+tiers: an unproven site stops the final build unless marked `check` or `no_check`.
+
 ### 2026-10-21 — The bench's main set: C, C++, Fortran, Zig, Rust, CyborgPL, Go, Java, Python (owner)
 
 The owner: "The main bench set are gonna have these languages: C, C++, Fortran, Zig, Rust, CyborgPL, Go, Java, and

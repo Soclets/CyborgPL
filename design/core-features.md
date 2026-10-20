@@ -2,37 +2,28 @@
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
-> The compile-time technology described under "Everything at compile time"
-> is named **the prover** (decided 2026-09-14).
+**Replaced 2026-10-21** (owner, through website claude: "That's pretty old. So, let's do a new one", then "yea" to
+this note being updated). The owner's four, in the owner's words, the explanations of 1 and 2 left to website claude
+and reworded here; these are what every later design decision is measured against:
 
-Decided by the owner, 2026-09-14. These are the five pillars every later
-design decision is measured against.
+1. **Precog.** Built into `KAYO\n`, it works out every value the program can hold, across the whole program, while it
+   builds. Every overflow, out-of-range index and division by zero is proven impossible, or the final build stops and
+   shows the value that breaks it, unless the programmer marks that site: `check` keeps a run-time check there,
+   `no_check` trusts it (the three tiers, below). Compile time is not a cost the language cares about: the developer
+   waits, the final product does not.
+2. **Ownership.** Every value has exactly one owner and is freed when that owner's scope ends, with no garbage
+   collector. Moves, copies and borrows (`give`, `copy`, `lend`, `lent`) are proven while building, so a borrow never
+   outlives its owner or changes under it.
+3. **`::` marks a kit, `.` narrows** (`std::print.useful`): `std` is the kit, and `print.useful` narrows `print` to
+   the useful one.
+4. **LLVM as the backend.** `KAYO\n` compiles to native code through LLVM, and hands it what Precog proved (value ranges
+   and no overflow), so LLVM can optimise further.
 
-## Everything at compile time
+The 2026-09-14 pillars this replaces: "Everything at compile time" (now part of Precog), "Safety via the ownership
+model", "`:=` isn't just lazy inference", "Dot-chained syntax" (now 3's `::` and `.`), "LLVM as the backend". The
+rules decided under them still stand, below; they are no longer headline features.
 
-CyborgPL runs every possible thing at compile time to check for issues,
-ensuring final-product safety without sacrificing runtime performance.
-
-Compile time is not a cost the language cares about. The developer waits;
-the final product does not.
-
-## Safety via the ownership model
-
-Everything has exactly one owner, so the compiler knows when it can be freed —
-safety without sacrificing runtime performance.
-
-## `:=` isn't just lazy inference
-
-The compiler works out the **best** type for a `:=` binding at compile time,
-not merely *a* type that fits.
-
-## Dot-chained syntax
-
-Most of the syntax uses dot chaining, so a reader can "flow with the code".
-
-## LLVM as the backend
-
-CyborgPL compiles to native code through LLVM.
+## The rules behind them
 
 ### What "best" means (decided 2026-09-14)
 
