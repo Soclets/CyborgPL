@@ -61,7 +61,8 @@ function has no optional arguments, so `round.near['x']` and `round.near['x', de
 (c) a word in front, `overload fn …`; recommended: the versions cannot be scattered, they share one `pub` and one
 `bare.` mark, and it is where argument words were to go). Design claude had first built (a) without asking; the
 owner: "Where's the syntax question?". So **a `fn` of one name written twice outside a collection stays refused**,
-naming `coll.fn`, and a collection may hold several versions of its own function and of a member:
+naming `coll.fn`, and a collection may hold several versions of its own function (design claude's reading, not
+asked: of a member too, as `round.near` in a `coll.fn round` holding all five ways):
 
 ```
 pub coll.fn round {
