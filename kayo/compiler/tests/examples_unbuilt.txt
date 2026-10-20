@@ -20,3 +20,4 @@ text :: `std::str.upper` is not available yet
 whichever :: `std::time.after` is not available yet
 whole :: `std::round.near` is not available yet
 round :: `std::round.near` is not available yet
+round_widths :: `std::round.near` is not available yet

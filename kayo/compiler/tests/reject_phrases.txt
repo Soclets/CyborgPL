@@ -863,3 +863,4 @@ overload_plain [fnv:4d7e85536de4500f] :: versions of one function are written to
 overload_same [fnv:7394cf01ac8d8696] :: has two versions for int64
 overload_lit [fnv:3421916dcaa15ca1] :: versions of `f` could take this call
 overload_unrun [fnv:8aa3fe4489498f62] :: could take this call
+typed_deci_too_many_digits [fnv:ff7058c02ea9c96d] :: has 8 digits
