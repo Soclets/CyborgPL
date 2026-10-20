@@ -1072,6 +1072,13 @@ Dated, with the alternative, so each can become a question later.
   programs, tests and bench were swept by script; `std/` is std claude's,
   and the suite was run against its converted copy. Earlier entries
   here keep the names of their day.
+- **2026-10-20 — A known text's graphemes are counted as the runtime counts
+  them** (check claude: a grapheme slice of "🇹🇭🇯🇵!" to `pos 4` came back cut
+  short with `otherwise str.empty`). `mir::domain::grapheme_count` was a hand
+  list of combining marks that counted each flag as two graphemes, 5 for
+  that text where there are 3; Precog then held std's `'to' > str.graphemes`
+  false and the failure was never taken. It is the pinned
+  `unicode-segmentation` now, as the runtime's. `tests/programs/grapheme_flags.cy`.
 - **2026-10-20 — Precog's table of facts is a persistent map** (owner: "use
   im"; DECISIONS 2026-10-20). `precog::Env` is an `im::OrdMap` of
   `Arc<Domain>`: the copy each block visit takes shares what did not change,

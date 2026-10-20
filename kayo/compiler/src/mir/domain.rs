@@ -198,24 +198,13 @@ impl Lengths {
     }
 }
 
-/// A rough grapheme count. The real runtime needs UAX #29; this is enough
-/// to fold a literal's length and is never used to *widen* a domain.
+/// How many graphemes a text has (UAX #29), as the runtime counts them.
 pub fn grapheme_count(s: &str) -> usize {
-    let mut n = 0usize;
-    let mut prev_joiner = false;
-    for c in s.chars() {
-        let combining = matches!(c as u32, 0x0300..=0x036F | 0x0E31 | 0x0E34..=0x0E3A | 0x0E47..=0x0E4E | 0xFE00..=0xFE0F | 0x1F3FB..=0x1F3FF);
-        if c == '\u{200D}' {
-            prev_joiner = true;
-            continue;
-        }
-        if prev_joiner || combining {
-            prev_joiner = false;
-            continue;
-        }
-        n += 1;
-    }
-    n.max(if s.is_empty() { 0 } else { 1 })
+    // The pinned Unicode segmentation the runtime counts with: a hand
+    // list of combining marks counted two flags as four graphemes, and
+    // Precog then took a slice past the end as inside it (check claude,
+    // 2026-10-20: "🇹🇭🇯🇵!" is 3 graphemes, 5 points).
+    unicode_segmentation::UnicodeSegmentation::graphemes(s, true).count()
 }
 
 /// A fact about the characters of a text (`precog.md`, owner: c). The

@@ -338,3 +338,5 @@ no_cheat_calls 109
 no_cheat_held 9
 # A loop under `no_cheat` keeps its rounds and is vectorised (design claude, 2026-10-20).
 no_cheat_vector 81
+# Two flags are two graphemes, not four, to Precog too (check claude, 2026-10-20).
+grapheme_flags 30
