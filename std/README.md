@@ -7,7 +7,7 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
 
 ## What is here
 
-- `kit.cy` — the root: the `bare.optional` mark for every kind.
+- `kit.cy` — the root: the `bare.kit_prefix.optional` mark for every kind.
 - `str.cy` — `std::str.contains`, `starts_with`, `ends_with`, `split`, `join`, `replace`
   (`design/strings.md`; the argument words are `spellings.cyr`'s). They work on the bytes and call
   nothing in the runtime. Their `part`, `at` and `from` are texts of at least 1 byte, `str.utf8[min: 1

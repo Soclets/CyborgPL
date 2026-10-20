@@ -94,7 +94,7 @@ pub fn replace [lent 's': str.utf8, lent 'from': str.utf8[min: 1 bytes], lent 't
 # `at.grapheme`.
 # A position past the last unit fails out_of_range.
 pub coll.fn at {
-    bare.optional;
+    bare.kit_prefix.optional;
 
     # The byte at 'pos'.
     at.byte [lent 's': str.utf8, 'pos': u64[min: 1]] -> u8 or fail[out_of_range] {
@@ -125,7 +125,7 @@ pub coll.fn at {
 # to: pos 4]`, or `before: pos 5` to leave the end out. It fails out_of_range when the end comes before the
 # start or past the last unit, so a slice is never empty.
 pub coll.fn slice {
-    bare.optional;
+    bare.kit_prefix.optional;
 
     # Bytes 'from' to 'to', as bytes: an end may land inside a character, so making text of them is the
     # caller's `to.str.utf8[…] otherwise …` (owner, 2026-10-20: "(a)").
