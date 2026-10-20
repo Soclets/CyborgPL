@@ -90,7 +90,53 @@ pub struct Analysis {
 }
 
 /// One local's value, as far as this path knows.
-type Env = HashMap<LocalId, Domain>;
+/// What Precog knows of each local: a persistent map, so the copy each
+/// block visit takes shares what did not change (owner, 2026-10-20: "use im").
+/// Each domain is behind an `Arc` too: writing into a shared part of the map
+/// copies that part, and with the domains themselves shared the copy only
+/// counts references. An ordered map, so two that share most of their
+/// parts are compared by what differs (`diff` skips a shared part whole).
+#[derive(Clone, Default, Debug)]
+struct Env(im::OrdMap<LocalId, std::sync::Arc<Domain>>);
+
+impl Env {
+    fn new() -> Self {
+        Env::default()
+    }
+    fn get(&self, l: &LocalId) -> Option<&Domain> {
+        self.0.get(l).map(|d| &**d)
+    }
+    fn insert(&mut self, l: LocalId, d: Domain) -> Option<Domain> {
+        self.0.insert(l, std::sync::Arc::new(d)).map(|d| (*d).clone())
+    }
+    fn remove(&mut self, l: &LocalId) -> Option<Domain> {
+        self.0.remove(l).map(|d| (*d).clone())
+    }
+    fn iter(&self) -> impl Iterator<Item = (&LocalId, &Domain)> {
+        self.0.iter().map(|(l, d)| (l, &**d))
+    }
+    fn keys(&self) -> impl Iterator<Item = &LocalId> {
+        self.0.keys()
+    }
+    fn retain(&mut self, mut keep: impl FnMut(&LocalId, &Domain) -> bool) {
+        let gone: Vec<LocalId> = self.0.iter().filter(|(l, d)| !keep(l, d)).map(|(l, _)| *l).collect();
+        for l in gone {
+            self.0.remove(&l);
+        }
+    }
+}
+
+impl FromIterator<(LocalId, Domain)> for Env {
+    fn from_iter<I: IntoIterator<Item = (LocalId, Domain)>>(it: I) -> Self {
+        Env(it.into_iter().map(|(l, d)| (l, std::sync::Arc::new(d))).collect())
+    }
+}
+
+impl PartialEq for Env {
+    fn eq(&self, other: &Env) -> bool {
+        same(self, other)
+    }
+}
 
 pub fn analyse(p: &mut Program) -> Analysis {
     analyse_opts(p, true)
@@ -318,7 +364,7 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
     // Layer 2's joined block states, as facts layer 3 may lean on — only if
     // layer 2 followed every call and every trip it needed to. If it gave
     // up anywhere, a state it never saw could be a real one.
-    let facts: Facts = if a.gave_up { HashMap::new() } else { a.block_facts.clone() };
+    let facts: Facts = if a.gave_up { HashMap::new() } else { a.block_facts.iter().map(|(k, e)| (*k, e.iter().map(|(l, d)| (*l, d.clone())).collect())).collect() };
     let portfolio = smt::Portfolio::find();
     let mut solved = 0usize;
     let mut disagreements = Vec::new();
@@ -880,15 +926,21 @@ impl Precog {
                     self.block_facts.insert((f, b), env.clone());
                 }
                 Some(seen) => {
-                    seen.retain(|l, d| match env.get(l) {
-                        Some(now) => {
-                            if d != now {
-                                *d = d.union(now);
+                    // Only what differs is looked at, and written: the rest
+                    // stays shared.
+                    let mut joined = seen.clone();
+                    for item in seen.0.diff(&env.0) {
+                        match item {
+                            im::ordmap::DiffItem::Update { old: (l, d), new: (_, now) } => {
+                                joined.insert(*l, d.union(now));
                             }
-                            true
+                            im::ordmap::DiffItem::Remove(l, _) => {
+                                joined.remove(l);
+                            }
+                            im::ordmap::DiffItem::Add(..) => {}
                         }
-                        None => false,
-                    });
+                    }
+                    *seen = joined;
                 }
             }
             let widening = visits[b] as u64 > 32 || self.trips > TRIPS_PER_PROGRAM;
@@ -3021,7 +3073,7 @@ pub fn natural_loop(f: &Function, h: usize, b: usize) -> Vec<usize> {
 }
 
 fn same(a: &Env, b: &Env) -> bool {
-    a.len() == b.len() && a.iter().all(|(k, v)| b.get(k).map(|w| w == v).unwrap_or(false))
+    a.0.ptr_eq(&b.0) || a.0.diff(&b.0).next().is_none()
 }
 
 /// A loop that counts: `c` goes up by `step` exactly once a trip toward a
@@ -3259,18 +3311,29 @@ fn join(a: &Env, b: &Env, widening: bool, items: &crate::resolve::Items, ty: imp
 
 fn join_to(a: &Env, b: &Env, widening: bool, items: &crate::resolve::Items, ty: impl Fn(LocalId) -> Ty, steps: &[i128]) -> Env {
     let mut out = a.clone();
-    for (k, v) in b {
-        let merged = match a.get(k) {
-            None => v.clone(),
-            Some(old) => {
-                if widening {
-                    old.widen_to(v, &ty(*k), items, steps)
-                } else {
-                    old.union(v)
-                }
+    // Only what `b` holds differently from `a` changes `out`: a local both
+    // hold alike is joined with itself, which is itself, unless widening
+    // asks otherwise.
+    if widening {
+        for (k, v) in b.iter() {
+            let merged = match a.get(k) {
+                None => v.clone(),
+                Some(old) => old.widen_to(v, &ty(*k), items, steps),
+            };
+            out.insert(*k, merged);
+        }
+        return out;
+    }
+    for item in a.0.diff(&b.0) {
+        match item {
+            im::ordmap::DiffItem::Add(k, v) => {
+                out.insert(*k, (**v).clone());
             }
-        };
-        out.insert(*k, merged);
+            im::ordmap::DiffItem::Update { old: (k, old), new: (_, v) } => {
+                out.insert(*k, old.union(v));
+            }
+            im::ordmap::DiffItem::Remove(..) => {}
+        }
     }
     out
 }

@@ -1072,6 +1072,17 @@ Dated, with the alternative, so each can become a question later.
   programs, tests and bench were swept by script; `std/` is std claude's,
   and the suite was run against its converted copy. Earlier entries
   here keep the names of their day.
+- **2026-10-20 — Precog's table of facts is a persistent map** (owner: "use
+  im"; DECISIONS 2026-10-20). `precog::Env` is an `im::OrdMap` of
+  `Arc<Domain>`: the copy each block visit takes shares what did not change,
+  writing copies only the part written, and two tables are compared and
+  joined by `diff`, which skips a part both share whole (the join into
+  `block_facts` on every visit, `same`, `join_to`). Verdicts are unchanged;
+  std claude's `argv_round` proves in 17 s, from 31. A `HashMap` from `im`
+  first came out slower (58 s: a write copied a node of deep-cloned
+  domains, and every join still walked every local). `im` and its
+  dependencies: `bitmaps`, `sized-chunks` (MPL-2.0+, as `im`), `rand_core`,
+  `rand_xoshiro`, `typenum`, `version_check` (MIT or Apache-2.0).
 - **2026-10-20 — A loop under `no_cheat` may be vectorised** (design
   claude: "A barrier that keeps the rounds and still lets LLVM vectorise is
   what the rulings ask for"; `codegen/keep.rs`). A loop in `no_cheat` code

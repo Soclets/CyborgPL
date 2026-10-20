@@ -26,6 +26,11 @@ llvm-sys = { version = "221.1", features = ["force-dynamic"] }
 # The same pinned crate as the runtime's, so `cca version` names the Unicode
 # version every binary's grapheme clusters follow.
 unicode-segmentation = { version = "=1.13.3", default-features = false }
+# Precog's table of facts, a persistent map: a copy shares what did not
+# change (owner, 2026-10-20: "use im"; DECISIONS, "Precog's table of facts
+# becomes a persistent map"). `im`, not `im-rc`: thread-safe, so the walk
+# could later run one function per core.
+im = "15.1"
 
 [build-dependencies]
 # lld's C++ entry point, behind a small C shim (`lld/shim.cpp`).
