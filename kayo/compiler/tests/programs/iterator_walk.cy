@@ -1,29 +1,29 @@
 # Iterators (owner, 2026-10-08/09): `fn Counter.next`, called by hand and
 # by `for`, taken `lend.mut` (it remains) and `give` (gone after); `break`
 # ends an endless one, and `perm` keeps its last item.
-extern.C fn exit ['code': int32];
+extern.C fn exit ['code': i32];
 struct Counter {
-    now: int32,
-    stop: int32
+    now: i32,
+    stop: i32
 }
 
-fn Counter.next [lent.mut 'c': Counter] -> optional[int32] {
+fn Counter.next [lent.mut 'c': Counter] -> optional[i32] {
     if 'c'.now equal_to 'c'.stop { return optional.none; }
     change 'c'.now = 'c'.now plus 1;
     return optional.value['c'.now];
 }
 
 struct Forever {
-    n: int32
+    n: i32
 }
 
-fn Forever.next [lent.mut 'f': Forever] -> optional[int32] {
+fn Forever.next [lent.mut 'f': Forever] -> optional[i32] {
     change 'f'.n = 'f'.n plus 1;
     return optional.value['f'.n];
 }
 
 MAIN {
-    let mut 'sum': int32 = 0;
+    let mut 'sum': i32 = 0;
     let mut 'c' := Counter[now = 0, stop = 5];
     match Counter.next[lend.mut 'c'] {
         value 'x' { change 'sum' = 'sum' plus 'x'; }

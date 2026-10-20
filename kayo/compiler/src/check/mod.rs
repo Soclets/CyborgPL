@@ -278,8 +278,8 @@ impl Checker {
             (Ty::Infer(x), Ty::Infer(y)) if x == y => true,
             // An unknown type first known to be a bare whole number is one
             // whose width a later use may still pin: a `list.empty` given
-            // bare numbers, then handed back as a `list[int32]`, is a list
-            // of `int32`, laid out as one (examples/bounded: it was read as
+            // bare numbers, then handed back as a `list[i32]`, is a list
+            // of `i32`, laid out as one (examples/bounded: it was read as
             // a list of 64-bit numbers).
             (Ty::Infer(x), Ty::Int(crate::types::IntW::Free(InferId(0)))) | (Ty::Int(crate::types::IntW::Free(InferId(0))), Ty::Infer(x)) => {
                 let id = InferId(self.next_infer);
@@ -515,7 +515,7 @@ impl Checker {
             if matches!(got, Ty::Infer(_)) {
                 return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: every operand is a bare number and the value is not stored into a typed place", what))
                     .at(span)
-                    .try_(format!("give the result a type (`let 'x': uint32 = …`) or one operand a width (`to.uint32[…]`)")));
+                    .try_(format!("give the result a type (`let 'x': u32 = …`) or one operand a width (`to.u32[…]`)")));
             }
         }
         self.check_powers()?;

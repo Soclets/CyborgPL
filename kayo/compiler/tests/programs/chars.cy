@@ -4,22 +4,22 @@
 # failing conversions, a char as text (a byte as the point of its number,
 # the oracle's reading), `==` across units, and `++` beside text. Values
 # are known only at run time: whether an unset variable is there.
-extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-fn point ['code': int64] -> uint32 {
+extern.C fn exit ['code': i32];
+extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
+fn point ['code': i64] -> u32 {
     let 'c' := char.point.from_code['code'] otherwise { not_a_char { return 0; } };
     return char.code['c'];
 }
-fn byte ['code': int64] -> uint8 {
+fn byte ['code': i64] -> u8 {
     let 'c' := char.byte.from_code['code'] otherwise { not_a_char { return 0; } };
     return char.code['c'];
 }
 MAIN {
     let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
-    let mut 'd': int64 = 0;
+    let mut 'd': i64 = 0;
     if 'there' { change 'd' = 1; }
-    let mut 'got': int32 = 0;
+    let mut 'got': i32 = 0;
     if point[55295 plus 'd'] equal_to 0 and point[57344 minus 'd'] equal_to 0 and point[-'d'] equal_to 0 and point[1114110 plus 'd'] equal_to 1114111 { change 'got' = 'got' plus 1; }
     if byte[199 plus 'd'] equal_to 200 and byte[255 plus 'd'] equal_to 0 and point['d' minus 1] equal_to 0 { change 'got' = 'got' plus 2; }
     let 'b200' := char.byte.from_code[199 plus 'd'] otherwise `?`;

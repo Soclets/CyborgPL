@@ -1,15 +1,15 @@
-extern.C fn exit ['code': int32];
-fn inner ['n': int32] -> int32 or fail[bad: list[int32]] {
+extern.C fn exit ['code': i32];
+fn inner ['n': i32] -> i32 or fail[bad: list[i32]] {
     if 'n' < 0 { fail bad[[1, 2, 3]]; }
     return 'n';
 }
-fn outer ['n': int32] -> int32 or fail[bad: list[int32]] {
+fn outer ['n': i32] -> i32 or fail[bad: list[i32]] {
     let 'v' := inner['n'] otherwise fail;
     return 'v' plus 1;
 }
 MAIN {
     let 'ok' := outer[5] otherwise 0;
-    let mut 'n': int32 = 0;
+    let mut 'n': i32 = 0;
     outer[-1] otherwise {
         bad 'why' { change 'n' = list.length[lend 'why']; }
     };

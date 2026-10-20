@@ -716,7 +716,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             None => 0,
         };
-        // `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`: its parameters
+        // `MAIN ['argc': i32, 'argv': ptr[ptr[u8]]]`: its parameters
         // are what C's `main` kept.
         if f.is_main && f.params.len() == 2 {
             let (argc, argv) = self.main_args();
@@ -1238,7 +1238,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     fn constant(&mut self, fi: usize, c: &Const) -> Option<BasicValueEnum<'ctx>> {
         match c {
             // A literal is built at 64 bits, or at 128 when 64 cannot hold
-            // it signed — `10000000000000000000` is a fine `uint64`, and
+            // it signed — `10000000000000000000` is a fine `u64`, and
             // built at 64 bits and then widened it would read as negative.
             Const::Int(v) if *v > i64::MAX as i128 || *v < i64::MIN as i128 => {
                 let t = self.ctx.i128_type();
@@ -1269,7 +1269,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Const::Duration(n) => Some(self.ctx.i64_type().const_int(*n as u64, true).into()),
             // C's size and alignment of the type (`ffi.md`), from the
             // target's own layout. It was 8 for everything, and qsort
-            // walked an `int32` list 8 bytes at a time.
+            // walked an `i32` list 8 bytes at a time.
             Const::SizeOf { align, ty } => {
                 let t = self.ty(&ty.clone())?;
                 let n = if *align { self.target.get_abi_alignment(&t) as u64 } else { self.target.get_abi_size(&t) };
@@ -1359,7 +1359,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     fn rvalue_raw(&mut self, fi: usize, rv: &Rvalue, slots: &[Option<PointerValue<'ctx>>], sites: &[SiteId], func: FunctionValue<'ctx>, blocks: &[LlBlock<'ctx>], want: Option<BasicTypeEnum<'ctx>>, want_ty: Option<Ty>) -> Option<BasicValueEnum<'ctx>> {
         match rv {
             Rvalue::Use(o) => {
-                // A bin literal landing in a bin16 or bin32 is written at
+                // A bin literal landing in an f16 or f32 is written at
                 // that width, rounded once from its decimal: read at 64 bits
                 // first and then narrowed, a literal near a halfway point is
                 // rounded twice and can land a step off.
@@ -1386,7 +1386,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     (UnOp::Neg, BasicValueEnum::IntValue(i)) => Some(self.builder.build_int_neg(i, "neg").ok()?.into()),
                     // A negative literal is written at its place's width, as
                     // a positive one is (a brain16 -0.3 was stored as a
-                    // bin64 into two bytes); anything else is cast there.
+                    // f64 into two bytes); anything else is cast there.
                     (UnOp::Neg, BasicValueEnum::FloatValue(x)) => {
                         if let (Operand::Const(Const::Bin(text)), Some(BasicTypeEnum::FloatType(t))) = (operand, want) {
                             let neg = format!("-{}", text.replace('_', ""));
@@ -1470,7 +1470,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // side that is a place decides.
                 // Both sides literals: neither has a family, so the result's
                 // type says it — sign and width both. A product of two bare
-                // numbers going into a `uint64` is an unsigned 64-bit
+                // numbers going into a `u64` is an unsigned 64-bit
                 // multiply; checked as signed, 2 x 7726793855274730819 was
                 // an overflow that never happens. (The ordinary build folds
                 // it to its answer; `--assert-proofs` computes it.)
@@ -1587,13 +1587,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // A comparison is of the two numbers, whatever their types:
                 // each side is extended by its *own* sign, one bit wider
                 // when the signs differ, and compared signed. Extending both
-                // by the left side's sign made a `uint8` of 201 into -55,
+                // by the left side's sign made a `u8` of 201 into -55,
                 // and `198 > 201` came out true (check claude, seed 77).
                 if op.is_comparison() {
                     if let (BasicValueEnum::IntValue(x), BasicValueEnum::IntValue(y)) = (a, b) {
                         // A literal is compared at its written value, never
                         // squeezed into the other side's width: `'v' > 200`
-                        // on an `int8` is false, not a comparison with -56.
+                        // on an `i8` is false, not a comparison with -56.
                         let lit = |o: &Operand| if let Operand::Const(Const::Int(c)) = o { Some(*c) } else { None };
                         let (la, lb) = (lit(lhs), lit(rhs));
                         let (sa, sb) = (self.operand_signed(fi, lhs), self.operand_signed(fi, rhs));
@@ -1625,7 +1625,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // stored into a free-width `bin`'s `double` left half of it
                 // garbage. In arithmetic a bare literal has the typed side's
                 // width (owner, 2026-09-24: a); in a comparison it stays at
-                // 64 bits, as in the oracle: `'f' > 0.1` with a bin32 0.1 is
+                // 64 bits, as in the oracle: `'f' > 0.1` with an f32 0.1 is
                 // true.
                 if let (BasicValueEnum::FloatValue(x), BasicValueEnum::FloatValue(y)) = (a, b) {
                     let at = if op.is_comparison() {
@@ -1686,7 +1686,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
                 let t = self.ty(&to.clone())?;
                 // Widening extends by what the value *is*, not by what it
-                // becomes: a `uint8` of 250 widened to 128 bits is 250, and
+                // becomes: a `u8` of 250 widened to 128 bits is 250, and
                 // sign-extending it made it -6.
                 let from_signed = self.operand_signed(fi, operand).unwrap_or(true);
                 // Past 128 bits into a bin or brain16: rounded once from its
@@ -1896,8 +1896,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             // A shift works at the width of what it shifts; its count is a
             // count. A wider count is clamped to the width first, so one too
-            // big still trips the count's check: widened instead, `uint32
-            // shl int64` shifted at 64 bits and lost bits went unseen.
+            // big still trips the count's check: widened instead, `u32
+            // shl i64` shifted at 64 bits and lost bits went unseen.
             (BasicValueEnum::IntValue(x), BasicValueEnum::IntValue(y)) if matches!(op, BinOp::Shl | BinOp::Shr) && !x.is_const() && x.get_type().get_bit_width() != y.get_type().get_bit_width() => {
                 let xt = x.get_type();
                 let w = xt.get_bit_width();
@@ -1917,7 +1917,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // One side is a literal, which has no width of its own: it
                 // takes the other's.
                 // The literal is the one that moves, whichever is wider: a
-                // `uint64` times 10^19 is a `uint64` multiply, and the
+                // `u64` times 10^19 is a `u64` multiply, and the
                 // literal's 128-bit form is only how it was written down.
                 // Widening the other side instead checked the product at
                 // 128 bits, where it never overflows, and then truncated it.
@@ -2343,7 +2343,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// remainder the step brings to the divisor's size is 0 (owner,
     /// 2026-10-02: b), so it stays below it; `mod.floor`'s 0 takes the
     /// divisor's sign, `mod.ceil`'s is `+0`, any other is `fmod`'s.
-    /// A brain16 or bin16 is worked at 32 bits, as its other arithmetic is,
+    /// A brain16 or f16 is worked at 32 bits, as its other arithmetic is,
     /// and its remainder asked again at its own width, where one more can
     /// round to the divisor.
     fn bin_div_round(&mut self, x: inkwell::values::FloatValue<'ctx>, y: inkwell::values::FloatValue<'ctx>, want_mod: bool, round: crate::ast::Round) -> Option<inkwell::values::FloatValue<'ctx>> {
@@ -3040,7 +3040,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             (BasicValueEnum::IntValue(i), BasicTypeEnum::FloatType(t)) => self.builder.build_signed_int_to_float(i, t, "fit").map(|x| x.into()).unwrap_or(v),
             // Through `float_cast`, so a value narrowed to nothing lands as
-            // 0, never -0 (examples/zero_everywhere: `'w': bin32 = 'e30'
+            // 0, never -0 (examples/zero_everywhere: `'w': f32 = 'e30'
             // times 'e30' times (-1.0)` printed -0).
             (BasicValueEnum::FloatValue(x), BasicTypeEnum::FloatType(t)) if x.get_type() != t => self.float_cast(x, t).map(|y| y.into()).unwrap_or(v),
             _ => v,
@@ -3129,7 +3129,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
         // A list, map or channel handed over by place has the callee's
         // layout only if its elements have the callee's widths: a
-        // `list[int64]` read as a `list[int32]` is garbage. What that should
+        // `list[i64]` read as a `list[i32]` is garbage. What that should
         // do is not decided (`cca/README.md`); until it is, it is not built.
         let want: Option<Vec<Ty>> = match callee {
             // A variadic's bundle is built from the rest by the call, so
@@ -3532,7 +3532,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 Some(Some(agg.into()))
             }
             // The number under a character (`conversion.md`): a byte's is a
-            // `uint8`, a point's a `uint32`, and the char already is it.
+            // `u8`, a point's a `u32`, and the char already is it.
             Op::CharCode => {
                 let v = self.operand(fi, args.first()?, slots)?.into_int_value();
                 let want = match dest_ty.as_ref().and_then(|t| self.ty(t)) {
@@ -3939,10 +3939,10 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let _ = self.guard(fi, id, bad, func);
     }
 
-    /// A value going into a bin16 or bin32 that Precog could not prove fits:
+    /// A value going into an f16 or f32 that Precog could not prove fits:
     /// it fits when rounding it to the width gives a finite value — a finite
     /// value that rounds to infinity went past the largest one (65520 into a
-    /// bin16). Until now a bin narrowing generated no check at all.
+    /// f16). Until now a bin narrowing generated no check at all.
     fn bin_narrow_check(&mut self, fi: usize, id: SiteId, bits: u16, site: &crate::mir::Site, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) {
         let Some(o) = site.operands.first() else { return };
         let o = match o.place() {
@@ -4038,7 +4038,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         };
         let (Some(i), Some(n)) = (site.operands.first().map(read), site.operands.get(1).map(read)) else { return };
         let (Some(i), Some(n)) = (self.operand(fi, &i, slots), self.operand(fi, &n, slots)) else { return };
-        // In 128 bits, each extended by its own sign, so a `uint64`
+        // In 128 bits, each extended by its own sign, so a `u64`
         // position past 2^63 is a big number and not a negative one.
         let w = self.ctx.i128_type();
         let si = site.operands.first().and_then(|o| self.operand_signed(fi, o)).unwrap_or(true);
@@ -4908,8 +4908,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let Some(t) = &c.ty else { continue };
             let mut spelled = crate::types::TySpelling { ty: t, structs: &self.p.items.structs, enums: &self.p.items.enums }.to_string();
             match t.base() {
-                Ty::Int(IntW::Free(_)) => spelled.push_str(" (built as int64)"),
-                Ty::Bin(BinW::Free(_)) => spelled.push_str(" (built as bin64)"),
+                Ty::Int(IntW::Free(_)) => spelled.push_str(" (built as i64)"),
+                Ty::Bin(BinW::Free(_)) => spelled.push_str(" (built as f64)"),
                 _ => {}
             }
             if let crate::ast::ExprKind::Incl { path, .. } = &c.value.kind {

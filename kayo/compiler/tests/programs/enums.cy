@@ -1,10 +1,10 @@
-extern.C fn exit ['code': int32];
+extern.C fn exit ['code': i32];
 enum Shape {
     dot,
-    line: int32,
-    box: int32
+    line: i32,
+    box: i32
 }
-fn measure ['s': Shape] -> int32 {
+fn measure ['s': Shape] -> i32 {
     match 's' {
         dot        { return 1; }
         line 'n'   { return 'n' plus 10; }

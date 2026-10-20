@@ -312,9 +312,9 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
 }
 
 /// A function the target names, `my.serial.write`, of the Neuron being
-/// built, of the shape its field asks: an `output` takes one `uint8` or a
-/// `lent` `array[uint8]` (owner, 2026-10-09: "Yeah", both); an `exit` takes
-/// the code, a `uint8` as `cord::exit`'s is. Neither returns a value or fails.
+/// built, of the shape its field asks: an `output` takes one `u8` or a
+/// `lent` `array[u8]` (owner, 2026-10-09: "Yeah", both); an `exit` takes
+/// the code, a `u8` as `cord::exit`'s is. Neither returns a value or fails.
 fn board_fn(items: &Items, written: &str, at: crate::source::Span, field: &str) -> Result<(crate::resolve::FnId, crate::resolve::OutputForm)> {
     use crate::resolve::{ItemRef, OutputForm};
     use crate::types::{ParamKind, SeqKind, Ty};
@@ -343,9 +343,9 @@ fn board_fn(items: &Items, written: &str, at: crate::source::Span, field: &str) 
     } else if field == "output" && plain && one(ParamKind::Lent, &Ty::Seq { elem: Box::new(byte.clone()), kind: SeqKind::Array }) {
         OutputForm::Chunk
     } else if field == "output" {
-        return err(Diagnostic::error(format!("the target's `output`, `fn {}`, takes the bytes `std::print` writes in one of two forms: `['b': uint8]`, a byte a call, or `[lent 'bytes': array[uint8]]`, a chunk a call; returning nothing and never failing", written)).at(at).why_at(f.name_span, "declared here"));
+        return err(Diagnostic::error(format!("the target's `output`, `fn {}`, takes the bytes `std::print` writes in one of two forms: `['b': u8]`, a byte a call, or `[lent 'bytes': array[u8]]`, a chunk a call; returning nothing and never failing", written)).at(at).why_at(f.name_span, "declared here"));
     } else {
-        return err(Diagnostic::error(format!("the target's `exit`, `fn {}`, takes the code `std::exit` is given, `['code': uint8]`, returning nothing and never failing", written)).at(at).why_at(f.name_span, "declared here"));
+        return err(Diagnostic::error(format!("the target's `exit`, `fn {}`, takes the code `std::exit` is given, `['code': u8]`, returning nothing and never failing", written)).at(at).why_at(f.name_span, "declared here"));
     };
     Ok((id, form))
 }

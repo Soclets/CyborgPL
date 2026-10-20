@@ -1,4 +1,4 @@
-//! Money, an official lobe (`design/cores.md`; owner, 2026-10-07): deci32, deci64 and deci128.
+//! Money, an official lobe (`design/cores.md`; owner, 2026-10-07): d32, d64 and d128.
 //! Empty for now: its features still live in the Brainstem (`synapse/compiler`)
 //! as switches, and move here at their step of `synapse/LIMBS.md`'s build
 //! order.

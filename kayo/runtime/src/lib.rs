@@ -204,7 +204,7 @@ pub extern "C" fn rust_eh_personality() {}
 // ----------------------------------------------------------------- memory
 //
 // `ffi.md`: the language has no raw-allocation primitive — "bytes you can
-// name are a `list[uint8]`". So allocating is the runtime's job, and it
+// name are a `list[u8]`". So allocating is the runtime's job, and it
 // stands on the C allocator the platform already has rather than carrying
 // one of its own. A list, a map and a built text all come through here.
 
@@ -951,7 +951,7 @@ pub unsafe extern "C" fn cyborg_wide_to_text(out: *mut Text, mag: *mut u64, word
 }
 
 /// A number held as kits of nine decimal digits, least significant first:
-/// enough for the most digits a `bin64`'s expansion needs, m x 5^1074
+/// enough for the most digits an `f64`'s expansion needs, m x 5^1074
 /// (767).
 struct Big {
     kits: [u32; 96],
@@ -1011,7 +1011,7 @@ impl Big {
 /// A bin as text, in its stored form: "the full decimal expansion of the
 /// stored binary" (DECISIONS, 2026-09-14) — every digit, no exponent, no
 /// trailing zeros, `-0` kept; `infinity`, `-infinity` and `NaN` as the
-/// oracle spells them. A `bin16` or `bin32` comes widened to 64 bits,
+/// oracle spells them. An `f16` or `f32` comes widened to 64 bits,
 /// which is exact, so its expansion is its own.
 ///
 /// # Safety
@@ -1260,10 +1260,10 @@ fn bin_grammar(b: &[u8]) -> Option<Written<'_>> {
     Some(Written { neg, int, frac, exp })
 }
 
-/// `x` (the digits read at 64 bits) rounded to a bin16, returned as the
-/// 64-bit value it is. 64 bits hold more than twice a bin16's precision,
+/// `x` (the digits read at 64 bits) rounded to an f16, returned as the
+/// 64-bit value it is. 64 bits hold more than twice an f16's precision,
 /// so rounding twice goes wrong only when `x` lands exactly halfway
-/// between two bin16 values; there the written digits decide.
+/// between two f16 values; there the written digits decide.
 /// The width code of a `brain16` (owner, 2026-10-02), where a call takes a
 /// bin's width: the brain float, 8 exponent bits and 7 of precision.
 pub const BRAIN: u32 = 0xB16;
@@ -1272,7 +1272,7 @@ fn round_to_half(x: f64, w: &Written) -> f64 {
     round_to(x, w, 10, -14, 65504.0)
 }
 
-/// To the nearest brain16: bin32's exponents, 7 bits of precision; its
+/// To the nearest brain16: f32's exponents, 7 bits of precision; its
 /// largest is (2 - 2^-7) x 2^127.
 fn round_to_brain(x: f64, w: &Written) -> f64 {
     round_to(x, w, 7, -126, 3.3895313892515355e38)

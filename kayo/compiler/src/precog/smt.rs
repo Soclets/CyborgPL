@@ -316,7 +316,7 @@ fn read_sexp(b: &[u8], mut i: usize) -> Option<(String, usize)> {
 }
 
 /// A model body that is a plain number, written the way the type reads
-/// it: a `uint8` of 200 is 200 and not −56.
+/// it: a `u8` of 200 is 200 and not −56.
 fn literal(v: &str, signed: bool) -> Option<String> {
     if v == "true" || v == "false" {
         return Some(v.to_string());
@@ -874,7 +874,7 @@ impl<'a> Enc<'a> {
                                 // so far went wrong: past one that did, the
                                 // program has stopped, and nothing after it
                                 // is reached (`5 div 'v'` landing in a
-                                // `uint64` after the division by 'v' "proved"
+                                // `u64` after the division by 'v' "proved"
                                 // 'v' was never 0).
                                 let ok = if self.reached.is_empty() { "true".to_string() } else { format!("(not (or false {}))", self.reached.join(" ")) };
                                 self.defs.push(format!("(assert (=> (and {} {}) (not {})))", guard, ok, bad));
@@ -1117,10 +1117,10 @@ impl<'a> Enc<'a> {
             return;
         }
         // A value is held at its local's width: a sum asked at its true
-        // value lands in an `int64` as the machine stores it. One that does
+        // value lands in an `i64` as the machine stores it. One that does
         // not fit stopped at the landing's own site, so nothing after it
         // sees the difference.
-        // And read by its local's sign: a bare 1 stored in a `uint64` is
+        // And read by its local's sign: a bare 1 stored in a `u64` is
         // unsigned from here on, or a later widening would sign-extend it.
         let v = v.map(|v| match int_shape(&self.func().locals[place.local.0 as usize].ty.clone()) {
             Some((bits, signed)) => self.resize(v, bits, signed),
@@ -1374,9 +1374,9 @@ impl<'a> Enc<'a> {
                 }
                 let (a, b) = self.same_width(a, b);
                 // The operation's sign is its typed side's — a bare number
-                // beside a `uint64` does not make it signed — and a shift's
+                // beside a `u64` does not make it signed — and a shift's
                 // is its left operand's alone (check claude, 2026-09-29:
-                // `'d' shr 35` on a `uint64` was an arithmetic shift).
+                // `'d' shr 35` on a `u64` was an arithmetic shift).
                 let signed = match (op, lhs) {
                     (BinOp::Shl | BinOp::Shr, _) => a.signed,
                     (_, Operand::Const(_)) => b.signed,
@@ -1461,8 +1461,8 @@ impl<'a> Enc<'a> {
     /// Compare a value against a constant bound, at a width that holds
     /// both of them.
     ///
-    /// A bound need not fit the value's own width: a `uint32` is asked
-    /// whether it is below 0, an `int32` whether it is above 4294967295.
+    /// A bound need not fit the value's own width: a `u32` is asked
+    /// whether it is below 0, an `i32` whether it is above 4294967295.
     /// Asked at the value's width the constant wraps — 4294967295 as 32
     /// bits *is* −1 — and the solver then answers truthfully about a
     /// different question. That is how a query could come back `unsat`
@@ -1663,7 +1663,7 @@ impl<'a> Enc<'a> {
             // The count outside 0 to width - 1, for `shl` and `shr`; and for
             // `shl`, an answer that no longer fits the type — as layer 2
             // asks. Only the count was asked here, and a `shl` that moved
-            // bits out of a uint32 in a loop was "proven" and wrapped at run
+            // bits out of a u32 in a loop was "proven" and wrapped at run
             // time (check claude, seed 9148). The width is the result
             // type's, not the operand's.
             SiteKind::ShiftWidth | SiteKind::ShiftCount => {

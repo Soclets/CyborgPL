@@ -3,31 +3,31 @@
 # effects (a walk writing before and after its call), a failure climbing
 # out from deep down, two calls with different arguments, recursion far
 # deeper than the levels unfolded, and two functions calling each other.
-extern.C fn exit ['code': int32];
+extern.C fn exit ['code': i32];
 
-fn fib ['n': int64[min 0, max 92]] -> int64 {
+fn fib ['n': i64[min 0, max 92]] -> i64 {
     if 'n' < 2 { return 'n'; }
     return fib['n' - 1] + fib['n' - 2];
 }
 
-fn walk ['n': int32[min 0, max 6]] -> str.utf8 {
+fn walk ['n': i32[min 0, max 6]] -> str.utf8 {
     if 'n' equal_to 0 { return str.empty; }
     return to.stored.str.utf8['n'] concat walk['n' - 1] concat to.stored.str.utf8[10 + 'n'];
 }
 
-fn depth ['n': int32[min 0, max 5000]] -> int32 {
+fn depth ['n': i32[min 0, max 5000]] -> i32 {
     if 'n' equal_to 0 { return 0; }
     return depth['n' - 1] + 1;
 }
 
-fn find ['n': int32[min 0, max 50]] -> int32 or fail[missing] {
+fn find ['n': i32[min 0, max 50]] -> i32 or fail[missing] {
     if 'n' equal_to 0 { fail missing; }
     if 'n' equal_to 7 { return 7; }
     let 'r' := find['n' - 1] otherwise fail;
     return 'r' + 1;
 }
 
-fn ack ['m': int64[min 0, max 2], 'n': int64[min 0, max 20]] -> int64 {
+fn ack ['m': i64[min 0, max 2], 'n': i64[min 0, max 20]] -> i64 {
     if 'm' equal_to 0 { return 'n' + 1; }
     if 'n' equal_to 0 { return ack['m' - 1, 1]; }
     let 'inner' := ack['m', 'n' - 1];
@@ -35,18 +35,18 @@ fn ack ['m': int64[min 0, max 2], 'n': int64[min 0, max 20]] -> int64 {
     return ack['m' - 1, 'inner'];
 }
 
-fn even ['n': int32[min 0, max 5000]] -> bool {
+fn even ['n': i32[min 0, max 5000]] -> bool {
     if 'n' equal_to 0 { return true; }
     return odd['n' - 1];
 }
 
-fn odd ['n': int32[min 0, max 5000]] -> bool {
+fn odd ['n': i32[min 0, max 5000]] -> bool {
     if 'n' equal_to 0 { return false; }
     return even['n' - 1];
 }
 
 MAIN {
-    let mut 'got': int32 = 0;
+    let mut 'got': i32 = 0;
     if fib[30] equal_to 832040 { change 'got' = 'got' + 1; }
     if walk[4] equal_to "432111121314" { change 'got' = 'got' + 2; }
     if depth[4000] equal_to 4000 { change 'got' = 'got' + 4; }

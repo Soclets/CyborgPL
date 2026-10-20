@@ -1,12 +1,12 @@
 # A check that fires in a slice stops the program as in order (parallel
-# `for`, owner 2026-09-30): 'i' into an int8 fails at 128, whichever slice
+# `for`, owner 2026-09-30): 'i' into an i8 fails at 128, whichever slice
 # gets there first.
-extern.C fn exit ['code': int32];
+extern.C fn exit ['code': i32];
 MAIN {
-    let 'n': int64 = 200000;
-    let mut 'xs': list[int8] = list.fill[value 0, count 'n'];
-    for 'i': int64 from 1 to 'n' by 1 {
-        change 'xs'[pos 'i'] = to.int8['i'];
+    let 'n': i64 = 200000;
+    let mut 'xs': list[i8] = list.fill[value 0, count 'n'];
+    for 'i': i64 from 1 to 'n' by 1 {
+        change 'xs'[pos 'i'] = to.i8['i'];
     }
-    no_check my.exit[to.int32['xs'[pos 1]]];
+    no_check my.exit[to.i32['xs'[pos 1]]];
 }

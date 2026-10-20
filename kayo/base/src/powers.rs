@@ -200,7 +200,7 @@ mod tests {
     fn a_favour_reaches_only_the_ids_it_names() {
         let mut l = kit("fav", &[Power::new("operators_on_builtin_types")]);
         l.grants.push(Grant { power: Power::new("operators_on_builtin_types"), by: "IEG".into(), to: Some(vec!["abc".into()]) });
-        let op = Use { kit: "fav".into(), path: vec!["operators_on_builtin_types".into()], thing: None, doing: "defines `op mean` on a `bin64`".into(), at: 0 };
+        let op = Use { kit: "fav".into(), path: vec!["operators_on_builtin_types".into()], thing: None, doing: "defines `op mean` on an `f64`".into(), at: 0 };
         assert!(matches!(check(&op, &l, &[]), Err(Refusal::NotGranted { .. })));
         l.id = Some("abc".into());
         assert_eq!(check(&op, &l, &[]), Ok(()));

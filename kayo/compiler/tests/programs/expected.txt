@@ -174,7 +174,7 @@ strict_file 181
 # C's numbers checked wherever they come in; to.Key; NO_FUCKING_CHECKS (owner, 2026-09-27).
 c_enum_convert 203
 c_door_everywhere 31
-# A C variable holds C's plain number; to.int32[Mode.vi]; ptr.read of a C enum (owner, 2026-09-28).
+# A C variable holds C's plain number; to.i32[Mode.vi]; ptr.read of a C enum (owner, 2026-09-28).
 c_variables 110
 # A match gives a value; for 'i', 'x' gives the position (owner, 2026-09-29).
 for_position 238
@@ -309,7 +309,7 @@ drops_print_found 11
 const_into_deci 210
 # incl.bytes: a new array each time, changed freely (owner, 2026-10-10).
 incl_bytes_change 67
-# A bare whole number past int64 is held wide enough, not wrapped.
+# A bare whole number past i64 is held wide enough, not wrapped.
 bare_past_64_bits 99
 # `before` in a counting loop and a slice (owner, 2026-10-12).
 count_before 170

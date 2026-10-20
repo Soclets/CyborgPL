@@ -516,7 +516,7 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
-    /// The digits after `binary`, `hex` or `octal`, as the decimal number
+    /// The digits after `bin`, `hex` or `oct`, as the decimal number
     /// they are.
     fn based(&mut self, start: usize, word: &str, radix: u32) -> Result<()> {
         let digits_at = self.pos;
@@ -527,8 +527,8 @@ impl<'a> Lexer<'a> {
         // `_` groups digits: one, between two of them.
         if written.starts_with('_') || written.ends_with('_') || written.contains("__") {
             let shown = match radix {
-                2 => "binary 1_0",
-                8 => "octal 7_0",
+                2 => "bin 1_0",
+                8 => "oct 7_0",
                 _ => "hex F_0",
             };
             return self.fail(start, format!("`_` groups digits: one between two of them (`{}`)", shown));
@@ -555,8 +555,8 @@ impl<'a> Lexer<'a> {
         if self.peek() == Some('0') && matches!(self.peek_at(1), Some('x' | 'X' | 'b' | 'B' | 'o' | 'O')) && self.peek_at(2).is_some_and(|c| c.is_ascii_alphanumeric()) {
             let word = match self.peek_at(1) {
                 Some('x' | 'X') => "hex",
-                Some('b' | 'B') => "binary",
-                _ => "octal",
+                Some('b' | 'B') => "bin",
+                _ => "oct",
             };
             self.bump();
             self.bump();
@@ -629,9 +629,11 @@ impl<'a> Lexer<'a> {
         // A whole number in another base (owner, 2026-10-19: "(a)"): a word
         // in front, then its digits, the same number a decimal one is.
         if let Some(radix) = match text.as_str() {
-            "binary" => Some(2u32),
+            // `bin` and `oct` since 2026-10-20 (owner: "(a)"); `binary` and
+            // `octal` are old spellings, refused by `spellings.cyr`'s rows.
+            "bin" => Some(2u32),
             "hex" => Some(16),
-            "octal" => Some(8),
+            "oct" => Some(8),
             _ => None,
         } {
             let spaces = (0..).take_while(|&k| matches!(self.peek_at(k), Some(' ') | Some('\t'))).count();

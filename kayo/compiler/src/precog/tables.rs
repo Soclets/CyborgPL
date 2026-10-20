@@ -111,7 +111,7 @@ impl Precog {
                 (None, Some(b)) => (b, format!("`{}`'s `table_bytes`", target)),
                 (None, None) => (DEFAULT_TABLE_BYTES, "the default, 65,536".to_string()),
             };
-            // Counted without wrapping: an `int128`'s range has more values
+            // Counted without wrapping: an `i128`'s range has more values
             // than an `i128` holds, and wrapped it counted none.
             let count = ranges.iter().try_fold(1u128, |acc, (lo, hi)| hi.checked_sub(*lo).and_then(|d| d.checked_add(1)).filter(|n| *n > 0).and_then(|n| acc.checked_mul(n as u128)));
             let Some(count) = count.filter(|c| *c >= 1 && *c <= u64::MAX as u128).map(|c| c as u64) else { continue };
@@ -122,7 +122,7 @@ impl Precog {
             }
             if bytes > limit || count > MAX_ENTRIES {
                 // Only a near miss is worth a line: a function on whole
-                // `int64`s was never going to be one.
+                // `i64`s was never going to be one.
                 if count <= MAX_ENTRIES * 16 {
                     not.push(NotTable { function: f, why: format!("{} entries would be {} bytes, over {} ({} bytes)", count, bytes, limit_from, limit) });
                 }

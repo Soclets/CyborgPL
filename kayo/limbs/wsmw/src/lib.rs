@@ -1,4 +1,4 @@
-//! WSMW, an official lobe (`design/cores.md`; owner, 2026-10-07): int128, uint128 and every not_std. width.
+//! WSMW, an official lobe (`design/cores.md`; owner, 2026-10-07): i128, u128 and every not_std. width.
 //! Empty for now: its features still live in the Brainstem (`synapse/compiler`)
 //! as switches, and move here at their step of `synapse/LIMBS.md`'s build
 //! order.

@@ -244,7 +244,7 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
         // it. Folding one that is not proven would take its check with it:
         // layer 1's answer is the mathematician's, worked out in 128 bits,
         // and the instruction may not be able to give it. `(-28014) +
-        // (-23953)` at `int16` fails every time, and the ordinary build
+        // (-23953)` at `i16` fails every time, and the ordinary build
         // printed the folded answer while `--assert-proofs` stopped (check
         // claude, seed 25).
         let guarded_by_open_site = p.functions.get(*f).and_then(|func| func.blocks.get(*b)).map_or(false, |blk| {
@@ -603,7 +603,7 @@ impl Precog {
     /// run of the body has one of these tuples, and its calls were to tuples
     /// already done (or were given the return type's whole range), so every
     /// site's verdict, merged over the tuples, holds for every call. `fib`
-    /// on `int64[0, 92]` proves `fib['n' - 1] + fib['n' - 2]` fits.
+    /// on `i64[0, 92]` proves `fib['n' - 1] + fib['n' - 2]` fits.
     fn by_induction(&mut self, i: usize, params: &[LocalId], env: &Env, depth: u32) -> Option<Domain> {
         let func = &self.prog().functions[i];
         let calls_itself = func.blocks.iter().any(|b| matches!(&b.term, Terminator::Call { callee: Callee::Fn(idx), .. } if idx.0 as usize == i));
@@ -700,7 +700,7 @@ impl Precog {
         // them that only the type's floor added (the table filled from the
         // bottom, so the dry run need not find 9, 8, 7, … one at a time)
         // are never run for real, and their verdicts are not the program's:
-        // f2[0, 1] with 'p1' a `uint64` put p1 = 0 in the table, and the
+        // f2[0, 1] with 'p1' a `u64` put p1 = 0 in the table, and the
         // divisor -p1 was "always zero" (check claude, seed 3593).
         let mut reached: std::collections::BTreeSet<Vec<i128>> = asked.iter().cloned().collect();
         let mut todo: Vec<Vec<i128>> = asked.clone();
@@ -1093,7 +1093,7 @@ impl Precog {
                             // and a block inside the loop keeps what its
                             // condition just established. Widening at any
                             // busy block threw `'i' </== 'n'` away in the
-                            // body — `'i'` went back to `int64`'s top — and
+                            // body — `'i'` went back to `i64`'s top — and
                             // lost an interval across nested loops (check
                             // claude, seed 316).
                             let at_head = heads.contains(&i);
@@ -1382,7 +1382,7 @@ impl Precog {
     /// borrow passed along) says where it points; anything else is written
     /// where it points. Precog wrote only the borrow, so a list changed
     /// through `for 'x' in lend.mut` kept its old elements here, and a
-    /// narrowing of one was "proven" (`'xs'[1] x 50` into an int8 after
+    /// narrowing of one was "proven" (`'xs'[1] x 50` into an i8 after
     /// the 2s became 6s).
     fn through_borrow(&mut self, f: usize, env: &mut Env, place: &Place, rvalue: &Rvalue, d: &Domain) {
         let func = &self.prog().functions[f];
@@ -1436,12 +1436,12 @@ impl Precog {
     }
 
     fn store(&mut self, f: usize, env: &mut Env, p: &Place, d: Domain) {
-        // A bin16 or bin32 is rounded to its width where it lands (oracle
-        // 3996169; DECISIONS 2026-09-14: a bin32 0.1 is
-        // 0.100000001490116119384765625). Kept at 64 bits, a bin32 0.1
+        // An f16 or f32 is rounded to its width where it lands (oracle
+        // 3996169; DECISIONS 2026-09-14: an f32 0.1 is
+        // 0.100000001490116119384765625). Kept at 64 bits, an f32 0.1
         // folded `'c' > 0.1` to false.
         // Widened by a step, but never past the largest: what would round
-        // past it is its own site's to stop. A bin32's whole range widened
+        // past it is its own site's to stop. An f32's whole range widened
         // to infinity, and `0.0 x 'one'` read as "no number, every time".
         let within = |x: f64, bits: u16| match crate::mir::domain::bin_max(crate::types::BinW::Fixed(bits)) {
             Some(m) if !x.is_nan() => x.clamp(-m, m),
@@ -1668,7 +1668,7 @@ impl Precog {
                     }
                 }
                 // Known values are executed outright (`precog.md`, layer 1):
-                // `5 and.bit 0` is 0, not "anything a `uint8` holds".
+                // `5 and.bit 0` is 0, not "anything a `u8` holds".
                 BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr => match x.bitwise(y, op) {
                     Some(s) => s,
                     None => return Domain::of_ty(&ty, &self.prog().items),
@@ -2002,7 +2002,7 @@ impl Precog {
             // of the per-lane domains `simd.md` describes. Lane-wise
             // operators are then the scalar rule, and a lane read is any
             // lane: sound, and enough to see `simd.fill[200]` doubled
-            // leave a `uint8` (simd_lane_step).
+            // leave a `u8` (simd_lane_step).
             Op::SimdFill | Op::SimdShuffle(_) | Op::SimdMax | Op::SimdMin => arg(self, 0),
             Op::SimdLoad => match arg(self, 0) {
                 Domain::Seq { elem, .. } => *elem,
@@ -2124,7 +2124,7 @@ impl Precog {
                     let d = self.arg_domain(f, env, a);
                     // Only what passes the argument's own narrowing arrives
                     // (check claude, 2026-09-29: a -1 that could never land
-                    // in a `uint64` was walked into the callee, which then
+                    // in a `u64` was walked into the callee, which then
                     // looked wrong every time).
                     let pty = self.prog().functions[i].locals[p.0 as usize].ty.clone();
                     let d = match (&d, Domain::of_ty(&pty, &self.prog().items)) {
@@ -2490,10 +2490,10 @@ impl Precog {
                     let (Some(Domain::Duration(a)), Some(Domain::Duration(b))) = (ds.first(), ds.get(1)) else { return Verdict::Unproven };
                     return self.fits_type(&Domain::Duration(a.sub(b)), to);
                 }
-                // A literal into a plain bin16 or bin32 is decided from its
+                // A literal into a plain f16 or f32 is decided from its
                 // written digits, rounded once as codegen writes it: read at
-                // 64 bits first, `…568447.0` landed on bin32's limit and was
-                // refused, though it rounds to bin32's largest.
+                // 64 bits first, `…568447.0` landed on f32's limit and was
+                // refused, though it rounds to f32's largest.
                 if let (Some(Operand::Const(Const::Bin(text))), None) = (site.operands.first(), to.bound()) {
                     if let Some(fits) = literal_fits_bin(text, to) {
                         return if fits { Verdict::Proven { how: "layer 2" } } else { Verdict::Fails { counterexample: format!("every time: {} rounds past the largest `{}`", text, self.spell(to)) } };
@@ -2502,7 +2502,7 @@ impl Precog {
                 // A deci literal into a deci range (check claude, seed 8049):
                 // compared exactly with the range's written ends. Precog
                 // follows no deci value, so this was never proven, and a
-                // `#strict` file refused `deci64[0.0, 1.0] = 0.79`.
+                // `#strict` file refused `d64[0.0, 1.0] = 0.79`.
                 if let (Some(Operand::Const(Const::Deci { bits, value })), Ty::Deci(_), Some(crate::types::Bound::Bin { lo, hi, .. })) = (site.operands.first(), to.base(), to.bound()) {
                     let v = crate::deci::decode(*value, *bits);
                     let end = |t: &str| crate::deci::literal(t, 128).ok().map(|x| crate::deci::decode(x, 128));
@@ -2528,7 +2528,7 @@ impl Precog {
                     None => return Verdict::Unproven,
                 };
                 // At the type's true width, any width (owner, 2026-10-03):
-                // `1 shl 127` into a `uint128` is 2^127, worked here past
+                // `1 shl 127` into a `u128` is 2^127, worked here past
                 // `i128`, where `1 << 127` came out negative.
                 let Ty::Int(crate::types::IntW::Fixed { signed, bits }) = ty.base() else { return Verdict::Unproven };
                 let width = crate::resolve::storage(*signed, *bits).1 as i128;
@@ -2551,7 +2551,7 @@ impl Precog {
                     // An exact answer shifted lands in the width first, and
                     // that is this site's question too: the generated code
                     // checks it here (check claude, seed 28123: -1 shifted
-                    // at a `uint32` width was "proven" by its count alone).
+                    // at a `u32` width was "proven" by its count alone).
                     if ty_of(self, 0).is_some_and(|t| t.is_exact()) {
                         return self.fit_wide(&a, &limit, &ty);
                     }
@@ -2731,10 +2731,10 @@ impl Precog {
             (Domain::Bins { lo, hi }, Domain::Bins { lo: llo, hi: lhi }) => {
                 let (Some(a), Some(b)) = (lo, hi) else { return Verdict::Unproven };
                 let (Some(x), Some(y)) = (llo, lhi) else { return Verdict::Proven { how: "layer 2" } };
-                // A plain bin16 or bin32 holds what rounds to a finite value
+                // A plain f16 or f32 holds what rounds to a finite value
                 // of it: up to, not including, the largest plus half a step
                 // (the tie rounds to even, which is past it). 65519 is a
-                // bin16's 65504; 65520 is infinity.
+                // f16's 65504; 65520 is infinity.
                 if to.bound().is_none() {
                     if let Some(limit) = bin_round_limit(to) {
                         if *a > -limit && *b < limit {
@@ -2852,7 +2852,7 @@ fn foldable(rv: &Rvalue) -> bool {
 }
 
 /// The one value a domain holds, when it holds exactly one. Bins are left
-/// alone: rounding at `bin16` and `bin128` is not modelled yet, and a fold
+/// alone: rounding at `f16` and `f128` is not modelled yet, and a fold
 /// is where that would first tell a lie.
 fn known_const(d: &Domain) -> Option<Const> {
     match d {
@@ -3672,7 +3672,7 @@ fn round_out(x: f64, bits: u16, up: bool) -> f64 {
         };
         return step(r, up) as f64;
     }
-    // bin16 and brain16: a unit in the last place, relative, and the
+    // f16 and brain16: a unit in the last place, relative, and the
     // smallest step.
     if bits == crate::types::BRAIN_BITS {
         let w = x.abs() * 2f64.powi(-7) + 2f64.powi(-133);
@@ -3682,9 +3682,9 @@ fn round_out(x: f64, bits: u16, up: bool) -> f64 {
     if up { x + w } else { x - w }
 }
 
-/// Where rounding to a plain bin16 or bin32 goes past its largest value:
-/// the largest plus half a step. None for bin64, whose every finite value
-/// is already a bin64.
+/// Where rounding to a plain f16 or f32 goes past its largest value:
+/// the largest plus half a step. None for f64, whose every finite value
+/// is already an f64.
 fn bin_round_limit(to: &Ty) -> Option<f64> {
     match to.base() {
         Ty::Bin(crate::types::BinW::Fixed(16)) => Some(65520.0),
@@ -3698,8 +3698,8 @@ fn bin_round_limit(to: &Ty) -> Option<f64> {
 /// half a step above it, 2^128 - 2^119 (the tie goes to infinity).
 const BRAIN_ROUND_LIMIT: f64 = 3.3961775292304600e38;
 
-/// Whether a bin literal, as written, rounds to a finite plain bin16 or
-/// bin32: its magnitude below the rounding limit (65520, or 2^128 - 2^103;
+/// Whether a bin literal, as written, rounds to a finite plain f16 or
+/// f32: its magnitude below the rounding limit (65520, or 2^128 - 2^103;
 /// the limit itself ties, and the tie goes to infinity). Both limits are
 /// whole, so the integer digits decide: below the limit's, it fits; the
 /// limit's own or more, it does not. None when it is not that kind of

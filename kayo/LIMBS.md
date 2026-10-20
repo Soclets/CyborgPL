@@ -52,7 +52,7 @@ lets `concur` and `for para` parse; and so on. Concretely, today:
 | MCPS | `concur`, `whichever`, `channel`, `for para` in the gate; `par.rs`, `codegen/par.rs`, `codegen/tasks.rs` |
 | unicode | a parser pre-scan refusing a name past ASCII (was WSTN); `str.utf16`, `char.grapheme`, counting and `case.any` in the gate (was UniTect and CAPS) |
 | CNC | `extern.C`, `incl.C`, `layout.C` and the `C.` types in the gate; `cheader.rs`, the `C.` types in `target.rs` |
-| AI, WSMW, Money | words in the gate (`brain16`, `int128`, `not_std.`, `deci64`, …); their meaning still all of `check/` |
+| AI, WSMW, Money | words in the gate (`brain16`, `i128`, `not_std.`, `d64`, …); their meaning still all of `check/` |
 | IEG, TAS | retired (2026-10-12): `no_check`, the marking rule in every kit, `on.machine`, `test fn` and `must` are the base's, which grants `vouch` and the operator powers to every kit |
 | std | not a limb: a kit KAYO\n does not have yet (`std::` is a stub) |
 | MTM | gone (2026-10-07): its spellings are old ones, refused by name in every kit |
@@ -146,7 +146,7 @@ pub trait Limb {
   | Hook | Example today |
   |---|---|
   | a statement word | `concur …`, `whichever …`, `check …` |
-  | a prefix head, `head.…[…]` | `to.int8[…]`, `to.int8.bits[…]` |
+  | a prefix head, `head.…[…]` | `to.i8[…]`, `to.i8.bits[…]` |
   | a narrowing after an operator | `.wrap`, `.masked`, `.ieee` |
   | a word operator, with a level | `mean`, std's `plus` |
   | a prefix operator | std's `-`, `!` |

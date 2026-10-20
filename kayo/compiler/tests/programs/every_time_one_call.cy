@@ -3,14 +3,14 @@
 # fits, and with 5e18, where it never does; the second call is behind an
 # `if` the run does not take, so the program ends 2. It was refused as
 # failing every time it reaches the multiply.
-extern.C fn exit ['code': int32];
-fn double ['p': int64] -> int64 {
+extern.C fn exit ['code': i32];
+fn double ['p': i64] -> i64 {
     return 'p' times 2;
 }
-MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] {
-    let mut 'code': int64 = double[1];
+MAIN ['argc': i32, 'argv': ptr[ptr[u8]]] {
+    let mut 'code': i64 = double[1];
     if 'argc' > 5 {
         change 'code' = double[5000000000000000000];
     }
-    no_check my.exit[to.int32['code' mod.floor 256]];
+    no_check my.exit[to.i32['code' mod.floor 256]];
 }

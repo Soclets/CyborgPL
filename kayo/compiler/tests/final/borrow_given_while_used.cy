@@ -3,7 +3,7 @@
 # used after is refused.
 fn eat ['s': str.utf8] { }
 fn first [lent 'a': str.utf8] -> lent str.utf8 { return lend 'a'; }
-fn len [lent 's': str.utf8] -> uint64 { return str.bytes[lend 's']; }
+fn len [lent 's': str.utf8] -> u64 { return str.bytes[lend 's']; }
 MAIN {
     let 's' := "hello";
     let 'l' := first[lend 's'];

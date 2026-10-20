@@ -1,15 +1,15 @@
 # A C variable holds C's plain number (owner, 2026-09-28: b): it converts to
-# a C enum with `to.Mode[…]` and back with `to.int32[Mode.vi]`, and a
+# a C enum with `to.Mode[…]` and back with `to.i32[Mode.vi]`, and a
 # `ptr.read` of a C enum fails `out_of_range` for a number no case has
 # (examples/c_variables.cpls, with libc's own `optind` as the C variable, so
 # the oracle cannot link it and the answer is worked out by hand: 1, 11, 10
 # → 100 + 10 + 0 = 110).
-extern.C fn exit ['code': int32];
-extern.C fn malloc ['bytes': uint64] -> ptr.mut[Mode];
+extern.C fn exit ['code': i32];
+extern.C fn malloc ['bytes': u64] -> ptr.mut[Mode];
 extern.C fn free ['p': ptr.mut[Mode]];
-extern.C mut 'optind': int32;
+extern.C mut 'optind': i32;
 layout.C enum Mode { emacs = 0, vi = 1 }
-fn mode_at ['p': ptr[Mode]] -> int32 {
+fn mode_at ['p': ptr[Mode]] -> i32 {
     no_check let 'm' := ptr.read['p'] otherwise Mode.emacs;
     match 'm' {
         emacs { return 10; }
@@ -17,7 +17,7 @@ fn mode_at ['p': ptr[Mode]] -> int32 {
     }
 }
 MAIN {
-    no_check change 'optind' = to.int32[Mode.vi];
+    no_check change 'optind' = to.i32[Mode.vi];
     no_check let 'raw' := 'optind';
     let 'current' := to.Mode['raw'] otherwise Mode.emacs;
     no_check let 'mem' := malloc[8];
@@ -26,5 +26,5 @@ MAIN {
     no_check let 'a' := mode_at['mem'];
     no_check let 'b' := mode_at[ptr.at['mem', by 1]];
     no_check free['mem'];
-    no_check my.exit[to.int32['current'] times 100 plus ('a' minus 10) times 10 plus ('b' minus 10)];
+    no_check my.exit[to.i32['current'] times 100 plus ('a' minus 10) times 10 plus ('b' minus 10)];
 }

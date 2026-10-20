@@ -1,5 +1,5 @@
 //! C strings (owner, 2026-10-19; `design/ffi.md` § C strings):
-//! `C.str.make` makes a text's bytes and a 0, a `list[uint8]` the program
+//! `C.str.make` makes a text's bytes and a 0, a `list[u8]` the program
 //! owns and lends to C as a pointer to its first byte; `C.str.read` reads a
 //! C string up to its 0 into a text. The work is the runtime's
 //! (`cyborg_cstr_make`, `cyborg_cstr_read`).

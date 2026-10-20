@@ -157,7 +157,7 @@ pub enum Op {
     ToList,
     ToArray,
     ArrayLength,
-    /// A new `array[uint8]` of the bytes its one argument holds as hex.
+    /// A new `array[u8]` of the bytes its one argument holds as hex.
     InclBytes,
     /// A const array read in place (owner, 2026-10-10): its one argument
     /// the const, the result the program's own copy of it, never freed
@@ -223,8 +223,8 @@ pub enum Rvalue {
     Binary { op: BinOp, lhs: Operand, rhs: Operand },
     /// `to.T[…]` that cannot fail (the failing ones are a `Call`).
     /// `useful`: a bin into a `deci` as its shortest decimal
-    /// (`to.useful.deci64[…]`), not its exact value; into text, the useful form.
-    /// `bits`: `to.int8.bits[…]` (owner, 2026-10-06), the value's bits
+    /// (`to.useful.d64[…]`), not its exact value; into text, the useful form.
+    /// `bits`: `to.i8.bits[…]` (owner, 2026-10-06), the value's bits
     /// read as the type's, the value checked first to have at most them.
     Convert { to: Ty, operand: Operand, useful: bool, bits: bool },
     MakeList(Vec<Operand>),
@@ -265,7 +265,7 @@ pub enum SiteKind {
     /// `list.fill`'s count: a count is 0 or more (owner, 2026-09-30).
     FillCount,
     /// A text position, `std::str.at.X` / `str.slice.X`'s: 1 or more, a
-    /// `uint64[min 1]` (owner, 2026-10-17: "(a)"); past the end is the
+    /// `u64[min 1]` (owner, 2026-10-17: "(a)"); past the end is the
     /// call's `out_of_range`, not this.
     Position,
     /// `list.slice[…, a, b]`: `1 <= a <= b + 1 <= length + 1` —
@@ -304,7 +304,7 @@ impl SiteKind {
             SiteKind::SliceRange => "the slice can run outside the list, or backwards".into(),
             SiteKind::NegativeExponent => "a negative exponent on integers would produce a fraction".into(),
             SiteKind::FillCount => "`list.fill` of fewer than 0 copies: a count is 0 or more".into(),
-            SiteKind::Position => "0 is no position: a position is `uint64[min 1]`".into(),
+            SiteKind::Position => "0 is no position: a position is `u64[min 1]`".into(),
             SiteKind::SimdRange { lanes } => format!("the {} lanes can run past the end", lanes),
             SiteKind::SimdSome { lanes } => format!("the items for {} lanes can run past the end, or be more than the lanes", lanes),
             SiteKind::KeyHashAgrees => "two keys this says are equal can hash differently, and the map would hold both".into(),
@@ -339,7 +339,7 @@ pub struct Site {
     pub tier: Option<Tier>,
     /// The type the value has to fit — the *result's*, which is not the
     /// same as either operand's: `'total' x 'n'` with `'total'` an
-    /// `int32[0, 1000]` is computed as an `int32`, and the store into the
+    /// `i32[0, 1000]` is computed as an `i32`, and the store into the
     /// narrower type is its own site.
     pub result_ty: Option<Ty>,
     pub span: SpanId,

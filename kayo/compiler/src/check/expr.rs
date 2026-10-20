@@ -67,7 +67,7 @@ impl Checker {
                 }
             }
             AK::Bin(t) => Ok(Expr { kind: K::Bin(t.clone()), ty: FREE_BIN, span }),
-            // A deci whose width its place gives: `deci64` under `:=`.
+            // A deci whose width its place gives: `d64` under `:=`.
             AK::Exact(t) => Ok(Expr { kind: K::Bin(t.clone()), ty: Ty::Deci(EXACT_FREE), span }),
             AK::Typed { value, ty } => self.typed_literal(ctx, value, ty, span),
             AK::Str(s) => Ok(Expr { kind: K::Str(s.clone()), ty: Ty::Str(Enc::Free(InferId(0))), span }),
@@ -246,7 +246,7 @@ impl Checker {
             AK::Value(_) => err(Diagnostic::error("`value` labels what a fill fills with: `list.fill[value 0, count 10]`, `simd.fill[value 0]`").at(span)),
             AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one only goes where a list is read, sliced or loaded: `'xs'[pos 2]`, `simd.load[lend 'xs', pos 'i']`").at(span)),
             AK::Match { value, arms } => self.match_value(ctx, value, arms, span),
-            AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` alone does not say which `{}`: hand it where a function is wanted — a parameter, or `let 'f': fn[int32, int32] -> int32 = op {};`", spelled, spelled, spelled)).at(span)),
+            AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` alone does not say which `{}`: hand it where a function is wanted — a parameter, or `let 'f': fn[i32, i32] -> i32 = op {};`", spelled, spelled, spelled)).at(span)),
             AK::Range { .. } => err(Diagnostic::error("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not").at(span)),
         }
     }
@@ -692,7 +692,7 @@ impl Checker {
     /// Make `v` acceptable where a `target` is stored: a bare literal adopts
     /// the family; families must match; widths and bounds are Precog's
     /// check sites, not the checker's.
-    /// `5: uint8` (owner, 2026-10-17): a literal, of the type after it,
+    /// `5: u8` (owner, 2026-10-17): a literal, of the type after it,
     /// which it must fit, refused when building otherwise; never a name,
     /// which `to.T[…]` converts. A leading `-` is the literal's.
     fn typed_literal(&mut self, ctx: &mut FnCtx, value: &ast::Expr, ty: &ast::Type, span: Span) -> Result<Expr> {
@@ -711,7 +711,7 @@ impl Checker {
                     AK::Name(q) => format!("'{}'", q.name),
                     _ => "…".to_string(),
                 };
-                return err(Diagnostic::error(format!("only a literal takes a type with `:` here (`5: uint8`); convert a variable: `to.{}[{}]`", tname, what)).at(value.span));
+                return err(Diagnostic::error(format!("only a literal takes a type with `:` here (`5: u8`); convert a variable: `to.{}[{}]`", tname, what)).at(value.span));
             }
         };
         let written = format!("{}{}{}", if exact { "exactly " } else { "" }, if neg { "-" } else { "" }, text);
@@ -758,8 +758,8 @@ impl Checker {
         let vt = self.resolve(&v.ty);
         // `simd.fill` into a declared vector: the declared lanes win, and
         // the value is fitted into one as a typed `let` fits it (owner,
-        // 2026-10-19: "yea" to (a)). `simd.fill[value 5: uint8]` into a
-        // `simd[int32, count 4]` is four `int32` lanes of 5.
+        // 2026-10-19: "yea" to (a)). `simd.fill[value 5: u8]` into a
+        // `simd[i32, count 4]` is four `i32` lanes of 5.
         let fill_lane = match (t.base(), vt.base(), &v.kind) {
             (Ty::Simd { elem: lane, .. }, Ty::Simd { elem: had, .. }, K::Call { callee: hir::Callee::Builtin(hir::Builtin::SimdFill), args, .. })
                 if matches!(args.first(), Some(hir::Arg::Value(_))) && self.resolve(lane) != self.resolve(had) && !matches!(self.resolve(had).base(), Ty::Var(_)) =>
@@ -783,9 +783,9 @@ impl Checker {
         // A bare integer literal takes its context's family; a *name* never
         // does (owner, 2026-09-22): Precog's freedom is over representation —
         // width, list or array, map order, which checks survive — never over
-        // meaning, and 70000 in a `bin16` would silently become 69984.
+        // meaning, and 70000 in an `f16` would silently become 69984.
         // Bare numbers in a `deci` place are decimals, exactly as written
-        // (owner, 2026-09-29): `let 'a': deci64 = 0.1 + 0.2;` is 0.3.
+        // (owner, 2026-09-29): `let 'a': d64 = 0.1 + 0.2;` is 0.3.
         if matches!(vt.base(), Ty::Deci(EXACT_FREE)) && matches!(t.base(), Ty::Bin(_) | Ty::Int(_)) {
             return err(Diagnostic::error(format!("a `*` literal is exactly what is written, a deci, and {} is {}, which cannot hold it exactly: drop the `*` for a bin, or make it a `deci`", what, article(&self.spell(&t)))).at(v.span));
         }
@@ -856,8 +856,8 @@ impl Checker {
             }
         }
         // Arithmetic made only of literals has no family either, so in a
-        // typed place it takes the place's: `'m': uint64 =
-        // 9223372036854775807 + 1` is a `uint64` sum, 2^63, not an
+        // typed place it takes the place's: `'m': u64 =
+        // 9223372036854775807 + 1` is a `u64` sum, 2^63, not an
         // `integer` one that overflows.
         let mut v = v;
         // A vector whose lanes were left to its context takes them from the
@@ -875,7 +875,7 @@ impl Checker {
             if literal_only(&v) {
                 // Bare numbers with only plain math between them are worked
                 // out exactly and checked where they land (owner,
-                // 2026-09-23): `let 'tiny': int8 = (100 + 100) - 150;` is
+                // 2026-09-23): `let 'tiny': i8 = (100 + 100) - 150;` is
                 // 50, and the 200 in between is fine. A shift, `not.bit` or
                 // wrapping operator still takes its width from here.
                 // In between, the limit is the width it lands in, at least
@@ -933,7 +933,7 @@ impl Checker {
         }
         if self.unify(&vt, &t) {
             // A list literal is built as the place's list: a struct's
-            // field or an argument holds `list[int32]`, never the bare
+            // field or an argument holds `list[i32]`, never the bare
             // numbers' own 64-bit `list[integer]` (examples/gradebook: Bo's
             // `[40, 55]` was read as 40, 0 once appended to).
             let mut v = v;
@@ -1019,7 +1019,7 @@ impl Checker {
             }
             UnOp::NotBit => {
                 // On an exact answer, at the size of its values: `not.bit
-                // ('v' + 1)` with 'v' a `uint32` flips 32 bits
+                // ('v' + 1)` with 'v' a `u32` flips 32 bits
                 // (`widths.cpls`), not 65.
                 if vt.is_exact() {
                     let ty = self.size_of_values(&v).ok_or_else(|| Box::new(Diagnostic::error("not yet: `not.bit` on an exact answer whose operands have different sizes (or none left to see) — which size it flips is open").at(span)))?;
@@ -1032,7 +1032,7 @@ impl Checker {
                         self.widths_pending.push((t.clone(), span, "not.bit".to_string()));
                         return Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty: t, span });
                     }
-                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error("`not.bit` only knows a declared width: it flips every bit, so the value needs a type (`let 'x': uint8 = …`)").at(span)),
+                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error("`not.bit` only knows a declared width: it flips every bit, so the value needs a type (`let 'x': u8 = …`)").at(span)),
                     other => return err(Diagnostic::error(format!("`not.bit` works on integers, and this is {}", crate::types::a_type(&self.spell(other)))).at(span)),
                 }
                 let ty = vt.base().clone();
@@ -1087,13 +1087,13 @@ impl Checker {
     fn binary_checked(&mut self, ctx: &mut FnCtx, op: &BinOp, op_span: Span, mut l: Expr, mut r: Expr, lt: Ty, mut rt: Ty, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
         // A comparison compares true values (owner, 2026-09-23), so a group
         // of bare numbers on either side is worked out exactly — not held at
-        // `int64` beside another bare number (seed 439), nor squeezed into
+        // `i64` beside another bare number (seed 439), nor squeezed into
         // the other side's width.
         let mut lt = lt;
         if op.is_comparison() && lt.is_int() && rt.is_int() {
             // At the other side's width, or the bare numbers' own size,
             // at least 64 bits (owner, 2026-10-03): `'m' == -2^126` beside
-            // an `int128`.
+            // an `i128`.
             let side = |t: &Ty| match t.base() {
                 Ty::Int(IntW::Fixed { bits, .. }) if bits & crate::types::EXACT_FLAG != 0 => bits & !crate::types::EXACT_FLAG,
                 Ty::Int(IntW::Fixed { bits, .. }) => *bits,
@@ -1178,7 +1178,7 @@ impl Checker {
                         self.widths_pending.push((t.clone(), op_span, op.spelled().to_string()));
                         return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: t, span });
                     }
-                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error(format!("`{}` wraps at the type's size, so it only knows a declared one: give the left operand a type (`let 'x': uint32 = …`)", op.spelled())).at(op_span)),
+                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error(format!("`{}` wraps at the type's size, so it only knows a declared one: give the left operand a type (`let 'x': u32 = …`)", op.spelled())).at(op_span)),
                     other => return err(Diagnostic::error(format!("`{}` wraps an integer, and this is {}: it only knows a declared integer width", op.spelled(), crate::types::a_type(&self.spell(other)))).at(op_span)),
                 }
                 if !rt.is_int() {
@@ -1188,7 +1188,7 @@ impl Checker {
                 // A group of bare numbers beside the typed side is plain
                 // maths, as wide as its own values need, landing in the
                 // operator's width (check claude, seed 34247: `'v'
-                // plus.wrap (9223372036854775807 plus 1)` with a `uint64`).
+                // plus.wrap (9223372036854775807 plus 1)` with a `u64`).
                 let mut r = r;
                 exact_group(&mut r);
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty, span })
@@ -1279,12 +1279,12 @@ impl Checker {
                     let (bad, side) = if !lt.is_int() { (&lt, &l) } else { (&rt, &r) };
                     // A shift whose width is not known yet is a widthless
                     // shift: a count gives nothing inside it a width (owner,
-                    // 2026-10-17: "(a)", check claude's `to.int64[1] shl (5
-                    // shr to.uint8[1])`).
+                    // 2026-10-17: "(a)", check claude's `to.i64[1] shl (5
+                    // shr to.u8[1])`).
                     if bad.is_infer() {
                         if let K::Binary { op: inner, op_span: at, .. } = &side.kind {
                             if inner.is_shift() {
-                                return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: declare where the value goes (`let 'v': uint32 = 1 {} 3;`) or write `to.uint32[1] {} 3`", inner.spelled(), inner.spelled(), inner.spelled())).at(*at));
+                                return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: declare where the value goes (`let 'v': u32 = 1 {} 3;`) or write `to.u32[1] {} 3`", inner.spelled(), inner.spelled(), inner.spelled())).at(*at));
                             }
                         }
                     }
@@ -1340,8 +1340,8 @@ impl Checker {
                 // maths: worked exactly, as wide as its own values need,
                 // then landing in the operator's width (check claude, seeds
                 // 25263 and 26090: `'v' xor (15803055715966303544 minus 8)`
-                // with a `uint64` 'v' is one 64-bit pattern, not past
-                // `int64`).
+                // with a `u64` 'v' is one 64-bit pattern, not past
+                // `i64`).
                 let (mut l, mut r) = (l, r);
                 if matches!(ty, Ty::Int(IntW::Fixed { .. })) {
                     for side in [&mut l, &mut r] {
@@ -1433,7 +1433,7 @@ impl Checker {
             match &e.kind {
                 K::Binary { lhs, rhs, .. } => walk(this, lhs, sizes, lanes) && walk(this, rhs, sizes, lanes),
                 // A negative keeps its operand's size (check claude:
-                // `(-('a' minus 1)) shr 1` with an `int8` 'a').
+                // `(-('a' minus 1)) shr 1` with an `i8` 'a').
                 K::Unary { expr, .. } => walk(this, expr, sizes, lanes),
                 _ => false,
             }
@@ -1445,7 +1445,7 @@ impl Checker {
     }
 
     /// Wrapping is at one size, always written (owner, 2026-09-23: b): a
-    /// sum of `int8` and `int16` says which with `to.int16[…]` first.
+    /// sum of `i8` and `i16` says which with `to.i16[…]` first.
     fn wrap_size(&self, op: &BinOp, op_span: Span, sides: &[&Expr]) -> Result<Ty> {
         let mut all: Vec<Ty> = Vec::new();
         for e in sides {
@@ -1476,7 +1476,7 @@ impl Checker {
     }
 
     fn open_size(&self, op: &BinOp, op_span: Span) -> Box<Diagnostic> {
-        Box::new(Diagnostic::error(format!("`{}` on an exact answer works at the width of its typed operands, and these have different sizes (or none left to see): say which first — `to.uint32[…]`", op.spelled())).at(op_span))
+        Box::new(Diagnostic::error(format!("`{}` on an exact answer works at the width of its typed operands, and these have different sizes (or none left to see): say which first — `to.u32[…]`", op.spelled())).at(op_span))
     }
 
     /// A lane-wise operator. The rule is the scalar rule, N times.
@@ -1491,7 +1491,7 @@ impl Checker {
                     return err(Diagnostic::error(format!("`{}` works lane by lane, and these are different lengths: {} and {}", op.spelled(), lanes, l2)).at(op_span));
                 }
                 // The side that says its lanes says them for both: a
-                // `simd.fill[10]` beside a `simd[int32, 4]` is four int32s.
+                // `simd.fill[10]` beside a `simd[i32, 4]` is four int32s.
                 let (a, b) = (self.resolve(elem), self.resolve(e2));
                 let free = |t: &Ty| matches!(t.base(), Ty::Int(IntW::Free(_)) | Ty::Bin(BinW::Free(_)) | Ty::Var(_));
                 let lane = if free(&a) && !free(&b) { b } else { a };
@@ -1681,7 +1681,7 @@ impl Checker {
         // owner 2026-10-07) takes it from here too: from a typed operand
         // beside it, or, beside bare numbers, from where the whole value
         // goes, which they share (`((0 minus 53) shr 'c') mod.floor 23`
-        // stored into an `int64`).
+        // stored into an `i64`).
         let pending = |this: &Self, t: &Ty| matches!(t, Ty::Infer(_)) && this.widths_pending.iter().any(|(p, _, _)| this.resolve(p) == *t);
         if pending(self, &lt) || pending(self, &rt) {
             let (mut l, mut r) = (l, r);
@@ -1706,7 +1706,7 @@ impl Checker {
                 }
                 _ => {}
             }
-            return Err(Box::new(Diagnostic::error(format!("`{}` beside a shift whose width is still open: give the shifted number a type (`to.int64[…]`)", op.spelled())).at(op_span)));
+            return Err(Box::new(Diagnostic::error(format!("`{}` beside a shift whose width is still open: give the shifted number a type (`to.i64[…]`)", op.spelled())).at(op_span)));
         }
         if matches!(lt.base(), Ty::Deci(_)) || matches!(rt.base(), Ty::Deci(_)) {
             return self.deci_pair(l, r, &lt, &rt, op, op_span);
@@ -1727,9 +1727,9 @@ impl Checker {
         };
         // A bare whole-number literal takes the family of the other side
         // (`types.md`: "a bare numeric literal has no family of its own: it
-        // takes the family of its context"). `'n' + 1` with `'n'` a `uint64`
-        // is a `uint64` sum; joining the two made it an `integer`, which
-        // cannot hold the upper half of a `uint64` and read it as negative.
+        // takes the family of its context"). `'n' + 1` with `'n'` a `u64`
+        // is a `u64` sum; joining the two made it an `integer`, which
+        // cannot hold the upper half of a `u64` and read it as negative.
         // A `:=` name whose width is still open is not a literal: that
         // choice stays Precog's.
         let lt = self.resolve(&l.ty);
@@ -1745,7 +1745,7 @@ impl Checker {
         let plain = matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_)) || op.is_comparison();
         // Bare numbers compared with bare numbers are worked out exactly
         // too: `3876992840477302775 + 7782534087963747351 > 0` is true — the
-        // sum is one some 64-bit type holds — not a sum held at `int64`
+        // sum is one some 64-bit type holds — not a sum held at `i64`
         // that stops (check claude, seed 439).
         if op.is_comparison() {
             if let (Ty::Int(IntW::Free(_)), Ty::Int(IntW::Free(_))) = (lt.base(), rt.base()) {
@@ -1764,7 +1764,7 @@ impl Checker {
                 if matches!(a, IntW::Fixed { .. }) || matches!(b, IntW::Fixed { .. }) {
                     let (mut l, mut r) = (l, r);
                     // In between, the limit is the widest operand's width,
-                    // at least 64 bits (owner, 2026-10-03): two `int128`s
+                    // at least 64 bits (owner, 2026-10-03): two `i128`s
                     // add at 128 bits, two `!std_uint256`s at 256.
                     let width = |w: &IntW| match w {
                         IntW::Fixed { bits, .. } if bits & crate::types::EXACT_FLAG != 0 => bits & !crate::types::EXACT_FLAG,
@@ -1790,8 +1790,8 @@ impl Checker {
         }
         // Bare numbers alone are worked out exactly (dc83c05), a group of
         // them as `div`'s or `mod`'s other side too: `'p' mod (((221 x 2)
-        // mod 5) + 1)` with 'p' a `uint8` divides by 3, where the group took
-        // `uint8` and its `221 x 2` was refused (check claude, seed 4698).
+        // mod 5) + 1)` with 'p' a `u8` divides by 3, where the group took
+        // `u8` and its `221 x 2` was refused (check claude, seed 4698).
         // The division is then exact as well, and lands where it is stored
         // — as `'p' + (…)` already does. A lone literal still takes the
         // other side's type.
@@ -1872,7 +1872,7 @@ impl Checker {
             return Ok((l, r, Ty::Brain));
         }
         let other = if lt.is_brain() { &rt } else { &lt };
-        err(Diagnostic::error(format!("`{}` between a brain16 and {}: the brain float is a family of its own — convert one side first, `to.brain16[…]` or `to.bin32[…]`", op.spelled(), article(&self.spell(other)))).at(op_span))
+        err(Diagnostic::error(format!("`{}` between a brain16 and {}: the brain float is a family of its own — convert one side first, `to.brain16[…]` or `to.f32[…]`", op.spelled(), article(&self.spell(other)))).at(op_span))
     }
 
     /// Both sides of an operator where one is a `deci` (owner, 2026-09-29):
@@ -1898,7 +1898,7 @@ impl Checker {
         match (lt.base(), rt.base()) {
             (Ty::Deci(b), other) if *b != EXACT_FREE && !matches!(other, Ty::Deci(x) if *x != EXACT_FREE) && deci_group(&r) => into_deci(&mut r, *b)?,
             (other, Ty::Deci(b)) if *b != EXACT_FREE && !matches!(other, Ty::Deci(x) if *x != EXACT_FREE) && deci_group(&l) => into_deci(&mut l, *b)?,
-            // Two exact literals with nothing else to say: both `deci64`.
+            // Two exact literals with nothing else to say: both `d64`.
             (Ty::Deci(EXACT_FREE), Ty::Deci(EXACT_FREE)) => {
                 into_deci(&mut l, 64)?;
                 into_deci(&mut r, 64)?;
@@ -1924,10 +1924,10 @@ impl Checker {
         match (lt.base(), rt.base()) {
             (Ty::Deci(a), Ty::Deci(b)) if a == b => Ok((l, r, Ty::Deci(*a))),
             (Ty::Deci(a), Ty::Deci(b)) => {
-                let wide = format!("deci{}", (*a).max(*b));
-                err(Diagnostic::error(format!("`{}` between a deci{} and a deci{}: say which width, `to.{}[…]`", op.spelled(), a, b, wide)).at(op_span))
+                let wide = format!("d{}", (*a).max(*b));
+                err(Diagnostic::error(format!("`{}` between a d{} and a d{}: say which width, `to.{}[…]`", op.spelled(), a, b, wide)).at(op_span))
             }
-            (Ty::Deci(b), _) | (_, Ty::Deci(b)) => err(Diagnostic::error(format!("`{}` between a deci and another number family: there is no implicit conversion between numeric families; `to.deci{}[…]`", op.spelled(), b)).at(op_span)),
+            (Ty::Deci(b), _) | (_, Ty::Deci(b)) => err(Diagnostic::error(format!("`{}` between a deci and another number family: there is no implicit conversion between numeric families; `to.d{}[…]`", op.spelled(), b)).at(op_span)),
             _ => unreachable!("deci_pair without a deci"),
         }
     }
@@ -2669,7 +2669,7 @@ impl Checker {
             if variadic {
                 // A typed variadic holds values of its type, whatever each
                 // argument's own width (a bare number's is none): `...'nums':
-                // int32` is a list of int32, not of the exact type.
+                // i32` is a list of i32, not of the exact type.
                 let typed = decl.params.last().and_then(|p| p.ty.as_ref()).is_some();
                 match &a {
                     Arg::Spread { expr, count } => {
@@ -3002,7 +3002,7 @@ impl Checker {
                 // type from use (`types.md`), and a lend hands over the
                 // value where it is, so the callee's width is the one it has
                 // to be. Left at the exact width, `total[lend 'xs']` on a
-                // `list[int32]` read the wrong layout.
+                // `list[i32]` read the wrong layout.
                 if place.proj.is_empty() {
                     let pty_r = self.resolve(pty);
                     if let Some(adopted) = adopt_widths(&pt, &pty_r) {
@@ -3011,7 +3011,7 @@ impl Checker {
                 }
                 // "A lend hands over the value where it is, so the sizes
                 // must match" (owner, 2026-09-24: a; `ownership-syntax.md`):
-                // a `list[int64]` lent to a `list[int32]`. Bounds change no
+                // a `list[i64]` lent to a `list[i32]`. Bounds change no
                 // layout; a width not written and a blank `<T>` are not
                 // compared.
                 if matches!(verb, Verb::Lend | Verb::LendMut) {
@@ -3068,7 +3068,7 @@ impl Checker {
                     if self.resolve(pty).contains_var() {
                         let vt = self.resolve(&v.ty);
                         let op = self.widths_pending.iter().find(|(t, _, _)| self.resolve(t) == vt).map(|(_, _, w)| w.clone()).unwrap_or_else(|| "this".into());
-                        return err(Diagnostic::error(format!("`{}` needs to know which width it works in, and a generic parameter gives none: give an operand a type (`to.uint8[0] minus.wrap 1`)", op)).at(e.span));
+                        return err(Diagnostic::error(format!("`{}` needs to know which width it works in, and a generic parameter gives none: give an operand a type (`to.u8[0] minus.wrap 1`)", op)).at(e.span));
                     }
                 }
                 let v = self.expect_store(ctx, v, pty, &what)?;
@@ -3229,7 +3229,7 @@ impl Checker {
                     let vt = self.resolve(&v.ty);
                     if !self.unify(&vt, pty) {
                         // A pointer to another target than C's (owner,
-                        // 2026-10-10: `FILE` is not `uint8`), with the way
+                        // 2026-10-10: `FILE` is not `u8`), with the way
                         // to say it is meant.
                         if let Ty::Ptr { elem: got, .. } = vt.base() {
                             let (want, got) = (self.spell(elem), self.spell(got));
@@ -3460,8 +3460,8 @@ impl Checker {
     }
 
     fn conversion(&mut self, ctx: &mut FnCtx, target: &ast::Type, operand: &ast::Expr, otherwise: Option<&ast::Otherwise>, span: Span, used: bool) -> Result<Expr> {
-        // `to.useful.deci64[…]`: a bin's shortest decimal (owner,
-        // 2026-09-29), where `to.deci64[…]` is its exact value; and
+        // `to.useful.d64[…]`: a bin's shortest decimal (owner,
+        // 2026-09-29), where `to.d64[…]` is its exact value; and
         // `to.useful.str.utf8[…]`, the useful text, where `to.str.utf8` is
         // the exact one. `.useful` follows the verb (owner, 2026-09-30).
         // `to.stored.` / `to.useful.` (owner, 2026-10-02): where a value has
@@ -3469,7 +3469,7 @@ impl Checker {
         // deci — the conversion says which.
         let (form, stripped) = conv_form(target)?;
         let target = stripped.as_ref().unwrap_or(target);
-        // `to.deci32.written[…]` (owner, 2026-10-09: "yea, `.written`"):
+        // `to.d32.written[…]` (owner, 2026-10-09: "yea, `.written`"):
         // text's digits counted as written, trailing zeros included.
         let mut written = false;
         let unwritten;
@@ -3483,7 +3483,7 @@ impl Checker {
             }
             _ => target,
         };
-        // `to.int8.bits[…]` (owner, 2026-10-06): the raw form, the Brainstem's since 2026-10-08.
+        // `to.i8.bits[…]` (owner, 2026-10-06): the raw form, the Brainstem's since 2026-10-08.
         if let ast::TypeKind::Path { path, args } = &target.kind {
             if path.segs.len() >= 2 && path.segs.last().is_some_and(|s| s.name == "bits") {
                 let mut p = path.clone();
@@ -3496,7 +3496,7 @@ impl Checker {
         if let Some(u) = form {
             if !matches!(t.base(), Ty::Str(_) | Ty::Deci(_)) {
                 let f = if u { "useful" } else { "stored" };
-                return err(Diagnostic::error(format!("`to.{}` makes text or a deci: `to.{}.str.utf8[…]`, `to.{}.deci64[…]`; `to.{}` has one form", f, f, f, self.spell(&t))).at(span));
+                return err(Diagnostic::error(format!("`to.{}` makes text or a deci: `to.{}.str.utf8[…]`, `to.{}.d64[…]`; `to.{}` has one form", f, f, f, self.spell(&t))).at(span));
             }
         }
         let mut useful = form == Some(true);
@@ -3507,12 +3507,12 @@ impl Checker {
             let t = self.resolve(&v.ty);
             let what = self.widths_pending.iter().find(|(p, _, _)| self.resolve(p) == t).map(|(_, at, w)| (w.clone(), *at));
             if let Some((w, at)) = what {
-                return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: a conversion takes its value as it is, so the shifted number needs a type (`to.int64[…] shr …`)", w)).at(at));
+                return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: a conversion takes its value as it is, so the shifted number needs a type (`to.i64[…] shr …`)", w)).at(at));
             }
         }
         // Bare numbers alone are worked out exactly, whatever is between
-        // them: `to.uint64[0 / ((2 / 10047273927188643194) + 1)]` divides by
-        // 1. Held at `int64`, the big one read as negative (seed 371).
+        // them: `to.u64[0 / ((2 / 10047273927188643194) + 1)]` divides by
+        // 1. Held at `i64`, the big one read as negative (seed 371).
         if literal_only(&v) && matches!(self.resolve(&v.ty).base(), Ty::Int(IntW::Free(_))) && matches!(t.base(), Ty::Int(_)) {
             let to = exact_for(&v);
             retype_literal_arith(&mut v, &to);
@@ -3530,7 +3530,7 @@ impl Checker {
             // Into or out of a `deci` (owner, 2026-09-29): the list is
             // shared with the code generator, which finds each failure's
             // arm by its place in it.
-            // A brain16 widens to a bin64 exactly, and a deci reaches a
+            // A brain16 widens to an f64 exactly, and a deci reaches a
             // brain16 through one: the bin's conversions, failures and all.
             (Ty::Brain, Ty::Deci(_)) => fails.extend(crate::deci::conv_fails(&Ty::Bin(BinW::Fixed(64)), &t, None).unwrap_or_default()),
             (Ty::Deci(_), Ty::Brain) => fails.extend(crate::deci::conv_fails(&vt, &Ty::Bin(BinW::Fixed(64)), None).unwrap_or_default()),
@@ -3549,8 +3549,8 @@ impl Checker {
             (Ty::Int(_), Ty::Int(_)) => {}
             (Ty::Int(_), Ty::Bin(_)) => {}
             // The brain float (owner, 2026-10-02): into it rounds, from a
-            // number or from text; out of it, a bin32 or bin64 is exact,
-            // a bin16 a check site past its largest, an integer as from a bin.
+            // number or from text; out of it, an f32 or f64 is exact,
+            // an f16 a check site past its largest, an integer as from a bin.
             (Ty::Int(_) | Ty::Bin(_) | Ty::Brain, Ty::Brain) => {}
             (Ty::Str(_), Ty::Brain) => fails.extend(["not_a_number", "out_of_range"]),
             (Ty::Brain, Ty::Bin(_)) => {}
@@ -3598,7 +3598,7 @@ impl Checker {
                     fails.push(if *to == Unit::Point { "not_one_point" } else { "not_one_byte" });
                 }
             }
-            (Ty::Char(_), Ty::Int(_)) => return err(Diagnostic::error("a character does not convert to a number: `to.int32[`7`]` could mean 55 (its code) or 7 (its digit) — `char.code[…]` gives the code, `to.int32[to.str.utf8[…]] otherwise …` the digit").at(span)),
+            (Ty::Char(_), Ty::Int(_)) => return err(Diagnostic::error("a character does not convert to a number: `to.i32[`7`]` could mean 55 (its code) or 7 (its digit) — `char.code[…]` gives the code, `to.i32[to.str.utf8[…]] otherwise …` the digit").at(span)),
             (Ty::Int(_), Ty::Char(_)) => return err(Diagnostic::error("a number does not convert to a character: `char.point.from_code[…] otherwise …` builds one from a code").at(span)),
             (_, Ty::Bool) => return err(Diagnostic::error("nothing converts to `bool`: there is no truthiness — compare instead (`'n' not_equal 0`)").at(span)),
             // Bytes read as text (owner, 2026-09-30: "yea"): UTF-8 only.
@@ -3608,7 +3608,7 @@ impl Checker {
                 }
                 fails.push("not_utf8");
             }
-            (Ty::Seq { .. }, Ty::Str(_)) => return err(Diagnostic::error("a list is not text: only a list of `uint8` converts, read as UTF-8 bytes (`to.str.utf8['bytes'] otherwise …`); join the items with `concat`, or print the list directly (owner, 2026-09-30)").at(span)),
+            (Ty::Seq { .. }, Ty::Str(_)) => return err(Diagnostic::error("a list is not text: only a list of `u8` converts, read as UTF-8 bytes (`to.str.utf8['bytes'] otherwise …`); join the items with `concat`, or print the list directly (owner, 2026-09-30)").at(span)),
             (_, Ty::Seq { .. }) => return err(Diagnostic::error("there is no conversion to a list").at(span)),
             // A number from C becomes a C enum only through a check (owner,
             // 2026-09-27): one no case has fails `out_of_range`.
@@ -3659,14 +3659,14 @@ impl Checker {
             }
         }
         if written && !(matches!(t.base(), Ty::Deci(_)) && matches!(vt.base(), Ty::Str(_))) {
-            return err(Diagnostic::error(format!("`.written` counts the digits of text as written into a deci, trailing zeros included — `to.deci32.written[\"1234567.0\"]`; `to.{}.written` of {} has nothing written to count", target_spelling, crate::types::a_type(&self.spell(&vt)))).at(span));
+            return err(Diagnostic::error(format!("`.written` counts the digits of text as written into a deci, trailing zeros included — `to.d32.written[\"1234567.0\"]`; `to.{}.written` of {} has nothing written to count", target_spelling, crate::types::a_type(&self.spell(&vt)))).at(span));
         }
         let fails_owned: Vec<String> = fails.iter().map(|s| s.to_string()).collect();
         Ok(Expr { kind: K::Conv { target: t.clone(), expr: Box::new(v), otherwise: ow, fails: fails_owned, useful, bits: false, written }, ty: t, span })
     }
 
-    /// `to.int8.bits[…]` (owner, 2026-10-06): a whole number's bits read as
-    /// the type's — `to.int8.bits[128]` is -128, `to.uint8.bits[-1]` is 255.
+    /// `to.i8.bits[…]` (owner, 2026-10-06): a whole number's bits read as
+    /// the type's — `to.i8.bits[128]` is -128, `to.u8.bits[-1]` is 255.
     /// A value from -2^(N-1) to 2^N - 1 has them (design claude's reading,
     /// not ruled); what `.bits` means past whole numbers is not decided.
     fn to_bits(&mut self, ctx: &mut FnCtx, target: &ast::Type, operand: &ast::Expr, otherwise: Option<&ast::Otherwise>, span: Span) -> Result<Expr> {
@@ -4094,7 +4094,7 @@ impl Checker {
                 match at.base() {
                     Ty::Ptr { elem, .. } if bytes(elem) => {}
                     Ty::Seq { elem, .. } if bytes(elem) => {}
-                    other => return err(Diagnostic::error(format!("`C.str.read` reads bytes ending in a 0: a `ptr[uint8]` or a C string `C.str.make` made, and this is {}", crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`C.str.read` reads bytes ending in a 0: a `ptr[u8]` or a C string `C.str.make` made, and this is {}", crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
                 }
                 fails.push(("not_utf8".into(), None));
                 (vec![a], Ty::utf8())
@@ -4252,7 +4252,7 @@ impl Checker {
                 // stored (owner, 2026-09-23): in every lane, whose type the
                 // vector takes from its place. As the lane type it made a
                 // vector of 65-bit lanes, one to a register — `simd.fill['x'
-                // + 1]` into a `simd[int32, 4]` was a `simd[integer, 1]`
+                // + 1]` into a `simd[i32, 4]` was a `simd[integer, 1]`
                 // (check claude). MIR asks whether it fits the lane.
                 if self.resolve(&v.ty).is_exact() {
                     let ty = Ty::Simd { elem: Box::new(Ty::Int(IntW::Free(InferId(0)))), lanes: 0 };
@@ -4337,7 +4337,7 @@ impl Checker {
                 let vt = self.resolve(&v.ty);
                 let lanes = match vt.base() {
                     Ty::Simd { lanes, .. } if *lanes > 0 => *lanes,
-                    Ty::Simd { .. } => return err(Diagnostic::error("`simd.shuffle` needs to know how many lanes the vector has: give it a type (`let 'v': simd[int32, count 4] = …`)").at(positional[0].span)),
+                    Ty::Simd { .. } => return err(Diagnostic::error("`simd.shuffle` needs to know how many lanes the vector has: give it a type (`let 'v': simd[i32, count 4] = …`)").at(positional[0].span)),
                     other => return err(Diagnostic::error(format!("`simd.shuffle` rearranges a vector's lanes, and this is {}", crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
                 };
                 let fixed = "`simd.shuffle` takes the new order as fixed lane numbers, known when compiling: `[4, 3, 2, 1]`";
@@ -4539,7 +4539,7 @@ fn plain_group(e: &Expr) -> bool {
 /// The width of an exact literal (`*0.1`) not yet given by its place.
 pub const EXACT_FREE: u16 = 0;
 
-/// An exact literal no place gave a width: `deci64`, the oracle's pick
+/// An exact literal no place gave a width: `d64`, the oracle's pick
 /// (provisional: the width is Precog's to choose).
 pub fn settle_exact(e: &mut Expr) -> Result<()> {
     if matches!(e.ty.base(), Ty::Deci(EXACT_FREE)) {
@@ -4571,8 +4571,8 @@ fn into_deci(e: &mut Expr, bits: u16) -> Result<()> {
         let p = crate::deci::digits(bits);
         let value = match crate::deci::literal(&text, bits) {
             Ok(v) => v,
-            Err(crate::deci::LitErr::Digits(n)) => return err(Diagnostic::error(format!("`{}` has {} digits; deci{} holds {}: write fewer digits, or use a wider deci", text, n, bits, p)).at(e.span)),
-            Err(crate::deci::LitErr::Range) => return err(Diagnostic::error(format!("`{}` is past what deci{} holds: write fewer digits, or use a wider deci", text, bits)).at(e.span)),
+            Err(crate::deci::LitErr::Digits(n)) => return err(Diagnostic::error(format!("`{}` has {} digits; d{} holds {}: write fewer digits, or use a wider deci", text, n, bits, p)).at(e.span)),
+            Err(crate::deci::LitErr::Range) => return err(Diagnostic::error(format!("`{}` is past what d{} holds: write fewer digits, or use a wider deci", text, bits)).at(e.span)),
         };
         e.kind = K::Deci { bits, value };
     } else {
@@ -4803,7 +4803,7 @@ pub fn join_int(a: IntW, b: IntW) -> IntW {
 
 /// A bin with no width yet (a bare literal, a `:=` of one) takes the width
 /// of the typed value beside it, and the answer is at that width (owner,
-/// 2026-09-24: a; `operators.md`): `'x' + 1.0` on a bin32 is bin32 math.
+/// 2026-09-24: a; `operators.md`): `'x' + 1.0` on an f32 is f32 math.
 /// Two widths: the wider (the oracle's pick, provisional).
 pub fn join_bin(a: BinW, b: BinW) -> BinW {
     match (a, b) {
@@ -4818,18 +4818,14 @@ pub fn join_bin(a: BinW, b: BinW) -> BinW {
 /// writer's.
 fn conv_spelling(spelled: &str) -> String {
     match spelled {
-        "integer" => "int32".to_string(),
-        "bin" => "bin64".to_string(),
+        "integer" => "i32".to_string(),
+        "bin" => "f64".to_string(),
         other => other.to_string(),
     }
 }
 
 fn article(s: &str) -> String {
-    if s.starts_with(['a', 'e', 'i', 'o', 'u']) {
-        format!("an `{}`", s)
-    } else {
-        format!("a `{}`", s)
-    }
+    crate::types::a_type(s)
 }
 
 /// The narrowest unit that holds a character literal.
@@ -5088,7 +5084,7 @@ impl Checker {
                         fails.push(("out_of_range".into(), None));
                         Ty::Char(Unit::Point)
                     }
-                    // A `uint8`, as std's own `str.at.byte` gives it
+                    // A `u8`, as std's own `str.at.byte` gives it
                     // (a022de88).
                     "at.byte" => {
                         fails.push(("out_of_range".into(), None));
@@ -5286,9 +5282,9 @@ impl Checker {
     }
 }
 
-/// A text position is `uint64[min 1]` (owner, 2026-10-17: "(a)"): a written
+/// A text position is `u64[min 1]` (owner, 2026-10-17: "(a)"): a written
 /// one of 0 or below is refused before the program runs.
-const NO_POSITION: &str = "0 is no position: a position is `uint64[min 1]`, and `pos 1` is the first";
+const NO_POSITION: &str = "0 is no position: a position is `u64[min 1]`, and `pos 1` is the first";
 
 /// Whether a written position is a number below 1: `0`, `-3`.
 fn written_below_one(e: &ast::Expr) -> bool {

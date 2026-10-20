@@ -131,7 +131,7 @@ pub fn literal(text: &str, bits: u16) -> Result<u128, LitErr> {
     let mut sig = all.trim_start_matches('0');
     let mut exp = -(frac.len() as i64);
     // Trailing zeros are not digits the type must hold, as the oracle
-    // counts them: `10000000` is 1 × 10^7, which a `deci32` holds
+    // counts them: `10000000` is 1 × 10^7, which a `d32` holds
     // (std claude, 2026-10-20). They are dropped only when there are too
     // many, so a literal that fits keeps the zeros it was written with.
     if sig.len() as u32 > digits(bits) {
@@ -151,7 +151,7 @@ pub fn literal(text: &str, bits: u16) -> Result<u128, LitErr> {
 }
 
 /// How many digits the largest value of a whole-number type has: whether
-/// it always fits a `deci` (`types.md`: "an `int32` into a `deci64`
+/// it always fits a `deci` (`types.md`: "an `i32` into a `d64`
 /// always fits and takes no `otherwise`").
 pub fn int_digits(signed: bool, bits: u32) -> u32 {
     let (signed, bits) = crate::resolve::storage(signed, bits);

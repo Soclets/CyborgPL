@@ -138,7 +138,7 @@ fn const_s(c: &Const) -> String {
         Const::Int(v) => v.to_string(),
         Const::Big(v) => v.clone(),
         Const::Bin(v) => v.clone(),
-        Const::Deci { bits, value } => format!("deci{}:{:#x}", bits, value),
+        Const::Deci { bits, value } => format!("d{}:{:#x}", bits, value),
         Const::Str(v) => format!("{:?}", v),
         Const::Char(v) => format!("`{}`", v),
         Const::Bool(v) => v.to_string(),

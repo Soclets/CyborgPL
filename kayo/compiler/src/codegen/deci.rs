@@ -153,7 +153,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let status = basic_result(self.builder.build_call(f, &[i32t.const_int(code, false).into(), alo.into(), ahi.into(), blo.into(), bhi.into(), width.into(), slot.into()], "status").ok()?)?.into_int_value();
         let i8t = self.ctx.i8_type();
         let over = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(1, false), "past_largest").ok()?;
-        self.deci_stop(fi, over, &format!("`{}` went past what a `deci{}` holds", op.spelled(), bits), func)?;
+        self.deci_stop(fi, over, &format!("`{}` went past what a `d{}` holds", op.spelled(), bits), func)?;
         if code >= 3 {
             let zero = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(2, false), "by_zero").ok()?;
             let why = match code {
@@ -167,7 +167,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     }
 
     /// Whether the `deci` of `bits` in `v` is outside a range type's
-    /// bounds, which are written decimals (`deci64[0.0, 1.0]`).
+    /// bounds, which are written decimals (`d64[0.0, 1.0]`).
     pub(super) fn deci_outside(&mut self, v: IntValue<'ctx>, bits: u16, lo: &str, hi: &str) -> Option<IntValue<'ctx>> {
         let (Ok(l), Ok(h)) = (crate::deci::literal(lo, bits), crate::deci::literal(hi, bits)) else { return None };
         let (xlo, xhi) = self.deci_halves(v)?;
@@ -246,7 +246,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let status = basic_result(self.builder.build_call(f, &[wide.into(), i32t.const_int(*b as u64, false).into(), i32t.const_int(mode, false).into(), slot.into()], "status").ok()?)?.into_int_value();
                 let i8t = self.ctx.i8_type();
                 let over = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(1, false), "past_largest").ok()?;
-                self.deci_stop(fi, over, &format!("this bin is past what a `deci{}` holds", b), func)?;
+                self.deci_stop(fi, over, &format!("this bin is past what a `d{}` holds", b), func)?;
                 let odd = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(2, false), "not_finite").ok()?;
                 // A bin never holds one (owner, 2026-09-29): only a value that got
                 // past its checks unchecked (`nocheck`, C) can be one here.
@@ -256,7 +256,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             (Ty::Deci(b), Ty::Bin(_) | Ty::Brain) => {
                 let (lo, hi) = self.deci_halves(v.into_int_value())?;
                 let t = self.ty(to)?.into_float_type();
-                // A brain16 is reached through a bin64, then rounded once.
+                // A brain16 is reached through an f64, then rounded once.
                 let to_bits = if t == self.ctx.f32_type() { 32 } else if t == self.ctx.f16_type() { 16 } else { 64 };
                 let f = self.rt_deci("cyborg_deci_to_bin")?;
                 let x = basic_result(self.builder.build_call(f, &[lo.into(), hi.into(), i32t.const_int(*b as u64, false).into(), i32t.const_int(to_bits, false).into()], "bin").ok()?)?.into_float_value();

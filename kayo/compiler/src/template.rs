@@ -1,5 +1,5 @@
 //! A collection's templates (owner, 2026-10-13): `for 'n' in [2, 4] { named
-//! "times_" ++ to.stored.str.utf8['n']; ['x': int32] -> int32 { … } }`. What
+//! "times_" ++ to.stored.str.utf8['n']; ['x': i32] -> i32 { … } }`. What
 //! a template makes is written into the file under it by `synapse generate`,
 //! below `#generated_N_lines_below`; every build only reads that part, as
 //! ordinary members, and refuses it when it no longer matches the template.
@@ -232,7 +232,7 @@ impl Run<'_> {
                         ExprKind::Verb { expr, .. } => expr,
                         _ => x,
                     };
-                    // A type reaches a function as its name's text, `int16`.
+                    // A type reaches a function as its name's text, `i16`.
                     let v = match self.expr(x, env)? {
                         Val::Type(t) => Val::Text(t),
                         v => v,

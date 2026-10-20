@@ -2,9 +2,9 @@
 # points and grapheme clusters (UAX #29, extended: เกี่ยว is 4 clusters, 6
 # points, 18 bytes); text <-> grapheme conversions; a text bound counted
 # in graphemes, checked at run time. Values chosen at run time.
-extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-fn short [lent 't': str.utf8] -> int32 {
+extern.C fn exit ['code': i32];
+extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
+fn short [lent 't': str.utf8] -> i32 {
     let 's': str.utf8[min 0, max 2 graphemes] = to.str.utf8[min 0, max 2 graphemes]['t'] otherwise { out_of_range { return 0; } };
     return 1;
 }
@@ -13,7 +13,7 @@ MAIN {
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'w' := "ab";
     if 'there' { change 'w' = "เกี่ยว"; }
-    let mut 'got': int32 = 0;
+    let mut 'got': i32 = 0;
     if str.graphemes[lend 'w'] equal_to 4 and str.points[lend 'w'] equal_to 6 and str.bytes[lend 'w'] equal_to 18 { change 'got' = 'got' plus 1; }
     let 'g': char.grapheme = `é`;
     let 'p' := to.char.point['g'] otherwise `?`;

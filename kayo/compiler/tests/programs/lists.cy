@@ -1,9 +1,9 @@
-extern.C fn exit ['code': int32];
+extern.C fn exit ['code': i32];
 MAIN {
-    let mut 'xs': list[int32] = [10, 20, 30];
+    let mut 'xs': list[i32] = [10, 20, 30];
     list.append[lend.mut 'xs', value 12];
-    let 'n': int32 = list.length[lend 'xs'];
-    let 'a': int32 = 'xs'[pos 1];
-    let 'd': int32 = 'xs'[pos 4];
+    let 'n': i32 = list.length[lend 'xs'];
+    let 'a': i32 = 'xs'[pos 1];
+    let 'd': i32 = 'xs'[pos 4];
     no_check my.exit['n' plus 'a' plus 'd'];
 }

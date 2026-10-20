@@ -138,12 +138,12 @@ fn deep_nesting_is_checked() {
     let src = dir.join("deep.cy");
     let depth = 5000;
     let expr = format!("{}1{}", "(1 plus ".repeat(depth), ")".repeat(depth));
-    std::fs::write(&src, format!("MAIN {{\n    let 'x': int64 = {};\n}}\n", expr)).unwrap();
+    std::fs::write(&src, format!("MAIN {{\n    let 'x': i64 = {};\n}}\n", expr)).unwrap();
     let r = Command::new(cca()).arg("check").arg(&src).output().unwrap();
     assert!(r.status.success(), "a deep expression was not checked:\n{}", String::from_utf8_lossy(&r.stderr));
 }
 
-/// C's arguments reach `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]]`
+/// C's arguments reach `MAIN ['argc': i32, 'argv': ptr[ptr[u8]]]`
 /// (owner, 2026-09-29), passed by `cca run … -- words`.
 #[test]
 fn main_takes_the_command_line() {
@@ -410,7 +410,7 @@ fn final_build_proves_counted_loops_and_no_more() {
 #[test]
 fn an_unproven_narrowing_is_checked() {
     let ir = ir_of("narrow_checked");
-    assert!(ir.contains("the value can be outside what a `uint8` holds"), "a narrowing Precog did not prove reached the binary with no check:\n{}", ir);
+    assert!(ir.contains("the value can be outside what a `u8` holds"), "a narrowing Precog did not prove reached the binary with no check:\n{}", ir);
 }
 
 /// `--assert-proofs` (`precog.md`, attack (d)): every proof becomes a run-
@@ -510,7 +510,7 @@ fn a_site_past_the_call_depth_is_judged() {
     let src = dir().parent().unwrap().join("testing/claim_past_depth.cy");
     let r = Command::new(cca()).arg("prove").arg("--json").arg(&src).output().unwrap();
     let out = String::from_utf8_lossy(&r.stdout).to_string();
-    let line = out.lines().find(|l| l.contains("\"start\":[5,") && l.contains("\"into int8\"")).unwrap_or_else(|| panic!("no claim for line 5:\n{}", out));
+    let line = out.lines().find(|l| l.contains("\"start\":[5,") && l.contains("\"into i8\"")).unwrap_or_else(|| panic!("no claim for line 5:\n{}", out));
     let covers = |v: i64| -> bool {
         if let Some(i) = line.find("\"value\":{\"lo\":\"") {
             let rest = &line[i + 15..];
@@ -800,7 +800,7 @@ fn a_final_build_writes_its_debug_info_beside_it() {
 }
 
 /// Precog's tables (owner, 2026-10-17; limits 2026-10-19): `square` over a
-/// `uint8`, 256 answers of 2 bytes under its own `table_bytes 1_024`, is a
+/// `u8`, 256 answers of 2 bytes under its own `table_bytes 1_024`, is a
 /// lookup in a table of them, worked out from the function as written (not
 /// from the one call the program makes, which Precog folds); `fib`, with
 /// `table_bytes 0`, is never one. `examples/table_limits` itself, run in
@@ -849,7 +849,7 @@ fn a_build_writes_its_report_beside_it() {
         let link = format!("[{}](#{})", s, s.to_lowercase().replace(' ', "-"));
         assert!(report.lines().nth(2).is_some_and(|l| l.contains(&link)), "the contents line has no {}", link);
     }
-    for what in ["| `'lockers'` | `list[Locker]` |", "`Locker`: 24 bytes, aligned to 8, 4 bytes of padding", "| `number` | `int32` | 0 | 4 | 4 |", "| Precog |"] {
+    for what in ["| `'lockers'` | `list[Locker]` |", "`Locker`: 24 bytes, aligned to 8, 4 bytes of padding", "| `number` | `i32` | 0 | 4 | 4 |", "| Precog |"] {
         assert!(report.contains(what), "the report has no `{}`:\n{}", what, report);
     }
 }
@@ -866,7 +866,7 @@ fn emit_llvm_tv_keeps_every_function() {
     let _ = std::fs::remove_dir_all(&out);
     std::fs::create_dir_all(&out).unwrap();
     let src = out.join("t.cy");
-    std::fs::write(&src, "fn add ['a': int32, 'b': int32] -> int32 { return 'a' plus 'b'; }\nfn sum ['n': uint32] -> uint64 {\n    let mut 't': uint64 = 0;\n    for 'i': uint32 from 1 to 'n' by 1 { change 't' = 't' plus to.uint64['i']; }\n    return 't';\n}\nMAIN {\n    std::print.useful[add[2, 3], \" \", sum[10], newln];\n}\n").unwrap();
+    std::fs::write(&src, "fn add ['a': i32, 'b': i32] -> i32 { return 'a' plus 'b'; }\nfn sum ['n': u32] -> u64 {\n    let mut 't': u64 = 0;\n    for 'i': u32 from 1 to 'n' by 1 { change 't' = 't' plus to.u64['i']; }\n    return 't';\n}\nMAIN {\n    std::print.useful[add[2, 3], \" \", sum[10], newln];\n}\n").unwrap();
     let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(out.join("t")).arg("--emit-llvm-tv").arg(out.join("tv")).output().unwrap();
     assert!(r.status.success(), "the build failed:\n{}", String::from_utf8_lossy(&r.stderr));
     let defined = |name: &str| -> Vec<String> {

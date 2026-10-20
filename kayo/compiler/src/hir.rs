@@ -330,7 +330,7 @@ pub enum ExprKind {
     /// A user `op`: a call under an operator's spelling.
     UserOp { inst: FnInst, lhs: Box<Arg>, rhs: Box<Arg> },
     /// `to.T[e]`: `fails` non-empty when the conversion can fail.
-    /// `useful`: `to.useful.deci64[…]` or `to.useful.str.utf8[…]`, the useful form.
+    /// `useful`: `to.useful.d64[…]` or `to.useful.str.utf8[…]`, the useful form.
     /// `written`: `to.decimN.written[…]` counts text's digits as written,
     /// trailing zeros included (owner, 2026-10-09).
     Conv { target: Ty, expr: Box<Expr>, otherwise: Option<Box<Otherwise>>, fails: Vec<String>, useful: bool, bits: bool, written: bool },

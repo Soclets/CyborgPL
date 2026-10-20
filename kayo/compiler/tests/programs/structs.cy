@@ -1,8 +1,8 @@
-extern.C fn exit ['code': int32];
+extern.C fn exit ['code': i32];
 
-struct Point { x: int32, y: int32 }
+struct Point { x: i32, y: i32 }
 
-fn area [lent 'p': Point] -> int32 { return 'p'.x times 'p'.y; }
+fn area [lent 'p': Point] -> i32 { return 'p'.x times 'p'.y; }
 
 MAIN {
     let 'p' := Point[x = 6, y = 7];

@@ -3,7 +3,7 @@
 # the result depends on (examples/lifetimes.cpls as an exit code: "hello",
 # "hi" and "hello" are 5, 2 and 5 bytes → 5 x 100 + 2 x 10 + 5 = 525,
 # which exits as 525 mod 256 = 13).
-extern.C fn exit ['code': int32];
+extern.C fn exit ['code': i32];
 fn longer [@x] [lent @x 'a': str.utf8, lent @x 'b': str.utf8] -> lent @x str.utf8 {
     if str.bytes[lend 'a'] at_least str.bytes[lend 'b'] { return lend 'a'; }
     return lend 'b';
@@ -14,12 +14,12 @@ fn pick [@x, @y] [lent @x 'a': str.utf8, lent @y 'b': str.utf8] -> lent @x str.u
 fn first [lent 'a': str.utf8] -> lent str.utf8 {
     return lend 'a';
 }
-fn width [lent 's': str.utf8] -> int32 {
+fn width [lent 's': str.utf8] -> i32 {
     let 'n' := str.bytes[lend 's'];
     if 'n' > 1000 { return 0; }
-    return to.int32['n'];
+    return to.i32['n'];
 }
-fn run [] -> int32 {
+fn run [] -> i32 {
     let 's' := "hello";
     let 't' := "hi";
     let 'l' := longer[lend 's', lend 't'];

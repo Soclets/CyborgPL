@@ -124,7 +124,7 @@ pub struct FnTy {
     pub owning: bool,
 }
 
-/// A bound written into a type: `int32[0, 100]`, `list[T][0, 10]`,
+/// A bound written into a type: `i32[0, 100]`, `list[T][0, 10]`,
 /// `str.utf8[1, 40 graphemes]`, `map[K, V][0, 2]`, `channel[T][0, N]`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Bound {
@@ -137,14 +137,14 @@ pub enum Bound {
 }
 
 /// Which sides of a number's bound were written, so a message prints it as
-/// it was (`int8[min 1]`, `uint8[min 0, max 100]`); a side left out is the
+/// it was (`i8[min 1]`, `u8[min 0, max 100]`); a side left out is the
 /// type's own limit (owner, 2026-10-12). Never part of what the type is:
 /// every two compare equal.
 #[derive(Debug, Clone, Copy)]
 pub struct Said {
     pub lo: bool,
     pub hi: bool,
-    /// A C bit-field's width, `uint8[bits 3]` (owner, 2026-10-19).
+    /// A C bit-field's width, `u8[bits 3]` (owner, 2026-10-19).
     pub bits: Option<u32>,
 }
 
@@ -171,7 +171,7 @@ pub enum Ty {
     Int(IntW),
     Bin(BinW),
     /// `brain16` (also `bfloat16`, `bf16`; owner, 2026-10-02): the brain
-    /// float, `bin32`'s range in 16 bits, a family of its own.
+    /// float, `f32`'s range in 16 bits, a family of its own.
     Brain,
     Deci(u16),
     Bool,
@@ -217,7 +217,7 @@ impl Ty {
     }
     /// The true answer of plain integer math (`+ - x xx`, owner 2026-09-23,
     /// `operators.md`): exact, checked where it lands, and in between held
-    /// to what some 64-bit type holds — `int64`'s lowest to `uint64`'s
+    /// to what some 64-bit type holds — `i64`'s lowest to `u64`'s
     /// highest. Not a type anyone writes: 65 bits carry that range, and
     /// `resolve::int_range` gives it exactly.
     pub fn exact() -> Ty {
@@ -475,14 +475,14 @@ impl<'a> fmt::Display for TySpelling<'a> {
         let sp = |t: &'a Ty| TySpelling { ty: t, structs: self.structs, enums: self.enums };
         match self.ty {
             Ty::Int(IntW::Fixed { signed: true, bits }) if bits & EXACT_FLAG != 0 => write!(f, "integer"),
-            Ty::Int(IntW::Fixed { signed, bits }) if matches!(bits, 8 | 16 | 32 | 64 | 128) => write!(f, "{}int{}", if *signed { "" } else { "u" }, bits),
+            Ty::Int(IntW::Fixed { signed, bits }) if matches!(bits, 8 | 16 | 32 | 64 | 128) => write!(f, "{}{}", if *signed { "i" } else { "u" }, bits),
             // Not a standard width: marked as such (owner, 2026-10-03).
-            Ty::Int(IntW::Fixed { signed, bits }) => write!(f, "not_std.{}int{}", if *signed { "" } else { "u" }, bits),
+            Ty::Int(IntW::Fixed { signed, bits }) => write!(f, "not_std.{}{}", if *signed { "i" } else { "u" }, bits),
             Ty::Int(IntW::Free(_)) => write!(f, "integer"),
-            Ty::Bin(BinW::Fixed(b)) => write!(f, "bin{}", b),
+            Ty::Bin(BinW::Fixed(b)) => write!(f, "f{}", b),
             Ty::Bin(BinW::Free(_)) => write!(f, "bin"),
             Ty::Brain => write!(f, "brain16"),
-            Ty::Deci(b) => write!(f, "deci{}", b),
+            Ty::Deci(b) => write!(f, "d{}", b),
             Ty::Bool => write!(f, "bool"),
             Ty::Str(e) => match e {
                 Enc::Utf8 => write!(f, "str.utf8"),
@@ -639,9 +639,10 @@ pub fn simd_shapes_for(elem: &Ty) -> Option<u32> {
     simd_lane_bits(elem).map(|bits| TARGET_SIMD_BITS / bits)
 }
 
-/// A type's name with its article, for a message: "a `uint64`", "an
-/// `int8`", "an `integer`".
+/// A type's name with its article, for a message: "a `u64`", "an
+/// `i8`", "an `integer`".
 pub fn a_type(name: &str) -> String {
-    let an = name.starts_with(|c: char| matches!(c, 'a' | 'e' | 'i' | 'o'));
+    // As read aloud: "an i32", "a u8", "an f64" ("ef"), "a d64".
+    let an = name.starts_with(|c: char| matches!(c, 'a' | 'e' | 'i' | 'o')) || (name.starts_with('f') && name[1..].starts_with(|c: char| c.is_ascii_digit()));
     format!("{} `{}`", if an { "an" } else { "a" }, name)
 }

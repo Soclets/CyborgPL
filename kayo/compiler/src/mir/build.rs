@@ -224,12 +224,12 @@ pub struct Arena {
 
 /// A const's value at compile time (`functions.md`, consts): literals,
 /// exact whole-number arithmetic (each `div.X` and `mod.X` as named),
-/// comparisons, `bin64` arithmetic, joined texts, and earlier consts. Any
+/// comparisons, `f64` arithmetic, joined texts, and earlier consts. Any
 /// other shape (a list, a call) stays a reference.
 fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Items) -> Option<Const> {
     use crate::ast::{BinOp as B, UnOp as U};
     let _ = items;
-    let bin64 = |e: &hir::Expr| matches!(e.ty.base(), Ty::Bin(crate::types::BinW::Fixed(64)));
+    let is_f64 = |e: &hir::Expr| matches!(e.ty.base(), Ty::Bin(crate::types::BinW::Fixed(64)));
     match &e.kind {
         hir::ExprKind::Int(v) => Some(Const::Int(*v)),
         hir::ExprKind::BigInt(v) => Some(Const::Big(v.clone())),
@@ -260,8 +260,8 @@ fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Ite
         hir::ExprKind::Unary { op, expr } => match (op, const_eval(expr, done, items)?) {
             (U::Neg, Const::Int(v)) => Some(Const::Int(v.checked_neg()?)),
             // `-'x'` of a zero is `0`, `negate.ieee` IEEE's `-0` (owner, 2026-10-07).
-            (U::Neg, Const::Bin(s)) if bin64(e) => Some(Const::Bin(format!("{:?}", -s.replace('_', "").parse::<f64>().ok()? + 0.0))),
-            (U::NegIeee, Const::Bin(s)) if bin64(e) => Some(Const::Bin(format!("{:?}", -s.replace('_', "").parse::<f64>().ok()?))),
+            (U::Neg, Const::Bin(s)) if is_f64(e) => Some(Const::Bin(format!("{:?}", -s.replace('_', "").parse::<f64>().ok()? + 0.0))),
+            (U::NegIeee, Const::Bin(s)) if is_f64(e) => Some(Const::Bin(format!("{:?}", -s.replace('_', "").parse::<f64>().ok()?))),
             (U::Not, Const::Bool(b)) => Some(Const::Bool(!b)),
             _ => None,
         },
@@ -285,9 +285,9 @@ fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Ite
                         _ => return None,
                     })
                 }
-                // Only at `bin64`, where the host's double is the target's
+                // Only at `f64`, where the host's double is the target's
                 // (`reproducible-builds.md`: never round at the host's width).
-                (Const::Bin(x), Const::Bin(y)) if bin64(e) => {
+                (Const::Bin(x), Const::Bin(y)) if is_f64(e) => {
                     let (x, y) = (x.replace('_', "").parse::<f64>().ok()?, y.replace('_', "").parse::<f64>().ok()?);
                     // No result is `-0` but a `.ieee` form's (owner,
                     // 2026-10-07: "`a`"); `+ 0.0` turns one into `0`.
@@ -590,7 +590,7 @@ impl<'a> FnBuilder<'a> {
         // A list or map written out in full: each element going into the
         // element type is a store like any other, so a narrower one is a
         // check site (as a struct's fields are). Without it
-        // `let 'xs': list[int8] = [1, 300];` kept 44.
+        // `let 'xs': list[i8] = [1, 300];` kept 44.
         let dest_ty = {
             let base = self.locals[place.local.0 as usize].ty.clone();
             self.resolve_ty(&projected_ty(&base, &place.proj, &self.arena.items))
@@ -1054,7 +1054,7 @@ impl<'a> FnBuilder<'a> {
         let ty = self.locals[c.0 as usize].ty.clone();
         // The counter holds every value the range names, so each end of the
         // range is a value that has to fit its type (`control-flow.md`:
-        // "`'i': int32` → explicit, every value must fit").
+        // "`'i': i32` → explicit, every value must fit").
         let s = self.eval(start, span);
         self.site_of(SiteKind::Narrow { to: ty.clone() }, vec![s.clone()], Some(ty.clone()), span);
         self.assign(Place::local(c), Rvalue::Use(s.clone()), span);
@@ -1066,7 +1066,7 @@ impl<'a> FnBuilder<'a> {
             self.assign(Place::local(stop_t), Rvalue::Use(stop_v.clone()), span);
         }
         // "The step is not one of those values" (owner, 2026-09-23): it is
-        // its own signed number, so a `uint64` counter can count down by
+        // its own signed number, so a `u64` counter can count down by
         // -1. It lives in a signed 64-bit temporary, not in the counter's
         // type, where -1 would read as the type's largest value.
         let step_v = match step {
@@ -1439,11 +1439,11 @@ impl<'a> FnBuilder<'a> {
         // A call fills its destination directly, so a failing call has one
         // edge rather than a value to test afterwards.
         if let hir::ExprKind::Call { .. } | hir::ExprKind::Conv { .. } = &value.kind {
-            // An answer narrower places cannot take as it is — an `int64`
-            // into an `int32`, anything into a range type — lands in a
+            // An answer narrower places cannot take as it is — an `i64`
+            // into an `i32`, anything into a range type — lands in a
             // temporary first and is asked there, like any other value.
             // Filled straight into the place, it was never asked: `'c':
-            // int32[0, 1] = twice[1]` held 2, and Precog believed the type.
+            // i32[0, 1] = twice[1]` held 2, and Precog believed the type.
             let from = self.resolve_ty(&value.ty);
             let to = self.resolve_ty(target);
             if typed && needs_narrow_check(&from, &to) && to.base().is_numeric() {
@@ -1468,7 +1468,7 @@ impl<'a> FnBuilder<'a> {
         let to = self.resolve_ty(target);
         // An operator whose answer has its own width — wrapping, and the
         // bitwise ones — keeps it until the answer exists: `'x' +~ 'x'` on
-        // a `uint32` wraps at 32 bits even stored into a `uint64`
+        // a `u32` wraps at 32 bits even stored into a `u64`
         // (`operators.md`). Assigned straight into the wider place, the
         // place's width was the only one left, and layer 1 folded
         // 8000000000 where the program computes 3705032704.
@@ -1732,7 +1732,7 @@ impl<'a> FnBuilder<'a> {
                 let p = payload.as_ref().map(|a| self.arg_owned(a, span));
                 // A case's data lands where a field's does: checked there
                 // (check claude, seed 15174: `E1.c4[0 minus 5]` with a
-                // `uint64` case wrapped to 2^64 - 5).
+                // `u64` case wrapped to 2^64 - 5).
                 if let (Some(op), Some(a)) = (&p, payload) {
                     let info = self.arena.items.enums[id.0 as usize].clone();
                     let args: Vec<Ty> = match self.resolve_ty(&e.ty) {
@@ -1773,7 +1773,7 @@ impl<'a> FnBuilder<'a> {
         // A bitwise operator works on one width, the answer's: an
         // exact operand has to fit it first, a site like any
         // narrowing (check claude: `'v' xor ('w' minus 13)` with
-        // `uint64`s took -8 as a bit pattern).
+        // `u64`s took -8 as a bit pattern).
         // `shl.masked` / `shr.masked` (owner, 2026-10-07): the count
         // modulo the width, -1 being width - 1 as the chip masks it,
         // and the bits past the width cut off; no site. Worked as the
@@ -2092,8 +2092,8 @@ impl<'a> FnBuilder<'a> {
                         }
                     }
                 }
-                // Into a parameter is a store like any other: a `uint64`
-                // handed to a `uint8` parameter is a narrowing, and a
+                // Into a parameter is a store like any other: a `u64`
+                // handed to a `u8` parameter is a narrowing, and a
                 // narrowing is a check site (`conversion.md`). It was not one.
                 let wants = match (callee, self.resolve_ty(&e.ty).base()) {
                     // `simd.fill`'s value lands in every lane.
@@ -2149,8 +2149,8 @@ impl<'a> FnBuilder<'a> {
             hir::ExprKind::Conv { target, expr, otherwise, fails, useful, bits, written } => {
                 let mut op = self.eval(expr, span);
                 let mut from_ty = self.resolve_ty(&expr.ty);
-                // `to.int8.bits[…]`: at most the type's bits, -128 to 255
-                // for an int8, then read as its (owner, 2026-10-06).
+                // `to.i8.bits[…]`: at most the type's bits, -128 to 255
+                // for an i8, then read as its (owner, 2026-10-06).
                 if *bits {
                     let n = match self.resolve_ty(target).base() {
                         Ty::Int(IntW::Fixed { bits, .. }) => *bits,
@@ -2169,7 +2169,7 @@ impl<'a> FnBuilder<'a> {
                     return;
                 }
                 // A C enum is its number, C's `int` (owner, 2026-09-28): that
-                // first, and the rest is a conversion from an `int32`.
+                // first, and the rest is a conversion from an `i32`.
                 if let Ty::Enum { id, .. } = from_ty.base() {
                     // As text it is its case's name (owner, 2026-09-30).
                     if self.arena.items.enums[id.0 as usize].numbers.is_some() && !matches!(self.resolve_ty(target).base(), Ty::Str(_)) {
@@ -2182,7 +2182,7 @@ impl<'a> FnBuilder<'a> {
                 if f.is_empty() {
                     // A conversion that cannot fail is an ordinary
                     // instruction — but a *narrowing* one is still a check
-                    // site (`conversion.md`): `to.int8['big']` asks whether
+                    // site (`conversion.md`): `to.i8['big']` asks whether
                     // it fits, and only `check` makes the compiler say so.
                     let from = from_ty.clone();
                     self.narrow_arg(&op, &from, &self.resolve_ty(target), span);
@@ -2324,7 +2324,7 @@ impl<'a> FnBuilder<'a> {
                 let count = args.get(1).map(arg_as_operand).unwrap_or(Operand::Const(Const::Int(0)));
                 self.site(SiteKind::FillCount, vec![count], span);
                 // And the value fits what the list holds, as an append's
-                // does: `list.fill[300, 2]` is no `list[int8]`.
+                // does: `list.fill[300, 2]` is no `list[i8]`.
                 if let (Ty::Seq { elem, .. }, Some(a)) = (self.resolve_ty(ty).base().clone(), args.first()) {
                     let have = self.arg_mir_ty(a);
                     let o = arg_as_operand(a);
@@ -2544,7 +2544,7 @@ impl<'a> FnBuilder<'a> {
             }
             // Into the destination's type, checked like any store: an arm's
             // exact answer lands there (check claude, seed 102: -1 went
-            // into a `uint32` through a `match` unchecked).
+            // into a `u32` through a `match` unchecked).
             if let (Some(g), Some(d), false) = (&arm.gives, &dest, self.closed()) {
                 let base = self.locals[d.local.0 as usize].ty.clone();
                 let to = self.resolve_ty(&projected_ty(&base, &d.proj, &self.arena.items));
@@ -2687,7 +2687,7 @@ pub fn needs_narrow_check(from: &Ty, to: &Ty) -> bool {
         },
         (Ty::Bin(_), Ty::Bin(_)) => true,
         // A whole number that can round past the largest bin or brain16:
-        // a wide one (owner, 2026-10-03), or an `int32` into a bin16.
+        // a wide one (owner, 2026-10-03), or an `i32` into an f16.
         (Ty::Int(IntW::Fixed { signed, bits }), Ty::Bin(crate::types::BinW::Fixed(b))) => {
             let (lo, hi) = crate::bigint::type_range(*signed, *bits);
             let limit = crate::bigint::bin_round_limit(*b);
@@ -2699,7 +2699,7 @@ pub fn needs_narrow_check(from: &Ty, to: &Ty) -> bool {
             hi >= limit || lo.neg() >= limit
         }
         // Past the largest brain16 (owner, 2026-10-02), or a brain16 past
-        // the largest bin16.
+        // the largest f16.
         (Ty::Bin(_) | Ty::Deci(_), Ty::Brain) => true,
         (Ty::Brain, Ty::Bin(crate::types::BinW::Fixed(16))) => true,
         _ => false,
@@ -2771,7 +2771,7 @@ pub fn projected_ty(base: &Ty, proj: &[Proj], items: &crate::resolve::Items) -> 
             (Proj::Field(i), Ty::Enum { id, args }) => items.enums[id.0 as usize].cases[*i].payload.clone().map(|t| t.subst(&args)).unwrap_or(Ty::Nothing),
             (Proj::Index(_), Ty::Seq { elem, .. }) => (*elem).clone(),
             // One lane of a vector is its element type: without this a lane
-            // was `nothing`, and a `uint8` lane of 200 was widened by sign
+            // was `nothing`, and a `u8` lane of 200 was widened by sign
             // to 2^64 - 56 (check claude).
             (Proj::Index(_), Ty::Simd { elem, .. }) => (*elem).clone(),
             (Proj::BundleElem(i), Ty::Bundle(ts)) => ts.get(*i).cloned().unwrap_or(Ty::Nothing),
@@ -2796,7 +2796,7 @@ impl ParamKind {
 }
 
 /// Does this type bring its own `hash`? The interface is
-/// `fn hash [lent 'v': <T>] -> uint64` (`maps.md`).
+/// `fn hash [lent 'v': <T>] -> u64` (`maps.md`).
 pub fn key_has_own_hash(items: &crate::resolve::Items, t: &Ty) -> bool {
     let name = crate::types::TySpelling { ty: t, structs: &items.structs, enums: &items.enums }.to_string();
     items.fns.iter().any(|f| {

@@ -1,20 +1,20 @@
 # `simd[bool, N]` is a type you can write (owner, 2026-09-27: a): a function
 # takes one, `simd.fill[true]` makes one, and `not`/`and`/`or` work lane by
 # lane. The answers are examples/simd_mask.cpls', read out as an exit code.
-extern.C fn exit ['code': int32];
+extern.C fn exit ['code': i32];
 
 fn all_on ['m': simd[bool, count 4]] -> bool {
     return simd.all['m'];
 }
 
-fn flag ['b': bool, 'v': int32] -> int32 {
+fn flag ['b': bool, 'v': i32] -> i32 {
     if 'b' { return 'v'; }
     return 0;
 }
 
 MAIN {
-    let 'xs': array[int32] = [5, 20, 30, 40];
-    let 'a': simd[int32, count 4] = simd.load[lend 'xs', pos 1];
+    let 'xs': array[i32] = [5, 20, 30, 40];
+    let 'a': simd[i32, count 4] = simd.load[lend 'xs', pos 1];
     let 'm': simd[bool, count 4] = 'a' > simd.fill[value 10];
     let 'all': simd[bool, count 4] = simd.fill[value true];
     let 'both' := 'm' and 'all';

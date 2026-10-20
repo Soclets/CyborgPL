@@ -3,26 +3,26 @@
 # is safe on many cores (owner, 2026-09-30). `labs` is: the sum of |i - 12345|
 # mod 256 for i in 1 to 100000, as both loops give: 40 (worked out by hand;
 # the oracle cannot link C).
-extern.C fn exit ['code': int32];
-extern.C fn labs ['n': int64] -> int64;
+extern.C fn exit ['code': i32];
+extern.C fn labs ['n': i64] -> i64;
 MAIN {
-    let 'n': int64 = 100000;
-    let mut 'a': list[int64] = list.fill[value 0, count 'n'];
-    let mut 'b': list[int64] = list.fill[value 0, count 'n'];
-    for para 'i': int64 from 1 to 'n' by 1 {
+    let 'n': i64 = 100000;
+    let mut 'a': list[i64] = list.fill[value 0, count 'n'];
+    let mut 'b': list[i64] = list.fill[value 0, count 'n'];
+    for para 'i': i64 from 1 to 'n' by 1 {
         no_check let 'v' := labs['i' minus 12345];
         change 'a'[pos 'i'] = 'v';
     }
-    for 'i': int64 from 1 to 'n' by 1 {
+    for 'i': i64 from 1 to 'n' by 1 {
         no_check let 'v' := labs['i' minus 12345];
         change 'b'[pos 'i'] = 'v';
     }
-    let mut 'same': int64 = 0;
-    let mut 's': int64 = 0;
-    for 'k': int64 from 1 to 'n' by 1 {
+    let mut 'same': i64 = 0;
+    let mut 's': i64 = 0;
+    for 'k': i64 from 1 to 'n' by 1 {
         if 'a'[pos 'k'] equal_to 'b'[pos 'k'] { change 'same' = 'same' plus 1; }
         change 's' = ('s' plus 'a'[pos 'k']) mod.floor 256;
     }
     if 'same' not_equal 'n' { no_check my.exit[1]; }
-    no_check my.exit[to.int32['s']];
+    no_check my.exit[to.i32['s']];
 }

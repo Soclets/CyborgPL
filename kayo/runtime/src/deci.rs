@@ -1,6 +1,6 @@
 //! `deci`: IEEE 754 decimal floating point (`types.md`, owner 2026-09-29).
 //!
-//! A `deci32`, `deci64` or `deci128` is held in the machine's own layout,
+//! A `d32`, `d64` or `d128` is held in the machine's own layout,
 //! which on everything but IBM POWER and z is BID: the coefficient in
 //! binary. There is no decimal hardware here, so every operation is done
 //! in software, on the numbers the layout holds — a sign, a whole
@@ -737,7 +737,7 @@ pub unsafe extern "C" fn cyborg_deci_parse(p: *const u8, len: u64, bits: u32, ou
     }
     let mut q = parts.exp - parts.frac.len() as i64;
     // By the value (owner, 2026-10-09): a trailing zero is dropped where the
-    // width needs it gone, so "1234567.0" is a deci32's 1234567. Counted
+    // width needs it gone, so "1234567.0" is a d32's 1234567. Counted
     // as written (`to.decimN.written`), every one counts.
     let keep = if written == 0 && n > w.digits as usize { n - trailing.min(n - w.digits as usize) } else { n };
     if keep > w.digits as usize {

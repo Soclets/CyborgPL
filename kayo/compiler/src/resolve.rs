@@ -40,9 +40,9 @@ pub enum Bareness {
 /// both).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutputForm {
-    /// `['b': uint8]`: one a call.
+    /// `['b': u8]`: one a call.
     Byte,
-    /// `[lent 'bytes': array[uint8]]`: a chunk a call.
+    /// `[lent 'bytes': array[u8]]`: a chunk a call.
     Chunk,
 }
 
@@ -610,7 +610,7 @@ impl Items {
                         return err(Diagnostic::error(format!("case `{}` of the C enum `{}` says its number, as the C header does — `{} = 65`: guessing the order is how bindings go wrong", c.name.name, decl.name.name, c.name.name)).at(c.name.span));
                     };
                     if n < i32::MIN as i128 || n > i32::MAX as i128 {
-                        return err(Diagnostic::error(format!("C's enum is 32 bits, C's `int`: {} does not fit int32", n)).at(at));
+                        return err(Diagnostic::error(format!("C's enum is 32 bits, C's `int`: {} does not fit i32", n)).at(at));
                     }
                     if let Some(j) = numbers.iter().position(|x| *x == n as i64) {
                         return err(Diagnostic::error(format!("`{}` and `{}` are both {}: each case has its own number", decl.cases[j].name.name, c.name.name, n)).at(at));
@@ -819,7 +819,7 @@ impl Items {
             // (owner, 2026-09-28: b).
             if self.checked_at_door(&t) {
                 let spelled = spell(&t, self);
-                return err(Diagnostic::error(format!("a C variable cannot be `{}`: reading a variable never fails, so it holds C's plain number", spelled)).at(ty.span).fix(None, format!("declare it `int32` and convert: `to.{}[…] otherwise …`", spelled)));
+                return err(Diagnostic::error(format!("a C variable cannot be `{}`: reading a variable never fails, so it holds C's plain number", spelled)).at(ty.span).fix(None, format!("declare it `i32` and convert: `to.{}[…] otherwise …`", spelled)));
             }
             self.externs[id.0 as usize].ret = t;
         }
@@ -859,7 +859,7 @@ impl Items {
         let why = match ty.base() {
             Ty::Struct { id, .. } => format!("`{}` is not `layout.C`: only a `layout.C struct` has C's shape", self.structs[id.0 as usize].name),
             Ty::Enum { id, .. } => format!("`{}` is not `layout.C`: only a `layout.C enum` crosses to C, a number per case", self.enums[id.0 as usize].name),
-            Ty::Str(_) => "a `str` is not C-shaped: C sees bytes, so hand it a `ptr[uint8]` (a lend of the text)".to_string(),
+            Ty::Str(_) => "a `str` is not C-shaped: C sees bytes, so hand it a `ptr[u8]` (a lend of the text)".to_string(),
             Ty::Seq { .. } => "a list is not C-shaped: C sees a pointer to the elements — `ptr[T]` and a length".to_string(),
             Ty::Fn(_) => "the callback is not C-shaped: parameters by value (no `lent`), C-shaped types, no `fail`".to_string(),
             _ => format!("`{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and `layout.C` structs cross to C", spell(ty, self)),
@@ -1349,8 +1349,8 @@ impl Items {
                     // written (owner, 2026-10-12, labelled bounds).
                     return match &base {
                         Ty::Seq { kind: SeqKind::Array, .. } => err(Diagnostic::error("a length bound belongs on a `list`: an `array` has one length, already known").at(*span)),
-                        Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => err(Diagnostic::error("a bound says which it is: `int32[min 0, max 100]` (`[min 1]` alone is \"at least 1\") (owner, 2026-10-12)").at(*span)),
-                        other => err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`int32[min 0, max 100]`), text, lists, maps and channels", spell(other, self))).at(*span)),
+                        Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => err(Diagnostic::error("a bound says which it is: `i32[min 0, max 100]` (`[min 1]` alone is \"at least 1\") (owner, 2026-10-12)").at(*span)),
+                        other => err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`i32[min 0, max 100]`), text, lists, maps and channels", spell(other, self))).at(*span)),
                     };
                 }
                 self.resolve_bound(base, lo, hi, unit.as_ref(), *span)
@@ -1373,7 +1373,7 @@ impl Items {
                     return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).at(u.span));
                 }
                 // `min` and `max` are the base type's own limits
-                // (`input.md`, one-ended ranges): `int8[1, max]` is 1 to 127.
+                // (`input.md`, one-ended ranges): `i8[1, max]` is 1 to 127.
                 let limits = match &base {
                     Ty::Int(IntW::Fixed { signed, bits }) => Some(int_range(*signed, *bits)),
                     _ => None,
@@ -1390,7 +1390,7 @@ impl Items {
                             return Ok(if p.is(&["min"]) { min } else { max });
                         }
                     }
-                    err(Diagnostic::error("an integer's bounds are integers: `int32[min 0, max 100]`").at(e.span))
+                    err(Diagnostic::error("an integer's bounds are integers: `i32[min 0, max 100]`").at(e.span))
                 };
                 let (l, h) = (end(lo)?, end(hi)?);
                 if l > h {
@@ -1400,7 +1400,7 @@ impl Items {
                 if let Ty::Int(IntW::Fixed { signed, bits }) = &base {
                     let (min, max) = int_range(*signed, *bits);
                     // A bound is a value of its type (owner, 2026-09-23):
-                    // no `uint8` is 300, and none is -1.
+                    // no `u8` is 300, and none is -1.
                     for (v, e) in [(l, lo), (h, hi)] {
                         if v < min || v > max {
                             return err(Diagnostic::error(format!("{} does not fit {} ({} to {}): a range's bounds are values of its type", v, spell(&base, self), min, max)).at(e.span));
@@ -1422,7 +1422,7 @@ impl Items {
                     _ => None,
                 };
                 // A side left out is the type's own limit (owner,
-                // 2026-10-12): `bin64[min 0.0]` is 0.0 to the largest bin64.
+                // 2026-10-12): `f64[min 0.0]` is 0.0 to the largest f64.
                 let side = |e: &ast::Expr| -> Result<Option<String>> {
                     match &e.kind {
                         ast::ExprKind::Path(p) if p.is(&["min"]) || p.is(&["max"]) => match top {
@@ -1434,11 +1434,11 @@ impl Items {
                 };
                 let l = match side(lo)? {
                     Some(v) => v,
-                    None => bin_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `bin64[min 0.0, max 1.0]` — an integer's bounds are integers, and the two do not mix").at(lo.span)))?,
+                    None => bin_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `f64[min 0.0, max 1.0]` — an integer's bounds are integers, and the two do not mix").at(lo.span)))?,
                 };
                 let h = match side(hi)? {
                     Some(v) => v,
-                    None => bin_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `bin64[min 0.0, max 1.0]`").at(hi.span)))?,
+                    None => bin_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `f64[min 0.0, max 1.0]`").at(hi.span)))?,
                 };
                 if let Some(top) = top {
                     for (t, e) in [(&l, lo), (&h, hi)] {
@@ -1462,17 +1462,17 @@ impl Items {
                 for e in [lo, hi] {
                     if let ast::ExprKind::Path(p) = &e.kind {
                         if p.is(&["min"]) || p.is(&["max"]) {
-                            return err(Diagnostic::error(format!("not yet: a deci's bound with a side left out — kayo writes both sides of a deci's range so far: `deci{}[min 0.0, max 1.0]`", bits)).at(span));
+                            return err(Diagnostic::error(format!("not yet: a deci's bound with a side left out — kayo writes both sides of a deci's range so far: `d{}[min 0.0, max 1.0]`", bits)).at(span));
                         }
                     }
                 }
-                let written = |e: &ast::Expr| bin_literal(e).ok_or_else(|| Box::new(Diagnostic::error(format!("a deci's bounds are written with a point, as a bin's are: `deci{}[min 0.0, max 1.0]`", bits)).at(e.span)));
+                let written = |e: &ast::Expr| bin_literal(e).ok_or_else(|| Box::new(Diagnostic::error(format!("a deci's bounds are written with a point, as a bin's are: `d{}[min 0.0, max 1.0]`", bits)).at(e.span)));
                 let (l, h) = (written(lo)?, written(hi)?);
                 for (t, e) in [(&l, lo), (&h, hi)] {
                     match crate::deci::literal(t, *bits) {
                         Ok(_) => {}
-                        Err(crate::deci::LitErr::Digits(n)) => return err(Diagnostic::error(format!("`{}` has {} digits; deci{} holds {}: a range's bounds are values of its type", t, n, bits, crate::deci::digits(*bits))).at(e.span)),
-                        Err(crate::deci::LitErr::Range) => return err(Diagnostic::error(format!("`{}` is past what deci{} holds: a range's bounds are values of its type", t, bits)).at(e.span)),
+                        Err(crate::deci::LitErr::Digits(n)) => return err(Diagnostic::error(format!("`{}` has {} digits; d{} holds {}: a range's bounds are values of its type", t, n, bits, crate::deci::digits(*bits))).at(e.span)),
+                        Err(crate::deci::LitErr::Range) => return err(Diagnostic::error(format!("`{}` is past what d{} holds: a range's bounds are values of its type", t, bits)).at(e.span)),
                     }
                 }
                 if l.replace('_', "").parse::<f64>().unwrap_or(0.0) > h.replace('_', "").parse::<f64>().unwrap_or(0.0) {
@@ -1506,7 +1506,7 @@ impl Items {
                 let (l, h) = len_bounds(lo, hi, span)?;
                 Bound::Len { lo: l, hi: h, unit: None }
             }
-            other => return err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`int32[min 0, max 100]`), text, lists, maps and channels", spell(other, self))).at(span)),
+            other => return err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`i32[min 0, max 100]`), text, lists, maps and channels", spell(other, self))).at(span)),
         };
         Ok(Ty::Bounded { inner: Box::new(base), bound })
     }
@@ -1524,9 +1524,8 @@ impl Items {
             // Rust's names that have no CyborgPL type of their own (owner,
             // 2026-10-02), with what to write instead.
             let refused = match head {
-                "usize" | "isize" => Some(format!("`{}` is as big as the machine, and a CyborgPL type's size never depends on it: write the width — `{}64` (or `{}32`)", head, if head == "usize" { "uint" } else { "int" }, if head == "usize" { "uint" } else { "int" })),
+                "usize" | "isize" => Some(format!("`{}` is as big as the machine, and a CyborgPL type's size never depends on it: write the width — `{}64` (or `{}32`)", head, if head == "usize" { "u" } else { "i" }, if head == "usize" { "u" } else { "i" })),
                 "String" => Some("text is `str.utf8` (or `str.ascii`), and there is one kind of it: owned by default, lent with `lend` — Rust's `String` and `&str` are both `str.utf8`".to_string()),
-                "f128" => Some("there is no `f128`, as there is no `bin128`: quad precision is software arithmetic on every machine — `f64`, or `deci128` for more digits".to_string()),
                 _ => None,
             };
             if let Some(why) = refused {
@@ -1540,8 +1539,8 @@ impl Items {
                 return err(Diagnostic::error(format!("the brain float comes in `brain16` only (also written `bfloat16` and `bf16`): there is no `{}`, and `{}` is 16 bits by name", head, p)).at(span));
             }
         }
-        if path.kit.is_none() && head == "bin128" {
-            return err(Diagnostic::error("there is no `bin128`: quad precision is software arithmetic on every machine — `bin64`, or `deci128` for more digits (owner, 2026-09-23)").at(span));
+        if path.kit.is_none() && head == "f128" {
+            return err(Diagnostic::error("there is no `f128`: quad precision is software arithmetic on every machine — `f64`, or `d128` for more digits (owner, 2026-09-23)").at(span));
         }
         // An integer of any width (owner, 2026-10-03).
         if let Some(rest) = head.strip_prefix("!std_") {
@@ -1607,10 +1606,10 @@ impl Items {
                 }
                 "list" | "array" => {
                     if path.segs.len() > 1 {
-                        return err(Diagnostic::error(format!("the element type goes in brackets: `{}[int32]`, not `{}`", head, path.spelled())).at(span));
+                        return err(Diagnostic::error(format!("the element type goes in brackets: `{}[i32]`, not `{}`", head, path.spelled())).at(span));
                     }
                     if args.len() != 1 {
-                        return err(Diagnostic::error(format!("`{}` takes exactly one type parameter, the element type: `{}[int32]`", head, head)).at(span));
+                        return err(Diagnostic::error(format!("`{}` takes exactly one type parameter, the element type: `{}[i32]`", head, head)).at(span));
                     }
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     let kind = if head == "list" { SeqKind::List } else { SeqKind::Array };
@@ -1624,7 +1623,7 @@ impl Items {
                         Some(other) => return err(Diagnostic::error(format!("`map.{}` is not a variant: `map` (the prover decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)", other)).at(span)),
                     };
                     if args.len() != 2 {
-                        return err(Diagnostic::error("`map` takes two type parameters, the key and the value: `map[str.utf8, int32]`").at(span));
+                        return err(Diagnostic::error("`map` takes two type parameters, the key and the value: `map[str.utf8, i32]`").at(span));
                     }
                     let key = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     let val = self.resolve_type(&args[1], m, blanks, allow_blanks)?;
@@ -1633,14 +1632,14 @@ impl Items {
                 }
                 "simd" => {
                     if path.segs.len() > 1 {
-                        return err(Diagnostic::error(format!("`simd` takes its lane type and count in brackets: `simd[uint8, count 16]`, not `{}`", path.spelled())).at(span));
+                        return err(Diagnostic::error(format!("`simd` takes its lane type and count in brackets: `simd[u8, count 16]`, not `{}`", path.spelled())).at(span));
                     }
                     if args.len() != 2 {
-                        return err(Diagnostic::error("`simd` takes two things in brackets, the lane type and how many lanes: `simd[uint8, count 16]`").at(span));
+                        return err(Diagnostic::error("`simd` takes two things in brackets, the lane type and how many lanes: `simd[u8, count 16]`").at(span));
                     }
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     let Some(lanes) = lane_count(&args[1]) else {
-                        return err(Diagnostic::error("a simd's lane count says `count`: `simd[uint8, count 16]`").at(args[1].span));
+                        return err(Diagnostic::error("a simd's lane count says `count`: `simd[u8, count 16]`").at(args[1].span));
                     };
                     // A mask (owner, 2026-09-27: a): one answer per lane of
                     // the vectors it compares, so as many lanes as they have.
@@ -1655,7 +1654,7 @@ impl Items {
                     // A lane is a standard width (owner, 2026-10-03: a).
                     if let Ty::Int(IntW::Fixed { bits, .. }) = elem.base() {
                         if !matches!(bits, 8 | 16 | 32 | 64 | 128) {
-                            return err(Diagnostic::error(format!("a vector's lanes are a standard width, and `{}` is not one: `int8`, `int16`, `int32` or `int64` (unsigned too)", spell(&elem, self))).at(args[0].span));
+                            return err(Diagnostic::error(format!("a vector's lanes are a standard width, and `{}` is not one: `i8`, `i16`, `i32` or `i64` (unsigned too)", spell(&elem, self))).at(args[0].span));
                         }
                     }
                     if simd_lane_bits(&elem).is_none() {
@@ -1684,7 +1683,7 @@ impl Items {
                         Some(other) => return err(Diagnostic::error(format!("`ptr.{}` does not exist: `ptr[T]` (read-only) or `ptr.mut[T]`", other)).at(span)),
                     };
                     if args.len() != 1 {
-                        return err(Diagnostic::error("`ptr` takes one type parameter: `ptr[uint8]`").at(span));
+                        return err(Diagnostic::error("`ptr` takes one type parameter: `ptr[u8]`").at(span));
                     }
                     POINTEE.with(|p| p.set(true));
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
@@ -1806,42 +1805,24 @@ pub fn spell(t: &Ty, items: &Items) -> String {
     TySpelling { ty: t, structs: &items.structs, enums: &items.enums }.to_string()
 }
 
-/// Rust's number type names, read as CyborgPL's (owner, 2026-10-02).
-pub fn rust_alias(w: &str) -> Option<&'static str> {
-    Some(match w {
-        "i8" => "int8",
-        "i16" => "int16",
-        "i32" => "int32",
-        "i64" => "int64",
-        "i128" => "int128",
-        "u8" => "uint8",
-        "u16" => "uint16",
-        "u32" => "uint32",
-        "u64" => "uint64",
-        "u128" => "uint128",
-        "f16" => "bin16",
-        "f32" => "bin32",
-        "f64" => "bin64",
-        _ => return None,
-    })
+/// Whether a word is one of the number types (owner, 2026-10-20: `i`, `u`,
+/// `f`, `d` with their width).
+pub fn number_type(w: &str) -> bool {
+    matches!(w, "i8" | "i16" | "i32" | "i64" | "i128" | "u8" | "u16" | "u32" | "u64" | "u128" | "f16" | "f32" | "f64" | "d32" | "d64" | "d128")
 }
 
-/// `!std.int24`, `!std.uint4`, `!std.i24`, `!std.u4` (owner, 2026-10-03; `.`
+/// `not_std.i24`, `not_std.u4` (owner, 2026-10-03; `.`
 /// since 2026-10-06), held inside as `!std_…`:
 /// any width from 1 to LLVM's 2^23 bits that is not a standard one.
 fn std_int(rest: &str, span: Span) -> Result<Ty> {
-    let (signed, digits, ours) = if let Some(d) = rest.strip_prefix("uint") {
-        (false, d, true)
-    } else if let Some(d) = rest.strip_prefix("int") {
-        (true, d, true)
-    } else if let Some(d) = rest.strip_prefix('u') {
-        (false, d, false)
+    let (signed, digits) = if let Some(d) = rest.strip_prefix('u') {
+        (false, d)
     } else if let Some(d) = rest.strip_prefix('i') {
-        (true, d, false)
+        (true, d)
     } else {
-        (true, "", false)
+        (true, "")
     };
-    let not_a_type = || err(Diagnostic::error(format!("`not_std.{}` is not a type: a non-standard integer is `not_std.intN` or `not_std.uintN` (MTM's `not_std.iN` or `not_std.uN`), N its width in bits", rest)).at(span));
+    let not_a_type = || err(Diagnostic::error(format!("`not_std.{}` is not a type: a non-standard integer is `not_std.iN` or `not_std.uN`, N its width in bits", rest)).at(span));
     if digits.is_empty() || !digits.bytes().all(|c| c.is_ascii_digit()) {
         return not_a_type();
     }
@@ -1855,42 +1836,32 @@ fn std_int(rest: &str, span: Span) -> Result<Ty> {
         return err(Diagnostic::error(format!("`not_std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).at(span));
     }
     if matches!(bits, 8 | 16 | 32 | 64 | 128) {
-        let std = if ours { format!("{}int{}", if signed { "" } else { "u" }, bits) } else { format!("{}{}", if signed { "i" } else { "u" }, bits) };
+        let std = format!("{}{}", if signed { "i" } else { "u" }, bits);
         return err(Diagnostic::error(format!("`{}` is standard: write `{}` — the mark `not_std.` says a width is not", std, std)).at(span));
     }
     Ok(Ty::int(signed, bits as u32))
 }
 
 pub fn primitive(head: &str) -> Option<Ty> {
-    let head = rust_alias(head).unwrap_or(head);
     if matches!(head, "brain16" | "bfloat16" | "bf16") {
         return Some(Ty::Brain);
     }
     if head == "bool" {
         return Some(Ty::Bool);
     }
-    let (signed, prefix) = if head.starts_with("uint") { (false, 4) } else if head.starts_with("int") { (true, 3) } else if head.starts_with("bin") {
-        let bits: u16 = head[3..].parse().ok()?;
-        // No `bin128` (owner, 2026-09-23): refused by name in
+    // `i`, `u`, `f`, `d` with their width (owner, 2026-10-20).
+    let (family, digits) = head.split_at(head.chars().next().map_or(0, |c| c.len_utf8()));
+    if digits.is_empty() || !digits.bytes().all(|c| c.is_ascii_digit()) || digits.starts_with('0') {
+        return None;
+    }
+    let bits: u32 = digits.parse().ok()?;
+    match family {
+        "i" | "u" if matches!(bits, 8 | 16 | 32 | 64 | 128) => Some(Ty::int(family == "i", bits)),
+        // No `f128` (owner, 2026-09-23): refused by name in
         // `resolve_type_path`.
-        if matches!(bits, 16 | 32 | 64) {
-            return Some(Ty::Bin(BinW::Fixed(bits)));
-        }
-        return None;
-    } else if head.starts_with("deci") {
-        let bits: u16 = head[4..].parse().ok()?;
-        if matches!(bits, 32 | 64 | 128) {
-            return Some(Ty::Deci(bits));
-        }
-        return None;
-    } else {
-        return None;
-    };
-    let bits: u32 = head[prefix..].parse().ok()?;
-    if matches!(bits, 8 | 16 | 32 | 64 | 128) {
-        Some(Ty::int(signed, bits))
-    } else {
-        None
+        "f" if matches!(bits, 16 | 32 | 64) => Some(Ty::Bin(BinW::Fixed(bits as u16))),
+        "d" if matches!(bits, 32 | 64 | 128) => Some(Ty::Deci(bits as u16)),
+        _ => None,
     }
 }
 
@@ -1995,7 +1966,7 @@ fn len_bounds(lo: &ast::Expr, hi: &ast::Expr, span: Span) -> Result<(u64, u64)> 
         return err(Diagnostic::error("a length bound's low end is 0 or more: a length is never negative").at(lo.span));
     }
     if l > h {
-        return err(Diagnostic::error("the low bound is at most the high one: `list[int32][min 0, max 1000]`").at(span));
+        return err(Diagnostic::error("the low bound is at most the high one: `list[i32][min 0, max 1000]`").at(span));
     }
     Ok((l as u64, h as u64))
 }

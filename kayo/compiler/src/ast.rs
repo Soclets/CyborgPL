@@ -17,7 +17,7 @@ pub struct QName {
     pub span: Span,
 }
 
-/// `a.b.c`, `my.helper`, `std::print.stdout`, `list.length`, `to.int32`.
+/// `a.b.c`, `my.helper`, `std::print.stdout`, `list.length`, `to.i32`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Path {
     /// The Kit before `::`, if any.
@@ -64,7 +64,7 @@ pub struct Type {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TypeKind {
-    /// `int32`, `str.utf8`, `list[T]`, `map.ordered[K, V]`, `Pair[int32, str.utf8]`,
+    /// `i32`, `str.utf8`, `list[T]`, `map.ordered[K, V]`, `Pair[i32, str.utf8]`,
     /// `shapes.circle.Circle`, `std::uenr`, `ptr.mut[T]`, `channel[T]`.
     Path { path: Path, args: Vec<Type> },
     /// `T[lo, hi]`, `str.utf8[1, 40 graphemes]`, `list[T][0, 10]`.
@@ -76,9 +76,9 @@ pub enum TypeKind {
     /// `fn[lent T, T] -> R or fail[…]`.
     Fn { params: Vec<FnTypeParam>, ret: Option<Box<Type>>, fails: Vec<FailSpec> },
     /// `count N` where a type parameter goes: the lane count of a
-    /// `simd[uint8, count 16]` (owner, 2026-10-19). Nothing else takes one.
+    /// `simd[u8, count 16]` (owner, 2026-10-19). Nothing else takes one.
     Count(u32),
-    /// `uint8[bits 3]`: a C bit-field's type (owner, 2026-10-19), only a
+    /// `u8[bits 3]`: a C bit-field's type (owner, 2026-10-19), only a
     /// `layout.C` field's.
     Bits { inner: Box<Type>, bits: u32, span: Span },
 }
@@ -395,7 +395,7 @@ pub enum ExprKind {
     Bin(String),
     /// `*0.1`: "exactly this", a `deci` (owner, 2026-10-02).
     Exact(String),
-    /// `5: uint8`, `-128: int8`, `exactly 0.1: deci64` (owner, 2026-10-17):
+    /// `5: u8`, `-128: i8`, `exactly 0.1: d64` (owner, 2026-10-17):
     /// a literal of the type after the `:`, which it must fit. The checker
     /// refuses anything but a literal here, naming `to.T[…]`.
     Typed { value: Box<Expr>, ty: Type },
@@ -431,7 +431,7 @@ pub enum ExprKind {
     Paren(Box<Expr>),
     /// `[1, 2, 3]`, `[7,]`, `[]`
     List(Vec<Expr>),
-    /// `to.int32[…]`, `to.int32[0, 100][…]`, `to.str.utf8[…]`.
+    /// `to.i32[…]`, `to.i32[0, 100][…]`, `to.str.utf8[…]`.
     Conv { target: Type, expr: Box<Expr>, otherwise: Option<Box<Otherwise>> },
     /// `channel[T]`, `channel[T][0, N]`
     Channel { elem: Type, bound: Option<Box<(Expr, Expr)>> },
@@ -798,7 +798,7 @@ pub enum ItemKind {
     Module { name: Ident, items: Vec<Item> },
     /// `Vec satisfies Ordered;`
     Satisfies { ty: Type, iface: Path },
-    /// `MAIN { … }`, or `MAIN ['argc': int32, 'argv': ptr[ptr[uint8]]] { … }`
+    /// `MAIN { … }`, or `MAIN ['argc': i32, 'argv': ptr[ptr[u8]]] { … }`
     /// with C's arguments (owner, 2026-09-29).
     Main(Vec<Param>, Block),
 }
@@ -950,7 +950,7 @@ pub struct Template {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TemplateValues {
-    /// `in [2, 10, 'big']` or `in [int16, int64]`, each as written.
+    /// `in [2, 10, 'big']` or `in [i16, i64]`, each as written.
     List(Vec<Expr>),
     /// `from 1 to 3 by 1`, `before` leaving the end out.
     Count { start: Expr, stop: Expr, step: Expr, exclusive: bool },

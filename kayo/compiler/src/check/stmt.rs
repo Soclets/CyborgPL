@@ -148,7 +148,7 @@ impl Checker {
         if !ctx.is_test {
             return err(Diagnostic::error("`must` belongs in a `test fn`: in a program, the prover and `check` say what must hold, before it runs").at(span));
         }
-        let int32 = Ty::Int(IntW::Fixed { signed: true, bits: 32 });
+        let i32_ty = Ty::Int(IntW::Fixed { signed: true, bits: 32 });
         let text = |s: &str| hir::Expr { kind: hir::ExprKind::Str(s.to_string()), ty: Ty::utf8(), span };
         let stmt = |kind: hir::StmtKind| hir::Stmt { kind, span, tier: None };
         let block = |stmts: Vec<hir::Stmt>| hir::Block { stmts, span };
@@ -211,11 +211,11 @@ impl Checker {
                     None => None,
                 };
                 // Which reason came back: 0 for none, i + 1 for reason i.
-                let got = fresh(ctx, "the reason", &int32);
+                let got = fresh(ctx, "the reason", &i32_ty);
                 let arms: Vec<hir::FailArm> = (0..fails.len()).map(|i| hir::FailArm {
                     index: i,
                     bind: None,
-                    body: block(vec![stmt(hir::StmtKind::Assign { place: hir::Place { base: got, proj: Vec::new(), ty: int32.clone(), span }, value: hir::Expr { kind: hir::ExprKind::Int(i as i128 + 1), ty: int32.clone(), span } })]),
+                    body: block(vec![stmt(hir::StmtKind::Assign { place: hir::Place { base: got, proj: Vec::new(), ty: i32_ty.clone(), span }, value: hir::Expr { kind: hir::ExprKind::Int(i as i128 + 1), ty: i32_ty.clone(), span } })]),
                     gives: None,
                 }).collect();
                 match &mut call.kind {
@@ -223,7 +223,7 @@ impl Checker {
                     _ => unreachable!("a call or a conversion"),
                 }
                 let mut out = vec![
-                    stmt(hir::StmtKind::Let { local: got, value: hir::Expr { kind: hir::ExprKind::Int(0), ty: int32.clone(), span }, typed: false }),
+                    stmt(hir::StmtKind::Let { local: got, value: hir::Expr { kind: hir::ExprKind::Int(0), ty: i32_ty.clone(), span }, typed: false }),
                     stmt(hir::StmtKind::Expr(call)),
                     if_then(is(got, 0), vec![report(text(&format!("`{}`: it did not fail", spelled)))]),
                 ];
@@ -239,9 +239,9 @@ impl Checker {
             MustKind::Stop => {
                 self.items.must_stop_spans.push(expr.span);
                 let value = self.expr(ctx, expr)?;
-                let k = fresh(ctx, "the stop", &int32);
+                let k = fresh(ctx, "the stop", &i32_ty);
                 Ok(hir::StmtKind::Block(block(vec![
-                    stmt(hir::StmtKind::Let { local: k, value: builtin(hir::Builtin::MustStopFork, Vec::new(), int32.clone()), typed: false }),
+                    stmt(hir::StmtKind::Let { local: k, value: builtin(hir::Builtin::MustStopFork, Vec::new(), i32_ty.clone()), typed: false }),
                     if_then(is(k, 1), vec![stmt(hir::StmtKind::Expr(value)), stmt(hir::StmtKind::Expr(builtin(hir::Builtin::MustStopDone, Vec::new(), Ty::Nothing)))]),
                     if_then(is(k, 2), vec![report(text("`must.stop`: no check fired"))]),
                 ])))
@@ -754,8 +754,8 @@ impl Checker {
                         // "The step is not one of those values" (owner,
                         // 2026-09-23): it is its own signed number, an
                         // instruction to go up or down, so it is checked as
-                        // an `int64`, never as the counter's type — `-1` is a
-                        // fine step for a `uint64` counter.
+                        // an `i64`, never as the counter's type — `-1` is a
+                        // fine step for a `u64` counter.
                         let v = self.expect_store(ctx, v, &crate::types::Ty::int(true, 64), "the step")?;
                         if let hir::ExprKind::Int(0) = v.kind {
                             return err(Diagnostic::error("a step of 0 would never end: the counter must move").at(st.span));
@@ -846,7 +846,7 @@ impl Checker {
                 if !perm {
                     ctx.push_scope();
                 }
-                // The position is a `uint64` from 1, like every position.
+                // The position is a `u64` from 1, like every position.
                 let pos_id = pos.map(|p| ctx.declare(&p.name, Local { name: p.name.clone(), ty: Ty::u64(), mutability: None, kind: LocalKind::LoopVar, from_blank: false, span: p.span }));
                 let id = ctx.declare(&name.name, Local { name: name.name.clone(), ty: elem_ty, mutability: None, kind: if elem_kind == LocalKind::Owned { LocalKind::LoopVar } else { elem_kind }, from_blank: false, span: name.span });
                 // A lent element is a loop variable too: not assignable.

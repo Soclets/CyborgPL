@@ -18,9 +18,9 @@ pub const CAP: usize = 512;
 pub enum Sink {
     /// `write` to a file descriptor: 1 or 2.
     Fd = 0,
-    /// The target's output, one `uint8` a call.
+    /// The target's output, one `u8` a call.
     Byte = 1,
-    /// The target's output, a `lent array[uint8]` a call: its address and
+    /// The target's output, a `lent array[u8]` a call: its address and
     /// its length, as a lent array is passed.
     Chunk = 2,
 }
@@ -41,7 +41,7 @@ extern "C" {
     fn fflush(stream: *mut u8) -> i32;
 }
 
-/// A lent `array[uint8]` as a function receives one.
+/// A lent `array[u8]` as a function receives one.
 #[repr(C)]
 struct Array {
     ptr: *const u8,

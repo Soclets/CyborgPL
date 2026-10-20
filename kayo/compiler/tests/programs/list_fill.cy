@@ -2,24 +2,24 @@
 # The scores are 0 but one 7 (7); three flags, all false (30, and no 50);
 # no ones (0); four int8s of 100, the fourth read back (100); two bins of
 # 1.5, the second doubled (3). 7 + 30 + 0 + 100 + 3 = 140.
-extern.C fn exit ['code': int32];
+extern.C fn exit ['code': i32];
 MAIN {
     let mut 'scores' := list.fill[value 0, count 5];
     change 'scores'[pos 3] = 7;
-    let 'n': int64 = 3;
+    let 'n': i64 = 3;
     let 'flags': list[bool] = list.fill[value false, count 'n'];
-    let 'none': list[int32] = list.fill[value 1, count 0];
-    let 'eights': list[int8] = list.fill[value 100, count 4];
-    let 'bs': list[bin64] = list.fill[value 1.5, count 2];
-    let mut 'code': int64 = 0;
-    for 'k': int64 from 1 to 5 by 1 {
+    let 'none': list[i32] = list.fill[value 1, count 0];
+    let 'eights': list[i8] = list.fill[value 100, count 4];
+    let 'bs': list[f64] = list.fill[value 1.5, count 2];
+    let mut 'code': i64 = 0;
+    for 'k': i64 from 1 to 5 by 1 {
         change 'code' = 'code' plus 'scores'[pos 'k'];
     }
-    change 'code' = 'code' plus to.int64[list.length[lend 'flags']] times 10;
+    change 'code' = 'code' plus to.i64[list.length[lend 'flags']] times 10;
     if 'flags'[pos 2] { change 'code' = 'code' plus 50; }
-    change 'code' = 'code' plus to.int64[list.length[lend 'none']];
-    change 'code' = 'code' plus to.int64['eights'[pos 4]];
-    let 'twice': int64 = to.int64['bs'[pos 2] times 2.0] otherwise 0;
+    change 'code' = 'code' plus to.i64[list.length[lend 'none']];
+    change 'code' = 'code' plus to.i64['eights'[pos 4]];
+    let 'twice': i64 = to.i64['bs'[pos 2] times 2.0] otherwise 0;
     change 'code' = 'code' plus 'twice';
-    no_check my.exit[to.int32['code']];
+    no_check my.exit[to.i32['code']];
 }

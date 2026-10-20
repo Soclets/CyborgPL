@@ -1041,6 +1041,21 @@ Dated, with the alternative, so each can become a question later.
   naming the typed literal to write (`2.5: bin64`). A preset beside several
   versions, and an overloaded name held as a value, are refused (design
   claude's readings).
+- **2026-10-20 — The number types are `i`, `u`, `f`, `d` with their
+  width** (owner: "go"; DECISIONS 2026-10-20; oracle 79464782). `i8` …
+  `i128`, `u8` … `u128`, `f16` `f32` `f64`, `d32` `d64` `d128`
+  (`resolve::primitive`, `number_type`), printed so in every message; the
+  long names are refused by `spellings.cyr`'s rows wherever they stand,
+  inside a path too (`to.int32`). `not_std.i24` is the spelling now, and
+  `not_std.int24` the old one. A bare `int`, `uint`, `bin` or `deci` is an
+  old spelling; a bare `i`, `u`, `f` or `d` needs a width; a struct, enum or
+  interface named `i32` is refused as one of the number types (the Rust
+  aliases are gone, being the names now). The number bases are `bin 1010`,
+  `hex FF`, `oct 755`; `binary` and `octal` are old. A message says "an
+  `i32`", "a `u8`", "an `f64`", "a `d64`", as they are read. kayo's own
+  programs, tests and bench were swept by script, and `std/str.cy` too (one
+  file, so the suite can load std; std claude's to keep). Earlier entries
+  here keep the names of their day.
 - **2026-10-20 — What picks a version, read further** (check claude, std
   claude; the oracle's rule, c8a27e08). `peek_arg` types more than
   literals and names: a `to.` conversion is its target, `true` a `bool`,

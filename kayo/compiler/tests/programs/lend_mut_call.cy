@@ -1,10 +1,10 @@
-extern.C fn exit ['code': int32];
-fn fill [lent.mut 'into': list[int32]] {
+extern.C fn exit ['code': i32];
+fn fill [lent.mut 'into': list[i32]] {
     list.append[lend.mut 'into', value 7];
 }
 MAIN {
-    let mut 'b': list[int32] = [];
+    let mut 'b': list[i32] = [];
     fill[lend.mut 'b'];
-    let 'first': int32 = 'b'[pos 1];
+    let 'first': i32 = 'b'[pos 1];
     no_check my.exit['first'];
 }

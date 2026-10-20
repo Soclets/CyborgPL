@@ -201,7 +201,7 @@ impl<'ctx> Cg<'_, 'ctx> {
             Ty::Bin(_) | Ty::Brain => {
                 let lt = self.ty(ty)?.into_float_type();
                 if lt == self.ctx.f128_type() {
-                    self.cannot("printing a `bin128` is not built yet", None);
+                    self.cannot("printing a `f128` is not built yet", None);
                     return None;
                 }
                 let v = self.builder.build_load(lt, at, "x").ok()?.into_float_value();

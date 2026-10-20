@@ -3,18 +3,18 @@
 # wide[2 shl 3] is a 32-bit shift (16), wide[not.bit 0] is 4294967295, and
 # list.append's value takes the element type (0 -~ 2 is 254).
 # examples/argument_context.cpls as an exit code: one bit per right answer.
-extern.C fn exit ['code': int32];
-fn show ['b': uint8] -> uint8 { return 'b'; }
-fn wide ['w': uint32] -> uint32 { return 'w'; }
-fn flag ['b': bool, 'v': int32] -> int32 {
+extern.C fn exit ['code': i32];
+fn show ['b': u8] -> u8 { return 'b'; }
+fn wide ['w': u32] -> u32 { return 'w'; }
+fn flag ['b': bool, 'v': i32] -> i32 {
     if 'b' { return 'v'; }
     return 0;
 }
 MAIN {
     let 'a' := show[0 minus.wrap 1];
-    let 'v': uint64 = to.uint64[wide[2 shl 3]];
+    let 'v': u64 = to.u64[wide[2 shl 3]];
     let 'n' := wide[not.bit 0];
-    let mut 'xs': list[uint8] = [1,];
+    let mut 'xs': list[u8] = [1,];
     list.append[lend.mut 'xs', value 0 minus.wrap 2];
     no_check my.exit[flag['a' equal_to 255, 1] plus flag['v' equal_to 16, 2] plus flag['n' equal_to 4294967295, 4] plus flag['xs'[pos 2] equal_to 254, 8]];
 }

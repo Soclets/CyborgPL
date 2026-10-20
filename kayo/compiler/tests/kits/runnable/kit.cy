@@ -3,6 +3,6 @@
 
 bare.never [fn];
 
-extern.C fn exit ['code': int32];
-pub fn seven [] -> int32 { return 7; }
+extern.C fn exit ['code': i32];
+pub fn seven [] -> i32 { return 7; }
 MAIN { no_check my.exit[99]; }

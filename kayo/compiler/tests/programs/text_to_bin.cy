@@ -3,22 +3,22 @@
 # from the digits to the width; past the largest fails out_of_range, and
 # so does a value outside a range type. Which text is read is known only
 # at run time: whether an unset variable is there.
-extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-fn b64 ['t': str.utf8] -> bin64 {
-    let 'v' := to.bin64['t'] otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
+extern.C fn exit ['code': i32];
+extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
+fn b64 ['t': str.utf8] -> f64 {
+    let 'v' := to.f64['t'] otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
     return 'v';
 }
-fn b32 ['t': str.utf8] -> bin32 {
-    let 'v' := to.bin32['t'] otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
+fn b32 ['t': str.utf8] -> f32 {
+    let 'v' := to.f32['t'] otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
     return 'v';
 }
-fn b16 ['t': str.utf8] -> bin16 {
-    let 'v' := to.bin16['t'] otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
+fn b16 ['t': str.utf8] -> f16 {
+    let 'v' := to.f16['t'] otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
     return 'v';
 }
-fn unit ['t': str.utf8] -> bin64 {
-    let 'v' := to.bin64[min 0.0, max 1.0]['t'] otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
+fn unit ['t': str.utf8] -> f64 {
+    let 'v' := to.f64[min 0.0, max 1.0]['t'] otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
     return 'v';
 }
 MAIN {
@@ -26,7 +26,7 @@ MAIN {
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 's' := str.empty;
     if 'there' { change 's' = "5"; }
-    let mut 'got': int32 = 0;
+    let mut 'got': i32 = 0;
     if b64["2.5e3"] equal_to 2500.0 and b64["-1E-2"] equal_to -0.01 and b64["+" concat 's'] equal_to 5.0 { change 'got' = 'got' plus 1; }
     if b64["nan"] equal_to -1.0 and b64["inf"] equal_to -1.0 and b64["." concat 's'] equal_to -1.0 and b64['s' concat "."] equal_to -1.0 and b64["1_0"] equal_to -1.0 and b64[" " concat 's'] equal_to -1.0 { change 'got' = 'got' plus 2; }
     if b64["1e400"] equal_to -2.0 and b32["1e39"] equal_to -2.0 and b16["6552" concat 's' concat ".0"] equal_to -2.0 { change 'got' = 'got' plus 4; }

@@ -1,3 +1,3 @@
 bare.never [fn];
 
-pub fn money [] -> int32 { return 1; }
+pub fn money [] -> i32 { return 1; }

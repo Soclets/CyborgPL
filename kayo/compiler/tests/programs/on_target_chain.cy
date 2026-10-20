@@ -2,18 +2,18 @@
 # 2026-10-06), mixed in one chain. Built for aarch64-macos: 10 from the
 # whole target, 200 from the item branch, 3 because no Apple chip has SVE
 # so the chain falls to the target branch, 30 from the chip: 243.
-extern.C fn exit ['code': int32];
+extern.C fn exit ['code': i32];
 on.target.os windows {
-    fn where [] -> int32 { return 1; }
+    fn where [] -> i32 { return 1; }
 } else {
-    fn where [] -> int32 { return 2; }
+    fn where [] -> i32 { return 2; }
 }
 MAIN {
-    let mut 'n': int32 = 0;
+    let mut 'n': i32 = 0;
     on.target aarch64-macos {
         change 'n' = 'n' plus 10;
     } else on.target.chip x86_64 {
-        let 'k': int64 = 5;
+        let 'k': i64 = 5;
         no_check inline.ASM { neg rax } with ['k' -> rax, 'k' <- rax];
     } else {
         change 'n' = 'n' plus 20;

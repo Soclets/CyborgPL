@@ -9,7 +9,7 @@
 //! `#define` constants; the picks in oracle/README.md "What of a C header
 //! comes through"): a function or `extern` global whose types are numbers,
 //! `bool` and pointers to them, `const` before the target making `ptr`,
-//! else `ptr.mut`; plain `char` is `uint8`; `void *` points at `uint8`; a
+//! else `ptr.mut`; plain `char` is `u8`; `void *` points at `u8`; a
 //! type name stands for what it names; a `#define` that is a whole number
 //! (in decimal here, so `0644` is 420), possibly negative or in
 //! parentheses, or text with no `\` or `"` in it. Left out: structs and
@@ -516,7 +516,7 @@ impl Decls {
         }
         let out = match (base_type(&base)?, stars) {
             ("void", 0) => return None,
-            ("void", _) => "uint8".to_string(),
+            ("void", _) => "u8".to_string(),
             (b, _) => b.to_string(),
         };
         Some(wrap(out))
@@ -677,14 +677,14 @@ fn base_type(words: &[&str]) -> Option<&'static str> {
             "intptr_t" => Some("C.intptr_t"),
             "uintptr_t" => Some("C.uintptr_t"),
             "wchar_t" => Some("C.wchar_t"),
-            "int8_t" => Some("int8"),
-            "int16_t" => Some("int16"),
-            "int32_t" => Some("int32"),
-            "int64_t" => Some("int64"),
-            "uint8_t" => Some("uint8"),
-            "uint16_t" => Some("uint16"),
-            "uint32_t" => Some("uint32"),
-            "uint64_t" => Some("uint64"),
+            "int8_t" => Some("i8"),
+            "int16_t" => Some("i16"),
+            "int32_t" => Some("i32"),
+            "int64_t" => Some("i64"),
+            "uint8_t" => Some("u8"),
+            "uint16_t" => Some("u16"),
+            "uint32_t" => Some("u32"),
+            "uint64_t" => Some("u64"),
             _ => None,
         } {
             return Some(t);
@@ -699,8 +699,8 @@ fn base_type(words: &[&str]) -> Option<&'static str> {
     Some(match rest.as_slice() {
         ["void"] if plain && longs == 0 => "void",
         ["_Bool"] | ["bool"] if plain && longs == 0 => "bool",
-        ["float"] if plain && longs == 0 => "bin32",
-        ["double"] if plain && longs == 0 => "bin64",
+        ["float"] if plain && longs == 0 => "f32",
+        ["double"] if plain && longs == 0 => "f64",
         ["double"] if plain && longs == 1 => "C.long_double",
         ["char"] if longs == 0 && !has_int => {
             if signed {

@@ -332,7 +332,7 @@ impl std::fmt::Display for Big {
     }
 }
 
-/// Where a whole number rounds past the largest of a bin16, bin32, bin64
+/// Where a whole number rounds past the largest of an f16, f32, f64
 /// or brain16: the largest plus half a step, the tie going to infinity.
 /// A value fits when its size is below it.
 pub fn bin_round_limit(bits: u16) -> Big {

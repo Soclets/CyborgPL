@@ -2,10 +2,10 @@
 # every trip — the count is the input's, not the list's length. The sum
 # over length template must not fit (its read has to be in the loop, at the
 # current position), so the final build refuses the narrowing.
-extern.C fn exit ['code': int32];
-extern.C fn getenv ['name': ptr[uint8]] -> ptr[uint8];
-extern.C fn atoi ['s': ptr[uint8]] -> int32;
-fn stale [lent 'xs': list[int32], 'n': int32] -> int32 {
+extern.C fn exit ['code': i32];
+extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
+extern.C fn atoi ['s': ptr[u8]] -> i32;
+fn stale [lent 'xs': list[i32], 'n': i32] -> i32 {
     let mut 'total' := 0;
     let 'v' := lend 'xs';
     let mut 'i' := 1;
@@ -18,7 +18,7 @@ fn stale [lent 'xs': list[int32], 'n': int32] -> int32 {
 }
 MAIN {
     let 'k' := "N";
-    no_check let 'n': int32 = atoi[getenv[lend 'k']];
-    let 'xs': list[int32] = [2147483647,];
+    no_check let 'n': i32 = atoi[getenv[lend 'k']];
+    let 'xs': list[i32] = [2147483647,];
     no_check my.exit[stale[lend 'xs', 'n'] mod.floor 256];
 }

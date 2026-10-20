@@ -280,8 +280,8 @@ impl Domain {
     }
 
     /// The domain a type allows, before anything is proven. This is where
-    /// layer 2 starts, and it is already a real fact: a `uint8` is 0..255,
-    /// an `int32[0, 100]` is 0..100, a `list[T][0, 5]` has 0..5 elements.
+    /// layer 2 starts, and it is already a real fact: a `u8` is 0..255,
+    /// an `i32[0, 100]` is 0..100, a `list[T][0, 5]` has 0..5 elements.
     pub fn of_ty(ty: &Ty, items: &crate::resolve::Items) -> Domain {
         match ty {
             // Nothing about a decimal is followed yet, its bounds
@@ -321,7 +321,7 @@ impl Domain {
             // so nothing is ruled out until it does.
             Ty::Int(IntW::Free(_)) => Domain::Ints(ISet::Range { lo: i64::MIN as i128, hi: i64::MAX as i128 }),
             // Each width holds a finite range, and that range is a fact
-            // about the type as much as `int8`'s is.
+            // about the type as much as `i8`'s is.
             Ty::Bin(w) => {
                 let m = bin_max(*w);
                 Domain::Bins { lo: m.map(|x| -x), hi: m }
@@ -598,7 +598,7 @@ pub fn enc_of(ty: &Ty) -> Option<Enc> {
     }
 }
 
-/// The largest finite value each binary float width holds. `bin16` is
+/// The largest finite value each binary float width holds. `f16` is
 /// IEEE 754 half precision, whose largest is 65504.
 pub fn bin_max(w: BinW) -> Option<f64> {
     match w {
@@ -616,7 +616,7 @@ pub fn bin_max(w: BinW) -> Option<f64> {
 
 /// A constant as the target actually stores it
 /// (`reproducible-builds.md`: compile-time arithmetic matches the target).
-/// `bin16` and `bin128` are not modelled: the value is kept as written and
+/// `f16` and `f128` are not modelled: the value is kept as written and
 /// only ever used to answer range questions, never folded into the binary.
 pub fn bin_at_width(v: f64, w: BinW) -> f64 {
     match w {
@@ -717,7 +717,7 @@ impl ISet {
         // `x and.bit m` with one side never negative: that side's sign bit
         // is 0, so the answer's is, and its bits are some of that side's —
         // 0 to its largest, whatever the other side is (check claude, seed
-        // 7141: `('x' and.bit 16383)` of any int16 is 0 to 16383).
+        // 7141: `('x' and.bit 16383)` of any i16 is 0 to 16383).
         if *op == B::AndBit && (a1 < 0 || b1 < 0) {
             return match (a1 >= 0, b1 >= 0) {
                 (true, _) => Some(ISet::range(0, a2)),
@@ -740,7 +740,7 @@ impl ISet {
 
     // An answer too big for 128 bits is *saturated*, never dropped. It was
     // dropped, and `'n' x 10000000000000000000` with `'n'` anything a
-    // `uint64` holds came out as exactly 0 — the corner that overflowed was
+    // `u64` holds came out as exactly 0 — the corner that overflowed was
     // the one that mattered — and the multiply was "proven" to fit. A
     // saturated end is outside every type a program can write, so the site
     // that computed it can never be proven by it.
@@ -811,7 +811,7 @@ impl ISet {
             return exact;
         }
         // Not from the ends of the dividend's range: a remainder is not
-        // monotone. Both ends of `uint64` leave 0 when divided by 255 —
+        // monotone. Both ends of `u64` leave 0 when divided by 255 —
         // 2^64 - 1 is a multiple of it — and "always 0" was folded into
         // the binary. What is always true is the divisor's bound.
         let (Some((a1, a2)), Some((b1, b2))) = (self.bounds(), o.bounds()) else { return ISet::Empty };
@@ -1038,7 +1038,7 @@ impl ISet {
                         }
                     }
                     // A range too wide to list loses the value only at an
-                    // end: a `uint32` that is not 0 is 1 or more — what a
+                    // end: a `u32` that is not 0 is 1 or more — what a
                     // `#strict` file's `'v' !== 0 and.then (15 mod 'v')`
                     // needs, with no caller to say what 'v' is (check
                     // claude, seed 6430).
@@ -1137,7 +1137,7 @@ impl Domain {
     /// constant the function mentions (sorted in `steps`), and to the
     /// type's limit only past the last. Jumping straight to the limit lost
     /// every invariant a loop keeps below one: `'acc' = (… ) mod 1000000007`
-    /// grows by a few each trip, widened to `int64`'s top, and the `+` in
+    /// grows by a few each trip, widened to `i64`'s top, and the `+` in
     /// front of the `mod` could no longer be proven. It stays finite — a
     /// bound only ever moves up the list.
     pub fn widen_to(&self, next: &Domain, ty: &Ty, items: &crate::resolve::Items, steps: &[i128]) -> Domain {

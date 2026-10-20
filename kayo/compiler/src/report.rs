@@ -60,8 +60,8 @@ pub fn render(f: &Facts) -> String {
         let said = TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
         // A bare literal's type is built at 64 bits, as the code generator builds it.
         match t.base() {
-            Ty::Int(crate::types::IntW::Free(_)) => format!("{} (built as int64)", said),
-            Ty::Bin(crate::types::BinW::Free(_)) => format!("{} (built as bin64)", said),
+            Ty::Int(crate::types::IntW::Free(_)) => format!("{} (built as i64)", said),
+            Ty::Bin(crate::types::BinW::Free(_)) => format!("{} (built as f64)", said),
             _ => said,
         }
     };

@@ -2,7 +2,7 @@
 //!
 //! A value set that leaves out a value the program can have is a wrong
 //! fold, not a missed proof: `mod` took the ends of the dividend's range,
-//! both ends of `uint64` leave 0 divided by 255, and "always 0" went into
+//! both ends of `u64` leave 0 divided by 255, and "always 0" went into
 //! the binary (check claude, generator seed 106). These walk every pair in
 //! ranges too big for the exact path and ask whether each answer is in the
 //! set.
@@ -70,7 +70,7 @@ fn a_remainder_is_every_remainder_the_range_can_leave() {
             check("mod", a, b, &got, floor_mod);
         }
     }
-    // The finding itself: all of `uint64` by 255 is not 0.
+    // The finding itself: all of `u64` by 255 is not 0.
     let got = ISet::range(0, u64::MAX as i128).mod_floor(&ISet::one(255));
     assert!(got.contains(1) && got.contains(254), "{:?}", got);
 }
