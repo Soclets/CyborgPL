@@ -26,8 +26,17 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
   `uint64[min 1]` (owner, 2026-10-17: "(a)"): a written `pos 0` is refused when building, and a position
   worked out while running is proven or converted where it is passed (`to.uint64[min 1]['i'] otherwise 1`),
   so `out_of_range` means only past the end.
+- `round.cy` — rounding, one family (owner, 2026-10-17; overloading 2026-10-20): `std::round.near` (a tie
+  to even), `round.half_up` (a tie away from zero), `round.floor`, `round.ceil`, `round.trunc`, each `['x']`
+  for a whole number or `['x', decimals N]`, one version per type (bin16/32/64, deci32/64/128), and the
+  answer is the kind that went in. A bin is rounded from its exact stored digits and read back as the
+  nearest bin of its width; a deci keeps the places it is rounded to (`2.500`) as far as its digits go. A
+  bin too big to have a fraction (from 2 to the power of its fraction bits) or a deci too big to have
+  places comes back as it is. A bare literal fitting several versions is refused at the call (owner,
+  2026-10-20: (b)): `round.half_up[2.5: bin64]`.
 - `CyJet.cyr` lists the `unicode` limb, std's first, since `char.point` is unicode's (owner, 2026-10-17:
-  "(a)"). A program using std does not inherit it: `argument_words` lists no limb.
+  "(a)"), and the `Money` limb, for the decis (owner, 2026-10-20: "(a)"). A program using std does not
+  inherit them: `argument_words` lists no limb.
 
 A program uses this std, the folder it is written in, by listing it as
 `cyjet::dep.path.std["…/std"]`, a folder narrowed to std (owner, 2026-10-14; the spelling 2026-10-19). A
@@ -38,7 +47,11 @@ this one, and what it does not define yet, `print` and `exit`, is still KAYO's R
 ## How it is checked
 
 - `examples/argument_words.cy` and `examples/inventory.cy`, unchanged, built by KAYO against this
-  folder, print their `.out`, every one of their sites proven. Both are in KAYO's own tests against this
+  folder, print their `.out`, every one of their sites proven; so do `round.cy`, `whole.cy` and
+  `std_bare.cy` (2026-10-20).
+- round.X: the oracle's built-in round and this folder's, in the oracle and through KAYO, give the same
+  4,795 answers (bins and decis, every mode, whole and to 0, 1, 2, 3, 6 and 20 places); with the value
+  and places read from the command line, Precog proves every one of round.cy's sites. Both are in KAYO's own tests against this
   folder (`kayo/compiler/tests/examples_cyborgpl_std.txt`; `inventory +unicode`, as it uses `char.point`
   itself).
 - In the oracle, each of the six beside the oracle's own built-in std (a copy of this folder under
@@ -70,3 +83,6 @@ Each is a choice the record does not settle, dated, with the alternative. Each i
   failed run-time check. The alternatives: a fallback value such as `str.empty`, which would hide a
   bug, or a way to turn bytes known to be UTF-8 into text without a failure (an intrinsic, or something
   in the language), which nobody has asked for yet.
+- **2026-10-20 — `decimals` is `int32[min 0]`**, so a negative one is refused when written and checked
+  where it is passed when worked out; the oracle's built-in refuses it when the call runs. `decimals` is
+  to become `places:` in a coming sweep (not built yet).

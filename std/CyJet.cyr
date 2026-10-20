@@ -2,6 +2,9 @@ cyjet::manifest[
     name = "std",
     prefix = "std",
     version = "2026-10-06T12:57:14+07:00",
-    limbs = [cyjet::limb[id = "55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece", version = "2026-10-12T10:19:44+07:00"],],  # unicode, for char.point (owner, 2026-10-17: "(a)")
+    limbs = [
+        cyjet::limb[id = "55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece", version = "2026-10-12T10:19:44+07:00"],  # unicode, for char.point (owner, 2026-10-17: "(a)")
+        cyjet::limb[id = "d7b62f4448a5b23d792a25bcdba89220e02691fb5e27cf18640ee491d049df0f", version = "2026-10-07T20:22:24+07:00"],  # Money, for the decis (owner, 2026-10-20: "(a)")
+    ],
     targets = [cyjet::target[name = "aarch64-macos"],]
 ];
