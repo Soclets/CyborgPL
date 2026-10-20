@@ -48,6 +48,10 @@ pub enum Ty {
     /// `percent[d32]` / `percent[f64]` (owner, 2026-10-17): a percentage holding that number, its own family;
     /// `%[d32]` the symbol spelling; the held number is the fraction (7.5% holds 0.075)
     Percent(Box<Ty>),
+    /// `d64[max_places: 2]`, `percent[d32][min_places: 1]` (owner, 2026-10-17; `places` since 2026-10-20): the decimals a
+    /// `d` or a percent keeps at most (a literal with more refused, a result that could have more rounded on purpose)
+    /// and at least (printing only); around the type, its bounds inside
+    Places(Box<Ty>, Option<u32>, Option<u32>),
 }
 
 /// A range type's bound: a numeric literal.

@@ -225,6 +225,17 @@ pub fn percent_digits(t: &str) -> String {
 pub fn ty_name(ty: &Ty) -> String {
     match ty {
         Ty::Percent(t) => format!("percent[{}]", ty_name(t)),
+        // the places join the limits bracket: `d64[min: 0.0, max_places: 2]`
+        Ty::Places(t, minp, maxp) => {
+            let inner = ty_name(t);
+            let mut extra = Vec::new();
+            if let Some(n) = maxp { extra.push(format!("max_places: {n}")); }
+            if let Some(n) = minp { extra.push(format!("min_places: {n}")); }
+            match inner.strip_suffix(']').filter(|_| matches!(**t, Ty::Ranged(..))) {
+                Some(open) => format!("{open}, {}]", extra.join(", ")),
+                None => format!("{inner}[{}]", extra.join(", ")),
+            }
+        }
         Ty::Int(w) => format!("{}i{}", if matches!(w, IntWidth::Other(_)) { "not_std." } else { "" }, w_num(w)),
         Ty::Uint(w) => format!("{}u{}", if matches!(w, IntWidth::Other(_)) { "not_std." } else { "" }, w_num(w)),
         Ty::Bin(n) => format!("f{n}"),

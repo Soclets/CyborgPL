@@ -873,7 +873,8 @@ impl<'p> Interp<'p> {
                         None => return rt(*line, format!("`[]` with `:=` says nothing about what '{name}' is; write `list.empty`")),
                     }
                 } else {
-                    let saved = std::mem::replace(&mut self.expected, ty.clone());
+                    if let Some(t) = ty { self.check_places(value, t, *line)?; }
+                    let saved = std::mem::replace(&mut self.expected, ty.clone().map(no_places));
                     let r = self.bracket(value, *line);
                     self.expected = saved;
                     r?
@@ -917,7 +918,8 @@ impl<'p> Interp<'p> {
                 if kind == SlotKind::Lent { return rt(*line, format!("'{name}' is lent (shared); it cannot be assigned to — a `lent.mut` could")); }
                 self.stale(name, self.lookup(name).unwrap(), *line)?;
                 let (v, prov) = {
-                    let saved = std::mem::replace(&mut self.expected, ty.clone());
+                    if let Some(t) = &ty { self.check_places(value, t, *line)?; }
+                    let saved = std::mem::replace(&mut self.expected, ty.clone().map(no_places));
                     let r = self.bracket(value, *line);
                     self.expected = saved;
                     r?
@@ -1455,6 +1457,47 @@ impl<'p> Interp<'p> {
         Ok(v)
     }
 
+    /// `max_places` on what is assigned (owner, 2026-10-17): "a literal with more decimals is refused, and a result that
+    /// could have more must be rounded on purpose". The places an expression can have: a literal's own, a rounding's
+    /// `places:`, a variable's type's, the larger of `+` / `-`, the sum for `x`; anything else is unknown, so rounded.
+    fn check_places(&self, value: &Bracket, ty: &Ty, line: usize) -> Result<(), RuntimeError> {
+        let Ty::Places(base, _, Some(n)) = ty else { return Ok(()) };
+        let pct = matches!(no_places((**base).clone()), Ty::Percent(_)) || matches!(&**base, Ty::Ranged(b, ..) if matches!(**b, Ty::Percent(_)));
+        let [crate::ast::Value::Expr(e)] = value.values.as_slice() else { return Ok(()) };
+        let name = ty_name(ty);
+        match self.places_bound(e, pct) {
+            Some(k) if k <= *n => Ok(()),
+            Some(k) if matches!(e, Expr::Bin(..) | Expr::Exact(..) | Expr::Int(..) | Expr::Percent(..)) => rt(line, format!("this literal has {k} places; {name} keeps {n}: write fewer, or round it on purpose")),
+            Some(k) => rt(line, format!("this can have {k} places; {name} keeps {n}: round it on purpose, `round.near[…, places: {n}]`")),
+            None => rt(line, format!("nothing says how many places this has; {name} keeps {n}: round it on purpose, `round.near[…, places: {n}]`")),
+        }
+    }
+
+    fn places_bound(&self, e: &Expr, pct: bool) -> Option<u32> {
+        let digits = |t: &str| t.split_once('.').map_or(0, |(_, f)| f.trim_start_matches('-').len()) as u32;
+        match e {
+            Expr::Int(..) | Expr::RawInt(..) | Expr::BigInt(..) => Some(0),
+            Expr::Bin(_, t, _) | Expr::Exact(t, _) => Some(digits(t)),
+            // a percent's places count as written (owner, 2026-10-17: "`7.25%` has 2"); into a plain number, the fraction's
+            Expr::Percent(inner, _) => self.places_bound(inner, false).map(|k| if pct { k.saturating_sub(2) } else { k }),
+            Expr::Paren(i, _) => self.places_bound(i, pct),
+            Expr::Unary(op, i, _) if op == "-" => self.places_bound(i, pct),
+            Expr::Binary(op, l, r, _) => {
+                let (a, b) = (self.places_bound(l, pct)?, self.places_bound(r, pct)?);
+                match op.as_str() { "+" | "-" => Some(a.max(b)), "x" => Some(a + b), _ => None }
+            }
+            Expr::Var(n, _) | Expr::Owned(_, n, _) => match self.lookup(n).and_then(|s| s.ty.clone()) { Some(Ty::Places(_, _, Some(k))) => Some(k), _ => match self.lookup(n) { Some(s) => value_places(&s.cell.borrow()).filter(|_| s.immut || s.kind == SlotKind::Const), None => None } },
+            Expr::Convert(Ty::Places(_, _, Some(k)), ..) => Some(*k),
+            // `round.near['x', places: 2]` has 2; with no `places:`, a whole number
+            Expr::Call(c) if c.kit.as_deref() == Some("std") && c.path.first().map(|s| s.as_str()) == Some("round") => match c.args.values.get(1) {
+                None => Some(0),
+                Some(crate::ast::Value::Expr(Expr::Int(k, _))) if *k >= 0 => Some(*k as u32),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
     fn check_type(&self, v: &Value, ty: &Ty, line: usize) -> Result<(), RuntimeError> {
         let name = ty_name(ty);
         match (ty, v) {
@@ -1468,6 +1511,14 @@ impl<'p> Interp<'p> {
                 Ok(())
             }
             (Ty::CStr(_), other) => rt(line, format!("a {name} is made with `C.str.make`, not {}", other.kind())),
+            // the places a `d` or a percent keeps (owner, 2026-10-17): its type first, then its decimals
+            (Ty::Places(t, _, maxp), v) => {
+                self.check_type(v, t, line)?;
+                if let (Some(n), Some(k)) = (maxp, value_places(v)) {
+                    if k > *n { return site(line, format!("{} has {k} places; {name} keeps {n}: round it on purpose, `round.near[…, places: {n}]`", v.show_useful())); }
+                }
+                Ok(())
+            }
             // a percent is its own number family (owner, 2026-10-17: "Don't you have to convert?")
             (Ty::Percent(t), Value::Percent(x)) => self.check_type(x, t, line),
             (Ty::Percent(_), other) => rt(line, format!("{} is not a percent; a plain number becomes one with `to.{name}[…]` (0.07 → 7%)", other.show_useful())),
@@ -4962,7 +5013,7 @@ impl<'p> Interp<'p> {
         Ok(match ty {
             Ty::Int(w) | Ty::Uint(w) => { let n = match w { IntWidth::Other(b) => ((*b as usize + 7) / 8).next_power_of_two(), IntWidth::W8 => 1, IntWidth::W16 => 2, IntWidth::W32 => 4, IntWidth::W64 => 8, IntWidth::W128 => 16 }; (n, n) }
             Ty::Bin(b) | Ty::Deci(b) => { let n = (*b as usize) / 8; (n, n) }
-            Ty::Percent(t) => self.size_align(t, line)?,
+            Ty::Percent(t) | Ty::Places(t, ..) => self.size_align(t, line)?,
             Ty::Brain => (2, 2),
             Ty::Bool => (1, 1),
             Ty::Char(CharUnit::Byte) => (1, 1),
@@ -5612,7 +5663,7 @@ fn ty_shape(t: &Ty) -> String {
     match t {
         Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) => "bin".into(), Ty::Brain => "brain16".into(), Ty::Deci(_) => "deci".into(), Ty::Bool => "bool".into(),
         Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_) | Ty::Array(_) => "list".into(),
-        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Simd(..) => "simd".into(), Ty::Channel(_) => "channel".into(), Ty::Duration => "duration".into(), Ty::Fn(..) => "function".into(), Ty::CStr(_) => "list".into(), Ty::Percent(_) => "percent".into(),
+        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Simd(..) => "simd".into(), Ty::Channel(_) => "channel".into(), Ty::Duration => "duration".into(), Ty::Fn(..) => "function".into(), Ty::CStr(_) => "list".into(), Ty::Percent(_) => "percent".into(), Ty::Places(t, ..) => ty_shape(t),
     }
 }
 
@@ -5717,6 +5768,18 @@ fn change_case(s: &str, upper: bool, way: &str, lang: &str) -> String {
             }
             out
         }
+    }
+}
+
+/// A type with its places taken off, for the context a value is read in (the places are checked on what lands).
+fn no_places(t: Ty) -> Ty { match t { Ty::Places(b, _, _) => *b, t => t } }
+
+/// The decimals a `d` or a percent holds (a percent's counted as written, `7.25%` has 2), None for other values.
+fn value_places(v: &Value) -> Option<u32> {
+    match v {
+        Value::Deci(d) => Some((-d.exp).max(0) as u32),
+        Value::Percent(x) => value_places(x).map(|k| k.saturating_sub(2)),
+        _ => None,
     }
 }
 
@@ -5836,7 +5899,16 @@ fn below_divisor(r: f64, y: f64, mode: &str) -> f64 {
 }
 
 fn show_useful_as(v: &Value, ty: Option<&Ty>) -> String {
-    let ty = match ty { Some(Ty::Ranged(b, _, _)) => Some(&**b), t => t };
+    // `min_places` is printing only (owner, 2026-10-17): 19.9 as `19.90`
+    if let Some(Ty::Places(t, Some(minp), _)) = ty {
+        let text = show_useful_as(v, Some(t));
+        let (body, pct) = match text.strip_suffix('%') { Some(b) => (b.to_string(), "%"), None => (text.clone(), "") };
+        let have = body.split_once('.').map_or(0, |(_, f)| f.len()) as u32;
+        if have >= *minp { return text; }
+        let pad = "0".repeat((*minp - have) as usize);
+        return if body.contains('.') { format!("{body}{pad}{pct}") } else { format!("{body}.{pad}{pct}") };
+    }
+    let ty = match ty { Some(Ty::Places(t, _, _)) => match &**t { Ty::Ranged(b, _, _) => Some(&**b), t => Some(t) }, Some(Ty::Ranged(b, _, _)) => Some(&**b), t => t };
     match (v, ty) {
         (Value::Bin(x), Some(Ty::Bin(w @ (16 | 32)))) if x.is_finite() => {
             let back = |y: f64| if *w == 32 { (y as f32) as f64 } else { round_f16(y) };

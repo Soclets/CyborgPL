@@ -216,6 +216,8 @@ thread_local! {
     /// every call written, for the checks before a run (a call two versions could take is refused where it is written)
     pub static CALLS: std::cell::RefCell<Vec<Call>> = std::cell::RefCell::new(Vec::new());
     pub static COLL_FNS: std::cell::RefCell<Vec<(Vec<String>, String)>> = std::cell::RefCell::new(Vec::new());
+    /// `min_places:` / `max_places:` read in a limits bracket, taken by the type around it (owner, 2026-10-17)
+    pub static PENDING_PLACES: std::cell::Cell<(Option<u32>, Option<u32>)> = std::cell::Cell::new((None, None));
     pub static COLL_POINTERS: std::cell::RefCell<Vec<(Vec<String>, String, String, Vec<String>, Vis, usize)>> = std::cell::RefCell::new(Vec::new());
     /// The file being parsed, for TEMPLATES
     pub static CURRENT_FILE: std::cell::RefCell<std::path::PathBuf> = std::cell::RefCell::new(std::path::PathBuf::new());
@@ -1703,10 +1705,11 @@ impl Parser {
             self.expect(Tok::RBracket, "`]` after the percent's number")?;
             if !matches!(inner, Ty::Deci(_) | Ty::Bin(_)) { return self.err(format!("a percent holds a `d` or an `f`: `percent[d64]`, not `percent[{}]`", ty_name(&inner))); }
             let t = Ty::Percent(Box::new(inner));
-            if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max") {
+            if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max" || w == "min_places" || w == "max_places") {
                 let (lo, hi) = self.labelled_bounds("percent[d32][min: 0%, max: 100%]")?;
                 self.expect(Tok::RBracket, "`]` after the bounds")?;
-                return Ok(Ty::Ranged(Box::new(t), lo, hi));
+                let r = if lo == Bound::Min && hi == Bound::Max { t } else { Ty::Ranged(Box::new(t), lo, hi) };
+                return self.with_places(r);
             }
             return Ok(t);
         }
@@ -1964,7 +1967,7 @@ impl Parser {
             let numeric = ["i", "u", "f", "d"].iter().any(|p| head.strip_prefix(p).map(|w| w.parse::<u32>().is_ok()).unwrap_or(false));
             let range_ahead = *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..))
                 || matches!(self.peek_at(1), Tok::Op(o) if o == "-")
-                || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max"));
+                || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max" || w == "min_places" || w == "max_places"));
             if numeric && range_ahead && (!self.to_target || self.bracket_then_bracket()) {
                 let (lo, hi) = self.labelled_bounds(&format!("{head}[min: 0, max: 100]"))?;
                 self.expect(Tok::RBracket, "`]` after the bounds")?;
@@ -1990,7 +1993,8 @@ impl Parser {
                 if !ok { return self.err("a range's low bound comes first: `i32[0, 100]`"); }
                 // `i32[min, max]` and `u8[0, 255]` are the plain type written long: harmless,
                 // so allowed (owner, 2026-09-23: "they're harmless. So, no problem")
-                return Ok(Ty::Ranged(Box::new(base), lo, hi));
+                let r = if lo == Bound::Min && hi == Bound::Max && PENDING_PLACES.with(|p| { let v = p.get(); v.0.is_some() || v.1.is_some() }) { base } else { Ty::Ranged(Box::new(base), lo, hi) };
+                return self.with_places(r);
             }
         }
         let mut params = Vec::new();
@@ -3320,8 +3324,28 @@ impl Parser {
             if *self.peek() == Tok::Comma { self.advance(); if !self.is_word("max") { return self.err(format!("after `min: …` comes `max: …`: `{shown}`")); } }
         }
         if self.label("max")? { hi = self.bound_value()?; any = true; }
+        // a `d` or a percent may also keep its decimals (owner, 2026-10-17): `max_places:`, `min_places:`
+        let (mut minp, mut maxp) = (None, None);
+        loop {
+            if any { if *self.peek() != Tok::Comma { break; } if !matches!(self.peek_at(1), Tok::Word(w) if w == "min_places" || w == "max_places") { break; } self.advance(); }
+            let which = if self.label("max_places")? { true } else if self.label("min_places")? { false } else { break };
+            let n = match self.advance().tok { Tok::Int(n) if n >= 0 => n as u32, other => return self.err(format!("places are a whole number, 0 or more, found {other}")) };
+            if which { maxp = Some(n) } else { minp = Some(n) }
+            any = true;
+        }
+        if let (Some(a), Some(b)) = (minp, maxp) { if a > b { return self.err(format!("`min_places: {a}` is more than `max_places: {b}`")); } }
+        PENDING_PLACES.with(|p| p.set((minp, maxp)));
         if !any { return self.err(format!("a bound says which it is: `{shown}`")); }
         Ok((lo, hi))
+    }
+
+    /// The type around a limits bracket, with the places it read (`d64[max_places: 2]`): only a `d` or a percent keeps them.
+    fn with_places(&mut self, t: Ty) -> PResult<Ty> {
+        let (minp, maxp) = PENDING_PLACES.with(|p| p.replace((None, None)));
+        if minp.is_none() && maxp.is_none() { return Ok(t); }
+        let base = match &t { Ty::Ranged(b, ..) => (**b).clone(), b => b.clone() };
+        if !matches!(base, Ty::Deci(_) | Ty::Percent(_)) { return self.err(format!("places are kept by a `d` or a percent; a {} is not decimal: `d64[max_places: 2]`", ty_name(&base))); }
+        Ok(Ty::Places(Box::new(t), minp, maxp))
     }
 
     /// One bound's number (no `min` / `max` words: those are its labels since 2026-10-12).
