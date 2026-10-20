@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-20 — Precog's table of facts becomes a persistent map, from the `im` library (owner)
+
+Compiler claude, speeding up Precog on bins (argv_round: 8 minutes, then 31 s, nearly all of it copying the whole
+environment at each step of a loop over text), offered (a) a persistent map, `im-rc` 15.1 (MPL-2.0, 5 small
+dependencies), copies near free and verdicts unchanged, recommended, or (b) giving up on a loop sooner, faster but
+possibly fewer proofs. Asked "What is `im-rc`?" and "Est custom LOC" (design claude: `im-rc` is 16,869 lines; a
+map for Precog's needs alone, its estimate, 300 to 500), then "Should we use the multi-threaded one?" (design claude:
+the walk runs on one thread today, but `im`, the thread-safe one, would let it run on 3 cores later, at a small cost
+a copy). The owner: "use im". So **kayo's first new library is `im`** (MPL-2.0), for Precog's environment; (b) not
+taken. The README's crate credits follow from `kayo/Cargo.lock`.
+
 ### 2026-10-20 — std lists the Money limb, for `round.X` on decis (owner: a)
 
 std claude, writing `round.X`, found its deci versions need the decis, which are the Money limb's ("`deci64` is
