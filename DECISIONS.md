@@ -51,7 +51,12 @@ bare.enum_prefix.optional enum casing { tr, az, lt, root }` lets `str.upper.full
 **A `pub` enum must say its `enum_prefix`; a private one is `never` unless marked** (owner: "Should it be must only for
 `pub`?", then "yea"; over (a) no mark meaning `never` for all, design claude's first pick, and (b) no default for any
 enum). The same rule as `kit_prefix`'s (2026-10-06): every `pub` thing says how it is reached; a kit may say it once in
-`kit.cy`, `bare.enum_prefix.never [enum];`. Being asked: std's `optional`.
+`kit.cy`, `bare.enum_prefix.never [enum];`.
+
+**How std picks: `optional` where a value is unlikely to be confused, `never` where it is likely** (owner: "It honestly
+depends on if it could be confused. Likely not confused is optional, and likely confused is never"). Design claude's
+application, not asked value by value: `optional` is `never` (`value` is also the label `value:`); `casing` is
+`optional`, unless the owner counts `root` as likely confused with a maths root (asked).
 
 ### 2026-10-20 — Case changes say their mapping: `str.upper.ascii`, `.simple`, `.full`; a bare `str.upper` is refused (owner: a, a)
 
