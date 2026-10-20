@@ -395,7 +395,16 @@ impl<'p> Interp<'p> {
                 if matches!(pt, Ty::Var(_) | Ty::Inst(..)) { continue; }
                 let crate::ast::Value::Expr(e) = arg;
                 let v = match e {
-                    Expr::Var(name, _) | Expr::Owned(_, name, _) => match self.lookup(name) { Some(s) => s.cell.borrow().clone(), None => continue },
+                    // a variable says its type: the declared one, widths and all (owner, 2026-10-20: widths count)
+                    Expr::Var(name, _) | Expr::Owned(_, name, _) => match self.lookup(name) {
+                        Some(s) => match &s.ty {
+                            Some(t) if !matches!(t, Ty::Var(_) | Ty::Inst(..)) => { if ty_name(&unranged(t)) != ty_name(&unranged(pt)) { ok = false; break; } continue; }
+                            _ => s.cell.borrow().clone(),
+                        },
+                        None => continue,
+                    },
+                    // a typed literal (`2.5: bin32`) or a `to.` conversion says its type outright
+                    Expr::Convert(t, ..) => { if ty_name(&unranged(t)) != ty_name(&unranged(pt)) { ok = false; break; } continue; }
                     Expr::Int(..) | Expr::RawInt(..) | Expr::BigInt(..) | Expr::Bin(..) | Expr::Exact(..) | Expr::Text(..) | Expr::Char(..) | Expr::Bool(..) => {
                         let saved = std::mem::replace(&mut self.expected, Some(pt.clone()));
                         let r = self.value(arg);

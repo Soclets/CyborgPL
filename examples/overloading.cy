@@ -6,6 +6,13 @@ coll.fn describe {
     describe [lent 's': str.utf8] -> str.utf8 { return "a text"; }
 }
 
+coll.fn width {
+    width ['n': int16] -> str.utf8 { return "16 bits"; }
+    width ['n': int64] -> str.utf8 { return "64 bits"; }
+    width ['x': bin32] -> str.utf8 { return "a bin32"; }
+    width ['x': bin64] -> str.utf8 { return "a bin64"; }
+}
+
 coll.fn area {
     area.rect ['side': int64] -> int64 { return 'side' x 'side'; }
     area.rect ['w': int64, 'h': int64] -> int64 { return 'w' x 'h'; }
@@ -19,4 +26,7 @@ MAIN {
     std::print.useful[describe['x'], newln];
     std::print.useful[describe[lend 'name'], newln];
     std::print.useful[area.rect[3], " ", area.rect[3, 4], newln];
+    let 'small': int16 = 5;
+    let 'half': bin32 = 0.5;
+    std::print.useful[width['small'], ", ", width['n'], ", ", width['half'], ", ", width['x'], ", ", width[2.5: bin32], newln];
 }
