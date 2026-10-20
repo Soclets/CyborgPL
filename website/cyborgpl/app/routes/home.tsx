@@ -7,6 +7,7 @@ import { COMPILE } from "../data/compile-times";
 import { RUN } from "../data/run-times";
 import { Examples } from "../components/examples";
 import { Features } from "../components/features";
+import { HeroSim } from "../hero-sim/hero-sim";
 
 export const meta: Route.MetaFunction = () => [
   { title: "CyborgPL" },
@@ -20,6 +21,7 @@ export default function Home() {
   return (
     <main>
       <section className="hero">
+        <HeroSim />
         <div style={order(0)}>
           <motion.span className="pressable" {...springy}>
           <Link className="badge" to="/download">
