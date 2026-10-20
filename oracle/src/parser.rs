@@ -1754,10 +1754,10 @@ impl Parser {
             // a deci literal's digits are counted where it is written (std claude, 2026-10-20: `exactly 2.5: deci32`
             // asked for an `otherwise`): 7, 16 or 34, leading zeros aside, so one that fits never fails
             (Expr::Int(..) | Expr::Exact(..), Ty::Deci(w)) => {
-                let digits: String = written.trim_start_matches("exactly ").chars().filter(|c| c.is_ascii_digit()).collect();
-                let n = digits.trim_start_matches('0').len().max(1);
-                let holds = match w { 32 => 7, 64 => 16, _ => 34 };
-                if n > holds { Some(format!("has {n} digits; a {} holds {holds}", ty_name(&base))) } else { None }
+                // the same count as a declared deci's (an integer's trailing zeros go to the exponent: `exactly
+                // 10000000: deci32` fits, kayo's reading too)
+                let text = written.trim_start_matches("exactly ").replace('_', "");
+                match crate::deci::Deci::parse(&text, *w) { Err(m) => Some(m), Ok(_) => None }
             }
             // what the digits of a bin literal mean as a deci is not decided; `exactly` says it
             (Expr::Bin(..), Ty::Deci(_)) => Some(format!("takes a deci from a bin literal, which is not decided: write `exactly {written}: {shown}`")),
