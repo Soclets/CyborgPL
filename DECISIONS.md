@@ -711,7 +711,7 @@ owner: "(b), and could you use `otherwise`?", then, shown `std::print.written['t
 std::print.useful;`: "yea". So **`print.written` prints each value as its literal was typed; Precog proves at
 compile time that every value is a typed literal, or the print says `otherwise` what to print instead; without
 either it is refused**. The choice is made when building, per print: no source text is carried at run time.
-Not built yet.
+Built in the oracle 2026-10-20 (`examples/print_written.cy`), which decides when the print runs.
 
 ### 2026-10-17 — A `%` literal under `:=` is always a `percent`, and only `print.useful` shows the `%` (owner)
 
