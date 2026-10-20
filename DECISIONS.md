@@ -63,7 +63,9 @@ withdrew when the owner asked "does `from: 'x'` read as where x is, or from its 
 is a text in `str.replace`; and (c) `from_pos: 'x'`): **`str.slice.grapheme[lend 's', from: pos 2, to: pos 4]`**,
 `before: pos 'n'`, and a lone position `pos: 3` (`str.at.grapheme[lend 's', pos: 3]`, `'xs'[pos: 3]`).
 
-Not built; not yet asked: words that take no value (`exclude zero`).
+**A phrase with no value takes no colon** (owner: "`exclude zero`", (a), over (b) `exclude: zero` and (c)
+`zero: excluded`; recommended): `:` goes between a label and its value, so `C.str[max: 255 bytes, exclude zero]`;
+a unit after a value takes none either (`max: 255 bytes`). Not built.
 
 ### 2026-10-20 — Number types are `i`, `u`, `f`, `d` with their widths; the base words become `bin`, `hex`, `oct` (owner; not built)
 
