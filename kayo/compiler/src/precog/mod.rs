@@ -280,6 +280,23 @@ pub fn analyse_opts(p: &mut Program, fold: bool) -> Analysis {
         })
         .collect();
     sites.sort_by_key(|r| (r.function, r.site.0));
+    // A walk's own index (`for 'v' in lend 'xs'`) runs from 1 to the length
+    // the walk read before it began, and the borrow rules keep the list as
+    // it is while it is walked: within it by construction, whatever the
+    // values (std claude, 2026-10-20: a walk Precog had widened past its
+    // trip cap was left checked at run time).
+    for r in sites.iter_mut() {
+        let func = &p.functions[r.function];
+        let site = func.site(r.site);
+        if site.kind != SiteKind::Bounds || matches!(r.verdict, Verdict::Proven { .. }) {
+            continue;
+        }
+        let own = func.fors.iter().any(|fl| fl.start.is_none() && matches!(site.operands.as_slice(), [Operand::Read(a), Operand::Read(b)] if a.local == fl.counter && a.proj.is_empty() && b.local == fl.stop && b.proj.is_empty()));
+        if own {
+            r.verdict = Verdict::Proven { how: "structured: a walk's index runs from 1 to its length" };
+            r.note = "a walk's own index runs from 1 to the length it read, and the list cannot change while it is walked".into();
+        }
+    }
     // A walk cut short by the step budget saw only some of the states:
     // what held on those is no proof. Layer 3 is asked instead. (A call
     // not followed is not this: its answer is all its type holds.)

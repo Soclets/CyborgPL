@@ -53,7 +53,7 @@ pub(super) fn keep_proven(p: &Program, (made, mut not): (Vec<Table>, Vec<NotTabl
     for t in made {
         if t.closure.iter().all(|g| all_proven(*g)) {
             kept.push(t);
-        } else if p.functions.iter().any(|g| g.nocheat_of.is_some_and(|o| o.0 as usize == t.function)) && !p.functions.iter().enumerate().any(|(i, g)| !g.nocheat && i != t.function && format!("{:?}", g.blocks).contains(&format!("Fn(FnIdx({}))", t.function))) {
+        } else if p.functions.iter().any(|g| g.nocheat_of.is_some_and(|o| o.0 as usize == t.function)) && !reached(p).contains(&t.function) {
             // Every call to it is under `no_cheat`, which runs the work and
             // never reads a table (owner, 2026-10-18).
             not.push(NotTable { function: t.function, why: "every call to it is under `no_cheat`, which never uses a table (owner, 2026-10-18)".to_string() });
@@ -236,3 +236,19 @@ fn pure_closure(p: &Program, f: usize) -> Option<Vec<usize>> {
     }
     Some(seen)
 }
+
+/// Every function the program's start reaches, `MAIN` and the tests, by
+/// what each body names.
+fn reached(p: &Program) -> HashSet<usize> {
+    let mut seen = HashSet::new();
+    let mut work: Vec<usize> = p.main.map(|m| m.0 as usize).into_iter().chain((0..p.functions.len()).filter(|&f| p.functions[f].is_test)).collect();
+    while let Some(f) = work.pop() {
+        if f >= p.functions.len() || !seen.insert(f) {
+            continue;
+        }
+        let text = format!("{:?}", p.functions[f].blocks);
+        work.extend(text.match_indices("FnIdx(").filter_map(|(at, w)| text[at + w.len()..].split(')').next().and_then(|d| d.parse::<usize>().ok())));
+    }
+    seen
+}
+

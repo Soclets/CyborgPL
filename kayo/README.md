@@ -1046,3 +1046,20 @@ Dated, with the alternative, so each can become a question later.
   the built-in slice does (`slice_args`); a call that can fail is named as
   it is written (`std::str.at.grapheme`, not `grapheme`); and the hint for
   a name declared elsewhere says `my.str.text_of`, not `kit.std::str.text_of`.
+- **2026-10-20 — `no_cheat` and the report** (design claude, from the
+  bench). A counted loop's step is how it counts, not its work, so it is
+  no longer passed through a `no_cheat` barrier. Measured against the
+  build before: no change (bench sum 1.57× to 1.56× its cheat build on one
+  thread, lists 1.91× to 1.94×): the cost is the barrier on each round's
+  stores, which keeps LLVM from vectorising, as `no_cheat` was defined
+  (owner, 2026-10-01). The report marks a function's `no_cheat copy`, lists
+  a loop split in one copy of its function once (not also "stays in
+  order"), and says a function has no table because every call to it is
+  under `no_cheat` when that is why.
+- **2026-10-20 — A walk's own index is proven by how it is built** (std
+  claude: six `for 'v' in lend 'x'` over short lists left checked at run
+  time, "the position can be 9223372036854775807 when there are 99998
+  element(s)", Precog's walk widened past its trip cap). A walk's index
+  runs from 1 to the length it read before it began, and the borrow rules
+  keep the list as it is while it is walked: its `Bounds` site is
+  `structured`, whatever the values (`precog::analyse_opts`).
