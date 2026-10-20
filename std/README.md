@@ -10,30 +10,30 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
 - `kit.cy` — the root: the `bare.optional` mark for every kind.
 - `str.cy` — `std::str.contains`, `starts_with`, `ends_with`, `split`, `join`, `replace`
   (`design/strings.md`; the argument words are `spellings.cyr`'s). They work on the bytes and call
-  nothing in the runtime. Their `part`, `at` and `from` are texts of at least 1 byte, `str.utf8[min 1
+  nothing in the runtime. Their `part`, `at` and `from` are texts of at least 1 byte, `str.utf8[min: 1
   bytes]` (owner, 2026-10-14: "Error"), so an empty one is refused when building, or checked where it
   is passed if it is worked out at run time. The oracle's built-in std refuses it when the call runs:
-  the same rule, met at a different moment. `std::str.at.byte[lend 's', pos 2]` is the byte at a
-  position (a `uint8`), `std::str.at.point[lend 's', pos 2]` the character (a `char.point`) and
-  `std::str.at.grapheme[lend 's', pos 2]` the grapheme (a `char.grapheme`), each failing `out_of_range`
+  the same rule, met at a different moment. `std::str.at.byte[lend 's', pos: 2]` is the byte at a
+  position (a `u8`), `std::str.at.point[lend 's', pos: 2]` the character (a `char.point`) and
+  `std::str.at.grapheme[lend 's', pos: 2]` the grapheme (a `char.grapheme`), each failing `out_of_range`
   past the last one (owner, 2026-10-17: str.at next; 2026-10-20: "(a)", finish str.at and str.slice).
-  `std::str.slice.grapheme[lend 's', from pos 2, to pos 4]` and `str.slice.point` are the part from one
-  position to another, both kept, or `before pos 5` to leave the end out (2026-10-12); they fail
+  `std::str.slice.grapheme[lend 's', from: pos 2, to: pos 4]` and `str.slice.point` are the part from one
+  position to another, both kept, or `before: pos 5` to leave the end out (2026-10-12); they fail
   `out_of_range` when the end comes before the start or past the last unit, so a slice is never empty,
-  as the oracle's does. `std::str.slice.byte[lend 's', from pos 1, to pos 5]` gives the bytes, a
-  `list[uint8]`, not text, since an end may land inside a character; text from them is the caller's
+  as the oracle's does. `std::str.slice.byte[lend 's', from: pos 1, to: pos 5]` gives the bytes, a
+  `list[u8]`, not text, since an end may land inside a character; text from them is the caller's
   `to.str.utf8[…] otherwise …` (owner, 2026-10-20: "(a)"). A position is
-  `uint64[min 1]` (owner, 2026-10-17: "(a)"): a written `pos 0` is refused when building, and a position
-  worked out while running is proven or converted where it is passed (`to.uint64[min 1]['i'] otherwise 1`),
+  `u64[min: 1]` (owner, 2026-10-17: "(a)"): a written `pos: 0` is refused when building, and a position
+  worked out while running is proven or converted where it is passed (`to.u64[min: 1]['i'] otherwise 1`),
   so `out_of_range` means only past the end.
 - `round.cy` — rounding, one family (owner, 2026-10-17; overloading 2026-10-20): `std::round.near` (a tie
   to even), `round.half_up` (a tie away from zero), `round.floor`, `round.ceil`, `round.trunc`, each `['x']`
-  for a whole number or `['x', decimals N]`, one version per type (bin16/32/64, deci32/64/128), and the
+  for a whole number or `['x', places: N]`, one version per type (f16/32/64, d32/64/128), and the
   answer is the kind that went in. A bin is rounded from its exact stored digits and read back as the
   nearest bin of its width; a deci keeps the places it is rounded to (`2.500`) as far as its digits go. A
   bin too big to have a fraction (from 2 to the power of its fraction bits) or a deci too big to have
   places comes back as it is. A bare literal fitting several versions is refused at the call (owner,
-  2026-10-20: (b)): `round.half_up[2.5: bin64]`.
+  2026-10-20: (b)): `round.half_up[2.5: f64]`.
 - `CyJet.cyr` lists the `unicode` limb, std's first, since `char.point` is unicode's (owner, 2026-10-17:
   "(a)"), and the `Money` limb, for the decis (owner, 2026-10-20: "(a)"). A program using std does not
   inherit them: `argument_words` lists no limb.
@@ -57,7 +57,7 @@ this one, and what it does not define yet, `print` and `exit`, is still KAYO's R
 - In the oracle, each of the six beside the oracle's own built-in std (a copy of this folder under
   another prefix), over 820 cases (empty text, separators at the ends and side by side, overlapping
   finds, `é`, `🍎`), printing the same; and the same cases built by KAYO against this folder, written as
-  a user writes them (`std::str.split[lend 's', at lend 'p']`), printing what the oracle's built-in std
+  a user writes them (`std::str.split[lend 's', at: lend 'p']`), printing what the oracle's built-in std
   prints.
 - Through KAYO, with the text read from the command line, so Precog has to prove std's sites for any
   text rather than by running the program on one. Rerun at KAYO 730f09df, once Precog counted argv's
@@ -83,6 +83,6 @@ Each is a choice the record does not settle, dated, with the alternative. Each i
   failed run-time check. The alternatives: a fallback value such as `str.empty`, which would hide a
   bug, or a way to turn bytes known to be UTF-8 into text without a failure (an intrinsic, or something
   in the language), which nobody has asked for yet.
-- **2026-10-20 — `decimals` is `int32[min 0]`**, so a negative one is refused when written and checked
-  where it is passed when worked out; the oracle's built-in refuses it when the call runs. `decimals` is
-  to become `places:` in a coming sweep (not built yet).
+- **2026-10-20 — `places:` is `i32[min: 0]`**, so a negative one is refused when written and checked
+  where it is passed when worked out; the oracle's built-in refuses it when the call runs. (It was
+  `decimals` until the 2026-10-20 sweep.)
