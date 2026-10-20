@@ -1041,6 +1041,17 @@ Dated, with the alternative, so each can become a question later.
   naming the typed literal to write (`2.5: bin64`). A preset beside several
   versions, and an overloaded name held as a value, are refused (design
   claude's readings).
+- **2026-10-20 — What picks a version, read further** (check claude, std
+  claude; the oracle's rule, c8a27e08). `peek_arg` types more than
+  literals and names: a `to.` conversion is its target, `true` a `bool`,
+  arithmetic (`+ - x xx / div.X mod.X`, unary `-`, parentheses) its typed
+  operand's type (`0.0 - 'y'`, `-'y'`), and `exactly 2.665` each deci whose
+  digits hold it. A comparison, a call or a field gives none, as in the
+  oracle. When several versions take a call, the
+  literal named is the one they take as different types (`exactly 2.665:
+  deci128`, not the `2` beside it). A deci literal's trailing zeros are
+  dropped when it has more digits than its type holds, as the oracle does:
+  `exactly 10000000` is a `deci32`, `123456780` is still 8 digits.
 - **2026-10-20 — std's own slice and a root path** (std claude). A call to
   std's `str.slice.X` takes `from pos …`, `to pos …` and `before pos …` as
   the built-in slice does (`slice_args`); a call that can fail is named as

@@ -2511,11 +2511,15 @@ impl Checker {
                 err(Diagnostic::error(format!("no version of `{}` takes this call: its versions take {}", name, shapes)).at(span))
             }
             several => {
-                // The bare literal that more than one version takes, typed
-                // as the last of them takes it.
-                let last = &self.items.fns[several[several.len() - 1].0 as usize];
+                // The bare literal the versions that take the call take
+                // as different types, typed as the last of them takes it.
+                let at = |f: &FnId, i: usize| self.items.fns[f.0 as usize].params.get(i).and_then(|p| p.ty.as_ref()).map(|t| t.base().clone());
                 let hint = peeks.iter().enumerate().find_map(|(i, k)| match k {
-                    Peek::Int(t) | Peek::Bin(t) => last.params.get(i).and_then(|p| p.ty.as_ref()).map(|ty| format!("`{}: {}`", t, self.spell(&ty.base().clone()))),
+                    Peek::Int(t) | Peek::Bin(t) | Peek::Deci(t) if several.iter().any(|f| at(f, i) != at(&several[0], i)) => {
+                        let ty = at(&several[several.len() - 1], i)?;
+                        let t = if matches!(k, Peek::Deci(_)) { format!("exactly {}", t) } else { t.clone() };
+                        Some(format!("`{}: {}`", t, self.spell(&ty)))
+                    }
                     _ => None,
                 });
                 let why = match hint {
@@ -2533,11 +2537,13 @@ impl Checker {
         match &e.kind {
             AK::Int(t) => Peek::Int(t.replace('_', "")),
             AK::Bin(t) => Peek::Bin(t.replace('_', "")),
+            AK::Exact(t) => Peek::Deci(t.replace('_', "")),
             AK::Str(_) => Peek::Text,
             AK::Unary { op: UnOp::Neg, expr } => match &expr.kind {
                 AK::Int(t) => Peek::Int(format!("-{}", t.replace('_', ""))),
                 AK::Bin(t) => Peek::Bin(format!("-{}", t.replace('_', ""))),
-                _ => Peek::Unknown,
+                AK::Exact(t) => Peek::Deci(format!("-{}", t.replace('_', ""))),
+                _ => self.peek_arg(ctx, expr),
             },
             AK::Typed { ty, .. } => self.body_type(ctx, ty).map(|t| Peek::Ty(self.resolve(&t))).unwrap_or(Peek::Unknown),
             AK::Name(q) => match ctx.lookup(&q.name) {
@@ -2548,6 +2554,23 @@ impl Checker {
                 None => Peek::Unknown,
             },
             AK::Verb { expr, .. } => self.peek_arg(ctx, expr),
+            AK::Paren(expr) => self.peek_arg(ctx, expr),
+            AK::Bool(_) => Peek::Ty(Ty::Bool),
+            // A conversion's type is its target (check claude, 2026-10-20).
+            AK::Conv { target, .. } => self.body_type(ctx, target).map(|t| Peek::Ty(self.resolve(&t))).unwrap_or(Peek::Unknown),
+            // Arithmetic is its typed operand's type (std claude, 2026-10-20:
+            // `0.0 - 'y'`); a comparison, a call or a field gives none, as
+            // in the oracle (c8a27e08).
+            AK::Binary { op, lhs, rhs, .. } => {
+                if !matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Pow | BinOp::Div(_) | BinOp::Mod(_)) {
+                    return Peek::Unknown;
+                }
+                match (self.peek_arg(ctx, lhs), self.peek_arg(ctx, rhs)) {
+                    (Peek::Ty(t), _) | (_, Peek::Ty(t)) => Peek::Ty(t),
+                    (Peek::Free(t), _) | (_, Peek::Free(t)) => Peek::Free(t),
+                    _ => Peek::Unknown,
+                }
+            }
             _ => Peek::Unknown,
         }
     }
@@ -5284,6 +5307,7 @@ enum Peek {
     Free(Ty),
     Int(String),
     Bin(String),
+    Deci(String),
     Text,
     Unknown,
 }
@@ -5308,6 +5332,8 @@ fn peek_fits(k: &Peek, t: &Ty) -> bool {
             _ => false,
         },
         Peek::Bin(_) => matches!(t, Ty::Bin(_) | Ty::Brain),
+        // `exactly 2.665` fits each deci whose digits hold it.
+        Peek::Deci(v) => matches!(t, Ty::Deci(b) if crate::deci::literal(v, *b).is_ok()),
         Peek::Text => matches!(t, Ty::Str(_)),
         Peek::Unknown => true,
     }

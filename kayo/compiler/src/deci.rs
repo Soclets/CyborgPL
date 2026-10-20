@@ -13,6 +13,16 @@ pub fn digits(bits: u16) -> u32 {
 }
 
 /// The smallest exponent (of the last digit) a width reaches.
+/// The largest exponent a coefficient can take: emax less the digits
+/// past the first.
+fn qmax(bits: u16) -> i64 {
+    match bits {
+        32 => 90,
+        64 => 369,
+        _ => 6111,
+    }
+}
+
 fn qmin(bits: u16) -> i64 {
     match bits {
         32 => -101,
@@ -118,14 +128,23 @@ pub fn literal(text: &str, bits: u16) -> Result<u128, LitErr> {
         None => (t.clone(), String::new()),
     };
     let all = format!("{}{}", int, frac);
-    let sig = all.trim_start_matches('0');
+    let mut sig = all.trim_start_matches('0');
+    let mut exp = -(frac.len() as i64);
+    // Trailing zeros are not digits the type must hold, as the oracle
+    // counts them: `10000000` is 1 × 10^7, which a `deci32` holds
+    // (std claude, 2026-10-20). They are dropped only when there are too
+    // many, so a literal that fits keeps the zeros it was written with.
+    if sig.len() as u32 > digits(bits) {
+        let kept = sig.trim_end_matches('0');
+        exp += (sig.len() - kept.len()) as i64;
+        sig = kept;
+    }
     let n = sig.len() as u32;
     if n > digits(bits) {
         return Err(LitErr::Digits(n));
     }
     let coef: u128 = if sig.is_empty() { 0 } else { sig.parse().map_err(|_| LitErr::Range)? };
-    let exp = -(frac.len() as i64);
-    if exp < qmin(bits) {
+    if exp < qmin(bits) || exp > qmax(bits) {
         return Err(LitErr::Range);
     }
     Ok(encode(neg, coef, exp, bits))
