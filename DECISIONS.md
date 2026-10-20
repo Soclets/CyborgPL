@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-20 — Case changes say their mapping: `str.upper.ascii`, `.simple`, `.full`; a bare `str.upper` is refused (owner: a, a)
+
+std claude asked whether `str.upper` / `str.lower` are ASCII only or Unicode's. The owner: "There's obviously another
+option, add narrowings". Asked what a bare `str.upper` does, (a) refused naming the narrowings (recommended) or (b)
+the Unicode one: "(a)". Asked "is `unicode` there the correct word", design claude: not quite, Unicode defines two
+mappings, simple (one character for one, `ß` stays `ß`) and full (`ß` → `SS`, `ŉ` → `ʼN`, length changing in points,
+bytes and graphemes alike), plus language-tailored ones (Turkish `i` → `İ`); offered (a) Unicode's own words,
+`.ascii` and `.full` now, (b) `.ascii` and `.unicode`. The owner: "(a). Build all, btw". So **`str.upper.ascii`,
+`str.upper.simple`, `str.upper.full`, and the same for `str.lower`**; a bare `str.upper[…]` is refused naming them.
+Being asked: whether "all" includes the language-tailored mappings, and how a call names its language.
+
 ### 2026-10-20 — Precog's table of facts becomes a persistent map, from the `im` library (owner)
 
 Compiler claude, speeding up Precog on bins (argv_round: 8 minutes, then 31 s, nearly all of it copying the whole
