@@ -220,3 +220,15 @@ html.fs-open { overflow: hidden; }
 .doc-logo-note { font-size: 12.5px; color: rgba(255, 255, 255, .5); }
 .doc-list summary { cursor: pointer; color: var(--ink); }
 .doc-list p { margin-top: 10px; font: 12.5px/1.7 var(--mono); color: rgba(255, 255, 255, .6); overflow-wrap: anywhere; }
+
+/* What CyborgPL is: four cards under the hero (app/components/features.tsx). */
+.features { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; max-width: 1180px; margin: 0 auto; padding: 40px 24px 40px; }
+.feature { display: flex; flex-direction: column; gap: 10px; padding: 22px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255, 255, 255, .02); transition: border-color .2s; }
+.feature:hover { border-color: rgba(255, 255, 255, .28); }
+.feature-index { font: 500 13px var(--mono); color: var(--accent); }
+.feature h3 { margin: 0; font-weight: 500; font-size: 21px; line-height: 1.25; letter-spacing: -.01em; color: var(--ink); }
+.feature p { margin: 0; font-size: 15px; line-height: 1.6; color: rgba(255, 255, 255, .72); }
+.feature code { font: .9em var(--mono); padding: 1px 5px; border-radius: 6px; background: rgba(255, 255, 255, .07); color: var(--ink); }
+.feature h3 code { font-size: .92em; }
+@media (max-width: 1040px) { .features { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .features { grid-template-columns: 1fr; } }

@@ -6,6 +6,7 @@ import { CompileChart } from "../components/compile-chart";
 import { COMPILE } from "../data/compile-times";
 import { RUN } from "../data/run-times";
 import { Examples } from "../components/examples";
+import { Features } from "../components/features";
 
 export const meta: Route.MetaFunction = () => [
   { title: "CyborgPL" },
@@ -45,6 +46,8 @@ export default function Home() {
           </motion.span>
         </div>
       </section>
+
+      <Features />
 
       {/* Below the hero (owner, 2026-10-19: "Scroll down, and you'll get "Don't script, don't
           iterate, but fucking wait." on the right side, and compilation time benchmark on the
