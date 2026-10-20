@@ -47,7 +47,11 @@ at every level (item, block module, file line, kinds list in `kit.cy`), and **`b
 / `.only`** on an enum: whether its values may be written without the enum's name where the type is known (a
 parameter, a typed declaration; `match` arms are bare as before). `pub bare.kit_prefix.optional
 bare.enum_prefix.optional enum casing { tr, az, lt, root }` lets `str.upper.full[lend 's', lang: tr]`. Not built.
-Being asked: whether an enum's values default to `enum_prefix.never`, and std's `optional`.
+
+**A `pub` enum must say its `enum_prefix`; a private one is `never` unless marked** (owner: "Should it be must only for
+`pub`?", then "yea"; over (a) no mark meaning `never` for all, design claude's first pick, and (b) no default for any
+enum). The same rule as `kit_prefix`'s (2026-10-06): every `pub` thing says how it is reached; a kit may say it once in
+`kit.cy`, `bare.enum_prefix.never [enum];`. Being asked: std's `optional`.
 
 ### 2026-10-20 — Case changes say their mapping: `str.upper.ascii`, `.simple`, `.full`; a bare `str.upper` is refused (owner: a, a)
 
