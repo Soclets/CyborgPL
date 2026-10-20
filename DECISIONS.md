@@ -57,6 +57,20 @@ without a path: `my.round.near[…]` or `std::round.near[…]`.
 **The number of arguments picks too, with their types** (owner: "(a)", over (b) types only; recommended, since a
 function has no optional arguments, so `round.near['x']` and `round.near['x', decimals 2]` are two functions).
 
+**Overloads are written inside a `coll.fn`** (owner: "(b)", over (a) the same `fn` written again anywhere, and
+(c) a word in front, `overload fn …`; recommended: the versions cannot be scattered, they share one `pub` and one
+`bare.` mark, and it is where argument words were to go). Design claude had first built (a) without asking; the
+owner: "Where's the syntax question?". So **a `fn` of one name written twice outside a collection stays refused**,
+naming `coll.fn`, and a collection may hold several versions of its own function and of a member:
+
+```
+pub coll.fn round {
+    bare.optional;
+    round.near ['x': bin64] -> bin64 { … }
+    round.near ['x': deci64] -> deci64 { … }
+}
+```
+
 ### 2026-10-20 — `str.slice.byte` gives bytes, a `list[uint8]`, not text (owner: a)
 
 std claude, writing `str.slice.<unit>`, asked what a byte slice does when an end lands inside a character (`"é"`
