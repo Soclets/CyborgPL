@@ -127,6 +127,18 @@ pub coll.fn at {
 pub coll.fn slice {
     bare.optional;
 
+    # Bytes 'from' to 'to', as bytes: an end may land inside a character, so making text of them is the
+    # caller's `to.str.utf8[…] otherwise …` (owner, 2026-10-20: "(a)").
+    slice.byte [lent 's': str.utf8, 'from': uint64[min 1], 'to': uint64[min 1]] -> list[uint8] or fail[out_of_range] {
+        if 'to' < 'from' or 'to' > str.bytes[lend 's'] { fail out_of_range; }
+        let 'out': list[uint8] = [];
+        for 'i', 'b' in str.each.byte[lend 's'] {
+            if 'i' > 'to' { break; }
+            if 'i' at_least 'from' { list.append[lend.mut 'out', value 'b']; }
+        }
+        return give 'out';
+    }
+
     # Code points 'from' to 'to'.
     slice.point [lent 's': str.utf8, 'from': uint64[min 1], 'to': uint64[min 1]] -> str.utf8 or fail[out_of_range] {
         if 'to' < 'from' or 'to' > str.points[lend 's'] { fail out_of_range; }

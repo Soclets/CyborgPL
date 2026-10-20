@@ -20,7 +20,9 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
   `std::str.slice.grapheme[lend 's', from pos 2, to pos 4]` and `str.slice.point` are the part from one
   position to another, both kept, or `before pos 5` to leave the end out (2026-10-12); they fail
   `out_of_range` when the end comes before the start or past the last unit, so a slice is never empty,
-  as the oracle's does. `str.slice.byte` waits on a question: a byte slice can cut a character. A position is
+  as the oracle's does. `std::str.slice.byte[lend 's', from pos 1, to pos 5]` gives the bytes, a
+  `list[uint8]`, not text, since an end may land inside a character; text from them is the caller's
+  `to.str.utf8[…] otherwise …` (owner, 2026-10-20: "(a)"). A position is
   `uint64[min 1]` (owner, 2026-10-17: "(a)"): a written `pos 0` is refused when building, and a position
   worked out while running is proven or converted where it is passed (`to.uint64[min 1]['i'] otherwise 1`),
   so `out_of_range` means only past the end.
