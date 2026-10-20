@@ -341,12 +341,99 @@ impl<'p> Interp<'p> {
         self.consts.contains_key(&self.const_at(name)) && !self.scopes.iter().any(|s| s.contains_key(name))
     }
 
+    /// Whether two functions of one name could both take one call (overloading, owner 2026-10-20):
+    /// the same number of arguments (a variadic one takes any number from its fixed ones), and at
+    /// every position types that could meet: the same shape, or a generic one whose bound the other
+    /// keeps (two generic ones always may). Says the shapes they share when they meet.
+    fn overloads_meet(&self, f: &Func, g: &Func) -> Result<Option<String>, RuntimeError> {
+        let fixed = |h: &Func| h.params.iter().filter(|p| !p.variadic).count();
+        let var = |h: &Func| h.params.last().is_some_and(|p| p.variadic);
+        let counts_meet = match (var(f), var(g)) {
+            (false, false) => f.params.len() == g.params.len(),
+            (true, false) => g.params.len() >= fixed(f),
+            (false, true) => f.params.len() >= fixed(g),
+            (true, true) => true,
+        };
+        if !counts_meet { return Ok(None); }
+        let n = fixed(f).min(fixed(g));
+        let mut shared = Vec::new();
+        for i in 0..n {
+            let (a, b) = (f.params[i].ty.as_ref(), g.params[i].ty.as_ref());
+            let (Some(a), Some(b)) = (a, b) else { shared.push("?".to_string()); continue; };
+            let bound = |h: &Func, v: &str| h.bounds.iter().find(|(n, _)| n == v).map(|(_, i)| i.clone());
+            let meet = match (a, b) {
+                (Ty::Var(_), Ty::Var(_)) => true,
+                (Ty::Var(v), other) => match bound(f, v) { None => true, Some(i) => self.satisfies(&ty_shape(other), &i, f.line)?.is_ok() },
+                (other, Ty::Var(v)) => match bound(g, v) { None => true, Some(i) => self.satisfies(&ty_shape(other), &i, g.line)?.is_ok() },
+                // the exact type, widths included (a range's bounds aside): `bin16` and `bin64` are two
+                _ => ty_name(&unranged(a)) == ty_name(&unranged(b)),
+            };
+            if !meet { return Ok(None); }
+            shared.push(if matches!(a, Ty::Var(_)) { ty_name(b) } else { ty_name(a) });
+        }
+        Ok(Some(if shared.is_empty() { "no arguments".into() } else { shared.join(", ") }))
+    }
+
+    /// Of several functions of one name (overloading, owner 2026-10-20), the one this call means:
+    /// by how many arguments, then by their types. The oracle reads a type only where reading it
+    /// does nothing: a literal, a variable, a verb on one; anything else counts as fitting every one.
+    fn pick_overload<'f>(&mut self, cands: Vec<&'f Func>, c: &Call, name: &str) -> Result<&'f Func, RuntimeError> {
+        let n = c.args.values.len();
+        let by_count: Vec<&Func> = cands.into_iter().filter(|f| {
+            let variadic = f.params.last().is_some_and(|p| p.variadic);
+            let fixed = f.params.iter().filter(|p| !p.variadic).count();
+            if variadic { n >= fixed } else { n == fixed }
+        }).collect();
+        if by_count.len() == 1 { return Ok(by_count[0]); }
+        if by_count.is_empty() { return rt(c.line, format!("no `{name}` takes {n} argument(s)")); }
+        let mut fitting = Vec::new();
+        for f in by_count {
+            let mut ok = true;
+            for (i, arg) in c.args.values.iter().enumerate() {
+                let Some(param) = f.params.get(i).or_else(|| f.params.last()) else { break };
+                let Some(pt) = param.ty.as_ref() else { continue };
+                if matches!(pt, Ty::Var(_) | Ty::Inst(..)) { continue; }
+                let crate::ast::Value::Expr(e) = arg;
+                let v = match e {
+                    Expr::Var(name, _) | Expr::Owned(_, name, _) => match self.lookup(name) { Some(s) => s.cell.borrow().clone(), None => continue },
+                    Expr::Int(..) | Expr::RawInt(..) | Expr::BigInt(..) | Expr::Bin(..) | Expr::Exact(..) | Expr::Text(..) | Expr::Char(..) | Expr::Bool(..) => {
+                        let saved = std::mem::replace(&mut self.expected, Some(pt.clone()));
+                        let r = self.value(arg);
+                        self.expected = saved;
+                        match r { Ok((v, prov)) => match self.fit(v, prov, Some(pt), c.line) { Ok(v) => v, Err(_) => { ok = false; break; } }, Err(_) => { ok = false; break; } }
+                    }
+                    _ => continue,
+                };
+                if self.check_type(&v, pt, c.line).is_err() { ok = false; break; }
+            }
+            if ok { fitting.push(f); }
+        }
+        match fitting.len() {
+            1 => Ok(fitting[0]),
+            0 => rt(c.line, format!("no `{name}` takes these arguments' types")),
+            // a bare literal fits several widths: the call says which (design claude's pick, owner asked 2026-10-20)
+            _ => rt(c.line, format!("{} versions of `{name}` could take this call (lines {}): give the argument its type, `5: int64`, or pass a variable", fitting.len(), fitting.iter().map(|f| f.line.to_string()).collect::<Vec<_>>().join(", "))),
+        }
+    }
+
     /// Two items with one canonical name, or a module declared twice (a file and a block).
     fn check_duplicates(&self) -> Result<(), RuntimeError> {
         let mut seen: HashMap<String, usize> = HashMap::new();
-        for f in self.prog.funcs.iter().filter(|f| !f.is_op) {
-            let k = format!("fn {}", join_path(&f.module, &f.name));
-            if let Some(l) = seen.insert(k.clone(), f.line) { return rt(f.line, format!("`{}` is defined twice (first at {})", &k[3..], line_of(l))); }
+        // Overloading (owner, 2026-10-20): one name may have several functions in one kit, picked
+        // by how many arguments and their types; two that could both take one call are an error here,
+        // as for operators (a generic one and a specific one for the same type included).
+        let fns: Vec<&Func> = self.prog.funcs.iter().filter(|f| !f.is_op).collect();
+        for (j, g) in fns.iter().enumerate() {
+            for f in &fns[..j] {
+                if f.module != g.module || f.name != g.name { continue; }
+                let in_coll = crate::parser::COLL_FNS.with(|c| c.borrow().iter().any(|(m, n)| *m == g.module && *n == g.name));
+                if !in_coll {
+                    return rt(g.line, format!("`{}` is defined twice (first at {}); versions of one function are written together in a `coll.fn {}` block (owner, 2026-10-20)", join_path(&g.module, &g.name), line_of(f.line), g.module.last().filter(|_| g.owned).cloned().unwrap_or_else(|| g.name.clone())));
+                }
+                if let Some(why) = self.overloads_meet(f, g)? {
+                    return rt(g.line, format!("`{}` has two versions for {why} (first at {}): versions of one function differ in how many arguments or their types", join_path(&g.module, &g.name), line_of(f.line)));
+                }
+            }
         }
         // An operator may be defined for several types (2026-09-20), generic or not (owner,
         // 2026-09-29), but two meanings for the same types are an error (2026-09-23), and so is a
@@ -2725,7 +2812,10 @@ impl<'p> Interp<'p> {
                 let (module, name) = path.split_at(path.len() - 1);
                 let name = &name[0];
                 self.check_path(from, module, line)?;
-                let f = match self.prog.funcs.iter().find(|f| f.module == module && &f.name == name) {
+                let found: Vec<&Func> = self.prog.funcs.iter().filter(|f| f.module == module && &f.name == name && !f.is_op).collect();
+                // oracle's limit, as for an operator's value: it does not pick an overload by where the value goes
+                if found.len() > 1 { return rt(line, format!("there are {} `{name}`; the oracle cannot yet pick one by where the value goes", found.len())); }
+                let f = match found.first().copied().or_else(|| self.prog.funcs.iter().find(|f| f.module == module && &f.name == name)) {
                     Some(f) => f,
                     None => return rt(line, format!("no function `{name}` in `{}` (a bare name with no brackets is the function as a value)", root_or(module))),
                 };
@@ -4129,9 +4219,12 @@ impl<'p> Interp<'p> {
             }
         }
         self.check_path(&c.from, module, c.line)?;
-        let func = match self.prog.funcs.iter().find(|f| f.module == module && &f.name == name) {
-            Some(f) => f,
-            None => return rt(c.line, format!("no function `{name}` in `{}`", root_or(module))),
+        let prog: &'p Program = self.prog;
+        let cands: Vec<&Func> = prog.funcs.iter().filter(|f| f.module == module && &f.name == name).collect();
+        let func = match cands.len() {
+            0 => return rt(c.line, format!("no function `{name}` in `{}`", root_or(module))),
+            1 => cands[0],
+            _ => self.pick_overload(cands, c, name)?,
         };
         if !self.reachable(&c.from, &func.module, func.vis) {
             return rt(c.line, private_msg(&c.from, &func.module, &format!("`{}`", join_path(&func.module, name))));
@@ -5305,6 +5398,8 @@ impl<'p> Interp<'p> {
 }
 
 /// A type's shape, matching `shape_of`: the kind, or the struct/enum name.
+fn unranged(t: &Ty) -> Ty { match t { Ty::Ranged(b, _, _) => unranged(b), other => other.clone() } }
+
 fn ty_shape(t: &Ty) -> String {
     match t {
         Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) => "bin".into(), Ty::Brain => "brain16".into(), Ty::Deci(_) => "deci".into(), Ty::Bool => "bool".into(),

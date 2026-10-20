@@ -67,6 +67,31 @@ The path is read from the collection's module (`my.` for the kit's root), and th
 its new name, with the collection's visibility. `examples/coll_front_door/`. The single-line `pub fn area = …;`
 (2026-09-23) stays for a one-off name.
 
+## Versions: one name, several functions (owner, 2026-10-20)
+
+A collection may hold **several versions** of its own function, each with its own parameters, and the call is
+picked by how many arguments it has and their types. This is the only place overloading is written: the same
+`fn` twice anywhere else is refused, naming `coll.fn` (owner: "(b)").
+
+```
+pub coll.fn round {
+    bare.optional;
+    round.near ['x': bin64] -> bin64 { … }
+    round.near ['x': deci64] -> deci64 { … }
+    round.near ['x': bin64, 'decimals': int32] -> bin64 { … }
+}
+```
+
+- **Who**: any kit's functions, std's and yours (owner: "(a)"). Two versions with the same types are refused.
+- **Across kits nothing joins** (owner: "(b)"): your `round.near ['x': Money]` beside std's bare one is the old
+  clash wherever `round.near` is written without a path (`my.round.near[…]`, `std::round.near[…]`).
+- **The count picks too** (owner: "(a)"): a function has no optional arguments, so `round.near['x']` and
+  `round.near['x', decimals 2]` are two versions.
+- Design claude's readings, not asked: a member may have versions as the own function may (std's `round.near`
+  above); versions differ by exact type, widths counting; a preset beside several versions is refused until it
+  is decided which one it fills. Open, asked: a call that a bare literal lets two versions take
+  (`round.near[2.5]` with `bin16` and `bin64` versions); the oracle refuses it at the call, naming `2.5: bin64`.
+
 ## Who sees it
 
 - A collection is **private unless `pub coll`**, as everything else

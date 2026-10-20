@@ -212,6 +212,8 @@ thread_local! {
     pub static TEMPLATES: std::cell::RefCell<Vec<(std::path::PathBuf, String, usize)>> = std::cell::RefCell::new(Vec::new());
     /// `coll.fn area { area.square = shapes.square.area; }` (owner, 2026-10-19): a member whose body is written elsewhere
     /// in the kit, resolved once every file is read: (the collection's module, its name, the member, the path, its visibility, line)
+    /// (module, name) of every function a `coll.fn` writes: only those may be overloaded (owner, 2026-10-20: b)
+    pub static COLL_FNS: std::cell::RefCell<Vec<(Vec<String>, String)>> = std::cell::RefCell::new(Vec::new());
     pub static COLL_POINTERS: std::cell::RefCell<Vec<(Vec<String>, String, String, Vec<String>, Vis, usize)>> = std::cell::RefCell::new(Vec::new());
     /// The file being parsed, for TEMPLATES
     pub static CURRENT_FILE: std::cell::RefCell<std::path::PathBuf> = std::cell::RefCell::new(std::path::PathBuf::new());
@@ -2799,7 +2801,8 @@ impl Parser {
         };
         self.expect(Tok::LBrace, "`{` after the collection's name")?;
         let mut mode = mark;
-        let mut main: Option<Vec<Token>> = None;
+        // several versions of the own function or of a member: overloads (owner, 2026-10-20: b)
+        let mut main: Vec<Vec<Token>> = Vec::new();
         let mut members: Vec<(String, Vec<Token>)> = Vec::new();
         let mut presets: Vec<(String, Vec<(String, Vec<Token>)>, usize)> = Vec::new();
         loop {
@@ -2899,10 +2902,10 @@ impl Parser {
                     self.skip_braces()?;
                     let toks = self.toks[from..self.pos].to_vec();
                     if m == name {
-                        if main.is_some() { return self.err(format!("`{name}` is written twice in its collection")); }
-                        main = Some(toks);
+                        main.push(toks);
                     } else {
-                        if members.iter().any(|(n, _)| *n == m) { return self.err(format!("`{name}.{m}` is written twice")); }
+                        // a pointing member or a preset of this name stays one; a member with a body may have versions
+                        if members.iter().any(|(n, t)| *n == m && t.is_empty()) || presets.iter().any(|(n, _, _)| *n == m) { return self.err(format!("`{name}.{m}` is written twice")); }
                         let _ = mline;
                         members.push((m, toks));
                     }
@@ -2923,17 +2926,26 @@ impl Parser {
             p
         };
         let mut out = Vec::new();
-        if let Some(m) = &main {
+        let here = self.module.clone();
+        for m in &main {
             let l = m.first().map(|t| t.line).unwrap_or(line);
             out.extend(prefix(l)); out.push(w("fn", l)); out.push(w(&name, l)); out.extend(m.iter().cloned());
         }
+        COLL_FNS.with(|c| {
+            let mut c = c.borrow_mut();
+            if !main.is_empty() { c.push((here.clone(), name.clone())); }
+            let mut owner = here.clone(); owner.push(name.clone());
+            for (m, _) in &members { c.push((owner.clone(), m.clone())); }
+        });
         for (m, toks) in &members {
             if toks.is_empty() { continue; }   // a pointing member, made once every file is read
             let l = toks.first().map(|t| t.line).unwrap_or(line);
             out.extend(prefix(l)); out.push(w("fn", l)); out.push(w(&name, l)); out.push(tk(Tok::Dot, l)); out.push(w(m, l)); out.extend(toks.iter().cloned());
         }
         if !presets.is_empty() {
-            let Some(m) = &main else { return Err(ParseError { line, col: 0, msg: format!("a preset fills the main function's arguments, and collection `{name}` has none: write `{name} [ … ] -> T {{ … }}`") }) };
+            let Some(m) = main.first() else { return Err(ParseError { line, col: 0, msg: format!("a preset fills the main function's arguments, and collection `{name}` has none: write `{name} [ … ] -> T {{ … }}`") }) };
+            // which version a preset fills is not decided (2026-10-20)
+            if main.len() > 1 { return Err(ParseError { line: presets[0].2, col: 0, msg: format!("`{name}` has {} versions, and which one a preset fills is not decided", main.len()) }); }
             // the main function's pieces: what comes before its parameters (generics, lifetime groups), the
             // parameters, and what comes after them up to its body (the return type and failures)
             let close_of = |toks: &[Token], open: usize| -> usize {
