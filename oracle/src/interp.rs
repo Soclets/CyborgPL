@@ -5646,38 +5646,29 @@ fn same_family(a: &Value, b: &Value, line: usize, op: &str) -> Result<(), Runtim
 }
 
 /// Grapheme clusters, approximated: a base character plus any combining
-/// marks, ZWJ sequences, variation selectors, and skin-tone modifiers. Enough
+/// marks, ZWJ sequences, variation selectors, and skin-tone modifiers, and two
+/// regional indicators as one flag (UAX #29 GB12/GB13: 🇹🇭🇯🇵 is two flags). Enough
 /// for the oracle to tell "one" from "several"; the real runtime needs UAX #29.
-/// Split into graphemes with the same approximation as `grapheme_count`.
 fn graphemes(s: &str) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     let mut prev_zwj = false;
+    // regional indicators at the end of the last cluster: a second one joins it, a third starts a flag
+    let mut open_ri = false;
     for ch in s.chars() {
         let cp = ch as u32;
         let combining = (0x0300..=0x036F).contains(&cp) || (0x0E31..=0x0E3A).contains(&cp) || (0x0E47..=0x0E4E).contains(&cp)
             || (0x1AB0..=0x1AFF).contains(&cp) || (0x20D0..=0x20FF).contains(&cp) || (0xFE00..=0xFE0F).contains(&cp)
             || (0x1F3FB..=0x1F3FF).contains(&cp);
-        if cp == 0x200D { prev_zwj = true; if let Some(last) = out.last_mut() { last.push(ch); } continue; }
-        if (combining || prev_zwj) && !out.is_empty() { out.last_mut().unwrap().push(ch); } else { out.push(ch.to_string()); }
+        let ri = (0x1F1E6..=0x1F1FF).contains(&cp);
+        if cp == 0x200D { prev_zwj = true; open_ri = false; if let Some(last) = out.last_mut() { last.push(ch); } continue; }
+        if ri && open_ri && !out.is_empty() { out.last_mut().unwrap().push(ch); open_ri = false; prev_zwj = false; continue; }
+        if (combining || prev_zwj) && !out.is_empty() { out.last_mut().unwrap().push(ch); } else { out.push(ch.to_string()); open_ri = ri; }
         prev_zwj = false;
     }
     out
 }
 
-pub fn grapheme_count(s: &str) -> usize {
-    let mut n = 0;
-    let mut prev_zwj = false;
-    for ch in s.chars() {
-        let cp = ch as u32;
-        let combining = (0x0300..=0x036F).contains(&cp) || (0x0E31..=0x0E3A).contains(&cp) || (0x0E47..=0x0E4E).contains(&cp)
-            || (0x1AB0..=0x1AFF).contains(&cp) || (0x20D0..=0x20FF).contains(&cp) || (0xFE00..=0xFE0F).contains(&cp)
-            || (0x1F3FB..=0x1F3FF).contains(&cp);
-        if cp == 0x200D { prev_zwj = true; continue; }
-        if !combining && !prev_zwj { n += 1; }
-        prev_zwj = false;
-    }
-    n
-}
+pub fn grapheme_count(s: &str) -> usize { graphemes(s).len() }
 
 
 
