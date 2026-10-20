@@ -34,6 +34,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-20 — `bare.` names the prefix it drops: `bare.kit_prefix.X` (was `bare.X`) and the new `bare.enum_prefix.X` (owner: a; not built)
+
+From the case languages (`lang: casing.tr`): the owner first asked for "a special kind of enum type that hides the
+prefix", then: "I meant to add `bare.optional` support for enums". Design claude noted `bare.` marks already apply to
+enums, meaning the type's name may drop its kit path (2026-10-06), so one mark would cover two prefixes; the owner:
+"Should we change it to `bare.kit_prefix =`? And add more narrowings?" Design claude offered words over `=` (marks
+in front of an item are words) and counted two prefixes "bare" can drop: (a) name both (recommended), (b) keep
+`bare.X` for the kit's and add one, (c) the `=` form. The owner: "(a), shouldn't be `kit_prefix` & `enum_prefix`?".
+So **`bare.kit_prefix.never` / `.optional` / `.only`**, today's `bare.never` / `bare.optional` / `bare.only` renamed
+at every level (item, block module, file line, kinds list in `kit.cy`), and **`bare.enum_prefix.never` / `.optional`
+/ `.only`** on an enum: whether its values may be written without the enum's name where the type is known (a
+parameter, a typed declaration; `match` arms are bare as before). `pub bare.kit_prefix.optional
+bare.enum_prefix.optional enum casing { tr, az, lt, root }` lets `str.upper.full[lend 's', lang: tr]`. Not built.
+Being asked: whether an enum's values default to `enum_prefix.never`, and std's `optional`.
+
 ### 2026-10-20 — Case changes say their mapping: `str.upper.ascii`, `.simple`, `.full`; a bare `str.upper` is refused (owner: a, a)
 
 std claude asked whether `str.upper` / `str.lower` are ASCII only or Unicode's. The owner: "There's obviously another
