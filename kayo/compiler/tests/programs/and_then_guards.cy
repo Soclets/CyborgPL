@@ -9,10 +9,10 @@ MAIN {
     let mut 'hits': i32 = 0;
     let mut 'kept': i32 = 0;
     while 'i' < 10 {
-        if 'i' at_least 1 and.then 'i' at_most list.length[lend 'xs'] and.then 'xs'[pos 'i'] equal_to 5 {
+        if 'i' at_least 1 and.then 'i' at_most list.length[lend 'xs'] and.then 'xs'[pos: 'i'] equal_to 5 {
             change 'hits' = 'hits' plus 1;
         }
-        if 'i' equal_to 0 or.else 'i' > list.length[lend 'xs'] or.else 'xs'[pos 'i'] > 4 {
+        if 'i' equal_to 0 or.else 'i' > list.length[lend 'xs'] or.else 'xs'[pos: 'i'] > 4 {
             change 'kept' = 'kept' plus 1;
         }
         change 'i' = 'i' plus 1;

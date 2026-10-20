@@ -6,7 +6,7 @@
 extern.C fn exit ['code': i32];
 extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
 fn short ['n': i64] -> str.utf8 {
-    let 's' := to.stored.str.utf8[min 0, max 3 bytes]['n'] otherwise { out_of_range { return "?"; } };
+    let 's' := to.stored.str.utf8[min: 0, max: 3 bytes]['n'] otherwise { out_of_range { return "?"; } };
     return give 's';
 }
 MAIN {

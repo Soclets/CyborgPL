@@ -9,13 +9,13 @@ MAIN {
     let mut 'xs': list[bool] = [];
     let mut 'i': i64 = 0;
     while 'i' at_most 'n' {
-        if ('i' mod.floor 2) equal_to 0 { list.append[lend.mut 'xs', value true]; }
+        if ('i' mod.floor 2) equal_to 0 { list.append[lend.mut 'xs', value: true]; }
         change 'i' = 'i' plus 1;
     }
     let mut 'p': i64 = 1;
     let mut 'c': i64 = 0;
     while 'p' at_most 'n' {
-        if 'xs'[pos to.u64['p']] { change 'c' = 'c' plus 1; }
+        if 'xs'[pos: to.u64['p']] { change 'c' = 'c' plus 1; }
         change 'p' = 'p' plus 1;
     }
     no_check my.exit[to.i32['c' mod.floor 256]];

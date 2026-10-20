@@ -1,6 +1,7 @@
 //! Every argument after the first says its role (owner, 2026-10-14:
-//! `list.append[lend.mut 'xs', value 2]`, `map.set[lend.mut 'm', key "ann",
-//! value 5551]`). The first argument, the thing worked on, stays bare.
+//! `list.append[lend.mut 'xs', value: 2]`, `map.set[lend.mut 'm', key:
+//! "ann", value: 5551]`; the `:` since 2026-10-20). The first argument, the
+//! thing worked on, stays bare.
 //!
 //! The calls and their words are `spellings.cyr`'s `calls`. Read on the
 //! tokens before the parser sees them, as the oracle reads them: each listed
@@ -49,6 +50,50 @@ fn call_at(toks: &[Token], i: usize) -> Option<(&'static Call, usize)> {
     best
 }
 
+/// A word inside `[ ]` takes `:` before its value (owner, 2026-10-20):
+/// `value: 2`, `pos: 3`, `from: pos 2`, `i32[min: 0, max: 100]`, `for 'i'
+/// [from: 1, to: 10, by: 1]`. Each such word is marked `labelled` and its
+/// `:` taken out, so the parser reads the words as it always has and asks
+/// only whether each was labelled. Only where the innermost open bracket is
+/// `[`: a struct's `{ x: i32 }` is a field's type.
+pub fn labels(toks: &[Token]) -> Vec<Token> {
+    let mut out: Vec<Token> = Vec::with_capacity(toks.len());
+    let mut open: Vec<Tok> = Vec::new();
+    let mut i = 0;
+    while i < toks.len() {
+        let t = &toks[i];
+        match t.tok {
+            Tok::LBracket | Tok::LParen | Tok::LBrace => open.push(t.tok.clone()),
+            Tok::RBracket | Tok::RParen | Tok::RBrace => {
+                open.pop();
+            }
+            _ => {}
+        }
+        // A label starts an argument, right after `[` or `,`: `<T: any>`
+        // is a generic's bound, `5: u8` a typed literal.
+        let label = matches!(open.last(), Some(Tok::LBracket))
+            && i > 0
+            && matches!(toks[i - 1].tok, Tok::LBracket | Tok::Comma)
+            && matches!(&t.tok, Tok::Word(w) if w != "true" && w != "false")
+            && matches!(toks.get(i + 1).map(|n| &n.tok), Some(Tok::Colon));
+        let mut t = t.clone();
+        if label {
+            t.labelled = true;
+            out.push(t);
+            i += 2;
+            continue;
+        }
+        out.push(t);
+        i += 1;
+    }
+    out
+}
+
+/// What a bare word inside `[ ]` is told (owner, 2026-10-20).
+pub fn needs_colon(word: &str) -> String {
+    format!("inside `[ ]` a word takes `:` before its value: `{}: …` (owner, 2026-10-20)", word)
+}
+
 /// The tokens with each listed call's words checked and taken out.
 pub fn strip(toks: &[Token]) -> Result<Vec<Token>> {
     let mut drop = vec![false; toks.len()];
@@ -77,8 +122,16 @@ pub fn strip(toks: &[Token]) -> Result<Vec<Token>> {
             if word.is_empty() {
                 continue;
             }
-            let says = matches!(&toks[at].tok, Tok::Word(w) if w == word) && at + 1 < close && !matches!(toks[at + 1].tok, Tok::Comma);
-            if !says {
+            let named = matches!(&toks[at].tok, Tok::Word(w) if w == word) && at + 1 < close && !matches!(toks[at + 1].tok, Tok::Comma);
+            // `round.near['x', decimals 2]` (owner, 2026-10-20: `places:`).
+            if *word == "places" && matches!(&toks[at].tok, Tok::Word(w) if w == "decimals") {
+                let said = crate::spellings::old_word("decimals", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`decimals` is an old spelling: write `places:` (owner, 2026-10-20)".into());
+                return err(Diagnostic::error(said).at(toks[at].span));
+            }
+            if named && !toks[at].labelled {
+                return err(Diagnostic::error(needs_colon(word)).at(toks[at].span));
+            }
+            if !named {
                 return err(Diagnostic::error(format!("each argument after the first says what it is: `{}` (owner, 2026-10-14)", call.example)).at(toks[at].span));
             }
             drop[at] = true;

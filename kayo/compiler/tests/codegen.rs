@@ -722,7 +722,7 @@ fn listing_the_nerve_cord_takes_over_cord() {
     let out = std::env::temp_dir().join("cca-build-dot");
     let r = Command::new(cca()).arg("build").arg(".").arg("-o").arg(&out).current_dir(kits.join("uses_nerve_cord")).output().unwrap();
     assert!(r.status.success(), "`kayo build .` failed:\n{}", String::from_utf8_lossy(&r.stderr));
-    for (name, says) in [("cord_wrong_prefix", "the CyborgPL std's prefix is `std`"), ("two_cords", "a program has one std"), ("std_at_needs_pos", "a position says `pos`: `std::str.at.byte[lend 's', pos 3]`")] {
+    for (name, says) in [("cord_wrong_prefix", "the CyborgPL std's prefix is `std`"), ("two_cords", "a program has one std"), ("std_at_needs_pos", "a position says `pos`: `std::str.at.byte[lend 's', pos: 3]`")] {
         let r = Command::new(cca()).arg("check").arg(kits.join(name)).output().unwrap();
         let err = String::from_utf8_lossy(&r.stderr);
         assert!(!r.status.success() && err.contains(says), "{} was not refused as it should be:\n{}", name, err);
@@ -738,7 +738,7 @@ fn cords_text_positions_are_proven() {
     let src = dir().parent().unwrap().join("precog/cord_text.cy");
     let r = Command::new(cca()).arg("prove").arg(&src).output().unwrap();
     let report = String::from_utf8_lossy(&r.stdout).to_string() + &String::from_utf8_lossy(&r.stderr);
-    for (line, code) in [("line 25", "'text'[pos 'k']"), ("line 25", "'part'[pos 'k' minus 'pos' plus 1]"), ("line 42", "'text'[pos 'pos']")] {
+    for (line, code) in [("line 25", "'text'[pos: 'k']"), ("line 25", "'part'[pos: 'k' minus 'pos' plus"), ("line 42", "'text'[pos: 'pos']")] {
         let row = report.lines().find(|l| l.starts_with(line) && l.contains(code)).unwrap_or_else(|| panic!("no row for {} at {}:\n{}", code, line, report));
         assert!(row.contains("proven"), "{} at {} is not proven:\n{}", code, line, row);
     }
@@ -866,7 +866,7 @@ fn emit_llvm_tv_keeps_every_function() {
     let _ = std::fs::remove_dir_all(&out);
     std::fs::create_dir_all(&out).unwrap();
     let src = out.join("t.cy");
-    std::fs::write(&src, "fn add ['a': i32, 'b': i32] -> i32 { return 'a' plus 'b'; }\nfn sum ['n': u32] -> u64 {\n    let mut 't': u64 = 0;\n    for 'i': u32 from 1 to 'n' by 1 { change 't' = 't' plus to.u64['i']; }\n    return 't';\n}\nMAIN {\n    std::print.useful[add[2, 3], \" \", sum[10], newln];\n}\n").unwrap();
+    std::fs::write(&src, "fn add ['a': i32, 'b': i32] -> i32 { return 'a' plus 'b'; }\nfn sum ['n': u32] -> u64 {\n    let mut 't': u64 = 0;\n    for 'i': u32 [from: 1, to: 'n', by: 1] { change 't' = 't' plus to.u64['i']; }\n    return 't';\n}\nMAIN {\n    std::print.useful[add[2, 3], \" \", sum[10], newln];\n}\n").unwrap();
     let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(out.join("t")).arg("--emit-llvm-tv").arg(out.join("tv")).output().unwrap();
     assert!(r.status.success(), "the build failed:\n{}", String::from_utf8_lossy(&r.stderr));
     let defined = |name: &str| -> Vec<String> {

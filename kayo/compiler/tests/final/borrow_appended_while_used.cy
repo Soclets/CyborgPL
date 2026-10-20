@@ -5,6 +5,6 @@ fn first [lent 'a': list[i32]] -> lent list[i32] { return lend 'a'; }
 MAIN {
     let mut 's': list[i32] = [1, 2, 3];
     let 'r' := first[lend 's'];
-    for 'k': i32 from 1 to 1000 by 1 { list.append[lend.mut 's', value 'k']; }
+    for 'k': i32 [from: 1, to: 1000, by: 1] { list.append[lend.mut 's', value: 'k']; }
     let 'n' := list.length[lend 'r'];
 }

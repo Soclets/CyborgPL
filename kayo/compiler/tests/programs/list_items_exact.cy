@@ -8,6 +8,6 @@ MAIN {
     let 'big': list[u64] = [9692729768110883998 minus 3166240359165959856, 9692729768110883998 minus 1];
     let 'small': list[u8] = [(100 plus 100) minus 150, 7];
     let mut 'k': i32 = 0;
-    if 'big'[pos 1] equal_to 6526489408944924142 { change 'k' = 42; }
-    no_check my.exit['k' plus to.i32['small'[pos 1]]];
+    if 'big'[pos: 1] equal_to 6526489408944924142 { change 'k' = 42; }
+    no_check my.exit['k' plus to.i32['small'[pos: 1]]];
 }

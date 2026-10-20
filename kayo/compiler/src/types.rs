@@ -180,7 +180,7 @@ pub enum Ty {
     Seq { elem: Box<Ty>, kind: SeqKind },
     Map { key: Box<Ty>, val: Box<Ty>, order: MapOrder },
     Channel(Box<Ty>),
-    /// `simd[T, count N]` — N plain values in one register (`simd.md`). Legal
+    /// `simd[T, count: N]` — N plain values in one register (`simd.md`). Legal
     /// only in a shape the target actually has.
     Simd { elem: Box<Ty>, lanes: u32 },
     Struct { id: StructId, args: Vec<Ty> },
@@ -515,7 +515,7 @@ impl<'a> fmt::Display for TySpelling<'a> {
                 write!(f, "{}[{}, {}]", o, sp(key), sp(val))
             }
             Ty::Channel(e) => write!(f, "channel[{}]", sp(e)),
-            Ty::Simd { elem, lanes } => write!(f, "simd[{}, count {}]", sp(elem), lanes),
+            Ty::Simd { elem, lanes } => write!(f, "simd[{}, count: {}]", sp(elem), lanes),
             Ty::Struct { id, args } => {
                 write!(f, "{}", self.structs[id.0 as usize].name)?;
                 if !args.is_empty() {
@@ -555,10 +555,10 @@ impl<'a> fmt::Display for TySpelling<'a> {
                 let shown = |n: u64| if *zero { n } else { n.saturating_sub(1) };
                 let mut parts = Vec::new();
                 if shown(*lo) > 0 {
-                    parts.push(format!("min {}", shown(*lo)));
+                    parts.push(format!("min: {}", shown(*lo)));
                 }
                 if *hi != u64::MAX {
-                    parts.push(format!("max {} bytes", shown(*hi)));
+                    parts.push(format!("max: {} bytes", shown(*hi)));
                 }
                 parts.push(if *zero { "include zero".to_string() } else { "exclude zero".to_string() });
                 write!(f, "C.str[{}]", parts.join(", "))
@@ -566,13 +566,13 @@ impl<'a> fmt::Display for TySpelling<'a> {
             Ty::Bounded { inner, bound } => {
                 write!(f, "{}", sp(inner))?;
                 let labelled = |lo: Option<String>, hi: Option<String>, unit: &str| match (lo, hi) {
-                    (Some(l), Some(h)) => format!("[min {}, max {}{}]", l, h, unit),
-                    (Some(l), None) => format!("[min {}{}]", l, unit),
-                    (None, Some(h)) => format!("[max {}{}]", h, unit),
+                    (Some(l), Some(h)) => format!("[min: {}, max: {}{}]", l, h, unit),
+                    (Some(l), None) => format!("[min: {}{}]", l, unit),
+                    (None, Some(h)) => format!("[max: {}{}]", h, unit),
                     (None, None) => String::new(),
                 };
                 let text = match bound {
-                    Bound::Int { said: Said { bits: Some(n), .. }, .. } => format!("[bits {}]", n),
+                    Bound::Int { said: Said { bits: Some(n), .. }, .. } => format!("[bits: {}]", n),
                     Bound::Int { lo, hi, said } => labelled(said.lo.then(|| lo.to_string()), said.hi.then(|| hi.to_string()), ""),
                     Bound::Bin { lo, hi, said } => labelled(said.lo.then(|| lo.clone()), said.hi.then(|| hi.clone()), ""),
                     Bound::Len { lo, hi, unit } => {
@@ -585,7 +585,7 @@ impl<'a> fmt::Display for TySpelling<'a> {
                         let (l, h) = ((*lo != 0).then(|| lo.to_string()), (*hi != u64::MAX).then(|| hi.to_string()));
                         // A text's unit is said even when both sides are open.
                         if l.is_none() && h.is_none() && !u.is_empty() {
-                            format!("[min 0{}]", u)
+                            format!("[min: 0{}]", u)
                         } else {
                             labelled(l, h, u)
                         }

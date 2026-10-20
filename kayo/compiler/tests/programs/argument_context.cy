@@ -15,6 +15,6 @@ MAIN {
     let 'v': u64 = to.u64[wide[2 shl 3]];
     let 'n' := wide[not.bit 0];
     let mut 'xs': list[u8] = [1,];
-    list.append[lend.mut 'xs', value 0 minus.wrap 2];
-    no_check my.exit[flag['a' equal_to 255, 1] plus flag['v' equal_to 16, 2] plus flag['n' equal_to 4294967295, 4] plus flag['xs'[pos 2] equal_to 254, 8]];
+    list.append[lend.mut 'xs', value: 0 minus.wrap 2];
+    no_check my.exit[flag['a' equal_to 255, 1] plus flag['v' equal_to 16, 2] plus flag['n' equal_to 4294967295, 4] plus flag['xs'[pos: 2] equal_to 254, 8]];
 }

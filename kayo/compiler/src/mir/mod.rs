@@ -304,7 +304,7 @@ impl SiteKind {
             SiteKind::SliceRange => "the slice can run outside the list, or backwards".into(),
             SiteKind::NegativeExponent => "a negative exponent on integers would produce a fraction".into(),
             SiteKind::FillCount => "`list.fill` of fewer than 0 copies: a count is 0 or more".into(),
-            SiteKind::Position => "0 is no position: a position is `u64[min 1]`".into(),
+            SiteKind::Position => "0 is no position: a position is `u64[min: 1]`".into(),
             SiteKind::SimdRange { lanes } => format!("the {} lanes can run past the end", lanes),
             SiteKind::SimdSome { lanes } => format!("the items for {} lanes can run past the end, or be more than the lanes", lanes),
             SiteKind::KeyHashAgrees => "two keys this says are equal can hash differently, and the map would hold both".into(),

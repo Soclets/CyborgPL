@@ -15,6 +15,6 @@ MAIN {
     let 'ys': list[u32] = [2 shl 3, not.bit 0];
     let 'zs': list[list[u8]] = [[0 minus.wrap 2,], [1,]];
     let 'big': list[u64] = [9692729768110883998 minus 3166240359165959856,];
-    let 'inner' := copy 'zs'[pos 1];
-    no_check my.exit[flag['xs'[pos 1] equal_to 255, 1] plus flag['xs'[pos 2] equal_to 251, 2] plus flag['xs'[pos 3] equal_to 4, 4] plus flag['ys'[pos 1] equal_to 16, 8] plus flag['ys'[pos 2] equal_to 4294967295, 16] plus flag['inner'[pos 1] equal_to 254, 32] plus flag['big'[pos 1] equal_to 6526489408944924142, 64]];
+    let 'inner' := copy 'zs'[pos: 1];
+    no_check my.exit[flag['xs'[pos: 1] equal_to 255, 1] plus flag['xs'[pos: 2] equal_to 251, 2] plus flag['xs'[pos: 3] equal_to 4, 4] plus flag['ys'[pos: 1] equal_to 16, 8] plus flag['ys'[pos: 2] equal_to 4294967295, 16] plus flag['inner'[pos: 1] equal_to 254, 32] plus flag['big'[pos: 1] equal_to 6526489408944924142, 64]];
 }

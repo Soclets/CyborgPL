@@ -10,12 +10,12 @@ fn total [lent 'xs': list[i64]] -> i64 {
     return 'acc';
 }
 fn scale [lent.mut 'xs': list[i64], 'k': i64] {
-    for 'i': u64 from 1 to list.length[lend 'xs'] by 1 {
-        change 'xs'[pos 'i'] = ('xs'[pos 'i'] times 'k') mod.floor 1000;
+    for 'i': u64 [from: 1, to: list.length[lend 'xs'], by: 1] {
+        change 'xs'[pos: 'i'] = ('xs'[pos: 'i'] times 'k') mod.floor 1000;
     }
 }
 MAIN {
-    let mut 'xs': list[i64] = list.fill[value 3, count 200000];
+    let mut 'xs': list[i64] = list.fill[value: 3, count: 200000];
     scale[lend.mut 'xs', 5];
     let 'a' := total[lend 'xs'];
     no_check my.exit[to.i32['a' mod.floor 256]];

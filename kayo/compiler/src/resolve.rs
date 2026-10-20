@@ -556,7 +556,7 @@ impl Items {
                             _ => return err(Diagnostic::error(format!("a bit-field is a whole number or a `bool`, and `{}` is neither", spelled)).at(f.ty.span)),
                         };
                         if t.bound().is_some() {
-                            return err(Diagnostic::error(format!("a bit-field's range is its bits: write `{}[bits {}]` alone", spell(&t.base().clone(), self), bits)).at(f.ty.span));
+                            return err(Diagnostic::error(format!("a bit-field's range is its bits: write `{}[bits: {}]` alone", spell(&t.base().clone(), self), bits)).at(f.ty.span));
                         }
                         if *bits == 0 || *bits > width {
                             return err(Diagnostic::error(format!("a `{}` bit-field is 1 to {} bits, not {}", spelled, width, bits)).at(*span));
@@ -1323,7 +1323,7 @@ impl Items {
             }
             ast::TypeKind::Bits { inner, bits, span } => {
                 let inner_ty = self.resolve_type(inner, m, blanks, allow_blanks)?;
-                err(Diagnostic::error(format!("`{}[bits {}]` is a C bit-field: it is for a `layout.C` struct's fields, where C packs them", spell(&inner_ty, self), bits)).at(*span))
+                err(Diagnostic::error(format!("`{}[bits: {}]` is a C bit-field: it is for a `layout.C` struct's fields, where C packs them", spell(&inner_ty, self), bits)).at(*span))
             }
             ast::TypeKind::Bound { inner, lo, hi, unit, span, old, zero } => {
                 let base = self.resolve_type(inner, m, blanks, allow_blanks)?;
@@ -1334,7 +1334,7 @@ impl Items {
                         return err(Diagnostic::error(format!("a C string is counted in bytes, not {}: C has no {}", u.name, u.name)).at(u.span));
                     }
                     let Some((include, _)) = zero else {
-                        return err(Diagnostic::error("a bounded C string says whether its closing 0 counts: `C.str[max 255 bytes, exclude zero]` (the text, the 0 on top) or `C.str[max 256 bytes, include zero]` (the whole buffer) (owner, 2026-10-19)").at(*span));
+                        return err(Diagnostic::error("a bounded C string says whether its closing 0 counts: `C.str[max: 255 bytes, exclude zero]` (the text, the 0 on top) or `C.str[max: 256 bytes, include zero]` (the whole buffer) (owner, 2026-10-19)").at(*span));
                     };
                     let (l, h) = len_bounds(lo, hi, *span)?;
                     // Held as the length with the 0, which a C string always has.
@@ -1342,20 +1342,20 @@ impl Items {
                     return Ok(Ty::Bounded { inner: Box::new(Ty::Seq { elem: elem.clone(), kind: SeqKind::CStr(*include) }), bound: Bound::Len { lo: l, hi: h, unit: Some(Unit::Byte) } });
                 }
                 if let Some((_, at)) = zero {
-                    return err(Diagnostic::error("`exclude zero` and `include zero` are for a C string's bound, `C.str[max 255 bytes, exclude zero]`").at(*at));
+                    return err(Diagnostic::error("`exclude zero` and `include zero` are for a C string's bound, `C.str[max: 255 bytes, exclude zero]`").at(*at));
                 }
                 if *old {
                     // Whether it takes a bound comes before how one is
                     // written (owner, 2026-10-12, labelled bounds).
                     return match &base {
                         Ty::Seq { kind: SeqKind::Array, .. } => err(Diagnostic::error("a length bound belongs on a `list`: an `array` has one length, already known").at(*span)),
-                        Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => err(Diagnostic::error("a bound says which it is: `i32[min 0, max 100]` (`[min 1]` alone is \"at least 1\") (owner, 2026-10-12)").at(*span)),
-                        other => err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`i32[min 0, max 100]`), text, lists, maps and channels", spell(other, self))).at(*span)),
+                        Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => err(Diagnostic::error("a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)").at(*span)),
+                        other => err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`i32[min: 0, max: 100]`), text, lists, maps and channels", spell(other, self))).at(*span)),
                     };
                 }
                 self.resolve_bound(base, lo, hi, unit.as_ref(), *span)
             }
-            ast::TypeKind::Count(n) => err(Diagnostic::error(format!("`count {}` is a lane count, not a type: only a `simd[T, count N]` takes one", n)).at(t.span)),
+            ast::TypeKind::Count(n) => err(Diagnostic::error(format!("`count {}` is a lane count, not a type: only a `simd[T, count: N]` takes one", n)).at(t.span)),
             ast::TypeKind::Path { path, args } => {
                 POINTEE.with(|p| p.set(pointee));
                 self.resolve_type_path(path, args, m, blanks, allow_blanks, t.span)
@@ -1390,11 +1390,11 @@ impl Items {
                             return Ok(if p.is(&["min"]) { min } else { max });
                         }
                     }
-                    err(Diagnostic::error("an integer's bounds are integers: `i32[min 0, max 100]`").at(e.span))
+                    err(Diagnostic::error("an integer's bounds are integers: `i32[min: 0, max: 100]`").at(e.span))
                 };
                 let (l, h) = (end(lo)?, end(hi)?);
                 if l > h {
-                    return err(Diagnostic::error(format!("the low bound comes first: `[min {}, max {}]`", h, l)).at(span));
+                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).at(span));
                 }
                 let said = Said { lo: !left_out(lo, "min"), hi: !left_out(hi, "max"), bits: None };
                 if let Ty::Int(IntW::Fixed { signed, bits }) = &base {
@@ -1438,7 +1438,7 @@ impl Items {
                 };
                 let h = match side(hi)? {
                     Some(v) => v,
-                    None => bin_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `f64[min 0.0, max 1.0]`").at(hi.span)))?,
+                    None => bin_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `f64[min: 0.0, max: 1.0]`").at(hi.span)))?,
                 };
                 if let Some(top) = top {
                     for (t, e) in [(&l, lo), (&h, hi)] {
@@ -1449,7 +1449,7 @@ impl Items {
                     }
                 }
                 if l.parse::<f64>().unwrap_or(0.0) > h.parse::<f64>().unwrap_or(0.0) {
-                    return err(Diagnostic::error(format!("the low bound comes first: `[min {}, max {}]`", h, l)).at(span));
+                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).at(span));
                 }
                 Bound::Bin { lo: l, hi: h, said: Said { lo: !left_out(lo, "min"), hi: !left_out(hi, "max"), bits: None } }
             }
@@ -1462,11 +1462,11 @@ impl Items {
                 for e in [lo, hi] {
                     if let ast::ExprKind::Path(p) = &e.kind {
                         if p.is(&["min"]) || p.is(&["max"]) {
-                            return err(Diagnostic::error(format!("not yet: a deci's bound with a side left out — kayo writes both sides of a deci's range so far: `d{}[min 0.0, max 1.0]`", bits)).at(span));
+                            return err(Diagnostic::error(format!("not yet: a deci's bound with a side left out — kayo writes both sides of a deci's range so far: `d{}[min: 0.0, max: 1.0]`", bits)).at(span));
                         }
                     }
                 }
-                let written = |e: &ast::Expr| bin_literal(e).ok_or_else(|| Box::new(Diagnostic::error(format!("a deci's bounds are written with a point, as a bin's are: `d{}[min 0.0, max 1.0]`", bits)).at(e.span)));
+                let written = |e: &ast::Expr| bin_literal(e).ok_or_else(|| Box::new(Diagnostic::error(format!("a deci's bounds are written with a point, as a bin's are: `d{}[min: 0.0, max: 1.0]`", bits)).at(e.span)));
                 let (l, h) = (written(lo)?, written(hi)?);
                 for (t, e) in [(&l, lo), (&h, hi)] {
                     match crate::deci::literal(t, *bits) {
@@ -1476,7 +1476,7 @@ impl Items {
                     }
                 }
                 if l.replace('_', "").parse::<f64>().unwrap_or(0.0) > h.replace('_', "").parse::<f64>().unwrap_or(0.0) {
-                    return err(Diagnostic::error(format!("the low bound comes first: `[min {}, max {}]`", h, l)).at(span));
+                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).at(span));
                 }
                 Bound::Bin { lo: l, hi: h, said: Said::default() }
             }
@@ -1488,7 +1488,7 @@ impl Items {
                         "graphemes" | "grapheme" => Unit::Grapheme,
                         other => return err(Diagnostic::error(format!("`{}` is not a unit of text length: `bytes`, `points` or `graphemes`", other)).at(u.span)),
                     },
-                    None => return err(Diagnostic::error("a text's length bound must say which unit it counts — `bytes`, `points` or `graphemes` — after the last number: `str.utf8[min 1, max 40 graphemes]`; a text has three lengths and no single one").at(span)),
+                    None => return err(Diagnostic::error("a text's length bound must say which unit it counts — `bytes`, `points` or `graphemes` — after the last number: `str.utf8[min: 1, max: 40 graphemes]`; a text has three lengths and no single one").at(span)),
                 };
                 let (l, h) = len_bounds(lo, hi, span)?;
                 Bound::Len { lo: l, hi: h, unit: Some(u) }
@@ -1498,7 +1498,7 @@ impl Items {
             }
             Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => {
                 if matches!(base, Ty::Channel(_)) && matches!(&hi.kind, ast::ExprKind::Path(p) if p.is(&["max"])) {
-                    return err(Diagnostic::error("a bounded channel says how much it holds: `channel[T][max 100]`; with no bound it is a hand-off").at(span));
+                    return err(Diagnostic::error("a bounded channel says how much it holds: `channel[T][max: 100]`; with no bound it is a hand-off").at(span));
                 }
                 if let Some(u) = unit {
                     return err(Diagnostic::error(format!("a count bound has no unit; `{}` belongs on a text's length bound", u.name)).at(u.span));
@@ -1506,7 +1506,7 @@ impl Items {
                 let (l, h) = len_bounds(lo, hi, span)?;
                 Bound::Len { lo: l, hi: h, unit: None }
             }
-            other => return err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`i32[min 0, max 100]`), text, lists, maps and channels", spell(other, self))).at(span)),
+            other => return err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`i32[min: 0, max: 100]`), text, lists, maps and channels", spell(other, self))).at(span)),
         };
         Ok(Ty::Bounded { inner: Box::new(base), bound })
     }
@@ -1632,14 +1632,14 @@ impl Items {
                 }
                 "simd" => {
                     if path.segs.len() > 1 {
-                        return err(Diagnostic::error(format!("`simd` takes its lane type and count in brackets: `simd[u8, count 16]`, not `{}`", path.spelled())).at(span));
+                        return err(Diagnostic::error(format!("`simd` takes its lane type and count in brackets: `simd[u8, count: 16]`, not `{}`", path.spelled())).at(span));
                     }
                     if args.len() != 2 {
-                        return err(Diagnostic::error("`simd` takes two things in brackets, the lane type and how many lanes: `simd[u8, count 16]`").at(span));
+                        return err(Diagnostic::error("`simd` takes two things in brackets, the lane type and how many lanes: `simd[u8, count: 16]`").at(span));
                     }
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     let Some(lanes) = lane_count(&args[1]) else {
-                        return err(Diagnostic::error("a simd's lane count says `count`: `simd[u8, count 16]`").at(args[1].span));
+                        return err(Diagnostic::error("a simd's lane count says `count`: `simd[u8, count: 16]`").at(args[1].span));
                     };
                     // A mask (owner, 2026-09-27: a): one answer per lane of
                     // the vectors it compares, so as many lanes as they have.
@@ -1662,10 +1662,10 @@ impl Items {
                     }
                     if !simd_shape_ok(&elem, lanes) {
                         let has = simd_shapes_for(&elem).unwrap_or(0);
-                        return err(Diagnostic::error(format!("this target has no `simd[{}, count {}]`: its vector register holds {} lanes of `{}`, not {}", spell(&elem, self), lanes, has, spell(&elem, self), lanes))
+                        return err(Diagnostic::error(format!("this target has no `simd[{}, count: {}]`: its vector register holds {} lanes of `{}`, not {}", spell(&elem, self), lanes, has, spell(&elem, self), lanes))
                             .at(span)
                             .why(format!("a `simd` is only ever a shape the machine has ({}-bit registers here); portability is the plain `for` loop, which the prover and LLVM vectorise by themselves", TARGET_SIMD_BITS))
-                            .fix(None, format!("simd[{}, count {}]", spell(&elem, self), has)));
+                            .fix(None, format!("simd[{}, count: {}]", spell(&elem, self), has)));
                     }
                     return Ok(Ty::Simd { elem: Box::new(elem), lanes });
                 }
@@ -1966,7 +1966,7 @@ fn len_bounds(lo: &ast::Expr, hi: &ast::Expr, span: Span) -> Result<(u64, u64)> 
         return err(Diagnostic::error("a length bound's low end is 0 or more: a length is never negative").at(lo.span));
     }
     if l > h {
-        return err(Diagnostic::error("the low bound is at most the high one: `list[i32][min 0, max 1000]`").at(span));
+        return err(Diagnostic::error("the low bound is at most the high one: `list[i32][min: 0, max: 1000]`").at(span));
     }
     Ok((l as u64, h as u64))
 }
@@ -1981,7 +1981,7 @@ pub fn with_article(s: &str) -> String {
     }
 }
 
-/// The lane count written in a `simd[T, count N]`.
+/// The lane count written in a `simd[T, count: N]`.
 fn lane_count(t: &ast::Type) -> Option<u32> {
     match &t.kind {
         ast::TypeKind::Count(n) => Some(*n),

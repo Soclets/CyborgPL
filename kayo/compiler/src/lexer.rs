@@ -94,6 +94,10 @@ pub struct Token {
     /// it, owner: "MTM is gone."): what was written and the spelling that
     /// replaces it, which every Kit is refused, naming it.
     pub alt: Option<(String, &'static str)>,
+    /// A word written with `:` after it inside `[ ]` (owner, 2026-10-20:
+    /// `value: 2`, `from: pos 2`, `i32[min: 0]`): `argwords::labels` takes
+    /// the `:` out and marks the word.
+    pub labelled: bool,
 }
 
 pub const OP_CHARS: &str = "!%&*+-/<>=?@^|~";
@@ -160,7 +164,7 @@ impl<'a> Lexer<'a> {
     fn push(&mut self, tok: Tok, start: usize) {
         let span = self.span(start);
         let line_first = self.toks.last().map_or(true, |t| self.src.get(t.span.end as usize..start).is_some_and(|gap| gap.contains('\n')));
-        self.toks.push(Token { tok, span, line_first, alt: None });
+        self.toks.push(Token { tok, span, line_first, alt: None, labelled: false });
     }
     fn push_alt(&mut self, tok: Tok, start: usize, alt: Option<(String, &'static str)>) {
         self.push(tok, start);
@@ -326,7 +330,7 @@ impl<'a> Lexer<'a> {
             }
         }
         let end = self.src.len();
-        self.toks.push(Token { tok: Tok::Eof, span: Span::new(self.file, end, end), line_first: true, alt: None });
+        self.toks.push(Token { tok: Tok::Eof, span: Span::new(self.file, end, end), line_first: true, alt: None, labelled: false });
         Ok(())
     }
 

@@ -5,11 +5,11 @@
 extern.C fn exit ['code': i32];
 MAIN {
     let mut 'acc': i64 = 0;
-    no_cheat for 'i': i64 from 1 to 300_000 by 1 {
+    no_cheat for 'i': i64 [from: 1, to: 300_000, by: 1] {
         change 'acc' = 'acc' plus 'i';
     }
     let mut 'more': i64 = 0;
-    no_cheat for seq 'i': i64 from 1 to 10 by 1 {
+    no_cheat for seq 'i': i64 [from: 1, to: 10, by: 1] {
         change 'more' = 'more' plus 'i';
     }
     no_check my.exit[to.i32[('acc' mod.floor 256) plus 'more']];

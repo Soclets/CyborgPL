@@ -8,7 +8,7 @@ extern.C fn strlen ['s': ptr[u8]] -> u64;
 MAIN {
     let 's' := "ab";
     no_check let 'n': u64 = strlen[lend 's'];
-    for 'i': i16 from 37 to 40 by 1 {
+    for 'i': i16 [from: 37, to: 40, by: 1] {
     }
     let mut 'w': u16 = 4;
     loop {

@@ -17,7 +17,7 @@ coll.fn mix {
     mix.seven ['a' = 7];
     mix.both ['a' = 1, 'b' = 2];
     mix.square = square;
-    for 'n' from 1 to 2 by 1 {
+    for 'n' [from: 1, to: 2, by: 1] {
         named "plus_" concat to.stored.str.utf8['n'];
         ['x': i32] -> i32 { return 'x' plus 'n'; }
     }

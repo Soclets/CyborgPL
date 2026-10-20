@@ -15,9 +15,5 @@ input :: `std::input.line` is not available yet
 keys :: `std::str.lower` is not available yet
 print_format :: `std::print.format` is not built yet
 shop :: `std::input.line` is not available yet
-std_bare :: `std::round.half_up` is not available yet
 text :: `std::str.upper` is not available yet
 whichever :: `std::time.after` is not available yet
-whole :: `std::round.near` is not available yet
-round :: `std::round.near` is not available yet
-round_widths :: `std::round.near` is not available yet

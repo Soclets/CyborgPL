@@ -3,5 +3,5 @@
 extern.C fn exit ['code': i32];
 MAIN {
     let 'xs' := [9223372036854775808, 1];
-    no_check my.exit[to.i32['xs'[pos 2]]];
+    no_check my.exit[to.i32['xs'[pos: 2]]];
 }

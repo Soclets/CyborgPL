@@ -9,7 +9,7 @@ MAIN ['argc': i32, 'argv': ptr[ptr[u8]]] {
     let mut 'w': i32 = 8;
     while 'w' > 0 {
         change 'w' = 'w' minus 1;
-        for 'i': i8 from -13 to -36 by -2 {
+        for 'i': i8 [from: -13, to: -36, by: -2] {
         }
     }
     let 'z': i16 = to.i16['v'];

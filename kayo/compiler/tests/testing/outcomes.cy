@@ -14,12 +14,12 @@ test fn no_fail [] {
 }
 test fn no_stop [] {
     let 'xs': list[i32] = [1, 2, 3];
-    must.stop 'xs'[pos 2];
+    must.stop 'xs'[pos: 2];
 }
 test fn stops_anyway [] {
     let 'xs': list[i32] = [1, 2, 3];
     let 'i': i64 = 7;
-    let 'y' := 'xs'[pos 'i'];
+    let 'y' := 'xs'[pos: 'i'];
     must 'y' equal_to 1;
 }
 test fn fails_ok [] {
@@ -37,8 +37,8 @@ test fn texts [] {
 }
 test fn after_stop [] {
     let 'xs': list[i32] = [1, 2, 3];
-    must.stop 'xs'[pos 99];
-    must 'xs'[pos 1] equal_to 1;
-    must 'xs'[pos 2] equal_to 5;
+    must.stop 'xs'[pos: 99];
+    must 'xs'[pos: 1] equal_to 1;
+    must 'xs'[pos: 2] equal_to 5;
 }
 MAIN { }

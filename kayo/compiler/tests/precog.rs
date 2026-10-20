@@ -197,7 +197,7 @@ const PROGRAMS: &[&str] = &[
     "extern.C fn getpid [] -> i32;\n\
      MAIN {\n\
      \x20   no_check let 'n': i32 = getpid[];\n\
-     \x20   let 'r': i32[min 1, max 10] = 'n';\n\
+     \x20   let 'r': i32[min: 1, max: 10] = 'n';\n\
      \x20   let 'q': i32 = 100 div.floor 'n';\n\
      \x20   let 'm': i32 = 100 mod.floor 'n';\n\
      }\n",
@@ -205,7 +205,7 @@ const PROGRAMS: &[&str] = &[
      MAIN {\n\
      \x20   no_check let 'n': i32 = getpid[];\n\
      \x20   let mut 'total': i32 = 0;\n\
-     \x20   for 'i': i32 from 1 to 10 by 1 {\n\
+     \x20   for 'i': i32 [from: 1, to: 10, by: 1] {\n\
      \x20       change 'total' = 'total' plus 'i' plus 'n';\n\
      \x20   }\n\
      }\n",

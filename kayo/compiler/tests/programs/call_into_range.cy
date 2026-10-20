@@ -15,6 +15,6 @@ fn one [] -> i32 {
     return 0;
 }
 MAIN {
-    let 'c': i32[min 0, max 1] = twice[one[]];
+    let 'c': i32[min: 0, max: 1] = twice[one[]];
     no_check my.exit[7];
 }

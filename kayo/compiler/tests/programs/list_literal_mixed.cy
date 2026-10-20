@@ -9,9 +9,9 @@ MAIN {
     let 'ds' := [1, 'q'];
     let 'ys': list[f64] = [1, 2.5, -3];
     let 'es': list[d64] = [0.1, 1];
-    let 'a': i32 = to.i32['xs'[pos 1] plus ('xs'[pos 2] times 2.0)] otherwise 90;
-    let 'b': i32 = to.i32[('ds'[pos 1] plus 'ds'[pos 2]) times 2] otherwise 91;
-    let 'c': i32 = to.i32[('ys'[pos 2] times 2.0) plus 'ys'[pos 3] plus 'ys'[pos 1] plus 10.0] otherwise 92;
-    let 'd': i32 = to.i32[('es'[pos 1] plus 'es'[pos 2]) times 10] otherwise 93;
+    let 'a': i32 = to.i32['xs'[pos: 1] plus ('xs'[pos: 2] times 2.0)] otherwise 90;
+    let 'b': i32 = to.i32[('ds'[pos: 1] plus 'ds'[pos: 2]) times 2] otherwise 91;
+    let 'c': i32 = to.i32[('ys'[pos: 2] times 2.0) plus 'ys'[pos: 3] plus 'ys'[pos: 1] plus 10.0] otherwise 92;
+    let 'd': i32 = to.i32[('es'[pos: 1] plus 'es'[pos: 2]) times 10] otherwise 93;
     no_check my.exit['a' plus 'b' plus 'c' plus 'd'];
 }

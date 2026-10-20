@@ -242,9 +242,9 @@ impl Checker {
                 };
                 Ok(Expr { kind: K::PtrCast(Box::new(v)), ty: Ty::Ptr { mutable, elem: Box::new(t) }, span })
             }
-            AK::Count(_) => err(Diagnostic::error("`count` labels `list.fill`'s count: `list.fill[value 0, count 10]`").at(span)),
-            AK::Value(_) => err(Diagnostic::error("`value` labels what a fill fills with: `list.fill[value 0, count 10]`, `simd.fill[value 0]`").at(span)),
-            AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one only goes where a list is read, sliced or loaded: `'xs'[pos 2]`, `simd.load[lend 'xs', pos 'i']`").at(span)),
+            AK::Count(_) => err(Diagnostic::error("`count` labels `list.fill`'s count: `list.fill[value: 0, count: 10]`").at(span)),
+            AK::Value(_) => err(Diagnostic::error("`value` labels what a fill fills with: `list.fill[value: 0, count: 10]`, `simd.fill[value: 0]`").at(span)),
+            AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one only goes where a list is read, sliced or loaded: `'xs'[pos: 2]`, `simd.load[lend 'xs', pos: 'i']`").at(span)),
             AK::Match { value, arms } => self.match_value(ctx, value, arms, span),
             AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` alone does not say which `{}`: hand it where a function is wanted — a parameter, or `let 'f': fn[i32, i32] -> i32 = op {};`", spelled, spelled, spelled)).at(span)),
             AK::Range { .. } => err(Diagnostic::error("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not").at(span)),
@@ -2619,7 +2619,7 @@ impl Checker {
                     ast::Arg::Positional(e) if k >= 1 => match &e.kind {
                         AK::Pos(inner) if written_below_one(inner) => return err(Diagnostic::error(NO_POSITION).at(inner.span)),
                         AK::Pos(inner) => ast::Arg::Positional((**inner).clone()),
-                        _ => return err(Diagnostic::error(format!("a position says `pos`: `std::{}[lend 's', pos 3]`", short)).at(e.span)),
+                        _ => return err(Diagnostic::error(format!("a position says `pos`: `std::{}[lend 's', pos: 3]`", short)).at(e.span)),
                     },
                     other => other.clone(),
                 });
@@ -3091,10 +3091,10 @@ impl Checker {
         let ft = match ct.base() {
             Ty::Fn(f) => (**f).clone(),
             // `pos` on every index (owner, 2026-10-07).
-            Ty::Seq { .. } if args.len() == 1 => return err(Diagnostic::error(format!("a read says it is a position: `{}[pos 2]`", self.expr_name(ctx, &c))).at(span)),
+            Ty::Seq { .. } if args.len() == 1 => return err(Diagnostic::error(format!("a read says it is a position: `{}[pos: 2]`", self.expr_name(ctx, &c))).at(span)),
             Ty::Seq { .. } if otherwise.is_some() => return err(Diagnostic::error(format!("reading {}[…] cannot fail — a position past the end is a check site — so it takes no `otherwise`", self.expr_name(ctx, &c))).at(span)),
-            Ty::Seq { .. } => return err(Diagnostic::error(format!("{} is a list, and a list is read one position at a time: `{}[pos 2]`", self.expr_name(ctx, &c), self.expr_name(ctx, &c))).at(span)),
-            other => return err(Diagnostic::error(format!("{} is {}, not a function: `'f'[…]` calls a held function, and `'xs'[pos 2]` reads a list", self.expr_name(ctx, &c), crate::types::a_type(&self.spell(other)))).at(span)),
+            Ty::Seq { .. } => return err(Diagnostic::error(format!("{} is a list, and a list is read one position at a time: `{}[pos: 2]`", self.expr_name(ctx, &c), self.expr_name(ctx, &c))).at(span)),
+            other => return err(Diagnostic::error(format!("{} is {}, not a function: `'f'[…]` calls a held function, and `'xs'[pos: 2]` reads a list", self.expr_name(ctx, &c), crate::types::a_type(&self.spell(other)))).at(span)),
         };
         let flat = self.flatten_args(ctx, args, span)?;
         if flat.len() != ft.params.len() {
@@ -3859,11 +3859,11 @@ impl Checker {
                 arity(2, self)?;
                 let ce = match &positional[1].kind {
                     AK::Count(inner) => &**inner,
-                    _ => return err(Diagnostic::error("the count says `count`: `list.fill[value 0, count 10]`").at(positional[1].span)),
+                    _ => return err(Diagnostic::error("the count says `count`: `list.fill[value: 0, count: 10]`").at(positional[1].span)),
                 };
                 let value_e = match &positional[0].kind {
                     AK::Value(inner) => &**inner,
-                    _ => return err(Diagnostic::error("the value says `value`: `list.fill[value 0, count 10]`").at(positional[0].span)),
+                    _ => return err(Diagnostic::error("the value says `value`: `list.fill[value: 0, count: 10]`").at(positional[0].span)),
                 };
                 if let AK::Name(n) = &value_e.kind {
                     if self.peek_ty(ctx, value_e).is_some_and(|t| self.resolve(&t).is_owned()) {
@@ -3939,7 +3939,7 @@ impl Checker {
                 };
                 // `pos` on every position (owner, 2026-10-07: "`a`").
                 let AK::Pos(at) = &positional[1].kind else {
-                    return err(Diagnostic::error("the position says `pos`: `list.remove[lend.mut 'xs', pos 2]`").at(positional[1].span));
+                    return err(Diagnostic::error("the position says `pos`: `list.remove[lend.mut 'xs', pos: 2]`").at(positional[1].span));
                 };
                 let i = self.expr(ctx, at)?;
                 if !self.resolve(&i.ty).is_int() {
@@ -4237,7 +4237,7 @@ impl Checker {
                 arity(1, self)?;
                 // `simd.fill[value 0]` (owner, 2026-10-07: "`a`").
                 let AK::Value(fill) = &positional[0].kind else {
-                    return err(Diagnostic::error("the value says `value`: `simd.fill[value 0]`").at(positional[0].span));
+                    return err(Diagnostic::error("the value says `value`: `simd.fill[value: 0]`").at(positional[0].span));
                 };
                 let mut v = self.expr(ctx, fill)?;
                 // Bare numbers alone are worked out exactly (dc83c05): left
@@ -4337,7 +4337,7 @@ impl Checker {
                 let vt = self.resolve(&v.ty);
                 let lanes = match vt.base() {
                     Ty::Simd { lanes, .. } if *lanes > 0 => *lanes,
-                    Ty::Simd { .. } => return err(Diagnostic::error("`simd.shuffle` needs to know how many lanes the vector has: give it a type (`let 'v': simd[i32, count 4] = …`)").at(positional[0].span)),
+                    Ty::Simd { .. } => return err(Diagnostic::error("`simd.shuffle` needs to know how many lanes the vector has: give it a type (`let 'v': simd[i32, count: 4] = …`)").at(positional[0].span)),
                     other => return err(Diagnostic::error(format!("`simd.shuffle` rearranges a vector's lanes, and this is {}", crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
                 };
                 let fixed = "`simd.shuffle` takes the new order as fixed lane numbers, known when compiling: `[4, 3, 2, 1]`";
@@ -4479,8 +4479,8 @@ impl Checker {
     fn pos_arg(&mut self, ctx: &mut FnCtx, e: &ast::Expr, name: &str) -> Result<Arg> {
         let e = match &e.kind {
             AK::Pos(inner) => &**inner,
-            _ if name.ends_with("slice") => return err(Diagnostic::error(format!("positions say `pos`: `{}[lend 'xs', from pos 2, to pos 4]`", name)).at(e.span)),
-            _ => return err(Diagnostic::error(format!("a position says `pos`: `{}[lend 'xs', pos 1]`", name)).at(e.span)),
+            _ if name.ends_with("slice") => return err(Diagnostic::error(format!("positions say `pos`: `{}[lend 'xs', from: pos 2, to: pos 4]`", name)).at(e.span)),
+            _ => return err(Diagnostic::error(format!("a position says `pos`: `{}[lend 'xs', pos: 1]`", name)).at(e.span)),
         };
         let v = self.expr(ctx, e)?;
         let vt = self.resolve(&v.ty);
@@ -5022,7 +5022,7 @@ impl Checker {
             }
             // std's rounding family (owner, 2026-10-17): `round.near`,
             // `half_up`, `floor`, `ceil`, `trunc`, on a bin or a deci, to a
-            // whole number or to `decimals N`; the answer is the kind that
+            // whole number or to `places: N`; the answer is the kind that
             // went in.
             _ if name.starts_with("round.") => {
                 let way = &name[6..];
@@ -5041,12 +5041,12 @@ impl Checker {
                 hargs.push(Arg::Value(a));
                 if let Some(d) = positional.get(1) {
                     if let AK::Unary { op: ast::UnOp::Neg, .. } = &d.kind {
-                        return err(Diagnostic::error("`decimals` is a whole number, 0 or more").at(d.span));
+                        return err(Diagnostic::error("`places:` is a whole number, 0 or more").at(d.span));
                     }
                     let n = self.expr(ctx, d)?;
                     let n = self.as_operand(ctx, n)?;
                     if !self.resolve(&n.ty).is_int() {
-                        return err(Diagnostic::error("`decimals` is a whole number, 0 or more").at(d.span));
+                        return err(Diagnostic::error("`places:` is a whole number, 0 or more").at(d.span));
                     }
                     hargs.push(Arg::Value(n));
                 }
@@ -5061,7 +5061,7 @@ impl Checker {
                     let e: &ast::Expr = match (&e.kind, positions && k >= 1) {
                         (AK::Pos(inner), true) if written_below_one(inner) => return err(Diagnostic::error(NO_POSITION).at(inner.span)),
                         (AK::Pos(inner), true) => inner,
-                        (_, true) => return err(Diagnostic::error(format!("a position says `pos`: `std::{}[lend 's', pos 3]`", name)).at(e.span)),
+                        (_, true) => return err(Diagnostic::error(format!("a position says `pos`: `std::{}[lend 's', pos: 3]`", name)).at(e.span)),
                         _ => e,
                     };
                     let v = self.expr(ctx, e)?;
@@ -5209,7 +5209,7 @@ fn into_brain(e: &mut Expr) {
 /// `to pos 5 minus 1` — so a slice ending before where it starts is empty,
 /// as one whose last is one before its first is.
 fn slice_args(name: &str, args: &[AArg], span: Span) -> Result<Vec<AArg>> {
-    let how = format!("a slice says where it runs: `{}[lend 'xs', from pos 2, to pos 4]`, or `before pos 5` to leave 5 out (owner, 2026-10-12)", name);
+    let how = format!("a slice says where it runs: `{}[lend 'xs', from: pos 2, to: pos 4]`, or `before: pos 5` to leave 5 out (owner, 2026-10-12)", name);
     if args.len() != 3 {
         if args.iter().skip(1).any(|a| matches!(a, AArg::Positional(e) if matches!(e.kind, AK::Pos(_)))) {
             return err(Diagnostic::error(how).at(span));
@@ -5218,7 +5218,7 @@ fn slice_args(name: &str, args: &[AArg], span: Span) -> Result<Vec<AArg>> {
     }
     let first = match &args[1] {
         AArg::Named(l, e) if l.name == "from" => e.clone(),
-        AArg::Positional(e) if !matches!(e.kind, AK::Pos(_)) => return err(Diagnostic::error(format!("a slice starts `from pos …`: `{}[lend 'xs', from pos 2, to pos 4]`", name)).at(e.span)),
+        AArg::Positional(e) if !matches!(e.kind, AK::Pos(_)) => return err(Diagnostic::error(format!("a slice starts `from: pos …`: `{}[lend 'xs', from: pos 2, to: pos 4]`", name)).at(e.span)),
         other => return err(Diagnostic::error(how).at(other.span())),
     };
     let last = match &args[2] {
@@ -5284,7 +5284,7 @@ impl Checker {
 
 /// A text position is `u64[min 1]` (owner, 2026-10-17: "(a)"): a written
 /// one of 0 or below is refused before the program runs.
-const NO_POSITION: &str = "0 is no position: a position is `u64[min 1]`, and `pos 1` is the first";
+const NO_POSITION: &str = "0 is no position: a position is `u64[min: 1]`, and `pos 1` is the first";
 
 /// Whether a written position is a number below 1: `0`, `-3`.
 fn written_below_one(e: &ast::Expr) -> bool {

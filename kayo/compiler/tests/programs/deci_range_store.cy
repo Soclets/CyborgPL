@@ -6,6 +6,6 @@ fn twice ['d': d64] -> d64 {
     return 'd' times 2;
 }
 MAIN {
-    let 'c': d64[min 0.0, max 1.0] = twice[1];
+    let 'c': d64[min: 0.0, max: 1.0] = twice[1];
     no_check my.exit[7];
 }

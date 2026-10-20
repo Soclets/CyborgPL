@@ -6,6 +6,6 @@ extern.C fn exit ['code': i32];
 MAIN {
     let mut 'xs': list[i32] = [1, 2, 3];
     no_check let 'n': i32 = getpid[];
-    let 'v': i32 = list.remove[lend.mut 'xs', pos 'n'];
+    let 'v': i32 = list.remove[lend.mut 'xs', pos: 'n'];
     no_check my.exit['v'];
 }

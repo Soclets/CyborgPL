@@ -11,18 +11,18 @@ extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': list[u8] = [];
-    if 'neg' { list.append[lend.mut 'buf', value 45]; }
+    if 'neg' { list.append[lend.mut 'buf', value: 45]; }
     let mut 'v': u64 = 'm';
     let mut 'ds': list[u8] = [];
     loop {
-        list.append[lend.mut 'ds', value to.u8[48 plus ('v' mod.floor 10)]];
+        list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
         if 'v' equal_to 0 { break; }
     }
-    for 'k': u64 from list.length[lend 'ds'] to 1 by -1 {
-        list.append[lend.mut 'buf', value 'ds'[pos 'k']];
+    for 'k': u64 [from: list.length[lend 'ds'], to: 1, by: -1] {
+        list.append[lend.mut 'buf', value: 'ds'[pos: 'k']];
     }
-    list.append[lend.mut 'buf', value 10];
+    list.append[lend.mut 'buf', value: 10];
     NO_FUCKING_CHECKS write[1, lend 'buf', list.length[lend 'buf']];
 }
 
@@ -37,4 +37,4 @@ fn put_i ['n': i64] {
         emit[to.u64['n'], false];
     }
 }
-MAIN { for 'i': i64 from 4 to -2 by -3 { for 'j': u8 from 1 to 9 by 1 { put_u[to.u32['i']]; } } }
+MAIN { for 'i': i64 [from: 4, to: -2, by: -3] { for 'j': u8 [from: 1, to: 9, by: 1] { put_u[to.u32['i']]; } } }

@@ -8,7 +8,7 @@ extern.C fn exit ['code': i32];
 layout.C enum Key { a = 65, b = 66, escape = 256 }
 extern.C fn abs ['k': Key] -> i32;
 extern.C fn toupper ['c': i32] -> Key;
-layout.C struct Div { quot: i32[min 0, max 10], rem: i32 }
+layout.C struct Div { quot: i32[min: 0, max: 10], rem: i32 }
 extern.C fn div ['n': i32, 'd': i32] -> Div;
 
 fn code ['k': Key] -> i32 {

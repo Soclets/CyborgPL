@@ -6,11 +6,11 @@ extern.C fn exit ['code': i32];
 MAIN {
     let 'n': i64 = 300000;
     let mut 'half': f64 = 0.0;
-    for 'i': i64 from 1 to 'n' by 1 {
+    for 'i': i64 [from: 1, to: 'n', by: 1] {
         change 'half' = 'half' plus 0.5;
     }
     let mut 'acc': i64 = 0;
-    for 'i': i64 from 1 to 'n' by 1 {
+    for 'i': i64 [from: 1, to: 'n', by: 1] {
         change 'acc' = 'acc' plus (('i' times 'i') mod.floor 7);
     }
     let 'h': i32 = to.i32['half' div.near 1000.0] otherwise 1;

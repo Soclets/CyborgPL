@@ -9,5 +9,5 @@ MAIN {
     let mut 'x': i32 = 5;
     if 'there' { change 'x' = 300; }
     let 'xs': list[i8] = [1, 'x'];
-    no_check my.exit[to.i32['xs'[pos 2]]];
+    no_check my.exit[to.i32['xs'[pos: 2]]];
 }

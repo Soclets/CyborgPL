@@ -4,7 +4,7 @@
 # and the sum of 1 to 3 is 6.
 extern.C fn exit ['code': i32];
 extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
-fn pick [] -> i64[min 0, max 1000] or fail[missing] {
+fn pick [] -> i64[min: 0, max: 1000] or fail[missing] {
     let 'key' := "SYNAPSE_NO_SUCH_VARIABLE";
     no_check let 'p' := getenv[lend 'key'];
     if ptr.is_null['p'] { return 3; }

@@ -9,6 +9,6 @@ fn total [lent 'xs': list[i32]] -> i32 {
 }
 MAIN {
     let 'scores' := [72, 40, 95, 55];
-    let 'first' := 'scores'[pos 1] plus 1;
+    let 'first' := 'scores'[pos: 1] plus 1;
     no_check my.exit[(total[lend 'scores'] plus to.i32['first']) mod.floor 256];
 }

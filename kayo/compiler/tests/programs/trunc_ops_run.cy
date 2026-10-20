@@ -9,7 +9,7 @@ MAIN {
     let 'ds': list[i8] = [-3, -1, 1, 2, 7];
     let mut 'bad': i32 = 0;
     for 'd' in lend 'ds' {
-        for 'i' from -128 to 127 by 1 {
+        for 'i' [from: -128, to: 127, by: 1] {
             let 'n': i8 = to.i8['i'];
             let 'r': i8 = 'n' mod.trunc 'd';
             if ('n' not_equal -128) or ('d' not_equal -1) {
@@ -23,11 +23,11 @@ MAIN {
     let mut 'code': i32 = 4;
     if 'bad' not_equal 0 { change 'code' = 3; }
     let 'xs': list[i32] = [-7, 7, -8, 9];
-    let 'v': simd[i32, count 4] = simd.load[lend 'xs', pos 1];
-    let 'two': simd[i32, count 4] = simd.fill[value -2];
+    let 'v': simd[i32, count: 4] = simd.load[lend 'xs', pos: 1];
+    let 'two': simd[i32, count: 4] = simd.fill[value: -2];
     let 'q' := 'v' div.trunc 'two';
     let 'r' := 'v' mod.trunc 'two';
-    if ('q'[pos 1] equal_to 3) and ('q'[pos 2] equal_to -3) and ('q'[pos 3] equal_to 4) and ('q'[pos 4] equal_to -4) and ('r'[pos 1] equal_to -1) and ('r'[pos 2] equal_to 1) and ('r'[pos 3] equal_to 0) and ('r'[pos 4] equal_to 1) {
+    if ('q'[pos: 1] equal_to 3) and ('q'[pos: 2] equal_to -3) and ('q'[pos: 3] equal_to 4) and ('q'[pos: 4] equal_to -4) and ('r'[pos: 1] equal_to -1) and ('r'[pos: 2] equal_to 1) and ('r'[pos: 3] equal_to 0) and ('r'[pos: 4] equal_to 1) {
         change 'code' = 'code' plus 8;
     }
     let 'fs': list[f64] = [-370.0, 370.0, 7.5];

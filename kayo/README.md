@@ -1041,6 +1041,22 @@ Dated, with the alternative, so each can become a question later.
   naming the typed literal to write (`2.5: bin64`). A preset beside several
   versions, and an overloaded name held as a value, are refused (design
   claude's readings).
+- **2026-10-20 — A word inside `[ ]` takes `:`** (owner: "go"; DECISIONS
+  2026-10-20, "An argument word inside `[ ]` takes `:`"; oracle 6faeaa3c).
+  `argwords::labels` reads the tokens first: a word right after `[` or `,`
+  with `:` after it, where the innermost open bracket is `[`, is marked
+  `labelled` and its `:` taken out, so the parser reads the words as it
+  did and asks only whether each was labelled (`need_label`). A bare one
+  is refused: "inside `[ ]` a word takes `:` before its value". So
+  `list.append[lend.mut 'xs', value: 2]`, `'xs'[pos: 3]`, `from: pos 2` (the
+  `pos` after a label stays bare), `i32[min: 0, max: 100]`, `u8[bits: 3]`,
+  `simd[i32, count: 4]`, and a failure's `fail[negative: i32]` as before. A
+  counting `for` takes `[from: 1, to: 10, by: 1]` (`before:`), in a
+  template too (`count_words`); the bare sentence is refused, "a `for`
+  with several words takes `[ ]` and commas", and the type reader leaves a
+  `[from: …` to the loop. `round.X`'s `decimals` is `places:`, the old word
+  refused. Types print with the colons. kayo's programs and messages were
+  swept by script.
 - **2026-10-20 — The number types are `i`, `u`, `f`, `d` with their
   width** (owner: "go"; DECISIONS 2026-10-20; oracle 79464782). `i8` …
   `i128`, `u8` … `u128`, `f16` `f32` `f64`, `d32` `d64` `d128`

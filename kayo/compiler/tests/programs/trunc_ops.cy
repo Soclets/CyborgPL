@@ -28,7 +28,7 @@ MAIN {
     if (('a' mod.trunc 'b') equal_to 1.5) and (('h' mod.trunc 'k') equal_to -2.0) { change 'code' = 'code' plus 64; }
     # A remainder by 3 of -10 to 10, truncated: -2 to 2, the dividend's sign.
     let mut 'sum': i32 = 0;
-    for 'i' from -10 to 10 by 1 {
+    for 'i' [from: -10, to: 10, by: 1] {
         change 'sum' = 'sum' plus ('i' mod.trunc 3) plus ('i' div.trunc 3);
     }
     if 'sum' equal_to 0 { change 'code' = 'code' plus 128; }

@@ -9,15 +9,15 @@ fn by_number [lent 'a': Locker, lent 'b': Locker] -> bool { return 'a'.number < 
 fn by_owner [lent 'a': Locker, lent 'b': Locker] -> bool { return str.bytes[lend 'a'.owner] < str.bytes[lend 'b'.owner]; }
 fn first_by [lent 'xs': list[Locker], 'less': fn[lent Locker, lent Locker] -> bool] -> i32 {
     let mut 'best' := 1;
-    for 'i' from 2 to list.length[lend 'xs'] by 1 {
-        if 'less'[lend 'xs'[pos 'i'], lend 'xs'[pos 'best']] { change 'best' = 'i'; }
+    for 'i' [from: 2, to: list.length[lend 'xs'], by: 1] {
+        if 'less'[lend 'xs'[pos: 'i'], lend 'xs'[pos: 'best']] { change 'best' = 'i'; }
     }
-    let 'winner' := lend 'xs'[pos 'best'];
+    let 'winner' := lend 'xs'[pos: 'best'];
     return 'winner'.number;
 }
 fn count_if [lent 'xs': list[i32], 'test': fn[i32] -> bool] -> i32 {
     let mut 'n': i32 = 0;
-    for 'x' in lend 'xs' { if 'test'[pos 'x'] { change 'n' = 'n' plus 1; } }
+    for 'x' in lend 'xs' { if 'test'[pos: 'x'] { change 'n' = 'n' plus 1; } }
     return 'n';
 }
 MAIN {
@@ -30,7 +30,7 @@ MAIN {
     if first_by[lend 'lockers', by_number] equal_to 2 { change 'got' = 'got' plus 1; }
     if first_by[lend 'lockers', by_owner] equal_to 'first' { change 'got' = 'got' plus 2; }
     let 'f' := by_number;
-    if 'f'[lend 'lockers'[pos 2], lend 'lockers'[pos 1]] { change 'got' = 'got' plus 4; }
+    if 'f'[lend 'lockers'[pos: 2], lend 'lockers'[pos: 1]] { change 'got' = 'got' plus 4; }
     let mut 'limit' := 60;
     if 'there' { change 'limit' = 50; }
     let 'scores' := [72, 40, 95, 55];

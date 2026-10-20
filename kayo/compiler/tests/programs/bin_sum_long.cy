@@ -7,7 +7,7 @@ MAIN {
     let 'n': i64 = 400000000;
     let 'big': f64 = 10.0 pow 300.0;
     let mut 't': f64 = 0.0;
-    for 'i': i64 from 1 to 'n' by 1 {
+    for 'i': i64 [from: 1, to: 'n', by: 1] {
         change 't' = 't' plus 'big';
     }
     let 'r': i32 = to.i32['big' div.near 't'] otherwise 7;

@@ -5,7 +5,7 @@ MAIN {
     let 'xs': list[i64] = [1, 2, 3];
     std::print.useful[std::twice[4], " ", twice[5], " ", helper::doubled[6], " ", total[lend 'xs'], newln];
     let 'h' := "hi";
-    let 'i' := std::str.at.byte[lend 'h', pos 2] otherwise 0;
+    let 'i' := std::str.at.byte[lend 'h', pos: 2] otherwise 0;
     std::print.useful[std::str.shout[lend 'h'], " ", 'i', newln];
     std::exit[7];
 }

@@ -5,13 +5,13 @@
 extern.C fn exit ['code': i32];
 MAIN {
     let 'n': i64 = 300000;
-    let 'bs': list[f64] = list.fill[value 0.5, count 'n'];
+    let 'bs': list[f64] = list.fill[value: 0.5, count: 'n'];
     let mut 'bsum': f64 = 0.0;
     for 'x' in lend 'bs' {
         change 'bsum' = 'bsum' plus 'x';
     }
     let 'q': d64 = 0.25;
-    let 'ds': list[d64] = list.fill[value 'q', count 'n'];
+    let 'ds': list[d64] = list.fill[value: 'q', count: 'n'];
     let mut 'dsum': d64 = 0;
     for 'x' in lend 'ds' {
         change 'dsum' = 'dsum' plus 'x';
@@ -21,7 +21,7 @@ MAIN {
         change 'dprod' = 'dprod' times 1;
     }
     let mut 'sign': i64 = 1;
-    for 'i': i64 from 1 to 'n' by 1 {
+    for 'i': i64 [from: 1, to: 'n', by: 1] {
         change 'sign' = 'sign' times (('i' mod.floor 2) times 2 minus 1);
     }
     let 'b': i32 = to.i32['bsum' div.near 1000.0] otherwise 1;

@@ -6,38 +6,38 @@ extern.C fn exit ['code': i32];
 
 MAIN {
     let 'ys': array[i32] = [10, 20, 30, 40];
-    let 'v': simd[i32, count 4] = simd.load[lend 'ys', pos 1];
+    let 'v': simd[i32, count: 4] = simd.load[lend 'ys', pos: 1];
     let 'r' := simd.shuffle['v', [4, 3, 2, 1]];
     let 'pairs' := simd.shuffle['v', [2, 1, 4, 3]];
     let 'first' := simd.shuffle['v', [1, 1, 1, 1]];
     let mut 'out': array[i32] = [0, 0, 0, 0];
-    simd.store[lend.mut 'out', pos 1, value 'r'];
-    let 'r1' := 'out'[pos 1];                          # 40
-    simd.store[lend.mut 'out', pos 1, value 'pairs'];
-    let 'p2' := 'out'[pos 2];                          # 10
+    simd.store[lend.mut 'out', pos: 1, value: 'r'];
+    let 'r1' := 'out'[pos: 1];                          # 40
+    simd.store[lend.mut 'out', pos: 1, value: 'pairs'];
+    let 'p2' := 'out'[pos: 2];                          # 10
     let 'f' := simd.sum['first'];                      # 40
 
     let mut 'xs': list[i32] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
     let 'n' := list.length[lend 'xs'];
-    let mut 'acc': simd[i32, count 4] = simd.fill[value 0];
+    let mut 'acc': simd[i32, count: 4] = simd.fill[value: 0];
     let mut 'i': u64 = 1;
     while 'i' at_most 'n' {
         let 'left' := 'n' minus 'i' plus 1;
         if 'left' at_least 4 {
-            let 'w': simd[i32, count 4] = simd.load[lend 'xs', pos 'i'];
+            let 'w': simd[i32, count: 4] = simd.load[lend 'xs', pos: 'i'];
             change 'acc' = 'acc' plus 'w';
         } else {
-            let 'w': simd[i32, count 4] = simd.load.some[lend 'xs', pos 'i', count 'left'];
+            let 'w': simd[i32, count: 4] = simd.load.some[lend 'xs', pos: 'i', count: 'left'];
             change 'acc' = 'acc' plus 'w';
         }
         change 'i' = 'i' plus 4;
     }
-    let 'twice': simd[i32, count 4] = simd.fill[value 2];
-    let 'last': simd[i32, count 4] = simd.load[lend 'xs', pos 7];
-    simd.store.some[lend.mut 'xs', pos 9, count 2, value 'last' times 'twice'];
-    let 'x9' := 'xs'[pos 9];                           # 14
-    let 'x10' := 'xs'[pos 10];                         # 16
-    let 'none': simd[i32, count 4] = simd.load.some[lend 'xs', pos 11, count 0];
+    let 'twice': simd[i32, count: 4] = simd.fill[value: 2];
+    let 'last': simd[i32, count: 4] = simd.load[lend 'xs', pos: 7];
+    simd.store.some[lend.mut 'xs', pos: 9, count: 2, value: 'last' times 'twice'];
+    let 'x9' := 'xs'[pos: 9];                           # 14
+    let 'x10' := 'xs'[pos: 10];                         # 16
+    let 'none': simd[i32, count: 4] = simd.load.some[lend 'xs', pos: 11, count: 0];
     # 40 + 10 + 40 + 55 + 14 + 16 + 0 = 175
     no_check my.exit['r1' plus 'p2' plus 'f' plus simd.sum['acc'] plus 'x9' plus 'x10' plus simd.sum['none']];
 }

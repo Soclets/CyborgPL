@@ -1175,7 +1175,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     // and the variable read unset (check claude).
                     if let Ty::Simd { elem, .. } = ty.base().clone() {
                         if elem.base() == &Ty::Bool {
-                            self.cannot("one lane of a mask (`simd[bool, count N]`) has no shape in the generated code yet", None);
+                            self.cannot("one lane of a mask (`simd[bool, count: N]`) has no shape in the generated code yet", None);
                             return None;
                         }
                         let et = self.ty(&elem)?;

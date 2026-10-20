@@ -8,9 +8,9 @@ fn run [] -> i32 {
     let mut 'xs': list[i32] = [1, 2];
     let 'ys': list[i32] = [5, 6];
     let 'm' := pickmut[lend.mut 'xs', lend 'ys'];
-    change 'm'[pos 1] = 7;
-    list.append[lend.mut 'm', value 9];
-    return 'xs'[pos 1] times 10 plus to.i32[list.length[lend 'xs']];
+    change 'm'[pos: 1] = 7;
+    list.append[lend.mut 'm', value: 9];
+    return 'xs'[pos: 1] times 10 plus to.i32[list.length[lend 'xs']];
 }
 MAIN {
     no_check my.exit[run[]];

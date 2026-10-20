@@ -12,7 +12,7 @@ fn third ['n': i32] -> i32 or fail[odd: i32] {
     return 'n' div.floor 3;
 }
 fn apply ['f': fn[i32] -> i32 or fail[odd: i32], 'n': i32] -> i32 {
-    let 'v' := 'f'[pos 'n'] otherwise { odd 'x' { return 0 minus 'x'; } };
+    let 'v' := 'f'[pos: 'n'] otherwise { odd 'x' { return 0 minus 'x'; } };
     return 'v';
 }
 MAIN {
@@ -25,7 +25,7 @@ MAIN {
     if apply[third, 'n'] equal_to 4 and apply[third, 'n' plus 1] equal_to -13 { change 'got' = 'got' plus 2; }
     let 'g' := fn ['m': i32] -> i32 or fail[odd: i32] { if 'm' > 10 { fail odd['m']; } return 'm'; };
     if apply['g', 3] equal_to 3 and apply['g', 'n'] equal_to -12 { change 'got' = 'got' plus 4; }
-    let 'direct' := 'g'[pos 'n'] otherwise 99;
+    let 'direct' := 'g'[pos: 'n'] otherwise 99;
     if 'direct' equal_to 99 { change 'got' = 'got' plus 8; }
     no_check my.exit['got'];
 }

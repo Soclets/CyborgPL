@@ -4,7 +4,7 @@
 # in and its look-alike calls are not shared. 6765 mod 256 is 109.
 extern.C fn exit ['code': i32];
 
-fn fib ['n': i64[min 0, max 92]] -> i64 {
+fn fib ['n': i64[min: 0, max: 92]] -> i64 {
     if 'n' < 2 { return 'n'; }
     return fib['n' - 1] + fib['n' - 2];
 }

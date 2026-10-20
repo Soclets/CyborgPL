@@ -17,11 +17,11 @@ fn total [lent 'bs': array[u8]] -> i32 {
 
 MAIN {
     let mut 'sum': i32 = 0;
-    for 'i' from 1 to 3 by 1 {
+    for 'i' [from: 1, to: 3, by: 1] {
         let mut 'b' := 'four';
-        change 'b'[pos 1] = 'b'[pos 1] plus 9;
+        change 'b'[pos: 1] = 'b'[pos: 1] plus 9;
         change 'sum' = 'sum' plus total[lend 'b'];
     }
-    change 'sum' = 'sum' plus total[lend 'four'] minus to.i32['four'[pos 4]] plus to.i32[array.length['four']];
+    change 'sum' = 'sum' plus total[lend 'four'] minus to.i32['four'[pos: 4]] plus to.i32[array.length['four']];
     no_check my.exit['sum'];
 }

@@ -7,12 +7,12 @@
 extern.C fn exit ['code': i32];
 MAIN {
     let 'x': i32 = 5;
-    let 'a': simd[i32, count 4] = simd.fill[value 'x' plus 1];
-    let 'b': simd[i32, count 4] = simd.fill[value ('x' mod.floor 7) minus 3];
-    let 'c': simd[i16, count 8] = simd.fill[value 'x' pow 2];
-    let 'd' := simd.fill[value 5];
-    let 'e' := simd.fill[value 'x' plus 1];
-    let 'd2': i64 = 'd'[pos 2];
-    let 'e1': i64 = 'e'[pos 1];
-    no_check my.exit['a'[pos 4] plus 'b'[pos 1] plus to.i32['c'[pos 8]] plus to.i32['d2'] plus to.i32['e1']];
+    let 'a': simd[i32, count: 4] = simd.fill[value: 'x' plus 1];
+    let 'b': simd[i32, count: 4] = simd.fill[value: ('x' mod.floor 7) minus 3];
+    let 'c': simd[i16, count: 8] = simd.fill[value: 'x' pow 2];
+    let 'd' := simd.fill[value: 5];
+    let 'e' := simd.fill[value: 'x' plus 1];
+    let 'd2': i64 = 'd'[pos: 2];
+    let 'e1': i64 = 'e'[pos: 1];
+    no_check my.exit['a'[pos: 4] plus 'b'[pos: 1] plus to.i32['c'[pos: 8]] plus to.i32['d2'] plus to.i32['e1']];
 }

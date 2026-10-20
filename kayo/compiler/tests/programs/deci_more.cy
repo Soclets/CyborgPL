@@ -8,7 +8,7 @@ fn same ['v': d64, 'want': str.utf8] -> i32 {
     return 0;
 }
 fn in_unit ['v': d64] -> i32 {
-    let 'p' := to.d64[min 0.0, max 1.0]['v'] otherwise { out_of_range { return 0; } };
+    let 'p' := to.d64[min: 0.0, max: 1.0]['v'] otherwise { out_of_range { return 0; } };
     if 'p' at_least 0.0 { return 1; }
     return 2;
 }
@@ -31,17 +31,17 @@ MAIN {
     let 'z': d64 = 2.50;
     let 'zz' := to.d32['z'] otherwise 's';
     if to.stored.str.utf8['y'] equal_to "7" and to.stored.str.utf8['zz'] equal_to "2.50" { change 'got' = 'got' plus 1; }
-    let 'disc': d64[min 0.0, max 1.0] = 0.15;
-    let 'p' := to.d64[min 0.0, max 1.0]["1.5"] otherwise 'disc';
+    let 'disc': d64[min: 0.0, max: 1.0] = 0.15;
+    let 'p' := to.d64[min: 0.0, max: 1.0]["1.5"] otherwise 'disc';
     change 'got' = 'got' plus same['disc', "0.15"] plus same['p', "0.15"];
     change 'got' = 'got' plus in_unit[0.25] plus in_unit[1.5];
-    let 'q' := to.d64[min 0.0, max 1.0]["0.5"] otherwise 'disc';
+    let 'q' := to.d64[min: 0.0, max: 1.0]["0.5"] otherwise 'disc';
     change 'got' = 'got' plus same['q', "0.5"];
     let 'e': i64 = 5;
-    let 'f' := to.d32[min 0.0, max 10.0]['e'] otherwise 's';
+    let 'f' := to.d32[min: 0.0, max: 10.0]['e'] otherwise 's';
     if to.stored.str.utf8['f'] equal_to "5" { change 'got' = 'got' plus 1; }
     let 'w': f64 = 5.5;
-    let 'g' := to.stored.d64[min 0.0, max 1.0]['w'] otherwise 'disc';
+    let 'g' := to.stored.d64[min: 0.0, max: 1.0]['w'] otherwise 'disc';
     change 'got' = 'got' plus same['g', "0.15"];
     no_check my.exit['got'];
 }

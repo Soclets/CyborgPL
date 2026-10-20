@@ -13,10 +13,10 @@ fn average [lent 'xs': list[i32]] -> i32 or fail[empty] {
 MAIN {
     let 'k' := "N";
     no_check let 'n': i32 = atoi[getenv[lend 'k']];
-    let mut 'xs': list[i32][min 0, max 1000] = list.empty;
+    let mut 'xs': list[i32][min: 0, max: 1000] = list.empty;
     let mut 'i': i32 = 0;
     while 'i' < 'n' and 'i' < 1000 {
-        list.append[lend.mut 'xs', value ('n' mod.floor 1000) minus 'i'];
+        list.append[lend.mut 'xs', value: ('n' mod.floor 1000) minus 'i'];
         change 'i' = 'i' plus 1;
     }
     let 'a' := average[lend 'xs'] otherwise 0;

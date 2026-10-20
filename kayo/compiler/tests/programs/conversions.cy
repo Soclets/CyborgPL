@@ -10,7 +10,7 @@ fn read ['t': str.utf8] -> i32 {
     return 'v';
 }
 fn share ['t': str.utf8] -> i32 {
-    let 'v' := to.i32[min 0, max 100]['t'] otherwise {
+    let 'v' := to.i32[min: 0, max: 100]['t'] otherwise {
         not_a_number { return -1; }
         out_of_range { return -2; }
     };
@@ -33,7 +33,7 @@ MAIN {
     if share["+99"] equal_to 99 and share["0"] equal_to 0 { change 'got' = 'got' plus 16; }
     if whole[2.0] equal_to 2 and whole[2.7] equal_to -1 and whole[-3.0] equal_to -3 and whole[10000000000.0] equal_to -4 { change 'got' = 'got' plus 32; }
     let 'n': i64 = 150;
-    let 'h' := to.i32[min 0, max 100]['n'] otherwise 7;
+    let 'h' := to.i32[min: 0, max: 100]['n'] otherwise 7;
     if 'h' equal_to 7 { change 'got' = 'got' plus 64; }
     let 'i' := to.u8[" 1"] otherwise 3;
     if 'i' equal_to 3 { change 'got' = 'got' plus 128; }

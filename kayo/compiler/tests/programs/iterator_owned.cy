@@ -10,7 +10,7 @@ fn Rows.next [lent.mut 'r': Rows] -> optional[list[i32]] {
     if 'r'.left equal_to 0 { return optional.none; }
     change 'r'.left = 'r'.left minus 1;
     let mut 'row': list[i32] = [1, 2];
-    list.append[lend.mut 'row', value 'r'.left];
+    list.append[lend.mut 'row', value: 'r'.left];
     return optional.value[give 'row'];
 }
 

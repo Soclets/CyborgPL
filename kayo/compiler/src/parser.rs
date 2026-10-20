@@ -58,8 +58,6 @@ struct Parser<'a> {
     /// opaque (`layout.C struct FILE;`) and a field may be named like a
     /// keyword (owner, 2026-10-10).
     from_c: bool,
-    /// Reading a counting loop's bound, which `to`, `before` and `by` end.
-    count_bound: bool,
     /// The collections' templates read so far (owner, 2026-10-13).
     templates: Vec<Template>,
     /// This file's `coll.handler`s (owner, 2026-10-13): each member's
@@ -369,7 +367,7 @@ pub fn set_shared_precedence(table: std::collections::HashMap<String, (u16, Chai
 
 /// The `precedence` blocks in one file's tokens: each operator's level.
 pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false, templates: Vec::new(), handlers: Default::default() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default() };
     let mut out = Vec::new();
     let mut depth = 0i32;
     for i in 0..toks.len() {
@@ -389,9 +387,10 @@ pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> 
 pub fn parse_file(toks: &[Token]) -> Result<File> {
     // Each argument after the first says its role (owner, 2026-10-14): the
     // words checked and taken out before anything is parsed.
-    let owned = crate::argwords::strip(toks)?;
+    let labelled = crate::argwords::labels(toks);
+    let owned = crate::argwords::strip(&labelled)?;
     let toks = &owned[..];
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false, templates: Vec::new(), handlers: Default::default() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default() };
     // Every Kit's levels, and this file's own blocks, read before any
     // expression in it: an operator above its block is parsed by it too.
     p.prec = SHARED_PREC.with(|t| t.borrow().clone());
@@ -525,7 +524,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
 /// 2026-10-06): `cca::Manifest[ … ];`.
 pub fn parse_value(toks: &[Token]) -> Result<Expr> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, count_bound: false, templates: Vec::new(), handlers: Default::default() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default() };
     let value = p.expr(0)?;
     p.expect_semi("the value")?;
     if !p.at_eof() {
@@ -595,6 +594,15 @@ impl<'a> Parser<'a> {
             true
         } else {
             false
+        }
+    }
+    /// The word `n` tokens on was written as a label, `word: …` (owner,
+    /// 2026-10-20); refused naming the colon when it was not.
+    fn need_label(&self, n: usize) -> Result<()> {
+        let at = (self.pos + n).min(self.toks.len() - 1);
+        match &self.toks[at].tok {
+            Tok::Word(w) if !self.toks[at].labelled => self.fail_at(self.toks[at].span, crate::argwords::needs_colon(w)),
+            _ => Ok(()),
         }
     }
     fn eat_word(&mut self, w: &str) -> bool {
@@ -1497,7 +1505,7 @@ impl<'a> Parser<'a> {
         for t in toks.iter_mut() {
             t.span = line;
         }
-        let mut p = Parser { toks: &toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, count_bound: false, templates: Vec::new(), handlers: Default::default() };
+        let mut p = Parser { toks: &toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, templates: Vec::new(), handlers: Default::default() };
         let mut lines = Vec::new();
         while !p.at_eof() {
             let it = p.item()?;
@@ -1763,24 +1771,14 @@ impl<'a> Parser<'a> {
             }
             self.expect(&Tok::RBracket, "`]` closing the values")?;
             TemplateValues::List(v)
-        } else if self.eat_word("from") {
-            let start = self.count_bound_expr()?;
-            let exclusive = if self.is_word("before") {
-                true
-            } else if self.range_label() == Some("to") {
-                false
-            } else {
-                return self.fail("after the start comes `to` (the end kept) or `before` (the end left out): `for 'n' from 1 to 8 by 1`");
-            };
-            self.bump();
-            let stop = self.count_bound_expr()?;
-            if !self.eat_word("by") {
-                return self.fail("a counting loop writes its step too, even when it is 1: `for 'n' from 1 to 8 by 1` (owner, 2026-10-07)");
-            }
-            let step = self.count_bound_expr()?;
+        } else if self.bracket_is_count() {
+            let (start, stop, step, exclusive) = self.count_words("for 'n' [from: 1, to: 8, by: 1]")?;
             TemplateValues::Count { start, stop, step, exclusive }
         } else {
-            return self.fail("a template runs over values known before building: `for 'n' in [2, 4]` or `for 'n' from 1 to 8 by 1`");
+            if self.is_word("from") {
+                return self.fail("a `for` with several words takes `[ ]` and commas: `for 'n' [from: 1, to: 8, by: 1]` (owner, 2026-10-20)");
+            }
+            return self.fail("a template runs over values known before building: `for 'n' in [2, 4]` or `for 'n' [from: 1, to: 8, by: 1]`");
         };
         self.expect(&Tok::LBrace, "`{` opening the template")?;
         if !self.eat_word("named") {
@@ -2004,8 +2002,11 @@ impl<'a> Parser<'a> {
             if let Tok::Name(n) = self.peek().clone() {
                 return self.fail(format!("a failure's name is bare — `fail[{}]`, not `fail['{}']` — it is a reason, not a value you hold", n, n));
             }
+            // `negative: i32`: `argwords::labels` took the `:` out and
+            // marked the name, as it does a label's.
+            let had_colon = self.toks[self.pos].labelled;
             let name = self.ident("a failure name")?;
-            let payload = if self.eat(&Tok::Colon) { Some(self.type_()?) } else { None };
+            let payload = if had_colon || self.eat(&Tok::Colon) { Some(self.type_()?) } else { None };
             specs.push(FailSpec { name, payload });
             if !self.eat(&Tok::Comma) {
                 break;
@@ -2494,10 +2495,11 @@ impl<'a> Parser<'a> {
             // A simd's lane count says `count` (owner, 2026-10-19):
             // `simd[i32, count 4]`; the bare number is the old spelling.
             Tok::Num { .. } => {
-                let said = crate::spellings::old_word("simd[T, N]", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`simd[T, N]` is an old spelling: write `simd[T, count N]`".into());
+                let said = crate::spellings::old_word("simd[T, N]", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`simd[T, N]` is an old spelling: write `simd[T, count: N]`".into());
                 return self.fail(said);
             }
             Tok::Word(w) if w == "count" && matches!(self.peek_at(1), Tok::Num { .. }) => {
+                self.need_label(0)?;
                 self.bump();
                 let Tok::Num { text, bin } = self.peek().clone() else { unreachable!() };
                 let span = self.bump().span;
@@ -2604,7 +2606,7 @@ impl<'a> Parser<'a> {
                 return self.fail("`char` is never bare: say the unit — `char.point`, `char.grapheme`, `char.byte`");
             }
             Tok::Word(w) if w == "range" => {
-                return self.fail("a counting loop reads as a sentence now: `for 'i' from 1 to 10 by 1` (`before 10` leaves 10 out) (owner, 2026-10-12)");
+                return self.fail("a counting loop reads as a sentence now: `for 'i' [from: 1, to: 10, by: 1]` (`before: 10` leaves 10 out) (owner, 2026-10-20)");
             }
             // An integer of any width, marked as not standard (owner,
             // 2026-10-03): `!std.int24`, "not standard" narrowed with `.`
@@ -2639,11 +2641,11 @@ impl<'a> Parser<'a> {
                         }
                     }
                     self.expect(&Tok::RBracket, "`]` closing the type parameters")?;
-                } else if self.is(&Tok::LBracket) && is_primitive_head(&head) && !self.bracket_is_bound() && !conv {
+                } else if self.is(&Tok::LBracket) && is_primitive_head(&head) && !self.bracket_is_bound() && !conv && !self.bracket_is_count() {
                     if head == "bool" || head.starts_with("str") || head.starts_with("char") {
-                        return self.fail(format!("`{}` takes no type parameters; a bracket after it is a bound — `[min 1, max 40 graphemes]`", path.spelled()));
+                        return self.fail(format!("`{}` takes no type parameters; a bracket after it is a bound — `[min: 1, max: 40 graphemes]`", path.spelled()));
                     }
-                    return self.fail(format!("`{}` takes no type parameters; a bracket after it is a range — `{}[min 0, max 100]`", path.spelled(), path.spelled()));
+                    return self.fail(format!("`{}` takes no type parameters; a bracket after it is a range — `{}[min: 0, max: 100]`", path.spelled(), path.spelled()));
                 }
                 TypeKind::Path { path, args }
             }
@@ -2656,6 +2658,7 @@ impl<'a> Parser<'a> {
         while self.is(&Tok::LBracket) && self.bracket_is_bound() {
             // A C bit-field (owner, 2026-10-19): `u8[bits 3]`.
             if self.is_word_at(1, "bits") {
+                self.need_label(1)?;
                 let bstart = self.bump().span;
                 self.bump();
                 let n = match self.peek().clone() {
@@ -2663,7 +2666,7 @@ impl<'a> Parser<'a> {
                     _ => None,
                 };
                 let Some(n) = n else {
-                    return self.fail("a bit-field's width is a whole number of bits: `u8[bits 3]`");
+                    return self.fail("a bit-field's width is a whole number of bits: `u8[bits: 3]`");
                 };
                 self.bump();
                 self.expect(&Tok::RBracket, "`]` closing the bit-field's width")?;
@@ -2693,25 +2696,31 @@ impl<'a> Parser<'a> {
         Ok(ty)
     }
 
-    /// `[min 0, max 100]`, `[min 1]`, `[max 100]`, a unit after the last
+    /// `[min: 0, max: 100]`, `[min: 1]`, `[max: 100]`, a unit after the last
     /// number (`[min 1, max 40 graphemes]`), from the `[` at the cursor: each
     /// side said, `None` for one left out.
     fn labelled_bound(&mut self) -> Result<(Option<Expr>, Option<Expr>, Option<Ident>, Span, Option<(bool, Span)>)> {
         let bstart = self.bump().span;
         if !(self.is_word("min") || self.is_word("max")) {
-            return self.fail_at(bstart, "a bound says which it is: `i32[min 0, max 100]` (`[min 1]` alone is \"at least 1\") (owner, 2026-10-12)");
+            return self.fail_at(bstart, "a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)");
         }
         let old = |this: &Self| matches!(this.peek_at(1), Tok::Comma | Tok::RBracket);
         if old(self) {
-            return self.fail_at(bstart, "a bound says which it is: `i32[min 0, max 100]` (`[min 1]` alone is \"at least 1\") (owner, 2026-10-12)");
+            return self.fail_at(bstart, "a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)");
         }
         let mut lo = None;
         let mut hi = None;
+        if self.is_word("min") {
+            self.need_label(0)?;
+        }
         if self.eat_word("min") {
             lo = Some(self.bound_value()?);
             if self.eat(&Tok::Comma) && !self.is_word("max") {
-                return self.fail("a bound says which it is: `i32[min 0, max 100]` (`[min 1]` alone is \"at least 1\") (owner, 2026-10-12)");
+                return self.fail("a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)");
             }
+        }
+        if self.is_word("max") {
+            self.need_label(0)?;
         }
         if self.eat_word("max") {
             hi = Some(self.bound_value()?);
@@ -2744,6 +2753,46 @@ impl<'a> Parser<'a> {
         Ok((lo, hi, unit, bstart.to(self.prev_span()), zero))
     }
 
+    /// Is the bracket at the cursor a counting `for`'s words, `[from: …`
+    /// (owner, 2026-10-20), so not a type's parameters or limits?
+    fn bracket_is_count(&self) -> bool {
+        self.is(&Tok::LBracket) && self.is_word_at(1, "from")
+    }
+
+    /// A counting loop's words (owner, 2026-10-20: "requires `[]` when have
+    /// `,`"): `[from: 1, to: 10, by: 1]`, `before:` leaving the end out;
+    /// the cursor at the `[`. Start, stop, step, and whether the stop is
+    /// left out. `example` is the loop as it is written right.
+    fn count_words(&mut self, example: &str) -> Result<(Expr, Expr, Expr, bool)> {
+        self.expect(&Tok::LBracket, "`[` and the loop's words")?;
+        self.need_label(0)?;
+        if !self.eat_word("from") {
+            return self.fail(format!("a counting loop starts with `from:`: `{}`", example));
+        }
+        let start = self.expr(0)?;
+        if !self.eat(&Tok::Comma) {
+            return self.fail(format!("after the start comes `to:` (the end kept) or `before:` (the end left out): `{}`", example));
+        }
+        let exclusive = if self.is_word("before") {
+            true
+        } else if self.is_word("to") && !matches!(self.peek_at(1), Tok::Dot) {
+            false
+        } else {
+            return self.fail(format!("after the start comes `to:` (the end kept) or `before:` (the end left out): `{}`", example));
+        };
+        self.need_label(0)?;
+        self.bump();
+        let stop = self.expr(0)?;
+        if !(self.eat(&Tok::Comma) && self.is_word("by")) {
+            return self.fail(format!("a counting loop writes its step too, even when it is 1: `{}` (owner, 2026-10-07)", example));
+        }
+        self.need_label(0)?;
+        self.bump();
+        let step = self.expr(0)?;
+        self.expect(&Tok::RBracket, "`]` closing the loop's words")?;
+        Ok((start, stop, step, exclusive))
+    }
+
     /// Is the bracket at the cursor a bound rather than type arguments or a
     /// call's argument? `[min …` or `[max …` is (owner, 2026-10-12); so is
     /// the old `[lo, hi]`, read to be refused naming the new spelling.
@@ -2773,7 +2822,7 @@ impl<'a> Parser<'a> {
     /// One side's value; `min` and `max` are its labels now, never values.
     fn bound_value(&mut self) -> Result<Expr> {
         if self.is_word("min") || self.is_word("max") {
-            return self.fail("`min` and `max` label a bound now; a side left out is the type's own limit: `i32[min 1]` is \"at least 1\" (owner, 2026-10-12)");
+            return self.fail("`min` and `max` label a bound now; a side left out is the type's own limit: `i32[min: 1]` is \"at least 1\" (owner, 2026-10-12)");
         }
         self.expr(0)
     }
@@ -2932,7 +2981,7 @@ impl<'a> Parser<'a> {
                     ExprKind::Name(_) | ExprKind::Field { .. } | ExprKind::Index { .. } => {}
                     ExprKind::ConstPath { .. } => return self.fail_at(target.span, "a const is never changed: it is a value known at compile time"),
                     // `pos` on every index (owner, 2026-10-07).
-                    ExprKind::CallValue { args, .. } if args.len() == 1 => return self.fail_at(target.span, "an index says it is a position: `'xs'[pos 2]`"),
+                    ExprKind::CallValue { args, .. } if args.len() == 1 => return self.fail_at(target.span, "an index says it is a position: `'xs'[pos: 2]`"),
                     _ => return self.fail_at(target.span, "only a variable, a field or an element can be changed"),
                 }
                 if !self.eat_op("=") {
@@ -3008,7 +3057,7 @@ impl<'a> Parser<'a> {
                     let what = self.ident("a word")?;
                     return match what.name.as_str() {
                         "while" => self.fail_at(what.span, "`loop.while` became `while`: `while 'x' < 3 { … }`"),
-                        "for" | "temp" | "perm" | "seq" | "range" => self.fail_at(what.span, "`loop.temp.for` / `loop.range` became `for`: `for 'x' in lend 'xs' { … }`, `for 'i' from 0 to 9 by 1 { … }`"),
+                        "for" | "temp" | "perm" | "seq" | "range" => self.fail_at(what.span, "`loop.temp.for` / `loop.range` became `for`: `for 'x' in lend 'xs' { … }`, `for 'i' [from: 0, to: 9, by: 1] { … }`"),
                         _ => self.fail_at(what.span, "`loop` takes no chain: `loop { … }` runs until `break`; `while` and `for` are bare words"),
                     };
                 }
@@ -3209,71 +3258,28 @@ impl<'a> Parser<'a> {
         if self.is_word("temp") || self.is_word("perm") {
             return self.fail(format!("expected `in` or `from`; `{}` goes before the name — `for {} '{}' in …`", self.word_text(), self.word_text(), name.name));
         }
-        // A counting loop reads as a sentence (owner, 2026-10-12): `for 'i'
-        // from 1 to 10 by 1`, `before 10` leaving 10 out. While a bound is
-        // read, `to`, `before` and `by` end it.
-        let iter = if self.eat_word("from") {
-            let no_commas = |this: &mut Self| -> Result<()> {
-                if this.is(&Tok::Comma) {
-                    return this.fail("no commas in a counting loop: `for 'i' from 1 to 10 by 1` (a long bound groups with `( )`)");
-                }
-                Ok(())
-            };
-            let start = self.count_bound_expr()?;
-            no_commas(self)?;
-            let exclusive = if self.is_word("before") {
-                true
-            } else if self.range_label() == Some("to") {
-                false
-            } else {
-                return self.fail("after the start comes `to` (the end kept) or `before` (the end left out): `for 'i' from 1 to 10 by 1`");
-            };
-            self.bump();
-            let stop = self.count_bound_expr()?;
-            no_commas(self)?;
-            if !self.eat_word("by") {
-                return self.fail("a counting loop writes its step too, even when it is 1: `for 'i' from 1 to 10 by 1` (owner, 2026-10-07)");
-            }
-            let step = self.count_bound_expr()?;
-            no_commas(self)?;
+        // A counting loop's words go in `[ ]` with commas (owner, 2026-10-20):
+        // `for 'i' [from: 1, to: 10, by: 1]`, `before:` leaving 10 out.
+        if self.is_word("from") {
+            return self.fail("a `for` with several words takes `[ ]` and commas: `for 'i' [from: 1, to: 10, by: 1]` (owner, 2026-10-20)");
+        }
+        let iter = if self.bracket_is_count() {
+            let (start, stop, step, exclusive) = self.count_words("for 'i' [from: 1, to: 10, by: 1]")?;
             if let Some(p) = &pos {
-                return self.fail_at(p.span, format!("a counting loop's counter already is the position: `for '{}' from …`, one name", p.name));
+                return self.fail_at(p.span, format!("a counting loop's counter already is the position: `for '{}' [from: …]`, one name", p.name));
             }
             ForIter::Range { start, stop, step: Some(step), exclusive }
         } else {
             if !self.eat_word("in") {
-                return self.fail(format!("expected `in` or `from` after the loop variable, found {}", self.peek().describe()));
+                return self.fail(format!("expected `in` or `[from: …]` after the loop variable, found {}", self.peek().describe()));
             }
             if self.is_word("range") {
-                return self.fail("a counting loop reads as a sentence now: `for 'i' from 1 to 10 by 1` (`before 10` leaves 10 out) (owner, 2026-10-12)");
+                return self.fail("a counting loop reads as a sentence now: `for 'i' [from: 1, to: 10, by: 1]` (`before: 10` leaves 10 out) (owner, 2026-10-20)");
             }
             ForIter::Over(self.expr(0)?)
         };
         let body = self.block("`for`")?;
         Ok(StmtKind::For { nocheat, seq, para, perm, name, pos, ty, iter, body })
-    }
-
-    /// One bound of a counting loop: an expression its next word ends;
-    /// brackets and parentheses inside it read as anywhere.
-    fn count_bound_expr(&mut self) -> Result<Expr> {
-        let outer = std::mem::replace(&mut self.count_bound, true);
-        let e = self.expr(0);
-        self.count_bound = outer;
-        e
-    }
-
-    /// `from`, `to` or `by` heading a range bound; `to.i32[…]` is a
-    /// conversion, not a label.
-    fn range_label(&self) -> Option<&'static str> {
-        if self.is_word("from") {
-            Some("from")
-        } else if self.is_word("by") {
-            Some("by")
-        } else if self.is_word("to") && !matches!(self.peek_at(1), Tok::Dot) {
-            Some("to")
-        } else {
-            None
-        }
     }
 
     fn captures(&mut self) -> Result<Vec<Capture>> {
@@ -4064,11 +4070,6 @@ impl<'a> Parser<'a> {
             // the operator itself; `std::pow` has its own arm.
             let skip = if self.is_word("std") && matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(2), Tok::Word(w) if matches!(w.as_str(), "plus" | "minus" | "times" | "div" | "mod" | "and" | "or" | "xor" | "shl" | "shr")) { 2 } else { 0 };
             self.pos += skip;
-            // A counting loop's bound ends at its next word (owner,
-            // 2026-10-12): `to`, `before` and `by` are never operators there.
-            if self.count_bound && skip == 0 && (self.is_word("before") || self.is_word("by") || (self.is_word("to") && !matches!(self.peek_at(1), Tok::Dot))) {
-                break;
-            }
             let Some(t) = self.binop() else {
                 self.pos -= skip;
                 break;
@@ -4422,7 +4423,7 @@ impl<'a> Parser<'a> {
                     let bound = if self.is(&Tok::LBracket) {
                         let (lo, hi, _, span, _) = self.labelled_bound()?;
                         let Some(hi) = hi else {
-                            return self.fail_at(span, "a bounded channel says how much it holds: `channel[T][max 100]`; with no bound it is a hand-off");
+                            return self.fail_at(span, "a bounded channel says how much it holds: `channel[T][max: 100]`; with no bound it is a hand-off");
                         };
                         let lo = lo.unwrap_or(Expr { kind: ExprKind::Int("0".into()), span });
                         Some(Box::new((lo, hi)))
@@ -4516,7 +4517,7 @@ impl<'a> Parser<'a> {
                     let span = start.to(self.prev_span());
                     Ok(Expr { kind: ExprKind::SizeOf { align: w == "align", ty }, span })
                 }
-                "range" => self.fail("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not — and a counting loop reads as a sentence now: `for 'i' from 1 to 10 by 1` (owner, 2026-10-12)"),
+                "range" => self.fail("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not — and a counting loop reads as a sentence now: `for 'i' [from: 1, to: 10, by: 1]` (owner, 2026-10-20)"),
                 "otherwise" => self.fail("`otherwise` follows a call that can fail: `let 'x' := f[] otherwise 0;`"),
                 // `op +` (owner, 2026-09-29): the operator as a value.
                 "op" if !matches!(self.peek_at(1), Tok::LBracket) => {
@@ -4779,11 +4780,7 @@ impl<'a> Parser<'a> {
     /// The contents of a `[ … ]` after a path: positional values, `name = value`
     /// fields, or `key = value` pairs. Consumes the closing `]`.
     fn args(&mut self) -> Result<Vec<Arg>> {
-        // Inside brackets a counting loop's words read as anywhere.
-        let outer = std::mem::replace(&mut self.count_bound, false);
-        let args = self.args_inside();
-        self.count_bound = outer;
-        args
+        self.args_inside()
     }
 
     fn args_inside(&mut self) -> Result<Vec<Arg>> {
@@ -4795,6 +4792,7 @@ impl<'a> Parser<'a> {
             // A slice says where it runs (owner, 2026-10-12): `from pos 2`,
             // `to pos 4` or `before pos 4`, each a label on its position.
             if (self.is_word("from") || self.is_word("before") || (self.is_word("to") && !matches!(self.peek_at(1), Tok::Dot))) && self.is_word_at(1, "pos") {
+                self.need_label(0)?;
                 let label = self.ident("`from`, `to` or `before`")?;
                 let start = self.bump().span;
                 let inner = Box::new(self.expr(0)?);
@@ -4849,6 +4847,7 @@ impl<'a> Parser<'a> {
             // the words, not a function someone named so.
             let label = ["pos", "count", "value"].into_iter().find(|w| self.is_word(w));
             if let Some(w) = label.filter(|_| !matches!(self.peek_at(1), Tok::LBracket | Tok::Dot | Tok::ColonColon | Tok::Comma | Tok::RBracket)) {
+                self.need_label(0)?;
                 let start = self.span();
                 self.bump();
                 let inner = Box::new(self.expr(0)?);

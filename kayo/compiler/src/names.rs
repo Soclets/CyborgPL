@@ -24,7 +24,7 @@ pub fn type_spelling(t: &Type) -> String {
             s
         }
         TypeKind::Count(n) => format!("count {}", n),
-        TypeKind::Bits { inner, bits, .. } => format!("{}[bits {}]", type_spelling(inner), bits),
+        TypeKind::Bits { inner, bits, .. } => format!("{}[bits: {}]", type_spelling(inner), bits),
         TypeKind::Var { name, bound } => match bound {
             Some(b) => format!("<{}: {}>", name.name, b.spelled()),
             None => format!("<{}>", name.name),

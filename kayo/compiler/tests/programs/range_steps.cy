@@ -3,11 +3,11 @@
 extern.C fn exit ['code': i32];
 MAIN {
     let mut 't': i32 = 0;
-    for 'i': u8 from 1 to 0 by -2 { change 't' = 't' plus 1; }
-    for 'i': u8 from 250 to 255 by 3 { change 't' = 't' plus 1; }
-    for 'i': i8 from 120 to 127 by 5 { change 't' = 't' plus 1; }
-    for 'i': i8 from -120 to -128 by -5 { change 't' = 't' plus 1; }
-    for 'i': u64 from 3 to 1 by -1 { change 't' = 't' plus 1; }
-    for 'i': i64 from 9223372036854775806 to 9223372036854775807 by 2 { change 't' = 't' plus 1; }
+    for 'i': u8 [from: 1, to: 0, by: -2] { change 't' = 't' plus 1; }
+    for 'i': u8 [from: 250, to: 255, by: 3] { change 't' = 't' plus 1; }
+    for 'i': i8 [from: 120, to: 127, by: 5] { change 't' = 't' plus 1; }
+    for 'i': i8 [from: -120, to: -128, by: -5] { change 't' = 't' plus 1; }
+    for 'i': u64 [from: 3, to: 1, by: -1] { change 't' = 't' plus 1; }
+    for 'i': i64 [from: 9223372036854775806, to: 9223372036854775807, by: 2] { change 't' = 't' plus 1; }
     no_check my.exit['t'];
 }

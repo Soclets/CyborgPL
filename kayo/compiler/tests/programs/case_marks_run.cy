@@ -22,5 +22,5 @@ MAIN {
     let 'Count' := 2;
     let 'e' := Exact[n = 'COUNT'];
     let 'fn_lit' := fn ['x': i32] -> i32 { let 'Y' := 'X'; return 'y'; };
-    no_check my.exit[describe[MOOD.Happy] plus DESCRIBE[mood.Grumpy] times 10 plus 'e'.n times 100 plus 'FN_LIT'[pos 0]];
+    no_check my.exit[describe[MOOD.Happy] plus DESCRIBE[mood.Grumpy] times 10 plus 'e'.n times 100 plus 'FN_LIT'[pos: 0]];
 }

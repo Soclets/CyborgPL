@@ -6,18 +6,18 @@ extern.C fn exit ['code': i32];
 
 fn rounds ['n': u64] -> i64 {
     let mut 'c': i64 = 0;
-    for 'i': u64 from 0 before 'n' by 1 { change 'c' = 'c' plus 1; }
+    for 'i': u64 [from: 0, before: 'n', by: 1] { change 'c' = 'c' plus 1; }
     return 'c';
 }
 
 MAIN {
     let mut 't': i64 = 0;
-    for 'i' from 0 before 5 by 2 { change 't' = 't' plus 'i'; }
-    for 'i' from 5 before 0 by -2 { change 't' = 't' plus 'i'; }
-    for 'i': i8 from 0 before 128 by 50 { change 't' = 't' plus to.i64['i']; }
+    for 'i' [from: 0, before: 5, by: 2] { change 't' = 't' plus 'i'; }
+    for 'i' [from: 5, before: 0, by: -2] { change 't' = 't' plus 'i'; }
+    for 'i': i8 [from: 0, before: 128, by: 50] { change 't' = 't' plus to.i64['i']; }
     change 't' = 't' plus rounds[0] plus rounds[3];
     let 'xs': list[i32] = [10, 20, 30, 40, 50];
-    let 's' := list.slice[lend 'xs', from pos 2, before pos 4];
+    let 's' := list.slice[lend 'xs', from: pos 2, before: pos 4];
     change 't' = 't' plus to.i64[list.length[lend 's']];
     no_check my.exit[to.i32['t']];
 }

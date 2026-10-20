@@ -18,7 +18,7 @@ fn b16 ['t': str.utf8] -> f16 {
     return 'v';
 }
 fn unit ['t': str.utf8] -> f64 {
-    let 'v' := to.f64[min 0.0, max 1.0]['t'] otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
+    let 'v' := to.f64[min: 0.0, max: 1.0]['t'] otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
     return 'v';
 }
 MAIN {

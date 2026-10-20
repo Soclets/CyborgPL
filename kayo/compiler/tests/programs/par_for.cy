@@ -6,21 +6,21 @@
 extern.C fn exit ['code': i32];
 MAIN {
     let 'n': i64 = 300000;
-    let mut 'xs': list[i64] = list.fill[value 3, count 'n'];
-    for 'i': i64 from 1 to 'n' by 1 {
-        change 'xs'[pos 'i'] = ('xs'[pos 'i'] times 7) mod.floor 11;
+    let mut 'xs': list[i64] = list.fill[value: 3, count: 'n'];
+    for 'i': i64 [from: 1, to: 'n', by: 1] {
+        change 'xs'[pos: 'i'] = ('xs'[pos: 'i'] times 7) mod.floor 11;
     }
     let mut 'total': i64 = 0;
     for 'x' in lend 'xs' {
         change 'total' = 'total' plus ('x' mod.floor 7);
     }
-    let mut 'grid': list[i64] = list.fill[value 0, count 2000];
-    for 'r': i64 from 1 to 2000 by 1 {
+    let mut 'grid': list[i64] = list.fill[value: 0, count: 2000];
+    for 'r': i64 [from: 1, to: 2000, by: 1] {
         let mut 'row': i64 = 0;
-        for 'c': i64 from 1 to 200 by 1 {
+        for 'c': i64 [from: 1, to: 200, by: 1] {
             change 'row' = 'row' plus (('r' times 'c') mod.floor 5);
         }
-        change 'grid'[pos 'r'] = 'row';
+        change 'grid'[pos: 'r'] = 'row';
     }
     let mut 'g': i64 = 0;
     for 'v' in lend 'grid' {

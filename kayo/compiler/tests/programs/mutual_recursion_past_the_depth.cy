@@ -4,12 +4,12 @@
 # 2026-10-17, corpus ab280a72: proven never zero from {2, 4, 6, 8}).
 extern.C fn exit ['code': i32];
 
-fn ev ['n': u32[min 0, max 23], 'acc': i64] -> i64 {
+fn ev ['n': u32[min: 0, max: 23], 'acc': i64] -> i64 {
     if 'n' equal_to 0 { return 'acc'; }
     return od['n' - 1, ('acc' + 20) mod.floor 3710];
 }
 
-fn od ['n': u32[min 0, max 23], 'acc': i64] -> i64 {
+fn od ['n': u32[min: 0, max: 23], 'acc': i64] -> i64 {
     if 'n' equal_to 0 { return 'acc'; }
     return ev['n' - 1, ('acc' x 3) mod.floor ('n' - 1)];
 }

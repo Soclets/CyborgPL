@@ -5,7 +5,7 @@
 extern.C fn exit ['code': i32];
 extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
 fn short [lent 't': str.utf8] -> i32 {
-    let 's': str.utf8[min 0, max 2 graphemes] = to.str.utf8[min 0, max 2 graphemes]['t'] otherwise { out_of_range { return 0; } };
+    let 's': str.utf8[min: 0, max: 2 graphemes] = to.str.utf8[min: 0, max: 2 graphemes]['t'] otherwise { out_of_range { return 0; } };
     return 1;
 }
 MAIN {

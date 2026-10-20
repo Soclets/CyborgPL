@@ -21,7 +21,7 @@ MAIN {
     let 'h' := to.f16['w'];
     let 'k1' := to.i32['d' times 10] otherwise -1;
     let 'k2' := to.i32['ds' times 100000000000] otherwise -1;
-    let 'k3' := to.i32['p' times 'xs'[pos 3]] otherwise -1;
+    let 'k3' := to.i32['p' times 'xs'[pos: 3]] otherwise -1;
     let 'k4' := to.i32['q'] otherwise -1;
     let 'k5' := to.i32['h'] otherwise -1;
     let 'k6' := to.i32['back'] otherwise -1;

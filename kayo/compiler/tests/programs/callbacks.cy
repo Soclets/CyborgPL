@@ -14,9 +14,9 @@ MAIN {
     let mut 'nums' := [5, 1, 4, 2, 3];
     let mut 'got': i32 = 0;
     no_check qsort[lend.mut 'nums', 5, size.of[i32], ascending];
-    if 'nums'[pos 1] equal_to 1 and 'nums'[pos 5] equal_to 5 and 'nums'[pos 3] equal_to 3 { change 'got' = 'got' plus 1; }
+    if 'nums'[pos: 1] equal_to 1 and 'nums'[pos: 5] equal_to 5 and 'nums'[pos: 3] equal_to 3 { change 'got' = 'got' plus 1; }
     let 'f' := descending;
     no_check qsort[lend.mut 'nums', 5, size.of[i32], 'f'];
-    if 'nums'[pos 1] equal_to 5 and 'nums'[pos 2] equal_to 4 and 'nums'[pos 5] equal_to 1 { change 'got' = 'got' plus 2; }
+    if 'nums'[pos: 1] equal_to 5 and 'nums'[pos: 2] equal_to 4 and 'nums'[pos: 5] equal_to 1 { change 'got' = 'got' plus 2; }
     no_check my.exit['got'];
 }

@@ -12,6 +12,6 @@ MAIN {
     if 'half' equal_to 5000000000000000000 { change 'score' = 'score' plus 10; }
     let 'small': u8 = 250;
     let mut 'n': i32 = 0;
-    for 'i': u8 from 'small' to 255 by 3 { change 'n' = 'n' plus 1; }   # 250, 253: widening a u8 is not sign-extending it
+    for 'i': u8 [from: 'small', to: 255, by: 3] { change 'n' = 'n' plus 1; }   # 250, 253: widening a u8 is not sign-extending it
     no_check my.exit['score' plus 'n' times 100];
 }

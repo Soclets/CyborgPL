@@ -14,6 +14,6 @@ MAIN {
     std::print.stored['tenth', newln];
     # A file's bytes, read in place from the program: no heap (owner, 2026-10-10).
     const 'tiny' := incl.bytes["assets/tiny.bin"];
-    std::print.useful[array.length['tiny'], " ", 'tiny'[pos 4], newln];
+    std::print.useful[array.length['tiny'], " ", 'tiny'[pos: 4], newln];
     std::exit[0];
 }

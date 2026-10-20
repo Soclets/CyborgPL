@@ -10,7 +10,7 @@ fn half ['n': i64] -> i64 or fail[odd] {
 }
 MAIN {
     let mut 'acc': i64 = 0;
-    for 'i': i64 from 1 to 20000000 by 1 {
+    for 'i': i64 [from: 1, to: 20000000, by: 1] {
         let 'h' := half['i'] otherwise 0;
         change 'acc' = ('acc' plus 'h') mod.floor 1000;
     }

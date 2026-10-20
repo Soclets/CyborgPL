@@ -7,7 +7,7 @@ extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
 MAIN {
     let 'm': d32 = 9999999;
     let mut 'q': d32 = 'm';
-    for 'i': i32 from 1 to 15 by 1 {
+    for 'i': i32 [from: 1, to: 15, by: 1] {
         change 'q' = 'q' times 'm';
     }
     no_check my.exit[7];

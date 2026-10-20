@@ -7,10 +7,10 @@ fn page [lent 'u': str.utf8] -> str.utf8 { return "page of " concat 'u'; }
 fn run [] -> i32 {
     let mut 'xs': list[str.utf8] = [];
     let 'a' := "a";
-    list.append[lend.mut 'xs', value page[lend 'a']];
-    list.append[lend.mut 'xs', value page["b"]];
+    list.append[lend.mut 'xs', value: page[lend 'a']];
+    list.append[lend.mut 'xs', value: page["b"]];
     let mut 'm': map[str.utf8, str.utf8] = map.empty;
-    map.set[lend.mut 'm', key page["k"], value page["v"]];
+    map.set[lend.mut 'm', key: page["k"], value: page["v"]];
     return to.i32[list.length[lend 'xs']] plus to.i32[map.length[lend 'm']];
 }
 MAIN {

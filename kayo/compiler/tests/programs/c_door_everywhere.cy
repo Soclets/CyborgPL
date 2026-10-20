@@ -35,13 +35,13 @@ fn by_memcpy [] -> i32 {
     let 'src': list[Key] = [Key.b, Key.a];
     let mut 'dst': list[Key] = [Key.escape, Key.escape];
     no_check let 'q' := memcpy[lend.mut 'dst', lend 'src', 8] otherwise { out_of_range { return 9; } };
-    return num[copy 'dst'[pos 1]] plus num[copy 'dst'[pos 2]] times 2;
+    return num[copy 'dst'[pos: 1]] plus num[copy 'dst'[pos: 2]] times 2;
 }
 
 MAIN {
     no_check let 'p' := calloc[1, 4];
     no_check let 'zero' := ptr.read['p'] otherwise Key.escape;
-    no_check ptr.write['p', value Key.b];
+    no_check ptr.write['p', value: Key.b];
     no_check let 'two' := ptr.read['p'] otherwise Key.escape;
     NO_FUCKING_CHECKS let 'trusted' := ptr.read['p'];
     no_check free['p'];

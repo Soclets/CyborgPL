@@ -12,7 +12,7 @@ fn start [] -> f64 {
 }
 MAIN {
     let mut 'x': f64 = start[];
-    for 'i': i32 from 1 to 2000 by 1 {
+    for 'i': i32 [from: 1, to: 2000, by: 1] {
         change 'x' = 'x' times 2.0;
     }
     no_check my.exit[7];

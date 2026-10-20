@@ -9,7 +9,7 @@ pub bare.never fn shout [lent 's': str.utf8] -> str.utf8 {
 # hands back the position plus 103, to show it arrives as the number.
 pub coll.fn at {
     bare.optional;
-    at.byte [lent 's': str.utf8, 'pos': u64[min 1]] -> u64 or fail[out_of_range] {
+    at.byte [lent 's': str.utf8, 'pos': u64[min: 1]] -> u64 or fail[out_of_range] {
         if 'pos' greater_than str.bytes[lend 's'] { fail out_of_range; }
         return 'pos' + 103;
     }

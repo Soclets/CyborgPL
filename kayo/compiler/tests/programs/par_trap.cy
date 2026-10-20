@@ -4,9 +4,9 @@
 extern.C fn exit ['code': i32];
 MAIN {
     let 'n': i64 = 200000;
-    let mut 'xs': list[i8] = list.fill[value 0, count 'n'];
-    for 'i': i64 from 1 to 'n' by 1 {
-        change 'xs'[pos 'i'] = to.i8['i'];
+    let mut 'xs': list[i8] = list.fill[value: 0, count: 'n'];
+    for 'i': i64 [from: 1, to: 'n', by: 1] {
+        change 'xs'[pos: 'i'] = to.i8['i'];
     }
-    no_check my.exit[to.i32['xs'[pos 1]]];
+    no_check my.exit[to.i32['xs'[pos: 1]]];
 }

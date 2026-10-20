@@ -11,5 +11,5 @@ MAIN {
         change 'x' = 7;
         change 't' = 't' plus to.i32['v'] plus to.i32['x'];
     }
-    no_check my.exit['t' plus to.i32['xs'[pos 1]]];
+    no_check my.exit['t' plus to.i32['xs'[pos: 1]]];
 }

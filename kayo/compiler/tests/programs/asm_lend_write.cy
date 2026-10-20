@@ -8,5 +8,5 @@ MAIN {
         mov w2, #42
         strb w2, [x1]
     } with [lend.mut 'buf' -> x1, clobber x2];
-    no_check my.exit[to.i32['buf'[pos 1]]];
+    no_check my.exit[to.i32['buf'[pos: 1]]];
 }

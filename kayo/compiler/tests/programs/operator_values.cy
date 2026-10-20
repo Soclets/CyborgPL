@@ -8,7 +8,7 @@ fn fold [lent 'xs': list[i32], 'start': i32, 'f': fn[i32, i32] -> i32] -> i32 {
     for 'x' in lend 'xs' { change 'acc' = 'f'['acc', 'x']; }
     return 'acc';
 }
-fn apply1 ['v': i32, 'f': fn[i32] -> i32] -> i32 { return 'f'[pos 'v']; }
+fn apply1 ['v': i32, 'f': fn[i32] -> i32] -> i32 { return 'f'[pos: 'v']; }
 fn test2 ['a': i32, 'b': i32, 'f': fn[i32, i32] -> bool] -> bool { return 'f'['a', 'b']; }
 fn both [lent 'a': Vec, lent 'b': Vec, 'f': fn[lent Vec, lent Vec] -> f64] -> f64 { return 'f'[lend 'a', lend 'b']; }
 MAIN {
