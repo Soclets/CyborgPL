@@ -3141,6 +3141,8 @@ impl<'p> Interp<'p> {
                     ("negate.ieee", Value::Brain(b)) => Ok((Value::Brain(-b), keep)),
                     ("negate.ieee", o) => rt(line, format!("`negate.ieee` keeps a -0, which only a bin or brain16 has, and {} {} has none: write `-'x'`", if o.kind().starts_with(['a', 'e', 'i', 'o', 'u']) { "an" } else { "a" }, o.kind())),
                     ("-", Value::Deci(d)) => Ok((Value::Deci(d.neg()), keep)),
+                    // a percent negates as its fraction (`-5%`)
+                    ("-", Value::Percent(x)) => Ok((Value::Percent(Box::new(match *x { Value::Bin(b) => Value::Bin(-b + 0.0), Value::Deci(d) => Value::Deci(d.neg()), o => o })), keep)),
                     ("-", o) => rt(line, format!("`-` needs a number, got {}", o.kind())),
                     _ => unreachable!(),
                 }
@@ -3419,6 +3421,20 @@ impl<'p> Interp<'p> {
                 let (a, b) = match (&a, &b) {
                     (Value::Brain(_), Value::Int(_) | Value::Bin(_)) if matches!(pb, Prov::Literal) => (a.clone(), lit_brain(&b, &lb).unwrap()),
                     (Value::Int(_) | Value::Bin(_), Value::Brain(_)) if matches!(pa, Prov::Literal) => (lit_brain(&a, &la).unwrap(), b.clone()),
+                    _ => (a, b),
+                };
+                // A `%` literal beside a plain number is that number, its fraction (owner, 2026-10-16: "a plain 80% is a bin"),
+                // beside an f64 as beside a d64; only under `:=` alone or in a percent's place is it a percent (2026-10-17)
+                let plain_pct = |me: &Self, x: &Value, other: &Value| -> Result<Value, RuntimeError> {
+                    Ok(match (x, other) {
+                        (Value::Bin(f), Value::Deci(d)) => Value::Deci(me.deci_literal(&format!("{f}"), d.width, line)?),
+                        (Value::Deci(d), Value::Bin(_) | Value::Int(_)) => Value::Bin(d.to_f64()),
+                        (x, _) => x.clone(),
+                    })
+                };
+                let (a, b) = match (&a, &b, &pa, &pb) {
+                    (Value::Percent(x), Value::Bin(_) | Value::Deci(_) | Value::Int(_), Prov::Literal, _) => (plain_pct(self, x, &b)?, b.clone()),
+                    (Value::Bin(_) | Value::Deci(_) | Value::Int(_), Value::Percent(x), _, Prov::Literal) => (a.clone(), plain_pct(self, x, &a)?),
                     _ => (a, b),
                 };
                 // A bare literal adopts the other side's family.
@@ -3748,6 +3764,8 @@ impl<'p> Interp<'p> {
             // a pointer from C has the type C's declaration gives it (`malloc` → `ptr.mut[u8]`), so handing
             // it where C wants another struct's pointer is refused (owner, 2026-10-10: `ptr.mut[FILE]`)
             [crate::ast::Value::Expr(e @ (Expr::Call(_) | Expr::PtrCast(..)))] => self.expr_ty_own(e).filter(|t| matches!(t, Ty::Ptr(..))),
+            // `let 'y' := 'x' + 0.5: f16;` is an f16, as its operands are (compiler claude, 2026-10-21), so it prints as one
+            [crate::ast::Value::Expr(e @ (Expr::Binary(..) | Expr::Unary(..) | Expr::Paren(..)))] => self.static_ty(e).filter(|t| matches!(t, Ty::Bin(16 | 32))),
             // included bytes are an `array[u8]`, included text its named type (owner, 2026-10-10)
             [crate::ast::Value::Expr(e @ Expr::Incl(..))] => self.expr_ty_own(e),
             // `let 'a' := to.array[give 'l']` is an array of what 'l' held
@@ -5544,6 +5562,12 @@ impl<'p> Interp<'p> {
                 // one family (owner, 2026-10-17: "(c)"): to a whole number, or to `decimals N`; a bin or a deci in,
                 // the same kind out, then `to.i32[…]` for a whole one
                 let way = &p["round.".len()..];
+                // std's round.X has a version per f and d width (owner, 2026-10-20), so a bare literal fits several and
+                // says which (`2.675: f64`), as kayo refuses it (compiler claude, 2026-10-21)
+                if let Some(crate::ast::Value::Expr(Expr::Bin(_, t, _) | Expr::Exact(t, _))) = c.args.values.first() {
+                    let lit = if matches!(c.args.values.first(), Some(crate::ast::Value::Expr(Expr::Exact(..)))) { format!("exactly {t}") } else { t.clone() };
+                    return rt(c.line, format!("several versions of `std::{p}` could take a bare `{lit}`: give it its type, `{lit}: {}`", if lit.starts_with("exactly") { "d64" } else { "f64" }));
+                }
                 let (a, _) = self.value(&c.args.values[0])?;
                 let n = match c.args.values.get(1) {
                     None => 0,

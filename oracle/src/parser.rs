@@ -481,6 +481,13 @@ impl Parser {
         // the old spellings, refused by name everywhere (owner, 2026-10-07: "MTM is gone.")
         {
             for i in 0..self.toks.len() {
+                // `%[d32]` is the percent type's symbol spelling (owner, 2026-10-17), not the old `%` for `mod.trunc`: a `%`
+                // right before `[` where a type stands (after `:` or `[` or `,`)
+                if matches!(&self.toks[i].tok, Tok::Op(o) if o == "%") && self.toks.get(i + 1).map(|t| &t.tok) == Some(&Tok::LBracket)
+                    && i > 0 && matches!(self.toks[i - 1].tok, Tok::Colon | Tok::LBracket | Tok::Comma) {
+                    self.toks[i].mtm = None;
+                    continue;
+                }
                 let found: Option<String> = match (&self.toks[i].mtm, &self.toks[i].tok) {
                     (Some((w, _)), _) if w == "&" && matches!(self.toks.get(i + 1).map(|t| &t.tok), Some(Tok::Word(x)) if x == "mut") => Some(crate::spellings::message(crate::spellings::old("&mut"))),
                     (Some((_, o)), _) => Some(crate::spellings::message(o)),
