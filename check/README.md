@@ -11,6 +11,11 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 ```
 
 
+**Percents and `print.written`** (owner, 2026-10-17/21; kayo 1f60f1cd): the percent episode adds a
+`%` beside an f64 (`'g' + 54%`), `-'tx'` and `-70%`, `let 'sy': %[d32] = exactly 8%;`, and
+`std::print.written` of typed literals (an f16, a percent), then `… otherwise std::print.useful` of a
+computed f16 and `… otherwise std::print.stored` of a changed f64.
+
 **Short number names and words with a colon** (owner, 2026-10-20; oracle 79464782, 6faeaa3c):
 the generator, its printer, `check clayout` and the corpus write `i8`…`u128`, `f16`/`f32`/`f64`,
 `d32`/`d64`/`d128` (`brain16` unchanged), `bin`/`hex`/`oct` literals, argument words and limits

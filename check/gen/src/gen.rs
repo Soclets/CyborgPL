@@ -536,6 +536,20 @@ impl Gen {
             format!("let {}: d64[max_places: 2] = {} + {};", v("sm"), v("pp"), v("tt")),
             format!("let {}: d64[min_places: {mp}] = exactly {n};", v("sh")),
             format!("std::print.useful[{}, \" \", {}, \" \", {}, newln];", v("tt"), v("sm"), v("sh")),
+            // a `%` beside a plain number is its fraction; a percent negated;
+            // `%[d32]` for the type (owner, 2026-10-21; kayo 1f60f1cd)
+            format!("let {}: f64 = {}.{};", v("gf"), self.rng.range(0, 9999), self.rng.range(0, 99)),
+            format!("std::print.useful[{} + {}%, \" \", -{}, \" \", -{}%, newln];", v("gf"), self.rng.range(0, 200), v("tx"), self.rng.range(0, 99)),
+            format!("let {}: %[d32] = exactly {}%;", v("sy"), pct(&mut self.rng)),
+            format!("std::print.useful[{}, newln];", v("sy")),
+            // print.written: a typed literal as typed, else what it says to do
+            format!("let {}: f16 = 0.{};", v("wx"), self.rng.range(1, 999999999)),
+            format!("std::print.written[{}, \" \", {}, \" \", -2.50, newln];", v("wx"), v("tx")),
+            format!("let {} := {} + 0.5: f16;", v("wy"), v("wx")),
+            format!("std::print.written[{}, newln] otherwise std::print.useful;", v("wy")),
+            format!("let mut {}: f64 = 1.25;", v("wz")),
+            format!("change {} = {} x 2.0;", v("wz"), v("wz")),
+            format!("std::print.written[{}, newln] otherwise std::print.stored;", v("wz")),
         ]
     }
 
