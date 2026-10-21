@@ -187,6 +187,8 @@ pub enum Op {
     PtrWrite,
     PtrAt,
     PtrIsNull,
+    /// `ptr.null` (owner, 2026-10-21).
+    PtrNull,
     ChannelSend,
     ChannelTake,
     /// The task that made this channel will never name it again: it stops

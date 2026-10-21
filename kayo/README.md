@@ -1072,6 +1072,13 @@ Dated, with the alternative, so each can become a question later.
   programs, tests and bench were swept by script; `std/` is std claude's,
   and the suite was run against its converted copy. Earlier entries
   here keep the names of their day.
+- **2026-10-21 — `ptr.null`, C's NULL** (owner: "yea, add it", "widened
+  (a)"; oracle 2c8cfb33). A value, not a call (`ptr.null[…]` is refused):
+  `Builtin::PtrNull` / `Op::PtrNull`, a null pointer whose element type is
+  what its place says; a pointer whose kind nothing has said yet fits a
+  `ptr` and a `ptr.mut` alike (`unify`). A `:=` holding nothing but it,
+  alone or as every item of a list, is refused, since nothing would say
+  what it points at.
 - **2026-10-21 — A const array's length, to layer 3** (std claude: a search
   by halves in a const table, as std's coming case tables are, left its
   reads checked, the array "7 long and 0 long at once"). Layer 3 kept

@@ -2758,6 +2758,7 @@ fn builtin_op(b: &Builtin) -> Op {
         Builtin::PtrWrite => Op::PtrWrite,
         Builtin::PtrAt => Op::PtrAt,
         Builtin::PtrIsNull => Op::PtrIsNull,
+        Builtin::PtrNull => Op::PtrNull,
         Builtin::ChannelSend => Op::ChannelSend,
         Builtin::ChannelTake => Op::ChannelTake,
         Builtin::SimdFill => Op::SimdFill,

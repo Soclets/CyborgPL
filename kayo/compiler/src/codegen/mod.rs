@@ -3628,6 +3628,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let _ = self.builder.build_call(rf, &[], "");
                 Some(None)
             }
+            // `ptr.null`, C's NULL (owner, 2026-10-21).
+            Op::PtrNull => Some(Some(self.ctx.ptr_type(AddressSpace::default()).const_null().into())),
             // C's null (`ffi.md`): a pointer compared with nothing.
             Op::PtrIsNull => {
                 let v = self.operand(fi, args.first()?, slots)?.into_pointer_value();

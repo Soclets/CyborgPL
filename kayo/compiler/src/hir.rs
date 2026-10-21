@@ -244,6 +244,8 @@ pub enum Builtin {
     PtrWrite,
     PtrAt,
     PtrIsNull,
+    /// `ptr.null`, C's NULL (owner, 2026-10-21): the pointer to nothing.
+    PtrNull,
     ChannelSend,
     ChannelTake,
     SimdFill,

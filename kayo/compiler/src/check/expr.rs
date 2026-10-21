@@ -317,6 +317,12 @@ impl Checker {
 
     /// A bare path as a value: a const, a function, an enum case, `list.empty`.
     fn path_value(&mut self, ctx: &mut FnCtx, path: &ast::Path, span: Span) -> Result<Expr> {
+        // `ptr.null`, C's NULL (owner, 2026-10-21): a pointer to what its
+        // place says, `ptr` or `ptr.mut`.
+        if path.is(&["ptr", "null"]) {
+            let elem = self.fresh();
+            return Ok(Expr { kind: K::Call { callee: Callee::Builtin(Builtin::PtrNull), args: Vec::new(), otherwise: None, fails: Vec::new() }, ty: Ty::Ptr { mutable: false, elem: Box::new(elem) }, span });
+        }
         if path.is(&["list", "empty"]) {
             let elem = self.fresh();
             return Ok(Expr { kind: K::ListEmpty, ty: Ty::Seq { elem: Box::new(elem), kind: SeqKind::Free(InferId(0)) }, span });
@@ -3973,7 +3979,8 @@ impl Checker {
             ("ptr", ["write"]) => BuiltinHead::B(Builtin::PtrWrite),
             ("ptr", ["at"]) => BuiltinHead::B(Builtin::PtrAt),
             ("ptr", ["is_null"]) => BuiltinHead::B(Builtin::PtrIsNull),
-            ("ptr", [other]) => return err(Diagnostic::error(format!("`ptr.{}` does not exist: a pointer has `read`, `write`, `at`, `is_null`", other)).at(span)),
+            ("ptr", ["null"]) => return err(Diagnostic::error("`ptr.null` is the null pointer, a value, not a call: `free[ptr.null]`").at(span)),
+            ("ptr", [other]) => return err(Diagnostic::error(format!("`ptr.{}` does not exist: a pointer has `read`, `write`, `at`, `is_null`, and `ptr.null` is the null pointer", other)).at(span)),
             ("simd", ["fill"]) => BuiltinHead::B(Builtin::SimdFill),
             ("simd", ["load"]) => BuiltinHead::B(Builtin::SimdLoad),
             ("simd", ["store"]) => BuiltinHead::B(Builtin::SimdStore),
@@ -4034,7 +4041,7 @@ impl Checker {
         let mut fails: Vec<(String, Option<Ty>)> = Vec::new();
         let mut shuffle_order: Option<Vec<u32>> = None;
         let (hargs, ty): (Vec<Arg>, Ty) = match &b {
-            Builtin::MustReport | Builtin::MustStopFork | Builtin::MustStopDone | Builtin::InclBytes | Builtin::ConstView => unreachable!("made by `must`, `incl` or a const, never written"),
+            Builtin::MustReport | Builtin::MustStopFork | Builtin::MustStopDone | Builtin::InclBytes | Builtin::ConstView | Builtin::PtrNull => unreachable!("made by `must`, `incl`, a const or `ptr.null`, never called"),
             Builtin::ListLength | Builtin::ArrayLength | Builtin::MapLength | Builtin::StrBytes | Builtin::StrPoints | Builtin::StrGraphemes => {
                 arity(1, self)?;
                 let a = self.lent_arg(ctx, positional[0], &name, false)?;

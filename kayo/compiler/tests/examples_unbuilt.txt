@@ -18,3 +18,5 @@ shop :: `std::input.line` is not available yet
 text :: `std::str.upper.full` is not available yet
 whichever :: `std::time.after` is not available yet
 case_mappings :: `str.upper` is std's, not the language's
+labels :: a member writes the collection's name in front
+overloading :: expected `[` starting the parameters

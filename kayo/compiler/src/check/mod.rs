@@ -326,7 +326,12 @@ impl Checker {
             (Ty::Map { key: k1, val: v1, .. }, Ty::Map { key: k2, val: v2, .. }) => self.unify(k1, k2) && self.unify(v1, v2),
             (Ty::Channel(x), Ty::Channel(y)) => self.unify(x, y),
             (Ty::Simd { elem: e1, lanes: l1 }, Ty::Simd { elem: e2, lanes: l2 }) => (l1 == l2 || *l1 == 0 || *l2 == 0) && self.unify(e1, e2),
-            (Ty::Ptr { mutable: m1, elem: e1 }, Ty::Ptr { mutable: m2, elem: e2 }) => (m1 == m2 || !*m1) && self.unify(e1, e2),
+            // A pointer whose kind nothing has said yet, `ptr.null` (owner,
+            // 2026-10-21), fits a `ptr` and a `ptr.mut` alike.
+            (Ty::Ptr { mutable: m1, elem: e1 }, Ty::Ptr { mutable: m2, elem: e2 }) => {
+                let open = matches!(self.resolve(e1), Ty::Infer(_)) || matches!(self.resolve(e2), Ty::Infer(_));
+                (m1 == m2 || !*m1 || open) && self.unify(e1, e2)
+            }
             (Ty::Struct { id: i1, args: a1 }, Ty::Struct { id: i2, args: a2 }) => i1 == i2 && a1.len() == a2.len() && a1.iter().zip(a2).all(|(x, y)| self.unify(x, y)),
             (Ty::Enum { id: i1, args: a1 }, Ty::Enum { id: i2, args: a2 }) => i1 == i2 && a1.len() == a2.len() && a1.iter().zip(a2).all(|(x, y)| self.unify(x, y)),
             (Ty::Fn(f1), Ty::Fn(f2)) => {

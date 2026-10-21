@@ -363,6 +363,18 @@ impl Checker {
                         (v, t.clone(), kind)
                     }
                     None => {
+                        // `ptr.null` alone says nothing of what it points at
+                        // (owner, 2026-10-21: "widened (a)"), nor a list of
+                        // nothing else.
+                        let null = |e: &ast::Expr| matches!(&e.kind, ast::ExprKind::Path(p) if p.is(&["ptr", "null"]));
+                        if null(value) {
+                            return err(Diagnostic::error(format!("`ptr.null` alone does not say what it points at: give '{}' its type, `let '{}': ptr[u8] = ptr.null;`", name.name, name.name)).at(value.span));
+                        }
+                        if let ast::ExprKind::List(items) = &value.kind {
+                            if !items.is_empty() && items.iter().all(null) {
+                                return err(Diagnostic::error(format!("`ptr.null` alone does not say what it points at, so '{}' cannot hold it: give it its type, `let '{}': list[ptr[u8]] = …;`", name.name, name.name)).at(value.span));
+                            }
+                        }
                         let mut v = v;
                         crate::check::expr::settle_exact(&mut v)?;
                         let vt = self.resolve(&v.ty);
