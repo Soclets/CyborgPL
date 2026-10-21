@@ -3,6 +3,20 @@
 > **Named Graft** (owner, 2026-10-21: "Graft replaces Lunae"; Lunae from 2026-09-27, N% before). "It has two
 > compilation methods: fast, and compiled into CyborgPL", as decided below on 2026-09-18.
 
+> **Likely syntax** (owner, 2026-10-21, a sketch, not ruled):
+>
+> ```
+> let x = 1000
+> let i: i32 = 5000
+> println("Hello, World! @x")
+> print("@i\n")
+> let total = 1000 + 5000
+> println("@total")
+> ```
+>
+> Unquoted names, no `;`, a type optional; `print` / `println`; `@name` inside text puts the value in (the owner's
+> first sketch had `$i` once: "Perl slipped $ in").
+
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
 Owner's direction, 2026-09-18. A higher-level language on top of CyborgPL.
