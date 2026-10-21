@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-21 — A kit's own function declares its argument words in its `coll.fn`: `say.words [str.empty, value];` (owner: a; details open, not built)
+
+Wanted "later" since 2026-10-17 (the owner's example `bruh::say[2, value "Hello"]`, and "I think it'll only be doable
+in a fn collection"); asked to start on it now ("1", from design claude's list of what `convert` would need). Offered
+(a) a words line in the function's `coll.fn`, a word per position and `str.empty` for none, the shape of
+spellings.cyr's `calls` (recommended), or (b) each parameter's name as its word. The owner: "(a)". So **a function's
+argument words are a line in its collection, `say.words [str.empty, value];`**, and the call reads `bruh::say[2, value:
+"Hello"]`. Being asked: whether the words are required and in order, as std's are.
+
 ### 2026-10-21 — A std `convert` converts into kit types, the type named in the call (owner: b; details open, not built)
 
 `to.casing['tag']` (the oracle's pick, 2026-10-20) was found unruled. Design claude offered a `to.` conversion or a std
