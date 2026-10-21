@@ -132,6 +132,8 @@ impl Args {
             collections: !avoid.contains("collections"),
             // `versions` blocks: kayo has not built them yet (2026-10-21); `--versions` turns them on
             versions: self.has("versions"),
+            // `ptr.null`: kayo has not built it yet (2026-10-21); `--ptr-null` turns it on
+            ptr_null: self.has("ptr-null"),
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),
@@ -224,6 +226,9 @@ fn main() {
         "gen" => {
             let p = generate(a.num("seed", 1), &a.config());
             print!("{}", p.render());
+            if p.expect_refused {
+                eprintln!("(a mistake on purpose: both engines should refuse it)");
+            }
         }
         "one" => {
             let t = tools();

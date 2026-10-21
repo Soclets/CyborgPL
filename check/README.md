@@ -11,6 +11,12 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 ```
 
 
+**`ptr.null`** (owner, 2026-10-21; oracle 2c8cfb33): under `--ptr-null` (off until kayo builds it), an
+episode passes `ptr.null` to C's `free`, puts it in a list beside pointers from `malloc`, and in a
+`layout.C` field, each asked with `ptr.is_null`, the memory freed after. A branch beside a real pointer
+is not written: there is no `if` value, and a pointer is held only with `:=`. `check gen` now says on
+stderr when a program is a mistake on purpose.
+
 **`versions` blocks** (owner, 2026-10-21; oracle 78a25324): versions of a collection's own function
 and of a member are written in `versions ov { [...] { … } … }` / `versions ov.flip { … }`; the corpus's
 four version programs are moved, three marked known until kayo builds the block. The generator writes

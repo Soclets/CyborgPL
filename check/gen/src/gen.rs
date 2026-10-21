@@ -167,6 +167,9 @@ pub struct Config {
     /// Versions of the collection's own function and of a member, in
     /// `versions` blocks (owner, 2026-10-20/21). Off until kayo builds the block.
     pub versions: bool,
+    /// `ptr.null` in C calls, lists of C pointers and `layout.C` fields
+    /// (owner, 2026-10-21; oracle 2c8cfb33). Off until kayo builds it.
+    pub ptr_null: bool,
     /// C interop (owner, 2026-10-19; oracle 927b1905, kayo 6ae65a5f): a
     /// `layout.C union` written through one field and read through another,
     /// a `layout.C struct` of bit-fields written at and past their limits,
@@ -185,7 +188,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: false, c_interop: true, based_literals: true, bare_enums: true, percents: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: false, ptr_null: false, c_interop: true, based_literals: true, bare_enums: true, percents: true }
     }
 }
 
@@ -432,6 +435,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let lines = g.c_episode();
         main.extend(lines.into_iter().map(Stmt::Src));
     }
+    if g.cfg.ptr_null && g.rng.chance(10) {
+        let lines = g.ptr_null();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
     if g.cfg.percents && g.rng.chance(10) {
         let lines = g.percent_places();
         main.extend(lines.into_iter().map(Stmt::Src));
@@ -507,6 +514,42 @@ impl Gen {
             lines.push(format!("for 'bk{id}': u8 [from: {}, to: {}, by: 1] {{ change {s_}.a = 'bk{id}'; }}", (amax - 1).max(0), amax + 1));
             lines.push(format!("std::print.useful[{s_}.a, newln];"));
         }
+        lines
+    }
+
+    /// `ptr.null`, C's NULL (owner, 2026-10-21; oracle 2c8cfb33), only where
+    /// its pointer type is known: a C call's argument, a list beside pointers
+    /// from C, a `layout.C` field. Each asked with `ptr.is_null`; the C memory freed.
+    fn ptr_null(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        for d in ["extern.C fn pn_free = C.free ['p': ptr.mut[u8]];", "extern.C fn pn_malloc = C.malloc ['n': u64] -> ptr.mut[u8];"] {
+            if !self.extra_fns.iter().any(|x| x == d) {
+                self.extra_fns.push(d.to_string());
+            }
+        }
+        self.extra_fns.push(format!("layout.C struct Pn{id} {{ p: ptr.mut[u8], v: i32 }}"));
+        let v = |n: &str| format!("'{n}{id}'");
+        let mut lines = vec![
+            "no_check pn_free[ptr.null];".to_string(),
+            format!("no_check let {} := pn_malloc[{}];", v("pa"), self.rng.range(1, 64)),
+            format!("no_check let {} := pn_malloc[{}];", v("pb"), self.rng.range(1, 64)),
+        ];
+        // at least one real pointer, so the list's kind is known
+        let n = self.rng.range(2, 6) as usize;
+        let real = self.rng.below(n as u64) as usize;
+        let items: Vec<String> = (0..n).map(|k| if k == real || self.rng.chance(40) { v(if self.rng.chance(50) { "pa" } else { "pb" }) } else { "ptr.null".to_string() }).collect();
+        lines.push(format!("let {} := [{}];", v("ps"), items.join(", ")));
+        let asks: Vec<String> = (1..=n).map(|k| format!("ptr.is_null[{}[pos: {k}]]", v("ps"))).collect();
+        lines.push(format!("std::print.useful[{}, \" \", list.length[lend {}], newln];", asks.join(", \" \", "), v("ps")));
+        let (va, vb) = (self.rng.range(-99, 99), self.rng.range(-99, 99));
+        let (fa, fb) = if self.rng.chance(50) { ("ptr.null".to_string(), v("pa")) } else { (v("pb"), "ptr.null".to_string()) };
+        lines.push(format!("let {} := Pn{id}[p = {fa}, v = {}];", v("sa"), if va < 0 { format!("({va})") } else { va.to_string() }));
+        lines.push(format!("let {} := Pn{id}[p = {fb}, v = {}];", v("sb"), if vb < 0 { format!("({vb})") } else { vb.to_string() }));
+        lines.push(format!("std::print.useful[ptr.is_null[{a}.p], \" \", ptr.is_null[{b}.p], \" \", {a}.v + {b}.v, newln];", a = v("sa"), b = v("sb")));
+        lines.push(format!("no_check pn_free[{}];", v("pa")));
+        lines.push(format!("no_check pn_free[{}];", v("pb")));
         lines
     }
 
