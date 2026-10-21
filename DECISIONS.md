@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-21 — A std `convert` converts into kit types, the type named in the call (owner: b; details open, not built)
+
+`to.casing['tag']` (the oracle's pick, 2026-10-20) was found unruled. Design claude offered a `to.` conversion or a std
+function `casing.from_tag`; the owner: "Or should we have std have a `convert` function that can convert anything,
+not literally anything". Offered (a) `to.` opened to any type that gives itself a `from` function, recommended, or
+(b) a std function naming the target, `convert['tag', into: casing]`, noting that a type passed in a call is not
+designed. The owner: "(b)". So **converting into a kit's type is std's `convert`, the target type named in the call**.
+Being asked: how the call names the type, and how `convert` learns a type's conversion. The oracle's `to.casing`
+stays its stand-in until then.
+
 ### 2026-10-21 — std's Unicode case tables are generated CyborgPL source, a `.cy` file (owner: a)
 
 std claude, to write `str.upper.simple` / `.full` and `casing`, asked where std gets Unicode's case data (about 1,400
