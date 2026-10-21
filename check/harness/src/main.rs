@@ -133,6 +133,7 @@ impl Args {
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),
+            percents: !avoid.contains("percents"),
             typed_literals: !avoid.contains("typed-literals"),
             // str.slice by kayo since d6e0868b; `--avoid std-slices` leaves them out
             std_all: !avoid.contains("std-slices"),

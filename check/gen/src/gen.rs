@@ -174,11 +174,15 @@ pub struct Config {
     /// A pub enum whose values may drop its name where the type is known,
     /// `bare.enum_prefix.optional` (owner, 2026-10-20; kayo 91845e68).
     pub bare_enums: bool,
+    /// Percents under `:=` and `percent[d32]`, and d64s limited by
+    /// `max_places` / `min_places` with the round family (owner,
+    /// 2026-10-17/20; kayo f143b8b2, f91773d1). No `%` beside an f64 yet.
+    pub percents: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, c_interop: true, based_literals: true, bare_enums: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
     }
 }
 
@@ -425,6 +429,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let lines = g.c_episode();
         main.extend(lines.into_iter().map(Stmt::Src));
     }
+    if g.cfg.percents && g.rng.chance(10) {
+        let lines = g.percent_places();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
     if g.cfg.bare_enums && g.rng.chance(10) {
         let lines = g.bare_enum();
         main.extend(lines.into_iter().map(Stmt::Src));
@@ -497,6 +505,38 @@ impl Gen {
             lines.push(format!("std::print.useful[{s_}.a, newln];"));
         }
         lines
+    }
+
+    /// A price, two exact percents (`%` and `percent`), their sum and
+    /// comparison, a bounded `percent[d32]`, and d64s with `max_places: 2`
+    /// holding a rounded product and a sum, and one with `min_places`.
+    fn percent_places(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        let price = |r: &mut crate::rng::Rng| format!("{}.{:02}", r.range(0, 99999), r.range(0, 99));
+        let pct = |r: &mut crate::rng::Rng| if r.chance(50) { format!("{}", r.range(0, 100)) } else { format!("{}.{}", r.range(0, 99), r.range(0, 9)) };
+        let (p1, p2) = (price(&mut self.rng), price(&mut self.rng));
+        let (t, o, r) = (pct(&mut self.rng), pct(&mut self.rng), pct(&mut self.rng));
+        let round = *self.rng.pick(&["near", "half_up", "floor", "ceil", "trunc"]);
+        let (mp, n) = (self.rng.range(1, 4), self.rng.range(0, 99999));
+        let word = if self.rng.chance(50) { "%" } else { " percent" };
+        let v = |s: &str| format!("'{s}{id}'");
+        vec![
+            format!("let {} := exactly {p1};", v("pr")),
+            format!("let {} := exactly {t}%;", v("tx")),
+            format!("let {} := exactly {o}{word};", v("of")),
+            format!("std::print.useful[{} x to.d64[{}], \" \", {} x to.d64[{}], newln];", v("pr"), v("tx"), v("pr"), v("of")),
+            format!("let {} := {} + {};", v("bo"), v("tx"), v("of")),
+            format!("let {}: percent[d32][min: 0%, max: 100%] = exactly {r}%;", v("rt")),
+            format!("std::print.useful[{}, \" \", {}, \" \", {} > {}, newln];", v("bo"), v("rt"), v("tx"), v("of")),
+            format!("std::print.stored[{}, \" \", {}, newln];", v("tx"), v("rt")),
+            format!("let {}: d64[min: 0.0, max: 1000000.0, max_places: 2] = exactly {p2};", v("pp")),
+            format!("let {}: d64[max_places: 2] = round.{round}[{} x to.d64[{}], places: 2];", v("tt"), v("pp"), v("tx")),
+            format!("let {}: d64[max_places: 2] = {} + {};", v("sm"), v("pp"), v("tt")),
+            format!("let {}: d64[min_places: {mp}] = exactly {n};", v("sh")),
+            format!("std::print.useful[{}, \" \", {}, \" \", {}, newln];", v("tt"), v("sm"), v("sh")),
+        ]
     }
 
     /// A pub enum with `bare.enum_prefix.optional` (owner, 2026-10-20), a
