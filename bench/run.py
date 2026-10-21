@@ -117,6 +117,8 @@ LANGS = {
     "rust": ("Rust (rustc opt-level=3)", "rustc", "{b}.rs", native(lambda s, o: ["rustc", "-C", "opt-level=3", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "go": ("Go", "go", "{b}.go", native(lambda s, o: ["go", "build", "-o", o, s]), lambda s, d, b: [os.path.join(d, b)]),
     "zig": ("Zig (ReleaseFast)", "zig", "{b}.zig", native(lambda s, o: ["zig", "build-exe", "-O", "ReleaseFast", "-femit-bin=" + o, s]), lambda s, d, b: [os.path.join(d, b)]),
+    # Odin (owner, 2026-10-21: "Bench it against CyborgPL, Zig, and C only"): its release build, bounds checks kept as by default
+    "odin": ("Odin (-o:speed)", "odin", "{b}.odin", native(lambda s, o: ["odin", "build", s, "-file", "-o:speed", "-out:" + o]), lambda s, d, b: [os.path.join(d, b)]),
     "swift": ("Swift (-O)", "swiftc", "{b}.swift", native(lambda s, o: ["swiftc", "-O", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "nim": ("Nim (release)", "nim", "{b}.nim", native(lambda s, o: ["nim", "c", "-d:release", "--hints:off", "--nimcache:" + o + ".cache", "-o:" + o, s]), lambda s, d, b: [os.path.join(d, b)]),
     "fortran": ("Fortran (gfortran -O3)", "gfortran", "{b}.f90", native(lambda s, o: ["gfortran", "-O3", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),

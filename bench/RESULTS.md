@@ -2,6 +2,30 @@
 
 Machine: arm64 (Apple Silicon, 10 cores: 4 performance, 6 efficiency), Darwin 27.0.0. Best of 3 runs, wall-clock from process start to exit (startup included); runs past 60 s are timeouts. Every answer is checked against C's, and every one agreed.
 
+## 2026-10-21: CyborgPL against Odin, Zig and C (owner: "Bench it against CyborgPL, Zig, and C only")
+
+`python3 bench/run.py cyborgpl cyborgpl1 cyborgpl_nc cyborgpl1_nc odin zig c`; kayo `CyDT dc1b05aa KAYO\n` (with
+compiler claude's vectorising `no_cheat` barrier, 031050d5); Odin `dev-2026-09:a2fb372b7`, `-o:speed`, its four
+programs written for this run from the C ones (`bench/*/*.odin`); final builds; best of 3; every answer agreed with C;
+load average about 2.2.
+
+| | sum | fib | lists | sieve |
+|---|---|---|---|---|
+| CyborgPL, 3 threads | 0.032 s | 0.002 s | 0.038 s | 0.169 s |
+| CyborgPL, 1 thread | 0.091 s | 0.002 s | 0.038 s | 0.302 s |
+| CyborgPL no_cheat, 3 threads | 0.038 s | 0.014 s | 0.039 s | 0.181 s |
+| CyborgPL no_cheat, 1 thread | 0.107 s | 0.012 s | 0.040 s | 0.339 s |
+| C (clang -O3) | 0.093 s | 0.015 s | 0.039 s | 0.388 s |
+| Zig (ReleaseFast) | 0.146 s | 0.016 s | 0.066 s | 0.359 s |
+| Odin (-o:speed) | 0.125 s | 0.016 s | 0.064 s | 0.546 s |
+
+- **The like-for-like row is CyborgPL no_cheat, 1 thread**: it does the work as written, on one core, as the other
+  three do. Against C: sum 1.15× C's time, lists 1.03×, fib 0.80×, sieve 0.87×. Since the vectorising barrier,
+  `no_cheat` costs little: on 10-19 sum was 1.51× C and lists 1.88×.
+- **Odin keeps bounds checks in `-o:speed`**, as its default; measured with `-no-bounds-check`: sieve 0.460 s
+  (0.551 checked), lists 0.063 s (0.070), sum unchanged. CyborgPL proves its indexes instead, so it pays nothing.
+- Cheat fib's 0.002 s is Precog's table; no_cheat fib makes every call (checked 10-19).
+
 ## 2026-10-19, later: run time with cheat and no_cheat (owner, through website claude)
 
 The owner's words, relayed by website claude: "Ask design claude to run a fresh one, with cheat and no_cheat".
