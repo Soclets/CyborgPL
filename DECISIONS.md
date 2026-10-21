@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-21 — A function's versions are written in a `versions` block in its collection (owner: yea)
+
+Shown a collection with two `say` lines (Tuesday's versions) and asked about defaults meeting them, the owner: "Wait,
+why are there two `say`s? Isn't supposed to be one, and narrowings?", then "could we make it look less confusing?".
+Design claude offered a block that writes the name once, each line inside one version; the owner: "yea, that's it".
+So **versions are written `versions say { ['n': i32, 'text': str.utf8] { … }  ['n': i32, …] { … } }`**, and the same
+for a member's versions (`versions round.near { … }`, design claude's reading); the own function or a member written
+twice outside the block is refused, naming `versions`. Asked "should there be a `narrowings say`": design claude
+advised not, since every member line already writes its full name (2026-10-19) and a block would drop it; the owner:
+"Ah, okay". So members stay as they are. Not built.
+
 ### 2026-10-21 — A kit's own function declares its argument words in its `coll.fn`: `say.words [str.empty, value];` (owner: a; details open, not built)
 
 Wanted "later" since 2026-10-17 (the owner's example `bruh::say[2, value "Hello"]`, and "I think it'll only be doable
