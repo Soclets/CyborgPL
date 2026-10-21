@@ -1072,6 +1072,15 @@ Dated, with the alternative, so each can become a question later.
   programs, tests and bench were swept by script; `std/` is std claude's,
   and the suite was run against its converted copy. Earlier entries
   here keep the names of their day.
+- **2026-10-21 — `print.written`** (owner, 2026-10-17; oracle 445f83b0).
+  Each value as its literal was typed (`literal_written`): its digits, its
+  sign, a percent in `%` with its trailing zeros; a name declared with a
+  literal and not `mut` keeps its literal (`FnCtx::written`), so an f16 of
+  0.123456789 prints `0.123456789`. A value with no written form (computed,
+  read, a `mut`) takes the print's `otherwise std::print.useful` (or
+  `.stored`), which is then the print that runs with the written values as
+  text; without one it is refused while building, as Precog's to decide.
+  `otherwise std::print.…` on any other print is refused.
 - **2026-10-21 — `max_places` and `min_places`** (owner, 2026-10-17;
   oracle 2e857580). In a `d`'s or a percent's limits bracket, after its
   sides or alone: `d64[min: 0.0, max: 1000000.0, max_places: 2]`,

@@ -882,5 +882,5 @@ percent_unsized [fnv:b11e84029c0e2fd5] :: a written percent names its number
 places_literal_over [fnv:4ee651b44531fdc5] :: this literal has 3 places; d64[max_places: 2] keeps 2
 places_not_rounded [fnv:5e88e20ba86ec483] :: round it on purpose
 places_on_bin [fnv:9b02146f706db4a8] :: places are kept by a `d` or a percent
-print_as_elsewhere [fnv:42cdbb96bb803b92] :: !unbuilt print.written (445f83b0); then: says how a `print.written` prints
-print_written_computed [fnv:f60a8b7af8d4f8f9] :: !unbuilt print.written (445f83b0); then: was not typed as a literal here
+print_as_elsewhere [fnv:42cdbb96bb803b92] :: says how a `print.written` prints
+print_written_computed [fnv:f60a8b7af8d4f8f9] :: was not typed as a literal here

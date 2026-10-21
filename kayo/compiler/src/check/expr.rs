@@ -5054,8 +5054,9 @@ fn same_literal(a: &Expr, b: &Expr) -> bool {
 
 /// The cord calls Synapse builds (owner, 2026-10-09): the prints and
 /// `exit`. A print goes to stdout unless it says `.stderr`.
-pub const BUILT_CORD: [&str; 18] = [
+pub const BUILT_CORD: [&str; 21] = [
     "exit",
+    "print.written", "print.written.stdout", "print.written.stderr",
     "print.useful", "print.useful.stdout", "print.useful.stderr",
     "print.stored", "print.stored.stdout", "print.stored.stderr",
     "print.useful.auto_newline", "print.useful.auto_newline.stdout", "print.useful.auto_newline.stderr",
@@ -5169,6 +5170,37 @@ impl Checker {
         }
         let mut hargs = Vec::new();
         let mut fails: Vec<(String, Option<Ty>)> = Vec::new();
+        // `otherwise std::print.useful` (or `.stored`) says how a
+        // `print.written` prints a value it has no written form for (owner,
+        // 2026-10-17); no other print takes one.
+        let print_as = match otherwise {
+            Some(ast::Otherwise::Value(ast::Expr { kind: AK::Path(p), .. })) if p.kit.as_ref().is_some_and(|k| k.name == "std") && p.segs.len() == 2 && p.segs[0].name == "print" && matches!(p.segs[1].name.as_str(), "useful" | "stored") => Some(p.segs[1].name.clone()),
+            _ => None,
+        };
+        let written = name == "print.written" || name.starts_with("print.written.");
+        if print_as.is_some() && !written {
+            return err(Diagnostic::error(format!("`otherwise std::print.…` says how a `print.written` prints a value it has no written form for; `std::{}` prints every value already: drop it", name)).at(span));
+        }
+        if written {
+            // Each value as its literal was typed; the rest as the print's
+            // `otherwise` says, which is then the print that runs.
+            let stream = name.strip_prefix("print.written").unwrap_or("").to_string();
+            for e in &positional {
+                match self.written_form(ctx, e) {
+                    Some(text) => hargs.push(Arg::Value(Expr { kind: K::Str(text), ty: Ty::utf8(), span: e.span })),
+                    None => {
+                        if print_as.is_none() {
+                            return err(Diagnostic::error("this was not typed as a literal here, so `print.written` has no written form of it: say how it prints instead, `otherwise std::print.useful` (or `.stored`)").at(e.span));
+                        }
+                        let v = self.expr(ctx, e)?;
+                        let v = self.as_operand(ctx, v)?;
+                        hargs.push(Arg::Value(v));
+                    }
+                }
+            }
+            let run = format!("print.{}{}", print_as.as_deref().unwrap_or("useful"), stream);
+            return Ok(Expr { kind: K::Call { callee: Callee::Builtin(Builtin::Std(run)), args: hargs, otherwise: None, fails: Vec::new() }, ty: Ty::Nothing, span });
+        }
         let ty = match name.as_str() {
             // A print goes to stdout unless it says `.stderr` (owner,
             // 2026-10-07); `.stdout` may still be written. `format[…]` makes
@@ -5488,6 +5520,50 @@ fn written_below_one(e: &ast::Expr) -> bool {
         AK::Unary { op: ast::UnOp::Neg, expr } => matches!(&expr.kind, AK::Int(_)),
         AK::Paren(inner) => written_below_one(inner),
         _ => false,
+    }
+}
+
+/// A literal as it was typed, for `print.written` (owner, 2026-10-17): its
+/// digits (a percent's in `%`, its trailing zeros kept), its sign, its text.
+pub fn literal_written(e: &ast::Expr) -> Option<String> {
+    match &e.kind {
+        AK::Int(t) | AK::Bin(t) => Some(t.replace('_', "")),
+        AK::Exact(t) => Some(t.replace('_', "")),
+        AK::Percent(lit) => {
+            let t = match &lit.kind {
+                AK::Bin(t) | AK::Exact(t) => t.replace('_', ""),
+                _ => return None,
+            };
+            // The places it was written with: the fraction's, less two.
+            let places = t.split_once('.').map_or(0, |(_, f)| f.len()).saturating_sub(2);
+            let mut shown = crate::types::percent_text(&t);
+            let have = shown.split_once('.').map_or(0, |(_, f)| f.len());
+            if have < places {
+                if have == 0 {
+                    shown.push('.');
+                }
+                shown.push_str(&"0".repeat(places - have));
+            }
+            Some(format!("{}%", shown))
+        }
+        AK::Unary { op: UnOp::Neg, expr } => literal_written(expr).map(|t| format!("-{}", t)),
+        AK::Typed { value, .. } | AK::Paren(value) => literal_written(value),
+        AK::Bool(b) => Some(b.to_string()),
+        AK::Str(s) => Some(s.clone()),
+        AK::Newline => Some("\n".to_string()),
+        _ => None,
+    }
+}
+
+impl Checker {
+    /// What `print.written` prints of an argument: a literal as typed, or a
+    /// name declared with one and never changeable; `None` for anything
+    /// else, which has no written form.
+    fn written_form(&self, ctx: &FnCtx, e: &ast::Expr) -> Option<String> {
+        match &e.kind {
+            AK::Name(q) => ctx.lookup(&q.name).and_then(|id| ctx.written.get(&id).cloned()),
+            _ => literal_written(e),
+        }
     }
 }
 

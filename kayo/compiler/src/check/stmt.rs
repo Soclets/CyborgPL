@@ -393,6 +393,9 @@ impl Checker {
                 }
                 if *mutability == Some(ast::Mutability::Mut) {
                     ctx.promised.push(id);
+                } else if let Some(text) = crate::check::expr::literal_written(value) {
+                    // Never changed, so its value is the literal as typed.
+                    ctx.written.insert(id, text);
                 }
                 if *sealed {
                     ctx.sealed.insert(id);
