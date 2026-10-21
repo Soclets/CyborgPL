@@ -1,7 +1,7 @@
 # Consts, worked out once at compile time to the literal each is: integers,
 # text, f64 and powers, used in a struct, a call, a loop's bound.
 
-bare.never [fn, struct];
+bare.kit_prefix.never [fn, struct];
 
 extern.C fn exit ['code': i32];
 extern.C fn strlen ['s': ptr[u8]] -> u64;

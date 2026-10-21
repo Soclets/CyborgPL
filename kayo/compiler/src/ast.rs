@@ -808,8 +808,11 @@ pub struct Item {
     pub vis: Vis,
     pub kind: ItemKind,
     pub span: Span,
-    /// `pub bare.never fn …`: how other Kits write its path.
+    /// `pub bare.kit_prefix.never fn …`: how other Kits write its path.
     pub bare: Option<(Bare, Span)>,
+    /// `bare.enum_prefix.optional enum …` (owner, 2026-10-20): whether its
+    /// values may drop its name where the type is known.
+    pub enum_bare: Option<(Bare, Span)>,
     /// `pub case.any fn …` (owner, 2026-10-06): `true` for
     /// insensitive. It covers the item's own name.
     pub case: Option<(bool, Span)>,
@@ -826,7 +829,7 @@ pub fn fold_case(name: &str) -> String {
 }
 
 /// How other Kits write the path to a `pub` thing (owner, 2026-10-06):
-/// `bare.never` (required), `bare.optional`, `bare.only` (forbidden).
+/// `bare.kit_prefix.never` (required), `bare.kit_prefix.optional`, `bare.kit_prefix.only` (forbidden).
 /// There is no default.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Bare {
@@ -836,16 +839,42 @@ pub enum Bare {
 }
 
 impl Bare {
+    /// The kit-prefix mark (owner, 2026-10-20: `bare.` names the prefix it
+    /// drops).
     pub fn spelled(self) -> &'static str {
         match self {
-            Bare::Never => "bare.never",
-            Bare::Optional => "bare.optional",
-            Bare::Only => "bare.only",
+            Bare::Never => "bare.kit_prefix.never",
+            Bare::Optional => "bare.kit_prefix.optional",
+            Bare::Only => "bare.kit_prefix.only",
+        }
+    }
+    /// The enum-prefix mark: whether an enum's values may drop its name.
+    pub fn enum_spelled(self) -> &'static str {
+        match self {
+            Bare::Never => "bare.enum_prefix.never",
+            Bare::Optional => "bare.enum_prefix.optional",
+            Bare::Only => "bare.enum_prefix.only",
+        }
+    }
+    pub fn word(self) -> &'static str {
+        match self {
+            Bare::Never => "never",
+            Bare::Optional => "optional",
+            Bare::Only => "only",
         }
     }
 }
 
-/// The kinds a `bare.never [fn, struct];` line in `limb.cpls` covers. A
+/// Which prefix a `bare.` mark drops (owner, 2026-10-20): a kit's path
+/// (`bare.kit_prefix.…`) or an enum's name before its values
+/// (`bare.enum_prefix.…`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Prefix {
+    Kit,
+    Enum,
+}
+
+/// The kinds a `bare.kit_prefix.never [fn, struct];` line in `limb.cpls` covers. A
 /// const has none (owner, 2026-10-06: "`b`"): `'pi'` alone is a variable,
 /// so another Kit's const always has its path.
 pub const BARE_KINDS: [&str; 5] = ["fn", "op", "struct", "enum", "interface"];
@@ -913,12 +942,16 @@ pub struct File {
     pub templates: Vec<Template>,
     /// `#strict` at its top: which file it is.
     pub strict: Option<crate::source::FileId>,
-    /// `bare.optional;` as its first line: covers its module and the block
+    /// `bare.kit_prefix.optional;` as its first line: covers its module and the block
     /// modules written in it.
     pub bare_file: Option<(Bare, Span)>,
-    /// `bare.never [fn, struct];` lines, which cover the whole Kit and
+    /// `bare.kit_prefix.never [fn, struct];` lines, which cover the whole Kit and
     /// belong in `limb.cpls`.
     pub bare_kinds: Vec<(Bare, Vec<String>, Span)>,
+    /// `bare.enum_prefix.optional;` as a file's line, and `bare.enum_prefix.
+    /// optional [enum];` in `kit.cy` (owner, 2026-10-20).
+    pub enum_bare_file: Option<(Bare, Span)>,
+    pub enum_bare_kinds: Vec<(Bare, Span)>,
     /// `case.any;` at its top: covers its module and the block
     /// modules written in it (owner, 2026-10-06). `true` for insensitive.
     pub case_file: Option<(bool, Span)>,

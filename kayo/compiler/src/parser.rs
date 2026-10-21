@@ -483,6 +483,8 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     let mut items = Vec::new();
     let mut bare_file = None;
     let mut bare_kinds = Vec::new();
+    let mut enum_bare_file = None;
+    let mut enum_bare_kinds = Vec::new();
     let mut case_file = None;
     let mut case_kinds = Vec::new();
     while !p.at_eof() {
@@ -504,11 +506,18 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
         // 2026-10-06).
         if p.is_word("bare") {
             let at = p.span();
-            let (mark, kinds) = p.bare_line()?;
-            match kinds {
-                Some(kinds) => bare_kinds.push((mark, kinds, at)),
-                None if items.is_empty() && bare_file.is_none() => bare_file = Some((mark, at)),
-                None => return p.fail_at(at, FILE_MARK_FIRST),
+            // A private enum's own mark, `bare.enum_prefix.optional enum …`.
+            if p.enum_mark_on_item() {
+                push_item(&mut items, p.item()?);
+                continue;
+            }
+            let (prefix, mark, kinds) = p.bare_line()?;
+            match (prefix, kinds) {
+                (crate::ast::Prefix::Kit, Some(kinds)) => bare_kinds.push((mark, kinds, at)),
+                (crate::ast::Prefix::Kit, None) if items.is_empty() && bare_file.is_none() => bare_file = Some((mark, at)),
+                (crate::ast::Prefix::Enum, Some(_)) => enum_bare_kinds.push((mark, at)),
+                (crate::ast::Prefix::Enum, None) if items.is_empty() && enum_bare_file.is_none() => enum_bare_file = Some((mark, at)),
+                _ => return p.fail_at(at, FILE_MARK_FIRST),
             }
             continue;
         }
@@ -518,7 +527,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
         }
         push_item(&mut items, p.item()?);
     }
-    Ok(File { items, templates: std::mem::take(&mut p.templates), strict, bare_file, bare_kinds, case_file, case_kinds })
+    Ok(File { items, templates: std::mem::take(&mut p.templates), strict, bare_file, bare_kinds, enum_bare_file, enum_bare_kinds, case_file, case_kinds })
 }
 
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
@@ -722,7 +731,14 @@ impl<'a> Parser<'a> {
         let start = self.span();
         let mut vis = Vis::Private;
         let mut bare = None;
+        let mut enum_bare = None;
         let mut case = None;
+        // An enum's own mark with no `pub` (owner, 2026-10-20): a private
+        // enum's values, `bare.enum_prefix.optional enum Mood { … }`.
+        if self.enum_mark_on_item() {
+            let (_, mark, at) = self.bare_mark()?;
+            enum_bare = Some((mark, at));
+        }
         // `case.any fn …` with no `pub`; a mark line here is in a
         // block module or not at the top (owner, 2026-10-06).
         if self.at_case_mark() {
@@ -742,8 +758,8 @@ impl<'a> Parser<'a> {
         if self.is_word("bare") {
             let at = self.span();
             return match self.bare_line()? {
-                (_, Some(_)) => self.fail_at(at, "a `bare.… […];` line covers the whole kit, so it is written in `kit.cy`"),
-                (_, None) => self.fail_at(at, FILE_MARK_FIRST),
+                (_, _, Some(_)) => self.fail_at(at, "a `bare.… […];` line covers the whole kit, so it is written in `kit.cy`"),
+                (_, _, None) => self.fail_at(at, FILE_MARK_FIRST),
             };
         }
         if self.is_word("pub") {
@@ -765,12 +781,27 @@ impl<'a> Parser<'a> {
             if self.at_case_mark() {
                 case = Some(self.case_mark()?);
             }
-            if self.is_word("bare") {
-                let (mark, at) = self.bare_mark()?;
-                if vis == Vis::Kit {
-                    return self.fail_at(at, "a `bare` mark says how other kits write the path, and a `pub.kit` thing is never reached from them");
+            // One mark of each prefix (owner, 2026-10-20): `pub
+            // bare.kit_prefix.only bare.enum_prefix.optional enum Mood`.
+            while self.is_word("bare") {
+                let (prefix, mark, at) = self.bare_mark()?;
+                match prefix {
+                    crate::ast::Prefix::Kit => {
+                        if vis == Vis::Kit {
+                            return self.fail_at(at, "a `bare.kit_prefix` mark says how other kits write the path, and a `pub.kit` thing is never reached from them");
+                        }
+                        if bare.is_some() {
+                            return self.fail_at(at, "one `bare.kit_prefix.…` mark on a thing");
+                        }
+                        bare = Some((mark, at));
+                    }
+                    crate::ast::Prefix::Enum => {
+                        if enum_bare.is_some() {
+                            return self.fail_at(at, "one `bare.enum_prefix.…` mark on a thing");
+                        }
+                        enum_bare = Some((mark, at));
+                    }
                 }
-                bare = Some((mark, at));
             }
             if case.is_none() && self.at_case_mark() {
                 case = Some(self.case_mark()?);
@@ -819,7 +850,7 @@ impl<'a> Parser<'a> {
                 other => other,
             };
             let span = start.to(self.prev_span());
-            return Ok(Item { vis, kind, span, bare, case });
+            return Ok(Item { vis, kind, span, bare, enum_bare, case });
         }
         // `collection.` was the word until 2026-10-19 (owner): `coll.fn`,
         // `coll.handler`, and a bare `collection c {` is told the same.
@@ -840,11 +871,11 @@ impl<'a> Parser<'a> {
                 "fn" => {
                     // The one mark is written in the block (owner, 2026-10-13).
                     if let Some((_, at)) = bare {
-                        return self.fail_at(at, "a collection's `bare.` mark is written in its block: `pub coll.fn area { bare.never; … }`");
+                        return self.fail_at(at, "a collection's `bare.` mark is written in its block: `pub coll.fn area { bare.kit_prefix.never; … }`");
                     }
                     let (lines, mark) = self.collection(vis, None)?;
                     let span = start.to(self.prev_span());
-                    return Ok(Item { vis, kind: ItemKind::ExternBlock(lines), span, bare: mark, case });
+                    return Ok(Item { vis, kind: ItemKind::ExternBlock(lines), span, bare: mark, enum_bare: None, case });
                 }
                 "handler" => {
                     if let Some((_, at)) = bare {
@@ -855,7 +886,7 @@ impl<'a> Parser<'a> {
                     }
                     self.handler_def()?;
                     let span = start.to(self.prev_span());
-                    return Ok(Item { vis, kind: ItemKind::ExternBlock(Vec::new()), span, bare: None, case });
+                    return Ok(Item { vis, kind: ItemKind::ExternBlock(Vec::new()), span, bare: None, enum_bare: None, case });
                 }
                 other => return self.fail_at(kind.span, format!("there is no `coll.{}`: a collection is `coll.fn` (a function and its narrowings) or `coll.handler` (named `otherwise` blocks)", other)),
             }
@@ -875,8 +906,13 @@ impl<'a> Parser<'a> {
         if let (ItemKind::Main(..), Some((_, at))) = (&kind, &case) {
             return self.fail_at(*at, "`MAIN` has no name to mark: a `case` mark goes on a named item, a module, or a file");
         }
+        if let Some((_, at)) = enum_bare {
+            if !matches!(kind, ItemKind::Enum(_) | ItemKind::Module { .. }) {
+                return self.fail_at(at, "a `bare.enum_prefix.…` mark says whether an enum's values may drop its name, so it goes on an enum or a module");
+            }
+        }
         let span = start.to(self.prev_span());
-        Ok(Item { vis, kind, span, bare, case })
+        Ok(Item { vis, kind, span, bare, enum_bare, case })
     }
 
     /// One condition of an `on` chain, up to its `{` (owner, 2026-10-06):
@@ -1106,32 +1142,65 @@ impl<'a> Parser<'a> {
         Ok((mark, at, Some(kinds)))
     }
 
-    /// `bare.never`, `bare.optional` or `bare.only` (owner, 2026-10-06).
-    fn bare_mark(&mut self) -> Result<(Bare, Span)> {
+    /// `bare.kit_prefix.never`, `bare.kit_prefix.optional` or `bare.kit_prefix.only` (owner, 2026-10-06).
+    /// A `bare.` mark (owner, 2026-10-20: it names the prefix it drops):
+    /// `bare.kit_prefix.never` / `.optional` / `.only` for a kit's path,
+    /// `bare.enum_prefix.…` for an enum's name before its values.
+    fn bare_mark(&mut self) -> Result<(crate::ast::Prefix, Bare, Span)> {
         let at = self.span();
         self.bump();
         if !self.eat(&Tok::Dot) {
-            return self.fail_at(at, "say how other kits write the path: `bare.never` (required), `bare.optional` or `bare.only` (forbidden); a plain `bare` does not say");
+            return self.fail_at(at, "a plain `bare` does not say which prefix it drops: `bare.kit_prefix.never` (a kit's path required), `.optional` or `.only`; `bare.enum_prefix.…` for an enum's values");
+        }
+        let which = self.ident("`kit_prefix` or `enum_prefix`")?;
+        let prefix = match which.name.as_str() {
+            "kit_prefix" => crate::ast::Prefix::Kit,
+            "enum_prefix" => crate::ast::Prefix::Enum,
+            "never" | "optional" | "only" => {
+                let old = format!("bare.{}", which.name);
+                let said = crate::spellings::old_word(&old, Some("special")).map(|o| o.dated()).unwrap_or_else(|| format!("`{}` is an old spelling: write `bare.kit_prefix.{}`", old, which.name));
+                return self.fail_at(at.to(which.span), said);
+            }
+            other => return self.fail_at(which.span, format!("no `bare.{}`: a mark names the prefix it drops, `bare.kit_prefix.…` (a kit's path) or `bare.enum_prefix.…` (an enum's name)", other)),
+        };
+        let p = if prefix == crate::ast::Prefix::Kit { "kit_prefix" } else { "enum_prefix" };
+        if !self.eat(&Tok::Dot) {
+            return self.fail_at(at.to(which.span), format!("say which: `bare.{p}.never`, `bare.{p}.optional` or `bare.{p}.only`"));
         }
         let mode = self.ident("`never`, `optional` or `only`")?;
         let mark = match mode.name.as_str() {
             "never" => Bare::Never,
             "optional" => Bare::Optional,
             "only" => Bare::Only,
-            other => return self.fail_at(mode.span, format!("no `bare.{}`: a path is `bare.never` (required), `bare.optional` or `bare.only` (forbidden)", other)),
+            other => return self.fail_at(mode.span, format!("no `bare.{p}.{other}`: `bare.{p}.never`, `bare.{p}.optional` or `bare.{p}.only`")),
         };
-        Ok((mark, at.to(mode.span)))
+        Ok((prefix, mark, at.to(mode.span)))
     }
 
-    /// A mark line: `bare.optional;` (a file's), or `bare.never [fn,
-    /// struct];` (by kind); `None` kinds for the first.
-    fn bare_line(&mut self) -> Result<(Bare, Option<Vec<String>>)> {
-        let (mark, at) = self.bare_mark()?;
+    /// Whether the cursor is at an enum's own `bare.enum_prefix.…` mark
+    /// with no `pub` before it: the mark, then `enum` or a module.
+    fn enum_mark_on_item(&self) -> bool {
+        self.is_word("bare") && self.is_word_at(2, "enum_prefix") && matches!(self.peek_at(5), Tok::Word(w) if w == "enum" || w == "module" || w == "layout")
+    }
+
+    /// A mark line: `bare.kit_prefix.optional;` (a file's), or
+    /// `bare.kit_prefix.never [fn, struct];` (by kind); `None` kinds for the
+    /// first. An enum-prefix line covers enums only: `[enum]`.
+    fn bare_line(&mut self) -> Result<(crate::ast::Prefix, Bare, Option<Vec<String>>)> {
+        let (prefix, mark, at) = self.bare_mark()?;
+        let spelled = if prefix == crate::ast::Prefix::Kit { mark.spelled() } else { mark.enum_spelled() };
         if self.eat(&Tok::Semi) {
-            return Ok((mark, None));
+            return Ok((prefix, mark, None));
         }
         if !self.eat(&Tok::LBracket) {
-            return self.fail_at(at, format!("a `bare` mark is `{m};` at the top of a file, `{m} [fn, op];` in `kit.cy`, or `pub {m} fn …` on an item", m = mark.spelled()));
+            return self.fail_at(at, format!("a `bare` mark is `{m};` at the top of a file, `{m} [fn, op];` in `kit.cy`, or `pub {m} fn …` on an item", m = spelled));
+        }
+        if prefix == crate::ast::Prefix::Enum {
+            if !self.eat_word("enum") || !self.eat(&Tok::RBracket) {
+                return self.fail_at(at, format!("`{}` covers enums only: `{} [enum];`", spelled, spelled));
+            }
+            self.expect_semi("the kinds")?;
+            return Ok((prefix, mark, Some(vec!["enum".to_string()])));
         }
         let mut kinds = Vec::new();
         loop {
@@ -1152,7 +1221,7 @@ impl<'a> Parser<'a> {
         }
         self.expect(&Tok::RBracket, "`]` closing the kinds")?;
         self.expect_semi("the kinds")?;
-        Ok((mark, Some(kinds)))
+        Ok((prefix, mark, Some(kinds)))
     }
 
     fn item_kind(&mut self, vis: Vis) -> Result<ItemKind> {
@@ -1550,9 +1619,12 @@ impl<'a> Parser<'a> {
                 if mark.is_some() {
                     return self.fail_at(at, "a collection has one `bare.` mark, for every member");
                 }
-                let m = self.bare_mark()?;
+                let (prefix, m, mat) = self.bare_mark()?;
+                if prefix != crate::ast::Prefix::Kit {
+                    return self.fail_at(mat, "a collection's mark says how other kits write its members' path: `bare.kit_prefix.…;`");
+                }
                 self.expect_semi("the `bare.` mark")?;
-                mark = Some(m);
+                mark = Some((m, mat));
                 continue;
             }
             if self.is_word("fn") {
@@ -1673,10 +1745,10 @@ impl<'a> Parser<'a> {
                     .into_iter()
                     .map(|mut d| {
                         d.owner = None;
-                        Item { vis: inner, kind: ItemKind::Fn(d), span, bare: mark, case: None }
+                        Item { vis: inner, kind: ItemKind::Fn(d), span, bare: mark, enum_bare: None, case: None }
                     })
                     .collect();
-                items.extend(pointers.into_iter().map(|(member, target)| Item { vis: inner, kind: ItemKind::FnPointer { owner: None, name: member, target }, span, bare: mark, case: None }));
+                items.extend(pointers.into_iter().map(|(member, target)| Item { vis: inner, kind: ItemKind::FnPointer { owner: None, name: member, target }, span, bare: mark, enum_bare: None, case: None }));
                 lines.push((Vis::Private, ItemKind::Module { name: name.clone(), items }));
             }
         }
@@ -4066,7 +4138,7 @@ impl<'a> Parser<'a> {
         let mut lhs = self.prefix()?;
         loop {
             // std's word operators with their path, `'a' std::plus 'b'`
-            // (owner, 2026-10-06: std is `bare.optional` for all), read as
+            // (owner, 2026-10-06: std is `bare.kit_prefix.optional` for all), read as
             // the operator itself; `std::pow` has its own arm.
             let skip = if self.is_word("std") && matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(2), Tok::Word(w) if matches!(w.as_str(), "plus" | "minus" | "times" | "div" | "mod" | "and" | "or" | "xor" | "shl" | "shr")) { 2 } else { 0 };
             self.pos += skip;
@@ -4591,7 +4663,7 @@ impl<'a> Parser<'a> {
                     }
                     // `std::print.weird…` takes each value after a `<-`, C++'s
                     // `cout <<` (owner, 2026-10-01), and no `[ ]`.
-                    // Bare too: stdkit is `bare.optional` for all (owner,
+                    // Bare too: stdkit is `bare.kit_prefix.optional` for all (owner,
                     // 2026-10-06).
                     let weird = path.kit.as_ref().is_none_or(|l| l.name == "std") && path.segs.len() >= 2 && path.segs[0].name == "print" && path.segs.iter().any(|s| s.name == "weird");
                     if weird && self.is(&Tok::LBracket) {
@@ -4959,8 +5031,8 @@ const _: &str = NOT_A_COMMENT;
 /// lines, each with the block's visibility.
 fn push_item(items: &mut Vec<Item>, it: Item) {
     match it.kind {
-        ItemKind::ExternBlock(lines) => items.extend(lines.into_iter().map(|(v, kind)| Item { vis: if it.vis == Vis::Private { v } else { it.vis }, kind, span: it.span, bare: it.bare, case: it.case })),
-        kind => items.push(Item { vis: it.vis, kind, span: it.span, bare: it.bare, case: it.case }),
+        ItemKind::ExternBlock(lines) => items.extend(lines.into_iter().map(|(v, kind)| Item { vis: if it.vis == Vis::Private { v } else { it.vis }, kind, span: it.span, bare: it.bare, enum_bare: None, case: it.case })),
+        kind => items.push(Item { vis: it.vis, kind, span: it.span, bare: it.bare, enum_bare: it.enum_bare, case: it.case }),
     }
 }
 

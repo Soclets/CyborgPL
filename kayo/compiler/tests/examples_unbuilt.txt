@@ -7,13 +7,17 @@
 
 brain16 :: `std::print.format` is not built yet
 c_variables :: the linker (lld) refused the program:
-collections :: `std::str.upper` is not available yet
+collections :: `std::str.upper.full` is not available yet
 corner_shop :: `std::print.format` is not built yet
 extern_data :: the linker (lld) refused the program:
 format_value :: `std::format` is not built yet
 input :: `std::input.line` is not available yet
-keys :: `std::str.lower` is not available yet
+keys :: `std::str.lower.full` is not available yet
 print_format :: `std::print.format` is not built yet
 shop :: `std::input.line` is not available yet
-text :: `std::str.upper` is not available yet
+text :: `std::str.upper.full` is not available yet
 whichever :: `std::time.after` is not available yet
+case_mappings :: `str.upper` is std's, not the language's
+percent :: expected `:=` or `=`, found `[`
+places :: expected `]` closing the bound, found `,`
+print_written :: `std::print.written` is not built yet

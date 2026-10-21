@@ -54,6 +54,14 @@ impl Checker {
 
     fn expr_in(&mut self, ctx: &mut FnCtx, e: &ast::Expr, top: bool, used: bool) -> Result<Expr> {
         let span = e.span;
+        // A bare enum value where the type is known (owner, 2026-10-20):
+        // `say[calm]` for `'m': Mood`, when `Mood` lets its values drop its
+        // name. Only this expression is asked, not what is inside it.
+        if let Some(want) = self.want.take() {
+            if let Some(r) = self.bare_case(ctx, e, &want) {
+                return r;
+            }
+        }
         match &e.kind {
             AK::Int(t) => {
                 if let Ok(v) = t.parse::<i128>() {
@@ -332,6 +340,7 @@ impl Checker {
         if path.segs.len() >= 2 {
             let prefix = ast::Path { kit: path.kit.clone(), segs: path.segs[..path.segs.len() - 1].to_vec(), span: path.span };
             if let Ok(ItemRef::Enum(id)) = self.items.lookup_path(&prefix, ctx.module) {
+                self.enum_named_ok(id, path.last(), span)?;
                 return self.enum_case(ctx, id, path.last(), None, span);
             }
         }
@@ -1997,17 +2006,17 @@ impl Checker {
             }
         }
         // Another Kit's word operator follows its mark (owner,
-        // 2026-10-06): `bare.never` needs the path, `bare.only` refuses it.
+        // 2026-10-06): `bare.kit_prefix.never` needs the path, `bare.kit_prefix.only` refuses it.
         let decl = &self.items.fns[fn_id.0 as usize];
         let (here, there) = (self.items.kit_root(ctx.module), self.items.kit_root(decl.module));
         if here != there {
             match (kit, self.items.bare_marks.get(&decl.name_span)) {
                 (None, Some(ast::Bare::Never)) => {
                     let prefix = self.items.kit_deps.get(&here).and_then(|d| d.iter().find(|(_, r)| **r == there)).map(|(p, _)| p.clone()).unwrap_or_default();
-                    return err(Diagnostic::error(format!("`{n}` is `{p}`'s and `bare.never`: write `{p}::{n}`", n = name, p = prefix)).at(op_span));
+                    return err(Diagnostic::error(format!("`{n}` is `{p}`'s and `bare.kit_prefix.never`: write `{p}::{n}`", n = name, p = prefix)).at(op_span));
                 }
                 (Some((prefix, _)), Some(ast::Bare::Only)) => {
-                    return err(Diagnostic::error(format!("`{p}::{n}` is `bare.only`: `{p}` forbids its path, so write `{n}`", n = name, p = prefix)).at(op_span));
+                    return err(Diagnostic::error(format!("`{p}::{n}` is `bare.kit_prefix.only`: `{p}` forbids its path, so write `{n}`", n = name, p = prefix)).at(op_span));
                 }
                 _ => {}
             }
@@ -2209,6 +2218,36 @@ impl Checker {
         Ok(())
     }
 
+    /// `calm` (or `calm[…]`) where a `Mood` is asked for, when `Mood`'s
+    /// values may drop its name (`bare.enum_prefix.optional` or `.only`);
+    /// `None` when it is not one.
+    fn bare_case(&mut self, ctx: &mut FnCtx, e: &ast::Expr, want: &Ty) -> Option<Result<Expr>> {
+        let Ty::Enum { id, .. } = self.resolve(want).base().clone() else { return None };
+        let (name, payload) = match &e.kind {
+            AK::Path(p) if p.kit.is_none() && p.segs.len() == 1 => (&p.segs[0], None),
+            AK::Call { path, args, otherwise: None } if path.kit.is_none() && path.segs.len() == 1 => (&path.segs[0], Some(&args[..])),
+            _ => return None,
+        };
+        let info = &self.items.enums[id.0 as usize];
+        if !info.cases.iter().any(|c| c.name == name.name) {
+            return None;
+        }
+        if !matches!(self.items.enum_bare_marks.get(&info.span), Some(ast::Bare::Optional | ast::Bare::Only)) {
+            return None;
+        }
+        Some(self.enum_case(ctx, id, name, payload, e.span))
+    }
+
+    /// `Mood.calm` written with its name: refused when `Mood` forbids it
+    /// (`bare.enum_prefix.only`, owner, 2026-10-20).
+    fn enum_named_ok(&self, id: EnumId, case: &ast::Ident, span: Span) -> Result<()> {
+        let info = &self.items.enums[id.0 as usize];
+        if self.items.enum_bare_marks.get(&info.span) == Some(&ast::Bare::Only) {
+            return err(Diagnostic::error(format!("`{n}` forbids its name before its values (`bare.enum_prefix.only`): write `{c}` where a `{n}` is asked for", n = info.name, c = case.name)).at(span));
+        }
+        Ok(())
+    }
+
     fn enum_case(&mut self, ctx: &mut FnCtx, id: EnumId, case: &ast::Ident, payload: Option<&[AArg]>, span: Span) -> Result<Expr> {
         let info = self.items.enums[id.0 as usize].clone();
         let Some(ci) = info.cases.iter().position(|c| self.items.same_name(&self.items.case_cases, info.span, &c.name, &case.name)) else {
@@ -2330,7 +2369,7 @@ impl Checker {
                 }
             }
         }
-        // std marks everything `bare.optional` (owner, 2026-10-06): its
+        // std marks everything `bare.kit_prefix.optional` (owner, 2026-10-06): its
         // names may drop `std::`, and the built-ins it owns may carry it.
         if path.kit.as_ref().is_some_and(|l| l.name == "std") && std_builtin(path) {
             let plain = ast::Path { kit: None, segs: path.segs.clone(), span: path.span };
@@ -2442,6 +2481,7 @@ impl Checker {
                 if otherwise.is_some() {
                     return err(Diagnostic::error("building an enum value cannot fail; drop the `otherwise`").at(span));
                 }
+                self.enum_named_ok(id, path.last(), span)?;
                 return self.enum_case(ctx, id, path.last(), Some(args), span);
             }
         }
@@ -3034,7 +3074,9 @@ impl Checker {
                 if let AK::Call { .. } = &e.kind {
                     ctx.lend_call_ok = Some(e.span);
                 }
+                self.want = Some(pty.clone());
                 let v = self.expr(ctx, e);
+                self.want = None;
                 ctx.lend_call_ok = saved;
                 let v = v?;
                 // A borrow a call hands back, used where it stands, goes to a
@@ -4631,7 +4673,7 @@ impl Checker {
 }
 
 /// One of std's names the oracle stands in for (owner, 2026-10-06: std
-/// is `bare.optional` for all), written without `std::`.
+/// is `bare.kit_prefix.optional` for all), written without `std::`.
 fn std_name(path: &ast::Path) -> bool {
     let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
     match segs.as_slice() {

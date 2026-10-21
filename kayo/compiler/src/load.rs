@@ -668,7 +668,7 @@ fn load_kit(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Option
             let kind = if f.op.is_some() { "op" } else { "fn" };
             let named = format!("{} {}", kind, path);
             if let Some((other, _)) = only.iter().find(|(o, n)| *n == named && o != p) {
-                return err(Diagnostic::error(format!("`{}` and `{}` both forbid the path to `{}` (`bare.only`), so it cannot tell them apart: edit one kit's source, as for a prefix clash", other, p, named)).place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("`{}` and `{}` both forbid the path to `{}` (`bare.kit_prefix.only`), so it cannot tell them apart: edit one kit's source, as for a prefix clash", other, p, named)).place(manifest_at.display().to_string()));
             }
             only.push((p.clone(), named));
         }
@@ -1187,6 +1187,8 @@ thread_local! {
     /// The kind lines of the Kit whose files are being read: they cover
     /// every file of it.
     static BARE_KINDS: std::cell::RefCell<Vec<(crate::ast::Bare, Vec<String>, crate::source::Span)>> = const { std::cell::RefCell::new(Vec::new()) };
+    /// `bare.enum_prefix.… [enum];` lines of the kit's root (owner, 2026-10-20).
+    static ENUM_BARE_KINDS: std::cell::RefCell<Vec<(crate::ast::Bare, crate::source::Span)>> = const { std::cell::RefCell::new(Vec::new()) };
 }
 
 thread_local! {
@@ -1321,6 +1323,7 @@ fn check_case(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, r
 /// path, empty at the root; `root` is whether this is the root file, the
 /// only one whose kind lines count.
 fn check_bare(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, base: &str, root: bool) -> Result<()> {
+    check_enum_bare(sources, items, file, root)?;
     use crate::ast::{Bare, Item, ItemKind};
     if root {
         BARE_KINDS.with(|k| *k.borrow_mut() = file.bare_kinds.clone());
@@ -1395,11 +1398,72 @@ fn check_bare(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, b
         let mut all: Vec<(Bare, crate::source::Span)> = chain.first().copied().into_iter().chain(file.bare_file).chain(kinds.iter().filter(|(_, ks, _)| ks.iter().any(|k| k == kind)).map(|(m, _, at)| (*m, *at))).collect();
         all.sort_by_key(|m| (m.1.file != it.span.file, line(m.1)));
         match all.first() {
-            None => err(Diagnostic::error(format!("`{k} {n}` is `pub`, and nothing says how other kits write its path: mark it (`pub bare.never {k} …`), its module, or its kind in `kit.cy` (`bare.never [{k}];`) as `bare.never` (path required), `bare.optional` or `bare.only` (path forbidden); there is no default", k = kind, n = name)).at(it.span)),
+            None => err(Diagnostic::error(format!("`{k} {n}` is `pub`, and nothing says how other kits write its path: mark it (`pub bare.kit_prefix.never {k} …`), its module, or its kind in `kit.cy` (`bare.kit_prefix.never [{k}];`) as `bare.kit_prefix.never` (path required), `bare.kit_prefix.optional` or `bare.kit_prefix.only` (path forbidden); there is no default", k = kind, n = name)).at(it.span)),
             Some(&first) => match all.iter().find(|m| m.0 != first.0) {
                 Some(&other) => both(first, other),
                 None => {
                     items.bare_marks.insert(name_span, first.0);
+                    Ok(())
+                }
+            },
+        }
+    })
+}
+
+/// Whether each enum's values may be written without its name where the
+/// type is known (owner, 2026-10-20): its own `bare.enum_prefix.…` mark, the
+/// block modules' around it, its file's line, and `bare.enum_prefix.…
+/// [enum];` in `kit.cy`, which must agree. A `pub` enum must be covered,
+/// with no default; a private one is `never` unless marked.
+fn check_enum_bare(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, root: bool) -> Result<()> {
+    use crate::ast::{Bare, Item, ItemKind};
+    if root {
+        ENUM_BARE_KINDS.with(|k| *k.borrow_mut() = file.enum_bare_kinds.clone());
+    } else if let Some((m, at)) = file.enum_bare_kinds.first() {
+        return err(Diagnostic::error(format!("`{} [enum];` covers the whole kit, so it is written in `kit.cy`", m.enum_spelled())).at(*at));
+    }
+    let kinds = ENUM_BARE_KINDS.with(|k| k.borrow().clone());
+    let line = |at: crate::source::Span| sources.get(at.file).line_of(at.start);
+    fn walk(items: &[Item], chain: &mut Vec<(Bare, crate::source::Span)>, each: &mut dyn FnMut(&Item, &crate::ast::EnumDecl, &[(Bare, crate::source::Span)]) -> Result<()>) -> Result<()> {
+        for it in items {
+            match &it.kind {
+                ItemKind::Module { items, .. } => {
+                    let pushed = it.enum_bare.is_some();
+                    if let Some(b) = it.enum_bare {
+                        chain.insert(0, b);
+                    }
+                    walk(items, chain, each)?;
+                    if pushed {
+                        chain.remove(0);
+                    }
+                }
+                ItemKind::Enum(d) => each(it, d, chain)?,
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+    let mut chain = Vec::new();
+    walk(&file.items, &mut chain, &mut |it, d, modules| {
+        let name = &d.name.name;
+        let both = |a: (Bare, crate::source::Span), b: (Bare, crate::source::Span)| {
+            err(Diagnostic::error(format!("`enum {}` is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error", name, a.0.enum_spelled(), line(a.1), b.0.enum_spelled(), line(b.1))).at(it.span))
+        };
+        let chain: Vec<(Bare, crate::source::Span)> = it.enum_bare.iter().copied().chain(modules.iter().copied()).collect();
+        if let Some(&first) = chain.first() {
+            if let Some(&other) = chain.iter().find(|m| m.0 != first.0) {
+                return both(first, other);
+            }
+        }
+        let mut all: Vec<(Bare, crate::source::Span)> = chain.first().copied().into_iter().chain(file.enum_bare_file).chain(kinds.iter().copied()).collect();
+        all.sort_by_key(|m| (m.1.file != it.span.file, line(m.1)));
+        match all.first() {
+            None if it.vis == Vis::Pub => err(Diagnostic::error(format!("`enum {n}` is `pub`, and nothing says whether its values may be written without `{n}.`: mark it `bare.enum_prefix.never` ({n}. required), `bare.enum_prefix.optional` or `bare.enum_prefix.only` ({n}. forbidden), mark its module, or write `bare.enum_prefix.… [enum];` in `kit.cy`; there is no default (owner, 2026-10-20)", n = name)).at(it.span)),
+            None => Ok(()),
+            Some(&first) => match all.iter().find(|m| m.0 != first.0) {
+                Some(&other) => both(first, other),
+                None => {
+                    items.enum_bare_marks.insert(d.name.span, first.0);
                     Ok(())
                 }
             },

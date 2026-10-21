@@ -75,6 +75,10 @@ pub struct Checker {
     /// `C.str.make` written there makes (owner, 2026-10-19: a bounded
     /// `C.str` it may not fit).
     pub store_hint: Option<(Ty, Span)>,
+    /// The type a parameter or a typed declaration asks of the value about
+    /// to be checked, taken by `expr_in` before anything inside it: a bare
+    /// enum value there names its type's case (owner, 2026-10-20).
+    pub want: Option<Ty>,
     pub items: Items,
     pub instances: Vec<Instance>,
     inst_index: HashMap<InstKey, FnInst>,
@@ -216,7 +220,7 @@ impl FnCtx {
 impl Checker {
     pub fn new(items: Items) -> Checker {
         let n = items.consts.len();
-        Checker { power_uses: Vec::new(), store_hint: None, items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new(), mut_seen: HashMap::new() }
+        Checker { power_uses: Vec::new(), store_hint: None, want: None, items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new(), mut_seen: HashMap::new() }
     }
 
     pub fn fresh(&mut self) -> Ty {

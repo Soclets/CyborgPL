@@ -2,3 +2,11 @@
 # session (design/compiler-session.md), so a wrong one is a question, never an
 # edit from here. The test insists each of these still fails, so the day one is
 # fixed the suite says so and the line goes.
+case_mappings :: case mappings (7b7e8e57) not built yet: `str.upper.ascii` / `.simple` / `.full`
+collections :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
+corner_shop :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
+keys :: case mappings (7b7e8e57) not built yet: `std::str.lower.full`
+text :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
+percent :: percent (87fb7026) not built yet: `percent[d64]` / `%[d64]`
+places :: places (2e857580) not built yet: `max_places` / `min_places`
+print_written :: print.written (445f83b0) not built yet

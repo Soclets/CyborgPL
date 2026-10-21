@@ -222,6 +222,9 @@ pub struct Items {
     /// Each pub thing's `bare` mark, by its name's span (owner,
     /// 2026-10-06).
     pub bare_marks: HashMap<Span, crate::ast::Bare>,
+    /// Each enum's `bare.enum_prefix.…` mark, by its name's span (owner,
+    /// 2026-10-20); an enum not here is `never`.
+    pub enum_bare_marks: HashMap<Span, crate::ast::Bare>,
     /// `case.any` (owner, 2026-10-06), worked out where each file
     /// is read: the names that match in any case, by their name's span;
     /// the structs whose fields and the enums whose cases do; the
@@ -526,7 +529,7 @@ impl Items {
             ItemKind::ExternBlock(lines) => {
                 for (v, k) in lines {
                     let v = if vis == ast::Vis::Private { *v } else { vis };
-                    self.collect_item(&Item { vis: v, kind: k.clone(), span: item.span, bare: item.bare, case: item.case }, m, is_root)?;
+                    self.collect_item(&Item { vis: v, kind: k.clone(), span: item.span, bare: item.bare, enum_bare: item.enum_bare, case: item.case }, m, is_root)?;
                 }
             }
             ItemKind::Satisfies { ty, iface } => {
@@ -963,7 +966,7 @@ impl Items {
     /// Where a path written in module `m` leads (owner, 2026-10-06): a
     /// bare one may be this Kit's own, std's (when `std` says the name is
     /// one of std's and this Kit lists std), or another Kit's marked
-    /// `bare.optional` or `bare.only`; more than one is refused where it is
+    /// `bare.kit_prefix.optional` or `bare.kit_prefix.only`; more than one is refused where it is
     /// written, and this Kit's own does not win (owner: "no"). One with
     /// another Kit's prefix is refused when that Kit forbids the path.
     pub fn resolve_bare(&self, path: &ast::Path, m: ModuleId, std: bool) -> Result<Bareness> {
@@ -973,7 +976,7 @@ impl Items {
             if span.and_then(|s| self.bare_marks.get(&s)) == Some(&ast::Bare::Only) {
                 let bare = path.segs.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
                 let call = if matches!(item, ItemRef::Fn(_) | ItemRef::ExternFn(_)) { "[…]" } else { "" };
-                return err(Diagnostic::error(format!("`{}` is `bare.only`: `{}` forbids its path, so write `{}{}`", path.spelled(), kit.name, bare, call)).at(path.span));
+                return err(Diagnostic::error(format!("`{}` is `bare.kit_prefix.only`: `{}` forbids its path, so write `{}{}`", path.spelled(), kit.name, bare, call)).at(path.span));
             }
             return Ok(Bareness::Own(item));
         }
@@ -1024,7 +1027,7 @@ impl Items {
             return Ok(b);
         }
         if let Some(prefix) = never {
-            return err(Diagnostic::error(format!("`{w}` is `{p}`'s and `bare.never`: `{p}` requires its path, so write `{p}::{w}[…]`", w = written, p = prefix)).at(path.span));
+            return err(Diagnostic::error(format!("`{w}` is `{p}`'s and `bare.kit_prefix.never`: `{p}` requires its path, so write `{p}::{w}[…]`", w = written, p = prefix)).at(path.span));
         }
         own.map(Bareness::Own)
     }

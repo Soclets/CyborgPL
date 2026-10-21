@@ -1072,6 +1072,20 @@ Dated, with the alternative, so each can become a question later.
   programs, tests and bench were swept by script; `std/` is std claude's,
   and the suite was run against its converted copy. Earlier entries
   here keep the names of their day.
+- **2026-10-21 — `bare.` names the prefix it drops** (owner; DECISIONS
+  2026-10-20; oracle c856bda8, 9f48ccc7). `bare.kit_prefix.never` /
+  `.optional` / `.only` is the old `bare.X` (refused from `spellings.cyr`'s
+  rows), on an item, a block module, a file's line, a kind line and a
+  `coll.fn`. `bare.enum_prefix.X` says whether an enum's values may drop its
+  name: on the enum (with or without `pub`, beside its kit mark), its module,
+  its file, or `bare.enum_prefix.X [enum];` in `kit.cy`; marks that cover it
+  must agree (`load::check_enum_bare`, `Items::enum_bare_marks`). A `pub` enum
+  must be covered; a private one is `never` unless marked. With `.optional`
+  or `.only`, a bare value names its type's case where the type is known, a
+  parameter or a typed declaration (`Checker::want`, taken by `expr_in` before
+  anything inside it, and `bare_case`); `.only` refuses `Mood.calm`. Items 2
+  to 5 of that day (case mappings, percent, places, print.written) are listed
+  as not built yet.
 - **2026-10-20 — A known text's graphemes are counted as the runtime counts
   them** (check claude: a grapheme slice of "🇹🇭🇯🇵!" to `pos 4` came back cut
   short with `otherwise str.empty`). `mir::domain::grapheme_count` was a hand
