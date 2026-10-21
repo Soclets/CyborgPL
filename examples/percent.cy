@@ -14,7 +14,7 @@ MAIN {
     let 'rate': percent[d32][min: 0%, max: 100%] = exactly 12.25%;
     std::print.useful['both', " ", 'rate', " ", to.percent[d64][exactly 0.07], " ", 'tax' > 'off', newln];
     std::print.stored['tax', " ", 'rate', newln];
-    let 'f': f64 = 2.0;
+    let 'g': f64 = 2.0;
     let 'sym': %[d32] = exactly 2.5%;
-    std::print.useful['f' + 80%, " ", -'tax', " ", 'sym', newln];   # a `%` literal beside a plain number is its fraction
+    std::print.useful['g' + 80%, " ", -'tax', " ", 'sym', newln];   # a `%` literal beside a plain number is its fraction
 }
