@@ -42,8 +42,9 @@ impl<'ctx> Cg<'_, 'ctx> {
             "cyborg_out_bin" => v.fn_type(&[p.into(), self.ctx.f64_type().into(), i32t.into(), b.into()], false),
             "cyborg_out_char" => v.fn_type(&[p.into(), i32t.into()], false),
             "cyborg_out_deci" => v.fn_type(&[p.into(), w.into(), w.into(), i32t.into(), b.into()], false),
-            "cyborg_out_bin_percent" => v.fn_type(&[p.into(), self.ctx.f64_type().into(), i32t.into()], false),
-            "cyborg_out_deci_percent" => v.fn_type(&[p.into(), w.into(), w.into(), i32t.into()], false),
+            "cyborg_out_bin_percent" => v.fn_type(&[p.into(), self.ctx.f64_type().into(), i32t.into(), i32t.into()], false),
+            "cyborg_out_deci_percent" => v.fn_type(&[p.into(), w.into(), w.into(), i32t.into(), i32t.into()], false),
+            "cyborg_out_deci_padded" => v.fn_type(&[p.into(), w.into(), w.into(), i32t.into(), i32t.into()], false),
             other => unreachable!("no the runtime output function {}", other),
         };
         self.module.add_function(name, t, None)
@@ -144,6 +145,19 @@ impl<'ctx> Cg<'_, 'ctx> {
         let w = self.ctx.i64_type();
         // A percent shows its `%` in `print.useful` only (owner,
         // 2026-10-17): `print.stored` shows the number it holds, 0.07.
+        // `min_places` pads `print.useful` (owner, 2026-10-17): `5.00`.
+        let min = if useful { crate::check::expr::places_min(ty).unwrap_or(0) } else { 0 };
+        let min_v = self.ctx.i32_type().const_int(min as u64, false);
+        if useful && crate::check::expr::percent_inner(ty).is_none() && min > 0 {
+            if let Ty::Deci(bits) = ty.base() {
+                let lt = self.ty(ty)?.into_int_type();
+                let v = self.builder.build_load(lt, at, "d").ok()?.into_int_value();
+                let (lo, hi) = self.deci_halves(v)?;
+                let f = self.out_fn("cyborg_out_deci_padded");
+                let _ = self.builder.build_call(f, &[out.into(), lo.into(), hi.into(), self.ctx.i32_type().const_int(*bits as u64, false).into(), min_v.into()], "");
+                return Some(());
+            }
+        }
         if useful && crate::check::expr::percent_inner(ty).is_some() {
             match ty.base() {
                 Ty::Bin(_) => {
@@ -155,7 +169,7 @@ impl<'ctx> Cg<'_, 'ctx> {
                         _ => 64,
                     };
                     let f = self.out_fn("cyborg_out_bin_percent");
-                    let _ = self.builder.build_call(f, &[out.into(), x.into(), self.ctx.i32_type().const_int(bits, false).into()], "");
+                    let _ = self.builder.build_call(f, &[out.into(), x.into(), self.ctx.i32_type().const_int(bits, false).into(), min_v.into()], "");
                     return Some(());
                 }
                 Ty::Deci(bits) => {
@@ -163,7 +177,7 @@ impl<'ctx> Cg<'_, 'ctx> {
                     let v = self.builder.build_load(lt, at, "d").ok()?.into_int_value();
                     let (lo, hi) = self.deci_halves(v)?;
                     let f = self.out_fn("cyborg_out_deci_percent");
-                    let _ = self.builder.build_call(f, &[out.into(), lo.into(), hi.into(), self.ctx.i32_type().const_int(*bits as u64, false).into()], "");
+                    let _ = self.builder.build_call(f, &[out.into(), lo.into(), hi.into(), self.ctx.i32_type().const_int(*bits as u64, false).into(), min_v.into()], "");
                     return Some(());
                 }
                 _ => {}

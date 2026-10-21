@@ -202,6 +202,10 @@ pub enum Ty {
     /// are its number's, so `base` looks through it; what it combines with
     /// is the checker's to say.
     Percent(Box<Ty>),
+    /// `max_places` and `min_places` (owner, 2026-10-17; `places` since
+    /// 2026-10-20): how many places a `d` or a percent keeps, and pads to
+    /// when printed. Its values are its number's, so `base` looks through it.
+    Places { inner: Box<Ty>, max: Option<u32>, min: Option<u32> },
 }
 
 /// Marks [`Ty::exact`]: no width anyone writes has this bit, and the rest
@@ -269,6 +273,7 @@ impl Ty {
         match self {
             Ty::Bounded { inner, .. } => inner.base(),
             Ty::Percent(inner) => inner.base(),
+            Ty::Places { inner, .. } => inner.base(),
             t => t,
         }
     }
@@ -362,7 +367,7 @@ impl Ty {
             Ty::Struct { args, .. } | Ty::Enum { args, .. } => args.iter().any(|a| a.contains_var()),
             Ty::Fn(f) => f.params.iter().any(|(_, t)| t.contains_var()) || f.ret.contains_var() || f.fails.iter().any(|(_, t)| t.as_ref().map(|t| t.contains_var()).unwrap_or(false)),
             Ty::Bundle(ts) => ts.iter().any(|t| t.contains_var()),
-            Ty::Bounded { inner, .. } | Ty::Percent(inner) => inner.contains_var(),
+            Ty::Bounded { inner, .. } | Ty::Percent(inner) | Ty::Places { inner, .. } => inner.contains_var(),
             _ => false,
         }
     }
@@ -387,6 +392,7 @@ impl Ty {
             Ty::Bundle(ts) => Ty::Bundle(ts.iter().map(|t| t.subst(args)).collect()),
             Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(inner.subst(args)), bound: bound.clone() },
             Ty::Percent(inner) => Ty::Percent(Box::new(inner.subst(args))),
+            Ty::Places { inner, max, min } => Ty::Places { inner: Box::new(inner.subst(args)), max: *max, min: *min },
             t => t.clone(),
         }
     }
@@ -571,6 +577,22 @@ impl<'a> fmt::Display for TySpelling<'a> {
                 write!(f, "C.str[{}]", parts.join(", "))
             }
             Ty::Percent(inner) => write!(f, "percent[{}]", sp(inner)),
+            // In the limits bracket, after the sides: `d64[min: 0.0, max:
+            // 1.0, max_places: 2]`, or a bracket of its own.
+            Ty::Places { inner, max, min } => {
+                let mut words = Vec::new();
+                if let Some(m) = max {
+                    words.push(format!("max_places: {}", m));
+                }
+                if let Some(m) = min {
+                    words.push(format!("min_places: {}", m));
+                }
+                let shown = sp(inner).to_string();
+                match (&**inner, shown.strip_suffix(']')) {
+                    (Ty::Bounded { .. }, Some(open)) => write!(f, "{}, {}]", open, words.join(", ")),
+                    _ => write!(f, "{}[{}]", shown, words.join(", ")),
+                }
+            }
             Ty::Bounded { inner, bound } => {
                 write!(f, "{}", sp(inner))?;
                 // A percent's sides are written in `%` (owner, 2026-10-17).

@@ -2747,9 +2747,11 @@ impl<'a> Parser<'a> {
                 continue;
             }
             let mut zero = None;
-            let (lo, hi, unit, span, old) = if self.is_word_at(1, "min") || self.is_word_at(1, "max") {
-                let (lo, hi, unit, span, z) = self.labelled_bound()?;
+            let mut places = None;
+            let (lo, hi, unit, span, old) = if self.is_word_at(1, "min") || self.is_word_at(1, "max") || self.is_word_at(1, "max_places") || self.is_word_at(1, "min_places") {
+                let (lo, hi, unit, span, z, p) = self.labelled_bound()?;
                 zero = z;
+                places = p;
                 (lo, hi, unit, span, false)
             } else {
                 // `[lo, hi]`: read as it was, to be refused once the type is
@@ -2763,7 +2765,7 @@ impl<'a> Parser<'a> {
             };
             let side = |e: Option<Expr>, w: &str| e.unwrap_or_else(|| Expr { kind: ExprKind::Path(Path { kit: None, segs: vec![Ident { name: w.into(), span }], span }), span });
             let (lo, hi) = (side(lo, "min"), side(hi, "max"));
-            ty = Type { span: start.to(self.prev_span()), kind: TypeKind::Bound { inner: Box::new(ty), lo: Box::new(lo), hi: Box::new(hi), unit, span, old, zero } };
+            ty = Type { span: start.to(self.prev_span()), kind: TypeKind::Bound { inner: Box::new(ty), lo: Box::new(lo), hi: Box::new(hi), unit, span, old, zero, places } };
         }
         Ok(ty)
     }
@@ -2771,8 +2773,14 @@ impl<'a> Parser<'a> {
     /// `[min: 0, max: 100]`, `[min: 1]`, `[max: 100]`, a unit after the last
     /// number (`[min 1, max 40 graphemes]`), from the `[` at the cursor: each
     /// side said, `None` for one left out.
-    fn labelled_bound(&mut self) -> Result<(Option<Expr>, Option<Expr>, Option<Ident>, Span, Option<(bool, Span)>)> {
+    #[allow(clippy::type_complexity)]
+    fn labelled_bound(&mut self) -> Result<(Option<Expr>, Option<Expr>, Option<Ident>, Span, Option<(bool, Span)>, Option<(Option<u32>, Option<u32>, Span)>)> {
         let bstart = self.bump().span;
+        if self.is_word("max_places") || self.is_word("min_places") {
+            let places = self.places_words(bstart)?;
+            self.expect(&Tok::RBracket, "`]` closing the limits")?;
+            return Ok((None, None, None, bstart.to(self.prev_span()), None, places));
+        }
         if !(self.is_word("min") || self.is_word("max")) {
             return self.fail_at(bstart, "a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)");
         }
@@ -2809,6 +2817,14 @@ impl<'a> Parser<'a> {
         } else {
             None
         };
+        // The places a `d` or a percent keeps (owner, 2026-10-17), after
+        // its sides: `d64[min: 0.0, max: 1000000.0, max_places: 2]`.
+        let places = if self.is(&Tok::Comma) && (self.is_word_at(1, "max_places") || self.is_word_at(1, "min_places")) {
+            self.bump();
+            self.places_words(bstart)?
+        } else {
+            None
+        };
         // A C string's bound says whether its closing 0 counts (owner,
         // 2026-10-19): `exclude zero` or `include zero`.
         let mut zero = None;
@@ -2822,7 +2838,41 @@ impl<'a> Parser<'a> {
             zero = Some((include, at.to(self.prev_span())));
         }
         self.expect(&Tok::RBracket, "`]` closing the bound")?;
-        Ok((lo, hi, unit, bstart.to(self.prev_span()), zero))
+        Ok((lo, hi, unit, bstart.to(self.prev_span()), zero, places))
+    }
+
+    /// `max_places: N`, `min_places: N`, either or both, at the cursor.
+    fn places_words(&mut self, bstart: Span) -> Result<Option<(Option<u32>, Option<u32>, Span)>> {
+        let (mut max, mut min) = (None, None);
+        let start = self.span();
+        loop {
+            let w = match self.peek() {
+                Tok::Word(w) if w == "max_places" || w == "min_places" => w.clone(),
+                _ => break,
+            };
+            self.need_label(0)?;
+            self.bump();
+            let n = match self.peek().clone() {
+                Tok::Num { text, bin: false, .. } => text.parse::<u32>().ok(),
+                _ => None,
+            };
+            let Some(n) = n else {
+                return self.fail(format!("`{}:` is a whole number of places: `{}: 2`", w, w));
+            };
+            self.bump();
+            if w == "max_places" { max = Some(n) } else { min = Some(n) }
+            if !(self.is(&Tok::Comma) && (self.is_word_at(1, "max_places") || self.is_word_at(1, "min_places"))) {
+                break;
+            }
+            self.bump();
+        }
+        let _ = bstart;
+        if let (Some(mx), Some(mn)) = (max, min) {
+            if mn > mx {
+                return self.fail_at(start.to(self.prev_span()), format!("`min_places: {}` is more than `max_places: {}`", mn, mx));
+            }
+        }
+        Ok(Some((max, min, start.to(self.prev_span()))))
     }
 
     /// Is the bracket at the cursor a counting `for`'s words, `[from: …`
@@ -2870,6 +2920,9 @@ impl<'a> Parser<'a> {
     /// the old `[lo, hi]`, read to be refused naming the new spelling.
     fn bracket_is_bound(&mut self) -> bool {
         if (self.is_word_at(1, "min") || self.is_word_at(1, "max")) && !matches!(self.peek_at(2), Tok::Comma | Tok::RBracket) {
+            return true;
+        }
+        if self.is_word_at(1, "max_places") || self.is_word_at(1, "min_places") {
             return true;
         }
         if self.is_word_at(1, "bits") && matches!(self.peek_at(2), Tok::Num { .. }) {
@@ -4499,7 +4552,7 @@ impl<'a> Parser<'a> {
                     // `channel[T][max 10]` (owner, 2026-10-12): a `min`
                     // written is 0; with no bound it is a hand-off.
                     let bound = if self.is(&Tok::LBracket) {
-                        let (lo, hi, _, span, _) = self.labelled_bound()?;
+                        let (lo, hi, _, span, _, _) = self.labelled_bound()?;
                         let Some(hi) = hi else {
                             return self.fail_at(span, "a bounded channel says how much it holds: `channel[T][max: 100]`; with no bound it is a hand-off");
                         };

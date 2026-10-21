@@ -277,7 +277,7 @@ impl Domain {
             // included: they are decimals, and a bin interval would round
             // them.
             Ty::Bounded { inner, .. } if matches!(inner.base(), Ty::Deci(_)) => Domain::Any,
-            Ty::Percent(inner) => Domain::of_ty(inner, items),
+            Ty::Percent(inner) | Ty::Places { inner, .. } => Domain::of_ty(inner, items),
             Ty::Bounded { inner, bound } => {
                 let inner_domain = Domain::of_ty(inner, items);
                 match (bound, inner_domain) {

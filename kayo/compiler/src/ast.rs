@@ -70,7 +70,9 @@ pub enum TypeKind {
     /// `T[lo, hi]`, `str.utf8[1, 40 graphemes]`, `list[T][0, 10]`.
     /// `old`: written `[lo, hi]`, as before 2026-10-12, read so that a
     /// type taking no bound is told that first, then refused.
-    Bound { inner: Box<Type>, lo: Box<Expr>, hi: Box<Expr>, unit: Option<Ident>, span: Span, old: bool, zero: Option<(bool, Span)> },
+    /// `places`: `max_places: N` and `min_places: N` in the same bracket
+    /// (owner, 2026-10-17; `places` since 2026-10-20), on a `d` or a percent.
+    Bound { inner: Box<Type>, lo: Box<Expr>, hi: Box<Expr>, unit: Option<Ident>, span: Span, old: bool, zero: Option<(bool, Span)>, places: Option<(Option<u32>, Option<u32>, Span)> },
     /// `<T>` / `<T: Ordered>`.
     Var { name: Ident, bound: Option<Path> },
     /// `fn[lent T, T] -> R or fail[…]`.

@@ -273,6 +273,7 @@ impl Checker {
             Ty::Bundle(ts) => Ty::Bundle(ts.iter().map(|t| self.resolve(t)).collect()),
             Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(self.resolve(inner)), bound: bound.clone() },
             Ty::Percent(inner) => Ty::Percent(Box::new(self.resolve(inner))),
+            Ty::Places { inner, max, min } => Ty::Places { inner: Box::new(self.resolve(inner)), max: *max, min: *min },
             t => t.clone(),
         }
     }
@@ -337,6 +338,11 @@ impl Checker {
             (Ty::Percent(x), Ty::Percent(y)) => {
                 let (x, y) = (x.clone(), y.clone());
                 self.unify(&x, &y)
+            }
+            (Ty::Places { inner, .. }, other) | (other, Ty::Places { inner, .. }) => {
+                let inner = inner.clone();
+                let other = other.clone();
+                self.unify(&inner, &other)
             }
             (Ty::Bounded { inner, .. }, other) | (other, Ty::Bounded { inner, .. }) => {
                 let inner = inner.clone();

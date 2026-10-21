@@ -1328,7 +1328,23 @@ impl Items {
                 let inner_ty = self.resolve_type(inner, m, blanks, allow_blanks)?;
                 err(Diagnostic::error(format!("`{}[bits: {}]` is a C bit-field: it is for a `layout.C` struct's fields, where C packs them", spell(&inner_ty, self), bits)).at(*span))
             }
-            ast::TypeKind::Bound { inner, lo, hi, unit, span, old, zero } => {
+            ast::TypeKind::Bound { inner, lo, hi, unit, span, old, zero, places: Some((max, min, pspan)) } => {
+                // The places a `d` or a percent keeps (owner, 2026-10-17):
+                // its sides, if it has any, then the places around them.
+                let sides = !(left_out(lo, "min") && left_out(hi, "max"));
+                let number = if sides {
+                    let plain = ast::Type { kind: ast::TypeKind::Bound { inner: inner.clone(), lo: lo.clone(), hi: hi.clone(), unit: unit.clone(), span: *span, old: *old, zero: *zero, places: None }, span: *span };
+                    self.resolve_type(&plain, m, blanks, allow_blanks)?
+                } else {
+                    self.resolve_type(inner, m, blanks, allow_blanks)?
+                };
+                let decimal = crate::check::expr::percent_inner(&number).is_some() || matches!(number.base(), Ty::Deci(_));
+                if !decimal {
+                    return err(Diagnostic::error(format!("places are kept by a `d` or a percent; {} is not decimal: `d64[max_places: 2]`", crate::types::a_type(&spell(&number, self)))).at(*pspan));
+                }
+                Ok(Ty::Places { inner: Box::new(number), max: *max, min: *min })
+            }
+            ast::TypeKind::Bound { inner, lo, hi, unit, span, old, zero, .. } => {
                 let base = self.resolve_type(inner, m, blanks, allow_blanks)?;
                 // A C string's bound (owner, 2026-10-19): in bytes, and
                 // whether its closing 0 counts, said every time.

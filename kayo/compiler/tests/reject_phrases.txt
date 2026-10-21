@@ -879,8 +879,8 @@ casing_cannot_fail [fnv:37c91883b81d6ebc] :: !unbuilt case mappings (7b7e8e57); 
 percent_mixed [fnv:be08fb2eb0857912] :: a percent is its own number family
 percent_out_of_bounds [fnv:7cfee9ff4211bbcd] :: the value can be outside what a `percent[d32][min: 0%, max: 100%]` holds
 percent_unsized [fnv:b11e84029c0e2fd5] :: a written percent names its number
-places_literal_over [fnv:4ee651b44531fdc5] :: !unbuilt places (2e857580); then: this literal has 3 places; d64[max_places: 2] keeps 2
-places_not_rounded [fnv:5e88e20ba86ec483] :: !unbuilt places (2e857580); then: round it on purpose
-places_on_bin [fnv:9b02146f706db4a8] :: !unbuilt places (2e857580); then: places are kept by a `d` or a percent
+places_literal_over [fnv:4ee651b44531fdc5] :: this literal has 3 places; d64[max_places: 2] keeps 2
+places_not_rounded [fnv:5e88e20ba86ec483] :: round it on purpose
+places_on_bin [fnv:9b02146f706db4a8] :: places are kept by a `d` or a percent
 print_as_elsewhere [fnv:42cdbb96bb803b92] :: !unbuilt print.written (445f83b0); then: says how a `print.written` prints
 print_written_computed [fnv:f60a8b7af8d4f8f9] :: !unbuilt print.written (445f83b0); then: was not typed as a literal here

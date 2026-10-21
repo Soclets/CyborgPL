@@ -1072,6 +1072,18 @@ Dated, with the alternative, so each can become a question later.
   programs, tests and bench were swept by script; `std/` is std claude's,
   and the suite was run against its converted copy. Earlier entries
   here keep the names of their day.
+- **2026-10-21 — `max_places` and `min_places`** (owner, 2026-10-17;
+  oracle 2e857580). In a `d`'s or a percent's limits bracket, after its
+  sides or alone: `d64[min: 0.0, max: 1000000.0, max_places: 2]`,
+  `percent[d32][max_places: 1]`. `Ty::Places { inner, max, min }`, which
+  `Ty::base` looks through. A store into `max_places` asks how many places
+  the value can have (`Checker::places_in`): a literal's as written (a
+  percent's in `%`), round.X's `places:` (std's own, found by its kit), a
+  value whose type keeps some, the larger of `+` and `-`, the sum of `x`;
+  a literal with more is refused, and a result that could have more, or
+  that nothing bounds, is to be rounded on purpose. `min_places` pads
+  `print.useful` (`5.00`; runtime `cyborg_out_deci_padded`, and the percent
+  printers take it too); `print.stored` shows the number as it is.
 - **2026-10-21 — `percent[dN]` and `percent[fN]`, its own number family**
   (owner, 2026-10-17; oracle 87fb7026). `Ty::Percent(number)`, held as the
   number over 100 (7% is 0.07); `Ty::base` looks through it, so MIR,

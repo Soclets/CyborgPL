@@ -775,6 +775,18 @@ impl Checker {
     pub fn expect_store(&mut self, ctx: &mut FnCtx, v: Expr, target: &Ty, what: &str) -> Result<Expr> {
         let t = self.resolve(target);
         let vt = self.resolve(&v.ty);
+        // The places a `d` or a percent keeps (owner, 2026-10-17): a literal
+        // with more is refused, and a value that could have more is
+        // rounded on purpose.
+        if let Some(keep) = places_max(&t) {
+            let spelled = self.spell(&t);
+            match self.places_in(&v) {
+                PlacesOf::Literal(n) if n > keep => return err(Diagnostic::error(format!("this literal has {} places; {} keeps {}: write fewer, or round it on purpose", n, spelled, keep)).at(v.span)),
+                PlacesOf::Can(n) if n > keep => return err(Diagnostic::error(format!("this can have {} places; {} keeps {}: round it on purpose, `round.near[…, places: {}]`", n, spelled, keep, keep)).at(v.span)),
+                PlacesOf::Unknown => return err(Diagnostic::error(format!("nothing says how many places this has; {} keeps {}: round it on purpose, `round.near[…, places: {}]`", spelled, keep, keep)).at(v.span)),
+                _ => {}
+            }
+        }
         // A percent and a plain number are two families (owner,
         // 2026-10-17): each becomes the other only through `to.`.
         match (percent_inner(&vt), percent_inner(&t)) {
@@ -2308,6 +2320,51 @@ impl Checker {
             }
         }
         Ok(())
+    }
+
+    /// How many places a value can have (owner, 2026-10-17): a literal's as
+    /// written (a percent's in `%`), round.X's `places:`, a value whose
+    /// type keeps some, the larger of `+` and `-`, the sum of `x`.
+    fn places_in(&self, e: &Expr) -> PlacesOf {
+        let in_percent = percent_inner(&self.resolve(&e.ty)).is_some();
+        let literal = |n: u32| PlacesOf::Literal(if in_percent { n.saturating_sub(2) } else { n });
+        match &e.kind {
+            K::Deci { bits, value } => {
+                let (_, _, exp) = crate::deci::decode(*value, *bits);
+                return literal(if exp < 0 { (-exp) as u32 } else { 0 });
+            }
+            K::Bin(t) => return literal(t.split_once('.').map_or(0, |(_, f)| f.replace('_', "").len() as u32)),
+            K::Int(_) => return PlacesOf::Literal(0),
+            K::Unary { op: UnOp::Neg, expr } => return self.places_in(expr),
+            K::Binary { op, lhs, rhs, .. } if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul) => {
+                let n = |p: PlacesOf| match p {
+                    PlacesOf::Literal(n) | PlacesOf::Can(n) => Some(n),
+                    PlacesOf::Unknown => None,
+                };
+                return match (n(self.places_in(lhs)), n(self.places_in(rhs))) {
+                    (Some(a), Some(b)) if *op == BinOp::Mul => PlacesOf::Can(a + b),
+                    (Some(a), Some(b)) => PlacesOf::Can(a.max(b)),
+                    _ => PlacesOf::Unknown,
+                };
+            }
+            // std's round.X: `places: N`, or a whole number without it.
+            K::Call { callee: hir::Callee::Fn(inst), args, .. } => {
+                let decl = &self.items.fns[self.instances[inst.0 as usize].key.fn_id.0 as usize];
+                let std = self.items.nerve_cord.is_some_and(|c| self.items.kit_root(decl.module) == c);
+                if std && matches!(decl.name.as_str(), "near" | "half_up" | "floor" | "ceil" | "trunc") && decl.path.contains("round") {
+                    return match args.get(1) {
+                        None => PlacesOf::Can(0),
+                        Some(hir::Arg::Value(Expr { kind: K::Int(n), .. })) => PlacesOf::Can((*n).clamp(0, u32::MAX as i128) as u32),
+                        Some(_) => PlacesOf::Unknown,
+                    };
+                }
+            }
+            _ => {}
+        }
+        match places_max(&self.resolve(&e.ty)) {
+            Some(n) => PlacesOf::Can(n),
+            None => PlacesOf::Unknown,
+        }
     }
 
     /// `calm` (or `calm[…]`) where a `Mood` is asked for, when `Mood`'s
@@ -5304,9 +5361,9 @@ fn conv_form(target: &ast::Type) -> Result<(Option<bool>, Option<ast::Type>)> {
             p.segs.remove(0);
             Ok((Some(path.segs[0].name == "useful"), Some(ast::Type { kind: ast::TypeKind::Path { path: p, args: args.clone() }, span: target.span })))
         }
-        ast::TypeKind::Bound { inner, lo, hi, unit, span, old, zero } => {
+        ast::TypeKind::Bound { inner, lo, hi, unit, span, old, zero, places } => {
             let (form, inner2) = conv_form(inner)?;
-            Ok((form, inner2.map(|i| ast::Type { kind: ast::TypeKind::Bound { inner: Box::new(i), lo: lo.clone(), hi: hi.clone(), unit: unit.clone(), span: *span, old: *old, zero: *zero }, span: target.span })))
+            Ok((form, inner2.map(|i| ast::Type { kind: ast::TypeKind::Bound { inner: Box::new(i), lo: lo.clone(), hi: hi.clone(), unit: unit.clone(), span: *span, old: *old, zero: *zero, places: *places }, span: target.span })))
         }
         _ => Ok((None, None)),
     }
@@ -5452,11 +5509,38 @@ pub fn plain_number(t: &Ty) -> bool {
     percent_inner(t).is_none() && matches!(t.base(), Ty::Bin(_) | Ty::Deci(_) | Ty::Brain)
 }
 
+/// The most places a type keeps (`max_places`), through what wraps it.
+pub fn places_max(t: &Ty) -> Option<u32> {
+    match t {
+        Ty::Places { max, inner, .. } => max.or_else(|| places_max(inner)),
+        Ty::Bounded { inner, .. } | Ty::Percent(inner) => places_max(inner),
+        _ => None,
+    }
+}
+
+/// The fewest places a type prints (`min_places`), through what wraps it.
+pub fn places_min(t: &Ty) -> Option<u32> {
+    match t {
+        Ty::Places { min, inner, .. } => min.or_else(|| places_min(inner)),
+        Ty::Bounded { inner, .. } | Ty::Percent(inner) => places_min(inner),
+        _ => None,
+    }
+}
+
+/// How many places a value can have, as a store into `max_places` asks.
+pub enum PlacesOf {
+    /// A literal's, as written.
+    Literal(u32),
+    /// At most this many.
+    Can(u32),
+    Unknown,
+}
+
 /// A percent's number (owner, 2026-10-17), through a bound around it.
 pub fn percent_inner(t: &Ty) -> Option<Ty> {
     match t {
         Ty::Percent(inner) => Some((**inner).clone()),
-        Ty::Bounded { inner, .. } => percent_inner(inner),
+        Ty::Bounded { inner, .. } | Ty::Places { inner, .. } => percent_inner(inner),
         _ => None,
     }
 }

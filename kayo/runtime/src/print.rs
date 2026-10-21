@@ -240,13 +240,51 @@ fn percent_digits(src: &[u8], dst: &mut [u8]) -> usize {
 /// # Safety
 /// As `cyborg_out_bytes`.
 #[no_mangle]
-pub unsafe extern "C" fn cyborg_out_bin_percent(o: *mut Out, x: f64, bits: u32) {
+pub unsafe extern "C" fn cyborg_out_bin_percent(o: *mut Out, x: f64, bits: u32, min: u32) {
     let mut buf = [0u8; 1080];
     let n = bin_useful(x, bits, &mut buf);
-    let mut out = [0u8; 1200];
+    let mut out = [0u8; 1300];
     let m = percent_digits(&buf[..n], &mut out[..1199]);
+    let m = pad_places(&mut out, m, min as usize);
     out[m] = b'%';
     put(o, &out[..m + 1]);
+}
+
+/// At least `min` places after the point, as `min_places` asks (owner,
+/// 2026-10-17): `5` is `5.00`. Room is left for the zeros and one byte more.
+fn pad_places(buf: &mut [u8], n: usize, min: usize) -> usize {
+    if min == 0 {
+        return n;
+    }
+    let (mut n, have) = match buf[..n].iter().position(|&b| b == b'.') {
+        Some(p) => (n, n - p - 1),
+        None => {
+            buf[n] = b'.';
+            (n + 1, 0)
+        }
+    };
+    for _ in have..min {
+        if n + 1 >= buf.len() {
+            break;
+        }
+        buf[n] = b'0';
+        n += 1;
+    }
+    n
+}
+
+/// A deci in `print.useful`, padded to `min_places`.
+///
+/// # Safety
+/// As `cyborg_out_bytes`.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_out_deci_padded(o: *mut Out, lo: u64, hi: u64, bits: u32, min: u32) {
+    let mut buf = [0u8; 6300];
+    let n = deci_text(lo, hi, bits, true, &mut buf);
+    let mut out = [0u8; 6400];
+    out[..n].copy_from_slice(&buf[..n]);
+    let m = pad_places(&mut out, n, min as usize);
+    put(o, &out[..m]);
 }
 
 /// A percent of a deci, as `print.useful` shows it: `12.25%`.
@@ -254,11 +292,12 @@ pub unsafe extern "C" fn cyborg_out_bin_percent(o: *mut Out, x: f64, bits: u32) 
 /// # Safety
 /// As `cyborg_out_bytes`.
 #[no_mangle]
-pub unsafe extern "C" fn cyborg_out_deci_percent(o: *mut Out, lo: u64, hi: u64, bits: u32) {
+pub unsafe extern "C" fn cyborg_out_deci_percent(o: *mut Out, lo: u64, hi: u64, bits: u32, min: u32) {
     let mut buf = [0u8; 6300];
     let n = deci_text(lo, hi, bits, true, &mut buf);
-    let mut out = [0u8; 6400];
+    let mut out = [0u8; 6500];
     let m = percent_digits(&buf[..n], &mut out[..6399]);
+    let m = pad_places(&mut out, m, min as usize);
     out[m] = b'%';
     put(o, &out[..m + 1]);
 }

@@ -359,6 +359,7 @@ pub fn resolved(t: &Ty, subst: &HashMap<crate::types::InferId, Ty>) -> Ty {
         Ty::Bundle(ts) => Ty::Bundle(ts.iter().map(|t| resolved(t, subst)).collect()),
         Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(resolved(inner, subst)), bound: bound.clone() },
         Ty::Percent(inner) => Ty::Percent(Box::new(resolved(inner, subst))),
+        Ty::Places { inner, max, min } => Ty::Places { inner: Box::new(resolved(inner, subst)), max: *max, min: *min },
         t => t.clone(),
     }
 }
