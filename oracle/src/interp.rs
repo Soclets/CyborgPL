@@ -5936,7 +5936,8 @@ fn written_text(e: &Expr) -> Option<String> {
     match e {
         Expr::Int(i, _) => Some(i.to_string()),
         Expr::Bin(_, t, _) | Expr::Exact(t, _) => Some(t.clone()),
-        Expr::Percent(inner, _) => written_text(inner).map(|t| format!("{}%", crate::value::percent_digits(&t))),
+        // the digits as typed, trailing zeros kept (`51.0%`; check claude, 2026-10-21)
+        Expr::Percent(inner, _) => written_text(inner).map(|t| format!("{}%", crate::value::percent_digits_kept(&t))),
         Expr::Text(t, _) => Some(t.clone()),
         Expr::Newline(_) => Some("\n".into()),
         Expr::Bool(b, _) => Some(if *b { "true".into() } else { "false".into() }),

@@ -7,7 +7,7 @@ MAIN {
     let 'tax' := exactly 7.5%;
     std::print.stored['x', newln];
     std::print.useful['x', newln];
-    std::print.written['x', " ", 'tax', " ", -2.50, newln];
+    std::print.written['x', " ", 'tax', " ", -2.50, " ", exactly 51.0%, newln];
     let 'y' := 'x' + 0.5: f16;
     std::print.written['y', newln] otherwise std::print.useful;
     let mut 'z': f64 = 1.25;

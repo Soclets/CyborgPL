@@ -210,6 +210,19 @@ pub fn show_duration(n: i128) -> String {
 pub fn unit_word(u: &CharUnit) -> &'static str { match u { CharUnit::Byte => "bytes", CharUnit::Point => "points", CharUnit::Grapheme => "graphemes" } }
 
 /// A fraction's digits as a percentage's, the point moved two places right (`0.075` → `7.5`, `1.2` → `120`).
+/// As `percent_digits`, keeping the trailing zeros as typed (`0.510` → `51.0`), for `print.written`.
+pub fn percent_digits_kept(t: &str) -> String {
+    if t.contains(['e', 'E']) { return percent_digits(t); }
+    let (neg, t) = match t.strip_prefix('-') { Some(r) => (true, r), None => (false, t) };
+    let (int, frac) = t.split_once('.').unwrap_or((t, ""));
+    let padded = format!("{frac}00");
+    let whole = format!("{int}{}", &padded[..2]);
+    let whole = whole.trim_start_matches('0');
+    let whole = if whole.is_empty() { "0" } else { whole };
+    let tail = if frac.len() > 2 { &frac[2..] } else { "" };
+    format!("{}{whole}{}", if neg { "-" } else { "" }, if tail.is_empty() { String::new() } else { format!(".{tail}") })
+}
+
 pub fn percent_digits(t: &str) -> String {
     if t.contains(['e', 'E']) { return t.parse::<f64>().map(|x| format!("{}", x * 100.0)).unwrap_or_else(|_| t.to_string()); }
     let (neg, t) = match t.strip_prefix('-') { Some(r) => (true, r), None => (false, t) };
