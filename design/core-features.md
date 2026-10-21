@@ -8,9 +8,10 @@ and reworded here; these are what every later design decision is measured agains
 
 1. **Precog.** Built into `KAYO\n`, it works out every value the program can hold, across the whole program, while it
    builds. Every overflow, out-of-range index and division by zero is proven impossible, or the final build stops and
-   shows the value that breaks it, unless the programmer marks that site: `check` keeps a run-time check there,
-   `no_check` trusts it (the three tiers, below). Compile time is not a cost the language cares about: the developer
-   waits, the final product does not.
+   shows the value that breaks it. Nothing is left to check at run time: a site is proven, `check`-confirmed (a
+   guardrail the programmer wrote, proven exactly), or `no_check` (trusted, and listed in the build's report), the
+   three tiers below. Compile time is not a cost the language cares about: the developer waits, the final product
+   does not.
 2. **Ownership.** Every value has exactly one owner and is freed when that owner's scope ends, with no garbage
    collector. Moves, copies and borrows (`give`, `copy`, `lend`, `lent`) are proven while building, so a borrow never
    outlives its owner or changes under it.

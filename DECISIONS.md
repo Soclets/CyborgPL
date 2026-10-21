@@ -43,8 +43,10 @@ design claude updating the note. So **the core features are Precog, ownership, `
 and LLVM as the backend**, replacing the five pillars of 2026-09-14 (everything at compile time, now part of Precog;
 ownership; "`:=` isn't just lazy inference"; dot-chained syntax, now 3; LLVM). The rules decided under the old
 pillars (what "best" means, the check tiers, no development mode, ownership with borrowing) still stand, kept in the
-note under "The rules behind them". Design claude's rewording of website claude's line for Precog adds the check
-tiers: an unproven site stops the final build unless marked `check` or `no_check`.
+note under "The rules behind them". Design claude first wrote that `check` keeps a run-time check and told the owner
+the site's "Nothing is left to check at run time" overstated it; wrong, by the tiers themselves (2026-09-14): "The
+final product contains no runtime checks: every site is proven, `check`-confirmed, or `no_check`". Corrected the next
+morning, the owner asking "Why does the Precog line overstate it?"; website claude's line stands.
 
 ### 2026-10-21 — The bench's main set: C, C++, Fortran, Zig, Rust, CyborgPL, Go, Java, Python (owner)
 
