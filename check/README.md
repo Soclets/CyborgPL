@@ -11,6 +11,11 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 ```
 
 
+**`versions` blocks** (owner, 2026-10-21; oracle 78a25324): versions of a collection's own function
+and of a member are written in `versions ov { [...] { … } … }` / `versions ov.flip { … }`; the corpus's
+four version programs are moved, three marked known until kayo builds the block. The generator writes
+them only under `--versions`, off until then.
+
 **Percents and `print.written`** (owner, 2026-10-17/21; kayo 1f60f1cd): the percent episode adds a
 `%` beside an f64 (`'g' + 54%`), `-'tx'` and `-70%`, `let 'sy': %[d32] = exactly 8%;`, and
 `std::print.written` of typed literals (an f16, a percent), then `… otherwise std::print.useful` of a

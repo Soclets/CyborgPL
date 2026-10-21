@@ -5,9 +5,12 @@
 # one; say which, `5: i64`"). The all-literal case is refused before running since 7ab59e76.
 # known-difference: an oracle limit (design claude, 2026-10-20, oracle/README.md): it picks a version
 # for a call with a variable only when the call runs; kayo refuses it while building, the language's way.
+# Moved to a `versions` block (owner, 2026-10-21; oracle 78a25324).
 coll.fn mx {
-    mx ['a': i32, 'b': i32] -> i32 { return 'a' + 'b'; }
-    mx ['a': i32, 'b': i64] -> i32 { return 'a' - to.i32['b']; }
+    versions mx {
+        ['a': i32, 'b': i32] -> i32 { return 'a' + 'b'; }
+        ['a': i32, 'b': i64] -> i32 { return 'a' - to.i32['b']; }
+    }
 }
 MAIN {
     let 'v': i32 = 4;

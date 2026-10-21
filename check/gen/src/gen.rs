@@ -164,6 +164,9 @@ pub struct Config {
     /// pointing at a function written elsewhere) and a `coll.handler` used
     /// through `otherwise` (owner, 2026-10-19; oracle 8ae7abd3, kayo 3776553e).
     pub collections: bool,
+    /// Versions of the collection's own function and of a member, in
+    /// `versions` blocks (owner, 2026-10-20/21). Off until kayo builds the block.
+    pub versions: bool,
     /// C interop (owner, 2026-10-19; oracle 927b1905, kayo 6ae65a5f): a
     /// `layout.C union` written through one field and read through another,
     /// a `layout.C struct` of bit-fields written at and past their limits,
@@ -182,7 +185,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: false, c_interop: true, based_literals: true, bare_enums: true, percents: true }
     }
 }
 
@@ -610,19 +613,22 @@ impl Gen {
         // versions is not decided; every call typed, so none is ambiguous
         let ov = format!("ov{id}");
         let (q1, q2) = (self.rng.range(2, 999), self.rng.range(2, 9));
-        self.extra_fns.push(format!(
-            "coll.fn {ov} {{\n    {ov} ['x': i32, 'k': i32] -> i32 {{ return ('x' x 'k') mod.floor {q1}; }}\n    {ov} ['x': i64] -> i32 {{ return to.i32['x' mod.floor {q1}]; }}\n    {ov} ['x': i16] -> i32 {{ return to.i32['x'] x {q2}; }}\n    {ov} ['x': bool] -> i32 {{ if 'x' {{ return {q2}; }} return 0 - {q2}; }}\n    {ov}.flip ['x': i32] -> i32 {{ return 0 - ('x' mod.floor {q1}); }}\n    {ov}.flip ['x': i64] -> i32 {{ return to.i32['x' mod.floor {q1}] + 1; }}\n}}"
-        ));
+        // written in `versions` blocks (owner, 2026-10-21; oracle 78a25324)
+        if self.cfg.versions {
+            self.extra_fns.push(format!(
+                "coll.fn {ov} {{\n    versions {ov} {{\n        ['x': i32, 'k': i32] -> i32 {{ return ('x' x 'k') mod.floor {q1}; }}\n        ['x': i64] -> i32 {{ return to.i32['x' mod.floor {q1}]; }}\n        ['x': i16] -> i32 {{ return to.i32['x'] x {q2}; }}\n        ['x': bool] -> i32 {{ if 'x' {{ return {q2}; }} return 0 - {q2}; }}\n    }}\n    versions {ov}.flip {{\n        ['x': i32] -> i32 {{ return 0 - ('x' mod.floor {q1}); }}\n        ['x': i64] -> i32 {{ return to.i32['x' mod.floor {q1}] + 1; }}\n    }}\n}}"
+            ));
+        }
         self.extra_fns.push(format!("fn use_b{id} ['n': i32] -> i32 {{\n    let 'h' := {hf}['n'] otherwise {h}.as_b;\n    return 'h' + 200;\n}}"));
         let mut r = |lo: i128, hi: i128| lit(self.rng.range(lo, hi));
         let (x1, k, mm, x2, x3, x4, x5, x6) = (r(-500, 500), r(-20, 20), r(1, 97), r(-500, 500), r(-500, 500), r(-500, 500), r(-500, 500), r(-50, 50));
         let (n1, n2, n3) = (r(-30, 30), r(-30, 30), r(-30, 30));
         let (o1, o2, o3, o4, o5) = (self.rng.range(0, 99999), self.rng.range(0, 30000), self.rng.range(-500, 500), self.rng.range(0, 99999), self.rng.range(0, 99999));
-        let mut lines = vec![
+        let mut lines = if !self.cfg.versions { vec![] } else { vec![
             format!("std::print.useful[{ov}[{o1}: i64], \" \", {ov}[{o2}: i16], \" \", {ov}[{}, {}], \" \", {ov}.flip[{o4}: i32], \" \", {ov}.flip[{o5}: i64], \" \", {ov}[to.i16[{}]], newln];", lit(o3), self.rng.range(1, 9), self.rng.range(-300, 300)),
             // a bool, and arithmetic typed by its operand (kayo c8a27e08)
             format!("std::print.useful[{ov}[{}], \" \", {ov}[to.i64[{}] x {}], \" \", {ov}.flip[(to.i32[{}] + {}) mod.floor 97], newln];", if o1 % 2 == 0 { "true" } else { "false" }, self.rng.range(0, 9999), self.rng.range(1, 9), self.rng.range(0, 999), self.rng.range(0, 99)),
-        ];
+        ] };
         lines.extend(vec![
             format!("std::print.useful[{c}[{x1}, {k}, {mm}], \" \", {c}.p1[{x2}], \" \", {c}.p2[{x3}, {k}], \" \", {c}.flip[{x4}], \" \", {c}.other[{x5}], \" \", {c}.other[{x6}], newln];"),
             format!("std::print.useful[use_a{id}[{n1}], \" \", use_a{id}[{n2}], \" \", use_b{id}[{n3}], \" \", use_b{id}[{n1}], newln];"),

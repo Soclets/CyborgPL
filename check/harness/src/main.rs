@@ -130,6 +130,8 @@ impl Args {
             bool_lists: !avoid.contains("bool-lists"),
             tables: !avoid.contains("tables"),
             collections: !avoid.contains("collections"),
+            // `versions` blocks: kayo has not built them yet (2026-10-21); `--versions` turns them on
+            versions: self.has("versions"),
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),

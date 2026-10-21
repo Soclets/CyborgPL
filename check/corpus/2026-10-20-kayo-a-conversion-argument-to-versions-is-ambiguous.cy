@@ -4,10 +4,14 @@
 # one, or a typed literal / `to.` conversion"), so only the i16 version takes ov[to.i16[169]].
 # The oracle picks it and prints 676. Typed literals, variables and bare two-argument calls agree.
 # Like 2026-10-20-kayo-a-bool-call-beside-whole-number-versions-is-ambiguous.
+# Moved to a `versions` block (owner, 2026-10-21; oracle 78a25324).
+# known-difference: kayo has not built `versions` blocks yet; drop this mark when it has.
 coll.fn ov {
-    ov ['x': i32, 'k': i32] -> i32 { return ('x' x 'k') mod.floor 230; }
-    ov ['x': i64] -> i32 { return to.i32['x' mod.floor 230]; }
-    ov ['x': i16] -> i32 { return to.i32['x'] x 4; }
+    versions ov {
+        ['x': i32, 'k': i32] -> i32 { return ('x' x 'k') mod.floor 230; }
+        ['x': i64] -> i32 { return to.i32['x' mod.floor 230]; }
+        ['x': i16] -> i32 { return to.i32['x'] x 4; }
+    }
 }
 MAIN {
     std::print.useful[ov[to.i16[169]], newln];
