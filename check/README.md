@@ -13,8 +13,8 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 
 **`ptr.null`** (owner, 2026-10-21; oracle 2c8cfb33): under `--ptr-null` (off until kayo builds it), an
 episode passes `ptr.null` to C's `free`, puts it in a list beside pointers from `malloc`, and in a
-`layout.C` field, each asked with `ptr.is_null`, the memory freed after. A branch beside a real pointer
-is not written: there is no `if` value, and a pointer is held only with `:=`. `check gen` now says on
+`layout.C` field, each asked with `ptr.is_null`, the memory freed after. These three are all its
+places: the design's "branch beside a real pointer" had no form and was dropped (b00082d5). `check gen` now says on
 stderr when a program is a mistake on purpose.
 
 **`versions` blocks** (owner, 2026-10-21; oracle 78a25324): versions of a collection's own function
