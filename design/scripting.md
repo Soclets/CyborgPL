@@ -16,6 +16,9 @@
 >
 > Unquoted names, no `;`, a type optional; `print` / `println`; `@name` inside text puts the value in (the owner's
 > first sketch had `$i` once: "Perl slipped $ in").
+> **`@` marks every use of a variable** (owner: `let total = @x + @i`, then "yeah" to `@` being required, design
+> claude's pick): declared bare, `let x = 1000`, read as `@x` inside text and out, as CyborgPL's `'x'`; a plain `x` is not
+> a variable.
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 
