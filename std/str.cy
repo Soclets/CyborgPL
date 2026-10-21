@@ -168,6 +168,36 @@ pub coll.fn slice {
     }
 }
 
+# A case change says its mapping (owner, 2026-10-20): `.ascii` changes a to z only, so `café` is `CAFé`;
+# `.simple` and `.full` are Unicode's. A bare `str.upper` is refused.
+pub coll.fn upper {
+    bare.kit_prefix.optional;
+
+    # 's' with a to z made A to Z, every other byte as it is.
+    upper.ascii [lent 's': str.utf8] -> str.utf8 {
+        let 'out': list[u8] = [];
+        for 'b' in str.each.byte[lend 's'] {
+            if 'b' at_least 97 and.then 'b' at_most 122 { list.append[lend.mut 'out', value: 'b' - 32]; }
+            else { list.append[lend.mut 'out', value: 'b']; }
+        }
+        return my.str.text_of[give 'out'];
+    }
+}
+
+pub coll.fn lower {
+    bare.kit_prefix.optional;
+
+    # 's' with A to Z made a to z, every other byte as it is.
+    lower.ascii [lent 's': str.utf8] -> str.utf8 {
+        let 'out': list[u8] = [];
+        for 'b' in str.each.byte[lend 's'] {
+            if 'b' at_least 65 and.then 'b' at_most 90 { list.append[lend.mut 'out', value: 'b' + 32]; }
+            else { list.append[lend.mut 'out', value: 'b']; }
+        }
+        return my.str.text_of[give 'out'];
+    }
+}
+
 # The bytes of 's', in order.
 fn bytes_of [lent 's': str.utf8] -> list[u8] {
     let 'out': list[u8] = [];

@@ -26,6 +26,10 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
   `u64[min: 1]` (owner, 2026-10-17: "(a)"): a written `pos: 0` is refused when building, and a position
   worked out while running is proven or converted where it is passed (`to.u64[min: 1]['i'] otherwise 1`),
   so `out_of_range` means only past the end.
+- `str.upper.ascii[lend 's']` and `str.lower.ascii` change a to z (or A to Z) only, every other byte as it
+  is (`café` is `CAFé`); `.simple` and `.full`, Unicode's, come next, from generated tables (owner,
+  2026-10-20, 2026-10-21: "(a)"). `kit.cy` holds `pub enum casing { tr, az, lt, root }`, whose rules a full
+  case change follows.
 - `round.cy` — rounding, one family (owner, 2026-10-17; overloading 2026-10-20): `std::round.near` (a tie
   to even), `round.half_up` (a tie away from zero), `round.floor`, `round.ceil`, `round.trunc`, each `['x']`
   for a whole number or `['x', places: N]`, one version per type (f16/32/64, d32/64/128), and the
