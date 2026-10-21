@@ -1072,6 +1072,14 @@ Dated, with the alternative, so each can become a question later.
   programs, tests and bench were swept by script; `std/` is std claude's,
   and the suite was run against its converted copy. Earlier entries
   here keep the names of their day.
+- **2026-10-21 — A const array's length, to layer 3** (std claude: a search
+  by halves in a const table, as std's coming case tables are, left its
+  reads checked, the array "7 long and 0 long at once"). Layer 3 kept
+  `array.length` and a read's bounds as two unknowns, the length key
+  carrying the op; and a `ConstView`'s length, which layer 2 already knew,
+  was never said to the solver. One key for an array's and a list's length,
+  and the view's length stated where it is made (`precog::smt`).
+  `tests/precog.rs`, `a_const_arrays_length_is_known_to_layer_3`.
 - **2026-10-21 — `print.written`** (owner, 2026-10-17; oracle 445f83b0).
   Each value as its literal was typed (`literal_written`): its digits, its
   sign, a percent in `%` with its trailing zeros; a name declared with a

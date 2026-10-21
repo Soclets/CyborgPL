@@ -804,6 +804,20 @@ impl<'a> Enc<'a> {
                             // site has said is not below 0 (owner,
                             // 2026-09-30) — tied, so `'xs'[n]` after
                             // `list.fill[…, 'n']` is inside.
+                            // A const array read in place: its length is
+                            // known while building (std claude, 2026-10-21).
+                            if *op == Op::ConstView && d.proj.is_empty() && !self.aliased.contains(&d.local) {
+                                let n = match args.first() {
+                                    Some(Operand::Const(Const::Array { items, .. })) => Some(items.len()),
+                                    Some(Operand::Const(Const::Bytes(b))) => Some(b.len()),
+                                    _ => None,
+                                };
+                                if let Some(n) = n {
+                                    let v = self.define(64, &bv(n as i128, 64), false);
+                                    let key = Key::Len(d.local, format!("{:?}{:?}", Vec::<Proj>::new(), Op::ListLength));
+                                    env.insert(key, v);
+                                }
+                            }
                             if *op == Op::ListFill && d.proj.is_empty() && !self.aliased.contains(&d.local) {
                                 // At 64 bits, as the code generator takes it.
                                 if let Some(c) = args.get(1).and_then(|a| self.operand(a, &env)) {
@@ -1248,6 +1262,10 @@ impl<'a> Enc<'a> {
             let p = &p;
             let fields_only = p.proj.iter().all(|x| matches!(x, Proj::Field(_)));
             if fields_only && !self.aliased.contains(&p.local) {
+                // An array's length is the one a list's would be: one key, or
+                // `array.length` and a read's bounds were two unknowns (std
+                // claude, 2026-10-21: "7 and 0 at once").
+                let op = if *op == Op::ArrayLength { &Op::ListLength } else { op };
                 Some(Key::Len(p.local, format!("{:?}{:?}", p.proj, op)))
             } else {
                 None

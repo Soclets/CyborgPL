@@ -120,6 +120,38 @@ fn a_full_width_unsigned_value_is_not_proven_safe() {
     );
 }
 
+/// A const array's length is known while building, to layer 3 too, and
+/// `array.length` is the length a read's bounds ask about (std claude,
+/// 2026-10-21: a search by halves in a const table left its reads checked,
+/// the array 7 long and 0 long at once). Every site here is proven.
+#[test]
+fn a_const_arrays_length_is_known_to_layer_3() {
+    assert!(have_a_solver(), "no solver on this machine, so layer 3 cannot be tested at all");
+    let p = build(
+        "extern.C fn getuid [] -> u32;\n\
+         const 'keys': array[u32] = [65, 66, 67, 223, 913, 931];\n\
+         fn look ['c': u32] -> u32 {\n\
+         \x20   let 'n' := array.length['keys'];\n\
+         \x20   let mut 'p': u64[max: 6] = 0;\n\
+         \x20   if 'p' + 4 at_most 'n' and.then 'keys'[pos: 'p' + 4] at_most 'c' { change 'p' = 'p' + 4; }\n\
+         \x20   if 'p' + 2 at_most 'n' and.then 'keys'[pos: 'p' + 2] at_most 'c' { change 'p' = 'p' + 2; }\n\
+         \x20   if 'p' + 1 at_most 'n' and.then 'keys'[pos: 'p' + 1] at_most 'c' { change 'p' = 'p' + 1; }\n\
+         \x20   if 'p' at_least 1 and.then 'keys'[pos: 'p'] equal_to 'c' { return 'p'; }\n\
+         \x20   return 0;\n\
+         }\n\
+         MAIN {\n\
+         \x20   no_check let 'u' := getuid[];\n\
+         \x20   let 'r' := look['u'];\n\
+         }\n",
+    );
+    let ns = notes(&p);
+    assert!(
+        ns.iter().all(|n| n.contains("proven")),
+        "a guarded read of a const array, or the change it allows, was left unproven:\n{}",
+        ns.join("\n")
+    );
+}
+
 /// What layer 3 is for: two values layer 2 only knows separately, and a
 /// guard that relates them.
 #[test]
