@@ -43,7 +43,9 @@ _KAYO = os.path.join(HERE, "..", "kayo", "target", "release", "kayo")
 KAYO = os.environ.get("KAYO", _KAYO)
 LUST = os.environ.get("LUST", "lust")
 # Cases written in only some languages; every other case is in all of them.
-CASE_LANGS = {"nbody": {"cyborgpl", "cyborgpl1", "cyborgpl_nc", "cyborgpl1_nc", "c", "cpp", "rust", "zig", "fortran"}}
+CASE_LANGS = {"nbody": {"cyborgpl", "cyborgpl1", "cyborgpl_nc", "cyborgpl1_nc", "cyborgpl1_ieee", "c", "cpp", "rust", "zig", "fortran"}}
+# Rows written for only some cases; every other row runs every case it has.
+KEY_CASES = {"cyborgpl1_ieee": {"nbody"}}
 # Cases checked by what they print (all of stdout, exit code 0) instead of by exit code.
 PRINTS = {"nbody"}
 # Flags a case adds to a compiler's usual ones, by the command's name: nbody's no-FMA rule.
@@ -51,7 +53,7 @@ CASE_FLAGS = {"nbody": {"clang": ["-ffp-contract=off"], "clang++": ["-ffp-contra
 
 
 def has_case(key, name):
-    return key in CASE_LANGS.get(name, (key,))
+    return key in CASE_LANGS.get(name, (key,)) and name in KEY_CASES.get(key, (name,))
 
 
 def label_for(key, name):
@@ -135,6 +137,8 @@ LANGS = {
     # `no_cheat` in front of the work (owner, 2026-10-19: "with cheat and no_cheat"): every round really runs
     "cyborgpl_nc": (f"CyborgPL no_cheat (kayo, final build, {os.environ.get('CYBORGPL_BENCH_THREADS', os.environ.get('CYBORG_BENCH_THREADS', '3'))} threads)", None, "{b}_no_cheat.cy", kayo_build, lambda s, d, b: [os.path.join(d, b)]),
     "cyborgpl1_nc": ("CyborgPL no_cheat (kayo, final build, 1 thread)", None, "{b}_no_cheat.cy", kayo_build, lambda s, d, b: [os.path.join(d, b)]),
+    # every bin operation in its `.ieee` form, keeping -0 as the other languages do (owner, 2026-10-21: "add the .ieee row")
+    "cyborgpl1_ieee": ("CyborgPL .ieee (kayo, final build, 1 thread)", None, "{b}_ieee.cy", kayo_build, lambda s, d, b: [os.path.join(d, b)]),
     "c": ("C (clang -O3)", "clang", "{b}.c", native(lambda s, o: ["clang", "-O3", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "asm": ("Assembly (AArch64, hand-written)", "clang", "{b}.s", native(lambda s, o: ["clang", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
     "cpp": ("C++ (clang++ -O3)", "clang++", "{b}.cpp", native(lambda s, o: ["clang++", "-O3", "-std=c++17", s, "-o", o]), lambda s, d, b: [os.path.join(d, b)]),
@@ -181,7 +185,7 @@ def available(key):
 # `CYBORG_BENCH_THREADS=10 python3 run.py` gives it every core, when nothing else is running
 # (owner, 2026-10-06: "uncapped")
 CYBORGPL_THREADS = os.environ.get("CYBORGPL_BENCH_THREADS", os.environ.get("CYBORG_BENCH_THREADS", "3"))
-THREADS = {"cyborgpl": CYBORGPL_THREADS, "cyborgpl1": "1", "cyborgpl_nc": CYBORGPL_THREADS, "cyborgpl1_nc": "1"}
+THREADS = {"cyborgpl": CYBORGPL_THREADS, "cyborgpl1": "1", "cyborgpl_nc": CYBORGPL_THREADS, "cyborgpl1_nc": "1", "cyborgpl1_ieee": "1"}
 
 
 def run_once(cmd, n, lust, key="", prints=False):
@@ -211,7 +215,7 @@ def kayo_version():
 
 # The main set (owner, 2026-10-21): what a plain `python3 run.py` runs; `all` runs every language above,
 # and naming languages runs those. CyborgPL's rows: 3 threads and 1, each normal and no_cheat.
-MAIN_SET = ["cyborgpl", "cyborgpl1", "cyborgpl_nc", "cyborgpl1_nc", "c", "cpp", "fortran", "zig", "rust", "go", "java", "python"]
+MAIN_SET = ["cyborgpl", "cyborgpl1", "cyborgpl_nc", "cyborgpl1_nc", "cyborgpl1_ieee", "c", "cpp", "fortran", "zig", "rust", "go", "java", "python"]
 
 
 def main():

@@ -34,6 +34,11 @@ bench/run.py` (the main set; nbody only in these six); kayo `CyDT dc1b05aa KAYO\
   one run outside run.py. (2) kayo keeps the pair loop a loop, where clang unrolls it and does two square roots at
   once. A fixed count of 5 or an `array` instead of a list changed nothing (6.4 s each). Threads don't help: no loop
   is split.
+- **The `.ieee` row** (owner: "add the .ieee row"): `bench/nbody/nbody_ieee.cy` is `nbody.cy` with every bin
+  operation in its `.ieee` form, keeping -0 as the other five languages do, so no +0.0 adds; run.py's
+  `cyborgpl1_ieee`, nbody only. Same output as C to the last bit (N = 0, 1,000, 1,000,000) and no fused
+  instruction. Timed in a second run (`run.py cyborgpl1_ieee cyborgpl1 c`, load about 2.0): C 2.758 s,
+  CyborgPL .ieee 5.522 s (2.00× C), CyborgPL 6.432 s (2.33×). The -0 rule costs 14% here; the other 2× is kayo's.
 - Not explained yet: Rust and Zig beating C by a third with bit-identical answers, and no_cheat costing 30% here.
 
 ## 2026-10-21: CyborgPL against Odin, Zig and C (owner: "Bench it against CyborgPL, Zig, and C only")
