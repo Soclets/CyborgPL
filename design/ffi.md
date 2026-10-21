@@ -78,7 +78,7 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 - **`ptr.null` is C's `NULL`** (owner, 2026-10-21: "yea, add it", then "widened (a)"): the pointer to
   nothing, a value, not a call. It goes only where its pointer type is known: a C call's argument
   (`strtol[lend 's', ptr.null, 10]`, `free[ptr.null]`), a `layout.C` field, a list beside pointers of a
-  known kind (`[lend 'prog', ptr.null]`, as `execv` wants), a branch beside a real pointer. A `:=`
+  known kind, which come from C since a list cannot hold a lend (`['home', ptr.null]`, as `execv` wants). A `:=`
   holding nothing but it, alone or as every item of a list, is refused: nothing would say what it points
   at. It satisfies `ptr.mut` too; reading or writing through it is a `no_check` site like any other, and
   fails. `ptr.is_null` asks; `ptr.null` is the answer's value. `examples/ptr_null.cy`.

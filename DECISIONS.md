@@ -45,10 +45,13 @@ Design claude had shown `let 'p': ptr[u8] = ptr.null;`, which 2026-09-19's rule 
 signatures and `layout.C` fields, a pointer held with `:=`), and asked whether a variable may hold one: (a) only
 straight into a C call, (b) `:=` too, its target taken from its first use. After the `execv` list showed (a) too
 narrow, **widened (a)** (owner, design claude's recommendation): **`ptr.null` goes anywhere its pointer type is
-known**: a C call's argument, a `layout.C` field, a list beside pointers of a known kind, a branch beside a real
-pointer; **a `:=` holding nothing but it** (`let 'p' := ptr.null;`, or a list of only nulls) **is refused**, since
+known**: a C call's argument, a `layout.C` field, a list beside pointers of a known kind; **a `:=` holding nothing but it** (`let 'p' := ptr.null;`, or a list of only nulls) **is refused**, since
 nothing would say what it points at. Design claude's readings, not asked: it satisfies `ptr.mut` too; `ptr.null[…]` is
-refused as a call; reading or writing through it is a `no_check` site that fails, as any null's is. In the oracle:
+refused as a call; reading or writing through it is a `no_check` site that fails, as any null's is. **Correction**
+(check claude, the same day): design claude's examples were not CyborgPL. A list cannot hold a lend ("a list owns its
+elements"), so `[lend 'prog', ptr.null]` is refused and a list's real pointers come from C (`['home', ptr.null]`); and
+`if` is not a value, so "a branch beside a real pointer", and the run-time-choice example shown to the owner, have no
+form; dropped. In the oracle:
 `examples/ptr_null.cy`, reject tests `ptr_null_alone`, `ptr_null_list_alone`, `ptr_null_call`; `design/ffi.md`.
 
 ### 2026-10-21 — WITHDRAWN the same day: C's type words as base types written in front (`let long 'x'`); CNC stays separate from the base (owner)

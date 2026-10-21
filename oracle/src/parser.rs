@@ -2678,7 +2678,7 @@ impl Parser {
         // what it points at when it is all a `:=` holds, alone or as every item of a list
         let is_null = |v: &Value| matches!(v, Value::Expr(Expr::Builtin(h, o, ..)) if h == "ptr" && o == "null");
         if !value.values.is_empty() && value.values.iter().all(is_null) {
-            return self.err(format!("`ptr.null` alone does not say what it points at, so '{name}' cannot hold it: write `ptr.null` where the pointer goes, in a C call (`strtol[lend 's', ptr.null, 10]`) or beside a pointer of known kind (`[lend 'prog', ptr.null]`)"));
+            return self.err(format!("`ptr.null` alone does not say what it points at, so '{name}' cannot hold it: write `ptr.null` where the pointer goes, in a C call (`strtol[lend 's', ptr.null, 10]`) or in a list beside a pointer from C (`['home', ptr.null]`)"));
         }
         self.expect(Tok::Semi, "`;`")?;
         Ok(Stmt::Decl { name, mutability, ty, value, shadow, sealed, line })
