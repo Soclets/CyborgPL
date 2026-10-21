@@ -152,6 +152,11 @@ html.ready .topbar { animation: drop .7s cubic-bezier(.2, .8, .2, 1) both; }
 .fs-side { display: inline-flex; align-items: center; gap: 10px; }
 .fs-button { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 0; border-radius: 8px; background: none; color: rgba(255, 255, 255, .7); cursor: pointer; transition: background .15s, color .15s; }
 .fs-button:hover, .fs-button:focus-visible { background: rgba(255, 255, 255, .08); color: var(--ink); outline: none; }
+/* The copy button: a tick in orange once copied, said aloud to screen readers. */
+.copy-button { position: relative; overflow: hidden; }
+.copy-button svg { position: absolute; }
+.copy-button[data-state="done"], .fs-panel .fs-button.copy-button[data-state="done"] { color: var(--accent); }
+.copy-said { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .fs-backdrop { position: fixed; inset: 0; z-index: 200; padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); background: rgba(0, 0, 0, .86); }
 .fs-panel { margin: 0; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; height: 100%; background: #0d0d0d; }
 .fs-panel figcaption { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px 8px 16px; border-bottom: 1px solid var(--line); font: 12px var(--mono); color: rgba(255, 255, 255, .55); }

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import EXAMPLES from "../generated/examples.json";
 
@@ -18,11 +18,47 @@ function FullscreenIcon({ open }: { open: boolean }) {
   );
 }
 
+// Copies a panel's text in one press (owner, 2026-10-21: "Add easy copy"); the icon turns into a
+// tick for a moment. Where the clipboard API is missing or refused, a hidden textarea does it.
+async function copyText(text: string) {
+  try { await navigator.clipboard.writeText(text); return true; } catch {}
+  const area = Object.assign(document.createElement("textarea"), { value: text });
+  area.setAttribute("readonly", "");
+  area.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+  document.body.append(area);
+  area.select();
+  const done = document.execCommand("copy");
+  area.remove();
+  return done;
+}
+
+function CopyButton({ text, what }: { text: string; what: string }) {
+  const [state, setState] = useState<"idle" | "done" | "failed">("idle");
+  const timer = useRef(0);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const copy = async () => {
+    setState((await copyText(text)) ? "done" : "failed");
+    clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setState("idle"), 1600);
+  };
+  return (
+    <button className="fs-button copy-button" onClick={copy} aria-label={`Copy ${what}`} data-state={state}>
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.svg key={state} width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+          initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.6 }} transition={{ type: "spring", stiffness: 600, damping: 30 }}>
+          {state === "done" ? <path d="m2.5 7.5 3 3 6-7" /> : state === "failed" ? <path d="M3.5 3.5l7 7M10.5 3.5l-7 7" /> : <><rect x="4.5" y="4.5" width="8" height="8" rx="1.8" /><path d="M9.5 2.5V2.3A.8.8 0 0 0 8.7 1.5H2.3a.8.8 0 0 0-.8.8v6.4a.8.8 0 0 0 .8.8h.2" /></>}
+        </motion.svg>
+      </AnimatePresence>
+      <span className="copy-said" aria-live="polite">{state === "done" ? "Copied" : state === "failed" ? "Couldn't copy" : ""}</span>
+    </button>
+  );
+}
+
 // A box that can go fullscreen (owner, 2026-10-19: "Add a fullscreen button for each (output too)").
 // It grows out of its place to fill the window (Motion's shared layout), and asks the browser for
 // real fullscreen where it allows it; iPhone Safari doesn't, so there it fills the window. Escape,
 // the button, or leaving the browser's fullscreen brings it back.
-function Panel({ id, className, title, extra, children }: { id: string; className: string; title: string; extra?: ReactNode; children: ReactNode }) {
+function Panel({ id, className, title, copy, extra, children }: { id: string; className: string; title: string; copy: string; extra?: ReactNode; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!open) return;
@@ -48,6 +84,7 @@ function Panel({ id, className, title, extra, children }: { id: string; classNam
       <span>{title}</span>
       <span className="fs-side">
         {extra}
+        <CopyButton text={copy} what={title === "Output" ? "the output" : title} />
         <button className="fs-button" onClick={() => setOpen(!open)} aria-label={open ? `Leave fullscreen` : `Show ${title} fullscreen`}>
           <FullscreenIcon open={open} />
         </button>
@@ -90,12 +127,12 @@ export function Examples() {
       </div>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={ex.id} className="ex-panes" role="tabpanel" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18, ease: "easeOut" }}>
-          <Panel id={`${ex.id}-code`} className="ex-code" title={ex.file} extra={<span className="fs-note">{ex.lines} {ex.lines === 1 ? "line" : "lines"}</span>}>
+          <Panel id={`${ex.id}-code`} className="ex-code" title={ex.file} copy={ex.code.map((line) => line.map(([text]) => text).join("")).join("\n")} extra={<span className="fs-note">{ex.lines} {ex.lines === 1 ? "line" : "lines"}</span>}>
             <pre><code>{ex.code.map((line, i) => (
               <span className="code-line" key={i}>{line.map(([text, kind], j) => (kind ? <span key={j} className={`tk-${kind}`}>{text}</span> : text))}{"\n"}</span>
             ))}</code></pre>
           </Panel>
-          <Panel id={`${ex.id}-out`} className="ex-out" title="Output">
+          <Panel id={`${ex.id}-out`} className="ex-out" title="Output" copy={ex.out}>
             <pre>{ex.out}</pre>
           </Panel>
         </motion.div>
