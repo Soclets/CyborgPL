@@ -114,6 +114,13 @@ runs, read by tools, and no way for a program to read one is designed): "`.cy`".
 generated `.cy` module of consts**, Precog seeing all of it. Design claude's correction on the way: the `unicode`
 limb is a gate allowing Unicode features (kayo/LIMBS.md), not a holder of Unicode's tables, as it had said 2026-10-20.
 
+**The generator is Python, downloading the pinned version's files from unicode.org** (owner: "I mean, can't we just
+download?", then "yea"; over Perl reading the files Perl ships, which std claude and then design claude had picked
+since this Mac's Python has Unicode 16.0.0): `UnicodeData.txt`, `SpecialCasing.txt` and `DerivedCoreProperties.txt`
+from `https://www.unicode.org/Public/17.0.0/ucd/` (the version kayo pins), so anyone can regenerate the tables on
+any machine. Only the generated `.cy` and Unicode's licence notice (Unicode License v3 asks it to travel with derived
+data) go in the repo, the generator beside them in `std/tools/`; each download is asked of the owner first.
+
 ### 2026-10-21 — The core features are four: Precog, ownership, `::` and `.`, LLVM (owner, through website claude)
 
 Relayed by website claude, the owner on `design/core-features.md`: "That's pretty old. So, let's do a new one", and
