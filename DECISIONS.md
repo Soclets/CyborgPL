@@ -67,8 +67,15 @@ pub coll.fn say {
 ```
 
 **`labels [ … ];`** (was `words`) gives the labels, **`defaults [ … ];`** what a left-out argument is. The owner asked
-"does it need to be `1: u`": no, a default takes its parameter's type, as a preset's fill does. Not built; still to
-ask: the labels' order, and how a default meets the versions picked by argument count.
+"does it need to be `1: u`": no, a default takes its parameter's type, as a preset's fill does.
+
+**Order: in order by default; a function may let its labels go in any order** (owner, asked "Does always in-order work
+for any useful case?" (yes, with defaults any argument can still be skipped; it costs only remembering the order of
+many settings), then "Let me see the mid way", "seems good, but no order defaults for pub?", then "yea"). So
+**`labels.in_order [ … ];`** or **`labels.any_order [ … ];`**, a `pub` function saying which (no default, as for its
+`kit_prefix` and an enum's `enum_prefix`), a private one's plain `labels [ … ];` meaning in order. The arguments
+without a label always come first, in place; only labelled ones move. `draw[lend 'pic', height: 40, width: 120,
+border: 2]`. Not built; still to ask: how a default meets the versions picked by argument count.
 
 ### 2026-10-21 — A std `convert` converts into kit types, the type named in the call (owner: b; details open, not built)
 
