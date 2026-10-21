@@ -2674,6 +2674,12 @@ impl Parser {
             // design claude's reading, not ruled: nothing says which `+` (i32? f64? a Vec?)
             return self.err(format!("`op {op}` alone does not say which `{op}`: give '{name}' a function type, `'{name}': fn[i32, i32] -> i32 = op {op};`"));
         }
+        // `ptr.null` goes only where its pointer type is known (owner, 2026-10-21: "widened (a)"): nothing here says
+        // what it points at when it is all a `:=` holds, alone or as every item of a list
+        let is_null = |v: &Value| matches!(v, Value::Expr(Expr::Builtin(h, o, ..)) if h == "ptr" && o == "null");
+        if !value.values.is_empty() && value.values.iter().all(is_null) {
+            return self.err(format!("`ptr.null` alone does not say what it points at, so '{name}' cannot hold it: write `ptr.null` where the pointer goes, in a C call (`strtol[lend 's', ptr.null, 10]`) or beside a pointer of known kind (`[lend 'prog', ptr.null]`)"));
+        }
         self.expect(Tok::Semi, "`;`")?;
         Ok(Stmt::Decl { name, mutability, ty, value, shadow, sealed, line })
     }
@@ -3882,12 +3888,18 @@ impl Parser {
         Ok(idx)
     }
 
-    // ptr op := 'ptr' '.' ('read' | 'write' | 'at' | 'is_null') bracket   (design/ffi.md)
+    // ptr op := 'ptr' '.' ('read' | 'write' | 'at' | 'is_null') bracket | 'ptr' '.' 'null'   (design/ffi.md)
     fn ptr_op(&mut self) -> PResult<(String, String, Bracket)> {
         self.expect_word("ptr")?;
-        self.expect(Tok::Dot, "`.` after `ptr` (`ptr.read[…]`, `ptr.write[…]`, `ptr.at[…]`, `ptr.is_null[…]`)")?;
+        self.expect(Tok::Dot, "`.` after `ptr` (`ptr.read[…]`, `ptr.write[…]`, `ptr.at[…]`, `ptr.is_null[…]`, `ptr.null`)")?;
         let op = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected an operation after `ptr.`, found {other}")) };
-        let want = match op.as_str() { "read" => 1, "write" => 2, "at" => 2, "is_null" => 1, "cast" => return self.err("`ptr.cast[T]['p']` is a value, the pointer seen as pointing at a T: `no_check 'q' := ptr.cast[Point]['p'];`"), "mut" => return self.err("`ptr.mut[T]` is a type, for an extern signature; here use `ptr.read`, `ptr.write`, `ptr.at`, `ptr.is_null`, `ptr.cast`"), _ => return self.err(format!("`ptr.{op}` does not exist; ptr has read, write, at, is_null, cast")) };
+        // `ptr.null`, the null pointer, a value: its target type is where it goes (owner, 2026-10-21: "yea, add it")
+        if op == "null" {
+            if *self.peek() == Tok::LBracket { return self.err("`ptr.null` is the null pointer, a value, not a call: `let 'p': ptr[u8] = ptr.null;`"); }
+            let line = self.line();
+            return Ok(("ptr".into(), op, Bracket { values: Vec::new(), line, one_list: false }));
+        }
+        let want = match op.as_str() { "read" => 1, "write" => 2, "at" => 2, "is_null" => 1, "cast" => return self.err("`ptr.cast[T]['p']` is a value, the pointer seen as pointing at a T: `no_check 'q' := ptr.cast[Point]['p'];`"), "mut" => return self.err("`ptr.mut[T]` is a type, for an extern signature; here use `ptr.read`, `ptr.write`, `ptr.at`, `ptr.is_null`, `ptr.cast`, `ptr.null`"), _ => return self.err(format!("`ptr.{op}` does not exist; ptr has read, write, at, is_null, cast, null")) };
         if *self.peek() != Tok::LBracket { return self.err(format!("`ptr.{op}` is a call and needs `[…]`")); }
         match op.as_str() { "read" | "at" => self.use_power("raw_memory.read", Some(format!("ptr.{op}")), self.line()), "write" => self.use_power("raw_memory.write", Some("ptr.write".into()), self.line()), _ => {} }
         let args = self.bracket()?;

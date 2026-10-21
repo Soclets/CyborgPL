@@ -1,0 +1,1 @@
+`ptr.null` alone does not say what it points at, so 'xs' cannot hold it

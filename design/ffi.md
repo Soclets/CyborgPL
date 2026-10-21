@@ -74,7 +74,14 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
   if ptr.is_null['f'] { fail not_found; }   # C's null; reading it would crash
   ```
   All `no_check` sites. No pointer↔integer conversion; a pointer comes
-  only from a lend or from C.
+  only from a lend, from C, or as `ptr.null`.
+- **`ptr.null` is C's `NULL`** (owner, 2026-10-21: "yea, add it", then "widened (a)"): the pointer to
+  nothing, a value, not a call. It goes only where its pointer type is known: a C call's argument
+  (`strtol[lend 's', ptr.null, 10]`, `free[ptr.null]`), a `layout.C` field, a list beside pointers of a
+  known kind (`[lend 'prog', ptr.null]`, as `execv` wants), a branch beside a real pointer. A `:=`
+  holding nothing but it, alone or as every item of a list, is refused: nothing would say what it points
+  at. It satisfies `ptr.mut` too; reading or writing through it is a `no_check` site like any other, and
+  fails. `ptr.is_null` asks; `ptr.null` is the answer's value. `examples/ptr_null.cy`.
 - **Symbols, old since 2026-10-16** (they are not operators, `operators.md`), refused naming the word;
   from 2026-10-14 (owner): `*const T` was `ptr[T]`, `*mut T`
   `ptr.mut[T]` (Rust's raw-pointer spelling), `*'p'` reads (`ptr.read['p']`)

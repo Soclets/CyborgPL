@@ -5110,10 +5110,12 @@ impl<'p> Interp<'p> {
         })
     }
 
-    /// ptr.read / ptr.write / ptr.at / ptr.is_null (design/ffi.md). The first three
+    /// ptr.read / ptr.write / ptr.at / ptr.is_null, and the value ptr.null (design/ffi.md). The first three
     /// are nocheck sites; a pointer into a lent Cyborg value reads that value's
     /// elements (bytes, for a str).
     fn ptr_op(&mut self, op: &str, args: &Bracket, line: usize) -> Result<Value, RuntimeError> {
+        // `ptr.null`: points at nothing; `mutable` so it also goes where a `ptr.mut` is wanted (writing through it fails as any null does)
+        if op == "null" { return Ok(Value::Ptr(Ptr { cell: None, index: 0, mutable: true })); }
         let (pv, _) = self.value(&args.values[0])?;
         let p = match pv { Value::Ptr(p) => p, other => return rt(line, format!("`ptr.{op}` needs a pointer, got {}", other.kind())) };
         if op == "is_null" { return Ok(Value::Bool(p.cell.is_none())); }
