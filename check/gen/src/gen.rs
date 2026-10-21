@@ -171,11 +171,14 @@ pub struct Config {
     pub c_interop: bool,
     /// Whole literals written in binary, hex and octal (owner, 2026-10-19).
     pub based_literals: bool,
+    /// A pub enum whose values may drop its name where the type is known,
+    /// `bare.enum_prefix.optional` (owner, 2026-10-20; kayo 91845e68).
+    pub bare_enums: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, c_interop: true, based_literals: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, c_interop: true, based_literals: true, bare_enums: true }
     }
 }
 
@@ -422,6 +425,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let lines = g.c_episode();
         main.extend(lines.into_iter().map(Stmt::Src));
     }
+    if g.cfg.bare_enums && g.rng.chance(10) {
+        let lines = g.bare_enum();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
     if g.cfg.collections && g.rng.chance(12) {
         let lines = g.collection();
         main.extend(lines.into_iter().map(Stmt::Src));
@@ -490,6 +497,31 @@ impl Gen {
             lines.push(format!("std::print.useful[{s_}.a, newln];"));
         }
         lines
+    }
+
+    /// A pub enum with `bare.enum_prefix.optional` (owner, 2026-10-20), a
+    /// function matching on it, and calls writing its values bare, with the
+    /// enum's name, and through a typed name. Compared between the engines.
+    fn bare_enum(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        const WORDS: &[&str] = &["calm", "loud", "soft", "warm", "cool", "dark", "bright", "slow"];
+        let n = self.rng.range(2, 5) as usize;
+        let vals: Vec<&str> = WORDS[..n].to_vec();
+        let (e, f) = (format!("Md{id}"), format!("say{id}"));
+        self.extra_fns.push(format!("pub bare.kit_prefix.only bare.enum_prefix.optional enum {e} {{\n    {}\n}}", vals.join(",\n    ")));
+        let arms: Vec<String> = vals.iter().enumerate().map(|(i, v)| format!("{v} {{ return ('k' x {}) + {i}; }}", i + 1)).collect();
+        self.extra_fns.push(format!("fn {f} ['m': {e}, 'k': i32] -> i32 {{\n    match 'm' {{ {} }}\n}}", arms.join(" ")));
+        let pick = |r: &mut crate::rng::Rng| vals[r.below(n as u64) as usize];
+        let (a, b, c, d) = (pick(&mut self.rng), pick(&mut self.rng), pick(&mut self.rng), pick(&mut self.rng));
+        let k = |r: &mut crate::rng::Rng| { let v = r.range(-500, 500); if v < 0 { format!("({v})") } else { v.to_string() } };
+        let (k1, k2, k3) = (k(&mut self.rng), k(&mut self.rng), k(&mut self.rng));
+        let v = format!("'md{id}'");
+        vec![
+            format!("let {v}: {e} = {a};"),
+            format!("std::print.useful[{f}[{b}, {k1}], \" \", {f}[{e}.{c}, {k2}], \" \", {f}[copy {v}, {k3}], \" \", {f}[{d}, 0], newln];"),
+        ]
     }
 
     /// A `coll.fn` with its own function, two presets, a member with its own
