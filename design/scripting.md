@@ -1,4 +1,7 @@
-# The scripting language
+# The scripting language: Graft
+
+> **Named Graft** (owner, 2026-10-21: "Graft replaces Lunae"; Lunae from 2026-09-27, N% before). "It has two
+> compilation methods: fast, and compiled into CyborgPL", as decided below on 2026-09-18.
 
 > Revised 2026-10-07: code here is in the new syntax; an old spelling in the prose is history. The old → new table is `revision-2026-10-07.md`.
 

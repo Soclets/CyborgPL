@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-21 — The scripting language is Graft (was Lunae, N% before it) (owner)
+
+Talking about CyborgPL for games (design claude: the engine in CyborgPL, gameplay in the scripting language), the
+owner: "Graft for would likely be the scripting lang's name. Or Hymen, two options"; design claude recommended Graft
+(tissue attached to a body, beside limbs and kits; also hard work in British English, and in American English
+political corruption, which the owner had not known: "Who the fuck even calls corruption as graft, lol"), Hymen
+likely to read as crude. The owner: "Graft replaces Lunae. It has two compilation methods: fast, and compiled into
+CyborgPL". So **the scripting language is Graft**; the two methods are the 2026-09-18 design (design/scripting.md):
+its own fast compiler while iterating, assuming the safest, and the final product lowered to CyborgPL and proven.
+Lunae (2026-09-27) and N% are its old names; `brand/lunae/` is history.
+
 ### 2026-10-21 — A function's versions are written in a `versions` block in its collection (owner: yea)
 
 Shown a collection with two `say` lines (Tuesday's versions) and asked about defaults meeting them, the owner: "Wait,
