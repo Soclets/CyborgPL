@@ -46,12 +46,29 @@ so the line is a mark like `bare.…`, `words [ … ];`. "What is `str.empty` th
 in spellings.cyr; design claude offered naming the parameter instead). "'text' is the type value? … it kinda reads
 like that, because it has `''`" (`'x': T` gives a variable its type), and "Why not something else that isn't fucking
 `:`?"; design claude offered `as`, then: "Yeah, that works". So **a collection says its function's argument words
-in a mark, `words ['text' as value, 'times' as count];`**: each listed parameter is written with its word, an
+in a mark, `words ['text' as value, 'times' as count];`** (renamed `labels` the same day, below): each listed parameter is written with its word, an
 unlisted one takes none, and the call reads `say[2, value: "Hello", count: 3]`. `as` becomes a keyword. Not built.
 
 The owner also wants the line to say "which order, if optional, etc"; asked what "optional" means: "2", an argument
 that may be left out, so a stand-in value (nothing like it exists; versions by count and presets did that job).
-Being asked: how the line says the stand-in value and the order.
+Offered `count default 1` or `count or 1`, the owner proposed `count(default 1)` ("I know this sounds illegal"),
+asked what else could go there (`any order`, `word optional`, `old repeat`), then: "What if we made `defaults` another
+line? And maybe make `words` less generic"; design claude offered `labels`, the colon rule's own word, and a
+`defaults` line in a preset's shape. The owner: "yea". So:
+
+```
+pub coll.fn say {
+    bare.kit_prefix.optional;
+    labels ['text' as value, 'times' as count];
+    defaults ['times' = 1];
+    say ['n': i32, 'text': str.utf8, 'times': i32] { … }
+}
+# say[2, value: "Hi"] is say[2, value: "Hi", count: 1]
+```
+
+**`labels [ … ];`** (was `words`) gives the labels, **`defaults [ … ];`** what a left-out argument is. The owner asked
+"does it need to be `1: u`": no, a default takes its parameter's type, as a preset's fill does. Not built; still to
+ask: the labels' order, and how a default meets the versions picked by argument count.
 
 ### 2026-10-21 — A std `convert` converts into kit types, the type named in the call (owner: b; details open, not built)
 
