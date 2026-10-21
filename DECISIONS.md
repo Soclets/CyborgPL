@@ -86,7 +86,11 @@ many settings), then "Let me see the mid way", "seems good, but no order default
 **`labels.in_order [ … ];`** or **`labels.any_order [ … ];`**, a `pub` function saying which (no default, as for its
 `kit_prefix` and an enum's `enum_prefix`), a private one's plain `labels [ … ];` meaning in order. The arguments
 without a label always come first, in place; only labelled ones move. `draw[lend 'pic', height: 40, width: 120,
-border: 2]`. Not built; still to ask: how a default meets the versions picked by argument count.
+border: 2]`.
+
+**A default that lets a version take a call another version also takes is refused where they are written** (owner:
+"(a)", over (b) the version matching without a default winning; recommended): the rule for any two versions that could
+take one call (2026-10-20), so adding a default never quietly changes which function a call reaches. Not built.
 
 ### 2026-10-21 — A std `convert` converts into kit types, the type named in the call (owner: b; details open, not built)
 
