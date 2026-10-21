@@ -1,26 +1,34 @@
 # One name, several versions, picked by how many arguments and their types (owner, 2026-10-20),
-# written together in a `coll.fn` (owner: b). A version is the own function or a member written again.
+# written together in a `coll.fn` (owner: b), in a `versions` block that names them once (owner, 2026-10-21).
 coll.fn describe {
-    describe ['n': i64] -> str.utf8 { return "a whole number"; }
-    describe ['x': f64] -> str.utf8 { return "a binary float"; }
-    describe [lent 's': str.utf8] -> str.utf8 { return "a text"; }
+    versions describe {
+        ['n': i64] -> str.utf8 { return "a whole number"; }
+        ['x': f64] -> str.utf8 { return "a binary float"; }
+        [lent 's': str.utf8] -> str.utf8 { return "a text"; }
+    }
 }
 
 coll.fn width {
-    width ['n': i16] -> str.utf8 { return "16 bits"; }
-    width ['n': i64] -> str.utf8 { return "64 bits"; }
-    width ['x': f32] -> str.utf8 { return "a f32"; }
-    width ['x': f64] -> str.utf8 { return "a f64"; }
+    versions width {
+        ['n': i16] -> str.utf8 { return "16 bits"; }
+        ['n': i64] -> str.utf8 { return "64 bits"; }
+        ['x': f32] -> str.utf8 { return "a f32"; }
+        ['x': f64] -> str.utf8 { return "a f64"; }
+    }
 }
 
 coll.fn which {
-    which ['x': f32] -> str.utf8 { return "f32"; }
-    which ['x': f64] -> str.utf8 { return "f64"; }
+    versions which {
+        ['x': f32] -> str.utf8 { return "f32"; }
+        ['x': f64] -> str.utf8 { return "f64"; }
+    }
 }
 
 coll.fn area {
-    area.rect ['side': i64] -> i64 { return 'side' x 'side'; }
-    area.rect ['w': i64, 'h': i64] -> i64 { return 'w' x 'h'; }
+    versions area.rect {
+        ['side': i64] -> i64 { return 'side' x 'side'; }
+        ['w': i64, 'h': i64] -> i64 { return 'w' x 'h'; }
+    }
 }
 
 MAIN {

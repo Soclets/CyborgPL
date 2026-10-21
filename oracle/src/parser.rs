@@ -215,6 +215,9 @@ thread_local! {
     /// (module, name) of every function a `coll.fn` writes: only those may be overloaded (owner, 2026-10-20: b)
     /// every call written, for the checks before a run (a call two versions could take is refused where it is written)
     pub static CALLS: std::cell::RefCell<Vec<Call>> = std::cell::RefCell::new(Vec::new());
+    /// a collection's `labels` / `defaults` marks for its own function (owner, 2026-10-21): (module, name, parameter → label,
+    /// any order, parameter → default)
+    pub static COLL_LABELS: std::cell::RefCell<Vec<(Vec<String>, String, Vec<(String, String)>, bool, Vec<(String, Expr)>)>> = std::cell::RefCell::new(Vec::new());
     pub static COLL_FNS: std::cell::RefCell<Vec<(Vec<String>, String)>> = std::cell::RefCell::new(Vec::new());
     /// `min_places:` / `max_places:` read in a limits bracket, taken by the type around it (owner, 2026-10-17)
     pub static PENDING_PLACES: std::cell::Cell<(Option<u32>, Option<u32>)> = std::cell::Cell::new((None, None));
@@ -2892,6 +2895,9 @@ impl Parser {
         let mut main: Vec<Vec<Token>> = Vec::new();
         let mut members: Vec<(String, Vec<Token>)> = Vec::new();
         let mut presets: Vec<(String, Vec<(String, Vec<Token>)>, usize)> = Vec::new();
+        let mut in_block: Vec<String> = Vec::new();
+        let mut labels: Option<(Vec<(String, String)>, bool)> = None;
+        let mut defaults: Vec<(String, Expr)> = Vec::new();
         loop {
             match self.peek().clone() {
                 Tok::RBrace => { self.advance(); break; }
@@ -2913,6 +2919,97 @@ impl Parser {
                     self.skip_braces()?;
                 }
                 Tok::Word(w) if w == "named" => return self.err("`named` names what a template generates: it stands inside a `for` in a collection"),
+                // `versions say { ['n': i32] { … }  ['n': i32, 's': str.utf8] { … } }` (owner, 2026-10-21): the name once,
+                // each line one version of the own function or a member
+                Tok::Word(w) if w == "versions" => {
+                    self.advance();
+                    let Tok::Word(first) = self.advance().tok else { return self.err(format!("`versions` names what it holds versions of: `versions {name} {{ … }}`")) };
+                    if first != name { return self.err(format!("a collection's versions are of its own function or a member: `versions {name} {{ … }}` or `versions {name}.quick {{ … }}`")); }
+                    let m = if *self.peek() == Tok::Dot { self.advance(); match self.advance().tok { Tok::Word(x) => x, other => return self.err(format!("expected the member's name after `{name}.`, found {other}")) } } else { first.clone() };
+                    self.expect(Tok::LBrace, "`{` after `versions …`")?;
+                    let mut n = 0;
+                    while *self.peek() != Tok::RBrace {
+                        if *self.peek() == Tok::Eof { return self.err("a `versions` block is never closed"); }
+                        let from = self.pos;
+                        let mut depth = 0i32;
+                        loop {
+                            match self.peek() {
+                                Tok::LBracket | Tok::LParen => depth += 1,
+                                Tok::RBracket | Tok::RParen => depth -= 1,
+                                Tok::LBrace if depth == 0 => break,
+                                Tok::Semi | Tok::Eof if depth == 0 => return self.err("each version is its parameters and its body: `['n': i32] -> T { … }`"),
+                                _ => {}
+                            }
+                            self.advance();
+                        }
+                        self.skip_braces()?;
+                        let toks = self.toks[from..self.pos].to_vec();
+                        if m == name { main.push(toks); } else { members.push((m.clone(), toks)); }
+                        n += 1;
+                    }
+                    self.advance();
+                    if n < 2 { return self.err(format!("a `versions` block holds two or more versions; one is written plainly: `{} [ … ] {{ … }}`", if m == name { name.clone() } else { format!("{name}.{m}") })); }
+                    in_block.push(m);
+                }
+                // `labels.in_order ['text' as value];` / `.any_order` / a private one's plain `labels` (owner, 2026-10-21)
+                Tok::Word(w) if w == "labels" => {
+                    self.advance();
+                    let mut any_order = false;
+                    let mut said = false;
+                    if *self.peek() == Tok::Dot {
+                        self.advance();
+                        match self.advance().tok { Tok::Word(o) if o == "in_order" => said = true, Tok::Word(o) if o == "any_order" => { any_order = true; said = true; } other => return self.err(format!("`labels` is `labels.in_order` or `labels.any_order`, found {other}")) }
+                    }
+                    if !said && vis == Vis::Pub { return self.err("a `pub` function says whether its labels keep their order: `labels.in_order [ … ]` or `labels.any_order [ … ]` (owner, 2026-10-21)"); }
+                    self.expect(Tok::LBracket, "`[` after `labels`")?;
+                    let mut pairs = Vec::new();
+                    loop {
+                        let Tok::Var(p) = self.advance().tok else { return self.err("a label names its parameter, then its word: `labels ['text' as value]`") };
+                        if !self.is_word("as") { return self.err(format!("after the parameter comes `as` and its label: `'{p}' as value`")); }
+                        self.advance();
+                        let Tok::Word(l) = self.advance().tok else { return self.err(format!("`'{p}' as …` needs its label, a word: `'{p}' as value`")) };
+                        if pairs.iter().any(|(q, _): &(String, String)| *q == p) { return self.err(format!("'{p}' is labelled twice")); }
+                        if pairs.iter().any(|(_, x): &(String, String)| *x == l) { return self.err(format!("`{l}` labels two parameters")); }
+                        pairs.push((p, l));
+                        if *self.peek() == Tok::Comma { self.advance(); continue; }
+                        break;
+                    }
+                    self.expect(Tok::RBracket, "`]` after the labels")?;
+                    self.expect(Tok::Semi, "`;` after `labels [ … ]`")?;
+                    if labels.is_some() { return self.err("one `labels` mark in a collection"); }
+                    labels = Some((pairs, any_order));
+                }
+                // `defaults ['times' = 1];`: what a left-out argument is (owner, 2026-10-21), typed by its parameter
+                Tok::Word(w) if w == "defaults" => {
+                    self.advance();
+                    self.expect(Tok::LBracket, "`[` after `defaults`")?;
+                    loop {
+                        let Tok::Var(p) = self.advance().tok else { return self.err("a default names its parameter: `defaults ['times' = 1]`") };
+                        self.expect(Tok::Eq, "`=` after the parameter")?;
+                        let from = self.pos;
+                        let mut depth = 0i32;
+                        loop {
+                            match self.peek() {
+                                Tok::LBracket | Tok::LParen => depth += 1,
+                                Tok::RBracket | Tok::RParen if depth > 0 => depth -= 1,
+                                Tok::Comma | Tok::RBracket if depth == 0 => break,
+                                Tok::Eof => return self.err("a `defaults` mark is never closed"),
+                                _ => {}
+                            }
+                            self.advance();
+                        }
+                        let mut vt = self.toks[from..self.pos].to_vec();
+                        let l = self.line();
+                        vt.push(Token { tok: Tok::Eof, line: l, col: 0, mtm: None });
+                        let e = Parser::new_in(vt, self.module.clone()).expr().map_err(|e| ParseError { line: l, col: 0, msg: e.msg })?;
+                        if defaults.iter().any(|(q, _): &(String, Expr)| *q == p) { return self.err(format!("'{p}' has two defaults")); }
+                        defaults.push((p, e));
+                        if *self.peek() == Tok::Comma { self.advance(); continue; }
+                        break;
+                    }
+                    self.expect(Tok::RBracket, "`]` after the defaults")?;
+                    self.expect(Tok::Semi, "`;` after `defaults [ … ]`")?;
+                }
                 Tok::Word(w) if w == "fn" => return self.err(format!("a collection's members take no `fn`: `{name} [ … ] -> T {{ … }}`, `{name}.quick [ … ] -> T {{ … }}` (owner, 2026-10-13)")),
                 Tok::Word(first) => {
                     let mline = self.line();
@@ -3001,6 +3098,20 @@ impl Parser {
                 }
                 other => return self.err(format!("a collection holds its own function (`{name} [ … ] -> T {{ … }}`), members (`{name}.quick [ … ] -> T {{ … }}`, or `{name}.quick = path.to.fn;`), presets (`{name}.quick ['step' = 2];`), one `bare.` mark, and templates (`for … {{ named …; … }}`); found {other}")),
             }
+        }
+        // versions are written in a `versions` block (owner, 2026-10-21); std/ keeps its repeated lines until its own
+        // session moves them (design claude's stopgap, oracle/README.md)
+        let in_std = CURRENT_FILE.with(|f| f.borrow().to_string_lossy().contains("/std/"));
+        if !in_std {
+            let outside_main = main.len() > 1 && !in_block.contains(&name);
+            let outside_member = members.iter().map(|(m, _)| m).find(|m| members.iter().filter(|(x, _)| x == *m).count() > 1 && !in_block.contains(m));
+            if outside_main { return Err(ParseError { line, col: 0, msg: format!("`{name}` is written {} times: versions of one function go in a block, `versions {name} {{ … }}` (owner, 2026-10-21)", main.len()) }); }
+            if let Some(m) = outside_member { return Err(ParseError { line, col: 0, msg: format!("`{name}.{m}` is written more than once: versions go in a block, `versions {name}.{m} {{ … }}` (owner, 2026-10-21)") }); }
+        }
+        if labels.is_some() || !defaults.is_empty() {
+            if main.is_empty() { return Err(ParseError { line, col: 0, msg: format!("`labels` and `defaults` are for the collection's own function, and `{name}` has none") }); }
+            let (pairs, any) = labels.clone().unwrap_or_default();
+            COLL_LABELS.with(|c| c.borrow_mut().push((self.module.clone(), name.clone(), pairs, any, defaults.clone())));
         }
         let end = self.pos;
         let tk = |t: Tok, l: usize| Token { tok: t, line: l, col: 0, mtm: None };
@@ -3548,7 +3659,8 @@ impl Parser {
             if !matches!(self.peek_at(i), Tok::Word(_)) { return false; }
             match self.peek_at(i + 1) {
                 Tok::Dot => { i += 2; }
-                Tok::LBracket => return matches!(self.peek_at(i + 2), Tok::Var(_) | Tok::Word(_)) && matches!(self.peek_at(i + 3), Tok::Eq | Tok::Walrus | Tok::Colon),
+                // `name: v` after `[` is a call's label now (owner, 2026-10-21); a struct given `field: v` is told so when it runs
+                Tok::LBracket => return matches!(self.peek_at(i + 2), Tok::Var(_) | Tok::Word(_)) && matches!(self.peek_at(i + 3), Tok::Eq | Tok::Walrus),
                 _ => return false,
             }
         }
@@ -3636,7 +3748,7 @@ impl Parser {
             let mut values = Vec::new();
             while *self.peek() == Tok::LeftArrow { self.advance(); values.push(self.value()?); }
             if values.is_empty() { return self.err(format!("`std::{}` needs at least one value: `std::{} <- \"text\";`", path.join("."), path.join("."))); }
-            let c = Call { handler: None, kit, path, from: self.module.clone(), args: Bracket { values, line: bline, one_list: false }, line, bare, written };
+            let c = Call { handler: None, kit, path, from: self.module.clone(), args: Bracket { values, line: bline, one_list: false }, line, bare, written, labels: Vec::new() };
             CALLS.with(|k| k.borrow_mut().push(c.clone()));
             return Ok(c);
         }
@@ -3663,6 +3775,7 @@ impl Parser {
             return self.err(format!("`std::{}` is not a way to round: `round.near`, `round.half_up`, `round.floor`, `round.ceil` or `round.trunc`", path.join(".")));
         }
         // `round.near['x']`, or `round.near['x', places: 2]`: the word comes from spellings.cyr's `calls`
+        let mut call_labels: Vec<Option<String>> = Vec::new();
         let mut args = if positional {
             let bline = self.line();
             self.expect(Tok::LBracket, "`[`")?;
@@ -3678,14 +3791,49 @@ impl Parser {
             }
             self.expect(Tok::RBracket, "`]`")?;
             Bracket { values, line: bline, one_list: false }
-        } else { self.bracket()? };
+        } else {
+            // a kit function's labelled arguments, `say[2, value: "Hi"]` (owner, 2026-10-21): each label read here, before
+            // the bracket, the function's `labels` mark matching them to parameters when it runs
+            if kit.is_none() && *self.peek() == Tok::LBracket { call_labels = self.take_labels(); }
+            self.bracket()?
+        };
         if let (Some(raw), Some(crate::ast::Value::Expr(Expr::Text(t, _)))) = (raw_format, args.values.first_mut()) { *t = raw; }
         let path = if kit.is_none() { self.resolve(&path) } else { path };
         if bare { BARE_CALLS.with(|b| b.borrow_mut().push((self.module.clone(), written.clone(), kit.as_deref() == Some("std"), line))); }
         if kit.is_none() { CALL_SITES.with(|c| c.borrow_mut().push((self.kit_root.clone(), path.clone(), line))); }
-        let c = Call { handler: None, kit, path, from: self.module.clone(), args, line, bare, written };
+        let c = Call { handler: None, kit, path, from: self.module.clone(), args, line, bare, written, labels: call_labels };
         CALLS.with(|k| k.borrow_mut().push(c.clone()));
         Ok(c)
+    }
+
+    /// At a call's `[`: takes each argument's `word:` out of the tokens, giving one entry per argument (None where there
+    /// is no label). Only `word` then `:` at the start of a top-level argument is a label.
+    fn take_labels(&mut self) -> Vec<Option<String>> {
+        let mut out = vec![None];
+        let mut k = self.pos + 1;
+        let mut depth = 0i32;
+        let mut at_start = true;
+        while k < self.toks.len() {
+            if at_start {
+                if let (Tok::Word(w), Some(Tok::Colon)) = (&self.toks[k].tok, self.toks.get(k + 1).map(|t| &t.tok)) {
+                    if !crate::spellings::is_reserved(w) {
+                        *out.last_mut().unwrap() = Some(w.clone());
+                        self.toks.drain(k..k + 2);
+                    }
+                }
+                at_start = false;
+            }
+            match self.toks[k].tok {
+                Tok::LBracket | Tok::LParen | Tok::LBrace => depth += 1,
+                Tok::RBracket | Tok::RParen | Tok::RBrace if depth == 0 => break,
+                Tok::RBracket | Tok::RParen | Tok::RBrace => depth -= 1,
+                Tok::Comma if depth == 0 => { out.push(None); at_start = true; }
+                Tok::Eof => break,
+                _ => {}
+            }
+            k += 1;
+        }
+        if out.iter().all(|l| l.is_none()) { Vec::new() } else { out }
     }
 
     /// A slice's span, as a counting loop's words (owner, 2026-10-12): `, from: pos 2, to: pos 4`, or
@@ -4293,7 +4441,7 @@ impl Parser {
                 let args = self.bracket()?;
                 if args.values.len() != 1 { return self.err(format!("`C.str.{op}` takes one value")); }
                 let written = vec!["C".to_string(), "str".to_string(), op.clone()];
-                return Ok(Expr::Call(Call { handler: None, kit: Some("C".into()), path: vec!["str".into(), op], from: self.module.clone(), args, line, bare: false, written }));
+                return Ok(Expr::Call(Call { handler: None, kit: Some("C".into()), path: vec!["str".into(), op], from: self.module.clone(), args, line, bare: false, written, labels: Vec::new() }));
             }
             Tok::Word(w) if w == "str" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(e) if e == "empty") && *self.peek_at(3) != Tok::LBracket => {
                 self.advance(); self.advance(); self.advance();

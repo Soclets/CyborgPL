@@ -405,6 +405,8 @@ pub struct Call {
     /// name may be meant (owner, 2026-10-06); `written` is the path as written
     pub bare: bool,
     pub written: Vec<String>,
+    /// a kit function's labelled arguments (owner, 2026-10-21): the label written before each value, if any
+    pub labels: Vec<Option<String>>,
 }
 
 /// `[ … ]` — one or more comma-separated values. One value is that value;

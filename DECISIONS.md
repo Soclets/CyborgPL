@@ -41,7 +41,7 @@ why are there two `say`s? Isn't supposed to be one, and narrowings?", then "coul
 Design claude offered a block that writes the name once, each line inside one version; the owner: "yea, that's it".
 So **versions are written `versions say { ['n': i32, 'text': str.utf8] { … }  ['n': i32, …] { … } }`**, and the same
 for a member's versions (`versions round.near { … }`, design claude's reading); the own function or a member written
-twice outside the block is refused, naming `versions`. Asked "should there be a `narrowings say`": design claude
+twice outside the block is refused, naming `versions` (built in the oracle the same day). Asked "should there be a `narrowings say`": design claude
 advised not, since every member line already writes its full name (2026-10-19) and a block would drop it; the owner:
 "Ah, okay". So members stay as they are. Not built.
 
@@ -90,7 +90,8 @@ border: 2]`.
 
 **A default that lets a version take a call another version also takes is refused where they are written** (owner:
 "(a)", over (b) the version matching without a default winning; recommended): the rule for any two versions that could
-take one call (2026-10-20), so adding a default never quietly changes which function a call reaches. Not built.
+take one call (2026-10-20), so adding a default never quietly changes which function a call reaches. Labels, their
+order, defaults and this rule built in the oracle the same day (`examples/labels.cy`).
 
 ### 2026-10-21 — A std `convert` converts into kit types, the type named in the call (owner: b; details open, not built)
 

@@ -93,6 +93,34 @@ pub coll.fn round {
   side, and a call two could take is refused at the call: `round.near[2.5]`, a bare literal fitting both, names
   `2.5: f64`. A variable has its type, so `round.near['x']` never is.
 
+## Versions in a block, labels and defaults (owner, 2026-10-21)
+
+Versions are written once under their name, **`versions say { … }`**, each line one version: its parameters and its
+body. The own function or a member written twice outside a block is refused, naming `versions`. Members stay as they
+are, each line its full name.
+
+A collection also says how its own function is called:
+
+```
+pub coll.fn say {
+    bare.kit_prefix.optional;
+    labels.in_order ['text' as value, 'times' as count];
+    defaults ['times' = 1];
+    say ['n': i32, 'text': str.utf8, 'times': i32] -> str.utf8 { … }
+}
+# say[2, value: "Hi"]               'times' is 1
+# say[2, value: "Hi", count: 3]
+```
+
+- **`labels [ 'param' as word, … ];`**: a listed parameter is written `word:` in the call; an unlisted one takes no
+  label. The arguments without a label come first, in place. A labelled one must be written with its label.
+- **`labels.in_order`** keeps the labels' order, **`labels.any_order`** lets them move; a `pub` function says which,
+  a private one's plain `labels` keeps it.
+- **`defaults [ 'param' = value, … ];`**: what a left-out argument is, typed by its parameter.
+- A default lets a version take fewer arguments; if that makes two versions able to take one call, they are refused
+  where they are written, as any two are. `as` is a keyword. `examples/labels.cy`, reject tests `labels_*`,
+  `versions_outside_block`, `defaults_overlap_version`.
+
 ## Who sees it
 
 - A collection is **private unless `pub coll`**, as everything else

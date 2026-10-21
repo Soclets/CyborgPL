@@ -351,8 +351,10 @@ impl<'p> Interp<'p> {
     fn overloads_meet(&self, f: &Func, g: &Func) -> Result<Option<String>, RuntimeError> {
         let fixed = |h: &Func| h.params.iter().filter(|p| !p.variadic).count();
         let var = |h: &Func| h.params.last().is_some_and(|p| p.variadic);
+        // a default lets a version be called with fewer arguments (owner, 2026-10-21: "(a)", an overlap refused here)
+        let fewest = |h: &Func| { let d = coll_labels(&h.module, &h.name).map_or(0, |(_, _, d)| h.params.iter().filter(|p| d.iter().any(|(q, _)| *q == p.name)).count()); h.params.len() - d };
         let counts_meet = match (var(f), var(g)) {
-            (false, false) => f.params.len() == g.params.len(),
+            (false, false) => fewest(f).max(fewest(g)) <= f.params.len().min(g.params.len()),
             (true, false) => g.params.len() >= fixed(f),
             (false, true) => f.params.len() >= fixed(g),
             (true, true) => true,
@@ -375,6 +377,20 @@ impl<'p> Interp<'p> {
             shared.push(if matches!(a, Ty::Var(_)) { ty_name(b) } else { ty_name(a) });
         }
         Ok(Some(if shared.is_empty() { "no arguments".into() } else { shared.join(", ") }))
+    }
+
+    /// Whether one version's parameters take a call's arguments by type, read as `pick_overload` reads them.
+    fn arg_types_fit(&mut self, f: &Func, c: &Call) -> bool {
+        let one = vec![f];
+        match c.args.values.len() == f.params.len() { false => false, true => self.pick_overload(one, c, &f.name).is_ok() && {
+            // pick_overload with one candidate takes it by count alone; check the types by hand
+            c.args.values.iter().zip(&f.params).all(|(a, p)| {
+                let Some(pt) = p.ty.as_ref() else { return true };
+                if matches!(pt, Ty::Var(_) | Ty::Inst(..)) { return true; }
+                let crate::ast::Value::Expr(e) = a;
+                match self.static_ty(e) { Some(t) => ty_name(&unranged(&t)) == ty_name(&unranged(pt)), None => true }
+            })
+        } }
     }
 
     /// Of several functions of one name (overloading, owner 2026-10-20), the one this call means:
@@ -440,8 +456,9 @@ impl<'p> Interp<'p> {
         let prog: &'p Program = self.prog;
         let calls = crate::parser::CALLS.with(|k| k.borrow().clone());
         for c in &calls {
-            if c.kit.is_some() || c.path.is_empty() { continue; }
+            if c.kit.is_some() || c.path.is_empty() || !c.labels.is_empty() { continue; }
             let (module, name) = c.path.split_at(c.path.len() - 1);
+            if coll_labels(module, &name[0]).is_some() { continue; }
             let cands: Vec<&Func> = prog.funcs.iter().filter(|f| f.module == module && f.name == name[0] && !f.is_op).collect();
             if cands.len() < 2 { continue; }
             let literal = |v: &crate::ast::Value| { let crate::ast::Value::Expr(e) = v; matches!(e, Expr::Int(..) | Expr::RawInt(..) | Expr::BigInt(..) | Expr::Bin(..) | Expr::Exact(..) | Expr::Text(..) | Expr::Char(..) | Expr::Bool(..) | Expr::Convert(..)) };
@@ -1061,7 +1078,7 @@ impl<'p> Interp<'p> {
                             let call = Expr::Call(Call {
                                 handler: None, kit: None, from: self.module.clone(), line: *line, bare: false,
                                 path: next_mod.iter().cloned().chain(std::iter::once("next".to_string())).collect(),
-                                written: vec![tname.clone(), "next".into()],
+                                written: vec![tname.clone(), "next".into()], labels: Vec::new(),
                                 args: Bracket { values: vec![crate::ast::Value::Expr(Expr::Owned(Verb::LendMut, n.clone(), *line))], line: *line, one_list: false },
                             });
                             let cell = Rc::new(RefCell::new(Value::Nothing));
@@ -4440,7 +4457,28 @@ impl<'p> Interp<'p> {
         self.check_path(&c.from, module, c.line)?;
         let prog: &'p Program = self.prog;
         let cands: Vec<&Func> = prog.funcs.iter().filter(|f| f.module == module && &f.name == name).collect();
+        // labels and defaults (owner, 2026-10-21): each version takes the call by its labels, the left-out arguments
+        // filled from `defaults`; the call then goes on with its arguments in the parameters' order
+        let mapped;
+        let (cands, c) = if !cands.is_empty() && (!c.labels.is_empty() || coll_labels(&cands[0].module, name).is_some()) {
+            let mut fits: Vec<(&Func, Call)> = Vec::new();
+            let mut why: Option<String> = None;
+            for f in &cands {
+                match label_args(f, c) { Ok(nc) => fits.push((*f, nc)), Err(e) => { why.get_or_insert(e); } }
+            }
+            let fits: Vec<(&Func, Call)> = if fits.len() > 1 { fits.into_iter().filter(|(f, nc)| self.arg_types_fit(f, nc)).collect() } else { fits };
+            match fits.len() {
+                0 => return rt(c.line, why.unwrap_or_else(|| format!("no version of `{name}` takes these arguments"))),
+                1 => { let (f, nc) = fits.into_iter().next().unwrap(); mapped = nc; (vec![f], &mapped) }
+                n => return rt(c.line, format!("{n} versions of `{name}` could take this call: give an argument its type")),
+            }
+        } else { (cands, c) };
         let func = match cands.len() {
+            // `Locker[name: "x"]`: a struct is built with `=`, so the label reading is not what was meant
+            0 if !c.labels.is_empty() && self.prog.structs.iter().any(|d| d.name == join_path(module, name) || d.name == *name) => {
+                let f = c.labels.iter().flatten().next().cloned().unwrap_or_default();
+                return rt(c.line, format!("a field is given by name: `{f} = value` (its type is fixed by the struct)"));
+            }
             0 => return rt(c.line, format!("no function `{name}` in `{}`", root_or(module))),
             1 => cands[0],
             _ => self.pick_overload(cands, c, name)?,
@@ -4729,7 +4767,7 @@ impl<'p> Interp<'p> {
         self.call_is_stmt = false;
         self.check_handler(handler, &func.fails, name, line)?;
         let saved_tvars = std::mem::take(&mut *self.tvars.borrow_mut());
-        let synthetic = Call { handler: handler.cloned(), kit: None, path: vec![func.name.clone()], from: self.module.clone(), args: args.clone(), line, bare: false, written: vec![func.name.clone()] };
+        let synthetic = Call { handler: handler.cloned(), kit: None, path: vec![func.name.clone()], from: self.module.clone(), args: args.clone(), line, bare: false, written: vec![func.name.clone()], labels: Vec::new() };
         let r = self.call_func_with(&func, &synthetic, name, value_used, fv.captures.clone());
         *self.tvars.borrow_mut() = saved_tvars;
         r
@@ -5837,6 +5875,59 @@ fn change_case(s: &str, upper: bool, way: &str, lang: &str) -> String {
             out
         }
     }
+}
+
+/// A collection's `labels` / `defaults` for its own function, by its module and name (owner, 2026-10-21).
+fn coll_labels(module: &[String], name: &str) -> Option<(Vec<(String, String)>, bool, Vec<(String, Expr)>)> {
+    crate::parser::COLL_LABELS.with(|c| c.borrow().iter().find(|(m, n, ..)| m == module && n == name).map(|(_, _, p, a, d)| (p.clone(), *a, d.clone())))
+}
+
+/// A call's arguments matched to one version's parameters by their labels (owner, 2026-10-21): the unlabelled ones first,
+/// in place, then the labelled, in the `labels` order unless `labels.any_order`; a left-out one from `defaults`.
+/// The call with its arguments in parameter order, or why this version does not take it.
+fn label_args(f: &Func, c: &Call) -> Result<Call, String> {
+    let name = &f.name;
+    let (pairs, any_order, defaults) = coll_labels(&f.module, name).unwrap_or_default();
+    let lab = |i: usize| c.labels.get(i).cloned().flatten();
+    if pairs.is_empty() && (0..c.args.values.len()).any(|i| lab(i).is_some()) { return Err(format!("`{name}` takes no labels")); }
+    let mut seen = false;
+    let mut last: Option<usize> = None;
+    for i in 0..c.args.values.len() {
+        match lab(i) {
+            None if seen => return Err(format!("an argument without a label comes before the labelled ones in `{name}[…]`")),
+            None => {}
+            Some(w) => {
+                seen = true;
+                let Some(k) = pairs.iter().position(|(_, x)| *x == w) else { return Err(format!("`{name}` has no label `{w}:`; its labels are {}", pairs.iter().map(|(_, x)| format!("`{x}:`")).collect::<Vec<_>>().join(", "))) };
+                if (0..i).any(|j| lab(j).as_deref() == Some(w.as_str())) { return Err(format!("`{w}:` is written twice")); }
+                if !any_order { if let Some(p) = last { if k < p { return Err(format!("`{name}`'s labels keep their order (`labels.in_order`): `{w}:` comes before `{}:`", pairs[p].1)); } } }
+                last = Some(k);
+            }
+        }
+    }
+    let mut positional = (0..c.args.values.len()).filter(|i| lab(*i).is_none()).map(|i| c.args.values[i].clone());
+    let mut out = Vec::new();
+    for p in &f.params {
+        let given = match pairs.iter().find(|(q, _)| *q == p.name) {
+            Some((_, w)) => (0..c.args.values.len()).find(|i| lab(*i).as_deref() == Some(w.as_str())).map(|i| c.args.values[i].clone()),
+            None => positional.next(),
+        };
+        match given {
+            Some(v) => out.push(v),
+            None => match defaults.iter().find(|(q, _)| *q == p.name) {
+                Some((_, e)) => out.push(crate::ast::Value::Expr(e.clone())),
+                None => return Err(match pairs.iter().find(|(q, _)| *q == p.name) { Some((_, w)) => format!("`{name}` needs `{w}:` for '{}'", p.name), None => format!("`{name}` needs '{}'", p.name) }),
+            },
+        }
+    }
+    if positional.next().is_some() { return Err(format!("`{name}` takes fewer arguments without a label")); }
+    if (0..c.args.values.len()).any(|i| lab(i).is_some_and(|w| pairs.iter().find(|(_, x)| *x == w).is_some_and(|(q, _)| !f.params.iter().any(|p| p.name == *q)))) {
+        return Err(format!("a label names a parameter this version of `{name}` does not have"));
+    }
+    let mut nc = c.clone();
+    nc.args.values = out;
+    nc.labels = Vec::new();
+    Ok(nc)
 }
 
 /// A literal as it was typed, for `print.written`: a number's digits (`0.123456789`, `-2.5`), a percent with its `%`
