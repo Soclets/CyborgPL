@@ -39,9 +39,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 Wanted "later" since 2026-10-17 (the owner's example `bruh::say[2, value "Hello"]`, and "I think it'll only be doable
 in a fn collection"); asked to start on it now ("1", from design claude's list of what `convert` would need). Offered
 (a) a words line in the function's `coll.fn`, a word per position and `str.empty` for none, the shape of
-spellings.cyr's `calls` (recommended), or (b) each parameter's name as its word. The owner: "(a)". So **a function's
-argument words are a line in its collection, `say.words [str.empty, value];`**, and the call reads `bruh::say[2, value:
-"Hello"]`. Being asked: whether the words are required and in order, as std's are.
+spellings.cyr's `calls` (recommended), or (b) each parameter's name as its word. The owner: "(a)".
+
+Then its shape, from the owner's questions. "What is `say.words`?": inside a `coll.fn` every `say.X` line is a member,
+so the line is a mark like `bare.…`, `words [ … ];`. "What is `str.empty` there for?" (a position taking no word, as
+in spellings.cyr; design claude offered naming the parameter instead). "'text' is the type value? … it kinda reads
+like that, because it has `''`" (`'x': T` gives a variable its type), and "Why not something else that isn't fucking
+`:`?"; design claude offered `as`, then: "Yeah, that works". So **a collection says its function's argument words
+in a mark, `words ['text' as value, 'times' as count];`**: each listed parameter is written with its word, an
+unlisted one takes none, and the call reads `say[2, value: "Hello", count: 3]`. `as` becomes a keyword. Not built.
+
+The owner also wants the line to say "which order, if optional, etc"; asked what "optional" means: "2", an argument
+that may be left out, so a stand-in value (nothing like it exists; versions by count and presets did that job).
+Being asked: how the line says the stand-in value and the order.
 
 ### 2026-10-21 — A std `convert` converts into kit types, the type named in the call (owner: b; details open, not built)
 
