@@ -876,9 +876,9 @@ enum_prefix_only_named [fnv:95efaa40e322d0fc] :: forbids its name before its val
 case_lang_not_full [fnv:80f31df1a1a652ba] :: !unbuilt case mappings (7b7e8e57); then: `lang:` is for the full mapping
 case_mapping_unsaid [fnv:c367ea4dd122381f] :: !pending case mappings (7b7e8e57) not built yet: a bare `str.upper` is still std's old function
 casing_cannot_fail [fnv:37c91883b81d6ebc] :: !unbuilt case mappings (7b7e8e57); then: `to.casing` cannot fail
-percent_mixed [fnv:be08fb2eb0857912] :: !pending percent (87fb7026) not built yet: a percent is still a plain number
-percent_out_of_bounds [fnv:7cfee9ff4211bbcd] :: !unbuilt percent (87fb7026); then: 120% does not fit percent[d32][min: 0%, max: 100%]
-percent_unsized [fnv:b11e84029c0e2fd5] :: !unbuilt percent (87fb7026); then: a written percent names its number
+percent_mixed [fnv:be08fb2eb0857912] :: a percent is its own number family
+percent_out_of_bounds [fnv:7cfee9ff4211bbcd] :: the value can be outside what a `percent[d32][min: 0%, max: 100%]` holds
+percent_unsized [fnv:b11e84029c0e2fd5] :: a written percent names its number
 places_literal_over [fnv:4ee651b44531fdc5] :: !unbuilt places (2e857580); then: this literal has 3 places; d64[max_places: 2] keeps 2
 places_not_rounded [fnv:5e88e20ba86ec483] :: !unbuilt places (2e857580); then: round it on purpose
 places_on_bin [fnv:9b02146f706db4a8] :: !unbuilt places (2e857580); then: places are kept by a `d` or a percent

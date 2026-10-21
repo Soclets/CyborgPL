@@ -358,6 +358,7 @@ pub fn resolved(t: &Ty, subst: &HashMap<crate::types::InferId, Ty>) -> Ty {
         })),
         Ty::Bundle(ts) => Ty::Bundle(ts.iter().map(|t| resolved(t, subst)).collect()),
         Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(resolved(inner, subst)), bound: bound.clone() },
+        Ty::Percent(inner) => Ty::Percent(Box::new(resolved(inner, subst))),
         t => t.clone(),
     }
 }
@@ -2067,6 +2068,20 @@ impl<'a> FnBuilder<'a> {
                     hir::Callee::Builtin(b) => Callee::Op(builtin_op(b)),
                 };
                 let mut margs: Vec<Arg> = args.iter().map(|a| self.arg(a, span)).collect();
+                // A percent known now is printed as one (owner, 2026-10-17):
+                // it goes in through a local of its type, which a constant
+                // does not carry.
+                if matches!(callee, hir::Callee::Builtin(hir::Builtin::Std(n)) if n.starts_with("print.")) {
+                    for (m, a) in margs.iter_mut().zip(args) {
+                        if let (Arg::Value(Operand::Const(c)), hir::Arg::Value(v)) = (&*m, a) {
+                            let t = self.resolve_ty(&v.ty);
+                            if crate::check::expr::percent_inner(&t).is_some() {
+                                let o = self.into_temp(Rvalue::Use(Operand::Const(c.clone())), &t, span);
+                                *m = Arg::Value(o);
+                            }
+                        }
+                    }
+                }
                 // An owned value made only for this call — `show[to.stored.
                 // str.utf8[5]]`, `show[make[]]` — is the function's from
                 // then on: given, as `give` would, so it is not freed here

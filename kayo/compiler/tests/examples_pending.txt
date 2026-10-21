@@ -7,6 +7,5 @@ collections :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
 corner_shop :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
 keys :: case mappings (7b7e8e57) not built yet: `std::str.lower.full`
 text :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
-percent :: percent (87fb7026) not built yet: `percent[d64]` / `%[d64]`
 places :: places (2e857580) not built yet: `max_places` / `min_places`
 print_written :: print.written (445f83b0) not built yet

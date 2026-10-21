@@ -1483,6 +1483,63 @@ impl Items {
                 }
                 Bound::Bin { lo: l, hi: h, said: Said::default() }
             }
+            // A percent's bounds are written in `%` (owner, 2026-10-17):
+            // `percent[d32][min: 0%, max: 100%]`, held over 100 as its
+            // values are.
+            Ty::Percent(inner) => {
+                if let Some(u) = unit {
+                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).at(u.span));
+                }
+                let side = |e: &ast::Expr, w: &str| -> Result<Option<String>> {
+                    if left_out(e, w) {
+                        return Ok(None);
+                    }
+                    let (neg, e) = match &e.kind {
+                        ast::ExprKind::Unary { op: ast::UnOp::Neg, expr } => (true, &**expr),
+                        _ => (false, e),
+                    };
+                    match &e.kind {
+                        ast::ExprKind::Percent(lit) => match &lit.kind {
+                            ast::ExprKind::Bin(t) | ast::ExprKind::Exact(t) => Ok(Some(format!("{}{}", if neg { "-" } else { "" }, t.replace('_', "")))),
+                            _ => err(Diagnostic::error("a percent's bounds are written in `%`: `percent[d32][min: 0%, max: 100%]`").at(e.span)),
+                        },
+                        _ => err(Diagnostic::error("a percent's bounds are written in `%`: `percent[d32][min: 0%, max: 100%]`").at(e.span)),
+                    }
+                };
+                let (l, h) = (side(lo, "min")?, side(hi, "max")?);
+                if let Ty::Deci(bits) = **inner {
+                    for (t, e) in [(&l, lo), (&h, hi)] {
+                        if let Some(t) = t {
+                            if let Err(crate::deci::LitErr::Digits(n)) = crate::deci::literal(t, bits) {
+                                return err(Diagnostic::error(format!("`{}%` has {} digits; d{} holds {}: a range's bounds are values of its type", crate::types::percent_text(t), n, bits, crate::deci::digits(bits))).at(e.span));
+                            }
+                        }
+                    }
+                }
+                let num = |t: &Option<String>| t.as_ref().and_then(|t| t.parse::<f64>().ok());
+                if let (Some(a), Some(b)) = (num(&l), num(&h)) {
+                    if a > b {
+                        return err(Diagnostic::error("the low bound comes first: `[min: …, max: …]`").at(span));
+                    }
+                }
+                let said = Said { lo: l.is_some(), hi: h.is_some(), bits: None };
+                // A side left out is the number's own limit, as for a bin;
+                // a deci's are both written so far, as for a plain deci.
+                let top = match **inner {
+                    Ty::Bin(BinW::Fixed(16)) => Some(65504.0),
+                    Ty::Bin(BinW::Fixed(32)) => Some(f32::MAX as f64),
+                    Ty::Bin(BinW::Fixed(64)) => Some(f64::MAX),
+                    _ => None,
+                };
+                let open = |t: Option<String>, lowest: bool| -> Result<String> {
+                    match (t, top) {
+                        (Some(t), _) => Ok(t),
+                        (None, Some(top)) => Ok(format!("{:?}", if lowest { -top } else { top })),
+                        (None, None) => err(Diagnostic::error(format!("not yet: a deci percent's bound with a side left out — kayo writes both sides so far: `{}[min: 0%, max: 100%]`", spell(&base, self))).at(span)),
+                    }
+                };
+                Bound::Bin { lo: open(l, true)?, hi: open(h, false)?, said }
+            }
             Ty::Str(_) => {
                 let u = match unit {
                     Some(u) => match u.name.as_str() {
@@ -1671,6 +1728,18 @@ impl Items {
                             .fix(None, format!("simd[{}, count: {}]", spell(&elem, self), has)));
                     }
                     return Ok(Ty::Simd { elem: Box::new(elem), lanes });
+                }
+                // `percent[d32]`, `percent[f64]` (owner, 2026-10-17): its own
+                // family, holding a `d` or an `f`; a written one names it.
+                "percent" => {
+                    if args.len() != 1 {
+                        return err(Diagnostic::error("a written percent names its number: `percent[d32]`, `percent[f64]` (`:=` lets Precog pick)").at(span));
+                    }
+                    let inner = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
+                    if !matches!(inner, Ty::Deci(_) | Ty::Bin(_)) {
+                        return err(Diagnostic::error(format!("a percent holds a `d` or an `f`: `percent[d32]`, `percent[f64]`, not `percent[{}]`", spell(&inner, self))).at(span));
+                    }
+                    return Ok(Ty::Percent(Box::new(inner)));
                 }
                 "channel" => {
                     if args.len() != 1 {

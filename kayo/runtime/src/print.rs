@@ -151,6 +151,118 @@ pub unsafe extern "C" fn cyborg_out_bin(o: *mut Out, x: f64, bits: u32, useful: 
     put(o, &buf[..n]);
 }
 
+/// A percent's digits (owner, 2026-10-17): the number's own, its point two
+/// places on, so nothing is rounded (`0.07` is `7`, `1e-7` is `0.00001`).
+/// `src` is the number as `bin_useful` or `deci_text` writes it.
+fn percent_digits(src: &[u8], dst: &mut [u8]) -> usize {
+    let (neg, s) = match src.first() {
+        Some(b'-') => (true, &src[1..]),
+        _ => (false, src),
+    };
+    // The digits, where the point sat among them, and an exponent.
+    let mut digits = [0u8; 1200];
+    let (mut nd, mut point, mut exp, mut seen_point, mut i) = (0usize, None, 0i64, false, 0usize);
+    while i < s.len() {
+        match s[i] {
+            d @ b'0'..=b'9' if nd < digits.len() => {
+                digits[nd] = d;
+                nd += 1;
+            }
+            b'.' => {
+                point = Some(nd);
+                seen_point = true;
+            }
+            b'e' | b'E' => {
+                let (mut sign, mut v, mut j) = (1i64, 0i64, i + 1);
+                if j < s.len() && (s[j] == b'-' || s[j] == b'+') {
+                    if s[j] == b'-' {
+                        sign = -1;
+                    }
+                    j += 1;
+                }
+                while j < s.len() && s[j].is_ascii_digit() {
+                    v = v * 10 + (s[j] - b'0') as i64;
+                    j += 1;
+                }
+                exp = sign * v;
+                break;
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    let _ = seen_point;
+    let at = point.unwrap_or(nd) as i64 + exp + 2;
+    let mut n = 0usize;
+    let mut push = |dst: &mut [u8], b: u8| {
+        if n < dst.len() {
+            dst[n] = b;
+            n += 1;
+        }
+    };
+    // The whole part, without leading zeros, and the rest, without
+    // trailing ones.
+    let digit = |k: i64| if k >= 0 && (k as usize) < nd { digits[k as usize] } else { b'0' };
+    let mut whole_start = 0i64;
+    while whole_start < at - 1 && digit(whole_start) == b'0' {
+        whole_start += 1;
+    }
+    let mut frac_end = nd as i64;
+    while frac_end > at && digit(frac_end - 1) == b'0' {
+        frac_end -= 1;
+    }
+    let zero = (whole_start..at.max(0)).all(|k| digit(k) == b'0') && (at.max(0)..frac_end).all(|k| digit(k) == b'0');
+    if neg && !zero {
+        push(dst, b'-');
+    }
+    if at <= 0 {
+        push(dst, b'0');
+    } else {
+        for k in whole_start..at {
+            push(dst, digit(k));
+        }
+    }
+    if frac_end > at {
+        push(dst, b'.');
+        for k in at.min(0)..0 {
+            let _ = k;
+            push(dst, b'0');
+        }
+        for k in at.max(0)..frac_end {
+            push(dst, digit(k));
+        }
+    }
+    n
+}
+
+/// A percent of a bin, as `print.useful` shows it: `7%` (owner, 2026-10-17).
+///
+/// # Safety
+/// As `cyborg_out_bytes`.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_out_bin_percent(o: *mut Out, x: f64, bits: u32) {
+    let mut buf = [0u8; 1080];
+    let n = bin_useful(x, bits, &mut buf);
+    let mut out = [0u8; 1200];
+    let m = percent_digits(&buf[..n], &mut out[..1199]);
+    out[m] = b'%';
+    put(o, &out[..m + 1]);
+}
+
+/// A percent of a deci, as `print.useful` shows it: `12.25%`.
+///
+/// # Safety
+/// As `cyborg_out_bytes`.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_out_deci_percent(o: *mut Out, lo: u64, hi: u64, bits: u32) {
+    let mut buf = [0u8; 6300];
+    let n = deci_text(lo, hi, bits, true, &mut buf);
+    let mut out = [0u8; 6400];
+    let m = percent_digits(&buf[..n], &mut out[..6399]);
+    out[m] = b'%';
+    put(o, &out[..m + 1]);
+}
+
 /// A character: the UTF-8 of its code point.
 ///
 /// # Safety

@@ -395,6 +395,10 @@ pub enum ExprKind {
     Bin(String),
     /// `*0.1`: "exactly this", a `deci` (owner, 2026-10-02).
     Exact(String),
+    /// `80%`, `exactly 7%` (owner, 2026-10-17): a `Bin` or `Exact` literal,
+    /// already over 100, that is a `percent` unless its place says a plain
+    /// number.
+    Percent(Box<Expr>),
     /// `5: u8`, `-128: i8`, `exactly 0.1: d64` (owner, 2026-10-17):
     /// a literal of the type after the `:`, which it must fit. The checker
     /// refuses anything but a literal here, naming `to.T[…]`.

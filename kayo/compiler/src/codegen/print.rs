@@ -42,6 +42,8 @@ impl<'ctx> Cg<'_, 'ctx> {
             "cyborg_out_bin" => v.fn_type(&[p.into(), self.ctx.f64_type().into(), i32t.into(), b.into()], false),
             "cyborg_out_char" => v.fn_type(&[p.into(), i32t.into()], false),
             "cyborg_out_deci" => v.fn_type(&[p.into(), w.into(), w.into(), i32t.into(), b.into()], false),
+            "cyborg_out_bin_percent" => v.fn_type(&[p.into(), self.ctx.f64_type().into(), i32t.into()], false),
+            "cyborg_out_deci_percent" => v.fn_type(&[p.into(), w.into(), w.into(), i32t.into()], false),
             other => unreachable!("no the runtime output function {}", other),
         };
         self.module.add_function(name, t, None)
@@ -140,6 +142,33 @@ impl<'ctx> Cg<'_, 'ctx> {
     /// `signed` says how an integer place reads when its type does not.
     fn print_at(&mut self, out: PointerValue<'ctx>, at: PointerValue<'ctx>, ty: &Ty, useful: bool, signed: Option<bool>) -> Option<()> {
         let w = self.ctx.i64_type();
+        // A percent shows its `%` in `print.useful` only (owner,
+        // 2026-10-17): `print.stored` shows the number it holds, 0.07.
+        if useful && crate::check::expr::percent_inner(ty).is_some() {
+            match ty.base() {
+                Ty::Bin(_) => {
+                    let lt = self.ty(ty)?.into_float_type();
+                    let v = self.builder.build_load(lt, at, "x").ok()?.into_float_value();
+                    let x = if lt == self.ctx.f64_type() { v } else { self.builder.build_float_ext(v, self.ctx.f64_type(), "wide").ok()? };
+                    let bits = match ty.base() {
+                        Ty::Bin(BinW::Fixed(b)) => *b as u64,
+                        _ => 64,
+                    };
+                    let f = self.out_fn("cyborg_out_bin_percent");
+                    let _ = self.builder.build_call(f, &[out.into(), x.into(), self.ctx.i32_type().const_int(bits, false).into()], "");
+                    return Some(());
+                }
+                Ty::Deci(bits) => {
+                    let lt = self.ty(ty)?.into_int_type();
+                    let v = self.builder.build_load(lt, at, "d").ok()?.into_int_value();
+                    let (lo, hi) = self.deci_halves(v)?;
+                    let f = self.out_fn("cyborg_out_deci_percent");
+                    let _ = self.builder.build_call(f, &[out.into(), lo.into(), hi.into(), self.ctx.i32_type().const_int(*bits as u64, false).into()], "");
+                    return Some(());
+                }
+                _ => {}
+            }
+        }
         match ty.base() {
             Ty::Str(_) | Ty::Char(Unit::Grapheme) => {
                 let h = self.handle(2);

@@ -1072,6 +1072,25 @@ Dated, with the alternative, so each can become a question later.
   programs, tests and bench were swept by script; `std/` is std claude's,
   and the suite was run against its converted copy. Earlier entries
   here keep the names of their day.
+- **2026-10-21 — `percent[dN]` and `percent[fN]`, its own number family**
+  (owner, 2026-10-17; oracle 87fb7026). `Ty::Percent(number)`, held as the
+  number over 100 (7% is 0.07); `Ty::base` looks through it, so MIR,
+  codegen and Precog work on its number, and the checker says what it
+  combines with (`percent_binary`): percents add, subtract and compare among
+  themselves (`+`/`-` give a percent); `x`, `div`, `mod`, `xx` between two
+  are not decided; a percent beside any other number is refused naming
+  `to.d64['tax']` and `to.percent[d64][…]`; one is not negated; a store
+  across the two families names the conversion. A `%` literal
+  (`ExprKind::Percent`, the lexer's `percent` flag) is a percent where
+  nothing says a plain number, the number over 100 in a typed `let` or a
+  parameter of a plain number (`Checker::plain_numbers`), and beside a plain
+  deci, as the oracle reads it. Bounds are written in `%`
+  (`percent[d32][min: 0%, max: 100%]`). `print.useful` shows the `%` (the
+  number's own digits, the point two places on: `cyborg_out_bin_percent`,
+  `cyborg_out_deci_percent`); `print.stored` shows the number. Found on the
+  way: an `exactly` literal beside a d32 was made a d64 before the operator
+  could give it the d32's width, and the two were refused; it is left
+  unsettled until then now (`operand_unsettled`).
 - **2026-10-21 — `bare.` names the prefix it drops** (owner; DECISIONS
   2026-10-20; oracle c856bda8, 9f48ccc7). `bare.kit_prefix.never` /
   `.optional` / `.only` is the old `bare.X` (refused from `spellings.cyr`'s

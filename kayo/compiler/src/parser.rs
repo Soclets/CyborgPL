@@ -822,7 +822,7 @@ impl<'a> Parser<'a> {
         if self.is_word("table_bytes") {
             let at = self.bump().span;
             let n = match self.peek().clone() {
-                Tok::Num { text, bin: false } => text.parse::<u64>().ok(),
+                Tok::Num { text, bin: false, .. } => text.parse::<u64>().ok(),
                 _ => None,
             };
             let Some(n) = n else {
@@ -2336,7 +2336,7 @@ impl<'a> Parser<'a> {
                     self.bump();
                 }
                 let n = match self.peek().clone() {
-                    Tok::Num { text, bin: false } => {
+                    Tok::Num { text, bin: false, .. } => {
                         self.bump();
                         let v: Option<i128> = text.parse().ok();
                         match v {
@@ -2573,7 +2573,7 @@ impl<'a> Parser<'a> {
             Tok::Word(w) if w == "count" && matches!(self.peek_at(1), Tok::Num { .. }) => {
                 self.need_label(0)?;
                 self.bump();
-                let Tok::Num { text, bin } = self.peek().clone() else { unreachable!() };
+                let Tok::Num { text, bin, .. } = self.peek().clone() else { unreachable!() };
                 let span = self.bump().span;
                 if bin {
                     return self.fail_at(span, "a count is a whole number");
@@ -2701,7 +2701,7 @@ impl<'a> Parser<'a> {
                 let path = self.path()?;
                 let head = path.head().to_string();
                 let mut args = Vec::new();
-                let container = path.kit.is_none() && matches!(head.as_str(), "list" | "array" | "map" | "channel" | "ptr" | "simd");
+                let container = path.kit.is_none() && matches!(head.as_str(), "list" | "array" | "map" | "channel" | "ptr" | "simd" | "percent");
                 let user_type = !is_primitive_head(&head) && !is_keyword(&head) || path.kit.is_some();
                 let takes_type_args = container || (user_type && !conv);
                 if self.is(&Tok::LBracket) && takes_type_args && !self.bracket_is_bound() {
@@ -2734,7 +2734,7 @@ impl<'a> Parser<'a> {
                 let bstart = self.bump().span;
                 self.bump();
                 let n = match self.peek().clone() {
-                    Tok::Num { text, bin: false } => text.parse::<u32>().ok(),
+                    Tok::Num { text, bin: false, .. } => text.parse::<u32>().ok(),
                     _ => None,
                 };
                 let Some(n) = n else {
@@ -3746,7 +3746,7 @@ impl<'a> Parser<'a> {
                 return self.fail_at(lat, said);
             }
             let (n, nspan) = match self.peek().clone() {
-                Tok::Num { text, bin: false } => (text.replace('_', "").parse::<i128>().unwrap_or(0), self.bump().span),
+                Tok::Num { text, bin: false, .. } => (text.replace('_', "").parse::<i128>().unwrap_or(0), self.bump().span),
                 other => return self.fail(format!("a level's number follows `level`: `level 1 {{ plus, minus }} left_first`, found {}", other.describe())),
             };
             if let Some(first) = levels.iter().find(|l| l.0 == n) {
@@ -4308,11 +4308,17 @@ impl<'a> Parser<'a> {
 
     /// After `exactly` or the prefix `*`: the number, as an exact `deci`.
     fn exactly(&mut self, start: Span) -> Result<Expr> {
-        let Tok::Num { text, .. } = self.peek().clone() else {
+        let Tok::Num { text, percent, .. } = self.peek().clone() else {
             return self.fail(format!("`exactly` is followed by a number: `exactly 19.99`, `exactly 1000`; found {}", self.peek().describe()));
         };
         let at = self.bump().span;
-        let e = self.typed_suffix(Expr { kind: ExprKind::Exact(text.replace('_', "")), span: start.to(at) })?;
+        let exact = Expr { kind: ExprKind::Exact(text.replace('_', "")), span: start.to(at) };
+        if percent {
+            // `exactly 7%`: an exact percent (owner, 2026-10-17).
+            let e = Expr { kind: ExprKind::Percent(Box::new(exact)), span: start.to(at) };
+            return self.postfix_on(e);
+        }
+        let e = self.typed_suffix(exact)?;
         self.postfix_on(e)
     }
 
@@ -4355,7 +4361,7 @@ impl<'a> Parser<'a> {
             Tok::Op(o) if o == "-" && matches!(self.peek_at(1), Tok::Num { .. }) && matches!(self.peek_at(2), Tok::Colon) => {
                 self.bump();
                 let at = self.span();
-                let Tok::Num { text, bin } = self.bump().tok else { unreachable!() };
+                let Tok::Num { text, bin, .. } = self.bump().tok else { unreachable!() };
                 let lit = Expr { kind: if bin { ExprKind::Bin(text) } else { ExprKind::Int(text) }, span: at };
                 let neg = Expr { kind: ExprKind::Unary { op: UnOp::Neg, expr: Box::new(lit) }, span: start.to(at) };
                 let e = self.typed_suffix(neg)?;
@@ -4740,7 +4746,14 @@ impl<'a> Parser<'a> {
                 self.bump();
                 Expr { kind: ExprKind::Newline, span: start }
             }
-            Tok::Num { text, bin } => {
+            // `80%` (owner, 2026-10-17): a percent where nothing says a plain
+            // number, the number over 100 where one does.
+            Tok::Num { text, percent: true, .. } => {
+                self.bump();
+                let lit = Expr { kind: ExprKind::Bin(text), span: start };
+                Expr { kind: ExprKind::Percent(Box::new(lit)), span: start }
+            }
+            Tok::Num { text, bin, .. } => {
                 self.bump();
                 if let Tok::Word(u) = self.peek().clone() {
                     if DURATION_UNITS.contains(&u.as_str()) {

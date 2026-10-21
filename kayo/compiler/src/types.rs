@@ -197,6 +197,11 @@ pub enum Ty {
     /// A generic blank, in the abstract; instantiations substitute.
     Var(u32),
     Bounded { inner: Box<Ty>, bound: Bound },
+    /// `percent[d32]`, `percent[f64]` (owner, 2026-10-17): its own number
+    /// family, held as the number it is over 100 (7% is 0.07). Its values
+    /// are its number's, so `base` looks through it; what it combines with
+    /// is the checker's to say.
+    Percent(Box<Ty>),
 }
 
 /// Marks [`Ty::exact`]: no width anyone writes has this bit, and the rest
@@ -263,6 +268,7 @@ impl Ty {
     pub fn base(&self) -> &Ty {
         match self {
             Ty::Bounded { inner, .. } => inner.base(),
+            Ty::Percent(inner) => inner.base(),
             t => t,
         }
     }
@@ -356,7 +362,7 @@ impl Ty {
             Ty::Struct { args, .. } | Ty::Enum { args, .. } => args.iter().any(|a| a.contains_var()),
             Ty::Fn(f) => f.params.iter().any(|(_, t)| t.contains_var()) || f.ret.contains_var() || f.fails.iter().any(|(_, t)| t.as_ref().map(|t| t.contains_var()).unwrap_or(false)),
             Ty::Bundle(ts) => ts.iter().any(|t| t.contains_var()),
-            Ty::Bounded { inner, .. } => inner.contains_var(),
+            Ty::Bounded { inner, .. } | Ty::Percent(inner) => inner.contains_var(),
             _ => false,
         }
     }
@@ -380,6 +386,7 @@ impl Ty {
             })),
             Ty::Bundle(ts) => Ty::Bundle(ts.iter().map(|t| t.subst(args)).collect()),
             Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(inner.subst(args)), bound: bound.clone() },
+            Ty::Percent(inner) => Ty::Percent(Box::new(inner.subst(args))),
             t => t.clone(),
         }
     }
@@ -563,8 +570,12 @@ impl<'a> fmt::Display for TySpelling<'a> {
                 parts.push(if *zero { "include zero".to_string() } else { "exclude zero".to_string() });
                 write!(f, "C.str[{}]", parts.join(", "))
             }
+            Ty::Percent(inner) => write!(f, "percent[{}]", sp(inner)),
             Ty::Bounded { inner, bound } => {
                 write!(f, "{}", sp(inner))?;
+                // A percent's sides are written in `%` (owner, 2026-10-17).
+                let pc = matches!(**inner, Ty::Percent(_));
+                let side = |t: &String| if pc { format!("{}%", percent_text(t)) } else { t.clone() };
                 let labelled = |lo: Option<String>, hi: Option<String>, unit: &str| match (lo, hi) {
                     (Some(l), Some(h)) => format!("[min: {}, max: {}{}]", l, h, unit),
                     (Some(l), None) => format!("[min: {}{}]", l, unit),
@@ -574,7 +585,7 @@ impl<'a> fmt::Display for TySpelling<'a> {
                 let text = match bound {
                     Bound::Int { said: Said { bits: Some(n), .. }, .. } => format!("[bits: {}]", n),
                     Bound::Int { lo, hi, said } => labelled(said.lo.then(|| lo.to_string()), said.hi.then(|| hi.to_string()), ""),
-                    Bound::Bin { lo, hi, said } => labelled(said.lo.then(|| lo.clone()), said.hi.then(|| hi.clone()), ""),
+                    Bound::Bin { lo, hi, said } => labelled(said.lo.then(|| side(lo)), said.hi.then(|| side(hi)), ""),
                     Bound::Len { lo, hi, unit } => {
                         let u = match unit {
                             Some(Unit::Byte) => " bytes",
@@ -594,6 +605,40 @@ impl<'a> fmt::Display for TySpelling<'a> {
                 write!(f, "{}", text)
             }
         }
+    }
+}
+
+/// A number written in decimal, over 100 again: the digits of a percent
+/// (`0.07` is `7`, `0.1225` is `12.25`, `1e-7` is `0.00001`). The point moves
+/// two places, so nothing is rounded on the way.
+pub fn percent_text(s: &str) -> String {
+    let (neg, s) = match s.strip_prefix('-') {
+        Some(r) => (true, r),
+        None => (false, s),
+    };
+    // `1e-7`: the digits and where the point goes.
+    let (mant, exp) = match s.split_once(['e', 'E']) {
+        Some((m, e)) => (m, e.parse::<i64>().unwrap_or(0)),
+        None => (s, 0),
+    };
+    let (int, frac) = mant.split_once('.').unwrap_or((mant, ""));
+    let digits: String = format!("{}{}", int, frac);
+    let point = int.len() as i64 + exp + 2;
+    let (int, frac) = if point <= 0 {
+        ("0".to_string(), format!("{}{}", "0".repeat((-point) as usize), digits))
+    } else if point as usize >= digits.len() {
+        (format!("{}{}", digits, "0".repeat(point as usize - digits.len())), String::new())
+    } else {
+        (digits[..point as usize].to_string(), digits[point as usize..].to_string())
+    };
+    let int = int.trim_start_matches('0');
+    let int = if int.is_empty() { "0" } else { int };
+    let frac = frac.trim_end_matches('0');
+    let body = if frac.is_empty() { int.to_string() } else { format!("{}.{}", int, frac) };
+    if neg && body != "0" {
+        format!("-{}", body)
+    } else {
+        body
     }
 }
 

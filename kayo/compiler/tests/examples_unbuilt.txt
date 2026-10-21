@@ -18,6 +18,5 @@ shop :: `std::input.line` is not available yet
 text :: `std::str.upper.full` is not available yet
 whichever :: `std::time.after` is not available yet
 case_mappings :: `str.upper` is std's, not the language's
-percent :: expected `:=` or `=`, found `[`
 places :: expected `]` closing the bound, found `,`
 print_written :: `std::print.written` is not built yet

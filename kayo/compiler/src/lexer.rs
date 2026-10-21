@@ -15,7 +15,9 @@ pub enum Tok {
     /// `` `c` `` — the characters between the backticks.
     Char(String),
     /// A number literal: the digits with `_` removed; `bin` if it had a `.`.
-    Num { text: String, bin: bool },
+    /// `percent`: written with `%` or `percent` after it (owner,
+    /// 2026-10-17), its text already over 100.
+    Num { text: String, bin: bool, percent: bool },
     /// The bare `\n` outside quotes: a newline text.
     Newline,
     /// A bare word: keyword, function, type, module, `MAIN`.
@@ -549,7 +551,7 @@ impl<'a> Lexer<'a> {
             };
             value = value.mul(&base).add(&crate::bigint::Big::from_i128(d as i128));
         }
-        self.push(Tok::Num { text: value.to_string(), bin: false }, start);
+        self.push(Tok::Num { text: value.to_string(), bin: false, percent: false }, start);
         Ok(())
     }
 
@@ -612,7 +614,7 @@ impl<'a> Lexer<'a> {
             for _ in 0..if sign { 1 } else { spaces + 7 } {
                 self.bump();
             }
-            self.push(Tok::Num { text: over_100(&text), bin: true }, start);
+            self.push(Tok::Num { text: over_100(&text), bin: true, percent: true }, start);
             return Ok(());
         }
         // A number running straight into a letter: `1e3`, `0x10`, `5seconds`.
@@ -621,7 +623,7 @@ impl<'a> Lexer<'a> {
                 return self.fail(start, format!("a number runs straight into `{}`: put a space between a number and a word (`5 seconds`), and there is no `e` or `0x` form", c));
             }
         }
-        self.push(Tok::Num { text, bin }, start);
+        self.push(Tok::Num { text, bin, percent: false }, start);
         Ok(())
     }
 

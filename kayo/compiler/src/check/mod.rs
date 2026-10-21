@@ -79,6 +79,10 @@ pub struct Checker {
     /// to be checked, taken by `expr_in` before anything inside it: a bare
     /// enum value there names its type's case (owner, 2026-10-20).
     pub want: Option<Ty>,
+    /// Checking a value whose place is a plain number (a typed `let`, a
+    /// parameter): a `%` literal in it is the number over 100, not a
+    /// percent (owner, 2026-10-17: `let 'f': f64 = 80% x 2.0;` is 1.6).
+    pub plain_numbers: bool,
     pub items: Items,
     pub instances: Vec<Instance>,
     inst_index: HashMap<InstKey, FnInst>,
@@ -220,7 +224,7 @@ impl FnCtx {
 impl Checker {
     pub fn new(items: Items) -> Checker {
         let n = items.consts.len();
-        Checker { power_uses: Vec::new(), store_hint: None, want: None, items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new(), mut_seen: HashMap::new() }
+        Checker { power_uses: Vec::new(), store_hint: None, want: None, plain_numbers: false, items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new(), mut_seen: HashMap::new() }
     }
 
     pub fn fresh(&mut self) -> Ty {
@@ -268,6 +272,7 @@ impl Checker {
             })),
             Ty::Bundle(ts) => Ty::Bundle(ts.iter().map(|t| self.resolve(t)).collect()),
             Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(self.resolve(inner)), bound: bound.clone() },
+            Ty::Percent(inner) => Ty::Percent(Box::new(self.resolve(inner))),
             t => t.clone(),
         }
     }
@@ -327,6 +332,12 @@ impl Checker {
                     && f1.fails.iter().zip(&f2.fails).all(|((n1, _), (n2, _))| n1 == n2)
             }
             (Ty::Bundle(x), Ty::Bundle(y)) => x.len() == y.len() && x.iter().zip(y).all(|(a, b)| self.unify(a, b)),
+            // A percent is its own family (owner, 2026-10-17): the same as
+            // another percent of the same number, nothing else.
+            (Ty::Percent(x), Ty::Percent(y)) => {
+                let (x, y) = (x.clone(), y.clone());
+                self.unify(&x, &y)
+            }
             (Ty::Bounded { inner, .. }, other) | (other, Ty::Bounded { inner, .. }) => {
                 let inner = inner.clone();
                 let other = other.clone();

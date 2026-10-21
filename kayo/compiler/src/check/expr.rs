@@ -63,6 +63,16 @@ impl Checker {
             }
         }
         match &e.kind {
+            // `80%`, `exactly 7%` (owner, 2026-10-17): in a plain number's
+            // place, the number over 100; anywhere else, a percent of it.
+            AK::Percent(lit) => {
+                let v = self.expr(ctx, lit)?;
+                if self.plain_numbers {
+                    return Ok(v);
+                }
+                let ty = Ty::Percent(Box::new(v.ty.clone()));
+                Ok(Expr { ty, ..v })
+            }
             AK::Int(t) => {
                 if let Ok(v) = t.parse::<i128>() {
                     return Ok(Expr { kind: K::Int(v), ty: FREE_INT, span });
@@ -765,6 +775,19 @@ impl Checker {
     pub fn expect_store(&mut self, ctx: &mut FnCtx, v: Expr, target: &Ty, what: &str) -> Result<Expr> {
         let t = self.resolve(target);
         let vt = self.resolve(&v.ty);
+        // A percent and a plain number are two families (owner,
+        // 2026-10-17): each becomes the other only through `to.`.
+        match (percent_inner(&vt), percent_inner(&t)) {
+            (Some(_), None) if matches!(t.base(), Ty::Bin(_) | Ty::Deci(_) | Ty::Int(_) | Ty::Brain) => {
+                let to = self.spell(&t.base().clone());
+                return err(Diagnostic::error(format!("this is a percent, not {to}; a percent becomes a plain number with `to.{to}[…]` (7% → 0.07)")).at(v.span));
+            }
+            (None, Some(inner)) if matches!(vt.base(), Ty::Bin(_) | Ty::Deci(_) | Ty::Int(_) | Ty::Brain) => {
+                let pc = self.spell(&inner);
+                return err(Diagnostic::error(format!("this is not a percent; a plain number becomes one with `to.percent[{pc}][…]` (0.07 → 7%)")).at(v.span));
+            }
+            _ => {}
+        }
         // `simd.fill` into a declared vector: the declared lanes win, and
         // the value is fitted into one as a typed `let` fits it (owner,
         // 2026-10-19: "yea" to (a)). `simd.fill[value 5: u8]` into a
@@ -998,6 +1021,11 @@ impl Checker {
     fn unary(&mut self, ctx: &mut FnCtx, op: UnOp, operand: &ast::Expr, span: Span) -> Result<Expr> {
         let v = self.expr(ctx, operand)?;
         let vt = self.resolve(&v.ty);
+        // A percent is not negated, as the oracle has it: `0% - 'a'` (a
+        // bound's `min: -5%` is read by the resolver, not here).
+        if matches!(op, UnOp::Neg | UnOp::NegIeee) && percent_inner(&vt).is_some() {
+            return err(Diagnostic::error("`minus` needs a number, got percent: a percent is its own family; write `0% - …`, or convert it").at(span));
+        }
         match op {
             // `negate.ieee 'x'` (owner, 2026-10-07: "yea").
             UnOp::NegIeee => {
@@ -1086,14 +1114,72 @@ impl Checker {
         }
         let r = self.expr(ctx, rhs)?;
         let rt = self.resolve(&r.ty);
-        let l = self.as_operand(ctx, l)?;
-        let r = self.as_operand(ctx, r)?;
+        // An `exactly` literal is left unsettled here: beside a deci it
+        // takes that deci's width (`'p' + exactly 7` with 'p' a d32 is a
+        // d32, as the oracle reads it), which `binary_checked` decides; it
+        // was made a d64 first, and the two widths were refused.
+        let l = self.operand_unsettled(ctx, l)?;
+        let r = self.operand_unsettled(ctx, r)?;
         self.binary_checked(ctx, op, op_span, l, r, lt, rt, lhs, rhs, span)
+    }
+
+    /// An operator with a percent on one side or both (owner, 2026-10-17):
+    /// percents add, subtract and compare among themselves, a `%` literal
+    /// beside a plain deci is the number over 100, and nothing else mixes.
+    #[allow(clippy::too_many_arguments)]
+    fn percent_binary(&mut self, ctx: &mut FnCtx, op: &BinOp, op_span: Span, mut l: Expr, mut r: Expr, mut lt: Ty, mut rt: Ty, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
+        let literal = |e: &ast::Expr| matches!(e.kind, AK::Percent(_));
+        // `'p' + exactly 7%` with 'p' a d64 is 'p' + 0.07, as the oracle
+        // reads it.
+        if percent_inner(&rt).is_none() && literal(lhs) && matches!(rt.base(), Ty::Deci(_)) {
+            lt = percent_inner(&self.resolve(&l.ty)).unwrap();
+            l.ty = lt.clone();
+            return self.binary_checked(ctx, op, op_span, l, r, lt, rt, lhs, rhs, span);
+        }
+        if percent_inner(&lt).is_none() && literal(rhs) && matches!(lt.base(), Ty::Deci(_)) {
+            rt = percent_inner(&self.resolve(&r.ty)).unwrap();
+            r.ty = rt.clone();
+            return self.binary_checked(ctx, op, op_span, l, r, lt, rt, lhs, rhs, span);
+        }
+        let (li, ri) = (percent_inner(&lt), percent_inner(&rt));
+        let (Some(li), Some(ri)) = (li.clone(), ri.clone()) else {
+            let other = if li.is_some() { &rt } else { &lt };
+            let fam = match other.base() {
+                Ty::Bin(_) => "a bin",
+                Ty::Deci(_) => "a deci",
+                Ty::Int(_) => "a whole number",
+                Ty::Brain => "a brain16",
+                _ => return err(Diagnostic::error(format!("`{}` between a percent and {}: a percent is a number", op.spelled(), crate::types::a_type(&self.spell(other)))).at(op_span)),
+            };
+            return err(Diagnostic::error(format!("`{}` between a percent and {}: a percent is its own number family; convert it, `to.d64['tax']` (7% → 0.07), or the number, `to.percent[d64][0.07]`", op.spelled(), fam)).at(op_span));
+        };
+        if !(matches!(op, BinOp::Add | BinOp::Sub) || op.is_comparison()) {
+            let name = |e: &ast::Expr| match &e.kind {
+                AK::Name(q) => format!("'{}'", q.name),
+                _ => "…".to_string(),
+            };
+            let (a, b) = (name(lhs), name(rhs));
+            let b = if a == b { "'b'".to_string() } else { b };
+            return err(Diagnostic::error(format!("`{}` between two percents is not decided; convert them: `to.d64[{}] {} to.d64[{}]`", op.spelled(), a, match op { BinOp::Mul => "x".to_string(), BinOp::Pow => "xx".to_string(), o => o.spelled() }, b)).at(op_span));
+        }
+        // Worked out on their numbers; a sum or difference is a percent.
+        let (li, ri) = (percent_inner(&self.resolve(&l.ty)).unwrap_or(li), percent_inner(&self.resolve(&r.ty)).unwrap_or(ri));
+        l.ty = li.clone();
+        r.ty = ri.clone();
+        let mut e = self.binary_checked(ctx, op, op_span, l, r, li, ri, lhs, rhs, span)?;
+        if matches!(op, BinOp::Add | BinOp::Sub) {
+            e.ty = Ty::Percent(Box::new(e.ty.clone()));
+        }
+        Ok(e)
     }
 
     /// A binary operator on its two operands, checked already.
     #[allow(clippy::too_many_arguments)]
     fn binary_checked(&mut self, ctx: &mut FnCtx, op: &BinOp, op_span: Span, mut l: Expr, mut r: Expr, lt: Ty, mut rt: Ty, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
+        // A percent is its own number family (owner, 2026-10-17).
+        if percent_inner(&lt).is_some() || percent_inner(&rt).is_some() {
+            return self.percent_binary(ctx, op, op_span, l, r, lt, rt, lhs, rhs, span);
+        }
         // A comparison compares true values (owner, 2026-09-23), so a group
         // of bare numbers on either side is worked out exactly — not held at
         // `i64` beside another bare number (seed 439), nor squeezed into
@@ -1638,9 +1724,15 @@ impl Checker {
     /// — nothing is handed over by comparing two texts. A plain value is
     /// simply read: it owns nothing, and a verb on one is an error
     /// everywhere else in the language, so it would be strange here.
-    fn as_operand(&mut self, _ctx: &mut FnCtx, e: Expr) -> Result<Expr> {
+    fn as_operand(&mut self, ctx: &mut FnCtx, e: Expr) -> Result<Expr> {
         let mut e = e;
         settle_exact(&mut e)?;
+        self.operand_unsettled(ctx, e)
+    }
+
+    /// An operand as `as_operand` makes it, an `exactly` literal's width
+    /// left to the operator.
+    fn operand_unsettled(&mut self, _ctx: &mut FnCtx, e: Expr) -> Result<Expr> {
         match e.kind {
             K::Read(place) => {
                 let ty = e.ty;
@@ -3075,7 +3167,10 @@ impl Checker {
                     ctx.lend_call_ok = Some(e.span);
                 }
                 self.want = Some(pty.clone());
+                let was_plain = self.plain_numbers;
+                self.plain_numbers = plain_number(&self.resolve(pty));
                 let v = self.expr(ctx, e);
+                self.plain_numbers = was_plain;
                 self.want = None;
                 ctx.lend_call_ok = saved;
                 let v = v?;
@@ -4627,7 +4722,8 @@ fn into_deci(e: &mut Expr, bits: u16) -> Result<()> {
             _ => {}
         }
     }
-    e.ty = Ty::Deci(bits);
+    // A percent stays one: its number is what settles (owner, 2026-10-17).
+    e.ty = if percent_inner(&e.ty).is_some() { Ty::Percent(Box::new(Ty::Deci(bits))) } else { Ty::Deci(bits) };
     Ok(())
 }
 
@@ -5348,6 +5444,21 @@ enum Peek {
     Deci(String),
     Text,
     Unknown,
+}
+
+/// Whether a place holds a plain number, not a percent: a `%` literal in
+/// its value is the number over 100 (owner, 2026-10-17).
+pub fn plain_number(t: &Ty) -> bool {
+    percent_inner(t).is_none() && matches!(t.base(), Ty::Bin(_) | Ty::Deci(_) | Ty::Brain)
+}
+
+/// A percent's number (owner, 2026-10-17), through a bound around it.
+pub fn percent_inner(t: &Ty) -> Option<Ty> {
+    match t {
+        Ty::Percent(inner) => Some((**inner).clone()),
+        Ty::Bounded { inner, .. } => percent_inner(inner),
+        _ => None,
+    }
 }
 
 /// Whether an argument fits a version's parameter of type `t`.

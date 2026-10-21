@@ -324,6 +324,8 @@ impl Checker {
                 // `let 'f': fn[…] = op +;` takes its type from the declaration.
                 self.store_hint = declared.as_ref().map(|t| (self.resolve(t), value.span));
                 self.want = declared.as_ref().map(|t| self.resolve(t));
+                let was_plain = self.plain_numbers;
+                self.plain_numbers = declared.as_ref().is_some_and(|t| crate::check::expr::plain_number(&self.resolve(t)));
                 let v = match (&value.kind, declared.as_ref().map(|t| self.resolve(t))) {
                     (ast::ExprKind::OpValue { op, spelled, unary }, Some(Ty::Fn(ft))) => self.op_value(ctx, op, spelled, *unary, &ft, value.span),
                     _ => self.expr_top(ctx, value, true),
@@ -331,6 +333,7 @@ impl Checker {
                 ctx.lend_call_ok = saved;
                 self.store_hint = None;
                 self.want = None;
+                self.plain_numbers = was_plain;
                 let v = v?;
                 let lends = self.call_lends(&v);
                 if let hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::ListAppend), .. } = &v.kind {
