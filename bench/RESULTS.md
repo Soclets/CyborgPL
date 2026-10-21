@@ -2,6 +2,40 @@
 
 Machine: arm64 (Apple Silicon, 10 cores: 4 performance, 6 efficiency), Darwin 27.0.0. Best of 3 runs, wall-clock from process start to exit (startup included); runs past 60 s are timeouts. Every answer is checked against C's, and every one agreed.
 
+## 2026-10-21, later: n-body, a "real" program (owner: "bench C, C++, Rust, Zig, Fortran, ASM, and CyborgPL for a 'real' program", then "drop ASM")
+
+The Benchmarks Game's n-body (the Sun and four Jovian planets, the symplectic integrator, the energy to 9 places
+before and after), N = 100,000,000 steps from the environment, written by a subagent in `bench/nbody/`. `python3
+bench/run.py` (the main set; nbody only in these six); kayo `CyDT dc1b05aa KAYO\n`, clang 21.0.0, rustc 1.96.1, Zig
+0.16.0, gfortran 16.2.0; final builds; best of 3. Every version printed exactly C's text (`-0.169075164`,
+`-0.169035465`), and, outside run.py, every unfused version matched C to the last bit at N = 0 to 1,000,000.
+
+| | time | vs C |
+|---|---|---|
+| Rust (`-C opt-level=3`) | 1.781 s | 0.65× |
+| Zig (ReleaseFast) | 1.989 s | 0.72× |
+| C++ (clang++ -O3 -ffp-contract=off) | 2.727 s | 0.99× |
+| C (clang -O3 -ffp-contract=off) | 2.748 s | 1.00× |
+| Fortran (gfortran -O3 -ffp-contract=off) | 2.922 s | 1.06× |
+| CyborgPL, 3 threads | 6.493 s | 2.36× |
+| CyborgPL, 1 thread | 6.497 s | 2.36× |
+| CyborgPL no_cheat, 1 thread | 8.409 s | 3.06× |
+| CyborgPL no_cheat, 3 threads | 8.424 s | 3.07× |
+
+- **No version fuses a multiply and an add**: clang, clang++ and gfortran get `-ffp-contract=off` for nbody only
+  (gfortran's plain `-O3` had 74 fused instructions); rustc, Zig and kayo don't fuse unless asked; no binary in the
+  table has one. The 9-place check alone would not catch fusing (fused C and Fortran differ only in the last bits).
+- **CyborgPL is the slowest, at 2.36× C.** kayo refused nothing; 237 check sites, 87 proven, 150 `no_check`: every
+  float operation is a check site (the result could be infinite or NaN), which Precog can't rule out over N steps.
+  Same shape as the others (`struct Body`, a `list[Body]` of five); `sqrt` and `printf("%.9f")` through `extern.C`
+  (std has no square root; `std::print.format` isn't built).
+- **Where its time goes**, by the subagent: (1) the -0 rule, `minus` and `div.near` never giving -0, so kayo adds
+  +0.0 after each, 18 extra adds in the inner loop; a copy with the `.ieee` operators took 5.5 s against 6.3 s, in
+  one run outside run.py. (2) kayo keeps the pair loop a loop, where clang unrolls it and does two square roots at
+  once. A fixed count of 5 or an `array` instead of a list changed nothing (6.4 s each). Threads don't help: no loop
+  is split.
+- Not explained yet: Rust and Zig beating C by a third with bit-identical answers, and no_cheat costing 30% here.
+
 ## 2026-10-21: CyborgPL against Odin, Zig and C (owner: "Bench it against CyborgPL, Zig, and C only")
 
 `python3 bench/run.py cyborgpl cyborgpl1 cyborgpl_nc cyborgpl1_nc odin zig c`; kayo `CyDT dc1b05aa KAYO\n` (with

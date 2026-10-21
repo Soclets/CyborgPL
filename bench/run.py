@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""CyborgPL against every other language installed here, on the same four programs.
+"""CyborgPL against every other language installed here, on the same four programs, and n-body.
 
 Each program reads N from the environment and exits with its answer's low byte, so
 nothing is worked out while compiling and every language is checked against C's
 answer. Lust has no getenv and no exit code, so the runner writes N into its source
-and reads the printed answer instead. A run is timed from process start to exit,
+and reads the printed answer instead. `nbody` (the Benchmarks Game's, in bench/nbody/) is
+written only in C, C++, Rust, Zig, Fortran and CyborgPL; it prints the energy to 9 places
+before and after, and its whole output must match C's text exactly. No version of it fuses
+a multiply and an add: clang, clang++ and gfortran get -ffp-contract=off for it (CASE_FLAGS),
+and rustc, Zig and kayo do not fuse unless asked. A run is timed from process start to exit,
 startup included; each case keeps the best of RUNS, and a run past TIMEOUT seconds
 is recorded as a timeout.
 
@@ -25,7 +29,7 @@ import os, platform, re, shutil, subprocess, sys, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BUILD = os.path.join(HERE, "build")
-CASES = [("sum", 300_000_000), ("fib", 35), ("lists", 20_000_000), ("sieve", 100_000_000)]
+CASES = [("sum", 300_000_000), ("fib", 35), ("lists", 20_000_000), ("sieve", 100_000_000), ("nbody", 100_000_000)]
 RUNS = 3
 TIMEOUT = 60
 ALLOW_WORKING = "--allow-working" in sys.argv
@@ -33,11 +37,28 @@ if ALLOW_WORKING:
     sys.argv.remove("--allow-working")
 if "--quick" in sys.argv:  # tiny sizes, one run: checks every language builds and agrees
     sys.argv.remove("--quick")
-    CASES = [("sum", 100_000), ("fib", 20), ("lists", 100_000), ("sieve", 100_000)]
+    CASES = [("sum", 100_000), ("fib", 20), ("lists", 100_000), ("sieve", 100_000), ("nbody", 1_000)]
     RUNS = 1
 _KAYO = os.path.join(HERE, "..", "kayo", "target", "release", "kayo")
 KAYO = os.environ.get("KAYO", _KAYO)
 LUST = os.environ.get("LUST", "lust")
+# Cases written in only some languages; every other case is in all of them.
+CASE_LANGS = {"nbody": {"cyborgpl", "cyborgpl1", "cyborgpl_nc", "cyborgpl1_nc", "c", "cpp", "rust", "zig", "fortran"}}
+# Cases checked by what they print (all of stdout, exit code 0) instead of by exit code.
+PRINTS = {"nbody"}
+# Flags a case adds to a compiler's usual ones, by the command's name: nbody's no-FMA rule.
+CASE_FLAGS = {"nbody": {"clang": ["-ffp-contract=off"], "clang++": ["-ffp-contract=off"], "gfortran": ["-ffp-contract=off"]}}
+
+
+def has_case(key, name):
+    return key in CASE_LANGS.get(name, (key,))
+
+
+def label_for(key, name):
+    """The language's label, with the flags this case adds to its build."""
+    label, tool = LANGS[key][0], LANGS[key][1]
+    extra = CASE_FLAGS.get(name, {}).get(tool)
+    return label[:-1] + " " + " ".join(extra) + ")" if extra and label.endswith(")") else label
 
 
 def sh(cmd, cwd=None):
@@ -58,7 +79,10 @@ def dotnet_major():
 # Each language: (label, tool that must be installed, source name, build, run).
 # build(src, out_dir) returns nothing; run(src, out_dir) returns the command to time.
 def native(cmd):
-    return lambda src, d, b: sh(cmd(src, os.path.join(d, b)))
+    def build(src, d, b):
+        c = cmd(src, os.path.join(d, b))
+        sh(c + CASE_FLAGS.get(b, {}).get(c[0], []))
+    return build
 
 
 # kayo's final builds it refused, by program, with the first line of why (2026-10-15: a refused sieve
@@ -160,7 +184,7 @@ CYBORGPL_THREADS = os.environ.get("CYBORGPL_BENCH_THREADS", os.environ.get("CYBO
 THREADS = {"cyborgpl": CYBORGPL_THREADS, "cyborgpl1": "1", "cyborgpl_nc": CYBORGPL_THREADS, "cyborgpl1_nc": "1"}
 
 
-def run_once(cmd, n, lust, key=""):
+def run_once(cmd, n, lust, key="", prints=False):
     env = dict(os.environ, N=str(n))
     if key in THREADS:
         env["THREAD_CAP"] = THREADS[key]; env["CYBORG_THREADS"] = THREADS[key]  # until every build reads THREAD_CAP
@@ -170,6 +194,8 @@ def run_once(cmd, n, lust, key=""):
     except subprocess.TimeoutExpired:
         return None, None
     took = time.perf_counter() - t
+    if prints:
+        return took, (r.stdout if r.returncode == 0 else ("fail", r.returncode))
     if lust:
         m = re.search(r"-?\d+", r.stdout)
         return took, (int(m.group()) if m and r.returncode == 0 else ("fail", r.returncode))
@@ -203,11 +229,14 @@ def main():
         d = os.path.join(BUILD, "c", name)
         os.makedirs(d, exist_ok=True)
         LANGS["c"][3](os.path.join(HERE, name, name + ".c"), d, name)
-        expect[name] = subprocess.run([os.path.join(d, name)], env=dict(os.environ, N=str(n))).returncode
+        r = subprocess.run([os.path.join(d, name)], env=dict(os.environ, N=str(n)), capture_output=True, text=True)
+        expect[name] = (r.stdout if r.returncode == 0 else ("fail", r.returncode)) if name in PRINTS else r.returncode
     results = {}
     for key in keys:
         label, tool, pattern, build, run = LANGS[key]
         for name, n in CASES:
+            if not has_case(key, name):
+                continue
             src = os.path.join(HERE, name, pattern.format(b=name, B=cap(name)))
             d = os.path.join(BUILD, key, name)
             os.makedirs(d, exist_ok=True)
@@ -227,9 +256,9 @@ def main():
                 continue
             best, answer = None, None
             if build:  # warm-up, untimed: macOS scans a freshly built program on its first run
-                run_once(run(src, d, name), n, key == "lust", key)
+                run_once(run(src, d, name), n, key == "lust", key, name in PRINTS)
             for _ in range(RUNS):
-                took, got = run_once(run(src, d, name), n, key == "lust", key)
+                took, got = run_once(run(src, d, name), n, key == "lust", key, name in PRINTS)
                 if took is None:
                     best = None if best is None else best
                     answer = "timeout" if best is None else answer
@@ -239,7 +268,8 @@ def main():
                 if took > 10:
                     break
             ok = answer == expect[name]
-            results[key, name] = (best, "ok" if ok else f"answer {answer}, C says {expect[name]}")
+            shown_answer = repr if name in PRINTS else str  # printed text, with its newlines shown
+            results[key, name] = (best, "ok" if ok else f"answer {shown_answer(answer)}, C says {shown_answer(expect[name])}")
             shown = f"{best:8.3f} s" if best is not None else "  timeout"
             print(f"{key:11} {name:6} {shown}  {'agree' if ok else results[key, name][1]}", flush=True)
     write_results(keys, missing, results)
@@ -274,16 +304,18 @@ def write_results(keys, missing, results):
         base = results.get(("cyborgpl", name), (None,))[0]
         rows = []
         for key in keys:
+            if not has_case(key, name):
+                continue
             t, status = results.get((key, name), (None, "not run"))
             if isinstance(t, float) and status == "ok":
                 rel = f"{t / base:.2f}×" if isinstance(base, float) else "—"
-                label = LANGS[key][0]
+                label = label_for(key, name)
                 if key.startswith("cyborgpl") and name in REFUSED:
                     label = label.replace("final build", "**working build**: the final build was refused") 
                 rows.append((t, f"| {label} | {t:.3f} s | {rel} |"))
             else:
                 why = "timeout" if status == "ok" or t is None and status.startswith("answer timeout") else status
-                rows.append((float("inf"), f"| {LANGS[key][0]} | {why} | — |"))
+                rows.append((float("inf"), f"| {label_for(key, name)} | {why} | — |"))
         lines += [r for _, r in sorted(rows, key=lambda x: x[0])] + [""]
     if missing:
         lines += ["Not installed, so not run: " + ", ".join(LANGS[k][0] for k in missing) + ".", ""]
