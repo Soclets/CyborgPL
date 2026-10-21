@@ -1033,11 +1033,20 @@ impl Checker {
     fn unary(&mut self, ctx: &mut FnCtx, op: UnOp, operand: &ast::Expr, span: Span) -> Result<Expr> {
         let v = self.expr(ctx, operand)?;
         let vt = self.resolve(&v.ty);
-        // A percent is not negated, as the oracle has it: `0% - 'a'` (a
-        // bound's `min: -5%` is read by the resolver, not here).
+        // A percent negates to a percent (owner: `-5%`, `-'tax'`).
         if matches!(op, UnOp::Neg | UnOp::NegIeee) && percent_inner(&vt).is_some() {
-            return err(Diagnostic::error("`minus` needs a number, got percent: a percent is its own family; write `0% - …`, or convert it").at(span));
+            let mut inner = v;
+            inner.ty = percent_inner(&vt).unwrap();
+            let mut e = self.unary_on(op, inner, span)?;
+            e.ty = Ty::Percent(Box::new(e.ty.clone()));
+            return Ok(e);
         }
+        self.unary_on(op, v, span)
+    }
+
+    /// A unary operator on its operand, checked already.
+    fn unary_on(&mut self, op: UnOp, v: Expr, span: Span) -> Result<Expr> {
+        let vt = self.resolve(&v.ty);
         match op {
             // `negate.ieee 'x'` (owner, 2026-10-07: "yea").
             UnOp::NegIeee => {
@@ -1141,14 +1150,15 @@ impl Checker {
     #[allow(clippy::too_many_arguments)]
     fn percent_binary(&mut self, ctx: &mut FnCtx, op: &BinOp, op_span: Span, mut l: Expr, mut r: Expr, mut lt: Ty, mut rt: Ty, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
         let literal = |e: &ast::Expr| matches!(e.kind, AK::Percent(_));
-        // `'p' + exactly 7%` with 'p' a d64 is 'p' + 0.07, as the oracle
-        // reads it.
-        if percent_inner(&rt).is_none() && literal(lhs) && matches!(rt.base(), Ty::Deci(_)) {
+        // A `%` literal beside a plain number is its fraction (owner,
+        // 2026-10-16: "a plain 80% is a bin"): `'p' + exactly 7%` is
+        // 'p' + 0.07, `'x' + 80%` is 'x' + 0.8.
+        if percent_inner(&rt).is_none() && literal(lhs) && plain_number(&rt) {
             lt = percent_inner(&self.resolve(&l.ty)).unwrap();
             l.ty = lt.clone();
             return self.binary_checked(ctx, op, op_span, l, r, lt, rt, lhs, rhs, span);
         }
-        if percent_inner(&lt).is_none() && literal(rhs) && matches!(lt.base(), Ty::Deci(_)) {
+        if percent_inner(&lt).is_none() && literal(rhs) && plain_number(&lt) {
             rt = percent_inner(&self.resolve(&r.ty)).unwrap();
             r.ty = rt.clone();
             return self.binary_checked(ctx, op, op_span, l, r, lt, rt, lhs, rhs, span);

@@ -271,6 +271,11 @@ fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
         Tok::Word(w) => !matches!(w.as_str(), "mut"),
         _ => false,
     };
+    // `%[d32]`, a percent's symbol spelling (owner), where a type goes:
+    // after `:`, `[` or `,`.
+    if matches!(&toks[i].tok, Tok::Op(o) if o == "%") && i > 0 && matches!(toks[i - 1].tok, Tok::Colon | Tok::LBracket | Tok::Comma) && matches!(next(1), Some(Tok::LBracket)) {
+        return None;
+    }
     let operator = i > 0 && (toks[i - 1].tok == Tok::Word("op".into()) || (ends_value(&toks[i - 1].tok) && next(1).is_some_and(starts_value)));
     if operator && matches!(&toks[i].tok, Tok::Op(o) if o == "!") {
         return None;
@@ -2696,6 +2701,15 @@ impl<'a> Parser<'a> {
                 let wspan = self.bump().span;
                 let name = Ident { name: format!("!std_{}", w), span: at.to(wspan) };
                 TypeKind::Path { path: Path { kit: None, segs: vec![name], span: at.to(wspan) }, args: Vec::new() }
+            }
+            // `%[d32]`: `percent[d32]` in its symbol (owner).
+            Tok::Op(o) if o == "%" && matches!(self.peek_at(1), Tok::LBracket) => {
+                let at = self.bump().span;
+                self.bump();
+                let inner = self.type_()?;
+                self.expect(&Tok::RBracket, "`]` closing the percent's number")?;
+                let path = Path { kit: None, segs: vec![Ident { name: "percent".into(), span: at }], span: at };
+                TypeKind::Path { path, args: vec![inner] }
             }
             Tok::Word(_) => {
                 let path = self.path()?;

@@ -1100,12 +1100,14 @@ Dated, with the alternative, so each can become a question later.
   combines with (`percent_binary`): percents add, subtract and compare among
   themselves (`+`/`-` give a percent); `x`, `div`, `mod`, `xx` between two
   are not decided; a percent beside any other number is refused naming
-  `to.d64['tax']` and `to.percent[d64][…]`; one is not negated; a store
-  across the two families names the conversion. A `%` literal
-  (`ExprKind::Percent`, the lexer's `percent` flag) is a percent where
-  nothing says a plain number, the number over 100 in a typed `let` or a
-  parameter of a plain number (`Checker::plain_numbers`), and beside a plain
-  deci, as the oracle reads it. Bounds are written in `%`
+  `to.d64['tax']` and `to.percent[d64][…]`; `-5%` and `-'tax'` are percents;
+  a store across the two families names the conversion. A `%` literal
+  (`ExprKind::Percent`, the lexer's `percent` flag) is a percent under `:=`
+  alone or in a percent's place, and the number over 100 beside a plain
+  number or in its place, a typed `let` or a parameter
+  (`Checker::plain_numbers`; owner, 2026-10-16: "a plain 80% is a bin";
+  oracle 6486b760). `%[d32]` is `percent[d32]` after `:`, `[` or `,`.
+  Bounds are written in `%`
   (`percent[d32][min: 0%, max: 100%]`). `print.useful` shows the `%` (the
   number's own digits, the point two places on: `cyborg_out_bin_percent`,
   `cyborg_out_deci_percent`); `print.stored` shows the number. Found on the
