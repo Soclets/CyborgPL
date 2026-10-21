@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-21 — std's Unicode case tables are generated CyborgPL source, a `.cy` file (owner: a)
+
+std claude, to write `str.upper.simple` / `.full` and `casing`, asked where std gets Unicode's case data (about 1,400
+simple mappings, about 100 longer ones, the tr/az/lt rules, final sigma). Offered (a) generated CyborgPL source in
+std, sorted const arrays written by a small generator from Unicode 17.0.0's files (shipped with this Mac's Perl,
+nothing downloaded), rerun when kayo's Unicode moves (std claude's and design claude's recommendation); (b) Unicode's
+own files kept in std and parsed in CyborgPL; (c) a runtime built-in, Rust's tables, which Precog cannot see. The
+owner: "(a)", then asked "Would it be `.cy` or `.cyr`?" (design claude: `.cy`, since a `.cyr` is one value that never
+runs, read by tools, and no way for a program to read one is designed): "`.cy`". So **std's case tables are a
+generated `.cy` module of consts**, Precog seeing all of it. Design claude's correction on the way: the `unicode`
+limb is a gate allowing Unicode features (kayo/LIMBS.md), not a holder of Unicode's tables, as it had said 2026-10-20.
+
 ### 2026-10-21 — The core features are four: Precog, ownership, `::` and `.`, LLVM (owner, through website claude)
 
 Relayed by website claude, the owner on `design/core-features.md`: "That's pretty old. So, let's do a new one", and
