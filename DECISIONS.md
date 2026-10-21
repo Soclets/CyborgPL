@@ -34,6 +34,36 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-21 — WITHDRAWN the same day: C's type words as base types written in front (`let long 'x'`); CNC stays separate from the base (owner)
+
+**Withdrawn** (owner, asked about parameters, fields and loop counters: "uhhh, nvm.", then "the whole thing"):
+there are no C-style type words; what follows is the history. Still standing: **CNC stays its own limb, not merged
+into the base** (owner: "Keep it separate then").
+
+The owner: "I think we should have shit like `let long 'x'` officially". Design claude asked whether `long` is a
+fixed width (`i64`) or C's own `long` (`C.long`, CNC's: 64 bits on Mac and Linux, 32 on Windows) and recommended the
+fixed width. Asked "Should we remove CNC, and just merge it into base?", design claude recommended keeping it (a kit
+not listing CNC provably never calls C, and Clang ships inside CNC), the owner: "Keep it separate then". Asked why C's
+`long` can't be in the base, design claude: not run time, but 2026-10-10's ruling, the C lobe "holds everything about
+C" and the base "keeps nothing of C". The owner: "Well, what if `long` infront isn't a C type?" Offered (a) a fixed
+`i64`, recommended, (b) the machine's natural width, as Rust's `isize`, (c) a hint for `:=`, at least 64 bits, the
+owner: "(b)". So **`long` is a base type, not C's: the machine's natural width**, 64 bits on a 64-bit machine, 32 on a
+32-bit one; Precog proves its ranges for each machine a kit is built for; `C.long` stays CNC's. Asked where it is
+written, offered (a) any type in front or after, recommended, (b) only `long` in front, (c) in front everywhere, the
+owner: "Only C style types go infront". So **C-style type words are written in front of the name** (`let long 'x' =
+1000;`), and CyborgPL's own types after it (`let 'x': i64 = 1000;`). Then **all of C's basic type words** (owner: "Nah, it
+should have all", over design claude's `short`, `int`, `long`, `float`, `double`), **each exactly as C has it on the
+machine built for** (owner: "Nah, it should be exactly like C", over design claude's fixed widths with `char` an `i8`):
+`char`, `signed char`, `unsigned char`, `short`, `unsigned short`, `int`, `unsigned int`, `long`, `unsigned long`,
+`long long`, `unsigned long long`, `float`, `double`, `long double`, so `long` is 32 bits on 64-bit Windows, as C's
+(this replaces (b)'s "natural width" there). Asked whether they are CNC's `C.` types under a C-style spelling or the
+base's own, the owner: "It's not in CNC, this is another of CyborgPL types, but it's a ripoff". So **they are base
+types of CyborgPL's own, copying C's widths**, usable with no CNC; CNC's `C.` types stay CNC's, for talking to C.
+**Only in front** (owner: "(a)", design claude's
+recommendation, over (b) either place): `let 'x': long = 1000;` is refused, so each type has one spelling, and where a
+type sits says whether it is C-style. Open: parameters, fields, loop counters and return types; whether a `long` passes where C
+wants a `C.long` with no conversion; `_Bool`, `size_t` and the like.
+
 ### 2026-10-21 — The scripting language is Graft (was Lunae, N% before it) (owner)
 
 Talking about CyborgPL for games (design claude: the engine in CyborgPL, gameplay in the scripting language), the
