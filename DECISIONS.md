@@ -55,8 +55,13 @@ fix:   let 'a' := 'b' + 1;
   none. Names never clash, as kits' do not.
 - **The message shows `code:` and `fix:`**, the fix as edited code; **a check adds `when:`**, the value that breaks it.
 - **The explanation is in the docs**, found by the name.
-- Design claude's readings, not asked: the location (file, line, column) stays with the name; a renamed error keeps its
-  old name as an alias, as `spellings.cyr` keeps old spellings.
+- **Two locations** (owner: "There should be two location thingies, one for humans, and one for programs", which
+  `diagnostics.md`'s rule 3 already said): the program-readable `file:line:col` on the first line, and a `where:` line
+  for people, **naming a function with `( )`**: `where: in pick(), called from take_order() at line 240` (owner:
+  "`pick()`", over backticks, since a backtick is CyborgPL's char literal, 2026-09-14: "` means char in CyPL").
+- Design claude's readings, not asked: a renamed error keeps its old name as an alias, as `spellings.cyr` keeps old
+  spellings; the layout (`error[…] at shop.cy:12:5`, then `where:`, `code:`, `when:`, `fix:`, a fix on another line
+  as `fix: line 10:` and the line under it) is design claude's sketch.
 This replaces most of `design/diagnostics.md`'s labels (`why`, `try`, the sentence). Not built (CyborgPL paused).
 
 ### 2026-10-22 — Calls and function definitions use `( )`; `[ ]` describes or holds; channels are made with `channel.empty`; `.of` is withdrawn (owner; not built)
