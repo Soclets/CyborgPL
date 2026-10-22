@@ -2,22 +2,22 @@
 # cannot run them: `sits_at`'s two positions in `for 'k' from 'pos' to …` (the counter is never
 # below 'pos'), and `count_pieces`' `'text'[pos 'pos']` (the landing of `'pos' plus 'm'` in a
 # `u64[min 1]` passed, so 'pos' never wrapped round to 0). All three are proven.
-fn word ['argv': ptr[ptr[u8]], 'i': i32] -> list[u8] {
+fn word ['argv': ptr[ptr[u8]], 'i': i32] -> std::list[u8] {
     no_check let 'w' := ptr.read[ptr.at['argv', by: 'i']];
     let mut 'k': i32 = 0;
-    let mut 'bytes': list[u8] = [];
+    let mut 'bytes': std::list[u8] = [];
     loop {
         no_check let 'b' := ptr.read[ptr.at['w', by: 'k']];
         if 'b' equal_to 0 { break; }
-        list.append[lend.mut 'bytes', value: 'b'];
+        std::list.append[lend.mut 'bytes', value: 'b'];
         change 'k' = 'k' plus 1;
     }
     return give 'bytes';
 }
 
-fn sits_at [lent 'text': list[u8], lent 'part': list[u8], 'pos': u64[min: 1]] -> bool {
-    let 'n' := list.length[lend 'text'];
-    let 'm' := list.length[lend 'part'];
+fn sits_at [lent 'text': std::list[u8], lent 'part': std::list[u8], 'pos': u64[min: 1]] -> bool {
+    let 'n' := std::list.length[lend 'text'];
+    let 'm' := std::list.length[lend 'part'];
     if 'm' equal_to 0 { return 'pos' at_most 'n' plus 1; }
     if 'm' > 'n' { return false; }
     if 'pos' > 'n' minus 'm' plus 1 { return false; }
@@ -27,19 +27,19 @@ fn sits_at [lent 'text': list[u8], lent 'part': list[u8], 'pos': u64[min: 1]] ->
     return true;
 }
 
-fn count_pieces [lent 'text': list[u8], lent 'sep': list[u8]] -> u64 {
-    let 'n' := list.length[lend 'text'];
-    let 'm' := list.length[lend 'sep'];
+fn count_pieces [lent 'text': std::list[u8], lent 'sep': std::list[u8]] -> u64 {
+    let 'n' := std::list.length[lend 'text'];
+    let 'm' := std::list.length[lend 'sep'];
     let mut 'pieces': u64 = 1;
-    let mut 'piece': list[u8] = [];
+    let mut 'piece': std::list[u8] = [];
     let mut 'pos': u64[min: 1] = 1;
     while 'pos' at_most 'n' {
         if sits_at[lend 'text', lend 'sep', 'pos'] {
             change 'pieces' = 'pieces' plus 1;
-            change 'piece' = list.empty;
+            change 'piece' = std::list.empty;
             change 'pos' = 'pos' plus 'm';
         } else {
-            list.append[lend.mut 'piece', value: 'text'[pos: 'pos']];
+            std::list.append[lend.mut 'piece', value: 'text'[pos: 'pos']];
             change 'pos' = 'pos' plus 1;
         }
     }

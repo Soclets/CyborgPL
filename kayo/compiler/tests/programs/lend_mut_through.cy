@@ -4,7 +4,7 @@
 # program stops, as the oracle does.
 extern.C fn exit ['code': i32];
 MAIN {
-    let mut 'xs': list[i64] = list.fill[value: 2, count: 3];
+    let mut 'xs': std::list[i64] = std::list.fill[value: 2, count: 3];
     for 'x' in lend.mut 'xs' {
         change 'x' = 'x' times 3;
     }

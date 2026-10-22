@@ -10,7 +10,7 @@ MAIN {
     let 'b': simd[u8, count: 16] = simd.fill[value: 200];
     let 'c': simd[i64, count: 2] = simd.fill[value: -5];
     let 'w': simd[f64, count: 2] = simd.fill[value: 2.5];
-    let 'xs': list[i32] = [10, 20, 30, 40];
+    let 'xs': std::list[i32] = [10, 20, 30, 40];
     let 'v': simd[i32, count: 4] = simd.load[lend 'xs', pos: 1];
     let 'k': i64 = 3;
     let 'x1': i32 = 'a'[pos: 1];

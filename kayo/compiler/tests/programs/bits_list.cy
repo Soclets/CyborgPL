@@ -7,17 +7,17 @@
 # 9605, and 9605 mod 256 is 133.
 extern.C fn exit ['code': i32];
 
-fn trues [lent 'xs': list[bool]] -> i64 {
+fn trues [lent 'xs': std::list[bool]] -> i64 {
     let mut 'k': i64 = 0;
-    for 'i': i64 [from: 1, to: to.i64[list.length[lend 'xs']], by: 1] {
+    for 'i': i64 [from: 1, to: to.i64[std::list.length[lend 'xs']], by: 1] {
         if 'xs'[pos: to.u64['i']] { change 'k' = 'k' plus 1; }
     }
     return 'k';
 }
 
 MAIN {
-    let mut 'a': list[bool] = list.fill[value: true, count: 13];
-    let 'n': i64 = to.i64[list.length[lend 'a']];
+    let mut 'a': std::list[bool] = std::list.fill[value: true, count: 13];
+    let 'n': i64 = to.i64[std::list.length[lend 'a']];
     change 'a'[pos: 3] = false;
     change 'a'[pos: 13] = false;
     change 'a'[pos: 8] = 'n' equal_to 0;
@@ -28,7 +28,7 @@ MAIN {
     }
 
     let 'top': i64 = 100_000;
-    let mut 'comp': list[bool] = list.fill[value: false, count: 'top' plus 1];
+    let mut 'comp': std::list[bool] = std::list.fill[value: false, count: 'top' plus 1];
     for 'p': i64 [from: 2, to: 'top', by: 1] {
         if not 'comp'[pos: to.u64['p' plus 1]] {
             change 'code' = 'code' plus 1;
@@ -38,7 +38,7 @@ MAIN {
         }
     }
 
-    let mut 'kept': list[bool] = list.fill[value: false, count: 3];
+    let mut 'kept': std::list[bool] = std::list.fill[value: false, count: 3];
     change 'kept'[pos: 1] = true;
     change 'kept'[pos: 3] = true;
     change 'code' = 'code' plus trues[lend 'kept'];

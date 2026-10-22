@@ -50,33 +50,12 @@ assign_with_colon [fnv:a19ee1e93ed328a3] :: is already declared in this scope
 bad_comment_form [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
 bad_comment_suffix [fnv:5c98b85a3c9b9136] :: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down
 bare_char [fnv:b78f2a1f98dce47b] :: `char` is never bare: say the unit
-bare_clash_not_run [fnv:e924dc5e8c677692] :: `exit` could be any of `my.m.exit` (this kit's), `std::exit`: write the path
-bare_const_item [fnv:1d7c838e9fed072b] :: a const takes no `bare` mark
-bare_const_kind [fnv:1d7c838e9fed072b] :: a const takes no `bare` mark
-bare_disagree [fnv:2b664eb8db1601d1] :: `fn shapes.area` is marked both
-bare_file_not_first [fnv:7a0881d6b01f89e3] :: a file's `bare` mark is its first line
-bare_glyph_op [fnv:ff9fd24907e07e6b] :: is a glyph operator, which has nowhere to write a path
 bare_int [fnv:ef16210764d8ed79] :: the typed form is always fully explicit
-bare_kind_disagree [fnv:e3a4fefd8054dcfd] :: marks that disagree are an error
-bare_kind_unknown [fnv:61121c79d3fb4bbd] :: `module` is not a kind a `bare` mark covers
-bare_kinds_in_module [fnv:ff1372acc2f0b348] :: covers the whole kit, so it is written in `kit.cy`
 bare_list_type [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type parameter, the element type: `list[i32]`
-bare_never_op [fnv:8dfedae373e5a6ba] :: `merge` is `greet`'s and `bare.kit_prefix.never`: write `greet::merge`
-bare_never_without_path [fnv:ed606efc740d8752] :: `formal` is `greet`'s and `bare.kit_prefix.never`: `greet` requires its path, so write `greet::formal[…]`
-bare_no_pub [fnv:83272e2b4c6dcea4] :: a `bare` mark is `bare.kit_prefix.never;` at the top of a file
-bare_only_clash [fnv:9f46cd1f15f8d15a] :: both forbid the path to `fn wave` (`bare.kit_prefix.only`)
-bare_only_with_path [fnv:65ab276f2b2825d9] :: `greet::wave` is `bare.kit_prefix.only`: `greet` forbids its path, so write `wave[…]`
-bare_optional_clash [fnv:04651577553f08b9] :: `hello` could be any of `greet::hello`, `wave::hello`: write the path
-bare_own_does_not_win [fnv:bd95c996ebb74a27] :: `hello` could be any of `my.hello` (this kit's), `greet::hello`: write the path
+bare_never_without_path [fnv:23dd7960b16141a6] :: `formal` is `greet`'s: another kit's names take its path (owner, 2026-10-22), so write `greet::formal[…]`
 bare_owned_assign [fnv:53ce1c0805c37af3] :: say what happens to it
-bare_plain [fnv:0b88d482d372e883] :: a plain `bare` does not say
-bare_pub_kit [fnv:58623945bcf25673] :: a `pub.kit` thing is never reached from them
 bare_str [fnv:b78f2a1f98dce47b] :: `str` is never bare: say the encoding
-bare_type_never [fnv:037dc0ed954fe338] :: no struct named `Tally`
-bare_type_only_with_path [fnv:5bd0d2b4d9324847] :: `greet::Tone` is `bare.kit_prefix.only`: `greet` forbids its path, so write `Tone`
-bare_type_own_does_not_win [fnv:7d33cba838a9774d] :: `Note` could be any of `my.Note` (this kit's), `greet::Note`: write the path
-bare_unknown_mode [fnv:4c3063f476958c3e] :: no `bare.sometimes`
-bare_unmarked [fnv:57c56fb00b4f8e36] :: `fn area` is `pub`, and nothing says how other kits write its path
+bare_type_never [fnv:037dc0ed954fe338] :: `Tally` is `greet`'s: another kit's names take its path
 bin16_rounds_past [fnv:c3ba05f314456c5d] :: the value can be outside what an `f16` holds
 bin32_literal_past [fnv:b85f295ab8c112b4] :: the value can be outside what an `f32` holds
 bin_bound_printed [fnv:898c0827978b14b5] :: the value can be outside what an `f64[min: 0.0, max: 1.0]` holds
@@ -177,7 +156,6 @@ collection_named_outside [fnv:a0cca1ab550658b1] :: `named` names what a template
 collection_preset_no_main [fnv:22a7543a7381b537] :: a preset fills the main function's arguments, and collection `c` has none
 collection_preset_unknown [fnv:175c636485763a06] :: 'nope' is not one of `c`'s parameters
 collection_template_unnamed [fnv:87469e40dd99c652] :: a template names what it makes first
-collection_two_marks [fnv:401613ec619e0361] :: a collection has one `bare.` mark, for every member
 comma_grouping [fnv:05b8c86a9cd8fe27] :: `,` is not a digit separator
 compound_change_old [fnv:76207a9124c68c19] :: `+=` is an old spelling: write `change 'x' = 'x' + …;`
 concur_fail_unhandled [fnv:cbccfc56a451bded] :: this `concur` can fail (bad), so it needs an `otherwise` saying what happens when it does
@@ -513,7 +491,7 @@ no_std_map [fnv:948ea297c44df56a] :: a map (`map`) is std's
 no_std_print [fnv:63984011840f2bbe] :: `std::print` is std's
 no_std_text [fnv:75f33ba2cee9cf5b] :: a text operation (`str.…`) is std's
 no_zero_value [fnv:84b2ff3a065836c5] :: there is no implicit zero
-nocheck_lied [fnv:5e774167b538b020] :: !by-design CCA builds it and emits a note, which is the rule (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
+nocheck_lied [fnv:5e774167b538b020] :: this `no_check` covers something that fails every time it runs
 not_cmp [fnv:c019255d74965b33] :: mathematics has no settled reading
 not_glued [fnv:a2433dca0ab88933] :: `!` is not an operator since 2026-10-07: a value's not is `not '
 number_next_to_text [fnv:7bc354939d76583e] :: join text with `concat`, separate values with `,`
@@ -841,7 +819,6 @@ coll_member_short_name [fnv:2e2233858d06600a] :: a member writes the collection'
 coll_pointer_missing [fnv:f12e812a5c20b960] :: names no function
 collection_old_word [fnv:c622aae12d578b33] :: `collection.` is an old spelling: write `coll.fn` / `coll.handler`
 coll_handler_short_name [fnv:8853fb27f165af7f] :: a member writes the collection's name in front: `h.as_zero { … }`
-coll_mark_in_front [fnv:b901af5c66f743a6] :: a collection's `bare.` mark is written in its block
 bits_outside_layout [fnv:2bef197147f98ff3] :: it is for a `layout.C` struct's fields
 bits_too_wide [fnv:caa015a423cd19b7] :: a `u8` bit-field is 1 to 8 bits, not 9
 bits_write_too_big [fnv:2e2ab858533613a8] :: 8 does not fit
@@ -869,10 +846,7 @@ bare_int_old [fnv:1e938cf45f36560a] :: `int` is an old spelling: the types are `
 base_word_old [fnv:0b6f894dc73e5ec0] :: `binary` is an old spelling: write `bin`
 label_needs_colon [fnv:77bbc294192686b2] :: inside `[ ]` a word takes `:` before its value
 decimals_old [fnv:5c7cf826ba353522] :: `decimals` is an old spelling: write `places:`
-bare_mark_old [fnv:77774faba75bcc65] :: `bare.optional` is an old spelling: write `bare.kit_prefix.optional`
-enum_prefix_missing [fnv:8327bbe9047c0cb7] :: nothing says whether its values may be written without `Mood.`
 enum_prefix_never_bare [fnv:0951debb1909d46b] :: no function `calm`
-enum_prefix_only_named [fnv:95efaa40e322d0fc] :: forbids its name before its values
 case_lang_not_full [fnv:80f31df1a1a652ba] :: !unbuilt case mappings (7b7e8e57); then: `lang:` is for the full mapping
 case_mapping_unsaid [fnv:c367ea4dd122381f] :: !pending case mappings (7b7e8e57) not built yet: a bare `str.upper` is still std's old function
 casing_cannot_fail [fnv:37c91883b81d6ebc] :: !unbuilt case mappings (7b7e8e57); then: `to.casing` cannot fail
@@ -898,3 +872,12 @@ versions_outside_block [fnv:0819643a458cdfe0] :: !pending versions blocks (78a25
 concise_decoded_error [fnv:e4e0805eb037ca86] :: (concise file; decoded line 2
 concise_short_group [fnv:c86659c0a2e00cd9] :: `0100001` is 7 digits; each group is 8, one byte
 concise_plain_braces [fnv:690dca9d89033985] :: a concise file is only `0`, `1`, spaces and line breaks
+bare_marks_gone [fnv:54d9fc27d8dfa456] :: the `bare.` marks are gone (owner, 2026-10-22)
+kit_name_needs_path [fnv:b8c98e780e807be1] :: another kit's names take its path (owner, 2026-10-22), so write `greet::hello[…]`
+std_duration_needs_path [fnv:c1ae91c283a7ee42] :: `duration` is std's: write `std::duration`
+std_list_needs_path [fnv:d9b8e94e63365ee6] :: `list` is std's: write `std::list`
+std_name_needs_path [fnv:d490df935be12fea] :: `print.useful` is std's: write `std::print.useful`
+use_name_taken [fnv:dcfd0f6794a69d4e] :: `say` is this file's name for `std::print.useful`
+use_needs_as [fnv:f116abd9d3bfd802] :: `use` says the name after `as`
+use_not_at_top [fnv:1ad096234058360a] :: a `use` line goes at the top of the file
+use_own_kit [fnv:1c4e4cb9b427240e] :: `use` names another kit's path

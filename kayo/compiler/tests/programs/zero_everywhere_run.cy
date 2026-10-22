@@ -11,7 +11,7 @@ fn three [] -> f64 { return 3.0; }
 fn tiny [] -> f64 { return 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001; }
 fn sign ['q': f64] -> i32 {
     let 't' := to.useful.str.utf8['q'];
-    if str.bytes[lend 't'] equal_to 1 { return 1; }
+    if std::str.bytes[lend 't'] equal_to 1 { return 1; }
     return 0;
 }
 fn plus ['q': f64] -> i32 { return sign['q']; }

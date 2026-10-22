@@ -3421,6 +3421,26 @@ pub fn refusals_opts(a: &Analysis, p: &Program, sources: &crate::source::SourceM
         }
         out.push(d.render(sources));
     }
+    // The certain-failure ladder (owner, 2026-10-22: "shouldn't
+    // NO_FUCKING_CHECKS note, but `no_check` refuse?"): a `no_check` the
+    // prover sees fail on every run is refused, with the value that breaks
+    // it; under `NO_FUCKING_CHECKS` it builds, noted in the report.
+    for (f_idx, site_id, what) in &a.certain_under_nocheck {
+        let f = &p.functions[*f_idx];
+        let site = f.site(*site_id);
+        if site.tier == Some(Tier::NoChecks) {
+            continue;
+        }
+        let mut d = crate::diag::Diagnostic::error("this `no_check` covers something that fails every time it runs")
+            .at(f.span(site.span))
+            .when(what.clone())
+            .why("`no_check` takes away a check that might fail, not one that always does (owner, 2026-10-22); the way through on purpose, testing a crash handler, is `NO_FUCKING_CHECKS`, which builds it and notes it in the report")
+            .fix(None, "fix what it covers, or remove the `no_check`");
+        if !f.name.is_empty() && f.name != "MAIN" {
+            d = d.place(format!("in `{}`", f.name));
+        }
+        out.push(d.render(sources));
+    }
     out
 }
 
@@ -3453,7 +3473,12 @@ pub fn notes(a: &Analysis, p: &Program, sources: &crate::source::SourceMap) -> V
     for (f_idx, site_id, what) in &a.certain_under_nocheck {
         let f = &p.functions[*f_idx];
         let site = f.site(*site_id);
-        let word = if site.tier == Some(Tier::NoChecks) { "NO_FUCKING_CHECKS" } else { "!check" };
+        // A `no_check`'s is refused (`refusals_opts`); `NO_FUCKING_CHECKS`
+        // builds it, and this is its note.
+        if site.tier != Some(Tier::NoChecks) {
+            continue;
+        }
+        let word = "NO_FUCKING_CHECKS";
         let d = crate::diag::Diagnostic::note(format!("this `{}` covers something that fails every time it runs", word))
             .at(f.span(site.span))
             .when(what.clone())

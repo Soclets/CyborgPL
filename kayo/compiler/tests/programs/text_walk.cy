@@ -9,13 +9,13 @@ MAIN {
     let mut 's' := "ab";
     if 'there' { change 's' = "aé" concat "เกี่ยว"; }
     let mut 'bytes': i32 = 0;
-    for 'b' in str.each.byte[lend 's'] { change 'bytes' = 'bytes' plus 1; }
+    for 'b' in std::str.each.byte[lend 's'] { change 'bytes' = 'bytes' plus 1; }
     let mut 'points': i32 = 0;
     let mut 'codes': i64 = 0;
-    for 'p' in str.each.point[lend 's'] { change 'points' = 'points' plus 1; change 'codes' = 'codes' plus to.i64[char.code['p']]; }
+    for 'p' in std::str.each.point[lend 's'] { change 'points' = 'points' plus 1; change 'codes' = 'codes' plus to.i64[char.code['p']]; }
     let mut 'clusters': i32 = 0;
     let mut 'last' := str.empty;
-    for 'g' in str.each.grapheme[lend 's'] { change 'clusters' = 'clusters' plus 1; change 'last' = to.str.utf8['g']; }
+    for 'g' in std::str.each.grapheme[lend 's'] { change 'clusters' = 'clusters' plus 1; change 'last' = to.str.utf8['g']; }
     let mut 'got': i32 = 0;
     if 'bytes' equal_to 21 and 'points' equal_to 8 { change 'got' = 'got' plus 1; }
     if 'codes' equal_to 97 plus 233 plus 3648 plus 3585 plus 3637 plus 3656 plus 3618 plus 3623 { change 'got' = 'got' plus 2; }

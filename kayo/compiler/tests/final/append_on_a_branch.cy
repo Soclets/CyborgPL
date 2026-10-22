@@ -6,10 +6,10 @@ extern.C fn atoi ['s': ptr[u8]] -> i32;
 MAIN {
     let 'k' := "N";
     no_check let 'n': i64 = to.i64[atoi[getenv[lend 'k']]];
-    let mut 'xs': list[bool] = [];
+    let mut 'xs': std::list[bool] = [];
     let mut 'i': i64 = 0;
     while 'i' at_most 'n' {
-        if ('i' mod.floor 2) equal_to 0 { list.append[lend.mut 'xs', value: true]; }
+        if ('i' mod.floor 2) equal_to 0 { std::list.append[lend.mut 'xs', value: true]; }
         change 'i' = 'i' plus 1;
     }
     let mut 'p': i64 = 1;

@@ -5,20 +5,20 @@
 extern.C fn exit ['code': i32];
 
 fn round ['n': i32] -> i32 {
-    let mut 'xs': list[i32] = [];
+    let mut 'xs': std::list[i32] = [];
     for 'i': i32 [from: 1, to: 20, by: 1] {
-        list.append[lend.mut 'xs', value: 'i' plus 'n'];
+        std::list.append[lend.mut 'xs', value: 'i' plus 'n'];
     }
     let mut 'text': str.utf8 = str.empty;
     for 'j': i32 [from: 1, to: 5, by: 1] {
         change 'text' = copy 'text' concat "ab";
     }
-    let mut 'm': map[str.utf8, list[i32]] = map.empty;
-    map.set[lend.mut 'm', key: copy 'text', value: copy 'xs'];
-    map.set[lend.mut 'm', key: "other", value: copy 'xs'];
-    let 'entries': i32 = map.length[lend 'm'];
-    let 'bytes': i32 = str.bytes[lend 'text'];
-    let 'count': i32 = list.length[lend 'xs'];
+    let mut 'm': std::map[str.utf8, std::list[i32]] = std::map.empty;
+    std::map.set[lend.mut 'm', key: copy 'text', value: copy 'xs'];
+    std::map.set[lend.mut 'm', key: "other", value: copy 'xs'];
+    let 'entries': i32 = std::map.length[lend 'm'];
+    let 'bytes': i32 = std::str.bytes[lend 'text'];
+    let 'count': i32 = std::list.length[lend 'xs'];
     return 'entries' plus 'bytes' plus 'count';
 }
 

@@ -5,5 +5,5 @@ extern.C fn exit ['code': i32];
 MAIN {
     let 's': str.utf8 = "🇹🇭🇯🇵!";
     let 'a' := std::str.slice.grapheme[lend 's', from: pos 2, to: pos 4] otherwise str.empty;
-    no_check my.exit[to.i32[str.graphemes[lend 's'] x 10 + str.bytes[lend 'a']]];
+    no_check my.exit[to.i32[std::str.graphemes[lend 's'] x 10 + std::str.bytes[lend 'a']]];
 }

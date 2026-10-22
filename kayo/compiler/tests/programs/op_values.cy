@@ -4,14 +4,14 @@
 extern.C fn exit ['code': i32];
 struct V { x: i32, y: i32 }
 op dot ['a': V, 'b': V] -> i32 { return 'a'.x times 'b'.x plus 'a'.y times 'b'.y; }
-fn fold [lent 'xs': list[i32], 'start': i32, 'f': fn[i32, i32] -> i32] -> i32 {
+fn fold [lent 'xs': std::list[i32], 'start': i32, 'f': fn[i32, i32] -> i32] -> i32 {
     let mut 'acc' := 'start';
     for 'x' in lend 'xs' { change 'acc' = 'f'['acc', 'x']; }
     return 'acc';
 }
 fn pairwise ['a': V, 'b': V, 'f': fn[lent V, lent V] -> i32] -> i32 { return 'f'[lend 'a', lend 'b']; }
 MAIN {
-    let 'xs': list[i32] = [1, 2, 3, 4];
+    let 'xs': std::list[i32] = [1, 2, 3, 4];
     let 'sum' := fold[lend 'xs', 0, op plus];
     let 'prod' := fold[lend 'xs', 1, op times];
     let 'm': fn[i32, i32] -> i32 = op mod.floor;

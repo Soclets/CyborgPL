@@ -8,8 +8,8 @@ MAIN {
     let mut 'total': i32 = 0;
     for 'i' [from: 1, to: 2, by: 1] {
         let 'page' := channel.take[lend 'results'] otherwise str.empty;
-        change 'total' = 'total' plus str.bytes[lend 'page'];
+        change 'total' = 'total' plus std::str.bytes[lend 'page'];
     }
     let 'extra' := channel.take[lend 'results'] otherwise "closed!";
-    no_check my.exit['total' plus str.bytes[lend 'extra']];
+    no_check my.exit['total' plus std::str.bytes[lend 'extra']];
 }

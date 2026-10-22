@@ -3,9 +3,9 @@
 # none or one. The same key twice into a map bounded to one entry fits.
 extern.C fn exit ['code': i32];
 MAIN {
-    let mut 'm': map[str.utf8, i32][min: 0, max: 1] = map.empty;
-    map.set[lend.mut 'm', key: "ab", value: 5];
-    map.set[lend.mut 'm', key: "ab", value: 7];
-    let 'v' := map.get[lend 'm', key: "ab"] otherwise 0;
-    no_check my.exit['v' plus to.i32[map.length[lend 'm']]];
+    let mut 'm': std::map[str.utf8, i32][min: 0, max: 1] = std::map.empty;
+    std::map.set[lend.mut 'm', key: "ab", value: 5];
+    std::map.set[lend.mut 'm', key: "ab", value: 7];
+    let 'v' := std::map.get[lend 'm', key: "ab"] otherwise 0;
+    no_check my.exit['v' plus to.i32[std::map.length[lend 'm']]];
 }

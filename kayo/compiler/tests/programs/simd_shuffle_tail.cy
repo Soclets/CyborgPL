@@ -17,8 +17,8 @@ MAIN {
     let 'p2' := 'out'[pos: 2];                          # 10
     let 'f' := simd.sum['first'];                      # 40
 
-    let mut 'xs': list[i32] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    let 'n' := list.length[lend 'xs'];
+    let mut 'xs': std::list[i32] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    let 'n' := std::list.length[lend 'xs'];
     let mut 'acc': simd[i32, count: 4] = simd.fill[value: 0];
     let mut 'i': u64 = 1;
     while 'i' at_most 'n' {

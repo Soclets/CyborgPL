@@ -4,12 +4,12 @@
 # sum to 600000, 192 mod 256; (120 + 192) mod 256 is 56.
 extern.C fn exit ['code': i32];
 MAIN {
-    let mut 'prices': list[i32] = [10, 20, 30];
+    let mut 'prices': std::list[i32] = [10, 20, 30];
     for 'x' in lend.mut 'prices' {
         change 'x' = 'x' times 2;
     }
     let 'n': i64 = 100000;
-    let mut 'xs': list[i64] = list.fill[value: 2, count: 'n'];
+    let mut 'xs': std::list[i64] = std::list.fill[value: 2, count: 'n'];
     for 'x' in lend.mut 'xs' {
         change 'x' = 'x' times 3;
     }

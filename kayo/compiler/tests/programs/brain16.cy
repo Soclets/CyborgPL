@@ -17,7 +17,7 @@ MAIN {
     let 'ds' := to.stored.d64['a'];
     let 'p' := to.brain16["2.5"] otherwise 0;
     let 'q' := to.brain16[100000];
-    let 'xs': list[brain16] = [0.5, 1.5, 2.5];
+    let 'xs': std::list[brain16] = [0.5, 1.5, 2.5];
     let 'h' := to.f16['w'];
     let 'k1' := to.i32['d' times 10] otherwise -1;
     let 'k2' := to.i32['ds' times 100000000000] otherwise -1;
@@ -25,6 +25,6 @@ MAIN {
     let 'k4' := to.i32['q'] otherwise -1;
     let 'k5' := to.i32['h'] otherwise -1;
     let 'k6' := to.i32['back'] otherwise -1;
-    let 'total' := 'n' plus ('cc' mod.floor 1000) plus str.bytes[lend 's'] plus str.bytes[lend 't'] plus 'k1' plus ('k2' mod.floor 1000) plus 'k3' plus ('k4' mod.floor 1000) plus 'k5' plus 'k6';
+    let 'total' := 'n' plus ('cc' mod.floor 1000) plus std::str.bytes[lend 's'] plus std::str.bytes[lend 't'] plus 'k1' plus ('k2' mod.floor 1000) plus 'k3' plus ('k4' mod.floor 1000) plus 'k5' plus 'k6';
     no_check my.exit[to.i32['total' mod.floor 256]];
 }

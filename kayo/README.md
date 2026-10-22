@@ -1072,6 +1072,25 @@ Dated, with the alternative, so each can become a question later.
   programs, tests and bench were swept by script; `std/` is std claude's,
   and the suite was run against its converted copy. Earlier entries
   here keep the names of their day.
+- **2026-10-22 — Another kit's names always take its path; `use`; the
+  ladder; notes in the report** (owner, four rulings; oracle 82d88048).
+  `resolve_bare`: a bare name is this kit's own, and one only another kit has
+  is refused naming its path and a `use`; std is another kit, so its
+  built-ins outside std/ take `std::` too (`std_bare_message`): `std::list[…]`,
+  `std::map[…]`, `std::duration` as types (`resolve_type_path`, a
+  `VIA_STD_TYPE` flag), `std::list.append`, `std::map["a" = 1]`, the prints,
+  `round.X`, `format`, `exit` and the text operations (`Checker::via_std`
+  past the path taken off). Inside std/ its names are its own. Another kit's
+  enum value is `greet::Tone.loud`; a kit's operators take an optional path,
+  a glyph's new (`'t' greet::<+> 'u'`, `binop`). The `bare.` marks are
+  refused (`BARE_MARKS_GONE`), std/'s own read and ignored (`LOADING_STD`).
+  `use <path> as <name>;` at a file's top is a token rewrite before parsing
+  (`uses.rs`), every rename in one pass; `as` written, another kit's path,
+  nothing declared under the name; each gets a report note. A `no_check`
+  the prover sees fail on every run is refused with the value that breaks
+  it; under `NO_FUCKING_CHECKS` it builds, noted. Every note is in the
+  report only (its section "Notes"); the terminal has errors, checks and the
+  summary. kayo's own programs, bench and kits swept by script.
 - **2026-10-22 — A missing `;` before `}` says so** (design claude: the
   exact spelling to type). A value alone before a block's `}` is that
   block's value only in a `match` case or an `otherwise` arm (`in_arm`,

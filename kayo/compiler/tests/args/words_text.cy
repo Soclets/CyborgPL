@@ -11,17 +11,17 @@ MAIN ['argc': i32, 'argv': ptr[ptr[u8]]] {
     while 'i' < 'argc' {
         no_check let 'word' := ptr.read[ptr.at['argv', by: 'i']];
         let mut 'k': i32 = 0;
-        let mut 'raw': list[u8] = [];
+        let mut 'raw': std::list[u8] = [];
         loop {
             no_check let 'b' := ptr.read[ptr.at['word', by: 'k']];
             if 'b' equal_to 0 { break; }
-            list.append[lend.mut 'raw', value: 'b'];
+            std::list.append[lend.mut 'raw', value: 'b'];
             change 'k' = 'k' plus 1;
         }
         let 'text' := to.str.utf8['raw'] otherwise str.empty;
-        if str.bytes[lend 'text'] equal_to 0 { change 'bad' = 'bad' plus 100; }
-        change 'points' = 'points' plus str.points[lend 'text'];
-        change 'bytes' = 'bytes' plus str.bytes[lend 'text'];
+        if std::str.bytes[lend 'text'] equal_to 0 { change 'bad' = 'bad' plus 100; }
+        change 'points' = 'points' plus std::str.points[lend 'text'];
+        change 'bytes' = 'bytes' plus std::str.bytes[lend 'text'];
         change 'i' = 'i' plus 1;
     }
     no_check my.exit[to.i32['points' times 10 plus 'bytes'] plus 'bad'];

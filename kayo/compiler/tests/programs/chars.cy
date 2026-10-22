@@ -24,7 +24,7 @@ MAIN {
     if byte[199 plus 'd'] equal_to 200 and byte[255 plus 'd'] equal_to 0 and point['d' minus 1] equal_to 0 { change 'got' = 'got' plus 2; }
     let 'b200' := char.byte.from_code[199 plus 'd'] otherwise `?`;
     let 't' := to.str.utf8['b200'];
-    if str.bytes[lend 't'] equal_to 2 { change 'got' = 'got' plus 4; }
+    if std::str.bytes[lend 't'] equal_to 2 { change 'got' = 'got' plus 4; }
     let mut 'e' := "Z";
     if 'there' { change 'e' = "é"; }
     let 'p' := to.char.point['e'] otherwise `?`;

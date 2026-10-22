@@ -501,6 +501,24 @@ fn refused_programs_stay_refused() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
+/// The certain-failure ladder (owner, 2026-10-22): what `no_check` would
+/// be refused for (`refuse/no_check_certain_failure.cy`) builds under
+/// `NO_FUCKING_CHECKS`, and the report notes it; the terminal shows no note.
+#[test]
+fn no_fucking_checks_builds_a_certain_failure_and_notes_it() {
+    let out = std::env::temp_dir().join(format!("kayo-ladder-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&out);
+    let src = out.join("ladder.cy");
+    std::fs::write(&src, "MAIN {\n    let 'n': i64 = 300;\n    NO_FUCKING_CHECKS let 'b': u8 = 'n';\n    std::print.useful['b', newln];\n}\n").unwrap();
+    let r = Command::new(cca()).arg("build").arg(&src).arg("-o").arg(out.join("ladder")).output().unwrap();
+    let said = String::from_utf8_lossy(&r.stdout).to_string() + &String::from_utf8_lossy(&r.stderr);
+    assert!(r.status.success(), "NO_FUCKING_CHECKS over a certain failure was refused:\n{}", said);
+    assert!(!said.contains("note:"), "a note reached the terminal:\n{}", said);
+    let report = std::fs::read_to_string(out.join("ladder.report.md")).unwrap();
+    let _ = std::fs::remove_dir_all(&out);
+    assert!(report.contains("covers something that fails every time it runs"), "the report does not note it:\n{}", report);
+}
+
 /// A site reached only past the call depth is still judged, for every
 /// call that reaches it (check claude, seed 17021): its claimed values
 /// held only what the shallower calls gave it — `{4}` where 6 came too —
@@ -840,7 +858,7 @@ fn a_build_writes_its_report_beside_it() {
     assert!(said.contains("fib.report.md") && said.contains("37 sites"), "the line does not name the report or count the sites:\n{}", said);
     let report = std::fs::read_to_string(out.join("fib.report.md")).expect("no fib.report.md beside the program");
     let _ = std::fs::remove_dir_all(&out);
-    let sections = ["Summary", "Inputs", "Proofs", "Your markers", "Types Precog picked", "Optimizations", "Removed", "C", "Sizes", "Timing", "Warnings and notes"];
+    let sections = ["Summary", "Inputs", "Proofs", "Your markers", "Types Precog picked", "Optimizations", "Removed", "C", "Sizes", "Timing", "Notes"];
     let mut at = 0;
     for s in sections {
         let heading = format!("\n## {}\n", s);

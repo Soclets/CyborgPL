@@ -17,17 +17,17 @@ fn read_n ['text': ptr[u8]] -> i64[min: 0, max: 100_000_000] or fail[missing, ou
 fn run [] -> i32 or fail[missing, out_of_range] {
     let 'key' := "N";
     no_check let 'n' := read_n[getenv[lend 'key']] otherwise fail;
-    let mut 'xs': list[i64] = [];
+    let mut 'xs': std::list[i64] = [];
     let mut 'i': i64 = 1;
     while 'i' at_most 'n' {
-        list.append[lend.mut 'xs', value: 'i' mod.floor 1000];
+        std::list.append[lend.mut 'xs', value: 'i' mod.floor 1000];
         change 'i' = 'i' plus 1;
     }
     let mut 'acc': i64 = 0;
     let mut 'r': i64 = 0;
     while 'r' < 10 {
         let mut 'j': u64 = 1;
-        while 'j' at_most list.length[lend 'xs'] {
+        while 'j' at_most std::list.length[lend 'xs'] {
             change 'acc' = 'acc' plus 'xs'[pos: 'j'];
             change 'j' = 'j' plus 1;
         }

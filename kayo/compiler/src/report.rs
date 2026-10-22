@@ -51,7 +51,7 @@ pub fn path_for(program: &Path) -> PathBuf {
     program.with_file_name(name)
 }
 
-const SECTIONS: [&str; 11] = ["Summary", "Inputs", "Proofs", "Your markers", "Types Precog picked", "Optimizations", "Removed", "C", "Sizes", "Timing", "Warnings and notes"];
+const SECTIONS: [&str; 11] = ["Summary", "Inputs", "Proofs", "Your markers", "Types Precog picked", "Optimizations", "Removed", "C", "Sizes", "Timing", "Notes"];
 
 /// The report, as Markdown.
 pub fn render(f: &Facts) -> String {
@@ -547,7 +547,8 @@ pub fn render(f: &Facts) -> String {
     let _ = writeln!(timing, "| **Total** | **{}** |", secs(f.total));
     sec.push((timing, f.phases.len()));
 
-    // ---------------------------------------------------- Warnings and notes
+    // ------------------------------------------------------------------ Notes
+    // Every note, the terminal has none (owner, 2026-10-22).
     let mut notes = String::new();
     if f.notes.is_empty() {
         let _ = writeln!(notes, "None.");

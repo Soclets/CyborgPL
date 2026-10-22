@@ -5,12 +5,12 @@
 # 5 x 16 + 6 + 3 + 2 = 91.
 extern.C fn exit ['code': i32];
 MAIN {
-    let 'good': list[u8] = [104, 195, 169, 108, 108, 111];
-    let 'bad': list[u8] = [104, 255, 105];
+    let 'good': std::list[u8] = [104, 195, 169, 108, 108, 111];
+    let 'bad': std::list[u8] = [104, 255, 105];
     let 'arr': array[u8] = [104, 105];
     let 'a' := to.str.utf8['good'] otherwise "?";
     let 'b' := to.str.utf8['bad'] otherwise "not";
     let 'c' := to.str.utf8['arr'] otherwise "?";
-    let 'n': u64 = str.points[lend 'a'] times 16 plus str.bytes[lend 'a'] plus str.bytes[lend 'b'] plus str.bytes[lend 'c'];
+    let 'n': u64 = std::str.points[lend 'a'] times 16 plus std::str.bytes[lend 'a'] plus std::str.bytes[lend 'b'] plus std::str.bytes[lend 'c'];
     no_check my.exit[to.i32['n']];
 }

@@ -5,13 +5,13 @@
 extern.C fn exit ['code': i32];
 MAIN {
     let 'n': i64 = 300000;
-    let 'bs': list[f64] = list.fill[value: 0.5, count: 'n'];
+    let 'bs': std::list[f64] = std::list.fill[value: 0.5, count: 'n'];
     let mut 'bsum': f64 = 0.0;
     for 'x' in lend 'bs' {
         change 'bsum' = 'bsum' plus 'x';
     }
     let 'q': d64 = 0.25;
-    let 'ds': list[d64] = list.fill[value: 'q', count: 'n'];
+    let 'ds': std::list[d64] = std::list.fill[value: 'q', count: 'n'];
     let mut 'dsum': d64 = 0;
     for 'x' in lend 'ds' {
         change 'dsum' = 'dsum' plus 'x';

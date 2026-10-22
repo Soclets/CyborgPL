@@ -963,71 +963,35 @@ impl Items {
         }
     }
 
-    /// Where a path written in module `m` leads (owner, 2026-10-06): a
-    /// bare one may be this Kit's own, std's (when `std` says the name is
-    /// one of std's and this Kit lists std), or another Kit's marked
-    /// `bare.kit_prefix.optional` or `bare.kit_prefix.only`; more than one is refused where it is
-    /// written, and this Kit's own does not win (owner: "no"). One with
-    /// another Kit's prefix is refused when that Kit forbids the path.
-    pub fn resolve_bare(&self, path: &ast::Path, m: ModuleId, std: bool) -> Result<Bareness> {
-        if let Some(kit) = path.kit.as_ref().filter(|l| l.name != "std") {
-            let item = self.lookup_plain(path, m)?;
-            let span = self.dependency(kit, m).ok().and_then(|root| self.lookup_pub_from(path, root)).map(|(_, s)| s);
-            if span.and_then(|s| self.bare_marks.get(&s)) == Some(&ast::Bare::Only) {
-                let bare = path.segs.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
-                let call = if matches!(item, ItemRef::Fn(_) | ItemRef::ExternFn(_)) { "[…]" } else { "" };
-                return err(Diagnostic::error(format!("`{}` is `bare.kit_prefix.only`: `{}` forbids its path, so write `{}{}`", path.spelled(), kit.name, bare, call)).at(path.span));
-            }
-            return Ok(Bareness::Own(item));
-        }
+    /// Where a path written in module `m` leads (owner, 2026-10-22: "What IF
+    /// there's no bare.optional? It's always not bare.", "Only other kits,
+    /// own stays bare."): a bare name is this kit's own; another kit's names,
+    /// std's included, always take its path, and a bare one that only another
+    /// kit has is refused naming the path and a `use` for it.
+    pub fn resolve_bare(&self, path: &ast::Path, m: ModuleId, _std: bool) -> Result<Bareness> {
         let own = self.lookup_plain(path, m);
-        if path.kit.is_some() || path.head() == "my" {
+        if path.kit.is_some() || path.head() == "my" || own.is_ok() {
             return own.map(Bareness::Own);
         }
-        // A bare name means this module's, and a module sees the same
-        // clash as the root (design claude, 2026-10-06); its own is named
-        // from the root, `my.m.exit`.
         let here = self.kit_root(m);
         let written = path.spelled();
-        let mut found: Vec<(String, Bareness)> = Vec::new();
-        if let Ok(i) = &own {
-            if !matches!(i, ItemRef::Module(_)) {
-                let module = &self.modules[m.0 as usize].path;
-                let inner = module.rsplit("::").next().unwrap_or(module);
-                let at = if m == here { String::new() } else { format!("{}.", inner) };
-                found.push((format!("`my.{}{}` (this kit's)", at, written), Bareness::Own(*i)));
-            }
+        let head = path.head().to_string();
+        // std's, outside std (inside, its names are its own).
+        if self.nerve_cord != Some(here) && !self.no_std_roots.contains(&here) && self.nerve_cord_item(path).is_some() {
+            let call = if matches!(self.nerve_cord_item(path), Some((ItemRef::Fn(_) | ItemRef::ExternFn(_), _))) { "[…]" } else { "" };
+            return err(Diagnostic::error(format!("`{w}` is std's: write `std::{w}{c}`, or name it for this file with `use std::{h} as {h};` (owner, 2026-10-22)", w = written, c = call, h = head)).at(path.span));
         }
-        // Inside the Nerve cord, its own names are its own, not `cord::`'s.
-        if std && !self.no_std_roots.contains(&here) && self.nerve_cord != Some(here) {
-            found.push((format!("`std::{}`", written), Bareness::Std));
-        }
-        let mut never: Option<String> = None;
         if let Some(deps) = self.kit_deps.get(&here) {
             let mut deps: Vec<(&String, &ModuleId)> = deps.iter().collect();
             deps.sort_by(|a, b| a.0.cmp(b.0));
             for (prefix, root) in deps {
-                let Some((item, span)) = self.lookup_pub_from(path, *root) else { continue };
+                let Some((item, _)) = self.lookup_pub_from(path, *root) else { continue };
                 if matches!(item, ItemRef::Module(_)) {
                     continue;
                 }
-                match self.bare_marks.get(&span) {
-                    Some(ast::Bare::Optional | ast::Bare::Only) => found.push((format!("`{}::{}`", prefix, written), Bareness::Dep(prefix.clone(), item))),
-                    Some(ast::Bare::Never) if matches!(item, ItemRef::Fn(_) | ItemRef::ExternFn(_)) => {
-                        never.get_or_insert(prefix.clone());
-                    }
-                    _ => {}
-                }
+                let call = if matches!(item, ItemRef::Fn(_) | ItemRef::ExternFn(_)) { "[…]" } else { "" };
+                return err(Diagnostic::error(format!("`{w}` is `{p}`'s: another kit's names take its path (owner, 2026-10-22), so write `{p}::{w}{c}`, or `use {p}::{w} as {h};`", w = written, p = prefix, c = call, h = head)).at(path.span));
             }
-        }
-        if found.len() > 1 {
-            return err(Diagnostic::error(format!("`{}` could be any of {}: write the path", written, found.iter().map(|(l, _)| l.as_str()).collect::<Vec<_>>().join(", "))).at(path.span));
-        }
-        if let Some((_, b)) = found.pop() {
-            return Ok(b);
-        }
-        if let Some(prefix) = never {
-            return err(Diagnostic::error(format!("`{w}` is `{p}`'s and `bare.kit_prefix.never`: `{p}` requires its path, so write `{p}::{w}[…]`", w = written, p = prefix)).at(path.span));
         }
         own.map(Bareness::Own)
     }
@@ -1090,7 +1054,7 @@ impl Items {
     }
 
     /// The path walked as written, from module `m`.
-    fn lookup_plain(&self, path: &ast::Path, m: ModuleId) -> Result<ItemRef> {
+    pub fn lookup_plain(&self, path: &ast::Path, m: ModuleId) -> Result<ItemRef> {
         let mut cur = m;
         if let Some(kit) = &path.kit {
             match (kit.name.as_str(), self.nerve_cord) {
@@ -1588,6 +1552,23 @@ impl Items {
     }
 
     fn resolve_type_path(&self, path: &ast::Path, args: &[ast::Type], m: ModuleId, blanks: &mut Vec<(String, Vec<IfaceId>)>, allow_blanks: bool, span: Span) -> Result<Ty> {
+        // std's types take its path outside std (owner, 2026-10-22):
+        // `std::list[i64]`, `std::map[…]`, `std::duration`.
+        let via_std = VIA_STD_TYPE.with(|v| v.replace(false));
+        let std_type = |p: &ast::Path| matches!(p.segs.first().map(|s| s.name.as_str()), Some("list" | "map" | "duration"));
+        if path.kit.as_ref().is_some_and(|k| k.name == "std") && std_type(path) {
+            let plain = ast::Path { kit: None, segs: path.segs.clone(), span: path.span };
+            VIA_STD_TYPE.with(|v| v.set(true));
+            return self.resolve_type_path(&plain, args, m, blanks, allow_blanks, span);
+        }
+        // A `list` with no element type is told that first, as the oracle does.
+        let counted = matches!(path.head(), "list" | "map") && path.segs.len() == 1 && args.is_empty();
+        if path.kit.is_none() && std_type(path) && !via_std && !counted && self.nerve_cord.is_some_and(|c| c != self.kit_root(m)) {
+            return err(Diagnostic::error(crate::check::expr::std_bare_message(path)).at(path.span));
+        }
+        if path.kit.is_none() && std_type(path) && !via_std && !counted && self.nerve_cord.is_none() && !self.no_std_roots.contains(&self.kit_root(m)) {
+            return err(Diagnostic::error(crate::check::expr::std_bare_message(path)).at(path.span));
+        }
         let pointee = POINTEE.with(|p| p.replace(false));
         let head = path.head();
         let no_args = |what: &str| -> Result<()> {
@@ -1682,7 +1663,7 @@ impl Items {
                 }
                 "list" | "array" => {
                     if path.segs.len() > 1 {
-                        return err(Diagnostic::error(format!("the element type goes in brackets: `{}[i32]`, not `{}`", head, path.spelled())).at(span));
+                        return err(Diagnostic::error(format!("the element type goes in brackets: `{}[i32]`, not `{}` (a dot picks a fixed variant, brackets supply a type)", head, path.spelled())).at(span));
                     }
                     if args.len() != 1 {
                         return err(Diagnostic::error(format!("`{}` takes exactly one type parameter, the element type: `{}[i32]`", head, head)).at(span));
@@ -2059,7 +2040,10 @@ fn len_bounds(lo: &ast::Expr, hi: &ast::Expr, span: Span) -> Result<(u64, u64)> 
     Ok((l as u64, h as u64))
 }
 
-thread_local! { static POINTEE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
+thread_local! {
+    /// A std type written with `std::`, its path taken off (owner, 2026-10-22).
+    static VIA_STD_TYPE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static POINTEE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
 
 pub fn with_article(s: &str) -> String {
     if s.starts_with(['a', 'e', 'i', 'o', 'u']) {

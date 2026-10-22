@@ -13,6 +13,6 @@ MAIN {
     let 'n4' := to.i64['h' times 2.0] otherwise -100;
     let 'ta' := to.useful.str.utf8['a'];
     let 'tb' := to.stored.str.utf8['b'];
-    let 't' := to.i64[str.bytes[lend 'ta'] plus str.bytes[lend 'tb']];
+    let 't' := to.i64[std::str.bytes[lend 'ta'] plus std::str.bytes[lend 'tb']];
     no_check my.exit[to.i32['n1' plus 'n2' plus 'n3' plus 'n4' plus 100 plus 't']];
 }

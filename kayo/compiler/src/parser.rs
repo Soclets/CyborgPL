@@ -395,7 +395,9 @@ pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> 
 pub fn parse_file(toks: &[Token]) -> Result<File> {
     // Each argument after the first says its role (owner, 2026-10-14): the
     // words checked and taken out before anything is parsed.
-    let labelled = crate::argwords::labels(toks);
+    // `use … as …;` (owner, 2026-10-22): its names written out first.
+    let used = crate::uses::rewrite(toks)?;
+    let labelled = crate::argwords::labels(&used);
     let owned = crate::argwords::strip(&labelled)?;
     let toks = &owned[..];
     let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false };
@@ -1156,6 +1158,10 @@ impl<'a> Parser<'a> {
     /// `bare.enum_prefix.…` for an enum's name before its values.
     fn bare_mark(&mut self) -> Result<(crate::ast::Prefix, Bare, Span)> {
         let at = self.span();
+        // Gone (owner, 2026-10-22); std/'s own still read, and ignored.
+        if !crate::load::loading_std() {
+            return self.fail_at(at, crate::load::BARE_MARKS_GONE);
+        }
         self.bump();
         if !self.eat(&Tok::Dot) {
             return self.fail_at(at, "a plain `bare` does not say which prefix it drops: `bare.kit_prefix.never` (a kit's path required), `.optional` or `.only`; `bare.enum_prefix.…` for an enum's values");
@@ -4192,6 +4198,12 @@ impl<'a> Parser<'a> {
                     // A path on an operator picks that Kit's (owner,
                     // 2026-10-03): `'x' areas::mean.low 'y'`; std's is
                     // `pow`, `'a' std::pow 2`.
+                    // A kit's glyph with its path (owner, 2026-10-22: "glyphs
+                    // are optional too"): `'t' greet::<+> 'u'`.
+                    kit if matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(2), Tok::Op(_)) => {
+                        let Tok::Op(g) = self.peek_at(2) else { unreachable!() };
+                        leveled(g, BinOp::Custom(format!("{}::{}", kit, g)), 3)
+                    }
                     kit if matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(2), Tok::Word(_)) => {
                         let Tok::Word(first) = self.peek_at(2) else { unreachable!() };
                         let (name, end) = dotted(3, first);
@@ -4226,7 +4238,8 @@ impl<'a> Parser<'a> {
             // std's word operators with their path, `'a' std::plus 'b'`
             // (owner, 2026-10-06: std is `bare.kit_prefix.optional` for all), read as
             // the operator itself; `std::pow` has its own arm.
-            let skip = if self.is_word("std") && matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(2), Tok::Word(w) if matches!(w.as_str(), "plus" | "minus" | "times" | "div" | "mod" | "and" | "or" | "xor" | "shl" | "shr")) { 2 } else { 0 };
+            let std_word = self.is_word("std") && matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(2), Tok::Word(w) if matches!(w.as_str(), "plus" | "minus" | "times" | "div" | "mod" | "and" | "or" | "xor" | "shl" | "shr"));
+            let skip = if std_word { 2 } else { 0 };
             self.pos += skip;
             let Some(t) = self.binop() else {
                 self.pos -= skip;

@@ -10,8 +10,8 @@ fn square ['x': i32] -> i32 { return 'x' times 'x'; }
 fn double ['x': i32] -> i32 { return 'x' times 2; }
 
 coll.fn mix {
-    mix [lent 'xs': list[i32], 'a': i32, 'b': i32] -> i32 or fail[empty] {
-        if list.length[lend 'xs'] equal_to 0 { fail empty; }
+    mix [lent 'xs': std::list[i32], 'a': i32, 'b': i32] -> i32 or fail[empty] {
+        if std::list.length[lend 'xs'] equal_to 0 { fail empty; }
         return 'a' times 10 plus 'b';
     }
     mix.seven ['a' = 7];
@@ -31,8 +31,8 @@ coll.fn only {
 }
 
 MAIN {
-    let 'xs': list[i32] = [1, 2];
-    let 'none': list[i32] = list.empty;
+    let 'xs': std::list[i32] = [1, 2];
+    let 'none': std::list[i32] = std::list.empty;
     let 'a' := mix.seven[lend 'xs', 3] otherwise 0;
     let 'b' := mix.both[lend 'xs'] otherwise 0;
     let 'c' := mix.both[lend 'none'] otherwise 100;

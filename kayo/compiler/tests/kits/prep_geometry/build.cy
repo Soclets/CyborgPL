@@ -8,7 +8,7 @@ MAIN {
     no_check let 'found' := access[lend 'at', 0];
     if 'found' not_equal 0 { no_check my.exit[9]; }
     let 'say' := "geometry";
-    let 'nl': list[u8] = [10,];
+    let 'nl': std::list[u8] = [10,];
     no_check let 'w' := write[1, lend 'say', 8];
     no_check let 'e' := write[1, lend 'nl', 1];
     no_check my.exit[0];

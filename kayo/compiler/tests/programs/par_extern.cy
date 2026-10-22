@@ -7,8 +7,8 @@ extern.C fn exit ['code': i32];
 extern.C fn labs ['n': i64] -> i64;
 MAIN {
     let 'n': i64 = 100000;
-    let mut 'a': list[i64] = list.fill[value: 0, count: 'n'];
-    let mut 'b': list[i64] = list.fill[value: 0, count: 'n'];
+    let mut 'a': std::list[i64] = std::list.fill[value: 0, count: 'n'];
+    let mut 'b': std::list[i64] = std::list.fill[value: 0, count: 'n'];
     for para 'i': i64 [from: 1, to: 'n', by: 1] {
         no_check let 'v' := labs['i' minus 12345];
         change 'a'[pos: 'i'] = 'v';

@@ -7,7 +7,7 @@ extern.C fn exit ['code': i32];
 MAIN {
     let 'f' := inc;
     let 'g' := add;
-    let 'xs': list[i32] = [4, 5, 6];
+    let 'xs': std::list[i32] = [4, 5, 6];
     let 'a' := 'f'[pos: 2];
     let 'c' := 'g'[10, 20];
     no_check my.exit['a' plus 'c' plus 'xs'[pos: 'xs'[pos: 1] minus 3]];

@@ -16,8 +16,8 @@ MAIN {
     for 'i' [from: 5, before: 0, by: -2] { change 't' = 't' plus 'i'; }
     for 'i': i8 [from: 0, before: 128, by: 50] { change 't' = 't' plus to.i64['i']; }
     change 't' = 't' plus rounds[0] plus rounds[3];
-    let 'xs': list[i32] = [10, 20, 30, 40, 50];
-    let 's' := list.slice[lend 'xs', from: pos 2, before: pos 4];
-    change 't' = 't' plus to.i64[list.length[lend 's']];
+    let 'xs': std::list[i32] = [10, 20, 30, 40, 50];
+    let 's' := std::list.slice[lend 'xs', from: pos 2, before: pos 4];
+    change 't' = 't' plus to.i64[std::list.length[lend 's']];
     no_check my.exit[to.i32['t']];
 }

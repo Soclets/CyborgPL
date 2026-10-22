@@ -5,7 +5,7 @@
 # which exits as 525 mod 256 = 13).
 extern.C fn exit ['code': i32];
 fn longer [@x] [lent @x 'a': str.utf8, lent @x 'b': str.utf8] -> lent @x str.utf8 {
-    if str.bytes[lend 'a'] at_least str.bytes[lend 'b'] { return lend 'a'; }
+    if std::str.bytes[lend 'a'] at_least std::str.bytes[lend 'b'] { return lend 'a'; }
     return lend 'b';
 }
 fn pick [@x, @y] [lent @x 'a': str.utf8, lent @y 'b': str.utf8] -> lent @x str.utf8 {
@@ -15,7 +15,7 @@ fn first [lent 'a': str.utf8] -> lent str.utf8 {
     return lend 'a';
 }
 fn width [lent 's': str.utf8] -> i32 {
-    let 'n' := str.bytes[lend 's'];
+    let 'n' := std::str.bytes[lend 's'];
     if 'n' > 1000 { return 0; }
     return to.i32['n'];
 }

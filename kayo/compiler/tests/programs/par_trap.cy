@@ -4,7 +4,7 @@
 extern.C fn exit ['code': i32];
 MAIN {
     let 'n': i64 = 200000;
-    let mut 'xs': list[i8] = list.fill[value: 0, count: 'n'];
+    let mut 'xs': std::list[i8] = std::list.fill[value: 0, count: 'n'];
     for 'i': i64 [from: 1, to: 'n', by: 1] {
         change 'xs'[pos: 'i'] = to.i8['i'];
     }

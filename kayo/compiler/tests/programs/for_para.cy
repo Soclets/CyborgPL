@@ -3,7 +3,7 @@
 # 4 = 10, as the oracle gives.
 extern.C fn exit ['code': i32];
 MAIN {
-    let 'xs': list[i64] = [1, 2, 3, 4];
+    let 'xs': std::list[i64] = [1, 2, 3, 4];
     let mut 'total': i64 = 0;
     for para 'x' in lend 'xs' {
         change 'total' = 'total' plus 'x';

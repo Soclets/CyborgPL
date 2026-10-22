@@ -5,7 +5,7 @@ extern.C fn strlen ['s': ptr[u8]] -> u64;
 MAIN {
     let 's' := "nine char";
     no_check let 'k': u64 = strlen[lend 's'];
-    let 'xs': list[i64] = [1, 2, 3];
-    let 'part' := list.slice[lend 'xs', from: pos 1, to: pos 'k'];
-    no_check my.exit[to.i32[list.length[lend 'part']]];
+    let 'xs': std::list[i64] = [1, 2, 3];
+    let 'part' := std::list.slice[lend 'xs', from: pos 1, to: pos 'k'];
+    no_check my.exit[to.i32[std::list.length[lend 'part']]];
 }

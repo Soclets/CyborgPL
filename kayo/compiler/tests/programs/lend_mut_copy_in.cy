@@ -4,7 +4,7 @@
 extern.C fn exit ['code': i32];
 MAIN {
     let 'v': u8 = 5;
-    let mut 'xs': list[u8] = [1, 2];
+    let mut 'xs': std::list[u8] = [1, 2];
     let mut 't': i32 = 0;
     for 'x' in lend.mut 'xs' {
         change 'x' = 'v';

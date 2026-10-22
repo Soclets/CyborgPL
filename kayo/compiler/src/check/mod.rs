@@ -83,6 +83,9 @@ pub struct Checker {
     /// parameter): a `%` literal in it is the number over 100, not a
     /// percent (owner, 2026-10-17: `let 'f': f64 = 80% x 2.0;` is 1.6).
     pub plain_numbers: bool,
+    /// The call or value being checked was written with `std::`, now
+    /// taken off to reach the built-in: not a bare std name.
+    pub via_std: bool,
     pub items: Items,
     pub instances: Vec<Instance>,
     inst_index: HashMap<InstKey, FnInst>,
@@ -228,7 +231,7 @@ impl FnCtx {
 impl Checker {
     pub fn new(items: Items) -> Checker {
         let n = items.consts.len();
-        Checker { power_uses: Vec::new(), store_hint: None, want: None, plain_numbers: false, items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new(), mut_seen: HashMap::new() }
+        Checker { power_uses: Vec::new(), store_hint: None, want: None, plain_numbers: false, via_std: false, items, instances: Vec::new(), inst_index: HashMap::new(), pending: Vec::new(), subst: HashMap::new(), next_infer: 1, const_values: vec![None; n], notes: Vec::new(), literal_fns: Vec::new(), checking: Default::default(), std_stubs: false, widths_pending: Vec::new(), mut_seen: HashMap::new() }
     }
 
     pub fn fresh(&mut self) -> Ty {

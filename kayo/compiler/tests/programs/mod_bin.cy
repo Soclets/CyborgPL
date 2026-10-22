@@ -17,7 +17,7 @@ MAIN {
     let 'm2' := to.i32[('a' mod.floor 'b') times 10.0] otherwise -1;
     let 'm3' := to.i32['h' mod.floor 'k'] otherwise -1;
     let 'z' := to.stored.str.utf8['four' mod.floor 'b'];
-    let 'm4' := to.i32[str.bytes[lend 'z']];
+    let 'm4' := to.i32[std::str.bytes[lend 'z']];
     let 'm5' := to.i32['tiny' mod.floor 'turn'] otherwise -1;
     no_check my.exit[('m1' plus 'm2' plus 'm3' times 7 plus 'm4' times 11 plus 'm5') mod.floor 256];
 }

@@ -12,10 +12,10 @@ fn step ['p': Particle] -> Particle {
 MAIN {
     let 'p' := Particle[place = simd.fill[value: 1], vel = simd.fill[value: 2]];
     let 'q' := step[give 'p'];
-    let mut 'history': list[simd[i32, count: 4]] = [];
-    list.append[lend.mut 'history', value: 'q'.place];
-    list.append[lend.mut 'history', value: 'q'.place plus 'q'.vel];
-    list.append[lend.mut 'history', value: simd.shuffle['q'.vel, [1, 2, 3, 4]]];
+    let mut 'history': std::list[simd[i32, count: 4]] = [];
+    std::list.append[lend.mut 'history', value: 'q'.place];
+    std::list.append[lend.mut 'history', value: 'q'.place plus 'q'.vel];
+    std::list.append[lend.mut 'history', value: simd.shuffle['q'.vel, [1, 2, 3, 4]]];
     # 12 + 3 x 10 + 20 + 8 = 70
-    no_check my.exit[simd.sum['q'.place] plus to.i32[list.length[lend 'history']] times 10 plus simd.sum['history'[pos: 2]] plus simd.sum['history'[pos: 3]]];
+    no_check my.exit[simd.sum['q'.place] plus to.i32[std::list.length[lend 'history']] times 10 plus simd.sum['history'[pos: 2]] plus simd.sum['history'[pos: 3]]];
 }

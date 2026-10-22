@@ -26,14 +26,14 @@ fn flag ['b': bool, 'v': i32] -> i32 {
 }
 
 fn by_memset [] -> i32 {
-    let mut 'keys': list[Key] = [Key.a, Key.a];
+    let mut 'keys': std::list[Key] = [Key.a, Key.a];
     no_check let 'q' := memset[lend.mut 'keys', 65, 8] otherwise { out_of_range { return 3; } };
     return 0;
 }
 
 fn by_memcpy [] -> i32 {
-    let 'src': list[Key] = [Key.b, Key.a];
-    let mut 'dst': list[Key] = [Key.escape, Key.escape];
+    let 'src': std::list[Key] = [Key.b, Key.a];
+    let mut 'dst': std::list[Key] = [Key.escape, Key.escape];
     no_check let 'q' := memcpy[lend.mut 'dst', lend 'src', 8] otherwise { out_of_range { return 9; } };
     return num[copy 'dst'[pos: 1]] plus num[copy 'dst'[pos: 2]] times 2;
 }

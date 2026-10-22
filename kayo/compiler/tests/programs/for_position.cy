@@ -4,7 +4,7 @@
 # best at 2, and after the loop 3 and 88 → 2 x 100 + 3 x 10 + 8 = 238).
 extern.C fn exit ['code': i32];
 MAIN {
-    let 'scores': list[i32] = [70, 95, 88];
+    let 'scores': std::list[i32] = [70, 95, 88];
     let mut 'best_at': u64 = 0;
     let mut 'best': i32 = 0;
     for 'i', 's' in lend 'scores' {

@@ -2,7 +2,6 @@
 # target's `output` and `exit` (owner, 2026-10-09: a function of the Neuron
 # or of a board Neuron it uses): the serial port, a PL011 at 0x0900_0000,
 # and power off through PSCI (SYSTEM_OFF, over `hvc`), which ends QEMU.
-bare.kit_prefix.never [fn];
 
 pub module serial {
     pub fn write ['b': u8] {

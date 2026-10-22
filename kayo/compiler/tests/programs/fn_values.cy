@@ -6,16 +6,16 @@ extern.C fn exit ['code': i32];
 extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
 struct Locker { number: i32, owner: str.utf8 }
 fn by_number [lent 'a': Locker, lent 'b': Locker] -> bool { return 'a'.number < 'b'.number; }
-fn by_owner [lent 'a': Locker, lent 'b': Locker] -> bool { return str.bytes[lend 'a'.owner] < str.bytes[lend 'b'.owner]; }
-fn first_by [lent 'xs': list[Locker], 'less': fn[lent Locker, lent Locker] -> bool] -> i32 {
+fn by_owner [lent 'a': Locker, lent 'b': Locker] -> bool { return std::str.bytes[lend 'a'.owner] < std::str.bytes[lend 'b'.owner]; }
+fn first_by [lent 'xs': std::list[Locker], 'less': fn[lent Locker, lent Locker] -> bool] -> i32 {
     let mut 'best' := 1;
-    for 'i' [from: 2, to: list.length[lend 'xs'], by: 1] {
+    for 'i' [from: 2, to: std::list.length[lend 'xs'], by: 1] {
         if 'less'[lend 'xs'[pos: 'i'], lend 'xs'[pos: 'best']] { change 'best' = 'i'; }
     }
     let 'winner' := lend 'xs'[pos: 'best'];
     return 'winner'.number;
 }
-fn count_if [lent 'xs': list[i32], 'test': fn[i32] -> bool] -> i32 {
+fn count_if [lent 'xs': std::list[i32], 'test': fn[i32] -> bool] -> i32 {
     let mut 'n': i32 = 0;
     for 'x' in lend 'xs' { if 'test'[pos: 'x'] { change 'n' = 'n' plus 1; } }
     return 'n';

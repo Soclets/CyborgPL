@@ -3,7 +3,7 @@
 # writes 42 over the first, and the program exits with it.
 extern.C fn exit ['code': i32];
 MAIN {
-    let mut 'buf': list[u8] = [7, 8,];
+    let mut 'buf': std::list[u8] = [7, 8,];
     no_check inline.ASM {
         mov w2, #42
         strb w2, [x1]

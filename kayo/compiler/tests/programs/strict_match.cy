@@ -13,7 +13,7 @@ fn label ['s': Status] -> str.utf8 {
 }
 fn width ['s': Status] -> i32 {
     let immut 'l' := label[give 's'];
-    let immut 'n' := str.bytes[lend 'l'];
+    let immut 'n' := std::str.bytes[lend 'l'];
     if 'n' > 1000 { return 0; }
     return to.i32['n'];
 }

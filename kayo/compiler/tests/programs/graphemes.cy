@@ -14,7 +14,7 @@ MAIN {
     let mut 'w' := "ab";
     if 'there' { change 'w' = "เกี่ยว"; }
     let mut 'got': i32 = 0;
-    if str.graphemes[lend 'w'] equal_to 4 and str.points[lend 'w'] equal_to 6 and str.bytes[lend 'w'] equal_to 18 { change 'got' = 'got' plus 1; }
+    if std::str.graphemes[lend 'w'] equal_to 4 and std::str.points[lend 'w'] equal_to 6 and std::str.bytes[lend 'w'] equal_to 18 { change 'got' = 'got' plus 1; }
     let 'g': char.grapheme = `é`;
     let 'p' := to.char.point['g'] otherwise `?`;
     if char.code['p'] equal_to 233 and 'g' equal_to `é` { change 'got' = 'got' plus 2; }
@@ -22,7 +22,7 @@ MAIN {
     let 'syl' := to.char.grapheme["เกี่ยว"] otherwise `?`;
     let 'acc' := to.char.grapheme["é"] otherwise `?`;
     let 'at' := to.str.utf8['acc'];
-    if 'one' equal_to `?` and 'syl' equal_to `?` and str.bytes[lend 'at'] equal_to 3 { change 'got' = 'got' plus 4; }
+    if 'one' equal_to `?` and 'syl' equal_to `?` and std::str.bytes[lend 'at'] equal_to 3 { change 'got' = 'got' plus 4; }
     let 'up' := to.char.grapheme[`x`];
     if to.str.utf8['up'] concat "!" equal_to "x!" { change 'got' = 'got' plus 8; }
     if short[lend 'w'] equal_to 0 and short["ab"] equal_to 1 and short["abc"] equal_to 0 { change 'got' = 'got' plus 16; }

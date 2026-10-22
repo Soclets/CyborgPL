@@ -512,6 +512,14 @@ struct Loading {
 /// and its root is `ROOT`, made first. Gives back the Kit's root module
 /// and its prefix.
 fn load_kit(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Option<(&Path, &str)>, as_cord: bool, state: &mut Loading) -> Result<(ModuleId, String)> {
+    // Whether std is being read, for its own `bare.` marks (stopgap).
+    let was = LOADING_STD.with(|s| s.replace(as_cord));
+    let r = load_kit_inner(sources, items, dir, from, as_cord, state);
+    LOADING_STD.with(|s| s.set(was));
+    r
+}
+
+fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Option<(&Path, &str)>, as_cord: bool, state: &mut Loading) -> Result<(ModuleId, String)> {
     old_names(dir)?;
     let key = std::fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf());
     if let Some(r) = state.done.get(&key) {
@@ -1187,6 +1195,8 @@ thread_local! {
     /// The kind lines of the Kit whose files are being read: they cover
     /// every file of it.
     static BARE_KINDS: std::cell::RefCell<Vec<(crate::ast::Bare, Vec<String>, crate::source::Span)>> = const { std::cell::RefCell::new(Vec::new()) };
+    /// Reading std's own files (`load_kit`'s `as_cord`).
+    static LOADING_STD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     /// `bare.enum_prefix.… [enum];` lines of the kit's root (owner, 2026-10-20).
     static ENUM_BARE_KINDS: std::cell::RefCell<Vec<(crate::ast::Bare, crate::source::Span)>> = const { std::cell::RefCell::new(Vec::new()) };
 }
@@ -1316,160 +1326,44 @@ fn check_case(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, r
     })
 }
 
-/// Every `pub` thing says how other Kits write its path, and the marks
-/// that cover it agree (owner, 2026-10-06: no default; "`c`"). A mark
-/// covers from the item itself, the block modules around it, its file's
-/// first line, and its kind in `limb.cpls`. `base` is the file's module
-/// path, empty at the root; `root` is whether this is the root file, the
-/// only one whose kind lines count.
-fn check_bare(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, base: &str, root: bool) -> Result<()> {
-    check_enum_bare(sources, items, file, root)?;
-    use crate::ast::{Bare, Item, ItemKind};
-    if root {
-        BARE_KINDS.with(|k| *k.borrow_mut() = file.bare_kinds.clone());
-    } else if let Some((m, _, at)) = file.bare_kinds.first() {
-        return err(Diagnostic::error(format!("`{} [ … ];` covers the whole kit, so it is written in `kit.cy`", m.spelled())).at(*at));
+/// The `bare.` marks are gone (owner, 2026-10-22: "What IF there's no
+/// bare.optional? It's always not bare."): another kit's names always take
+/// its path, and your own stay bare. A mark left in a kit is refused; std/'s
+/// own are read and ignored until std claude takes them out (design claude's
+/// stopgap, as the oracle's).
+fn check_bare(_sources: &SourceMap, _items: &mut Items, file: &crate::ast::File, _base: &str, _root: bool) -> Result<()> {
+    use crate::ast::{Item, ItemKind};
+    if LOADING_STD.with(|s| s.get()) {
+        return Ok(());
     }
-    let kinds = BARE_KINDS.with(|k| k.borrow().clone());
-    let line = |at: crate::source::Span| sources.get(at.file).line_of(at.start);
-    fn walk(items: &[Item], path: &str, chain: &mut Vec<(Bare, crate::source::Span)>, each: &mut dyn FnMut(&Item, String, &[(Bare, crate::source::Span)]) -> Result<()>) -> Result<()> {
+    fn first_mark(items: &[Item]) -> Option<crate::source::Span> {
         for it in items {
-            let named = |n: &str| if path.is_empty() { n.to_string() } else { format!("{}.{}", path, n) };
-            if let ItemKind::Module { name, items } = &it.kind {
-                let pushed = it.bare.is_some();
-                if let Some(b) = it.bare {
-                    chain.insert(0, b);
-                }
-                walk(items, &named(&name.name), chain, each)?;
-                if pushed {
-                    chain.remove(0);
-                }
-                continue;
+            if let Some((_, at)) = it.bare.or(it.enum_bare) {
+                return Some(at);
             }
-            let name = match &it.kind {
-                ItemKind::Fn(d) | ItemKind::ExternFn(d) => named(&d.name.name),
-                ItemKind::Struct(d) => named(&d.name.name),
-                ItemKind::Enum(d) => named(&d.name.name),
-                ItemKind::Interface(d) => named(&d.name.name),
-                ItemKind::Const(d) => named(&d.name.name),
-                ItemKind::Op(d) => named(&d.op.name),
-                _ => continue,
-            };
-            each(it, name, chain)?;
+            if let ItemKind::Module { items, .. } = &it.kind {
+                if let Some(at) = first_mark(items) {
+                    return Some(at);
+                }
+            }
         }
-        Ok(())
+        None
     }
-    let mut chain = Vec::new();
-    walk(&file.items, base, &mut chain, &mut |it, name, modules| {
-        if it.vis != Vis::Pub {
-            return Ok(());
-        }
-        let name_span = match &it.kind {
-            ItemKind::Fn(d) | ItemKind::ExternFn(d) => d.name.span,
-            ItemKind::Struct(d) => d.name.span,
-            ItemKind::Enum(d) => d.name.span,
-            ItemKind::Interface(d) => d.name.span,
-            ItemKind::Const(d) => d.name.span,
-            ItemKind::Op(d) => d.op.span,
-            _ => it.span,
-        };
-        let kind = match &it.kind {
-            ItemKind::Fn(_) | ItemKind::ExternFn(_) => "fn",
-            ItemKind::Struct(_) => "struct",
-            ItemKind::Enum(_) => "enum",
-            ItemKind::Interface(_) => "interface",
-            // A const has no mark (owner, 2026-10-06: "`b`").
-            ItemKind::Const(_) => return Ok(()),
-            // A glyph operator has no path, so nothing to mark.
-            ItemKind::Op(d) if !d.op.name.starts_with(|c: char| c.is_ascii_alphabetic()) => return Ok(()),
-            _ => "op",
-        };
-        let both = |a: (Bare, crate::source::Span), b: (Bare, crate::source::Span)| {
-            err(Diagnostic::error(format!("`{} {}` is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error", kind, name, a.0.spelled(), line(a.1), b.0.spelled(), line(b.1))).at(it.span))
-        };
-        // Its own mark, then the block modules around it, inner first.
-        let chain: Vec<(Bare, crate::source::Span)> = it.bare.iter().copied().chain(modules.iter().copied()).collect();
-        if let Some(&first) = chain.first() {
-            if let Some(&other) = chain.iter().find(|m| m.0 != first.0) {
-                return both(first, other);
-            }
-        }
-        // That, the file's and the kind's, in the order they are written.
-        let mut all: Vec<(Bare, crate::source::Span)> = chain.first().copied().into_iter().chain(file.bare_file).chain(kinds.iter().filter(|(_, ks, _)| ks.iter().any(|k| k == kind)).map(|(m, _, at)| (*m, *at))).collect();
-        all.sort_by_key(|m| (m.1.file != it.span.file, line(m.1)));
-        match all.first() {
-            None => err(Diagnostic::error(format!("`{k} {n}` is `pub`, and nothing says how other kits write its path: mark it (`pub bare.kit_prefix.never {k} …`), its module, or its kind in `kit.cy` (`bare.kit_prefix.never [{k}];`) as `bare.kit_prefix.never` (path required), `bare.kit_prefix.optional` or `bare.kit_prefix.only` (path forbidden); there is no default", k = kind, n = name)).at(it.span)),
-            Some(&first) => match all.iter().find(|m| m.0 != first.0) {
-                Some(&other) => both(first, other),
-                None => {
-                    items.bare_marks.insert(name_span, first.0);
-                    Ok(())
-                }
-            },
-        }
-    })
+    let at = file.bare_file.map(|(_, a)| a).or(file.bare_kinds.first().map(|(_, _, a)| *a)).or(file.enum_bare_file.map(|(_, a)| a)).or(file.enum_bare_kinds.first().map(|(_, a)| *a)).or_else(|| first_mark(&file.items));
+    match at {
+        Some(at) => err(Diagnostic::error(BARE_MARKS_GONE).at(at)),
+        None => Ok(()),
+    }
 }
 
-/// Whether each enum's values may be written without its name where the
-/// type is known (owner, 2026-10-20): its own `bare.enum_prefix.…` mark, the
-/// block modules' around it, its file's line, and `bare.enum_prefix.…
-/// [enum];` in `kit.cy`, which must agree. A `pub` enum must be covered,
-/// with no default; a private one is `never` unless marked.
-fn check_enum_bare(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, root: bool) -> Result<()> {
-    use crate::ast::{Bare, Item, ItemKind};
-    if root {
-        ENUM_BARE_KINDS.with(|k| *k.borrow_mut() = file.enum_bare_kinds.clone());
-    } else if let Some((m, at)) = file.enum_bare_kinds.first() {
-        return err(Diagnostic::error(format!("`{} [enum];` covers the whole kit, so it is written in `kit.cy`", m.enum_spelled())).at(*at));
-    }
-    let kinds = ENUM_BARE_KINDS.with(|k| k.borrow().clone());
-    let line = |at: crate::source::Span| sources.get(at.file).line_of(at.start);
-    fn walk(items: &[Item], chain: &mut Vec<(Bare, crate::source::Span)>, each: &mut dyn FnMut(&Item, &crate::ast::EnumDecl, &[(Bare, crate::source::Span)]) -> Result<()>) -> Result<()> {
-        for it in items {
-            match &it.kind {
-                ItemKind::Module { items, .. } => {
-                    let pushed = it.enum_bare.is_some();
-                    if let Some(b) = it.enum_bare {
-                        chain.insert(0, b);
-                    }
-                    walk(items, chain, each)?;
-                    if pushed {
-                        chain.remove(0);
-                    }
-                }
-                ItemKind::Enum(d) => each(it, d, chain)?,
-                _ => {}
-            }
-        }
-        Ok(())
-    }
-    let mut chain = Vec::new();
-    walk(&file.items, &mut chain, &mut |it, d, modules| {
-        let name = &d.name.name;
-        let both = |a: (Bare, crate::source::Span), b: (Bare, crate::source::Span)| {
-            err(Diagnostic::error(format!("`enum {}` is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error", name, a.0.enum_spelled(), line(a.1), b.0.enum_spelled(), line(b.1))).at(it.span))
-        };
-        let chain: Vec<(Bare, crate::source::Span)> = it.enum_bare.iter().copied().chain(modules.iter().copied()).collect();
-        if let Some(&first) = chain.first() {
-            if let Some(&other) = chain.iter().find(|m| m.0 != first.0) {
-                return both(first, other);
-            }
-        }
-        let mut all: Vec<(Bare, crate::source::Span)> = chain.first().copied().into_iter().chain(file.enum_bare_file).chain(kinds.iter().copied()).collect();
-        all.sort_by_key(|m| (m.1.file != it.span.file, line(m.1)));
-        match all.first() {
-            None if it.vis == Vis::Pub => err(Diagnostic::error(format!("`enum {n}` is `pub`, and nothing says whether its values may be written without `{n}.`: mark it `bare.enum_prefix.never` ({n}. required), `bare.enum_prefix.optional` or `bare.enum_prefix.only` ({n}. forbidden), mark its module, or write `bare.enum_prefix.… [enum];` in `kit.cy`; there is no default (owner, 2026-10-20)", n = name)).at(it.span)),
-            None => Ok(()),
-            Some(&first) => match all.iter().find(|m| m.0 != first.0) {
-                Some(&other) => both(first, other),
-                None => {
-                    items.enum_bare_marks.insert(d.name.span, first.0);
-                    Ok(())
-                }
-            },
-        }
-    })
+/// Whether std's own files are being read (their `bare.` marks are read
+/// and ignored, a stopgap).
+pub(crate) fn loading_std() -> bool {
+    LOADING_STD.with(|s| s.get())
 }
+
+/// What a `bare.` mark is told (owner, 2026-10-22).
+pub const BARE_MARKS_GONE: &str = "the `bare.` marks are gone (owner, 2026-10-22): another kit's names always take its path, and your own stay bare; drop the mark";
 
 /// One `cca::Power.…` of a manifest: the path, the things in `[ ]`, and a
 /// `deny`'s `.except[…]` and `.for[…]`.

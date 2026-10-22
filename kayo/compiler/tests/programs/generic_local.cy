@@ -8,7 +8,7 @@ interface Number {
     i64
 }
 
-fn total_of <T: Number> [lent 'xs': list[<T>]] -> <T> {
+fn total_of <T: Number> [lent 'xs': std::list[<T>]] -> <T> {
     let 'sum': <T> = 0;
     for 'x' in lend 'xs' {
         change 'sum' = 'sum' plus 'x';
@@ -17,8 +17,8 @@ fn total_of <T: Number> [lent 'xs': list[<T>]] -> <T> {
 }
 
 MAIN {
-    let 'a': list[i32] = [1, 2, 3];
-    let 'b': list[i64] = [40, 2];
+    let 'a': std::list[i32] = [1, 2, 3];
+    let 'b': std::list[i64] = [40, 2];
     let 't' := to.i64[total_of[lend 'a']] plus total_of[lend 'b'];
     no_check my.exit[to.i32['t']];
 }

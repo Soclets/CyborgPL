@@ -15,7 +15,7 @@ fn label ['s': Status] -> str.utf8 {
 }
 fn width ['s': Status] -> i32 {
     let 'l' := label[give 's'];
-    return to.i32[str.bytes[lend 'l']];
+    return to.i32[std::str.bytes[lend 'l']];
 }
 MAIN {
     let 'n' := to.i32["12x"] otherwise { not_a_number { is -2; } out_of_range { is -1; } };

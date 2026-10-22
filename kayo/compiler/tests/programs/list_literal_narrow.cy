@@ -8,6 +8,6 @@ MAIN {
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'x': i32 = 5;
     if 'there' { change 'x' = 300; }
-    let 'xs': list[i8] = [1, 'x'];
+    let 'xs': std::list[i8] = [1, 'x'];
     no_check my.exit[to.i32['xs'[pos: 2]]];
 }

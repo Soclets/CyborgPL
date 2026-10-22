@@ -12,6 +12,6 @@ MAIN {
     let 'b' := to.str.ascii['accented'] otherwise "no";
     let 'c' := to.str.ascii['e'] otherwise "x";
     let 'd' := to.str.ascii['k'];
-    let 'n': u64 = str.bytes[lend 'a'] times 16 plus str.bytes[lend 'b'] times 4 plus str.bytes[lend 'c'] plus str.bytes[lend 'd'];
+    let 'n': u64 = std::str.bytes[lend 'a'] times 16 plus std::str.bytes[lend 'b'] times 4 plus std::str.bytes[lend 'c'] plus std::str.bytes[lend 'd'];
     no_check my.exit[to.i32['n']];
 }

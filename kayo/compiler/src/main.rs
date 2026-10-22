@@ -559,9 +559,11 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     }
     laps.mark("Ownership and borrows");
     let analysis = kayo::precog::analyse_opts(&mut mir, !assert_proofs);
-    let notes = kayo::precog::notes(&analysis, &mir, &sources);
-    for n in &notes {
-        say(format!("\n{}", n));
+    // Every note goes in the build report only; there are no warnings
+    // (owner, 2026-10-22; diagnostics.md rule 4). Each `use` has one.
+    let mut notes = kayo::precog::notes(&analysis, &mir, &sources);
+    for (at, name, path) in kayo::uses::seen() {
+        notes.push(kayo::diag::Diagnostic::note(format!("`{}` stands for `{}` in this file (its `use`)", name, path)).at(at).render(&sources));
     }
     let refusals = kayo::precog::refusals_opts(&analysis, &mir, &sources, final_build);
     if !refusals.is_empty() {
@@ -655,7 +657,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     };
     let report = kayo::report::path_for(out);
     if let Err(e) = std::fs::write(&report, kayo::report::render(&facts)) {
-        eprintln!("warning: the build report could not be written to {}: {}", report.display(), e);
+        eprintln!("error: the build report could not be written to {}: {}", report.display(), e);
     }
     say(kayo::report::summary_line(&facts, &report));
     Ok(test_names)

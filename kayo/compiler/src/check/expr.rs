@@ -323,6 +323,17 @@ impl Checker {
             let elem = self.fresh();
             return Ok(Expr { kind: K::Call { callee: Callee::Builtin(Builtin::PtrNull), args: Vec::new(), otherwise: None, fails: Vec::new() }, ty: Ty::Ptr { mutable: false, elem: Box::new(elem) }, span });
         }
+        // std's values take its path outside std (owner, 2026-10-22):
+        // `std::list.empty`, `std::map.empty`.
+        let via_std = std::mem::take(&mut self.via_std);
+        if path.kit.as_ref().is_some_and(|k| k.name == "std") && std_builtin(path) {
+            let plain = ast::Path { kit: None, segs: path.segs.clone(), span: path.span };
+            self.via_std = true;
+            return self.path_value(ctx, &plain, span);
+        }
+        if path.kit.is_none() && std_builtin(path) && !via_std && !self.in_std(ctx) && self.items.lookup_plain(path, ctx.module).is_err() {
+            return err(Diagnostic::error(std_bare_message(path)).at(path.span));
+        }
         if path.is(&["list", "empty"]) {
             let elem = self.fresh();
             return Ok(Expr { kind: K::ListEmpty, ty: Ty::Seq { elem: Box::new(elem), kind: SeqKind::Free(InferId(0)) }, span });
@@ -2534,14 +2545,20 @@ impl Checker {
                 }
             }
         }
-        // std marks everything `bare.kit_prefix.optional` (owner, 2026-10-06): its
-        // names may drop `std::`, and the built-ins it owns may carry it.
+        // Another kit's names always take its path, std's too (owner,
+        // 2026-10-22); inside std they are its own. The built-ins std owns
+        // are reached with `std::` taken off.
+        let via_std = std::mem::take(&mut self.via_std);
         if path.kit.as_ref().is_some_and(|l| l.name == "std") && std_builtin(path) {
             let plain = ast::Path { kit: None, segs: path.segs.clone(), span: path.span };
+            self.via_std = true;
             return self.call(ctx, &plain, args, otherwise, span, used);
         }
-        if path.kit.is_none() && (std_name(path) || self.items.nerve_cord_item(path).is_some_and(|(_, bare)| bare)) {
-            if let crate::resolve::Bareness::Std = self.items.resolve_bare(path, ctx.module, true)? {
+        if path.kit.is_none() && (std_name(path) || std_builtin(path)) && self.items.lookup_plain(path, ctx.module).is_err() {
+            if !(via_std || self.in_std(ctx)) {
+                return err(Diagnostic::error(std_bare_message(path)).at(path.span));
+            }
+            if std_name(path) {
                 let with = ast::Path { kit: Some(ast::Ident { name: "std".into(), span: path.span }), segs: path.segs.clone(), span: path.span };
                 return self.call(ctx, &with, args, otherwise, span, used);
             }
@@ -4858,12 +4875,34 @@ fn std_name(path: &ast::Path) -> bool {
     }
 }
 
+/// What a bare std name is told outside std (owner, 2026-10-22), as the
+/// oracle words it.
+pub fn std_bare_message(path: &ast::Path) -> String {
+    let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
+    match segs.as_slice() {
+        ["list", ..] => "`list` is std's: write `std::list` (`std::list[i64]`, `std::list.append[…]`), or name it for this file with `use std::list as list;` (owner, 2026-10-22)".into(),
+        ["map", ..] => "`map` is std's: write `std::map` (`std::map[str.utf8, i32]`, `std::map.get[…]`), or name it for this file with `use std::map as map;` (owner, 2026-10-22)".into(),
+        ["duration", ..] => "`duration` is std's: write `std::duration`, or `use std::duration as duration;` (owner, 2026-10-22)".into(),
+        ["str", unit, ..] => format!("`str.{u}` is std's: write `std::str.{u}` (`std::str.each.grapheme[…]`), or name it for this file with `use std::str.{u} as str_{u};` (owner, 2026-10-22)", u = unit),
+        _ => format!("`{w}` is std's: write `std::{w}`, or name it for this file with `use std::{h} as {h};` (owner, 2026-10-22)", w = path.spelled(), h = segs.first().copied().unwrap_or("")),
+    }
+}
+
+impl Checker {
+    /// Whether code in this module is std's own, where std's names are
+    /// bare (owner, 2026-10-22: "own stays bare").
+    pub fn in_std(&self, ctx: &FnCtx) -> bool {
+        self.items.nerve_cord.is_some_and(|c| self.items.kit_root(ctx.module) == c)
+    }
+}
+
 /// std's lists, maps and text units, which the language builds in, with
 /// `std::` in front.
 fn std_builtin(path: &ast::Path) -> bool {
     let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
     match segs.as_slice() {
-        ["list" | "map", _, ..] => true,
+        // `std::map[…]`, a map's literal, as well as `std::map.get[…]`.
+        ["list" | "map", ..] => true,
         ["str", unit, ..] => matches!(*unit, "bytes" | "points" | "graphemes" | "each"),
         _ => false,
     }

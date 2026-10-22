@@ -17,7 +17,7 @@ fn run [] -> i32 or fail[missing, out_of_range] {
     let 'key' := "N";
     no_check let 'n' := read_n[getenv[lend 'key']] otherwise fail;
     # n + 1 falses, as C's calloc gives them (`list.fill`, owner 2026-09-30).
-    let mut 'comp': list[bool] = list.fill[value: false, count: 'n' plus 1];
+    let mut 'comp': std::list[bool] = std::list.fill[value: false, count: 'n' plus 1];
     let mut 'count': i64 = 0;
     let mut 'p': i64 = 2;
     while 'p' at_most 'n' {

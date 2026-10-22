@@ -11,10 +11,10 @@ MAIN {
     no_check let 'there' := ptr.is_null[getenv[lend 'k']];
     let mut 'id': i32 = 5;
     if 'there' { change 'id' = 7; }
-    let mut 'users': map[User, i32] = map.empty;
-    map.set[lend.mut 'users', key: User[id = 'id', name = "Ann"], value: 1];
-    map.set[lend.mut 'users', key: User[id = 'id' plus 100, name = "Ann again"], value: 2];
-    let 'n' := map.get[lend 'users', key: User[id = 'id' plus 200, name = "x"]] otherwise 0;
-    let 'm' := map.get[lend 'users', key: User[id = 3, name = "y"]] otherwise 9;
-    no_check my.exit['n' times 10 plus 'm' plus to.i32[map.length[lend 'users']] times 100];
+    let mut 'users': std::map[User, i32] = std::map.empty;
+    std::map.set[lend.mut 'users', key: User[id = 'id', name = "Ann"], value: 1];
+    std::map.set[lend.mut 'users', key: User[id = 'id' plus 100, name = "Ann again"], value: 2];
+    let 'n' := std::map.get[lend 'users', key: User[id = 'id' plus 200, name = "x"]] otherwise 0;
+    let 'm' := std::map.get[lend 'users', key: User[id = 3, name = "y"]] otherwise 9;
+    no_check my.exit['n' times 10 plus 'm' plus to.i32[std::map.length[lend 'users']] times 100];
 }
