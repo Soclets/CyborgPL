@@ -18,7 +18,7 @@ MAIN {
     let 'm': d64 = -7.50;
     change 'got' = 'got' plus same['t' mod.floor 2, "1.50"] plus same['m' mod.floor 2, "0.50"] plus same['t' mod.floor -2, "-0.50"];
     let 'c': d64 = -4.0;
-    change 'got' = 'got' plus same['c' mod.floor 2, "0.0"] plus same['c' mod.floor -2, "-0.0"] plus same['t' mod.floor 0.7, "0.50"];
+    change 'got' = 'got' plus same['c' mod.floor 2, "0.0"] plus same['c' mod.floor -2, "0.0"] plus same['t' mod.floor 0.7, "0.50"];
     let 'r': d64 = 1.05;
     change 'got' = 'got' plus same['r' pow 10, "1.628894626777441"] plus same['r' pow 0, "1"] plus same['r' pow -1, "0.9523809523809524"];
     let 'r2': d128 = 1.05;

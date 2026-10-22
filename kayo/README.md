@@ -1041,6 +1041,11 @@ Dated, with the alternative, so each can become a question later.
   naming the typed literal to write (`2.5: bin64`). A preset beside several
   versions, and an overloaded name held as a value, are refused (design
   claude's readings).
+- **2026-10-22 — A deci zero is never -0** (owner, 2026-10-07; check
+  claude's finding, oracle e409892c). Both encoders, the runtime's and the
+  compiler's for constants, write a zero coefficient with no sign, so no
+  operation gives -0; `deci_neg`, the inline sign flip, leaves a zero
+  positive. `examples/deci_no_minus_zero`, `examples/negate_zero_deci`.
 - **2026-10-22 — The manifest is `CyJet.toml`** (owner; `design/cyjet-toml.md`;
   oracle e38695c8). Tankun's Obvious Minimal Language, read by
   `cyjet_toml.rs`: CyborgPL's comments taken out line by line, then

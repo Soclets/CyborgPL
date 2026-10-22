@@ -52,6 +52,6 @@ MAIN {
     let 'wide' := to.d64['r'];
     change 'got' = 'got' plus same['wide' times 'h', "6.250"];
     let 'z': d64 = 0;
-    change 'got' = 'got' plus same[-'z', "-0"] plus same['h' minus 'h', "0.00"];
+    change 'got' = 'got' plus same[-'z', "0"] plus same['h' minus 'h', "0.00"];
     no_check my.exit['got'];
 }

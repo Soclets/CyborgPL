@@ -191,12 +191,26 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     pub(super) fn deci_neg(&mut self, v: IntValue<'ctx>) -> Option<BasicValueEnum<'ctx>> {
         let t = v.get_type();
         let bits = t.get_bit_width();
-        let sign = if bits == 128 {
-            t.const_int_arbitrary_precision(&[0, 1u64 << 63])
-        } else {
-            t.const_int(1u64 << (bits - 1), false)
+        let wide = |x: u128| t.const_int_arbitrary_precision(&[x as u64, (x >> 64) as u64]);
+        let sign = wide(1u128 << (bits - 1));
+        // A deci has no -0 (owner, 2026-10-07): a zero stays as it is.
+        // A zero is the small form (the two bits after the sign not both
+        // set) with a zero coefficient.
+        let ebits = match bits {
+            32 => 8,
+            64 => 10,
+            _ => 14,
         };
-        Some(self.builder.build_xor(v, sign, "deci_neg").ok()?.into())
+        let small = bits - 1 - ebits;
+        let large_bits = wide(3u128 << (bits - 3));
+        let is_large = self.builder.build_int_compare(IntPredicate::EQ, self.builder.build_and(v, large_bits, "deci_form").ok()?, large_bits, "deci_large").ok()?;
+        let coef = self.builder.build_and(v, wide((1u128 << small) - 1), "deci_coef").ok()?;
+        let no_coef = self.builder.build_int_compare(IntPredicate::EQ, coef, t.const_zero(), "deci_no_coef").ok()?;
+        let not_large = self.builder.build_not(is_large, "deci_small").ok()?;
+        let zero = self.builder.build_and(not_large, no_coef, "deci_zero").ok()?;
+        let flipped = self.builder.build_xor(v, sign, "deci_neg").ok()?;
+        let positive = self.builder.build_and(v, self.builder.build_not(sign, "deci_unsign").ok()?, "deci_pos_zero").ok()?;
+        Some(self.builder.build_select(zero, positive, flipped, "deci_neg_zero").ok()?)
     }
 
     /// A conversion that cannot fail, into or out of a `deci`: from a whole

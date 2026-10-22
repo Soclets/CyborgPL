@@ -51,7 +51,8 @@ pub enum LitErr {
 pub fn encode(neg: bool, coef: u128, exp: i64, bits: u16) -> u128 {
     let w = bits as u32;
     let e = (exp - qmin(bits)) as u128;
-    let sign = (neg as u128) << (w - 1);
+    // A deci has no -0 (owner, 2026-10-07).
+    let sign = ((neg && coef != 0) as u128) << (w - 1);
     let small = w - 1 - ebits(bits);
     if coef < (1u128 << small) {
         sign | (e << small) | coef

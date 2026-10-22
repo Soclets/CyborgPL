@@ -76,7 +76,9 @@ fn decode(x: u128, w: Width) -> Dec {
 
 fn encode(d: Dec, w: Width) -> u128 {
     let e = (d.exp - w.qmin) as u128;
-    let sign = (d.neg as u128) << (w.bits - 1);
+    // A deci has no -0 (owner, 2026-10-07): a zero is positive whatever
+    // made it (check claude, 2026-10-22).
+    let sign = ((d.neg && d.coef != 0) as u128) << (w.bits - 1);
     let small = w.bits - 1 - w.ebits;
     if d.coef < (1u128 << small) {
         sign | (e << small) | d.coef
