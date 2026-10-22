@@ -818,6 +818,7 @@ overload_plain [fnv:4d7e85536de4500f] :: versions of one function are written to
 overload_same [fnv:85482f9dd885439c] :: has two versions for i64
 overload_lit [fnv:3421916dcaa15ca1] :: versions of `f` could take this call
 overload_unrun [fnv:8aa3fe4489498f62] :: could take this call
+version_call_variable_not_run [fnv:504a6c5ec80b8902] :: versions of `mx` could take this call
 typed_deci_too_many_digits [fnv:dfdeb146ae482e46] :: has 8 digits
 type_name_old [fnv:182c4002003ff0e4] :: `int32` is an old spelling: write `i32`
 bare_int_old [fnv:1e938cf45f36560a] :: `int` is an old spelling: the types are `i`, `u`, `f`, `d`
