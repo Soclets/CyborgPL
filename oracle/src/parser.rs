@@ -3195,12 +3195,9 @@ impl Parser {
                 other => return self.err(format!("a collection holds its own function (`{name} [ … ] -> T {{ … }}`), members (`{name}.quick [ … ] -> T {{ … }}`, or `{name}.quick = path.to.fn;`), presets (`{name}.quick ['step' = 2];`), one `bare.` mark, and templates (`for … {{ named …; … }}`); found {other}")),
             }
         }
-        // versions are written in a `versions` block (owner, 2026-10-21); std/ keeps its repeated lines until its own
-        // session moves them (design claude's stopgap, oracle/README.md)
-        // a `std` folder anywhere in the path, so `oracle std` from std claude's clone counts too (it read
-        // `std/round.cy`, with no `/` in front, as not std's: std claude, 2026-10-22)
-        let in_std = in_std_file();
-        if !in_std {
+        // versions are written in a `versions` block (owner, 2026-10-21), std's too since std claude moved round.cy's
+        // into blocks (2026-10-22, ending design claude's stopgap)
+        {
             let outside_main = main.len() > 1 && !in_block.contains(&name);
             let outside_member = members.iter().map(|(m, _)| m).find(|m| members.iter().filter(|(x, _)| x == *m).count() > 1 && !in_block.contains(m));
             if outside_main { return Err(ParseError { line, col: 0, msg: format!("`{name}` is written {} times: versions of one function go in a block, `versions {name} {{ … }}` (owner, 2026-10-21)", main.len()) }); }
