@@ -837,9 +837,9 @@ base_hex_bad_digit [fnv:08f788733a8bc6a3] :: a hex number has only 0-9 and A-F
 base_prefix_0x [fnv:0ee49085d48160cd] :: written with a word in front: `hex 1F`
 base_grouping [fnv:fa328efeee84f3c8] :: `_` groups digits
 overload_plain [fnv:4d7e85536de4500f] :: versions of one function are written together in a `coll.fn f` block
-overload_same [fnv:85482f9dd885439c] :: !unbuilt versions blocks and labels (78a25324); then: has two versions for i64
-overload_lit [fnv:3421916dcaa15ca1] :: !unbuilt versions blocks and labels (78a25324); then: versions of `f` could take this call
-overload_unrun [fnv:8aa3fe4489498f62] :: !unbuilt versions blocks and labels (78a25324); then: could take this call
+overload_same [fnv:85482f9dd885439c] :: has two versions for i64
+overload_lit [fnv:3421916dcaa15ca1] :: versions of `f` could take this call
+overload_unrun [fnv:8aa3fe4489498f62] :: could take this call
 typed_deci_too_many_digits [fnv:dfdeb146ae482e46] :: has 8 digits
 type_name_old [fnv:182c4002003ff0e4] :: `int32` is an old spelling: write `i32`
 bare_int_old [fnv:1e938cf45f36560a] :: `int` is an old spelling: the types are `i`, `u`, `f`, `d`
@@ -862,13 +862,13 @@ round_bare_literal [fnv:6a9a505856306bdf] :: versions of `std::round.near` could
 ptr_null_alone [fnv:151c5bbeceaee90f] :: `ptr.null` alone does not say what it points at
 ptr_null_list_alone [fnv:0d4abfac6c6a844f] :: `ptr.null` alone does not say what it points at, so 'xs' cannot hold it
 ptr_null_call [fnv:7130703f2a93adc9] :: `ptr.null` is the null pointer, a value, not a call
-defaults_overlap_version [fnv:81eaa0260314f319] :: !unbuilt versions blocks and labels (78a25324); then: has two versions for
-labels_out_of_order [fnv:cf320fcee45ba654] :: !unbuilt versions blocks and labels (78a25324); then: keep their order
-labels_pub_unsaid [fnv:ee138ae608008842] :: !unbuilt versions blocks and labels (78a25324); then: a `pub` function says whether its labels keep their order
-labels_required [fnv:4084f01f40100b31] :: !unbuilt versions blocks and labels (78a25324); then: needs `value:`
-labels_unknown [fnv:ad39abe0d191dbfe] :: !unbuilt versions blocks and labels (78a25324); then: has no label `colour:`
-labels_unlabelled_after [fnv:458b5913830e2e7f] :: !unbuilt versions blocks and labels (78a25324); then: an argument without a label comes before the labelled ones
-versions_outside_block [fnv:0819643a458cdfe0] :: !pending versions blocks (78a25324) not built yet: versions written in the coll.fn itself are still read
+defaults_overlap_version [fnv:81eaa0260314f319] :: has two versions for
+labels_out_of_order [fnv:cf320fcee45ba654] :: keep their order
+labels_pub_unsaid [fnv:ee138ae608008842] :: a `pub` function says whether its labels keep their order
+labels_required [fnv:4084f01f40100b31] :: needs `value:`
+labels_unknown [fnv:ad39abe0d191dbfe] :: has no label `colour:`
+labels_unlabelled_after [fnv:458b5913830e2e7f] :: an argument without a label comes before the labelled ones
+versions_outside_block [fnv:0819643a458cdfe0] :: versions of one function go in a block
 concise_decoded_error [fnv:e4e0805eb037ca86] :: (concise file; decoded line 2
 concise_short_group [fnv:c86659c0a2e00cd9] :: `0100001` is 7 digits; each group is 8, one byte
 concise_plain_braces [fnv:690dca9d89033985] :: a concise file is only `0`, `1`, spaces and line breaks

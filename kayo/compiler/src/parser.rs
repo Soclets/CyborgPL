@@ -1621,6 +1621,13 @@ impl<'a> Parser<'a> {
         let mut members: Vec<FnDecl> = Vec::new();
         let mut pointers: Vec<(Ident, Path)> = Vec::new();
         let mut presets: Vec<(Ident, Vec<(QName, Expr)>, Span)> = Vec::new();
+        // How the own function is called (owner, 2026-10-21).
+        let mut labels: Option<Labels> = None;
+        let mut defaults: Option<(Vec<(QName, Expr)>, Span)> = None;
+        // Each function written so far, by its member's name ("" the own
+        // one): versions of one go in a block (owner, 2026-10-21).
+        let mut written: std::collections::HashMap<String, (bool, Span)> = std::collections::HashMap::new();
+        let in_block = |n: &str| format!("versions of one function go in a block, `versions {} {{ … }}` (owner, 2026-10-21)", n);
         // Every member line writes the collection's name in front (owner,
         // 2026-10-19): `greet.hi`, never `hi`.
         let short = |member: &str| format!("a member writes the collection's name in front: `{}.{}` (owner, 2026-10-19)", name.name, member);
@@ -1639,6 +1646,116 @@ impl<'a> Parser<'a> {
                 }
                 self.expect_semi("the `bare.` mark")?;
                 mark = Some((m, mat));
+                continue;
+            }
+            // `versions say { ['x': i64] -> i64 { … } … }` (owner,
+            // 2026-10-21): each line one version, the name written once.
+            if self.is_word("versions") && matches!(self.peek_at(1), Tok::Word(_)) && !matches!(self.peek_at(2), Tok::LBracket) {
+                self.bump();
+                let first = self.ident("the function the versions are of")?;
+                let member = if self.eat(&Tok::Dot) { Some(self.ident("the member's name")?) } else { None };
+                if first.name != name.name {
+                    return self.fail_at(first.span, short(&member.as_ref().unwrap_or(&first).name.clone()));
+                }
+                let key = member.as_ref().map(|m| m.name.clone()).unwrap_or_default();
+                let full = match &member {
+                    Some(m) => format!("{}.{}", name.name, m.name),
+                    None => name.name.clone(),
+                };
+                if let Some((_, at)) = written.get(&key) {
+                    return self.fail_at(first.span, in_block(&full)).map_err(|e| Box::new(e.why_at(*at, format!("`{}` is written here too", full))));
+                }
+                written.insert(key, (true, first.span));
+                let vopen = self.span();
+                self.expect(&Tok::LBrace, "`{` opening the versions")?;
+                while !self.is(&Tok::RBrace) {
+                    if self.at_eof() {
+                        return self.fail_at(vopen, format!("the versions of `{}` are never closed", full));
+                    }
+                    if !self.is(&Tok::LBracket) {
+                        return self.fail(format!("each line of a `versions` block is one version, written without its name: `['x': i64] -> i64 {{ … }}`, under `versions {}`", full));
+                    }
+                    let at = self.span();
+                    let fname = Ident { name: member.as_ref().unwrap_or(&first).name.clone(), span: at };
+                    let mut d = self.fn_rest(fname, None, true)?;
+                    d.in_coll = true;
+                    match &member {
+                        Some(_) => {
+                            d.owner = Some(name.clone());
+                            members.push(d);
+                        }
+                        None => mains.push(d),
+                    }
+                }
+                self.bump();
+                continue;
+            }
+            // `labels ['text' as value];`, `labels.in_order […]`,
+            // `labels.any_order […]` (owner, 2026-10-21).
+            if self.is_word("labels") && (matches!(self.peek_at(1), Tok::Dot) || (matches!(self.peek_at(1), Tok::LBracket) && (name.name != "labels" || self.is_word_at(3, "as")))) {
+                let at = self.bump().span;
+                let order = if self.eat(&Tok::Dot) {
+                    let w = self.ident("`in_order` or `any_order`")?;
+                    match w.name.as_str() {
+                        "in_order" => LabelOrder::InOrder,
+                        "any_order" => LabelOrder::AnyOrder,
+                        _ => return self.fail_at(w.span, "labels keep their order or not: `labels.in_order […]` or `labels.any_order […]`"),
+                    }
+                } else {
+                    LabelOrder::Plain
+                };
+                if labels.is_some() {
+                    return self.fail_at(at, "a collection has one `labels` line");
+                }
+                self.expect(&Tok::LBracket, "`[` and the labels: `labels ['text' as value]`")?;
+                let mut entries: Vec<(QName, Ident)> = Vec::new();
+                while !self.is(&Tok::RBracket) {
+                    let q = self.qname("a parameter's name")?;
+                    if !self.eat_word("as") {
+                        return self.fail(format!("a label is given with `as`: `['{}' as value]`", q.name));
+                    }
+                    let w = self.ident("the label")?;
+                    if let Some((p, _)) = entries.iter().find(|(_, x)| x.name == w.name) {
+                        return self.fail_at(w.span, format!("'{}' and '{}' both take the label `{}:`", p.name, q.name, w.name));
+                    }
+                    if entries.iter().any(|(p, _)| p.name == q.name) {
+                        return self.fail_at(q.span, format!("'{}' has two labels", q.name));
+                    }
+                    entries.push((q, w));
+                    if !self.eat(&Tok::Comma) {
+                        break;
+                    }
+                }
+                self.expect(&Tok::RBracket, "`]` closing the labels")?;
+                self.expect_semi("the `labels` line")?;
+                labels = Some(Labels { order, entries, span: at.to(self.prev_span()) });
+                continue;
+            }
+            // `defaults ['times' = 1];` (owner, 2026-10-21).
+            if self.is_word("defaults") && matches!(self.peek_at(1), Tok::LBracket) && (name.name != "defaults" || self.is_op_at(3, "=")) {
+                let at = self.bump().span;
+                if defaults.is_some() {
+                    return self.fail_at(at, "a collection has one `defaults` line");
+                }
+                self.bump();
+                let mut fills: Vec<(QName, Expr)> = Vec::new();
+                while !self.is(&Tok::RBracket) {
+                    let q = self.qname("a parameter's name")?;
+                    if !self.eat_op("=") {
+                        return self.fail(format!("a default is given with `=`: `['{}' = 1]`", q.name));
+                    }
+                    if fills.iter().any(|(p, _)| p.name == q.name) {
+                        return self.fail_at(q.span, format!("'{}' has two defaults", q.name));
+                    }
+                    let v = self.expr(0)?;
+                    fills.push((q, v));
+                    if !self.eat(&Tok::Comma) {
+                        break;
+                    }
+                }
+                self.expect(&Tok::RBracket, "`]` closing the defaults")?;
+                self.expect_semi("the `defaults` line")?;
+                defaults = Some((fills, at));
                 continue;
             }
             if self.is_word("fn") {
@@ -1709,6 +1826,16 @@ impl<'a> Parser<'a> {
             }
             let mut d = self.fn_decl(true)?;
             d.in_coll = true;
+            // The same function twice outside a block (owner, 2026-10-21);
+            // std/'s repeated lines are read until std claude moves them.
+            let key = if d.owner.is_some() { d.name.name.clone() } else { String::new() };
+            if let Some((_, at)) = written.get(&key) {
+                if !crate::load::loading_std() {
+                    let full = if key.is_empty() { name.name.clone() } else { format!("{}.{}", name.name, key) };
+                    return self.fail_at(d.name.span, in_block(&full)).map_err(|e| Box::new(e.why_at(*at, format!("`{}` is written here too", full))));
+                }
+            }
+            written.entry(key).or_insert((false, d.name.span));
             match &d.owner {
                 None if d.name.name == name.name => {
                     mains.push(d);
@@ -1723,6 +1850,35 @@ impl<'a> Parser<'a> {
         }
         self.bump();
         let mut lines: Vec<(Vis, ItemKind)> = Vec::new();
+        // The labels and defaults say how the own function is called.
+        let said = labels.as_ref().map(|l| l.span).or(defaults.as_ref().map(|d| d.1));
+        if let Some(at) = said {
+            if mains.is_empty() {
+                return self.fail_at(at, format!("labels and defaults say how the own function is called, and collection `{}` has none", name.name));
+            }
+        }
+        let is_param = |q: &QName| mains.iter().any(|m| m.params.iter().any(|p| p.name.name == q.name));
+        if let Some(l) = &labels {
+            if vis == Vis::Pub && l.order == LabelOrder::Plain {
+                return self.fail_at(l.span, format!("a `pub` function says whether its labels keep their order: `labels.in_order […]` or `labels.any_order […]` (owner, 2026-10-21)"));
+            }
+            for (q, _) in &l.entries {
+                if !is_param(q) {
+                    return self.fail_at(q.span, format!("'{}' is not one of `{}`'s parameters", q.name, name.name));
+                }
+            }
+        }
+        if let Some((fills, _)) = &defaults {
+            for (q, _) in fills {
+                if !is_param(q) {
+                    return self.fail_at(q.span, format!("'{}' is not one of `{}`'s parameters", q.name, name.name));
+                }
+            }
+        }
+        for m in &mut mains {
+            m.labels = labels.clone();
+            m.defaults = defaults.as_ref().map(|d| d.0.clone()).unwrap_or_default();
+        }
         let main = mains.first().cloned();
         for (pname, fills, span) in presets {
             let Some(m) = &main else {
@@ -1954,6 +2110,12 @@ impl<'a> Parser<'a> {
             let own = std::mem::replace(&mut name, self.ident("the function's name after its type")?);
             owner = Some(own);
         }
+        self.fn_rest(name, owner, has_body)
+    }
+
+    /// A function after its name: `[params] -> T { … }`, as each line of a
+    /// `versions` block is written (owner, 2026-10-21).
+    fn fn_rest(&mut self, name: Ident, owner: Option<Ident>, has_body: bool) -> Result<FnDecl> {
         let announce = self.announce(&name.name, "fn")?;
         // A C function under another name (owner, 2026-10-19: "(c)"):
         // `extern.C fn length = C.strlen […]`.
@@ -1998,7 +2160,7 @@ impl<'a> Parser<'a> {
             self.expect_semi("the extern declaration")?;
             None
         };
-        Ok(FnDecl { name, owner, announce, params, ret, ret_lent, fails, body, test: false, table_bytes: None, c_name, in_coll: false })
+        Ok(FnDecl { name, owner, announce, params, ret, ret_lent, fails, body, test: false, table_bytes: None, c_name, in_coll: false, labels: None, defaults: Vec::new() })
     }
 
     /// The group's name, right after its `@`.
@@ -5047,6 +5209,18 @@ impl<'a> Parser<'a> {
                 }
                 continue;
             }
+            // `value: "hi"`: a label of a function's own (owner,
+            // 2026-10-21), given by its collection's `labels` line.
+            if matches!(self.peek(), Tok::Word(_)) && self.toks[self.pos].labelled {
+                let word = self.ident("a label")?;
+                let inner = Box::new(self.expr(0)?);
+                let span = word.span.to(self.prev_span());
+                args.push(Arg::Positional(Expr { kind: ExprKind::Label(word, inner), span }));
+                if !self.eat(&Tok::Comma) {
+                    break;
+                }
+                continue;
+            }
             let e = self.expr(0)?;
             if self.is(&Tok::Walrus) {
                 return self.fail("a field's value is given with `=`, not `:=`: the blueprint fixed the types");
@@ -5159,7 +5333,7 @@ fn preset(main: &FnDecl, owner: &Ident, name: Ident, fills: &[(QName, Expr)], sp
         .iter()
         .map(|p| {
             if let Some((_, v)) = fills.iter().find(|(q, _)| q.name == p.name.name) {
-                return Arg::Positional(v.clone());
+                return Arg::Positional(label_of(main, &p.name.name, v.clone()));
             }
             let value = Expr { kind: ExprKind::Name(QName { name: p.name.name.clone(), span }), span };
             let plain = p.ty.as_ref().is_some_and(plain_type);
@@ -5169,10 +5343,11 @@ fn preset(main: &FnDecl, owner: &Ident, name: Ident, fills: &[(QName, Expr)], sp
                 ParamKind::Owned if !plain && !p.variadic => Some(Verb::Give),
                 ParamKind::Owned => None,
             };
-            Arg::Positional(match verb {
+            let value = match verb {
                 Some(verb) => Expr { kind: ExprKind::Verb { verb, amp: false, expr: Box::new(value) }, span },
                 None => value,
-            })
+            };
+            Arg::Positional(label_of(main, &p.name.name, value))
         })
         .collect();
     let path = Path { kit: None, segs: vec![Ident { name: owner.name.clone(), span }], span };
@@ -5192,6 +5367,17 @@ fn preset(main: &FnDecl, owner: &Ident, name: Ident, fills: &[(QName, Expr)], sp
         table_bytes: main.table_bytes,
         c_name: None,
         in_coll: true,
+        labels: None,
+        defaults: Vec::new(),
+    }
+}
+
+/// An argument to the own function, written with its parameter's label
+/// when its collection gives it one.
+fn label_of(main: &FnDecl, param: &str, value: Expr) -> Expr {
+    match main.labels.as_ref().and_then(|l| l.entries.iter().find(|(q, _)| q.name == param)) {
+        Some((_, w)) => Expr { span: value.span, kind: ExprKind::Label(w.clone(), Box::new(value)) },
+        None => value,
     }
 }
 

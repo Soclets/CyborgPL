@@ -453,6 +453,9 @@ pub enum ExprKind {
     /// `value v`: what `list.fill` and `simd.fill` fill with (owner,
     /// 2026-10-07: "`b`").
     Value(Box<Expr>),
+    /// `value: "hi"` in a call to a function whose collection gives its
+    /// parameters labels (owner, 2026-10-21): the label, then the value.
+    Label(Ident, Box<Expr>),
     /// `size.of[T]` / `align.of[T]`
     SizeOf { align: bool, ty: Type },
     /// `incl.bytes["assets/logo.png"]`, `incl.str.utf8[…]`, `incl.str.ascii[…]`
@@ -675,6 +678,30 @@ pub struct FnDecl {
     /// Written inside a `coll.fn`, where several versions of one function
     /// may stand (owner, 2026-10-20).
     pub in_coll: bool,
+    /// `labels ['text' as value];` in its `coll.fn` (owner, 2026-10-21):
+    /// the own function's parameters written `word:` in a call.
+    pub labels: Option<Labels>,
+    /// `defaults ['times' = 1];` in its `coll.fn` (owner, 2026-10-21): what
+    /// a left-out argument is.
+    pub defaults: Vec<(QName, Expr)>,
+}
+
+/// Whether a function's labelled arguments keep the labels' order (owner,
+/// 2026-10-21): `labels.in_order`, `labels.any_order`, or a private
+/// function's plain `labels`, which keeps it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum LabelOrder {
+    Plain,
+    InOrder,
+    AnyOrder,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Labels {
+    pub order: LabelOrder,
+    /// Each parameter and the word it is written with: `'text' as value`.
+    pub entries: Vec<(QName, Ident)>,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone, PartialEq)]

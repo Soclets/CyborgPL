@@ -267,7 +267,7 @@ impl Scan {
                 self.expr(base);
                 self.expr(index);
             }
-            ExprKind::Unary { expr, .. } | ExprKind::Paren(expr) | ExprKind::Pos(expr) | ExprKind::Count(expr) | ExprKind::Value(expr) => self.expr(expr),
+            ExprKind::Unary { expr, .. } | ExprKind::Paren(expr) | ExprKind::Pos(expr) | ExprKind::Count(expr) | ExprKind::Value(expr) | ExprKind::Label(_, expr) => self.expr(expr),
             ExprKind::PtrCast { value, .. } => self.expr(value),
             ExprKind::Binary { lhs, rhs, .. } => {
                 self.expr(lhs);

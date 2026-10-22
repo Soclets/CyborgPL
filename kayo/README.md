@@ -1041,6 +1041,25 @@ Dated, with the alternative, so each can become a question later.
   naming the typed literal to write (`2.5: bin64`). A preset beside several
   versions, and an overloaded name held as a value, are refused (design
   claude's readings).
+- **2026-10-21 — Versions in a block, labels and defaults** (owner: "Add
+  version blocks", "yea"; `design/collections.md` § Versions in a block;
+  oracle 78a25324). The parser reads `versions say { [ … ] -> T { … } … }`
+  (`versions area.rect` for a member) as the versions they are, each line
+  through `fn_rest`; the own function or a member written twice outside a
+  block is refused naming `versions` (std/'s repeated lines are read while
+  `loading_std`, until std claude moves them). `labels […]`,
+  `labels.in_order […]`, `labels.any_order […]` and `defaults […]` go on
+  every version of the own function (`FnDecl::labels`, `defaults`); a `pub`
+  one's plain `labels` is refused, and a preset calls the own function with
+  its labels. A labelled argument is `ExprKind::Label` (`value:`, `count:`
+  and `pos:` are read as the fill's words, and taken as labels once the
+  call is known to be a labelled function's). At the call, `call_labels`
+  checks the unlabelled arguments come first, each label is the function's
+  and, unless `any_order`, the labels' order; `shape_args` puts each
+  version's arguments in its parameters' order, a left-out one its default
+  (checked as an argument, so typed by its parameter), and `pick_version`
+  picks among the versions so shaped. Two versions one call could reach,
+  a default leaving some out, are refused where written (`call_shapes`).
 - **2026-10-20 — A word inside `[ ]` takes `:`** (owner: "go"; DECISIONS
   2026-10-20, "An argument word inside `[ ]` takes `:`"; oracle 6faeaa3c).
   `argwords::labels` reads the tokens first: a word right after `[` or `,`

@@ -262,6 +262,7 @@ impl Checker {
             }
             AK::Count(_) => err(Diagnostic::error("`count` labels `list.fill`'s count: `list.fill[value: 0, count: 10]`").at(span)),
             AK::Value(_) => err(Diagnostic::error("`value` labels what a fill fills with: `list.fill[value: 0, count: 10]`, `simd.fill[value: 0]`").at(span)),
+            AK::Label(w, _) => err(Diagnostic::error(format!("`{}:` labels an argument of a function whose collection gives its parameters labels: `say[2, value: \"hi\"]` (owner, 2026-10-21)", w.name)).at(span)),
             AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one only goes where a list is read, sliced or loaded: `'xs'[pos: 2]`, `simd.load[lend 'xs', pos: 'i']`").at(span)),
             AK::Match { value, arms } => self.match_value(ctx, value, arms, span),
             AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` alone does not say which `{}`: hand it where a function is wanted — a parameter, or `let 'f': fn[i32, i32] -> i32 = op {};`", spelled, spelled, spelled)).at(span)),
@@ -2698,31 +2699,158 @@ impl Checker {
     }
 
     pub(crate) fn fn_call(&mut self, ctx: &mut FnCtx, id: FnId, args: &[AArg], otherwise: Option<&ast::Otherwise>, span: Span, used: bool, path: &ast::Path) -> Result<Expr> {
+        let set = self.items.versions.get(&id).cloned().unwrap_or_else(|| vec![id]);
+        // Labels and defaults (owner, 2026-10-21): each version's arguments
+        // in its parameters' order, a left-out one its default.
+        let first = &self.items.fns[set[0].0 as usize];
+        let labelled = first.labels.is_some() || !first.defaults.is_empty() || args.iter().any(|a| matches!(a, AArg::Positional(ast::Expr { kind: AK::Label(..), .. })));
+        if labelled {
+            let (plain, given) = self.call_labels(set[0], args, path)?;
+            let mut shaped: Vec<(FnId, Vec<AArg>)> = Vec::new();
+            let mut refused = None;
+            for f in &set {
+                match self.shape_args(*f, &plain, &given, span, path) {
+                    Ok(a) => shaped.push((*f, a)),
+                    Err(e) => {
+                        refused.get_or_insert(e);
+                    }
+                }
+            }
+            if shaped.is_empty() {
+                return Err(refused.expect("a version was refused"));
+            }
+            let id = if set.len() > 1 {
+                let cands: Vec<(FnId, &[AArg])> = shaped.iter().map(|(f, a)| (*f, a.as_slice())).collect();
+                self.pick_version(ctx, &cands, span, path)?
+            } else {
+                shaped[0].0
+            };
+            let args = shaped.into_iter().find(|(f, _)| *f == id).map(|(_, a)| a).unwrap_or_default();
+            return self.fn_call_one(ctx, id, &args, otherwise, span, used, path);
+        }
         // A function with versions (owner, 2026-10-20): the one this call's
         // argument count and types pick.
-        let id = match self.items.versions.get(&id).cloned() {
-            Some(set) => self.pick_version(ctx, &set, args, span, path)?,
-            None => id,
+        let id = if set.len() > 1 {
+            let cands: Vec<(FnId, &[AArg])> = set.iter().map(|f| (*f, args)).collect();
+            self.pick_version(ctx, &cands, span, path)?
+        } else {
+            id
         };
         self.fn_call_one(ctx, id, args, otherwise, span, used, path)
+    }
+
+    /// A call's arguments without a label, in place, and its labelled ones
+    /// (owner, 2026-10-21): the arguments without one come first; each label
+    /// is one of the function's; `labels.in_order` and a plain `labels`
+    /// keep the labels' order, `labels.any_order` lets them move.
+    fn call_labels(&self, f: FnId, args: &[AArg], path: &ast::Path) -> Result<(Vec<ast::Expr>, Vec<(ast::Ident, ast::Expr)>)> {
+        let name = path.spelled();
+        let labels = self.items.fns[f.0 as usize].labels.clone();
+        let words: Vec<String> = labels.as_ref().map(|l| l.entries.iter().map(|(_, w)| w.name.clone()).collect()).unwrap_or_default();
+        let mut plain: Vec<ast::Expr> = Vec::new();
+        let mut given: Vec<(ast::Ident, ast::Expr)> = Vec::new();
+        for a in args {
+            let AArg::Positional(e) = a else {
+                return err(Diagnostic::error(format!("`{}` takes its arguments in place or with their labels, not `name = value`", name)).at(a.span()));
+            };
+            // `value:`, `count:` and `pos:` are read as the fill's words
+            // until the call is known to be this function's.
+            let label = match &e.kind {
+                AK::Label(w, inner) => Some((w.clone(), (**inner).clone())),
+                AK::Value(inner) | AK::Count(inner) | AK::Pos(inner) if labels.is_some() => {
+                    let w = match &e.kind {
+                        AK::Value(_) => "value",
+                        AK::Count(_) => "count",
+                        _ => "pos",
+                    };
+                    let at = Span::new(e.span.file, e.span.start as usize, e.span.start as usize + w.len());
+                    Some((ast::Ident { name: w.to_string(), span: at }, (**inner).clone()))
+                }
+                _ => None,
+            };
+            match label {
+                Some((w, inner)) => {
+                    if !words.contains(&w.name) {
+                        let has = if words.is_empty() { "none".to_string() } else { words.iter().map(|w| format!("`{}:`", w)).collect::<Vec<_>>().join(", ") };
+                        return err(Diagnostic::error(format!("`{}` has no label `{}:`; its labels are {}", name, w.name, has)).at(w.span));
+                    }
+                    if let Some((prev, _)) = given.iter().find(|(p, _)| p.name == w.name) {
+                        return err(Diagnostic::error(format!("`{}:` is given twice", w.name)).at(w.span).why_at(prev.span, "the first is here"));
+                    }
+                    given.push((w, inner));
+                }
+                None => {
+                    if let Some((prev, _)) = given.last() {
+                        return err(Diagnostic::error(format!("an argument without a label comes before the labelled ones: this one comes after `{}:` (owner, 2026-10-21)", prev.name)).at(e.span));
+                    }
+                    plain.push(e.clone());
+                }
+            }
+        }
+        if let Some(l) = labels.as_ref().filter(|l| l.order != ast::LabelOrder::AnyOrder) {
+            let at = |w: &str| l.entries.iter().position(|(_, x)| x.name == w).unwrap_or(0);
+            for pair in given.windows(2) {
+                if at(&pair[1].0.name) < at(&pair[0].0.name) {
+                    return err(Diagnostic::error(format!("`{}`'s labels keep their order: `{}:` comes before `{}:` (owner, 2026-10-21)", name, pair[1].0.name, pair[0].0.name)).at(pair[1].0.span));
+                }
+            }
+        }
+        Ok((plain, given))
+    }
+
+    /// One version's arguments in its parameters' order: the arguments
+    /// without a label fill the parameters without one, in place, the
+    /// labelled ones theirs, and a left-out one is its default.
+    fn shape_args(&self, f: FnId, plain: &[ast::Expr], given: &[(ast::Ident, ast::Expr)], span: Span, path: &ast::Path) -> Result<Vec<AArg>> {
+        let name = path.spelled();
+        let decl = &self.items.fns[f.0 as usize];
+        let word = |p: &str| decl.labels.as_ref().and_then(|l| l.entries.iter().find(|(q, _)| q.name == p)).map(|(_, w)| w.name.clone());
+        let default = |p: &str| decl.defaults.iter().find(|(q, _)| q.name == p).map(|(_, v)| v.clone());
+        let mut out: Vec<AArg> = Vec::new();
+        let mut rest = plain.iter();
+        for p in &decl.params {
+            let value = match word(&p.name) {
+                Some(w) => match given.iter().find(|(g, _)| g.name == w) {
+                    Some((_, e)) => Some(e.clone()),
+                    None => match default(&p.name) {
+                        Some(d) => Some(d),
+                        None => return err(Diagnostic::error(format!("`{}` needs `{}:`, its '{}': a labelled argument is written with its label (owner, 2026-10-21)", name, w, p.name)).at(span)),
+                    },
+                },
+                None => rest.next().cloned().or_else(|| default(&p.name)),
+            };
+            // Too few: the count is told as any call's is.
+            let Some(v) = value else { break };
+            out.push(AArg::Positional(v));
+        }
+        out.extend(rest.cloned().map(AArg::Positional));
+        if let Some((g, _)) = given.iter().find(|(g, _)| !decl.params.iter().any(|p| word(&p.name).as_deref() == Some(g.name.as_str()))) {
+            return err(Diagnostic::error(format!("this version of `{}` takes no `{}:`", name, g.name)).at(g.span));
+        }
+        Ok(out)
     }
 
     /// Which version a call takes: the one whose parameters its arguments
     /// fit exactly, widths counting (owner, 2026-10-20: "(a)"). A bare
     /// literal fits every type that holds it, so two versions it fits are
     /// two it could take, and the call is refused naming the typed literal.
-    fn pick_version(&mut self, ctx: &FnCtx, set: &[FnId], args: &[AArg], span: Span, path: &ast::Path) -> Result<FnId> {
+    fn pick_version(&mut self, ctx: &FnCtx, cands: &[(FnId, &[AArg])], span: Span, path: &ast::Path) -> Result<FnId> {
         let name = path.spelled();
-        let given: Vec<&ast::Expr> = args.iter().filter_map(|a| match a {
-            AArg::Positional(e) => Some(e),
+        let set: Vec<FnId> = cands.iter().map(|(f, _)| *f).collect();
+        // Each version's arguments as it takes them: with defaults, one
+        // version may be given more than another.
+        let peeks_of: Vec<Vec<Peek>> = cands.iter().map(|(_, args)| args.iter().filter_map(|a| match a {
+            AArg::Positional(e) => Some(self.peek_arg(ctx, e)),
             _ => None,
-        }).collect();
-        let peeks: Vec<Peek> = given.iter().map(|e| self.peek_arg(ctx, e)).collect();
-        let fits = |this: &Self, f: FnId| -> bool {
-            let decl = &this.items.fns[f.0 as usize];
-            decl.params.len() == peeks.len() && decl.params.iter().zip(&peeks).all(|(p, k)| p.ty.as_ref().is_some_and(|t| peek_fits(k, t.base())))
+        }).collect()).collect();
+        let fits = |this: &Self, k: usize| -> bool {
+            let decl = &this.items.fns[set[k].0 as usize];
+            let peeks = &peeks_of[k];
+            decl.params.len() == peeks.len() && decl.params.iter().zip(peeks).all(|(p, k)| p.ty.as_ref().is_some_and(|t| peek_fits(k, t.base())))
         };
-        let took: Vec<FnId> = set.iter().copied().filter(|f| fits(self, *f)).collect();
+        let took_at: Vec<usize> = (0..set.len()).filter(|k| fits(self, *k)).collect();
+        let took: Vec<FnId> = took_at.iter().map(|k| set[*k]).collect();
+        let peeks: &[Peek] = took_at.first().map(|k| peeks_of[*k].as_slice()).unwrap_or(&[]);
         match took.as_slice() {
             [one] => Ok(*one),
             [] => {
@@ -3571,7 +3699,7 @@ impl Checker {
         };
         let body = crate::ast::Block { stmts: vec![crate::ast::Stmt { kind: crate::ast::StmtKind::Return(Some(value)), span }], span };
         let fn_id = FnId(self.items.fns.len() as u32);
-        self.items.fns.push(crate::resolve::FnDeclInfo { name: format!("op {}", spelled), path: String::new(), module: ctx.module, vis: crate::ast::Vis::Private, params, ret: ft.ret.clone(), ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: Some(body), op: None, is_literal: true, test: false, table_bytes: None, span, name_span: span });
+        self.items.fns.push(crate::resolve::FnDeclInfo { name: format!("op {}", spelled), path: String::new(), module: ctx.module, vis: crate::ast::Vis::Private, params, ret: ft.ret.clone(), ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: Some(body), op: None, is_literal: true, test: false, table_bytes: None, labels: None, defaults: Vec::new(), span, name_span: span });
         let key = InstKey { fn_id, blanks: Vec::new(), bundle: None, owning: Vec::new() };
         let inst = self.instance(key);
         self.check_literal_now(inst, Vec::new())?;

@@ -147,6 +147,9 @@ pub struct FnDeclInfo {
     pub test: bool,
     /// `table_bytes N fn …` (owner, 2026-10-19).
     pub table_bytes: Option<u64>,
+    /// Its collection's `labels` and `defaults` (owner, 2026-10-21).
+    pub labels: Option<ast::Labels>,
+    pub defaults: Vec<(ast::QName, ast::Expr)>,
     pub span: Span,
     pub name_span: Span,
 }
@@ -460,7 +463,7 @@ impl Items {
             ItemKind::Op(op) => {
                 let id = FnId(self.fns.len() as u32);
                 self.fns.push(placeholder_fn(&op.op.name, m, vis, item.span, op.op.span));
-                let decl = ast::FnDecl { name: op.op.clone(), announce: op.announce.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false, owner: None, table_bytes: None, c_name: None, in_coll: false };
+                let decl = ast::FnDecl { name: op.op.clone(), announce: op.announce.clone(), params: op.params.clone(), ret: op.ret.clone(), ret_lent: None, fails: Vec::new(), body: Some(op.body.clone()), test: false, owner: None, table_bytes: None, c_name: None, in_coll: false, labels: None, defaults: Vec::new() };
                 self.pending_fns.push((id, decl, m, Some(op.op.name.clone())));
                 self.ops.entry(op.op.name.clone()).or_default().push(id);
             }
@@ -702,15 +705,18 @@ impl Items {
         // never be told apart (owner, 2026-10-20): refused where written.
         let mut sets: Vec<Vec<FnId>> = self.versions.values().cloned().collect();
         sets.sort_by_key(|s| s.first().map(|f| f.0));
+        // A default lets a version take fewer arguments, and a call it
+        // takes so may be another's (owner, 2026-10-21): each version is
+        // every call it can take, its label and type for each argument.
         for set in sets {
+            let shapes: Vec<Vec<(Vec<(Option<String>, Option<Ty>)>, bool)>> = set.iter().map(|f| call_shapes(&self.fns[f.0 as usize])).collect();
             for (k, b) in set.iter().enumerate() {
-                for a in &set[..k] {
+                for (i, a) in set[..k].iter().enumerate() {
                     let (fa, fb) = (&self.fns[a.0 as usize], &self.fns[b.0 as usize]);
-                    let same = fa.params.len() == fb.params.len() && fa.params.iter().zip(&fb.params).all(|(x, y)| x.ty.as_ref().map(|t| t.base().clone()) == y.ty.as_ref().map(|t| t.base().clone()));
-                    if same {
-                        let types = if fb.params.is_empty() { "no arguments".to_string() } else { fb.params.iter().map(|p| p.ty.as_ref().map(|t| spell(&t.base().clone(), self)).unwrap_or_else(|| "?".into())).collect::<Vec<_>>().join(", ") };
-                        return err(Diagnostic::error(format!("`{}` has two versions for {}: versions differ by how many arguments they take or their types (owner, 2026-10-20)", fb.name, types)).at(fb.name_span).why_at(fa.name_span, "the first is written here"));
-                    }
+                    let Some((shape, defaulted)) = shapes[k].iter().find_map(|(sb, db)| shapes[i].iter().find(|(sa, _)| sa == sb).map(|(_, da)| (sb, *da || *db))) else { continue };
+                    let types = if shape.is_empty() { "no arguments".to_string() } else { shape.iter().map(|(_, t)| t.as_ref().map(|t| spell(t, self)).unwrap_or_else(|| "?".into())).collect::<Vec<_>>().join(", ") };
+                    let why = if defaulted { ": a default lets one take the other's call, and versions differ by how many arguments they take or their types (owner, 2026-10-21)" } else { ": versions differ by how many arguments they take or their types (owner, 2026-10-20)" };
+                    return err(Diagnostic::error(format!("`{}` has two versions for {}{}", fb.name, types, why)).at(fb.name_span).why_at(fa.name_span, "the first is written here"));
                 }
             }
         }
@@ -937,7 +943,7 @@ impl Items {
             }
         }
         let path = if op.is_some() { decl.name.name.clone() } else { qualify(self, m, &decl.name.name) };
-        Ok(FnDeclInfo { name: decl.name.name.clone(), path, module: m, vis, params, ret, ret_lent: decl.ret_lent.as_ref().map(|r| (r.mutable, r.group.as_ref().map(|g| g.name.clone()))), fails, blanks, body: decl.body.clone(), op, is_literal: false, test: decl.test, table_bytes: decl.table_bytes, span, name_span: decl.name.span })
+        Ok(FnDeclInfo { name: decl.name.name.clone(), path, module: m, vis, params, ret, ret_lent: decl.ret_lent.as_ref().map(|r| (r.mutable, r.group.as_ref().map(|g| g.name.clone()))), fails, blanks, body: decl.body.clone(), op, is_literal: false, test: decl.test, table_bytes: decl.table_bytes, labels: decl.labels.clone(), defaults: decl.defaults.clone(), span, name_span: decl.name.span })
     }
 
     pub fn resolve_fails(&mut self, fails: &[ast::FailSpec], m: ModuleId, blanks: &mut Vec<(String, Vec<IfaceId>)>) -> Result<Vec<(String, Option<Ty>)>> {
@@ -1829,8 +1835,23 @@ pub fn conv_kind(k: ast::ParamKind) -> ParamKind {
     }
 }
 
+/// Every call a version can take: for each set of its defaulted
+/// parameters left out, the label and type of each argument given, and
+/// whether a default was used.
+fn call_shapes(f: &FnDeclInfo) -> Vec<(Vec<(Option<String>, Option<Ty>)>, bool)> {
+    let word = |p: &str| f.labels.as_ref().and_then(|l| l.entries.iter().find(|(q, _)| q.name == p)).map(|(_, w)| w.name.clone());
+    let defaulted: Vec<usize> = f.params.iter().enumerate().filter(|(_, p)| f.defaults.iter().any(|(q, _)| q.name == p.name)).map(|(i, _)| i).collect();
+    let mut out = Vec::new();
+    for mask in 0u32..(1u32 << defaulted.len().min(16)) {
+        let left: Vec<usize> = defaulted.iter().enumerate().filter(|(b, _)| mask & (1 << b) != 0).map(|(_, i)| *i).collect();
+        let shape = f.params.iter().enumerate().filter(|(i, _)| !left.contains(i)).map(|(_, p)| (word(&p.name), p.ty.as_ref().map(|t| t.base().clone()))).collect();
+        out.push((shape, mask != 0));
+    }
+    out
+}
+
 fn placeholder_fn(name: &str, m: ModuleId, vis: Vis, span: Span, name_span: Span) -> FnDeclInfo {
-    FnDeclInfo { name: name.to_string(), path: name.to_string(), module: m, vis, params: Vec::new(), ret: Ty::Nothing, ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: None, op: None, is_literal: false, test: false, table_bytes: None, span, name_span }
+    FnDeclInfo { name: name.to_string(), path: name.to_string(), module: m, vis, params: Vec::new(), ret: Ty::Nothing, ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: None, op: None, is_literal: false, test: false, table_bytes: None, labels: None, defaults: Vec::new(), span, name_span }
 }
 
 fn qualify(items: &Items, m: ModuleId, name: &str) -> String {
