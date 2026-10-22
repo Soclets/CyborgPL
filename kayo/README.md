@@ -1072,6 +1072,12 @@ Dated, with the alternative, so each can become a question later.
   programs, tests and bench were swept by script; `std/` is std claude's,
   and the suite was run against its converted copy. Earlier entries
   here keep the names of their day.
+- **2026-10-22 — A missing `;` before `}` says so** (design claude: the
+  exact spelling to type). A value alone before a block's `}` is that
+  block's value only in a `match` case or an `otherwise` arm (`in_arm`,
+  that block's own statements); anywhere else it is "expected `;` after the
+  call", said at the call, where kayo had pointed at a `match` that was not
+  there.
 - **2026-10-22 — Concise CyborgPL** (owner: "Should be added as a joke";
   `design/concise.md`; oracle 87f9b2f6). A `.cy` or `.cyr` holding only `0`,
   `1`, spaces and line breaks is the bytes of a file in binary: `concise::read`

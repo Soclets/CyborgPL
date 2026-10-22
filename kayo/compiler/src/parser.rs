@@ -45,6 +45,9 @@ pub fn is_primitive_head(w: &str) -> bool {
 struct Parser<'a> {
     toks: &'a [Token],
     pos: usize,
+    /// Reading the statements of a `match` case's or an `otherwise` arm's
+    /// own block, where a value alone before `}` is the block's value.
+    in_arm: bool,
     /// A Kit whose `CCA.cplr` does not list std (owner, 2026-10-06):
     /// no `std::` and none of std's operators.
     no_std: bool,
@@ -372,7 +375,7 @@ pub fn set_shared_precedence(table: std::collections::HashMap<String, (u16, Chai
 
 /// The `precedence` blocks in one file's tokens: each operator's level.
 pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false };
     let mut out = Vec::new();
     let mut depth = 0i32;
     for i in 0..toks.len() {
@@ -395,7 +398,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     let labelled = crate::argwords::labels(toks);
     let owned = crate::argwords::strip(&labelled)?;
     let toks = &owned[..];
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false };
     // Every Kit's levels, and this file's own blocks, read before any
     // expression in it: an operator above its block is parsed by it too.
     p.prec = SHARED_PREC.with(|t| t.borrow().clone());
@@ -538,7 +541,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
 /// 2026-10-06): `cca::Manifest[ … ];`.
 pub fn parse_value(toks: &[Token]) -> Result<Expr> {
-    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default() };
+    let mut p = Parser { toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false };
     let value = p.expr(0)?;
     p.expect_semi("the value")?;
     if !p.at_eof() {
@@ -1579,7 +1582,7 @@ impl<'a> Parser<'a> {
         for t in toks.iter_mut() {
             t.span = line;
         }
-        let mut p = Parser { toks: &toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, templates: Vec::new(), handlers: Default::default() };
+        let mut p = Parser { toks: &toks, pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, templates: Vec::new(), handlers: Default::default(), in_arm: false };
         let mut lines = Vec::new();
         while !p.at_eof() {
             let it = p.item()?;
@@ -2995,12 +2998,22 @@ impl<'a> Parser<'a> {
             other => return self.fail(format!("expected `{{` opening {}'s body, found {}", what, other.describe())),
         };
         let mut stmts = Vec::new();
+        // Only this block's own statements: a block inside an arm is not one.
+        let outer = std::mem::replace(&mut self.in_arm, what == "the arm");
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
+                self.in_arm = outer;
                 return self.fail_at(start, format!("{}'s `{{` is never closed", what));
             }
-            stmts.push(self.stmt()?);
+            match self.stmt() {
+                Ok(st) => stmts.push(st),
+                Err(e) => {
+                    self.in_arm = outer;
+                    return Err(e);
+                }
+            }
         }
+        self.in_arm = outer;
         let end = self.bump().span;
         Ok(Block { stmts, span: start.to(end) })
     }
@@ -3647,9 +3660,15 @@ impl<'a> Parser<'a> {
     fn expr_stmt(&mut self) -> Result<StmtKind> {
         let e = self.expr_top()?;
         // A value alone before the `}` is its block's value — a `match`
-        // case's or an `otherwise` arm's (owner, 2026-09-29: a).
+        // case's or an `otherwise` arm's (owner, 2026-09-29: a). Anywhere
+        // else it is a statement whose `;` is missing, said at it (design
+        // claude, 2026-10-22: the exact spelling to type).
         if self.is(&Tok::RBrace) {
-            return self.fail_at(e.span, "a case says its value with `is`: `a { is …; }`");
+            if self.in_arm {
+                return self.fail_at(e.span, "a case says its value with `is`: `a { is …; }`");
+            }
+            let what = if matches!(e.kind, ExprKind::Call { .. } | ExprKind::CallValue { .. }) { "the call" } else { "the statement" };
+            return self.fail_at(e.span, format!("expected `;` after {}: every statement ends with one, the last in a block too", what));
         }
         if self.is(&Tok::Colon) {
             if let ExprKind::Name(n) = &e.kind {
