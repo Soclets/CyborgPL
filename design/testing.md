@@ -9,7 +9,7 @@ test fn adds_up [] {
     must 'n' equal_to 42;
     must.fail to.i32["abc"];                  # it must fail
     must.fail.not_a_number to.i32["abc"];     # …with exactly this reason
-    let 'xs': list[i32] = [1, 2, 3];
+    let 'xs': std::list[i32] = [1, 2, 3];
     must.stop 'xs'[99];                         # a check site must fire
 }
 ```

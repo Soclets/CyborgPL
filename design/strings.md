@@ -138,9 +138,9 @@ bytes, 5 points, 1 grapheme. The language has the three units already
 `str.length` — the thing that makes other languages cut emoji in half:
 
 ```
-str.bytes[lend 's']        # what the OS and C see; O(1)
-str.points[lend 's']       # Unicode scalar values
-str.graphemes[lend 's']    # what a person counts as one character; O(n)
+std::str.bytes[lend 's']        # what the OS and C see; O(1)
+std::str.points[lend 's']       # Unicode scalar values
+std::str.graphemes[lend 's']    # what a person counts as one character; O(n)
 ```
 
 `str.length` is a compile error naming the three.
@@ -148,9 +148,9 @@ str.graphemes[lend 's']    # what a person counts as one character; O(n)
 ## Walking says the unit too
 
 ```
-for 'g' in str.each.grapheme[lend 's'] { … }     # 'g': char.grapheme
-for 'p' in str.each.point[lend 's'] { … }        # 'p': char.point
-for 'b' in str.each.byte[lend 's'] { … }         # 'b': u8
+for 'g' in std::str.each.grapheme[lend 's'] { … }     # 'g': char.grapheme
+for 'p' in std::str.each.point[lend 's'] { … }        # 'p': char.point
+for 'b' in std::str.each.byte[lend 's'] { … }         # 'b': u8
 ```
 
 A bare `for 'c' in lend 's'` is an error: a text is not a list of anything
@@ -173,17 +173,17 @@ to walk them. Everything else is ordinary library code, and case tables
 change with every Unicode release, so they belong in something updatable:
 
 ```
-std::str.split[lend 's', at: " "]          -> list[str.utf8]
+std::str.split[lend 's', at: " "]          -> std::list[str.utf8]
 std::str.join[lend 'parts', between: "_"]
 std::str.contains / starts_with / ends_with[lend 's', "x"]   -> bool
 std::str.trim[lend 's']
-std::str.upper.ascii / .simple / .full[lend 's']          (and str.lower.…; `.full[…, lang: tr]`)
+std::str.upper.ascii / .simple / .full[lend 's']          (and std::str.lower.…; `.full[…, lang: std::casing.tr]`)
 std::str.replace[lend 's', from: "a", to: "b"]
 std::str.find.grapheme[lend 's', part: "x"]  -> i32 or fail[missing]   (1-based grapheme position)
 std::str.at.<unit>[lend 's', pos: 3]        -> that unit, or fail[out_of_range]
 std::str.slice.grapheme[lend 's', from: pos 1, to: pos 5] -> str, or fail[out_of_range]
 std::str.slice.point[lend 's', from: pos 1, before: pos 5]  -> str, or fail[out_of_range]
-std::str.slice.byte[lend 's', from: pos 1, to: pos 5]     -> list[u8], or fail[out_of_range]
+std::str.slice.byte[lend 's', from: pos 1, to: pos 5]     -> std::list[u8], or fail[out_of_range]
 ```
 
 **A case change says its mapping** (owner, 2026-10-20): `str.upper.ascii` changes a to z only (`café` → `CAFé`),

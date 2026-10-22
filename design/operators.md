@@ -265,7 +265,7 @@ alternative: 64-bit intermediates rounded once where stored.
 
 ```
 let 'ok' := check_name['f'] and check_age['f'];     # both run, left then right
-if 'i' at_most list.length[lend 'xs'] {             # a check that protects the next
+if 'i' at_most std::list.length[lend 'xs'] {             # a check that protects the next
     if 'xs'['i'] equal_to 5 { … }                 # step is written as two `if`s
 }
 ```
@@ -285,7 +285,7 @@ run both and refuse such lines at compile time.
 day), for when the second half should depend on the first:
 
 ```
-if 'i' at_most list.length[lend 'xs'] and.then 'xs'['i'] equal_to 5 { … }
+if 'i' at_most std::list.length[lend 'xs'] and.then 'xs'['i'] equal_to 5 { … }
 if 'n' equal_to 0 or.else 100 div.floor 'n' < 2 { … }
 ```
 

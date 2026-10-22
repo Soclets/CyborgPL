@@ -19,8 +19,8 @@ comptime and Rust's monomorphisation do the same.
 
 ```
 fn max <T: Number> ['a': <T>, 'b': <T>] -> <T> { … }           # announced after the name, with what it accepts
-fn first <T: any> [lent 'xs': list[<T>]] -> <T> or fail[empty] { … }
-fn pick <T: any> [@x] [lent @x 'xs': list[<T>]] -> lent @x <T> { … }   # then the lifetime groups, after a `|`
+fn first <T: any> [lent 'xs': std::list[<T>]] -> <T> or fail[empty] { … }
+fn pick <T: any> [@x] [lent @x 'xs': std::list[<T>]] -> lent @x <T> { … }   # then the lifetime groups, after a `|`
 
 struct Pair <A: any, B: any> { left: <A>, right: <B> }         # blanks in the order announced
 enum Maybe <T: any> { none, some: <T> }

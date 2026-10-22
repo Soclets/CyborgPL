@@ -28,7 +28,7 @@ calls it. Since `pos` went (2026-09-27), a list read looks the same
 fn by_number [lent 'a': Locker, lent 'b': Locker] -> bool { … }     # the definition
                 fn[lent Locker,      lent Locker]  -> bool           # its type
 
-fn sort <T: any> [lent.mut 'xs': list[<T>], 'less': fn[lent <T>, lent <T>] -> bool] { … }
+fn sort <T: any> [lent.mut 'xs': std::list[<T>], 'less': fn[lent <T>, lent <T>] -> bool] { … }
 ```
 
 Parameter kinds (`lent`, `lent.mut`, none) are part of the type — the

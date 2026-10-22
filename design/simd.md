@@ -138,7 +138,7 @@ went through with a. `examples/simd_tail.cy`.
 
 ```
 struct Particle { place: simd[f32, count: 4], vel: simd[f32, count: 4] }
-let 'history': list[simd[f32, count: 4]] = [];
+let 'history': std::list[simd[f32, count: 4]] = [];
 ```
 
 Struct fields, list elements, parameters and returns. It is a plain,

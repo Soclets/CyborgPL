@@ -23,7 +23,7 @@ function's own signature** (owner: option 1, over a named reusable type):
 fn stash [lent.mut 'l': Locker, 'item': str.utf8] -> bool or fail[full, bad_item: str.utf8] {
     if free_slots[lend 'l'] equal_to 0 { fail full; }
     if 'item' equal_to "" { fail bad_item[copy 'item']; }
-    list.append[lend.mut 'l'.items, value: give 'item'];
+    std::list.append[lend.mut 'l'.items, value: give 'item'];
     return true;
 }
 

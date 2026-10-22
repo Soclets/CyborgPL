@@ -25,9 +25,9 @@ programmer only says which at a boundary.
 ## Slicing — `list.slice`, `array.slice` (owner, 2026-09-23)
 
 ```
-let 'mid' := list.slice[lend 'xs', from: pos 2, to: pos 4];      # elements 2, 3 and 4
+let 'mid' := std::list.slice[lend 'xs', from: pos 2, to: pos 4];      # elements 2, 3 and 4
 let 'head' := array.slice[lend 'fixed', from: pos 1, to: pos 2];
-let 'none' := list.slice[lend 'xs', from: pos 3, to: pos 2];     # empty: last is first minus 1
+let 'none' := std::list.slice[lend 'xs', from: pos 3, to: pos 2];     # empty: last is first minus 1
 ```
 
 **A slice owns its elements**, like any list: the copy is the meaning.
@@ -139,7 +139,7 @@ Selecting by *value* (`'xs'[value-is 2]`) was considered and dropped: it is a
 search, and a search is a loop the reader should see —
 
 ```
-for perm 'i' [from: 1, to: list.length[lend 'xs'], by: 1] {
+for perm 'i' [from: 1, to: std::list.length[lend 'xs'], by: 1] {
     if 'xs'['i'] equal_to 2 { break; }
 }
 change 'xs'['i'] = 5;
@@ -168,11 +168,11 @@ growing or giving away the list inside stays refused for the whole loop.
 ## Operations — the type name as the chain's head
 
 ```
-let 'n' := list.length[lend 'xs'];
-list.append[lend.mut 'xs', value: 40];
-list.remove[lend.mut 'xs', pos: 1];            # by 1-based position; the element is dropped
-let 'first' := list.remove[lend.mut 'xs', pos: 1];   # or handed back (decided 2026-09-21)
-run[list.remove[lend.mut 'queue', pos: 1]];    # straight into a call: moved, never copied
+let 'n' := std::list.length[lend 'xs'];
+std::list.append[lend.mut 'xs', value: 40];
+std::list.remove[lend.mut 'xs', pos: 1];            # by 1-based position; the element is dropped
+let 'first' := std::list.remove[lend.mut 'xs', pos: 1];   # or handed back (decided 2026-09-21)
+run[std::list.remove[lend.mut 'queue', pos: 1]];    # straight into a call: moved, never copied
 let 'm' := array.length[lend 'fixed'];
 ```
 
@@ -193,8 +193,8 @@ is fastest.
 ## A length bound — `list[T][lo, hi]`
 
 ```
-let mut 'ys': list[i32][min: 0, max: 1000] = read_numbers[] otherwise list.empty;
-let 'n' := list.length[lend 'ys'];      # a u64[min: 0, max: 1000]
+let mut 'ys': std::list[i32][min: 0, max: 1000] = read_numbers[] otherwise std::list.empty;
+let 'n' := std::list.length[lend 'ys'];      # a u64[min: 0, max: 1000]
 let 'm': i32 = 'n';                   # proven by the bound; no check
 ```
 
@@ -226,8 +226,8 @@ fresh value, a `copy`, or a `give` — never a lend.
 ## The empty list (decided 2026-09-17)
 
 ```
-let 'xs': list[i32] = [];             # typed: the type says list, [] is empty
-let 'ys' := list.empty;                # best-type: the value says list; Precog picks the
+let 'xs': std::list[i32] = [];             # typed: the type says list, [] is empty
+let 'ys' := std::list.empty;                # best-type: the value says list; Precog picks the
                                        # element type from what is appended later
 ```
 
@@ -257,8 +257,8 @@ reading, not asked). Proposed alternative: leave it, looping over
 ## A list of n copies — `list.fill` (owner, 2026-09-30)
 
 ```
-let mut 'scores' := list.fill[value: 0, count: 10];              # ten 0s
-let 'flags': list[bool] = list.fill[value: false, count: 'n'];   # 'n' falses
+let mut 'scores' := std::list.fill[value: 0, count: 10];              # ten 0s
+let 'flags': std::list[bool] = std::list.fill[value: false, count: 'n'];   # 'n' falses
 ```
 
 The value, then the count, as `simd.fill[7]` fills every lane. A count

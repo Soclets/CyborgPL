@@ -40,18 +40,18 @@ fix:   limit the number where it is read — line 4:
        let 'n' := to.i32[min: 1, max: 99]['text'] otherwise 0;
 
    or  check 'k' before using it — line 31:
-       if 'k' </== list.length[lend 'xs'] { let 'x' := 'xs'['k']; … }
+       if 'k' </== std::list.length[lend 'xs'] { let 'x' := 'xs'['k']; … }
 ```
 
 ```
 error: 'xs' is an `array`, which cannot grow or shrink
 where: shop.cy, line 12, column 5 — in `restock`
-code:  list.append[lend.mut 'xs', value: 4]
+code:  std::list.append[lend.mut 'xs', value: 4]
 
 why:   'xs' was declared an array at line 10
 
 fix:   declare it a list — line 10:
-       let 'xs': list[i32] = [1, 2, 3];
+       let 'xs': std::list[i32] = [1, 2, 3];
 ```
 
 ```
@@ -86,7 +86,7 @@ fix, and the message names the later use:
 ```
 error: 's' cannot be changed here: 'r' still borrows it and is used on line 25
 where: shop.cy, line 24, column 5 — in MAIN
-code:  list.append[lend.mut 's', value: 4]
+code:  std::list.append[lend.mut 's', value: 4]
 ```
 
 Proposed alternative: the later use.

@@ -80,8 +80,8 @@ as much as you like. Reading kayo is not editing it: changes there are compiler 
   `design/strings.md`); time (`time.after`, `time.every`, `time.wait`, durations;
   `design/concurrency.md`); maths (`pow`, `round`, `floor`, `ceil`, `trunc`). Grep `examples/` and
   `design/` for `std::` to see each in use.
-- **Every public item is `bare.kit_prefix.optional`** (owner, 2026-10-06): `print.useful[…]` and
-  `std::print.useful[…]` both work.
+- **Other kits write std's names with `std::`** (owner, 2026-10-22): `std::print.useful[…]`, `std::list[i64]`,
+  or a `use std::list as list;` line; inside std its own names are bare. The `bare.` marks are gone.
 - **Every argument after the first says its role**: `str.split[lend 's', at: ","]`,
   `str.replace[lend 's', from: "a", to: "b"]` (owner, 2026-10-14). The list is `spellings.cyr`'s `calls`.
 - **Text is bytes**, UTF-8 by default; the units (`byte`, `point`, `grapheme`) are said in the name

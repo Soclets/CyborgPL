@@ -79,8 +79,8 @@ question: a parameter receives whatever the caller wrote.
 ## A lend's sizes must match (owner, 2026-09-24: a)
 
 ```
-fn total [lent 'xs': list[i32]] -> i64 { … }
-let 'big': list[i64] = [1, 2, 3];
+fn total [lent 'xs': std::list[i32]] -> i64 { … }
+let 'big': std::list[i64] = [1, 2, 3];
 total[lend 'big'];          # error: a list[i64] lent where a list[i32] is looked at
 ```
 
@@ -166,7 +166,7 @@ outliving `'s'`.
 
 ```
 fn longer [@x] [lent @x 'a': str.utf8, lent @x 'b': str.utf8] -> lent @x str.utf8 {
-    if str.bytes[lend 'a'] at_least str.bytes[lend 'b'] { return lend 'a'; }
+    if std::str.bytes[lend 'a'] at_least std::str.bytes[lend 'b'] { return lend 'a'; }
     return lend 'b';
 }
 fn pick [@x, @y] [lent @x 'a': str.utf8, lent @y 'b': str.utf8] -> lent @x str.utf8 { return lend 'a'; }

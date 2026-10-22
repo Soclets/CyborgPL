@@ -139,7 +139,7 @@ Metal sets from the host with `dispatchThreads` — comes **after the name**
 (owner, 2026-10-01: b), as any number:
 
 ```
-no_check inline.MSL threads list.length[lend 'xs'] {
+no_check inline.MSL threads std::list.length[lend 'xs'] {
     kernel void twice(device int *xs [[buffer(0)]], uint id [[thread_position_in_grid]]) {
         xs[id] = xs[id] * 2;
     }

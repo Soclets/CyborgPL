@@ -15,7 +15,7 @@ concur with [lend 'results', give 'a'] { channel.send[lend 'results', value: fet
 concur with [lend 'results'] { channel.send[lend 'results', value: fetch["b.com"]]; }
 for 'i' [from: 1, to: 2, by: 1] {
     let 'page' := channel.take[lend 'results'] otherwise "";    # waits; whichever finished first
-    std::print.useful[str.bytes[lend 'page'], newln];
+    std::print.useful[std::str.bytes[lend 'page'], newln];
 }
 ```
 
