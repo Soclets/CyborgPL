@@ -7,7 +7,7 @@ is still open is listed at the end.
 
 ## No `import`, no `use`
 
-- **Dependencies are declared in the manifest** (`Synthia.ttsr`, or `CyJet.cyr` for kayo's built-in package manager, 2026-09-29), never in source. A source
+- **Dependencies are declared in the manifest** (`Synthia.ttsr`, or `CyJet.toml` for kayo's built-in package manager, `CyJet.cyr` from 2026-09-29 to 2026-10-22), never in source. A source
   file has no statement that loads a kit.
 - **Every item is reached by its full path**: `std::print.useful.stdout[…]`,
   `mathstuff::pow[2, 64]`, `'r': std::uenr`, `crate_x::Locker[…]`. `::`
@@ -295,7 +295,7 @@ which kinds it covers beyond `fn` and `struct` (`enum`, `interface`,
 
 ## A kit's name (owner, 2026-09-23: a)
 
-The name lives in **the manifest** (`Synthia.ttsr` / `CyJet.cyr`), beside the version and the
+The name lives in **the manifest** (`Synthia.ttsr` / `CyJet.toml`), beside the version and the
 dependencies, and nowhere in source. Synthia reads it and hands it to
 kayo with the rest of what it is building. Renaming the directory changes
 nothing, and a kit's own code never names itself: it says `my.` (`limb.` until 2026-10-06).

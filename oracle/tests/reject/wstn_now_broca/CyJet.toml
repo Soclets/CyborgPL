@@ -1,0 +1,14 @@
+my details:
+name = wstn_now_broca
+prefix = wstn_now_broca
+ver = 1.0.0
+
+my limbs:
+wstn {
+id = e86b0df56e35b02b2ee91df6d89e63011564364d404ed7f5ea25d768d6d854d4
+ver = 2026-10-06T18:48:22+07:00
+}
+
+my targets:
+aarch64-macos {
+}

@@ -1,0 +1,14 @@
+my details:
+name = x
+prefix = x
+ver = 1.0.0
+
+my limbs:
+limb_00000000 {
+id = 0000000000000000000000000000000000000000000000000000000000000001
+ver = 1
+}
+
+my targets:
+aarch64-macos {
+}

@@ -1,0 +1,14 @@
+my details:
+name = std_from_folder
+prefix = std_from_folder
+ver = 1.0.0
+
+my kits:
+# std from the folder it is being written in, in place of the installed one (owner, 2026-10-14; 2026-10-19: "(b)")
+std {
+path = ../../std
+}
+
+my targets:
+aarch64-macos {
+}

@@ -1,7 +1,0 @@
-cyjet::manifest[
-    name = "x",
-    prefix = "x",
-    version = "1.0.0",
-    powers = [cyjet::power.c_calls.except["x"],],
-    targets = [cyjet::target[name = "aarch64-macos"],]
-];

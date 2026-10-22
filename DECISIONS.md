@@ -34,7 +34,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
-### 2026-10-22 — The manifest is `CyJet.toml`, Tankun's Obvious Minimal Language, the owner's own format; `CyJet.lock` is a real-binary lockfile (owner; not built)
+### 2026-10-22 — The manifest is `CyJet.toml`, Tankun's Obvious Minimal Language, the owner's own format; `CyJet.lock` is a real-binary lockfile (owner; the manifest built in the oracle)
 
 The owner: "I'm feeling like changing CyJet to `CyJet.toml`, but it's Tankun instead of Tom" (TOML is "Tom's Obvious,
 Minimal Language"; with Tankun the initials stay). Asked whether inside is (a) real TOML or (b) the owner's own format:
@@ -55,7 +55,12 @@ exact version and checksum. Asked "Isn't the lockfile supposed to look like a st
 **it is real binary**, packed bytes, shown by a CyJet command when someone looks; an indirect dependency's "needed by"
 is shown there, not stored (the owner: "Shouldn't `from` be a comment?", while it was text). Design claude's
 recommendation throughout was readable text. In `design/cyjet-toml.md`, with what is open (the byte layout, version
-conflicts, concise for a `.toml`). Not built.
+conflicts). **Then** (owner: "(a)" twice): `my C libs:` with a block per library, and `my powers:` / `my denied powers:`
+with a block per power, its narrowing inside (`c_calls {` / `except = write` / `}`); a target's `runner` and
+`default` go in its block. **Built in the oracle** the same day ("I guess your rectum", to building the manifest
+before deciding the lockfile): every `CyJet.cyr` converted; design claude's readings (booleans `yes` / `no`, a limb's
+block named after the limb, a `CyJet.toml` may be concise) in `design/cyjet-toml.md`. The lockfile is not built,
+CyJet having no command yet.
 
 ### 2026-10-22 — Apple's GPU limb, the one holding `inline.MSL`, is `metal` (owner)
 

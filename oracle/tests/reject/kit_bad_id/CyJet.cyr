@@ -1,3 +1,0 @@
-cyjet::manifest[
-    dependencies = [cyjet::dep.reg[id = "zz", version = "1"],]
-];

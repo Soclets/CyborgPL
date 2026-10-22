@@ -1,0 +1,14 @@
+my details:
+name = x
+prefix = x
+ver = 1.0.0
+
+my limbs:
+mcps {
+id = 7d0ccfe6e41eed3a4d8ffe00ccaada9b89a4b9a3ea553a9d869cb6902e2ca75d
+ver = 2027-01-01T00:00:00+07:00
+}
+
+my targets:
+aarch64-macos {
+}

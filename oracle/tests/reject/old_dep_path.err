@@ -1,1 +1,0 @@
-`cyjet::dep[path = …]` is an old spelling: write `cyjet::dep.path["…"]`

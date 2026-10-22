@@ -13,6 +13,7 @@ mod bigint;
 mod case;
 mod cheader;
 mod concise;
+mod cyjet_toml;
 mod generate;
 mod deci;
 mod interp;
@@ -234,7 +235,7 @@ fn parse_power(text: &str) -> Result<PowerRef, String> {
 fn renamed_file(name: &str) -> Option<String> {
     Some(match name {
         "strike.zg" | "neuron.nrv" | "limb.cpls" => "kit.cy".into(),
-        "Ricochet.zv" | "Kinesin.nrp" | "CCA.cplr" => "CyJet.cyr".into(),
+        "Ricochet.zv" | "Kinesin.nrp" | "CCA.cplr" | "CyJet.cyr" => "CyJet.toml".into(),
         "build.zg" | "build.nrv" | "build.cplr" => "build.cy".into(),
         "zag_version.zv" | "nerve_version.nrp" => "cy_ver.cyr".into(),
         _ => {
@@ -247,7 +248,7 @@ fn renamed_file(name: &str) -> Option<String> {
 }
 
 fn mark_lacks(dir: &Path, root: &[String]) -> Result<(), String> {
-    if !dir.join("CyJet.cyr").is_file() { return Ok(()); }
+    if !dir.join("CyJet.toml").is_file() { return Ok(()); }
     let (prefix, deps, cores) = read_manifest(dir)?;
     let (powers, deny) = MANIFEST_POWERS.with(|m| m.borrow_mut().take()).unwrap_or_default();
     KIT_POWERS.with(|l| l.borrow_mut().push(KitPowers { root: root.to_vec(), prefix: prefix.unwrap_or_default(), cores: cores.clone(), powers, deny }));
@@ -325,243 +326,177 @@ impl Dep { fn is_std(&self) -> bool { self.id.as_deref() == Some(parser::STD_ID)
 /// cannot load.
 const OFFICIAL_CORES: [&str; 10] = ["MCPS", "AutoGPU", "Metal", "Nvidia", "Vulkan", "AI", "WSMW", "Money", "CNC", "unicode"];
 
-use parser::CORE_IDS;
 
 /// Read a kit's `CyJet.cyr`: one CyborgPL value, `cyjet::manifest[ … ]` (owner, 2026-10-06: "`c`. It may
 /// not look as complex, but at least it's not much of a roleplay"), replacing 2026-09-29's one `const`
 /// per setting. Returns its 'prefix' (none when there is no `CyJet.cyr`), its dependencies and its cores.
 fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), String> {
-    let file = dir.join("CyJet.cyr");
+    // the manifest is `CyJet.toml`, Tankun's Obvious Minimal Language, since 2026-10-22 (owner), replacing CyJet.cyr's
+    // `cyjet::manifest[ … ]` value
+    let old = dir.join("CyJet.cyr");
+    let file = dir.join("CyJet.toml");
+    if old.is_file() && !file.is_file() {
+        return Err(format!("{}: the manifest is `CyJet.toml` since 2026-10-22 (owner), not `CyJet.cyr`: `my details:`, `my kits:`, `my limbs:`, `my targets:` (design/cyjet-toml.md)", old.display()));
+    }
     if !file.is_file() { return Ok((None, Vec::new(), Vec::new())); }
-    let shown = file.display();
+    let shown = file.display().to_string();
     let raw = std::fs::read_to_string(&file).map_err(|e| format!("{shown}: cannot read: {e}"))?;
-    // a concise manifest too (owner, 2026-10-22: "A manifest can be concise too")
-    let src = match concise::decode(&raw) { None => raw, Some(Ok(text)) => text, Some(Err(e)) => return Err(format!("{shown}: {e}")) };
-    let toks = lexer::lex(&src).map_err(|e| format!("{shown}: line {}:{}: {}", e.line, e.col, e.msg))?;
-    let one = "CyJet.cyr is one value: `cyjet::manifest[name = \"shop\", prefix = \"shop\", version = \"1.0.0\", targets = [cyjet::target[name = \"aarch64-macos\"],]];`";
-    if matches!(toks.first().map(|t| &t.tok), Some(lexer::Tok::Word(w)) if w == "const" || w == "pub") {
-        return Err(format!("{shown}: line {}: settings are no longer `const`s (2026-10-06): {one}", toks[0].line));
-    }
-    let (fields, mline) = parser::Parser::new(toks).manifest()
-        .map_err(|e| format!("{shown}: line {}: {}", e.line, e.msg))?
-        .ok_or_else(|| format!("{shown}: {one}"))?;
-    let text = |b: &ast::Bracket| -> Option<String> { match b.values.as_slice() { [ast::Value::Expr(ast::Expr::Text(t, _))] => Some(t.clone()), _ => None } };
-    fn each(e: &ast::Expr, out: &mut Vec<ast::Expr>) {
-        match e { ast::Expr::Nested(b) => for v in &b.values { let ast::Value::Expr(x) = v; each(x, out) }, other => out.push(other.clone()) }
-    }
-    let items = |b: &ast::Bracket| { let mut v = Vec::new(); for x in &b.values { let ast::Value::Expr(x) = x; each(x, &mut v); } v };
-    let (mut name, mut prefix, mut deps, mut cores) = (false, None, Vec::new(), Vec::new());
+    // a concise manifest too (owner, 2026-10-22: "A manifest can be concise too"), read as the text it spells
+    let raw = match concise::decode(&raw) { None => raw, Some(Ok(text)) => text, Some(Err(e)) => return Err(format!("{shown}: {e}")) };
+    let doc = cyjet_toml::read(&raw).map_err(|(line, m)| format!("{shown}: line {line}: {m}"))?;
+    let err = |line: usize, m: String| format!("{shown}: line {line}: {m}");
+    let (mut prefix, mut deps, mut cores) = (None, Vec::new(), Vec::new());
     let (mut powers_seen, mut deny_seen): (Vec<PowerRef>, Vec<PowerRef>) = (Vec::new(), Vec::new());
-    let (mut has_version, mut targets) = (false, 0);
-    let mut seen: Vec<&str> = Vec::new();
-    for (f, value) in &fields {
-        let line = value.line;
-        if seen.contains(&f.as_str()) { return Err(format!("{shown}: line {line}: `{f}` is given twice")); }
-        seen.push(f);
-        match f.as_str() {
-            // a label for people; code writes the 'prefix' (owner, 2026-09-29: "Infront and name are different things")
-            // strict: the module-name rule (owner, 2026-09-30: "strict"), though code writes the prefix
-            "name" => {
-                let n = text(value).ok_or_else(|| format!("{shown}: line {line}: `name` is a text: `name = \"shop\"`"))?;
-                parser::module_name_ok(&n).map_err(|m| format!("{shown}: line {line}: `{n}` cannot name a kit: {m}"))?;
-                name = true;
-            }
-            // the word code writes in front of `::` to reach this kit, its maker's pick (owner, 2026-09-29: b, "required")
-            "prefix" => {
-                let p = text(value).ok_or_else(|| format!("{shown}: line {line}: `prefix` is a text: `prefix = \"shop\"`"))?;
-                parser::module_name_ok(&p).map_err(|m| format!("{shown}: line {line}: `{p}` cannot be a prefix, written in code as `{p}::`: {m}"))?;
-                prefix = Some(p);
-            }
-            "version" => {
-                let v = text(value).ok_or_else(|| format!("{shown}: line {line}: `version` is a text"))?;
-                // any text, at most 256 bytes, as in Synthia.ttsr (owner, 2026-09-29: "256 bytes it is"; for CyJet.cyr: "same")
-                if v.len() > 256 { return Err(format!("{shown}: line {line}: `version` is at most 256 bytes, and this one is {}", v.len())); }
-                has_version = true;
-            }
-            "target" => return Err(format!("{shown}: line {line}: a kit builds for several targets, so the field is `targets`: `targets = [cyjet::target[name = \"aarch64-macos\"],]`")),
-            // several targets, each with its settings (owner, 2026-09-29): kayo's package manager can do
-            // whatever Synthia can, in its plainer way
-            "targets" => {
-                let items = items(value);
-                let count = items.len();
-                targets += count;
-                let mut defaults = 0;
-                let mut names = Vec::new();
-                for it in items {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a target is `cyjet::target[name = …]`, with a `runner` if it has one")) };
-                    if shape != "::cyjet.target" { return Err(format!("{shown}: line {line}: a target is a `cyjet::target`")); }
-                    if !fields.iter().any(|(f, _)| f == "name") { return Err(format!("{shown}: line {line}: a target needs its `name`")); }
-                    for (f, b) in &fields {
-                        // the one built when none is named (owner, 2026-09-29: b)
-                        if f == "default" {
-                            match b.values.as_slice() { [ast::Value::Expr(ast::Expr::Bool(true, _))] => defaults += 1, [ast::Value::Expr(ast::Expr::Bool(false, _))] => {},
-                                _ => return Err(format!("{shown}: line {line}: `default` is `true` or `false`")) }
-                            continue;
-                        }
-                        // the largest table Precog may make on this target, in bytes; 65,536 when not written (owner, 2026-10-19: "(a)")
-                        if f == "table_bytes" {
-                            match b.values.as_slice() { [ast::Value::Expr(ast::Expr::Int(n, _))] if *n >= 0 => {},
-                                _ => return Err(format!("{shown}: line {line}: `table_bytes` is a whole number of bytes, 0 or more: `table_bytes = 65_536`")) }
-                            continue;
-                        }
-                        if f != "name" && f != "runner" { return Err(format!("{shown}: line {line}: a `cyjet::target` has no `{f}`; it has `name`, `runner`, `default` and `table_bytes`")); }
-                        let t = text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
-                        if f == "name" { names.push((t, line)); }
+    let (mut name, mut has_ver, mut targets) = (false, false, 0usize);
+    let id_ok = |i: &str| i.len() == 64 && i.bytes().all(|b| b.is_ascii_hexdigit());
+    for sec in &doc.sections {
+        match sec.name.as_str() {
+            "my details" => {
+                if let Some(b) = sec.blocks.first() { return Err(err(b.line, "`my details:` holds `key = value` lines, not blocks: `name = shop`".into())); }
+                for (k, v, line) in &sec.keys {
+                    match k.as_str() {
+                        // a label for people; code writes the 'prefix' (owner, 2026-09-29: "Infront and name are different things")
+                        "name" => { parser::module_name_ok(v).map_err(|m| err(*line, format!("`{v}` cannot name a kit: {m}")))?; name = true; }
+                        // the word code writes in front of `::` to reach this kit (owner, 2026-09-29: b, "required")
+                        "prefix" => { parser::module_name_ok(v).map_err(|m| err(*line, format!("`{v}` cannot be a prefix, written in code as `{v}::`: {m}")))?; prefix = Some(v.clone()); }
+                        // any text, at most 256 bytes (owner, 2026-09-29: "256 bytes it is"); `ver`, never `version` (owner, 2026-10-22)
+                        "ver" => { if v.len() > 256 { return Err(err(*line, format!("`ver` is at most 256 bytes, and this one is {}", v.len()))); } has_ver = true; }
+                        "version" => return Err(err(*line, "it is `ver`, never `version`, in every section (owner, 2026-10-22)".into())),
+                        other => return Err(err(*line, format!("`my details:` has no `{other}`; it has `name`, `prefix` and `ver`"))),
                     }
                 }
-                if count > 1 && defaults != 1 { return Err(format!("{shown}: line {line}: with several targets, exactly one says `default = true` — the one built when none is named ({defaults} do)")); }
-                // only a target kayo can build (owner, 2026-09-30: "refuse", as Synthia.ttsr's "Only what's
-                // actually doable"); the one list is kayo's
-                let doable: Vec<&str> = include_str!("../../kayo/targets.txt").lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).collect();
-                for (t, line) in names {
-                    if !doable.contains(&t.as_str()) { return Err(format!("{shown}: line {line}: `{t}` is not a target kayo can build; it builds for {}", doable.iter().map(|d| format!("`{d}`")).collect::<Vec<_>>().join(", "))); }
-                }
             }
-            // the C libraries to link (owner, 2026-10-19: "Isn't it `C.lib`?"), found where the system's are: the oracle
-            // links nothing, so it reads the list and checks its shape
-            "C.libs" => {
-                for it in items(value) {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a C library is `cyjet::C.lib[name = \"sqlite3\"]`")) };
-                    if shape != "::cyjet.C.lib" { return Err(format!("{shown}: line {line}: a C library is a `cyjet::C.lib[name = \"…\"]`")); }
-                    for (f, b) in &fields {
-                        if f != "name" { return Err(format!("{shown}: line {line}: a `cyjet::C.lib` has no `{f}`; it has `name`")); }
-                        let t = text(b).ok_or_else(|| format!("{shown}: line {line}: a C library's `name` is a text: `name = \"sqlite3\"`"))?;
-                        if t.is_empty() || t.starts_with("lib") || t.contains('/') || t.contains('.') { return Err(format!("{shown}: line {line}: a C library is named as C's linker names it, without `lib` or a file ending: `name = \"sqlite3\"` for libsqlite3")); }
-                    }
-                    if !fields.iter().any(|(f, _)| f == "name") { return Err(format!("{shown}: line {line}: a C library needs its `name`")); }
-                }
-            }
-            "dependencies" => {
-                for it in items(value) {
-                    // the kind is in the name (owner, 2026-10-19: "(a), maybe short it to `dep.reg`", then "yea"):
-                    // `cyjet::dep.path["../kits/areas"]`, a kit in a folder; `cyjet::dep.reg[id = …, version = …]`, from the registry
-                    let (shape, fields, line) = match it {
-                        ast::Expr::Call(c) if c.kit.as_deref() == Some("cyjet") && c.path == ["dep", "path"] => {
-                            let [ast::Value::Expr(ast::Expr::Text(t, _))] = c.args.values.as_slice() else { return Err(format!("{shown}: line {}: a folder dependency is one text, the folder: `cyjet::dep.path[\"../kits/areas\"]`", c.line)) };
-                            ("::cyjet.dep.path".to_string(), vec![("path".to_string(), ast::Bracket { values: vec![ast::Value::Expr(ast::Expr::Text(t.clone(), c.line))], line: c.line, one_list: false })], c.line)
-                        }
-                        // std from the folder it is being written in (owner, 2026-10-14: listing it takes std's place; 2026-10-19: "(b)")
-                        // `cyjet::dep.std` was this for a few hours (owner: "(b)"), then a folder narrowed to std: "(a)", same day
-                        ast::Expr::Call(c) if c.kit.as_deref() == Some("cyjet") && c.path == ["dep", "std"] => {
-                            return Err(format!("{shown}: line {}: {}", c.line, crate::spellings::message(crate::spellings::old("cyjet::dep.std"))));
-                        }
-                        ast::Expr::Call(c) if c.kit.as_deref() == Some("cyjet") && c.path == ["dep", "path", "std"] => {
-                            let [ast::Value::Expr(ast::Expr::Text(t, _))] = c.args.values.as_slice() else { return Err(format!("{shown}: line {}: std from a folder is one text, the folder: `cyjet::dep.path.std[\"../std\"]`", c.line)) };
-                            if deps.iter().any(|x: &Dep| x.is_std()) { return Err(format!("{shown}: line {}: std is listed twice", c.line)); }
-                            // the oracle stands in for std wherever it is listed from
-                            deps.push(Dep { what: "std".into(), path: Some(t.clone()), version: None, id: Some(parser::STD_ID.into()) });
-                            continue;
-                        }
-                        ast::Expr::Construct(shape, fields, line) => (shape, fields, line),
-                        _ => return Err(format!("{shown}: line {line}: a dependency is `cyjet::dep.path[\"…\"]` (a folder), `cyjet::dep.reg[id = …, version = …]` (the registry) or `cyjet::dep.path.std[\"…\"]` (std from its folder)")),
-                    };
-                    if shape == "::cyjet.dep" {
-                        // std by its ID from a folder was `cyjet::dep[id = <std's>, path = …]` (owner, 2026-10-14)
-                        let std_folder = fields.iter().any(|(f, b)| f == "id" && text(b).as_deref() == Some(parser::STD_ID)) && fields.iter().any(|(f, _)| f == "path");
-                        if std_folder { return Err(format!("{shown}: line {line}: {}", crate::spellings::message(crate::spellings::old("cyjet::dep[id = <std's>, path = …]")))); }
-                        let reg = fields.iter().any(|(f, _)| f == "id" || f == "version");
-                        let row = crate::spellings::old(if reg { "cyjet::dep[id = …, version = …]" } else { "cyjet::dep[path = …]" });
-                        return Err(format!("{shown}: line {line}: {}", crate::spellings::message(row)));
-                    }
-                    if shape == "::cyjet.dep.path" && fields.iter().any(|(f, _)| f != "path") { return Err(format!("{shown}: line {line}: a folder dependency is one text, the folder: `cyjet::dep.path[\"../kits/areas\"]`")); }
-                    if shape == "::cyjet.dep.reg" && fields.iter().any(|(f, _)| f == "path") { return Err(format!("{shown}: line {line}: a folder is `cyjet::dep.path[\"…\"]`; `cyjet::dep.reg` takes `id` and `version`")); }
-                    if shape != "::cyjet.dep.path" && shape != "::cyjet.dep.reg" { return Err(format!("{shown}: line {line}: a dependency is a `cyjet::dep.path` or a `cyjet::dep.reg`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
+            "my kits" => {
+                if let Some((_, _, line)) = sec.keys.first() { return Err(err(*line, "`my kits:` holds a block per kit: `std {` / `id = …` / `ver = …` / `}`".into())); }
+                for b in &sec.blocks {
                     let mut d = Dep { what: String::new(), path: None, version: None, id: None };
-                    for (f, b) in &fields {
-                        // two kits with one prefix are an error, fixed by editing a kit's source (owner, 2026-09-29:
-                        // "Just edit the source code"), so a dependency names no word
-                        if f == "name" || f == "prefix" { return Err(format!("{shown}: line {line}: a dependency names no word: code writes the kit's own 'prefix', from its `CyJet.cyr`")); }
-                        let t = text(b).ok_or_else(|| format!("{shown}: line {line}: `{f}` is a text"))?;
-                        match f.as_str() { "path" => d.path = Some(t), "version" => d.version = Some(t), "id" => d.id = Some(t),
-                            other => return Err(format!("{shown}: line {line}: a `cyjet::dep.reg` has no `{other}`; it has `id` and `version`")) }
+                    for (k, v, line) in &b.keys {
+                        match k.as_str() {
+                            "path" => d.path = Some(v.clone()), "ver" => d.version = Some(v.clone()), "id" => d.id = Some(v.clone()),
+                            // two kits with one prefix are an error, fixed by editing a kit's source (owner, 2026-09-29)
+                            "name" | "prefix" => return Err(err(*line, "a kit's block names no word for code: code writes the kit's own 'prefix', from its `CyJet.toml`; the block's name is a label".into())),
+                            "version" => return Err(err(*line, "it is `ver`, never `version` (owner, 2026-10-22)".into())),
+                            other => return Err(err(*line, format!("a kit's block has no `{other}`; it has `id` and `ver` (the registry), or `path` (a folder)"))),
+                        }
                     }
-                    d.what = match (&d.path, &d.id) { (Some(p), _) => format!("the kit at `{p}`"), (None, Some(i)) => format!("the kit `{}…`", &i[..i.len().min(8)]), _ => "the dependency".into() };
-                    if d.path.is_some() == d.version.is_some() { return Err(format!("{shown}: line {line}: a dependency says where it comes from once: a `path` on this machine, or an `id` and `version` from the registry")); }
-                    // the registry knows a kit by its ID, never its name (owner, 2026-09-29): names may repeat
-                    // an ID is 64 hex digits wherever it is written (the owner's definition; compiler claude, 2026-09-29)
-                    if let Some(i) = &d.id {
-                        if i.len() != 64 || !i.bytes().all(|b| b.is_ascii_hexdigit()) { return Err(format!("{shown}: line {line}: an id is 64 hex digits, 256 random bits")); }
+                    // std from the folder it is being written in (owner, 2026-10-14 and 2026-10-19): `std { path = ../std }`
+                    if b.name == "std" && d.path.is_some() {
+                        if d.id.is_some() || d.version.is_some() { return Err(err(b.line, "std says where it comes from once: `path` (its folder), or `id` and `ver` (the installed one)".into())); }
+                        if deps.iter().any(|x: &Dep| x.is_std()) { return Err(err(b.line, "std is listed twice".into())); }
+                        deps.push(Dep { what: "std".into(), path: d.path, version: None, id: Some(parser::STD_ID.into()) });
+                        continue;
                     }
-                    if d.version.is_some() && d.id.is_none() { return Err(format!("{shown}: line {line}: a `version` comes from the registry, which knows a kit by its ID: `id = \"…\"`, 64 hex digits")); }
-                    // std is listed like any kit, by its ID and version; kayo uses the installed copy when they
-                    // match (owner, 2026-10-06), and the oracle stands in for that copy
+                    d.what = match (&d.path, &d.id) { (Some(p), _) => format!("the kit at `{p}`"), (None, Some(i)) => format!("the kit `{}…`", &i[..i.len().min(8)]), _ => format!("the kit `{}`", b.name) };
+                    if d.path.is_some() == d.version.is_some() { return Err(err(b.line, format!("`{}` says where it comes from once: a `path` on this machine, or an `id` and `ver` from the registry", b.name))); }
+                    // the registry knows a kit by its ID, never its name (owner, 2026-09-29); 64 hex digits
+                    if let Some(i) = &d.id { if !id_ok(i) { return Err(err(b.line, "an id is 64 hex digits, 256 random bits".into())); } }
+                    if d.version.is_some() && d.id.is_none() { return Err(err(b.line, "a `ver` comes from the registry, which knows a kit by its ID: `id = …`, 64 hex digits".into())); }
+                    // std is listed like any kit, by its ID and ver; the oracle stands in for the installed copy (owner, 2026-10-06)
                     if d.is_std() {
-                        if deps.iter().any(|x: &Dep| x.is_std()) { return Err(format!("{shown}: line {line}: std is listed twice")); }
-                        if d.version.as_deref() != Some(parser::STD_VERSION) { return Err(format!("{shown}: line {line}: the oracle stands in for std `{}` only, the installed one; this asks for `{}`", parser::STD_VERSION, d.version.as_deref().unwrap_or(""))); }
+                        if deps.iter().any(|x: &Dep| x.is_std()) { return Err(err(b.line, "std is listed twice".into())); }
+                        if d.version.as_deref() != Some(parser::STD_VERSION) { return Err(err(b.line, format!("the oracle stands in for std `{}` only, the installed one; this asks for `{}`", parser::STD_VERSION, d.version.as_deref().unwrap_or("")))); }
                         d.what = "std".into();
                     }
                     deps.push(d);
                 }
             }
-            // the cores a kit is built for (owner, 2026-10-05: "Limbs should say what cores they are built
-            // for"), each by its registry ID and version, or a `path` for one never registered (2026-10-06)
-            // a core is a limb (owner, 2026-10-09); `cores` and `cyjet::Core` are the old spellings
-            "cores" => return Err(format!("{shown}: line {line}: {}", spellings::message(spellings::old("cores")))),
-            "lobes" => return Err(format!("{shown}: line {line}: {}", spellings::message(spellings::old("lobes")))),
-            "plugins" => return Err(format!("{shown}: line {line}: {}", spellings::message(spellings::old("plugins")))),
-            "limbs" => {
-                for it in items(value) {
-                    let ast::Expr::Construct(shape, fields, line) = it else { return Err(format!("{shown}: line {line}: a limb is `cyjet::limb[id = \"…\", version = \"…\"]`")) };
-                    if shape != "::cyjet.limb" { return Err(format!("{shown}: line {line}: a limb is a `cyjet::limb`, not `{}`", shape.trim_start_matches("::").replacen('.', "::", 1))); }
-                    let (mut id, mut version, mut cpath) = (None, None, None);
-                    for (f, b) in &fields {
-                        let t = text(b).ok_or_else(|| format!("{shown}: line {line}: a limb's `{f}` is a text"))?;
-                        match f.as_str() {
-                            "id" => id = Some(t), "version" => version = Some(t), "path" => cpath = Some(t),
-                            "name" => return Err(format!("{shown}: line {line}: a limb is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `cyjet::limb[id = \"…\", version = \"…\"]`{}", CORE_IDS.iter().find(|(n, _)| *n == t).map(|(n, i)| format!("; {n}'s is `{i}`")).unwrap_or_default())),
-                            other => return Err(format!("{shown}: line {line}: a `cyjet::limb` has no `{other}`; it has `id` and `version`, or a `path`")),
+            "my limbs" => {
+                if let Some((_, _, line)) = sec.keys.first() { return Err(err(*line, "`my limbs:` holds a block per limb: `cnc {` / `id = …` / `ver = …` / `}`".into())); }
+                for b in &sec.blocks {
+                    let (mut id, mut ver, mut lpath) = (None, None, None);
+                    for (k, v, line) in &b.keys {
+                        match k.as_str() {
+                            "id" => id = Some(v.clone()), "ver" => ver = Some(v.clone()), "path" => lpath = Some(v.clone()),
+                            "version" => return Err(err(*line, "it is `ver`, never `version` (owner, 2026-10-22)".into())),
+                            other => return Err(err(*line, format!("a limb's block has no `{other}`; it has `id` and `ver`, or a `path`"))),
                         }
                     }
-                    if cpath.is_some() {
-                        if id.is_some() || version.is_some() { return Err(format!("{shown}: line {line}: a limb says where it comes from once: an `id` and `version` from the registry, or a `path` on this machine")); }
-                        return Err(format!("{shown}: line {line}: the limb at `{}` is not registered, so not verified; loading another limb is not built yet (a Rust limb, which the oracle cannot load)", cpath.unwrap()));
+                    let line = b.line;
+                    if let Some(lp) = lpath {
+                        if id.is_some() || ver.is_some() { return Err(err(line, "a limb says where it comes from once: an `id` and `ver` from the registry, or a `path` on this machine".into())); }
+                        return Err(err(line, format!("the limb at `{lp}` is not registered, so not verified; loading another limb is not built yet (a Rust limb, which the oracle cannot load)")));
                     }
-                    let id = id.ok_or_else(|| format!("{shown}: line {line}: a limb needs its `id` (64 hex digits) and `version`"))?;
-                    if id.len() != 64 || !id.bytes().all(|b| b.is_ascii_hexdigit()) { return Err(format!("{shown}: line {line}: an id is 64 hex digits, 256 random bits")); }
-                    let version = version.ok_or_else(|| format!("{shown}: line {line}: a limb needs its `version`, as a registry kit does"))?;
-                    if id == parser::MTM_ID { return Err(format!("{shown}: line {line}: MTM is gone (owner, 2026-10-07): every other spelling is refused, naming the one to write; take this limb out")); }
-                    let Some((core, _)) = CORE_IDS.iter().find(|(_, i)| *i == id) else {
-                        return Err(format!("{shown}: line {line}: the limb `{}…` is not an official one; loading another limb is not built yet (a Rust limb, which the oracle cannot load)", &id[..8]));
+                    let id = id.ok_or_else(|| err(line, format!("the limb `{}` needs its `id` (64 hex digits) and `ver`", b.name)))?;
+                    if !id_ok(&id) { return Err(err(line, "an id is 64 hex digits, 256 random bits".into())); }
+                    let ver = ver.ok_or_else(|| err(line, format!("the limb `{}` needs its `ver`, as a registry kit does", b.name)))?;
+                    if id == parser::MTM_ID { return Err(err(line, "MTM is gone (owner, 2026-10-07): every other spelling is refused, naming the one to write; take this limb out".into())); }
+                    let Some((core, _)) = parser::CORE_IDS.iter().find(|(_, i)| *i == id) else {
+                        return Err(err(line, format!("the limb `{}…` is not an official one; loading another limb is not built yet (a Rust limb, which the oracle cannot load)", &id[..8])));
                     };
-                    // ASP and Genny folded into the base (owner, 2026-10-08: "`a`" to both); their IDs no longer name a limb
-                    if *core == "ASP" || *core == "Genny" { return Err(format!("{shown}: line {line}: {core} is retired: since 2026-10-08 it is part of the base; take it out of `limbs`")); }
-                    // the limbs regrouped by expertise (owner, 2026-10-12): IEG and TAS dissolved into the base,
-                    // WSTN, UniTect and CAPS joined into unicode
-                    if *core == "IEG" || *core == "TAS" { return Err(format!("{shown}: line {line}: {core} is retired: since 2026-10-12 it is part of the base; take it out of `limbs`")); }
-                    if ["WSTN", "UniTect", "CAPS"].contains(core) { return Err(format!("{shown}: line {line}: {core} is part of unicode since 2026-10-12: list `{}` instead", parser::core_line("unicode"))); }
+                    // the block's name is the limb's (design claude's reading): a wrong one would mislead a reader
+                    if !b.name.eq_ignore_ascii_case(core) { return Err(err(line, format!("this id is the limb `{}`'s, so its block is `{} {{ … }}`, not `{}`", core.to_lowercase(), core.to_lowercase(), b.name))); }
+                    // ASP and Genny folded into the base (owner, 2026-10-08); IEG and TAS (2026-10-12); WSTN, UniTect, CAPS joined unicode
+                    if *core == "ASP" || *core == "Genny" { return Err(err(line, format!("{core} is retired: since 2026-10-08 it is part of the base; take it out of `my limbs:`"))); }
+                    if *core == "IEG" || *core == "TAS" { return Err(err(line, format!("{core} is retired: since 2026-10-12 it is part of the base; take it out of `my limbs:`"))); }
+                    if ["WSTN", "UniTect", "CAPS"].contains(core) { return Err(err(line, format!("{core} is part of unicode since 2026-10-12: list `unicode` instead: `{}`", parser::core_line("unicode")))); }
                     let want = parser::core_version(core);
-                    if version != want { return Err(format!("{shown}: line {line}: the oracle stands in for {core} `{want}` only, the installed one; this asks for `{version}`")); }
+                    if ver != want { return Err(err(line, format!("the oracle stands in for {core} `{want}` only, the installed one; this asks for `{ver}`"))); }
                     let core = core.to_string();
-                    if cores.contains(&core) { return Err(format!("{shown}: line {line}: the limb {core} is listed twice")); }
+                    if cores.contains(&core) { return Err(err(line, format!("the limb {core} is listed twice"))); }
                     cores.push(core);
                 }
             }
-            // the powers a kit uses, and what the program takes away (owner, 2026-10-07)
-            "powers" | "deny" => {
+            "my targets" => {
+                if let Some((_, _, line)) = sec.keys.first() { return Err(err(*line, "`my targets:` holds a block per target: `aarch64-macos {` / `}`".into())); }
+                let mut defaults = 0;
+                // only a target kayo can build (owner, 2026-09-30: "refuse"); the one list is kayo's
+                let doable: Vec<&str> = include_str!("../../kayo/targets.txt").lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).collect();
+                for b in &sec.blocks {
+                    targets += 1;
+                    for (k, v, line) in &b.keys {
+                        match k.as_str() {
+                            // the one built when none is named (owner, 2026-09-29: b); `yes` / `no` (design claude's reading)
+                            "default" => match v.as_str() { "yes" => defaults += 1, "no" => {}, _ => return Err(err(*line, "`default` is `yes` or `no`".into())) },
+                            // the largest table Precog may make on this target, in bytes; 65,536 when not written (owner, 2026-10-19)
+                            "table_bytes" => if v.replace('_', "").parse::<u64>().is_err() { return Err(err(*line, "`table_bytes` is a whole number of bytes, 0 or more: `table_bytes = 65_536`".into())); },
+                            "runner" => {}
+                            other => return Err(err(*line, format!("a target's block has no `{other}`; it has `runner`, `default` and `table_bytes`"))),
+                        }
+                    }
+                }
+                if sec.blocks.len() > 1 && defaults != 1 { return Err(err(sec.line, format!("with several targets, exactly one says `default = yes`, the one built when none is named ({defaults} do)"))); }
+                for b in &sec.blocks {
+                    if !doable.contains(&b.name.as_str()) { return Err(err(b.line, format!("`{}` is not a target kayo can build; it builds for {}", b.name, doable.iter().map(|d| format!("`{d}`")).collect::<Vec<_>>().join(", ")))); }
+                }
+            }
+            // the C libraries to link (owner, 2026-10-19), named as C's linker names them; the oracle links nothing
+            "my C libs" => {
+                if let Some((_, _, line)) = sec.keys.first() { return Err(err(*line, "`my C libs:` holds a block per library: `sqlite3 {` / `}`".into())); }
+                for b in &sec.blocks {
+                    if let Some((k, _, line)) = b.keys.first() { return Err(err(*line, format!("a C library's block has no `{k}`; it is the library's name and nothing else, `sqlite3 {{` then `}}`"))); }
+                    let t = &b.name;
+                    if t.starts_with("lib") || t.contains('/') || t.contains('.') { return Err(err(b.line, "a C library is named as C's linker names it, without `lib` or a file ending: `sqlite3 {` for libsqlite3".into())); }
+                }
+            }
+            // the powers a kit uses, and what the program takes away (owner, 2026-10-07; blocks 2026-10-22: "(a)")
+            "my powers" | "my denied powers" => {
+                if let Some((_, _, line)) = sec.keys.first() { return Err(err(*line, format!("`{}:` holds a block per power: `c_calls {{` / `}}`", sec.name))); }
+                let deny = sec.name == "my denied powers";
                 let mut list = Vec::new();
-                for it in items(value) {
-                    let ast::Expr::Text(t, _) = &it else { return Err(format!("{shown}: line {line}: a power is `cyjet::power.c_calls`, narrowed with `.` and naming things in `[ ]`")) };
-                    let Some(text) = t.strip_prefix("power:") else { return Err(format!("{shown}: line {line}: a power is `cyjet::power.c_calls`, not a text")) };
-                    let pw = parse_power(text).map_err(|m| format!("{shown}: line {line}: {m}"))?;
-                    if f == "powers" && (!pw.except.is_empty() || !pw.for_.is_empty()) { return Err(format!("{shown}: line {line}: `.except` and `.for` belong to `deny`; `powers` lists what this kit uses")); }
+                for b in &sec.blocks {
+                    let mut pw = PowerRef { path: vec![b.name.clone()], ..Default::default() };
+                    let things = |v: &str| v.split(',').map(|t| t.trim().to_string()).filter(|t| !t.is_empty()).collect::<Vec<_>>();
+                    for (k, v, line) in &b.keys {
+                        match k.as_str() {
+                            "except" | "for" if !deny => return Err(err(*line, format!("`{k}` belongs to `my denied powers:`; `my powers:` lists what this kit uses"))),
+                            "except" => pw.except = things(v),
+                            "for" => pw.for_ = things(v),
+                            narrowing => { pw.path.extend(narrowing.split('.').map(str::to_string)); if v != "yes" { pw.things = things(v); } }
+                        }
+                    }
                     list.push(pw);
                 }
-                if f == "powers" { powers_seen = list; } else { deny_seen = list; }
+                if deny { deny_seen = list; } else { powers_seen = list; }
             }
-            other => return Err(format!("{shown}: line {line}: a `cyjet::manifest` has no field `{other}`; its fields are `name`, `prefix`, `version`, `targets`, `dependencies`, `limbs`, `powers`, `deny` and `C.libs`")),
+            other => return Err(err(sec.line, format!("`{other}:` is not a section of `CyJet.toml`; it has `my details:`, `my kits:`, `my limbs:`, `my C libs:`, `my powers:`, `my denied powers:` and `my targets:`"))),
         }
     }
-    // a build needs the kit's name, version and a target; only publishing needs more (owner, 2026-09-29:
-    // "yea", matching Synthia.ttsr)
-    let why = "a build needs the kit's `name`, `prefix`, `version` and at least one target";
-    if !name { return Err(format!("{shown}: line {mline}: the manifest has no `name`: {why}: `name = \"shop\"`")); }
-    if prefix.is_none() { return Err(format!("{shown}: line {mline}: the manifest has no `prefix`, the word code writes in front of `::` to reach this kit: {why}: `prefix = \"shop\"`")); }
-    if !has_version { return Err(format!("{shown}: line {mline}: the manifest has no `version`: {why}: `version = \"1.0.0\"`")); }
-    if targets == 0 { return Err(format!("{shown}: line {mline}: the manifest has no target: {why}: `targets = [cyjet::target[name = \"aarch64-macos\"],]`")); }
-    // std needed ASP and IEG until 2026-10-08, when the operators and ASP's number rules moved into
-    // the base (owner: "`a`" to both); it needs no limb now (design claude's reading)
-    // cores depend on cores (owner, 2026-10-05); MCPS "Needs IEG, not std" (owner, 2026-10-06)
-    // MCPS needed IEG until 2026-10-12, when IEG was dissolved into the base
+    // a build needs the kit's name, prefix, ver and a target (owner, 2026-09-29: "yea")
+    let why = "a build needs the kit's `name`, `prefix`, `ver` and at least one target";
+    if !name { return Err(err(1, format!("the manifest has no `name` under `my details:`: {why}"))); }
+    if prefix.is_none() { return Err(err(1, format!("the manifest has no `prefix` under `my details:`, the word code writes in front of `::` to reach this kit: {why}"))); }
+    if !has_ver { return Err(err(1, format!("the manifest has no `ver` under `my details:`: {why}"))); }
+    if targets == 0 { return Err(err(1, format!("the manifest has no target under `my targets:`: {why}"))); }
     MANIFEST_POWERS.with(|m| *m.borrow_mut() = Some((powers_seen, deny_seen)));
     Ok((prefix, deps, cores))
 }
@@ -572,7 +507,7 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
     let here = dir.canonicalize().map_err(|e| format!("{}: {e}", dir.display()))?;
     chain.push(here);
     for d in deps {
-        let here_file = dir.join("CyJet.cyr");
+        let here_file = dir.join("CyJet.toml");
         if d.is_std() { continue; }
         let Some(rel) = &d.path else {
             return Err(format!("{}: {} comes from the registry; the oracle takes `path` dependencies only", here_file.display(), d.what));
@@ -580,7 +515,7 @@ fn load_deps(dir: &Path, prog: &mut ast::Program, loaded: &mut Vec<(String, Path
         let depdir = dir.join(rel);
         let canon = depdir.canonicalize().map_err(|_| format!("{}: a dependency is at `{rel}`, and there is no directory there", here_file.display()))?;
         if chain.contains(&canon) { return Err(format!("{}: {} depends, through its dependencies, on itself", here_file.display(), d.what)); }
-        if !depdir.join("CyJet.cyr").is_file() { return Err(format!("{}: {} has no `CyJet.cyr`, so no 'prefix' for code to reach it by", here_file.display(), d.what)); }
+        if !depdir.join("CyJet.toml").is_file() { return Err(format!("{}: {} has no `CyJet.toml`, so no 'prefix' for code to reach it by", here_file.display(), d.what)); }
         let (Some(prefix), _, _) = read_manifest(&depdir)? else { unreachable!() };
         // a kit may pick `std` or `cca`; it just clashes with the built-in one (owner, 2026-09-29)
         // `std` is the built-in's name since 2026-10-09; `std` (2026-10-07) and `std` are its old ones, refused in code
@@ -657,7 +592,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
             // 2. listed by the kit
             let covers = |p: &PowerRef| p.path.len() <= segs.len() && p.path.iter().zip(&segs).all(|(a, b)| a == b) && (p.things.is_empty() || thing.as_ref().map_or(false, |t| p.things.contains(t)));
             if !kit.powers.iter().any(covers) {
-                return Err(format!("{at}: {who} {what}, and its CyJet.cyr does not list `{}`: add `cyjet::power.{}` to its `powers`", segs[0], segs[0]));
+                return Err(format!("{at}: {who} {what}, and its CyJet.toml does not list `{}`: add `{} {{` / `}}` under its `my powers:`", segs[0], segs[0]));
             }
             // 3. not denied by the program
             if let Some(prog_kit) = program {

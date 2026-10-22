@@ -1,0 +1,14 @@
+my details:
+name = x
+prefix = x
+ver = 1.0.0
+
+my kits:
+std {
+id = fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936
+ver = 2027-01-01T00:00:00+07:00
+}
+
+my targets:
+aarch64-macos {
+}

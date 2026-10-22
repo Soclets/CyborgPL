@@ -1,0 +1,12 @@
+my details:
+name = x
+prefix = x
+ver = 1.0.0
+
+my powers:
+inline_assembly {
+}
+
+my targets:
+aarch64-macos {
+}

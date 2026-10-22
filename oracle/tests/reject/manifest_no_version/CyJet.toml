@@ -1,0 +1,7 @@
+my details:
+name = x
+prefix = x
+
+my targets:
+aarch64-macos {
+}

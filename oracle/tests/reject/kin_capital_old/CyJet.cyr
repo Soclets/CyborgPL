@@ -1,6 +1,0 @@
-kin::Manifest[
-    name = "kin_capital_old",
-    prefix = "kin_capital_old",
-    version = "1.0.0",
-    targets = [cyjet::target[name = "aarch64-macos"],]
-];

@@ -1,3 +1,0 @@
-cyjet::manifest[
-    targets = [cyjet::target[name = "aarch64-macos"], cyjet::target[name = "aarch64-linux"]]
-];

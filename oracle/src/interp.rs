@@ -4428,7 +4428,7 @@ impl<'p> Interp<'p> {
                 }
                 self.user_call(&local)
             }
-            Some(l) => rt(c.line, format!("no kit with the prefix `{l}`: a kit this one uses is listed in its `CyJet.cyr` (`dependencies = [cyjet::dep[path = …],]`), and its own `CyJet.cyr` says `prefix = \"{l}\"`")),
+            Some(l) => rt(c.line, format!("no kit with the prefix `{l}`: a kit this one uses is listed under its `CyJet.toml`'s `my kits:` (`{l} {{ path = … }}`), and its own `CyJet.toml` says `prefix = {l}`")),
             None => self.user_call(c),
         }
     }

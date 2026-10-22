@@ -1,0 +1,9 @@
+my details:
+name = x
+name = y
+prefix = x
+ver = 1.0.0
+
+my targets:
+aarch64-macos {
+}

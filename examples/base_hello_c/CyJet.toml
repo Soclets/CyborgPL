@@ -1,0 +1,20 @@
+my details:
+name = base_hello_c
+prefix = base_hello_c
+ver = 1.0.0
+
+my limbs:
+cnc {
+id = 04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1
+ver = 2026-10-10T16:42:00+07:00
+}
+
+my powers:
+c_calls {
+}
+vouch {
+}
+
+my targets:
+aarch64-macos {
+}

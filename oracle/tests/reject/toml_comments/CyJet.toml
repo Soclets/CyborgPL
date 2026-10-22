@@ -1,0 +1,14 @@
+my details:
+name = x
+prefix = x
+ver = 1.0.0
+
+#2l these two lines
+are a comment
+#wl and this whole line
+my friends: #1ld this and the next
+not = read
+
+my targets:
+aarch64-macos {
+}

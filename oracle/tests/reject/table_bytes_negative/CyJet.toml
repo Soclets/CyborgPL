@@ -1,0 +1,9 @@
+my details:
+name = t
+prefix = t
+ver = 1.0.0
+
+my targets:
+aarch64-macos {
+table_bytes = big
+}

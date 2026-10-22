@@ -1,0 +1,20 @@
+my details:
+name = shout
+prefix = shout
+ver = 0.1.0
+
+my kits:
+std {
+id = fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936
+ver = 2026-10-06T12:57:14+07:00
+}
+
+my limbs:
+unicode {
+id = 55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece
+ver = 2026-10-12T10:19:44+07:00
+}
+
+my targets:
+aarch64-macos {
+}

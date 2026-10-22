@@ -1,1 +1,1 @@
-this kit calls C (`write`), and its CyJet.cyr does not list `c_calls`: add `cyjet::power.c_calls` to its `powers`
+this kit calls C (`write`), and its CyJet.toml does not list `c_calls`: add `c_calls {` / `}` under its `my powers:`

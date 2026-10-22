@@ -1,6 +1,0 @@
-cyjet::manifest[
-    name = "base_practical",
-    prefix = "base_practical",
-    version = "1.0.0",
-    targets = [cyjet::target[name = "aarch64-macos"],]
-];

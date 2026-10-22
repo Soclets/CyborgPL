@@ -50,7 +50,7 @@ pub const CORE_VERSION: &str = "2026-10-06T18:04:29+07:00";
 /// The manifest line that lists an official core, for a message to show
 pub fn core_line(core: &str) -> String {
     let id = CORE_IDS.iter().find(|(n, _)| *n == core).map(|(_, i)| *i).unwrap_or("");
-    format!("cyjet::limb[id = \"{id}\", version = \"{}\"]", core_version(core))
+    format!("{} {{` / `id = {id}` / `ver = {}` / `}}", core.to_lowercase(), core_version(core))
 }
 
 /// C's machine-sized types (owner, 2026-10-10: "(a)" twice): their CyborgPL names, C's words kept
@@ -279,7 +279,7 @@ impl Parser {
     /// What a core brings is refused in a kit whose `CyJet.cyr` does not list that core (owner, 2026-10-05:
     /// "Limbs should say what cores they are built for").
     fn core_missing<T>(&self, core: &str, what: &str) -> PResult<T> {
-        self.err(format!("{what} is {core}'s, and this kit's CyJet.cyr does not list the limb {core}: add `{}` to its `limbs` ({core})", core_line(core)))
+        self.err(format!("{what} is {core}'s, and this kit's CyJet.toml does not list the limb {core}: add `{}` under its `my limbs:`", core_line(core)))
     }
 
     /// A use of a power, for the check once every file is read (owner, 2026-10-07)
@@ -380,7 +380,7 @@ impl Parser {
     }
 
     fn std_missing<T>(&self, what: &str) -> PResult<T> {
-        self.err(format!("{what} is std's, and this kit's CyJet.cyr does not list std: add `cyjet::dep.reg[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
+        self.err(format!("{what} is std's, and this kit's CyJet.toml does not list std: add `std {{` / `id = {STD_ID}` / `ver = {STD_VERSION}` / `}}` under its `my kits:`"))
     }
 
     fn resolve(&self, segs: &[String]) -> Vec<String> {

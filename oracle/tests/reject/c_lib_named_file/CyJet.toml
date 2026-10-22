@@ -1,0 +1,12 @@
+my details:
+name = t
+prefix = t
+ver = 1.0.0
+
+my C libs:
+libsqlite3.dylib {
+}
+
+my targets:
+aarch64-macos {
+}

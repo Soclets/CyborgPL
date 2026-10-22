@@ -1,6 +1,0 @@
-cyjet::manifest[
-    name = "x",
-    prefix = "x",
-    version = "1.0.0",
-    targets = [cyjet::target[name = "aarch64-macos", default = true], cyjet::target[name = "x86_64-linux", runner = "qemu-x86_64"],]
-];

@@ -1,3 +1,0 @@
-cyjet::manifest[
-    target = "aarch64-macos"
-];

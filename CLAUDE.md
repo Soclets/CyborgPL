@@ -27,7 +27,7 @@ v1 syntax carries over unless the owner explicitly chooses it.
 ## Sessions
 
 - **Design session** ("design claude", this repo's default): decisions, `design/`, `DECISIONS.md`, the oracle. Commits carry `Co-Authored-By: design claude <noreply@anthropic.com>`.
-- **Compiler session** ("compiler claude"): `KAYO\n` (`kayo`; was Zomp, Synapse, CCA), with Precog built in, including the built-in package manager, CyJet (manifest `CyJet.cyr`; no command of its own yet, owner 2026-10-15). Its brief is `design/compiler-session.md`; it works in its own clone of this repo at `/Users/ts/CyborgPL compiler` (same `main`, no branch; its own folder so it has its own Claude memory), in `kayo/`; both clones `git pull --rebase` before pushing; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
+- **Compiler session** ("compiler claude"): `KAYO\n` (`kayo`; was Zomp, Synapse, CCA), with Precog built in, including the built-in package manager, CyJet (manifest `CyJet.toml`, Tankun's Obvious Minimal Language, since 2026-10-22; was `CyJet.cyr`; no command of its own yet, owner 2026-10-15). Its brief is `design/compiler-session.md`; it works in its own clone of this repo at `/Users/ts/CyborgPL compiler` (same `main`, no branch; its own folder so it has its own Claude memory), in `kayo/`; both clones `git pull --rebase` before pushing; it reads the oracle's tests, never `oracle/src`, and never edits `design/`, `oracle/` or `examples/`. Commits carry `Co-Authored-By: compiler claude <noreply@anthropic.com>`.
 - **Synthia session** ("synthia claude", owner 2026-09-29): Synthia, the separate package manager, written in Go, in its own repo (`Cyborg-Assembly-Manufacturing-Site/Synthia`, checked out at `/Users/ts/Synthia`), not this one. Its brief is `design/synthia-session.md`. Started 2026-09-29; Go only for now, and it never runs `cca`.
 - **Verification session** ("check claude"): the program generator, the differential harness, the prover's oracle, translation validation. Its brief is `design/verification-session.md`; it works in its own clone at `/Users/ts/CyborgPL verification`, in `check/`. It reads `design/` and the tests, and **never `kayo/` or `oracle/src`** — it is a different author from the prover's, which is what makes its checks mean anything. Commits carry `Co-Authored-By: check claude <noreply@anthropic.com>`.
 
@@ -80,7 +80,7 @@ and `/Users/ts/Nerve…`, and `Cyborg-Assembly-Manufacturing-Site/CyborgPL` with
 
 The CyborgPL names (DECISIONS.md, 2026-10-15/16): code ends **`.cy`**, a one-value file **`.cyr`**; the
 compiler is **`KAYO\n`**, written `kayo` (folder `kayo/`, `kayo build`, `kayo prove`, `kayo prepare`); the
-prover built into it **Precog**; the package manager **CyJet**, manifest `CyJet.cyr` with `cyjet::`; a library
+prover built into it **Precog**; the package manager **CyJet**, manifest `CyJet.toml` (the owner's own format, since 2026-10-22; was `CyJet.cyr` with `cyjet::`); a library
 or program a **kit**, root `kit.cy`, `pub.kit`; a compiler extension a **limb**, `limbs = [cyjet::limb[…]]`;
 the base language **the base** (lowercase, no ™); the standard library **`std`**; the Unicode limb
 **`unicode`**; `build.cy`, `cy_ver.cyr`, `spellings.cyr`; the downloads **CyDT** and **CyCT**. Zag's names

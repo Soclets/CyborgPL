@@ -1,0 +1,13 @@
+my details:
+name = x
+prefix = x
+ver = 1.0.0
+
+my powers:
+c_calls {
+except = x
+}
+
+my targets:
+aarch64-macos {
+}

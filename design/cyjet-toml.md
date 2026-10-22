@@ -60,6 +60,18 @@ still text).
 - The lockfile's byte layout and its format version; the command names (`cyjet update`, `cyjet show lock`, `cyjet
   why`) are design claude's sketches, CyJet having no command of its own yet (2026-10-15).
 - Version conflicts: two kits wanting different versions of one dependency (one version picked, or both side by side).
-- Whether a `CyJet.toml` may be concise (2026-10-22 allowed a concise `.cyr` manifest; this file is no longer
-  CyborgPL).
-- Not built: the oracle and kayo still read `CyJet.cyr` (16 examples, std/, the reject tests).
+- Not built in kayo yet.
+
+## Built in the oracle (2026-10-22)
+
+`oracle/src/cyjet_toml.rs` reads the format, and `read_manifest` keeps every check the old reader made. Every
+example's and test's `CyJet.cyr` was converted by a script (95 files); 22 reject tests about the old value's
+spellings were retired. A kit with only a `CyJet.cyr` is told to rename it. Design claude's readings, not asked:
+- a boolean is `yes` / `no` (`default = yes`), as in Synthia's manifest;
+- a kit's block name is a label for people (code writes the kit's own `prefix`), while **a limb's block is named
+  after the limb**, `cnc { … }`, a wrong name refused;
+- **a `CyJet.toml` may be concise**, as 2026-10-22's "A manifest can be concise too" said of the manifest
+  (`examples/concise_kit`), the open question above answered that way unless the owner says otherwise;
+- `my C libs:`, `my powers:` and `my denied powers:` (owner: "(a)" twice) hold a block per library or power, a
+  power's narrowing inside: `c_calls {` / `functions = write` / `}`, `except = write`, `for = shapes`.
+Reject tests `toml_*`, `cyr_manifest_old`.
