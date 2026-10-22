@@ -5,8 +5,8 @@
 extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
-    let mut 'buf': list[u8] = [];
-    if 'neg' { list.append[lend.mut 'buf', value: 45]; }
+    let mut 'buf': std::list[u8] = [];
+    if 'neg' { std::list.append[lend.mut 'buf', value: 45]; }
     let mut 'started': bool = false;
     let mut 'p': u64 = 10000000000000000000;
     for temp 'k': i32 [from: 1, to: 20, by: 1] {
@@ -14,13 +14,13 @@ fn emit ['m': u64, 'neg': bool] {
             let immut 'd': u64 = ('m' div.floor 'p') mod.floor 10;
             if 'd' not_equal 0 or 'started' or 'p' equal_to 1 {
                 change 'started' = true;
-                list.append[lend.mut 'buf', value: to.u8[48 plus 'd']];
+                std::list.append[lend.mut 'buf', value: to.u8[48 plus 'd']];
             }
             change 'p' = 'p' div.floor 10;
         }
     }
-    list.append[lend.mut 'buf', value: 10];
-    no_check write[1, lend 'buf', list.length[lend 'buf']];
+    std::list.append[lend.mut 'buf', value: 10];
+    no_check write[1, lend 'buf', std::list.length[lend 'buf']];
 }
 
 fn put_u ['n': u64] {

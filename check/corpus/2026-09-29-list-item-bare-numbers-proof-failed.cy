@@ -3,5 +3,5 @@
 # CCA builds it as proven, then its --assert-proofs binary stops: `-` can leave what the type
 # holds. The same subtraction in a u64 let is fine. The oracle runs it.
 MAIN {
-    let 'xs': list[u64] = [9692729768110883998 minus 3166240359165959856,];
+    let 'xs': std::list[u64] = [9692729768110883998 minus 3166240359165959856,];
 }

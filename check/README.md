@@ -11,6 +11,13 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 ```
 
 
+**std's paths by default** (kayo a42b37c4, 21cd0b37, 0aced748, 320605eb; 2026-10-22): `std::` paths,
+`versions` blocks, `ptr.null` and std's operator with its path are on by default (`--avoid std-paths`,
+`versions`, `ptr-null` or `std-glyph` leaves one out), and the pinned oracle is gone. One program in three
+starts `use std::list as list;` on its header's line (no line moves) and writes `list` bare every other
+time; `pow` is written `std::pow` and the glyph `xx` `std::xx` every other time. The corpus was rewritten
+by `check paths FILE…`, the same rewrite. Kayo's manifest stays `CyJet.cyr` until kayo reads `CyJet.toml`.
+
 **std's names take their path** (owner, 2026-10-22; oracle 82d88048): under `--std-paths` the printer
 writes `std::list[i64]`, `std::list.append[…]`, `std::round.X`, `std::format`, `std::duration`, `std::casing`
 and std's text operations (`str.utf8` and `str.empty` stay the base's), by a rewrite of the rendered text

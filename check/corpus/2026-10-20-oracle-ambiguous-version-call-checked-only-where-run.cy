@@ -4,7 +4,6 @@
 # "versions of `ov.flip` could take this call: a bare literal fits more than one". Taken, the oracle
 # refuses it too, after printing what came before.
 # Moved to a `versions` block (owner, 2026-10-21; oracle 78a25324).
-# known-difference: kayo has not built `versions` blocks yet; drop this mark when it has.
 coll.fn ov {
     versions ov.flip {
         ['x': i32] -> i32 { return 0 - ('x' mod.floor 50); }

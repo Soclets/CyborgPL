@@ -5,6 +5,6 @@ MAIN {
     let 'w37': i32 = 4;
     while 'w37' > 0 {
         change 'w37' = 'w37' minus 1;
-        let 'xs38': list[u64] = [0 plus 18446744073709551581,];
+        let 'xs38': std::list[u64] = [0 plus 18446744073709551581,];
     }
 }

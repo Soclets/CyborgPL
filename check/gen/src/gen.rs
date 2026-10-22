@@ -165,14 +165,17 @@ pub struct Config {
     /// through `otherwise` (owner, 2026-10-19; oracle 8ae7abd3, kayo 3776553e).
     pub collections: bool,
     /// Versions of the collection's own function and of a member, in
-    /// `versions` blocks (owner, 2026-10-20/21). Off until kayo builds the block.
+    /// `versions` blocks (owner, 2026-10-20/21; kayo 21cd0b37).
     pub versions: bool,
     /// `ptr.null` in C calls, lists of C pointers and `layout.C` fields
-    /// (owner, 2026-10-21; oracle 2c8cfb33). Off until kayo builds it.
+    /// (owner, 2026-10-21; oracle 2c8cfb33, kayo 320605eb).
     pub ptr_null: bool,
     /// std's names with their path, `std::list[i64]`, and no `bare.` marks
-    /// (owner, 2026-10-22; oracle 82d88048). Off while kayo reads only the bare form.
+    /// (owner, 2026-10-22; oracle 82d88048, kayo a42b37c4).
     pub std_paths: bool,
+    /// std's glyph with its path, `'a' std::xx 2` (design claude, 2026-10-22;
+    /// oracle edcbf2cb, kayo 0aced748).
+    pub std_glyph: bool,
     /// C interop (owner, 2026-10-19; oracle 927b1905, kayo 6ae65a5f): a
     /// `layout.C union` written through one field and read through another,
     /// a `layout.C struct` of bit-fields written at and past their limits,
@@ -191,7 +194,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: false, ptr_null: false, std_paths: false, c_interop: true, based_literals: true, bare_enums: true, percents: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
     }
 }
 
@@ -472,7 +475,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     }
     let n = g.stmt_count();
     main.extend(g.stmts(n, g.depth()));
-    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() || g.shadow_mistake, strict, new_words, typed_lits: cfg.typed_literals, based_lits: cfg.based_literals, std_paths: cfg.std_paths, unevaluable: g.unevaluable }
+    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() || g.shadow_mistake, strict, new_words, typed_lits: cfg.typed_literals, based_lits: cfg.based_literals, std_paths: cfg.std_paths, std_glyph: cfg.std_glyph, unevaluable: g.unevaluable }
 }
 
 impl Gen {

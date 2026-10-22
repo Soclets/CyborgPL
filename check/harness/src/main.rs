@@ -130,12 +130,14 @@ impl Args {
             bool_lists: !avoid.contains("bool-lists"),
             tables: !avoid.contains("tables"),
             collections: !avoid.contains("collections"),
-            // `versions` blocks: kayo has not built them yet (2026-10-21); `--versions` turns them on
-            versions: self.has("versions"),
-            // `ptr.null`: kayo has not built it yet (2026-10-21); `--ptr-null` turns it on
-            ptr_null: self.has("ptr-null"),
-            // std's names with `std::` (oracle 82d88048); kayo reads only the bare form yet
-            std_paths: self.has("std-paths"),
+            // `versions` blocks (oracle 78a25324, kayo 21cd0b37)
+            versions: !avoid.contains("versions"),
+            // `ptr.null` (oracle 2c8cfb33, kayo 320605eb)
+            ptr_null: !avoid.contains("ptr-null"),
+            // std's names with `std::` (oracle 82d88048, kayo a42b37c4)
+            std_paths: !avoid.contains("std-paths"),
+            // `std::xx`, std's glyph with its path (oracle edcbf2cb, kayo 0aced748)
+            std_glyph: !avoid.contains("std-glyph"),
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),
@@ -441,6 +443,17 @@ fn main() {
                 if ok { same += 1 } else { differ += 1 }
             }
             println!("{} programs ({runs} runs): {same} twins the same, {differ} differ", same + differ);
+        }
+        "paths" => {
+            // rewrite files in place with std's paths, as the generator writes them
+            for f in &a.rest {
+                let s = std::fs::read_to_string(f).unwrap_or_else(|e| die(&format!("{f}: {e}")));
+                let t = check_gen::paths::std_paths(&s);
+                if t != s {
+                    std::fs::write(f, t).unwrap();
+                    println!("rewrote {f}");
+                }
+            }
         }
         "corpus" => corpus(&tools()),
         "run" => run(&tools(), &a),

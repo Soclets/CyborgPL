@@ -5,23 +5,23 @@
 extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
-    let mut 'buf': list[u8] = [];
-    if 'neg' { list.append[lend.mut 'buf', value: 45]; }
+    let mut 'buf': std::list[u8] = [];
+    if 'neg' { std::list.append[lend.mut 'buf', value: 45]; }
     let mut 'v': u64 = 'm';
-    let mut 'ds': list[u8] = [];
-    list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
+    let mut 'ds': std::list[u8] = [];
+    std::list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
     change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
+        std::list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
     }
-    let mut 'k': u64 = list.length[lend 'ds'];
+    let mut 'k': u64 = std::list.length[lend 'ds'];
     while 'k' at_least 1 {
-        list.append[lend.mut 'buf', value: 'ds'[pos: 'k']];
+        std::list.append[lend.mut 'buf', value: 'ds'[pos: 'k']];
         change 'k' = 'k' minus 1;
     }
-    list.append[lend.mut 'buf', value: 10];
-    NO_FUCKING_CHECKS write[1, lend 'buf', list.length[lend 'buf']];
+    std::list.append[lend.mut 'buf', value: 10];
+    NO_FUCKING_CHECKS write[1, lend 'buf', std::list.length[lend 'buf']];
 }
 
 fn put_u ['n': u64] {
@@ -39,7 +39,7 @@ fn put_i ['n': i64] {
 
 MAIN {
     let 'v': u8 = 5;
-    let mut 'xs': list[u8] = [1, 2];
+    let mut 'xs': std::list[u8] = [1, 2];
     for 'x' in lend.mut 'xs' {
         change 'x' = 'v';
         change 'x' = 7;

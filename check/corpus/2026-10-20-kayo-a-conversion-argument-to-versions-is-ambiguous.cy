@@ -5,7 +5,6 @@
 # The oracle picks it and prints 676. Typed literals, variables and bare two-argument calls agree.
 # Like 2026-10-20-kayo-a-bool-call-beside-whole-number-versions-is-ambiguous.
 # Moved to a `versions` block (owner, 2026-10-21; oracle 78a25324).
-# known-difference: kayo has not built `versions` blocks yet; drop this mark when it has.
 coll.fn ov {
     versions ov {
         ['x': i32, 'k': i32] -> i32 { return ('x' x 'k') mod.floor 230; }

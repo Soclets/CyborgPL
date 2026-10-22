@@ -6,20 +6,20 @@
 extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
-    let mut 'buf': list[u8] = [];
-    if 'neg' { list.append[lend.mut 'buf', value: 45]; }
+    let mut 'buf': std::list[u8] = [];
+    if 'neg' { std::list.append[lend.mut 'buf', value: 45]; }
     let mut 'v': u64 = 'm';
-    let mut 'ds': list[u8] = [];
+    let mut 'ds': std::list[u8] = [];
     loop {
-        list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
+        std::list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
         if 'v' equal_to 0 { break; }
     }
-    for 'k': u64 [from: list.length[lend 'ds'], to: 1, by: -1] {
-        list.append[lend.mut 'buf', value: 'ds'[pos: 'k']];
+    for 'k': u64 [from: std::list.length[lend 'ds'], to: 1, by: -1] {
+        std::list.append[lend.mut 'buf', value: 'ds'[pos: 'k']];
     }
-    list.append[lend.mut 'buf', value: 10];
-    NO_FUCKING_CHECKS write[1, lend 'buf', list.length[lend 'buf']];
+    std::list.append[lend.mut 'buf', value: 10];
+    NO_FUCKING_CHECKS write[1, lend 'buf', std::list.length[lend 'buf']];
 }
 
 fn put_u ['n': u64] {
@@ -40,12 +40,12 @@ enum E1 {
     c3
 }
 
-fn b1 [@x, @y] [lent @x 'a': list[u64], lent @y 'b': list[u64]] -> lent @x list[u64] {
+fn b1 [@x, @y] [lent @x 'a': std::list[u64], lent @y 'b': std::list[u64]] -> lent @x std::list[u64] {
     return lend 'a';
 }
 
-fn b2 [@x] [lent @x 'a': list[u64]] -> lent @x list[u64] {
-    if list.length[lend 'a'] at_least list.length[lend 'a'] {
+fn b2 [@x] [lent @x 'a': std::list[u64]] -> lent @x std::list[u64] {
+    if std::list.length[lend 'a'] at_least std::list.length[lend 'a'] {
         return b1[lend 'a', lend 'a'];
     }
     return lend 'a';

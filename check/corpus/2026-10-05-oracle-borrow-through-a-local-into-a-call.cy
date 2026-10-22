@@ -4,22 +4,22 @@
 # 'o2' away while 's' is used is a mistake: CCA refuses it. The oracle runs it (exit 0). Without
 # 's' (the length of 'r' read directly) the oracle refuses too, so it is the borrow passed through
 # the local 'r' into a second call that it loses.
-fn b1 [@x] [lent @x 'a': list[i32], lent @x 'b': list[i32], lent @x 'c': list[i32]] -> lent @x list[i32] {
+fn b1 [@x] [lent @x 'a': std::list[i32], lent @x 'b': std::list[i32], lent @x 'c': std::list[i32]] -> lent @x std::list[i32] {
     return lend 'c';
 }
 
-fn b2 [@x] [lent @x 'a': list[i32], lent @x 'b': list[i32]] -> lent @x list[i32] {
-    if list.length[lend 'a'] at_least 1 {
+fn b2 [@x] [lent @x 'a': std::list[i32], lent @x 'b': std::list[i32]] -> lent @x std::list[i32] {
+    if std::list.length[lend 'a'] at_least 1 {
         return lend 'a';
     }
     return b1[lend 'a', lend 'a', lend 'b'];
 }
 
 MAIN {
-    let 'o1': list[i32] = [2, -16];
-    let 'o2': list[i32] = [7,];
+    let 'o1': std::list[i32] = [2, -16];
+    let 'o2': std::list[i32] = [7,];
     let 'r' := b2[lend 'o1', lend 'o2'];
     let 's' := b1[lend 'o1', lend 'r', lend 'r'];
     let 'g' := give 'o2';
-    let 'n' := list.length[lend 's'];
+    let 'n' := std::list.length[lend 's'];
 }

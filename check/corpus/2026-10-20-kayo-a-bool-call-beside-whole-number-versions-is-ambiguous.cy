@@ -4,7 +4,6 @@
 # version can (owner, 2026-10-20: a version is picked by the arguments' exact types). The oracle picks
 # it and prints 1. The i16, i64 and two-argument calls agree.
 # Moved to a `versions` block (owner, 2026-10-21; oracle 78a25324).
-# known-difference: kayo has not built `versions` blocks yet; drop this mark when it has.
 coll.fn ov {
     versions ov {
         ['x': i32, 'k': i32] -> i32 { return ('x' x 'k') mod.floor 97; }

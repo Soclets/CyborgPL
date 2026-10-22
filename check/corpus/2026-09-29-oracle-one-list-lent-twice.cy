@@ -2,11 +2,11 @@
 # as both 'a' and 'b'. b1 returns lend 'b', which is in @x, but the oracle says "`b1` returns a
 # borrow of 'a', which is not in @x": it seems to find the parameter by the list, not by the name.
 # CCA builds and runs it.
-fn b1 [@x] [lent 'a': list[i32], lent @x 'b': list[i32]] -> lent @x list[i32] {
+fn b1 [@x] [lent 'a': std::list[i32], lent @x 'b': std::list[i32]] -> lent @x std::list[i32] {
     return lend 'b';
 }
 MAIN {
-    let 's': list[i32] = [1,];
+    let 's': std::list[i32] = [1,];
     let 'r' := b1[lend 's', lend 's'];
-    let 'n' := list.length[lend 'r'];
+    let 'n' := std::list.length[lend 'r'];
 }

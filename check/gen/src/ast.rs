@@ -517,6 +517,8 @@ pub struct Program {
     /// std's names written with their path, `std::list[i64]` (owner,
     /// 2026-10-22; oracle 82d88048): `paths::std_paths` over the text.
     pub std_paths: bool,
+    /// `std::xx` too, std's glyph with its path (oracle edcbf2cb).
+    pub std_glyph: bool,
     /// Omit parentheses where design/operators.md says they are not needed.
     pub loose: bool,
     /// Holds values my exact evaluator does not model (deci, bin, text):
@@ -1161,7 +1163,12 @@ impl Program {
             let (_, ce) = at(*e);
             spans.stmt.insert(*a, (l, c0, c1, ce));
         }
-        let out = if self.std_paths { crate::paths::std_paths(&w.out) } else { w.out };
+        let out = match (self.std_paths, self.seed % 3) {
+            (false, _) => w.out,
+            (true, 0) => crate::paths::std_paths_using_list(&w.out),
+            (true, _) if self.std_glyph => crate::paths::std_paths_glyph(&w.out),
+            (true, _) => crate::paths::std_paths(&w.out),
+        };
         (out, spans)
     }
 }

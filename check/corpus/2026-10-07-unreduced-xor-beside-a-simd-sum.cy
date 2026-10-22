@@ -7,23 +7,23 @@
 extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
-    let mut 'buf': list[u8] = [];
-    if 'neg' { list.append[lend.mut 'buf', value: 45]; }
+    let mut 'buf': std::list[u8] = [];
+    if 'neg' { std::list.append[lend.mut 'buf', value: 45]; }
     let mut 'v': u64 = 'm';
-    let mut 'ds': list[u8] = [];
-    list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
+    let mut 'ds': std::list[u8] = [];
+    std::list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
     change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
+        std::list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
     }
-    let mut 'k': u64 = list.length[lend 'ds'];
+    let mut 'k': u64 = std::list.length[lend 'ds'];
     while 'k' at_least 1 {
-        list.append[lend.mut 'buf', value: 'ds'[pos: 'k']];
+        std::list.append[lend.mut 'buf', value: 'ds'[pos: 'k']];
         change 'k' = 'k' minus 1;
     }
-    list.append[lend.mut 'buf', value: 10];
-    NO_FUCKING_CHECKS write[1, lend 'buf', list.length[lend 'buf']];
+    std::list.append[lend.mut 'buf', value: 10];
+    NO_FUCKING_CHECKS write[1, lend 'buf', std::list.length[lend 'buf']];
 }
 
 fn put_u ['n': u64] {
@@ -91,7 +91,7 @@ fn f1 ['p1': u16] -> i32[min: -181, max: 64] {
                 let 'z16' := to.i64['d15' times 1000000] otherwise -1;
                 put_i['z16'];
                 let 't17' := to.stored.str.utf8['w14'];
-                put_u[str.bytes[lend 't17']];
+                put_u[std::str.bytes[lend 't17']];
             }
             let 'v18': i64 = 18 minus (to.i64['p1'] minus to.i64['w8'] minus to.i64['w8'] times to.i64['p1']);
         }
@@ -114,12 +114,12 @@ fn f2 ['pr': u8[min: 0, max: 3], 'p1': u16, 'p2': i16, 'p3': i8] -> i8 {
             let 'z25' := to.i64['d24' times 1000] otherwise -1;
             put_i['z25'];
             let 't26' := to.useful.str.utf8['d22'];
-            put_u[str.bytes[lend 't26']];
+            put_u[std::str.bytes[lend 't26']];
             let 'z27' := to.i64['d23' times 10] otherwise -1;
             put_i['z27'];
             let 't28': str.utf8 = "Z";
             let 't29' := to.str.ascii['t28'] otherwise "?";
-            put_u[str.bytes[lend 't29']];
+            put_u[std::str.bytes[lend 't29']];
             let 'k30' := to.i16["1e-3"] otherwise -2;
             put_i[to.i64['k30']];
         }
@@ -175,7 +175,7 @@ MAIN {
                     put_u[0];
                 }
                 let 't55' := to.stored.str.utf8['w45'];
-                put_u[str.bytes[lend 't55']];
+                put_u[std::str.bytes[lend 't55']];
             }
         }
         let 's56': simd[u32, count: 4] = simd.fill[value: (('v34' minus.wrap 2147483648) or.bit (12 plus 943786366)) mod.floor (((0 div.floor (to.u32['v33'] plus to.u32['v33'])) mod.floor 521607920) plus 1)];

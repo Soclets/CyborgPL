@@ -5,23 +5,23 @@
 extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
-    let mut 'buf': list[u8] = [];
-    if 'neg' { list.append[lend.mut 'buf', value: 45]; }
+    let mut 'buf': std::list[u8] = [];
+    if 'neg' { std::list.append[lend.mut 'buf', value: 45]; }
     let mut 'v': u64 = 'm';
-    let mut 'ds': list[u8] = [];
-    list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
+    let mut 'ds': std::list[u8] = [];
+    std::list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
     change 'v' = 'v' div.floor 10;
     while 'v' > 0 {
-        list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
+        std::list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
         change 'v' = 'v' div.floor 10;
     }
-    let mut 'k': u64 = list.length[lend 'ds'];
+    let mut 'k': u64 = std::list.length[lend 'ds'];
     while 'k' at_least 1 {
-        list.append[lend.mut 'buf', value: 'ds'[pos: 'k']];
+        std::list.append[lend.mut 'buf', value: 'ds'[pos: 'k']];
         change 'k' = 'k' minus 1;
     }
-    list.append[lend.mut 'buf', value: 10];
-    NO_FUCKING_CHECKS write[1, lend 'buf', list.length[lend 'buf']];
+    std::list.append[lend.mut 'buf', value: 10];
+    NO_FUCKING_CHECKS write[1, lend 'buf', std::list.length[lend 'buf']];
 }
 
 fn put_u ['n': u64] {
@@ -37,21 +37,21 @@ fn put_i ['n': i64] {
     }
 }
 
-fn b1 [@x] [lent @x 'a': list[i16], lent @x 'b': list[i16]] -> lent @x list[i16] {
-    if list.length[lend 'b'] > 2 {
+fn b1 [@x] [lent @x 'a': std::list[i16], lent @x 'b': std::list[i16]] -> lent @x std::list[i16] {
+    if std::list.length[lend 'b'] > 2 {
         return lend 'b';
     }
     return lend 'a';
 }
 
-fn b2 [@x] [lent @x 'a': list[i16]] -> lent @x list[i16] {
-    if list.length[lend 'a'] > 2 {
+fn b2 [@x] [lent @x 'a': std::list[i16]] -> lent @x std::list[i16] {
+    if std::list.length[lend 'a'] > 2 {
         return b1[lend 'a', lend 'a'];
     }
     return lend 'a';
 }
 
-fn b3 [@x] [lent @x 'a': list[i16], lent @x 'b': list[i16]] -> lent @x list[i16] {
+fn b3 [@x] [lent @x 'a': std::list[i16], lent @x 'b': std::list[i16]] -> lent @x std::list[i16] {
     return lend 'a';
 }
 
@@ -59,5 +59,5 @@ MAIN {
     let 'a': brain16 = 0.5;
     let 'q': brain16 = 'a' div.ceil (-1.75);
     let 't' := to.useful.str.utf8['q'];
-    put_u[str.bytes[lend 't']];
+    put_u[std::str.bytes[lend 't']];
 }
