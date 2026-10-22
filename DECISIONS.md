@@ -34,6 +34,29 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-22 — The manifest is `CyJet.toml`, Tankun's Obvious Minimal Language, the owner's own format; `CyJet.lock` is a real-binary lockfile (owner; not built)
+
+The owner: "I'm feeling like changing CyJet to `CyJet.toml`, but it's Tankun instead of Tom" (TOML is "Tom's Obvious,
+Minimal Language"; with Tankun the initials stay). Asked whether inside is (a) real TOML or (b) the owner's own format:
+"(b)"; (1) today's `cyjet::manifest[…]` value renamed or (2) a new syntax: "(2)"; design claude recommended Synthia's
+`.ttsr` style: "No, I wanna design a new one". Then, one at a time (design claude's options, the owner choosing): a
+section is a phrase ending in `:` with `key = value` lines under it, no indentation, no quotes (the owner's sketch);
+**`my details:`, `my kits:`, `my limbs:`, `my targets:`** (the owner's sketch replacing `kit:` / `needs:` /
+`targets:` chosen just before; "(a)" to limbs in a section of their own; "so `my kits` too?"; "yea, `my targets`");
+**a block per kit, limb and target**, `std { id = … ver = … }` (the owner's sketch), a folder kit `path = ../geometry`
+("(a)"), a target's settings inside its block ("(a)"); **`ver` everywhere** ("(a)", over design claude's `version`);
+**comments CyborgPL's `#` family** ("`#` + the other ways, like `#3l`"). The name behind `.toml`: **Tankun's Obvious
+Minimal Language** ("yea"). This replaces 2026-10-06's manifest as one CyborgPL value.
+
+**A lockfile** (owner: "(a)", over dependencies read from the code's `kit::` prefixes, asked after "Nah, like you see a
+lockfile? It's the dependencies of dependencies"): `CyJet.lock` holds every kit and limb, direct or not, with its
+exact version and checksum. Asked "Isn't the lockfile supposed to look like a stroke?", then "The one that's fastest",
+"Would you really read a lockfile?", "Ah, so real binary?", and "But it's funny, and you get technically more speed":
+**it is real binary**, packed bytes, shown by a CyJet command when someone looks; an indirect dependency's "needed by"
+is shown there, not stored (the owner: "Shouldn't `from` be a comment?", while it was text). Design claude's
+recommendation throughout was readable text. In `design/cyjet-toml.md`, with what is open (the byte layout, version
+conflicts, concise for a `.toml`). Not built.
+
 ### 2026-10-22 — Apple's GPU limb, the one holding `inline.MSL`, is `metal` (owner)
 
 Asked when `inline.MSL` could be built, design claude listed what was left (where it lives, binding a single number,
