@@ -34,6 +34,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-22 — A function's definition keeps its parameters in `[ ]`; only a call uses `( )` (owner; amends the same day's ruling; not built)
+
+The Fale design session asked, for the owner, whether a definition's inputs are more consistent in `( )` or `[ ]`.
+Design claude: a definition runs nothing; its parameter list describes what goes in, so by "`( )` runs something,
+`[ ]` describes or holds something" it is `[ ]`, and then everything in a signature agrees (the parameters, the types,
+`fail[…]`, and the function's own type `fn[…]`); the only argument for `( )`, "a definition looks like its call", was
+design claude's own addition when proposing the rule, never weighed by the owner. The owner, asked "Is that more
+consistent, to the rule?": "yup". So **a definition writes its parameters in `[ ]`**, as every program already does,
+and **only a call uses `( )`**:
+
+```
+fn take_order [lent $items: std::list[Item], $ticket: i32] -> Sale or fail[out_of_stock: str.utf8] { … }
+let $f: fn[std::list[Item], i32] -> Sale = take_order;
+take_order(lend $items, 104)
+```
+
+This amends the same day's "calls and function definitions use `( )`"; the call half stands. Not built.
+
 ### 2026-10-22 — RRx2 is abandoned; Alive2 alone validates LLVM's translation (owner)
 
 The owner, just after abandoning Synthia: "RRx2 is abandoned aswell, just use Alive2". So **RRx2 is abandoned**: its
