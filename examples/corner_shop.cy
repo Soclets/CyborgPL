@@ -228,6 +228,25 @@ fn apply_discount ['amount': d64, 'percent': i32[min: 0, max: 50]] -> d64 {
 # Taking one order
 # ---------------------------------------------------------------------------------------------------
 
+# Every line of an order, checked before anything happens: an item the shop sells, and enough of it once the
+# lines before it are counted. A failed order then changes no stock and uses no receipt number (multifinity's
+# review, 2026-10-22: it used to fail halfway, with stock already taken and #105 spent).
+fn check_order [
+    lent 'items': std::list[Item],
+    lent 'stock': std::map[str.utf8, i32],
+    lent 'order': Order
+] -> fail[out_of_stock: str.utf8, unknown_item: str.utf8] {
+    let mut 'left' := copy 'stock';
+    for 'line' in lend 'order'.lines {
+        let 'item' := find_item[lend 'items', lend 'line'.name] otherwise {
+            unknown_item { fail unknown_item[copy 'line'.name]; }
+        };
+        let 'have' := std::map.get[lend 'left', key: copy 'line'.name] otherwise 0;
+        if 'have' < 'line'.count { fail out_of_stock[copy 'line'.name]; }
+        std::map.set[lend.mut 'left', key: copy 'line'.name, value: 'have' - 'line'.count];
+    }
+}
+
 fn take_order [
     lent 'items': std::list[Item],
     lent.mut 'stock': std::map[str.utf8, i32],
@@ -363,8 +382,7 @@ fn report [lent 'sales': std::list[Sale], lent 'items': std::list[Item], lent 'o
 
     # The biggest baskets, by units: the first three of the list sorted largest first
     let 'ranked' := sorted_down[lend 'units'];
-    let 'shown' := larger[1, std::list.length[lend 'ranked']];
-    if 'shown' at_least 3 {
+    if std::list.length[lend 'ranked'] at_least 3 {
         let 'top' := std::list.slice[lend 'ranked', from: pos 1, to: pos 3];
         std::print.useful["biggest baskets (units): ", 'top', newln];
     }
@@ -629,6 +647,16 @@ MAIN {
     std::print.useful[newln];
     let 'tickets' := Ticket[now = 100, last = 199];
     for 'order' in lend 'orders' {
+        check_order[lend 'items', lend 'stock', lend 'order'] otherwise {
+            out_of_stock 'what' {
+                std::print.useful["  sorry, ", 'order'.customer, ": not enough ", 'what', newln, newln];
+                continue;
+            }
+            unknown_item 'what' {
+                std::print.useful["  sorry, ", 'order'.customer, ": we do not sell ", 'what', newln, newln];
+                continue;
+            }
+        };
         let 'n' := Ticket.next[lend.mut 'tickets'];
         let 'ticket' := match 'n' {
             value 'number' { is 'number'; }
