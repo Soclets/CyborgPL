@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-22 — A bare literal takes a generic's type, as it takes a written one: `let 'sum': <T> = 0;` (owner; not built)
+
+Found answering multifinity's review of `examples/corner_shop.cy` (why `interface Number` leaves out `d64`): a bare
+literal takes a written type (`let 'x': d64 = 0;`, `let 'x': f64 = 0;`), but given a generic's `<T>` the oracle read
+it as an integer, so `let 'sum': <T> = 0;` was refused whenever `<T>` was filled with `d64` or `f64` ("`<T>` was
+filled with deci earlier in this call, now integer"). Design claude offered (a) the literal takes `<T>`'s type,
+recommended, (b) a way to say "zero of T", (c) leave it. The owner, shown the two lines side by side: "it should
+work". So **a bare literal given a `<T>` takes the type `<T>` is filled with**, refused only where it does not fit
+that type (`0.5` when `<T>` is `i32`), each filling checked as Precog checks any. Not built.
+
 ### 2026-10-22 — `inline.MSL`: a number binds with `copy`, one kernel per block, shared code by Metal's `#include`, and numbers, lists and `layout.C` structs bind, kayo writing their Metal side (owner; not built)
 
 Going through what was left before `inline.MSL` could be built (owner: "Back to `inline.MSL`"), one at a time, design
