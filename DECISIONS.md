@@ -34,6 +34,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-22 — A variable is written `$name`, or quoted, `'total due'`, both allowed; good practice is `$` unless the name needs quotes (owner; not built)
+
+Looking at `to.i32[min: 1, max: 99]('words'[pos: 2])` (in the `( )`-for-calls sketch), the owner: "What if we replaced
+`'words'` with `$`?" Design claude noted the costs: names with spaces and symbols (2026-10-16: `'80%'`, `'total due'`),
+`$` as the retired shadowing symbol (`$:=`, refused since 2026-10-07), `syntax-sketch.md`'s "settled and reaffirmed"
+quoted names, and Graft's `@x`; and recommended keeping quotes. The owner: "Why `$`? Even though, it requires a shift,
+it's easier to write. Also, `to.i32[min: 1, max: 99]($words[pos: 2])` reads less interrupting than a `'` at the end".
+Design claude offered `$'total due'` for the unusual names; the owner: "Why not `$` and `''`? Instead of `$''`", then,
+on design claude's "`'total'` is refused, naming `$total`": "it shouldn't. But good practice will say how to use each
+properly". So:
+- **A variable is written `$name`** (`let $total := 0;`, `change $total = $total + 1;`, `lend $items`), **or in quotes
+  as before** (`'total'`, `'total due'`, `'80%'`): **the same variable either way**, `$total` and `'total'` one name.
+- **Quotes are needed only for a name with spaces or symbols**; `$` takes letters, digits and `_`.
+- **Good practice: write `$name`, and quote only a name that needs it.**
+- `$` no longer means shadowing (its 2026-10-07 old-spelling refusal goes); `shadow $x := …`.
+This reopens 2026-09-14's quoted names, `syntax-sketch.md`'s "settled and reaffirmed". Not built (CyborgPL paused).
+
 ### 2026-10-22 — A type filled with a type says `.of`: `std::list.of[Item]`, `std::map.of[str.utf8, i32]`, `channel.of[i32]` (owner; not built)
 
 A critique the owner pasted listed twelve jobs `[ ]` does in `examples/corner_shop.cy` and found one real ambiguity:
