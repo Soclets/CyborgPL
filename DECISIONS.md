@@ -34,6 +34,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-22 — A type filled with a type says `.of`: `std::list.of[Item]`, `std::map.of[str.utf8, i32]`, `channel.of[i32]` (owner; not built)
+
+A critique the owner pasted listed twelve jobs `[ ]` does in `examples/corner_shop.cy` and found one real ambiguity:
+a type filled with another type looks like a call (`channel[i32]` beside `std::list[Line]`; `to.i32[min: 1, max:
+99]['words'[pos: 2]]`), its smallest fix being `channel.of[i32]`. The owner: "I guess we'll need a third one that isn't
+`<>`"; design claude noted that ASCII's four bracket pairs are all taken (`( )` grouping, `[ ]`, `{ }` blocks, `< >`
+generics and comparison) and offered `( )`, a doubled `[[ ]]`, or the word `.of` (recommended, `.` narrowing as for
+`std::list.append`). Tried on the way, at the owner's asking: v1's `print*"…"*` delimiters ("Shit looks like a stroke":
+`*` and `|` open and close alike, so nesting is ambiguous), `( )` / `[ ]` / `< >` one job each, `.of<…>`, `.of\…/`
+(the owner: "Generics still `<.>`"), `.of%…^` (`%` is the percent type's), and `_of` (one name, where `.` keeps the
+type's own name; the owner: "If it's `.`, that means there's more than `.of`", true of `list`'s `append`, `length`).
+The owner: "Fuck it, what if it's just `.of`?", then "yea, record it". So **a type filled with another type writes
+`.of[…]`**: `std::list.of[Item]`, `std::map.of[str.utf8, i32]`, `optional.of[i32]`, `channel.of[i32]`,
+`ptr.of[u8]`, `simd.of[f32, count: 4]`, nesting as `std::list.of[std::list.of[u8]]`, generics unchanged
+(`std::list.of[<T>]`). The plain form (`std::list[i64]`) is refused, naming `.of` (design claude's reading). Ranges
+(`i32[min: 0, max: 50]`), calls, struct building, `fail[…]` and loops keep plain `[ ]`. Not built (CyborgPL paused).
+
 ### 2026-10-22 — A bare literal takes a generic's type, as it takes a written one: `let 'sum': <T> = 0;` (owner; not built)
 
 Found answering multifinity's review of `examples/corner_shop.cy` (why `interface Number` leaves out `d64`): a bare
