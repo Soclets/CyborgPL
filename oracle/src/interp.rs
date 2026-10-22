@@ -3157,9 +3157,10 @@ impl<'p> Interp<'p> {
                     ("negate.ieee", Value::Bin(b)) => Ok((Value::Bin(-b), keep)),
                     ("negate.ieee", Value::Brain(b)) => Ok((Value::Brain(-b), keep)),
                     ("negate.ieee", o) => rt(line, format!("`negate.ieee` keeps a -0, which only a bin or brain16 has, and {} {} has none: write `-'x'`", if o.kind().starts_with(['a', 'e', 'i', 'o', 'u']) { "an" } else { "a" }, o.kind())),
-                    ("-", Value::Deci(d)) => Ok((Value::Deci(d.neg()), keep)),
+                    // a deci has no -0 (2026-10-07): a zero negated stays 0
+                    ("-", Value::Deci(d)) => Ok((Value::Deci(if d.is_zero() { d } else { d.neg() }), keep)),
                     // a percent negates as its fraction (`-5%`)
-                    ("-", Value::Percent(x)) => Ok((Value::Percent(Box::new(match *x { Value::Bin(b) => Value::Bin(-b + 0.0), Value::Deci(d) => Value::Deci(d.neg()), o => o })), keep)),
+                    ("-", Value::Percent(x)) => Ok((Value::Percent(Box::new(match *x { Value::Bin(b) => Value::Bin(-b + 0.0), Value::Deci(d) => Value::Deci(if d.is_zero() { d } else { d.neg() }), o => o })), keep)),
                     ("-", o) => rt(line, format!("`-` needs a number, got {}", o.kind())),
                     _ => unreachable!(),
                 }
