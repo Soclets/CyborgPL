@@ -1,3 +1,5 @@
+> **Abandoned 2026-10-22** (owner: "RRx2 is abandoned aswell, just use Alive2"): history only.
+
 # The RRx2-TV session — a brief
 
 For the session that builds **RRx2-TV**, CyborgPL's own translation

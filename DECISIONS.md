@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-22 — RRx2 is abandoned; Alive2 alone validates LLVM's translation (owner)
+
+The owner, just after abandoning Synthia: "RRx2 is abandoned aswell, just use Alive2". So **RRx2 is abandoned**: its
+translation validator RRx2-TV (2026-09-30, own session since 2026-10-01, `/Users/ts/RRx2 tv`) and the RRx2 language
+(`design/rrx2-lang-session.md`). **Alive2 is CyborgPL's translation validator for LLVM's half**, run per function on
+kayo's no-inlining pair (`kayo build --emit-llvm-tv`), as it has run beside RRx2-TV since 2026-10-15 ("Keep Alive2").
+The rules written for RRx2-TV's runs (8 cores, the memory budget, compiler and check claude holding off) no longer
+apply. The two RRx2 briefs stay as history.
+
 ### 2026-10-22 — Synthia is abandoned; CyJet is the package manager (owner)
 
 The owner: "Synthia is abandoned now, CyJet is already friendly enough". So **Synthia, the separate Go package
