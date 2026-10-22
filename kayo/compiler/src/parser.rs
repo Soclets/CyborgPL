@@ -1796,14 +1796,11 @@ impl<'a> Parser<'a> {
             }
             let mut d = self.fn_decl(true)?;
             d.in_coll = true;
-            // The same function twice outside a block (owner, 2026-10-21);
-            // std/'s repeated lines are read until std claude moves them.
+            // The same function twice outside a block (owner, 2026-10-21).
             let key = if d.owner.is_some() { d.name.name.clone() } else { String::new() };
             if let Some((_, at)) = written.get(&key) {
-                if !crate::load::loading_std() {
-                    let full = if key.is_empty() { name.name.clone() } else { format!("{}.{}", name.name, key) };
-                    return self.fail_at(d.name.span, in_block(&full)).map_err(|e| Box::new(e.why_at(*at, format!("`{}` is written here too", full))));
-                }
+                let full = if key.is_empty() { name.name.clone() } else { format!("{}.{}", name.name, key) };
+                return self.fail_at(d.name.span, in_block(&full)).map_err(|e| Box::new(e.why_at(*at, format!("`{}` is written here too", full))));
             }
             written.entry(key).or_insert((false, d.name.span));
             match &d.owner {

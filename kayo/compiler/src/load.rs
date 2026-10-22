@@ -512,11 +512,7 @@ struct Loading {
 /// and its root is `ROOT`, made first. Gives back the Kit's root module
 /// and its prefix.
 fn load_kit(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Option<(&Path, &str)>, as_cord: bool, state: &mut Loading) -> Result<(ModuleId, String)> {
-    // Whether std is being read, for its own `bare.` marks (stopgap).
-    let was = LOADING_STD.with(|s| s.replace(as_cord));
-    let r = load_kit_inner(sources, items, dir, from, as_cord, state);
-    LOADING_STD.with(|s| s.set(was));
-    r
+    load_kit_inner(sources, items, dir, from, as_cord, state)
 }
 
 fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: Option<(&Path, &str)>, as_cord: bool, state: &mut Loading) -> Result<(ModuleId, String)> {
@@ -1195,8 +1191,6 @@ thread_local! {
     /// The kind lines of the Kit whose files are being read: they cover
     /// every file of it.
     static BARE_KINDS: std::cell::RefCell<Vec<(crate::ast::Bare, Vec<String>, crate::source::Span)>> = const { std::cell::RefCell::new(Vec::new()) };
-    /// Reading std's own files (`load_kit`'s `as_cord`).
-    static LOADING_STD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     /// `bare.enum_prefix.… [enum];` lines of the kit's root (owner, 2026-10-20).
     static ENUM_BARE_KINDS: std::cell::RefCell<Vec<(crate::ast::Bare, crate::source::Span)>> = const { std::cell::RefCell::new(Vec::new()) };
 }
@@ -1350,12 +1344,6 @@ fn check_bare(_sources: &SourceMap, _items: &mut Items, file: &crate::ast::File,
         Some(at) => err(Diagnostic::error(BARE_MARKS_GONE).at(at)),
         None => Ok(()),
     }
-}
-
-/// Whether std's own files are being read (their repeated versions are
-/// read until std claude puts them in `versions` blocks, a stopgap).
-pub(crate) fn loading_std() -> bool {
-    LOADING_STD.with(|s| s.get())
 }
 
 /// What a `bare.` mark is told (owner, 2026-10-22).

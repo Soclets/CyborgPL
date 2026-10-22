@@ -1046,8 +1046,8 @@ Dated, with the alternative, so each can become a question later.
   oracle 78a25324). The parser reads `versions say { [ … ] -> T { … } … }`
   (`versions area.rect` for a member) as the versions they are, each line
   through `fn_rest`; the own function or a member written twice outside a
-  block is refused naming `versions` (std/'s repeated lines are read while
-  `loading_std`, until std claude moves them). `labels […]`,
+  block is refused naming `versions`, in std/ too since std claude moved
+  round.cy into blocks (0f026977). `labels […]`,
   `labels.in_order […]`, `labels.any_order […]` and `defaults […]` go on
   every version of the own function (`FnDecl::labels`, `defaults`); a `pub`
   one's plain `labels` is refused, and a preset calls the own function with
