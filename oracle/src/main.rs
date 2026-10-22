@@ -602,7 +602,7 @@ fn check_powers(prog: &ast::Program) -> Result<(), String> {
                     let for_ok = d.for_.is_empty() || d.for_.contains(&kit.prefix);
                     let except_hit = thing.as_ref().map_or(false, |t| d.except.contains(t));
                     if path_ok && things_ok && for_ok && !except_hit {
-                        return Err(format!("{at}: {who} {what}, which this program denies (`deny`: `cyjet::power.{}`)", d.path.join(".")));
+                        return Err(format!("{at}: {who} {what}, which this program denies (`my denied powers:`: `{}`)", d.path.join(".")));
                     }
                 }
             }
