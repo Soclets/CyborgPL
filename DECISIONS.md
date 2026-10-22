@@ -34,6 +34,31 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-22 — An error is its name, the code and the fix: `error[unclosed_name]`, `code:`, `fix:`; a check adds `when:`; the teaching is in the docs (owner; not built)
+
+Shown both engines' messages for a quote left open (one misleading: a name `'a := '` read as having spaces), the
+owner asked "Where's the fix line?" (diagnostics.md's `fix:`, as edited code, is not built in kayo), then: "Or do we
+just show code, and fix only? While, learning could be in docs", "Or only add the code too, so it's less surface to
+be wrong", "yup" to design claude's middle way (a fixed title per error, written once, never composed per message),
+then, asked how codes look ((a) `E0107`, (b) numbered by area, (c) a name that is the title, recommended), "Or just
+some openssl rand magic?", and on names prefixed by their limb: "That `::` is a great idea". So:
+
+```
+error[unclosed_name]
+code:  let 'a := 'b' + 1;
+fix:   let 'a' := 'b' + 1;
+```
+
+- **An error is named, and the name is its title**: `error[unclosed_name]`, `error[borrow_outlives_owner]`,
+  `check[index_out_of_range]`; one name per kind of error, never composed for a message, so it cannot mislead.
+- **A limb's errors carry its prefix**: `error[cnc::opaque_struct_held]`, `error[metal::two_kernels]`; the base's have
+  none. Names never clash, as kits' do not.
+- **The message shows `code:` and `fix:`**, the fix as edited code; **a check adds `when:`**, the value that breaks it.
+- **The explanation is in the docs**, found by the name.
+- Design claude's readings, not asked: the location (file, line, column) stays with the name; a renamed error keeps its
+  old name as an alias, as `spellings.cyr` keeps old spellings.
+This replaces most of `design/diagnostics.md`'s labels (`why`, `try`, the sentence). Not built (CyborgPL paused).
+
 ### 2026-10-22 — Calls and function definitions use `( )`; `[ ]` describes or holds; channels are made with `channel.empty`; `.of` is withdrawn (owner; not built)
 
 After `.of` was recorded, its edge cases (making a channel, function types, reserving `of`, kits' own generic types)
