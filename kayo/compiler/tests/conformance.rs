@@ -384,3 +384,31 @@ fn examples_run_against_the_cyborgpl_std() {
     }
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
 }
+
+/// `demos/` (design claude, 2026-10-22): programs no test runs, a window
+/// that waits to be closed among them. Each is built, never run; one whose
+/// C library is not on this machine is passed over with a note.
+#[test]
+fn demos_build() {
+    let kayo = PathBuf::from(env!("CARGO_BIN_EXE_kayo"));
+    let Ok(entries) = std::fs::read_dir(repo().join("demos")) else { return };
+    let mut failures = Vec::new();
+    for e in entries.flatten() {
+        let dir = e.path();
+        if !dir.join("kit.cy").is_file() {
+            continue;
+        }
+        let name = dir.file_name().unwrap().to_string_lossy().into_owned();
+        let out = std::env::temp_dir().join(format!("kayo-demo-{}", name));
+        let r = Command::new(&kayo).arg("build").arg(&dir).arg("-o").arg(&out).stdin(std::process::Stdio::null()).output().unwrap();
+        let said = String::from_utf8_lossy(&r.stderr).into_owned();
+        if r.status.code() != Some(0) {
+            if said.contains("library not found for -l") {
+                eprintln!("note: demo {} not built here: a C library it links is not installed", name);
+                continue;
+            }
+            failures.push(format!("{}: refused to build:\n{}", name, indent(&said)));
+        }
+    }
+    assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+}
