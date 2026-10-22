@@ -79,7 +79,8 @@ fn shift(d: &[u8], zeros: usize) -> Vec<u8> {
 }
 
 impl Deci {
-    fn new(neg: bool, coef: Vec<u8>, exp: i32, width: u8) -> Deci { Deci { neg, coef: trim(coef), exp, width } }
+    // a deci has no -0 (owner, 2026-10-07): a zero is always made positive (check claude, seeds 206 and others)
+    fn new(neg: bool, coef: Vec<u8>, exp: i32, width: u8) -> Deci { let coef = trim(coef); Deci { neg: neg && !is_zero(&coef), coef, exp, width } }
     pub fn is_zero(&self) -> bool { is_zero(&self.coef) }
 
     /// Round to the width's digits, half to even; `sticky` says something non-zero was cut off
@@ -161,7 +162,7 @@ impl Deci {
         Deci::round(x < 0.0 || (x == 0.0 && x.is_sign_negative()), coef, -(frac.len() as i32), width, false)
     }
 
-    pub fn neg(&self) -> Deci { let mut d = self.clone(); d.neg = !d.neg; d }
+    pub fn neg(&self) -> Deci { let mut d = self.clone(); d.neg = !d.neg && !d.is_zero(); d }
 
     fn aligned(a: &Deci, b: &Deci) -> (Vec<u8>, Vec<u8>, i32) {
         let e = a.exp.min(b.exp);
