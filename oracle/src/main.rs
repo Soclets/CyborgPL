@@ -12,6 +12,7 @@ mod ast;
 mod bigint;
 mod case;
 mod cheader;
+mod concise;
 mod generate;
 mod deci;
 mod interp;
@@ -38,8 +39,15 @@ thread_local! {
 
 /// Parse one file of the kit rooted at `kit_root` (`[]` for the kit being built).
 fn parse_file_in(path: &Path, module: Vec<String>, kit_root: Vec<String>) -> Result<ast::Program, String> {
-    let src = std::fs::read_to_string(path).map_err(|e| format!("{}: cannot read: {e}", path.display()))?;
-    let mut toks = lexer::lex(&src).map_err(|e| format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg))?;
+    let raw = std::fs::read_to_string(path).map_err(|e| format!("{}: cannot read: {e}", path.display()))?;
+    // a concise file is read as the text its bytes spell (owner, 2026-10-22)
+    let (src, concise) = match concise::decode(&raw) {
+        None => (raw, false),
+        Some(Ok(text)) => (text, true),
+        Some(Err(e)) => return Err(format!("{}: {e}", path.display())),
+    };
+    let at = |line: usize| if concise { concise::shown(&src, line) } else { String::new() };
+    let mut toks = lexer::lex(&src).map_err(|e| format!("{}: line {}:{}: {}{}", path.display(), e.line, e.col, e.msg, at(e.line)))?;
     case::rewrite(&mut toks, &kit_root, &module);
     // the kit's folder, where an `incl.…` path starts (owner, 2026-10-10): up from the file's own folder
     // once per module level below the root (`ui/header.cy` is `ui.header`, one folder down)
@@ -50,12 +58,12 @@ fn parse_file_in(path: &Path, module: Vec<String>, kit_root: Vec<String>) -> Res
     parser::NEURON_DIR.with(|d| *d.borrow_mut() = dir);
     if LEVELS_ONLY.with(|f| f.get()) && path.file_name().map_or(true, |n| n != "CyJet.cyr") {
         parser::Parser::new_in_kit(toks, module, kit_root).scan_levels()
-            .map_err(|e| format!("{}: line {}: {}", path.display(), e.line, e.msg))?;
+            .map_err(|e| format!("{}: line {}: {}{}", path.display(), e.line, e.msg, at(e.line)))?;
         return Ok(ast::Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new(), bare_marks: Vec::new(), case_marks: Vec::new() });
     }
     parser::CURRENT_FILE.with(|f| *f.borrow_mut() = path.to_path_buf());
     let r = parser::Parser::new_in_kit(toks, module.clone(), kit_root.clone()).program()
-        .map_err(|e| if e.col == 0 { format!("{}: line {}: {}", path.display(), e.line, e.msg) } else { format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg) })?;
+        .map_err(|e| if e.col == 0 { format!("{}: line {}: {}{}", path.display(), e.line, e.msg, at(e.line)) } else { format!("{}: line {}:{}: {}{}", path.display(), e.line, e.col, e.msg, at(e.line)) })?;
     // a file with collection templates is kept for the check of its generated parts (owner, 2026-10-13)
     if parser::TEMPLATES.with(|t| t.borrow().iter().any(|(f, _, _)| f == path)) {
         generate::PENDING.with(|p| {
@@ -327,7 +335,9 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
     let file = dir.join("CyJet.cyr");
     if !file.is_file() { return Ok((None, Vec::new(), Vec::new())); }
     let shown = file.display();
-    let src = std::fs::read_to_string(&file).map_err(|e| format!("{shown}: cannot read: {e}"))?;
+    let raw = std::fs::read_to_string(&file).map_err(|e| format!("{shown}: cannot read: {e}"))?;
+    // a concise manifest too (owner, 2026-10-22: "A manifest can be concise too")
+    let src = match concise::decode(&raw) { None => raw, Some(Ok(text)) => text, Some(Err(e)) => return Err(format!("{shown}: {e}")) };
     let toks = lexer::lex(&src).map_err(|e| format!("{shown}: line {}:{}: {}", e.line, e.col, e.msg))?;
     let one = "CyJet.cyr is one value: `cyjet::manifest[name = \"shop\", prefix = \"shop\", version = \"1.0.0\", targets = [cyjet::target[name = \"aarch64-macos\"],]];`";
     if matches!(toks.first().map(|t| &t.tok), Some(lexer::Tok::Word(w)) if w == "const" || w == "pub") {

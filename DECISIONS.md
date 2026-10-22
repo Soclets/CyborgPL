@@ -34,6 +34,27 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-22 — Concise CyborgPL, a joke: a file of only 8-digit binary groups is decoded byte by byte into CyborgPL text (owner; built in the oracle)
+
+The owner: "There should be a way to write concise CyborgPL", showing `MAIN` and `std::print.useful["Hello, World!"];`
+spelled as ASCII bytes in binary (`01001101 01000001 01001001 01001110 { … }`; the print line 35 characters as text,
+314 in binary), then "Should be added as a joke". Asked how kayo knows a file is written so, (a) automatically, (b) its
+own file ending, (c) a marker line, design claude recommended (a); the owner asked "Would it decode into real
+CyborgPL text?" (yes) and "Can the `{` become binary?" (`01111011`, `}` `01111101`), then "Only binary?". So **a
+file holding only `0`, `1`, spaces and line breaks is concise**: each group of 8 digits becomes the byte it spells,
+the spaces between groups only separate them (a real space is `00100000`), line breaks stay, and the decoded text is
+compiled as any CyborgPL file. A real program always holds letters, so none is misread; plain braces are not allowed
+(such a file is read as ordinary CyborgPL and refused). **The final build ships it** (owner: "it's not dangerous, just
+practically un-maintainable"). **A `.cyr` file may be concise too**, the manifest `CyJet.cyr` included (owner: "A manifest
+can be concise too", over design claude's `.cy` only). Asked whether it can do everything CyborgPL can: yes, it
+decodes to the same text (a UTF-8 character is its bytes, `é` two groups); a file brought in by `incl.bytes` or
+`incl.str.utf8` is data and never decoded. Design claude's readings, not asked: an error shows the decoded line, and
+the build report holds the decoded text; a group not eight digits long, or a plain brace in an otherwise binary
+file, is refused naming the fix. **Built in the oracle** (owner: "yea, build it"): `oracle/src/concise.rs`,
+`examples/concise.cy`, `examples/concise_kit` (a concise `CyJet.cyr`), reject tests `concise_decoded_error`,
+`concise_short_group`, `concise_plain_braces`; `design/concise.md`. (Design claude first compared it to the 1 April `+`; the owner: "There's no cursed
+`+` anymore", dropped 2026-10-14 with the `jokes` power.)
+
 ### 2026-10-21 — `ptr.null` is C's `NULL`, going only where its pointer type is known (owner: "yea, add it", then "widened (a)"; built in the oracle)
 
 The owner asked whether `ptr.is_null` is the base's or std's (the base's, 2026-09-19), "Why not just `ptr.null`?"
