@@ -382,6 +382,37 @@ fn main() {
             }
             println!("{same} runs agree, {differ} differ");
         }
+        "concise" => {
+            // Concise CyborgPL (owner, 2026-10-22; design/concise.md): every
+            // program's binary twin, each byte eight digits, groups split by a
+            // space, line breaks kept, must do on the oracle exactly what the
+            // program does: the same output, and the same refusal or stop,
+            // naming the same decoded line. kayo joins when it reads them.
+            let t = oracle_only();
+            let dir = work().join("concise");
+            std::fs::create_dir_all(&dir).unwrap();
+            let (mut same, mut differ, mut runs) = (0, 0, 0);
+            for seed in a.num("from", 1)..a.num("from", 1) + a.num("cases", 100) {
+                let p = generate(seed, &a.config());
+                let text = p.render();
+                let (f, g) = (dir.join("prog.cy"), dir.join("twin.cy"));
+                std::fs::write(&f, &text).unwrap();
+                std::fs::write(&g, concise(&text)).unwrap();
+                let sets = if p.inputs.is_empty() { vec![vec![]] } else { envs(&p) };
+                let mut ok = true;
+                for env in sets {
+                    runs += 1;
+                    let (o, c) = (engines::oracle(&t, &f, &dir, &env), as_plain(engines::oracle(&t, &g, &dir, &env)));
+                    if o != c {
+                        ok = false;
+                        println!("seed {seed}: the program {}\n          its twin {}", compare::oracle_text(&o), compare::oracle_text(&c));
+                        break;
+                    }
+                }
+                if ok { same += 1 } else { differ += 1 }
+            }
+            println!("{} programs ({runs} runs): {same} twins the same, {differ} differ", same + differ);
+        }
         "corpus" => corpus(&tools()),
         "run" => run(&tools(), &a),
         _ => {
@@ -1077,4 +1108,27 @@ pub fn normalise(m: &str) -> String {
         }
     }
     out.chars().take(110).collect()
+}
+
+/// A program in Concise CyborgPL: each byte as eight binary digits, groups on
+/// a line split by one space, each line break kept (design/concise.md).
+fn concise(text: &str) -> String {
+    text.split('\n').map(|l| l.bytes().map(|b| format!("{b:08b}")).collect::<Vec<_>>().join(" ")).collect::<Vec<_>>().join("\n")
+}
+
+
+/// A twin's stop as the plain program's would read: without the note a concise
+/// file's error adds (`(concise file; decoded line N: …)`, design/concise.md),
+/// and with the plain file's name where a message names the file.
+fn as_plain(o: engines::Oracle) -> engines::Oracle {
+    match o {
+        engines::Oracle::Stopped { out, line, msg } => {
+            let msg = match msg.find(" (concise file; decoded line ") {
+                Some(i) => msg[..i].to_string(),
+                None => msg,
+            };
+            engines::Oracle::Stopped { out, line, msg: msg.replace("twin.cy", "prog.cy") }
+        }
+        o => o,
+    }
 }

@@ -699,7 +699,7 @@ impl Gen {
             // recursive down the counter
             format!("    if 'x' equal_to 0 {{ return {b}; }}\n    return ({f}['x' - 1] x {a} + to.i64['x']) mod.floor {m};")
         } else if self.rng.chance(50) {
-            format!("    if ('x' mod.floor 3) equal_to 0 {{ return (to.i64['x'] x {a}) mod.floor {m}; }}\n    return (to.i64['x'] x to.i64['x'] + {b}) mod.floor {m} - {c};")
+            format!("    if ('x' mod.floor 3) equal_to 0 {{ return (to.i64['x'] x {a}) mod.floor {m}; }}\n    return ((to.i64['x'] x to.i64['x'] + {b}) mod.floor {m}) - {c};")
         } else {
             format!("    return ((to.i64['x'] x {a} + {b}) mod.floor {m}) - {c};")
         };

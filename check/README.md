@@ -11,6 +11,14 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 ```
 
 
+**Concise CyborgPL** (owner, 2026-10-22; oracle 87f9b2f6, design/concise.md): `check concise --cases N`
+writes each generated program's binary twin (each byte eight digits, groups split by one space, line
+breaks kept; the same encoding as `examples/concise.cy`, checked by a round trip) and runs both on the
+oracle: the same output, and the same stop naming the same line. The twin's error note `(concise file;
+decoded line N: …)` and its file name are set aside. kayo joins when it reads them. Writing it showed the
+generator's table function writing `… mod.floor m - c`, a mod beside another operator, refused by both
+engines in about 1 program in 50; now parenthesised.
+
 **`ptr.null`** (owner, 2026-10-21; oracle 2c8cfb33): under `--ptr-null` (off until kayo builds it), an
 episode passes `ptr.null` to C's `free`, puts it in a list beside pointers from `malloc`, and in a
 `layout.C` field, each asked with `ptr.is_null`, the memory freed after. These three are all its
