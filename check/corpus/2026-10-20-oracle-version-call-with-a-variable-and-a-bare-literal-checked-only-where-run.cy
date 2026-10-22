@@ -3,8 +3,8 @@
 # fits both i32 and i64, so the call is refused (owner, 2026-10-20). In a branch never taken the
 # oracle prints "before" and "after"; kayo refuses it when building ("a bare literal fits more than
 # one; say which, `5: i64`"). The all-literal case is refused before running since 7ab59e76.
-# known-difference: an oracle limit (design claude, 2026-10-20, oracle/README.md): it picks a version
-# for a call with a variable only when the call runs; kayo refuses it while building, the language's way.
+# Was an oracle limit, marked known (it picked a version for a call with a variable only when the call
+# ran); fixed in oracle 22a24001: a variable typed by its declaration is picked before running.
 # Moved to a `versions` block (owner, 2026-10-21; oracle 78a25324).
 coll.fn mx {
     versions mx {
