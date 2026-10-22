@@ -4199,6 +4199,9 @@ impl Parser {
             Tok::Word(w) if w == "concat" => Some("++".into()),
             // std's `pow`, bare or with its path, and `pow.wrap` (owner, 2026-10-03)
             Tok::Word(w) if w == "pow" => { if dot_word("wrap") || dot_word("ieee") { self.op_len.set(3); Some(format!("pow.{}", if dot_word("wrap") { "wrap" } else { "ieee" })) } else { Some("pow".into()) } }
+            // `std::xx`: `xx` is the symbol of std's `pow` (2026-10-16), and a kit's glyph may carry its path (owner,
+            // 2026-10-22: "glyphs are optional too"), so it is `std::pow` (check claude asked)
+            Tok::Word(w) if w == "std" && *self.peek_at(k + 1) == Tok::ColonColon && matches!(self.peek_at(k + 2), Tok::Word(x) if x == "xx") => { self.op_len.set(3); Some("pow".into()) }
             Tok::Word(w) if w == "std" && *self.peek_at(k + 1) == Tok::ColonColon && matches!(self.peek_at(k + 2), Tok::Word(x) if x == "pow") => {
                 if *self.peek_at(k + 3) == Tok::Dot && matches!(self.peek_at(k + 4), Tok::Word(x) if x == "wrap" || x == "ieee") { let Tok::Word(x) = self.peek_at(k + 4).clone() else { unreachable!() }; self.op_len.set(5); Some(format!("pow.{x}")) } else { self.op_len.set(3); Some("pow".into()) }
             }
