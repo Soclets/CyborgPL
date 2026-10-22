@@ -552,7 +552,7 @@ plus_ieee_on_int [fnv:cf2096d03cb58e67] :: `plus.ieee` keeps a -0, which only a 
 plusplus_needs_conversion [fnv:a6e724baccce5e1b] :: `concat` joins text, and its right side is an `integer`: convert it first
 plusplus_numbers [fnv:4cdcad9affc5f4d9] :: `concat` joins text, and its left side is an `integer`: convert it first
 pow_symbol_old [fnv:e060878365751b20] :: `**` is an old spelling: write `xx`
-power_denied [fnv:c61e5e2f40546bd5] :: this kit calls C (`write`), which this program denies
+power_denied [fnv:40cc656495bc6452] :: this kit calls C (`write`), which this program denies (`my denied powers:`: `c_calls.functions`)
 power_deny_for [fnv:b37efe31805baa2c] :: `shapes` defines the operator `mean` on built-in types, which this program denies
 power_except_in_powers [fnv:e5d6f87ee8a5b31c] :: `except` belongs to `my denied powers:`
 power_listed_too_narrow [fnv:230e2928cd405e42] :: does not list `c_calls`
