@@ -38,7 +38,7 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
   bin too big to have a fraction (from 2 to the power of its fraction bits) or a deci too big to have
   places comes back as it is. A bare literal fitting several versions is refused at the call (owner,
   2026-10-20: (b)): `std::round.half_up[2.5: f64]`.
-- `CyJet.cyr` lists the `unicode` limb, std's first, since `char.point` is unicode's (owner, 2026-10-17:
+- `CyJet.toml` lists the `unicode` limb, std's first, since `char.point` is unicode's (owner, 2026-10-17:
   "(a)"), and the `Money` limb, for the decis (owner, 2026-10-20: "(a)"). A program using std does not
   inherit them: `argument_words` lists no limb.
 
