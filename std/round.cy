@@ -14,7 +14,6 @@ enum Way { nearest_even, half_away, down, up, toward_zero }
 
 # Round to a whole number, or to `places:` places, a tie to even.
 pub coll.fn near {
-    bare.kit_prefix.optional;
     near ['x': f16] -> f16 {
         if 'x' at_least 1024.0 { return 'x'; }
         if 'x' at_most -1024.0 { return 'x'; }
@@ -67,7 +66,6 @@ pub coll.fn near {
 
 # Round to a whole number, or to `places:` places, a tie away from zero.
 pub coll.fn half_up {
-    bare.kit_prefix.optional;
     half_up ['x': f16] -> f16 {
         if 'x' at_least 1024.0 { return 'x'; }
         if 'x' at_most -1024.0 { return 'x'; }
@@ -120,7 +118,6 @@ pub coll.fn half_up {
 
 # Round to a whole number, or to `places:` places, down.
 pub coll.fn floor {
-    bare.kit_prefix.optional;
     floor ['x': f16] -> f16 {
         if 'x' at_least 1024.0 { return 'x'; }
         if 'x' at_most -1024.0 { return 'x'; }
@@ -161,7 +158,6 @@ pub coll.fn floor {
 
 # Round to a whole number, or to `places:` places, up.
 pub coll.fn ceil {
-    bare.kit_prefix.optional;
     ceil ['x': f16] -> f16 {
         if 'x' at_least 1024.0 { return 'x'; }
         if 'x' at_most -1024.0 { return 'x'; }
@@ -202,7 +198,6 @@ pub coll.fn ceil {
 
 # Round to a whole number, or to `places:` places, toward zero.
 pub coll.fn trunc {
-    bare.kit_prefix.optional;
     trunc ['x': f16] -> f16 {
         if 'x' at_least 1024.0 { return 'x'; }
         if 'x' at_most -1024.0 { return 'x'; }

@@ -94,8 +94,6 @@ pub fn replace [lent 's': str.utf8, lent 'from': str.utf8[min: 1 bytes], lent 't
 # `at.grapheme`.
 # A position past the last unit fails out_of_range.
 pub coll.fn at {
-    bare.kit_prefix.optional;
-
     # The byte at 'pos'.
     at.byte [lent 's': str.utf8, 'pos': u64[min: 1]] -> u8 or fail[out_of_range] {
         for 'i', 'b' in str.each.byte[lend 's'] {
@@ -125,8 +123,6 @@ pub coll.fn at {
 # to: pos 4]`, or `before: pos 5` to leave the end out. It fails out_of_range when the end comes before the
 # start or past the last unit, so a slice is never empty.
 pub coll.fn slice {
-    bare.kit_prefix.optional;
-
     # Bytes 'from' to 'to', as bytes: an end may land inside a character, so making text of them is the
     # caller's `to.str.utf8[…] otherwise …` (owner, 2026-10-20: "(a)").
     slice.byte [lent 's': str.utf8, 'from': u64[min: 1], 'to': u64[min: 1]] -> list[u8] or fail[out_of_range] {
@@ -171,8 +167,6 @@ pub coll.fn slice {
 # A case change says its mapping (owner, 2026-10-20): `.ascii` changes a to z only, so `café` is `CAFé`;
 # `.simple` and `.full` are Unicode's. A bare `str.upper` is refused.
 pub coll.fn upper {
-    bare.kit_prefix.optional;
-
     # 's' with a to z made A to Z, every other byte as it is.
     upper.ascii [lent 's': str.utf8] -> str.utf8 {
         let 'out': list[u8] = [];
@@ -185,8 +179,6 @@ pub coll.fn upper {
 }
 
 pub coll.fn lower {
-    bare.kit_prefix.optional;
-
     # 's' with A to Z made a to z, every other byte as it is.
     lower.ascii [lent 's': str.utf8] -> str.utf8 {
         let 'out': list[u8] = [];

@@ -1,13 +1,13 @@
 # std — CyborgPL's standard library, in CyborgPL
 
 Written by std claude (`design/std-session.md`). std is CyborgPL calling the runtime (Rust) only for
-what CyborgPL cannot say yet (owner, 2026-09-14; again 2026-10-14, "(c)"). Every public item may be written with
-`std::` or without it (owner, 2026-10-06). It was `cord/`, Nerve's cord, until the sweep to Zag's
+what CyborgPL cannot say yet (owner, 2026-09-14; again 2026-10-14, "(c)"). Other kits write its names with
+`std::`, or bring one in with `use std::… as …;` (owner, 2026-10-22). It was `cord/`, Nerve's cord, until the sweep to Zag's
 names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
 
 ## What is here
 
-- `kit.cy` — the root: the `bare.kit_prefix.optional` mark for every kind.
+- `kit.cy` — the root: what other kits see is written `std::…` (owner, 2026-10-22).
 - `str.cy` — `std::str.contains`, `starts_with`, `ends_with`, `split`, `join`, `replace`
   (`design/strings.md`; the argument words are `spellings.cyr`'s). They work on the bytes and call
   nothing in the runtime. Their `part`, `at` and `from` are texts of at least 1 byte, `str.utf8[min: 1
@@ -26,7 +26,7 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
   `u64[min: 1]` (owner, 2026-10-17: "(a)"): a written `pos: 0` is refused when building, and a position
   worked out while running is proven or converted where it is passed (`to.u64[min: 1]['i'] otherwise 1`),
   so `out_of_range` means only past the end.
-- `str.upper.ascii[lend 's']` and `str.lower.ascii` change a to z (or A to Z) only, every other byte as it
+- `std::str.upper.ascii[lend 's']` and `str.lower.ascii` change a to z (or A to Z) only, every other byte as it
   is (`café` is `CAFé`); `.simple` and `.full`, Unicode's, come next, from generated tables (owner,
   2026-10-20, 2026-10-21: "(a)"). `kit.cy` holds `pub enum casing { tr, az, lt, root }`, whose rules a full
   case change follows.
@@ -37,7 +37,7 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
   nearest bin of its width; a deci keeps the places it is rounded to (`2.500`) as far as its digits go. A
   bin too big to have a fraction (from 2 to the power of its fraction bits) or a deci too big to have
   places comes back as it is. A bare literal fitting several versions is refused at the call (owner,
-  2026-10-20: (b)): `round.half_up[2.5: f64]`.
+  2026-10-20: (b)): `std::round.half_up[2.5: f64]`.
 - `CyJet.cyr` lists the `unicode` limb, std's first, since `char.point` is unicode's (owner, 2026-10-17:
   "(a)"), and the `Money` limb, for the decis (owner, 2026-10-20: "(a)"). A program using std does not
   inherit them: `argument_words` lists no limb.
