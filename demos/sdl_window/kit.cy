@@ -1,6 +1,7 @@
 # A real window (owner, 2026-10-22: "show a real window"): SDL3 draws "Hello World" with its built-in debug font,
 # until the window is closed. Through CNC and C; kayo builds it, linking SDL3 (`brew install sdl3`). The oracle
-# cannot call real C libraries, so it stops at `SDL_Init`.
+# cannot call real C libraries. In demos/, not examples/, since a test would open a window and wait: build and run
+# it with `kayo build --final demos/sdl_window -o build/sdl_window && build/sdl_window`.
 extern.C fn SDL_Init ['flags': u32] -> bool;
 extern.C fn SDL_CreateWindow ['title': ptr[u8], 'w': i32, 'h': i32, 'flags': u64] -> ptr.mut[u8];
 extern.C fn SDL_CreateRenderer ['window': ptr.mut[u8], 'name': ptr[u8]] -> ptr.mut[u8];
