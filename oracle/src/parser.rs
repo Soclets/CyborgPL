@@ -3107,7 +3107,9 @@ impl Parser {
         }
         // versions are written in a `versions` block (owner, 2026-10-21); std/ keeps its repeated lines until its own
         // session moves them (design claude's stopgap, oracle/README.md)
-        let in_std = CURRENT_FILE.with(|f| f.borrow().to_string_lossy().contains("/std/"));
+        // a `std` folder anywhere in the path, so `oracle std` from std claude's clone counts too (it read
+        // `std/round.cy`, with no `/` in front, as not std's: std claude, 2026-10-22)
+        let in_std = CURRENT_FILE.with(|f| { let f = f.borrow(); std::fs::canonicalize(&*f).unwrap_or_else(|_| f.clone()).components().any(|c| c.as_os_str() == "std") });
         if !in_std {
             let outside_main = main.len() > 1 && !in_block.contains(&name);
             let outside_member = members.iter().map(|(m, _)| m).find(|m| members.iter().filter(|(x, _)| x == *m).count() > 1 && !in_block.contains(m));
