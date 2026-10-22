@@ -31,8 +31,8 @@ fn read_n ['text': ptr[u8]] -> i64[min: 0, max: 1_000_000_000] or fail[missing, 
     return 'n';
 }
 
-fn advance [lent.mut 'bodies': list[Body], 'dt': f64] {
-    let 'n' := list.length[lend 'bodies'];
+fn advance [lent.mut 'bodies': std::list[Body], 'dt': f64] {
+    let 'n' := std::list.length[lend 'bodies'];
     for 'i': u64 [from: 1, to: 'n', by: 1] {
         for 'j': u64 [from: 'i' plus 1, to: 'n', by: 1] {
             no_check {
@@ -59,8 +59,8 @@ fn advance [lent.mut 'bodies': list[Body], 'dt': f64] {
     }
 }
 
-fn energy [lent 'bodies': list[Body]] -> f64 {
-    let 'n' := list.length[lend 'bodies'];
+fn energy [lent 'bodies': std::list[Body]] -> f64 {
+    let 'n' := std::list.length[lend 'bodies'];
     let mut 'e': f64 = 0.0;
     for 'i': u64 [from: 1, to: 'n', by: 1] {
         no_check change 'e' = 'e' plus.ieee 0.5 times.ieee 'bodies'[pos: 'i'].mass times.ieee ('bodies'[pos: 'i'].vx times.ieee 'bodies'[pos: 'i'].vx plus.ieee 'bodies'[pos: 'i'].vy times.ieee 'bodies'[pos: 'i'].vy plus.ieee 'bodies'[pos: 'i'].vz times.ieee 'bodies'[pos: 'i'].vz);
@@ -77,7 +77,7 @@ fn energy [lent 'bodies': list[Body]] -> f64 {
     return 'e';
 }
 
-fn offset_momentum [lent.mut 'bodies': list[Body]] {
+fn offset_momentum [lent.mut 'bodies': std::list[Body]] {
     let mut 'px': f64 = 0.0;
     let mut 'py': f64 = 0.0;
     let mut 'pz': f64 = 0.0;
@@ -98,7 +98,7 @@ fn offset_momentum [lent.mut 'bodies': list[Body]] {
 fn run [] -> i32 or fail[missing, out_of_range] {
     let 'key' := "N";
     no_check let 'n' := read_n[getenv[lend 'key']] otherwise fail;
-    let mut 'bodies': list[Body] = [
+    let mut 'bodies': std::list[Body] = [
         # the Sun
         Body[x = 0.0, y = 0.0, z = 0.0, vx = 0.0, vy = 0.0, vz = 0.0, mass = 'solar_mass'],
         # Jupiter

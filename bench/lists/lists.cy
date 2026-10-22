@@ -16,9 +16,9 @@ fn read_n ['text': ptr[u8]] -> i64[min: 0, max: 100_000_000] or fail[missing, ou
 fn run [] -> i32 or fail[missing, out_of_range] {
     let 'key' := "N";
     no_check let 'n' := read_n[getenv[lend 'key']] otherwise fail;
-    let mut 'xs': list[i64] = [];
+    let mut 'xs': std::list[i64] = [];
     for 'i': i64 [from: 1, to: 'n', by: 1] {
-        list.append[lend.mut 'xs', value: 'i' mod.floor 1000];
+        std::list.append[lend.mut 'xs', value: 'i' mod.floor 1000];
     }
     let mut 'acc': i64 = 0;
     for 'r': i64 [from: 1, to: 10, by: 1] {
