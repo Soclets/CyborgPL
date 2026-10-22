@@ -16,7 +16,7 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 `versions`, `ptr-null` or `std-glyph` leaves one out), and the pinned oracle is gone. One program in three
 starts `use std::list as list;` on its header's line (no line moves) and writes `list` bare every other
 time; `pow` is written `std::pow` and the glyph `xx` `std::xx` every other time. The corpus was rewritten
-by `check paths FILE…`, the same rewrite. Kayo's manifest stays `CyJet.cyr` until kayo reads `CyJet.toml`.
+by `check paths FILE…`, the same rewrite. A kit build's manifest is `CyJet.toml` (owner's format, kayo 258684de; `design/cyjet-toml.md`).
 
 **std's names take their path** (owner, 2026-10-22; oracle 82d88048): under `--std-paths` the printer
 writes `std::list[i64]`, `std::list.append[…]`, `std::round.X`, `std::format`, `std::duration`, `std::casing`
