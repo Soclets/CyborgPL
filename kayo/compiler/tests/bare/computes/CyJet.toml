@@ -1,0 +1,9 @@
+my details:
+name = computes
+prefix = computes
+ver = 0.1.0
+
+my targets:
+aarch64-none {
+layout = boards/virt.ld
+}

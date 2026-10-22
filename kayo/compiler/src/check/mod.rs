@@ -980,8 +980,8 @@ impl Checker {
         Some(match check(&used, &kit, &self.items.program_deny) {
             Ok(()) => return None,
             Err(Refusal::NotGranted { .. }) => format!("{} {}, a power nothing grants it: `{}`", who, u.doing, top),
-            Err(Refusal::NotListed { .. }) => format!("{} {}, and its CyJet.cyr does not list `{}`: add `cyjet::power.{}` to its `powers`", who, u.doing, top, top),
-            Err(Refusal::Denied { entry, .. }) => format!("{} {}, which this program denies (`deny`: `cyjet::power.{}`)", who, u.doing, entry.power.path.join(".")),
+            Err(Refusal::NotListed { .. }) => format!("{} {}, and its CyJet.toml does not list `{}`: add `{} {{` / `}}` under its `my powers:`", who, u.doing, top, top),
+            Err(Refusal::Denied { entry, .. }) => format!("{} {}, which this program denies (`my denied powers:`: `{}`)", who, u.doing, entry.power.path.join(".")),
         })
     }
 

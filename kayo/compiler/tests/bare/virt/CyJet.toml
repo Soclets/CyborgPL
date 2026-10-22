@@ -1,0 +1,15 @@
+my details:
+name = virt
+prefix = virt
+ver = 0.1.0
+
+my powers:
+vouch {
+}
+inline_assembly {
+}
+
+my targets:
+aarch64-none {
+layout = boards/virt.ld
+}

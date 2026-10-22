@@ -961,7 +961,7 @@ pub const MTM_ID: &str = "9c6c773027ae873a736d2e9b2dc398fd4807a7df6cf43b7e233c34
 /// The line that lists an official core, for a message to show.
 pub fn core_line(name: &str) -> String {
     let (id, version) = OFFICIAL_CORES.iter().find(|(n, _, _)| *n == name).map(|(_, i, v)| (*i, *v)).unwrap_or(("", ""));
-    format!("cyjet::limb[id = \"{}\", version = \"{}\"]", id, version)
+    format!("{} {{` / `id = {}` / `ver = {}` / `}}", name.to_lowercase(), id, version)
 }
 
 pub const CONST_TAKES_NO_MARK: &str = "a const takes no `bare` mark: `'pi'` alone is a variable, so another kit's const always has its path (owner, 2026-10-06)";

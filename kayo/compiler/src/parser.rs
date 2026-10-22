@@ -362,7 +362,7 @@ fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
 }
 
 fn core_missing<T>(what: &str, core: &str, at: Span) -> Result<T> {
-    err(Diagnostic::error(format!("{} is {}'s, and this kit's CyJet.cyr does not list the limb {}: add `{}` to its `limbs`", what, core, core, core_line(core))).at(at))
+    err(Diagnostic::error(format!("{} is {}'s, and this kit's CyJet.toml does not list the limb {}: add `{}` under its `my limbs:`", what, core, core, core_line(core))).at(at))
 }
 
 /// std's registry ID and the one version CCA knows (owner, 2026-10-06).
@@ -416,7 +416,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
             // "Time: std, with duration literals"; d690ed91).
             if let (Tok::Num { .. }, Some(Tok::Word(u))) = (&toks[i].tok, toks.get(i + 1).map(|t| &t.tok)) {
                 if DURATION_UNITS.contains(&u.as_str()) {
-                    return err(Diagnostic::error(format!("a duration literal (`5 seconds`) is std's, and this kit's CyJet.cyr does not list std: add `cyjet::dep.reg[id = \"{}\", version = \"{}\"]` to its `dependencies`", STD_ID, STD_VERSION)).at(toks[i].span));
+                    return err(Diagnostic::error(format!("a duration literal (`5 seconds`) is std's, and this kit's CyJet.toml does not list std: add `std {{` / `id = {}` / `ver = {}` / `}}` under its `my kits:`", STD_ID, STD_VERSION)).at(toks[i].span));
                 }
             }
             let Tok::Word(w) = &toks[i].tok else { continue };
@@ -431,7 +431,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                 ("str", Some(Tok::Dot)) if matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(u)) if matches!(u.as_str(), "bytes" | "points" | "graphemes" | "each" | "split" | "find" | "contains" | "trim" | "upper" | "lower" | "replace" | "starts_with" | "ends_with" | "at" | "slice" | "join")) => "a text operation (`str.…`)",
                 _ => continue,
             };
-            return err(Diagnostic::error(format!("{} is std's, and this kit's CyJet.cyr does not list std: add `cyjet::dep.reg[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION)).at(toks[i].span));
+            return err(Diagnostic::error(format!("{} is std's, and this kit's CyJet.toml does not list std: add `std {{` / `id = {}` / `ver = {}` / `}}` under its `my kits:`", what, STD_ID, STD_VERSION)).at(toks[i].span));
         }
     }
     // Signatar's names are English letters, digits and `_`, bare or
@@ -443,7 +443,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                 Tok::Name(n) if !n.is_ascii() => format!("`'{}'`", n),
                 _ => continue,
             };
-            return err(Diagnostic::error(format!("{} is not an English name: the base's names are English letters, digits and `_`; a name in another script, or an emoji, needs the limb unicode in this kit's `limbs` (`{}`)", shown, core_line("unicode"))).at(t.span));
+            return err(Diagnostic::error(format!("{} is not an English name: the base's names are English letters, digits and `_`; a name in another script, or an emoji, needs the limb unicode under this kit's `my limbs:` (`{}`)", shown, core_line("unicode"))).at(t.span));
         }
     }
     // Old spellings, in every Kit (the 2026-10-07 revision; owner: "MTM
@@ -651,7 +651,7 @@ impl<'a> Parser<'a> {
         if !self.no_std {
             return Ok(());
         }
-        self.fail_at(span, format!("`{}` is std's, and this kit's CyJet.cyr does not list std: add `cyjet::dep.reg[id = \"{}\", version = \"{}\"]` to its `dependencies`", what, STD_ID, STD_VERSION))
+        self.fail_at(span, format!("`{}` is std's, and this kit's CyJet.toml does not list std: add `std {{` / `id = {}` / `ver = {}` / `}}` under its `my kits:`", what, STD_ID, STD_VERSION))
     }
 
     fn fail<T>(&self, msg: impl Into<String>) -> Result<T> {

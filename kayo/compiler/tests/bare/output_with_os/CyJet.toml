@@ -1,0 +1,9 @@
+my details:
+name = output_with_os
+prefix = output_with_os
+ver = 0.1.0
+
+my targets:
+aarch64-macos {
+exit = my.board.exit
+}

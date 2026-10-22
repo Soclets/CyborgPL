@@ -1,0 +1,9 @@
+my details:
+name = traps
+prefix = traps
+ver = 0.1.0
+
+my targets:
+aarch64-none {
+layout = boards/virt.ld
+}

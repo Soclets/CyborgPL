@@ -137,13 +137,19 @@ impl SourceMap {
     /// A file's tokens, after whether it is a concise file that cannot be
     /// decoded.
     pub fn lex_file(&self, id: FileId) -> crate::diag::Result<Vec<crate::lexer::Token>> {
+        self.decoded(id)?;
+        crate::lexer::lex(id, &self.get(id).text)
+    }
+
+    /// Whether a file is a concise file that cannot be decoded.
+    pub fn decoded(&self, id: FileId) -> crate::diag::Result<()> {
         let f = self.get(id);
         if let Some((line, why)) = &f.concise_error {
             let start = f.line_starts.get(*line as usize - 1).copied().unwrap_or(0);
             let end = f.line_starts.get(*line as usize).map(|e| e.saturating_sub(1)).unwrap_or(f.text.len() as u32);
             return crate::diag::err(crate::diag::Diagnostic::error(why.clone()).at(Span::new(id, start as usize, end as usize)));
         }
-        crate::lexer::lex(id, &f.text)
+        Ok(())
     }
     pub fn get(&self, id: FileId) -> &SourceFile {
         &self.files[id.0 as usize]

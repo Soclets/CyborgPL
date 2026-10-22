@@ -1,9 +1,0 @@
-cyjet::manifest[
-    name = "cord_wrong_prefix",
-    prefix = "cord_wrong_prefix",
-    version = "0.1.0",
-    dependencies = [
-        cyjet::dep.path.std["../not_cord"],
-    ],
-    targets = [cyjet::target[name = "aarch64-macos"],]
-];

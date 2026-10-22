@@ -107,7 +107,7 @@ The base checks `uses` against the manifests (section 4) before handing
 the IR to LLVM, so a codextra cannot use a power nobody granted by
 forgetting to check: the base does not trust it to. `read_manifest`
 is the codextra's because the base does not know what a quoted name is
-(cores.md: the base reads `CyJet.cyr`).
+(cores.md: the base reads `CyJet.toml`).
 
 ### (B) What a the base limb provides
 
@@ -329,7 +329,7 @@ your program does.
 - **Two versions.** The limb's own version (which release, the date and
   time) and the interface version (which (B) it speaks). KAYO\n loads a limb
   whose interface version it supports, and otherwise names both.
-- **Pinning.** A lockfile beside `CyJet.cyr` records each limb's content
+- **Pinning.** A lockfile beside `CyJet.toml` records each limb's content
   hash, so the same manifest always loads the same bytes.
 - **Verified limbs** are the official ones, built into KAYO\n and checked as
   KAYO\n is (RRx2 for IEG's IR). Any other limb gets the approved warning.

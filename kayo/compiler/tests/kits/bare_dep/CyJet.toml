@@ -1,0 +1,8 @@
+my details:
+name = bare_dep
+prefix = bare_dep
+ver = 0.1.0
+
+my targets:
+aarch64-macos {
+}

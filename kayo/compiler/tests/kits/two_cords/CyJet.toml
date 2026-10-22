@@ -1,0 +1,16 @@
+my details:
+name = two_cords
+prefix = two_cords
+ver = 0.1.0
+
+my kits:
+std {
+path = ../nerve_cord
+}
+two_cords_dep {
+path = ../two_cords_dep
+}
+
+my targets:
+aarch64-macos {
+}

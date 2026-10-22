@@ -359,8 +359,8 @@ fn examples_run_against_the_cyborgpl_std() {
     let cord = repo().join("std");
     // The sweep to CyborgPL's names (2026-10-15): `cord/` becomes `std/`, std
     // claude's, after KAYO\n's part; until then there is no CyborgPL std to run.
-    if !cord.join("CyJet.cyr").is_file() {
-        eprintln!("note: no std/ with a CyJet.cyr yet (cord/ is std claude's to rename): examples against the CyborgPL std not run");
+    if !cord.join("CyJet.toml").is_file() {
+        eprintln!("note: no std/ with a CyJet.toml yet (std claude's to convert): examples against the CyborgPL std not run");
         return;
     }
     let mut failures = Vec::new();
@@ -369,18 +369,13 @@ fn examples_run_against_the_cyborgpl_std() {
             Some((n, rest)) => (n, rest.trim() == "+unicode"),
             None => (line, false),
         };
-        let limbs = if unicode { "    limbs = [cyjet::limb[id = \"55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece\", version = \"2026-10-12T10:19:44+07:00\"],],\n" } else { "" };
+        let limbs = if unicode { "my limbs:\nunicode {\nid = 55a2e2de2eca2e06e8a4b3aa2c5ef7245f3f55d4dfbfd872a3ddd9500f74dece\nver = 2026-10-12T10:19:44+07:00\n}\n\n" } else { "" };
         let dir = std::env::temp_dir().join(format!("cca-nerve-std/{}", name));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::copy(repo().join(format!("examples/{}.cy", name)), dir.join("kit.cy")).unwrap();
-        let manifest = format!(
-            "cyjet::manifest[\n    name = \"{n}\",\n    prefix = \"{n}\",\n    version = \"0.1.0\",\n    dependencies = [\n        cyjet::dep.path.std[\"{c}\"],\n    ],\n{l}    targets = [cyjet::target[name = \"aarch64-macos\"],]\n];\n",
-            n = name,
-            c = cord.display(),
-            l = limbs
-        );
-        std::fs::write(dir.join("CyJet.cyr"), manifest).unwrap();
+        let manifest = format!("my details:\nname = {n}\nprefix = {n}\nver = 0.1.0\n\nmy kits:\nstd {{\npath = {c}\n}}\n\n{l}my targets:\naarch64-macos {{\n}}\n", n = name, c = cord.display(), l = limbs);
+        std::fs::write(dir.join("CyJet.toml"), manifest).unwrap();
         let want = std::fs::read(repo().join(format!("examples/{}.out", name))).unwrap();
         let r = Command::new(&synapse).arg("run").arg(&dir).stdin(std::process::Stdio::null()).output().unwrap();
         if r.stdout != want || r.status.code() != Some(0) {

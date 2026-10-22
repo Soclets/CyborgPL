@@ -19,8 +19,8 @@ pub enum Purpose<'a> {
 
 /// The file names (owner, 2026-10-16): code ends `.cy`, a kit's root is
 /// `kit.cy`, and its manifest, a file that is one value and never runs,
-/// is `CyJet.cyr`.
-pub const MANIFEST: &str = "CyJet.cyr";
+/// is `CyJet.toml` (owner, 2026-10-22; `CyJet.cyr` before).
+pub const MANIFEST: &str = "CyJet.toml";
 pub const ROOT: &str = "kit.cy";
 
 /// A file or folder still named as it was before 2026-10-16, refused
@@ -32,7 +32,7 @@ fn old_names(path: &Path) -> Result<()> {
     let renamed = |n: &str| -> Option<String> {
         match n {
             "strike.zg" | "neuron.nrv" => Some("kit.cy".into()),
-            "Ricochet.zv" | "Kinesin.nrp" => Some("CyJet.cyr".into()),
+            "Ricochet.zv" | "Kinesin.nrp" | "CyJet.cyr" => Some(MANIFEST.into()),
             "build.zg" | "build.nrv" => Some("build.cy".into()),
             "zag_version.zv" | "nerve_version.nrp" => Some("cy_ver.cyr".into()),
             _ => [(".zg", ".cy"), (".nrv", ".cy"), (".zv", ".cyr"), (".nrp", ".cyr")].iter().find_map(|(o, n2)| n.strip_suffix(o).map(|s| format!("{}{}", s, n2))),
@@ -51,6 +51,10 @@ fn old_names(path: &Path) -> Result<()> {
         if path.join(old).is_file() {
             return err(Diagnostic::error(format!("`{}` has the old name: rename it to `{}`", old, renamed(old).unwrap())));
         }
+    }
+    // The manifest is `CyJet.toml` (owner, 2026-10-22).
+    if path.join("CyJet.cyr").is_file() && !path.join(MANIFEST).is_file() {
+        return err(Diagnostic::error(format!("`CyJet.cyr` has the old name: rename it to `{}`, written as Tankun's Obvious Minimal Language: {}", MANIFEST, MANIFEST_SHAPE)));
     }
     if path.join("build.cplr").is_file() {
         return err(Diagnostic::error("`build.cplr` has the old name: rename it to `build.cy`"));
@@ -90,7 +94,7 @@ fn old_names(path: &Path) -> Result<()> {
     Ok(())
 }
 
-/// The std a file with no CyJet.cyr gets: the one the machine's package
+/// The std a file with no CyJet.toml gets: the one the machine's package
 /// installed, which for now is the repository's `std/` beside kayo's
 /// source (`KAYO_STD` names another); none if it is not there, and then
 /// the built-in print and exit are all there is.
@@ -208,7 +212,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         (Purpose::Check, None) => None,
         (Purpose::Compile(Some(t)), Some((listed, _))) => {
             if !listed.iter().any(|l| l == t) {
-                return err(Diagnostic::error(format!("`{}` is not one of this kit's targets: its `CyJet.cyr` lists {}", t, listed.iter().map(|l| format!("`{}`", l)).collect::<Vec<_>>().join(", "))));
+                return err(Diagnostic::error(format!("`{}` is not one of this kit's targets: its `CyJet.toml` lists {}", t, listed.iter().map(|l| format!("`{}`", l)).collect::<Vec<_>>().join(", "))));
             }
             Some((t.to_string(), None))
         }
@@ -230,7 +234,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
     // its `layout` (owner, 2026-10-09: "`c` now", then "`b`").
     if let Some((t, span)) = chosen.as_ref().filter(|(t, _)| t.ends_with("-none")) {
         let Some(dir) = &root_dir else {
-            let d = Diagnostic::error(format!("a lone file is not built for `{}`: a program with no OS brings a linker script saying where it sits in the board's memory, named in a kit's CyJet.cyr — `cyjet::target[name = \"{}\", layout = \"boards/virt.ld\"]`", t, t));
+            let d = Diagnostic::error(format!("a lone file is not built for `{}`: a program with no OS brings a linker script saying where it sits in the board's memory, named in a kit's CyJet.toml — `{} {{` / `layout = boards/virt.ld` / `}}` under `my targets:`", t, t));
             return err(match span {
                 Some(s) => d.at(*s),
                 None => d,
@@ -239,7 +243,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         // Refused when built for it, not when listed: a kit may list a
         // board beside the machine it is built on (`examples/table_limits`).
         let Some((_, file, at)) = layouts.iter().find(|(n, _, _)| n == t) else {
-            let d = Diagnostic::error(format!("the target `{t}` has no `layout`: a program with no OS brings its own linker script, saying where it sits in the board's memory — `cyjet::target[name = \"{t}\", layout = \"boards/virt.ld\"]`, the path from the kit's folder"));
+            let d = Diagnostic::error(format!("the target `{t}` has no `layout`: a program with no OS brings its own linker script, saying where it sits in the board's memory — `{t} {{` / `layout = boards/virt.ld` / `}}` under `my targets:`, the path from the kit's folder"));
             return err(match span {
                 Some(s) => d.at(*s),
                 None => d,
@@ -273,7 +277,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         check_bare(sources, &mut items, &file, "", true)?;
         check_case(sources, &mut items, &file, true)?;
         items.collect_file(&file, m, true)?;
-        // A file with no CyJet.cyr gets what the machine's package installed
+        // A file with no CyJet.toml gets what the machine's package installed
         // (owner, 2026-10-06: "yea"): with the std package, std. Until an
         // installer writes where it is, the repository's `std/` stands in
         // for it, as the oracle stands in for the full package.
@@ -388,7 +392,7 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
     fn words_of(sources: &mut SourceMap, dir: &Path, from: Option<(&Path, &str)>) -> Result<(String, String)> {
         if let Some((manifest_at, written)) = from {
             if !dir.join(MANIFEST).is_file() {
-                return err(Diagnostic::error(format!("the kit at `{}` has no `CyJet.cyr`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("the kit at `{}` has no `CyJet.toml`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
             }
         }
         let m = read_manifest(sources, dir)?;
@@ -537,7 +541,7 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
     // and the depending Kit names no word (owner, 2026-09-29).
     if let Some((manifest_at, written)) = from {
         if !dir.join(MANIFEST).is_file() {
-            return err(Diagnostic::error(format!("the kit at `{}` has no `CyJet.cyr`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
+            return err(Diagnostic::error(format!("the kit at `{}` has no `CyJet.toml`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
         }
     }
     let manifest = read_manifest(sources, dir)?;
@@ -731,15 +735,24 @@ struct Dep {
     cord: bool,
 }
 
-const FIELDS: [&str; 9] = ["name", "prefix", "version", "targets", "dependencies", "limbs", "powers", "deny", "C.libs"];
-
 use crate::ast::OFFICIAL_CORES;
 
-const MANIFEST_SHAPE: &str = "`cyjet::manifest[name = \"areas\", prefix = \"areas\", version = \"1.0.0\", targets = [cyjet::target[name = \"aarch64-macos\"],]];`";
+const MANIFEST_SHAPE: &str = "`my details:` / `name = areas` / `prefix = areas` / `ver = 1.0.0`, then `my targets:` / `aarch64-macos {` / `}`";
 
+/// One part of a manifest that is written once: a key in a section or a
+/// block, or a block in a section.
+fn once<'a>(seen: &mut Vec<&'a str>, name: &'a str, within: &str, at: crate::source::Span) -> Result<()> {
+    if seen.contains(&name) {
+        return err(Diagnostic::error(format!("`{}` is given twice in {}", name, within)).at(at));
+    }
+    seen.push(name);
+    Ok(())
+}
+
+/// A kit's `CyJet.toml` (owner, 2026-10-22), read by `cyjet_toml` and
+/// checked here as the manifest always was.
 fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
-    use crate::ast::{Arg as AArg, ExprKind};
-    use crate::lexer::Tok;
+    use crate::cyjet_toml::{list, Block, Pair};
     let mut out = Manifest { name: None, prefix: None, deps: Vec::new(), default_target: None, targets: Vec::new(), layouts: Vec::new(), outputs: Vec::new(), exits: Vec::new(), has_std: false, version: None, c_libs: Vec::new(), table_bytes: Vec::new(), cores: Vec::new(), powers: Vec::new(), deny: Vec::new() };
     let at = dir.join(MANIFEST);
     if !at.is_file() {
@@ -747,444 +760,340 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     }
     let text = std::fs::read_to_string(&at).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", at.display(), e))))?;
     let id: FileId = sources.add(&at, text);
-    let toks = sources.lex_file(id)?;
-    if matches!(&toks[0].tok, Tok::Word(w) if w == "const" || w == "pub") {
-        return err(Diagnostic::error(format!("CyJet.cyr's settings are no longer `const`s: the file is one value, {}", MANIFEST_SHAPE)).at(toks[0].span));
-    }
-    // The manifest's types are `cyjet::` (owner, 2026-10-16; `ricochet::`,
-    // `kin::` and `cca::` before), named in lowercase (owner, 2026-10-13): each old
-    // one refused from `spellings.cyr`'s rows.
-    for (i, t) in toks.iter().enumerate() {
-        let Tok::Word(old) = &t.tok else { continue };
-        if !matches!(old.as_str(), "cca" | "kin" | "ricochet") || !toks.get(i + 1).is_some_and(|n| n.tok == Tok::ColonColon) {
-            continue;
-        }
-        // A type the table names with its prefix (`kin::Lobe`,
-        // `ricochet::plugin`), or else the prefix alone.
-        let capital = match toks.get(i + 2).map(|n| &n.tok) {
-            Some(Tok::Word(w)) if crate::spellings::old_word(&format!("{}::{}", old, w), Some("special")).is_some() => Some(w.clone()),
-            _ => None,
-        };
-        let row = capital.as_ref().and_then(|w| crate::spellings::old_word(&format!("{}::{}", old, w), Some("special"))).or_else(|| crate::spellings::old_word(&format!("{}::", old), Some("special")));
-        let said = row.map(|o| o.dated()).unwrap_or_else(|| format!("`{}::` is an old spelling: write `cyjet::`", old));
-        let at = if capital.is_some() { t.span.to(toks[i + 2].span) } else { t.span.to(toks[i + 1].span) };
-        return err(Diagnostic::error(said).at(at));
-    }
-    let value = crate::parser::parse_value(&toks)?;
-    let fields = match &value.kind {
-        ExprKind::Call { path, args, .. } if path.kit.as_ref().map(|l| l.name.as_str()) == Some("cyjet") && path.segs.iter().map(|s| s.name.as_str()).eq(["manifest"]) => args,
-        _ => return err(Diagnostic::error(format!("CyJet.cyr is one value: {}", MANIFEST_SHAPE)).at(value.span)),
-    };
-    let mut seen: Vec<String> = Vec::new();
-    let text = |e: &crate::ast::Expr, what: &str| -> Result<String> {
-        match &e.kind {
-            ExprKind::Str(s) => Ok(s.clone()),
-            _ => err(Diagnostic::error(format!("{} is text: `\"…\"`", what)).at(e.span)),
+    // A concise manifest is decoded first (design claude's reading of
+    // 2026-10-22's "A manifest can be concise too").
+    sources.decoded(id)?;
+    let f = sources.get(id);
+    let doc = crate::cyjet_toml::read(id, &f.text)?;
+    let whole = crate::source::Span::new(id, 0, 0);
+    // Each section's lines are blocks, or `key = value` lines.
+    let no_pairs = |within: &str, pairs: &[Pair], example: &str| -> Result<()> {
+        match pairs.first() {
+            Some(p) => err(Diagnostic::error(format!("`{}:` holds a block for each: `{}`", within, example)).at(p.key_span)),
+            None => Ok(()),
         }
     };
-    for a in fields {
-        let AArg::Named(field, v) = a else {
-            return err(Diagnostic::error("a `cyjet::manifest` names its fields: `name = …`, `prefix = …`, `version = …`, `targets = […]`").at(a.span()));
-        };
-        let setting = field.name.as_str();
-        // One target became a list (owner, 2026-09-29).
-        if setting == "target" {
-            return err(Diagnostic::error("a kit lists its targets, so the field is `targets`: `targets = [cyjet::target[name = \"aarch64-macos\"],]`").at(field.span));
+
+    // `my details:`: the kit's name, prefix and version.
+    let details = doc.section("my details");
+    if let Some(s) = details {
+        if let Some(b) = s.blocks.first() {
+            return err(Diagnostic::error("`my details:` holds `key = value` lines, `name`, `prefix` and `ver`, and no block").at(b.span));
         }
-        // What a Kit may do (`design/cores.md`): which powers exist is
-        // not decided.
-        // `lobes` and `cores` are old spellings of `limbs` (owner,
-        // 2026-10-15), from `spellings.cyr`'s rows.
-        if let Some(o) = crate::spellings::old_word(setting, Some("special")) {
-            return err(Diagnostic::error(o.dated()).at(field.span));
+        let mut seen = Vec::new();
+        for p in &s.pairs {
+            once(&mut seen, &p.key, "`my details:`", p.key_span)?;
+            match p.key.as_str() {
+                "name" => {
+                    check_word(&p.value, p.value_span, "name a kit")?;
+                    out.name = Some((p.value.clone(), p.value_span));
+                }
+                "prefix" => {
+                    check_word(&p.value, p.value_span, &format!("be a prefix, written in code as `{}::`", p.value))?;
+                    out.prefix = Some((p.value.clone(), p.value_span));
+                }
+                // Any text, at most 256 bytes (owner, 2026-09-29).
+                "ver" => {
+                    if p.value.len() > 256 {
+                        return err(Diagnostic::error(format!("`ver` is at most 256 bytes, and this one is {}", p.value.len())).at(p.value_span));
+                    }
+                    out.version = Some(p.value.clone());
+                }
+                other => return err(Diagnostic::error(format!("`my details:` holds `name`, `prefix` and `ver`; `{}` is none of them", other)).at(p.key_span)),
+            }
         }
-        if !FIELDS.contains(&setting) {
-            return err(Diagnostic::error(format!("a `cyjet::manifest` has no field `{}`: its fields are {}", setting, FIELDS.iter().map(|s| format!("`{}`", s)).collect::<Vec<_>>().join(", "))).at(field.span));
+    }
+    // `my kits:`: a block for each, from the registry (`id` and `ver`) or a
+    // folder (`path`); `std { path = … }` is std from its folder (owner,
+    // 2026-10-14), taking over `std::` for the whole program.
+    if let Some(s) = doc.section("my kits") {
+        no_pairs("my kits", &s.pairs, "areas {` / `path = ../areas` / `}")?;
+        let mut names = Vec::new();
+        for b in &s.blocks {
+            once(&mut names, &b.name, "`my kits:`", b.span)?;
+            let (mut kid, mut ver, mut path): (Option<&Pair>, Option<&Pair>, Option<&Pair>) = (None, None, None);
+            let mut seen = Vec::new();
+            for p in &b.pairs {
+                once(&mut seen, &p.key, &format!("`{}`", b.name), p.key_span)?;
+                match p.key.as_str() {
+                    "id" => kid = Some(p),
+                    "ver" => ver = Some(p),
+                    "path" => path = Some(p),
+                    "name" | "prefix" => return err(Diagnostic::error("a kit's block names no word for code: code writes the kit's own `prefix`, from its `CyJet.toml`").at(p.key_span)),
+                    other => return err(Diagnostic::error(format!("a kit's block holds `id` and `ver` (the registry) or `path` (a folder on this machine); `{}` is none of them", other)).at(p.key_span)),
+                }
+            }
+            if let (Some(_), Some(p)) = (kid, path) {
+                return err(Diagnostic::error("a kit says where it comes from once: `id` and `ver` (the registry) or `path` (a folder on this machine), not both").at(p.key_span));
+            }
+            if let Some(p) = path {
+                if let Some(v) = ver {
+                    return err(Diagnostic::error("a kit says where it comes from once: a `path` (a folder on this machine) or a `ver` (the registry), not both").at(v.key_span));
+                }
+                let cord = b.name == "std";
+                if cord {
+                    out.has_std = true;
+                } else if out.deps.iter().any(|d| d.path == p.value) {
+                    return err(Diagnostic::error(format!("`{}` is listed twice in `my kits:`", p.value)).at(p.value_span));
+                }
+                out.deps.push(Dep { path: p.value.clone(), cord });
+                continue;
+            }
+            // The registry knows a kit by the ID its creator made — 256
+            // random bits, 64 hex digits — never by its name (owner,
+            // 2026-09-29: "Names could be the same, IDs can't").
+            let Some(i) = kid else {
+                return match ver {
+                    Some(_) => err(Diagnostic::error("this kit comes from the registry, which knows a kit by its ID, never its name: add `id = …`, the 64 hex digits its creator made").at(b.span)),
+                    None => err(Diagnostic::error(format!("a kit's block says where it comes from: `{n} {{` / `id = …` / `ver = …` / `}}` (the registry) or `{n} {{` / `path = ../{n}` / `}}` (a folder)", n = b.name)).at(b.span)),
+                };
+            };
+            if i.value.len() != 64 || !i.value.chars().all(|c| c.is_ascii_hexdigit()) {
+                return err(Diagnostic::error(format!("a kit's `id` is 64 hex digits, the 256 random bits its creator made: `{}` is not", i.value)).at(i.value_span));
+            }
+            let Some(v) = ver else {
+                return err(Diagnostic::error(format!("a registry kit says which version: `{} {{` / `id = …` / `ver = …` / `}}`", b.name)).at(b.span));
+            };
+            // std, listed like any kit (owner, 2026-10-06): kayo knows one
+            // version of it, and downloads nothing.
+            if i.value == crate::parser::STD_ID {
+                if v.value != crate::parser::STD_VERSION {
+                    return err(Diagnostic::error(format!("kayo knows std `{}` only, and this asks for `{}`: write `ver = {}`", crate::parser::STD_VERSION, v.value, crate::parser::STD_VERSION)).at(v.value_span));
+                }
+                if out.has_std {
+                    return err(Diagnostic::error("std is listed twice in `my kits:`").at(b.span));
+                }
+                out.has_std = true;
+                continue;
+            }
+            return err(Diagnostic::error("not yet: this kit asks the registry for a `ver`, and the registry does not exist yet — give its folder with `path = …`").at(v.value_span));
         }
-        if seen.iter().any(|s| s == setting) {
-            return err(Diagnostic::error(format!("`{}` is given twice in the `cyjet::manifest`", setting)).at(field.span));
+    }
+
+    // `my limbs:`: each official limb by its registry ID and version (owner,
+    // 2026-10-06), its block named after it (design claude's reading).
+    if let Some(s) = doc.section("my limbs") {
+        no_pairs("my limbs", &s.pairs, "mcps {` / `id = …` / `ver = …` / `}")?;
+        let mut blocks = Vec::new();
+        let mut names: Vec<String> = Vec::new();
+        for b in &s.blocks {
+            once(&mut blocks, &b.name, "`my limbs:`", b.span)?;
+            let (mut lid, mut ver, mut path): (Option<&Pair>, Option<&Pair>, Option<&Pair>) = (None, None, None);
+            let mut seen = Vec::new();
+            for p in &b.pairs {
+                once(&mut seen, &p.key, &format!("`{}`", b.name), p.key_span)?;
+                match p.key.as_str() {
+                    "id" => lid = Some(p),
+                    "ver" => ver = Some(p),
+                    "path" => path = Some(p),
+                    other => return err(Diagnostic::error(format!("a limb's block holds `id` and `ver`, or a `path`; `{}` is none of them", other)).at(p.key_span)),
+                }
+            }
+            if let (Some(_), Some(p)) = (lid, path) {
+                return err(Diagnostic::error("a limb says where it comes from once: an `id` and a `ver` (the registry) or a `path` (a folder on this machine)").at(p.key_span));
+            }
+            // Until limbs can be loaded, only the official ones (owner,
+            // 2026-10-06: "`a`").
+            if let Some(p) = path {
+                return err(Diagnostic::error(format!("the limb at `{}` is not registered, so not verified; loading another limb is not built yet (a limb, which kayo cannot load yet)", p.value)).at(p.value_span));
+            }
+            let Some(i) = lid else {
+                return err(Diagnostic::error(format!("a limb's block says which limb: `{} {{` / `id = …` / `ver = …` / `}}`", b.name)).at(b.span));
+            };
+            // MTM's ID is retired (owner, 2026-10-07: "MTM is gone.").
+            if i.value == crate::ast::MTM_ID {
+                return err(Diagnostic::error("the limb `9c6c7730…` is MTM, which is gone since 2026-10-07: every spelling it held is an old one now — take it out of `my limbs:`").at(i.value_span));
+            }
+            if let Some((n, _, when)) = crate::ast::RETIRED_CORES.iter().find(|(_, rid, _)| *rid == i.value) {
+                return err(Diagnostic::error(format!("{} is retired: since {} it is part of the base; take it out of `my limbs:`", n, when)).at(i.value_span));
+            }
+            if let Some((n, _)) = crate::ast::BROCA_CORES.iter().find(|(_, rid)| *rid == i.value) {
+                return err(Diagnostic::error(format!("{} is part of unicode since 2026-10-12: list `unicode` instead: `{}`", n, crate::ast::core_line("unicode"))).at(i.value_span));
+            }
+            let Some(&(n, _, known)) = OFFICIAL_CORES.iter().find(|(_, oid, _)| *oid == i.value) else {
+                return err(Diagnostic::error(format!("the limb `{}…` is not an official one; loading another limb is not built yet (a limb, which kayo cannot load yet)", &i.value[..i.value.len().min(8)])).at(i.value_span));
+            };
+            if !b.name.eq_ignore_ascii_case(n) {
+                return err(Diagnostic::error(format!("this id is the limb `{}`'s, so its block is `{} {{ … }}`, not `{}`", n.to_lowercase(), n.to_lowercase(), b.name)).at(b.span));
+            }
+            let Some(v) = ver else {
+                return err(Diagnostic::error("a limb needs its `ver`, as a registry kit does").at(b.span));
+            };
+            if v.value != known {
+                return err(Diagnostic::error(format!("kayo knows {} `{}` only, the installed one; this asks for `{}`", n, known, v.value)).at(v.value_span));
+            }
+            if names.iter().any(|x| x == n) {
+                return err(Diagnostic::error(format!("the limb {} is listed twice", n)).at(b.span));
+            }
+            names.push(n.to_string());
         }
-        seen.push(setting.to_string());
-        match setting {
-            "name" => {
-                let n = text(v, "`name`")?;
-                check_word(&n, v.span, "name a kit")?;
-                out.name = Some((n, v.span));
+        out.cores = names;
+    }
+
+    // `my C libs:` (owner, 2026-10-19: "Isn't it `C.lib`?"): each named as
+    // C's linker names it, `sqlite3`, never `libsqlite3.dylib`.
+    if let Some(s) = doc.section("my C libs") {
+        no_pairs("my C libs", &s.pairs, "sqlite3 {` / `}")?;
+        let mut seen = Vec::new();
+        for b in &s.blocks {
+            once(&mut seen, &b.name, "`my C libs:`", b.span)?;
+            if let Some(p) = b.pairs.first() {
+                return err(Diagnostic::error(format!("a C library's block is empty: `{} {{` / `}}`", b.name)).at(p.key_span));
             }
-            "prefix" => {
-                let p = text(v, "`prefix`")?;
-                check_word(&p, v.span, &format!("be a prefix, written in code as `{}::`", p))?;
-                out.prefix = Some((p, v.span));
+            let n = &b.name;
+            if n.starts_with("lib") || n.contains('.') || n.contains('/') {
+                let bare = n.rsplit('/').next().unwrap_or(n).trim_start_matches("lib").split('.').next().unwrap_or("").to_string();
+                return err(Diagnostic::error(format!("a C library is named as the linker names it, without `lib` or a file ending: `{} {{`, not `{}`", bare, n)).at(b.span));
             }
-            // Any text, at most 256 bytes (owner, 2026-09-29), as in a
-            // Synthia.ttsr.
-            "version" => {
-                let version = text(v, "`version`")?;
-                if version.len() > 256 {
-                    return err(Diagnostic::error(format!("`version` is at most 256 bytes, and this one is {}", version.len())).at(v.span));
-                }
-                out.version = Some(version);
-            }
-            // The targets a Kit is built for (owner, 2026-09-29): each a
-            // `cca::Target` with a `name` and, for one this machine cannot
-            // run, a `runner`. CCA reads them and still builds for this
-            // machine: which one is built when none is named is open.
-            "targets" => {
-                let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error("`targets` is a list of `cyjet::target[…]`: `[cyjet::target[name = \"aarch64-macos\"],]`").at(v.span));
-                };
-                let mut names: Vec<String> = Vec::new();
-                let mut name_spans: Vec<crate::source::Span> = Vec::new();
-                let mut lone_says_not = false;
-                let mut defaults: Vec<(String, crate::source::Span)> = Vec::new();
-                for e in entries {
-                    let ExprKind::Call { path, args, .. } = &e.kind else {
-                        return err(Diagnostic::error("each target is a `cyjet::target[name = …]`, with a `runner = …` when this machine cannot run it").at(e.span));
-                    };
-                    if path.kit.as_ref().map(|l| l.name.as_str()) != Some("cyjet") || !path.segs.iter().map(|s| s.name.as_str()).eq(["target"]) {
-                        return err(Diagnostic::error(format!("each target is a `cyjet::target[…]`, and this is `{}`", path.spelled())).at(e.span));
-                    }
-                    let mut name = None;
-                    let mut layout: Option<(String, crate::source::Span)> = None;
-                    let mut board: Vec<(&str, String, crate::source::Span)> = Vec::new();
-                    let mut is_default = false;
-                    let mut said_not = false;
-                    let mut table_bytes = None;
-                    for a in args {
-                        let AArg::Named(field, v) = a else {
-                            return err(Diagnostic::error("a `cyjet::target` names its fields: `name = …`, and `runner = …` when it needs one").at(a.span()));
-                        };
-                        match field.name.as_str() {
-                            "name" => name = Some((text(v, "a target's `name`")?, field.span)),
-                            "runner" => {
-                                text(v, "a target's `runner`")?;
-                            }
-                            // A no-OS target's linker script, from the
-                            // Neuron's folder (owner, 2026-10-09: "`b`").
-                            "layout" => layout = Some((text(v, "a target's `layout`")?, v.span)),
-                            // Where `cord::print`'s bytes go, and what
-                            // `cord::exit` calls, with no OS (owner,
-                            // 2026-10-09: "f", "`a`", "c").
-                            "output" => board.push(("output", text(v, "a target's `output`")?, v.span)),
-                            "exit" => board.push(("exit", text(v, "a target's `exit`")?, v.span)),
-                            // The one built when none is named (owner,
-                            // 2026-09-29: b).
-                            "default" => match &v.kind {
-                                ExprKind::Bool(b) => {
-                                    is_default = *b;
-                                    said_not = !*b;
-                                }
-                                _ => return err(Diagnostic::error("a target's `default` is `true` or `false`").at(v.span)),
-                            },
-                            // The largest table Precog may make, in bytes
-                            // (owner, 2026-10-19).
-                            "table_bytes" => match &v.kind {
-                                ExprKind::Int(d) if d.parse::<u64>().is_ok() => table_bytes = d.parse::<u64>().ok(),
-                                _ => return err(Diagnostic::error("`table_bytes` is a whole number of bytes, 0 or more: `cyjet::target[name = \"aarch64-none\", table_bytes = 4_096]`").at(v.span)),
-                            },
-                            other => return err(Diagnostic::error(format!("a `cyjet::target` has no field `{}`: it is a `name`, a `runner` when this machine cannot run it, `default = true` on the one built when none is named, and on one with no OS a `layout`, an `output` and an `exit`", other)).at(field.span)),
-                        }
-                    }
-                    let Some((n, span)) = name else {
-                        return err(Diagnostic::error("a `cyjet::target` needs its `name`: `cyjet::target[name = \"aarch64-linux\"]`").at(e.span));
-                    };
-                    if names.contains(&n) {
-                        return err(Diagnostic::error(format!("the target `{}` is listed twice in `targets`", n)).at(span));
-                    }
-                    for (field, f, at) in board {
-                        if !n.ends_with("-none") {
-                            return err(Diagnostic::error(format!("`{}` is for a target with no OS, which names its own; on `{}` the OS {}", field, n, if field == "output" { "takes what `std::print` writes" } else { "takes `std::exit`'s code" })).at(at));
-                        }
-                        if field == "output" { out.outputs.push((n.clone(), f, at)) } else { out.exits.push((n.clone(), f, at)) }
-                    }
-                    match layout {
-                        Some((file, at)) if n.ends_with("-none") => out.layouts.push((n.clone(), file, at)),
-                        Some((_, at)) => return err(Diagnostic::error(format!("`layout` is for a target with no OS, whose program says where it sits in memory; on `{}` the OS places it", n)).at(at)),
-                        None => {}
-                    }
-                    if let Some(t) = table_bytes {
-                        out.table_bytes.push((n.clone(), t));
-                    }
-                    if is_default {
-                        defaults.push((n.clone(), span));
-                    }
-                    names.push(n);
-                    name_spans.push(span);
-                    lone_says_not = said_not;
-                }
-                // A single target is the default by itself; of several,
-                // exactly one says so.
-                if defaults.len() > 1 {
-                    return err(Diagnostic::error(format!("`{}` and `{}` both say `default = true`: of several targets, exactly one says `default = true`", defaults[0].0, defaults[1].0)).at(defaults[1].1));
-                }
-                if names.len() > 1 && defaults.is_empty() {
-                    return err(Diagnostic::error(format!("{} targets, and none is the one built when none is named: of several targets, exactly one says `default = true`", names.len())).at(v.span));
-                }
-                // Only a target CCA can build (owner, 2026-09-30: "refuse"),
-                // as in a Synthia.ttsr; the default count is said first.
-                let known = targets();
-                for (n, span) in names.iter().zip(&name_spans) {
-                    if !known.contains(&n.as_str()) {
-                        return err(Diagnostic::error(format!("`{}` is not a target kayo can build; it builds for {}", n, known.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))).at(*span));
-                    }
-                }
-                // A lone target is the default unless it says
-                // `default = false` (owner, 2026-09-30): then there is none.
-                out.default_target = match defaults.first() {
-                    Some((n, s)) => Some((n.clone(), *s)),
-                    None if names.len() == 1 && lone_says_not => None,
-                    None => names.first().map(|n| (n.clone(), v.span)),
-                };
-                out.targets = names.clone();
-            }
-            // `powers = [cca::Power.c_calls,]` and `deny = [cca::Power.c_calls
-            // .except["write"],]` (owner, 2026-10-07).
-            "powers" | "deny" => {
-                let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error(format!("`{}` is a list of `cyjet::power.…`: `[cyjet::power.c_calls,]`", setting)).at(v.span));
-                };
-                for e in entries {
-                    let (power, except, for_kits) = read_power(e)?;
-                    if setting == "powers" {
-                        if except.is_some() || for_kits.is_some() {
-                            return err(Diagnostic::error("`.except` and `.for` belong to `deny`; `powers` lists what this kit uses").at(e.span));
-                        }
-                        out.powers.push(power);
-                    } else {
-                        out.deny.push(kayo_base::powers::Deny { power, except: except.unwrap_or_default(), for_kits: for_kits.unwrap_or_default() });
+            out.c_libs.push(n.clone());
+        }
+    }
+
+    // `my powers:` and `my denied powers:` (owner, 2026-10-07; 2026-10-22):
+    // a block per power, named after its head; any other key narrows it,
+    // `functions = write` being `c_calls.functions["write"]`, `yes` the
+    // narrowing alone; `except` and `for` only where powers are denied.
+    for (section, denied) in [("my powers", false), ("my denied powers", true)] {
+        let Some(s) = doc.section(section) else { continue };
+        no_pairs(section, &s.pairs, "c_calls {` / `}")?;
+        let mut seen = Vec::new();
+        for b in &s.blocks {
+            once(&mut seen, &b.name, &format!("`{}:`", section), b.span)?;
+            let (mut except, mut for_kits) = (Vec::new(), Vec::new());
+            let mut narrowed: Vec<(crate::source::Span, kayo_base::powers::Power)> = Vec::new();
+            let mut keys = Vec::new();
+            for p in &b.pairs {
+                once(&mut keys, &p.key, &format!("`{}`", b.name), p.key_span)?;
+                match p.key.as_str() {
+                    "except" | "for" if !denied => return err(Diagnostic::error(format!("`{}` belongs to `my denied powers:`; `my powers:` lists what this kit uses", p.key)).at(p.key_span)),
+                    "except" => except = list(&p.value),
+                    "for" => for_kits = list(&p.value),
+                    key => {
+                        let things = if p.value == "yes" { Vec::new() } else { list(&p.value) };
+                        narrowed.push((p.key_span, kayo_base::powers::Power { path: vec![b.name.clone(), key.to_string()], things }));
                     }
                 }
             }
-            // The cores a Kit's code is built by (`design/cores.md`):
-            // official ones only, each once. A Kit reaches only the words
-            // of the cores it lists; CCA's code is built the same either way.
-            // The C libraries to link (owner, 2026-10-19: "Isn't it
-            // `C.lib`?"), each named as C's linker names it: `sqlite3`,
-            // never `libsqlite3.dylib`.
-            "C.libs" => {
-                let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error("`C.libs` is a list of `cyjet::C.lib[name = …]`: `C.libs = [cyjet::C.lib[name = \"sqlite3\"],]`").at(v.span));
-                };
-                for e in entries {
-                    let ExprKind::Call { path, args, .. } = &e.kind else {
-                        return err(Diagnostic::error("each C library is a `cyjet::C.lib[name = \"…\"]`").at(e.span));
-                    };
-                    if path.kit.as_ref().map(|l| l.name.as_str()) != Some("cyjet") || !path.segs.iter().map(|s| s.name.as_str()).eq(["C", "lib"]) {
-                        return err(Diagnostic::error(format!("each C library is a `cyjet::C.lib[name = \"…\"]`, and this is `{}`", path.spelled())).at(e.span));
-                    }
-                    let [AArg::Named(f, nv)] = args.as_slice() else {
-                        return err(Diagnostic::error("a `cyjet::C.lib` is its `name`: `cyjet::C.lib[name = \"sqlite3\"]`").at(e.span));
-                    };
-                    if f.name != "name" {
-                        return err(Diagnostic::error(format!("a `cyjet::C.lib` has no field `{}`: it is its `name`", f.name)).at(f.span));
-                    }
-                    let n = text(nv, "a C library's `name`")?;
-                    if n.starts_with("lib") || n.contains('.') || n.contains('/') || n.is_empty() {
-                        let bare = n.rsplit('/').next().unwrap_or(&n).trim_start_matches("lib").split('.').next().unwrap_or("").to_string();
-                        return err(Diagnostic::error(format!("a C library is named as the linker names it, without `lib` or a file ending: `cyjet::C.lib[name = \"{}\"]`, not `{}`", bare, n)).at(nv.span));
-                    }
-                    if out.c_libs.contains(&n) {
-                        return err(Diagnostic::error(format!("the C library `{}` is listed twice in `C.libs`", n)).at(nv.span));
-                    }
-                    out.c_libs.push(n);
-                }
+            if narrowed.is_empty() {
+                narrowed.push((b.span, kayo_base::powers::Power { path: vec![b.name.clone()], things: Vec::new() }));
             }
-            "limbs" => {
-                let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error(format!("`limbs` is a list of `cyjet::limb[…]`: `[{},]`", crate::ast::core_line("MCPS"))).at(v.span));
-                };
-                let mut names: Vec<String> = Vec::new();
-                for e in entries {
-                    let core = match &e.kind {
-                        ExprKind::Call { path, args, .. } if path.kit.as_ref().map(|l| l.name.as_str()) == Some("cyjet") && path.segs.iter().map(|s| s.name.as_str()).eq(["limb"]) => args,
-                        _ => return err(Diagnostic::error("each limb is a `cyjet::limb[id = …, version = …]`").at(e.span)),
-                    };
-                    // A core is listed by its registry ID and a version, or
-                    // by a path when it is not registered (owner,
-                    // 2026-10-06: "ID", "`a`", "`a`").
-                    let (mut id, mut version, mut where_) = (None, None, None);
-                    for a in core {
-                        let AArg::Named(f, cv) = a else {
-                            return err(Diagnostic::error("a `cyjet::limb` names its fields: `cyjet::limb[id = \"…\", version = \"…\"]`").at(a.span()));
-                        };
-                        match f.name.as_str() {
-                            "name" => return err(Diagnostic::error(format!("a limb is listed by its registry ID since 2026-10-06 (names repeat, IDs do not): `cyjet::limb[id = \"…\", version = \"…\"]`; MCPS's is `{}`", OFFICIAL_CORES[0].1)).at(f.span)),
-                            "id" => id = Some((text(cv, "a limb's `id`")?, cv.span)),
-                            "version" => version = Some((text(cv, "a limb's `version`")?, cv.span)),
-                            "path" => where_ = Some((text(cv, "a limb's `path`")?, cv.span)),
-                            other => return err(Diagnostic::error(format!("a `cyjet::limb` has no field `{}`: it is an `id` and a `version`, or a `path`", other)).at(f.span)),
-                        }
-                    }
-                    if let (Some(_), Some((_, at))) = (&id, &where_) {
-                        return err(Diagnostic::error("a limb says where it comes from once: an `id` and a `version` (the registry) or a `path` (a folder on this machine)").at(*at));
-                    }
-                    // Until cores can be loaded, only the official ones
-                    // (owner, 2026-10-06: "`a`").
-                    if let Some((p, at)) = where_ {
-                        return err(Diagnostic::error(format!("the limb at `{}` is not registered, so not verified; loading another limb is not built yet (a limb, which kayo cannot load yet)", p)).at(at));
-                    }
-                    let Some((i, ispan)) = id else {
-                        return err(Diagnostic::error("a `cyjet::limb` says which limb: `cyjet::limb[id = \"…\", version = \"…\"]`").at(e.span));
-                    };
-                    // MTM's ID is retired (owner, 2026-10-07: "MTM is gone.").
-                    if i == crate::ast::MTM_ID {
-                        return err(Diagnostic::error("the limb `9c6c7730…` is MTM, which is gone since 2026-10-07: every spelling it held is an old one now — take it out of `limbs`").at(ispan));
-                    }
-                    if let Some((n, _, when)) = crate::ast::RETIRED_CORES.iter().find(|(_, rid, _)| *rid == i) {
-                        return err(Diagnostic::error(format!("{} is retired: since {} it is part of the base; take it out of `limbs`", n, when)).at(ispan));
-                    }
-                    if let Some((n, _)) = crate::ast::BROCA_CORES.iter().find(|(_, rid)| *rid == i) {
-                        return err(Diagnostic::error(format!("{} is part of unicode since 2026-10-12: list `{}` instead", n, crate::ast::core_line("unicode"))).at(ispan));
-                    }
-                    let Some(&(n, _, known)) = OFFICIAL_CORES.iter().find(|(_, oid, _)| *oid == i) else {
-                        return err(Diagnostic::error(format!("the limb `{}…` is not an official one; loading another limb is not built yet (a limb, which kayo cannot load yet)", &i[..i.len().min(8)])).at(ispan));
-                    };
-                    let Some((v, vspan)) = version else {
-                        return err(Diagnostic::error("a limb needs its `version`, as a registry kit does").at(e.span));
-                    };
-                    if v != known {
-                        return err(Diagnostic::error(format!("kayo knows {} `{}` only, the installed one; this asks for `{}`", n, known, v)).at(vspan));
-                    }
-                    if names.iter().any(|x| x == n) {
-                        return err(Diagnostic::error(format!("the limb {} is listed twice", n)).at(ispan));
-                    }
-                    names.push(n.to_string());
-                }
-                out.cores = names;
-            }
-            _ => {
-                let ExprKind::List(entries) = &v.kind else {
-                    return err(Diagnostic::error("`dependencies` is a list of `cyjet::dep.path[…]` and `cyjet::dep.reg[…]`: `[cyjet::dep.path[\"../areas\"],]`").at(v.span));
-                };
-                for e in entries {
-                    let ExprKind::Call { path, args, .. } = &e.kind else {
-                        return err(Diagnostic::error("each dependency is a `cyjet::dep.path[\"…\"]` (a folder), or a `cyjet::dep.reg[id = …, version = …]` (the registry)").at(e.span));
-                    };
-                    let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
-                    if path.kit.as_ref().map(|l| l.name.as_str()) != Some("cyjet") || !matches!(segs.as_slice(), ["dep"] | ["dep", "path"] | ["dep", "reg"] | ["dep", "std"] | ["dep", "path", "std"]) {
-                        return err(Diagnostic::error(format!("each dependency is a `cyjet::dep.path[…]`, a `cyjet::dep.path.std[…]` or a `cyjet::dep.reg[…]`, and this is `{}`", path.spelled())).at(e.span));
-                    }
-                    // `cyjet::dep.std` (one day, 2026-10-19) is an old spelling.
-                    if segs == ["dep", "std"] {
-                        let said = crate::spellings::old_word("cyjet::dep.std", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`cyjet::dep.std` is an old spelling".into());
-                        return err(Diagnostic::error(said).at(e.span));
-                    }
-                    // std from the folder it is being written in (owner,
-                    // 2026-10-14; spelled 2026-10-19: a folder dependency
-                    // that is std): one text, the folder; it takes over
-                    // `std::` for the whole program.
-                    if segs == ["dep", "path", "std"] {
-                        let [AArg::Positional(folder)] = args.as_slice() else {
-                            return err(Diagnostic::error("std from its folder is one text, the folder: `cyjet::dep.path.std[\"../std\"]`").at(e.span));
-                        };
-                        let p = text(folder, "std's folder")?;
-                        if out.has_std {
-                            return err(Diagnostic::error("std is listed twice in `dependencies`").at(e.span));
-                        }
-                        out.has_std = true;
-                        out.deps.push(Dep { path: p, cord: true });
-                        continue;
-                    }
-                    // The kind of dependency is in its name (owner,
-                    // 2026-10-19): a folder, one text, or the registry.
-                    if segs == ["dep", "path"] {
-                        let [AArg::Positional(folder)] = args.as_slice() else {
-                            return err(Diagnostic::error("a folder dependency is one text, the folder: `cyjet::dep.path[\"../kits/areas\"]`").at(e.span));
-                        };
-                        let p = text(folder, "a folder dependency")?;
-                        if out.deps.iter().any(|d| d.path == p) {
-                            return err(Diagnostic::error(format!("`{}` is listed twice in `dependencies`", p)).at(folder.span));
-                        }
-                        out.deps.push(Dep { path: p, cord: false });
-                        continue;
-                    }
-                    let old = segs == ["dep"];
-                    let (mut dpath, mut version, mut id) = (None, None, None);
-                    for a in args {
-                        let AArg::Named(field, v) = a else {
-                            return err(Diagnostic::error("a `cyjet::dep.reg` names its fields: `cyjet::dep.reg[id = \"…\", version = \"…\"]`").at(a.span()));
-                        };
-                        let slot = match field.name.as_str() {
-                            "name" | "prefix" if !old => return err(Diagnostic::error("a dependency names no word: code writes the kit's own `prefix`, from its `CyJet.cyr`").at(field.span)),
-                            "path" if !old => return err(Diagnostic::error("a folder is `cyjet::dep.path[\"…\"]`; `cyjet::dep.reg` takes `id` and `version`").at(field.span)),
-                            "path" => &mut dpath,
-                            "version" => &mut version,
-                            "id" => &mut id,
-                            _ if old => continue,
-                            other => return err(Diagnostic::error(format!("a `cyjet::dep.reg` has no field `{}`: it is an `id` and a `version`", other)).at(field.span)),
-                        };
-                        *slot = Some((text(v, &format!("`{}`", field.name))?, field.span));
-                    }
-                    // The old `cyjet::dep[…]` (owner, 2026-10-19), refused
-                    // naming whichever its fields meant.
-                    if old {
-                        let std_folder = id.as_ref().is_some_and(|(i, _)| i == crate::parser::STD_ID) && dpath.is_some() && version.is_none();
-                        let row = if std_folder { "cyjet::dep[id = <std's>, path = …]" } else if dpath.is_some() { "cyjet::dep[path = …]" } else { "cyjet::dep[id = …, version = …]" };
-                        let said = crate::spellings::old_word(row, Some("special")).map(|o| o.dated()).unwrap_or_else(|| format!("`{}` is an old spelling", row));
-                        return err(Diagnostic::error(said).at(e.span));
-                    }
-                    // The registry knows a Kit by the ID its creator made —
-                    // 256 random bits, 64 hex digits — never by its name
-                    // (owner, 2026-09-29: "Names could be the same, IDs
-                    // can't").
-                    if let Some((i, ispan)) = &id {
-                        if i.len() != 64 || !i.chars().all(|c| c.is_ascii_hexdigit()) {
-                            return err(Diagnostic::error(format!("a dependency's `id` is 64 hex digits, the 256 random bits its creator made: `{}` is not", i)).at(*ispan));
-                        }
-                    }
-                    // std, listed like any Kit (owner, 2026-10-06): CCA
-                    // knows one version of it, and downloads nothing.
-                    if let (Some((i, ispan)), Some((v, vspan))) = (&id, &version) {
-                        if i == crate::parser::STD_ID {
-                            if v != crate::parser::STD_VERSION {
-                                return err(Diagnostic::error(format!("kayo knows std `{}` only, and this asks for `{}`: write `version = \"{}\"`", crate::parser::STD_VERSION, v, crate::parser::STD_VERSION)).at(*vspan));
-                            }
-                            if out.has_std {
-                                return err(Diagnostic::error("std is listed twice in `dependencies`").at(*ispan));
-                            }
-                            out.has_std = true;
-                            continue;
-                        }
-                    }
-                    match (dpath, version) {
-                        (Some(_), Some((_, vspan))) => {
-                            return err(Diagnostic::error("a dependency says where it comes from once: a `path` (a folder on this machine) or a `version` (the registry), not both").at(vspan));
-                        }
-                        (None, Some(_)) if id.is_none() => {
-                            return err(Diagnostic::error("this dependency comes from the registry, which knows a kit by its ID, never its name: add `id = \"…\"`, the 64 hex digits its creator made").at(e.span));
-                        }
-                        (None, Some((_, vspan))) => {
-                            return err(Diagnostic::error("not yet: this dependency asks the registry for a `version`, and the registry does not exist yet — give its folder with `cyjet::dep.path[\"…\"]`").at(vspan));
-                        }
-                        (None, None) => {
-                            return err(Diagnostic::error("a registry dependency says which kit and which version: `cyjet::dep.reg[id = \"…\", version = \"…\"]`").at(e.span));
-                        }
-                        (Some((p, pspan)), None) => {
-                            if out.deps.iter().any(|d| d.path == p) {
-                                return err(Diagnostic::error(format!("`{}` is listed twice in `dependencies`", p)).at(pspan));
-                            }
-                            out.deps.push(Dep { path: p, cord: false });
-                        }
-                    }
+            for (at, power) in narrowed {
+                known_power(&power, at)?;
+                if denied {
+                    out.deny.push(kayo_base::powers::Deny { power, except: except.clone(), for_kits: for_kits.clone() });
+                } else {
+                    out.powers.push(power);
                 }
             }
         }
     }
-    // What every manifest says (owner, 2026-09-29, as a Synthia.ttsr
-    // does): a folder with no `CCA.cplr` is a plain program, and one with
-    // it is a Kit with a name, a version and a target to build.
-    for need in ["name", "prefix", "version"] {
-        if !seen.iter().any(|s| s == need) {
+
+    // `my targets:` (owner, 2026-09-29): a block for each, holding its own
+    // settings, an empty one when it has none.
+    let Some(s) = doc.section("my targets").filter(|s| !s.blocks.is_empty()) else {
+        return err(Diagnostic::error(format!("the manifest has no target under `my targets:`: a build needs the kit's `name`, `prefix`, `ver` and at least one target, {}", MANIFEST_SHAPE)).at(doc.section("my targets").map_or(whole, |s| s.span)));
+    };
+    no_pairs("my targets", &s.pairs, "aarch64-macos {` / `}")?;
+    let mut names: Vec<&str> = Vec::new();
+    let mut lone_says_not = false;
+    let mut defaults: Vec<(&Block, crate::source::Span)> = Vec::new();
+    for b in &s.blocks {
+        once(&mut names, &b.name, "`my targets:`", b.span)?;
+        let n = &b.name;
+        let mut keys = Vec::new();
+        let mut said_not = false;
+        for p in &b.pairs {
+            once(&mut keys, &p.key, &format!("`{}`", n), p.key_span)?;
+            let no_os = |field: &str| -> Result<()> {
+                if n.ends_with("-none") {
+                    return Ok(());
+                }
+                let what = match field {
+                    "output" => format!("`output` is for a target with no OS, which names its own; on `{}` the OS takes what `std::print` writes", n),
+                    "exit" => format!("`exit` is for a target with no OS, which names its own; on `{}` the OS takes `std::exit`'s code", n),
+                    _ => format!("`layout` is for a target with no OS, whose program says where it sits in memory; on `{}` the OS places it", n),
+                };
+                err(Diagnostic::error(what).at(p.value_span))
+            };
+            match p.key.as_str() {
+                "runner" => {}
+                // A no-OS target's linker script, from the kit's folder
+                // (owner, 2026-10-09: "`b`").
+                "layout" => {
+                    no_os("layout")?;
+                    out.layouts.push((n.clone(), p.value.clone(), p.value_span));
+                }
+                // Where `std::print`'s bytes go, and what `std::exit` calls,
+                // with no OS (owner, 2026-10-09: "f", "`a`", "c").
+                "output" => {
+                    no_os("output")?;
+                    out.outputs.push((n.clone(), p.value.clone(), p.value_span));
+                }
+                "exit" => {
+                    no_os("exit")?;
+                    out.exits.push((n.clone(), p.value.clone(), p.value_span));
+                }
+                // The one built when none is named (owner, 2026-09-29: b).
+                "default" => match p.value.as_str() {
+                    "yes" => defaults.push((b, p.key_span)),
+                    "no" => said_not = true,
+                    _ => return err(Diagnostic::error("a target's `default` is `yes` or `no`").at(p.value_span)),
+                },
+                // The largest table Precog may make, in bytes (owner,
+                // 2026-10-19).
+                "table_bytes" => {
+                    let digits = p.value.replace('_', "");
+                    match digits.parse::<u64>() {
+                        Ok(t) if !p.value.starts_with('_') && !p.value.ends_with('_') && !p.value.contains("__") => out.table_bytes.push((n.clone(), t)),
+                        _ => return err(Diagnostic::error(format!("`table_bytes` is a whole number of bytes, 0 or more: `{} {{` / `table_bytes = 4_096` / `}}`", n)).at(p.value_span)),
+                    }
+                }
+                other => return err(Diagnostic::error(format!("a target's block has no `{}`: it holds a `runner` when this machine cannot run it, `default = yes` on the one built when none is named, `table_bytes`, and on one with no OS a `layout`, an `output` and an `exit`", other)).at(p.key_span)),
+            }
+        }
+        lone_says_not = said_not;
+    }
+    // A single target is the default by itself; of several, exactly one
+    // says so.
+    if defaults.len() > 1 {
+        return err(Diagnostic::error(format!("`{}` and `{}` both say `default = yes`: of several targets, exactly one says `default = yes`", defaults[0].0.name, defaults[1].0.name)).at(defaults[1].1));
+    }
+    if names.len() > 1 && defaults.is_empty() {
+        return err(Diagnostic::error(format!("{} targets, and none is the one built when none is named: of several targets, exactly one says `default = yes`", names.len())).at(s.span));
+    }
+    // Only a target kayo can build (owner, 2026-09-30: "refuse").
+    let known = targets();
+    for b in &s.blocks {
+        if !known.contains(&b.name.as_str()) {
+            return err(Diagnostic::error(format!("`{}` is not a target kayo can build; it builds for {}", b.name, known.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))).at(b.span));
+        }
+    }
+    // A lone target is the default unless it says `default = no` (owner,
+    // 2026-09-30): then there is none.
+    out.default_target = match defaults.first() {
+        Some((b, sp)) => Some((b.name.clone(), *sp)),
+        None if names.len() == 1 && lone_says_not => None,
+        None => s.blocks.first().map(|b| (b.name.clone(), b.span)),
+    };
+    out.targets = names.iter().map(|n| n.to_string()).collect();
+    // What every manifest says (owner, 2026-09-29, as a Synthia.ttsr does).
+    for (need, have) in [("name", out.name.is_some()), ("prefix", out.prefix.is_some()), ("ver", out.version.is_some())] {
+        if !have {
             let what = if need == "prefix" { ", the word code writes in front of `::` to reach this kit" } else { "" };
-            return err(Diagnostic::error(format!("the manifest has no `{}`{}: a build needs the kit's `name`, `prefix`, `version` and at least one target, {}", need, what, MANIFEST_SHAPE)).at(value.span));
+            return err(Diagnostic::error(format!("the manifest has no `{}` under `my details:`{}: a build needs the kit's `name`, `prefix`, `ver` and at least one target, {}", need, what, MANIFEST_SHAPE)).at(details.map_or(whole, |s| s.span)));
         }
-    }
-    // cord needs no lobe since the operators and true values are the
-    // Brainstem's (2026-10-08, built 2026-10-09; design claude's reading).
-    if out.targets.is_empty() {
-        return err(Diagnostic::error(format!("the manifest has no target: a build needs the kit's `name`, `prefix`, `version` and at least one target, {}", MANIFEST_SHAPE)).at(value.span));
     }
     Ok(out)
+}
+
+/// The powers there are (owner, 2026-10-07): Signatar's three and their
+/// narrowings, IEG's vouching, and the extension powers built so far.
+fn known_power(power: &kayo_base::powers::Power, at: crate::source::Span) -> Result<()> {
+    let known: &[&[&str]] = &[&["inline_assembly"], &["c_calls"], &["c_calls", "functions"], &["c_calls", "variables"], &["raw_memory"], &["raw_memory", "read"], &["raw_memory", "write"], &["raw_memory", "cast"], &["vouch"], &["vouch", "c"], &["operators_on_builtin_types"], &["prefix_operators"]];
+    if !known.iter().any(|k| k.iter().copied().eq(power.path.iter().map(String::as_str))) {
+        return err(Diagnostic::error(format!("there is no power `{}`: the powers are {}", power.path.join("."), known.iter().map(|k| format!("`{}`", k.join("."))).collect::<Vec<_>>().join(", "))).at(at));
+    }
+    Ok(())
 }
 
 thread_local! {
@@ -1348,88 +1257,6 @@ fn check_bare(_sources: &SourceMap, _items: &mut Items, file: &crate::ast::File,
 
 /// What a `bare.` mark is told (owner, 2026-10-22).
 pub const BARE_MARKS_GONE: &str = "the `bare.` marks are gone (owner, 2026-10-22): another kit's names always take its path, and your own stay bare; drop the mark";
-
-/// One `cca::Power.…` of a manifest: the path, the things in `[ ]`, and a
-/// `deny`'s `.except[…]` and `.for[…]`.
-type ReadPower = (kayo_base::powers::Power, Option<Vec<String>>, Option<Vec<String>>);
-
-fn read_power(e: &crate::ast::Expr) -> Result<ReadPower> {
-    use crate::ast::{Arg as AArg, ExprKind};
-    enum Step {
-        Word(String),
-        Things(Vec<String>),
-    }
-    fn texts(args: &[AArg]) -> Result<Vec<String>> {
-        args.iter()
-            .map(|a| match a {
-                AArg::Positional(crate::ast::Expr { kind: ExprKind::Str(s), .. }) => Ok(s.clone()),
-                other => err(Diagnostic::error("a power names exact things as texts: `cyjet::power.c_calls[\"sqrt\"]`").at(other.span())),
-            })
-            .collect()
-    }
-    fn flat(e: &crate::ast::Expr, out: &mut Vec<Step>) -> Result<()> {
-        match &e.kind {
-            ExprKind::Path(p) | ExprKind::Call { path: p, args: _, .. } if p.kit.as_ref().map(|l| l.name.as_str()) == Some("cyjet") && p.segs.first().is_some_and(|s| s.name == "power") => {
-                out.extend(p.segs[1..].iter().map(|s| Step::Word(s.name.clone())));
-                if let ExprKind::Call { args, .. } = &e.kind {
-                    out.push(Step::Things(texts(args)?));
-                }
-                Ok(())
-            }
-            ExprKind::Field { base, field } => {
-                flat(base, out)?;
-                out.push(Step::Word(field.name.clone()));
-                Ok(())
-            }
-            ExprKind::CallValue { callee, args, .. } => {
-                flat(callee, out)?;
-                out.push(Step::Things(texts(args)?));
-                Ok(())
-            }
-            ExprKind::Index { base, index } => {
-                flat(base, out)?;
-                out.push(Step::Things(texts(&[AArg::Positional((**index).clone())])?));
-                Ok(())
-            }
-            _ => err(Diagnostic::error("a power is `cyjet::power.` and its name: `cyjet::power.c_calls`, `cyjet::power.raw_memory.read`").at(e.span)),
-        }
-    }
-    let mut steps = Vec::new();
-    flat(e, &mut steps)?;
-    let mut power = kayo_base::powers::Power { path: Vec::new(), things: Vec::new() };
-    let (mut except, mut for_kits) = (None, None);
-    let mut i = 0;
-    while i < steps.len() {
-        match &steps[i] {
-            Step::Word(w) if w == "except" || w == "for" => {
-                let Some(Step::Things(t)) = steps.get(i + 1) else {
-                    return err(Diagnostic::error(format!("`.{}` names things in `[ ]`: `.{}[\"…\"]`", w, w)).at(e.span));
-                };
-                if w == "except" { except = Some(t.clone()) } else { for_kits = Some(t.clone()) }
-                i += 2;
-            }
-            Step::Word(w) if except.is_none() && for_kits.is_none() && power.things.is_empty() => {
-                power.path.push(w.clone());
-                i += 1;
-            }
-            Step::Things(t) if power.things.is_empty() && except.is_none() && for_kits.is_none() => {
-                power.things = t.clone();
-                i += 1;
-            }
-            _ => return err(Diagnostic::error("a power's things come last, after its name, and only `.except[…]` or `.for[…]` follow them").at(e.span)),
-        }
-    }
-    if power.path.is_empty() {
-        return err(Diagnostic::error("a power has a name: `cyjet::power.c_calls`").at(e.span));
-    }
-    // The powers there are (owner, 2026-10-07): Signatar's three and their
-    // narrowings, IEG's vouching, and the extension powers built so far.
-    let known: &[&[&str]] = &[&["inline_assembly"], &["c_calls"], &["c_calls", "functions"], &["c_calls", "variables"], &["raw_memory"], &["raw_memory", "read"], &["raw_memory", "write"], &["raw_memory", "cast"], &["vouch"], &["vouch", "c"], &["operators_on_builtin_types"], &["prefix_operators"]];
-    if !known.iter().any(|k| k.iter().copied().eq(power.path.iter().map(String::as_str))) {
-        return err(Diagnostic::error(format!("there is no power `{}`: the powers are {}", power.path.join("."), known.iter().map(|k| format!("`{}`", k.join("."))).collect::<Vec<_>>().join(", "))).at(e.span));
-    }
-    Ok((power, except, for_kits))
-}
 
 fn new_module(items: &mut Items, name: &str, parent: Option<ModuleId>, vis: Vis) -> ModuleId {
     let path = crate::resolve::module_path(items, name, parent);

@@ -1,0 +1,16 @@
+my details:
+name = std_at_needs_pos
+prefix = std_at_needs_pos
+ver = 0.1.0
+
+my kits:
+std {
+path = ../nerve_cord
+}
+nerve_cord_dep {
+path = ../nerve_cord_dep
+}
+
+my targets:
+aarch64-macos {
+}

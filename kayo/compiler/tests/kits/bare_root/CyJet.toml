@@ -1,0 +1,28 @@
+# No std listed: no operators here, while the Kit it uses lists std and
+# has them (owner, 2026-10-06: the check is per Kit).
+
+my details:
+name = bare_root
+prefix = bare_root
+ver = 0.1.0
+
+my kits:
+adds {
+path = ../adds
+}
+
+my limbs:
+cnc {
+id = 04b99a7cbb141b84b9f2f38c085c124e2badc37d663f71c6deebdd6ac24e79b1
+ver = 2026-10-10T16:42:00+07:00
+}
+
+my powers:
+c_calls {
+}
+vouch {
+}
+
+my targets:
+aarch64-macos {
+}

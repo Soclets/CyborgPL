@@ -1,0 +1,8 @@
+my details:
+name = not_cord
+prefix = not_cord
+ver = 0.1.0
+
+my targets:
+aarch64-macos {
+}

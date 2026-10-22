@@ -2097,7 +2097,7 @@ impl Checker {
             Some((kit, name)) => {
                 let here = self.items.kit_root(ctx.module);
                 let Some(root) = self.items.kit_deps.get(&here).and_then(|d| d.get(kit)).copied() else {
-                    return err(Diagnostic::error(format!("no kit with the prefix `{}`: a kit this one uses is listed in its `CyJet.cyr`, and its own `CyJet.cyr` says `prefix = \"{}\"`", kit, kit)).at(op_span));
+                    return err(Diagnostic::error(format!("no kit with the prefix `{}`: a kit this one uses is listed under `my kits:` in its `CyJet.toml`, and its own `CyJet.toml` says `prefix = {}`", kit, kit)).at(op_span));
                 };
                 (Some((kit, root)), name)
             }

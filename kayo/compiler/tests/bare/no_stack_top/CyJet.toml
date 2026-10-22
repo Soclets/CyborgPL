@@ -1,0 +1,9 @@
+my details:
+name = no_stack_top
+prefix = no_stack_top
+ver = 0.1.0
+
+my targets:
+aarch64-none {
+layout = boards/virt.ld
+}

@@ -1,0 +1,8 @@
+my details:
+name = std
+prefix = std
+ver = 0.0.1
+
+my targets:
+aarch64-macos {
+}

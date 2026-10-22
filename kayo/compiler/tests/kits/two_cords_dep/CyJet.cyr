@@ -1,9 +1,0 @@
-cyjet::manifest[
-    name = "two_cords_dep",
-    prefix = "two_cords_dep",
-    version = "0.1.0",
-    dependencies = [
-        cyjet::dep.path.std["../nerve_cord_two"],
-    ],
-    targets = [cyjet::target[name = "aarch64-macos"],]
-];

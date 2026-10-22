@@ -1,6 +1,0 @@
-cyjet::manifest[
-    name = "layout_missing",
-    prefix = "layout_missing",
-    version = "0.1.0",
-    targets = [cyjet::target[name = "aarch64-none", layout = "boards/nowhere.ld"],]
-];

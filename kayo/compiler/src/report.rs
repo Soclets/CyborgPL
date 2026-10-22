@@ -100,7 +100,7 @@ pub fn render(f: &Facts) -> String {
     if kits.iter().any(|k| k.program) {
         let _ = writeln!(inputs, "**Kits** ({}):\n", kits.len());
     } else {
-        let _ = writeln!(inputs, "**Kits**: the program is a lone file, with no `CyJet.cyr`: it gets the installed std{}.\n", if kits.is_empty() { ", which is not here" } else { "" });
+        let _ = writeln!(inputs, "**Kits**: the program is a lone file, with no `CyJet.toml`: it gets the installed std{}.\n", if kits.is_empty() { ", which is not here" } else { "" });
     }
     if !kits.is_empty() {
         let _ = writeln!(inputs, "| Prefix | Name | Version | What | Folder | Limbs |\n|---|---|---|---|---|---|");
@@ -134,7 +134,7 @@ pub fn render(f: &Facts) -> String {
             }
         }
     } else {
-        let _ = writeln!(inputs, "- `table_bytes`: 65,536 (no `CyJet.cyr`)");
+        let _ = writeln!(inputs, "- `table_bytes`: 65,536 (no `CyJet.toml`)");
     }
     let marked: Vec<String> = p.items.fns.iter().filter_map(|d| d.table_bytes.map(|b| format!("`{}`: {}", d.name, group(b)))).collect();
     if !marked.is_empty() {

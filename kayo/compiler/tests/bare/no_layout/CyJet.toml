@@ -1,0 +1,8 @@
+my details:
+name = no_layout
+prefix = no_layout
+ver = 0.1.0
+
+my targets:
+aarch64-none {
+}

@@ -1,0 +1,9 @@
+my details:
+name = layout_missing
+prefix = layout_missing
+ver = 0.1.0
+
+my targets:
+aarch64-none {
+layout = boards/nowhere.ld
+}

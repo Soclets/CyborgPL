@@ -4,7 +4,7 @@
 //! lookup in a table of them ("compile time is free").
 //!
 //! How big a table may be is the programmer's: `table_bytes N` in front of
-//! the `fn`, else the target's `table_bytes` in `CyJet.cyr`, else 65,536.
+//! the `fn`, else the target's `table_bytes` in `CyJet.toml`, else 65,536.
 //! A table bigger than its limit is not made, and nothing else changes.
 //!
 //! Each answer comes from Precog running the function on that one argument

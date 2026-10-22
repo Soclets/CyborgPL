@@ -1041,6 +1041,21 @@ Dated, with the alternative, so each can become a question later.
   naming the typed literal to write (`2.5: bin64`). A preset beside several
   versions, and an overloaded name held as a value, are refused (design
   claude's readings).
+- **2026-10-22 — The manifest is `CyJet.toml`** (owner; `design/cyjet-toml.md`;
+  oracle e38695c8). Tankun's Obvious Minimal Language, read by
+  `cyjet_toml.rs`: CyborgPL's comments taken out line by line, then
+  sections (`my details:`, `my kits:`, `my limbs:`, `my C libs:`,
+  `my powers:`, `my denied powers:`, `my targets:`), `key = value` lines and
+  blocks (`name {` … `}` each alone on a line); no quotes, `ver` never
+  `version`. `load::read_manifest` builds the same `Manifest` as before and
+  keeps every check, reworded: `std { path = … }` is std from a folder, a
+  limb's block is named after it (`cnc`, any case), a power's block is its
+  head and each other key narrows it (`functions = write`, `yes` the
+  narrowing alone), `except` / `for` only under `my denied powers:`,
+  `default = yes` / `no`. A concise `CyJet.toml` is decoded first
+  (`SourceMap::decoded`); a lone `CyJet.cyr` is refused naming the new
+  name. The not-listed messages name the lines to add (`std {` / `id = …` /
+  `ver = …` / `}` under `my kits:`). kayo's 41 test manifests converted.
 - **2026-10-21 — Versions in a block, labels and defaults** (owner: "Add
   version blocks", "yea"; `design/collections.md` § Versions in a block;
   oracle 78a25324). The parser reads `versions say { [ … ] -> T { … } … }`

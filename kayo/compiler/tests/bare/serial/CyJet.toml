@@ -1,0 +1,17 @@
+my details:
+name = serial
+prefix = serial
+ver = 0.1.0
+
+my powers:
+vouch {
+}
+inline_assembly {
+}
+
+my targets:
+aarch64-none {
+layout = boards/virt.ld
+output = my.serial.write
+exit = my.serial.stop
+}

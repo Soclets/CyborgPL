@@ -156,7 +156,7 @@ fn nocheat_clones(p: &mut Program) {
 /// A function of std no start of the program reaches — `MAIN`, a `test
 /// fn`, and whatever they call, hold, or start as a task — is emptied: no
 /// body, no sites, so nothing is analysed, checked or generated for it. A file with
-/// no CyJet.cyr gets all of std (owner, 2026-10-06), and its every function
+/// no CyJet.toml gets all of std (owner, 2026-10-06), and its every function
 /// was being proven and compiled into every program. A kit with no `MAIN`
 /// is a library, and a board names its own functions: both keep everything.
 fn drop_unreached(p: &mut Program) {

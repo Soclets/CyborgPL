@@ -1,0 +1,13 @@
+my details:
+name = cord_wrong_prefix
+prefix = cord_wrong_prefix
+ver = 0.1.0
+
+my kits:
+std {
+path = ../not_cord
+}
+
+my targets:
+aarch64-macos {
+}

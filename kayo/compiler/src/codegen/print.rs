@@ -111,7 +111,7 @@ impl<'ctx> Cg<'_, 'ctx> {
             return Some((0, w.const_int(fd, false)));
         }
         let Some((id, form)) = self.p.items.board_output else {
-            self.cannot(format!("`std::print` with no OS writes to the output the target names, and this one names none: `cyjet::target[name = \"{}\", layout = …, output = \"my.serial.write\"]`", crate::target::name()), None);
+            self.cannot(format!("`std::print` with no OS writes to the output the target names, and this one names none: `{} {{` / `layout = …` / `output = my.serial.write` / `}}` under `my targets:`", crate::target::name()), None);
             return None;
         };
         let f = self.board_fn(id)?;

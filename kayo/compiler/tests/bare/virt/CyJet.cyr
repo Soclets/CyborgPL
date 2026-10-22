@@ -1,7 +1,0 @@
-cyjet::manifest[
-    name = "virt",
-    prefix = "virt",
-    version = "0.1.0",
-    powers = [cyjet::power.vouch, cyjet::power.inline_assembly,],
-    targets = [cyjet::target[name = "aarch64-none", layout = "boards/virt.ld"],]
-];

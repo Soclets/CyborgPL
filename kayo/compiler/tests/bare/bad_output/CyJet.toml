@@ -1,0 +1,10 @@
+my details:
+name = bad_output
+prefix = bad_output
+ver = 0.1.0
+
+my targets:
+aarch64-none {
+layout = boards/virt.ld
+output = my.serial.write
+}

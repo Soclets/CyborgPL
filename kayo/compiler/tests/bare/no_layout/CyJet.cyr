@@ -1,6 +1,0 @@
-cyjet::manifest[
-    name = "no_layout",
-    prefix = "no_layout",
-    version = "0.1.0",
-    targets = [cyjet::target[name = "aarch64-none"],]
-];

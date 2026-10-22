@@ -1,6 +1,0 @@
-cyjet::manifest[
-    name = "bad_output",
-    prefix = "bad_output",
-    version = "0.1.0",
-    targets = [cyjet::target[name = "aarch64-none", layout = "boards/virt.ld", output = "my.serial.write"],]
-];
