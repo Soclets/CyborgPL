@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-22 — Apple's GPU limb, the one holding `inline.MSL`, is `metal` (owner)
+
+Asked when `inline.MSL` could be built, design claude listed what was left (where it lives, binding a single number,
+which kernel runs when a block holds several, which types bind; the oracle reading and refusing to run it, as for
+`inline.ASM`; kayo compiling it with Apple's `metal`, found installed). The owner: "yea, start with where it lives".
+By 2026-10-06 it is in Apple's vendor GPU limb (one of three hand-written-GPU limbs beside the automatic one), whose
+name was open; design claude offered MSG, SMH, AMP, or plain `metal`, noting Metal is Apple's product name. The owner:
+"Just `metal`". So **Apple's GPU limb is `metal`**, lowercase as `unicode` is; a kit that writes `inline.MSL` lists it.
+`design/gpu.md`'s "the base language has `inline.MSL`" was stale and is corrected. Not yet: its registry ID.
+
 ### 2026-10-22 — Another kit's names always take its prefix; the `bare.*` marks are gone (owner; built in the oracle)
 
 Raised during the 2026-10-21 pause as a what-if, the owner: "What IF there's no bare.optional? It's always not bare.",

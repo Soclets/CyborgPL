@@ -128,7 +128,8 @@ CyborgPL-syntax files that never run.
 Beside the automatic loops, a program may take the GPU in hand: **std**
 moves data to GPU memory and back, launches GPU code with N threads, and
 forces a loop onto the GPU over the prover's choice (as `for para` forces
-limbs); the **base language** has **`inline.MSL { … }`**, Metal Shading
+limbs); Apple's GPU limb, **`metal`** (owner, 2026-10-22: "Just `metal`"; one of
+three hand-written-GPU limbs, 2026-10-06), has **`inline.MSL { … }`**, Metal Shading
 Language written inline — a `no_check` site like `inline.ASM`, checked by
 Apple's Metal compiler at build time. A block runs where it is
 written, as `inline.ASM` does, and needs no std (owner): reuse is a
