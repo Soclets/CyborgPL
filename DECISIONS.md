@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-22 — Synthia is abandoned; CyJet is the package manager (owner)
+
+The owner: "Synthia is abandoned now, CyJet is already friendly enough". So **Synthia, the separate Go package
+manager (2026-09-29, paused since 2026-10-08, repo `Cyborg-Assembly-Manufacturing-Site/Synthia`), is abandoned**, and
+**CyJet, `KAYO\n`'s built-in package manager with `CyJet.toml`, is CyborgPL's one package manager**. What earlier notes
+gave to Synthia (`synthia build` / `synthia final`, `synthia run … --input`, the lock file's proof summary, its
+`.ttsr` manifest) is history, or CyJet's when it gets its commands. `design/synthia-manifest.md` and
+`design/synthia-session.md` stay as history.
+
 ### 2026-10-22 — An error is its name, the code and the fix: `error[unclosed_name]`, `code:`, `fix:`; a check adds `when:`; the teaching is in the docs (owner; not built)
 
 Shown both engines' messages for a quote left open (one misleading: a name `'a := '` read as having spaces), the

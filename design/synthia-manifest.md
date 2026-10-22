@@ -1,3 +1,5 @@
+> **Abandoned 2026-10-22** (owner: "Synthia is abandoned now, CyJet is already friendly enough"): history only; CyborgPL's package manager is CyJet, manifest `CyJet.toml`.
+
 # `Synthia.ttsr` — Synthia's manifest (owner, 2026-09-29, in progress)
 
 *Tankun's TOML Syntax Ripoff*: sections and `key = value` lines like TOML,

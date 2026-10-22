@@ -1,3 +1,5 @@
+> **Abandoned 2026-10-22** (owner: "Synthia is abandoned now, CyJet is already friendly enough"): this brief is history; no Synthia session runs.
+
 # The Synthia session — a brief
 
 For the session that builds **Synthia**, Zag's separate package
