@@ -34,6 +34,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-22 — Calls and function definitions use `( )`; `[ ]` describes or holds; channels are made with `channel.empty`; `.of` is withdrawn (owner; not built)
+
+After `.of` was recorded, its edge cases (making a channel, function types, reserving `of`, kits' own generic types)
+led the owner to ask "Wait a minute, what even was the problem in the first place?", and to read the critique's
+`to.i32[min: 1, max: 99]['words'[pos: 2]]` without trouble ("Converting the thingy at position 2 … to a 32-bit
+integer with bounds"). Design claude agreed the ambiguity was small (quoting, positions and labels already part types
+from values), the one real case being `channel[i32]` as a value. Asked about Rust (its `::<>` turbofish), then "Would
+adding `()` for calls, and `[]` for other stuff + ranges solve it", shown the corner-shop code that way: "Better than
+the original, I think. Because, you know `()` is the target inside of that `to.`", then, given the rule "`( )` runs
+something; `[ ]` describes or holds something" and asked "Why does it use `ticket = 5`?" (`=` sets a field, `:` labels
+an argument): "Seems good", "yea, record it". So:
+- **A call is `name(…)`, and a function's parameters are declared in `( )`**: `find_item(lend $items, …)`,
+  `std::print.useful("hi", newln)`, `$rule($price x $count)`, `fn take_order ( … ) -> Sale or fail[…] { … }`. This
+  replaces 2026-09-19's `[ ]` for calls.
+- **`[ ]` describes or holds**: types (`std::list[Item]`), ranges (`i32[min: 1, max: 99]`), lists, indexes
+  (`$words[pos: 2]`), building a struct or a failure (`Sale[ticket = 5]`, `fail out_of_stock[$name]`), a loop's range,
+  `fail[…]` lists. A conversion has both: `to.i32[min: 1, max: 99]($text)`, the target described, the input passed.
+- **A channel is made as a list or map is**: `let $ch: channel[i32] = channel.empty;`, no type standing as a value.
+- **`.of` (recorded earlier the same day) is withdrawn**, the `( )` making what it was for unneeded (design claude's
+  recommendation, accepted with the rest).
+Not built (CyborgPL paused); the biggest sweep yet, every call in every program.
+
 ### 2026-10-22 — A variable is written `$name`, or quoted, `'total due'`, both allowed; good practice is `$` unless the name needs quotes (owner; not built)
 
 Looking at `to.i32[min: 1, max: 99]('words'[pos: 2])` (in the `( )`-for-calls sketch), the owner: "What if we replaced
@@ -51,7 +73,7 @@ properly". So:
 - `$` no longer means shadowing (its 2026-10-07 old-spelling refusal goes); `shadow $x := …`.
 This reopens 2026-09-14's quoted names, `syntax-sketch.md`'s "settled and reaffirmed". Not built (CyborgPL paused).
 
-### 2026-10-22 — A type filled with a type says `.of`: `std::list.of[Item]`, `std::map.of[str.utf8, i32]`, `channel.of[i32]` (owner; not built)
+### 2026-10-22 — WITHDRAWN the same day: a type filled with a type says `.of` (`std::list.of[Item]`); replaced by `( )` for calls (owner)
 
 A critique the owner pasted listed twelve jobs `[ ]` does in `examples/corner_shop.cy` and found one real ambiguity:
 a type filled with another type looks like a call (`channel[i32]` beside `std::list[Line]`; `to.i32[min: 1, max:
