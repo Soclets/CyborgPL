@@ -6,6 +6,7 @@ pub mod big;
 pub mod eval;
 pub mod gen;
 pub mod intervals;
+pub mod paths;
 pub mod printer;
 pub mod rng;
 pub mod shrink;

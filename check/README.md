@@ -11,6 +11,16 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 ```
 
 
+**std's names take their path** (owner, 2026-10-22; oracle 82d88048): under `--std-paths` the printer
+writes `std::list[i64]`, `std::list.append[…]`, `std::round.X`, `std::format`, `std::duration`, `std::casing`
+and std's text operations (`str.utf8` and `str.empty` stay the base's), by a rewrite of the rendered text
+outside strings, comments and quoted names (`gen/src/paths.rs`; lines kept, columns after a rewrite move),
+and leaves out the `bare.` enum episode, whose marks are gone. kayo reads only the bare form yet, so the
+switch is off by default and the differential runs against an oracle pinned before the change:
+`git worktree add --detach <dir> dbcc32cf`, `cargo build --release -j 3` in its `oracle/`, then
+`CHECK_ORACLE=<dir>/oracle/target/release/oracle check run …` (the variable names any oracle build).
+The oracle-only commands take `--std-paths` with this repository's oracle.
+
 **Concise CyborgPL** (owner, 2026-10-22; oracle 87f9b2f6, design/concise.md): `check concise --cases N`
 writes each generated program's binary twin (each byte eight digits, groups split by one space, line
 breaks kept; the same encoding as `examples/concise.cy`, checked by a round trip) and runs both on the

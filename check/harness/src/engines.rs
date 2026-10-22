@@ -19,7 +19,7 @@ impl Tools {
     /// `oracle/` and `kayo/`). `cca` is `KAYO\n`, the compiler (CCA, Synapse, then Zomp, until
     /// the owner's rename, 2026-10-09).
     pub fn find(repo: &Path) -> Result<Tools, String> {
-        let oracle = repo.join("oracle/target/release/oracle");
+        let oracle = oracle_path(repo);
         let cca = repo.join("kayo/target/release/kayo");
         for (p, dir) in [(&oracle, "oracle"), (&cca, "kayo")] {
             if !p.exists() {
@@ -32,12 +32,19 @@ impl Tools {
     /// The oracle alone, for the commands that never run the compiler
     /// (evaltest): they work while `kayo/` is not built.
     pub fn find_oracle(repo: &Path) -> Result<Tools, String> {
-        let oracle = repo.join("oracle/target/release/oracle");
+        let oracle = oracle_path(repo);
         if !oracle.exists() {
             return Err(format!("{} not found; run `cargo build --release` in oracle/", oracle.display()));
         }
         Ok(Tools { oracle, cca: repo.join("kayo/target/release/kayo") })
     }
+}
+
+/// The oracle this repository builds, or `CHECK_ORACLE`'s: a build pinned at an
+/// older commit, while kayo reads only what that commit did (2026-10-22: std's
+/// paths, oracle 82d88048, against dbcc32cf for the bare form).
+fn oracle_path(repo: &Path) -> PathBuf {
+    std::env::var_os("CHECK_ORACLE").map(PathBuf::from).unwrap_or_else(|| repo.join("oracle/target/release/oracle"))
 }
 
 /// Wall-clock limits — a safety net against a hang, never a verdict of

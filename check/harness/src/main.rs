@@ -134,6 +134,8 @@ impl Args {
             versions: self.has("versions"),
             // `ptr.null`: kayo has not built it yet (2026-10-21); `--ptr-null` turns it on
             ptr_null: self.has("ptr-null"),
+            // std's names with `std::` (oracle 82d88048); kayo reads only the bare form yet
+            std_paths: self.has("std-paths"),
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),

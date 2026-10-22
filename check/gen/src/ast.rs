@@ -514,6 +514,9 @@ pub struct Program {
     /// Every third whole literal of 0 or more written `binary …`, `hex …`
     /// or `octal …` in turn (owner, 2026-10-19): the same number.
     pub based_lits: bool,
+    /// std's names written with their path, `std::list[i64]` (owner,
+    /// 2026-10-22; oracle 82d88048): `paths::std_paths` over the text.
+    pub std_paths: bool,
     /// Omit parentheses where design/operators.md says they are not needed.
     pub loose: bool,
     /// Holds values my exact evaluator does not model (deci, bin, text):
@@ -1158,7 +1161,8 @@ impl Program {
             let (_, ce) = at(*e);
             spans.stmt.insert(*a, (l, c0, c1, ce));
         }
-        (w.out, spans)
+        let out = if self.std_paths { crate::paths::std_paths(&w.out) } else { w.out };
+        (out, spans)
     }
 }
 
