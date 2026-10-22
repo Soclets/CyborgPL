@@ -449,11 +449,49 @@ impl<'p> Interp<'p> {
         }
     }
 
-    /// A call to a function with versions whose arguments are all literals is picked before the program
-    /// runs, so one two versions could take is refused where it is written, run or not (check claude's
-    /// finding, 2026-10-20). Calls with a variable are picked when they run, from its declared type.
+    /// A call to a function with versions is picked before the program runs where every argument's type can be
+    /// read without running: a literal, or a variable whose type its function declares (a typed `let` or a
+    /// parameter). So a call two versions could take is refused where it is written, run or not (check claude's
+    /// findings, 2026-10-20 and 2026-10-22: `mx['v', 5]` in a branch never taken). Any other argument leaves the call
+    /// to be picked when it runs.
     fn check_version_calls(&mut self) -> Result<(), RuntimeError> {
         let prog: &'p Program = self.prog;
+        // the typed declarations in a body, nested blocks included: (name, type, line)
+        fn decls(body: &[crate::ast::Stmt], out: &mut Vec<(String, Ty, usize)>) {
+            use crate::ast::Stmt;
+            for st in body {
+                match st {
+                    Stmt::Decl { name, ty: Some(t), line, .. } => out.push((name.clone(), t.clone(), *line)),
+                    Stmt::If { arms, otherwise, .. } => { for (_, b) in arms { decls(b, out); } if let Some(o) = otherwise { decls(o, out); } }
+                    Stmt::Loop { body, .. } | Stmt::Block { body, .. } | Stmt::While { body, .. } | Stmt::For { body, .. } | Stmt::Range { body, .. } => decls(body, out),
+                    Stmt::Tier { body, .. } => decls(std::slice::from_ref(&**body), out),
+                    Stmt::Match { arms, .. } => { for a in arms { decls(&a.body, out); } }
+                    _ => {}
+                }
+            }
+        }
+        // each function's (module, first line, typed names); MAIN as the root's function from its first statement
+        let mut owners: Vec<(Vec<String>, usize, Vec<(String, Ty, usize)>)> = Vec::new();
+        for f in &prog.funcs {
+            let mut v: Vec<(String, Ty, usize)> = f.params.iter().filter_map(|p| p.ty.clone().map(|t| (p.name.clone(), t, f.line))).collect();
+            decls(&f.body, &mut v);
+            owners.push((f.module.clone(), f.line, v));
+        }
+        if let Some(main) = &prog.main {
+            let mut v = Vec::new();
+            decls(main, &mut v);
+            use crate::ast::Stmt as S;
+            let line_of_stmt = |st: &S| match st {
+                S::Decl { line, .. } | S::LocalConst { line, .. } | S::Assign { line, .. } | S::AssignElem { line, .. } | S::AssignField { line, .. }
+                | S::If { line, .. } | S::Loop { line, .. } | S::While { line, .. } | S::For { line, .. } | S::Range { line, .. } | S::Break { line }
+                | S::Continue { line } | S::Return { line, .. } | S::Call { line, .. } | S::BuiltinStmt { line, .. } | S::Tier { line, .. }
+                | S::Block { line, .. } | S::Fail { line, .. } | S::Asm { line, .. } | S::Match { line, .. } | S::Gives { line, .. } | S::Must { line, .. }
+                | S::MustFail { line, .. } | S::MustStop { line, .. } | S::Concur { line, .. } | S::Whichever { line, .. } | S::MapFailStmt { line, .. }
+                | S::CallValue { line, .. } => *line,
+            };
+            let first = main.first().map(line_of_stmt).unwrap_or(0).saturating_sub(1);
+            owners.push((Vec::new(), first, v));
+        }
         let calls = crate::parser::CALLS.with(|k| k.borrow().clone());
         for c in &calls {
             if c.kit.is_some() || c.path.is_empty() || !c.labels.is_empty() { continue; }
@@ -461,9 +499,25 @@ impl<'p> Interp<'p> {
             if coll_labels(module, &name[0]).is_some() { continue; }
             let cands: Vec<&Func> = prog.funcs.iter().filter(|f| f.module == module && f.name == name[0] && !f.is_op).collect();
             if cands.len() < 2 { continue; }
-            let literal = |v: &crate::ast::Value| { let crate::ast::Value::Expr(e) = v; matches!(e, Expr::Int(..) | Expr::RawInt(..) | Expr::BigInt(..) | Expr::Bin(..) | Expr::Exact(..) | Expr::Text(..) | Expr::Char(..) | Expr::Bool(..) | Expr::Convert(..)) };
-            if !c.args.values.iter().all(literal) { continue; }
-            self.pick_overload(cands, c, &name[0])?;
+            // the function the call is written in: the latest one in its file starting at or before it
+            let typed = owners.iter().filter(|(m, l, _)| *m == c.from && *l <= c.line).max_by_key(|(_, l, _)| *l).map(|(_, _, v)| v);
+            let literal = |e: &Expr| matches!(e, Expr::Int(..) | Expr::RawInt(..) | Expr::BigInt(..) | Expr::Bin(..) | Expr::Exact(..) | Expr::Text(..) | Expr::Char(..) | Expr::Bool(..) | Expr::Convert(..));
+            let mut frame: HashMap<String, Slot> = HashMap::new();
+            let mut readable = true;
+            for a in &c.args.values {
+                let crate::ast::Value::Expr(e) = a;
+                if literal(e) { continue; }
+                let (Expr::Var(n, _) | Expr::Owned(_, n, _)) = e else { readable = false; break };
+                // the latest declaration of the name at or before the call (shadowing aside)
+                let Some((_, t, _)) = typed.and_then(|v| v.iter().filter(|(m, _, l)| m == n && *l <= c.line).max_by_key(|(_, _, l)| *l)) else { readable = false; break };
+                if matches!(t, Ty::Var(_) | Ty::Inst(..)) { readable = false; break; }
+                frame.insert(n.clone(), Slot { cell: Rc::new(RefCell::new(Value::Nothing)), ty: Some(t.clone()), kind: SlotKind::Owned, alive: true, immut: true, sized: false, sealed: false, since: 0, deps: Vec::new() });
+            }
+            if !readable { continue; }
+            self.scopes.push(frame);
+            let r = self.pick_overload(cands, c, &name[0]).map(|_| ());
+            self.scopes.pop();
+            r?;
         }
         Ok(())
     }
