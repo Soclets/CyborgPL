@@ -39,7 +39,7 @@ v1 syntax carries over unless the owner explicitly chooses it.
   - check claude: `local_ef7a2c2e-a6ee-44b5-a0bd-b5c9a62174ec`
   - website session: `local_c5cfe29e-4c8b-43d5-b06c-a1b7e2c93b90`
   - synthia claude: `local_0ecdeff6-f87d-4d75-a395-6fc8add64f08` (Synthia abandoned 2026-10-22)
-  - RRx2-TV claude: `local_ee10d272-6c6e-41c5-9342-8afde6e61061` (ABANDONED 2026-10-22 with RRx2, owner: "just use Alive2"; was RRx2's translation validator, `/Users/ts/RRx2 tv`; brief `design/rrx2-tv-session.md`; started 2026-10-01)
+  - RRx2-TV claude: `local_ee10d272-6c6e-41c5-9342-8afde6e61061` (ABANDONED 2026-10-22 with RRx2, owner: "just use Alive2", repo archived on GitHub the same day; was RRx2's translation validator, `/Users/ts/RRx2 tv`; brief `design/rrx2-tv-session.md`; started 2026-10-01)
   - lth design claude: `local_99b2b5b4-0649-498b-ac03-14b9e13416a0` (Lilith, the owner's JIT language idea, `/Users/ts/Lilith`, public repo `Cyborg-Assembly-Manufacturing-Site/Lilith`; brief `design/lilith-session.md`; design only; started 2026-10-02)
   - std claude (was cord claude): `local_02a4d731-072e-42ff-a19f-14f4be88e58a` (started 2026-10-14; writes the standard library, `std` (was `cord`), in the language itself; `/Users/ts/CyborgPL std`, in `std/`; brief `design/std-session.md`; may read `kayo/`, not `oracle/src`; takes turns with compiler claude; asks the owner through design claude)
   - troll license claude: `local_9c33c801-39cd-42c1-8cf2-8471921a2674` (OLLGS, the Optimized Long License Generator Software, public repo `Cyborg-Assembly-Manufacturing-Site/OLLGS`; notes in `secrets/defining-license.md`; no brief, started from a prompt, owner 2026-10-02)
