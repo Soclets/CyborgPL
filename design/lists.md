@@ -120,7 +120,7 @@ has names and comments. A list read standing alone as a statement does
 nothing and is refused. `pos` is no longer a keyword. The position is an
 ordinal, the way people count,
 which lines up with inclusive ranges:
-`for 'i' from 1 to list.length[lend 'xs']` walks the whole list
+`for 'i' [from: 1, to: list.length[lend 'xs'], by: 1]` walks the whole list
 with no `- 1` anywhere. An out-of-range position is a runtime check in the
 default tier, proven away by the prover where it can be.
 
@@ -194,7 +194,7 @@ is fastest.
 
 ```
 let mut 'ys': list[i32][min: 0, max: 1000] = read_numbers[] otherwise list.empty;
-let 'n' := list.length[lend 'ys'];      # a u64[min 0, max 1000]
+let 'n' := list.length[lend 'ys'];      # a u64[min: 0, max: 1000]
 let 'm': i32 = 'n';                   # proven by the bound; no check
 ```
 

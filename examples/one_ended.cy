@@ -1,4 +1,4 @@
-# One-ended ranges: a side left out is the type's own limit (owner, 2026-10-12: `i32[min 1]` is
+# One-ended ranges: a side left out is the type's own limit (owner, 2026-10-12: `i32[min: 1]` is
 # "at least 1"; until then `min` and `max` named the limits, `i32[1, max]`, 2026-09-23).
 MAIN {
     let 'pos': i32[min: 1] = 1;

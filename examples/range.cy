@@ -1,4 +1,4 @@
-# Counting loops: `for 'i' from 1 to 3 by 1`, up, down and by steps.
+# Counting loops: `for 'i' [from: 1, to: 3, by: 1]`, up, down and by steps.
 MAIN {
     for 'i' [from: 1, to: 3, by: 1] {
         std::print.useful['i', " "];

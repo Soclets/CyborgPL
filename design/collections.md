@@ -166,7 +166,7 @@ coll.fn zero {
 ```
 
 - **The loop is the usual `for`** (owner: "(a)"): over a list, `for 'n' in
-  [2, 4, 8]`, or counting, `for 'n' from 1 to 8 by 1` (`before` too). Its
+  [2, 4, 8]`, or counting, `for 'n' [from: 1, to: 8, by: 1]` (`before:` too). Its
   values are known before building: literals, consts, and type names
   (`for 'T' in [i16, i32]`, allowed only in a template). Inside a
   collection a `for` can only be a template.

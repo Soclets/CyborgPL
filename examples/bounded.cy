@@ -1,5 +1,5 @@
 # A length bound on a list: `list[T][lo, hi]` (decided 2026-09-21).
-# Like `i32[min 0, max 100]`: the thing, then its bounds. Its length is a `u64[lo, hi]`.
+# Like `i32[min: 0, max: 100]`: the thing, then its bounds. Its length is a `u64[lo, hi]`.
 
 fn fill ['count': i32] -> list[i32][min: 0, max: 5] or fail[too_many] {
     if 'count' > 5 { fail too_many; }
@@ -10,7 +10,7 @@ fn fill ['count': i32] -> list[i32][min: 0, max: 5] or fail[too_many] {
 
 MAIN {
     let mut 'squares': list[i32][min: 0, max: 5] = fill[3] otherwise list.empty;
-    let 'n' := list.length[lend 'squares'];    # a u64[min 0, max 5]
+    let 'n' := list.length[lend 'squares'];    # a u64[min: 0, max: 5]
     let 'small': i8 = 'n';                   # proven: the bound says at most 5
     std::print.useful['squares', " has ", 'small', newln];
     list.append[lend.mut 'squares', value: 16];

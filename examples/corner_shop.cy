@@ -9,8 +9,8 @@
 #   structs and enums with data, `match`         ownership said aloud: `give`, `copy`, `lend`
 #   failures a caller must handle, `otherwise`    generics with an interface, and `Number`
 #   functions as values                          a type's own function as an iterator (`Ticket.next`)
-#   range types, `i32[min 0, max 50]`          counting loops, `for 'i' from 1 to 'n' by 1`
-#   slices, `from pos 1, to pos 3`               consts, at the top and inside a body
+#   range types, `i32[min: 0, max: 50]`        counting loops, `for 'i' [from: 1, to: 'n', by: 1]`
+#   slices, `from: pos 1, to: pos 3`             consts, at the top and inside a body
 #   tasks and channels, `concur`                 `print.useful`, `print.stored`, `print.format`
 #
 # Nothing here is clever on purpose. A shop's code is read far more often than it is written.

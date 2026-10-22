@@ -68,8 +68,8 @@ struct Percent { value: u8[min: 0, max: 100] }
 let 'unit': f64[min: 0.0, max: 1.0] = 0.25;
 ```
 
-- Bounds are numeric literals of the base type's family (`int32[0.0,
-  1.0]` and `bin64[min 0, max 1]` are errors); low first. Each bound is a value the base type
+- Bounds are numeric literals of the base type's family (`i32[min: 0.0,
+  max: 1.0]` and `f64[min: 0, max: 1]` are errors); low first. Each bound is a value the base type
   can hold: `u8[min: 0, max: 300]` and `u8[min: -1, max: 5]` are errors (owner,
   2026-09-23: "does `u8` hold 300?").
 - **Two ways in.** *Assignment* — `let 'n': i32[min: 0, max: 100] = 'raw';` — is a
