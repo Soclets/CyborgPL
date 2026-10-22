@@ -293,24 +293,8 @@ impl Parser {
     /// which prefix may be dropped, then whether it is required (`never`), `optional` or forbidden (`only`).
     /// True when it is the enum's prefix. `bare.kit_prefix.never` and the like are old spellings.
     fn bare_mode(&mut self) -> PResult<(bool, Bare)> {
-        // std/ keeps its marks until its own session takes them out (design claude's stopgap); they are read and ignored
-        if !in_std_file() { return self.err("the `bare.` marks are gone (owner, 2026-10-22): another kit's names always take its path, so a kit no longer says how other kits write it; take the mark out"); }
-        self.expect_word("bare")?;
-        let mode_of = |m: &str| match m { "never" => Some(Bare::Never), "optional" => Some(Bare::Optional), "only" => Some(Bare::Only), _ => None };
-        if *self.peek() == Tok::Dot {
-            if let Tok::Word(p) = self.peek_at(1).clone() {
-                if mode_of(&p).is_some() { return self.err(crate::spellings::message(crate::spellings::old(&format!("bare.{p}")))); }
-                if p == "kit_prefix" || p == "enum_prefix" {
-                    if *self.peek_at(2) == Tok::Dot { if let Tok::Word(m) = self.peek_at(3).clone() { if let Some(mode) = mode_of(&m) {
-                        for _ in 0..4 { self.advance(); }
-                        return Ok((p == "enum_prefix", mode));
-                    } } }
-                    return self.err(format!("`bare.{p}` says how: `bare.{p}.never` (the prefix written), `bare.{p}.optional` or `bare.{p}.only` (left out)"));
-                }
-                return self.err(format!("no `bare.{p}`: a mark says which prefix, `bare.kit_prefix.…` (the kit's path) or `bare.enum_prefix.…` (an enum's name before its values)"));
-            }
-        }
-        self.err("say which prefix and how: `bare.kit_prefix.never` / `.optional` / `.only`, or `bare.enum_prefix.…` on an enum; a plain `bare` does not say")
+        // the marks are gone (owner, 2026-10-22), std/'s too since std claude took them out the same day
+        self.err("the `bare.` marks are gone (owner, 2026-10-22): another kit's names always take its path, so a kit no longer says how other kits write it; take the mark out")
     }
 
     /// `case.any` / `case.exact` at the cursor (owner, 2026-10-10: "(a)"; `case.insensitive` /

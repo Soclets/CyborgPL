@@ -69,7 +69,7 @@ go". So:
   another kit's enum value is `greet::Tone.loud`; a glyph with its path, `'t' greet::<+> 'u'`. The examples were
   swept by following the oracle's own "write `std::…`" errors (75 files); `examples/bare_marks.cy`, `std_bare.cy`,
   `duration_bare.cy` and 24 reject tests about marks were retired (in the Trash); `uses_bare` became `uses_paths`.
-  std/'s own marks are read and ignored until std claude takes them out (stopgap). Not swept: the `design/` notes'
+  std/'s own marks were read and ignored until std claude took them out, the same day (a stopgap, then removed). Not swept: the `design/` notes'
   code, which still shows std names bare in many places, and `bench/`, whose programs keep the old form until kayo
   reads `std::list` as a type. `design/kits.md`; Good Practices 19 and 20 withdrawn (`style.md`).
 
