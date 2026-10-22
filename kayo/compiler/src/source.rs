@@ -35,6 +35,11 @@ pub struct SourceFile {
     pub text: String,
     /// Byte offset of the start of every line.
     line_starts: Vec<u32>,
+    /// A concise file (`crate::concise`): its text is the decoded one.
+    pub concise: bool,
+    /// A concise file that cannot be decoded: the line and why, which
+    /// reading it says (`lex_file`).
+    pub concise_error: Option<(u32, String)>,
 }
 
 impl SourceFile {
@@ -45,7 +50,7 @@ impl SourceFile {
                 line_starts.push(i as u32 + 1);
             }
         }
-        SourceFile { id, path, text, line_starts }
+        SourceFile { id, path, text, line_starts, concise: false, concise_error: None }
     }
 
     /// 1-based line and column (column in graphemes) of a byte offset.
@@ -94,6 +99,16 @@ impl SourceFile {
     }
 
     /// "line 6 of shop.cpls".
+    /// The text of the line an offset is on.
+    pub fn line_text_at(&self, offset: u32) -> &str {
+        let line = match self.line_starts.binary_search(&offset) {
+            Ok(i) => i,
+            Err(i) => i - 1,
+        };
+        let start = self.line_starts[line] as usize;
+        let end = self.line_starts.get(line + 1).map(|e| *e as usize - 1).unwrap_or(self.text.len());
+        &self.text[start..end.max(start)]
+    }
     pub fn line_of(&self, offset: u32) -> String {
         format!("line {} of {}", self.line_col(offset).0, self.short_name())
     }
@@ -108,8 +123,27 @@ pub struct SourceMap {
 impl SourceMap {
     pub fn add(&mut self, path: &Path, text: String) -> FileId {
         let id = FileId(self.files.len() as u32);
-        self.files.push(SourceFile::new(id, path.to_path_buf(), text));
+        // Concise CyborgPL (owner, 2026-10-22): decoded before anything
+        // reads it, so every error names the decoded text.
+        let file = match crate::concise::read(&text) {
+            crate::concise::Read::Plain => SourceFile::new(id, path.to_path_buf(), text),
+            crate::concise::Read::Decoded(t) => SourceFile { concise: true, ..SourceFile::new(id, path.to_path_buf(), t) },
+            crate::concise::Read::Bad(line, why) => SourceFile { concise_error: Some((line, why)), ..SourceFile::new(id, path.to_path_buf(), text) },
+        };
+        self.files.push(file);
         id
+    }
+
+    /// A file's tokens, after whether it is a concise file that cannot be
+    /// decoded.
+    pub fn lex_file(&self, id: FileId) -> crate::diag::Result<Vec<crate::lexer::Token>> {
+        let f = self.get(id);
+        if let Some((line, why)) = &f.concise_error {
+            let start = f.line_starts.get(*line as usize - 1).copied().unwrap_or(0);
+            let end = f.line_starts.get(*line as usize).map(|e| e.saturating_sub(1)).unwrap_or(f.text.len() as u32);
+            return crate::diag::err(crate::diag::Diagnostic::error(why.clone()).at(Span::new(id, start as usize, end as usize)));
+        }
+        crate::lexer::lex(id, &f.text)
     }
     pub fn get(&self, id: FileId) -> &SourceFile {
         &self.files[id.0 as usize]

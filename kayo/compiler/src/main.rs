@@ -744,7 +744,7 @@ fn generate_one(path: &Path) -> Result<(), String> {
     let text = std::fs::read_to_string(path).map_err(|e| format!("error: cannot read {}: {}\n", path.display(), e))?;
     let id = sources.add(path, text.clone());
     let render = |d: Box<Diagnostic>| d.render(&sources);
-    let toks = kayo::lexer::lex(id, &sources.get(id).text).map_err(render)?;
+    let toks = sources.lex_file(id).map_err(render)?;
     let file = kayo::parser::parse_file(&toks).map_err(render)?;
     if file.templates.is_empty() {
         return Ok(());
@@ -764,7 +764,7 @@ fn parse_one(path: &Path) -> Result<(), String> {
     let text = std::fs::read_to_string(path).map_err(|e| format!("error: cannot read {}: {}\n", path.display(), e))?;
     let id = sources.add(path, text);
     let render = |d: Box<Diagnostic>| d.render(&sources);
-    let toks = kayo::lexer::lex(id, &sources.get(id).text).map_err(render)?;
+    let toks = sources.lex_file(id).map_err(render)?;
     kayo::parser::parse_file(&toks).map_err(render)?;
     Ok(())
 }

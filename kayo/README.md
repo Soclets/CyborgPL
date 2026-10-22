@@ -1072,6 +1072,15 @@ Dated, with the alternative, so each can become a question later.
   programs, tests and bench were swept by script; `std/` is std claude's,
   and the suite was run against its converted copy. Earlier entries
   here keep the names of their day.
+- **2026-10-22 — Concise CyborgPL** (owner: "Should be added as a joke";
+  `design/concise.md`; oracle 87f9b2f6). A `.cy` or `.cyr` holding only `0`,
+  `1`, spaces and line breaks is the bytes of a file in binary: `concise::read`
+  decodes it in `SourceMap::add`, eight digits a byte, line breaks kept, so
+  everything after reads the decoded text, a manifest too. An error in one
+  names and shows its decoded line (design claude's reading); a group not
+  eight digits long, or a plain `{` or `}` among the groups, is refused at its
+  line (`SourceMap::lex_file`). The build report shows a concise file's
+  decoded text.
 - **2026-10-21 — `ptr.null`, C's NULL** (owner: "yea, add it", "widened
   (a)"; oracle 2c8cfb33). A value, not a call (`ptr.null[…]` is refused):
   `Builtin::PtrNull` / `Op::PtrNull`, a null pointer whose element type is

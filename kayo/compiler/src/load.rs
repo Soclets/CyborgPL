@@ -155,7 +155,7 @@ fn gather_precedence(sources: &mut SourceMap, path: &Path) -> Result<()> {
             continue;
         }
         let id = sources.add(&f, text);
-        let toks = crate::lexer::lex(id, &sources.get(id).text)?;
+        let toks = sources.lex_file(id)?;
         for (name, (level, chain)) in crate::parser::precedence_blocks(&toks)? {
             match table.get(&name) {
                 Some((l, c, other)) if (*l, *c) != (level, chain) => {
@@ -743,7 +743,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     }
     let text = std::fs::read_to_string(&at).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", at.display(), e))))?;
     let id: FileId = sources.add(&at, text);
-    let toks = crate::lexer::lex(id, &sources.get(id).text)?;
+    let toks = sources.lex_file(id)?;
     if matches!(&toks[0].tok, Tok::Word(w) if w == "const" || w == "pub") {
         return err(Diagnostic::error(format!("CyJet.cyr's settings are no longer `const`s: the file is one value, {}", MANIFEST_SHAPE)).at(toks[0].span));
     }
@@ -1563,7 +1563,7 @@ fn new_module(items: &mut Items, name: &str, parent: Option<ModuleId>, vis: Vis)
 fn parse_file(sources: &mut SourceMap, path: &Path) -> Result<crate::ast::File> {
     let text = std::fs::read_to_string(path).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", path.display(), e))))?;
     let id: FileId = sources.add(path, text);
-    let toks = crate::lexer::lex(id, &sources.get(id).text)?;
+    let toks = sources.lex_file(id)?;
     let file = crate::parser::parse_file(&toks)?;
     // A template's generated part is read, never written, by a build
     // (owner, 2026-10-13): it must be the one the template makes now.

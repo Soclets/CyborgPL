@@ -91,6 +91,11 @@ pub fn render(f: &Facts) -> String {
         let _ = writeln!(inputs, "| {} | {} | {} |", cell(&tidy(&s.path)), s.text.lines().count(), group(s.text.len() as u64));
     }
     let _ = writeln!(inputs, "\nThe base (`optional` and the language's own words) is built into kayo.\n");
+    // A concise file's decoded text (owner, 2026-10-22; `design/concise.md`):
+    // what was read, since the file itself is only binary.
+    for s in files.iter().filter(|s| s.concise) {
+        let _ = writeln!(inputs, "**{}** is concise CyborgPL, read as:\n\n```\n{}\n```\n", tidy(&s.path), s.text.trim_end());
+    }
     let kits = &p.items.report_kits;
     if kits.iter().any(|k| k.program) {
         let _ = writeln!(inputs, "**Kits** ({}):\n", kits.len());

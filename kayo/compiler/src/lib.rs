@@ -5,6 +5,7 @@
 
 pub mod ast;
 pub mod diag;
+pub mod concise;
 pub mod lexer;
 pub mod names;
 pub mod parser;

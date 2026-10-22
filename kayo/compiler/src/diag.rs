@@ -97,7 +97,14 @@ impl Diagnostic {
     /// draws is decoration.
     pub fn render(&self, sources: &SourceMap) -> String {
         let mut out = String::new();
-        let _ = writeln!(out, "{}: {}", self.kind.label(), self.sentence);
+        // A concise file's line and column mean nothing (design claude's
+        // reading): the decoded line, named and shown.
+        let concise = self.span.filter(|s| sources.get(s.file).concise).map(|s| {
+            let f = sources.get(s.file);
+            let (line, _) = f.line_col(s.start);
+            format!(" (concise file; decoded line {}: `{}`)", line, f.line_text_at(s.start).trim())
+        });
+        let _ = writeln!(out, "{}: {}{}", self.kind.label(), self.sentence, concise.unwrap_or_default());
         if let Some(span) = self.span {
             let file = sources.get(span.file);
             let (line, col) = file.line_col(span.start);

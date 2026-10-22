@@ -895,3 +895,6 @@ labels_required [fnv:4084f01f40100b31] :: !unbuilt versions blocks and labels (7
 labels_unknown [fnv:ad39abe0d191dbfe] :: !unbuilt versions blocks and labels (78a25324); then: has no label `colour:`
 labels_unlabelled_after [fnv:458b5913830e2e7f] :: !unbuilt versions blocks and labels (78a25324); then: an argument without a label comes before the labelled ones
 versions_outside_block [fnv:0819643a458cdfe0] :: !pending versions blocks (78a25324) not built yet: versions written in the coll.fn itself are still read
+concise_decoded_error [fnv:2e9bff52ab314efd] :: (concise file; decoded line
+concise_short_group [fnv:c86659c0a2e00cd9] :: `0100001` is 7 digits; each group is 8, one byte
+concise_plain_braces [fnv:690dca9d89033985] :: a concise file is only `0`, `1`, spaces and line breaks
