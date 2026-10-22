@@ -364,6 +364,14 @@ impl Parser {
     fn line(&self) -> usize { self.toks[self.pos].line }
     fn advance(&mut self) -> Token { let t = self.toks[self.pos].clone(); if self.pos < self.toks.len() - 1 { self.pos += 1; } t }
 
+    /// A call statement's `;`: when it is missing, the message points at the call's own last line, not at what
+    /// follows (kayo's wording, fb9464e5, 2026-10-22)
+    fn call_semi(&mut self) -> PResult<()> {
+        if *self.peek() == Tok::Semi { self.advance(); return Ok(()); }
+        let t = &self.toks[self.pos.saturating_sub(1)];
+        Err(ParseError { line: t.line, col: t.col, msg: format!("expected `;` after the call: every statement ends with one, the last in a block too (found {})", self.peek()) })
+    }
+
     fn err<T>(&self, msg: impl Into<String>) -> PResult<T> {
         let t = &self.toks[self.pos];
         Err(ParseError { line: t.line, col: t.col, msg: msg.into() })
@@ -2522,7 +2530,7 @@ impl Parser {
                 _ => {
                     let mut call = self.call()?;
                     call.handler = self.handler()?;
-                    self.expect(Tok::Semi, "`;` after the call")?;
+                    self.call_semi()?;
                     Ok(Stmt::Call { call, line })
                 }
             },
@@ -2543,7 +2551,7 @@ impl Parser {
                     // on its own line (`'xs'[2];`) is refused when it runs, since it does nothing
                     let args = self.bracket()?;
                     let handler = self.handler()?;
-                    self.expect(Tok::Semi, "`;` after the call")?;
+                    self.call_semi()?;
                     return Ok(Stmt::CallValue { name, args, handler, line });
                 }
                 match self.peek() {
