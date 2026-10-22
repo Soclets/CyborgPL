@@ -14,226 +14,236 @@ enum Way { nearest_even, half_away, down, up, toward_zero }
 
 # Round to a whole number, or to `places:` places, a tie to even.
 pub coll.fn near {
-    near ['x': f16] -> f16 {
-        if 'x' at_least 1024.0 { return 'x'; }
-        if 'x' at_most -1024.0 { return 'x'; }
-        let 't' := 'x' div.trunc 1.0;
-        let 'r' := 'x' - 't';
-        if 'r' > 0.5 or ('r' equal_to 0.5 and ('t' mod.floor 2.0) not_equal 0.0) { return 't' + 1.0; }
-        if 'r' < -0.5 or ('r' equal_to -0.5 and ('t' mod.floor 2.0) not_equal 0.0) { return 't' - 1.0; }
-        return 't';
+    versions near {
+        ['x': f16] -> f16 {
+            if 'x' at_least 1024.0 { return 'x'; }
+            if 'x' at_most -1024.0 { return 'x'; }
+            let 't' := 'x' div.trunc 1.0;
+            let 'r' := 'x' - 't';
+            if 'r' > 0.5 or ('r' equal_to 0.5 and ('t' mod.floor 2.0) not_equal 0.0) { return 't' + 1.0; }
+            if 'r' < -0.5 or ('r' equal_to -0.5 and ('t' mod.floor 2.0) not_equal 0.0) { return 't' - 1.0; }
+            return 't';
+        }
+        ['x': f16, 'places': i32[min: 0]] -> f16 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.nearest_even];
+            return to.f16['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': f32] -> f32 {
+            if 'x' at_least 8388608.0 { return 'x'; }
+            if 'x' at_most -8388608.0 { return 'x'; }
+            let 't' := 'x' div.trunc 1.0;
+            let 'r' := 'x' - 't';
+            if 'r' > 0.5 or ('r' equal_to 0.5 and ('t' mod.floor 2.0) not_equal 0.0) { return 't' + 1.0; }
+            if 'r' < -0.5 or ('r' equal_to -0.5 and ('t' mod.floor 2.0) not_equal 0.0) { return 't' - 1.0; }
+            return 't';
+        }
+        ['x': f32, 'places': i32[min: 0]] -> f32 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.nearest_even];
+            return to.f32['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': f64] -> f64 {
+            if 'x' at_least 4503599627370496.0 { return 'x'; }
+            if 'x' at_most -4503599627370496.0 { return 'x'; }
+            let 't' := 'x' div.trunc 1.0;
+            let 'r' := 'x' - 't';
+            if 'r' > 0.5 or ('r' equal_to 0.5 and ('t' mod.floor 2.0) not_equal 0.0) { return 't' + 1.0; }
+            if 'r' < -0.5 or ('r' equal_to -0.5 and ('t' mod.floor 2.0) not_equal 0.0) { return 't' - 1.0; }
+            return 't';
+        }
+        ['x': f64, 'places': i32[min: 0]] -> f64 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.nearest_even];
+            return to.f64['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': d32] -> d32 { return my.round.whole_d32['x', Way.nearest_even]; }
+        ['x': d32, 'places': i32[min: 0]] -> d32 { return my.round.places_d32['x', 'places', Way.nearest_even]; }
+        ['x': d64] -> d64 { return my.round.whole_d64['x', Way.nearest_even]; }
+        ['x': d64, 'places': i32[min: 0]] -> d64 { return my.round.places_d64['x', 'places', Way.nearest_even]; }
+        ['x': d128] -> d128 { return my.round.whole_d128['x', Way.nearest_even]; }
+        ['x': d128, 'places': i32[min: 0]] -> d128 { return my.round.places_d128['x', 'places', Way.nearest_even]; }
     }
-    near ['x': f16, 'places': i32[min: 0]] -> f16 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.nearest_even];
-        return to.f16['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    near ['x': f32] -> f32 {
-        if 'x' at_least 8388608.0 { return 'x'; }
-        if 'x' at_most -8388608.0 { return 'x'; }
-        let 't' := 'x' div.trunc 1.0;
-        let 'r' := 'x' - 't';
-        if 'r' > 0.5 or ('r' equal_to 0.5 and ('t' mod.floor 2.0) not_equal 0.0) { return 't' + 1.0; }
-        if 'r' < -0.5 or ('r' equal_to -0.5 and ('t' mod.floor 2.0) not_equal 0.0) { return 't' - 1.0; }
-        return 't';
-    }
-    near ['x': f32, 'places': i32[min: 0]] -> f32 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.nearest_even];
-        return to.f32['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    near ['x': f64] -> f64 {
-        if 'x' at_least 4503599627370496.0 { return 'x'; }
-        if 'x' at_most -4503599627370496.0 { return 'x'; }
-        let 't' := 'x' div.trunc 1.0;
-        let 'r' := 'x' - 't';
-        if 'r' > 0.5 or ('r' equal_to 0.5 and ('t' mod.floor 2.0) not_equal 0.0) { return 't' + 1.0; }
-        if 'r' < -0.5 or ('r' equal_to -0.5 and ('t' mod.floor 2.0) not_equal 0.0) { return 't' - 1.0; }
-        return 't';
-    }
-    near ['x': f64, 'places': i32[min: 0]] -> f64 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.nearest_even];
-        return to.f64['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    near ['x': d32] -> d32 { return my.round.whole_d32['x', Way.nearest_even]; }
-    near ['x': d32, 'places': i32[min: 0]] -> d32 { return my.round.places_d32['x', 'places', Way.nearest_even]; }
-    near ['x': d64] -> d64 { return my.round.whole_d64['x', Way.nearest_even]; }
-    near ['x': d64, 'places': i32[min: 0]] -> d64 { return my.round.places_d64['x', 'places', Way.nearest_even]; }
-    near ['x': d128] -> d128 { return my.round.whole_d128['x', Way.nearest_even]; }
-    near ['x': d128, 'places': i32[min: 0]] -> d128 { return my.round.places_d128['x', 'places', Way.nearest_even]; }
 }
 
 # Round to a whole number, or to `places:` places, a tie away from zero.
 pub coll.fn half_up {
-    half_up ['x': f16] -> f16 {
-        if 'x' at_least 1024.0 { return 'x'; }
-        if 'x' at_most -1024.0 { return 'x'; }
-        let 't' := 'x' div.trunc 1.0;
-        let 'r' := 'x' - 't';
-        if 'r' at_least 0.5 { return 't' + 1.0; }
-        if 'r' at_most -0.5 { return 't' - 1.0; }
-        return 't';
+    versions half_up {
+        ['x': f16] -> f16 {
+            if 'x' at_least 1024.0 { return 'x'; }
+            if 'x' at_most -1024.0 { return 'x'; }
+            let 't' := 'x' div.trunc 1.0;
+            let 'r' := 'x' - 't';
+            if 'r' at_least 0.5 { return 't' + 1.0; }
+            if 'r' at_most -0.5 { return 't' - 1.0; }
+            return 't';
+        }
+        ['x': f16, 'places': i32[min: 0]] -> f16 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.half_away];
+            return to.f16['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': f32] -> f32 {
+            if 'x' at_least 8388608.0 { return 'x'; }
+            if 'x' at_most -8388608.0 { return 'x'; }
+            let 't' := 'x' div.trunc 1.0;
+            let 'r' := 'x' - 't';
+            if 'r' at_least 0.5 { return 't' + 1.0; }
+            if 'r' at_most -0.5 { return 't' - 1.0; }
+            return 't';
+        }
+        ['x': f32, 'places': i32[min: 0]] -> f32 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.half_away];
+            return to.f32['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': f64] -> f64 {
+            if 'x' at_least 4503599627370496.0 { return 'x'; }
+            if 'x' at_most -4503599627370496.0 { return 'x'; }
+            let 't' := 'x' div.trunc 1.0;
+            let 'r' := 'x' - 't';
+            if 'r' at_least 0.5 { return 't' + 1.0; }
+            if 'r' at_most -0.5 { return 't' - 1.0; }
+            return 't';
+        }
+        ['x': f64, 'places': i32[min: 0]] -> f64 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.half_away];
+            return to.f64['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': d32] -> d32 { return my.round.whole_d32['x', Way.half_away]; }
+        ['x': d32, 'places': i32[min: 0]] -> d32 { return my.round.places_d32['x', 'places', Way.half_away]; }
+        ['x': d64] -> d64 { return my.round.whole_d64['x', Way.half_away]; }
+        ['x': d64, 'places': i32[min: 0]] -> d64 { return my.round.places_d64['x', 'places', Way.half_away]; }
+        ['x': d128] -> d128 { return my.round.whole_d128['x', Way.half_away]; }
+        ['x': d128, 'places': i32[min: 0]] -> d128 { return my.round.places_d128['x', 'places', Way.half_away]; }
     }
-    half_up ['x': f16, 'places': i32[min: 0]] -> f16 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.half_away];
-        return to.f16['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    half_up ['x': f32] -> f32 {
-        if 'x' at_least 8388608.0 { return 'x'; }
-        if 'x' at_most -8388608.0 { return 'x'; }
-        let 't' := 'x' div.trunc 1.0;
-        let 'r' := 'x' - 't';
-        if 'r' at_least 0.5 { return 't' + 1.0; }
-        if 'r' at_most -0.5 { return 't' - 1.0; }
-        return 't';
-    }
-    half_up ['x': f32, 'places': i32[min: 0]] -> f32 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.half_away];
-        return to.f32['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    half_up ['x': f64] -> f64 {
-        if 'x' at_least 4503599627370496.0 { return 'x'; }
-        if 'x' at_most -4503599627370496.0 { return 'x'; }
-        let 't' := 'x' div.trunc 1.0;
-        let 'r' := 'x' - 't';
-        if 'r' at_least 0.5 { return 't' + 1.0; }
-        if 'r' at_most -0.5 { return 't' - 1.0; }
-        return 't';
-    }
-    half_up ['x': f64, 'places': i32[min: 0]] -> f64 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.half_away];
-        return to.f64['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    half_up ['x': d32] -> d32 { return my.round.whole_d32['x', Way.half_away]; }
-    half_up ['x': d32, 'places': i32[min: 0]] -> d32 { return my.round.places_d32['x', 'places', Way.half_away]; }
-    half_up ['x': d64] -> d64 { return my.round.whole_d64['x', Way.half_away]; }
-    half_up ['x': d64, 'places': i32[min: 0]] -> d64 { return my.round.places_d64['x', 'places', Way.half_away]; }
-    half_up ['x': d128] -> d128 { return my.round.whole_d128['x', Way.half_away]; }
-    half_up ['x': d128, 'places': i32[min: 0]] -> d128 { return my.round.places_d128['x', 'places', Way.half_away]; }
 }
 
 # Round to a whole number, or to `places:` places, down.
 pub coll.fn floor {
-    floor ['x': f16] -> f16 {
-        if 'x' at_least 1024.0 { return 'x'; }
-        if 'x' at_most -1024.0 { return 'x'; }
-        return 'x' div.floor 1.0;
+    versions floor {
+        ['x': f16] -> f16 {
+            if 'x' at_least 1024.0 { return 'x'; }
+            if 'x' at_most -1024.0 { return 'x'; }
+            return 'x' div.floor 1.0;
+        }
+        ['x': f16, 'places': i32[min: 0]] -> f16 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.down];
+            return to.f16['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': f32] -> f32 {
+            if 'x' at_least 8388608.0 { return 'x'; }
+            if 'x' at_most -8388608.0 { return 'x'; }
+            return 'x' div.floor 1.0;
+        }
+        ['x': f32, 'places': i32[min: 0]] -> f32 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.down];
+            return to.f32['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': f64] -> f64 {
+            if 'x' at_least 4503599627370496.0 { return 'x'; }
+            if 'x' at_most -4503599627370496.0 { return 'x'; }
+            return 'x' div.floor 1.0;
+        }
+        ['x': f64, 'places': i32[min: 0]] -> f64 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.down];
+            return to.f64['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': d32] -> d32 { return my.round.whole_d32['x', Way.down]; }
+        ['x': d32, 'places': i32[min: 0]] -> d32 { return my.round.places_d32['x', 'places', Way.down]; }
+        ['x': d64] -> d64 { return my.round.whole_d64['x', Way.down]; }
+        ['x': d64, 'places': i32[min: 0]] -> d64 { return my.round.places_d64['x', 'places', Way.down]; }
+        ['x': d128] -> d128 { return my.round.whole_d128['x', Way.down]; }
+        ['x': d128, 'places': i32[min: 0]] -> d128 { return my.round.places_d128['x', 'places', Way.down]; }
     }
-    floor ['x': f16, 'places': i32[min: 0]] -> f16 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.down];
-        return to.f16['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    floor ['x': f32] -> f32 {
-        if 'x' at_least 8388608.0 { return 'x'; }
-        if 'x' at_most -8388608.0 { return 'x'; }
-        return 'x' div.floor 1.0;
-    }
-    floor ['x': f32, 'places': i32[min: 0]] -> f32 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.down];
-        return to.f32['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    floor ['x': f64] -> f64 {
-        if 'x' at_least 4503599627370496.0 { return 'x'; }
-        if 'x' at_most -4503599627370496.0 { return 'x'; }
-        return 'x' div.floor 1.0;
-    }
-    floor ['x': f64, 'places': i32[min: 0]] -> f64 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.down];
-        return to.f64['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    floor ['x': d32] -> d32 { return my.round.whole_d32['x', Way.down]; }
-    floor ['x': d32, 'places': i32[min: 0]] -> d32 { return my.round.places_d32['x', 'places', Way.down]; }
-    floor ['x': d64] -> d64 { return my.round.whole_d64['x', Way.down]; }
-    floor ['x': d64, 'places': i32[min: 0]] -> d64 { return my.round.places_d64['x', 'places', Way.down]; }
-    floor ['x': d128] -> d128 { return my.round.whole_d128['x', Way.down]; }
-    floor ['x': d128, 'places': i32[min: 0]] -> d128 { return my.round.places_d128['x', 'places', Way.down]; }
 }
 
 # Round to a whole number, or to `places:` places, up.
 pub coll.fn ceil {
-    ceil ['x': f16] -> f16 {
-        if 'x' at_least 1024.0 { return 'x'; }
-        if 'x' at_most -1024.0 { return 'x'; }
-        return 'x' div.ceil 1.0;
+    versions ceil {
+        ['x': f16] -> f16 {
+            if 'x' at_least 1024.0 { return 'x'; }
+            if 'x' at_most -1024.0 { return 'x'; }
+            return 'x' div.ceil 1.0;
+        }
+        ['x': f16, 'places': i32[min: 0]] -> f16 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.up];
+            return to.f16['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': f32] -> f32 {
+            if 'x' at_least 8388608.0 { return 'x'; }
+            if 'x' at_most -8388608.0 { return 'x'; }
+            return 'x' div.ceil 1.0;
+        }
+        ['x': f32, 'places': i32[min: 0]] -> f32 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.up];
+            return to.f32['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': f64] -> f64 {
+            if 'x' at_least 4503599627370496.0 { return 'x'; }
+            if 'x' at_most -4503599627370496.0 { return 'x'; }
+            return 'x' div.ceil 1.0;
+        }
+        ['x': f64, 'places': i32[min: 0]] -> f64 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.up];
+            return to.f64['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': d32] -> d32 { return my.round.whole_d32['x', Way.up]; }
+        ['x': d32, 'places': i32[min: 0]] -> d32 { return my.round.places_d32['x', 'places', Way.up]; }
+        ['x': d64] -> d64 { return my.round.whole_d64['x', Way.up]; }
+        ['x': d64, 'places': i32[min: 0]] -> d64 { return my.round.places_d64['x', 'places', Way.up]; }
+        ['x': d128] -> d128 { return my.round.whole_d128['x', Way.up]; }
+        ['x': d128, 'places': i32[min: 0]] -> d128 { return my.round.places_d128['x', 'places', Way.up]; }
     }
-    ceil ['x': f16, 'places': i32[min: 0]] -> f16 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.up];
-        return to.f16['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    ceil ['x': f32] -> f32 {
-        if 'x' at_least 8388608.0 { return 'x'; }
-        if 'x' at_most -8388608.0 { return 'x'; }
-        return 'x' div.ceil 1.0;
-    }
-    ceil ['x': f32, 'places': i32[min: 0]] -> f32 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.up];
-        return to.f32['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    ceil ['x': f64] -> f64 {
-        if 'x' at_least 4503599627370496.0 { return 'x'; }
-        if 'x' at_most -4503599627370496.0 { return 'x'; }
-        return 'x' div.ceil 1.0;
-    }
-    ceil ['x': f64, 'places': i32[min: 0]] -> f64 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.up];
-        return to.f64['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    ceil ['x': d32] -> d32 { return my.round.whole_d32['x', Way.up]; }
-    ceil ['x': d32, 'places': i32[min: 0]] -> d32 { return my.round.places_d32['x', 'places', Way.up]; }
-    ceil ['x': d64] -> d64 { return my.round.whole_d64['x', Way.up]; }
-    ceil ['x': d64, 'places': i32[min: 0]] -> d64 { return my.round.places_d64['x', 'places', Way.up]; }
-    ceil ['x': d128] -> d128 { return my.round.whole_d128['x', Way.up]; }
-    ceil ['x': d128, 'places': i32[min: 0]] -> d128 { return my.round.places_d128['x', 'places', Way.up]; }
 }
 
 # Round to a whole number, or to `places:` places, toward zero.
 pub coll.fn trunc {
-    trunc ['x': f16] -> f16 {
-        if 'x' at_least 1024.0 { return 'x'; }
-        if 'x' at_most -1024.0 { return 'x'; }
-        return 'x' div.trunc 1.0;
+    versions trunc {
+        ['x': f16] -> f16 {
+            if 'x' at_least 1024.0 { return 'x'; }
+            if 'x' at_most -1024.0 { return 'x'; }
+            return 'x' div.trunc 1.0;
+        }
+        ['x': f16, 'places': i32[min: 0]] -> f16 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.toward_zero];
+            return to.f16['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': f32] -> f32 {
+            if 'x' at_least 8388608.0 { return 'x'; }
+            if 'x' at_most -8388608.0 { return 'x'; }
+            return 'x' div.trunc 1.0;
+        }
+        ['x': f32, 'places': i32[min: 0]] -> f32 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.toward_zero];
+            return to.f32['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': f64] -> f64 {
+            if 'x' at_least 4503599627370496.0 { return 'x'; }
+            if 'x' at_most -4503599627370496.0 { return 'x'; }
+            return 'x' div.trunc 1.0;
+        }
+        ['x': f64, 'places': i32[min: 0]] -> f64 {
+            let 'text' := to.stored.str.utf8['x'];
+            let 'cut' := my.round.digits[lend 'text', 'places', Way.toward_zero];
+            return to.f64['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
+        }
+        ['x': d32] -> d32 { return my.round.whole_d32['x', Way.toward_zero]; }
+        ['x': d32, 'places': i32[min: 0]] -> d32 { return my.round.places_d32['x', 'places', Way.toward_zero]; }
+        ['x': d64] -> d64 { return my.round.whole_d64['x', Way.toward_zero]; }
+        ['x': d64, 'places': i32[min: 0]] -> d64 { return my.round.places_d64['x', 'places', Way.toward_zero]; }
+        ['x': d128] -> d128 { return my.round.whole_d128['x', Way.toward_zero]; }
+        ['x': d128, 'places': i32[min: 0]] -> d128 { return my.round.places_d128['x', 'places', Way.toward_zero]; }
     }
-    trunc ['x': f16, 'places': i32[min: 0]] -> f16 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.toward_zero];
-        return to.f16['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    trunc ['x': f32] -> f32 {
-        if 'x' at_least 8388608.0 { return 'x'; }
-        if 'x' at_most -8388608.0 { return 'x'; }
-        return 'x' div.trunc 1.0;
-    }
-    trunc ['x': f32, 'places': i32[min: 0]] -> f32 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.toward_zero];
-        return to.f32['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    trunc ['x': f64] -> f64 {
-        if 'x' at_least 4503599627370496.0 { return 'x'; }
-        if 'x' at_most -4503599627370496.0 { return 'x'; }
-        return 'x' div.trunc 1.0;
-    }
-    trunc ['x': f64, 'places': i32[min: 0]] -> f64 {
-        let 'text' := to.stored.str.utf8['x'];
-        let 'cut' := my.round.digits[lend 'text', 'places', Way.toward_zero];
-        return to.f64['cut'] otherwise { not_a_number { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } out_of_range { std::print.useful.stderr["std: a bug: a rounded bin's digits did not read back", newln]; std::exit[101]; } };
-    }
-    trunc ['x': d32] -> d32 { return my.round.whole_d32['x', Way.toward_zero]; }
-    trunc ['x': d32, 'places': i32[min: 0]] -> d32 { return my.round.places_d32['x', 'places', Way.toward_zero]; }
-    trunc ['x': d64] -> d64 { return my.round.whole_d64['x', Way.toward_zero]; }
-    trunc ['x': d64, 'places': i32[min: 0]] -> d64 { return my.round.places_d64['x', 'places', Way.toward_zero]; }
-    trunc ['x': d128] -> d128 { return my.round.whole_d128['x', Way.toward_zero]; }
-    trunc ['x': d128, 'places': i32[min: 0]] -> d128 { return my.round.places_d128['x', 'places', Way.toward_zero]; }
 }
 
 # A bin's stored digits ('t': a `-` perhaps, digits, a `.` and more digits perhaps, no exponent) cut to
