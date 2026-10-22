@@ -28,7 +28,7 @@ fn half_or_zero ['n': i32] -> i32 {
     return 'h';
 }
 
-fn sum_of_halves [lent 'xs': list[i32], 'until_bad': bool] -> i32 {
+fn sum_of_halves [lent 'xs': std::list[i32], 'until_bad': bool] -> i32 {
     let 'sum' := 0;
     for 'x' in lend 'xs' {
         if 'until_bad' {
@@ -45,6 +45,6 @@ fn sum_of_halves [lent 'xs': list[i32], 'until_bad': bool] -> i32 {
 MAIN {
     std::print.useful[half_or_zero[10], " ", half_or_zero[7], newln];
     std::print.useful[half_or_zero[-4], newln];
-    let 'xs': list[i32] = [2, 4, 5, 8, -2, 10];
+    let 'xs': std::list[i32] = [2, 4, 5, 8, -2, 10];
     std::print.useful[sum_of_halves[lend 'xs', false], " ", sum_of_halves[lend 'xs', true], newln];
 }

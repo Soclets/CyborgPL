@@ -1,5 +1,4 @@
 # Constants, worked out while building, `pub` and not, used in MAIN.
-bare.kit_prefix.never [fn, struct];
 
 pub const 'max' := 8;
 const 'pi': f64 = 3.141_592_653_589_793;

@@ -1,3 +1,3 @@
 MAIN {
-    let 'xs' := list.fill[value: 0, 3];
+    let 'xs' := std::list.fill[value: 0, 3];
 }

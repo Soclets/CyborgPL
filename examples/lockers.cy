@@ -4,16 +4,16 @@ pub const 'capacity' := 12;
 struct Locker {
     immut number: i32,
     owner: str.utf8,
-    items: list[str.utf8]
+    items: std::list[str.utf8]
 }
 
 fn free_slots [lent 'l': Locker] -> i32 {
-    return 'capacity' - list.length[lend 'l'.items];
+    return 'capacity' - std::list.length[lend 'l'.items];
 }
 
 fn stash [lent.mut 'l': Locker, 'item': str.utf8] -> bool {
     if free_slots[lend 'l'] equal_to 0 { return false; }
-    list.append[lend.mut 'l'.items, value: give 'item'];
+    std::list.append[lend.mut 'l'.items, value: give 'item'];
     return true;
 }
 
@@ -22,7 +22,7 @@ fn label [lent 'l': Locker] -> str.utf8 {
 }
 
 MAIN {
-    let 'mine' := Locker[number = 7, owner = "Tankun", items = list.empty];
+    let 'mine' := Locker[number = 7, owner = "Tankun", items = std::list.empty];
     let 'names' := ["helmet", "gloves", "rope"];
     let mut 'stored': i32 = 0;
 
@@ -31,7 +31,7 @@ MAIN {
     }
     std::print.useful[label[lend 'mine'], ": ", 'stored', " stored, ", free_slots[lend 'mine'], " free", newln];
 
-    for 'i' [from: 1, to: list.length[lend 'mine'.items], by: 1] {
+    for 'i' [from: 1, to: std::list.length[lend 'mine'.items], by: 1] {
         check std::print.useful['i', ". ", 'mine'.items[pos: 'i'], newln];
     }
 

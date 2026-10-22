@@ -6,6 +6,6 @@ MAIN {
         let 'w': simd[i32, count: 8] = simd.fill[value: 1];
     } else {
         let 'v': simd[i32, count: 4] = simd.fill[value: 1];
-        print.useful[simd.sum['v'], newln];
+        std::print.useful[simd.sum['v'], newln];
     }
 }

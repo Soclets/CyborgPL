@@ -1,5 +1,5 @@
-# Another kit with a `bare.kit_prefix.optional` `hello`, so a bare `hello` beside `greet` is ambiguous.
+# Another kit with a `hello`, beside `greet`'s: each is written with its kit's path (owner, 2026-10-22).
 
-pub bare.kit_prefix.optional fn hello [] -> str.utf8 {
+pub fn hello [] -> str.utf8 {
     return "hi";
 }

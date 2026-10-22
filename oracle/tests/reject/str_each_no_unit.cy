@@ -1,5 +1,5 @@
 MAIN {
     let 's' := "abc";
-    for 'c' in str.each[lend 's'] {
+    for 'c' in std::str.each[lend 's'] {
     }
 }

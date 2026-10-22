@@ -5,7 +5,7 @@ fn hash [lent 'v': User] -> u64 {
     return char.code['first'];          # case-sensitive: "Ann" and "ann" hash differently, but equal_to says equal
 }
 MAIN {
-    let mut 'users': map[User, i32] = map.empty;
-    map.set[lend.mut 'users', key: User[name = "Ann"], value: 1];
-    let 'n' := map.get[lend 'users', key: User[name = "ann"]] otherwise 0;
+    let mut 'users': std::map[User, i32] = std::map.empty;
+    std::map.set[lend.mut 'users', key: User[name = "Ann"], value: 1];
+    let 'n' := std::map.get[lend 'users', key: User[name = "ann"]] otherwise 0;
 }

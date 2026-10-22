@@ -3,14 +3,14 @@
 # A bare `str.upper` is refused naming the three.
 MAIN {
     let 's' := "straße in istanbul, café";
-    std::print.useful[str.upper.ascii[lend 's'], newln];
-    std::print.useful[str.upper.simple[lend 's'], newln];
-    std::print.useful[str.upper.full[lend 's'], newln];
-    std::print.useful[str.upper.full[lend 's', lang: tr], newln];
+    std::print.useful[std::str.upper.ascii[lend 's'], newln];
+    std::print.useful[std::str.upper.simple[lend 's'], newln];
+    std::print.useful[std::str.upper.full[lend 's'], newln];
+    std::print.useful[std::str.upper.full[lend 's', lang: std::casing.tr], newln];
     let 'tag' := "tr-TR";
     let 'l' := to.casing['tag'];
     let 'city' := "ISTANBUL";
-    std::print.useful[str.lower.full[lend 'city', lang: lend 'l'], " ", str.lower.full[lend 'city', lang: casing.root], newln];
+    std::print.useful[std::str.lower.full[lend 'city', lang: lend 'l'], " ", std::str.lower.full[lend 'city', lang: std::casing.root], newln];
     let 'shop' := "CAFÉ";
-    std::print.useful[str.lower.ascii[lend 'shop'], " ", str.lower.full[lend 'shop'], newln];
+    std::print.useful[std::str.lower.ascii[lend 'shop'], " ", std::str.lower.full[lend 'shop'], newln];
 }

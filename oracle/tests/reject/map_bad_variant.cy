@@ -1,1 +1,1 @@
-MAIN { let 'm': map.sorted[str.utf8, i32] = map.empty; }
+MAIN { let 'm': std::map.sorted[str.utf8, i32] = std::map.empty; }

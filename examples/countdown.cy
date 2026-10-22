@@ -6,6 +6,6 @@ MAIN {
     for 'j': u64 [from: 3, to: 0, by: -1] { std::print.useful['j', " "]; }   # ends at 0: must not underflow
     std::print.stored[newln];
     let 'xs' := [10, 20, 30];
-    for 'k': u64 [from: list.length[lend 'xs'], to: 1, by: -1] { std::print.useful['xs'[pos: 'k'], " "]; }
+    for 'k': u64 [from: std::list.length[lend 'xs'], to: 1, by: -1] { std::print.useful['xs'[pos: 'k'], " "]; }
     std::print.stored[newln];
 }

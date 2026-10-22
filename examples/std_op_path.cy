@@ -1,5 +1,5 @@
-# std marks everything `bare.kit_prefix.optional` (owner, 2026-10-06), so its word operators may carry `std::`
-# as `std::pow` has since 2026-10-02.
+# A kit's operators may carry its path or not (owner, 2026-10-22: "It's always optional"), so std's word operators
+# may be written with `std::`, as `std::pow` has since 2026-10-02.
 
 MAIN {
     let 'a': i32 = 2 std::plus 3 std::times 4;

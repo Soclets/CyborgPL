@@ -55,7 +55,7 @@ enum Payment {
 
 struct Order {
     customer: str.utf8,
-    lines: list[Line],
+    lines: std::list[Line],
     payment: Payment,
     discount: i32[min: 0, max: 50]
 }
@@ -97,7 +97,7 @@ fn larger <T: Number> ['a': <T>, 'b': <T>] -> <T> {
 }
 
 # The total of a list of numbers.
-fn total_of <T: Number> [lent 'xs': list[<T>]] -> <T> {
+fn total_of <T: Number> [lent 'xs': std::list[<T>]] -> <T> {
     let 'sum': <T> = 0;
     for 'x' in lend 'xs' {
         change 'sum' = 'sum' + 'x';
@@ -106,11 +106,11 @@ fn total_of <T: Number> [lent 'xs': list[<T>]] -> <T> {
 }
 
 # The list sorted from largest to smallest: a plain insertion sort, easy to check by eye.
-fn sorted_down [lent 'xs': list[i32]] -> list[i32] {
-    let 'out': list[i32] = list.empty;
+fn sorted_down [lent 'xs': std::list[i32]] -> std::list[i32] {
+    let 'out': std::list[i32] = std::list.empty;
     for 'x' in lend 'xs' {
-        list.append[lend.mut 'out', value: 'x'];
-        let 'i' := list.length[lend 'out'];
+        std::list.append[lend.mut 'out', value: 'x'];
+        let 'i' := std::list.length[lend 'out'];
         while 'i' > 1 and.then 'out'[pos: 'i'] > 'out'[pos: 'i' - 1] {
             let 'held' := 'out'[pos: 'i'];
             change 'out'[pos: 'i'] = 'out'[pos: 'i' - 1];
@@ -125,7 +125,7 @@ fn sorted_down [lent 'xs': list[i32]] -> list[i32] {
 # The catalog and the stock room
 # ---------------------------------------------------------------------------------------------------
 
-fn catalog [] -> list[Item] {
+fn catalog [] -> std::list[Item] {
     return [
         Item[name = "apple", aisle = Aisle.fresh, price = 0.45],
         Item[name = "banana", aisle = Aisle.fresh, price = 0.30],
@@ -140,23 +140,23 @@ fn catalog [] -> list[Item] {
     ];
 }
 
-fn opening_stock [] -> map[str.utf8, i32] {
-    let 'stock': map[str.utf8, i32] = map.empty;
-    map.set[lend.mut 'stock', key: "apple", value: 40];
-    map.set[lend.mut 'stock', key: "banana", value: 30];
-    map.set[lend.mut 'stock', key: "milk", value: 12];
-    map.set[lend.mut 'stock', key: "bread", value: 8];
-    map.set[lend.mut 'stock', key: "croissant", value: 6];
-    map.set[lend.mut 'stock', key: "rice", value: 10];
-    map.set[lend.mut 'stock', key: "beans", value: 24];
-    map.set[lend.mut 'stock', key: "coffee", value: 5];
-    map.set[lend.mut 'stock', key: "soap", value: 9];
-    map.set[lend.mut 'stock', key: "candles", value: 4];
+fn opening_stock [] -> std::map[str.utf8, i32] {
+    let 'stock': std::map[str.utf8, i32] = std::map.empty;
+    std::map.set[lend.mut 'stock', key: "apple", value: 40];
+    std::map.set[lend.mut 'stock', key: "banana", value: 30];
+    std::map.set[lend.mut 'stock', key: "milk", value: 12];
+    std::map.set[lend.mut 'stock', key: "bread", value: 8];
+    std::map.set[lend.mut 'stock', key: "croissant", value: 6];
+    std::map.set[lend.mut 'stock', key: "rice", value: 10];
+    std::map.set[lend.mut 'stock', key: "beans", value: 24];
+    std::map.set[lend.mut 'stock', key: "coffee", value: 5];
+    std::map.set[lend.mut 'stock', key: "soap", value: 9];
+    std::map.set[lend.mut 'stock', key: "candles", value: 4];
     return give 'stock';
 }
 
 # The catalog entry for a name, or a failure the caller must handle.
-fn find_item [lent 'items': list[Item], lent 'name': str.utf8] -> Item or fail[unknown_item] {
+fn find_item [lent 'items': std::list[Item], lent 'name': str.utf8] -> Item or fail[unknown_item] {
     for 'it' in lend 'items' {
         if 'it'.name equal_to 'name' { return copy 'it'; }
     }
@@ -179,7 +179,7 @@ fn aisle_name ['a': Aisle] -> str.utf8 {
 # One "name count" piece into a line; a count that is not a number, or not 1 to 99, fails.
 fn parse_line [lent 'piece': str.utf8] -> Line or fail[bad_line: str.utf8] {
     let 'words' := std::str.split[lend 'piece', at: " "];
-    if list.length[lend 'words'] not_equal 2 { fail bad_line[copy 'piece']; }
+    if std::list.length[lend 'words'] not_equal 2 { fail bad_line[copy 'piece']; }
     let 'name' := copy 'words'[pos: 1];
     let 'count': i32[min: 1, max: 99] = to.i32[min: 1, max: 99]['words'[pos: 2]] otherwise {
         not_a_number { fail bad_line[copy 'piece']; }
@@ -188,12 +188,12 @@ fn parse_line [lent 'piece': str.utf8] -> Line or fail[bad_line: str.utf8] {
     return Line[name = give 'name', count = 'count'];
 }
 
-fn parse_order [lent 'text': str.utf8] -> list[Line] or fail[bad_line: str.utf8] {
-    let 'lines': list[Line] = list.empty;
+fn parse_order [lent 'text': str.utf8] -> std::list[Line] or fail[bad_line: str.utf8] {
+    let 'lines': std::list[Line] = std::list.empty;
     let 'pieces' := std::str.split[lend 'text', at: ", "];
     for 'piece' in lend 'pieces' {
         let 'line' := parse_line[lend 'piece'] otherwise fail;
-        list.append[lend.mut 'lines', value: give 'line'];
+        std::list.append[lend.mut 'lines', value: give 'line'];
     }
     return give 'lines';
 }
@@ -229,8 +229,8 @@ fn apply_discount ['amount': d64, 'percent': i32[min: 0, max: 50]] -> d64 {
 # ---------------------------------------------------------------------------------------------------
 
 fn take_order [
-    lent 'items': list[Item],
-    lent.mut 'stock': map[str.utf8, i32],
+    lent 'items': std::list[Item],
+    lent.mut 'stock': std::map[str.utf8, i32],
     lent 'order': Order,
     'ticket': i32
 ] -> Sale or fail[out_of_stock: str.utf8, unknown_item: str.utf8] {
@@ -241,9 +241,9 @@ fn take_order [
         let 'item' := find_item[lend 'items', lend 'line'.name] otherwise {
             unknown_item { fail unknown_item[copy 'line'.name]; }
         };
-        let 'have' := map.get[lend 'stock', key: copy 'line'.name] otherwise 0;
+        let 'have' := std::map.get[lend 'stock', key: copy 'line'.name] otherwise 0;
         if 'have' < 'line'.count { fail out_of_stock[copy 'line'.name]; }
-        map.set[lend.mut 'stock', key: copy 'line'.name, value: 'have' - 'line'.count];
+        std::map.set[lend.mut 'stock', key: copy 'line'.name, value: 'have' - 'line'.count];
         let 'rule' := rule_for[copy 'item'.aisle];
         let 'count': d64 = to.d64['line'.count];
         let 'line_total' := 'rule'['item'.price x 'count'];
@@ -275,8 +275,8 @@ fn payment_text [lent 'p': Payment, 'total': d64] -> str.utf8 {
 # The day's orders
 # ---------------------------------------------------------------------------------------------------
 
-fn todays_orders [] -> list[Order] {
-    let 'orders': list[Order] = list.empty;
+fn todays_orders [] -> std::list[Order] {
+    let 'orders': std::list[Order] = std::list.empty;
     let 'texts' := [
         "apple 6, bread 1, milk 2",
         "coffee 2, croissant 4",
@@ -288,7 +288,7 @@ fn todays_orders [] -> list[Order] {
         "candles 2, bread 2, croissant 2"
     ];
     let 'customers' := ["Ann", "Bo", "Cy", "Dee", "Eli", "Fay", "Gus", "Hal"];
-    for 'i' [from: 1, to: list.length[lend 'texts'], by: 1] {
+    for 'i' [from: 1, to: std::list.length[lend 'texts'], by: 1] {
         let 'lines' := parse_order[lend 'texts'[pos: 'i']] otherwise {
             bad_line 'what' {
                 std::print.useful["(order for ", 'customers'[pos: 'i'], " skipped: cannot read \"", 'what', "\")", newln];
@@ -299,7 +299,7 @@ fn todays_orders [] -> list[Order] {
         let 'discount': i32[min: 0, max: 50] = 0;
         if 'i' equal_to 3 { change 'discount' = 10; }
         if 'i' equal_to 8 { change 'discount' = 25; }
-        list.append[lend.mut 'orders', value: Order[customer = copy 'customers'[pos: 'i'], lines = give 'lines', payment = give 'payment', discount = 'discount']];
+        std::list.append[lend.mut 'orders', value: Order[customer = copy 'customers'[pos: 'i'], lines = give 'lines', payment = give 'payment', discount = 'discount']];
     }
     return give 'orders';
 }
@@ -314,33 +314,33 @@ fn choose_payment ['i': i32] -> Payment {
 # Loyalty points
 # ---------------------------------------------------------------------------------------------------
 
-fn add_points [lent.mut 'points': map[str.utf8, i32], lent 'sale': Sale] {
+fn add_points [lent.mut 'points': std::map[str.utf8, i32], lent 'sale': Sale] {
     let 'earned' := 'sale'.units x 'points_per_item';
-    let 'before' := map.get[lend 'points', key: copy 'sale'.customer] otherwise 0;
-    map.set[lend.mut 'points', key: copy 'sale'.customer, value: 'before' + 'earned'];
+    let 'before' := std::map.get[lend 'points', key: copy 'sale'.customer] otherwise 0;
+    std::map.set[lend.mut 'points', key: copy 'sale'.customer, value: 'before' + 'earned'];
 }
 
 # ---------------------------------------------------------------------------------------------------
 # The end-of-day report
 # ---------------------------------------------------------------------------------------------------
 
-fn reorder_list [lent 'items': list[Item], lent 'stock': map[str.utf8, i32]] -> list[str.utf8] {
-    let 'out': list[str.utf8] = list.empty;
+fn reorder_list [lent 'items': std::list[Item], lent 'stock': std::map[str.utf8, i32]] -> std::list[str.utf8] {
+    let 'out': std::list[str.utf8] = std::list.empty;
     for 'it' in lend 'items' {
-        let 'left' := map.get[lend 'stock', key: copy 'it'.name] otherwise 0;
+        let 'left' := std::map.get[lend 'stock', key: copy 'it'.name] otherwise 0;
         if 'left' at_most 'low_stock' {
-            list.append[lend.mut 'out', value: copy 'it'.name concat " (" concat to.stored.str.utf8['left'] concat " left)"];
+            std::list.append[lend.mut 'out', value: copy 'it'.name concat " (" concat to.stored.str.utf8['left'] concat " left)"];
         }
     }
     return give 'out';
 }
 
-fn takings_by_aisle [lent 'items': list[Item], lent 'opening': map[str.utf8, i32], lent 'closing': map[str.utf8, i32], 'a': Aisle] -> d64 {
+fn takings_by_aisle [lent 'items': std::list[Item], lent 'opening': std::map[str.utf8, i32], lent 'closing': std::map[str.utf8, i32], 'a': Aisle] -> d64 {
     let 'sum': d64 = 0;
     for 'it' in lend 'items' {
         if 'it'.aisle equal_to 'a' {
-            let 'had' := map.get[lend 'opening', key: copy 'it'.name] otherwise 0;
-            let 'has' := map.get[lend 'closing', key: copy 'it'.name] otherwise 0;
+            let 'had' := std::map.get[lend 'opening', key: copy 'it'.name] otherwise 0;
+            let 'has' := std::map.get[lend 'closing', key: copy 'it'.name] otherwise 0;
             let 'sold' := 'had' - 'has';
             change 'sum' = 'sum' + 'it'.price x to.d64['sold'];
         }
@@ -348,24 +348,24 @@ fn takings_by_aisle [lent 'items': list[Item], lent 'opening': map[str.utf8, i32
     return 'sum';
 }
 
-fn report [lent 'sales': list[Sale], lent 'items': list[Item], lent 'opening': map[str.utf8, i32], lent 'stock': map[str.utf8, i32], lent 'points': map[str.utf8, i32]] {
+fn report [lent 'sales': std::list[Sale], lent 'items': std::list[Item], lent 'opening': std::map[str.utf8, i32], lent 'stock': std::map[str.utf8, i32], lent 'points': std::map[str.utf8, i32]] {
     std::print.useful[newln, "=== ", 'shop_name', ", end of day ===", newln];
 
     # Orders and units
-    let 'units': list[i32] = list.empty;
+    let 'units': std::list[i32] = std::list.empty;
     let 'takings': d64 = 0;
     for 's' in lend 'sales' {
-        list.append[lend.mut 'units', value: 's'.units];
+        std::list.append[lend.mut 'units', value: 's'.units];
         change 'takings' = 'takings' + 's'.total;
     }
-    std::print.useful["orders served: ", list.length[lend 'sales'], ", units sold: ", total_of[lend 'units'], newln];
+    std::print.useful["orders served: ", std::list.length[lend 'sales'], ", units sold: ", total_of[lend 'units'], newln];
     std::print.format["takings: {:.2}\n", 'takings'];
 
     # The biggest baskets, by units: the first three of the list sorted largest first
     let 'ranked' := sorted_down[lend 'units'];
-    let 'shown' := larger[1, list.length[lend 'ranked']];
+    let 'shown' := larger[1, std::list.length[lend 'ranked']];
     if 'shown' at_least 3 {
-        let 'top' := list.slice[lend 'ranked', from: pos 1, to: pos 3];
+        let 'top' := std::list.slice[lend 'ranked', from: pos 1, to: pos 3];
         std::print.useful["biggest baskets (units): ", 'top', newln];
     }
 
@@ -391,7 +391,7 @@ fn report [lent 'sales': list[Sale], lent 'items': list[Item], lent 'opening': m
 
     # Reorders
     let 'reorder' := reorder_list[lend 'items', lend 'stock'];
-    if list.length[lend 'reorder'] equal_to 0 {
+    if std::list.length[lend 'reorder'] equal_to 0 {
         std::print.useful["nothing to reorder", newln];
     } else {
         std::print.useful["reorder: ", std::str.join[lend 'reorder', between: ", "], newln];
@@ -400,7 +400,7 @@ fn report [lent 'sales': list[Sale], lent 'items': list[Item], lent 'opening': m
     # Loyalty points, for the customers who were served
     std::print.useful["loyalty points:", newln];
     for 's' in lend 'sales' {
-        let 'p' := map.get[lend 'points', key: copy 's'.customer] otherwise 0;
+        let 'p' := std::map.get[lend 'points', key: copy 's'.customer] otherwise 0;
         std::print.format["  {:<5} {:>3}\n", 's'.customer, 'p'];
     }
 }
@@ -410,18 +410,18 @@ fn report [lent 'sales': list[Sale], lent 'items': list[Item], lent 'opening': m
 # over a channel. The tasks run alongside each other; MAIN waits for every answer.
 # ---------------------------------------------------------------------------------------------------
 
-fn shelf_count [lent 'items': list[Item], lent 'stock': map[str.utf8, i32], 'a': Aisle] -> i32 {
+fn shelf_count [lent 'items': std::list[Item], lent 'stock': std::map[str.utf8, i32], 'a': Aisle] -> i32 {
     let 'n' := 0;
     for 'it' in lend 'items' {
         if 'it'.aisle equal_to 'a' {
-            let 'on_shelf' := map.get[lend 'stock', key: copy 'it'.name] otherwise 0;
+            let 'on_shelf' := std::map.get[lend 'stock', key: copy 'it'.name] otherwise 0;
             change 'n' = 'n' + 'on_shelf';
         }
     }
     return 'n';
 }
 
-fn count_shelves [lent 'items': list[Item], lent 'stock': map[str.utf8, i32]] {
+fn count_shelves [lent 'items': std::list[Item], lent 'stock': std::map[str.utf8, i32]] {
     let 'fresh_ch' := channel[i32];
     let 'bakery_ch' := channel[i32];
     let 'pantry_ch' := channel[i32];
@@ -441,32 +441,32 @@ fn count_shelves [lent 'items': list[Item], lent 'stock': map[str.utf8, i32]] {
 # Looking things up: finding catalog items by what their name starts with or contains
 # ---------------------------------------------------------------------------------------------------
 
-fn names_starting [lent 'items': list[Item], lent 'start': str.utf8] -> list[str.utf8] {
-    let 'out': list[str.utf8] = list.empty;
+fn names_starting [lent 'items': std::list[Item], lent 'start': str.utf8] -> std::list[str.utf8] {
+    let 'out': std::list[str.utf8] = std::list.empty;
     for 'it' in lend 'items' {
         if std::str.starts_with[lend 'it'.name, part: lend 'start'] {
-            list.append[lend.mut 'out', value: copy 'it'.name];
+            std::list.append[lend.mut 'out', value: copy 'it'.name];
         }
     }
     return give 'out';
 }
 
-fn names_containing [lent 'items': list[Item], lent 'part': str.utf8] -> list[str.utf8] {
-    let 'out': list[str.utf8] = list.empty;
+fn names_containing [lent 'items': std::list[Item], lent 'part': str.utf8] -> std::list[str.utf8] {
+    let 'out': std::list[str.utf8] = std::list.empty;
     for 'it' in lend 'items' {
         if std::str.contains[lend 'it'.name, part: lend 'part'] {
-            list.append[lend.mut 'out', value: copy 'it'.name];
+            std::list.append[lend.mut 'out', value: copy 'it'.name];
         }
     }
     return give 'out';
 }
 
-fn show_search [lent 'items': list[Item]] {
+fn show_search [lent 'items': std::list[Item]] {
     std::print.useful[newln, "searching the catalog:", newln];
     let 'starts' := ["b", "c", "z"];
     for 's' in lend 'starts' {
         let 'found' := names_starting[lend 'items', lend 's'];
-        if list.length[lend 'found'] equal_to 0 {
+        if std::list.length[lend 'found'] equal_to 0 {
             std::print.useful["  nothing starts with \"", 's', "\"", newln];
         } else {
             std::print.useful["  starting with \"", 's', "\": ", std::str.join[lend 'found', between: ", "], newln];
@@ -507,11 +507,11 @@ fn case_cost ['price': d64, 'size': i32] -> d64 {
     return 'each' x 'n';
 }
 
-fn plan_restock [lent 'items': list[Item], lent 'opening': map[str.utf8, i32], lent 'stock': map[str.utf8, i32]] -> list[Restock] {
-    let 'plan': list[Restock] = list.empty;
+fn plan_restock [lent 'items': std::list[Item], lent 'opening': std::map[str.utf8, i32], lent 'stock': std::map[str.utf8, i32]] -> std::list[Restock] {
+    let 'plan': std::list[Restock] = std::list.empty;
     for 'it' in lend 'items' {
-        let 'target' := map.get[lend 'opening', key: copy 'it'.name] otherwise 0;
-        let 'left' := map.get[lend 'stock', key: copy 'it'.name] otherwise 0;
+        let 'target' := std::map.get[lend 'opening', key: copy 'it'.name] otherwise 0;
+        let 'left' := std::map.get[lend 'stock', key: copy 'it'.name] otherwise 0;
         let 'missing' := 'target' - 'left';
         if 'missing' > 0 {
             let 'size' := case_size[copy 'it'.aisle];
@@ -519,13 +519,13 @@ fn plan_restock [lent 'items': list[Item], lent 'opening': map[str.utf8, i32], l
             let 'cases' := ('missing' + 'size' - 1) div.floor 'size';
             let 'one_case' := case_cost['it'.price, 'size'];
             let 'n': d64 = to.d64['cases'];
-            list.append[lend.mut 'plan', value: Restock[name = copy 'it'.name, cases = 'cases', cost = 'one_case' x 'n']];
+            std::list.append[lend.mut 'plan', value: Restock[name = copy 'it'.name, cases = 'cases', cost = 'one_case' x 'n']];
         }
     }
     return give 'plan';
 }
 
-fn show_restock [lent 'plan': list[Restock]] {
+fn show_restock [lent 'plan': std::list[Restock]] {
     std::print.useful[newln, "tomorrow's delivery:", newln];
     let 'bill': d64 = 0;
     for 'r' in lend 'plan' {
@@ -548,10 +548,10 @@ fn customers_on ['d': i32[min: 1, max: 7]] -> i32 {
 fn show_week [] {
     const 'days' := 7;
     std::print.useful[newln, "this week:", newln];
-    let 'counts': list[i32] = list.empty;
+    let 'counts': std::list[i32] = std::list.empty;
     for 'd' [from: 1, to: 'days', by: 1] {
         let 'n' := customers_on['d'];
-        list.append[lend.mut 'counts', value: 'n'];
+        std::list.append[lend.mut 'counts', value: 'n'];
     }
     let 'names' := ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     let 'busiest' := 0;
@@ -566,8 +566,8 @@ fn show_week [] {
     let 'sum' := total_of[lend 'counts'];
     let 'average': f64 = to.f64['sum'] div.near to.f64['days'];
     std::print.format["  {} customers, {:.1} a day, {} on the busiest\n", 'sum', 'average', 'busiest'];
-    let 'weekend' := list.slice[lend 'counts', from: pos 6, to: pos 7];
-    let 'weekdays' := list.slice[lend 'counts', from: pos 1, before: pos 6];
+    let 'weekend' := std::list.slice[lend 'counts', from: pos 6, to: pos 7];
+    let 'weekdays' := std::list.slice[lend 'counts', from: pos 1, before: pos 6];
     std::print.useful["  weekdays ", total_of[lend 'weekdays'], ", weekend ", total_of[lend 'weekend'], newln];
 }
 
@@ -585,7 +585,7 @@ fn show_hours ['open': i32, 'close': i32] {
         if 'h' equal_to 12 or 'h' equal_to 17 { change 'n' = 9; }
         if 'h' equal_to 13 or 'h' equal_to 18 { change 'n' = 6; }
         std::print.format["  {:>2}:00 ", 'h'];
-        let 'bar' := list.fill[value: "*", count: 'n'];
+        let 'bar' := std::list.fill[value: "*", count: 'n'];
         std::print.useful[std::str.join[lend 'bar', between: str.empty], newln];
         if 'n' > 'peak' {
             change 'peak' = 'n';
@@ -607,8 +607,8 @@ MAIN {
     let 'items' := catalog[];
     let 'stock' := opening_stock[];
     let 'opening' := copy 'stock';
-    let 'points': map[str.utf8, i32] = map.empty;
-    let 'sales': list[Sale] = list.empty;
+    let 'points': std::map[str.utf8, i32] = std::map.empty;
+    let 'sales': std::list[Sale] = std::list.empty;
 
     # The price list, three columns of a table
     std::print.useful[newln, "today's prices:", newln];
@@ -645,7 +645,7 @@ MAIN {
             }
         };
         add_points[lend.mut 'points', lend 'sale'];
-        list.append[lend.mut 'sales', value: give 'sale'];
+        std::list.append[lend.mut 'sales', value: give 'sale'];
         std::print.useful[newln];
     }
 

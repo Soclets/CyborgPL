@@ -8,11 +8,11 @@ MAIN ['argc': i32, 'argv': ptr[ptr[u8]]] {
     while 'i' < 'argc' {
         no_check let 'word' := ptr.read[ptr.at['argv', by: 'i']];
         let mut 'k': i32 = 0;
-        let mut 'bytes': list[u8] = [];
+        let mut 'bytes': std::list[u8] = [];
         loop {
             no_check let 'b' := ptr.read[ptr.at['word', by: 'k']];
             if 'b' equal_to 0 { break; }
-            list.append[lend.mut 'bytes', value: 'b'];
+            std::list.append[lend.mut 'bytes', value: 'b'];
             change 'k' = 'k' + 1;
         }
         let 'text' := to.str.utf8['bytes'] otherwise "(not UTF-8)";      # bytes into text (owner, 2026-09-30)

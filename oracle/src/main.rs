@@ -147,14 +147,13 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     }
     prog.enums.extend(base.enums);
     // std's `casing` (owner, 2026-10-20: "casing, go"): which language's case rules `str.upper.full` / `str.lower.full`
-    // use, `lang: tr`; its values may drop `casing.` (std is `bare.enum_prefix.optional`, owner: "optional for all")
+    // use, `lang: std::casing.tr`: std is another kit, so its path and the enum's name are written (owner, 2026-10-22)
     let casing = lexer::lex("enum casing { tr, az, lt, root }").map_err(|e| format!("std's casing: {}", e.msg))?;
     let casing = parser::Parser::new(casing).program().map_err(|e| format!("std's casing: {}", e.msg))?;
     if prog.enums.iter().any(|e| e.name == "casing") {
         return Err(format!("{}: `casing` is std's (`lang: tr`, `casing.root`); an enum cannot take its name", path.display()));
     }
     prog.enums.extend(casing.enums);
-    prog.bare_marks.push(ast::BareMark { target: ast::BareTarget::Item("enum".into(), "casing".into()), mode: ast::Bare::Optional, line: 0, kit_root: Vec::new(), enum_prefix: true });
     check_powers(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     check_type_names(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
     let unkept = check_redeclared(&prog).map_err(|m| format!("{}: {m}", path.display()))?;
@@ -1158,83 +1157,31 @@ fn check_return_literals(prog: &ast::Program) -> Result<(), String> {
 }
 
 fn check_bare(prog: &ast::Program) -> Result<std::collections::HashMap<String, ast::Bare>, String> {
-    use ast::{Bare, BareTarget, Vis};
-    let block = |m: &[String]| prog.modules.iter().any(|d| d.path == m && d.line > 0);
-    let word = |m: Bare| match m { Bare::Never => "bare.kit_prefix.never", Bare::Optional => "bare.kit_prefix.optional", Bare::Only => "bare.kit_prefix.only" };
-    let eword = |m: Bare| match m { Bare::Never => "bare.enum_prefix.never", Bare::Optional => "bare.enum_prefix.optional", Bare::Only => "bare.enum_prefix.only" };
+    use ast::{Bare, Vis};
+    // another kit's names always take its path (owner, 2026-10-22: "What IF there's no bare.optional? It's always not
+    // bare."), so every `pub` item is `never`; its operators, word and glyph, are `optional` ("It's always optional",
+    // "glyphs are optional too"). The `bare.` marks are gone (a kit's own still read in std/, and ignored).
     let mut marks = std::collections::HashMap::new();
-    let mut items: Vec<(&str, &str, Vec<String>, usize)> = Vec::new();
     for f in &prog.funcs {
         if f.vis != Vis::Pub || f.is_test { continue; }
         let last = f.name.rsplit('.').next().unwrap_or("");
-        // a glyph operator has nowhere to write a path (2026-10-02)
-        if f.is_op && !last.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') { continue; }
-        items.push((if f.is_op { "op" } else { "fn" }, &f.name, f.module.clone(), f.line));
+        marks.insert(interp::bare_key(if f.is_op { "op" } else { "fn" }, &f.module, last), if f.is_op { Bare::Optional } else { Bare::Never });
     }
-    let module_of = |name: &str| { let mut v: Vec<String> = name.split('.').map(str::to_string).collect(); v.pop(); v };
-    for d in &prog.structs { if d.vis == Vis::Pub { items.push(("struct", &d.name, module_of(&d.name), d.line)); } }
-    for d in &prog.enums { if d.vis == Vis::Pub { items.push(("enum", &d.name, d.module.clone(), d.line)); } }
-    // a const takes no mark: `'pi'` alone is a variable, so its path is always written (owner, 2026-10-06: "`b`")
-    for d in &prog.interfaces { if d.vis == Vis::Pub { items.push(("interface", &d.name, d.module.clone(), d.line)); } }
-    for (kind, name, module, line) in items {
-        let root: Vec<String> = match module.first() { Some(r) if r.starts_with("::") => vec![r.clone()], _ => Vec::new() };
-        // `shapes.area` in this kit, `areas::shapes.area` in a dependency
-        let last = name.rsplit('.').next().unwrap_or(name);
-        let mut segs: Vec<String> = module.iter().map(|m| m.trim_start_matches("::").to_string()).collect();
-        segs.push(last.to_string());
-        let shown = if root.is_empty() { segs.join(".") } else { format!("{}::{}", segs[0], segs[1..].join(".")) };
-        let covers = |m: &&ast::BareMark| match &m.target {
-            BareTarget::Item(k, n) => k == kind && *n == module.iter().map(String::as_str).chain(std::iter::once(last)).collect::<Vec<_>>().join("."),
-            BareTarget::Block(p) => module.starts_with(p),
-            BareTarget::File(p) => module.starts_with(p) && (p.len()..module.len()).all(|i| block(&module[..=i])),
-            BareTarget::Kind(k) => k == kind && m.kit_root == root,
-        };
-        let covering: Vec<&ast::BareMark> = prog.bare_marks.iter().filter(|m| !m.enum_prefix).filter(covers).collect();
-        let Some(first) = covering.first() else {
-            return Err(format!("line {line}: `{kind} {shown}` is `pub`, and nothing says how other kits write its path: mark it (`pub bare.kit_prefix.never {kind} …`), its module, or its kind in `kit.cy` (`bare.kit_prefix.never [{kind}];`) as `bare.kit_prefix.never` (path required), `.optional` or `.only` (path forbidden); there is no default"));
-        };
-        if let Some(other) = covering.iter().find(|m| m.mode != first.mode) {
-            return Err(format!("line {line}: `{kind} {shown}` is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error", word(first.mode), crate::interp::line_of(first.line), word(other.mode), crate::interp::line_of(other.line)));
-        }
-        marks.insert(interp::bare_key(kind, &module, last), first.mode);
-        // a `pub` enum also says whether its values may drop its name (owner, 2026-10-20: "must only for `pub`")
-        if kind == "enum" {
-            let ecovering: Vec<&ast::BareMark> = prog.bare_marks.iter().filter(|m| m.enum_prefix).filter(covers).collect();
-            let Some(efirst) = ecovering.first() else {
-                return Err(format!("line {line}: `enum {shown}` is `pub`, and nothing says whether its values may be written without `{last}.`: mark it (`pub bare.enum_prefix.never enum …`), its module, or `bare.enum_prefix.never [enum];` in `kit.cy`, as `never` (the name written), `optional` or `only` (left out)"));
-            };
-            if let Some(other) = ecovering.iter().find(|m| m.mode != efirst.mode) {
-                return Err(format!("line {line}: `enum {shown}` is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error", eword(efirst.mode), crate::interp::line_of(efirst.line), eword(other.mode), crate::interp::line_of(other.line)));
-            }
-            marks.insert(interp::bare_key("enum_prefix", &module, last), efirst.mode);
-        }
+    for d in &prog.structs {
+        if d.vis != Vis::Pub { continue; }
+        let mut module: Vec<String> = d.name.split('.').map(str::to_string).collect();
+        let last = module.pop().unwrap_or_default();
+        marks.insert(interp::bare_key("struct", &module, &last), Bare::Never);
     }
-    // a private enum's values keep its name unless it is marked (owner, 2026-10-20)
     for d in &prog.enums {
-        if d.vis == Vis::Pub { continue; }
+        if d.vis != Vis::Pub { continue; }
         let last = d.name.rsplit('.').next().unwrap_or(&d.name);
-        let key_item = d.module.iter().map(String::as_str).chain(std::iter::once(last)).collect::<Vec<_>>().join(".");
-        let found = prog.bare_marks.iter().filter(|m| m.enum_prefix).find(|m| match &m.target {
-            BareTarget::Item(k, n) => k == "enum" && *n == key_item,
-            BareTarget::Block(p) | BareTarget::File(p) => d.module.starts_with(p),
-            BareTarget::Kind(_) => false,
-        });
-        if let Some(m) = found { marks.insert(interp::bare_key("enum_prefix", &d.module, last), m.mode); }
+        marks.insert(interp::bare_key("enum", &d.module, last), Bare::Never);
     }
-    // two kits forbidding the path to one name clash as soon as both are depended on (owner,
-    // 2026-10-06: "`a`"), fixed as a prefix clash is, by editing one kit's source
-    let mut only: Vec<(String, String)> = Vec::new();
-    for (key, mode) in &marks {
-        if *mode != Bare::Only { continue; }
-        let Some((kind, path)) = key.split_once(':') else { continue };
-        let Some(rest) = path.strip_prefix("::") else { continue };
-        let (root, rel) = rest.split_once('.').unwrap_or((rest, ""));
-        let rel = format!("{kind} {rel}");
-        if let Some((other, _)) = only.iter().find(|(r, x)| *x == rel && r != root) {
-            let mut two = [other.clone(), root.to_string()]; two.sort();
-            return Err(format!("`{}` and `{}` both forbid the path to `{rel}` (`bare.kit_prefix.only`), so it cannot tell them apart: edit one kit's source, as for a prefix clash", two[0], two[1]));
-        }
-        only.push((root.to_string(), rel));
+    for d in &prog.interfaces {
+        if d.vis != Vis::Pub { continue; }
+        let last = d.name.rsplit('.').next().unwrap_or(&d.name);
+        marks.insert(interp::bare_key("interface", &d.module, last), Bare::Never);
     }
     Ok(marks)
 }

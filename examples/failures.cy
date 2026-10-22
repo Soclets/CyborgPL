@@ -1,13 +1,13 @@
 # A function that can fail, its failures named, and `otherwise` handling them.
 struct Locker {
     owner: str.utf8,
-    items: list[str.utf8]
+    items: std::list[str.utf8]
 }
 
 fn stash [lent.mut 'l': Locker, 'item': str.utf8] -> bool or fail[full, bad_item: str.utf8] {
-    if list.length[lend 'l'.items] at_least 2 { fail full; }
+    if std::list.length[lend 'l'.items] at_least 2 { fail full; }
     if 'item' equal_to str.empty { fail bad_item["(empty)"]; }
-    list.append[lend.mut 'l'.items, value: give 'item'];
+    std::list.append[lend.mut 'l'.items, value: give 'item'];
     return true;
 }
 
@@ -22,11 +22,11 @@ fn double_digit ['t': str.utf8] -> i32 or fail[not_a_digit] {
 }
 
 fn save [lent 'l': Locker] -> fail[disk_full] {
-    if list.length[lend 'l'.items] > 1 { fail disk_full; }
+    if std::list.length[lend 'l'.items] > 1 { fail disk_full; }
 }
 
 MAIN {
-    let 'mine' := Locker[owner = "Tankun", items = list.empty];
+    let 'mine' := Locker[owner = "Tankun", items = std::list.empty];
     let 'names' := ["rope", str.empty, "helmet", "torch"];
     for 'n' in lend 'names' {
         let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise {

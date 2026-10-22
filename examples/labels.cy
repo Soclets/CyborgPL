@@ -11,7 +11,6 @@ coll.fn say {
 }
 
 pub coll.fn box {
-    bare.kit_prefix.optional;
     labels.any_order ['w' as width, 'h' as height, 'b' as border];
     defaults ['b' = 0];
     box ['w': u32, 'h': u32, 'b': u32] -> u32 { return ('w' + 'b' + 'b') x ('h' + 'b' + 'b'); }

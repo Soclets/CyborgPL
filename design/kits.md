@@ -41,28 +41,48 @@ been the only break in "the reader always sees where a thing comes
 from" (2026-09-14). Owner: "`mathstuff::pow` is fine", then "drop
 bare".
 
-## What may be left out in front of a name: `bare.kit_prefix` and `bare.enum_prefix` (owner, 2026-10-06; 2026-10-20)
+## Another kit's names take its path; `use` renames one for a file (owner, 2026-10-22)
 
-A kit says, for each `pub` thing, whether other kits write its path, and for each `pub` enum, whether its values
-are written with the enum's name. Each mark names the prefix it is about, then how:
+**Another kit's names always take its path** (owner: "What IF there's no bare.optional? It's always not bare.", "Only
+other kits, own stays bare."): its functions, types, enums and enum values, std's included.
 
-| Mark | The prefix | `never` | `optional` | `only` |
-|---|---|---|---|---|
-| `bare.kit_prefix.…` | the kit's path, `geometry::` | always written | either | never written |
-| `bare.enum_prefix.…` | an enum's name, `casing.` | always written | either | never written |
+```
+std::print.useful[greet::hello[], newln];
+let mut 'xs': std::list[i64] = [];
+std::list.append[lend.mut 'xs', value: 3];
+let 'b': greet::Note = greet::Note[text = "hi"];
+let 'up' := std::str.upper.full[lend 's', lang: std::casing.tr];
+```
 
-- **Where:** on an item (`pub bare.kit_prefix.optional fn area …`, both on an enum: `pub bare.kit_prefix.optional
-  bare.enum_prefix.optional enum casing { tr, az, lt, root }`), on a block module, as a file's first line
-  (`bare.kit_prefix.never;`), or for a kind across the kit in `kit.cy` (`bare.kit_prefix.optional [fn, op];`,
-  `bare.enum_prefix.optional [enum];`). Marks that disagree are an error.
-- **No default for `pub`:** every `pub` thing is covered by a `kit_prefix` mark, and every `pub` enum by an
-  `enum_prefix` mark too. A private enum's values keep its name unless a file or module mark says otherwise.
-- **A bare value needs a place that names its enum:** a parameter (`str.upper.full[lend 's', lang: tr]`), a typed
-  declaration; `match` arms are bare as always. A bare word with nothing saying its type is not an enum value.
-- **std is `optional` for both**, everything in it (owner, 2026-10-20). Good practice 19 and 20 (`style.md`): write
-  std's names bare, adding the prefix where a bare one could be misread, and mark your own `optional` too.
-- `bare.never` / `bare.optional` / `bare.only` (2026-10-06 until 2026-10-20) are old spellings of `bare.kit_prefix.…`.
-  `examples/bare_marks.cy`; reject tests `enum_prefix_*`, `bare_mark_old`.
+- **Your own kit's names stay bare** (`helper[]`; `my.helper[]` where needed), and so do the base's: `+`, `plus`,
+  `str.utf8`, `ptr`, `to.`.
+- **std is another kit**, so `list` and `map` are written `std::list[i64]`, `std::list.append[…]` (owner: "(a)"), and
+  printing, `round.X`, `format`, `duration` and the text operations the same.
+- **An enum value takes the path even where its type is known**: `lang: std::casing.tr` (owner: "no" to an
+  exception).
+- **A kit's operators, word and glyph, take an optional path** ("It's always optional", "glyphs are optional
+  too"): `'a' merge 'b'` or `'a' greet::merge 'b'`, `'t' <+> 'u'` or `'t' greet::<+> 'u'`. Writing the path is how a
+  clash between two kits' operators is fixed.
+- **The `bare.kit_prefix.X` and `bare.enum_prefix.X` marks are gone** (2026-10-06 to 2026-10-22): a mark left in a
+  kit is refused, naming this rule.
+
+**`use`** (owner, 2026-10-22; Kotlin's shape: "I like how diabolical Kotlin's imports look"), one per line at the top
+of a file:
+
+```
+use std::list as list;                  # list[i64], list.append[…], list.length[…] in this file
+use std::print.useful as say;           # say[…]
+use greet::formal as formal;
+use std::print.stored as std::print;    # a rename onto a path is allowed ("it's their choice")
+```
+
+- **`as` is always written**; the name after it stands for the path in that file. A path names a function, a module
+  or a type.
+- **Every `use` gets a note in the build report** (kayo's), saying what the name stands for.
+- Design claude's readings, not asked: `use` lines come before anything else; there is no wildcard; the path is
+  another kit's (`use my.…` is refused); nothing in the file may be declared under a `use`'s name.
+- `examples/use.cy`, `examples/uses_paths`; reject tests `std_name_needs_path`, `std_list_needs_path`,
+  `std_duration_needs_path`, `kit_name_needs_path`, `bare_never_without_path`, `bare_marks_gone`, `use_*`.
 
 ## A keyword may name a function — reached by path, never bare (decided 2026-09-19)
 

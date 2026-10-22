@@ -6,7 +6,7 @@
 # makes every member public under its one `bare.` mark.
 coll.fn greet {
     greet [lent 'who': str.utf8, 'word': str.utf8, 'times': i32[min: 1, max: 5]] -> str.utf8 or fail[too_long] {
-        if str.bytes[lend 'who'] > 20 { fail too_long; }
+        if std::str.bytes[lend 'who'] > 20 { fail too_long; }
         let 'out' := str.empty;
         for 'i' [from: 1, to: 'times', by: 1] {
             change 'out' = 'out' concat 'word' concat ", ";

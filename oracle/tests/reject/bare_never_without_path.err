@@ -1,1 +1,1 @@
-`formal` is `greet`'s and `bare.kit_prefix.never`: `greet` requires its path, so write `greet::formal[…]`
+`formal` is `greet`'s: another kit's names take its path (owner, 2026-10-22), so write `greet::formal[…]`

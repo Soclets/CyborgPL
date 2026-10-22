@@ -2,7 +2,7 @@
 # type's size — so a hash needs no no_check. Plain plus minus times pow stay overflow-checked.
 fn hash [lent 'text': str.utf8] -> u32 {
     let 'h': u32 = 2_166_136_261;                 # FNV-1a
-    for 'b' in str.each.byte[lend 'text'] {
+    for 'b' in std::str.each.byte[lend 'text'] {
         change 'h' = 'h' xor 'b';                          # FNV-1a: xor, then a wrapping multiply
         change 'h' = 'h' times.wrap 16_777_619;                    # wraps instead of overflowing
     }

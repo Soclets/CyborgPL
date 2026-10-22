@@ -4403,7 +4403,7 @@ impl<'p> Interp<'p> {
                     && f.module[1..].iter().map(String::as_str).chain(std::iter::once(f.name.as_str())).collect::<Vec<_>>() == c.written.iter().map(String::as_str).collect::<Vec<_>>()
                     && self.bare_of.get(&bare_key("fn", &f.module, &f.name)) == Some(&crate::ast::Bare::Never)) {
                     let l = f.module[0].trim_start_matches("::");
-                    return rt(c.line, format!("`{shown}` is `{l}`'s and `bare.kit_prefix.never`: `{l}` requires its path, so write `{l}::{shown}[…]`"));
+                    return rt(c.line, format!("`{shown}` is `{l}`'s: another kit's names take its path (owner, 2026-10-22), so write `{l}::{shown}[…]`, or `use {l}::{shown} as {};`", shown.replace('.', "_")));
                 }
             }
             if !std && !own && others.len() == 1 {

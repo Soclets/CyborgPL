@@ -3,7 +3,7 @@
 # are lent, so `op dot` is a fn[lent Vec, lent Vec] -> f64.
 struct Vec { x: f64, y: f64 }
 op dot ['a': Vec, 'b': Vec] -> f64 { return 'a'.x x 'b'.x + 'a'.y x 'b'.y; }
-fn fold [lent 'xs': list[i32], 'start': i32, 'f': fn[i32, i32] -> i32] -> i32 {
+fn fold [lent 'xs': std::list[i32], 'start': i32, 'f': fn[i32, i32] -> i32] -> i32 {
     let mut 'acc' := 'start';
     for 'x' in lend 'xs' { change 'acc' = 'f'['acc', 'x']; }
     return 'acc';
@@ -12,7 +12,7 @@ fn apply1 ['v': i32, 'f': fn[i32] -> i32] -> i32 { return 'f'['v']; }
 fn test2 ['a': i32, 'b': i32, 'f': fn[i32, i32] -> bool] -> bool { return 'f'['a', 'b']; }
 fn both [lent 'a': Vec, lent 'b': Vec, 'f': fn[lent Vec, lent Vec] -> f64] -> f64 { return 'f'[lend 'a', lend 'b']; }
 MAIN {
-    let 'xs': list[i32] = [1, 2, 3, 4];
+    let 'xs': std::list[i32] = [1, 2, 3, 4];
     let 'sum' := fold[lend 'xs', 0, op plus];
     let 'product' := fold[lend 'xs', 1, op times];
     let 'down' := fold[lend 'xs', 0, op minus];

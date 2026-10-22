@@ -3,8 +3,8 @@
 # any length is one vector loop. k is 0 to N, and the k items must be in the list (a check
 # site the prover proves, as for `simd.load`).
 MAIN {
-    let mut 'xs': list[i32] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    let 'n' := list.length[lend 'xs'];
+    let mut 'xs': std::list[i32] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    let 'n' := std::list.length[lend 'xs'];
     let mut 'acc': simd[i32, count: 4] = simd.fill[value: 0];
     let mut 'i': u64 = 1;
     while 'i' at_most 'n' {

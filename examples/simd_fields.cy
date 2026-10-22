@@ -8,8 +8,8 @@ fn step ['p': Particle] -> Particle {
 MAIN {
     let 'p' := Particle[place = simd.fill[value: 0.0], vel = simd.fill[value: 0.5]];
     let 'q' := step[give 'p'];
-    let mut 'history': list[simd[f32, count: 4]] = [];
-    list.append[lend.mut 'history', value: 'q'.place];
-    list.append[lend.mut 'history', value: 'q'.place + 'q'.vel];
-    std::print.useful[simd.sum['q'.place], " ", list.length[lend 'history'], " ", simd.sum['history'[pos: 2]], newln];
+    let mut 'history': std::list[simd[f32, count: 4]] = [];
+    std::list.append[lend.mut 'history', value: 'q'.place];
+    std::list.append[lend.mut 'history', value: 'q'.place + 'q'.vel];
+    std::print.useful[simd.sum['q'.place], " ", std::list.length[lend 'history'], " ", simd.sum['history'[pos: 2]], newln];
 }

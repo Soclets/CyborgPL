@@ -11,6 +11,6 @@ MAIN {
     let 'back' := to.f32['w'];                # out of it into a f32 is exact
     let 'n' := to.i32['w'] otherwise -1;      # whole, so it converts
     std::print.useful['w', " ", 'back', " ", 'n', newln];
-    let 'xs': list[brain16] = [0.5, 1.5, 2.5];
+    let 'xs': std::list[brain16] = [0.5, 1.5, 2.5];
     std::print.format["{} {:.2} {:?}\n", 'xs', 'a', 'a'];
 }

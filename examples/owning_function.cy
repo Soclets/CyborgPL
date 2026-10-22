@@ -3,7 +3,7 @@
 # carrying nothing, or only lends, copies by itself like a number.
 MAIN {
     let 'xs' := [1, 2, 3];
-    let 'count' := fn [] -> u64 with [copy 'xs'] { return list.length[lend 'xs']; };
+    let 'count' := fn [] -> u64 with [copy 'xs'] { return std::list.length[lend 'xs']; };
     let 'again' := copy 'count';        # its own copy of the list inside
     let 'moved' := give 'count';        # 'count' is gone after this
     let 'inc' := fn ['a': i32] -> i32 { return 'a' + 1; };

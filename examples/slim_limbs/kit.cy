@@ -17,5 +17,5 @@ MAIN {
     let 'price': d64 = 19.99;
     let 'g': char.grapheme = `ก็`;
     let 'age': i32[min: 0, max: 150] = 42;
-    print.useful[HALVE[1000000000000000000000], " ", 'b', " ", 'w', " ", 'price', " ", 'g', " ", 'age', newln];
+    std::print.useful[HALVE[1000000000000000000000], " ", 'b', " ", 'w', " ", 'price', " ", 'g', " ", 'age', newln];
 }

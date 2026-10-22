@@ -4,7 +4,7 @@
 extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 MAIN {
     let 'msg' := "hello";
-    NO_FUCKING_CHECKS let 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];
+    NO_FUCKING_CHECKS let 'n' := write[1, lend 'msg', std::str.bytes[lend 'msg']];
     NO_FUCKING_CHECKS {
         let 'a': i32 = 10;
         let 'b': i32 = 2;

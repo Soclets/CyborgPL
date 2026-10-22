@@ -2,7 +2,6 @@
 # overrides"): here `strlen` is public and `write` stays private behind a safe wrapper, as good
 # practice #5 says. A `pub` before the block would make every line public.
 
-bare.kit_prefix.never [fn];
 
 module text {
     extern.C {
@@ -10,7 +9,7 @@ module text {
         fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
     }
     pub fn say [lent 'msg': str.utf8] {
-        no_check let 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];
+        no_check let 'n' := write[1, lend 'msg', std::str.bytes[lend 'msg']];
     }
 }
 

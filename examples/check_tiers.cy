@@ -14,7 +14,7 @@ MAIN {
     }
     let 'xs' := [1, 2, 3];
     check {
-        for 'i' [from: 1, to: list.length[lend 'xs'], by: 1] {
+        for 'i' [from: 1, to: std::list.length[lend 'xs'], by: 1] {
             std::print.useful['xs'[pos: 'i'], " "];
         }
     }

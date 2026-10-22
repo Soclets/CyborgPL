@@ -1,4 +1,3 @@
-bare.kit_prefix.never [fn];
 
 module text {
     extern.C {

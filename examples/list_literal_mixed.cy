@@ -2,7 +2,7 @@
 # the 1 here is a bin, like the 2.5 beside it. With `:=`, the prover still picks list or array and the width.
 MAIN {
     let 'xs' := [1, 2.5];
-    let 'ys': list[f64] = [2.5, 1];
+    let 'ys': std::list[f64] = [2.5, 1];
     std::print.useful['xs', newln];
     std::print.useful['ys', newln];
     # and it stays a bin when used: 1 plus 2.5 times 2.0

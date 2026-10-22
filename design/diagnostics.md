@@ -121,6 +121,10 @@ Proposed alternative: the later use.
    `note` — the report: a proven range, a loop offloaded or not and
    why, a `no_check` listed. No "warning" that lives
    forever ignored: a thing worth saying is one of the three.
+   **Every note is in the build report only** (owner, 2026-10-22: "But all
+   should note in report only?"); the terminal shows errors, checks and the
+   one summary line, and the report's section is **Notes**. The `note:`
+   blocks shown above are how a note reads in the report.
 5. **Plain words.** The writer's own names, quoted; the exact spelling
    to type. No jargon — not "SMT", "unsat", "lvalue", "monomorphised",
    "borrow checker". A reason in a short clause, no dates (the oracle's

@@ -34,6 +34,68 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-22 — Another kit's names always take its prefix; the `bare.*` marks are gone (owner; built in the oracle)
+
+Raised during the 2026-10-21 pause as a what-if, the owner: "What IF there's no bare.optional? It's always not bare.",
+then "Only other kits, own stays bare.", and of a kit's operators: "It's always optional"; on 2026-10-22: "glyphs are
+optional too", and "no" to design claude's exception for enum values whose type is known; then "all four" and "yea,
+go". So:
+- **Another kit's functions, types, enums and enum values always take its path**: `std::print.useful[…]`,
+  `geometry::Vec2[x = 1.0, y = 2.0]`, `lang: std::casing.tr`. std is another kit (design claude's reading, owner
+  "only other kits"). A const already did (`geometry::'pi'`).
+- **Your own kit's names stay bare** (2026-09-14): `helper[]`, `my.helper[]` where a bare one would clash.
+- **The base's operators stay bare** (`+`, `plus`, `<`, … the base's since 2026-10-09).
+- **A kit's operators, word and glyph, take an optional path**: `'a' dot 'b'` or `'a' geometry::dot 'b'`; `"a" ++ "b"`
+  or `"a" std::++ "b"`. This reverses the owner's earlier "doing `std::++` beats the purpose of making it with symbols",
+  under which a glyph had no path. Writing the path is how a clash between two kits' operators is fixed.
+- **The `bare.kit_prefix.X` and `bare.enum_prefix.X` marks are gone**, with the rule that a `pub` item must say which
+  (2026-10-06, 10-20) and Good Practices 19 and 20; a mark left in a kit is refused, naming this rule.
+- **`list` and `map` are std's, so they take the path too** (owner: "(a)", design claude's recommendation, over (b)
+  keeping them bare as part of the language): `std::list[i64]`, `std::list.append[…]`, `std::map.get[…]`, and so do
+  printing, `round.X`, `format`, `duration` and the text operations (`std::str.each.grapheme[…]`); `str.utf8` and the
+  base's operators are the base's. **`use` may name a module or a type, not only a function**: `use std::list as list;`
+  brings back `list[i64]`, `list.append[…]` and `list.length[…]` for that file.
+- **Built in the oracle** (design claude): every other kit's `pub` name is path-required and its operators optional;
+  another kit's enum value is `greet::Tone.loud`; a glyph with its path, `'t' greet::<+> 'u'`. The examples were
+  swept by following the oracle's own "write `std::…`" errors (75 files); `examples/bare_marks.cy`, `std_bare.cy`,
+  `duration_bare.cy` and 24 reject tests about marks were retired (in the Trash); `uses_bare` became `uses_paths`.
+  std/'s own marks are read and ignored until std claude takes them out (stopgap). Not swept: the `design/` notes'
+  code, which still shows std names bare in many places, and `bench/`, whose programs keep the old form until kayo
+  reads `std::list` as a type. `design/kits.md`; Good Practices 19 and 20 withdrawn (`style.md`).
+
+### 2026-10-22 — `use std::print.useful as useful_print;`: a file renames another kit's name for itself, `as` always written (owner; built in the oracle)
+
+The owner: "What IF we added a `use` equivalent?", then, shown `use std::print.useful;`, asked how Rust's works,
+proposed `use std::print.useful as useful_print` with "it's their choice" to a rename onto a `::` path, chose
+(b) a note in the build for it, "Every `use` gets a note", "I only meant in the build report", and "(a)" to `as`
+being required ("`use[std::list.append];` doesn't make sense"). On 2026-10-22, asked whether `use[…]` was consistent,
+the owner: "Or we could do: `use std::print.useful as useful_print;` `use json::parse as parse;` I like how diabolical
+Kotlin's imports look", and "yea, go". So:
+- **`use <another kit's path> as <name>;`**, one per line; **`as` is always written**; the name after it is used
+  bare in that file. A rename onto a `::` path (`as std::print`) is allowed.
+- **Every `use` gets a note in the build report** saying what the name stands for.
+- This reverses 2026-09-19's "no `import`/`use`" and "a user cannot alias or override".
+- Design claude's readings, not asked: `use` lines go at a file's top, before anything else; there is no wildcard; a
+  new name may not be one of the file's own kit's names (refused, as a clash).
+
+### 2026-10-22 — A certain failure: `no_check` refuses it, `NO_FUCKING_CHECKS` builds and notes it (owner; reverses part of 2026-09-22)
+
+Asked what the certain-failure note was (a `no_check` site the prover happens to see fail on every run, built with a
+note, 2026-09-22), the owner: "So, shouldn't NO_FUCKING_CHECKS note, but `no_check` refuse?", then "yea, note it" and
+"all four". So **a `no_check` site that fails on every run is refused**, with the value that breaks it, and **under
+`NO_FUCKING_CHECKS` it builds, noted in the report**, the deliberate way through (testing a crash handler, design
+claude's example). Unchanged: the prover never goes looking; a site that fails on some inputs ships silently. This
+widens `NO_FUCKING_CHECKS` (2026-09-27: also trust what C hands back). It is the prover's: the oracle runs every check
+anyway and cannot tell "every run" from "this run".
+
+### 2026-10-22 — Every note is in the build report only; CyborgPL has no warnings (owner)
+
+The owner, on `use` notes: "I only meant in the build report", then "Should notes be in report?" and "But all should
+note in report only?". So **every note goes in the build report, none in the terminal**, which keeps only errors,
+checks and the summary line (2026-10-19 had "errors, warnings and one summary line"). Design claude had said to keep
+warnings in the terminal, then found `design/diagnostics.md`'s rule 4, "Three kinds, no fourth" (error, check,
+note): **there are no warnings**, so the report's section is **Notes**, not "Warnings and notes".
+
 ### 2026-10-22 — Concise CyborgPL, a joke: a file of only 8-digit binary groups is decoded byte by byte into CyborgPL text (owner; built in the oracle)
 
 The owner: "There should be a way to write concise CyborgPL", showing `MAIN` and `std::print.useful["Hello, World!"];`

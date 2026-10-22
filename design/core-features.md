@@ -89,11 +89,15 @@ proofs rather than skipping them — never by doing less.
 - **`no_check`** — "Okay, I'm sure this is correct." Check removed, no
   verification. The one place the final product's safety rests on the
   programmer alone. The build output lists every `no_check` site.
-  **A certain failure gets a note, never a refusal** (owner,
-  2026-09-22): when the prover's ordinary work happens to show that a
-  `no_check` site fails on *every* run — `no_check let 'q' := 1 div.floor 'z';`
-  with `'z'` proven to be 0 — the build says so (`note:`, the third
-  kind in `diagnostics.md`) and builds anyway. the prover never goes
+  **A certain failure is refused under `no_check`, and noted under
+  `NO_FUCKING_CHECKS`** (owner, 2026-10-22: "shouldn't NO_FUCKING_CHECKS note,
+  but `no_check` refuse?", replacing 2026-09-22's "a note, never a refusal"):
+  when the prover's ordinary work happens to show that a `no_check` site
+  fails on *every* run — `no_check let 'q' := 1 div.floor 'z';` with `'z'`
+  proven to be 0 — the build stops with that value, as a `check` would; written
+  `NO_FUCKING_CHECKS`, the same site builds and the report notes it, the
+  deliberate way through (testing a crash handler). Until 2026-10-22 the
+  `no_check` site built with a note. the prover never goes
   looking; it only refuses to stay silent about what it could not
   avoid noticing. A `no_check` that fails on *some* inputs ships with
   nothing said, so "no verification" holds everywhere it matters.

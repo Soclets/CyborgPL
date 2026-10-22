@@ -21,7 +21,7 @@ test fn wrong_reason [] {
     must.fail.out_of_range to.i32["abc"];
 }
 test fn guards [] {
-    let 'xs': list[i32] = [1, 2, 3];
+    let 'xs': std::list[i32] = [1, 2, 3];
     must.stop 'xs'[pos: 99];
 }
 MAIN { std::print.useful[add[1, 1], newln]; }

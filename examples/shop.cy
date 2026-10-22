@@ -17,10 +17,10 @@ struct Item {
 
 fn price [lent 'i': Item] -> i32 { return 'i'.cents; }
 
-fn cheapest <T: Priced> [lent 'xs': list[<T>]] -> <T> or fail[empty] {
-    if list.length[lend 'xs'] equal_to 0 { fail empty; }
+fn cheapest <T: Priced> [lent 'xs': std::list[<T>]] -> <T> or fail[empty] {
+    if std::list.length[lend 'xs'] equal_to 0 { fail empty; }
     let 'best' := 1;
-    for 'k' [from: 2, to: list.length[lend 'xs'], by: 1] {
+    for 'k' [from: 2, to: std::list.length[lend 'xs'], by: 1] {
         if price[lend 'xs'[pos: 'k']] < price[lend 'xs'[pos: 'best']] { change 'best' = 'k'; }
     }
     return copy 'xs'[pos: 'best'];
@@ -35,9 +35,9 @@ fn describe [lent 'i': Item] -> str.utf8 {
     }
 }
 
-fn keep [lent 'xs': list[Item], 'test': fn[lent Item] -> bool] -> list[Item] {
-    let 'out': list[Item] = [];
-    for 'x' in lend 'xs' { if 'test'[lend 'x'] { list.append[lend.mut 'out', value: copy 'x']; } }
+fn keep [lent 'xs': std::list[Item], 'test': fn[lent Item] -> bool] -> std::list[Item] {
+    let 'out': std::list[Item] = [];
+    for 'x' in lend 'xs' { if 'test'[lend 'x'] { std::list.append[lend.mut 'out', value: copy 'x']; } }
     return give 'out';
 }
 
@@ -51,7 +51,7 @@ MAIN {
 
     let 'limit' := 5_000;
     let 'affordable' := keep[lend 'shelf', fn [lent 'i': Item] -> bool with [lend 'limit'] { return 'i'.cents at_most 'limit'; }];
-    std::print.useful[list.length[lend 'affordable'], " affordable", newln];
+    std::print.useful[std::list.length[lend 'affordable'], " affordable", newln];
 
     let 'pick' := cheapest[lend 'affordable'] otherwise std::exit[0];
     std::print.stored["cheapest: ", 'pick'.name, newln];

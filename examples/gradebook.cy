@@ -3,19 +3,19 @@ pub const 'passing' := 60;
 
 struct Student {
     name: str.utf8,
-    scores: list[i32]
+    scores: std::list[i32]
 }
 
 fn average [lent 's': Student] -> i32 or fail[no_scores] {
-    if list.length[lend 's'.scores] equal_to 0 { fail no_scores; }
+    if std::list.length[lend 's'.scores] equal_to 0 { fail no_scores; }
     let 'total' := 0;
     for 'x' in lend 's'.scores { change 'total' = 'total' + 'x'; }
-    check return 'total' div.floor list.length[lend 's'.scores];     # the if above proves the divisor is not 0
+    check return 'total' div.floor std::list.length[lend 's'.scores];     # the if above proves the divisor is not 0
 }
 
 fn record [lent.mut 's': Student, 'score': i32] -> fail[out_of_range: i32] {
     if 'score' < 0 or 'score' > 100 { fail out_of_range['score']; }
-    list.append[lend.mut 's'.scores, value: 'score'];
+    std::list.append[lend.mut 's'.scores, value: 'score'];
 }
 
 fn grade [lent 's': Student] -> str.utf8 {
@@ -25,7 +25,7 @@ fn grade [lent 's': Student] -> str.utf8 {
 }
 
 MAIN {
-    let 'a' := Student[name = "Ann", scores = list.empty];
+    let 'a' := Student[name = "Ann", scores = std::list.empty];
     let 'b' := Student[name = "Bo", scores = [40, 55]];
     let 'marks' := [72, 130, 88];
 
@@ -36,12 +36,12 @@ MAIN {
     }
     record[lend.mut 'b', 65] otherwise std::exit[1];
 
-    let 'students' := [give 'a', give 'b', Student[name = "Cy", scores = list.empty]];
+    let 'students' := [give 'a', give 'b', Student[name = "Cy", scores = std::list.empty]];
     let 'passed' := 0;
     for 's' in lend 'students' {
         std::print.stored['s'.name, ": ", grade[lend 's'], newln];
         let 'avg' := average[lend 's'] otherwise 0;
         if 'avg' at_least 'passing' { change 'passed' = 'passed' + 1; }
     }
-    std::print.useful['passed', " of ", list.length[lend 'students'], " passed", newln];
+    std::print.useful['passed', " of ", std::list.length[lend 'students'], " passed", newln];
 }

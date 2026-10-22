@@ -5,7 +5,7 @@ spellings::table[
         "temp", "perm", "range", "seq", "para", "list", "array", "map", "simd", "channel", "concur", "whichever", "from",
         "struct", "pub", "const", "module", "kit", "not_std", "my", "on", "fail", "otherwise", "to", "extern", "layout",
         "ptr", "size", "align", "incl", "coll", "inline", "asm", "ASM", "enum", "match", "interface", "satisfies",
-        "xor", "shl", "shr", "with", "test", "must", "exactly", "percent", "bin", "hex", "oct", "as",
+        "xor", "shl", "shr", "with", "test", "must", "exactly", "percent", "bin", "hex", "oct", "as", "use",
     ],
     retired = ["var", "func", "collection"],
     capitals = ["MAIN", "NO_FUCKING_CHECKS", "ASM", "C", "LL", "MSL"],

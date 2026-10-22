@@ -5,7 +5,7 @@
 # The group may be left out (`first`), and the prover works it out from the body (a `#strict` file
 # had to write it, until `#strict` went on 2026-10-07).
 fn longer [@x] [lent @x 'a': str.utf8, lent @x 'b': str.utf8] -> lent @x str.utf8 {
-    if str.bytes[lend 'a'] at_least str.bytes[lend 'b'] { return lend 'a'; }
+    if std::str.bytes[lend 'a'] at_least std::str.bytes[lend 'b'] { return lend 'a'; }
     return lend 'b';
 }
 fn pick [@x, @y] [lent @x 'a': str.utf8, lent @y 'b': str.utf8] -> lent @x str.utf8 {

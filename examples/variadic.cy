@@ -6,7 +6,7 @@ fn sum [...'nums'] -> f64 {
 }
 
 fn count_ints [...'nums': i32] -> u64 {
-    return list.length[lend 'nums'];
+    return std::list.length[lend 'nums'];
 }
 
 fn show [lent 'label': str.utf8, lent ...'parts'] {

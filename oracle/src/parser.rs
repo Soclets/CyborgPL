@@ -117,6 +117,11 @@ fn is_std_op(op: &str) -> bool {
 
 /// std's names the oracle emulates, which may be written without `std::` since std marks everything
 /// `bare.kit_prefix.optional` (owner, 2026-10-06: "optional for all")
+/// The file being read is std's own (a `std` folder in its full path): std's names are its own there, so they are
+/// bare, as any kit's own names are (owner, 2026-10-22: "Only other kits, own stays bare")
+pub fn in_std_file() -> bool {
+    CURRENT_FILE.with(|f| { let f = f.borrow(); std::fs::canonicalize(&*f).unwrap_or_else(|_| f.clone()).components().any(|c| c.as_os_str() == "std") })
+}
 /// the ways `std::round` rounds (owner, 2026-10-17)
 pub const ROUND_WAYS: &[&str] = &["near", "half_up", "floor", "ceil", "trunc"];
 // `printu` and `printf` were std's old spellings (now `print.useful`, `print.format`); `std::printf` still names the new form,
@@ -244,6 +249,9 @@ thread_local! {
     /// Every call written with no path: (the module it is in, the path as written, whether std may be
     /// meant, its line), checked for clashes once the program is read, whether or not it runs
     pub static BARE_CALLS: std::cell::RefCell<Vec<(Vec<String>, Vec<String>, bool, usize)>> = std::cell::RefCell::new(Vec::new());
+    /// Every `use` read: the name, the path it stands for, its line (owner, 2026-10-22: each gets a note in the build
+    /// report, which is kayo's)
+    pub static USES: std::cell::RefCell<Vec<(Vec<Tok>, Vec<Tok>, usize)>> = std::cell::RefCell::new(Vec::new());
     /// Power uses seen while parsing (owner, 2026-10-07): the kit's root, the power's path, the thing
     /// named, the line. C calls and C variables are found once the program is read (CALL_SITES, VAR_SITES).
     pub static POWER_USES: std::cell::RefCell<Vec<(Vec<String>, String, Option<String>, usize)>> = std::cell::RefCell::new(Vec::new());
@@ -285,6 +293,8 @@ impl Parser {
     /// which prefix may be dropped, then whether it is required (`never`), `optional` or forbidden (`only`).
     /// True when it is the enum's prefix. `bare.kit_prefix.never` and the like are old spellings.
     fn bare_mode(&mut self) -> PResult<(bool, Bare)> {
+        // std/ keeps its marks until its own session takes them out (design claude's stopgap); they are read and ignored
+        if !in_std_file() { return self.err("the `bare.` marks are gone (owner, 2026-10-22): another kit's names always take its path, so a kit no longer says how other kits write it; take the mark out"); }
         self.expect_word("bare")?;
         let mode_of = |m: &str| match m { "never" => Some(Bare::Never), "optional" => Some(Bare::Optional), "only" => Some(Bare::Only), _ => None };
         if *self.peek() == Tok::Dot {
@@ -320,6 +330,71 @@ impl Parser {
 
     /// Everything std brings is refused in a kit whose `CyJet.cyr` does not list it (owner, 2026-10-06:
     /// the operators, printing and the rest are std's, and a manifest lists std like any kit).
+    /// `use std::print.useful as useful_print;` at the top of a file (owner, 2026-10-22, Kotlin's shape): the name after
+    /// `as` stands for the path in this file. Read before anything else and written into the tokens, so the rest of
+    /// the parser sees the path. `as` is always written; the path is another kit's; `use std::list as list;` names a
+    /// module or type too.
+    fn read_uses(&mut self) -> PResult<()> {
+        let mut uses: Vec<(Vec<Tok>, Vec<Tok>, usize)> = Vec::new();   // (alias, path, the `use` line)
+        let mut i = 0;
+        while matches!(&self.toks[i].tok, Tok::Word(w) if w == "use") {
+            let at = i;
+            let line = self.toks[i].line;
+            i += 1;
+            let start = i;
+            while i < self.toks.len() && !matches!(&self.toks[i].tok, Tok::Word(w) if w == "as") && self.toks[i].tok != Tok::Semi && self.toks[i].tok != Tok::Eof { i += 1; }
+            let path: Vec<Tok> = self.toks[start..i].iter().map(|t| t.tok.clone()).collect();
+            if !matches!(self.toks.get(i).map(|t| &t.tok), Some(Tok::Word(w)) if w == "as") {
+                return self.err_at(at, "`use` says the name after `as`: `use std::list.append as append;` (owner, 2026-10-22: `as` always written)");
+            }
+            if !(path.len() >= 3 && matches!(path[0], Tok::Word(_)) && path[1] == Tok::ColonColon) {
+                return self.err_at(at, "`use` names another kit's path, `kit::name`: `use std::print.useful as useful_print;` (this kit's own names are bare already)");
+            }
+            i += 1;
+            let astart = i;
+            while i < self.toks.len() && self.toks[i].tok != Tok::Semi && self.toks[i].tok != Tok::Eof { i += 1; }
+            let alias: Vec<Tok> = self.toks[astart..i].iter().map(|t| t.tok.clone()).collect();
+            let plain = alias.len() == 1 && matches!(alias[0], Tok::Word(_));
+            let pathlike = alias.len() >= 3 && matches!(alias[0], Tok::Word(_)) && alias[1] == Tok::ColonColon;
+            if !plain && !pathlike { return self.err_at(astart, "after `as` comes a name, `use std::print.useful as useful_print;`, or a path, `as std::print`"); }
+            if self.toks.get(i).map(|t| &t.tok) != Some(&Tok::Semi) { return self.err_at(i, "a `use` line ends with `;`"); }
+            uses.push((alias, path, line));
+            i += 1;
+            let _ = at;
+        }
+        self.toks.drain(0..i);
+        // a `use` anywhere else is refused: they go first, as C's includes do (design claude's reading)
+        if let Some(j) = (0..self.toks.len()).find(|&j| matches!(&self.toks[j].tok, Tok::Word(w) if w == "use") && (j == 0 || !matches!(self.toks[j - 1].tok, Tok::Dot | Tok::ColonColon))) {
+            return self.err_at(j, "a `use` line goes at the top of the file, before anything else");
+        }
+        // one pass over what was written, so a name a `use` puts in is never read as another `use`'s
+        let mut j = 0;
+        while j < self.toks.len() {
+            let hit = uses.iter().find(|(alias, _, _)| j + alias.len() <= self.toks.len()
+                && self.toks[j..j + alias.len()].iter().map(|t| &t.tok).eq(alias.iter())
+                && (j == 0 || !matches!(self.toks[j - 1].tok, Tok::Dot | Tok::ColonColon))
+                && self.toks.get(j + alias.len()).map(|t| &t.tok) != Some(&Tok::Colon));
+            let Some((alias, path, _)) = hit.cloned() else { j += 1; continue };
+            if j > 0 && matches!(&self.toks[j - 1].tok, Tok::Word(w) if w == "fn" || w == "struct" || w == "enum" || w == "op") {
+                let shown = |v: &[Tok]| v.iter().map(|t| match t { Tok::Word(w) => w.clone(), Tok::ColonColon => "::".into(), Tok::Dot => ".".into(), o => o.to_string() }).collect::<String>();
+                return self.err_at(j, format!("`{}` is this file's name for `{}` (its `use`), so nothing here can be named it", shown(&alias), shown(&path)));
+            }
+            let (line, col) = (self.toks[j].line, self.toks[j].col);
+            let new: Vec<Token> = path.iter().map(|t| { let mut k = self.toks[j].clone(); k.tok = t.clone(); k.line = line; k.col = col; k }).collect();
+            let n = new.len();
+            self.toks.splice(j..j + alias.len(), new);
+            j += n;
+        }
+        USES.with(|u| u.borrow_mut().extend(uses.into_iter().map(|(a, p, l)| (a, p, l))));
+        Ok(())
+    }
+
+    /// An error at token `i`, not at the cursor
+    fn err_at<T>(&self, i: usize, msg: impl Into<String>) -> PResult<T> {
+        let t = &self.toks[i.min(self.toks.len() - 1)];
+        Err(ParseError { line: t.line, col: t.col, msg: msg.into() })
+    }
+
     fn std_missing<T>(&self, what: &str) -> PResult<T> {
         self.err(format!("{what} is std's, and this kit's CyJet.cyr does not list std: add `cyjet::dep.reg[id = \"{STD_ID}\", version = \"{STD_VERSION}\"]` to its `dependencies`"))
     }
@@ -468,6 +543,7 @@ impl Parser {
     // item := ('pub' ('.' 'kit')?)? (fn | struct | const | module) | MAIN block
     pub fn program(&mut self) -> PResult<Program> {
         let mut prog = Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new(), bare_marks: Vec::new(), case_marks: Vec::new() };
+        self.read_uses()?;
         // every quoted name, for finding C's variables once the program is read (owner, 2026-10-07)
         for t in &self.toks { if let Tok::Var(v) = &t.tok { VAR_SITES.with(|vs| vs.borrow_mut().push((self.kit_root.clone(), v.clone(), t.line))); } }
         // the root is `my.` (owner, 2026-10-06), no longer `limb.`; `pub.kit` became `pub.kit` (2026-10-09)
@@ -610,14 +686,35 @@ impl Parser {
                 return self.std_missing(&what);
             }
         }
-        // `std::list.append[…]` is `list.append[…]`: std marks everything `bare.kit_prefix.optional` (owner,
-        // 2026-10-06), and its lists, maps and text units are the oracle's built-ins
+        // std is another kit, so a bare `list`, `map`, `casing` or text unit is refused outside std's own files (owner,
+        // 2026-10-22: "(a)"), unless a `use` named it; `std::list[i64]` and `std::list.append[…]` are the oracle's
+        // built-ins, so the path is then taken off
+        if !in_std_file() && !self.no_std {
+            for i in 0..self.toks.len() {
+                let Tok::Word(w) = &self.toks[i].tok else { continue };
+                if i > 0 && matches!(self.toks[i - 1].tok, Tok::Dot | Tok::ColonColon) { continue; }
+                let next = self.toks.get(i + 1).map(|t| &t.tok);
+                if matches!(next, Some(Tok::Colon)) { continue; }   // a label or a field's name
+                if i > 0 && matches!(&self.toks[i - 1].tok, Tok::Word(k) if k == "enum") { continue; }   // std's `casing` itself
+                let unit = w == "str" && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(u)) if ["bytes", "points", "graphemes", "each"].contains(&u.as_str()));
+                let (shown, example) = match w.as_str() {
+                    "list" if matches!(next, Some(Tok::Dot | Tok::LBracket)) => ("list", "`std::list[i64]`, `std::list.append[…]`"),
+                    "map" if matches!(next, Some(Tok::Dot | Tok::LBracket)) => ("map", "`std::map[str.utf8, i32]`, `std::map.get[…]`"),
+                    "casing" => ("casing", "`lang: std::casing.tr`"),
+                    "str" if unit => ("str", "`std::str.each.grapheme[…]`"),
+                    _ => continue,
+                };
+                let name = if unit { match &self.toks[i + 2].tok { Tok::Word(u) => format!("str.{u}"), _ => "str".into() } } else { shown.to_string() };
+                return self.err_at(i, format!("`{name}` is std's: write `std::{name}` ({example}), or name it for this file with `use std::{name} as {};` (owner, 2026-10-22)", name.replace('.', "_")));
+            }
+        }
         let mut i = 0;
         while i + 3 < self.toks.len() {
             let std_head = matches!(&self.toks[i].tok, Tok::Word(w) if w == "std") && self.toks[i + 1].tok == Tok::ColonColon
                 && (i == 0 || self.toks[i - 1].tok != Tok::Dot)
                 && match (&self.toks[i + 2].tok, &self.toks[i + 3].tok, self.toks.get(i + 4).map(|t| &t.tok)) {
-                    (Tok::Word(h), Tok::Dot, _) if h == "list" || h == "map" => true,
+                    (Tok::Word(h), Tok::Dot | Tok::LBracket, _) if h == "list" || h == "map" => true,
+                    (Tok::Word(h), _, _) if h == "casing" => true,
                     (Tok::Word(h), Tok::Dot, Some(Tok::Word(u))) if h == "str" => ["bytes", "points", "graphemes", "each"].contains(&u.as_str()),
                     _ => false,
                 };
@@ -1938,6 +2035,7 @@ impl Parser {
         // "optional for all")
         if self.is_word("duration") && !matches!(self.peek_at(1), Tok::Dot | Tok::ColonColon) {
             if self.no_std { return self.std_missing("`duration`"); }
+            if !in_std_file() { return self.err("`duration` is std's: write `std::duration`, or `use std::duration as duration;` (owner, 2026-10-22)"); }
             self.advance();
             return Ok(Ty::Duration);
         }
@@ -3117,7 +3215,7 @@ impl Parser {
         // session moves them (design claude's stopgap, oracle/README.md)
         // a `std` folder anywhere in the path, so `oracle std` from std claude's clone counts too (it read
         // `std/round.cy`, with no `/` in front, as not std's: std claude, 2026-10-22)
-        let in_std = CURRENT_FILE.with(|f| { let f = f.borrow(); std::fs::canonicalize(&*f).unwrap_or_else(|_| f.clone()).components().any(|c| c.as_os_str() == "std") });
+        let in_std = in_std_file();
         if !in_std {
             let outside_main = main.len() > 1 && !in_block.contains(&name);
             let outside_member = members.iter().map(|(m, _)| m).find(|m| members.iter().filter(|(x, _)| x == *m).count() > 1 && !in_block.contains(m));
@@ -3723,6 +3821,7 @@ impl Parser {
     // call := (Word '::')? Word ('.' Word)* bracket
     fn call(&mut self) -> PResult<Call> {
         let line = self.line();
+        let start = self.pos;
         let first = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected a name, found {other}")) };
         if crate::spellings::is_reserved(&first) && first != "my" && *self.peek() != Tok::ColonColon {
             return self.err(format!("`{first}` is a keyword; a function named `{first}` is reached through a path, never bare: `my.{first}[…]`"));
@@ -3742,7 +3841,14 @@ impl Parser {
         let bare = kit.is_none() && path[0] != "my";
         let written = if path[0] == "my" { path[1..].to_vec() } else { path.clone() };
         // std's names come bare too (owner, 2026-10-06: std is "optional for all"), where std is listed
-        let kit = if bare && !self.no_std && (STD_BARE_HEADS.contains(&path[0].as_str()) || (path[0] == "str" && path.get(1).map_or(false, |o| STD_STR_OPS.contains(&o.as_str())))) { Some("std".to_string()) } else { kit };
+        let std_named = bare && !self.no_std && (STD_BARE_HEADS.contains(&path[0].as_str()) || (path[0] == "str" && path.get(1).map_or(false, |o| STD_STR_OPS.contains(&o.as_str()))));
+        // std is another kit, so its names take its path (owner, 2026-10-22), except in std's own files
+        if std_named && !in_std_file() {
+            let w = written.join(".");
+            let head = if path[0] == "str" { format!("{}.{}", path[0], path[1]) } else { path[0].clone() };
+            return self.err_at(start, format!("`{w}` is std's: write `std::{w}`, or name it for this file with `use std::{head} as {};` (owner, 2026-10-22)", head.replace('.', "_")));
+        }
+        let kit = if std_named { Some("std".to_string()) } else { kit };
         // a print goes to stdout unless it says `.stderr` (owner, 2026-10-07: "default to out")
         let mut path = path;
         if kit.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && !matches!(path.last().map(|s| s.as_str()), Some("stdout" | "stderr")) {
@@ -4129,6 +4235,11 @@ impl Parser {
                     let Tok::Word(b) = self.peek_at(k + 4).clone() else { unreachable!() };
                     self.op_len.set(5); Some(format!("{p}::{n}.{b}"))
                 } else { self.op_len.set(3); Some(format!("{p}::{n}")) }
+            }
+            // a kit's glyph operator with its path, `greet::<+>` (owner, 2026-10-22: "glyphs are optional too")
+            Tok::Word(p) if *self.peek_at(k + 1) == Tok::ColonColon && matches!(self.peek_at(k + 2), Tok::Op(_)) => {
+                let Tok::Op(o) = self.peek_at(k + 2).clone() else { unreachable!() };
+                self.op_len.set(3); Some(format!("{p}::{}", symbol_word(&o).map(str::to_string).unwrap_or(o)))
             }
             // a narrowed custom word operator, `dot.fast` (owner, 2026-10-02/03)
             Tok::Word(w) if !crate::spellings::is_reserved(&w) && w != "not" && *self.peek_at(k + 1) == Tok::Dot && matches!(self.peek_at(k + 2), Tok::Word(_)) && !matches!(self.peek_at(k + 3), Tok::LBracket | Tok::Dot) => {
@@ -4940,6 +5051,21 @@ impl Parser {
                         break;
                     }
                     Ok(Expr::FnRef(self.resolve(&segs), self.module.clone(), line))
+                }
+                // `greet::Tone.loud`: another kit's enum value takes its path (owner, 2026-10-22), as its type does
+                _ if w != "std" && *self.peek_at(1) == Tok::ColonColon && matches!(self.peek_at(2), Tok::Word(_))
+                    && (3..12).step_by(2).any(|k| *self.peek_at(k) == Tok::Dot && matches!(self.peek_at(k + 1), Tok::Word(_)) && !matches!(self.peek_at(k + 2), Tok::Dot | Tok::LBracket)
+                        && (3..k).step_by(2).all(|j| *self.peek_at(j) == Tok::Dot && matches!(self.peek_at(j + 1), Tok::Word(_)))) => {
+                    let kit = w.clone();
+                    self.advance(); self.advance();
+                    let mut segs = vec![format!("::{kit}")];
+                    loop {
+                        match self.advance().tok { Tok::Word(w) => segs.push(w), _ => unreachable!() }
+                        if *self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(_)) { self.advance(); continue; }
+                        break;
+                    }
+                    let case = segs.pop().unwrap();
+                    Ok(Expr::EnumValue(segs.join("."), case, None, line))
                 }
                 _ if self.is_enum_bare() => {
                     // `Status.empty` / `shapes.Status.empty` — an enum case with no data;

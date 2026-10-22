@@ -1,1 +1,1 @@
-MAIN { let 'm' := map[]; }
+MAIN { let 'm' := std::map[]; }

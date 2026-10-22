@@ -11,8 +11,8 @@ fn max <T: Number> ['a': <T>, 'b': <T>] -> <T> {
     return give 'b';
 }
 
-fn first <T: any> [lent 'xs': list[<T>]] -> <T> or fail[empty] {
-    if list.length[lend 'xs'] equal_to 0 { fail empty; }
+fn first <T: any> [lent 'xs': std::list[<T>]] -> <T> or fail[empty] {
+    if std::list.length[lend 'xs'] equal_to 0 { fail empty; }
     return 'xs'[pos: 1];
 }
 

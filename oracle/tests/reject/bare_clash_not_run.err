@@ -1,1 +1,0 @@
-`exit` could be any of `my.m.exit` (this kit's), `std::exit`: write the path

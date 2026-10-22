@@ -1,8 +1,8 @@
 # The digits of pi, by the Rabinowitz–Wagon spigot: integers only, no bin anywhere.
 fn pi_digits ['n': i32] {
     let 'len' := (10 x 'n') div.floor 3 + 1;
-    let mut 'a' := list.empty;
-    for 'i' [from: 1, to: 'len', by: 1] { list.append[lend.mut 'a', value: 2]; }
+    let mut 'a' := std::list.empty;
+    for 'i' [from: 1, to: 'len', by: 1] { std::list.append[lend.mut 'a', value: 2]; }
     let mut 'nines' := 0;
     let mut 'predigit' := 0;
     for 'j' [from: 1, to: 'n', by: 1] {

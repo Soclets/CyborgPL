@@ -45,7 +45,7 @@ MAIN {
 
     let 'text': array[u8] = [104, 101, 108, 108, 111, 44, 32, 108, 111, 119, 32, 108, 101, 118, 101, 108];
     let 'msg' := "straight to fd 1 via write(2)";
-    no_check let 'n' := write[1, lend 'msg', str.bytes[lend 'msg']];
+    no_check let 'n' := write[1, lend 'msg', std::str.bytes[lend 'msg']];
 
     std::print.useful[newln,
         "third raw byte: ", 'third', newln,

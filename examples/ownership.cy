@@ -1,5 +1,5 @@
 # Ownership: `lend`, `lend.mut`, `give` and `copy`.
-fn count [lent 'items': list[str.utf8]] -> i32 {
+fn count [lent 'items': std::list[str.utf8]] -> i32 {
     let 'n' := 0;
     for 'item' in lend 'items' {
         change 'n' = 'n' + 1;

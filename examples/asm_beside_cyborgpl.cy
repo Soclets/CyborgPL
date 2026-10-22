@@ -33,7 +33,7 @@ fn leading_zeros_zag ['n': u64] -> u64 {
 
 MAIN {
     std::print.useful["6 times 7 plus 3: assembly ", mul_add_asm[6, 7, 3], ", CyborgPL ", 6 x 7 + 3, newln];
-    let 'xs': list[u64] = [1, 255, 65536, 9223372036854775808, 0];
+    let 'xs': std::list[u64] = [1, 255, 65536, 9223372036854775808, 0];
     for 'n' in lend 'xs' {
         std::print.useful['n', " has ", leading_zeros_asm['n'], " leading zeros (CyborgPL: ", leading_zeros_zag['n'], ")", newln];
     }

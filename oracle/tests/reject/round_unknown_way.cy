@@ -1,3 +1,3 @@
 MAIN {
-    let 'v' := round.up[2.5];
+    let 'v' := std::round.up[2.5];
 }

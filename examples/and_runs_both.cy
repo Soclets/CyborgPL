@@ -11,7 +11,7 @@ MAIN {
     std::print.useful['ok', newln];
     let 'xs' := [3, 5, 8];
     let 'i': u64 = 7;
-    if 'i' at_most list.length[lend 'xs'] {
+    if 'i' at_most std::list.length[lend 'xs'] {
         if 'xs'[pos: 'i'] equal_to 5 { std::print.useful["found", newln]; }
     }
     std::print.useful["done", newln];

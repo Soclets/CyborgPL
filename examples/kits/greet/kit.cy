@@ -1,30 +1,35 @@
-# Names other kits may write with or without `greet::`, or only without it (owner, 2026-10-06).
+# A kit for uses_paths: other kits write its names with `greet::` (owner, 2026-10-22), and its operator `merge` bare
+# or with the path, and its glyph `<+>` the same.
 
-pub bare.kit_prefix.optional fn hello [] -> str.utf8 {
+pub fn hello [] -> str.utf8 {
     return "hello";
 }
 
-pub bare.kit_prefix.only fn wave [] -> str.utf8 {
+pub fn wave [] -> str.utf8 {
     return "wave";
 }
 
-pub bare.kit_prefix.never fn formal [] -> str.utf8 {
+pub fn formal [] -> str.utf8 {
     return "good day";
 }
 
-pub bare.kit_prefix.never struct Tally {
+pub struct Tally {
     n: i32
 }
 
-pub bare.kit_prefix.never op merge ['a': Tally, 'b': Tally] -> Tally {
+pub op merge ['a': Tally, 'b': Tally] -> Tally {
     return Tally[n = 'a'.n + 'b'.n];
 }
 
-pub bare.kit_prefix.optional struct Note {
+pub struct Note {
     text: str.utf8
 }
 
-pub bare.kit_prefix.only bare.enum_prefix.never enum Tone {
+pub enum Tone {
     soft,
     loud
+}
+
+pub op <+> ['a': Tally, 'b': Tally] -> Tally {
+    return Tally[n = 'a'.n + 'b'.n + 1];
 }

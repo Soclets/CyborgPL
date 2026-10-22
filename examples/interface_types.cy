@@ -28,7 +28,7 @@ fn smaller <T: WholeOrdered> ['a': <T>, 'b': <T>] -> <T> {
     return 'b';
 }
 
-fn whole <T: any> [@x] [lent @x 'xs': list[<T>]] -> lent @x list[<T>] { return lend 'xs'; }
+fn whole <T: any> [@x] [lent @x 'xs': std::list[<T>]] -> lent @x std::list[<T>] { return lend 'xs'; }
 
 struct Box <T: Number> { item: <T> }
 

@@ -1,3 +1,3 @@
 MAIN {
-    let 'v' := floor[2.5];
+    let 'v' := std::floor[2.5];
 }
