@@ -34,6 +34,27 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-22 — `inline.MSL`: a number binds with `copy`, one kernel per block, shared code by Metal's `#include`, and numbers, lists and `layout.C` structs bind, kayo writing their Metal side (owner; not built)
+
+Going through what was left before `inline.MSL` could be built (owner: "Back to `inline.MSL`"), one at a time, design
+claude recommending each:
+- **A single value binds with `copy`**: `copy 'k' -> buffer(1)`, a Metal `constant` (owner: "(b)", over a bare
+  `'k'`): every other place a value moves says how.
+- **One kernel per block** (owner asked "wtf is a kernel?" and for pros and cons, then "Can't they just write another
+  file that is Metal?", "perf diff?" (none at run time; a shared file is compiled again per block, at build time),
+  "What's the alt?", then "yea"): a second `kernel` in a block is refused; helper functions without `kernel` are
+  fine. **Shared Metal code lives in `.metal` files, pulled in with Metal's own `#include "shaders/common.metal"`**,
+  the path from the kit's root as `incl.C["…"]`'s is, the registry refusing one outside the kit; over `incl.MSL[…]`
+  (the runner-up), an `inline.MSL.lib` block, a prebuilt `.metallib`, or copying.
+- **What binds** (owner asked what (c) would cost, for pros and cons, "Any better ways?", then "yea"): **numbers,
+  lists of numbers, `layout.C struct`s and lists of them**, each handed to the GPU as it is, Apple's GPU sharing the
+  CPU's memory, **and kayo writes the Metal declaration of each bound `layout.C struct`** at the top of the block's
+  code, so the struct is written once. Anything else is refused, naming what binds; over (a) numbers only and (c)
+  anything with kayo converting (a hidden copy each way per launch, double the memory, a translation layer per
+  type). Later, perhaps: a word that makes such a copy visible (`pack 'xs' -> buffer(0)`, design claude's sketch).
+In `design/gpu.md`. Not built: the oracle will read and check a block and refuse to run it, as for `inline.ASM`;
+kayo compiles it with Apple's `metal`.
+
 ### 2026-10-22 — The manifest is `CyJet.toml`, Tankun's Obvious Minimal Language, the owner's own format; `CyJet.lock` is a real-binary lockfile (owner; the manifest built in the oracle)
 
 The owner: "I'm feeling like changing CyJet to `CyJet.toml`, but it's Tankun instead of Tom" (TOML is "Tom's Obvious,

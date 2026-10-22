@@ -149,11 +149,33 @@ no_check inline.MSL threads std::list.length[lend 'xs'] {
 
 How the block runs comes first; `with` holds what it touches. The code
 inside the braces is Metal's, passed to Apple's compiler unchanged. A lent
-list binds with **`-->`**, as in `inline.ASM`: `lend.mut` says the kernel
+list binds with **`->`** (`-->` until 2026-10-07), as in `inline.ASM`: `lend.mut` says the kernel
 may write it, and the changes are in `'xs'` when the block ends (owner,
 2026-10-01: a). The slot is named as Metal names it, `buffer(0)`,
 matching the kernel's `[[buffer(0)]]`, as `inline.ASM` writes ARM's `x0`
 (owner, 2026-10-01).
+
+**Settled 2026-10-22 (owner):**
+- **A single value binds with `copy`**: `copy 'k' -> buffer(1)`, a Metal `constant`.
+- **One kernel per block**; helper functions without `kernel` are fine. Shared Metal code lives in `.metal` files,
+  pulled in with Metal's own `#include "shaders/common.metal"`, the path from the kit's root, the registry refusing
+  one outside the kit.
+- **Numbers, lists of numbers, `layout.C struct`s and lists of them bind**, handed over as they are (Apple's GPU
+  shares the CPU's memory), and **kayo writes the Metal declaration of each bound `layout.C struct`** at the top of
+  the block, so it is written once:
+
+```
+layout.C struct Body { x: f32, y: f32, vx: f32, vy: f32 }
+
+no_check inline.MSL threads 'n' {
+    #include "shaders/common.metal"
+    kernel void step(device Body *bodies [[buffer(0)]], constant float &dt [[buffer(1)]], uint id [[thread_position_in_grid]]) {
+        bodies[id].x += bodies[id].vx * dt;
+    }
+} with [lend.mut 'bodies' -> buffer(0), copy 'dt' -> buffer(1)];
+```
+
+- The limb is **Metal** (2026-10-06), listed as `metal { … }` under `my limbs:`.
 
 ## Open
 
