@@ -62,15 +62,19 @@ before deciding the lockfile): every `CyJet.cyr` converted; design claude's read
 block named after the limb, a `CyJet.toml` may be concise) in `design/cyjet-toml.md`. The lockfile is not built,
 CyJet having no command yet.
 
-### 2026-10-22 — Apple's GPU limb, the one holding `inline.MSL`, is `metal` (owner)
+### 2026-10-22 — Apple's GPU limb, the one holding `inline.MSL`, is Metal, `metal` in a manifest (owner; named 2026-10-06)
 
 Asked when `inline.MSL` could be built, design claude listed what was left (where it lives, binding a single number,
 which kernel runs when a block holds several, which types bind; the oracle reading and refusing to run it, as for
 `inline.ASM`; kayo compiling it with Apple's `metal`, found installed). The owner: "yea, start with where it lives".
-By 2026-10-06 it is in Apple's vendor GPU limb (one of three hand-written-GPU limbs beside the automatic one), whose
-name was open; design claude offered MSG, SMH, AMP, or plain `metal`, noting Metal is Apple's product name. The owner:
-"Just `metal`". So **Apple's GPU limb is `metal`**, lowercase as `unicode` is; a kit that writes `inline.MSL` lists it.
-`design/gpu.md`'s "the base language has `inline.MSL`" was stale and is corrected. Not yet: its registry ID.
+By 2026-10-06 it is in Apple's vendor GPU limb (one of three hand-written-GPU limbs beside the automatic one).
+Design claude, wrongly taking its name for open, offered MSG, SMH, AMP, or plain `metal`, noting Metal is Apple's
+product name. The owner: "Just `metal`". **Correction (design claude, the same day):** the limb was already named
+**Metal** on 2026-10-06 (owner: "We could just say "Vulkan", "Nvidia", and "Metal"", and that limb names are not
+trademarked), with its registry ID `3e7b81fec072c86d58538d10978aff1d42814c9e907f1259766851795cded9b7`, so nothing was
+open and no new ID is made; written `metal` in a manifest, as every limb's block is lowercased (`cnc`, `unicode`). A
+kit that writes `inline.MSL` lists it. `design/gpu.md`'s "the base language has `inline.MSL`" was stale and is
+corrected.
 
 ### 2026-10-22 — Another kit's names always take its prefix; the `bare.*` marks are gone (owner; built in the oracle)
 
