@@ -15,7 +15,9 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 writes each generated program's binary twin (each byte eight digits, groups split by one space, line
 breaks kept; the same encoding as `examples/concise.cy`, checked by a round trip) and runs both on the
 oracle: the same output, and the same stop naming the same line. The twin's error note `(concise file;
-decoded line N: …)` and its file name are set aside. kayo joins when it reads them. Writing it showed the
+decoded line N: …)` and its file name are set aside. kayo reads them since edb9fb8c: each twin is
+also built and run by kayo beside the program, the same outcome required (`--oracle-only` leaves kayo
+out). A twin built as a kit is decided on its decoded text, its `kit.cy` the binary. Writing it showed the
 generator's table function writing `… mod.floor m - c`, a mod beside another operator, refused by both
 engines in about 1 program in 50; now parenthesised.
 

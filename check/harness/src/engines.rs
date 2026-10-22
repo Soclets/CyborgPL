@@ -218,6 +218,21 @@ pub enum Build {
     Timeout,
 }
 
+/// A Concise CyborgPL file's text (design/concise.md): a file of only `0`,
+/// `1`, spaces and line breaks is the bytes its eight-digit groups spell; any
+/// other file is itself.
+pub fn decoded(src: &str) -> String {
+    if !src.bytes().all(|b| matches!(b, b'0' | b'1' | b' ' | b'\n')) || !src.contains('0') && !src.contains('1') {
+        return src.to_string();
+    }
+    let bytes: Vec<u8> = src
+        .split('\n')
+        .map(|l| l.split(' ').filter(|g| !g.is_empty()).filter_map(|g| u8::from_str_radix(g, 2).ok()).collect::<Vec<u8>>())
+        .collect::<Vec<_>>()
+        .join(&b'\n');
+    String::from_utf8_lossy(&bytes).into_owned()
+}
+
 /// `Asserted` is `cca build --assert-proofs` (design/precog.md attack (d)):
 /// every proven site keeps a run-time check that exits 104 with
 /// `proof failed:` if the proof was wrong.
@@ -238,7 +253,7 @@ pub enum Mode {
 /// them all) and the powers the printer needs (design/cores.md ids).
 fn as_kit(t: &Tools, file: &Path, dir: &Path) -> Option<std::path::PathBuf> {
     let src = fs::read_to_string(file).ok()?;
-    if !src.contains("std::str.") {
+    if !decoded(&src).contains("std::str.") {
         return None;
     }
     let repo = t.cca.ancestors().nth(4)?;

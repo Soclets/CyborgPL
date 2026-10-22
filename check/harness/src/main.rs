@@ -388,9 +388,15 @@ fn main() {
             // space, line breaks kept, must do on the oracle exactly what the
             // program does: the same output, and the same refusal or stop,
             // naming the same decoded line. kayo joins when it reads them.
-            let t = oracle_only();
+            // kayo too since it reads them (edb9fb8c): the twin built and run
+            // as the program is, unless `--oracle-only`
+            let t = if a.has("oracle-only") { oracle_only() } else { tools() };
+            let with_kayo = !a.has("oracle-only");
             let dir = work().join("concise");
-            std::fs::create_dir_all(&dir).unwrap();
+            let (kp, kt) = (dir.join("plain"), dir.join("twin"));
+            for d in [&dir, &kp, &kt] {
+                std::fs::create_dir_all(d).unwrap();
+            }
             let (mut same, mut differ, mut runs) = (0, 0, 0);
             for seed in a.num("from", 1)..a.num("from", 1) + a.num("cases", 100) {
                 let p = generate(seed, &a.config());
@@ -400,13 +406,34 @@ fn main() {
                 std::fs::write(&g, concise(&text)).unwrap();
                 let sets = if p.inputs.is_empty() { vec![vec![]] } else { envs(&p) };
                 let mut ok = true;
+                let builds = if with_kayo {
+                    let (b, c) = (engines::cca_build(&t, &f, &kp, engines::Mode::Normal), engines::cca_build(&t, &g, &kt, engines::Mode::Normal));
+                    let (bt, ct) = (build_text(&b), build_text(&c).replace("twin.cy", "prog.cy"));
+                    if bt != ct {
+                        ok = false;
+                        println!("seed {seed}: kayo builds the program: {bt}\n          its twin: {ct}");
+                    }
+                    Some((b, c))
+                } else {
+                    None
+                };
                 for env in sets {
+                    if !ok {
+                        break;
+                    }
                     runs += 1;
                     let (o, c) = (engines::oracle(&t, &f, &dir, &env), as_plain(engines::oracle(&t, &g, &dir, &env)));
                     if o != c {
                         ok = false;
                         println!("seed {seed}: the program {}\n          its twin {}", compare::oracle_text(&o), compare::oracle_text(&c));
                         break;
+                    }
+                    if let Some((engines::Build::Built(x), engines::Build::Built(y))) = &builds {
+                        let (o, c) = (engines::cca_run(x, &kp, &env), engines::cca_run(y, &kt, &env));
+                        if o != c {
+                            ok = false;
+                            println!("seed {seed}: kayo runs the program: {}\n          its twin: {}", compare::exec_text(&o), compare::exec_text(&c));
+                        }
                     }
                 }
                 if ok { same += 1 } else { differ += 1 }
@@ -1130,5 +1157,22 @@ fn as_plain(o: engines::Oracle) -> engines::Oracle {
             engines::Oracle::Stopped { out, line, msg: msg.replace("twin.cy", "prog.cy") }
         }
         o => o,
+    }
+}
+
+
+/// A kayo build's outcome in words, a refusal without kayo's concise note.
+fn build_text(b: &engines::Build) -> String {
+    match b {
+        engines::Build::Built(_) => "built".into(),
+        engines::Build::NotYet { msg } => format!("not yet: {msg}"),
+        engines::Build::Refused { line, msg } => {
+            let msg = match msg.find(" (concise file") {
+                Some(i) => &msg[..i],
+                None => msg,
+            };
+            format!("refused at line {line:?}: {msg}")
+        }
+        engines::Build::Timeout => "timed out".into(),
     }
 }
