@@ -1328,14 +1328,10 @@ fn check_case(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, r
 
 /// The `bare.` marks are gone (owner, 2026-10-22: "What IF there's no
 /// bare.optional? It's always not bare."): another kit's names always take
-/// its path, and your own stay bare. A mark left in a kit is refused; std/'s
-/// own are read and ignored until std claude takes them out (design claude's
-/// stopgap, as the oracle's).
+/// its path, and your own stay bare. A mark left in a kit is refused, std/'s
+/// too since std claude took its own out (oracle 421c9e98).
 fn check_bare(_sources: &SourceMap, _items: &mut Items, file: &crate::ast::File, _base: &str, _root: bool) -> Result<()> {
     use crate::ast::{Item, ItemKind};
-    if LOADING_STD.with(|s| s.get()) {
-        return Ok(());
-    }
     fn first_mark(items: &[Item]) -> Option<crate::source::Span> {
         for it in items {
             if let Some((_, at)) = it.bare.or(it.enum_bare) {
@@ -1356,8 +1352,8 @@ fn check_bare(_sources: &SourceMap, _items: &mut Items, file: &crate::ast::File,
     }
 }
 
-/// Whether std's own files are being read (their `bare.` marks are read
-/// and ignored, a stopgap).
+/// Whether std's own files are being read (their repeated versions are
+/// read until std claude puts them in `versions` blocks, a stopgap).
 pub(crate) fn loading_std() -> bool {
     LOADING_STD.with(|s| s.get())
 }

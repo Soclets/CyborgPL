@@ -1157,38 +1157,8 @@ impl<'a> Parser<'a> {
     /// `bare.kit_prefix.never` / `.optional` / `.only` for a kit's path,
     /// `bare.enum_prefix.…` for an enum's name before its values.
     fn bare_mark(&mut self) -> Result<(crate::ast::Prefix, Bare, Span)> {
-        let at = self.span();
-        // Gone (owner, 2026-10-22); std/'s own still read, and ignored.
-        if !crate::load::loading_std() {
-            return self.fail_at(at, crate::load::BARE_MARKS_GONE);
-        }
-        self.bump();
-        if !self.eat(&Tok::Dot) {
-            return self.fail_at(at, "a plain `bare` does not say which prefix it drops: `bare.kit_prefix.never` (a kit's path required), `.optional` or `.only`; `bare.enum_prefix.…` for an enum's values");
-        }
-        let which = self.ident("`kit_prefix` or `enum_prefix`")?;
-        let prefix = match which.name.as_str() {
-            "kit_prefix" => crate::ast::Prefix::Kit,
-            "enum_prefix" => crate::ast::Prefix::Enum,
-            "never" | "optional" | "only" => {
-                let old = format!("bare.{}", which.name);
-                let said = crate::spellings::old_word(&old, Some("special")).map(|o| o.dated()).unwrap_or_else(|| format!("`{}` is an old spelling: write `bare.kit_prefix.{}`", old, which.name));
-                return self.fail_at(at.to(which.span), said);
-            }
-            other => return self.fail_at(which.span, format!("no `bare.{}`: a mark names the prefix it drops, `bare.kit_prefix.…` (a kit's path) or `bare.enum_prefix.…` (an enum's name)", other)),
-        };
-        let p = if prefix == crate::ast::Prefix::Kit { "kit_prefix" } else { "enum_prefix" };
-        if !self.eat(&Tok::Dot) {
-            return self.fail_at(at.to(which.span), format!("say which: `bare.{p}.never`, `bare.{p}.optional` or `bare.{p}.only`"));
-        }
-        let mode = self.ident("`never`, `optional` or `only`")?;
-        let mark = match mode.name.as_str() {
-            "never" => Bare::Never,
-            "optional" => Bare::Optional,
-            "only" => Bare::Only,
-            other => return self.fail_at(mode.span, format!("no `bare.{p}.{other}`: `bare.{p}.never`, `bare.{p}.optional` or `bare.{p}.only`")),
-        };
-        Ok((prefix, mark, at.to(mode.span)))
+        // Gone (owner, 2026-10-22), std/'s too (oracle 421c9e98).
+        self.fail_at(self.span(), crate::load::BARE_MARKS_GONE)
     }
 
     /// Whether the cursor is at an enum's own `bare.enum_prefix.…` mark
@@ -4369,9 +4339,11 @@ impl<'a> Parser<'a> {
                     kit if matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(2), Tok::Word(_)) => {
                         let Tok::Word(first) = self.peek_at(2) else { unreachable!() };
                         let (name, end) = dotted(3, first);
-                        if kit == "std" && matches!(name.as_str(), "pow" | "pow.wrap" | "pow.ieee") {
+                        // `xx` is `pow`'s symbol (check claude, 2026-10-22:
+                        // `'a' std::xx 2`).
+                        if kit == "std" && matches!(name.as_str(), "pow" | "xx" | "pow.wrap" | "pow.ieee") {
                             let op = match name.as_str() {
-                                "pow" => BinOp::Pow,
+                                "pow" | "xx" => BinOp::Pow,
                                 "pow.wrap" => BinOp::WrapPow,
                                 _ => BinOp::PowIeee,
                             };
