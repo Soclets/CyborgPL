@@ -48,7 +48,10 @@ way". So:
   not asked one by one: at the end of the program, before reading input, before a C call, before a print to the
   other stream (stdout / stderr), and when a check fails, so the program never stops with output unsent.
 - **The program never writes a flush** for this; the report notes where prints were grouped.
-- **There is a manual way too** (owner); its shape is open.
+- **There is a manual way too** (owner), in two forms. Asked (a) a flush the program calls, sending what kayo holds
+  now, or (b) a writer the program makes, as Zig's, with its own buffer and size, passed to functions and flushed
+  when wanted, kayo refusing one that goes away unflushed (design claude recommended (b)), the owner: "both, bro".
+  The spellings are open (`std::print.flush()` was design claude's sketch).
 
 Not built (CyborgPL paused).
 

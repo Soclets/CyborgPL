@@ -21,7 +21,9 @@ asked whether it works; it doesn't — the oracle stores the backslash.)
 kayo keeps one output buffer across prints and sends it whenever the order could matter: at the end of the program,
 before reading input, before a C call, before a print to the other stream, and when a check fails (design claude's
 list). The program writes no flush; the report notes where prints were grouped. Owner: "yes, and there should also be
-a manual way": the manual way's shape is open. Today each print sends its own 512-byte stack buffer when it ends.
+a manual way", then "both, bro": (a) a flush the program calls, sending what kayo holds now, and (b) a writer the
+program makes, with its own buffer and size, passed to functions and flushed when wanted; kayo refuses a writer that
+goes away unflushed. Spellings open. Today each print sends its own 512-byte stack buffer when it ends.
 
 ## `std::print.written` — a literal as it was typed (owner, 2026-10-17; not built)
 
