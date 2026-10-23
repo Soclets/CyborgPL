@@ -35,7 +35,13 @@ std::print.flush();                                    # what kayo's own buffer 
 
 A print never changes what it prints, so a mutable lend can only be where the text goes; there is no `.to` (owner,
 2026-10-23, "yea, record it"). The type is `std::print.writer`, and every print form takes a writer the same way
-(design claude's readings). Today each print sends its own 512-byte stack buffer when it ends.
+(design claude's readings).
+
+**A failed write stops the program** (owner, 2026-10-23: "default to stop, handle with `otherwise`?", then "yea,
+record it"). A print with `otherwise` flushes there, so its handler covers all printed so far:
+`std::print.useful("total: ", $total, newln) otherwise { write_failed { std::exit(code: 3); } };`. A writer fails at a
+print that fills its buffer or at its flush; a flush kayo put in itself stops the program. `write_failed` is design
+claude's name; how a stop reads is open. Today each print sends its own 512-byte stack buffer when it ends.
 
 ## `std::print.written` — a literal as it was typed (owner, 2026-10-17; not built)
 

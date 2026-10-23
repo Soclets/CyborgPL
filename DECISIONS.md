@@ -34,6 +34,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-23 — A failed print stops the program; `otherwise` handles it, and a print with `otherwise` flushes there (owner; not built)
+
+Design claude found that kayo drops the rest of a print silently when its write fails (a closed pipe, a full disk;
+`kayo/runtime/src/print.rs`), with no ruling on it. The owner: "default to stop, handle with `otherwise`?". Design
+claude: yes, as any failure is handled; but since kayo groups prints (entry below), the write that fails is often a
+later flush, not the print. Proposed, and the owner, shown it: "yea, record it". So:
+
+- **A failed write stops the program by default**, as a closed pipe stops most programs (`yes | head`).
+- **A print with `otherwise` flushes right there**, so its handler covers everything printed so far, that print
+  included.
+- **A writer fails at a print when its buffer fills mid-print, or at its flush**; both take `otherwise`.
+- **A failure at a flush kayo put in itself** (before a C call, at the end) stops the program.
+
+```
+std::print.useful("total: ", $total, newln) otherwise { write_failed { std::exit(code: 3); } };
+std::print.flush() otherwise { write_failed { … } };
+std::print.flush(lend.mut $out) otherwise { write_failed { … } };
+```
+
+Design claude's readings: the failure's name `write_failed`; how a stop reads (its exit code and message) is open.
+Not built (CyborgPL paused).
+
 ### 2026-10-23 — Only the thing worked on goes bare; every other argument says its word, even alone: `std::exit(code: 3)` (owner; not built)
 
 Shown `std::exit(3)` in a handler, the owner: "why the fuck does `std::exit(3)` not have a label?". Design claude: the
