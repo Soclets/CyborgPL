@@ -23,7 +23,8 @@ before reading input, before a C call, before a print to the other stream, and w
 list). The program writes no flush; the report notes where prints were grouped. Owner: "yes, and there should also be
 a manual way", then "both, bro": (a) a flush the program calls, sending what kayo holds now, and (b) a writer the
 program makes, with its own buffer and size, passed to functions and flushed when wanted; kayo refuses a writer that
-goes away unflushed. Spellings open. Today each print sends its own 512-byte stack buffer when it ends.
+goes away unflushed. Spellings open. Its size is in bytes, the unit written: `size: 4096 bytes` (owner: "Just `bytes`
+for now", over also allowing `4 KiB`). Today each print sends its own 512-byte stack buffer when it ends.
 
 ## `std::print.written` — a literal as it was typed (owner, 2026-10-17; not built)
 

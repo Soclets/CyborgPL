@@ -52,6 +52,9 @@ way". So:
   now, or (b) a writer the program makes, as Zig's, with its own buffer and size, passed to functions and flushed
   when wanted, kayo refusing one that goes away unflushed (design claude recommended (b)), the owner: "both, bro".
   The spellings are open (`std::print.flush()` was design claude's sketch).
+- **A writer's size is in `bytes`, the unit written** (owner, asked "`size: 4096`, what's the unit. There should be a
+  unit?"; design claude's sketch had none, against the rule that a unit always follows the value, `max: 255 bytes`):
+  `size: 4096 bytes`. Asked whether `4 KiB` is allowed too: "Just `bytes` for now".
 
 Not built (CyborgPL paused).
 
