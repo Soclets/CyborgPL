@@ -34,6 +34,30 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-23 — A handler member takes arguments, always used through its collection's name (owner; not built)
+
+The owner: "Should we add handler args?", then, shown that an arm already binds a failure's value
+(`out_of_stock $what { … }`) and asked whether it meant a `coll.handler` member taking arguments: "No, I mean
+`cum::push_semen() otherwise flow_back(destination: cum::dests.bladder)`?". Design claude: yes, but `otherwise f(…)`
+already means a fallback value from a call, so a handler with arguments written bare would read the same; the
+collection's name in front (2026-10-19) tells them apart. The owner, asked "Should it work like that?": "Yes". So
+**a handler member takes arguments, defined in `[ ]` and given in `( )` with their words, and is always used
+through its collection's name**:
+
+```
+coll.handler cum_failed {
+    cum_failed.flow_back [$destination: cum::dests] {
+        blocked { … }
+    }
+}
+
+cum::push_semen() otherwise cum_failed.flow_back(destination: cum::dests.bladder);   # the handler's arms run
+cum::push_semen() otherwise flow_back_amount(destination: cum::dests.bladder);       # a function's value is used
+```
+
+Still open: using another kit's handler (`cum::cum_failed.flow_back(…)`) needs `pub` handlers, refused as undecided
+since 2026-10-13. Not built (CyborgPL paused).
+
 ### 2026-10-23 — A failed print stops the program; `otherwise` handles it, and a print with `otherwise` flushes there (owner; not built)
 
 Design claude found that kayo drops the rest of a print silently when its write fails (a closed pipe, a full disk;
