@@ -34,6 +34,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-23 — `pub` handlers: another kit's handler is used through its path (owner; not built)
+
+Design claude had left open whether a `coll.handler` can be `pub` (refused as undecided since 2026-10-13), which
+using `cum::cum_failed.flow_back(…)` from another kit needs. The owner: "Should `pub` handlers be a thing? (the
+suggestor AI) No shit". So **a `coll.handler` can be `pub`**, and another kit uses it through its path:
+
+```
+pub coll.handler cum_failed {
+    cum_failed.flow_back [$destination: dests] { blocked { … } }
+}
+
+# in another kit
+cum::push_semen() otherwise cum::cum_failed.flow_back(destination: cum::dests.bladder);
+```
+
+Design claude's readings, not asked: `pub` goes on the collection, as on a `coll.fn`; a member is still checked at
+each use, as the arms written there would be, so one whose arms `return` a value the using function does not return
+is refused at that use. Not built (CyborgPL paused).
+
 ### 2026-10-23 — A handler member takes arguments, always used through its collection's name (owner; not built)
 
 The owner: "Should we add handler args?", then, shown that an arm already binds a failure's value

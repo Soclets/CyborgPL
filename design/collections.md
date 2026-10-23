@@ -223,10 +223,13 @@ let 'b' := half[-4] otherwise cum_failed.flow_back_to_bladder;
   (design claude's reading: nothing new to write).
 - As built, design claude's picks until the owner rules: a member is
   checked at each use, as the arms written there would be; a handler is
-  used in its own file; `pub`, a `bare.` mark and templates are refused as
+  used in its own file; `pub` (until 2026-10-23), a `bare.` mark and templates are refused as
   not decided. `examples/collection_handlers.cy`.
 - **A member takes arguments** (owner, 2026-10-23: "Yes"; not built): defined in `[ ]`, given in `( )` with
   their words, always through the collection's name, since `otherwise f(…)` alone is a fallback value from a
   call: `cum_failed.flow_back [$destination: cum::dests] { … }`, used `otherwise
-  cum_failed.flow_back(destination: cum::dests.bladder)`. Another kit's handler waits on `pub` handlers.
+  cum_failed.flow_back(destination: cum::dests.bladder)`.
+- **A handler can be `pub`** (owner, 2026-10-23: "No shit"; not built): `pub coll.handler cum_failed { … }`, used
+  from another kit as `otherwise cum::cum_failed.flow_back(…)`; still checked at each use (design claude's
+  reading).
 
