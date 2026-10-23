@@ -16,6 +16,13 @@ and `\\`. A newline is written outside the quotes and joined:
 (Restated after Claude wrote `"hello\n"` in an example and the owner
 asked whether it works; it doesn't — the oracle stores the backslash.)
 
+## Prints share one buffer, flushed by kayo (owner, 2026-10-23; not built)
+
+kayo keeps one output buffer across prints and sends it whenever the order could matter: at the end of the program,
+before reading input, before a C call, before a print to the other stream, and when a check fails (design claude's
+list). The program writes no flush; the report notes where prints were grouped. Owner: "yes, and there should also be
+a manual way": the manual way's shape is open. Today each print sends its own 512-byte stack buffer when it ends.
+
 ## `std::print.written` — a literal as it was typed (owner, 2026-10-17; not built)
 
 A third form beside `print.stored` and `print.useful`: each value printed as its literal was typed in the source,

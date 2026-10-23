@@ -34,6 +34,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-23 — kayo groups prints into one buffer and flushes them itself; a manual way too (owner; not built)
+
+Shown Zig 0.16's print (a buffer the program declares, a writer on stdout, `try` on each print, a `flush()` that, when
+left out, loses the output with exit 0), the owner asked "why Zig has that long ass fucking way to print to stdout",
+then "Should we have it?". Design claude: CyborgPL already has most of what the long form buys (kayo's print buffer
+is on the stack, never the heap; each print sends its own buffer when it ends, so nothing is lost at exit); the one
+thing missing is speed, since every print is at least one write. Proposed: kayo keeps one buffer across prints and
+writes every flush itself. The owner, asked "Should kayo do it that way?": "yes, and there should also be a manual
+way". So:
+
+- **kayo keeps one output buffer across prints** and sends it whenever the order could matter. Design claude's list,
+  not asked one by one: at the end of the program, before reading input, before a C call, before a print to the
+  other stream (stdout / stderr), and when a check fails, so the program never stops with output unsent.
+- **The program never writes a flush** for this; the report notes where prints were grouped.
+- **There is a manual way too** (owner); its shape is open.
+
+Not built (CyborgPL paused).
+
 ### 2026-10-22 — A function's definition keeps its parameters in `[ ]`; only a call uses `( )` (owner; amends the same day's ruling; not built)
 
 The Fale design session asked, for the owner, whether a definition's inputs are more consistent in `( )` or `[ ]`.
