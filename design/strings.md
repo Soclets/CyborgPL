@@ -24,7 +24,18 @@ list). The program writes no flush; the report notes where prints were grouped. 
 a manual way", then "both, bro": (a) a flush the program calls, sending what kayo holds now, and (b) a writer the
 program makes, with its own buffer and size, passed to functions and flushed when wanted; kayo refuses a writer that
 goes away unflushed. Spellings open. Its size is in bytes, the unit written: `size: 4096 bytes` (owner: "Just `bytes`
-for now", over also allowing `4 KiB`). Today each print sends its own 512-byte stack buffer when it ends.
+for now", over also allowing `4 KiB`).
+
+```
+let mut $out := std::print.writer(size: 4096 bytes);   # std::print.writer.stderr(…) for stderr
+std::print.useful(lend.mut $out, "line ", $i, newln);  # a first argument `lend.mut` of a writer: into it
+std::print.flush(lend.mut $out);                       # left out, kayo refuses: $out goes away holding text
+std::print.flush();                                    # what kayo's own buffer holds, now
+```
+
+A print never changes what it prints, so a mutable lend can only be where the text goes; there is no `.to` (owner,
+2026-10-23, "yea, record it"). The type is `std::print.writer`, and every print form takes a writer the same way
+(design claude's readings). Today each print sends its own 512-byte stack buffer when it ends.
 
 ## `std::print.written` — a literal as it was typed (owner, 2026-10-17; not built)
 

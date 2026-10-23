@@ -55,6 +55,31 @@ way". So:
 - **A writer's size is in `bytes`, the unit written** (owner, asked "`size: 4096`, what's the unit. There should be a
   unit?"; design claude's sketch had none, against the rule that a unit always follows the value, `max: 255 bytes`):
   `size: 4096 bytes`. Asked whether `4 KiB` is allowed too: "Just `bytes` for now".
+- **The spellings** (owner: "yea, drop it, show me first", then, shown the example below, "yea, record it"):
+  `std::print.flush()` sends what kayo holds; `std::print.writer(size: … bytes)` makes a writer to stdout,
+  `std::print.writer.stderr(…)` one to stderr; **a print goes into a writer when its first argument is
+  `lend.mut $out`**, with no `.to` (design claude had sketched `std::print.useful.to(…)`; the owner: "The fuck does
+  `.to` even do"; design claude: a print never changes what it prints, so a mutable lend can only be where the text
+  goes); `std::print.flush(lend.mut $out)` flushes one. Design claude's readings: the type is `std::print.writer`;
+  every print form takes a writer the same way.
+
+```
+fn report [lent.mut $out: std::print.writer, $name: str.utf8, $total: i64] {
+    std::print.useful(lend.mut $out, $name, ": ", $total, newln);
+}
+
+MAIN {
+    std::print.useful("starting", newln);
+    std::print.flush();
+
+    let mut $out := std::print.writer(size: 4096 bytes);
+    for $i: i64 [from: 1, to: 3, by: 1] {
+        std::print.useful(lend.mut $out, "line ", $i, newln);
+    }
+    report(lend.mut $out, "apples", 12);
+    std::print.flush(lend.mut $out);      # without it, kayo refuses: $out goes away holding text
+}
+```
 
 Not built (CyborgPL paused).
 
