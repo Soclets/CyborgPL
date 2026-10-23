@@ -34,6 +34,27 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-23 — Only the thing worked on goes bare; every other argument says its word, even alone: `std::exit(code: 3)` (owner; not built)
+
+Shown `std::exit(3)` in a handler, the owner: "why the fuck does `std::exit(3)` not have a label?". Design claude: the
+2026-10-14 rule leaves the first argument bare. The owner: "I mean, `$` says it's a var. `(3)` fucking doesn't", then
+"look at lists, it's `pos:`" (in `$xs[pos: 3]` a lone number takes its word, since the list is what is worked on), and
+"What about for vars? `pos: $x` is legal" (yes: the word is the role, not the kind of value, as `value: $n` already
+is). Then "yea, record it". So **an argument goes bare only when it is the thing worked on; every other argument says
+its word, even when it is the only one, a variable as much as a literal**:
+
+```
+std::exit(code: 3);
+std::exit(code: $c);
+sqrt(2.0);                                    # 2.0 is what is worked on
+std::list.append(lend.mut $xs, value: $n);    # $xs is what is worked on
+$xs[pos: $x];
+```
+
+Design claude's reading: a function's author says which its first parameter is by giving it a word in `labels [ … ]`
+or not. This amends 2026-10-14's "the first argument stays bare". `std::exit[1]` is written bare in the examples, std
+and kayo's tests today; all become `code:` on resume. Not built (CyborgPL paused).
+
 ### 2026-10-23 — kayo groups prints into one buffer and flushes them itself; a manual way too (owner; not built)
 
 Shown Zig 0.16's print (a buffer the program declares, a writer on stdout, `try` on each print, a `flush()` that, when

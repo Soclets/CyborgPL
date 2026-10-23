@@ -186,6 +186,12 @@ The words: `value`, `key`, `part`, `at`, `between`, `from`, `to`, `before`, `by`
 verb follows the word (`value give 'item'`). Print and format lists, every item having one role, and
 an operator value (`op plus`) stay bare. The full list is in `DECISIONS.md`, 2026-10-14.
 
+**Amended 2026-10-23 (owner; not built): only the thing worked on goes bare.** An argument that is not, even the only
+one, says its word, a variable as much as a literal (owner: "`$` says it's a var. `(3)` fucking doesn't", "look at
+lists, it's `pos:`", "`pos: $x` is legal"): `std::exit(code: 3)`, `std::exit(code: $c)`, `$xs[pos: $x]`; `sqrt(2.0)`
+stays bare, 2.0 being what is worked on. A function's author says which its first parameter is by giving it a word
+in `labels [ … ]` or not (design claude's reading).
+
 ## Open
 
 
