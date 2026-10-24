@@ -173,6 +173,9 @@ pub struct Interp<'p> {
     /// shape as arguments arrive (design/generics.md); the oracle checks
     /// consistency by kind, the compiler specialises per type
     tvars: std::cell::RefCell<HashMap<String, String>>,
+    /// the number type each blank was filled with, where the value says it (a deci's width, a bin, a brain16): a bare
+    /// literal declared `<T>` takes it (owner, 2026-10-22: "it should work")
+    tfill: std::cell::RefCell<HashMap<String, Ty>>,
     /// `lend.mut 'x'.field` hands out a temporary cell; at the end of the statement
     /// its value is written back into the field (struct cell, field name, temp cell)
     field_borrows: Vec<(Rc<RefCell<Value>>, String, Rc<RefCell<Value>>)>,
@@ -189,7 +192,7 @@ pub struct Interp<'p> {
 
 impl<'p> Interp<'p> {
     pub fn new(prog: &'p Program, out: Box<dyn Write>) -> Self {
-        Interp { int_bounds: HashMap::new(), prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, fallback_ty: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), mut_walks: Vec::new(), scopes: vec![HashMap::new()], out, bare_of: HashMap::new(), written: HashMap::new() }
+        Interp { int_bounds: HashMap::new(), prog, writes: HashMap::new(), write_count: 0, call_deps: Vec::new(), pending_deps: Vec::new(), ret_line: 0, arm_ty: None, must_fail_depth: 0, cur_ret: None, args: Vec::new(), consts: HashMap::new(), module: Vec::new(), fails: Vec::new(), call_is_stmt: false, expected: None, fallback_ty: None, last_kind: None, last_lit: None, ret_kind: None, ret_borrow: None, call_borrow: None, tasks: Vec::new(), next_chan_id: 0, nocheck_depth: 0, trust_c_depth: 0, tvars: std::cell::RefCell::new(HashMap::new()), tfill: std::cell::RefCell::new(HashMap::new()), field_borrows: Vec::new(), mut_walks: Vec::new(), scopes: vec![HashMap::new()], out, bare_of: HashMap::new(), written: HashMap::new() }
     }
 
     /// Ok(code): the program ran; Err: it failed.
@@ -947,7 +950,8 @@ impl<'p> Interp<'p> {
                     }
                 } else {
                     if let Some(t) = ty { self.check_places(value, t, *line)?; }
-                    let saved = std::mem::replace(&mut self.expected, ty.clone().map(no_places));
+                    let want = ty.clone().map(no_places).map(|t| self.filled(t));
+                    let saved = std::mem::replace(&mut self.expected, want);
                     let r = self.bracket(value, *line);
                     self.expected = saved;
                     r?
@@ -960,7 +964,8 @@ impl<'p> Interp<'p> {
                         Slot { cell, ty: None, kind: if is_mut { SlotKind::LentMut } else { SlotKind::Lent }, alive: true, immut, sized: false, sealed: false , since: 0, deps: Vec::new() }
                     }
                     _ => {
-                        let v = self.fit(v, prov, ty.as_ref(), *line)?;
+                        let fill = ty.clone().map(|t| self.filled(t));
+                        let v = self.fit(v, prov, fill.as_ref(), *line)?;
                         // `:=` takes the value's own type where the oracle knows it (only the length
                         // operations so far: `u64`, decided 2026-09-21) — so a later assignment is checked.
                         let ty = ty.clone().or_else(|| self.known_ty(value));
@@ -995,7 +1000,8 @@ impl<'p> Interp<'p> {
                 self.stale(name, self.lookup(name).unwrap(), *line)?;
                 let (v, prov) = {
                     if let Some(t) = &ty { self.check_places(value, t, *line)?; }
-                    let saved = std::mem::replace(&mut self.expected, ty.clone().map(no_places));
+                    let want = ty.clone().map(no_places).map(|t| self.filled(t));
+                    let saved = std::mem::replace(&mut self.expected, want);
                     let r = self.bracket(value, *line);
                     self.expected = saved;
                     r?
@@ -1005,7 +1011,8 @@ impl<'p> Interp<'p> {
                     Prov::Borrowed(..) => return rt(*line, format!("assigning a lend to '{name}': a lend is temporary and cannot be stored in an owned variable (`copy` it or `give` it)")),
                     _ => {}
                 }
-                let v = self.fit(v, prov, ty.as_ref(), *line)?;
+                let fill = ty.clone().map(|t| self.filled(t));
+                let v = self.fit(v, prov, fill.as_ref(), *line)?;
                 let sized = Self::sized_from(value, ty.as_ref());
                 if let Some(s) = self.lookup(name) {
                     let key = Rc::as_ptr(&s.cell) as usize;
@@ -1578,6 +1585,12 @@ impl<'p> Interp<'p> {
         }
     }
 
+    /// A blank, `<T>`, read as the number type this call filled it with, so a bare literal takes it as it takes a
+    /// written type (owner, 2026-10-22: `let $sum: <T> = 0;` "should work"); any other type as it is
+    fn filled(&self, t: Ty) -> Ty {
+        match &t { Ty::Var(n) => self.tfill.borrow().get(n).cloned().unwrap_or(t), _ => t }
+    }
+
     fn check_type(&self, v: &Value, ty: &Ty, line: usize) -> Result<(), RuntimeError> {
         let name = ty_name(ty);
         match (ty, v) {
@@ -1716,7 +1729,12 @@ impl<'p> Interp<'p> {
                 match vars.get(n) {
                     Some(s) if *s == shape => Ok(()),
                     Some(s) => rt(line, format!("`<{n}>` was filled with {s} earlier in this call, now {shape} — one blank, one type")),
-                    None => { vars.insert(n.clone(), shape); Ok(()) }
+                    None => {
+                        vars.insert(n.clone(), shape);
+                        let filled = match v { Value::Deci(d) => Some(Ty::Deci(d.width as u8)), Value::Bin(_) => Some(Ty::Bin(64)), Value::Brain(_) => Some(Ty::Brain), _ => None };
+                        if let Some(t) = filled { self.tfill.borrow_mut().insert(n.clone(), t); }
+                        Ok(())
+                    }
                 }
             }
             (Ty::Inst(want, args), Value::Struct(have, fields)) => {
@@ -2581,8 +2599,10 @@ impl<'p> Interp<'p> {
                 }
                 // a generic struct's blanks are filled by the values given (the prover: from use)
                 let saved_tvars = std::mem::take(&mut *self.tvars.borrow_mut());
+                let saved_fill = std::mem::take(&mut *self.tfill.borrow_mut());
                 let r = self.construct_fields(&def, sname, given, line);
                 *self.tvars.borrow_mut() = saved_tvars;
+                *self.tfill.borrow_mut() = saved_fill;
                 return r;
             }
             Expr::ConstPath(module, name, from, _) => {
@@ -4575,8 +4595,10 @@ impl<'p> Interp<'p> {
         self.check_handler(c.handler.as_ref(), &func.fails, name, c.line)?;
         // this call's blanks (`<T>`) are its own
         let saved_tvars = std::mem::take(&mut *self.tvars.borrow_mut());
+        let saved_fill = std::mem::take(&mut *self.tfill.borrow_mut());
         let r = self.user_call_inner(func, c, name, value_used);
         *self.tvars.borrow_mut() = saved_tvars;
+        *self.tfill.borrow_mut() = saved_fill;
         r
     }
 

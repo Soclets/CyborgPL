@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Built: a bare literal takes `<T>`'s type (owner, 2026-10-22: "it should work")
+
+`let mut $sum: <T> = 0;` is a d64 0 where `<T>` is filled with d64, an f64 0 with f64, an integer with i32
+(`examples/generic_literal.cy`: `0.3 0.75 3`); `0.5` where `<T>` is an integer is refused. The oracle reads a blank's
+number type from the value that filled it in this call; design claude's reading: a bin filling is taken as f64, the
+oracle not keeping a bin's width in its value (kayo, which knows the type, takes the width written).
+
 ### 2026-10-24 — Built: `std::exit(code: 3)` (owner, 2026-10-23: only the thing worked on goes bare)
 
 `std::exit(3)` is refused: "only the thing worked on goes bare; this argument says what it is: `exit(code: 3)`". Every
@@ -317,7 +324,7 @@ The owner: "Fuck it, what if it's just `.of`?", then "yea, record it". So **a ty
 (`std::list.of[<T>]`). The plain form (`std::list[i64]`) is refused, naming `.of` (design claude's reading). Ranges
 (`i32[min: 0, max: 50]`), calls, struct building, `fail[…]` and loops keep plain `[ ]`. Not built (CyborgPL paused).
 
-### 2026-10-22 — A bare literal takes a generic's type, as it takes a written one: `let 'sum': <T> = 0;` (owner; not built)
+### 2026-10-22 — A bare literal takes a generic's type, as it takes a written one: `let 'sum': <T> = 0;` (owner; built in the oracle 2026-10-24)
 
 Found answering multifinity's review of `examples/corner_shop.cy` (why `interface Number` leaves out `d64`): a bare
 literal takes a written type (`let 'x': d64 = 0;`, `let 'x': f64 = 0;`), but given a generic's `<T>` the oracle read
