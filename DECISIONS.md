@@ -43,7 +43,8 @@ passed, `keep` already saying what `$s` is; (c) both. The owner: "(c)". So **`ke
 60)`**: a parameter's type and the return type come from the `fn[…]` type of the place it is passed, the body after
 `=` is one value. Design claude's readings, not asked: `=` is design claude's sketch, chosen with (c); captures stay
 explicit, `fn [$s] with [lend $limit] = $s at_least $limit`; a short lambda with nowhere to take its types from (`let
-$f := fn [$s] = …;` with no type) is refused, naming the types; the long form stays. Not built.
+$f := fn [$s] = …;` with no type) is refused, naming the types; the long form stays. **A named function has no short form** (owner, asked whether `fn twice [$n: i64] -> i64 = $n x 2;`
+should be written too: "no"): it keeps its body in `{ }`. Not built.
 
 ### 2026-10-24 — Built in the oracle: `std::print.flush()`, writers, and a failed write (owner, 2026-10-23; owner: "Do num 1")
 

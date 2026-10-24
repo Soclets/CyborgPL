@@ -64,7 +64,7 @@ let $evens   := keep(lend $scores, fn [$s] = ($s mod.floor 2) equal_to 0);
 One value after `=`, no `{ return …; }`; the parameters' types and the return type come from the `fn[…]` type of
 the place it is passed (`keep`'s `fn[i32] -> bool`). Design claude's readings: `=` (the sketch chosen with "(c)");
 captures stay explicit with `with`; with nowhere to take its types from, it is refused, naming them; the long form
-stays.
+stays. A named function has no short form (owner: "no"), its body always in `{ }`.
 
 ## 4. An operator is a value as `op plus` (owner, 2026-09-29)
 
