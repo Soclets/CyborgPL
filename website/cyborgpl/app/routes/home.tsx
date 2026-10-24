@@ -11,7 +11,7 @@ import { HeroSim } from "../hero-sim/hero-sim";
 
 export const meta: Route.MetaFunction = () => [
   { title: "CyborgPL" },
-  { name: "description", content: "CyborgPL, slow development, great final result." },
+  { name: "description", content: "Very slow at the development, fast & safe at the final product. No warranty." },
 ];
 
 const order = (i: number) => ({ "--i": i }) as CSSProperties;
@@ -38,7 +38,10 @@ export default function Home() {
         <h1 className="hero-title" style={order(1)}>
           Merging with the <strong className="hero-underline">machine</strong>.
         </h1>
-        <p className="hero-sub" style={order(2)}>CyborgPL, slow development, great final result.</p>
+        {/* Owner, 2026-10-24: "**Very slow** at the **development**, **fast & safe** at the **final product.** No warranty." */}
+        <p className="hero-sub" style={order(2)}>
+          <strong>Very slow</strong> at the <strong>development</strong>, <strong>fast &amp; safe</strong> at the <strong>final product.</strong> No warranty.
+        </p>
         <div className="hero-actions" style={order(3)}>
           <motion.span className="pressable" {...springy}>
             <Link className="button-primary" to="/download">
