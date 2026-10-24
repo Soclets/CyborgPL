@@ -11,6 +11,15 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 ```
 
 
+**Calls in `( )`, `$name`** (owner, 2026-10-22; oracle c16dc2d7): under `--paren-calls` the printer's
+text is rewritten (`gen/src/calls.rs`, after the paths): a `[` right after a name opens a call, `( … )`,
+unless the name is a type, describes (`size.of`, `align.of`, `ptr.cast[T]`, `simd[…]`, `range`, `incl.…`,
+`optional[T]`, a result's `or fail[…]`), builds a struct (capitalised), or follows `fail`; a quoted or `$`
+name's `[pos: …]` stays; `to.T[…][…]` and `ptr.cast[T][…]` keep the first group and call with the second;
+plain names are written `$name` every other time. Cross-checked against `oracle --to-paren-calls` on 200
+seeds (the same on every program it finished). kayo reads only `[ ]` yet, so the switch is off and the
+differential runs against an oracle pinned at 62ff4e83 (`CHECK_ORACLE`, as for the paths).
+
 **std's paths by default** (kayo a42b37c4, 21cd0b37, 0aced748, 320605eb; 2026-10-22): `std::` paths,
 `versions` blocks, `ptr.null` and std's operator with its path are on by default (`--avoid std-paths`,
 `versions`, `ptr-null` or `std-glyph` leaves one out), and the pinned oracle is gone. One program in three

@@ -3,6 +3,7 @@
 
 pub mod ast;
 pub mod big;
+pub mod calls;
 pub mod eval;
 pub mod gen;
 pub mod intervals;

@@ -138,6 +138,8 @@ impl Args {
             std_paths: !avoid.contains("std-paths"),
             // `std::xx`, std's glyph with its path (oracle edcbf2cb, kayo 0aced748)
             std_glyph: !avoid.contains("std-glyph"),
+            // calls in `( )` and `$name` (oracle c16dc2d7): kayo reads only `[ ]` yet; `--paren-calls` turns them on
+            paren_calls: self.has("paren-calls"),
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),

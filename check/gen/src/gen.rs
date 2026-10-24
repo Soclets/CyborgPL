@@ -176,6 +176,9 @@ pub struct Config {
     /// std's glyph with its path, `'a' std::xx 2` (design claude, 2026-10-22;
     /// oracle edcbf2cb, kayo 0aced748).
     pub std_glyph: bool,
+    /// Calls in `( )` and `$name` (owner, 2026-10-22; oracle c16dc2d7). Off
+    /// until kayo reads them.
+    pub paren_calls: bool,
     /// C interop (owner, 2026-10-19; oracle 927b1905, kayo 6ae65a5f): a
     /// `layout.C union` written through one field and read through another,
     /// a `layout.C struct` of bit-fields written at and past their limits,
@@ -194,7 +197,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: false, c_interop: true, based_literals: true, bare_enums: true, percents: true }
     }
 }
 
@@ -475,7 +478,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     }
     let n = g.stmt_count();
     main.extend(g.stmts(n, g.depth()));
-    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() || g.shadow_mistake, strict, new_words, typed_lits: cfg.typed_literals, based_lits: cfg.based_literals, std_paths: cfg.std_paths, std_glyph: cfg.std_glyph, unevaluable: g.unevaluable }
+    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() || g.shadow_mistake, strict, new_words, typed_lits: cfg.typed_literals, based_lits: cfg.based_literals, std_paths: cfg.std_paths, std_glyph: cfg.std_glyph, paren_calls: cfg.paren_calls, unevaluable: g.unevaluable }
 }
 
 impl Gen {

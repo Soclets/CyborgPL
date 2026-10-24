@@ -519,6 +519,9 @@ pub struct Program {
     pub std_paths: bool,
     /// `std::xx` too, std's glyph with its path (oracle edcbf2cb).
     pub std_glyph: bool,
+    /// Calls in `( )`, plain names `$name` every other time (owner,
+    /// 2026-10-22; oracle c16dc2d7): `calls::paren_calls`, then `calls::dollars`.
+    pub paren_calls: bool,
     /// Omit parentheses where design/operators.md says they are not needed.
     pub loose: bool,
     /// Holds values my exact evaluator does not model (deci, bin, text):
@@ -1169,6 +1172,7 @@ impl Program {
             (true, _) if self.std_glyph => crate::paths::std_paths_glyph(&w.out),
             (true, _) => crate::paths::std_paths(&w.out),
         };
+        let out = if self.paren_calls { crate::calls::dollars(&crate::calls::paren_calls(&out)) } else { out };
         (out, spans)
     }
 }
