@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Website ChatGPT is abandoned; the README's credits say which helpers are past (owner)
+
+Shown design claude's update of the README's Credits (Synthia's and RRx2-TV's sessions marked abandoned, website
+chatgpt added), the owner: "Yes, but website ChatGPT was abandoned long ago" (its last commit 2026-10-03, `94f917f8`).
+So **website chatgpt is abandoned**, CLAUDE.md saying so, and the README credits it in the past, beside synthia
+claude and RRx2-TV claude, whose projects ended 2026-10-22.
+
 ### 2026-10-24 — kayo builds formatted printing first, then the error format, then `inline.MSL` (owner)
 
 Compiler claude found kayo has never built `std::print.format` / `std::format` (refused "not built yet" since
