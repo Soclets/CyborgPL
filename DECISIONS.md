@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Built: handler arguments and `pub` handlers (owner, 2026-10-23)
+
+`coll.handler half_failed { half_failed.or_default [$default: i32, $label: str.utf8] { odd { … return $default; } … } }`,
+used `otherwise half_failed.or_default(default: $d, label: "half_or")` (`examples/handler_arguments.cy`); a `pub
+coll.handler` in one kit used from another as `otherwise halves::half_failed.or_default(…)`
+(`examples/uses_a_handler`, `examples/kits/halves`). Design claude's readings: an argument's word is its parameter's
+name, every parameter is given, none unknown, each refused naming the fix; each arm begins by declaring the parameters
+from the arguments, so an argument is worked out once, only when an arm runs.
+
 ### 2026-10-24 — Built: a bare literal takes `<T>`'s type (owner, 2026-10-22: "it should work")
 
 `let mut $sum: <T> = 0;` is a d64 0 where `<T>` is filled with d64, an f64 0 with f64, an integer with i32
@@ -67,7 +76,7 @@ oracle not reading `$xs[pos: $i].x`); a plain quoted name became `$name`, by goo
 `size.of[T]`, `ptr.cast[T]($p)`, presets, `labels`, `defaults`, `fail reason[$v]`, `with [ … ]`), and `$:=` / `$=`
 now refused as a `$` that starts no name. kayo, std and check claude's corpus follow in their sessions.
 
-### 2026-10-23 — `pub` handlers: another kit's handler is used through its path (owner; not built)
+### 2026-10-23 — `pub` handlers: another kit's handler is used through its path (owner; built in the oracle 2026-10-24)
 
 Design claude had left open whether a `coll.handler` can be `pub` (refused as undecided since 2026-10-13), which
 using `cum::cum_failed.flow_back(…)` from another kit needs. The owner: "Should `pub` handlers be a thing? (the
@@ -86,7 +95,7 @@ Design claude's readings, not asked: `pub` goes on the collection, as on a `coll
 each use, as the arms written there would be, so one whose arms `return` a value the using function does not return
 is refused at that use. Not built (CyborgPL paused).
 
-### 2026-10-23 — A handler member takes arguments, always used through its collection's name (owner; not built)
+### 2026-10-23 — A handler member takes arguments, always used through its collection's name (owner; built in the oracle 2026-10-24)
 
 The owner: "Should we add handler args?", then, shown that an arm already binds a failure's value
 (`out_of_stock $what { … }`) and asked whether it meant a `coll.handler` member taking arguments: "No, I mean

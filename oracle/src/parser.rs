@@ -227,6 +227,9 @@ thread_local! {
     /// `min_places:` / `max_places:` read in a limits bracket, taken by the type around it (owner, 2026-10-17)
     pub static PENDING_PLACES: std::cell::Cell<(Option<u32>, Option<u32>)> = std::cell::Cell::new((None, None));
     pub static COLL_POINTERS: std::cell::RefCell<Vec<(Vec<String>, String, String, Vec<String>, Vis, usize)>> = std::cell::RefCell::new(Vec::new());
+    /// every `pub coll.handler`'s members, by (kit root, collection, member), read in the first pass over every file, so
+    /// another kit uses one through its path (owner, 2026-10-23)
+    pub static PUB_HANDLERS: std::cell::RefCell<Vec<(Vec<String>, String, String, HandlerMember)>> = std::cell::RefCell::new(Vec::new());
     /// `oracle --to-paren-calls`: read a call's old `[ ]` and record where it is, to be rewritten as `( )`
     pub static OLD_CALLS: std::cell::Cell<bool> = std::cell::Cell::new(false);
     /// (file, character, the text it becomes), for `oracle --to-paren-calls`
@@ -986,8 +989,8 @@ impl Parser {
                         (Tok::Dot, Tok::Word(k)) if k == "fn" && !pending_bare.is_empty() => return self.err("a collection's `bare.` mark is written in its block: `pub coll.fn area { bare.kit_prefix.never; … }`"),
                         (Tok::Dot, Tok::Word(k)) if k == "fn" => self.expand_collection(vis.clone(), None)?,
                         (Tok::Dot, Tok::Word(k)) if k == "handler" => {
-                            if vis != Vis::Private { return self.err("whether a `coll.handler` can be `pub` is not decided yet (2026-10-13)"); }
-                            if !pending_bare.is_empty() { return self.err("a `bare.` mark is for what is `pub`, and a `coll.handler` is not `pub`"); }
+                            // a handler can be `pub` (owner, 2026-10-23: "No shit"), another kit using it through its path
+                            if !pending_bare.is_empty() { return self.err("the `bare.` marks are gone: another kit's names always take its path (owner, 2026-10-22)"); }
                             self.handler_collection()?;
                         }
                         (Tok::Dot, Tok::Word(k)) => return self.err(format!("there is no `coll.{k}`: a collection is `coll.fn` (a function and its narrowings) or `coll.handler` (named `otherwise` blocks) (owner, 2026-10-13)")),
@@ -3415,12 +3418,27 @@ impl Parser {
                 Tok::Word(w) if w == "for" => return self.err("templates are for `coll.fn`; whether a `coll.handler` has them is not decided yet (2026-10-13)"),
                 // a member writes the collection's name in front, as a `coll.fn` member does (owner, 2026-10-19: "(a)")
                 Tok::Word(m) if m != name && *self.peek_at(1) == Tok::LBrace => return self.err(format!("a member writes the collection's name in front: `{name}.{m} {{ … }}` (owner, 2026-10-19)")),
-                Tok::Word(c) if c == name && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(_)) && *self.peek_at(3) == Tok::LBrace => {
+                Tok::Word(c) if c == name && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(_)) && matches!(self.peek_at(3), Tok::LBrace | Tok::LBracket) => {
                     let Tok::Word(m) = self.peek_at(2).clone() else { unreachable!() };
                     if crate::spellings::is_reserved(&m) { return self.err(format!("`{m}` is a keyword and cannot name a handler")); }
                     if seen.contains(&m) { return self.err(format!("`{name}.{m}` is written twice")); }
-                    seen.push(m);
+                    seen.push(m.clone());
                     self.advance(); self.advance(); self.advance();
+                    // its parameters, as a definition's (owner, 2026-10-23: a handler member takes arguments)
+                    if *self.peek() == Tok::LBracket {
+                        self.plain_open("a handler's parameters")?;
+                        self.advance();
+                        loop {
+                            if *self.peek() == Tok::RBracket { break; }
+                            let Tok::Var(_) = self.advance().tok else { return self.err(format!("a handler's parameter is `$name: type`: `{name}.{m} [$code: u8] {{ … }}`")); };
+                            self.expect(Tok::Colon, "`:` and the parameter's type")?;
+                            self.ty()?;
+                            if *self.peek() == Tok::Comma { self.advance(); continue; }
+                            break;
+                        }
+                        self.expect(Tok::RBracket, "`]` after the handler's parameters")?;
+                        if *self.peek() != Tok::LBrace { return self.err(format!("a handler's parameters are followed by its arms: `{name}.{m} [$code: u8] {{ … }}`")); }
+                    }
                     if *self.peek_at(1) == Tok::RBrace { return self.err("a handler with no arms handles nothing: one arm per failure, as after `otherwise`"); }
                     self.skip_braces()?;
                 }
@@ -3433,8 +3451,12 @@ impl Parser {
 
     /// The tokens of `{ … }` for member `member` of `collection.handler coll` in this file, if that collection exists:
     /// `Some(Ok(tokens))`, `Some(Err(the members it has))` when the member is missing, `None` when no such collection
-    fn handler_block(&self, coll: &str, member: &str) -> Option<Result<Vec<Token>, Vec<String>>> {
-        let t = &self.toks;
+    fn handler_block(&self, coll: &str, member: &str) -> Option<Result<HandlerMember, Vec<String>>> {
+        Self::handler_block_in(&self.toks, coll, member)
+    }
+
+fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<HandlerMember, Vec<String>>> {
+    {
         let mut i = 0;
         while i + 4 < t.len() {
             let head = matches!(&t[i].tok, Tok::Word(w) if w == "coll") && t[i + 1].tok == Tok::Dot
@@ -3446,15 +3468,32 @@ impl Parser {
             while j < t.len() {
                 match &t[j].tok {
                     // `coll.flow_back { … }`: the member written with the collection's name in front (owner, 2026-10-19)
-                    Tok::Word(c) if c == coll && j + 3 < t.len() && t[j + 1].tok == Tok::Dot && matches!(&t[j + 2].tok, Tok::Word(_)) && t[j + 3].tok == Tok::LBrace => {
+                    Tok::Word(c) if c == coll && j + 3 < t.len() && t[j + 1].tok == Tok::Dot && matches!(&t[j + 2].tok, Tok::Word(_)) && matches!(t[j + 3].tok, Tok::LBrace | Tok::LBracket) => {
                         let Tok::Word(m) = &t[j + 2].tok else { unreachable!() };
-                        let open = j + 3;
+                        // its parameters: each `$name: type`, the type's tokens kept for the arm's declaration
+                        let mut params: Vec<(String, Vec<Token>)> = Vec::new();
+                        let mut open = j + 3;
+                        if t[open].tok == Tok::LBracket {
+                            let close = matching(t, open, &Tok::LBracket, &Tok::RBracket)?;
+                            let mut k = open + 1;
+                            while k < close {
+                                let Tok::Var(p) = &t[k].tok else { break };
+                                let (start, mut e, mut d) = (k + 2, k + 2, 0i32);
+                                while e < close {
+                                    match t[e].tok { Tok::LBracket => d += 1, Tok::RBracket => d -= 1, Tok::Comma if d == 0 => break, _ => {} }
+                                    e += 1;
+                                }
+                                params.push((p.clone(), t[start..e].to_vec()));
+                                k = e + 1;
+                            }
+                            open = close + 1;
+                        }
                         let (s, mut d, mut k) = (open, 0i32, open);
                         while k < t.len() {
                             match t[k].tok { Tok::LBrace => d += 1, Tok::RBrace => { d -= 1; if d == 0 { break; } } _ => {} }
                             k += 1;
                         }
-                        if m == member { return Some(Ok(t[s..=k.min(t.len() - 1)].to_vec())); }
+                        if m == member { return Some(Ok(HandlerMember { params, block: t[s..=k.min(t.len() - 1)].to_vec() })); }
                         names.push(m.clone());
                         j = k + 1;
                     }
@@ -3464,6 +3503,61 @@ impl Parser {
             return Some(Err(names));
         }
         None
+    }
+}
+
+    /// A handler member used here: its arguments, `(code: 3)`, matched to its parameters by their names, and its arms
+    /// read as if written here, each arm first declaring the parameters from the arguments (owner, 2026-10-23: "Yes")
+    fn use_handler(&mut self, member: HandlerMember, shown: &str) -> PResult<Handler> {
+        let mut args: Vec<(String, Vec<Token>)> = Vec::new();
+        if *self.peek() == Tok::LParen {
+            let close = matching(&self.toks, self.pos, &Tok::LParen, &Tok::RParen).ok_or_else(|| ParseError { line: self.line(), col: 0, msg: "this `(` never closes".into() })?;
+            let mut k = self.pos + 1;
+            while k < close {
+                let (Tok::Word(w), Tok::Colon) = (&self.toks[k].tok, &self.toks[k + 1].tok) else {
+                    self.pos = k;
+                    let first = member.params.first().map(|(p, _)| p.clone()).unwrap_or_else(|| "code".into());
+                    return self.err(format!("a handler's argument says its parameter: `{shown}({first}: …)` (owner, 2026-10-23)"));
+                };
+                let (start, mut e, mut d) = (k + 2, k + 2, 0i32);
+                while e < close {
+                    match self.toks[e].tok { Tok::LParen | Tok::LBracket | Tok::LBrace => d += 1, Tok::RParen | Tok::RBracket | Tok::RBrace => d -= 1, Tok::Comma if d == 0 => break, _ => {} }
+                    e += 1;
+                }
+                if args.iter().any(|(a, _)| a == w) { return self.err(format!("`{w}:` is given twice to `{shown}`")); }
+                args.push((w.clone(), self.toks[start..e].to_vec()));
+                k = e + 1;
+            }
+            self.pos = close + 1;
+        }
+        for (a, _) in &args {
+            if !member.params.iter().any(|(p, _)| p == a) { return self.err(format!("`{shown}` has no parameter `{a}`")); }
+        }
+        let mut decl: Vec<Token> = Vec::new();
+        let line = self.line();
+        let tk = |t: Tok| Token { tok: t, line, col: 0, mtm: None, paren: false, at: usize::MAX };
+        for (p, ty) in &member.params {
+            let Some((_, val)) = args.iter().find(|(a, _)| a == p) else { return self.err(format!("`{shown}` takes `{p}:`: `{shown}({p}: …)`")); };
+            decl.push(tk(Tok::Word("let".into()))); decl.push(tk(Tok::Var(p.clone()))); decl.push(tk(Tok::Colon));
+            decl.extend(ty.iter().cloned()); decl.push(tk(Tok::Eq)); decl.push(tk(Tok::LParen));
+            decl.extend(val.iter().cloned()); decl.push(tk(Tok::RParen)); decl.push(tk(Tok::Semi));
+        }
+        // each arm's body opens at depth 1 of the member's `{ … }`: the declarations go first in it
+        let mut block = member.block;
+        if !decl.is_empty() {
+            let mut d = 0i32; let mut i = 0;
+            while i < block.len() {
+                match block[i].tok {
+                    Tok::LBrace => { d += 1; if d == 2 { block.splice(i + 1..i + 1, decl.iter().cloned()); i += decl.len(); } }
+                    Tok::RBrace => d -= 1,
+                    _ => {}
+                }
+                i += 1;
+            }
+        }
+        let at = self.pos;
+        self.toks.splice(at..at, block);
+        Ok(Handler::Arms(self.arms("otherwise")?))
     }
 
     fn skip_braces(&mut self) -> PResult<()> {
@@ -3582,16 +3676,26 @@ impl Parser {
             // its arms were written here
             Tok::Word(c) if *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(_)) && self.handler_block(&c, "").is_some() => {
                 let Tok::Word(m) = self.peek_at(2).clone() else { unreachable!() };
-                let block = match self.handler_block(&c, &m) {
+                let member = match self.handler_block(&c, &m) {
                     Some(Ok(b)) => b,
                     Some(Err(has)) => return self.err(format!("`{c}` has no handler `{m}`; it has {}", has.iter().map(|h| format!("`{h}`")).collect::<Vec<_>>().join(", "))),
                     None => unreachable!(),
                 };
                 self.advance(); self.advance(); self.advance();
-                let at = self.pos;
-                self.toks.splice(at..at, block);
-                let arms = self.arms("otherwise")?;
-                Handler::Arms(arms)
+                self.use_handler(member, &format!("{c}.{m}"))?
+            }
+            // `otherwise cum::cum_failed.flow_back(…)`: another kit's `pub coll.handler` (owner, 2026-10-23), through its path
+            Tok::Word(k) if *self.peek_at(1) == Tok::ColonColon && matches!(self.peek_at(2), Tok::Word(_)) && *self.peek_at(3) == Tok::Dot && matches!(self.peek_at(4), Tok::Word(_))
+                && { let Tok::Word(c) = self.peek_at(2).clone() else { unreachable!() }; PUB_HANDLERS.with(|h| h.borrow().iter().any(|(r, n, _, _)| *r == vec![format!("::{k}")] && *n == c)) } => {
+                let (Tok::Word(c), Tok::Word(m)) = (self.peek_at(2).clone(), self.peek_at(4).clone()) else { unreachable!() };
+                let root = vec![format!("::{k}")];
+                let found = PUB_HANDLERS.with(|h| h.borrow().iter().find(|(r, n, mm, _)| *r == root && *n == c && *mm == m).map(|x| x.3.clone()));
+                let Some(member) = found else {
+                    let has: Vec<String> = PUB_HANDLERS.with(|h| h.borrow().iter().filter(|(r, n, _, _)| *r == root && *n == c).map(|x| format!("`{}`", x.2)).collect());
+                    return self.err(format!("`{k}::{c}` has no handler `{m}`; it has {}", has.join(", ")));
+                };
+                for _ in 0..5 { self.advance(); }
+                self.use_handler(member, &format!("{k}::{c}.{m}"))?
             }
             Tok::Semi => return self.err("`otherwise` needs what to do: a value, `fail`, `return …`, or `{ arms }`"),
             _ => {
@@ -4377,6 +4481,21 @@ impl Parser {
     /// Read only the file's `precedence` blocks (the first pass over a program's files, and the
     /// start of every parse).
     pub fn scan_levels(&mut self) -> PResult<()> {
+        // every `pub coll.handler`, for another kit to use through its path (owner, 2026-10-23)
+        let t = &self.toks;
+        for i in 0..t.len().saturating_sub(5) {
+            let is_pub = matches!(&t[i].tok, Tok::Word(w) if w == "pub") && matches!(&t[i + 1].tok, Tok::Word(w) if w == "coll") && t[i + 2].tok == Tok::Dot && matches!(&t[i + 3].tok, Tok::Word(w) if w == "handler");
+            let Some(Tok::Word(c)) = t.get(i + 4).map(|x| x.tok.clone()) else { continue };
+            if !is_pub { continue; }
+            if let Some(Err(members)) = Self::handler_block_in(t, &c, "\u{0}") {
+                for m in members {
+                    if let Some(Ok(hm)) = Self::handler_block_in(t, &c, &m) {
+                        let root = self.kit_root.clone();
+                        PUB_HANDLERS.with(|h| { let mut h = h.borrow_mut(); if !h.iter().any(|(r, n, mm, _)| *r == root && *n == c && *mm == m) { h.push((root, c.clone(), m.clone(), hm)); } });
+                    }
+                }
+            }
+        }
         let starts: Vec<usize> = self.toks.iter().enumerate().filter(|(_, t)| matches!(&t.tok, Tok::Word(w) if w == "precedence")).map(|(i, _)| i).collect();
         for at in starts { self.pos = at; let levels = self.precedence_block()?; self.place_levels(levels)?; }
         self.pos = 0;
@@ -5216,6 +5335,10 @@ fn bad_ptr<T>(p: &Parser) -> PResult<T> {
 /// Module names (decided 2026-09-19, "whatever has most compat"): lowercase
 /// ASCII letters, digits, `_`, starting with a letter; not a Windows device
 /// name; not a keyword. The same rule for file names and `module` blocks.
+/// A `coll.handler` member: its parameters (name, the type's tokens) and its `{ arms }`
+#[derive(Clone)]
+pub struct HandlerMember { pub params: Vec<(String, Vec<Token>)>, pub block: Vec<Token> }
+
 /// The token closing the bracket opened at `k`
 fn matching(toks: &[Token], k: usize, open: &Tok, close: &Tok) -> Option<usize> {
     let mut depth = 0usize;
