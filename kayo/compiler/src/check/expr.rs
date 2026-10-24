@@ -236,7 +236,7 @@ impl Checker {
                 // Nothing proves what the bytes are (owner, 2026-09-30).
                 if self.needs_mark(ctx) {
                     self.power_first()?;
-                    return err(Diagnostic::error("`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a no_check site: write `no_check` in front of the statement").named("no_check_missing").at(span));
+                    return err(Diagnostic::error("`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a no_check site: write `no_check` in front of the statement").named("no_check_missing").at(span).fix_edit(span, Edit::Before, "no_check "));
                 }
                 // The function's own generics are announced, so naming one
                 // here is no typo — it just has no size or layout yet.
@@ -366,11 +366,11 @@ impl Checker {
             matches!(self.items.lookup_path(&prefix, ctx.module), Ok(ItemRef::Enum(_)))
         };
         if path.kit.as_ref().map_or(false, |l| l.name == "std") && !std_enum {
-            return err(Diagnostic::error(format!("`{}` is called, and a call needs `(…)`: `{}(…)`", path.spelled(), path.spelled())).named("call_without_parens").at(span));
+            return err(Diagnostic::error(format!("`{}` is called, and a call needs `(…)`: `{}(…)`", path.spelled(), path.spelled())).named("call_without_parens").at(span).fix_edit(crate::source::Span::new(span.file, span.end as usize, span.end as usize), Edit::Insert, "()"));
         }
         if let Some(id) = self.items.lookup_type_fn(path, ctx.module)? {
             let name = &self.items.fns[id.0 as usize].name;
-            return err(Diagnostic::error(format!("`{}` is a function: call it, `{}(…)`", name, name)).named("call_without_parens").at(span));
+            return err(Diagnostic::error(format!("`{}` is a function: call it, `{}(…)`", name, name)).named("call_without_parens").at(span).fix_edit(crate::source::Span::new(span.file, span.end as usize, span.end as usize), Edit::Insert, "()"));
         }
         // An enum case without data: `Status.empty`.
         if path.segs.len() >= 2 {
@@ -485,7 +485,7 @@ impl Checker {
                         AK::Name(q) => format!("'{}'.{}", q.name, field.name),
                         _ => format!("`.{}`", field.name),
                     };
-                    return err(Diagnostic::error(format!("reading {} is a `no_check` site: a `layout.C union` holds one field at a time, and only C knows which — write `no_check` in front of the statement", whose)).named("no_check_missing").at(e.span));
+                    return err(Diagnostic::error(format!("reading {} is a `no_check` site: a `layout.C union` holds one field at a time, and only C knows which — write `no_check` in front of the statement", whose)).named("no_check_missing").at(e.span).fix_edit(e.span, Edit::Before, "no_check "));
                 }
                 if use_ == PlaceUse::Write && f.immut {
                     return err(Diagnostic::error(format!("`{}` is an `immut` field of `{}` and cannot be written", field.name, info.name)).named("cannot_change_immut").at(field.span));
@@ -563,7 +563,7 @@ impl Checker {
         if self.needs_mark(ctx) {
             self.power_first()?;
             let what = if use_ == PlaceUse::Write { "writing" } else { "reading" };
-            return err(Diagnostic::error(format!("{} C's variable '{}' is a no_check site: nothing about C's memory can be proven — write `no_check` in front of the statement", what, info.name)).named("cnc::no_check_missing").at(span));
+            return err(Diagnostic::error(format!("{} C's variable '{}' is a no_check site: nothing about C's memory can be proven — write `no_check` in front of the statement", what, info.name)).named("cnc::no_check_missing").at(span).fix_edit(span, Edit::Before, "no_check "));
         }
         if use_ == PlaceUse::Write && !info.mutable {
             return err(Diagnostic::error(format!("'{}' is read-only: `extern.C mut ${}: …` says C's variable may be written", info.name, info.name)).named("cnc::c_variable_read_only").at(span));
@@ -721,7 +721,7 @@ impl Checker {
                 let name = self.place_name(ctx, place);
                 let fb = ctx.locals[place.base.0 as usize].from_blank && place.proj.is_empty();
                 if !fb {
-                    return err(Diagnostic::error(format!("{} is an owned `{}`: say what happens to it — `give {}` (it moves), `copy {}` (a second one), or `lend {}` (a view)", name, self.spell(&pt), name, name, name)).named("owned_value_bare").at(v.span));
+                    return err(Diagnostic::error(format!("{} is an owned `{}`: say what happens to it — `give {}` (it moves), `copy {}` (a second one), or `lend {}` (a view)", name, self.spell(&pt), name, name, name)).named("owned_value_bare").at(v.span).fix_edit(v.span, Edit::Verb, "give").fix_edit(v.span, Edit::Verb, "copy").fix_edit(v.span, Edit::Verb, "lend"));
                 }
             }
         }
@@ -1033,7 +1033,19 @@ impl Checker {
             _ if self.spell(&t) == self.spell(&vt) => format!("expected {} ({}), found {}", what.replace("the ", "a value of the "), self.spell_with_kit(&t), article(&self.spell_with_kit(&vt))),
             _ => format!("expected {} ({}), found {}", what.replace("the ", "a value of the "), self.spell(&t), article(&self.spell(&vt))),
         };
-        err(Diagnostic::error(msg).named(match (vt.base(), t.base()) { (Ty::Brain, other) | (other, Ty::Brain) if other.is_numeric() => "ai::brain_mixed", (Ty::Bin(_) | Ty::Deci(_), Ty::Int(_)) | (Ty::Int(_), Ty::Bin(_)) | (Ty::Int(_), Ty::Deci(_)) | (Ty::Bin(_), Ty::Deci(_)) | (Ty::Deci(_), Ty::Bin(_)) => "no_implicit_conversion", (Ty::Seq { kind: SeqKind::List, .. }, Ty::Seq { kind: SeqKind::Array, .. }) => "list_array_mismatch", (Ty::Fn(_), Ty::Fn(_)) => "function_shape_wrong", (Ty::Struct { id: a, .. }, Ty::Struct { id: b, .. }) if a == b => "generic_filled_inconsistently", (Ty::Enum { id: a, .. }, Ty::Enum { id: b, .. }) if a == b => "generic_filled_inconsistently", _ => "wrong_type" }).at(v.span))
+        // A conversion that cannot fail, around the value: `to.f64($n)`.
+        let convert = match (vt.base(), t.base()) {
+            (Ty::Int(_), Ty::Bin(_) | Ty::Deci(_)) | (Ty::Bin(_), Ty::Deci(_)) | (Ty::Deci(_), Ty::Bin(_)) => Some(format!("to.{}", conv_spelling(&self.spell(t.base())))),
+            (Ty::Brain, other) | (other, Ty::Brain) if other.is_numeric() => Some(format!("to.{}", conv_spelling(&self.spell(t.base())))),
+            (Ty::Int(_) | Ty::Bin(_), Ty::Str(_)) => Some("to.str.utf8".to_string()),
+            _ => None,
+        };
+        let msg = Diagnostic::error(msg);
+        let msg = match convert {
+            Some(c) => msg.fix_edit(v.span, Edit::Wrap, c),
+            None => msg,
+        };
+        err(msg.named(match (vt.base(), t.base()) { (Ty::Brain, other) | (other, Ty::Brain) if other.is_numeric() => "ai::brain_mixed", (Ty::Bin(_) | Ty::Deci(_), Ty::Int(_)) | (Ty::Int(_), Ty::Bin(_)) | (Ty::Int(_), Ty::Deci(_)) | (Ty::Bin(_), Ty::Deci(_)) | (Ty::Deci(_), Ty::Bin(_)) => "no_implicit_conversion", (Ty::Seq { kind: SeqKind::List, .. }, Ty::Seq { kind: SeqKind::Array, .. }) => "list_array_mismatch", (Ty::Fn(_), Ty::Fn(_)) => "function_shape_wrong", (Ty::Struct { id: a, .. }, Ty::Struct { id: b, .. }) if a == b => "generic_filled_inconsistently", (Ty::Enum { id: a, .. }, Ty::Enum { id: b, .. }) if a == b => "generic_filled_inconsistently", _ => "wrong_type" }).at(v.span))
     }
 
     // ------------------------------------------------------------ operators
@@ -1809,7 +1821,7 @@ impl Checker {
                     (true, true) => ("div.near", "ordinary division"),
                     (false, _) => ("mod.floor", "what `mod` did, the divisor's sign"),
                 };
-                err(Diagnostic::error(format!("say how `{w}` rounds: `{w}.floor`, `{w}.ceil`, `{w}.trunc` or `{w}.near` — `{meant}` is {why}")).named("rounding_unsaid").at(op_span))
+                err(Diagnostic::error(format!("say how `{w}` rounds: `{w}.floor`, `{w}.ceil`, `{w}.trunc` or `{w}.near` — `{meant}` is {why}")).named("rounding_unsaid").at(op_span).fix_edit(op_span, Edit::Replace, meant).fix_edit(op_span, Edit::Replace, format!("{w}.floor")).fix_edit(op_span, Edit::Replace, format!("{w}.ceil")).fix_edit(op_span, Edit::Replace, format!("{w}.trunc")).fix_edit(op_span, Edit::Replace, format!("{w}.near")))
             }
             BinOp::Mod(Round::Near) if fraction => {
                 let family = match t.base() {
@@ -1995,7 +2007,7 @@ impl Checker {
             (Ty::Int(a), Ty::Int(b)) => Ty::Int(join_int(*a, *b)),
             (Ty::Bin(a), Ty::Bin(b)) => Ty::Bin(join_bin(*a, *b)),
             (Ty::Deci(a), Ty::Deci(b)) => Ty::Deci((*a).max(*b)),
-            _ => return err(Diagnostic::error(format!("`{}` between a `{}` and a `{}`: there is no implicit conversion between numeric families — convert one side with `to.{}(…)`", op.spelled(), self.spell(&lt), self.spell(&rt), self.spell(lt.base()))).named("no_implicit_conversion").at(op_span)),
+            _ => return err(self.mixed_families(Diagnostic::error(format!("`{}` between a `{}` and a `{}`: there is no implicit conversion between numeric families — convert one side with `to.{}(…)`", op.spelled(), self.spell(&lt), self.spell(&rt), self.spell(lt.base()))).named("no_implicit_conversion").at(op_span), (&lt, l.span), (&rt, r.span))),
         };
         Ok((l, r, ty))
     }
@@ -2183,12 +2195,12 @@ impl Checker {
             let arg = match &side.kind {
                 AK::Verb { verb: Verb::Give, expr, .. } => {
                     if !gives {
-                        return err(Diagnostic::error(format!("`{}` lends its operand: `give` is not wanted here", spelling)).named("verb_wrong_for_parameter").at(side.span));
+                        return err(Diagnostic::error(format!("`{}` lends its operand: `give` is not wanted here", spelling)).named("verb_wrong_for_parameter").at(side.span).fix_edit(side.span, Edit::Verb, ""));
                     }
                     let place = self.place(ctx, expr, PlaceUse::Give)?;
                     Arg::Give(place)
                 }
-                AK::Verb { verb, .. } => return err(Diagnostic::error(format!("an operand takes no `{}`: operands are lent unless the operator says `give`", verb.spelled())).named("verb_wrong_for_parameter").at(side.span)),
+                AK::Verb { verb, .. } => return err(Diagnostic::error(format!("an operand takes no `{}`: operands are lent unless the operator says `give`", verb.spelled())).named("verb_wrong_for_parameter").at(side.span).fix_edit(side.span, Edit::Verb, "")),
                 _ => {
                     let v = self.expr(ctx, side)?;
                     let vt = self.resolve(&v.ty);
@@ -2196,7 +2208,7 @@ impl Checker {
                         match &v.kind {
                             K::Read(_) => {
                                 let n = pdecl.name.clone();
-                                return err(Diagnostic::error(format!("`{}` takes '{}' by value: write `give {}` so the value moves in", spelling, n, self.expr_name(ctx, &v))).named("owned_value_bare").at(side.span));
+                                return err(Diagnostic::error(format!("`{}` takes '{}' by value: write `give {}` so the value moves in", spelling, n, self.expr_name(ctx, &v))).named("owned_value_bare").at(side.span).fix_edit(v.span, Edit::Verb, "give"));
                             }
                             _ => Arg::Value(v),
                         }
@@ -2232,7 +2244,7 @@ impl Checker {
         let mut vals = Vec::new();
         for side in [lhs, rhs] {
             if let AK::Verb { verb, .. } = &side.kind {
-                return err(Diagnostic::error(format!("an operand takes no `{}`: a generic operator's operands are lent", verb.spelled())).named("verb_wrong_for_parameter").at(side.span));
+                return err(Diagnostic::error(format!("an operand takes no `{}`: a generic operator's operands are lent", verb.spelled())).named("verb_wrong_for_parameter").at(side.span).fix_edit(side.span, Edit::Verb, ""));
             }
             vals.push(self.expr(ctx, side)?);
         }
@@ -2590,7 +2602,7 @@ impl Checker {
                 Some(ItemRef::ExternFn(id)) => return self.extern_call(ctx, id, args, otherwise, span, used),
                 Some(ItemRef::Struct(id)) => {
                     if otherwise.is_some() {
-                        return err(Diagnostic::error("building a struct value cannot fail; drop the `otherwise`").named("otherwise_never_needed").at(span));
+                        return err(Diagnostic::error("building a struct value cannot fail; drop the `otherwise`").named("otherwise_never_needed").at(span).fix_edit(span, Edit::CutFrom("otherwise".into()), ""));
                     }
                     return self.construct(ctx, id, args, span);
                 }
@@ -2618,10 +2630,10 @@ impl Checker {
             let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
             match segs.as_slice() {
                 ["print"] => {
-                    return err(Diagnostic::error("say which form a print shows: `std::print.stored(…)` (what is stored) or `std::print.useful(…)` (the useful value) (owner, 2026-10-02)").named("print_form_unsaid").at(span));
+                    return err(Diagnostic::error("say which form a print shows: `std::print.stored(…)` (what is stored) or `std::print.useful(…)` (the useful value) (owner, 2026-10-02)").named("print_form_unsaid").at(span).fix_edit(path.span, Edit::Swap(vec!["std::print".into()]), "std::print.useful").fix_edit(path.span, Edit::Swap(vec!["std::print".into()]), "std::print.stored"));
                 }
                 ["print", stream @ ("stdout" | "stderr")] => {
-                    return err(Diagnostic::error(format!("say which form a print shows: `std::print.stored.{}(…)` (what is stored) or `std::print.useful.{}(…)` (the useful value) (owner, 2026-10-02)", stream, stream)).named("print_form_unsaid").at(span));
+                    return err(Diagnostic::error(format!("say which form a print shows: `std::print.stored.{}(…)` (what is stored) or `std::print.useful.{}(…)` (the useful value) (owner, 2026-10-02)", stream, stream)).named("print_form_unsaid").at(span).fix_edit(path.span, Edit::Swap(vec![format!("print.{}", stream)]), format!("print.useful.{}", stream)).fix_edit(path.span, Edit::Swap(vec![format!("print.{}", stream)]), format!("print.stored.{}", stream)));
                 }
                 ["print", "weird", stream @ ("stdout" | "stderr")] => {
                     return err(Diagnostic::error(format!("say which form a print shows: `std::print.weird.stored.{} <- …` (what is stored) or `std::print.weird.useful.{} <- …` (the useful value) (owner, 2026-10-02)", stream, stream)).named("print_form_unsaid").at(span));
@@ -2698,7 +2710,7 @@ impl Checker {
             let prefix = ast::Path { kit: None, segs: path.segs[..path.segs.len() - 1].to_vec(), span: path.span };
             if let Ok(ItemRef::Enum(id)) = self.items.lookup_path(&prefix, ctx.module) {
                 if otherwise.is_some() {
-                    return err(Diagnostic::error("building an enum value cannot fail; drop the `otherwise`").named("otherwise_never_needed").at(span));
+                    return err(Diagnostic::error("building an enum value cannot fail; drop the `otherwise`").named("otherwise_never_needed").at(span).fix_edit(span, Edit::CutFrom("otherwise".into()), ""));
                 }
                 self.enum_named_ok(id, path.last(), span)?;
                 return self.enum_case(ctx, id, path.last(), Some(args), span);
@@ -2719,7 +2731,7 @@ impl Checker {
         match item {
             ItemRef::Struct(id) => {
                 if otherwise.is_some() {
-                    return err(Diagnostic::error("building a struct value cannot fail; drop the `otherwise`").named("otherwise_never_needed").at(span));
+                    return err(Diagnostic::error("building a struct value cannot fail; drop the `otherwise`").named("otherwise_never_needed").at(span).fix_edit(span, Edit::CutFrom("otherwise".into()), ""));
                 }
                 self.construct(ctx, id, args, span)
             }
@@ -3005,7 +3017,7 @@ impl Checker {
                     ast::Arg::Positional(e) if k >= 1 => match &e.kind {
                         AK::Pos(inner) if written_below_one(inner) => return err(Diagnostic::error(NO_POSITION).named("index_out_of_range").at(inner.span)),
                         AK::Pos(inner) => ast::Arg::Positional((**inner).clone()),
-                        _ => return err(Diagnostic::error(format!("a position says `pos`: `std::{}(lend $s, pos: 3)`", short)).named("position_unlabelled").at(e.span)),
+                        _ => return err(Diagnostic::error(format!("a position says `pos`: `std::{}(lend $s, pos: 3)`", short)).named("position_unlabelled").at(e.span).fix_edit(e.span, Edit::Label, "pos: ")),
                     },
                     other => other.clone(),
                 });
@@ -3125,7 +3137,7 @@ impl Checker {
         match otherwise {
             Some(o) => {
                 if fails.is_empty() {
-                    return err(Diagnostic::error(format!("`{}` cannot fail; drop the `otherwise`", name)).named("otherwise_never_needed").at(span));
+                    return err(Diagnostic::error(format!("`{}` cannot fail; drop the `otherwise`", name)).named("otherwise_never_needed").at(span).fix_edit(span, Edit::CutFrom("otherwise".into()), ""));
                 }
                 Ok(Some(Box::new(self.otherwise(ctx, o, fails, ret, used, span)?)))
             }
@@ -3365,13 +3377,13 @@ impl Checker {
                 // The verb must agree with the parameter.
                 match (kind, verb) {
                     // As the oracle says it.
-                    (ParamKind::Lent, Verb::Give | Verb::Copy) => return err(Diagnostic::error(format!("`{}` only looks at '{}': it is `lent`, so the caller writes `lend`, not `{}`", fname, pname, verb.spelled())).named("verb_wrong_for_parameter").at(e.span)),
-                    (ParamKind::Lent, Verb::LendMut) => return err(Diagnostic::error(format!("`{}` only looks at '{}' (it is `lent`): `lend.mut` offers more than it takes — write `lend`", fname, pname)).named("verb_wrong_for_parameter").at(e.span)),
-                    (ParamKind::LentMut, Verb::Lend) => return err(Diagnostic::error(format!("`{}` may modify '{}' (it is `lent.mut`): write `lend.mut`", fname, pname)).named("lend_mut_needed").at(e.span)),
-                    (ParamKind::LentMut, Verb::Give | Verb::Copy) => return err(Diagnostic::error(format!("`{}` may modify '{}' (it is `lent.mut`): write `lend.mut`, not `{}`", fname, pname, verb.spelled())).named("lend_mut_needed").at(e.span)),
+                    (ParamKind::Lent, Verb::Give | Verb::Copy) => return err(Diagnostic::error(format!("`{}` only looks at '{}': it is `lent`, so the caller writes `lend`, not `{}`", fname, pname, verb.spelled())).named("verb_wrong_for_parameter").at(e.span).fix_edit(e.span, Edit::Verb, "lend")),
+                    (ParamKind::Lent, Verb::LendMut) => return err(Diagnostic::error(format!("`{}` only looks at '{}' (it is `lent`): `lend.mut` offers more than it takes — write `lend`", fname, pname)).named("verb_wrong_for_parameter").at(e.span).fix_edit(e.span, Edit::Verb, "lend")),
+                    (ParamKind::LentMut, Verb::Lend) => return err(Diagnostic::error(format!("`{}` may modify '{}' (it is `lent.mut`): write `lend.mut`", fname, pname)).named("lend_mut_needed").at(e.span).fix_edit(e.span, Edit::Verb, "lend.mut")),
+                    (ParamKind::LentMut, Verb::Give | Verb::Copy) => return err(Diagnostic::error(format!("`{}` may modify '{}' (it is `lent.mut`): write `lend.mut`, not `{}`", fname, pname, verb.spelled())).named("lend_mut_needed").at(e.span).fix_edit(e.span, Edit::Verb, "lend.mut")),
                     (ParamKind::Owned, Verb::Lend | Verb::LendMut) => {
                         let whom = if pname.starts_with("the ") { pname.to_string() } else { format!("'{}'", pname) };
-                        return err(Diagnostic::error(format!("`{}` takes ownership of {}, and you lent it: write `give` (it moves) or `copy` (a second one)", fname, whom)).named(if fname == "channel.send" { "mcps::send_needs_give" } else { "verb_wrong_for_parameter" }).at(e.span));
+                        return err(Diagnostic::error(format!("`{}` takes ownership of {}, and you lent it: write `give` (it moves) or `copy` (a second one)", fname, whom)).named(if fname == "channel.send" { "mcps::send_needs_give" } else { "verb_wrong_for_parameter" }).at(e.span).fix_edit(e.span, Edit::Verb, "give").fix_edit(e.span, Edit::Verb, "copy"));
                     }
                     _ => {}
                 }
@@ -3444,11 +3456,11 @@ impl Checker {
                     if vt.is_owned() && !(ctx.locals[place.base.0 as usize].from_blank && place.proj.is_empty()) {
                         let name = self.place_name(ctx, place);
                         return match kind {
-                            ParamKind::Owned => err(Diagnostic::error(format!("{} takes ownership: say what happens to {} — `give {}` (it moves) or `copy {}` (a second one)", what, name, name, name)).named("owned_value_bare").at(e.span)),
+                            ParamKind::Owned => err(Diagnostic::error(format!("{} takes ownership: say what happens to {} — `give {}` (it moves) or `copy {}` (a second one)", what, name, name, name)).named("owned_value_bare").at(e.span).fix_edit(e.span, Edit::Verb, "give").fix_edit(e.span, Edit::Verb, "copy")),
                             // As the oracle says it (c322239b): the function,
                             // what it does with the value, and the verb.
-                            ParamKind::Lent => err(Diagnostic::error(format!("`{}` only looks at {} — pass `lend {}`", fname, name, name)).named("owned_value_bare").at(e.span)),
-                            ParamKind::LentMut => err(Diagnostic::error(format!("`{}` may modify {} — pass `lend.mut {}`", fname, name, name)).named("lend_mut_needed").at(e.span)),
+                            ParamKind::Lent => err(Diagnostic::error(format!("`{}` only looks at {} — pass `lend {}`", fname, name, name)).named("owned_value_bare").at(e.span).fix_edit(e.span, Edit::Verb, "lend")),
+                            ParamKind::LentMut => err(Diagnostic::error(format!("`{}` may modify {} — pass `lend.mut {}`", fname, name, name)).named("lend_mut_needed").at(e.span).fix_edit(e.span, Edit::Verb, "lend.mut")),
                         };
                     }
                 }
@@ -3482,7 +3494,7 @@ impl Checker {
         let ft = match ct.base() {
             Ty::Fn(f) => (**f).clone(),
             // `pos` on every index (owner, 2026-10-07).
-            Ty::Seq { .. } if args.len() == 1 => return err(Diagnostic::error(format!("a read says it is a position: `{}[pos: 2]`", self.expr_name(ctx, &c))).named("position_unlabelled").at(span)),
+            Ty::Seq { .. } if args.len() == 1 => return err(Diagnostic::error(format!("a read says it is a position: `{}[pos: 2]`", self.expr_name(ctx, &c))).named("position_unlabelled").at(span).fix_edit(args[0].span(), Edit::Label, "pos: ")),
             Ty::Seq { .. } if otherwise.is_some() => return err(Diagnostic::error(format!("reading {}[…] cannot fail — a position past the end is a check site — so it takes no `otherwise`", self.expr_name(ctx, &c))).named("otherwise_never_needed").at(span)),
             Ty::Seq { .. } => return err(Diagnostic::error(format!("{} is a list, and a list is read one position at a time: `{}[pos: 2]`", self.expr_name(ctx, &c), self.expr_name(ctx, &c))).named("parens_for_brackets").at(span)),
             other => return err(Diagnostic::error(format!("{} is {}, not a function: `$f(…)` calls a held function, and `$xs[pos: 2]` reads a list", self.expr_name(ctx, &c), crate::types::a_type(&self.spell(other)))).named("not_a_function").at(span)),
@@ -3564,7 +3576,7 @@ impl Checker {
         let ow = match otherwise {
             Some(o) => {
                 if fails.is_empty() {
-                    return err(Diagnostic::error(format!("an `extern fn` cannot fail; drop the `otherwise` after `{}`", info.name)).named("otherwise_never_needed").at(span));
+                    return err(Diagnostic::error(format!("an `extern fn` cannot fail; drop the `otherwise` after `{}`", info.name)).named("otherwise_never_needed").at(span).fix_edit(span, Edit::CutFrom("otherwise".into()), ""));
                 }
                 Some(Box::new(self.otherwise(ctx, o, &fails, &info.ret, used, span)?))
             }
@@ -3600,7 +3612,7 @@ impl Checker {
             match &e.kind {
                 AK::Verb { verb: Verb::Lend, expr, .. } => {
                     if *mutable {
-                        return err(Diagnostic::error(format!("`{}`'s parameter '{}' is a `ptr.mut`: C may write through it, so write `lend.mut`", fname, pname)).named("lend_mut_needed").at(e.span));
+                        return err(Diagnostic::error(format!("`{}`'s parameter '{}' is a `ptr.mut`: C may write through it, so write `lend.mut`", fname, pname)).named("lend_mut_needed").at(e.span).fix_edit(e.span, Edit::Verb, "lend.mut"));
                     }
                     let place = self.place(ctx, expr, PlaceUse::Lend)?;
                     self.check_lend_as_ptr(ctx, &place, elem, e.span)?;
@@ -4038,7 +4050,7 @@ impl Checker {
         let ow = match otherwise {
             Some(o) => {
                 if fails.is_empty() {
-                    return err(Diagnostic::error(format!("`to.{}` cannot fail here; drop the `otherwise`", target_spelling)).named("otherwise_never_needed").at(span));
+                    return err(Diagnostic::error(format!("`to.{}` cannot fail here; drop the `otherwise`", target_spelling)).named("otherwise_never_needed").at(span).fix_edit(span, Edit::CutFrom("otherwise".into()), ""));
                 }
                 Some(Box::new(self.otherwise(ctx, o, &fail_list, &t, used, span)?))
             }
@@ -4082,7 +4094,7 @@ impl Checker {
             _ => return err(Diagnostic::error(format!("`.bits` is for whole-number types: what `to.{}.bits` means is not decided", self.spell(&t))).named("needs_integer").at(span)),
         };
         if otherwise.is_some() {
-            return err(Diagnostic::error(format!("`to.{}.bits` cannot fail: a value past its bits is a check site, not a failure; drop the `otherwise`", self.spell(&t))).named("otherwise_never_needed").at(span));
+            return err(Diagnostic::error(format!("`to.{}.bits` cannot fail: a value past its bits is a check site, not a failure; drop the `otherwise`", self.spell(&t))).named("otherwise_never_needed").at(span).fix_edit(span, Edit::CutFrom("otherwise".into()), ""));
         }
         let v = self.expr(ctx, operand)?;
         let literal = match &v.kind {
@@ -4144,8 +4156,8 @@ impl Checker {
             ("str", ["bytes"]) => BuiltinHead::B(Builtin::StrBytes),
             ("str", ["points"]) => BuiltinHead::B(Builtin::StrPoints),
             ("str", ["graphemes"]) => BuiltinHead::B(Builtin::StrGraphemes),
-            ("str", ["length"]) => return err(Diagnostic::error("a text has no single length: `str.bytes`, `str.points` or `str.graphemes` — say which").named("text_unit_unsaid").at(span)),
-            ("str", ["each"]) => return err(Diagnostic::error("say the unit after `str.each`: `str.each.grapheme(…)`, `.point`, or `.byte`").named("text_unit_unsaid").at(span)),
+            ("str", ["length"]) => return err(Diagnostic::error("a text has no single length: `str.bytes`, `str.points` or `str.graphemes` — say which").named("text_unit_unsaid").at(span).fix_edit(span, Edit::Swap(vec!["str.length".into()]), "str.bytes").fix_edit(span, Edit::Swap(vec!["str.length".into()]), "str.points").fix_edit(span, Edit::Swap(vec!["str.length".into()]), "str.graphemes")),
+            ("str", ["each"]) => return err(Diagnostic::error("say the unit after `str.each`: `str.each.grapheme(…)`, `.point`, or `.byte`").named("text_unit_unsaid").at(span).fix_edit(span, Edit::Swap(vec!["str.each".into()]), "str.each.grapheme").fix_edit(span, Edit::Swap(vec!["str.each".into()]), "str.each.point").fix_edit(span, Edit::Swap(vec!["str.each".into()]), "str.each.byte")),
             ("str", ["each", unit]) => match *unit {
                 "byte" => BuiltinHead::B(Builtin::StrEach(Unit::Byte)),
                 "point" => BuiltinHead::B(Builtin::StrEach(Unit::Point)),
@@ -4202,7 +4214,7 @@ impl Checker {
         let b = match head {
             BuiltinHead::MapLiteral => {
                 if otherwise.is_some() {
-                    return err(Diagnostic::error("a map literal cannot fail; drop the `otherwise`").named("otherwise_never_needed").at(span));
+                    return err(Diagnostic::error("a map literal cannot fail; drop the `otherwise`").named("otherwise_never_needed").at(span).fix_edit(span, Edit::CutFrom("otherwise".into()), ""));
                 }
                 return self.map_literal(ctx, args, span);
             }
@@ -4248,7 +4260,7 @@ impl Checker {
                     (Builtin::ArrayLength, Ty::Seq { .. }) => {}
                     (Builtin::MapLength, Ty::Map { .. }) => {}
                     (Builtin::StrBytes | Builtin::StrPoints | Builtin::StrGraphemes, Ty::Str(_)) => {}
-                    (Builtin::ListLength | Builtin::ArrayLength, Ty::Str(_)) => return err(Diagnostic::error("a text has no single length: `str.bytes`, `str.points` or `str.graphemes` — say which").named("text_unit_unsaid").at(span)),
+                    (Builtin::ListLength | Builtin::ArrayLength, Ty::Str(_)) => return err(Diagnostic::error("a text has no single length: `str.bytes`, `str.points` or `str.graphemes` — say which").named("text_unit_unsaid").at(span).fix_edit(span, Edit::Swap(vec!["std::list.length".into(), "list.length".into(), "array.length".into()]), "str.bytes").fix_edit(span, Edit::Swap(vec!["std::list.length".into(), "list.length".into(), "array.length".into()]), "str.points").fix_edit(span, Edit::Swap(vec!["std::list.length".into(), "list.length".into(), "array.length".into()]), "str.graphemes")),
                     _ => return err(Diagnostic::error(format!("`{}` takes a {}, and {} is {}", name, builtin_subject(&b), self.arg_name(ctx, &a), crate::types::a_type(&self.spell(&at)))).named("wrong_type").at(positional[0].span)),
                 }
                 let mut ty = Ty::u64();
@@ -4273,7 +4285,7 @@ impl Checker {
                 };
                 if let AK::Name(n) = &value_e.kind {
                     if self.peek_ty(ctx, value_e).is_some_and(|t| self.resolve(&t).is_owned()) {
-                        return err(Diagnostic::error(format!("`list.fill` makes copies of '{}': `copy ${}`", n.name, n.name)).named("owned_value_bare").at(value_e.span));
+                        return err(Diagnostic::error(format!("`list.fill` makes copies of '{}': `copy ${}`", n.name, n.name)).named("owned_value_bare").at(value_e.span).fix_edit(value_e.span, Edit::Verb, "copy"));
                     }
                 }
                 let v = match &value_e.kind {
@@ -4322,7 +4334,7 @@ impl Checker {
                 };
                 let v = self.one_argument(ctx, positional[1], ParamKind::Owned, &elem, "list.append", "the element")?;
                 if let Arg::Lend { .. } = v {
-                    return err(Diagnostic::error("a list owns its elements: `append` takes a fresh value, a `copy`, or a `give` — never a lend").named("verb_wrong_for_parameter").at(positional[1].span));
+                    return err(Diagnostic::error("a list owns its elements: `append` takes a fresh value, a `copy`, or a `give` — never a lend").named("verb_wrong_for_parameter").at(positional[1].span).fix_edit(positional[1].span, Edit::Verb, "copy").fix_edit(positional[1].span, Edit::Verb, "give"));
                 }
                 if !used {}
                 (vec![a, v], Ty::Nothing)
@@ -4378,7 +4390,7 @@ impl Checker {
                 // bare name or a lend would copy without saying so.
                 match &e.kind {
                     AK::Name(n) => return err(Diagnostic::error(format!("converting bare '{}' would copy it without saying so: `give ${}` hands it over, `copy ${}` keeps it", n.name, n.name, n.name)).named("owned_value_bare").at(e.span)),
-                    AK::Verb { verb: Verb::Lend | Verb::LendMut, .. } => return err(Diagnostic::error("converting a lend would copy it without saying so: `copy` it or `give` it").named("verb_wrong_for_parameter").at(e.span)),
+                    AK::Verb { verb: Verb::Lend | Verb::LendMut, .. } => return err(Diagnostic::error("converting a lend would copy it without saying so: `copy` it or `give` it").named("verb_wrong_for_parameter").at(e.span).fix_edit(positional[0].span, Edit::Verb, "copy").fix_edit(positional[0].span, Edit::Verb, "give")),
                     AK::Path(p) if p.kit.is_none() && p.segs.len() == 1 && (crate::resolve::primitive(p.head()).is_some() || matches!(p.head(), "list" | "array" | "map")) => {
                         return err(Diagnostic::error(format!("`{}` keeps the element type, so it is not written: `{}(copy $a)`", name, name)).named("conversion_form").at(e.span));
                     }
@@ -4841,7 +4853,7 @@ impl Checker {
                         let place = self.place(ctx, expr, PlaceUse::LendMut)?;
                         Ok(Arg::Lend { place, mutable: true })
                     }
-                    (Verb::Lend, true) => err(Diagnostic::error(format!("`{}` changes the collection, so it takes `lend.mut`, not `lend`", name)).named("lend_mut_needed").at(e.span)),
+                    (Verb::Lend, true) => err(Diagnostic::error(format!("`{}` changes the collection, so it takes `lend.mut`, not `lend`", name)).named("lend_mut_needed").at(e.span).fix_edit(e.span, Edit::Verb, "lend.mut")),
                     (Verb::LendMut, false) => {
                         let place = self.place(ctx, expr, PlaceUse::LendMut)?;
                         Ok(Arg::Lend { place, mutable: true })
@@ -4857,7 +4869,7 @@ impl Checker {
                 // it, so a look at it lends nothing away.
                 let a_const = place.proj.is_empty() && ctx.locals[place.base.0 as usize].kind == LocalKind::ConstView;
                 if pt.is_owned() && !(a_const && !mutates) {
-                    return err(Diagnostic::error(format!("`{}` takes a lend: write `lend{} {}`", name, if mutates { ".mut" } else { "" }, pn)).named("owned_value_bare").at(e.span));
+                    return err(Diagnostic::error(format!("`{}` takes a lend: write `lend{} {}`", name, if mutates { ".mut" } else { "" }, pn)).named("owned_value_bare").at(e.span).fix_edit(e.span, Edit::Verb, if mutates { "lend.mut" } else { "lend" }));
                 }
                 Ok(Arg::Lend { place, mutable: mutates })
             }
@@ -4865,7 +4877,7 @@ impl Checker {
                 // a fresh value lives for the call
                 let v = self.expr(ctx, e)?;
                 if mutates {
-                    return err(Diagnostic::error(format!("`{}` changes a collection you hold: `lend.mut` a variable", name)).named("lend_mut_needed").at(e.span));
+                    return err(Diagnostic::error(format!("`{}` changes a collection you hold: `lend.mut` a variable", name)).named("lend_mut_needed").at(e.span).fix_edit(e.span, Edit::Verb, "lend.mut"));
                 }
                 Ok(Arg::Value(v))
             }
@@ -4886,7 +4898,7 @@ impl Checker {
         let e = match &e.kind {
             AK::Pos(inner) => &**inner,
             _ if name.ends_with("slice") => return err(Diagnostic::error(format!("positions say `pos`: `{}(lend $xs, from: pos 2, to: pos 4)`", name)).named("position_unlabelled").at(e.span)),
-            _ => return err(Diagnostic::error(format!("a position says `pos`: `{}(lend $xs, pos: 1)`", name)).named("position_unlabelled").at(e.span)),
+            _ => return err(Diagnostic::error(format!("a position says `pos`: `{}(lend $xs, pos: 1)`", name)).named("position_unlabelled").at(e.span).fix_edit(e.span, Edit::Label, "pos: ")),
         };
         let v = self.expr(ctx, e)?;
         let vt = self.resolve(&v.ty);
@@ -5245,7 +5257,22 @@ pub fn join_bin(a: BinW, b: BinW) -> BinW {
 /// A type as it is written in a `to.…[…]`. A width Precog has not chosen yet
 /// has no spelling, so the message names one and says the choice is the
 /// writer's.
-fn conv_spelling(spelled: &str) -> String {
+impl Checker {
+    /// Two numeric families beside an operator: the side that converts
+    /// without failing, to the other's type (an integer to a bin or a deci;
+    /// a bin and a deci either way).
+    fn mixed_families(&self, d: Diagnostic, (lt, ls): (&Ty, Span), (rt, rs): (&Ty, Span)) -> Diagnostic {
+        let to = |t: &Ty| format!("to.{}", conv_spelling(&self.spell(t.base())));
+        match (lt.base(), rt.base()) {
+            (Ty::Int(_), Ty::Bin(_) | Ty::Deci(_)) => d.fix_edit(ls, Edit::Wrap, to(rt)),
+            (Ty::Bin(_) | Ty::Deci(_), Ty::Int(_)) => d.fix_edit(rs, Edit::Wrap, to(lt)),
+            (Ty::Bin(_), Ty::Deci(_)) | (Ty::Deci(_), Ty::Bin(_)) => d.fix_edit(rs, Edit::Wrap, to(lt)).fix_edit(ls, Edit::Wrap, to(rt)),
+            _ => d,
+        }
+    }
+}
+
+pub(crate) fn conv_spelling(spelled: &str) -> String {
     match spelled {
         "integer" => "i32".to_string(),
         "bin" => "f64".to_string(),
@@ -5672,7 +5699,7 @@ impl Checker {
                     let e: &ast::Expr = match (&e.kind, positions && k >= 1) {
                         (AK::Pos(inner), true) if written_below_one(inner) => return err(Diagnostic::error(NO_POSITION).named("index_out_of_range").at(inner.span)),
                         (AK::Pos(inner), true) => inner,
-                        (_, true) => return err(Diagnostic::error(format!("a position says `pos`: `std::{}(lend $s, pos: 3)`", name)).named("position_unlabelled").at(e.span)),
+                        (_, true) => return err(Diagnostic::error(format!("a position says `pos`: `std::{}(lend $s, pos: 3)`", name)).named("position_unlabelled").at(e.span).fix_edit(e.span, Edit::Label, "pos: ")),
                         _ => e,
                     };
                     let v = self.expr(ctx, e)?;

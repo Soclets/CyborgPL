@@ -1,7 +1,7 @@
 //! Statements.
 
 use crate::ast::{self, Tier};
-use crate::diag::{err, Diagnostic, Result};
+use crate::diag::{err, Diagnostic, Edit, Result};
 use crate::hir::{self, Local, LocalId, LocalKind};
 use crate::types::*;
 
@@ -292,7 +292,7 @@ impl Checker {
                             return e;
                         }
                     } else {
-                        return err(Diagnostic::error(format!("'{n}' is already declared in an enclosing scope; to shadow it deliberately write `shadow ${n} := …;`", n = name.name)).named("shadow_unsaid").at(name.span).why_at(p.span, "the first '".to_string() + &name.name + "' is declared here"));
+                        return err(Diagnostic::error(format!("'{n}' is already declared in an enclosing scope; to shadow it deliberately write `shadow ${n} := …;`", n = name.name)).named("shadow_unsaid").at(name.span).fix_edit(name.span, Edit::Swap(vec!["let ".into()]), "shadow ").why_at(p.span, "the first '".to_string() + &name.name + "' is declared here"));
                     }
                 } else if *shadow {
                     if self.const_visible(ctx, &name.name) {
@@ -351,7 +351,12 @@ impl Checker {
                                 return err(Diagnostic::error(format!("an empty `array` could never be filled: an array is fixed at the size it was made with — make '{}' a `list`, or give it its elements", name.name)).named("array_never_filled").at(value.span));
                             }
                         }
-                        let v = self.expect_store(ctx, v, t, "the declared type")?;
+                        // Or the declared type is the value's: `let $n: d64 = …`.
+                        let value_ty = crate::check::expr::conv_spelling(&self.spell(&self.resolve(&v.ty)));
+                        let v = self.expect_store(ctx, v, t, "the declared type").map_err(|d| match (d.name, ty) {
+                            (Some("wrong_type" | "no_implicit_conversion"), Some(written)) if !value_ty.contains(' ') => Box::new(d.fix_edit(written.span, crate::diag::Edit::Replace, value_ty.clone())),
+                            _ => d,
+                        })?;
                         if lends.is_none() {
                             self.check_stored_value(ctx, &v, t)?;
                         }
@@ -630,7 +635,7 @@ impl Checker {
                 self.power_use(ctx, &["inline_assembly"], None, "runs assembly (`inline.ASM`)".into(), s.span);
                 if self.needs_mark(ctx) {
                     self.power_first()?;
-                    return err(Diagnostic::error("an inline block is a no_check site: nothing inside it can be proven — write `no_check inline.ASM { … }`").named("no_check_missing").at(s.span));
+                    return err(Diagnostic::error("an inline block is a no_check site: nothing inside it can be proven — write `no_check inline.ASM { … }`").named("no_check_missing").at(s.span).fix_edit(s.span, Edit::Before, "no_check "));
                 }
                 let mut ins = Vec::new();
                 let mut outs = Vec::new();
@@ -1126,7 +1131,7 @@ impl Checker {
         let ow = match otherwise {
             Some(o) => {
                 if fails.is_empty() {
-                    return err(Diagnostic::error("this task cannot fail; drop the `otherwise`").named("otherwise_never_needed").at(span));
+                    return err(Diagnostic::error("this task cannot fail; drop the `otherwise`").named("otherwise_never_needed").at(span).fix_edit(span, Edit::CutFrom("otherwise".into()), ""));
                 }
                 Some(self.otherwise(ctx, o, &fails, &Ty::Nothing, false, span)?)
             }

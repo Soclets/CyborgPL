@@ -66,6 +66,13 @@ pub enum Edit {
     /// `text` goes in front of the word before the span (`pub ` before
     /// `fn f`, the span being the name).
     BeforeWord,
+    /// The verb the span starts with (`lend`, `lend.mut`, `give`, `copy`)
+    /// becomes `text`, or `text` goes in front when it has none; an empty
+    /// `text` takes the verb out.
+    Verb,
+    /// From the word given (and the space before it) to the span's end goes:
+    /// a clause, `otherwise …`.
+    CutFrom(String),
 }
 
 impl Fix {
@@ -102,6 +109,24 @@ impl Fix {
             Edit::Before => (at(indent, indent), self.text.clone()),
             Edit::Insert => (Span::new(span.file, span.start as usize, span.start as usize), self.text.clone()),
             Edit::TextOf(from) => (span, sources.get(from.file).slice(from).to_string()),
+            Edit::Verb => {
+                let here = &file.text[span.start as usize..span.end as usize];
+                let verb = ["lend.mut", "lend", "give", "copy"].into_iter().find(|v| here.starts_with(v) && here[v.len()..].starts_with([' ', '$', '\'']));
+                match verb {
+                    Some(v) => {
+                        let space = usize::from(here[v.len()..].starts_with(' '));
+                        let with = if self.text.is_empty() { String::new() } else { format!("{} ", self.text) };
+                        (Span::new(span.file, span.start as usize, span.start as usize + v.len() + space), with)
+                    }
+                    None if self.text.is_empty() => return None,
+                    None => (Span::new(span.file, span.start as usize, span.start as usize), format!("{} ", self.text)),
+                }
+            }
+            Edit::CutFrom(word) => {
+                let here = &file.text[span.start as usize..span.end as usize];
+                let at = here.find(&format!(" {}", word)).or_else(|| here.find(word.as_str()))?;
+                (Span::new(span.file, span.start as usize + at, span.end as usize), String::new())
+            }
             Edit::BeforeWord => {
                 let before = file.text[..span.start as usize].trim_end_matches([' ', '\t']);
                 let word = before.trim_end_matches(|c: char| c.is_alphanumeric() || c == '_' || c == '.');
@@ -313,7 +338,11 @@ impl Diagnostic {
     }
     /// A fix made from the source: the line holding `span`, edited.
     pub fn fix_edit(mut self, span: Span, how: Edit, text: impl Into<String>) -> Diagnostic {
-        self.fixes.push(Fix { line: None, text: text.into(), edit: Some((span, how)), also: Vec::new() });
+        let text = text.into();
+        // The same edit twice is one fix.
+        if !self.fixes.iter().any(|f| f.also.is_empty() && f.text == text && f.edit.as_ref() == Some(&(span, how.clone()))) {
+            self.fixes.push(Fix { line: None, text, edit: Some((span, how)), also: Vec::new() });
+        }
         self
     }
 

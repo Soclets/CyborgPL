@@ -230,7 +230,7 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `bundle_loop_form` | 2 | — | |
 | `call_ambiguous` | 1 | — | |
 | `call_gives_nothing` | 3 | — | |
-| `call_without_parens` | 3 | — | |
+| `call_without_parens` | 3 | partly | `()` after it; not yet: a path alone as a statement |
 | `cannot_change_immut` | 3 | — | |
 | `carries_nothing` | 4 | — | |
 | `case_data_form` | 2 | — | |
@@ -241,7 +241,7 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `cnc::c_str_unknown` | 1 | — | |
 | `cnc::c_variable_read_only` | 1 | — | |
 | `cnc::callback_captures` | 1 | — | |
-| `cnc::no_check_missing` | 2 | — | |
+| `cnc::no_check_missing` | 2 | written | `no_check ` in front of the statement |
 | `cnc::numbered_enum_not_c` | 3 | — | |
 | `cnc::opaque_struct_held` | 3 | — | |
 | `cnc::pointer_target_wrong` | 2 | — | |
@@ -283,7 +283,7 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `iterator_next_form` | 1 | — | |
 | `label_outside_call` | 4 | — | |
 | `labels_out_of_order` | 1 | — | |
-| `lend_mut_needed` | 8 | — | |
+| `lend_mut_needed` | 8 | partly | `lend` / a verb → `lend.mut`; not yet: a borrow handed back, a `for` over an iterator |
 | `lend_size_mismatch` | 1 | — | |
 | `lent_given_away` | 2 | — | |
 | `lent_twice_in_call` | 1 | — | |
@@ -307,12 +307,12 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `money::too_many_digits` | 2 | — | |
 | `money::too_many_places` | 3 | — | |
 | `must_misused` | 2 | — | |
-| `mut_never_changed` | 1 | — | |
+| `mut_never_changed` | 1 | written | `mut` out of its declaration |
 | `needs_integer` | 11 | — | |
 | `negative_exponent` | 1 | — | |
 | `negative_unsigned` | 2 | — | |
-| `no_check_missing` | 5 | — | |
-| `no_implicit_conversion` | 1 | — | |
+| `no_check_missing` | 5 | partly | `no_check ` in front of the statement; not yet: a format text not written in the call |
+| `no_implicit_conversion` | 1 | partly | the side that converts without failing, `to.T(…)`, or the declared type the value's; not yet: a conversion that can fail (asked) |
 | `no_such_conversion` | 8 | — | |
 | `no_version_fits` | 1 | — | |
 | `not_a_function` | 7 | — | |
@@ -329,21 +329,21 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `operator_cannot_be_value` | 1 | — | |
 | `operator_value_ambiguous` | 1 | — | |
 | `operator_wrong_type` | 9 | — | |
-| `otherwise_never_needed` | 10 | — | |
+| `otherwise_never_needed` | 10 | partly | the `otherwise` clause out; not yet: a list read |
 | `outside_loop` | 2 | — | |
-| `owned_value_bare` | 9 | — | |
+| `owned_value_bare` | 9 | partly | `give` / `copy` / `lend` in front, as the message lists; not yet: a `for`'s list, a spread, a conversion |
 | `pointer_cast_target` | 2 | — | |
 | `pointer_outside_boundary` | 1 | — | |
 | `pointer_read_only` | 1 | — | |
-| `position_unlabelled` | 7 | — | |
-| `print_form_unsaid` | 4 | — | |
+| `position_unlabelled` | 7 | partly | `pos: ` in front; not yet: a slice's, an index in the parser |
+| `print_form_unsaid` | 4 | partly | `.useful` / `.stored`; not yet: the `.weird` forms |
 | `print_into_non_writer` | 1 | — | |
 | `returned_borrow_form` | 5 | — | |
 | `returned_borrow_misused` | 1 | — | |
 | `returned_borrow_unsaid` | 2 | — | |
-| `rounding_unsaid` | 1 | — | |
+| `rounding_unsaid` | 1 | written | the way meant first, then each |
 | `shadow_sealed` | 1 | — | |
-| `shadow_unsaid` | 1 | — | |
+| `shadow_unsaid` | 1 | written | `shadow` for `let` |
 | `shuffle_not_fixed` | 2 | — | |
 | `simd_lane_count_unknown` | 1 | — | |
 | `size_unit_unsaid` | 1 | — | |
@@ -353,7 +353,7 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `spread_verb_wrong` | 4 | — | |
 | `text_not_ascii` | 1 | — | |
 | `text_order_undecided` | 2 | — | |
-| `text_unit_unsaid` | 6 | — | |
+| `text_unit_unsaid` | 6 | partly | each unit; not yet: a `for` over a text, a text's `[…]` |
 | `typed_literal_form` | 2 | — | |
 | `unicode::no_single_code` | 2 | — | |
 | `union_one_field` | 1 | — | |
@@ -369,7 +369,7 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `value_does_not_fit` | 11 | — | |
 | `value_left_unused` | 4 | — | |
 | `verb_on_fresh_value` | 4 | — | |
-| `verb_wrong_for_parameter` | 14 | — | |
+| `verb_wrong_for_parameter` | 14 | partly | the verb the parameter takes, or the verb out; not yet: C's pointers, a borrow handed back |
 | `versions_overlap` | 4 | — | |
 | `width_unknown` | 11 | — | |
 | `wrap_sizes_mixed` | 1 | — | |
@@ -377,7 +377,7 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `writer_way_unknown` | 1 | — | |
 | `written_not_literal` | 1 | — | |
 | `wrong_argument_count` | 14 | — | |
-| `wrong_type` | 51 | — | |
+| `wrong_type` | 51 | partly | a conversion that cannot fail, or the declared type the value's; not yet: a conversion that can fail (asked), values that are simply wrong |
 
 ## ownership and lends (2 names)
 
