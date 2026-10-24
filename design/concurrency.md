@@ -147,7 +147,8 @@ A number followed by a unit word is a **duration literal** — a
 unit sits on the number, as a bound's does (`[1, 40 graphemes]`; owner
 asked why not, over `[1, seconds]`). Units: `nanos`, `micros`,
 `millis`, `secs`, `mins`, `hours` (`seconds` and `minutes` until 2026-10-24, owner: "we might wanna change it to
-`secs` & `mins`", then "yes"; `wait` says `for:`, its duration a setting) — down to what a clock can
+`secs` & `mins`", then "yes"; `wait` says `for:`, its duration a setting; `after(5 secs)` and `every(1 sec)` stay bare, their names the word,
+owner: "keep those bare") — down to what a clock can
 measure, stopping before the calendar (a day is not always 24 hours).
 Singular and plural both accepted (`1 sec`, `2 secs`) — English
 grammar, not an alias. One representation underneath (nanoseconds in

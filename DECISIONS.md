@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — `std::time.after(5 secs)` and `std::time.every(1 sec)` stay bare: their names are the word (owner)
+
+The twin of `wait(for: …)`: offered (a) a word each, `after(in: 5 secs)`, `every(each: 1 sec)`, or (b) bare, their
+names already saying what the duration is for ("after 5 secs", "every 1 sec"), recommended as a named exception to
+2026-10-23's rule. The owner asked "would adding `for` sound wrong?" (yes: "after for 5 secs", "every for 1 sec"),
+then "keep those bare". So **a function whose name is the preposition takes its duration bare**: `std::time.after(5
+secs)`, `std::time.every(1 sec)`; `wait`, whose name says nothing of it, says `for:`. As built; nothing changes.
+
 ### 2026-10-24 — Durations are `secs` and `mins`: `5 secs`, `1 min`; `seconds` and `minutes` are old spellings (owner; built in the oracle)
 
 The owner, with `for:` for a wait: "and we might wanna change it to `secs` & `mins`". Design claude's table, shown:
@@ -41,8 +49,7 @@ The owner, with `for:` for a wait: "and we might wanna change it to `secs` & `mi
 `hrs`; the old `second(s)` and `minute(s)` refused naming the new; the singular kept for 1, as before; `1 min` not
 clashing with the `min:` bound label (a unit follows a number with no colon). The owner: "yes". So **`5 secs`,
 `1 min`, `90 mins`**, printed the same way (`5 secs`, `1 sec`); `std::time.wait(for: 5 secs)` built too. Refusal
-tests `duration_seconds_old`, `wait_bare`. Open: whether `std::time.after(5 secs)` and `std::time.every(1 sec)` say
-a word too, as `wait` does (asked next).
+tests `duration_seconds_old`, `wait_bare`. `std::time.after` and `std::time.every` stay bare (entry above).
 
 ### 2026-10-24 — `std::time.wait(for: 5 seconds)`: a wait's duration says its word (owner; not built)
 
