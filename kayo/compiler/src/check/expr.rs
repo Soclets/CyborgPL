@@ -2630,6 +2630,13 @@ impl Checker {
             let rest = path.segs.iter().skip(1).map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
             return err(Diagnostic::error(format!("`channel` is the MCPS limb's, not std's: write `channel.{}(…)`", if rest.is_empty() { "send" } else { &rest })).named("unknown_std_name").at(path.span));
         }
+        // A writer's way is `.whole` or `.split` (owner, 2026-10-24).
+        if path.kit.as_ref().is_some_and(|l| l.name == "std") {
+            let name = path.segs.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
+            if name.starts_with("print.writer.") && !BUILT_CORD.contains(&name.as_str()) {
+                return err(Diagnostic::error("a writer is `std::print.writer`, `.whole` or `.split`, then `.stderr` for stderr (owner, 2026-10-24)").named("writer_way_unknown").at(path.span));
+            }
+        }
         if self.std_stubs && path.kit.as_ref().map(|l| l.name == "std").unwrap_or(false) {
             return self.std_stub(ctx, path, args, otherwise, span, used);
         }
@@ -5259,10 +5266,12 @@ fn same_literal(a: &Expr, b: &Expr) -> bool {
 
 /// The cord calls Synapse builds (owner, 2026-10-09): the prints and
 /// `exit`. A print goes to stdout unless it says `.stderr`.
-pub const BUILT_CORD: [&str; 24] = [
+pub const BUILT_CORD: [&str; 28] = [
     "exit",
-    // A print's own buffer, and sending what is held (owner, 2026-10-23).
+    // A print's own buffer, and sending what is held (owner, 2026-10-23);
+    // its way when a print does not fit (2026-10-24).
     "print.writer", "print.writer.stderr", "print.flush",
+    "print.writer.whole", "print.writer.whole.stderr", "print.writer.split", "print.writer.split.stderr",
     "print.written", "print.written.stdout", "print.written.stderr",
     "print.useful", "print.useful.stdout", "print.useful.stderr",
     "print.stored", "print.stored.stdout", "print.stored.stderr",
@@ -5437,7 +5446,7 @@ impl Checker {
             // the text `print.format` would print ("`a`").
             // `std::print.writer(size: 4096 bytes)` (owner, 2026-10-23: "Just
             // `bytes` for now").
-            "print.writer" | "print.writer.stderr" => {
+            "print.writer" | "print.writer.stderr" | "print.writer.whole" | "print.writer.whole.stderr" | "print.writer.split" | "print.writer.split.stderr" => {
                 // `spellings.cyr` lists the call, so `size:` is taken out
                 // before this reads it.
                 let size = match positional.as_slice() {

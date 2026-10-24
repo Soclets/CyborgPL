@@ -425,6 +425,7 @@ errors::table[
         errors::error[name = "unknown_verb", means = "A verb is narrowed with a word it does not take; the borrows are `lend` and `lend.mut`, or `lent` and `lent.mut` on a parameter.", tests = []],
         errors::error[name = "value_left_unused", means = "A value stands alone as a statement, and nothing uses it; it is assigned, or handed to a call.", tests = []],
         errors::error[name = "verb_on_fresh_value", means = "`give`, `copy` or `lend` is put on a fresh value, such as a call's result or a literal, which has no owner yet.", tests = []],
+        errors::error[name = "writer_way_unknown", means = "A writer names a way other than `.whole` or `.split`, which say what happens when a print does not fit.", tests = ["writer_way_unknown",]],
         errors::error[name = "writer_size_zero", means = "A writer is made with a size of less than one byte.", tests = []],
         errors::error[name = "ai::brain_to_deci_unsaid", means = "A brain float converts to a deci without saying which value it means.", tests = []],
         errors::error[name = "cnc::bit_field_form", means = "A bit-field is not a whole number or `bool`, or is given a range besides its bits.", tests = []],

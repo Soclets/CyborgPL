@@ -47,6 +47,12 @@ pub struct Out {
     pub at_len: u64,
     pub cur: *const u8,
     pub cur_len: u64,
+    /// A print kept whole (owner, 2026-10-24: the writer's default): when
+    /// one does not fit, what came before it is sent and it is kept
+    /// together. 0 for `.split` and for kayo's own buffer.
+    pub whole: u32,
+    /// Where the print being filled starts in the buffer.
+    pub mark: u32,
 }
 
 #[cfg(not(target_os = "none"))]
@@ -58,7 +64,7 @@ extern "C" {
 
 /// The one buffer.
 static mut SHARED_BYTES: [u8; CAP] = [0; CAP];
-static mut SHARED: Out = Out { to: 1, sink: 0, len: 0, cap: CAP as u32, failed: 0, bytes: core::ptr::null_mut(), at: core::ptr::null(), at_len: 0, cur: core::ptr::null(), cur_len: 0 };
+static mut SHARED: Out = Out { to: 1, sink: 0, len: 0, cap: CAP as u32, failed: 0, bytes: core::ptr::null_mut(), at: core::ptr::null(), at_len: 0, cur: core::ptr::null(), cur_len: 0, whole: 0, mark: 0 };
 
 /// kayo's buffer, its bytes in place.
 unsafe fn shared() -> *mut Out {
@@ -88,6 +94,7 @@ unsafe fn stop_if_failed(o: *mut Out) {
 pub unsafe extern "C" fn cyborg_out_at(o: *mut Out, at: *const u8, len: u64) {
     (*o).cur = at;
     (*o).cur_len = len;
+    (*o).mark = (*o).len;
     if (*o).len == 0 || (*o).at.is_null() {
         (*o).at = at;
         (*o).at_len = len;
@@ -197,11 +204,11 @@ pub unsafe extern "C" fn cyborg_print_end_status(o: *mut Out) -> u8 {
 /// As `cyborg_print_begin`'s `sink` and `to`.
 #[cfg(not(target_os = "none"))]
 #[no_mangle]
-pub unsafe extern "C" fn cyborg_writer_new(cap: u64, sink: u32, to: usize) -> *mut Out {
+pub unsafe extern "C" fn cyborg_writer_new(cap: u64, sink: u32, to: usize, whole: u32) -> *mut Out {
     let cap = cap.clamp(1, u32::MAX as u64);
     let o = crate::cyborg_alloc(core::mem::size_of::<Out>() as u64) as *mut Out;
     let bytes = crate::cyborg_alloc(cap);
-    o.write(Out { to, sink, len: 0, cap: cap as u32, failed: 0, bytes, at: core::ptr::null(), at_len: 0, cur: core::ptr::null(), cur_len: 0 });
+    o.write(Out { to, sink, len: 0, cap: cap as u32, failed: 0, bytes, at: core::ptr::null(), at_len: 0, cur: core::ptr::null(), cur_len: 0, whole, mark: 0 });
     o
 }
 
@@ -383,7 +390,19 @@ pub unsafe extern "C" fn cyborg_out_bytes(o: *mut Out, p: *const u8, n: u64) {
     while left > 0 {
         let room = (*o).cap as usize - (*o).len as usize;
         if room == 0 {
-            cyborg_out_flush(o);
+            // Kept whole: what came before this print goes, and the print
+            // starts the buffer; one longer than the buffer goes out alone.
+            let mark = (*o).mark as usize;
+            if (*o).whole != 0 && mark > 0 {
+                let keep = (*o).len as usize - mark;
+                (*o).len = mark as u32;
+                cyborg_out_flush(o);
+                core::ptr::copy((*o).bytes.add(mark), (*o).bytes, keep);
+                (*o).len = keep as u32;
+            } else {
+                cyborg_out_flush(o);
+            }
+            (*o).mark = 0;
             continue;
         }
         let k = room.min(left);

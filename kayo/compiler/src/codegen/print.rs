@@ -32,7 +32,7 @@ impl<'ctx> Cg<'_, 'ctx> {
             "cyborg_print_end" => v.fn_type(&[p.into()], false),
             "cyborg_print_end_status" => self.ctx.i8_type().fn_type(&[p.into()], false),
             "cyborg_print_flush" => v.fn_type(&[], false),
-            "cyborg_writer_new" => p.fn_type(&[w.into(), i32t.into(), w.into()], false),
+            "cyborg_writer_new" => p.fn_type(&[w.into(), i32t.into(), w.into(), i32t.into()], false),
             "cyborg_writer_end" => v.fn_type(&[p.into()], false),
             "cyborg_writer_status" => self.ctx.i8_type().fn_type(&[p.into()], false),
             "cyborg_writer_flush" => self.ctx.i8_type().fn_type(&[p.into()], false),
@@ -113,7 +113,9 @@ impl<'ctx> Cg<'_, 'ctx> {
         let size = self.operand(fi, args.first()?, slots)?.into_int_value();
         let size = self.builder.build_int_z_extend_or_bit_cast(size, self.ctx.i64_type(), "size").ok()?;
         let f = self.out_fn("cyborg_writer_new");
-        self.builder.build_call(f, &[size.into(), self.ctx.i32_type().const_int(sink, false).into(), to.into()], "writer").ok().and_then(crate::codegen::basic_result)
+        // A print kept whole unless the writer is `.split` (owner, 2026-10-24).
+        let whole = self.ctx.i32_type().const_int(u64::from(!name.contains(".split")), false);
+        self.builder.build_call(f, &[size.into(), self.ctx.i32_type().const_int(sink, false).into(), to.into(), whole.into()], "writer").ok().and_then(crate::codegen::basic_result)
     }
 
     /// `std::print.flush()` or `std::print.flush(lend.mut $out)` with no

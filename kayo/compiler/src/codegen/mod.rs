@@ -3410,7 +3410,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             // A print's own buffer, and sending what is held (owner,
             // 2026-10-23).
-            Op::Std(name) if name == "print.writer" || name == "print.writer.stderr" => Some(Some(self.emit_writer_new(fi, name, args, slots)?)),
+            Op::Std(name) if name.starts_with("print.writer") => Some(Some(self.emit_writer_new(fi, name, args, slots)?)),
             Op::Std(name) if name == "print.flush" => {
                 self.emit_flush(fi, args, slots)?;
                 Some(None)

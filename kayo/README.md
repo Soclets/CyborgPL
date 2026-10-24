@@ -1064,7 +1064,11 @@ Dated, with the alternative, so each can become a question later.
   `Ty::Writer` the runtime allocates (`cyborg_writer_new`, freed when it
   goes away), printed into when a print's first argument is `lend.mut $out`
   (anything else lent so is refused) and flushed with `std::print.flush(lend.mut
-  $out)`; `mir::writers` refuses a writer dropped while it may still hold text
+  $out)`; a writer keeps each print whole (owner, 2026-10-24): when one does
+  not fit, what came before it is sent and it starts the buffer, and one
+  longer than the writer goes out alone (`Out::mark`); `.split` fills to the
+  size, a print free to split; `.whole` says the default; kayo's own buffer
+  goes out before any writer's text; `mir::writers` refuses a writer dropped while it may still hold text
   (a print into it, or a `lend.mut` to a function, with no flush after, on any
   way to its drop). A print or a flush with `otherwise` handles
   `write_failed`: kayo's buffer is sent at that print, a writer's status is

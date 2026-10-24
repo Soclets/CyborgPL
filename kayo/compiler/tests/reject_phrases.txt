@@ -899,3 +899,4 @@ msl_slot_twice [fnv:4696919b3467d594] :: !unbuilt inline.MSL (owner, 2026-10-24;
 msl_text_bound [fnv:2ec49dab014f6094] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: 'k' is str, and what binds to the GPU is a number, a list of
 msl_two_kernels [fnv:db113e0ce70405a6] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: an `inline.MSL` block holds one kernel, and this one has 2:
 channel_through_std [fnv:2cf20a96c3edbb9f] :: `channel` is the MCPS limb's, not std's: write `channel.send(…)`
+writer_way_unknown [fnv:4053b6186a43b790] :: a writer is `std::print.writer`, `.whole` or `.split`
