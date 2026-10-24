@@ -1,5 +1,6 @@
-//! `use <another kit's path> as <name>;` (owner, 2026-10-22; Kotlin's shape):
-//! one per line at the top of a file, `as` always written. The name stands for
+//! `use <another kit's path> as <name>;` (owner, 2026-10-22; Kotlin's shape),
+//! or several in `[ ]`, each with its `as` (owner, 2026-10-24), at the top of
+//! a file, `as` always written. The name stands for
 //! the path in that file, read as a rewrite of the tokens before parsing, as
 //! the oracle reads it: wherever the name starts a path, the path is written
 //! instead, every rename in one pass over the written text, so a rename's
@@ -42,32 +43,66 @@ fn path_end(toks: &[Token], mut i: usize) -> usize {
     i
 }
 
+/// One rename at `p0`, `path as name`: the path, the name, and where the
+/// name ends.
+fn rename(toks: &[Token], p0: usize, at: crate::source::Span) -> Result<(Vec<Token>, Vec<Token>, usize)> {
+    let p1 = path_end(toks, p0);
+    let path = toks[p0..p1].to_vec();
+    if path.is_empty() {
+        return err(Diagnostic::error("`use` names another kit's path, then `as` and the name: `use std::list as list;`").named("use_form").at(at));
+    }
+    if !path.iter().any(|t| t.tok == Tok::ColonColon) || matches!(&path[0].tok, Tok::Word(w) if w == "my") {
+        return err(Diagnostic::error(format!("`use` names another kit's path (`std::…`, `greet::…`); `{}` is this kit's own, which is written as it is (owner, 2026-10-22)", spelled(&path))).named("use_form").at(at).fix_edit(at, crate::diag::Edit::DeleteLine, ""));
+    }
+    if !matches!(&toks.get(p1).map(|t| &t.tok), Some(Tok::Word(w)) if w == "as") {
+        return err(Diagnostic::error(format!("`use` says the name after `as`: `use {} as name;` (owner, 2026-10-22)", spelled(&path))).named("use_form").at(at).fix_edit({ let e = toks[p1 - 1].span; crate::source::Span::new(e.file, e.end as usize, e.end as usize) }, crate::diag::Edit::Insert, format!(" as {}", match &toks[p1 - 1].tok { Tok::Word(w) => w.clone(), _ => "name".into() })));
+    }
+    let n0 = p1 + 1;
+    let n1 = path_end(toks, n0);
+    let name = toks[n0..n1].to_vec();
+    if name.is_empty() {
+        return err(Diagnostic::error(format!("`use` says the name after `as`, then `;`: `use {} as name;` (owner, 2026-10-22)", spelled(&path))).named("use_form").at(at));
+    }
+    Ok((path, name, n1))
+}
+
 pub fn rewrite(toks: &[Token]) -> Result<Vec<Token>> {
     let mut i = 0;
     let mut uses: Vec<(Vec<Token>, Vec<Token>)> = Vec::new();
     while matches!(&toks.get(i).map(|t| &t.tok), Some(Tok::Word(w)) if w == "use") {
         let at = toks[i].span;
-        let p0 = i + 1;
-        let p1 = path_end(toks, p0);
-        let path = toks[p0..p1].to_vec();
-        if path.is_empty() {
-            return err(Diagnostic::error("`use` names another kit's path, then `as` and the name: `use std::list as list;`").named("use_form").at(at));
+        // Several in `[ ]`, each with its `as` (owner, 2026-10-24: "If use
+        // doesn't support doing a lot of shit in one line, it should").
+        let mut renames = Vec::new();
+        let mut k = i + 1;
+        if matches!(toks.get(k).map(|t| &t.tok), Some(Tok::LBracket)) {
+            k += 1;
+            loop {
+                let (path, name, end) = rename(toks, k, at)?;
+                renames.push((name, path));
+                k = end;
+                match toks.get(k).map(|t| &t.tok) {
+                    Some(Tok::Comma) => k += 1,
+                    Some(Tok::RBracket) => {
+                        k += 1;
+                        break;
+                    }
+                    _ => return err(Diagnostic::error("`use [ … ]` parts its renames with `,` and closes with `]`: `use [std::list as list, std::str.join as join];`").named("use_form").at(at)),
+                }
+            }
+        } else {
+            let (path, name, end) = rename(toks, k, at)?;
+            renames.push((name, path));
+            k = end;
         }
-        if !path.iter().any(|t| t.tok == Tok::ColonColon) || matches!(&path[0].tok, Tok::Word(w) if w == "my") {
-            return err(Diagnostic::error(format!("`use` names another kit's path (`std::…`, `greet::…`); `{}` is this kit's own, which is written as it is (owner, 2026-10-22)", spelled(&path))).named("use_form").at(at).fix_edit(at, crate::diag::Edit::DeleteLine, ""));
+        if !matches!(toks.get(k).map(|t| &t.tok), Some(Tok::Semi)) {
+            return err(Diagnostic::error("a `use` line ends with `;`: `use std::list as list;`").named("use_form").at(at).fix_edit({ let e = toks[k - 1].span; crate::source::Span::new(e.file, e.end as usize, e.end as usize) }, crate::diag::Edit::Insert, ";"));
         }
-        if !matches!(&toks.get(p1).map(|t| &t.tok), Some(Tok::Word(w)) if w == "as") {
-            return err(Diagnostic::error(format!("`use` says the name after `as`: `use {} as name;` (owner, 2026-10-22)", spelled(&path))).named("use_form").at(at).fix_edit({ let e = toks[p1 - 1].span; crate::source::Span::new(e.file, e.end as usize, e.end as usize) }, crate::diag::Edit::Insert, format!(" as {}", match &toks[p1 - 1].tok { Tok::Word(w) => w.clone(), _ => "name".into() })));
+        for (name, path) in renames {
+            SEEN.with(|s| s.borrow_mut().push((at, spelled(&name), spelled(&path))));
+            uses.push((name, path));
         }
-        let n0 = p1 + 1;
-        let n1 = path_end(toks, n0);
-        let name = toks[n0..n1].to_vec();
-        if name.is_empty() || !matches!(toks.get(n1).map(|t| &t.tok), Some(Tok::Semi)) {
-            return err(Diagnostic::error(format!("`use` says the name after `as`, then `;`: `use {} as name;` (owner, 2026-10-22)", spelled(&path))).named("use_form").at(at));
-        }
-        SEEN.with(|s| s.borrow_mut().push((at, spelled(&name), spelled(&path))));
-        uses.push((name, path));
-        i = n1 + 1;
+        i = k + 1;
     }
     if uses.is_empty() && !toks.iter().any(|t| t.line_first && matches!(&t.tok, Tok::Word(w) if w == "use")) {
         return Ok(toks.to_vec());

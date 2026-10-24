@@ -65,7 +65,7 @@ errors::table[
         errors::error[name = "kit_not_listed", means = "The program names a kit its manifest does not list.", tests = ["kit_unlisted", "other_kit",]],
         errors::error[name = "kit_prefix_clash", means = "Two kits share a prefix, or a kit takes the prefix `std`.", tests = ["kit_prefix_clash", "kit_prefix_std",]],
         errors::error[name = "my_needs_path", means = "`my` is written alone; it is followed by `.` and a name.", tests = ["my_alone",]],
-        errors::error[name = "use_form", means = "A `use` line is misplaced, names its own kit, or lacks `as`.", tests = ["use_needs_as", "use_not_at_top", "use_own_kit",]],
+        errors::error[name = "use_form", means = "A `use` line is misplaced, names its own kit, or lacks `as`.", tests = ["use_needs_as", "use_not_at_top", "use_own_kit", "use_list_without_as",]],
         errors::error[name = "use_name_taken", means = "A `use` line gives a name that is already this file's name for something else.", tests = ["use_name_taken",]],
         errors::error[name = "file_name_not_module", means = "A file's name cannot name a module, such as a reserved device name or one with `-`.", tests = ["dir_badname", "dir_device_name",]],
         errors::error[name = "module_name_lowercase", means = "A module's name has capitals; module names are lowercase.", about = "Module names are lowercase ASCII letters, digits and `_`, starting with a letter, so the name works on every file system.", tests = ["module_uppercase",]],
