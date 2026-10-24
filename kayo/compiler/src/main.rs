@@ -614,7 +614,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     if !plan.errors.is_empty() {
         let mut s = String::new();
         for (fi, span, why) in &plan.errors {
-            let d = kayo::diag::Diagnostic::error(format!("this `for para` cannot run in slices: {}", why)).named("mcps::para_cannot_split").at(mir.functions[*fi].span(*span));
+            let d = kayo::diag::Diagnostic::error(format!("this `for para` cannot run in slices: {}", why)).named("mcps::para_cannot_split").at(mir.functions[*fi].span(*span)).fix_edit(mir.functions[*fi].span(*span), kayo::diag::Edit::Swap(vec!["para ".into()]), "");
             s.push_str(&d.render(&sources));
         }
         return Err(s);

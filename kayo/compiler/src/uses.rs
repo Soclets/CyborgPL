@@ -54,10 +54,10 @@ pub fn rewrite(toks: &[Token]) -> Result<Vec<Token>> {
             return err(Diagnostic::error("`use` names another kit's path, then `as` and the name: `use std::list as list;`").named("use_form").at(at));
         }
         if !path.iter().any(|t| t.tok == Tok::ColonColon) || matches!(&path[0].tok, Tok::Word(w) if w == "my") {
-            return err(Diagnostic::error(format!("`use` names another kit's path (`std::…`, `greet::…`); `{}` is this kit's own, which is written as it is (owner, 2026-10-22)", spelled(&path))).named("use_form").at(at));
+            return err(Diagnostic::error(format!("`use` names another kit's path (`std::…`, `greet::…`); `{}` is this kit's own, which is written as it is (owner, 2026-10-22)", spelled(&path))).named("use_form").at(at).fix_edit(at, crate::diag::Edit::DeleteLine, ""));
         }
         if !matches!(&toks.get(p1).map(|t| &t.tok), Some(Tok::Word(w)) if w == "as") {
-            return err(Diagnostic::error(format!("`use` says the name after `as`: `use {} as name;` (owner, 2026-10-22)", spelled(&path))).named("use_form").at(at));
+            return err(Diagnostic::error(format!("`use` says the name after `as`: `use {} as name;` (owner, 2026-10-22)", spelled(&path))).named("use_form").at(at).fix_edit({ let e = toks[p1 - 1].span; crate::source::Span::new(e.file, e.end as usize, e.end as usize) }, crate::diag::Edit::Insert, format!(" as {}", match &toks[p1 - 1].tok { Tok::Word(w) => w.clone(), _ => "name".into() })));
         }
         let n0 = p1 + 1;
         let n1 = path_end(toks, n0);

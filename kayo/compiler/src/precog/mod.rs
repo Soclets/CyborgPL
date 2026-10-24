@@ -3412,6 +3412,7 @@ pub fn refusals_opts(a: &Analysis, p: &Program, sources: &crate::source::SourceM
             .named(if site.tier == Some(Tier::Check) { "check_not_enough" } else { site.name() })
             .at(f.span(site.span))
             .when(counterexample.trim_start_matches("every time: ").to_string());
+        d = check_fixes(d, &site.kind, f.span(site.span), sources);
         if !f.name.is_empty() && f.name != "MAIN" {
             d = d.place(format!("in `{}`", f.name));
         }
@@ -4207,4 +4208,60 @@ fn layer3(p: &Program, r: &SiteResult, facts: &Facts, portfolio: &smt::Portfolio
         }
         smt::Answer::Unknown => note("layer 3 asked, and the solvers reached their step budget without an answer"),
     }
+}
+
+/// A check's fix (owner, 2026-10-24: "check it before use"): the statement
+/// it is in, under an `if` that says what keeps it safe, where the code is
+/// one kayo can read back — a position into a named list, a division by a
+/// value written there.
+fn check_fixes(d: crate::diag::Diagnostic, kind: &SiteKind, span: crate::source::Span, sources: &crate::source::SourceMap) -> crate::diag::Diagnostic {
+    use crate::diag::Edit;
+    let code = sources.get(span.file).slice(span).trim();
+    let simple = |t: &str| !t.is_empty() && !t.contains(['\n', ';', '{', '}']);
+    let guard = match kind {
+        SiteKind::Bounds | SiteKind::Position => {
+            // `$xs[pos: …]` wherever it stands in the code.
+            let Some(open) = code.find("[pos: ") else { return d };
+            let list = &code[..open];
+            let list = &list[list.rfind(|c: char| !(c.is_alphanumeric() || c == '_' || c == '$')).map_or(0, |i| i + 1)..];
+            let rest = &code[open + 6..];
+            let Some(close) = rest.find(']') else { return d };
+            let at = &rest[..close];
+            let named = list.starts_with('$') && list.len() > 1 && list[1..].chars().all(|c| c.is_alphanumeric() || c == '_');
+            if !named || !simple(at) || at.contains('[') {
+                return d;
+            }
+            format!("if ({at} at_least 1) and ({at} at_most std::list.length(lend {list})) {{")
+        }
+        // `let $x: i8 = 300;`: the narrowest type of its sign that holds it.
+        SiteKind::Narrow { to } => {
+            let Ty::Int(crate::types::IntW::Fixed { signed, .. }) = to.base() else { return d };
+            let Some(colon) = code.find(": ") else { return d };
+            let Some(eq) = code.find(" = ") else { return d };
+            let written = &code[colon + 2..eq];
+            let value = code[eq + 3..].trim_end_matches(';').trim().replace('_', "");
+            let Ok(n) = value.parse::<i128>() else { return d };
+            if !written.chars().all(|c| c.is_ascii_alphanumeric()) {
+                return d;
+            }
+            let Some(bits) = [8u32, 16, 32, 64, 128].into_iter().find(|b| {
+                let (lo, hi) = crate::bigint::type_range(*signed, *b);
+                lo.to_i128().is_some_and(|lo| lo <= n) && hi.to_i128().is_some_and(|hi| n <= hi)
+            }) else { return d };
+            let start = span.start as usize + (code.as_ptr() as usize - sources.get(span.file).slice(span).as_ptr() as usize) + colon + 2;
+            let at = crate::source::Span::new(span.file, start, start + written.len());
+            return d.fix_edit(at, Edit::Replace, format!("{}{}", if *signed { "i" } else { "u" }, bits));
+        }
+        SiteKind::DivZero | SiteKind::ModZero => {
+            let Some(by) = [" div.", " mod.", " div ", " mod "].iter().filter_map(|w| code.rfind(w).map(|i| (i, *w))).max_by_key(|x| x.0) else { return d };
+            let after = &code[by.0 + by.1.len()..];
+            let divisor = if by.1.ends_with('.') { after.split_once(' ').map(|(_, r)| r).unwrap_or("") } else { after };
+            if !simple(divisor) || divisor.contains(['(', '[']) {
+                return d;
+            }
+            format!("if {divisor} not_equal 0 {{")
+        }
+        _ => return d,
+    };
+    d.fix_edit(span, Edit::InsertLine, guard).fix_also(span, Edit::InsertLineAfter, "}")
 }

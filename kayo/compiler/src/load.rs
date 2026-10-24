@@ -393,7 +393,7 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
     fn words_of(sources: &mut SourceMap, dir: &Path, from: Option<(&Path, &str)>) -> Result<(String, String)> {
         if let Some((manifest_at, written)) = from {
             if !dir.join(MANIFEST).is_file() {
-                return err(Diagnostic::error(format!("the kit at `{}` has no `CyJet.toml`, so no `prefix` for code to reach it by", written)).named("manifest_missing").place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("the kit at `{}` has no `CyJet.toml`, so no `prefix` for code to reach it by", written)).named("manifest_missing").outside_program().place(manifest_at.display().to_string()));
             }
         }
         let m = read_manifest(sources, dir)?;
@@ -419,7 +419,7 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
                 if let Some(at) = stack.iter().position(|(p, _)| *p == key) {
                     let mut names: Vec<String> = stack[at..].iter().map(|(_, n)| n.clone()).collect();
                     names.push(shown);
-                    return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a kit cannot depend on itself, however far round", names.join(" → "))).named("kits_depend_in_circle"));
+                    return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a kit cannot depend on itself, however far round", names.join(" → "))).named("kits_depend_in_circle").outside_program());
                 }
                 let manifest = read_manifest(sources, dir)?;
                 let manifest_at = dir.join(MANIFEST);
@@ -529,7 +529,7 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
     if let Some(at) = state.stack.iter().position(|(p, _)| *p == key) {
         let mut names: Vec<String> = state.stack[at..].iter().map(|(_, n)| n.clone()).collect();
         names.push(state.stack[at].1.clone());
-        return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a kit cannot depend on itself, however far round", names.join(" → "))).named("kits_depend_in_circle"));
+        return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a kit cannot depend on itself, however far round", names.join(" → "))).named("kits_depend_in_circle").outside_program());
     }
     let root = dir.join(ROOT);
     if !root.is_file() {
@@ -542,7 +542,7 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
     // and the depending Kit names no word (owner, 2026-09-29).
     if let Some((manifest_at, written)) = from {
         if !dir.join(MANIFEST).is_file() {
-            return err(Diagnostic::error(format!("the kit at `{}` has no `CyJet.toml`, so no `prefix` for code to reach it by", written)).named("manifest_missing").place(manifest_at.display().to_string()));
+            return err(Diagnostic::error(format!("the kit at `{}` has no `CyJet.toml`, so no `prefix` for code to reach it by", written)).named("manifest_missing").outside_program().place(manifest_at.display().to_string()));
         }
     }
     let manifest = read_manifest(sources, dir)?;
@@ -554,12 +554,12 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
         // The CyborgPL std is the kit listed with std's ID, and its prefix
         // is `std` (owner, 2026-10-14; `cord` until 2026-10-15).
         if as_cord && prefix != "std" {
-            return err(Diagnostic::error(format!("the kit at `{}` is listed with std's ID, and its prefix is `{}`: the CyborgPL std's prefix is `std`", written, prefix)).named("kit_prefix_clash").place(manifest_at.display().to_string()));
+            return err(Diagnostic::error(format!("the kit at `{}` is listed with std's ID, and its prefix is `{}`: the CyborgPL std's prefix is `std`", written, prefix)).named("kit_prefix_clash").outside_program().place(manifest_at.display().to_string()));
         }
         // `std` is reserved with its old names, and CyJet's prefixes,
         // but for the CyborgPL std.
         if !as_cord && matches!(prefix.as_str(), "std" | "stdkit" | "cord" | "cca" | "kin" | "ricochet" | "cyjet") {
-            return err(Diagnostic::error(format!("the kit at `{}` has the prefix `{}`, which names the built-in `{}::`; edit its `prefix`", written, prefix, match prefix.as_str() { "cca" | "kin" | "ricochet" | "cyjet" => "cyjet", _ => "std" })).named("kit_prefix_clash").place(manifest_at.display().to_string()));
+            return err(Diagnostic::error(format!("the kit at `{}` has the prefix `{}`, which names the built-in `{}::`; edit its `prefix`", written, prefix, match prefix.as_str() { "cca" | "kin" | "ricochet" | "cyjet" => "cyjet", _ => "std" })).named("kit_prefix_clash").outside_program().place(manifest_at.display().to_string()));
         }
         // No override: two Kits with one prefix are fixed by editing one
         // (owner, 2026-09-29: "Just edit the source code").
@@ -568,7 +568,7 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
                 return err(Diagnostic::error(format!("two CyborgPL stds are listed, `{}` and `{}`: a program has one std (owner, 2026-10-14)", other.display(), key.display())).named("manifest_given_twice").place(manifest_at.display().to_string()));
             }
             if *other != key {
-                return err(Diagnostic::error(format!("two kits have the prefix `{}` ({} and {}); edit one kit's `prefix`", prefix, other.display(), key.display())).named("kit_prefix_clash").place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("two kits have the prefix `{}` ({} and {}); edit one kit's `prefix`", prefix, other.display(), key.display())).named("kit_prefix_clash").outside_program().place(manifest_at.display().to_string()));
             }
         }
         state.prefixes.insert(prefix.clone(), key.clone());
@@ -688,7 +688,7 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
             let kind = if f.op.is_some() { "op" } else { "fn" };
             let named = format!("{} {}", kind, path);
             if let Some((other, _)) = only.iter().find(|(o, n)| *n == named && o != p) {
-                return err(Diagnostic::error(format!("`{}` and `{}` both forbid the path to `{}` (`bare.kit_prefix.only`), so it cannot tell them apart: edit one kit's source, as for a prefix clash", other, p, named)).named("kit_prefix_clash").place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("`{}` and `{}` both forbid the path to `{}` (`bare.kit_prefix.only`), so it cannot tell them apart: edit one kit's source, as for a prefix clash", other, p, named)).named("kit_prefix_clash").outside_program().place(manifest_at.display().to_string()));
             }
             only.push((p.clone(), named));
         }
@@ -793,7 +793,7 @@ fn pub_handlers(sources: &mut SourceMap, dir: &Path) -> Result<std::collections:
 /// block, or a block in a section.
 fn once<'a>(seen: &mut Vec<&'a str>, name: &'a str, within: &str, at: crate::source::Span) -> Result<()> {
     if seen.contains(&name) {
-        return err(Diagnostic::error(format!("`{}` is given twice in {}", name, within)).named("manifest_given_twice").at(at));
+        return err(Diagnostic::error(format!("`{}` is given twice in {}", name, within)).named("manifest_given_twice").at(at).fix_edit(at, crate::diag::Edit::DeleteLine, ""));
     }
     seen.push(name);
     Ok(())
@@ -849,7 +849,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     }
                     out.version = Some(p.value.clone());
                 }
-                other => return err(Diagnostic::error(format!("`my details:` holds `name`, `prefix` and `ver`; `{}` is none of them", other)).named("manifest_unknown_field").at(p.key_span)),
+                other => return err(Diagnostic::error(format!("`my details:` holds `name`, `prefix` and `ver`; `{}` is none of them", other)).named("manifest_unknown_field").at(p.key_span).fix_close(p.key_span, other, ["name", "prefix", "ver"])),
             }
         }
     }
@@ -869,8 +869,8 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     "id" => kid = Some(p),
                     "ver" => ver = Some(p),
                     "path" => path = Some(p),
-                    "name" | "prefix" => return err(Diagnostic::error("a kit's block names no word for code: code writes the kit's own `prefix`, from its `CyJet.toml`").named("manifest_kit_named_in_block").at(p.key_span)),
-                    other => return err(Diagnostic::error(format!("a kit's block holds `id` and `ver` (the registry) or `path` (a folder on this machine); `{}` is none of them", other)).named("manifest_unknown_field").at(p.key_span)),
+                    "name" | "prefix" => return err(Diagnostic::error("a kit's block names no word for code: code writes the kit's own `prefix`, from its `CyJet.toml`").named("manifest_kit_named_in_block").at(p.key_span).fix_edit(p.key_span, crate::diag::Edit::DeleteLine, "")),
+                    other => return err(Diagnostic::error(format!("a kit's block holds `id` and `ver` (the registry) or `path` (a folder on this machine); `{}` is none of them", other)).named("manifest_unknown_field").at(p.key_span).fix_close(p.key_span, other, ["id", "ver", "path"])),
                 }
             }
             if let (Some(_), Some(p)) = (kid, path) {
@@ -884,7 +884,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                 if cord {
                     out.has_std = true;
                 } else if out.deps.iter().any(|d| d.path == p.value) {
-                    return err(Diagnostic::error(format!("`{}` is listed twice in `my kits:`", p.value)).named("manifest_given_twice").at(p.value_span));
+                    return err(Diagnostic::error(format!("`{}` is listed twice in `my kits:`", p.value)).named("manifest_given_twice").at(p.value_span).fix_edit(p.value_span, crate::diag::Edit::DeleteLine, ""));
                 }
                 out.deps.push(Dep { path: p.value.clone(), cord });
                 continue;
@@ -908,7 +908,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             // version of it, and downloads nothing.
             if i.value == crate::parser::STD_ID {
                 if v.value != crate::parser::STD_VERSION {
-                    return err(Diagnostic::error(format!("kayo knows std `{}` only, and this asks for `{}`: write `ver = {}`", crate::parser::STD_VERSION, v.value, crate::parser::STD_VERSION)).named("version_not_available").at(v.value_span));
+                    return err(Diagnostic::error(format!("kayo knows std `{}` only, and this asks for `{}`: write `ver = {}`", crate::parser::STD_VERSION, v.value, crate::parser::STD_VERSION)).named("version_not_available").at(v.value_span).fix_edit(v.value_span, crate::diag::Edit::Replace, crate::parser::STD_VERSION));
                 }
                 if out.has_std {
                     return err(Diagnostic::error("std is listed twice in `my kits:`").named("manifest_given_twice").at(b.span));
@@ -936,7 +936,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     "id" => lid = Some(p),
                     "ver" => ver = Some(p),
                     "path" => path = Some(p),
-                    other => return err(Diagnostic::error(format!("a limb's block holds `id` and `ver`, or a `path`; `{}` is none of them", other)).named("manifest_unknown_field").at(p.key_span)),
+                    other => return err(Diagnostic::error(format!("a limb's block holds `id` and `ver`, or a `path`; `{}` is none of them", other)).named("manifest_unknown_field").at(p.key_span).fix_close(p.key_span, other, ["id", "ver", "path"])),
                 }
             }
             if let (Some(_), Some(p)) = (lid, path) {

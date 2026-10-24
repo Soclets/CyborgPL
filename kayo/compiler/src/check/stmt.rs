@@ -353,8 +353,20 @@ impl Checker {
                         }
                         // Or the declared type is the value's: `let $n: d64 = …`.
                         let value_ty = crate::check::expr::conv_spelling(&self.spell(&self.resolve(&v.ty)));
+                        // A whole number too big for the type written: the
+                        // narrowest of the same sign that holds it.
+                        let wider = match (&value.kind, self.resolve(t).base()) {
+                            (ast::ExprKind::Int(text), Ty::Int(crate::types::IntW::Fixed { signed, .. })) => text.replace('_', "").parse::<i128>().ok().and_then(|n| {
+                                [8u32, 16, 32, 64, 128].into_iter().find(|b| {
+                                    let (lo, hi) = crate::bigint::type_range(*signed, *b);
+                                    lo.to_i128().is_some_and(|lo| lo <= n) && hi.to_i128().is_some_and(|hi| n <= hi)
+                                }).map(|b| format!("{}{}", if *signed { "i" } else { "u" }, b))
+                            }),
+                            _ => None,
+                        };
                         let v = self.expect_store(ctx, v, t, "the declared type").map_err(|d| match (d.name, ty) {
                             (Some("wrong_type" | "no_implicit_conversion"), Some(written)) if !value_ty.contains(' ') => Box::new(d.fix_edit(written.span, crate::diag::Edit::Replace, value_ty.clone())),
+                            (Some("value_does_not_fit"), Some(written)) if wider.is_some() => Box::new(d.fix_edit(written.span, crate::diag::Edit::Replace, wider.clone().unwrap())),
                             _ => d,
                         })?;
                         if lends.is_none() {
@@ -783,7 +795,7 @@ impl Checker {
                         // fine step for a `u64` counter.
                         let v = self.expect_store(ctx, v, &crate::types::Ty::int(true, 64), "the step")?;
                         if let hir::ExprKind::Int(0) = v.kind {
-                            return err(Diagnostic::error("a step of 0 would never end: the counter must move").named("step_zero").at(st.span));
+                            return err(Diagnostic::error("a step of 0 would never end: the counter must move").named("step_zero").at(st.span).fix_edit(st.span, Edit::Replace, "1"));
                         }
                         Some(v)
                     }

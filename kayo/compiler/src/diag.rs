@@ -52,6 +52,8 @@ pub enum Edit {
     Swap(Vec<String>),
     /// `text` is a new line above the span's, indented as it is.
     InsertLine,
+    /// `text` is a new line below the span's, indented as it is.
+    InsertLineAfter,
     /// `text` goes in at the span's start.
     Insert,
     /// The whole line (or lines) the span is on goes.
@@ -160,6 +162,11 @@ impl Fix {
                 }
                 (at(pos, end), String::new())
             }
+            Edit::InsertLineAfter => {
+                let end = file.text[span.start as usize..].find('\n').map_or(file.text.len(), |i| span.start as usize + i + 1);
+                let lead = if end == file.text.len() && !file.text.ends_with('\n') { "\n" } else { "" };
+                (Span::new(span.file, end, end), format!("{}{}{}\n", lead, &text[..indent], self.text))
+            }
             Edit::InsertLine => {
                 // Above a block's `}`, the block's own indentation: the
                 // line before it.
@@ -195,6 +202,35 @@ impl Fix {
         let end = text[start..].find('\n').map_or(text.len(), |i| start + i);
         let line = text[..start].matches('\n').count() as u32 + 1;
         Some((span.file, line, text[start..end].trim().to_string()))
+    }
+
+    /// The other lines the fix edits, once it is made: a guard's closing
+    /// `}` under its `if`. Each by its number and its text.
+    fn edited_more(&self, sources: &SourceMap) -> Vec<(u32, String)> {
+        let Some(all) = self.replacements(sources) else { return Vec::new() };
+        let Some((first, _)) = self.edited(sources).map(|(f, l, _)| (f, l)) else { return Vec::new() };
+        let file = sources.get(first);
+        let mut text = file.text.clone();
+        let mut sorted: Vec<&(Span, String)> = all.iter().filter(|(sp, _)| sp.file == first).collect();
+        sorted.sort_by(|a, b| b.0.start.cmp(&a.0.start));
+        for (sp, with) in &sorted {
+            text.replace_range(sp.start as usize..sp.end as usize, with);
+        }
+        let (_, first_line, _) = self.edited(sources).unwrap();
+        let mut out: Vec<(u32, String)> = Vec::new();
+        for (sp, with) in all.iter().filter(|(sp, _)| sp.file == first) {
+            // Where it starts once every edit before it is made.
+            let moved: i64 = all.iter().filter(|(o, _)| o.file == first && o.start < sp.start).map(|(o, t)| t.len() as i64 - (o.end - o.start) as i64).sum();
+            let at = (sp.start as i64 + moved) as usize + usize::from(with.starts_with('\n'));
+            let start = text[..at.min(text.len())].rfind('\n').map_or(0, |i| i + 1);
+            let end = text[start..].find('\n').map_or(text.len(), |i| start + i);
+            let line = text[..start].matches('\n').count() as u32 + 1;
+            if line != first_line && !out.iter().any(|(l, _)| *l == line) {
+                out.push((line, text[start..end].trim().to_string()));
+            }
+        }
+        out.sort();
+        out
     }
 }
 
@@ -709,6 +745,10 @@ impl Diagnostic {
                 } else if Some(file) == self.span.map(|s| s.file) {
                     let _ = writeln!(out, "{} line {}:", label, line);
                     let _ = writeln!(out, "       {}", text);
+                    for (more, t) in f.edited_more(sources) {
+                        let _ = writeln!(out, "       line {}:", more);
+                        let _ = writeln!(out, "       {}", t);
+                    }
                 } else {
                     let _ = writeln!(out, "{} line {} of {}:", label, line, sources.get(file).short_name());
                     let _ = writeln!(out, "       {}", text);

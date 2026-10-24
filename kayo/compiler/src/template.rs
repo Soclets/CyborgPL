@@ -347,7 +347,7 @@ fn values(t: &Template, text: &str, consts: &HashMap<String, Val>) -> Result<Vec
             };
             let (a, b, by) = (int(start)?, int(stop)?, int(step)?);
             if by == 0 {
-                return err(Diagnostic::error("a step of 0 would never end: the counter must move").named("step_zero").at(step.span));
+                return err(Diagnostic::error("a step of 0 would never end: the counter must move").named("step_zero").at(step.span).fix_edit(step.span, crate::diag::Edit::Replace, "1"));
             }
             let mut out = Vec::new();
             let mut n = a;
@@ -412,7 +412,13 @@ pub fn check(file: &File, text: &str) -> Result<()> {
         let matches = have.as_ref().is_some_and(|h| h.len() == want.len() && h.iter().zip(&want).all(|(a, b)| a.trim_end() == b.trim_end()));
         if !matches {
             let at = t.marker.map_or(t.close, |(_, s)| s);
-            return err(Diagnostic::error(format!("the generated part under the template at line {} does not match it: run `kayo generate`", line_of(text, t.at.start as usize))).named("generated_code_stale").at(at));
+            // What `kayo generate` would write there, in place of what is.
+            let line_start = |i: usize| text.split_inclusive('\n').take(i).map(str::len).sum::<usize>();
+            let from = line_start(close_line);
+            let to = if have.is_some() { line_start(close_line + 1 + t.marker.map_or(0, |(n, _)| n as usize)) } else { from };
+            let fresh = want.iter().map(|l| format!("{}\n", l)).collect::<String>();
+            let span = crate::source::Span::new(at.file, from, to);
+            return err(Diagnostic::error(format!("the generated part under the template at line {} does not match it: run `kayo generate`", line_of(text, t.at.start as usize))).named("generated_code_stale").at(at).fix_edit(span, crate::diag::Edit::Replace, fresh));
         }
     }
     Ok(())

@@ -5,7 +5,7 @@
 //! alone on a line. Comments are CyborgPL's: `#`, `#wl`, `#Nl`, `#Nld`.
 //! This reads the shape; `load::read_manifest` says what each part means.
 
-use crate::diag::{err, Diagnostic, Result};
+use crate::diag::{err, Diagnostic, Edit, Result};
 use crate::source::{FileId, Span};
 
 /// The sections there are (owner, 2026-10-22: "`my targets`", "(a)" twice).
@@ -109,7 +109,7 @@ pub fn read(file: FileId, text: &str) -> Result<Doc> {
                 continue;
             }
             if content.ends_with('{') || content.ends_with(':') && !content.contains('=') {
-                return err(Diagnostic::error(format!("the block `{}` is never closed with `}}`", b.name)).named("manifest_block_unclosed").at(b.span));
+                return err(Diagnostic::error(format!("the block `{}` is never closed with `}}`", b.name)).named("manifest_block_unclosed").at(b.span).fix_edit(span, Edit::InsertLine, "}"));
             }
             b.pairs.push(pair(file, start + lead, content)?);
             continue;
@@ -120,7 +120,7 @@ pub fn read(file: FileId, text: &str) -> Result<Doc> {
         if content.ends_with(':') && !content.contains('=') {
             let name = content[..content.len() - 1].trim().to_string();
             if !SECTIONS.contains(&name.as_str()) {
-                return err(Diagnostic::error(format!("`{}:` is not a section of `CyJet.toml`: its sections are {}", name, SECTIONS.iter().map(|s| format!("`{}:`", s)).collect::<Vec<_>>().join(", "))).named("manifest_unknown_section").at(span));
+                return err(Diagnostic::error(format!("`{}:` is not a section of `CyJet.toml`: its sections are {}", name, SECTIONS.iter().map(|s| format!("`{}:`", s)).collect::<Vec<_>>().join(", "))).named("manifest_unknown_section").at(span).fix_close(Span::new(file, span.start as usize, span.end as usize - 1), &name, SECTIONS));
             }
             if doc.section(&name).is_some() {
                 return err(Diagnostic::error(format!("`{}:` is written twice: each section is written once", name)).named("manifest_given_twice").at(span));
@@ -147,7 +147,7 @@ pub fn read(file: FileId, text: &str) -> Result<Doc> {
         return err(Diagnostic::error(format!("`{}` is not a section (`my details:`), a block (`name {{`) or a `key = value` line", content)).named("manifest_line_form").at(span));
     }
     if let Some(b) = open {
-        return err(Diagnostic::error(format!("the block `{}` is never closed with `}}`", b.name)).named("manifest_block_unclosed").at(b.span));
+        return err(Diagnostic::error(format!("the block `{}` is never closed with `}}`", b.name)).named("manifest_block_unclosed").at(b.span).fix_edit(b.span, Edit::Append, "}"));
     }
     Ok(doc)
 }
@@ -166,11 +166,11 @@ fn pair(file: FileId, start: usize, content: &str) -> Result<Pair> {
     let value_span = Span::new(file, vstart, vstart + value.len());
     // The words of the format (owner, 2026-10-22: "(a)").
     if key == "version" {
-        return err(Diagnostic::error("it is `ver`, never `version`, in every section (owner, 2026-10-22)").named("manifest_version_word").at(key_span));
+        return err(Diagnostic::error("it is `ver`, never `version`, in every section (owner, 2026-10-22)").named("manifest_version_word").at(key_span).fix_edit(key_span, Edit::Replace, "ver"));
     }
     if value.starts_with('"') || value.starts_with('\'') {
         let bare = value.trim_matches(|c| c == '"' || c == '\'');
-        return err(Diagnostic::error(format!("a value has no quotes: `{} = {}`", key, bare)).named("manifest_value_quoted").at(value_span));
+        return err(Diagnostic::error(format!("a value has no quotes: `{} = {}`", key, bare)).named("manifest_value_quoted").at(value_span).fix_edit(value_span, Edit::Replace, bare.to_string()));
     }
     if value.is_empty() {
         return err(Diagnostic::error(format!("`{}` has no value: `{} = …`", key, key)).named("manifest_line_form").at(span));

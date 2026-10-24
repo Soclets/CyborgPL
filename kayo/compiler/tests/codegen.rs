@@ -221,7 +221,7 @@ fn kits_reach_their_dependencies() {
     // A version may be any text of at most 256 bytes (owner, 2026-09-29).
     let r = Command::new(cca()).arg("check").arg(kits.join("long_version")).output().unwrap();
     assert!(r.status.success(), "a 256-byte version was refused:\n{}", String::from_utf8_lossy(&r.stderr));
-    for (name, says) in [("cycle_a", "go round in a circle: cycle_a → cycle_b → cycle_a")] {
+    for (name, says) in [("cycle_a", "error[kits_depend_in_circle]")] {
         let r = Command::new(cca()).arg("check").arg(kits.join(name)).output().unwrap();
         let err = String::from_utf8_lossy(&r.stderr);
         assert!(!r.status.success() && err.contains(says), "{} was not refused as it should be:\n{}", name, err);
@@ -740,7 +740,7 @@ fn listing_the_nerve_cord_takes_over_cord() {
     let out = std::env::temp_dir().join("cca-build-dot");
     let r = Command::new(cca()).arg("build").arg(".").arg("-o").arg(&out).current_dir(kits.join("uses_nerve_cord")).output().unwrap();
     assert!(r.status.success(), "`kayo build .` failed:\n{}", String::from_utf8_lossy(&r.stderr));
-    for (name, says) in [("cord_wrong_prefix", "the CyborgPL std's prefix is `std`"), ("two_cords", "a program has one std"), ("std_at_needs_pos", "error[position_unlabelled]")] {
+    for (name, says) in [("cord_wrong_prefix", "error[kit_prefix_clash]"), ("two_cords", "a program has one std"), ("std_at_needs_pos", "error[position_unlabelled]")] {
         let r = Command::new(cca()).arg("check").arg(kits.join(name)).output().unwrap();
         let err = String::from_utf8_lossy(&r.stderr);
         assert!(!r.status.success() && err.contains(says), "{} was not refused as it should be:\n{}", name, err);

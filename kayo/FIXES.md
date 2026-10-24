@@ -278,7 +278,7 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `handler_value_unused` | 1 | — | |
 | `include_not_const` | 1 | — | |
 | `included_text_invalid` | 5 | — | |
-| `index_out_of_range` | 3 | — | |
+| `index_out_of_range` | 3 | partly | check it before use: the statement under `if ($k at_least 1) and ($k at_most std::list.length(lend $xs)) {`, where the code is a named list's `[pos: …]`; not yet: a list that is not a name, a slice |
 | `iterator_has_no_position` | 1 | — | |
 | `iterator_next_form` | 1 | — | |
 | `label_outside_call` | 4 | — | |
@@ -366,7 +366,7 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `unknown_struct` | 1 | — | |
 | `unlabelled_after_labelled` | 1 | — | |
 | `unordered_map_walked` | 1 | — | |
-| `value_does_not_fit` | 11 | — | |
+| `value_does_not_fit` | 11 | partly | a whole number declared too narrow: the narrowest type of its sign that holds it; not yet: worked-out values (bound where read, waits on the root) |
 | `value_left_unused` | 4 | — | |
 | `verb_on_fresh_value` | 4 | — | |
 | `verb_wrong_for_parameter` | 14 | partly | the verb the parameter takes, or the verb out; not yet: C's pointers, a borrow handed back |
@@ -413,28 +413,28 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `cnc::c_lib_name_form` | 2 | — | |
 | `file_name_not_module` | 5 | — | |
 | `kit_not_found` | 2 | — | |
-| `kit_prefix_clash` | 4 | — | |
-| `kits_depend_in_circle` | 2 | — | |
+| `kit_prefix_clash` | 4 | none suggested | the prefixes are the depended-on kits' (owner's example) |
+| `kits_depend_in_circle` | 2 | none suggested | the order kits depend in is not one program's code (owner's example) |
 | `limb_retired` | 3 | — | |
-| `manifest_block_unclosed` | 2 | — | |
+| `manifest_block_unclosed` | 2 | written | the `}` above the next line, or a last line |
 | `manifest_default_unclear` | 3 | — | |
 | `manifest_field_misplaced` | 1 | — | |
 | `manifest_field_missing` | 6 | — | |
-| `manifest_given_twice` | 7 | — | |
+| `manifest_given_twice` | 7 | partly | the second line goes; not yet: a block given twice |
 | `manifest_id_form` | 1 | — | |
-| `manifest_kit_named_in_block` | 1 | — | |
+| `manifest_kit_named_in_block` | 1 | written | the line goes |
 | `manifest_limb_block_name` | 1 | — | |
 | `manifest_line_form` | 6 | — | |
-| `manifest_missing` | 2 | — | |
+| `manifest_missing` | 2 | none suggested | the missing manifest is a depended-on kit's |
 | `manifest_name_form` | 1 | — | |
 | `manifest_section_form` | 2 | — | |
 | `manifest_source_unclear` | 4 | — | |
-| `manifest_unknown_field` | 4 | — | |
-| `manifest_unknown_section` | 1 | — | |
+| `manifest_unknown_field` | 4 | written | the close key |
+| `manifest_unknown_section` | 1 | written | the close section name |
 | `manifest_value_form` | 1 | — | |
-| `manifest_value_quoted` | 1 | — | |
+| `manifest_value_quoted` | 1 | written | the quotes off |
 | `manifest_version_too_long` | 1 | — | |
-| `manifest_version_word` | 1 | — | |
+| `manifest_version_word` | 1 | written | `ver` |
 | `name_ambiguous` | 2 | — | |
 | `old_file_name` | 8 | — | |
 | `operator_level_given_twice` | 1 | — | |
@@ -455,14 +455,14 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | name | sites | status | notes |
 |---|---|---|---|
 | `concise_form` | 1 | — | |
-| `division_by_zero` | 1 | — | |
-| `generated_code_stale` | 1 | — | |
-| `mcps::para_cannot_split` | 1 | — | |
+| `division_by_zero` | 1 | partly | check it before use: `if $b not_equal 0 {`, where the divisor is written plainly |
+| `generated_code_stale` | 1 | written | what `kayo generate` writes, in place of what is there |
+| `mcps::para_cannot_split` | 1 | written | `para` out: a sequential `for` |
 | `missing_return` | 4 | — | |
 | `no_truthiness` | 5 | — | |
-| `step_zero` | 2 | — | |
+| `step_zero` | 2 | written | a step of `1` |
 | `template_runs_forever` | 1 | — | |
 | `template_too_many_members` | 1 | — | |
 | `template_value_unknown` | 4 | — | |
-| `use_form` | 5 | — | |
+| `use_form` | 5 | partly | ` as NAME` after the path; a use of this kit's own path goes; not yet: a `use` below other lines (it moves), a missing `;` |
 | `use_name_taken` | 1 | — | |
