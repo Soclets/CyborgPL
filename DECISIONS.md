@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — `std::time.wait(for: 5 seconds)`: a wait's duration says its word (owner; not built)
+
+Design claude had left `std::time.wait(5 seconds)` bare, likening it to `sqrt(2.0)`; the owner, given that as "keep
+`std::time.wait` bare (suggestor AI)": "Wait, why?". Design claude: the likeness fails, `sqrt` works on its number and
+`wait` on nothing, its duration a setting as exit's code is, so by 2026-10-23's rule it says its word, and `5 seconds`
+carrying its unit does not help `$delay`. The owner, offered `for:`: "yup". So **`std::time.wait(for: 5 seconds)`**,
+`std::time.wait(for: $delay)`. The owner added: "and we might wanna change it to `secs` & `mins`" (the units; asked
+next). Not built.
+
 ### 2026-10-24 — Fixed: `list.fill`, `list.remove`, `simd.fill` and the other built-ins read with their own code took `[ ]` too
 
 Found by check claude: those calls skipped the `( )` check, so `std::list.fill[value: 0, count: 3]` ran and
