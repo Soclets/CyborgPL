@@ -41,6 +41,8 @@ fix:   line 4:
 - **The message is the code and the fix**: `code:` the piece quoted, `fix:` the fix as edited code, never a
   description of one ("Where's the fix line?", then "Or do we just show code, and fix only? While, learning could be in
   docs"). **A check adds `when:`**, the value that breaks it. There is no sentence, no `why:` and no `try:`.
+  Until a message's fix is written, its sentence stays, last, on an `about:` line, and goes when the fix is written
+  (owner, 2026-10-24: "(c)"), each sentence also moving into the docs under its name.
   **Every edit kayo can write is shown, under `or`, nearest the error first** (owner, 2026-10-24: "show them all");
   where the fix lies outside the program's own code, the line is `fix: none suggested`, so every message has its `fix:`.
 - **The explanation is in the docs**, found by the error's name.

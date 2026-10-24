@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Until an error's fix is written, its sentence stays on an `about:` line (owner: c)
+
+Compiler claude, building the 2026-10-22 format: only 16 of kayo's ~1,320 named messages have a written `fix:`, so
+dropping the sentence everywhere at once would leave most as a name and the code, with no docs behind the names yet.
+Offered (a) `fix: none suggested` meanwhile (stretching what it is kept for), (b) no `fix:` line meanwhile, (c) the
+sentence kept, last, on an `about:` line until that message's fix is written, then gone, each sentence also moving
+into the docs under its name (compiler claude's and design claude's recommendation). The owner: "(c)". So **a message
+without its fix written shows `about:` with its sentence, last; once its fix is written, the `about:` line goes**. A
+stage on the way to "no sentence", not a change of it.
+
 ### 2026-10-24 — Website ChatGPT is abandoned; the README's credits say which helpers are past (owner)
 
 Shown design claude's update of the README's Credits (Synthia's and RRx2-TV's sessions marked abandoned, website
