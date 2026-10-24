@@ -11,6 +11,6 @@ MAIN {
     let $page_a := channel.take(lend $from_a) otherwise str.empty;
     let $page_b := channel.take(lend $from_b) otherwise str.empty;
     std::print.useful($page_a, newln, $page_b, newln);
-    let $d := 5 seconds;
-    std::print.useful($d, " ", 1500 millis, " ", 1 hour, " ", 5 seconds equal_to 5_000 millis, newln);
+    let $d := 5 secs;
+    std::print.useful($d, " ", 1500 millis, " ", 1 hour, " ", 5 secs equal_to 5_000 millis, newln);
 }

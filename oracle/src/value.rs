@@ -199,9 +199,9 @@ pub struct Chan { pub queue: std::collections::VecDeque<Value>, pub cap: Option<
 #[derive(Debug, Clone, PartialEq)]
 pub enum Timer { After { fired: bool, nanos: i128 }, Every { nanos: i128 } }
 
-/// `5 seconds` / `1500 millis`: the largest unit that divides evenly, singular for 1.
+/// `5 secs` / `1500 millis` (owner, 2026-10-24: `secs`, `mins`): the largest unit that divides evenly, singular for 1.
 pub fn show_duration(n: i128) -> String {
-    for (name, per) in [("hour", 3_600_000_000_000i128), ("minute", 60_000_000_000), ("second", 1_000_000_000), ("milli", 1_000_000), ("micro", 1_000), ("nano", 1)] {
+    for (name, per) in [("hour", 3_600_000_000_000i128), ("min", 60_000_000_000), ("sec", 1_000_000_000), ("milli", 1_000_000), ("micro", 1_000), ("nano", 1)] {
         if n % per == 0 { let k = n / per; return format!("{k} {name}{}", if k == 1 { "" } else { "s" }); }
     }
     format!("{n} nanos")

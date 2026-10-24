@@ -9,7 +9,7 @@ use crate::ast::*;
 use crate::lexer::{Tok, Token};
 use crate::value::ty_name;
 
-const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1_000), ("micros", 1_000), ("milli", 1_000_000), ("millis", 1_000_000), ("second", 1_000_000_000), ("seconds", 1_000_000_000), ("minute", 60_000_000_000), ("minutes", 60_000_000_000), ("hour", 3_600_000_000_000), ("hours", 3_600_000_000_000)];
+const DURATION_UNITS: &[(&str, i128)] = &[("nano", 1), ("nanos", 1), ("micro", 1_000), ("micros", 1_000), ("milli", 1_000_000), ("millis", 1_000_000), ("sec", 1_000_000_000), ("secs", 1_000_000_000), ("min", 60_000_000_000), ("mins", 60_000_000_000), ("hour", 3_600_000_000_000), ("hours", 3_600_000_000_000)];
 
 // the keywords live in `spellings.cyr` (owner, 2026-10-13), asked through `crate::spellings::is_reserved`
 
@@ -4732,6 +4732,10 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                 self.advance();
                 // `5 seconds` — a duration literal (design/concurrency.md): the unit sits on the number
                 if let Tok::Word(w) = self.peek().clone() {
+                    // `secs` and `mins` since 2026-10-24 (owner: "we might wanna change it to `secs` & `mins`", then "yes")
+                    if let Some(new) = match w.as_str() { "second" => Some("sec"), "seconds" => Some("secs"), "minute" => Some("min"), "minutes" => Some("mins"), _ => None } {
+                        return self.err(format!("`{w}` is an old spelling: write `{i} {new}` (owner, 2026-10-24)"));
+                    }
                     if let Some((_, per)) = DURATION_UNITS.iter().find(|(u, _)| *u == w) {
                         // time is std's, with its literals (owner, 2026-09-22)
                         if self.no_std { return self.std_missing(&format!("a duration literal (`{i} {w}`)")); }
@@ -5421,8 +5425,8 @@ impl Parser {
                 }
             }
             let Some(call) = crate::spellings::table().calls.iter().find(|c| c.name == name) else { i += 1; continue };
-            // `exit` is std's only through its path, `std::exit(code: 3)`; a kit's own `exit` says its own words
-            if name == "exit" && !(i > 1 && self.toks[i - 1].tok == Tok::ColonColon && matches!(&self.toks[i - 2].tok, Tok::Word(w) if w == "std")) { i += 1; continue; }
+            // `exit` and `time.wait` are std's only through its path, `std::exit(code: 3)`, `std::time.wait(for: 5 secs)`; a kit's own says its own words
+            if (name == "exit" || name == "time.wait") && !(i > 1 && self.toks[i - 1].tok == Tok::ColonColon && matches!(&self.toks[i - 2].tok, Tok::Word(w) if w == "std")) { i += 1; continue; }
             let (words, shown) = (&call.words, &call.example);
             // a call's bracket, `( )` since 2026-10-22 (owner), `[ ]` in a program `--to-paren-calls` reads
             if !matches!(self.toks.get(j).map(|t| &t.tok), Some(Tok::LBracket | Tok::LParen)) { i += 1; continue; }

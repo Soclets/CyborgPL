@@ -5718,15 +5718,15 @@ impl<'p> Interp<'p> {
             }
             "time.wait" => {
                 // the oracle does not sleep: time is the outside world, and nothing here observes it
-                if c.args.values.len() != 1 { return rt(c.line, "std::time.wait takes one duration: `std::time.wait(5 seconds)`"); }
+                if c.args.values.len() != 1 { return rt(c.line, "std::time.wait takes one duration: `std::time.wait(for: 5 secs)`"); }
                 let (d, _) = self.value(&c.args.values[0])?;
-                if !matches!(d, Value::Duration(_)) { return rt(c.line, format!("std::time.wait takes a duration (`5 seconds`), got {}", d.kind())); }
+                if !matches!(d, Value::Duration(_)) { return rt(c.line, format!("std::time.wait takes a duration (`5 secs`), got {}", d.kind())); }
                 Ok(Value::Nothing)
             }
             "time.after" | "time.every" => {
                 if c.args.values.len() != 1 { return rt(c.line, format!("std::{path} takes one duration")); }
                 let (d, _) = self.value(&c.args.values[0])?;
-                let Value::Duration(n) = d else { return rt(c.line, format!("std::{path} takes a duration (`5 seconds`), got {}", d.kind())) };
+                let Value::Duration(n) = d else { return rt(c.line, format!("std::{path} takes a duration (`5 secs`), got {}", d.kind())) };
                 self.next_chan_id += 1;
                 let timer = if path == "time.after" { Timer::After { fired: false, nanos: n } } else { Timer::Every { nanos: n } };
                 Ok(Value::Chan(Rc::new(RefCell::new(Chan { queue: std::collections::VecDeque::new(), cap: None, timer: Some(timer), id: self.next_chan_id }))))

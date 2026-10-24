@@ -34,14 +34,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Durations are `secs` and `mins`: `5 secs`, `1 min`; `seconds` and `minutes` are old spellings (owner; built in the oracle)
+
+The owner, with `for:` for a wait: "and we might wanna change it to `secs` & `mins`". Design claude's table, shown:
+`nano`/`nanos`, `micro`/`micros`, `milli`/`millis` unchanged; `sec`/`secs`; `min`/`mins`; `hour`/`hours` kept, over
+`hrs`; the old `second(s)` and `minute(s)` refused naming the new; the singular kept for 1, as before; `1 min` not
+clashing with the `min:` bound label (a unit follows a number with no colon). The owner: "yes". So **`5 secs`,
+`1 min`, `90 mins`**, printed the same way (`5 secs`, `1 sec`); `std::time.wait(for: 5 secs)` built too. Refusal
+tests `duration_seconds_old`, `wait_bare`. Open: whether `std::time.after(5 secs)` and `std::time.every(1 sec)` say
+a word too, as `wait` does (asked next).
+
 ### 2026-10-24 — `std::time.wait(for: 5 seconds)`: a wait's duration says its word (owner; not built)
 
 Design claude had left `std::time.wait(5 seconds)` bare, likening it to `sqrt(2.0)`; the owner, given that as "keep
 `std::time.wait` bare (suggestor AI)": "Wait, why?". Design claude: the likeness fails, `sqrt` works on its number and
 `wait` on nothing, its duration a setting as exit's code is, so by 2026-10-23's rule it says its word, and `5 seconds`
 carrying its unit does not help `$delay`. The owner, offered `for:`: "yup". So **`std::time.wait(for: 5 seconds)`**,
-`std::time.wait(for: $delay)`. The owner added: "and we might wanna change it to `secs` & `mins`" (the units; asked
-next). Not built.
+`std::time.wait(for: $delay)`. The owner added: "and we might wanna change it to `secs` & `mins`" (the units, entry
+above). Built in the oracle the same day.
 
 ### 2026-10-24 — Fixed: `list.fill`, `list.remove`, `simd.fill` and the other built-ins read with their own code took `[ ]` too
 

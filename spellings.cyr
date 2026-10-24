@@ -140,6 +140,7 @@ spellings::table[
     # every argument after the first says its role (owner, 2026-10-14): one word per argument, "" for none
     calls = [
         spellings::call[name = "exit", words = ["code",], example = "exit(code: 3)"],
+        spellings::call[name = "time.wait", words = ["for",], example = "time.wait(for: 5 secs)"],
         spellings::call[name = "list.append", words = [str.empty, "value",], example = "list.append(lend.mut $xs, value: 2)"],
         spellings::call[name = "map.get", words = [str.empty, "key",], example = "map.get(lend $m, key: \"ann\")"],
         spellings::call[name = "map.has", words = [str.empty, "key",], example = "map.has(lend $m, key: \"ann\")"],

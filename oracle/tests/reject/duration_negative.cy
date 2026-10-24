@@ -1,1 +1,1 @@
-MAIN { let $d := 5 seconds minus 6 seconds; }
+MAIN { let $d := 5 secs minus 6 secs; }

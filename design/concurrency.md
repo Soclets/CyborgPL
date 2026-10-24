@@ -133,7 +133,7 @@ without it). The word: first `pick`; owner asked why not `pick_first`
 Time is the outside world, so it is std's, like input:
 
 ```
-std::time.wait[5 seconds];
+std::time.wait(for: 5 secs);
 let 'deadline' := std::time.after[500 millis];     # a channel that sends once
 let 'tick' := std::time.every[1 second];           # a channel that sends every second
 whichever {
@@ -146,15 +146,16 @@ A number followed by a unit word is a **duration literal** — a
 `std::duration` value that can be stored, passed and compared. The
 unit sits on the number, as a bound's does (`[1, 40 graphemes]`; owner
 asked why not, over `[1, seconds]`). Units: `nanos`, `micros`,
-`millis`, `seconds`, `minutes`, `hours` — down to what a clock can
+`millis`, `secs`, `mins`, `hours` (`seconds` and `minutes` until 2026-10-24, owner: "we might wanna change it to
+`secs` & `mins`", then "yes"; `wait` says `for:`, its duration a setting) — down to what a clock can
 measure, stopping before the calendar (a day is not always 24 hours).
-Singular and plural both accepted (`1 second`, `2 seconds`) — English
+Singular and plural both accepted (`1 sec`, `2 secs`) — English
 grammar, not an alias. One representation underneath (nanoseconds in
-an integer wide enough for centuries); `5 seconds == 5_000 millis`.
+an integer wide enough for centuries); `5 secs equal_to 5_000 millis`.
 
 **A duration is never negative** (owner, 2026-09-22): it is a length of
-time, and every use here is a wait, a timeout or a tick. `5 seconds -
-6 seconds` is refused — a check site like any narrowing past a bound,
+time, and every use here is a wait, a timeout or a tick. `5 secs -
+6 secs` is refused — a check site like any narrowing past a bound,
 an error when the prover sees it is certain. Proposed alternatives: a
 signed duration (`-1 second`, which the integer underneath gives for
 free, and which would be the natural way to say "how far past the
