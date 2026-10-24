@@ -5018,7 +5018,8 @@ impl<'p> Interp<'p> {
         match (r, &c.handler) {
             (Ok(()), _) => Ok(Value::Nothing),
             (Err(_), Some(h)) => { let h = h.clone(); self.handle_failure(&h, c.line, &format!("std::{}", c.path.join(".")), "write_failed".into(), None, value_used) }
-            (Err(e), None) => rt(c.line, format!("a print could not be written ({e}); `otherwise {{ write_failed {{ … }} }}` handles it")),
+            // the stop reads `error[write_failed]` on stderr, exit 1 (owner, 2026-10-24: "(a)"); the oracle's one line, named
+            (Err(e), None) => rt(c.line, format!("error[write_failed]: a print could not be written ({e}); `otherwise {{ write_failed {{ … }} }}` handles it")),
         }
     }
 

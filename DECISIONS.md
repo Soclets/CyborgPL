@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — A failed write's stop: exit 1 and one line on stderr naming it, `error[write_failed]` (owner: a; not built)
+
+The open half of 2026-10-23's failed print. Offered (a) exit 1 and one line on stderr naming the failure in the new
+format, `error[write_failed]` and where (recommended: stderr is usually still open when stdout's pipe closes), (b)
+exit 1 and nothing (kayo's stopgap), (c) exit 141, Unix's closed-pipe code, silently. The owner: "(a)". So **a
+failed write with no `otherwise` stops the program with exit 1 and `error[write_failed]` on stderr**, its where line
+naming the print. Design claude's readings: the line is the 2026-10-22 format (name, location, `where:`), and the
+oracle, which prints one line, starts it with the name. Not built.
+
 ### 2026-10-24 — With no fix to show, a message says `fix: none suggested` (owner; not built)
 
 Compiler claude: kayo can write the edited line only where it knows the edit (an old spelling, a missing `lend`,

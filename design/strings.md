@@ -41,7 +41,7 @@ A print never changes what it prints, so a mutable lend can only be where the te
 record it"). A print with `otherwise` flushes there, so its handler covers all printed so far:
 `std::print.useful("total: ", $total, newln) otherwise { write_failed { std::exit(code: 3); } };`. A writer fails at a
 print that fills its buffer or at its flush; a flush kayo put in itself stops the program. `write_failed` is design
-claude's name; how a stop reads is open. Today each print sends its own 512-byte stack buffer when it ends.
+claude's name. With no `otherwise`, the stop is exit 1 and `error[write_failed]` on stderr (owner, 2026-10-24: "(a)"). Today each print sends its own 512-byte stack buffer when it ends.
 
 ## `std::print.written` — a literal as it was typed (owner, 2026-10-17; not built)
 
