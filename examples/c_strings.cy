@@ -8,7 +8,7 @@ extern.C fn strlen [$s: ptr[u8]] -> u64;
 
 MAIN {
     let $name := "Tankun";
-    let $cs := C.str.make(lend $name) otherwise { has_zero_byte { std::exit(1); } };
+    let $cs := C.str.make(lend $name) otherwise { has_zero_byte { std::exit(code: 1); } };
     let $fmt := C.str.make("%d apples for %s, ");
     no_check c_printf(lend $fmt, 5, lend $cs);
     let $one := C.str.make("%d pears, ");
@@ -17,6 +17,6 @@ MAIN {
     let $back := C.str.read(lend $cs) otherwise "?";
     std::print.useful($n, " ", $back, newln);
     # a C string's type is `C.str`; a bounded one says whether its 0 counts (owner, 2026-10-19)
-    let $fits: C.str[max: 6 bytes, exclude zero] = C.str.make(lend $name) otherwise { has_zero_byte { std::exit(1); } out_of_range { std::exit(2); } };
-    let $buffer: C.str[max: 6 bytes, include zero] = C.str.make(lend $name) otherwise { has_zero_byte { std::exit(1); } out_of_range { std::print.useful("Tankun and its 0 need 7 bytes", newln); std::exit(0); } };
+    let $fits: C.str[max: 6 bytes, exclude zero] = C.str.make(lend $name) otherwise { has_zero_byte { std::exit(code: 1); } out_of_range { std::exit(code: 2); } };
+    let $buffer: C.str[max: 6 bytes, include zero] = C.str.make(lend $name) otherwise { has_zero_byte { std::exit(code: 1); } out_of_range { std::print.useful("Tankun and its 0 need 7 bytes", newln); std::exit(code: 0); } };
 }

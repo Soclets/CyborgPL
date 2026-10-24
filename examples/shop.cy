@@ -53,13 +53,13 @@ MAIN {
     let $affordable := keep(lend $shelf, fn [lent $i: Item] -> bool with [lend $limit] { return $i.cents at_most $limit; });
     std::print.useful(std::list.length(lend $affordable), " affordable", newln);
 
-    let $pick := cheapest(lend $affordable) otherwise std::exit(0);
+    let $pick := cheapest(lend $affordable) otherwise std::exit(code: 0);
     std::print.stored("cheapest: ", $pick.name, newln);
 
     let $text := std::input.line() otherwise str.empty;
     let $budget := to.i32[min: 0, max: 100_000]($text) otherwise {
-        not_a_number { std::print.stored("no budget given", newln); std::exit(0); }
-        out_of_range { std::print.stored("budget must be 0..100000 cents", newln); std::exit(1); }
+        not_a_number { std::print.stored("no budget given", newln); std::exit(code: 0); }
+        out_of_range { std::print.stored("budget must be 0..100000 cents", newln); std::exit(code: 1); }
     };
     std::print.useful("budget ok: ", $budget, newln);
 }

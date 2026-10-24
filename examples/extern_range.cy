@@ -8,5 +8,5 @@ MAIN {
     no_check let $b := strlen(lend $long) otherwise 99;    # 23 is outside 0..10: fails out_of_range
     let $c: i8 = $a;                                    # proven by the bound: at most 10
     std::print.useful($a, " ", $b, " ", $c, newln);
-    no_check let $d := strlen(lend $long) otherwise { out_of_range { std::print.useful("C lied", newln); std::exit(3); } };
+    no_check let $d := strlen(lend $long) otherwise { out_of_range { std::print.useful("C lied", newln); std::exit(code: 3); } };
 }

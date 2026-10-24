@@ -20,5 +20,5 @@ MAIN {
     for seq $c in lend $chars {
         std::print.stored($c, newln);
     }
-    std::exit(3);
+    std::exit(code: 3);
 }

@@ -17,8 +17,8 @@ fn say [lent $text: str.utf8] -> fail[io] {
 }
 
 MAIN {
-    say("hello from write" concat newln) otherwise std::exit(1);
-    say("hello again" concat newln) otherwise std::exit(1);
+    say("hello from write" concat newln) otherwise std::exit(code: 1);
+    say("hello again" concat newln) otherwise std::exit(code: 1);
 
     let $key := "HOME";                            # the lent text ends where C expects a 0
     no_check let $home := getenv(lend $key);

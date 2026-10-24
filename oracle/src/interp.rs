@@ -243,8 +243,8 @@ impl<'p> Interp<'p> {
         self.pop();
         match r {
             Ok(Flow::Normal) => Ok(0),
-            Ok(Flow::Return(_)) => rt(0, "`return` inside MAIN: MAIN is a block, not a function; use std::exit[…] for a code"),
-            Ok(Flow::Fail(n, _)) => rt(0, format!("MAIN cannot fail (`{n}`); it exits — handle it, or std::exit[…]")),
+            Ok(Flow::Return(_)) => rt(0, "`return` inside MAIN: MAIN is a block, not a function; use `std::exit(code: …)` for a code"),
+            Ok(Flow::Fail(n, _)) => rt(0, format!("MAIN cannot fail (`{n}`); it exits — handle it, or `std::exit(code: …)`")),
             Ok(Flow::Break) | Ok(Flow::Continue) => rt(0, "`break`/`continue` outside a loop"),
             Ok(Flow::Give(_)) => rt(0, "`is` outside a case"),
             Err(RuntimeError { exit: Some(code), .. }) => Ok(code),
@@ -694,7 +694,7 @@ impl<'p> Interp<'p> {
             for s in stmts {
                 match s {
                     Stmt::Fail { name, payload, line } => {
-                        if who == "MAIN" { return rt(*line, "MAIN cannot fail; it exits (`std::exit(…)`) or handles the failure"); }
+                        if who == "MAIN" { return rt(*line, "MAIN cannot fail; it exits (`std::exit(code: …)`) or handles the failure"); }
                         match fails.iter().find(|f| &f.name == name) {
                             None if fails.is_empty() => return rt(*line, format!("`{who}` cannot fail: its signature has no `fail[…]`; add `-> … or fail[{name}]`")),
                             None => return rt(*line, format!("`{who}` does not list `{name}` in its `fail[…]` (it lists {})", fails.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", "))),

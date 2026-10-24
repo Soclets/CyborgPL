@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Built: `std::exit(code: 3)` (owner, 2026-10-23: only the thing worked on goes bare)
+
+`std::exit(3)` is refused: "only the thing worked on goes bare; this argument says what it is: `exit(code: 3)`". Every
+program here writes `std::exit(code: …)`; a kit's own function named `exit` keeps its own words. Design claude's
+reading: the base's and std's other one-argument calls keep their argument bare, it being what they work on
+(`to.i32($t)`, `round.near($x)`, `C.str.make(lend $s)`, `ptr.read($p)`, `char.code(…)`); `std::time.wait(5 seconds)`
+is the one left as it was and asked about.
+
 ### 2026-10-24 — Built: `channel.empty` (owner, 2026-10-22, "Seems good")
 
 `let $ch: channel[i32] = channel.empty;`, and a bounded one `let $inbox: channel[str.utf8][max: 10] = channel.empty;`:

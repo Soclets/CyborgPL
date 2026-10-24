@@ -39,6 +39,6 @@ MAIN {
     let $b := double_digit("x") otherwise 0;
     std::print.useful($a, " ", $b, newln);
     save(lend $mine) otherwise { disk_full { std::print.stored("could not save", newln); } };
-    let $c := parse_digit("x") otherwise std::exit(3);
+    let $c := parse_digit("x") otherwise std::exit(code: 3);
     std::print.stored("unreachable", newln);
 }

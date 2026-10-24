@@ -19,5 +19,5 @@ MAIN {
     let mut $fast: std::map.unordered[str.utf8, i32] = std::map.empty;                     # chosen: never walked
     std::map.set(lend.mut $fast, key: "x", value: 1);
     std::print.useful(std::map.has(lend $fast, key: "x"), newln);
-    let $who := std::map.get(lend $phones, key: "zed") otherwise { missing { std::print.useful("no zed", newln); std::exit(0); } };
+    let $who := std::map.get(lend $phones, key: "zed") otherwise { missing { std::print.useful("no zed", newln); std::exit(code: 0); } };
 }

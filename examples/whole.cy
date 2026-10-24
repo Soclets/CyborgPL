@@ -13,7 +13,7 @@ MAIN {
     let $g := to.i32($big) otherwise -1;                 # whole but too big for an i32: out_of_range → -1
     std::print.useful($g, newln);
     let $f := to.i32($y) otherwise {
-        not_whole { std::print.useful("2.7 is not whole", newln); std::exit(0); }
-        out_of_range { std::print.useful("too big", newln); std::exit(0); }
+        not_whole { std::print.useful("2.7 is not whole", newln); std::exit(code: 0); }
+        out_of_range { std::print.useful("too big", newln); std::exit(code: 0); }
     };
 }

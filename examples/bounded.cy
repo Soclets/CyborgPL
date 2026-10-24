@@ -16,6 +16,6 @@ MAIN {
     std::list.append(lend.mut $squares, value: 16);
     std::list.append(lend.mut $squares, value: 25);       # five: still inside
     std::print.useful(std::list.length(lend $squares), newln);
-    let $big := fill(9) otherwise { too_many { std::print.useful("9 is too many", newln); std::exit(0); } };
+    let $big := fill(9) otherwise { too_many { std::print.useful("9 is too many", newln); std::exit(code: 0); } };
     std::print.useful(std::list.length(lend $big), newln);
 }

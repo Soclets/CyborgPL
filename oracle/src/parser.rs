@@ -5295,6 +5295,8 @@ impl Parser {
                 }
             }
             let Some(call) = crate::spellings::table().calls.iter().find(|c| c.name == name) else { i += 1; continue };
+            // `exit` is std's only through its path, `std::exit(code: 3)`; a kit's own `exit` says its own words
+            if name == "exit" && !(i > 1 && self.toks[i - 1].tok == Tok::ColonColon && matches!(&self.toks[i - 2].tok, Tok::Word(w) if w == "std")) { i += 1; continue; }
             let (words, shown) = (&call.words, &call.example);
             // a call's bracket, `( )` since 2026-10-22 (owner), `[ ]` in a program `--to-paren-calls` reads
             if !matches!(self.toks.get(j).map(|t| &t.tok), Some(Tok::LBracket | Tok::LParen)) { i += 1; continue; }
@@ -5312,6 +5314,7 @@ impl Parser {
                             Tok::Word(w) if w == word => { self.pos = k; return self.err(format!("inside `[ ]` a word takes `:` before its value: `{shown}` (owner, 2026-10-20)")); }
                             // `decimals` became `places:` (owner, 2026-10-20)
                             Tok::Word(w) if w == "decimals" && word == "places" => { self.pos = k; return self.err(format!("`decimals` is an old spelling: write `places:`, `{shown}` (owner, 2026-10-20)")); }
+                            _ if arg == 0 => { self.pos = k; return self.err(format!("only the thing worked on goes bare; this argument says what it is: `{shown}` (owner, 2026-10-23)")); }
                             _ => { self.pos = k; return self.err(format!("each argument after the first says what it is: `{shown}` (owner, 2026-10-14)")); }
                         }
                     }

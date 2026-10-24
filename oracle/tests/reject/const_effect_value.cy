@@ -1,3 +1,3 @@
-const $x := std::exit(1);
+const $x := std::exit(code: 1);
 MAIN {
 }

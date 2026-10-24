@@ -34,7 +34,7 @@ MAIN {
     let $left: i8 = 4 - $count;
     std::print.useful($count, " items, room for ", $left, " more", newln);
 
-    let $top := heaviest(...copy $shelf) otherwise { none { std::print.useful("empty shelf", newln); std::exit(0); } };
+    let $top := heaviest(...copy $shelf) otherwise { none { std::print.useful("empty shelf", newln); std::exit(code: 0); } };
     std::print.useful("heaviest: ", initial(lend $top.name), " ", $top.name, newln);
 
     let $kg := kilos($top.grams) otherwise -1;

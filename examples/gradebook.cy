@@ -34,7 +34,7 @@ MAIN {
             out_of_range $bad { std::print.useful("skipping ", $bad, newln); }
         };
     }
-    record(lend.mut $b, 65) otherwise std::exit(1);
+    record(lend.mut $b, 65) otherwise std::exit(code: 1);
 
     let $students := [give $a, give $b, Student[name = "Cy", scores = std::list.empty]];
     let $passed := 0;
