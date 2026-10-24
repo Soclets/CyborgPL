@@ -1,3 +1,3 @@
 MAIN {
-    let 'x' := bin 1__0;
+    let $x := bin 1__0;
 }

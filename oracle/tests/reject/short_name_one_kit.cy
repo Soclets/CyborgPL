@@ -1,4 +1,4 @@
-# a shorter name for other kits is decided; the oracle runs one kit (2026-09-23)
+# a shorter name for other kits, `pub fn short = area;`, is decided (2026-09-23) and not built in the oracle yet
 
 
 fn area [$r: f64] -> f64 { return $r times $r; }

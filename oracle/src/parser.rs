@@ -1376,7 +1376,7 @@ impl Parser {
         if self.is_word("mut") || self.is_word("immut") { return self.err("a `const` is neither `mut` nor `immut`; it is a constant"); }
         let name = match self.advance().tok {
             Tok::Var(v) => v,
-            Tok::Word(w) => return self.err(format!("a const is named like a variable, quoted: `const '{w}'`")),
+            Tok::Word(w) => return self.err(format!("a const is named like a variable: `const ${w}`")),
             other => return self.err(format!("expected a quoted const name, found {other}")),
         };
         let ty = if *self.peek() == Tok::Colon { self.advance(); Some(self.ty()?) } else { None };
@@ -5267,7 +5267,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                     f.bounds = p.bounds;
                     Ok(Expr::OpValue(op, Some(std::rc::Rc::new(f)), line))
                 }
-                "true" | "false" if matches!(self.peek_at(1), Tok::LBracket) => self.err(format!("bare `{w}` is the boolean, so `{w}(…)` is no call; a function named `{w}` is reached by path: `my.{w}(…)`")),
+                "true" | "false" if matches!(self.peek_at(1), Tok::LBracket | Tok::LParen) => self.err(format!("bare `{w}` is the boolean, so `{w}(…)` is no call; a function named `{w}` is reached by path: `my.{w}(…)`")),
                 "true" => { self.advance(); Ok(Expr::Bool(true, line)) }
                 "false" => { self.advance(); Ok(Expr::Bool(false, line)) }
                 "my" if !matches!(self.peek_at(1), Tok::Dot) => self.err("`my` is the root of this kit and is followed by `.`: `my.helper()`, `my.$pi`"),

@@ -1,1 +1,1 @@
-quoted
+a const is named like a variable: `const $max`
