@@ -2800,7 +2800,7 @@ impl<'a> Parser<'a> {
                 let span = self.bump().span;
                 QName { name: n, span }
             }
-            Tok::Word(w) => return self.fail(format!("a const's name is quoted, like a variable's: `const '{}' := …;`", w)),
+            Tok::Word(w) => return self.fail(format!("a const is named like a variable: `const ${} := …;`", w)),
             other => return self.fail(format!("expected the const's name, found {}", other.describe())),
         };
         let (ty, _shadow) = self.let_type_and_marker("const")?;
@@ -4868,7 +4868,7 @@ impl<'a> Parser<'a> {
                     self.bump();
                     // Bare, it is the boolean; a function of that name is
                     // reached by path (kits.md, 2026-09-19).
-                    if self.is(&Tok::LBracket) {
+                    if self.is(&Tok::LBracket) || self.is(&Tok::LParen) {
                         return self.fail(format!("bare `{}` is the boolean, so `{}(…)` is no call: a function named `{}` is reached by path — `kit.{}(…)`", w, w, w, w));
                     }
                     let e = Expr { kind: ExprKind::Bool(w == "true"), span: start };
@@ -5019,7 +5019,7 @@ impl<'a> Parser<'a> {
                     Ok(Expr { kind: ExprKind::Match { value: Box::new(value), arms }, span })
                 }
                 "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail("`lang:` was removed: keywords are bare"),
-                w if is_keyword(w) && w != "map" && matches!(self.peek_at(1), Tok::LBracket) => {
+                w if is_keyword(w) && w != "map" && matches!(self.peek_at(1), Tok::LBracket | Tok::LParen) => {
                     self.fail(format!("`{}` is a keyword and is never bare: a function named with one is reached only through a path — `kit.{}(…)` inside its own kit, `name::{}(…)` from outside", w, w, w))
                 }
                 "let" | "return" | "if" | "else" | "loop" | "while" | "for" | "break" | "continue" | "fail" | "concur" | "whichever" | "struct" | "enum" | "pub" | "const" | "module" | "extern" | "interface" | "op" | "satisfies" | "with" | "in" | "from" | "temp" | "perm" | "seq" | "mut" | "immut" | "inline" | "layout" | "var" | "func" | "MAIN" => {

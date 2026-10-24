@@ -180,15 +180,6 @@ fn drop_unreached(p: &mut Program) {
             copies.entry(o.0 as usize).or_default().push(c);
         }
     }
-    let mut seen = vec![false; n];
-    let mut work: Vec<usize> = std::iter::once(main.0 as usize).chain((0..n).filter(|&f| p.functions[f].is_test)).collect();
-    while let Some(f) = work.pop() {
-        if f >= n || std::mem::replace(&mut seen[f], true) {
-            continue;
-        }
-        work.extend(named(&p.functions[f]));
-        work.extend(copies.get(&f).into_iter().flatten().copied());
-    }
     // Only std's: a program's own functions can be reached in ways no body
     // names them (a key type's `hash` and `equal_to`, found by the map code
     // itself), and they were all compiled before std was given to every file.
@@ -197,6 +188,18 @@ fn drop_unreached(p: &mut Program) {
         let Some(root) = std_root else { return false };
         f.inst.and_then(|i| p.instances.get(i.0 as usize)).and_then(|i| p.items.fns.get(i.key.fn_id.0 as usize)).is_some_and(|d| p.items.kit_root(d.module) == root)
     }).collect();
+    // So each of the program's own starts the walk too: what std it calls
+    // stays (examples/keys: a key's `hash` calling `std::str.lower.full`,
+    // reached only through the map, found it emptied and trapped).
+    let mut seen = vec![false; n];
+    let mut work: Vec<usize> = std::iter::once(main.0 as usize).chain((0..n).filter(|&f| p.functions[f].is_test || !of_std[f])).collect();
+    while let Some(f) = work.pop() {
+        if f >= n || std::mem::replace(&mut seen[f], true) {
+            continue;
+        }
+        work.extend(named(&p.functions[f]));
+        work.extend(copies.get(&f).into_iter().flatten().copied());
+    }
     for (f, func) in p.functions.iter_mut().enumerate() {
         if seen[f] || !of_std[f] {
             continue;

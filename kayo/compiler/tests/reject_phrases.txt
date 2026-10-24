@@ -159,7 +159,7 @@ compound_change_old [fnv:18ec38bf4d770aff] :: `+=` is an old spelling: write `ch
 concur_fail_unhandled [fnv:cbccfc56a451bded] :: this `concur` can fail (bad), so it needs an `otherwise` saying what happens when it does
 concur_return [fnv:d6776a53deac7dcb] :: `return` cannot leave it
 const_assign [fnv:2abf94f737eafc08] :: it is a value known at compile time
-const_bare_name [fnv:c290386092499bc9] :: `const 'max' := …;`
+const_bare_name [fnv:5424489e57e123bf] :: a const is named like a variable: `const $max
 const_effect_value [fnv:1221654939803659] :: `std::exit` has an effect, so it cannot make one
 const_from_variable [fnv:652fb6ee6f955c44] :: 'y' is not declared
 const_mut [fnv:9f30cb564f340919] :: neither `mut` nor `immut`
@@ -417,7 +417,7 @@ map_bad_key_type [fnv:3ebc5e71c74c0d11] :: keys are plain values, text, chars, s
 map_bad_variant [fnv:cd84c84831efd0e0] :: `map` (the prover decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)
 map_bound_over [fnv:0e4ebc4a07b99fd9] :: this can take it outside the bound its type gives it
 map_get_unhandled [fnv:fb19a18b0ea9877e] :: `map.get` can fail (missing): say what happens
-map_hash_disagrees [fnv:bffd9b036fb4e87b] :: !unbuilt case mappings (7b7e8e57: `str.lower.full`); then: !pending its `op ==` and `hash` are written with `std::str.lower` / `std::str.at.point`, so Precog can only settle "equal keys hash the same" once std exists; until then the working build checks it at run time (the map asks on a miss) and the final build refuses the map
+map_hash_disagrees [fnv:bffd9b036fb4e87b] :: !pending its `op ==` and `hash` are written with `std::str.lower` / `std::str.at.point`, so Precog can only settle "equal keys hash the same" once std exists; until then the working build checks it at run time (the map asks on a miss) and the final build refuses the map
 map_literal_dup_key [fnv:2c22ea3aaf3284e2] :: this key is written twice in the literal
 map_literal_empty [fnv:49c9f3063523764e] :: an empty map is `map.empty`; `map[]` builds nothing
 map_literal_no_pair [fnv:29d9d93486c67e90] :: `map["ann" = 5551, "bob" = 5552]`

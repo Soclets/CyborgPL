@@ -359,7 +359,13 @@ impl Checker {
         // A std name without its brackets: what std offers is called, and a
         // call needs `[…]` — the oracle's reason, before whether std is
         // there at all.
-        if path.kit.as_ref().map_or(false, |l| l.name == "std") {
+        // std's own enum values are values (`std::casing.tr`, owner,
+        // 2026-10-20).
+        let std_enum = path.segs.len() >= 2 && {
+            let prefix = ast::Path { kit: path.kit.clone(), segs: path.segs[..path.segs.len() - 1].to_vec(), span: path.span };
+            matches!(self.items.lookup_path(&prefix, ctx.module), Ok(ItemRef::Enum(_)))
+        };
+        if path.kit.as_ref().map_or(false, |l| l.name == "std") && !std_enum {
             return err(Diagnostic::error(format!("`{}` is called, and a call needs `(…)`: `{}(…)`", path.spelled(), path.spelled())).at(span));
         }
         if let Some(id) = self.items.lookup_type_fn(path, ctx.module)? {

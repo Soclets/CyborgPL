@@ -2,8 +2,4 @@
 # session (design/compiler-session.md), so a wrong one is a question, never an
 # edit from here. The test insists each of these still fails, so the day one is
 # fixed the suite says so and the line goes.
-case_mappings :: case mappings (7b7e8e57) not built yet: `str.upper.ascii` / `.simple` / `.full`
-collections :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
-corner_shop :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
-keys :: case mappings (7b7e8e57) not built yet: `std::str.lower.full`
-text :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
+case_mappings :: `to.casing` (withdrawn in my notes; asked) reads `casing` bare: `casing` is std's: write `std::casing`
