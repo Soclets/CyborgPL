@@ -5,8 +5,8 @@ fn fetch [lent $url: str.utf8] -> str.utf8 or fail[no_network] {
 }
 
 MAIN {
-    let $inbox := channel[str.utf8][max: 10];
-    let $shutdown := channel[bool];
+    let $inbox: channel[str.utf8][max: 10] = channel.empty;
+    let $shutdown: channel[bool] = channel.empty;
     concur with [lend $inbox] { channel.send(lend $inbox, value: "first"); channel.send(lend $inbox, value: "second"); }
     concur with [lend $shutdown] { channel.send(lend $shutdown, value: true); }
     let $deadline := std::time.after(5 seconds);

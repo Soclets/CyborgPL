@@ -3,8 +3,8 @@ fn fetch [lent $url: str.utf8] -> str.utf8 { return "page of " concat $url; }
 
 MAIN {
     # Each task sends on its own channel, so the pages print in the same order whichever finishes first.
-    let $from_a := channel[str.utf8];
-    let $from_b := channel[str.utf8];
+    let $from_a: channel[str.utf8] = channel.empty;
+    let $from_b: channel[str.utf8] = channel.empty;
     let $a := "a.com";
     concur with [lend $from_a, give $a] { channel.send(lend $from_a, value: fetch(lend $a)); }
     concur with [lend $from_b] { channel.send(lend $from_b, value: fetch("b.com")); }

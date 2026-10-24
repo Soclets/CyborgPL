@@ -1,1 +1,1 @@
-MAIN { let $c := channel[i32]; whichever { $v from lend $c { } } }
+MAIN { let $c: channel[i32] = channel.empty; whichever { $v from lend $c { } } }

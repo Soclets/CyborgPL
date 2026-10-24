@@ -440,10 +440,10 @@ fn shelf_count [lent $items: std::list[Item], lent $stock: std::map[str.utf8, i3
 }
 
 fn count_shelves [lent $items: std::list[Item], lent $stock: std::map[str.utf8, i32]] {
-    let $fresh_ch := channel[i32];
-    let $bakery_ch := channel[i32];
-    let $pantry_ch := channel[i32];
-    let $household_ch := channel[i32];
+    let $fresh_ch: channel[i32] = channel.empty;
+    let $bakery_ch: channel[i32] = channel.empty;
+    let $pantry_ch: channel[i32] = channel.empty;
+    let $household_ch: channel[i32] = channel.empty;
     concur with [lend $fresh_ch, lend $items, lend $stock] { channel.send(lend $fresh_ch, value: shelf_count(lend $items, lend $stock, Aisle.fresh)); }
     concur with [lend $bakery_ch, lend $items, lend $stock] { channel.send(lend $bakery_ch, value: shelf_count(lend $items, lend $stock, Aisle.bakery)); }
     concur with [lend $pantry_ch, lend $items, lend $stock] { channel.send(lend $pantry_ch, value: shelf_count(lend $items, lend $stock, Aisle.pantry)); }

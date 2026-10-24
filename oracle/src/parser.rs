@@ -2821,7 +2821,20 @@ impl Parser {
             (Tok::Semi, _) => return self.err(format!("'{name}' needs a value; there are no implicit zero values")),
             (other, _) => return self.err(format!("expected `:=` or `=`, found {other}")),
         }
-        let value = self.rhs()?;
+        let mut value = self.rhs()?;
+        // `channel.empty` (owner, 2026-10-22): a channel is made as a list or a map is, its type written where it is
+        // declared, so the value is the empty channel of that type, `channel[T]` or `channel[T][max: N]`
+        if let [Value::Expr(Expr::Builtin(h, o, _, l))] = value.values.as_slice() {
+            if h == "channel" && o == "empty" {
+                let l = *l;
+                let (elem, cap) = match &ty {
+                    Some(Ty::Channel(t)) => ((**t).clone(), None),
+                    Some(Ty::Ranged(b, _, Bound::Int(n))) if matches!(**b, Ty::Channel(_)) => { let Ty::Channel(t) = &**b else { unreachable!() }; ((**t).clone(), Some(*n as usize)) }
+                    _ => return self.err(format!("`channel.empty` takes its type from the declaration: `let ${name}: channel[i32] = channel.empty;`")),
+                };
+                value.values = vec![Value::Expr(Expr::ChannelNew(elem, cap, l))];
+            }
+        }
         if let ([Value::Expr(Expr::OpValue(op, ..))], None) = (value.values.as_slice(), &ty) {
             // design claude's reading, not ruled: nothing says which `+` (i32? f64? a Vec?)
             return self.err(format!("`op {op}` alone does not say which `{op}`: give '{name}' a function type, `'{name}': fn[i32, i32] -> i32 = op {op};`"));
@@ -4086,7 +4099,7 @@ impl Parser {
         let ok = match (head.as_str(), op.as_str()) {
             ("list", "length" | "append" | "remove" | "empty" | "slice" | "fill") | ("array", "length" | "slice") => true,
             ("map", "empty" | "length" | "has" | "set" | "get" | "remove" | "keys" | "values" | "pairs") => true,
-            ("channel", "send" | "take") => true,
+            ("channel", "send" | "take" | "empty") => true,
             ("simd", "fill" | "load" | "store" | "load.some" | "store.some" | "all" | "any" | "max" | "min" | "sum" | "sum.lane" | "sum.wrap" | "shuffle") => true,
             ("array", "empty") => return self.err("an empty array could never be filled; use `list.empty`"),
             _ => false,
@@ -4757,7 +4770,10 @@ impl Parser {
                 "check" | "no_check" | "NO_FUCKING_CHECKS" | "no_cheat" => self.err(format!("`{w}` goes in front of a statement, not inside a value; if half a statement needs it, split the statement")),
                 "list" | "array" => { let (h, o, a) = self.builtin()?; Ok(Expr::Builtin(h, o, a, line)) }
                 "channel" if *self.peek_at(1) == Tok::LBracket => {
-                    // channel[T] / channel[T][0, N] as a value: a new channel
+                    // a type standing as a value was `channel[T]`, before 2026-10-22 (owner): a channel is made as a list is
+                    if !OLD_CALLS.with(|c| c.get()) {
+                        return self.err("a channel is made as a list or a map is: `let $ch: channel[i32] = channel.empty;` (owner, 2026-10-22)");
+                    }
                     self.advance(); self.advance();
                     let ty = self.ty()?;
                     self.expect(Tok::RBracket, "`]` after the channel's type")?;

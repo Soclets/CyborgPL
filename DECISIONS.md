@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Built: `channel.empty` (owner, 2026-10-22, "Seems good")
+
+`let $ch: channel[i32] = channel.empty;`, and a bounded one `let $inbox: channel[str.utf8][max: 10] = channel.empty;`:
+the type is written where the channel is declared, as for `std::list.empty`; `channel[i32]` standing as a value is
+refused, naming `channel.empty`, and so is `channel.empty` with no type to take. The examples and tests that made
+channels say so now. Design claude's reading: a bound, `[max: N]`, sits on the declared type, where it already stood.
+
 ### 2026-10-24 — Built: calls in `( )`, definitions in `[ ]`, `$` variables, in the oracle and every program here (owner: "Resume CyborgPL")
 
 The 2026-10-22 rulings, built: the oracle reads a call's `( )` and refuses one written `[ ]`, naming `( )`; refuses
