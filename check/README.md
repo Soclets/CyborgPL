@@ -11,6 +11,12 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 ```
 
 
+**Formats** (kayo e0437f9e): typed values of each kind (i64, u8, f64, d64, text, bool), each hole a shape its
+kind takes (fill and `< ^ >`, width, `+`, `0`; `x X o b` on whole numbers, `.places` and `e` on bins and
+decis, `?`), plain text with `%`, `\t` and `\{ \}` between; `{}` in order or numbered holes (shuffled,
+every value used, one perhaps twice); printed by `std::print.format`, made by `std::format`, and printed into
+a writer. `--avoid formats` leaves it out.
+
 **Episodes for 2026-10-22 to 24's rulings** (kayo a319a218, b02769fe, 6c647471, 22eb479f): a generic whose
 `let mut $sum: <T> = K;` is filled by i32, d64 and f64 lists; channels from `channel.empty`, sent from
 `concur` tasks and bounded `channel[i32][max: N]`, taken in order and once past the end; a handler member

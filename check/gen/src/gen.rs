@@ -197,6 +197,9 @@ pub struct Config {
     pub short_lambdas: bool,
     /// Writers written `.whole` or `.split` (owner, 2026-10-24; oracle deda6720, kayo 64cdc5de).
     pub writer_kinds: bool,
+    /// `std::print.format` and `std::format` with holes `{}` or numbered, and
+    /// shapes fitting each value's kind (2026-09-22, 10-01; kayo e0437f9e).
+    pub formats: bool,
     /// C interop (owner, 2026-10-19; oracle 927b1905, kayo 6ae65a5f): a
     /// `layout.C union` written through one field and read through another,
     /// a `layout.C struct` of bit-fields written at and past their limits,
@@ -215,7 +218,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: true, formats: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
     }
 }
 
@@ -474,6 +477,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let lines = g.writer_episode();
         main.extend(lines.into_iter().map(Stmt::Src));
     }
+    if g.cfg.formats && g.cfg.print && g.rng.chance(10) {
+        let lines = g.format_episode();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
     if g.cfg.short_lambdas && g.rng.chance(8) {
         let lines = g.short_lambda();
         main.extend(lines.into_iter().map(Stmt::Src));
@@ -628,6 +635,93 @@ impl Gen {
             format!("std::print.flush[lend.mut {}];", v("pw")),
             format!("std::print.useful[\"after {id}\", newln] otherwise {{ write_failed {{ std::exit[code: 3]; }} }};"),
         ]
+    }
+
+    /// The format language (design/strings.md; examples/print_format.cy):
+    /// values of each kind, each hole given a shape its kind takes (bases on
+    /// whole numbers only, `.places` and `e` on bins and decis only), plain
+    /// text with `%`, `\t` and escaped braces between; `{}` in order or
+    /// numbered holes using every value; printed by `print.format`, made by
+    /// `std::format`, and printed into a writer.
+    fn format_episode(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        let v = |n: &str| format!("'{n}{id}'");
+        let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
+        #[derive(Clone, Copy, PartialEq)]
+        enum K { Int, Small, Bin, Deci, Text, Bool }
+        let words = ["rope", "tea", "a b", "x", "z9", "ok"];
+        let mut lets = vec![];
+        let mut vals: Vec<(String, K)> = vec![];
+        let n = self.rng.range(1, 5) as usize;
+        for j in 0..n {
+            let k = *self.rng.pick(&[K::Int, K::Small, K::Bin, K::Deci, K::Text, K::Bool]);
+            let name = v(&format!("fv{j}_"));
+            let decl = match k {
+                K::Int => format!("let {name}: i64 = {};", lit(self.rng.range(-99999, 99999))),
+                K::Small => format!("let {name}: u8 = {};", self.rng.range(0, 255)),
+                K::Bin => format!("let {name}: f64 = {}{}.{};", if self.rng.chance(30) { "-" } else { "" }, self.rng.range(0, 999), self.rng.range(0, 999)),
+                K::Deci => format!("let {name}: d64 = {}.{:02};", self.rng.range(0, 9999), self.rng.range(0, 99)),
+                K::Text => format!("let {name}: str.utf8 = \"{}\";", self.rng.pick(&words)),
+                K::Bool => format!("let {name}: bool = {};", if self.rng.chance(50) { "true" } else { "false" }),
+            };
+            lets.push(decl);
+            vals.push((name, k));
+        }
+        let fill = |r: &mut crate::rng::Rng| *r.pick(&["", "*", "-", "."]);
+        let shape = |k: K, r: &mut crate::rng::Rng| -> String {
+            let w = r.range(1, 9);
+            let align = *r.pick(&["<", "^", ">"]);
+            match (k, r.below(6)) {
+                (_, 0) => String::new(),
+                (_, 1) => format!(":{}{align}{w}", fill(r)),
+                (K::Int | K::Small, 2) => format!(":{}", r.pick(&["x", "X", "o", "b"])),
+                (K::Int | K::Small, 3) => format!(":0{w}{}", r.pick(&["", "x", "X", "b"])),
+                (K::Int | K::Small, 4) => ":+".to_string(),
+                (K::Bin | K::Deci, 2) => format!(":.{}", r.range(0, 4)),
+                (K::Bin | K::Deci, 3) => format!(":.{}e", r.range(0, 3)),
+                (K::Bin | K::Deci, 4) => ":?".to_string(),
+                (K::Bin | K::Deci, 5) => format!(":{}{align}{}.{}", fill(r), r.range(4, 12), r.range(0, 3)),
+                _ => String::new(),
+            }
+        };
+        let plain = ["", " ", " at ", ", ", " 50% off ", "\\t", " \\{x\\} ", " = "];
+        let numbered = self.rng.chance(35);
+        let mut text = String::new();
+        let order: Vec<usize> = if numbered {
+            let mut o: Vec<usize> = (0..n).collect();
+            for k in (1..o.len()).rev() {
+                let j = self.rng.below(k as u64 + 1) as usize;
+                o.swap(k, j);
+            }
+            if self.rng.chance(40) {
+                o.push(self.rng.below(n as u64) as usize);
+            }
+            o
+        } else {
+            (0..n).collect()
+        };
+        for (pos, &j) in order.iter().enumerate() {
+            if pos > 0 || self.rng.chance(50) {
+                text.push_str(self.rng.pick(&plain));
+            }
+            let sh = shape(vals[j].1, &mut self.rng);
+            if numbered {
+                text.push_str(&format!("{{{}{sh}}}", j + 1));
+            } else {
+                text.push_str(&format!("{{{sh}}}"));
+            }
+        }
+        let args = vals.iter().map(|(nm, _)| nm.clone()).collect::<Vec<_>>().join(", ");
+        let mut lines = lets;
+        lines.push(format!("std::print.format[\"{text}\\n\", {args}];"));
+        lines.push(format!("let {} := std::format[\"[{text}]\", {args}];", v("ft")));
+        lines.push(format!("std::print.useful[{}, newln];", v("ft")));
+        lines.push(format!("let mut {} := std::print.writer[size: 64 bytes];", v("fw")));
+        lines.push(format!("std::print.format[lend.mut {}, \"w {text}\\n\", {args}];", v("fw")));
+        lines.push(format!("std::print.flush[lend.mut {}];", v("fw")));
+        lines
     }
 
     /// Short lambdas (owner, 2026-10-24): one value after `=`, the types from
