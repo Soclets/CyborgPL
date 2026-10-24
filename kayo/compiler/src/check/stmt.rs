@@ -893,6 +893,9 @@ impl Checker {
                 // A plain number is read as itself.
                 let owns = self.resolve(&ctx.locals[id.0 as usize].ty).is_owned();
                 ctx.locals[id.0 as usize].kind = if elem_kind == LocalKind::Lent && owns { LocalKind::LoopLent } else { LocalKind::LoopVar };
+                if elem_kind == LocalKind::Lent && !owns {
+                    ctx.lent_elements.insert(id);
+                }
                 if elem_kind == LocalKind::LentMut {
                     ctx.locals[id.0 as usize].kind = LocalKind::LentMut;
                 }

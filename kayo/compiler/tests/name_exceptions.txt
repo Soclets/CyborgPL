@@ -7,13 +7,5 @@
 bin_into_untyped_int_list :: no_implicit_conversion — the declared-type site serves both
 generic_literal_not_fitting :: no_implicit_conversion — kayo builds each filling of <T> on its own, so it meets a plain type mismatch
 generic_wrong_return :: wrong_type — the same, at a return
-fnval_wrong_return :: function_shape_wrong — a function value's type is checked as a whole
-for_lend_element_change :: counter_changed — a lent element of a plain number is held as a loop's own local
-incl_bytes_const_changed :: const_changed — the const site does not know where its value came from
-size_of_alone :: keyword_name_bare — `size` is refused as a keyword before `size.of` is looked for
 
-# Precog's sites: one sentence for two kinds.
-bit_shl_too_far :: shift_overflows — the shift-width site says one sentence for both
-bitwise_operand_too_wide :: value_does_not_fit — an operand's width is checked as any narrowing is
-shift_operand_too_wide :: value_does_not_fit — an operand's width is checked as any narrowing is
 str_split_empty :: length_bound_not_kept — the separator's `min: 1 bytes` bound is a length bound

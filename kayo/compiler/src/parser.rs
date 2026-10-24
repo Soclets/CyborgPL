@@ -5334,6 +5334,10 @@ impl<'a> Parser<'a> {
                 }
                 "size" | "align" => {
                     self.bump();
+                    // `size[i32]`: `size.of[i32]` with its `.of` left out.
+                    if self.is(&Tok::LBracket) && !self.is_call_bracket() && matches!(self.peek_at(1), Tok::Word(t) if !matches!(t.as_str(), "lend" | "give" | "copy")) {
+                        return self.fail_n("unexpected_text", format!("expected `.of` after `{w}`: a type's {w} is `{w}.of[i32]`")).with_fix(Span::new(self.prev_span().file, self.prev_span().end as usize, self.prev_span().end as usize), Edit::Insert, ".of");
+                    }
                     if !self.eat(&Tok::Dot) {
                         return self.fail_n("keyword_name_bare", format!("`{w}` is a keyword: a type's {w} is `{w}.of[i32]` (`.of` after `{w}`), and a function named `{w}`, a C header's say, is reached through a path, `my.{w}(…)` or its module's"));
                     }

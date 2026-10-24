@@ -414,6 +414,7 @@ struct FnBuilder<'a> {
     nocheat_blocks: std::collections::BTreeSet<u32>,
     /// Where each `no_cheat` statement starts, and the locals it touches.
     nocheat_entries: Vec<(u32, u32, Vec<LocalId>)>,
+    operand_sites: Vec<SiteId>,
     /// Named locals declared with `:=`, whose type Precog picked.
     picked: Vec<LocalId>,
     /// Every `check`, `no_check` and `NO_FUCKING_CHECKS` written.
@@ -465,6 +466,7 @@ impl<'a> FnBuilder<'a> {
             nocheat_region: Default::default(),
             nocheat_blocks: Default::default(),
             nocheat_entries: Vec::new(),
+            operand_sites: Vec::new(),
             picked: Vec::new(),
             markers: Vec::new(),
             task_group: vec![None],
@@ -731,6 +733,7 @@ impl<'a> FnBuilder<'a> {
             nocheat_of: None,
             nocheat_blocks: self.nocheat_blocks.iter().copied().collect(),
             nocheat_entries: std::mem::take(&mut self.nocheat_entries),
+            operand_sites: std::mem::take(&mut self.operand_sites),
             picked: std::mem::take(&mut self.picked),
             markers: std::mem::take(&mut self.markers),
             name: body.name.clone(),
@@ -1706,8 +1709,21 @@ impl<'a> FnBuilder<'a> {
                         return Rvalue::Use(Operand::Const(Const::Int(v)));
                     }
                 }
+                // A bitwise or shift operand is worked at the operator's
+                // width: its own operation's site, the last it makes, is the
+                // operand not fitting (errors.cyr: operand_does_not_fit).
+                let bitwise = matches!(op, BinOp::AndBit | BinOp::OrBit | BinOp::Xor | BinOp::Shl | BinOp::Shr);
+                let before = self.sites.len();
                 let l = self.eval(lhs, span);
+                let mid = self.sites.len();
                 let r = self.eval(rhs, span);
+                if bitwise {
+                    for range in [before..mid, mid..self.sites.len()] {
+                        if let Some(last) = range.rev().find(|i| matches!(self.sites[*i].kind, SiteKind::Overflow(_))) {
+                            self.operand_sites.push(SiteId(last as u32));
+                        }
+                    }
+                }
                 let result = self.resolve_ty(&e.ty);
                 self.binary_rvalue(op, l, r, lhs, rhs, result, span)
             }
@@ -1846,7 +1862,9 @@ impl<'a> FnBuilder<'a> {
         if matches!(op, BinOp::Shl | BinOp::Shr) && matches!(result.base(), Ty::Int(IntW::Fixed { .. })) && !result.is_exact() {
             let from = self.resolve_ty(&lhs.ty);
             if from.is_exact() {
+                let before = self.sites.len();
                 self.narrow_arg(&l, &from, &result, span);
+                self.operand_sites.extend((before..self.sites.len()).map(|i| SiteId(i as u32)));
                 l = self.into_temp(Rvalue::Convert { to: result.clone(), operand: l, useful: false, bits: false }, &result, span);
             }
         }
@@ -1855,7 +1873,9 @@ impl<'a> FnBuilder<'a> {
                 let from = self.resolve_ty(&of.ty);
                 if from.is_exact() || (wrap && from.base() != result.base()) {
                     if !wrap {
+                        let before = self.sites.len();
                         self.narrow_arg(side, &from, &result, span);
+                        self.operand_sites.extend((before..self.sites.len()).map(|i| SiteId(i as u32)));
                     }
                     *side = self.into_temp(Rvalue::Convert { to: result.clone(), operand: side.clone(), useful: false, bits: wrap }, &result, span);
                 }
@@ -2619,6 +2639,7 @@ fn placeholder(body: &hir::Body) -> Function {
         nocheat_of: None,
         nocheat_blocks: Vec::new(),
         nocheat_entries: Vec::new(),
+        operand_sites: Vec::new(),
         picked: Vec::new(),
         markers: Vec::new(),
         name: body.name.clone(),

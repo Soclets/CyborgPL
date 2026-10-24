@@ -446,7 +446,12 @@ impl Checker {
                         }
                     }
                     if cid.is_some() {
-                        return err(Diagnostic::error(format!("'{}' is a const and cannot be {}: it is a value known at compile time — nobody owns it, every use is a fresh value", n.name, match use_ { PlaceUse::Write => "assigned to", PlaceUse::Give | PlaceUse::Copy | PlaceUse::Lend | PlaceUse::LendMut => "given, copied or lent", PlaceUse::Read => "used as a place" })).named(if matches!(use_, PlaceUse::Write) { "const_changed" } else { "verb_on_const" }).at(e.span));
+                        return err(Diagnostic::error(format!("'{}' is a const and cannot be {}: it is a value known at compile time — nobody owns it, every use is a fresh value", n.name, match use_ { PlaceUse::Write => "assigned to", PlaceUse::Give | PlaceUse::Copy | PlaceUse::Lend | PlaceUse::LendMut => "given, copied or lent", PlaceUse::Read => "used as a place" })).named(match use_ {
+                            // Bytes read in with `incl` are never changed (errors.cyr: cannot_change_immut).
+                            PlaceUse::Write if cid.and_then(|c| self.items.consts.get(c.0 as usize)).is_some_and(|c| matches!(c.value.kind, ast::ExprKind::Incl { .. })) => "cannot_change_immut",
+                            PlaceUse::Write => "const_changed",
+                            _ => "verb_on_const",
+                        }).at(e.span));
                     }
                     return self.undeclared(ctx, n);
                 };
@@ -586,7 +591,7 @@ impl Checker {
                 }
                 match local.kind {
                     LocalKind::Lent => return err(Diagnostic::error(format!("'{}' is lent (shared) and cannot be changed: it belongs to whoever lent it — `lent.mut` would allow it", name)).named("changed_through_lend").at(span).why_at(local.span, "lent here")),
-                    LocalKind::LoopVar | LocalKind::LoopLent => return err(Diagnostic::error(format!("'{}' belongs to the loop and cannot be changed: the header alone says what it is on every pass", name)).named(if local.kind == LocalKind::LoopLent { "changed_through_lend" } else { "counter_changed" }).at(span).why_at(local.span, "the loop's variable")),
+                    LocalKind::LoopVar | LocalKind::LoopLent => return err(Diagnostic::error(format!("'{}' belongs to the loop and cannot be changed: the header alone says what it is on every pass", name)).named(if local.kind == LocalKind::LoopLent || ctx.lent_elements.contains(&id) { "changed_through_lend" } else { "counter_changed" }).at(span).why_at(local.span, "the loop's variable")),
                     _ => {}
                 }
             }
@@ -598,7 +603,7 @@ impl Checker {
                     return err(Diagnostic::error(format!("'{}' is lent (shared): it cannot be lent mutably on — `lent.mut` would allow it", name)).named("changed_through_lend").at(span));
                 }
                 if matches!(local.kind, LocalKind::LoopVar | LocalKind::LoopLent) {
-                    return err(Diagnostic::error(format!("'{}' is the loop's element: it cannot be changed through the loop", name)).named(if local.kind == LocalKind::LoopLent { "changed_through_lend" } else { "counter_changed" }).at(span));
+                    return err(Diagnostic::error(format!("'{}' is the loop's element: it cannot be changed through the loop", name)).named(if local.kind == LocalKind::LoopLent || ctx.lent_elements.contains(&id) { "changed_through_lend" } else { "counter_changed" }).at(span));
                 }
             }
             PlaceUse::Give => {
@@ -1047,7 +1052,7 @@ impl Checker {
             Some(c) => msg.fix_edit(v.span, Edit::Wrap, c),
             None => msg,
         };
-        err(msg.named(match (vt.base(), t.base()) { (Ty::Brain, other) | (other, Ty::Brain) if other.is_numeric() => "ai::brain_mixed", (Ty::Bin(_) | Ty::Deci(_), Ty::Int(_)) | (Ty::Int(_), Ty::Bin(_)) | (Ty::Int(_), Ty::Deci(_)) | (Ty::Bin(_), Ty::Deci(_)) | (Ty::Deci(_), Ty::Bin(_)) => "no_implicit_conversion", (Ty::Seq { kind: SeqKind::List, .. }, Ty::Seq { kind: SeqKind::Array, .. }) => "list_array_mismatch", (Ty::Fn(_), Ty::Fn(_)) => "function_shape_wrong", (Ty::Struct { id: a, .. }, Ty::Struct { id: b, .. }) if a == b => "generic_filled_inconsistently", (Ty::Enum { id: a, .. }, Ty::Enum { id: b, .. }) if a == b => "generic_filled_inconsistently", _ => "wrong_type" }).at(v.span))
+        err(msg.named(match (vt.base(), t.base()) { (Ty::Brain, other) | (other, Ty::Brain) if other.is_numeric() => "ai::brain_mixed", (Ty::Bin(_) | Ty::Deci(_), Ty::Int(_)) | (Ty::Int(_), Ty::Bin(_)) | (Ty::Int(_), Ty::Deci(_)) | (Ty::Bin(_), Ty::Deci(_)) | (Ty::Deci(_), Ty::Bin(_)) => "no_implicit_conversion", (Ty::Seq { kind: SeqKind::List, .. }, Ty::Seq { kind: SeqKind::Array, .. }) => "list_array_mismatch", (Ty::Fn(a), Ty::Fn(b)) if a.params.len() == b.params.len() && a.params.iter().zip(&b.params).all(|(x, y)| x.0 == y.0 && self.spell(&x.1) == self.spell(&y.1)) && self.spell(&a.ret) != self.spell(&b.ret) => "wrong_type", (Ty::Fn(_), Ty::Fn(_)) => "function_shape_wrong", (Ty::Struct { id: a, .. }, Ty::Struct { id: b, .. }) if a == b => "generic_filled_inconsistently", (Ty::Enum { id: a, .. }, Ty::Enum { id: b, .. }) if a == b => "generic_filled_inconsistently", _ => "wrong_type" }).at(v.span))
     }
 
     // ------------------------------------------------------------ operators

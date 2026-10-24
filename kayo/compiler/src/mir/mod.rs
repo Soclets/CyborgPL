@@ -554,6 +554,9 @@ pub struct Function {
     /// the locals it touches.
     pub nocheat_blocks: Vec<u32>,
     pub nocheat_entries: Vec<(u32, u32, Vec<LocalId>)>,
+    /// Sites where a bitwise operator's operand is fitted to its width:
+    /// their own kind of error, `operand_does_not_fit`.
+    pub operand_sites: Vec<SiteId>,
     /// Named locals declared with `:=`: Precog picked their type, which
     /// the build report lists (owner, 2026-10-19).
     pub picked: Vec<LocalId>,

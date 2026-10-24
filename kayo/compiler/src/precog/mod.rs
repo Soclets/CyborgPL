@@ -3408,8 +3408,16 @@ pub fn refusals_opts(a: &Analysis, p: &Program, sources: &crate::source::SourceM
         }
         let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
         let sentence = site.sentence(&spell);
+        // A `shl`'s site asks of the count and the value: the count's
+        // failure is its own kind (errors.cyr's shift_loses_every_bit).
+        let name = match (&site.kind, site.tier) {
+            (_, Some(Tier::Check)) => "check_not_enough",
+            (SiteKind::ShiftWidth, _) if counterexample.contains("moves every bit out") || counterexample.contains("a count is never negative") => "shift_loses_every_bit",
+            (SiteKind::Narrow { .. } | SiteKind::Overflow(_), _) if f.operand_sites.contains(&r.site) => "operand_does_not_fit",
+            _ => site.name(),
+        };
         let mut d = crate::diag::Diagnostic::new(if certain { crate::diag::Kind::Error } else { crate::diag::Kind::Check }, sentence)
-            .named(if site.tier == Some(Tier::Check) { "check_not_enough" } else { site.name() })
+            .named(name)
             .at(f.span(site.span))
             .when(counterexample.trim_start_matches("every time: ").to_string());
         d = check_fixes(d, &site.kind, site.result_ty.as_ref(), f.span(site.span), sources);

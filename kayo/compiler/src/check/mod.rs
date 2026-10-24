@@ -117,6 +117,9 @@ pub struct Checker {
 
 /// The state while checking one body.
 pub struct FnCtx {
+    /// Loop variables that are a list's lent elements held as plain
+    /// numbers: a change to one is a change through a lend, not to a counter.
+    pub lent_elements: std::collections::HashSet<LocalId>,
     pub inst: FnInst,
     pub module: ModuleId,
     pub locals: Vec<Local>,
@@ -652,7 +655,7 @@ impl Checker {
     }
 
     pub fn new_ctx(&self, inst: FnInst, module: ModuleId, name: String, ret: Ty, fails: Vec<(String, Option<Ty>)>, is_main: bool) -> FnCtx {
-        FnCtx { inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_test: false, must_fail: false, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), written: HashMap::new(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None, borrow_src: HashMap::new(), fold_vars: false, promised: Vec::new(), changed: Default::default(), const_scopes: vec![HashMap::new()], outer_vars: None, in_const: false, const_views: Vec::new(), int_ranges: HashMap::new() }
+                    FnCtx { lent_elements: Default::default(), inst, module, locals: Vec::new(), scopes: vec![HashMap::new()], ret, fails, loop_depth: 0, is_main, is_test: false, must_fail: false, is_task: false, name, captured_outer: None, tier: None, blank_names: Vec::new(), literal_lengths: HashMap::new(), sealed: Default::default(), written: HashMap::new(), ret_lent: None, lent_params: HashMap::new(), returned: Default::default(), lend_call_ok: None, borrow_src: HashMap::new(), fold_vars: false, promised: Vec::new(), changed: Default::default(), const_scopes: vec![HashMap::new()], outer_vars: None, in_const: false, const_views: Vec::new(), int_ranges: HashMap::new() }
     }
 
     fn check_instance(&mut self, inst: FnInst) -> Result<()> {
