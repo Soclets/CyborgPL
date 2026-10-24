@@ -260,7 +260,7 @@ naming `layout.C`.
 
 **`inline.C` is in CyDT 1** (owner, 2026-10-24: "full C support comes in CyDT 1", then "Yes" to its including
 `inline.C`): for function-like macros, `static inline` header functions and inlining small C across the boundary,
-kayo compiling the block with Clang. Not designed yet.
+kayo compiling the block with Clang; it is CNC's (owner: "Yup"). Not designed yet.
 
 ```
 layout.C struct Timeval {

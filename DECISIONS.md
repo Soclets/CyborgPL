@@ -41,7 +41,9 @@ The owner asked "What the fuck would inline C even help with?"; design claude: l
 functions in headers (no symbol to link), and inlining small C across the boundary in one LLVM module (2026-10-01).
 The owner: "Seems good, full C support comes in CyDT 1", and asked whether that includes `inline.C`, so kayo carries
 Clang: "Yes". So **CyDT 1 has full C support, `inline.C` included**, beside CNC; 2026-10-01's "Clang inside CCA is
-fine" covers the dependency. Its design (where a block goes, what binds, the limb) is not done yet.
+fine" covers the dependency. **It is CNC's** (owner, asked "CNC or base?", design claude recommending CNC, everything
+about C being CNC's since 2026-10-10: "Yup"), so only a kit listing CNC carries Clang. Its design (where a block
+goes, what binds) is not done yet.
 
 ### 2026-10-24 — A fix never makes up a value only the writer knows (owner: b)
 
