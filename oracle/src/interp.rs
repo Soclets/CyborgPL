@@ -6664,9 +6664,10 @@ fn fill_hole(v: &Value, ty: Option<&Ty>, shape: &str) -> Result<String, String> 
         (_, "?") => { if prec.is_some() { return refuse("a precision with `?`"); } v.show_stored() }
         (Value::Int(n), k) => {
             if prec.is_some() { return refuse("a precision"); }
-            let bits = match ty { Some(Ty::Int(w) | Ty::Uint(w)) => match w { IntWidth::Other(n) => *n as _, IntWidth::W8 => 8, IntWidth::W16 => 16, IntWidth::W32 => 32, IntWidth::W64 => 64, IntWidth::W128 => 128 }, _ => 64 };
-            let raw = if *n < 0 && bits < 128 { (*n as u128) & ((1u128 << bits) - 1) } else { *n as u128 };
-            match k { "" => n.to_string(), "x" => format!("{raw:x}"), "X" => format!("{raw:X}"), "o" => format!("{raw:o}"), "b" => format!("{raw:b}"), _ => return refuse("`e`") }
+            // a number in a base is the number, its sign and its digits, as in base 10 (owner, 2026-10-24: "(b)", over
+            // two's complement); the stored bits are asked for by name, `to.u8.bits($b)`
+            let (sign, mag) = (if *n < 0 { "-" } else { "" }, n.unsigned_abs());
+            match k { "" => n.to_string(), "x" => format!("{sign}{mag:x}"), "X" => format!("{sign}{mag:X}"), "o" => format!("{sign}{mag:o}"), "b" => format!("{sign}{mag:b}"), _ => return refuse("`e`") }
         }
         (Value::Bin(x), k) => match (k, prec) {
             ("", None) => show_useful_as(v, ty),

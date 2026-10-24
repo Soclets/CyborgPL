@@ -123,6 +123,8 @@ holes"):
   `e` for scientific, and **`?` for the stored form** (`{:?}` of a `bin`
   `0.1` is `0.1000000000000000055…`). `#` is refused: type the prefix,
   `0x{:x}` (owner: "drop it"; `#` already means comments and `#strict`).
+- A negative whole number in a base is its sign and digits, `{:b}` of -5 being `-101` (owner, 2026-10-24: "(b)");
+  the stored bits are asked for by name, `to.u8.bits($b)`.
   `{:.2}` of a `deci` is exact, from its decimal digits, half to even.
 - **Lists, structs and maps** fill a plain `{}` or `{:?}`, as `print.useful`
   and `print` show them; number shapes are refused for them (owner:

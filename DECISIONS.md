@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — A negative whole number in a base prints its sign and digits: `{:b}` of -5 is `-101` (owner: b)
+
+check claude: the oracle printed two's complement at the value's width (`11111011` for an `i8` -5), kayo a sign and
+the magnitude (`-101`), and nothing ruled it. Offered (a) two's complement, C's and Rust's, (b) sign and magnitude,
+Python's (recommended), (c) refused. The owner: "doesn't it depend on what they chose?" (it can: `to.u8.bits($b)`
+asks for the stored bits, `11111011`), "didn't they ask for binary? So, `11111011` is correct?" (both are binary: `-101`
+is the number in base 2, `11111011` its storage, 251 read as a number), "What's more consistent?" (b: a value prints as
+the number everywhere, a literal means its true value, `bin 1010_0101` is 165, and storage is asked for by name), then
+"(b)". So **x, X, o and b show a negative number as `-` and its magnitude's digits**; the width counts the sign and
+`0` padding goes after it, as for base 10 (`{:08b}` of -5 is `-0000101`); `+` works the same. Built in the oracle the
+same day (`examples/negative_in_base.cy`); kayo already printed it so.
+
 ### 2026-10-24 — Until an error's fix is written, its sentence stays on an `about:` line (owner: c)
 
 Compiler claude, building the 2026-10-22 format: only 16 of kayo's ~1,320 named messages have a written `fix:`, so
