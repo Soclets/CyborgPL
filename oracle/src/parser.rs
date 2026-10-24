@@ -4096,6 +4096,11 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
             return self.err_at(start, format!("`{w}` is std's: write `std::{w}`, or name it for this file with `use std::{head} as {};` (owner, 2026-10-22)", head.replace('.', "_")));
         }
         let kit = if std_named { Some("std".to_string()) } else { kit };
+        // a channel is the MCPS limb's, as `concur` is, and a limb's words are written bare (check claude, 2026-10-24:
+        // `std::channel.take` and `channel.take` read differently)
+        if kit.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("channel") {
+            return self.err_at(start, format!("`channel` is the MCPS limb's, not std's: write `{}(…)`", written.join(".")));
+        }
         // a print goes to stdout unless it says `.stderr` (owner, 2026-10-07: "default to out")
         let mut path = path;
         if kit.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("print") && !matches!(path.last().map(|s| s.as_str()), Some("stdout" | "stderr")) {

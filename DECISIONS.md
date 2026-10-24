@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Fixed: `std::channel…` is refused, a channel being the MCPS limb's; a writer's text keeps the order (check claude)
+
+Two findings of check claude's. (1) The oracle read `std::channel.take` as std's (refusing its `otherwise`) and
+`std::channel.send` at all, beside the bare `channel.take` it reads as MCPS's: a channel is the MCPS limb's, as
+`concur` is, its words written bare, so `std::channel…` is refused naming the bare form (`channel_through_std`). (2)
+kayo sent a flushed writer's text ahead of plain prints still in its own buffer: by 2026-10-23's ruling the grouping
+is speed, never order, so kayo's buffer is sent before a writer's text goes out (design claude's reading, one more
+place in the list of where kayo flushes, which was design claude's; the oracle, writing each print as it comes, had it
+right).
+
 ### 2026-10-24 — Final sigma as the Unicode Standard writes it: `ʰΣ` lowers to `ʰς` (owner: a)
 
 std claude's open pick: a letter that is both cased and case-ignorable (`ʰ`, U+02B0, a phonetic raised h) before a
