@@ -5,13 +5,9 @@
 # refused with these words, and says to drop the line the day it builds.
 # Those in examples_cyborgpl_std.txt run against the Nerve cord in `cord/` too.
 
-brain16 :: `std::print.format` is not built yet
 c_variables :: the linker (lld) refused the program:
-corner_shop :: `std::print.format` is not built yet
 extern_data :: the linker (lld) refused the program:
-format_value :: `std::format` is not built yet
 input :: `std::input.line` is not available yet
-print_format :: `std::print.format` is not built yet
 shop :: `std::input.line` is not available yet
 text :: `std::str.find.grapheme` is not available yet
 case_mappings :: `casing` is std's: write `std::casing`

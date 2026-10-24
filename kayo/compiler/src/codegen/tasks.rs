@@ -247,10 +247,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             self.builder.position_at_end(land);
             if let Some(place) = &arm.payload {
                 let carried = self.p.functions[bi].fails.get(arm.index).and_then(|(_, t)| t.clone());
-                if let Some(ct) = carried.and_then(|t| self.ty(&t)) {
+                if let Some((t, ct)) = carried.and_then(|t| self.ty(&t).map(|ct| (t, ct))) {
                     if let Ok(at) = self.builder.build_struct_gep(shape, slot, 1, "carried") {
                         if let Ok(v) = self.builder.build_load(ct, at, "why") {
                             self.store_place(fi, place, v, slots);
+                            // The handler's now: dropped when it ends.
+                            if place.proj.is_empty() && self.owns_memory(&t) {
+                                self.mark_alive(place.local, true);
+                            }
                         }
                     }
                 }

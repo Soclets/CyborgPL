@@ -1959,10 +1959,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// is not below 0.
     pub(super) fn list_fill(&mut self, fi: usize, args: &[Operand], out: &Ty, slots: &[Option<PointerValue<'ctx>>], func: FunctionValue<'ctx>) -> Option<BasicValueEnum<'ctx>> {
         let elem = Self::elem_of(out)?;
-        if elem.is_owned() {
-            self.cannot("`list.fill` of a value that owns memory (text, a list, a map) has no shape in the generated code yet", None);
-            return None;
-        }
+        // A value that owns memory (a text, a list): each slot its own copy
+        // (`lists.md`: a list owns its elements).
+        let owned = elem.is_owned();
         let shape = match self.ty(out)? {
             BasicTypeEnum::StructType(s) => s,
             _ => return None,
@@ -1974,7 +1973,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let signed = self.operand_signed(fi, args.get(1)?).unwrap_or(true);
         let n = self.builder.build_int_cast_sign_flag(c, w, signed, "count").ok()?;
         let bytes = self.builder.build_int_mul(n, w.const_int(esize, false), "bytes").ok()?;
-        let zero = match args.first()? {
+        let zero = !owned && match args.first()? {
             Operand::Const(Const::Int(0)) | Operand::Const(Const::Bool(false)) => true,
             Operand::Const(Const::Bin(t)) => t.parse::<f64>().is_ok_and(|x| x == 0.0 && x.is_sign_positive()),
             _ => false,
@@ -1987,6 +1986,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let p = basic_result(self.builder.build_call(f, &[bytes.into()], "room").ok()?)?.into_pointer_value();
             let v = self.operand(fi, args.first()?, slots)?;
             let v = self.fit(v, lty);
+            let src = if owned {
+                let at = self.stack(lty, "fill_value").ok()?;
+                let _ = self.builder.build_store(at, v);
+                Some(at)
+            } else {
+                None
+            };
             let before = self.builder.get_insert_block()?;
             let head = self.ctx.append_basic_block(func, "fill");
             let body = self.ctx.append_basic_block(func, "fill_one");
@@ -2001,11 +2007,22 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             self.builder.position_at_end(body);
             let off = self.builder.build_int_mul(iv, w.const_int(esize, false), "off").ok()?;
             let at = unsafe { self.builder.build_gep(self.ctx.i8_type(), p, &[off], "at").ok()? };
-            let _ = self.builder.build_store(at, v);
+            match src {
+                Some(src) => self.emit_copy_body(&elem, at, src, func),
+                None => {
+                    let _ = self.builder.build_store(at, v);
+                }
+            }
+            let body_end = self.builder.get_insert_block()?;
             let next = self.builder.build_int_add(iv, w.const_int(1, false), "next").ok()?;
-            i.add_incoming(&[(&next, body)]);
+            i.add_incoming(&[(&next, body_end)]);
             let _ = self.builder.build_unconditional_branch(head);
             self.builder.position_at_end(done);
+            // The value given to the fill goes once its copies are made; a
+            // text the binary holds is never freed.
+            if let (Some(src), Some(Operand::Move(_) | Operand::Const(_))) = (src, args.first()) {
+                self.emit_drop_body(&elem, src, func);
+            }
             p
         };
         let mut l = shape.get_undef();
@@ -2084,10 +2101,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             self.builder.position_at_end(land);
             if let Some(place) = &arm.payload {
                 let carried = reasons.get(arm.index).and_then(|(_, t)| t.clone());
-                if let Some(ct) = carried.and_then(|t| self.ty(&t)) {
+                if let Some((t, ct)) = carried.and_then(|t| self.ty(&t).map(|ct| (t, ct))) {
                     if let Ok(at) = self.builder.build_struct_gep(shape, tmp, 1, "carried") {
                         if let Ok(v) = self.builder.build_load(ct, at, "why") {
                             self.store_place(fi, place, v, slots);
+                            // The handler's now: dropped when it ends.
+                            if place.proj.is_empty() && self.owns_memory(&t) {
+                                self.mark_alive(place.local, true);
+                            }
                         }
                     }
                 }

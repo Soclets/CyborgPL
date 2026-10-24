@@ -850,6 +850,23 @@ impl<'a> FnBuilder<'a> {
     /// Leave by failing: out to the caller, or — in a detached task, which
     /// has no caller to hear it — into the task's own handler.
     fn leave_failing(&mut self, index: usize, payload: Option<Operand>, span: SpanId) {
+        // An owned value made for the failure (`fail bad_line[copy
+        // $piece]`) goes on with it: moved, not read, and out of its scope,
+        // so the unwinding does not drop it first (it reached its handler
+        // freed; examples/corner_shop).
+        let payload = payload.map(|p| match p {
+            Operand::Read(pl) | Operand::Move(pl) if pl.proj.is_empty() && self.locals[pl.local.0 as usize].name.is_none() && self.locals[pl.local.0 as usize].ty.is_owned() => {
+                for scope in &mut self.scopes {
+                    scope.retain(|l| *l != pl.local);
+                }
+                Operand::Move(pl)
+            }
+            other => other,
+        });
+        self.leave_failing_unwound(index, payload, span);
+    }
+
+    fn leave_failing_unwound(&mut self, index: usize, payload: Option<Operand>, span: SpanId) {
         if let Some(arm) = self.catch.as_ref().and_then(|arms| arms.iter().find(|a| a.index == index)).cloned() {
             // Everything the body opened goes; the captures stay for the
             // handler.

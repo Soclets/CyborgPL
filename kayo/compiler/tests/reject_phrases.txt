@@ -557,16 +557,16 @@ power_listed_too_narrow [fnv:230e2928cd405e42] :: does not list `c_calls`
 power_not_listed [fnv:10560d224ecff475] :: this kit calls C (`write`), and its CyJet.toml does not list `c_calls`: add `c_calls {` / `}` under its `my powers:`
 precedence_bare [fnv:2c52bed853d4921b] :: say which way the levels count
 print_bare [fnv:7587d85df41ba149] :: say which form
-print_format_backslash_percent [fnv:ad50ed3dcd7f1187] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
-print_format_extra_arg [fnv:40f9185c6f51c2e6] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
-print_format_hash [fnv:b053127aa853d749] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
-print_format_hole_zero [fnv:d041555e923d0b74] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
-print_format_lone_brace [fnv:d885f76e08ed722d] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
-print_format_missing_arg [fnv:a9458c5dbdc79cc8] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
-print_format_mixed [fnv:dee02034a539ce5c] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
-print_format_nonliteral [fnv:146ba22f5015b1e0] :: !pending `stdkit::print.format`'s holes are stdkit's to check, and stdkit does not exist yet
-print_format_type [fnv:68e54257a01e89be] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
-print_format_unused_numbered [fnv:0c9676228756aeee] :: !pending `std::print.format`'s holes are std's to check, and std does not exist yet
+print_format_backslash_percent [fnv:ad50ed3dcd7f1187] :: `\%` is not an escape
+print_format_extra_arg [fnv:40f9185c6f51c2e6] :: fewer holes than values
+print_format_hash [fnv:b053127aa853d749] :: type the prefix in the text
+print_format_hole_zero [fnv:d041555e923d0b74] :: holes count from `{1}`
+print_format_lone_brace [fnv:d885f76e08ed722d] :: a literal brace is `\}`
+print_format_missing_arg [fnv:a9458c5dbdc79cc8] :: more holes than values
+print_format_mixed [fnv:dee02034a539ce5c] :: mixes `{}` with numbered holes
+print_format_nonliteral [fnv:146ba22f5015b1e0] :: that is a no_check site
+print_format_type [fnv:68e54257a01e89be] :: does not apply to a str
+print_format_unused_numbered [fnv:0c9676228756aeee] :: value 1 is never used
 print_stored_weird_order [fnv:6a37cab2993bdfdf] :: `.weird` comes first
 print_weird_brackets [fnv:5c46b85e34e5d282] :: with arrows, not
 print_weird_order [fnv:6a37cab2993bdfdf] :: `.weird` comes first

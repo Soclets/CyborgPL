@@ -38,6 +38,11 @@ impl<'ctx> Cg<'_, 'ctx> {
             "cyborg_writer_flush" => self.ctx.i8_type().fn_type(&[p.into()], false),
             "cyborg_writer_flush_or_stop" => v.fn_type(&[p.into()], false),
             "cyborg_out_at" => v.fn_type(&[p.into(), p.into(), w.into()], false),
+            "cyborg_fmt_scratch" => p.fn_type(&[], false),
+            "cyborg_fmt_int_base" => v.fn_type(&[p.into(), w.into(), w.into(), b.into(), i32t.into(), b.into()], false),
+            "cyborg_fmt_decimal" => v.fn_type(&[p.into(), i32t.into(), b.into()], false),
+            "cyborg_fmt_put" => v.fn_type(&[p.into(), p.into(), i32t.into(), i32t.into(), i32t.into(), b.into(), b.into(), b.into()], false),
+            "cyborg_fmt_text" => v.fn_type(&[p.into(), p.into()], false),
             "cyborg_out_bytes" => v.fn_type(&[p.into(), p.into(), w.into()], false),
             "cyborg_out_int" => v.fn_type(&[p.into(), w.into(), w.into(), b.into()], false),
             "cyborg_out_bin" => v.fn_type(&[p.into(), self.ctx.f64_type().into(), i32t.into(), b.into()], false),
@@ -149,6 +154,11 @@ impl<'ctx> Cg<'_, 'ctx> {
             (self.builder.build_call(begin, &[self.ctx.i32_type().const_int(sink, false).into(), to.into()], "out").ok().and_then(crate::codegen::basic_result)?.into_pointer_value(), args)
         };
         self.print_at_place(fi, out);
+        // A format text and its values (owner, 2026-09-22).
+        if name.starts_with("print.format") {
+            self.fill_format(fi, out, args, slots)?;
+            return Some((out, writer));
+        }
         for a in args {
             let ty = match a {
                 // At the width `operand` builds it (64 bits, or 128 when 64
@@ -184,6 +194,126 @@ impl<'ctx> Cg<'_, 'ctx> {
             self.out_text(out, "\n");
         }
         Some((out, writer))
+    }
+
+    /// A value's type as a print reads it: a constant's at the width
+    /// `operand` builds it.
+    fn printed_ty(&mut self, fi: usize, a: &Operand) -> Option<Ty> {
+        Some(match a {
+            Operand::Const(Const::Int(v)) if i64::try_from(*v).is_ok() => Ty::int(true, 64),
+            Operand::Const(Const::Int(_)) => Ty::int(true, 128),
+            Operand::Const(Const::Big(v)) => Ty::int(true, crate::bigint::Big::parse(v)?.bits() as u32 + 1),
+            Operand::Const(Const::Bool(_)) => Ty::Bool,
+            Operand::Const(Const::Bin(_)) => Ty::Bin(BinW::Fixed(64)),
+            Operand::Const(Const::Deci { bits, .. }) => Ty::Deci(*bits),
+            Operand::Const(Const::Str(_)) => Ty::utf8(),
+            Operand::Const(Const::Char(_)) => Ty::Char(Unit::Point),
+            Operand::Const(Const::SizeOf { .. }) => Ty::u64(),
+            Operand::Const(Const::Duration(_)) => Ty::Duration,
+            _ => self.operand_cy_ty(fi, a)?,
+        })
+    }
+
+    /// A format's pieces into `out`: its text as it reads, each hole's value
+    /// into a scratch buffer of its own, shaped (`.places`, `e`, a base, the
+    /// stored form), then padded and aligned into `out`.
+    fn fill_format(&mut self, fi: usize, out: PointerValue<'ctx>, args: &[Operand], slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {
+        let Some(Operand::Const(Const::Str(text))) = args.first() else {
+            self.cannot("a format text known only when the program runs is not built yet", None);
+            return None;
+        };
+        let pieces = crate::format::parse(text).ok()?;
+        let values = &args[1..];
+        let i32t = self.ctx.i32_type();
+        let bt = self.ctx.bool_type();
+        for piece in pieces {
+            let (i, spec) = match piece {
+                crate::format::Piece::Text(t) => {
+                    self.out_text(out, &t);
+                    continue;
+                }
+                crate::format::Piece::Hole(i, spec) => (i, spec),
+            };
+            let a = values.get(i)?;
+            let ty = self.printed_ty(fi, a)?;
+            let v = self.operand(fi, a, slots)?;
+            let signed = match a {
+                Operand::Const(_) => None,
+                _ => self.operand_signed(fi, a),
+            };
+            let scratch_fn = self.out_fn("cyborg_fmt_scratch");
+            let scratch = self.builder.build_call(scratch_fn, &[], "hole").ok().and_then(crate::codegen::basic_result)?.into_pointer_value();
+            let numeric = matches!(ty.base(), Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Brain);
+            match spec.kind {
+                Some(k @ ('x' | 'X' | 'o' | 'b')) => {
+                    let iv = v.into_int_value();
+                    let sg = match ty.base() {
+                        Ty::Int(IntW::Fixed { signed, .. }) => *signed,
+                        _ => signed.unwrap_or(true),
+                    };
+                    let w = self.ctx.i64_type();
+                    let i128t = self.ctx.i128_type();
+                    let x = self.builder.build_int_cast_sign_flag(iv, i128t, sg, "wide").ok()?;
+                    let lo = self.builder.build_int_truncate(x, w, "lo").ok()?;
+                    let sh = self.builder.build_right_shift(x, i128t.const_int(64, false), false, "shifted").ok()?;
+                    let hi = self.builder.build_int_truncate(sh, w, "hi").ok()?;
+                    let base = match k {
+                        'x' | 'X' => 16,
+                        'o' => 8,
+                        _ => 2,
+                    };
+                    let f = self.out_fn("cyborg_fmt_int_base");
+                    let _ = self.builder.build_call(f, &[scratch.into(), lo.into(), hi.into(), bt.const_int(sg as u64, false).into(), i32t.const_int(base, false).into(), bt.const_int((k == 'X') as u64, false).into()], "");
+                }
+                kind => {
+                    // The stored form for `?`, and for `.places` and `e`,
+                    // which round its exact digits; the readable one else.
+                    let stored = kind == Some('?') || (spec.places.is_some() && kind != Some('?'));
+                    let at = self.stack(v.get_type(), "hole_value").ok()?;
+                    let _ = self.builder.build_store(at, v);
+                    self.print_at(scratch, at, &ty, !stored, signed)?;
+                    if kind == Some('e') || (spec.places.is_some() && kind.is_none()) {
+                        let places = spec.places.map(|p| p as i64).unwrap_or(-1);
+                        let f = self.out_fn("cyborg_fmt_decimal");
+                        let _ = self.builder.build_call(f, &[scratch.into(), i32t.const_int(places as u64, true).into(), bt.const_int((kind == Some('e')) as u64, false).into()], "");
+                    }
+                }
+            }
+            let align = match spec.align {
+                Some('<') => 1,
+                Some('^') => 2,
+                Some('>') => 3,
+                _ => 0,
+            };
+            let put = self.out_fn("cyborg_fmt_put");
+            let args: [inkwell::values::BasicMetadataValueEnum; 8] = [
+                out.into(),
+                scratch.into(),
+                i32t.const_int(spec.width.unwrap_or(0) as u64, false).into(),
+                i32t.const_int(align, false).into(),
+                i32t.const_int(spec.fill.map(|c| c as u64).unwrap_or(0), false).into(),
+                bt.const_int(spec.plus as u64, false).into(),
+                bt.const_int(spec.zero as u64, false).into(),
+                bt.const_int(numeric as u64, false).into(),
+            ];
+            let _ = self.builder.build_call(put, &args, "");
+        }
+        Some(())
+    }
+
+    /// `std::format(…)`: the text a `print.format` would print, made.
+    pub(super) fn emit_format_text(&mut self, fi: usize, args: &[Operand], slots: &[Option<PointerValue<'ctx>>], ty: &Ty) -> Option<BasicValueEnum<'ctx>> {
+        let scratch_fn = self.out_fn("cyborg_fmt_scratch");
+        let scratch = self.builder.build_call(scratch_fn, &[], "made").ok().and_then(crate::codegen::basic_result)?.into_pointer_value();
+        self.fill_format(fi, scratch, args, slots)?;
+        let shape = match self.ty(ty)? {
+            BasicTypeEnum::StructType(s) => s,
+            _ => return None,
+        };
+        let text = self.stack(shape, "formatted").ok()?;
+        let f = self.out_fn("cyborg_fmt_text");
+        let _ = self.builder.build_call(f, &[text.into(), scratch.into()], "");
+        self.builder.build_load(shape, text, "text").ok()
     }
 
     /// What kayo's buffer holds, sent now: before a C call, at the end of

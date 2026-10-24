@@ -70,9 +70,8 @@ the entire fucking neuron"; "No `std::` for now" stands for the rest).
 `.stderr`, `print.useful.auto_newln` and the two `.weird` forms build: each
 value becomes its text as `to.str.utf8` makes it (`compiler/src/codegen/
 print.rs`), and the pieces go out in one `writev`; `std::exit[code]` is the
-OS's `exit`, and as an `otherwise` it leaves. Every other print
-(`print.format`, `format[…]`) is refused by name, and the rest of std as
-before. Every example is built and run against the oracle's `.out` and
+OS's `exit`, and as an `otherwise` it leaves. `print.format` and
+`std::format` build too (2026-10-24, below); the rest of std as before. Every example is built and run against the oracle's `.out` and
 `.exit` (`examples_run_as_the_oracle_prints`); the ones that cannot build
 yet are in `tests/examples_unbuilt.txt` with their refusal's words.
 
@@ -1073,6 +1072,24 @@ Dated, with the alternative, so each can become a question later.
   way to its drop). A print or a flush with `otherwise` handles
   `write_failed`: kayo's buffer is sent at that print, a writer's status is
   asked; with none, a failed write stops the program.
+- **2026-10-24 — `std::print.format` and `std::format`** (owner, 2026-09-22,
+  `{}` holes 2026-10-01; `examples/print_format`, `format_value`, `brain16`,
+  `corner_shop`). The format text is read when building, from the text as
+  written (`Token::raw`, swapped in by the parser for these calls), by
+  `compiler/src/format.rs`: its own escapes in one pass (`\n \t \\ \" \{ \}`),
+  `{}` or numbered `{1}`… (never mixed), and a shape after `:` — fill and
+  `< ^ >`, `+`, `0`, a width, `.places`, a kind `x X o b e ?`. `check_format`
+  refuses a text that is not a literal, a hole with no value or a value no
+  hole takes, and a kind on a type it does not fit (bases need an integer,
+  `e` and `.places` a bin or deci). Codegen renders each hole into a runtime
+  scratch (`cyborg_fmt_scratch`, its readable form or `cyborg_fmt_int_base`,
+  `cyborg_fmt_decimal` rounding the exact text half to even for `.places` and
+  `e`) and pads it (`cyborg_fmt_put`); `std::format` collects the same into
+  a text (`cyborg_fmt_text`). Built alongside: `std::list.fill` with owned
+  elements (each slot a copy, the value dropped after), and a failure's
+  payload made for it (`fail bad[copy $piece]`) moved out of its scope before
+  the unwinding drops it, and marked alive in its handler, which drops it:
+  it reached the handler freed, and a list one leaked.
 - **2026-10-24 — `channel.empty`, `std::exit(code: …)`, a generic's literal, handler
   arguments and `pub` handlers** (owner, 2026-10-22/23; oracle 73a48973, 69c6aedf,
   340f5b98, 07353d0f). `let $c: channel[T][max: N] = channel.empty;` is read

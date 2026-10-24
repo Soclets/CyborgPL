@@ -5266,8 +5266,10 @@ fn same_literal(a: &Expr, b: &Expr) -> bool {
 
 /// The cord calls Synapse builds (owner, 2026-10-09): the prints and
 /// `exit`. A print goes to stdout unless it says `.stderr`.
-pub const BUILT_CORD: [&str; 28] = [
+pub const BUILT_CORD: [&str; 32] = [
     "exit",
+    // The formatting print, and the text it makes (owner, 2026-09-22).
+    "print.format", "print.format.stdout", "print.format.stderr", "format",
     // A print's own buffer, and sending what is held (owner, 2026-10-23);
     // its way when a print does not fit (2026-10-24).
     "print.writer", "print.writer.stderr", "print.flush",
@@ -5391,6 +5393,64 @@ impl Checker {
         self.lent_arg(ctx, e, "a print", true)
     }
 
+    /// A format call's text and values (`examples/print_format.cy`).
+    fn check_format(&self, ctx: &FnCtx, values: &[&ast::Expr], checked: &[Arg], span: Span) -> Result<()> {
+        let Some(text_e) = values.first() else {
+            return err(Diagnostic::error("a format call starts with its text: `std::print.format(\"{} items\\n\", $n)`").named("argument_missing").at(span));
+        };
+        let AK::Str(text) = &text_e.kind else {
+            if ctx.tier.is_some() {
+                return err(Diagnostic::error("not yet: a format text known only when the program runs").named("not_built_yet").at(text_e.span));
+            }
+            return err(Diagnostic::error("a format text not written in the call is read only when it runs, so its holes cannot be checked now: that is a no_check site").named("no_check_missing").at(text_e.span));
+        };
+        let pieces = crate::format::parse(text).map_err(|why| Box::new(Diagnostic::error(why).named("format_text_wrong").at(text_e.span)))?;
+        let given = values.len() - 1;
+        let (most, unused) = crate::format::wanted(&pieces);
+        if most > given {
+            return err(Diagnostic::error(format!("the format text has more holes than values: it asks for {}, and {} {} given", most, given, if given == 1 { "is" } else { "are" })).named("format_holes_mismatch").at(span));
+        }
+        if most < given {
+            return err(Diagnostic::error(format!("the format text has fewer holes than values: {} given, and it asks for {}", given, most)).named("format_holes_mismatch").at(span));
+        }
+        if let Some(n) = unused.first() {
+            return err(Diagnostic::error(format!("value {} is never used: the format text has no `{{{}}}`", n + 1, n + 1)).named("format_holes_mismatch").at(span));
+        }
+        for p in &pieces {
+            let crate::format::Piece::Hole(i, spec) = p else { continue };
+            let Some(a) = checked.get(i + 1) else { continue };
+            let t = self.resolve(&self.arg_type(a));
+            let kind_of = |t: &Ty| -> &'static str {
+                match t.base() {
+                    Ty::Str(_) => "str",
+                    Ty::Int(_) => "integer",
+                    Ty::Bin(_) | Ty::Brain => "bin",
+                    Ty::Deci(_) => "deci",
+                    _ => "other",
+                }
+            };
+            let k = kind_of(&t);
+            let shown = if k == "str" { "a str".to_string() } else { crate::types::a_type(&self.spell(&t)) };
+            let wants = |ok: &[&str], what: &str| -> Result<()> {
+                if ok.contains(&k) {
+                    return Ok(());
+                }
+                err(Diagnostic::error(format!("{} takes {} and does not apply to {}", what, if ok == ["integer"] { "a whole number" } else { "a bin or a deci" }, shown)).named("format_text_wrong").at(values[i + 1].span))
+            };
+            match spec.kind {
+                Some(c @ ('x' | 'X' | 'o' | 'b')) => wants(&["integer"], &format!("`{{:{}}}`", c))?,
+                Some('e') => wants(&["bin", "deci"], "`{:e}`")?,
+                _ => {}
+            }
+            if let (Some(n), None | Some('e')) = (spec.places, spec.kind) {
+                if spec.kind.is_none() {
+                    wants(&["bin", "deci"], &format!("`{{:.{}}}`", n))?;
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn std_stub(&mut self, ctx: &mut FnCtx, path: &ast::Path, args: &[AArg], otherwise: Option<&ast::Otherwise>, span: Span, used: bool) -> Result<Expr> {
         let name = path.segs.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
         let labelled;
@@ -5508,6 +5568,13 @@ impl Checker {
                     let v = v?;
                     let v = self.as_operand(ctx, v)?;
                     hargs.push(Arg::Value(v));
+                }
+                // A format text, read now (owner, 2026-09-22; `{}` holes
+                // 2026-10-01): its holes against the values, each hole's kind
+                // against its value's type.
+                if name == "format" || name.starts_with("print.format") {
+                    let offset = hargs.len() - values.len();
+                    self.check_format(ctx, values, &hargs[offset..], span)?;
                 }
                 // A failed write is handled where the print is (owner,
                 // 2026-10-23: "handle with `otherwise`").

@@ -3411,6 +3411,8 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // A print's own buffer, and sending what is held (owner,
             // 2026-10-23).
             Op::Std(name) if name.starts_with("print.writer") => Some(Some(self.emit_writer_new(fi, name, args, slots)?)),
+            // The text a format makes (owner, 2026-10-07: "`a`").
+            Op::Std(name) if name == "format" => Some(Some(self.emit_format_text(fi, args, slots, &dest_ty.clone().unwrap_or_else(Ty::utf8))?)),
             Op::Std(name) if name == "print.flush" => {
                 self.emit_flush(fi, args, slots)?;
                 Some(None)

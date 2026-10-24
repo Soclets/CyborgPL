@@ -7,6 +7,7 @@ pub mod ast;
 pub mod diag;
 pub mod concise;
 pub mod cyjet_toml;
+pub mod format;
 pub mod lexer;
 pub mod uses;
 pub mod names;

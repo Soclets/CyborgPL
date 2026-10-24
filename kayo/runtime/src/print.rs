@@ -389,6 +389,14 @@ pub unsafe extern "C" fn cyborg_out_bytes(o: *mut Out, p: *const u8, n: u64) {
     let mut left = n as usize;
     while left > 0 {
         let room = (*o).cap as usize - (*o).len as usize;
+        // A format's scratch grows rather than being sent.
+        #[cfg(not(target_os = "none"))]
+        if room == 0 && (*o).sink == GROW {
+            let cap = ((*o).cap as u64 * 2).max(64);
+            (*o).bytes = crate::cyborg_realloc((*o).bytes, cap);
+            (*o).cap = cap as u32;
+            continue;
+        }
         if room == 0 {
             // Kept whole: what came before this print goes, and the print
             // starts the buffer; one longer than the buffer goes out alone.
@@ -612,4 +620,295 @@ pub unsafe extern "C" fn cyborg_out_deci(o: *mut Out, lo: u64, hi: u64, bits: u3
     let mut buf = [0u8; 6300];
     let n = deci_text(lo, hi, bits, useful, &mut buf);
     put(o, &buf[..n]);
+}
+
+// ------------------------------------------------------------ formatting
+//
+// `std::print.format` and `std::format` (owner, 2026-09-22; `{}` holes since
+// 2026-10-01, `examples/print_format.cy`): each hole is written into a
+// scratch buffer that grows, reshaped there (`.places`, `e`), then padded and
+// aligned into the print's own.
+
+/// A scratch buffer's sink: it grows and is never sent.
+const GROW: u32 = 3;
+
+/// A hole's scratch buffer.
+///
+/// # Safety
+/// Freed by `cyborg_fmt_put` or `cyborg_fmt_text`.
+#[cfg(not(target_os = "none"))]
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_fmt_scratch() -> *mut Out {
+    let o = crate::cyborg_alloc(core::mem::size_of::<Out>() as u64) as *mut Out;
+    let bytes = crate::cyborg_alloc(64);
+    o.write(Out { to: 0, sink: GROW, len: 0, cap: 64, failed: 0, bytes, at: core::ptr::null(), at_len: 0, cur: core::ptr::null(), cur_len: 0, whole: 0, mark: 0 });
+    o
+}
+
+unsafe fn scratch_bytes<'a>(s: *mut Out) -> &'a [u8] {
+    core::slice::from_raw_parts((*s).bytes, (*s).len as usize)
+}
+
+/// A whole number in base 16 (`x`, `X` upper), 8 or 2, a `-` before it.
+///
+/// # Safety
+/// `s` is a buffer.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_fmt_int_base(s: *mut Out, lo: u64, hi: u64, signed: bool, base: u32, upper: bool) {
+    let v = ((hi as u128) << 64) | lo as u128;
+    let (neg, mut m) = if signed && (v as i128) < 0 { (true, (v as i128).unsigned_abs()) } else { (false, v) };
+    let mut digits = [0u8; 130];
+    let mut n = 0;
+    let set: &[u8] = if upper { b"0123456789ABCDEF" } else { b"0123456789abcdef" };
+    loop {
+        digits[n] = set[(m % base as u128) as usize];
+        n += 1;
+        m /= base as u128;
+        if m == 0 {
+            break;
+        }
+    }
+    if neg {
+        put(s, b"-");
+    }
+    while n > 0 {
+        n -= 1;
+        put(s, &digits[n..n + 1]);
+    }
+}
+
+/// The decimal text in `s` (a number's stored or readable form), reshaped:
+/// `places` (or -1) digits after the point, rounded half to even on the
+/// exact digits; `sci`, scientific, `1.25e1`.
+///
+/// # Safety
+/// `s` is a scratch buffer.
+#[cfg(not(target_os = "none"))]
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_fmt_decimal(s: *mut Out, places: i32, sci: bool) {
+    // Past 80 places a decimal shows nothing more a reader can use.
+    let places = places.min(80);
+    let text = scratch_bytes(s);
+    let (neg, body) = match text.first() {
+        Some(b'-') => (true, &text[1..]),
+        _ => (false, text),
+    };
+    // Not a plain decimal (`inf`, `NaN`): left as it is.
+    if body.is_empty() || !body.iter().all(|c| c.is_ascii_digit() || *c == b'.') {
+        return;
+    }
+    let (int_part, frac_part) = match body.iter().position(|c| *c == b'.') {
+        Some(p) => (&body[..p], &body[p + 1..]),
+        None => (body, &b""[..]),
+    };
+    // All the digits, and where the point sits among them.
+    let mut digits: [u8; 1200] = [0; 1200];
+    let mut n = 0;
+    for &c in int_part.iter().chain(frac_part.iter()) {
+        if n < digits.len() {
+            digits[n] = c - b'0';
+            n += 1;
+        }
+    }
+    let mut point = int_part.len() as i64;
+    // Leading zeros out, so the first digit is the first that counts.
+    let mut lead = 0;
+    while lead + 1 < n && digits[lead] == 0 {
+        lead += 1;
+    }
+    let all_zero = digits[lead..n].iter().all(|d| *d == 0);
+    let mut out: [u8; 1300] = [0; 1300];
+    let mut w = 0;
+    let mut emit = |c: u8, w: &mut usize| {
+        if *w < out.len() {
+            out[*w] = c;
+            *w += 1;
+        }
+    };
+    // Round the digits to `keep` of them, half to even; true when a carry
+    // made a new first digit.
+    let round = |d: &mut [u8], len: usize, keep: usize| -> bool {
+        if keep >= len {
+            return false;
+        }
+        let next = d[keep];
+        let rest_zero = d[keep + 1..len].iter().all(|x| *x == 0);
+        let last_odd = keep > 0 && d[keep - 1] % 2 == 1;
+        let up = next > 5 || (next == 5 && (!rest_zero || last_odd));
+        for x in d[keep..len].iter_mut() {
+            *x = 0;
+        }
+        if !up {
+            return false;
+        }
+        let mut i = keep;
+        while i > 0 {
+            i -= 1;
+            if d[i] == 9 {
+                d[i] = 0;
+            } else {
+                d[i] += 1;
+                return false;
+            }
+        }
+        true
+    };
+    if neg && !(all_zero) {
+        emit(b'-', &mut w);
+    }
+    if sci {
+        if all_zero {
+            emit(b'0', &mut w);
+            if places > 0 {
+                emit(b'.', &mut w);
+                for _ in 0..places {
+                    emit(b'0', &mut w);
+                }
+            }
+            for &c in b"e0" {
+                emit(c, &mut w);
+            }
+        } else {
+            let mut d: [u8; 1201] = [0; 1201];
+            let len = n - lead;
+            d[..len].copy_from_slice(&digits[lead..n]);
+            let mut exp = point - lead as i64 - 1;
+            let shown = if places >= 0 {
+                let keep = places as usize + 1;
+                if round(&mut d, len.max(keep), keep) {
+                    d.copy_within(0..keep, 1);
+                    d[0] = 1;
+                    exp += 1;
+                }
+                keep
+            } else {
+                // The readable digits, trailing zeros dropped.
+                let mut k = len;
+                while k > 1 && d[k - 1] == 0 {
+                    k -= 1;
+                }
+                k
+            };
+            emit(b'0' + d[0], &mut w);
+            if shown > 1 {
+                emit(b'.', &mut w);
+                for &x in &d[1..shown] {
+                    emit(b'0' + x, &mut w);
+                }
+            }
+            emit(b'e', &mut w);
+            if exp < 0 {
+                emit(b'-', &mut w);
+            }
+            let mut e = exp.unsigned_abs();
+            let mut ed = [0u8; 20];
+            let mut en = 0;
+            loop {
+                ed[en] = b'0' + (e % 10) as u8;
+                en += 1;
+                e /= 10;
+                if e == 0 {
+                    break;
+                }
+            }
+            while en > 0 {
+                en -= 1;
+                emit(ed[en], &mut w);
+            }
+        }
+    } else {
+        let places = places.max(0) as usize;
+        // Digits up to `places` after the point, rounded.
+        let mut d: [u8; 1300] = [0; 1300];
+        let keep_total = (point.max(0) as usize) + places;
+        let len = n.max(keep_total);
+        d[..n].copy_from_slice(&digits[..n]);
+        if round(&mut d, len, keep_total) {
+            d.copy_within(0..keep_total, 1);
+            d[0] = 1;
+            point += 1;
+        }
+        let int_len = point.max(0) as usize;
+        let mut first = 0;
+        while first + 1 < int_len && d[first] == 0 {
+            first += 1;
+        }
+        if int_len == 0 {
+            emit(b'0', &mut w);
+        }
+        for &x in &d[first..int_len] {
+            emit(b'0' + x, &mut w);
+        }
+        if places > 0 {
+            emit(b'.', &mut w);
+            for &x in &d[int_len..int_len + places] {
+                emit(b'0' + x, &mut w);
+            }
+        }
+    }
+    (*s).len = 0;
+    cyborg_out_bytes(s, out.as_ptr(), w as u64);
+}
+
+/// A hole's text, from its scratch buffer into the print's, padded to
+/// `width` characters with `fill` (`align`: 0 the kind's own, numbers right
+/// and the rest left; 1 `<`, 2 `^`, 3 `>`), `+` before a number that has no
+/// `-`, and `0` padding after its sign. The scratch buffer is freed.
+///
+/// # Safety
+/// `o` a buffer, `s` a scratch buffer from `cyborg_fmt_scratch`.
+#[cfg(not(target_os = "none"))]
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_fmt_put(o: *mut Out, s: *mut Out, width: u32, align: u32, fill: u32, plus: bool, zero: bool, numeric: bool) {
+    let text = scratch_bytes(s);
+    let (sign, rest): (&[u8], &[u8]) = match text.first() {
+        Some(b'-') if numeric => (b"-", &text[1..]),
+        _ if numeric && plus => (b"+", text),
+        _ => (b"", text),
+    };
+    let chars = sign.len() + rest.iter().filter(|b| (**b & 0xC0) != 0x80).count();
+    let pad = (width as usize).saturating_sub(chars);
+    let mut fill_bytes = [0u8; 4];
+    let fill_len = crate::char_utf8(if fill == 0 { b' ' as u32 } else { fill }, &mut fill_bytes);
+    let pad_with = |o: *mut Out, k: usize, b: &[u8]| {
+        for _ in 0..k {
+            put(o, b);
+        }
+    };
+    if zero && numeric && align == 0 {
+        put(o, sign);
+        pad_with(o, pad, b"0");
+        put(o, rest);
+    } else {
+        let (left, right) = match align {
+            1 => (0, pad),
+            2 => (pad / 2, pad - pad / 2),
+            3 => (pad, 0),
+            _ if numeric => (pad, 0),
+            _ => (0, pad),
+        };
+        pad_with(o, left, &fill_bytes[..fill_len]);
+        put(o, sign);
+        put(o, rest);
+        pad_with(o, right, &fill_bytes[..fill_len]);
+    }
+    crate::cyborg_free((*s).bytes);
+    crate::cyborg_free(s as *mut u8);
+}
+
+/// `std::format(…)`: the scratch buffer's bytes as a new text; the buffer
+/// is freed.
+///
+/// # Safety
+/// `out` a text to write, `s` a scratch buffer.
+#[cfg(not(target_os = "none"))]
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_fmt_text(out: *mut crate::Text, s: *mut Out) {
+    let n = (*s).len as u64;
+    let p = crate::cyborg_alloc(n.max(1));
+    core::ptr::copy_nonoverlapping((*s).bytes, p, n as usize);
+    (*out).ptr = p;
+    (*out).len = n;
+    crate::cyborg_free((*s).bytes);
+    crate::cyborg_free(s as *mut u8);
 }

@@ -104,6 +104,9 @@ pub struct Token {
     /// something; `[ ]` describes or holds something"): the parser writes a
     /// call's `( … )` as `[ … ]`, marked, so the rest reads one kind.
     pub call: bool,
+    /// A text with a backslash, as written between its quotes: a format
+    /// text reads its own escapes in one pass (`print.format`).
+    pub raw: Option<String>,
 }
 
 pub const OP_CHARS: &str = "!%&*+-/<>=?@^|~";
@@ -170,7 +173,7 @@ impl<'a> Lexer<'a> {
     fn push(&mut self, tok: Tok, start: usize) {
         let span = self.span(start);
         let line_first = self.toks.last().map_or(true, |t| self.src.get(t.span.end as usize..start).is_some_and(|gap| gap.contains('\n')));
-        self.toks.push(Token { tok, span, line_first, alt: None, labelled: false, call: false });
+        self.toks.push(Token { tok, span, line_first, alt: None, labelled: false, call: false, raw: None });
     }
     fn push_alt(&mut self, tok: Tok, start: usize, alt: Option<(String, &'static str)>) {
         self.push(tok, start);
@@ -347,7 +350,7 @@ impl<'a> Lexer<'a> {
             }
         }
         let end = self.src.len();
-        self.toks.push(Token { tok: Tok::Eof, span: Span::new(self.file, end, end), line_first: true, alt: None, labelled: false, call: false });
+        self.toks.push(Token { tok: Tok::Eof, span: Span::new(self.file, end, end), line_first: true, alt: None, labelled: false, call: false, raw: None });
         Ok(())
     }
 
@@ -515,7 +518,12 @@ impl<'a> Lexer<'a> {
                 Some(c) => out.push(c),
             }
         }
+        let written = &self.src[start + 1..self.pos - 1];
+        let raw = written.contains('\\').then(|| written.to_string());
         self.push(Tok::Str(out), start);
+        if let Some(t) = self.toks.last_mut() {
+            t.raw = raw;
+        }
         Ok(())
     }
 

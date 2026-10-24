@@ -53,6 +53,8 @@ struct Parser<'a> {
     channel_ok: bool,
     /// Reading a short lambda's parameters, which may leave out their types.
     untyped_ok: bool,
+    /// Each text with a backslash as written, by where it is.
+    raw_texts: std::collections::HashMap<(u32, u32), String>,
     pos: usize,
     /// Reading the statements of a `match` case's or an `otherwise` arm's
     /// own block, where a value alone before `}` is the block's value.
@@ -381,7 +383,7 @@ pub fn set_shared_precedence(table: std::collections::HashMap<String, (u16, Chai
 
 /// The `precedence` blocks in one file's tokens: each operator's level.
 pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> {
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false };
+    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
     let mut out = Vec::new();
     let mut depth = 0i32;
     for i in 0..toks.len() {
@@ -406,7 +408,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     let labelled = crate::argwords::labels(&used);
     let owned = crate::argwords::strip(&labelled)?;
     let toks = &owned[..];
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false };
+    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
     // Every Kit's levels, and this file's own blocks, read before any
     // expression in it: an operator above its block is parsed by it too.
     p.prec = SHARED_PREC.with(|t| t.borrow().clone());
@@ -544,7 +546,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
 /// 2026-10-06): `cca::Manifest[ … ];`.
 pub fn parse_value(toks: &[Token]) -> Result<Expr> {
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false };
+    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
     let value = p.expr(0)?;
     p.expect_semi("the value")?;
     if !p.at_eof() {
@@ -690,6 +692,21 @@ impl<'a> Parser<'a> {
                 }
             }
             _ => {}
+        }
+    }
+
+    /// A format call's text as written (`std::print.format("C:\\temp\n")`):
+    /// its escapes are the format's own, read in one pass, not a text's.
+    fn format_text_as_written(&self, path: &Path, args: &mut [Arg]) {
+        let name = path.segs.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
+        if !(name == "format" || name.starts_with("print.format")) {
+            return;
+        }
+        let first = args.iter_mut().find(|a| !matches!(a, Arg::Positional(Expr { kind: ExprKind::Verb { .. }, .. })));
+        if let Some(Arg::Positional(Expr { kind: ExprKind::Str(s), span })) = first {
+            if let Some(raw) = self.raw_texts.get(&(span.start, span.end)) {
+                *s = raw.clone();
+            }
         }
     }
 
@@ -1648,7 +1665,7 @@ impl<'a> Parser<'a> {
         for t in toks.iter_mut() {
             t.span = line;
         }
-        let mut p = Parser { toks: std::borrow::Cow::Borrowed(&toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false };
+        let mut p = Parser { toks: std::borrow::Cow::Borrowed(&toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
         let mut lines = Vec::new();
         while !p.at_eof() {
             let it = p.item()?;
@@ -5090,7 +5107,8 @@ impl<'a> Parser<'a> {
                     if self.is(&Tok::LBracket) {
                         let paren = self.is_call_bracket();
                         let at = self.bump().span;
-                        let args = self.args()?;
+                        let mut args = self.args()?;
+                        self.format_text_as_written(&path, &mut args);
                         brackets_fit(&path, &args, paren, at)?;
                         let span = start.to(self.prev_span());
                         let e = Expr { kind: ExprKind::Call { path, args, otherwise: None }, span };
@@ -5137,7 +5155,10 @@ impl<'a> Parser<'a> {
                 self.typed_suffix(Expr { kind: ExprKind::Name(QName { name: n, span: start }), span: start })?
             }
             Tok::Str(s) => {
-                self.bump();
+                let raw = self.bump().raw;
+                if let Some(r) = raw {
+                    self.raw_texts.insert((start.start, start.end), r);
+                }
                 Expr { kind: ExprKind::Str(s), span: start }
             }
             Tok::Char(c) => {
@@ -5659,7 +5680,7 @@ pub fn pub_handlers(toks: &[Token]) -> Result<Vec<(String, Vec<HandlerMember>)>>
     let labelled = crate::argwords::labels(&used);
     let owned = crate::argwords::strip(&labelled)?;
     let toks = &owned[..];
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false };
+    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false, raw_texts: Default::default() };
     let mut out = Vec::new();
     for i in 1..toks.len() {
         let pub_coll = matches!(&toks[i - 1].tok, Tok::Word(w) if w == "pub") && matches!(&toks[i].tok, Tok::Word(w) if w == "coll");
