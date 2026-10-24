@@ -11,7 +11,7 @@
 //! (stored), a vector `simd[1, 2]`; text inside them as it is, unquoted.
 
 use inkwell::types::BasicTypeEnum;
-use inkwell::values::{FunctionValue, IntValue, PointerValue};
+use inkwell::values::{BasicValueEnum, FunctionValue, IntValue, PointerValue};
 use inkwell::{AddressSpace, IntPredicate};
 
 use super::Cg;
@@ -30,7 +30,13 @@ impl<'ctx> Cg<'_, 'ctx> {
         let t = match name {
             "cyborg_print_begin" => p.fn_type(&[i32t.into(), w.into()], false),
             "cyborg_print_end" => v.fn_type(&[p.into()], false),
+            "cyborg_print_end_status" => self.ctx.i8_type().fn_type(&[p.into()], false),
             "cyborg_print_flush" => v.fn_type(&[], false),
+            "cyborg_writer_new" => p.fn_type(&[w.into(), i32t.into(), w.into()], false),
+            "cyborg_writer_end" => v.fn_type(&[p.into()], false),
+            "cyborg_writer_status" => self.ctx.i8_type().fn_type(&[p.into()], false),
+            "cyborg_writer_flush" => self.ctx.i8_type().fn_type(&[p.into()], false),
+            "cyborg_writer_flush_or_stop" => v.fn_type(&[p.into()], false),
             "cyborg_out_bytes" => v.fn_type(&[p.into(), p.into(), w.into()], false),
             "cyborg_out_int" => v.fn_type(&[p.into(), w.into(), w.into(), b.into()], false),
             "cyborg_out_bin" => v.fn_type(&[p.into(), self.ctx.f64_type().into(), i32t.into(), b.into()], false),
@@ -52,12 +58,73 @@ impl<'ctx> Cg<'_, 'ctx> {
     }
 
     /// One print: each value into kayo's one buffer (owner, 2026-10-23),
-    /// which the runtime sends when it is full or the order could matter.
+    /// which the runtime sends when it is full or the order could matter,
+    /// or into the writer its first argument lends.
     pub(super) fn emit_print(&mut self, fi: usize, name: &str, args: &[Operand], slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {
-        let (fd, useful, newline) = Self::print_shape(name);
+        let (out, writer) = self.print_fill(fi, name, args, slots)?;
+        let end = self.out_fn(if writer { "cyborg_writer_end" } else { "cyborg_print_end" });
+        let _ = self.builder.build_call(end, &[out.into()], "");
+        Some(())
+    }
+
+    /// A print with `otherwise`: its status, 1 when a write failed. kayo's
+    /// buffer is sent there, so the handler covers all printed so far; a
+    /// writer's is asked whether it failed as it filled (owner, 2026-10-23).
+    pub(super) fn emit_print_status(&mut self, fi: usize, name: &str, args: &[Operand], slots: &[Option<PointerValue<'ctx>>]) -> Option<IntValue<'ctx>> {
+        if name == "print.flush" {
+            let w = self.operand(fi, args.first()?, slots)?;
+            let f = self.out_fn("cyborg_writer_flush");
+            return self.builder.build_call(f, &[w.into()], "failed").ok().and_then(crate::codegen::basic_result).map(|v| v.into_int_value());
+        }
+        let (out, writer) = self.print_fill(fi, name, args, slots)?;
+        let end = self.out_fn(if writer { "cyborg_writer_status" } else { "cyborg_print_end_status" });
+        self.builder.build_call(end, &[out.into()], "failed").ok().and_then(crate::codegen::basic_result).map(|v| v.into_int_value())
+    }
+
+    /// Whether an operand is a writer.
+    fn is_writer(&mut self, fi: usize, a: &Operand) -> bool {
+        self.operand_cy_ty(fi, a).is_some_and(|t| matches!(t.base(), Ty::Writer))
+    }
+
+    /// `std::print.writer(size: N bytes)`: a writer for the print's stream.
+    pub(super) fn emit_writer_new(&mut self, fi: usize, name: &str, args: &[Operand], slots: &[Option<PointerValue<'ctx>>]) -> Option<BasicValueEnum<'ctx>> {
+        let fd = if name.ends_with(".stderr") { 2 } else { 1 };
         let (sink, to) = self.out_sink(fd)?;
-        let begin = self.out_fn("cyborg_print_begin");
-        let out = self.builder.build_call(begin, &[self.ctx.i32_type().const_int(sink, false).into(), to.into()], "out").ok().and_then(crate::codegen::basic_result)?.into_pointer_value();
+        let size = self.operand(fi, args.first()?, slots)?.into_int_value();
+        let size = self.builder.build_int_z_extend_or_bit_cast(size, self.ctx.i64_type(), "size").ok()?;
+        let f = self.out_fn("cyborg_writer_new");
+        self.builder.build_call(f, &[size.into(), self.ctx.i32_type().const_int(sink, false).into(), to.into()], "writer").ok().and_then(crate::codegen::basic_result)
+    }
+
+    /// `std::print.flush()` or `std::print.flush(lend.mut $out)` with no
+    /// `otherwise`: a failed write stops the program.
+    pub(super) fn emit_flush(&mut self, fi: usize, args: &[Operand], slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {
+        match args.first() {
+            None => self.emit_print_flush(),
+            Some(a) => {
+                let w = self.operand(fi, a, slots)?;
+                let f = self.out_fn("cyborg_writer_flush_or_stop");
+                let _ = self.builder.build_call(f, &[w.into()], "");
+            }
+        }
+        Some(())
+    }
+
+    /// A print's values into its buffer: kayo's, taken now, or the writer
+    /// its first argument lends. The buffer, and whether it is a writer.
+    fn print_fill(&mut self, fi: usize, name: &str, args: &[Operand], slots: &[Option<PointerValue<'ctx>>]) -> Option<(PointerValue<'ctx>, bool)> {
+        let (fd, useful, newline) = Self::print_shape(name);
+        let writer = match args.first() {
+            Some(a) => self.is_writer(fi, a),
+            None => false,
+        };
+        let (out, args) = if writer {
+            (self.operand(fi, &args[0], slots)?.into_pointer_value(), &args[1..])
+        } else {
+            let (sink, to) = self.out_sink(fd)?;
+            let begin = self.out_fn("cyborg_print_begin");
+            (self.builder.build_call(begin, &[self.ctx.i32_type().const_int(sink, false).into(), to.into()], "out").ok().and_then(crate::codegen::basic_result)?.into_pointer_value(), args)
+        };
         for a in args {
             let ty = match a {
                 // At the width `operand` builds it (64 bits, or 128 when 64
@@ -92,9 +159,7 @@ impl<'ctx> Cg<'_, 'ctx> {
         if newline {
             self.out_text(out, "\n");
         }
-        let end = self.out_fn("cyborg_print_end");
-        let _ = self.builder.build_call(end, &[out.into()], "");
-        Some(())
+        Some((out, writer))
     }
 
     /// What kayo's buffer holds, sent now: before a C call, at the end of

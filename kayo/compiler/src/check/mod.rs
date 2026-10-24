@@ -319,7 +319,7 @@ impl Checker {
             (Ty::Int(_), Ty::Int(_)) => true,
             (Ty::Bin(_), Ty::Bin(_)) => true,
             (Ty::Deci(x), Ty::Deci(y)) => x == y,
-            (Ty::Bool, Ty::Bool) | (Ty::Duration, Ty::Duration) | (Ty::Nothing, Ty::Nothing) | (Ty::Brain, Ty::Brain) => true,
+            (Ty::Bool, Ty::Bool) | (Ty::Duration, Ty::Duration) | (Ty::Writer, Ty::Writer) | (Ty::Nothing, Ty::Nothing) | (Ty::Brain, Ty::Brain) => true,
             (Ty::Str(x), Ty::Str(y)) => matches!((x, y), (Enc::Free(_), _) | (_, Enc::Free(_))) || x == y,
             (Ty::Char(x), Ty::Char(y)) => matches!((x, y), (Unit::Free(_), _) | (_, Unit::Free(_))) || x == y,
             (Ty::Seq { elem: e1, kind: k1 }, Ty::Seq { elem: e2, kind: k2 }) => {

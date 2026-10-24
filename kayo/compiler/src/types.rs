@@ -188,6 +188,9 @@ pub enum Ty {
     Fn(Box<FnTy>),
     Ptr { mutable: bool, elem: Box<Ty> },
     Duration,
+    /// `std::print.writer` (owner, 2026-10-23): text held for a stream until
+    /// it is flushed, the program's own buffer.
+    Writer,
     /// A heterogeneous variadic bundle: one type per argument.
     Bundle(Vec<Ty>),
     /// The type of a function with no return value.
@@ -322,7 +325,7 @@ impl Ty {
     /// A struct or enum is always owned (decided 2026-09-18, 2026-09-20).
     pub fn is_owned(&self) -> bool {
         match self.base() {
-            Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Struct { .. } | Ty::Enum { .. } | Ty::Channel(_) | Ty::Bundle(_) => true,
+            Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Struct { .. } | Ty::Enum { .. } | Ty::Channel(_) | Ty::Writer | Ty::Bundle(_) => true,
             Ty::Char(Unit::Grapheme) => true,
             Ty::Fn(f) => f.owning,
             Ty::Var(_) => true,
@@ -528,6 +531,7 @@ impl<'a> fmt::Display for TySpelling<'a> {
                 write!(f, "{}[{}, {}]", o, sp(key), sp(val))
             }
             Ty::Channel(e) => write!(f, "channel[{}]", sp(e)),
+            Ty::Writer => write!(f, "std::print.writer"),
             Ty::Simd { elem, lanes } => write!(f, "simd[{}, count: {}]", sp(elem), lanes),
             Ty::Struct { id, args } => {
                 write!(f, "{}", self.structs[id.0 as usize].name)?;

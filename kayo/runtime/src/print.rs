@@ -28,14 +28,18 @@ pub enum Sink {
     Chunk = 2,
 }
 
-/// The buffer, laid out as the generated code lays it out on its stack.
+/// A buffer: kayo's one, or a writer the program made (owner,
+/// 2026-10-23: "both, bro").
 #[repr(C)]
 pub struct Out {
     /// The descriptor, or the output's address.
     pub to: usize,
     pub sink: u32,
     pub len: u32,
-    pub bytes: [u8; CAP],
+    pub cap: u32,
+    /// A write the OS refused since this was last asked.
+    pub failed: u32,
+    pub bytes: *mut u8,
 }
 
 #[cfg(not(target_os = "none"))]
@@ -46,7 +50,27 @@ extern "C" {
 }
 
 /// The one buffer.
-static mut SHARED: Out = Out { to: 1, sink: 0, len: 0, bytes: [0; CAP] };
+static mut SHARED_BYTES: [u8; CAP] = [0; CAP];
+static mut SHARED: Out = Out { to: 1, sink: 0, len: 0, cap: CAP as u32, failed: 0, bytes: core::ptr::null_mut() };
+
+/// kayo's buffer, its bytes in place.
+unsafe fn shared() -> *mut Out {
+    let o = &raw mut SHARED;
+    if (*o).bytes.is_null() {
+        (*o).bytes = (&raw mut SHARED_BYTES).cast();
+    }
+    o
+}
+
+/// A write the OS refused, at a print with no `otherwise` or a flush kayo
+/// put in itself: the program stops (owner, 2026-10-23: "default to stop").
+unsafe fn stop_if_failed(o: *mut Out) {
+    if (*o).failed != 0 {
+        (*o).failed = 0;
+        #[cfg(not(target_os = "none"))]
+        stopped_writing();
+    }
+}
 
 /// Held by the print filling the buffer: a task's print never runs into
 /// another's. A chip with no OS has one thread, and its memory, the MMU
@@ -83,9 +107,13 @@ unsafe fn stopped_writing() -> ! {
 #[no_mangle]
 pub unsafe extern "C" fn cyborg_print_begin(sink: u32, to: usize) -> *mut Out {
     take();
-    let o = &raw mut SHARED;
+    let o = shared();
     if (*o).len > 0 && ((*o).sink != sink || (*o).to != to) {
         cyborg_out_flush(o);
+        if (*o).failed != 0 {
+            give_back();
+            stop_if_failed(o);
+        }
     }
     (*o).sink = sink;
     (*o).to = to;
@@ -97,8 +125,93 @@ pub unsafe extern "C" fn cyborg_print_begin(sink: u32, to: usize) -> *mut Out {
 /// # Safety
 /// `o` is what `cyborg_print_begin` handed out.
 #[no_mangle]
-pub unsafe extern "C" fn cyborg_print_end(_o: *mut Out) {
+pub unsafe extern "C" fn cyborg_print_end(o: *mut Out) {
     give_back();
+    stop_if_failed(o);
+}
+
+/// The end of a print with `otherwise` (owner, 2026-10-23): it flushes
+/// there, so its handler covers everything printed so far; 1 when a write
+/// failed.
+///
+/// # Safety
+/// `o` is what `cyborg_print_begin` handed out.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_print_end_status(o: *mut Out) -> u8 {
+    cyborg_out_flush(o);
+    let f = (*o).failed;
+    (*o).failed = 0;
+    give_back();
+    (f != 0) as u8
+}
+
+/// `std::print.writer(size: N bytes)` (owner, 2026-10-23): the program's
+/// own buffer for a stream.
+///
+/// # Safety
+/// As `cyborg_print_begin`'s `sink` and `to`.
+#[cfg(not(target_os = "none"))]
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_writer_new(cap: u64, sink: u32, to: usize) -> *mut Out {
+    let cap = cap.clamp(1, u32::MAX as u64);
+    let o = crate::cyborg_alloc(core::mem::size_of::<Out>() as u64) as *mut Out;
+    let bytes = crate::cyborg_alloc(cap);
+    o.write(Out { to, sink, len: 0, cap: cap as u32, failed: 0, bytes });
+    o
+}
+
+/// A print into a writer has ended: a write that failed when it filled
+/// stops the program, with no `otherwise`.
+///
+/// # Safety
+/// `o` is a writer.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_writer_end(o: *mut Out) {
+    stop_if_failed(o);
+}
+
+/// A print into a writer with `otherwise`: 1 when a write failed as it
+/// filled.
+///
+/// # Safety
+/// `o` is a writer.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_writer_status(o: *mut Out) -> u8 {
+    let f = (*o).failed;
+    (*o).failed = 0;
+    (f != 0) as u8
+}
+
+/// `std::print.flush(lend.mut $out)`: 1 when a write failed.
+///
+/// # Safety
+/// `o` is a writer.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_writer_flush(o: *mut Out) -> u8 {
+    cyborg_out_flush(o);
+    cyborg_writer_status(o)
+}
+
+/// `std::print.flush(lend.mut $out)` with no `otherwise`.
+///
+/// # Safety
+/// `o` is a writer.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_writer_flush_or_stop(o: *mut Out) {
+    cyborg_out_flush(o);
+    stop_if_failed(o);
+}
+
+/// A writer going away; what it held was flushed (kayo refuses one that
+/// was not).
+///
+/// # Safety
+/// `o` is a writer, used no more.
+#[cfg(not(target_os = "none"))]
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_writer_free(o: *mut Out) {
+    crate::cyborg_free((*o).bytes);
+    crate::cyborg_free(o as *mut u8);
 }
 
 /// What the buffer holds, sent now: before a C call, at the end of the
@@ -112,8 +225,10 @@ pub unsafe extern "C" fn cyborg_print_flush() {
         return;
     }
     take();
-    cyborg_out_flush(&raw mut SHARED);
+    let o = shared();
+    cyborg_out_flush(o);
     give_back();
+    stop_if_failed(o);
 }
 
 /// Before the program stops on a check: what the buffer holds, unless a
@@ -130,7 +245,7 @@ pub unsafe fn flush_before_stop() {
         }
         for _ in 0..1_000_000 {
             if TAKEN.compare_exchange_weak(false, true, core::sync::atomic::Ordering::Acquire, core::sync::atomic::Ordering::Relaxed).is_ok() {
-                cyborg_out_flush(&raw mut SHARED);
+                cyborg_out_flush(shared());
                 give_back();
                 return;
             }
@@ -166,7 +281,7 @@ pub unsafe extern "C" fn cyborg_out_flush(o: *mut Out) {
     if n == 0 {
         return;
     }
-    let p = (*o).bytes.as_ptr();
+    let p = (*o).bytes as *const u8;
     match (*o).sink {
         // A file descriptor is the OS's; with none there is never one.
         #[cfg(not(target_os = "none"))]
@@ -179,9 +294,9 @@ pub unsafe extern "C" fn cyborg_out_flush(o: *mut Out) {
             while done < n {
                 let w = write((*o).to as i32, p.add(done), n - done);
                 if w <= 0 {
-                    (*o).len = 0;
-                    give_back();
-                    stopped_writing();
+                    // What is held goes; whoever asked says what happens.
+                    (*o).failed = 1;
+                    break;
                 }
                 done += w as usize;
             }
@@ -210,13 +325,13 @@ pub unsafe extern "C" fn cyborg_out_bytes(o: *mut Out, p: *const u8, n: u64) {
     let mut p = p;
     let mut left = n as usize;
     while left > 0 {
-        let room = CAP - (*o).len as usize;
+        let room = (*o).cap as usize - (*o).len as usize;
         if room == 0 {
             cyborg_out_flush(o);
             continue;
         }
         let k = room.min(left);
-        core::ptr::copy_nonoverlapping(p, (*o).bytes.as_mut_ptr().add((*o).len as usize), k);
+        core::ptr::copy_nonoverlapping(p, (*o).bytes.add((*o).len as usize), k);
         (*o).len += k as u32;
         p = p.add(k);
         left -= k;

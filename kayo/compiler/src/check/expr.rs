@@ -100,6 +100,7 @@ impl Checker {
                 Ok(Expr { kind: K::Char(c.clone()), ty: Ty::Char(unit), span })
             }
             AK::Bool(b) => Ok(Expr { kind: K::Bool(*b), ty: Ty::Bool, span }),
+            AK::Duration { unit, .. } if unit.name == "bytes" => err(Diagnostic::error("a size in bytes is a writer's: `std::print.writer(size: 4096 bytes)`").at(span)),
             AK::Duration { value, unit } => {
                 let v: i128 = value.parse().map_err(|_| Box::new(Diagnostic::error("this duration is too large").at(span)))?;
                 let nanos = match unit.name.trim_end_matches('s') {
@@ -5238,8 +5239,10 @@ fn same_literal(a: &Expr, b: &Expr) -> bool {
 
 /// The cord calls Synapse builds (owner, 2026-10-09): the prints and
 /// `exit`. A print goes to stdout unless it says `.stderr`.
-pub const BUILT_CORD: [&str; 21] = [
+pub const BUILT_CORD: [&str; 24] = [
     "exit",
+    // A print's own buffer, and sending what is held (owner, 2026-10-23).
+    "print.writer", "print.writer.stderr", "print.flush",
     "print.written", "print.written.stdout", "print.written.stderr",
     "print.useful", "print.useful.stdout", "print.useful.stderr",
     "print.stored", "print.stored.stdout", "print.stored.stderr",
@@ -5336,6 +5339,29 @@ impl Checker {
     }
 
     /// Testing aid: `std::` typed as the oracle emulates it. Not std.
+    /// A print's or a flush's `lend.mut $out`: a writer, or refused, a
+    /// print never changing what it prints (owner, 2026-10-23).
+    fn writer_arg(&mut self, ctx: &mut FnCtx, e: &ast::Expr) -> Result<Arg> {
+        let shown = match &e.kind {
+            AK::Verb { expr, .. } => match &expr.kind {
+                AK::Name(q) => format!("lend.mut ${}", q.name),
+                _ => "lend.mut …".to_string(),
+            },
+            _ => "lend.mut $out".to_string(),
+        };
+        let is_writer = match &e.kind {
+            AK::Verb { verb: Verb::LendMut, expr, .. } => match &expr.kind {
+                AK::Name(q) => ctx.lookup(&q.name).is_some_and(|id| matches!(self.resolve(&ctx.locals[id.0 as usize].ty).base(), Ty::Writer)),
+                _ => false,
+            },
+            _ => false,
+        };
+        if !is_writer {
+            return err(Diagnostic::error(format!("a print never changes what it prints, so `{}` names a writer to print into: `let mut $out := std::print.writer(size: 4096 bytes);`", shown)).at(e.span));
+        }
+        self.lent_arg(ctx, e, "a print", true)
+    }
+
     fn std_stub(&mut self, ctx: &mut FnCtx, path: &ast::Path, args: &[AArg], otherwise: Option<&ast::Otherwise>, span: Span, used: bool) -> Result<Expr> {
         let name = path.segs.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
         let labelled;
@@ -5389,8 +5415,59 @@ impl Checker {
             // A print goes to stdout unless it says `.stderr` (owner,
             // 2026-10-07); `.stdout` may still be written. `format[…]` makes
             // the text `print.format` would print ("`a`").
+            // `std::print.writer(size: 4096 bytes)` (owner, 2026-10-23: "Just
+            // `bytes` for now").
+            "print.writer" | "print.writer.stderr" => {
+                // `spellings.cyr` lists the call, so `size:` is taken out
+                // before this reads it.
+                let size = match positional.as_slice() {
+                    [e] => {
+                        let v = match &e.kind {
+                            AK::Label(w, v) if w.name == "size" => &**v,
+                            _ => *e,
+                        };
+                        match &v.kind {
+                            AK::Duration { value, unit } if unit.name == "bytes" => value.replace('_', ""),
+                            _ => return err(Diagnostic::error("a writer's size says its unit: `size: 4096 bytes`").at(v.span)),
+                        }
+                    }
+                    _ => return err(Diagnostic::error(format!("a writer says its size, and only that: `std::{}(size: 4096 bytes)`", name)).at(span)),
+                };
+                let n: i128 = size.parse().map_err(|_| Box::new(Diagnostic::error("a writer's size is a whole number of bytes").at(span)))?;
+                if n < 1 {
+                    return err(Diagnostic::error("a writer holds at least 1 byte").at(span));
+                }
+                hargs.push(Arg::Value(Expr { kind: K::Int(n), ty: Ty::u64(), span }));
+                Ty::Writer
+            }
+            // `std::print.flush()`: what kayo holds, now; `std::print.flush(lend.mut
+            // $out)`: a writer's (owner, 2026-10-23).
+            "print.flush" => {
+                match positional.as_slice() {
+                    [] => {}
+                    [w] => {
+                        let a = self.writer_arg(ctx, w)?;
+                        hargs.push(a);
+                        if otherwise.is_some() {
+                            fails.push(("write_failed".into(), None));
+                        }
+                    }
+                    _ => return err(Diagnostic::error("`std::print.flush` sends what kayo holds, `std::print.flush()`, or a writer's, `std::print.flush(lend.mut $out)`").at(span)),
+                }
+                Ty::Nothing
+            }
             "format" | "print.stored" | "print.useful" | "print.weird.stored" | "print.weird.useful" | "print.useful.auto_newline" | "print.format" | "print.stored.stdout" | "print.stored.stderr" | "print.useful.stdout" | "print.useful.stderr" | "print.weird.stored.stdout" | "print.weird.stored.stderr" | "print.weird.useful.stdout" | "print.weird.useful.stderr" | "print.useful.auto_newline.stdout" | "print.useful.auto_newline.stderr" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_output" | "this_will_print_the_useful_numbers.this_will_go_to_the_standard_error" | "print.format.stdout" | "print.format.stderr" => {
-                for e in &positional {
+                // `lend.mut $out` first: the writer it goes into (owner,
+                // 2026-10-23); a print never changes what it prints.
+                let mut values = &positional[..];
+                if let Some(first) = positional.first() {
+                    if matches!(&first.kind, AK::Verb { verb: Verb::LendMut, .. }) && name != "format" {
+                        let a = self.writer_arg(ctx, first)?;
+                        hargs.push(a);
+                        values = &positional[1..];
+                    }
+                }
+                for e in values {
                     // A print only looks: a borrow handed back may go
                     // straight to it.
                     let saved = ctx.lend_call_ok.take();
@@ -5402,6 +5479,11 @@ impl Checker {
                     let v = v?;
                     let v = self.as_operand(ctx, v)?;
                     hargs.push(Arg::Value(v));
+                }
+                // A failed write is handled where the print is (owner,
+                // 2026-10-23: "handle with `otherwise`").
+                if otherwise.is_some() && name != "format" {
+                    fails.push(("write_failed".into(), None));
                 }
                 if name == "format" { Ty::utf8() } else { Ty::Nothing }
             }

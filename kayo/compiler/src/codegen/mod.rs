@@ -236,7 +236,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             Ty::Deci(_) => Some(self.ctx.i128_type().into()),
             Ty::Ptr { .. } => Some(self.ctx.ptr_type(AddressSpace::default()).into()),
             // One block the runtime owns; the program holds a pointer to it.
-            Ty::Channel(_) => Some(self.ctx.ptr_type(AddressSpace::default()).into()),
+            Ty::Channel(_) | Ty::Writer => Some(self.ctx.ptr_type(AddressSpace::default()).into()),
             Ty::Char(crate::types::Unit::Byte) => Some(self.ctx.i8_type().into()),
             // "One representation underneath: nanoseconds in an integer wide
             // enough for centuries" (`concurrency.md`): 64 bits hold 292
@@ -1057,6 +1057,25 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 if self.map_lookup(fi, op, args, dest, *ok, fail, blocks, slots, func).is_none() {
                     self.cannot("this map lookup has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
                     let _ = self.builder.build_unreachable();
+                }
+            }
+            // A print or a flush with `otherwise`: its one reason is a failed
+            // write (owner, 2026-10-23).
+            Terminator::Call { callee: Callee::Op(Op::Std(name)), args, ok, fail, .. } if !fail.is_empty() && name.starts_with("print.") => {
+                let ops: Vec<Operand> = args.iter().map(|a| match a {
+                    Arg::Value(o) => o.clone(),
+                    Arg::Lend { place, .. } | Arg::Copy(place) | Arg::Spread { place, .. } => Operand::Read(place.clone()),
+                    Arg::Give(place) => Operand::Move(place.clone()),
+                }).collect();
+                match self.emit_print_status(fi, name, &ops, slots) {
+                    Some(failed) => {
+                        let bad = self.builder.build_int_compare(IntPredicate::NE, failed, failed.get_type().const_zero(), "write_failed").unwrap();
+                        let _ = self.builder.build_conditional_branch(bad, blocks[fail[0].block.0 as usize], blocks[ok.0 as usize]);
+                    }
+                    None => {
+                        self.cannot(format!("`std::{}` with `otherwise` has no shape in the generated code yet", name), Some(f.span(f.blocks[b].term_span)));
+                        let _ = self.builder.build_unreachable();
+                    }
                 }
             }
             Terminator::Call { callee, args, dest, ok, fail } if !fail.is_empty() => {
@@ -3375,6 +3394,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // Of cord, the prints and `exit` (owner, 2026-10-09).
             Op::Std(name) if name == "exit" => {
                 self.emit_exit(fi, args, slots)?;
+                Some(None)
+            }
+            // A print's own buffer, and sending what is held (owner,
+            // 2026-10-23).
+            Op::Std(name) if name == "print.writer" || name == "print.writer.stderr" => Some(Some(self.emit_writer_new(fi, name, args, slots)?)),
+            Op::Std(name) if name == "print.flush" => {
+                self.emit_flush(fi, args, slots)?;
                 Some(None)
             }
             Op::Std(name) if crate::check::expr::BUILT_CORD.contains(&name.as_str()) => {

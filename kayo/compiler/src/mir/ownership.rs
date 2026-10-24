@@ -60,6 +60,8 @@ pub fn check(p: &mut Program, sources: &SourceMap) -> Outcome {
     }
     // And while a borrow is in use, what it borrows stays as it is.
     out.problems.extend(super::borrows::check(p, sources));
+    // A writer never goes away holding text (owner, 2026-10-23).
+    out.problems.extend(super::writers::check(p, sources));
     out
 }
 

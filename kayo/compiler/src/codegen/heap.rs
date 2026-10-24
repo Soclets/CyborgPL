@@ -90,7 +90,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// nothing; a list owns its buffer and everything in it.
     pub(super) fn owns_memory(&self, t: &Ty) -> bool {
         match t.base() {
-            Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => true,
+            Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) | Ty::Writer => true,
             // A text may point at the binary's own bytes. Which memory it
             // is in is Precog's to know (owner, 2026-09-22); until that
             // fact reaches here, the handle carries it — the high bit of
@@ -166,6 +166,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             Ty::Map { .. } => {
                 let _ = self.emit_map_drop(t, at);
+            }
+            // A writer's buffer; what it held was flushed (the checker
+            // refuses one going away holding text).
+            Ty::Writer => {
+                let p = self.ctx.ptr_type(AddressSpace::default());
+                let w = self.builder.build_load(p, at, "writer").unwrap().into_pointer_value();
+                let free = self.module.get_function("cyborg_writer_free").unwrap_or_else(|| self.module.add_function("cyborg_writer_free", self.ctx.void_type().fn_type(&[p.into()], false), None));
+                let _ = self.builder.build_call(free, &[w.into()], "");
             }
             Ty::Channel(elem) => {
                 // What is still in it goes too.
@@ -305,6 +313,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             Ty::Map { .. } => {
                 let _ = self.emit_map_copy(t, dst, src, func);
+            }
+            Ty::Writer => {
+                self.cannot("a `copy` of a writer: a writer is where text goes, and two would send it twice", None);
             }
             Ty::Channel(_) => {
                 // Two channels would be a new channel, not a second way to

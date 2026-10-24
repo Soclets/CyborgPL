@@ -1049,8 +1049,16 @@ Dated, with the alternative, so each can become a question later.
   `MAIN`, before `std::exit`, before every C call (`emit_print_flush`), before
   `must.stop`'s fork, and before the program stops on a check
   (`flush_before_stop`). A write the OS refuses stops the program with 1
-  until how a stop reads is decided. `std::print.flush()`, writers and a
-  print's `otherwise` (oracle 83de3987) are next.
+  until how a stop reads is decided. **The manual ways** (oracle 83de3987):
+  `std::print.flush()`; `std::print.writer(size: N bytes)` (`.stderr`), a
+  `Ty::Writer` the runtime allocates (`cyborg_writer_new`, freed when it
+  goes away), printed into when a print's first argument is `lend.mut $out`
+  (anything else lent so is refused) and flushed with `std::print.flush(lend.mut
+  $out)`; `mir::writers` refuses a writer dropped while it may still hold text
+  (a print into it, or a `lend.mut` to a function, with no flush after, on any
+  way to its drop). A print or a flush with `otherwise` handles
+  `write_failed`: kayo's buffer is sent at that print, a writer's status is
+  asked; with none, a failed write stops the program.
 - **2026-10-24 — `channel.empty`, `std::exit(code: …)`, a generic's literal, handler
   arguments and `pub` handlers** (owner, 2026-10-22/23; oracle 73a48973, 69c6aedf,
   340f5b98, 07353d0f). `let $c: channel[T][max: N] = channel.empty;` is read

@@ -1562,6 +1562,10 @@ impl Items {
         // `std::list[i64]`, `std::map[…]`, `std::duration`.
         let via_std = VIA_STD_TYPE.with(|v| v.replace(false));
         let std_type = |p: &ast::Path| matches!(p.segs.first().map(|s| s.name.as_str()), Some("list" | "map" | "duration"));
+        // A print's writer (owner, 2026-10-23).
+        if path.kit.as_ref().is_some_and(|k| k.name == "std") && path.segs.len() == 2 && path.segs[0].name == "print" && path.segs[1].name == "writer" && args.is_empty() {
+            return Ok(Ty::Writer);
+        }
         if path.kit.as_ref().is_some_and(|k| k.name == "std") && std_type(path) {
             let plain = ast::Path { kit: None, segs: path.segs.clone(), span: path.span };
             VIA_STD_TYPE.with(|v| v.set(true));

@@ -23,6 +23,7 @@ pub mod domain;
 pub mod ownership;
 pub mod print;
 pub mod verify;
+pub mod writers;
 
 use crate::ast::{BinOp, Tier, UnOp};
 use crate::hir::{ConstId, ExternId, FnInst};

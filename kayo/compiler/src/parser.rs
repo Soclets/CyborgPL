@@ -5357,6 +5357,27 @@ impl<'a> Parser<'a> {
                 }
                 continue;
             }
+            // `size: 4096 bytes`: a writer's size, its unit written (owner,
+            // 2026-10-23: "Just `bytes` for now").
+            // Its word is taken out first where `spellings.cyr` lists the call.
+            let labelled = matches!(self.peek(), Tok::Word(_)) && self.toks[self.pos].labelled && matches!(self.peek_at(1), Tok::Num { bin: false, .. }) && self.is_word_at(2, "bytes");
+            let bare = matches!(self.peek(), Tok::Num { bin: false, .. }) && self.is_word_at(1, "bytes") && matches!(self.peek_at(2), Tok::Comma | Tok::RBracket);
+            if labelled || bare {
+                let word = if labelled { Some(self.ident("a label")?) } else { None };
+                let at = self.span();
+                let Tok::Num { text, .. } = self.bump().tok else { unreachable!() };
+                let unit = self.ident("the unit")?;
+                let span = at.to(unit.span);
+                let amount = Expr { kind: ExprKind::Duration { value: text, unit }, span };
+                args.push(Arg::Positional(match word {
+                    Some(w) => Expr { span: w.span.to(span), kind: ExprKind::Label(w, Box::new(amount)) },
+                    None => amount,
+                }));
+                if !self.eat(&Tok::Comma) {
+                    break;
+                }
+                continue;
+            }
             // `value: "hi"`: a label of a function's own (owner,
             // 2026-10-21), given by its collection's `labels` line.
             if matches!(self.peek(), Tok::Word(_)) && self.toks[self.pos].labelled {
