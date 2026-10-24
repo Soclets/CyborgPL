@@ -42,6 +42,8 @@ fix:   line 4:
   description of one ("Where's the fix line?", then "Or do we just show code, and fix only? While, learning could be in
   docs"). **A check adds `when:`**, the value that breaks it. There is no sentence, no `why:` and no `try:`.
 - **The explanation is in the docs**, found by the error's name.
+- **The oracle and kayo use the same names, from one list** (owner, 2026-10-24: "yea"; not built): the oracle's
+  one line starts with the name, so a test checks both engines refuse a program for the same reason.
 - **Two locations** ("There should be two location thingies, one for humans, and one for programs"): `file:line:col`
   on the first line for programs, and `where:` for people, **a function written with `( )`**, `pick()` (the owner:
   "`pick()`", over backticks, a backtick being CyborgPL's char literal: "` means char in CyPL").

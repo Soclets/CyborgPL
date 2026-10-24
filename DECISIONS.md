@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — The oracle and kayo use the same error names, from one list (owner)
+
+Compiler claude, staging 2026-10-22's format (about 1,300 messages in kayo), asked who writes the names; the owner
+asked "Does that mean, the oracle & KAYO\n have to use the same thingy?". Design claude: not by the ruling (the
+oracle's one-line messages are a test tool's), but if both start with the same name, a test can check that the two
+engines refuse a program for the same reason, where today a phrase of the oracle's wording is matched against kayo's.
+The owner, asked "Use the same names in both?": "yea". So **one list of error names, both engines using it**: kayo
+prints `error[unclosed_name] at …` in the full format, the oracle its one line with the name in front, and the
+refusal tests compare names. Design claude's readings: the list sits at the repository's root beside `spellings.cyr`,
+both engines reading it; who writes the names is asked next. Not built.
+
 ### 2026-10-24 — A short lambda: `fn [$s] = $s at_least 60`, its types from where it is passed (owner: c; built in the oracle the same day)
 
 The owner: "Let's do lambdas". Design claude: CyborgPL has them since 2026-09-21 (`fn [$s: i32] -> bool with [lend
