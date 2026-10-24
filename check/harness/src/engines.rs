@@ -316,6 +316,10 @@ pub fn cca_build(t: &Tools, file: &Path, dir: &Path, mode: Mode) -> Build {
     // refusal, not a missing feature (2026-10-16)
     // an item std/ does not have yet (str.at.grapheme, str.slice, 2026-10-17)
     let std_lacks = text.lines().any(|l| l.contains("there is no") && l.contains("in module `std::"));
+    // the name for it in errors.cyr (2026-10-24), as the sentences thin out
+    if let Some(l) = text.lines().find(|l| l.starts_with("error[not_built_yet]")) {
+        return Build::NotYet { msg: l.to_string() };
+    }
     if std_lacks || NOT_YET.iter().any(|m| text.replace("(not yet known)", "").contains(m)) {
         let first = text.lines().find(|l| NOT_YET.iter().any(|m| l.contains(m)) || (l.contains("there is no") && l.contains("in module `std::"))).unwrap_or("").to_string();
         return Build::NotYet { msg: first };
