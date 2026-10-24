@@ -611,7 +611,7 @@ impl Gen {
         let v = |n: &str| format!("'{n}{id}'");
         self.extra_fns.push(format!("fn wrep{id} [lent.mut 'out': std::print.writer, 'name': str.utf8, 'n': i64] {{\n    std::print.useful[lend.mut 'out', 'name', \": \", 'n', newln];\n}}"));
         let (k, m, t) = (self.rng.range(1, 5), self.rng.range(-99, 99), self.rng.range(0, 9999));
-        let size = *self.rng.pick(&[256u32, 1024, 4096]);
+        let size = *self.rng.pick(&[16u32, 32, 256, 1024, 4096]);
         let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
         vec![
             format!("std::print.useful[\"before {id}\", newln];"),
