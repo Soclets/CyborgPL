@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — `inline.MSL` is built next, the hold lifted (owner)
+
+On 2026-10-22, after its design was settled, the owner held it: "Don't build `inline.MSL` for now" (recorded then only
+in design claude's notes). Asked today what std builds next, the owner: "Nah, next is fucking inline MSL?"; design
+claude, to be sure: the hold lifted, compiler claude building it in kayo after the error names it is in the middle
+of, and std claude not starting `str.find.grapheme` for now. The owner: "Correct." So **`inline.MSL` is built, as
+designed on 2026-10-22 (`design/gpu.md`)**: kayo compiles a block with Apple's `metal` and runs it; the oracle reads
+and checks a block and refuses to run it, as for `inline.ASM`. std waits.
+
 ### 2026-10-24 — Fixed: the oracle's full case mapping follows SpecialCasing's conditions (std claude)
 
 std claude, having built `.full` with `lang:` in std from SpecialCasing (The Unicode Standard 3.13, Table 3-17), found
