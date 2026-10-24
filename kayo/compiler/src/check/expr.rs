@@ -2639,7 +2639,7 @@ impl Checker {
                     return err(Diagnostic::error(format!("say which form a print shows: `std::print.weird.stored.{} <- …` (what is stored) or `std::print.weird.useful.{} <- …` (the useful value) (owner, 2026-10-02)", stream, stream)).named("print_form_unsaid").at(span));
                 }
                 ["print", f @ ("stored" | "useful"), "weird", rest @ ..] => {
-                    return err(Diagnostic::error(format!("`.weird` comes first, the strongest modifier first: `std::print.weird.{}.{} <- …`", f, rest.join("."))).named("print_weird_form").at(span));
+                    return err(Diagnostic::error(format!("`.weird` comes first, the strongest modifier first: `std::print.weird.{}.{} <- …`", f, rest.join("."))).named("print_weird_form").at(span).fix_edit(path.span, Edit::Replace, if rest.is_empty() { format!("std::print.weird.{}", f) } else { format!("std::print.weird.{}.{}", f, rest.join(".")) }));
                 }
                 _ => {}
             }
@@ -5272,6 +5272,12 @@ impl Checker {
     }
 }
 
+/// A format text as a literal again: the line breaks and tabs it was read
+/// with, escaped as written.
+fn written_back(text: &str) -> String {
+    format!("\"{}\"", text.replace('\n', "\\n").replace('\t', "\\t"))
+}
+
 pub(crate) fn conv_spelling(spelled: &str) -> String {
     match spelled {
         "integer" => "i32".to_string(),
@@ -5453,7 +5459,13 @@ impl Checker {
             }
             return err(Diagnostic::error("a format text not written in the call is read only when it runs, so its holes cannot be checked now: that is a no_check site").named("no_check_missing").at(text_e.span));
         };
-        let pieces = crate::format::parse(text).map_err(|why| Box::new(Diagnostic::error(why).named("format_text_wrong").at(text_e.span)))?;
+        let pieces = crate::format::parse(text).map_err(|why| {
+            let d = Diagnostic::error(why).named("format_text_wrong").at(text_e.span);
+            Box::new(match crate::format::repair(text) {
+                Some(fixed) => d.fix_edit(text_e.span, Edit::Replace, written_back(&fixed)),
+                None => d,
+            })
+        })?;
         let given = values.len() - 1;
         let (most, unused) = crate::format::wanted(&pieces);
         if most > given {
@@ -5484,7 +5496,11 @@ impl Checker {
                 if ok.contains(&k) {
                     return Ok(());
                 }
-                err(Diagnostic::error(format!("{} takes {} and does not apply to {}", what, if ok == ["integer"] { "a whole number" } else { "a bin or a deci" }, shown)).named("format_text_wrong").at(values[i + 1].span))
+                let d = Diagnostic::error(format!("{} takes {} and does not apply to {}", what, if ok == ["integer"] { "a whole number" } else { "a bin or a deci" }, shown)).named("format_text_wrong").at(values[i + 1].span);
+                err(match crate::format::without_kind(text, *i) {
+                    Some(fixed) if spec.places.is_none() => d.fix_edit(text_e.span, Edit::Replace, written_back(&fixed)),
+                    _ => d,
+                })
             };
             match spec.kind {
                 Some(c @ ('x' | 'X' | 'o' | 'b')) => wants(&["integer"], &format!("`{{:{}}}`", c))?,

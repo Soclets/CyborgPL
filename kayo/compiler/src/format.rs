@@ -155,3 +155,144 @@ pub fn wanted(pieces: &[Piece]) -> (usize, Vec<usize>) {
     let unused = (0..most).filter(|n| !holes.contains(n)).collect();
     (most, unused)
 }
+
+/// The text as it should be written, for a refusal `parse` gives: `\%`
+/// written `%`, holes counted from `{1}`, a lone brace escaped, `#` taken
+/// out of a shape. `None` when no one repair makes it read (mixed holes:
+/// which number each `{}` was meant to be is the writer's).
+pub fn repair(text: &str) -> Option<String> {
+    let mut t = text.to_string();
+    for _ in 0..8 {
+        let Err(why) = parse(&t) else { return (t != text).then_some(t) };
+        let next = if why.starts_with("`\\%`") {
+            t.replace("\\%", "%")
+        } else if why.starts_with("holes count from") {
+            renumber(&t)?
+        } else if why.starts_with("a lone `}`") {
+            escape_lone(&t, '}')
+        } else if why.starts_with("a `{` in a format text is never closed") {
+            escape_lone(&t, '{')
+        } else if why.starts_with("`#` is not a shape") {
+            drop_hash(&t)
+        } else {
+            return None;
+        };
+        if next == t {
+            return None;
+        }
+        t = next;
+    }
+    None
+}
+
+/// Each numbered hole one higher: `{0}` was meant as the first value.
+fn renumber(t: &str) -> Option<String> {
+    let mut out = String::new();
+    let mut cs = t.char_indices().peekable();
+    while let Some((_, c)) = cs.next() {
+        out.push(c);
+        if c == '\\' {
+            if let Some((_, n)) = cs.next() {
+                out.push(n);
+            }
+            continue;
+        }
+        if c == '{' {
+            let mut digits = String::new();
+            while let Some(&(_, d)) = cs.peek() {
+                if !d.is_ascii_digit() {
+                    break;
+                }
+                digits.push(d);
+                cs.next();
+            }
+            if !digits.is_empty() {
+                out.push_str(&(digits.parse::<usize>().ok()? + 1).to_string());
+            }
+        }
+    }
+    Some(out)
+}
+
+/// The first unpaired brace of this kind written as `\{` / `\}`.
+fn escape_lone(t: &str, brace: char) -> String {
+    let mut depth = 0i32;
+    let mut escaped = false;
+    for (i, c) in t.char_indices() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        match c {
+            '\\' => escaped = true,
+            '{' => depth += 1,
+            '}' if depth > 0 => depth -= 1,
+            '}' if brace == '}' => return format!("{}\\}}{}", &t[..i], &t[i + 1..]),
+            _ => {}
+        }
+    }
+    if brace == '{' {
+        // The last `{` that never closes.
+        if let Some(i) = t.rfind('{') {
+            return format!("{}\\{{{}", &t[..i], &t[i + 1..]);
+        }
+    }
+    t.to_string()
+}
+
+/// `#` out of a hole's shape: the prefix is typed in the text.
+fn drop_hash(t: &str) -> String {
+    let mut out = String::new();
+    let mut inside = false;
+    for c in t.chars() {
+        match c {
+            '{' => inside = true,
+            '}' => inside = false,
+            '#' if inside => continue,
+            _ => {}
+        }
+        out.push(c);
+    }
+    out
+}
+
+/// The text with the kind taken off hole number `which` (from 0): a kind
+/// that does not fit the value it shows.
+pub fn without_kind(t: &str, which: usize) -> Option<String> {
+    let pieces = parse(t).ok()?;
+    let mut nth = 0usize;
+    let mut holes_seen = 0usize;
+    let target = pieces.iter().filter(|p| matches!(p, Piece::Hole(..))).position(|p| matches!(p, Piece::Hole(i, _) if *i == which))?;
+    let mut out = String::new();
+    let mut cs = t.chars().peekable();
+    while let Some(c) = cs.next() {
+        out.push(c);
+        if c == '\\' {
+            if let Some(n) = cs.next() {
+                out.push(n);
+            }
+            continue;
+        }
+        if c == '{' {
+            let mut inside = String::new();
+            for d in cs.by_ref() {
+                if d == '}' {
+                    break;
+                }
+                inside.push(d);
+            }
+            if holes_seen == target {
+                if let Some((head, shape)) = inside.split_once(':') {
+                    let shape = shape.trim_end_matches(['x', 'X', 'o', 'b', 'e']);
+                    inside = if shape.is_empty() { head.to_string() } else { format!("{}:{}", head, shape) };
+                }
+            }
+            holes_seen += 1;
+            nth += 1;
+            out.push_str(&inside);
+            out.push('}');
+        }
+    }
+    let _ = nth;
+    Some(out)
+}

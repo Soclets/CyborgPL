@@ -7,210 +7,212 @@ message's fix is written its sentence stays on `about:`. Each fix is proven by `
 longer fires on that line.
 
 Status: **written** (every site of the name has its fixes), **partly** (some sites; the rest keep `about:`, said
-why), **none suggested** (the fix is outside the program, said why), **—** (not yet).
+why), **none suggested** (the fix is outside the program, said why), **keeps about** (the right edit is the
+writer's choice — a value, a name, where code moves — so kayo writes none and the sentence stays on `about:`,
+said why), **—** (not yet).
 
 ## spelling and syntax (132 names)
 
 | name | sites | status | notes |
 |---|---|---|---|
-| `any_stands_alone` | 2 | — | |
-| `argument_missing` | 2 | — | |
-| `asm_binding_form` | 5 | — | |
+| `any_stands_alone` | 2 | keeps about | the edit is the writer's: which interface they meant beside `any` |
+| `argument_missing` | 2 | keeps about | the value is the writer's |
+| `asm_binding_form` | 5 | keeps about | an assembly binding's register and direction are the writer's |
 | `assignment_in_value` | 2 | written | `=` → `equal_to` |
-| `belongs_at_top_level` | 6 | — | |
-| `belongs_in_body` | 3 | — | |
-| `body_missing` | 1 | — | |
-| `borrow_group_form` | 4 | — | |
-| `borrow_group_needed` | 1 | — | |
+| `belongs_at_top_level` | 6 | keeps about | a move of a whole item out of a body: not an edit kayo makes yet |
+| `belongs_in_body` | 3 | keeps about | a move into a body: not an edit kayo makes yet |
+| `body_missing` | 1 | keeps about | the body is the writer's |
+| `borrow_group_form` | 4 | keeps about | which group each borrow is in is the writer's |
+| `borrow_group_needed` | 1 | keeps about | which input the borrow comes from is the writer's |
 | `braces_need_commas` | 2 | written | the `,` put in, or a case's `;` made one |
-| `byte_order_needless` | 1 | — | |
-| `byte_order_unsaid` | 2 | — | |
+| `byte_order_needless` | 1 | keeps about | the path rewritten around the call: not an edit kayo writes yet |
+| `byte_order_unsaid` | 2 | keeps about | which byte order the file has is the writer's |
 | `call_in_brackets` | 3 | written | both brackets swapped |
-| `capture_verb_unsaid` | 1 | — | |
-| `case_unhandled` | 2 | — | |
-| `case_value_form` | 1 | — | |
+| `capture_verb_unsaid` | 1 | written | `lend` / `copy` / `give` in front |
+| `case_unhandled` | 2 | keeps about | what the missing case does is the writer's |
+| `case_value_form` | 1 | written | `is ` in front and its `;` |
 | `change_unmarked` | 1 | written | `change ` in front |
-| `character_empty` | 1 | — | |
+| `character_empty` | 1 | keeps about | which character is the writer's |
 | `check_misplaced` | 9 | partly | inside a value: moved in front of the statement; not yet: on a `fn`, at the top level, alone |
 | `cnc::c_capitalized` | 4 | written | `C` |
-| `cnc::extern_language_unknown` | 1 | — | |
-| `cnc::extern_language_unsaid` | 2 | — | |
-| `cnc::extern_with_definition` | 2 | — | |
-| `cnc::header_not_found` | 1 | — | |
-| `cnc::incl_c_form` | 3 | — | |
-| `cnc::lent_across_c` | 1 | — | |
-| `cnc::unknown_layout` | 1 | — | |
-| `collection_form` | 9 | — | |
-| `collection_kind_unsaid` | 2 | — | |
-| `collection_line_form` | 4 | — | |
-| `collection_member_unprefixed` | 6 | — | |
+| `cnc::extern_language_unknown` | 1 | written | `C` |
+| `cnc::extern_language_unsaid` | 2 | keeps about | `extern.C` and the rest of the line: the shape the message names, not yet written |
+| `cnc::extern_with_definition` | 2 | keeps about | C owns it: what to keep of the line is the writer's |
+| `cnc::header_not_found` | 1 | keeps about | the header's path is the writer's |
+| `cnc::incl_c_form` | 3 | keeps about | which kind of header is the writer's |
+| `cnc::lent_across_c` | 1 | keeps about | what C is passed instead is the writer's |
+| `cnc::unknown_layout` | 1 | written | `C` |
+| `collection_form` | 9 | partly | a member's `fn` → the collection's name; not yet: templates, versions, a handler's arms |
+| `collection_kind_unsaid` | 2 | keeps about | `coll.fn` or `coll.handler` is the writer's |
+| `collection_line_form` | 4 | keeps about | the label's word is the writer's |
+| `collection_member_unprefixed` | 6 | keeps about | the collection's name in front: several shapes, not yet written |
 | `comment_form` | 5 | partly | `#x` → `# x`; not yet: the generated marker |
-| `comparisons_chained` | 1 | — | |
-| `const_changed` | 1 | — | |
+| `comparisons_chained` | 1 | keeps about | a chain written as `and` repeats the middle value; not an edit kayo writes yet |
+| `const_changed` | 1 | keeps about | whether the value is a const or a variable is the writer's |
 | `const_marked_mut` | 1 | written | the word out |
-| `conversion_form` | 6 | — | |
-| `counter_is_position` | 1 | — | |
-| `counting_loop_form` | 3 | — | |
+| `conversion_form` | 6 | keeps about | the target type is the writer's |
+| `counter_is_position` | 1 | keeps about | one name for counter and position: which name stays is the writer's |
+| `counting_loop_form` | 3 | keeps about | the loop's words: the shape the message names, not yet written |
 | `declaration_form` | 17 | partly | `let` put in, `mut` / a type moved where it goes, `:=` ↔ `=` by whether a type is written, `let.mut` → `let mut`; not yet: C's variable forms, a generic's one `< >`, a declaration with more than a name |
 | `digit_grouping` | 2 | written | one `_` between digits; `1,000` → `1_000` |
-| `digit_outside_base` | 1 | — | |
-| `enum_empty` | 1 | — | |
-| `fail_list_empty` | 1 | — | |
+| `digit_outside_base` | 1 | keeps about | which digit was meant is the writer's |
+| `enum_empty` | 1 | keeps about | the cases are the writer's |
+| `fail_list_empty` | 1 | keeps about | the reasons are the writer's |
 | `field_form` | 7 | partly | the `:`, name first, `;` / `let` out, `:=` → `=`; not yet: `mut` / `immut` placement |
 | `foreign_spelling` | 4 | partly | `0x1F` → `hex 1F`, `mod` → `module`, `usize` → `u64` / `u32`, `String` → `str.utf8` / `str.ascii`; not yet: a module include line |
-| `function_type_form` | 1 | — | |
-| `generated_marker_form` | 1 | — | |
-| `generic_bound_missing` | 1 | — | |
-| `generic_bound_twice` | 1 | — | |
-| `ieee_misused` | 2 | — | |
-| `include_form` | 3 | — | |
-| `include_path_not_literal` | 2 | — | |
-| `inline_block_form` | 4 | — | |
+| `function_type_form` | 1 | keeps about | the names out of a type: not yet written |
+| `generated_marker_form` | 1 | keeps about | where the marker goes: kayo generate writes it |
+| `generic_bound_missing` | 1 | written | `: any` after the name |
+| `generic_bound_twice` | 1 | written | the bound out of the mention |
+| `ieee_misused` | 2 | partly | `.ieee` out; not yet: the checker's |
+| `include_form` | 3 | keeps about | what the file is made into is the writer's |
+| `include_path_not_literal` | 2 | keeps about | the path is the writer's |
+| `inline_block_form` | 4 | keeps about | what the block holds is the writer's |
 | `inline_language_capitals` | 3 | written | the capitals |
-| `interface_bound_needless` | 1 | — | |
-| `interface_empty` | 1 | — | |
-| `interface_has_code` | 1 | — | |
-| `interface_types_one_per_line` | 1 | — | |
-| `keyword_name_bare` | 2 | — | |
+| `interface_bound_needless` | 1 | keeps about | the bound out: not yet written |
+| `interface_empty` | 1 | keeps about | what it promises is the writer's |
+| `interface_has_code` | 1 | keeps about | where the code goes is the writer's |
+| `interface_types_one_per_line` | 1 | keeps about | the types one per line: not yet written |
+| `keyword_name_bare` | 2 | keeps about | the path in front: which kit's is the writer's |
 | `label_needs_colon` | 3 | partly | the `:` put in after the first word; next: every word in the brackets at once |
-| `label_order_unsaid` | 2 | — | |
-| `lambda_types_unknown` | 2 | — | |
+| `label_order_unsaid` | 2 | keeps about | `labels.in_order` or `labels.any_order` is the writer's promise |
+| `lambda_types_unknown` | 2 | keeps about | the types are the writer's |
 | `leading_zero` | 1 | written | the zeros taken off |
-| `lent_at_call` | 1 | — | |
-| `level_chain_unsaid` | 2 | — | |
-| `level_does_not_chain` | 1 | — | |
-| `level_numbered_twice` | 1 | — | |
-| `level_order_unsaid` | 2 | — | |
-| `limb_not_listed` | 1 | — | |
-| `loop_words_form` | 2 | — | |
+| `lent_at_call` | 1 | written | `lend` |
+| `level_chain_unsaid` | 2 | keeps about | how a chain reads is the writer's |
+| `level_does_not_chain` | 1 | keeps about | which side is parenthesised is the writer's |
+| `level_numbered_twice` | 1 | keeps about | the new number is the writer's |
+| `level_order_unsaid` | 2 | keeps about | which way the levels count is the writer's |
+| `limb_not_listed` | 1 | keeps about | the limb goes in the kit's CyJet.toml, and a lone file has none: not yet written |
+| `loop_words_form` | 2 | keeps about | the loop rewritten: not yet written |
 | `main_form` | 4 | written | `pub` out, `fn MAIN … {` → `MAIN {`, a call to `MAIN` goes |
 | `main_parameters_wrong` | 4 | partly | one parameter: `, $argv: ptr[ptr[u8]]` added, or none; not yet: three or more |
-| `mcps::seq_and_para` | 1 | — | |
-| `mcps::whichever_empty` | 1 | — | |
+| `mcps::seq_and_para` | 1 | written | either word out |
+| `mcps::whichever_empty` | 1 | keeps about | the arms are the writer's |
 | `module_name_lowercase` | 1 | written | the name lowercased, where that makes a name |
-| `money::exactly_form` | 1 | — | |
-| `name_not_english` | 1 | — | |
+| `money::exactly_form` | 1 | keeps about | the number is the writer's |
+| `name_not_english` | 1 | keeps about | the fix is a limb in the manifest (unicode), or a new name |
 | `name_quoted` | 13 | written | the name bare |
-| `name_reserved` | 10 | — | |
-| `needless_lent` | 1 | — | |
+| `name_reserved` | 10 | keeps about | the new name is the writer's |
+| `needless_lent` | 1 | written | `lent` out |
 | `needs_parentheses` | 7 | partly | both groupings, under `or:`; not yet the `not` next to a comparison (the unary site) |
-| `no_starting_value` | 1 | — | |
+| `no_starting_value` | 1 | keeps about | the starting value is the writer's (with the owner: declaring a name) |
 | `not_built_yet` | 22 | none suggested | kayo has not built it: the fix is kayo's (design claude, 2026-10-24) |
-| `not_changeable` | 2 | — | |
+| `not_changeable` | 2 | keeps about | what is changed instead is the writer's |
 | `not_decided` | 7 | none suggested | no ruling yet: the fix is the owner's |
-| `not_whole_number` | 4 | — | |
+| `not_whole_number` | 4 | keeps about | the count is the writer's |
 | `old_spelling` | 44 | partly | every replacement the spellings table or the message names, as edits (moves too: `no_cheat for`, `<T: any>`, a slice's `from:`/`to:`); not yet: a `range.` loop, `level.when_chained`, `change *$p =`, `2 ! 3` (no edit means anything there) |
-| `on_form` | 5 | — | |
-| `operator_cannot_fail` | 1 | — | |
-| `operator_cannot_level` | 1 | — | |
-| `operator_value_form` | 5 | — | |
-| `operators_level_apart` | 1 | — | |
-| `otherwise_empty` | 2 | — | |
-| `otherwise_misplaced` | 7 | — | |
+| `on_form` | 5 | keeps about | which narrowing is the writer's |
+| `operator_cannot_fail` | 1 | keeps about | an operator made a `fn`: not yet written |
+| `operator_cannot_level` | 1 | keeps about | the operator out of the level: not yet written |
+| `operator_value_form` | 5 | keeps about | the shape the message names, not yet written |
+| `operators_level_apart` | 1 | keeps about | which level each goes in is the writer's |
+| `otherwise_empty` | 2 | keeps about | what happens on failure is the writer's |
+| `otherwise_misplaced` | 7 | keeps about | where the failure is handled is the writer's |
 | `parameter_form` | 6 | partly | `var` out, name first, `lent.str.utf8 $t` → `lent $t: str.utf8`; not yet: `lend` / an owning keyword |
 | `parens_for_brackets` | 4 | written | both brackets swapped |
-| `preset_wrong` | 4 | — | |
-| `print_weird_form` | 3 | — | |
-| `quoted_name_form` | 4 | — | |
-| `range_as_value` | 2 | — | |
-| `return_type_form` | 3 | — | |
-| `return_type_missing` | 5 | — | |
-| `said_twice` | 5 | — | |
-| `shadow_form` | 1 | — | |
+| `preset_wrong` | 4 | written | the close parameter |
+| `print_weird_form` | 3 | partly | `.weird` first; not yet: arrows for `[ ]` |
+| `quoted_name_form` | 4 | keeps about | the name's characters are the writer's |
+| `range_as_value` | 2 | keeps about | what the value is instead is the writer's |
+| `return_type_form` | 3 | partly | `:` → `->`; not yet: a return type on `fn`, a borrow's |
+| `return_type_missing` | 5 | keeps about | the type: kayo knows it after checking, not yet written |
+| `said_twice` | 5 | keeps about | which line stays is the writer's |
+| `shadow_form` | 1 | written | `let` out |
 | `space_missing` | 7 | partly | the space put in; not yet: `<` standing alone in a type |
 | `spelling_removed` | 27 | written | the mark, `#strict` or `lang:` goes (a line of its own whole); `var` → `let` / `const`; the `bare.` sites after `bare_mark` are unreachable since the marks went |
-| `step_missing` | 1 | — | |
-| `strict_misplaced` | 1 | — | |
-| `strict_word_missing` | 2 | — | |
-| `table_bytes_form` | 3 | — | |
-| `tier_words_order` | 3 | — | |
-| `top_level_needs_const` | 4 | — | |
-| `two_tiers` | 1 | — | |
-| `two_verbs` | 2 | — | |
-| `type_incomplete` | 5 | — | |
+| `step_missing` | 1 | written | `, by: 1` before the `]` |
+| `strict_misplaced` | 1 | written | the line goes |
+| `strict_word_missing` | 2 | keeps about | `#strict` is gone; this is unreachable |
+| `table_bytes_form` | 3 | keeps about | the size is the writer's |
+| `tier_words_order` | 3 | keeps about | the two words swapped: not yet written |
+| `top_level_needs_const` | 4 | written | `const` |
+| `two_tiers` | 1 | keeps about | which tier the statement takes is the writer's |
+| `two_verbs` | 2 | keeps about | which verb stays is the writer's |
+| `type_incomplete` | 5 | keeps about | the element type is the writer's |
 | `unclosed_block` | 16 | partly | the `}` above the next item, or a last line; not yet: a `[` never closed |
 | `unclosed_quote` | 3 | written | closed at the end of its line, before a `;` |
-| `unexpected_text` | 53 | — | |
-| `unicode::case_mark_kind_unknown` | 2 | — | |
-| `unicode::case_mark_misplaced` | 6 | — | |
-| `unicode::case_mark_order` | 1 | — | |
-| `unknown_handler` | 1 | — | |
-| `unknown_inline_language` | 1 | — | |
-| `unknown_narrowing` | 3 | — | |
-| `unknown_operator` | 6 | — | |
-| `unknown_pub_narrowing` | 2 | — | |
-| `unknown_target` | 5 | — | |
-| `unknown_verb` | 4 | — | |
-| `variable_name_form` | 5 | — | |
-| `variadic_form` | 2 | — | |
-| `versions_outside_collection` | 3 | — | |
-| `wrap_needless` | 1 | — | |
+| `unexpected_text` | 53 | keeps about | the grammar's expectation, many shapes: no one edit |
+| `unicode::case_mark_kind_unknown` | 2 | keeps about | the kind is the writer's |
+| `unicode::case_mark_misplaced` | 6 | keeps about | a move to `kit.cy` or the file's top: not an edit kayo makes yet |
+| `unicode::case_mark_order` | 1 | keeps about | the words swapped: not yet written |
+| `unknown_handler` | 1 | written | the close name |
+| `unknown_inline_language` | 1 | written | the close language |
+| `unknown_narrowing` | 3 | partly | `must`'s close form, `concur.detached`; not yet: a type's `.of` |
+| `unknown_operator` | 6 | partly | `=` → `equal_to`; not yet: another kit's operator |
+| `unknown_pub_narrowing` | 2 | written | `pub.kit` |
+| `unknown_target` | 5 | keeps about | the chip or target is the writer's |
+| `unknown_verb` | 4 | keeps about | `lent` or `lent.mut` is the writer's |
+| `variable_name_form` | 5 | partly | `$` in front; not yet: a lone `$` |
+| `variadic_form` | 2 | keeps about | the parameter moved last: not an edit kayo makes yet |
+| `versions_outside_collection` | 3 | keeps about | a `coll.fn` block around both: not an edit kayo makes yet |
+| `wrap_needless` | 1 | written | `.wrap` out |
 
 ## names and paths (62 names)
 
 | name | sites | status | notes |
 |---|---|---|---|
 | `ai::brain_width` | 1 | — | |
-| `bound_given_twice` | 1 | — | |
-| `bound_not_taken` | 2 | — | |
-| `bound_outside_type` | 6 | — | |
-| `bound_unit_misplaced` | 6 | — | |
+| `bound_given_twice` | 1 | keeps about | which bound stays is the writer's |
+| `bound_not_taken` | 2 | keeps about | the bound out, or another type: the writer's |
+| `bound_outside_type` | 6 | keeps about | the bound or the type is the writer's |
+| `bound_unit_misplaced` | 6 | keeps about | the unit out: not yet written |
 | `bound_unit_unsaid` | 1 | — | |
-| `bound_wrong_type` | 8 | — | |
+| `bound_wrong_type` | 8 | keeps about | the bound's values are the writer's |
 | `bounds_backwards` | 6 | written | the two sides swapped |
-| `builtin_operator_redefined` | 3 | — | |
-| `cnc::bit_field_form` | 2 | — | |
-| `cnc::bit_field_too_wide` | 1 | — | |
-| `cnc::bits_outside_layout` | 1 | — | |
-| `cnc::c_cannot_fail` | 1 | — | |
-| `cnc::c_enum_carries_data` | 1 | — | |
-| `cnc::c_enum_number_missing` | 1 | — | |
-| `cnc::c_enum_number_twice` | 1 | — | |
-| `cnc::c_str_counted_in_bytes` | 1 | — | |
-| `cnc::c_str_zero_misplaced` | 1 | — | |
+| `builtin_operator_redefined` | 3 | keeps about | the operator's new name is the writer's |
+| `cnc::bit_field_form` | 2 | keeps about | the field's type is the writer's |
+| `cnc::bit_field_too_wide` | 1 | keeps about | the width is the writer's |
+| `cnc::bits_outside_layout` | 1 | keeps about | `layout.C` on the struct, or the bits out: the writer's |
+| `cnc::c_cannot_fail` | 1 | keeps about | the wrapper is the writer's |
+| `cnc::c_enum_carries_data` | 1 | keeps about | what the case carries instead is the writer's |
+| `cnc::c_enum_number_missing` | 1 | keeps about | the number is C's header's, which only the writer reads |
+| `cnc::c_enum_number_twice` | 1 | keeps about | which number each case has is the writer's |
+| `cnc::c_str_counted_in_bytes` | 1 | keeps about | the bound in bytes is the writer's |
+| `cnc::c_str_zero_misplaced` | 1 | keeps about | the words out: not yet written |
 | `cnc::c_str_zero_unsaid` | 2 | — | |
-| `cnc::c_type_unknown` | 1 | — | |
+| `cnc::c_type_unknown` | 1 | keeps about | C's type is the writer's |
 | `cnc::cannot_cross_to_c` | 7 | — | |
-| `cnc::not_c_shaped` | 1 | — | |
-| `cnc::not_layout_c` | 1 | — | |
-| `defined_twice` | 13 | — | |
-| `function_owner_wrong` | 1 | — | |
+| `cnc::not_c_shaped` | 1 | keeps about | the field's C type is the writer's |
+| `cnc::not_layout_c` | 1 | keeps about | `layout.C` on the declaration: not yet written |
+| `defined_twice` | 13 | keeps about | the new name is the writer's |
+| `function_owner_wrong` | 1 | keeps about | what the function belongs to is the writer's |
 | `kit_name_needs_path` | 2 | written | the kit's prefix in front, or a `use … as …;` line |
-| `kit_not_listed` | 2 | — | |
-| `lane_count_misplaced` | 1 | — | |
+| `kit_not_listed` | 2 | keeps about | the kit's block in CyJet.toml needs its id or path, the writer's |
+| `lane_count_misplaced` | 1 | keeps about | the type is the writer's |
 | `length_bound_on_array` | 2 | — | |
-| `main_not_at_root` | 1 | — | |
-| `mcps::channel_bound_form` | 1 | — | |
-| `member_names_itself` | 1 | — | |
-| `money::percent_number_type` | 1 | — | |
-| `money::percent_unsized` | 1 | — | |
-| `money::places_on_bin` | 1 | — | |
+| `main_not_at_root` | 1 | keeps about | a move to `kit.cy`: not an edit kayo makes yet |
+| `mcps::channel_bound_form` | 1 | keeps about | the bound is the writer's |
+| `member_names_itself` | 1 | keeps about | which function it names is the writer's |
+| `money::percent_number_type` | 1 | keeps about | `d` or `f` is the writer's |
+| `money::percent_unsized` | 1 | keeps about | the number type is the writer's |
+| `money::places_on_bin` | 1 | keeps about | `d` instead, with its width: the writer's |
 | `my_after_kit_path` | 1 | — | |
-| `my_needs_path` | 2 | — | |
-| `narrowing_not_taken` | 2 | — | |
+| `my_needs_path` | 2 | keeps about | the item reached is the writer's |
+| `narrowing_not_taken` | 2 | keeps about | the narrowing out: not yet written |
 | `no_such_width` | 1 | — | |
-| `not_a_map_key` | 4 | — | |
-| `not_a_module` | 3 | — | |
-| `not_a_type` | 1 | — | |
+| `not_a_map_key` | 4 | keeps about | the key type is the writer's |
+| `not_a_module` | 3 | keeps about | the case is the writer's |
+| `not_a_type` | 1 | keeps about | the type is the writer's |
 | `not_public` | 5 | partly | `pub.kit` / `pub` in front of the declaration; another kit's: none suggested (its code is that kit's) |
-| `operator_operand_count` | 2 | — | |
-| `parameter_type_missing` | 4 | — | |
-| `simd_element_type` | 1 | — | |
+| `operator_operand_count` | 2 | keeps about | which operands stay is the writer's |
+| `parameter_type_missing` | 4 | keeps about | the type is the writer's |
+| `simd_element_type` | 1 | keeps about | the lane type is the writer's |
 | `simd_lane_count_mismatch` | 4 | — | |
-| `simd_lane_width` | 1 | — | |
+| `simd_lane_width` | 1 | keeps about | the width is the writer's |
 | `std_name_needs_path` | 5 | written | `std::` in front |
-| `std_not_listed` | 6 | — | |
-| `test_fn_misused` | 5 | — | |
-| `type_parameter_count` | 9 | — | |
+| `std_not_listed` | 6 | keeps about | std goes in CyJet.toml, and a lone file has none: not yet written |
+| `test_fn_misused` | 5 | keeps about | the values move into the body: the writer's |
+| `type_parameter_count` | 9 | keeps about | the parameters are the writer's |
 | `type_parameter_form` | 3 | — | |
-| `unannounced` | 3 | — | |
+| `unannounced` | 3 | keeps about | the group's announcement: not yet written |
 | `unknown_const` | 1 | — | |
-| `unknown_function` | 4 | partly | the close name; the declaring fix waits on the owner |
-| `unknown_interface` | 3 | — | |
+| `unknown_function` | 4 | written | the close name; no declaration (owner: (b)) |
+| `unknown_interface` | 3 | keeps about | the interface is the writer's |
 | `unknown_map_variant` | 1 | — | |
 | `unknown_text_unit` | 5 | — | |
-| `unknown_type` | 1 | partly | the close name |
-| `wsmw::no_such_width` | 4 | — | |
+| `unknown_type` | 1 | written | the close name |
+| `wsmw::no_such_width` | 4 | keeps about | the width is the writer's |
 | `wsmw::standard_width` | 1 | — | |
 
 ## types and values (161 names)
@@ -268,7 +270,7 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `field_unnamed` | 2 | — | |
 | `file_not_readable` | 1 | — | |
 | `format_holes_mismatch` | 3 | — | |
-| `format_text_wrong` | 2 | — | |
+| `format_text_wrong` | 2 | partly | the text repaired (`\\%` → `%`, holes from `{1}`, a lone brace escaped, `#` out, a kind that does not fit taken off); not yet: mixed holes (which number each `{}` meant is the writer's) |
 | `function_shape_wrong` | 4 | — | |
 | `generic_filled_inconsistently` | 2 | — | |
 | `generic_size_unknown` | 1 | — | |
@@ -312,13 +314,13 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `negative_exponent` | 1 | — | |
 | `negative_unsigned` | 2 | — | |
 | `no_check_missing` | 5 | partly | `no_check ` in front of the statement; not yet: a format text not written in the call |
-| `no_implicit_conversion` | 1 | partly | the side that converts without failing, `to.T(…)`, or the declared type the value's; not yet: a conversion that can fail (asked) |
+| `no_implicit_conversion` | 1 | written | the declared type changed, or a conversion that cannot fail; one that can keeps about (owner: (b)) |
 | `no_such_conversion` | 8 | — | |
 | `no_version_fits` | 1 | — | |
 | `not_a_function` | 7 | — | |
 | `not_a_struct` | 2 | — | |
 | `not_a_value` | 7 | — | |
-| `not_declared` | 8 | partly | the close name in scope; waiting on design claude: whether a declaration is offered (a variable's value is the writer's) |
+| `not_declared` | 8 | written | the close name in scope; no declaration (owner, 2026-10-24: (b), a fix never makes up a value) |
 | `not_indexable` | 2 | — | |
 | `not_one_code_point` | 1 | — | |
 | `not_text` | 4 | — | |
@@ -377,7 +379,7 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `writer_way_unknown` | 1 | — | |
 | `written_not_literal` | 1 | — | |
 | `wrong_argument_count` | 14 | — | |
-| `wrong_type` | 51 | partly | a conversion that cannot fail, or the declared type the value's; not yet: a conversion that can fail (asked), values that are simply wrong |
+| `wrong_type` | 51 | partly | the declared type changed, or a conversion that cannot fail (owner: (b)); the rest keep about: the value is simply wrong, or the conversion can fail |
 
 ## ownership and lends (2 names)
 
