@@ -7,6 +7,6 @@ fn b1 [@x] [lent 'a': std::list[i32], lent @x 'b': std::list[i32]] -> lent @x st
 }
 MAIN {
     let 's': std::list[i32] = [1,];
-    let 'r' := b1[lend 's', lend 's'];
-    let 'n' := std::list.length[lend 'r'];
+    let 'r' := b1(lend 's', lend 's');
+    let 'n' := std::list.length(lend 'r');
 }

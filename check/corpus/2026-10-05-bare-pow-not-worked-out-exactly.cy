@@ -7,30 +7,30 @@ extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];
-    if 'neg' { std::list.append[lend.mut 'buf', value: 45]; }
+    if 'neg' { std::list.append(lend.mut 'buf', value: 45); }
     let mut 'v': u64 = 'm';
     let mut 'ds': std::list[u8] = [];
     loop {
-        std::list.append[lend.mut 'ds', value: to.u8[48 plus ('v' mod.floor 10)]];
+        std::list.append(lend.mut 'ds', value: to.u8(48 plus ('v' mod.floor 10)));
         change 'v' = 'v' div.floor 10;
         if 'v' equal_to 0 { break; }
     }
-    for 'k': u64 [from: std::list.length[lend 'ds'], to: 1, by: -1] {
-        std::list.append[lend.mut 'buf', value: 'ds'[pos: 'k']];
+    for 'k': u64 [from: std::list.length(lend 'ds'), to: 1, by: -1] {
+        std::list.append(lend.mut 'buf', value: 'ds'[pos: 'k']);
     }
-    std::list.append[lend.mut 'buf', value: 10];
-    NO_FUCKING_CHECKS write[1, lend 'buf', std::list.length[lend 'buf']];
+    std::list.append(lend.mut 'buf', value: 10);
+    NO_FUCKING_CHECKS write(1, lend 'buf', std::list.length(lend 'buf'));
 }
 
 fn put_u ['n': u64] {
-    emit['n', false];
+    emit('n', false);
 }
 
 fn put_i ['n': i64] {
     if 'n' < 0 {
-        emit[to.u64[0 minus ('n' plus 1)] plus 1, true];
+        emit(to.u64(0 minus ('n' plus 1)) plus 1, true);
     } else {
-        emit[to.u64['n'], false];
+        emit(to.u64('n'), false);
     }
 }
 
@@ -42,5 +42,5 @@ enum E1 {
 
 MAIN {
     let 'n': u64 = (4294967294 pow 12) mod.floor 2147483649;
-    put_u['n'];
+    put_u('n');
 }

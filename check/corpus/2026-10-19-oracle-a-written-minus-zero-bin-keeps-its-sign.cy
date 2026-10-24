@@ -6,15 +6,15 @@
 layout.C union Un { i: i32, u: u32, f: f32 }
 MAIN {
     let 'a': f32 = -0.0;
-    std::print.stored['a', newln];
+    std::print.stored('a', newln);
     let 'z': f64 = 0.0;
     let 'b': f64 = -'z';
-    std::print.stored['b', newln];
+    std::print.stored('b', newln);
     let mut 'un' := Un[i = 5];
     change 'un'.f = -0.0;
     no_check let 'bits' := 'un'.u;
-    std::print.useful['bits', newln];
+    std::print.useful('bits', newln);
     change 'un'.f = 'a';
     no_check let 'bits2' := 'un'.u;
-    std::print.useful['bits2', newln];
+    std::print.useful('bits2', newln);
 }

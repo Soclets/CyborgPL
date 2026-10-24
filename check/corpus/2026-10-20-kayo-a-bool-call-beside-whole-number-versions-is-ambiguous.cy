@@ -7,11 +7,11 @@
 coll.fn ov {
     versions ov {
         ['x': i32, 'k': i32] -> i32 { return ('x' x 'k') mod.floor 97; }
-        ['x': i64] -> i32 { return to.i32['x' mod.floor 1000]; }
-        ['x': i16] -> i32 { return to.i32['x'] x 2; }
+        ['x': i64] -> i32 { return to.i32('x' mod.floor 1000); }
+        ['x': i16] -> i32 { return to.i32('x') x 2; }
         ['x': bool] -> i32 { if 'x' { return 1; } return 0; }
     }
 }
 MAIN {
-    std::print.useful[ov[true], " ", ov[false], newln];
+    std::print.useful(ov(true), " ", ov(false), newln);
 }

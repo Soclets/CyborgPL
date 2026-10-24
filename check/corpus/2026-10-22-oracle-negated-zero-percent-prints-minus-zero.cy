@@ -3,5 +3,5 @@
 # `-'tx'` of `exactly 0%` prints "0%" in kayo; the oracle prints "-0%".
 MAIN {
     let 'tx' := exactly 0%;
-    std::print.useful[-'tx', " ", -0%, " ", -23%, newln];
+    std::print.useful(-'tx', " ", -0%, " ", -23%, newln);
 }

@@ -182,6 +182,16 @@ fn compare_one(o: &Oracle, build: &Build, mode: Mode, dir: &Path, env: &Env) -> 
             }
             match (o, &e) {
                 (Oracle::Ran { out: a }, Exec::Ran { out: b }) => (a != b).then(|| ()).and_then(|_| finding("output", d)),
+                // both exited with a code of the program's own, `std::exit(code: N)`
+                (Oracle::Stopped { out: a, line: None, msg: om }, Exec::Stopped { out: b, line: None, msg: em, .. }) if om.starts_with("exit ") && em.starts_with("exit ") => {
+                    if om != em {
+                        finding("exit-code", d)
+                    } else if a != b {
+                        finding("output-before-stop", d)
+                    } else {
+                        None
+                    }
+                }
                 (Oracle::Stopped { out: a, line: m, .. }, Exec::Stopped { out: b, line: l, .. }) => {
                     if m != l || m.is_none() {
                         finding("different-site", d)

@@ -16,10 +16,10 @@ MAIN {
     let 'h': d64 = -2.5;
     let 'p0' := exactly 0%;
     let 'w': d64[min_places: 3] = -'z';
-    let 't' := to.d64["-0.0"] otherwise 'g';
-    let 'c' := to.d32[-'z'] otherwise 'z32';
-    std::print.stored[-'z32', " ", -'z', " ", -'z128', " ", 'z' x 'n', " ", 'n' x 'z', " ", 'z' div.near 'k', newln];
-    std::print.stored[5.0 mod.floor 'h', " ", -('f' mod.floor 'g'), " ", -('f' mod.ceil 'g'), " ", -('f' mod.trunc 'g'), newln];
-    std::print.stored['c', " ", to.d128[-'z'], " ", 't', " ", -'p0', " ", to.percent[d64][-'z'], " ", 'w', newln];
-    std::print.useful[-'z', " ", 'z' x 'n', " ", 'w', newln];
+    let 't' := to.d64("-0.0") otherwise 'g';
+    let 'c' := to.d32(-'z') otherwise 'z32';
+    std::print.stored(-'z32', " ", -'z', " ", -'z128', " ", 'z' x 'n', " ", 'n' x 'z', " ", 'z' div.near 'k', newln);
+    std::print.stored(5.0 mod.floor 'h', " ", -('f' mod.floor 'g'), " ", -('f' mod.ceil 'g'), " ", -('f' mod.trunc 'g'), newln);
+    std::print.stored('c', " ", to.d128(-'z'), " ", 't', " ", -'p0', " ", to.percent[d64](-'z'), " ", 'w', newln);
+    std::print.useful(-'z', " ", 'z' x 'n', " ", 'w', newln);
 }

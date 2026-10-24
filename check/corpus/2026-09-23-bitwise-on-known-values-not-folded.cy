@@ -6,7 +6,7 @@ extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
 extern.C fn strlen ['s': ptr[u8]] -> u64;
 MAIN {
     let 'k' := "CHK_A";
-    no_check let 'n': u64 = strlen[getenv[lend 'k']];
+    no_check let 'n': u64 = strlen(getenv(lend 'k'));
     let 'z': u8 = 5 and.bit 0;
     let 'r': u64 = 0;
     check { change 'r' = 'n' times 'z'; }

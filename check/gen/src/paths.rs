@@ -10,23 +10,45 @@
 const ROOTS: [&str; 7] = ["list", "map", "round", "format", "duration", "casing", "str"];
 
 pub fn std_paths(text: &str) -> String {
-    rewrite(text, false, false)
+    rewrite(text, false, false, &mut vec![])
+}
+
+/// An edit a rewrite made: the characters after offset `.0` of the text it
+/// was given (all of them for -1) moved by `.1`. Spans are carried through.
+pub type Edits = Vec<(isize, isize)>;
+
+/// Where offset `p` of the text before a rewrite stands after it.
+pub fn map_offset(edits: &Edits, p: usize) -> usize {
+    (p as isize + edits.iter().filter(|(at, _)| *at < p as isize).map(|(_, d)| d).sum::<isize>()) as usize
+}
+
+/// A rendered program's text with std's paths in the form the program was
+/// written for (`use_list`, `glyph`), and the edits made.
+pub fn std_paths_with(text: &str, use_list: bool, glyph: bool) -> (String, Edits) {
+    let mut edits = vec![];
+    let out = rewrite(text, use_list, glyph, &mut edits);
+    if use_list {
+        let prefix = "use std::list as list; ";
+        edits.insert(0, (-1, prefix.len() as isize));
+        return (format!("{prefix}{out}"), edits);
+    }
+    (out, edits)
 }
 
 /// The same, with std's glyph `xx` written `std::xx` every other time too
 /// (design claude, 2026-10-22; oracle edcbf2cb).
 pub fn std_paths_glyph(text: &str) -> String {
-    rewrite(text, false, true)
+    rewrite(text, false, true, &mut vec![])
 }
 
 /// The same, with `use std::list as list;` (owner, 2026-10-22; oracle
 /// 82d88048, kayo a42b37c4) put in front of the first line, a comment, so no
 /// line moves, and `list` then written bare every other time.
 pub fn std_paths_using_list(text: &str) -> String {
-    format!("use std::list as list; {}", rewrite(text, true, false))
+    format!("use std::list as list; {}", rewrite(text, true, false, &mut vec![]))
 }
 
-fn rewrite(text: &str, use_list: bool, glyph: bool) -> String {
+fn rewrite(text: &str, use_list: bool, glyph: bool, edits: &mut Edits) -> String {
     let (mut lists, mut pows, mut glyphs) = (0, 0, 0);
     let b = text.as_bytes();
     let mut out = String::with_capacity(text.len() + text.len() / 8);
@@ -91,6 +113,7 @@ fn rewrite(text: &str, use_list: bool, glyph: bool) -> String {
             };
             if (hit && !bare_list) || pow_path || glyph_path {
                 out.push_str("std::");
+                edits.push((i as isize, 5));
             }
             out.push_str(w);
             i = end;

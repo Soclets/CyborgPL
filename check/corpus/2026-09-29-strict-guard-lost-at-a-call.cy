@@ -9,5 +9,5 @@ fn f ['p': i32] -> bool {
     return false;
 }
 MAIN {
-    let immut 'x': bool = f[5];
+    let immut 'x': bool = f(5);
 }

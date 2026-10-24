@@ -4,5 +4,5 @@
 # examples/std_glyph_path.cy). kayo refuses it: "no kit with the prefix `std`".
 MAIN {
     let 'a': i64 = 7;
-    std::print.useful['a' std::xx 2, " ", 'a' xx 2, " ", 'a' std::pow 2, newln];
+    std::print.useful('a' std::xx 2, " ", 'a' xx 2, " ", 'a' std::pow 2, newln);
 }

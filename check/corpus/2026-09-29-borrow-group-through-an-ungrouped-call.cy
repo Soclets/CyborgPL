@@ -6,11 +6,11 @@ fn b1 [@x] [lent @x 'a': std::list[i32], lent @x 'b': std::list[i32]] -> lent @x
     return lend 'b';
 }
 fn b2 [@y, @x] [lent @y 'a': std::list[i32], lent @x 'b': std::list[i32]] -> lent @x std::list[i32] {
-    return b1[lend 'a', lend 'b'];
+    return b1(lend 'a', lend 'b');
 }
 MAIN {
     let 's': std::list[i32] = [1,];
     let 't': std::list[i32] = [2, 3];
-    let 'r' := b2[lend 's', lend 't'];
-    let 'n' := std::list.length[lend 'r'];
+    let 'r' := b2(lend 's', lend 't');
+    let 'n' := std::list.length(lend 'r');
 }

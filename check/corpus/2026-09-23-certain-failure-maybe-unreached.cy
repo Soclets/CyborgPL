@@ -6,11 +6,11 @@ extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
 extern.C fn strlen ['s': ptr[u8]] -> u64;
 MAIN {
     let 'k' := "CHK_A";
-    no_check let 'n': u64 = strlen[getenv[lend 'k']];
+    no_check let 'n': u64 = strlen(getenv(lend 'k'));
     let 'p': i16 = -5;
     if 'n' > 1000000 {
-        let 'x': u64 = to.u64['p'];
+        let 'x': u64 = to.u64('p');
     }
     let 'hi' := "ran on";
-    no_check write[1, lend 'hi', 6];
+    no_check write(1, lend 'hi', 6);
 }

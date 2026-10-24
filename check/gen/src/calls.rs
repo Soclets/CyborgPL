@@ -183,6 +183,13 @@ pub fn paren_calls(text: &str) -> String {
 /// `'name'` written `$name` every other time where the name needs no
 /// quotes (letters, digits, `_`): `$x` and `'x'` are one variable.
 pub fn dollars(text: &str) -> String {
+    dollars_with(text).0
+}
+
+/// The same, with the edits made: each `'x'` written `$x` drops its closing
+/// quote.
+pub fn dollars_with(text: &str) -> (String, crate::paths::Edits) {
+    let mut edits = vec![];
     let b = text.as_bytes();
     let mut out = String::with_capacity(text.len());
     let (mut i, mut in_str, mut in_char, mut n) = (0, false, false, 0);
@@ -223,6 +230,7 @@ pub fn dollars(text: &str) -> String {
                         if n % 2 == 0 {
                             out.push('$');
                             out.push_str(name);
+                            edits.push((e as isize, -1));
                         } else {
                             out.push_str(&text[i..=e]);
                         }
@@ -238,7 +246,7 @@ pub fn dollars(text: &str) -> String {
         out.push(ch);
         i += ch.len_utf8();
     }
-    out
+    (out, edits)
 }
 
 #[cfg(test)]

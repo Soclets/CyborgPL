@@ -4,7 +4,7 @@
 # let would, refused only when the value does not fit. The oracle did so; kayo had built
 # simd[u8, 16] from the value and refused, until 3e5bf3c8. Both print ok now.
 MAIN {
-    let 'r': simd[i32, count: 4] = simd.fill[value: 5: u8];
-    let 's': simd[i32, count: 4] = simd.fill[value: to.u8[5]];
-    std::print.useful["ok", newln];
+    let 'r': simd[i32, count: 4] = simd.fill(value: 5: u8);
+    let 's': simd[i32, count: 4] = simd.fill(value: to.u8(5));
+    std::print.useful("ok", newln);
 }

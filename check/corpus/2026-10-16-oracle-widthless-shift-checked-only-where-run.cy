@@ -7,8 +7,8 @@
 MAIN {
     let 'b': bool = false;
     let 'v': i64 = 2;
-    if 'b' and.then ((3 shr to.i64['v']) at_least 9) {
-        std::print.useful["yes", newln];
+    if 'b' and.then ((3 shr to.i64('v')) at_least 9) {
+        std::print.useful("yes", newln);
     }
-    std::print.useful["end", newln];
+    std::print.useful("end", newln);
 }

@@ -7,15 +7,15 @@ fn b1 [@x, @y] [lent @x 'a': std::list[i8], lent @y 'b': std::list[i8]] -> lent 
 }
 
 fn b2 [@x, @y] [lent @x 'a': std::list[i8], lent @y 'c': std::list[i8]] -> lent @x std::list[i8] {
-    if std::list.length[lend 'a'] at_least 0 {
+    if std::list.length(lend 'a') at_least 0 {
         return lend 'a';
     }
-    return b1[lend 'c', lend 'a'];
+    return b1(lend 'c', lend 'a');
 }
 
 MAIN {
     let 'o1': std::list[i8] = [1, 2];
     let 'o2': std::list[i8] = [3,];
-    let 'r' := b2[lend 'o1', lend 'o2'];
-    let 'n' := std::list.length[lend 'r'];
+    let 'r' := b2(lend 'o1', lend 'o2');
+    let 'n' := std::list.length(lend 'r');
 }

@@ -138,8 +138,10 @@ impl Args {
             std_paths: !avoid.contains("std-paths"),
             // `std::xx`, std's glyph with its path (oracle edcbf2cb, kayo 0aced748)
             std_glyph: !avoid.contains("std-glyph"),
-            // calls in `( )` and `$name` (oracle c16dc2d7): kayo reads only `[ ]` yet; `--paren-calls` turns them on
-            paren_calls: self.has("paren-calls"),
+            // calls in `( )` and `$name` (oracle c16dc2d7, kayo 33f7b3dd, std aa012698)
+            paren_calls: !avoid.contains("paren-calls"),
+            // MAIN ending in `std::exit(code: N)` (oracle 69c6aedf, kayo has it)
+            exits: !avoid.contains("exits"),
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),
@@ -445,6 +447,17 @@ fn main() {
                 if ok { same += 1 } else { differ += 1 }
             }
             println!("{} programs ({runs} runs): {same} twins the same, {differ} differ", same + differ);
+        }
+        "calls" => {
+            // rewrite files in place with calls in `( )`, as the generator writes them
+            for f in &a.rest {
+                let s = std::fs::read_to_string(f).unwrap_or_else(|e| die(&format!("{f}: {e}")));
+                let t = check_gen::calls::paren_calls(&s);
+                if t != s {
+                    std::fs::write(f, t).unwrap();
+                    println!("rewrote {f}");
+                }
+            }
         }
         "paths" => {
             // rewrite files in place with std's paths, as the generator writes them

@@ -4,7 +4,7 @@ extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 MAIN {
     let 'v': i8 = 112;
     let 'yes' := "in ";
-    if 'v' > ('v' plus 'v') { no_check write[1, lend 'yes', 3]; }
+    if 'v' > ('v' plus 'v') { no_check write(1, lend 'yes', 3); }
     let 'end' := "end";
-    no_check write[1, lend 'end', 3];
+    no_check write(1, lend 'end', 3);
 }

@@ -5,5 +5,5 @@
 MAIN {
     let 'tx' := exactly 51.0%;
     let 'wx': f16 = 0.337403770;
-    std::print.written['wx', " ", 'tx', " ", -2.50, newln];
+    std::print.written('wx', " ", 'tx', " ", -2.50, newln);
 }

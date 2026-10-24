@@ -205,6 +205,8 @@ pub fn oracle(t: &Tools, file: &Path, dir: &Path, env: &[(String, String)]) -> O
     }
     match r.code {
         Some(0) => Oracle::Ran { out: r.stdout },
+        // `std::exit(code: N)`: nothing said, the code is the answer
+        Some(c) if r.stderr.trim().is_empty() => Oracle::Stopped { out: r.stdout, line: None, msg: format!("exit {c}") },
         _ => {
             let first = r.stderr.lines().next().unwrap_or("").to_string();
             // drop the file name the oracle puts in front
@@ -331,7 +333,10 @@ pub fn cca_run(bin: &Path, dir: &Path, env: &[(String, String)]) -> Exec {
         return Exec::Ran { out: r.stdout };
     }
     let line = r.stderr.lines().find(|l| l.starts_with("where:")).and_then(line_of);
-    let msg = r.stderr.lines().next().unwrap_or("").to_string();
+    let msg = match r.code {
+        Some(c) if r.stderr.trim().is_empty() => format!("exit {c}"),
+        _ => r.stderr.lines().next().unwrap_or("").to_string(),
+    };
     Exec::Stopped { out: r.stdout, code: r.code, line, msg }
 }
 

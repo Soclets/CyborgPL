@@ -6,7 +6,7 @@ extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
 extern.C fn strlen ['s': ptr[u8]] -> u64;
 MAIN {
     let 'k' := "CHK_A";
-    no_check let 'n': u64 = strlen[getenv[lend 'k']];
-    let 'v': i16[max: -91] = (to.i16['n' mod.floor 32768] mod.floor 32677) minus 32767;
+    no_check let 'n': u64 = strlen(getenv(lend 'k'));
+    let 'v': i16[max: -91] = (to.i16('n' mod.floor 32768) mod.floor 32677) minus 32767;
     check let 'a': i16 = 1 plus ('v' shl 0);
 }

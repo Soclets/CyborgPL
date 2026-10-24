@@ -7,14 +7,14 @@
 coll.fn ov {
     versions ov.flip {
         ['x': i32] -> i32 { return 0 - ('x' mod.floor 50); }
-        ['x': i64] -> i32 { return to.i32['x' mod.floor 50]; }
+        ['x': i64] -> i32 { return to.i32('x' mod.floor 50); }
     }
 }
 MAIN {
-    let 'p': bool = to.i64[1] equal_to to.i64[2];
-    std::print.useful["before", newln];
+    let 'p': bool = to.i64(1) equal_to to.i64(2);
+    std::print.useful("before", newln);
     if 'p' {
-        std::print.useful[ov.flip[77], newln];
+        std::print.useful(ov.flip(77), newln);
     }
-    std::print.useful["after", newln];
+    std::print.useful("after", newln);
 }

@@ -5,6 +5,6 @@ extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 MAIN {
     let 'dot' := ".";
     for 'i': u8 [from: 1, to: 0, by: -2] {
-        no_check write[1, lend 'dot', 1];
+        no_check write(1, lend 'dot', 1);
     }
 }

@@ -6,8 +6,8 @@ extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
 extern.C fn strlen ['s': ptr[u8]] -> u64;
 MAIN {
     let 'k' := "CHK_A";
-    no_check let 'n': u64 = strlen[getenv[lend 'k']];
+    no_check let 'n': u64 = strlen(getenv(lend 'k'));
     let 'b': u8 = 'n';
     let 'yes' := "b is 44";
-    if 'b' equal_to 44 { no_check write[1, lend 'yes', 7]; }
+    if 'b' equal_to 44 { no_check write(1, lend 'yes', 7); }
 }

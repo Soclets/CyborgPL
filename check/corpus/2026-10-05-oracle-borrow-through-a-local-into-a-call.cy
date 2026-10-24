@@ -9,17 +9,17 @@ fn b1 [@x] [lent @x 'a': std::list[i32], lent @x 'b': std::list[i32], lent @x 'c
 }
 
 fn b2 [@x] [lent @x 'a': std::list[i32], lent @x 'b': std::list[i32]] -> lent @x std::list[i32] {
-    if std::list.length[lend 'a'] at_least 1 {
+    if std::list.length(lend 'a') at_least 1 {
         return lend 'a';
     }
-    return b1[lend 'a', lend 'a', lend 'b'];
+    return b1(lend 'a', lend 'a', lend 'b');
 }
 
 MAIN {
     let 'o1': std::list[i32] = [2, -16];
     let 'o2': std::list[i32] = [7,];
-    let 'r' := b2[lend 'o1', lend 'o2'];
-    let 's' := b1[lend 'o1', lend 'r', lend 'r'];
+    let 'r' := b2(lend 'o1', lend 'o2');
+    let 's' := b1(lend 'o1', lend 'r', lend 'r');
     let 'g' := give 'o2';
-    let 'n' := std::list.length[lend 's'];
+    let 'n' := std::list.length(lend 's');
 }

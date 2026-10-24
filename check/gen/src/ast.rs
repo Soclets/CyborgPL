@@ -1148,31 +1148,28 @@ impl Program {
         }
         w.block(&self.main, 1);
         w.out.push_str("}\n");
+        // the rewrites, carrying every span's offsets through them
+        let (out, e1) = if self.std_paths { crate::paths::std_paths_with(&w.out, self.seed % 3 == 0, self.std_glyph && self.seed % 3 != 0) } else { (w.out.clone(), vec![]) };
+        let (out, e2) = if self.paren_calls { crate::calls::dollars_with(&crate::calls::paren_calls(&out)) } else { (out, vec![]) };
+        let mv = |p: usize| crate::paths::map_offset(&e2, crate::paths::map_offset(&e1, p));
         // byte offsets to (line, column)
-        let starts: Vec<usize> = std::iter::once(0).chain(w.out.match_indices('\n').map(|(i, _)| i + 1)).collect();
+        let starts: Vec<usize> = std::iter::once(0).chain(out.match_indices('\n').map(|(i, _)| i + 1)).collect();
         let at = |off: usize| -> (u32, u32) {
             let line = starts.partition_point(|&s| s <= off);
             (line as u32, (off - starts[line - 1] + 1) as u32)
         };
         let mut spans = Spans::default();
         for (a, s, e) in &w.expr {
-            let (l, c) = at(*s);
-            let (_, ce) = at(*e);
+            let (l, c) = at(mv(*s));
+            let (_, ce) = at(mv(*e));
             spans.expr.insert(*a, (l, c, ce));
         }
         for (a, s0, s1, e) in &w.stmt {
-            let (l, c0) = at(*s0);
-            let (_, c1) = at(*s1);
-            let (_, ce) = at(*e);
+            let (l, c0) = at(mv(*s0));
+            let (_, c1) = at(mv(*s1));
+            let (_, ce) = at(mv(*e));
             spans.stmt.insert(*a, (l, c0, c1, ce));
         }
-        let out = match (self.std_paths, self.seed % 3) {
-            (false, _) => w.out,
-            (true, 0) => crate::paths::std_paths_using_list(&w.out),
-            (true, _) if self.std_glyph => crate::paths::std_paths_glyph(&w.out),
-            (true, _) => crate::paths::std_paths(&w.out),
-        };
-        let out = if self.paren_calls { crate::calls::dollars(&crate::calls::paren_calls(&out)) } else { out };
         (out, spans)
     }
 }

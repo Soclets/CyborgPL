@@ -6,7 +6,7 @@ MAIN {
     let 'x': i64 = 1;
     let 'd': i64 = 'x' mod.floor (-3);
     let 'ok' := "-2 ok";
-    if 'd' equal_to -2 { no_check write[1, lend 'ok', 5]; }
+    if 'd' equal_to -2 { no_check write(1, lend 'ok', 5); }
     let 'e': i64 = 7 mod.floor (-3);
-    if 'e' equal_to -2 { no_check write[1, lend 'ok', 5]; }
+    if 'e' equal_to -2 { no_check write(1, lend 'ok', 5); }
 }

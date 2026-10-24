@@ -7,8 +7,8 @@ extern.C fn strlen ['s': ptr[u8]] -> u64;
 fn g ['v': u8] -> u8 { return 'v'; }
 MAIN {
     let 'k' := "CHK_A";
-    no_check let 'n': u64 = strlen[getenv[lend 'k']];
-    let 'b': u8 = g['n'];
+    no_check let 'n': u64 = strlen(getenv(lend 'k'));
+    let 'b': u8 = g('n');
     let 'hi' := "ran on";
-    no_check write[1, lend 'hi', 6];
+    no_check write(1, lend 'hi', 6);
 }

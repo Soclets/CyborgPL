@@ -5,5 +5,5 @@ MAIN {
     let 'v': i8 = 100;
     let 'b': i8 = 'v' shr (-1);
     let 'hi' := "ran on";
-    no_check write[1, lend 'hi', 6];
+    no_check write(1, lend 'hi', 6);
 }

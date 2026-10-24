@@ -8,10 +8,10 @@
 coll.fn ov {
     versions ov {
         ['x': i32, 'k': i32] -> i32 { return ('x' x 'k') mod.floor 230; }
-        ['x': i64] -> i32 { return to.i32['x' mod.floor 230]; }
-        ['x': i16] -> i32 { return to.i32['x'] x 4; }
+        ['x': i64] -> i32 { return to.i32('x' mod.floor 230); }
+        ['x': i16] -> i32 { return to.i32('x') x 4; }
     }
 }
 MAIN {
-    std::print.useful[ov[to.i16[169]], newln];
+    std::print.useful(ov(to.i16(169)), newln);
 }

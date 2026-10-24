@@ -7,5 +7,5 @@ MAIN {
     let 'm': d64 = 'a' mod.ceil 2.5;
     let 't': d64 = 'm' x 1.7;
     let 'z': d64 = 0.0;
-    std::print.stored['m', " ", 't', " ", -'t', " ", -'z', newln];
+    std::print.stored('m', " ", 't', " ", -'t', " ", -'z', newln);
 }

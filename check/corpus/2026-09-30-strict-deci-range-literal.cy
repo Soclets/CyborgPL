@@ -6,5 +6,5 @@ fn f [] -> i32 {
     return 0;
 }
 MAIN {
-    let immut 'x': i32 = f[];
+    let immut 'x': i32 = f();
 }

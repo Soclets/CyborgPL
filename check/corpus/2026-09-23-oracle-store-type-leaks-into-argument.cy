@@ -4,5 +4,5 @@
 fn g ['p': bool] -> u8 { return 0; }
 MAIN {
     let 'x': i64 = 0;
-    let 'v': u8 = g[0 > (-1) minus 'x'];
+    let 'v': u8 = g(0 > (-1) minus 'x');
 }

@@ -6,5 +6,5 @@ fn half ['x': i32[min: 0, max: 1000]] -> i32[min: 0, max: 500] {
 MAIN {
     let 'p': i32[min: 1] = 1;
     let 's': u16[max: 112] = 102;
-    let 'h': i32[min: 0, max: 500] = half[40];
+    let 'h': i32[min: 0, max: 500] = half(40);
 }

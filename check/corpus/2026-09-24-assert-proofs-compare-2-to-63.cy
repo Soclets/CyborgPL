@@ -4,5 +4,5 @@ extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 MAIN {
     let 'v1': u16 = 0;
     let 'yes' := "taken";
-    if 9223372036854775808 at_most 'v1' { no_check write[1, lend 'yes', 5]; }
+    if 9223372036854775808 at_most 'v1' { no_check write(1, lend 'yes', 5); }
 }

@@ -4,5 +4,5 @@
 # The oracle runs it.
 MAIN {
     let 'x': i32 = 5;
-    let 'a': simd[i32, count: 4] = simd.fill[value: 'x' plus 1];
+    let 'a': simd[i32, count: 4] = simd.fill(value: 'x' plus 1);
 }

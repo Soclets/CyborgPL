@@ -9,17 +9,17 @@ fn put_u ['m': u64] {
     let mut 'p': u64 = 1;
     while 'v' div.floor 'p' at_least 10 { change 'p' = 'p' times 10; }
     loop {
-        std::list.append[lend.mut 'buf', value: to.u8[48 plus ('v' div.floor 'p')]];
+        std::list.append(lend.mut 'buf', value: to.u8(48 plus ('v' div.floor 'p')));
         change 'v' = 'v' mod.floor 'p';
         if 'p' equal_to 1 { break; }
         change 'p' = 'p' div.floor 10;
     }
-    std::list.append[lend.mut 'buf', value: 10];
-    no_check write[1, lend 'buf', std::list.length[lend 'buf']];
+    std::list.append(lend.mut 'buf', value: 10);
+    no_check write(1, lend 'buf', std::list.length(lend 'buf'));
 }
 enum E { a, b: u64 }
 MAIN {
-    let 'v': u64 = match E.b[284] { a { is 1; } b 'd' { is 'd' shr 35; } };
+    let 'v': u64 = match E.b(284) { a { is 1; } b 'd' { is 'd' shr 35; } };
     let 'n': u64 = 5 div.floor 'v';
-    put_u['n'];
+    put_u('n');
 }

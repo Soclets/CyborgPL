@@ -6,9 +6,9 @@
 # up. The exact half step, and a f64 (rounded as a f64 first, by: its own rule), agree.
 MAIN {
     let 'a': brain16 = 1.01171874999999999999;
-    std::print.stored['a', newln];
-    let 'b' := to.brain16["1.01171874999999999999"] otherwise 1.0;
-    std::print.stored['b', newln];
+    std::print.stored('a', newln);
+    let 'b' := to.brain16("1.01171874999999999999") otherwise 1.0;
+    std::print.stored('b', newln);
     let 'd': brain16 = 1.01171875;
-    std::print.stored['d', newln];
+    std::print.stored('d', newln);
 }

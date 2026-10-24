@@ -7,5 +7,5 @@ MAIN {
         const 'r': i32 = 3;
         change 'r' = 4;
     }
-    put_u[1];
+    put_u(1);
 }

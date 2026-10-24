@@ -17,8 +17,12 @@ unless the name is a type, describes (`size.of`, `align.of`, `ptr.cast[T]`, `sim
 `optional[T]`, a result's `or fail[…]`), builds a struct (capitalised), or follows `fail`; a quoted or `$`
 name's `[pos: …]` stays; `to.T[…][…]` and `ptr.cast[T][…]` keep the first group and call with the second;
 plain names are written `$name` every other time. Cross-checked against `oracle --to-paren-calls` on 200
-seeds (the same on every program it finished). kayo reads only `[ ]` yet, so the switch is off and the
-differential runs against an oracle pinned at 62ff4e83 (`CHECK_ORACLE`, as for the paths).
+seeds (the same on every program it finished). On by default since kayo 33f7b3dd and std aa012698 (`--avoid paren-calls` for `[ ]`);
+the pinned oracle is gone. The corpus was rewritten by `check calls FILE…`, the same rewrite (identical to
+the converter's on the 134 it finished; the other 10 are refused for what they test). Each rewrite records
+its edits (`paths::Edits`), and the spans are carried through them, so Precog's claims still match by line
+and column. `check clayout`'s program goes through the same rewrite. MAIN may end in `std::exit(code: N)`
+(oracle 69c6aedf): a silent stop with a code is compared code for code (`exit-code` when they differ).
 
 **std's paths by default** (kayo a42b37c4, 21cd0b37, 0aced748, 320605eb; 2026-10-22): `std::` paths,
 `versions` blocks, `ptr.null` and std's operator with its path are on by default (`--avoid std-paths`,
