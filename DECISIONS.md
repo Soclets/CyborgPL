@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Built in the oracle: `inline.MSL` is read and checked, then the oracle stops (owner: "Correct.")
+
+`no_check inline.MSL threads <count> { … } with [lend.mut $xs -> buffer(0), copy $k -> buffer(1)];` as designed
+(`design/gpu.md`). Refused when building: the limb Metal not listed; no `threads`; no kernel, or more than one;
+an `#include` that is not a file of the kit or reaches outside it; a slot bound twice; a binding with no verb or
+with `give`. Refused when reached: no `no_check`; a thread count under 1; a binding that is not a number, a list of
+numbers, a `layout.C` struct or a list of them; `copy` of anything but a single value, `lend` of a single value.
+Then the oracle stops: "the oracle cannot run Metal", as for assembly. Examples `msl_twice.cy` and the kit
+`msl_shared` (a list of `layout.C` structs, shared code `#include`d), each with its `.oracle` stop and the `.out`
+kayo's run gives; eleven refusal tests `msl_*`. Design claude's readings: a block with no kernel is refused; Metal's
+slots are 0 to 30; a `#include` must exist when building.
+
 ### 2026-10-24 — `inline.MSL` is built next, the hold lifted (owner)
 
 On 2026-10-22, after its design was settled, the owner held it: "Don't build `inline.MSL` for now" (recorded then only

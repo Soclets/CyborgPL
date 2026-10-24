@@ -357,6 +357,9 @@ pub enum Stmt {
     Fail { name: String, payload: Option<Bracket>, line: usize },
     /// `asm { … } with [ 'v' -> reg, 'v' <- reg, 'v' <-> reg, clobber reg ];` (design/ffi.md, 2026-09-20)
     Asm { text: String, binds: Vec<AsmBind>, line: usize },
+    /// `no_check inline.MSL threads $n { … } with [lend.mut $xs -> buffer(0), copy $k -> buffer(1)];` (owner, 2026-10-01,
+    /// 2026-10-22): the thread count, the Metal code, and each binding's verb, variable and buffer slot
+    Msl { threads: Bracket, text: String, binds: Vec<(Verb, String, u32)>, line: usize },
     /// `match v { case ['bind'] { … } … }` — every case covered (decided 2026-09-20)
     Match { value: Bracket, arms: Vec<Arm>, line: usize },
     /// `giveS v;` — a case's value, in a `#strict` file (owner, 2026-09-29)

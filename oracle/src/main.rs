@@ -943,6 +943,7 @@ fn check_redeclared(prog: &ast::Program) -> Result<Option<String>, String> {
                 handler(w, h)
             }
             Stmt::Whichever { arms: a, handler: h, .. } => { for x in a { bracket(w, &x.chan)?; block(w, &x.body, &[(x.name.clone(), false, None)])?; } handler(w, h) }
+            Stmt::Msl { binds, .. } => { for (verb, v, _) in binds { if *verb == Verb::LendMut { changes(w, v); } } Ok(()) }
             Stmt::Asm { binds, line, .. } => {
                 for b in binds {
                     match b {

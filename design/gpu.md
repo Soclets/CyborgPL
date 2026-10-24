@@ -140,11 +140,11 @@ Metal sets from the host with `dispatchThreads` — comes **after the name**
 (owner, 2026-10-01: b), as any number:
 
 ```
-no_check inline.MSL threads std::list.length[lend 'xs'] {
+no_check inline.MSL threads std::list.length(lend $xs) {
     kernel void twice(device int *xs [[buffer(0)]], uint id [[thread_position_in_grid]]) {
         xs[id] = xs[id] * 2;
     }
-} with [lend.mut 'xs' -> buffer(0)];
+} with [lend.mut $xs -> buffer(0)];
 ```
 
 How the block runs comes first; `with` holds what it touches. The code
@@ -156,7 +156,7 @@ matching the kernel's `[[buffer(0)]]`, as `inline.ASM` writes ARM's `x0`
 (owner, 2026-10-01).
 
 **Settled 2026-10-22 (owner):**
-- **A single value binds with `copy`**: `copy 'k' -> buffer(1)`, a Metal `constant`.
+- **A single value binds with `copy`**: `copy $k -> buffer(1)`, a Metal `constant`.
 - **One kernel per block**; helper functions without `kernel` are fine. Shared Metal code lives in `.metal` files,
   pulled in with Metal's own `#include "shaders/common.metal"`, the path from the kit's root, the registry refusing
   one outside the kit.
@@ -167,12 +167,12 @@ matching the kernel's `[[buffer(0)]]`, as `inline.ASM` writes ARM's `x0`
 ```
 layout.C struct Body { x: f32, y: f32, vx: f32, vy: f32 }
 
-no_check inline.MSL threads 'n' {
+no_check inline.MSL threads $n {
     #include "shaders/common.metal"
     kernel void step(device Body *bodies [[buffer(0)]], constant float &dt [[buffer(1)]], uint id [[thread_position_in_grid]]) {
         bodies[id].x += bodies[id].vx * dt;
     }
-} with [lend.mut 'bodies' -> buffer(0), copy 'dt' -> buffer(1)];
+} with [lend.mut $bodies -> buffer(0), copy $dt -> buffer(1)];
 ```
 
 - The limb is **Metal** (2026-10-06), listed as `metal { … }` under `my limbs:`.

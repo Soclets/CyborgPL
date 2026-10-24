@@ -488,7 +488,7 @@ impl<'p> Interp<'p> {
                 S::Decl { line, .. } | S::LocalConst { line, .. } | S::Assign { line, .. } | S::AssignElem { line, .. } | S::AssignField { line, .. }
                 | S::If { line, .. } | S::Loop { line, .. } | S::While { line, .. } | S::For { line, .. } | S::Range { line, .. } | S::Break { line }
                 | S::Continue { line } | S::Return { line, .. } | S::Call { line, .. } | S::BuiltinStmt { line, .. } | S::Tier { line, .. }
-                | S::Block { line, .. } | S::Fail { line, .. } | S::Asm { line, .. } | S::Match { line, .. } | S::Gives { line, .. } | S::Must { line, .. }
+                | S::Block { line, .. } | S::Fail { line, .. } | S::Asm { line, .. } | S::Msl { line, .. } | S::Match { line, .. } | S::Gives { line, .. } | S::Must { line, .. }
                 | S::MustFail { line, .. } | S::MustStop { line, .. } | S::Concur { line, .. } | S::Whichever { line, .. } | S::MapFailStmt { line, .. }
                 | S::CallValue { line, .. } => *line,
             };
@@ -1436,6 +1436,35 @@ impl<'p> Interp<'p> {
                 }
                 let n = text.lines().filter(|l| !l.trim().is_empty()).count();
                 rt(*line, format!("the oracle cannot run assembly ({n} instruction line(s), {} binding(s)); the compiler hands it to LLVM's assembler", binds.len()))
+            }
+            // the oracle reads and checks a Metal block, then stops: running it is the GPU's (owner, 2026-10-22)
+            Stmt::Msl { threads, text, binds, line } => {
+                if self.nocheck_depth == 0 && self.marks_needed() { return rt(*line, "an `inline.MSL` block is a no_check site: the compiler cannot see inside the Metal code"); }
+                let (n, _) = self.bracket(threads, *line)?;
+                let n = match n { Value::Int(n) if n >= 1 => n, Value::Int(n) => return rt(*line, format!("an `inline.MSL` block runs at least one thread; here {n}")), other => return rt(*line, format!("the thread count is a whole number, not {}", other.kind())) };
+                let number = |v: &Value| matches!(v, Value::Int(_) | Value::Bin(_) | Value::Brain(_));
+                for (verb, v, slot) in binds {
+                    let Some(sl) = self.lookup(v) else { return rt(*line, format!("'{v}' is not declared")) };
+                    let val = sl.cell.borrow().clone();
+                    let layout_c = |n: &str| self.prog.structs.iter().any(|d| d.name == n && d.layout_c);
+                    let what = match &val {
+                        x if number(x) => "a number",
+                        Value::List(xs) if xs.iter().all(number) => "a list of numbers",
+                        Value::Struct(n, _) if layout_c(n) => "a `layout.C` struct",
+                        Value::List(xs) if xs.iter().all(|x| matches!(x, Value::Struct(n, _) if layout_c(n))) => "a list of `layout.C` structs",
+                        other => return rt(*line, format!("'{v}' is {}, and what binds to the GPU is a number, a list of numbers, a `layout.C` struct or a list of them, handed over as they are (owner, 2026-10-22)", other.kind())),
+                    };
+                    match (verb, what) {
+                        (Verb::Copy, "a number") => {}
+                        (Verb::Copy, _) => return rt(*line, format!("'{v}' is {what}: lend it, `lend ${v} -> buffer({slot})`, or `lend.mut` for the kernel to change it; `copy` binds a single value")),
+                        (Verb::Lend | Verb::LendMut, "a number") => return rt(*line, format!("'{v}' is a single value: `copy ${v} -> buffer({slot})`, a Metal `constant` (owner, 2026-10-22)")),
+                        (Verb::LendMut, _) if sl.kind == SlotKind::Lent => return rt(*line, format!("'{v}' is lent (shared); it cannot be lent mutably")),
+                        (Verb::LendMut, _) if sl.immut => return rt(*line, format!("'{v}' is `immut`, so the kernel cannot be handed it to change")),
+                        _ => {}
+                    }
+                }
+                let lines = text.lines().filter(|l| !l.trim().is_empty()).count();
+                rt(*line, format!("the oracle cannot run Metal ({lines} line(s), {n} thread(s), {} binding(s)); kayo compiles it with Apple's `metal`", binds.len()))
             }
             Stmt::Fail { name, payload, line } => {
                 let case = match self.fails.iter().find(|f| &f.name == name) { Some(f) => f.clone(), None => return rt(*line, format!("`{name}` is not a listed failure here")) };

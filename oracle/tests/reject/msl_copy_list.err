@@ -1,0 +1,1 @@
+'xs' is a list of numbers: lend it, `lend $xs -> buffer(0)`,

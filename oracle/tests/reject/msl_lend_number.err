@@ -1,0 +1,1 @@
+'k' is a single value: `copy $k -> buffer(1)`, a Metal `cons

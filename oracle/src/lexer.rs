@@ -145,6 +145,8 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
     let mut i = 0;
     let mut line = 1;
     let mut col = 1;
+    // inside `inline.MSL …` before its code: the bracket depth, the code's `{` being the first at 0
+    let mut msl_open: Option<i32> = None;
 
     let err = |line, col, msg: String| Err(LexError { line, col, msg });
 
@@ -350,6 +352,9 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             }
             let after_inline = toks.len() >= 2 && toks[toks.len() - 1].tok == Tok::Dot && matches!(&toks[toks.len() - 2].tok, Tok::Word(w) if w == "inline");
             let is_asm = (s == "ASM" || s == "S" || s == "Assembly") && after_inline;
+            // `inline.MSL threads $n { … }` (owner, 2026-10-01): the count comes first, so the first `{` outside any
+            // bracket after it opens the Metal code, taken verbatim
+            if (s == "MSL" || s == "Metal_Shading_Language") && after_inline { msl_open = Some(0); }
             // the words that replaced `!` and the comparison symbols (owner, 2026-10-07) are read as the
             // tokens the oracle has always used inside; the old spellings are kept, to be refused by name
             let after_bang = matches!(toks.last().map(|t| &t.tok), Some(Tok::Op(o)) if o == "!");
@@ -501,6 +506,32 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             i = j; col += n; continue;
         }
 
+        if let Some(d) = msl_open {
+            match c {
+                '(' | '[' => msl_open = Some(d + 1),
+                ')' | ']' => msl_open = Some(d - 1),
+                ';' => msl_open = None,
+                '{' if d == 0 => {
+                    msl_open = None;
+                    let (bl, bc) = (line, col);
+                    let mut k = i + 1;
+                    let mut depth = 1;
+                    let mut raw = String::new();
+                    while k < chars.len() {
+                        let e = chars[k];
+                        if e == '{' { depth += 1; } else if e == '}' { depth -= 1; if depth == 0 { break; } }
+                        raw.push(e);
+                        k += 1;
+                    }
+                    if k >= chars.len() { return err(bl, bc, "an `inline.MSL {` is never closed".into()); }
+                    for e in chars[i..=k].iter() { if *e == '\n' { line += 1; col = 1; } else { col += 1; } }
+                    toks.push(Token { tok: Tok::Raw(raw), line: bl, col: bc, mtm: None, paren: false, at: usize::MAX });
+                    i = k + 1;
+                    continue;
+                }
+                _ => {}
+            }
+        }
         let single = match c {
             '[' => Tok::LBracket, ']' => Tok::RBracket,
             '{' => Tok::LBrace, '}' => Tok::RBrace,

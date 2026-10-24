@@ -2621,7 +2621,7 @@ impl Parser {
                         Tok::Word(l) if l == "ASM" || l == "Assembly" || l == "S" => { self.use_power("inline_assembly", None, self.line()); }
                         Tok::Word(l) if l == "asm" || l == "s" || l == "assembly" => return self.err("an inline language's name is in capitals: `inline.ASM`".to_string()),
                         Tok::Word(l) if l == "LL" || l == "LLVM" || l == "LLVM_Intermediate_Representation" => return self.err("`inline.LL`, LLVM IR in place, is the base's (owner, 2026-10-12, IEG being dissolved); the oracle does not read it yet"),
-                        Tok::Word(l) if l == "MSL" || l == "Metal_Shading_Language" => return self.err("`inline.MSL`, the Metal Shading Language, is the Metal limb's (owner, 2026-10-07); the oracle does not read it yet"),
+                        Tok::Word(l) if l == "MSL" || l == "Metal_Shading_Language" => return self.msl_block(line),
                         Tok::Word(l) if l == "ll" || l == "msl" => return self.err(format!("an inline language's name is in capitals: `inline.{}`", l.to_uppercase())),
                         Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; the inline languages are `inline.ASM` (the base's), `inline.LL` (the base's) and `inline.MSL` (the Metal limb's) (`inline.C` is possible later — LLVM ships clang)")),
                         other => return self.err(format!("expected `ASM` after `inline.`, found {other}")),
@@ -3568,6 +3568,70 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
         let at = self.pos;
         self.toks.splice(at..at, block);
         Ok(Handler::Arms(self.arms("otherwise")?))
+    }
+
+    /// `inline.MSL threads <count> { Metal } with [ … ];`, after `inline.MSL` (design/gpu.md; owner, 2026-10-01, 2026-10-22).
+    /// What is checked here: the limb, the count's place, one kernel, each binding's shape and slot, and each `#include`
+    /// being a file of the kit; the values bound are checked when the block is reached, and the oracle then stops.
+    fn msl_block(&mut self, line: usize) -> PResult<Stmt> {
+        if self.lacks.iter().any(|c| c == "Metal") { return self.core_missing("Metal", "`inline.MSL`"); }
+        if !self.is_word("threads") { return self.err("an `inline.MSL` block says how many threads run it first: `inline.MSL threads $n { … }` (owner, 2026-10-01)"); }
+        self.advance();
+        let tline = self.line();
+        let count = self.expr()?;
+        let threads = Bracket { values: vec![Value::Expr(count)], line: tline, one_list: false };
+        let text = match self.advance().tok {
+            Tok::Raw(t) => t,
+            other => return self.err(format!("after the thread count comes the Metal code in `{{ }}`, found {other}")),
+        };
+        // one kernel per block (owner, 2026-10-22: "yea"); helper functions without `kernel` are fine
+        let code: String = text.lines().map(|l| l.split("//").next().unwrap_or("")).collect::<Vec<_>>().join("\n");
+        let kernels = code.split(|c: char| !(c.is_alphanumeric() || c == '_')).filter(|w| *w == "kernel").count();
+        if kernels == 0 { return self.err("an `inline.MSL` block holds one `kernel` function, the one its threads run; this one has none"); }
+        if kernels > 1 { return self.err(format!("an `inline.MSL` block holds one kernel, and this one has {kernels}: put each other kernel in a block of its own; shared code goes in a `.metal` file, `#include`d (owner, 2026-10-22)")); }
+        // shared code: Metal's own `#include "…"`, the path from the kit's root, a file in the kit (owner, 2026-10-22)
+        for l in text.lines() {
+            let t = l.trim_start();
+            let Some(rest) = t.strip_prefix("#include") else { continue };
+            let rest = rest.trim();
+            let Some(path) = rest.strip_prefix('"').and_then(|r| r.strip_suffix('"')) else {
+                return self.err(format!("an `inline.MSL` block includes a file of the kit, in quotes from its root: `#include \"shaders/common.metal\"`, not `{rest}`"));
+            };
+            if path.starts_with('/') || path.split('/').any(|p| p == "..") { return self.err(format!("`#include \"{path}\"` reaches outside the kit: a shared Metal file is in the kit, its path from the kit's root")); }
+            let dir = NEURON_DIR.with(|d| d.borrow().clone());
+            if !dir.join(path).is_file() { return self.err(format!("`#include \"{path}\"`: there is no such file in the kit (its path is from the kit's root)")); }
+        }
+        let mut binds: Vec<(Verb, String, u32)> = Vec::new();
+        if self.is_word("with") {
+            self.advance();
+            self.plain_open("an `inline.MSL` block's bindings")?;
+            self.expect(Tok::LBracket, "`[` after `with`")?;
+            while *self.peek() != Tok::RBracket {
+                let verb = match self.advance().tok {
+                    Tok::Word(w) if w == "copy" => Verb::Copy,
+                    Tok::Word(w) if w == "lend" => {
+                        if *self.peek() == Tok::Dot { self.advance(); match self.advance().tok { Tok::Word(m) if m == "mut" => Verb::LendMut, other => return self.err(format!("the only narrowing of `lend` is `.mut`, found {other}")) } } else { Verb::Lend }
+                    }
+                    Tok::Word(w) if w == "give" => return self.err("a binding hands the GPU a value to read (`copy $k`) or a list to work on (`lend` / `lend.mut $xs`); `give` has nothing to give it to"),
+                    Tok::Var(v) => return self.err(format!("a binding says how: `copy ${v} -> buffer(1)` for a value, `lend.mut ${v} -> buffer(0)` for a list (owner, 2026-10-22)")),
+                    other => return self.err(format!("expected a binding, `lend.mut $xs -> buffer(0)` or `copy $k -> buffer(1)`, found {other}")),
+                };
+                let v = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("expected the variable bound, found {other}")) };
+                self.expect(Tok::Arrow, "`->` and the buffer slot, `-> buffer(0)`")?;
+                if !self.is_word("buffer") { return self.err(format!("a binding goes to a slot as Metal names it: `-> buffer(0)` (owner, 2026-10-01), found {}", self.peek())); }
+                self.advance();
+                self.expect(Tok::LParen, "`(` and the slot's number: `buffer(0)`")?;
+                let slot = match self.advance().tok { Tok::Int(n) if (0..=30).contains(&n) => n as u32, Tok::Int(n) => return self.err(format!("Metal's buffer slots are 0 to 30; `buffer({n})` is none")), other => return self.err(format!("a buffer slot is a number, `buffer(0)`, found {other}")) };
+                self.expect(Tok::RParen, "`)` after the slot")?;
+                if let Some((_, w, _)) = binds.iter().find(|(_, _, s)| *s == slot) { return self.err(format!("`buffer({slot})` is bound twice, to ${w} and ${v}")); }
+                binds.push((verb, v, slot));
+                if *self.peek() == Tok::Comma { self.advance(); continue; }
+                break;
+            }
+            self.expect(Tok::RBracket, "`]` to close the bindings")?;
+        }
+        self.expect(Tok::Semi, "`;` after the `inline.MSL` block")?;
+        Ok(Stmt::Msl { threads, text, binds, line })
     }
 
     fn skip_braces(&mut self) -> PResult<()> {
