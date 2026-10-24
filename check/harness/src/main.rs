@@ -448,7 +448,7 @@ fn main() {
                         break;
                     }
                     if let Some((engines::Build::Built(x), engines::Build::Built(y))) = &builds {
-                        let (o, c) = (engines::cca_run(x, &kp, &env), engines::cca_run(y, &kt, &env));
+                        let (o, c) = (without_path(engines::cca_run(x, &kp, &env)), without_path(engines::cca_run(y, &kt, &env)));
                         if o != c {
                             ok = false;
                             println!("seed {seed}: kayo runs the program: {}\n          its twin: {}", compare::exec_text(&o), compare::exec_text(&c));
@@ -1212,8 +1212,33 @@ fn build_text(b: &engines::Build) -> String {
                 Some(i) => &msg[..i],
                 None => msg,
             };
+            let msg = match without_path(engines::Exec::Stopped { out: vec![], code: None, line: None, msg: msg.to_string() }) {
+                engines::Exec::Stopped { msg, .. } => msg,
+                _ => String::new(),
+            };
             format!("refused at line {line:?}: {msg}")
         }
         engines::Build::Timeout => "timed out".into(),
+    }
+}
+
+/// A kayo stop with its file left out of `check[name] at <path>:line:col`,
+/// so a program and its twin, built from different files, compare.
+fn without_path(e: engines::Exec) -> engines::Exec {
+    match e {
+        engines::Exec::Stopped { out, code, line, msg } => {
+            let msg = match msg.split_once("] at ") {
+                Some((head, at)) => {
+                    let place: Vec<&str> = at.rsplitn(3, ':').collect();
+                    match place.as_slice() {
+                        [col, line, _path] => format!("{head}] at {line}:{col}"),
+                        _ => format!("{head}]"),
+                    }
+                }
+                None => msg,
+            };
+            engines::Exec::Stopped { out, code, line, msg }
+        }
+        e => e,
     }
 }
