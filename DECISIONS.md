@@ -43,7 +43,8 @@ engines refuse a program for the same reason, where today a phrase of the oracle
 The owner, asked "Use the same names in both?": "yea". So **one list of error names, both engines using it**: kayo
 prints `error[unclosed_name] at …` in the full format, the oracle its one line with the name in front, and the
 refusal tests compare names. Design claude's readings: the list sits at the repository's root beside `spellings.cyr`,
-both engines reading it; who writes the names is asked next. Not built.
+both engines reading it. **Compiler claude drafts the names, design claude reviews the list, and the owner looks over
+what they want** (owner: "(a)", over naming them themselves or design claude writing them). Not built.
 
 ### 2026-10-24 — A short lambda: `fn [$s] = $s at_least 60`, its types from where it is passed (owner: c; built in the oracle the same day)
 
