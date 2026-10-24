@@ -34,6 +34,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Built in the oracle: `std::print.flush()`, writers, and a failed write (owner, 2026-10-23; owner: "Do num 1")
+
+`std::print.flush()`; `let mut $out := std::print.writer(size: 4096 bytes);` (or `.writer.stderr(…)`), its type
+`std::print.writer`; a print into it when its first argument is `lend.mut $out`, the text handed on whole when it
+reaches the size; `std::print.flush(lend.mut $out)`; a writer still holding text when its block ends refused, naming
+the flush; a print, a writer's print or a flush taking `otherwise { write_failed { … } }`, a print with `otherwise`
+flushed right there; with none, a failed write stops the program, "a print could not be written (…)" and exit 1
+(design claude's reading, the open question of how a stop reads). `examples/print_writer.cy` prints the ruling's
+example; tried by hand with a closed pipe, `otherwise` exiting 3 as its arm says. The oracle's own output is not
+grouped across prints (it writes each as it comes; the grouping is kayo's speed). Refusals: `writer_unflushed`,
+`writer_size_unit`, `print_into_not_writer`, `print_otherwise_wrong_reason`. Design claude's readings: the oracle
+refuses an unflushed writer when its block ends, kayo when building; a writer is owned, as a list is.
+
 ### 2026-10-24 — `std::time.after(5 secs)` and `std::time.every(1 sec)` stay bare: their names are the word (owner)
 
 The twin of `wait(for: …)`: offered (a) a word each, `after(in: 5 secs)`, `every(each: 1 sec)`, or (b) bare, their

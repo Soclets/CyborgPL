@@ -771,6 +771,15 @@ impl<'p> Interp<'p> {
         let r = self.stmts(stmts);
         // structured concurrency: the block waits for every task it started (decided 2026-09-22)
         let r = match r { Ok(flow) => self.drain_tasks(depth).map(|_| flow), e => e };
+        // a writer that goes away still holding text is refused (owner, 2026-10-23); kayo refuses it when building,
+        // the oracle when the block it lives in ends
+        let r = match r {
+            Ok(flow) => {
+                let left = self.scopes.last().and_then(|sc| sc.iter().find(|(_, sl)| sl.alive && sl.kind == SlotKind::Owned && matches!(&*sl.cell.borrow(), Value::Writer(w) if !w.borrow().text.is_empty())).map(|(n, _)| n.clone()));
+                match left { Some(n) => rt(0, format!("'{n}' goes away still holding text: `std::print.flush(lend.mut '{n}');` before its block ends (owner, 2026-10-23)")), None => Ok(flow) }
+            }
+            e => e,
+        };
         self.pop();
         r
     }
@@ -1654,6 +1663,7 @@ impl<'p> Interp<'p> {
                 Ok(())
             }
             (Ty::Duration, Value::Duration(_)) => Ok(()),
+            (Ty::Writer, Value::Writer(_)) => Ok(()),
             (Ty::Channel(_), Value::Chan(_)) => Ok(()),
             (Ty::Simd(t, n), Value::Simd(lanes)) => {
                 if lanes.len() != *n { return rt(line, format!("a {} has {n} lanes, this one has {}", name, lanes.len())); }
@@ -4988,6 +4998,22 @@ impl<'p> Interp<'p> {
     /// The caller's side, checked before anything runs (as the compiler would): a
     /// call that can fail must say what happens; one that cannot must not; arms
     /// cover every reason; `otherwise fail;` needs the reasons in the caller's list.
+    /// Text to stdout or stderr; the error when it cannot be written
+    fn emit(&mut self, text: &str, stderr: bool) -> Result<(), String> {
+        if stderr { use std::io::Write as _; std::io::stderr().write_all(text.as_bytes()).map_err(|e| e.to_string()) }
+        else { write!(self.out, "{text}").map_err(|e| e.to_string()) }
+    }
+
+    /// A print's write: done, or `write_failed` to its `otherwise`, or, with none, the program stops (owner, 2026-10-23:
+    /// "default to stop"); how a stop reads is open, the oracle's reading being its usual message and exit 1
+    fn written_or_failed(&mut self, r: Result<(), String>, c: &Call, value_used: bool) -> Result<Value, RuntimeError> {
+        match (r, &c.handler) {
+            (Ok(()), _) => Ok(Value::Nothing),
+            (Err(_), Some(h)) => { let h = h.clone(); self.handle_failure(&h, c.line, &format!("std::{}", c.path.join(".")), "write_failed".into(), None, value_used) }
+            (Err(e), None) => rt(c.line, format!("a print could not be written ({e}); `otherwise {{ write_failed {{ … }} }}` handles it")),
+        }
+    }
+
     fn check_handler(&self, handler: Option<&Handler>, fails: &[FailCase], name: &str, line: usize) -> Result<(), RuntimeError> {
         let list = || fails.iter().map(|f| f.name.as_str()).collect::<Vec<_>>().join(", ");
         match (handler, fails.is_empty()) {
@@ -5170,6 +5196,7 @@ impl<'p> Interp<'p> {
             Ty::Simd(t, n) => { let (sz, _) = self.size_align(t, line)?; (sz * n, sz * n) }
             Ty::Channel(_) => (8, 8),
             Ty::Duration => (8, 8),
+            Ty::Writer => return rt(line, "a writer has no C layout: it is std's, never C's"),
             Ty::CStr(_) => (24, 8),   // a list's handle, as `list[u8]`
             Ty::Fn(..) => (8, 8),
             Ty::Inst(n, _) => return rt(line, format!("`size.of[{n}[…]]`: a generic struct's size is not modelled by the oracle")),
@@ -5658,7 +5685,14 @@ impl<'p> Interp<'p> {
         }
         // `otherwise std::print.useful` belongs to `print.written` only (owner, 2026-10-17)
         if matches!(c.handler, Some(Handler::PrintAs(_))) && !path.starts_with("print.written") { return rt(c.line, format!("`otherwise std::print.…` says how a `print.written` prints a value with no written form; std::{path} is not one")); }
-        if c.handler.is_some() && !path.starts_with("input.") && !(path.starts_with("print.written") && matches!(c.handler, Some(Handler::PrintAs(_)))) { return rt(c.line, format!("std::{path} cannot fail; drop the `otherwise`")); }
+        // a print can fail to be written, and `otherwise` handles it (owner, 2026-10-23: "default to stop, handle with
+        // `otherwise`?", then "yea, record it"): its one reason is `write_failed`
+        let prints = path.starts_with("print.") && !matches!(c.handler, Some(Handler::PrintAs(_)));
+        if prints && c.handler.is_some() {
+            let fails = vec![FailCase { name: "write_failed".into(), ty: None }];
+            self.check_handler(c.handler.as_ref(), &fails, &format!("std::{}", path.strip_suffix(".stdout").unwrap_or(&path)), c.line)?;
+        }
+        if c.handler.is_some() && !prints && !path.starts_with("input.") && !(path.starts_with("print.written") && matches!(c.handler, Some(Handler::PrintAs(_)))) { return rt(c.line, format!("std::{path} cannot fail; drop the `otherwise`")); }
         match path.as_str() {
             "input.line" | "input.all" => {
                 // a boundary (decided 2026-09-20): text as it came; `closed` when there is none
@@ -5742,6 +5776,26 @@ impl<'p> Interp<'p> {
             "print.weird.stdout" | "print.weird.stderr" => rt(c.line, format!("say which form `std::{path}` shows: `std::print.weird.stored.{0}` or `std::print.weird.useful.{0}` (owner, 2026-10-02)", &path[12..])),
             // `print.written` (owner, 2026-10-17): each value as its literal was typed; one that was not typed (computed, read,
             // changed) has none, and then the print says `otherwise std::print.useful` (or `.stored`) or is refused
+            // `std::print.writer(size: 4096 bytes)`, `.writer.stderr(…)` (owner, 2026-10-23: "both, bro")
+            "print.writer.stdout" | "print.writer.stderr" => {
+                let (v, _) = self.single(&c.args, c.line)?;
+                let Value::Int(n) = v else { return rt(c.line, "a writer's size is a whole number of bytes") };
+                if n < 1 { return rt(c.line, "a writer holds at least 1 byte: `std::print.writer(size: 4096 bytes)`"); }
+                Ok(Value::Writer(Rc::new(RefCell::new(crate::value::Writer { text: String::new(), cap: n as usize, stderr: path.ends_with("stderr") }))))
+            }
+            // `std::print.flush()` sends what is held now; `std::print.flush(lend.mut $out)` a writer's text
+            "print.flush.stdout" | "print.flush.stderr" => {
+                let r = match c.args.values.as_slice() {
+                    [] => self.out.flush().map_err(|e| e.to_string()),
+                    [crate::ast::Value::Expr(Expr::Owned(Verb::LendMut, n, _))] => {
+                        let Some(Value::Writer(w)) = self.lookup(n).map(|s| s.cell.borrow().clone()) else { return rt(c.line, format!("`std::print.flush(lend.mut '{n}')` flushes a writer, and '{n}' is not one")) };
+                        let (text, err) = { let mut w = w.borrow_mut(); (std::mem::take(&mut w.text), w.stderr) };
+                        self.emit(&text, err)
+                    }
+                    _ => return rt(c.line, "`std::print.flush()` takes nothing, or a writer: `std::print.flush(lend.mut $out)`"),
+                };
+                self.written_or_failed(r, c, value_used)
+            }
             "print.written.stdout" | "print.written.stderr" => {
                 if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes at least one value")); }
                 let mut texts = Vec::new();
@@ -5785,8 +5839,19 @@ impl<'p> Interp<'p> {
                 let useful = path.starts_with("print.useful") || path.starts_with("print.weird.useful") || path.starts_with("this_will_print_the_useful");
                 let path = if path.ends_with("standard_error") { "print.useful.stderr".to_string() } else { path };
                 if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes at least one value")); }
+                // a first argument `lend.mut $out` of a writer: the text goes into it (owner, 2026-10-23: no `.to`; a print
+                // never changes what it prints, so a mutable lend can only be where the text goes)
+                let writer = match c.args.values.first() {
+                    Some(crate::ast::Value::Expr(Expr::Owned(Verb::LendMut, n, _))) => match self.lookup(n).map(|s| s.cell.borrow().clone()) {
+                        Some(Value::Writer(w)) => Some(w),
+                        _ => return rt(c.line, format!("a print never changes what it prints, so `lend.mut '{n}'` names a writer to print into, and '{n}' is not one")),
+                    },
+                    _ => None,
+                };
+                let values = if writer.is_some() { &c.args.values[1..] } else { &c.args.values[..] };
+                if values.is_empty() { return rt(c.line, format!("std::{path} takes at least one value after the writer")); }
                 let mut text = String::new();
-                for a in &c.args.values {
+                for a in values {
                     // the useful form is the shortest text that gives the value back at its own
                     // width: a f32 0.1 shows `0.1` (DECISIONS 2026-09-14)
                     let crate::ast::Value::Expr(e) = a;
@@ -5797,9 +5862,16 @@ impl<'p> Interp<'p> {
                 }
                 // `.auto_newln` ends the line after the values (owner, 2026-09-30)
                 if path.contains(".auto_newln.") { text.push('\n'); }
-                if path.ends_with("stderr") { eprint!("{text}"); }
-                else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
-                Ok(Value::Nothing)
+                if let Some(w) = writer {
+                    // into the writer, handed on whole when it is full
+                    let full = { let mut w = w.borrow_mut(); w.text.push_str(&text); if w.text.len() >= w.cap { Some((std::mem::take(&mut w.text), w.stderr)) } else { None } };
+                    let r = match full { Some((t, err)) => self.emit(&t, err), None => Ok(()) };
+                    return self.written_or_failed(r, c, value_used);
+                }
+                let mut r = self.emit(&text, path.ends_with("stderr"));
+                // a print with `otherwise` is flushed right there, so its arm covers all printed so far (owner, 2026-10-23)
+                if r.is_ok() && c.handler.is_some() { r = self.out.flush().map_err(|e| e.to_string()); }
+                self.written_or_failed(r, c, value_used)
             }
             "format" | "print.format.stdout" | "print.format.stderr" => {
                 // The formatting print (owner, 2026-09-22; `printf` until 2026-09-29; `{}` holes since
@@ -5848,7 +5920,7 @@ fn ty_shape(t: &Ty) -> String {
     match t {
         Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) => "bin".into(), Ty::Brain => "brain16".into(), Ty::Deci(_) => "deci".into(), Ty::Bool => "bool".into(),
         Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_) | Ty::Array(_) => "list".into(),
-        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Simd(..) => "simd".into(), Ty::Channel(_) => "channel".into(), Ty::Duration => "duration".into(), Ty::Fn(..) => "function".into(), Ty::CStr(_) => "list".into(), Ty::Percent(_) => "percent".into(), Ty::Places(t, ..) => ty_shape(t),
+        Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Simd(..) => "simd".into(), Ty::Channel(_) => "channel".into(), Ty::Duration => "duration".into(), Ty::Writer => "writer".into(), Ty::Fn(..) => "function".into(), Ty::CStr(_) => "list".into(), Ty::Percent(_) => "percent".into(), Ty::Places(t, ..) => ty_shape(t),
     }
 }
 

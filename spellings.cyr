@@ -141,6 +141,8 @@ spellings::table[
     calls = [
         spellings::call[name = "exit", words = ["code",], example = "exit(code: 3)"],
         spellings::call[name = "time.wait", words = ["for",], example = "time.wait(for: 5 secs)"],
+        spellings::call[name = "print.writer", words = ["size",], example = "print.writer(size: 4096 bytes)"],
+        spellings::call[name = "print.writer.stderr", words = ["size",], example = "print.writer.stderr(size: 4096 bytes)"],
         spellings::call[name = "list.append", words = [str.empty, "value",], example = "list.append(lend.mut $xs, value: 2)"],
         spellings::call[name = "map.get", words = [str.empty, "key",], example = "map.get(lend $m, key: \"ann\")"],
         spellings::call[name = "map.has", words = [str.empty, "key",], example = "map.has(lend $m, key: \"ann\")"],

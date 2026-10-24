@@ -2091,7 +2091,12 @@ impl Parser {
         // `std::duration` — the one std type the oracle knows (design/concurrency.md)
         if self.is_word("std") && *self.peek_at(1) == Tok::ColonColon {
             if matches!(self.peek_at(2), Tok::Word(w) if w == "duration") { self.advance(); self.advance(); self.advance(); return Ok(Ty::Duration); }
-            return self.err("the only std type the oracle knows is `std::duration`");
+            // `std::print.writer`, a writer's type (owner, 2026-10-23; the name design claude's reading)
+            if matches!(self.peek_at(2), Tok::Word(w) if w == "print") && *self.peek_at(3) == Tok::Dot && matches!(self.peek_at(4), Tok::Word(w) if w == "writer") {
+                for _ in 0..5 { self.advance(); }
+                return Ok(Ty::Writer);
+            }
+            return self.err("the std types the oracle knows are `std::duration` and `std::print.writer`");
         }
         // another kit's type: `geometry::Circle` (kits.md)
         if matches!(self.peek(), Tok::Word(w) if w != "std") && *self.peek_at(1) == Tok::ColonColon {
@@ -4042,6 +4047,21 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
             // `lang:let` is the 2026-09-14 spelling: say that, not "a call needs […]"
             if kit.is_none() && shown == "lang" && *self.peek() == Tok::Colon { return self.err("`lang:` was removed (2026-09-14): keywords are bare — `let`, not `lang:let`"); }
             return self.err(format!("`{shown}` is followed by {}; a call needs `(…)`", self.peek()));
+        }
+        // `std::print.writer(size: 4096 bytes)` (owner, 2026-10-23: "Just `bytes` for now"): a size with its unit, its word
+        // taken out by the argument words
+        if kit.as_deref() == Some("std") && path.len() == 3 && path[0] == "print" && path[1] == "writer" {
+            self.call_open(&format!("std::{}", written.join(".")))?;
+            let bline = self.line();
+            self.expect(Tok::LBracket, "`(`")?;
+            let n = match self.advance().tok { Tok::Int(n) => n, other => return self.err(format!("a writer's size is a whole number of bytes: `std::print.writer(size: 4096 bytes)`, found {other}")) };
+            if !self.is_word("bytes") { return self.err(format!("a writer's size says its unit: `size: {n} bytes` (owner, 2026-10-23: \"Just `bytes` for now\")")); }
+            self.advance();
+            self.expect(Tok::RBracket, "`)` after the size")?;
+            let args = Bracket { values: vec![Value::Expr(Expr::Int(n, bline))], line: bline, one_list: false };
+            let c = Call { handler: None, kit, path, from: self.module.clone(), args, line, bare, written, labels: Vec::new() };
+            CALLS.with(|k| k.borrow_mut().push(c.clone()));
+            return Ok(c);
         }
         // `print.format` reads its format text as typed, with its own escapes, in one pass
         // (owner, 2026-10-01: "Format print has its own rules"): `\\` there is one backslash

@@ -125,6 +125,13 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
   `size.of[T]`, `ptr.cast[T]` (its pointer in `( )`), `simd[T, count: N]`, `range[…]`, a preset's `[$word = "hi"]`,
   `labels [ … ]`, `defaults [ … ]`, `fail reason[$v]`, a task's `with [ … ]`; `std::print.weird <- …` is unchanged.
 
+- **Print's buffer and writers** (owner, 2026-10-23; built 2026-10-24): `std::print.flush()` flushes stdout;
+  `std::print.writer(size: N bytes)` / `.writer.stderr(…)` makes a `std::print.writer`, an owned value; a print whose
+  first argument is `lend.mut $w` of a writer adds its text there, handed on whole when it reaches N; `std::print.flush(lend.mut $w)`
+  hands it on; a writer holding text when its block ends is refused there (kayo refuses it when building). Any print
+  or flush takes `otherwise { write_failed { … } }`, a print with one flushed at once; with none, a failed write stops
+  with exit 1. The oracle does not group its own prints: that is kayo's speed, not a behaviour.
+
 ## Provisional picks — the design has not decided these
 
 - **Versions, labels, defaults** (owner, 2026-10-21), design claude's picks: (a stopgap letting `std/` write versions as repeated lines ended 2026-10-22, when round.cy moved to `versions` blocks); `labels` and `defaults` are for the collection's own function only (not a member); a labelled first argument is read as a call's label, and a struct given `field: v` is told so when it runs. `examples/labels.cy`

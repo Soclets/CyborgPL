@@ -27,6 +27,9 @@ pub enum Value {
     Duration(i128),
     /// a channel (design/concurrency.md): shared between tasks
     Chan(Rc<RefCell<Chan>>),
+    /// a writer the program makes (owner, 2026-10-23): its own buffer, `std::print.writer(size: 4096 bytes)`, handed on
+    /// when full and at `std::print.flush(lend.mut $out)`
+    Writer(Rc<RefCell<Writer>>),
     /// a vector: N plain values side by side, all of one type (design/simd.md)
     Simd(Vec<Value>),
     /// a map, insertion-ordered (the oracle's order; the design leaves iteration open): (key, value) pairs
@@ -76,7 +79,7 @@ impl Value {
     /// (design/ownership-syntax.md). Plain values copy silently.
     pub fn is_owned(&self) -> bool {
         match self {
-            Value::Str(_) | Value::List(_) | Value::Map(_) | Value::Chan(_) | Value::Char(CharUnit::Grapheme, _) => true,
+            Value::Str(_) | Value::List(_) | Value::Map(_) | Value::Chan(_) | Value::Writer(_) | Value::Char(CharUnit::Grapheme, _) => true,
             // Decided 2026-09-18: a struct is always an owned value, even when every
             // field is plain — a struct owns its fields, so the verbs always apply.
             Value::Struct(..) => true,
@@ -104,6 +107,7 @@ impl Value {
             Value::Simd(_) => "simd",
             Value::Duration(_) => "duration",
             Value::Chan(_) => "channel",
+            Value::Writer(_) => "writer",
             Value::Struct(..) => "struct",
             Value::Enum(..) => "enum",
             Value::Func(..) => "function",
@@ -130,6 +134,7 @@ impl Value {
             Value::Simd(lanes) => format!("simd[{}]", lanes.iter().map(|v| v.show_stored()).collect::<Vec<_>>().join(", ")),
             Value::Duration(n) => show_duration(*n),
             Value::Chan(_) => "channel".into(),
+            Value::Writer(_) => "writer".into(),
             Value::Struct(n, fs) => format!("{n}[{}]", fs.iter().map(|(k, v)| format!("{k} = {}", v.show_stored())).collect::<Vec<_>>().join(", ")),
             Value::Ptr(p) => if p.cell.is_none() { "null".into() } else { format!("ptr+{}", p.index) },
             Value::Enum(t, c, d) => match d { Some(v) => format!("{t}.{c}[{}]", v.show_stored()), None => format!("{t}.{c}") },
@@ -192,6 +197,10 @@ pub fn int_range(ty: &Ty) -> Option<(i128, i128)> {
         _ => None,
     }
 }
+
+/// A writer's state: the text it holds, how much it holds before handing it on, and where it goes
+#[derive(Debug, PartialEq)]
+pub struct Writer { pub text: String, pub cap: usize, pub stderr: bool }
 
 /// A channel's state. `after`/`every` are std::time's: ready only when nothing else can run.
 #[derive(Debug, Clone, PartialEq)]
@@ -276,6 +285,7 @@ pub fn ty_name(ty: &Ty) -> String {
         }
         Ty::Channel(t) => format!("channel[{}]", ty_name(t)),
         Ty::Duration => "std::duration".into(),
+        Ty::Writer => "std::print.writer".into(),
         Ty::Simd(t, n) => format!("simd[{}, count: {n}]", ty_name(t)),
         Ty::CStr(None) => "C.str".into(),
         Ty::CStr(Some((lo, hi, z))) => format!("C.str[min: {lo}, max: {hi} bytes, {} zero]", if *z { "include" } else { "exclude" }),

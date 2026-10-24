@@ -34,6 +34,8 @@ pub enum Ty {
     Channel(Box<Ty>),
     /// `std::duration` — a span of time, from a duration literal `5 seconds`
     Duration,
+    /// std's writer (owner, 2026-10-23), `std::print.writer`
+    Writer,
     /// `C.str` (owner, 2026-10-19): a C string, its bytes and a 0; bounded `C.str[max: 255 bytes, exclude zero]`:
     /// (low, high, whether the closing 0 counts)
     CStr(Option<(i128, i128, bool)>),
