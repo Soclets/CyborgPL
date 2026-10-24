@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — kayo builds formatted printing first, then the error format, then `inline.MSL` (owner)
+
+Compiler claude found kayo has never built `std::print.format` / `std::format` (refused "not built yet" since
+2026-10-09), which parks corner_shop, brain16, format_value and print_format, and offered to build it before stage B
+of the error format and `inline.MSL`. Offered (a) the owner's order, (b) formatted printing first, (c) the error
+format first, then formatted printing (design claude's recommendation, the error format being half done). The owner,
+told what formatted printing is: "Finish the format print shit first". So **formatted printing, then the error
+format's stage B, then `inline.MSL`**.
+
 ### 2026-10-24 — A print that does not fit a writer: the writer sends what it holds and keeps the print whole; `.split` fills exactly (owner)
 
 check claude found the engines differ when a print overflows a `std::print.writer` (corpus/2026-10-24-a-print-that-
