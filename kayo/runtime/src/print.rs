@@ -1,16 +1,19 @@
-//! `cord::print`'s output (owner, 2026-10-09: "`b`, not the entire
-//! fucking neuron"): a fixed buffer the generated code keeps on its stack,
-//! filled by these functions and handed on whole when full and when the
-//! print ends. Nothing here uses the heap, so a chip with no OS prints the
-//! same way: what differs is only where the bytes go — a file descriptor
-//! on an OS, the target's `output` with none (one byte a call, or a chunk
-//! a call, owner: "both").
+//! `std::print`'s output (owner, 2026-10-09: "`b`, not the entire
+//! fucking neuron"): one buffer every print fills (owner, 2026-10-23: "yes,
+//! and there should also be a manual way"), sent when it is full and
+//! wherever the order could matter — at the end of the program, before a C
+//! call, before a print to the other stream, and before the program stops
+//! on a check (design claude's list). The generated code takes it at a
+//! print's start and gives it back at its end. Nothing here uses the heap,
+//! so a chip with no OS prints the same way: what differs is only where the
+//! bytes go — a file descriptor on an OS, the target's `output` with none
+//! (one byte a call, or a chunk a call, owner: "both").
 
 use crate::deci::{bin_useful, deci_text};
 use crate::{char_utf8, expand, int_digits};
 
-/// How full a buffer gets before it is handed on.
-pub const CAP: usize = 512;
+/// How full the buffer gets before it is handed on.
+pub const CAP: usize = 4096;
 
 /// Where the bytes go.
 #[repr(u32)]
@@ -39,6 +42,101 @@ pub struct Out {
 extern "C" {
     fn write(fd: i32, buf: *const u8, count: usize) -> isize;
     fn fflush(stream: *mut u8) -> i32;
+    fn exit(code: i32) -> !;
+}
+
+/// The one buffer.
+static mut SHARED: Out = Out { to: 1, sink: 0, len: 0, bytes: [0; CAP] };
+
+/// Held by the print filling the buffer: a task's print never runs into
+/// another's. A chip with no OS has one thread, and its memory, the MMU
+/// off, takes no exclusive access, so it has no lock.
+#[cfg(not(target_os = "none"))]
+static TAKEN: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(false);
+
+fn take() {
+    #[cfg(not(target_os = "none"))]
+    while TAKEN.compare_exchange_weak(false, true, core::sync::atomic::Ordering::Acquire, core::sync::atomic::Ordering::Relaxed).is_err() {
+        core::hint::spin_loop();
+    }
+}
+
+fn give_back() {
+    #[cfg(not(target_os = "none"))]
+    TAKEN.store(false, core::sync::atomic::Ordering::Release);
+}
+
+/// A write the OS refused, at a flush kayo put in itself: the program
+/// stops (owner, 2026-10-23: "default to stop"). How a stop reads is not
+/// decided; until it is, it ends with 1.
+#[cfg(not(target_os = "none"))]
+unsafe fn stopped_writing() -> ! {
+    exit(1)
+}
+
+/// A print's start: the buffer, sent first if it holds another stream's
+/// bytes.
+///
+/// # Safety
+/// `to` is a descriptor or an output's address of the kind `sink` says;
+/// `cyborg_print_end` gives the buffer back.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_print_begin(sink: u32, to: usize) -> *mut Out {
+    take();
+    let o = &raw mut SHARED;
+    if (*o).len > 0 && ((*o).sink != sink || (*o).to != to) {
+        cyborg_out_flush(o);
+    }
+    (*o).sink = sink;
+    (*o).to = to;
+    o
+}
+
+/// A print's end: the buffer kept for the next.
+///
+/// # Safety
+/// `o` is what `cyborg_print_begin` handed out.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_print_end(_o: *mut Out) {
+    give_back();
+}
+
+/// What the buffer holds, sent now: before a C call, at the end of the
+/// program, and before it stops.
+///
+/// # Safety
+/// Any time; it waits for a print being filled to end.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_print_flush() {
+    if (*(&raw const SHARED)).len == 0 {
+        return;
+    }
+    take();
+    cyborg_out_flush(&raw mut SHARED);
+    give_back();
+}
+
+/// Before the program stops on a check: what the buffer holds, unless a
+/// print is being filled on this very stop (then the lock never comes
+/// back, and what it holds is left).
+///
+/// # Safety
+/// Any time.
+pub unsafe fn flush_before_stop() {
+    #[cfg(not(target_os = "none"))]
+    {
+        if (*(&raw const SHARED)).len == 0 {
+            return;
+        }
+        for _ in 0..1_000_000 {
+            if TAKEN.compare_exchange_weak(false, true, core::sync::atomic::Ordering::Acquire, core::sync::atomic::Ordering::Relaxed).is_ok() {
+                cyborg_out_flush(&raw mut SHARED);
+                give_back();
+                return;
+            }
+            core::hint::spin_loop();
+        }
+    }
 }
 
 /// A lent `array[u8]` as a function receives one.
@@ -81,7 +179,9 @@ pub unsafe extern "C" fn cyborg_out_flush(o: *mut Out) {
             while done < n {
                 let w = write((*o).to as i32, p.add(done), n - done);
                 if w <= 0 {
-                    break;
+                    (*o).len = 0;
+                    give_back();
+                    stopped_writing();
                 }
                 done += w as usize;
             }

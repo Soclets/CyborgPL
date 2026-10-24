@@ -10,7 +10,7 @@
 //! `Status.claimed[Bo]` and one without `free` (useful) or `Status.free`
 //! (stored), a vector `simd[1, 2]`; text inside them as it is, unquoted.
 
-use inkwell::types::{BasicTypeEnum, StructType};
+use inkwell::types::BasicTypeEnum;
 use inkwell::values::{FunctionValue, IntValue, PointerValue};
 use inkwell::{AddressSpace, IntPredicate};
 
@@ -18,14 +18,7 @@ use super::Cg;
 use crate::mir::{Const, Operand};
 use crate::types::{BinW, IntW, SeqKind, Ty, Unit};
 
-/// Axon's `Out`: where the bytes go, how many are held, and room for 512.
-const CAP: u32 = 512;
-
 impl<'ctx> Cg<'_, 'ctx> {
-    fn out_type(&self) -> StructType<'ctx> {
-        let i32t = self.ctx.i32_type();
-        self.ctx.struct_type(&[self.ctx.i64_type().into(), i32t.into(), i32t.into(), self.ctx.i8_type().array_type(CAP).into()], false)
-    }
 
     /// One of Axon's `cyborg_out_*`, declared once.
     fn out_fn(&mut self, name: &str) -> FunctionValue<'ctx> {
@@ -35,8 +28,9 @@ impl<'ctx> Cg<'_, 'ctx> {
         let p = self.ctx.ptr_type(AddressSpace::default());
         let (w, i32t, b, v) = (self.ctx.i64_type(), self.ctx.i32_type(), self.ctx.bool_type(), self.ctx.void_type());
         let t = match name {
-            "cyborg_out_init" => v.fn_type(&[p.into(), i32t.into(), w.into()], false),
-            "cyborg_out_flush" => v.fn_type(&[p.into()], false),
+            "cyborg_print_begin" => p.fn_type(&[i32t.into(), w.into()], false),
+            "cyborg_print_end" => v.fn_type(&[p.into()], false),
+            "cyborg_print_flush" => v.fn_type(&[], false),
             "cyborg_out_bytes" => v.fn_type(&[p.into(), p.into(), w.into()], false),
             "cyborg_out_int" => v.fn_type(&[p.into(), w.into(), w.into(), b.into()], false),
             "cyborg_out_bin" => v.fn_type(&[p.into(), self.ctx.f64_type().into(), i32t.into(), b.into()], false),
@@ -57,13 +51,13 @@ impl<'ctx> Cg<'_, 'ctx> {
         (fd, name.contains("useful"), name.contains("auto_newline"))
     }
 
-    /// One print: a buffer on the stack, each value into it, then out.
+    /// One print: each value into kayo's one buffer (owner, 2026-10-23),
+    /// which the runtime sends when it is full or the order could matter.
     pub(super) fn emit_print(&mut self, fi: usize, name: &str, args: &[Operand], slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {
         let (fd, useful, newline) = Self::print_shape(name);
-        let out = self.stack(self.out_type(), "out").ok()?;
         let (sink, to) = self.out_sink(fd)?;
-        let init = self.out_fn("cyborg_out_init");
-        let _ = self.builder.build_call(init, &[out.into(), self.ctx.i32_type().const_int(sink, false).into(), to.into()], "");
+        let begin = self.out_fn("cyborg_print_begin");
+        let out = self.builder.build_call(begin, &[self.ctx.i32_type().const_int(sink, false).into(), to.into()], "out").ok().and_then(crate::codegen::basic_result)?.into_pointer_value();
         for a in args {
             let ty = match a {
                 // At the width `operand` builds it (64 bits, or 128 when 64
@@ -98,9 +92,16 @@ impl<'ctx> Cg<'_, 'ctx> {
         if newline {
             self.out_text(out, "\n");
         }
-        let flush = self.out_fn("cyborg_out_flush");
-        let _ = self.builder.build_call(flush, &[out.into()], "");
+        let end = self.out_fn("cyborg_print_end");
+        let _ = self.builder.build_call(end, &[out.into()], "");
         Some(())
+    }
+
+    /// What kayo's buffer holds, sent now: before a C call, at the end of
+    /// the program, before `std::exit`.
+    pub(super) fn emit_print_flush(&mut self) {
+        let flush = self.out_fn("cyborg_print_flush");
+        let _ = self.builder.build_call(flush, &[], "");
     }
 
     /// Where a print's bytes go: a file descriptor on an OS; with no OS the
@@ -451,6 +452,7 @@ impl<'ctx> Cg<'_, 'ctx> {
     /// CPU sleeps as when MAIN ends (owner, 2026-10-09: "c").
     pub(super) fn emit_exit(&mut self, fi: usize, args: &[Operand], slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {
         let code = self.operand(fi, args.first()?, slots)?.into_int_value();
+        self.emit_print_flush();
         let i32t = self.ctx.i32_type();
         if crate::target::bare() {
             if let Some(id) = self.p.items.board_exit {

@@ -882,3 +882,7 @@ handler_argument_unknown [fnv:7fd1f3dd8f2681b6] :: `half_failed.or_default` has 
 handler_argument_unlabelled [fnv:b5cd7de1743f2b1c] :: a handler's argument says its parameter
 duration_seconds_old [fnv:79a4719d8d0bd066] :: `seconds` is an old spelling: write `5 secs`
 wait_bare [fnv:ac5e58c7bab9421b] :: only the thing worked on goes bare; this argument says what it is: `time.wait(for: 5 secs)`
+print_into_not_writer [fnv:2d5a0f74063fe512] :: !unbuilt writers and print otherwise (owner, 2026-10-23; oracle 83de3987); then: a print never changes what it prints, so `lend.mut $n` names a writer to print into
+print_otherwise_wrong_reason [fnv:e031e0cd0705b620] :: !unbuilt writers and print otherwise (owner, 2026-10-23; oracle 83de3987); then: `std::print.useful` never fails with `closed` (it fails with write_failed)
+writer_size_unit [fnv:1b9d61434f660919] :: !unbuilt writers and print otherwise (owner, 2026-10-23; oracle 83de3987); then: a writer's size says its unit: `size: 4096 bytes`
+writer_unflushed [fnv:60b7c7a39f4199a0] :: !unbuilt writers and print otherwise (owner, 2026-10-23; oracle 83de3987); then: goes away still holding text: `std::print.flush(lend.mut $out);` before its block ends

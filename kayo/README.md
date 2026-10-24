@@ -1041,6 +1041,16 @@ Dated, with the alternative, so each can become a question later.
   naming the typed literal to write (`2.5: bin64`). A preset beside several
   versions, and an overloaded name held as a value, are refused (design
   claude's readings).
+- **2026-10-24 — Prints share one buffer** (owner, 2026-10-23; `design/strings.md`). The
+  runtime keeps one 4096-byte buffer (`print::SHARED`) every print fills,
+  taken at a print's start and given back at its end (`cyborg_print_begin` /
+  `cyborg_print_end`, a lock where there are threads, none on a chip with no
+  OS), sent when full, before a print to the other stream, at the end of
+  `MAIN`, before `std::exit`, before every C call (`emit_print_flush`), before
+  `must.stop`'s fork, and before the program stops on a check
+  (`flush_before_stop`). A write the OS refuses stops the program with 1
+  until how a stop reads is decided. `std::print.flush()`, writers and a
+  print's `otherwise` (oracle 83de3987) are next.
 - **2026-10-24 — `channel.empty`, `std::exit(code: …)`, a generic's literal, handler
   arguments and `pub` handlers** (owner, 2026-10-22/23; oracle 73a48973, 69c6aedf,
   340f5b98, 07353d0f). `let $c: channel[T][max: N] = channel.empty;` is read

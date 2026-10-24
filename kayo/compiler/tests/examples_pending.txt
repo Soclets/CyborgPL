@@ -7,3 +7,4 @@ collections :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
 corner_shop :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
 keys :: case mappings (7b7e8e57) not built yet: `std::str.lower.full`
 text :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
+print_writer :: writers (owner, 2026-10-23; oracle 83de3987) not built yet: expected `]` closing the arguments, found `bytes`

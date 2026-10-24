@@ -78,6 +78,8 @@ fn sysctl_says(name: &[u8]) -> bool {
 /// a constant it emitted itself.
 #[no_mangle]
 pub unsafe extern "C" fn cyborg_check_failed(msg: *const u8, len: usize) -> ! {
+    // What was printed before it, first (design claude, 2026-10-23).
+    print::flush_before_stop();
     if !QUIET_STOP {
         write(2, msg, len);
     }
@@ -108,6 +110,7 @@ static mut QUIET_STOP: bool = false;
 /// `msg` must point at `len` readable bytes, `at` at `at_len`.
 #[no_mangle]
 pub unsafe extern "C" fn cyborg_must_report(msg: *const u8, len: u64, at: *const u8, at_len: u64) -> ! {
+    print::flush_before_stop();
     write(2, at, at_len as usize);
     write(2, msg, (len & !STATIC) as usize);
     write(2, b"\n".as_ptr(), 1);
@@ -118,6 +121,8 @@ pub unsafe extern "C" fn cyborg_must_report(msg: *const u8, len: u64, at: *const
 /// here, once it has ended, 0 when a check fired in it and 2 when none did.
 #[no_mangle]
 pub unsafe extern "C" fn cyborg_must_stop_fork() -> i32 {
+    // The copy would send what is held a second time.
+    print::cyborg_print_flush();
     let pid = fork();
     if pid == 0 {
         QUIET_STOP = true;
@@ -170,6 +175,7 @@ pub unsafe extern "C" fn cyborg_test_index(argc: i32, argv: *const *const u8) ->
 /// As `cyborg_check_failed`.
 #[no_mangle]
 pub unsafe extern "C" fn cyborg_proof_failed(msg: *const u8, len: usize) -> ! {
+    print::flush_before_stop();
     if !QUIET_STOP {
         write(2, msg, len);
     }

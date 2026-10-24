@@ -541,6 +541,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         } else {
             let _ = self.builder.build_call(body, &[], "");
         }
+        self.emit_print_flush();
         let _ = self.builder.build_return(Some(&i32t.const_zero()));
     }
 
@@ -607,6 +608,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         } else {
             let _ = self.builder.build_call(run, &[], "");
         }
+        self.emit_print_flush();
         let _ = self.builder.build_return(Some(&i32t.const_zero()));
     }
 
@@ -3215,6 +3217,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     return None;
                 }
             }
+        }
+        // What was printed reaches the screen before C writes its own
+        // (design claude, 2026-10-23).
+        if let Callee::Extern(_) = callee {
+            self.emit_print_flush();
         }
         let f = match callee {
             Callee::Fn(idx) => *self.fns.get(&(idx.0 as usize))?,
