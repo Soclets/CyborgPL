@@ -182,6 +182,22 @@ pub fn aim(p: &check_gen::Program, dir: &Path) -> Option<(Vec<check_gen::solve::
     Some((q.sites, answers))
 }
 
+/// The line of kayo's site in its stderr: from the first `error[name] at
+/// file:line:col` or `check[name] at …` line (the error format's stage B,
+/// compiler claude 2026-10-24), or else from the older `where: …, line N`.
+/// The new `where:` names a function or a loop ("the loop starting at line
+/// 9"), never the site, so it is read only when no bracketed line is there.
+pub fn kayo_line(stderr: &str) -> Option<u32> {
+    let head = stderr.lines().find(|l| l.starts_with("error[") || l.starts_with("check["));
+    if let Some(h) = head {
+        let at = h.split_once("] at ")?.1;
+        let mut parts = at.rsplitn(3, ':');
+        let (_col, line) = (parts.next()?, parts.next()?);
+        return line.trim().parse().ok();
+    }
+    stderr.lines().find(|l| l.starts_with("where:")).and_then(line_of)
+}
+
 /// The first `line N` in a message.
 pub fn line_of(msg: &str) -> Option<u32> {
     let i = msg.find("line ")?;
@@ -305,7 +321,7 @@ pub fn cca_build(t: &Tools, file: &Path, dir: &Path, mode: Mode) -> Build {
         return Build::NotYet { msg: first };
     }
     let msg = text.lines().find(|l| l.starts_with("error") || l.starts_with("check")).unwrap_or(text.lines().next().unwrap_or("")).to_string();
-    let line = text.lines().find(|l| l.starts_with("where:")).and_then(line_of);
+    let line = kayo_line(&text);
     Build::Refused { line, msg }
 }
 
@@ -332,7 +348,7 @@ pub fn cca_run(bin: &Path, dir: &Path, env: &[(String, String)]) -> Exec {
     if r.code == Some(0) {
         return Exec::Ran { out: r.stdout };
     }
-    let line = r.stderr.lines().find(|l| l.starts_with("where:")).and_then(line_of);
+    let line = kayo_line(&r.stderr);
     let msg = match r.code {
         Some(c) if r.stderr.trim().is_empty() => format!("exit {c}"),
         _ => r.stderr.lines().next().unwrap_or("").to_string(),
@@ -344,4 +360,18 @@ pub fn cca_run(bin: &Path, dir: &Path, env: &[(String, String)]) -> Exec {
 /// then nameless 2026-10-14, Precog again 2026-10-16; `prove`, owner 2026-10-15).
 pub fn analyze(t: &Tools, file: &Path, dir: &Path, limit: Duration) -> Run {
     run(Command::new(&t.cca).arg("prove").arg("--json").arg(file), dir, &[], false, limit)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::kayo_line;
+
+    #[test]
+    fn both_shapes() {
+        assert_eq!(kayo_line("error[unknown_type] at path/to/shop.cy:2:11\nwhere: in pick()\ncode:  x\n"), Some(2));
+        assert_eq!(kayo_line("check[i16_range] at /a b/prog.cy:71:9\nwhere: in MAIN, the loop starting at line 9\n"), Some(71));
+        assert_eq!(kayo_line("error[write_failed]\n"), None);
+        assert_eq!(kayo_line("error: `x` is not known\nwhere: prog.cy, line 14, column 3\n"), Some(14));
+        assert_eq!(kayo_line("check: the value can be outside\nwhere: prog.cy, line 7\n"), Some(7));
+    }
 }
