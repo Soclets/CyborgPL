@@ -21,7 +21,7 @@ MAIN {
     let $hello := C.str.make("Hello World");
     let $from := C.str.make("from CyborgPL, through SDL3");
     # SDL_Event is 128 bytes; its first 4 are the type, and SDL_EVENT_QUIT is 0x100
-    let mut $event: std::list[u8] = std::list.fill[value: 0, count: 128];
+    let mut $event: std::list[u8] = std::list.fill(value: 0, count: 128);
     no_check {
         let $ok := SDL_Init(32);
         let $window := SDL_CreateWindow(lend $title, 640, 360, 0);

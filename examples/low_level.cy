@@ -30,8 +30,8 @@ fn popcount [$x: u32] -> u32 {
 
 # 16 bytes at once: is every byte ASCII (below 128)?
 fn all_ascii [lent $bytes: array[u8]] -> bool {
-    let $v: simd[u8, count: 16] = simd.load[lend $bytes, pos: 1];
-    return simd.all($v < simd.fill[value: 128]);
+    let $v: simd[u8, count: 16] = simd.load(lend $bytes, pos: 1);
+    return simd.all($v < simd.fill(value: 128));
 }
 
 MAIN {

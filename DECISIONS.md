@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Fixed: `list.fill`, `list.remove`, `simd.fill` and the other built-ins read with their own code took `[ ]` too
+
+Found by check claude: those calls skipped the `( )` check, so `std::list.fill[value: 0, count: 3]` ran and
+`--to-paren-calls` left them in `[ ]`. Every built-in call now takes its check before its own reading; the programs
+were converted again (49 files) and `fill_in_brackets` refuses the old form. `--to-paren-calls` also reads std's own
+folder as std (std claude: its lists and `casing` stopped it), and writes `code:` into an old `std::exit(1)`.
+
 ### 2026-10-24 — Built: handler arguments and `pub` handlers (owner, 2026-10-23)
 
 `coll.handler half_failed { half_failed.or_default [$default: i32, $label: str.utf8] { odd { … return $default; } … } }`,

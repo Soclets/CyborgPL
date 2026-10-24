@@ -40,6 +40,6 @@ fn put_i [$n: i64] {
 }
 MAIN {
     let $v17: u16 = 0;
-    let $s21: simd[u16, count: 8] = simd.fill[value: not.bit (5 + $v17)];
+    let $s21: simd[u16, count: 8] = simd.fill(value: not.bit (5 + $v17));
     put_u(to.u64(simd.max($s21)));
 }

@@ -3,7 +3,7 @@ struct Item { name: str.utf8, grams: i32[min: 1, max: 50_000] }
 
 fn heaviest [...$items: Item] -> Item or fail[none] {
     if std::list.length(lend $items) equal_to 0 { fail none; }
-    let mut $best := std::list.remove[lend.mut $items, pos: 1];
+    let mut $best := std::list.remove(lend.mut $items, pos: 1);
     for $it in lend $items {
         if $it.grams > $best.grams { change $best = copy $it; }
     }
@@ -40,6 +40,6 @@ MAIN {
     let $kg := kilos($top.grams) otherwise -1;
     std::print.useful($top.name, " is ", $kg, " kg", newln);
 
-    let $gone := std::list.remove[lend.mut $shelf, pos: 2];
+    let $gone := std::list.remove(lend.mut $shelf, pos: 2);
     std::print.useful("removed ", $gone.name, ", ", std::list.length(lend $shelf), " left", newln);
 }

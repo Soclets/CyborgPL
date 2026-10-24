@@ -278,7 +278,8 @@ impl Parser {
     pub fn new_in_kit(toks: Vec<Token>, module: Vec<String>, kit_root: Vec<String>) -> Self {
         let mut p = Parser::new_in(toks, module);
         p.lacks = LACKS.with(|l| l.borrow().iter().find(|(r, _)| *r == kit_root).map(|(_, v)| v.clone()).unwrap_or_default());
-        p.no_std = p.lacks.iter().any(|c| c == "std");
+        // `--to-paren-calls` reads std itself too, whose own manifest does not list std (std claude, 2026-10-24)
+        p.no_std = p.lacks.iter().any(|c| c == "std") && !OLD_CALLS.with(|c| c.get());
         p.kit_root = kit_root;
         p
     }
@@ -4215,6 +4216,8 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
             return Ok((head, op, Bracket { values: Vec::new(), line, one_list: false }));
         }
         if *self.peek() != Tok::LBracket { return self.err(format!("`{head}.{op}` is a call and needs `(…)`")); }
+        // every form below is a call, whatever its branch reads next (check claude, 2026-10-24: `list.fill[…]` was let through)
+        self.call_open(&format!("{head}.{op}"))?;
         // `simd.load[lend 'xs', pos: 'i']` — the position says `pos`, as every index does
         if (head == "list" || head == "array") && op == "slice" {
             // `list.slice[lend 'xs', pos: 2, pos: 4]` — positions say `pos`, as every index does
@@ -5437,6 +5440,11 @@ impl Parser {
                             Tok::Word(w) if w == word => { self.pos = k; return self.err(format!("inside `[ ]` a word takes `:` before its value: `{shown}` (owner, 2026-10-20)")); }
                             // `decimals` became `places:` (owner, 2026-10-20)
                             Tok::Word(w) if w == "decimals" && word == "places" => { self.pos = k; return self.err(format!("`decimals` is an old spelling: write `places:`, `{shown}` (owner, 2026-10-20)")); }
+                            // `--to-paren-calls`: the word is written in for it, `std::exit(1)` becoming `std::exit(code: 1)`
+                            _ if arg == 0 && OLD_CALLS.with(|c| c.get()) && self.toks[k].at != usize::MAX => {
+                                let file = CURRENT_FILE.with(|f| f.borrow().clone());
+                                REWRITES.with(|r| r.borrow_mut().push((file, self.toks[k].at, 0, format!("{word}: "))));
+                            }
                             _ if arg == 0 => { self.pos = k; return self.err(format!("only the thing worked on goes bare; this argument says what it is: `{shown}` (owner, 2026-10-23)")); }
                             _ => { self.pos = k; return self.err(format!("each argument after the first says what it is: `{shown}` (owner, 2026-10-14)")); }
                         }

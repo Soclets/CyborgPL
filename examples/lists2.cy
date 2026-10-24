@@ -13,7 +13,7 @@ MAIN {
     let $n := std::list.length(lend $xs);
     std::print.useful("length ", $n, newln);
     std::list.append(lend.mut $xs, value: 40);
-    std::list.remove[lend.mut $xs, pos: 1];
+    std::list.remove(lend.mut $xs, pos: 1);
     std::print.useful($xs, " length ", std::list.length(lend $xs), newln);
     std::print.useful("sum ", sum(lend $xs), newln);
     for $i [from: 1, to: std::list.length(lend $xs), by: 1] {

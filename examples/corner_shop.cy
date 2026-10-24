@@ -383,7 +383,7 @@ fn report [lent $sales: std::list[Sale], lent $items: std::list[Item], lent $ope
     # The biggest baskets, by units: the first three of the list sorted largest first
     let $ranked := sorted_down(lend $units);
     if std::list.length(lend $ranked) at_least 3 {
-        let $top := std::list.slice[lend $ranked, from: pos 1, to: pos 3];
+        let $top := std::list.slice(lend $ranked, from: pos 1, to: pos 3);
         std::print.useful("biggest baskets (units): ", $top, newln);
     }
 
@@ -584,8 +584,8 @@ fn show_week [] {
     let $sum := total_of(lend $counts);
     let $average: f64 = to.f64($sum) div.near to.f64($days);
     std::print.format("  {} customers, {:.1} a day, {} on the busiest\n", $sum, $average, $busiest);
-    let $weekend := std::list.slice[lend $counts, from: pos 6, to: pos 7];
-    let $weekdays := std::list.slice[lend $counts, from: pos 1, before: pos 6];
+    let $weekend := std::list.slice(lend $counts, from: pos 6, to: pos 7);
+    let $weekdays := std::list.slice(lend $counts, from: pos 1, before: pos 6);
     std::print.useful("  weekdays ", total_of(lend $weekdays), ", weekend ", total_of(lend $weekend), newln);
 }
 
@@ -603,7 +603,7 @@ fn show_hours [$open: i32, $close: i32] {
         if $h equal_to 12 or $h equal_to 17 { change $n = 9; }
         if $h equal_to 13 or $h equal_to 18 { change $n = 6; }
         std::print.format("  {:>2}:00 ", $h);
-        let $bar := std::list.fill[value: "*", count: $n];
+        let $bar := std::list.fill(value: "*", count: $n);
         std::print.useful(std::str.join(lend $bar, between: str.empty), newln);
         if $n > $peak {
             change $peak = $n;

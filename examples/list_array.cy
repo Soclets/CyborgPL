@@ -7,7 +7,7 @@ MAIN {
     let $a := to.array(give $l);                 # [1, 2, 3], can no longer grow
     let mut $m := to.list(copy $a);              # 'a' is still here
     std::list.append(lend.mut $m, value: 4);
-    let mut $s: std::list[i32] = array.slice[lend $a, from: pos 2, to: pos 3];   # a slice is a list, an array's too
+    let mut $s: std::list[i32] = array.slice(lend $a, from: pos 2, to: pos 3);   # a slice is a list, an array's too
     std::list.append(lend.mut $s, value: 9);
     std::print.useful($a, " ", $m, " ", $s, newln);
 }

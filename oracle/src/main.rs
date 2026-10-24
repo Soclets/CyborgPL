@@ -163,7 +163,8 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     // use, `lang: std::casing.tr`: std is another kit, so its path and the enum's name are written (owner, 2026-10-22)
     let casing = lexer::lex("enum casing { tr, az, lt, root }").map_err(|e| format!("std's casing: {}", e.msg))?;
     let casing = parser::Parser::new(casing).program().map_err(|e| format!("std's casing: {}", e.msg))?;
-    if prog.enums.iter().any(|e| e.name == "casing") {
+    // std's own `casing`, read by `--to-paren-calls` from std's folder, is the one this stands for
+    if prog.enums.iter().any(|e| e.name == "casing") && !parser::OLD_CALLS.with(|c| c.get()) {
         return Err(format!("{}: `casing` is std's (`lang: tr`, `casing.root`); an enum cannot take its name", path.display()));
     }
     prog.enums.extend(casing.enums);

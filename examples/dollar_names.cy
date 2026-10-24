@@ -6,7 +6,7 @@ fn twice [$n: i64] -> i64 { return $n x 2; }
 
 MAIN {
     let $total := 1;
-    change 'total' = $total + 1;
+    change $total = $total + 1;
     let 'total due' := twice($total) x 10;
     let $xs: std::list[i64] = [$total, 'total due'];
     std::print.useful($total, " ", 'total due', " ", $xs[pos: 2], newln);

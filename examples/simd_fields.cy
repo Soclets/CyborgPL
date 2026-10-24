@@ -6,7 +6,7 @@ fn step [$p: Particle] -> Particle {
     return Particle[place = $p.place + $p.vel, vel = $p.vel];
 }
 MAIN {
-    let $p := Particle[place = simd.fill[value: 0.0], vel = simd.fill[value: 0.5]];
+    let $p := Particle[place = simd.fill(value: 0.0), vel = simd.fill(value: 0.5)];
     let $q := step(give $p);
     let mut $history: std::list[simd[f32, count: 4]] = [];
     std::list.append(lend.mut $history, value: $q.place);
