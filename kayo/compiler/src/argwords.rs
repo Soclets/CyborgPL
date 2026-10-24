@@ -1,7 +1,8 @@
-//! Every argument after the first says its role (owner, 2026-10-14:
+//! Every argument but the thing worked on says its role (owner, 2026-10-14:
 //! `list.append[lend.mut 'xs', value: 2]`, `map.set[lend.mut 'm', key:
-//! "ann", value: 5551]`; the `:` since 2026-10-20). The first argument, the
-//! thing worked on, stays bare.
+//! "ann", value: 5551]`; the `:` since 2026-10-20). The thing worked on
+//! stays bare; any other says its word, the only one too (2026-10-23:
+//! `std::exit(code: 3)`).
 //!
 //! The calls and their words are `spellings.cyr`'s `calls`. Read on the
 //! tokens before the parser sees them, as the oracle reads them: each listed
@@ -134,6 +135,12 @@ pub fn strip(toks: &[Token]) -> Result<Vec<Token>> {
                 return err(Diagnostic::error(needs_colon(word)).at(toks[at].span));
             }
             if !named {
+                // The only argument says its word too when it is not the
+                // thing worked on (owner, 2026-10-23: "`(3)` fucking
+                // doesn't").
+                if n == 0 {
+                    return err(Diagnostic::error(format!("only the thing worked on goes bare; this argument says what it is: `{}` (owner, 2026-10-23)", call.example)).at(toks[at].span));
+                }
                 return err(Diagnostic::error(format!("each argument after the first says what it is: `{}` (owner, 2026-10-14)", call.example)).at(toks[at].span));
             }
             drop[at] = true;

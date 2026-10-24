@@ -121,6 +121,15 @@ pub struct SourceMap {
 }
 
 impl SourceMap {
+    /// A file read once: its id if it is already here (a kit's `pub`
+    /// handlers are read before the kit that uses them, owner 2026-10-23).
+    pub fn add_once(&mut self, path: &Path, text: String) -> FileId {
+        match self.files.iter().position(|f| f.path == path) {
+            Some(i) => FileId(i as u32),
+            None => self.add(path, text),
+        }
+    }
+
     pub fn add(&mut self, path: &Path, text: String) -> FileId {
         let id = FileId(self.files.len() as u32);
         // Concise CyborgPL (owner, 2026-10-22): decoded before anything

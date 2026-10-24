@@ -45,6 +45,10 @@ pub fn is_primitive_head(w: &str) -> bool {
 struct Parser<'a> {
     /// Copied on the first call's `( )`, which is written over as `[ ]`.
     toks: std::borrow::Cow<'a, [Token]>,
+    /// A `let` declaring a channel whose value is `channel.empty`: its
+    /// element type and bound (owner, 2026-10-22).
+    channel_ty: Option<(Type, Option<Box<(Expr, Expr)>>)>,
+    channel_ok: bool,
     pos: usize,
     /// Reading the statements of a `match` case's or an `otherwise` arm's
     /// own block, where a value alone before `}` is the block's value.
@@ -67,7 +71,7 @@ struct Parser<'a> {
     /// This file's `coll.handler`s (owner, 2026-10-13): each member's
     /// arms, read before the file is, so `otherwise h.member` anywhere in
     /// it reads them as if written there.
-    handlers: std::collections::HashMap<String, Vec<(String, Vec<FailArm>)>>,
+    handlers: std::collections::HashMap<String, Vec<HandlerMember>>,
     /// A `#strict` file (owner, 2026-09-27): `pos` on every position,
     /// every parameter's type, a return type, `mut`/`immut` on every
     /// declaration, `temp`/`perm` on every `for`.
@@ -373,7 +377,7 @@ pub fn set_shared_precedence(table: std::collections::HashMap<String, (u16, Chai
 
 /// The `precedence` blocks in one file's tokens: each operator's level.
 pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> {
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false };
+    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false };
     let mut out = Vec::new();
     let mut depth = 0i32;
     for i in 0..toks.len() {
@@ -398,7 +402,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     let labelled = crate::argwords::labels(&used);
     let owned = crate::argwords::strip(&labelled)?;
     let toks = &owned[..];
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false };
+    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false };
     // Every Kit's levels, and this file's own blocks, read before any
     // expression in it: an operator above its block is parsed by it too.
     p.prec = SHARED_PREC.with(|t| t.borrow().clone());
@@ -477,11 +481,6 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     // The file's handlers first: a use may come before the definition.
     for i in 0..toks.len() {
         if matches!(&toks[i].tok, Tok::Word(w) if w == "coll") && matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(w)) if w == "handler") && (i == 0 || !matches!(toks[i - 1].tok, Tok::Dot)) {
-            // A `pub` one is refused where it stands, before its members
-            // are read.
-            if i > 0 && matches!(&toks[i - 1].tok, Tok::Word(w) if w == "pub") {
-                continue;
-            }
             p.pos = i + 3;
             let (name, members) = p.handler_def()?;
             p.handlers.insert(name, members);
@@ -541,7 +540,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
 /// 2026-10-06): `cca::Manifest[ … ];`.
 pub fn parse_value(toks: &[Token]) -> Result<Expr> {
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false };
+    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false };
     let value = p.expr(0)?;
     p.expect_semi("the value")?;
     if !p.at_eof() {
@@ -969,9 +968,8 @@ impl<'a> Parser<'a> {
                     if let Some((_, at)) = bare {
                         return self.fail_at(at, "a `coll.handler` takes no `bare.` mark: it is read where it is written, in its own file");
                     }
-                    if vis != Vis::Private {
-                        return self.fail_at(start, "whether a `coll.handler` can be `pub` is not decided yet: it is read where it is written, in its own file");
-                    }
+                    // A `pub` one is used from another kit through its path
+                    // (owner, 2026-10-23: "No shit").
                     self.handler_def()?;
                     let span = start.to(self.prev_span());
                     return Ok(Item { vis, kind: ItemKind::ExternBlock(Vec::new()), span, bare: None, enum_bare: None, case });
@@ -1636,7 +1634,7 @@ impl<'a> Parser<'a> {
         for t in toks.iter_mut() {
             t.span = line;
         }
-        let mut p = Parser { toks: std::borrow::Cow::Borrowed(&toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, templates: Vec::new(), handlers: Default::default(), in_arm: false };
+        let mut p = Parser { toks: std::borrow::Cow::Borrowed(&toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false };
         let mut lines = Vec::new();
         while !p.at_eof() {
             let it = p.item()?;
@@ -1973,7 +1971,64 @@ impl<'a> Parser<'a> {
     /// `coll.handler h { as_zero { odd { … } negative 'v' { … } } … }`
     /// (owner, 2026-10-13), from after `handler`: each member an
     /// `otherwise`'s arms, named.
-    fn handler_def(&mut self) -> Result<(String, Vec<(String, Vec<FailArm>)>)> {
+    /// A handler's member used at `otherwise` (from after its collection's
+    /// name and `.`): its arms, read as if written here, each first
+    /// declaring the member's parameters from the call's arguments, given
+    /// with their words (owner, 2026-10-23), so an argument is worked out
+    /// only when an arm runs.
+    fn use_handler(&mut self, coll: &str, members: &[HandlerMember], start: Span) -> Result<Otherwise> {
+        let member = self.ident("the handler's name")?;
+        let Some((_, params, arms)) = members.iter().find(|(m, _, _)| *m == member.name) else {
+            let have = members.iter().map(|(m, _, _)| format!("`{}`", m)).collect::<Vec<_>>().join(", ");
+            return self.fail_at(member.span, format!("`{}` has no handler `{}`; it has {}", coll, member.name, have));
+        };
+        let full = format!("{}.{}", coll, member.name);
+        let mut given: Vec<(Ident, Expr)> = Vec::new();
+        if self.is(&Tok::LParen) {
+            self.mark_call(self.pos);
+            self.bump();
+            for a in self.args()? {
+                match a {
+                    Arg::Positional(Expr { kind: ExprKind::Label(w, v), .. }) => given.push((w, *v)),
+                    other => {
+                        let first = params.first().map(|p| p.name.name.clone()).unwrap_or_else(|| "name".into());
+                        return self.fail_at(other.span(), format!("a handler's argument says its parameter: `{}({}: …)` (owner, 2026-10-23)", full, first));
+                    }
+                }
+            }
+        }
+        for (w, _) in &given {
+            if !params.iter().any(|p| p.name.name == w.name) {
+                return self.fail_at(w.span, format!("`{}` has no parameter `{}`", full, w.name));
+            }
+        }
+        for p in params {
+            if !given.iter().any(|(w, _)| w.name == p.name.name) {
+                return self.fail_at(member.span, format!("`{}` takes `{}:`", full, p.name.name));
+            }
+        }
+        let lets: Vec<Stmt> = params
+            .iter()
+            .map(|p| {
+                let value = given.iter().find(|(w, _)| w.name == p.name.name).map(|(_, v)| v.clone()).unwrap();
+                let span = value.span;
+                Stmt { kind: StmtKind::Let { mutability: None, name: p.name.clone(), ty: p.ty.clone(), shadow: false, value, sealed: false }, span }
+            })
+            .collect();
+        let arms = arms
+            .iter()
+            .map(|a| {
+                let mut a = a.clone();
+                let mut stmts = lets.clone();
+                stmts.append(&mut a.body.stmts);
+                a.body.stmts = stmts;
+                a
+            })
+            .collect();
+        Ok(Otherwise::Arms(arms, start.to(self.prev_span())))
+    }
+
+    fn handler_def(&mut self) -> Result<(String, Vec<HandlerMember>)> {
         let name = match self.peek().clone() {
             Tok::Word(_) => self.ident("the collection's name")?,
             Tok::Str(s) => return self.fail(format!("a collection's name is bare, as a function's: `coll.handler {} {{ … }}`", s)),
@@ -1981,7 +2036,7 @@ impl<'a> Parser<'a> {
         };
         let open = self.span();
         self.expect(&Tok::LBrace, "`{` after the collection's name")?;
-        let mut members: Vec<(String, Vec<FailArm>)> = Vec::new();
+        let mut members: Vec<HandlerMember> = Vec::new();
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
                 return self.fail_at(open, format!("collection `{}` is never closed", name.name));
@@ -2002,6 +2057,8 @@ impl<'a> Parser<'a> {
             } else {
                 first
             };
+            // Its parameters, defined in `[ ]` (owner, 2026-10-23: "Yes").
+            let params = if self.is(&Tok::LBracket) { self.params(ParamContext::Fn)? } else { Vec::new() };
             if !self.is(&Tok::LBrace) {
                 return self.fail_at(member.span, format!("a `coll.handler` holds named `otherwise` blocks: `{}.{} {{ odd {{ … }} }}`, one arm per way a call can fail", name.name, member.name));
             }
@@ -2009,10 +2066,10 @@ impl<'a> Parser<'a> {
                 return self.fail_at(member.span, format!("a member writes the collection's name in front: `{}.{} {{ … }}` (owner, 2026-10-19)", name.name, member.name));
             }
             let (arms, _) = self.arms_block()?;
-            if members.iter().any(|(m, _)| *m == member.name) {
+            if members.iter().any(|(m, _, _)| *m == member.name) {
                 return self.fail_at(member.span, format!("`{}` is defined twice in `{}`", member.name, name.name));
             }
-            members.push((member.name, arms));
+            members.push((member.name, params, arms));
         }
         self.bump();
         Ok((name.name, members))
@@ -3281,9 +3338,22 @@ impl<'a> Parser<'a> {
         if self.is_word("mut") || self.is_word("immut") {
             return self.fail(format!("`{}` goes before the name: `let {} ${} := …;`", self.word_text(), self.word_text(), name.name));
         }
-        let (ty, marker) = self.let_type_and_marker("declaration")?;
+        let (mut ty, marker) = self.let_type_and_marker("declaration")?;
         let shadow = marker || shadowing;
-        let value = self.expr_top()?;
+        // `let $c: channel[i32][max: 10] = channel.empty;`: the channel is
+        // its declaration's, the bound how much may wait (design claude's
+        // reading, 2026-10-22).
+        let channel = ty.as_ref().and_then(channel_type);
+        let empty = self.is_word("channel") && matches!(self.peek_at(1), Tok::Dot) && self.is_word_at(2, "empty") && matches!(self.peek_at(3), Tok::Semi);
+        if let (Some((plain, elem, bound)), true) = (channel, empty) {
+            ty = Some(plain);
+            self.channel_ty = Some((elem, bound));
+            self.channel_ok = true;
+        }
+        let value = self.expr_top();
+        self.channel_ok = false;
+        self.channel_ty = None;
+        let value = value?;
         if self.is_op("=") {
             return self.fail("`=` gives a declaration its value once; equality is `equal_to`");
         }
@@ -3999,15 +4069,18 @@ impl<'a> Parser<'a> {
             Tok::Word(w) if self.handlers.contains_key(&w) && matches!(self.peek_at(1), Tok::Dot) => {
                 let start = self.bump().span;
                 self.bump();
-                let member = self.ident("the handler's name")?;
-                let members = &self.handlers[&w];
-                match members.iter().find(|(m, _)| *m == member.name) {
-                    Some((_, arms)) => Ok(Otherwise::Arms(arms.clone(), start.to(member.span))),
-                    None => {
-                        let have = members.iter().map(|(m, _)| format!("`{}`", m)).collect::<Vec<_>>().join(", ");
-                        self.fail_at(member.span, format!("`{}` has no handler `{}`; it has {}", w, member.name, have))
-                    }
-                }
+                let members = self.handlers[&w].clone();
+                self.use_handler(&w, &members, start)
+            }
+            // Another kit's `pub` one, through its path (owner, 2026-10-23):
+            // `otherwise halves::half_failed.or_default(…)`.
+            Tok::Word(kit) if matches!(self.peek_at(1), Tok::ColonColon) && matches!(self.peek_at(3), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(h) if kit_handler(&kit, h).is_some()) => {
+                let start = self.bump().span;
+                self.bump();
+                let Tok::Word(h) = self.bump().tok else { unreachable!() };
+                self.bump();
+                let members = kit_handler(&kit, &h).unwrap_or_default();
+                self.use_handler(&format!("{}::{}", kit, h), &members, start)
             }
             _ => Ok(Otherwise::Value(self.expr(0)?)),
         }
@@ -4804,24 +4877,20 @@ impl<'a> Parser<'a> {
                     self.bump();
                     self.conv(start)
                 }
+                // A channel is made as a list or a map is (owner, 2026-10-22:
+                // "Seems good"): `let $ch: channel[i32] = channel.empty;`.
                 "channel" if !matches!(self.peek_at(1), Tok::Dot) => {
+                    return self.fail("a channel is made as a list or a map is: `let $ch: channel[i32] = channel.empty;` (owner, 2026-10-22)");
+                }
+                "channel" if self.is_word_at(2, "empty") && !self.channel_ok => {
+                    return self.fail("`channel.empty` takes its type from the declaration: `let $c: channel[i32] = channel.empty;`, or bounded, `let $c: channel[i32][max: 10] = channel.empty;` (owner, 2026-10-22)");
+                }
+                "channel" if self.is_word_at(2, "empty") => {
                     self.bump();
-                    self.expect(&Tok::LBracket, "`[` after `channel`: `channel[T]`")?;
-                    let elem = self.type_()?;
-                    self.expect(&Tok::RBracket, "`]` closing the channel's type")?;
-                    // `channel[T][max 10]` (owner, 2026-10-12): a `min`
-                    // written is 0; with no bound it is a hand-off.
-                    let bound = if self.is(&Tok::LBracket) {
-                        let (lo, hi, _, span, _, _) = self.labelled_bound()?;
-                        let Some(hi) = hi else {
-                            return self.fail_at(span, "a bounded channel says how much it holds: `channel[T][max: 100]`; with no bound it is a hand-off");
-                        };
-                        let lo = lo.unwrap_or(Expr { kind: ExprKind::Int("0".into()), span });
-                        Some(Box::new((lo, hi)))
-                    } else {
-                        None
-                    };
+                    self.bump();
+                    self.bump();
                     let span = start.to(self.prev_span());
+                    let Some((elem, bound)) = self.channel_ty.take() else { unreachable!() };
                     Ok(Expr { kind: ExprKind::Channel { elem, bound }, span })
                 }
                 // `ptr.cast[T]['p']` (owner, 2026-09-30: a); the other
@@ -5452,6 +5521,65 @@ fn preset(main: &FnDecl, owner: &Ident, name: Ident, fills: &[(QName, Expr)], sp
         labels: None,
         defaults: Vec::new(),
     }
+}
+
+/// A handler's member: its name, its parameters and its arms.
+pub type HandlerMember = (String, Vec<Param>, Vec<FailArm>);
+
+thread_local! {
+    /// The `pub` handlers of the kits the kit being read lists, by their
+    /// prefix (owner, 2026-10-23): read before its own files, so a use can
+    /// take their arms as a handler of its own file's.
+    static KIT_HANDLERS: std::cell::RefCell<std::collections::HashMap<String, std::collections::HashMap<String, Vec<HandlerMember>>>> = std::cell::RefCell::new(Default::default());
+}
+
+/// The kits' `pub` handlers seen while the next kit's files are read; the
+/// ones before come back.
+pub fn set_kit_handlers(h: std::collections::HashMap<String, std::collections::HashMap<String, Vec<HandlerMember>>>) -> std::collections::HashMap<String, std::collections::HashMap<String, Vec<HandlerMember>>> {
+    KIT_HANDLERS.with(|k| std::mem::replace(&mut *k.borrow_mut(), h))
+}
+
+fn kit_handler(kit: &str, name: &str) -> Option<Vec<HandlerMember>> {
+    KIT_HANDLERS.with(|k| k.borrow().get(kit).and_then(|m| m.get(name)).cloned())
+}
+
+/// A file's `pub coll.handler`s, read on their own.
+pub fn pub_handlers(toks: &[Token]) -> Result<Vec<(String, Vec<HandlerMember>)>> {
+    let used = crate::uses::rewrite(toks)?;
+    let labelled = crate::argwords::labels(&used);
+    let owned = crate::argwords::strip(&labelled)?;
+    let toks = &owned[..];
+    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false };
+    let mut out = Vec::new();
+    for i in 1..toks.len() {
+        let pub_coll = matches!(&toks[i - 1].tok, Tok::Word(w) if w == "pub") && matches!(&toks[i].tok, Tok::Word(w) if w == "coll");
+        if pub_coll && matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(w)) if w == "handler") {
+            p.pos = i + 3;
+            out.push(p.handler_def()?);
+        }
+    }
+    Ok(out)
+}
+
+/// A declared channel type: the type without its bound, the element type,
+/// and the bound (`channel[T][max: 10]`, a `min` written being 0).
+fn channel_type(t: &Type) -> Option<(Type, Type, Option<Box<(Expr, Expr)>>)> {
+    let is_channel = |t: &Type| match &t.kind {
+        TypeKind::Path { path, args } if path.kit.is_none() && path.segs.len() == 1 && path.head() == "channel" && args.len() == 1 => Some(args[0].clone()),
+        _ => None,
+    };
+    if let Some(elem) = is_channel(t) {
+        return Some((t.clone(), elem, None));
+    }
+    if let TypeKind::Bound { inner, lo, hi, .. } = &t.kind {
+        let elem = is_channel(inner)?;
+        let lo = match &lo.kind {
+            ExprKind::Path(p) if p.is(&["min"]) => Expr { kind: ExprKind::Int("0".into()), span: lo.span },
+            _ => (**lo).clone(),
+        };
+        return Some(((**inner).clone(), elem, Some(Box::new((lo, (**hi).clone())))));
+    }
+    None
 }
 
 /// Whether a path's `[ … ]` or `( … )` is the right one (owner,

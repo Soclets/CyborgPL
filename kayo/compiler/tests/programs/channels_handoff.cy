@@ -1,7 +1,7 @@
 extern.C fn exit [$code: i32];
 fn fetch [lent $url: str.utf8] -> str.utf8 { return "page of " concat $url; }
 MAIN {
-    let $results := channel[str.utf8];
+    let $results: channel[str.utf8] = channel.empty;
     let $a := "a.com";
     concur with [lend $results, give $a] { channel.send(lend $results, value: fetch(lend $a)); }
     concur with [lend $results] { channel.send(lend $results, value: fetch("b.com")); }

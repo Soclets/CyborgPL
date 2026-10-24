@@ -7,7 +7,3 @@ collections :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
 corner_shop :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
 keys :: case mappings (7b7e8e57) not built yet: `std::str.lower.full`
 text :: case mappings (7b7e8e57) not built yet: `std::str.upper.full`
-concur :: `channel.empty` (owner, 2026-10-22) not built yet: there is no module `channel`
-handler_arguments :: a handler member's arguments (owner, 2026-10-23) not built yet: a `coll.handler` holds named `otherwise` blocks
-uses_a_handler :: `pub` handlers (owner, 2026-10-23) not built yet: whether a `coll.handler` can be `pub` is not decided yet
-whichever :: `channel.empty` (owner, 2026-10-22) not built yet: there is no module `channel`

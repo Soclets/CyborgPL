@@ -18,7 +18,7 @@ MAIN {
     let $g := fn [$n: i64[min: 0, max: 92]] -> i64 with [lend $k] { return fib($n) plus $k; };
     let mut $b: i64 = 0;
     no_cheat change $b = $g(10);
-    let $out := channel[i64];
+    let $out: channel[i64] = channel.empty;
     let mut $c: i64 = 0;
     no_cheat {
         concur with [lend $out] { channel.send(lend $out, value: fib(15)); }

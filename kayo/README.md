@@ -1041,6 +1041,19 @@ Dated, with the alternative, so each can become a question later.
   naming the typed literal to write (`2.5: bin64`). A preset beside several
   versions, and an overloaded name held as a value, are refused (design
   claude's readings).
+- **2026-10-24 — `channel.empty`, `std::exit(code: …)`, a generic's literal, handler
+  arguments and `pub` handlers** (owner, 2026-10-22/23; oracle 73a48973, 69c6aedf,
+  340f5b98, 07353d0f). `let $c: channel[T][max: N] = channel.empty;` is read
+  into the channel kayo always made, its bound taken off the declared type
+  (`channel_type`); `channel[T]` as a value, and `channel.empty` with no such
+  declaration, are refused. The thing worked on goes bare and every other
+  argument says its word, the only one too: `exit`'s refusal names it. A bare
+  literal in a generic body already takes its filling's real type, each
+  filling being built on its own. A `coll.handler` member takes parameters in
+  `[ ]`; `otherwise h.m(word: v, …)` copies its arms with a `let` for each
+  parameter first (each given once, by its word, none unknown); a `pub` one is
+  read from the listed kits' files before a kit's own (`load::pub_handlers`,
+  `parser::set_kit_handlers`) and used as `otherwise kit::h.m(…)`.
 - **2026-10-24 — Calls take `( )`, definitions keep `[ ]`, variables are `$name`**
   (owner, 2026-10-22; DECISIONS 2026-10-24 "Built"; oracle c16dc2d7). The lexer
   reads `$total` as the name `'total'` (letters, digits, `_`); a `$` that

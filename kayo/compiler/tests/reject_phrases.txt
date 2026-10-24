@@ -622,7 +622,7 @@ round_floor_old [fnv:88e7c8e2e70cd254] :: `std::floor` is an old spelling: write
 round_unknown_way [fnv:4b951c0ea841a459] :: is not a way to round
 rust_string [fnv:ffdc0506a249c7be] :: text is `str.utf8`
 rust_usize [fnv:6bb0e8d9e2e18eb7] :: as big as the machine
-send_lend [fnv:39b4c67c5c98f0f5] :: !unbuilt channel.empty (owner, 2026-10-22); then: write `give` (it moves) or `copy` (a second one)
+send_lend [fnv:39b4c67c5c98f0f5] :: write `give` (it moves) or `copy` (a second one)
 seq_after_perm [fnv:2fa17448182bc9f0] :: `seq` or `para` goes first, then `temp` / `perm`, then the name
 shadow [fnv:6f58e8bff03be94f] :: to shadow it deliberately write `shadow $x := …;`
 shadow_nothing [fnv:21615fa293366dc7] :: and none is visible here
@@ -723,7 +723,7 @@ sym_ptr_const_old [fnv:ae6eb104ef326825] :: `*const` is an old spelling: write `
 sym_ptr_mut_old [fnv:c4e7554878c9ad18] :: `*mut` is an old spelling: write `ptr.mut[T]`
 sym_ptr_read_old [fnv:cff160f7c74148d9] :: `*$p` is an old spelling: write `ptr.read($p)`
 sym_ptr_write_old [fnv:b6536c42cdbce138] :: `change *$p =` is an old spelling: write `ptr.write($p, value: v)`
-take_unhandled [fnv:0a69f5303bdb8818] :: !unbuilt channel.empty (owner, 2026-10-22); then: `channel.take` can fail (closed): say what happens
+take_unhandled [fnv:0a69f5303bdb8818] :: `channel.take` can fail (closed): say what happens
 temp_after_loop [fnv:652fb6ee6f955c44] :: 'i' is not declared
 temp_after_name [fnv:64d751df57cc16a6] :: `temp` goes before the name
 test_fn_called [fnv:7c28a2fd52cda7d7] :: is a `test fn`: `kayo test` runs it
@@ -770,7 +770,7 @@ variadic_typed_mismatch [fnv:4677956c07e22357] :: `f`'s parameter 'nums' is an `
 vouch_not_listed [fnv:9cab12389b9cab85] :: this kit vouches with `no_check`, and its CyJet.toml does not list `vouch`
 vouch_not_listed_no_checks [fnv:d045ea030a5d3918] :: this kit vouches with `NO_FUCKING_CHECKS`, and its CyJet.toml does not list `vouch`
 walrus_with_type [fnv:5af2a4fecf1666a4] :: `:=` means the prover chooses the type, so it takes no type; with a type written, use `=`
-whichever_unhandled [fnv:86bb5570c3022d11] :: !unbuilt channel.empty (owner, 2026-10-22); then: `whichever` can fail (closed) when every channel is closed, so it needs an `otherwise`
+whichever_unhandled [fnv:86bb5570c3022d11] :: `whichever` can fail (closed) when every channel is closed, so it needs an `otherwise`
 while_keyword [fnv:eb07551a9069b239] :: `while $x < 3 { … }`
 wide_does_not_fit [fnv:f3de824f7f63562f] :: the value can be outside what an `i64` holds
 wide_past_in_between [fnv:663f85c9ec3ce93b] :: goes past 256 bits in between
@@ -872,11 +872,11 @@ dollar_alone [fnv:4ecaa11006a8d93a] :: `$` starts a variable's name
 kit_call_in_brackets [fnv:6601c68f056642b6] :: a call takes `( )`: `twice(…)`
 position_in_parens [fnv:d4b29f344dd35e6a] :: `( )` is a call's; a position takes `[ ]`
 struct_in_parens [fnv:47d13a384b89c940] :: `( )` is a call's; building a struct takes `[ ]`
-channel_empty_untyped [fnv:c05b0657c6d49cf5] :: !unbuilt channel.empty (owner, 2026-10-22); then: `channel.empty` takes its type from the declaration
-channel_type_as_value [fnv:2673cf870de0db50] :: !pending channel.empty (owner, 2026-10-22) not built yet: a channel is made as a list or a map is
-exit_bare [fnv:6defa2b51b26fa0d] :: says what it is: `exit(code: 3)`
+channel_empty_untyped [fnv:c05b0657c6d49cf5] :: `channel.empty` takes its type from the declaration
+channel_type_as_value [fnv:2673cf870de0db50] :: a channel is made as a list or a map is: `let $ch: channel[i32] = channel.empty;`
+exit_bare [fnv:6defa2b51b26fa0d] :: only the thing worked on goes bare; this argument says what it is: `exit(code: 3)`
 fill_in_brackets [fnv:78221fca69c0410d] :: a call takes `( )`: `std::list.fill(…)`
-generic_literal_not_fitting [fnv:45393259853918f2] :: !unbuilt the generic literal (owner, 2026-10-22); then: `<T>` was filled with integer earlier in this call, now bin
-handler_argument_missing [fnv:f62f77e62697c697] :: !unbuilt a handler member's arguments (owner, 2026-10-23); then: `half_failed.or_default` takes `label:`
-handler_argument_unknown [fnv:7fd1f3dd8f2681b6] :: !unbuilt a handler member's arguments (owner, 2026-10-23); then: `half_failed.or_default` has no parameter `code`
-handler_argument_unlabelled [fnv:b5cd7de1743f2b1c] :: !unbuilt a handler member's arguments (owner, 2026-10-23); then: a handler's argument says its parameter
+generic_literal_not_fitting [fnv:45393259853918f2] :: the declared type is an `i32` and this value is a `bin`
+handler_argument_missing [fnv:f62f77e62697c697] :: `half_failed.or_default` takes `label:`
+handler_argument_unknown [fnv:7fd1f3dd8f2681b6] :: `half_failed.or_default` has no parameter `code`
+handler_argument_unlabelled [fnv:b5cd7de1743f2b1c] :: a handler's argument says its parameter

@@ -614,6 +614,16 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
     crate::parser::set_no_std(no_cord);
     crate::parser::set_cores(dir.join(MANIFEST).is_file().then(|| manifest.cores.clone()));
     let outer_root = crate::parser::set_neuron_root(dir);
+    // The kits it lists: their `pub` handlers, by their prefix, before its
+    // own files are read (owner, 2026-10-23).
+    let mut kit_handlers = std::collections::HashMap::new();
+    for d in manifest.deps.iter().filter(|d| !d.cord) {
+        let at = dir.join(&d.path);
+        if let Some(prefix) = kit_prefix(sources, &at) {
+            kit_handlers.insert(prefix, pub_handlers(sources, &at)?);
+        }
+    }
+    let outer_handlers = crate::parser::set_kit_handlers(kit_handlers);
     let parsed = (|| {
         let mut file = parse_file(sources, &root)?;
         check_bare(sources, items, &file, "", true)?;
@@ -629,6 +639,7 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
     crate::parser::set_no_std(false);
     crate::parser::set_cores(None);
     crate::parser::set_neuron_root(&outer_root);
+    crate::parser::set_kit_handlers(outer_handlers);
     parsed?;
     if no_cord {
         items.no_std_roots.insert(m);
@@ -740,6 +751,44 @@ use crate::ast::OFFICIAL_CORES;
 
 const MANIFEST_SHAPE: &str = "`my details:` / `name = areas` / `prefix = areas` / `ver = 1.0.0`, then `my targets:` / `aarch64-macos {` / `}`";
 
+/// A listed kit's prefix, from its `CyJet.toml`'s `my details:`; none when
+/// it cannot be read (its own load says why).
+fn kit_prefix(sources: &mut SourceMap, dir: &Path) -> Option<String> {
+    let at = dir.join(MANIFEST);
+    let text = std::fs::read_to_string(&at).ok()?;
+    let id = sources.add_once(&at, text);
+    sources.decoded(id).ok()?;
+    let doc = crate::cyjet_toml::read(id, &sources.get(id).text).ok()?;
+    doc.section("my details")?.pairs.iter().find(|p| p.key == "prefix").map(|p| p.value.clone())
+}
+
+/// The `pub coll.handler`s in a kit's files, by name.
+fn pub_handlers(sources: &mut SourceMap, dir: &Path) -> Result<std::collections::HashMap<String, Vec<crate::parser::HandlerMember>>> {
+    let mut out = std::collections::HashMap::new();
+    let mut todo = vec![dir.to_path_buf()];
+    while let Some(d) = todo.pop() {
+        let Ok(entries) = std::fs::read_dir(&d) else { continue };
+        for e in entries.flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                todo.push(p);
+                continue;
+            }
+            if p.extension().is_none_or(|x| x != "cy") || p.file_name().is_some_and(|n| n == "build.cy") {
+                continue;
+            }
+            let Ok(text) = std::fs::read_to_string(&p) else { continue };
+            if !text.contains("coll.handler") {
+                continue;
+            }
+            let id = sources.add_once(&p, text);
+            let toks = sources.lex_file(id)?;
+            out.extend(crate::parser::pub_handlers(&toks)?);
+        }
+    }
+    Ok(out)
+}
+
 /// One part of a manifest that is written once: a key in a section or a
 /// block, or a block in a section.
 fn once<'a>(seen: &mut Vec<&'a str>, name: &'a str, within: &str, at: crate::source::Span) -> Result<()> {
@@ -760,7 +809,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
         return Ok(out);
     }
     let text = std::fs::read_to_string(&at).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", at.display(), e))))?;
-    let id: FileId = sources.add(&at, text);
+    let id: FileId = sources.add_once(&at, text);
     // A concise manifest is decoded first (design claude's reading of
     // 2026-10-22's "A manifest can be concise too").
     sources.decoded(id)?;
@@ -1268,7 +1317,7 @@ fn new_module(items: &mut Items, name: &str, parent: Option<ModuleId>, vis: Vis)
 
 fn parse_file(sources: &mut SourceMap, path: &Path) -> Result<crate::ast::File> {
     let text = std::fs::read_to_string(path).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", path.display(), e))))?;
-    let id: FileId = sources.add(path, text);
+    let id: FileId = sources.add_once(path, text);
     let toks = sources.lex_file(id)?;
     let file = crate::parser::parse_file(&toks)?;
     // A template's generated part is read, never written, by a build

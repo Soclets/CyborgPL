@@ -6,8 +6,8 @@ fn produce [lent $out: channel[std::list[i32]][min: 0, max: 4], $base: i32] {
     }
 }
 MAIN {
-    let $pipe := channel[std::list[i32]][min: 0, max: 4];
-    let $quiet := channel[i32];
+    let $pipe: channel[std::list[i32]][min: 0, max: 4] = channel.empty;
+    let $quiet: channel[i32] = channel.empty;
     concur with [lend $pipe] { produce(lend $pipe, 1000); }
     concur with [lend $pipe] { produce(lend $pipe, 2000); }
     concur with [lend $quiet] { channel.send(lend $quiet, value: 7); }
