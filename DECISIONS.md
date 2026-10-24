@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Terms: author, writer, contributors, authors, user (owner)
+
+The owner, unasked: "\"author\" shall mean the founder / \"writer\" shall mean the developer, say that guy who made an
+app in CyborgPL / \"contributors\" shall mean the outside people contributing to CyborgPL / \"authors\" shall mean the
+entities that are the main contributors of CyborgPL (Tankun Sriket, design Claude, compiler Claude, etc) / \"user\"
+shall mean the user of the CyborgPL writer's final product". In `design/terms.md`. Design claude's note: the type
+`std::print.writer` (2026-10-23, its name design claude's reading) now shares its word with the writer, the person.
+
 ### 2026-10-24 — Fixed: `std::channel…` is refused, a channel being the MCPS limb's; a writer's text keeps the order (check claude)
 
 Two findings of check claude's. (1) The oracle read `std::channel.take` as std's (refusing its `otherwise`) and

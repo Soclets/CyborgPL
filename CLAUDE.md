@@ -17,6 +17,9 @@ v1 syntax carries over unless the owner explicitly chooses it.
 - **Never use the AskUserQuestion tool** in this project.
 - Record decisions in `DECISIONS.md` as they are made, noting what the owner
   chose versus what was proposed.
+- **Terms** (owner, 2026-10-24; `design/terms.md`): *author* the founder; *writer* whoever writes a CyborgPL
+  program; *contributors* outside people contributing; *authors* the main contributors (the owner and the sessions);
+  *user* whoever uses a writer's final product.
 - Stated identity (from the website hero): *"Very slow at the development,
   fast & safe at the final product."*
 - **CyborgPL is a hobby language** (owner, 2026-09-17, of CyborgPL). No timeline, no
