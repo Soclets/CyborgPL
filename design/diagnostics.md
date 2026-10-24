@@ -49,6 +49,10 @@ fix:   line 4:
 - **Two locations** ("There should be two location thingies, one for humans, and one for programs"): `file:line:col`
   on the first line for programs, and `where:` for people, **a function written with `( )`**, `pick()` (the owner:
   "`pick()`", over backticks, a backtick being CyborgPL's char literal: "` means char in CyPL").
+- Design claude's readings (2026-10-24, compiler claude asking): `where:` outside any function reads `where: in struct
+  Item`, `where: at the top of shop.cy`, `where: in CyJet.toml, my kits:`; `called from f() at line N` only on a check
+  that depends on its caller, otherwise `where: in pick()`, a loop as `where: in pick(), the loop starting at line 9`;
+  a concise file's place as `where: in pick(), decoded line 12 of shop.cy (concise)`.
 - Design claude's readings, not asked: the layout (the name, `at`, the location, then `where:`, `code:`, `when:`,
   `fix:`); a fix on another line as `fix: line 4:` with the line under it, alternatives under `or`; a renamed error
   keeps its old name as an alias, as `spellings.cyr` keeps old spellings; the `when:` wording.
