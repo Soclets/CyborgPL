@@ -528,7 +528,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                 (crate::ast::Prefix::Kit, None) if items.is_empty() && bare_file.is_none() => bare_file = Some((mark, at)),
                 (crate::ast::Prefix::Enum, Some(_)) => enum_bare_kinds.push((mark, at)),
                 (crate::ast::Prefix::Enum, None) if items.is_empty() && enum_bare_file.is_none() => enum_bare_file = Some((mark, at)),
-                _ => return p.fail_at_n(at, "bare_mark_form", FILE_MARK_FIRST),
+                _ => return p.fail_at_n(at, "spelling_removed", FILE_MARK_FIRST),
             }
             continue;
         }
@@ -859,8 +859,8 @@ impl<'a> Parser<'a> {
         if self.is_word("bare") {
             let at = self.span();
             return match self.bare_line()? {
-                (_, _, Some(_)) => self.fail_at_n(at, "bare_mark_form", "a `bare.… […];` line covers the whole kit, so it is written in `kit.cy`"),
-                (_, _, None) => self.fail_at_n(at, "bare_mark_form", FILE_MARK_FIRST),
+                (_, _, Some(_)) => self.fail_at_n(at, "spelling_removed", "a `bare.… […];` line covers the whole kit, so it is written in `kit.cy`"),
+                (_, _, None) => self.fail_at_n(at, "spelling_removed", FILE_MARK_FIRST),
             };
         }
         if self.is_word("pub") {
@@ -889,16 +889,16 @@ impl<'a> Parser<'a> {
                 match prefix {
                     crate::ast::Prefix::Kit => {
                         if vis == Vis::Kit {
-                            return self.fail_at_n(at, "bare_mark_form", "a `bare.kit_prefix` mark says how other kits write the path, and a `pub.kit` thing is never reached from them");
+                            return self.fail_at_n(at, "spelling_removed", "a `bare.kit_prefix` mark says how other kits write the path, and a `pub.kit` thing is never reached from them");
                         }
                         if bare.is_some() {
-                            return self.fail_at_n(at, "bare_mark_form", "one `bare.kit_prefix.…` mark on a thing");
+                            return self.fail_at_n(at, "spelling_removed", "one `bare.kit_prefix.…` mark on a thing");
                         }
                         bare = Some((mark, at));
                     }
                     crate::ast::Prefix::Enum => {
                         if enum_bare.is_some() {
-                            return self.fail_at_n(at, "bare_mark_form", "one `bare.enum_prefix.…` mark on a thing");
+                            return self.fail_at_n(at, "spelling_removed", "one `bare.enum_prefix.…` mark on a thing");
                         }
                         enum_bare = Some((mark, at));
                     }
@@ -972,7 +972,7 @@ impl<'a> Parser<'a> {
                 "fn" => {
                     // The one mark is written in the block (owner, 2026-10-13).
                     if let Some((_, at)) = bare {
-                        return self.fail_at_n(at, "bare_mark_form", "a collection's `bare.` mark is written in its block: `pub coll.fn area { bare.kit_prefix.never; … }`");
+                        return self.fail_at_n(at, "spelling_removed", "a collection's `bare.` mark is written in its block: `pub coll.fn area { bare.kit_prefix.never; … }`");
                     }
                     let (lines, mark) = self.collection(vis, None)?;
                     let span = start.to(self.prev_span());
@@ -980,7 +980,7 @@ impl<'a> Parser<'a> {
                 }
                 "handler" => {
                     if let Some((_, at)) = bare {
-                        return self.fail_at_n(at, "bare_mark_form", "a `coll.handler` takes no `bare.` mark: it is read where it is written, in its own file");
+                        return self.fail_at_n(at, "spelling_removed", "a `coll.handler` takes no `bare.` mark: it is read where it is written, in its own file");
                     }
                     // A `pub` one is used from another kit through its path
                     // (owner, 2026-10-23: "No shit").
@@ -996,11 +996,11 @@ impl<'a> Parser<'a> {
             d.table_bytes = table_bytes;
         }
         if let (ItemKind::Const(_), Some((_, at))) = (&kind, &bare) {
-            return self.fail_at_n(*at, "bare_mark_form", CONST_TAKES_NO_MARK);
+            return self.fail_at_n(*at, "spelling_removed", CONST_TAKES_NO_MARK);
         }
         if let (ItemKind::Op(d), Some(_)) = (&kind, &bare) {
             if !d.op.name.starts_with(|c: char| c.is_ascii_alphabetic()) {
-                return self.fail_at_n(d.op.span, "bare_mark_form", format!("`{}` is a glyph operator, which has nowhere to write a path, so there is nothing for `bare` to say", d.op.name));
+                return self.fail_at_n(d.op.span, "spelling_removed", format!("`{}` is a glyph operator, which has nowhere to write a path, so there is nothing for `bare` to say", d.op.name));
             }
         }
         if let (ItemKind::Main(..), Some((_, at))) = (&kind, &case) {
@@ -1008,7 +1008,7 @@ impl<'a> Parser<'a> {
         }
         if let Some((_, at)) = enum_bare {
             if !matches!(kind, ItemKind::Enum(_) | ItemKind::Module { .. }) {
-                return self.fail_at_n(at, "bare_mark_form", "a `bare.enum_prefix.…` mark says whether an enum's values may drop its name, so it goes on an enum or a module");
+                return self.fail_at_n(at, "spelling_removed", "a `bare.enum_prefix.…` mark says whether an enum's values may drop its name, so it goes on an enum or a module");
             }
         }
         let span = start.to(self.prev_span());
@@ -1267,11 +1267,11 @@ impl<'a> Parser<'a> {
             return Ok((prefix, mark, None));
         }
         if !self.eat(&Tok::LBracket) {
-            return self.fail_at_n(at, "bare_mark_form", format!("a `bare` mark is `{m};` at the top of a file, `{m} [fn, op];` in `kit.cy`, or `pub {m} fn …` on an item", m = spelled));
+            return self.fail_at_n(at, "spelling_removed", format!("a `bare` mark is `{m};` at the top of a file, `{m} [fn, op];` in `kit.cy`, or `pub {m} fn …` on an item", m = spelled));
         }
         if prefix == crate::ast::Prefix::Enum {
             if !self.eat_word("enum") || !self.eat(&Tok::RBracket) {
-                return self.fail_at_n(at, "bare_mark_form", format!("`{}` covers enums only: `{} [enum];`", spelled, spelled));
+                return self.fail_at_n(at, "spelling_removed", format!("`{}` covers enums only: `{} [enum];`", spelled, spelled));
             }
             self.expect_semi("the kinds")?;
             return Ok((prefix, mark, Some(vec!["enum".to_string()])));
@@ -1279,13 +1279,13 @@ impl<'a> Parser<'a> {
         let mut kinds = Vec::new();
         loop {
             let Tok::Word(w) = self.peek().clone() else {
-                return self.fail_n("bare_mark_form", format!("expected a kind ({}), found {}", BARE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "), self.peek().describe()));
+                return self.fail_n("spelling_removed", format!("expected a kind ({}), found {}", BARE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "), self.peek().describe()));
             };
             if w == "const" {
-                return self.fail_n("bare_mark_form", CONST_TAKES_NO_MARK);
+                return self.fail_n("spelling_removed", CONST_TAKES_NO_MARK);
             }
             if !BARE_KINDS.contains(&w.as_str()) {
-                return self.fail_n("bare_mark_form", format!("`{}` is not a kind a `bare` mark covers: {} (a module is marked on itself)", w, BARE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", ")));
+                return self.fail_n("spelling_removed", format!("`{}` is not a kind a `bare` mark covers: {} (a module is marked on itself)", w, BARE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", ")));
             }
             self.bump();
             kinds.push(w);
@@ -1698,11 +1698,11 @@ impl<'a> Parser<'a> {
             if self.is_word("bare") {
                 let at = self.span();
                 if mark.is_some() {
-                    return self.fail_at_n(at, "bare_mark_form", "a collection has one `bare.` mark, for every member");
+                    return self.fail_at_n(at, "spelling_removed", "a collection has one `bare.` mark, for every member");
                 }
                 let (prefix, m, mat) = self.bare_mark()?;
                 if prefix != crate::ast::Prefix::Kit {
-                    return self.fail_at_n(mat, "bare_mark_form", "a collection's mark says how other kits write its members' path: `bare.kit_prefix.…;`");
+                    return self.fail_at_n(mat, "spelling_removed", "a collection's mark says how other kits write its members' path: `bare.kit_prefix.…;`");
                 }
                 self.expect_semi("the `bare.` mark")?;
                 mark = Some((m, mat));
@@ -2059,7 +2059,7 @@ impl<'a> Parser<'a> {
                 return self.fail_n("collection_form", "templates are for `coll.fn`: a `coll.handler` holds named `otherwise` blocks, each written out");
             }
             if self.is_word("bare") {
-                return self.fail_n("bare_mark_form", "a `coll.handler` is read in its own file, so it has no `bare.` mark");
+                return self.fail_n("spelling_removed", "a `coll.handler` is read in its own file, so it has no `bare.` mark");
             }
             // `h.as_zero { … }`: the collection's name in front, as a
             // `coll.fn`'s members write it (owner, 2026-10-19).

@@ -101,7 +101,7 @@ impl Checker {
                 Ok(Expr { kind: K::Char(c.clone()), ty: Ty::Char(unit), span })
             }
             AK::Bool(b) => Ok(Expr { kind: K::Bool(*b), ty: Ty::Bool, span }),
-            AK::Duration { unit, .. } if unit.name == "bytes" => err(Diagnostic::error("a size in bytes is a writer's: `std::print.writer(size: 4096 bytes)`").named("size_outside_writer").at(span)),
+            AK::Duration { unit, .. } if unit.name == "bytes" => err(Diagnostic::error("a size in bytes is a writer's: `std::print.writer(size: 4096 bytes)`").named("bound_unit_misplaced").at(span)),
             AK::Duration { value, unit } => {
                 let v: i128 = value.parse().map_err(|_| Box::new(Diagnostic::error("this duration is too large").named("value_does_not_fit").at(span)))?;
                 let nanos = match unit.name.trim_end_matches('s') {
@@ -2155,9 +2155,6 @@ impl Checker {
                     let prefix = self.items.kit_deps.get(&here).and_then(|d| d.iter().find(|(_, r)| **r == there)).map(|(p, _)| p.clone()).unwrap_or_default();
                     return err(Diagnostic::error(format!("`{n}` is `{p}`'s and `bare.kit_prefix.never`: write `{p}::{n}`", n = name, p = prefix)).named("kit_name_needs_path").at(op_span));
                 }
-                (Some((prefix, _)), Some(ast::Bare::Only)) => {
-                    return err(Diagnostic::error(format!("`{p}::{n}` is `bare.kit_prefix.only`: `{p}` forbids its path, so write `{n}`", n = name, p = prefix)).named("path_forbidden").at(op_span));
-                }
                 _ => {}
             }
         }
@@ -2423,13 +2420,9 @@ impl Checker {
         Some(self.enum_case(ctx, id, name, payload, e.span))
     }
 
-    /// `Mood.calm` written with its name: refused when `Mood` forbids it
-    /// (`bare.enum_prefix.only`, owner, 2026-10-20).
-    fn enum_named_ok(&self, id: EnumId, case: &ast::Ident, span: Span) -> Result<()> {
-        let info = &self.items.enums[id.0 as usize];
-        if self.items.enum_bare_marks.get(&info.span) == Some(&ast::Bare::Only) {
-            return err(Diagnostic::error(format!("`{n}` forbids its name before its values (`bare.enum_prefix.only`): write `{c}` where a `{n}` is asked for", n = info.name, c = case.name)).named("path_forbidden").at(span));
-        }
+    /// `Mood.calm` written with its name: always allowed since the marks
+    /// that could forbid it went (owner, 2026-10-22).
+    fn enum_named_ok(&self, _id: EnumId, _case: &ast::Ident, _span: Span) -> Result<()> {
         Ok(())
     }
 
