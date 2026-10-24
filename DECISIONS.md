@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — A fix never makes up a value only the writer knows (owner: b)
+
+Compiler claude, writing kayo's fixes, met two fixes that need a value only the writer has: declaring a name that
+does not exist (`let $total: i32 = 0;` — why 0?) and converting where it can fail (`to.i32($price) otherwise 0` —
+why 0?). Offered (a) the type's zero, so every fix builds (compiler claude's recommendation for a declaration), or (b)
+no such fix, the message keeping what kayo can know (the close name, a declaration's type changed to the value's) and
+otherwise its `about:` line (design claude's recommendation, and compiler claude's for a conversion: a silent 0 for bad
+input is what `otherwise` exists to make the writer decide). The owner: "(b)". So **a `fix:` never invents a value**:
+a declaration's starting value, an `otherwise` fallback, a function's body. Where nothing whole can be written, the
+message keeps its `about:` line. This narrows 2026-10-24's "declaring it" to where no value is needed.
+
 ### 2026-10-24 — A negative whole number in a base prints its sign and digits: `{:b}` of -5 is `-101` (owner: b)
 
 check claude: the oracle printed two's complement at the value's width (`11111011` for an `i8` -5), kayo a sign and
