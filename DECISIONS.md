@@ -41,6 +41,15 @@ Compiler claude: kayo can write the edited line only where it knows the edit (an
 claude's recommendation, or (b) print something in its place. The owner: "`fix: none suggested`". So **every message
 has a `fix:` line**: the edited code where kayo knows it, and otherwise `fix: none suggested`. Not built.
 
+Then, design claude having said kayo cannot write a fix for a type that does not fit or a check, the owner: "Isn't
+the ruling is to give all?" (yes: 2026-09-22's shape gave alternatives under `or`, and 2026-10-22 did not drop them;
+design claude's answer had been wrong). So **every edit kayo can write is shown, under `or`, nearest the error
+first**, and `fix: none suggested` only where the fix lies outside the program's own code (two depended-on kits with
+one prefix, a program past the target's limits, a kit depending on itself). Design claude's first example of no fix,
+a misspelled name with nothing close, was wrong too (the owner: "is … correct?"): declaring it is an edit. Offered a
+cap of three, which design claude had tied to the owner's "a blob" (2026-09-22, about dense prose; the owner: "How
+does that link to ways to fix?" — it does not), the owner: "show them all".
+
 ### 2026-10-24 — The oracle and kayo use the same error names, from one list (owner)
 
 Compiler claude, staging 2026-10-22's format (about 1,300 messages in kayo), asked who writes the names; the owner
