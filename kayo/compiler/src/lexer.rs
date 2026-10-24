@@ -635,7 +635,7 @@ impl<'a> Lexer<'a> {
         // A number running straight into a letter: `1e3`, `0x10`, `5seconds`.
         if let Some(c) = self.peek() {
             if is_word_start(c) {
-                return self.fail(start, format!("a number runs straight into `{}`: put a space between a number and a word (`5 seconds`), and there is no `e` or `0x` form", c));
+                return self.fail(start, format!("a number runs straight into `{}`: put a space between a number and a word (`5 secs`), and there is no `e` or `0x` form", c));
             }
         }
         self.push(Tok::Num { text, bin, percent: false }, start);

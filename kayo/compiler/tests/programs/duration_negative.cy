@@ -6,9 +6,9 @@ extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 MAIN {
     let $k := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let $there := ptr.is_null(getenv(lend $k));
-    let mut $a := 5 seconds;
+    let mut $a := 5 secs;
     if $there { change $a = 1500 millis; }
-    let $c := $a minus 2 seconds;
+    let $c := $a minus 2 secs;
     if $c > 0 nanos { no_check my.exit(3); }
     no_check my.exit(4);
 }

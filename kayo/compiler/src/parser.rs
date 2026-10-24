@@ -19,7 +19,9 @@ const KEPT_INSIDE: &[&str] = &[
 /// The word operators; bare, but never reserved (functions.md).
 pub const WORD_OPS: &[&str] = &["plus", "minus", "times", "pow", "mod", "div", "and", "or", "not", "xor", "shl", "shr"];
 
-pub const DURATION_UNITS: &[&str] = &["nanos", "micros", "millis", "seconds", "minutes", "hours", "nano", "micro", "milli", "second", "minute", "hour"];
+/// The units a duration is written in (owner, 2026-10-24: "`secs` &
+/// `mins`"), and the old ones, refused naming the new.
+pub const DURATION_UNITS: &[&str] = &["nanos", "micros", "millis", "secs", "mins", "hours", "nano", "micro", "milli", "sec", "min", "hour", "seconds", "minutes", "second", "minute"];
 
 /// Bare words the language owns (`spellings.cyr`'s `keywords`, owner,
 /// 2026-10-13). A function may be named with one only through a path
@@ -418,7 +420,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
             // "Time: std, with duration literals"; d690ed91).
             if let (Tok::Num { .. }, Some(Tok::Word(u))) = (&toks[i].tok, toks.get(i + 1).map(|t| &t.tok)) {
                 if DURATION_UNITS.contains(&u.as_str()) {
-                    return err(Diagnostic::error(format!("a duration literal (`5 seconds`) is std's, and this kit's CyJet.toml does not list std: add `std {{` / `id = {}` / `ver = {}` / `}}` under its `my kits:`", STD_ID, STD_VERSION)).at(toks[i].span));
+                    return err(Diagnostic::error(format!("a duration literal (`5 secs`) is std's, and this kit's CyJet.toml does not list std: add `std {{` / `id = {}` / `ver = {}` / `}}` under its `my kits:`", STD_ID, STD_VERSION)).at(toks[i].span));
                 }
             }
             let Tok::Word(w) = &toks[i].tok else { continue };
@@ -5145,8 +5147,11 @@ impl<'a> Parser<'a> {
                 if let Tok::Word(u) = self.peek().clone() {
                     if DURATION_UNITS.contains(&u.as_str()) {
                         let unit = self.ident("a unit")?;
+                        if let Some(new) = old_unit(&unit.name) {
+                            return self.fail_at(unit.span, format!("`{}` is an old spelling: write `{} {}` (owner, 2026-10-24)", unit.name, text.replace('_', ""), new));
+                        }
                         if bin {
-                            return self.fail_at(start.to(unit.span), "a duration is a whole number of its unit: `1500 millis`, not `1.5 seconds`");
+                            return self.fail_at(start.to(unit.span), "a duration is a whole number of its unit: `1500 millis`, not `1.5 secs`");
                         }
                         let span = start.to(unit.span);
                         return Ok(Expr { kind: ExprKind::Duration { value: text, unit }, span });
@@ -5520,6 +5525,17 @@ fn preset(main: &FnDecl, owner: &Ident, name: Ident, fills: &[(QName, Expr)], sp
         in_coll: true,
         labels: None,
         defaults: Vec::new(),
+    }
+}
+
+/// The unit an old one is written as now (owner, 2026-10-24).
+fn old_unit(u: &str) -> Option<&'static str> {
+    match u {
+        "seconds" => Some("secs"),
+        "second" => Some("sec"),
+        "minutes" => Some("mins"),
+        "minute" => Some("min"),
+        _ => None,
     }
 }
 

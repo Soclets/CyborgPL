@@ -410,7 +410,7 @@ pub enum ExprKind {
     /// The bare `\n`.
     Newline,
     Bool(bool),
-    /// `5 seconds`
+    /// `5 secs`
     Duration { value: String, unit: Ident },
     /// `'x'`
     Name(QName),

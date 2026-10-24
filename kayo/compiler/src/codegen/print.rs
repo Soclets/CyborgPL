@@ -322,13 +322,13 @@ impl<'ctx> Cg<'_, 'ctx> {
                 self.out_text(out, "]");
             }
             // In the largest unit it is a whole number of, singular for 1:
-            // `90 seconds`, `2 minutes`, `1 milli`; nothing is `0 hours`
+            // `90 secs`, `2 mins`, `1 milli`; nothing is `0 hours`
             // (the oracle's form).
             Ty::Duration => {
                 let n = self.builder.build_load(w, at, "nanos").ok()?.into_int_value();
                 let func = self.builder.get_insert_block()?.get_parent()?;
                 let join = self.ctx.append_basic_block(func, "duration_printed");
-                let units: [(u64, &str, &str); 6] = [(3_600_000_000_000, "hour", "hours"), (60_000_000_000, "minute", "minutes"), (1_000_000_000, "second", "seconds"), (1_000_000, "milli", "millis"), (1_000, "micro", "micros"), (1, "nano", "nanos")];
+                let units: [(u64, &str, &str); 6] = [(3_600_000_000_000, "hour", "hours"), (60_000_000_000, "min", "mins"), (1_000_000_000, "sec", "secs"), (1_000_000, "milli", "millis"), (1_000, "micro", "micros"), (1, "nano", "nanos")];
                 let zero = self.builder.build_int_compare(IntPredicate::EQ, n, w.const_zero(), "none").ok()?;
                 let (is_zero, some) = (self.ctx.append_basic_block(func, "zero"), self.ctx.append_basic_block(func, "some"));
                 let _ = self.builder.build_conditional_branch(zero, is_zero, some);

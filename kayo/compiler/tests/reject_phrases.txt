@@ -189,7 +189,7 @@ div_lands_too_small [fnv:e57526aef80db96f] :: the value can be outside what an `
 div_trunc_std_moved [fnv:c49e7eedef3eb706] :: is an operator in the language now
 div_unknown_rounding [fnv:75fa1273c8a55e85] :: no `div.round`
 div_zero [fnv:55d00aed3abcab4f] :: the divisor can be zero, and nothing can be divided by zero
-duration_literal_without_std [fnv:d76b53959c2e44e5] :: a duration literal (`5 seconds`) is std's
+duration_literal_without_std [fnv:a4a86c57dc22bfa2] :: a duration literal (`5 secs`) is std's
 duration_negative [fnv:8b34ab9b24a2319a] :: a duration is a length of time, and this can take it below zero
 duration_without_std [fnv:2a0041e9693a95da] :: `duration` is std's
 else_if_bare [fnv:38697b0b1183ad5e] :: `else.if` became `else if`: two bare words
@@ -880,3 +880,5 @@ generic_literal_not_fitting [fnv:45393259853918f2] :: the declared type is an `i
 handler_argument_missing [fnv:f62f77e62697c697] :: `half_failed.or_default` takes `label:`
 handler_argument_unknown [fnv:7fd1f3dd8f2681b6] :: `half_failed.or_default` has no parameter `code`
 handler_argument_unlabelled [fnv:b5cd7de1743f2b1c] :: a handler's argument says its parameter
+duration_seconds_old [fnv:79a4719d8d0bd066] :: `seconds` is an old spelling: write `5 secs`
+wait_bare [fnv:ac5e58c7bab9421b] :: only the thing worked on goes bare; this argument says what it is: `time.wait(for: 5 secs)`
