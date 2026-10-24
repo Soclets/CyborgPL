@@ -1691,7 +1691,7 @@ impl Items {
                         "utf16" => Enc::Utf16,
                         "utf32" => Enc::Utf32,
                         "ascii" => Enc::Ascii,
-                        other => return err(Diagnostic::error(format!("`str.{}` is not an encoding: `utf8`, `utf16`, `utf32` or `ascii`", other)).named("unknown_text_unit").at(span).fix_edit(span, crate::diag::Edit::Swap(vec![format!("str.{}", other)]), format!("str.{}", crate::diag::closest(other, ["utf8", "utf16", "utf32", "ascii"]).unwrap_or("utf8")))),
+                        other => return err(Diagnostic::error(format!("`str.{}` is not an encoding: `utf8`, `utf16`, `utf32` or `ascii`", other)).named("unknown_text_unit").at(span).fix_swap_close(span, "str", other, ["utf8", "utf16", "utf32", "ascii"])),
                     };
                     if path.segs.len() > 2 {
                         return err(Diagnostic::error(format!("`{}` narrows too far: `str.{}` is the whole type", path.spelled(), enc)).named("narrowing_not_taken").at(span));
@@ -1707,7 +1707,7 @@ impl Items {
                         "byte" => Unit::Byte,
                         "point" => Unit::Point,
                         "grapheme" => Unit::Grapheme,
-                        other => return err(Diagnostic::error(format!("`char.{}` is not a unit: `byte`, `point` or `grapheme`", other)).named("unknown_text_unit").at(span).fix_edit(span, crate::diag::Edit::Swap(vec![format!("char.{}", other)]), format!("char.{}", crate::diag::closest(other, ["byte", "point", "grapheme"]).unwrap_or("grapheme")))),
+                        other => return err(Diagnostic::error(format!("`char.{}` is not a unit: `byte`, `point` or `grapheme`", other)).named("unknown_text_unit").at(span).fix_swap_close(span, "char", other, ["byte", "point", "grapheme"])),
                     };
                     return Ok(Ty::Char(u));
                 }

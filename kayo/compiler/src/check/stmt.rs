@@ -283,7 +283,7 @@ impl Checker {
                             return e;
                         }
                     } else {
-                        return err(Diagnostic::error(format!("'{n}' is already declared in this scope; to shadow it deliberately write `shadow ${n} := …;`", n = name.name)).named("already_declared").at(name.span).why_at(p.span, "the first '".to_string() + &name.name + "' is declared here"));
+                        return err(Diagnostic::error(format!("'{n}' is already declared in this scope; to shadow it deliberately write `shadow ${n} := …;`", n = name.name)).named("already_declared").at(name.span).fix_edit(name.span, Edit::Swap(vec!["let ".into()]), "shadow ").why_at(p.span, "the first '".to_string() + &name.name + "' is declared here"));
                     }
                 } else if let Some(prev) = ctx.visible_outside(&name.name) {
                     let p = &ctx.locals[prev.0 as usize];
@@ -298,7 +298,7 @@ impl Checker {
                     if self.const_visible(ctx, &name.name) {
                         return err(Diagnostic::error(format!("'{}' is a const and cannot be shadowed", name.name)).named("const_shadowed").at(name.span));
                     }
-                    return err(Diagnostic::error(format!("`shadow` takes a visible '{n}', and none is visible here: write `let ${n} := …;`", n = name.name)).named("nothing_to_shadow").at(name.span));
+                    return err(Diagnostic::error(format!("`shadow` takes a visible '{n}', and none is visible here: write `let ${n} := …;`", n = name.name)).named("nothing_to_shadow").at(name.span).fix_edit(name.span, Edit::Swap(vec!["shadow ".into()]), "let "));
                 }
                 if !*shadow && self.const_visible(ctx, &name.name) {
                     return err(Diagnostic::error(format!("'{}' is a const of this kit and cannot be redeclared", name.name)).named("const_shadowed").at(name.span));
@@ -341,7 +341,7 @@ impl Checker {
                 }
                 if let (hir::ExprKind::List(items), None) = (&v.kind, &declared) {
                     if items.is_empty() {
-                        return err(Diagnostic::error(format!("`[]` says nothing about what '{}' holds, and nothing on the left says \"list\": write `list.empty` (the prover picks the element type from what is appended later), or give it a type", name.name)).named("empty_untyped").at(value.span));
+                        return err(Diagnostic::error(format!("`[]` says nothing about what '{}' holds, and nothing on the left says \"list\": write `list.empty` (the prover picks the element type from what is appended later), or give it a type", name.name)).named("empty_untyped").at(value.span).fix_edit(value.span, Edit::Replace, "list.empty"));
                     }
                 }
                 let (v, local_ty, kind) = match &declared {
@@ -561,10 +561,10 @@ impl Checker {
                                 ctx.returned.insert(pi);
                             }
                             if mutable && !lend_mut {
-                                return err(Diagnostic::error(format!("`{}` hands back `lent.mut`: `return lend.mut ${};`", ctx.name, ctx.locals[place.base.0 as usize].name)).named("returned_borrow_form").at(v.span));
+                                return err(Diagnostic::error(format!("`{}` hands back `lent.mut`: `return lend.mut ${};`", ctx.name, ctx.locals[place.base.0 as usize].name)).named("returned_borrow_form").at(v.span).fix_edit(v.span, Edit::Verb, "lend.mut"));
                             }
                             if !mutable && lend_mut {
-                                return err(Diagnostic::error(format!("`{}` hands back a plain `lent`: `return lend ${};`, or declare `-> lent.mut …`", ctx.name, ctx.locals[place.base.0 as usize].name)).named("returned_borrow_form").at(v.span));
+                                return err(Diagnostic::error(format!("`{}` hands back a plain `lent`: `return lend ${};`, or declare `-> lent.mut …`", ctx.name, ctx.locals[place.base.0 as usize].name)).named("returned_borrow_form").at(v.span).fix_edit(v.span, Edit::Verb, "lend"));
                             }
                             let ty = place.ty.clone();
                             return Ok(hir::StmtKind::Return(Some(hir::Expr { kind: hir::ExprKind::Lend { place, mutable: lend_mut }, ty, span: v.span })));

@@ -359,6 +359,17 @@ impl Diagnostic {
             None => self,
         }
     }
+    /// `prefix.written` in the line becomes `prefix.close`, the close name
+    /// among `candidates`; nothing when none is close.
+    pub fn fix_swap_close<'a>(self, at: Span, prefix: &str, written: &str, candidates: impl IntoIterator<Item = &'a str>) -> Diagnostic {
+        match closest(written, candidates) {
+            Some(c) => {
+                let to = format!("{}.{}", prefix, c);
+                self.fix_edit(at, Edit::Swap(vec![format!("{}.{}", prefix, written)]), to)
+            }
+            None => self,
+        }
+    }
     /// Another edit made with the last fix (both are one fix).
     pub fn fix_also(mut self, span: Span, how: Edit, text: impl Into<String>) -> Diagnostic {
         if let Some(f) = self.fixes.last_mut() {

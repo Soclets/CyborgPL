@@ -569,7 +569,7 @@ impl Checker {
             return err(Diagnostic::error(format!("'{}' is read-only: `extern.C mut ${}: …` says C's variable may be written", info.name, info.name)).named("cnc::c_variable_read_only").at(span));
         }
         if matches!(use_, PlaceUse::Give | PlaceUse::Copy | PlaceUse::Lend | PlaceUse::LendMut) {
-            return err(Diagnostic::error(format!("'{}' is C's plain value: it copies by itself and takes no verb", info.name)).named("nothing_to_give").at(span));
+            return err(Diagnostic::error(format!("'{}' is C's plain value: it copies by itself and takes no verb", info.name)).named("nothing_to_give").at(span).fix_edit(span, Edit::Verb, ""));
         }
         // Model the extern as a synthetic local of kind Owned per use; the MIR builder maps it by name.
         let lid = ctx.declare(&format!("extern:{}", info.name), Local { name: info.name.clone(), ty: info.ret.clone(), mutability: None, kind: LocalKind::Owned, from_blank: false, span });
@@ -603,10 +603,10 @@ impl Checker {
             }
             PlaceUse::Give => {
                 if matches!(local.kind, LocalKind::Lent | LocalKind::LentMut) {
-                    return err(Diagnostic::error(format!("'{}' is lent: you cannot give away what you only borrowed", name)).named("lent_given_away").at(span));
+                    return err(Diagnostic::error(format!("'{}' is lent: you cannot give away what you only borrowed", name)).named("lent_given_away").at(span).fix_edit(span, Edit::Verb, "copy"));
                 }
                 if matches!(local.kind, LocalKind::LoopVar | LocalKind::LoopLent) {
-                    return err(Diagnostic::error(format!("'{}' is the loop's element and belongs to the list: `copy` it", name)).named("lent_given_away").at(span));
+                    return err(Diagnostic::error(format!("'{}' is the loop's element and belongs to the list: `copy` it", name)).named("lent_given_away").at(span).fix_edit(span, Edit::Verb, "copy"));
                 }
             }
             _ => {}
@@ -622,7 +622,7 @@ impl Checker {
         match &operand.kind {
             AK::Name(_) | AK::Field { .. } | AK::Index { .. } | AK::Paren(_) => {}
             AK::Call { .. } | AK::CallValue { .. } | AK::Str(_) | AK::List(_) | AK::Conv { .. } => {
-                return err(Diagnostic::error(format!("`{}` on a fresh value: a call's result or a literal has no owner yet, so it goes straight in with no verb", verb.spelled())).named("verb_on_fresh_value").at(span));
+                return err(Diagnostic::error(format!("`{}` on a fresh value: a call's result or a literal has no owner yet, so it goes straight in with no verb", verb.spelled())).named("verb_on_fresh_value").at(span).fix_edit(span, Edit::Verb, ""));
             }
             _ => {}
         }
@@ -787,7 +787,7 @@ impl Checker {
                 }
                 Ok(Expr { kind: K::Int(v.unwrap_or_default()), ty: t, span })
             }
-            Ty::Deci(_) if !exact && !whole => err(Diagnostic::error(format!("{} takes a deci from a bin literal, which is not decided: write `exactly {}: {}`", shown, written, tname)).named("money::exactly_needed").at(span)),
+            Ty::Deci(_) if !exact && !whole => err(Diagnostic::error(format!("{} takes a deci from a bin literal, which is not decided: write `exactly {}: {}`", shown, written, tname)).named("money::exactly_needed").at(span).fix_edit(span, Edit::Insert, "exactly ")),
             Ty::Bin(_) | Ty::Deci(_) | Ty::Brain => {
                 let v = self.expr(ctx, value)?;
                 let mut v = self.expect_store(ctx, v, &t, &shown)?;
@@ -2518,7 +2518,7 @@ impl Checker {
 
     fn map_literal(&mut self, ctx: &mut FnCtx, args: &[AArg], span: Span) -> Result<Expr> {
         if args.is_empty() {
-            return err(Diagnostic::error("an empty map is `map.empty`; `map[]` builds nothing").named("empty_map_literal").at(span));
+            return err(Diagnostic::error("an empty map is `map.empty`; `map[]` builds nothing").named("empty_map_literal").at(span).fix_edit(span, Edit::Replace, "map.empty"));
         }
         let kt = self.fresh();
         let vt = self.fresh();
@@ -2668,7 +2668,7 @@ impl Checker {
         if path.kit.as_ref().is_some_and(|l| l.name == "std") {
             let name = path.segs.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
             if name.starts_with("print.writer.") && !BUILT_CORD.contains(&name.as_str()) {
-                return err(Diagnostic::error("a writer is `std::print.writer`, `.whole` or `.split`, then `.stderr` for stderr (owner, 2026-10-24)").named("writer_way_unknown").at(path.span));
+                return err(Diagnostic::error("a writer is `std::print.writer`, `.whole` or `.split`, then `.stderr` for stderr (owner, 2026-10-24)").named("writer_way_unknown").at(path.span).fix_close(path.span, &path.spelled(), ["std::print.writer", "std::print.writer.whole", "std::print.writer.split", "std::print.writer.stderr"]));
             }
         }
         if self.std_stubs && path.kit.as_ref().map(|l| l.name == "std").unwrap_or(false) {
@@ -2723,7 +2723,7 @@ impl Checker {
                     return err(Diagnostic::error(format!("`{}` is an operator; it goes between two values: `$a {} $b`, never `{}(…)`", path.head(), path.head(), path.head())).named("operator_called_as_function").at(span));
                 }
                 if path.segs.len() == 1 && path.kit.is_none() && args.iter().any(|a| matches!(a, AArg::Named(..))) && e.sentence.starts_with("there is no") {
-                    return err(Diagnostic::error(format!("there is no struct named `{}` here", path.head())).named("unknown_struct").at(path.span));
+                    return err(Diagnostic::error(format!("there is no struct named `{}` here", path.head())).named("unknown_struct").at(path.span).fix_close(path.span, path.head(), self.items.structs.iter().map(|s| s.name.as_str())));
                 }
                 return Err(e);
             }
@@ -3292,7 +3292,7 @@ impl Checker {
         let elem = self.resolve(&elem);
         let elem_owned = elem.is_owned() && !matches!(elem, Ty::Bundle(_));
         let verb = match verb {
-            Some(v) if !elem_owned => return err(Diagnostic::error(format!("`...{} {}`: its elements are plain `{}` values, which copy by themselves — write `...{}`", v.spelled(), self.place_name(ctx, &place), self.spell(&elem), self.place_name(ctx, &place))).named("spread_verb_wrong").at(span)),
+            Some(v) if !elem_owned => return err(Diagnostic::error(format!("`...{} {}`: its elements are plain `{}` values, which copy by themselves — write `...{}`", v.spelled(), self.place_name(ctx, &place), self.spell(&elem), self.place_name(ctx, &place))).named("spread_verb_wrong").at(span).fix_edit(span, Edit::Swap(vec![format!("...{} ", v.spelled())]), "...")),
             v => v,
         };
         Ok((count, verb))
@@ -3336,7 +3336,7 @@ impl Checker {
                             match verb {
                                 Some(Verb::Copy) => Arg::Copy(place),
                                 Some(Verb::Give) => Arg::Give(place),
-                                Some(v) => return err(Diagnostic::error(format!("`...{}` cannot hand elements to an owning parameter: say `...copy` (each duplicated) or `...give` (each moved out, the list left empty)", v.spelled())).named("spread_verb_wrong").at(span)),
+                                Some(v) => return err(Diagnostic::error(format!("`...{}` cannot hand elements to an owning parameter: say `...copy` (each duplicated) or `...give` (each moved out, the list left empty)", v.spelled())).named("spread_verb_wrong").at(span).fix_edit(span, Edit::Swap(vec![format!("...{}", v.spelled())]), "...copy").fix_edit(span, Edit::Swap(vec![format!("...{}", v.spelled())]), "...give")),
                                 None => return err(Diagnostic::error(format!("the elements of {} are owned `{}` values and `{}` takes ownership of each: say `...copy {}` or `...give {}`", self.place_name(ctx, &place), self.spell(&elem), fname, self.place_name(ctx, &place), self.place_name(ctx, &place))).named("owned_value_bare").at(span)),
                             }
                         } else {
@@ -3345,7 +3345,7 @@ impl Checker {
                     }
                     ParamKind::Lent | ParamKind::LentMut => {
                         if let Some(v) = verb {
-                            return err(Diagnostic::error(format!("`{}` takes `lent ...{}`: `...` with no verb lends each element — drop the `{}`", fname, pname, v.spelled())).named("spread_verb_wrong").at(span));
+                            return err(Diagnostic::error(format!("`{}` takes `lent ...{}`: `...` with no verb lends each element — drop the `{}`", fname, pname, v.spelled())).named("spread_verb_wrong").at(span).fix_edit(span, Edit::Swap(vec![format!("...{} ", v.spelled())]), "..."));
                         }
                         Arg::Lend { place, mutable: kind == ParamKind::LentMut }
                     }
@@ -4066,13 +4066,13 @@ impl Checker {
         if form.is_none() {
             let two_texts = matches!(t.base(), Ty::Str(_)) && matches!(vt.base(), Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Bool | Ty::Enum { .. } | Ty::Brain);
             if two_texts {
-                return err(Diagnostic::error(format!("say which text `to.{}` makes of {}: `to.stored.{}(…)` (what is stored) or `to.useful.{}(…)` (the useful value) (owner, 2026-10-02)", target_spelling, self.family_word(&vt), target_spelling, target_spelling)).named("conversion_target_unsaid").at(span));
+                return err(Diagnostic::error(format!("say which text `to.{}` makes of {}: `to.stored.{}(…)` (what is stored) or `to.useful.{}(…)` (the useful value) (owner, 2026-10-02)", target_spelling, self.family_word(&vt), target_spelling, target_spelling)).named("conversion_target_unsaid").at(span).fix_edit(span, Edit::Swap(vec![format!("to.{}", target_spelling)]), format!("to.useful.{}", target_spelling)).fix_edit(span, Edit::Swap(vec![format!("to.{}", target_spelling)]), format!("to.stored.{}", target_spelling)));
             }
             if matches!(t.base(), Ty::Deci(_)) && vt.is_brain() {
-                return err(Diagnostic::error(format!("say which value `to.{}` takes of a brain16: `to.stored.{}(…)` (what is stored) or `to.useful.{}(…)` (the useful value) (owner, 2026-10-02)", target_spelling, target_spelling, target_spelling)).named("ai::brain_to_deci_unsaid").at(span));
+                return err(Diagnostic::error(format!("say which value `to.{}` takes of a brain16: `to.stored.{}(…)` (what is stored) or `to.useful.{}(…)` (the useful value) (owner, 2026-10-02)", target_spelling, target_spelling, target_spelling)).named("ai::brain_to_deci_unsaid").at(span).fix_edit(span, Edit::Swap(vec![format!("to.{}", target_spelling)]), format!("to.useful.{}", target_spelling)).fix_edit(span, Edit::Swap(vec![format!("to.{}", target_spelling)]), format!("to.stored.{}", target_spelling)));
             }
             if matches!(t.base(), Ty::Deci(_)) && matches!(vt.base(), Ty::Bin(_)) {
-                return err(Diagnostic::error(format!("say which value `to.{}` takes of a bin: `to.stored.{}(…)` (what is stored) or `to.useful.{}(…)` (the useful value) (owner, 2026-10-02)", target_spelling, target_spelling, target_spelling)).named("money::bin_to_deci_unsaid").at(span));
+                return err(Diagnostic::error(format!("say which value `to.{}` takes of a bin: `to.stored.{}(…)` (what is stored) or `to.useful.{}(…)` (the useful value) (owner, 2026-10-02)", target_spelling, target_spelling, target_spelling)).named("money::bin_to_deci_unsaid").at(span).fix_edit(span, Edit::Swap(vec![format!("to.{}", target_spelling)]), format!("to.useful.{}", target_spelling)).fix_edit(span, Edit::Swap(vec![format!("to.{}", target_spelling)]), format!("to.stored.{}", target_spelling)));
             }
         }
         if written && !(matches!(t.base(), Ty::Deci(_)) && matches!(vt.base(), Ty::Str(_))) {
@@ -4137,10 +4137,10 @@ impl Checker {
             ("list", ["remove"]) => BuiltinHead::B(Builtin::ListRemove),
             ("list", ["slice"]) => BuiltinHead::B(Builtin::ListSlice),
             ("list", ["empty"]) => return err(Diagnostic::error("`list.empty` is a value, not a call: write it without brackets").named("not_a_function").at(span)),
-            ("list", [other]) => return err(Diagnostic::error(format!("`list.{}` does not exist: a list has `length`, `append`, `remove`, `slice`", other)).named("unknown_operation").at(span)),
+            ("list", [other]) => return err(Diagnostic::error(format!("`list.{}` does not exist: a list has `length`, `append`, `remove`, `slice`", other)).named("unknown_operation").at(span).fix_swap_close(span, "list", other, ["length", "append", "remove", "slice"])),
             ("array", ["length"]) => BuiltinHead::B(Builtin::ArrayLength),
             ("array", ["slice"]) => BuiltinHead::B(Builtin::ArraySlice),
-            ("array", [other]) => return err(Diagnostic::error(format!("`array.{}` does not exist: an array has `length` and `slice`", other)).named("unknown_operation").at(span)),
+            ("array", [other]) => return err(Diagnostic::error(format!("`array.{}` does not exist: an array has `length` and `slice`", other)).named("unknown_operation").at(span).fix_swap_close(span, "array", other, ["length", "slice"])),
             ("to", ["list"]) => BuiltinHead::B(Builtin::ToList),
             ("to", ["array"]) => BuiltinHead::B(Builtin::ToArray),
             ("map", ["length"]) => BuiltinHead::B(Builtin::MapLength),
@@ -4152,7 +4152,7 @@ impl Checker {
             ("map", ["values"]) => BuiltinHead::B(Builtin::MapValues),
             ("map", ["pairs"]) => BuiltinHead::B(Builtin::MapPairs),
             ("map", []) => BuiltinHead::MapLiteral,
-            ("map", [other]) => return err(Diagnostic::error(format!("`map.{}` does not exist: a map has `length`, `has`, `get`, `set`, `remove`, `keys`, `values`, `pairs`", other)).named("unknown_operation").at(span)),
+            ("map", [other]) => return err(Diagnostic::error(format!("`map.{}` does not exist: a map has `length`, `has`, `get`, `set`, `remove`, `keys`, `values`, `pairs`", other)).named("unknown_operation").at(span).fix_swap_close(span, "map", other, ["length", "has", "get", "set", "remove", "keys", "values", "pairs"])),
             ("str", ["bytes"]) => BuiltinHead::B(Builtin::StrBytes),
             ("str", ["points"]) => BuiltinHead::B(Builtin::StrPoints),
             ("str", ["graphemes"]) => BuiltinHead::B(Builtin::StrGraphemes),
@@ -4162,7 +4162,7 @@ impl Checker {
                 "byte" => BuiltinHead::B(Builtin::StrEach(Unit::Byte)),
                 "point" => BuiltinHead::B(Builtin::StrEach(Unit::Point)),
                 "grapheme" => BuiltinHead::B(Builtin::StrEach(Unit::Grapheme)),
-                other => return err(Diagnostic::error(format!("`str.each.{}` is not a unit: `byte`, `point` or `grapheme`", other)).named("unknown_text_unit").at(span).fix_edit(span, Edit::Swap(vec![format!("each.{}", other)]), format!("each.{}", crate::diag::closest(other, ["byte", "point", "grapheme"]).unwrap_or("grapheme")))),
+                other => return err(Diagnostic::error(format!("`str.each.{}` is not a unit: `byte`, `point` or `grapheme`", other)).named("unknown_text_unit").at(span).fix_swap_close(span, "each", other, ["byte", "point", "grapheme"])),
             },
             ("str", [other, ..]) => return err(Diagnostic::error(format!("`str.{}` is std's, not the language's: the language owns only the units (`str.bytes`, `str.each.grapheme`, …), and `std::` is not available yet", other)).named(if matches!(*other, "upper" | "lower" | "title" | "fold") { "case_mapping_unsaid" } else { "std_name_needs_path" }).at(span)),
             ("char", ["code"]) => BuiltinHead::B(Builtin::CharCode),
@@ -4187,7 +4187,7 @@ impl Checker {
             ("ptr", ["at"]) => BuiltinHead::B(Builtin::PtrAt),
             ("ptr", ["is_null"]) => BuiltinHead::B(Builtin::PtrIsNull),
             ("ptr", ["null"]) => return err(Diagnostic::error("`ptr.null` is the null pointer, a value, not a call: `free(ptr.null)`").named("not_a_function").at(span)),
-            ("ptr", [other]) => return err(Diagnostic::error(format!("`ptr.{}` does not exist: a pointer has `read`, `write`, `at`, `is_null`, and `ptr.null` is the null pointer", other)).named("unknown_pointer_operation").at(span)),
+            ("ptr", [other]) => return err(Diagnostic::error(format!("`ptr.{}` does not exist: a pointer has `read`, `write`, `at`, `is_null`, and `ptr.null` is the null pointer", other)).named("unknown_pointer_operation").at(span).fix_swap_close(span, "ptr", other, ["read", "write", "at", "is_null"])),
             ("simd", ["fill"]) => BuiltinHead::B(Builtin::SimdFill),
             ("simd", ["load"]) => BuiltinHead::B(Builtin::SimdLoad),
             ("simd", ["store"]) => BuiltinHead::B(Builtin::SimdStore),
@@ -4204,7 +4204,7 @@ impl Checker {
             ("simd", [other]) => return err(Diagnostic::error(format!("`simd.{}` does not exist: a vector has `fill`, `load`, `store`, `load.some`, `store.some`, `shuffle`, `all`, `any`, `max`, `min`, `sum`", other)).named("unknown_operation").at(span)),
             ("channel", ["send"]) => BuiltinHead::B(Builtin::ChannelSend),
             ("channel", ["take"]) => BuiltinHead::B(Builtin::ChannelTake),
-            ("channel", [other]) => return err(Diagnostic::error(format!("`channel.{}` does not exist: a channel has `send` and `take`", other)).named("unknown_operation").at(span)),
+            ("channel", [other]) => return err(Diagnostic::error(format!("`channel.{}` does not exist: a channel has `send` and `take`", other)).named("unknown_operation").at(span).fix_swap_close(span, "channel", other, ["send", "take"])),
             _ => return Ok(None),
         };
         Ok(Some(b))
@@ -4636,7 +4636,7 @@ impl Checker {
                 };
                 let v = self.one_argument(ctx, positional[1], ParamKind::Owned, &elem, "channel.send", "the value")?;
                 if let Arg::Lend { .. } = v {
-                    return err(Diagnostic::error("a value sent on a channel is given, never lent: no two tasks may hold one thing").named("mcps::send_needs_give").at(positional[1].span));
+                    return err(Diagnostic::error("a value sent on a channel is given, never lent: no two tasks may hold one thing").named("mcps::send_needs_give").at(positional[1].span).fix_edit(positional[1].span, Edit::Verb, "give"));
                 }
                 (vec![a, v], Ty::Nothing)
             }
@@ -5582,7 +5582,7 @@ impl Checker {
                         };
                         match &v.kind {
                             AK::Duration { value, unit } if unit.name == "bytes" => value.replace('_', ""),
-                            _ => return err(Diagnostic::error("a writer's size says its unit: `size: 4096 bytes`").named("size_unit_unsaid").at(v.span)),
+                            _ => return err(Diagnostic::error("a writer's size says its unit: `size: 4096 bytes`").named("size_unit_unsaid").at(v.span).fix_edit(crate::source::Span::new(v.span.file, v.span.end as usize, v.span.end as usize), Edit::Insert, " bytes")),
                         }
                     }
                     _ => return err(Diagnostic::error(format!("a writer says its size, and only that: `std::{}(size: 4096 bytes)`", name)).named("wrong_argument_count").at(span)),

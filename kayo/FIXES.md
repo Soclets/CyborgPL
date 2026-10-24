@@ -220,8 +220,8 @@ said why), **—** (not yet).
 | name | sites | status | notes |
 |---|---|---|---|
 | `ai::brain_mixed` | 1 | keeps about | the conversion is the writer's |
-| `ai::brain_to_deci_unsaid` | 1 | — | |
-| `already_declared` | 5 | — | |
+| `ai::brain_to_deci_unsaid` | 1 | written | `to.useful.T` / `to.stored.T` |
+| `already_declared` | 5 | partly | `shadow` for `let`; a loop variable's, a const's, a capture's new name keeps about (the writer's) |
 | `argument_label_missing` | 9 | partly | the label put in, or a mistyped one replaced (`Edit::Label`); not yet: a handler's argument, a labelled argument of the own function |
 | `argument_label_unknown` | 5 | partly | the close label; not yet: a version's, a handler's |
 | `array_cannot_grow` | 2 | keeps about | `list` where it is declared: not yet written |
@@ -251,14 +251,14 @@ said why), **—** (not yet).
 | `concat_needs_text` | 4 | keeps about | `to.str.utf8(…)` around the side: not yet written |
 | `const_not_known` | 5 | keeps about | the value is the writer's |
 | `const_shadowed` | 4 | keeps about | the new name is the writer's |
-| `conversion_target_unsaid` | 1 | — | |
+| `conversion_target_unsaid` | 1 | written | `to.useful.T` / `to.stored.T` |
 | `count_negative` | 1 | keeps about | the count is the writer's |
 | `counter_shadowed` | 1 | keeps about | the new name is the writer's |
 | `data_missing` | 4 | keeps about | the value is the writer's (owner: (b)) |
 | `duplicate_map_key` | 1 | keeps about | which entry stays is the writer's |
 | `element_given_away` | 1 | keeps about | `copy` or `list.remove` is the writer's |
-| `empty_map_literal` | 1 | — | |
-| `empty_untyped` | 3 | — | |
+| `empty_map_literal` | 1 | written | `map.empty` |
+| `empty_untyped` | 3 | partly | `list.empty`; `ptr.null`'s type keeps about (the writer's) |
 | `failure_case_unhandled` | 1 | keeps about | what each arm does is the writer's |
 | `failure_handled_twice` | 1 | keeps about | which arm stays is the writer's |
 | `failure_never_happens` | 3 | keeps about | the arm out: not yet written |
@@ -287,7 +287,7 @@ said why), **—** (not yet).
 | `labels_out_of_order` | 1 | keeps about | the labels reordered: not yet written |
 | `lend_mut_needed` | 8 | partly | `lend` / a verb → `lend.mut`; not yet: a borrow handed back, a `for` over an iterator |
 | `lend_size_mismatch` | 1 | keeps about | the type is the writer's |
-| `lent_given_away` | 2 | — | |
+| `lent_given_away` | 2 | written | `copy` |
 | `lent_twice_in_call` | 1 | keeps about | which lend changes is the writer's |
 | `list_array_mismatch` | 4 | keeps about | `list` or `array` is the writer's |
 | `loop_variable_typed` | 1 | keeps about | the type out: not yet written |
@@ -297,13 +297,13 @@ said why), **—** (not yet).
 | `match_value_unused` | 1 | keeps about | where the value goes is the writer's |
 | `mcps::channel_form` | 5 | keeps about | the channel's type is the writer's |
 | `mcps::detached_lend` | 1 | keeps about | how the task takes it is the writer's |
-| `mcps::send_needs_give` | 1 | — | |
+| `mcps::send_needs_give` | 1 | partly | `give` / `copy` |
 | `mcps::task_returns` | 1 | keeps about | how the task ends is the writer's |
 | `mod_near_on_fraction` | 1 | keeps about | which operation is meant is the writer's |
-| `money::bin_to_deci_unsaid` | 1 | — | |
+| `money::bin_to_deci_unsaid` | 1 | written | `to.useful.T` / `to.stored.T` |
 | `money::deci_mixed` | 2 | keeps about | which width is the writer's |
 | `money::exact_into_bin` | 1 | keeps about | the type is the writer's |
-| `money::exactly_needed` | 1 | — | |
+| `money::exactly_needed` | 1 | written | `exactly ` in front |
 | `money::percent_mixed` | 3 | keeps about | the conversion is the writer's |
 | `money::power_not_whole` | 2 | keeps about | the exponent is the writer's |
 | `money::too_many_digits` | 2 | keeps about | the digits are the writer's |
@@ -325,8 +325,8 @@ said why), **—** (not yet).
 | `not_one_code_point` | 1 | keeps about | the type is the writer's |
 | `not_text` | 4 | keeps about | how it becomes text is the writer's |
 | `not_walkable` | 4 | keeps about | what the loop runs over is the writer's |
-| `nothing_to_give` | 2 | — | |
-| `nothing_to_shadow` | 1 | — | |
+| `nothing_to_give` | 2 | partly | the verb out; not yet: the checker's other site |
+| `nothing_to_shadow` | 1 | written | `let` for `shadow` |
 | `operator_called_as_function` | 2 | keeps about | the operator between the two values: not yet written |
 | `operator_cannot_be_value` | 1 | keeps about | the function is the writer's |
 | `operator_value_ambiguous` | 1 | keeps about | where it is handed is the writer's |
@@ -340,7 +340,7 @@ said why), **—** (not yet).
 | `position_unlabelled` | 7 | partly | `pos: ` in front; not yet: a slice's, an index in the parser |
 | `print_form_unsaid` | 4 | partly | `.useful` / `.stored`; not yet: the `.weird` forms |
 | `print_into_non_writer` | 1 | keeps about | the writer is the writer's |
-| `returned_borrow_form` | 5 | — | |
+| `returned_borrow_form` | 5 | partly | `lend` / `lend.mut`; a call's borrow keeps about |
 | `returned_borrow_misused` | 1 | keeps about | how it is held is the writer's |
 | `returned_borrow_unsaid` | 2 | keeps about | `-> lent T` in the signature: not yet written |
 | `rounding_unsaid` | 1 | written | the way meant first, then each |
@@ -348,11 +348,11 @@ said why), **—** (not yet).
 | `shadow_unsaid` | 1 | written | `shadow` for `let` |
 | `shuffle_not_fixed` | 2 | keeps about | the lanes are the writer's |
 | `simd_lane_count_unknown` | 1 | keeps about | the type is the writer's |
-| `size_unit_unsaid` | 1 | — | |
+| `size_unit_unsaid` | 1 | written | ` bytes` |
 | `spread_length_unknown` | 1 | keeps about | the arguments are the writer's |
 | `spread_not_variadic` | 1 | keeps about | the arguments are the writer's |
 | `spread_outside_call` | 1 | keeps about | the call is the writer's |
-| `spread_verb_wrong` | 4 | — | |
+| `spread_verb_wrong` | 4 | partly | the verb out, or `...copy` / `...give`; not yet: the parser's `...lend` |
 | `text_not_ascii` | 1 | keeps about | the type or the text is the writer's |
 | `text_order_undecided` | 2 | keeps about | not decided by the owner yet |
 | `text_unit_unsaid` | 6 | partly | each unit; not yet: a `for` over a text, a text's `[…]` |
@@ -361,22 +361,22 @@ said why), **—** (not yet).
 | `union_one_field` | 1 | keeps about | which field stays is the writer's |
 | `unknown_case` | 2 | written | the close name |
 | `unknown_field` | 2 | written | the close name |
-| `unknown_operation` | 6 | — | |
-| `unknown_pointer_operation` | 1 | — | |
+| `unknown_operation` | 6 | written | the close operation, where one is close |
+| `unknown_pointer_operation` | 1 | written | the close operation |
 | `unknown_rounding` | 3 | written | the five ways |
 | `unknown_std_name` | 4 | keeps about | std has not written it: the fix is std's |
-| `unknown_struct` | 1 | — | |
+| `unknown_struct` | 1 | written | the close struct |
 | `unlabelled_after_labelled` | 1 | keeps about | the arguments reordered: not yet written |
 | `unordered_map_walked` | 1 | keeps about | the map's kind is the writer's |
 | `value_does_not_fit` | 11 | partly | a whole number declared too narrow: the narrowest type of its sign that holds it; not yet: worked-out values (bound where read, waits on the root) |
 | `value_left_unused` | 4 | keeps about | what happens to the value is the writer's |
-| `verb_on_fresh_value` | 4 | — | |
+| `verb_on_fresh_value` | 4 | partly | the verb out of a call's result; not yet: the place-use sites |
 | `verb_wrong_for_parameter` | 14 | partly | the verb the parameter takes, or the verb out; not yet: C's pointers, a borrow handed back |
 | `versions_overlap` | 4 | keeps about | which version stays is the writer's |
 | `width_unknown` | 11 | keeps about | the width is the writer's |
 | `wrap_sizes_mixed` | 1 | keeps about | which size is the writer's |
 | `writer_size_zero` | 1 | keeps about | the size is the writer's |
-| `writer_way_unknown` | 1 | — | |
+| `writer_way_unknown` | 1 | written | the close way |
 | `written_not_literal` | 1 | keeps about | how it prints is the writer's |
 | `wrong_argument_count` | 14 | keeps about | the arguments are the writer's |
 | `wrong_type` | 51 | partly | the declared type changed, or a conversion that cannot fail (owner: (b)); the rest keep about: the value is simply wrong, or the conversion can fail |
@@ -392,79 +392,79 @@ said why), **—** (not yet).
 
 | name | sites | status | notes |
 |---|---|---|---|
-| `bound_not_kept` | 1 | — | |
-| `check_not_enough` | 1 | — | |
+| `bound_not_kept` | 1 | keeps about | bound the value where it is read: the message does not carry that place yet, and the bound itself is the writer's |
+| `check_not_enough` | 1 | keeps about | bound the value where it is read: the message does not carry that place yet, and the bound itself is the writer's |
 | `duration_negative` | 1 | — | |
-| `float_too_large` | 1 | — | |
-| `hash_disagrees_with_equal` | 1 | — | |
-| `length_bound_not_kept` | 1 | — | |
-| `mcps::send_never_taken` | 1 | — | |
-| `mcps::task_outlives_lend` | 1 | — | |
-| `mcps::tasks_wait_on_each_other` | 1 | — | |
+| `float_too_large` | 1 | keeps about | bound the value where it is read: the message does not carry that place yet, and the bound itself is the writer's |
+| `hash_disagrees_with_equal` | 1 | keeps about | the hash or the equality is the writer's |
+| `length_bound_not_kept` | 1 | keeps about | bound the value where it is read: the message does not carry that place yet, and the bound itself is the writer's |
+| `mcps::send_never_taken` | 1 | keeps about | who takes it is the writer's |
+| `mcps::task_outlives_lend` | 1 | keeps about | how the task takes it is the writer's |
+| `mcps::tasks_wait_on_each_other` | 1 | keeps about | the order tasks wait in is the writer's |
 | `no_check_lied` | 1 | written | the `no_check` taken out |
 | `shift_loses_every_bit` | 1 | — | |
 | `shift_overflows` | 1 | — | |
-| `slice_out_of_range` | 1 | — | |
-| `too_wide_in_between` | 1 | — | |
+| `slice_out_of_range` | 1 | keeps about | which range is meant is the writer's |
+| `too_wide_in_between` | 1 | keeps about | bound the value where it is read: the message does not carry that place yet, and the bound itself is the writer's |
 
 ## kits, files and the manifest (40 names)
 
 | name | sites | status | notes |
 |---|---|---|---|
-| `build_file_missing` | 1 | — | |
-| `cnc::c_lib_name_form` | 2 | — | |
-| `file_name_not_module` | 5 | — | |
-| `kit_not_found` | 2 | — | |
+| `build_file_missing` | 1 | keeps about | the build file is the writer's |
+| `cnc::c_lib_name_form` | 2 | keeps about | the library's name is the writer's |
+| `file_name_not_module` | 5 | keeps about | a rename, which no text edit expresses |
+| `kit_not_found` | 2 | keeps about | which kit is meant is the writer's |
 | `kit_prefix_clash` | 4 | none suggested | the prefixes are the depended-on kits' (owner's example) |
 | `kits_depend_in_circle` | 2 | none suggested | the order kits depend in is not one program's code (owner's example) |
-| `limb_retired` | 3 | — | |
+| `limb_retired` | 3 | keeps about | the line out: not yet written |
 | `manifest_block_unclosed` | 2 | written | the `}` above the next line, or a last line |
-| `manifest_default_unclear` | 3 | — | |
-| `manifest_field_misplaced` | 1 | — | |
-| `manifest_field_missing` | 6 | — | |
+| `manifest_default_unclear` | 3 | keeps about | which target is the default is the writer's |
+| `manifest_field_misplaced` | 1 | keeps about | where the key goes is the writer's |
+| `manifest_field_missing` | 6 | keeps about | the value is the writer's (owner: (b)) |
 | `manifest_given_twice` | 7 | partly | the second line goes; not yet: a block given twice |
-| `manifest_id_form` | 1 | — | |
+| `manifest_id_form` | 1 | keeps about | the id is the kit's creator's |
 | `manifest_kit_named_in_block` | 1 | written | the line goes |
 | `manifest_limb_block_name` | 1 | — | |
-| `manifest_line_form` | 6 | — | |
+| `manifest_line_form` | 6 | keeps about | the line's shape is the writer's |
 | `manifest_missing` | 2 | none suggested | the missing manifest is a depended-on kit's |
-| `manifest_name_form` | 1 | — | |
-| `manifest_section_form` | 2 | — | |
-| `manifest_source_unclear` | 4 | — | |
+| `manifest_name_form` | 1 | keeps about | the name is the writer's |
+| `manifest_section_form` | 2 | keeps about | the block is the writer's |
+| `manifest_source_unclear` | 4 | keeps about | which source stays is the writer's |
 | `manifest_unknown_field` | 4 | written | the close key |
 | `manifest_unknown_section` | 1 | written | the close section name |
 | `manifest_value_form` | 1 | — | |
 | `manifest_value_quoted` | 1 | written | the quotes off |
-| `manifest_version_too_long` | 1 | — | |
+| `manifest_version_too_long` | 1 | keeps about | the version is the writer's |
 | `manifest_version_word` | 1 | written | `ver` |
-| `name_ambiguous` | 2 | — | |
-| `old_file_name` | 8 | — | |
-| `operator_level_given_twice` | 1 | — | |
-| `path_not_readable` | 3 | — | |
-| `power_except_misplaced` | 1 | — | |
-| `root_file_missing` | 2 | — | |
-| `target_function_wrong` | 5 | — | |
-| `target_layout_missing` | 3 | — | |
-| `target_not_buildable` | 2 | — | |
-| `target_not_listed` | 1 | — | |
-| `unicode::case_marks_disagree` | 1 | — | |
-| `unicode::names_differ_only_in_case` | 1 | — | |
+| `name_ambiguous` | 2 | keeps about | which kit is meant is the writer's |
+| `old_file_name` | 8 | keeps about | a rename, which no text edit expresses |
+| `operator_level_given_twice` | 1 | keeps about | which level stays is the writer's |
+| `path_not_readable` | 3 | keeps about | the path is the writer's |
+| `power_except_misplaced` | 1 | keeps about | a move to `my denied powers:`: not an edit kayo makes yet |
+| `root_file_missing` | 2 | keeps about | the root file is the writer's |
+| `target_function_wrong` | 5 | keeps about | the function is the writer's |
+| `target_layout_missing` | 3 | keeps about | the linker script is the writer's |
+| `target_not_buildable` | 2 | none suggested | the target is kayo's to build, not the program's (owner's example: past the target's limits) |
+| `target_not_listed` | 1 | keeps about | which target is the writer's |
+| `unicode::case_marks_disagree` | 1 | keeps about | which mark stays is the writer's |
+| `unicode::names_differ_only_in_case` | 1 | keeps about | the new name is the writer's |
 | `unknown_power` | 1 | — | |
-| `version_not_available` | 2 | — | |
+| `version_not_available` | 2 | written | std's `ver` |
 
 ## other: templates, uses, sources (12 names)
 
 | name | sites | status | notes |
 |---|---|---|---|
-| `concise_form` | 1 | — | |
+| `concise_form` | 1 | keeps about | the concise file is written by a tool, not by hand |
 | `division_by_zero` | 1 | partly | check it before use: `if $b not_equal 0 {`, where the divisor is written plainly |
 | `generated_code_stale` | 1 | written | what `kayo generate` writes, in place of what is there |
 | `mcps::para_cannot_split` | 1 | written | `para` out: a sequential `for` |
-| `missing_return` | 4 | — | |
-| `no_truthiness` | 5 | — | |
+| `missing_return` | 4 | keeps about | the value is the writer's |
+| `no_truthiness` | 5 | keeps about | the comparison is the writer's |
 | `step_zero` | 2 | written | a step of `1` |
-| `template_runs_forever` | 1 | — | |
-| `template_too_many_members` | 1 | — | |
-| `template_value_unknown` | 4 | — | |
+| `template_runs_forever` | 1 | keeps about | the loop's end is the writer's |
+| `template_too_many_members` | 1 | keeps about | the range is the writer's |
+| `template_value_unknown` | 4 | keeps about | the value is the writer's |
 | `use_form` | 5 | partly | ` as NAME` after the path; a use of this kit's own path goes; not yet: a `use` below other lines (it moves), a missing `;` |
-| `use_name_taken` | 1 | — | |
+| `use_name_taken` | 1 | keeps about | the new name is the writer's |
