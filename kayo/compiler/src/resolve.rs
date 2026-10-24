@@ -1078,7 +1078,7 @@ impl Items {
                 _ => cur = self.dependency(kit, m)?,
             }
             if path.segs.first().map_or(false, |s| s.name == "my") {
-                return err(Diagnostic::error(format!("`{}::` already starts at that kit's root: write `{}::…` without `my.`", kit.name, kit.name)).named("my_after_kit_path").at(path.span));
+                return err(Diagnostic::error(format!("`{}::` already starts at that kit's root: write `{}::…` without `my.`", kit.name, kit.name)).named("my_after_kit_path").at(path.span).fix_edit(path.span, crate::diag::Edit::Swap(vec!["my.".into()]), ""));
             }
         }
         let mut segs = path.segs.iter().peekable();
@@ -1156,7 +1156,13 @@ impl Items {
     pub fn lookup_const_in(&self, target: ModuleId, name: &ast::QName, from: ModuleId) -> Result<crate::hir::ConstId> {
         let module = &self.modules[target.0 as usize];
         let Some((id, vis, _)) = module.const_named(&name.name) else {
-            return err(Diagnostic::error(format!("there is no const '{}' in {}", name.name, describe_module(&module.path))).named("unknown_const").at(name.span));
+            // The close name among the module's consts, written as a const is.
+            let consts: Vec<String> = module.consts.keys().map(|k| k.trim_matches('\'').to_string()).collect();
+            let d = Diagnostic::error(format!("there is no const '{}' in {}", name.name, describe_module(&module.path))).named("unknown_const").at(name.span);
+            return err(match crate::diag::closest(&name.name, consts.iter().map(String::as_str)) {
+                Some(c) => d.fix_edit(name.span, crate::diag::Edit::Replace, crate::diag::name_written(c)),
+                None => d,
+            });
         };
         if !self.visible(*vis, target, from) && self.kit_root(target) != self.kit_root(from) {
             return err(Diagnostic::error(format!("the const '{}' is not `pub`, and another kit reaches only `pub` items", name.name)).named("not_public").at(name.span));
@@ -1340,7 +1346,7 @@ impl Items {
                         return err(Diagnostic::error(format!("a C string is counted in bytes, not {}: C has no {}", u.name, u.name)).named("cnc::c_str_counted_in_bytes").at(u.span));
                     }
                     let Some((include, _)) = zero else {
-                        return err(Diagnostic::error("a bounded C string says whether its closing 0 counts: `C.str[max: 255 bytes, exclude zero]` (the text, the 0 on top) or `C.str[max: 256 bytes, include zero]` (the whole buffer) (owner, 2026-10-19)").named("cnc::c_str_zero_unsaid").at(*span));
+                        return err(Diagnostic::error("a bounded C string says whether its closing 0 counts: `C.str[max: 255 bytes, exclude zero]` (the text, the 0 on top) or `C.str[max: 256 bytes, include zero]` (the whole buffer) (owner, 2026-10-19)").named("cnc::c_str_zero_unsaid").at(*span).fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, ", exclude zero").fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, ", include zero"));
                     };
                     let (l, h) = len_bounds(lo, hi, *span)?;
                     // Held as the length with the 0, which a C string always has.
@@ -1354,7 +1360,7 @@ impl Items {
                     // Whether it takes a bound comes before how one is
                     // written (owner, 2026-10-12, labelled bounds).
                     return match &base {
-                        Ty::Seq { kind: SeqKind::Array, .. } => err(Diagnostic::error("a length bound belongs on a `list`: an `array` has one length, already known").named("length_bound_on_array").at(*span)),
+                        Ty::Seq { kind: SeqKind::Array, .. } => err(Diagnostic::error("a length bound belongs on a `list`: an `array` has one length, already known").named("length_bound_on_array").at(*span).fix_edit(*span, crate::diag::Edit::Replace, "")),
                         Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => {
                             // Each side labelled; one value alone is either side.
                             let d = Diagnostic::error("a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)").named("old_spelling").at(*span);
@@ -1557,15 +1563,15 @@ impl Items {
                         "bytes" | "byte" => Unit::Byte,
                         "points" | "point" => Unit::Point,
                         "graphemes" | "grapheme" => Unit::Grapheme,
-                        other => return err(Diagnostic::error(format!("`{}` is not a unit of text length: `bytes`, `points` or `graphemes`", other)).named("unknown_text_unit").at(u.span)),
+                        other => return err(Diagnostic::error(format!("`{}` is not a unit of text length: `bytes`, `points` or `graphemes`", other)).named("unknown_text_unit").at(u.span).fix_close(u.span, other, ["bytes", "points", "graphemes"])),
                     },
-                    None => return err(Diagnostic::error("a text's length bound must say which unit it counts — `bytes`, `points` or `graphemes` — after the last number: `str.utf8[min: 1, max: 40 graphemes]`; a text has three lengths and no single one").named("bound_unit_unsaid").at(span)),
+                    None => return err(Diagnostic::error("a text's length bound must say which unit it counts — `bytes`, `points` or `graphemes` — after the last number: `str.utf8[min: 1, max: 40 graphemes]`; a text has three lengths and no single one").named("bound_unit_unsaid").at(span).fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, " graphemes").fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, " points").fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, " bytes")),
                 };
                 let (l, h) = len_bounds(lo, hi, span)?;
                 Bound::Len { lo: l, hi: h, unit: Some(u) }
             }
             Ty::Seq { kind: SeqKind::Array, .. } => {
-                return err(Diagnostic::error("a length bound belongs on a `list`: an `array` has one length, already known").named("length_bound_on_array").at(span));
+                return err(Diagnostic::error("a length bound belongs on a `list`: an `array` has one length, already known").named("length_bound_on_array").at(span).fix_edit(span, crate::diag::Edit::Replace, ""));
             }
             Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => {
                 if matches!(base, Ty::Channel(_)) && matches!(&hi.kind, ast::ExprKind::Path(p) if p.is(&["max"])) {
@@ -1637,11 +1643,11 @@ impl Items {
         if path.kit.is_none() && head != "brain16" && head != "bfloat16" && head != "bf16" {
             let brainy = ["brain", "bfloat", "bf"].iter().find(|p| head.strip_prefix(*p).is_some_and(|r| !r.is_empty() && r.bytes().all(|c| c.is_ascii_digit())));
             if let Some(p) = brainy {
-                return err(Diagnostic::error(format!("the brain float comes in `brain16` only (also written `bfloat16` and `bf16`): there is no `{}`, and `{}` is 16 bits by name", head, p)).named("ai::brain_width").at(span));
+                return err(Diagnostic::error(format!("the brain float comes in `brain16` only (also written `bfloat16` and `bf16`): there is no `{}`, and `{}` is 16 bits by name", head, p)).named("ai::brain_width").at(span).fix_edit(span, crate::diag::Edit::Replace, "brain16"));
             }
         }
         if path.kit.is_none() && head == "f128" {
-            return err(Diagnostic::error("there is no `f128`: quad precision is software arithmetic on every machine — `f64`, or `d128` for more digits (owner, 2026-09-23)").named("no_such_width").at(span));
+            return err(Diagnostic::error("there is no `f128`: quad precision is software arithmetic on every machine — `f64`, or `d128` for more digits (owner, 2026-09-23)").named("no_such_width").at(span).fix_edit(span, crate::diag::Edit::Replace, "f64").fix_edit(span, crate::diag::Edit::Replace, "d128"));
         }
         // An integer of any width (owner, 2026-10-03).
         if let Some(rest) = head.strip_prefix("!std_") {
@@ -1685,7 +1691,7 @@ impl Items {
                         "utf16" => Enc::Utf16,
                         "utf32" => Enc::Utf32,
                         "ascii" => Enc::Ascii,
-                        other => return err(Diagnostic::error(format!("`str.{}` is not an encoding: `utf8`, `utf16`, `utf32` or `ascii`", other)).named("unknown_text_unit").at(span)),
+                        other => return err(Diagnostic::error(format!("`str.{}` is not an encoding: `utf8`, `utf16`, `utf32` or `ascii`", other)).named("unknown_text_unit").at(span).fix_edit(span, crate::diag::Edit::Swap(vec![format!("str.{}", other)]), format!("str.{}", crate::diag::closest(other, ["utf8", "utf16", "utf32", "ascii"]).unwrap_or("utf8")))),
                     };
                     if path.segs.len() > 2 {
                         return err(Diagnostic::error(format!("`{}` narrows too far: `str.{}` is the whole type", path.spelled(), enc)).named("narrowing_not_taken").at(span));
@@ -1701,13 +1707,13 @@ impl Items {
                         "byte" => Unit::Byte,
                         "point" => Unit::Point,
                         "grapheme" => Unit::Grapheme,
-                        other => return err(Diagnostic::error(format!("`char.{}` is not a unit: `byte`, `point` or `grapheme`", other)).named("unknown_text_unit").at(span)),
+                        other => return err(Diagnostic::error(format!("`char.{}` is not a unit: `byte`, `point` or `grapheme`", other)).named("unknown_text_unit").at(span).fix_edit(span, crate::diag::Edit::Swap(vec![format!("char.{}", other)]), format!("char.{}", crate::diag::closest(other, ["byte", "point", "grapheme"]).unwrap_or("grapheme")))),
                     };
                     return Ok(Ty::Char(u));
                 }
                 "list" | "array" => {
                     if path.segs.len() > 1 {
-                        return err(Diagnostic::error(format!("the element type goes in brackets: `{}[i32]`, not `{}` (a dot picks a fixed variant, brackets supply a type)", head, path.spelled())).named("type_parameter_form").at(span));
+                        return err(Diagnostic::error(format!("the element type goes in brackets: `{}[i32]`, not `{}` (a dot picks a fixed variant, brackets supply a type)", head, path.spelled())).named("type_parameter_form").at(span).fix_edit(span, crate::diag::Edit::Swap(vec![path.spelled()]), format!("{}[{}]", head, path.segs[1..].iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("."))));
                     }
                     if args.len() != 1 {
                         return err(Diagnostic::error(format!("`{}` takes exactly one type parameter, the element type: `{}[i32]`", head, head)).named("type_parameter_count").at(span));
@@ -1721,7 +1727,7 @@ impl Items {
                         None => MapOrder::Free(InferId(0)),
                         Some("ordered") => MapOrder::Ordered,
                         Some("unordered") => MapOrder::Unordered,
-                        Some(other) => return err(Diagnostic::error(format!("`map.{}` is not a variant: `map` (the prover decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)", other)).named("unknown_map_variant").at(span)),
+                        Some(other) => return err(Diagnostic::error(format!("`map.{}` is not a variant: `map` (the prover decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)", other)).named("unknown_map_variant").at(span).fix_edit(span, crate::diag::Edit::Swap(vec![format!("map.{}", other)]), "map.ordered").fix_edit(span, crate::diag::Edit::Swap(vec![format!("map.{}", other)]), "map.unordered").fix_edit(span, crate::diag::Edit::Swap(vec![format!("map.{}", other)]), "map")),
                     };
                     if args.len() != 2 {
                         return err(Diagnostic::error("`map` takes two type parameters, the key and the value: `map[str.utf8, i32]`").named("type_parameter_count").at(span));
@@ -1972,7 +1978,7 @@ fn std_int(rest: &str, span: Span) -> Result<Ty> {
     }
     if matches!(bits, 8 | 16 | 32 | 64 | 128) {
         let std = format!("{}{}", if signed { "i" } else { "u" }, bits);
-        return err(Diagnostic::error(format!("`{}` is standard: write `{}` — the mark `not_std.` says a width is not", std, std)).named("wsmw::standard_width").at(span));
+        return err(Diagnostic::error(format!("`{}` is standard: write `{}` — the mark `not_std.` says a width is not", std, std)).named("wsmw::standard_width").at(span).fix_edit(span, crate::diag::Edit::Replace, std.clone()));
     }
     Ok(Ty::int(signed, bits as u32))
 }

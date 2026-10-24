@@ -4162,7 +4162,7 @@ impl Checker {
                 "byte" => BuiltinHead::B(Builtin::StrEach(Unit::Byte)),
                 "point" => BuiltinHead::B(Builtin::StrEach(Unit::Point)),
                 "grapheme" => BuiltinHead::B(Builtin::StrEach(Unit::Grapheme)),
-                other => return err(Diagnostic::error(format!("`str.each.{}` is not a unit: `byte`, `point` or `grapheme`", other)).named("unknown_text_unit").at(span)),
+                other => return err(Diagnostic::error(format!("`str.each.{}` is not a unit: `byte`, `point` or `grapheme`", other)).named("unknown_text_unit").at(span).fix_edit(span, Edit::Swap(vec![format!("each.{}", other)]), format!("each.{}", crate::diag::closest(other, ["byte", "point", "grapheme"]).unwrap_or("grapheme")))),
             },
             ("str", [other, ..]) => return err(Diagnostic::error(format!("`str.{}` is std's, not the language's: the language owns only the units (`str.bytes`, `str.each.grapheme`, …), and `std::` is not available yet", other)).named(if matches!(*other, "upper" | "lower" | "title" | "fold") { "case_mapping_unsaid" } else { "std_name_needs_path" }).at(span)),
             ("char", ["code"]) => BuiltinHead::B(Builtin::CharCode),
