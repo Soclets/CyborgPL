@@ -326,6 +326,12 @@ pub unsafe extern "C" fn cyborg_out_flush(o: *mut Out) {
     if n == 0 {
         return;
     }
+    // A writer's text goes out after what kayo's own buffer holds: grouping
+    // prints is speed, never order (design claude, 2026-10-24; check
+    // claude's flushed-writer finding).
+    if o != shared() && (*(&raw const SHARED)).len > 0 {
+        cyborg_print_flush();
+    }
     let p = (*o).bytes as *const u8;
     match (*o).sink {
         // A file descriptor is the OS's; with none there is never one.

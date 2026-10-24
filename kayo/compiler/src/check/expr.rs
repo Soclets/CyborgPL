@@ -2624,6 +2624,12 @@ impl Checker {
                 return err(Diagnostic::error(format!("`std::{w}.trunc` is an operator in the language now: `$a {w}.trunc $b`")).named("old_spelling").at(span));
             }
         }
+        // A channel is the MCPS limb's, written bare, never std's (design
+        // claude, 2026-10-24).
+        if path.kit.as_ref().is_some_and(|l| l.name == "std") && path.segs.first().is_some_and(|s| s.name == "channel") {
+            let rest = path.segs.iter().skip(1).map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
+            return err(Diagnostic::error(format!("`channel` is the MCPS limb's, not std's: write `channel.{}(…)`", if rest.is_empty() { "send" } else { &rest })).named("unknown_std_name").at(path.span));
+        }
         if self.std_stubs && path.kit.as_ref().map(|l| l.name == "std").unwrap_or(false) {
             return self.std_stub(ctx, path, args, otherwise, span, used);
         }

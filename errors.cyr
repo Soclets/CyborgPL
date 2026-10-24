@@ -53,7 +53,7 @@ errors::table[
         errors::error[name = "unknown_case", means = "An enum has no case of that name.", tests = ["enum_match_unknown_case", "enum_unknown_case",]],
         errors::error[name = "unknown_interface", means = "A bound names an interface that does not exist.", tests = ["iface_unknown_in_bound",]],
         errors::error[name = "unknown_operator", means = "A word or symbol is used as an operator but no such operator exists here.", tests = ["op_path_wrong_kit", "op_run_no_space", "op_word_undefined", "wrap_amp_form", "wrap_percent_form",]],
-        errors::error[name = "unknown_std_name", means = "A name under `std::` does not exist.", tests = ["unknown_std",]],
+        errors::error[name = "unknown_std_name", means = "A name under `std::` does not exist.", tests = ["unknown_std", "channel_through_std",]],
         errors::error[name = "defined_twice", means = "The same name is defined twice, or as two different things.", tests = ["c_header_clash", "dir_file_and_block", "enum_name_clash", "module_twice", "module_type_clash",]],
         errors::error[name = "not_public", means = "An item is private to its module or kit and is reached from outside it.", tests = ["dir_private_across_files", "extern_block_line_private", "kit_private", "kit_pub_kit", "module_private_const", "module_private_fn", "module_private_nested", "module_private_struct",]],
         errors::error[name = "unknown_pub_narrowing", means = "`pub` is narrowed with a word it does not take.", tests = ["pub_narrowing_bad",]],
