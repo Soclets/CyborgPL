@@ -283,7 +283,7 @@ impl Checker {
                             return e;
                         }
                     } else {
-                        return err(Diagnostic::error(format!("'{n}' is already declared in this scope; to shadow it deliberately write `shadow '{n}' := …;`", n = name.name)).at(name.span).why_at(p.span, "the first '".to_string() + &name.name + "' is declared here"));
+                        return err(Diagnostic::error(format!("'{n}' is already declared in this scope; to shadow it deliberately write `shadow ${n} := …;`", n = name.name)).at(name.span).why_at(p.span, "the first '".to_string() + &name.name + "' is declared here"));
                     }
                 } else if let Some(prev) = ctx.visible_outside(&name.name) {
                     let p = &ctx.locals[prev.0 as usize];
@@ -292,13 +292,13 @@ impl Checker {
                             return e;
                         }
                     } else {
-                        return err(Diagnostic::error(format!("'{n}' is already declared in an enclosing scope; to shadow it deliberately write `shadow '{n}' := …;`", n = name.name)).at(name.span).why_at(p.span, "the first '".to_string() + &name.name + "' is declared here"));
+                        return err(Diagnostic::error(format!("'{n}' is already declared in an enclosing scope; to shadow it deliberately write `shadow ${n} := …;`", n = name.name)).at(name.span).why_at(p.span, "the first '".to_string() + &name.name + "' is declared here"));
                     }
                 } else if *shadow {
                     if self.const_visible(ctx, &name.name) {
                         return err(Diagnostic::error(format!("'{}' is a const and cannot be shadowed", name.name)).at(name.span));
                     }
-                    return err(Diagnostic::error(format!("`shadow` takes a visible '{n}', and none is visible here: write `let '{n}' := …;`", n = name.name)).at(name.span));
+                    return err(Diagnostic::error(format!("`shadow` takes a visible '{n}', and none is visible here: write `let ${n} := …;`", n = name.name)).at(name.span));
                 }
                 if !*shadow && self.const_visible(ctx, &name.name) {
                     return err(Diagnostic::error(format!("'{}' is a const of this kit and cannot be redeclared", name.name)).at(name.span));
@@ -368,11 +368,11 @@ impl Checker {
                         // nothing else.
                         let null = |e: &ast::Expr| matches!(&e.kind, ast::ExprKind::Path(p) if p.is(&["ptr", "null"]));
                         if null(value) {
-                            return err(Diagnostic::error(format!("`ptr.null` alone does not say what it points at: give '{}' its type, `let '{}': ptr[u8] = ptr.null;`", name.name, name.name)).at(value.span));
+                            return err(Diagnostic::error(format!("`ptr.null` alone does not say what it points at: give '{}' its type, `let ${}: ptr[u8] = ptr.null;`", name.name, name.name)).at(value.span));
                         }
                         if let ast::ExprKind::List(items) = &value.kind {
                             if !items.is_empty() && items.iter().all(null) {
-                                return err(Diagnostic::error(format!("`ptr.null` alone does not say what it points at, so '{}' cannot hold it: give it its type, `let '{}': list[ptr[u8]] = …;`", name.name, name.name)).at(value.span));
+                                return err(Diagnostic::error(format!("`ptr.null` alone does not say what it points at, so '{}' cannot hold it: give it its type, `let ${}: list[ptr[u8]] = …;`", name.name, name.name)).at(value.span));
                             }
                         }
                         let mut v = v;
@@ -501,7 +501,7 @@ impl Checker {
                     return err(Diagnostic::error("a task is a block, not a function: `return` cannot leave it").at(s.span));
                 }
                 if ctx.is_main {
-                    return err(Diagnostic::error("`MAIN` is a block, not a function: it has no `return` — ending it exits 0, and any other code is `std::exit[n]`").at(s.span));
+                    return err(Diagnostic::error("`MAIN` is a block, not a function: it has no `return` — ending it exits 0, and any other code is `std::exit(n)`").at(s.span));
                 }
                 match value {
                     Some(v) => {
@@ -544,10 +544,10 @@ impl Checker {
                                 ctx.returned.insert(pi);
                             }
                             if mutable && !lend_mut {
-                                return err(Diagnostic::error(format!("`{}` hands back `lent.mut`: `return lend.mut '{}';`", ctx.name, ctx.locals[place.base.0 as usize].name)).at(v.span));
+                                return err(Diagnostic::error(format!("`{}` hands back `lent.mut`: `return lend.mut ${};`", ctx.name, ctx.locals[place.base.0 as usize].name)).at(v.span));
                             }
                             if !mutable && lend_mut {
-                                return err(Diagnostic::error(format!("`{}` hands back a plain `lent`: `return lend '{}';`, or declare `-> lent.mut …`", ctx.name, ctx.locals[place.base.0 as usize].name)).at(v.span));
+                                return err(Diagnostic::error(format!("`{}` hands back a plain `lent`: `return lend ${};`, or declare `-> lent.mut …`", ctx.name, ctx.locals[place.base.0 as usize].name)).at(v.span));
                             }
                             let ty = place.ty.clone();
                             return Ok(hir::StmtKind::Return(Some(hir::Expr { kind: hir::ExprKind::Lend { place, mutable: lend_mut }, ty, span: v.span })));
@@ -590,10 +590,10 @@ impl Checker {
                                 }
                                 return Ok(hir::StmtKind::Return(Some(e)));
                             }
-                            return err(Diagnostic::error(format!("`{}` hands back a borrow: `return lend 'a';`, of one of its `lent` parameters", ctx.name)).at(v.span));
+                            return err(Diagnostic::error(format!("`{}` hands back a borrow: `return lend $a;`, of one of its `lent` parameters", ctx.name)).at(v.span));
                         }
                         if ctx.ret_lent.is_some() {
-                            return err(Diagnostic::error(format!("`{}` hands back a borrow: `return lend 'a';`, of one of its `lent` parameters", ctx.name)).at(v.span));
+                            return err(Diagnostic::error(format!("`{}` hands back a borrow: `return lend $a;`, of one of its `lent` parameters", ctx.name)).at(v.span));
                         }
                         let e = self.expr_top(ctx, v, true)?;
                         let rt = ctx.ret.clone();
@@ -655,7 +655,7 @@ impl Checker {
                                     None
                                 };
                                 if let Some(why) = why {
-                                    return err(Diagnostic::error(format!("'{}' {}, so `lend.mut '{}'` cannot hand the assembly its address to write through", name.name, why, name.name)).at(name.span));
+                                    return err(Diagnostic::error(format!("'{}' {}, so `lend.mut ${}` cannot hand the assembly its address to write through", name.name, why, name.name)).at(name.span));
                                 }
                             }
                             if *mutable {
@@ -713,14 +713,14 @@ impl Checker {
                 .fix(None, "simd.any[…]   # when one lane is enough"));
         }
         if t.base() != &Ty::Bool {
-            return err(Diagnostic::error(format!("{} must be a `bool`, and this is {}: there is no truthiness — compare it (`'n' not_equal 0`)", what, crate::types::a_type(&self.spell(&t)))).at(e.span));
+            return err(Diagnostic::error(format!("{} must be a `bool`, and this is {}: there is no truthiness — compare it (`$n not_equal 0`)", what, crate::types::a_type(&self.spell(&t)))).at(e.span));
         }
         Ok(())
     }
 
     fn fail_stmt(&mut self, ctx: &mut FnCtx, name: &ast::Ident, payload: Option<&ast::Expr>, span: Span) -> Result<hir::StmtKind> {
         if ctx.is_main {
-            return err(Diagnostic::error("`MAIN` cannot fail: it exits — `std::exit[1]` says the code").at(span));
+            return err(Diagnostic::error("`MAIN` cannot fail: it exits — `std::exit(1)` says the code").at(span));
         }
         let Some(index) = ctx.fails.iter().position(|(n, _)| *n == name.name) else {
             if ctx.fails.is_empty() {
@@ -822,13 +822,13 @@ impl Checker {
                             let elem = self.elem_type_of(&it_ty, e.span, "a `for` over")?;
                             (elem, LocalKind::Lent)
                         }
-                        _ => return err(Diagnostic::error("a `for` runs over a list (`lend 'xs'` / `give 'xs'`), a `range[…]`, a text walk (`str.each.grapheme[…]`) or a map walk (`map.keys[…]`)").at(e.span)),
+                        _ => return err(Diagnostic::error("a `for` runs over a list (`lend $xs` / `give $xs`), a `range[…]`, a text walk (`str.each.grapheme(…)`) or a map walk (`map.keys(…)`)").at(e.span)),
                     },
                     hir::ExprKind::Local(_) | hir::ExprKind::Read(_) if it_ty.is_seq() || matches!(it_ty.base(), Ty::Bundle(_)) => {
-                        return err(Diagnostic::error(format!("say how the loop takes the list: `for '{}' in lend 'xs'` looks at each element, `give 'xs'` consumes the list", name.name)).at(e.span));
+                        return err(Diagnostic::error(format!("say how the loop takes the list: `for ${} in lend $xs` looks at each element, `give $xs` consumes the list", name.name)).at(e.span));
                     }
                     _ if it_ty.is_text() => {
-                        return err(Diagnostic::error("a text is not a list of anything until you say what: `str.each.grapheme[lend 's']`, `.point`, or `.byte`").at(e.span));
+                        return err(Diagnostic::error("a text is not a list of anything until you say what: `str.each.grapheme(lend $s)`, `.point`, or `.byte`").at(e.span));
                     }
                     _ => return err(Diagnostic::error(format!("a `for` needs a list to run over, and this is {}", crate::types::a_type(&self.spell(&it_ty)))).at(e.span)),
                 };
@@ -997,7 +997,7 @@ impl Checker {
         match t.base() {
             Ty::Seq { elem, .. } => Ok((**elem).clone()),
             Ty::Bundle(ts) => Ok(Ty::Bundle(ts.clone())),
-            Ty::Str(_) => err(Diagnostic::error("a text is not a list of anything until you say what: `str.each.grapheme[lend 's']`, `.point`, or `.byte`").at(span)),
+            Ty::Str(_) => err(Diagnostic::error("a text is not a list of anything until you say what: `str.each.grapheme(lend $s)`, `.point`, or `.byte`").at(span)),
             other => err(Diagnostic::error(format!("{} {} is not possible: a `for` needs a list", what, crate::types::a_type(&self.spell(other)))).at(span)),
         }
     }
@@ -1006,7 +1006,7 @@ impl Checker {
         // A case that gives a value needs a `match` used as one.
         for arm in arms {
             if let Some(g @ ast::Stmt { kind: ast::StmtKind::Gives { .. }, .. }) = arm.body.stmts.last() {
-                return err(Diagnostic::error(format!("the `{}` case gives a value, but this `match` is not used as one: `let 'x' := match … {{ … }};`", arm.case.name)).at(g.span));
+                return err(Diagnostic::error(format!("the `{}` case gives a value, but this `match` is not used as one: `let $x := match … {{ … }};`", arm.case.name)).at(g.span));
             }
         }
         let (v, out) = self.match_arms(ctx, value, arms, None)?;
@@ -1053,7 +1053,7 @@ impl Checker {
                     Some(ctx.declare(&b.name, Local { name: b.name.clone(), ty: t, mutability: None, kind, from_blank: false, span: b.span }))
                 }
                 (Some(b), None) => return err(Diagnostic::error(format!("`{}` carries nothing, so there is no value to name '{}'", arm.case.name, b.name)).at(b.span)),
-                (None, Some(t)) => return err(Diagnostic::error(format!("`{}` carries {}: name it — `{} 'value' {{ … }}`", arm.case.name, crate::types::a_type(&self.spell(t)), arm.case.name)).at(arm.case.span)),
+                (None, Some(t)) => return err(Diagnostic::error(format!("`{}` carries {}: name it — `{} $value {{ … }}`", arm.case.name, crate::types::a_type(&self.spell(t)), arm.case.name)).at(arm.case.span)),
             };
             let (body, given) = match gives {
                 Some(t) => {
@@ -1150,7 +1150,7 @@ impl Checker {
                 other => return err(Diagnostic::error(format!("an arm of `whichever` takes from a channel, and this is {}", crate::types::a_type(&self.spell(other)))).at(arm.channel.span)),
             };
             if !matches!(ch.kind, hir::ExprKind::Lend { .. }) {
-                return err(Diagnostic::error("a channel is lent to `whichever`: `'v' from lend 'c' { … }`").at(arm.channel.span));
+                return err(Diagnostic::error("a channel is lent to `whichever`: `$v from lend $c { … }`").at(arm.channel.span));
             }
             ctx.push_scope();
             let id = ctx.declare(&arm.name.name, Local { name: arm.name.name.clone(), ty: elem, mutability: None, kind: LocalKind::Owned, from_blank: false, span: arm.name.span });

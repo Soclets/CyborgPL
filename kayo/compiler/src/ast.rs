@@ -964,7 +964,7 @@ pub fn core_line(name: &str) -> String {
     format!("{} {{` / `id = {}` / `ver = {}` / `}}", name.to_lowercase(), id, version)
 }
 
-pub const CONST_TAKES_NO_MARK: &str = "a const takes no `bare` mark: `'pi'` alone is a variable, so another kit's const always has its path (owner, 2026-10-06)";
+pub const CONST_TAKES_NO_MARK: &str = "a const takes no `bare` mark: `$pi` alone is a variable, so another kit's const always has its path (owner, 2026-10-06)";
 
 /// One parsed `.cpls` file.
 #[derive(Debug, Clone, PartialEq)]

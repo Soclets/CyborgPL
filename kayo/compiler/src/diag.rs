@@ -50,6 +50,44 @@ pub struct Diagnostic {
     pub fixes: Vec<Fix>,
 }
 
+/// A message's code, between backticks, shows a plain quoted name as
+/// `$name` (owner, 2026-10-22: good practice writes `$`, quoting only a
+/// name that needs it); the prose around it keeps the quotes. A message
+/// about the quotes themselves is left as written.
+fn dollar_names(sentence: String) -> String {
+    if sentence.contains("quote") || !sentence.contains('`') {
+        return sentence;
+    }
+    let mut out = String::with_capacity(sentence.len());
+    for (k, part) in sentence.split('`').enumerate() {
+        if k > 0 {
+            out.push('`');
+        }
+        if k % 2 == 0 {
+            out.push_str(part);
+            continue;
+        }
+        let mut rest = part;
+        while let Some(open) = rest.find('\'') {
+            let after = &rest[open + 1..];
+            let name_len = after.find(|c: char| !(c.is_alphanumeric() || c == '_')).unwrap_or(after.len());
+            // `<'T'>` and `.'x'` are about the quotes themselves.
+            let before = rest[..open].chars().last();
+            if name_len > 0 && after[name_len..].starts_with('\'') && !matches!(before, Some('<' | '.')) {
+                out.push_str(&rest[..open]);
+                out.push('$');
+                out.push_str(&after[..name_len]);
+                rest = &after[name_len + 1..];
+            } else {
+                out.push_str(&rest[..open + 1]);
+                rest = after;
+            }
+        }
+        out.push_str(rest);
+    }
+    out
+}
+
 impl Diagnostic {
     pub fn error(sentence: impl Into<String>) -> Diagnostic {
         Diagnostic::new(Kind::Error, sentence)
@@ -61,7 +99,7 @@ impl Diagnostic {
         Diagnostic::new(Kind::Note, sentence)
     }
     pub fn new(kind: Kind, sentence: impl Into<String>) -> Diagnostic {
-        Diagnostic { kind, sentence: sentence.into(), span: None, place: None, when: None, why: Vec::new(), try_: None, fixes: Vec::new() }
+        Diagnostic { kind, sentence: dollar_names(sentence.into()), span: None, place: None, when: None, why: Vec::new(), try_: None, fixes: Vec::new() }
     }
     pub fn at(mut self, span: Span) -> Diagnostic {
         self.span = Some(span);

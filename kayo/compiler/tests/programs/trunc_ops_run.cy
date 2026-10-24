@@ -4,37 +4,37 @@
 # is past the type for `div.trunc` and is left out; its `mod.trunc` is 0.
 # Lane by lane on a vector too, and C's `fmod` on bins: 4 + 8 + 16 = 28
 # when all hold, minus 1 for the first that does not.
-extern.C fn exit ['code': i32];
+extern.C fn exit [$code: i32];
 MAIN {
-    let 'ds': std::list[i8] = [-3, -1, 1, 2, 7];
-    let mut 'bad': i32 = 0;
-    for 'd' in lend 'ds' {
-        for 'i' [from: -128, to: 127, by: 1] {
-            let 'n': i8 = to.i8['i'];
-            let 'r': i8 = 'n' mod.trunc 'd';
-            if ('n' not_equal -128) or ('d' not_equal -1) {
-                let 'q': i8 = 'n' div.trunc 'd';
-                if (to.i32['q'] times to.i32['d']) plus to.i32['r'] not_equal 'i' { change 'bad' = 1; }
+    let $ds: std::list[i8] = [-3, -1, 1, 2, 7];
+    let mut $bad: i32 = 0;
+    for $d in lend $ds {
+        for $i [from: -128, to: 127, by: 1] {
+            let $n: i8 = to.i8($i);
+            let $r: i8 = $n mod.trunc $d;
+            if ($n not_equal -128) or ($d not_equal -1) {
+                let $q: i8 = $n div.trunc $d;
+                if (to.i32($q) times to.i32($d)) plus to.i32($r) not_equal $i { change $bad = 1; }
             }
-            if ('r' < 0) and ('n' > 0) { change 'bad' = 1; }
-            if ('r' > 0) and ('n' < 0) { change 'bad' = 1; }
+            if ($r < 0) and ($n > 0) { change $bad = 1; }
+            if ($r > 0) and ($n < 0) { change $bad = 1; }
         }
     }
-    let mut 'code': i32 = 4;
-    if 'bad' not_equal 0 { change 'code' = 3; }
-    let 'xs': std::list[i32] = [-7, 7, -8, 9];
-    let 'v': simd[i32, count: 4] = simd.load[lend 'xs', pos: 1];
-    let 'two': simd[i32, count: 4] = simd.fill[value: -2];
-    let 'q' := 'v' div.trunc 'two';
-    let 'r' := 'v' mod.trunc 'two';
-    if ('q'[pos: 1] equal_to 3) and ('q'[pos: 2] equal_to -3) and ('q'[pos: 3] equal_to 4) and ('q'[pos: 4] equal_to -4) and ('r'[pos: 1] equal_to -1) and ('r'[pos: 2] equal_to 1) and ('r'[pos: 3] equal_to 0) and ('r'[pos: 4] equal_to 1) {
-        change 'code' = 'code' plus 8;
+    let mut $code: i32 = 4;
+    if $bad not_equal 0 { change $code = 3; }
+    let $xs: std::list[i32] = [-7, 7, -8, 9];
+    let $v: simd[i32, count: 4] = simd.load(lend $xs, pos: 1);
+    let $two: simd[i32, count: 4] = simd.fill(value: -2);
+    let $q := $v div.trunc $two;
+    let $r := $v mod.trunc $two;
+    if ($q[pos: 1] equal_to 3) and ($q[pos: 2] equal_to -3) and ($q[pos: 3] equal_to 4) and ($q[pos: 4] equal_to -4) and ($r[pos: 1] equal_to -1) and ($r[pos: 2] equal_to 1) and ($r[pos: 3] equal_to 0) and ($r[pos: 4] equal_to 1) {
+        change $code = $code plus 8;
     }
-    let 'fs': std::list[f64] = [-370.0, 370.0, 7.5];
-    let mut 'fsum': f64 = 0.0;
-    for 'f' in lend 'fs' {
-        change 'fsum' = 'fsum' plus ('f' mod.trunc 360.0);
+    let $fs: std::list[f64] = [-370.0, 370.0, 7.5];
+    let mut $fsum: f64 = 0.0;
+    for $f in lend $fs {
+        change $fsum = $fsum plus ($f mod.trunc 360.0);
     }
-    if 'fsum' equal_to 7.5 { change 'code' = 'code' plus 16; }
-    no_check my.exit['code'];
+    if $fsum equal_to 7.5 { change $code = $code plus 16; }
+    no_check my.exit($code);
 }

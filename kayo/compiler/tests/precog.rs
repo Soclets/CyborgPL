@@ -103,8 +103,8 @@ fn a_full_width_unsigned_value_is_not_proven_safe() {
          \x20   return 'y';\n\
          }\n\
          MAIN {\n\
-         \x20   no_check let 'u' := getuid[];\n\
-         \x20   let 'r' := bump['u'];\n\
+         \x20   no_check let 'u' := getuid();\n\
+         \x20   let 'r' := bump('u');\n\
          }\n",
     );
     let ns = notes(&p);
@@ -131,7 +131,7 @@ fn a_const_arrays_length_is_known_to_layer_3() {
         "extern.C fn getuid [] -> u32;\n\
          const 'keys': array[u32] = [65, 66, 67, 223, 913, 931];\n\
          fn look ['c': u32] -> u32 {\n\
-         \x20   let 'n' := array.length['keys'];\n\
+         \x20   let 'n' := array.length('keys');\n\
          \x20   let mut 'p': u64[max: 6] = 0;\n\
          \x20   if 'p' + 4 at_most 'n' and.then 'keys'[pos: 'p' + 4] at_most 'c' { change 'p' = 'p' + 4; }\n\
          \x20   if 'p' + 2 at_most 'n' and.then 'keys'[pos: 'p' + 2] at_most 'c' { change 'p' = 'p' + 2; }\n\
@@ -140,8 +140,8 @@ fn a_const_arrays_length_is_known_to_layer_3() {
          \x20   return 0;\n\
          }\n\
          MAIN {\n\
-         \x20   no_check let 'u' := getuid[];\n\
-         \x20   let 'r' := look['u'];\n\
+         \x20   no_check let 'u' := getuid();\n\
+         \x20   let 'r' := look('u');\n\
          }\n",
     );
     let ns = notes(&p);
@@ -160,8 +160,8 @@ fn layer_3_proves_what_layer_2_can_only_guess_at() {
     let p = build(
         "extern.C fn getpid [] -> i32;\n\
          MAIN {\n\
-         \x20   no_check let 'a': u8 = to.u8[getpid[]];\n\
-         \x20   no_check let 'b': u8 = to.u8[getpid[]];\n\
+         \x20   no_check let 'a': u8 = to.u8(getpid());\n\
+         \x20   no_check let 'b': u8 = to.u8(getpid());\n\
          \x20   if 'a' < 'b' {\n\
          \x20       let 'gap': u8 = 'b' minus 'a';\n\
          \x20   }\n\
@@ -190,26 +190,26 @@ const PROGRAMS: &[&str] = &[
      fn b8 ['x': i8] -> i8 { let 'y': i8 = 'x' plus 1; return 'y'; }\n\
      fn b64 ['x': i64] -> i64 { let 'y': i64 = 'x' plus 1; return 'y'; }\n\
      MAIN {\n\
-     \x20   no_check let 'p' := getpid[];\n\
-     \x20   no_check let 'u8': u8 = to.u8['p'];\n\
-     \x20   no_check let 'u16': u16 = to.u16['p'];\n\
-     \x20   no_check let 'u32': u32 = to.u32['p'];\n\
-     \x20   no_check let 'u64': u64 = to.u64['p'];\n\
-     \x20   no_check let 'i8': i8 = to.i8['p'];\n\
-     \x20   no_check let 'i64': i64 = to.i64['p'];\n\
-     \x20   let 'r1' := a8['u8'];\n\
-     \x20   let 'r2' := a16['u16'];\n\
-     \x20   let 'r3' := a32['u32'];\n\
-     \x20   let 'r4' := a64['u64'];\n\
-     \x20   let 'r5' := b8['i8'];\n\
-     \x20   let 'r6' := b64['i64'];\n\
+     \x20   no_check let 'p' := getpid();\n\
+     \x20   no_check let 'u8': u8 = to.u8('p');\n\
+     \x20   no_check let 'u16': u16 = to.u16('p');\n\
+     \x20   no_check let 'u32': u32 = to.u32('p');\n\
+     \x20   no_check let 'u64': u64 = to.u64('p');\n\
+     \x20   no_check let 'i8': i8 = to.i8('p');\n\
+     \x20   no_check let 'i64': i64 = to.i64('p');\n\
+     \x20   let 'r1' := a8('u8');\n\
+     \x20   let 'r2' := a16('u16');\n\
+     \x20   let 'r3' := a32('u32');\n\
+     \x20   let 'r4' := a64('u64');\n\
+     \x20   let 'r5' := b8('i8');\n\
+     \x20   let 'r6' := b64('i64');\n\
      }\n",
     "extern.C fn getpid [] -> i32;\n\
      MAIN {\n\
-     \x20   no_check let 'a': u8 = to.u8[getpid[]];\n\
-     \x20   no_check let 'b': u16 = to.u16[getpid[]];\n\
-     \x20   no_check let 'c': u32 = to.u32[getpid[]];\n\
-     \x20   no_check let 'd': u64 = to.u64[getpid[]];\n\
+     \x20   no_check let 'a': u8 = to.u8(getpid());\n\
+     \x20   no_check let 'b': u16 = to.u16(getpid());\n\
+     \x20   no_check let 'c': u32 = to.u32(getpid());\n\
+     \x20   no_check let 'd': u64 = to.u64(getpid());\n\
      \x20   let 'w': u8 = 'a' plus 1;\n\
      \x20   let 'x': u16 = 'b' plus 1;\n\
      \x20   let 'y': u32 = 'c' plus 1;\n\
@@ -217,10 +217,10 @@ const PROGRAMS: &[&str] = &[
      }\n",
     "extern.C fn getpid [] -> i32;\n\
      MAIN {\n\
-     \x20   no_check let 'a': i8 = to.i8[getpid[]];\n\
-     \x20   no_check let 'b': i16 = to.i16[getpid[]];\n\
-     \x20   no_check let 'c': i32 = getpid[];\n\
-     \x20   no_check let 'd': i64 = to.i64[getpid[]];\n\
+     \x20   no_check let 'a': i8 = to.i8(getpid());\n\
+     \x20   no_check let 'b': i16 = to.i16(getpid());\n\
+     \x20   no_check let 'c': i32 = getpid();\n\
+     \x20   no_check let 'd': i64 = to.i64(getpid());\n\
      \x20   let 'w': i8 = 'a' minus 1;\n\
      \x20   let 'x': i16 = 'b' times 2;\n\
      \x20   let 'y': i32 = 'c' plus 'c';\n\
@@ -228,14 +228,14 @@ const PROGRAMS: &[&str] = &[
      }\n",
     "extern.C fn getpid [] -> i32;\n\
      MAIN {\n\
-     \x20   no_check let 'n': i32 = getpid[];\n\
+     \x20   no_check let 'n': i32 = getpid();\n\
      \x20   let 'r': i32[min: 1, max: 10] = 'n';\n\
      \x20   let 'q': i32 = 100 div.floor 'n';\n\
      \x20   let 'm': i32 = 100 mod.floor 'n';\n\
      }\n",
     "extern.C fn getpid [] -> i32;\n\
      MAIN {\n\
-     \x20   no_check let 'n': i32 = getpid[];\n\
+     \x20   no_check let 'n': i32 = getpid();\n\
      \x20   let mut 'total': i32 = 0;\n\
      \x20   for 'i': i32 [from: 1, to: 10, by: 1] {\n\
      \x20       change 'total' = 'total' plus 'i' plus 'n';\n\

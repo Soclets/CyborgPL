@@ -2,14 +2,14 @@
 # goes past the largest bin at about trip 180 million. Precog once let the
 # sum grow forever without widening, ran out of steps, and called the add
 # proven; the check is kept, and the program stops there.
-extern.C fn exit ['code': i32];
+extern.C fn exit [$code: i32];
 MAIN {
-    let 'n': i64 = 400000000;
-    let 'big': f64 = 10.0 pow 300.0;
-    let mut 't': f64 = 0.0;
-    for 'i': i64 [from: 1, to: 'n', by: 1] {
-        change 't' = 't' plus 'big';
+    let $n: i64 = 400000000;
+    let $big: f64 = 10.0 pow 300.0;
+    let mut $t: f64 = 0.0;
+    for $i: i64 [from: 1, to: $n, by: 1] {
+        change $t = $t plus $big;
     }
-    let 'r': i32 = to.i32['big' div.near 't'] otherwise 7;
-    no_check my.exit['r'];
+    let $r: i32 = to.i32($big div.near $t) otherwise 7;
+    no_check my.exit($r);
 }

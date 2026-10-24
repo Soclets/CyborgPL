@@ -18,3 +18,7 @@ shop :: `std::input.line` is not available yet
 text :: `std::str.upper.full` is not available yet
 whichever :: `std::time.after` is not available yet
 case_mappings :: `std::str.upper.simple` is not available yet
+concur :: there is no module `channel`
+handler_arguments :: a `coll.handler` holds named `otherwise` blocks
+uses_a_handler :: whether a `coll.handler` can be `pub` is not decided yet
+whichever :: there is no module `channel`

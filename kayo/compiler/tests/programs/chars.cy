@@ -4,40 +4,40 @@
 # failing conversions, a char as text (a byte as the point of its number,
 # the oracle's reading), `==` across units, and `++` beside text. Values
 # are known only at run time: whether an unset variable is there.
-extern.C fn exit ['code': i32];
-extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
-fn point ['code': i64] -> u32 {
-    let 'c' := char.point.from_code['code'] otherwise { not_a_char { return 0; } };
-    return char.code['c'];
+extern.C fn exit [$code: i32];
+extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+fn point [$code: i64] -> u32 {
+    let $c := char.point.from_code($code) otherwise { not_a_char { return 0; } };
+    return char.code($c);
 }
-fn byte ['code': i64] -> u8 {
-    let 'c' := char.byte.from_code['code'] otherwise { not_a_char { return 0; } };
-    return char.code['c'];
+fn byte [$code: i64] -> u8 {
+    let $c := char.byte.from_code($code) otherwise { not_a_char { return 0; } };
+    return char.code($c);
 }
 MAIN {
-    let 'k' := "SYNAPSE_SURELY_UNSET_VARIABLE";
-    no_check let 'there' := ptr.is_null[getenv[lend 'k']];
-    let mut 'd': i64 = 0;
-    if 'there' { change 'd' = 1; }
-    let mut 'got': i32 = 0;
-    if point[55295 plus 'd'] equal_to 0 and point[57344 minus 'd'] equal_to 0 and point[-'d'] equal_to 0 and point[1114110 plus 'd'] equal_to 1114111 { change 'got' = 'got' plus 1; }
-    if byte[199 plus 'd'] equal_to 200 and byte[255 plus 'd'] equal_to 0 and point['d' minus 1] equal_to 0 { change 'got' = 'got' plus 2; }
-    let 'b200' := char.byte.from_code[199 plus 'd'] otherwise `?`;
-    let 't' := to.str.utf8['b200'];
-    if std::str.bytes[lend 't'] equal_to 2 { change 'got' = 'got' plus 4; }
-    let mut 'e' := "Z";
-    if 'there' { change 'e' = "é"; }
-    let 'p' := to.char.point['e'] otherwise `?`;
-    let 'y' := to.char.byte['p'] otherwise `?`;
-    if char.code['p'] equal_to 233 and 'y' equal_to `?` { change 'got' = 'got' plus 8; }
-    let 'two' := to.char.point['e' concat "x"] otherwise `?`;
-    let 'none' := to.char.byte[str.empty concat 'e'] otherwise `!`;
-    if 'two' equal_to `?` and 'none' equal_to `!` { change 'got' = 'got' plus 16; }
-    let 'bb': char.byte = `A`;
-    let mut 'pp': char.point = `B`;
-    if 'there' { change 'pp' = `A`; }
-    if 'bb' equal_to 'pp' { change 'got' = 'got' plus 32; }
-    let 'j' := 'p' concat "!" concat 'pp';
-    if 'j' equal_to "é!A" { change 'got' = 'got' plus 64; }
-    no_check my.exit['got'];
+    let $k := "SYNAPSE_SURELY_UNSET_VARIABLE";
+    no_check let $there := ptr.is_null(getenv(lend $k));
+    let mut $d: i64 = 0;
+    if $there { change $d = 1; }
+    let mut $got: i32 = 0;
+    if point(55295 plus $d) equal_to 0 and point(57344 minus $d) equal_to 0 and point(-$d) equal_to 0 and point(1114110 plus $d) equal_to 1114111 { change $got = $got plus 1; }
+    if byte(199 plus $d) equal_to 200 and byte(255 plus $d) equal_to 0 and point($d minus 1) equal_to 0 { change $got = $got plus 2; }
+    let $b200 := char.byte.from_code(199 plus $d) otherwise `?`;
+    let $t := to.str.utf8($b200);
+    if std::str.bytes(lend $t) equal_to 2 { change $got = $got plus 4; }
+    let mut $e := "Z";
+    if $there { change $e = "é"; }
+    let $p := to.char.point($e) otherwise `?`;
+    let $y := to.char.byte($p) otherwise `?`;
+    if char.code($p) equal_to 233 and $y equal_to `?` { change $got = $got plus 8; }
+    let $two := to.char.point($e concat "x") otherwise `?`;
+    let $none := to.char.byte(str.empty concat $e) otherwise `!`;
+    if $two equal_to `?` and $none equal_to `!` { change $got = $got plus 16; }
+    let $bb: char.byte = `A`;
+    let mut $pp: char.point = `B`;
+    if $there { change $pp = `A`; }
+    if $bb equal_to $pp { change $got = $got plus 32; }
+    let $j := $p concat "!" concat $pp;
+    if $j equal_to "é!A" { change $got = $got plus 64; }
+    no_check my.exit($got);
 }

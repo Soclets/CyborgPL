@@ -6,10 +6,10 @@ struct Point {
 }
 
 MAIN {
-    let 'p' := Point[x = 3, y = -4];
-    let 'tenth': f64 = 0.1;
-    std::print.useful["hello from a bare chip", newln];
-    std::print.useful['p', " ", 'tenth', " ", 7 times 6, newln];
-    std::print.stored['tenth', newln];
-    std::exit[0];
+    let $p := Point[x = 3, y = -4];
+    let $tenth: f64 = 0.1;
+    std::print.useful("hello from a bare chip", newln);
+    std::print.useful($p, " ", $tenth, " ", 7 times 6, newln);
+    std::print.stored($tenth, newln);
+    std::exit(code: 0);
 }

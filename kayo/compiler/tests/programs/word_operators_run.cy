@@ -3,15 +3,15 @@
 # = -243; 2 pow 3 pow 2 = 512; -2 pow 2 = -4; 2 times 3 pow 2 = 18; a u8 200
 # plus.wrap 100 is 44 and times.wrap 2 is 144, 188. -243 + 512 - 4 + 18 + 188
 # = 471, and 471 mod 256 is 215.
-extern.C fn exit ['code': i32];
+extern.C fn exit [$code: i32];
 MAIN {
-    let 'a': i32 = 7;
-    let 'b': i32 = 3;
-    let 'h': u8 = 200;
-    let 'r1' := ('a' plus 'b') times 10 minus ('a' pow 'b');
-    let 'r2' := 2 pow 3 pow 2;
-    let 'r3' := -2 pow 2;
-    let 'r4' := 2 times 3 pow 2;
-    let 'w' := ('h' plus.wrap 100) plus ('h' times.wrap 2);
-    no_check my.exit[to.i32[('r1' plus 'r2' plus 'r3' plus 'r4' plus to.i64['w']) mod.floor 256]];
+    let $a: i32 = 7;
+    let $b: i32 = 3;
+    let $h: u8 = 200;
+    let $r1 := ($a plus $b) times 10 minus ($a pow $b);
+    let $r2 := 2 pow 3 pow 2;
+    let $r3 := -2 pow 2;
+    let $r4 := 2 times 3 pow 2;
+    let $w := ($h plus.wrap 100) plus ($h times.wrap 2);
+    no_check my.exit(to.i32(($r1 plus $r2 plus $r3 plus $r4 plus to.i64($w)) mod.floor 256));
 }

@@ -273,7 +273,7 @@ pub fn render(f: &Facts) -> String {
             let decl = &func.locals[l.0 as usize];
             let span = func.span(decl.span);
             let values = f.analysis.held.get(&(fi, l.0)).map(|d| d.describe()).unwrap_or_else(|| "what its type allows".to_string());
-            prow.push(format!("| {} | {} | `'{}'` | `{}` | {} |", cell(&where_(span)), cell(&fname(func)), decl.name.as_deref().unwrap_or("?"), spell(&decl.ty), cell(&values)));
+            prow.push(format!("| {} | {} | `${}` | `{}` | {} |", cell(&where_(span)), cell(&fname(func)), decl.name.as_deref().unwrap_or("?"), spell(&decl.ty), cell(&values)));
         }
     }
     prow.sort();
@@ -363,7 +363,7 @@ pub fn render(f: &Facts) -> String {
     let bits = crate::mir::bits::bit_lists(p);
     let mut bit_rows: Vec<String> = bits.iter().map(|(fi, l)| {
         let func = &p.functions[*fi];
-        format!("- `'{}'` in {}", func.locals[*l as usize].name.as_deref().unwrap_or("?"), code(&fname(func)))
+        format!("- `${}` in {}", func.locals[*l as usize].name.as_deref().unwrap_or("?"), code(&fname(func)))
     }).collect();
     bit_rows.sort();
     bit_rows.dedup();
@@ -510,7 +510,7 @@ pub fn render(f: &Facts) -> String {
     if !f.consts.is_empty() {
         let _ = writeln!(sizes, "| Name | Type | Bytes |\n|---|---|---:|");
         for (n, t, b) in f.consts {
-            let _ = writeln!(sizes, "| `'{}'` | {} | {} |", n, cell(t), group(*b));
+            let _ = writeln!(sizes, "| `${}` | {} | {} |", n, cell(t), group(*b));
         }
     }
     n_sizes += f.consts.len();

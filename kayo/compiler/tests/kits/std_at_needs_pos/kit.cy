@@ -2,7 +2,7 @@
 # written in CyborgPL: a bare number is refused.
 
 MAIN {
-    let 'h' := "hi";
-    let 'i' := std::str.at.byte[lend 'h', 2] otherwise 0;
-    std::print.useful['i', newln];
+    let $h := "hi";
+    let $i := std::str.at.byte(lend $h, 2) otherwise 0;
+    std::print.useful($i, newln);
 }

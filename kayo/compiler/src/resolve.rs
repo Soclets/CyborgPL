@@ -792,7 +792,7 @@ impl Items {
                 if let Ty::Fn(f) = ty.base() {
                     if let Some((_, bad)) = f.params.iter().find(|(_, t)| self.checked_at_door(t)) {
                         let spelled = spell(bad, self);
-                        return err(Diagnostic::error(format!("a callback's parameter cannot be `{}`: C calls it, so a number it sends that `{}` does not allow would have nowhere to fail", spelled, spelled)).at(t.span).fix(None, format!("take the plain number and convert inside: `to.{}[…] otherwise …`", spelled)));
+                        return err(Diagnostic::error(format!("a callback's parameter cannot be `{}`: C calls it, so a number it sends that `{}` does not allow would have nowhere to fail", spelled, spelled)).at(t.span).fix(None, format!("take the plain number and convert inside: `to.{}(…) otherwise …`", spelled)));
                     }
                 }
                 params.push((p.name.name.clone(), ty));
@@ -828,7 +828,7 @@ impl Items {
             // (owner, 2026-09-28: b).
             if self.checked_at_door(&t) {
                 let spelled = spell(&t, self);
-                return err(Diagnostic::error(format!("a C variable cannot be `{}`: reading a variable never fails, so it holds C's plain number", spelled)).at(ty.span).fix(None, format!("declare it `i32` and convert: `to.{}[…] otherwise …`", spelled)));
+                return err(Diagnostic::error(format!("a C variable cannot be `{}`: reading a variable never fails, so it holds C's plain number", spelled)).at(ty.span).fix(None, format!("declare it `i32` and convert: `to.{}(…) otherwise …`", spelled)));
             }
             self.externs[id.0 as usize].ret = t;
         }
@@ -984,7 +984,7 @@ impl Items {
         let head = path.head().to_string();
         // std's, outside std (inside, its names are its own).
         if self.nerve_cord != Some(here) && !self.no_std_roots.contains(&here) && self.nerve_cord_item(path).is_some() {
-            let call = if matches!(self.nerve_cord_item(path), Some((ItemRef::Fn(_) | ItemRef::ExternFn(_), _))) { "[…]" } else { "" };
+            let call = if matches!(self.nerve_cord_item(path), Some((ItemRef::Fn(_) | ItemRef::ExternFn(_), _))) { "(…)" } else { "" };
             return err(Diagnostic::error(format!("`{w}` is std's: write `std::{w}{c}`, or name it for this file with `use std::{h} as {h};` (owner, 2026-10-22)", w = written, c = call, h = head)).at(path.span));
         }
         if let Some(deps) = self.kit_deps.get(&here) {
@@ -995,7 +995,7 @@ impl Items {
                 if matches!(item, ItemRef::Module(_)) {
                     continue;
                 }
-                let call = if matches!(item, ItemRef::Fn(_) | ItemRef::ExternFn(_)) { "[…]" } else { "" };
+                let call = if matches!(item, ItemRef::Fn(_) | ItemRef::ExternFn(_)) { "(…)" } else { "" };
                 return err(Diagnostic::error(format!("`{w}` is `{p}`'s: another kit's names take its path (owner, 2026-10-22), so write `{p}::{w}{c}`, or `use {p}::{w} as {h};`", w = written, p = prefix, c = call, h = head)).at(path.span));
             }
         }
@@ -1087,7 +1087,7 @@ impl Items {
             segs.next();
             cur = self.kit_root(m);
             if segs.peek().is_none() {
-                return err(Diagnostic::error("`my` is followed by `.` and the root item it reaches: `my.helper[…]`").at(path.span));
+                return err(Diagnostic::error("`my` is followed by `.` and the root item it reaches: `my.helper(…)`").at(path.span));
             }
         }
         let mut result = None;
@@ -1143,7 +1143,7 @@ impl Items {
         } else {
             match self.lookup_path(path, m)? {
                 ItemRef::Module(t) => t,
-                other => return err(Diagnostic::error(format!("`{}` is a {}, not a module: a const is reached through its module — `module.'name'`", path.spelled(), other.what())).at(path.span)),
+                other => return err(Diagnostic::error(format!("`{}` is a {}, not a module: a const is reached through its module — `module.$name`", path.spelled(), other.what())).at(path.span)),
             }
         };
         self.lookup_const_in(target, name, m)

@@ -3,33 +3,33 @@
 # Inline assembly (ffi.md), arm64: values into registers and out, a real
 # syscall (getpid, 20) checked against C's, and x29/x30 clobbered in a
 # function that then returns (spelled fp/lr for LLVM: the compiler rule).
-extern.C fn exit ['code': i32];
+extern.C fn exit [$code: i32];
 extern.C fn getpid [] -> i32;
-fn trample ['n': i64] -> i64 {
+fn trample [$n: i64] -> i64 {
     no_check inline.ASM {
         mov x30, #0
         mov x29, #0
         add x0, x0, #1
-    } with ['n' -> x0, 'm' <- x0, clobber x30, clobber x29];
-    return 'm';
+    } with [$n -> x0, $m <- x0, clobber x30, clobber x29];
+    return $m;
 }
 MAIN {
-    let 'a': i64 = 20;
-    let 'b': i64 = 2;
+    let $a: i64 = 20;
+    let $b: i64 = 2;
     no_check inline.ASM {
         add x0, x0, x1
         mul x0, x0, x1
         mov x16, #1
         add x0, x0, x16
-    } with ['a' -> x0, 'b' -> x1, 'r' <- x0, clobber x16];
+    } with [$a -> x0, $b -> x1, $r <- x0, clobber x16];
     no_check inline.ASM {
         mov x16, #20
         svc #0x80
-    } with ['pid' <- x0, clobber x16, clobber x1];
-    let mut 'got': i32 = 0;
-    if 'r' equal_to 45 { change 'got' = 'got' plus 1; }
-    if trample[41] equal_to 42 { change 'got' = 'got' plus 4; }
-    no_check let 'c' := getpid[];
-    if to.i32['pid'] equal_to 'c' { change 'got' = 'got' plus 2; }
-    no_check my.exit['got'];
+    } with [$pid <- x0, clobber x16, clobber x1];
+    let mut $got: i32 = 0;
+    if $r equal_to 45 { change $got = $got plus 1; }
+    if trample(41) equal_to 42 { change $got = $got plus 4; }
+    no_check let $c := getpid();
+    if to.i32($pid) equal_to $c { change $got = $got plus 2; }
+    no_check my.exit($got);
 }

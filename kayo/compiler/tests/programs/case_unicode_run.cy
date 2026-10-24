@@ -1,13 +1,13 @@
 # Insensitive means Unicode's full case folding (owner, 2026-10-06): `ß`
 # matches `SS`, `É` matches `é`. A lone file has WSTN. 7 + 7 = 14.
 case.any [fn, var];
-extern.C fn exit ['code': i32];
+extern.C fn exit [$code: i32];
 
 fn Größe [] -> i32 {
     return 7;
 }
 
 MAIN {
-    let 'Café' := GRÖSSE[];
-    no_check my.exit['CAFÉ' plus größe[]];
+    let $Café := GRÖSSE();
+    no_check my.exit($CAFÉ plus größe());
 }

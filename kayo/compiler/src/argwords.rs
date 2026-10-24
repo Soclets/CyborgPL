@@ -43,7 +43,7 @@ fn call_at(toks: &[Token], i: usize) -> Option<(&'static Call, usize)> {
             }
             k += 1;
         }
-        if matches!(toks.get(k).map(|t| &t.tok), Some(Tok::LBracket)) && best.map_or(true, |(b, _)| b.name.len() < c.name.len()) {
+        if matches!(toks.get(k).map(|t| &t.tok), Some(Tok::LBracket | Tok::LParen)) && best.map_or(true, |(b, _)| b.name.len() < c.name.len()) {
             best = Some((c, k));
         }
     }
@@ -71,9 +71,11 @@ pub fn labels(toks: &[Token]) -> Vec<Token> {
         }
         // A label starts an argument, right after `[` or `,`: `<T: any>`
         // is a generic's bound, `5: u8` a typed literal.
-        let label = matches!(open.last(), Some(Tok::LBracket))
+        // A call's `( )` holds labels as `[ ]` did (owner, 2026-10-22:
+        // `std::exit(code: 3)`).
+        let label = matches!(open.last(), Some(Tok::LBracket | Tok::LParen))
             && i > 0
-            && matches!(toks[i - 1].tok, Tok::LBracket | Tok::Comma)
+            && matches!(toks[i - 1].tok, Tok::LBracket | Tok::LParen | Tok::Comma)
             && matches!(&t.tok, Tok::Word(w) if w != "true" && w != "false")
             && matches!(toks.get(i + 1).map(|n| &n.tok), Some(Tok::Colon));
         let mut t = t.clone();

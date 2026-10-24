@@ -548,10 +548,15 @@ impl Checker {
             if matches!(got, Ty::Infer(_)) {
                 return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: every operand is a bare number and the value is not stored into a typed place", what))
                     .at(span)
-                    .try_(format!("give the result a type (`let 'x': u32 = …`) or one operand a width (`to.u32[…]`)")));
+                    .try_(format!("give the result a type (`let $x: u32 = …`) or one operand a width (`to.u32(…)`)")));
             }
         }
         self.check_powers()?;
+        // A call's brackets written wrong, once nothing else is (owner,
+        // 2026-10-22: calls take `( )`).
+        if let Some(d) = crate::parser::first_wrong_bracket() {
+            return Err(Box::new(d));
+        }
         let const_values = self.const_values.into_iter().map(|v| v.unwrap()).collect();
         Ok(Program { items: self.items, instances: self.instances, subst: self.subst, main, const_values, notes: self.notes })
     }

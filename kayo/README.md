@@ -1041,6 +1041,23 @@ Dated, with the alternative, so each can become a question later.
   naming the typed literal to write (`2.5: bin64`). A preset beside several
   versions, and an overloaded name held as a value, are refused (design
   claude's readings).
+- **2026-10-24 — Calls take `( )`, definitions keep `[ ]`, variables are `$name`**
+  (owner, 2026-10-22; DECISIONS 2026-10-24 "Built"; oracle c16dc2d7). The lexer
+  reads `$total` as the name `'total'` (letters, digits, `_`); a `$` that
+  starts no name is refused. Where a name stands in a value's place the parser
+  writes its call's `( … )`, right after it or after the `[ … ]` that describes
+  it (`to.i32[min: 1, max: 99]($text)`, `ptr.cast[T]($p)`), over as `[ … ]`
+  marked a call (`Token::call`, `Parser::mark_path_call`, the tokens copied on
+  write), so the rest reads one kind; labels inside `( )` read as inside
+  `[ ]`. `brackets_fit` says which was right: `[ ]` builds (fields, map
+  pairs); a call takes `( )`, a fill's and an operation on a position's too
+  (oracle 064e1254); `( )` that builds or reads a position
+  is refused naming `[ ]`. A wrong bracket is refused once the program is
+  checked and nothing else is (`first_wrong_bracket`), as the oracle names a
+  call's `[ ]` after what else it finds. `fn f (…)` is refused naming `[ ]`. A
+  message's code shows a plain quoted name as `$name` (`diag::dollar_names`)
+  and calls in `( )`. kayo's tests and `bench/` rewritten by `oracle
+  --to-paren-calls`, the rest by hand.
 - **2026-10-22 — A deci zero is never -0** (owner, 2026-10-07; check
   claude's finding, oracle e409892c). Both encoders, the runtime's and the
   compiler's for constants, write a zero coefficient with no sign, so no

@@ -4,27 +4,27 @@
 # and power off through PSCI (SYSTEM_OFF, over `hvc`), which ends QEMU.
 
 pub module serial {
-    pub fn write ['b': u8] {
+    pub fn write [$b: u8] {
         no_check inline.ASM {
             mov x9, #0x09000000
             strb w0, [x9]
-        } with ['b' -> x0, clobber x9];
+        } with [$b -> x0, clobber x9];
     }
 
     # The other form an output may take: a chunk a call.
-    pub fn write_all [lent 'bytes': array[u8]] {
-        for 'b' in lend 'bytes' {
-            write['b'];
+    pub fn write_all [lent $bytes: array[u8]] {
+        for $b in lend $bytes {
+            write($b);
         }
     }
 }
 
 pub module power {
-    pub fn off ['code': u8] {
+    pub fn off [$code: u8] {
         no_check inline.ASM {
             movz x0, #0x0008
             movk x0, #0x8400, lsl #16
             hvc #0
-        } with ['code' -> x1, clobber x0];
+        } with [$code -> x1, clobber x0];
     }
 }

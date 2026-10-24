@@ -176,6 +176,7 @@ fn gather_precedence(sources: &mut SourceMap, path: &Path) -> Result<()> {
 }
 
 pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Result<Items> {
+    crate::parser::forget_wrong_brackets();
     old_names(path)?;
     // The target, known before any file is read (`on.target`): the one
     // named, or else the root Neuron's default, set where its manifest is
@@ -347,9 +348,9 @@ fn board_fn(items: &Items, written: &str, at: crate::source::Span, field: &str) 
     } else if field == "output" && plain && one(ParamKind::Lent, &Ty::Seq { elem: Box::new(byte.clone()), kind: SeqKind::Array }) {
         OutputForm::Chunk
     } else if field == "output" {
-        return err(Diagnostic::error(format!("the target's `output`, `fn {}`, takes the bytes `std::print` writes in one of two forms: `['b': u8]`, a byte a call, or `[lent 'bytes': array[u8]]`, a chunk a call; returning nothing and never failing", written)).at(at).why_at(f.name_span, "declared here"));
+        return err(Diagnostic::error(format!("the target's `output`, `fn {}`, takes the bytes `std::print` writes in one of two forms: `[$b: u8]`, a byte a call, or `[lent $bytes: array[u8]]`, a chunk a call; returning nothing and never failing", written)).at(at).why_at(f.name_span, "declared here"));
     } else {
-        return err(Diagnostic::error(format!("the target's `exit`, `fn {}`, takes the code `std::exit` is given, `['code': u8]`, returning nothing and never failing", written)).at(at).why_at(f.name_span, "declared here"));
+        return err(Diagnostic::error(format!("the target's `exit`, `fn {}`, takes the code `std::exit` is given, `[$code: u8]`, returning nothing and never failing", written)).at(at).why_at(f.name_span, "declared here"));
     };
     Ok((id, form))
 }
@@ -1146,7 +1147,7 @@ fn check_case(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, r
         Ok(())
     };
     let plain = |n: &str| format!("`{}`", n);
-    let quoted = |n: &str| format!("`'{}'`", n);
+    let quoted = |n: &str| format!("`${}`", n);
     fn walk(items: &mut Items, list: &[Item], chain: &[(bool, Span)], cx: &dyn Fn(&mut Items, &Item, &[(bool, Span)], &mut Vec<(String, Span, bool)>, &mut Vec<(String, Span, bool)>) -> Result<()>) -> Result<()> {
         let (mut names, mut consts) = (Vec::new(), Vec::new());
         for it in list {
@@ -1176,7 +1177,7 @@ fn check_case(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, r
             ItemKind::Enum(d) => ("enum", &d.name),
             ItemKind::Interface(d) => ("interface", &d.name),
             ItemKind::Const(d) => {
-                let ins = decide(&marks(Some("const"), true), &format!("`const '{}'`", d.name.name), d.name.span)?;
+                let ins = decide(&marks(Some("const"), true), &format!("`const ${}`", d.name.name), d.name.span)?;
                 if ins {
                     items.case_names.insert(d.name.span);
                 }

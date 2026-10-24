@@ -4,13 +4,13 @@
 # path to the narrowing impossible, so `unsat` "proved" it (check claude,
 # seed 6313). 'v' is 1 x 100000 with one word, which no i16 holds, so
 # the program stops at the narrowing.
-MAIN ['argc': i32, 'argv': ptr[ptr[u8]]] {
-    let 'v': i64 = to.i64['argc'] times 100000;
-    let mut 'w': i32 = 8;
-    while 'w' > 0 {
-        change 'w' = 'w' minus 1;
-        for 'i': i8 [from: -13, to: -36, by: -2] {
+MAIN [$argc: i32, $argv: ptr[ptr[u8]]] {
+    let $v: i64 = to.i64($argc) times 100000;
+    let mut $w: i32 = 8;
+    while $w > 0 {
+        change $w = $w minus 1;
+        for $i: i8 [from: -13, to: -36, by: -2] {
         }
     }
-    let 'z': i16 = to.i16['v'];
+    let $z: i16 = to.i16($v);
 }

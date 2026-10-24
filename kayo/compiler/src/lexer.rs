@@ -100,6 +100,10 @@ pub struct Token {
     /// `value: 2`, `from: pos 2`, `i32[min: 0]`): `argwords::labels` takes
     /// the `:` out and marks the word.
     pub labelled: bool,
+    /// A `[` that was a call's `(` (owner, 2026-10-22: "`( )` runs
+    /// something; `[ ]` describes or holds something"): the parser writes a
+    /// call's `( … )` as `[ … ]`, marked, so the rest reads one kind.
+    pub call: bool,
 }
 
 pub const OP_CHARS: &str = "!%&*+-/<>=?@^|~";
@@ -166,7 +170,7 @@ impl<'a> Lexer<'a> {
     fn push(&mut self, tok: Tok, start: usize) {
         let span = self.span(start);
         let line_first = self.toks.last().map_or(true, |t| self.src.get(t.span.end as usize..start).is_some_and(|gap| gap.contains('\n')));
-        self.toks.push(Token { tok, span, line_first, alt: None, labelled: false });
+        self.toks.push(Token { tok, span, line_first, alt: None, labelled: false, call: false });
     }
     fn push_alt(&mut self, tok: Tok, start: usize, alt: Option<(String, &'static str)>) {
         self.push(tok, start);
@@ -275,9 +279,20 @@ impl<'a> Lexer<'a> {
                         _ => self.push(Tok::Colon, start),
                     }
                 }
+                // `$total` is the variable `'total'` (owner, 2026-10-22: "Why
+                // `$`? … it's easier to write"): letters, digits and `_`.
                 '$' => {
                     self.bump();
-                    self.push(Tok::Dollar, start);
+                    let from = self.pos;
+                    while self.peek().is_some_and(|c| c.is_alphanumeric() || c == '_') {
+                        self.bump();
+                    }
+                    if self.pos == from {
+                        self.push(Tok::Dollar, start);
+                    } else {
+                        let name = self.src[from..self.pos].to_string();
+                        self.push(Tok::Name(name), start);
+                    }
                 }
                 '.' => {
                     self.bump();
@@ -332,7 +347,7 @@ impl<'a> Lexer<'a> {
             }
         }
         let end = self.src.len();
-        self.toks.push(Token { tok: Tok::Eof, span: Span::new(self.file, end, end), line_first: true, alt: None, labelled: false });
+        self.toks.push(Token { tok: Tok::Eof, span: Span::new(self.file, end, end), line_first: true, alt: None, labelled: false, call: false });
         Ok(())
     }
 

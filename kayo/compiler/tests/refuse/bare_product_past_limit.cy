@@ -4,5 +4,5 @@
 # (check claude, seed 36150; the oracle stops at the sum).
 fn v [] -> u64 { return 5; }
 MAIN {
-    let 'x': u64 = ((6729433359276983393 times 17924805223061868988) plus v[]) mod.floor 7;
+    let $x: u64 = ((6729433359276983393 times 17924805223061868988) plus v()) mod.floor 7;
 }
