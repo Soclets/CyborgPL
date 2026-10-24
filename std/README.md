@@ -30,7 +30,9 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
   is (`café` is `CAFé`); `str.upper.simple` and `str.lower.simple` give each character its Unicode simple
   mapping, one for one (`ß` stays `ß`). `str.upper.full` and `str.lower.full` are Unicode's full mappings:
   SpecialCasing's longer ones where there is one (`straße` is `STRASSE`, `ŉ` is `ʼN`, `İ` lowers to `i̇`),
-  and a `Σ` ending a word lowers to `ς`. `.full(lend $s, lang: std::casing.tr)` adds a language's own rules
+  and a `Σ` ending a word lowers to `ς`, Final_Sigma as the Standard writes it: a letter both cased and
+  case-ignorable counts as cased, so `ʰΣ` is `ʰς` and `ΑΣʰ` is `ασʰ` (owner, 2026-10-24: "isn't Unicode
+  says what correct?"; ICU, Rust and Python give `ʰσ`). `.full(lend $s, lang: std::casing.tr)` adds a language's own rules
   from SpecialCasing, with their conditions as Unicode writes them (The Unicode Standard, 3.13): `tr` and
   `az` (`i` is `İ`, `I` is `ı`, `İ` is `i`), `lt` (a dot kept or added on `i`, `j`, `į` before an accent
   above, and taken off after them when uppercasing); `root` is every other language. `kit.cy` holds
@@ -80,13 +82,14 @@ this one, and what it does not define yet, `print` and `exit`, is still KAYO's R
   proven by layer 3 ("no input reaches it with a bad value"), so they hold for any text this program
   reads but rest on the calls it makes (it calls `str.at` only at position 2). 2 are proven because
   "the position is always inside".
-- The case changes (2026-10-24, KAYO 2a0b244f, oracle d5416597), over 54 texts chosen for their edges
+- The case changes (2026-10-24, KAYO 2a0b244f, oracle 88fae3c3), over 54 texts chosen for their edges
   (`ß`, `ŉ`, `ǅ`, `ﬀ`, `İ`, Greek sigma beside apostrophes and accents, `I` and `j` with marks above and
   below): `.ascii`, `.simple` and `.full`, with and without `lang:`, give the oracle's built-in std's 756
-  answers in the oracle and through KAYO, but for `ʰΣ` and `ΑΣʰ` (the Final_Sigma pick below). With the
-  text read from the command line, `.full` with and without `lang:`: every one of std's sites proven, none
-  checked at run time. `examples/keys.cy` and `collections.cy`, built by KAYO against this folder, print
-  their `.out`.
+  answers, in the oracle and through KAYO. A wider sweep of final sigma, `Σ` beside 816 characters
+  (every one both cased and case-ignorable, a sample of the rest), through KAYO: all 3,264 as Table 3-17
+  computed from Unicode's own files. With the text read from the command line, `.full` with and without
+  `lang:`: every one of std's sites proven, none checked at run time. `examples/keys.cy` and
+  `collections.cy`, built by KAYO against this folder, print their `.out`.
 - An empty `part`, `at` or `from` is refused when building if written, and stops the program where it
   is passed if worked out at run time (exit 101), as the oracle does.
 
@@ -109,7 +112,3 @@ Each is a choice the record does not settle, dated, with the alternative. Each i
 - **2026-10-24 — `lang:` left out is `root`**: `.full(lend $s)` is `.full(lend $s, lang: std::casing.root)`,
   as design claude picked for the oracle (its README). The alternative: no version without `lang:`, so every
   full case change names its language.
-- **2026-10-24 — Final_Sigma as Unicode writes it** (3.13, Table 3-17): a letter that is both cased and
-  case-ignorable (`ʰ`, U+0345) counts as cased, so `ʰΣ` lowers to `ʰς` and `ΑΣʰ` to `ασʰ`. ICU, Rust and
-  Python skip it as case-ignorable first (`ʰσ`, `αςʰ`), and so does the oracle since d5416597, so the two
-  differ on these until the owner decides.
