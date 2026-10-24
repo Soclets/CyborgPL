@@ -1,4 +1,6 @@
 # Error names kayo needs beyond errors.cyr (owner, 2026-10-22/24): kinds no oracle refusal test reaches. DRAFT by compiler claude, for design claude's review.
+errors::table[
+    errors = [
         errors::error[name = "bare_mark_form", means = "A `bare` mark is misplaced, repeated, or put on something it does not cover, such as a const.", tests = []],
         errors::error[name = "body_missing", means = "A function has no body; only an `extern` function goes without one.", tests = []],
         errors::error[name = "bound_given_twice", means = "A type is given more than one bound; it takes one.", tests = []],
@@ -101,3 +103,5 @@
         errors::error[name = "mcps::tasks_wait_on_each_other", means = "Two sides can end up each waiting for the other, so neither goes on.", tests = []],
         errors::error[name = "mcps::whichever_empty", means = "A `whichever` has no arms; it needs at least one.", tests = []],
         errors::error[name = "money::percent_number_type", means = "A percent is given a number type other than a `d` or an `f`.", tests = []],
+    ],
+];
