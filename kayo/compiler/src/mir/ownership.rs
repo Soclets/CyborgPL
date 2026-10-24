@@ -298,6 +298,15 @@ fn use_place(p: &Program, f: usize, env: &Env, pl: &Place, how: Use, span: SpanI
         if *at != span {
             d = d.why_at(func.span(*at), "it was given away here");
         }
+        // Where it was given, a copy goes instead (a lend cannot be held
+        // in a `let`, so it is not offered everywhere a give stands).
+        let bare = func.locals[pl.local.0 as usize].name.clone().unwrap_or_default();
+        let given = vec![format!("give ${}", bare), format!("give '{}'", bare)];
+        // Not a `for`'s source: an iterator is walked by giving it.
+        let given_line = sources.get(func.span(*at).file).line_text_at(func.span(*at).start);
+        if !given.iter().any(|g| given_line.contains(&format!("in {}", g))) {
+            d = d.fix_edit(func.span(*at), crate::diag::Edit::Swap(given), format!("copy ${}", bare));
+        }
         if *via_field {
             d = d.why("giving a field away gives away the whole value: there is no half-empty struct");
         }

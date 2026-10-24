@@ -35,7 +35,7 @@ pub struct Fix {
     pub edit: Option<(Span, Edit)>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Edit {
     /// The span's text becomes `text`.
     Replace,
@@ -45,12 +45,15 @@ pub enum Edit {
     Remove,
     /// The span's text goes inside `text(…)`.
     Wrap,
+    /// The first of these words in the line becomes `text`; no fix when
+    /// none is there.
+    Swap(Vec<String>),
 }
 
 impl Fix {
     /// The edited line and its number, for an edit made from the source.
     fn edited(&self, sources: &SourceMap) -> Option<(u32, String)> {
-        let (span, how) = self.edit?;
+        let (span, how) = self.edit.clone()?;
         let file = sources.get(span.file);
         let (line, _) = file.line_col(span.start);
         let text = file.line_text(line);
@@ -63,6 +66,12 @@ impl Fix {
             Edit::Wrap => {
                 let end = (start + (span.end - span.start) as usize).min(text.len());
                 format!("{}{}({}){}", &text[..start], self.text, &text[start..end], &text[end..])
+            }
+            Edit::Swap(from) => {
+                // A whole word: `give $s` is not in `give $sx`.
+                let whole = |at: usize, len: usize| !text[at + len..].starts_with(|c: char| c.is_alphanumeric() || c == '_');
+                let (at, len) = from.iter().find_map(|w| text.match_indices(w.as_str()).map(|(at, _)| at).find(|&at| whole(at, w.len())).map(|at| (at, w.len())))?;
+                format!("{}{}{}", &text[..at], self.text, &text[at + len..])
             }
             Edit::Before => {
                 let indent = text.len() - text.trim_start().len();
@@ -431,19 +440,24 @@ impl Diagnostic {
             let _ = writeln!(out, "when:  {}", when);
         }
         let here = self.span.map(|sp| sources.get(sp.file).line_col(sp.start).0);
-        for (i, f) in self.fixes.iter().enumerate() {
-            let label = if i == 0 { "fix:  " } else { "or:   " };
+        let mut written = 0;
+        for f in &self.fixes {
+            let label = if written == 0 { "fix:  " } else { "or:   " };
             // On the message's own line, the edited line itself; another
-            // line is named above it.
-            if let Some((line, text)) = f.edited(sources) {
+            // line is named above it. An edit the source does not allow
+            // (no `give` on that line) is no fix.
+            if f.edit.is_some() {
+                let Some((line, text)) = f.edited(sources) else { continue };
                 if Some(line) == here {
                     let _ = writeln!(out, "{} {}", label, text);
                 } else {
                     let _ = writeln!(out, "{} line {}:", label, line);
                     let _ = writeln!(out, "       {}", text);
                 }
+                written += 1;
                 continue;
             }
+            written += 1;
             match f.line {
                 Some(l) => {
                     let _ = writeln!(out, "{} line {}:", label, l);
@@ -456,7 +470,7 @@ impl Diagnostic {
         }
         // The sentence stays, last, until the message's fix is written
         // (owner, 2026-10-24: (c)); it is in the docs under the name too.
-        if SENTENCE_LINE && self.fixes.is_empty() {
+        if SENTENCE_LINE && written == 0 {
             let _ = writeln!(out, "about: {}", self.sentence);
         }
         out

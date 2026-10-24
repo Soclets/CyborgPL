@@ -1203,25 +1203,16 @@ impl Items {
     }
 
     /// Why a bare name is not here, as its error's name (design claude,
-    /// 2026-10-24): an enum's case written without its enum, a nested
-    /// module's function written without its path, or nothing by that name.
+    /// 2026-10-24): an enum's case written without its enum, another
+    /// module's function written without its path (the root's too), or nothing by that name.
     fn missing_cause(&self, name: &str, m: ModuleId) -> &'static str {
         let root = self.kit_root(m);
         if self.enums.iter().any(|e| e.cases.iter().any(|c| c.name == name)) || self.pending_enums.iter().any(|(_, d, em)| self.kit_root(*em) == root && d.cases.iter().any(|c| c.name.name == name)) {
             return "case_needs_enum_name";
         }
-        // In a module nested inside this one (`f()` for `module a { pub fn f }`);
-        // a name in an enclosing module is not there either (errors.cyr).
-        let inside = |mut i: ModuleId| {
-            while let Some(up) = self.modules[i.0 as usize].parent {
-                if up == m {
-                    return true;
-                }
-                i = up;
-            }
-            false
-        };
-        let elsewhere = self.modules.iter().enumerate().any(|(i, module)| inside(ModuleId(i as u32)) && module.items.contains_key(name));
+        // In another module of this kit, the root's included: the module's
+        // path is missing (design claude, 2026-10-24).
+        let elsewhere = self.modules.iter().enumerate().any(|(i, module)| ModuleId(i as u32) != m && self.kit_root(ModuleId(i as u32)) == root && module.items.contains_key(name));
         if elsewhere { "module_name_needs_path" } else { "unknown_function" }
     }
 
