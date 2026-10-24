@@ -1,7 +1,7 @@
 //! Expressions, places, calls, verbs, conversions, `otherwise`.
 
 use crate::ast::{self, Arg as AArg, BinOp, ExprKind as AK, Round, UnOp, Verb};
-use crate::diag::{err, Diagnostic, Result};
+use crate::diag::{err, Diagnostic, Edit, Result};
 use crate::hir::{self, Arg, Builtin, Callee, Expr, ExprKind as K, Local, LocalKind, Place, Proj};
 use crate::resolve::{FnId, ItemRef};
 use crate::source::Span;
@@ -2123,7 +2123,13 @@ impl Checker {
                     _ => "an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`",
                 },
             };
-            return err(Diagnostic::error(format!("`{}` is not an operator here; {}", spelling, hint)).named(if crate::spellings::free_op_hint(spelling).is_some() { "old_spelling" } else { "unknown_operator" }).at(op_span));
+            let mut d = Diagnostic::error(format!("`{}` is not an operator here; {}", spelling, hint)).named(if crate::spellings::free_op_hint(spelling).is_some() { "old_spelling" } else { "unknown_operator" }).at(op_span);
+            // The operators the hint names in backticks; `not` and `neg`
+            // take one value, so they are not this operator's place.
+            for w in hint.split('`').skip(1).step_by(2).filter(|w| !w.contains(|c: char| c == ' ' || c == '$' || c == '(') && !matches!(*w, "not" | "neg" | "op")) {
+                d = d.fix_edit(op_span, Edit::Replace, w);
+            }
+            return err(d);
         };
         // Bare, it may be more than one Kit's (owner, 2026-10-06): refused
         // where it is written, and this Kit's own does not win.
@@ -2537,13 +2543,22 @@ impl Checker {
             if let [one] = path.segs.as_slice() {
                 if matches!(one.name.as_str(), "round" | "floor" | "ceil" | "trunc") {
                     if let Some(o) = crate::spellings::old_word(&format!("std::{}", one.name), Some("special")) {
-                        return err(Diagnostic::error(o.dated()).named("old_spelling").at(path.span));
+                        // `round.near($x)`: the path is the part before its `(`.
+                        let mut d = Diagnostic::error(o.dated()).named("old_spelling").at(path.span);
+                        for w in &o.write {
+                            d = d.fix_edit(path.span, Edit::Replace, w.split('(').next().unwrap_or(w).to_string());
+                        }
+                        return err(d);
                     }
                 }
             }
             if let [r, way] = path.segs.as_slice() {
                 if r.name == "round" && !matches!(way.name.as_str(), "near" | "half_up" | "floor" | "ceil" | "trunc") {
-                    return err(Diagnostic::error(format!("`std::round.{}` is not a way to round: `round.near`, `round.half_up`, `round.floor`, `round.ceil` or `round.trunc`", way.name)).named("unknown_rounding").at(path.span));
+                    let mut d = Diagnostic::error(format!("`std::round.{}` is not a way to round: `round.near`, `round.half_up`, `round.floor`, `round.ceil` or `round.trunc`", way.name)).named("unknown_rounding").at(path.span);
+                    for w in ["near", "half_up", "floor", "ceil", "trunc"] {
+                        d = d.fix_edit(way.span, Edit::Replace, w);
+                    }
+                    return err(d);
                 }
             }
         }
@@ -2594,7 +2609,7 @@ impl Checker {
             if let Some(new) = renamed {
                 let rest = segs[1..].join(".");
                 let (old, new) = if rest.is_empty() { (segs[0].to_string(), new.to_string()) } else { (format!("{}.{}", segs[0], rest), format!("{}.{}", new, rest)) };
-                return err(Diagnostic::error(format!("std::{} is spelled std::{} now", old, new)).named("old_spelling").at(span));
+                return err(Diagnostic::error(format!("std::{} is spelled std::{} now", old, new)).named("old_spelling").at(span).fix_edit(path.span, Edit::Replace, format!("std::{}", new)));
             }
         }
         // Every print says its form (owner, 2026-10-02): `.stored` or
@@ -2621,7 +2636,14 @@ impl Checker {
         if path.kit.as_ref().map(|l| l.name == "std").unwrap_or(false) {
             let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
             if let [w @ ("div" | "mod"), "trunc"] = segs.as_slice() {
-                return err(Diagnostic::error(format!("`std::{w}.trunc` is an operator in the language now: `$a {w}.trunc $b`")).named("old_spelling").at(span));
+                let d = Diagnostic::error(format!("`std::{w}.trunc` is an operator in the language now: `$a {w}.trunc $b`")).named("old_spelling").at(span);
+                // `std::div.trunc(a, b)`: `(a div.trunc b)`.
+                if let [a, b] = args {
+                    let (a, b) = (a.span(), b.span());
+                    let cut = |from: u32, to: u32| Span::new(span.file, from as usize, to as usize);
+                    return err(d.fix_edit(cut(span.start, a.start), Edit::Replace, "(").fix_also(cut(a.end, b.start), Edit::Replace, format!(" {w}.trunc ")).fix_also(cut(b.end, span.end), Edit::Replace, ")"));
+                }
+                return err(d);
             }
         }
         // A channel is the MCPS limb's, written bare, never std's (design
@@ -3711,7 +3733,7 @@ impl Checker {
         let arity = if unary.is_some() { 1 } else { 2 };
         if ft.params.len() != arity {
             if *op == B::Sub && ft.params.len() == 1 {
-                return err(Diagnostic::error("`op -` subtracts; negation as a value is `op neg`").named("old_spelling").at(span));
+                return err(Diagnostic::error("`op -` subtracts; negation as a value is `op neg`").named("old_spelling").at(span).fix_edit(span, Edit::Replace, "op neg"));
             }
             return err(Diagnostic::error(format!("`op {}` takes {} operand{}, and this wants a function of {}", spelled, arity, if arity == 1 { "" } else { "s" }, ft.params.len())).named("function_shape_wrong").at(span));
         }
@@ -5757,7 +5779,7 @@ fn conv_form(target: &ast::Type) -> Result<(Option<bool>, Option<ast::Type>)> {
         }
         ast::TypeKind::Bound { inner, lo, hi, unit, span, old, zero, places } => {
             let (form, inner2) = conv_form(inner)?;
-            Ok((form, inner2.map(|i| ast::Type { kind: ast::TypeKind::Bound { inner: Box::new(i), lo: lo.clone(), hi: hi.clone(), unit: unit.clone(), span: *span, old: *old, zero: *zero, places: *places }, span: target.span })))
+            Ok((form, inner2.map(|i| ast::Type { kind: ast::TypeKind::Bound { inner: Box::new(i), lo: lo.clone(), hi: hi.clone(), unit: unit.clone(), span: *span, old: old.clone(), zero: *zero, places: *places }, span: target.span })))
         }
         _ => Ok((None, None)),
     }
@@ -5805,10 +5827,27 @@ fn slice_args(name: &str, args: &[AArg], span: Span) -> Result<Vec<AArg>> {
         }
         return Ok(args.to_vec());
     }
+    // `pos: 1, pos: 2`: each side says which it is.
+    // Where a side's word goes and its value starts, `pos: 1` labelled or
+    // read as a position.
+    let side = |a: &AArg| match a {
+        AArg::Named(l, x) if l.name == "pos" => Some((l.span.start, x.span.start)),
+        AArg::Positional(e) => match &e.kind {
+            AK::Pos(inner) => Some((e.span.start, inner.span.start)),
+            _ => None,
+        },
+        _ => None,
+    };
+    let labelled = |d: Diagnostic| match (side(&args[1]), side(&args[2])) {
+        (Some((a, x)), Some((b, y))) => d
+            .fix_edit(Span::new(span.file, a as usize, x as usize), Edit::Replace, "from: pos ")
+            .fix_also(Span::new(span.file, b as usize, y as usize), Edit::Replace, "to: pos "),
+        _ => d,
+    };
     let first = match &args[1] {
         AArg::Named(l, e) if l.name == "from" => e.clone(),
         AArg::Positional(e) if !matches!(e.kind, AK::Pos(_)) => return err(Diagnostic::error(format!("a slice starts `from: pos …`: `{}(lend $xs, from: pos 2, to: pos 4)`", name)).named("position_unlabelled").at(e.span)),
-        other => return err(Diagnostic::error(how).named("old_spelling").at(other.span())),
+        other => return err(labelled(Diagnostic::error(how.clone()).named("old_spelling").at(other.span()))),
     };
     let last = match &args[2] {
         AArg::Named(l, e) if l.name == "to" => e.clone(),

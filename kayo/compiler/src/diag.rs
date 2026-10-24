@@ -33,6 +33,8 @@ pub struct Fix {
     /// Made from the source: the line holding the span, edited (owner,
     /// 2026-10-22: "the fix as edited code", the whole line).
     pub edit: Option<(Span, Edit)>,
+    /// More edits made together with it, each with its own text.
+    pub also: Vec<(Span, Edit, String)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -48,45 +50,101 @@ pub enum Edit {
     /// The first of these words in the line becomes `text`; no fix when
     /// none is there.
     Swap(Vec<String>),
+    /// `text` is a new line above the span's, indented as it is.
+    InsertLine,
+    /// `text` goes in at the span's start.
+    Insert,
+    /// The whole line (or lines) the span is on goes.
+    DeleteLine,
+    /// `text` is a new last line of the file.
+    Append,
 }
 
 impl Fix {
-    /// The edited line and its number, for an edit made from the source.
-    fn edited(&self, sources: &SourceMap) -> Option<(u32, String)> {
+    /// The edit as a replacement in its file: the bytes `span` covers
+    /// become the text (`--message-format json` carries it, so an editor
+    /// can apply it; the tests apply it too). `None` when the source does
+    /// not allow it.
+    pub fn replacements(&self, sources: &SourceMap) -> Option<Vec<(Span, String)>> {
+        let first = self.replacement(sources)?;
+        let mut out = vec![first];
+        for (span, how, text) in &self.also {
+            out.push(Fix { line: None, text: text.clone(), edit: Some((*span, how.clone())), also: Vec::new() }.replacement(sources)?);
+        }
+        Some(out)
+    }
+
+    pub fn replacement(&self, sources: &SourceMap) -> Option<(Span, String)> {
         let (span, how) = self.edit.clone()?;
         let file = sources.get(span.file);
+        let line_start = file.text[..span.start as usize].rfind('\n').map_or(0, |i| i + 1);
         let (line, _) = file.line_col(span.start);
         let text = file.line_text(line);
-        let start = span.start as usize - (file.text[..span.start as usize].rfind('\n').map_or(0, |i| i + 1));
-        let edited = match how {
-            Edit::Replace => {
-                let end = (start + (span.end - span.start) as usize).min(text.len());
-                format!("{}{}{}", &text[..start], self.text, &text[end..])
-            }
-            Edit::Wrap => {
-                let end = (start + (span.end - span.start) as usize).min(text.len());
-                format!("{}{}({}){}", &text[..start], self.text, &text[start..end], &text[end..])
-            }
+        let at = |from: usize, to: usize| Span::new(span.file, line_start + from, line_start + to);
+        let indent = text.len() - text.trim_start().len();
+        Some(match how {
+            Edit::Replace => (span, self.text.clone()),
+            Edit::Wrap => (span, format!("{}({})", self.text, file.slice(span))),
             Edit::Swap(from) => {
                 // A whole word: `give $s` is not in `give $sx`.
                 let whole = |at: usize, len: usize| !text[at + len..].starts_with(|c: char| c.is_alphanumeric() || c == '_');
-                let (at, len) = from.iter().find_map(|w| text.match_indices(w.as_str()).map(|(at, _)| at).find(|&at| whole(at, w.len())).map(|at| (at, w.len())))?;
-                format!("{}{}{}", &text[..at], self.text, &text[at + len..])
+                let (pos, len) = from.iter().find_map(|w| text.match_indices(w.as_str()).map(|(at, _)| at).find(|&at| whole(at, w.len())).map(|at| (at, w.len())))?;
+                (at(pos, pos + len), self.text.clone())
             }
-            Edit::Before => {
-                let indent = text.len() - text.trim_start().len();
-                format!("{}{}{}", &text[..indent], self.text, &text[indent..])
+            Edit::Before => (at(indent, indent), self.text.clone()),
+            Edit::Insert => (Span::new(span.file, span.start as usize, span.start as usize), self.text.clone()),
+            Edit::Append => {
+                let end = file.text.len();
+                let lead = if file.text.ends_with('\n') || file.text.is_empty() { "" } else { "\n" };
+                (Span::new(span.file, end, end), format!("{}{}\n", lead, self.text))
+            }
+            Edit::DeleteLine => {
+                let end = file.text[span.end as usize..].find('\n').map_or(file.text.len(), |i| span.end as usize + i + 1);
+                (Span::new(span.file, line_start, end), String::new())
             }
             Edit::Remove => {
-                let at = text.find(&self.text)?;
-                let mut end = at + self.text.len();
+                let pos = text.find(&self.text)?;
+                let mut end = pos + self.text.len();
                 if text[end..].starts_with(' ') {
                     end += 1;
                 }
-                format!("{}{}", &text[..at], &text[end..])
+                (at(pos, end), String::new())
             }
-        };
-        Some((line, edited.trim().to_string()))
+            Edit::InsertLine => {
+                // Above a block's `}`, the block's own indentation: the
+                // line before it.
+                let indent = if text.trim_start().starts_with('}') && line > 1 {
+                    let above = file.line_text(line - 1);
+                    above[..above.len() - above.trim_start().len()].to_string()
+                } else {
+                    text[..indent].to_string()
+                };
+                (at(0, 0), format!("{}{}\n", indent, self.text))
+            }
+        })
+    }
+
+    /// The edited line, its number and its file, for an edit made from the
+    /// source: the replacement made, and the line it starts on read back.
+    fn edited(&self, sources: &SourceMap) -> Option<(crate::source::FileId, u32, String)> {
+        let mut all = self.replacements(sources)?;
+        let (span, _) = all[0].clone();
+        let file = sources.get(span.file);
+        let mut text = file.text.clone();
+        // Last first, so the earlier offsets hold.
+        all.sort_by(|a, b| b.0.start.cmp(&a.0.start));
+        for (sp, with) in all.iter().filter(|(sp, _)| sp.file == span.file) {
+            text.replace_range(sp.start as usize..sp.end as usize, with);
+        }
+        // The line of the earliest edit: nothing before it moved; text put
+        // in after a line's end is shown from where it starts.
+        let span = all.iter().filter(|(sp, _)| sp.file == span.file).map(|(sp, _)| *sp).min_by_key(|sp| sp.start).unwrap_or(span);
+        let first = all.iter().find(|(sp, _)| *sp == span).map(|(_, t)| t.as_str()).unwrap_or("");
+        let at = span.start as usize + if first.starts_with('\n') { 1 } else { 0 };
+        let start = text[..at].rfind('\n').map_or(0, |i| i + 1);
+        let end = text[start..].find('\n').map_or(text.len(), |i| start + i);
+        let line = text[..start].matches('\n').count() as u32 + 1;
+        Some((span.file, line, text[start..end].trim().to_string()))
     }
 }
 
@@ -110,6 +168,9 @@ pub struct Diagnostic {
     pub try_: Option<String>,
     /// The edited line(s); alternatives after the first go under `or`.
     pub fixes: Vec<Fix>,
+    /// The fix lies outside the program's own code (owner, 2026-10-24):
+    /// `fix: none suggested`.
+    pub outside: bool,
 }
 
 /// A message's code, between backticks, shows a plain quoted name as
@@ -161,7 +222,7 @@ impl Diagnostic {
         Diagnostic::new(Kind::Note, sentence)
     }
     pub fn new(kind: Kind, sentence: impl Into<String>) -> Diagnostic {
-        Diagnostic { kind, name: None, sentence: dollar_names(sentence.into()), span: None, place: None, when: None, why: Vec::new(), try_: None, fixes: Vec::new() }
+        Diagnostic { kind, name: None, sentence: dollar_names(sentence.into()), span: None, place: None, when: None, why: Vec::new(), try_: None, fixes: Vec::new(), outside: false }
     }
     /// Its name from `errors.cyr`.
     pub fn named(mut self, name: &'static str) -> Diagnostic {
@@ -194,12 +255,25 @@ impl Diagnostic {
         self
     }
     pub fn fix(mut self, line: Option<u32>, text: impl Into<String>) -> Diagnostic {
-        self.fixes.push(Fix { line, text: text.into(), edit: None });
+        self.fixes.push(Fix { line, text: text.into(), edit: None, also: Vec::new() });
+        self
+    }
+    /// Another edit made with the last fix (both are one fix).
+    pub fn fix_also(mut self, span: Span, how: Edit, text: impl Into<String>) -> Diagnostic {
+        if let Some(f) = self.fixes.last_mut() {
+            f.also.push((span, how, text.into()));
+        }
+        self
+    }
+    /// The fix is outside the program's own code: two kits with one
+    /// prefix, a program past the target's limits (owner, 2026-10-24).
+    pub fn outside_program(mut self) -> Diagnostic {
+        self.outside = true;
         self
     }
     /// A fix made from the source: the line holding `span`, edited.
     pub fn fix_edit(mut self, span: Span, how: Edit, text: impl Into<String>) -> Diagnostic {
-        self.fixes.push(Fix { line: None, text: text.into(), edit: Some((span, how)) });
+        self.fixes.push(Fix { line: None, text: text.into(), edit: Some((span, how)), also: Vec::new() });
         self
     }
 
@@ -384,11 +458,114 @@ fn manifest_section(file: &crate::source::SourceFile, offset: u32) -> Option<Str
     before[..start].lines().rev().map(|l| l.split('#').next().unwrap_or("").trim()).find(|l| l.ends_with(':') && !l.contains('=')).map(|l| format!("in {}, {}", file.short_name(), l))
 }
 
+/// Each message as a JSON line instead (`--message-format json`).
+static JSON: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn json_messages() {
+    JSON.store(true, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// A message as the tests see it: its name, where, and each fix's
+/// replacements, path and byte range in that file's text.
+#[derive(Debug, Clone)]
+pub struct Shown {
+    pub name: Option<&'static str>,
+    /// Its file, line, column and byte offset.
+    pub at: Option<(std::path::PathBuf, u32, u32, u32)>,
+    pub fixes: Vec<Vec<(std::path::PathBuf, u32, u32, String)>>,
+}
+
+thread_local! {
+    /// Filled by every render on this thread while a test collects.
+    static SHOWN: std::cell::RefCell<Option<Vec<Shown>>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Start keeping what this thread renders.
+pub fn collect() {
+    SHOWN.with(|s| *s.borrow_mut() = Some(Vec::new()));
+}
+
+/// What this thread rendered since `collect`, and stop keeping it.
+pub fn collected() -> Vec<Shown> {
+    SHOWN.with(|s| s.borrow_mut().take().unwrap_or_default())
+}
+
+fn json_text(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
 impl Diagnostic {
+    /// The fixes kayo can write here, each as its replacements.
+    fn replacements(&self, sources: &SourceMap) -> Vec<Vec<(Span, String)>> {
+        self.fixes.iter().filter_map(|f| f.replacements(sources)).collect()
+    }
+
+    /// One JSON line, rustc's and LSP's shapes where they fit: the
+    /// severity, the name, the place (line and a UTF-16 column, as the
+    /// Language Server Protocol counts, owner 2026-10-06), and each fix
+    /// as replacements, byte ranges with their lines and columns.
+    fn render_json(&self, sources: &SourceMap) -> String {
+        let place = |sp: Span| {
+            let f = sources.get(sp.file);
+            let (l1, c1) = f.line_col_utf16(sp.start);
+            let (l2, c2) = f.line_col_utf16(sp.end);
+            format!("\"file\":{},\"byte_start\":{},\"byte_end\":{},\"line_start\":{},\"column_start\":{},\"line_end\":{},\"column_end\":{}", json_text(&f.display_name()), sp.start, sp.end, l1, c1, l2, c2)
+        };
+        let mut out = format!("{{\"severity\":{},\"name\":{}", json_text(self.kind.label()), self.name.map(json_text).unwrap_or_else(|| "null".into()));
+        if let Some(sp) = self.span {
+            let _ = write!(out, ",\"span\":{{{}}},\"code\":{}", place(sp), json_text(sources.get(sp.file).slice(sp).trim()));
+        }
+        if let Some(w) = &self.when {
+            let _ = write!(out, ",\"when\":{}", json_text(w));
+        }
+        let fixes: Vec<String> = self.replacements(sources).iter().map(|rs| {
+            let parts: Vec<String> = rs.iter().map(|(sp, text)| format!("{{{},\"new_text\":{}}}", place(*sp), json_text(text))).collect();
+            format!("{{\"replacements\":[{}]}}", parts.join(","))
+        }).collect();
+        let _ = write!(out, ",\"fixes\":[{}]", fixes.join(","));
+        if fixes.is_empty() && self.outside {
+            out.push_str(",\"none_suggested\":true");
+        }
+        if fixes.is_empty() && SENTENCE_LINE && !self.outside {
+            let _ = write!(out, ",\"about\":{}", json_text(&self.sentence));
+        }
+        out.push_str("}\n");
+        out
+    }
+
     /// The full form (owner, 2026-10-22; `design/diagnostics.md`): the name
     /// and the place for programs, `where:` for people, the code, a check's
     /// `when:`, and every fix under `or`.
     fn render_full(&self, sources: &SourceMap) -> String {
+        SHOWN.with(|s| {
+            if let Some(v) = s.borrow_mut().as_mut() {
+                let path = |sp: Span| sources.get(sp.file).path.clone();
+                v.push(Shown {
+                    name: self.name,
+                    at: self.span.map(|sp| {
+                        let (l, c) = sources.get(sp.file).line_col(sp.start);
+                        (path(sp), l, c, sp.start)
+                    }),
+                    fixes: self.replacements(sources).into_iter().map(|rs| rs.into_iter().map(|(sp, t)| (path(sp), sp.start, sp.end, t)).collect()).collect(),
+                });
+            }
+        });
+        if JSON.load(std::sync::atomic::Ordering::Relaxed) {
+            return self.render_json(sources);
+        }
         let mut out = String::new();
         let title = match self.name {
             Some(n) => format!("{}[{}]", self.kind.label(), n),
@@ -446,12 +623,25 @@ impl Diagnostic {
             // On the message's own line, the edited line itself; another
             // line is named above it. An edit the source does not allow
             // (no `give` on that line) is no fix.
+            // A line that goes is shown as it was, named as going.
+            if let (Some((span, Edit::DeleteLine)), true) = (&f.edit, f.also.is_empty()) {
+                let file = sources.get(span.file);
+                let (line, _) = file.line_col(span.start);
+                let _ = writeln!(out, "{} line {} goes:", label, line);
+                let _ = writeln!(out, "       {}", file.line_text(line).trim());
+                written += 1;
+                continue;
+            }
             if f.edit.is_some() {
-                let Some((line, text)) = f.edited(sources) else { continue };
-                if Some(line) == here {
+                let Some((file, line, text)) = f.edited(sources) else { continue };
+                let inserted = matches!(f.edit, Some((_, Edit::InsertLine)));
+                if Some(line) == here && Some(file) == self.span.map(|s| s.file) && !inserted {
                     let _ = writeln!(out, "{} {}", label, text);
-                } else {
+                } else if Some(file) == self.span.map(|s| s.file) {
                     let _ = writeln!(out, "{} line {}:", label, line);
+                    let _ = writeln!(out, "       {}", text);
+                } else {
+                    let _ = writeln!(out, "{} line {} of {}:", label, line, sources.get(file).short_name());
                     let _ = writeln!(out, "       {}", text);
                 }
                 written += 1;
@@ -468,9 +658,12 @@ impl Diagnostic {
                 }
             }
         }
+        if written == 0 && self.outside {
+            let _ = writeln!(out, "fix:   none suggested");
+        }
         // The sentence stays, last, until the message's fix is written
         // (owner, 2026-10-24: (c)); it is in the docs under the name too.
-        if SENTENCE_LINE && written == 0 {
+        if SENTENCE_LINE && written == 0 && !self.outside {
             let _ = writeln!(out, "about: {}", self.sentence);
         }
         out
@@ -483,6 +676,21 @@ pub const SENTENCE_LINE: bool = true;
 
 /// A build stops at the first `error`; `check`s and `note`s accumulate.
 pub type Result<T> = std::result::Result<T, Box<Diagnostic>>;
+
+/// A fix on a refusal on its way out: `return self.fail_n(…).with_fix(…)`.
+pub trait WithFix {
+    fn with_fix(self, span: Span, how: Edit, text: impl Into<String>) -> Self;
+    fn outside_program(self) -> Self;
+}
+
+impl<T> WithFix for Result<T> {
+    fn with_fix(self, span: Span, how: Edit, text: impl Into<String>) -> Self {
+        self.map_err(|d| Box::new(d.fix_edit(span, how, text)))
+    }
+    fn outside_program(self) -> Self {
+        self.map_err(|d| Box::new(d.outside_program()))
+    }
+}
 
 pub fn err<T>(d: Diagnostic) -> Result<T> {
     Err(Box::new(d))

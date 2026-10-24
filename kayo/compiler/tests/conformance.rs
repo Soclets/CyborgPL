@@ -214,7 +214,8 @@ fn reject_programs_are_refused_in_ccas_own_words() {
         let got = check(src).and_then(|()| prove(src));
         if let Some(rest) = want.strip_prefix("!unbuilt") {
             let (ruling, then) = rest.split_once("; then: ").unwrap_or((rest, ""));
-            if !then.is_empty() && verdict(&name, then, &got, &dir).is_none() {
+            // Its own words, which a fix written does not stand in for.
+            if !then.is_empty() && got.as_ref().err().is_some_and(|m| m.contains(then)) {
                 return Some(format!("{}: CCA knows the spelling now ({}) and does what the line after `then:` asks — drop the `!unbuilt` mark in tests/reject_phrases.txt", name, ruling.trim()));
             }
             if got.is_ok() && !then.starts_with("!by-design") {
@@ -456,4 +457,108 @@ fn demos_build() {
         }
     }
     assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+}
+
+/// Every fix kayo prints is right (owner, 2026-10-24: "A fix is only worth
+/// printing if it's right"): each reject program's message, each of its
+/// fixes applied as its replacements, and the same error no longer fires
+/// on that line.
+#[test]
+fn every_fix_clears_its_error() {
+    // The oracle's refusals, and kayo's own for sites they do not reach
+    // (tests/fixes/, each of which must carry a fix).
+    let dir = repo().join("oracle/tests/reject");
+    let own = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixes");
+    let mut all = targets(&dir);
+    let ours = targets(&own);
+    all.extend(ours.iter().cloned());
+    let scratch = std::env::temp_dir().join(format!("kayo-fixes-{}", std::process::id()));
+    let results: Vec<(bool, Option<String>, String)> = common::par_map(&all, |src| -> (bool, Option<String>, String) {
+        let (with, mut failed, said) = fix_verdict(src, &scratch);
+        if src.starts_with(&own) && !with && failed.is_none() {
+            failed = Some(format!("tests/fixes/{}: its message carries no fix ({} {})", name_of(src), said.0, said.1));
+        }
+        (with, failed, format!("{} {} {}", name_of(src), said.0, said.1))
+    });
+    let _ = std::fs::remove_dir_all(&scratch);
+    // The table the checklist is kept from (kayo/FIXES.md).
+    if let Ok(to) = std::env::var("KAYO_FIX_REPORT") {
+        let _ = std::fs::write(to, results.iter().map(|r| r.2.clone()).collect::<Vec<_>>().join("\n"));
+    }
+    let with = results.iter().filter(|r| r.0).count();
+    eprintln!("{} of {} reject programs' messages carry fixes, each one checked", with, all.len());
+    let failures: Vec<String> = results.into_iter().filter_map(|r| r.1).collect();
+    assert!(failures.is_empty(), "\n{}", failures.join("\n"));
+}
+
+/// One reject program: whether its message carries fixes, the first that
+/// does not clear it, and its name and number of fixes.
+fn fix_verdict(src: &Path, scratch: &Path) -> (bool, Option<String>, (String, usize)) {
+    let (with, failed, said) = (|| -> (bool, Option<String>, (String, usize)) {
+        let name = name_of(src);
+        let scratch = scratch.to_path_buf();
+        kayo::diag::collect();
+        let got = check(src).and_then(|()| prove(src));
+        let shown = kayo::diag::collected();
+        let Err(msg) = got else { return (false, None, ("accepted".into(), 0)) };
+        let said = msg.lines().next().and_then(|l| l.split_once('[')).and_then(|(_, r)| r.split_once(']')).map(|(n, _)| n.to_string());
+        let said = said.unwrap_or_else(|| "?".into());
+        let Some(first) = shown.iter().find(|s| s.name.map(str::to_string) == Some(said.clone())) else { return (false, None, (said, 0)) };
+        let count = (said.clone(), first.fixes.len());
+        if first.fixes.is_empty() {
+            return (false, None, count);
+        }
+        let Some((err_path, err_line, _, err_byte)) = first.at.clone() else { return (true, Some(format!("{}: a fix with no place for its error", name)), count) };
+        for (i, fix) in first.fixes.iter().enumerate() {
+            let to = scratch.join(format!("{}-{}", name, i));
+            let _ = std::fs::remove_dir_all(&to);
+            copy_tree(src, &to.join(src.file_name().unwrap()));
+            let moved = |p: &Path| -> PathBuf {
+                let rel = if src.is_dir() { p.strip_prefix(src).map(|r| src.file_name().map(PathBuf::from).unwrap().join(r)).unwrap_or_else(|_| p.to_path_buf()) } else { PathBuf::from(src.file_name().unwrap()) };
+                to.join(rel)
+            };
+            // Each file's replacements, last first, so the earlier offsets hold.
+            let mut by_file: HashMap<PathBuf, Vec<(u32, u32, String)>> = HashMap::new();
+            for (p, a, b, t) in fix {
+                by_file.entry(moved(p)).or_default().push((*a, *b, t.clone()));
+            }
+            // Where the error's place is once the edits are made, in bytes:
+            // a later error on the same line is another one.
+            let mut shift = 0i64;
+            for (p, mut rs) in by_file {
+                let mut text = std::fs::read_to_string(&p).unwrap();
+                rs.sort_by(|x, y| y.0.cmp(&x.0));
+                for (a, b, t) in rs {
+                    if p == moved(&err_path) && a <= err_byte {
+                        // An edit over the error's place starts it.
+                        shift += if b > err_byte { a as i64 - err_byte as i64 } else { t.len() as i64 - (b - a) as i64 };
+                    }
+                    text.replace_range(a as usize..b as usize, &t);
+                }
+                std::fs::write(&p, text).unwrap();
+            }
+            let program = to.join(src.file_name().unwrap());
+            kayo::diag::collect();
+            let _ = check(&program).and_then(|()| prove(&program));
+            let after = kayo::diag::collected();
+            let byte = (err_byte as i64 + shift) as u32;
+            if let Some(again) = after.iter().find(|s| s.name == first.name && s.at.as_ref().is_some_and(|(p, _, _, b)| *p == moved(&err_path) && *b == byte)) {
+                return (true, Some(format!("{}: fix {} does not clear `{}` at line {}:\n  {:?}\n  then: {:?}", name, i + 1, first.name.unwrap_or("?"), err_line, fix, again.at)), count);
+            }
+        }
+        (true, None, count)
+    })();
+    (with, failed, said)
+}
+
+fn copy_tree(from: &Path, to: &Path) {
+    if from.is_dir() {
+        std::fs::create_dir_all(to).unwrap();
+        for e in std::fs::read_dir(from).unwrap().filter_map(|e| e.ok()) {
+            copy_tree(&e.path(), &to.join(e.file_name()));
+        }
+    } else {
+        std::fs::create_dir_all(to.parent().unwrap()).unwrap();
+        std::fs::copy(from, to).unwrap();
+    }
 }

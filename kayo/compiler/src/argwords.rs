@@ -10,8 +10,9 @@
 //! the form it always had. A position the table leaves "" (the first, or
 //! one with syntax of its own, as SIMD's `pos`) is not asked about here.
 
-use crate::diag::{err, Diagnostic, Result};
+use crate::diag::{err, Diagnostic, Edit, Result};
 use crate::lexer::{Tok, Token};
+use crate::source::Span;
 use crate::spellings::{calls, Call};
 
 /// The listed call whose path starts at token `i`, and the index of its `[`.
@@ -129,10 +130,11 @@ pub fn strip(toks: &[Token]) -> Result<Vec<Token>> {
             // `round.near['x', decimals 2]` (owner, 2026-10-20: `places:`).
             if *word == "places" && matches!(&toks[at].tok, Tok::Word(w) if w == "decimals") {
                 let said = crate::spellings::old_word("decimals", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`decimals` is an old spelling: write `places:` (owner, 2026-10-20)".into());
-                return err(Diagnostic::error(said).named("old_spelling").at(toks[at].span));
+                return err(Diagnostic::error(said).named("old_spelling").at(toks[at].span).fix_edit(toks[at].span, Edit::Replace, "places:"));
             }
             if named && !toks[at].labelled {
-                return err(Diagnostic::error(needs_colon(word)).named("label_needs_colon").at(toks[at].span));
+                let s = toks[at].span;
+                return err(Diagnostic::error(needs_colon(word)).named("label_needs_colon").at(s).fix_edit(Span::new(s.file, s.end as usize, s.end as usize), Edit::Insert, ":"));
             }
             if !named {
                 // The only argument says its word too when it is not the

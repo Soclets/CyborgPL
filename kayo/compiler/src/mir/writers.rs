@@ -68,7 +68,8 @@ fn walk(f: &Function, writers: &HashSet<LocalId>, sources: &SourceMap, out: &mut
                     let name = f.locals[pl.local.0 as usize].name.clone().unwrap_or_else(|| "out".into());
                     let d = Diagnostic::error(format!("${} goes away still holding text: `std::print.flush(lend.mut ${});` before its block ends (owner, 2026-10-23)", name, name)).named("writer_unflushed")
                         .at(f.span(f.locals[pl.local.0 as usize].span))
-                        .fix(None, format!("std::print.flush(lend.mut ${});", name));
+                        // Above the `}` that ends its block: the drop's span is the block.
+                        .fix_edit({ let b = f.span(s.span); crate::source::Span::new(b.file, b.end.saturating_sub(1) as usize, b.end as usize) }, crate::diag::Edit::InsertLine, format!("std::print.flush(lend.mut ${});", name));
                     out.push(d.render(sources));
                 }
                 _ => {}

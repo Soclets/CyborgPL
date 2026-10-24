@@ -1317,7 +1317,7 @@ impl Items {
                 // its sides, if it has any, then the places around them.
                 let sides = !(left_out(lo, "min") && left_out(hi, "max"));
                 let number = if sides {
-                    let plain = ast::Type { kind: ast::TypeKind::Bound { inner: inner.clone(), lo: lo.clone(), hi: hi.clone(), unit: unit.clone(), span: *span, old: *old, zero: *zero, places: None }, span: *span };
+                    let plain = ast::Type { kind: ast::TypeKind::Bound { inner: inner.clone(), lo: lo.clone(), hi: hi.clone(), unit: unit.clone(), span: *span, old: old.clone(), zero: *zero, places: None }, span: *span };
                     self.resolve_type(&plain, m, blanks, allow_blanks)?
                 } else {
                     self.resolve_type(inner, m, blanks, allow_blanks)?
@@ -1347,12 +1347,20 @@ impl Items {
                 if let Some((_, at)) = zero {
                     return err(Diagnostic::error("`exclude zero` and `include zero` are for a C string's bound, `C.str[max: 255 bytes, exclude zero]`").named("cnc::c_str_zero_misplaced").at(*at));
                 }
-                if *old {
+                if let Some(values) = old {
                     // Whether it takes a bound comes before how one is
                     // written (owner, 2026-10-12, labelled bounds).
                     return match &base {
                         Ty::Seq { kind: SeqKind::Array, .. } => err(Diagnostic::error("a length bound belongs on a `list`: an `array` has one length, already known").named("length_bound_on_array").at(*span)),
-                        Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => err(Diagnostic::error("a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)").named("old_spelling").at(*span)),
+                        Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => {
+                            // Each side labelled; one value alone is either side.
+                            let d = Diagnostic::error("a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)").named("old_spelling").at(*span);
+                            err(match values.as_slice() {
+                                [a, b] => d.fix_edit(*a, crate::diag::Edit::Insert, "min: ").fix_also(*b, crate::diag::Edit::Insert, "max: "),
+                                [a] => d.fix_edit(*a, crate::diag::Edit::Insert, "min: ").fix_edit(*a, crate::diag::Edit::Insert, "max: "),
+                                _ => d,
+                            })
+                        }
                         other => err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`i32[min: 0, max: 100]`), text, lists, maps and channels", spell(other, self))).named("bound_not_taken").at(*span)),
                     };
                 }
@@ -1610,7 +1618,16 @@ impl Items {
                 _ => None,
             };
             if let Some(why) = refused {
-                return err(Diagnostic::error(why).named("foreign_spelling").at(span));
+                let mut d = Diagnostic::error(why).named("foreign_spelling").at(span);
+                let writes: &[&str] = match head {
+                    "usize" => &["u64", "u32"],
+                    "isize" => &["i64", "i32"],
+                    _ => &["str.utf8", "str.ascii"],
+                };
+                for w in writes {
+                    d = d.fix_edit(span, crate::diag::Edit::Replace, *w);
+                }
+                return err(d);
             }
         }
         // The brain float comes in one width (owner, 2026-10-02).

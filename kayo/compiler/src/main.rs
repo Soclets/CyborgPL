@@ -53,7 +53,21 @@ fn real_main() {
     // As the system hands them over: a program's own words (after `--`)
     // may be any bytes, and `std::env::args` stops the compiler on one
     // that is not UTF-8. CCA's own words are read as text.
-    let raw: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
+    let mut raw: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
+    // `--message-format json` (design/diagnostics.md rule 3): each error
+    // and check one JSON line, its fixes as replacements an editor applies.
+    let end = raw.iter().position(|a| a == "--").unwrap_or(raw.len());
+    if let Some(i) = raw[..end].iter().position(|a| a == "--message-format") {
+        match raw.get(i + 1).and_then(|f| f.to_str()) {
+            Some("json") => kayo::diag::json_messages(),
+            Some("text") => {}
+            _ => {
+                eprintln!("error: `--message-format` is followed by `json` or `text`");
+                exit(2);
+            }
+        }
+        raw.drain(i..(i + 2).min(raw.len()));
+    }
     let args: Vec<String> = raw.iter().map(|a| a.to_string_lossy().into_owned()).collect();
     let Some(cmd) = args.first() else { usage() };
     match cmd.as_str() {

@@ -1072,6 +1072,18 @@ Dated, with the alternative, so each can become a question later.
   way to its drop). A print or a flush with `otherwise` handles
   `write_failed`: kayo's buffer is sent at that print, a writer's status is
   asked; with none, a failed write stops the program.
+- **2026-10-24 — The fixes, family by family** (owner, 2026-10-24: "finish it"; `kayo/FIXES.md`, the
+  checklist). Every fix is a set of edits made from the source (`diag::Edit`: a span replaced, wrapped,
+  a word or a line taken out, text put in, a line put above, a word swapped), so one fix is one or more
+  replacements; the message shows the edited line (`fix: line N:` above it when it is another line,
+  `line N goes:` for a line taken out), every edit kayo can write under `or:`; `fix: none suggested`
+  only where the fix is outside the program (`Diagnostic::outside_program`). `--message-format json`
+  writes each error and check as one JSON line, rustc's and LSP's shapes, its fixes as replacements
+  (byte ranges, lines, UTF-16 columns). `every_fix_clears_its_error` (tests/conformance.rs) proves
+  them: each reject program's message, each fix applied as its replacements to a copy, and the same
+  error no longer fires at that place; `tests/fixes/` holds kayo's own programs for sites no reject
+  test reaches, each of which must carry a fix. `KAYO_FIX_REPORT=file` writes the table the
+  checklist is kept from.
 - **2026-10-24 — The message is its name, the code and the fix** (owner, 2026-10-22; the
   sentence's `about:` line (c), 2026-10-24; `design/diagnostics.md`). An error or a check
   prints `error[name] at file:line:col` (`check[name]` for an unproven site, at build or

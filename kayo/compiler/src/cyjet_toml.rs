@@ -65,7 +65,7 @@ fn uncommented(file: FileId, text: &str) -> Result<Vec<(usize, String)>> {
         };
         let after = &line[hash + 1..];
         let form: String = after.chars().take_while(|c| c.is_ascii_alphanumeric()).collect();
-        let bad = || err(Diagnostic::error(format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down", form)).named("comment_form").at(Span::new(file, start + hash, start + hash + 1 + form.len())));
+        let bad = || err(Diagnostic::error(format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down", form)).named("comment_form").at(Span::new(file, start + hash, start + hash + 1 + form.len())).fix_edit(Span::new(file, start + hash + 1, start + hash + 1), crate::diag::Edit::Insert, " "));
         if !form.is_empty() && !after[form.len()..].chars().next().is_none_or(char::is_whitespace) {
             return bad();
         }

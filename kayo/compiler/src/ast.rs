@@ -72,7 +72,7 @@ pub enum TypeKind {
     /// type taking no bound is told that first, then refused.
     /// `places`: `max_places: N` and `min_places: N` in the same bracket
     /// (owner, 2026-10-17; `places` since 2026-10-20), on a `d` or a percent.
-    Bound { inner: Box<Type>, lo: Box<Expr>, hi: Box<Expr>, unit: Option<Ident>, span: Span, old: bool, zero: Option<(bool, Span)>, places: Option<(Option<u32>, Option<u32>, Span)> },
+    Bound { inner: Box<Type>, lo: Box<Expr>, hi: Box<Expr>, unit: Option<Ident>, span: Span, old: Option<Vec<Span>>, zero: Option<(bool, Span)>, places: Option<(Option<u32>, Option<u32>, Span)> },
     /// `<T>` / `<T: Ordered>`.
     Var { name: Ident, bound: Option<Path> },
     /// `fn[lent T, T] -> R or fail[…]`.
