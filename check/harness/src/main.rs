@@ -149,6 +149,8 @@ impl Args {
             // kayo 6c647471, 22eb479f
             writers: !avoid.contains("writers"),
             short_lambdas: !avoid.contains("short-lambdas"),
+            // `.whole` / `.split` writers: kayo has not built them (2026-10-24); `--writer-kinds` turns them on
+            writer_kinds: self.has("writer-kinds"),
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),

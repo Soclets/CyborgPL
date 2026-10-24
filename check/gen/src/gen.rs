@@ -195,6 +195,9 @@ pub struct Config {
     /// Short lambdas, `fn ['s'] = 's' at_least 60`, with and without `with`, and
     /// one in a typed `fn[i32] -> bool` (owner, 2026-10-24; kayo 22eb479f).
     pub short_lambdas: bool,
+    /// Writers written `.whole` or `.split` (owner, 2026-10-24; oracle deda6720).
+    /// Off until kayo builds them.
+    pub writer_kinds: bool,
     /// C interop (owner, 2026-10-19; oracle 927b1905, kayo 6ae65a5f): a
     /// `layout.C union` written through one field and read through another,
     /// a `layout.C struct` of bit-fields written at and past their limits,
@@ -213,7 +216,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: false, c_interop: true, based_literals: true, bare_enums: true, percents: true }
     }
 }
 
@@ -612,11 +615,14 @@ impl Gen {
         self.extra_fns.push(format!("fn wrep{id} [lent.mut 'out': std::print.writer, 'name': str.utf8, 'n': i64] {{\n    std::print.useful[lend.mut 'out', 'name', \": \", 'n', newln];\n}}"));
         let (k, m, t) = (self.rng.range(1, 5), self.rng.range(-99, 99), self.rng.range(0, 9999));
         let size = *self.rng.pick(&[16u32, 32, 256, 1024, 4096]);
+        // a writer `.whole` written out, or `.split` filling to exactly its size
+        // (owner, 2026-10-24; oracle deda6720)
+        let kind = if self.cfg.writer_kinds { *self.rng.pick(&["", ".whole", ".split"]) } else { "" };
         let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
         vec![
             format!("std::print.useful[\"before {id}\", newln];"),
             "std::print.flush[];".to_string(),
-            format!("let mut {} := std::print.writer[size: {size} bytes];", v("pw")),
+            format!("let mut {} := std::print.writer{kind}[size: {size} bytes];", v("pw")),
             format!("for {i}: i64 [from: 1, to: {k}, by: 1] {{ std::print.useful[lend.mut {w}, \"w \", {i}, \" \", {i} x {}, newln]; }}", lit(m), i = v("wi"), w = v("pw")),
             format!("wrep{id}[lend.mut {}, \"total\", {t}];", v("pw")),
             format!("std::print.useful[\"between {id}\", newln];"),
