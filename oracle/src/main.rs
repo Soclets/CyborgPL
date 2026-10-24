@@ -21,6 +21,7 @@ mod lexer;
 mod parser;
 mod spellings;
 mod value;
+mod unicode_props;
 
 use std::path::{Path, PathBuf};
 use std::process::exit;

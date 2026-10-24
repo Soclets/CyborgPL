@@ -6018,7 +6018,9 @@ fn raw_land(v: Value, prov: Prov, t: &Ty, line: usize) -> Result<(Value, Prov), 
 /// rules from SpecialCasing to the full mapping: `tr` / `az` (dotted and dotless i), `lt` (the dot kept on an `i`
 /// under an accent). The oracle's approximation of Unicode's tables; std's own is written from them.
 fn change_case(s: &str, upper: bool, way: &str, lang: &str) -> String {
-    let combining_above = |c: char| matches!(c as u32, 0x0300..=0x0314 | 0x033D..=0x0344 | 0x0346 | 0x034A..=0x034C | 0x0350..=0x0352 | 0x0357 | 0x035B | 0x0363..=0x036F);
+    // Unicode 17's own properties (`unicode_props.rs`, generated from Unicode's files; std claude, 2026-10-24)
+    use crate::unicode_props::{has, CASED, CASE_IGNORABLE, CCC_ABOVE, CCC_NONZERO, SOFT_DOTTED};
+    let combining_above = |c: char| has(&CCC_ABOVE, c);
     match way {
         "ascii" => if upper { s.to_ascii_uppercase() } else { s.to_ascii_lowercase() },
         "simple" => s.chars().map(|c| {
@@ -6037,11 +6039,11 @@ fn change_case(s: &str, upper: bool, way: &str, lang: &str) -> String {
             }
         }).collect(),
         _ => {
-            // SpecialCasing's conditions as The Unicode Standard writes them (3.13, Table 3-17), with the oracle's
-            // approximation of combining classes: a mark of the Combining Diacritical Marks blocks, `above` (230) or not;
-            // anything else is class 0 (std claude, 2026-10-24, found the oracle's earlier version off in 26 answers)
-            let is_mark = |c: char| matches!(c as u32, 0x0300..=0x036F | 0x0483..=0x0489 | 0x0591..=0x05BD | 0x1AB0..=0x1AFF | 0x1DC0..=0x1DFF | 0x20D0..=0x20FF | 0xFE20..=0xFE2F);
-            let soft_dotted = |c: char| matches!(c, 'i' | 'j' | '\u{012F}' | '\u{0249}' | '\u{0268}' | '\u{029D}' | '\u{02B2}' | '\u{0456}' | '\u{0458}' | '\u{1D62}' | '\u{1D96}' | '\u{1DA4}' | '\u{1DA8}' | '\u{1E2D}' | '\u{1ECB}' | '\u{2071}' | '\u{2148}' | '\u{2149}' | '\u{2C7C}');
+            // SpecialCasing's conditions as The Unicode Standard writes them (3.13, Table 3-17), combining classes from
+            // UnicodeData.txt: `above` is 230, a mark is any class but 0 (std claude, 2026-10-24, found the oracle's
+            // earlier version off in 26 answers)
+            let is_mark = |c: char| has(&CCC_NONZERO, c);
+            let soft_dotted = |c: char| has(&SOFT_DOTTED, c);
             let chars: Vec<char> = s.chars().collect();
             // the nearest character before / after `k` past marks that are neither above (230) nor class 0
             let back = |k: usize| { let mut j = k; while j > 0 { j -= 1; let c = chars[j]; if is_mark(c) && !combining_above(c) { continue; } return Some(c); } None };
@@ -6077,9 +6079,9 @@ fn change_case(s: &str, upper: bool, way: &str, lang: &str) -> String {
             // the rest lowered one character at a time, a capital sigma by Final_Sigma as the Standard writes it (3.13,
             // Table 3-17): after a cased letter, with case-ignorable ones between, and before none. A letter both cased
             // and case-ignorable (`ʰ`) counts as cased (owner, 2026-10-24: "isn't Unicode says what correct?"), where
-            // ICU, Rust and Python skip it first; the oracle's approximation of the two properties
-            let cased = |c: char| c.is_lowercase() || c.is_uppercase() || matches!(c as u32, 0x01C5 | 0x01C8 | 0x01CB | 0x01F2 | 0x1F88..=0x1F8F | 0x1F98..=0x1F9F | 0x1FA8..=0x1FAF | 0x1FBC | 0x1FCC | 0x1FFC);
-            let ignorable = |c: char| is_mark(c) || matches!(c as u32, 0x0027 | 0x002E | 0x003A | 0x005E | 0x0060 | 0x00A8 | 0x00AD | 0x00AF | 0x00B4 | 0x00B7 | 0x00B8 | 0x02B0..=0x036F | 0x0374 | 0x0375 | 0x037A | 0x0384 | 0x0385 | 0x0387 | 0x1D2C..=0x1D6A | 0x1D78 | 0x1D9B..=0x1DFF | 0x200B..=0x200F | 0x2018 | 0x2019 | 0x2024 | 0x2027 | 0x202A..=0x202E | 0x2060..=0x2064 | 0x2070..=0x209C | 0xFE13 | 0xFE52 | 0xFE55 | 0xFEFF | 0xFF07 | 0xFF0E | 0xFF1A);
+            // ICU, Rust and Python skip it first; both properties from DerivedCoreProperties.txt
+            let cased = |c: char| has(&CASED, c);
+            let ignorable = |c: char| has(&CASE_IGNORABLE, c);
             let low: Vec<char> = out.chars().collect();
             let mut res = String::new();
             for (k, &c) in low.iter().enumerate() {

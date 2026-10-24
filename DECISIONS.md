@@ -42,7 +42,10 @@ Rust and Python skip it as ignorable first, `σ`. Design claude recommended (b),
 "What's correct?" (by the Standard, (a)), then "would you change our syntax to use <> more, so it matches Rust?", and
 "isn't Unicode says what correct?". So **CyborgPL follows the Standard's wording**: `std::str.lower.full("ʰΣ")` is
 `ʰς`, `"ΑΣʰ"` is `ασʰ`, as std already gave. Built in the oracle the same day, which no longer takes Rust's
-lowercasing for a sigma; its cased and case-ignorable properties are approximated.
+lowercasing for a sigma. Then std claude, Σ beside 816 characters (3,264 texts against Table 3-17 from Unicode 17's
+files), found the oracle's approximated properties wrong in 414, all past the blocks it knew; the oracle now reads
+Unicode 17's Cased, Case_Ignorable, Soft_Dotted and combining classes from generated tables
+(`oracle/src/unicode_props.rs`, by `oracle/tools/gen_unicode_props.py` from the files std's tables come from).
 
 ### 2026-10-24 — Built in the oracle: `inline.MSL` is read and checked, then the oracle stops (owner: "Correct.")
 
