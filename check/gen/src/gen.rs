@@ -650,7 +650,9 @@ impl Gen {
         let v = |n: &str| format!("'{n}{id}'");
         let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
         #[derive(Clone, Copy, PartialEq)]
-        enum K { Int, Small, Bin, Deci, Text, Bool }
+        // NegInt: a negative whole number, its base kinds a sign and the
+        // magnitude, `0` padding after the sign (owner, 2026-10-24; oracle a1dcbd3a)
+        enum K { Int, NegInt, Small, Bin, Deci, Text, Bool }
         let words = ["rope", "tea", "a b", "x", "z9", "ok"];
         let mut lets = vec![];
         let mut vals: Vec<(String, K)> = vec![];
@@ -658,13 +660,19 @@ impl Gen {
         for j in 0..n {
             let k = *self.rng.pick(&[K::Int, K::Small, K::Bin, K::Deci, K::Text, K::Bool]);
             let name = v(&format!("fv{j}_"));
-            let decl = match k {
-                K::Int => format!("let {name}: i64 = {};", lit(self.rng.range(-99999, 99999))),
+            let (k, decl) = match k {
+                K::Int => {
+                    let x = self.rng.range(-99999, 99999);
+                    (if x < 0 { K::NegInt } else { K::Int }, format!("let {name}: i64 = {};", lit(x)))
+                }
+                k => (k, match k {
                 K::Small => format!("let {name}: u8 = {};", self.rng.range(0, 255)),
                 K::Bin => format!("let {name}: f64 = {}{}.{};", if self.rng.chance(30) { "-" } else { "" }, self.rng.range(0, 999), self.rng.range(0, 999)),
                 K::Deci => format!("let {name}: d64 = {}.{:02};", self.rng.range(0, 9999), self.rng.range(0, 99)),
                 K::Text => format!("let {name}: str.utf8 = \"{}\";", self.rng.pick(&words)),
                 K::Bool => format!("let {name}: bool = {};", if self.rng.chance(50) { "true" } else { "false" }),
+                _ => unreachable!(),
+            }),
             };
             lets.push(decl);
             vals.push((name, k));
@@ -676,9 +684,9 @@ impl Gen {
             match (k, r.below(6)) {
                 (_, 0) => String::new(),
                 (_, 1) => format!(":{}{align}{w}", fill(r)),
-                (K::Int | K::Small, 2) => format!(":{}", r.pick(&["x", "X", "o", "b"])),
-                (K::Int | K::Small, 3) => format!(":0{w}{}", r.pick(&["", "x", "X", "b"])),
-                (K::Int | K::Small, 4) => ":+".to_string(),
+                (K::Int | K::Small | K::NegInt, 2) => format!(":{}", r.pick(&["x", "X", "o", "b"])),
+                (K::Int | K::Small | K::NegInt, 3) => format!(":0{w}{}", r.pick(&["", "x", "X", "b"])),
+                (K::Int | K::Small | K::NegInt, 4) => format!(":+{}", r.pick(&["", "x", "b"])),
                 (K::Bin | K::Deci, 2) => format!(":.{}", r.range(0, 4)),
                 (K::Bin | K::Deci, 3) => format!(":.{}e", r.range(0, 3)),
                 (K::Bin | K::Deci, 4) => ":?".to_string(),
