@@ -1072,6 +1072,22 @@ Dated, with the alternative, so each can become a question later.
   way to its drop). A print or a flush with `otherwise` handles
   `write_failed`: kayo's buffer is sent at that print, a writer's status is
   asked; with none, a failed write stops the program.
+- **2026-10-24 — The message is its name, the code and the fix** (owner, 2026-10-22; the
+  sentence's `about:` line (c), 2026-10-24; `design/diagnostics.md`). An error or a check
+  prints `error[name] at file:line:col` (`check[name]` for an unproven site, at build or
+  run time), then `where:` for people (`in pick()`, `in MAIN`, `in struct Item`, `at the top
+  of shop.cy`, `in CyJet.toml, my kits:`, `…, the loop starting at line 9`, `…, decoded line
+  12 of shop.cy (concise)`; `diag::enclosing_item` reads it off the file's tokens, so a
+  message made before the items are parsed says it too), `code:`, a check's `when:`, and
+  `fix:` with every edit under `or:`, each the whole edited line (`Fix::edited`: a span
+  replaced, wrapped, a word taken out, `no_check ` put in front; on another line, `fix:
+  line N:` above it). A fix that was a description is gone until it can be code (the
+  ownership and `pub` ones). Until a message's fix is written its sentence stays,
+  last, on `about:` (`diag::SENTENCE_LINE`); `why:` and `try:` are gone. Notes keep their
+  sentence, in the report. `KAYO_NAMES` is gone; the refusal test reads the name off the
+  first line. A missing type is `unknown_type`, an enum's case written bare
+  `case_needs_enum_name`, another module's function written bare `module_name_needs_path`
+  (`Items::missing_cause`); the run-time decimal traps are named.
 - **2026-10-24 — `std::print.format` and `std::format`** (owner, 2026-09-22,
   `{}` holes 2026-10-01; `examples/print_format`, `format_value`, `brain16`,
   `corner_shop`). The format text is read when building, from the text as

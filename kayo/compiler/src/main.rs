@@ -310,23 +310,34 @@ fn real_main() {
 
 /// How one test's run ended, in the report's words: `None` when it passed.
 /// A `must` that does not hold said `line N: …` and ended 1; a check (or a
-/// proof, when proofs are asserted) says `check: …` / `proof failed: …`
-/// and `where: file, line N, column M`.
+/// proof, when proofs are asserted) says `check[name] at file:line:col` /
+/// `proof failed: …` with `where: file, line N, column M`.
 fn test_verdict(status: &std::process::ExitStatus, stderr: &str) -> Option<String> {
     use std::os::unix::process::ExitStatusExt;
     match status.code() {
         Some(0) => None,
         Some(1) => Some(stderr.lines().find(|l| l.starts_with("line ")).unwrap_or("a `must` did not hold").to_string()),
         Some(code @ (101 | 104)) => {
-            let what = stderr.lines().find_map(|l| l.strip_prefix("check: ").or_else(|| l.strip_prefix("proof failed: "))).unwrap_or("a check fired");
-            // "where: FILE, line N, column C", told as "line N of FILE"
-            // (owner, 2026-10-08: every place names its file).
-            let place = stderr.lines().find_map(|l| l.strip_prefix("where: ")).and_then(|w| {
+            // A check says `check[name] at FILE:LINE:COL`, its sentence on
+            // `about:` until its fix is written, its name after that.
+            let first = stderr.lines().find(|l| l.starts_with("check[")).unwrap_or("");
+            let name = first.strip_prefix("check[").and_then(|r| r.split_once(']')).map(|(n, _)| n.to_string());
+            let what = stderr.lines().find_map(|l| l.strip_prefix("about: ").or_else(|| l.strip_prefix("proof failed: "))).map(str::to_string).or(name).unwrap_or_else(|| "a check fired".into());
+            // Told as "line N of FILE" (owner, 2026-10-08: every place names
+            // its file).
+            let place = first.split_once("] at ").and_then(|(_, at)| {
+                let mut parts = at.rsplitn(3, ':');
+                let _col = parts.next()?;
+                let line = parts.next()?;
+                let file = parts.next()?;
+                let file = std::path::Path::new(file).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| file.to_string());
+                Some(format!("line {} of {}", line, file))
+            }).or_else(|| stderr.lines().find_map(|l| l.strip_prefix("where: ")).and_then(|w| {
                 let (file, rest) = w.split_once(", line ")?;
                 let line = rest.split(',').next()?;
                 let file = std::path::Path::new(file).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| file.to_string());
                 Some(format!("line {} of {}", line, file))
-            });
+            }));
             let what = if code == 104 { format!("proof failed: {}", what) } else { what.to_string() };
             Some(match place {
                 Some(p) => format!("{}: {}", p, what),

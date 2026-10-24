@@ -792,7 +792,7 @@ impl Items {
                 if let Ty::Fn(f) = ty.base() {
                     if let Some((_, bad)) = f.params.iter().find(|(_, t)| self.checked_at_door(t)) {
                         let spelled = spell(bad, self);
-                        return err(Diagnostic::error(format!("a callback's parameter cannot be `{}`: C calls it, so a number it sends that `{}` does not allow would have nowhere to fail", spelled, spelled)).named("cnc::cannot_cross_to_c").at(t.span).fix(None, format!("take the plain number and convert inside: `to.{}(…) otherwise …`", spelled)));
+                        return err(Diagnostic::error(format!("a callback's parameter cannot be `{}`: C calls it, so a number it sends that `{}` does not allow would have nowhere to fail", spelled, spelled)).named("cnc::cannot_cross_to_c").at(t.span));
                     }
                 }
                 params.push((p.name.name.clone(), ty));
@@ -828,7 +828,7 @@ impl Items {
             // (owner, 2026-09-28: b).
             if self.checked_at_door(&t) {
                 let spelled = spell(&t, self);
-                return err(Diagnostic::error(format!("a C variable cannot be `{}`: reading a variable never fails, so it holds C's plain number", spelled)).named("cnc::cannot_cross_to_c").at(ty.span).fix(None, format!("declare it `i32` and convert: `to.{}(…) otherwise …`", spelled)));
+                return err(Diagnostic::error(format!("a C variable cannot be `{}`: reading a variable never fails, so it holds C's plain number", spelled)).named("cnc::cannot_cross_to_c").at(ty.span).fix_edit(ty.span, crate::diag::Edit::Replace, "i32"));
             }
             self.externs[id.0 as usize].ret = t;
         }
@@ -1029,7 +1029,7 @@ impl Items {
         };
         let f = &self.fns[id.0 as usize];
         if self.kit_root(f.module) != self.kit_root(m) && f.vis != Vis::Pub {
-            return err(Diagnostic::error(format!("`fn {}` is not `pub`, and another kit reaches only `pub` items", f.name)).named("not_public").at(last.span).fix(None, "its own kit opens it with `pub`"));
+            return err(Diagnostic::error(format!("`fn {}` is not `pub`, and another kit reaches only `pub` items", f.name)).named("not_public").at(last.span));
         }
         Ok(Some(id))
     }
@@ -1106,7 +1106,8 @@ impl Items {
             }
             let Some((item, vis, _)) = module.item(&seg.name) else {
                 let kind = if segs.peek().is_none() { "item" } else { "module" };
-                return err(Diagnostic::error(format!("there is no {} `{}` in {}", kind, seg.name, describe_module(&module.path))).named(if kind == "module" { "unknown_module" } else { "unknown_function" }).at(seg.span).why(self.hint_for_missing(&seg.name, cur)));
+                let name = if kind == "module" { "unknown_module" } else { self.missing_cause(&seg.name, cur) };
+                return err(Diagnostic::error(format!("there is no {} `{}` in {}", kind, seg.name, describe_module(&module.path))).named(name).at(seg.span).why(self.hint_for_missing(&seg.name, cur)));
             };
             self.check_visible(*item, *vis, cur, m, seg)?;
             match item {
@@ -1191,15 +1192,37 @@ impl Items {
         let where_ = describe_module(&self.modules[declared_in.0 as usize].path);
         let what = item.what();
         if self.kit_root(declared_in) != self.kit_root(from) {
-            return err(Diagnostic::error(format!("{} `{}` is not `pub`, and another kit reaches only `pub` items", what, seg.name)).named("not_public").at(seg.span).fix(None, "its own kit opens it with `pub`; `pub.kit` keeps it inside that kit"));
+            return err(Diagnostic::error(format!("{} `{}` is not `pub`, and another kit reaches only `pub` items", what, seg.name)).named("not_public").at(seg.span));
         }
         let full = match item {
             ItemRef::Module(c) => format!("module `{}`", self.modules[c.0 as usize].path),
             _ => format!("{} `{}`", what, seg.name),
         };
         err(Diagnostic::error(format!("{} is private to {}: it is visible there and in the modules nested inside it", full, where_)).named("not_public")
-            .at(seg.span)
-            .fix(None, format!("write `pub.kit` before it to open it to the whole kit, or `pub` for other kits too")))
+            .at(seg.span))
+    }
+
+    /// Why a bare name is not here, as its error's name (design claude,
+    /// 2026-10-24): an enum's case written without its enum, a nested
+    /// module's function written without its path, or nothing by that name.
+    fn missing_cause(&self, name: &str, m: ModuleId) -> &'static str {
+        let root = self.kit_root(m);
+        if self.enums.iter().any(|e| e.cases.iter().any(|c| c.name == name)) || self.pending_enums.iter().any(|(_, d, em)| self.kit_root(*em) == root && d.cases.iter().any(|c| c.name.name == name)) {
+            return "case_needs_enum_name";
+        }
+        // In a module nested inside this one (`f()` for `module a { pub fn f }`);
+        // a name in an enclosing module is not there either (errors.cyr).
+        let inside = |mut i: ModuleId| {
+            while let Some(up) = self.modules[i.0 as usize].parent {
+                if up == m {
+                    return true;
+                }
+                i = up;
+            }
+            false
+        };
+        let elsewhere = self.modules.iter().enumerate().any(|(i, module)| inside(ModuleId(i as u32)) && module.items.contains_key(name));
+        if elsewhere { "module_name_needs_path" } else { "unknown_function" }
     }
 
     fn hint_for_missing(&self, name: &str, m: ModuleId) -> String {
@@ -1732,7 +1755,7 @@ impl Items {
                         return err(Diagnostic::error(format!("this target has no `simd[{}, count: {}]`: its vector register holds {} lanes of `{}`, not {}", spell(&elem, self), lanes, has, spell(&elem, self), lanes)).named("simd_lane_count_mismatch")
                             .at(span)
                             .why(format!("a `simd` is only ever a shape the machine has ({}-bit registers here); portability is the plain `for` loop, which the prover and LLVM vectorise by themselves", TARGET_SIMD_BITS))
-                            .fix(None, format!("simd[{}, count: {}]", spell(&elem, self), has)));
+                            .fix_edit(span, crate::diag::Edit::Replace, format!("simd[{}, count: {}]", spell(&elem, self), has)));
                     }
                     return Ok(Ty::Simd { elem: Box::new(elem), lanes });
                 }
@@ -1782,7 +1805,14 @@ impl Items {
             }
         }
         // A user type by path; a C function's name, the C type sharing it.
-        let item = match self.lookup_path(path, m)? {
+        // Looked for as a type: one not there is an unknown type.
+        let found = self.lookup_path(path, m).map_err(|mut d| {
+            if d.name == Some("unknown_function") {
+                d.name = Some("unknown_type");
+            }
+            d
+        })?;
+        let item = match found {
             ItemRef::ExternFn(f) if self.c_fn_types.contains_key(&f) => self.c_fn_types[&f],
             other => other,
         };

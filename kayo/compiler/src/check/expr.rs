@@ -409,7 +409,7 @@ impl Checker {
             Ok(other) => err(Diagnostic::error(format!("`{}` is a {}, not a value", path.spelled(), other.what())).named("not_a_value").at(span)),
             Err(e) => {
                 if path.segs.len() == 1 && path.kit.is_none() {
-                    return err(Diagnostic::error(format!("there is no function `{}` here: a bare name is the function as a value, and none by that name is declared in {}", path.head(), crate::resolve::describe_module(self.items.module_path(ctx.module)))).named("unknown_function").at(span));
+                    return err(Diagnostic::error(format!("there is no function `{}` here: a bare name is the function as a value, and none by that name is declared in {}", path.head(), crate::resolve::describe_module(self.items.module_path(ctx.module)))).named(e.name.unwrap_or("unknown_function")).at(span));
                 }
                 Err(e)
             }
@@ -3493,7 +3493,7 @@ impl Checker {
         }
         if self.needs_mark(ctx) {
             self.power_first()?;
-            return err(Diagnostic::error(format!("a call into C is a no_check site: nothing about `{}` can be proven — write `no_check` in front of the statement", info.name)).named("cnc::no_check_missing").at(span).fix(None, format!("!check … {}[…] …;", info.name)));
+            return err(Diagnostic::error(format!("a call into C is a no_check site: nothing about `{}` can be proven — write `no_check` in front of the statement", info.name)).named("cnc::no_check_missing").at(span).fix_edit(span, crate::diag::Edit::Before, "no_check "));
         }
         let flat = self.flatten_args(ctx, args, span)?;
         // A fixed shape takes what it names, no more and no fewer (owner,

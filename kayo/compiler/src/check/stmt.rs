@@ -709,8 +709,8 @@ impl Checker {
             let what_it_is = if elem.base() == &Ty::Bool { "one answer per lane".to_string() } else { format!("{} lanes of `{}`", lanes, self.spell(elem)) };
             return err(Diagnostic::error(format!("{} must be a `bool`, and this is {}: a vector is never a single answer — it is {}", what, crate::types::a_type(&self.spell(&t)), what_it_is)).named("no_truthiness")
                 .at(e.span)
-                .fix(None, "simd.all[…]   # when every lane must hold")
-                .fix(None, "simd.any[…]   # when one lane is enough"));
+                .fix_edit(e.span, crate::diag::Edit::Wrap, "simd.all")
+                .fix_edit(e.span, crate::diag::Edit::Wrap, "simd.any"));
         }
         if t.base() != &Ty::Bool {
             return err(Diagnostic::error(format!("{} must be a `bool`, and this is {}: there is no truthiness — compare it (`$n not_equal 0`)", what, crate::types::a_type(&self.spell(&t)))).named("no_truthiness").at(e.span));

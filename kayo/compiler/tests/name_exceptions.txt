@@ -2,11 +2,6 @@
 # both engines). Each line: `test :: kayo's name — why`. A line goes when the site is split so each
 # kind has its own name; the test fails if kayo's name changes without the line changing too.
 
-# A kit's name written bare: kayo's message says what is missing, not the cause.
-case_sensitive_default :: unknown_function — the lookup refuses before it knows the name is another kit's
-enum_prefix_never_bare :: unknown_function — the lookup refuses before it knows the name is another kit's
-module_bare_name_from_root :: unknown_function — the lookup refuses before it knows the name is another kit's
-type_name_unknown :: unknown_function — one "no item here" site serves functions and types
 
 # One site, one sentence, two kinds.
 bin_into_untyped_int_list :: no_implicit_conversion — the declared-type site serves both

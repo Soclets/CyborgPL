@@ -193,7 +193,6 @@ fn load_list(file: &str) -> HashMap<String, String> {
 fn reject_programs_are_refused_in_ccas_own_words() {
     // Each refusal by its name too (owner, 2026-10-24: "yea" to one list of
     // names for both engines, `errors.cyr`).
-    kayo::diag::show_names();
     let names = error_names();
     let name_exceptions = load_name_exceptions();
     let phrases = load_phrases();
@@ -227,7 +226,8 @@ fn reject_programs_are_refused_in_ccas_own_words() {
             return Some(v);
         }
         // The name kayo gives it, against errors.cyr's.
-        let said = got.as_ref().err().and_then(|m| m.lines().find_map(|l| l.strip_prefix("name:").map(|n| n.trim().to_string())));
+        // `error[name] at …` / `check[name] at …`.
+        let said = got.as_ref().err().and_then(|m| m.lines().next()).and_then(|l| l.split_once('[')).and_then(|(_, r)| r.split_once("] at").or_else(|| r.split_once(']'))).map(|(n, _)| n.to_string());
         match (said, names.get(&name)) {
             (Some(s), Some(e)) if s != *e && name_exceptions.get(&name) != Some(&s) => Some(format!("{}: kayo names it `{}`, and errors.cyr `{}` — name the site as errors.cyr does, or list it in tests/name_exceptions.txt with why", name, s, e)),
             (_, None) => Some(format!("{}: errors.cyr names no kind for this test", name)),
@@ -257,8 +257,12 @@ fn verdict(name: &str, want: &str, got: &Result<(), String>, dir: &Path) -> Opti
     match got {
         Ok(()) => Some(format!("{}: accepted, and it must be refused (the oracle says: {})", name, oracle_err(dir, name))),
         Err(msg) => {
-            let first = msg.lines().next().unwrap_or("").trim_start_matches("error: ").to_string();
-            (!first.contains(want)).then(|| format!("{}: expected a message containing\n    {}\n  got\n{}", name, want, indent(msg)))
+            // Anywhere in the message: the sentence is on `about:` until
+            // its fix is written (owner, 2026-10-24), a concise file's line
+            // on `where:`. Once the fix is written the sentence is gone, and
+            // the name (checked against errors.cyr) and the fix say it.
+            let said_once = !msg.lines().any(|l| l.starts_with("about: ")) && msg.lines().any(|l| l.starts_with("fix: "));
+            (!said_once && !msg.contains(want)).then(|| format!("{}: expected a message containing\n    {}\n  got\n{}", name, want, indent(msg)))
         }
     }
 }
@@ -352,7 +356,7 @@ fn examples_run_as_the_oracle_prints() {
         }
         let r = cmd.output().unwrap();
         let err = String::from_utf8_lossy(&r.stderr);
-        let refused = r.stdout.is_empty() && err.lines().any(|l| l.starts_with("error:")) && r.status.code() != Some(code);
+        let refused = r.stdout.is_empty() && err.lines().any(|l| l.starts_with("error[") || l.starts_with("error:")) && r.status.code() != Some(code);
         match (unbuilt.get(&name), refused) {
             (Some(why), true) => (!err.contains(why.as_str())).then(|| format!("{}: still not built, but not for the reason tests/examples_unbuilt.txt gives (`{}`):\n{}", name, why, indent(&err))),
             (Some(_), false) => Some(format!("{}: builds now — drop its line in tests/examples_unbuilt.txt (it {} the oracle)", name, if r.stdout == want && r.status.code() == Some(code) { "runs as" } else { "differs from" })),

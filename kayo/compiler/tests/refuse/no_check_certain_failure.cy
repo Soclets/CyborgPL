@@ -1,4 +1,4 @@
-# refuse: this `no_check` covers something that fails every time it runs
+# refuse: error[no_check_lied]
 # A no_check the prover sees fail on every run is refused, with the value that breaks it (owner, 2026-10-22).
 MAIN {
     let $xs: std::list[i64] = [1, 2];

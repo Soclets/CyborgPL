@@ -93,7 +93,7 @@ fn programs_build_run_and_give_back() {
             "trap" => {
                 if code != 101 {
                     failures.push(format!("{}: a check should have fired (exit 101), and it exited {}", name, code));
-                } else if !stderr.starts_with("check:") || !stderr.contains("line ") {
+                } else if !stderr.starts_with("check[") || !stderr.contains("] at ") {
                     failures.push(format!("{}: the check fired without naming its site:\n{}", name, indent(&stderr)));
                 }
             }
@@ -391,12 +391,12 @@ fn final_build_proves_counted_loops_and_no_more() {
     }
     // Where each must be refused: the line that really can go wrong.
     for (name, phrase) in [
-        ("acc_overflows", "acc_overflows.cy, line 12"),
-        ("append_on_a_branch", "append_on_a_branch.cy, line 18"),
-        ("fib_93", "fib_93.cy, line 8"),
-        ("recursion_upward", "recursion_upward.cy, line 9"),
-        ("counter_on_a_branch", "counter_on_a_branch.cy, line 19"),
-        ("mean_stale_read", "mean_stale_read.cy, line 17"),
+        ("acc_overflows", "acc_overflows.cy:12:"),
+        ("append_on_a_branch", "append_on_a_branch.cy:18:"),
+        ("fib_93", "fib_93.cy:8:"),
+        ("recursion_upward", "recursion_upward.cy:9:"),
+        ("counter_on_a_branch", "counter_on_a_branch.cy:19:"),
+        ("mean_stale_read", "mean_stale_read.cy:17:"),
     ] {
         let r = final_build(&tests.join(format!("{}.cy", name)));
         let err = String::from_utf8_lossy(&r.stderr);

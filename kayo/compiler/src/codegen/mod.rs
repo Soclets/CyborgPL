@@ -2295,7 +2295,29 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // does, it is Precog that was wrong, not the program.
         let proof = matches!(s.verdict, Verdict::Proven { .. });
         let (head, handler) = if proof { ("proof failed", "cyborg_proof_failed") } else { ("check", "cyborg_check_failed") };
+        if !proof {
+            return (self.trap_text(fi, s.name(), &s.sentence(&spell), span), handler);
+        }
         (format!("{}: {}\nwhere: {}, line {}, column {}\n", head, s.sentence(&spell), file.display_name(), line, col), handler)
+    }
+
+    /// What a check that stops the program says: `check[name] at
+    /// file:line:col`, then `where:` and `code:` (`design/diagnostics.md`).
+    pub(super) fn trap_text(&self, fi: usize, name: &str, sentence: &str, span: crate::source::Span) -> String {
+        let file = self.sources.get(span.file);
+        let (line, col) = file.line_col(span.start);
+        let f = &self.p.functions[fi];
+        let where_ = if f.name.is_empty() || f.name == "MAIN" { "MAIN".to_string() } else { format!("{}()", f.name) };
+        let code = file.slice(span).trim();
+        let code = code.lines().next().unwrap_or("").trim_end();
+        let mut out = format!("check[{}] at {}:{}:{}\nwhere: in {}\n", name, file.display_name(), line, col, where_);
+        if !code.is_empty() {
+            out.push_str(&format!("code:  {}\n", code));
+        }
+        if crate::diag::SENTENCE_LINE {
+            out.push_str(&format!("about: {}\n", sentence));
+        }
+        out
     }
 
     pub(super) fn global_bytes(&mut self, s: &str) -> PointerValue<'ctx> {

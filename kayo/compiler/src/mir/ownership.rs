@@ -313,10 +313,6 @@ fn use_place(p: &Program, f: usize, env: &Env, pl: &Place, how: Use, span: SpanI
             d = d.why("one way through this code gives it away and another does not, so by here it depends on which was taken");
         }
     }
-    let target = if name == whole { name } else { whole };
-    d = d
-        .fix(None, format!("copy {}   # a second, independent value", target))
-        .fix(None, format!("lend {}   # a look at it, without taking it", target));
     out.problems.push(d.render(sources));
 }
 

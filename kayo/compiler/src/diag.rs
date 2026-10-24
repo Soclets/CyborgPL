@@ -30,6 +30,55 @@ impl Kind {
 pub struct Fix {
     pub line: Option<u32>,
     pub text: String,
+    /// Made from the source: the line holding the span, edited (owner,
+    /// 2026-10-22: "the fix as edited code", the whole line).
+    pub edit: Option<(Span, Edit)>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Edit {
+    /// The span's text becomes `text`.
+    Replace,
+    /// `text` goes in front of the statement the span is in.
+    Before,
+    /// The word `text` (and the space after it) comes out of the line.
+    Remove,
+    /// The span's text goes inside `text(…)`.
+    Wrap,
+}
+
+impl Fix {
+    /// The edited line and its number, for an edit made from the source.
+    fn edited(&self, sources: &SourceMap) -> Option<(u32, String)> {
+        let (span, how) = self.edit?;
+        let file = sources.get(span.file);
+        let (line, _) = file.line_col(span.start);
+        let text = file.line_text(line);
+        let start = span.start as usize - (file.text[..span.start as usize].rfind('\n').map_or(0, |i| i + 1));
+        let edited = match how {
+            Edit::Replace => {
+                let end = (start + (span.end - span.start) as usize).min(text.len());
+                format!("{}{}{}", &text[..start], self.text, &text[end..])
+            }
+            Edit::Wrap => {
+                let end = (start + (span.end - span.start) as usize).min(text.len());
+                format!("{}{}({}){}", &text[..start], self.text, &text[start..end], &text[end..])
+            }
+            Edit::Before => {
+                let indent = text.len() - text.trim_start().len();
+                format!("{}{}{}", &text[..indent], self.text, &text[indent..])
+            }
+            Edit::Remove => {
+                let at = text.find(&self.text)?;
+                let mut end = at + self.text.len();
+                if text[end..].starts_with(' ') {
+                    end += 1;
+                }
+                format!("{}{}", &text[..at], &text[end..])
+            }
+        };
+        Some((line, edited.trim().to_string()))
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -136,13 +185,23 @@ impl Diagnostic {
         self
     }
     pub fn fix(mut self, line: Option<u32>, text: impl Into<String>) -> Diagnostic {
-        self.fixes.push(Fix { line, text: text.into() });
+        self.fixes.push(Fix { line, text: text.into(), edit: None });
+        self
+    }
+    /// A fix made from the source: the line holding `span`, edited.
+    pub fn fix_edit(mut self, span: Span, how: Edit, text: impl Into<String>) -> Diagnostic {
+        self.fixes.push(Fix { line: None, text: text.into(), edit: Some((span, how)) });
         self
     }
 
     /// The plain-text form. This *is* the message; anything else a terminal
     /// draws is decoration.
     pub fn render(&self, sources: &SourceMap) -> String {
+        // Errors and checks in the full form (owner, 2026-10-22); a note,
+        // which only the build report shows, keeps its sentence.
+        if self.kind != Kind::Note {
+            return self.render_full(sources);
+        }
         let mut out = String::new();
         // A concise file's line and column mean nothing (design claude's
         // reading): the decoded line, named and shown.
@@ -152,11 +211,6 @@ impl Diagnostic {
             format!(" (concise file; decoded line {}: `{}`)", line, f.line_text_at(s.start).trim())
         });
         let _ = writeln!(out, "{}: {}{}", self.kind.label(), self.sentence, concise.unwrap_or_default());
-        // While each message is given its name (owner, 2026-10-22), the
-        // tests ask for it here; the full format replaces this line.
-        if std::env::var_os("KAYO_NAMES").is_some() || SHOW_NAMES.load(std::sync::atomic::Ordering::Relaxed) {
-            let _ = writeln!(out, "name:  {}", self.name.unwrap_or("(none)"));
-        }
         if let Some(span) = self.span {
             let file = sources.get(span.file);
             let (line, col) = file.line_col(span.start);
@@ -217,16 +271,204 @@ impl Diagnostic {
     }
 }
 
+/// What `where:` names for a place in a file (owner, 2026-10-22: "`pick()`"):
+/// the top-level item open there, read off the file's tokens — so a message
+/// made before or without the parsed items still says it. `pick()`, `MAIN`,
+/// `struct Item`; `None` between items.
+pub fn enclosing_item(file: &crate::source::SourceFile, offset: u32) -> Option<String> {
+    use crate::lexer::Tok;
+    // A file the lexer stops in (a quote never closed) is read up to the
+    // line the message is on.
+    let toks = crate::lexer::lex(file.id, &file.text).or_else(|_| {
+        let line_start = file.text[..(offset as usize).min(file.text.len())].rfind('\n').map_or(0, |i| i + 1);
+        crate::lexer::lex(file.id, &file.text[..line_start])
+    }).ok()?;
+    let mut depth = 0usize;
+    // The depths a `module m {` opened: items inside it are top-level too.
+    let mut bases: Vec<usize> = vec![0];
+    // The item being read, and whether its `{` has opened.
+    let mut cur: Option<(String, bool)> = None;
+    let mut found = None;
+    // Each open `{`: the line of the loop it opened, if one did; a `for` /
+    // `loop` read and not yet opened.
+    let mut braces: Vec<Option<u32>> = Vec::new();
+    let mut pending_loop: Option<u32> = None;
+    let mut i = 0;
+    while i < toks.len() {
+        let t = &toks[i];
+        if t.span.start > offset {
+            break;
+        }
+        let base = *bases.last().unwrap();
+        match &t.tok {
+            Tok::LBrace => {
+                braces.push(pending_loop.take());
+                depth += 1;
+                if let Some((_, opened)) = &mut cur {
+                    if depth == base + 1 {
+                        *opened = true;
+                    }
+                }
+            }
+            Tok::RBrace => {
+                braces.pop();
+                depth = depth.saturating_sub(1);
+                if bases.len() > 1 && depth + 1 == base {
+                    bases.pop();
+                } else if depth == base && cur.as_ref().is_some_and(|c| c.1) {
+                    cur = None;
+                }
+            }
+            Tok::Semi if depth == base && cur.as_ref().is_some_and(|c| !c.1) => cur = None,
+            Tok::Word(w) if depth > base && matches!(w.as_str(), "for" | "loop") => pending_loop = Some(file.line_col(t.span.start).0),
+            Tok::Word(w) if depth == base => {
+                let name_after = |k: usize| -> Option<String> {
+                    let mut parts = Vec::new();
+                    let mut k = k;
+                    while let Some(Tok::Word(n)) = toks.get(k).map(|t| &t.tok) {
+                        parts.push(n.clone());
+                        if !matches!(toks.get(k + 1).map(|t| &t.tok), Some(Tok::Dot)) {
+                            break;
+                        }
+                        k += 2;
+                    }
+                    (!parts.is_empty()).then(|| parts.join("."))
+                };
+                let head = match w.as_str() {
+                    "MAIN" => Some("MAIN".to_string()),
+                    "fn" => name_after(i + 1).map(|n| format!("{}()", n)),
+                    "struct" | "enum" | "interface" | "const" => name_after(i + 1).map(|n| format!("{} {}", w, n)),
+                    "module" => {
+                        if let Some(Tok::Word(_)) = toks.get(i + 1).map(|t| &t.tok) {
+                            if matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::LBrace)) {
+                                depth += 1;
+                                braces.push(None);
+                                bases.push(depth);
+                                i += 3;
+                                continue;
+                            }
+                        }
+                        None
+                    }
+                    _ => None,
+                };
+                if let Some(h) = head {
+                    cur = Some((h, false));
+                }
+            }
+            _ => {}
+        }
+        found = cur.as_ref().map(|c| match braces.iter().rev().find_map(|b| *b) {
+            Some(line) if c.1 => format!("{}, the loop starting at line {}", c.0, line),
+            _ => c.0.clone(),
+        });
+        i += 1;
+    }
+    found
+}
+
+/// A `CyJet.toml` place: the section it is under (design claude's
+/// reading, 2026-10-24: `where: in CyJet.toml, my kits:`).
+fn manifest_section(file: &crate::source::SourceFile, offset: u32) -> Option<String> {
+    let before = &file.text[..(offset as usize).min(file.text.len())];
+    let start = before.rfind('\n').map_or(0, |i| i + 1);
+    before[..start].lines().rev().map(|l| l.split('#').next().unwrap_or("").trim()).find(|l| l.ends_with(':') && !l.contains('=')).map(|l| format!("in {}, {}", file.short_name(), l))
+}
+
+impl Diagnostic {
+    /// The full form (owner, 2026-10-22; `design/diagnostics.md`): the name
+    /// and the place for programs, `where:` for people, the code, a check's
+    /// `when:`, and every fix under `or`.
+    fn render_full(&self, sources: &SourceMap) -> String {
+        let mut out = String::new();
+        let title = match self.name {
+            Some(n) => format!("{}[{}]", self.kind.label(), n),
+            None => self.kind.label().to_string(),
+        };
+        // A place given as words: "in `f`" is a function, anything else a
+        // file (a manifest's path).
+        let given = self.place.as_ref().map(|p| match p.strip_prefix("in `").and_then(|r| r.strip_suffix('`')) {
+            Some(f) => (true, format!("in {}()", f)),
+            None => (false, p.clone()),
+        });
+        match self.span {
+            Some(span) => {
+                let file = sources.get(span.file);
+                let (line, col) = file.line_col(span.start);
+                let _ = writeln!(out, "{} at {}:{}:{}", title, file.display_name(), line, col);
+                let toml = file.path.extension().is_some_and(|e| e == "toml");
+                let item = if toml { None } else { enclosing_item(file, span.start) };
+                let mut where_ = match (&given, item) {
+                    _ if toml => manifest_section(file, span.start).unwrap_or_else(|| format!("at the top of {}", file.short_name())),
+                    (Some((true, f)), _) => f.clone(),
+                    (_, Some(item)) => format!("in {}", item),
+                    _ => format!("at the top of {}", file.short_name()),
+                };
+                if file.concise {
+                    let _ = write!(where_, ", decoded line {} of {} (concise)", line, file.short_name());
+                }
+                let _ = writeln!(out, "where: {}", where_);
+                let code = file.slice(span).trim();
+                let code = if code.contains('\n') { code.lines().next().unwrap_or("").trim_end().to_string() + " …" } else { code.to_string() };
+                if !code.is_empty() {
+                    let _ = writeln!(out, "code:  {}", code);
+                }
+            }
+            None => match &given {
+                Some((false, p)) => {
+                    let _ = writeln!(out, "{} at {}", title, p);
+                }
+                Some((true, f)) => {
+                    let _ = writeln!(out, "{}", title);
+                    let _ = writeln!(out, "where: {}", f);
+                }
+                None => {
+                    let _ = writeln!(out, "{}", title);
+                }
+            },
+        }
+        if let Some(when) = &self.when {
+            let _ = writeln!(out, "when:  {}", when);
+        }
+        let here = self.span.map(|sp| sources.get(sp.file).line_col(sp.start).0);
+        for (i, f) in self.fixes.iter().enumerate() {
+            let label = if i == 0 { "fix:  " } else { "or:   " };
+            // On the message's own line, the edited line itself; another
+            // line is named above it.
+            if let Some((line, text)) = f.edited(sources) {
+                if Some(line) == here {
+                    let _ = writeln!(out, "{} {}", label, text);
+                } else {
+                    let _ = writeln!(out, "{} line {}:", label, line);
+                    let _ = writeln!(out, "       {}", text);
+                }
+                continue;
+            }
+            match f.line {
+                Some(l) => {
+                    let _ = writeln!(out, "{} line {}:", label, l);
+                    let _ = writeln!(out, "       {}", f.text);
+                }
+                None => {
+                    let _ = writeln!(out, "{} {}", label, f.text);
+                }
+            }
+        }
+        // The sentence stays, last, until the message's fix is written
+        // (owner, 2026-10-24: (c)); it is in the docs under the name too.
+        if SENTENCE_LINE && self.fixes.is_empty() {
+            let _ = writeln!(out, "about: {}", self.sentence);
+        }
+        out
+    }
+}
+
+/// The `about:` line, for a message whose fix is not written yet (owner,
+/// 2026-10-24: (c)).
+pub const SENTENCE_LINE: bool = true;
+
 /// A build stops at the first `error`; `check`s and `note`s accumulate.
 pub type Result<T> = std::result::Result<T, Box<Diagnostic>>;
-
-/// The tests' way to the names while they are not yet the first line.
-static SHOW_NAMES: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-
-/// Every message after this shows its name (for the tests).
-pub fn show_names() {
-    SHOW_NAMES.store(true, std::sync::atomic::Ordering::Relaxed);
-}
 
 pub fn err<T>(d: Diagnostic) -> Result<T> {
     Err(Box::new(d))

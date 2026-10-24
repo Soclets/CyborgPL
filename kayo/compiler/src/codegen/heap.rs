@@ -1856,7 +1856,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         let _ = self.builder.build_conditional_branch(bad, to_arm, next);
                         self.builder.position_at_end(next);
                     }
-                    Err(why) => self.deci_stop(fi, bad, &why, func)?,
+                    Err(why) => self.deci_stop(fi, bad, "value_does_not_fit", &why, func)?,
                 }
             }
         }

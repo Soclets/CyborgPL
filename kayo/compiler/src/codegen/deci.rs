@@ -79,15 +79,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
 
     /// Stop the program here, saying why, when `bad` holds: the place is
     /// the statement being generated.
-    pub(super) fn deci_stop(&mut self, fi: usize, bad: IntValue<'ctx>, why: &str, func: FunctionValue<'ctx>) -> Option<()> {
+    pub(super) fn deci_stop(&mut self, fi: usize, bad: IntValue<'ctx>, name: &str, why: &str, func: FunctionValue<'ctx>) -> Option<()> {
         let f = &self.p.functions[fi];
         let (b, si) = (self.here.0 as usize, self.here.1 as usize);
         let block = &f.blocks[b];
         let span_id = block.stmts.get(si).map(|s| s.span).unwrap_or(block.term_span);
         let span = f.span(span_id);
-        let file = self.sources.get(span.file);
-        let (line, col) = file.line_col(span.start);
-        let msg = format!("check: {}\nwhere: {}, line {}, column {}\n", why, file.display_name(), line, col);
+        let msg = self.trap_text(fi, name, why, span);
         let stop = self.ctx.append_basic_block(func, "deci_stopped");
         let go = self.ctx.append_basic_block(func, "deci_ok");
         let _ = self.builder.build_conditional_branch(bad, stop, go);
@@ -153,7 +151,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let status = basic_result(self.builder.build_call(f, &[i32t.const_int(code, false).into(), alo.into(), ahi.into(), blo.into(), bhi.into(), width.into(), slot.into()], "status").ok()?)?.into_int_value();
         let i8t = self.ctx.i8_type();
         let over = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(1, false), "past_largest").ok()?;
-        self.deci_stop(fi, over, &format!("`{}` went past what a `d{}` holds", op.spelled(), bits), func)?;
+        self.deci_stop(fi, over, "value_does_not_fit", &format!("`{}` went past what a `d{}` holds", op.spelled(), bits), func)?;
         if code >= 3 {
             let zero = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(2, false), "by_zero").ok()?;
             let why = match code {
@@ -161,7 +159,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 _ if op.is_mod() => format!("`{}` by zero", op.spelled()),
                 _ => "the divisor is zero, and nothing can be divided by zero".to_string(),
             };
-            self.deci_stop(fi, zero, &why, func)?;
+            self.deci_stop(fi, zero, "division_by_zero", &why, func)?;
         }
         Some(self.deci_read(slot, bits)?.into())
     }
@@ -260,11 +258,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let status = basic_result(self.builder.build_call(f, &[wide.into(), i32t.const_int(*b as u64, false).into(), i32t.const_int(mode, false).into(), slot.into()], "status").ok()?)?.into_int_value();
                 let i8t = self.ctx.i8_type();
                 let over = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(1, false), "past_largest").ok()?;
-                self.deci_stop(fi, over, &format!("this bin is past what a `d{}` holds", b), func)?;
+                self.deci_stop(fi, over, "value_does_not_fit", &format!("this bin is past what a `d{}` holds", b), func)?;
                 let odd = self.builder.build_int_compare(IntPredicate::EQ, status, i8t.const_int(2, false), "not_finite").ok()?;
                 // A bin never holds one (owner, 2026-09-29): only a value that got
                 // past its checks unchecked (`nocheck`, C) can be one here.
-                self.deci_stop(fi, odd, "this bin is an infinity or a NaN, which no bin may hold, so it has no deci", func)?;
+                self.deci_stop(fi, odd, "value_does_not_fit", "this bin is an infinity or a NaN, which no bin may hold, so it has no deci", func)?;
                 Some(self.deci_read(slot, *b)?.into())
             }
             (Ty::Deci(b), Ty::Bin(_) | Ty::Brain) => {

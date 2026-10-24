@@ -846,7 +846,7 @@ labels_required [fnv:4084f01f40100b31] :: needs `value:`
 labels_unknown [fnv:ad39abe0d191dbfe] :: has no label `colour:`
 labels_unlabelled_after [fnv:458b5913830e2e7f] :: an argument without a label comes before the labelled ones
 versions_outside_block [fnv:0819643a458cdfe0] :: versions of one function go in a block
-concise_decoded_error [fnv:59465a5d682ce947] :: (concise file; decoded line 2: `std::print.useful("Hi", newln)`)
+concise_decoded_error [fnv:59465a5d682ce947] :: decoded line 2 of concise_decoded_error.cy (concise)
 concise_short_group [fnv:c86659c0a2e00cd9] :: `0100001` is 7 digits; each group is 8, one byte
 concise_plain_braces [fnv:690dca9d89033985] :: a concise file is only `0`, `1`, spaces and line breaks
 bare_marks_gone [fnv:54d9fc27d8dfa456] :: the `bare.` marks are gone (owner, 2026-10-22)

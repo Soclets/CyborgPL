@@ -666,7 +666,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let finite = self.builder.build_float_compare(inkwell::FloatPredicate::OEQ, diff, t.get_type().const_zero(), "finite").ok()?;
                 let bad = self.builder.build_not(finite, "infinite").ok()?;
                 let what = if fd.op == BinOp::Mul { "product" } else { "sum" };
-                self.deci_stop(fi, bad, &format!("the {} this parallel `for`'s slices made went past the largest bin (it would be infinity or not a number)", what), func)?;
+                self.deci_stop(fi, bad, "value_does_not_fit", &format!("the {} this parallel `for`'s slices made went past the largest bin (it would be infinity or not a number)", what), func)?;
                 let _ = self.builder.build_store(slot, t);
             }
             FoldKind::Deci(_) => {
