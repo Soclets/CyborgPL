@@ -78,6 +78,9 @@ use std::print.stored as std::print;    # a rename onto a path is allowed ("it's
 
 - **`as` is always written**; the name after it stands for the path in that file. A path names a function, a module
   or a type.
+- **Several in one line go in `[ ]`** (owner, 2026-10-24: "If use doesn't support doing a lot of shit in one line, it
+  should", then "Yes"): `use [std::print.useful as printu, std::list as list, std::str.join as join];`, each with its
+  `as`; one alone may go bare or in brackets. `examples/use_list.cy`.
 - **Every `use` gets a note in the build report** (kayo's), saying what the name stands for.
 - Design claude's readings, not asked: `use` lines come before anything else; there is no wildcard; the path is
   another kit's (`use my.…` is refused); nothing in the file may be declared under a `use`'s name.

@@ -333,24 +333,41 @@ impl Parser {
             let at = i;
             let line = self.toks[i].line;
             i += 1;
-            let start = i;
-            while i < self.toks.len() && !matches!(&self.toks[i].tok, Tok::Word(w) if w == "as") && self.toks[i].tok != Tok::Semi && self.toks[i].tok != Tok::Eof { i += 1; }
-            let path: Vec<Tok> = self.toks[start..i].iter().map(|t| t.tok.clone()).collect();
-            if !matches!(self.toks.get(i).map(|t| &t.tok), Some(Tok::Word(w)) if w == "as") {
-                return self.err_at(at, "`use` says the name after `as`: `use std::list.append as append;` (owner, 2026-10-22: `as` always written)");
+            // several in one line, in `[ ]`, each with its `as` (owner, 2026-10-24: "If use doesn't support doing a lot of
+            // shit in one line, it should", then "Yes"): `use [std::print.useful as printu, std::list as list];`
+            let listed = self.toks.get(i).map(|t| &t.tok) == Some(&Tok::LBracket);
+            if listed { i += 1; }
+            loop {
+                let start = i;
+                let stop = |t: &Tok| *t == Tok::Semi || *t == Tok::Eof || (listed && (*t == Tok::Comma || *t == Tok::RBracket));
+                while i < self.toks.len() && !matches!(&self.toks[i].tok, Tok::Word(w) if w == "as") && !stop(&self.toks[i].tok) { i += 1; }
+                let path: Vec<Tok> = self.toks[start..i].iter().map(|t| t.tok.clone()).collect();
+                if !matches!(self.toks.get(i).map(|t| &t.tok), Some(Tok::Word(w)) if w == "as") {
+                    return self.err_at(at, "`use` says the name after `as`: `use std::list.append as append;` (owner, 2026-10-22: `as` always written)");
+                }
+                if !(path.len() >= 3 && matches!(path[0], Tok::Word(_)) && path[1] == Tok::ColonColon) {
+                    return self.err_at(start, "`use` names another kit's path, `kit::name`: `use std::print.useful as useful_print;`, or several, `use [std::print.useful as printu, std::list as list];` (this kit's own names are bare already)");
+                }
+                i += 1;
+                let astart = i;
+                while i < self.toks.len() && !stop(&self.toks[i].tok) { i += 1; }
+                let alias: Vec<Tok> = self.toks[astart..i].iter().map(|t| t.tok.clone()).collect();
+                let plain = alias.len() == 1 && matches!(alias[0], Tok::Word(_));
+                let pathlike = alias.len() >= 3 && matches!(alias[0], Tok::Word(_)) && alias[1] == Tok::ColonColon;
+                if !plain && !pathlike { return self.err_at(astart, "after `as` comes a name, `use std::print.useful as useful_print;`, or a path, `as std::print`"); }
+                uses.push((alias, path, line));
+                if listed && self.toks.get(i).map(|t| &t.tok) == Some(&Tok::Comma) {
+                    i += 1;
+                    if self.toks.get(i).map(|t| &t.tok) == Some(&Tok::RBracket) { break; }
+                    continue;
+                }
+                break;
             }
-            if !(path.len() >= 3 && matches!(path[0], Tok::Word(_)) && path[1] == Tok::ColonColon) {
-                return self.err_at(at, "`use` names another kit's path, `kit::name`: `use std::print.useful as useful_print;` (this kit's own names are bare already)");
+            if listed {
+                if self.toks.get(i).map(|t| &t.tok) != Some(&Tok::RBracket) { return self.err_at(i, "a `use` list closes with `]`: `use [std::print.useful as printu, std::list as list];`"); }
+                i += 1;
             }
-            i += 1;
-            let astart = i;
-            while i < self.toks.len() && self.toks[i].tok != Tok::Semi && self.toks[i].tok != Tok::Eof { i += 1; }
-            let alias: Vec<Tok> = self.toks[astart..i].iter().map(|t| t.tok.clone()).collect();
-            let plain = alias.len() == 1 && matches!(alias[0], Tok::Word(_));
-            let pathlike = alias.len() >= 3 && matches!(alias[0], Tok::Word(_)) && alias[1] == Tok::ColonColon;
-            if !plain && !pathlike { return self.err_at(astart, "after `as` comes a name, `use std::print.useful as useful_print;`, or a path, `as std::print`"); }
             if self.toks.get(i).map(|t| &t.tok) != Some(&Tok::Semi) { return self.err_at(i, "a `use` line ends with `;`"); }
-            uses.push((alias, path, line));
             i += 1;
             let _ = at;
         }

@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Several renames in one `use`: `use [std::print.useful as printu, std::list as list];` (owner)
+
+The owner, writing `use[std::print.useful as printu];`: "If use doesn't support doing a lot of shit in one line, it
+should". Design claude: one rename per line works (`use std::print.useful as printu;`); brackets, which hold, would
+take several. The owner, shown it: "Yes". So **`use [a as x, b as y, …];`**, each with its `as`; a lone rename may
+go bare or in brackets; the `use` lines still come first in the file. This amends 2026-10-22's "one per line". Built
+in the oracle the same day (`examples/use_list.cy`; refusal `use_list_without_as`).
+
 ### 2026-10-24 — Full C support in CyDT 1: `inline.C` joins CNC (owner; not designed)
 
 The owner asked "What the fuck would inline C even help with?"; design claude: little beyond CNC (`incl.C`,
