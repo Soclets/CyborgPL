@@ -51,6 +51,10 @@ fix:   line 4:
 - **Two locations** ("There should be two location thingies, one for humans, and one for programs"): `file:line:col`
   on the first line for programs, and `where:` for people, **a function written with `( )`**, `pick()` (the owner:
   "`pick()`", over backticks, a backtick being CyborgPL's char literal: "` means char in CyPL").
+- Design claude's readings (2026-10-24, compiler claude asking): a fix that takes a line out reads `fix:   line 3 goes:`
+  with the removed line under it; `not_built_yet` and `not_decided` say `fix: none suggested`, their fix being in kayo or
+  with the owner; each name's sentence, its values taken out, is kept in errors.cyr as `about = "…"` beside `means`,
+  the docs to be built from them (a website page per name waits for the owner's word).
 - Design claude's readings (2026-10-24, compiler claude asking): `where:` outside any function reads `where: in struct
   Item`, `where: at the top of shop.cy`, `where: in CyJet.toml, my kits:`; `called from f() at line N` only on a check
   that depends on its caller, otherwise `where: in pick()`, a loop as `where: in pick(), the loop starting at line 9`;
