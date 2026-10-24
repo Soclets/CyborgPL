@@ -1,4 +1,4 @@
-# A kit that uses another (owner, 2026-09-29): CyJet.cyr lists it, `cyjet::dep.path("../kits/areas")`,
+# A kit that uses another (owner, 2026-09-29): CyJet.cyr lists it, `cyjet::dep.path["../kits/areas"]`,
 # and its `pub` items are reached with `::` after its own 'prefix', `areas` (kits.md, tooling.md).
 MAIN {
     let $c: areas::Circle = areas::Circle[radius = 2.0];
