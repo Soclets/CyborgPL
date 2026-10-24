@@ -90,12 +90,30 @@ fn give_back() {
     TAKEN.store(false, core::sync::atomic::Ordering::Release);
 }
 
-/// A write the OS refused, at a flush kayo put in itself: the program
-/// stops (owner, 2026-10-23: "default to stop"). How a stop reads is not
-/// decided; until it is, it ends with 1.
+/// A write the OS refused, with no `otherwise`: the program stops (owner,
+/// 2026-10-23: "default to stop"). How a stop reads is not decided; until
+/// it is, it says so on stderr, as the oracle does, and ends with 1.
 #[cfg(not(target_os = "none"))]
 unsafe fn stopped_writing() -> ! {
+    let say = b"a print could not be written; `otherwise { write_failed { \xe2\x80\xa6 } }` handles it\n";
+    write(2, say.as_ptr(), say.len());
     exit(1)
+}
+
+/// The program's start: a write to a pipe whose reader has gone fails as a
+/// write, which `otherwise` handles or which stops the program (owner,
+/// 2026-10-23), rather than the OS ending the program on its own.
+///
+/// # Safety
+/// Once, before the program's code.
+#[cfg(not(target_os = "none"))]
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_program_start() {
+    extern "C" {
+        fn signal(sig: i32, handler: usize) -> usize;
+    }
+    // SIGPIPE is 13 and SIG_IGN is 1 on macOS and Linux alike.
+    signal(13, 1);
 }
 
 /// A print's start: the buffer, sent first if it holds another stream's

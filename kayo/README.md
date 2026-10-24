@@ -1041,6 +1041,12 @@ Dated, with the alternative, so each can become a question later.
   naming the typed literal to write (`2.5: bin64`). A preset beside several
   versions, and an overloaded name held as a value, are refused (design
   claude's readings).
+- **2026-10-24 — A short lambda** (owner: "(c)"; oracle f098a12c). `fn [$s] = value`
+  (captures with `with` between) is read as a literal whose body is `return
+  value;` (`Parser::short_lambda`, its parameters' types allowed out); the
+  checker fills each type left out, and the return type, from the `fn[…]`
+  where it goes (`want`, passed to `declare_literal`), and refuses one with
+  nothing saying them, or with `-> T` written.
 - **2026-10-24 — Prints share one buffer** (owner, 2026-10-23; `design/strings.md`). The
   runtime keeps one 4096-byte buffer (`print::SHARED`) every print fills,
   taken at a print's start and given back at its end (`cyborg_print_begin` /
@@ -1049,7 +1055,9 @@ Dated, with the alternative, so each can become a question later.
   `MAIN`, before `std::exit`, before every C call (`emit_print_flush`), before
   `must.stop`'s fork, and before the program stops on a check
   (`flush_before_stop`). A write the OS refuses stops the program with 1
-  until how a stop reads is decided. **The manual ways** (oracle 83de3987):
+  until how a stop reads is decided, saying so on stderr as the oracle does;
+  a program ignores SIGPIPE (`cyborg_program_start`), so a reader gone from a
+  pipe fails a write rather than ending the program unheard. **The manual ways** (oracle 83de3987):
   `std::print.flush()`; `std::print.writer(size: N bytes)` (`.stderr`), a
   `Ty::Writer` the runtime allocates (`cyborg_writer_new`, freed when it
   goes away), printed into when a print's first argument is `lend.mut $out`

@@ -18,4 +18,3 @@ shop :: `std::input.line` is not available yet
 text :: `std::str.upper.full` is not available yet
 case_mappings :: `std::str.upper.full` is not available yet
 whichever :: `std::time.after` is not available yet
-short_lambda :: parameter 's' says its type

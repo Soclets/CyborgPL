@@ -478,6 +478,9 @@ pub struct FnLit {
     pub fails: Vec<FailSpec>,
     pub captures: Vec<Capture>,
     pub body: Block,
+    /// `fn [$s] = $s at_least 60` (owner, 2026-10-24: "(c)"): one value,
+    /// its types from where it goes.
+    pub short: bool,
 }
 
 // ---------------------------------------------------------------- statements

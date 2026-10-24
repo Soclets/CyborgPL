@@ -523,6 +523,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         self.builder.position_at_end(entry);
         // C's arguments, kept where `MAIN` reads its parameters (owner,
         // 2026-09-29) — whether it runs directly or as a task.
+        self.emit_program_start();
         let (argc, argv) = self.main_args();
         let _ = self.builder.build_store(argc, f.get_nth_param(0).unwrap());
         let _ = self.builder.build_store(argv, f.get_nth_param(1).unwrap());
@@ -543,6 +544,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
         self.emit_print_flush();
         let _ = self.builder.build_return(Some(&i32t.const_zero()));
+    }
+
+    /// What the runtime does before the program's code, on an OS: a broken
+    /// pipe fails as a write (owner, 2026-10-23).
+    fn emit_program_start(&mut self) {
+        if crate::target::bare() {
+            return;
+        }
+        let f = self.module.get_function("cyborg_program_start").unwrap_or_else(|| self.module.add_function("cyborg_program_start", self.ctx.void_type().fn_type(&[], false), None));
+        let _ = self.builder.build_call(f, &[], "");
     }
 
     /// Where C's `argc` and `argv` are kept for `MAIN`.
@@ -597,6 +608,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let main = self.module.add_function("main", i32t.fn_type(&[i32t.into(), p.into()], false), None);
         let e = self.ctx.append_basic_block(main, "entry");
         self.builder.position_at_end(e);
+        self.emit_program_start();
         let index = self.module.get_function("cyborg_test_index").unwrap_or_else(|| self.module.add_function("cyborg_test_index", i64t.fn_type(&[i32t.into(), p.into()], false), None));
         let argc = main.get_nth_param(0).unwrap();
         let argv = main.get_nth_param(1).unwrap();

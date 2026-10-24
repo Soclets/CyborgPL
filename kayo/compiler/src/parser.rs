@@ -51,6 +51,8 @@ struct Parser<'a> {
     /// element type and bound (owner, 2026-10-22).
     channel_ty: Option<(Type, Option<Box<(Expr, Expr)>>)>,
     channel_ok: bool,
+    /// Reading a short lambda's parameters, which may leave out their types.
+    untyped_ok: bool,
     pos: usize,
     /// Reading the statements of a `match` case's or an `otherwise` arm's
     /// own block, where a value alone before `}` is the block's value.
@@ -379,7 +381,7 @@ pub fn set_shared_precedence(table: std::collections::HashMap<String, (u16, Chai
 
 /// The `precedence` blocks in one file's tokens: each operator's level.
 pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> {
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false };
+    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false };
     let mut out = Vec::new();
     let mut depth = 0i32;
     for i in 0..toks.len() {
@@ -404,7 +406,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     let labelled = crate::argwords::labels(&used);
     let owned = crate::argwords::strip(&labelled)?;
     let toks = &owned[..];
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false };
+    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false };
     // Every Kit's levels, and this file's own blocks, read before any
     // expression in it: an operator above its block is parsed by it too.
     p.prec = SHARED_PREC.with(|t| t.borrow().clone());
@@ -542,7 +544,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
 /// A file that is one value and its `;`, as a `CCA.cplr` is (owner,
 /// 2026-10-06): `cca::Manifest[ … ];`.
 pub fn parse_value(toks: &[Token]) -> Result<Expr> {
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false };
+    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false };
     let value = p.expr(0)?;
     p.expect_semi("the value")?;
     if !p.at_eof() {
@@ -1636,7 +1638,7 @@ impl<'a> Parser<'a> {
         for t in toks.iter_mut() {
             t.span = line;
         }
-        let mut p = Parser { toks: std::borrow::Cow::Borrowed(&toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false };
+        let mut p = Parser { toks: std::borrow::Cow::Borrowed(&toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: self.prec.clone(), no_std: false, cores: None, c_seen: Default::default(), from_c: true, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false };
         let mut lines = Vec::new();
         while !p.at_eof() {
             let it = p.item()?;
@@ -2402,8 +2404,9 @@ impl<'a> Parser<'a> {
         }
         self.expect(&Tok::RBracket, "`]` closing the parameters")?;
         // Every parameter is typed (owner, 2026-10-07: "`a`"); an untyped
-        // variadic keeps each argument's own (design claude's reading).
-        if let Some(p) = params.iter().find(|p| p.ty.is_none() && !p.variadic) {
+        // variadic keeps each argument's own (design claude's reading); a
+        // short lambda's take theirs from where it goes (2026-10-24).
+        if let Some(p) = params.iter().find(|p| p.ty.is_none() && !p.variadic && !self.untyped_ok) {
             return self.fail_at(p.name.span, format!("parameter '{}' says its type: `${}: i32`", p.name.name, p.name.name));
         }
         Ok(params)
@@ -5410,6 +5413,13 @@ impl<'a> Parser<'a> {
     }
 
     fn fn_lit(&mut self, start: Span) -> Result<Expr> {
+        // `fn [$s] = …`, `fn [$s] with [lend $limit] = …` (owner,
+        // 2026-10-24): one value after `=`, read as `{ return …; }`.
+        match self.short_lambda_ahead() {
+            Some(true) => return self.short_lambda(start),
+            Some(false) => return self.fail("a short lambda takes its return type from where it goes: `fn [$s] = …`, with no `-> T` (owner, 2026-10-24)"),
+            None => {}
+        }
         let params = self.params(ParamContext::Fn)?;
         let (ret, fails) = self.return_spec()?;
         if let Some(r) = self.ret_lent.take() {
@@ -5423,7 +5433,60 @@ impl<'a> Parser<'a> {
         }
         self.returns_value = outer;
         let span = start.to(self.prev_span());
-        Ok(Expr { kind: ExprKind::FnLit(Box::new(FnLit { params, ret, fails, captures, body })), span })
+        Ok(Expr { kind: ExprKind::FnLit(Box::new(FnLit { params, ret, fails, captures, body, short: false })), span })
+    }
+
+    /// Whether the literal here is a short one: `Some(true)` for `fn [$s] =
+    /// …` (captures between), `Some(false)` for one with a return type
+    /// written, `None` for a literal with a block.
+    fn short_lambda_ahead(&self) -> Option<bool> {
+        let skip = |mut i: usize| -> Option<usize> {
+            let mut depth = 0usize;
+            loop {
+                match self.toks.get(i).map(|t| &t.tok)? {
+                    Tok::LBracket | Tok::LParen | Tok::LBrace => depth += 1,
+                    Tok::RBracket | Tok::RParen | Tok::RBrace => {
+                        depth -= 1;
+                        if depth == 0 {
+                            return Some(i + 1);
+                        }
+                    }
+                    Tok::Eof => return None,
+                    _ => {}
+                }
+                i += 1;
+            }
+        };
+        let mut i = skip(self.pos)?;
+        let returns = matches!(self.toks.get(i).map(|t| &t.tok), Some(Tok::Op(o)) if o == "->");
+        if returns {
+            // Up to its `=` or its block, whichever comes first.
+            while !matches!(self.toks.get(i).map(|t| &t.tok), Some(Tok::LBrace | Tok::Eof) | None) {
+                if matches!(self.toks.get(i).map(|t| &t.tok), Some(Tok::Op(o)) if o == "=") {
+                    return Some(false);
+                }
+                i += 1;
+            }
+            return None;
+        }
+        if matches!(self.toks.get(i).map(|t| &t.tok), Some(Tok::Word(w)) if w == "with") {
+            i = skip(i + 1)?;
+        }
+        matches!(self.toks.get(i).map(|t| &t.tok), Some(Tok::Op(o)) if o == "=").then_some(true)
+    }
+
+    fn short_lambda(&mut self, start: Span) -> Result<Expr> {
+        let outer = std::mem::replace(&mut self.untyped_ok, true);
+        let params = self.params(ParamContext::Fn);
+        self.untyped_ok = outer;
+        let params = params?;
+        let captures = if self.eat_word("with") { self.captures()? } else { Vec::new() };
+        self.bump(); // =
+        let value = self.expr(0)?;
+        let span = value.span;
+        let body = Block { stmts: vec![Stmt { kind: StmtKind::Return(Some(value)), span }], span };
+        let span = start.to(self.prev_span());
+        Ok(Expr { kind: ExprKind::FnLit(Box::new(FnLit { params, ret: None, fails: Vec::new(), captures, body, short: true })), span })
     }
 
     /// After `to`: `.type[value]`, with an optional bound bracket first.
@@ -5586,7 +5649,7 @@ pub fn pub_handlers(toks: &[Token]) -> Result<Vec<(String, Vec<HandlerMember>)>>
     let labelled = crate::argwords::labels(&used);
     let owned = crate::argwords::strip(&labelled)?;
     let toks = &owned[..];
-    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false };
+    let mut p = Parser { toks: std::borrow::Cow::Borrowed(toks), pos: 0, strict: false, returns_value: false, ret_lent: None, prec: Default::default(), no_std: false, cores: None, c_seen: Default::default(), from_c: false, templates: Vec::new(), handlers: Default::default(), in_arm: false, channel_ty: None, channel_ok: false, untyped_ok: false };
     let mut out = Vec::new();
     for i in 1..toks.len() {
         let pub_coll = matches!(&toks[i - 1].tok, Tok::Word(w) if w == "pub") && matches!(&toks[i].tok, Tok::Word(w) if w == "coll");

@@ -886,5 +886,5 @@ print_into_not_writer [fnv:2d5a0f74063fe512] :: a print never changes what it pr
 print_otherwise_wrong_reason [fnv:e031e0cd0705b620] :: never fails with `closed`
 writer_size_unit [fnv:1b9d61434f660919] :: a writer's size says its unit: `size: 4096 bytes`
 writer_unflushed [fnv:60b7c7a39f4199a0] :: goes away still holding text: `std::print.flush(lend.mut $out);` before its block ends
-short_lambda_return_type [fnv:1129f5c2f12a209c] :: !unbuilt short lambdas (owner, 2026-10-24; oracle f098a12c); then: a short lambda takes its return type from where it goes: `fn [$s] = $s
-short_lambda_untyped [fnv:54f2c7cf907c604c] :: !unbuilt short lambdas (owner, 2026-10-24; oracle f098a12c); then: a short lambda takes its types from where it goes, and here nothing sa
+short_lambda_return_type [fnv:1129f5c2f12a209c] :: a short lambda takes its return type from where it goes
+short_lambda_untyped [fnv:54f2c7cf907c604c] :: a short lambda takes its types from where it goes, and here nothing sa

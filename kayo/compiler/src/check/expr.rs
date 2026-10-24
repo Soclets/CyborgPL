@@ -57,8 +57,9 @@ impl Checker {
         // A bare enum value where the type is known (owner, 2026-10-20):
         // `say[calm]` for `'m': Mood`, when `Mood` lets its values drop its
         // name. Only this expression is asked, not what is inside it.
-        if let Some(want) = self.want.take() {
-            if let Some(r) = self.bare_case(ctx, e, &want) {
+        let wanted = self.want.take();
+        if let Some(want) = &wanted {
+            if let Some(r) = self.bare_case(ctx, e, want) {
                 return r;
             }
         }
@@ -211,7 +212,7 @@ impl Checker {
                 };
                 Ok(Expr { kind: K::Channel { elem: et.clone(), capacity: cap }, ty: Ty::Channel(Box::new(et)), span })
             }
-            AK::FnLit(lit) => self.fn_literal(ctx, lit, span),
+            AK::FnLit(lit) => self.fn_literal(ctx, lit, span, wanted.as_ref()),
             AK::Spread { .. } => err(Diagnostic::error("`...` has no meaning here: it unpacks a list into a call's arguments — `sum(...$xs)`").at(span)),
             AK::Incl { form, path, path_span } => self.incl(ctx, *form, path, *path_span, span),
             AK::SizeOf { align, ty } => {
@@ -3633,8 +3634,22 @@ impl Checker {
         Ok(())
     }
 
-    fn fn_literal(&mut self, ctx: &mut FnCtx, lit: &ast::FnLit, span: Span) -> Result<Expr> {
-        let fn_id = self.declare_literal(lit, ctx.module, span)?;
+    fn fn_literal(&mut self, ctx: &mut FnCtx, lit: &ast::FnLit, span: Span, want: Option<&Ty>) -> Result<Expr> {
+        // A short lambda's types are those of where it goes (owner,
+        // 2026-10-24: "(c)").
+        let from = if lit.short {
+            let ft = match want.map(|t| self.resolve(t)) {
+                Some(Ty::Fn(ft)) => *ft,
+                _ => return err(Diagnostic::error("a short lambda takes its types from where it goes, and here nothing says them: `let $f: fn[i32] -> bool = fn [$s] = …;` (owner, 2026-10-24)").at(span)),
+            };
+            if ft.params.len() != lit.params.len() {
+                return err(Diagnostic::error(format!("this lambda takes {} value{}, and where it goes takes {}", lit.params.len(), if lit.params.len() == 1 { "" } else { "s" }, ft.params.len())).at(span));
+            }
+            Some(ft)
+        } else {
+            None
+        };
+        let fn_id = self.declare_literal(lit, ctx.module, span, from.as_ref())?;
         // A function written inside one keeps its variables' case.
         if ctx.fold_vars {
             self.items.case_vars.insert(span);

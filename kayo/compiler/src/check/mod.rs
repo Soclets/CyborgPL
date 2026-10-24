@@ -719,21 +719,28 @@ impl Checker {
     }
 
     /// Register an anonymous function literal as a synthetic declaration.
-    pub fn declare_literal(&mut self, lit: &ast::FnLit, module: ModuleId, span: Span) -> Result<FnId> {
+    pub fn declare_literal(&mut self, lit: &ast::FnLit, module: ModuleId, span: Span, from: Option<&FnTy>) -> Result<FnId> {
         let mut blanks = Vec::new();
         let mut params = Vec::new();
-        for p in &lit.params {
-            let ty = match &p.ty {
-                Some(t) => Some(self.items.resolve_type(t, module, &mut blanks, true)?),
-                None => None,
+        for (i, p) in lit.params.iter().enumerate() {
+            // A short lambda's parameter: written, kept; left out, where it
+            // goes says it (owner, 2026-10-24).
+            let ty = match (&p.ty, from) {
+                (Some(t), _) => Some(self.items.resolve_type(t, module, &mut blanks, true)?),
+                (None, Some(ft)) => Some(ft.params[i].1.clone()),
+                (None, None) => None,
             };
             params.push(crate::resolve::ParamDecl { kind: crate::resolve::conv_kind(p.kind), group: None, amp: p.amp, mutability: p.mutability, variadic: p.variadic, name: p.name.name.clone(), ty, from_blank: false, span: p.span });
         }
-        let ret = match &lit.ret {
-            Some(t) => self.items.resolve_type(t, module, &mut blanks, true)?,
-            None => Ty::Nothing,
+        let ret = match (&lit.ret, from) {
+            (Some(t), _) => self.items.resolve_type(t, module, &mut blanks, true)?,
+            (None, Some(ft)) => ft.ret.clone(),
+            (None, None) => Ty::Nothing,
         };
-        let fails = self.items.resolve_fails(&lit.fails, module, &mut blanks)?;
+        let fails = match from {
+            Some(ft) => ft.fails.clone(),
+            None => self.items.resolve_fails(&lit.fails, module, &mut blanks)?,
+        };
         if !blanks.is_empty() {
             return err(Diagnostic::error("an anonymous function has no blanks: write the types").at(span));
         }
