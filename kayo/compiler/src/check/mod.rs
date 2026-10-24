@@ -184,6 +184,21 @@ impl FnCtx {
     fn key<'a>(&self, name: &'a str) -> std::borrow::Cow<'a, str> {
         if self.fold_vars { std::borrow::Cow::Owned(crate::ast::fold_case(name)) } else { std::borrow::Cow::Borrowed(name) }
     }
+    /// The name in scope the one written most likely meant, a few letters
+    /// off: a variable or a const.
+    pub fn close_name(&self, name: &str) -> Option<String> {
+        let names = self.scopes.iter().flat_map(|s| s.keys()).chain(self.const_scopes.iter().flat_map(|s| s.keys()));
+        crate::diag::closest(name, names.map(|k| k.as_str())).map(str::to_string)
+    }
+
+    /// Refused as not declared, with the close name when there is one.
+    pub fn not_declared(&self, d: crate::diag::Diagnostic, name: &str, at: crate::source::Span) -> Box<crate::diag::Diagnostic> {
+        Box::new(match self.close_name(name) {
+            Some(c) => d.fix_edit(at, crate::diag::Edit::Replace, crate::diag::name_written(&c)),
+            None => d,
+        })
+    }
+
     pub fn lookup(&self, name: &str) -> Option<LocalId> {
         let name = self.key(name);
         for scope in self.scopes.iter().rev() {

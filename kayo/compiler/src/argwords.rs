@@ -141,9 +141,9 @@ pub fn strip(toks: &[Token]) -> Result<Vec<Token>> {
                 // thing worked on (owner, 2026-10-23: "`(3)` fucking
                 // doesn't").
                 if n == 0 {
-                    return err(Diagnostic::error(format!("only the thing worked on goes bare; this argument says what it is: `{}` (owner, 2026-10-23)", call.example)).named("argument_label_missing").at(toks[at].span));
+                    return err(Diagnostic::error(format!("only the thing worked on goes bare; this argument says what it is: `{}` (owner, 2026-10-23)", call.example)).named("argument_label_missing").at(toks[at].span).fix_edit(toks[at].span, Edit::Label, format!("{}: ", word)));
                 }
-                return err(Diagnostic::error(format!("each argument after the first says what it is: `{}` (owner, 2026-10-14)", call.example)).named("argument_label_missing").at(toks[at].span));
+                return err(Diagnostic::error(format!("each argument after the first says what it is: `{}` (owner, 2026-10-14)", call.example)).named("argument_label_missing").at(toks[at].span).fix_edit(toks[at].span, Edit::Label, format!("{}: ", word)));
             }
             drop[at] = true;
         }

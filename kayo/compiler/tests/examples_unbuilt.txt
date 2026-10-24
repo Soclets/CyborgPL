@@ -10,7 +10,7 @@ extern_data :: the linker (lld) refused the program:
 input :: `std::input.line` is not available yet
 shop :: `std::input.line` is not available yet
 text :: `std::str.find.grapheme` is not available yet
-case_mappings :: `casing` is std's: write `std::casing`
+case_mappings :: error[std_name_needs_path]
 whichever :: `std::time.after` is not available yet
 msl_shared :: `#include` is not a comment form
 msl_twice :: `*` is an old spelling

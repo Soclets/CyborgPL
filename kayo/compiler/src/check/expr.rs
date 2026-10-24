@@ -302,13 +302,13 @@ impl Checker {
     fn undeclared<T>(&self, ctx: &FnCtx, n: &ast::QName) -> Result<T> {
         if let Some(outer) = &ctx.captured_outer {
             if outer.iter().any(|(name, ..)| *name == n.name) {
-                return err(Diagnostic::error(format!("'{}' is not declared inside this function: it sees nothing of the surrounding scope unless `with [lend ${}]` (or `copy` / `give`) says so", n.name, n.name)).named("not_declared").at(n.span));
+                return Err(ctx.not_declared(Diagnostic::error(format!("'{}' is not declared inside this function: it sees nothing of the surrounding scope unless `with [lend ${}]` (or `copy` / `give`) says so", n.name, n.name)).named("not_declared").at(n.span), &n.name, n.span));
             }
         }
         if ctx.is_task {
-            return err(Diagnostic::error(format!("'{}' is not declared inside this task: a task takes what it needs through `with [lend ${}]` (or `copy` / `give`)", n.name, n.name)).named("not_declared").at(n.span));
+            return Err(ctx.not_declared(Diagnostic::error(format!("'{}' is not declared inside this task: a task takes what it needs through `with [lend ${}]` (or `copy` / `give`)", n.name, n.name)).named("not_declared").at(n.span), &n.name, n.span));
         }
-        err(Diagnostic::error(format!("'{}' is not declared", n.name)).named("not_declared").at(n.span))
+        Err(ctx.not_declared(Diagnostic::error(format!("'{}' is not declared", n.name)).named("not_declared").at(n.span), &n.name, n.span))
     }
 
     fn const_type(&mut self, id: hir::ConstId, span: Span) -> Result<Ty> {
@@ -335,7 +335,7 @@ impl Checker {
             return self.path_value(ctx, &plain, span);
         }
         if path.kit.is_none() && std_builtin(path) && !via_std && !self.in_std(ctx) && self.items.lookup_plain(path, ctx.module).is_err() {
-            return err(Diagnostic::error(std_bare_message(path)).named("std_name_needs_path").at(path.span));
+            return err(Diagnostic::error(std_bare_message(path)).named("std_name_needs_path").at(path.span).fix_edit(path.span, Edit::Insert, "std::"));
         }
         if path.is(&["list", "empty"]) {
             let elem = self.fresh();
@@ -475,7 +475,7 @@ impl Checker {
                 };
                 let info = &self.items.structs[sid.0 as usize];
                 let Some(fi) = info.fields.iter().position(|f| self.items.same_name(&self.items.case_fields, info.span, &f.name, &field.name)) else {
-                    return err(Diagnostic::error(format!("`{}` has no field `{}`: its fields are {}", info.name, field.name, info.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>().join(", "))).named("unknown_field").at(field.span));
+                    return err(Diagnostic::error(format!("`{}` has no field `{}`: its fields are {}", info.name, field.name, info.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>().join(", "))).named("unknown_field").at(field.span).fix_close(field.span, &field.name, info.fields.iter().map(|f| f.name.as_str())));
                 };
                 let f = &info.fields[fi];
                 // A union holds one field at a time and only C knows which
@@ -2435,7 +2435,7 @@ impl Checker {
     fn enum_case(&mut self, ctx: &mut FnCtx, id: EnumId, case: &ast::Ident, payload: Option<&[AArg]>, span: Span) -> Result<Expr> {
         let info = self.items.enums[id.0 as usize].clone();
         let Some(ci) = info.cases.iter().position(|c| self.items.same_name(&self.items.case_cases, info.span, &c.name, &case.name)) else {
-            return err(Diagnostic::error(format!("`{}` has no case `{}`: its cases are {}", info.name, case.name, info.cases.iter().map(|c| c.name.clone()).collect::<Vec<_>>().join(", "))).named("unknown_case").at(case.span));
+            return err(Diagnostic::error(format!("`{}` has no case `{}`: its cases are {}", info.name, case.name, info.cases.iter().map(|c| c.name.clone()).collect::<Vec<_>>().join(", "))).named("unknown_case").at(case.span).fix_close(case.span, &case.name, info.cases.iter().map(|c| c.name.as_str())));
         };
         let args: Vec<Ty> = info.blanks.iter().map(|_| self.fresh()).collect();
         let expected = info.cases[ci].payload.as_ref().map(|t| t.subst(&args));
@@ -2471,7 +2471,7 @@ impl Checker {
             match a {
                 AArg::Named(name, e) => {
                     let Some(fi) = info.fields.iter().position(|f| self.items.same_name(&self.items.case_fields, info.span, &f.name, &name.name)) else {
-                        return err(Diagnostic::error(format!("`{}` has no field `{}`: its fields are {}", info.name, name.name, info.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>().join(", "))).named("unknown_field").at(name.span));
+                        return err(Diagnostic::error(format!("`{}` has no field `{}`: its fields are {}", info.name, name.name, info.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>().join(", "))).named("unknown_field").at(name.span).fix_close(name.span, &name.name, info.fields.iter().map(|f| f.name.as_str())));
                     };
                     if given[fi].is_some() {
                         return err(Diagnostic::error(format!("field `{}` is given twice", name.name)).named("given_twice").at(name.span));
@@ -2573,7 +2573,7 @@ impl Checker {
         }
         if path.kit.is_none() && (std_name(path) || std_builtin(path)) && self.items.lookup_plain(path, ctx.module).is_err() {
             if !(via_std || self.in_std(ctx)) {
-                return err(Diagnostic::error(std_bare_message(path)).named("std_name_needs_path").at(path.span));
+                return err(Diagnostic::error(std_bare_message(path)).named("std_name_needs_path").at(path.span).fix_edit(path.span, Edit::Insert, "std::"));
             }
             if std_name(path) {
                 let with = ast::Path { kit: Some(ast::Ident { name: "std".into(), span: path.span }), segs: path.segs.clone(), span: path.span };
@@ -2808,7 +2808,7 @@ impl Checker {
                 Some((w, inner)) => {
                     if !words.contains(&w.name) {
                         let has = if words.is_empty() { "none".to_string() } else { words.iter().map(|w| format!("`{}:`", w)).collect::<Vec<_>>().join(", ") };
-                        return err(Diagnostic::error(format!("`{}` has no label `{}:`; its labels are {}", name, w.name, has)).named("argument_label_unknown").at(w.span));
+                        return err(Diagnostic::error(format!("`{}` has no label `{}:`; its labels are {}", name, w.name, has)).named("argument_label_unknown").at(w.span).fix_close(w.span, &w.name, words.iter().map(|w| w.as_str())));
                     }
                     if let Some((prev, _)) = given.iter().find(|(p, _)| p.name == w.name) {
                         return err(Diagnostic::error(format!("`{}:` is given twice", w.name)).named("given_twice").at(w.span).why_at(prev.span, "the first is here"));
@@ -3693,7 +3693,7 @@ impl Checker {
         let mut inst_caps = Vec::new();
         for c in &lit.captures {
             let Some(outer) = ctx.lookup(&c.name.name) else {
-                return err(Diagnostic::error(format!("'{}' is not declared", c.name.name)).named("not_declared").at(c.name.span));
+                return Err(ctx.not_declared(Diagnostic::error(format!("'{}' is not declared", c.name.name)).named("not_declared").at(c.name.span), &c.name.name, c.name.span));
             };
             let ty = self.resolve(&ctx.locals[outer.0 as usize].ty);
             if lit.params.iter().any(|p| p.name.name == c.name.name) {
@@ -4265,11 +4265,11 @@ impl Checker {
                 arity(2, self)?;
                 let ce = match &positional[1].kind {
                     AK::Count(inner) => &**inner,
-                    _ => return err(Diagnostic::error("the count says `count`: `list.fill(value: 0, count: 10)`").named("argument_label_missing").at(positional[1].span)),
+                    _ => return err(Diagnostic::error("the count says `count`: `list.fill(value: 0, count: 10)`").named("argument_label_missing").at(positional[1].span).fix_edit(positional[1].span, Edit::Label, "count: ")),
                 };
                 let value_e = match &positional[0].kind {
                     AK::Value(inner) => &**inner,
-                    _ => return err(Diagnostic::error("the value says `value`: `list.fill(value: 0, count: 10)`").named("argument_label_missing").at(positional[0].span)),
+                    _ => return err(Diagnostic::error("the value says `value`: `list.fill(value: 0, count: 10)`").named("argument_label_missing").at(positional[0].span).fix_edit(positional[0].span, Edit::Label, "value: ")),
                 };
                 if let AK::Name(n) = &value_e.kind {
                     if self.peek_ty(ctx, value_e).is_some_and(|t| self.resolve(&t).is_owned()) {
@@ -4345,7 +4345,7 @@ impl Checker {
                 };
                 // `pos` on every position (owner, 2026-10-07: "`a`").
                 let AK::Pos(at) = &positional[1].kind else {
-                    return err(Diagnostic::error("the position says `pos`: `list.remove(lend.mut $xs, pos: 2)`").named("argument_label_missing").at(positional[1].span));
+                    return err(Diagnostic::error("the position says `pos`: `list.remove(lend.mut $xs, pos: 2)`").named("argument_label_missing").at(positional[1].span).fix_edit(positional[1].span, Edit::Label, "pos: "));
                 };
                 let i = self.expr(ctx, at)?;
                 if !self.resolve(&i.ty).is_int() {
@@ -4643,7 +4643,7 @@ impl Checker {
                 arity(1, self)?;
                 // `simd.fill[value 0]` (owner, 2026-10-07: "`a`").
                 let AK::Value(fill) = &positional[0].kind else {
-                    return err(Diagnostic::error("the value says `value`: `simd.fill(value: 0)`").named("argument_label_missing").at(positional[0].span));
+                    return err(Diagnostic::error("the value says `value`: `simd.fill(value: 0)`").named("argument_label_missing").at(positional[0].span).fix_edit(positional[0].span, Edit::Label, "value: "));
                 };
                 let mut v = self.expr(ctx, fill)?;
                 // Bare numbers alone are worked out exactly (dc83c05): left

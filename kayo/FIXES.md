@@ -95,9 +95,9 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `needless_lent` | 1 | — | |
 | `needs_parentheses` | 7 | partly | both groupings, under `or:`; not yet the `not` next to a comparison (the unary site) |
 | `no_starting_value` | 1 | — | |
-| `not_built_yet` | 22 | — | |
+| `not_built_yet` | 22 | none suggested | kayo has not built it: the fix is kayo's (design claude, 2026-10-24) |
 | `not_changeable` | 2 | — | |
-| `not_decided` | 7 | — | |
+| `not_decided` | 7 | none suggested | no ruling yet: the fix is the owner's |
 | `not_whole_number` | 4 | — | |
 | `old_spelling` | 44 | partly | every replacement the spellings table or the message names, as edits (moves too: `no_cheat for`, `<T: any>`, a slice's `from:`/`to:`); not yet: a `range.` loop, `level.when_chained`, `change *$p =`, `2 ! 3` (no edit means anything there) |
 | `on_form` | 5 | — | |
@@ -157,7 +157,7 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `bound_unit_misplaced` | 6 | — | |
 | `bound_unit_unsaid` | 1 | — | |
 | `bound_wrong_type` | 8 | — | |
-| `bounds_backwards` | 6 | — | |
+| `bounds_backwards` | 6 | written | the two sides swapped |
 | `builtin_operator_redefined` | 3 | — | |
 | `cnc::bit_field_form` | 2 | — | |
 | `cnc::bit_field_too_wide` | 1 | — | |
@@ -175,7 +175,7 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `cnc::not_layout_c` | 1 | — | |
 | `defined_twice` | 13 | — | |
 | `function_owner_wrong` | 1 | — | |
-| `kit_name_needs_path` | 2 | — | |
+| `kit_name_needs_path` | 2 | written | the kit's prefix in front, or a `use … as …;` line |
 | `kit_not_listed` | 2 | — | |
 | `lane_count_misplaced` | 1 | — | |
 | `length_bound_on_array` | 2 | — | |
@@ -192,24 +192,24 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `not_a_map_key` | 4 | — | |
 | `not_a_module` | 3 | — | |
 | `not_a_type` | 1 | — | |
-| `not_public` | 5 | — | |
+| `not_public` | 5 | partly | `pub.kit` / `pub` in front of the declaration; another kit's: none suggested (its code is that kit's) |
 | `operator_operand_count` | 2 | — | |
 | `parameter_type_missing` | 4 | — | |
 | `simd_element_type` | 1 | — | |
 | `simd_lane_count_mismatch` | 4 | — | |
 | `simd_lane_width` | 1 | — | |
-| `std_name_needs_path` | 5 | — | |
+| `std_name_needs_path` | 5 | written | `std::` in front |
 | `std_not_listed` | 6 | — | |
 | `test_fn_misused` | 5 | — | |
 | `type_parameter_count` | 9 | — | |
 | `type_parameter_form` | 3 | — | |
 | `unannounced` | 3 | — | |
 | `unknown_const` | 1 | — | |
-| `unknown_function` | 4 | — | |
+| `unknown_function` | 4 | partly | the close name; the declaring fix waits on the owner |
 | `unknown_interface` | 3 | — | |
 | `unknown_map_variant` | 1 | — | |
 | `unknown_text_unit` | 5 | — | |
-| `unknown_type` | 1 | — | |
+| `unknown_type` | 1 | partly | the close name |
 | `wsmw::no_such_width` | 4 | — | |
 | `wsmw::standard_width` | 1 | — | |
 
@@ -220,8 +220,8 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `ai::brain_mixed` | 1 | — | |
 | `ai::brain_to_deci_unsaid` | 1 | — | |
 | `already_declared` | 5 | — | |
-| `argument_label_missing` | 9 | — | |
-| `argument_label_unknown` | 5 | — | |
+| `argument_label_missing` | 9 | partly | the label put in, or a mistyped one replaced (`Edit::Label`); not yet: a handler's argument, a labelled argument of the own function |
+| `argument_label_unknown` | 5 | partly | the close label; not yet: a version's, a handler's |
 | `array_cannot_grow` | 2 | — | |
 | `array_never_filled` | 1 | — | |
 | `borrow_outlives_owner` | 2 | — | |
@@ -318,7 +318,7 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `not_a_function` | 7 | — | |
 | `not_a_struct` | 2 | — | |
 | `not_a_value` | 7 | — | |
-| `not_declared` | 8 | — | |
+| `not_declared` | 8 | partly | the close name in scope; waiting on design claude: whether a declaration is offered (a variable's value is the writer's) |
 | `not_indexable` | 2 | — | |
 | `not_one_code_point` | 1 | — | |
 | `not_text` | 4 | — | |
@@ -357,8 +357,8 @@ why), **none suggested** (the fix is outside the program, said why), **—** (no
 | `typed_literal_form` | 2 | — | |
 | `unicode::no_single_code` | 2 | — | |
 | `union_one_field` | 1 | — | |
-| `unknown_case` | 2 | — | |
-| `unknown_field` | 2 | — | |
+| `unknown_case` | 2 | written | the close name |
+| `unknown_field` | 2 | written | the close name |
 | `unknown_operation` | 6 | — | |
 | `unknown_pointer_operation` | 1 | — | |
 | `unknown_rounding` | 3 | written | the five ways |

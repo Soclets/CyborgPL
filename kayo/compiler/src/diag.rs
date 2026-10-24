@@ -58,6 +58,14 @@ pub enum Edit {
     DeleteLine,
     /// `text` is a new last line of the file.
     Append,
+    /// The span's label (`word:` at its start) becomes `text`, or `text`
+    /// goes in front when it has none.
+    Label,
+    /// The span's text becomes another span's, as written.
+    TextOf(Span),
+    /// `text` goes in front of the word before the span (`pub ` before
+    /// `fn f`, the span being the name).
+    BeforeWord,
 }
 
 impl Fix {
@@ -93,6 +101,23 @@ impl Fix {
             }
             Edit::Before => (at(indent, indent), self.text.clone()),
             Edit::Insert => (Span::new(span.file, span.start as usize, span.start as usize), self.text.clone()),
+            Edit::TextOf(from) => (span, sources.get(from.file).slice(from).to_string()),
+            Edit::BeforeWord => {
+                let before = file.text[..span.start as usize].trim_end_matches([' ', '\t']);
+                let word = before.trim_end_matches(|c: char| c.is_alphanumeric() || c == '_' || c == '.');
+                (Span::new(span.file, word.len(), word.len()), self.text.clone())
+            }
+            Edit::Label => {
+                let here = &file.text[span.start as usize..];
+                let word = here.chars().take_while(|c| c.is_alphanumeric() || *c == '_').map(char::len_utf8).sum::<usize>();
+                let after = &here[word..];
+                if word > 0 && after.starts_with(':') {
+                    let space = after[1..].len() - after[1..].trim_start_matches(' ').len();
+                    (Span::new(span.file, span.start as usize, span.start as usize + word + 1 + space), self.text.clone())
+                } else {
+                    (Span::new(span.file, span.start as usize, span.start as usize), self.text.clone())
+                }
+            }
             Edit::Append => {
                 let end = file.text.len();
                 let lead = if file.text.ends_with('\n') || file.text.is_empty() { "" } else { "\n" };
@@ -227,6 +252,11 @@ impl Diagnostic {
     /// Its name from `errors.cyr`.
     pub fn named(mut self, name: &'static str) -> Diagnostic {
         self.name = Some(name);
+        // Its fix is kayo's to build or the owner's to rule on, never in the
+        // writer's code (design claude, 2026-10-24).
+        if matches!(name, "not_built_yet" | "not_decided") {
+            self.outside = true;
+        }
         self
     }
     pub fn at(mut self, span: Span) -> Diagnostic {
@@ -257,6 +287,16 @@ impl Diagnostic {
     pub fn fix(mut self, line: Option<u32>, text: impl Into<String>) -> Diagnostic {
         self.fixes.push(Fix { line, text: text.into(), edit: None, also: Vec::new() });
         self
+    }
+    /// The close name, if there is one, in place of the one written at `at`.
+    pub fn fix_close<'a>(self, at: Span, written: &str, candidates: impl IntoIterator<Item = &'a str>) -> Diagnostic {
+        match closest(written, candidates) {
+            Some(c) => {
+                let c = c.to_string();
+                self.fix_edit(at, Edit::Replace, c)
+            }
+            None => self,
+        }
     }
     /// Another edit made with the last fix (both are one fix).
     pub fn fix_also(mut self, span: Span, how: Edit, text: impl Into<String>) -> Diagnostic {
@@ -676,6 +716,50 @@ pub const SENTENCE_LINE: bool = true;
 
 /// A build stops at the first `error`; `check`s and `note`s accumulate.
 pub type Result<T> = std::result::Result<T, Box<Diagnostic>>;
+
+/// The name among these that the one written most likely meant: a few
+/// letters off, case aside (owner, 2026-10-24: "the close name if there is
+/// one"), the nearest, and alphabetically first among the nearest.
+pub fn closest<'a>(name: &str, candidates: impl IntoIterator<Item = &'a str>) -> Option<&'a str> {
+    // Letters added, taken out, changed, or two swapped, each one step.
+    fn distance(a: &[char], b: &[char]) -> usize {
+        let mut d = vec![vec![0usize; b.len() + 1]; a.len() + 1];
+        for (i, row) in d.iter_mut().enumerate() {
+            row[0] = i;
+        }
+        for j in 0..=b.len() {
+            d[0][j] = j;
+        }
+        for i in 1..=a.len() {
+            for j in 1..=b.len() {
+                let cost = usize::from(a[i - 1] != b[j - 1]);
+                d[i][j] = (d[i - 1][j] + 1).min(d[i][j - 1] + 1).min(d[i - 1][j - 1] + cost);
+                if i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1] {
+                    d[i][j] = d[i][j].min(d[i - 2][j - 2] + 1);
+                }
+            }
+        }
+        d[a.len()][b.len()]
+    }
+    let lower: Vec<char> = name.to_lowercase().chars().collect();
+    let limit = (lower.len() / 3).max(1);
+    let mut best: Option<(usize, &str)> = None;
+    for c in candidates {
+        if c == name || c.is_empty() {
+            continue;
+        }
+        let d = distance(&lower, &c.to_lowercase().chars().collect::<Vec<_>>());
+        if d <= limit && best.is_none_or(|(bd, bc)| d < bd || (d == bd && c < bc)) {
+            best = Some((d, c));
+        }
+    }
+    best.map(|b| b.1)
+}
+
+/// A variable's name as written: `$x`, quoted when it needs quotes.
+pub fn name_written(n: &str) -> String {
+    if !n.is_empty() && n.chars().all(|c| c.is_alphanumeric() || c == '_') { format!("${}", n) } else { format!("'{}'", n) }
+}
 
 /// A fix on a refusal on its way out: `return self.fail_n(…).with_fix(…)`.
 pub trait WithFix {

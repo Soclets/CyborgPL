@@ -985,7 +985,7 @@ impl Items {
         // std's, outside std (inside, its names are its own).
         if self.nerve_cord != Some(here) && !self.no_std_roots.contains(&here) && self.nerve_cord_item(path).is_some() {
             let call = if matches!(self.nerve_cord_item(path), Some((ItemRef::Fn(_) | ItemRef::ExternFn(_), _))) { "(…)" } else { "" };
-            return err(Diagnostic::error(format!("`{w}` is std's: write `std::{w}{c}`, or name it for this file with `use std::{h} as {h};` (owner, 2026-10-22)", w = written, c = call, h = head)).named("std_name_needs_path").at(path.span));
+            return err(std_path_fixes(Diagnostic::error(format!("`{w}` is std's: write `std::{w}{c}`, or name it for this file with `use std::{h} as {h};` (owner, 2026-10-22)", w = written, c = call, h = head)).named("std_name_needs_path").at(path.span), path, "std"));
         }
         if let Some(deps) = self.kit_deps.get(&here) {
             let mut deps: Vec<(&String, &ModuleId)> = deps.iter().collect();
@@ -996,7 +996,7 @@ impl Items {
                     continue;
                 }
                 let call = if matches!(item, ItemRef::Fn(_) | ItemRef::ExternFn(_)) { "(…)" } else { "" };
-                return err(Diagnostic::error(format!("`{w}` is `{p}`'s: another kit's names take its path (owner, 2026-10-22), so write `{p}::{w}{c}`, or `use {p}::{w} as {h};`", w = written, p = prefix, c = call, h = head)).named("kit_name_needs_path").at(path.span));
+                return err(std_path_fixes(Diagnostic::error(format!("`{w}` is `{p}`'s: another kit's names take its path (owner, 2026-10-22), so write `{p}::{w}{c}`, or `use {p}::{w} as {h};`", w = written, p = prefix, c = call, h = head)).named("kit_name_needs_path").at(path.span), path, prefix));
             }
         }
         own.map(Bareness::Own)
@@ -1104,12 +1104,15 @@ impl Items {
                     continue;
                 }
             }
-            let Some((item, vis, _)) = module.item(&seg.name) else {
+            let Some((item, vis, declared_at)) = module.item(&seg.name) else {
                 let kind = if segs.peek().is_none() { "item" } else { "module" };
                 let name = if kind == "module" { "unknown_module" } else { self.missing_cause(&seg.name, cur) };
-                return err(Diagnostic::error(format!("there is no {} `{}` in {}", kind, seg.name, describe_module(&module.path))).named(name).at(seg.span).why(self.hint_for_missing(&seg.name, cur)));
+                let d = Diagnostic::error(format!("there is no {} `{}` in {}", kind, seg.name, describe_module(&module.path))).named(name).at(seg.span).why(self.hint_for_missing(&seg.name, cur));
+                // The close name among what this module holds.
+                let names: Vec<&str> = module.items.keys().map(String::as_str).collect();
+                return err(d.fix_close(seg.span, &seg.name, names));
             };
-            self.check_visible(*item, *vis, cur, m, seg)?;
+            self.check_visible(*item, *vis, cur, m, seg).map_err(|d| Box::new(publish(*d, *declared_at, self.kit_root(cur) == self.kit_root(m))))?;
             match item {
                 ItemRef::Module(child) if segs.peek().is_some() => {
                     cur = *child;
@@ -1405,7 +1408,7 @@ impl Items {
                 };
                 let (l, h) = (end(lo)?, end(hi)?);
                 if l > h {
-                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).named("bounds_backwards").at(span));
+                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).named("bounds_backwards").at(span).fix_edit(lo.span, crate::diag::Edit::TextOf(hi.span), "").fix_also(hi.span, crate::diag::Edit::TextOf(lo.span), ""));
                 }
                 let said = Said { lo: !left_out(lo, "min"), hi: !left_out(hi, "max"), bits: None };
                 if let Ty::Int(IntW::Fixed { signed, bits }) = &base {
@@ -1460,7 +1463,7 @@ impl Items {
                     }
                 }
                 if l.parse::<f64>().unwrap_or(0.0) > h.parse::<f64>().unwrap_or(0.0) {
-                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).named("bounds_backwards").at(span));
+                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).named("bounds_backwards").at(span).fix_edit(lo.span, crate::diag::Edit::TextOf(hi.span), "").fix_also(hi.span, crate::diag::Edit::TextOf(lo.span), ""));
                 }
                 Bound::Bin { lo: l, hi: h, said: Said { lo: !left_out(lo, "min"), hi: !left_out(hi, "max"), bits: None } }
             }
@@ -1487,7 +1490,7 @@ impl Items {
                     }
                 }
                 if l.replace('_', "").parse::<f64>().unwrap_or(0.0) > h.replace('_', "").parse::<f64>().unwrap_or(0.0) {
-                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).named("bounds_backwards").at(span));
+                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).named("bounds_backwards").at(span).fix_edit(lo.span, crate::diag::Edit::TextOf(hi.span), "").fix_also(hi.span, crate::diag::Edit::TextOf(lo.span), ""));
                 }
                 Bound::Bin { lo: l, hi: h, said: Said::default() }
             }
@@ -1527,7 +1530,7 @@ impl Items {
                 let num = |t: &Option<String>| t.as_ref().and_then(|t| t.parse::<f64>().ok());
                 if let (Some(a), Some(b)) = (num(&l), num(&h)) {
                     if a > b {
-                        return err(Diagnostic::error("the low bound comes first: `[min: …, max: …]`").named("bounds_backwards").at(span));
+                        return err(Diagnostic::error("the low bound comes first: `[min: …, max: …]`").named("bounds_backwards").at(span).fix_edit(lo.span, crate::diag::Edit::TextOf(hi.span), "").fix_also(hi.span, crate::diag::Edit::TextOf(lo.span), ""));
                     }
                 }
                 let said = Said { lo: l.is_some(), hi: h.is_some(), bits: None };
@@ -1596,10 +1599,10 @@ impl Items {
         // A `list` with no element type is told that first, as the oracle does.
         let counted = matches!(path.head(), "list" | "map") && path.segs.len() == 1 && args.is_empty();
         if path.kit.is_none() && std_type(path) && !via_std && !counted && self.nerve_cord.is_some_and(|c| c != self.kit_root(m)) {
-            return err(Diagnostic::error(crate::check::expr::std_bare_message(path)).named("std_name_needs_path").at(path.span));
+            return err(Diagnostic::error(crate::check::expr::std_bare_message(path)).named("std_name_needs_path").at(path.span).fix_edit(path.span, crate::diag::Edit::Insert, "std::"));
         }
         if path.kit.is_none() && std_type(path) && !via_std && !counted && self.nerve_cord.is_none() && !self.no_std_roots.contains(&self.kit_root(m)) {
-            return err(Diagnostic::error(crate::check::expr::std_bare_message(path)).named("std_name_needs_path").at(path.span));
+            return err(Diagnostic::error(crate::check::expr::std_bare_message(path)).named("std_name_needs_path").at(path.span).fix_edit(path.span, crate::diag::Edit::Insert, "std::"));
         }
         let pointee = POINTEE.with(|p| p.replace(false));
         let head = path.head();
@@ -1737,7 +1740,7 @@ impl Items {
                     }
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     let Some(lanes) = lane_count(&args[1]) else {
-                        return err(Diagnostic::error("a simd's lane count says `count`: `simd[u8, count: 16]`").named("argument_label_missing").at(args[1].span));
+                        return err(Diagnostic::error("a simd's lane count says `count`: `simd[u8, count: 16]`").named("argument_label_missing").at(args[1].span).fix_edit(args[1].span, crate::diag::Edit::Label, "count: "));
                     };
                     // A mask (owner, 2026-09-27: a): one answer per lane of
                     // the vectors it compares, so as many lanes as they have.
@@ -2098,7 +2101,7 @@ fn len_bounds(lo: &ast::Expr, hi: &ast::Expr, span: Span) -> Result<(u64, u64)> 
         return err(Diagnostic::error("a length bound's low end is 0 or more: a length is never negative").named("bound_outside_type").at(lo.span));
     }
     if l > h {
-        return err(Diagnostic::error("the low bound is at most the high one: `list[i32][min: 0, max: 1000]`").named("bounds_backwards").at(span));
+        return err(Diagnostic::error("the low bound is at most the high one: `list[i32][min: 0, max: 1000]`").named("bounds_backwards").at(span).fix_edit(lo.span, crate::diag::Edit::TextOf(hi.span), "").fix_also(hi.span, crate::diag::Edit::TextOf(lo.span), ""));
     }
     Ok((l as u64, h as u64))
 }
@@ -2122,4 +2125,34 @@ fn lane_count(t: &ast::Type) -> Option<u32> {
         ast::TypeKind::Count(n) => Some(*n),
         _ => None,
     }
+}
+
+/// Another kit's name written bare: its prefix in front, or a `use` line
+/// at the top of the file naming it for the file (owner, 2026-10-22).
+pub fn std_path_fixes(d: Diagnostic, path: &ast::Path, prefix: &str) -> Diagnostic {
+    let head = path.head();
+    let top = crate::source::Span::new(path.span.file, 0, 0);
+    let d = d.fix_edit(path.span, crate::diag::Edit::Insert, format!("{}::", prefix));
+    // A `use` names one thing for the file; a path through it (`casing.tr`)
+    // reaches further than it names.
+    // std's names are reached through conversions too, which a `use` does
+    // not name: only the prefix there.
+    if path.segs.len() == 1 && prefix != "std" {
+        d.fix_edit(top, crate::diag::Edit::InsertLine, format!("use {}::{} as {};", prefix, head, head))
+    } else {
+        d
+    }
+}
+
+/// Opened where it is declared: `pub.kit` in front, or `pub`; in another
+/// kit, the fix is that kit's.
+fn publish(d: Diagnostic, declared_at: crate::source::Span, same_kit: bool) -> Diagnostic {
+    if d.name != Some("not_public") {
+        return d;
+    }
+    // Another kit's code is not this program's to edit (owner, 2026-10-24).
+    if !same_kit {
+        return d.outside_program();
+    }
+    d.fix_edit(declared_at, crate::diag::Edit::BeforeWord, "pub.kit ").fix_edit(declared_at, crate::diag::Edit::BeforeWord, "pub ")
 }

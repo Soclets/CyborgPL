@@ -520,6 +520,9 @@ fn fix_verdict(src: &Path, scratch: &Path) -> (bool, Option<String>, (String, us
             // Each file's replacements, last first, so the earlier offsets hold.
             let mut by_file: HashMap<PathBuf, Vec<(u32, u32, String)>> = HashMap::new();
             for (p, a, b, t) in fix {
+                if !(p == src || p.starts_with(src)) {
+                    return (true, Some(format!("{}: fix {} edits {}, outside the program", name, i + 1, p.display())), count);
+                }
                 by_file.entry(moved(p)).or_default().push((*a, *b, t.clone()));
             }
             // Where the error's place is once the edits are made, in bytes:

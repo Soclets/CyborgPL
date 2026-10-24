@@ -267,10 +267,7 @@ fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
 
 /// An old spelling at token `i` (the 2026-10-07 revision; owner: "MTM is
 /// gone."), and what to say: each names the one that replaced it.
-/// A name as written back: `$x`, quoted when it needs quotes.
-fn name_written(n: &str) -> String {
-    if !n.is_empty() && n.chars().all(|c| c.is_alphanumeric() || c == '_') { format!("${}", n) } else { format!("'{}'", n) }
-}
+use crate::diag::name_written;
 
 /// The replacements a spelling names that are a word or a symbol to put
 /// in its place, not a shape around something (`ptr.read(…)`).
