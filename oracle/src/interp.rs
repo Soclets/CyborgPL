@@ -5035,6 +5035,29 @@ impl<'p> Interp<'p> {
     /// The caller's side, checked before anything runs (as the compiler would): a
     /// call that can fail must say what happens; one that cannot must not; arms
     /// cover every reason; `otherwise fail;` needs the reasons in the caller's list.
+    /// A print's text into a writer: a whole writer sends what it holds when the print does not fit, then holds the
+    /// print, one longer than the writer going out alone; a split one fills to exactly its size (owner, 2026-10-24)
+    fn into_writer(&mut self, w: &Rc<RefCell<crate::value::Writer>>, text: &str, c: &Call, value_used: bool) -> Result<Value, RuntimeError> {
+        let (out, err) = {
+            let mut w = w.borrow_mut();
+            let mut out: Vec<Vec<u8>> = Vec::new();
+            let bytes = text.as_bytes();
+            if w.split {
+                w.text.extend_from_slice(bytes);
+                let cap = w.cap;
+                while w.text.len() >= cap { let rest = w.text.split_off(cap); out.push(std::mem::replace(&mut w.text, rest)); }
+            } else {
+                if !w.text.is_empty() && w.text.len() + bytes.len() > w.cap { out.push(std::mem::take(&mut w.text)); }
+                if bytes.len() > w.cap { out.push(bytes.to_vec()); } else { w.text.extend_from_slice(bytes); }
+                if w.text.len() >= w.cap { out.push(std::mem::take(&mut w.text)); }
+            }
+            (out, w.stderr)
+        };
+        let mut r = Ok(());
+        for chunk in out { if r.is_ok() { r = self.emit_bytes(&chunk, err); } }
+        self.written_or_failed(r, c, value_used)
+    }
+
     /// Bytes to stdout or stderr, a writer's: a split writer's may end inside a character
     fn emit_bytes(&mut self, bytes: &[u8], stderr: bool) -> Result<(), String> {
         use std::io::Write as _;
@@ -5907,29 +5930,7 @@ impl<'p> Interp<'p> {
                 }
                 // `.auto_newln` ends the line after the values (owner, 2026-09-30)
                 if path.contains(".auto_newln.") { text.push('\n'); }
-                if let Some(w) = writer {
-                    // into the writer, handed on whole when it is full
-                    // what goes out now: a whole writer sends what it holds when the print does not fit, then holds the
-                    // print (one longer than the writer going out alone); a split one fills to exactly its size (owner, 2026-10-24)
-                    let (out, err) = {
-                        let mut w = w.borrow_mut();
-                        let mut out: Vec<Vec<u8>> = Vec::new();
-                        let bytes = text.as_bytes();
-                        if w.split {
-                            w.text.extend_from_slice(bytes);
-                            let cap = w.cap;
-                            while w.text.len() >= cap { let rest = w.text.split_off(cap); out.push(std::mem::replace(&mut w.text, rest)); }
-                        } else {
-                            if !w.text.is_empty() && w.text.len() + bytes.len() > w.cap { out.push(std::mem::take(&mut w.text)); }
-                            if bytes.len() > w.cap { out.push(bytes.to_vec()); } else { w.text.extend_from_slice(bytes); }
-                            if w.text.len() >= w.cap { out.push(std::mem::take(&mut w.text)); }
-                        }
-                        (out, w.stderr)
-                    };
-                    let mut r = Ok(());
-                    for chunk in out { if r.is_ok() { r = self.emit_bytes(&chunk, err); } }
-                    return self.written_or_failed(r, c, value_used);
-                }
+                if let Some(w) = writer { return self.into_writer(&w, &text, c, value_used); }
                 let mut r = self.emit(&text, path.ends_with("stderr"));
                 // a print with `otherwise` is flushed right there, so its arm covers all printed so far (owner, 2026-10-23)
                 if r.is_ok() && c.handler.is_some() { r = self.out.flush().map_err(|e| e.to_string()); }
@@ -5940,21 +5941,32 @@ impl<'p> Interp<'p> {
                 // 2026-10-01, C's `%` codes before): escapes and holes, checked against the values'
                 // types because the format is a literal — a non-literal format is a nocheck site.
                 if c.args.values.is_empty() { return rt(c.line, format!("std::{path} takes a format text first: `std::{path}(\"{{}} items\\n\", $n)`")); }
-                let fmt = match &c.args.values[0] {
+                // into a writer when its first argument lends one mutably, as every print form does (design claude's reading)
+                let writer = match c.args.values.first() {
+                    Some(crate::ast::Value::Expr(Expr::Owned(Verb::LendMut, n, _))) if path != "format" => match self.lookup(n).map(|s| s.cell.borrow().clone()) {
+                        Some(Value::Writer(w)) => Some(w),
+                        _ => return rt(c.line, format!("a print never changes what it prints, so `lend.mut '{n}'` names a writer to print into, and '{n}' is not one")),
+                    },
+                    _ => None,
+                };
+                let args_at = if writer.is_some() { 1 } else { 0 };
+                if c.args.values.len() <= args_at { return rt(c.line, format!("std::{path} takes a format text after the writer")); }
+                let fmt = match &c.args.values[args_at] {
                     crate::ast::Value::Expr(Expr::Text(t, _)) => t.clone(),
                     _ => {
                         if self.nocheck_depth == 0 && self.marks_needed() { return rt(c.line, format!("std::{path}: the format is not a literal, so its holes cannot be checked against the values — that is a no_check site: `no_check std::{path}[…]`")); }
-                        match self.value(&c.args.values[0])?.0 { Value::Str(t) => t, other => return rt(c.line, format!("std::{path} takes a text as its format, got {}", other.kind())) }
+                        match self.value(&c.args.values[args_at])?.0 { Value::Str(t) => t, other => return rt(c.line, format!("std::{path} takes a text as its format, got {}", other.kind())) }
                     }
                 };
                 let mut vals = Vec::new();
-                for a in &c.args.values[1..] {
+                for a in &c.args.values[args_at + 1..] {
                     let crate::ast::Value::Expr(e) = a;
                     let saved = self.expected.take(); let ty = self.expr_ty(e); self.expected = saved;
                     vals.push((self.value(a)?.0, ty));
                 }
                 let text = hole_format(&fmt, &vals).map_err(|m| RuntimeError { line: c.line, msg: format!("std::{path}: {m}"), exit: None, site: false, leave: None })?;
                 if path == "format" { return Ok(Value::Str(text)); }
+                if let Some(w) = writer { return self.into_writer(&w, &text, c, value_used); }
                 if path.ends_with("stderr") { eprint!("{text}"); }
                 else { write!(self.out, "{text}").map_err(|e| RuntimeError { line: c.line, msg: e.to_string(), exit: None, site: false, leave: None })?; }
                 Ok(Value::Nothing)

@@ -12,6 +12,8 @@
 #   range types, `i32[min: 0, max: 50]`        counting loops, `for $i [from: 1, to: $n, by: 1]`
 #   slices, `from: pos 1, to: pos 3`             consts, at the top and inside a body
 #   tasks and channels, `concur`                 `print.useful`, `print.stored`, `print.format`
+#   a handler that takes an argument             a short lambda, `fn [$n] = …`
+#   a writer, `std::print.writer`                calls in `( )`, names as `$name`
 #
 # Nothing here is clever on purpose. A shop's code is read far more often than it is written.
 
@@ -247,6 +249,22 @@ fn check_order [
     }
 }
 
+# An order that cannot be filled is apologised for the same way wherever it is checked: one handler, told whom to
+# apologise to (a handler member takes arguments, owner 2026-10-23). Its arms read as if written at the call, so
+# `continue` moves on to the next order there.
+coll.handler order_failed {
+    order_failed.apologize [$customer: str.utf8] {
+        out_of_stock $what {
+            std::print.useful("  sorry, ", $customer, ": not enough ", $what, newln, newln);
+            continue;
+        }
+        unknown_item $what {
+            std::print.useful("  sorry, ", $customer, ": we do not sell ", $what, newln, newln);
+            continue;
+        }
+    }
+}
+
 fn take_order [
     lent $items: std::list[Item],
     lent.mut $stock: std::map[str.utf8, i32],
@@ -368,7 +386,9 @@ fn takings_by_aisle [lent $items: std::list[Item], lent $opening: std::map[str.u
 }
 
 fn report [lent $sales: std::list[Sale], lent $items: std::list[Item], lent $opening: std::map[str.utf8, i32], lent $stock: std::map[str.utf8, i32], lent $points: std::map[str.utf8, i32]] {
-    std::print.useful(newln, "=== ", $shop_name, ", end of day ===", newln);
+    # the report goes out through a writer of its own, its lines kept whole and sent together (owner, 2026-10-23/24)
+    let mut $out := std::print.writer(size: 4096 bytes);
+    std::print.useful(lend.mut $out, newln, "=== ", $shop_name, ", end of day ===", newln);
 
     # Orders and units
     let $units: std::list[i32] = std::list.empty;
@@ -377,14 +397,14 @@ fn report [lent $sales: std::list[Sale], lent $items: std::list[Item], lent $ope
         std::list.append(lend.mut $units, value: $s.units);
         change $takings = $takings + $s.total;
     }
-    std::print.useful("orders served: ", std::list.length(lend $sales), ", units sold: ", total_of(lend $units), newln);
-    std::print.format("takings: {:.2}\n", $takings);
+    std::print.useful(lend.mut $out, "orders served: ", std::list.length(lend $sales), ", units sold: ", total_of(lend $units), newln);
+    std::print.format(lend.mut $out, "takings: {:.2}\n", $takings);
 
     # The biggest baskets, by units: the first three of the list sorted largest first
     let $ranked := sorted_down(lend $units);
     if std::list.length(lend $ranked) at_least 3 {
         let $top := std::list.slice(lend $ranked, from: pos 1, to: pos 3);
-        std::print.useful("biggest baskets (units): ", $top, newln);
+        std::print.useful(lend.mut $out, "biggest baskets (units): ", $top, newln);
     }
 
     # The best sale of the day
@@ -398,29 +418,30 @@ fn report [lent $sales: std::list[Sale], lent $items: std::list[Item], lent $ope
             change $best_customer = copy $s.customer;
         }
     }
-    std::print.format("best sale: #{}, {}, {:.2}\n", $best_ticket, $best_customer, $best_total);
+    std::print.format(lend.mut $out, "best sale: #{}, {}, {:.2}\n", $best_ticket, $best_customer, $best_total);
 
     # Takings by aisle, counted from what left the shelves (at list price, before discounts)
-    std::print.useful("by aisle, at list price:", newln);
+    std::print.useful(lend.mut $out, "by aisle, at list price:", newln);
     let $aisles := [Aisle.fresh, Aisle.bakery, Aisle.pantry, Aisle.household];
     for $a in lend $aisles {
-        std::print.format("  {:<10} {:>8.2}\n", aisle_name(copy $a), takings_by_aisle(lend $items, lend $opening, lend $stock, copy $a));
+        std::print.format(lend.mut $out, "  {:<10} {:>8.2}\n", aisle_name(copy $a), takings_by_aisle(lend $items, lend $opening, lend $stock, copy $a));
     }
 
     # Reorders
     let $reorder := reorder_list(lend $items, lend $stock);
     if std::list.length(lend $reorder) equal_to 0 {
-        std::print.useful("nothing to reorder", newln);
+        std::print.useful(lend.mut $out, "nothing to reorder", newln);
     } else {
-        std::print.useful("reorder: ", std::str.join(lend $reorder, between: ", "), newln);
+        std::print.useful(lend.mut $out, "reorder: ", std::str.join(lend $reorder, between: ", "), newln);
     }
 
     # Loyalty points, for the customers who were served
-    std::print.useful("loyalty points:", newln);
+    std::print.useful(lend.mut $out, "loyalty points:", newln);
     for $s in lend $sales {
         let $p := std::map.get(lend $points, key: copy $s.customer) otherwise 0;
-        std::print.format("  {:<5} {:>3}\n", $s.customer, $p);
+        std::print.format(lend.mut $out, "  {:<5} {:>3}\n", $s.customer, $p);
     }
+    std::print.flush(lend.mut $out);
 }
 
 # ---------------------------------------------------------------------------------------------------
@@ -459,20 +480,12 @@ fn count_shelves [lent $items: std::list[Item], lent $stock: std::map[str.utf8, 
 # Looking things up: finding catalog items by what their name starts with or contains
 # ---------------------------------------------------------------------------------------------------
 
-fn names_starting [lent $items: std::list[Item], lent $start: str.utf8] -> std::list[str.utf8] {
+# The names a test keeps (functions as values): the test is a short lambda written where it is used, one value after
+# `=`, its types those of `fn[str.utf8] -> bool` (owner, 2026-10-24), and what it sees of the caller listed in `with`.
+fn names_where [lent $items: std::list[Item], $keep: fn[str.utf8] -> bool] -> std::list[str.utf8] {
     let $out: std::list[str.utf8] = std::list.empty;
     for $it in lend $items {
-        if std::str.starts_with(lend $it.name, part: lend $start) {
-            std::list.append(lend.mut $out, value: copy $it.name);
-        }
-    }
-    return give $out;
-}
-
-fn names_containing [lent $items: std::list[Item], lent $part: str.utf8] -> std::list[str.utf8] {
-    let $out: std::list[str.utf8] = std::list.empty;
-    for $it in lend $items {
-        if std::str.contains(lend $it.name, part: lend $part) {
+        if $keep(copy $it.name) {
             std::list.append(lend.mut $out, value: copy $it.name);
         }
     }
@@ -483,14 +496,14 @@ fn show_search [lent $items: std::list[Item]] {
     std::print.useful(newln, "searching the catalog:", newln);
     let $starts := ["b", "c", "z"];
     for $s in lend $starts {
-        let $found := names_starting(lend $items, lend $s);
+        let $found := names_where(lend $items, fn [$n] with [lend $s] = std::str.starts_with(lend $n, part: lend $s));
         if std::list.length(lend $found) equal_to 0 {
             std::print.useful("  nothing starts with \"", $s, "\"", newln);
         } else {
             std::print.useful("  starting with \"", $s, "\": ", std::str.join(lend $found, between: ", "), newln);
         }
     }
-    let $has_an := names_containing(lend $items, "an");
+    let $has_an := names_where(lend $items, fn [$n] = std::str.contains(lend $n, part: "an"));
     std::print.useful("  containing \"an\": ", std::str.join(lend $has_an, between: ", "), newln);
     let $loud := std::str.upper.full($shop_name);
     std::print.useful("  the sign over the door says ", $loud, newln);
@@ -646,31 +659,13 @@ MAIN {
     std::print.useful(newln);
     let $tickets := Ticket[now = 100, last = 199];
     for $order in lend $orders {
-        check_order(lend $items, lend $stock, lend $order) otherwise {
-            out_of_stock $what {
-                std::print.useful("  sorry, ", $order.customer, ": not enough ", $what, newln, newln);
-                continue;
-            }
-            unknown_item $what {
-                std::print.useful("  sorry, ", $order.customer, ": we do not sell ", $what, newln, newln);
-                continue;
-            }
-        };
+        check_order(lend $items, lend $stock, lend $order) otherwise order_failed.apologize(customer: copy $order.customer);
         let $n := Ticket.next(lend.mut $tickets);
         let $ticket := match $n {
             value $number { is $number; }
             none { is 0; }
         };
-        let $sale := take_order(lend $items, lend.mut $stock, lend $order, $ticket) otherwise {
-            out_of_stock $what {
-                std::print.useful("  sorry, ", $order.customer, ": not enough ", $what, newln, newln);
-                continue;
-            }
-            unknown_item $what {
-                std::print.useful("  sorry, ", $order.customer, ": we do not sell ", $what, newln, newln);
-                continue;
-            }
-        };
+        let $sale := take_order(lend $items, lend.mut $stock, lend $order, $ticket) otherwise order_failed.apologize(customer: copy $order.customer);
         add_points(lend.mut $points, lend $sale);
         std::list.append(lend.mut $sales, value: give $sale);
         std::print.useful(newln);
