@@ -80,14 +80,13 @@ this one, and what it does not define yet, `print` and `exit`, is still KAYO's R
   proven by layer 3 ("no input reaches it with a bad value"), so they hold for any text this program
   reads but rest on the calls it makes (it calls `str.at` only at position 2). 2 are proven because
   "the position is always inside".
-- The case changes (2026-10-24, KAYO 22eb479f), over 54 texts chosen for their edges (`ß`, `ŉ`, `ǅ`,
-  `ﬀ`, `İ`, Greek sigma beside apostrophes and accents, `I` and `j` with marks above and below): `.ascii`,
-  `.simple` and `.full` match the oracle's built-in std in the oracle and through KAYO, but for three final
-  sigmas, where the oracle's stand-in looks only at the next letter (`ΑΣ'Α` is `ασ'α`, as Rust and Python
-  give too). With `lang:`, in the oracle only, they match but for those sigmas and 11 answers, each where
-  the stand-in approximates (`I` with a dot above lowers to `i` in `tr`; `lt` skips marks below); KAYO
-  cannot name `std::casing.tr` yet. `.full` without `lang:`, with the text read from the command line:
-  every one of std's sites proven, none checked at run time.
+- The case changes (2026-10-24, KAYO 2a0b244f, oracle d5416597), over 54 texts chosen for their edges
+  (`ß`, `ŉ`, `ǅ`, `ﬀ`, `İ`, Greek sigma beside apostrophes and accents, `I` and `j` with marks above and
+  below): `.ascii`, `.simple` and `.full`, with and without `lang:`, give the oracle's built-in std's 756
+  answers in the oracle and through KAYO, but for `ʰΣ` and `ΑΣʰ` (the Final_Sigma pick below). With the
+  text read from the command line, `.full` with and without `lang:`: every one of std's sites proven, none
+  checked at run time. `examples/keys.cy` and `collections.cy`, built by KAYO against this folder, print
+  their `.out`.
 - An empty `part`, `at` or `from` is refused when building if written, and stops the program where it
   is passed if worked out at run time (exit 101), as the oracle does.
 
@@ -111,5 +110,6 @@ Each is a choice the record does not settle, dated, with the alternative. Each i
   as design claude picked for the oracle (its README). The alternative: no version without `lang:`, so every
   full case change names its language.
 - **2026-10-24 — Final_Sigma as Unicode writes it** (3.13, Table 3-17): a letter that is both cased and
-  case-ignorable (`ʰ`, U+0345) counts as cased, so `ʰΣ` lowers to `ʰς` and `ΑΣʰ` to `ασʰ`, as the oracle's
-  stand-in gives. ICU, Rust and Python skip it as case-ignorable first (`ʰσ`, `αςʰ`).
+  case-ignorable (`ʰ`, U+0345) counts as cased, so `ʰΣ` lowers to `ʰς` and `ΑΣʰ` to `ασʰ`. ICU, Rust and
+  Python skip it as case-ignorable first (`ʰσ`, `αςʰ`), and so does the oracle since d5416597, so the two
+  differ on these until the owner decides.
