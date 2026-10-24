@@ -756,7 +756,9 @@ impl Checker {
                     AK::Name(q) => format!("'{}'", q.name),
                     _ => "…".to_string(),
                 };
-                return err(Diagnostic::error(format!("only a literal takes a type with `:` here (`5: u8`); convert a variable: `to.{}({})`", tname, what)).named("typed_literal_form").at(value.span));
+                // `$x: u8`: `to.u8($x)`, the conversion the message names.
+                let typed = Span::new(value.span.file, value.span.end as usize, value.span.end as usize + 2 + tname.len());
+                return err(Diagnostic::error(format!("only a literal takes a type with `:` here (`5: u8`); convert a variable: `to.{}({})`", tname, what)).named("typed_literal_form").at(value.span).fix_edit(value.span, Edit::Wrap, format!("to.{}", tname)).fix_also(typed, Edit::Replace, ""));
             }
         };
         let written = format!("{}{}{}", if exact { "exactly " } else { "" }, if neg { "-" } else { "" }, text);
@@ -1353,14 +1355,14 @@ impl Checker {
                     if lt.is_char() && rt.is_text() || lt.is_char() && rt.is_char() {
                         // a char joins as text
                     } else if lt.is_numeric() {
-                        return err(Diagnostic::error(format!("`concat` joins text, and its left side is {}: convert it first — `to.str.utf8(…) concat …`", article(&self.spell(&lt)))).named("concat_needs_text").at(lhs.span));
+                        return err(Diagnostic::error(format!("`concat` joins text, and its left side is {}: convert it first — `to.str.utf8(…) concat …`", article(&self.spell(&lt)))).named("concat_needs_text").at(lhs.span).fix_edit(lhs.span, Edit::Wrap, "to.str.utf8"));
                     } else {
                         return err(Diagnostic::error(format!("`concat` joins text, and its left side is {}", crate::types::a_type(&self.spell(&lt)))).named("concat_needs_text").at(lhs.span));
                     }
                 }
                 if !rt.is_text() && !rt.is_char() {
                     if rt.is_numeric() {
-                        return err(Diagnostic::error(format!("`concat` joins text, and its right side is {}: convert it first — `… concat to.str.utf8(…)`", article(&self.spell(&rt)))).named("concat_needs_text").at(rhs.span));
+                        return err(Diagnostic::error(format!("`concat` joins text, and its right side is {}: convert it first — `… concat to.str.utf8(…)`", article(&self.spell(&rt)))).named("concat_needs_text").at(rhs.span).fix_edit(rhs.span, Edit::Wrap, "to.str.utf8"));
                     }
                     return err(Diagnostic::error(format!("`concat` joins text, and its right side is {}", crate::types::a_type(&self.spell(&rt)))).named("concat_needs_text").at(rhs.span));
                 }
@@ -2466,7 +2468,7 @@ impl Checker {
                 Some(Box::new(self.value_arg(v)))
             }
             (None, Some(t)) => return err(Diagnostic::error(format!("`{}.{}` carries {}: write `{}.{}(…)` with the value", info.name, case.name, crate::types::a_type(&self.spell(&t)), info.name, case.name)).named("data_missing").at(span)),
-            (Some(_), None) => return err(Diagnostic::error(format!("`{}.{}` carries nothing; write it bare — `{}.{}`", info.name, case.name, info.name, case.name)).named("carries_nothing").at(span)),
+            (Some(_), None) => return err(Diagnostic::error(format!("`{}.{}` carries nothing; write it bare — `{}.{}`", info.name, case.name, info.name, case.name)).named("carries_nothing").at(span).fix_edit(span, Edit::Replace, format!("{}.{}", info.name, case.name))),
         };
         self.kept_bounds(&info.name, &info.blanks, &info.bounds, &args, span)?;
         Ok(Expr { kind: K::EnumCase { id, case: ci, payload }, ty: Ty::Enum { id, args }, span })
@@ -2720,7 +2722,14 @@ impl Checker {
             Ok(i) => i,
             Err(e) => {
                 if path.segs.len() == 1 && path.kit.is_none() && self.items.ops.contains_key(path.head()) {
-                    return err(Diagnostic::error(format!("`{}` is an operator; it goes between two values: `$a {} $b`, never `{}(…)`", path.head(), path.head(), path.head())).named("operator_called_as_function").at(span));
+                    let d = Diagnostic::error(format!("`{}` is an operator; it goes between two values: `$a {} $b`, never `{}(…)`", path.head(), path.head(), path.head())).named("operator_called_as_function").at(span);
+                    // `op(a, b)`: `a op b`.
+                    if let [a, b] = args {
+                        let (a, b) = (a.span(), b.span());
+                        let cut = |from: u32, to: u32| Span::new(span.file, from as usize, to as usize);
+                        return err(d.fix_edit(cut(span.start, a.start), Edit::Replace, "").fix_also(cut(a.end, b.start), Edit::Replace, format!(" {} ", path.head())).fix_also(cut(b.end, span.end), Edit::Replace, ""));
+                    }
+                    return err(d);
                 }
                 if path.segs.len() == 1 && path.kit.is_none() && args.iter().any(|a| matches!(a, AArg::Named(..))) && e.sentence.starts_with("there is no") {
                     return err(Diagnostic::error(format!("there is no struct named `{}` here", path.head())).named("unknown_struct").at(path.span).fix_close(path.span, path.head(), self.items.structs.iter().map(|s| s.name.as_str())));
@@ -3263,7 +3272,7 @@ impl Checker {
                     }
                     _ => out.push(FlatArg::One(e.clone())),
                 },
-                AArg::Named(n, _) => return err(Diagnostic::error(format!("`{} = …` names a field, but this is a call: arguments are values in order", n.name)).named("field_name_in_call").at(n.span)),
+                AArg::Named(n, v) => return err(Diagnostic::error(format!("`{} = …` names a field, but this is a call: arguments are values in order", n.name)).named("field_name_in_call").at(n.span).fix_edit(Span::new(n.span.file, n.span.start as usize, v.span.start as usize), Edit::Replace, "")),
                 AArg::Pair(k, _) => return err(Diagnostic::error("`key = value` pairs belong in a `map[…]` literal, not a call").named("field_name_in_call").at(k.span)),
             }
         }

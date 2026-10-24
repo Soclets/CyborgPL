@@ -348,7 +348,7 @@ impl Checker {
                     Some(t) => {
                         if let (hir::ExprKind::List(items), Ty::Seq { kind: SeqKind::Array, .. }) = (&v.kind, self.resolve(t).base()) {
                             if items.is_empty() {
-                                return err(Diagnostic::error(format!("an empty `array` could never be filled: an array is fixed at the size it was made with — make '{}' a `list`, or give it its elements", name.name)).named("array_never_filled").at(value.span));
+                                return err(Diagnostic::error(format!("an empty `array` could never be filled: an array is fixed at the size it was made with — make '{}' a `list`, or give it its elements", name.name)).named("array_never_filled").at(value.span).fix_edit(ty.as_ref().map_or(value.span, |w| w.span), Edit::Swap(vec!["array".into()]), "list"));
                             }
                         }
                         // Or the declared type is the value's: `let $n: d64 = …`.
@@ -818,7 +818,7 @@ impl Checker {
             }
             ast::ForIter::Over(e) => {
                 if ty.is_some() {
-                    return err(Diagnostic::error("a list loop's variable takes no type: each element's type is the list's").named("loop_variable_typed").at(name.span));
+                    return err(Diagnostic::error("a list loop's variable takes no type: each element's type is the list's").named("loop_variable_typed").at(name.span).fix_edit(crate::source::Span::new(name.span.file, name.span.end as usize, ty.as_ref().map_or(name.span.end, |t| t.span.end) as usize), Edit::Replace, ""));
                 }
                 let it = self.expr(ctx, e)?;
                 let it_ty = self.resolve(&it.ty);

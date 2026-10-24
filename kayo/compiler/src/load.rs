@@ -952,10 +952,10 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             };
             // MTM's ID is retired (owner, 2026-10-07: "MTM is gone.").
             if i.value == crate::ast::MTM_ID {
-                return err(Diagnostic::error("the limb `9c6c7730…` is MTM, which is gone since 2026-10-07: every spelling it held is an old one now — take it out of `my limbs:`").named("limb_retired").at(i.value_span));
+                return err(Diagnostic::error("the limb `9c6c7730…` is MTM, which is gone since 2026-10-07: every spelling it held is an old one now — take it out of `my limbs:`").named("limb_retired").at(i.value_span).fix_edit(i.value_span, crate::diag::Edit::DeleteLine, ""));
             }
             if let Some((n, _, when)) = crate::ast::RETIRED_CORES.iter().find(|(_, rid, _)| *rid == i.value) {
-                return err(Diagnostic::error(format!("{} is retired: since {} it is part of the base; take it out of `my limbs:`", n, when)).named("limb_retired").at(i.value_span));
+                return err(Diagnostic::error(format!("{} is retired: since {} it is part of the base; take it out of `my limbs:`", n, when)).named("limb_retired").at(i.value_span).fix_edit(i.value_span, crate::diag::Edit::DeleteLine, ""));
             }
             if let Some((n, _)) = crate::ast::BROCA_CORES.iter().find(|(_, rid)| *rid == i.value) {
                 return err(Diagnostic::error(format!("{} is part of unicode since 2026-10-12: list `unicode` instead: `{}`", n, crate::ast::core_line("unicode"))).named("limb_retired").at(i.value_span));
@@ -964,7 +964,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                 return err(Diagnostic::error(format!("the limb `{}…` is not an official one; loading another limb is not built yet (a limb, which kayo cannot load yet)", &i.value[..i.value.len().min(8)])).named("not_built_yet").at(i.value_span));
             };
             if !b.name.eq_ignore_ascii_case(n) {
-                return err(Diagnostic::error(format!("this id is the limb `{}`'s, so its block is `{} {{ … }}`, not `{}`", n.to_lowercase(), n.to_lowercase(), b.name)).named("manifest_limb_block_name").at(b.span));
+                return err(Diagnostic::error(format!("this id is the limb `{}`'s, so its block is `{} {{ … }}`, not `{}`", n.to_lowercase(), n.to_lowercase(), b.name)).named("manifest_limb_block_name").at(b.span).fix_edit(b.span, crate::diag::Edit::Swap(vec![b.name.clone()]), n.to_lowercase()));
             }
             let Some(v) = ver else {
                 return err(Diagnostic::error("a limb needs its `ver`, as a registry kit does").named("manifest_field_missing").at(b.span));
@@ -1087,7 +1087,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                 "default" => match p.value.as_str() {
                     "yes" => defaults.push((b, p.key_span)),
                     "no" => said_not = true,
-                    _ => return err(Diagnostic::error("a target's `default` is `yes` or `no`").named("manifest_value_form").at(p.value_span)),
+                    _ => return err(Diagnostic::error("a target's `default` is `yes` or `no`").named("manifest_value_form").at(p.value_span).fix_edit(p.value_span, crate::diag::Edit::Replace, "yes").fix_edit(p.value_span, crate::diag::Edit::Replace, "no")),
                 },
                 // The largest table Precog may make, in bytes (owner,
                 // 2026-10-19).
@@ -1141,7 +1141,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
 fn known_power(power: &kayo_base::powers::Power, at: crate::source::Span) -> Result<()> {
     let known: &[&[&str]] = &[&["inline_assembly"], &["c_calls"], &["c_calls", "functions"], &["c_calls", "variables"], &["raw_memory"], &["raw_memory", "read"], &["raw_memory", "write"], &["raw_memory", "cast"], &["vouch"], &["vouch", "c"], &["operators_on_builtin_types"], &["prefix_operators"]];
     if !known.iter().any(|k| k.iter().copied().eq(power.path.iter().map(String::as_str))) {
-        return err(Diagnostic::error(format!("there is no power `{}`: the powers are {}", power.path.join("."), known.iter().map(|k| format!("`{}`", k.join("."))).collect::<Vec<_>>().join(", "))).named("unknown_power").at(at));
+        return err(Diagnostic::error(format!("there is no power `{}`: the powers are {}", power.path.join("."), known.iter().map(|k| format!("`{}`", k.join("."))).collect::<Vec<_>>().join(", "))).named("unknown_power").at(at).fix_close(at, &power.path.join("."), known.iter().map(|k| k.join(".")).collect::<Vec<_>>().iter().map(String::as_str)));
     }
     Ok(())
 }

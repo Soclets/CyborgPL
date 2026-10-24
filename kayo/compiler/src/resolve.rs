@@ -1354,7 +1354,7 @@ impl Items {
                     return Ok(Ty::Bounded { inner: Box::new(Ty::Seq { elem: elem.clone(), kind: SeqKind::CStr(*include) }), bound: Bound::Len { lo: l, hi: h, unit: Some(Unit::Byte) } });
                 }
                 if let Some((_, at)) = zero {
-                    return err(Diagnostic::error("`exclude zero` and `include zero` are for a C string's bound, `C.str[max: 255 bytes, exclude zero]`").named("cnc::c_str_zero_misplaced").at(*at));
+                    return err(Diagnostic::error("`exclude zero` and `include zero` are for a C string's bound, `C.str[max: 255 bytes, exclude zero]`").named("cnc::c_str_zero_misplaced").at(*at).fix_edit(*at, crate::diag::Edit::Swap(vec![", exclude zero".into(), ", include zero".into()]), ""));
                 }
                 if let Some(values) = old {
                     // Whether it takes a bound comes before how one is
@@ -1390,7 +1390,7 @@ impl Items {
         let bound = match &base {
             Ty::Int(_) => {
                 if let Some(u) = unit {
-                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).named("bound_unit_misplaced").at(u.span));
+                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).named("bound_unit_misplaced").at(u.span).fix_edit(u.span, crate::diag::Edit::Swap(vec![format!(" {}", u.name)]), ""));
                 }
                 // `min` and `max` are the base type's own limits
                 // (`input.md`, one-ended ranges): `i8[1, max]` is 1 to 127.
@@ -1431,7 +1431,7 @@ impl Items {
             }
             Ty::Bin(_) => {
                 if let Some(u) = unit {
-                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).named("bound_unit_misplaced").at(u.span));
+                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).named("bound_unit_misplaced").at(u.span).fix_edit(u.span, crate::diag::Edit::Swap(vec![format!(" {}", u.name)]), ""));
                 }
                 // The largest finite value of each width; a bound past it
                 // is no value of the type (owner, 2026-09-23).
@@ -1477,7 +1477,7 @@ impl Items {
             // written with a point, and each is a value of the width.
             Ty::Deci(bits) => {
                 if let Some(u) = unit {
-                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).named("bound_unit_misplaced").at(u.span));
+                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).named("bound_unit_misplaced").at(u.span).fix_edit(u.span, crate::diag::Edit::Swap(vec![format!(" {}", u.name)]), ""));
                 }
                 for e in [lo, hi] {
                     if let ast::ExprKind::Path(p) = &e.kind {
@@ -1658,7 +1658,7 @@ impl Items {
             // hold, it claims nothing about (`Domain::of_ty`).
             if let Some(t) = primitive(head) {
                 if path.segs.len() > 1 {
-                    return err(Diagnostic::error(format!("`{}` takes no narrowing: `{}` is already a complete type", path.spelled(), head)).named("narrowing_not_taken").at(span));
+                    return err(Diagnostic::error(format!("`{}` takes no narrowing: `{}` is already a complete type", path.spelled(), head)).named("narrowing_not_taken").at(span).fix_edit(span, crate::diag::Edit::Swap(vec![path.spelled()]), head.to_string()));
                 }
                 no_args(head)?;
                 return Ok(t);
@@ -1694,7 +1694,7 @@ impl Items {
                         other => return err(Diagnostic::error(format!("`str.{}` is not an encoding: `utf8`, `utf16`, `utf32` or `ascii`", other)).named("unknown_text_unit").at(span).fix_swap_close(span, "str", other, ["utf8", "utf16", "utf32", "ascii"])),
                     };
                     if path.segs.len() > 2 {
-                        return err(Diagnostic::error(format!("`{}` narrows too far: `str.{}` is the whole type", path.spelled(), enc)).named("narrowing_not_taken").at(span));
+                        return err(Diagnostic::error(format!("`{}` narrows too far: `str.{}` is the whole type", path.spelled(), enc)).named("narrowing_not_taken").at(span).fix_edit(span, crate::diag::Edit::Swap(vec![path.spelled()]), format!("str.{}", enc)));
                     }
                     return Ok(Ty::Str(e));
                 }
@@ -1837,7 +1837,7 @@ impl Items {
             ItemRef::Struct(id) => {
                 let info = &self.structs[id.0 as usize];
                 if info.opaque && !pointee {
-                    return err(Diagnostic::error(format!("`{n}` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[{n}]`, never held", n = info.name)).named("cnc::opaque_struct_held").at(span));
+                    return err(Diagnostic::error(format!("`{n}` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[{n}]`, never held", n = info.name)).named("cnc::opaque_struct_held").at(span).fix_edit(span, crate::diag::Edit::Replace, format!("ptr.mut[{}]", info.name)));
                 }
                 let targs = self.type_args(args, &info.blanks, &info.name, m, blanks, allow_blanks, span)?;
                 Ok(Ty::Struct { id, args: targs })

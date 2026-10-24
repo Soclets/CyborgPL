@@ -1065,7 +1065,7 @@ impl<'a> Parser<'a> {
         if self.at_case_mark() {
             let (mark, at) = self.case_mark()?;
             if self.is_word("pub") {
-                return self.fail_at_n(at, "unicode::case_mark_order", format!("`pub` comes first: `pub {} fn …`", case_spelled(mark)));
+                return self.fail_at_n(at, "unicode::case_mark_order", format!("`pub` comes first: `pub {} fn …`", case_spelled(mark))).map_err(|d| Box::new(d.fix_edit(at, Edit::TextOf(self.span()), "").fix_also(self.span(), Edit::TextOf(at), "")));
             }
             if self.is(&Tok::LBracket) {
                 return self.fail_at_n(at, "unicode::case_mark_misplaced", "a `case` mark on kinds (`case.any [fn, struct];`) covers the whole kit, so it is written in `kit.cy`");
@@ -1580,7 +1580,7 @@ impl<'a> Parser<'a> {
                 // `extern` names its language (owner, 2026-10-02): `extern.C`,
                 // a line or a block.
                 if !self.eat(&Tok::Dot) {
-                    return self.fail_n("cnc::extern_language_unsaid", "`extern` names its language: `extern.C fn exit [$code: i32];`, or a block, `extern.C { … }`");
+                    return self.fail_n("cnc::extern_language_unsaid", "`extern` names its language: `extern.C fn exit [$code: i32];`, or a block, `extern.C { … }`").with_fix(Span::new(self.prev_span().file, self.prev_span().end as usize, self.prev_span().end as usize), Edit::Insert, ".C");
                 }
                 let lang = self.ident("the language after `extern.`")?;
                 match lang.name.as_str() {
@@ -3233,7 +3233,7 @@ impl<'a> Parser<'a> {
                         kind = if self.eat_word("mut") { ParamKind::LentMut } else { ParamKind::Lent };
                     }
                     if let Tok::Name(n) = self.peek().clone() {
-                        return self.fail_n("function_type_form", format!("a function type has no parameter names: `fn[i32] -> bool`, not `fn[${}: i32]` — it is the signature without the names", n));
+                        return self.fail_n("function_type_form", format!("a function type has no parameter names: `fn[i32] -> bool`, not `fn[${}: i32]` — it is the signature without the names", n)).with_fix(Self::cut(self.span(), self.span_at(2)), Edit::Replace, "");
                     }
                     let ty = self.type_()?;
                     params.push(FnTypeParam { kind, amp, ty });
@@ -3802,11 +3802,11 @@ impl<'a> Parser<'a> {
                 // then "(a)"): the stronger word, and the unchecked part is
                 // what a reader sees first.
                 if self.is_word("check") {
-                    return self.fail_n("tier_words_order", "`check` comes first: the check word always comes before `no_cheat`: `check no_cheat …` (owner, 2026-10-19)");
+                    return self.fail_n("tier_words_order", "`check` comes first: the check word always comes before `no_cheat`: `check no_cheat …` (owner, 2026-10-19)").map_err(|d| Box::new(d.fix_edit(self.prev_span(), Edit::TextOf(self.span()), "").fix_also(self.span(), Edit::TextOf(self.prev_span()), "")));
                 }
                 if self.is_word("nocheck") || self.is_word("NO_FUCKING_CHECKS") {
                     let t = if self.is_word("nocheck") { "no_check".to_string() } else { self.word_text() };
-                    return self.fail_n("tier_words_order", format!("`{}` comes first, the stronger word: `{} no_cheat …` (owner, 2026-10-19)", t, t));
+                    return self.fail_n("tier_words_order", format!("`{}` comes first, the stronger word: `{} no_cheat …` (owner, 2026-10-19)", t, t)).map_err(|d| Box::new(d.fix_edit(self.prev_span(), Edit::TextOf(self.span()), "").fix_also(self.span(), Edit::TextOf(self.prev_span()), "")));
                 }
                 if self.is_word("fn") || self.is_word("struct") || self.is_word("const") || self.is_word("module") || self.is_word("enum") {
                     return self.fail_n("check_misplaced", format!("`no_cheat` covers a statement, not a `{}`", self.word_text()));
@@ -4654,7 +4654,7 @@ impl<'a> Parser<'a> {
                     // `op x` is `op times`; `xx` is std's `pow`, declared
                     // by its word (owner, 2026-10-16).
                     "x" => BinOp::Mul,
-                    "xx" => return self.fail_at_n(at, "operator_value_form", "`xx` is the language's spelling of std's `pow`, which is not declared again: `op pow` is the operator as a value"),
+                    "xx" => return self.fail_at_n(at, "operator_value_form", "`xx` is the language's spelling of std's `pow`, which is not declared again: `op pow` is the operator as a value").with_fix(at, Edit::Replace, "pow"),
                     "less_than" => BinOp::Lt,
                     "greater_than" => BinOp::Gt,
                     "plus" | "minus" | "times" | "pow" => {

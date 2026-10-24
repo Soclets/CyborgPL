@@ -3412,7 +3412,7 @@ pub fn refusals_opts(a: &Analysis, p: &Program, sources: &crate::source::SourceM
             .named(if site.tier == Some(Tier::Check) { "check_not_enough" } else { site.name() })
             .at(f.span(site.span))
             .when(counterexample.trim_start_matches("every time: ").to_string());
-        d = check_fixes(d, &site.kind, f.span(site.span), sources);
+        d = check_fixes(d, &site.kind, site.result_ty.as_ref(), f.span(site.span), sources);
         if !f.name.is_empty() && f.name != "MAIN" {
             d = d.place(format!("in `{}`", f.name));
         }
@@ -4214,7 +4214,7 @@ fn layer3(p: &Program, r: &SiteResult, facts: &Facts, portfolio: &smt::Portfolio
 /// it is in, under an `if` that says what keeps it safe, where the code is
 /// one kayo can read back — a position into a named list, a division by a
 /// value written there.
-fn check_fixes(d: crate::diag::Diagnostic, kind: &SiteKind, span: crate::source::Span, sources: &crate::source::SourceMap) -> crate::diag::Diagnostic {
+fn check_fixes(d: crate::diag::Diagnostic, kind: &SiteKind, result_ty: Option<&Ty>, span: crate::source::Span, sources: &crate::source::SourceMap) -> crate::diag::Diagnostic {
     use crate::diag::Edit;
     let code = sources.get(span.file).slice(span).trim();
     let simple = |t: &str| !t.is_empty() && !t.contains(['\n', ';', '{', '}']);
@@ -4232,6 +4232,26 @@ fn check_fixes(d: crate::diag::Diagnostic, kind: &SiteKind, span: crate::source:
                 return d;
             }
             format!("if ({at} at_least 1) and ({at} at_most std::list.length(lend {list})) {{")
+        }
+        // A `shr`'s count, under the type's width (a `shl`'s site asks of
+        // the value too, which a guard on the count does not answer).
+        SiteKind::ShiftCount => {
+            let Some(Ty::Int(crate::types::IntW::Fixed { bits, .. })) = result_ty.map(|t| t.base()) else { return d };
+            let Some(at) = [" shl ", " shr "].iter().filter_map(|w| code.rfind(w)).max() else { return d };
+            let count = code[at + 5..].trim_end_matches(';').trim();
+            if !simple(count) || count.contains(['(', '[', ' ']) {
+                return d;
+            }
+            format!("if {count} < {} {{", bits & !crate::types::EXACT_FLAG)
+        }
+        // A duration taken past zero: the larger first.
+        SiteKind::Narrow { to } if *to == Ty::Duration => {
+            let Some((a, b)) = code.split_once(" minus ").or_else(|| code.split_once(" - ")) else { return d };
+            let (a, b) = (a.trim(), b.trim_end_matches(';').trim());
+            if !simple(a) || !simple(b) || a.contains(['(', ' ', '=']) || b.contains(['(', ' ']) {
+                return d;
+            }
+            format!("if {a} at_least {b} {{")
         }
         // `let $x: i8 = 300;`: the narrowest type of its sign that holds it.
         SiteKind::Narrow { to } => {
