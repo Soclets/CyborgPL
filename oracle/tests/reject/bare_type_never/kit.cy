@@ -1,3 +1,3 @@
 MAIN {
-    let 't' := Tally[n = 1];
+    let $t := Tally[n = 1];
 }

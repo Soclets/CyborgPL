@@ -1,3 +1,3 @@
 MAIN {
-    std::print.useful[formal[], newln];
+    std::print.useful(formal(), newln);
 }

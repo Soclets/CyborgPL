@@ -1,3 +1,3 @@
 MAIN {
-    let 'xs' := [ptr.null, ptr.null];
+    let $xs := [ptr.null, ptr.null];
 }

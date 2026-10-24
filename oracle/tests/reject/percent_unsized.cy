@@ -1,3 +1,3 @@
 MAIN {
-    let 'r': percent = exactly 7%;
+    let $r: percent = exactly 7%;
 }

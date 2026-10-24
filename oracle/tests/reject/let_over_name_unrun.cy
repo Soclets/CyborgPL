@@ -1,4 +1,4 @@
 MAIN {
-    let 'x' := 1;
-    if false { let 'x' := 2; }
+    let $x := 1;
+    if false { let $x := 2; }
 }

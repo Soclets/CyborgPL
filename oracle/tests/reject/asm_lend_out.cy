@@ -1,6 +1,6 @@
 MAIN {
-    let 'text' := "hi";
+    let $text := "hi";
     no_check inline.ASM {
         ldr x0, [x1]
-    } with [lend 'text' <- x1];
+    } with [lend $text <- x1];
 }

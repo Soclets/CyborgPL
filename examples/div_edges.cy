@@ -2,16 +2,16 @@
 # one, rounded as named (Python's `//` agrees); a remainder that rounds to the divisor itself is 0, so
 # it stays below the divisor, checked again at the type's own width (f32, brain16).
 MAIN {
-    let 'x': f64 = 0.00000000000000000001;
-    let 'n': f64 = -0.00000000000000000001;
-    let 'two': f64 = 2.0;
-    let 'turn': f64 = 360.0;
-    std::print.useful[('x' div.ceil 'two'), " ", ('x' mod.ceil 'two'), " ", ('n' div.floor 'turn'), " ", ('n' mod.floor 'turn'), newln];
-    let 'a': f32 = -0.000001;
-    let 'b': f32 = 360.0;
-    std::print.useful[('a' mod.floor 'b'), newln];
-    let 'h': brain16 = -1.0;
-    let 'k': brain16 = 360.0;
-    let 'one': brain16 = 1.0;
-    std::print.useful[('h' mod.floor 'k'), " ", ('one' mod.ceil 'k'), newln];
+    let $x: f64 = 0.00000000000000000001;
+    let $n: f64 = -0.00000000000000000001;
+    let $two: f64 = 2.0;
+    let $turn: f64 = 360.0;
+    std::print.useful(($x div.ceil $two), " ", ($x mod.ceil $two), " ", ($n div.floor $turn), " ", ($n mod.floor $turn), newln);
+    let $a: f32 = -0.000001;
+    let $b: f32 = 360.0;
+    std::print.useful(($a mod.floor $b), newln);
+    let $h: brain16 = -1.0;
+    let $k: brain16 = 360.0;
+    let $one: brain16 = 1.0;
+    std::print.useful(($h mod.floor $k), " ", ($one mod.ceil $k), newln);
 }

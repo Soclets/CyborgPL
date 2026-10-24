@@ -1,3 +1,3 @@
 MAIN {
-    let 'x' := my;
+    let $x := my;
 }

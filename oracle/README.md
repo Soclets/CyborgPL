@@ -112,6 +112,19 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
 - **Rounding** (owner, 2026-10-17): `round.near`, `round.half_up`, `round.floor`, `round.ceil`, `round.trunc`, each `[value]` or `[value, places: N]`, on a bin or a deci; `std::round`, `floor`, `ceil`, `trunc` refused as old spellings. `examples/round.cy`, reject tests `round_*`
 - **Typed literals** (owner, 2026-10-17): `5: u8`, the `:` on the literal alone; it must fit, refused when building otherwise; a variable is refused, naming `to.…[…]`. It runs as the conversion of a literal that fits. `examples/typed_literals.cy`, reject tests `typed_literal_*`
 
+- **Calls take `( )`, definitions keep `[ ]`; variables are `$name` or quoted** (owner, 2026-10-22; built 2026-10-24):
+  `twice(2)`, `std::print.useful("hi", newln)`, `$rule($price)`, `to.i32[min: 1, max: 99]($text)`; `fn twice [$n: i64]`.
+  The parser turns a call's `( … )` into its brackets where a name stands in a value's or a statement's place (after the
+  name, or after a `[ … ]` / `( … )` that follows it), marked, so the rest reads one kind; a call written `[ ]` is
+  refused naming `( )`, and `( )` where a struct is built or a position read is refused naming `[ ]`. `$total` and
+  `'total'` are one variable; `$` takes letters, digits and `_`; `$` alone is refused, and so are `$:=` / `$=` now,
+  as a `$` that starts no name. A message's code (between backticks) shows a plain name as `$name`.
+  `oracle --to-paren-calls <file | kit>` rewrites a program written before, calls and names, in the files under its own
+  folder (a refused program up to where it stopped; a `named` line, read only while generating, by hand). Design
+  claude's readings, not asked: `[ ]` stays on what describes or holds, `incl.bytes["…"]`, `incl.C.system["…"]`,
+  `size.of[T]`, `ptr.cast[T]` (its pointer in `( )`), `simd[T, count: N]`, `range[…]`, a preset's `[$word = "hi"]`,
+  `labels [ … ]`, `defaults [ … ]`, `fail reason[$v]`, a task's `with [ … ]`; `std::print.weird <- …` is unchanged.
+
 ## Provisional picks — the design has not decided these
 
 - **Versions, labels, defaults** (owner, 2026-10-21), design claude's picks: (a stopgap letting `std/` write versions as repeated lines ended 2026-10-22, when round.cy moved to `versions` blocks); `labels` and `defaults` are for the collection's own function only (not a member); a labelled first argument is read as a call's label, and a struct given `field: v` is told so when it runs. `examples/labels.cy`

@@ -1,1 +1,1 @@
-`!` is not an operator since 2026-10-07: a value's not is `not 'ready'`
+`!` is not an operator since 2026-10-07: a value's not is `not $ready`

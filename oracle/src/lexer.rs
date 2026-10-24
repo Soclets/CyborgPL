@@ -101,6 +101,11 @@ pub struct Token {
     /// an old spelling, as written, and the one that replaced it: refused everywhere since MTM, which
     /// kept them, is gone (owner, 2026-10-07: "MTM is gone.")
     pub mtm: Option<(String, &'static crate::spellings::Old)>,
+    /// a `[` or `]` that was written `(` or `)`, a call's (owner, 2026-10-22: "`( )` runs something"): the parser turns
+    /// a call's parentheses into its brackets, so the rest of it reads one kind
+    pub paren: bool,
+    /// where the token starts, in characters from the file's start (`oracle --to-paren-calls` rewrites from it)
+    pub at: usize,
 }
 
 #[derive(Debug)]
@@ -146,7 +151,8 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
     while i < chars.len() {
         let c = chars[i];
         let (tl, tc) = (line, col);
-        let push = |tok: Tok, toks: &mut Vec<Token>| toks.push(Token { tok, line: tl, col: tc, mtm: None });
+        let ti = i;
+        let push = |tok: Tok, toks: &mut Vec<Token>| toks.push(Token { tok, line: tl, col: tc, mtm: None, paren: false, at: ti });
 
         // whitespace
         if c == '\n' {
@@ -382,7 +388,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                     }
                     if k >= chars.len() { return err(bl, bc, "unclosed `asm {`".into()); }
                     for d in chars[i..=k].iter() { if *d == '\n' { line += 1; col = 1; } else { col += 1; } }
-                    toks.push(Token { tok: Tok::Raw(raw), line: bl, col: bc, mtm: None });
+                    toks.push(Token { tok: Tok::Raw(raw), line: bl, col: bc, mtm: None, paren: false, at: usize::MAX });
                     i = k + 1;
                 }
             }
@@ -412,10 +418,19 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
         if rest.starts_with("!mu") && chars[i..].iter().take(4).collect::<String>() == "!mut" && !chars.get(i + 4).map_or(false, |c| c.is_alphanumeric() || *c == '_') {
             push(Tok::Word("immut".into()), &mut toks); toks.last_mut().unwrap().mtm = mark("!mut"); i += 4; col += 4; continue;
         }
-        // shadowing is the word `shadow` in `let`'s place since 2026-10-08 (owner: "yea"): `$:=`, `$=` are old
-        if rest.starts_with("$:=") { push(Tok::ShadowWalrus, &mut toks); toks.last_mut().unwrap().mtm = mark("$:="); i += 3; col += 3; continue; }
-        if two == "$=" { push(Tok::ShadowEq, &mut toks); toks.last_mut().unwrap().mtm = mark("$="); i += 2; col += 2; continue; }
-        if c == '$' { return err(tl, tc, "`$` is not part of the language: a shadowing declaration is `shadow 'x' := …;` (owner, 2026-10-08)".into()); }
+        // `$total` is a variable, the same one as `'total'` (owner, 2026-10-22: "Why `$`? Even though, it requires a
+        // shift, it's easier to write"): letters, digits and `_`; a name with spaces or symbols keeps its quotes
+        if c == '$' {
+            let start = i + 1;
+            let mut j = start;
+            if j < chars.len() && (chars[j].is_alphabetic() || chars[j] == '_') {
+                while j < chars.len() && (chars[j].is_alphanumeric() || chars[j] == '_') { j += 1; }
+                push(Tok::Var(chars[start..j].iter().collect()), &mut toks);
+                col += j - i; i = j;
+                continue;
+            }
+            return err(tl, tc, "`$` starts a variable's name: `$total`; a name with spaces or symbols is quoted, `'total due'`".into());
+        }
         if two == "::" { push(Tok::ColonColon, &mut toks); i += 2; col += 2; continue; }
         if two == ":=" { push(Tok::Walrus, &mut toks); i += 2; col += 2; continue; }
         if c == ':' { push(Tok::Colon, &mut toks); i += 1; col += 1; continue; }
@@ -436,7 +451,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
             let std_word = matches!(chars[j..].iter().take(4).collect::<String>().as_str(), "std_" | "std.");
             if run == "!" && !std_word {
                 if chars.get(j).map_or(true, |c| c.is_whitespace()) { push(Tok::Word("not".into()), &mut toks); toks.last_mut().unwrap().mtm = mark("!"); i = j; col += 1; continue; }
-                return err(tl, tc, "`!` is not an operator since 2026-10-07: a value's not is `not 'ready'`".into());
+                return err(tl, tc, "`!` is not an operator since 2026-10-07: a value's not is `not $ready`".into());
             }
             if run == "!" && std_word {
                 push(Tok::Op("!".into()), &mut toks); toks.last_mut().unwrap().mtm = mark("!std."); i = j; col += 1; continue;
@@ -515,7 +530,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                     // `#strict` (owner, 2026-09-27): every check site's proof written in its own
                     // function. A compile-time rule about proofs, which the oracle has none of, so
                     // here it is recognised and changes nothing.
-                    toks.push(Token { tok: Tok::Strict, line: tl, col: tc, mtm: None });
+                    toks.push(Token { tok: Tok::Strict, line: tl, col: tc, mtm: None, paren: false, at: ti });
                     col += j - i; i = j; continue;
                 }
                 if word == "wl" {
@@ -548,7 +563,7 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
         push(single, &mut toks);
         i += 1; col += 1;
     }
-    toks.push(Token { tok: Tok::Eof, line, col, mtm: None });
+    toks.push(Token { tok: Tok::Eof, line, col, mtm: None, paren: false, at: chars.len() });
     Ok(toks)
 }
 

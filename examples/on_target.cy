@@ -10,17 +10,17 @@ on.target.os windows {
 
 MAIN {
     on.target aarch64-macos {
-        std::print.useful["built for aarch64-macos", newln];
+        std::print.useful("built for aarch64-macos", newln);
     } else on.target.chip x86_64 {
-        let 'n': i64 = 5;
-        no_check inline.ASM { neg rax } with ['n' -> rax, 'n' <- rax];   # never compiled here: x86 assembly
+        let $n: i64 = 5;
+        no_check inline.ASM { neg rax } with [$n -> rax, $n <- rax];   # never compiled here: x86 assembly
     } else {
-        std::print.useful["built for something else", newln];
+        std::print.useful("built for something else", newln);
     }
-    on.target.chip aarch64 { std::print.useful["an ARM chip, ", where[], newln]; }
+    on.target.chip aarch64 { std::print.useful("an ARM chip, ", where(), newln); }
     on.machine.chip aarch64 {
-        std::print.useful["running on ARM", newln];
+        std::print.useful("running on ARM", newln);
     } else {
-        std::print.useful["running elsewhere", newln];
+        std::print.useful("running elsewhere", newln);
     }
 }

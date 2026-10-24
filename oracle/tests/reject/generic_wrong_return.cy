@@ -1,4 +1,4 @@
-fn f <T: any> ['a': <T>] -> <T> { return "x"; }
+fn f <T: any> [$a: <T>] -> <T> { return "x"; }
 MAIN {
-    let 'x' := f[1];
+    let $x := f(1);
 }

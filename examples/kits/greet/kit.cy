@@ -17,8 +17,8 @@ pub struct Tally {
     n: i32
 }
 
-pub op merge ['a': Tally, 'b': Tally] -> Tally {
-    return Tally[n = 'a'.n + 'b'.n];
+pub op merge [$a: Tally, $b: Tally] -> Tally {
+    return Tally[n = $a.n + $b.n];
 }
 
 pub struct Note {
@@ -30,6 +30,6 @@ pub enum Tone {
     loud
 }
 
-pub op <+> ['a': Tally, 'b': Tally] -> Tally {
-    return Tally[n = 'a'.n + 'b'.n + 1];
+pub op <+> [$a: Tally, $b: Tally] -> Tally {
+    return Tally[n = $a.n + $b.n + 1];
 }

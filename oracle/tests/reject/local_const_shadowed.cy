@@ -1,4 +1,4 @@
 MAIN {
-    const 'r' := 3;
-    shadow 'r' := 4;
+    const $r := 3;
+    shadow $r := 4;
 }

@@ -1,4 +1,4 @@
 MAIN {
-    let 's' := "a";
-    let 't' := std::str.upper[lend 's'];
+    let $s := "a";
+    let $t := std::str.upper(lend $s);
 }

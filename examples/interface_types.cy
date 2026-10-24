@@ -8,34 +8,34 @@ interface Number {
 }
 
 interface Ordered <T> {
-    op < ['a': <T>, 'b': <T>] -> bool;
-    op equal_to ['a': <T>, 'b': <T>] -> bool;
+    op < [$a: <T>, $b: <T>] -> bool;
+    op equal_to [$a: <T>, $b: <T>] -> bool;
 }
 
 interface WholeOrdered <T> {
     i32
     i64
-    op < ['a': <T>, 'b': <T>] -> bool;
+    op < [$a: <T>, $b: <T>] -> bool;
 }
 
-fn bigger <T: Number and Ordered> ['a': <T>, 'b': <T>] -> <T> {
-    if 'b' < 'a' { return 'a'; }
-    return 'b';
+fn bigger <T: Number and Ordered> [$a: <T>, $b: <T>] -> <T> {
+    if $b < $a { return $a; }
+    return $b;
 }
 
-fn smaller <T: WholeOrdered> ['a': <T>, 'b': <T>] -> <T> {
-    if 'a' < 'b' { return 'a'; }
-    return 'b';
+fn smaller <T: WholeOrdered> [$a: <T>, $b: <T>] -> <T> {
+    if $a < $b { return $a; }
+    return $b;
 }
 
-fn whole <T: any> [@x] [lent @x 'xs': std::list[<T>]] -> lent @x std::list[<T>] { return lend 'xs'; }
+fn whole <T: any> [@x] [lent @x $xs: std::list[<T>]] -> lent @x std::list[<T>] { return lend $xs; }
 
 struct Box <T: Number> { item: <T> }
 
 MAIN {
-    std::print.useful[bigger[3, 9], " ", bigger[2.5, 1.5], " ", smaller[3, 9], newln];
-    let 'xs' := ["a", "b"];
-    std::print.useful[whole[lend 'xs'], newln];
-    let 'b': Box[i32] = Box[item = 4];
-    std::print.useful['b'.item, newln];
+    std::print.useful(bigger(3, 9), " ", bigger(2.5, 1.5), " ", smaller(3, 9), newln);
+    let $xs := ["a", "b"];
+    std::print.useful(whole(lend $xs), newln);
+    let $b: Box[i32] = Box[item = 4];
+    std::print.useful($b.item, newln);
 }

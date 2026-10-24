@@ -3,7 +3,7 @@
 struct Price { amount: d64 }
 enum Pay { cash, voucher: d64 }
 MAIN {
-    let 'p' := Price[amount = 0.45];
-    let 'v' := Pay.voucher[5.00];
-    std::print.useful['p'.amount, " ", 'v', newln];
+    let $p := Price[amount = 0.45];
+    let $v := Pay.voucher(5.00);
+    std::print.useful($p.amount, " ", $v, newln);
 }

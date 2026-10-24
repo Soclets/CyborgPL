@@ -1,39 +1,39 @@
 # Interfaces (design/interfaces.md): a named list of promises about some <T>, announced after the name.
 interface Ordered <T> {
-    op < ['a': <T>, 'b': <T>] -> bool;
-    op equal_to ['a': <T>, 'b': <T>] -> bool;
+    op < [$a: <T>, $b: <T>] -> bool;
+    op equal_to [$a: <T>, $b: <T>] -> bool;
 }
 
 interface Printable <T> {
-    fn show [lent 'x': <T>] -> str.utf8;
+    fn show [lent $x: <T>] -> str.utf8;
 }
 
 struct Vec { x: f64, y: f64 }
 
 # a struct keeps a promise by having the operations — the language's own operators
 # may be defined for a user type (never for the language's types)
-op < ['a': Vec, 'b': Vec] -> bool { return ('a'.x x 'a'.x + 'a'.y x 'a'.y) < ('b'.x x 'b'.x + 'b'.y x 'b'.y); }
-op equal_to ['a': Vec, 'b': Vec] -> bool { return 'a'.x equal_to 'b'.x and 'a'.y equal_to 'b'.y; }
-fn show [lent 'v': Vec] -> str.utf8 { return "(" concat to.stored.str.utf8['v'.x] concat ", " concat to.stored.str.utf8['v'.y] concat ")"; }
+op < [$a: Vec, $b: Vec] -> bool { return ($a.x x $a.x + $a.y x $a.y) < ($b.x x $b.x + $b.y x $b.y); }
+op equal_to [$a: Vec, $b: Vec] -> bool { return $a.x equal_to $b.x and $a.y equal_to $b.y; }
+fn show [lent $v: Vec] -> str.utf8 { return "(" concat to.stored.str.utf8($v.x) concat ", " concat to.stored.str.utf8($v.y) concat ")"; }
 
 Vec satisfies Ordered;        # optional: a claim the compiler checks
 Vec satisfies Printable;
 
 # a generic says what its blank accepts where it announces it (owner, 2026-10-02)
-fn max <T: Ordered> ['a': <T>, 'b': <T>] -> <T> {
-    if 'b' < 'a' { return give 'a'; }     # a <T> may be owned, so generic code writes the verbs;
-    return give 'b';                       # for a plain T (i32) the verb does nothing
+fn max <T: Ordered> [$a: <T>, $b: <T>] -> <T> {
+    if $b < $a { return give $a; }     # a <T> may be owned, so generic code writes the verbs;
+    return give $b;                       # for a plain T (i32) the verb does nothing
 }
 
-fn describe <T: Printable> [lent 'x': <T>] -> str.utf8 {
-    return "value " concat show[lend 'x'];
+fn describe <T: Printable> [lent $x: <T>] -> str.utf8 {
+    return "value " concat show(lend $x);
 }
 
 MAIN {
-    let 'u' := Vec[x = 1, y = 2];
-    let 'v' := Vec[x = 3, y = 4];
-    let 'm' := max[copy 'u', copy 'v'];             # Vec is Ordered: it has < and equal_to 
-    std::print.useful[describe[lend 'm'], newln];
-    std::print.useful[max[3, 9], " ", max[2.5, 1.5], newln];   # numbers are Ordered by the language
-    std::print.useful['u' equal_to 'v', " ", 'u' < 'v', newln];     # the operators work directly too
+    let $u := Vec[x = 1, y = 2];
+    let $v := Vec[x = 3, y = 4];
+    let $m := max(copy $u, copy $v);             # Vec is Ordered: it has < and equal_to 
+    std::print.useful(describe(lend $m), newln);
+    std::print.useful(max(3, 9), " ", max(2.5, 1.5), newln);   # numbers are Ordered by the language
+    std::print.useful($u equal_to $v, " ", $u < $v, newln);     # the operators work directly too
 }

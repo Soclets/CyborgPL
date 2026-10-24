@@ -1,3 +1,3 @@
 MAIN {
-    let 'x' := math::sqrt[4];
+    let $x := math::sqrt(4);
 }

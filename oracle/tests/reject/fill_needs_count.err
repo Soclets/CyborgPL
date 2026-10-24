@@ -1,1 +1,1 @@
-the count says `count`: `list.fill[value: 0, count: 10]`
+the count says `count`: `list.fill(value: 0, count: 10)`

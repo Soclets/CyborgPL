@@ -1,2 +1,2 @@
-extern.C 'a': i32;
-MAIN { let 'x' := 'a'; }
+extern.C $a: i32;
+MAIN { let $x := $a; }

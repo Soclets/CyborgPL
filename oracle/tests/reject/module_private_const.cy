@@ -1,4 +1,4 @@
-module a { const 'k' := 1; }
+module a { const $k := 1; }
 MAIN {
-    let 'x' := a.'k';
+    let $x := a.$k;
 }

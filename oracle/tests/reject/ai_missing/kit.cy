@@ -1,3 +1,3 @@
 MAIN {
-    let 'b': brain16 = 0.5;
+    let $b: brain16 = 0.5;
 }

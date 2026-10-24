@@ -7,6 +7,6 @@ fn Größe [] -> i32 {
 }
 
 MAIN {
-    let 'Café' := GRÖSSE[];
-    std::print.useful[größe[], " ", 'CAFÉ', " ", 'café', newln];
+    let $Café := GRÖSSE();
+    std::print.useful(größe(), " ", $CAFÉ, " ", $café, newln);
 }

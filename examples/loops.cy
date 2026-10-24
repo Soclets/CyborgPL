@@ -1,24 +1,24 @@
 # `while`, `loop` with `break` and `continue`, and `for`.
 MAIN {
-    let 'i' := 0;
-    while 'i' < 3 {
-        std::print.useful["while ", 'i', newln];
-        change 'i' = 'i' + 1;
+    let $i := 0;
+    while $i < 3 {
+        std::print.useful("while ", $i, newln);
+        change $i = $i + 1;
     }
-    let 'n' := 0;
+    let $n := 0;
     loop {
-        change 'n' = 'n' + 1;
-        if 'n' equal_to 2 {
+        change $n = $n + 1;
+        if $n equal_to 2 {
             continue;
         }
-        if 'n' > 4 {
+        if $n > 4 {
             break;
         }
-        std::print.useful["loop ", 'n', newln];
+        std::print.useful("loop ", $n, newln);
     }
-    let 'chars' := [`a`, `é`, `🍎`];
-    for seq 'c' in lend 'chars' {
-        std::print.stored['c', newln];
+    let $chars := [`a`, `é`, `🍎`];
+    for seq $c in lend $chars {
+        std::print.stored($c, newln);
     }
-    std::exit[3];
+    std::exit(3);
 }

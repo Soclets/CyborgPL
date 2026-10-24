@@ -1,3 +1,3 @@
 MAIN {
-    let 'x' := 7 mod 2;
+    let $x := 7 mod 2;
 }

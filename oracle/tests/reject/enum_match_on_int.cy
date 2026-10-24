@@ -1,4 +1,4 @@
 MAIN {
-    let 'n' := 1;
-    match 'n' { a { } }
+    let $n := 1;
+    match $n { a { } }
 }

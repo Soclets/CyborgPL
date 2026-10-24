@@ -199,7 +199,7 @@ pub fn check() -> Vec<String> {
     }
     for (i, c) in t.calls.iter().enumerate() {
         if t.calls[..i].iter().any(|p| p.name == c.name) { bad.push(format!("call `{}` is listed twice", c.name)); }
-        if !c.example.starts_with(&format!("{}[", c.name)) { bad.push(format!("call `{}`'s example does not show it: `{}`", c.name, c.example)); }
+        if !c.example.starts_with(&format!("{}(", c.name)) { bad.push(format!("call `{}`'s example does not show it: `{}`", c.name, c.example)); }
         for w in c.words.iter().filter(|w| !w.is_empty()) {
             // the word with its colon (owner, 2026-10-20)
             if !c.example.contains(&format!(" {w}: ")) { bad.push(format!("call `{}`'s example does not say `{w}:`", c.name)); }

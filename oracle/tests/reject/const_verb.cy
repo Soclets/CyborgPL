@@ -1,4 +1,4 @@
-const 'g' := "a" concat "b";
+const $g := "a" concat "b";
 MAIN {
-    let 's' := copy 'g';
+    let $s := copy $g;
 }

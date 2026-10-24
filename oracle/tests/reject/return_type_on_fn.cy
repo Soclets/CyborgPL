@@ -1,5 +1,5 @@
-fn.i32 add ['a': i32] {
-    return 'a';
+fn.i32 add [$a: i32] {
+    return $a;
 }
 MAIN {
 }

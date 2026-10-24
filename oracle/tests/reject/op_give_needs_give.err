@@ -1,1 +1,1 @@
-takes 'a' by value: write `give 'u'`
+takes 'a' by value: write `give $u`

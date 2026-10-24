@@ -1,3 +1,3 @@
 MAIN {
-    let 'm' := map["a" = 1];
+    let $m := map["a" = 1];
 }

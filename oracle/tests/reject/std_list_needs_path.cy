@@ -1,3 +1,3 @@
 MAIN {
-    let mut 'xs': list[i64] = [];
+    let mut $xs: list[i64] = [];
 }

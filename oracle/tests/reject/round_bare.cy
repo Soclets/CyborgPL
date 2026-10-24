@@ -1,3 +1,3 @@
 MAIN {
-    let 'v' := std::round[2.5];
+    let $v := std::round[2.5];
 }

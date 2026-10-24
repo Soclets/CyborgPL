@@ -1,3 +1,3 @@
 MAIN {
 }
-const 'x' := 'y';
+const $x := $y;

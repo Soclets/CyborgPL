@@ -3,5 +3,5 @@ fn helper [] -> i32 {
 }
 
 MAIN {
-    let 'x' := limb.helper[];
+    let $x := limb.helper[];
 }

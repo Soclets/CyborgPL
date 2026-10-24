@@ -1,4 +1,4 @@
 fn f [] -> i32 or fail[a, b] { fail a; }
 MAIN {
-    let 'x' := f[] otherwise { a { return; } };
+    let $x := f() otherwise { a { return; } };
 }

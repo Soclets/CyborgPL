@@ -1,3 +1,3 @@
 MAIN {
-    let 'p': ptr[u8] = 1;
+    let $p: ptr[u8] = 1;
 }

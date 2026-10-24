@@ -1,3 +1,3 @@
 MAIN {
-    std::exit[300];
+    std::exit(300);
 }

@@ -1,4 +1,4 @@
 MAIN {
-    let 's' := "hello";
-    let 'b' := std::str.at.byte[lend 's', pos: 0] otherwise 0;
+    let $s := "hello";
+    let $b := std::str.at.byte(lend $s, pos: 0) otherwise 0;
 }

@@ -1,4 +1,4 @@
 struct P { x: i32 }
 MAIN {
-    let 'p' := P[x = "no"];
+    let $p := P[x = "no"];
 }

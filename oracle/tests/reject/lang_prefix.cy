@@ -1,3 +1,3 @@
 MAIN {
-    lang:'x' := 1;
+    lang:$x := 1;
 }

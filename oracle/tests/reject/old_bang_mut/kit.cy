@@ -1,3 +1,3 @@
 MAIN {
-    let !mut 'x': i32 = 1;
+    let !mut $x: i32 = 1;
 }

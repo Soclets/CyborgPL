@@ -3,6 +3,6 @@ enum Status {
     claimed: str.utf8
 }
 MAIN {
-    let 's' := Status.claimed["Tankun"];
-    let 't' := to.str.utf8['s'];
+    let $s := Status.claimed("Tankun");
+    let $t := to.str.utf8($s);
 }

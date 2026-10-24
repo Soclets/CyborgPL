@@ -1,3 +1,3 @@
 MAIN {
-    let 'b' := "a" < "b";
+    let $b := "a" < "b";
 }

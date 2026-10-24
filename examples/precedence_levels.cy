@@ -10,24 +10,24 @@ precedence.low_first {
     level 4 { scale } left_first
 }
 
-op dot ['a': Vec, 'b': Vec] -> f64 {
-    return ('a'.x x 'b'.x) + ('a'.y x 'b'.y);
+op dot [$a: Vec, $b: Vec] -> f64 {
+    return ($a.x x $b.x) + ($a.y x $b.y);
 }
 
-op scale ['a': Vec, 'k': f64] -> Vec {
-    return Vec[x = 'a'.x x 'k', y = 'a'.y x 'k'];
+op scale [$a: Vec, $k: f64] -> Vec {
+    return Vec[x = $a.x x $k, y = $a.y x $k];
 }
 
-op ~= ['a': f64, 'b': f64] -> bool {
-    return ('a' - 'b') < 0.000001 and ('b' - 'a') < 0.000001;
+op ~= [$a: f64, $b: f64] -> bool {
+    return ($a - $b) < 0.000001 and ($b - $a) < 0.000001;
 }
 
 MAIN {
-    let 'u' := Vec[x = 1.0, y = 2.0];
-    let 'v' := Vec[x = 3.0, y = 4.0];
-    let 'd' := 'u' dot 'v' + 1.0;          # ('u' dot 'v') plus 1.0
-    let 'w' := 'u' scale 2.0 dot 'v';         # ('u' scale 2.0) dot 'v'
-    let 'ok' := 'd' ~= 12.0;
-    std::print.useful['d', " ", 'w', " ", 'ok', newln];
-    std::print.useful[2 xx 3 + 1, " ", 2 xx 3 xx 2, " ", -2 xx 2, " ", 2 x 3 xx 2, newln];
+    let $u := Vec[x = 1.0, y = 2.0];
+    let $v := Vec[x = 3.0, y = 4.0];
+    let $d := $u dot $v + 1.0;          # ('u' dot 'v') plus 1.0
+    let $w := $u scale 2.0 dot $v;         # ('u' scale 2.0) dot 'v'
+    let $ok := $d ~= 12.0;
+    std::print.useful($d, " ", $w, " ", $ok, newln);
+    std::print.useful(2 xx 3 + 1, " ", 2 xx 3 xx 2, " ", -2 xx 2, " ", 2 x 3 xx 2, newln);
 }

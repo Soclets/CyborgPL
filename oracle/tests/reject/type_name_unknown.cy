@@ -1,2 +1,2 @@
-fn f ['v': nosuchtype] { }
+fn f [$v: nosuchtype] { }
 MAIN { }

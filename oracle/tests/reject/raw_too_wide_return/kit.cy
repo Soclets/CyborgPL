@@ -3,5 +3,5 @@ fn f [] -> u16 {
 }
 
 MAIN {
-    let 'x' := f[];
+    let $x := f();
 }

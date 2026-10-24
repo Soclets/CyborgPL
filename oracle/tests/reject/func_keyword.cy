@@ -1,5 +1,5 @@
-func add ['a': i32] -> i32 {
-    return 'a';
+func add [$a: i32] -> i32 {
+    return $a;
 }
 MAIN {
 }

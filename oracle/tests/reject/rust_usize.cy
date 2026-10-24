@@ -1,3 +1,3 @@
 MAIN {
-    let 'n': usize = 1;
+    let $n: usize = 1;
 }

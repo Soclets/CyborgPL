@@ -1,1 +1,1 @@
-`std::floor` is an old spelling: write `round.floor['x']`
+`std::floor` is an old spelling: write `round.floor($x)`

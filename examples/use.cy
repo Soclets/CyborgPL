@@ -7,10 +7,10 @@ use std::print.useful as say;
 use std::print.stored as std::print;
 
 MAIN {
-    let mut 'xs': list[i64] = [];
-    for 'i': i64 [from: 1, to: 4, by: 1] {
-        list.append[lend.mut 'xs', value: 'i' x 'i'];
+    let mut $xs: list[i64] = [];
+    for $i: i64 [from: 1, to: 4, by: 1] {
+        list.append(lend.mut $xs, value: $i x $i);
     }
-    say[list.length[lend 'xs'], " squares, the last ", 'xs'[pos: 4], newln];
-    std::print["0.1 as stored: ", 0.1, newln];
+    say(list.length(lend $xs), " squares, the last ", $xs[pos: 4], newln);
+    std::print("0.1 as stored: ", 0.1, newln);
 }

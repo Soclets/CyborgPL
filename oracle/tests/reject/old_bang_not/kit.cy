@@ -1,3 +1,3 @@
 MAIN {
-    let 'b': bool = ! true;
+    let $b: bool = ! true;
 }

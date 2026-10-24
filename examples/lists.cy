@@ -1,19 +1,19 @@
 # Lists of lists, and a generic function that counts any list.
-fn count <T: any> [lent 'items': std::list[<T>]] -> i32 {
-    let 'n' := 0;
-    for 'item' in lend 'items' {
-        change 'n' = 'n' + 1;
+fn count <T: any> [lent $items: std::list[<T>]] -> i32 {
+    let $n := 0;
+    for $item in lend $items {
+        change $n = $n + 1;
     }
-    return 'n';
+    return $n;
 }
 
 MAIN {
-    let 'grid' := [[1, 2], [3, 4]];
-    std::print.useful['grid', newln];
-    for 'row' in lend 'grid' {
-        std::print.useful[count[lend 'row'], newln];
+    let $grid := [[1, 2], [3, 4]];
+    std::print.useful($grid, newln);
+    for $row in lend $grid {
+        std::print.useful(count(lend $row), newln);
     }
-    std::print.useful[count[["a", "b", "c"]], newln];
-    let 'one' := [7,];
-    std::print.useful['one', " ", count[lend 'one'], newln];
+    std::print.useful(count(["a", "b", "c"]), newln);
+    let $one := [7,];
+    std::print.useful($one, " ", count(lend $one), newln);
 }

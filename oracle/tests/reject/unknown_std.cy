@@ -1,3 +1,3 @@
 MAIN {
-    std::println["x"];
+    std::println("x");
 }

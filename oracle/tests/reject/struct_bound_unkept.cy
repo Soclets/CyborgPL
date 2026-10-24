@@ -3,5 +3,5 @@ interface Number {
 }
 struct Box <T: Number> { item: <T> }
 MAIN {
-    let 'b': Box[str.utf8] = Box[item = "x"];
+    let $b: Box[str.utf8] = Box[item = "x"];
 }

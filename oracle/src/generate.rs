@@ -53,10 +53,15 @@ fn read_templates(src: &str, lines_at: &[usize]) -> Result<Vec<Template>, String
         let indent = indent_of(head);
         let h = head.trim();
         let after_for = h.strip_prefix("for ").ok_or(format!("line {at}: a template starts with `for`"))?;
-        let q = after_for.strip_prefix('\'').ok_or(format!("line {at}: a template's variable is quoted: `for 'n' in [ … ]`"))?;
-        let e = q.find('\'').ok_or(format!("line {at}: a template's variable is quoted"))?;
-        let var = q[..e].to_string();
-        let rest = q[e + 1..].trim();
+        // its variable, `$n` (owner, 2026-10-22) or quoted, `'n'`
+        let (var, rest) = if let Some(q) = after_for.strip_prefix('$') {
+            let e = q.find(|c: char| !(c.is_alphanumeric() || c == '_')).unwrap_or(q.len());
+            (q[..e].to_string(), q[e..].trim())
+        } else {
+            let q = after_for.strip_prefix('\'').ok_or(format!("line {at}: a template's variable is a name: `for $n in [ … ]`"))?;
+            let e = q.find('\'').ok_or(format!("line {at}: a template's quoted variable is never closed"))?;
+            (q[..e].to_string(), q[e + 1..].trim())
+        };
         let rest = rest.strip_suffix('{').ok_or(format!("line {at}: a template's `{{` ends its first line"))?.trim();
         let (items, counting) = if let Some(list) = rest.strip_prefix("in ") {
             let list = list.trim().strip_prefix('[').and_then(|l| l.strip_suffix(']')).ok_or(format!("line {at}: a template runs over a list written out, `in [2, 4, 8]`"))?;
@@ -102,13 +107,16 @@ fn is_type(item: &str) -> bool {
         || w.starts_with(|c: char| c.is_ascii_uppercase())
 }
 
-/// `'v'` written as the value, outside text.
+/// `'v'` or `$v` written as the value, outside text.
 fn put(text: &str, var: &str, value: &str) -> String {
     let pat = format!("'{var}'");
+    let dollar = format!("${var}");
     let (mut out, mut in_text, mut i) = (String::new(), false, 0);
     let b = text.as_bytes();
     while i < text.len() {
         if !in_text && text[i..].starts_with(&pat) { out.push_str(value); i += pat.len(); continue; }
+        // `$v`, the same variable (owner, 2026-10-22), where no longer name goes on
+        if !in_text && text[i..].starts_with(&dollar) && !text[i + dollar.len()..].starts_with(|c: char| c.is_alphanumeric() || c == '_') { out.push_str(value); i += dollar.len(); continue; }
         if b[i] == b'"' { in_text = !in_text; }
         let ch = text[i..].chars().next().unwrap();
         out.push(ch);

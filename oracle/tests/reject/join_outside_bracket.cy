@@ -1,3 +1,3 @@
 MAIN {
-    let 's' := "a" "b";
+    let $s := "a" "b";
 }

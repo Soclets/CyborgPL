@@ -1,3 +1,3 @@
 MAIN {
-    std::print.useful[hello[], newln];
+    std::print.useful(hello(), newln);
 }

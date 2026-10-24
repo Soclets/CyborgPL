@@ -1,3 +1,3 @@
 MAIN {
-    let 'p' := Nope[x = 1];
+    let $p := Nope[x = 1];
 }

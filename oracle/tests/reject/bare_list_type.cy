@@ -1,3 +1,3 @@
 MAIN {
-    let 'xs': list = [1, 2];
+    let $xs: list = [1, 2];
 }

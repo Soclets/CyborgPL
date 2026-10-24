@@ -1,5 +1,5 @@
 enum S { a, b }
 MAIN {
-    let 's' := S.a;
-    match 's' { a 'x' { } b { } }
+    let $s := S.a;
+    match $s { a $x { } b { } }
 }

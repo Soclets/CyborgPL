@@ -1,3 +1,3 @@
 MAIN {
-    let 'z' := neg.ieee 0.0;
+    let $z := neg.ieee 0.0;
 }

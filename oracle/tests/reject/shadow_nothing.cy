@@ -1,3 +1,3 @@
 MAIN {
-    shadow 'y' := 2;
+    shadow $y := 2;
 }

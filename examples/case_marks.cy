@@ -12,12 +12,12 @@ case.exact struct Exact {
     n: i32
 }
 
-fn Describe ['m': Mood] -> str.utf8 {
-    return match 'M' { Happy { is "happy"; } Grumpy { is "grumpy"; } };
+fn Describe [$m: Mood] -> str.utf8 {
+    return match $M { Happy { is "happy"; } Grumpy { is "grumpy"; } };
 }
 
 MAIN {
-    let 'Count' := 2;
-    let 'e' := Exact[n = 'COUNT'];
-    std::print.useful[describe[MOOD.Happy], " ", DESCRIBE[mood.Grumpy], " ", 'e'.n, " ", 'count', newln];
+    let $Count := 2;
+    let $e := Exact[n = $COUNT];
+    std::print.useful(describe(MOOD.Happy), " ", DESCRIBE(mood.Grumpy), " ", $e.n, " ", $count, newln);
 }

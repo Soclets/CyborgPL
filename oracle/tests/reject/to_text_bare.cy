@@ -1,4 +1,4 @@
 MAIN {
-    let 'n' := 5;
-    std::print.stored[to.str.utf8['n'], newln];
+    let $n := 5;
+    std::print.stored(to.str.utf8($n), newln);
 }

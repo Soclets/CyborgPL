@@ -34,3 +34,8 @@ pub fn shown(text: &str, line: usize) -> String {
         None => " (concise file)".to_string(),
     }
 }
+
+/// Text spelled as a concise file: each byte eight digits, a space between, a line break kept
+pub fn encode(text: &str) -> String {
+    text.split('\n').map(|l| l.bytes().map(|b| format!("{b:08b}")).collect::<Vec<_>>().join(" ")).collect::<Vec<_>>().join("\n")
+}

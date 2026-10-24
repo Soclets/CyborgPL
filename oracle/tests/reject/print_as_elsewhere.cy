@@ -1,3 +1,3 @@
 MAIN {
-    std::print.useful[1, newln] otherwise std::print.stored;
+    std::print.useful(1, newln) otherwise std::print.stored;
 }

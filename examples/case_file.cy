@@ -1,18 +1,18 @@
 case.any;
 # A file's mark, its first line, covers every name written in it: functions, types, fields, cases,
 # consts and variables (owner, 2026-10-06: "`b`", at every level the `bare` marks have).
-const 'Limit' := 3;
+const $Limit := 3;
 
 struct Point {
     X: i32,
     Y: i32
 }
 
-fn Sum ['p': Point] -> i32 {
-    return 'P'.x + 'p'.y + 'LIMIT';
+fn Sum [$p: Point] -> i32 {
+    return $P.x + $p.y + $LIMIT;
 }
 
 MAIN {
-    let 'pt' := POINT[x = 1, y = 2];
-    std::print.useful[SUM[copy 'PT'], " ", sum[copy 'Pt'], newln];
+    let $pt := POINT[x = 1, y = 2];
+    std::print.useful(SUM(copy $PT), " ", sum(copy $Pt), newln);
 }

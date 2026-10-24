@@ -1,1 +1,1 @@
-`std::round` is an old spelling: write `round.near['x']` / `round.half_up['x']`
+`std::round` is an old spelling: write `round.near($x)` / `round.half_up($x)`

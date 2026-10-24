@@ -1,4 +1,4 @@
 coll.fn c {
-    c.q ['x' = 1];
+    c.q [$x = 1];
 }
 MAIN { }

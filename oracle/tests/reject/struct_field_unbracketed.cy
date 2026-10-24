@@ -1,3 +1,3 @@
-struct P { i32 'x' }
+struct P { i32 $x }
 MAIN {
 }

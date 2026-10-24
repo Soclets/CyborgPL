@@ -1,3 +1,3 @@
 MAIN {
-    let 'p' := ptr.null;
+    let $p := ptr.null;
 }

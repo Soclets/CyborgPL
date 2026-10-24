@@ -1,3 +1,3 @@
 MAIN {
-    let 'x' := 1 plus check 2;
+    let $x := 1 plus check 2;
 }

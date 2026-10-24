@@ -1,1 +1,1 @@
-MAIN { let 'n' := to.i32[`7`]; }
+MAIN { let $n := to.i32(`7`); }

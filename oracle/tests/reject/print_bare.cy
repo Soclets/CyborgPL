@@ -1,3 +1,3 @@
 MAIN {
-    std::print["hi", newln];
+    std::print("hi", newln);
 }

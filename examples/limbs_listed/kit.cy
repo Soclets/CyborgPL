@@ -2,18 +2,18 @@
 # `to.`, `check`, `no_check` and generics were ASP's, IEG's and Genny's then and are the base's now; std
 # for printing.
 
-fn first <T: any> ['a': <T>, 'b': <T>] -> <T> {
-    return 'a';
+fn first <T: any> [$a: <T>, $b: <T>] -> <T> {
+    return $a;
 }
 
 fn hello [] {
-    std::print.useful["from a task", newln];
+    std::print.useful("from a task", newln);
 }
 
 MAIN {
-    let 'n': i64 = to.i64["41"] otherwise 0;
-    check change 'n' = 'n' + 1;
-    no_check change 'n' = 'n' x 1;
-    std::print.useful[first['n', 7], newln];
-    concur hello[];
+    let $n: i64 = to.i64("41") otherwise 0;
+    check change $n = $n + 1;
+    no_check change $n = $n x 1;
+    std::print.useful(first($n, 7), newln);
+    concur hello();
 }

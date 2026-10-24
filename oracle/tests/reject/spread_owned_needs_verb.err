@@ -1,1 +1,1 @@
-say `...copy 'w'` or `...give 'w'`
+say `...copy $w` or `...give $w`

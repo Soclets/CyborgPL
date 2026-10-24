@@ -1,3 +1,3 @@
 MAIN {
-    let 'xs': array[i32] = [];
+    let $xs: array[i32] = [];
 }

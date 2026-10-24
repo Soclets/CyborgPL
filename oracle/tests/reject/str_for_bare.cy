@@ -1,5 +1,5 @@
 MAIN {
-    let 's' := "abc";
-    for 'c' in lend 's' {
+    let $s := "abc";
+    for $c in lend $s {
     }
 }

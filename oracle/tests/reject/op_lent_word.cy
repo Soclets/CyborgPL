@@ -1,3 +1,3 @@
-op <+> [lent 'a': i32, 'b': i32] -> i32 { return 'a'; }
+op <+> [lent $a: i32, $b: i32] -> i32 { return $a; }
 MAIN {
 }

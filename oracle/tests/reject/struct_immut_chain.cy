@@ -1,3 +1,3 @@
-struct P { immut.i32 'x' }
+struct P { immut.i32 $x }
 MAIN {
 }

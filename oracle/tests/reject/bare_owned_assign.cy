@@ -1,4 +1,4 @@
 MAIN {
-    let 's' := "a";
-    let 't' := 's';
+    let $s := "a";
+    let $t := $s;
 }

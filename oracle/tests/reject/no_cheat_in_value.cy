@@ -1,3 +1,3 @@
 MAIN {
-    let 'a' := 1 + (no_cheat 2);
+    let $a := 1 + (no_cheat 2);
 }

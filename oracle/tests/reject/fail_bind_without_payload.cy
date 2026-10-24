@@ -1,4 +1,4 @@
 fn f [] -> fail[why] { fail why; }
 MAIN {
-    f[] otherwise { why 'w' { } };
+    f() otherwise { why $w { } };
 }

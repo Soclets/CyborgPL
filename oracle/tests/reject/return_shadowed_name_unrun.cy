@@ -1,10 +1,10 @@
-fn g ['p': u8] -> u8 {
+fn g [$p: u8] -> u8 {
     if false {
-        shadow 'p': bool = true;
-        return 'p';
+        shadow $p: bool = true;
+        return $p;
     }
-    return 'p';
+    return $p;
 }
 MAIN {
-    let 'x' := g[1];
+    let $x := g(1);
 }

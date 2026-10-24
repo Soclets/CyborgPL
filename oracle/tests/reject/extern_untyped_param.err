@@ -1,1 +1,1 @@
-parameter 'a' says its type: `'a': i32`
+parameter 'a' says its type: `$a: i32`

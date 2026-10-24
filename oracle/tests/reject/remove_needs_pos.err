@@ -1,1 +1,1 @@
-the position says `pos`: `list.remove[lend.mut 'xs', pos: 2]`
+the position says `pos`: `list.remove(lend.mut $xs, pos: 2)`

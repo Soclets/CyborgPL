@@ -1,4 +1,4 @@
 MAIN {
-    let 's' := "a";
-    let 'c' := C.str.make[lend 's'];
+    let $s := "a";
+    let $c := C.str.make(lend $s);
 }

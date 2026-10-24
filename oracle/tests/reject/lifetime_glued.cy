@@ -1,2 +1,2 @@
-fn pick [@x] [lent@x 'a': str.utf8] -> lent @x str.utf8 { return lend 'a'; }
+fn pick [@x] [lent@x $a: str.utf8] -> lent @x str.utf8 { return lend $a; }
 MAIN { }

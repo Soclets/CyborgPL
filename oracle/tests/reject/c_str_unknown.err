@@ -1,1 +1,1 @@
-C strings are `C.str.read['p']` and `C.str.make[lend 's']`
+C strings are `C.str.read($p)` and `C.str.make(lend $s)`

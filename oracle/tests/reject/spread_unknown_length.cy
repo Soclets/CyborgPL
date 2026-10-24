@@ -1,6 +1,6 @@
-fn sum [...'nums': i32] -> i32 { return 0; }
+fn sum [...$nums: i32] -> i32 { return 0; }
 MAIN {
-    let mut 'zs' := [1, 2];
-    std::list.append[lend.mut 'zs', value: 3];      # no bound: length no longer known here
-    let 't' := sum[...'zs'];
+    let mut $zs := [1, 2];
+    std::list.append(lend.mut $zs, value: 3);      # no bound: length no longer known here
+    let $t := sum(...$zs);
 }

@@ -3,9 +3,9 @@ MAIN {
     let 'correct?': bool = true;
     let 'wrong?' := not 'correct?';
     if 'correct?' and (not 'wrong?') {
-        std::print.stored["fine", newln];
+        std::print.stored("fine", newln);
     }
     if 'wrong?' equal_to false {
-        std::print.stored['correct?', " ", 'wrong?', newln];
+        std::print.stored('correct?', " ", 'wrong?', newln);
     }
 }

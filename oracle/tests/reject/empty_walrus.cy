@@ -1,3 +1,3 @@
 MAIN {
-    let 'xs' := [];
+    let $xs := [];
 }

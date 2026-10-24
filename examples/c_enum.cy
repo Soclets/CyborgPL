@@ -3,10 +3,10 @@
 # case, and it is owned like every enum (2026-09-20) — and C-shaped, so `extern.C fn`
 # can take and return it. A number C hands back that no case has fails `out_of_range`.
 layout.C enum Key { a = 65, b = 66, escape = 256 }
-extern.C fn IsKeyDown ['key': Key] -> bool;
+extern.C fn IsKeyDown [$key: Key] -> bool;
 
-fn name ['k': Key] -> str.utf8 {
-    match 'k' {
+fn name [$k: Key] -> str.utf8 {
+    match $k {
         a { return "A"; }
         b { return "B"; }
         escape { return "Esc"; }
@@ -14,6 +14,6 @@ fn name ['k': Key] -> str.utf8 {
 }
 
 MAIN {
-    let 'k' := Key.escape;
-    std::print.useful[name[copy 'k'], " ", name[Key.a], newln];
+    let $k := Key.escape;
+    std::print.useful(name(copy $k), " ", name(Key.a), newln);
 }

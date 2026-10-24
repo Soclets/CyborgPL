@@ -1,4 +1,4 @@
-const 'max' := 8;
+const $max := 8;
 MAIN {
-    change 'max' = 9;
+    change $max = 9;
 }

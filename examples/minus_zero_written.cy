@@ -3,10 +3,10 @@
 layout.C union Un { i: i32, u: u32, f: f32 }
 
 MAIN {
-    let 'a': f32 = -0.0;
-    let 'b' := -0.0: f64;
-    let mut 'un' := Un[i = 1];
-    change 'un'.f = -0.0;
-    no_check let 'u' := 'un'.u;
-    std::print.stored['a', " ", 'b', " ", 'u', newln];
+    let $a: f32 = -0.0;
+    let $b := -0.0: f64;
+    let mut $un := Un[i = 1];
+    change $un.f = -0.0;
+    no_check let $u := $un.u;
+    std::print.stored($a, " ", $b, " ", $u, newln);
 }

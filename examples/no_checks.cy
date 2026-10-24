@@ -1,14 +1,14 @@
 # `NO_FUCKING_CHECKS` (owner, 2026-09-27): the fourth tier. Everything `no_check` turns off, and
 # what C hands back is trusted too, with no `out_of_range` check on a C enum or range. Goes
 # where `no_check` goes, a statement or a block, never a file; listed like `no_check`.
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+extern.C fn write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
 MAIN {
-    let 'msg' := "hello";
-    NO_FUCKING_CHECKS let 'n' := write[1, lend 'msg', std::str.bytes[lend 'msg']];
+    let $msg := "hello";
+    NO_FUCKING_CHECKS let $n := write(1, lend $msg, std::str.bytes(lend $msg));
     NO_FUCKING_CHECKS {
-        let 'a': i32 = 10;
-        let 'b': i32 = 2;
-        let 'q' := 'a' div.floor 'b';
-        std::print.useful[newln, 'q', newln];
+        let $a: i32 = 10;
+        let $b: i32 = 2;
+        let $q := $a div.floor $b;
+        std::print.useful(newln, $q, newln);
     }
 }

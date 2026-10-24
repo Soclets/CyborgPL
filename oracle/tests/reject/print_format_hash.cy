@@ -1,1 +1,1 @@
-MAIN { std::print.format["{:#x}\n", 255]; }
+MAIN { std::print.format("{:#x}\n", 255); }

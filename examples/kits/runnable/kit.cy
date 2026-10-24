@@ -5,5 +5,5 @@
 pub fn seven [] -> i32 { return 7; }
 
 MAIN {
-    std::print.stored["runnable on its own", newln];
+    std::print.stored("runnable on its own", newln);
 }

@@ -3,13 +3,13 @@
 enum Pick { quick, slow }
 
 fn f [] -> u64 {
-    let 'v': u16 = match Pick.quick {
+    let $v: u16 = match Pick.quick {
         quick { return 8997704354644785536 shr 42; }
         slow { is 1; }
     };
-    return to.u64['v'];
+    return to.u64($v);
 }
 
 MAIN {
-    std::print.stored[f[], newln];
+    std::print.stored(f(), newln);
 }

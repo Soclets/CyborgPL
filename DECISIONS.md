@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Built: calls in `( )`, definitions in `[ ]`, `$` variables, in the oracle and every program here (owner: "Resume CyborgPL")
+
+The 2026-10-22 rulings, built: the oracle reads a call's `( )` and refuses one written `[ ]`, naming `( )`; refuses
+`( )` where a struct is built or a position read, and `fn f(…)`, naming `[ ]`; reads `$total` as `'total'`. Every
+program here was rewritten by the oracle itself (`oracle --to-paren-calls`, which reads the old form and writes the
+new, exact where a guess would not be): the examples, the refusal tests, the demos and the bench (n-body by hand, the
+oracle not reading `$xs[pos: $i].x`); a plain quoted name became `$name`, by good practice. The messages and
+`spellings.cyr` show the new form. Design claude's readings, in `oracle/README.md`: what keeps `[ ]` (`incl.…["…"]`,
+`size.of[T]`, `ptr.cast[T]($p)`, presets, `labels`, `defaults`, `fail reason[$v]`, `with [ … ]`), and `$:=` / `$=`
+now refused as a `$` that starts no name. kayo, std and check claude's corpus follow in their sessions.
+
 ### 2026-10-23 — `pub` handlers: another kit's handler is used through its path (owner; not built)
 
 Design claude had left open whether a `coll.handler` can be `pub` (refused as undecided since 2026-10-13), which
@@ -169,7 +180,7 @@ MAIN {
 
 Not built (CyborgPL paused).
 
-### 2026-10-22 — A function's definition keeps its parameters in `[ ]`; only a call uses `( )` (owner; amends the same day's ruling; not built)
+### 2026-10-22 — A function's definition keeps its parameters in `[ ]`; only a call uses `( )` (owner; amends the same day's ruling; built in the oracle 2026-10-24)
 
 The Fale design session asked, for the owner, whether a definition's inputs are more consistent in `( )` or `[ ]`.
 Design claude: a definition runs nothing; its parameter list describes what goes in, so by "`( )` runs something,
@@ -235,7 +246,7 @@ fix:   let 'a' := 'b' + 1;
   as `fix: line 10:` and the line under it) is design claude's sketch.
 This replaces most of `design/diagnostics.md`'s labels (`why`, `try`, the sentence). Not built (CyborgPL paused).
 
-### 2026-10-22 — Calls and function definitions use `( )`; `[ ]` describes or holds; channels are made with `channel.empty`; `.of` is withdrawn (owner; not built)
+### 2026-10-22 — Calls and function definitions use `( )`; `[ ]` describes or holds; channels are made with `channel.empty`; `.of` is withdrawn (owner; calls built in the oracle 2026-10-24)
 
 After `.of` was recorded, its edge cases (making a channel, function types, reserving `of`, kits' own generic types)
 led the owner to ask "Wait a minute, what even was the problem in the first place?", and to read the critique's
@@ -257,7 +268,7 @@ an argument): "Seems good", "yea, record it". So:
   recommendation, accepted with the rest).
 Not built (CyborgPL paused); the biggest sweep yet, every call in every program.
 
-### 2026-10-22 — A variable is written `$name`, or quoted, `'total due'`, both allowed; good practice is `$` unless the name needs quotes (owner; not built)
+### 2026-10-22 — A variable is written `$name`, or quoted, `'total due'`, both allowed; good practice is `$` unless the name needs quotes (owner; built in the oracle 2026-10-24)
 
 Looking at `to.i32[min: 1, max: 99]('words'[pos: 2])` (in the `( )`-for-calls sketch), the owner: "What if we replaced
 `'words'` with `$`?" Design claude noted the costs: names with spaces and symbols (2026-10-16: `'80%'`, `'total due'`),

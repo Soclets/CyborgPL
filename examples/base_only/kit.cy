@@ -20,12 +20,12 @@ fn origin [] -> Point {
 }
 
 MAIN {
-    let 'p' := origin[];
-    let 'l' := Light.lit;
-    if ready[] and.then false {
-        let 'unused': i32 = 1;
+    let $p := origin();
+    let $l := Light.lit;
+    if ready() and.then false {
+        let $unused: i32 = 1;
     }
-    match 'l' {
+    match $l {
         lit { }
         dark { }
     }
@@ -44,5 +44,5 @@ fn three [] -> array[i32] {
 fn exit [] { }
 
 fn stop [] {
-    exit[];
+    exit();
 }

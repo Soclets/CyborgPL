@@ -49,6 +49,18 @@ fn parse_file_in(path: &Path, module: Vec<String>, kit_root: Vec<String>) -> Res
     };
     let at = |line: usize| if concise { concise::shown(&src, line) } else { String::new() };
     let mut toks = lexer::lex(&src).map_err(|e| format!("{}: line {}:{}: {}{}", path.display(), e.line, e.col, e.msg, at(e.line)))?;
+    // `oracle --to-paren-calls`: a quoted name that needs no quotes becomes `$name` (owner, 2026-10-22: good practice)
+    if parser::OLD_CALLS.with(|c| c.get()) {
+        let chars: Vec<char> = src.chars().collect();
+        for t in &toks {
+            if let lexer::Tok::Var(v) = &t.tok {
+                let plain = v.chars().next().map_or(false, |c| c.is_alphabetic() || c == '_') && v.chars().all(|c| c.is_alphanumeric() || c == '_');
+                if plain && chars.get(t.at) == Some(&'\'') {
+                    parser::REWRITES.with(|r| r.borrow_mut().push((path.to_path_buf(), t.at, v.chars().count() + 2, format!("${v}"))));
+                }
+            }
+        }
+    }
     case::rewrite(&mut toks, &kit_root, &module);
     // the kit's folder, where an `incl.…` path starts (owner, 2026-10-10): up from the file's own folder
     // once per module level below the root (`ui/header.cy` is `ui.header`, one folder down)
@@ -144,7 +156,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     let prelude = lexer::lex("enum optional <T: any> { value: <T>, none }").map_err(|e| format!("the base's optional: {}", e.msg))?;
     let base = parser::Parser::new(prelude).program().map_err(|e| format!("the base's optional: {}", e.msg))?;
     if prog.enums.iter().any(|e| e.name == "optional") {
-        return Err(format!("{}: `optional` is the base's (`optional.value[…]` / `optional.none`); an enum cannot take its name", path.display()));
+        return Err(format!("{}: `optional` is the base's (`optional.value(…)` / `optional.none`); an enum cannot take its name", path.display()));
     }
     prog.enums.extend(base.enums);
     // std's `casing` (owner, 2026-10-20: "casing, go"): which language's case rules `str.upper.full` / `str.lower.full`
@@ -676,7 +688,7 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
     fn is_cmp(op: &str) -> bool { matches!(op, "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least") }
     fn refuse((op, line): (String, usize)) -> Result<(), String> {
         let op = op.split('.').next().unwrap_or("shl").to_string();
-        Err(format!("line {line}: `{op}` needs a width, and nothing here gives one: declare where the value goes (`let 'v': u32 = 1 {op} 3;`) or write `to.u32[1] {op} 3`"))
+        Err(format!("line {line}: `{op}` needs a width, and nothing here gives one: declare where the value goes (`let $v: u32 = 1 {op} 3;`) or write `to.u32(1) {op} 3`"))
     }
     // a written position below 1 in std's text calls is refused when building (owner, 2026-10-17: "(a)")
     fn positions(c: &ast::Call) -> Result<(), String> {
@@ -1140,7 +1152,7 @@ fn collect(dir: &Path, prefix: &mut Vec<String>, out: &mut Vec<(Vec<String>, Pat
             // a kit's `build.cy` is its build program, run by `kayo prepare`, not a module (owner, 2026-10-09: "yea")
             if prefix.is_empty() && stem == "build" { continue; }
             if stem == "kit" { return Err(format!("{}: `kit` names the root; a module cannot be called that", p.display())); }
-            if stem == "my" { return Err(format!("{}: `my` is the root's path (`my.helper[]`); a module cannot be called that", p.display())); }
+            if stem == "my" { return Err(format!("{}: `my` is the root's path (`my.helper()`); a module cannot be called that", p.display())); }
             parser::module_name_ok(stem).map_err(|m| format!("{}: `{stem}` cannot name a module: {m}", p.display()))?;
             let mut module = prefix.clone();
             module.push(stem.to_string());
@@ -1182,6 +1194,30 @@ pub fn run_with_args(path: &Path, out: Box<dyn std::io::Write>, tests: bool, arg
 
 /// The interpreter names operators by the symbols it works with inside (`+`, `x~`); a message
 /// names them by their words (owner, 2026-10-03: the operators are words; check claude's note).
+/// A message's code, between backticks, writes a plain variable as `$name` (owner, 2026-10-22: good practice is `$`
+/// unless the name needs quotes); a name with a space or a symbol keeps its quotes, and the prose around stays as it is
+fn dollar_names(msg: &str) -> String {
+    let mut out = String::new();
+    for (i, part) in msg.split('`').enumerate() {
+        if i > 0 { out.push('`'); }
+        if i % 2 == 0 { out.push_str(part); continue; }
+        let c: Vec<char> = part.chars().collect();
+        let mut k = 0;
+        while k < c.len() {
+            if c[k] == '\'' && k + 1 < c.len() && (c[k + 1].is_alphabetic() || c[k + 1] == '_') {
+                let mut j = k + 1;
+                while j < c.len() && (c[j].is_alphanumeric() || c[j] == '_') { j += 1; }
+                // not after a letter (`it's`) and closed right after the name
+                if j < c.len() && c[j] == '\'' && !(k > 0 && c[k - 1].is_alphanumeric()) {
+                    out.push('$'); out.extend(&c[k + 1..j]); k = j + 1; continue;
+                }
+            }
+            out.push(c[k]); k += 1;
+        }
+    }
+    out
+}
+
 fn op_words(msg: &str) -> String {
     let mut m = msg.to_string();
     // the comparisons are words too since 2026-10-07; the interpreter keeps their old symbols inside
@@ -1189,6 +1225,34 @@ fn op_words(msg: &str) -> String {
         m = m.replace(sym, word);
     }
     m
+}
+
+/// `oracle --to-paren-calls`: read the program the old way, then write each recorded change into its file. A file the
+/// reading stopped in (a refused program) is rewritten up to where it stopped, and says so.
+fn to_paren_calls(target: &Path) -> Result<(), String> {
+    parser::OLD_CALLS.with(|c| c.set(true));
+    let stopped = load(target).err();
+    let root = std::fs::canonicalize(if target.is_dir() { target } else { target.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or(Path::new(".")) }).map_err(|e| e.to_string())?;
+    let mut by_file: std::collections::BTreeMap<PathBuf, Vec<(usize, usize, String)>> = std::collections::BTreeMap::new();
+    for (f, at, len, text) in parser::REWRITES.with(|r| r.borrow().clone()) {
+        let Ok(full) = std::fs::canonicalize(&f) else { continue };
+        if !full.starts_with(&root) { continue; }
+        by_file.entry(full).or_default().push((at, len, text));
+    }
+    for (f, mut edits) in by_file {
+        edits.sort(); edits.dedup();
+        let raw = std::fs::read_to_string(&f).map_err(|e| e.to_string())?;
+        // a concise file's positions are in the text its bytes spell: rewritten there, then spelled again
+        let decoded = match concise::decode(&raw) { Some(Ok(t)) => Some(t), _ => None };
+        let mut chars: Vec<char> = decoded.as_deref().unwrap_or(&raw).chars().collect();
+        for (at, len, text) in edits.into_iter().rev() { chars.splice(at..at + len, text.chars()); }
+        let text: String = chars.into_iter().collect();
+        let text = if decoded.is_some() { concise::encode(&text) } else { text };
+        std::fs::write(&f, text).map_err(|e| e.to_string())?;
+        println!("rewrote {}", f.display());
+    }
+    if let Some(m) = stopped { println!("stopped: {m}"); }
+    Ok(())
 }
 
 fn main() {
@@ -1202,6 +1266,13 @@ fn main() {
         if bad.is_empty() { println!("spellings.cyr: fine"); }
         exit(if bad.is_empty() { 0 } else { 1 });
     }
+    // `oracle --to-paren-calls <file.cy | kit-directory>`: rewrites a program written before 2026-10-22, each call's
+    // `[ ]` as `( )` and each quoted name that needs no quotes as `$name`, in the files under its own folder
+    if let [_, flag, t] = head { if flag == "--to-paren-calls" {
+        let target = PathBuf::from(t);
+        let run = std::thread::Builder::new().stack_size(1 << 30).spawn(move || to_paren_calls(&target)).expect("the oracle's thread");
+        match run.join() { Ok(Ok(())) => exit(0), Ok(Err(m)) => { eprintln!("{m}"); exit(1); } Err(_) => exit(101) }
+    } }
     let (tests, target) = match head {
         [_, t] if t != "--check-spellings" => (false, t),
         [_, flag, t] if flag == "--test" => (true, t),
@@ -1216,7 +1287,7 @@ fn main() {
         .expect("the oracle's thread");
     match run.join() {
         Ok(Ok(code)) => exit(code as i32),
-        Ok(Err(msg)) => { eprintln!("{msg}"); exit(1); }
+        Ok(Err(msg)) => { eprintln!("{}", dollar_names(&msg)); exit(1); }
         Err(_) => exit(101),
     };
 }

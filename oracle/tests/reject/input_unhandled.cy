@@ -1,3 +1,3 @@
 MAIN {
-    let 't' := std::input.line[];
+    let $t := std::input.line();
 }

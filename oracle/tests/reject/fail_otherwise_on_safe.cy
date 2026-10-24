@@ -1,4 +1,4 @@
 fn f [] -> i32 { return 1; }
 MAIN {
-    let 'x' := f[] otherwise 0;
+    let $x := f() otherwise 0;
 }

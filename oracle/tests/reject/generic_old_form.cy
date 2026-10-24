@@ -1,2 +1,2 @@
-fn first <T>: any ['a': <T>] -> <T> { return 'a'; }
+fn first <T>: any [$a: <T>] -> <T> { return $a; }
 MAIN { }

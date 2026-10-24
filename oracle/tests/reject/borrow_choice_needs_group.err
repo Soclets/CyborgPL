@@ -1,1 +1,1 @@
-`longer` hands back a borrow and borrows more than one input: say which with a group, `fn longer [@x] [lent @x 'a': …, lent 'b': …] -> lent @x …`
+`longer` hands back a borrow and borrows more than one input: say which with a group, `fn longer [@x] [lent @x $a: …, lent $b: …] -> lent @x …`

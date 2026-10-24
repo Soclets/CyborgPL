@@ -1,4 +1,4 @@
 struct P { x: i32 }
 MAIN {
-    let 'p' := P[x = 1, z = 2];
+    let $p := P[x = 1, z = 2];
 }

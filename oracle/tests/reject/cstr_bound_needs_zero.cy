@@ -1,3 +1,3 @@
 MAIN {
-    let 'x': C.str[max: 6 bytes] = C.str.make["hi"];
+    let $x: C.str[max: 6 bytes] = C.str.make["hi"];
 }

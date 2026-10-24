@@ -1,5 +1,5 @@
-fn twice ['d': duration] -> std::duration {
-    return 'd' + 'd';
+fn twice [$d: duration] -> std::duration {
+    return $d + $d;
 }
 MAIN {
 }

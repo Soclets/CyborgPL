@@ -1,6 +1,6 @@
 
-module a { pub fn f [] { g[]; } }
+module a { pub fn f [] { g(); } }
 fn g [] { }
 MAIN {
-    a.f[];
+    a.f();
 }

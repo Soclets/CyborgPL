@@ -1,1 +1,1 @@
-`shadow` takes `let`'s place: `shadow 'x' := …;`
+`shadow` takes `let`'s place: `shadow $x := …;`

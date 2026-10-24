@@ -1,2 +1,2 @@
-extern.C 'a': i32;
-MAIN { no_check change 'a' = 1; }
+extern.C $a: i32;
+MAIN { no_check change $a = 1; }

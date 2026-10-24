@@ -1,2 +1,2 @@
-fn g [&mut 'xs': list[i32]] { }
+fn g [&mut $xs: list[i32]] { }
 MAIN { }

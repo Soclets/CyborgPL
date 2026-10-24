@@ -2,11 +2,11 @@
 # like a list: copying or handing it on takes a word (owner, 2026-09-24: a). A function
 # carrying nothing, or only lends, copies by itself like a number.
 MAIN {
-    let 'xs' := [1, 2, 3];
-    let 'count' := fn [] -> u64 with [copy 'xs'] { return std::list.length[lend 'xs']; };
-    let 'again' := copy 'count';        # its own copy of the list inside
-    let 'moved' := give 'count';        # 'count' is gone after this
-    let 'inc' := fn ['a': i32] -> i32 { return 'a' + 1; };
-    let 'inc2' := 'inc';                # carries nothing: no word needed
-    std::print.useful['again'[], " ", 'moved'[], " ", 'inc2'[41], newln];
+    let $xs := [1, 2, 3];
+    let $count := fn [] -> u64 with [copy $xs] { return std::list.length(lend $xs); };
+    let $again := copy $count;        # its own copy of the list inside
+    let $moved := give $count;        # 'count' is gone after this
+    let $inc := fn [$a: i32] -> i32 { return $a + 1; };
+    let $inc2 := $inc;                # carries nothing: no word needed
+    std::print.useful($again(), " ", $moved(), " ", $inc2(41), newln);
 }

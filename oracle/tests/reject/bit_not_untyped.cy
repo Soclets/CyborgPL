@@ -1,3 +1,3 @@
 MAIN {
-    let 'x' := not.bit 5;
+    let $x := not.bit 5;
 }

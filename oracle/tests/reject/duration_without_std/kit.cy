@@ -1,2 +1,2 @@
-fn f ['v': duration] { }
+fn f [$v: duration] { }
 MAIN { }

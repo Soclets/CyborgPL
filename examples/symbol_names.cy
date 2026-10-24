@@ -7,5 +7,5 @@ MAIN {
     let 'v1.2' := 12;
     let 'total due' := 'v1.2' + 3;
     let 'it\'s' := "yes";
-    std::print.useful['80%', " ", 'ready?', " ", 'v1.2', " ", 'total due', " ", 'it\'s', newln];
+    std::print.useful('80%', " ", 'ready?', " ", 'v1.2', " ", 'total due', " ", 'it\'s', newln);
 }

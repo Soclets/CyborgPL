@@ -1,3 +1,3 @@
 MAIN {
-    let.mut 'x' := 1;
+    let.mut $x := 1;
 }

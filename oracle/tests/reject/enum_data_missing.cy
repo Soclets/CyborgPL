@@ -1,4 +1,4 @@
 enum S { a: i32, b }
 MAIN {
-    let 's' := S.a;
+    let $s := S.a;
 }

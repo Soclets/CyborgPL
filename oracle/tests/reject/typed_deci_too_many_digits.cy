@@ -1,3 +1,3 @@
 MAIN {
-    let 'a' := exactly 12345678: d32;
+    let $a := exactly 12345678: d32;
 }
