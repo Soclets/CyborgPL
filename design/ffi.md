@@ -258,6 +258,10 @@ design claude generalized it then without recording it, and `layout.c`
 (2026-09-19) kept its lowercase until this ruling. `layout.c` is refused,
 naming `layout.C`.
 
+**`inline.C` is in CyDT 1** (owner, 2026-10-24: "full C support comes in CyDT 1", then "Yes" to its including
+`inline.C`): for function-like macros, `static inline` header functions and inlining small C across the boundary,
+kayo compiling the block with Clang. Not designed yet.
+
 ```
 layout.C struct Timeval {
     sec: i64,

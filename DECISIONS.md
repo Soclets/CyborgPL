@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Full C support in CyDT 1: `inline.C` joins CNC (owner; not designed)
+
+The owner asked "What the fuck would inline C even help with?"; design claude: little beyond CNC (`incl.C`,
+`extern.C`, `layout.C`) for most libraries, but three things only C code can do: function-like macros, `static inline`
+functions in headers (no symbol to link), and inlining small C across the boundary in one LLVM module (2026-10-01).
+The owner: "Seems good, full C support comes in CyDT 1", and asked whether that includes `inline.C`, so kayo carries
+Clang: "Yes". So **CyDT 1 has full C support, `inline.C` included**, beside CNC; 2026-10-01's "Clang inside CCA is
+fine" covers the dependency. Its design (where a block goes, what binds, the limb) is not done yet.
+
 ### 2026-10-24 — A fix never makes up a value only the writer knows (owner: b)
 
 Compiler claude, writing kayo's fixes, met two fixes that need a value only the writer has: declaring a name that
