@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — A short lambda: `fn [$s] = $s at_least 60`, its types from where it is passed (owner: c; not built)
+
+The owner: "Let's do lambdas". Design claude: CyborgPL has them since 2026-09-21 (`fn [$s: i32] -> bool with [lend
+$limit] { return $s at_least $limit; }`, `functions-as-values.md`), and asked what to change: (a) a short form for one
+expression, no `{ return …; }`, `fn [$s: i32] -> bool = $s at_least 60`; (b) its types worked out from where it is
+passed, `keep` already saying what `$s` is; (c) both. The owner: "(c)". So **`keep(lend $scores, fn [$s] = $s at_least
+60)`**: a parameter's type and the return type come from the `fn[…]` type of the place it is passed, the body after
+`=` is one value. Design claude's readings, not asked: `=` is design claude's sketch, chosen with (c); captures stay
+explicit, `fn [$s] with [lend $limit] = $s at_least $limit`; a short lambda with nowhere to take its types from (`let
+$f := fn [$s] = …;` with no type) is refused, naming the types; the long form stays. Not built.
+
 ### 2026-10-24 — Built in the oracle: `std::print.flush()`, writers, and a failed write (owner, 2026-10-23; owner: "Do num 1")
 
 `std::print.flush()`; `let mut $out := std::print.writer(size: 4096 bytes);` (or `.writer.stderr(…)`), its type

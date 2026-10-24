@@ -54,6 +54,18 @@ inference, as for a named lend), `copy` takes an independent copy,
 named-only and over inline-without-capture; every other language captures
 silently, which is where "why is this borrowed" bugs come from.
 
+### The short form (owner, 2026-10-24: "(c)"; not built)
+
+```
+let $passing := keep(lend $scores, fn [$s] with [lend $limit] = $s at_least $limit);
+let $evens   := keep(lend $scores, fn [$s] = ($s mod.floor 2) equal_to 0);
+```
+
+One value after `=`, no `{ return …; }`; the parameters' types and the return type come from the `fn[…]` type of
+the place it is passed (`keep`'s `fn[i32] -> bool`). Design claude's readings: `=` (the sketch chosen with "(c)");
+captures stay explicit with `with`; with nowhere to take its types from, it is refused, naming them; the long form
+stays.
+
 ## 4. An operator is a value as `op plus` (owner, 2026-09-29)
 
 ```
