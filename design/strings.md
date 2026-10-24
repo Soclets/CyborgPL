@@ -37,6 +37,10 @@ A print never changes what it prints, so a mutable lend can only be where the te
 2026-10-23, "yea, record it"). The type is `std::print.writer`, and every print form takes a writer the same way
 (design claude's readings).
 
+**A print that does not fit** (owner, 2026-10-24): a writer sends what it holds and keeps the new print whole;
+`std::print.writer.whole(…)` says so, the default; `std::print.writer.split(…)` fills to exactly its size and may
+split a print, for raw throughput. A print longer than a whole writer goes out alone (design claude's reading).
+
 **A failed write stops the program** (owner, 2026-10-23: "default to stop, handle with `otherwise`?", then "yea,
 record it"). A print with `otherwise` flushes there, so its handler covers all printed so far:
 `std::print.useful("total: ", $total, newln) otherwise { write_failed { std::exit(code: 3); } };`. A writer fails at a

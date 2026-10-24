@@ -34,6 +34,24 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — A print that does not fit a writer: the writer sends what it holds and keeps the print whole; `.split` fills exactly (owner)
+
+check claude found the engines differ when a print overflows a `std::print.writer` (corpus/2026-10-24-a-print-that-
+overflows-a-writer-split-or-whole.cy): the oracle sent the held text with the whole print, (a); kayo filled exactly
+the size and kept the rest, (b), so another print landed inside a line. Design claude offered (c), sending what it
+holds and keeping the new print fresh, recommended; asked "Perf diff, safety diff?" (b fewest writes by a hair; a and
+c send each print in one write, which a pipe never interleaves up to 4096 bytes; b and c never hold past the size),
+then "Can we make variations/narrowings? Or could you use `otherwise`?" (`otherwise` is for failures; a narrowing),
+"Yes, only if there's not really a \"correct\" default" (there is: splitting breaks 2026-10-23's rule that grouping
+never changes the output), then "Yes, and of course, the default could also be legally spelt out". So:
+- **`std::print.writer(size: N bytes)` keeps a print whole**: a print that does not fit sends what the writer holds,
+  then the writer holds the new print. **`std::print.writer.whole(…)`** is the same, written out.
+- **`std::print.writer.split(…)`** fills to exactly its size, sends it and keeps the rest, a print free to split: raw
+  throughput, opted into.
+- `.stderr` stacks after the way: `std::print.writer.split.stderr(…)`.
+Design claude's readings: a print longer than the whole writer goes out at once, on its own, in a whole writer; (a)
+is dropped. Built in the oracle the same day (`examples/writer_overflow.cy`; refusal `writer_way_unknown`).
+
 ### 2026-10-24 — Terms: author, writer, contributors, authors, user (owner)
 
 The owner, unasked: "\"author\" shall mean the founder / \"writer\" shall mean the developer, say that guy who made an

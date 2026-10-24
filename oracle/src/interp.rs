@@ -5035,6 +5035,12 @@ impl<'p> Interp<'p> {
     /// The caller's side, checked before anything runs (as the compiler would): a
     /// call that can fail must say what happens; one that cannot must not; arms
     /// cover every reason; `otherwise fail;` needs the reasons in the caller's list.
+    /// Bytes to stdout or stderr, a writer's: a split writer's may end inside a character
+    fn emit_bytes(&mut self, bytes: &[u8], stderr: bool) -> Result<(), String> {
+        use std::io::Write as _;
+        if stderr { std::io::stderr().write_all(bytes).map_err(|e| e.to_string()) } else { self.out.write_all(bytes).map_err(|e| e.to_string()) }
+    }
+
     /// Text to stdout or stderr; the error when it cannot be written
     fn emit(&mut self, text: &str, stderr: bool) -> Result<(), String> {
         if stderr { use std::io::Write as _; std::io::stderr().write_all(text.as_bytes()).map_err(|e| e.to_string()) }
@@ -5815,11 +5821,12 @@ impl<'p> Interp<'p> {
             // `print.written` (owner, 2026-10-17): each value as its literal was typed; one that was not typed (computed, read,
             // changed) has none, and then the print says `otherwise std::print.useful` (or `.stored`) or is refused
             // `std::print.writer(size: 4096 bytes)`, `.writer.stderr(…)` (owner, 2026-10-23: "both, bro")
-            "print.writer.stdout" | "print.writer.stderr" => {
+            // `.whole` (the default, written out or not) or `.split` (owner, 2026-10-24), then the stream
+            "print.writer.stdout" | "print.writer.stderr" | "print.writer.whole.stdout" | "print.writer.whole.stderr" | "print.writer.split.stdout" | "print.writer.split.stderr" => {
                 let (v, _) = self.single(&c.args, c.line)?;
                 let Value::Int(n) = v else { return rt(c.line, "a writer's size is a whole number of bytes") };
                 if n < 1 { return rt(c.line, "a writer holds at least 1 byte: `std::print.writer(size: 4096 bytes)`"); }
-                Ok(Value::Writer(Rc::new(RefCell::new(crate::value::Writer { text: String::new(), cap: n as usize, stderr: path.ends_with("stderr") }))))
+                Ok(Value::Writer(Rc::new(RefCell::new(crate::value::Writer { text: Vec::new(), cap: n as usize, stderr: path.ends_with("stderr"), split: path.contains(".split.") }))))
             }
             // `std::print.flush()` sends what is held now; `std::print.flush(lend.mut $out)` a writer's text
             "print.flush.stdout" | "print.flush.stderr" => {
@@ -5828,7 +5835,7 @@ impl<'p> Interp<'p> {
                     [crate::ast::Value::Expr(Expr::Owned(Verb::LendMut, n, _))] => {
                         let Some(Value::Writer(w)) = self.lookup(n).map(|s| s.cell.borrow().clone()) else { return rt(c.line, format!("`std::print.flush(lend.mut '{n}')` flushes a writer, and '{n}' is not one")) };
                         let (text, err) = { let mut w = w.borrow_mut(); (std::mem::take(&mut w.text), w.stderr) };
-                        self.emit(&text, err)
+                        self.emit_bytes(&text, err)
                     }
                     _ => return rt(c.line, "`std::print.flush()` takes nothing, or a writer: `std::print.flush(lend.mut $out)`"),
                 };
@@ -5902,8 +5909,25 @@ impl<'p> Interp<'p> {
                 if path.contains(".auto_newln.") { text.push('\n'); }
                 if let Some(w) = writer {
                     // into the writer, handed on whole when it is full
-                    let full = { let mut w = w.borrow_mut(); w.text.push_str(&text); if w.text.len() >= w.cap { Some((std::mem::take(&mut w.text), w.stderr)) } else { None } };
-                    let r = match full { Some((t, err)) => self.emit(&t, err), None => Ok(()) };
+                    // what goes out now: a whole writer sends what it holds when the print does not fit, then holds the
+                    // print (one longer than the writer going out alone); a split one fills to exactly its size (owner, 2026-10-24)
+                    let (out, err) = {
+                        let mut w = w.borrow_mut();
+                        let mut out: Vec<Vec<u8>> = Vec::new();
+                        let bytes = text.as_bytes();
+                        if w.split {
+                            w.text.extend_from_slice(bytes);
+                            let cap = w.cap;
+                            while w.text.len() >= cap { let rest = w.text.split_off(cap); out.push(std::mem::replace(&mut w.text, rest)); }
+                        } else {
+                            if !w.text.is_empty() && w.text.len() + bytes.len() > w.cap { out.push(std::mem::take(&mut w.text)); }
+                            if bytes.len() > w.cap { out.push(bytes.to_vec()); } else { w.text.extend_from_slice(bytes); }
+                            if w.text.len() >= w.cap { out.push(std::mem::take(&mut w.text)); }
+                        }
+                        (out, w.stderr)
+                    };
+                    let mut r = Ok(());
+                    for chunk in out { if r.is_ok() { r = self.emit_bytes(&chunk, err); } }
                     return self.written_or_failed(r, c, value_used);
                 }
                 let mut r = self.emit(&text, path.ends_with("stderr"));

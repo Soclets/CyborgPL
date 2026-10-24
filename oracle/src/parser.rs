@@ -4135,7 +4135,10 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
         }
         // `std::print.writer(size: 4096 bytes)` (owner, 2026-10-23: "Just `bytes` for now"): a size with its unit, its word
         // taken out by the argument words
-        if kit.as_deref() == Some("std") && path.len() == 3 && path[0] == "print" && path[1] == "writer" {
+        if kit.as_deref() == Some("std") && path.len() >= 3 && path[0] == "print" && path[1] == "writer" {
+            // the way, then the stream: `.whole` (the default) or `.split` (owner, 2026-10-24)
+            let way_ok = match path.len() { 3 => true, 4 => path[2] == "whole" || path[2] == "split", _ => false };
+            if !way_ok { return self.err(format!("a writer is `std::print.writer`, `.whole` or `.split`, then `.stderr` if it goes there: `std::print.writer.split.stderr(size: 4096 bytes)`, not `std::{}`", written.join("."))); }
             self.call_open(&format!("std::{}", written.join(".")))?;
             let bline = self.line();
             self.expect(Tok::LBracket, "`(`")?;

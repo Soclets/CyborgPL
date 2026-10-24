@@ -198,9 +198,10 @@ pub fn int_range(ty: &Ty) -> Option<(i128, i128)> {
     }
 }
 
-/// A writer's state: the text it holds, how much it holds before handing it on, and where it goes
+/// A writer's state: the bytes it holds, how many it holds before handing them on, where they go, and whether a print
+/// may split (`.split`) or goes whole (owner, 2026-10-24)
 #[derive(Debug, PartialEq)]
-pub struct Writer { pub text: String, pub cap: usize, pub stderr: bool }
+pub struct Writer { pub text: Vec<u8>, pub cap: usize, pub stderr: bool, pub split: bool }
 
 /// A channel's state. `after`/`every` are std::time's: ready only when nothing else can run.
 #[derive(Debug, Clone, PartialEq)]
