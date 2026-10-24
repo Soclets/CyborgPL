@@ -192,6 +192,8 @@ pub struct Func {
     /// `<T: Ordered>` — each type variable's required interface (canonical), if any
     pub bounds: Vec<(String, String)>,
     pub params: Vec<Param>,
+    /// `fn [$s] = $s at_least 60` (owner, 2026-10-24: "(c)"): a lambda of one value, its types taken from where it goes
+    pub short: bool,
     pub body: Vec<Stmt>,
     pub line: usize,
     /// `extern.C fn printf_count = C.printf […]` (owner, 2026-10-19): the C function this name calls

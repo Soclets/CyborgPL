@@ -1713,6 +1713,14 @@ impl<'p> Interp<'p> {
                 let f = &fv.def;
                 if f.name == "op -" && ps.len() == 1 { return rt(line, format!("expected {name}: `op -` subtracts two values; negation as a value is `op neg` (owner, 2026-09-29)")); }
                 if f.params.len() != ps.len() { return rt(line, format!("expected {name}, got a function taking {} argument(s)", f.params.len())); }
+                // a short lambda's types are the ones of where it goes (owner, 2026-10-24: "(c)"): only its count, checked above,
+                // and a type it wrote, below, can differ
+                if f.short {
+                    for (fp, (_, t)) in f.params.iter().zip(ps) {
+                        if let Some(ft) = &fp.ty { if !matches!(t, Ty::Var(_)) && !matches!(ft, Ty::Var(_)) && ty_name(ft) != ty_name(t) { return rt(line, format!("expected {name}: parameter '{}' is {}, not {}", fp.name, ty_name(ft), ty_name(t))); } }
+                    }
+                    return Ok(());
+                }
                 for (fp, (kind, t)) in f.params.iter().zip(ps) {
                     if fp.kind != *kind { return rt(line, format!("expected {name}: parameter '{}' is {} where {} is needed", fp.name, kind_word(fp.kind), kind_word(*kind))); }
                     if let Some(ft) = &fp.ty { if !matches!(t, Ty::Var(_)) && !matches!(ft, Ty::Var(_)) && ty_name(ft) != ty_name(t) { return rt(line, format!("expected {name}: parameter '{}' is {}, not {}", fp.name, ty_name(ft), ty_name(t))); } }

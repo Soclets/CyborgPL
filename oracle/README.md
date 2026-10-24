@@ -132,6 +132,11 @@ entry point — see `tests/reject/` for one program per rule. Highlights:
   or flush takes `otherwise { write_failed { … } }`, a print with one flushed at once; with none, a failed write stops
   with exit 1. The oracle does not group its own prints: that is kayo's speed, not a behaviour.
 
+- **A short lambda** (owner, 2026-10-24: "(c)"): `fn [$s] = $s at_least 60`, `fn [$s] with [lend $limit] = …`: one value
+  after `=`, read as `{ return …; }`; checked against a `fn[…]` type by its count and any type it wrote, its other
+  types being that type's. With `:=` and no type it is refused; a return type on it is refused. A named function has
+  no short form (owner: "no").
+
 ## Provisional picks — the design has not decided these
 
 - **Versions, labels, defaults** (owner, 2026-10-21), design claude's picks: (a stopgap letting `std/` write versions as repeated lines ended 2026-10-22, when round.cy moved to `versions` blocks); `labels` and `defaults` are for the collection's own function only (not a member); a labelled first argument is read as a call's label, and a struct given `field: v` is told so when it runs. `examples/labels.cy`

@@ -34,7 +34,7 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
-### 2026-10-24 — A short lambda: `fn [$s] = $s at_least 60`, its types from where it is passed (owner: c; not built)
+### 2026-10-24 — A short lambda: `fn [$s] = $s at_least 60`, its types from where it is passed (owner: c; built in the oracle the same day)
 
 The owner: "Let's do lambdas". Design claude: CyborgPL has them since 2026-09-21 (`fn [$s: i32] -> bool with [lend
 $limit] { return $s at_least $limit; }`, `functions-as-values.md`), and asked what to change: (a) a short form for one
@@ -44,7 +44,9 @@ passed, `keep` already saying what `$s` is; (c) both. The owner: "(c)". So **`ke
 `=` is one value. Design claude's readings, not asked: `=` is design claude's sketch, chosen with (c); captures stay
 explicit, `fn [$s] with [lend $limit] = $s at_least $limit`; a short lambda with nowhere to take its types from (`let
 $f := fn [$s] = …;` with no type) is refused, naming the types; the long form stays. **A named function has no short form** (owner, asked whether `fn twice [$n: i64] -> i64 = $n x 2;`
-should be written too: "no"): it keeps its body in `{ }`. Not built.
+should be written too: "no"): it keeps its body in `{ }`. Built in the oracle the same day (`examples/short_lambda.cy`; refusals
+`short_lambda_untyped`, `short_lambda_return_type`); design claude's reading: a type written on a short lambda's
+parameter is kept and checked, a return type is refused, the short form taking that from where it goes.
 
 ### 2026-10-24 — Built in the oracle: `std::print.flush()`, writers, and a failed write (owner, 2026-10-23; owner: "Do num 1")
 

@@ -1,0 +1,1 @@
+a short lambda takes its return type from where it goes: `fn [$s] = $s

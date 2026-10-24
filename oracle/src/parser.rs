@@ -1458,7 +1458,7 @@ impl Parser {
         } else { self.block()? };
         let bounds = Self::flat_bounds(&gens);
         if !self.in_interface { self.declared = None; self.groups.clear(); }
-        Ok(Func { name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails: Vec::new(), is_extern: false, is_op: true, is_test: false, owned: false, bounds, params, body, line, link: None })
+        Ok(Func { short: false, name, module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails: Vec::new(), is_extern: false, is_op: true, is_test: false, owned: false, bounds, params, body, line, link: None })
     }
 
     // struct := 'struct' Word '{' (('mut' | 'immut')? Word ':' type)* '}'   — no `;`, no `let`
@@ -1609,7 +1609,7 @@ impl Parser {
         let mut module = self.module.clone();
         let owned = owner.is_some();
         if let Some(t) = owner { module.push(t); }
-        Ok(Func { name, module, vis: Vis::Private, ret, ret_lent, fails, is_extern: false, is_op: false, is_test: false, owned, bounds, params, body, line, link: None })
+        Ok(Func { short: false, name, module, vis: Vis::Private, ret, ret_lent, fails, is_extern: false, is_op: false, is_test: false, owned, bounds, params, body, line, link: None })
     }
 
     // fail list := 'fail' '[' Word (':' type)? (',' Word (':' type)?)* ']'
@@ -2844,6 +2844,10 @@ impl Parser {
                 value.values = vec![Value::Expr(Expr::ChannelNew(elem, cap, l))];
             }
         }
+        // a short lambda takes its types from where it goes, and `:=` gives it none (design claude's reading)
+        if let ([Value::Expr(Expr::Lambda(f, ..))], None) = (value.values.as_slice(), &ty) {
+            if f.short { return self.err(format!("a short lambda takes its types from where it goes, and here nothing says them: `let ${name}: fn[i32] -> bool = fn [$s] = …;`")); }
+        }
         if let ([Value::Expr(Expr::OpValue(op, ..))], None) = (value.values.as_slice(), &ty) {
             // design claude's reading, not ruled: nothing says which `+` (i32? f64? a Vec?)
             return self.err(format!("`op {op}` alone does not say which `{op}`: give '{name}' a function type, `'{name}': fn[i32, i32] -> i32 = op {op};`"));
@@ -3820,6 +3824,18 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
             else { ret = Some(self.ty()?); if self.is_word("or") { self.advance(); if !self.is_word("fail") { return self.err("after `or` comes `fail[…]`"); } fails = self.fail_list()?; } }
         }
         let caps = self.captures()?;
+        // the short form, one value after `=` (owner, 2026-10-24: "(c)"): its parameters' types and its return type are
+        // the `fn[…]` type's of where it goes; written ones are kept
+        if *self.peek() == Tok::Eq {
+            if ret.is_some() || !fails.is_empty() { return self.err("a short lambda takes its return type from where it goes: `fn [$s] = $s at_least 60`, or write the long form, `fn [$s: i32] -> bool { return …; }`"); }
+            self.advance();
+            let vline = self.line();
+            let e = self.expr()?;
+            self.pending_captures = caps;
+            let bounds = std::mem::take(&mut self.bounds);
+            let body = vec![Stmt::Return { value: Some(Bracket { values: vec![Value::Expr(e)], line: vline, one_list: false }), line: vline }];
+            return Ok(Func { short: true, name: String::new(), module: self.module.clone(), vis: Vis::Private, ret: None, ret_lent: None, fails: Vec::new(), is_extern: false, is_op: false, is_test: false, owned: false, bounds, params, body, line, link: None });
+        }
         if let Some(p) = params.iter().find(|p| p.ty.is_none() && !p.variadic) { return self.err(format!("parameter '{}' says its type: `'{}': i32` (owner, 2026-10-07)", p.name, p.name)); }
         let saved_ret = self.saw_value_return;
         self.saw_value_return = false;
@@ -3828,7 +3844,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
         self.saw_value_return = saved_ret;
         self.pending_captures = caps;
         let bounds = std::mem::take(&mut self.bounds);
-        Ok(Func { name: String::new(), module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails, is_extern: false, is_op: false, is_test: false, owned: false, bounds, params, body, line, link: None })
+        Ok(Func { short: false, name: String::new(), module: self.module.clone(), vis: Vis::Private, ret, ret_lent: None, fails, is_extern: false, is_op: false, is_test: false, owned: false, bounds, params, body, line, link: None })
     }
 
     /// `with [lend 'a', give 'b']` — explicit captures, for an anonymous fn and for `concur`.
