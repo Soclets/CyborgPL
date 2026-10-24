@@ -1055,7 +1055,9 @@ Dated, with the alternative, so each can become a question later.
   `MAIN`, before `std::exit`, before every C call (`emit_print_flush`), before
   `must.stop`'s fork, and before the program stops on a check
   (`flush_before_stop`). A write the OS refuses stops the program with 1
-  until how a stop reads is decided, saying so on stderr as the oracle does;
+  and `error[write_failed] at file:line:col` / `where: in fn()` on stderr (owner,
+  2026-10-24: "(a)"), naming the oldest print the buffer still held
+  (`cyborg_out_at`, each print's place handed in by codegen);
   a program ignores SIGPIPE (`cyborg_program_start`), so a reader gone from a
   pipe fails a write rather than ending the program unheard. **The manual ways** (oracle 83de3987):
   `std::print.flush()`; `std::print.writer(size: N bytes)` (`.stderr`), a

@@ -37,6 +37,7 @@ impl<'ctx> Cg<'_, 'ctx> {
             "cyborg_writer_status" => self.ctx.i8_type().fn_type(&[p.into()], false),
             "cyborg_writer_flush" => self.ctx.i8_type().fn_type(&[p.into()], false),
             "cyborg_writer_flush_or_stop" => v.fn_type(&[p.into()], false),
+            "cyborg_out_at" => v.fn_type(&[p.into(), p.into(), w.into()], false),
             "cyborg_out_bytes" => v.fn_type(&[p.into(), p.into(), w.into()], false),
             "cyborg_out_int" => v.fn_type(&[p.into(), w.into(), w.into(), b.into()], false),
             "cyborg_out_bin" => v.fn_type(&[p.into(), self.ctx.f64_type().into(), i32t.into(), b.into()], false),
@@ -73,12 +74,31 @@ impl<'ctx> Cg<'_, 'ctx> {
     pub(super) fn emit_print_status(&mut self, fi: usize, name: &str, args: &[Operand], slots: &[Option<PointerValue<'ctx>>]) -> Option<IntValue<'ctx>> {
         if name == "print.flush" {
             let w = self.operand(fi, args.first()?, slots)?;
+            self.print_at_place(fi, w.into_pointer_value());
             let f = self.out_fn("cyborg_writer_flush");
             return self.builder.build_call(f, &[w.into()], "failed").ok().and_then(crate::codegen::basic_result).map(|v| v.into_int_value());
         }
         let (out, writer) = self.print_fill(fi, name, args, slots)?;
         let end = self.out_fn(if writer { "cyborg_writer_status" } else { "cyborg_print_end_status" });
         self.builder.build_call(end, &[out.into()], "failed").ok().and_then(crate::codegen::basic_result).map(|v| v.into_int_value())
+    }
+
+    /// Where the print being generated is, as a failed write's stop says it
+    /// (owner, 2026-10-24: "(a)"): `error[write_failed] at file:line:col` and
+    /// `where:` its function, handed to the buffer it fills.
+    fn print_at_place(&mut self, fi: usize, out: PointerValue<'ctx>) {
+        let f = &self.p.functions[fi];
+        let (b, si) = (self.here.0 as usize, self.here.1 as usize);
+        let block = &f.blocks[b];
+        let span = f.span(block.stmts.get(si).map(|s| s.span).unwrap_or(block.term_span));
+        let file = self.sources.get(span.file);
+        let (line, col) = file.line_col(span.start);
+        let who = if f.is_main { "MAIN".to_string() } else { format!("{}()", f.name) };
+        let text = format!("error[write_failed] at {}:{}:{}\nwhere: in {}\n", file.display_name(), line, col, who);
+        let ptr = self.global_bytes(&text);
+        let len = self.ctx.i64_type().const_int(text.len() as u64, false);
+        let at = self.out_fn("cyborg_out_at");
+        let _ = self.builder.build_call(at, &[out.into(), ptr.into(), len.into()], "");
     }
 
     /// Whether an operand is a writer.
@@ -103,6 +123,7 @@ impl<'ctx> Cg<'_, 'ctx> {
             None => self.emit_print_flush(),
             Some(a) => {
                 let w = self.operand(fi, a, slots)?;
+                self.print_at_place(fi, w.into_pointer_value());
                 let f = self.out_fn("cyborg_writer_flush_or_stop");
                 let _ = self.builder.build_call(f, &[w.into()], "");
             }
@@ -125,6 +146,7 @@ impl<'ctx> Cg<'_, 'ctx> {
             let begin = self.out_fn("cyborg_print_begin");
             (self.builder.build_call(begin, &[self.ctx.i32_type().const_int(sink, false).into(), to.into()], "out").ok().and_then(crate::codegen::basic_result)?.into_pointer_value(), args)
         };
+        self.print_at_place(fi, out);
         for a in args {
             let ty = match a {
                 // At the width `operand` builds it (64 bits, or 128 when 64

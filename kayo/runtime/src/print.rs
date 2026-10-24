@@ -40,6 +40,13 @@ pub struct Out {
     /// A write the OS refused since this was last asked.
     pub failed: u32,
     pub bytes: *mut u8,
+    /// Where the oldest print still held was written, as its stop says it
+    /// (`error[write_failed] at …`, owner 2026-10-24), and where the print
+    /// being filled is.
+    pub at: *const u8,
+    pub at_len: u64,
+    pub cur: *const u8,
+    pub cur_len: u64,
 }
 
 #[cfg(not(target_os = "none"))]
@@ -51,7 +58,7 @@ extern "C" {
 
 /// The one buffer.
 static mut SHARED_BYTES: [u8; CAP] = [0; CAP];
-static mut SHARED: Out = Out { to: 1, sink: 0, len: 0, cap: CAP as u32, failed: 0, bytes: core::ptr::null_mut() };
+static mut SHARED: Out = Out { to: 1, sink: 0, len: 0, cap: CAP as u32, failed: 0, bytes: core::ptr::null_mut(), at: core::ptr::null(), at_len: 0, cur: core::ptr::null(), cur_len: 0 };
 
 /// kayo's buffer, its bytes in place.
 unsafe fn shared() -> *mut Out {
@@ -68,7 +75,22 @@ unsafe fn stop_if_failed(o: *mut Out) {
     if (*o).failed != 0 {
         (*o).failed = 0;
         #[cfg(not(target_os = "none"))]
-        stopped_writing();
+        stopped_writing(o);
+    }
+}
+
+/// Where the print about to fill `o` is written: the oldest held, when the
+/// buffer holds nothing yet.
+///
+/// # Safety
+/// `o` is a buffer; `at` has `len` bytes that live as long as the program.
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_out_at(o: *mut Out, at: *const u8, len: u64) {
+    (*o).cur = at;
+    (*o).cur_len = len;
+    if (*o).len == 0 || (*o).at.is_null() {
+        (*o).at = at;
+        (*o).at_len = len;
     }
 }
 
@@ -94,9 +116,14 @@ fn give_back() {
 /// 2026-10-23: "default to stop"). How a stop reads is not decided; until
 /// it is, it says so on stderr, as the oracle does, and ends with 1.
 #[cfg(not(target_os = "none"))]
-unsafe fn stopped_writing() -> ! {
-    let say = b"a print could not be written; `otherwise { write_failed { \xe2\x80\xa6 } }` handles it\n";
-    write(2, say.as_ptr(), say.len());
+unsafe fn stopped_writing(o: *const Out) -> ! {
+    // `error[write_failed]` and where the print is (owner, 2026-10-24: "(a)").
+    if (*o).at.is_null() {
+        let say = b"error[write_failed]\n";
+        write(2, say.as_ptr(), say.len());
+    } else {
+        write(2, (*o).at, (*o).at_len as usize);
+    }
     exit(1)
 }
 
@@ -174,7 +201,7 @@ pub unsafe extern "C" fn cyborg_writer_new(cap: u64, sink: u32, to: usize) -> *m
     let cap = cap.clamp(1, u32::MAX as u64);
     let o = crate::cyborg_alloc(core::mem::size_of::<Out>() as u64) as *mut Out;
     let bytes = crate::cyborg_alloc(cap);
-    o.write(Out { to, sink, len: 0, cap: cap as u32, failed: 0, bytes });
+    o.write(Out { to, sink, len: 0, cap: cap as u32, failed: 0, bytes, at: core::ptr::null(), at_len: 0, cur: core::ptr::null(), cur_len: 0 });
     o
 }
 
@@ -332,6 +359,11 @@ pub unsafe extern "C" fn cyborg_out_flush(o: *mut Out) {
         }
     }
     (*o).len = 0;
+    // What is still to come is the print being filled.
+    if (*o).failed == 0 {
+        (*o).at = (*o).cur;
+        (*o).at_len = (*o).cur_len;
+    }
 }
 
 /// Bytes into the buffer, handing it on whenever it fills.
