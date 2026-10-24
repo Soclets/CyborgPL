@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Fixed: the oracle's full case mapping follows SpecialCasing's conditions (std claude)
+
+std claude, having built `.full` with `lang:` in std from SpecialCasing (The Unicode Standard 3.13, Table 3-17), found
+the oracle's stand-in off in 26 answers: final sigma not skipping case-ignorable characters (`ΑΣ'Α`), tr/az `I` + U+0307
+not lowering to `i`, lt uppercase dropping the dot after a capital `I`, and lt's More_Above looking only at the next
+character. The oracle now applies the conditions as written (After_I, Before_Dot, More_Above, After_Soft_Dotted,
+skipping marks that are neither above nor class 0) and lowers the rest of the text at once with Rust's
+`str::to_lowercase`, which is Final_Sigma with case-ignorable characters skipped. Design claude's reading: its
+combining classes are approximated by the Combining Diacritical Marks blocks. Open, std claude's: a letter both cased and
+case-ignorable (ʰ, U+0345) before a final sigma; the oracle, through Rust, skips it as ICU and Python do (`ʰσ`), where
+std follows Table 3-17's wording (`ʰς`).
+
 ### 2026-10-24 — A failed write's stop: exit 1 and one line on stderr naming it, `error[write_failed]` (owner: a; not built)
 
 The open half of 2026-10-23's failed print. Offered (a) exit 1 and one line on stderr naming the failure in the new

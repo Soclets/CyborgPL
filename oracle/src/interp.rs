@@ -6008,31 +6008,45 @@ fn change_case(s: &str, upper: bool, way: &str, lang: &str) -> String {
             }
         }).collect(),
         _ => {
+            // SpecialCasing's conditions as The Unicode Standard writes them (3.13, Table 3-17), with the oracle's
+            // approximation of combining classes: a mark of the Combining Diacritical Marks blocks, `above` (230) or not;
+            // anything else is class 0 (std claude, 2026-10-24, found the oracle's earlier version off in 26 answers)
+            let is_mark = |c: char| matches!(c as u32, 0x0300..=0x036F | 0x0483..=0x0489 | 0x0591..=0x05BD | 0x1AB0..=0x1AFF | 0x1DC0..=0x1DFF | 0x20D0..=0x20FF | 0xFE20..=0xFE2F);
+            let soft_dotted = |c: char| matches!(c, 'i' | 'j' | '\u{012F}' | '\u{0249}' | '\u{0268}' | '\u{029D}' | '\u{02B2}' | '\u{0456}' | '\u{0458}' | '\u{1D62}' | '\u{1D96}' | '\u{1DA4}' | '\u{1DA8}' | '\u{1E2D}' | '\u{1ECB}' | '\u{2071}' | '\u{2148}' | '\u{2149}' | '\u{2C7C}');
             let chars: Vec<char> = s.chars().collect();
+            // the nearest character before / after `k` past marks that are neither above (230) nor class 0
+            let back = |k: usize| { let mut j = k; while j > 0 { j -= 1; let c = chars[j]; if is_mark(c) && !combining_above(c) { continue; } return Some(c); } None };
+            let fwd = |k: usize| { let mut j = k + 1; while j < chars.len() { let c = chars[j]; if is_mark(c) && !combining_above(c) { j += 1; continue; } return Some(c); } None };
+            // More_Above: an above mark follows, with no class-0 character between
+            let more_above = |k: usize| fwd(k).map_or(false, |c| combining_above(c));
+            let after_i = |k: usize| back(k) == Some('I');
+            let before_dot = |k: usize| fwd(k) == Some('\u{0307}');
+            let after_soft_dotted = |k: usize| back(k).map_or(false, |c| soft_dotted(c));
             let mut out = String::new();
             for (k, &c) in chars.iter().enumerate() {
-                let next_above = chars.get(k + 1).map_or(false, |n| combining_above(*n));
                 match (upper, lang, c) {
                     (true, "tr" | "az", 'i') => out.push('\u{0130}'),
-                    (false, "tr" | "az", 'I') => out.push('\u{0131}'),
                     (false, "tr" | "az", '\u{0130}') => out.push('i'),
-                    // Lithuanian keeps the dot of a lowercase i or j under an accent above
-                    (false, "lt", 'I') if next_above => out.push_str("i\u{0307}"),
-                    (false, "lt", 'J') if next_above => out.push_str("j\u{0307}"),
-                    (false, "lt", '\u{012E}') if next_above => out.push_str("\u{012F}\u{0307}"),
+                    // the dot after an I goes: I and its dot are one dotted i
+                    (false, "tr" | "az", '\u{0307}') if after_i(k) => {}
+                    (false, "tr" | "az", 'I') => out.push(if before_dot(k) { 'i' } else { '\u{0131}' }),
+                    // Lithuanian keeps the dot of a lowercase i, j or į that has an accent above
+                    (false, "lt", 'I') if more_above(k) => out.push_str("i\u{0307}"),
+                    (false, "lt", 'J') if more_above(k) => out.push_str("j\u{0307}"),
+                    (false, "lt", '\u{012E}') if more_above(k) => out.push_str("\u{012F}\u{0307}"),
                     (false, "lt", '\u{00CC}') => out.push_str("i\u{0307}\u{0300}"),
                     (false, "lt", '\u{00CD}') => out.push_str("i\u{0307}\u{0301}"),
                     (false, "lt", '\u{0128}') => out.push_str("i\u{0307}\u{0303}"),
                     // and drops it uppercasing, after a soft-dotted letter
-                    (true, "lt", '\u{0307}') if k > 0 && matches!(chars[k - 1], 'i' | 'j' | '\u{012F}' | 'I' | 'J' | '\u{012E}') => {}
-                    _ => if upper { out.extend(c.to_uppercase()) } else {
-                        // a capital sigma at a word's end lowers to the final form, as Rust's `str::to_lowercase` does
-                        if c == '\u{03A3}' { out.push_str(&String::from(c).to_lowercase()); let final_ = k > 0 && chars[k - 1].is_alphabetic() && !chars.get(k + 1).map_or(false, |n| n.is_alphabetic()); if final_ { out.pop(); out.push('\u{03C2}'); } }
-                        else { out.extend(c.to_lowercase()) }
-                    },
+                    (true, "lt", '\u{0307}') if after_soft_dotted(k) => {}
+                    (true, _, _) => out.extend(c.to_uppercase()),
+                    // the rest is lowered below, the whole text at once, so final sigma sees its context
+                    (false, _, _) => out.push(c),
                 }
             }
-            out
+            // Rust's `str::to_lowercase` is Unicode's full lowercase with Final_Sigma, case-ignorable characters
+            // skipped; what the language rules wrote is lowercase already
+            if upper { out } else { out.to_lowercase() }
         }
     }
 }
