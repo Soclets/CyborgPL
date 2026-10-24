@@ -334,7 +334,6 @@ index_past_end [fnv:7914d123bba99015] :: the position can be past the end
 index_zero [fnv:7914d123bba99015] :: the position can be past the end
 inline_c [fnv:d5c6f5df25514a20] :: `inline.C` is not decided
 inline_ll_not_built [fnv:c9d7e8907faa7850] :: `inline.LL`, LLVM IR in place, is the base's
-inline_msl_not_built [fnv:25154247b4885290] :: `inline.MSL`, the Metal Shading Language, is the Metal limb's
 input_unhandled [fnv:42153828b7c05b82] :: `std::input.line` can fail (closed): say what happens
 input_with_args [fnv:53d190f847e97a96] :: `std::input.line` takes no arguments
 int8_overflow [fnv:f3ca204f7f52069f] :: the value can be outside what an `i8` holds
@@ -888,3 +887,14 @@ writer_size_unit [fnv:1b9d61434f660919] :: a writer's size says its unit: `size:
 writer_unflushed [fnv:60b7c7a39f4199a0] :: goes away still holding text: `std::print.flush(lend.mut $out);` before its block ends
 short_lambda_return_type [fnv:1129f5c2f12a209c] :: a short lambda takes its return type from where it goes
 short_lambda_untyped [fnv:54f2c7cf907c604c] :: a short lambda takes its types from where it goes, and here nothing sa
+msl_copy_list [fnv:22edc1402ce7344a] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: 'xs' is a list of numbers: lend it, `lend $xs -> buffer(0)`,
+msl_include_missing [fnv:4319c5c377fdf56b] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: `#include "shaders/nope.metal"`: there is no such file in th
+msl_include_outside [fnv:519c5d155fbe97f1] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: `#include "../outside.metal"` reaches outside the kit: a sha
+msl_lend_number [fnv:cac652cdd675ee66] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: 'k' is a single value: `copy $k -> buffer(1)`, a Metal `cons
+msl_metal_not_listed [fnv:f82c75ae39ff9d4b] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: `inline.MSL` is Metal's, and this kit's CyJet.toml does not
+msl_needs_no_check [fnv:10fa1498d854aa1d] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: an `inline.MSL` block is a no_check site: the compiler canno
+msl_no_kernel [fnv:5d5510cc1907b89f] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: an `inline.MSL` block holds one `kernel` function, the one i
+msl_no_threads [fnv:b529f3af359a0c53] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: an `inline.MSL` block says how many threads run it first: `i
+msl_slot_twice [fnv:4696919b3467d594] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: `buffer(0)` is bound twice, to $xs and $xs
+msl_text_bound [fnv:2ec49dab014f6094] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: 'k' is str, and what binds to the GPU is a number, a list of
+msl_two_kernels [fnv:db113e0ce70405a6] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: an `inline.MSL` block holds one kernel, and this one has 2:

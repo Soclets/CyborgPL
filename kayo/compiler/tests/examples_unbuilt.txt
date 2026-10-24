@@ -16,3 +16,5 @@ shop :: `std::input.line` is not available yet
 text :: `std::str.find.grapheme` is not available yet
 case_mappings :: `casing` is std's: write `std::casing`
 whichever :: `std::time.after` is not available yet
+msl_shared :: `#include` is not a comment form
+msl_twice :: `*` is an old spelling
