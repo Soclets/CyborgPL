@@ -180,6 +180,21 @@ pub struct Config {
     pub paren_calls: bool,
     /// MAIN ending in `std::exit(code: N)` (owner, 2026-10-23; oracle 69c6aedf).
     pub exits: bool,
+    /// A generic's bare literal filled by i32, d64 and f64 (owner, 2026-10-22;
+    /// oracle 340f5b98, kayo a319a218).
+    pub generics: bool,
+    /// Channels from `channel.empty`, sent from `concur` tasks and bounded
+    /// (owner; oracle 73a48973, kayo a319a218).
+    pub channels: bool,
+    /// A handler member taking an argument, `otherwise h.or_default(default: K)`
+    /// (owner, 2026-10-23; oracle 07353d0f, kayo b02769fe).
+    pub handler_args: bool,
+    /// A print writer filled, a plain print between, flushed; `std::print.flush()`;
+    /// a print with `otherwise { write_failed { … } }` (owner, 2026-10-23; kayo 6c647471).
+    pub writers: bool,
+    /// Short lambdas, `fn ['s'] = 's' at_least 60`, with and without `with`, and
+    /// one in a typed `fn[i32] -> bool` (owner, 2026-10-24; kayo 22eb479f).
+    pub short_lambdas: bool,
     /// C interop (owner, 2026-10-19; oracle 927b1905, kayo 6ae65a5f): a
     /// `layout.C union` written through one field and read through another,
     /// a `layout.C struct` of bit-fields written at and past their limits,
@@ -198,7 +213,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
     }
 }
 
@@ -449,6 +464,22 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let lines = g.ptr_null();
         main.extend(lines.into_iter().map(Stmt::Src));
     }
+    if g.cfg.generics && g.rng.chance(8) {
+        let lines = g.generic_total();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
+    if g.cfg.writers && g.cfg.print && g.rng.chance(8) {
+        let lines = g.writer_episode();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
+    if g.cfg.short_lambdas && g.rng.chance(8) {
+        let lines = g.short_lambda();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
+    if g.cfg.channels && g.rng.chance(8) {
+        let lines = g.channel_episode();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
     if g.cfg.percents && g.rng.chance(10) {
         let lines = g.percent_places();
         main.extend(lines.into_iter().map(Stmt::Src));
@@ -569,6 +600,109 @@ impl Gen {
         lines
     }
 
+    /// A print writer (owner, 2026-10-23): filled in a loop and by a function
+    /// lent it, a plain print between, then flushed, so the order of the bytes
+    /// says when the writer's text went out; `std::print.flush()`; and a print
+    /// handling `write_failed`.
+    fn writer_episode(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        let v = |n: &str| format!("'{n}{id}'");
+        self.extra_fns.push(format!("fn wrep{id} [lent.mut 'out': std::print.writer, 'name': str.utf8, 'n': i64] {{\n    std::print.useful[lend.mut 'out', 'name', \": \", 'n', newln];\n}}"));
+        let (k, m, t) = (self.rng.range(1, 5), self.rng.range(-99, 99), self.rng.range(0, 9999));
+        let size = *self.rng.pick(&[256u32, 1024, 4096]);
+        let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
+        vec![
+            format!("std::print.useful[\"before {id}\", newln];"),
+            "std::print.flush[];".to_string(),
+            format!("let mut {} := std::print.writer[size: {size} bytes];", v("pw")),
+            format!("for {i}: i64 [from: 1, to: {k}, by: 1] {{ std::print.useful[lend.mut {w}, \"w \", {i}, \" \", {i} x {}, newln]; }}", lit(m), i = v("wi"), w = v("pw")),
+            format!("wrep{id}[lend.mut {}, \"total\", {t}];", v("pw")),
+            format!("std::print.useful[\"between {id}\", newln];"),
+            format!("std::print.flush[lend.mut {}];", v("pw")),
+            format!("std::print.useful[\"after {id}\", newln] otherwise {{ write_failed {{ std::exit[code: 3]; }} }};"),
+        ]
+    }
+
+    /// Short lambdas (owner, 2026-10-24): one value after `=`, the types from
+    /// where it goes; with a `with` capture, without, and in a typed `fn[i32] -> bool`.
+    fn short_lambda(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        let v = |n: &str| format!("'{n}{id}'");
+        self.extra_fns.push(format!("fn keep{id} [lent 'xs': list[i32], 'test': fn[i32] -> bool] -> list[i32] {{\n    let mut 'out': list[i32] = list.empty;\n    for 'x' in lend 'xs' {{\n        if 'test'['x'] {{ list.append[lend.mut 'out', value: 'x']; }}\n    }}\n    return give 'out';\n}}"));
+        let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
+        let xs: Vec<String> = (0..self.rng.range(1, 7)).map(|_| lit(self.rng.range(-99, 99))).collect();
+        let (lim, md, big, x) = (self.rng.range(-50, 50), self.rng.range(2, 5), self.rng.range(-50, 50), self.rng.range(-99, 99));
+        vec![
+            format!("let {}: list[i32] = [{},];", v("sc"), xs.join(", ")),
+            format!("let {}: i32 = {};", v("lim"), lit(lim)),
+            format!("let {} := keep{id}[lend {sc}, fn ['s'] with [lend {lm}] = 's' at_least {lm}];", v("kp"), sc = v("sc"), lm = v("lim")),
+            format!("let {} := keep{id}[lend {sc}, fn ['s'] = ('s' mod.floor {md}) equal_to 0];", v("ke"), sc = v("sc")),
+            format!("std::print.useful[{}, \" \", {}, newln];", v("kp"), v("ke")),
+            format!("let {}: fn[i32] -> bool = fn ['s'] = 's' at_least {};", v("bg"), lit(big)),
+            format!("std::print.useful[{}[{}], newln];", v("bg"), lit(x)),
+        ]
+    }
+
+    /// A generic whose `let mut 'sum': <T> = K;` takes `<T>`'s type (owner,
+    /// 2026-10-22), filled by an i32, a d64 and an f64 list.
+    fn generic_total(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        let k = self.rng.range(0, 9);
+        self.extra_fns.push(format!("fn gtot{id} <T: any> [lent 'xs': list[<T>]] -> <T> {{\n    let mut 'sum': <T> = {k};\n    for 'x' in lend 'xs' {{ change 'sum' = 'sum' + 'x'; }}\n    return 'sum';\n}}"));
+        let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
+        let ints: Vec<String> = (0..self.rng.range(1, 5)).map(|_| lit(self.rng.range(-999, 999))).collect();
+        let decs: Vec<String> = (0..self.rng.range(1, 5)).map(|_| format!("{}.{:02}", self.rng.range(0, 999), self.rng.range(0, 99))).collect();
+        let bins: Vec<String> = (0..self.rng.range(1, 5)).map(|_| format!("{}.{}", self.rng.range(0, 999), self.rng.range(0, 99))).collect();
+        let v = |n: &str| format!("'{n}{id}'");
+        vec![
+            format!("let {}: list[i32] = [{},];", v("ga"), ints.join(", ")),
+            format!("let {}: list[d64] = [{},];", v("gb"), decs.join(", ")),
+            format!("let {}: list[f64] = [{},];", v("gc"), bins.join(", ")),
+            format!("std::print.useful[gtot{id}[lend {}], \" \", gtot{id}[lend {}], \" \", gtot{id}[lend {}], newln];", v("ga"), v("gb"), v("gc")),
+        ]
+    }
+
+    /// Channels from `channel.empty` (owner): two `concur` tasks each sending on
+    /// its own channel, taken in order, and a bounded channel filled and
+    /// emptied in order, one take past its end.
+    fn channel_episode(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        let v = |n: &str| format!("'{n}{id}'");
+        let mut r = |lo: i128, hi: i128| self.rng.range(lo, hi);
+        let (a, b, c, d) = (r(1, 999), r(1, 99), r(0, 9999), r(1, 999));
+        let mut lines = vec![
+            format!("let {}: channel[i64] = channel.empty;", v("ca")),
+            format!("let {}: channel[i64] = channel.empty;", v("cb")),
+            format!("concur with [lend {ca}] {{ channel.send[lend {ca}, value: {a} x {b} + {c}]; }}", ca = v("ca")),
+            format!("concur with [lend {cb}] {{ channel.send[lend {cb}, value: {d} - {c}]; }}", cb = v("cb")),
+            format!("let {} := channel.take[lend {}] otherwise 0;", v("ra"), v("ca")),
+            format!("let {} := channel.take[lend {}] otherwise 0;", v("rb"), v("cb")),
+            format!("std::print.useful[{}, \" \", {}, newln];", v("ra"), v("rb")),
+        ];
+        let max = r(1, 6);
+        let n = r(1, max);
+        lines.push(format!("let {}: channel[i32][max: {max}] = channel.empty;", v("cq")));
+        for _ in 0..n {
+            let x = r(-500, 500);
+            lines.push(format!("channel.send[lend {}, value: {}];", v("cq"), if x < 0 { format!("({x})") } else { x.to_string() }));
+        }
+        let mut takes = vec![];
+        for j in 0..=n {
+            lines.push(format!("let {} := channel.take[lend {}] otherwise (-1);", v(&format!("tq{j}_")), v("cq")));
+            takes.push(v(&format!("tq{j}_")));
+        }
+        lines.push(format!("std::print.useful[{}, newln];", takes.join(", \" \", ")));
+        lines
+    }
+
     /// A price, two exact percents (`%` and `percent`), their sum and
     /// comparison, a bounded `percent[d32]`, and d64s with `max_places: 2`
     /// holding a rounded product and a sum, and one with `min_places`.
@@ -663,8 +797,10 @@ impl Gen {
         let (z1, z2) = (self.rng.range(-5, 5), self.rng.range(-5, 5));
         let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
         self.extra_fns.push(format!(
-            "coll.handler {h} {{\n    {h}.as_a {{\n        odd {{ return {}; }}\n        negative 'v' {{ return 'v'; }}\n    }}\n    {h}.as_b {{\n        odd {{ return {}; }}\n        negative 'v' {{ return 0 - 'v'; }}\n    }}\n}}",
-            lit(z1), lit(z2)
+            "coll.handler {h} {{\n    {h}.as_a {{\n        odd {{ return {}; }}\n        negative 'v' {{ return 'v'; }}\n    }}\n    {h}.as_b {{\n        odd {{ return {}; }}\n        negative 'v' {{ return 0 - 'v'; }}\n    }}{}\n}}",
+            lit(z1), lit(z2),
+            // a member taking an argument (owner, 2026-10-23)
+            if self.cfg.handler_args { format!("\n    {h}.or_default ['default': i32] {{\n        odd {{ return 'default'; }}\n        negative 'v' {{ return 'v' + 'default'; }}\n    }}") } else { String::new() }
         ));
         self.extra_fns.push(format!("fn use_a{id} ['n': i32] -> i32 {{\n    let 'h' := {hf}['n'] otherwise {h}.as_a;\n    return 'h' + 100;\n}}"));
         // versions (owner, 2026-10-20): one name picked by its arguments' count
@@ -679,6 +815,10 @@ impl Gen {
             ));
         }
         self.extra_fns.push(format!("fn use_b{id} ['n': i32] -> i32 {{\n    let 'h' := {hf}['n'] otherwise {h}.as_b;\n    return 'h' + 200;\n}}"));
+        let kd = self.rng.range(-99, 99);
+        if self.cfg.handler_args {
+            self.extra_fns.push(format!("fn use_c{id} ['n': i32] -> i32 {{\n    let 'h' := {hf}['n'] otherwise {h}.or_default[default: {}];\n    return 'h' + 300;\n}}", lit(kd)));
+        }
         let mut r = |lo: i128, hi: i128| lit(self.rng.range(lo, hi));
         let (x1, k, mm, x2, x3, x4, x5, x6) = (r(-500, 500), r(-20, 20), r(1, 97), r(-500, 500), r(-500, 500), r(-500, 500), r(-500, 500), r(-50, 50));
         let (n1, n2, n3) = (r(-30, 30), r(-30, 30), r(-30, 30));
@@ -692,6 +832,9 @@ impl Gen {
             format!("std::print.useful[{c}[{x1}, {k}, {mm}], \" \", {c}.p1[{x2}], \" \", {c}.p2[{x3}, {k}], \" \", {c}.flip[{x4}], \" \", {c}.other[{x5}], \" \", {c}.other[{x6}], newln];"),
             format!("std::print.useful[use_a{id}[{n1}], \" \", use_a{id}[{n2}], \" \", use_b{id}[{n3}], \" \", use_b{id}[{n1}], newln];"),
         ]);
+        if self.cfg.handler_args {
+            lines.push(format!("std::print.useful[use_c{id}[{n1}], \" \", use_c{id}[{n2}], \" \", use_c{id}[{n3}], newln];"));
+        }
         lines
     }
 

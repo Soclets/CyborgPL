@@ -11,6 +11,14 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 ```
 
 
+**Episodes for 2026-10-22 to 24's rulings** (kayo a319a218, b02769fe, 6c647471, 22eb479f): a generic whose
+`let mut $sum: <T> = K;` is filled by i32, d64 and f64 lists; channels from `channel.empty`, sent from
+`concur` tasks and bounded `channel[i32][max: N]`, taken in order and once past the end; a handler member
+taking an argument, `otherwise h.or_default(default: K)`; a print writer filled in a loop and by a function
+lent it, a plain print between, then flushed (the byte order says when its text went out), `std::print.flush()`
+and a print handling `write_failed`; short lambdas with and without `with`, and in a typed `fn[i32] -> bool`.
+`--avoid generics | channels | handler-args | writers | short-lambdas` leaves one out.
+
 **Calls in `( )`, `$name`** (owner, 2026-10-22; oracle c16dc2d7): under `--paren-calls` the printer's
 text is rewritten (`gen/src/calls.rs`, after the paths): a `[` right after a name opens a call, `( … )`,
 unless the name is a type, describes (`size.of`, `align.of`, `ptr.cast[T]`, `simd[…]`, `range`, `incl.…`,

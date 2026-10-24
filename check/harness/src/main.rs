@@ -142,6 +142,13 @@ impl Args {
             paren_calls: !avoid.contains("paren-calls"),
             // MAIN ending in `std::exit(code: N)` (oracle 69c6aedf, kayo has it)
             exits: !avoid.contains("exits"),
+            // kayo a319a218, b02769fe
+            generics: !avoid.contains("generics"),
+            channels: !avoid.contains("channels"),
+            handler_args: !avoid.contains("handler-args"),
+            // kayo 6c647471, 22eb479f
+            writers: !avoid.contains("writers"),
+            short_lambdas: !avoid.contains("short-lambdas"),
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),
