@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — Final sigma as the Unicode Standard writes it: `ʰΣ` lowers to `ʰς` (owner: a)
+
+std claude's open pick: a letter that is both cased and case-ignorable (`ʰ`, U+02B0, a phonetic raised h) before a
+capital sigma. The Standard (3.13, Table 3-17) counts it as the cased letter before Σ, so Σ ends a word, `ς`; ICU,
+Rust and Python skip it as ignorable first, `σ`. Design claude recommended (b), matching the libraries; the owner:
+"What's correct?" (by the Standard, (a)), then "would you change our syntax to use <> more, so it matches Rust?", and
+"isn't Unicode says what correct?". So **CyborgPL follows the Standard's wording**: `std::str.lower.full("ʰΣ")` is
+`ʰς`, `"ΑΣʰ"` is `ασʰ`, as std already gave. Built in the oracle the same day, which no longer takes Rust's
+lowercasing for a sigma; its cased and case-ignorable properties are approximated.
+
 ### 2026-10-24 — Built in the oracle: `inline.MSL` is read and checked, then the oracle stops (owner: "Correct.")
 
 `no_check inline.MSL threads <count> { … } with [lend.mut $xs -> buffer(0), copy $k -> buffer(1)];` as designed

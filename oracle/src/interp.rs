@@ -6073,9 +6073,22 @@ fn change_case(s: &str, upper: bool, way: &str, lang: &str) -> String {
                     (false, _, _) => out.push(c),
                 }
             }
-            // Rust's `str::to_lowercase` is Unicode's full lowercase with Final_Sigma, case-ignorable characters
-            // skipped; what the language rules wrote is lowercase already
-            if upper { out } else { out.to_lowercase() }
+            if upper { return out; }
+            // the rest lowered one character at a time, a capital sigma by Final_Sigma as the Standard writes it (3.13,
+            // Table 3-17): after a cased letter, with case-ignorable ones between, and before none. A letter both cased
+            // and case-ignorable (`ʰ`) counts as cased (owner, 2026-10-24: "isn't Unicode says what correct?"), where
+            // ICU, Rust and Python skip it first; the oracle's approximation of the two properties
+            let cased = |c: char| c.is_lowercase() || c.is_uppercase() || matches!(c as u32, 0x01C5 | 0x01C8 | 0x01CB | 0x01F2 | 0x1F88..=0x1F8F | 0x1F98..=0x1F9F | 0x1FA8..=0x1FAF | 0x1FBC | 0x1FCC | 0x1FFC);
+            let ignorable = |c: char| is_mark(c) || matches!(c as u32, 0x0027 | 0x002E | 0x003A | 0x005E | 0x0060 | 0x00A8 | 0x00AD | 0x00AF | 0x00B4 | 0x00B7 | 0x00B8 | 0x02B0..=0x036F | 0x0374 | 0x0375 | 0x037A | 0x0384 | 0x0385 | 0x0387 | 0x1D2C..=0x1D6A | 0x1D78 | 0x1D9B..=0x1DFF | 0x200B..=0x200F | 0x2018 | 0x2019 | 0x2024 | 0x2027 | 0x202A..=0x202E | 0x2060..=0x2064 | 0x2070..=0x209C | 0xFE13 | 0xFE52 | 0xFE55 | 0xFEFF | 0xFF07 | 0xFF0E | 0xFF1A);
+            let low: Vec<char> = out.chars().collect();
+            let mut res = String::new();
+            for (k, &c) in low.iter().enumerate() {
+                if c != '\u{03A3}' { res.extend(c.to_lowercase()); continue; }
+                let before = low[..k].iter().rev().find(|&&x| cased(x) || !ignorable(x)).map_or(false, |&x| cased(x));
+                let after = low[k + 1..].iter().find(|&&x| cased(x) || !ignorable(x)).map_or(false, |&x| cased(x));
+                res.push(if before && !after { '\u{03C2}' } else { '\u{03C3}' });
+            }
+            res
         }
     }
 }
