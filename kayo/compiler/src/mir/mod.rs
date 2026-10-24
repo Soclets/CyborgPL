@@ -365,6 +365,40 @@ impl Site {
             _ => self.kind.sentence(spell),
         }
     }
+
+    /// Its error's name from `errors.cyr` (owner, 2026-10-22), told apart
+    /// as `sentence` tells them apart.
+    pub fn name(&self) -> &'static str {
+        fn bounded(t: &Ty) -> bool {
+            match t {
+                Ty::Bounded { .. } => true,
+                Ty::Percent(inner) | Ty::Places { inner, .. } => bounded(inner),
+                _ => false,
+            }
+        }
+        match (&self.kind, &self.result_ty) {
+            (SiteKind::Overflow(_), Some(t)) if t.is_exact() => "too_wide_in_between",
+            (SiteKind::Overflow(_), Some(t)) if matches!(t.base(), Ty::Bin(_)) || t.is_brain() => "float_too_large",
+            (SiteKind::Overflow(_), _) => "value_does_not_fit",
+            (SiteKind::DivZero | SiteKind::ModZero, _) => "division_by_zero",
+            (SiteKind::Bounds | SiteKind::Position, _) => "index_out_of_range",
+            (SiteKind::Narrow { to }, _) if *to == Ty::Duration => "duration_negative",
+            (SiteKind::Narrow { to }, _) if bounded(to) => "bound_not_kept",
+            (SiteKind::Narrow { to }, _) if matches!(to.base(), Ty::Bin(_)) || to.is_brain() => "float_too_large",
+            (SiteKind::Narrow { .. }, _) => "value_does_not_fit",
+            (SiteKind::LengthBound { .. }, _) => "length_bound_not_kept",
+            (SiteKind::ShiftWidth, _) => "shift_overflows",
+            (SiteKind::ShiftCount, _) => "shift_loses_every_bit",
+            (SiteKind::NegativeExponent, _) => "negative_exponent",
+            (SiteKind::FillCount, _) => "count_negative",
+            (SiteKind::SliceRange | SiteKind::SimdRange { .. } | SiteKind::SimdSome { .. }, _) => "slice_out_of_range",
+            (SiteKind::KeyHashAgrees, _) => "hash_disagrees_with_equal",
+            (SiteKind::LendOutlives, _) => "borrow_outlives_owner",
+            (SiteKind::TaskLendOutlives, _) => "mcps::task_outlives_lend",
+            (SiteKind::ChannelReachable, _) => "mcps::send_never_taken",
+            (SiteKind::Deadlock, _) => "mcps::tasks_wait_on_each_other",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

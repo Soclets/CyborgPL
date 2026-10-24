@@ -589,7 +589,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     if !plan.errors.is_empty() {
         let mut s = String::new();
         for (fi, span, why) in &plan.errors {
-            let d = kayo::diag::Diagnostic::error(format!("this `for para` cannot run in slices: {}", why)).at(mir.functions[*fi].span(*span));
+            let d = kayo::diag::Diagnostic::error(format!("this `for para` cannot run in slices: {}", why)).named("mcps::para_cannot_split").at(mir.functions[*fi].span(*span));
             s.push_str(&d.render(&sources));
         }
         return Err(s);
@@ -601,7 +601,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     let lowered = kayo::codegen::lower_for(&ctx, &mir, &sources, &name, assert_proofs, tests).map_err(|problems| {
         let mut s = String::new();
         for p in problems {
-            let mut d = kayo::diag::Diagnostic::error(format!("not yet: {}", p.what));
+            let mut d = kayo::diag::Diagnostic::error(format!("not yet: {}", p.what)).named("not_built_yet");
             if let Some(sp) = p.span {
                 d = d.at(sp);
             }

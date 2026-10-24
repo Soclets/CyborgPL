@@ -68,9 +68,9 @@ fn value(e: &Expr, consts: &HashMap<String, Val>) -> Result<Val> {
         return Ok(v);
     }
     match &e.kind {
-        ExprKind::Name(q) => consts.get(&q.name).cloned().ok_or_else(|| Box::new(Diagnostic::error(format!("'{}' is not known before building: a template runs over literals, consts and type names", q.name)).at(e.span))),
+        ExprKind::Name(q) => consts.get(&q.name).cloned().ok_or_else(|| Box::new(Diagnostic::error(format!("'{}' is not known before building: a template runs over literals, consts and type names", q.name)).named("template_value_unknown").at(e.span))),
         ExprKind::Path(p) if p.kit.is_none() => Ok(Val::Type(p.segs.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("."))),
-        _ => err(Diagnostic::error("a template runs over values known before building: literals, consts and type names").at(e.span)),
+        _ => err(Diagnostic::error("a template runs over values known before building: literals, consts and type names").named("template_value_unknown").at(e.span)),
     }
 }
 
@@ -83,7 +83,7 @@ fn named(e: &Expr, var: &str, v: &Val, file: &File, consts: &HashMap<String, Val
     let mut env = vec![HashMap::from([(var.to_string(), v.clone())])];
     match run.expr(e, &mut env)? {
         Val::Text(s) | Val::Type(s) => Ok(s),
-        other => err(Diagnostic::error(format!("`named` works out a name as text, and this gives {}", other.text())).at(e.span)),
+        other => err(Diagnostic::error(format!("`named` works out a name as text, and this gives {}", other.text())).named("wrong_type").at(e.span)),
     }
 }
 
@@ -135,20 +135,20 @@ impl Run<'_> {
     }
 
     fn not_yet<T>(e: &Expr) -> Result<T> {
-        err(Diagnostic::error("not yet: a function run while generating works with whole numbers, `bool` and text, `if`, `while`, `let`, `change` and `return`; this is past it").at(e.span))
+        err(Diagnostic::error("not yet: a function run while generating works with whole numbers, `bool` and text, `if`, `while`, `let`, `change` and `return`; this is past it").named("not_built_yet").at(e.span))
     }
 
     fn int(&mut self, e: &Expr, env: &mut Vec<HashMap<String, Val>>) -> Result<i128> {
         match self.expr(e, env)? {
             Val::Int(n) => Ok(n),
-            _ => err(Diagnostic::error("a whole number is wanted here").at(e.span)),
+            _ => err(Diagnostic::error("a whole number is wanted here").named("wrong_type").at(e.span)),
         }
     }
 
     fn expr(&mut self, e: &Expr, env: &mut Vec<HashMap<String, Val>>) -> Result<Val> {
         self.steps += 1;
         if self.steps > RUN_STEPS {
-            return err(Diagnostic::error("a function run while generating took more than a million steps: does it end?").at(e.span));
+            return err(Diagnostic::error("a function run while generating took more than a million steps: does it end?").named("template_runs_forever").at(e.span));
         }
         Ok(match &e.kind {
             ExprKind::Int(_) | ExprKind::Str(_) => literal(e).unwrap(),
@@ -156,9 +156,9 @@ impl Run<'_> {
             ExprKind::Paren(x) => self.expr(x, env)?,
             ExprKind::Name(q) => match self.lookup(env, &q.name) {
                 Some(v) => v,
-                None => return err(Diagnostic::error(format!("'{}' is not known while generating", q.name)).at(e.span)),
+                None => return err(Diagnostic::error(format!("'{}' is not known while generating", q.name)).named("template_value_unknown").at(e.span)),
             },
-            ExprKind::Unary { op: UnOp::Neg, expr } => Val::Int(self.int(expr, env)?.checked_neg().ok_or_else(|| Box::new(Diagnostic::error("too big").at(e.span)))?),
+            ExprKind::Unary { op: UnOp::Neg, expr } => Val::Int(self.int(expr, env)?.checked_neg().ok_or_else(|| Box::new(Diagnostic::error("too big").named("value_does_not_fit").at(e.span)))?),
             ExprKind::Unary { op: UnOp::Not, expr } => match self.expr(expr, env)? {
                 Val::Bool(b) => Val::Bool(!b),
                 _ => return Self::not_yet(e),
@@ -188,14 +188,14 @@ impl Run<'_> {
             }
             ExprKind::Binary { op, lhs, rhs, .. } => {
                 let (l, r) = (self.int(lhs, env)?, self.int(rhs, env)?);
-                let over = || Box::new(Diagnostic::error("a whole number past 128 bits while generating").at(e.span));
+                let over = || Box::new(Diagnostic::error("a whole number past 128 bits while generating").named("value_does_not_fit").at(e.span));
                 match op {
                     BinOp::Add => Val::Int(l.checked_add(r).ok_or_else(over)?),
                     BinOp::Sub => Val::Int(l.checked_sub(r).ok_or_else(over)?),
                     BinOp::Mul => Val::Int(l.checked_mul(r).ok_or_else(over)?),
                     BinOp::Div(round) | BinOp::Mod(round) => {
                         if r == 0 {
-                            return err(Diagnostic::error("a division by 0 while generating").at(e.span));
+                            return err(Diagnostic::error("a division by 0 while generating").named("division_by_zero").at(e.span));
                         }
                         let q = match round {
                             Round::Floor => l.div_euclid(r) - if r < 0 && l.rem_euclid(r) != 0 { 1 } else { 0 },
@@ -220,10 +220,10 @@ impl Run<'_> {
             ExprKind::Conv { target: Type { kind: TypeKind::Path { path, .. }, .. }, expr, .. } if path.segs.len() >= 2 && path.segs[path.segs.len() - 2].name == "str" && path.last().name == "utf8" => Val::Text(self.expr(expr, env)?.text()),
             ExprKind::Call { path, args, otherwise: None } if path.kit.is_none() && path.segs.len() == 1 => {
                 let Some(f) = find_fn(&self.file.items, &path.segs[0].name) else {
-                    return err(Diagnostic::error(format!("`{}` is not a function of this file, which is what runs while generating", path.segs[0].name)).at(e.span));
+                    return err(Diagnostic::error(format!("`{}` is not a function of this file, which is what runs while generating", path.segs[0].name)).named("unknown_function").at(e.span));
                 };
                 if args.len() != f.params.len() {
-                    return err(Diagnostic::error(format!("`{}` takes {} argument(s)", f.name.name, f.params.len())).at(e.span));
+                    return err(Diagnostic::error(format!("`{}` takes {} argument(s)", f.name.name, f.params.len())).named("wrong_argument_count").at(e.span));
                 }
                 let mut frame = HashMap::new();
                 for (p, a) in f.params.iter().zip(args) {
@@ -243,7 +243,7 @@ impl Run<'_> {
                 let mut inner = vec![frame];
                 match self.block(body, &mut inner)? {
                     Flow::Return(v) => v,
-                    _ => return err(Diagnostic::error(format!("`{}` gave nothing back while generating", f.name.name)).at(e.span)),
+                    _ => return err(Diagnostic::error(format!("`{}` gave nothing back while generating", f.name.name)).named("missing_return").at(e.span)),
                 }
             }
             _ => return Self::not_yet(e),
@@ -276,13 +276,13 @@ impl Run<'_> {
                     Some(f) => {
                         f.insert(q.name.clone(), v);
                     }
-                    None => return err(Diagnostic::error(format!("'{}' is not known while generating", q.name)).at(s.span)),
+                    None => return err(Diagnostic::error(format!("'{}' is not known while generating", q.name)).named("template_value_unknown").at(s.span)),
                 }
                 Flow::Next
             }
             StmtKind::Return(Some(v)) => Flow::Return(self.expr(v, env)?),
             StmtKind::If { cond, then, else_ } => {
-                let Val::Bool(c) = self.expr(cond, env)? else { return err(Diagnostic::error("an `if` asks a `bool`").at(cond.span)) };
+                let Val::Bool(c) = self.expr(cond, env)? else { return err(Diagnostic::error("an `if` asks a `bool`").named("no_truthiness").at(cond.span)) };
                 if c {
                     self.block(then, env)?
                 } else {
@@ -294,7 +294,7 @@ impl Run<'_> {
                 }
             }
             StmtKind::While { cond, body } => loop {
-                let Val::Bool(c) = self.expr(cond, env)? else { return err(Diagnostic::error("a `while` asks a `bool`").at(cond.span)) };
+                let Val::Bool(c) = self.expr(cond, env)? else { return err(Diagnostic::error("a `while` asks a `bool`").named("no_truthiness").at(cond.span)) };
                 if !c {
                     break Flow::Next;
                 }
@@ -318,7 +318,7 @@ impl Run<'_> {
                 self.expr(e, env)?;
                 Flow::Next
             }
-            _ => return err(Diagnostic::error("not yet: a function run while generating works with whole numbers, `bool` and text, `if`, `while`, `let`, `change` and `return`; this is past it").at(s.span)),
+            _ => return err(Diagnostic::error("not yet: a function run while generating works with whole numbers, `bool` and text, `if`, `while`, `let`, `change` and `return`; this is past it").named("not_built_yet").at(s.span)),
         })
     }
 }
@@ -343,18 +343,18 @@ fn values(t: &Template, text: &str, consts: &HashMap<String, Val>) -> Result<Vec
         TemplateValues::Count { start, stop, step, exclusive } => {
             let int = |e: &Expr| match value(e, consts)? {
                 Val::Int(n) => Ok(n),
-                _ => err(Diagnostic::error("a counting template's bounds are whole numbers").at(e.span)),
+                _ => err(Diagnostic::error("a counting template's bounds are whole numbers").named("wrong_type").at(e.span)),
             };
             let (a, b, by) = (int(start)?, int(stop)?, int(step)?);
             if by == 0 {
-                return err(Diagnostic::error("a step of 0 would never end: the counter must move").at(step.span));
+                return err(Diagnostic::error("a step of 0 would never end: the counter must move").named("step_zero").at(step.span));
             }
             let mut out = Vec::new();
             let mut n = a;
             while (by > 0 && (n < b || (!exclusive && n == b))) || (by < 0 && (n > b || (!exclusive && n == b))) {
                 out.push((Val::Int(n), n.to_string()));
                 if out.len() > 10_000 {
-                    return err(Diagnostic::error("a template makes at most 10 000 members").at(t.at));
+                    return err(Diagnostic::error("a template makes at most 10 000 members").named("template_too_many_members").at(t.at));
                 }
                 n += by;
             }
@@ -412,7 +412,7 @@ pub fn check(file: &File, text: &str) -> Result<()> {
         let matches = have.as_ref().is_some_and(|h| h.len() == want.len() && h.iter().zip(&want).all(|(a, b)| a.trim_end() == b.trim_end()));
         if !matches {
             let at = t.marker.map_or(t.close, |(_, s)| s);
-            return err(Diagnostic::error(format!("the generated part under the template at line {} does not match it: run `kayo generate`", line_of(text, t.at.start as usize))).at(at));
+            return err(Diagnostic::error(format!("the generated part under the template at line {} does not match it: run `kayo generate`", line_of(text, t.at.start as usize))).named("generated_code_stale").at(at));
         }
     }
     Ok(())

@@ -45,9 +45,9 @@ impl Checker {
                     AK::Name(n) => format!("'{}'", n.name),
                     _ => "a list".into(),
                 };
-                return err(Diagnostic::error(format!("{}[…] on its own reads an item and drops it; to change it, `change {}(…) = …;`", who, who)).at(e.span));
+                return err(Diagnostic::error(format!("{}[…] on its own reads an item and drops it; to change it, `change {}(…) = …;`", who, who)).named("value_left_unused").at(e.span));
             }
-            _ => return err(Diagnostic::error("a value alone is not a statement: assign it, or call something with it").at(e.span)),
+            _ => return err(Diagnostic::error("a value alone is not a statement: assign it, or call something with it").named("value_left_unused").at(e.span)),
         }
         Ok(v)
     }
@@ -82,7 +82,7 @@ impl Checker {
                 // (owner, 2026-10-03), and past the widest there is, refused.
                 match crate::bigint::Big::parse(t) {
                     Some(b) if b.bits() <= crate::types::WIDEST_INT as u64 => Ok(Expr { kind: K::BigInt(b.to_string()), ty: FREE_INT, span }),
-                    _ => err(Diagnostic::error(format!("`{}` is too large for any integer type: the widest there is holds {} bits", t, crate::types::WIDEST_INT)).at(span)),
+                    _ => err(Diagnostic::error(format!("`{}` is too large for any integer type: the widest there is holds {} bits", t, crate::types::WIDEST_INT)).named("value_does_not_fit").at(span)),
                 }
             }
             AK::Bin(t) => Ok(Expr { kind: K::Bin(t.clone()), ty: FREE_BIN, span }),
@@ -101,9 +101,9 @@ impl Checker {
                 Ok(Expr { kind: K::Char(c.clone()), ty: Ty::Char(unit), span })
             }
             AK::Bool(b) => Ok(Expr { kind: K::Bool(*b), ty: Ty::Bool, span }),
-            AK::Duration { unit, .. } if unit.name == "bytes" => err(Diagnostic::error("a size in bytes is a writer's: `std::print.writer(size: 4096 bytes)`").at(span)),
+            AK::Duration { unit, .. } if unit.name == "bytes" => err(Diagnostic::error("a size in bytes is a writer's: `std::print.writer(size: 4096 bytes)`").named("size_outside_writer").at(span)),
             AK::Duration { value, unit } => {
-                let v: i128 = value.parse().map_err(|_| Box::new(Diagnostic::error("this duration is too large").at(span)))?;
+                let v: i128 = value.parse().map_err(|_| Box::new(Diagnostic::error("this duration is too large").named("value_does_not_fit").at(span)))?;
                 let nanos = match unit.name.trim_end_matches('s') {
                     "nano" => 1,
                     "micro" => 1_000,
@@ -123,7 +123,7 @@ impl Checker {
                 }
                 // A body const's value uses no variable.
                 if ctx.lookup(&n.name).is_none() && ctx.outer_vars.as_ref().is_some_and(|v| v.contains(&n.name)) {
-                    return err(Diagnostic::error(format!("a const's value must be known at compile time; '{}' is a variable (use `let` for a value worked out while running)", n.name)).at(span));
+                    return err(Diagnostic::error(format!("a const's value must be known at compile time; '{}' is a variable (use `let` for a value worked out while running)", n.name)).named("const_not_known").at(span));
                 }
                 let Some(id) = ctx.lookup(&n.name) else {
                     // A const of this module, or C's variable.
@@ -159,13 +159,13 @@ impl Checker {
             AK::Path(path) => self.path_value(ctx, path, span),
             AK::Call { path, args, otherwise } => {
                 if otherwise.is_some() && !top {
-                    return err(Diagnostic::error("a call that can fail must be the whole value: put it in its own declaration, then use the result").at(span));
+                    return err(Diagnostic::error("a call that can fail must be the whole value: put it in its own declaration, then use the result").named("otherwise_misplaced").at(span));
                 }
                 self.call(ctx, path, args, otherwise.as_deref(), span, used)
             }
             AK::CallValue { callee, args, otherwise } => {
                 if otherwise.is_some() && !top {
-                    return err(Diagnostic::error("a call that can fail must be the whole value: put it in its own declaration, then use the result").at(span));
+                    return err(Diagnostic::error("a call that can fail must be the whole value: put it in its own declaration, then use the result").named("otherwise_misplaced").at(span));
                 }
                 self.call_value(ctx, callee, args, otherwise.as_deref(), span, used)
             }
@@ -192,7 +192,7 @@ impl Checker {
             AK::List(items) => self.list_literal(ctx, items, span),
             AK::Conv { target, expr, otherwise } => {
                 if otherwise.is_some() && !top {
-                    return err(Diagnostic::error("a conversion that can fail must be the whole value: put it in its own declaration, then use the result").at(span));
+                    return err(Diagnostic::error("a conversion that can fail must be the whole value: put it in its own declaration, then use the result").named("otherwise_misplaced").at(span));
                 }
                 self.conversion(ctx, target, expr, otherwise.as_deref(), span, used)
             }
@@ -201,10 +201,10 @@ impl Checker {
                 let cap = match bound {
                     Some(b) => {
                         let (lo, hi) = (&b.0, &b.1);
-                        let l = crate::resolve::int_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a channel's bound is written as numbers: `channel[T][0, 100]`").at(lo.span)))?;
-                        let h = crate::resolve::int_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a channel's bound is written as numbers: `channel[T][0, 100]`").at(hi.span)))?;
+                        let l = crate::resolve::int_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a channel's bound is written as numbers: `channel[T][0, 100]`").named("mcps::channel_form").at(lo.span)))?;
+                        let h = crate::resolve::int_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a channel's bound is written as numbers: `channel[T][0, 100]`").named("mcps::channel_form").at(hi.span)))?;
                         if l < 0 || h < l {
-                            return err(Diagnostic::error("a channel's bound is `[0, N]`: the low end 0, the high end how many values may wait").at(span));
+                            return err(Diagnostic::error("a channel's bound is `[0, N]`: the low end 0, the high end how many values may wait").named("mcps::channel_form").at(span));
                         }
                         Some((l as u64, h as u64))
                     }
@@ -213,7 +213,7 @@ impl Checker {
                 Ok(Expr { kind: K::Channel { elem: et.clone(), capacity: cap }, ty: Ty::Channel(Box::new(et)), span })
             }
             AK::FnLit(lit) => self.fn_literal(ctx, lit, span, wanted.as_ref()),
-            AK::Spread { .. } => err(Diagnostic::error("`...` has no meaning here: it unpacks a list into a call's arguments — `sum(...$xs)`").at(span)),
+            AK::Spread { .. } => err(Diagnostic::error("`...` has no meaning here: it unpacks a list into a call's arguments — `sum(...$xs)`").named("spread_outside_call").at(span)),
             AK::Incl { form, path, path_span } => self.incl(ctx, *form, path, *path_span, span),
             AK::SizeOf { align, ty } => {
                 // The function's own generics are announced, so naming one
@@ -221,12 +221,12 @@ impl Checker {
                 let mut blanks: Vec<(String, Vec<crate::types::IfaceId>)> = ctx.blank_names.iter().map(|n| (n.clone(), Vec::new())).collect();
                 let t = self.items.resolve_type_opaque_ok(ty, ctx.module, &mut blanks, true)?;
                 if t.contains_var() {
-                    return err(Diagnostic::error("a blank has no size until it is filled: `size.of` takes a concrete type").at(ty.span));
+                    return err(Diagnostic::error("a blank has no size until it is filled: `size.of` takes a concrete type").named("generic_size_unknown").at(ty.span));
                 }
                 if let Ty::Struct { id, .. } = t.base() {
                     let info = &self.items.structs[id.0 as usize];
                     if info.opaque {
-                        return err(Diagnostic::error(format!("`{}` is C's and opaque: its size is C's own, and CyborgPL only points at it", info.name)).at(ty.span));
+                        return err(Diagnostic::error(format!("`{}` is C's and opaque: its size is C's own, and CyborgPL only points at it", info.name)).named("cnc::opaque_struct_held").at(ty.span));
                     }
                 }
                 Ok(Expr { kind: K::SizeOf { align: *align, ty: t }, ty: Ty::u64(), span })
@@ -236,14 +236,14 @@ impl Checker {
                 // Nothing proves what the bytes are (owner, 2026-09-30).
                 if self.needs_mark(ctx) {
                     self.power_first()?;
-                    return err(Diagnostic::error("`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a no_check site: write `no_check` in front of the statement").at(span));
+                    return err(Diagnostic::error("`ptr.cast` says the bytes are a different type, which the compiler cannot vouch for — it is a no_check site: write `no_check` in front of the statement").named("no_check_missing").at(span));
                 }
                 // The function's own generics are announced, so naming one
                 // here is no typo — it just has no size or layout yet.
                 let mut blanks: Vec<(String, Vec<crate::types::IfaceId>)> = ctx.blank_names.iter().map(|n| (n.clone(), Vec::new())).collect();
                 let t = self.items.resolve_type(ty, ctx.module, &mut blanks, true)?;
                 if t.contains_var() {
-                    return err(Diagnostic::error("`ptr.cast` takes a concrete type: a blank has no layout").at(ty.span));
+                    return err(Diagnostic::error("`ptr.cast` takes a concrete type: a blank has no layout").named("pointer_cast_target").at(ty.span));
                 }
                 if !t.is_c_shaped(&self.items.structs, &self.items.enums) {
                     let why = match t.base() {
@@ -251,24 +251,24 @@ impl Checker {
                         Ty::Enum { id, .. } => format!("enum `{}` is not `layout.C`; its layout is the prover's, not C's", self.items.enums[id.0 as usize].name),
                         other => format!("`{}` is not C-shaped", self.spell(other)),
                     };
-                    return err(Diagnostic::error(format!("a pointer points at C-shaped data, so it casts only to a C-shaped type: {}", why)).at(ty.span));
+                    return err(Diagnostic::error(format!("a pointer points at C-shaped data, so it casts only to a C-shaped type: {}", why)).named("pointer_cast_target").at(ty.span));
                 }
                 let v = self.expr(ctx, value)?;
                 let vt = self.resolve(&v.ty);
                 // Whether it may write stays as it was (owner, 2026-09-30: a).
                 let mutable = match vt.base() {
                     Ty::Ptr { mutable, .. } => *mutable,
-                    other => return err(Diagnostic::error(format!("`ptr.cast` takes a pointer, and this is {}: a pointer and a number never turn into each other", crate::types::a_type(&self.spell(other)))).at(value.span)),
+                    other => return err(Diagnostic::error(format!("`ptr.cast` takes a pointer, and this is {}: a pointer and a number never turn into each other", crate::types::a_type(&self.spell(other)))).named("wrong_type").at(value.span)),
                 };
                 Ok(Expr { kind: K::PtrCast(Box::new(v)), ty: Ty::Ptr { mutable, elem: Box::new(t) }, span })
             }
-            AK::Count(_) => err(Diagnostic::error("`count` labels `list.fill`'s count: `list.fill(value: 0, count: 10)`").at(span)),
-            AK::Value(_) => err(Diagnostic::error("`value` labels what a fill fills with: `list.fill(value: 0, count: 10)`, `simd.fill(value: 0)`").at(span)),
-            AK::Label(w, _) => err(Diagnostic::error(format!("`{}:` labels an argument of a function whose collection gives its parameters labels: `say(2, value: \"hi\")` (owner, 2026-10-21)", w.name)).at(span)),
-            AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one only goes where a list is read, sliced or loaded: `$xs[pos: 2]`, `simd.load(lend $xs, pos: $i)`").at(span)),
+            AK::Count(_) => err(Diagnostic::error("`count` labels `list.fill`'s count: `list.fill(value: 0, count: 10)`").named("label_outside_call").at(span)),
+            AK::Value(_) => err(Diagnostic::error("`value` labels what a fill fills with: `list.fill(value: 0, count: 10)`, `simd.fill(value: 0)`").named("label_outside_call").at(span)),
+            AK::Label(w, _) => err(Diagnostic::error(format!("`{}:` labels an argument of a function whose collection gives its parameters labels: `say(2, value: \"hi\")` (owner, 2026-10-21)", w.name)).named("label_outside_call").at(span)),
+            AK::Pos(_) => err(Diagnostic::error("`pos` says a position, and one only goes where a list is read, sliced or loaded: `$xs[pos: 2]`, `simd.load(lend $xs, pos: $i)`").named("label_outside_call").at(span)),
             AK::Match { value, arms } => self.match_value(ctx, value, arms, span),
-            AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` alone does not say which `{}`: hand it where a function is wanted — a parameter, or `let $f: fn[i32, i32] -> i32 = op {};`", spelled, spelled, spelled)).at(span)),
-            AK::Range { .. } => err(Diagnostic::error("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not").at(span)),
+            AK::OpValue { spelled, .. } => err(Diagnostic::error(format!("`op {}` alone does not say which `{}`: hand it where a function is wanted — a parameter, or `let $f: fn[i32, i32] -> i32 = op {};`", spelled, spelled, spelled)).named("operator_value_ambiguous").at(span)),
+            AK::Range { .. } => err(Diagnostic::error("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not").named("range_as_value").at(span)),
         }
     }
 
@@ -302,19 +302,19 @@ impl Checker {
     fn undeclared<T>(&self, ctx: &FnCtx, n: &ast::QName) -> Result<T> {
         if let Some(outer) = &ctx.captured_outer {
             if outer.iter().any(|(name, ..)| *name == n.name) {
-                return err(Diagnostic::error(format!("'{}' is not declared inside this function: it sees nothing of the surrounding scope unless `with [lend ${}]` (or `copy` / `give`) says so", n.name, n.name)).at(n.span));
+                return err(Diagnostic::error(format!("'{}' is not declared inside this function: it sees nothing of the surrounding scope unless `with [lend ${}]` (or `copy` / `give`) says so", n.name, n.name)).named("not_declared").at(n.span));
             }
         }
         if ctx.is_task {
-            return err(Diagnostic::error(format!("'{}' is not declared inside this task: a task takes what it needs through `with [lend ${}]` (or `copy` / `give`)", n.name, n.name)).at(n.span));
+            return err(Diagnostic::error(format!("'{}' is not declared inside this task: a task takes what it needs through `with [lend ${}]` (or `copy` / `give`)", n.name, n.name)).named("not_declared").at(n.span));
         }
-        err(Diagnostic::error(format!("'{}' is not declared", n.name)).at(n.span))
+        err(Diagnostic::error(format!("'{}' is not declared", n.name)).named("not_declared").at(n.span))
     }
 
     fn const_type(&mut self, id: hir::ConstId, span: Span) -> Result<Ty> {
         match &self.items.consts[id.0 as usize].ty {
             Some(t) => Ok(t.clone()),
-            None => err(Diagnostic::error(format!("'{}' is used before its value is known: consts are evaluated in order, top to bottom", self.items.consts[id.0 as usize].name)).at(span)),
+            None => err(Diagnostic::error(format!("'{}' is used before its value is known: consts are evaluated in order, top to bottom", self.items.consts[id.0 as usize].name)).named("const_not_known").at(span)),
         }
     }
 
@@ -335,7 +335,7 @@ impl Checker {
             return self.path_value(ctx, &plain, span);
         }
         if path.kit.is_none() && std_builtin(path) && !via_std && !self.in_std(ctx) && self.items.lookup_plain(path, ctx.module).is_err() {
-            return err(Diagnostic::error(std_bare_message(path)).at(path.span));
+            return err(Diagnostic::error(std_bare_message(path)).named("std_name_needs_path").at(path.span));
         }
         if path.is(&["list", "empty"]) {
             let elem = self.fresh();
@@ -347,13 +347,13 @@ impl Checker {
             return Ok(Expr { kind: K::MapEmpty, ty: Ty::Map { key: Box::new(k), val: Box::new(v), order: MapOrder::Free(InferId(0)) }, span });
         }
         if path.is(&["list", "append"]) {
-            return err(Diagnostic::error("`list.append` hands nothing back and cannot be used as a value").at(span));
+            return err(Diagnostic::error("`list.append` hands nothing back and cannot be used as a value").named("call_gives_nothing").at(span));
         }
         if path.segs.len() == 1 && path.kit.is_none() {
             // A bare word: a const of this module? (consts are quoted; a bare word is never one.)
             let w = path.head();
             if crate::parser::is_keyword(w) {
-                return err(Diagnostic::error(format!("`{}` is a keyword, not a value", w)).at(span));
+                return err(Diagnostic::error(format!("`{}` is a keyword, not a value", w)).named("not_a_value").at(span));
             }
         }
         // A std name without its brackets: what std offers is called, and a
@@ -366,11 +366,11 @@ impl Checker {
             matches!(self.items.lookup_path(&prefix, ctx.module), Ok(ItemRef::Enum(_)))
         };
         if path.kit.as_ref().map_or(false, |l| l.name == "std") && !std_enum {
-            return err(Diagnostic::error(format!("`{}` is called, and a call needs `(…)`: `{}(…)`", path.spelled(), path.spelled())).at(span));
+            return err(Diagnostic::error(format!("`{}` is called, and a call needs `(…)`: `{}(…)`", path.spelled(), path.spelled())).named("call_without_parens").at(span));
         }
         if let Some(id) = self.items.lookup_type_fn(path, ctx.module)? {
             let name = &self.items.fns[id.0 as usize].name;
-            return err(Diagnostic::error(format!("`{}` is a function: call it, `{}(…)`", name, name)).at(span));
+            return err(Diagnostic::error(format!("`{}` is a function: call it, `{}(…)`", name, name)).named("call_without_parens").at(span));
         }
         // An enum case without data: `Status.empty`.
         if path.segs.len() >= 2 {
@@ -384,18 +384,18 @@ impl Checker {
             Ok(ItemRef::Fn(id)) => {
                 let decl = &self.items.fns[id.0 as usize];
                 if decl.op.is_some() {
-                    return err(Diagnostic::error(format!("`{}` is an operator; it goes between two values and is not a value itself", decl.name)).at(span));
+                    return err(Diagnostic::error(format!("`{}` is an operator; it goes between two values and is not a value itself", decl.name)).named("operator_value_form").at(span));
                 }
                 // Which version would be held is not decided (design
                 // claude's reading, 2026-10-20), as an operator's is not.
                 if self.items.versions.contains_key(&id) {
-                    return err(Diagnostic::error(format!("`{}` has several versions, so it is no single value to hold: wrap the one you mean in a function", decl.name)).at(span));
+                    return err(Diagnostic::error(format!("`{}` has several versions, so it is no single value to hold: wrap the one you mean in a function", decl.name)).named("not_a_value").at(span));
                 }
                 if decl.test {
-                    return err(Diagnostic::error(format!("`{}` is a `test fn`: `kayo test` runs it, and it is not a value to hold", decl.name)).at(span));
+                    return err(Diagnostic::error(format!("`{}` is a `test fn`: `kayo test` runs it, and it is not a value to hold", decl.name)).named("test_fn_misused").at(span));
                 }
                 if !decl.blanks.is_empty() || decl.params.iter().any(|p| p.ty.is_none() || p.variadic) {
-                    return err(Diagnostic::error(format!("`{}` has blanks, so it has no single type to hold: pass it where the blanks are filled, or write a version with the types", decl.name)).at(span));
+                    return err(Diagnostic::error(format!("`{}` has blanks, so it has no single type to hold: pass it where the blanks are filled, or write a version with the types", decl.name)).named("not_a_value").at(span));
                 }
                 let key = InstKey { fn_id: id, blanks: Vec::new(), bundle: None, owning: Vec::new() };
                 let inst = self.instance(key);
@@ -403,13 +403,13 @@ impl Checker {
                 let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails, owning: false }));
                 Ok(Expr { kind: K::FnRef(inst), ty, span })
             }
-            Ok(ItemRef::ExternFn(_)) => err(Diagnostic::error(format!("`{}` is an extern function: it is called (under `no_check`), and is not a value to hold", path.spelled())).at(span)),
-            Ok(ItemRef::Struct(_)) => err(Diagnostic::error(format!("`{}` is a struct: a value of it is built with `{}[field = …]`", path.spelled(), path.spelled())).at(span)),
-            Ok(ItemRef::Enum(id)) => err(Diagnostic::error(format!("`{}` is an enum: a value is one of its cases — `{}.{}`", path.spelled(), path.spelled(), self.items.enums[id.0 as usize].cases.first().map(|c| c.name.as_str()).unwrap_or("case"))).at(span)),
-            Ok(other) => err(Diagnostic::error(format!("`{}` is a {}, not a value", path.spelled(), other.what())).at(span)),
+            Ok(ItemRef::ExternFn(_)) => err(Diagnostic::error(format!("`{}` is an extern function: it is called (under `no_check`), and is not a value to hold", path.spelled())).named("not_a_value").at(span)),
+            Ok(ItemRef::Struct(_)) => err(Diagnostic::error(format!("`{}` is a struct: a value of it is built with `{}[field = …]`", path.spelled(), path.spelled())).named("not_a_value").at(span)),
+            Ok(ItemRef::Enum(id)) => err(Diagnostic::error(format!("`{}` is an enum: a value is one of its cases — `{}.{}`", path.spelled(), path.spelled(), self.items.enums[id.0 as usize].cases.first().map(|c| c.name.as_str()).unwrap_or("case"))).named("not_a_value").at(span)),
+            Ok(other) => err(Diagnostic::error(format!("`{}` is a {}, not a value", path.spelled(), other.what())).named("not_a_value").at(span)),
             Err(e) => {
                 if path.segs.len() == 1 && path.kit.is_none() {
-                    return err(Diagnostic::error(format!("there is no function `{}` here: a bare name is the function as a value, and none by that name is declared in {}", path.head(), crate::resolve::describe_module(self.items.module_path(ctx.module)))).at(span));
+                    return err(Diagnostic::error(format!("there is no function `{}` here: a bare name is the function as a value, and none by that name is declared in {}", path.head(), crate::resolve::describe_module(self.items.module_path(ctx.module)))).named("unknown_function").at(span));
                 }
                 Err(e)
             }
@@ -446,7 +446,7 @@ impl Checker {
                         }
                     }
                     if cid.is_some() {
-                        return err(Diagnostic::error(format!("'{}' is a const and cannot be {}: it is a value known at compile time — nobody owns it, every use is a fresh value", n.name, match use_ { PlaceUse::Write => "assigned to", PlaceUse::Give | PlaceUse::Copy | PlaceUse::Lend | PlaceUse::LendMut => "given, copied or lent", PlaceUse::Read => "used as a place" })).at(e.span));
+                        return err(Diagnostic::error(format!("'{}' is a const and cannot be {}: it is a value known at compile time — nobody owns it, every use is a fresh value", n.name, match use_ { PlaceUse::Write => "assigned to", PlaceUse::Give | PlaceUse::Copy | PlaceUse::Lend | PlaceUse::LendMut => "given, copied or lent", PlaceUse::Read => "used as a place" })).named(if matches!(use_, PlaceUse::Write) { "const_changed" } else { "verb_on_const" }).at(e.span));
                     }
                     return self.undeclared(ctx, n);
                 };
@@ -470,12 +470,12 @@ impl Checker {
                 let bt = self.resolve(&p.ty);
                 let (sid, args) = match bt.base() {
                     Ty::Struct { id, args } => (*id, args.clone()),
-                    Ty::Enum { .. } => return err(Diagnostic::error(format!("`.{}` reaches into a struct; an enum's data is reached by `match`", field.name)).at(field.span)),
-                    other => return err(Diagnostic::error(format!("`.{}` reaches into a struct, and this is {}", field.name, crate::types::a_type(&self.spell(other)))).at(field.span)),
+                    Ty::Enum { .. } => return err(Diagnostic::error(format!("`.{}` reaches into a struct; an enum's data is reached by `match`", field.name)).named("not_a_struct").at(field.span)),
+                    other => return err(Diagnostic::error(format!("`.{}` reaches into a struct, and this is {}", field.name, crate::types::a_type(&self.spell(other)))).named("not_a_struct").at(field.span)),
                 };
                 let info = &self.items.structs[sid.0 as usize];
                 let Some(fi) = info.fields.iter().position(|f| self.items.same_name(&self.items.case_fields, info.span, &f.name, &field.name)) else {
-                    return err(Diagnostic::error(format!("`{}` has no field `{}`: its fields are {}", info.name, field.name, info.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>().join(", "))).at(field.span));
+                    return err(Diagnostic::error(format!("`{}` has no field `{}`: its fields are {}", info.name, field.name, info.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>().join(", "))).named("unknown_field").at(field.span));
                 };
                 let f = &info.fields[fi];
                 // A union holds one field at a time and only C knows which
@@ -485,10 +485,10 @@ impl Checker {
                         AK::Name(q) => format!("'{}'.{}", q.name, field.name),
                         _ => format!("`.{}`", field.name),
                     };
-                    return err(Diagnostic::error(format!("reading {} is a `no_check` site: a `layout.C union` holds one field at a time, and only C knows which — write `no_check` in front of the statement", whose)).at(e.span));
+                    return err(Diagnostic::error(format!("reading {} is a `no_check` site: a `layout.C union` holds one field at a time, and only C knows which — write `no_check` in front of the statement", whose)).named("no_check_missing").at(e.span));
                 }
                 if use_ == PlaceUse::Write && f.immut {
-                    return err(Diagnostic::error(format!("`{}` is an `immut` field of `{}` and cannot be written", field.name, info.name)).at(field.span));
+                    return err(Diagnostic::error(format!("`{}` is an `immut` field of `{}` and cannot be written", field.name, info.name)).named("cannot_change_immut").at(field.span));
                 }
                 let fty = f.ty.subst(&args);
                 p.proj.push(Proj::Field(fi));
@@ -510,27 +510,27 @@ impl Checker {
                     // 2026-09-29: a: `change 'v'[3] = 30;`). Lending one out
                     // to be written through is not in the ruling.
                     Ty::Simd { .. } if use_ == PlaceUse::LendMut => {
-                        return err(Diagnostic::error("one lane of a vector is read (`$v[1]`) and written (`change $v[3] = 30;`); lending one out to be changed is not decided yet").at(e.span));
+                        return err(Diagnostic::error("one lane of a vector is read (`$v[1]`) and written (`change $v[3] = 30;`); lending one out to be changed is not decided yet").named("not_decided").at(e.span));
                     }
                     Ty::Simd { elem, .. } => (**elem).clone(),
-                    Ty::Str(_) => return err(Diagnostic::error("a text has no `[…]`: it would not say which unit — the 3rd byte, point or grapheme? — use `std::str.at.<unit>` when std exists, or walk it with `str.each.<unit>`").at(e.span)),
-                    Ty::Map { .. } => return err(Diagnostic::error("a map is looked up by key with `map.get(lend $m, key) otherwise …`, not by position").at(e.span)),
-                    Ty::Bundle(_) => return err(Diagnostic::error("a mixed bundle has no `[…]`: walk it with `for`").at(e.span)),
+                    Ty::Str(_) => return err(Diagnostic::error("a text has no `[…]`: it would not say which unit — the 3rd byte, point or grapheme? — use `std::str.at.<unit>` when std exists, or walk it with `str.each.<unit>`").named("text_unit_unsaid").at(e.span)),
+                    Ty::Map { .. } => return err(Diagnostic::error("a map is looked up by key with `map.get(lend $m, key) otherwise …`, not by position").named("not_indexable").at(e.span)),
+                    Ty::Bundle(_) => return err(Diagnostic::error("a mixed bundle has no `[…]`: walk it with `for`").named("not_indexable").at(e.span)),
                     other => {
                         let who = match &base.kind {
                             AK::Name(n) => format!("'{}'", n.name),
                             _ => "this".into(),
                         };
-                        return err(Diagnostic::error(format!("{} is {}, neither a list nor a function: `$x(…)` reads a list, or calls a function held in 'x'", who, crate::types::a_type(&self.spell(other)))).at(e.span));
+                        return err(Diagnostic::error(format!("{} is {}, neither a list nor a function: `$x(…)` reads a list, or calls a function held in 'x'", who, crate::types::a_type(&self.spell(other)))).named("not_a_function").at(e.span));
                     }
                 };
                 if use_ == PlaceUse::Give {
-                    return err(Diagnostic::error("an element cannot be given away: it would leave a hole in the list — `list.remove(lend.mut $xs, i)` hands the element back").at(e.span));
+                    return err(Diagnostic::error("an element cannot be given away: it would leave a hole in the list — `list.remove(lend.mut $xs, i)` hands the element back").named("element_given_away").at(e.span));
                 }
                 let i = self.expr(ctx, index)?;
                 let it = self.resolve(&i.ty);
                 if !it.is_int() {
-                    return err(Diagnostic::error(format!("a position is an integer, and this is {}", crate::types::a_type(&self.spell(&it)))).at(index.span));
+                    return err(Diagnostic::error(format!("a position is an integer, and this is {}", crate::types::a_type(&self.spell(&it)))).named("wrong_type").at(index.span));
                 }
                 p.proj.push(Proj::Index(Box::new(i)));
                 p.ty = elem;
@@ -538,12 +538,12 @@ impl Checker {
                 Ok(p)
             }
             AK::Paren(inner) => self.place(ctx, inner, use_),
-            AK::Verb { .. } => err(Diagnostic::error("one verb per value").at(e.span)),
+            AK::Verb { .. } => err(Diagnostic::error("one verb per value").named("two_verbs").at(e.span)),
             _ => match use_ {
-                PlaceUse::Write => err(Diagnostic::error("only a variable, a field or an element can be assigned to").at(e.span)),
-                PlaceUse::Give => err(Diagnostic::error("`give` takes a variable (or a field): only something you hold can be given away").at(e.span)),
-                PlaceUse::Copy => err(Diagnostic::error("`copy` takes a variable (or a field, or an element): a fresh value needs no copy").at(e.span)),
-                _ => err(Diagnostic::error("`lend` takes a variable (or a field, or an element): a fresh value goes straight in, with no verb").at(e.span)),
+                PlaceUse::Write => err(Diagnostic::error("only a variable, a field or an element can be assigned to").named("not_changeable").at(e.span)),
+                PlaceUse::Give => err(Diagnostic::error("`give` takes a variable (or a field): only something you hold can be given away").named("verb_on_fresh_value").at(e.span)),
+                PlaceUse::Copy => err(Diagnostic::error("`copy` takes a variable (or a field, or an element): a fresh value needs no copy").named("verb_on_fresh_value").at(e.span)),
+                _ => err(Diagnostic::error("`lend` takes a variable (or a field, or an element): a fresh value goes straight in, with no verb").named("verb_on_fresh_value").at(e.span)),
             },
         }
     }
@@ -563,13 +563,13 @@ impl Checker {
         if self.needs_mark(ctx) {
             self.power_first()?;
             let what = if use_ == PlaceUse::Write { "writing" } else { "reading" };
-            return err(Diagnostic::error(format!("{} C's variable '{}' is a no_check site: nothing about C's memory can be proven — write `no_check` in front of the statement", what, info.name)).at(span));
+            return err(Diagnostic::error(format!("{} C's variable '{}' is a no_check site: nothing about C's memory can be proven — write `no_check` in front of the statement", what, info.name)).named("cnc::no_check_missing").at(span));
         }
         if use_ == PlaceUse::Write && !info.mutable {
-            return err(Diagnostic::error(format!("'{}' is read-only: `extern.C mut ${}: …` says C's variable may be written", info.name, info.name)).at(span));
+            return err(Diagnostic::error(format!("'{}' is read-only: `extern.C mut ${}: …` says C's variable may be written", info.name, info.name)).named("cnc::c_variable_read_only").at(span));
         }
         if matches!(use_, PlaceUse::Give | PlaceUse::Copy | PlaceUse::Lend | PlaceUse::LendMut) {
-            return err(Diagnostic::error(format!("'{}' is C's plain value: it copies by itself and takes no verb", info.name)).at(span));
+            return err(Diagnostic::error(format!("'{}' is C's plain value: it copies by itself and takes no verb", info.name)).named("nothing_to_give").at(span));
         }
         // Model the extern as a synthetic local of kind Owned per use; the MIR builder maps it by name.
         let lid = ctx.declare(&format!("extern:{}", info.name), Local { name: info.name.clone(), ty: info.ret.clone(), mutability: None, kind: LocalKind::Owned, from_blank: false, span });
@@ -582,31 +582,31 @@ impl Checker {
         match use_ {
             PlaceUse::Write => {
                 if local.mutability == Some(ast::Mutability::Immut) {
-                    return err(Diagnostic::error(format!("'{}' cannot be changed: it is `immut`", name)).at(span).why_at(local.span, "declared `immut` here"));
+                    return err(Diagnostic::error(format!("'{}' cannot be changed: it is `immut`", name)).named("cannot_change_immut").at(span).why_at(local.span, "declared `immut` here"));
                 }
                 match local.kind {
-                    LocalKind::Lent => return err(Diagnostic::error(format!("'{}' is lent (shared) and cannot be changed: it belongs to whoever lent it — `lent.mut` would allow it", name)).at(span).why_at(local.span, "lent here")),
-                    LocalKind::LoopVar | LocalKind::LoopLent => return err(Diagnostic::error(format!("'{}' belongs to the loop and cannot be changed: the header alone says what it is on every pass", name)).at(span).why_at(local.span, "the loop's variable")),
+                    LocalKind::Lent => return err(Diagnostic::error(format!("'{}' is lent (shared) and cannot be changed: it belongs to whoever lent it — `lent.mut` would allow it", name)).named("changed_through_lend").at(span).why_at(local.span, "lent here")),
+                    LocalKind::LoopVar | LocalKind::LoopLent => return err(Diagnostic::error(format!("'{}' belongs to the loop and cannot be changed: the header alone says what it is on every pass", name)).named(if local.kind == LocalKind::LoopLent { "changed_through_lend" } else { "counter_changed" }).at(span).why_at(local.span, "the loop's variable")),
                     _ => {}
                 }
             }
             PlaceUse::LendMut => {
                 if local.mutability == Some(ast::Mutability::Immut) {
-                    return err(Diagnostic::error(format!("'{}' is `immut`: it cannot be lent mutably", name)).at(span));
+                    return err(Diagnostic::error(format!("'{}' is `immut`: it cannot be lent mutably", name)).named("cannot_change_immut").at(span));
                 }
                 if local.kind == LocalKind::Lent {
-                    return err(Diagnostic::error(format!("'{}' is lent (shared): it cannot be lent mutably on — `lent.mut` would allow it", name)).at(span));
+                    return err(Diagnostic::error(format!("'{}' is lent (shared): it cannot be lent mutably on — `lent.mut` would allow it", name)).named("changed_through_lend").at(span));
                 }
                 if matches!(local.kind, LocalKind::LoopVar | LocalKind::LoopLent) {
-                    return err(Diagnostic::error(format!("'{}' is the loop's element: it cannot be changed through the loop", name)).at(span));
+                    return err(Diagnostic::error(format!("'{}' is the loop's element: it cannot be changed through the loop", name)).named(if local.kind == LocalKind::LoopLent { "changed_through_lend" } else { "counter_changed" }).at(span));
                 }
             }
             PlaceUse::Give => {
                 if matches!(local.kind, LocalKind::Lent | LocalKind::LentMut) {
-                    return err(Diagnostic::error(format!("'{}' is lent: you cannot give away what you only borrowed", name)).at(span));
+                    return err(Diagnostic::error(format!("'{}' is lent: you cannot give away what you only borrowed", name)).named("lent_given_away").at(span));
                 }
                 if matches!(local.kind, LocalKind::LoopVar | LocalKind::LoopLent) {
-                    return err(Diagnostic::error(format!("'{}' is the loop's element and belongs to the list: `copy` it", name)).at(span));
+                    return err(Diagnostic::error(format!("'{}' is the loop's element and belongs to the list: `copy` it", name)).named("lent_given_away").at(span));
                 }
             }
             _ => {}
@@ -622,7 +622,7 @@ impl Checker {
         match &operand.kind {
             AK::Name(_) | AK::Field { .. } | AK::Index { .. } | AK::Paren(_) => {}
             AK::Call { .. } | AK::CallValue { .. } | AK::Str(_) | AK::List(_) | AK::Conv { .. } => {
-                return err(Diagnostic::error(format!("`{}` on a fresh value: a call's result or a literal has no owner yet, so it goes straight in with no verb", verb.spelled())).at(span));
+                return err(Diagnostic::error(format!("`{}` on a fresh value: a call's result or a literal has no owner yet, so it goes straight in with no verb", verb.spelled())).named("verb_on_fresh_value").at(span));
             }
             _ => {}
         }
@@ -691,7 +691,7 @@ impl Checker {
         if ty.is_owned() || from_blank || matches!(ty, Ty::Infer(_)) {
             return Ok(());
         }
-        err(Diagnostic::error(format!("`{}` on {} is not possible: {} is a plain value that owns nothing (no allocation behind it), so it copies by itself — write {} with no verb", verb.spelled(), name, crate::types::a_type(&self.spell(&ty)), name)).at(span))
+        err(Diagnostic::error(format!("`{}` on {} is not possible: {} is a plain value that owns nothing (no allocation behind it), so it copies by itself — write {} with no verb", verb.spelled(), name, crate::types::a_type(&self.spell(&ty)), name)).named("nothing_to_give").at(span))
     }
 
     /// A value about to be stored (into a `let`, a field, an element, a
@@ -712,7 +712,7 @@ impl Checker {
                 _ => None,
             };
             if let Some(x) = written.filter(|x| x < lo || x > hi) {
-                return err(Diagnostic::error(format!("{} does not fit a {}-bit field: `{}` holds {} to {}", x, n, self.spell(&t), lo, hi)).at(v.span));
+                return err(Diagnostic::error(format!("{} does not fit a {}-bit field: `{}` holds {} to {}", x, n, self.spell(&t), lo, hi)).named("value_does_not_fit").at(v.span));
             }
         }
         if let K::Read(place) = &v.kind {
@@ -721,7 +721,7 @@ impl Checker {
                 let name = self.place_name(ctx, place);
                 let fb = ctx.locals[place.base.0 as usize].from_blank && place.proj.is_empty();
                 if !fb {
-                    return err(Diagnostic::error(format!("{} is an owned `{}`: say what happens to it — `give {}` (it moves), `copy {}` (a second one), or `lend {}` (a view)", name, self.spell(&pt), name, name, name)).at(v.span));
+                    return err(Diagnostic::error(format!("{} is an owned `{}`: say what happens to it — `give {}` (it moves), `copy {}` (a second one), or `lend {}` (a view)", name, self.spell(&pt), name, name, name)).named("owned_value_bare").at(v.span));
                 }
             }
         }
@@ -756,14 +756,14 @@ impl Checker {
                     AK::Name(q) => format!("'{}'", q.name),
                     _ => "…".to_string(),
                 };
-                return err(Diagnostic::error(format!("only a literal takes a type with `:` here (`5: u8`); convert a variable: `to.{}({})`", tname, what)).at(value.span));
+                return err(Diagnostic::error(format!("only a literal takes a type with `:` here (`5: u8`); convert a variable: `to.{}({})`", tname, what)).named("typed_literal_form").at(value.span));
             }
         };
         let written = format!("{}{}{}", if exact { "exactly " } else { "" }, if neg { "-" } else { "" }, text);
         let shown = format!("`{}: {}`", written, tname);
         match t.base() {
-            Ty::Int(_) | Ty::Bin(_) if exact => err(Diagnostic::error(format!("{} is a deci: an `exactly` literal takes a deci type", shown)).at(span)),
-            Ty::Int(_) if !whole => err(Diagnostic::error(format!("{} is not a whole number", shown)).at(span)),
+            Ty::Int(_) | Ty::Bin(_) if exact => err(Diagnostic::error(format!("{} is a deci: an `exactly` literal takes a deci type", shown)).named("wrong_type").at(span)),
+            Ty::Int(_) if !whole => err(Diagnostic::error(format!("{} is not a whole number", shown)).named("wrong_type").at(span)),
             Ty::Int(_) => {
                 let v = text.parse::<i128>().ok().map(|v| if neg { -v } else { v });
                 let range = |ty: &Ty, items: &crate::resolve::Items| match crate::mir::domain::Domain::of_ty(ty, items) {
@@ -780,21 +780,21 @@ impl Checker {
                 if !inside(base) {
                     let (lo, hi) = base.unwrap_or_default();
                     let bare = self.spell(t.base());
-                    return err(Diagnostic::error(format!("{} does not fit: {} holds {} to {}", shown, bare, lo, hi)).at(span));
+                    return err(Diagnostic::error(format!("{} does not fit: {} holds {} to {}", shown, bare, lo, hi)).named("value_does_not_fit").at(span));
                 }
                 if !inside(limits) {
-                    return err(Diagnostic::error(format!("{} is outside the type's limits", shown)).at(span));
+                    return err(Diagnostic::error(format!("{} is outside the type's limits", shown)).named("value_does_not_fit").at(span));
                 }
                 Ok(Expr { kind: K::Int(v.unwrap_or_default()), ty: t, span })
             }
-            Ty::Deci(_) if !exact && !whole => err(Diagnostic::error(format!("{} takes a deci from a bin literal, which is not decided: write `exactly {}: {}`", shown, written, tname)).at(span)),
+            Ty::Deci(_) if !exact && !whole => err(Diagnostic::error(format!("{} takes a deci from a bin literal, which is not decided: write `exactly {}: {}`", shown, written, tname)).named("money::exactly_needed").at(span)),
             Ty::Bin(_) | Ty::Deci(_) | Ty::Brain => {
                 let v = self.expr(ctx, value)?;
                 let mut v = self.expect_store(ctx, v, &t, &shown)?;
                 v.ty = t;
                 Ok(v)
             }
-            _ => err(Diagnostic::error(format!("{} needs a number type", shown)).at(span)),
+            _ => err(Diagnostic::error(format!("{} needs a number type", shown)).named("typed_literal_form").at(span)),
         }
     }
 
@@ -807,9 +807,9 @@ impl Checker {
         if let Some(keep) = places_max(&t) {
             let spelled = self.spell(&t);
             match self.places_in(&v) {
-                PlacesOf::Literal(n) if n > keep => return err(Diagnostic::error(format!("this literal has {} places; {} keeps {}: write fewer, or round it on purpose", n, spelled, keep)).at(v.span)),
-                PlacesOf::Can(n) if n > keep => return err(Diagnostic::error(format!("this can have {} places; {} keeps {}: round it on purpose, `round.near(…, places: {})`", n, spelled, keep, keep)).at(v.span)),
-                PlacesOf::Unknown => return err(Diagnostic::error(format!("nothing says how many places this has; {} keeps {}: round it on purpose, `round.near(…, places: {})`", spelled, keep, keep)).at(v.span)),
+                PlacesOf::Literal(n) if n > keep => return err(Diagnostic::error(format!("this literal has {} places; {} keeps {}: write fewer, or round it on purpose", n, spelled, keep)).named("money::too_many_places").at(v.span)),
+                PlacesOf::Can(n) if n > keep => return err(Diagnostic::error(format!("this can have {} places; {} keeps {}: round it on purpose, `round.near(…, places: {})`", n, spelled, keep, keep)).named("money::too_many_places").at(v.span)),
+                PlacesOf::Unknown => return err(Diagnostic::error(format!("nothing says how many places this has; {} keeps {}: round it on purpose, `round.near(…, places: {})`", spelled, keep, keep)).named("money::too_many_places").at(v.span)),
                 _ => {}
             }
         }
@@ -818,11 +818,11 @@ impl Checker {
         match (percent_inner(&vt), percent_inner(&t)) {
             (Some(_), None) if matches!(t.base(), Ty::Bin(_) | Ty::Deci(_) | Ty::Int(_) | Ty::Brain) => {
                 let to = self.spell(&t.base().clone());
-                return err(Diagnostic::error(format!("this is a percent, not {to}; a percent becomes a plain number with `to.{to}(…)` (7% → 0.07)")).at(v.span));
+                return err(Diagnostic::error(format!("this is a percent, not {to}; a percent becomes a plain number with `to.{to}(…)` (7% → 0.07)")).named("money::percent_mixed").at(v.span));
             }
             (None, Some(inner)) if matches!(vt.base(), Ty::Bin(_) | Ty::Deci(_) | Ty::Int(_) | Ty::Brain) => {
                 let pc = self.spell(&inner);
-                return err(Diagnostic::error(format!("this is not a percent; a plain number becomes one with `to.percent[{pc}](…)` (0.07 → 7%)")).at(v.span));
+                return err(Diagnostic::error(format!("this is not a percent; a plain number becomes one with `to.percent[{pc}](…)` (0.07 → 7%)")).named("money::percent_mixed").at(v.span));
             }
             _ => {}
         }
@@ -857,7 +857,7 @@ impl Checker {
         // Bare numbers in a `deci` place are decimals, exactly as written
         // (owner, 2026-09-29): `let 'a': d64 = 0.1 + 0.2;` is 0.3.
         if matches!(vt.base(), Ty::Deci(EXACT_FREE)) && matches!(t.base(), Ty::Bin(_) | Ty::Int(_)) {
-            return err(Diagnostic::error(format!("a `*` literal is exactly what is written, a deci, and {} is {}, which cannot hold it exactly: drop the `*` for a bin, or make it a `deci`", what, article(&self.spell(&t)))).at(v.span));
+            return err(Diagnostic::error(format!("a `*` literal is exactly what is written, a deci, and {} is {}, which cannot hold it exactly: drop the `*` for a bin, or make it a `deci`", what, article(&self.spell(&t)))).named("money::exact_into_bin").at(v.span));
         }
         if let Ty::Deci(bits) = t.base() {
             if !matches!(vt.base(), Ty::Deci(b) if *b != EXACT_FREE) && deci_group(&v) {
@@ -890,7 +890,7 @@ impl Checker {
                 }
             }
             if let Some(at) = first_wide(&v) {
-                return err(Diagnostic::error("this text is not ASCII, so it cannot be str.ascii").at(at));
+                return err(Diagnostic::error("this text is not ASCII, so it cannot be str.ascii").named("text_not_ascii").at(at));
             }
         }
         // `list.fill` of a bare number takes the list's element type.
@@ -922,7 +922,7 @@ impl Checker {
                     Unit::Point => (c.len(), "bytes"),
                     _ => (c.chars().count(), "code points"),
                 };
-                return err(Diagnostic::error(format!("`{}` is not one {}: it is {} {}, so it fits `char.{}`, not `{}`", c, match u { Unit::Byte => "byte", Unit::Point => "code point", _ => "grapheme" }, n, what, match need { Unit::Byte => "byte", Unit::Point => "point", _ => "grapheme" }, self.spell(&t))).at(v.span));
+                return err(Diagnostic::error(format!("`{}` is not one {}: it is {} {}, so it fits `char.{}`, not `{}`", c, match u { Unit::Byte => "byte", Unit::Point => "code point", _ => "grapheme" }, n, what, match need { Unit::Byte => "byte", Unit::Point => "point", _ => "grapheme" }, self.spell(&t))).named("not_one_code_point").at(v.span));
             }
         }
         // Arithmetic made only of literals has no family either, so in a
@@ -1033,7 +1033,7 @@ impl Checker {
             _ if self.spell(&t) == self.spell(&vt) => format!("expected {} ({}), found {}", what.replace("the ", "a value of the "), self.spell_with_kit(&t), article(&self.spell_with_kit(&vt))),
             _ => format!("expected {} ({}), found {}", what.replace("the ", "a value of the "), self.spell(&t), article(&self.spell(&vt))),
         };
-        err(Diagnostic::error(msg).at(v.span))
+        err(Diagnostic::error(msg).named(match (vt.base(), t.base()) { (Ty::Brain, other) | (other, Ty::Brain) if other.is_numeric() => "ai::brain_mixed", (Ty::Bin(_) | Ty::Deci(_), Ty::Int(_)) | (Ty::Int(_), Ty::Bin(_)) | (Ty::Int(_), Ty::Deci(_)) | (Ty::Bin(_), Ty::Deci(_)) | (Ty::Deci(_), Ty::Bin(_)) => "no_implicit_conversion", (Ty::Seq { kind: SeqKind::List, .. }, Ty::Seq { kind: SeqKind::Array, .. }) => "list_array_mismatch", (Ty::Fn(_), Ty::Fn(_)) => "function_shape_wrong", (Ty::Struct { id: a, .. }, Ty::Struct { id: b, .. }) if a == b => "generic_filled_inconsistently", (Ty::Enum { id: a, .. }, Ty::Enum { id: b, .. }) if a == b => "generic_filled_inconsistently", _ => "wrong_type" }).at(v.span))
     }
 
     // ------------------------------------------------------------ operators
@@ -1053,7 +1053,7 @@ impl Checker {
             Ty::Deci(_) => ", and a deci has none".to_string(),
             _ => String::new(),
         };
-        err(Diagnostic::error(format!("`{}` keeps a -0, which only a bin or brain16 has{}: write `{}`", spelled, none, plain)).at(at))
+        err(Diagnostic::error(format!("`{}` keeps a -0, which only a bin or brain16 has{}: write `{}`", spelled, none, plain)).named("ieee_misused").at(at))
     }
 
     fn unary(&mut self, ctx: &mut FnCtx, op: UnOp, operand: &ast::Expr, span: Span) -> Result<Expr> {
@@ -1082,10 +1082,10 @@ impl Checker {
             }
             UnOp::Neg => {
                 if !vt.is_numeric() {
-                    return err(Diagnostic::error(format!("`-` negates a number, and this is {}", crate::types::a_type(&self.spell(&vt)))).at(span));
+                    return err(Diagnostic::error(format!("`-` negates a number, and this is {}", crate::types::a_type(&self.spell(&vt)))).named("operator_wrong_type").at(span));
                 }
                 if let Ty::Int(IntW::Fixed { signed: false, .. }) = vt.base() {
-                    return err(Diagnostic::error(format!("`-` on {}: an unsigned number is never negative", crate::types::a_type(&self.spell(&vt)))).at(span));
+                    return err(Diagnostic::error(format!("`-` on {}: an unsigned number is never negative", crate::types::a_type(&self.spell(&vt)))).named("negative_unsigned").at(span));
                 }
                 let ty = vt.base().clone();
                 Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty, span })
@@ -1106,7 +1106,7 @@ impl Checker {
                 // ('v' + 1)` with 'v' a `u32` flips 32 bits
                 // (`widths.cpls`), not 65.
                 if vt.is_exact() {
-                    let ty = self.size_of_values(&v).ok_or_else(|| Box::new(Diagnostic::error("not yet: `not.bit` on an exact answer whose operands have different sizes (or none left to see) — which size it flips is open").at(span)))?;
+                    let ty = self.size_of_values(&v).ok_or_else(|| Box::new(Diagnostic::error("not yet: `not.bit` on an exact answer whose operands have different sizes (or none left to see) — which size it flips is open").named("not_decided").at(span)))?;
                     return Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty, span });
                 }
                 match vt.base() {
@@ -1116,8 +1116,8 @@ impl Checker {
                         self.widths_pending.push((t.clone(), span, "not.bit".to_string()));
                         return Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty: t, span });
                     }
-                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error("`not.bit` only knows a declared width: it flips every bit, so the value needs a type (`let $x: u8 = …`)").at(span)),
-                    other => return err(Diagnostic::error(format!("`not.bit` works on integers, and this is {}", crate::types::a_type(&self.spell(other)))).at(span)),
+                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error("`not.bit` only knows a declared width: it flips every bit, so the value needs a type (`let $x: u8 = …`)").named("width_unknown").at(span)),
+                    other => return err(Diagnostic::error(format!("`not.bit` works on integers, and this is {}", crate::types::a_type(&self.spell(other)))).named("needs_integer").at(span)),
                 }
                 let ty = vt.base().clone();
                 Ok(Expr { kind: K::Unary { op, expr: Box::new(v) }, ty, span })
@@ -1157,7 +1157,7 @@ impl Checker {
                 let r = self.as_operand(ctx, r)?;
                 return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span });
             }
-            return err(Diagnostic::error(format!("`{}` is not defined for `{}`: declare `op {} [$a: {}, $b: {}] -> …` to give it one", op.spelled(), self.spell(&lt), op.spelled(), self.spell(&lt), self.spell(&lt))).at(op_span));
+            return err(Diagnostic::error(format!("`{}` is not defined for `{}`: declare `op {} [$a: {}, $b: {}] -> …` to give it one", op.spelled(), self.spell(&lt), op.spelled(), self.spell(&lt), self.spell(&lt))).named("unknown_operator").at(op_span));
         }
         let r = self.expr(ctx, rhs)?;
         let rt = self.resolve(&r.ty);
@@ -1197,9 +1197,9 @@ impl Checker {
                 Ty::Deci(_) => "a deci",
                 Ty::Int(_) => "a whole number",
                 Ty::Brain => "a brain16",
-                _ => return err(Diagnostic::error(format!("`{}` between a percent and {}: a percent is a number", op.spelled(), crate::types::a_type(&self.spell(other)))).at(op_span)),
+                _ => return err(Diagnostic::error(format!("`{}` between a percent and {}: a percent is a number", op.spelled(), crate::types::a_type(&self.spell(other)))).named("operator_wrong_type").at(op_span)),
             };
-            return err(Diagnostic::error(format!("`{}` between a percent and {}: a percent is its own number family; convert it, `to.d64($tax)` (7% → 0.07), or the number, `to.percent[d64](0.07)`", op.spelled(), fam)).at(op_span));
+            return err(Diagnostic::error(format!("`{}` between a percent and {}: a percent is its own number family; convert it, `to.d64($tax)` (7% → 0.07), or the number, `to.percent[d64](0.07)`", op.spelled(), fam)).named("money::percent_mixed").at(op_span));
         };
         if !(matches!(op, BinOp::Add | BinOp::Sub) || op.is_comparison()) {
             let name = |e: &ast::Expr| match &e.kind {
@@ -1208,7 +1208,7 @@ impl Checker {
             };
             let (a, b) = (name(lhs), name(rhs));
             let b = if a == b { "'b'".to_string() } else { b };
-            return err(Diagnostic::error(format!("`{}` between two percents is not decided; convert them: `to.d64({}) {} to.d64({})`", op.spelled(), a, match op { BinOp::Mul => "x".to_string(), BinOp::Pow => "xx".to_string(), o => o.spelled() }, b)).at(op_span));
+            return err(Diagnostic::error(format!("`{}` between two percents is not decided; convert them: `to.d64({}) {} to.d64({})`", op.spelled(), a, match op { BinOp::Mul => "x".to_string(), BinOp::Pow => "xx".to_string(), o => o.spelled() }, b)).named("not_decided").at(op_span));
         }
         // Worked out on their numbers; a sum or difference is a percent.
         let (li, ri) = (percent_inner(&self.resolve(&l.ty)).unwrap_or(li), percent_inner(&self.resolve(&r.ty)).unwrap_or(ri));
@@ -1264,7 +1264,7 @@ impl Checker {
                         if matches!(op, BinOp::Mul) && (lt.is_int() || rt.is_int()) {
                             return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Duration, span });
                         }
-                        return err(Diagnostic::error(format!("`{}` between a duration and {} has no meaning: durations add, subtract, compare, and multiply by a whole number", op.spelled(), crate::types::a_type(&self.spell(if lt.base() == &Ty::Duration { &rt } else { &lt })))).at(op_span));
+                        return err(Diagnostic::error(format!("`{}` between a duration and {} has no meaning: durations add, subtract, compare, and multiply by a whole number", op.spelled(), crate::types::a_type(&self.spell(if lt.base() == &Ty::Duration { &rt } else { &lt })))).named("operator_wrong_type").at(op_span));
                     }
                     return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Duration, span });
                 }
@@ -1277,7 +1277,7 @@ impl Checker {
                 if *op == BinOp::Pow && ty.is_int() {
                     if let K::Int(e) = &r.kind {
                         if *e < 0 {
-                            return err(Diagnostic::error("a negative exponent on integers would produce a fraction: `xx` on integers takes a non-negative power").at(rhs.span));
+                            return err(Diagnostic::error("a negative exponent on integers would produce a fraction: `xx` on integers takes a non-negative power").named("negative_exponent").at(rhs.span));
                         }
                     }
                 }
@@ -1321,11 +1321,11 @@ impl Checker {
                         self.widths_pending.push((t.clone(), op_span, op.spelled().to_string()));
                         return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: t, span });
                     }
-                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error(format!("`{}` wraps at the type's size, so it only knows a declared one: give the left operand a type (`let $x: u32 = …`)", op.spelled())).at(op_span)),
-                    other => return err(Diagnostic::error(format!("`{}` wraps an integer, and this is {}: it only knows a declared integer width", op.spelled(), crate::types::a_type(&self.spell(other)))).at(op_span)),
+                    Ty::Int(IntW::Free(_)) => return err(Diagnostic::error(format!("`{}` wraps at the type's size, so it only knows a declared one: give the left operand a type (`let $x: u32 = …`)", op.spelled())).named("width_unknown").at(op_span)),
+                    other => return err(Diagnostic::error(format!("`{}` wraps an integer, and this is {}: it only knows a declared integer width", op.spelled(), crate::types::a_type(&self.spell(other)))).named("needs_integer").at(op_span)),
                 }
                 if !rt.is_int() {
-                    return err(Diagnostic::error(format!("`{}` takes integers on both sides; the right side is {}", op.spelled(), crate::types::a_type(&self.spell(&rt)))).at(rhs.span));
+                    return err(Diagnostic::error(format!("`{}` takes integers on both sides; the right side is {}", op.spelled(), crate::types::a_type(&self.spell(&rt)))).named("needs_integer").at(rhs.span));
                 }
                 let ty = lt.base().clone();
                 // A group of bare numbers beside the typed side is plain
@@ -1341,16 +1341,16 @@ impl Checker {
                     if lt.is_char() && rt.is_text() || lt.is_char() && rt.is_char() {
                         // a char joins as text
                     } else if lt.is_numeric() {
-                        return err(Diagnostic::error(format!("`concat` joins text, and its left side is {}: convert it first — `to.str.utf8(…) concat …`", article(&self.spell(&lt)))).at(lhs.span));
+                        return err(Diagnostic::error(format!("`concat` joins text, and its left side is {}: convert it first — `to.str.utf8(…) concat …`", article(&self.spell(&lt)))).named("concat_needs_text").at(lhs.span));
                     } else {
-                        return err(Diagnostic::error(format!("`concat` joins text, and its left side is {}", crate::types::a_type(&self.spell(&lt)))).at(lhs.span));
+                        return err(Diagnostic::error(format!("`concat` joins text, and its left side is {}", crate::types::a_type(&self.spell(&lt)))).named("concat_needs_text").at(lhs.span));
                     }
                 }
                 if !rt.is_text() && !rt.is_char() {
                     if rt.is_numeric() {
-                        return err(Diagnostic::error(format!("`concat` joins text, and its right side is {}: convert it first — `… concat to.str.utf8(…)`", article(&self.spell(&rt)))).at(rhs.span));
+                        return err(Diagnostic::error(format!("`concat` joins text, and its right side is {}: convert it first — `… concat to.str.utf8(…)`", article(&self.spell(&rt)))).named("concat_needs_text").at(rhs.span));
                     }
-                    return err(Diagnostic::error(format!("`concat` joins text, and its right side is {}", crate::types::a_type(&self.spell(&rt)))).at(rhs.span));
+                    return err(Diagnostic::error(format!("`concat` joins text, and its right side is {}", crate::types::a_type(&self.spell(&rt)))).named("concat_needs_text").at(rhs.span));
                 }
                 let enc = match (lt.base(), rt.base()) {
                     (Ty::Str(e), _) if !matches!(e, Enc::Free(_)) => *e,
@@ -1368,7 +1368,7 @@ impl Checker {
                 let lt = self.resolve(&l.ty);
                 let r = self.expect_operand(ctx, r, &lt, op, op_span)?;
                 if matches!(lt.base(), Ty::Fn(_) | Ty::Ptr { .. } | Ty::Channel(_)) {
-                    return err(Diagnostic::error(format!("`equal_to` has no meaning for {}", crate::types::a_type(&self.spell(&lt)))).at(op_span));
+                    return err(Diagnostic::error(format!("`equal_to` has no meaning for {}", crate::types::a_type(&self.spell(&lt)))).named("operator_wrong_type").at(op_span));
                 }
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span })
             }
@@ -1388,15 +1388,15 @@ impl Checker {
                 self.bare_group_exact(&mut r);
                 let lt = self.resolve(&l.ty);
                 if lt.is_text() {
-                    return err(Diagnostic::error(format!("`{}` on text has no meaning yet: byte order is never what anyone means, and a collation rule is std's — compare lengths or use a std function", op.spelled())).at(op_span));
+                    return err(Diagnostic::error(format!("`{}` on text has no meaning yet: byte order is never what anyone means, and a collation rule is std's — compare lengths or use a std function", op.spelled())).named("text_order_undecided").at(op_span));
                 }
                 // Characters compare by content (`==`); an order between
                 // them was never decided, and the oracle refuses one.
                 if lt.is_char() {
-                    return err(Diagnostic::error(format!("`{}` on characters has no meaning yet: `equal_to` compares them, and `char.code(…)` gives the number under one", op.spelled())).at(op_span));
+                    return err(Diagnostic::error(format!("`{}` on characters has no meaning yet: `equal_to` compares them, and `char.code(…)` gives the number under one", op.spelled())).named("text_order_undecided").at(op_span));
                 }
                 if !lt.is_numeric() && lt.base() != &Ty::Duration {
-                    return err(Diagnostic::error(format!("`{}` compares numbers, and this is {}", op.spelled(), crate::types::a_type(&self.spell(&lt)))).at(op_span));
+                    return err(Diagnostic::error(format!("`{}` compares numbers, and this is {}", op.spelled(), crate::types::a_type(&self.spell(&lt)))).named("operator_wrong_type").at(op_span));
                 }
                 let r = self.expect_operand(ctx, r, &lt, op, op_span)?;
                 Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: Ty::Bool, span })
@@ -1427,11 +1427,11 @@ impl Checker {
                     if bad.is_infer() {
                         if let K::Binary { op: inner, op_span: at, .. } = &side.kind {
                             if inner.is_shift() {
-                                return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: declare where the value goes (`let $v: u32 = 1 {} 3;`) or write `to.u32(1) {} 3`", inner.spelled(), inner.spelled(), inner.spelled())).at(*at));
+                                return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: declare where the value goes (`let $v: u32 = 1 {} 3;`) or write `to.u32(1) {} 3`", inner.spelled(), inner.spelled(), inner.spelled())).named("width_unknown").at(*at));
                             }
                         }
                     }
-                    return err(Diagnostic::error(format!("`{}` works on integers, and this is {}", op.spelled(), crate::types::a_type(&self.spell(bad)))).at(op_span));
+                    return err(Diagnostic::error(format!("`{}` works on integers, and this is {}", op.spelled(), crate::types::a_type(&self.spell(bad)))).named("needs_integer").at(op_span));
                 }
                 // A shift works at the width of what it shifts: its count is
                 // a count, exact or not. On an exact answer, the width of the
@@ -1476,7 +1476,7 @@ impl Checker {
                         self.widths_pending.push((t.clone(), op_span, op.spelled().to_string()));
                         return Ok(Expr { kind: K::Binary { op: op.clone(), lhs: Box::new(l), rhs: Box::new(r), op_span }, ty: t, span });
                     }
-                    return err(Diagnostic::error(format!("`{}` only knows a declared width: shifting can lose bits, so the shifted number needs a type", op.spelled())).at(op_span));
+                    return err(Diagnostic::error(format!("`{}` only knows a declared width: shifting can lose bits, so the shifted number needs a type", op.spelled())).named("width_unknown").at(op_span));
                 }
                 let ty = if matches!(lt.base(), Ty::Int(IntW::Fixed { .. })) { lt.base().clone() } else { rt.base().clone() };
                 // A group of bare numbers beside a typed operand is plain
@@ -1613,13 +1613,13 @@ impl Checker {
             many => {
                 let names: Vec<String> = many.iter().map(|t| self.spell(t)).collect();
                 let last = names.last().cloned().unwrap_or_default();
-                err(Diagnostic::error(format!("`{}` wraps at one size, and this mixes {}: say which with `to.{}(…)` first", op.spelled(), names.join(" and "), last)).at(op_span))
+                err(Diagnostic::error(format!("`{}` wraps at one size, and this mixes {}: say which with `to.{}(…)` first", op.spelled(), names.join(" and "), last)).named("wrap_sizes_mixed").at(op_span))
             }
         }
     }
 
     fn open_size(&self, op: &BinOp, op_span: Span) -> Box<Diagnostic> {
-        Box::new(Diagnostic::error(format!("`{}` on an exact answer works at the width of its typed operands, and these have different sizes (or none left to see): say which first — `to.u32(…)`", op.spelled())).at(op_span))
+        Box::new(Diagnostic::error(format!("`{}` on an exact answer works at the width of its typed operands, and these have different sizes (or none left to see): say which first — `to.u32(…)`", op.spelled())).named("width_unknown").at(op_span))
     }
 
     /// A lane-wise operator. The rule is the scalar rule, N times.
@@ -1628,10 +1628,10 @@ impl Checker {
         let (lane, lanes) = match (lt.base(), rt.base()) {
             (Ty::Simd { elem, lanes }, Ty::Simd { elem: e2, lanes: l2 }) => {
                 if !self.unify(elem, e2) {
-                    return err(Diagnostic::error(format!("`{}` works lane by lane, and these hold different lanes: `{}` and `{}`", op.spelled(), self.spell(elem), self.spell(e2))).at(op_span));
+                    return err(Diagnostic::error(format!("`{}` works lane by lane, and these hold different lanes: `{}` and `{}`", op.spelled(), self.spell(elem), self.spell(e2))).named("wrong_type").at(op_span));
                 }
                 if lanes != l2 && *lanes != 0 && *l2 != 0 {
-                    return err(Diagnostic::error(format!("`{}` works lane by lane, and these are different lengths: {} and {}", op.spelled(), lanes, l2)).at(op_span));
+                    return err(Diagnostic::error(format!("`{}` works lane by lane, and these are different lengths: {} and {}", op.spelled(), lanes, l2)).named("simd_lane_count_mismatch").at(op_span));
                 }
                 // The side that says its lanes says them for both: a
                 // `simd.fill[10]` beside a `simd[i32, 4]` is four int32s.
@@ -1648,7 +1648,7 @@ impl Checker {
             (Ty::Simd { elem, lanes }, scalar) | (scalar, Ty::Simd { elem, lanes }) => {
                 let scalar = scalar.clone();
                 if !self.unify(elem, &scalar) {
-                    return err(Diagnostic::error(format!("`{}` puts a `{}` beside lanes of `{}`: a single value stands for every lane, so it has to be one of them", op.spelled(), self.spell(&scalar), self.spell(elem))).at(op_span));
+                    return err(Diagnostic::error(format!("`{}` puts a `{}` beside lanes of `{}`: a single value stands for every lane, so it has to be one of them", op.spelled(), self.spell(&scalar), self.spell(elem))).named("wrong_type").at(op_span));
                 }
                 ((**elem).clone(), *lanes)
             }
@@ -1666,12 +1666,12 @@ impl Checker {
             BinOp::And | BinOp::Or => lane_r.base() == &Ty::Bool,
             BinOp::AndThen | BinOp::OrElse => {
                 let plain = if *op == BinOp::AndThen { "and" } else { "or" };
-                return err(Diagnostic::error(format!("`{}` works on a single bool: it stops once the answer is known, and a mask has an answer in every lane — `{}` works lane by lane", op.spelled(), plain)).at(op_span));
+                return err(Diagnostic::error(format!("`{}` works on a single bool: it stops once the answer is known, and a mask has an answer in every lane — `{}` works lane by lane", op.spelled(), plain)).named("operator_wrong_type").at(op_span));
             }
             _ => false,
         };
         if !ok {
-            return err(Diagnostic::error(format!("`{}` is not an operator a lane of `{}` has, so a vector of them does not have it either", op.spelled(), self.spell(&lane_r))).at(op_span));
+            return err(Diagnostic::error(format!("`{}` is not an operator a lane of `{}` has, so a vector of them does not have it either", op.spelled(), self.spell(&lane_r))).named("operator_wrong_type").at(op_span));
         }
         // A comparison gives one answer per lane, never a single `bool`.
         let ty = if op.is_comparison() { Ty::Simd { elem: Box::new(Ty::Bool), lanes } } else { Ty::Simd { elem: Box::new(lane), lanes } };
@@ -1809,7 +1809,7 @@ impl Checker {
                     (true, true) => ("div.near", "ordinary division"),
                     (false, _) => ("mod.floor", "what `mod` did, the divisor's sign"),
                 };
-                err(Diagnostic::error(format!("say how `{w}` rounds: `{w}.floor`, `{w}.ceil`, `{w}.trunc` or `{w}.near` — `{meant}` is {why}")).at(op_span))
+                err(Diagnostic::error(format!("say how `{w}` rounds: `{w}.floor`, `{w}.ceil`, `{w}.trunc` or `{w}.near` — `{meant}` is {why}")).named("rounding_unsaid").at(op_span))
             }
             BinOp::Mod(Round::Near) if fraction => {
                 let family = match t.base() {
@@ -1817,7 +1817,7 @@ impl Checker {
                     Ty::Brain => "brain16",
                     _ => "bins",
                 };
-                err(Diagnostic::error(format!("`mod.near` on {family} leaves nothing over: `div.near` there is ordinary division — for what a whole quotient leaves, `mod.floor`, `mod.ceil` or `mod.trunc`")).at(op_span))
+                err(Diagnostic::error(format!("`mod.near` on {family} leaves nothing over: `div.near` there is ordinary division — for what a whole quotient leaves, `mod.floor`, `mod.ceil` or `mod.trunc`")).named("mod_near_on_fraction").at(op_span))
             }
             _ => Ok(()),
         }
@@ -1855,7 +1855,7 @@ impl Checker {
                 }
                 _ => {}
             }
-            return Err(Box::new(Diagnostic::error(format!("`{}` beside a shift whose width is still open: give the shifted number a type (`to.i64(…)`)", op.spelled())).at(op_span)));
+            return Err(Box::new(Diagnostic::error(format!("`{}` beside a shift whose width is still open: give the shifted number a type (`to.i64(…)`)", op.spelled())).named("width_unknown").at(op_span)));
         }
         if matches!(lt.base(), Ty::Deci(_)) || matches!(rt.base(), Ty::Deci(_)) {
             return self.deci_pair(l, r, &lt, &rt, op, op_span);
@@ -1981,21 +1981,21 @@ impl Checker {
             let lit = if literal_only(&l) && matches!(lt.base(), Ty::Int(IntW::Free(_))) { &l } else { &r };
             if is_int_literal(lit) && (matches!(lit.kind, K::Unary { op: crate::ast::UnOp::Neg, .. }) || matches!(lit.kind, K::Int(v) if v < 0)) {
                 let fam = adopt.as_ref().map(|t| self.spell(t)).unwrap_or_default();
-                return err(Diagnostic::error(format!("a negative number beside a `{}`: an unsigned number is never negative, and a bare number takes the family of the other side", fam)).at(lit.span));
+                return err(Diagnostic::error(format!("a negative number beside a `{}`: an unsigned number is never negative, and a bare number takes the family of the other side", fam)).named("negative_unsigned").at(lit.span));
             }
         }
         if !lt.is_numeric() {
-            return err(Diagnostic::error(format!("`{}` works on numbers, and its left side is {}", op.spelled(), crate::types::a_type(&self.spell(&lt)))).at(l.span));
+            return err(Diagnostic::error(format!("`{}` works on numbers, and its left side is {}", op.spelled(), crate::types::a_type(&self.spell(&lt)))).named("operator_wrong_type").at(l.span));
         }
         if !rt.is_numeric() {
-            return err(Diagnostic::error(format!("`{}` works on numbers, and its right side is {}", op.spelled(), crate::types::a_type(&self.spell(&rt)))).at(r.span));
+            return err(Diagnostic::error(format!("`{}` works on numbers, and its right side is {}", op.spelled(), crate::types::a_type(&self.spell(&rt)))).named("operator_wrong_type").at(r.span));
         }
         let ty = match (lt.base(), rt.base()) {
             _ if adopt.is_some() => adopt.clone().unwrap(),
             (Ty::Int(a), Ty::Int(b)) => Ty::Int(join_int(*a, *b)),
             (Ty::Bin(a), Ty::Bin(b)) => Ty::Bin(join_bin(*a, *b)),
             (Ty::Deci(a), Ty::Deci(b)) => Ty::Deci((*a).max(*b)),
-            _ => return err(Diagnostic::error(format!("`{}` between a `{}` and a `{}`: there is no implicit conversion between numeric families — convert one side with `to.{}(…)`", op.spelled(), self.spell(&lt), self.spell(&rt), self.spell(lt.base()))).at(op_span)),
+            _ => return err(Diagnostic::error(format!("`{}` between a `{}` and a `{}`: there is no implicit conversion between numeric families — convert one side with `to.{}(…)`", op.spelled(), self.spell(&lt), self.spell(&rt), self.spell(lt.base()))).named("no_implicit_conversion").at(op_span)),
         };
         Ok((l, r, ty))
     }
@@ -2014,14 +2014,14 @@ impl Checker {
         match op {
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_) | BinOp::Pow => {}
             _ if op.is_comparison() => {}
-            _ => return err(Diagnostic::error(format!("`{}` works on whole numbers, and a brain16 is not one", op.spelled())).at(op_span)),
+            _ => return err(Diagnostic::error(format!("`{}` works on whole numbers, and a brain16 is not one", op.spelled())).named("needs_integer").at(op_span)),
         }
         let (lt, rt) = (self.resolve(&l.ty), self.resolve(&r.ty));
         if lt.is_brain() && rt.is_brain() {
             return Ok((l, r, Ty::Brain));
         }
         let other = if lt.is_brain() { &rt } else { &lt };
-        err(Diagnostic::error(format!("`{}` between a brain16 and {}: the brain float is a family of its own — convert one side first, `to.brain16(…)` or `to.f32(…)`", op.spelled(), article(&self.spell(other)))).at(op_span))
+        err(Diagnostic::error(format!("`{}` between a brain16 and {}: the brain float is a family of its own — convert one side first, `to.brain16(…)` or `to.f32(…)`", op.spelled(), article(&self.spell(other)))).named("ai::brain_mixed").at(op_span))
     }
 
     /// Both sides of an operator where one is a `deci` (owner, 2026-09-29):
@@ -2040,9 +2040,9 @@ impl Checker {
                 return Ok((l, r, Ty::Deci(*b)));
             }
             if matches!(lt.base(), Ty::Deci(_)) {
-                return err(Diagnostic::error(format!("a deci power's exponent is an integer or a whole literal, and this one is {}: roots are std's math", crate::types::a_type(&self.spell(&rt)))).at(r.span));
+                return err(Diagnostic::error(format!("a deci power's exponent is an integer or a whole literal, and this one is {}: roots are std's math", crate::types::a_type(&self.spell(&rt)))).named("money::power_not_whole").at(r.span));
             }
-            return err(Diagnostic::error("a deci power's exponent is an integer or a whole literal: the deci goes on the left of `xx`").at(op_span));
+            return err(Diagnostic::error("a deci power's exponent is an integer or a whole literal: the deci goes on the left of `xx`").named("money::power_not_whole").at(op_span));
         }
         match (lt.base(), rt.base()) {
             (Ty::Deci(b), other) if *b != EXACT_FREE && !matches!(other, Ty::Deci(x) if *x != EXACT_FREE) && deci_group(&r) => into_deci(&mut r, *b)?,
@@ -2068,15 +2068,15 @@ impl Checker {
         match op {
             BinOp::Add | BinOp::Sub | BinOp::Mul | BinOp::Div(_) | BinOp::DivIeee(_) | BinOp::Mod(_) => {}
             _ if op.is_comparison() => {}
-            _ => return err(Diagnostic::error(format!("`{}` works on whole numbers, and a deci is not one", op.spelled())).at(op_span)),
+            _ => return err(Diagnostic::error(format!("`{}` works on whole numbers, and a deci is not one", op.spelled())).named("needs_integer").at(op_span)),
         }
         match (lt.base(), rt.base()) {
             (Ty::Deci(a), Ty::Deci(b)) if a == b => Ok((l, r, Ty::Deci(*a))),
             (Ty::Deci(a), Ty::Deci(b)) => {
                 let wide = format!("d{}", (*a).max(*b));
-                err(Diagnostic::error(format!("`{}` between a d{} and a d{}: say which width, `to.{}(…)`", op.spelled(), a, b, wide)).at(op_span))
+                err(Diagnostic::error(format!("`{}` between a d{} and a d{}: say which width, `to.{}(…)`", op.spelled(), a, b, wide)).named("money::deci_mixed").at(op_span))
             }
-            (Ty::Deci(b), _) | (_, Ty::Deci(b)) => err(Diagnostic::error(format!("`{}` between a deci and another number family: there is no implicit conversion between numeric families; `to.d{}(…)`", op.spelled(), b)).at(op_span)),
+            (Ty::Deci(b), _) | (_, Ty::Deci(b)) => err(Diagnostic::error(format!("`{}` between a deci and another number family: there is no implicit conversion between numeric families; `to.d{}(…)`", op.spelled(), b)).named("money::deci_mixed").at(op_span)),
             _ => unreachable!("deci_pair without a deci"),
         }
     }
@@ -2094,7 +2094,7 @@ impl Checker {
         if self.unify(lt, &rt) {
             return Ok(r);
         }
-        err(Diagnostic::error(format!("`{}` compares two values of one type: the left is a `{}`, the right a `{}`", op.spelled(), self.spell(lt), self.spell(&rt))).at(op_span))
+        err(Diagnostic::error(format!("`{}` compares two values of one type: the left is a `{}`, the right a `{}`", op.spelled(), self.spell(lt), self.spell(&rt))).named("wrong_type").at(op_span))
     }
 
     fn user_op(&mut self, ctx: &mut FnCtx, spelling: &str, op_span: Span, lhs: &ast::Expr, rhs: &ast::Expr, span: Span) -> Result<Expr> {
@@ -2105,7 +2105,7 @@ impl Checker {
             Some((kit, name)) => {
                 let here = self.items.kit_root(ctx.module);
                 let Some(root) = self.items.kit_deps.get(&here).and_then(|d| d.get(kit)).copied() else {
-                    return err(Diagnostic::error(format!("no kit with the prefix `{}`: a kit this one uses is listed under `my kits:` in its `CyJet.toml`, and its own `CyJet.toml` says `prefix = {}`", kit, kit)).at(op_span));
+                    return err(Diagnostic::error(format!("no kit with the prefix `{}`: a kit this one uses is listed under `my kits:` in its `CyJet.toml`, and its own `CyJet.toml` says `prefix = {}`", kit, kit)).named("kit_not_listed").at(op_span));
                 };
                 (Some((kit, root)), name)
             }
@@ -2113,7 +2113,7 @@ impl Checker {
         };
         let Some(fn_id) = self.find_op_in(name, lt.base(), kit.map(|l| l.1)) else {
             if let Some((kit, _)) = kit {
-                return err(Diagnostic::error(format!("the kit `{}` has no operator `{}` for {}: a path picks only that kit's operator", kit, name, crate::types::a_type(&self.spell(&lt)))).at(op_span));
+                return err(Diagnostic::error(format!("the kit `{}` has no operator `{}` for {}: a path picks only that kit's operator", kit, name, crate::types::a_type(&self.spell(&lt)))).named("unknown_operator").at(op_span));
             }
             // A glyph free to declare has its hint in spellings.cyr.
             let hint = match crate::spellings::free_op_hint(spelling) {
@@ -2123,7 +2123,7 @@ impl Checker {
                     _ => "an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`",
                 },
             };
-            return err(Diagnostic::error(format!("`{}` is not an operator here; {}", spelling, hint)).at(op_span));
+            return err(Diagnostic::error(format!("`{}` is not an operator here; {}", spelling, hint)).named(if crate::spellings::free_op_hint(spelling).is_some() { "old_spelling" } else { "unknown_operator" }).at(op_span));
         };
         // Bare, it may be more than one Kit's (owner, 2026-10-06): refused
         // where it is written, and this Kit's own does not win.
@@ -2142,7 +2142,7 @@ impl Checker {
                     None => format!("`my.{}` (this kit's)", name),
                 }).collect();
                 named.sort();
-                return err(Diagnostic::error(format!("`{}` could be any of {}: write the path", name, named.join(", "))).at(op_span));
+                return err(Diagnostic::error(format!("`{}` could be any of {}: write the path", name, named.join(", "))).named("name_ambiguous").at(op_span));
             }
         }
         // Another Kit's word operator follows its mark (owner,
@@ -2153,10 +2153,10 @@ impl Checker {
             match (kit, self.items.bare_marks.get(&decl.name_span)) {
                 (None, Some(ast::Bare::Never)) => {
                     let prefix = self.items.kit_deps.get(&here).and_then(|d| d.iter().find(|(_, r)| **r == there)).map(|(p, _)| p.clone()).unwrap_or_default();
-                    return err(Diagnostic::error(format!("`{n}` is `{p}`'s and `bare.kit_prefix.never`: write `{p}::{n}`", n = name, p = prefix)).at(op_span));
+                    return err(Diagnostic::error(format!("`{n}` is `{p}`'s and `bare.kit_prefix.never`: write `{p}::{n}`", n = name, p = prefix)).named("kit_name_needs_path").at(op_span));
                 }
                 (Some((prefix, _)), Some(ast::Bare::Only)) => {
-                    return err(Diagnostic::error(format!("`{p}::{n}` is `bare.kit_prefix.only`: `{p}` forbids its path, so write `{n}`", n = name, p = prefix)).at(op_span));
+                    return err(Diagnostic::error(format!("`{p}::{n}` is `bare.kit_prefix.only`: `{p}` forbids its path, so write `{n}`", n = name, p = prefix)).named("path_forbidden").at(op_span));
                 }
                 _ => {}
             }
@@ -2180,12 +2180,12 @@ impl Checker {
             let arg = match &side.kind {
                 AK::Verb { verb: Verb::Give, expr, .. } => {
                     if !gives {
-                        return err(Diagnostic::error(format!("`{}` lends its operand: `give` is not wanted here", spelling)).at(side.span));
+                        return err(Diagnostic::error(format!("`{}` lends its operand: `give` is not wanted here", spelling)).named("verb_wrong_for_parameter").at(side.span));
                     }
                     let place = self.place(ctx, expr, PlaceUse::Give)?;
                     Arg::Give(place)
                 }
-                AK::Verb { verb, .. } => return err(Diagnostic::error(format!("an operand takes no `{}`: operands are lent unless the operator says `give`", verb.spelled())).at(side.span)),
+                AK::Verb { verb, .. } => return err(Diagnostic::error(format!("an operand takes no `{}`: operands are lent unless the operator says `give`", verb.spelled())).named("verb_wrong_for_parameter").at(side.span)),
                 _ => {
                     let v = self.expr(ctx, side)?;
                     let vt = self.resolve(&v.ty);
@@ -2193,7 +2193,7 @@ impl Checker {
                         match &v.kind {
                             K::Read(_) => {
                                 let n = pdecl.name.clone();
-                                return err(Diagnostic::error(format!("`{}` takes '{}' by value: write `give {}` so the value moves in", spelling, n, self.expr_name(ctx, &v))).at(side.span));
+                                return err(Diagnostic::error(format!("`{}` takes '{}' by value: write `give {}` so the value moves in", spelling, n, self.expr_name(ctx, &v))).named("owned_value_bare").at(side.span));
                             }
                             _ => Arg::Value(v),
                         }
@@ -2229,7 +2229,7 @@ impl Checker {
         let mut vals = Vec::new();
         for side in [lhs, rhs] {
             if let AK::Verb { verb, .. } = &side.kind {
-                return err(Diagnostic::error(format!("an operand takes no `{}`: a generic operator's operands are lent", verb.spelled())).at(side.span));
+                return err(Diagnostic::error(format!("an operand takes no `{}`: a generic operator's operands are lent", verb.spelled())).named("verb_wrong_for_parameter").at(side.span));
             }
             vals.push(self.expr(ctx, side)?);
         }
@@ -2237,7 +2237,7 @@ impl Checker {
         for (v, pt) in vals.iter().zip(&ptys) {
             let vt = self.resolve(&v.ty);
             if !free(&vt) && !self.unify(&vt, pt) {
-                return err(Diagnostic::error(format!("one blank, one type: `{}` takes both operands as the same `<T>`, and this is a `{}` beside a `{}`", spelling, self.spell(&vt), self.spell(&self.resolve(pt)))).at(v.span));
+                return err(Diagnostic::error(format!("one blank, one type: `{}` takes both operands as the same `<T>`, and this is a `{}` beside a `{}`", spelling, self.spell(&vt), self.spell(&self.resolve(pt)))).named("generic_filled_inconsistently").at(v.span));
             }
         }
         let mut args = Vec::new();
@@ -2253,12 +2253,12 @@ impl Checker {
         for (i, t) in named.iter().enumerate() {
             let r = self.resolve(t);
             if matches!(r, Ty::Infer(_)) {
-                return err(Diagnostic::error(format!("the blank `<{}>` of `{}` is not filled: neither operand says what it is", decl.blanks[i].0, spelling)).at(span));
+                return err(Diagnostic::error(format!("the blank `<{}>` of `{}` is not filled: neither operand says what it is", decl.blanks[i].0, spelling)).named("generic_unfilled").at(span));
             }
             for iface in decl.blanks[i].1.clone() {
                 if let Err(reason) = self.satisfies(&r, iface) {
                     let iname = self.items.ifaces[iface.0 as usize].name.clone();
-                    return err(Diagnostic::error(format!("`{}` is not `{}`: {} — `{}` asks for `<{}>: {}`", self.spell(&r), iname, reason, spelling, decl.blanks[i].0, iname)).at(span));
+                    return err(Diagnostic::error(format!("`{}` is not `{}`: {} — `{}` asks for `<{}>: {}`", self.spell(&r), iname, reason, spelling, decl.blanks[i].0, iname)).named("bound_not_satisfied").at(span));
                 }
             }
             blank_tys.push(r);
@@ -2351,7 +2351,7 @@ impl Checker {
             for iface in bs {
                 if let Err(reason) = self.satisfies(&r, *iface) {
                     let iname = self.items.ifaces[iface.0 as usize].name.clone();
-                    return err(Diagnostic::error(format!("`{}` is not `{}`: {} — `{}` needs `<{}>: {}`", self.spell(&r), iname, reason, owner, names.get(i).cloned().unwrap_or_default(), iname)).at(span));
+                    return err(Diagnostic::error(format!("`{}` is not `{}`: {} — `{}` needs `<{}>: {}`", self.spell(&r), iname, reason, owner, names.get(i).cloned().unwrap_or_default(), iname)).named("bound_not_satisfied").at(span));
                 }
             }
         }
@@ -2428,7 +2428,7 @@ impl Checker {
     fn enum_named_ok(&self, id: EnumId, case: &ast::Ident, span: Span) -> Result<()> {
         let info = &self.items.enums[id.0 as usize];
         if self.items.enum_bare_marks.get(&info.span) == Some(&ast::Bare::Only) {
-            return err(Diagnostic::error(format!("`{n}` forbids its name before its values (`bare.enum_prefix.only`): write `{c}` where a `{n}` is asked for", n = info.name, c = case.name)).at(span));
+            return err(Diagnostic::error(format!("`{n}` forbids its name before its values (`bare.enum_prefix.only`): write `{c}` where a `{n}` is asked for", n = info.name, c = case.name)).named("path_forbidden").at(span));
         }
         Ok(())
     }
@@ -2436,7 +2436,7 @@ impl Checker {
     fn enum_case(&mut self, ctx: &mut FnCtx, id: EnumId, case: &ast::Ident, payload: Option<&[AArg]>, span: Span) -> Result<Expr> {
         let info = self.items.enums[id.0 as usize].clone();
         let Some(ci) = info.cases.iter().position(|c| self.items.same_name(&self.items.case_cases, info.span, &c.name, &case.name)) else {
-            return err(Diagnostic::error(format!("`{}` has no case `{}`: its cases are {}", info.name, case.name, info.cases.iter().map(|c| c.name.clone()).collect::<Vec<_>>().join(", "))).at(case.span));
+            return err(Diagnostic::error(format!("`{}` has no case `{}`: its cases are {}", info.name, case.name, info.cases.iter().map(|c| c.name.clone()).collect::<Vec<_>>().join(", "))).named("unknown_case").at(case.span));
         };
         let args: Vec<Ty> = info.blanks.iter().map(|_| self.fresh()).collect();
         let expected = info.cases[ci].payload.as_ref().map(|t| t.subst(&args));
@@ -2444,18 +2444,18 @@ impl Checker {
             (None, None) => None,
             (Some(a), Some(t)) => {
                 if a.len() != 1 {
-                    return err(Diagnostic::error(format!("`{}.{}` carries one value", info.name, case.name)).at(span));
+                    return err(Diagnostic::error(format!("`{}.{}` carries one value", info.name, case.name)).named("case_data_form").at(span));
                 }
                 let AArg::Positional(e) = &a[0] else {
-                    return err(Diagnostic::error(format!("`{}.{}` carries one value, not a field", info.name, case.name)).at(span));
+                    return err(Diagnostic::error(format!("`{}.{}` carries one value, not a field", info.name, case.name)).named("case_data_form").at(span));
                 };
                 let v = self.expr(ctx, e)?;
                 let v = self.expect_store(ctx, v, &t, &format!("`{}`'s data", case.name))?;
                 self.check_stored_value(ctx, &v, &t)?;
                 Some(Box::new(self.value_arg(v)))
             }
-            (None, Some(t)) => return err(Diagnostic::error(format!("`{}.{}` carries {}: write `{}.{}(…)` with the value", info.name, case.name, crate::types::a_type(&self.spell(&t)), info.name, case.name)).at(span)),
-            (Some(_), None) => return err(Diagnostic::error(format!("`{}.{}` carries nothing; write it bare — `{}.{}`", info.name, case.name, info.name, case.name)).at(span)),
+            (None, Some(t)) => return err(Diagnostic::error(format!("`{}.{}` carries {}: write `{}.{}(…)` with the value", info.name, case.name, crate::types::a_type(&self.spell(&t)), info.name, case.name)).named("data_missing").at(span)),
+            (Some(_), None) => return err(Diagnostic::error(format!("`{}.{}` carries nothing; write it bare — `{}.{}`", info.name, case.name, info.name, case.name)).named("carries_nothing").at(span)),
         };
         self.kept_bounds(&info.name, &info.blanks, &info.bounds, &args, span)?;
         Ok(Expr { kind: K::EnumCase { id, case: ci, payload }, ty: Ty::Enum { id, args }, span })
@@ -2464,7 +2464,7 @@ impl Checker {
     fn construct(&mut self, ctx: &mut FnCtx, id: StructId, args: &[AArg], span: Span) -> Result<Expr> {
         let info = self.items.structs[id.0 as usize].clone();
         if info.opaque {
-            return err(Diagnostic::error(format!("`{n}` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[{n}]`, never built", n = info.name)).at(span));
+            return err(Diagnostic::error(format!("`{n}` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[{n}]`, never built", n = info.name)).named("cnc::opaque_struct_held").at(span));
         }
         let targs: Vec<Ty> = info.blanks.iter().map(|_| self.fresh()).collect();
         let mut given: Vec<Option<Arg>> = vec![None; info.fields.len()];
@@ -2472,10 +2472,10 @@ impl Checker {
             match a {
                 AArg::Named(name, e) => {
                     let Some(fi) = info.fields.iter().position(|f| self.items.same_name(&self.items.case_fields, info.span, &f.name, &name.name)) else {
-                        return err(Diagnostic::error(format!("`{}` has no field `{}`: its fields are {}", info.name, name.name, info.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>().join(", "))).at(name.span));
+                        return err(Diagnostic::error(format!("`{}` has no field `{}`: its fields are {}", info.name, name.name, info.fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>().join(", "))).named("unknown_field").at(name.span));
                     };
                     if given[fi].is_some() {
-                        return err(Diagnostic::error(format!("field `{}` is given twice", name.name)).at(name.span));
+                        return err(Diagnostic::error(format!("field `{}` is given twice", name.name)).named("given_twice").at(name.span));
                     }
                     let t = info.fields[fi].ty.subst(&targs);
                     let v = self.expr(ctx, e)?;
@@ -2483,22 +2483,22 @@ impl Checker {
                     self.check_stored_value(ctx, &v, &t)?;
                     given[fi] = Some(self.value_arg(v));
                 }
-                AArg::Positional(e) => return err(Diagnostic::error(format!("a struct is built by field name: `{}[{} = …]`", info.name, info.fields.first().map(|f| f.name.as_str()).unwrap_or("field"))).at(e.span)),
-                AArg::Pair(k, _) => return err(Diagnostic::error(format!("a struct is built by field name: `{}[{} = …]`", info.name, info.fields.first().map(|f| f.name.as_str()).unwrap_or("field"))).at(k.span)),
+                AArg::Positional(e) => return err(Diagnostic::error(format!("a struct is built by field name: `{}[{} = …]`", info.name, info.fields.first().map(|f| f.name.as_str()).unwrap_or("field"))).named("field_unnamed").at(e.span)),
+                AArg::Pair(k, _) => return err(Diagnostic::error(format!("a struct is built by field name: `{}[{} = …]`", info.name, info.fields.first().map(|f| f.name.as_str()).unwrap_or("field"))).named("field_unnamed").at(k.span)),
             }
         }
         // A union is built from one field (owner, 2026-10-19); the others
         // are left as nothing, and the code generator writes the one given.
         if info.union {
             if given.iter().filter(|g| g.is_some()).count() != 1 {
-                return err(Diagnostic::error(format!("`{}` is a `layout.C union`: it holds one field at a time, so give exactly one: `{}[{} = …]`", info.name, info.name, info.fields.first().map(|f| f.name.as_str()).unwrap_or("field"))).at(span));
+                return err(Diagnostic::error(format!("`{}` is a `layout.C union`: it holds one field at a time, so give exactly one: `{}[{} = …]`", info.name, info.name, info.fields.first().map(|f| f.name.as_str()).unwrap_or("field"))).named("union_one_field").at(span));
             }
             let fields = given.into_iter().map(|g| g.unwrap_or(Arg::Value(Expr { kind: K::Nothing, ty: Ty::Nothing, span }))).collect();
             return Ok(Expr { kind: K::Construct { id, fields }, ty: Ty::Struct { id, args: targs }, span });
         }
         let missing: Vec<&str> = info.fields.iter().enumerate().filter(|(i, _)| given[*i].is_none()).map(|(_, f)| f.name.as_str()).collect();
         if !missing.is_empty() {
-            return err(Diagnostic::error(format!("`{}` is missing {}: every field must be given — there are no zero values", info.name, missing.iter().map(|m| format!("`{}`", m)).collect::<Vec<_>>().join(", "))).at(span));
+            return err(Diagnostic::error(format!("`{}` is missing {}: every field must be given — there are no zero values", info.name, missing.iter().map(|m| format!("`{}`", m)).collect::<Vec<_>>().join(", "))).named("field_missing").at(span));
         }
         let fields = given.into_iter().map(|g| g.unwrap()).collect();
         self.kept_bounds(&info.name, &info.blanks, &info.bounds, &targs, span)?;
@@ -2507,7 +2507,7 @@ impl Checker {
 
     fn map_literal(&mut self, ctx: &mut FnCtx, args: &[AArg], span: Span) -> Result<Expr> {
         if args.is_empty() {
-            return err(Diagnostic::error("an empty map is `map.empty`; `map[]` builds nothing").at(span));
+            return err(Diagnostic::error("an empty map is `map.empty`; `map[]` builds nothing").named("empty_map_literal").at(span));
         }
         let kt = self.fresh();
         let vt = self.fresh();
@@ -2515,7 +2515,7 @@ impl Checker {
         let mut seen_keys: Vec<Expr> = Vec::new();
         for a in args {
             let AArg::Pair(k, v) = a else {
-                return err(Diagnostic::error("a map literal pairs each key with a value: `map[\"ann\" = 5551, \"bob\" = 5552]`").at(a.span()));
+                return err(Diagnostic::error("a map literal pairs each key with a value: `map[\"ann\" = 5551, \"bob\" = 5552]`").named("map_entry_form").at(a.span()));
             };
             let kv = self.expr(ctx, k)?;
             let kv = self.expect_store(ctx, kv, &kt, "the key type")?;
@@ -2523,7 +2523,7 @@ impl Checker {
             self.check_stored_value(ctx, &kv, &kt)?;
             for prev in &seen_keys {
                 if same_literal(prev, &kv) {
-                    return err(Diagnostic::error("this key is written twice in the literal").at(k.span));
+                    return err(Diagnostic::error("this key is written twice in the literal").named("duplicate_map_key").at(k.span));
                 }
             }
             seen_keys.push(kv.clone());
@@ -2544,13 +2544,13 @@ impl Checker {
             if let [one] = path.segs.as_slice() {
                 if matches!(one.name.as_str(), "round" | "floor" | "ceil" | "trunc") {
                     if let Some(o) = crate::spellings::old_word(&format!("std::{}", one.name), Some("special")) {
-                        return err(Diagnostic::error(o.dated()).at(path.span));
+                        return err(Diagnostic::error(o.dated()).named("old_spelling").at(path.span));
                     }
                 }
             }
             if let [r, way] = path.segs.as_slice() {
                 if r.name == "round" && !matches!(way.name.as_str(), "near" | "half_up" | "floor" | "ceil" | "trunc") {
-                    return err(Diagnostic::error(format!("`std::round.{}` is not a way to round: `round.near`, `round.half_up`, `round.floor`, `round.ceil` or `round.trunc`", way.name)).at(path.span));
+                    return err(Diagnostic::error(format!("`std::round.{}` is not a way to round: `round.near`, `round.half_up`, `round.floor`, `round.ceil` or `round.trunc`", way.name)).named("unknown_rounding").at(path.span));
                 }
             }
         }
@@ -2565,7 +2565,7 @@ impl Checker {
         }
         if path.kit.is_none() && (std_name(path) || std_builtin(path)) && self.items.lookup_plain(path, ctx.module).is_err() {
             if !(via_std || self.in_std(ctx)) {
-                return err(Diagnostic::error(std_bare_message(path)).at(path.span));
+                return err(Diagnostic::error(std_bare_message(path)).named("std_name_needs_path").at(path.span));
             }
             if std_name(path) {
                 let with = ast::Path { kit: Some(ast::Ident { name: "std".into(), span: path.span }), segs: path.segs.clone(), span: path.span };
@@ -2582,7 +2582,7 @@ impl Checker {
                 Some(ItemRef::ExternFn(id)) => return self.extern_call(ctx, id, args, otherwise, span, used),
                 Some(ItemRef::Struct(id)) => {
                     if otherwise.is_some() {
-                        return err(Diagnostic::error("building a struct value cannot fail; drop the `otherwise`").at(span));
+                        return err(Diagnostic::error("building a struct value cannot fail; drop the `otherwise`").named("otherwise_never_needed").at(span));
                     }
                     return self.construct(ctx, id, args, span);
                 }
@@ -2601,7 +2601,7 @@ impl Checker {
             if let Some(new) = renamed {
                 let rest = segs[1..].join(".");
                 let (old, new) = if rest.is_empty() { (segs[0].to_string(), new.to_string()) } else { (format!("{}.{}", segs[0], rest), format!("{}.{}", new, rest)) };
-                return err(Diagnostic::error(format!("std::{} is spelled std::{} now", old, new)).at(span));
+                return err(Diagnostic::error(format!("std::{} is spelled std::{} now", old, new)).named("old_spelling").at(span));
             }
         }
         // Every print says its form (owner, 2026-10-02): `.stored` or
@@ -2610,16 +2610,16 @@ impl Checker {
             let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
             match segs.as_slice() {
                 ["print"] => {
-                    return err(Diagnostic::error("say which form a print shows: `std::print.stored(…)` (what is stored) or `std::print.useful(…)` (the useful value) (owner, 2026-10-02)").at(span));
+                    return err(Diagnostic::error("say which form a print shows: `std::print.stored(…)` (what is stored) or `std::print.useful(…)` (the useful value) (owner, 2026-10-02)").named("print_form_unsaid").at(span));
                 }
                 ["print", stream @ ("stdout" | "stderr")] => {
-                    return err(Diagnostic::error(format!("say which form a print shows: `std::print.stored.{}(…)` (what is stored) or `std::print.useful.{}(…)` (the useful value) (owner, 2026-10-02)", stream, stream)).at(span));
+                    return err(Diagnostic::error(format!("say which form a print shows: `std::print.stored.{}(…)` (what is stored) or `std::print.useful.{}(…)` (the useful value) (owner, 2026-10-02)", stream, stream)).named("print_form_unsaid").at(span));
                 }
                 ["print", "weird", stream @ ("stdout" | "stderr")] => {
-                    return err(Diagnostic::error(format!("say which form a print shows: `std::print.weird.stored.{} <- …` (what is stored) or `std::print.weird.useful.{} <- …` (the useful value) (owner, 2026-10-02)", stream, stream)).at(span));
+                    return err(Diagnostic::error(format!("say which form a print shows: `std::print.weird.stored.{} <- …` (what is stored) or `std::print.weird.useful.{} <- …` (the useful value) (owner, 2026-10-02)", stream, stream)).named("print_form_unsaid").at(span));
                 }
                 ["print", f @ ("stored" | "useful"), "weird", rest @ ..] => {
-                    return err(Diagnostic::error(format!("`.weird` comes first, the strongest modifier first: `std::print.weird.{}.{} <- …`", f, rest.join("."))).at(span));
+                    return err(Diagnostic::error(format!("`.weird` comes first, the strongest modifier first: `std::print.weird.{}.{} <- …`", f, rest.join("."))).named("print_weird_form").at(span));
                 }
                 _ => {}
             }
@@ -2628,7 +2628,7 @@ impl Checker {
         if path.kit.as_ref().map(|l| l.name == "std").unwrap_or(false) {
             let segs: Vec<&str> = path.segs.iter().map(|s| s.name.as_str()).collect();
             if let [w @ ("div" | "mod"), "trunc"] = segs.as_slice() {
-                return err(Diagnostic::error(format!("`std::{w}.trunc` is an operator in the language now: `$a {w}.trunc $b`")).at(span));
+                return err(Diagnostic::error(format!("`std::{w}.trunc` is an operator in the language now: `$a {w}.trunc $b`")).named("old_spelling").at(span));
             }
         }
         if self.std_stubs && path.kit.as_ref().map(|l| l.name == "std").unwrap_or(false) {
@@ -2652,7 +2652,7 @@ impl Checker {
             }
             if name == "format" || name.starts_with("print.") {
                 let shown = name.replace("auto_newline", "auto_newln");
-                return err(Diagnostic::error(format!("`std::{}` is not built yet: of std, kayo builds `std::print.useful`, `std::print.stored` (each with `.stdout` or `.stderr`), `std::print.useful.auto_newln`, the two `.weird` forms and `std::exit` (owner, 2026-10-09)", shown)).at(path.span));
+                return err(Diagnostic::error(format!("`std::{}` is not built yet: of std, kayo builds `std::print.useful`, `std::print.stored` (each with `.stdout` or `.stderr`), `std::print.useful.auto_newln`, the two `.weird` forms and `std::exit` (owner, 2026-10-09)", shown)).named(if shown.ends_with("format") { "format_text_wrong" } else { "not_built_yet" }).at(path.span));
             }
         }
         // Language operations first.
@@ -2670,7 +2670,7 @@ impl Checker {
             let prefix = ast::Path { kit: None, segs: path.segs[..path.segs.len() - 1].to_vec(), span: path.span };
             if let Ok(ItemRef::Enum(id)) = self.items.lookup_path(&prefix, ctx.module) {
                 if otherwise.is_some() {
-                    return err(Diagnostic::error("building an enum value cannot fail; drop the `otherwise`").at(span));
+                    return err(Diagnostic::error("building an enum value cannot fail; drop the `otherwise`").named("otherwise_never_needed").at(span));
                 }
                 self.enum_named_ok(id, path.last(), span)?;
                 return self.enum_case(ctx, id, path.last(), Some(args), span);
@@ -2680,10 +2680,10 @@ impl Checker {
             Ok(i) => i,
             Err(e) => {
                 if path.segs.len() == 1 && path.kit.is_none() && self.items.ops.contains_key(path.head()) {
-                    return err(Diagnostic::error(format!("`{}` is an operator; it goes between two values: `$a {} $b`, never `{}(…)`", path.head(), path.head(), path.head())).at(span));
+                    return err(Diagnostic::error(format!("`{}` is an operator; it goes between two values: `$a {} $b`, never `{}(…)`", path.head(), path.head(), path.head())).named("operator_called_as_function").at(span));
                 }
                 if path.segs.len() == 1 && path.kit.is_none() && args.iter().any(|a| matches!(a, AArg::Named(..))) && e.sentence.starts_with("there is no") {
-                    return err(Diagnostic::error(format!("there is no struct named `{}` here", path.head())).at(path.span));
+                    return err(Diagnostic::error(format!("there is no struct named `{}` here", path.head())).named("unknown_struct").at(path.span));
                 }
                 return Err(e);
             }
@@ -2691,18 +2691,18 @@ impl Checker {
         match item {
             ItemRef::Struct(id) => {
                 if otherwise.is_some() {
-                    return err(Diagnostic::error("building a struct value cannot fail; drop the `otherwise`").at(span));
+                    return err(Diagnostic::error("building a struct value cannot fail; drop the `otherwise`").named("otherwise_never_needed").at(span));
                 }
                 self.construct(ctx, id, args, span)
             }
             // Nothing calls a `test fn` (owner, 2026-09-29).
             ItemRef::Fn(id) if self.items.fns[id.0 as usize].test => {
-                err(Diagnostic::error(format!("`{}` is a `test fn`: `kayo test` runs it, and nothing else calls it", path.spelled())).at(span))
+                err(Diagnostic::error(format!("`{}` is a `test fn`: `kayo test` runs it, and nothing else calls it", path.spelled())).named("test_fn_misused").at(span))
             }
             ItemRef::Fn(id) => self.fn_call(ctx, id, args, otherwise, span, used, path),
             ItemRef::ExternFn(id) => self.extern_call(ctx, id, args, otherwise, span, used),
-            ItemRef::Enum(_) => err(Diagnostic::error(format!("`{}` is an enum: a value is one of its cases — `{}.case` or `{}.case[data]`", path.spelled(), path.spelled(), path.spelled())).at(span)),
-            other => err(Diagnostic::error(format!("`{}` is a {}, not a function", path.spelled(), other.what())).at(span)),
+            ItemRef::Enum(_) => err(Diagnostic::error(format!("`{}` is an enum: a value is one of its cases — `{}.case` or `{}.case[data]`", path.spelled(), path.spelled(), path.spelled())).named("not_a_function").at(span)),
+            other => err(Diagnostic::error(format!("`{}` is a {}, not a function", path.spelled(), other.what())).named(if path.kit.as_ref().is_some_and(|l| l.name == "std") && matches!(path.segs.last().map(|s| s.name.as_str()), Some("upper" | "lower" | "title" | "fold")) { "case_mapping_unsaid" } else { "not_a_function" }).at(span)),
         }
     }
 
@@ -2759,7 +2759,7 @@ impl Checker {
         let mut given: Vec<(ast::Ident, ast::Expr)> = Vec::new();
         for a in args {
             let AArg::Positional(e) = a else {
-                return err(Diagnostic::error(format!("`{}` takes its arguments in place or with their labels, not `name = value`", name)).at(a.span()));
+                return err(Diagnostic::error(format!("`{}` takes its arguments in place or with their labels, not `name = value`", name)).named("label_needs_colon").at(a.span()));
             };
             // `value:`, `count:` and `pos:` are read as the fill's words
             // until the call is known to be this function's.
@@ -2780,16 +2780,16 @@ impl Checker {
                 Some((w, inner)) => {
                     if !words.contains(&w.name) {
                         let has = if words.is_empty() { "none".to_string() } else { words.iter().map(|w| format!("`{}:`", w)).collect::<Vec<_>>().join(", ") };
-                        return err(Diagnostic::error(format!("`{}` has no label `{}:`; its labels are {}", name, w.name, has)).at(w.span));
+                        return err(Diagnostic::error(format!("`{}` has no label `{}:`; its labels are {}", name, w.name, has)).named("argument_label_unknown").at(w.span));
                     }
                     if let Some((prev, _)) = given.iter().find(|(p, _)| p.name == w.name) {
-                        return err(Diagnostic::error(format!("`{}:` is given twice", w.name)).at(w.span).why_at(prev.span, "the first is here"));
+                        return err(Diagnostic::error(format!("`{}:` is given twice", w.name)).named("given_twice").at(w.span).why_at(prev.span, "the first is here"));
                     }
                     given.push((w, inner));
                 }
                 None => {
                     if let Some((prev, _)) = given.last() {
-                        return err(Diagnostic::error(format!("an argument without a label comes before the labelled ones: this one comes after `{}:` (owner, 2026-10-21)", prev.name)).at(e.span));
+                        return err(Diagnostic::error(format!("an argument without a label comes before the labelled ones: this one comes after `{}:` (owner, 2026-10-21)", prev.name)).named("unlabelled_after_labelled").at(e.span));
                     }
                     plain.push(e.clone());
                 }
@@ -2799,7 +2799,7 @@ impl Checker {
             let at = |w: &str| l.entries.iter().position(|(_, x)| x.name == w).unwrap_or(0);
             for pair in given.windows(2) {
                 if at(&pair[1].0.name) < at(&pair[0].0.name) {
-                    return err(Diagnostic::error(format!("`{}`'s labels keep their order: `{}:` comes before `{}:` (owner, 2026-10-21)", name, pair[1].0.name, pair[0].0.name)).at(pair[1].0.span));
+                    return err(Diagnostic::error(format!("`{}`'s labels keep their order: `{}:` comes before `{}:` (owner, 2026-10-21)", name, pair[1].0.name, pair[0].0.name)).named("labels_out_of_order").at(pair[1].0.span));
                 }
             }
         }
@@ -2822,7 +2822,7 @@ impl Checker {
                     Some((_, e)) => Some(e.clone()),
                     None => match default(&p.name) {
                         Some(d) => Some(d),
-                        None => return err(Diagnostic::error(format!("`{}` needs `{}:`, its '{}': a labelled argument is written with its label (owner, 2026-10-21)", name, w, p.name)).at(span)),
+                        None => return err(Diagnostic::error(format!("`{}` needs `{}:`, its '{}': a labelled argument is written with its label (owner, 2026-10-21)", name, w, p.name)).named("argument_label_missing").at(span)),
                     },
                 },
                 None => rest.next().cloned().or_else(|| default(&p.name)),
@@ -2833,7 +2833,7 @@ impl Checker {
         }
         out.extend(rest.cloned().map(AArg::Positional));
         if let Some((g, _)) = given.iter().find(|(g, _)| !decl.params.iter().any(|p| word(&p.name).as_deref() == Some(g.name.as_str()))) {
-            return err(Diagnostic::error(format!("this version of `{}` takes no `{}:`", name, g.name)).at(g.span));
+            return err(Diagnostic::error(format!("this version of `{}` takes no `{}:`", name, g.name)).named("argument_label_unknown").at(g.span));
         }
         Ok(out)
     }
@@ -2866,7 +2866,7 @@ impl Checker {
                     let d = &self.items.fns[f.0 as usize];
                     format!("[{}]", d.params.iter().map(|p| p.ty.as_ref().map(|t| self.spell(t)).unwrap_or_default()).collect::<Vec<_>>().join(", "))
                 }).collect::<Vec<_>>().join(", ");
-                err(Diagnostic::error(format!("no version of `{}` takes this call: its versions take {}", name, shapes)).at(span))
+                err(Diagnostic::error(format!("no version of `{}` takes this call: its versions take {}", name, shapes)).named("no_version_fits").at(span))
             }
             several => {
                 // The bare literal the versions that take the call take
@@ -2884,7 +2884,7 @@ impl Checker {
                     Some(h) => format!("a bare literal fits more than one; say which, {}", h),
                     None => "say the arguments' types".to_string(),
                 };
-                err(Diagnostic::error(format!("versions of `{}` could take this call: {} (owner, 2026-10-20)", name, why)).at(span))
+                err(Diagnostic::error(format!("versions of `{}` could take this call: {} (owner, 2026-10-20)", name, why)).named("call_ambiguous").at(span))
             }
         }
     }
@@ -2936,7 +2936,7 @@ impl Checker {
     pub(crate) fn fn_call_one(&mut self, ctx: &mut FnCtx, id: FnId, args: &[AArg], otherwise: Option<&ast::Otherwise>, span: Span, used: bool, path: &ast::Path) -> Result<Expr> {
         let decl = self.items.fns[id.0 as usize].clone();
         if decl.op.is_some() {
-            return err(Diagnostic::error(format!("`{}` is an operator; it goes between two values: `$a {} $b`, never `{}(…)`", decl.name, decl.name, decl.name)).at(span));
+            return err(Diagnostic::error(format!("`{}` is an operator; it goes between two values: `$a {} $b`, never `{}(…)`", decl.name, decl.name, decl.name)).named("operator_called_as_function").at(span));
         }
         // Blanks: fresh inference variables, filled by the arguments.
         let named: Vec<Ty> = decl.blanks.iter().map(|_| self.fresh()).collect();
@@ -2975,9 +2975,9 @@ impl Checker {
             for (k, a) in args.iter().enumerate() {
                 out.push(match a {
                     ast::Arg::Positional(e) if k >= 1 => match &e.kind {
-                        AK::Pos(inner) if written_below_one(inner) => return err(Diagnostic::error(NO_POSITION).at(inner.span)),
+                        AK::Pos(inner) if written_below_one(inner) => return err(Diagnostic::error(NO_POSITION).named("index_out_of_range").at(inner.span)),
                         AK::Pos(inner) => ast::Arg::Positional((**inner).clone()),
-                        _ => return err(Diagnostic::error(format!("a position says `pos`: `std::{}(lend $s, pos: 3)`", short)).at(e.span)),
+                        _ => return err(Diagnostic::error(format!("a position says `pos`: `std::{}(lend $s, pos: 3)`", short)).named("position_unlabelled").at(e.span)),
                     },
                     other => other.clone(),
                 });
@@ -2990,10 +2990,10 @@ impl Checker {
         // Unpack the arguments: spreads count as their length.
         let flat = self.flatten_args(ctx, args, span)?;
         if !has_variadic && flat.len() != fixed {
-            return err(Diagnostic::error(format!("`{}` takes {} argument{}, and {} {} given", decl.name, fixed, if fixed == 1 { "" } else { "s" }, flat.len(), if flat.len() == 1 { "was" } else { "were" })).at(span).why_at(decl.name_span, format!("`{}` is declared here", decl.name)));
+            return err(Diagnostic::error(format!("`{}` takes {} argument{}, and {} {} given", decl.name, fixed, if fixed == 1 { "" } else { "s" }, flat.len(), if flat.len() == 1 { "was" } else { "were" })).named("wrong_argument_count").at(span).why_at(decl.name_span, format!("`{}` is declared here", decl.name)));
         }
         if has_variadic && flat.len() < fixed {
-            return err(Diagnostic::error(format!("`{}` takes at least {} argument{}, and {} {} given", decl.name, fixed, if fixed == 1 { "" } else { "s" }, flat.len(), if flat.len() == 1 { "was" } else { "were" })).at(span));
+            return err(Diagnostic::error(format!("`{}` takes at least {} argument{}, and {} {} given", decl.name, fixed, if fixed == 1 { "" } else { "s" }, flat.len(), if flat.len() == 1 { "was" } else { "were" })).named("wrong_argument_count").at(span));
         }
         let mut hargs = Vec::new();
         let mut bundle_tys = Vec::new();
@@ -3020,7 +3020,7 @@ impl Checker {
                 Ok(a) => a,
                 Err(e) if filled_before => {
                     let blank = match &decl.params[i].ty { Some(Ty::Var(b)) => decl.blanks[*b as usize].0.clone(), _ => "T".into() };
-                    return err(Diagnostic::error(format!("one blank, one type: `<{}>` is filled by an earlier argument as `{}`, and '{}' would make it something else", blank, self.spell(&pty), pname)).at(e.span.unwrap_or(span)));
+                    return err(Diagnostic::error(format!("one blank, one type: `<{}>` is filled by an earlier argument as `{}`, and '{}' would make it something else", blank, self.spell(&pty), pname)).named("generic_filled_inconsistently").at(e.span.unwrap_or(span)));
                 }
                 Err(e) => return Err(e),
             };
@@ -3058,13 +3058,13 @@ impl Checker {
         for (i, t) in named.iter().enumerate() {
             let r = self.resolve(t);
             if matches!(r, Ty::Infer(_)) {
-                return err(Diagnostic::error(format!("the blank `<{}>` of `{}` is not filled by this call: no argument says what it is", decl.blanks[i].0, decl.name)).at(span));
+                return err(Diagnostic::error(format!("the blank `<{}>` of `{}` is not filled by this call: no argument says what it is", decl.blanks[i].0, decl.name)).named("generic_unfilled").at(span));
             }
             // interface bound
             for iface in decl.blanks[i].1.clone() {
                 if let Err(reason) = self.satisfies(&r, iface) {
                     let iname = self.items.ifaces[iface.0 as usize].name.clone();
-                    return err(Diagnostic::error(format!("`{}` is not `{}`: {} — `{}` asks for `<{}>: {}`", self.spell(&r), iname, reason, decl.name, decl.blanks[i].0, iname)).at(span));
+                    return err(Diagnostic::error(format!("`{}` is not `{}`: {} — `{}` asks for `<{}>: {}`", self.spell(&r), iname, reason, decl.name, decl.blanks[i].0, iname)).named("bound_not_satisfied").at(span));
                 }
             }
             blank_tys.push(r);
@@ -3087,7 +3087,7 @@ impl Checker {
         // says so (owner, 2026-09-29) — anywhere else it would be a second
         // owner of what it borrows.
         if self.items.fns[id.0 as usize].ret_lent.is_some() && ctx.lend_call_ok != Some(span) {
-            return err(Diagnostic::error(format!("`{}` hands back a borrow, which is held by a name (`let $l := {}(…);`) or handed straight to a parameter: here it would be a second owner of what it borrows", self.items.fns[id.0 as usize].name, self.items.fns[id.0 as usize].name)).at(span));
+            return err(Diagnostic::error(format!("`{}` hands back a borrow, which is held by a name (`let $l := {}(…);`) or handed straight to a parameter: here it would be a second owner of what it borrows", self.items.fns[id.0 as usize].name, self.items.fns[id.0 as usize].name)).named("returned_borrow_misused").at(span));
         }
         self.lends_apart(ctx, &hargs, span)?;
         Ok(Expr { kind: K::Call { callee: Callee::Fn(inst), args: hargs, otherwise: ow, fails: sig.fails.clone() }, ty: sig.ret, span })
@@ -3097,7 +3097,7 @@ impl Checker {
         match otherwise {
             Some(o) => {
                 if fails.is_empty() {
-                    return err(Diagnostic::error(format!("`{}` cannot fail; drop the `otherwise`", name)).at(span));
+                    return err(Diagnostic::error(format!("`{}` cannot fail; drop the `otherwise`", name)).named("otherwise_never_needed").at(span));
                 }
                 Ok(Some(Box::new(self.otherwise(ctx, o, fails, ret, used, span)?)))
             }
@@ -3105,7 +3105,7 @@ impl Checker {
                 // `must.fail` catches the reasons itself (owner, 2026-09-29).
                 if !fails.is_empty() && !ctx.must_fail {
                     let list = fails.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>().join(", ");
-                    return err(Diagnostic::error(format!("`{}` can fail ({}): say what happens — `otherwise` a value, `otherwise return …`, `otherwise fail`, or `otherwise {{ {} {{ … }} }}` arms", name, list, fails[0].0)).at(span));
+                    return err(Diagnostic::error(format!("`{}` can fail ({}): say what happens — `otherwise` a value, `otherwise return …`, `otherwise fail`, or `otherwise {{ {} {{ … }} }}` arms", name, list, fails[0].0)).named("failure_unhandled").at(span));
                 }
                 Ok(None)
             }
@@ -3148,14 +3148,14 @@ impl Checker {
                     return Ok(hir::Otherwise::PassUp);
                 }
                 if ctx.is_main {
-                    return err(Diagnostic::error("`MAIN` cannot fail, so it cannot pass a failure up: handle it here, or exit").at(*sp));
+                    return err(Diagnostic::error("`MAIN` cannot fail, so it cannot pass a failure up: handle it here, or exit").named("main_cannot_fail").at(*sp));
                 }
                 for (n, _) in fails {
                     if !ctx.fails.iter().any(|(x, _)| x == n) {
                         if ctx.fails.is_empty() {
-                            return err(Diagnostic::error(format!("`{}` cannot fail, so it cannot pass `{}` up: add `-> … or fail[{}]` to its signature, or handle it here", ctx.name, n, n)).at(*sp));
+                            return err(Diagnostic::error(format!("`{}` cannot fail, so it cannot pass `{}` up: add `-> … or fail[{}]` to its signature, or handle it here", ctx.name, n, n)).named("failure_not_listed").at(*sp));
                         }
-                        return err(Diagnostic::error(format!("`{}` does not list `{}` among its failures, so `otherwise fail` cannot pass it up: its signature says fail[{}] — add `{}` there, or handle it here", ctx.name, n, ctx.fails.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>().join(", "), n)).at(*sp));
+                        return err(Diagnostic::error(format!("`{}` does not list `{}` among its failures, so `otherwise fail` cannot pass it up: its signature says fail[{}] — add `{}` there, or handle it here", ctx.name, n, ctx.fails.iter().map(|(x, _)| x.clone()).collect::<Vec<_>>().join(", "), n)).named("failure_not_listed").at(*sp));
                     }
                 }
                 Ok(hir::Otherwise::PassUp)
@@ -3168,40 +3168,40 @@ impl Checker {
                     if let Some(fi) = fails.iter().position(|(n, _)| *n == arm.name.name) {
                         covered[fi] = true;
                     } else {
-                        return err(Diagnostic::error(format!("this call never fails with `{}`: it fails with {}", arm.name.name, fails.iter().map(|(n, _)| format!("`{}`", n)).collect::<Vec<_>>().join(", "))).at(arm.name.span));
+                        return err(Diagnostic::error(format!("this call never fails with `{}`: it fails with {}", arm.name.name, fails.iter().map(|(n, _)| format!("`{}`", n)).collect::<Vec<_>>().join(", "))).named("failure_never_happens").at(arm.name.span));
                     }
                 }
                 let missing: Vec<&str> = fails.iter().enumerate().filter(|(i, _)| !covered[*i]).map(|(_, (n, _))| n.as_str()).collect();
                 if !missing.is_empty() {
-                    return err(Diagnostic::error(format!("this call can also fail with {}: every reason needs an arm", missing.iter().map(|m| format!("`{}`", m)).collect::<Vec<_>>().join(", "))).at(*arms_span));
+                    return err(Diagnostic::error(format!("this call can also fail with {}: every reason needs an arm", missing.iter().map(|m| format!("`{}`", m)).collect::<Vec<_>>().join(", "))).named("failure_case_unhandled").at(*arms_span));
                 }
                 let mut covered = vec![false; fails.len()];
                 for arm in arms {
                     let Some(fi) = fails.iter().position(|(n, _)| *n == arm.name.name) else {
-                        return err(Diagnostic::error(format!("this call never fails with `{}`: it fails with {}", arm.name.name, fails.iter().map(|(n, _)| format!("`{}`", n)).collect::<Vec<_>>().join(", "))).at(arm.name.span));
+                        return err(Diagnostic::error(format!("this call never fails with `{}`: it fails with {}", arm.name.name, fails.iter().map(|(n, _)| format!("`{}`", n)).collect::<Vec<_>>().join(", "))).named("failure_never_happens").at(arm.name.span));
                     };
                     if covered[fi] {
-                        return err(Diagnostic::error(format!("`{}` is handled twice", arm.name.name)).at(arm.name.span));
+                        return err(Diagnostic::error(format!("`{}` is handled twice", arm.name.name)).named("failure_handled_twice").at(arm.name.span));
                     }
                     covered[fi] = true;
                     ctx.push_scope();
                     let bind = match (&arm.bind, &fails[fi].1) {
                         (None, None) => None,
                         (Some(b), Some(t)) => Some(ctx.declare(&b.name, Local { name: b.name.clone(), ty: t.clone(), mutability: None, kind: LocalKind::Owned, from_blank: false, span: b.span })),
-                        (Some(b), None) => return err(Diagnostic::error(format!("`{}` carries nothing, so there is no value to name '{}'", arm.name.name, b.name)).at(b.span)),
-                        (None, Some(t)) => return err(Diagnostic::error(format!("`{}` carries {}: name it — `{} $value {{ … }}`", arm.name.name, crate::types::a_type(&self.spell(t)), arm.name.name)).at(arm.name.span)),
+                        (Some(b), None) => return err(Diagnostic::error(format!("`{}` carries nothing, so there is no value to name '{}'", arm.name.name, b.name)).named("carries_nothing").at(b.span)),
+                        (None, Some(t)) => return err(Diagnostic::error(format!("`{}` carries {}: name it — `{} $value {{ … }}`", arm.name.name, crate::types::a_type(&self.spell(t)), arm.name.name)).named("data_missing").at(arm.name.span)),
                     };
                     // An arm gives the call's value, as a `match` case does
                     // (owner, 2026-09-29), or leaves.
                     let (body, given) = self.arm_block(ctx, &arm.body)?;
                     ctx.pop_scope();
                     let given = match given {
-                        Some(_) if !used => return err(Diagnostic::error(format!("the `{}` arm gives a value, but the call's value is not used", arm.name.name)).at(arm.body.span)),
+                        Some(_) if !used => return err(Diagnostic::error(format!("the `{}` arm gives a value, but the call's value is not used", arm.name.name)).named("handler_value_unused").at(arm.body.span)),
                         Some(g) => Some(self.expect_store(ctx, g, ret, "the call's value")?),
                         None => None,
                     };
                     if used && given.is_none() && !super::stmt::leaves_block(&body) {
-                        return err(Diagnostic::error(format!("the `{}` arm must give the call's value (`{{ 0 }}`) or leave (`return`, `fail`, `break`, `continue` or `std::exit`)", arm.name.name)).at(arm.body.span));
+                        return err(Diagnostic::error(format!("the `{}` arm must give the call's value (`{{ 0 }}`) or leave (`return`, `fail`, `break`, `continue` or `std::exit`)", arm.name.name)).named("handler_falls_through").at(arm.body.span));
                     }
                     out.push(hir::FailArm { index: fi, bind, body, gives: given });
                 }
@@ -3223,8 +3223,8 @@ impl Checker {
                     }
                     _ => out.push(FlatArg::One(e.clone())),
                 },
-                AArg::Named(n, _) => return err(Diagnostic::error(format!("`{} = …` names a field, but this is a call: arguments are values in order", n.name)).at(n.span)),
-                AArg::Pair(k, _) => return err(Diagnostic::error("`key = value` pairs belong in a `map[…]` literal, not a call").at(k.span)),
+                AArg::Named(n, _) => return err(Diagnostic::error(format!("`{} = …` names a field, but this is a call: arguments are values in order", n.name)).named("field_name_in_call").at(n.span)),
+                AArg::Pair(k, _) => return err(Diagnostic::error("`key = value` pairs belong in a `map[…]` literal, not a call").named("field_name_in_call").at(k.span)),
             }
         }
         let _ = span;
@@ -3243,16 +3243,16 @@ impl Checker {
                 let local = &ctx.locals[place.base.0 as usize];
                 match self.known_length(ctx, &place) {
                     Some(n) => n,
-                    None => return err(Diagnostic::error(format!("the length of {} is not known here, so `...` cannot unpack it: a call's shape is fixed per call — give the list a bound (`list[T][0, 10]`) or pass it as a list", self.place_name(ctx, &place))).at(span).why_at(local.span, "declared here with no bound")),
+                    None => return err(Diagnostic::error(format!("the length of {} is not known here, so `...` cannot unpack it: a call's shape is fixed per call — give the list a bound (`list[T][0, 10]`) or pass it as a list", self.place_name(ctx, &place))).named("spread_length_unknown").at(span).why_at(local.span, "declared here with no bound")),
                 }
             }
-            other => return err(Diagnostic::error(format!("`...` unpacks a list, and this is {}", crate::types::a_type(&self.spell(other)))).at(span)),
+            other => return err(Diagnostic::error(format!("`...` unpacks a list, and this is {}", crate::types::a_type(&self.spell(other)))).named("wrong_type").at(span)),
         };
         let elem = self.elem_type_of(&t, span, "unpacking")?;
         let elem = self.resolve(&elem);
         let elem_owned = elem.is_owned() && !matches!(elem, Ty::Bundle(_));
         let verb = match verb {
-            Some(v) if !elem_owned => return err(Diagnostic::error(format!("`...{} {}`: its elements are plain `{}` values, which copy by themselves — write `...{}`", v.spelled(), self.place_name(ctx, &place), self.spell(&elem), self.place_name(ctx, &place))).at(span)),
+            Some(v) if !elem_owned => return err(Diagnostic::error(format!("`...{} {}`: its elements are plain `{}` values, which copy by themselves — write `...{}`", v.spelled(), self.place_name(ctx, &place), self.spell(&elem), self.place_name(ctx, &place))).named("spread_verb_wrong").at(span)),
             v => v,
         };
         Ok((count, verb))
@@ -3274,11 +3274,11 @@ impl Checker {
                 let elem = self.elem_type_of(&t, span, "unpacking")?;
                 let elem = self.resolve(&elem);
                 if !variadic {
-                    return err(Diagnostic::error(format!("`...` unpacks into a variadic parameter, and `{}` has none: the values would land on a fixed parameter", fname)).at(span));
+                    return err(Diagnostic::error(format!("`...` unpacks into a variadic parameter, and `{}` has none: the values would land on a fixed parameter", fname)).named("spread_not_variadic").at(span));
                 }
                 // Each element must fit the variadic's element type.
                 if !self.unify(&elem, pty) && !matches!(elem, Ty::Bundle(_)) {
-                    return err(Diagnostic::error(format!("`{}` takes `{}` values, and the elements of {} are `{}`", fname, self.spell(pty), self.place_name(ctx, &place), self.spell(&elem))).at(span));
+                    return err(Diagnostic::error(format!("`{}` takes `{}` values, and the elements of {} are `{}`", fname, self.spell(pty), self.place_name(ctx, &place), self.spell(&elem))).named("wrong_type").at(span));
                 }
                 // A `:=` list of bare numbers unpacked into a typed variadic
                 // takes its width, as a lend does: its elements are copied
@@ -3296,8 +3296,8 @@ impl Checker {
                             match verb {
                                 Some(Verb::Copy) => Arg::Copy(place),
                                 Some(Verb::Give) => Arg::Give(place),
-                                Some(v) => return err(Diagnostic::error(format!("`...{}` cannot hand elements to an owning parameter: say `...copy` (each duplicated) or `...give` (each moved out, the list left empty)", v.spelled())).at(span)),
-                                None => return err(Diagnostic::error(format!("the elements of {} are owned `{}` values and `{}` takes ownership of each: say `...copy {}` or `...give {}`", self.place_name(ctx, &place), self.spell(&elem), fname, self.place_name(ctx, &place), self.place_name(ctx, &place))).at(span)),
+                                Some(v) => return err(Diagnostic::error(format!("`...{}` cannot hand elements to an owning parameter: say `...copy` (each duplicated) or `...give` (each moved out, the list left empty)", v.spelled())).named("spread_verb_wrong").at(span)),
+                                None => return err(Diagnostic::error(format!("the elements of {} are owned `{}` values and `{}` takes ownership of each: say `...copy {}` or `...give {}`", self.place_name(ctx, &place), self.spell(&elem), fname, self.place_name(ctx, &place), self.place_name(ctx, &place))).named("owned_value_bare").at(span)),
                             }
                         } else {
                             Arg::Lend { place, mutable: false }
@@ -3305,7 +3305,7 @@ impl Checker {
                     }
                     ParamKind::Lent | ParamKind::LentMut => {
                         if let Some(v) = verb {
-                            return err(Diagnostic::error(format!("`{}` takes `lent ...{}`: `...` with no verb lends each element — drop the `{}`", fname, pname, v.spelled())).at(span));
+                            return err(Diagnostic::error(format!("`{}` takes `lent ...{}`: `...` with no verb lends each element — drop the `{}`", fname, pname, v.spelled())).named("spread_verb_wrong").at(span));
                         }
                         Arg::Lend { place, mutable: kind == ParamKind::LentMut }
                     }
@@ -3337,13 +3337,13 @@ impl Checker {
                 // The verb must agree with the parameter.
                 match (kind, verb) {
                     // As the oracle says it.
-                    (ParamKind::Lent, Verb::Give | Verb::Copy) => return err(Diagnostic::error(format!("`{}` only looks at '{}': it is `lent`, so the caller writes `lend`, not `{}`", fname, pname, verb.spelled())).at(e.span)),
-                    (ParamKind::Lent, Verb::LendMut) => return err(Diagnostic::error(format!("`{}` only looks at '{}' (it is `lent`): `lend.mut` offers more than it takes — write `lend`", fname, pname)).at(e.span)),
-                    (ParamKind::LentMut, Verb::Lend) => return err(Diagnostic::error(format!("`{}` may modify '{}' (it is `lent.mut`): write `lend.mut`", fname, pname)).at(e.span)),
-                    (ParamKind::LentMut, Verb::Give | Verb::Copy) => return err(Diagnostic::error(format!("`{}` may modify '{}' (it is `lent.mut`): write `lend.mut`, not `{}`", fname, pname, verb.spelled())).at(e.span)),
+                    (ParamKind::Lent, Verb::Give | Verb::Copy) => return err(Diagnostic::error(format!("`{}` only looks at '{}': it is `lent`, so the caller writes `lend`, not `{}`", fname, pname, verb.spelled())).named("verb_wrong_for_parameter").at(e.span)),
+                    (ParamKind::Lent, Verb::LendMut) => return err(Diagnostic::error(format!("`{}` only looks at '{}' (it is `lent`): `lend.mut` offers more than it takes — write `lend`", fname, pname)).named("verb_wrong_for_parameter").at(e.span)),
+                    (ParamKind::LentMut, Verb::Lend) => return err(Diagnostic::error(format!("`{}` may modify '{}' (it is `lent.mut`): write `lend.mut`", fname, pname)).named("lend_mut_needed").at(e.span)),
+                    (ParamKind::LentMut, Verb::Give | Verb::Copy) => return err(Diagnostic::error(format!("`{}` may modify '{}' (it is `lent.mut`): write `lend.mut`, not `{}`", fname, pname, verb.spelled())).named("lend_mut_needed").at(e.span)),
                     (ParamKind::Owned, Verb::Lend | Verb::LendMut) => {
                         let whom = if pname.starts_with("the ") { pname.to_string() } else { format!("'{}'", pname) };
-                        return err(Diagnostic::error(format!("`{}` takes ownership of {}, and you lent it: write `give` (it moves) or `copy` (a second one)", fname, whom)).at(e.span));
+                        return err(Diagnostic::error(format!("`{}` takes ownership of {}, and you lent it: write `give` (it moves) or `copy` (a second one)", fname, whom)).named(if fname == "channel.send" { "mcps::send_needs_give" } else { "verb_wrong_for_parameter" }).at(e.span));
                     }
                     _ => {}
                 }
@@ -3353,7 +3353,7 @@ impl Checker {
                 let fb = ctx.locals[place.base.0 as usize].from_blank && place.proj.is_empty();
                 self.check_verb_on_type(&pt, *verb, fb, e.span, &name)?;
                 if !self.unify(&pt, pty) {
-                    return err(Diagnostic::error(format!("{} is {}, and {} is {}", what, crate::types::a_type(&self.spell(pty)), name, crate::types::a_type(&self.spell(&pt)))).at(e.span));
+                    return err(Diagnostic::error(format!("{} is {}, and {} is {}", what, crate::types::a_type(&self.spell(pty)), name, crate::types::a_type(&self.spell(&pt)))).named(if matches!((self.resolve(pty).base(), pt.base()), (Ty::Seq { kind: SeqKind::List, .. }, Ty::Seq { kind: SeqKind::Array, .. }) | (Ty::Seq { kind: SeqKind::Array, .. }, Ty::Seq { kind: SeqKind::List, .. })) { "list_array_mismatch" } else { "wrong_type" }).at(e.span));
                 }
                 // A name whose numbers' width was never written (`:=` of a
                 // list of bare numbers) takes it from here: Precog picks the
@@ -3377,7 +3377,7 @@ impl Checker {
                     let have = if place.proj.is_empty() { have } else { pt.clone() };
                     let want = self.resolve(pty);
                     if !sizes_match(&have, &want) {
-                        return err(Diagnostic::error(format!("{} is {}, and {} is {}: a lend hands over the value where it is, so the sizes must match", what, crate::types::a_type(&self.spell(&want)), name, crate::types::a_type(&self.spell(&have)))).at(e.span));
+                        return err(Diagnostic::error(format!("{} is {}, and {} is {}: a lend hands over the value where it is, so the sizes must match", what, crate::types::a_type(&self.spell(&want)), name, crate::types::a_type(&self.spell(&have)))).named("lend_size_mismatch").at(e.span));
                     }
                 }
                 Ok(match verb {
@@ -3405,9 +3405,9 @@ impl Checker {
                 if let (Some(mutable), K::Call { callee: Callee::Fn(inst), .. }) = (self.call_lends(&v), &v.kind) {
                     let callee = self.items.fns[self.instances[inst.0 as usize].key.fn_id.0 as usize].name.clone();
                     match (kind, mutable) {
-                        (ParamKind::Owned, _) => return err(Diagnostic::error(format!("`{}` takes ownership of '{}', and `{}` hands back a borrow: hold it by a name and `copy` it, or pass what it borrows", fname, pname, callee)).at(e.span)),
-                        (ParamKind::Lent, true) => return err(Diagnostic::error(format!("`{}` only looks at '{}' (it is `lent`): `{}` hands back a `lent.mut` borrow, which offers more than it takes", fname, pname, callee)).at(e.span)),
-                        (ParamKind::LentMut, false) => return err(Diagnostic::error(format!("`{}` may modify '{}' (it is `lent.mut`): `{}` hands back a `lent` borrow, which only looks", fname, pname, callee)).at(e.span)),
+                        (ParamKind::Owned, _) => return err(Diagnostic::error(format!("`{}` takes ownership of '{}', and `{}` hands back a borrow: hold it by a name and `copy` it, or pass what it borrows", fname, pname, callee)).named("verb_wrong_for_parameter").at(e.span)),
+                        (ParamKind::Lent, true) => return err(Diagnostic::error(format!("`{}` only looks at '{}' (it is `lent`): `{}` hands back a `lent.mut` borrow, which offers more than it takes", fname, pname, callee)).named("verb_wrong_for_parameter").at(e.span)),
+                        (ParamKind::LentMut, false) => return err(Diagnostic::error(format!("`{}` may modify '{}' (it is `lent.mut`): `{}` hands back a `lent` borrow, which only looks", fname, pname, callee)).named("lend_mut_needed").at(e.span)),
                         _ => {}
                     }
                 }
@@ -3416,11 +3416,11 @@ impl Checker {
                     if vt.is_owned() && !(ctx.locals[place.base.0 as usize].from_blank && place.proj.is_empty()) {
                         let name = self.place_name(ctx, place);
                         return match kind {
-                            ParamKind::Owned => err(Diagnostic::error(format!("{} takes ownership: say what happens to {} — `give {}` (it moves) or `copy {}` (a second one)", what, name, name, name)).at(e.span)),
+                            ParamKind::Owned => err(Diagnostic::error(format!("{} takes ownership: say what happens to {} — `give {}` (it moves) or `copy {}` (a second one)", what, name, name, name)).named("owned_value_bare").at(e.span)),
                             // As the oracle says it (c322239b): the function,
                             // what it does with the value, and the verb.
-                            ParamKind::Lent => err(Diagnostic::error(format!("`{}` only looks at {} — pass `lend {}`", fname, name, name)).at(e.span)),
-                            ParamKind::LentMut => err(Diagnostic::error(format!("`{}` may modify {} — pass `lend.mut {}`", fname, name, name)).at(e.span)),
+                            ParamKind::Lent => err(Diagnostic::error(format!("`{}` only looks at {} — pass `lend {}`", fname, name, name)).named("owned_value_bare").at(e.span)),
+                            ParamKind::LentMut => err(Diagnostic::error(format!("`{}` may modify {} — pass `lend.mut {}`", fname, name, name)).named("lend_mut_needed").at(e.span)),
                         };
                     }
                 }
@@ -3431,7 +3431,7 @@ impl Checker {
                     if self.resolve(pty).contains_var() {
                         let vt = self.resolve(&v.ty);
                         let op = self.widths_pending.iter().find(|(t, _, _)| self.resolve(t) == vt).map(|(_, _, w)| w.clone()).unwrap_or_else(|| "this".into());
-                        return err(Diagnostic::error(format!("`{}` needs to know which width it works in, and a generic parameter gives none: give an operand a type (`to.u8(0) minus.wrap 1`)", op)).at(e.span));
+                        return err(Diagnostic::error(format!("`{}` needs to know which width it works in, and a generic parameter gives none: give an operand a type (`to.u8(0) minus.wrap 1`)", op)).named("width_unknown").at(e.span));
                     }
                 }
                 let v = self.expect_store(ctx, v, pty, &what)?;
@@ -3454,14 +3454,14 @@ impl Checker {
         let ft = match ct.base() {
             Ty::Fn(f) => (**f).clone(),
             // `pos` on every index (owner, 2026-10-07).
-            Ty::Seq { .. } if args.len() == 1 => return err(Diagnostic::error(format!("a read says it is a position: `{}[pos: 2]`", self.expr_name(ctx, &c))).at(span)),
-            Ty::Seq { .. } if otherwise.is_some() => return err(Diagnostic::error(format!("reading {}[…] cannot fail — a position past the end is a check site — so it takes no `otherwise`", self.expr_name(ctx, &c))).at(span)),
-            Ty::Seq { .. } => return err(Diagnostic::error(format!("{} is a list, and a list is read one position at a time: `{}[pos: 2]`", self.expr_name(ctx, &c), self.expr_name(ctx, &c))).at(span)),
-            other => return err(Diagnostic::error(format!("{} is {}, not a function: `$f(…)` calls a held function, and `$xs[pos: 2]` reads a list", self.expr_name(ctx, &c), crate::types::a_type(&self.spell(other)))).at(span)),
+            Ty::Seq { .. } if args.len() == 1 => return err(Diagnostic::error(format!("a read says it is a position: `{}[pos: 2]`", self.expr_name(ctx, &c))).named("position_unlabelled").at(span)),
+            Ty::Seq { .. } if otherwise.is_some() => return err(Diagnostic::error(format!("reading {}[…] cannot fail — a position past the end is a check site — so it takes no `otherwise`", self.expr_name(ctx, &c))).named("otherwise_never_needed").at(span)),
+            Ty::Seq { .. } => return err(Diagnostic::error(format!("{} is a list, and a list is read one position at a time: `{}[pos: 2]`", self.expr_name(ctx, &c), self.expr_name(ctx, &c))).named("parens_for_brackets").at(span)),
+            other => return err(Diagnostic::error(format!("{} is {}, not a function: `$f(…)` calls a held function, and `$xs[pos: 2]` reads a list", self.expr_name(ctx, &c), crate::types::a_type(&self.spell(other)))).named("not_a_function").at(span)),
         };
         let flat = self.flatten_args(ctx, args, span)?;
         if flat.len() != ft.params.len() {
-            return err(Diagnostic::error(format!("this function takes {} argument{}, and {} {} given", ft.params.len(), if ft.params.len() == 1 { "" } else { "s" }, flat.len(), if flat.len() == 1 { "was" } else { "were" })).at(span));
+            return err(Diagnostic::error(format!("this function takes {} argument{}, and {} {} given", ft.params.len(), if ft.params.len() == 1 { "" } else { "s" }, flat.len(), if flat.len() == 1 { "was" } else { "were" })).named("wrong_argument_count").at(span));
         }
         let name = self.expr_name(ctx, &c);
         let mut hargs = Vec::new();
@@ -3483,28 +3483,28 @@ impl Checker {
         self.power_use(ctx, &["c_calls", "functions"], Some(name.clone()), format!("calls C (`{}`)", name), span);
         let info = self.items.externs[id.0 as usize].clone();
         if info.is_let {
-            return err(Diagnostic::error(format!("'{}' is C's variable, not a function", info.name)).at(span));
+            return err(Diagnostic::error(format!("'{}' is C's variable, not a function", info.name)).named("not_a_function").at(span));
         }
         if self.needs_mark(ctx) {
             self.power_first()?;
-            return err(Diagnostic::error(format!("a call into C is a no_check site: nothing about `{}` can be proven — write `no_check` in front of the statement", info.name)).at(span).fix(None, format!("!check … {}[…] …;", info.name)));
+            return err(Diagnostic::error(format!("a call into C is a no_check site: nothing about `{}` can be proven — write `no_check` in front of the statement", info.name)).named("cnc::no_check_missing").at(span).fix(None, format!("!check … {}[…] …;", info.name)));
         }
         let flat = self.flatten_args(ctx, args, span)?;
         // A fixed shape takes what it names, no more and no fewer (owner,
         // 2026-10-19).
         if !info.variadic && info.var_from.is_some() && flat.len() != info.params.len() {
-            return err(Diagnostic::error(format!("`{}` takes exactly {} argument(s), as its shape says, and {} {} given", info.name, info.params.len(), flat.len(), if flat.len() == 1 { "was" } else { "were" })).at(span));
+            return err(Diagnostic::error(format!("`{}` takes exactly {} argument(s), as its shape says, and {} {} given", info.name, info.params.len(), flat.len(), if flat.len() == 1 { "was" } else { "were" })).named("wrong_argument_count").at(span));
         }
         if !info.variadic && flat.len() != info.params.len() {
-            return err(Diagnostic::error(format!("`{}` takes {} argument{}, and {} {} given", info.name, info.params.len(), if info.params.len() == 1 { "" } else { "s" }, flat.len(), if flat.len() == 1 { "was" } else { "were" })).at(span));
+            return err(Diagnostic::error(format!("`{}` takes {} argument{}, and {} {} given", info.name, info.params.len(), if info.params.len() == 1 { "" } else { "s" }, flat.len(), if flat.len() == 1 { "was" } else { "were" })).named("wrong_argument_count").at(span));
         }
         if info.variadic && flat.len() < info.params.len() {
-            return err(Diagnostic::error(format!("`{}` takes at least {} argument{}", info.name, info.params.len(), if info.params.len() == 1 { "" } else { "s" })).at(span));
+            return err(Diagnostic::error(format!("`{}` takes at least {} argument{}", info.name, info.params.len(), if info.params.len() == 1 { "" } else { "s" })).named("wrong_argument_count").at(span));
         }
         let mut hargs = Vec::new();
         for (i, fa) in flat.into_iter().enumerate() {
             let FlatArg::One(e) = fa else {
-                return err(Diagnostic::error("`...` cannot unpack into a C call").at(span));
+                return err(Diagnostic::error("`...` cannot unpack into a C call").named("cnc::spread_into_c").at(span));
             };
             if i < info.params.len() {
                 let (pname, pty) = info.params[i].clone();
@@ -3519,7 +3519,7 @@ impl Checker {
                 let v = self.expr(ctx, &e)?;
                 let vt = self.resolve(&v.ty);
                 if !vt.base().is_c_shaped(&self.items.structs, &self.items.enums) && !matches!(vt.base(), Ty::Int(IntW::Free(_)) | Ty::Bin(BinW::Free(_))) {
-                    return err(Diagnostic::error(format!("{} cannot cross to C's varargs: only C-shaped values can", crate::types::a_type(&self.spell(&vt)))).at(e.span));
+                    return err(Diagnostic::error(format!("{} cannot cross to C's varargs: only C-shaped values can", crate::types::a_type(&self.spell(&vt)))).named("cnc::cannot_cross_to_c").at(e.span));
                 }
                 hargs.push(Arg::Value(v));
             }
@@ -3536,7 +3536,7 @@ impl Checker {
         let ow = match otherwise {
             Some(o) => {
                 if fails.is_empty() {
-                    return err(Diagnostic::error(format!("an `extern fn` cannot fail; drop the `otherwise` after `{}`", info.name)).at(span));
+                    return err(Diagnostic::error(format!("an `extern fn` cannot fail; drop the `otherwise` after `{}`", info.name)).named("otherwise_never_needed").at(span));
                 }
                 Some(Box::new(self.otherwise(ctx, o, &fails, &info.ret, used, span)?))
             }
@@ -3544,7 +3544,7 @@ impl Checker {
                 if !fails.is_empty() && !ctx.must_fail {
                     let what = if info.ret.bound().is_some() { "its return is a range C promised" } else { "what C hands back is checked at the door — a C enum's number must be one of its cases, a ranged field in its range" };
                     let what = if info.ret.bound().is_some() { format!("{}, checked at the door", what) } else { what.to_string() };
-                    return err(Diagnostic::error(format!("`{}` can fail (out_of_range): {} — say what happens with `otherwise`", info.name, what)).at(span));
+                    return err(Diagnostic::error(format!("`{}` can fail (out_of_range): {} — say what happens with `otherwise`", info.name, what)).named("failure_unhandled").at(span));
                 }
                 None
             }
@@ -3572,7 +3572,7 @@ impl Checker {
             match &e.kind {
                 AK::Verb { verb: Verb::Lend, expr, .. } => {
                     if *mutable {
-                        return err(Diagnostic::error(format!("`{}`'s parameter '{}' is a `ptr.mut`: C may write through it, so write `lend.mut`", fname, pname)).at(e.span));
+                        return err(Diagnostic::error(format!("`{}`'s parameter '{}' is a `ptr.mut`: C may write through it, so write `lend.mut`", fname, pname)).named("lend_mut_needed").at(e.span));
                     }
                     let place = self.place(ctx, expr, PlaceUse::Lend)?;
                     self.check_lend_as_ptr(ctx, &place, elem, e.span)?;
@@ -3585,7 +3585,7 @@ impl Checker {
                     self.adopt_from_ptr(ctx, &place, pty);
                     return Ok(Arg::Lend { place, mutable: true });
                 }
-                AK::Verb { verb, .. } => return err(Diagnostic::error(format!("`{}` hands C a pointer: `lend` (or `lend.mut`) becomes the address; `{}` does not", fname, verb.spelled())).at(e.span)),
+                AK::Verb { verb, .. } => return err(Diagnostic::error(format!("`{}` hands C a pointer: `lend` (or `lend.mut`) becomes the address; `{}` does not", fname, verb.spelled())).named("verb_wrong_for_parameter").at(e.span)),
                 _ => {
                     // a held pointer, or a capture-free function for a callback slot
                     let v = self.expr(ctx, e)?;
@@ -3596,9 +3596,9 @@ impl Checker {
                         // to say it is meant.
                         if let Ty::Ptr { elem: got, .. } = vt.base() {
                             let (want, got) = (self.spell(elem), self.spell(got));
-                            return err(Diagnostic::error(format!("`{}` wants a pointer to `{}` for '{}', and this points at `{}` (`ptr.cast[{}][…]` if you mean it)", fname, want, pname, got, want)).at(e.span));
+                            return err(Diagnostic::error(format!("`{}` wants a pointer to `{}` for '{}', and this points at `{}` (`ptr.cast[{}][…]` if you mean it)", fname, want, pname, got, want)).named("cnc::pointer_target_wrong").at(e.span));
                         }
-                        return err(Diagnostic::error(format!("`{}`'s parameter '{}' is {}, and this is {}", fname, pname, crate::types::a_type(&self.spell(pty)), crate::types::a_type(&self.spell(&vt)))).at(e.span));
+                        return err(Diagnostic::error(format!("`{}`'s parameter '{}' is {}, and this is {}", fname, pname, crate::types::a_type(&self.spell(pty)), crate::types::a_type(&self.spell(&vt)))).named("wrong_type").at(e.span));
                     }
                     return Ok(Arg::Value(v));
                 }
@@ -3609,16 +3609,16 @@ impl Checker {
             let vt = self.resolve(&v.ty);
             if let K::FnLit { captures, .. } = &v.kind {
                 if !captures.is_empty() {
-                    return err(Diagnostic::error("a function handed to C cannot capture anything: C has nowhere to keep them — a C callback slot holds an address and nothing else".to_string()).at(e.span));
+                    return err(Diagnostic::error("a function handed to C cannot capture anything: C has nowhere to keep them — a C callback slot holds an address and nothing else".to_string()).named("cnc::callback_captures").at(e.span));
                 }
             }
             if let Ty::Fn(got) = vt.base() {
                 if got.params.len() != ft.params.len() {
-                    return err(Diagnostic::error(format!("`{}`'s parameter '{}' wants a function taking {} argument(s); got a function taking {} argument(s)", fname, pname, ft.params.len(), got.params.len())).at(e.span));
+                    return err(Diagnostic::error(format!("`{}`'s parameter '{}' wants a function taking {} argument(s); got a function taking {} argument(s)", fname, pname, ft.params.len(), got.params.len())).named("function_shape_wrong").at(e.span));
                 }
             }
             if !self.unify(&vt, pty) {
-                return err(Diagnostic::error(format!("`{}`'s parameter '{}' is {}, and this is {}", fname, pname, crate::types::a_type(&self.spell(pty)), crate::types::a_type(&self.spell(&vt)))).at(e.span));
+                return err(Diagnostic::error(format!("`{}`'s parameter '{}' is {}, and this is {}", fname, pname, crate::types::a_type(&self.spell(pty)), crate::types::a_type(&self.spell(&vt)))).named("wrong_type").at(e.span));
             }
             return Ok(Arg::Value(v));
         }
@@ -3635,7 +3635,7 @@ impl Checker {
             _ => false,
         };
         if !ok {
-            return err(Diagnostic::error(format!("a lend of {} (a `{}`) does not give C a `ptr[{}]`", self.place_name(ctx, place), self.spell(&pt), self.spell(elem))).at(span));
+            return err(Diagnostic::error(format!("a lend of {} (a `{}`) does not give C a `ptr[{}]`", self.place_name(ctx, place), self.spell(&pt), self.spell(elem))).named("cnc::pointer_target_wrong").at(span));
         }
         Ok(())
     }
@@ -3646,10 +3646,10 @@ impl Checker {
         let from = if lit.short {
             let ft = match want.map(|t| self.resolve(t)) {
                 Some(Ty::Fn(ft)) => *ft,
-                _ => return err(Diagnostic::error("a short lambda takes its types from where it goes, and here nothing says them: `let $f: fn[i32] -> bool = fn [$s] = …;` (owner, 2026-10-24)").at(span)),
+                _ => return err(Diagnostic::error("a short lambda takes its types from where it goes, and here nothing says them: `let $f: fn[i32] -> bool = fn [$s] = …;` (owner, 2026-10-24)").named("lambda_types_unknown").at(span)),
             };
             if ft.params.len() != lit.params.len() {
-                return err(Diagnostic::error(format!("this lambda takes {} value{}, and where it goes takes {}", lit.params.len(), if lit.params.len() == 1 { "" } else { "s" }, ft.params.len())).at(span));
+                return err(Diagnostic::error(format!("this lambda takes {} value{}, and where it goes takes {}", lit.params.len(), if lit.params.len() == 1 { "" } else { "s" }, ft.params.len())).named("function_shape_wrong").at(span));
             }
             Some(ft)
         } else {
@@ -3665,11 +3665,11 @@ impl Checker {
         let mut inst_caps = Vec::new();
         for c in &lit.captures {
             let Some(outer) = ctx.lookup(&c.name.name) else {
-                return err(Diagnostic::error(format!("'{}' is not declared", c.name.name)).at(c.name.span));
+                return err(Diagnostic::error(format!("'{}' is not declared", c.name.name)).named("not_declared").at(c.name.span));
             };
             let ty = self.resolve(&ctx.locals[outer.0 as usize].ty);
             if lit.params.iter().any(|p| p.name.name == c.name.name) {
-                return err(Diagnostic::error(format!("'{}' is both a capture and a parameter: they cannot share a name", c.name.name)).at(c.name.span));
+                return err(Diagnostic::error(format!("'{}' is both a capture and a parameter: they cannot share a name", c.name.name)).named("already_declared").at(c.name.span));
             }
             if c.verb == Verb::LendMut {
                 ctx.changed.insert(outer);
@@ -3700,17 +3700,17 @@ impl Checker {
         // could skip nothing (owner, 2026-09-29).
         if matches!(op, B::AndThen | B::OrElse) {
             let plain = if *op == B::AndThen { "and" } else { "or" };
-            return err(Diagnostic::error(format!("`op {}` cannot skip anything: a function's arguments are worked out before it runs — write `op {}`", spelled, plain)).at(span));
+            return err(Diagnostic::error(format!("`op {}` cannot skip anything: a function's arguments are worked out before it runs — write `op {}`", spelled, plain)).named("operator_cannot_be_value").at(span));
         }
         let arity = if unary.is_some() { 1 } else { 2 };
         if ft.params.len() != arity {
             if *op == B::Sub && ft.params.len() == 1 {
-                return err(Diagnostic::error("`op -` subtracts; negation as a value is `op neg`").at(span));
+                return err(Diagnostic::error("`op -` subtracts; negation as a value is `op neg`").named("old_spelling").at(span));
             }
-            return err(Diagnostic::error(format!("`op {}` takes {} operand{}, and this wants a function of {}", spelled, arity, if arity == 1 { "" } else { "s" }, ft.params.len())).at(span));
+            return err(Diagnostic::error(format!("`op {}` takes {} operand{}, and this wants a function of {}", spelled, arity, if arity == 1 { "" } else { "s" }, ft.params.len())).named("function_shape_wrong").at(span));
         }
         if !ft.fails.is_empty() {
-            return err(Diagnostic::error(format!("`op {}` cannot fail, and this wants a function that can", spelled)).at(span));
+            return err(Diagnostic::error(format!("`op {}` cannot fail, and this wants a function that can", spelled)).named("function_shape_wrong").at(span));
         }
         let names = ["a", "b"];
         let params: Vec<crate::resolve::ParamDecl> = ft.params.iter().zip(names).map(|((k, t), n)| crate::resolve::ParamDecl { kind: *k, group: None, amp: false, mutability: None, variadic: false, name: n.to_string(), ty: Some(t.clone()), from_blank: false, span }).collect();
@@ -3764,7 +3764,7 @@ impl Checker {
         }
         let block = self.block(&mut ctx, &body)?;
         if sig.ret != Ty::Nothing && !super::stmt::leaves_block(&block) {
-            return err(Diagnostic::error(format!("this function returns {} but can fall off the end: every path must `return` a value", crate::types::a_type(&self.spell(&sig.ret)))).at(decl.span));
+            return err(Diagnostic::error(format!("this function returns {} but can fall off the end: every path must `return` a value", crate::types::a_type(&self.spell(&sig.ret)))).named("missing_return").at(decl.span));
         }
         self.mut_promises_kept(&ctx)?;
         let mut block = block;
@@ -3794,7 +3794,7 @@ impl Checker {
                 let again = per.iter().enumerate().any(|(j, other)| j != i && other.iter().any(|(r, _, _)| r == root));
                 if again {
                     let name = ctx.locals[root.0 as usize].name.clone();
-                    return err(Diagnostic::error(format!("'{}' is lent `lend.mut` and lent again in the same call: while something is lent to change, nothing else may borrow it", name)).at(span).why_at(*at, "lent to change here"));
+                    return err(Diagnostic::error(format!("'{}' is lent `lend.mut` and lent again in the same call: while something is lent to change, nothing else may borrow it", name)).named("lent_twice_in_call").at(span).why_at(*at, "lent to change here"));
                 }
             }
         }
@@ -3873,7 +3873,7 @@ impl Checker {
         if let Some(u) = form {
             if !matches!(t.base(), Ty::Str(_) | Ty::Deci(_)) {
                 let f = if u { "useful" } else { "stored" };
-                return err(Diagnostic::error(format!("`to.{}` makes text or a deci: `to.{}.str.utf8[…]`, `to.{}.d64[…]`; `to.{}` has one form", f, f, f, self.spell(&t))).at(span));
+                return err(Diagnostic::error(format!("`to.{}` makes text or a deci: `to.{}.str.utf8[…]`, `to.{}.d64[…]`; `to.{}` has one form", f, f, f, self.spell(&t))).named("no_such_conversion").at(span));
             }
         }
         let mut useful = form == Some(true);
@@ -3884,7 +3884,7 @@ impl Checker {
             let t = self.resolve(&v.ty);
             let what = self.widths_pending.iter().find(|(p, _, _)| self.resolve(p) == t).map(|(_, at, w)| (w.clone(), *at));
             if let Some((w, at)) = what {
-                return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: a conversion takes its value as it is, so the shifted number needs a type (`to.i64(…) shr …`)", w)).at(at));
+                return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: a conversion takes its value as it is, so the shifted number needs a type (`to.i64(…) shr …`)", w)).named("width_unknown").at(at));
             }
         }
         // Bare numbers alone are worked out exactly, whatever is between
@@ -3950,7 +3950,7 @@ impl Checker {
             (Ty::Enum { id, .. }, Ty::Str(_)) => {
                 let info = &self.items.enums[id.0 as usize];
                 if let Some(c) = info.cases.iter().find(|c| c.payload.is_some()) {
-                    return err(Diagnostic::error(format!("a `{}` is not text: its case `{}` carries data, so no `{}` converts, whichever case it holds; `match` it and build the text you want, or print it directly (owner, 2026-09-30)", info.name, c.name, info.name)).at(span));
+                    return err(Diagnostic::error(format!("a `{}` is not text: its case `{}` carries data, so no `{}` converts, whichever case it holds; `match` it and build the text you want, or print it directly (owner, 2026-09-30)", info.name, c.name, info.name)).named("not_text").at(span));
                 }
             }
             (Ty::Struct { id, .. }, Ty::Str(_)) => {
@@ -3960,9 +3960,9 @@ impl Checker {
                     _ => "…".to_string(),
                 };
                 let field = info.fields.first().map(|f| format!(".{}", f.name)).unwrap_or_default();
-                return err(Diagnostic::error(format!("a `{}` is not text: build the text you want from its fields, e.g. `to.str.utf8({}{}) ++ …`, or print it directly (owner, 2026-09-30)", info.name, name, field)).at(span));
+                return err(Diagnostic::error(format!("a `{}` is not text: build the text you want from its fields, e.g. `to.str.utf8({}{}) ++ …`, or print it directly (owner, 2026-09-30)", info.name, name, field)).named("not_text").at(span));
             }
-            (Ty::Map { .. }, Ty::Str(_)) => return err(Diagnostic::error("a map is not text: build the text you want from its entries, or print it directly (owner, 2026-09-30)").at(span)),
+            (Ty::Map { .. }, Ty::Str(_)) => return err(Diagnostic::error("a map is not text: build the text you want from its entries, or print it directly (owner, 2026-09-30)").named("not_text").at(span)),
             // Not a number, or a number the type cannot hold however many
             // digits it has (owner, 2026-09-24: c). Never a check site.
             (Ty::Str(_), Ty::Int(_) | Ty::Bin(_)) => fails.extend(["not_a_number", "out_of_range"]),
@@ -3975,48 +3975,48 @@ impl Checker {
                     fails.push(if *to == Unit::Point { "not_one_point" } else { "not_one_byte" });
                 }
             }
-            (Ty::Char(_), Ty::Int(_)) => return err(Diagnostic::error("a character does not convert to a number: `to.i32(`7`)` could mean 55 (its code) or 7 (its digit) — `char.code(…)` gives the code, `to.i32(to.str.utf8(…)) otherwise …` the digit").at(span)),
-            (Ty::Int(_), Ty::Char(_)) => return err(Diagnostic::error("a number does not convert to a character: `char.point.from_code(…) otherwise …` builds one from a code").at(span)),
-            (_, Ty::Bool) => return err(Diagnostic::error("nothing converts to `bool`: there is no truthiness — compare instead (`$n not_equal 0`)").at(span)),
+            (Ty::Char(_), Ty::Int(_)) => return err(Diagnostic::error("a character does not convert to a number: `to.i32(`7`)` could mean 55 (its code) or 7 (its digit) — `char.code(…)` gives the code, `to.i32(to.str.utf8(…)) otherwise …` the digit").named("no_such_conversion").at(span)),
+            (Ty::Int(_), Ty::Char(_)) => return err(Diagnostic::error("a number does not convert to a character: `char.point.from_code(…) otherwise …` builds one from a code").named("no_such_conversion").at(span)),
+            (_, Ty::Bool) => return err(Diagnostic::error("nothing converts to `bool`: there is no truthiness — compare instead (`$n not_equal 0`)").named("no_truthiness").at(span)),
             // Bytes read as text (owner, 2026-09-30: "yea"): UTF-8 only.
             (Ty::Seq { elem, .. }, Ty::Str(enc)) if matches!(elem.base(), Ty::Int(IntW::Fixed { signed: false, bits: 8 })) => {
                 if *enc != Enc::Utf8 {
-                    return err(Diagnostic::error(format!("only `to.str.utf8` reads bytes as text (owner, 2026-09-30); `to.{}` from bytes is not decided — convert to utf8 first", target_spelling)).at(span));
+                    return err(Diagnostic::error(format!("only `to.str.utf8` reads bytes as text (owner, 2026-09-30); `to.{}` from bytes is not decided — convert to utf8 first", target_spelling)).named("no_such_conversion").at(span));
                 }
                 fails.push("not_utf8");
             }
-            (Ty::Seq { .. }, Ty::Str(_)) => return err(Diagnostic::error("a list is not text: only a list of `u8` converts, read as UTF-8 bytes (`to.str.utf8($bytes) otherwise …`); join the items with `concat`, or print the list directly (owner, 2026-09-30)").at(span)),
-            (_, Ty::Seq { .. }) => return err(Diagnostic::error("there is no conversion to a list").at(span)),
+            (Ty::Seq { .. }, Ty::Str(_)) => return err(Diagnostic::error("a list is not text: only a list of `u8` converts, read as UTF-8 bytes (`to.str.utf8($bytes) otherwise …`); join the items with `concat`, or print the list directly (owner, 2026-09-30)").named("not_text").at(span)),
+            (_, Ty::Seq { .. }) => return err(Diagnostic::error("there is no conversion to a list").named("no_such_conversion").at(span)),
             // A number from C becomes a C enum only through a check (owner,
             // 2026-09-27): one no case has fails `out_of_range`.
             (Ty::Int(_), Ty::Enum { id, .. }) if self.items.enums[id.0 as usize].numbers.is_some() => fails.push("out_of_range"),
-            (Ty::Int(_), Ty::Enum { .. }) => return err(Diagnostic::error(format!("only a `layout.C enum` converts from a number, and `{}` is a Cyborg enum: its value is built by name", target_spelling)).at(span)),
+            (Ty::Int(_), Ty::Enum { .. }) => return err(Diagnostic::error(format!("only a `layout.C enum` converts from a number, and `{}` is a Cyborg enum: its value is built by name", target_spelling)).named("cnc::numbered_enum_not_c").at(span)),
             // And back: a C enum's number never fails (owner, 2026-09-28);
             // a narrower target is a narrowing site, as ever.
             (Ty::Enum { id, .. }, Ty::Int(_)) if self.items.enums[id.0 as usize].numbers.is_some() => {}
-            (Ty::Enum { .. }, Ty::Int(_)) => return err(Diagnostic::error(format!("only a `layout.C enum` has numbers: `{}` is a Cyborg enum, whose cases are names", self.spell(&vt))).at(span)),
-            (_, Ty::Struct { .. }) | (_, Ty::Enum { .. }) => return err(Diagnostic::error(format!("there is no conversion to `{}`: a struct or enum value is built by name", target_spelling)).at(span)),
-            (Ty::Duration, _) | (_, Ty::Duration) => return err(Diagnostic::error("a duration does not convert: compare or add durations directly").at(span)),
-            _ => return err(Diagnostic::error(format!("there is no conversion from `{}` to `{}`", self.spell(&vt), target_spelling)).at(span)),
+            (Ty::Enum { .. }, Ty::Int(_)) => return err(Diagnostic::error(format!("only a `layout.C enum` has numbers: `{}` is a Cyborg enum, whose cases are names", self.spell(&vt))).named("cnc::numbered_enum_not_c").at(span)),
+            (_, Ty::Struct { .. }) | (_, Ty::Enum { .. }) => return err(Diagnostic::error(format!("there is no conversion to `{}`: a struct or enum value is built by name", target_spelling)).named("no_such_conversion").at(span)),
+            (Ty::Duration, _) | (_, Ty::Duration) => return err(Diagnostic::error("a duration does not convert: compare or add durations directly").named("no_such_conversion").at(span)),
+            _ => return err(Diagnostic::error(format!("there is no conversion from `{}` to `{}`", self.spell(&vt), target_spelling)).named("no_such_conversion").at(span)),
         }
         // Into a range type: fails out_of_range (never a check site).
         if t.bound().is_some() && !fails.contains(&"out_of_range") {
             fails.push("out_of_range");
         }
         if useful && !fails.is_empty() && matches!(t.base(), Ty::Str(_)) && matches!(vt.base(), Ty::Bin(_) | Ty::Deci(_) | Ty::Enum { .. }) {
-            return err(Diagnostic::error(format!("not yet: `to.useful.{}` of {} into text that can fail has no shape in the generated code yet", target_spelling, crate::types::a_type(&self.spell(&vt)))).at(span));
+            return err(Diagnostic::error(format!("not yet: `to.useful.{}` of {} into text that can fail has no shape in the generated code yet", target_spelling, crate::types::a_type(&self.spell(&vt)))).named("not_built_yet").at(span));
         }
         let fail_list: Vec<(String, Option<Ty>)> = fails.iter().map(|f| (f.to_string(), None)).collect();
         let ow = match otherwise {
             Some(o) => {
                 if fails.is_empty() {
-                    return err(Diagnostic::error(format!("`to.{}` cannot fail here; drop the `otherwise`", target_spelling)).at(span));
+                    return err(Diagnostic::error(format!("`to.{}` cannot fail here; drop the `otherwise`", target_spelling)).named("otherwise_never_needed").at(span));
                 }
                 Some(Box::new(self.otherwise(ctx, o, &fail_list, &t, used, span)?))
             }
             None => {
                 if !fails.is_empty() && !ctx.must_fail {
-                    return err(Diagnostic::error(format!("`to.{}` can fail ({}): say what happens — `otherwise …`", target_spelling, fails.join(", "))).at(span));
+                    return err(Diagnostic::error(format!("`to.{}` can fail ({}): say what happens — `otherwise …`", target_spelling, fails.join(", "))).named("failure_unhandled").at(span));
                 }
                 None
             }
@@ -4026,17 +4026,17 @@ impl Checker {
         if form.is_none() {
             let two_texts = matches!(t.base(), Ty::Str(_)) && matches!(vt.base(), Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Bool | Ty::Enum { .. } | Ty::Brain);
             if two_texts {
-                return err(Diagnostic::error(format!("say which text `to.{}` makes of {}: `to.stored.{}(…)` (what is stored) or `to.useful.{}(…)` (the useful value) (owner, 2026-10-02)", target_spelling, self.family_word(&vt), target_spelling, target_spelling)).at(span));
+                return err(Diagnostic::error(format!("say which text `to.{}` makes of {}: `to.stored.{}(…)` (what is stored) or `to.useful.{}(…)` (the useful value) (owner, 2026-10-02)", target_spelling, self.family_word(&vt), target_spelling, target_spelling)).named("conversion_target_unsaid").at(span));
             }
             if matches!(t.base(), Ty::Deci(_)) && vt.is_brain() {
-                return err(Diagnostic::error(format!("say which value `to.{}` takes of a brain16: `to.stored.{}(…)` (what is stored) or `to.useful.{}(…)` (the useful value) (owner, 2026-10-02)", target_spelling, target_spelling, target_spelling)).at(span));
+                return err(Diagnostic::error(format!("say which value `to.{}` takes of a brain16: `to.stored.{}(…)` (what is stored) or `to.useful.{}(…)` (the useful value) (owner, 2026-10-02)", target_spelling, target_spelling, target_spelling)).named("ai::brain_to_deci_unsaid").at(span));
             }
             if matches!(t.base(), Ty::Deci(_)) && matches!(vt.base(), Ty::Bin(_)) {
-                return err(Diagnostic::error(format!("say which value `to.{}` takes of a bin: `to.stored.{}(…)` (what is stored) or `to.useful.{}(…)` (the useful value) (owner, 2026-10-02)", target_spelling, target_spelling, target_spelling)).at(span));
+                return err(Diagnostic::error(format!("say which value `to.{}` takes of a bin: `to.stored.{}(…)` (what is stored) or `to.useful.{}(…)` (the useful value) (owner, 2026-10-02)", target_spelling, target_spelling, target_spelling)).named("money::bin_to_deci_unsaid").at(span));
             }
         }
         if written && !(matches!(t.base(), Ty::Deci(_)) && matches!(vt.base(), Ty::Str(_))) {
-            return err(Diagnostic::error(format!("`.written` counts the digits of text as written into a deci, trailing zeros included — `to.d32.written(\"1234567.0\")`; `to.{}.written` of {} has nothing written to count", target_spelling, crate::types::a_type(&self.spell(&vt)))).at(span));
+            return err(Diagnostic::error(format!("`.written` counts the digits of text as written into a deci, trailing zeros included — `to.d32.written(\"1234567.0\")`; `to.{}.written` of {} has nothing written to count", target_spelling, crate::types::a_type(&self.spell(&vt)))).named("conversion_form").at(span));
         }
         let fails_owned: Vec<String> = fails.iter().map(|s| s.to_string()).collect();
         Ok(Expr { kind: K::Conv { target: t.clone(), expr: Box::new(v), otherwise: ow, fails: fails_owned, useful, bits: false, written }, ty: t, span })
@@ -4051,10 +4051,10 @@ impl Checker {
         let t = self.items.resolve_type(target, ctx.module, &mut blanks, false)?;
         let n = match &t {
             Ty::Int(IntW::Fixed { bits, .. }) if t.exact_limit().is_none() => *bits,
-            _ => return err(Diagnostic::error(format!("`.bits` is for whole-number types: what `to.{}.bits` means is not decided", self.spell(&t))).at(span)),
+            _ => return err(Diagnostic::error(format!("`.bits` is for whole-number types: what `to.{}.bits` means is not decided", self.spell(&t))).named("needs_integer").at(span)),
         };
         if otherwise.is_some() {
-            return err(Diagnostic::error(format!("`to.{}.bits` cannot fail: a value past its bits is a check site, not a failure; drop the `otherwise`", self.spell(&t))).at(span));
+            return err(Diagnostic::error(format!("`to.{}.bits` cannot fail: a value past its bits is a check site, not a failure; drop the `otherwise`", self.spell(&t))).named("otherwise_never_needed").at(span));
         }
         let v = self.expr(ctx, operand)?;
         let literal = match &v.kind {
@@ -4069,7 +4069,7 @@ impl Checker {
             let room = 1i128.checked_shl(n).filter(|_| n < 127);
             if let Some(room) = room {
                 if i < -(room / 2) || i >= room {
-                    return err(Diagnostic::error(format!("`{}` does not fit the {} bits of {}: `to.{}.bits` reads a pattern of {} bits", i, n, self.spell(&t), self.spell(&t), n)).at(v.span));
+                    return err(Diagnostic::error(format!("`{}` does not fit the {} bits of {}: `to.{}.bits` reads a pattern of {} bits", i, n, self.spell(&t), self.spell(&t), n)).named("value_does_not_fit").at(v.span));
                 }
                 let signed = matches!(t, Ty::Int(IntW::Fixed { signed: true, .. }));
                 let pattern = i.rem_euclid(room);
@@ -4080,7 +4080,7 @@ impl Checker {
         let v = self.as_operand(ctx, v)?;
         let vt = self.resolve(&v.ty);
         if !matches!(vt.base(), Ty::Int(_)) {
-            return err(Diagnostic::error(format!("`to.{}.bits` reads a whole number's bits, and this is {}", self.spell(&t), article(&self.spell(&vt)))).at(v.span));
+            return err(Diagnostic::error(format!("`to.{}.bits` reads a whole number's bits, and this is {}", self.spell(&t), article(&self.spell(&vt)))).named("needs_integer").at(v.span));
         }
         Ok(Expr { kind: K::Conv { target: t.clone(), expr: Box::new(v), otherwise: None, fails: Vec::new(), useful: false, bits: true, written: false }, ty: t, span })
     }
@@ -4096,11 +4096,11 @@ impl Checker {
             ("list", ["fill"]) => BuiltinHead::B(Builtin::ListFill),
             ("list", ["remove"]) => BuiltinHead::B(Builtin::ListRemove),
             ("list", ["slice"]) => BuiltinHead::B(Builtin::ListSlice),
-            ("list", ["empty"]) => return err(Diagnostic::error("`list.empty` is a value, not a call: write it without brackets").at(span)),
-            ("list", [other]) => return err(Diagnostic::error(format!("`list.{}` does not exist: a list has `length`, `append`, `remove`, `slice`", other)).at(span)),
+            ("list", ["empty"]) => return err(Diagnostic::error("`list.empty` is a value, not a call: write it without brackets").named("not_a_function").at(span)),
+            ("list", [other]) => return err(Diagnostic::error(format!("`list.{}` does not exist: a list has `length`, `append`, `remove`, `slice`", other)).named("unknown_operation").at(span)),
             ("array", ["length"]) => BuiltinHead::B(Builtin::ArrayLength),
             ("array", ["slice"]) => BuiltinHead::B(Builtin::ArraySlice),
-            ("array", [other]) => return err(Diagnostic::error(format!("`array.{}` does not exist: an array has `length` and `slice`", other)).at(span)),
+            ("array", [other]) => return err(Diagnostic::error(format!("`array.{}` does not exist: an array has `length` and `slice`", other)).named("unknown_operation").at(span)),
             ("to", ["list"]) => BuiltinHead::B(Builtin::ToList),
             ("to", ["array"]) => BuiltinHead::B(Builtin::ToArray),
             ("map", ["length"]) => BuiltinHead::B(Builtin::MapLength),
@@ -4112,19 +4112,19 @@ impl Checker {
             ("map", ["values"]) => BuiltinHead::B(Builtin::MapValues),
             ("map", ["pairs"]) => BuiltinHead::B(Builtin::MapPairs),
             ("map", []) => BuiltinHead::MapLiteral,
-            ("map", [other]) => return err(Diagnostic::error(format!("`map.{}` does not exist: a map has `length`, `has`, `get`, `set`, `remove`, `keys`, `values`, `pairs`", other)).at(span)),
+            ("map", [other]) => return err(Diagnostic::error(format!("`map.{}` does not exist: a map has `length`, `has`, `get`, `set`, `remove`, `keys`, `values`, `pairs`", other)).named("unknown_operation").at(span)),
             ("str", ["bytes"]) => BuiltinHead::B(Builtin::StrBytes),
             ("str", ["points"]) => BuiltinHead::B(Builtin::StrPoints),
             ("str", ["graphemes"]) => BuiltinHead::B(Builtin::StrGraphemes),
-            ("str", ["length"]) => return err(Diagnostic::error("a text has no single length: `str.bytes`, `str.points` or `str.graphemes` — say which").at(span)),
-            ("str", ["each"]) => return err(Diagnostic::error("say the unit after `str.each`: `str.each.grapheme(…)`, `.point`, or `.byte`").at(span)),
+            ("str", ["length"]) => return err(Diagnostic::error("a text has no single length: `str.bytes`, `str.points` or `str.graphemes` — say which").named("text_unit_unsaid").at(span)),
+            ("str", ["each"]) => return err(Diagnostic::error("say the unit after `str.each`: `str.each.grapheme(…)`, `.point`, or `.byte`").named("text_unit_unsaid").at(span)),
             ("str", ["each", unit]) => match *unit {
                 "byte" => BuiltinHead::B(Builtin::StrEach(Unit::Byte)),
                 "point" => BuiltinHead::B(Builtin::StrEach(Unit::Point)),
                 "grapheme" => BuiltinHead::B(Builtin::StrEach(Unit::Grapheme)),
-                other => return err(Diagnostic::error(format!("`str.each.{}` is not a unit: `byte`, `point` or `grapheme`", other)).at(span)),
+                other => return err(Diagnostic::error(format!("`str.each.{}` is not a unit: `byte`, `point` or `grapheme`", other)).named("unknown_text_unit").at(span)),
             },
-            ("str", [other, ..]) => return err(Diagnostic::error(format!("`str.{}` is std's, not the language's: the language owns only the units (`str.bytes`, `str.each.grapheme`, …), and `std::` is not available yet", other)).at(span)),
+            ("str", [other, ..]) => return err(Diagnostic::error(format!("`str.{}` is std's, not the language's: the language owns only the units (`str.bytes`, `str.each.grapheme`, …), and `std::` is not available yet", other)).named(if matches!(*other, "upper" | "lower" | "title" | "fold") { "case_mapping_unsaid" } else { "std_name_needs_path" }).at(span)),
             ("char", ["code"]) => BuiltinHead::B(Builtin::CharCode),
             // Built by the parser from `on.machine.chip X` (owner, 2026-10-06).
             ("on", ["machine", "chip", f]) => match ast::ON_FEATURES.iter().position(|n| n == f) {
@@ -4134,20 +4134,20 @@ impl Checker {
             ("char", [unit, "from_code"]) => match *unit {
                 "byte" => BuiltinHead::B(Builtin::CharFromCode(Unit::Byte)),
                 "point" => BuiltinHead::B(Builtin::CharFromCode(Unit::Point)),
-                "grapheme" => return err(Diagnostic::error("a grapheme has no single code: `char.point.from_code(…)` or `char.byte.from_code(…)`").at(span)),
-                other => return err(Diagnostic::error(format!("`char.{}` is not a unit", other)).at(span)),
+                "grapheme" => return err(Diagnostic::error("a grapheme has no single code: `char.point.from_code(…)` or `char.byte.from_code(…)`").named("unicode::no_single_code").at(span)),
+                other => return err(Diagnostic::error(format!("`char.{}` is not a unit", other)).named("unknown_text_unit").at(span)),
             },
-            ("char", [..]) => return err(Diagnostic::error(format!("`{}` does not exist: `char.code(…)`, `char.point.from_code(…)`, `char.byte.from_code(…)`", path.spelled())).at(span)),
+            ("char", [..]) => return err(Diagnostic::error(format!("`{}` does not exist: `char.code(…)`, `char.point.from_code(…)`, `char.byte.from_code(…)`", path.spelled())).named("unknown_operation").at(span)),
             ("ptr", ["read"]) => BuiltinHead::B(Builtin::PtrRead),
             // C strings (owner, 2026-10-19), C's own vocabulary under `C.`.
             ("C", ["str", "read"]) => BuiltinHead::B(Builtin::CStrRead),
             ("C", ["str", "make"]) => BuiltinHead::B(Builtin::CStrMake),
-            ("C", ["str", ..]) => return err(Diagnostic::error("C strings are `C.str.read($p)` and `C.str.make(lend $s)`: a C string read into a text, and a text made into one").at(span)),
+            ("C", ["str", ..]) => return err(Diagnostic::error("C strings are `C.str.read($p)` and `C.str.make(lend $s)`: a C string read into a text, and a text made into one").named("cnc::c_str_unknown").at(span)),
             ("ptr", ["write"]) => BuiltinHead::B(Builtin::PtrWrite),
             ("ptr", ["at"]) => BuiltinHead::B(Builtin::PtrAt),
             ("ptr", ["is_null"]) => BuiltinHead::B(Builtin::PtrIsNull),
-            ("ptr", ["null"]) => return err(Diagnostic::error("`ptr.null` is the null pointer, a value, not a call: `free(ptr.null)`").at(span)),
-            ("ptr", [other]) => return err(Diagnostic::error(format!("`ptr.{}` does not exist: a pointer has `read`, `write`, `at`, `is_null`, and `ptr.null` is the null pointer", other)).at(span)),
+            ("ptr", ["null"]) => return err(Diagnostic::error("`ptr.null` is the null pointer, a value, not a call: `free(ptr.null)`").named("not_a_function").at(span)),
+            ("ptr", [other]) => return err(Diagnostic::error(format!("`ptr.{}` does not exist: a pointer has `read`, `write`, `at`, `is_null`, and `ptr.null` is the null pointer", other)).named("unknown_pointer_operation").at(span)),
             ("simd", ["fill"]) => BuiltinHead::B(Builtin::SimdFill),
             ("simd", ["load"]) => BuiltinHead::B(Builtin::SimdLoad),
             ("simd", ["store"]) => BuiltinHead::B(Builtin::SimdStore),
@@ -4161,10 +4161,10 @@ impl Checker {
             ("simd", ["shuffle"]) => BuiltinHead::B(Builtin::SimdShuffle(Vec::new())),
             ("simd", ["load", "some"]) => BuiltinHead::B(Builtin::SimdLoadSome),
             ("simd", ["store", "some"]) => BuiltinHead::B(Builtin::SimdStoreSome),
-            ("simd", [other]) => return err(Diagnostic::error(format!("`simd.{}` does not exist: a vector has `fill`, `load`, `store`, `load.some`, `store.some`, `shuffle`, `all`, `any`, `max`, `min`, `sum`", other)).at(span)),
+            ("simd", [other]) => return err(Diagnostic::error(format!("`simd.{}` does not exist: a vector has `fill`, `load`, `store`, `load.some`, `store.some`, `shuffle`, `all`, `any`, `max`, `min`, `sum`", other)).named("unknown_operation").at(span)),
             ("channel", ["send"]) => BuiltinHead::B(Builtin::ChannelSend),
             ("channel", ["take"]) => BuiltinHead::B(Builtin::ChannelTake),
-            ("channel", [other]) => return err(Diagnostic::error(format!("`channel.{}` does not exist: a channel has `send` and `take`", other)).at(span)),
+            ("channel", [other]) => return err(Diagnostic::error(format!("`channel.{}` does not exist: a channel has `send` and `take`", other)).named("unknown_operation").at(span)),
             _ => return Ok(None),
         };
         Ok(Some(b))
@@ -4174,7 +4174,7 @@ impl Checker {
         let b = match head {
             BuiltinHead::MapLiteral => {
                 if otherwise.is_some() {
-                    return err(Diagnostic::error("a map literal cannot fail; drop the `otherwise`").at(span));
+                    return err(Diagnostic::error("a map literal cannot fail; drop the `otherwise`").named("otherwise_never_needed").at(span));
                 }
                 return self.map_literal(ctx, args, span);
             }
@@ -4193,14 +4193,14 @@ impl Checker {
             for a in args {
                 match a {
                     AArg::Positional(e) => v.push(e),
-                    _ => return err(Diagnostic::error(format!("`{}` takes values in order", name)).at(a.span())),
+                    _ => return err(Diagnostic::error(format!("`{}` takes values in order", name)).named("argument_label_unknown").at(a.span())),
                 }
             }
             v
         };
         let arity = |n: usize, this: &Self| -> Result<()> {
             if positional.len() != n {
-                return err(Diagnostic::error(format!("`{}` takes {} argument{}, and {} {} given", name, n, if n == 1 { "" } else { "s" }, positional.len(), if positional.len() == 1 { "was" } else { "were" })).at(span));
+                return err(Diagnostic::error(format!("`{}` takes {} argument{}, and {} {} given", name, n, if n == 1 { "" } else { "s" }, positional.len(), if positional.len() == 1 { "was" } else { "were" })).named("wrong_argument_count").at(span));
             }
             let _ = this;
             Ok(())
@@ -4214,14 +4214,14 @@ impl Checker {
                 let a = self.lent_arg(ctx, positional[0], &name, false)?;
                 let at = self.resolve(&self.arg_type(&a));
                 match (&b, at.base()) {
-                    (Builtin::ListLength, Ty::Seq { kind: SeqKind::Array, .. }) => return err(Diagnostic::error(format!("{} is an `array`: its length is `array.length(…)`", self.arg_name(ctx, &a))).at(span)),
+                    (Builtin::ListLength, Ty::Seq { kind: SeqKind::Array, .. }) => return err(Diagnostic::error(format!("{} is an `array`: its length is `array.length(…)`", self.arg_name(ctx, &a))).named("list_array_mismatch").at(span)),
                     (Builtin::ListLength, Ty::Seq { .. } | Ty::Bundle(_)) => {}
-                    (Builtin::ArrayLength, Ty::Seq { kind: SeqKind::List, .. }) => return err(Diagnostic::error(format!("{} is a `list`: its length is `list.length(…)`", self.arg_name(ctx, &a))).at(span)),
+                    (Builtin::ArrayLength, Ty::Seq { kind: SeqKind::List, .. }) => return err(Diagnostic::error(format!("{} is a `list`: its length is `list.length(…)`", self.arg_name(ctx, &a))).named("list_array_mismatch").at(span)),
                     (Builtin::ArrayLength, Ty::Seq { .. }) => {}
                     (Builtin::MapLength, Ty::Map { .. }) => {}
                     (Builtin::StrBytes | Builtin::StrPoints | Builtin::StrGraphemes, Ty::Str(_)) => {}
-                    (Builtin::ListLength | Builtin::ArrayLength, Ty::Str(_)) => return err(Diagnostic::error("a text has no single length: `str.bytes`, `str.points` or `str.graphemes` — say which").at(span)),
-                    _ => return err(Diagnostic::error(format!("`{}` takes a {}, and {} is {}", name, builtin_subject(&b), self.arg_name(ctx, &a), crate::types::a_type(&self.spell(&at)))).at(positional[0].span)),
+                    (Builtin::ListLength | Builtin::ArrayLength, Ty::Str(_)) => return err(Diagnostic::error("a text has no single length: `str.bytes`, `str.points` or `str.graphemes` — say which").named("text_unit_unsaid").at(span)),
+                    _ => return err(Diagnostic::error(format!("`{}` takes a {}, and {} is {}", name, builtin_subject(&b), self.arg_name(ctx, &a), crate::types::a_type(&self.spell(&at)))).named("wrong_type").at(positional[0].span)),
                 }
                 let mut ty = Ty::u64();
                 // A bounded list's length is bounded too.
@@ -4237,21 +4237,21 @@ impl Checker {
                 arity(2, self)?;
                 let ce = match &positional[1].kind {
                     AK::Count(inner) => &**inner,
-                    _ => return err(Diagnostic::error("the count says `count`: `list.fill(value: 0, count: 10)`").at(positional[1].span)),
+                    _ => return err(Diagnostic::error("the count says `count`: `list.fill(value: 0, count: 10)`").named("argument_label_missing").at(positional[1].span)),
                 };
                 let value_e = match &positional[0].kind {
                     AK::Value(inner) => &**inner,
-                    _ => return err(Diagnostic::error("the value says `value`: `list.fill(value: 0, count: 10)`").at(positional[0].span)),
+                    _ => return err(Diagnostic::error("the value says `value`: `list.fill(value: 0, count: 10)`").named("argument_label_missing").at(positional[0].span)),
                 };
                 if let AK::Name(n) = &value_e.kind {
                     if self.peek_ty(ctx, value_e).is_some_and(|t| self.resolve(&t).is_owned()) {
-                        return err(Diagnostic::error(format!("`list.fill` makes copies of '{}': `copy ${}`", n.name, n.name)).at(value_e.span));
+                        return err(Diagnostic::error(format!("`list.fill` makes copies of '{}': `copy ${}`", n.name, n.name)).named("owned_value_bare").at(value_e.span));
                     }
                 }
                 let v = match &value_e.kind {
                     AK::Verb { expr, .. } => {
                         let Some(pt) = self.peek_ty(ctx, expr) else {
-                            return err(Diagnostic::error("`list.fill` fills with a value, or a `copy` or `give` of one").at(value_e.span));
+                            return err(Diagnostic::error("`list.fill` fills with a value, or a `copy` or `give` of one").named("verb_wrong_for_parameter").at(value_e.span));
                         };
                         self.one_argument(ctx, value_e, ParamKind::Owned, &pt, "list.fill", "the value")?
                     }
@@ -4272,7 +4272,7 @@ impl Checker {
                     retype_literal_arith(&mut c, &to);
                 }
                 if !self.resolve(&c.ty).is_int() {
-                    return err(Diagnostic::error(format!("`list.fill`'s count is a whole number, and this is {}", crate::types::a_type(&self.spell(&self.resolve(&c.ty))))).at(ce.span));
+                    return err(Diagnostic::error(format!("`list.fill`'s count is a whole number, and this is {}", crate::types::a_type(&self.spell(&self.resolve(&c.ty))))).named("wrong_type").at(ce.span));
                 }
                 (vec![v, Arg::Value(c)], Ty::Seq { elem: Box::new(elem), kind: SeqKind::List })
             }
@@ -4286,15 +4286,15 @@ impl Checker {
                 let elem = match at.base() {
                     Ty::Seq { elem, kind } => {
                         if *kind == SeqKind::Array {
-                            return err(Diagnostic::error(format!("{} is an `array`, which cannot grow or shrink: declare it a `list` to append", self.arg_name(ctx, &a))).at(span));
+                            return err(Diagnostic::error(format!("{} is an `array`, which cannot grow or shrink: declare it a `list` to append", self.arg_name(ctx, &a))).named("array_cannot_grow").at(span));
                         }
                         (**elem).clone()
                     }
-                    other => return err(Diagnostic::error(format!("`list.append` takes a list, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`list.append` takes a list, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 let v = self.one_argument(ctx, positional[1], ParamKind::Owned, &elem, "list.append", "the element")?;
                 if let Arg::Lend { .. } = v {
-                    return err(Diagnostic::error("a list owns its elements: `append` takes a fresh value, a `copy`, or a `give` — never a lend").at(positional[1].span));
+                    return err(Diagnostic::error("a list owns its elements: `append` takes a fresh value, a `copy`, or a `give` — never a lend").named("verb_wrong_for_parameter").at(positional[1].span));
                 }
                 if !used {}
                 (vec![a, v], Ty::Nothing)
@@ -4309,19 +4309,19 @@ impl Checker {
                 let elem = match at.base() {
                     Ty::Seq { elem, kind } => {
                         if *kind == SeqKind::Array {
-                            return err(Diagnostic::error(format!("{} is an `array`, which cannot grow or shrink", self.arg_name(ctx, &a))).at(span));
+                            return err(Diagnostic::error(format!("{} is an `array`, which cannot grow or shrink", self.arg_name(ctx, &a))).named("array_cannot_grow").at(span));
                         }
                         (**elem).clone()
                     }
-                    other => return err(Diagnostic::error(format!("`list.remove` takes a list, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`list.remove` takes a list, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 // `pos` on every position (owner, 2026-10-07: "`a`").
                 let AK::Pos(at) = &positional[1].kind else {
-                    return err(Diagnostic::error("the position says `pos`: `list.remove(lend.mut $xs, pos: 2)`").at(positional[1].span));
+                    return err(Diagnostic::error("the position says `pos`: `list.remove(lend.mut $xs, pos: 2)`").named("argument_label_missing").at(positional[1].span));
                 };
                 let i = self.expr(ctx, at)?;
                 if !self.resolve(&i.ty).is_int() {
-                    return err(Diagnostic::error("`list.remove` takes a 1-based position").at(positional[1].span));
+                    return err(Diagnostic::error("`list.remove` takes a 1-based position").named("wrong_type").at(positional[1].span));
                 }
                 (vec![a, Arg::Value(i)], elem)
             }
@@ -4333,9 +4333,9 @@ impl Checker {
                     (Builtin::ListSlice, Ty::Seq { elem, kind: SeqKind::List }) | (Builtin::ArraySlice, Ty::Seq { elem, kind: SeqKind::Array }) => (**elem).clone(),
                     // A `:=` collection is neither yet, and slicing only reads.
                     (_, Ty::Seq { elem, kind: SeqKind::Free(_) }) => (**elem).clone(),
-                    (Builtin::ListSlice, Ty::Seq { kind: SeqKind::Array, .. }) => return err(Diagnostic::error(format!("{} is an `array`: its slice is `array.slice(…)`", self.arg_name(ctx, &a))).at(span)),
-                    (_, Ty::Seq { kind: SeqKind::List, .. }) => return err(Diagnostic::error(format!("{} is a `list`: its slice is `list.slice(…)`", self.arg_name(ctx, &a))).at(span)),
-                    (_, other) => return err(Diagnostic::error(format!("`{}` takes a {}, and {} is {}", name, builtin_subject(&b), self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    (Builtin::ListSlice, Ty::Seq { kind: SeqKind::Array, .. }) => return err(Diagnostic::error(format!("{} is an `array`: its slice is `array.slice(…)`", self.arg_name(ctx, &a))).named("list_array_mismatch").at(span)),
+                    (_, Ty::Seq { kind: SeqKind::List, .. }) => return err(Diagnostic::error(format!("{} is a `list`: its slice is `list.slice(…)`", self.arg_name(ctx, &a))).named("list_array_mismatch").at(span)),
+                    (_, other) => return err(Diagnostic::error(format!("`{}` takes a {}, and {} is {}", name, builtin_subject(&b), self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 let first = self.pos_arg(ctx, positional[1], &name)?;
                 let last = self.pos_arg(ctx, positional[2], &name)?;
@@ -4349,10 +4349,10 @@ impl Checker {
                 // It takes the collection, so it says how (`lists.md`): a
                 // bare name or a lend would copy without saying so.
                 match &e.kind {
-                    AK::Name(n) => return err(Diagnostic::error(format!("converting bare '{}' would copy it without saying so: `give ${}` hands it over, `copy ${}` keeps it", n.name, n.name, n.name)).at(e.span)),
-                    AK::Verb { verb: Verb::Lend | Verb::LendMut, .. } => return err(Diagnostic::error("converting a lend would copy it without saying so: `copy` it or `give` it").at(e.span)),
+                    AK::Name(n) => return err(Diagnostic::error(format!("converting bare '{}' would copy it without saying so: `give ${}` hands it over, `copy ${}` keeps it", n.name, n.name, n.name)).named("owned_value_bare").at(e.span)),
+                    AK::Verb { verb: Verb::Lend | Verb::LendMut, .. } => return err(Diagnostic::error("converting a lend would copy it without saying so: `copy` it or `give` it").named("verb_wrong_for_parameter").at(e.span)),
                     AK::Path(p) if p.kit.is_none() && p.segs.len() == 1 && (crate::resolve::primitive(p.head()).is_some() || matches!(p.head(), "list" | "array" | "map")) => {
-                        return err(Diagnostic::error(format!("`{}` keeps the element type, so it is not written: `{}(copy $a)`", name, name)).at(e.span));
+                        return err(Diagnostic::error(format!("`{}` keeps the element type, so it is not written: `{}(copy $a)`", name, name)).named("conversion_form").at(e.span));
                     }
                     _ => {}
                 }
@@ -4362,7 +4362,7 @@ impl Checker {
                 let at = self.resolve(&self.arg_type(&a));
                 let elem = match at.base() {
                     Ty::Seq { elem, .. } => (**elem).clone(),
-                    other => return err(Diagnostic::error(format!("`to.list` / `to.array` take a list or an array, and this is {}", crate::types::a_type(&self.spell(other)))).at(e.span)),
+                    other => return err(Diagnostic::error(format!("`to.list` / `to.array` take a list or an array, and this is {}", crate::types::a_type(&self.spell(other)))).named("wrong_type").at(e.span)),
                 };
                 let kind = if b == Builtin::ToList { SeqKind::List } else { SeqKind::Array };
                 (vec![a], Ty::Seq { elem: Box::new(elem), kind })
@@ -4373,7 +4373,7 @@ impl Checker {
                 let at = self.resolve(&self.arg_type(&a));
                 let (kt, vt) = match at.base() {
                     Ty::Map { key, val, .. } => ((**key).clone(), (**val).clone()),
-                    other => return err(Diagnostic::error(format!("`{}` takes a map, and {} is {}", name, self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`{}` takes a map, and {} is {}", name, self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 let k = self.key_arg(ctx, positional[1], &kt)?;
                 let ty = match b {
@@ -4391,12 +4391,12 @@ impl Checker {
                 let at = self.resolve(&self.arg_type(&a));
                 let (kt, vt) = match at.base() {
                     Ty::Map { key, val, .. } => ((**key).clone(), (**val).clone()),
-                    other => return err(Diagnostic::error(format!("`map.set` takes a map, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`map.set` takes a map, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 let k = self.one_argument(ctx, positional[1], ParamKind::Owned, &kt, "map.set", "the key")?;
                 let v = self.one_argument(ctx, positional[2], ParamKind::Owned, &vt, "map.set", "the value")?;
                 if matches!(k, Arg::Lend { .. }) || matches!(v, Arg::Lend { .. }) {
-                    return err(Diagnostic::error("a map owns its keys and values: `set` takes a fresh value, a `copy`, or a `give` — never a lend").at(span));
+                    return err(Diagnostic::error("a map owns its keys and values: `set` takes a fresh value, a `copy`, or a `give` — never a lend").named("verb_wrong_for_parameter").at(span));
                 }
                 (vec![a, k, v], Ty::Nothing)
             }
@@ -4406,10 +4406,10 @@ impl Checker {
                 let at = self.resolve(&self.arg_type(&a));
                 let (kt, vt, order) = match at.base() {
                     Ty::Map { key, val, order } => ((**key).clone(), (**val).clone(), *order),
-                    other => return err(Diagnostic::error(format!("`{}` takes a map, and {} is {}", name, self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`{}` takes a map, and {} is {}", name, self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 if order == MapOrder::Unordered {
-                    return err(Diagnostic::error(format!("{} is a `map.unordered`, which promises never to be walked: `{}` needs a `map` or `map.ordered`", self.arg_name(ctx, &a), name)).at(span));
+                    return err(Diagnostic::error(format!("{} is a `map.unordered`, which promises never to be walked: `{}` needs a `map` or `map.ordered`", self.arg_name(ctx, &a), name)).named("unordered_map_walked").at(span));
                 }
                 let elem = match b {
                     Builtin::MapKeys => kt,
@@ -4423,7 +4423,7 @@ impl Checker {
                 let a = self.lent_arg(ctx, positional[0], &name, false)?;
                 let at = self.resolve(&self.arg_type(&a));
                 if !at.is_text() {
-                    return err(Diagnostic::error(format!("`{}` walks a text, and {} is {}", name, self.arg_name(ctx, &a), crate::types::a_type(&self.spell(&at)))).at(positional[0].span));
+                    return err(Diagnostic::error(format!("`{}` walks a text, and {} is {}", name, self.arg_name(ctx, &a), crate::types::a_type(&self.spell(&at)))).named("wrong_type").at(positional[0].span));
                 }
                 let elem = match unit {
                     Unit::Byte => Ty::int(false, 8),
@@ -4442,9 +4442,9 @@ impl Checker {
                 let vt = self.resolve(&v.ty);
                 let ty = match vt.base() {
                     Ty::Char(Unit::Byte) => Ty::int(false, 8),
-                    Ty::Char(Unit::Grapheme) => return err(Diagnostic::error("a grapheme has no single code: it may be several code points — walk it with `str.each.point` after `to.str.utf8(…)`").at(span)),
+                    Ty::Char(Unit::Grapheme) => return err(Diagnostic::error("a grapheme has no single code: it may be several code points — walk it with `str.each.point` after `to.str.utf8(…)`").named("unicode::no_single_code").at(span)),
                     Ty::Char(_) => Ty::int(false, 32),
-                    other => return err(Diagnostic::error(format!("`char.code` takes a character, and this is {}", crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`char.code` takes a character, and this is {}", crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 (vec![Arg::Value(v)], ty)
             }
@@ -4453,7 +4453,7 @@ impl Checker {
                 let v = self.expr(ctx, positional[0])?;
                 let vt = self.resolve(&v.ty);
                 if !vt.is_int() {
-                    return err(Diagnostic::error(format!("`{}` takes a number (the code), and this is {}", name, crate::types::a_type(&self.spell(&vt)))).at(positional[0].span));
+                    return err(Diagnostic::error(format!("`{}` takes a number (the code), and this is {}", name, crate::types::a_type(&self.spell(&vt)))).named("wrong_type").at(positional[0].span));
                 }
                 fails.push(("not_a_char".into(), None));
                 (vec![Arg::Value(v)], Ty::Char(*unit))
@@ -4472,7 +4472,7 @@ impl Checker {
                 match at.base() {
                     Ty::Ptr { elem, .. } if bytes(elem) => {}
                     Ty::Seq { elem, .. } if bytes(elem) => {}
-                    other => return err(Diagnostic::error(format!("`C.str.read` reads bytes ending in a 0: a `ptr[u8]` or a C string `C.str.make` made, and this is {}", crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`C.str.read` reads bytes ending in a 0: a `ptr[u8]` or a C string `C.str.make` made, and this is {}", crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 }
                 fails.push(("not_utf8".into(), None));
                 (vec![a], Ty::utf8())
@@ -4489,7 +4489,7 @@ impl Checker {
                 };
                 let at = self.resolve(&self.arg_type(&a));
                 if !matches!(at.base(), Ty::Str(_)) {
-                    return err(Diagnostic::error(format!("`C.str.make` makes a C string of a text, and this is {}", crate::types::a_type(&self.spell(&at)))).at(positional[0].span));
+                    return err(Diagnostic::error(format!("`C.str.make` makes a C string of a text, and this is {}", crate::types::a_type(&self.spell(&at)))).named("wrong_type").at(positional[0].span));
                 }
                 let literal = match &a {
                     Arg::Value(Expr { kind: K::Str(s), .. }) => Some(s.clone()),
@@ -4532,7 +4532,7 @@ impl Checker {
                 }
                 if b != Builtin::PtrIsNull && self.needs_mark(ctx) {
                     self.power_first()?;
-                    return err(Diagnostic::error(format!("`{}` is a no_check site: nothing about C's memory can be proven — write `no_check` in front of the statement", name)).at(span));
+                    return err(Diagnostic::error(format!("`{}` is a no_check site: nothing about C's memory can be proven — write `no_check` in front of the statement", name)).named("no_check_missing").at(span));
                 }
                 let n = match b {
                     Builtin::PtrRead | Builtin::PtrIsNull => 1,
@@ -4543,7 +4543,7 @@ impl Checker {
                 let pt = self.resolve(&p.ty);
                 let (mutable, elem) = match pt.base() {
                     Ty::Ptr { mutable, elem } => (*mutable, (**elem).clone()),
-                    other => return err(Diagnostic::error(format!("`{}` takes a pointer, and this is {}", name, crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`{}` takes a pointer, and this is {}", name, crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 match b {
                     // A C enum or range read from C's memory is checked as it
@@ -4554,7 +4554,7 @@ impl Checker {
                         }
                         if elem.checked_at_door(&self.items.structs, &self.items.enums) && ctx.tier != Some(ast::Tier::NoChecks) {
                             if otherwise.is_none() {
-                                return err(Diagnostic::error(format!("`ptr.read` of a `{}` from C can fail (out_of_range): C may hold a number `{}` does not allow — say what happens with `otherwise`", self.spell(&elem), self.spell(&elem))).at(span));
+                                return err(Diagnostic::error(format!("`ptr.read` of a `{}` from C can fail (out_of_range): C may hold a number `{}` does not allow — say what happens with `otherwise`", self.spell(&elem), self.spell(&elem))).named("failure_unhandled").at(span));
                             }
                             fails.push(("out_of_range".into(), None));
                         }
@@ -4564,13 +4564,13 @@ impl Checker {
                     Builtin::PtrAt => {
                         let i = self.expr(ctx, positional[1])?;
                         if !self.resolve(&i.ty).is_int() {
-                            return err(Diagnostic::error("`ptr.at` moves by a whole number of elements").at(positional[1].span));
+                            return err(Diagnostic::error("`ptr.at` moves by a whole number of elements").named("wrong_type").at(positional[1].span));
                         }
                         (vec![Arg::Value(p), Arg::Value(i)], pt.base().clone())
                     }
                     _ => {
                         if !mutable {
-                            return err(Diagnostic::error("`ptr.write` needs a `ptr.mut`: this pointer is read-only").at(span));
+                            return err(Diagnostic::error("`ptr.write` needs a `ptr.mut`: this pointer is read-only").named("pointer_read_only").at(span));
                         }
                         let v = self.expr(ctx, positional[1])?;
                         // C's memory holds a C enum as its number, so C's
@@ -4592,11 +4592,11 @@ impl Checker {
                 let at = self.resolve(&self.arg_type(&a));
                 let elem = match at.base() {
                     Ty::Channel(e) => (**e).clone(),
-                    other => return err(Diagnostic::error(format!("`channel.send` takes a channel, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`channel.send` takes a channel, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 let v = self.one_argument(ctx, positional[1], ParamKind::Owned, &elem, "channel.send", "the value")?;
                 if let Arg::Lend { .. } = v {
-                    return err(Diagnostic::error("a value sent on a channel is given, never lent: no two tasks may hold one thing").at(positional[1].span));
+                    return err(Diagnostic::error("a value sent on a channel is given, never lent: no two tasks may hold one thing").named("mcps::send_needs_give").at(positional[1].span));
                 }
                 (vec![a, v], Ty::Nothing)
             }
@@ -4606,7 +4606,7 @@ impl Checker {
                 let at = self.resolve(&self.arg_type(&a));
                 let elem = match at.base() {
                     Ty::Channel(e) => (**e).clone(),
-                    other => return err(Diagnostic::error(format!("`channel.take` takes a channel, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`channel.take` takes a channel, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 fails.push(("closed".into(), None));
                 (vec![a], elem)
@@ -4615,7 +4615,7 @@ impl Checker {
                 arity(1, self)?;
                 // `simd.fill[value 0]` (owner, 2026-10-07: "`a`").
                 let AK::Value(fill) = &positional[0].kind else {
-                    return err(Diagnostic::error("the value says `value`: `simd.fill(value: 0)`").at(positional[0].span));
+                    return err(Diagnostic::error("the value says `value`: `simd.fill(value: 0)`").named("argument_label_missing").at(positional[0].span));
                 };
                 let mut v = self.expr(ctx, fill)?;
                 // Bare numbers alone are worked out exactly (dc83c05): left
@@ -4649,7 +4649,7 @@ impl Checker {
                 let at = self.resolve(&self.arg_type(&a));
                 let elem = match at.base() {
                     Ty::Seq { elem, .. } => (**elem).clone(),
-                    other => return err(Diagnostic::error(format!("`simd.load` fills a vector from a list or an array, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`simd.load` fills a vector from a list or an array, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 let idx = self.pos_arg(ctx, positional[1], &name)?;
                 (vec![a, idx], Ty::Simd { elem: Box::new(elem), lanes: 0 })
@@ -4660,7 +4660,7 @@ impl Checker {
                 let at = self.resolve(&self.arg_type(&a));
                 let elem = match at.base() {
                     Ty::Seq { elem, .. } => (**elem).clone(),
-                    other => return err(Diagnostic::error(format!("`simd.store` writes into a list or an array, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`simd.store` writes into a list or an array, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 let idx = self.pos_arg(ctx, positional[1], &name)?;
                 let v = self.expr(ctx, positional[2])?;
@@ -4668,10 +4668,10 @@ impl Checker {
                 match vt.base() {
                     Ty::Simd { elem: lane, .. } => {
                         if !self.unify(lane, &elem) {
-                            return err(Diagnostic::error(format!("`simd.store` writes `{}` lanes into a list of `{}`", self.spell(lane), self.spell(&elem))).at(positional[2].span));
+                            return err(Diagnostic::error(format!("`simd.store` writes `{}` lanes into a list of `{}`", self.spell(lane), self.spell(&elem))).named("wrong_type").at(positional[2].span));
                         }
                     }
-                    other => return err(Diagnostic::error(format!("`simd.store` writes a vector, and this is {}", crate::types::a_type(&self.spell(other)))).at(positional[2].span)),
+                    other => return err(Diagnostic::error(format!("`simd.store` writes a vector, and this is {}", crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[2].span)),
                 }
                 (vec![a, idx, Arg::Value(v)], Ty::Nothing)
             }
@@ -4683,12 +4683,12 @@ impl Checker {
                 let at = self.resolve(&self.arg_type(&a));
                 let elem = match at.base() {
                     Ty::Seq { elem, .. } => (**elem).clone(),
-                    other => return err(Diagnostic::error(format!("`{}` works on a list or an array, and {} is {}", name, self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`{}` works on a list or an array, and {} is {}", name, self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 let idx = self.pos_arg(ctx, positional[1], &name)?;
                 let k = self.expr(ctx, positional[2])?;
                 if !self.resolve(&k.ty).is_int() {
-                    return err(Diagnostic::error(format!("`{}`'s third argument is how many items, a whole number from 0 to the lanes, and this is {}", name, crate::types::a_type(&self.spell(&self.resolve(&k.ty))))).at(positional[2].span));
+                    return err(Diagnostic::error(format!("`{}`'s third argument is how many items, a whole number from 0 to the lanes, and this is {}", name, crate::types::a_type(&self.spell(&self.resolve(&k.ty))))).named("wrong_type").at(positional[2].span));
                 }
                 if !store {
                     (vec![a, idx, Arg::Value(k)], Ty::Simd { elem: Box::new(elem), lanes: 0 })
@@ -4698,10 +4698,10 @@ impl Checker {
                     match vt.base() {
                         Ty::Simd { elem: lane, .. } => {
                             if !self.unify(lane, &elem) {
-                                return err(Diagnostic::error(format!("`simd.store.some` writes `{}` lanes into a list of `{}`", self.spell(lane), self.spell(&elem))).at(positional[3].span));
+                                return err(Diagnostic::error(format!("`simd.store.some` writes `{}` lanes into a list of `{}`", self.spell(lane), self.spell(&elem))).named("wrong_type").at(positional[3].span));
                             }
                         }
-                        other => return err(Diagnostic::error(format!("`simd.store.some` writes a vector, and this is {}", crate::types::a_type(&self.spell(other)))).at(positional[3].span)),
+                        other => return err(Diagnostic::error(format!("`simd.store.some` writes a vector, and this is {}", crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[3].span)),
                     }
                     (vec![a, idx, Arg::Value(k), Arg::Value(v)], Ty::Nothing)
                 }
@@ -4715,26 +4715,26 @@ impl Checker {
                 let vt = self.resolve(&v.ty);
                 let lanes = match vt.base() {
                     Ty::Simd { lanes, .. } if *lanes > 0 => *lanes,
-                    Ty::Simd { .. } => return err(Diagnostic::error("`simd.shuffle` needs to know how many lanes the vector has: give it a type (`let $v: simd[i32, count: 4] = …`)").at(positional[0].span)),
-                    other => return err(Diagnostic::error(format!("`simd.shuffle` rearranges a vector's lanes, and this is {}", crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    Ty::Simd { .. } => return err(Diagnostic::error("`simd.shuffle` needs to know how many lanes the vector has: give it a type (`let $v: simd[i32, count: 4] = …`)").named("simd_lane_count_unknown").at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`simd.shuffle` rearranges a vector's lanes, and this is {}", crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 let fixed = "`simd.shuffle` takes the new order as fixed lane numbers, known when compiling: `[4, 3, 2, 1]`";
                 let AK::List(items) = &positional[1].kind else {
-                    return err(Diagnostic::error(fixed).at(positional[1].span));
+                    return err(Diagnostic::error(fixed).named("shuffle_not_fixed").at(positional[1].span));
                 };
                 let mut order = Vec::new();
                 for it in items {
                     let AK::Int(text) = &it.kind else {
-                        return err(Diagnostic::error(fixed).at(it.span));
+                        return err(Diagnostic::error(fixed).named("shuffle_not_fixed").at(it.span));
                     };
                     let n: u64 = text.parse().unwrap_or(u64::MAX);
                     if n < 1 || n > lanes as u64 {
-                        return err(Diagnostic::error(format!("lane {} does not exist: the vector has {} lanes, 1 to {}", text, lanes, lanes)).at(it.span));
+                        return err(Diagnostic::error(format!("lane {} does not exist: the vector has {} lanes, 1 to {}", text, lanes, lanes)).named("index_out_of_range").at(it.span));
                     }
                     order.push(n as u32 - 1);
                 }
                 if order.len() != lanes as usize {
-                    return err(Diagnostic::error(format!("the new order names {} lane(s), and the vector has {}: one lane number per lane", order.len(), lanes)).at(positional[1].span));
+                    return err(Diagnostic::error(format!("the new order names {} lane(s), and the vector has {}: one lane number per lane", order.len(), lanes)).named("simd_lane_count_mismatch").at(positional[1].span));
                 }
                 shuffle_order = Some(order);
                 (vec![Arg::Value(v)], vt.base().clone())
@@ -4746,8 +4746,8 @@ impl Checker {
                 let vt = self.resolve(&v.ty);
                 match vt.base() {
                     Ty::Simd { elem, .. } if elem.base() == &Ty::Bool => {}
-                    Ty::Simd { elem, .. } => return err(Diagnostic::error(format!("`{}` folds a vector of answers, and this holds `{}` lanes: a comparison gives one (`$a < $b`)", name, self.spell(elem))).at(positional[0].span)),
-                    other => return err(Diagnostic::error(format!("`{}` folds a vector of answers, and this is {}", name, crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    Ty::Simd { elem, .. } => return err(Diagnostic::error(format!("`{}` folds a vector of answers, and this holds `{}` lanes: a comparison gives one (`$a < $b`)", name, self.spell(elem))).named("wrong_type").at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`{}` folds a vector of answers, and this is {}", name, crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 }
                 (vec![Arg::Value(v)], Ty::Bool)
             }
@@ -4758,13 +4758,13 @@ impl Checker {
                 let vt = self.resolve(&v.ty);
                 let (lane, lanes) = match vt.base() {
                     Ty::Simd { elem, lanes } if elem.is_numeric() => ((**elem).clone(), *lanes),
-                    Ty::Simd { elem, .. } => return err(Diagnostic::error(format!("`{}` folds a vector of numbers, and this holds `{}` lanes", name, self.spell(elem))).at(positional[0].span)),
-                    other => return err(Diagnostic::error(format!("`{}` folds a vector of numbers, and this is {}", name, crate::types::a_type(&self.spell(other)))).at(positional[0].span)),
+                    Ty::Simd { elem, .. } => return err(Diagnostic::error(format!("`{}` folds a vector of numbers, and this holds `{}` lanes", name, self.spell(elem))).named("wrong_type").at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`{}` folds a vector of numbers, and this is {}", name, crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 // `.wrap` wraps whole numbers, as `plus.wrap` does (design
                 // claude's reading, 2026-10-07).
                 if b == Builtin::SimdSumWrap && !lane.is_int() {
-                    return err(Diagnostic::error(format!("`simd.sum.wrap` wraps whole numbers at the lane's type, and these lanes are `{}`: write `simd.sum`", self.spell(&lane))).at(span));
+                    return err(Diagnostic::error(format!("`simd.sum.wrap` wraps whole numbers at the lane's type, and these lanes are `{}`: write `simd.sum`", self.spell(&lane))).named("needs_integer").at(span));
                 }
                 // The plain sum is a plain number, worked out in full and
                 // checked where it lands (owner, 2026-10-07: "b").
@@ -4813,12 +4813,12 @@ impl Checker {
                         let place = self.place(ctx, expr, PlaceUse::LendMut)?;
                         Ok(Arg::Lend { place, mutable: true })
                     }
-                    (Verb::Lend, true) => err(Diagnostic::error(format!("`{}` changes the collection, so it takes `lend.mut`, not `lend`", name)).at(e.span)),
+                    (Verb::Lend, true) => err(Diagnostic::error(format!("`{}` changes the collection, so it takes `lend.mut`, not `lend`", name)).named("lend_mut_needed").at(e.span)),
                     (Verb::LendMut, false) => {
                         let place = self.place(ctx, expr, PlaceUse::LendMut)?;
                         Ok(Arg::Lend { place, mutable: true })
                     }
-                    (v, _) => err(Diagnostic::error(format!("`{}` looks at the collection: write `lend`{}, not `{}`", name, if mutates { ".mut" } else { "" }, v.spelled())).at(e.span)),
+                    (v, _) => err(Diagnostic::error(format!("`{}` looks at the collection: write `lend`{}, not `{}`", name, if mutates { ".mut" } else { "" }, v.spelled())).named("verb_wrong_for_parameter").at(e.span)),
                 }
             }
             AK::Name(_) | AK::Field { .. } | AK::Index { .. } => {
@@ -4829,7 +4829,7 @@ impl Checker {
                 // it, so a look at it lends nothing away.
                 let a_const = place.proj.is_empty() && ctx.locals[place.base.0 as usize].kind == LocalKind::ConstView;
                 if pt.is_owned() && !(a_const && !mutates) {
-                    return err(Diagnostic::error(format!("`{}` takes a lend: write `lend{} {}`", name, if mutates { ".mut" } else { "" }, pn)).at(e.span));
+                    return err(Diagnostic::error(format!("`{}` takes a lend: write `lend{} {}`", name, if mutates { ".mut" } else { "" }, pn)).named("owned_value_bare").at(e.span));
                 }
                 Ok(Arg::Lend { place, mutable: mutates })
             }
@@ -4837,7 +4837,7 @@ impl Checker {
                 // a fresh value lives for the call
                 let v = self.expr(ctx, e)?;
                 if mutates {
-                    return err(Diagnostic::error(format!("`{}` changes a collection you hold: `lend.mut` a variable", name)).at(e.span));
+                    return err(Diagnostic::error(format!("`{}` changes a collection you hold: `lend.mut` a variable", name)).named("lend_mut_needed").at(e.span));
                 }
                 Ok(Arg::Value(v))
             }
@@ -4857,13 +4857,13 @@ impl Checker {
     fn pos_arg(&mut self, ctx: &mut FnCtx, e: &ast::Expr, name: &str) -> Result<Arg> {
         let e = match &e.kind {
             AK::Pos(inner) => &**inner,
-            _ if name.ends_with("slice") => return err(Diagnostic::error(format!("positions say `pos`: `{}(lend $xs, from: pos 2, to: pos 4)`", name)).at(e.span)),
-            _ => return err(Diagnostic::error(format!("a position says `pos`: `{}(lend $xs, pos: 1)`", name)).at(e.span)),
+            _ if name.ends_with("slice") => return err(Diagnostic::error(format!("positions say `pos`: `{}(lend $xs, from: pos 2, to: pos 4)`", name)).named("position_unlabelled").at(e.span)),
+            _ => return err(Diagnostic::error(format!("a position says `pos`: `{}(lend $xs, pos: 1)`", name)).named("position_unlabelled").at(e.span)),
         };
         let v = self.expr(ctx, e)?;
         let vt = self.resolve(&v.ty);
         if !vt.is_int() {
-            return err(Diagnostic::error(format!("a position is a whole number, and this is {}", crate::types::a_type(&self.spell(&vt)))).at(e.span));
+            return err(Diagnostic::error(format!("a position is a whole number, and this is {}", crate::types::a_type(&self.spell(&vt)))).named("wrong_type").at(e.span));
         }
         Ok(Arg::Value(v))
     }
@@ -4949,8 +4949,8 @@ fn into_deci(e: &mut Expr, bits: u16) -> Result<()> {
         let p = crate::deci::digits(bits);
         let value = match crate::deci::literal(&text, bits) {
             Ok(v) => v,
-            Err(crate::deci::LitErr::Digits(n)) => return err(Diagnostic::error(format!("`{}` has {} digits; d{} holds {}: write fewer digits, or use a wider deci", text, n, bits, p)).at(e.span)),
-            Err(crate::deci::LitErr::Range) => return err(Diagnostic::error(format!("`{}` is past what d{} holds: write fewer digits, or use a wider deci", text, bits)).at(e.span)),
+            Err(crate::deci::LitErr::Digits(n)) => return err(Diagnostic::error(format!("`{}` has {} digits; d{} holds {}: write fewer digits, or use a wider deci", text, n, bits, p)).named("money::too_many_digits").at(e.span)),
+            Err(crate::deci::LitErr::Range) => return err(Diagnostic::error(format!("`{}` is past what d{} holds: write fewer digits, or use a wider deci", text, bits)).named("money::too_many_digits").at(e.span)),
         };
         e.kind = K::Deci { bits, value };
     } else {
@@ -5292,14 +5292,14 @@ impl Checker {
             ast::InclForm::Utf16 { low_first } => format!("incl.str.utf16.{}", if low_first { "low_first" } else { "high_first" }),
             ast::InclForm::Utf32 { low_first } => format!("incl.str.utf32.{}", if low_first { "low_first" } else { "high_first" }),
         };
-        let bytes = std::fs::read(&full).map_err(|e| Box::new(Diagnostic::error(format!("`{}` cannot read \"{}\" ({}, from the kit's root): {}", what, path, full.display(), e)).at(path_span)))?;
+        let bytes = std::fs::read(&full).map_err(|e| Box::new(Diagnostic::error(format!("`{}` cannot read \"{}\" ({}, from the kit's root): {}", what, path, full.display(), e)).named("file_not_readable").at(path_span)))?;
         // Everything `incl` gives is a const's value only (owner,
         // 2026-10-10: "(c)" for the bytes, then "`a`" for the text).
         if !ctx.in_const {
             return err(Diagnostic::error(match form {
                 ast::InclForm::Bytes => "`incl.bytes` is a constant: give it a name with `const $logo := incl.bytes[\"…\"];` (owner, 2026-10-10), and read it from there".to_string(),
                 _ => format!("`incl.str.…` is a constant, as `incl.bytes` is: give it a name with `const $help := {}[\"…\"];` (owner, 2026-10-10), and read it from there", what),
-            }).at(span));
+            }).named("include_not_const").at(span));
         }
         match form {
             ast::InclForm::Bytes => {
@@ -5309,10 +5309,10 @@ impl Checker {
             }
             ast::InclForm::Utf8 => match String::from_utf8(bytes) {
                 Ok(text) => Ok(Expr { kind: K::Str(text), ty: Ty::utf8(), span }),
-                Err(e) => err(Diagnostic::error(format!("\"{}\" is not valid UTF-8 text (byte {} is not), so `incl.str.utf8` cannot hold it; `incl.bytes` takes any file", path, e.utf8_error().valid_up_to() + 1)).at(path_span)),
+                Err(e) => err(Diagnostic::error(format!("\"{}\" is not valid UTF-8 text (byte {} is not), so `incl.str.utf8` cannot hold it; `incl.bytes` takes any file", path, e.utf8_error().valid_up_to() + 1)).named("included_text_invalid").at(path_span)),
             },
             ast::InclForm::Ascii => match bytes.iter().position(|b| !b.is_ascii()) {
-                Some(i) => err(Diagnostic::error(format!("\"{}\" is not ASCII text (byte {} is {}), so `incl.str.ascii` cannot hold it; `incl.str.utf8` takes UTF-8 and `incl.bytes` any file", path, i + 1, bytes[i])).at(path_span)),
+                Some(i) => err(Diagnostic::error(format!("\"{}\" is not ASCII text (byte {} is {}), so `incl.str.ascii` cannot hold it; `incl.str.utf8` takes UTF-8 and `incl.bytes` any file", path, i + 1, bytes[i])).named("included_text_invalid").at(path_span)),
                 None => Ok(Expr { kind: K::Str(String::from_utf8(bytes).unwrap()), ty: Ty::Str(crate::types::Enc::Ascii), span }),
             },
             // In the byte order it says (owner, 2026-10-10); a byte-order
@@ -5323,7 +5323,7 @@ impl Checker {
                     _ => (4usize, "str.utf32", Ty::Str(crate::types::Enc::Utf32)),
                 };
                 if bytes.len() % unit != 0 {
-                    return err(Diagnostic::error(format!("\"{}\" is {} bytes, not a whole number of {}-byte units, so it is not {} text", path, bytes.len(), unit, enc)).at(path_span));
+                    return err(Diagnostic::error(format!("\"{}\" is {} bytes, not a whole number of {}-byte units, so it is not {} text", path, bytes.len(), unit, enc)).named("included_text_invalid").at(path_span));
                 }
                 let mut units: Vec<u32> = bytes
                     .chunks(unit)
@@ -5343,11 +5343,11 @@ impl Checker {
                     }
                     Some(u) if *u == flipped => {
                         let said = |low: bool| if low { "low byte first" } else { "high byte first" };
-                        return err(Diagnostic::error(format!("\"{}\" starts with a byte-order mark saying {}, but `{}` says {}", path, said(!low_first), what, said(low_first))).at(path_span));
+                        return err(Diagnostic::error(format!("\"{}\" starts with a byte-order mark saying {}, but `{}` says {}", path, said(!low_first), what, said(low_first))).named("included_text_invalid").at(path_span));
                     }
                     _ => {}
                 }
-                let bad = || Box::new(Diagnostic::error(format!("\"{}\" is not valid {} text in that byte order, so `{}` cannot hold it; `incl.bytes` takes any file", path, enc, what)).at(path_span));
+                let bad = || Box::new(Diagnostic::error(format!("\"{}\" is not valid {} text in that byte order, so `{}` cannot hold it; `incl.bytes` takes any file", path, enc, what)).named("included_text_invalid").at(path_span));
                 let text: String = if unit == 2 {
                     let u16s: Vec<u16> = units.iter().map(|u| *u as u16).collect();
                     char::decode_utf16(u16s).collect::<std::result::Result<String, _>>().map_err(|_| bad())?
@@ -5378,7 +5378,7 @@ impl Checker {
             _ => false,
         };
         if !is_writer {
-            return err(Diagnostic::error(format!("a print never changes what it prints, so `{}` names a writer to print into: `let mut $out := std::print.writer(size: 4096 bytes);`", shown)).at(e.span));
+            return err(Diagnostic::error(format!("a print never changes what it prints, so `{}` names a writer to print into: `let mut $out := std::print.writer(size: 4096 bytes);`", shown)).named("print_into_non_writer").at(e.span));
         }
         self.lent_arg(ctx, e, "a print", true)
     }
@@ -5396,7 +5396,7 @@ impl Checker {
         for a in args {
             match a {
                 AArg::Positional(e) => positional.push(e),
-                _ => return err(Diagnostic::error("std takes values in order").at(a.span())),
+                _ => return err(Diagnostic::error("std takes values in order").named("argument_label_unknown").at(a.span())),
             }
         }
         let mut hargs = Vec::new();
@@ -5410,7 +5410,7 @@ impl Checker {
         };
         let written = name == "print.written" || name.starts_with("print.written.");
         if print_as.is_some() && !written {
-            return err(Diagnostic::error(format!("`otherwise std::print.…` says how a `print.written` prints a value it has no written form for; `std::{}` prints every value already: drop it", name)).at(span));
+            return err(Diagnostic::error(format!("`otherwise std::print.…` says how a `print.written` prints a value it has no written form for; `std::{}` prints every value already: drop it", name)).named("print_form_unsaid").at(span));
         }
         if written {
             // Each value as its literal was typed; the rest as the print's
@@ -5421,7 +5421,7 @@ impl Checker {
                     Some(text) => hargs.push(Arg::Value(Expr { kind: K::Str(text), ty: Ty::utf8(), span: e.span })),
                     None => {
                         if print_as.is_none() {
-                            return err(Diagnostic::error("this was not typed as a literal here, so `print.written` has no written form of it: say how it prints instead, `otherwise std::print.useful` (or `.stored`)").at(e.span));
+                            return err(Diagnostic::error("this was not typed as a literal here, so `print.written` has no written form of it: say how it prints instead, `otherwise std::print.useful` (or `.stored`)").named("written_not_literal").at(e.span));
                         }
                         let v = self.expr(ctx, e)?;
                         let v = self.as_operand(ctx, v)?;
@@ -5449,14 +5449,14 @@ impl Checker {
                         };
                         match &v.kind {
                             AK::Duration { value, unit } if unit.name == "bytes" => value.replace('_', ""),
-                            _ => return err(Diagnostic::error("a writer's size says its unit: `size: 4096 bytes`").at(v.span)),
+                            _ => return err(Diagnostic::error("a writer's size says its unit: `size: 4096 bytes`").named("size_unit_unsaid").at(v.span)),
                         }
                     }
-                    _ => return err(Diagnostic::error(format!("a writer says its size, and only that: `std::{}(size: 4096 bytes)`", name)).at(span)),
+                    _ => return err(Diagnostic::error(format!("a writer says its size, and only that: `std::{}(size: 4096 bytes)`", name)).named("wrong_argument_count").at(span)),
                 };
-                let n: i128 = size.parse().map_err(|_| Box::new(Diagnostic::error("a writer's size is a whole number of bytes").at(span)))?;
+                let n: i128 = size.parse().map_err(|_| Box::new(Diagnostic::error("a writer's size is a whole number of bytes").named("wrong_type").at(span)))?;
                 if n < 1 {
-                    return err(Diagnostic::error("a writer holds at least 1 byte").at(span));
+                    return err(Diagnostic::error("a writer holds at least 1 byte").named("writer_size_zero").at(span));
                 }
                 hargs.push(Arg::Value(Expr { kind: K::Int(n), ty: Ty::u64(), span }));
                 Ty::Writer
@@ -5473,7 +5473,7 @@ impl Checker {
                             fails.push(("write_failed".into(), None));
                         }
                     }
-                    _ => return err(Diagnostic::error("`std::print.flush` sends what kayo holds, `std::print.flush()`, or a writer's, `std::print.flush(lend.mut $out)`").at(span)),
+                    _ => return err(Diagnostic::error("`std::print.flush` sends what kayo holds, `std::print.flush()`, or a writer's, `std::print.flush(lend.mut $out)`").named("wrong_argument_count").at(span)),
                 }
                 Ty::Nothing
             }
@@ -5510,7 +5510,7 @@ impl Checker {
             }
             "exit" => {
                 if positional.len() != 1 {
-                    return err(Diagnostic::error("`std::exit` takes one value, the exit code").at(span));
+                    return err(Diagnostic::error("`std::exit` takes one value, the exit code").named("wrong_argument_count").at(span));
                 }
                 let v = self.expr(ctx, positional[0])?;
                 let v = self.expect_store(ctx, v, &Ty::int(false, 8), "the exit code")?;
@@ -5519,7 +5519,7 @@ impl Checker {
             }
             "input.line" | "input.all" => {
                 if !positional.is_empty() {
-                    return err(Diagnostic::error(format!("`std::{}` takes no arguments", name)).at(span));
+                    return err(Diagnostic::error(format!("`std::{}` takes no arguments", name)).named("wrong_argument_count").at(span));
                 }
                 fails.push(("closed".into(), None));
                 Ty::utf8()
@@ -5541,26 +5541,26 @@ impl Checker {
             _ if name.starts_with("round.") => {
                 let way = &name[6..];
                 if !matches!(way, "near" | "half_up" | "floor" | "ceil" | "trunc") {
-                    return err(Diagnostic::error(format!("`std::{}` is not a way to round: `round.near`, `round.half_up`, `round.floor`, `round.ceil` or `round.trunc`", name)).at(span));
+                    return err(Diagnostic::error(format!("`std::{}` is not a way to round: `round.near`, `round.half_up`, `round.floor`, `round.ceil` or `round.trunc`", name)).named("unknown_rounding").at(span));
                 }
                 let Some(first) = positional.first() else {
-                    return err(Diagnostic::error(format!("`std::{}` takes the number to round: `std::{}($x)`", name, name)).at(span));
+                    return err(Diagnostic::error(format!("`std::{}` takes the number to round: `std::{}($x)`", name, name)).named("wrong_argument_count").at(span));
                 };
                 let a = self.expr(ctx, first)?;
                 let a = self.as_operand(ctx, a)?;
                 let t = self.resolve(&a.ty);
                 if !matches!(t.base(), Ty::Bin(_) | Ty::Deci(_) | Ty::Brain) {
-                    return err(Diagnostic::error(format!("std::{} takes a bin or a deci, got {}", name, crate::types::a_type(&self.spell(&t)))).at(first.span));
+                    return err(Diagnostic::error(format!("std::{} takes a bin or a deci, got {}", name, crate::types::a_type(&self.spell(&t)))).named("wrong_type").at(first.span));
                 }
                 hargs.push(Arg::Value(a));
                 if let Some(d) = positional.get(1) {
                     if let AK::Unary { op: ast::UnOp::Neg, .. } = &d.kind {
-                        return err(Diagnostic::error("`places:` is a whole number, 0 or more").at(d.span));
+                        return err(Diagnostic::error("`places:` is a whole number, 0 or more").named("count_negative").at(d.span));
                     }
                     let n = self.expr(ctx, d)?;
                     let n = self.as_operand(ctx, n)?;
                     if !self.resolve(&n.ty).is_int() {
-                        return err(Diagnostic::error("`places:` is a whole number, 0 or more").at(d.span));
+                        return err(Diagnostic::error("`places:` is a whole number, 0 or more").named("wrong_type").at(d.span));
                     }
                     hargs.push(Arg::Value(n));
                 }
@@ -5573,9 +5573,9 @@ impl Checker {
                 let positions = name.starts_with("str.at.") || name.starts_with("str.slice.");
                 for (k, e) in positional.iter().enumerate() {
                     let e: &ast::Expr = match (&e.kind, positions && k >= 1) {
-                        (AK::Pos(inner), true) if written_below_one(inner) => return err(Diagnostic::error(NO_POSITION).at(inner.span)),
+                        (AK::Pos(inner), true) if written_below_one(inner) => return err(Diagnostic::error(NO_POSITION).named("index_out_of_range").at(inner.span)),
                         (AK::Pos(inner), true) => inner,
-                        (_, true) => return err(Diagnostic::error(format!("a position says `pos`: `std::{}(lend $s, pos: 3)`", name)).at(e.span)),
+                        (_, true) => return err(Diagnostic::error(format!("a position says `pos`: `std::{}(lend $s, pos: 3)`", name)).named("position_unlabelled").at(e.span)),
                         _ => e,
                     };
                     let v = self.expr(ctx, e)?;
@@ -5608,10 +5608,10 @@ impl Checker {
                         fails.push(("out_of_range".into(), None));
                         Ty::utf8()
                     }
-                    other => return err(Diagnostic::error(format!("`std::str.{}` does not exist", other)).at(span)),
+                    other => return err(Diagnostic::error(format!("`std::str.{}` does not exist", other)).named("unknown_std_name").at(span)),
                 }
             }
-            _ => return err(Diagnostic::error(format!("`std::{}` does not exist", name)).at(span)),
+            _ => return err(Diagnostic::error(format!("`std::{}` does not exist", name)).named("unknown_std_name").at(span)),
         };
         let ow = self.call_otherwise(ctx, otherwise, &fails, &ty, used, span, &format!("std::{}", name))?;
         Ok(Expr { kind: K::Call { callee: Callee::Builtin(Builtin::Std(name)), args: hargs, otherwise: ow, fails }, ty, span })
@@ -5673,7 +5673,7 @@ fn conv_form(target: &ast::Type) -> Result<(Option<bool>, Option<ast::Type>)> {
         ast::TypeKind::Path { path, .. } if path.segs.len() >= 2 && path.segs.last().is_some_and(|s| s.name == "useful" || s.name == "stored") => {
             let rest: Vec<&str> = path.segs[..path.segs.len() - 1].iter().map(|s| s.name.as_str()).collect();
             let f = &path.segs.last().unwrap().name;
-            err(Diagnostic::error(format!("`.{}` follows the verb: `to.{}.{}(…)` (owner, 2026-09-30)", f, f, rest.join("."))).at(target.span))
+            err(Diagnostic::error(format!("`.{}` follows the verb: `to.{}.{}(…)` (owner, 2026-09-30)", f, f, rest.join("."))).named("conversion_form").at(target.span))
         }
         ast::TypeKind::Path { path, args } if path.segs.len() >= 2 && (path.segs[0].name == "useful" || path.segs[0].name == "stored") => {
             let mut p = path.clone();
@@ -5726,14 +5726,14 @@ fn slice_args(name: &str, args: &[AArg], span: Span) -> Result<Vec<AArg>> {
     let how = format!("a slice says where it runs: `{}(lend $xs, from: pos 2, to: pos 4)`, or `before: pos 5` to leave 5 out (owner, 2026-10-12)", name);
     if args.len() != 3 {
         if args.iter().skip(1).any(|a| matches!(a, AArg::Positional(e) if matches!(e.kind, AK::Pos(_)))) {
-            return err(Diagnostic::error(how).at(span));
+            return err(Diagnostic::error(how).named("old_spelling").at(span));
         }
         return Ok(args.to_vec());
     }
     let first = match &args[1] {
         AArg::Named(l, e) if l.name == "from" => e.clone(),
-        AArg::Positional(e) if !matches!(e.kind, AK::Pos(_)) => return err(Diagnostic::error(format!("a slice starts `from: pos …`: `{}(lend $xs, from: pos 2, to: pos 4)`", name)).at(e.span)),
-        other => return err(Diagnostic::error(how).at(other.span())),
+        AArg::Positional(e) if !matches!(e.kind, AK::Pos(_)) => return err(Diagnostic::error(format!("a slice starts `from: pos …`: `{}(lend $xs, from: pos 2, to: pos 4)`", name)).named("position_unlabelled").at(e.span)),
+        other => return err(Diagnostic::error(how).named("old_spelling").at(other.span())),
     };
     let last = match &args[2] {
         AArg::Named(l, e) if l.name == "to" => e.clone(),
@@ -5745,7 +5745,7 @@ fn slice_args(name: &str, args: &[AArg], span: Span) -> Result<Vec<AArg>> {
             }
             _ => e.clone(),
         },
-        other => return err(Diagnostic::error(how).at(other.span())),
+        other => return err(Diagnostic::error(how).named("old_spelling").at(other.span())),
     };
     Ok(vec![args[0].clone(), AArg::Positional(first), AArg::Positional(last)])
 }

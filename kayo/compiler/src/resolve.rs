@@ -364,7 +364,7 @@ impl Items {
             } else {
                 format!("`{}` is defined twice in {}: {} and {} cannot share a name", name, describe_module(&module.path), with_article(prev_what), with_article(what))
             };
-            return err(Diagnostic::error(msg).at(span).why_at(*prev_span, format!("the first `{}` is declared here", name)));
+            return err(Diagnostic::error(msg).named("defined_twice").at(span).why_at(*prev_span, format!("the first `{}` is declared here", name)));
         }
         module.items.insert(name.to_string(), (r, vis, span));
         if self.case_names.contains(&span) {
@@ -405,10 +405,10 @@ impl Items {
         match &item.kind {
             ItemKind::Main(params, block) => {
                 if !is_root {
-                    return err(Diagnostic::error("`MAIN` lives at the root of the kit (`kit.cy`), not in a module").at(item.span));
+                    return err(Diagnostic::error("`MAIN` lives at the root of the kit (`kit.cy`), not in a module").named("main_not_at_root").at(item.span));
                 }
                 if self.main.is_some() {
-                    return err(Diagnostic::error("a program has one `MAIN`; this is the second").at(item.span));
+                    return err(Diagnostic::error("a program has one `MAIN`; this is the second").named("defined_twice").at(item.span));
                 }
                 self.main = Some((block.clone(), m, item.span, params.clone()));
             }
@@ -455,7 +455,7 @@ impl Items {
                         self.pending_fns.push((id, decl.clone(), m, None));
                         return Ok(());
                     }
-                    return err(Diagnostic::error(format!("`{n}` is written twice: versions of one function are written together in a `coll.fn {n}` block (owner, 2026-10-20)", n = decl.name.name)).at(decl.name.span).why_at(prev_span, format!("the first `{}` is declared here", decl.name.name)));
+                    return err(Diagnostic::error(format!("`{n}` is written twice: versions of one function are written together in a `coll.fn {n}` block (owner, 2026-10-20)", n = decl.name.name)).named("versions_outside_collection").at(decl.name.span).why_at(prev_span, format!("the first `{}` is declared here", decl.name.name)));
                 }
                 self.declare(m, &decl.name.name, ItemRef::Fn(id), vis, decl.name.span)?;
                 self.pending_fns.push((id, decl.clone(), m, None));
@@ -479,14 +479,14 @@ impl Items {
                 // An extern variable is a value: it lives in the value namespace with the consts.
                 let module = &mut self.modules[m.0 as usize];
                 if module.consts.contains_key(&name.name) {
-                    return err(Diagnostic::error(format!("'{}' is declared twice at the top level", name.name)).at(name.span));
+                    return err(Diagnostic::error(format!("'{}' is declared twice at the top level", name.name)).named("defined_twice").at(name.span));
                 }
                 module.items.insert(format!("'{}'", name.name), (ItemRef::ExternLet(id), vis, name.span));
                 self.pending_extern_lets.push((id, ty.clone(), m));
             }
             ItemKind::Struct(decl) => {
                 if decl.name.name == "optional" {
-                    return err(Diagnostic::error("`optional` is the base's: every program has `enum optional <T: any> { value: <T>, none }`; name this struct something else").at(decl.name.span));
+                    return err(Diagnostic::error("`optional` is the base's: every program has `enum optional <T: any> { value: <T>, none }`; name this struct something else").named("name_reserved").at(decl.name.span));
                 }
                 let id = StructId(self.structs.len() as u32);
                 self.structs.push(StructInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), layout_c: decl.layout_c, opaque: decl.opaque, union: decl.union, fields: Vec::new(), blanks: Vec::new(), bounds: Vec::new(), span: decl.name.span });
@@ -495,7 +495,7 @@ impl Items {
             }
             ItemKind::Enum(decl) => {
                 if decl.name.name == "optional" {
-                    return err(Diagnostic::error("`optional` is the base's: every program has `enum optional <T: any> { value: <T>, none }`; name this enum something else").at(decl.name.span));
+                    return err(Diagnostic::error("`optional` is the base's: every program has `enum optional <T: any> { value: <T>, none }`; name this enum something else").named("name_reserved").at(decl.name.span));
                 }
                 let id = EnumId(self.enums.len() as u32);
                 self.enums.push(EnumInfo { name: decl.name.name.clone(), path: qualify(self, m, &decl.name.name), cases: Vec::new(), numbers: decl.layout_c.then(Vec::new), blanks: Vec::new(), bounds: Vec::new(), span: decl.name.span });
@@ -513,7 +513,7 @@ impl Items {
                 self.consts.push(ConstInfo { name: decl.name.name.clone(), module: m, vis, ty: None, value: decl.value.clone(), span: decl.name.span });
                 let module = &mut self.modules[m.0 as usize];
                 if module.consts.contains_key(&decl.name.name) {
-                    return err(Diagnostic::error(format!("'{}' is declared twice at the top level", decl.name.name)).at(decl.name.span));
+                    return err(Diagnostic::error(format!("'{}' is declared twice at the top level", decl.name.name)).named("defined_twice").at(decl.name.span));
                 }
                 module.consts.insert(decl.name.name.clone(), (id, vis, decl.name.span));
                 if self.case_names.contains(&decl.name.span) {
@@ -559,13 +559,13 @@ impl Items {
                         let width = match t.base() {
                             Ty::Int(IntW::Fixed { bits, .. }) => *bits,
                             Ty::Bool => 1,
-                            _ => return err(Diagnostic::error(format!("a bit-field is a whole number or a `bool`, and `{}` is neither", spelled)).at(f.ty.span)),
+                            _ => return err(Diagnostic::error(format!("a bit-field is a whole number or a `bool`, and `{}` is neither", spelled)).named("cnc::bit_field_form").at(f.ty.span)),
                         };
                         if t.bound().is_some() {
-                            return err(Diagnostic::error(format!("a bit-field's range is its bits: write `{}[bits: {}]` alone", spell(&t.base().clone(), self), bits)).at(f.ty.span));
+                            return err(Diagnostic::error(format!("a bit-field's range is its bits: write `{}[bits: {}]` alone", spell(&t.base().clone(), self), bits)).named("cnc::bit_field_form").at(f.ty.span));
                         }
                         if *bits == 0 || *bits > width {
-                            return err(Diagnostic::error(format!("a `{}` bit-field is 1 to {} bits, not {}", spelled, width, bits)).at(*span));
+                            return err(Diagnostic::error(format!("a `{}` bit-field is 1 to {} bits, not {}", spelled, width, bits)).named("cnc::bit_field_too_wide").at(*span));
                         }
                         let ty = match t.base() {
                             Ty::Int(IntW::Fixed { signed, .. }) => {
@@ -579,12 +579,12 @@ impl Items {
                     _ => (self.resolve_type(&f.ty, *m, &mut blanks, true)?, None),
                 };
                 if fields.iter().any(|x: &FieldInfo| x.name == f.name.name) {
-                    return err(Diagnostic::error(format!("field `{}` is declared twice in `{}`", f.name.name, decl.name.name)).at(f.name.span));
+                    return err(Diagnostic::error(format!("field `{}` is declared twice in `{}`", f.name.name, decl.name.name)).named("defined_twice").at(f.name.span));
                 }
                 // A range is Cyborg's promise, and C sees the plain number
                 // (owner, 2026-09-27: a).
                 if decl.layout_c && !ty.base().is_c_shaped(&self.structs, &self.enums) {
-                    return err(Diagnostic::error(format!("field `{}` of the `layout.C` struct `{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and other `layout.C` structs and enums can cross to C", f.name.name, decl.name.name)).at(f.ty.span));
+                    return err(Diagnostic::error(format!("field `{}` of the `layout.C` struct `{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and other `layout.C` structs and enums can cross to C", f.name.name, decl.name.name)).named("cnc::not_c_shaped").at(f.ty.span));
                 }
                 fields.push(FieldInfo { name: f.name.name.clone(), immut: f.immut, ty, bits });
             }
@@ -604,26 +604,26 @@ impl Items {
                     None => None,
                 };
                 if cases.iter().any(|x: &CaseInfo| x.name == c.name.name) {
-                    return err(Diagnostic::error(format!("case `{}` is declared twice in `{}`", c.name.name, decl.name.name)).at(c.name.span));
+                    return err(Diagnostic::error(format!("case `{}` is declared twice in `{}`", c.name.name, decl.name.name)).named("defined_twice").at(c.name.span));
                 }
                 if decl.layout_c {
                     // C's enum (owner, 2026-09-27: a): a number per case,
                     // each its own, written as the C header does.
                     if c.payload.is_some() {
-                        return err(Diagnostic::error(format!("case `{}` of the C enum `{}` carries no data: C's enum is a number per case — `{} = 1`", c.name.name, decl.name.name, c.name.name)).at(c.name.span));
+                        return err(Diagnostic::error(format!("case `{}` of the C enum `{}` carries no data: C's enum is a number per case — `{} = 1`", c.name.name, decl.name.name, c.name.name)).named("cnc::c_enum_carries_data").at(c.name.span));
                     }
                     let Some((n, at)) = c.number else {
-                        return err(Diagnostic::error(format!("case `{}` of the C enum `{}` says its number, as the C header does — `{} = 65`: guessing the order is how bindings go wrong", c.name.name, decl.name.name, c.name.name)).at(c.name.span));
+                        return err(Diagnostic::error(format!("case `{}` of the C enum `{}` says its number, as the C header does — `{} = 65`: guessing the order is how bindings go wrong", c.name.name, decl.name.name, c.name.name)).named("cnc::c_enum_number_missing").at(c.name.span));
                     };
                     if n < i32::MIN as i128 || n > i32::MAX as i128 {
-                        return err(Diagnostic::error(format!("C's enum is 32 bits, C's `int`: {} does not fit i32", n)).at(at));
+                        return err(Diagnostic::error(format!("C's enum is 32 bits, C's `int`: {} does not fit i32", n)).named("value_does_not_fit").at(at));
                     }
                     if let Some(j) = numbers.iter().position(|x| *x == n as i64) {
-                        return err(Diagnostic::error(format!("`{}` and `{}` are both {}: each case has its own number", decl.cases[j].name.name, c.name.name, n)).at(at));
+                        return err(Diagnostic::error(format!("`{}` and `{}` are both {}: each case has its own number", decl.cases[j].name.name, c.name.name, n)).named("cnc::c_enum_number_twice").at(at));
                     }
                     numbers.push(n as i64);
                 } else if let Some((_, at)) = c.number {
-                    return err(Diagnostic::error(format!("only a `layout.C enum`'s cases have numbers: `{}` is a Cyborg enum, whose cases are names", decl.name.name)).at(at));
+                    return err(Diagnostic::error(format!("only a `layout.C enum`'s cases have numbers: `{}` is a Cyborg enum, whose cases are names", decl.name.name)).named("cnc::numbered_enum_not_c").at(at));
                 }
                 cases.push(CaseInfo { name: c.name.name.clone(), payload });
             }
@@ -650,7 +650,7 @@ impl Items {
                 for p in &e.params {
                     let ty = match &p.ty {
                         Some(t) => self.resolve_type(t, *m, &mut blanks, true)?,
-                        None => return err(Diagnostic::error("a parameter in an interface needs its type").at(p.span)),
+                        None => return err(Diagnostic::error("a parameter in an interface needs its type").named("parameter_type_missing").at(p.span)),
                     };
                     params.push((conv_kind(p.kind), ty));
                 }
@@ -676,13 +676,13 @@ impl Items {
             let path = ast::Path { kit: None, segs: vec![owner.clone()], span: owner.span };
             let ty = match self.lookup_path(&path, *m)? {
                 t @ (ItemRef::Struct(_) | ItemRef::Enum(_) | ItemRef::Fn(_)) => t,
-                other => return err(Diagnostic::error(format!("`{}` is a {}: a function belongs to a struct, an enum or a function, `fn {}.name […]` naming one", owner.name, other.what(), owner.name)).at(owner.span)),
+                other => return err(Diagnostic::error(format!("`{}` is a {}: a function belongs to a struct, an enum or a function, `fn {}.name […]` naming one", owner.name, other.what(), owner.name)).named("function_owner_wrong").at(owner.span)),
             };
             let name = self.fns[id.0 as usize].name.clone();
             let after = name[owner.name.len() + 1..].to_string();
             if let ItemRef::Enum(e) = ty {
                 if self.enums[e.0 as usize].cases.iter().any(|c| c.name == after) || self.pending_enums.iter().any(|(pe, d, _)| *pe == e && d.cases.iter().any(|c| c.name.name == after)) {
-                    return err(Diagnostic::error(format!("`{}` is a case of `{}`, so `fn {}` cannot take its name", after, owner.name, name)).at(self.fns[id.0 as usize].name_span));
+                    return err(Diagnostic::error(format!("`{}` is a case of `{}`, so `fn {}` cannot take its name", after, owner.name, name)).named("defined_twice").at(self.fns[id.0 as usize].name_span));
                 }
             }
             if let Some(prev) = self.type_fns.get(&(ty, after.clone())).copied() {
@@ -692,7 +692,7 @@ impl Items {
                     self.versions.entry(prev).or_insert_with(|| vec![prev]).push(*id);
                     continue;
                 }
-                return err(Diagnostic::error(format!("`fn {}` is defined twice", name)).at(self.fns[id.0 as usize].name_span).why_at(self.fns[prev.0 as usize].name_span, format!("the first `fn {}` is declared here", name)));
+                return err(Diagnostic::error(format!("`fn {}` is defined twice", name)).named("defined_twice").at(self.fns[id.0 as usize].name_span).why_at(self.fns[prev.0 as usize].name_span, format!("the first `fn {}` is declared here", name)));
             }
             self.type_fns.insert((ty, after), *id);
         }
@@ -716,7 +716,7 @@ impl Items {
                     let Some((shape, defaulted)) = shapes[k].iter().find_map(|(sb, db)| shapes[i].iter().find(|(sa, _)| sa == sb).map(|(_, da)| (sb, *da || *db))) else { continue };
                     let types = if shape.is_empty() { "no arguments".to_string() } else { shape.iter().map(|(_, t)| t.as_ref().map(|t| spell(t, self)).unwrap_or_else(|| "?".into())).collect::<Vec<_>>().join(", ") };
                     let why = if defaulted { ": a default lets one take the other's call, and versions differ by how many arguments they take or their types (owner, 2026-10-21)" } else { ": versions differ by how many arguments they take or their types (owner, 2026-10-20)" };
-                    return err(Diagnostic::error(format!("`{}` has two versions for {}{}", fb.name, types, why)).at(fb.name_span).why_at(fa.name_span, "the first is written here"));
+                    return err(Diagnostic::error(format!("`{}` has two versions for {}{}", fb.name, types, why)).named("versions_overlap").at(fb.name_span).why_at(fa.name_span, "the first is written here"));
                 }
             }
         }
@@ -738,7 +738,7 @@ impl Items {
                     let me = &self.fns[id.0 as usize];
                     let module = &self.modules[me.module.0 as usize];
                     let full = if me.name.contains('.') || module.parent.is_none() { me.name.clone() } else { format!("{}.{}", module.name, me.name) };
-                    return err(Diagnostic::error(format!("`{} = {}` names no function: there is no `{}` there", full, spelled, spelled)).at(target.span));
+                    return err(Diagnostic::error(format!("`{} = {}` names no function: there is no `{}` there", full, spelled, spelled)).named("unknown_function").at(target.span));
                 };
                 // The function it names is a member written elsewhere that
                 // is not copied yet: next round.
@@ -757,7 +757,7 @@ impl Items {
             }
             if left.len() == before {
                 let (id, target, _) = &left[0];
-                return err(Diagnostic::error(format!("`{}` points round in a circle: a member names a function, not itself", self.fns[id.0 as usize].name)).at(target.span));
+                return err(Diagnostic::error(format!("`{}` points round in a circle: a member names a function, not itself", self.fns[id.0 as usize].name)).named("member_names_itself").at(target.span));
             }
             pointers = left;
         }
@@ -777,14 +777,14 @@ impl Items {
                     }
                 }
                 let Some(t) = &p.ty else {
-                    return err(Diagnostic::error(format!("the `extern.C fn {}` parameter '{}' needs a type: C's signature is written in full", decl.name.name, p.name.name)).at(p.span));
+                    return err(Diagnostic::error(format!("the `extern.C fn {}` parameter '{}' needs a type: C's signature is written in full", decl.name.name, p.name.name)).named("parameter_type_missing").at(p.span));
                 };
                 let ty = self.resolve_type(t, *m, &mut blanks, false)?;
                 if !blanks.is_empty() {
-                    return err(Diagnostic::error("a blank `<T>` cannot cross to C: an `extern fn` is written in C's own types").at(t.span));
+                    return err(Diagnostic::error("a blank `<T>` cannot cross to C: an `extern fn` is written in C's own types").named("cnc::cannot_cross_to_c").at(t.span));
                 }
                 if ty.bound().is_some() {
-                    return err(Diagnostic::error(format!("a range type cannot cross to C: '{}' is written as the plain `{}`", p.name.name, spell(&ty.base().clone(), self))).at(t.span));
+                    return err(Diagnostic::error(format!("a range type cannot cross to C: '{}' is written as the plain `{}`", p.name.name, spell(&ty.base().clone(), self))).named("cnc::cannot_cross_to_c").at(t.span));
                 }
                 self.check_c_shaped(&ty, t.span, &format!("the `extern.C fn {}` parameter '{}'", decl.name.name, p.name.name))?;
                 // C calls a callback, so a number it sends that no case has
@@ -792,7 +792,7 @@ impl Items {
                 if let Ty::Fn(f) = ty.base() {
                     if let Some((_, bad)) = f.params.iter().find(|(_, t)| self.checked_at_door(t)) {
                         let spelled = spell(bad, self);
-                        return err(Diagnostic::error(format!("a callback's parameter cannot be `{}`: C calls it, so a number it sends that `{}` does not allow would have nowhere to fail", spelled, spelled)).at(t.span).fix(None, format!("take the plain number and convert inside: `to.{}(…) otherwise …`", spelled)));
+                        return err(Diagnostic::error(format!("a callback's parameter cannot be `{}`: C calls it, so a number it sends that `{}` does not allow would have nowhere to fail", spelled, spelled)).named("cnc::cannot_cross_to_c").at(t.span).fix(None, format!("take the plain number and convert inside: `to.{}(…) otherwise …`", spelled)));
                     }
                 }
                 params.push((p.name.name.clone(), ty));
@@ -801,7 +801,7 @@ impl Items {
                 Some(t) => {
                     let ty = self.resolve_type(t, *m, &mut blanks, false)?;
                     if !blanks.is_empty() {
-                        return err(Diagnostic::error("a blank `<T>` cannot cross to C: an `extern fn` is written in C's own types").at(t.span));
+                        return err(Diagnostic::error("a blank `<T>` cannot cross to C: an `extern fn` is written in C's own types").named("cnc::cannot_cross_to_c").at(t.span));
                     }
                     let ranged = self.checked_at_door(&ty);
                     self.check_c_shaped(ty.base(), t.span, &format!("the `extern.C fn {}` return", decl.name.name))?;
@@ -810,7 +810,7 @@ impl Items {
                 None => (Ty::Nothing, false),
             };
             if !decl.fails.is_empty() {
-                return err(Diagnostic::error(format!("an `extern fn` cannot `fail`: C has no failures — `{}` returns a plain value, and a wrapper turns a bad one into a failure", decl.name.name)).at(decl.fails[0].name.span));
+                return err(Diagnostic::error(format!("an `extern fn` cannot `fail`: C has no failures — `{}` returns a plain value, and a wrapper turns a bad one into a failure", decl.name.name)).named("cnc::c_cannot_fail").at(decl.fails[0].name.span));
             }
             let e = &mut self.externs[id.0 as usize];
             e.params = params;
@@ -828,7 +828,7 @@ impl Items {
             // (owner, 2026-09-28: b).
             if self.checked_at_door(&t) {
                 let spelled = spell(&t, self);
-                return err(Diagnostic::error(format!("a C variable cannot be `{}`: reading a variable never fails, so it holds C's plain number", spelled)).at(ty.span).fix(None, format!("declare it `i32` and convert: `to.{}(…) otherwise …`", spelled)));
+                return err(Diagnostic::error(format!("a C variable cannot be `{}`: reading a variable never fails, so it holds C's plain number", spelled)).named("cnc::cannot_cross_to_c").at(ty.span).fix(None, format!("declare it `i32` and convert: `to.{}(…) otherwise …`", spelled)));
             }
             self.externs[id.0 as usize].ret = t;
         }
@@ -846,7 +846,7 @@ impl Items {
             let t = self.resolve_type(ty, *m, &mut blanks, false)?;
             let i = match self.lookup_path(iface, *m)? {
                 ItemRef::Iface(i) => i,
-                other => return err(Diagnostic::error(format!("`{}` is a {}, not an interface", iface.spelled(), other.what())).at(iface.span)),
+                other => return err(Diagnostic::error(format!("`{}` is a {}, not an interface", iface.spelled(), other.what())).named("unknown_interface").at(iface.span)),
             };
             self.claims.push((t, i, *span));
         }
@@ -873,7 +873,7 @@ impl Items {
             Ty::Fn(_) => "the callback is not C-shaped: parameters by value (no `lent`), C-shaped types, no `fail`".to_string(),
             _ => format!("`{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and `layout.C` structs cross to C", spell(ty, self)),
         };
-        err(Diagnostic::error(format!("{} is not C-shaped", what)).at(span).why(why))
+        err(Diagnostic::error(format!("{} is not C-shaped", what)).named(match ty.base() { Ty::Struct { .. } | Ty::Enum { .. } => "cnc::not_layout_c", Ty::Fn(f) if !f.fails.is_empty() => "cnc::c_cannot_fail", Ty::Fn(f) if f.params.iter().any(|(k, _)| *k != crate::types::ParamKind::Owned) => "cnc::lent_across_c", _ => "cnc::not_c_shaped" }).at(span).why(why))
     }
 
     fn resolve_fn_decl(&mut self, decl: &ast::FnDecl, m: ModuleId, op: Option<String>, vis: Vis, span: Span) -> Result<FnDeclInfo> {
@@ -881,10 +881,10 @@ impl Items {
         // and looks for nothing back but whether its `must`s hold.
         if decl.test {
             if let Some(p) = decl.params.first() {
-                return err(Diagnostic::error(format!("the `test fn {}` takes no parameters: `kayo test` calls it with nothing — make '{}' a value inside it", decl.name.name, p.name.name)).at(p.span));
+                return err(Diagnostic::error(format!("the `test fn {}` takes no parameters: `kayo test` calls it with nothing — make '{}' a value inside it", decl.name.name, p.name.name)).named("test_fn_misused").at(p.span));
             }
             if decl.ret.is_some() || decl.ret_lent.is_some() || !decl.fails.is_empty() {
-                return err(Diagnostic::error(format!("the `test fn {}` returns nothing and cannot fail: what it checks, it says with `must`", decl.name.name)).at(decl.name.span));
+                return err(Diagnostic::error(format!("the `test fn {}` returns nothing and cannot fail: what it checks, it says with `must`", decl.name.name)).named("test_fn_misused").at(decl.name.span));
             }
         }
         let mut blanks = self.announced(&decl.announce, m)?;
@@ -892,7 +892,7 @@ impl Items {
         let groups = decl.params.iter().filter_map(|p| p.group.as_ref()).chain(decl.ret_lent.iter().filter_map(|r| r.group.as_ref()));
         for g in groups {
             if !decl.announce.groups.iter().any(|a| a.name == g.name) {
-                return err(Diagnostic::error(format!("`@{}` was never announced: a lifetime group is announced right after the name — `fn {} @{} […]`, or after the generics and a `|`", g.name, decl.name.name, g.name)).at(g.span));
+                return err(Diagnostic::error(format!("`@{}` was never announced: a lifetime group is announced right after the name — `fn {} @{} […]`, or after the generics and a `|`", g.name, decl.name.name, g.name)).named("unannounced").at(g.span));
             }
         }
         let mut params = Vec::new();
@@ -919,25 +919,25 @@ impl Items {
         if let Some(rl) = &decl.ret_lent {
             if let Some(g) = &rl.group {
                 if !decl.params.iter().any(|p| p.group.as_ref().map(|x| &x.name) == Some(&g.name)) {
-                    return err(Diagnostic::error(format!("no parameter is `lent@{}`, so `-> lent@{}` would borrow from nothing: mark the parameters it may come from", g.name, g.name)).at(g.span));
+                    return err(Diagnostic::error(format!("no parameter is `lent@{}`, so `-> lent@{}` would borrow from nothing: mark the parameters it may come from", g.name, g.name)).named("borrow_outside_group").at(g.span));
                 }
             }
             if !fails.is_empty() {
-                return err(Diagnostic::error("not yet: a function that hands back a borrow and can also fail has no shape in kayo yet").at(rl.span));
+                return err(Diagnostic::error("not yet: a function that hands back a borrow and can also fail has no shape in kayo yet").named("not_built_yet").at(rl.span));
             }
         }
         if let Some(o) = &op {
             if params.len() != 2 {
-                return err(Diagnostic::error(format!("an operator takes exactly two operands; `{}` is declared with {}", o, params.len())).at(decl.name.span));
+                return err(Diagnostic::error(format!("an operator takes exactly two operands; `{}` is declared with {}", o, params.len())).named("operator_operand_count").at(decl.name.span));
             }
             let language_op = matches!(o.as_str(), "plus" | "minus" | "times" | "pow" | "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least" | "++" | "and" | "or" | "not" | "xor" | "shl" | "shr" | "plus.wrap" | "minus.wrap" | "times.wrap" | "pow.wrap") || o.starts_with("div") || o.starts_with("mod");
             if matches!(o.as_str(), "and" | "or" | "not") {
-                return err(Diagnostic::error(format!("`{}` cannot be redefined: `not`, `and` and `or` stay the language's", o)).at(decl.name.span));
+                return err(Diagnostic::error(format!("`{}` cannot be redefined: `not`, `and` and `or` stay the language's", o)).named("builtin_operator_redefined").at(decl.name.span));
             }
             if language_op {
                 if let Some(Some(t)) = params.first().map(|p| &p.ty) {
                     if !matches!(t.base(), Ty::Struct { .. } | Ty::Enum { .. } | Ty::Var(_)) {
-                        return err(Diagnostic::error(format!("`{}` is the language's operator, and it is never changed for the language's own types: a struct or enum may define `op {}` for itself, `{}` may not", o, o, spell(t, self))).at(decl.name.span));
+                        return err(Diagnostic::error(format!("`{}` is the language's operator, and it is never changed for the language's own types: a struct or enum may define `op {}` for itself, `{}` may not", o, o, spell(t, self))).named("builtin_operator_redefined").at(decl.name.span));
                     }
                 }
             }
@@ -950,7 +950,7 @@ impl Items {
         let mut out: Vec<(String, Option<Ty>)> = Vec::new();
         for f in fails {
             if out.iter().any(|(n, _)| *n == f.name.name) {
-                return err(Diagnostic::error(format!("the failure `{}` is listed twice", f.name.name)).at(f.name.span));
+                return err(Diagnostic::error(format!("the failure `{}` is listed twice", f.name.name)).named("defined_twice").at(f.name.span));
             }
             let payload = match &f.payload {
                 Some(t) => Some(self.resolve_type(t, m, blanks, true)?),
@@ -985,7 +985,7 @@ impl Items {
         // std's, outside std (inside, its names are its own).
         if self.nerve_cord != Some(here) && !self.no_std_roots.contains(&here) && self.nerve_cord_item(path).is_some() {
             let call = if matches!(self.nerve_cord_item(path), Some((ItemRef::Fn(_) | ItemRef::ExternFn(_), _))) { "(…)" } else { "" };
-            return err(Diagnostic::error(format!("`{w}` is std's: write `std::{w}{c}`, or name it for this file with `use std::{h} as {h};` (owner, 2026-10-22)", w = written, c = call, h = head)).at(path.span));
+            return err(Diagnostic::error(format!("`{w}` is std's: write `std::{w}{c}`, or name it for this file with `use std::{h} as {h};` (owner, 2026-10-22)", w = written, c = call, h = head)).named("std_name_needs_path").at(path.span));
         }
         if let Some(deps) = self.kit_deps.get(&here) {
             let mut deps: Vec<(&String, &ModuleId)> = deps.iter().collect();
@@ -996,7 +996,7 @@ impl Items {
                     continue;
                 }
                 let call = if matches!(item, ItemRef::Fn(_) | ItemRef::ExternFn(_)) { "(…)" } else { "" };
-                return err(Diagnostic::error(format!("`{w}` is `{p}`'s: another kit's names take its path (owner, 2026-10-22), so write `{p}::{w}{c}`, or `use {p}::{w} as {h};`", w = written, p = prefix, c = call, h = head)).at(path.span));
+                return err(Diagnostic::error(format!("`{w}` is `{p}`'s: another kit's names take its path (owner, 2026-10-22), so write `{p}::{w}{c}`, or `use {p}::{w} as {h};`", w = written, p = prefix, c = call, h = head)).named("kit_name_needs_path").at(path.span));
             }
         }
         own.map(Bareness::Own)
@@ -1019,17 +1019,17 @@ impl Items {
         let Some(&id) = self.type_fns.get(&(ty, last.name.clone())) else {
             if let ItemRef::Struct(s) = ty {
                 let name = &self.structs[s.0 as usize].name;
-                return err(Diagnostic::error(format!("`{}` has no function `{}`: there is no `fn {}.{}`", name, last.name, name, last.name)).at(last.span));
+                return err(Diagnostic::error(format!("`{}` has no function `{}`: there is no `fn {}.{}`", name, last.name, name, last.name)).named("unknown_function").at(last.span));
             }
             if let ItemRef::Fn(f) = ty {
                 let name = &self.fns[f.0 as usize].name;
-                return err(Diagnostic::error(format!("`{}` has no `{}`: there is no `fn {}.{}`", name, last.name, name, last.name)).at(last.span));
+                return err(Diagnostic::error(format!("`{}` has no `{}`: there is no `fn {}.{}`", name, last.name, name, last.name)).named("unknown_function").at(last.span));
             }
             return Ok(None);
         };
         let f = &self.fns[id.0 as usize];
         if self.kit_root(f.module) != self.kit_root(m) && f.vis != Vis::Pub {
-            return err(Diagnostic::error(format!("`fn {}` is not `pub`, and another kit reaches only `pub` items", f.name)).at(last.span).fix(None, "its own kit opens it with `pub`"));
+            return err(Diagnostic::error(format!("`fn {}` is not `pub`, and another kit reaches only `pub` items", f.name)).named("not_public").at(last.span).fix(None, "its own kit opens it with `pub`"));
         }
         Ok(Some(id))
     }
@@ -1070,15 +1070,15 @@ impl Items {
                 ("std", Some(root)) => {
                     let inner = ast::Path { kit: None, segs: path.segs.clone(), span: path.span };
                     if !path.segs.is_empty() && self.lookup_pub_from(&inner, root).is_none() {
-                        return err(Diagnostic::error(format!("`{}` is not available yet: the CyborgPL std has not written it", path.spelled())).at(path.span));
+                        return err(Diagnostic::error(format!("`{}` is not available yet: the CyborgPL std has not written it", path.spelled())).named("unknown_std_name").at(path.span));
                     }
                     cur = root
                 }
-                ("std", None) => return err(Diagnostic::error(format!("`{}` is not available yet: there is no `std` kit for now — the base language comes first", path.spelled())).at(path.span)),
+                ("std", None) => return err(Diagnostic::error(format!("`{}` is not available yet: there is no `std` kit for now — the base language comes first", path.spelled())).named("std_not_listed").at(path.span)),
                 _ => cur = self.dependency(kit, m)?,
             }
             if path.segs.first().map_or(false, |s| s.name == "my") {
-                return err(Diagnostic::error(format!("`{}::` already starts at that kit's root: write `{}::…` without `my.`", kit.name, kit.name)).at(path.span));
+                return err(Diagnostic::error(format!("`{}::` already starts at that kit's root: write `{}::…` without `my.`", kit.name, kit.name)).named("my_after_kit_path").at(path.span));
             }
         }
         let mut segs = path.segs.iter().peekable();
@@ -1087,7 +1087,7 @@ impl Items {
             segs.next();
             cur = self.kit_root(m);
             if segs.peek().is_none() {
-                return err(Diagnostic::error("`my` is followed by `.` and the root item it reaches: `my.helper(…)`").at(path.span));
+                return err(Diagnostic::error("`my` is followed by `.` and the root item it reaches: `my.helper(…)`").named("my_needs_path").at(path.span));
             }
         }
         let mut result = None;
@@ -1098,7 +1098,7 @@ impl Items {
             if std::mem::take(&mut first_seg) && seg.name == "optional" && module.item(&seg.name).is_none() {
                 if let Some(id) = self.base_optional {
                     if segs.peek().is_some() {
-                        return err(Diagnostic::error("`optional` is an enum, not a module: nothing comes after it in a path but a case").at(seg.span));
+                        return err(Diagnostic::error("`optional` is an enum, not a module: nothing comes after it in a path but a case").named("not_a_module").at(seg.span));
                     }
                     result = Some(ItemRef::Enum(id));
                     continue;
@@ -1106,7 +1106,7 @@ impl Items {
             }
             let Some((item, vis, _)) = module.item(&seg.name) else {
                 let kind = if segs.peek().is_none() { "item" } else { "module" };
-                return err(Diagnostic::error(format!("there is no {} `{}` in {}", kind, seg.name, describe_module(&module.path))).at(seg.span).why(self.hint_for_missing(&seg.name, cur)));
+                return err(Diagnostic::error(format!("there is no {} `{}` in {}", kind, seg.name, describe_module(&module.path))).named(if kind == "module" { "unknown_module" } else { "unknown_function" }).at(seg.span).why(self.hint_for_missing(&seg.name, cur)));
             };
             self.check_visible(*item, *vis, cur, m, seg)?;
             match item {
@@ -1115,7 +1115,7 @@ impl Items {
                 }
                 _ => {
                     if segs.peek().is_some() {
-                        return err(Diagnostic::error(format!("`{}` is a {}, not a module: nothing comes after it in a path", seg.name, item.what())).at(seg.span));
+                        return err(Diagnostic::error(format!("`{}` is a {}, not a module: nothing comes after it in a path", seg.name, item.what())).named("not_a_module").at(seg.span));
                     }
                     result = Some(*item);
                 }
@@ -1128,7 +1128,7 @@ impl Items {
     pub fn lookup_const_path(&self, path: &ast::Path, name: &ast::QName, m: ModuleId) -> Result<crate::hir::ConstId> {
         if let Some(kit) = &path.kit {
             if kit.name == "std" && self.nerve_cord.is_none() {
-                return err(Diagnostic::error("`std::` is not available yet: there is no `std` kit for now").at(path.span));
+                return err(Diagnostic::error("`std::` is not available yet: there is no `std` kit for now").named("std_not_listed").at(path.span));
             }
             if kit.name == "std" && path.segs.is_empty() {
                 return self.lookup_const_in(self.nerve_cord.unwrap(), name, m);
@@ -1143,7 +1143,7 @@ impl Items {
         } else {
             match self.lookup_path(path, m)? {
                 ItemRef::Module(t) => t,
-                other => return err(Diagnostic::error(format!("`{}` is a {}, not a module: a const is reached through its module — `module.$name`", path.spelled(), other.what())).at(path.span)),
+                other => return err(Diagnostic::error(format!("`{}` is a {}, not a module: a const is reached through its module — `module.$name`", path.spelled(), other.what())).named("not_a_module").at(path.span)),
             }
         };
         self.lookup_const_in(target, name, m)
@@ -1152,13 +1152,13 @@ impl Items {
     pub fn lookup_const_in(&self, target: ModuleId, name: &ast::QName, from: ModuleId) -> Result<crate::hir::ConstId> {
         let module = &self.modules[target.0 as usize];
         let Some((id, vis, _)) = module.const_named(&name.name) else {
-            return err(Diagnostic::error(format!("there is no const '{}' in {}", name.name, describe_module(&module.path))).at(name.span));
+            return err(Diagnostic::error(format!("there is no const '{}' in {}", name.name, describe_module(&module.path))).named("unknown_const").at(name.span));
         };
         if !self.visible(*vis, target, from) && self.kit_root(target) != self.kit_root(from) {
-            return err(Diagnostic::error(format!("the const '{}' is not `pub`, and another kit reaches only `pub` items", name.name)).at(name.span));
+            return err(Diagnostic::error(format!("the const '{}' is not `pub`, and another kit reaches only `pub` items", name.name)).named("not_public").at(name.span));
         }
         if !self.visible(*vis, target, from) {
-            return err(Diagnostic::error(format!("'{}' is private to {}: add `pub` (other kits too) or `pub.kit` (this kit) where it is declared", name.name, describe_module(&module.path))).at(name.span));
+            return err(Diagnostic::error(format!("'{}' is private to {}: add `pub` (other kits too) or `pub.kit` (this kit) where it is declared", name.name, describe_module(&module.path))).named("not_public").at(name.span));
         }
         Ok(*id)
     }
@@ -1169,7 +1169,7 @@ impl Items {
         let here = self.kit_root(m);
         match self.kit_deps.get(&here).and_then(|d| d.get(&kit.name)) {
             Some(r) => Ok(*r),
-            None => err(Diagnostic::error(format!("no kit with the prefix `{}`: a kit this one uses is listed under `my kits:` in its `CyJet.toml` (`areas {{` / `path = ../areas` / `}}`), and its own `CyJet.toml` says `prefix = {}`", kit.name, kit.name)).at(kit.span)),
+            None => err(Diagnostic::error(format!("no kit with the prefix `{}`: a kit this one uses is listed under `my kits:` in its `CyJet.toml` (`areas {{` / `path = ../areas` / `}}`), and its own `CyJet.toml` says `prefix = {}`", kit.name, kit.name)).named("kit_not_listed").at(kit.span)),
         }
     }
 
@@ -1191,13 +1191,13 @@ impl Items {
         let where_ = describe_module(&self.modules[declared_in.0 as usize].path);
         let what = item.what();
         if self.kit_root(declared_in) != self.kit_root(from) {
-            return err(Diagnostic::error(format!("{} `{}` is not `pub`, and another kit reaches only `pub` items", what, seg.name)).at(seg.span).fix(None, "its own kit opens it with `pub`; `pub.kit` keeps it inside that kit"));
+            return err(Diagnostic::error(format!("{} `{}` is not `pub`, and another kit reaches only `pub` items", what, seg.name)).named("not_public").at(seg.span).fix(None, "its own kit opens it with `pub`; `pub.kit` keeps it inside that kit"));
         }
         let full = match item {
             ItemRef::Module(c) => format!("module `{}`", self.modules[c.0 as usize].path),
             _ => format!("{} `{}`", what, seg.name),
         };
-        err(Diagnostic::error(format!("{} is private to {}: it is visible there and in the modules nested inside it", full, where_))
+        err(Diagnostic::error(format!("{} is private to {}: it is visible there and in the modules nested inside it", full, where_)).named("not_public")
             .at(seg.span)
             .fix(None, format!("write `pub.kit` before it to open it to the whole kit, or `pub` for other kits too")))
     }
@@ -1236,14 +1236,14 @@ impl Items {
         let mut out: Vec<(String, Vec<IfaceId>)> = Vec::new();
         for g in &a.generics {
             if out.iter().any(|(n, _)| *n == g.name.name) {
-                return err(Diagnostic::error(format!("`<{}>` is announced twice", g.name.name)).at(g.name.span));
+                return err(Diagnostic::error(format!("`<{}>` is announced twice", g.name.name)).named("defined_twice").at(g.name.span));
             }
             let mut bounds = Vec::new();
             for p in &g.bounds {
                 match self.lookup_path(p, m) {
                     Ok(ItemRef::Iface(i)) => bounds.push(i),
-                    Ok(other) => return err(Diagnostic::error(format!("`{}` is a {}, not an interface: what a generic accepts is an interface — `<{}>: Ordered` — or `any`", p.spelled(), other.what(), g.name.name)).at(p.span)),
-                    Err(_) => return err(Diagnostic::error(format!("there is no interface named `{}`", p.spelled())).at(p.span)),
+                    Ok(other) => return err(Diagnostic::error(format!("`{}` is a {}, not an interface: what a generic accepts is an interface — `<{}>: Ordered` — or `any`", p.spelled(), other.what(), g.name.name)).named("unknown_interface").at(p.span)),
+                    Err(_) => return err(Diagnostic::error(format!("there is no interface named `{}`", p.spelled())).named("unknown_interface").at(p.span)),
                 }
             }
             out.push((g.name.name.clone(), bounds));
@@ -1265,14 +1265,14 @@ impl Items {
         match &t.kind {
             ast::TypeKind::Var { name, bound } => {
                 if !allow_blanks {
-                    return err(Diagnostic::error(format!("a blank `<{}>` cannot appear here", name.name)).at(t.span));
+                    return err(Diagnostic::error(format!("a blank `<{}>` cannot appear here", name.name)).named("cnc::cannot_cross_to_c").at(t.span));
                 }
                 let _ = bound;
                 // Every generic is announced right after its declaration's
                 // name (owner, 2026-10-02), so a mention names one of those.
                 match blanks.iter().position(|(n, _)| *n == name.name) {
                     Some(pos) => Ok(Ty::Var(pos as u32)),
-                    None => err(Diagnostic::error(format!("`<{}>` was never announced: a generic is announced right after the name, with what it accepts — `fn f <{}>: any […]`", name.name, name.name)).at(t.span)),
+                    None => err(Diagnostic::error(format!("`<{}>` was never announced: a generic is announced right after the name, with what it accepts — `fn f <{}>: any […]`", name.name, name.name)).named("unannounced").at(t.span)),
                 }
             }
             ast::TypeKind::Fn { params, ret, fails } => {
@@ -1296,7 +1296,7 @@ impl Items {
             }
             ast::TypeKind::Bits { inner, bits, span } => {
                 let inner_ty = self.resolve_type(inner, m, blanks, allow_blanks)?;
-                err(Diagnostic::error(format!("`{}[bits: {}]` is a C bit-field: it is for a `layout.C` struct's fields, where C packs them", spell(&inner_ty, self), bits)).at(*span))
+                err(Diagnostic::error(format!("`{}[bits: {}]` is a C bit-field: it is for a `layout.C` struct's fields, where C packs them", spell(&inner_ty, self), bits)).named("cnc::bits_outside_layout").at(*span))
             }
             ast::TypeKind::Bound { inner, lo, hi, unit, span, old, zero, places: Some((max, min, pspan)) } => {
                 // The places a `d` or a percent keeps (owner, 2026-10-17):
@@ -1310,7 +1310,7 @@ impl Items {
                 };
                 let decimal = crate::check::expr::percent_inner(&number).is_some() || matches!(number.base(), Ty::Deci(_));
                 if !decimal {
-                    return err(Diagnostic::error(format!("places are kept by a `d` or a percent; {} is not decimal: `d64[max_places: 2]`", crate::types::a_type(&spell(&number, self)))).at(*pspan));
+                    return err(Diagnostic::error(format!("places are kept by a `d` or a percent; {} is not decimal: `d64[max_places: 2]`", crate::types::a_type(&spell(&number, self)))).named("money::places_on_bin").at(*pspan));
                 }
                 Ok(Ty::Places { inner: Box::new(number), max: *max, min: *min })
             }
@@ -1320,10 +1320,10 @@ impl Items {
                 // whether its closing 0 counts, said every time.
                 if let Ty::Seq { kind: SeqKind::CStr(_), elem } = &base {
                     if let Some(u) = unit.as_ref().filter(|u| !matches!(u.name.as_str(), "bytes" | "byte")) {
-                        return err(Diagnostic::error(format!("a C string is counted in bytes, not {}: C has no {}", u.name, u.name)).at(u.span));
+                        return err(Diagnostic::error(format!("a C string is counted in bytes, not {}: C has no {}", u.name, u.name)).named("cnc::c_str_counted_in_bytes").at(u.span));
                     }
                     let Some((include, _)) = zero else {
-                        return err(Diagnostic::error("a bounded C string says whether its closing 0 counts: `C.str[max: 255 bytes, exclude zero]` (the text, the 0 on top) or `C.str[max: 256 bytes, include zero]` (the whole buffer) (owner, 2026-10-19)").at(*span));
+                        return err(Diagnostic::error("a bounded C string says whether its closing 0 counts: `C.str[max: 255 bytes, exclude zero]` (the text, the 0 on top) or `C.str[max: 256 bytes, include zero]` (the whole buffer) (owner, 2026-10-19)").named("cnc::c_str_zero_unsaid").at(*span));
                     };
                     let (l, h) = len_bounds(lo, hi, *span)?;
                     // Held as the length with the 0, which a C string always has.
@@ -1331,20 +1331,20 @@ impl Items {
                     return Ok(Ty::Bounded { inner: Box::new(Ty::Seq { elem: elem.clone(), kind: SeqKind::CStr(*include) }), bound: Bound::Len { lo: l, hi: h, unit: Some(Unit::Byte) } });
                 }
                 if let Some((_, at)) = zero {
-                    return err(Diagnostic::error("`exclude zero` and `include zero` are for a C string's bound, `C.str[max: 255 bytes, exclude zero]`").at(*at));
+                    return err(Diagnostic::error("`exclude zero` and `include zero` are for a C string's bound, `C.str[max: 255 bytes, exclude zero]`").named("cnc::c_str_zero_misplaced").at(*at));
                 }
                 if *old {
                     // Whether it takes a bound comes before how one is
                     // written (owner, 2026-10-12, labelled bounds).
                     return match &base {
-                        Ty::Seq { kind: SeqKind::Array, .. } => err(Diagnostic::error("a length bound belongs on a `list`: an `array` has one length, already known").at(*span)),
-                        Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => err(Diagnostic::error("a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)").at(*span)),
-                        other => err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`i32[min: 0, max: 100]`), text, lists, maps and channels", spell(other, self))).at(*span)),
+                        Ty::Seq { kind: SeqKind::Array, .. } => err(Diagnostic::error("a length bound belongs on a `list`: an `array` has one length, already known").named("length_bound_on_array").at(*span)),
+                        Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Str(_) | Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => err(Diagnostic::error("a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)").named("old_spelling").at(*span)),
+                        other => err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`i32[min: 0, max: 100]`), text, lists, maps and channels", spell(other, self))).named("bound_not_taken").at(*span)),
                     };
                 }
                 self.resolve_bound(base, lo, hi, unit.as_ref(), *span)
             }
-            ast::TypeKind::Count(n) => err(Diagnostic::error(format!("`count {}` is a lane count, not a type: only a `simd[T, count: N]` takes one", n)).at(t.span)),
+            ast::TypeKind::Count(n) => err(Diagnostic::error(format!("`count {}` is a lane count, not a type: only a `simd[T, count: N]` takes one", n)).named("lane_count_misplaced").at(t.span)),
             ast::TypeKind::Path { path, args } => {
                 POINTEE.with(|p| p.set(pointee));
                 self.resolve_type_path(path, args, m, blanks, allow_blanks, t.span)
@@ -1354,12 +1354,12 @@ impl Items {
 
     fn resolve_bound(&self, base: Ty, lo: &ast::Expr, hi: &ast::Expr, unit: Option<&ast::Ident>, span: Span) -> Result<Ty> {
         if base.bound().is_some() {
-            return err(Diagnostic::error("a type takes one bound").at(span));
+            return err(Diagnostic::error("a type takes one bound").named("bound_given_twice").at(span));
         }
         let bound = match &base {
             Ty::Int(_) => {
                 if let Some(u) = unit {
-                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).at(u.span));
+                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).named("bound_unit_misplaced").at(u.span));
                 }
                 // `min` and `max` are the base type's own limits
                 // (`input.md`, one-ended ranges): `i8[1, max]` is 1 to 127.
@@ -1374,16 +1374,16 @@ impl Items {
                     if let ast::ExprKind::Path(p) = &e.kind {
                         if p.is(&["min"]) || p.is(&["max"]) {
                             let Some((min, max)) = limits else {
-                                return err(Diagnostic::error(format!("`{}` is the type's own limit, and this integer's width is not known yet", p.head())).at(e.span));
+                                return err(Diagnostic::error(format!("`{}` is the type's own limit, and this integer's width is not known yet", p.head())).named("width_unknown").at(e.span));
                             };
                             return Ok(if p.is(&["min"]) { min } else { max });
                         }
                     }
-                    err(Diagnostic::error("an integer's bounds are integers: `i32[min: 0, max: 100]`").at(e.span))
+                    err(Diagnostic::error("an integer's bounds are integers: `i32[min: 0, max: 100]`").named("bound_wrong_type").at(e.span))
                 };
                 let (l, h) = (end(lo)?, end(hi)?);
                 if l > h {
-                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).at(span));
+                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).named("bounds_backwards").at(span));
                 }
                 let said = Said { lo: !left_out(lo, "min"), hi: !left_out(hi, "max"), bits: None };
                 if let Ty::Int(IntW::Fixed { signed, bits }) = &base {
@@ -1392,7 +1392,7 @@ impl Items {
                     // no `u8` is 300, and none is -1.
                     for (v, e) in [(l, lo), (h, hi)] {
                         if v < min || v > max {
-                            return err(Diagnostic::error(format!("{} does not fit {} ({} to {}): a range's bounds are values of its type", v, spell(&base, self), min, max)).at(e.span));
+                            return err(Diagnostic::error(format!("{} does not fit {} ({} to {}): a range's bounds are values of its type", v, spell(&base, self), min, max)).named("bound_outside_type").at(e.span));
                         }
                     }
                 }
@@ -1400,7 +1400,7 @@ impl Items {
             }
             Ty::Bin(_) => {
                 if let Some(u) = unit {
-                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).at(u.span));
+                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).named("bound_unit_misplaced").at(u.span));
                 }
                 // The largest finite value of each width; a bound past it
                 // is no value of the type (owner, 2026-09-23).
@@ -1416,29 +1416,29 @@ impl Items {
                     match &e.kind {
                         ast::ExprKind::Path(p) if p.is(&["min"]) || p.is(&["max"]) => match top {
                             Some(t) => Ok(Some(format!("{:?}", if p.is(&["min"]) { -t } else { t }))),
-                            None => err(Diagnostic::error(format!("`{}` is the type's own limit, and this bin's width is not known yet", p.head())).at(e.span)),
+                            None => err(Diagnostic::error(format!("`{}` is the type's own limit, and this bin's width is not known yet", p.head())).named("width_unknown").at(e.span)),
                         },
                         _ => Ok(None),
                     }
                 };
                 let l = match side(lo)? {
                     Some(v) => v,
-                    None => bin_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `f64[min 0.0, max 1.0]` — an integer's bounds are integers, and the two do not mix").at(lo.span)))?,
+                    None => bin_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `f64[min 0.0, max 1.0]` — an integer's bounds are integers, and the two do not mix").named("bound_wrong_type").at(lo.span)))?,
                 };
                 let h = match side(hi)? {
                     Some(v) => v,
-                    None => bin_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `f64[min: 0.0, max: 1.0]`").at(hi.span)))?,
+                    None => bin_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a bin's bounds are bins: `f64[min: 0.0, max: 1.0]`").named("bound_wrong_type").at(hi.span)))?,
                 };
                 if let Some(top) = top {
                     for (t, e) in [(&l, lo), (&h, hi)] {
                         let v = t.parse::<f64>().unwrap_or(f64::INFINITY);
                         if !(v.abs() <= top) {
-                            return err(Diagnostic::error(format!("{} does not fit {}: a range's bounds are values of its type", t, spell(&base, self))).at(e.span));
+                            return err(Diagnostic::error(format!("{} does not fit {}: a range's bounds are values of its type", t, spell(&base, self))).named("bound_outside_type").at(e.span));
                         }
                     }
                 }
                 if l.parse::<f64>().unwrap_or(0.0) > h.parse::<f64>().unwrap_or(0.0) {
-                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).at(span));
+                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).named("bounds_backwards").at(span));
                 }
                 Bound::Bin { lo: l, hi: h, said: Said { lo: !left_out(lo, "min"), hi: !left_out(hi, "max"), bits: None } }
             }
@@ -1446,26 +1446,26 @@ impl Items {
             // written with a point, and each is a value of the width.
             Ty::Deci(bits) => {
                 if let Some(u) = unit {
-                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).at(u.span));
+                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).named("bound_unit_misplaced").at(u.span));
                 }
                 for e in [lo, hi] {
                     if let ast::ExprKind::Path(p) = &e.kind {
                         if p.is(&["min"]) || p.is(&["max"]) {
-                            return err(Diagnostic::error(format!("not yet: a deci's bound with a side left out — kayo writes both sides of a deci's range so far: `d{}[min: 0.0, max: 1.0]`", bits)).at(span));
+                            return err(Diagnostic::error(format!("not yet: a deci's bound with a side left out — kayo writes both sides of a deci's range so far: `d{}[min: 0.0, max: 1.0]`", bits)).named("not_built_yet").at(span));
                         }
                     }
                 }
-                let written = |e: &ast::Expr| bin_literal(e).ok_or_else(|| Box::new(Diagnostic::error(format!("a deci's bounds are written with a point, as a bin's are: `d{}[min: 0.0, max: 1.0]`", bits)).at(e.span)));
+                let written = |e: &ast::Expr| bin_literal(e).ok_or_else(|| Box::new(Diagnostic::error(format!("a deci's bounds are written with a point, as a bin's are: `d{}[min: 0.0, max: 1.0]`", bits)).named("bound_wrong_type").at(e.span)));
                 let (l, h) = (written(lo)?, written(hi)?);
                 for (t, e) in [(&l, lo), (&h, hi)] {
                     match crate::deci::literal(t, *bits) {
                         Ok(_) => {}
-                        Err(crate::deci::LitErr::Digits(n)) => return err(Diagnostic::error(format!("`{}` has {} digits; d{} holds {}: a range's bounds are values of its type", t, n, bits, crate::deci::digits(*bits))).at(e.span)),
-                        Err(crate::deci::LitErr::Range) => return err(Diagnostic::error(format!("`{}` is past what d{} holds: a range's bounds are values of its type", t, bits)).at(e.span)),
+                        Err(crate::deci::LitErr::Digits(n)) => return err(Diagnostic::error(format!("`{}` has {} digits; d{} holds {}: a range's bounds are values of its type", t, n, bits, crate::deci::digits(*bits))).named("bound_outside_type").at(e.span)),
+                        Err(crate::deci::LitErr::Range) => return err(Diagnostic::error(format!("`{}` is past what d{} holds: a range's bounds are values of its type", t, bits)).named("bound_outside_type").at(e.span)),
                     }
                 }
                 if l.replace('_', "").parse::<f64>().unwrap_or(0.0) > h.replace('_', "").parse::<f64>().unwrap_or(0.0) {
-                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).at(span));
+                    return err(Diagnostic::error(format!("the low bound comes first: `[min: {}, max: {}]`", h, l)).named("bounds_backwards").at(span));
                 }
                 Bound::Bin { lo: l, hi: h, said: Said::default() }
             }
@@ -1474,7 +1474,7 @@ impl Items {
             // values are.
             Ty::Percent(inner) => {
                 if let Some(u) = unit {
-                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).at(u.span));
+                    return err(Diagnostic::error(format!("a number's bound has no unit; `{}` belongs on a text's length bound", u.name)).named("bound_unit_misplaced").at(u.span));
                 }
                 let side = |e: &ast::Expr, w: &str| -> Result<Option<String>> {
                     if left_out(e, w) {
@@ -1487,9 +1487,9 @@ impl Items {
                     match &e.kind {
                         ast::ExprKind::Percent(lit) => match &lit.kind {
                             ast::ExprKind::Bin(t) | ast::ExprKind::Exact(t) => Ok(Some(format!("{}{}", if neg { "-" } else { "" }, t.replace('_', "")))),
-                            _ => err(Diagnostic::error("a percent's bounds are written in `%`: `percent[d32][min: 0%, max: 100%]`").at(e.span)),
+                            _ => err(Diagnostic::error("a percent's bounds are written in `%`: `percent[d32][min: 0%, max: 100%]`").named("bound_wrong_type").at(e.span)),
                         },
-                        _ => err(Diagnostic::error("a percent's bounds are written in `%`: `percent[d32][min: 0%, max: 100%]`").at(e.span)),
+                        _ => err(Diagnostic::error("a percent's bounds are written in `%`: `percent[d32][min: 0%, max: 100%]`").named("bound_wrong_type").at(e.span)),
                     }
                 };
                 let (l, h) = (side(lo, "min")?, side(hi, "max")?);
@@ -1497,7 +1497,7 @@ impl Items {
                     for (t, e) in [(&l, lo), (&h, hi)] {
                         if let Some(t) = t {
                             if let Err(crate::deci::LitErr::Digits(n)) = crate::deci::literal(t, bits) {
-                                return err(Diagnostic::error(format!("`{}%` has {} digits; d{} holds {}: a range's bounds are values of its type", crate::types::percent_text(t), n, bits, crate::deci::digits(bits))).at(e.span));
+                                return err(Diagnostic::error(format!("`{}%` has {} digits; d{} holds {}: a range's bounds are values of its type", crate::types::percent_text(t), n, bits, crate::deci::digits(bits))).named("bound_outside_type").at(e.span));
                             }
                         }
                     }
@@ -1505,7 +1505,7 @@ impl Items {
                 let num = |t: &Option<String>| t.as_ref().and_then(|t| t.parse::<f64>().ok());
                 if let (Some(a), Some(b)) = (num(&l), num(&h)) {
                     if a > b {
-                        return err(Diagnostic::error("the low bound comes first: `[min: …, max: …]`").at(span));
+                        return err(Diagnostic::error("the low bound comes first: `[min: …, max: …]`").named("bounds_backwards").at(span));
                     }
                 }
                 let said = Said { lo: l.is_some(), hi: h.is_some(), bits: None };
@@ -1521,7 +1521,7 @@ impl Items {
                     match (t, top) {
                         (Some(t), _) => Ok(t),
                         (None, Some(top)) => Ok(format!("{:?}", if lowest { -top } else { top })),
-                        (None, None) => err(Diagnostic::error(format!("not yet: a deci percent's bound with a side left out — kayo writes both sides so far: `{}[min: 0%, max: 100%]`", spell(&base, self))).at(span)),
+                        (None, None) => err(Diagnostic::error(format!("not yet: a deci percent's bound with a side left out — kayo writes both sides so far: `{}[min: 0%, max: 100%]`", spell(&base, self))).named("not_built_yet").at(span)),
                     }
                 };
                 Bound::Bin { lo: open(l, true)?, hi: open(h, false)?, said }
@@ -1532,27 +1532,27 @@ impl Items {
                         "bytes" | "byte" => Unit::Byte,
                         "points" | "point" => Unit::Point,
                         "graphemes" | "grapheme" => Unit::Grapheme,
-                        other => return err(Diagnostic::error(format!("`{}` is not a unit of text length: `bytes`, `points` or `graphemes`", other)).at(u.span)),
+                        other => return err(Diagnostic::error(format!("`{}` is not a unit of text length: `bytes`, `points` or `graphemes`", other)).named("unknown_text_unit").at(u.span)),
                     },
-                    None => return err(Diagnostic::error("a text's length bound must say which unit it counts — `bytes`, `points` or `graphemes` — after the last number: `str.utf8[min: 1, max: 40 graphemes]`; a text has three lengths and no single one").at(span)),
+                    None => return err(Diagnostic::error("a text's length bound must say which unit it counts — `bytes`, `points` or `graphemes` — after the last number: `str.utf8[min: 1, max: 40 graphemes]`; a text has three lengths and no single one").named("bound_unit_unsaid").at(span)),
                 };
                 let (l, h) = len_bounds(lo, hi, span)?;
                 Bound::Len { lo: l, hi: h, unit: Some(u) }
             }
             Ty::Seq { kind: SeqKind::Array, .. } => {
-                return err(Diagnostic::error("a length bound belongs on a `list`: an `array` has one length, already known").at(span));
+                return err(Diagnostic::error("a length bound belongs on a `list`: an `array` has one length, already known").named("length_bound_on_array").at(span));
             }
             Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => {
                 if matches!(base, Ty::Channel(_)) && matches!(&hi.kind, ast::ExprKind::Path(p) if p.is(&["max"])) {
-                    return err(Diagnostic::error("a bounded channel says how much it holds: `channel[T][max: 100]`; with no bound it is a hand-off").at(span));
+                    return err(Diagnostic::error("a bounded channel says how much it holds: `channel[T][max: 100]`; with no bound it is a hand-off").named("mcps::channel_bound_form").at(span));
                 }
                 if let Some(u) = unit {
-                    return err(Diagnostic::error(format!("a count bound has no unit; `{}` belongs on a text's length bound", u.name)).at(u.span));
+                    return err(Diagnostic::error(format!("a count bound has no unit; `{}` belongs on a text's length bound", u.name)).named("bound_unit_misplaced").at(u.span));
                 }
                 let (l, h) = len_bounds(lo, hi, span)?;
                 Bound::Len { lo: l, hi: h, unit: None }
             }
-            other => return err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`i32[min: 0, max: 100]`), text, lists, maps and channels", spell(other, self))).at(span)),
+            other => return err(Diagnostic::error(format!("`{}` takes no bound: bounds go on numbers (`i32[min: 0, max: 100]`), text, lists, maps and channels", spell(other, self))).named("bound_not_taken").at(span)),
         };
         Ok(Ty::Bounded { inner: Box::new(base), bound })
     }
@@ -1574,16 +1574,16 @@ impl Items {
         // A `list` with no element type is told that first, as the oracle does.
         let counted = matches!(path.head(), "list" | "map") && path.segs.len() == 1 && args.is_empty();
         if path.kit.is_none() && std_type(path) && !via_std && !counted && self.nerve_cord.is_some_and(|c| c != self.kit_root(m)) {
-            return err(Diagnostic::error(crate::check::expr::std_bare_message(path)).at(path.span));
+            return err(Diagnostic::error(crate::check::expr::std_bare_message(path)).named("std_name_needs_path").at(path.span));
         }
         if path.kit.is_none() && std_type(path) && !via_std && !counted && self.nerve_cord.is_none() && !self.no_std_roots.contains(&self.kit_root(m)) {
-            return err(Diagnostic::error(crate::check::expr::std_bare_message(path)).at(path.span));
+            return err(Diagnostic::error(crate::check::expr::std_bare_message(path)).named("std_name_needs_path").at(path.span));
         }
         let pointee = POINTEE.with(|p| p.replace(false));
         let head = path.head();
         let no_args = |what: &str| -> Result<()> {
             if !args.is_empty() {
-                return err(Diagnostic::error(format!("`{}` takes no type parameters", what)).at(span));
+                return err(Diagnostic::error(format!("`{}` takes no type parameters", what)).named("type_parameter_count").at(span));
             }
             Ok(())
         };
@@ -1596,18 +1596,18 @@ impl Items {
                 _ => None,
             };
             if let Some(why) = refused {
-                return err(Diagnostic::error(why).at(span));
+                return err(Diagnostic::error(why).named("foreign_spelling").at(span));
             }
         }
         // The brain float comes in one width (owner, 2026-10-02).
         if path.kit.is_none() && head != "brain16" && head != "bfloat16" && head != "bf16" {
             let brainy = ["brain", "bfloat", "bf"].iter().find(|p| head.strip_prefix(*p).is_some_and(|r| !r.is_empty() && r.bytes().all(|c| c.is_ascii_digit())));
             if let Some(p) = brainy {
-                return err(Diagnostic::error(format!("the brain float comes in `brain16` only (also written `bfloat16` and `bf16`): there is no `{}`, and `{}` is 16 bits by name", head, p)).at(span));
+                return err(Diagnostic::error(format!("the brain float comes in `brain16` only (also written `bfloat16` and `bf16`): there is no `{}`, and `{}` is 16 bits by name", head, p)).named("ai::brain_width").at(span));
             }
         }
         if path.kit.is_none() && head == "f128" {
-            return err(Diagnostic::error("there is no `f128`: quad precision is software arithmetic on every machine — `f64`, or `d128` for more digits (owner, 2026-09-23)").at(span));
+            return err(Diagnostic::error("there is no `f128`: quad precision is software arithmetic on every machine — `f64`, or `d128` for more digits (owner, 2026-09-23)").named("no_such_width").at(span));
         }
         // An integer of any width (owner, 2026-10-03).
         if let Some(rest) = head.strip_prefix("!std_") {
@@ -1618,7 +1618,7 @@ impl Items {
             // hold, it claims nothing about (`Domain::of_ty`).
             if let Some(t) = primitive(head) {
                 if path.segs.len() > 1 {
-                    return err(Diagnostic::error(format!("`{}` takes no narrowing: `{}` is already a complete type", path.spelled(), head)).at(span));
+                    return err(Diagnostic::error(format!("`{}` takes no narrowing: `{}` is already a complete type", path.spelled(), head)).named("narrowing_not_taken").at(span));
                 }
                 no_args(head)?;
                 return Ok(t);
@@ -1637,46 +1637,46 @@ impl Items {
                     return match crate::target::c_type(name) {
                         Some(crate::target::CType::Int(signed, bits)) => Ok(Ty::int(signed, bits)),
                         Some(crate::target::CType::Bin(bits)) => Ok(Ty::Bin(crate::types::BinW::Fixed(bits as u16))),
-                        Some(crate::target::CType::NotYet(why)) => err(Diagnostic::error(format!("not yet: {}", why)).at(span)),
-                        None => err(Diagnostic::error(format!("`C.{}` is not one of C's machine-sized types: {}", name, crate::target::C_TYPES.iter().map(|t| format!("`C.{}`", t)).collect::<Vec<_>>().join(", "))).at(span)),
+                        Some(crate::target::CType::NotYet(why)) => err(Diagnostic::error(format!("not yet: {}", why)).named("not_built_yet").at(span)),
+                        None => err(Diagnostic::error(format!("`C.{}` is not one of C's machine-sized types: {}", name, crate::target::C_TYPES.iter().map(|t| format!("`C.{}`", t)).collect::<Vec<_>>().join(", "))).named("cnc::c_type_unknown").at(span)),
                     };
                 }
                 "str" => {
                     no_args("str")?;
                     let Some(enc) = path.seg(1) else {
-                        return err(Diagnostic::error("`str` is never bare: say the encoding — `str.utf8`, `str.utf16`, `str.utf32`, `str.ascii`").at(span));
+                        return err(Diagnostic::error("`str` is never bare: say the encoding — `str.utf8`, `str.utf16`, `str.utf32`, `str.ascii`").named("type_incomplete").at(span));
                     };
                     let e = match enc {
                         "utf8" => Enc::Utf8,
                         "utf16" => Enc::Utf16,
                         "utf32" => Enc::Utf32,
                         "ascii" => Enc::Ascii,
-                        other => return err(Diagnostic::error(format!("`str.{}` is not an encoding: `utf8`, `utf16`, `utf32` or `ascii`", other)).at(span)),
+                        other => return err(Diagnostic::error(format!("`str.{}` is not an encoding: `utf8`, `utf16`, `utf32` or `ascii`", other)).named("unknown_text_unit").at(span)),
                     };
                     if path.segs.len() > 2 {
-                        return err(Diagnostic::error(format!("`{}` narrows too far: `str.{}` is the whole type", path.spelled(), enc)).at(span));
+                        return err(Diagnostic::error(format!("`{}` narrows too far: `str.{}` is the whole type", path.spelled(), enc)).named("narrowing_not_taken").at(span));
                     }
                     return Ok(Ty::Str(e));
                 }
                 "char" => {
                     no_args("char")?;
                     let Some(unit) = path.seg(1) else {
-                        return err(Diagnostic::error("`char` is never bare: say the unit — `char.point`, `char.grapheme`, `char.byte`").at(span));
+                        return err(Diagnostic::error("`char` is never bare: say the unit — `char.point`, `char.grapheme`, `char.byte`").named("type_incomplete").at(span));
                     };
                     let u = match unit {
                         "byte" => Unit::Byte,
                         "point" => Unit::Point,
                         "grapheme" => Unit::Grapheme,
-                        other => return err(Diagnostic::error(format!("`char.{}` is not a unit: `byte`, `point` or `grapheme`", other)).at(span)),
+                        other => return err(Diagnostic::error(format!("`char.{}` is not a unit: `byte`, `point` or `grapheme`", other)).named("unknown_text_unit").at(span)),
                     };
                     return Ok(Ty::Char(u));
                 }
                 "list" | "array" => {
                     if path.segs.len() > 1 {
-                        return err(Diagnostic::error(format!("the element type goes in brackets: `{}[i32]`, not `{}` (a dot picks a fixed variant, brackets supply a type)", head, path.spelled())).at(span));
+                        return err(Diagnostic::error(format!("the element type goes in brackets: `{}[i32]`, not `{}` (a dot picks a fixed variant, brackets supply a type)", head, path.spelled())).named("type_parameter_form").at(span));
                     }
                     if args.len() != 1 {
-                        return err(Diagnostic::error(format!("`{}` takes exactly one type parameter, the element type: `{}[i32]`", head, head)).at(span));
+                        return err(Diagnostic::error(format!("`{}` takes exactly one type parameter, the element type: `{}[i32]`", head, head)).named("type_parameter_count").at(span));
                     }
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     let kind = if head == "list" { SeqKind::List } else { SeqKind::Array };
@@ -1687,10 +1687,10 @@ impl Items {
                         None => MapOrder::Free(InferId(0)),
                         Some("ordered") => MapOrder::Ordered,
                         Some("unordered") => MapOrder::Unordered,
-                        Some(other) => return err(Diagnostic::error(format!("`map.{}` is not a variant: `map` (the prover decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)", other)).at(span)),
+                        Some(other) => return err(Diagnostic::error(format!("`map.{}` is not a variant: `map` (the prover decides), `map.ordered` (walkable, insertion order) or `map.unordered` (never walked)", other)).named("unknown_map_variant").at(span)),
                     };
                     if args.len() != 2 {
-                        return err(Diagnostic::error("`map` takes two type parameters, the key and the value: `map[str.utf8, i32]`").at(span));
+                        return err(Diagnostic::error("`map` takes two type parameters, the key and the value: `map[str.utf8, i32]`").named("type_parameter_count").at(span));
                     }
                     let key = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     let val = self.resolve_type(&args[1], m, blanks, allow_blanks)?;
@@ -1699,14 +1699,14 @@ impl Items {
                 }
                 "simd" => {
                     if path.segs.len() > 1 {
-                        return err(Diagnostic::error(format!("`simd` takes its lane type and count in brackets: `simd[u8, count: 16]`, not `{}`", path.spelled())).at(span));
+                        return err(Diagnostic::error(format!("`simd` takes its lane type and count in brackets: `simd[u8, count: 16]`, not `{}`", path.spelled())).named("type_parameter_form").at(span));
                     }
                     if args.len() != 2 {
-                        return err(Diagnostic::error("`simd` takes two things in brackets, the lane type and how many lanes: `simd[u8, count: 16]`").at(span));
+                        return err(Diagnostic::error("`simd` takes two things in brackets, the lane type and how many lanes: `simd[u8, count: 16]`").named("type_parameter_count").at(span));
                     }
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     let Some(lanes) = lane_count(&args[1]) else {
-                        return err(Diagnostic::error("a simd's lane count says `count`: `simd[u8, count: 16]`").at(args[1].span));
+                        return err(Diagnostic::error("a simd's lane count says `count`: `simd[u8, count: 16]`").named("argument_label_missing").at(args[1].span));
                     };
                     // A mask (owner, 2026-09-27: a): one answer per lane of
                     // the vectors it compares, so as many lanes as they have.
@@ -1714,22 +1714,22 @@ impl Items {
                         let widths: Vec<u32> = [64u32, 32, 16, 8].iter().map(|b| TARGET_SIMD_BITS / b).collect();
                         if !widths.contains(&lanes) {
                             let listed = widths.iter().map(|w| w.to_string()).collect::<Vec<_>>();
-                            return err(Diagnostic::error(format!("a mask has as many lanes as the vectors it compares: {} or {} here, not {}", listed[..listed.len() - 1].join(", "), listed[listed.len() - 1], lanes)).at(args[1].span));
+                            return err(Diagnostic::error(format!("a mask has as many lanes as the vectors it compares: {} or {} here, not {}", listed[..listed.len() - 1].join(", "), listed[listed.len() - 1], lanes)).named("simd_lane_count_mismatch").at(args[1].span));
                         }
                         return Ok(Ty::Simd { elem: Box::new(elem), lanes });
                     }
                     // A lane is a standard width (owner, 2026-10-03: a).
                     if let Ty::Int(IntW::Fixed { bits, .. }) = elem.base() {
                         if !matches!(bits, 8 | 16 | 32 | 64 | 128) {
-                            return err(Diagnostic::error(format!("a vector's lanes are a standard width, and `{}` is not one: `i8`, `i16`, `i32` or `i64` (unsigned too)", spell(&elem, self))).at(args[0].span));
+                            return err(Diagnostic::error(format!("a vector's lanes are a standard width, and `{}` is not one: `i8`, `i16`, `i32` or `i64` (unsigned too)", spell(&elem, self))).named("simd_lane_width").at(args[0].span));
                         }
                     }
                     if simd_lane_bits(&elem).is_none() {
-                        return err(Diagnostic::error(format!("a `simd` holds plain numbers or bools, and `{}` is neither: its lanes live in a register, so each one is a fixed-width number", spell(&elem, self))).at(args[0].span));
+                        return err(Diagnostic::error(format!("a `simd` holds plain numbers or bools, and `{}` is neither: its lanes live in a register, so each one is a fixed-width number", spell(&elem, self))).named("simd_element_type").at(args[0].span));
                     }
                     if !simd_shape_ok(&elem, lanes) {
                         let has = simd_shapes_for(&elem).unwrap_or(0);
-                        return err(Diagnostic::error(format!("this target has no `simd[{}, count: {}]`: its vector register holds {} lanes of `{}`, not {}", spell(&elem, self), lanes, has, spell(&elem, self), lanes))
+                        return err(Diagnostic::error(format!("this target has no `simd[{}, count: {}]`: its vector register holds {} lanes of `{}`, not {}", spell(&elem, self), lanes, has, spell(&elem, self), lanes)).named("simd_lane_count_mismatch")
                             .at(span)
                             .why(format!("a `simd` is only ever a shape the machine has ({}-bit registers here); portability is the plain `for` loop, which the prover and LLVM vectorise by themselves", TARGET_SIMD_BITS))
                             .fix(None, format!("simd[{}, count: {}]", spell(&elem, self), has)));
@@ -1740,17 +1740,17 @@ impl Items {
                 // family, holding a `d` or an `f`; a written one names it.
                 "percent" => {
                     if args.len() != 1 {
-                        return err(Diagnostic::error("a written percent names its number: `percent[d32]`, `percent[f64]` (`:=` lets Precog pick)").at(span));
+                        return err(Diagnostic::error("a written percent names its number: `percent[d32]`, `percent[f64]` (`:=` lets Precog pick)").named("money::percent_unsized").at(span));
                     }
                     let inner = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     if !matches!(inner, Ty::Deci(_) | Ty::Bin(_)) {
-                        return err(Diagnostic::error(format!("a percent holds a `d` or an `f`: `percent[d32]`, `percent[f64]`, not `percent[{}]`", spell(&inner, self))).at(span));
+                        return err(Diagnostic::error(format!("a percent holds a `d` or an `f`: `percent[d32]`, `percent[f64]`, not `percent[{}]`", spell(&inner, self))).named("money::percent_number_type").at(span));
                     }
                     return Ok(Ty::Percent(Box::new(inner)));
                 }
                 "channel" => {
                     if args.len() != 1 {
-                        return err(Diagnostic::error("`channel` takes one type parameter: `channel[str.utf8]`").at(span));
+                        return err(Diagnostic::error("`channel` takes one type parameter: `channel[str.utf8]`").named("type_parameter_count").at(span));
                     }
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     return Ok(Ty::Channel(Box::new(elem)));
@@ -1759,10 +1759,10 @@ impl Items {
                     let mutable = match path.seg(1) {
                         None => false,
                         Some("mut") => true,
-                        Some(other) => return err(Diagnostic::error(format!("`ptr.{}` does not exist: `ptr[T]` (read-only) or `ptr.mut[T]`", other)).at(span)),
+                        Some(other) => return err(Diagnostic::error(format!("`ptr.{}` does not exist: `ptr[T]` (read-only) or `ptr.mut[T]`", other)).named("unknown_type").at(span)),
                     };
                     if args.len() != 1 {
-                        return err(Diagnostic::error("`ptr` takes one type parameter: `ptr[u8]`").at(span));
+                        return err(Diagnostic::error("`ptr` takes one type parameter: `ptr[u8]`").named("type_parameter_count").at(span));
                     }
                     POINTEE.with(|p| p.set(true));
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
@@ -1771,13 +1771,13 @@ impl Items {
                             Ty::Struct { id, .. } => format!("`{}` is not `layout.C`: only a `layout.C struct` has C's shape", self.structs[id.0 as usize].name),
                             other => format!("`{}` is not C-shaped", spell(other, self)),
                         };
-                        return err(Diagnostic::error(format!("`ptr[{}]` cannot exist: a pointer points at something C-shaped", spell(&elem, self))).at(span).why(why));
+                        return err(Diagnostic::error(format!("`ptr[{}]` cannot exist: a pointer points at something C-shaped", spell(&elem, self))).named("cnc::not_layout_c").at(span).why(why));
                     }
                     return Ok(Ty::Ptr { mutable, elem: Box::new(elem) });
                 }
                 "duration" => return Ok(Ty::Duration),
                 "fn" => unreachable!(),
-                "uenr" => return err(Diagnostic::error("`uenr` is the standard kit's type, `std::uenr`, and `std::` is not available yet").at(span)),
+                "uenr" => return err(Diagnostic::error("`uenr` is the standard kit's type, `std::uenr`, and `std::` is not available yet").named("std_not_listed").at(span)),
                 _ => {}
             }
         }
@@ -1790,7 +1790,7 @@ impl Items {
             ItemRef::Struct(id) => {
                 let info = &self.structs[id.0 as usize];
                 if info.opaque && !pointee {
-                    return err(Diagnostic::error(format!("`{n}` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[{n}]`, never held", n = info.name)).at(span));
+                    return err(Diagnostic::error(format!("`{n}` is C's and opaque (owner, 2026-10-10): it is only pointed at, `ptr.mut[{n}]`, never held", n = info.name)).named("cnc::opaque_struct_held").at(span));
                 }
                 let targs = self.type_args(args, &info.blanks, &info.name, m, blanks, allow_blanks, span)?;
                 Ok(Ty::Struct { id, args: targs })
@@ -1800,7 +1800,7 @@ impl Items {
                 let targs = self.type_args(args, &info.blanks, &info.name, m, blanks, allow_blanks, span)?;
                 Ok(Ty::Enum { id, args: targs })
             }
-            other => err(Diagnostic::error(format!("`{}` is a {}, not a type", path.spelled(), other.what())).at(span)),
+            other => err(Diagnostic::error(format!("`{}` is a {}, not a type", path.spelled(), other.what())).named("not_a_type").at(span)),
         }
     }
 
@@ -1810,7 +1810,7 @@ impl Items {
             return Ok(declared.iter().map(|_| Ty::Infer(InferId(u32::MAX))).collect());
         }
         if args.len() != declared.len() {
-            return err(Diagnostic::error(format!("`{}` has {} blank(s) ({}), and {} type(s) were given", name, declared.len(), declared.iter().map(|b| format!("<{}>", b)).collect::<Vec<_>>().join(", "), args.len())).at(span));
+            return err(Diagnostic::error(format!("`{}` has {} blank(s) ({}), and {} type(s) were given", name, declared.len(), declared.iter().map(|b| format!("<{}>", b)).collect::<Vec<_>>().join(", "), args.len())).named("type_parameter_count").at(span));
         }
         let mut out = Vec::new();
         for a in args {
@@ -1821,10 +1821,10 @@ impl Items {
 
     pub fn check_key_type(&self, key: &Ty, span: Span) -> Result<()> {
         match key.base() {
-            Ty::Fn(_) => err(Diagnostic::error("a function cannot be a map key: keys are plain values, text, chars, structs, enums and lists of keys").at(span)),
-            Ty::Ptr { .. } => err(Diagnostic::error("a pointer cannot be a map key: keys are plain values, text, chars, structs, enums and lists of keys").at(span)),
-            Ty::Map { .. } => err(Diagnostic::error("a map cannot be a map key: keys are plain values, text, chars, structs, enums and lists of keys").at(span)),
-            Ty::Channel(_) => err(Diagnostic::error("a channel cannot be a map key").at(span)),
+            Ty::Fn(_) => err(Diagnostic::error("a function cannot be a map key: keys are plain values, text, chars, structs, enums and lists of keys").named("not_a_map_key").at(span)),
+            Ty::Ptr { .. } => err(Diagnostic::error("a pointer cannot be a map key: keys are plain values, text, chars, structs, enums and lists of keys").named("not_a_map_key").at(span)),
+            Ty::Map { .. } => err(Diagnostic::error("a map cannot be a map key: keys are plain values, text, chars, structs, enums and lists of keys").named("not_a_map_key").at(span)),
+            Ty::Channel(_) => err(Diagnostic::error("a channel cannot be a map key").named("not_a_map_key").at(span)),
             Ty::Seq { elem, .. } => self.check_key_type(elem, span),
             _ => Ok(()),
         }
@@ -1916,22 +1916,22 @@ fn std_int(rest: &str, span: Span) -> Result<Ty> {
     } else {
         (true, "")
     };
-    let not_a_type = || err(Diagnostic::error(format!("`not_std.{}` is not a type: a non-standard integer is `not_std.iN` or `not_std.uN`, N its width in bits", rest)).at(span));
+    let not_a_type = || err(Diagnostic::error(format!("`not_std.{}` is not a type: a non-standard integer is `not_std.iN` or `not_std.uN`, N its width in bits", rest)).named("wsmw::no_such_width").at(span));
     if digits.is_empty() || !digits.bytes().all(|c| c.is_ascii_digit()) {
         return not_a_type();
     }
     let Ok(bits) = digits.parse::<u64>() else {
-        return err(Diagnostic::error(format!("`not_std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).at(span));
+        return err(Diagnostic::error(format!("`not_std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).named("wsmw::no_such_width").at(span));
     };
     if bits == 0 {
-        return err(Diagnostic::error(format!("`not_std.{}` holds nothing: a width is at least 1 bit", rest)).at(span));
+        return err(Diagnostic::error(format!("`not_std.{}` holds nothing: a width is at least 1 bit", rest)).named("wsmw::no_such_width").at(span));
     }
     if bits > crate::types::WIDEST_INT as u64 {
-        return err(Diagnostic::error(format!("`not_std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).at(span));
+        return err(Diagnostic::error(format!("`not_std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).named("wsmw::no_such_width").at(span));
     }
     if matches!(bits, 8 | 16 | 32 | 64 | 128) {
         let std = format!("{}{}", if signed { "i" } else { "u" }, bits);
-        return err(Diagnostic::error(format!("`{}` is standard: write `{}` — the mark `not_std.` says a width is not", std, std)).at(span));
+        return err(Diagnostic::error(format!("`{}` is standard: write `{}` — the mark `not_std.` says a width is not", std, std)).named("wsmw::standard_width").at(span));
     }
     Ok(Ty::int(signed, bits as u32))
 }
@@ -2054,13 +2054,13 @@ fn len_bounds(lo: &ast::Expr, hi: &ast::Expr, span: Span) -> Result<(u64, u64)> 
     // A side left out (owner, 2026-10-12): the low one is 0, the high one
     // unlimited.
     let left_out = |e: &ast::Expr, w: &str| matches!(&e.kind, ast::ExprKind::Path(p) if p.is(&[w]));
-    let l = if left_out(lo, "min") { 0 } else { int_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a length bound's ends are whole numbers").at(lo.span)))? };
-    let h = if left_out(hi, "max") { u64::MAX as i128 } else { int_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a length bound's ends are whole numbers").at(hi.span)))? };
+    let l = if left_out(lo, "min") { 0 } else { int_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a length bound's ends are whole numbers").named("bound_wrong_type").at(lo.span)))? };
+    let h = if left_out(hi, "max") { u64::MAX as i128 } else { int_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a length bound's ends are whole numbers").named("bound_wrong_type").at(hi.span)))? };
     if l < 0 {
-        return err(Diagnostic::error("a length bound's low end is 0 or more: a length is never negative").at(lo.span));
+        return err(Diagnostic::error("a length bound's low end is 0 or more: a length is never negative").named("bound_outside_type").at(lo.span));
     }
     if l > h {
-        return err(Diagnostic::error("the low bound is at most the high one: `list[i32][min: 0, max: 1000]`").at(span));
+        return err(Diagnostic::error("the low bound is at most the high one: `list[i32][min: 0, max: 1000]`").named("bounds_backwards").at(span));
     }
     Ok((l as u64, h as u64))
 }

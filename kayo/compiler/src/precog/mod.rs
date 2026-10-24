@@ -3371,6 +3371,7 @@ pub fn refusals_opts(a: &Analysis, p: &Program, sources: &crate::source::SourceM
         if checked && matches!(r.verdict, Verdict::Unproven) {
             let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
             let mut d = crate::diag::Diagnostic::new(crate::diag::Kind::Check, site.sentence(&spell))
+                .named(if site.tier == Some(Tier::Check) { "check_not_enough" } else { site.name() })
                 .at(f.span(site.span))
                 .why("`check` asks whether the guardrail is enough, and this one could not be shown to be")
                 .why("no counterexample either: the guardrail may well be enough, and nothing here could prove it")
@@ -3389,6 +3390,7 @@ pub fn refusals_opts(a: &Analysis, p: &Program, sources: &crate::source::SourceM
         if strict && open && site.tier.is_none() {
             let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
             let mut d = crate::diag::Diagnostic::error(format!("{} — and this `#strict` file does not say why not in this function", site.sentence(&spell)))
+                .named(site.name())
                 .at(f.span(site.span))
                 .why("in a strict file each site is proven from what its own function writes, in every build (owner, 2026-09-27: a)")
                 .fix(None, "write the reason here: an `if` in front, a range type on the parameter or the return, or the loop's bounds");
@@ -3409,6 +3411,7 @@ pub fn refusals_opts(a: &Analysis, p: &Program, sources: &crate::source::SourceM
         let spell = |t: &Ty| crate::types::TySpelling { ty: t, structs: &p.items.structs, enums: &p.items.enums }.to_string();
         let sentence = site.sentence(&spell);
         let mut d = crate::diag::Diagnostic::new(if certain { crate::diag::Kind::Error } else { crate::diag::Kind::Check }, sentence)
+            .named(if site.tier == Some(Tier::Check) { "check_not_enough" } else { site.name() })
             .at(f.span(site.span))
             .when(counterexample.trim_start_matches("every time: ").to_string());
         if !f.name.is_empty() && f.name != "MAIN" {
@@ -3432,6 +3435,7 @@ pub fn refusals_opts(a: &Analysis, p: &Program, sources: &crate::source::SourceM
             continue;
         }
         let mut d = crate::diag::Diagnostic::error("this `no_check` covers something that fails every time it runs")
+            .named("no_check_lied")
             .at(f.span(site.span))
             .when(what.clone())
             .why("`no_check` takes away a check that might fail, not one that always does (owner, 2026-10-22); the way through on purpose, testing a crash handler, is `NO_FUCKING_CHECKS`, which builds it and notes it in the report")

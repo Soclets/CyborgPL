@@ -289,7 +289,7 @@ fn use_place(p: &Program, f: usize, env: &Env, pl: &Place, how: Use, span: SpanI
         (_, State::Gone) => format!("{} was given away and no longer owns anything", whole),
         (_, _) => format!("{} may already have been given away", whole),
     };
-    let mut d = Diagnostic::error(what).at(func.span(span));
+    let mut d = Diagnostic::error(what).named("used_after_give").at(func.span(span));
     if func.name != "MAIN" {
         d = d.place(format!("in `{}`", func.name));
     }

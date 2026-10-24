@@ -65,7 +65,7 @@ fn uncommented(file: FileId, text: &str) -> Result<Vec<(usize, String)>> {
         };
         let after = &line[hash + 1..];
         let form: String = after.chars().take_while(|c| c.is_ascii_alphanumeric()).collect();
-        let bad = || err(Diagnostic::error(format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down", form)).at(Span::new(file, start + hash, start + hash + 1 + form.len())));
+        let bad = || err(Diagnostic::error(format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down", form)).named("comment_form").at(Span::new(file, start + hash, start + hash + 1 + form.len())));
         if !form.is_empty() && !after[form.len()..].chars().next().is_none_or(char::is_whitespace) {
             return bad();
         }
@@ -109,33 +109,33 @@ pub fn read(file: FileId, text: &str) -> Result<Doc> {
                 continue;
             }
             if content.ends_with('{') || content.ends_with(':') && !content.contains('=') {
-                return err(Diagnostic::error(format!("the block `{}` is never closed with `}}`", b.name)).at(b.span));
+                return err(Diagnostic::error(format!("the block `{}` is never closed with `}}`", b.name)).named("manifest_block_unclosed").at(b.span));
             }
             b.pairs.push(pair(file, start + lead, content)?);
             continue;
         }
         if content == "}" {
-            return err(Diagnostic::error("a `}` with no block open: a block starts `name {` on a line of its own").at(span));
+            return err(Diagnostic::error("a `}` with no block open: a block starts `name {` on a line of its own").named("manifest_line_form").at(span));
         }
         if content.ends_with(':') && !content.contains('=') {
             let name = content[..content.len() - 1].trim().to_string();
             if !SECTIONS.contains(&name.as_str()) {
-                return err(Diagnostic::error(format!("`{}:` is not a section of `CyJet.toml`: its sections are {}", name, SECTIONS.iter().map(|s| format!("`{}:`", s)).collect::<Vec<_>>().join(", "))).at(span));
+                return err(Diagnostic::error(format!("`{}:` is not a section of `CyJet.toml`: its sections are {}", name, SECTIONS.iter().map(|s| format!("`{}:`", s)).collect::<Vec<_>>().join(", "))).named("manifest_unknown_section").at(span));
             }
             if doc.section(&name).is_some() {
-                return err(Diagnostic::error(format!("`{}:` is written twice: each section is written once", name)).at(span));
+                return err(Diagnostic::error(format!("`{}:` is written twice: each section is written once", name)).named("manifest_given_twice").at(span));
             }
             doc.sections.push(Section { name, span, pairs: Vec::new(), blocks: Vec::new() });
             continue;
         }
         let Some(section) = doc.sections.last_mut() else {
-            return err(Diagnostic::error("a `CyJet.toml` starts with a section, a phrase ending in `:`: `my details:`").at(span));
+            return err(Diagnostic::error("a `CyJet.toml` starts with a section, a phrase ending in `:`: `my details:`").named("manifest_line_form").at(span));
         };
         if content.contains('{') {
             let name = content[..content.find('{').unwrap()].trim();
             if !content.ends_with('{') || name.is_empty() {
                 let n = if name.is_empty() { "name" } else { name };
-                return err(Diagnostic::error(format!("a block opens with `{n} {{` on a line of its own, then its `key = value` lines, then `}}` alone on a line")).at(span));
+                return err(Diagnostic::error(format!("a block opens with `{n} {{` on a line of its own, then its `key = value` lines, then `}}` alone on a line")).named("manifest_line_form").at(span));
             }
             open = Some(Block { name: name.to_string(), span, pairs: Vec::new() });
             continue;
@@ -144,10 +144,10 @@ pub fn read(file: FileId, text: &str) -> Result<Doc> {
             section.pairs.push(pair(file, start + lead, content)?);
             continue;
         }
-        return err(Diagnostic::error(format!("`{}` is not a section (`my details:`), a block (`name {{`) or a `key = value` line", content)).at(span));
+        return err(Diagnostic::error(format!("`{}` is not a section (`my details:`), a block (`name {{`) or a `key = value` line", content)).named("manifest_line_form").at(span));
     }
     if let Some(b) = open {
-        return err(Diagnostic::error(format!("the block `{}` is never closed with `}}`", b.name)).at(b.span));
+        return err(Diagnostic::error(format!("the block `{}` is never closed with `}}`", b.name)).named("manifest_block_unclosed").at(b.span));
     }
     Ok(doc)
 }
@@ -157,7 +157,7 @@ fn pair(file: FileId, start: usize, content: &str) -> Result<Pair> {
     let key = content[..eq].trim();
     let span = Span::new(file, start, start + content.len());
     if eq == content.len() || key.is_empty() {
-        return err(Diagnostic::error("a line in a block is `key = value`").at(span));
+        return err(Diagnostic::error("a line in a block is `key = value`").named("manifest_line_form").at(span));
     }
     let rest = &content[eq + 1..];
     let value = rest.trim();
@@ -166,14 +166,14 @@ fn pair(file: FileId, start: usize, content: &str) -> Result<Pair> {
     let value_span = Span::new(file, vstart, vstart + value.len());
     // The words of the format (owner, 2026-10-22: "(a)").
     if key == "version" {
-        return err(Diagnostic::error("it is `ver`, never `version`, in every section (owner, 2026-10-22)").at(key_span));
+        return err(Diagnostic::error("it is `ver`, never `version`, in every section (owner, 2026-10-22)").named("manifest_version_word").at(key_span));
     }
     if value.starts_with('"') || value.starts_with('\'') {
         let bare = value.trim_matches(|c| c == '"' || c == '\'');
-        return err(Diagnostic::error(format!("a value has no quotes: `{} = {}`", key, bare)).at(value_span));
+        return err(Diagnostic::error(format!("a value has no quotes: `{} = {}`", key, bare)).named("manifest_value_quoted").at(value_span));
     }
     if value.is_empty() {
-        return err(Diagnostic::error(format!("`{}` has no value: `{} = …`", key, key)).at(span));
+        return err(Diagnostic::error(format!("`{}` has no value: `{} = …`", key, key)).named("manifest_line_form").at(span));
     }
     Ok(Pair { key: key.to_string(), key_span, value: value.to_string(), value_span })
 }

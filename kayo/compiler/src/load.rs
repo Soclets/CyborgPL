@@ -40,30 +40,30 @@ fn old_names(path: &Path) -> Result<()> {
     };
     if path.is_file() {
         if path.extension().is_some_and(|x| x == "cpls") {
-            return err(Diagnostic::error("`.cpls` is the old ending: rename the file to `.cy`"));
+            return err(Diagnostic::error("`.cpls` is the old ending: rename the file to `.cy`").named("old_file_name"));
         }
         if let Some(new) = renamed(&name(path)) {
-            return err(Diagnostic::error(format!("`{}` has the old name: rename it to `{}`", name(path), new)));
+            return err(Diagnostic::error(format!("`{}` has the old name: rename it to `{}`", name(path), new)).named("old_file_name"));
         }
         return Ok(());
     }
     for old in ["strike.zg", "Ricochet.zv", "build.zg", "zag_version.zv", "neuron.nrv", "Kinesin.nrp", "build.nrv", "nerve_version.nrp"] {
         if path.join(old).is_file() {
-            return err(Diagnostic::error(format!("`{}` has the old name: rename it to `{}`", old, renamed(old).unwrap())));
+            return err(Diagnostic::error(format!("`{}` has the old name: rename it to `{}`", old, renamed(old).unwrap())).named("old_file_name"));
         }
     }
     // The manifest is `CyJet.toml` (owner, 2026-10-22).
     if path.join("CyJet.cyr").is_file() && !path.join(MANIFEST).is_file() {
-        return err(Diagnostic::error(format!("`CyJet.cyr` has the old name: rename it to `{}`, written as Tankun's Obvious Minimal Language: {}", MANIFEST, MANIFEST_SHAPE)));
+        return err(Diagnostic::error(format!("`CyJet.cyr` has the old name: rename it to `{}`, written as Tankun's Obvious Minimal Language: {}", MANIFEST, MANIFEST_SHAPE)).named("old_file_name"));
     }
     if path.join("build.cplr").is_file() {
-        return err(Diagnostic::error("`build.cplr` has the old name: rename it to `build.cy`"));
+        return err(Diagnostic::error("`build.cplr` has the old name: rename it to `build.cy`").named("old_file_name"));
     }
     if path.join("CCA.cplr").is_file() {
-        return err(Diagnostic::error(format!("`CCA.cplr` has the old name: rename it to `{}`", MANIFEST)));
+        return err(Diagnostic::error(format!("`CCA.cplr` has the old name: rename it to `{}`", MANIFEST)).named("old_file_name"));
     }
     if !path.join(ROOT).is_file() && path.join("limb.cpls").is_file() {
-        return err(Diagnostic::error(format!("`limb.cpls` is the old root file: rename it to `{}`", ROOT)));
+        return err(Diagnostic::error(format!("`limb.cpls` is the old root file: rename it to `{}`", ROOT)).named("old_file_name"));
     }
     // A leftover old file anywhere in the kit's folders.
     fn under(d: &Path, found: &mut Option<std::path::PathBuf>) {
@@ -89,7 +89,7 @@ fn old_names(path: &Path) -> Result<()> {
     if let Some(f) = found {
         let stem = f.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
         let new = renamed(&name(&f)).unwrap_or_else(|| format!("{}.cy", stem));
-        return err(Diagnostic::error(format!("`{}` has the old name: rename it to `{}`", name(&f), new)));
+        return err(Diagnostic::error(format!("`{}` has the old name: rename it to `{}`", name(&f), new)).named("old_file_name"));
     }
     Ok(())
 }
@@ -163,7 +163,7 @@ fn gather_precedence(sources: &mut SourceMap, path: &Path) -> Result<()> {
         for (name, (level, chain)) in crate::parser::precedence_blocks(&toks)? {
             match table.get(&name) {
                 Some((l, c, other)) if (*l, *c) != (level, chain) => {
-                    return err(Diagnostic::error(format!("`{}` has two levels: {} and {} each give it one, and an operator binds one way wherever it is used — one block says it", name, other.display(), f.display())));
+                    return err(Diagnostic::error(format!("`{}` has two levels: {} and {} each give it one, and an operator binds one way wherever it is used — one block says it", name, other.display(), f.display())).named("operator_level_given_twice"));
                 }
                 _ => {
                     table.insert(name, (level, chain, f.clone()));
@@ -213,19 +213,19 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         (Purpose::Check, None) => None,
         (Purpose::Compile(Some(t)), Some((listed, _))) => {
             if !listed.iter().any(|l| l == t) {
-                return err(Diagnostic::error(format!("`{}` is not one of this kit's targets: its `CyJet.toml` lists {}", t, listed.iter().map(|l| format!("`{}`", l)).collect::<Vec<_>>().join(", "))));
+                return err(Diagnostic::error(format!("`{}` is not one of this kit's targets: its `CyJet.toml` lists {}", t, listed.iter().map(|l| format!("`{}`", l)).collect::<Vec<_>>().join(", "))).named("target_not_listed"));
             }
             Some((t.to_string(), None))
         }
         (Purpose::Compile(Some(t)), None) => {
             let known = targets();
             if !known.contains(t) {
-                return err(Diagnostic::error(format!("`{}` is not a target kayo can build; it builds for {}", t, known.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))));
+                return err(Diagnostic::error(format!("`{}` is not a target kayo can build; it builds for {}", t, known.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))).named("target_not_buildable"));
             }
             Some((t.to_string(), None))
         }
         (Purpose::Compile(None), Some((listed, None))) => {
-            return err(Diagnostic::error(format!("this kit has no default target — its one target says `default = false` — so a build names the target: `--target {}`", listed.first().map(String::as_str).unwrap_or("aarch64-macos"))));
+            return err(Diagnostic::error(format!("this kit has no default target — its one target says `default = false` — so a build names the target: `--target {}`", listed.first().map(String::as_str).unwrap_or("aarch64-macos"))).named("manifest_default_unclear"));
         }
         (Purpose::Compile(None), Some((_, Some((t, s))))) => Some((t.clone(), Some(*s))),
         (Purpose::Compile(None), None) => None,
@@ -235,7 +235,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
     // its `layout` (owner, 2026-10-09: "`c` now", then "`b`").
     if let Some((t, span)) = chosen.as_ref().filter(|(t, _)| t.ends_with("-none")) {
         let Some(dir) = &root_dir else {
-            let d = Diagnostic::error(format!("a lone file is not built for `{}`: a program with no OS brings a linker script saying where it sits in the board's memory, named in a kit's CyJet.toml — `{} {{` / `layout = boards/virt.ld` / `}}` under `my targets:`", t, t));
+            let d = Diagnostic::error(format!("a lone file is not built for `{}`: a program with no OS brings a linker script saying where it sits in the board's memory, named in a kit's CyJet.toml — `{} {{` / `layout = boards/virt.ld` / `}}` under `my targets:`", t, t)).named("target_layout_missing");
             return err(match span {
                 Some(s) => d.at(*s),
                 None => d,
@@ -244,7 +244,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         // Refused when built for it, not when listed: a kit may list a
         // board beside the machine it is built on (`examples/table_limits`).
         let Some((_, file, at)) = layouts.iter().find(|(n, _, _)| n == t) else {
-            let d = Diagnostic::error(format!("the target `{t}` has no `layout`: a program with no OS brings its own linker script, saying where it sits in the board's memory — `{t} {{` / `layout = boards/virt.ld` / `}}` under `my targets:`, the path from the kit's folder"));
+            let d = Diagnostic::error(format!("the target `{t}` has no `layout`: a program with no OS brings its own linker script, saying where it sits in the board's memory — `{t} {{` / `layout = boards/virt.ld` / `}}` under `my targets:`, the path from the kit's folder")).named("target_layout_missing");
             return err(match span {
                 Some(s) => d.at(*s),
                 None => d,
@@ -252,7 +252,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         };
         let script = dir.join(file);
         if !script.is_file() {
-            return err(Diagnostic::error(format!("the linker script `{}`, the `layout` of `{}`, is not there: the path is from the kit's folder", file, t)).at(*at));
+            return err(Diagnostic::error(format!("the linker script `{}`, the `layout` of `{}`, is not there: the path is from the kit's folder", file, t)).named("target_layout_missing").at(*at));
         }
         crate::target::set_layout(Some((script, file.clone())));
         board = (outputs.into_iter().find(|(n, _, _)| n == t).map(|(_, f, s)| (f, s)), exits.into_iter().find(|(n, _, _)| n == t).map(|(_, f, s)| (f, s)));
@@ -262,7 +262,7 @@ pub fn load_for(path: &Path, sources: &mut SourceMap, purpose: Purpose) -> Resul
         // A no-OS target is built on another machine (owner, 2026-10-09:
         // `aarch64-none`), from any.
         if t != here && !t.ends_with("-none") {
-            let d = Diagnostic::error(format!("not yet: the target is `{}`, and kayo builds it only on a `{}` machine so far — this one is `{}`", t, t, here));
+            let d = Diagnostic::error(format!("not yet: the target is `{}`, and kayo builds it only on a `{}` machine so far — this one is `{}`", t, t, here)).named("not_built_yet");
             return err(match span {
                 Some(s) => d.at(s),
                 None => d,
@@ -331,13 +331,13 @@ fn board_fn(items: &Items, written: &str, at: crate::source::Span, field: &str) 
     };
     let segs: Vec<crate::ast::Ident> = rest.split('.').map(|s| crate::ast::Ident { name: s.to_string(), span: at }).collect();
     if segs.iter().any(|s| s.name.is_empty()) || kit.as_ref().is_some_and(|l| l.name.is_empty()) {
-        return err(Diagnostic::error(format!("a target's `{}` names a function as code does, `my.serial.write` or `virt::serial.write`; `{}` is not one", field, written)).at(at));
+        return err(Diagnostic::error(format!("a target's `{}` names a function as code does, `my.serial.write` or `virt::serial.write`; `{}` is not one", field, written)).named("target_function_wrong").at(at));
     }
     let path = crate::ast::Path { kit, segs, span: at };
     let id = match items.lookup_path(&path, crate::resolve::ROOT) {
         Ok(ItemRef::Fn(id)) => id,
-        Ok(other) => return err(Diagnostic::error(format!("the target's `{}`, `{}`, is a {}: it names a function", field, written, other.what())).at(at)),
-        Err(e) => return err(Diagnostic::error(format!("the target's `{}`, `{}`, names no function: {}", field, written, e.sentence)).at(at)),
+        Ok(other) => return err(Diagnostic::error(format!("the target's `{}`, `{}`, is a {}: it names a function", field, written, other.what())).named("target_function_wrong").at(at)),
+        Err(e) => return err(Diagnostic::error(format!("the target's `{}`, `{}`, names no function: {}", field, written, e.sentence)).named("target_function_wrong").at(at)),
     };
     let f = &items.fns[id.0 as usize];
     let one = |kind: ParamKind, ty: &Ty| f.params.len() == 1 && f.params[0].kind == kind && f.params[0].ty.as_ref() == Some(ty);
@@ -348,9 +348,9 @@ fn board_fn(items: &Items, written: &str, at: crate::source::Span, field: &str) 
     } else if field == "output" && plain && one(ParamKind::Lent, &Ty::Seq { elem: Box::new(byte.clone()), kind: SeqKind::Array }) {
         OutputForm::Chunk
     } else if field == "output" {
-        return err(Diagnostic::error(format!("the target's `output`, `fn {}`, takes the bytes `std::print` writes in one of two forms: `[$b: u8]`, a byte a call, or `[lent $bytes: array[u8]]`, a chunk a call; returning nothing and never failing", written)).at(at).why_at(f.name_span, "declared here"));
+        return err(Diagnostic::error(format!("the target's `output`, `fn {}`, takes the bytes `std::print` writes in one of two forms: `[$b: u8]`, a byte a call, or `[lent $bytes: array[u8]]`, a chunk a call; returning nothing and never failing", written)).named("target_function_wrong").at(at).why_at(f.name_span, "declared here"));
     } else {
-        return err(Diagnostic::error(format!("the target's `exit`, `fn {}`, takes the code `std::exit` is given, `[$code: u8]`, returning nothing and never failing", written)).at(at).why_at(f.name_span, "declared here"));
+        return err(Diagnostic::error(format!("the target's `exit`, `fn {}`, takes the code `std::exit` is given, `[$code: u8]`, returning nothing and never failing", written)).named("target_function_wrong").at(at).why_at(f.name_span, "declared here"));
     };
     Ok((id, form))
 }
@@ -386,14 +386,14 @@ pub enum Wanted {
 /// each once. Nothing is loaded but manifests.
 pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<Vec<(String, PathBuf)>> {
     if !dir.join(ROOT).is_file() {
-        return err(Diagnostic::error(format!("`kayo prepare` acts on a kit, and `{}` has no `kit.cy`", dir.display())));
+        return err(Diagnostic::error(format!("`kayo prepare` acts on a kit, and `{}` has no `kit.cy`", dir.display())).named("root_file_missing"));
     }
     // A Kit's name and prefix, from its own `CCA.cplr`; a dependency
     // without one has neither.
     fn words_of(sources: &mut SourceMap, dir: &Path, from: Option<(&Path, &str)>) -> Result<(String, String)> {
         if let Some((manifest_at, written)) = from {
             if !dir.join(MANIFEST).is_file() {
-                return err(Diagnostic::error(format!("the kit at `{}` has no `CyJet.toml`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("the kit at `{}` has no `CyJet.toml`, so no `prefix` for code to reach it by", written)).named("manifest_missing").place(manifest_at.display().to_string()));
             }
         }
         let m = read_manifest(sources, dir)?;
@@ -419,7 +419,7 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
                 if let Some(at) = stack.iter().position(|(p, _)| *p == key) {
                     let mut names: Vec<String> = stack[at..].iter().map(|(_, n)| n.clone()).collect();
                     names.push(shown);
-                    return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a kit cannot depend on itself, however far round", names.join(" → "))));
+                    return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a kit cannot depend on itself, however far round", names.join(" → "))).named("kits_depend_in_circle"));
                 }
                 let manifest = read_manifest(sources, dir)?;
                 let manifest_at = dir.join(MANIFEST);
@@ -458,7 +458,7 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
         };
         let found: Vec<&(String, String, PathBuf)> = known.iter().filter(|(name, prefix, _)| if by_prefix { prefix == n } else { name == n }).collect();
         let at = match found.as_slice() {
-            [] if by_prefix => return err(Diagnostic::error(format!("no kit here has the prefix `{}`: the prefixes here are {}", n, known.iter().map(|(_, p, _)| format!("`{}`", p)).collect::<Vec<_>>().join(", ")))),
+            [] if by_prefix => return err(Diagnostic::error(format!("no kit here has the prefix `{}`: the prefixes here are {}", n, known.iter().map(|(_, p, _)| format!("`{}`", p)).collect::<Vec<_>>().join(", "))).named("kit_not_found")),
             [] => {
                 let mut names: Vec<String> = Vec::new();
                 for (k, _, _) in &known {
@@ -466,14 +466,14 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
                         names.push(k.clone());
                     }
                 }
-                return err(Diagnostic::error(format!("no kit here is named `{}`: the names here are {}", n, names.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))));
+                return err(Diagnostic::error(format!("no kit here is named `{}`: the names here are {}", n, names.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))).named("kit_not_found"));
             }
             [one] => (label(&one.0, &one.1), one.2.clone()),
             // Two Kits may share a name, never a prefix: which one is
             // meant is said by prefix (owner, 2026-09-30: a, "flag").
             many => {
                 let prefixes: Vec<String> = many.iter().map(|(_, p, _)| format!("`{}`", p)).collect();
-                return err(Diagnostic::error(format!("{} kits here are named `{}`, with the prefixes {}: pick one with `kayo prepare --prefix {}`", many.len(), n, prefixes.join(", "), many[0].1)));
+                return err(Diagnostic::error(format!("{} kits here are named `{}`, with the prefixes {}: pick one with `kayo prepare --prefix {}`", many.len(), n, prefixes.join(", "), many[0].1)).named("name_ambiguous"));
             }
         };
         let (shown, at) = at;
@@ -484,7 +484,7 @@ pub fn prepare_plan(sources: &mut SourceMap, dir: &Path, pick: &Pick) -> Result<
         }
         ran.push(key);
         if !at.join("build.cy").is_file() {
-            return err(Diagnostic::error(format!("`{}` has no `build.cy` to run, at `{}`", n, at.display())));
+            return err(Diagnostic::error(format!("`{}` has no `build.cy` to run, at `{}`", n, at.display())).named("build_file_missing"));
         }
         out.push((shown, at));
     }
@@ -529,20 +529,20 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
     if let Some(at) = state.stack.iter().position(|(p, _)| *p == key) {
         let mut names: Vec<String> = state.stack[at..].iter().map(|(_, n)| n.clone()).collect();
         names.push(state.stack[at].1.clone());
-        return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a kit cannot depend on itself, however far round", names.join(" → "))));
+        return err(Diagnostic::error(format!("the dependencies go round in a circle: {} — a kit cannot depend on itself, however far round", names.join(" → "))).named("kits_depend_in_circle"));
     }
     let root = dir.join(ROOT);
     if !root.is_file() {
         return err(Diagnostic::error(match from {
             None => format!("`{}` is a kit directory, and a kit needs its root file `kit.cy`: none is there", short(dir)),
             Some((_, written)) => format!("the kit at `{}` needs its root file `kit.cy`: none is there", written),
-        }));
+        }).named("root_file_missing"));
     }
     // A dependency is reached by the prefix its own `CCA.cplr` gives it,
     // and the depending Kit names no word (owner, 2026-09-29).
     if let Some((manifest_at, written)) = from {
         if !dir.join(MANIFEST).is_file() {
-            return err(Diagnostic::error(format!("the kit at `{}` has no `CyJet.toml`, so no `prefix` for code to reach it by", written)).place(manifest_at.display().to_string()));
+            return err(Diagnostic::error(format!("the kit at `{}` has no `CyJet.toml`, so no `prefix` for code to reach it by", written)).named("manifest_missing").place(manifest_at.display().to_string()));
         }
     }
     let manifest = read_manifest(sources, dir)?;
@@ -554,21 +554,21 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
         // The CyborgPL std is the kit listed with std's ID, and its prefix
         // is `std` (owner, 2026-10-14; `cord` until 2026-10-15).
         if as_cord && prefix != "std" {
-            return err(Diagnostic::error(format!("the kit at `{}` is listed with std's ID, and its prefix is `{}`: the CyborgPL std's prefix is `std`", written, prefix)).place(manifest_at.display().to_string()));
+            return err(Diagnostic::error(format!("the kit at `{}` is listed with std's ID, and its prefix is `{}`: the CyborgPL std's prefix is `std`", written, prefix)).named("kit_prefix_clash").place(manifest_at.display().to_string()));
         }
         // `std` is reserved with its old names, and CyJet's prefixes,
         // but for the CyborgPL std.
         if !as_cord && matches!(prefix.as_str(), "std" | "stdkit" | "cord" | "cca" | "kin" | "ricochet" | "cyjet") {
-            return err(Diagnostic::error(format!("the kit at `{}` has the prefix `{}`, which names the built-in `{}::`; edit its `prefix`", written, prefix, match prefix.as_str() { "cca" | "kin" | "ricochet" | "cyjet" => "cyjet", _ => "std" })).place(manifest_at.display().to_string()));
+            return err(Diagnostic::error(format!("the kit at `{}` has the prefix `{}`, which names the built-in `{}::`; edit its `prefix`", written, prefix, match prefix.as_str() { "cca" | "kin" | "ricochet" | "cyjet" => "cyjet", _ => "std" })).named("kit_prefix_clash").place(manifest_at.display().to_string()));
         }
         // No override: two Kits with one prefix are fixed by editing one
         // (owner, 2026-09-29: "Just edit the source code").
         if let Some(other) = state.prefixes.get(&prefix) {
             if *other != key && as_cord {
-                return err(Diagnostic::error(format!("two CyborgPL stds are listed, `{}` and `{}`: a program has one std (owner, 2026-10-14)", other.display(), key.display())).place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("two CyborgPL stds are listed, `{}` and `{}`: a program has one std (owner, 2026-10-14)", other.display(), key.display())).named("manifest_given_twice").place(manifest_at.display().to_string()));
             }
             if *other != key {
-                return err(Diagnostic::error(format!("two kits have the prefix `{}` ({} and {}); edit one kit's `prefix`", prefix, other.display(), key.display())).place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("two kits have the prefix `{}` ({} and {}); edit one kit's `prefix`", prefix, other.display(), key.display())).named("kit_prefix_clash").place(manifest_at.display().to_string()));
             }
         }
         state.prefixes.insert(prefix.clone(), key.clone());
@@ -664,7 +664,7 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
         if d.cord {
             let found = std::fs::canonicalize(&at).unwrap_or(at.clone());
             if let Some(other) = state.cord.as_ref().filter(|o| **o != found) {
-                return err(Diagnostic::error(format!("two CyborgPL stds are listed, `{}` and `{}`: a program has one std (owner, 2026-10-14)", other.display(), found.display())).place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("two CyborgPL stds are listed, `{}` and `{}`: a program has one std (owner, 2026-10-14)", other.display(), found.display())).named("manifest_given_twice").place(manifest_at.display().to_string()));
             }
             state.cord = Some(found);
             items.nerve_cord = Some(r);
@@ -688,7 +688,7 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
             let kind = if f.op.is_some() { "op" } else { "fn" };
             let named = format!("{} {}", kind, path);
             if let Some((other, _)) = only.iter().find(|(o, n)| *n == named && o != p) {
-                return err(Diagnostic::error(format!("`{}` and `{}` both forbid the path to `{}` (`bare.kit_prefix.only`), so it cannot tell them apart: edit one kit's source, as for a prefix clash", other, p, named)).place(manifest_at.display().to_string()));
+                return err(Diagnostic::error(format!("`{}` and `{}` both forbid the path to `{}` (`bare.kit_prefix.only`), so it cannot tell them apart: edit one kit's source, as for a prefix clash", other, p, named)).named("kit_prefix_clash").place(manifest_at.display().to_string()));
             }
             only.push((p.clone(), named));
         }
@@ -793,7 +793,7 @@ fn pub_handlers(sources: &mut SourceMap, dir: &Path) -> Result<std::collections:
 /// block, or a block in a section.
 fn once<'a>(seen: &mut Vec<&'a str>, name: &'a str, within: &str, at: crate::source::Span) -> Result<()> {
     if seen.contains(&name) {
-        return err(Diagnostic::error(format!("`{}` is given twice in {}", name, within)).at(at));
+        return err(Diagnostic::error(format!("`{}` is given twice in {}", name, within)).named("manifest_given_twice").at(at));
     }
     seen.push(name);
     Ok(())
@@ -808,7 +808,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     if !at.is_file() {
         return Ok(out);
     }
-    let text = std::fs::read_to_string(&at).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", at.display(), e))))?;
+    let text = std::fs::read_to_string(&at).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", at.display(), e)).named("path_not_readable")))?;
     let id: FileId = sources.add_once(&at, text);
     // A concise manifest is decoded first (design claude's reading of
     // 2026-10-22's "A manifest can be concise too").
@@ -819,7 +819,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     // Each section's lines are blocks, or `key = value` lines.
     let no_pairs = |within: &str, pairs: &[Pair], example: &str| -> Result<()> {
         match pairs.first() {
-            Some(p) => err(Diagnostic::error(format!("`{}:` holds a block for each: `{}`", within, example)).at(p.key_span)),
+            Some(p) => err(Diagnostic::error(format!("`{}:` holds a block for each: `{}`", within, example)).named("manifest_section_form").at(p.key_span)),
             None => Ok(()),
         }
     };
@@ -828,7 +828,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     let details = doc.section("my details");
     if let Some(s) = details {
         if let Some(b) = s.blocks.first() {
-            return err(Diagnostic::error("`my details:` holds `key = value` lines, `name`, `prefix` and `ver`, and no block").at(b.span));
+            return err(Diagnostic::error("`my details:` holds `key = value` lines, `name`, `prefix` and `ver`, and no block").named("manifest_section_form").at(b.span));
         }
         let mut seen = Vec::new();
         for p in &s.pairs {
@@ -845,11 +845,11 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                 // Any text, at most 256 bytes (owner, 2026-09-29).
                 "ver" => {
                     if p.value.len() > 256 {
-                        return err(Diagnostic::error(format!("`ver` is at most 256 bytes, and this one is {}", p.value.len())).at(p.value_span));
+                        return err(Diagnostic::error(format!("`ver` is at most 256 bytes, and this one is {}", p.value.len())).named("manifest_version_too_long").at(p.value_span));
                     }
                     out.version = Some(p.value.clone());
                 }
-                other => return err(Diagnostic::error(format!("`my details:` holds `name`, `prefix` and `ver`; `{}` is none of them", other)).at(p.key_span)),
+                other => return err(Diagnostic::error(format!("`my details:` holds `name`, `prefix` and `ver`; `{}` is none of them", other)).named("manifest_unknown_field").at(p.key_span)),
             }
         }
     }
@@ -869,22 +869,22 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     "id" => kid = Some(p),
                     "ver" => ver = Some(p),
                     "path" => path = Some(p),
-                    "name" | "prefix" => return err(Diagnostic::error("a kit's block names no word for code: code writes the kit's own `prefix`, from its `CyJet.toml`").at(p.key_span)),
-                    other => return err(Diagnostic::error(format!("a kit's block holds `id` and `ver` (the registry) or `path` (a folder on this machine); `{}` is none of them", other)).at(p.key_span)),
+                    "name" | "prefix" => return err(Diagnostic::error("a kit's block names no word for code: code writes the kit's own `prefix`, from its `CyJet.toml`").named("manifest_kit_named_in_block").at(p.key_span)),
+                    other => return err(Diagnostic::error(format!("a kit's block holds `id` and `ver` (the registry) or `path` (a folder on this machine); `{}` is none of them", other)).named("manifest_unknown_field").at(p.key_span)),
                 }
             }
             if let (Some(_), Some(p)) = (kid, path) {
-                return err(Diagnostic::error("a kit says where it comes from once: `id` and `ver` (the registry) or `path` (a folder on this machine), not both").at(p.key_span));
+                return err(Diagnostic::error("a kit says where it comes from once: `id` and `ver` (the registry) or `path` (a folder on this machine), not both").named("manifest_source_unclear").at(p.key_span));
             }
             if let Some(p) = path {
                 if let Some(v) = ver {
-                    return err(Diagnostic::error("a kit says where it comes from once: a `path` (a folder on this machine) or a `ver` (the registry), not both").at(v.key_span));
+                    return err(Diagnostic::error("a kit says where it comes from once: a `path` (a folder on this machine) or a `ver` (the registry), not both").named("manifest_source_unclear").at(v.key_span));
                 }
                 let cord = b.name == "std";
                 if cord {
                     out.has_std = true;
                 } else if out.deps.iter().any(|d| d.path == p.value) {
-                    return err(Diagnostic::error(format!("`{}` is listed twice in `my kits:`", p.value)).at(p.value_span));
+                    return err(Diagnostic::error(format!("`{}` is listed twice in `my kits:`", p.value)).named("manifest_given_twice").at(p.value_span));
                 }
                 out.deps.push(Dep { path: p.value.clone(), cord });
                 continue;
@@ -894,29 +894,29 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             // 2026-09-29: "Names could be the same, IDs can't").
             let Some(i) = kid else {
                 return match ver {
-                    Some(_) => err(Diagnostic::error("this kit comes from the registry, which knows a kit by its ID, never its name: add `id = …`, the 64 hex digits its creator made").at(b.span)),
-                    None => err(Diagnostic::error(format!("a kit's block says where it comes from: `{n} {{` / `id = …` / `ver = …` / `}}` (the registry) or `{n} {{` / `path = ../{n}` / `}}` (a folder)", n = b.name)).at(b.span)),
+                    Some(_) => err(Diagnostic::error("this kit comes from the registry, which knows a kit by its ID, never its name: add `id = …`, the 64 hex digits its creator made").named("manifest_field_missing").at(b.span)),
+                    None => err(Diagnostic::error(format!("a kit's block says where it comes from: `{n} {{` / `id = …` / `ver = …` / `}}` (the registry) or `{n} {{` / `path = ../{n}` / `}}` (a folder)", n = b.name)).named("manifest_source_unclear").at(b.span)),
                 };
             };
             if i.value.len() != 64 || !i.value.chars().all(|c| c.is_ascii_hexdigit()) {
-                return err(Diagnostic::error(format!("a kit's `id` is 64 hex digits, the 256 random bits its creator made: `{}` is not", i.value)).at(i.value_span));
+                return err(Diagnostic::error(format!("a kit's `id` is 64 hex digits, the 256 random bits its creator made: `{}` is not", i.value)).named("manifest_id_form").at(i.value_span));
             }
             let Some(v) = ver else {
-                return err(Diagnostic::error(format!("a registry kit says which version: `{} {{` / `id = …` / `ver = …` / `}}`", b.name)).at(b.span));
+                return err(Diagnostic::error(format!("a registry kit says which version: `{} {{` / `id = …` / `ver = …` / `}}`", b.name)).named("manifest_field_missing").at(b.span));
             };
             // std, listed like any kit (owner, 2026-10-06): kayo knows one
             // version of it, and downloads nothing.
             if i.value == crate::parser::STD_ID {
                 if v.value != crate::parser::STD_VERSION {
-                    return err(Diagnostic::error(format!("kayo knows std `{}` only, and this asks for `{}`: write `ver = {}`", crate::parser::STD_VERSION, v.value, crate::parser::STD_VERSION)).at(v.value_span));
+                    return err(Diagnostic::error(format!("kayo knows std `{}` only, and this asks for `{}`: write `ver = {}`", crate::parser::STD_VERSION, v.value, crate::parser::STD_VERSION)).named("version_not_available").at(v.value_span));
                 }
                 if out.has_std {
-                    return err(Diagnostic::error("std is listed twice in `my kits:`").at(b.span));
+                    return err(Diagnostic::error("std is listed twice in `my kits:`").named("manifest_given_twice").at(b.span));
                 }
                 out.has_std = true;
                 continue;
             }
-            return err(Diagnostic::error("not yet: this kit asks the registry for a `ver`, and the registry does not exist yet — give its folder with `path = …`").at(v.value_span));
+            return err(Diagnostic::error("not yet: this kit asks the registry for a `ver`, and the registry does not exist yet — give its folder with `path = …`").named("not_built_yet").at(v.value_span));
         }
     }
 
@@ -936,44 +936,44 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     "id" => lid = Some(p),
                     "ver" => ver = Some(p),
                     "path" => path = Some(p),
-                    other => return err(Diagnostic::error(format!("a limb's block holds `id` and `ver`, or a `path`; `{}` is none of them", other)).at(p.key_span)),
+                    other => return err(Diagnostic::error(format!("a limb's block holds `id` and `ver`, or a `path`; `{}` is none of them", other)).named("manifest_unknown_field").at(p.key_span)),
                 }
             }
             if let (Some(_), Some(p)) = (lid, path) {
-                return err(Diagnostic::error("a limb says where it comes from once: an `id` and a `ver` (the registry) or a `path` (a folder on this machine)").at(p.key_span));
+                return err(Diagnostic::error("a limb says where it comes from once: an `id` and a `ver` (the registry) or a `path` (a folder on this machine)").named("manifest_source_unclear").at(p.key_span));
             }
             // Until limbs can be loaded, only the official ones (owner,
             // 2026-10-06: "`a`").
             if let Some(p) = path {
-                return err(Diagnostic::error(format!("the limb at `{}` is not registered, so not verified; loading another limb is not built yet (a limb, which kayo cannot load yet)", p.value)).at(p.value_span));
+                return err(Diagnostic::error(format!("the limb at `{}` is not registered, so not verified; loading another limb is not built yet (a limb, which kayo cannot load yet)", p.value)).named("not_built_yet").at(p.value_span));
             }
             let Some(i) = lid else {
-                return err(Diagnostic::error(format!("a limb's block says which limb: `{} {{` / `id = …` / `ver = …` / `}}`", b.name)).at(b.span));
+                return err(Diagnostic::error(format!("a limb's block says which limb: `{} {{` / `id = …` / `ver = …` / `}}`", b.name)).named("manifest_field_missing").at(b.span));
             };
             // MTM's ID is retired (owner, 2026-10-07: "MTM is gone.").
             if i.value == crate::ast::MTM_ID {
-                return err(Diagnostic::error("the limb `9c6c7730…` is MTM, which is gone since 2026-10-07: every spelling it held is an old one now — take it out of `my limbs:`").at(i.value_span));
+                return err(Diagnostic::error("the limb `9c6c7730…` is MTM, which is gone since 2026-10-07: every spelling it held is an old one now — take it out of `my limbs:`").named("limb_retired").at(i.value_span));
             }
             if let Some((n, _, when)) = crate::ast::RETIRED_CORES.iter().find(|(_, rid, _)| *rid == i.value) {
-                return err(Diagnostic::error(format!("{} is retired: since {} it is part of the base; take it out of `my limbs:`", n, when)).at(i.value_span));
+                return err(Diagnostic::error(format!("{} is retired: since {} it is part of the base; take it out of `my limbs:`", n, when)).named("limb_retired").at(i.value_span));
             }
             if let Some((n, _)) = crate::ast::BROCA_CORES.iter().find(|(_, rid)| *rid == i.value) {
-                return err(Diagnostic::error(format!("{} is part of unicode since 2026-10-12: list `unicode` instead: `{}`", n, crate::ast::core_line("unicode"))).at(i.value_span));
+                return err(Diagnostic::error(format!("{} is part of unicode since 2026-10-12: list `unicode` instead: `{}`", n, crate::ast::core_line("unicode"))).named("limb_retired").at(i.value_span));
             }
             let Some(&(n, _, known)) = OFFICIAL_CORES.iter().find(|(_, oid, _)| *oid == i.value) else {
-                return err(Diagnostic::error(format!("the limb `{}…` is not an official one; loading another limb is not built yet (a limb, which kayo cannot load yet)", &i.value[..i.value.len().min(8)])).at(i.value_span));
+                return err(Diagnostic::error(format!("the limb `{}…` is not an official one; loading another limb is not built yet (a limb, which kayo cannot load yet)", &i.value[..i.value.len().min(8)])).named("not_built_yet").at(i.value_span));
             };
             if !b.name.eq_ignore_ascii_case(n) {
-                return err(Diagnostic::error(format!("this id is the limb `{}`'s, so its block is `{} {{ … }}`, not `{}`", n.to_lowercase(), n.to_lowercase(), b.name)).at(b.span));
+                return err(Diagnostic::error(format!("this id is the limb `{}`'s, so its block is `{} {{ … }}`, not `{}`", n.to_lowercase(), n.to_lowercase(), b.name)).named("manifest_limb_block_name").at(b.span));
             }
             let Some(v) = ver else {
-                return err(Diagnostic::error("a limb needs its `ver`, as a registry kit does").at(b.span));
+                return err(Diagnostic::error("a limb needs its `ver`, as a registry kit does").named("manifest_field_missing").at(b.span));
             };
             if v.value != known {
-                return err(Diagnostic::error(format!("kayo knows {} `{}` only, the installed one; this asks for `{}`", n, known, v.value)).at(v.value_span));
+                return err(Diagnostic::error(format!("kayo knows {} `{}` only, the installed one; this asks for `{}`", n, known, v.value)).named("version_not_available").at(v.value_span));
             }
             if names.iter().any(|x| x == n) {
-                return err(Diagnostic::error(format!("the limb {} is listed twice", n)).at(b.span));
+                return err(Diagnostic::error(format!("the limb {} is listed twice", n)).named("manifest_given_twice").at(b.span));
             }
             names.push(n.to_string());
         }
@@ -988,12 +988,12 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
         for b in &s.blocks {
             once(&mut seen, &b.name, "`my C libs:`", b.span)?;
             if let Some(p) = b.pairs.first() {
-                return err(Diagnostic::error(format!("a C library's block is empty: `{} {{` / `}}`", b.name)).at(p.key_span));
+                return err(Diagnostic::error(format!("a C library's block is empty: `{} {{` / `}}`", b.name)).named("cnc::c_lib_name_form").at(p.key_span));
             }
             let n = &b.name;
             if n.starts_with("lib") || n.contains('.') || n.contains('/') {
                 let bare = n.rsplit('/').next().unwrap_or(n).trim_start_matches("lib").split('.').next().unwrap_or("").to_string();
-                return err(Diagnostic::error(format!("a C library is named as the linker names it, without `lib` or a file ending: `{} {{`, not `{}`", bare, n)).at(b.span));
+                return err(Diagnostic::error(format!("a C library is named as the linker names it, without `lib` or a file ending: `{} {{`, not `{}`", bare, n)).named("cnc::c_lib_name_form").at(b.span));
             }
             out.c_libs.push(n.clone());
         }
@@ -1015,7 +1015,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
             for p in &b.pairs {
                 once(&mut keys, &p.key, &format!("`{}`", b.name), p.key_span)?;
                 match p.key.as_str() {
-                    "except" | "for" if !denied => return err(Diagnostic::error(format!("`{}` belongs to `my denied powers:`; `my powers:` lists what this kit uses", p.key)).at(p.key_span)),
+                    "except" | "for" if !denied => return err(Diagnostic::error(format!("`{}` belongs to `my denied powers:`; `my powers:` lists what this kit uses", p.key)).named("power_except_misplaced").at(p.key_span)),
                     "except" => except = list(&p.value),
                     "for" => for_kits = list(&p.value),
                     key => {
@@ -1041,7 +1041,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     // `my targets:` (owner, 2026-09-29): a block for each, holding its own
     // settings, an empty one when it has none.
     let Some(s) = doc.section("my targets").filter(|s| !s.blocks.is_empty()) else {
-        return err(Diagnostic::error(format!("the manifest has no target under `my targets:`: a build needs the kit's `name`, `prefix`, `ver` and at least one target, {}", MANIFEST_SHAPE)).at(doc.section("my targets").map_or(whole, |s| s.span)));
+        return err(Diagnostic::error(format!("the manifest has no target under `my targets:`: a build needs the kit's `name`, `prefix`, `ver` and at least one target, {}", MANIFEST_SHAPE)).named("manifest_field_missing").at(doc.section("my targets").map_or(whole, |s| s.span)));
     };
     no_pairs("my targets", &s.pairs, "aarch64-macos {` / `}")?;
     let mut names: Vec<&str> = Vec::new();
@@ -1063,7 +1063,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     "exit" => format!("`exit` is for a target with no OS, which names its own; on `{}` the OS takes `std::exit`'s code", n),
                     _ => format!("`layout` is for a target with no OS, whose program says where it sits in memory; on `{}` the OS places it", n),
                 };
-                err(Diagnostic::error(what).at(p.value_span))
+                err(Diagnostic::error(what).named("manifest_field_misplaced").at(p.value_span))
             };
             match p.key.as_str() {
                 "runner" => {}
@@ -1087,7 +1087,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                 "default" => match p.value.as_str() {
                     "yes" => defaults.push((b, p.key_span)),
                     "no" => said_not = true,
-                    _ => return err(Diagnostic::error("a target's `default` is `yes` or `no`").at(p.value_span)),
+                    _ => return err(Diagnostic::error("a target's `default` is `yes` or `no`").named("manifest_value_form").at(p.value_span)),
                 },
                 // The largest table Precog may make, in bytes (owner,
                 // 2026-10-19).
@@ -1095,10 +1095,10 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
                     let digits = p.value.replace('_', "");
                     match digits.parse::<u64>() {
                         Ok(t) if !p.value.starts_with('_') && !p.value.ends_with('_') && !p.value.contains("__") => out.table_bytes.push((n.clone(), t)),
-                        _ => return err(Diagnostic::error(format!("`table_bytes` is a whole number of bytes, 0 or more: `{} {{` / `table_bytes = 4_096` / `}}`", n)).at(p.value_span)),
+                        _ => return err(Diagnostic::error(format!("`table_bytes` is a whole number of bytes, 0 or more: `{} {{` / `table_bytes = 4_096` / `}}`", n)).named("table_bytes_form").at(p.value_span)),
                     }
                 }
-                other => return err(Diagnostic::error(format!("a target's block has no `{}`: it holds a `runner` when this machine cannot run it, `default = yes` on the one built when none is named, `table_bytes`, and on one with no OS a `layout`, an `output` and an `exit`", other)).at(p.key_span)),
+                other => return err(Diagnostic::error(format!("a target's block has no `{}`: it holds a `runner` when this machine cannot run it, `default = yes` on the one built when none is named, `table_bytes`, and on one with no OS a `layout`, an `output` and an `exit`", other)).named("manifest_unknown_field").at(p.key_span)),
             }
         }
         lone_says_not = said_not;
@@ -1106,16 +1106,16 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     // A single target is the default by itself; of several, exactly one
     // says so.
     if defaults.len() > 1 {
-        return err(Diagnostic::error(format!("`{}` and `{}` both say `default = yes`: of several targets, exactly one says `default = yes`", defaults[0].0.name, defaults[1].0.name)).at(defaults[1].1));
+        return err(Diagnostic::error(format!("`{}` and `{}` both say `default = yes`: of several targets, exactly one says `default = yes`", defaults[0].0.name, defaults[1].0.name)).named("manifest_default_unclear").at(defaults[1].1));
     }
     if names.len() > 1 && defaults.is_empty() {
-        return err(Diagnostic::error(format!("{} targets, and none is the one built when none is named: of several targets, exactly one says `default = yes`", names.len())).at(s.span));
+        return err(Diagnostic::error(format!("{} targets, and none is the one built when none is named: of several targets, exactly one says `default = yes`", names.len())).named("manifest_default_unclear").at(s.span));
     }
     // Only a target kayo can build (owner, 2026-09-30: "refuse").
     let known = targets();
     for b in &s.blocks {
         if !known.contains(&b.name.as_str()) {
-            return err(Diagnostic::error(format!("`{}` is not a target kayo can build; it builds for {}", b.name, known.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))).at(b.span));
+            return err(Diagnostic::error(format!("`{}` is not a target kayo can build; it builds for {}", b.name, known.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))).named("target_not_buildable").at(b.span));
         }
     }
     // A lone target is the default unless it says `default = no` (owner,
@@ -1130,7 +1130,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
     for (need, have) in [("name", out.name.is_some()), ("prefix", out.prefix.is_some()), ("ver", out.version.is_some())] {
         if !have {
             let what = if need == "prefix" { ", the word code writes in front of `::` to reach this kit" } else { "" };
-            return err(Diagnostic::error(format!("the manifest has no `{}` under `my details:`{}: a build needs the kit's `name`, `prefix`, `ver` and at least one target, {}", need, what, MANIFEST_SHAPE)).at(details.map_or(whole, |s| s.span)));
+            return err(Diagnostic::error(format!("the manifest has no `{}` under `my details:`{}: a build needs the kit's `name`, `prefix`, `ver` and at least one target, {}", need, what, MANIFEST_SHAPE)).named("manifest_field_missing").at(details.map_or(whole, |s| s.span)));
         }
     }
     Ok(out)
@@ -1141,7 +1141,7 @@ fn read_manifest(sources: &mut SourceMap, dir: &Path) -> Result<Manifest> {
 fn known_power(power: &kayo_base::powers::Power, at: crate::source::Span) -> Result<()> {
     let known: &[&[&str]] = &[&["inline_assembly"], &["c_calls"], &["c_calls", "functions"], &["c_calls", "variables"], &["raw_memory"], &["raw_memory", "read"], &["raw_memory", "write"], &["raw_memory", "cast"], &["vouch"], &["vouch", "c"], &["operators_on_builtin_types"], &["prefix_operators"]];
     if !known.iter().any(|k| k.iter().copied().eq(power.path.iter().map(String::as_str))) {
-        return err(Diagnostic::error(format!("there is no power `{}`: the powers are {}", power.path.join("."), known.iter().map(|k| format!("`{}`", k.join("."))).collect::<Vec<_>>().join(", "))).at(at));
+        return err(Diagnostic::error(format!("there is no power `{}`: the powers are {}", power.path.join("."), known.iter().map(|k| format!("`{}`", k.join("."))).collect::<Vec<_>>().join(", "))).named("unknown_power").at(at));
     }
     Ok(())
 }
@@ -1171,14 +1171,14 @@ fn check_case(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, r
     if root {
         CASE_LINES.with(|k| *k.borrow_mut() = file.case_kinds.clone());
     } else if let Some((_, _, at)) = file.case_kinds.first() {
-        return err(Diagnostic::error("a `case` mark on kinds (`case.any [fn, struct];`) covers the whole kit, so it is written in `kit.cy`").at(*at));
+        return err(Diagnostic::error("a `case` mark on kinds (`case.any [fn, struct];`) covers the whole kit, so it is written in `kit.cy`").named("unicode::case_mark_misplaced").at(*at));
     }
     let lines = CASE_LINES.with(|k| k.borrow().clone());
     let line = |at: Span| sources.get(at.file).line_of(at.start);
     let spelled = |b: bool| if b { "case.any" } else { "case.exact" };
     let decide = |marks: &[(bool, Span)], what: &str, at: Span| -> Result<bool> {
         if let (Some(i), Some(s)) = (marks.iter().find(|m| m.0), marks.iter().find(|m| !m.0)) {
-            return err(Diagnostic::error(format!("{} is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error (owner, 2026-10-06)", what, spelled(true), line(i.1), spelled(false), line(s.1))).at(at));
+            return err(Diagnostic::error(format!("{} is marked both `{}` ({}) and `{}` ({}): marks that disagree are an error (owner, 2026-10-06)", what, spelled(true), line(i.1), spelled(false), line(s.1))).named("unicode::case_marks_disagree").at(at));
         }
         Ok(marks.first().is_some_and(|m| m.0))
     };
@@ -1189,7 +1189,7 @@ fn check_case(sources: &SourceMap, items: &mut Items, file: &crate::ast::File, r
         if let Some((other, other_at, other_ins)) = seen.iter().find(|(n, _, _)| *n != name && fold_case(n) == f) {
             if ins || *other_ins {
                 let which = if *other_ins { other.as_str() } else { name };
-                return err(Diagnostic::error(format!("{} and {} ({}) differ only in case, and {} is `case.any`: they would be one name", shown(name), shown(other), line(*other_at), shown(which))).at(at));
+                return err(Diagnostic::error(format!("{} and {} ({}) differ only in case, and {} is `case.any`: they would be one name", shown(name), shown(other), line(*other_at), shown(which))).named("unicode::names_differ_only_in_case").at(at));
             }
         }
         seen.push((name.to_string(), at, ins));
@@ -1300,7 +1300,7 @@ fn check_bare(_sources: &SourceMap, _items: &mut Items, file: &crate::ast::File,
     }
     let at = file.bare_file.map(|(_, a)| a).or(file.bare_kinds.first().map(|(_, _, a)| *a)).or(file.enum_bare_file.map(|(_, a)| a)).or(file.enum_bare_kinds.first().map(|(_, a)| *a)).or_else(|| first_mark(&file.items));
     match at {
-        Some(at) => err(Diagnostic::error(BARE_MARKS_GONE).at(at)),
+        Some(at) => err(Diagnostic::error(BARE_MARKS_GONE).named("spelling_removed").at(at)),
         None => Ok(()),
     }
 }
@@ -1316,7 +1316,7 @@ fn new_module(items: &mut Items, name: &str, parent: Option<ModuleId>, vis: Vis)
 }
 
 fn parse_file(sources: &mut SourceMap, path: &Path) -> Result<crate::ast::File> {
-    let text = std::fs::read_to_string(path).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", path.display(), e))))?;
+    let text = std::fs::read_to_string(path).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", path.display(), e)).named("path_not_readable")))?;
     let id: FileId = sources.add_once(path, text);
     let toks = sources.lex_file(id)?;
     let file = crate::parser::parse_file(&toks)?;
@@ -1328,7 +1328,7 @@ fn parse_file(sources: &mut SourceMap, path: &Path) -> Result<crate::ast::File> 
 
 /// The entries of `dir` as modules of `parent`.
 fn load_dir(sources: &mut SourceMap, items: &mut Items, dir: &Path, parent: ModuleId, is_root_dir: bool) -> Result<()> {
-    let mut entries: Vec<PathBuf> = std::fs::read_dir(dir).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", dir.display(), e))))?.filter_map(|e| e.ok().map(|e| e.path())).collect();
+    let mut entries: Vec<PathBuf> = std::fs::read_dir(dir).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", dir.display(), e)).named("path_not_readable")))?.filter_map(|e| e.ok().map(|e| e.path())).collect();
     entries.sort();
     // Files first, so a directory `x/` can nest under a file module `x.cpls`.
     let mut file_modules: Vec<(String, ModuleId)> = Vec::new();
@@ -1346,9 +1346,9 @@ fn load_dir(sources: &mut SourceMap, items: &mut Items, dir: &Path, parent: Modu
         check_name(&stem, e)?;
         if let Some((existing, _, _)) = items.modules[parent.0 as usize].items.get(&stem) {
             if let crate::resolve::ItemRef::Module(_) = existing {
-                return err(Diagnostic::error(format!("`{}` is both a file module (`{}`) and a `module {} {{ … }}` block: a module cannot be both — keep one", stem, e.display(), stem)));
+                return err(Diagnostic::error(format!("`{}` is both a file module (`{}`) and a `module {} {{ … }}` block: a module cannot be both — keep one", stem, e.display(), stem)).named("defined_twice"));
             }
-            return err(Diagnostic::error(format!("`{}` names both the file module `{}` and a {} declared in its parent: a module and a type cannot share a name", stem, e.display(), existing.what())));
+            return err(Diagnostic::error(format!("`{}` names both the file module `{}` and a {} declared in its parent: a module and a type cannot share a name", stem, e.display(), existing.what())).named("defined_twice"));
         }
         let m = new_module(items, &stem, Some(parent), Vis::Pub);
         items.modules[parent.0 as usize].items.insert(stem.clone(), (crate::resolve::ItemRef::Module(m), Vis::Pub, crate::source::Span::new(FileId(0), 0, 0)));
@@ -1393,17 +1393,17 @@ fn check_name(name: &str, at: &Path) -> Result<()> {
     // `neuron.nrv` is a Neuron's root file (owner, 2026-10-09; `kit`
     // before it).
     if name == "kit" {
-        return err(Diagnostic::error(format!("`neuron` names a kit's root file (`kit.cy`), so it cannot name a module: rename `{}`", short(at))));
+        return err(Diagnostic::error(format!("`neuron` names a kit's root file (`kit.cy`), so it cannot name a module: rename `{}`", short(at))).named("file_name_not_module"));
     }
     let ok = name.chars().next().map(|c| c.is_ascii_lowercase()).unwrap_or(false) && name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
     if !ok {
-        return err(Diagnostic::error(format!("`{}` cannot name a module: module names are lowercase ASCII letters, digits and `_`, starting with a letter — rename `{}`", name, short(at))));
+        return err(Diagnostic::error(format!("`{}` cannot name a module: module names are lowercase ASCII letters, digits and `_`, starting with a letter — rename `{}`", name, short(at))).named("file_name_not_module"));
     }
     if crate::parser::is_device_name(name) {
-        return err(Diagnostic::error(format!("`{}` is a reserved device name on Windows and cannot name a module: rename `{}`", name, short(at))));
+        return err(Diagnostic::error(format!("`{}` is a reserved device name on Windows and cannot name a module: rename `{}`", name, short(at))).named("file_name_not_module"));
     }
     if crate::parser::reserved_module_name(name) {
-        return err(Diagnostic::error(format!("`{}` is a keyword and cannot name a module: rename `{}`", name, short(at))));
+        return err(Diagnostic::error(format!("`{}` is a keyword and cannot name a module: rename `{}`", name, short(at))).named("file_name_not_module"));
     }
     Ok(())
 }
@@ -1425,7 +1425,7 @@ fn check_word(w: &str, span: crate::source::Span, what: &str) -> Result<()> {
     } else {
         return Ok(());
     };
-    err(Diagnostic::error(format!("`{}` cannot {}: {}", w, what, why)).at(span))
+    err(Diagnostic::error(format!("`{}` cannot {}: {}", w, what, why)).named("manifest_name_form").at(span))
 }
 
 /// The file's own name, for a message: a full path is noise and differs per machine.

@@ -347,7 +347,7 @@ fn check_fn(p: &Program, fi: usize, sources: &SourceMap, problems: &mut Vec<Stri
                         (None, Some(line)) => format!("the loop on {} is still going through it", line),
                         (None, None) => "a borrow of it is still in use".to_string(),
                     };
-                    let mut d = Diagnostic::error(format!("'{}' cannot be {} here: {}", owner, what, tail)).at(f.span(*span));
+                    let mut d = Diagnostic::error(format!("'{}' cannot be {} here: {}", owner, what, tail)).named(match how { Acc::Move => "given_while_borrowed", Acc::Read | Acc::Lend => "used_while_lent_mut", _ => "changed_while_borrowed" }).at(f.span(*span));
                     d = d.why("while a borrow is in use, what it borrows stays as it is (Rust-style borrowing, `core-features.md`)");
                     if f.name != "MAIN" {
                         d = d.place(format!("in `{}`", f.name));

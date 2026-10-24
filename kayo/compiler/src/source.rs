@@ -156,7 +156,7 @@ impl SourceMap {
         if let Some((line, why)) = &f.concise_error {
             let start = f.line_starts.get(*line as usize - 1).copied().unwrap_or(0);
             let end = f.line_starts.get(*line as usize).map(|e| e.saturating_sub(1)).unwrap_or(f.text.len() as u32);
-            return crate::diag::err(crate::diag::Diagnostic::error(why.clone()).at(Span::new(id, start as usize, end as usize)));
+            return crate::diag::err(crate::diag::Diagnostic::error(why.clone()).named("concise_form").at(Span::new(id, start as usize, end as usize)));
         }
         Ok(())
     }

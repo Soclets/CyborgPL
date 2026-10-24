@@ -442,7 +442,7 @@ impl Checker {
         for (ty, iface, span) in &claims {
             if let Err(reason) = self.satisfies(ty, *iface) {
                 let iname = self.items.ifaces[iface.0 as usize].name.clone();
-                return err(Diagnostic::error(format!("the claim `{} satisfies {}` is false: {}", self.spell(ty), iname, reason)).at(*span));
+                return err(Diagnostic::error(format!("the claim `{} satisfies {}` is false: {}", self.spell(ty), iname, reason)).named("false_satisfies_claim").at(*span));
             }
         }
         // Consts, in order.
@@ -474,12 +474,12 @@ impl Checker {
                 let want = [("argc", Ty::Int(crate::types::IntW::Fixed { signed: true, bits: 32 })), ("argv", Ty::Ptr { mutable: false, elem: Box::new(Ty::Ptr { mutable: false, elem: Box::new(Ty::Int(crate::types::IntW::Fixed { signed: false, bits: 8 })) }) })];
                 for (p, (c, want)) in main_params.iter().zip(want.iter()) {
                     let Some(t) = &p.ty else {
-                        return err(Diagnostic::error(format!("MAIN's '{}' is C's `{}`: write its type, `{}`", p.name.name, c, self.spell(want))).at(p.span));
+                        return err(Diagnostic::error(format!("MAIN's '{}' is C's `{}`: write its type, `{}`", p.name.name, c, self.spell(want))).named("main_parameters_wrong").at(p.span));
                     };
                     let mut blanks = Vec::new();
                     let got = self.items.resolve_type(t, module, &mut blanks, false)?;
                     if got != *want || !matches!(p.kind, ast::ParamKind::Owned) {
-                        return err(Diagnostic::error(format!("MAIN's '{}' is C's `{}`, whose type is `{}`, not `{}`", p.name.name, c, self.spell(want), self.spell(&got))).at(t.span));
+                        return err(Diagnostic::error(format!("MAIN's '{}' is C's `{}`, whose type is `{}`, not `{}`", p.name.name, c, self.spell(want), self.spell(&got))).named("main_parameters_wrong").at(t.span));
                     }
                     let id = ctx.declare(&p.name.name, Local { name: p.name.name.clone(), ty: want.clone(), mutability: None, kind: LocalKind::Owned, from_blank: false, span: p.span });
                     params.push(id);
@@ -534,7 +534,7 @@ impl Checker {
         let mut unkept: Vec<(&crate::source::Span, &String)> = self.mut_seen.iter().filter(|(_, (_, ok))| !ok).map(|(s, (n, _))| (s, n)).collect();
         unkept.sort_by_key(|(s, _)| (s.file.0, s.start));
         if let Some((span, name)) = unkept.first() {
-            return err(Diagnostic::error(format!("'{}' is `mut`, but nothing changes it: drop `mut`, or change it (`mut` is a promise that it changes, as `immut` is that it does not)", name)).at(**span));
+            return err(Diagnostic::error(format!("'{}' is `mut`, but nothing changes it: drop `mut`, or change it (`mut` is a promise that it changes, as `immut` is that it does not)", name)).named("mut_never_changed").at(**span));
         }
         // "Only a bare literal with no context has no width" (`operators.md`).
         for (t, span, what) in std::mem::take(&mut self.widths_pending) {
@@ -543,10 +543,10 @@ impl Checker {
             // operation stored into a `bool` is a mistake, as `'a': bool
             // = 5` is.
             if !matches!(got, Ty::Infer(_)) && !got.is_int() {
-                return err(Diagnostic::error(format!("expected a value of the declared type ({}), found a whole number: `{}` works on integers", self.spell(&got), what)).at(span));
+                return err(Diagnostic::error(format!("expected a value of the declared type ({}), found a whole number: `{}` works on integers", self.spell(&got), what)).named("needs_integer").at(span));
             }
             if matches!(got, Ty::Infer(_)) {
-                return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: every operand is a bare number and the value is not stored into a typed place", what))
+                return err(Diagnostic::error(format!("`{}` needs a width, and nothing here gives one: every operand is a bare number and the value is not stored into a typed place", what)).named("width_unknown")
                     .at(span)
                     .try_(format!("give the result a type (`let $x: u32 = …`) or one operand a width (`to.u32(…)`)")));
             }
@@ -588,9 +588,9 @@ impl Checker {
                 }
                 Ok(())
             }
-            hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::Std(name)), .. } => err(Diagnostic::error(format!("a const is a value known at compile time: `std::{}` has an effect, so it cannot make one", name)).at(e.span)),
-            hir::ExprKind::Call { callee: hir::Callee::Extern(_), .. } => err(Diagnostic::error("a const is a value known at compile time: a call into C cannot make one").at(e.span)),
-            _ => err(Diagnostic::error("a const is a value known at compile time: a literal, arithmetic on literals, another const, or a pure call").at(e.span)),
+            hir::ExprKind::Call { callee: hir::Callee::Builtin(hir::Builtin::Std(name)), .. } => err(Diagnostic::error(format!("a const is a value known at compile time: `std::{}` has an effect, so it cannot make one", name)).named("const_not_known").at(e.span)),
+            hir::ExprKind::Call { callee: hir::Callee::Extern(_), .. } => err(Diagnostic::error("a const is a value known at compile time: a call into C cannot make one").named("const_not_known").at(e.span)),
+            _ => err(Diagnostic::error("a const is a value known at compile time: a literal, arithmetic on literals, another const, or a pure call").named("const_not_known").at(e.span)),
         }
     }
 
@@ -680,7 +680,7 @@ impl Checker {
         ctx.ret_lent = decl.ret_lent.clone();
         for (pi, (p, (kind, ty))) in decl.params.iter().zip(&sig.params).enumerate() {
             if ctx.lookup(&p.name).is_some() {
-                return err(Diagnostic::error(format!("'{}' is declared twice: a capture and a parameter cannot share a name", p.name)).at(p.span));
+                return err(Diagnostic::error(format!("'{}' is declared twice: a capture and a parameter cannot share a name", p.name)).named("already_declared").at(p.span));
             }
             let lk = match kind {
                 ParamKind::Owned => LocalKind::Owned,
@@ -708,7 +708,7 @@ impl Checker {
             (*m, deps)
         });
         if sig.ret != Ty::Nothing && !stmt::leaves_block(&block) {
-            return err(Diagnostic::error(format!("`{}` returns a `{}` but can fall off the end and return nothing: every path must `return` a value (or `fail`)", decl.name, self.spell(&sig.ret))).at(decl.name_span).why(format!("declared `-> {}`", self.spell(&sig.ret))));
+            return err(Diagnostic::error(format!("`{}` returns a `{}` but can fall off the end and return nothing: every path must `return` a value (or `fail`)", decl.name, self.spell(&sig.ret))).named("missing_return").at(decl.name_span).why(format!("declared `-> {}`", self.spell(&sig.ret))));
         }
         let name = decl.name.clone();
         self.mut_promises_kept(&ctx)?;
@@ -742,7 +742,7 @@ impl Checker {
             None => self.items.resolve_fails(&lit.fails, module, &mut blanks)?,
         };
         if !blanks.is_empty() {
-            return err(Diagnostic::error("an anonymous function has no blanks: write the types").at(span));
+            return err(Diagnostic::error("an anonymous function has no blanks: write the types").named("parameter_type_missing").at(span));
         }
         let id = FnId(self.items.fns.len() as u32);
         self.items.fns.push(crate::resolve::FnDeclInfo { name: "an anonymous function".into(), path: String::new(), module, vis: ast::Vis::Private, params, ret, ret_lent: None, fails, blanks: Vec::new(), body: Some(lit.body.clone()), op: None, is_literal: true, test: false, table_bytes: None, labels: None, defaults: Vec::new(), span, name_span: span });
@@ -811,7 +811,7 @@ impl Checker {
             let language = matches!(op.as_str(), "plus" | "minus" | "times" | "pow" | "equal_to" | "not_equal" | "<" | ">" | "at_most" | "at_least" | "++" | "xor" | "shl" | "shr" | "plus.wrap" | "minus.wrap" | "times.wrap" | "pow.wrap") || op.starts_with("div") || op.starts_with("mod");
             for (_, d) in &decls {
                 if language && !d.blanks.is_empty() {
-                    return err(Diagnostic::error(format!("a generic operator cannot be `{}`: that is the language's own, and a generic one would take it over for every type", op)).at(d.name_span));
+                    return err(Diagnostic::error(format!("a generic operator cannot be `{}`: that is the language's own, and a generic one would take it over for every type", op)).named("builtin_operator_redefined").at(d.name_span));
                 }
             }
             for (i, (_, a)) in decls.iter().enumerate() {
@@ -829,11 +829,11 @@ impl Checker {
                             let (ta, tb) = (types(a), types(b));
                             if ta.len() == tb.len() && ta.iter().zip(&tb).all(|(x, y)| self.same(x, y)) {
                                 let spelled = ta.iter().map(|t| self.spell(t)).collect::<Vec<_>>().join(", ");
-                                return err(Diagnostic::error(format!("`{}` is defined twice for {}: one meaning per operator and types", op, spelled)).at(b.name_span).why_at(a.name_span, "the first is here"));
+                                return err(Diagnostic::error(format!("`{}` is defined twice for {}: one meaning per operator and types", op, spelled)).named("versions_overlap").at(b.name_span).why_at(a.name_span, "the first is here"));
                             }
                         }
                         (true, true) => {
-                            return err(Diagnostic::error(format!("`{}` is declared generic twice: one generic meaning per operator", op)).at(b.name_span).why_at(a.name_span, "the first is here"));
+                            return err(Diagnostic::error(format!("`{}` is declared generic twice: one generic meaning per operator", op)).named("versions_overlap").at(b.name_span).why_at(a.name_span, "the first is here"));
                         }
                         _ => {
                             let (g, s) = if ag { (a, b) } else { (b, a) };
@@ -849,7 +849,7 @@ impl Checker {
                             };
                             if covers {
                                 let spelled = self.spell(&st);
-                                return err(Diagnostic::error(format!("`{}` for {} and the generic `{}` both cover {}: one meaning per operator and types, and the specific one does not win", op, spelled, op, spelled)).at(s.name_span).why_at(g.name_span, "the generic one is here"));
+                                return err(Diagnostic::error(format!("`{}` for {} and the generic `{}` both cover {}: one meaning per operator and types, and the specific one does not win", op, spelled, op, spelled)).named("versions_overlap").at(s.name_span).why_at(g.name_span, "the generic one is here"));
                             }
                         }
                     }
@@ -969,15 +969,15 @@ impl Checker {
         }
         uses.sort_by_key(|u| (u.span.file.0, u.span.start));
         for u in &uses {
-            if let Some(sentence) = self.power_refused(u) {
-                return err(Diagnostic::error(sentence).at(u.span));
+            if let Some((name, sentence)) = self.power_refused(u) {
+                return err(Diagnostic::error(sentence).at(u.span).named(name));
             }
         }
         Ok(())
     }
 
-    /// Why a use of a power is refused, if it is.
-    fn power_refused(&self, u: &PowerUse) -> Option<String> {
+    /// Why a use of a power is refused, if it is, with the error's name.
+    fn power_refused(&self, u: &PowerUse) -> Option<(&'static str, String)> {
         use kayo_base::powers::{check, Grant, Kit, Power, Refusal, Use};
         let root = self.items.kit_root(u.module);
         let lp = self.items.kit_powers.get(&root)?;
@@ -991,9 +991,9 @@ impl Checker {
         let top = &u.path[0];
         Some(match check(&used, &kit, &self.items.program_deny) {
             Ok(()) => return None,
-            Err(Refusal::NotGranted { .. }) => format!("{} {}, a power nothing grants it: `{}`", who, u.doing, top),
-            Err(Refusal::NotListed { .. }) => format!("{} {}, and its CyJet.toml does not list `{}`: add `{} {{` / `}}` under its `my powers:`", who, u.doing, top, top),
-            Err(Refusal::Denied { entry, .. }) => format!("{} {}, which this program denies (`my denied powers:`: `{}`)", who, u.doing, entry.power.path.join(".")),
+            Err(Refusal::NotGranted { .. }) => ("power_not_granted", format!("{} {}, a power nothing grants it: `{}`", who, u.doing, top)),
+            Err(Refusal::NotListed { .. }) => ("power_not_listed", format!("{} {}, and its CyJet.toml does not list `{}`: add `{} {{` / `}}` under its `my powers:`", who, u.doing, top, top)),
+            Err(Refusal::Denied { entry, .. }) => ("power_denied", format!("{} {}, which this program denies (`my denied powers:`: `{}`)", who, u.doing, entry.power.path.join("."))),
         })
     }
 
@@ -1002,8 +1002,8 @@ impl Checker {
     /// C hears that before how to mark the call.
     pub(crate) fn power_first(&self) -> Result<()> {
         if let Some(u) = self.power_uses.last() {
-            if let Some(sentence) = self.power_refused(u) {
-                return err(Diagnostic::error(sentence).at(u.span));
+            if let Some((name, sentence)) = self.power_refused(u) {
+                return err(Diagnostic::error(sentence).at(u.span).named(name));
             }
         }
         Ok(())

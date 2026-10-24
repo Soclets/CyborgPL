@@ -51,19 +51,19 @@ pub fn rewrite(toks: &[Token]) -> Result<Vec<Token>> {
         let p1 = path_end(toks, p0);
         let path = toks[p0..p1].to_vec();
         if path.is_empty() {
-            return err(Diagnostic::error("`use` names another kit's path, then `as` and the name: `use std::list as list;`").at(at));
+            return err(Diagnostic::error("`use` names another kit's path, then `as` and the name: `use std::list as list;`").named("use_form").at(at));
         }
         if !path.iter().any(|t| t.tok == Tok::ColonColon) || matches!(&path[0].tok, Tok::Word(w) if w == "my") {
-            return err(Diagnostic::error(format!("`use` names another kit's path (`std::…`, `greet::…`); `{}` is this kit's own, which is written as it is (owner, 2026-10-22)", spelled(&path))).at(at));
+            return err(Diagnostic::error(format!("`use` names another kit's path (`std::…`, `greet::…`); `{}` is this kit's own, which is written as it is (owner, 2026-10-22)", spelled(&path))).named("use_form").at(at));
         }
         if !matches!(&toks.get(p1).map(|t| &t.tok), Some(Tok::Word(w)) if w == "as") {
-            return err(Diagnostic::error(format!("`use` says the name after `as`: `use {} as name;` (owner, 2026-10-22)", spelled(&path))).at(at));
+            return err(Diagnostic::error(format!("`use` says the name after `as`: `use {} as name;` (owner, 2026-10-22)", spelled(&path))).named("use_form").at(at));
         }
         let n0 = p1 + 1;
         let n1 = path_end(toks, n0);
         let name = toks[n0..n1].to_vec();
         if name.is_empty() || !matches!(toks.get(n1).map(|t| &t.tok), Some(Tok::Semi)) {
-            return err(Diagnostic::error(format!("`use` says the name after `as`, then `;`: `use {} as name;` (owner, 2026-10-22)", spelled(&path))).at(at));
+            return err(Diagnostic::error(format!("`use` says the name after `as`, then `;`: `use {} as name;` (owner, 2026-10-22)", spelled(&path))).named("use_form").at(at));
         }
         SEEN.with(|s| s.borrow_mut().push((at, spelled(&name), spelled(&path))));
         uses.push((name, path));
@@ -77,14 +77,14 @@ pub fn rewrite(toks: &[Token]) -> Result<Vec<Token>> {
     while k < toks.len() {
         let t = &toks[k];
         if t.line_first && matches!(&t.tok, Tok::Word(w) if w == "use") {
-            return err(Diagnostic::error("a `use` line goes at the top of the file, before anything else (owner, 2026-10-22)").at(t.span));
+            return err(Diagnostic::error("a `use` line goes at the top of the file, before anything else (owner, 2026-10-22)").named("use_form").at(t.span));
         }
         let head = k == 0 || !matches!(toks[k - 1].tok, Tok::Dot | Tok::ColonColon);
         let hit = head.then(|| uses.iter().find(|(name, _)| toks.get(k..k + name.len()).is_some_and(|w| w.iter().zip(name).all(|(a, b)| a.tok == b.tok)) && !matches!(toks.get(k + name.len()).map(|t| &t.tok), Some(Tok::ColonColon)))).flatten();
         if let Some((name, path)) = hit {
             // Declared under a `use`'s name: refused.
             if k > 0 && matches!(&toks[k - 1].tok, Tok::Word(w) if matches!(w.as_str(), "fn" | "struct" | "enum" | "interface" | "module" | "const")) {
-                return err(Diagnostic::error(format!("`{}` is this file's name for `{}` (its `use`): declare this under another name", spelled(name), spelled(path))).at(t.span));
+                return err(Diagnostic::error(format!("`{}` is this file's name for `{}` (its `use`): declare this under another name", spelled(name), spelled(path))).named("use_name_taken").at(t.span));
             }
             for p in path {
                 let mut p = p.clone();

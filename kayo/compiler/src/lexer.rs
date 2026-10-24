@@ -176,8 +176,8 @@ impl<'a> Lexer<'a> {
         self.push(tok, start);
         self.toks.last_mut().unwrap().alt = alt;
     }
-    fn fail<T>(&self, start: usize, msg: impl Into<String>) -> Result<T> {
-        err(Diagnostic::error(msg).at(self.span(start)))
+    fn fail<T>(&self, start: usize, name: &'static str, msg: impl Into<String>) -> Result<T> {
+        err(Diagnostic::error(msg).at(self.span(start)).named(name))
     }
 
     /// Skip to the end of the current line (not past the newline).
@@ -223,7 +223,7 @@ impl<'a> Lexer<'a> {
                         // `newln` since 2026-10-07 (owner).
                         self.push_alt(Tok::Newline, start, Some(("\\n".into(), "newln")));
                     } else {
-                        return self.fail(start, "a bare backslash: only `\\n` is a value outside a text; inside a text only `\\\"` and `\\\\` escape");
+                        return self.fail(start, "unexpected_text", "a bare backslash: only `\\n` is a value outside a text; inside a text only `\\\"` and `\\\\` escape");
                     }
                 }
                 c if c.is_ascii_digit() => self.number(start)?,
@@ -342,7 +342,7 @@ impl<'a> Lexer<'a> {
                 }
                 other => {
                     self.bump();
-                    return self.fail(start, format!("`{}` is not part of the language", other));
+                    return self.fail(start, "unexpected_text", format!("`{}` is not part of the language", other));
                 }
             }
         }
@@ -367,7 +367,7 @@ impl<'a> Lexer<'a> {
         let mut depth = 1;
         loop {
             match self.bump() {
-                None => return self.fail(start, "this `{` is never closed"),
+                None => return self.fail(start, "unclosed_block", "this `{` is never closed"),
                 Some('{') => depth += 1,
                 Some('}') => {
                     depth -= 1;
@@ -392,7 +392,7 @@ impl<'a> Lexer<'a> {
             let word = &self.src[self.pos..word_end];
             let n = word.strip_prefix("generated_").and_then(|r| r.strip_suffix("_lines_below")).and_then(|d| d.parse::<u32>().ok());
             let Some(n) = n else {
-                return self.fail(start, format!("`#{}` is not a marker: a template's generated part is marked `#generated_N_lines_below`, N the lines under it", word));
+                return self.fail(start, "comment_form", format!("`#{}` is not a marker: a template's generated part is marked `#generated_N_lines_below`, N the lines under it", word));
             };
             while self.pos < word_end {
                 self.bump();
@@ -412,7 +412,7 @@ impl<'a> Lexer<'a> {
             return Ok(());
         }
         if !ends_form {
-            return self.fail(start, format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down; `#strict` is not a comment", form));
+            return self.fail(start, "comment_form", format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down; `#strict` is not a comment", form));
         }
         // Not a comment: `#strict` is one of the `#word` forms, like `#wl`.
         if form == "strict" {
@@ -434,7 +434,7 @@ impl<'a> Lexer<'a> {
         let (digits, suffix) = form.split_at(form.find(|c: char| !c.is_ascii_digit()).unwrap_or(form.len()));
         let n: usize = match digits.parse() {
             Ok(n) if !digits.is_empty() => n,
-            _ => return self.fail(start, format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down; `#strict` is not a comment", form)),
+            _ => return self.fail(start, "comment_form", format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down; `#strict` is not a comment", form)),
         };
         match suffix {
             "l" => {
@@ -459,7 +459,7 @@ impl<'a> Lexer<'a> {
                 }
                 self.skip_lines(n);
             }
-            _ => return self.fail(start, format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down; `#strict` is not a comment", form)),
+            _ => return self.fail(start, "comment_form", format!("`#{}` is not a comment form: `#` to the end of the line, `#wl` the whole line, `#Nl` N lines, `#Nld` this line and N down; `#strict` is not a comment", form)),
         }
         Ok(())
     }
@@ -473,21 +473,21 @@ impl<'a> Lexer<'a> {
         let mut name = String::new();
         loop {
             match self.bump() {
-                None | Some('\n') => return self.fail(start, "this `'` never closes: a name is written between two single quotes on one line"),
+                None | Some('\n') => return self.fail(start, "unclosed_quote", "this `'` never closes: a name is written between two single quotes on one line"),
                 Some('\'') => break,
                 Some('\\') => match self.bump() {
                     Some(c @ ('\'' | '\\')) => name.push(c),
-                    _ => return self.fail(start, "in a quoted name, `\\` comes before `'` or `\\`: `'it\\'s'`, `'a\\\\b'`"),
+                    _ => return self.fail(start, "quoted_name_form", "in a quoted name, `\\` comes before `'` or `\\`: `'it\\'s'`, `'a\\\\b'`"),
                 },
                 Some(c) if c == ' ' || !c.is_whitespace() && !c.is_control() => name.push(c),
-                Some(_) => return self.fail(start, "a quoted name holds printable characters and single spaces: no tab, line break or control character"),
+                Some(_) => return self.fail(start, "quoted_name_form", "a quoted name holds printable characters and single spaces: no tab, line break or control character"),
             }
         }
         if name.is_empty() {
-            return self.fail(start, "a name cannot be empty: write something between the quotes");
+            return self.fail(start, "quoted_name_form", "a name cannot be empty: write something between the quotes");
         }
         if name.starts_with(' ') || name.ends_with(' ') || name.contains("  ") {
-            return self.fail(start, "a quoted name's spaces come one at a time, between words: `'total due'`");
+            return self.fail(start, "quoted_name_form", "a quoted name's spaces come one at a time, between words: `'total due'`");
         }
         self.push(Tok::Name(name), start);
         Ok(())
@@ -498,7 +498,7 @@ impl<'a> Lexer<'a> {
         let mut out = String::new();
         loop {
             match self.bump() {
-                None => return self.fail(start, "this `\"` never closes: a text ends with a second `\"`"),
+                None => return self.fail(start, "unclosed_quote", "this `\"` never closes: a text ends with a second `\"`"),
                 Some('"') => break,
                 Some('\\') => match self.peek() {
                     Some('"') => {
@@ -524,14 +524,14 @@ impl<'a> Lexer<'a> {
         let body = self.pos;
         loop {
             match self.bump() {
-                None | Some('\n') => return self.fail(start, "this `` ` `` never closes: one character is written between two backticks"),
+                None | Some('\n') => return self.fail(start, "unclosed_quote", "this `` ` `` never closes: one character is written between two backticks"),
                 Some('`') => break,
                 Some(_) => {}
             }
         }
         let text = self.src[body..self.pos - 1].to_string();
         if text.is_empty() {
-            return self.fail(start, "a character literal cannot be empty");
+            return self.fail(start, "character_empty", "a character literal cannot be empty");
         }
         self.push(Tok::Char(text), start);
         Ok(())
@@ -552,13 +552,13 @@ impl<'a> Lexer<'a> {
                 8 => "oct 7_0",
                 _ => "hex F_0",
             };
-            return self.fail(start, format!("`_` groups digits: one between two of them (`{}`)", shown));
+            return self.fail(start, "digit_grouping", format!("`_` groups digits: one between two of them (`{}`)", shown));
         }
         let mut value = crate::bigint::Big::zero();
         let base = crate::bigint::Big::from_i128(radix as i128);
         for c in written.chars().filter(|c| *c != '_') {
             let Some(d) = c.to_digit(radix) else {
-                return self.fail(start, match radix {
+                return self.fail(start, "digit_outside_base", match radix {
                     2 => format!("a binary number has only the digits 0 and 1: `{}` in `{} {}`", c, word, written),
                     8 => format!("an octal number has only the digits 0 to 7: `{}` in `{} {}`", c, word, written),
                     _ => format!("a hex number has only 0-9 and A-F: `{}` in `{} {}`", c, word, written),
@@ -586,7 +586,7 @@ impl<'a> Lexer<'a> {
                 self.bump();
             }
             let digits = self.src[at..self.pos].to_string();
-            return self.fail(start, format!("a number in another base is written with a word in front: `{} {}` (owner, 2026-10-19)", word, digits));
+            return self.fail(start, "foreign_spelling", format!("a number in another base is written with a word in front: `{} {}` (owner, 2026-10-19)", word, digits));
         }
         let mut text = String::new();
         let mut bin = false;
@@ -609,13 +609,13 @@ impl<'a> Lexer<'a> {
         if whole.len() > 1 && whole.starts_with('0') {
             let trimmed = whole.trim_start_matches('0');
             let trimmed = if trimmed.is_empty() { "0" } else { trimmed };
-            return self.fail(start, format!("`{}` starts with a zero, and leading zeros are illegal: write `{}`", &self.src[start..self.pos], trimmed));
+            return self.fail(start, "leading_zero", format!("`{}` starts with a zero, and leading zeros are illegal: write `{}`", &self.src[start..self.pos], trimmed));
         }
         // `1,000` is an error pointing at `_`, not the list [1, 0].
         if self.peek() == Some(',') && self.peek_at(1).map(|d| d.is_ascii_digit()).unwrap_or(false) {
             let at = self.pos;
             self.bump();
-            return err(Diagnostic::error("`,` is not a digit separator — use `_` (1_000_000); a comma separates values, and one directly between digits reads as neither").at(Span::new(self.file, at, at + 1)));
+            return err(Diagnostic::error("`,` is not a digit separator — use `_` (1_000_000); a comma separates values, and one directly between digits reads as neither").named("digit_grouping").at(Span::new(self.file, at, at + 1)));
         }
         // A percentage (owner, 2026-10-16): `80%` or `80 percent` is the
         // number over 100, a bin as `0.80` is, and `exactly 80%` a deci. The
@@ -635,7 +635,7 @@ impl<'a> Lexer<'a> {
         // A number running straight into a letter: `1e3`, `0x10`, `5seconds`.
         if let Some(c) = self.peek() {
             if is_word_start(c) {
-                return self.fail(start, format!("a number runs straight into `{}`: put a space between a number and a word (`5 secs`), and there is no `e` or `0x` form", c));
+                return self.fail(start, "space_missing", format!("a number runs straight into `{}`: put a space between a number and a word (`5 secs`), and there is no `e` or `0x` form", c));
             }
         }
         self.push(Tok::Num { text, bin, percent: false }, start);

@@ -129,19 +129,19 @@ pub fn strip(toks: &[Token]) -> Result<Vec<Token>> {
             // `round.near['x', decimals 2]` (owner, 2026-10-20: `places:`).
             if *word == "places" && matches!(&toks[at].tok, Tok::Word(w) if w == "decimals") {
                 let said = crate::spellings::old_word("decimals", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`decimals` is an old spelling: write `places:` (owner, 2026-10-20)".into());
-                return err(Diagnostic::error(said).at(toks[at].span));
+                return err(Diagnostic::error(said).named("old_spelling").at(toks[at].span));
             }
             if named && !toks[at].labelled {
-                return err(Diagnostic::error(needs_colon(word)).at(toks[at].span));
+                return err(Diagnostic::error(needs_colon(word)).named("label_needs_colon").at(toks[at].span));
             }
             if !named {
                 // The only argument says its word too when it is not the
                 // thing worked on (owner, 2026-10-23: "`(3)` fucking
                 // doesn't").
                 if n == 0 {
-                    return err(Diagnostic::error(format!("only the thing worked on goes bare; this argument says what it is: `{}` (owner, 2026-10-23)", call.example)).at(toks[at].span));
+                    return err(Diagnostic::error(format!("only the thing worked on goes bare; this argument says what it is: `{}` (owner, 2026-10-23)", call.example)).named("argument_label_missing").at(toks[at].span));
                 }
-                return err(Diagnostic::error(format!("each argument after the first says what it is: `{}` (owner, 2026-10-14)", call.example)).at(toks[at].span));
+                return err(Diagnostic::error(format!("each argument after the first says what it is: `{}` (owner, 2026-10-14)", call.example)).named("argument_label_missing").at(toks[at].span));
             }
             drop[at] = true;
         }

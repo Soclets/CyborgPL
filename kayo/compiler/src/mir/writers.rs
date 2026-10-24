@@ -66,7 +66,7 @@ fn walk(f: &Function, writers: &HashSet<LocalId>, sources: &SourceMap, out: &mut
                 }
                 StmtKind::Drop(pl) if pl.proj.is_empty() && held.contains(&pl.local) && reported.insert(pl.local) => {
                     let name = f.locals[pl.local.0 as usize].name.clone().unwrap_or_else(|| "out".into());
-                    let d = Diagnostic::error(format!("${} goes away still holding text: `std::print.flush(lend.mut ${});` before its block ends (owner, 2026-10-23)", name, name))
+                    let d = Diagnostic::error(format!("${} goes away still holding text: `std::print.flush(lend.mut ${});` before its block ends (owner, 2026-10-23)", name, name)).named("writer_unflushed")
                         .at(f.span(f.locals[pl.local.0 as usize].span))
                         .fix(None, format!("std::print.flush(lend.mut ${});", name));
                     out.push(d.render(sources));

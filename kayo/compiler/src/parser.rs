@@ -368,7 +368,7 @@ fn old_spelling(toks: &[Token], i: usize) -> Option<String> {
 }
 
 fn core_missing<T>(what: &str, core: &str, at: Span) -> Result<T> {
-    err(Diagnostic::error(format!("{} is {}'s, and this kit's CyJet.toml does not list the limb {}: add `{}` under its `my limbs:`", what, core, core, core_line(core))).at(at))
+    err(Diagnostic::error(format!("{} is {}'s, and this kit's CyJet.toml does not list the limb {}: add `{}` under its `my limbs:`", what, core, core, core_line(core))).named("limb_not_listed").at(at))
 }
 
 /// std's registry ID and the one version CCA knows (owner, 2026-10-06).
@@ -422,7 +422,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
             // "Time: std, with duration literals"; d690ed91).
             if let (Tok::Num { .. }, Some(Tok::Word(u))) = (&toks[i].tok, toks.get(i + 1).map(|t| &t.tok)) {
                 if DURATION_UNITS.contains(&u.as_str()) {
-                    return err(Diagnostic::error(format!("a duration literal (`5 secs`) is std's, and this kit's CyJet.toml does not list std: add `std {{` / `id = {}` / `ver = {}` / `}}` under its `my kits:`", STD_ID, STD_VERSION)).at(toks[i].span));
+                    return err(Diagnostic::error(format!("a duration literal (`5 secs`) is std's, and this kit's CyJet.toml does not list std: add `std {{` / `id = {}` / `ver = {}` / `}}` under its `my kits:`", STD_ID, STD_VERSION)).named("std_not_listed").at(toks[i].span));
                 }
             }
             let Tok::Word(w) = &toks[i].tok else { continue };
@@ -437,7 +437,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                 ("str", Some(Tok::Dot)) if matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(u)) if matches!(u.as_str(), "bytes" | "points" | "graphemes" | "each" | "split" | "find" | "contains" | "trim" | "upper" | "lower" | "replace" | "starts_with" | "ends_with" | "at" | "slice" | "join")) => "a text operation (`str.…`)",
                 _ => continue,
             };
-            return err(Diagnostic::error(format!("{} is std's, and this kit's CyJet.toml does not list std: add `std {{` / `id = {}` / `ver = {}` / `}}` under its `my kits:`", what, STD_ID, STD_VERSION)).at(toks[i].span));
+            return err(Diagnostic::error(format!("{} is std's, and this kit's CyJet.toml does not list std: add `std {{` / `id = {}` / `ver = {}` / `}}` under its `my kits:`", what, STD_ID, STD_VERSION)).named("std_not_listed").at(toks[i].span));
         }
     }
     // Signatar's names are English letters, digits and `_`, bare or
@@ -449,14 +449,14 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                 Tok::Name(n) if !n.is_ascii() => format!("`${}`", n),
                 _ => continue,
             };
-            return err(Diagnostic::error(format!("{} is not an English name: the base's names are English letters, digits and `_`; a name in another script, or an emoji, needs the limb unicode under this kit's `my limbs:` (`{}`)", shown, core_line("unicode"))).at(t.span));
+            return err(Diagnostic::error(format!("{} is not an English name: the base's names are English letters, digits and `_`; a name in another script, or an emoji, needs the limb unicode under this kit's `my limbs:` (`{}`)", shown, core_line("unicode"))).named("name_not_english").at(t.span));
         }
     }
     // Old spellings, in every Kit (the 2026-10-07 revision; owner: "MTM
     // is gone."): each refused naming the one that replaced it.
     for i in 0..toks.len() {
         if let Some(msg) = old_spelling(toks, i) {
-            return err(Diagnostic::error(msg).at(toks[i].span));
+            return err(Diagnostic::error(msg).named(if toks[i].tok == Tok::Dollar { "variable_name_form" } else { "old_spelling" }).at(toks[i].span));
         }
     }
     // A core's words, in a Kit that does not list the core.
@@ -480,7 +480,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     // `#strict` is gone (owner, 2026-10-07: "We ain't no C stability,
     // remove it now"); what it wrote out is every file's.
     if p.is(&Tok::Strict) {
-        return p.fail("`#strict` is gone: the labelled ranges, `pos`, `count`, `is` and typed parameters it asked for are every file's now");
+        return p.fail_n("spelling_removed", "`#strict` is gone: the labelled ranges, `pos`, `count`, `is` and typed parameters it asked for are every file's now");
     }
     // The file's handlers first: a use may come before the definition.
     for i in 0..toks.len() {
@@ -506,12 +506,12 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
             match kinds {
                 Some(kinds) => case_kinds.push((mark, kinds, at)),
                 None if items.is_empty() && case_file.is_none() => case_file = Some((mark, at)),
-                None => return p.fail_at(at, CASE_FILE_MARK_FIRST),
+                None => return p.fail_at_n(at, "unicode::case_mark_misplaced", CASE_FILE_MARK_FIRST),
             }
             continue;
         }
         if p.is(&Tok::Strict) {
-            return p.fail("`#strict` goes once, at the top of the file, before any item");
+            return p.fail_n("spelling_removed", "`#strict` goes once, at the top of the file, before any item");
         }
         // A file's mark, its first line, and the kind lines (owner,
         // 2026-10-06).
@@ -528,7 +528,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
                 (crate::ast::Prefix::Kit, None) if items.is_empty() && bare_file.is_none() => bare_file = Some((mark, at)),
                 (crate::ast::Prefix::Enum, Some(_)) => enum_bare_kinds.push((mark, at)),
                 (crate::ast::Prefix::Enum, None) if items.is_empty() && enum_bare_file.is_none() => enum_bare_file = Some((mark, at)),
-                _ => return p.fail_at(at, FILE_MARK_FIRST),
+                _ => return p.fail_at_n(at, "bare_mark_form", FILE_MARK_FIRST),
             }
             continue;
         }
@@ -548,7 +548,7 @@ pub fn parse_value(toks: &[Token]) -> Result<Expr> {
     let value = p.expr(0)?;
     p.expect_semi("the value")?;
     if !p.at_eof() {
-        return p.fail("the file is one value and its `;`, with nothing after it");
+        return p.fail_n("unexpected_text", "the file is one value and its `;`, with nothing after it");
     }
     Ok(value)
 }
@@ -701,7 +701,7 @@ impl<'a> Parser<'a> {
     fn need_label(&self, n: usize) -> Result<()> {
         let at = (self.pos + n).min(self.toks.len() - 1);
         match &self.toks[at].tok {
-            Tok::Word(w) if !self.toks[at].labelled => self.fail_at(self.toks[at].span, crate::argwords::needs_colon(w)),
+            Tok::Word(w) if !self.toks[at].labelled => self.fail_at_n(self.toks[at].span, "label_needs_colon", crate::argwords::needs_colon(w)),
             _ => Ok(()),
         }
     }
@@ -732,7 +732,7 @@ impl<'a> Parser<'a> {
         if !self.no_std {
             return Ok(());
         }
-        self.fail_at(span, format!("`{}` is std's, and this kit's CyJet.toml does not list std: add `std {{` / `id = {}` / `ver = {}` / `}}` under its `my kits:`", what, STD_ID, STD_VERSION))
+        self.fail_at_n(span, "std_not_listed", format!("`{}` is std's, and this kit's CyJet.toml does not list std: add `std {{` / `id = {}` / `ver = {}` / `}}` under its `my kits:`", what, STD_ID, STD_VERSION))
     }
 
     fn fail<T>(&self, msg: impl Into<String>) -> Result<T> {
@@ -742,25 +742,35 @@ impl<'a> Parser<'a> {
         err(Diagnostic::error(msg).at(span))
     }
 
+    /// `fail`, with the error's name from `errors.cyr`.
+    fn fail_n<T>(&self, name: &'static str, msg: impl Into<String>) -> Result<T> {
+        self.fail::<T>(msg).map_err(|d| Box::new(d.named(name)))
+    }
+
+    /// `fail_at`, with the error's name from `errors.cyr`.
+    fn fail_at_n<T>(&self, span: Span, name: &'static str, msg: impl Into<String>) -> Result<T> {
+        self.fail_at::<T>(span, msg).map_err(|d| Box::new(d.named(name)))
+    }
+
     fn expect(&mut self, t: &Tok, what: &str) -> Result<Span> {
         if self.is(t) {
             Ok(self.bump().span)
         } else {
-            self.fail(format!("expected {}, found {}", what, self.peek().describe()))
+            self.fail_n("unexpected_text", format!("expected {}, found {}", what, self.peek().describe()))
         }
     }
     fn expect_semi(&mut self, after: &str) -> Result<()> {
         if self.eat(&Tok::Semi) {
             Ok(())
         } else {
-            self.fail(format!("expected `;` after {}, found {}", after, self.peek().describe()))
+            self.fail_n("unexpected_text", format!("expected `;` after {}, found {}", after, self.peek().describe()))
         }
     }
     fn expect_word(&mut self, w: &str) -> Result<Span> {
         if self.is_word(w) {
             Ok(self.bump().span)
         } else {
-            self.fail(format!("expected `{}`, found {}", w, self.peek().describe()))
+            self.fail_n("unexpected_text", format!("expected `{}`, found {}", w, self.peek().describe()))
         }
     }
 
@@ -770,8 +780,8 @@ impl<'a> Parser<'a> {
                 let span = self.bump().span;
                 Ok(Ident { name, span })
             }
-            Tok::Name(n) => self.fail(format!("expected {}, found the quoted name '{}': {} is bare — quotes mark a value you hold", what, n, what)),
-            other => self.fail(format!("expected {}, found {}", what, other.describe())),
+            Tok::Name(n) => self.fail_n("name_quoted", format!("expected {}, found the quoted name '{}': {} is bare — quotes mark a value you hold", what, n, what)),
+            other => self.fail_n("unexpected_text", format!("expected {}, found {}", what, other.describe())),
         }
     }
 
@@ -781,8 +791,8 @@ impl<'a> Parser<'a> {
                 let span = self.bump().span;
                 Ok(QName { name, span })
             }
-            Tok::Word(w) => self.fail(format!("expected {}, found the bare word `{}`: {} is a value you hold, so it is written in quotes — `'{}'`", what, w, what, w)),
-            other => self.fail(format!("expected {}, found {}", what, other.describe())),
+            Tok::Word(w) => self.fail_n("variable_name_form", format!("expected {}, found the bare word `{}`: {} is a value you hold, so it is written in quotes — `'{}'`", what, w, what, w)),
+            other => self.fail_n("unexpected_text", format!("expected {}, found {}", what, other.describe())),
         }
     }
 
@@ -808,7 +818,7 @@ impl<'a> Parser<'a> {
         // The root path is `my.` (owner, 2026-10-06: "Is it `my.`?" —
         // "yea"); `pub.kit` and `limb.cpls` keep the word.
         if kit.is_none() && segs[0].name == "limb" {
-            return self.fail_at(segs[0].span, "the root of this kit is `my.` since 2026-10-06, no longer `limb.`: `my.helper()`, `my.$pi`");
+            return self.fail_at_n(segs[0].span, "old_spelling", "the root of this kit is `my.` since 2026-10-06, no longer `limb.`: `my.helper()`, `my.$pi`");
         }
         if let Some(l) = kit.as_ref().filter(|l| l.name == "std") {
             self.std_gate(&format!("std::{}", segs[0].name), l.span.to(segs[0].span))?;
@@ -835,13 +845,13 @@ impl<'a> Parser<'a> {
         if self.at_case_mark() {
             let (mark, at) = self.case_mark()?;
             if self.is_word("pub") {
-                return self.fail_at(at, format!("`pub` comes first: `pub {} fn …`", case_spelled(mark)));
+                return self.fail_at_n(at, "unicode::case_mark_order", format!("`pub` comes first: `pub {} fn …`", case_spelled(mark)));
             }
             if self.is(&Tok::LBracket) {
-                return self.fail_at(at, "a `case` mark on kinds (`case.any [fn, struct];`) covers the whole kit, so it is written in `kit.cy`");
+                return self.fail_at_n(at, "unicode::case_mark_misplaced", "a `case` mark on kinds (`case.any [fn, struct];`) covers the whole kit, so it is written in `kit.cy`");
             }
             if self.is(&Tok::Semi) {
-                return self.fail_at(at, CASE_FILE_MARK_FIRST);
+                return self.fail_at_n(at, "unicode::case_mark_misplaced", CASE_FILE_MARK_FIRST);
             }
             case = Some((mark, at));
         }
@@ -849,8 +859,8 @@ impl<'a> Parser<'a> {
         if self.is_word("bare") {
             let at = self.span();
             return match self.bare_line()? {
-                (_, _, Some(_)) => self.fail_at(at, "a `bare.… […];` line covers the whole kit, so it is written in `kit.cy`"),
-                (_, _, None) => self.fail_at(at, FILE_MARK_FIRST),
+                (_, _, Some(_)) => self.fail_at_n(at, "bare_mark_form", "a `bare.… […];` line covers the whole kit, so it is written in `kit.cy`"),
+                (_, _, None) => self.fail_at_n(at, "bare_mark_form", FILE_MARK_FIRST),
             };
         }
         if self.is_word("pub") {
@@ -861,9 +871,9 @@ impl<'a> Parser<'a> {
                     // An old narrowing (`pub.limb`, a library until 2026-10-09) is
                     // refused from `spellings.cyr`'s row.
                     if let Some(o) = crate::spellings::old_word(&format!("pub.{}", narrowing.name), Some("special")) {
-                        return self.fail_at(narrowing.span, o.dated());
+                        return self.fail_at_n(narrowing.span, "old_spelling", o.dated());
                     }
-                    return self.fail_at(narrowing.span, format!("`pub.{}` is not a visibility: the only narrowing of `pub` is `pub.kit` (this kit only); plain `pub` is other kits too", narrowing.name));
+                    return self.fail_at_n(narrowing.span, "unknown_pub_narrowing", format!("`pub.{}` is not a visibility: the only narrowing of `pub` is `pub.kit` (this kit only); plain `pub` is other kits too", narrowing.name));
                 }
                 vis = Vis::Kit;
             } else {
@@ -879,16 +889,16 @@ impl<'a> Parser<'a> {
                 match prefix {
                     crate::ast::Prefix::Kit => {
                         if vis == Vis::Kit {
-                            return self.fail_at(at, "a `bare.kit_prefix` mark says how other kits write the path, and a `pub.kit` thing is never reached from them");
+                            return self.fail_at_n(at, "bare_mark_form", "a `bare.kit_prefix` mark says how other kits write the path, and a `pub.kit` thing is never reached from them");
                         }
                         if bare.is_some() {
-                            return self.fail_at(at, "one `bare.kit_prefix.…` mark on a thing");
+                            return self.fail_at_n(at, "bare_mark_form", "one `bare.kit_prefix.…` mark on a thing");
                         }
                         bare = Some((mark, at));
                     }
                     crate::ast::Prefix::Enum => {
                         if enum_bare.is_some() {
-                            return self.fail_at(at, "one `bare.enum_prefix.…` mark on a thing");
+                            return self.fail_at_n(at, "bare_mark_form", "one `bare.enum_prefix.…` mark on a thing");
                         }
                         enum_bare = Some((mark, at));
                     }
@@ -898,13 +908,13 @@ impl<'a> Parser<'a> {
                 case = Some(self.case_mark()?);
             }
             if self.is_word("MAIN") {
-                return self.fail("`MAIN` is never `pub`: it is the program's block, not something another kit can reach");
+                return self.fail_n("main_form", "`MAIN` is never `pub`: it is the program's block, not something another kit can reach");
             }
             if self.is_word("let") {
-                return self.fail("a kit-level value is a `const`, not a `let`: `pub const $name := …;`");
+                return self.fail_n("top_level_needs_const", "a kit-level value is a `const`, not a `let`: `pub const $name := …;`");
             }
             if let Tok::Name(n) = self.peek().clone() {
-                return self.fail(format!("a kit-level value is a `const`, not a variable: `pub const ${} := …;`", n));
+                return self.fail_n("top_level_needs_const", format!("a kit-level value is a `const`, not a variable: `pub const ${} := …;`", n));
             }
         }
         // `table_bytes N` in front of a `fn`, after its `pub` and `bare`
@@ -917,18 +927,18 @@ impl<'a> Parser<'a> {
                 _ => None,
             };
             let Some(n) = n else {
-                return self.fail("`table_bytes` is a whole number of bytes, 0 or more: `table_bytes 1_024 fn square […]`");
+                return self.fail_n("table_bytes_form", "`table_bytes` is a whole number of bytes, 0 or more: `table_bytes 1_024 fn square […]`");
             };
             self.bump();
             if !self.is_word("fn") && !(self.is_word("test") && self.is_word_at(1, "fn")) {
-                return self.fail_at(at, "`table_bytes` goes in front of a `fn`: it is the largest table Precog may make of that function");
+                return self.fail_at_n(at, "table_bytes_form", "`table_bytes` goes in front of a `fn`: it is the largest table Precog may make of that function");
             }
             table_bytes = Some(n);
         }
         // `test fn` (owner, 2026-09-29): never `pub`, run by `cca test`.
         if self.is_word("test") && self.is_word_at(1, "fn") {
             if vis != Vis::Private {
-                return self.fail("a `test fn` is never `pub`: nothing reaches it but `kayo test`");
+                return self.fail_n("test_fn_misused", "a `test fn` is never `pub`: nothing reaches it but `kayo test`");
             }
             self.bump();
             let kind = self.item_kind(vis)?;
@@ -947,7 +957,7 @@ impl<'a> Parser<'a> {
         // `coll.handler`, and a bare `collection c {` is told the same.
         if self.is_word("collection") {
             let said = crate::spellings::old_word("collection.", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`collection.` is an old spelling: write `coll.fn` / `coll.handler`".into());
-            return self.fail(said);
+            return self.fail_n("old_spelling", said);
         }
         // A collection (owner, 2026-10-13) says its kind: `coll.fn`, a
         // function and its narrowings, under one `bare.` mark (in front, or
@@ -955,14 +965,14 @@ impl<'a> Parser<'a> {
         if self.is_word("coll") {
             let kw = self.bump().span;
             if !self.eat(&Tok::Dot) {
-                return self.fail_at(kw, "a collection says its kind: `coll.fn cum { … }` (a function and its narrowings) or `coll.handler h { … }` (named `otherwise` blocks) (owner, 2026-10-13)");
+                return self.fail_at_n(kw, "collection_kind_unsaid", "a collection says its kind: `coll.fn cum { … }` (a function and its narrowings) or `coll.handler h { … }` (named `otherwise` blocks) (owner, 2026-10-13)");
             }
             let kind = self.ident("the collection's kind")?;
             match kind.name.as_str() {
                 "fn" => {
                     // The one mark is written in the block (owner, 2026-10-13).
                     if let Some((_, at)) = bare {
-                        return self.fail_at(at, "a collection's `bare.` mark is written in its block: `pub coll.fn area { bare.kit_prefix.never; … }`");
+                        return self.fail_at_n(at, "bare_mark_form", "a collection's `bare.` mark is written in its block: `pub coll.fn area { bare.kit_prefix.never; … }`");
                     }
                     let (lines, mark) = self.collection(vis, None)?;
                     let span = start.to(self.prev_span());
@@ -970,7 +980,7 @@ impl<'a> Parser<'a> {
                 }
                 "handler" => {
                     if let Some((_, at)) = bare {
-                        return self.fail_at(at, "a `coll.handler` takes no `bare.` mark: it is read where it is written, in its own file");
+                        return self.fail_at_n(at, "bare_mark_form", "a `coll.handler` takes no `bare.` mark: it is read where it is written, in its own file");
                     }
                     // A `pub` one is used from another kit through its path
                     // (owner, 2026-10-23: "No shit").
@@ -978,7 +988,7 @@ impl<'a> Parser<'a> {
                     let span = start.to(self.prev_span());
                     return Ok(Item { vis, kind: ItemKind::ExternBlock(Vec::new()), span, bare: None, enum_bare: None, case });
                 }
-                other => return self.fail_at(kind.span, format!("there is no `coll.{}`: a collection is `coll.fn` (a function and its narrowings) or `coll.handler` (named `otherwise` blocks)", other)),
+                other => return self.fail_at_n(kind.span, "collection_kind_unsaid", format!("there is no `coll.{}`: a collection is `coll.fn` (a function and its narrowings) or `coll.handler` (named `otherwise` blocks)", other)),
             }
         }
         let mut kind = self.item_kind(vis)?;
@@ -986,19 +996,19 @@ impl<'a> Parser<'a> {
             d.table_bytes = table_bytes;
         }
         if let (ItemKind::Const(_), Some((_, at))) = (&kind, &bare) {
-            return self.fail_at(*at, CONST_TAKES_NO_MARK);
+            return self.fail_at_n(*at, "bare_mark_form", CONST_TAKES_NO_MARK);
         }
         if let (ItemKind::Op(d), Some(_)) = (&kind, &bare) {
             if !d.op.name.starts_with(|c: char| c.is_ascii_alphabetic()) {
-                return self.fail_at(d.op.span, format!("`{}` is a glyph operator, which has nowhere to write a path, so there is nothing for `bare` to say", d.op.name));
+                return self.fail_at_n(d.op.span, "bare_mark_form", format!("`{}` is a glyph operator, which has nowhere to write a path, so there is nothing for `bare` to say", d.op.name));
             }
         }
         if let (ItemKind::Main(..), Some((_, at))) = (&kind, &case) {
-            return self.fail_at(*at, "`MAIN` has no name to mark: a `case` mark goes on a named item, a module, or a file");
+            return self.fail_at_n(*at, "unicode::case_mark_misplaced", "`MAIN` has no name to mark: a `case` mark goes on a named item, a module, or a file");
         }
         if let Some((_, at)) = enum_bare {
             if !matches!(kind, ItemKind::Enum(_) | ItemKind::Module { .. }) {
-                return self.fail_at(at, "a `bare.enum_prefix.…` mark says whether an enum's values may drop its name, so it goes on an enum or a module");
+                return self.fail_at_n(at, "bare_mark_form", "a `bare.enum_prefix.…` mark says whether an enum's values may drop its name, so it goes on an enum or a module");
             }
         }
         let span = start.to(self.prev_span());
@@ -1013,7 +1023,7 @@ impl<'a> Parser<'a> {
         let narrowed = "`on` is narrowed: `on.target …` (chosen when compiling) or `on.machine …` (when running)";
         self.bump();
         if !self.is(&Tok::Dot) {
-            return self.fail(narrowed);
+            return self.fail_n("on_form", narrowed);
         }
         self.bump();
         let which = self.ident("`target` or `machine`")?;
@@ -1021,16 +1031,16 @@ impl<'a> Parser<'a> {
         match which.name.as_str() {
             "machine" => {
                 if top {
-                    return self.fail_at(which.span, "`on.machine` chooses when running, so it goes inside a body; around items, `on.target`");
+                    return self.fail_at_n(which.span, "belongs_in_body", "`on.machine` chooses when running, so it goes inside a body; around items, `on.target`");
                 }
                 if !self.is(&Tok::Dot) || !self.is_word_at(1, "chip") {
-                    return self.fail("`on.machine` asks the chip what it can do: `on.machine.chip sve { … }`");
+                    return self.fail_n("on_form", "`on.machine` asks the chip what it can do: `on.machine.chip sve { … }`");
                 }
                 self.bump();
                 self.bump();
                 let f = self.ident("a chip or a feature")?;
                 if !ON_FEATURES.contains(&f.name.as_str()) {
-                    return self.fail_at(f.span, format!("`{}` is not a chip or feature kayo can ask about: {}", f.name, list(&ON_FEATURES)));
+                    return self.fail_at_n(f.span, "unknown_target", format!("`{}` is not a chip or feature kayo can ask about: {}", f.name, list(&ON_FEATURES)));
                 }
                 Ok(Err(f.name))
             }
@@ -1045,38 +1055,38 @@ impl<'a> Parser<'a> {
                     let matched = match part.name.as_str() {
                         "chip" => {
                             if !ON_CHIPS.contains(&name.name.as_str()) {
-                                return self.fail_at(name.span, format!("`{}` is not a chip `on.target.chip` knows: {}", name.name, list(&ON_CHIPS)));
+                                return self.fail_at_n(name.span, "unknown_target", format!("`{}` is not a chip `on.target.chip` knows: {}", name.name, list(&ON_CHIPS)));
                             }
                             if let Tok::Word(f) = self.peek().clone() {
-                                return self.fail(format!("a chip's minimum (`on.target.chip {} {}`) is not built: how a build names the chip features it needs is not decided; `on.machine.chip` checks when running", name.name, f));
+                                return self.fail_n("not_built_yet", format!("a chip's minimum (`on.target.chip {} {}`) is not built: how a build names the chip features it needs is not decided; `on.machine.chip` checks when running", name.name, f));
                             }
                             name.name == chip
                         }
                         "os" => {
                             if !ON_OSES.contains(&name.name.as_str()) {
-                                return self.fail_at(name.span, format!("`{}` is not an OS `on.target.os` knows: {}", name.name, list(&ON_OSES)));
+                                return self.fail_at_n(name.span, "unknown_target", format!("`{}` is not an OS `on.target.os` knows: {}", name.name, list(&ON_OSES)));
                             }
                             if let Tok::Num { text, .. } = self.peek().clone() {
-                                return self.fail(format!("an OS minimum (`on.target.os {} {}`) is not built: how a build names the oldest version it runs on is not decided", name.name, text));
+                                return self.fail_n("not_built_yet", format!("an OS minimum (`on.target.os {} {}`) is not built: how a build names the oldest version it runs on is not decided", name.name, text));
                             }
                             name.name == os
                         }
-                        other => return self.fail_at(part.span, format!("`on.target.{}` is not a narrowing: `on.target.chip …` or `on.target.os …`", other)),
+                        other => return self.fail_at_n(part.span, "on_form", format!("`on.target.{}` is not a narrowing: `on.target.chip …` or `on.target.os …`", other)),
                     };
                     return Ok(Ok(matched));
                 }
                 let c = self.ident("a target, chip-os")?;
                 if !self.is_op("-") {
-                    return self.fail_at(c.span, format!("`{}` is a chip; a whole target is chip-os (`{}-macos`), or narrow: `on.target.chip {}`", c.name, c.name, c.name));
+                    return self.fail_at_n(c.span, "unknown_target", format!("`{}` is a chip; a whole target is chip-os (`{}-macos`), or narrow: `on.target.chip {}`", c.name, c.name, c.name));
                 }
                 self.bump();
                 let o = self.ident("an OS after `-`")?;
                 if !ON_CHIPS.contains(&c.name.as_str()) || !ON_OSES.contains(&o.name.as_str()) {
-                    return self.fail_at(c.span.to(o.span), format!("`{}-{}` is not a target: chip-os, from {} and {}", c.name, o.name, list(&ON_CHIPS), list(&ON_OSES)));
+                    return self.fail_at_n(c.span.to(o.span), "unknown_target", format!("`{}-{}` is not a target: chip-os, from {} and {}", c.name, o.name, list(&ON_CHIPS), list(&ON_OSES)));
                 }
                 Ok(Ok(c.name == chip && o.name == os))
             }
-            _ => self.fail_at(which.span, narrowed),
+            _ => self.fail_at_n(which.span, "on_form", narrowed),
         }
     }
 
@@ -1091,7 +1101,7 @@ impl<'a> Parser<'a> {
             return Ok(Some(true));
         }
         if self.is_word("if") {
-            return self.fail("an `on` chain goes on with `else on.…` or ends with `else { }`; an `if` goes inside a branch");
+            return self.fail_n("on_form", "an `on` chain goes on with `else on.…` or ends with `else { }`; an `if` goes inside a branch");
         }
         Ok(Some(false))
     }
@@ -1168,7 +1178,7 @@ impl<'a> Parser<'a> {
         let mut items = Vec::new();
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
-                return self.fail_at(open, "this branch's `{` is never closed");
+                return self.fail_at_n(open, "unclosed_block", "this branch's `{` is never closed");
             }
             if self.is_word("on") {
                 items.extend(self.on_items()?);
@@ -1195,8 +1205,8 @@ impl<'a> Parser<'a> {
         self.bump();
         let mode = self.bump().clone();
         match &mode.tok {
-            Tok::Word(w) if w == "insensitive" => self.fail_at(at.to(mode.span), "`case.insensitive` is an old spelling: write `case.any` (owner, 2026-10-10)"),
-            Tok::Word(w) if w == "sensitive" => self.fail_at(at.to(mode.span), "`case.sensitive` is an old spelling: write `case.exact` (owner, 2026-10-10)"),
+            Tok::Word(w) if w == "insensitive" => self.fail_at_n(at.to(mode.span), "old_spelling", "`case.insensitive` is an old spelling: write `case.any` (owner, 2026-10-10)"),
+            Tok::Word(w) if w == "sensitive" => self.fail_at_n(at.to(mode.span), "old_spelling", "`case.sensitive` is an old spelling: write `case.exact` (owner, 2026-10-10)"),
             Tok::Word(w) => Ok((w == "any", at.to(mode.span))),
             _ => unreachable!("at_case_mark said a word follows"),
         }
@@ -1210,16 +1220,16 @@ impl<'a> Parser<'a> {
             return Ok((mark, at, None));
         }
         if !self.eat(&Tok::LBracket) {
-            return self.fail_at(at, format!("a `case` mark is `{m};` at the top of a file, `{m} [fn, var];` in `kit.cy`, `pub {m} fn …` on an item, or `{m} module name {{ … }}`", m = case_spelled(mark)));
+            return self.fail_at_n(at, "unicode::case_mark_misplaced", format!("a `case` mark is `{m};` at the top of a file, `{m} [fn, var];` in `kit.cy`, `pub {m} fn …` on an item, or `{m} module name {{ … }}`", m = case_spelled(mark)));
         }
         let kinds_list = || CASE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", ");
         let mut kinds = Vec::new();
         loop {
             let Tok::Word(w) = self.peek().clone() else {
-                return self.fail(format!("expected a kind ({}), found {}", kinds_list(), self.peek().describe()));
+                return self.fail_n("unicode::case_mark_kind_unknown", format!("expected a kind ({}), found {}", kinds_list(), self.peek().describe()));
             };
             if !CASE_KINDS.contains(&w.as_str()) {
-                return self.fail(format!("`{}` is not a kind a `case` mark covers: {} (a module is marked on itself)", w, kinds_list()));
+                return self.fail_n("unicode::case_mark_kind_unknown", format!("`{}` is not a kind a `case` mark covers: {} (a module is marked on itself)", w, kinds_list()));
             }
             self.bump();
             kinds.push(w);
@@ -1238,7 +1248,7 @@ impl<'a> Parser<'a> {
     /// `bare.enum_prefix.…` for an enum's name before its values.
     fn bare_mark(&mut self) -> Result<(crate::ast::Prefix, Bare, Span)> {
         // Gone (owner, 2026-10-22), std/'s too (oracle 421c9e98).
-        self.fail_at(self.span(), crate::load::BARE_MARKS_GONE)
+        self.fail_at_n(self.span(), "spelling_removed", crate::load::BARE_MARKS_GONE)
     }
 
     /// Whether the cursor is at an enum's own `bare.enum_prefix.…` mark
@@ -1257,11 +1267,11 @@ impl<'a> Parser<'a> {
             return Ok((prefix, mark, None));
         }
         if !self.eat(&Tok::LBracket) {
-            return self.fail_at(at, format!("a `bare` mark is `{m};` at the top of a file, `{m} [fn, op];` in `kit.cy`, or `pub {m} fn …` on an item", m = spelled));
+            return self.fail_at_n(at, "bare_mark_form", format!("a `bare` mark is `{m};` at the top of a file, `{m} [fn, op];` in `kit.cy`, or `pub {m} fn …` on an item", m = spelled));
         }
         if prefix == crate::ast::Prefix::Enum {
             if !self.eat_word("enum") || !self.eat(&Tok::RBracket) {
-                return self.fail_at(at, format!("`{}` covers enums only: `{} [enum];`", spelled, spelled));
+                return self.fail_at_n(at, "bare_mark_form", format!("`{}` covers enums only: `{} [enum];`", spelled, spelled));
             }
             self.expect_semi("the kinds")?;
             return Ok((prefix, mark, Some(vec!["enum".to_string()])));
@@ -1269,13 +1279,13 @@ impl<'a> Parser<'a> {
         let mut kinds = Vec::new();
         loop {
             let Tok::Word(w) = self.peek().clone() else {
-                return self.fail(format!("expected a kind ({}), found {}", BARE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "), self.peek().describe()));
+                return self.fail_n("bare_mark_form", format!("expected a kind ({}), found {}", BARE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "), self.peek().describe()));
             };
             if w == "const" {
-                return self.fail(CONST_TAKES_NO_MARK);
+                return self.fail_n("bare_mark_form", CONST_TAKES_NO_MARK);
             }
             if !BARE_KINDS.contains(&w.as_str()) {
-                return self.fail(format!("`{}` is not a kind a `bare` mark covers: {} (a module is marked on itself)", w, BARE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", ")));
+                return self.fail_n("bare_mark_form", format!("`{}` is not a kind a `bare` mark covers: {} (a module is marked on itself)", w, BARE_KINDS.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", ")));
             }
             self.bump();
             kinds.push(w);
@@ -1291,8 +1301,8 @@ impl<'a> Parser<'a> {
     fn item_kind(&mut self, vis: Vis) -> Result<ItemKind> {
         let w = match self.peek().clone() {
             Tok::Word(w) => w,
-            Tok::Name(n) => return self.fail(format!("a kit-level value is a `const`: `const ${} := …;` — a variable lives inside a body", n)),
-            other => return self.fail(format!("expected a top-level item (`fn`, `struct`, `enum`, `const`, `module`, `MAIN`), found {}", other.describe())),
+            Tok::Name(n) => return self.fail_n("top_level_needs_const", format!("a kit-level value is a `const`: `const ${} := …;` — a variable lives inside a body", n)),
+            other => return self.fail_n("unexpected_text", format!("expected a top-level item (`fn`, `struct`, `enum`, `const`, `module`, `MAIN`), found {}", other.describe())),
         };
         match w.as_str() {
             "MAIN" => {
@@ -1304,8 +1314,8 @@ impl<'a> Parser<'a> {
                     let ps = self.params(ParamContext::Fn)?;
                     match ps.len() {
                         0 | 2 => {}
-                        1 => return self.fail_at(at, "`MAIN` takes C's two parameters or none: `,` and the second parameter — `MAIN [$argc: i32, $argv: ptr[ptr[u8]]] { … }`"),
-                        _ => return self.fail_at(at, "`MAIN` takes C's two parameters or none — `MAIN [$argc: i32, $argv: ptr[ptr[u8]]] { … }`"),
+                        1 => return self.fail_at_n(at, "main_parameters_wrong", "`MAIN` takes C's two parameters or none: `,` and the second parameter — `MAIN [$argc: i32, $argv: ptr[ptr[u8]]] { … }`"),
+                        _ => return self.fail_at_n(at, "main_parameters_wrong", "`MAIN` takes C's two parameters or none — `MAIN [$argc: i32, $argv: ptr[ptr[u8]]] { … }`"),
                     }
                     ps
                 } else {
@@ -1317,25 +1327,25 @@ impl<'a> Parser<'a> {
             "fn" => {
                 self.bump();
                 if self.is_word("MAIN") {
-                    return self.fail("`MAIN` is the program's block, not a function: write `MAIN { … }` with no `fn`, no return type, no `return`");
+                    return self.fail_n("main_form", "`MAIN` is the program's block, not a function: write `MAIN { … }` with no `fn`, no return type, no `return`");
                 }
                 let decl = self.fn_decl(true)?;
                 Ok(ItemKind::Fn(decl))
             }
-            "func" => self.fail("`func` became `fn`: `fn name [params] -> type { … }`"),
+            "func" => self.fail_n("old_spelling", "`func` became `fn`: `fn name [params] -> type { … }`"),
             "incl" if matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(c) if c == "C" || c == "c") => self.incl_c(),
             "extern" => {
                 self.bump();
                 // `extern` names its language (owner, 2026-10-02): `extern.C`,
                 // a line or a block.
                 if !self.eat(&Tok::Dot) {
-                    return self.fail("`extern` names its language: `extern.C fn exit [$code: i32];`, or a block, `extern.C { … }`");
+                    return self.fail_n("cnc::extern_language_unsaid", "`extern` names its language: `extern.C fn exit [$code: i32];`, or a block, `extern.C { … }`");
                 }
                 let lang = self.ident("the language after `extern.`")?;
                 match lang.name.as_str() {
                     "C" => {}
-                    "c" => return self.fail_at(lang.span, "C is written capitalized here, as every language's name is: `extern.C`"),
-                    other => return self.fail_at(lang.span, format!("only `extern.C` exists: `extern.{}` is not a language CyborgPL reaches", other)),
+                    "c" => return self.fail_at_n(lang.span, "cnc::c_capitalized", "C is written capitalized here, as every language's name is: `extern.C`"),
+                    other => return self.fail_at_n(lang.span, "cnc::extern_language_unknown", format!("only `extern.C` exists: `extern.{}` is not a language CyborgPL reaches", other)),
                 }
                 if self.is(&Tok::LBrace) {
                     let open = self.bump().span;
@@ -1344,7 +1354,7 @@ impl<'a> Parser<'a> {
                         // Another item's first word at the left margin, or the
                         // end of the file: the block was never closed.
                         if self.at_eof() || self.is_word("MAIN") || self.is_word("struct") || self.is_word("enum") || self.is_word("const") || self.is_word("module") || self.is_word("extern") || self.is_word("layout") {
-                            return self.fail_at(open, "the `extern.C {` block is never closed: is its `}` missing?");
+                            return self.fail_at_n(open, "unclosed_block", "the `extern.C {` block is never closed: is its `}` missing?");
                         }
                         // A line may say its own `pub` or `pub.kit`; one
                         // before the block overrides them (owner, 2026-10-02:
@@ -1358,9 +1368,9 @@ impl<'a> Parser<'a> {
                                     // An old narrowing (`pub.limb`, a library until 2026-10-09) is
                                     // refused from `spellings.cyr`'s row.
                                     if let Some(o) = crate::spellings::old_word(&format!("pub.{}", narrowing.name), Some("special")) {
-                                        return self.fail_at(narrowing.span, o.dated());
+                                        return self.fail_at_n(narrowing.span, "old_spelling", o.dated());
                                     }
-                                    return self.fail_at(narrowing.span, format!("`pub.{}` is not a visibility: the only narrowing of `pub` is `pub.kit`", narrowing.name));
+                                    return self.fail_at_n(narrowing.span, "unknown_pub_narrowing", format!("`pub.{}` is not a visibility: the only narrowing of `pub` is `pub.kit`", narrowing.name));
                                 }
                                 line_vis = Vis::Kit;
                             }
@@ -1382,10 +1392,10 @@ impl<'a> Parser<'a> {
                 let which = self.ident("`C` after `layout.`")?;
                 // A language's name is capitalized (owner, 2026-10-02).
                 if which.name == "c" {
-                    return self.fail_at(which.span, "C is written capitalized here, as every language's name is: `layout.C struct`, `layout.C enum`");
+                    return self.fail_at_n(which.span, "cnc::c_capitalized", "C is written capitalized here, as every language's name is: `layout.C struct`, `layout.C enum`");
                 }
                 if which.name != "C" {
-                    return self.fail_at(which.span, format!("the only layout is `layout.C`, C's shape; `layout.{}` does not exist", which.name));
+                    return self.fail_at_n(which.span, "cnc::unknown_layout", format!("the only layout is `layout.C`, C's shape; `layout.{}` does not exist", which.name));
                 }
                 if self.eat_word("enum") {
                     return Ok(ItemKind::Enum(self.enum_decl(true)?));
@@ -1397,7 +1407,7 @@ impl<'a> Parser<'a> {
                     return Ok(ItemKind::Struct(d));
                 }
                 if !self.is_word("struct") {
-                    return self.fail(format!("`layout.C` is followed by `struct`, `union` or `enum`, found {}", self.peek().describe()));
+                    return self.fail_n("unexpected_text", format!("`layout.C` is followed by `struct`, `union` or `enum`, found {}", self.peek().describe()));
                 }
                 self.bump();
                 Ok(ItemKind::Struct(self.struct_decl(true)?))
@@ -1422,7 +1432,7 @@ impl<'a> Parser<'a> {
                 self.bump();
                 let name = self.ident("the module's name")?;
                 if self.is(&Tok::Semi) {
-                    return self.fail(format!("there is no include line: a file module is found by its file name, and `module {} {{ … }}` is a block — nothing declares a module with `;`", name.name));
+                    return self.fail_n("foreign_spelling", format!("there is no include line: a file module is found by its file name, and `module {} {{ … }}` is a block — nothing declares a module with `;`", name.name));
                 }
                 self.check_module_name(&name)?;
                 self.expect(&Tok::LBrace, "`{` after the module's name")?;
@@ -1430,7 +1440,7 @@ impl<'a> Parser<'a> {
                 let outer_c = std::mem::take(&mut self.c_seen);
                 while !self.is(&Tok::RBrace) {
                     if self.at_eof() {
-                        return self.fail(format!("module `{}` is never closed", name.name));
+                        return self.fail_n("unclosed_block", format!("module `{}` is never closed", name.name));
                     }
                     if self.is_word("on") {
                         items.extend(self.on_items()?);
@@ -1442,23 +1452,23 @@ impl<'a> Parser<'a> {
                 self.c_seen = outer_c;
                 Ok(ItemKind::Module { name, items })
             }
-            "mod" => self.fail("`mod` is the remainder operator; a module is `module name { … }`"),
+            "mod" => self.fail_n("foreign_spelling", "`mod` is the remainder operator; a module is `module name { … }`"),
             "precedence" => {
                 // Read before the items (`parse_file`); here it is passed,
                 // as an empty block of lines that adds no item.
                 self.precedence_block()?;
                 Ok(ItemKind::ExternBlock(Vec::new()))
             }
-            "let" => self.fail("a kit-level value is a `const`, not a `let`: `const $name := …;`"),
+            "let" => self.fail_n("top_level_needs_const", "a kit-level value is a `const`, not a `let`: `const $name := …;`"),
             "check" | "nocheck" => {
                 if self.is_word_at(1, "fn") {
-                    self.fail(format!("`{}` cannot go on a `fn`: the tiers are never global — there is no file-wide or kit-wide tier; put `{}` in front of the statements inside", w, w))
+                    self.fail_n("check_misplaced", format!("`{}` cannot go on a `fn`: the tiers are never global — there is no file-wide or kit-wide tier; put `{}` in front of the statements inside", w, w))
                 } else {
-                    self.fail(format!("`{}` goes in front of a statement inside a body, never at the top level: the tiers are never global", w))
+                    self.fail_n("check_misplaced", format!("`{}` goes in front of a statement inside a body, never at the top level: the tiers are never global", w))
                 }
             }
-            "inline" => self.fail("`inline.ASM` goes inside a body, as a statement, under `no_check`"),
-            "var" => self.fail("`var` is gone, and a kit's top-level value is a `const`: `const $name := …;`"),
+            "inline" => self.fail_n("belongs_in_body", "`inline.ASM` goes inside a body, as a statement, under `no_check`"),
+            "var" => self.fail_n("spelling_removed", "`var` is gone, and a kit's top-level value is a `const`: `const $name := …;`"),
             _ => {
                 // `Vec satisfies Ordered;`
                 if !is_keyword(&w) {
@@ -1473,10 +1483,10 @@ impl<'a> Parser<'a> {
                     }
                     self.pos = save;
                     if self.is(&Tok::LBracket) || matches!(self.peek_at(1), Tok::LBracket) {
-                        return self.fail(format!("a call to `{}` cannot stand at the top level: statements go inside `MAIN {{ }}` or a `fn`", w));
+                        return self.fail_n("belongs_in_body", format!("a call to `{}` cannot stand at the top level: statements go inside `MAIN {{ }}` or a `fn`", w));
                     }
                 }
-                self.fail(format!("expected a top-level item (`fn`, `struct`, `enum`, `const`, `module`, `MAIN`), found `{}`", w))
+                self.fail_n("unexpected_text", format!("expected a top-level item (`fn`, `struct`, `enum`, `const`, `module`, `MAIN`), found `{}`", w))
             }
         }
     }
@@ -1485,13 +1495,13 @@ impl<'a> Parser<'a> {
         let n = &name.name;
         let ok = n.chars().next().map(|c| c.is_ascii_lowercase()).unwrap_or(false) && n.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
         if !ok {
-            return self.fail_at(name.span, format!("`{}` cannot name a module: module names are lowercase ASCII letters, digits and `_`, starting with a letter (lowercase only, so the name works on every file system)", n));
+            return self.fail_at_n(name.span, "module_name_lowercase", format!("`{}` cannot name a module: module names are lowercase ASCII letters, digits and `_`, starting with a letter (lowercase only, so the name works on every file system)", n));
         }
         if is_device_name(n) {
-            return self.fail_at(name.span, format!("`{}` is a reserved device name on Windows and cannot name a module", n));
+            return self.fail_at_n(name.span, "file_name_not_module", format!("`{}` is a reserved device name on Windows and cannot name a module", n));
         }
         if reserved_module_name(n) {
-            return self.fail_at(name.span, format!("`{}` is a keyword and cannot name a module", n));
+            return self.fail_at_n(name.span, "name_reserved", format!("`{}` is a keyword and cannot name a module", n));
         }
         Ok(())
     }
@@ -1503,8 +1513,8 @@ impl<'a> Parser<'a> {
                 self.bump();
                 Ok(())
             }
-            Tok::Op(o) if o.starts_with('>') => self.fail(format!("`{}` is one operator: put a space after the `>` closing `<{}>`", o, name)),
-            other => self.fail(format!("expected `>` closing `<{}>`, found {}", name, other.describe())),
+            Tok::Op(o) if o.starts_with('>') => self.fail_n("space_missing", format!("`{}` is one operator: put a space after the `>` closing `<{}>`", o, name)),
+            other => self.fail_n("unexpected_text", format!("expected `>` closing `<{}>`, found {}", name, other.describe())),
         }
     }
 
@@ -1521,21 +1531,21 @@ impl<'a> Parser<'a> {
             loop {
                 let name = self.ident("the generic's name")?;
                 if self.is_op(">") && matches!(self.peek_at(1), Tok::Colon) {
-                    return self.fail_at(name.span, format!("what `<{n}>` accepts goes inside the brackets: `<{n}: any>`", n = name.name));
+                    return self.fail_at_n(name.span, "old_spelling", format!("what `<{n}>` accepts goes inside the brackets: `<{n}: any>`", n = name.name));
                 }
                 if !self.eat(&Tok::Colon) {
-                    return self.fail_at(name.span, format!("`<{n}>` says what it accepts, never every type by default: `{w} {o} <{n}: any>`, or an interface — `<{n}: Number>`", n = name.name, w = what, o = owner));
+                    return self.fail_at_n(name.span, "generic_bound_missing", format!("`<{n}>` says what it accepts, never every type by default: `{w} {o} <{n}: any>`, or an interface — `<{n}: Number>`", n = name.name, w = what, o = owner));
                 }
                 let mut bounds = Vec::new();
                 if self.is_word("any") {
                     let any = self.bump().span;
                     if self.is_word("and") {
-                        return self.fail_at(any, format!("`any` stands alone: `<{}: any>` accepts every type, so nothing joins it with `and`", name.name));
+                        return self.fail_at_n(any, "any_stands_alone", format!("`any` stands alone: `<{}: any>` accepts every type, so nothing joins it with `and`", name.name));
                     }
                 } else {
                     loop {
                         if self.is_word("any") {
-                            return self.fail(format!("`any` stands alone: `<{}: any>` accepts every type, so nothing joins it with `and`", name.name));
+                            return self.fail_n("any_stands_alone", format!("`any` stands alone: `<{}: any>` accepts every type, so nothing joins it with `and`", name.name));
                         }
                         bounds.push(self.path()?);
                         if !self.eat_word("and") {
@@ -1555,24 +1565,24 @@ impl<'a> Parser<'a> {
             let last = a.generics.last().map(|g| g.name.name.clone()).unwrap_or_default();
             self.expect_close_angle(&last)?;
             if self.is_op("<") && matches!(self.peek_at(1), Tok::Word(_)) {
-                return self.fail("the blanks go in one `< >`, commas between: `<A: any, B: Hashable>`");
+                return self.fail_n("declaration_form", "the blanks go in one `< >`, commas between: `<A: any, B: Hashable>`");
             }
         }
         // The lifetime groups in a bracket of their own, before the
         // parameters (owner, 2026-10-07): `[@x, @y]`.
         if self.is_op("|") || self.is_op("@") {
-            return self.fail(format!("lifetime groups go in a bracket of their own, before the parameters: `{} {} [@x, @y] [...]`", what, owner));
+            return self.fail_n("borrow_group_form", format!("lifetime groups go in a bracket of their own, before the parameters: `{} {} [@x, @y] [...]`", what, owner));
         }
         if self.is(&Tok::LBracket) && self.is_op_at(1, "@") {
             self.bump();
             loop {
                 let at = self.span();
                 if !self.eat_op("@") {
-                    return self.fail_at(at, "a lifetime group is named after `@`: `[@x, @y]`");
+                    return self.fail_at_n(at, "borrow_group_form", "a lifetime group is named after `@`: `[@x, @y]`");
                 }
                 match self.peek().clone() {
                     Tok::Word(_) => a.groups.push(self.ident("the lifetime group's name")?),
-                    _ => return self.fail_at(at, "a lifetime group is named after `@`: `@x`"),
+                    _ => return self.fail_at_n(at, "borrow_group_form", "a lifetime group is named after `@`: `@x`"),
                 }
                 if !self.eat(&Tok::Comma) || self.is(&Tok::RBracket) {
                     break;
@@ -1592,12 +1602,12 @@ impl<'a> Parser<'a> {
         self.bump();
         let lang = self.ident("`C`")?;
         if lang.name == "c" {
-            return self.fail_at(lang.span, "C is written capitalized here, as every language's name is: `incl.C`");
+            return self.fail_at_n(lang.span, "cnc::c_capitalized", "C is written capitalized here, as every language's name is: `incl.C`");
         }
         let system = if self.eat(&Tok::Dot) {
             let w = self.ident("`system`")?;
             if w.name != "system" {
-                return self.fail_at(w.span, format!("`incl.C.{}` is not a kind of header: `incl.C.system[\"stdio.h\"]` is the system's, `incl.C[\"vendor/mylib.h\"]` one in the kit", w.name));
+                return self.fail_at_n(w.span, "cnc::incl_c_form", format!("`incl.C.{}` is not a kind of header: `incl.C.system[\"stdio.h\"]` is the system's, `incl.C[\"vendor/mylib.h\"]` one in the kit", w.name));
             }
             true
         } else {
@@ -1607,7 +1617,7 @@ impl<'a> Parser<'a> {
         let mut paths = Vec::new();
         while !self.is(&Tok::RBracket) {
             let Tok::Str(p) = self.peek().clone() else {
-                return self.fail("a header is written in quotes, as text: `incl.C.system[\"stdio.h\"]`");
+                return self.fail_n("cnc::incl_c_form", "a header is written in quotes, as text: `incl.C.system[\"stdio.h\"]`");
             };
             self.bump();
             paths.push(p);
@@ -1617,13 +1627,13 @@ impl<'a> Parser<'a> {
         }
         self.expect(&Tok::RBracket, "`]` closing the headers")?;
         if paths.is_empty() {
-            return self.fail("`incl.C` names at least one header: `incl.C.system[\"stdio.h\"]`");
+            return self.fail_n("cnc::incl_c_form", "`incl.C` names at least one header: `incl.C.system[\"stdio.h\"]`");
         }
         let line = start.to(self.prev_span());
         self.expect_semi("the `incl.C` line")?;
         let spelled = format!("`incl.C{}[{}]`", if system { ".system" } else { "" }, paths.iter().map(|p| format!("\"{}\"", p)).collect::<Vec<_>>().join(", "));
         let root = NEURON_ROOT.with(|r| r.borrow().clone());
-        let decls = crate::cheader::declare(system, &paths, &root).map_err(|why| Box::new(Diagnostic::error(format!("{}: {}", spelled, why)).at(line)))?;
+        let decls = crate::cheader::declare(system, &paths, &root).map_err(|why| Box::new(Diagnostic::error(format!("{}: {}", spelled, why)).named("cnc::header_not_found").at(line)))?;
         let mut text = String::new();
         for d in decls {
             match self.c_seen.get(&d.name) {
@@ -1658,9 +1668,9 @@ impl<'a> Parser<'a> {
     fn collection(&mut self, vis: Vis, front: Option<(Bare, Span)>) -> Result<(Vec<(Vis, ItemKind)>, Option<(Bare, Span)>)> {
         let name = match self.peek().clone() {
             Tok::Word(_) => self.ident("the collection's name")?,
-            Tok::Str(s) => return self.fail(format!("a collection's name is bare, as a function's: `coll.fn {} {{ … }}`", s)),
-            Tok::Name(n) => return self.fail(format!("a collection's name is bare, as a function's: `coll.fn {} {{ … }}`", n)),
-            other => return self.fail(format!("expected the collection's name, found {}", other.describe())),
+            Tok::Str(s) => return self.fail_n("name_quoted", format!("a collection's name is bare, as a function's: `coll.fn {} {{ … }}`", s)),
+            Tok::Name(n) => return self.fail_n("name_quoted", format!("a collection's name is bare, as a function's: `coll.fn {} {{ … }}`", n)),
+            other => return self.fail_n("unexpected_text", format!("expected the collection's name, found {}", other.describe())),
         };
         let open = self.span();
         self.expect(&Tok::LBrace, "`{` after the collection's name")?;
@@ -1683,16 +1693,16 @@ impl<'a> Parser<'a> {
         let short = |member: &str| format!("a member writes the collection's name in front: `{}.{}` (owner, 2026-10-19)", name.name, member);
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
-                return self.fail_at(open, format!("collection `{}` is never closed", name.name));
+                return self.fail_at_n(open, "unclosed_block", format!("collection `{}` is never closed", name.name));
             }
             if self.is_word("bare") {
                 let at = self.span();
                 if mark.is_some() {
-                    return self.fail_at(at, "a collection has one `bare.` mark, for every member");
+                    return self.fail_at_n(at, "bare_mark_form", "a collection has one `bare.` mark, for every member");
                 }
                 let (prefix, m, mat) = self.bare_mark()?;
                 if prefix != crate::ast::Prefix::Kit {
-                    return self.fail_at(mat, "a collection's mark says how other kits write its members' path: `bare.kit_prefix.…;`");
+                    return self.fail_at_n(mat, "bare_mark_form", "a collection's mark says how other kits write its members' path: `bare.kit_prefix.…;`");
                 }
                 self.expect_semi("the `bare.` mark")?;
                 mark = Some((m, mat));
@@ -1705,7 +1715,7 @@ impl<'a> Parser<'a> {
                 let first = self.ident("the function the versions are of")?;
                 let member = if self.eat(&Tok::Dot) { Some(self.ident("the member's name")?) } else { None };
                 if first.name != name.name {
-                    return self.fail_at(first.span, short(&member.as_ref().unwrap_or(&first).name.clone()));
+                    return self.fail_at_n(first.span, "collection_member_unprefixed", short(&member.as_ref().unwrap_or(&first).name.clone()));
                 }
                 let key = member.as_ref().map(|m| m.name.clone()).unwrap_or_default();
                 let full = match &member {
@@ -1713,17 +1723,17 @@ impl<'a> Parser<'a> {
                     None => name.name.clone(),
                 };
                 if let Some((_, at)) = written.get(&key) {
-                    return self.fail_at(first.span, in_block(&full)).map_err(|e| Box::new(e.why_at(*at, format!("`{}` is written here too", full))));
+                    return self.fail_at_n(first.span, "versions_outside_collection", in_block(&full)).map_err(|e| Box::new(e.why_at(*at, format!("`{}` is written here too", full))));
                 }
                 written.insert(key, (true, first.span));
                 let vopen = self.span();
                 self.expect(&Tok::LBrace, "`{` opening the versions")?;
                 while !self.is(&Tok::RBrace) {
                     if self.at_eof() {
-                        return self.fail_at(vopen, format!("the versions of `{}` are never closed", full));
+                        return self.fail_at_n(vopen, "unclosed_block", format!("the versions of `{}` are never closed", full));
                     }
                     if !self.is(&Tok::LBracket) {
-                        return self.fail(format!("each line of a `versions` block is one version, written without its name: `[$x: i64] -> i64 {{ … }}`, under `versions {}`", full));
+                        return self.fail_n("collection_form", format!("each line of a `versions` block is one version, written without its name: `[$x: i64] -> i64 {{ … }}`, under `versions {}`", full));
                     }
                     let at = self.span();
                     let fname = Ident { name: member.as_ref().unwrap_or(&first).name.clone(), span: at };
@@ -1749,27 +1759,27 @@ impl<'a> Parser<'a> {
                     match w.name.as_str() {
                         "in_order" => LabelOrder::InOrder,
                         "any_order" => LabelOrder::AnyOrder,
-                        _ => return self.fail_at(w.span, "labels keep their order or not: `labels.in_order […]` or `labels.any_order […]`"),
+                        _ => return self.fail_at_n(w.span, "label_order_unsaid", "labels keep their order or not: `labels.in_order […]` or `labels.any_order […]`"),
                     }
                 } else {
                     LabelOrder::Plain
                 };
                 if labels.is_some() {
-                    return self.fail_at(at, "a collection has one `labels` line");
+                    return self.fail_at_n(at, "said_twice", "a collection has one `labels` line");
                 }
                 self.expect(&Tok::LBracket, "`[` and the labels: `labels [$text as value]`")?;
                 let mut entries: Vec<(QName, Ident)> = Vec::new();
                 while !self.is(&Tok::RBracket) {
                     let q = self.qname("a parameter's name")?;
                     if !self.eat_word("as") {
-                        return self.fail(format!("a label is given with `as`: `[${} as value]`", q.name));
+                        return self.fail_n("collection_line_form", format!("a label is given with `as`: `[${} as value]`", q.name));
                     }
                     let w = self.ident("the label")?;
                     if let Some((p, _)) = entries.iter().find(|(_, x)| x.name == w.name) {
-                        return self.fail_at(w.span, format!("'{}' and '{}' both take the label `{}:`", p.name, q.name, w.name));
+                        return self.fail_at_n(w.span, "said_twice", format!("'{}' and '{}' both take the label `{}:`", p.name, q.name, w.name));
                     }
                     if entries.iter().any(|(p, _)| p.name == q.name) {
-                        return self.fail_at(q.span, format!("'{}' has two labels", q.name));
+                        return self.fail_at_n(q.span, "said_twice", format!("'{}' has two labels", q.name));
                     }
                     entries.push((q, w));
                     if !self.eat(&Tok::Comma) {
@@ -1785,17 +1795,17 @@ impl<'a> Parser<'a> {
             if self.is_word("defaults") && matches!(self.peek_at(1), Tok::LBracket) && (name.name != "defaults" || self.is_op_at(3, "=")) {
                 let at = self.bump().span;
                 if defaults.is_some() {
-                    return self.fail_at(at, "a collection has one `defaults` line");
+                    return self.fail_at_n(at, "said_twice", "a collection has one `defaults` line");
                 }
                 self.bump();
                 let mut fills: Vec<(QName, Expr)> = Vec::new();
                 while !self.is(&Tok::RBracket) {
                     let q = self.qname("a parameter's name")?;
                     if !self.eat_op("=") {
-                        return self.fail(format!("a default is given with `=`: `[${} = 1]`", q.name));
+                        return self.fail_n("collection_line_form", format!("a default is given with `=`: `[${} = 1]`", q.name));
                     }
                     if fills.iter().any(|(p, _)| p.name == q.name) {
-                        return self.fail_at(q.span, format!("'{}' has two defaults", q.name));
+                        return self.fail_at_n(q.span, "said_twice", format!("'{}' has two defaults", q.name));
                     }
                     let v = self.expr(0)?;
                     fills.push((q, v));
@@ -1809,10 +1819,10 @@ impl<'a> Parser<'a> {
                 continue;
             }
             if self.is_word("fn") {
-                return self.fail(format!("a collection's members take no `fn`: `{}.double […] -> T {{ … }}`", name.name));
+                return self.fail_n("collection_form", format!("a collection's members take no `fn`: `{}.double […] -> T {{ … }}`", name.name));
             }
             if self.is_word("named") {
-                return self.fail("`named` names what a template generates: it is the first line inside a template's `for`");
+                return self.fail_n("collection_form", "`named` names what a template generates: it is the first line inside a template's `for`");
             }
             if self.is_word("for") {
                 let mut t = self.template()?;
@@ -1821,22 +1831,22 @@ impl<'a> Parser<'a> {
                 continue;
             }
             if let Tok::Generated(_) = self.peek() {
-                return self.fail("a `#generated_N_lines_below` marker stands right under a template's closing `}`");
+                return self.fail_n("generated_marker_form", "a `#generated_N_lines_below` marker stands right under a template's closing `}`");
             }
             // The own function pointing elsewhere: only a member may.
             if matches!(self.peek(), Tok::Word(w) if *w == name.name) && self.is_op_at(1, "=") {
-                return self.fail(format!("the own function `{}` is written here; only a member points elsewhere", name.name));
+                return self.fail_n("collection_form", format!("the own function `{}` is written here; only a member points elsewhere", name.name));
             }
             // A short name, `hi […]` or `hi = …;`.
             if let Tok::Word(w) = self.peek().clone() {
                 if w != name.name && (matches!(self.peek_at(1), Tok::LBracket) || self.is_op_at(1, "=")) {
-                    return self.fail(short(&w));
+                    return self.fail_n("collection_member_unprefixed", short(&w));
                 }
             }
             // `other.hi`: the name in front is not this collection's.
             if let (Tok::Word(w), Tok::Dot, Tok::Word(m)) = (self.peek().clone(), self.peek_at(1).clone(), self.peek_at(2).clone()) {
                 if w != name.name {
-                    return self.fail(short(&m));
+                    return self.fail_n("collection_member_unprefixed", short(&m));
                 }
             }
             // A member written elsewhere: `area.square = shapes.square.area;`.
@@ -1861,7 +1871,7 @@ impl<'a> Parser<'a> {
                 while !self.is(&Tok::RBracket) {
                     let q = self.qname("a parameter's name")?;
                     if !self.eat_op("=") {
-                        return self.fail(format!("a preset fills a parameter with `=`: `[${} = 2]`", q.name));
+                        return self.fail_n("collection_line_form", format!("a preset fills a parameter with `=`: `[${} = 2]`", q.name));
                     }
                     let v = self.expr(0)?;
                     fills.push((q, v));
@@ -1880,15 +1890,15 @@ impl<'a> Parser<'a> {
             let key = if d.owner.is_some() { d.name.name.clone() } else { String::new() };
             if let Some((_, at)) = written.get(&key) {
                 let full = if key.is_empty() { name.name.clone() } else { format!("{}.{}", name.name, key) };
-                return self.fail_at(d.name.span, in_block(&full)).map_err(|e| Box::new(e.why_at(*at, format!("`{}` is written here too", full))));
+                return self.fail_at_n(d.name.span, "versions_outside_collection", in_block(&full)).map_err(|e| Box::new(e.why_at(*at, format!("`{}` is written here too", full))));
             }
             written.entry(key).or_insert((false, d.name.span));
             match &d.owner {
                 None if d.name.name == name.name => {
                     mains.push(d);
                 }
-                None => return self.fail(short(&d.name.name.clone())),
-                Some(o) if o.name != name.name => return self.fail(short(&d.name.name.clone())),
+                None => return self.fail_n("collection_member_unprefixed", short(&d.name.name.clone())),
+                Some(o) if o.name != name.name => return self.fail_n("collection_member_unprefixed", short(&d.name.name.clone())),
                 Some(_) => {
                     d.owner = Some(name.clone());
                     members.push(d);
@@ -1901,24 +1911,24 @@ impl<'a> Parser<'a> {
         let said = labels.as_ref().map(|l| l.span).or(defaults.as_ref().map(|d| d.1));
         if let Some(at) = said {
             if mains.is_empty() {
-                return self.fail_at(at, format!("labels and defaults say how the own function is called, and collection `{}` has none", name.name));
+                return self.fail_at_n(at, "collection_line_form", format!("labels and defaults say how the own function is called, and collection `{}` has none", name.name));
             }
         }
         let is_param = |q: &QName| mains.iter().any(|m| m.params.iter().any(|p| p.name.name == q.name));
         if let Some(l) = &labels {
             if vis == Vis::Pub && l.order == LabelOrder::Plain {
-                return self.fail_at(l.span, format!("a `pub` function says whether its labels keep their order: `labels.in_order […]` or `labels.any_order […]` (owner, 2026-10-21)"));
+                return self.fail_at_n(l.span, "label_order_unsaid", format!("a `pub` function says whether its labels keep their order: `labels.in_order […]` or `labels.any_order […]` (owner, 2026-10-21)"));
             }
             for (q, _) in &l.entries {
                 if !is_param(q) {
-                    return self.fail_at(q.span, format!("'{}' is not one of `{}`'s parameters", q.name, name.name));
+                    return self.fail_at_n(q.span, "preset_wrong", format!("'{}' is not one of `{}`'s parameters", q.name, name.name));
                 }
             }
         }
         if let Some((fills, _)) = &defaults {
             for (q, _) in fills {
                 if !is_param(q) {
-                    return self.fail_at(q.span, format!("'{}' is not one of `{}`'s parameters", q.name, name.name));
+                    return self.fail_at_n(q.span, "preset_wrong", format!("'{}' is not one of `{}`'s parameters", q.name, name.name));
                 }
             }
         }
@@ -1929,16 +1939,16 @@ impl<'a> Parser<'a> {
         let main = mains.first().cloned();
         for (pname, fills, span) in presets {
             let Some(m) = &main else {
-                return self.fail_at(span, format!("a preset fills the main function's arguments, and collection `{}` has none", name.name));
+                return self.fail_at_n(span, "preset_wrong", format!("a preset fills the main function's arguments, and collection `{}` has none", name.name));
             };
             // Which version a preset fills is not decided (design claude's
             // reading, 2026-10-20).
             if mains.len() > 1 {
-                return self.fail_at(span, format!("a preset beside several versions of `{}`: which version it fills is not decided", name.name));
+                return self.fail_at_n(span, "not_decided", format!("a preset beside several versions of `{}`: which version it fills is not decided", name.name));
             }
             for (q, _) in &fills {
                 if !m.params.iter().any(|p| p.name.name == q.name) {
-                    return self.fail_at(q.span, format!("'{}' is not one of `{}`'s parameters", q.name, name.name));
+                    return self.fail_at_n(q.span, "preset_wrong", format!("'{}' is not one of `{}`'s parameters", q.name, name.name));
                 }
             }
             lines.push((Vis::Private, ItemKind::Fn(preset(m, &name, pname, &fills, span))));
@@ -1984,7 +1994,7 @@ impl<'a> Parser<'a> {
         let member = self.ident("the handler's name")?;
         let Some((_, params, arms)) = members.iter().find(|(m, _, _)| *m == member.name) else {
             let have = members.iter().map(|(m, _, _)| format!("`{}`", m)).collect::<Vec<_>>().join(", ");
-            return self.fail_at(member.span, format!("`{}` has no handler `{}`; it has {}", coll, member.name, have));
+            return self.fail_at_n(member.span, "unknown_handler", format!("`{}` has no handler `{}`; it has {}", coll, member.name, have));
         };
         let full = format!("{}.{}", coll, member.name);
         let mut given: Vec<(Ident, Expr)> = Vec::new();
@@ -1996,19 +2006,19 @@ impl<'a> Parser<'a> {
                     Arg::Positional(Expr { kind: ExprKind::Label(w, v), .. }) => given.push((w, *v)),
                     other => {
                         let first = params.first().map(|p| p.name.name.clone()).unwrap_or_else(|| "name".into());
-                        return self.fail_at(other.span(), format!("a handler's argument says its parameter: `{}({}: …)` (owner, 2026-10-23)", full, first));
+                        return self.fail_at_n(other.span(), "argument_label_missing", format!("a handler's argument says its parameter: `{}({}: …)` (owner, 2026-10-23)", full, first));
                     }
                 }
             }
         }
         for (w, _) in &given {
             if !params.iter().any(|p| p.name.name == w.name) {
-                return self.fail_at(w.span, format!("`{}` has no parameter `{}`", full, w.name));
+                return self.fail_at_n(w.span, "argument_label_unknown", format!("`{}` has no parameter `{}`", full, w.name));
             }
         }
         for p in params {
             if !given.iter().any(|(w, _)| w.name == p.name.name) {
-                return self.fail_at(member.span, format!("`{}` takes `{}:`", full, p.name.name));
+                return self.fail_at_n(member.span, "argument_missing", format!("`{}` takes `{}:`", full, p.name.name));
             }
         }
         let lets: Vec<Stmt> = params
@@ -2035,21 +2045,21 @@ impl<'a> Parser<'a> {
     fn handler_def(&mut self) -> Result<(String, Vec<HandlerMember>)> {
         let name = match self.peek().clone() {
             Tok::Word(_) => self.ident("the collection's name")?,
-            Tok::Str(s) => return self.fail(format!("a collection's name is bare, as a function's: `coll.handler {} {{ … }}`", s)),
-            other => return self.fail(format!("expected the collection's name, found {}", other.describe())),
+            Tok::Str(s) => return self.fail_n("name_quoted", format!("a collection's name is bare, as a function's: `coll.handler {} {{ … }}`", s)),
+            other => return self.fail_n("unexpected_text", format!("expected the collection's name, found {}", other.describe())),
         };
         let open = self.span();
         self.expect(&Tok::LBrace, "`{` after the collection's name")?;
         let mut members: Vec<HandlerMember> = Vec::new();
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
-                return self.fail_at(open, format!("collection `{}` is never closed", name.name));
+                return self.fail_at_n(open, "unclosed_block", format!("collection `{}` is never closed", name.name));
             }
             if self.is_word("for") || self.is_word("named") {
-                return self.fail("templates are for `coll.fn`: a `coll.handler` holds named `otherwise` blocks, each written out");
+                return self.fail_n("collection_form", "templates are for `coll.fn`: a `coll.handler` holds named `otherwise` blocks, each written out");
             }
             if self.is_word("bare") {
-                return self.fail("a `coll.handler` is read in its own file, so it has no `bare.` mark");
+                return self.fail_n("bare_mark_form", "a `coll.handler` is read in its own file, so it has no `bare.` mark");
             }
             // `h.as_zero { … }`: the collection's name in front, as a
             // `coll.fn`'s members write it (owner, 2026-10-19).
@@ -2064,14 +2074,14 @@ impl<'a> Parser<'a> {
             // Its parameters, defined in `[ ]` (owner, 2026-10-23: "Yes").
             let params = if self.is(&Tok::LBracket) { self.params(ParamContext::Fn)? } else { Vec::new() };
             if !self.is(&Tok::LBrace) {
-                return self.fail_at(member.span, format!("a `coll.handler` holds named `otherwise` blocks: `{}.{} {{ odd {{ … }} }}`, one arm per way a call can fail", name.name, member.name));
+                return self.fail_at_n(member.span, "collection_form", format!("a `coll.handler` holds named `otherwise` blocks: `{}.{} {{ odd {{ … }} }}`, one arm per way a call can fail", name.name, member.name));
             }
             if !full {
-                return self.fail_at(member.span, format!("a member writes the collection's name in front: `{}.{} {{ … }}` (owner, 2026-10-19)", name.name, member.name));
+                return self.fail_at_n(member.span, "collection_member_unprefixed", format!("a member writes the collection's name in front: `{}.{} {{ … }}` (owner, 2026-10-19)", name.name, member.name));
             }
             let (arms, _) = self.arms_block()?;
             if members.iter().any(|(m, _, _)| *m == member.name) {
-                return self.fail_at(member.span, format!("`{}` is defined twice in `{}`", member.name, name.name));
+                return self.fail_at_n(member.span, "defined_twice", format!("`{}` is defined twice in `{}`", member.name, name.name));
             }
             members.push((member.name, params, arms));
         }
@@ -2085,12 +2095,12 @@ impl<'a> Parser<'a> {
         let mut arms = Vec::new();
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
-                return self.fail_at(open, "the `otherwise` arms are never closed");
+                return self.fail_at_n(open, "unclosed_block", "the `otherwise` arms are never closed");
             }
             let name = match self.peek().clone() {
                 Tok::Word(_) => self.ident("a failure name")?,
-                Tok::Name(n) => return self.fail(format!("an arm starts with the reason's bare name, then a quoted name for its payload: `bad_item '{}' {{ … }}`", n)),
-                other => return self.fail(format!("expected a failure name, found {}", other.describe())),
+                Tok::Name(n) => return self.fail_n("name_quoted", format!("an arm starts with the reason's bare name, then a quoted name for its payload: `bad_item '{}' {{ … }}`", n)),
+                other => return self.fail_n("unexpected_text", format!("expected a failure name, found {}", other.describe())),
             };
             let bind = if let Tok::Name(_) = self.peek() { Some(self.qname("a name")?) } else { None };
             let body = self.block("the arm")?;
@@ -2098,7 +2108,7 @@ impl<'a> Parser<'a> {
         }
         let close = self.bump().span;
         if arms.is_empty() {
-            return self.fail_at(open.to(close), "`otherwise { }` has no arms: one arm per reason, `reason { … }`");
+            return self.fail_at_n(open.to(close), "otherwise_empty", "`otherwise { }` has no arms: one arm per reason, `reason { … }`");
         }
         Ok((arms, open.to(close)))
     }
@@ -2124,25 +2134,25 @@ impl<'a> Parser<'a> {
             TemplateValues::Count { start, stop, step, exclusive }
         } else {
             if self.is_word("from") {
-                return self.fail("a `for` with several words takes `[ ]` and commas: `for $n [from: 1, to: 8, by: 1]` (owner, 2026-10-20)");
+                return self.fail_n("loop_words_form", "a `for` with several words takes `[ ]` and commas: `for $n [from: 1, to: 8, by: 1]` (owner, 2026-10-20)");
             }
-            return self.fail("a template runs over values known before building: `for $n in [2, 4]` or `for $n [from: 1, to: 8, by: 1]`");
+            return self.fail_n("collection_form", "a template runs over values known before building: `for $n in [2, 4]` or `for $n [from: 1, to: 8, by: 1]`");
         };
         self.expect(&Tok::LBrace, "`{` opening the template")?;
         if !self.eat_word("named") {
-            return self.fail("a template names what it makes first: `named \"times_\" ++ to.stored.str.utf8($n);`, then the member");
+            return self.fail_n("collection_form", "a template names what it makes first: `named \"times_\" ++ to.stored.str.utf8($n);`, then the member");
         }
         let named = self.expr(0)?;
         self.expect_semi("the `named` line")?;
         if !self.is(&Tok::LBracket) {
-            return self.fail("after `named` comes the member, with no name: `[$x: i32] -> i32 { … }`");
+            return self.fail_n("collection_form", "after `named` comes the member, with no name: `[$x: i32] -> i32 { … }`");
         }
         // The member, as text: up to its body's closing `}`.
         let mstart = self.span();
         let mut depth = 0i32;
         loop {
             if self.at_eof() {
-                return self.fail_at(mstart, "the template's member is never closed");
+                return self.fail_at_n(mstart, "unclosed_block", "the template's member is never closed");
             }
             let t = self.bump().tok.clone();
             match t {
@@ -2176,23 +2186,23 @@ impl<'a> Parser<'a> {
             return Ok(ItemKind::ExternFn(decl));
         }
         if self.is_word("let") {
-            return self.fail("C's variable has no `let`: `extern.C $x: T;` (`extern.C mut $x: T;` to write it)");
+            return self.fail_n("declaration_form", "C's variable has no `let`: `extern.C $x: T;` (`extern.C mut $x: T;` to write it)");
         }
         if !(matches!(self.peek(), Tok::Name(_)) || self.is_word("mut") || self.is_word("immut")) {
-            return self.fail("`extern.C` is followed by `fn` (a C function) or a quoted name (a C variable: `extern.C 'x': i32;`)");
+            return self.fail_n("unexpected_text", "`extern.C` is followed by `fn` (a C function) or a quoted name (a C variable: `extern.C 'x': i32;`)");
         }
         let mutable = self.eat_word("mut");
         if self.is_word("immut") {
-            return self.fail("`immut` means nothing on C's variable: it is read-only unless you write `mut`");
+            return self.fail_n("declaration_form", "`immut` means nothing on C's variable: it is read-only unless you write `mut`");
         }
         let name = self.qname("the C variable's name")?;
         if !self.is(&Tok::Colon) {
-            return self.fail("C's variable needs a type: it has a C-shaped type and no value here — `extern.C $x: i32;`");
+            return self.fail_n("declaration_form", "C's variable needs a type: it has a C-shaped type and no value here — `extern.C $x: i32;`");
         }
         self.bump();
         let ty = self.type_()?;
         if self.is_op("=") || self.is(&Tok::Walrus) {
-            return self.fail("C's variable has no value here: C owns it; write only its type");
+            return self.fail_n("cnc::extern_with_definition", "C's variable has no value here: C owns it; write only its type");
         }
         self.expect_semi("the extern declaration")?;
         Ok(ItemKind::ExternLet { mutable, name, ty })
@@ -2200,10 +2210,10 @@ impl<'a> Parser<'a> {
 
     fn fn_decl(&mut self, has_body: bool) -> Result<FnDecl> {
         if let Tok::Name(n) = self.peek().clone() {
-            return self.fail(format!("function names are bare: `fn {} […]`, not `fn '{}'` — quotes mark a value you hold, and a function is not one", n, n));
+            return self.fail_n("name_quoted", format!("function names are bare: `fn {} […]`, not `fn '{}'` — quotes mark a value you hold, and a function is not one", n, n));
         }
         if self.is(&Tok::Dot) {
-            return self.fail("the return type goes after the parameters — `fn name [params] -> i32 { … }` — not on `fn`");
+            return self.fail_n("return_type_form", "the return type goes after the parameters — `fn name [params] -> i32 { … }` — not on `fn`");
         }
         // A keyword may name a function — `fn true`, `fn to` — reached by
         // path, never bare (kits.md, 2026-09-19): `kit.true[…]`.
@@ -2229,7 +2239,7 @@ impl<'a> Parser<'a> {
         if !has_body && self.is_op("=") {
             self.bump();
             if !(self.is_word("C") && matches!(self.peek_at(1), Tok::Dot)) {
-                return self.fail(format!("a C function under another name says whose it is: `extern.C fn printf_count = C.printf […]`, so `= C.{}`", self.word_text()));
+                return self.fail_n("cnc::extern_language_unsaid", format!("a C function under another name says whose it is: `extern.C fn printf_count = C.printf […]`, so `= C.{}`", self.word_text()));
             }
             self.bump();
             self.bump();
@@ -2237,7 +2247,7 @@ impl<'a> Parser<'a> {
         }
         let params = self.params(if has_body { ParamContext::Fn } else { ParamContext::Extern })?;
         if self.is(&Tok::Colon) {
-            return self.fail("the return type is `-> i32`, not `: i32` — `:` attaches a type to a name, and a result is not the function's type");
+            return self.fail_n("return_type_form", "the return type is `-> i32`, not `: i32` — `:` attaches a type to a name, and a result is not the function's type");
         }
         let (ret, fails) = self.return_spec()?;
         let ret_lent = self.ret_lent.take();
@@ -2245,23 +2255,23 @@ impl<'a> Parser<'a> {
         // (owner, 2026-10-07: "`b`"): two or more borrowed inputs.
         let borrowed = params.iter().filter(|p| matches!(p.kind, ParamKind::Lent | ParamKind::LentMut)).count();
         if let (true, Some(RetLent { group: None, span, .. })) = (borrowed >= 2, &ret_lent) {
-            return self.fail_at(*span, format!("`{n}` hands back a borrow and borrows more than one input: say which with a group, `fn {n} [@x] [lent @x $a: …, lent $b: …] -> lent @x …`", n = name.name));
+            return self.fail_at_n(*span, "borrow_group_needed", format!("`{n}` hands back a borrow and borrows more than one input: say which with a group, `fn {n} [@x] [lent @x $a: …, lent $b: …] -> lent @x …`", n = name.name));
         }
         let body = if has_body {
             if self.is(&Tok::Semi) {
-                return self.fail(format!("`{}` has no body: a function without one is an `extern fn`", name.name));
+                return self.fail_n("body_missing", format!("`{}` has no body: a function without one is an `extern fn`", name.name));
             }
             let outer = std::mem::replace(&mut self.returns_value, false);
             let b = self.block("the function")?;
             // Every return is typed (owner, 2026-10-07: "`a`").
             if self.returns_value && ret.is_none() {
-                return self.fail_at(name.span, format!("`{}` returns a value, so it says its type: `-> i32`", name.name));
+                return self.fail_at_n(name.span, "return_type_missing", format!("`{}` returns a value, so it says its type: `-> i32`", name.name));
             }
             self.returns_value = outer;
             Some(b)
         } else {
             if self.is(&Tok::LBrace) {
-                return self.fail(format!("an `extern fn` has no body: `{}`'s body is in C — end the declaration with `;`", name.name));
+                return self.fail_n("cnc::extern_with_definition", format!("an `extern fn` has no body: `{}`'s body is in C — end the declaration with `;`", name.name));
             }
             self.expect_semi("the extern declaration")?;
             None
@@ -2276,7 +2286,7 @@ impl<'a> Parser<'a> {
             return Ok(None);
         }
         if self.prev_span().end == self.span().start {
-            return self.fail("a space before the group: `lent @x`");
+            return self.fail_n("space_missing", "a space before the group: `lent @x`");
         }
         self.bump();
         Ok(Some(self.group_after_at("lent @x")?))
@@ -2285,7 +2295,7 @@ impl<'a> Parser<'a> {
     fn group_after_at(&mut self, shape: &str) -> Result<Ident> {
         match self.peek().clone() {
             Tok::Word(_) => self.ident("the lifetime group's name after `@`"),
-            _ => self.fail(format!("a lifetime group is named after `@`: `{}`", shape)),
+            _ => self.fail_n("borrow_group_form", format!("a lifetime group is named after `@`: `{}`", shape)),
         }
     }
 
@@ -2293,7 +2303,7 @@ impl<'a> Parser<'a> {
     fn return_spec(&mut self) -> Result<(Option<Type>, Vec<FailSpec>)> {
         if let Tok::Op(o) = self.peek().clone() {
             if o.starts_with("->") && o != "->" {
-                return self.fail(format!("`{}` is one operator: put a space after `->` (`-> <T>`)", o));
+                return self.fail_n("space_missing", format!("`{}` is one operator: put a space after `->` (`-> <T>`)", o));
             }
         }
         self.ret_lent = None;
@@ -2321,7 +2331,7 @@ impl<'a> Parser<'a> {
             let mutable = if self.eat(&Tok::Dot) {
                 let m = self.ident("`mut` after `lent.`")?;
                 if m.name != "mut" {
-                    return self.fail_at(m.span, format!("`lent.{}` is not a borrow: `-> lent T` or `-> lent.mut T`", m.name));
+                    return self.fail_at_n(m.span, "return_type_form", format!("`lent.{}` is not a borrow: `-> lent T` or `-> lent.mut T`", m.name));
                 }
                 true
             } else {
@@ -2354,7 +2364,7 @@ impl<'a> Parser<'a> {
                 break;
             }
             if let Tok::Name(n) = self.peek().clone() {
-                return self.fail(format!("a failure's name is bare — `fail[{}]`, not `fail[${}]` — it is a reason, not a value you hold", n, n));
+                return self.fail_n("name_quoted", format!("a failure's name is bare — `fail[{}]`, not `fail[${}]` — it is a reason, not a value you hold", n, n));
             }
             // `negative: i32`: `argwords::labels` took the `:` out and
             // marked the name, as it does a label's.
@@ -2368,7 +2378,7 @@ impl<'a> Parser<'a> {
         }
         self.expect(&Tok::RBracket, "`]` closing the failure list")?;
         if specs.is_empty() {
-            return self.fail("`fail[]` lists no failure: name at least one reason");
+            return self.fail_n("fail_list_empty", "`fail[]` lists no failure: name at least one reason");
         }
         Ok(specs)
     }
@@ -2376,13 +2386,13 @@ impl<'a> Parser<'a> {
     fn params(&mut self, ctx: ParamContext) -> Result<Vec<Param>> {
         // A definition describes what goes in (owner, 2026-10-22: "yup").
         if self.is(&Tok::LParen) {
-            return self.fail("a definition keeps its parameters in `[ ]`: `fn twice [$n: i64]`; only a call uses `( )` (owner, 2026-10-22)");
+            return self.fail_n("parens_for_brackets", "a definition keeps its parameters in `[ ]`: `fn twice [$n: i64]`; only a call uses `( )` (owner, 2026-10-22)");
         }
         if !self.is(&Tok::LBracket) {
             if ctx == ParamContext::Fn && self.is_op("=") {
-                return self.fail("not yet: `pub fn short = module.name;` gives other kits a shorter name (owner, 2026-09-23), and kayo builds one kit so far");
+                return self.fail_n("not_built_yet", "not yet: `pub fn short = module.name;` gives other kits a shorter name (owner, 2026-09-23), and kayo builds one kit so far");
             }
-            return self.fail(format!("expected `[` starting the parameters, found {}", self.peek().describe()));
+            return self.fail_n("unexpected_text", format!("expected `[` starting the parameters, found {}", self.peek().describe()));
         }
         self.bump();
         let mut params = Vec::new();
@@ -2399,7 +2409,7 @@ impl<'a> Parser<'a> {
                 break;
             }
             if variadic && !self.is(&Tok::RBracket) {
-                return self.fail("a variadic `...$name` must be the last parameter: the rest of the arguments go to it");
+                return self.fail_n("variadic_form", "a variadic `...$name` must be the last parameter: the rest of the arguments go to it");
             }
         }
         self.expect(&Tok::RBracket, "`]` closing the parameters")?;
@@ -2407,7 +2417,7 @@ impl<'a> Parser<'a> {
         // variadic keeps each argument's own (design claude's reading); a
         // short lambda's take theirs from where it goes (2026-10-24).
         if let Some(p) = params.iter().find(|p| p.ty.is_none() && !p.variadic && !self.untyped_ok) {
-            return self.fail_at(p.name.span, format!("parameter '{}' says its type: `${}: i32`", p.name.name, p.name.name));
+            return self.fail_at_n(p.name.span, "parameter_type_missing", format!("parameter '{}' says its type: `${}: i32`", p.name.name, p.name.name));
         }
         Ok(params)
     }
@@ -2426,7 +2436,7 @@ impl<'a> Parser<'a> {
                 if self.eat(&Tok::Dot) {
                     let m = self.ident("`mut` after `lent.`")?;
                     if m.name != "mut" {
-                        return self.fail_at(m.span, format!("`lent.{}` is not a parameter kind: `lent` (looks at it) or `lent.mut` (may modify it)", m.name));
+                        return self.fail_at_n(m.span, "parameter_form", format!("`lent.{}` is not a parameter kind: `lent` (looks at it) or `lent.mut` (may modify it)", m.name));
                     }
                     kind = ParamKind::LentMut;
                 } else {
@@ -2434,10 +2444,10 @@ impl<'a> Parser<'a> {
                 }
                 group = self.lent_group()?;
                 if ctx == ParamContext::Op {
-                    return self.fail_at(start, "an operator's operands are lent by default: write `$a: T` with no `lent`; `give $a: T` takes it by value");
+                    return self.fail_at_n(start, "needless_lent", "an operator's operands are lent by default: write `$a: T` with no `lent`; `give $a: T` takes it by value");
                 }
                 if ctx == ParamContext::Extern {
-                    return self.fail_at(start, "an `extern fn` parameter is not `lent`: C receives values and pointers, so write `$p: ptr[T]` and hand it a lend at the call");
+                    return self.fail_at_n(start, "cnc::lent_across_c", "an `extern fn` parameter is not `lent`: C receives values and pointers, so write `$p: ptr[T]` and hand it a lend at the call");
                 }
             }
             // `&` is `lent` everywhere (owner, 2026-10-02): `&@x`, `&mut@x`.
@@ -2457,23 +2467,23 @@ impl<'a> Parser<'a> {
                 }
             }
             Tok::Word(w) if w == "lend" => {
-                return self.fail("a parameter that receives a borrow is `lent $x: T` (the caller writes `lend`); `lend` is the caller's word");
+                return self.fail_n("parameter_form", "a parameter that receives a borrow is `lent $x: T` (the caller writes `lend`); `lend` is the caller's word");
             }
             Tok::Word(w) if w == "give" => {
                 self.bump();
                 if ctx != ParamContext::Op {
-                    return self.fail_at(start, "an owning parameter has no keyword — `$x: T` — and the caller writes `give` or `copy`");
+                    return self.fail_at_n(start, "parameter_form", "an owning parameter has no keyword — `$x: T` — and the caller writes `give` or `copy`");
                 }
                 kind = ParamKind::Owned;
                 let p = self.param_rest(start, kind, amp, mutability, true)?;
                 return Ok(p);
             }
             Tok::Word(w) if w == "var" => {
-                return self.fail("a parameter has no `var`: an owning parameter is bare — `$a: i32`");
+                return self.fail_n("parameter_form", "a parameter has no `var`: an owning parameter is bare — `$a: i32`");
             }
             Tok::Word(w) if w == "mut" || w == "immut" => {}
             Tok::Word(w) if is_primitive_head(&w) || (!is_keyword(&w) && matches!(self.peek_at(1), Tok::Name(_))) => {
-                return self.fail("a parameter is written name first, then its type: `$a: i32`");
+                return self.fail_n("parameter_form", "a parameter is written name first, then its type: `$a: i32`");
             }
             Tok::Ellipsis => {
                 self.bump();
@@ -2509,15 +2519,15 @@ impl<'a> Parser<'a> {
                 QName { name: n, span }
             }
             Tok::Word(w) if w == "lent" && matches!(self.peek_at(1), Tok::Dot) => {
-                return self.fail("`lent` and the type both follow their own rules: `lent $text: str.utf8` — the verb before the name, the type after it");
+                return self.fail_n("parameter_form", "`lent` and the type both follow their own rules: `lent $text: str.utf8` — the verb before the name, the type after it");
             }
             Tok::Word(w) => {
-                return self.fail(format!("a parameter's name is quoted: `'{}': i32`", w));
+                return self.fail_n("variable_name_form", format!("a parameter's name is quoted: `'{}': i32`", w));
             }
-            other => return self.fail(format!("expected a parameter name, found {}", other.describe())),
+            other => return self.fail_n("unexpected_text", format!("expected a parameter name, found {}", other.describe())),
         };
         if self.is(&Tok::Ellipsis) {
-            return self.fail("a variadic parameter is `...$name`: the dots go before the name");
+            return self.fail_n("variadic_form", "a variadic parameter is `...$name`: the dots go before the name");
         }
         let ty = if self.eat(&Tok::Colon) { Some(self.type_()?) } else { None };
         let span = start.to(self.prev_span());
@@ -2530,17 +2540,17 @@ impl<'a> Parser<'a> {
         if self.is(&Tok::RBrace) || self.eat(&Tok::Comma) {
             return Ok(());
         }
-        self.fail(format!("items in braces are separated by `,`: `{{ a, b }}` (owner, 2026-10-14); found {}", self.peek().describe()))
+        self.fail_n("braces_need_commas", format!("items in braces are separated by `,`: `{{ a, b }}` (owner, 2026-10-14); found {}", self.peek().describe()))
     }
 
     fn struct_decl(&mut self, layout_c: bool) -> Result<StructDecl> {
         let name = self.ident("the struct's name")?;
         if crate::resolve::number_type(&name.name) {
-            return self.fail_at(name.span, format!("`{}` is one of the language's number types, so it cannot name a struct", name.name));
+            return self.fail_at_n(name.span, "name_reserved", format!("`{}` is one of the language's number types, so it cannot name a struct", name.name));
         }
         let announce = self.announce(&name.name, "struct")?;
         if !announce.groups.is_empty() {
-            return self.fail_at(announce.groups[0].span, "not yet: a struct holding a borrow, and so a lifetime group, is not decided (asked)");
+            return self.fail_at_n(announce.groups[0].span, "not_decided", "not yet: a struct holding a borrow, and so a lifetime group, is not decided (asked)");
         }
         if self.from_c && layout_c && self.eat(&Tok::Semi) {
             return Ok(StructDecl { name, announce, layout_c, fields: Vec::new(), opaque: true, union: false });
@@ -2549,42 +2559,42 @@ impl<'a> Parser<'a> {
         let mut fields = Vec::new();
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
-                return self.fail(format!("struct `{}` is never closed", name.name));
+                return self.fail_n("unclosed_block", format!("struct `{}` is never closed", name.name));
             }
             let mut immut = false;
             if self.is_word("immut") {
                 self.bump();
                 if self.is(&Tok::Dot) {
-                    return self.fail("`immut` goes before the field's name: `immut number: i32`");
+                    return self.fail_n("field_form", "`immut` goes before the field's name: `immut number: i32`");
                 }
                 immut = true;
             } else if self.is_word("mut") {
-                return self.fail("a struct field is not `mut`: a struct always owns its fields and may change them unless the field is `immut`");
+                return self.fail_n("field_form", "a struct field is not `mut`: a struct always owns its fields and may change them unless the field is `immut`");
             } else if self.is_word("let") || self.is_word("var") {
-                return self.fail("a field has no `let`: a struct always owns its fields — write `name: type`");
+                return self.fail_n("field_form", "a field has no `let`: a struct always owns its fields — write `name: type`");
             }
             let fname = match self.peek().clone() {
                 Tok::Word(w) => {
                     if is_keyword(&w) && !self.from_c && !matches!(self.peek_at(1), Tok::Name(_)) {
                         if matches!(self.peek_at(1), Tok::Colon) {
-                            return self.fail(format!("`{}` is a keyword and cannot name a field", w));
+                            return self.fail_n("name_reserved", format!("`{}` is a keyword and cannot name a field", w));
                         }
                     }
                     if !matches!(self.peek_at(1), Tok::Colon) {
                         if let Tok::Name(n) = self.peek_at(1).clone() {
-                            return self.fail(format!("a field is written name first, then its type: `{}: {}`", n, w));
+                            return self.fail_n("field_form", format!("a field is written name first, then its type: `{}: {}`", n, w));
                         }
-                        return self.fail(format!("a field's type follows its name after `:` — `{}: i32`", w));
+                        return self.fail_n("field_form", format!("a field's type follows its name after `:` — `{}: i32`", w));
                     }
                     self.ident("a field name")?
                 }
-                Tok::Name(n) => return self.fail(format!("a field's name is bare — `{}: i32` — it is a path into the struct, not a value you hold", n)),
-                other => return self.fail(format!("expected a field (`name: type`) or `}}`, found {}", other.describe())),
+                Tok::Name(n) => return self.fail_n("name_quoted", format!("a field's name is bare — `{}: i32` — it is a path into the struct, not a value you hold", n)),
+                other => return self.fail_n("unexpected_text", format!("expected a field (`name: type`) or `}}`, found {}", other.describe())),
             };
             self.expect(&Tok::Colon, "`:` after the field's name")?;
             let ty = self.type_()?;
             if self.is(&Tok::Semi) {
-                return self.fail("no `;` after a field: fields are not statements — `x: i32, y: i32`");
+                return self.fail_n("field_form", "no `;` after a field: fields are not statements — `x: i32, y: i32`");
             }
             fields.push(Field { immut, name: fname, ty });
             self.item_comma()?;
@@ -2596,22 +2606,22 @@ impl<'a> Parser<'a> {
     fn enum_decl(&mut self, layout_c: bool) -> Result<EnumDecl> {
         let name = self.ident("the enum's name")?;
         if crate::resolve::number_type(&name.name) {
-            return self.fail_at(name.span, format!("`{}` is one of the language's number types, so it cannot name an enum", name.name));
+            return self.fail_at_n(name.span, "name_reserved", format!("`{}` is one of the language's number types, so it cannot name an enum", name.name));
         }
         let announce = self.announce(&name.name, "enum")?;
         if !announce.groups.is_empty() {
-            return self.fail_at(announce.groups[0].span, "not yet: an enum holding a borrow, and so a lifetime group, is not decided (asked)");
+            return self.fail_at_n(announce.groups[0].span, "not_decided", "not yet: an enum holding a borrow, and so a lifetime group, is not decided (asked)");
         }
         self.expect(&Tok::LBrace, "`{` after the enum's name")?;
         let mut cases = Vec::new();
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
-                return self.fail(format!("enum `{}` is never closed", name.name));
+                return self.fail_n("unclosed_block", format!("enum `{}` is never closed", name.name));
             }
             let cname = match self.peek().clone() {
                 Tok::Word(_) => self.ident("a case name")?,
-                Tok::Name(n) => return self.fail(format!("a case's name is bare — `{}` — it is a path into the type, not a value you hold", n)),
-                other => return self.fail(format!("expected a case name or `}}`, found {}", other.describe())),
+                Tok::Name(n) => return self.fail_n("name_quoted", format!("a case's name is bare — `{}` — it is a path into the type, not a value you hold", n)),
+                other => return self.fail_n("unexpected_text", format!("expected a case name or `}}`, found {}", other.describe())),
             };
             let payload = if self.eat(&Tok::Colon) { Some(self.type_()?) } else { None };
             // `a = 65`: a C enum's case says its number (owner, 2026-09-27).
@@ -2628,24 +2638,24 @@ impl<'a> Parser<'a> {
                         let v: Option<i128> = text.parse().ok();
                         match v {
                             Some(v) => v,
-                            None => return self.fail(format!("C's enum is 32 bits, C's `int`: {} does not fit i32", text)),
+                            None => return self.fail_n("value_does_not_fit", format!("C's enum is 32 bits, C's `int`: {} does not fit i32", text)),
                         }
                     }
-                    other => return self.fail(format!("a C enum's case number is a whole number, found {}", other.describe())),
+                    other => return self.fail_n("unexpected_text", format!("a C enum's case number is a whole number, found {}", other.describe())),
                 };
                 Some((if negative { -n } else { n }, at.to(self.prev_span())))
             } else {
                 None
             };
             if self.is(&Tok::Semi) {
-                return self.fail("no `;` after a case: cases are not statements");
+                return self.fail_n("braces_need_commas", "no `;` after a case: cases are not statements");
             }
             cases.push(EnumCase { name: cname, payload, number });
             self.item_comma()?;
         }
         self.bump();
         if cases.is_empty() {
-            return self.fail_at(name.span, format!("enum `{}` has no cases: an enum is one of a few named cases, so name at least one", name.name));
+            return self.fail_at_n(name.span, "enum_empty", format!("enum `{}` has no cases: an enum is one of a few named cases, so name at least one", name.name));
         }
         Ok(EnumDecl { name, announce, cases, layout_c })
     }
@@ -2653,10 +2663,10 @@ impl<'a> Parser<'a> {
     fn iface_decl(&mut self) -> Result<IfaceDecl> {
         let name = self.ident("the interface's name")?;
         if crate::resolve::number_type(&name.name) {
-            return self.fail_at(name.span, format!("`{}` is one of the language's number types, so it cannot name an interface", name.name));
+            return self.fail_at_n(name.span, "name_reserved", format!("`{}` is one of the language's number types, so it cannot name an interface", name.name));
         }
         if name.name == "any" {
-            return self.fail_at(name.span, "`any` is the built-in that accepts every type (`<T>: any`), so it cannot name an interface");
+            return self.fail_at_n(name.span, "name_reserved", "`any` is the built-in that accepts every type (`<T>: any`), so it cannot name an interface");
         }
         // Its own `<T>`, which accepts nothing in particular: the bound is
         // the interface itself (owner, 2026-10-02).
@@ -2664,7 +2674,7 @@ impl<'a> Parser<'a> {
             self.bump();
             let t = self.ident("the interface's type's name")?;
             if self.is(&Tok::Colon) {
-                return self.fail(format!("an interface's own `<{}>` accepts nothing in particular — the interface is what it accepts: `interface {} <{}> {{ … }}`", t.name, name.name, t.name));
+                return self.fail_n("interface_bound_needless", format!("an interface's own `<{}>` accepts nothing in particular — the interface is what it accepts: `interface {} <{}> {{ … }}`", t.name, name.name, t.name));
             }
             self.expect_close_angle(&t.name)?;
             Some(t)
@@ -2676,7 +2686,7 @@ impl<'a> Parser<'a> {
         let mut types: Vec<Type> = Vec::new();
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
-                return self.fail(format!("interface `{}` is never closed", name.name));
+                return self.fail_n("unclosed_block", format!("interface `{}` is never closed", name.name));
             }
             let start = self.span();
             let ename = if self.eat_word("fn") {
@@ -2686,20 +2696,20 @@ impl<'a> Parser<'a> {
             } else if matches!(self.peek(), Tok::Word(_)) {
                 // A type it accepts, one per line, as enum cases go.
                 if !types.is_empty() && !self.toks[self.pos].line_first {
-                    return self.fail(format!("an interface lists its types one per line, as an enum lists its cases: `interface {} {{` and then each type on a line of its own", name.name));
+                    return self.fail_n("interface_types_one_per_line", format!("an interface lists its types one per line, as an enum lists its cases: `interface {} {{` and then each type on a line of its own", name.name));
                 }
                 types.push(self.type_()?);
                 continue;
             } else {
-                return self.fail(format!("an interface lists types, one per line, and `fn` and `op` signatures; found {}", self.peek().describe()));
+                return self.fail_n("unexpected_text", format!("an interface lists types, one per line, and `fn` and `op` signatures; found {}", self.peek().describe()));
             };
             let params = self.params(ParamContext::Iface)?;
             let (ret, fails) = self.return_spec()?;
         if let Some(r) = self.ret_lent.take() {
-            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent $a: T] -> lent T`)");
+            return self.fail_at_n(r.span, "not_built_yet", "not yet: only a named `fn` hands back a borrow (`fn f [lent $a: T] -> lent T`)");
         }
             if self.is(&Tok::LBrace) {
-                return self.fail("an interface lists promises, not code: end the signature with `;` and leave the body out");
+                return self.fail_n("interface_has_code", "an interface lists promises, not code: end the signature with `;` and leave the body out");
             }
             self.expect_semi("the signature")?;
             let span = start.to(self.prev_span());
@@ -2707,10 +2717,10 @@ impl<'a> Parser<'a> {
         }
         self.bump();
         if entries.is_empty() && types.is_empty() {
-            return self.fail_at(open.to(self.prev_span()), format!("interface `{}` promises nothing: list at least one `fn` or `op` signature, or the types it accepts, one per line", name.name));
+            return self.fail_at_n(open.to(self.prev_span()), "interface_empty", format!("interface `{}` promises nothing: list at least one `fn` or `op` signature, or the types it accepts, one per line", name.name));
         }
         if own.is_none() && !entries.is_empty() {
-            return self.fail_at(name.span, format!("interface `{}` lists operations, so it announces the type they are about: `interface {} <T> {{ … }}`", name.name, name.name));
+            return self.fail_at_n(name.span, "unannounced", format!("interface `{}` lists operations, so it announces the type they are about: `interface {} <T> {{ … }}`", name.name, name.name));
         }
         Ok(IfaceDecl { name, own, entries, types })
     }
@@ -2718,7 +2728,7 @@ impl<'a> Parser<'a> {
     fn op_name(&mut self) -> Result<Ident> {
         let op = self.op_spelling()?;
         if op.name == "->" || op.name == "<-" || op.name == "<->" {
-            return self.fail_at(op.span, "an arrow cannot name an operator: `->`, `<-` and `<->` are arrows (owner, 2026-10-07)");
+            return self.fail_at_n(op.span, "name_reserved", "an arrow cannot name an operator: `->`, `<-` and `<->` are arrows (owner, 2026-10-07)");
         }
         // `op +`, `op -`, `op *` declare the words (owner, 2026-10-14); the
         // other symbols are the language's own spellings.
@@ -2726,11 +2736,11 @@ impl<'a> Parser<'a> {
             if matches!(op.name.as_str(), "+" | "-" | "*") {
                 return Ok(Ident { name: word.to_string(), span: op.span });
             }
-            return self.fail_at(op.span, format!("`{}` is the language's own spelling of `{}`: it is not declared", op.name, word));
+            return self.fail_at_n(op.span, "name_reserved", format!("`{}` is the language's own spelling of `{}`: it is not declared", op.name, word));
         }
         // A type's own `plus` is `op plus` (owner, 2026-10-03).
         if let Some(old) = retired_spelling(&op.name) {
-            return self.fail_at(op.span, format!("`op {}`: {}", op.name, old.dated()));
+            return self.fail_at_n(op.span, "old_spelling", format!("`op {}`: {}", op.name, old.dated()));
         }
         Ok(op)
     }
@@ -2763,7 +2773,7 @@ impl<'a> Parser<'a> {
                 }
                 Ok(Ident { name, span: span.to(self.prev_span()) })
             }
-            other => self.fail(format!("expected the operator's spelling (a glyph run or a word), found {}", other.describe())),
+            other => self.fail_n("unexpected_text", format!("expected the operator's spelling (a glyph run or a word), found {}", other.describe())),
         }
     }
 
@@ -2772,20 +2782,20 @@ impl<'a> Parser<'a> {
         let announce = self.announce(&op.name, "op")?;
         let params = self.params(ParamContext::Op)?;
         if params.len() != 2 {
-            return self.fail_at(op.span, format!("an operator takes exactly two operands; `{}` is declared with {}", op.name, params.len()));
+            return self.fail_at_n(op.span, "operator_operand_count", format!("an operator takes exactly two operands; `{}` is declared with {}", op.name, params.len()));
         }
         if !self.is_op("->") {
-            return self.fail(format!("`-> T` is required on an operator: `op {} [...] -> T {{ … }}`", op.name));
+            return self.fail_n("return_type_missing", format!("`-> T` is required on an operator: `op {} [...] -> T {{ … }}`", op.name));
         }
         let (ret, fails) = self.return_spec()?;
         if let Some(r) = self.ret_lent.take() {
-            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent $a: T] -> lent T`)");
+            return self.fail_at_n(r.span, "not_built_yet", "not yet: only a named `fn` hands back a borrow (`fn f [lent $a: T] -> lent T`)");
         }
         if !fails.is_empty() {
-            return self.fail_at(op.span, format!("an operator cannot fail; make `{}` a `fn` if it needs `fail[…]`", op.name));
+            return self.fail_at_n(op.span, "operator_cannot_fail", format!("an operator cannot fail; make `{}` a `fn` if it needs `fail[…]`", op.name));
         }
         if ret.is_none() {
-            return self.fail_at(op.span, format!("`-> T` is required on an operator: `op {} [...] -> T {{ … }}`", op.name));
+            return self.fail_at_n(op.span, "return_type_missing", format!("`-> T` is required on an operator: `op {} [...] -> T {{ … }}`", op.name));
         }
         let body = self.block("the operator")?;
         Ok(OpDecl { op, announce, params, ret, body })
@@ -2793,15 +2803,15 @@ impl<'a> Parser<'a> {
 
     fn const_decl(&mut self) -> Result<ConstDecl> {
         if self.is_word("mut") || self.is_word("immut") {
-            return self.fail("a `const` is neither `mut` nor `immut`: it is a value known at compile time, never assigned");
+            return self.fail_n("const_marked_mut", "a `const` is neither `mut` nor `immut`: it is a value known at compile time, never assigned");
         }
         let name = match self.peek().clone() {
             Tok::Name(n) => {
                 let span = self.bump().span;
                 QName { name: n, span }
             }
-            Tok::Word(w) => return self.fail(format!("a const is named like a variable: `const ${} := …;`", w)),
-            other => return self.fail(format!("expected the const's name, found {}", other.describe())),
+            Tok::Word(w) => return self.fail_n("variable_name_form", format!("a const is named like a variable: `const ${} := …;`", w)),
+            other => return self.fail_n("unexpected_text", format!("expected the const's name, found {}", other.describe())),
         };
         let (ty, _shadow) = self.let_type_and_marker("const")?;
         let value = self.expr_top()?;
@@ -2818,18 +2828,18 @@ impl<'a> Parser<'a> {
         let shadow = false;
         if self.eat(&Tok::Walrus) {
             if ty.is_some() {
-                return self.fail_at(self.prev_span(), "`:=` means the prover chooses the type, so it takes no type; with a type written, use `=` — you said everything");
+                return self.fail_at_n(self.prev_span(), "declaration_form", "`:=` means the prover chooses the type, so it takes no type; with a type written, use `=` — you said everything");
             }
         } else if self.eat_op("=") {
             if ty.is_none() {
-                return self.fail_at(self.prev_span(), "`=` means you said everything, so it needs the type: `let $x: i32 = …;` — or `:=` to let the prover choose");
+                return self.fail_at_n(self.prev_span(), "declaration_form", "`=` means you said everything, so it needs the type: `let $x: i32 = …;` — or `:=` to let the prover choose");
             }
         } else if self.is(&Tok::Semi) {
-            return self.fail(format!("a {} needs a value: there is no implicit zero — write `= 0` (or whatever it should hold)", what));
+            return self.fail_n("no_starting_value", format!("a {} needs a value: there is no implicit zero — write `= 0` (or whatever it should hold)", what));
         } else if self.is_word("mut") || self.is_word("immut") {
-            return self.fail(format!("expected `:=` or `=`; `{}` goes before the name: `{} $x := …`", self.word_text(), self.word_text()));
+            return self.fail_n("declaration_form", format!("expected `:=` or `=`; `{}` goes before the name: `{} $x := …`", self.word_text(), self.word_text()));
         } else {
-            return self.fail(format!("expected `:=` or `=`, found {}", self.peek().describe()));
+            return self.fail_n("unexpected_text", format!("expected `:=` or `=`, found {}", self.peek().describe()));
         }
         Ok((ty, shadow))
     }
@@ -2855,7 +2865,7 @@ impl<'a> Parser<'a> {
             // `simd[i32, count 4]`; the bare number is the old spelling.
             Tok::Num { .. } => {
                 let said = crate::spellings::old_word("simd[T, N]", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`simd[T, N]` is an old spelling: write `simd[T, count: N]`".into());
-                return self.fail(said);
+                return self.fail_n("old_spelling", said);
             }
             Tok::Word(w) if w == "count" && matches!(self.peek_at(1), Tok::Num { .. }) => {
                 self.need_label(0)?;
@@ -2863,22 +2873,22 @@ impl<'a> Parser<'a> {
                 let Tok::Num { text, bin, .. } = self.peek().clone() else { unreachable!() };
                 let span = self.bump().span;
                 if bin {
-                    return self.fail_at(span, "a count is a whole number");
+                    return self.fail_at_n(span, "not_whole_number", "a count is a whole number");
                 }
                 match text.parse::<u32>() {
                     Ok(n) => TypeKind::Count(n),
-                    Err(_) => return self.fail_at(span, "this number is too large to be a count"),
+                    Err(_) => return self.fail_at_n(span, "value_does_not_fit", "this number is too large to be a count"),
                 }
             }
             Tok::Op(o) if o == "<" => {
                 self.bump();
                 let name = match self.peek().clone() {
                     Tok::Word(_) => self.ident("the blank's name")?,
-                    Tok::Name(n) => return self.fail(format!("a type variable's name is bare: `<{}>`, not `<'{}'>`", n, n)),
-                    other => return self.fail(format!("expected the blank's name after `<`, found {}", other.describe())),
+                    Tok::Name(n) => return self.fail_n("name_quoted", format!("a type variable's name is bare: `<{}>`, not `<'{}'>`", n, n)),
+                    other => return self.fail_n("unexpected_text", format!("expected the blank's name after `<`, found {}", other.describe())),
                 };
                 if self.is(&Tok::Colon) {
-                    return self.fail(format!("what `<{}>` accepts is said once, where it is announced (`fn f <{}>: any […]`): a mention is `<{}>` alone", name.name, name.name, name.name));
+                    return self.fail_n("generic_bound_twice", format!("what `<{}>` accepts is said once, where it is announced (`fn f <{}>: any […]`): a mention is `<{}>` alone", name.name, name.name, name.name));
                 }
                 let bound = None;
                 match self.peek().clone() {
@@ -2886,14 +2896,14 @@ impl<'a> Parser<'a> {
                         self.bump();
                     }
                     Tok::Op(o) if o.starts_with('>') => {
-                        return self.fail(format!("`{}` is one operator: put a space after the `>` closing `<{}>`", o, name.name));
+                        return self.fail_n("space_missing", format!("`{}` is one operator: put a space after the `>` closing `<{}>`", o, name.name));
                     }
-                    other => return self.fail(format!("expected `>` closing `<{}>`, found {}", name.name, other.describe())),
+                    other => return self.fail_n("unexpected_text", format!("expected `>` closing `<{}>`, found {}", name.name, other.describe())),
                 }
                 TypeKind::Var { name, bound }
             }
             Tok::Op(o) if o.starts_with('<') => {
-                return self.fail(format!("`{}` is one operator: put a space around a `<T>` so `<` stands alone", o));
+                return self.fail_n("space_missing", format!("`{}` is one operator: put a space around a `<T>` so `<` stands alone", o));
             }
             // `*const T` is `ptr[T]`, `*mut T` is `ptr.mut[T]` (owner,
             // 2026-10-14).
@@ -2921,7 +2931,7 @@ impl<'a> Parser<'a> {
                         if self.eat(&Tok::Dot) {
                             let m = self.ident("`mut`")?;
                             if m.name != "mut" {
-                                return self.fail_at(m.span, "`lent` or `lent.mut`");
+                                return self.fail_at_n(m.span, "unknown_verb", "`lent` or `lent.mut`");
                             }
                             kind = ParamKind::LentMut;
                         }
@@ -2931,7 +2941,7 @@ impl<'a> Parser<'a> {
                         kind = if self.eat_word("mut") { ParamKind::LentMut } else { ParamKind::Lent };
                     }
                     if let Tok::Name(n) = self.peek().clone() {
-                        return self.fail(format!("a function type has no parameter names: `fn[i32] -> bool`, not `fn[${}: i32]` — it is the signature without the names", n));
+                        return self.fail_n("function_type_form", format!("a function type has no parameter names: `fn[i32] -> bool`, not `fn[${}: i32]` — it is the signature without the names", n));
                     }
                     let ty = self.type_()?;
                     params.push(FnTypeParam { kind, amp, ty });
@@ -2942,30 +2952,30 @@ impl<'a> Parser<'a> {
                 self.expect(&Tok::RBracket, "`]` closing the function type's parameters")?;
                 let (ret, fails) = self.return_spec()?;
         if let Some(r) = self.ret_lent.take() {
-            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent $a: T] -> lent T`)");
+            return self.fail_at_n(r.span, "not_built_yet", "not yet: only a named `fn` hands back a borrow (`fn f [lent $a: T] -> lent T`)");
         }
                 TypeKind::Fn { params, ret: ret.map(Box::new), fails }
             }
             Tok::Word(w) if w == "list" && matches!(self.peek_at(1), Tok::Dot) => {
-                return self.fail("the element type goes in brackets: `list[i32]`, not `list.i32` (a dot picks a fixed variant, brackets supply a type)");
+                return self.fail_n("type_parameter_form", "the element type goes in brackets: `list[i32]`, not `list.i32` (a dot picks a fixed variant, brackets supply a type)");
             }
             // A family word alone (owner, 2026-10-20): `i`, `u`, `f`, `d`
             // need a width; `int`, `uint`, `bin`, `deci` are old.
             Tok::Word(w) if w == "int" || w == "uint" || w == "bin" || w == "deci" => {
                 let short = match w.as_str() { "int" => "i", "uint" => "u", "bin" => "f", _ => "d" };
-                return self.fail(format!("`{}` is an old spelling: the types are `i`, `u`, `f`, `d`, with a width — `{}32`, `{}64`, … (owner, 2026-10-20)", w, short, short));
+                return self.fail_n("old_spelling", format!("`{}` is an old spelling: the types are `i`, `u`, `f`, `d`, with a width — `{}32`, `{}64`, … (owner, 2026-10-20)", w, short, short));
             }
             Tok::Word(w) if w == "i" || w == "u" || w == "f" || w == "d" => {
-                return self.fail(format!("`{}` needs a width: the typed form is always fully explicit — `{}32`, `{}64`, …", w, w, w));
+                return self.fail_n("type_incomplete", format!("`{}` needs a width: the typed form is always fully explicit — `{}32`, `{}64`, …", w, w, w));
             }
             Tok::Word(w) if w == "str" && !matches!(self.peek_at(1), Tok::Dot) => {
-                return self.fail("`str` is never bare: say the encoding — `str.utf8`, `str.utf16`, `str.utf32`, `str.ascii`");
+                return self.fail_n("type_incomplete", "`str` is never bare: say the encoding — `str.utf8`, `str.utf16`, `str.utf32`, `str.ascii`");
             }
             Tok::Word(w) if w == "char" && !matches!(self.peek_at(1), Tok::Dot) => {
-                return self.fail("`char` is never bare: say the unit — `char.point`, `char.grapheme`, `char.byte`");
+                return self.fail_n("type_incomplete", "`char` is never bare: say the unit — `char.point`, `char.grapheme`, `char.byte`");
             }
             Tok::Word(w) if w == "range" => {
-                return self.fail("a counting loop reads as a sentence now: `for $i [from: 1, to: 10, by: 1]` (`before: 10` leaves 10 out) (owner, 2026-10-20)");
+                return self.fail_n("old_spelling", "a counting loop reads as a sentence now: `for $i [from: 1, to: 10, by: 1]` (`before: 10` leaves 10 out) (owner, 2026-10-20)");
             }
             // An integer of any width, marked as not standard (owner,
             // 2026-10-03): `!std.int24`, "not standard" narrowed with `.`
@@ -2973,7 +2983,7 @@ impl<'a> Parser<'a> {
             // resolver reads the width.
             Tok::Op(o) if o == "!" && matches!(self.peek_at(1), Tok::Word(w) if w.starts_with("std_")) && self.adjacent(0, 1) => {
                 let Tok::Word(w) = self.peek_at(1).clone() else { unreachable!() };
-                return self.fail(format!("`!{}` is `not_std.{}` since 2026-10-06: \"not standard\", narrowed with `.`", w, &w[4..]));
+                return self.fail_n("old_spelling", format!("`!{}` is `not_std.{}` since 2026-10-06: \"not standard\", narrowed with `.`", w, &w[4..]));
             }
             // `not_std.int24` (owner, 2026-10-07; `!std.int24` before).
             Tok::Word(n) if n == "not_std" && matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(_)) => {
@@ -3011,14 +3021,14 @@ impl<'a> Parser<'a> {
                     self.expect(&Tok::RBracket, "`]` closing the type parameters")?;
                 } else if self.is(&Tok::LBracket) && is_primitive_head(&head) && !self.bracket_is_bound() && !conv && !self.bracket_is_count() {
                     if head == "bool" || head.starts_with("str") || head.starts_with("char") {
-                        return self.fail(format!("`{}` takes no type parameters; a bracket after it is a bound — `[min: 1, max: 40 graphemes]`", path.spelled()));
+                        return self.fail_n("type_parameter_count", format!("`{}` takes no type parameters; a bracket after it is a bound — `[min: 1, max: 40 graphemes]`", path.spelled()));
                     }
-                    return self.fail(format!("`{}` takes no type parameters; a bracket after it is a range — `{}[min: 0, max: 100]`", path.spelled(), path.spelled()));
+                    return self.fail_n("type_parameter_count", format!("`{}` takes no type parameters; a bracket after it is a range — `{}[min: 0, max: 100]`", path.spelled(), path.spelled()));
                 }
                 TypeKind::Path { path, args }
             }
-            Tok::Name(n) => return self.fail(format!("expected a type, found the name '{}'", n)),
-            other => return self.fail(format!("expected a type, found {}", other.describe())),
+            Tok::Name(n) => return self.fail_n("unexpected_text", format!("expected a type, found the name '{}'", n)),
+            other => return self.fail_n("unexpected_text", format!("expected a type, found {}", other.describe())),
         };
         let mut ty = Type { span: start.to(self.prev_span()), kind };
         // A bound (owner, 2026-10-12): `T[min 0, max 100]`, `T[min 1]` (at
@@ -3034,7 +3044,7 @@ impl<'a> Parser<'a> {
                     _ => None,
                 };
                 let Some(n) = n else {
-                    return self.fail("a bit-field's width is a whole number of bits: `u8[bits: 3]`");
+                    return self.fail_n("not_whole_number", "a bit-field's width is a whole number of bits: `u8[bits: 3]`");
                 };
                 self.bump();
                 self.expect(&Tok::RBracket, "`]` closing the bit-field's width")?;
@@ -3078,11 +3088,11 @@ impl<'a> Parser<'a> {
             return Ok((None, None, None, bstart.to(self.prev_span()), None, places));
         }
         if !(self.is_word("min") || self.is_word("max")) {
-            return self.fail_at(bstart, "a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)");
+            return self.fail_at_n(bstart, "old_spelling", "a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)");
         }
         let old = |this: &Self| matches!(this.peek_at(1), Tok::Comma | Tok::RBracket);
         if old(self) {
-            return self.fail_at(bstart, "a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)");
+            return self.fail_at_n(bstart, "old_spelling", "a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)");
         }
         let mut lo = None;
         let mut hi = None;
@@ -3092,7 +3102,7 @@ impl<'a> Parser<'a> {
         if self.eat_word("min") {
             lo = Some(self.bound_value()?);
             if self.eat(&Tok::Comma) && !self.is_word("max") {
-                return self.fail("a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)");
+                return self.fail_n("old_spelling", "a bound says which it is: `i32[min: 0, max: 100]` (`[min: 1]` alone is \"at least 1\") (owner, 2026-10-12)");
             }
         }
         if self.is_word("max") {
@@ -3129,7 +3139,7 @@ impl<'a> Parser<'a> {
             let at = self.span();
             let include = self.bump().tok == Tok::Word("include".into());
             if !self.eat_word("zero") {
-                return self.fail("a C string's bound says `exclude zero` or `include zero`: whether its closing 0 counts");
+                return self.fail_n("cnc::c_str_zero_unsaid", "a C string's bound says `exclude zero` or `include zero`: whether its closing 0 counts");
             }
             zero = Some((include, at.to(self.prev_span())));
         }
@@ -3153,7 +3163,7 @@ impl<'a> Parser<'a> {
                 _ => None,
             };
             let Some(n) = n else {
-                return self.fail(format!("`{}:` is a whole number of places: `{}: 2`", w, w));
+                return self.fail_n("not_whole_number", format!("`{}:` is a whole number of places: `{}: 2`", w, w));
             };
             self.bump();
             if w == "max_places" { max = Some(n) } else { min = Some(n) }
@@ -3165,7 +3175,7 @@ impl<'a> Parser<'a> {
         let _ = bstart;
         if let (Some(mx), Some(mn)) = (max, min) {
             if mn > mx {
-                return self.fail_at(start.to(self.prev_span()), format!("`min_places: {}` is more than `max_places: {}`", mn, mx));
+                return self.fail_at_n(start.to(self.prev_span()), "bounds_backwards", format!("`min_places: {}` is more than `max_places: {}`", mn, mx));
             }
         }
         Ok(Some((max, min, start.to(self.prev_span()))))
@@ -3185,24 +3195,24 @@ impl<'a> Parser<'a> {
         self.expect(&Tok::LBracket, "`[` and the loop's words")?;
         self.need_label(0)?;
         if !self.eat_word("from") {
-            return self.fail(format!("a counting loop starts with `from:`: `{}`", example));
+            return self.fail_n("counting_loop_form", format!("a counting loop starts with `from:`: `{}`", example));
         }
         let start = self.expr(0)?;
         if !self.eat(&Tok::Comma) {
-            return self.fail(format!("after the start comes `to:` (the end kept) or `before:` (the end left out): `{}`", example));
+            return self.fail_n("counting_loop_form", format!("after the start comes `to:` (the end kept) or `before:` (the end left out): `{}`", example));
         }
         let exclusive = if self.is_word("before") {
             true
         } else if self.is_word("to") && !matches!(self.peek_at(1), Tok::Dot) {
             false
         } else {
-            return self.fail(format!("after the start comes `to:` (the end kept) or `before:` (the end left out): `{}`", example));
+            return self.fail_n("counting_loop_form", format!("after the start comes `to:` (the end kept) or `before:` (the end left out): `{}`", example));
         };
         self.need_label(0)?;
         self.bump();
         let stop = self.expr(0)?;
         if !(self.eat(&Tok::Comma) && self.is_word("by")) {
-            return self.fail(format!("a counting loop writes its step too, even when it is 1: `{}` (owner, 2026-10-07)", example));
+            return self.fail_n("step_missing", format!("a counting loop writes its step too, even when it is 1: `{}` (owner, 2026-10-07)", example));
         }
         self.need_label(0)?;
         self.bump();
@@ -3243,7 +3253,7 @@ impl<'a> Parser<'a> {
     /// One side's value; `min` and `max` are its labels now, never values.
     fn bound_value(&mut self) -> Result<Expr> {
         if self.is_word("min") || self.is_word("max") {
-            return self.fail("`min` and `max` label a bound now; a side left out is the type's own limit: `i32[min: 1]` is \"at least 1\" (owner, 2026-10-12)");
+            return self.fail_n("old_spelling", "`min` and `max` label a bound now; a side left out is the type's own limit: `i32[min: 1]` is \"at least 1\" (owner, 2026-10-12)");
         }
         self.expr(0)
     }
@@ -3273,8 +3283,8 @@ impl<'a> Parser<'a> {
     fn block(&mut self, what: &str) -> Result<Block> {
         let start = match self.peek() {
             Tok::LBrace => self.bump().span,
-            Tok::Raw(_) => return self.fail("only `inline.ASM` holds raw text"),
-            other => return self.fail(format!("expected `{{` opening {}'s body, found {}", what, other.describe())),
+            Tok::Raw(_) => return self.fail_n("inline_block_form", "only `inline.ASM` holds raw text"),
+            other => return self.fail_n("unexpected_text", format!("expected `{{` opening {}'s body, found {}", what, other.describe())),
         };
         let mut stmts = Vec::new();
         // Only this block's own statements: a block inside an arm is not one.
@@ -3282,7 +3292,7 @@ impl<'a> Parser<'a> {
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
                 self.in_arm = outer;
-                return self.fail_at(start, format!("{}'s `{{` is never closed", what));
+                return self.fail_at_n(start, "unclosed_block", format!("{}'s `{{` is never closed", what));
             }
             match self.stmt() {
                 Ok(st) => stmts.push(st),
@@ -3308,7 +3318,7 @@ impl<'a> Parser<'a> {
     /// and the name, `$` before the `:=`/`=` to shadow.
     fn declaration(&mut self, shadowing: bool) -> Result<StmtKind> {
         if self.is(&Tok::Dot) {
-            return self.fail("`let` is a word of its own: `let mut $x := …;`");
+            return self.fail_n("declaration_form", "`let` is a word of its own: `let mut $x := …;`");
         }
         let mut sealed = false;
         let mut mutability = None;
@@ -3326,7 +3336,7 @@ impl<'a> Parser<'a> {
         }
         if self.strict && mutability.is_none() {
             if let Tok::Name(n) = self.peek().clone() {
-                return self.fail(format!("a declaration says whether it changes: `let mut ${} := …;` or `let immut ${} := …;` — a `#strict` file writes it out", n, n));
+                return self.fail_n("strict_word_missing", format!("a declaration says whether it changes: `let mut ${} := …;` or `let immut ${} := …;` — a `#strict` file writes it out", n, n));
             }
         }
         let name = match self.peek().clone() {
@@ -3335,13 +3345,13 @@ impl<'a> Parser<'a> {
                 QName { name: n, span }
             }
             Tok::Word(w) if is_primitive_head(&w) || matches!(self.peek_at(1), Tok::Name(_)) => {
-                return self.fail(format!("a type goes after the name: `let $x: {} = …;`", w));
+                return self.fail_n("declaration_form", format!("a type goes after the name: `let $x: {} = …;`", w));
             }
-            Tok::Word(w) => return self.fail(format!("a variable's name is quoted: `let '{}' := …;`", w)),
-            other => return self.fail(format!("expected the variable's name, found {}", other.describe())),
+            Tok::Word(w) => return self.fail_n("variable_name_form", format!("a variable's name is quoted: `let '{}' := …;`", w)),
+            other => return self.fail_n("unexpected_text", format!("expected the variable's name, found {}", other.describe())),
         };
         if self.is_word("mut") || self.is_word("immut") {
-            return self.fail(format!("`{}` goes before the name: `let {} ${} := …;`", self.word_text(), self.word_text(), name.name));
+            return self.fail_n("declaration_form", format!("`{}` goes before the name: `let {} ${} := …;`", self.word_text(), self.word_text(), name.name));
         }
         let (mut ty, marker) = self.let_type_and_marker("declaration")?;
         let shadow = marker || shadowing;
@@ -3360,7 +3370,7 @@ impl<'a> Parser<'a> {
         self.channel_ty = None;
         let value = value?;
         if self.is_op("=") {
-            return self.fail("`=` gives a declaration its value once; equality is `equal_to`");
+            return self.fail_n("assignment_in_value", "`=` gives a declaration its value once; equality is `equal_to`");
         }
         self.expect_semi("the declaration")?;
         Ok(StmtKind::Let { mutability, name, ty, shadow, value, sealed })
@@ -3373,17 +3383,17 @@ impl<'a> Parser<'a> {
                 let b = self.block("the block")?;
                 return Ok(StmtKind::Block(b));
             }
-            Tok::Semi => return self.fail("expected a statement, found `;` — there are no empty statements"),
-            Tok::Strict => return self.fail("`#strict` goes once, at the top of the file, before any item"),
+            Tok::Semi => return self.fail_n("unexpected_text", "expected a statement, found `;` — there are no empty statements"),
+            Tok::Strict => return self.fail_n("strict_misplaced", "`#strict` goes once, at the top of the file, before any item"),
             // A declaration starts with `let` (owner, 2026-10-02).
             Tok::Name(n) => {
                 return match self.peek_at(1) {
-                    Tok::Colon | Tok::Walrus | Tok::Dollar => self.fail(format!("a declaration starts with `let`: `let ${} := …;`", n)),
-                    Tok::Word(m) if m == "mut" || m == "immut" => self.fail_at(self.span(), format!("a declaration starts with `let`, and `{}` goes before the name: `let {} ${} := …;`", m, m, n)),
+                    Tok::Colon | Tok::Walrus | Tok::Dollar => self.fail_n("declaration_form", format!("a declaration starts with `let`: `let ${} := …;`", n)),
+                    Tok::Word(m) if m == "mut" || m == "immut" => self.fail_at_n(self.span(), "declaration_form", format!("a declaration starts with `let`, and `{}` goes before the name: `let {} ${} := …;`", m, m, n)),
                     _ => self.expr_stmt(),
                 };
             }
-            Tok::Op(o) if o == "!" => return self.fail("a declaration starts with `let`: `let no_shadow $x := …;`, `let immut $x := …;`"),
+            Tok::Op(o) if o == "!" => return self.fail_n("declaration_form", "a declaration starts with `let`: `let no_shadow $x := …;`, `let immut $x := …;`"),
             _ => return self.expr_stmt(),
         };
         match w.as_str() {
@@ -3396,12 +3406,12 @@ impl<'a> Parser<'a> {
             "shadow" => {
                 self.bump();
                 if self.is_word("let") {
-                    return self.fail("`shadow` takes `let`'s place: `shadow $x := …;`");
+                    return self.fail_n("shadow_form", "`shadow` takes `let`'s place: `shadow $x := …;`");
                 }
                 self.declaration(true)
             }
-            "var" => self.fail("`var` is gone: a declaration starts with `let` — `let $x := …;`"),
-            "mut" | "immut" => self.fail(format!("a declaration starts with `let`: `let {} $x := …;`", w)),
+            "var" => self.fail_n("spelling_removed", "`var` is gone: a declaration starts with `let` — `let $x := …;`"),
+            "mut" | "immut" => self.fail_n("declaration_form", format!("a declaration starts with `let`: `let {} $x := …;`", w)),
             // Changing says so (owner, 2026-09-25): `change 'x' = …;`.
             "change" => {
                 self.bump();
@@ -3412,7 +3422,7 @@ impl<'a> Parser<'a> {
                     let Tok::Name(n) = self.peek().clone() else { unreachable!() };
                     let at = self.bump().span;
                     if !self.eat_op("=") {
-                        return self.fail(format!("expected `=` after what is changed, found {}", self.peek().describe()));
+                        return self.fail_n("unexpected_text", format!("expected `=` after what is changed, found {}", self.peek().describe()));
                     }
                     let value = self.expr_top()?;
                     self.expect_semi("the change")?;
@@ -3423,22 +3433,22 @@ impl<'a> Parser<'a> {
                 let target = self.expr_top()?;
                 match &target.kind {
                     ExprKind::Name(_) | ExprKind::Field { .. } | ExprKind::Index { .. } => {}
-                    ExprKind::ConstPath { .. } => return self.fail_at(target.span, "a const is never changed: it is a value known at compile time"),
+                    ExprKind::ConstPath { .. } => return self.fail_at_n(target.span, "const_changed", "a const is never changed: it is a value known at compile time"),
                     // `pos` on every index (owner, 2026-10-07).
-                    ExprKind::CallValue { args, .. } if args.len() == 1 => return self.fail_at(target.span, "an index says it is a position: `$xs[pos: 2]`"),
-                    _ => return self.fail_at(target.span, "only a variable, a field or an element can be changed"),
+                    ExprKind::CallValue { args, .. } if args.len() == 1 => return self.fail_at_n(target.span, "position_unlabelled", "an index says it is a position: `$xs[pos: 2]`"),
+                    _ => return self.fail_at_n(target.span, "not_changeable", "only a variable, a field or an element can be changed"),
                 }
                 if !self.eat_op("=") {
-                    return self.fail(format!("expected `=` after what is changed, found {}", self.peek().describe()));
+                    return self.fail_n("unexpected_text", format!("expected `=` after what is changed, found {}", self.peek().describe()));
                 }
                 let value = self.expr_top()?;
                 if self.is_op("=") {
-                    return self.fail("`=` changes once; equality is `equal_to`");
+                    return self.fail_n("assignment_in_value", "`=` changes once; equality is `equal_to`");
                 }
                 self.expect_semi("the change")?;
                 Ok(StmtKind::Assign { target, value })
             }
-            w if is_primitive_head(w) && matches!(self.peek_at(1), Tok::Name(_)) => self.fail(format!("a type goes after the name: `let $x: {} = …;`", w)),
+            w if is_primitive_head(w) && matches!(self.peek_at(1), Tok::Name(_)) => self.fail_n("declaration_form", format!("a type goes after the name: `let $x: {} = …;`", w)),
             "check" | "nocheck" | "NO_FUCKING_CHECKS" => {
                 let w = if w == "nocheck" { "no_check".to_string() } else { w };
                 let tier_span = self.bump().span;
@@ -3448,16 +3458,16 @@ impl<'a> Parser<'a> {
                     _ => Tier::NoChecks,
                 };
                 if self.is(&Tok::Semi) {
-                    return self.fail_at(tier_span, format!("`{}` goes in front of a statement, covering its check sites: `{} change $xs[$i] = 1;`, `{} {{ … }}`", w, w, w));
+                    return self.fail_at_n(tier_span, "check_misplaced", format!("`{}` goes in front of a statement, covering its check sites: `{} change $xs[$i] = 1;`, `{} {{ … }}`", w, w, w));
                 }
                 if self.is_word("check") || self.is_word("nocheck") || self.is_word("NO_FUCKING_CHECKS") {
-                    return self.fail(format!("one tier per statement: `{}` and `{}` cannot both cover it", w, self.word_text()));
+                    return self.fail_n("two_tiers", format!("one tier per statement: `{}` and `{}` cannot both cover it", w, self.word_text()));
                 }
                 if self.is_word("fn") {
-                    return self.fail(format!("`{}` goes in front of a statement, not a `fn`: a function's safety is the sum of its statements", w));
+                    return self.fail_n("check_misplaced", format!("`{}` goes in front of a statement, not a `fn`: a function's safety is the sum of its statements", w));
                 }
                 if self.is_word("struct") || self.is_word("const") || self.is_word("module") || self.is_word("enum") {
-                    return self.fail(format!("`{}` goes in front of a statement, not a `{}`", w, self.word_text()));
+                    return self.fail_n("check_misplaced", format!("`{}` goes in front of a statement, not a `{}`", w, self.word_text()));
                 }
                 let stmt = self.stmt()?;
                 Ok(StmtKind::Tier { tier, stmt: Box::new(stmt) })
@@ -3468,20 +3478,20 @@ impl<'a> Parser<'a> {
             "no_cheat" => {
                 let at = self.bump().span;
                 if self.is(&Tok::Semi) {
-                    return self.fail_at(at, "`no_cheat` goes in front of a statement: `no_cheat let $f := fib($n);` or `no_cheat { … }`");
+                    return self.fail_at_n(at, "check_misplaced", "`no_cheat` goes in front of a statement: `no_cheat let $f := fib($n);` or `no_cheat { … }`");
                 }
                 // The check word always comes first (owner, 2026-10-19: "(b)",
                 // then "(a)"): the stronger word, and the unchecked part is
                 // what a reader sees first.
                 if self.is_word("check") {
-                    return self.fail("`check` comes first: the check word always comes before `no_cheat`: `check no_cheat …` (owner, 2026-10-19)");
+                    return self.fail_n("tier_words_order", "`check` comes first: the check word always comes before `no_cheat`: `check no_cheat …` (owner, 2026-10-19)");
                 }
                 if self.is_word("nocheck") || self.is_word("NO_FUCKING_CHECKS") {
                     let t = if self.is_word("nocheck") { "no_check".to_string() } else { self.word_text() };
-                    return self.fail(format!("`{}` comes first, the stronger word: `{} no_cheat …` (owner, 2026-10-19)", t, t));
+                    return self.fail_n("tier_words_order", format!("`{}` comes first, the stronger word: `{} no_cheat …` (owner, 2026-10-19)", t, t));
                 }
                 if self.is_word("fn") || self.is_word("struct") || self.is_word("const") || self.is_word("module") || self.is_word("enum") {
-                    return self.fail(format!("`no_cheat` covers a statement, not a `{}`", self.word_text()));
+                    return self.fail_n("check_misplaced", format!("`no_cheat` covers a statement, not a `{}`", self.word_text()));
                 }
                 let mut stmt = self.stmt()?;
                 if let StmtKind::For { nocheat, .. } = &mut stmt.kind {
@@ -3493,16 +3503,16 @@ impl<'a> Parser<'a> {
                 self.bump();
                 self.if_rest()
             }
-            "else" => self.fail("`else` without an `if` before it"),
+            "else" => self.fail_n("unexpected_text", "`else` without an `if` before it"),
             "loop" => {
                 self.bump();
                 if self.is(&Tok::Dot) {
                     self.bump();
                     let what = self.ident("a word")?;
                     return match what.name.as_str() {
-                        "while" => self.fail_at(what.span, "`loop.while` became `while`: `while $x < 3 { … }`"),
-                        "for" | "temp" | "perm" | "seq" | "range" => self.fail_at(what.span, "`loop.temp.for` / `loop.range` became `for`: `for $x in lend $xs { … }`, `for $i [from: 0, to: 9, by: 1] { … }`"),
-                        _ => self.fail_at(what.span, "`loop` takes no chain: `loop { … }` runs until `break`; `while` and `for` are bare words"),
+                        "while" => self.fail_at_n(what.span, "old_spelling", "`loop.while` became `while`: `while $x < 3 { … }`"),
+                        "for" | "temp" | "perm" | "seq" | "range" => self.fail_at_n(what.span, "old_spelling", "`loop.temp.for` / `loop.range` became `for`: `for $x in lend $xs { … }`, `for $i [from: 0, to: 9, by: 1] { … }`"),
+                        _ => self.fail_at_n(what.span, "unexpected_text", "`loop` takes no chain: `loop { … }` runs until `break`; `while` and `for` are bare words"),
                     };
                 }
                 let body = self.block("`loop`")?;
@@ -3544,7 +3554,7 @@ impl<'a> Parser<'a> {
                             }
                         }
                         "stop" => MustKind::Stop,
-                        other => return self.fail_at(w.span, format!("`must.{}` is not one of the family: `must …` (what must hold), `must.fail …` (it must fail), `must.stop …` (a check must fire)", other)),
+                        other => return self.fail_at_n(w.span, "unknown_narrowing", format!("`must.{}` is not one of the family: `must …` (what must hold), `must.fail …` (it must fail), `must.stop …` (a check must fire)", other)),
                     }
                 } else {
                     MustKind::Hold
@@ -3602,20 +3612,20 @@ impl<'a> Parser<'a> {
                 self.bump();
                 self.inline_rest()
             }
-            "asm" => self.fail("an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `no_check`"),
-            "otherwise" => self.fail("`otherwise` follows a call that can fail: `let $x := f() otherwise 0;`"),
-            "fn" | "struct" | "interface" | "op" => self.fail(format!("a `{}` sits at the top level of a file or a module, not inside a body", w)),
-            "enum" => self.fail("an `enum` sits at the top level of a file or a module, not inside a body"),
+            "asm" => self.fail_n("inline_block_form", "an inline block is `inline.ASM { … }` (the language's name in capitals, like `MAIN`), under `no_check`"),
+            "otherwise" => self.fail_n("otherwise_misplaced", "`otherwise` follows a call that can fail: `let $x := f() otherwise 0;`"),
+            "fn" | "struct" | "interface" | "op" => self.fail_n("belongs_at_top_level", format!("a `{}` sits at the top level of a file or a module, not inside a body", w)),
+            "enum" => self.fail_n("belongs_at_top_level", "an `enum` sits at the top level of a file or a module, not inside a body"),
             // A const in any body (owner, 2026-10-10: "I want it.", "`a`").
             "const" => {
                 self.bump();
                 Ok(StmtKind::Const(self.const_decl()?))
             }
-            "module" => self.fail("a `module` sits at the top level of a file, not inside a body"),
-            "pub" => self.fail("`pub` goes at the top level, on a `fn`, `struct`, `enum` or `const`"),
-            "extern" => self.fail("an `extern` declaration sits at the top level, not inside a body"),
-            "MAIN" => self.fail("`MAIN` cannot be nested or called: it is the program's one block"),
-            "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail("`lang:` was removed: keywords are bare — `let $x := 1;`"),
+            "module" => self.fail_n("belongs_at_top_level", "a `module` sits at the top level of a file, not inside a body"),
+            "pub" => self.fail_n("belongs_at_top_level", "`pub` goes at the top level, on a `fn`, `struct`, `enum` or `const`"),
+            "extern" => self.fail_n("belongs_at_top_level", "an `extern` declaration sits at the top level, not inside a body"),
+            "MAIN" => self.fail_n("main_form", "`MAIN` cannot be nested or called: it is the program's one block"),
+            "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail_n("spelling_removed", "`lang:` was removed: keywords are bare — `let $x := 1;`"),
             _ => self.expr_stmt(),
         }
     }
@@ -3626,7 +3636,7 @@ impl<'a> Parser<'a> {
         let else_ = if self.is_word("else") {
             self.bump();
             if self.is(&Tok::Dot) {
-                return self.fail("`else.if` became `else if`: two bare words");
+                return self.fail_n("old_spelling", "`else.if` became `else if`: two bare words");
             }
             if self.is_word("if") {
                 let start = self.span();
@@ -3651,7 +3661,7 @@ impl<'a> Parser<'a> {
         let nocheat = false;
         if self.is_word("no_cheat") {
             let said = crate::spellings::old_word("for no_cheat", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`for no_cheat` is an old spelling: write `no_cheat for`".into());
-            return self.fail(said);
+            return self.fail_n("old_spelling", said);
         }
         // `seq` keeps a loop in order, `para` makes it parallel (owner,
         // 2026-09-30); never both. CCA runs every loop in order so far.
@@ -3661,28 +3671,28 @@ impl<'a> Parser<'a> {
             para = true;
         }
         if self.is_word("seq") || self.is_word("para") {
-            return self.fail("a `for` is `seq` or `para`, not both");
+            return self.fail_n("mcps::seq_and_para", "a `for` is `seq` or `para`, not both");
         }
         if self.is_word("no_cheat") {
-            return self.fail("`no_cheat` goes in front of the loop: `no_cheat for seq $i in …` (owner, 2026-10-18)");
+            return self.fail_n("tier_words_order", "`no_cheat` goes in front of the loop: `no_cheat for seq $i in …` (owner, 2026-10-18)");
         }
         if self.eat_word("perm") {
             perm = true;
         } else if self.eat_word("temp") {
             perm = false;
         } else if self.strict && !self.is_word("seq") && !self.is_word("para") {
-            return self.fail("a `for` says whether its variable outlives it: `for temp $i in …` or `for perm $i in …` — a `#strict` file writes it out");
+            return self.fail_n("strict_word_missing", "a `for` says whether its variable outlives it: `for temp $i in …` or `for perm $i in …` — a `#strict` file writes it out");
         }
         if self.is_word("seq") || self.is_word("para") {
-            return self.fail("expected a quoted loop variable: `seq` or `para` goes first, then `temp` / `perm`, then the name — `for seq perm 'i' in …`");
+            return self.fail_n("unexpected_text", "expected a quoted loop variable: `seq` or `para` goes first, then `temp` / `perm`, then the name — `for seq perm 'i' in …`");
         }
         let name = match self.peek().clone() {
             Tok::Name(n) => {
                 let span = self.bump().span;
                 QName { name: n, span }
             }
-            Tok::Word(w) => return self.fail(format!("expected a quoted loop variable, found `{}`: `for '{}' in …`", w, w)),
-            other => return self.fail(format!("expected a quoted loop variable, found {}", other.describe())),
+            Tok::Word(w) => return self.fail_n("variable_name_form", format!("expected a quoted loop variable, found `{}`: `for '{}' in …`", w, w)),
+            other => return self.fail_n("unexpected_text", format!("expected a quoted loop variable, found {}", other.describe())),
         };
         let ty = if self.eat(&Tok::Colon) { Some(self.type_()?) } else { None };
         // `for 'i', 'x' in …`: the position first, then the item, as in
@@ -3693,32 +3703,32 @@ impl<'a> Parser<'a> {
                     let span = self.bump().span;
                     QName { name: n, span }
                 }
-                other => return self.fail(format!("expected the item's quoted name after the position's: `for 'i', 'x' in …`, found {}", other.describe())),
+                other => return self.fail_n("unexpected_text", format!("expected the item's quoted name after the position's: `for 'i', 'x' in …`, found {}", other.describe())),
             };
             (Some(name), item)
         } else {
             (None, name)
         };
         if self.is_word("temp") || self.is_word("perm") {
-            return self.fail(format!("expected `in` or `from`; `{}` goes before the name — `for {} ${} in …`", self.word_text(), self.word_text(), name.name));
+            return self.fail_n("unexpected_text", format!("expected `in` or `from`; `{}` goes before the name — `for {} ${} in …`", self.word_text(), self.word_text(), name.name));
         }
         // A counting loop's words go in `[ ]` with commas (owner, 2026-10-20):
         // `for 'i' [from: 1, to: 10, by: 1]`, `before:` leaving 10 out.
         if self.is_word("from") {
-            return self.fail("a `for` with several words takes `[ ]` and commas: `for $i [from: 1, to: 10, by: 1]` (owner, 2026-10-20)");
+            return self.fail_n("loop_words_form", "a `for` with several words takes `[ ]` and commas: `for $i [from: 1, to: 10, by: 1]` (owner, 2026-10-20)");
         }
         let iter = if self.bracket_is_count() {
             let (start, stop, step, exclusive) = self.count_words("for 'i' [from: 1, to: 10, by: 1]")?;
             if let Some(p) = &pos {
-                return self.fail_at(p.span, format!("a counting loop's counter already is the position: `for ${} [from: …]`, one name", p.name));
+                return self.fail_at_n(p.span, "counter_is_position", format!("a counting loop's counter already is the position: `for ${} [from: …]`, one name", p.name));
             }
             ForIter::Range { start, stop, step: Some(step), exclusive }
         } else {
             if !self.eat_word("in") {
-                return self.fail(format!("expected `in` or `[from: …]` after the loop variable, found {}", self.peek().describe()));
+                return self.fail_n("unexpected_text", format!("expected `in` or `[from: …]` after the loop variable, found {}", self.peek().describe()));
             }
             if self.is_word("range") {
-                return self.fail("a counting loop reads as a sentence now: `for $i [from: 1, to: 10, by: 1]` (`before: 10` leaves 10 out) (owner, 2026-10-20)");
+                return self.fail_n("old_spelling", "a counting loop reads as a sentence now: `for $i [from: 1, to: 10, by: 1]` (`before: 10` leaves 10 out) (owner, 2026-10-20)");
             }
             ForIter::Over(self.expr(0)?)
         };
@@ -3746,7 +3756,7 @@ impl<'a> Parser<'a> {
                     if self.eat(&Tok::Dot) {
                         let m = self.ident("`mut`")?;
                         if m.name != "mut" {
-                            return self.fail_at(m.span, "`lend` or `lend.mut`");
+                            return self.fail_at_n(m.span, "unknown_verb", "`lend` or `lend.mut`");
                         }
                         (Verb::LendMut, false)
                     } else {
@@ -3761,8 +3771,8 @@ impl<'a> Parser<'a> {
                         (Verb::Lend, true)
                     }
                 }
-                Tok::Name(n) => return self.fail(format!("nothing is captured silently: say how '{}' comes in — `lend ${}`, `copy ${}` or `give ${}`", n, n, n, n)),
-                other => return self.fail(format!("expected a capture (`lend $x`, `copy $x`, `give $x`), found {}", other.describe())),
+                Tok::Name(n) => return self.fail_n("capture_verb_unsaid", format!("nothing is captured silently: say how '{}' comes in — `lend ${}`, `copy ${}` or `give ${}`", n, n, n, n)),
+                other => return self.fail_n("unexpected_text", format!("expected a capture (`lend $x`, `copy $x`, `give $x`), found {}", other.describe())),
             };
             let name = self.qname("the captured variable")?;
             caps.push(Capture { verb, amp, name, span: start.to(self.prev_span()) });
@@ -3779,7 +3789,7 @@ impl<'a> Parser<'a> {
         if self.eat(&Tok::Dot) {
             let w = self.ident("`detached` after `concur.`")?;
             if w.name != "detached" {
-                return self.fail_at(w.span, format!("`concur.{}` does not exist: `concur` (structured) or `concur.detached` (lives as long as the program)", w.name));
+                return self.fail_at_n(w.span, "unknown_narrowing", format!("`concur.{}` does not exist: `concur` (structured) or `concur.detached` (lives as long as the program)", w.name));
             }
             detached = true;
         }
@@ -3809,11 +3819,11 @@ impl<'a> Parser<'a> {
         let mut arms = Vec::new();
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
-                return self.fail_at(open, "`whichever` is never closed");
+                return self.fail_at_n(open, "unclosed_block", "`whichever` is never closed");
             }
             let name = self.qname("the arm's value name")?;
             if !self.eat_word("from") {
-                return self.fail(format!("expected `from` after '{}': each arm is `$value from lend $channel {{ … }}`", name.name));
+                return self.fail_n("unexpected_text", format!("expected `from` after '{}': each arm is `$value from lend $channel {{ … }}`", name.name));
             }
             let channel = self.expr(0)?;
             let body = self.block("the arm")?;
@@ -3821,7 +3831,7 @@ impl<'a> Parser<'a> {
         }
         self.bump();
         if arms.is_empty() {
-            return self.fail_at(open.to(self.prev_span()), "`whichever` needs at least one arm: `$v from lend $c { … }`");
+            return self.fail_at_n(open.to(self.prev_span()), "mcps::whichever_empty", "`whichever` needs at least one arm: `$v from lend $c { … }`");
         }
         let otherwise = if self.is_word("otherwise") {
             self.bump();
@@ -3844,12 +3854,12 @@ impl<'a> Parser<'a> {
         let mut arms = Vec::new();
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
-                return self.fail_at(open, "`match` is never closed");
+                return self.fail_at_n(open, "unclosed_block", "`match` is never closed");
             }
             let case = match self.peek().clone() {
                 Tok::Word(_) => self.ident("a case name")?,
-                Tok::Name(n) => return self.fail(format!("an arm starts with the case's bare name, then a quoted name for its data: `claimed '{}' {{ … }}`", n)),
-                other => return self.fail(format!("expected a case name, found {}", other.describe())),
+                Tok::Name(n) => return self.fail_n("name_quoted", format!("an arm starts with the case's bare name, then a quoted name for its data: `claimed '{}' {{ … }}`", n)),
+                other => return self.fail_n("unexpected_text", format!("expected a case name, found {}", other.describe())),
             };
             let bind = if let Tok::Name(_) = self.peek() { Some(self.qname("a name")?) } else { None };
             let body = self.block("the arm")?;
@@ -3857,7 +3867,7 @@ impl<'a> Parser<'a> {
         }
         self.bump();
         if arms.is_empty() {
-            return self.fail_at(open.to(self.prev_span()), "`match` needs an arm per case");
+            return self.fail_at_n(open.to(self.prev_span()), "case_unhandled", "`match` needs an arm per case");
         }
         Ok((value, arms))
     }
@@ -3870,21 +3880,21 @@ impl<'a> Parser<'a> {
             // `inline.ASM`"); `inline.Assembly` and `inline.S` are MTM's.
             "ASM" | "Assembly" | "S" => {}
             // IEG's and Metal's, named but not read yet.
-            "LL" | "LLVM" | "LLVM_Intermediate_Representation" => return self.fail_at(lang.span, "`inline.LL`, LLVM IR in place, is the base's, and kayo does not read it yet"),
-            "MSL" | "Metal_Shading_Language" => return self.fail_at(lang.span, "`inline.MSL`, the Metal Shading Language, is the Metal limb's, and kayo does not read it yet"),
-            "asm" | "s" | "assembly" => return self.fail_at(lang.span, "an inline language's name is in capitals: `inline.ASM`"),
-            "ll" | "llvm" => return self.fail_at(lang.span, "an inline language's name is in capitals: `inline.LL`"),
-            "msl" => return self.fail_at(lang.span, "an inline language's name is in capitals: `inline.MSL`"),
-            "C" | "c" => return self.fail_at(lang.span, "the inline languages are `inline.ASM`, `inline.LL` and `inline.MSL`; `inline.C` is not decided"),
-            other => return self.fail_at(lang.span, format!("the inline languages are `inline.ASM`, `inline.LL` and `inline.MSL`; `inline.{}` is not one", other)),
+            "LL" | "LLVM" | "LLVM_Intermediate_Representation" => return self.fail_at_n(lang.span, "not_built_yet", "`inline.LL`, LLVM IR in place, is the base's, and kayo does not read it yet"),
+            "MSL" | "Metal_Shading_Language" => return self.fail_at_n(lang.span, "not_built_yet", "`inline.MSL`, the Metal Shading Language, is the Metal limb's, and kayo does not read it yet"),
+            "asm" | "s" | "assembly" => return self.fail_at_n(lang.span, "inline_language_capitals", "an inline language's name is in capitals: `inline.ASM`"),
+            "ll" | "llvm" => return self.fail_at_n(lang.span, "inline_language_capitals", "an inline language's name is in capitals: `inline.LL`"),
+            "msl" => return self.fail_at_n(lang.span, "inline_language_capitals", "an inline language's name is in capitals: `inline.MSL`"),
+            "C" | "c" => return self.fail_at_n(lang.span, "not_decided", "the inline languages are `inline.ASM`, `inline.LL` and `inline.MSL`; `inline.C` is not decided"),
+            other => return self.fail_at_n(lang.span, "unknown_inline_language", format!("the inline languages are `inline.ASM`, `inline.LL` and `inline.MSL`; `inline.{}` is not one", other)),
         }
         let text = match self.peek().clone() {
             Tok::Raw(t) => {
                 self.bump();
                 t
             }
-            Tok::LBracket => return self.fail("`inline.ASM` holds raw assembly in braces, not a list of strings: `inline.ASM { mov x16, #4 }`"),
-            other => return self.fail(format!("expected `{{` holding the assembly, found {}", other.describe())),
+            Tok::LBracket => return self.fail_n("inline_block_form", "`inline.ASM` holds raw assembly in braces, not a list of strings: `inline.ASM { mov x16, #4 }`"),
+            other => return self.fail_n("unexpected_text", format!("expected `{{` holding the assembly, found {}", other.describe())),
         };
         let mut bindings = Vec::new();
         if self.eat_word("with") {
@@ -3897,7 +3907,7 @@ impl<'a> Parser<'a> {
                         bindings.push(AsmBinding::Clobber(reg));
                     }
                     Tok::Word(w) if w == "in" || w == "out" || w == "inout" => {
-                        return self.fail(format!("there is no `{}` word: the arrow is the direction — `$v -> x0` copies in, `$v <- x0` stores out, `$v <-> x0` both", w));
+                        return self.fail_n("asm_binding_form", format!("there is no `{}` word: the arrow is the direction — `$v -> x0` copies in, `$v <- x0` stores out, `$v <-> x0` both", w));
                     }
                     // A lend satisfies a pointer, as at an extern call
                     // (owner, 2026-09-30: a): `lend 'text' -> x1`.
@@ -3906,7 +3916,7 @@ impl<'a> Parser<'a> {
                         let mutable = if self.eat(&Tok::Dot) {
                             let m = self.ident("`mut`")?;
                             if m.name != "mut" {
-                                return self.fail_at(m.span, "`lend` or `lend.mut`");
+                                return self.fail_at_n(m.span, "unknown_verb", "`lend` or `lend.mut`");
                             }
                             true
                         } else {
@@ -3916,9 +3926,9 @@ impl<'a> Parser<'a> {
                         match self.peek().clone() {
                             Tok::Op(o) if o == "->" => {}
                             Tok::Op(o) if o == "<-" || o == "<->" => {
-                                return self.fail(format!("a lend goes into a register only: `{} ${} -> x1` puts the address of '{}' there", if mutable { "lend.mut" } else { "lend" }, name.name, name.name));
+                                return self.fail_n("asm_binding_form", format!("a lend goes into a register only: `{} ${} -> x1` puts the address of '{}' there", if mutable { "lend.mut" } else { "lend" }, name.name, name.name));
                             }
-                            other => return self.fail(format!("expected `->` after `lend ${}`: its address goes into a register, found {}", name.name, other.describe())),
+                            other => return self.fail_n("asm_binding_form", format!("expected `->` after `lend ${}`: its address goes into a register, found {}", name.name, other.describe())),
                         }
                         self.bump();
                         let reg = self.ident("a register")?;
@@ -3930,13 +3940,13 @@ impl<'a> Parser<'a> {
                             Tok::Op(o) if o == "->" => AsmDir::In,
                             Tok::Op(o) if o == "<-" => AsmDir::Out,
                             Tok::Op(o) if o == "<->" => AsmDir::InOut,
-                            other => return self.fail(format!("expected an arrow after '{}' (`->` in, `<-` out, `<->` both), found {}", name.name, other.describe())),
+                            other => return self.fail_n("asm_binding_form", format!("expected an arrow after '{}' (`->` in, `<-` out, `<->` both), found {}", name.name, other.describe())),
                         };
                         self.bump();
                         let reg = self.ident("a register")?;
                         bindings.push(AsmBinding::Reg { name, dir, reg });
                     }
-                    other => return self.fail(format!("expected a binding (`$v -> x0`, `$n <- x0`, `lend $text -> x1`, `clobber x16`), found {}", other.describe())),
+                    other => return self.fail_n("asm_binding_form", format!("expected a binding (`$v -> x0`, `$n <- x0`, `lend $text -> x1`, `clobber x16`), found {}", other.describe())),
                 }
                 if !self.eat(&Tok::Comma) {
                     break;
@@ -3957,14 +3967,14 @@ impl<'a> Parser<'a> {
         // claude, 2026-10-22: the exact spelling to type).
         if self.is(&Tok::RBrace) {
             if self.in_arm {
-                return self.fail_at(e.span, "a case says its value with `is`: `a { is …; }`");
+                return self.fail_at_n(e.span, "case_value_form", "a case says its value with `is`: `a { is …; }`");
             }
             let what = if matches!(e.kind, ExprKind::Call { .. } | ExprKind::CallValue { .. }) { "the call" } else { "the statement" };
-            return self.fail_at(e.span, format!("expected `;` after {}: every statement ends with one, the last in a block too", what));
+            return self.fail_at_n(e.span, "unexpected_text", format!("expected `;` after {}: every statement ends with one, the last in a block too", what));
         }
         if self.is(&Tok::Colon) {
             if let ExprKind::Name(n) = &e.kind {
-                return self.fail(format!("a declaration is the name, its type, then `=`: `let ${}: i32 = …;`", n.name));
+                return self.fail_n("declaration_form", format!("a declaration is the name, its type, then `=`: `let ${}: i32 = …;`", n.name));
             }
         }
         if self.is_op("=") {
@@ -3972,26 +3982,26 @@ impl<'a> Parser<'a> {
                 ExprKind::Name(n) => format!("'{}'", n.name),
                 _ => "'x'".to_string(),
             };
-            return self.fail_at(e.span, format!("changing a variable says so: `change {} = …;`", spelled));
+            return self.fail_at_n(e.span, "change_unmarked", format!("changing a variable says so: `change {} = …;`", spelled));
         }
         if self.is(&Tok::Walrus) {
-            return self.fail("a declaration is a name alone: `let $x := …;`");
+            return self.fail_n("declaration_form", "a declaration is a name alone: `let $x := …;`");
         }
         match &e.kind {
             ExprKind::Call { .. } | ExprKind::CallValue { .. } | ExprKind::Conv { .. } => {}
-            ExprKind::Path(p) => return self.fail_at(e.span, format!("`{}` alone is not a statement: a call needs `(…)` — `{}(…);`", p.spelled(), p.spelled())),
+            ExprKind::Path(p) => return self.fail_at_n(e.span, "call_without_parens", format!("`{}` alone is not a statement: a call needs `(…)` — `{}(…);`", p.spelled(), p.spelled())),
             // One value in brackets: a list read, or a call of a function
             // held in a variable — the checker knows which.
             ExprKind::Index { .. } => {}
             _ => {
                 if self.is(&Tok::Semi) {
-                    return self.fail_at(e.span, "a value alone is not a statement: assign it, or call something with it");
+                    return self.fail_at_n(e.span, "value_left_unused", "a value alone is not a statement: assign it, or call something with it");
                 }
-                return self.fail(format!("expected `;` after the statement, found {}", self.peek().describe()));
+                return self.fail_n("unexpected_text", format!("expected `;` after the statement, found {}", self.peek().describe()));
             }
         }
         if !self.is(&Tok::Semi) {
-            return self.fail(format!("expected `;` after the call, found {}", self.peek().describe()));
+            return self.fail_n("unexpected_text", format!("expected `;` after the call, found {}", self.peek().describe()));
         }
         self.bump();
         Ok(StmtKind::Expr(e))
@@ -4015,13 +4025,13 @@ impl<'a> Parser<'a> {
             match &mut e.kind {
                 ExprKind::Call { otherwise, .. } | ExprKind::CallValue { otherwise, .. } | ExprKind::Conv { otherwise, .. } => {
                     if otherwise.is_some() {
-                        return self.fail_at(ow_span, "a call takes one `otherwise`");
+                        return self.fail_at_n(ow_span, "otherwise_misplaced", "a call takes one `otherwise`");
                     }
                     *otherwise = Some(Box::new(ow));
                     e.span = e.span.to(self.prev_span());
                 }
                 _ => {
-                    return self.fail_at(e.span, "a call that can fail must be the whole value: put it in its own declaration, then use the result — `otherwise` cannot sit inside a larger expression");
+                    return self.fail_at_n(e.span, "otherwise_misplaced", "a call that can fail must be the whole value: put it in its own declaration, then use the result — `otherwise` cannot sit inside a larger expression");
                 }
             }
         }
@@ -4030,7 +4040,7 @@ impl<'a> Parser<'a> {
 
     fn otherwise_rest(&mut self) -> Result<Otherwise> {
         match self.peek().clone() {
-            Tok::Semi | Tok::RBrace | Tok::Eof => self.fail("`otherwise` needs what to do: a value, `return …`, `fail`, `break`, `continue`, or `{ reason { … } … }` arms"),
+            Tok::Semi | Tok::RBrace | Tok::Eof => self.fail_n("otherwise_empty", "`otherwise` needs what to do: a value, `return …`, `fail`, `break`, `continue`, or `{ reason { … } … }` arms"),
             Tok::Word(w) if w == "fail" => {
                 let span = self.span();
                 self.bump();
@@ -4104,13 +4114,13 @@ impl<'a> Parser<'a> {
     fn precedence_block(&mut self) -> Result<Vec<(String, (u16, Chain))>> {
         let at = self.bump().span;
         if !self.eat(&Tok::Dot) {
-            return self.fail_at(at, "say which way the levels count: `precedence.low_first` (level 1 binds loosest, the good practice) or `precedence.high_first`");
+            return self.fail_at_n(at, "level_order_unsaid", "say which way the levels count: `precedence.low_first` (level 1 binds loosest, the good practice) or `precedence.high_first`");
         }
         let way = self.ident("`low_first` or `high_first`")?;
         let low_first = match way.name.as_str() {
             "low_first" => true,
             "high_first" => false,
-            other => return self.fail_at(way.span, format!("`precedence.{}` is not a way to count: `precedence.low_first` or `precedence.high_first`", other)),
+            other => return self.fail_at_n(way.span, "level_order_unsaid", format!("`precedence.{}` is not a way to count: `precedence.low_first` or `precedence.high_first`", other)),
         };
         self.expect(&Tok::LBrace, "`{` opening the levels")?;
         // (number, chain, names, the number's span)
@@ -4118,21 +4128,21 @@ impl<'a> Parser<'a> {
         while !self.eat(&Tok::RBrace) {
             let lat = self.span();
             if !self.eat_word("level") {
-                return self.fail(format!("a `precedence` block holds levels, `level 1 {{ plus, minus }} left_first`; found {}", self.peek().describe()));
+                return self.fail_n("unexpected_text", format!("a `precedence` block holds levels, `level 1 {{ plus, minus }} left_first`; found {}", self.peek().describe()));
             }
             // `level 2 { plus, minus } left_first` (owner, 2026-10-14), the
             // number first and how a chain of it reads after the braces.
             if self.is(&Tok::Dot) && self.is_word_at(1, "when_chained") {
                 let said = crate::spellings::old_word("level.when_chained", Some("special")).map(|o| o.dated()).unwrap_or_else(|| "`level.when_chained` is an old spelling: write `level 2 { plus, minus } left_first`".into());
-                return self.fail_at(lat, said);
+                return self.fail_at_n(lat, "old_spelling", said);
             }
             let (n, nspan) = match self.peek().clone() {
                 Tok::Num { text, bin: false, .. } => (text.replace('_', "").parse::<i128>().unwrap_or(0), self.bump().span),
-                other => return self.fail(format!("a level's number follows `level`: `level 1 {{ plus, minus }} left_first`, found {}", other.describe())),
+                other => return self.fail_n("unexpected_text", format!("a level's number follows `level`: `level 1 {{ plus, minus }} left_first`, found {}", other.describe())),
             };
             if let Some(first) = levels.iter().find(|l| l.0 == n) {
                 let _ = first;
-                return self.fail_at(nspan, format!("two levels numbered {}: each level has its own number", n));
+                return self.fail_at_n(nspan, "level_numbered_twice", format!("two levels numbered {}: each level has its own number", n));
             }
             self.expect(&Tok::LBrace, "`{` opening the level's operators")?;
             let mut names = Vec::new();
@@ -4153,13 +4163,13 @@ impl<'a> Parser<'a> {
                         }
                         name
                     }
-                    other => return self.fail(format!("a level lists operators by name, `{{ plus, dot }}`; found {}", other.describe())),
+                    other => return self.fail_n("unexpected_text", format!("a level lists operators by name, `{{ plus, dot }}`; found {}", other.describe())),
                 };
                 if let Some(old) = retired_spelling(&name) {
-                    return self.fail_at(ospan, old.dated());
+                    return self.fail_at_n(ospan, "old_spelling", old.dated());
                 }
                 if matches!(name.as_str(), "xor" | "shl" | "shr" | "and.bit" | "or.bit" | "not.bit") {
-                    return self.fail_at(ospan, format!("`{}` has no precedence in the language: a bitwise operator is parenthesised beside another, so no level holds it", name));
+                    return self.fail_at_n(ospan, "operator_cannot_level", format!("`{}` has no precedence in the language: a bitwise operator is parenthesised beside another, so no level holds it", name));
                 }
                 names.push((name, ospan));
                 self.item_comma()?;
@@ -4169,7 +4179,7 @@ impl<'a> Parser<'a> {
                 Tok::Word(c) if c == "left_first" => Chain::Left,
                 Tok::Word(c) if c == "right_first" => Chain::Right,
                 Tok::Word(c) if c == "refused" => Chain::Refused,
-                _ => return self.fail(how),
+                _ => return self.fail_n("level_chain_unsaid", how),
             };
             self.bump();
             levels.push((n, chain, names, nspan));
@@ -4191,11 +4201,11 @@ impl<'a> Parser<'a> {
                             Chain::Right => "right_first",
                             Chain::Refused => "refused",
                         };
-                        return self.fail_at(*span, format!("`{}` chains {} in the language, so its level must say `{}` after its braces", name, says.replace('_', " "), says));
+                        return self.fail_at_n(*span, "level_chain_unsaid", format!("`{}` chains {} in the language, so its level must say `{}` after its braces", name, says.replace('_', " "), says));
                     }
                 }
                 match pin {
-                    Some((p, other)) if p != lv => return self.fail_at(*span, format!("`{}` and `{}` sit at different levels in the language: one level cannot hold both", other, name)),
+                    Some((p, other)) if p != lv => return self.fail_at_n(*span, "operators_level_apart", format!("`{}` and `{}` sit at different levels in the language: one level cannot hold both", other, name)),
                     _ => pin = Some((lv, name)),
                 }
             }
@@ -4248,7 +4258,7 @@ impl<'a> Parser<'a> {
         let at = at.to(self.prev_span());
         // `mod.near` leaves nothing over on a bin (owner, 2026-10-07).
         if w == "mod" && r == Round::Near {
-            return self.fail_at(at, "`.ieee` goes on an operator that can make a -0, `plus`, `minus`, `times`, `pow`, a `div.X`, `mod.floor`, `mod.ceil` or `mod.trunc`; `mod.near` has no `.ieee` form");
+            return self.fail_at_n(at, "ieee_misused", "`.ieee` goes on an operator that can make a -0, `plus`, `minus`, `times`, `pow`, a `div.X`, `mod.floor`, `mod.ceil` or `mod.trunc`; `mod.near` has no `.ieee` form");
         }
         Ok(true)
     }
@@ -4261,7 +4271,7 @@ impl<'a> Parser<'a> {
         self.bump();
         self.bump();
         if w == "mod" {
-            return self.fail_at(at.to(self.prev_span()), format!("`mod` never overflows: `mod.{}.wrap` is `mod.{}`", r.word(), r.word()));
+            return self.fail_at_n(at.to(self.prev_span()), "wrap_needless", format!("`mod` never overflows: `mod.{}.wrap` is `mod.{}`", r.word(), r.word()));
         }
         Ok(true)
     }
@@ -4274,7 +4284,7 @@ impl<'a> Parser<'a> {
         let what = self.ident("`floor`, `ceil`, `trunc` or `near`")?;
         match Round::from_word(&what.name) {
             Some(r) => Ok(r),
-            None => self.fail_at(what.span, format!("no `{w}.{}`: a division rounds as `{w}.floor`, `{w}.ceil`, `{w}.trunc` or `{w}.near`", what.name)),
+            None => self.fail_at_n(what.span, "unknown_rounding", format!("no `{w}.{}`: a division rounds as `{w}.floor`, `{w}.ceil`, `{w}.trunc` or `{w}.near`", what.name)),
         }
     }
 
@@ -4284,7 +4294,7 @@ impl<'a> Parser<'a> {
             Tok::Op(o) => {
                 self.bump();
                 if let Some(old) = retired_spelling(&o) {
-                    return self.fail_at(at, old.dated());
+                    return self.fail_at_n(at, "old_spelling", old.dated());
                 }
                 if let Some((op, _)) = symbol_word(&o) {
                     let spelled = op.spelled().to_string();
@@ -4298,9 +4308,9 @@ impl<'a> Parser<'a> {
                     ">" => BinOp::Gt,
                     "</==" => BinOp::Le,
                     ">/==" => BinOp::Ge,
-                    "<==" => return self.fail_at(at, "less-or-equal is `at_most`: `op at_most`"),
-                    ">==" => return self.fail_at(at, "greater-or-equal is `at_least`: `op at_least`"),
-                    "=" => return self.fail_at(at, "`=` is not an operator: equality is `op equal_to`"),
+                    "<==" => return self.fail_at_n(at, "old_spelling", "less-or-equal is `at_most`: `op at_most`"),
+                    ">==" => return self.fail_at_n(at, "old_spelling", "greater-or-equal is `at_least`: `op at_least`"),
+                    "=" => return self.fail_at_n(at, "unknown_operator", "`=` is not an operator: equality is `op equal_to`"),
                     other => BinOp::Custom(other.to_string()),
                 }
             }
@@ -4311,12 +4321,12 @@ impl<'a> Parser<'a> {
                     "x" | "xx" if wraps => {
                         let old = format!("{}~", w);
                         let sentence = retired_spelling(&old).map_or_else(|| format!("`{}` is an old spelling", old), |o| o.dated());
-                        return self.fail_at(at, sentence);
+                        return self.fail_at_n(at, "old_spelling", sentence);
                     }
                     // `op x` is `op times`; `xx` is std's `pow`, declared
                     // by its word (owner, 2026-10-16).
                     "x" => BinOp::Mul,
-                    "xx" => return self.fail_at(at, "`xx` is the language's spelling of std's `pow`, which is not declared again: `op pow` is the operator as a value"),
+                    "xx" => return self.fail_at_n(at, "operator_value_form", "`xx` is the language's spelling of std's `pow`, which is not declared again: `op pow` is the operator as a value"),
                     "less_than" => BinOp::Lt,
                     "greater_than" => BinOp::Gt,
                     "plus" | "minus" | "times" | "pow" => {
@@ -4352,7 +4362,7 @@ impl<'a> Parser<'a> {
                             ("or", "else") => BinOp::OrElse,
                             ("and", "bit") => BinOp::AndBit,
                             ("or", "bit") => BinOp::OrBit,
-                            _ => return self.fail_at(what.span, format!("`{}.{}` is not an operator", w, what.name)),
+                            _ => return self.fail_at_n(what.span, "old_spelling", format!("`{}.{}` is not an operator", w, what.name)),
                         }
                     }
                     "and" => BinOp::And,
@@ -4360,7 +4370,7 @@ impl<'a> Parser<'a> {
                     "xor" => BinOp::Xor,
                     "shl" => BinOp::Shl,
                     "shr" => BinOp::Shr,
-                    other if is_keyword(other) => return self.fail_at(at, format!("`{}` is a keyword, not an operator: `op` takes one, as in `op plus`", other)),
+                    other if is_keyword(other) => return self.fail_at_n(at, "operator_value_form", format!("`{}` is a keyword, not an operator: `op` takes one, as in `op plus`", other)),
                     other => {
                         // A Kit's narrowed operator: `op mean.low`.
                         let mut name = other.to_string();
@@ -4373,7 +4383,7 @@ impl<'a> Parser<'a> {
                     }
                 }
             }
-            other => return self.fail(format!("`op` as a value takes an operator: `op plus`, `op times`, `op <`, found {}", other.describe())),
+            other => return self.fail_n("operator_value_form", format!("`op` as a value takes an operator: `op plus`, `op times`, `op <`, found {}", other.describe())),
         };
         let spelled = op.spelled().to_string();
         Ok((op, spelled))
@@ -4568,7 +4578,7 @@ impl<'a> Parser<'a> {
                     self.bump(); // .
                     let b = self.ident("`bit`")?;
                     if b.name != "bit" {
-                        return self.fail_at(b.span, format!("`{}.{}` is not an operator: the bitwise forms are `and.bit` and `or.bit`", op.spelled().trim_end_matches(".bit"), b.name));
+                        return self.fail_at_n(b.span, "unknown_operator", format!("`{}.{}` is not an operator: the bitwise forms are `and.bit` and `or.bit`", op.spelled().trim_end_matches(".bit"), b.name));
                     }
                     // `.wrap`: the operands as their bits (owner, 2026-10-07).
                     if self.is(&Tok::Dot) && self.is_word_at(1, "wrap") {
@@ -4605,23 +4615,23 @@ impl<'a> Parser<'a> {
                     _ => "xx~",
                 };
                 let sentence = retired_spelling(was).map_or_else(|| format!("`{}` is an old spelling", was), |o| o.dated());
-                return self.fail_at(op_span, sentence);
+                return self.fail_at_n(op_span, "old_spelling", sentence);
             }
             if let BinOp::Custom(name) = &op {
                 if let Some((base, narrow)) = name.split_once('.') {
                     if matches!(base, "plus" | "minus" | "times" | "pow") {
-                        return self.fail_at(op_span, format!("`{}.{}` is not an operator: the narrowings of `{}` are `{}.wrap` and `{}.ieee`", base, narrow, base, base, base));
+                        return self.fail_at_n(op_span, "unknown_operator", format!("`{}.{}` is not an operator: the narrowings of `{}` are `{}.wrap` and `{}.ieee`", base, narrow, base, base, base));
                     }
                 }
             }
             if op == BinOp::Join && self.is(&Tok::Semi) {
-                return self.fail_at(op_span, "`++` joins text here, and `$i++;` changes a variable only as a whole statement: `$i++;`, or `change $i = $i plus 1;`");
+                return self.fail_at_n(op_span, "old_spelling", "`++` joins text here, and `$i++;` changes a variable only as a whole statement: `$i++;`, or `change $i = $i plus 1;`");
             }
             // The near-misses the language refuses by name.
             if let BinOp::Custom(c) = &op {
                 // What is not an operator, and what to write (spellings.cyr).
                 if let Some(says) = crate::spellings::not_operator(c) {
-                    return self.fail_at(op_span, format!("`{}` is not an operator; {}", c, says));
+                    return self.fail_at_n(op_span, "old_spelling", format!("`{}` is not an operator; {}", c, says));
                 }
             }
             // The operators are the Brainstem's (owner, 2026-10-08: "`a`",
@@ -4665,32 +4675,32 @@ impl<'a> Parser<'a> {
                 if let (Some((a, Chain::Refused)), b) | (b, Some((a, Chain::Refused))) = (custom_level(op), custom_level(inner)) {
                     let b = b.map(|x| x.0).or_else(|| language_level(&inner.spelled()).map(|x| x.0)).or_else(|| language_level(&op.spelled()).map(|x| x.0));
                     if b == Some(a) {
-                        return self.fail_at(op_span, format!("`{}` next to `{}`: this level does not chain (`refused`) — parenthesise one side", inner.spelled(), op.spelled()));
+                        return self.fail_at_n(op_span, "level_does_not_chain", format!("`{}` next to `{}`: this level does not chain (`refused`) — parenthesise one side", inner.spelled(), op.spelled()));
                     }
                 }
             }
             if nofix(op) && (inner.is_some() || bare_unary(side)) {
                 let kind = if op.is_bitwise() { "a bitwise operator has no precedence" } else { "a custom operator has no precedence" };
-                return self.fail_at(op_span, format!("`{}` next to another operator: {} — parenthesise one side", op.spelled(), kind));
+                return self.fail_at_n(op_span, "needs_parentheses", format!("`{}` next to another operator: {} — parenthesise one side", op.spelled(), kind));
             }
             if let Some(inner) = &inner {
                 if nofix(inner) {
                     let kind = if inner.is_bitwise() { "a bitwise operator has no precedence" } else { "a custom operator has no precedence" };
-                    return self.fail_at(op_span, format!("`{}` next to `{}`: {} — parenthesise", inner.spelled(), op.spelled(), kind));
+                    return self.fail_at_n(op_span, "needs_parentheses", format!("`{}` next to `{}`: {} — parenthesise", inner.spelled(), op.spelled(), kind));
                 }
                 if op.is_mod() || inner.is_mod() {
                     let m = if op.is_mod() { op.spelled() } else { inner.spelled() };
-                    return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading for `{}` beside another operator — parenthesise (`($i {} 2) equal_to 0`)", inner.spelled(), op.spelled(), m, if m.contains('.') { m.clone() } else { format!("{}.floor", m) }));
+                    return self.fail_at_n(op_span, "needs_parentheses", format!("`{}` next to `{}`: mathematics has no settled reading for `{}` beside another operator — parenthesise (`($i {} 2) equal_to 0`)", inner.spelled(), op.spelled(), m, if m.contains('.') { m.clone() } else { format!("{}.floor", m) }));
                 }
                 if (op.is_div() && inner.is_multiplicative()) || (op.is_multiplicative() && inner.is_div()) {
-                    return self.fail_at(op_span, format!("`{}` next to `{}`: mathematics has no settled reading here (`6 div.floor 2 times 3`) — parenthesise one side", inner.spelled(), op.spelled()));
+                    return self.fail_at_n(op_span, "needs_parentheses", format!("`{}` next to `{}`: mathematics has no settled reading here (`6 div.floor 2 times 3`) — parenthesise one side", inner.spelled(), op.spelled()));
                 }
                 if op.is_comparison() && inner.is_comparison() {
-                    return self.fail_at(op_span, format!("`{}` next to `{}`: comparisons do not chain — write `($a < $b) and ($b < $c)`", inner.spelled(), op.spelled()));
+                    return self.fail_at_n(op_span, "comparisons_chained", format!("`{}` next to `{}`: comparisons do not chain — write `($a < $b) and ($b < $c)`", inner.spelled(), op.spelled()));
                 }
             }
             if op.is_comparison() && matches!(side.kind, ExprKind::Unary { op: UnOp::Not, .. }) {
-                return self.fail_at(op_span, format!("`!` next to `{}`: mathematics has no settled reading — parenthesise (`! ($a equal_to $b)`)", op.spelled()));
+                return self.fail_at_n(op_span, "needs_parentheses", format!("`!` next to `{}`: mathematics has no settled reading — parenthesise (`! ($a equal_to $b)`)", op.spelled()));
             }
         }
         Ok(())
@@ -4699,7 +4709,7 @@ impl<'a> Parser<'a> {
     /// After `exactly` or the prefix `*`: the number, as an exact `deci`.
     fn exactly(&mut self, start: Span) -> Result<Expr> {
         let Tok::Num { text, percent, .. } = self.peek().clone() else {
-            return self.fail(format!("`exactly` is followed by a number: `exactly 19.99`, `exactly 1000`; found {}", self.peek().describe()));
+            return self.fail_n("money::exactly_form", format!("`exactly` is followed by a number: `exactly 19.99`, `exactly 1000`; found {}", self.peek().describe()));
         };
         let at = self.bump().span;
         let exact = Expr { kind: ExprKind::Exact(text.replace('_', "")), span: start.to(at) };
@@ -4792,8 +4802,8 @@ impl<'a> Parser<'a> {
                 };
                 match self.peek() {
                     Tok::Name(_) => {}
-                    Tok::Word(w) if !mut_word && w.starts_with("mut") => return self.fail(format!("`&` lends a variable: `&$x` or `&mut $x`; `&{}` is neither", w)),
-                    _ => return self.fail("`&` lends a variable: write `&$x` (`lend $x`) or `&mut $x` (`lend.mut $x`)"),
+                    Tok::Word(w) if !mut_word && w.starts_with("mut") => return self.fail_n("old_spelling", format!("`&` lends a variable: `&$x` or `&mut $x`; `&{}` is neither", w)),
+                    _ => return self.fail_n("old_spelling", "`&` lends a variable: write `&$x` (`lend $x`) or `&mut $x` (`lend.mut $x`)"),
                 }
                 let operand = self.postfix()?;
                 let span = start.to(operand.span);
@@ -4803,26 +4813,26 @@ impl<'a> Parser<'a> {
             // std's; glued, it marks a rule.
             Tok::Op(o) if o == "!" => {
                 if self.adjacent(0, 1) {
-                    return self.fail("a glued `!` marks a rule (`immut`, `no_shadow`, `no_check`, `no_cheat`); to negate a value, space it: `! $ready`");
+                    return self.fail_n("space_missing", "a glued `!` marks a rule (`immut`, `no_shadow`, `no_check`, `no_cheat`); to negate a value, space it: `! $ready`");
                 }
                 self.bump();
                 let operand = self.expr(2 * CMP_LEVEL)?;
                 if let ExprKind::Binary { op, op_span, .. } = &operand.kind {
                     if op.is_comparison() {
-                        return self.fail_at(*op_span, format!("`!` next to `{}`: mathematics has no settled reading — parenthesise (`! ($a equal_to $b)`)", op.spelled()));
+                        return self.fail_at_n(*op_span, "needs_parentheses", format!("`!` next to `{}`: mathematics has no settled reading — parenthesise (`! ($a equal_to $b)`)", op.spelled()));
                     }
                 }
                 let span = start.to(operand.span);
                 Ok(Expr { kind: ExprKind::Unary { op: UnOp::Not, expr: Box::new(operand) }, span })
             }
-            Tok::Op(o) => self.fail(format!("expected a value, found `{}`: an operator sits between two values", o)),
+            Tok::Op(o) => self.fail_n("operator_value_form", format!("expected a value, found `{}`: an operator sits between two values", o)),
             Tok::Word(w) => match w.as_str() {
                 "not" => {
                     self.bump();
                     if self.eat(&Tok::Dot) {
                         let b = self.ident("`bit`")?;
                         if b.name != "bit" {
-                            return self.fail_at(b.span, format!("`not.{}` is not an operator: the bitwise one is `not.bit`, and a value's not is `!`", b.name));
+                            return self.fail_at_n(b.span, "unknown_operator", format!("`not.{}` is not an operator: the bitwise one is `not.bit`, and a value's not is `!`", b.name));
                         }
                         let operand = self.expr(2 * NEG_LEVEL)?;
                         let span = start.to(operand.span);
@@ -4831,7 +4841,7 @@ impl<'a> Parser<'a> {
                     let operand = self.expr(2 * CMP_LEVEL)?;
                     if let ExprKind::Binary { op, op_span, .. } = &operand.kind {
                         if op.is_comparison() {
-                            return self.fail_at(*op_span, format!("`!` next to `{}`: mathematics has no settled reading — parenthesise (`! ($a equal_to $b)`)", op.spelled()));
+                            return self.fail_at_n(*op_span, "needs_parentheses", format!("`!` next to `{}`: mathematics has no settled reading — parenthesise (`! ($a equal_to $b)`)", op.spelled()));
                         }
                     }
                     let span = start.to(operand.span);
@@ -4846,7 +4856,7 @@ impl<'a> Parser<'a> {
                             if self.eat(&Tok::Dot) {
                                 let m = self.ident("`mut` after `lend.`")?;
                                 if m.name != "mut" {
-                                    return self.fail_at(m.span, format!("`lend.{}` is not a verb: `lend` (shared) or `lend.mut` (exclusive, may modify)", m.name));
+                                    return self.fail_at_n(m.span, "unknown_verb", format!("`lend.{}` is not a verb: `lend` (shared) or `lend.mut` (exclusive, may modify)", m.name));
                                 }
                                 Verb::LendMut
                             } else {
@@ -4855,21 +4865,21 @@ impl<'a> Parser<'a> {
                         }
                     };
                     if self.is_word("lend") || self.is_word("give") || self.is_word("copy") {
-                        return self.fail("one verb per value");
+                        return self.fail_n("two_verbs", "one verb per value");
                     }
                     let operand = self.postfix()?;
                     let span = start.to(operand.span);
                     Ok(Expr { kind: ExprKind::Verb { verb, amp: false, expr: Box::new(operand) }, span })
                 }
-                "lent" => self.fail("`lent` is the parameter's word; at a call the caller writes `lend $x` (or `lend.mut $x`)"),
-                "check" | "nocheck" => self.fail(format!("`{}` goes in front of a statement, not inside a value: if half a statement needs it, split the statement", w)),
-                "no_cheat" => self.fail("`no_cheat` goes in front of a statement, not inside a value; if half a statement needs it, split the statement"),
+                "lent" => self.fail_n("lent_at_call", "`lent` is the parameter's word; at a call the caller writes `lend $x` (or `lend.mut $x`)"),
+                "check" | "nocheck" => self.fail_n("check_misplaced", format!("`{}` goes in front of a statement, not inside a value: if half a statement needs it, split the statement", w)),
+                "no_cheat" => self.fail_n("check_misplaced", "`no_cheat` goes in front of a statement, not inside a value; if half a statement needs it, split the statement"),
                 "true" | "false" => {
                     self.bump();
                     // Bare, it is the boolean; a function of that name is
                     // reached by path (kits.md, 2026-09-19).
                     if self.is(&Tok::LBracket) || self.is(&Tok::LParen) {
-                        return self.fail(format!("bare `{}` is the boolean, so `{}(…)` is no call: a function named `{}` is reached by path — `kit.{}(…)`", w, w, w, w));
+                        return self.fail_n("not_a_function", format!("bare `{}` is the boolean, so `{}(…)` is no call: a function named `{}` is reached by path — `kit.{}(…)`", w, w, w, w));
                     }
                     let e = Expr { kind: ExprKind::Bool(w == "true"), span: start };
                     self.postfix_on(e)
@@ -4885,10 +4895,10 @@ impl<'a> Parser<'a> {
                 // A channel is made as a list or a map is (owner, 2026-10-22:
                 // "Seems good"): `let $ch: channel[i32] = channel.empty;`.
                 "channel" if !matches!(self.peek_at(1), Tok::Dot) => {
-                    return self.fail("a channel is made as a list or a map is: `let $ch: channel[i32] = channel.empty;` (owner, 2026-10-22)");
+                    return self.fail_n("mcps::channel_form", "a channel is made as a list or a map is: `let $ch: channel[i32] = channel.empty;` (owner, 2026-10-22)");
                 }
                 "channel" if self.is_word_at(2, "empty") && !self.channel_ok => {
-                    return self.fail("`channel.empty` takes its type from the declaration: `let $c: channel[i32] = channel.empty;`, or bounded, `let $c: channel[i32][max: 10] = channel.empty;` (owner, 2026-10-22)");
+                    return self.fail_n("mcps::channel_form", "`channel.empty` takes its type from the declaration: `let $c: channel[i32] = channel.empty;`, or bounded, `let $c: channel[i32][max: 10] = channel.empty;` (owner, 2026-10-22)");
                 }
                 "channel" if self.is_word_at(2, "empty") => {
                     self.bump();
@@ -4917,12 +4927,12 @@ impl<'a> Parser<'a> {
                 "incl" => {
                     self.bump();
                     if !self.eat(&Tok::Dot) {
-                        return self.fail("`incl` is followed by what it makes of the file: `incl.bytes[\"assets/logo.png\"]`, `incl.str.utf8[…]`, `incl.str.ascii[…]`");
+                        return self.fail_n("include_form", "`incl` is followed by what it makes of the file: `incl.bytes[\"assets/logo.png\"]`, `incl.str.utf8[…]`, `incl.str.ascii[…]`");
                     }
                     let what = self.ident("`bytes` or `str`")?;
                     let form = match what.name.as_str() {
-                        "C" => return self.fail_at(start, "`incl.C` sits at the top level of a file or in a `module` block, as `extern.C` does, never in a body"),
-                        "c" => return self.fail_at(what.span, "C is written capitalized here, as every language's name is: `incl.C`"),
+                        "C" => return self.fail_at_n(start, "belongs_at_top_level", "`incl.C` sits at the top level of a file or in a `module` block, as `extern.C` does, never in a body"),
+                        "c" => return self.fail_at_n(what.span, "cnc::c_capitalized", "C is written capitalized here, as every language's name is: `incl.C`"),
                         "bytes" => InclForm::Bytes,
                         "str" => {
                             self.expect(&Tok::Dot, "`.` and the text's encoding: `incl.str.utf8[…]`")?;
@@ -4930,7 +4940,7 @@ impl<'a> Parser<'a> {
                             match enc.name.as_str() {
                                 "utf8" | "ascii" => {
                                     if self.is(&Tok::Dot) {
-                                        return self.fail_at(enc.span, format!("`str.{}` has no byte order: write `incl.str.{}(…)`", enc.name, enc.name));
+                                        return self.fail_at_n(enc.span, "byte_order_needless", format!("`str.{}` has no byte order: write `incl.str.{}(…)`", enc.name, enc.name));
                                     }
                                     if enc.name == "utf8" { InclForm::Utf8 } else { InclForm::Ascii }
                                 }
@@ -4939,29 +4949,29 @@ impl<'a> Parser<'a> {
                                 "utf16" | "utf32" => {
                                     let says = format!("`incl.str.{e}` says its byte order: `incl.str.{e}.low_first[…]` (\"A\" stored low byte first, as Windows writes it) or `incl.str.{e}.high_first[…]`", e = enc.name);
                                     if !self.eat(&Tok::Dot) {
-                                        return self.fail_at(enc.span, says);
+                                        return self.fail_at_n(enc.span, "byte_order_unsaid", says);
                                     }
                                     let order = self.ident("`low_first` or `high_first`")?;
                                     let low_first = match order.name.as_str() {
                                         "low_first" => true,
                                         "high_first" => false,
-                                        _ => return self.fail_at(order.span, says),
+                                        _ => return self.fail_at_n(order.span, "byte_order_unsaid", says),
                                     };
                                     if enc.name == "utf16" { InclForm::Utf16 { low_first } } else { InclForm::Utf32 { low_first } }
                                 }
-                                other => return self.fail_at(enc.span, format!("`incl.str.{}` is not an encoding: `incl.str.utf8[…]`, `incl.str.ascii[…]`, or `incl.str.utf16` / `utf32` with its byte order", other)),
+                                other => return self.fail_at_n(enc.span, "include_form", format!("`incl.str.{}` is not an encoding: `incl.str.utf8[…]`, `incl.str.ascii[…]`, or `incl.str.utf16` / `utf32` with its byte order", other)),
                             }
                         }
-                        other => return self.fail_at(what.span, format!("`incl.{}` does not exist: `incl.bytes[…]` gives the bytes, `incl.str.utf8[…]` the text", other)),
+                        other => return self.fail_at_n(what.span, "include_form", format!("`incl.{}` does not exist: `incl.bytes[…]` gives the bytes, `incl.str.utf8[…]` the text", other)),
                     };
                     self.expect(&Tok::LBracket, "`[` and the file's path, in quotes")?;
                     let path_span = self.span();
                     let Tok::Str(path) = self.peek().clone() else {
-                        return self.fail("an `incl` path is written in quotes, as text (`incl.bytes[\"assets/logo.png\"]`): it is read while building");
+                        return self.fail_n("include_path_not_literal", "an `incl` path is written in quotes, as text (`incl.bytes[\"assets/logo.png\"]`): it is read while building");
                     };
                     self.bump();
                     if !self.is(&Tok::RBracket) {
-                        return self.fail_at(path_span, "an `incl` path is written in quotes, as text (`incl.bytes[\"assets/logo.png\"]`): it is read while building");
+                        return self.fail_at_n(path_span, "include_path_not_literal", "an `incl` path is written in quotes, as text (`incl.bytes[\"assets/logo.png\"]`): it is read while building");
                     }
                     self.bump();
                     let span = start.to(self.prev_span());
@@ -4970,11 +4980,11 @@ impl<'a> Parser<'a> {
                 "size" | "align" => {
                     self.bump();
                     if !self.eat(&Tok::Dot) {
-                        return self.fail(format!("`{w}` is a keyword: a type's {w} is `{w}.of[i32]` (`.of` after `{w}`), and a function named `{w}`, a C header's say, is reached through a path, `my.{w}(…)` or its module's"));
+                        return self.fail_n("keyword_name_bare", format!("`{w}` is a keyword: a type's {w} is `{w}.of[i32]` (`.of` after `{w}`), and a function named `{w}`, a C header's say, is reached through a path, `my.{w}(…)` or its module's"));
                     }
                     let of = self.ident("`of`")?;
                     if of.name != "of" {
-                        return self.fail_at(of.span, format!("`{}.{}` does not exist: `{}.of[T]`", w, of.name, w));
+                        return self.fail_at_n(of.span, "unknown_narrowing", format!("`{}.{}` does not exist: `{}.of[T]`", w, of.name, w));
                     }
                     self.expect(&Tok::LBracket, &format!("`[` after `{}.of`", w))?;
                     let ty = self.type_()?;
@@ -4982,8 +4992,8 @@ impl<'a> Parser<'a> {
                     let span = start.to(self.prev_span());
                     Ok(Expr { kind: ExprKind::SizeOf { align: w == "align", ty }, span })
                 }
-                "range" => self.fail("`range[…]` is only decided as what a `for` runs over; as a value on its own it is not — and a counting loop reads as a sentence now: `for $i [from: 1, to: 10, by: 1]` (owner, 2026-10-20)"),
-                "otherwise" => self.fail("`otherwise` follows a call that can fail: `let $x := f() otherwise 0;`"),
+                "range" => self.fail_n("range_as_value", "`range[…]` is only decided as what a `for` runs over; as a value on its own it is not — and a counting loop reads as a sentence now: `for $i [from: 1, to: 10, by: 1]` (owner, 2026-10-20)"),
+                "otherwise" => self.fail_n("otherwise_misplaced", "`otherwise` follows a call that can fail: `let $x := f() otherwise 0;`"),
                 // `op +` (owner, 2026-09-29): the operator as a value.
                 "op" if !matches!(self.peek_at(1), Tok::LBracket) => {
                     let start = self.bump().span;
@@ -5018,12 +5028,12 @@ impl<'a> Parser<'a> {
                     let span = start.to(self.prev_span());
                     Ok(Expr { kind: ExprKind::Match { value: Box::new(value), arms }, span })
                 }
-                "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail("`lang:` was removed: keywords are bare"),
+                "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail_n("spelling_removed", "`lang:` was removed: keywords are bare"),
                 w if is_keyword(w) && w != "map" && matches!(self.peek_at(1), Tok::LBracket | Tok::LParen) => {
-                    self.fail(format!("`{}` is a keyword and is never bare: a function named with one is reached only through a path — `kit.{}(…)` inside its own kit, `name::{}(…)` from outside", w, w, w))
+                    self.fail_n("keyword_name_bare", format!("`{}` is a keyword and is never bare: a function named with one is reached only through a path — `kit.{}(…)` inside its own kit, `name::{}(…)` from outside", w, w, w))
                 }
                 "let" | "return" | "if" | "else" | "loop" | "while" | "for" | "break" | "continue" | "fail" | "concur" | "whichever" | "struct" | "enum" | "pub" | "const" | "module" | "extern" | "interface" | "op" | "satisfies" | "with" | "in" | "from" | "temp" | "perm" | "seq" | "mut" | "immut" | "inline" | "layout" | "var" | "func" | "MAIN" => {
-                    self.fail(format!("expected a value, found `{}`", w))
+                    self.fail_n("unexpected_text", format!("expected a value, found `{}`", w))
                 }
                 // Another Kit's const, straight after `::`: `areas::'pi'`
                 // (`kits.md`).
@@ -5052,7 +5062,7 @@ impl<'a> Parser<'a> {
                         }
                     }
                     if path.segs.len() == 1 && path.kit.is_none() && path.head() == "my" && !self.is(&Tok::Dot) {
-                        return self.fail_at(path.span, "`my` is followed by `.` and the root item it reaches: `my.helper(…)`");
+                        return self.fail_at_n(path.span, "my_needs_path", "`my` is followed by `.` and the root item it reaches: `my.helper(…)`");
                     }
                     // `std::print.weird…` takes each value after a `<-`, C++'s
                     // `cout <<` (owner, 2026-10-01), and no `[ ]`.
@@ -5060,7 +5070,7 @@ impl<'a> Parser<'a> {
                     // 2026-10-06).
                     let weird = path.kit.as_ref().is_none_or(|l| l.name == "std") && path.segs.len() >= 2 && path.segs[0].name == "print" && path.segs.iter().any(|s| s.name == "weird");
                     if weird && self.is(&Tok::LBracket) {
-                        return self.fail(format!("`{}` takes its values with arrows, not `[ ]`: `{} <- \"n is \" <- $n <- newln;`", path.spelled(), path.spelled()));
+                        return self.fail_n("print_weird_form", format!("`{}` takes its values with arrows, not `[ ]`: `{} <- \"n is \" <- $n <- newln;`", path.spelled(), path.spelled()));
                     }
                     if weird && self.is_op("<-") {
                         let mut args = Vec::new();
@@ -5075,7 +5085,7 @@ impl<'a> Parser<'a> {
                         return Ok(e);
                     }
                     if weird {
-                        return self.fail(format!("`{}` takes at least one value, each after a `<-`: `{} <- $n <- newln;`", path.spelled(), path.spelled()));
+                        return self.fail_n("print_weird_form", format!("`{}` takes at least one value, each after a `<-`: `{} <- $n <- newln;`", path.spelled(), path.spelled()));
                     }
                     if self.is(&Tok::LBracket) {
                         let paren = self.is_call_bracket();
@@ -5103,7 +5113,7 @@ impl<'a> Parser<'a> {
                 } else if self.eat_word("give") {
                     Some(Verb::Give)
                 } else if self.is_word("lend") {
-                    return self.fail("`...` with no verb already lends each element; `...lend` is not written");
+                    return self.fail_n("spread_verb_wrong", "`...` with no verb already lends each element; `...lend` is not written");
                 } else {
                     None
                 };
@@ -5151,10 +5161,10 @@ impl<'a> Parser<'a> {
                     if DURATION_UNITS.contains(&u.as_str()) {
                         let unit = self.ident("a unit")?;
                         if let Some(new) = old_unit(&unit.name) {
-                            return self.fail_at(unit.span, format!("`{}` is an old spelling: write `{} {}` (owner, 2026-10-24)", unit.name, text.replace('_', ""), new));
+                            return self.fail_at_n(unit.span, "old_spelling", format!("`{}` is an old spelling: write `{} {}` (owner, 2026-10-24)", unit.name, text.replace('_', ""), new));
                         }
                         if bin {
-                            return self.fail_at(start.to(unit.span), "a duration is a whole number of its unit: `1500 millis`, not `1.5 secs`");
+                            return self.fail_at_n(start.to(unit.span), "not_whole_number", "a duration is a whole number of its unit: `1500 millis`, not `1.5 secs`");
                         }
                         let span = start.to(unit.span);
                         return Ok(Expr { kind: ExprKind::Duration { value: text, unit }, span });
@@ -5192,8 +5202,8 @@ impl<'a> Parser<'a> {
                 }
             }
             Tok::Word(_) | Tok::Op(_) | Tok::Ellipsis => return self.prefix(),
-            Tok::Raw(_) => return self.fail("only `inline.ASM` holds raw text"),
-            other => return self.fail(format!("expected a value, found {}", other.describe())),
+            Tok::Raw(_) => return self.fail_n("inline_block_form", "only `inline.ASM` holds raw text"),
+            other => return self.fail_n("unexpected_text", format!("expected a value, found {}", other.describe())),
         };
         self.postfix_on(e)
     }
@@ -5212,7 +5222,7 @@ impl<'a> Parser<'a> {
                         }
                         Tok::Name(n) => {
                             self.bump();
-                            return self.fail(format!("a field's name is bare: `.{}`, not `.'{}'` — quotes mark the value you hold, the route into it is bare", n, n));
+                            return self.fail_n("name_quoted", format!("a field's name is bare: `.{}`, not `.'{}'` — quotes mark the value you hold, the route into it is bare", n, n));
                         }
                         _ => break,
                     }
@@ -5240,14 +5250,14 @@ impl<'a> Parser<'a> {
                     // is `[pos …]` and anything else is a call.
                     let one = args.len() == 1 && matches!(&args[0], Arg::Positional(x) if matches!(x.kind, ExprKind::Pos(_)));
                     if one && paren {
-                        wrong_bracket(Diagnostic::error("`( )` is a call's; a position takes `[ ]`: `$xs[pos: 1]` (owner, 2026-10-22)").at(at));
+                        wrong_bracket(Diagnostic::error("`( )` is a call's; a position takes `[ ]`: `$xs[pos: 1]` (owner, 2026-10-22)").named("parens_for_brackets").at(at));
                     }
                     if !one && !paren {
                         let callee = match &e.kind {
                             ExprKind::Name(q) => format!("${}", q.name),
                             _ => "…".to_string(),
                         };
-                        wrong_bracket(Diagnostic::error(format!("a call takes `( )`: `{}(…)`; `[ ]` describes or holds, a type, a range, a list, a position (owner, 2026-10-22)", callee)).at(at));
+                        wrong_bracket(Diagnostic::error(format!("a call takes `( )`: `{}(…)`; `[ ]` describes or holds, a type, a range, a list, a position (owner, 2026-10-22)", callee)).named("call_in_brackets").at(at));
                     }
                     if one {
                         let Some(Arg::Positional(index)) = args.pop() else { unreachable!() };
@@ -5267,7 +5277,7 @@ impl<'a> Parser<'a> {
         match self.peek() {
             Tok::Str(_) | Tok::Char(_) | Tok::Newline | Tok::Num { .. } | Tok::Name(_) => {
                 let here = self.span();
-                return self.fail_at(e.span.to(here), "two values next to each other with nothing between: join text with `concat`, separate values with `,`");
+                return self.fail_at_n(e.span.to(here), if matches!(self.peek(), Tok::Str(_) | Tok::Newline) { "text_joined_without_concat" } else { "values_side_by_side" }, "two values next to each other with nothing between: join text with `concat`, separate values with `,`");
             }
             _ => {}
         }
@@ -5284,7 +5294,7 @@ impl<'a> Parser<'a> {
         let mut args = Vec::new();
         while !self.is(&Tok::RBracket) {
             if self.at_eof() {
-                return self.fail("this `[` is never closed");
+                return self.fail_n("unclosed_block", "this `[` is never closed");
             }
             // A slice says where it runs (owner, 2026-10-12): `from pos 2`,
             // `to pos 4` or `before pos 4`, each a label on its position.
@@ -5336,7 +5346,7 @@ impl<'a> Parser<'a> {
             }
             if let Tok::Name(n) = self.peek().clone() {
                 if self.is_op_at(1, "=") {
-                    return self.fail(format!("a field's name is bare in a construction: `{} = …`, not `${} = …`", n, n));
+                    return self.fail_n("name_quoted", format!("a field's name is bare in a construction: `{} = …`, not `${} = …`", n, n));
                 }
             }
             // The labels (owner, 2026-10-07): `pos 2` where a position
@@ -5395,7 +5405,7 @@ impl<'a> Parser<'a> {
             }
             let e = self.expr(0)?;
             if self.is(&Tok::Walrus) {
-                return self.fail("a field's value is given with `=`, not `:=`: the blueprint fixed the types");
+                return self.fail_n("field_form", "a field's value is given with `=`, not `:=`: the blueprint fixed the types");
             }
             if self.is_op("=") {
                 self.bump();
@@ -5417,19 +5427,19 @@ impl<'a> Parser<'a> {
         // 2026-10-24): one value after `=`, read as `{ return …; }`.
         match self.short_lambda_ahead() {
             Some(true) => return self.short_lambda(start),
-            Some(false) => return self.fail("a short lambda takes its return type from where it goes: `fn [$s] = …`, with no `-> T` (owner, 2026-10-24)"),
+            Some(false) => return self.fail_n("lambda_types_unknown", "a short lambda takes its return type from where it goes: `fn [$s] = …`, with no `-> T` (owner, 2026-10-24)"),
             None => {}
         }
         let params = self.params(ParamContext::Fn)?;
         let (ret, fails) = self.return_spec()?;
         if let Some(r) = self.ret_lent.take() {
-            return self.fail_at(r.span, "not yet: only a named `fn` hands back a borrow (`fn f [lent $a: T] -> lent T`)");
+            return self.fail_at_n(r.span, "not_built_yet", "not yet: only a named `fn` hands back a borrow (`fn f [lent $a: T] -> lent T`)");
         }
         let captures = if self.eat_word("with") { self.captures()? } else { Vec::new() };
         let outer = std::mem::replace(&mut self.returns_value, false);
         let body = self.block("the function")?;
         if self.returns_value && ret.is_none() {
-            return self.fail_at(start, "this function returns a value, so it says its type: `-> i32`");
+            return self.fail_at_n(start, "return_type_missing", "this function returns a value, so it says its type: `-> i32`");
         }
         self.returns_value = outer;
         let span = start.to(self.prev_span());
@@ -5492,7 +5502,7 @@ impl<'a> Parser<'a> {
     /// After `to`: `.type[value]`, with an optional bound bracket first.
     fn conv(&mut self, start: Span) -> Result<Expr> {
         if !self.is(&Tok::Dot) {
-            return self.fail("the target type follows `to` after a dot: `to.i32(…)`, `to.str.utf8(…)`");
+            return self.fail_n("conversion_form", "the target type follows `to` after a dot: `to.i32(…)`, `to.str.utf8(…)`");
         }
         self.bump();
         // `to.list[give 'a']`, `to.array[copy 'l']`: the element type stays,
@@ -5508,7 +5518,7 @@ impl<'a> Parser<'a> {
                 brackets_fit(&path, &args, paren, at)?;
                 if self.is(&Tok::LBracket) && !self.bracket_is_bound() {
                     let what = path.spelled();
-                    return self.fail(format!("`{}` keeps the element type, so it is not written: `{}(copy $a)`", what, what));
+                    return self.fail_n("conversion_form", format!("`{}` keeps the element type, so it is not written: `{}(copy $a)`", what, what));
                 }
                 let span = start.to(self.prev_span());
                 let e = Expr { kind: ExprKind::Call { path, args, otherwise: None }, span };
@@ -5517,18 +5527,18 @@ impl<'a> Parser<'a> {
         }
         let target = self.type_in(true)?;
         if !self.is(&Tok::LBracket) {
-            return self.fail(format!("`to.{}` takes the value to convert in `( )`: `to.{}(…)`", crate::names::type_spelling(&target), crate::names::type_spelling(&target)));
+            return self.fail_n("conversion_form", format!("`to.{}` takes the value to convert in `( )`: `to.{}(…)`", crate::names::type_spelling(&target), crate::names::type_spelling(&target)));
         }
         // A conversion runs: its value is in `( )` (owner, 2026-10-22: "`()`
         // is the target inside of that `to.`").
         if !self.is_call_bracket() {
             let shown = crate::names::type_spelling(&target);
-            wrong_bracket(Diagnostic::error(format!("a call takes `( )`: `to.{}(…)`; `[ ]` describes or holds, a type, a range, a list, a position (owner, 2026-10-22)", shown)).at(self.span()));
+            wrong_bracket(Diagnostic::error(format!("a call takes `( )`: `to.{}(…)`; `[ ]` describes or holds, a type, a range, a list, a position (owner, 2026-10-22)", shown)).named("call_in_brackets").at(self.span()));
         }
         self.bump();
         let e = self.expr(0)?;
         if self.is(&Tok::Comma) {
-            return self.fail("a conversion takes exactly one value");
+            return self.fail_n("wrong_argument_count", "a conversion takes exactly one value");
         }
         self.expect(&Tok::RBracket, "`]` closing the conversion")?;
         let span = start.to(self.prev_span());
@@ -5721,14 +5731,14 @@ fn brackets_said(path: &Path, args: &[Arg], paren: bool, at: Span) -> Result<()>
     let builds = !args.is_empty() && args.iter().all(field);
     if paren {
         if args.iter().any(field) {
-            return err(Diagnostic::error(format!("`( )` is a call's; building a struct takes `[ ]`: `{}[x = 1]` (owner, 2026-10-22)", path.spelled())).at(at));
+            return err(Diagnostic::error(format!("`( )` is a call's; building a struct takes `[ ]`: `{}[x = 1]` (owner, 2026-10-22)", path.spelled())).named("parens_for_brackets").at(at));
         }
         return Ok(());
     }
     if builds {
         return Ok(());
     }
-    err(Diagnostic::error(format!("a call takes `( )`: `{}(…)`; `[ ]` describes or holds, a type, a range, a list, a position (owner, 2026-10-22)", path.spelled())).at(at))
+    err(Diagnostic::error(format!("a call takes `( )`: `{}(…)`; `[ ]` describes or holds, a type, a range, a list, a position (owner, 2026-10-22)", path.spelled())).named("call_in_brackets").at(at))
 }
 
 /// An argument to the own function, written with its parameter's label

@@ -191,6 +191,11 @@ fn load_list(file: &str) -> HashMap<String, String> {
 
 #[test]
 fn reject_programs_are_refused_in_ccas_own_words() {
+    // Each refusal by its name too (owner, 2026-10-24: "yea" to one list of
+    // names for both engines, `errors.cyr`).
+    kayo::diag::show_names();
+    let names = error_names();
+    let name_exceptions = load_name_exceptions();
     let phrases = load_phrases();
     let dir = repo().join("oracle/tests/reject");
     let all = targets(&dir);
@@ -218,7 +223,16 @@ fn reject_programs_are_refused_in_ccas_own_words() {
             }
             return None;
         }
-        verdict(&name, &want, &got, &dir)
+        if let Some(v) = verdict(&name, &want, &got, &dir) {
+            return Some(v);
+        }
+        // The name kayo gives it, against errors.cyr's.
+        let said = got.as_ref().err().and_then(|m| m.lines().find_map(|l| l.strip_prefix("name:").map(|n| n.trim().to_string())));
+        match (said, names.get(&name)) {
+            (Some(s), Some(e)) if s != *e && name_exceptions.get(&name) != Some(&s) => Some(format!("{}: kayo names it `{}`, and errors.cyr `{}` — name the site as errors.cyr does, or list it in tests/name_exceptions.txt with why", name, s, e)),
+            (_, None) => Some(format!("{}: errors.cyr names no kind for this test", name)),
+            _ => None,
+        }
     })
     .into_iter()
     .flatten()
@@ -251,6 +265,33 @@ fn verdict(name: &str, want: &str, got: &Result<(), String>, dir: &Path) -> Opti
 
 fn oracle_err(dir: &Path, name: &str) -> String {
     std::fs::read_to_string(dir.join(format!("{}.err", name))).map(|s| s.trim().to_string()).unwrap_or_default()
+}
+
+/// `errors.cyr`'s name for each oracle refusal test.
+fn error_names() -> HashMap<String, String> {
+    let text = std::fs::read_to_string(repo().join("errors.cyr")).unwrap();
+    let mut out = HashMap::new();
+    for entry in text.split("errors::error[").skip(1) {
+        let Some(name) = entry.split("name = \"").nth(1).and_then(|r| r.split('"').next()) else { continue };
+        let Some(tests) = entry.split("tests = [").nth(1).and_then(|r| r.split(']').next()) else { continue };
+        for t in tests.split('"').skip(1).step_by(2) {
+            out.insert(t.to_string(), name.to_string());
+        }
+    }
+    out
+}
+
+/// The tests kayo names otherwise than errors.cyr, each with why
+/// (`name :: kayo's name — why`).
+fn load_name_exceptions() -> HashMap<String, String> {
+    let text = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/name_exceptions.txt")).unwrap_or_default();
+    text.lines()
+        .filter(|l| !l.trim().is_empty() && !l.starts_with('#'))
+        .filter_map(|l| {
+            let (t, rest) = l.split_once(" :: ")?;
+            Some((t.trim().to_string(), rest.split(" — ").next()?.trim().to_string()))
+        })
+        .collect()
 }
 
 /// Each line: the phrase, and the fingerprint of the `.err` it was

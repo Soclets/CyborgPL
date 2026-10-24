@@ -35,7 +35,11 @@ pub struct Fix {
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
     pub kind: Kind,
+    /// Its name, the title of the message (owner, 2026-10-22: one fixed name
+    /// per kind of error, from `errors.cyr`, which the oracle reads too).
+    pub name: Option<&'static str>,
     /// The sentence: what was found, why it matters, what to write instead.
+    /// The start of the error's docs (owner: "learning could be in docs").
     pub sentence: String,
     pub span: Option<Span>,
     /// The human-readable place: "in `pick`, called from MAIN at line 48".
@@ -99,7 +103,12 @@ impl Diagnostic {
         Diagnostic::new(Kind::Note, sentence)
     }
     pub fn new(kind: Kind, sentence: impl Into<String>) -> Diagnostic {
-        Diagnostic { kind, sentence: dollar_names(sentence.into()), span: None, place: None, when: None, why: Vec::new(), try_: None, fixes: Vec::new() }
+        Diagnostic { kind, name: None, sentence: dollar_names(sentence.into()), span: None, place: None, when: None, why: Vec::new(), try_: None, fixes: Vec::new() }
+    }
+    /// Its name from `errors.cyr`.
+    pub fn named(mut self, name: &'static str) -> Diagnostic {
+        self.name = Some(name);
+        self
     }
     pub fn at(mut self, span: Span) -> Diagnostic {
         self.span = Some(span);
@@ -143,6 +152,11 @@ impl Diagnostic {
             format!(" (concise file; decoded line {}: `{}`)", line, f.line_text_at(s.start).trim())
         });
         let _ = writeln!(out, "{}: {}{}", self.kind.label(), self.sentence, concise.unwrap_or_default());
+        // While each message is given its name (owner, 2026-10-22), the
+        // tests ask for it here; the full format replaces this line.
+        if std::env::var_os("KAYO_NAMES").is_some() || SHOW_NAMES.load(std::sync::atomic::Ordering::Relaxed) {
+            let _ = writeln!(out, "name:  {}", self.name.unwrap_or("(none)"));
+        }
         if let Some(span) = self.span {
             let file = sources.get(span.file);
             let (line, col) = file.line_col(span.start);
@@ -205,6 +219,14 @@ impl Diagnostic {
 
 /// A build stops at the first `error`; `check`s and `note`s accumulate.
 pub type Result<T> = std::result::Result<T, Box<Diagnostic>>;
+
+/// The tests' way to the names while they are not yet the first line.
+static SHOW_NAMES: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Every message after this shows its name (for the tests).
+pub fn show_names() {
+    SHOW_NAMES.store(true, std::sync::atomic::Ordering::Relaxed);
+}
 
 pub fn err<T>(d: Diagnostic) -> Result<T> {
     Err(Box::new(d))
