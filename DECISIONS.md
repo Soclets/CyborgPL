@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-24 — With no fix to show, a message says `fix: none suggested` (owner; not built)
+
+Compiler claude: kayo can write the edited line only where it knows the edit (an old spelling, a missing `lend`,
+`( )`, a label), not for a type that does not fit or a check's counterexample. Offered (a) leave `fix:` out, design
+claude's recommendation, or (b) print something in its place. The owner: "`fix: none suggested`". So **every message
+has a `fix:` line**: the edited code where kayo knows it, and otherwise `fix: none suggested`. Not built.
+
 ### 2026-10-24 — The oracle and kayo use the same error names, from one list (owner)
 
 Compiler claude, staging 2026-10-22's format (about 1,300 messages in kayo), asked who writes the names; the owner
