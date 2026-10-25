@@ -310,7 +310,11 @@ impl<'p> Interp<'p> {
                 return rt(c.line, format!("a const's value must be known at compile time; `std::{call}` is an effect, not a value"));
             }
             if c.value.values.is_empty() { return rt(c.line, format!("const '{}' needs a value", c.name)); }
-            let (v, prov) = self.bracket(&c.value, c.line)?;
+            // a typed const is the context of its value, as a typed `let` is: `const $rate: d64 = 0.12;` is a d64
+            let saved = std::mem::replace(&mut self.expected, c.ty.clone());
+            let r = self.bracket(&c.value, c.line);
+            self.expected = saved;
+            let (v, prov) = r?;
             if matches!(prov, Prov::Borrowed(..)) { return rt(c.line, format!("const '{}' cannot hold a lend", c.name)); }
             let v = self.fit(v, prov, c.ty.as_ref(), c.line)?;
             self.consts.insert(key, Slot { cell: Rc::new(RefCell::new(v)), ty: c.ty.clone(), kind: SlotKind::Const, alive: true, immut: true, sized: false, sealed: false , since: 0, deps: Vec::new() });
