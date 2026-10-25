@@ -235,3 +235,33 @@ let $b := half(-4) otherwise cum_failed.flow_back_to_bladder;
   from another kit as `otherwise cum::cum_failed.flow_back(…)`; still checked at each use (design claude's
   reading).
 
+
+## `coll.bound` — named bounded types (owner, 2026-10-25)
+
+The third kind. A member names one **bounded** type, and a use of it *is* that type, not a new one, so values move
+between the two freely (owner: "Hell yeah", from a type alias in a reader's rewrite of the corner shop; "only
+bounded"). The collection's name alone is its own bound, and members narrow it (owner: "yes, that's what a collection
+is"). Every line writes its full name, as in the other kinds.
+
+```
+coll.bound quantity {
+    quantity = i32[min: 1, max: 99];
+    quantity.small = i32[min: 1, max: 9];
+}
+
+coll.bound order {
+    order.discount = i32[min: 0, max: 50];
+    order.name = str.utf8[min: 1, max: 40 graphemes];
+}
+
+struct Line { name: order.name, count: quantity }
+fn apply_discount [$amount: d64, $percent: order.discount] -> d64 { … }
+```
+
+- **Only a bounded type**: a type with a limit after it — a number's `min:` / `max:`, a text's length, a list's or
+  map's length, `C.str`'s, a `d`'s `max_places:` (design claude's reading of "bounded"). `quantity = std::list[Line];`
+  is refused: it limits nothing.
+- **`pub` and another kit's use** follow every collection's: `pub coll.bound`, `shop::quantity.small` (design
+  claude's reading).
+
+Not built.
