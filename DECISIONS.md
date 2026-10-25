@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — `or` keeps both jobs: logical or between values, and `-> T or fail[…]` in a return type (owner)
+
+multifinity's second review (a fresh Claude) noted that `or` is logical or in `$h equal_to 12 or $h equal_to 17` and
+"or a failure" in `Item or fail[unknown_item]`. The owner: "What's the `or` clash?" (never one for the compiler: one
+sits among values, the other among types), "What are the alts?" ((a) keep; (b) `else`, which moves the clash to `if`'s
+word; (c) `otherwise`, the caller's word; (d) no word, `-> Item fail[…]`, as `-> fail[…]` already is; (e) a comma,
+which reads as two results), "How many `or`s can you use there?" (one, only before `fail[…]`, every reason inside
+its list; `-> T or fail[a] or fail[b]` and `-> i32 or bool` are refused). Design claude recommended (a), (d) if the
+clash had to go. The owner: "keep". So **`or` keeps both**, as built.
+
 ### 2026-10-25 — `coll.bound`: a collection of named bounded types (owner)
 
 multifinity's rewrite of the corner shop (on the issue thread, by a fresh Claude) had `type Quantity = i32[min: 1,
