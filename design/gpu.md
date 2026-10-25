@@ -176,6 +176,8 @@ no_check inline.MSL threads $n {
 ```
 
 - The limb is **Metal** (2026-10-06), listed as `metal { … }` under `my limbs:`.
+- **A lent list is read-only in the kernel** (owner, 2026-10-25: "(a)"; not built): a `lend` binding's kernel parameter is
+  `const device …` or `constant …`, or the block is refused (`metal::lent_but_written`); `lend.mut` is for a kernel that writes.
 - **Apple's defaults unless a block says otherwise** (owner, 2026-10-25: "yes"; not built): `inline.MSL` builds with fast
   math and signed overflow undefined; `inline.MSL.precise` asks Metal's safe math mode, precise functions, no fused
   multiply-add; `inline.MSL.wrap` makes signed overflow wrap (`-fwrapv`); `inline.MSL.precise.wrap` both.

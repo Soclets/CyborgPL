@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — A list lent to a kernel must be read-only in Metal: `const device` or `constant`, else refused (owner: a)
+
+Compiler claude, building no-copy: a kernel that writes a `lend` binding (not `lend.mut`) now changes the program's
+own list, while kayo and LLVM take a lend as unchanged, so the program reads stale values (measured: memory holding 2s,
+the program reading 1s); copying used to throw such writes away. Offered (a) refuse a `lend` binding whose kernel
+parameter is not `const device …` or `constant …`, kayo reading the kernel's text (recommended), (b) always copy a
+`lend` and share only for `lend.mut`, (c) leave it the writer's promise in `no_check`. The owner: "Does (a) cost final
+product perf?" (no: it is a check when building, and `const device` may let Apple's compiler cache reads), then "(a)".
+So **a `lend` binding's kernel parameter is `const device` or `constant`, or the block is refused**, a new name
+`metal::lent_but_written` (design claude's sketch, for compiler claude's errors.cyr). Not built.
+
 ### 2026-10-25 — `inline.MSL.precise` and `inline.MSL.wrap`: Apple's defaults unless a block says otherwise (owner)
 
 Compiler claude: kayo runs `xcrun metal -c` with no flags, so Apple's defaults apply: fast math (`fmul fast`, results
