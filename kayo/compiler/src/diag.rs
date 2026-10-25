@@ -257,6 +257,10 @@ pub struct Diagnostic {
     /// The fix lies outside the program's own code (owner, 2026-10-24):
     /// `fix: none suggested`.
     pub outside: bool,
+    /// The sentence stays on `about:` though the fix is outside: it holds
+    /// what another tool said, which the docs cannot (design claude,
+    /// 2026-10-25, of Apple's Metal compiler).
+    pub keep_about: bool,
 }
 
 /// A message's code, between backticks, shows a plain quoted name as
@@ -308,7 +312,7 @@ impl Diagnostic {
         Diagnostic::new(Kind::Note, sentence)
     }
     pub fn new(kind: Kind, sentence: impl Into<String>) -> Diagnostic {
-        Diagnostic { kind, name: None, sentence: dollar_names(sentence.into()), span: None, place: None, when: None, why: Vec::new(), try_: None, fixes: Vec::new(), outside: false }
+        Diagnostic { kind, name: None, sentence: dollar_names(sentence.into()), span: None, place: None, when: None, why: Vec::new(), try_: None, fixes: Vec::new(), outside: false, keep_about: false }
     }
     /// Its name from `errors.cyr`.
     pub fn named(mut self, name: &'static str) -> Diagnostic {
@@ -381,6 +385,13 @@ impl Diagnostic {
     /// prefix, a program past the target's limits (owner, 2026-10-24).
     pub fn outside_program(mut self) -> Diagnostic {
         self.outside = true;
+        self
+    }
+    /// Outside the program, and the sentence kept: it says what another
+    /// tool said.
+    pub fn outside_saying(mut self) -> Diagnostic {
+        self.outside = true;
+        self.keep_about = true;
         self
     }
     /// A fix made from the source: the line holding `span`, edited.
@@ -655,7 +666,7 @@ impl Diagnostic {
         if fixes.is_empty() && self.outside {
             out.push_str(",\"none_suggested\":true");
         }
-        if fixes.is_empty() && SENTENCE_LINE && !self.outside {
+        if fixes.is_empty() && SENTENCE_LINE && (!self.outside || self.keep_about) {
             let _ = write!(out, ",\"about\":{}", json_text(&self.sentence));
         }
         out.push_str("}\n");
@@ -783,7 +794,7 @@ impl Diagnostic {
         }
         // The sentence stays, last, until the message's fix is written
         // (owner, 2026-10-24: (c)); it is in the docs under the name too.
-        if SENTENCE_LINE && written == 0 && !self.outside {
+        if SENTENCE_LINE && written == 0 && (!self.outside || self.keep_about) {
             let _ = writeln!(out, "about: {}", self.sentence);
         }
         out

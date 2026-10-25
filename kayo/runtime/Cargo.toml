@@ -13,6 +13,10 @@ test = false
 doctest = false
 bench = false
 
+[features]
+# Built inside kayo-metal, beside std (owner, 2026-10-25: objc2).
+std = []
+
 [dependencies]
 # UAX #29 grapheme clusters (`char.grapheme`, counts in graphemes): no_std,
 # and the one table a text runtime cannot do without.

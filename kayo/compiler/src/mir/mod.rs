@@ -419,8 +419,11 @@ pub enum StmtKind {
     /// its outcome check; a detached one belongs to no group.
     Task { detached: bool, body: FnIdx, captures: Vec<(crate::ast::Verb, Place)>, group: u32, id: u32 },
     /// `lends`: the address of each lent place, into its register; `true`
-    /// when the assembly may write through it.
-    Asm { text: String, ins: Vec<(Place, String)>, outs: Vec<(Place, String)>, lends: Vec<(Place, bool, String)>, clobbers: Vec<String> },
+    /// when the assembly may write through it. With `msl`, an `inline.MSL`
+    /// block (owner, 2026-10-01): `ins` are the values copied to Metal
+    /// `constant`s and the thread count (`threads`), `lends` the lists and
+    /// structs lent, each register a slot, `buffer(N)`.
+    Asm { text: String, ins: Vec<(Place, String)>, outs: Vec<(Place, String)>, lends: Vec<(Place, bool, String)>, clobbers: Vec<String>, msl: Option<Box<MslRun>> },
     Nop,
 }
 
@@ -605,6 +608,13 @@ pub struct Function {
 /// A lowered `for`: the counter walks from its value at `pre`'s jump into
 /// `head` to `stop` (inclusive) by `step` — or, over a list, from 1 to its
 /// length by 1. The loop leaves normally only from `exits_from`.
+/// An `inline.MSL` block's compiled Metal library and the kernel it runs.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MslRun {
+    pub library: Vec<u8>,
+    pub kernel: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct ForLoop {
     pub pre: BlockId,

@@ -244,6 +244,8 @@ fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
         // memory and inline assembly stay the Brainstem's.
         "extern" if dot_then(&["C"]) => ("`extern.C`", "CNC"),
         "incl" if dot_then(&["C"]) => ("`incl.C`", "CNC"),
+        // Apple's GPU code is the Metal limb's (owner, 2026-10-22).
+        "inline" if dot_then(&["MSL", "Metal_Shading_Language"]) => ("`inline.MSL`", "Metal"),
         "layout" if dot_then(&["C"]) => ("`layout.C`", "CNC"),
         "C" if dot_then(&["str"]) => ("`C.str`", "CNC"),
         "i128" | "u128" => (if w == "i128" { "`i128`" } else { "`u128`" }, "WSMW"),
@@ -4205,7 +4207,7 @@ impl<'a> Parser<'a> {
             "ASM" | "Assembly" | "S" => {}
             // IEG's and Metal's, named but not read yet.
             "LL" | "LLVM" | "LLVM_Intermediate_Representation" => return self.fail_at_n(lang.span, "not_built_yet", "`inline.LL`, LLVM IR in place, is the base's, and kayo does not read it yet"),
-            "MSL" | "Metal_Shading_Language" => return self.fail_at_n(lang.span, "not_built_yet", "`inline.MSL`, the Metal Shading Language, is the Metal limb's, and kayo does not read it yet"),
+            "MSL" | "Metal_Shading_Language" => return self.inline_msl(lang.span),
             "asm" | "s" | "assembly" => return self.fail_at_n(lang.span, "inline_language_capitals", "an inline language's name is in capitals: `inline.ASM`").with_fix(lang.span, Edit::Replace, "ASM"),
             "ll" | "llvm" => return self.fail_at_n(lang.span, "inline_language_capitals", "an inline language's name is in capitals: `inline.LL`").with_fix(lang.span, Edit::Replace, "LL"),
             "msl" => return self.fail_at_n(lang.span, "inline_language_capitals", "an inline language's name is in capitals: `inline.MSL`").with_fix(lang.span, Edit::Replace, "MSL"),
@@ -4280,6 +4282,72 @@ impl<'a> Parser<'a> {
         }
         self.expect_semi("the inline block")?;
         Ok(StmtKind::InlineAsm { text, bindings })
+    }
+
+    /// `inline.MSL threads <count> { … } with [ … ];` (owner, 2026-10-01,
+    /// 2026-10-22), from after its name: how many copies of the kernel run,
+    /// the Metal code as written, and what binds to which buffer slot.
+    fn inline_msl(&mut self, name: Span) -> Result<StmtKind> {
+        let threads = if self.eat_word("threads") { Some(self.expr(0)?) } else { None };
+        let (text, text_span) = match self.peek().clone() {
+            Tok::Raw(t) => (t, self.bump().span),
+            other => return self.fail_n("unexpected_text", format!("expected `{{` holding the Metal code, found {}", other.describe())),
+        };
+        if threads.is_none() {
+            return self.fail_at_n(name, "metal::threads_unsaid", "an `inline.MSL` block says how many threads run it first: `inline.MSL threads std::list.length(lend $xs) { … }`, the copies of its kernel that run");
+        }
+        let mut bindings = Vec::new();
+        if self.eat_word("with") {
+            self.expect(&Tok::LBracket, "`[` after `with`")?;
+            while !self.is(&Tok::RBracket) {
+                let start = self.span();
+                let verb = if self.eat_word("copy") {
+                    Verb::Copy
+                } else if self.eat_word("lend") {
+                    if self.eat(&Tok::Dot) {
+                        let m = self.ident("`mut`")?;
+                        if m.name != "mut" {
+                            return self.fail_at_n(m.span, "unknown_verb", "`lend` or `lend.mut`");
+                        }
+                        Verb::LendMut
+                    } else {
+                        Verb::Lend
+                    }
+                } else {
+                    return self.fail_n("metal::binding_verb_wrong", "a value binds to the GPU with its verb: `lend $xs -> buffer(0)` (`lend.mut` if the kernel writes it) or `copy $k -> buffer(1)`");
+                };
+                let name = self.qname("the variable bound")?;
+                if !self.is_op("->") {
+                    return self.fail_n("unexpected_text", format!("expected `->` and its slot after ${}: `-> buffer(0)`", name.name));
+                }
+                self.bump();
+                let slot_word = self.ident("`buffer` and its number")?;
+                if slot_word.name != "buffer" {
+                    return self.fail_at_n(slot_word.span, "unexpected_text", "a value binds to a buffer slot, named as Metal names it: `buffer(0)`");
+                }
+                if !(self.eat(&Tok::LParen) || self.eat(&Tok::LBracket)) {
+                    return self.fail_n("unexpected_text", "the slot's number follows in `( )`: `buffer(0)`");
+                }
+                let slot = match self.peek().clone() {
+                    Tok::Num { text, bin: false, .. } => text.parse::<u32>().ok(),
+                    _ => None,
+                };
+                let Some(slot) = slot else {
+                    return self.fail_n("not_whole_number", "a buffer slot is a whole number: `buffer(0)`");
+                };
+                self.bump();
+                if !(self.eat(&Tok::RParen) || self.eat(&Tok::RBracket)) {
+                    return self.fail_n("unexpected_text", "the slot's number is closed with `)`: `buffer(0)`");
+                }
+                bindings.push(MslBinding { verb, name, slot, span: start.to(self.prev_span()) });
+                if !self.eat(&Tok::Comma) {
+                    break;
+                }
+            }
+            self.expect(&Tok::RBracket, "`]` closing the bindings")?;
+        }
+        self.expect_semi("the inline block")?;
+        Ok(StmtKind::InlineMsl { text, text_span, threads, bindings })
     }
 
     /// An expression statement or an assignment.

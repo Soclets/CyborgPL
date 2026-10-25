@@ -112,7 +112,19 @@ pub enum StmtKind {
     Match { value: Expr, arms: Vec<MatchArm> },
     Concur { detached: bool, captures: Vec<CaptureBinding>, body: Block, otherwise: Option<Otherwise>, fails: Vec<(String, Option<Ty>)> },
     Whichever { arms: Vec<WhicheverArm>, otherwise: Option<Otherwise> },
-    InlineAsm { text: String, ins: Vec<(LocalId, String)>, outs: Vec<(LocalId, String)>, lends: Vec<(LocalId, bool, String)>, clobbers: Vec<String> },
+    /// `inline.ASM`, or `inline.MSL` when `msl` says so: then `ins` are the
+    /// values copied to Metal `constant`s and `lends` the lists and structs
+    /// lent, each with its slot, `buffer(N)`.
+    InlineAsm { text: String, ins: Vec<(LocalId, String)>, outs: Vec<(LocalId, String)>, lends: Vec<(LocalId, bool, String)>, clobbers: Vec<String>, msl: Option<Box<Msl>> },
+}
+
+/// An `inline.MSL` block, compiled: the Metal library Apple's compiler
+/// made, the kernel it runs, and how many copies of it run.
+#[derive(Debug, Clone)]
+pub struct Msl {
+    pub library: Vec<u8>,
+    pub kernel: String,
+    pub threads: Expr,
 }
 
 #[derive(Debug, Clone)]

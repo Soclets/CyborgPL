@@ -572,6 +572,17 @@ pub struct Stmt {
     pub span: Span,
 }
 
+/// One value an `inline.MSL` block binds to a Metal buffer slot.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MslBinding {
+    /// `lend`, `lend.mut` or `copy`.
+    pub verb: Verb,
+    pub name: QName,
+    /// `buffer(N)`'s N.
+    pub slot: u32,
+    pub span: Span,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum StmtKind {
     /// A declaration: `let 'x' := …;`, `let mut 'x': T = …;`, `let 'x' $:= …;` (owner,
@@ -608,6 +619,10 @@ pub enum StmtKind {
     /// `{ gives "free"; }` in a `#strict` file.
     Gives { value: Expr, bare: bool },
     InlineAsm { text: String, bindings: Vec<AsmBinding> },
+    /// `inline.MSL threads <count> { … } with [lend.mut $xs -> buffer(0),
+    /// copy $k -> buffer(1)];` (owner, 2026-10-01, 2026-10-22): Metal's code,
+    /// handed to Apple's compiler unchanged; `text_span` is where it is.
+    InlineMsl { text: String, text_span: Span, threads: Option<Expr>, bindings: Vec<MslBinding> },
     /// `must …;` in a `test fn` (owner, 2026-09-29): what must hold, that
     /// something fails (with a reason), or that a check site fires.
     Must { kind: MustKind, expr: Expr },

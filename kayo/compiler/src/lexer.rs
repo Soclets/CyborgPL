@@ -384,10 +384,25 @@ impl<'a> Lexer<'a> {
     /// `inline.MSL`, and MTM's whole names for them).
     fn after_inline_asm(&self) -> bool {
         let n = self.toks.len();
-        n >= 3
-            && matches!(&self.toks[n - 1].tok, Tok::Word(w) if matches!(w.as_str(), "ASM" | "Assembly" | "S" | "LL" | "LLVM" | "LLVM_Intermediate_Representation" | "MSL" | "Metal_Shading_Language"))
-            && self.toks[n - 2].tok == Tok::Dot
-            && matches!(&self.toks[n - 3].tok, Tok::Word(w) if w == "inline")
+        let inline_at = |k: usize, names: &[&str]| k >= 2
+            && matches!(&self.toks[k].tok, Tok::Word(w) if names.contains(&w.as_str()))
+            && self.toks[k - 1].tok == Tok::Dot
+            && matches!(&self.toks[k - 2].tok, Tok::Word(w) if w == "inline");
+        if n >= 3 && inline_at(n - 1, &["ASM", "Assembly", "S", "LL", "LLVM", "LLVM_Intermediate_Representation", "MSL", "Metal_Shading_Language"]) {
+            return true;
+        }
+        // `inline.MSL threads <count> {` (owner, 2026-10-01): the count
+        // stands between the name and the Metal code.
+        let mut k = n;
+        while k > 0 {
+            k -= 1;
+            match &self.toks[k].tok {
+                Tok::Semi | Tok::LBrace | Tok::RBrace | Tok::Raw(_) => return false,
+                Tok::Word(w) if w == "threads" => return k >= 1 && inline_at(k - 1, &["MSL", "Metal_Shading_Language"]),
+                _ => {}
+            }
+        }
+        false
     }
 
     fn raw_block(&mut self, start: usize) -> Result<()> {

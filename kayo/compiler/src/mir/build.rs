@@ -1054,11 +1054,21 @@ impl<'a> FnBuilder<'a> {
             hir::StmtKind::Whichever { arms, otherwise } => {
                 self.whichever(arms, otherwise.as_ref(), span);
             }
-            hir::StmtKind::InlineAsm { text, ins, outs, lends, clobbers } => {
-                let ins = ins.iter().map(|(l, r)| (Place::local(LocalId(l.0)), r.clone())).collect();
+            hir::StmtKind::InlineAsm { text, ins, outs, lends, clobbers, msl } => {
+                let mut ins: Vec<(Place, String)> = ins.iter().map(|(l, r)| (Place::local(LocalId(l.0)), r.clone())).collect();
                 let outs = outs.iter().map(|(l, r)| (Place::local(LocalId(l.0)), r.clone())).collect();
                 let lends = lends.iter().map(|(l, m, r)| (Place::local(LocalId(l.0)), *m, r.clone())).collect();
-                self.push(StmtKind::Asm { text: text.clone(), ins, outs, lends, clobbers: clobbers.clone() }, span);
+                // The thread count, worked out where the block stands.
+                let run = msl.as_ref().map(|m| {
+                    let ty = self.resolve_ty(&m.threads.ty);
+                    let rv = self.rvalue(&m.threads, span);
+                    let t = self.into_temp(rv, &ty, span);
+                    if let Operand::Read(p) | Operand::Move(p) = t {
+                        ins.push((p, "threads".into()));
+                    }
+                    Box::new(MslRun { library: m.library.clone(), kernel: m.kernel.clone() })
+                });
+                self.push(StmtKind::Asm { text: text.clone(), ins, outs, lends, clobbers: clobbers.clone(), msl: run }, span);
             }
         }
     }

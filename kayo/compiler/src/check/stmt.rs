@@ -643,6 +643,10 @@ impl Checker {
             ast::StmtKind::Match { value, arms } => self.match_stmt(ctx, value, arms),
             ast::StmtKind::Concur { detached, captures, body, otherwise } => self.concur_stmt(ctx, *detached, captures, body, otherwise.as_ref(), s.span),
             ast::StmtKind::Whichever { arms, otherwise } => self.whichever_stmt(ctx, arms, otherwise.as_ref(), s.span),
+            ast::StmtKind::InlineMsl { text, text_span, threads, bindings } => match threads {
+                Some(t) => self.inline_msl(ctx, text, *text_span, t, bindings, s.span),
+                None => err(Diagnostic::error("an `inline.MSL` block says how many threads run it first").named("metal::threads_unsaid").at(s.span)),
+            },
             ast::StmtKind::InlineAsm { text, bindings } => {
                 self.power_use(ctx, &["inline_assembly"], None, "runs assembly (`inline.ASM`)".into(), s.span);
                 if self.needs_mark(ctx) {
@@ -705,7 +709,7 @@ impl Checker {
                         }
                     }
                 }
-                Ok(hir::StmtKind::InlineAsm { text: text.clone(), ins, outs, lends, clobbers })
+                Ok(hir::StmtKind::InlineAsm { text: text.clone(), ins, outs, lends, clobbers, msl: None })
             }
         }
     }

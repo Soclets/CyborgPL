@@ -6,7 +6,9 @@
 //! stops the program and says where (`core-features.md`: "the program runs
 //! and fails loudly where a guardrail is missing"; `diagnostics.md`: "the
 //! trap at run time names the site").
-#![no_std]
+// With `std` (kayo-metal's build, for a program running `inline.MSL`):
+// std's panic and unwinding stand in for the two below.
+#![cfg_attr(not(feature = "std"), no_std)]
 
 // Tasks, channels and the parallel `for` stand on the OS's threads; a chip
 // with no OS (`aarch64-none`, owner 2026-10-09) has none of them.
@@ -183,6 +185,7 @@ pub unsafe extern "C" fn cyborg_proof_failed(msg: *const u8, len: usize) -> ! {
 }
 
 #[cfg(not(test))]
+#[cfg(not(feature = "std"))]
 #[cfg(not(target_os = "none"))]
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {
@@ -203,6 +206,7 @@ fn panic(_: &core::panic::PanicInfo) -> ! {
 /// prebuilt `core` this links against was not built that way, and the
 /// linker wants the symbol its objects name. It is never called.
 #[cfg(not(test))]
+#[cfg(not(feature = "std"))]
 #[no_mangle]
 pub extern "C" fn rust_eh_personality() {}
 

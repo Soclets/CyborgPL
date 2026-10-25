@@ -200,6 +200,10 @@ fn real_main() {
                     i += 1;
                 }
             }
+            // Nothing named is nothing built: say how, not a silent 0.
+            if files.is_empty() {
+                usage();
+            }
             let mut failed = false;
             for f in &files {
                 let dest = out.clone().unwrap_or_else(|| stem_of(Path::new(f)));

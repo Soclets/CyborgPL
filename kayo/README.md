@@ -1072,6 +1072,28 @@ Dated, with the alternative, so each can become a question later.
   way to its drop). A print or a flush with `otherwise` handles
   `write_failed`: kayo's buffer is sent at that print, a writer's status is
   asked; with none, a failed write stops the program.
+- **2026-10-25 — `inline.MSL`, Metal on Apple's GPU** (owner, 2026-10-01, 2026-10-22; `design/gpu.md`).
+  `no_check inline.MSL threads <count> { … } with [lend.mut $xs -> buffer(0), copy $k -> buffer(1)];` is read
+  (the lexer takes the Metal code raw after the count), refused unless the kit lists the limb Metal, and
+  checked (`check/msl.rs`): a `no_check` site; one `kernel` (`metal::kernel_missing`, `metal::two_kernels`);
+  each `#include` a file inside the kit; each binding by the verb its kind takes — a list or array of numbers
+  or `layout.C` structs, or one struct, lent; a number copied to a Metal `constant` — in a slot of its own.
+  kayo writes the Metal declaration of each bound `layout.C` struct (and the structs its fields hold) at the
+  top, and Apple's compiler (`xcrun metal`, `metallib`) compiles the block at build time (`metal.rs`); a
+  refusal of its is `metal::compile_failed` at the line it names. The library is carried in the program: MIR's
+  `Asm` statement with `msl`, the thread count among its values; codegen hands the runtime the library, the
+  kernel's name, the count, each binding's slot, kind and memory, and the block's place (`cyborg_msl_run`),
+  and links Metal, Foundation, CoreGraphics and the Objective-C runtime. `cyborg_msl_run` is in `kayo-metal`
+  (`metal/`), a second runtime archive: `kayo-runtime` built with its `std` feature (std's panic in place of
+  its own) and objc2, objc2-foundation, objc2-metal, block2 and dispatch2 (owner, 2026-10-25: objc2), linked in
+  place of `libkayo_runtime.a` only by a program with a block. It is built by name, `cargo build -p
+  kayo-metal --release` (not a default member, so a whole-workspace build never turns on the runtime's
+  `std`). It copies each lent value into a shared Metal buffer and a `lend.mut` one back after the kernel
+  (whether to lend the memory itself, page-aligned, waits on the owner); a value copied in goes by
+  `setBytes`; the threads go in groups as wide as the pipeline takes; anything Metal refuses at run time
+  stops the program with `error[metal::run_failed]` at the block. `metal::compile_failed` says `fix: none
+  suggested` and keeps Apple's own words on `about:` (`Diagnostic::outside_saying`). A program with a
+  block is about 2 MB, std's share.
 - **2026-10-24 — The fixes, family by family** (owner, 2026-10-24: "finish it"; `kayo/FIXES.md`, the
   checklist). Every fix is a set of edits made from the source (`diag::Edit`: a span replaced, wrapped,
   a word or a line taken out, text put in, a line put above, a word swapped), so one fix is one or more

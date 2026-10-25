@@ -9,6 +9,7 @@
 //! its arguments) — the per-shape compilation `generics.md` decides.
 
 pub mod expr;
+pub mod msl;
 pub mod mutscan;
 pub mod stmt;
 

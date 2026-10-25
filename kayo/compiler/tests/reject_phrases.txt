@@ -887,17 +887,17 @@ writer_size_unit [fnv:1b9d61434f660919] :: a writer's size says its unit: `size:
 writer_unflushed [fnv:60b7c7a39f4199a0] :: goes away still holding text: `std::print.flush(lend.mut $out);` before its block ends
 short_lambda_return_type [fnv:1129f5c2f12a209c] :: a short lambda takes its return type from where it goes
 short_lambda_untyped [fnv:54f2c7cf907c604c] :: a short lambda takes its types from where it goes, and here nothing sa
-msl_copy_list [fnv:22edc1402ce7344a] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: 'xs' is a list of numbers: lend it, `lend $xs -> buffer(0)`,
-msl_include_missing [fnv:4319c5c377fdf56b] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: `#include "shaders/nope.metal"`: there is no such file in th
-msl_include_outside [fnv:519c5d155fbe97f1] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: `#include "../outside.metal"` reaches outside the kit: a sha
-msl_lend_number [fnv:cac652cdd675ee66] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: 'k' is a single value: `copy $k -> buffer(1)`, a Metal `cons
-msl_metal_not_listed [fnv:f82c75ae39ff9d4b] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: `inline.MSL` is Metal's, and this kit's CyJet.toml does not
-msl_needs_no_check [fnv:10fa1498d854aa1d] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: an `inline.MSL` block is a no_check site: the compiler canno
-msl_no_kernel [fnv:5d5510cc1907b89f] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: an `inline.MSL` block holds one `kernel` function, the one i
-msl_no_threads [fnv:b529f3af359a0c53] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: an `inline.MSL` block says how many threads run it first: `i
-msl_slot_twice [fnv:4696919b3467d594] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: `buffer(0)` is bound twice, to $xs and $xs
-msl_text_bound [fnv:2ec49dab014f6094] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: 'k' is str, and what binds to the GPU is a number, a list of
-msl_two_kernels [fnv:db113e0ce70405a6] :: !unbuilt inline.MSL (owner, 2026-10-24; oracle d8a84895); then: an `inline.MSL` block holds one kernel, and this one has 2:
+msl_copy_list [fnv:22edc1402ce7344a] :: 'xs' is a list of numbers: lend it, `lend $xs -> buffer(0)`,
+msl_include_missing [fnv:4319c5c377fdf56b] :: `#include "shaders/nope.metal"`: there is no such file in th
+msl_include_outside [fnv:519c5d155fbe97f1] :: `#include "../outside.metal"` reaches outside the kit: a sha
+msl_lend_number [fnv:cac652cdd675ee66] :: 'k' is a single value: `copy $k -> buffer(1)`, a Metal `cons
+msl_metal_not_listed [fnv:f82c75ae39ff9d4b] :: `inline.MSL` is Metal's, and this kit's CyJet.toml does not
+msl_needs_no_check [fnv:10fa1498d854aa1d] :: an `inline.MSL` block is a no_check site: the compiler canno
+msl_no_kernel [fnv:5d5510cc1907b89f] :: an `inline.MSL` block holds one `kernel` function, the one i
+msl_no_threads [fnv:b529f3af359a0c53] :: an `inline.MSL` block says how many threads run it first: `i
+msl_slot_twice [fnv:4696919b3467d594] :: `buffer(0)` is bound twice, to $xs and $xs
+msl_text_bound [fnv:2ec49dab014f6094] :: 'k' is str, and what binds to the GPU is a number, a list of
+msl_two_kernels [fnv:db113e0ce70405a6] :: an `inline.MSL` block holds one kernel, and this one has 2:
 channel_through_std [fnv:2cf20a96c3edbb9f] :: `channel` is the MCPS limb's, not std's: write `channel.send(…)`
 writer_way_unknown [fnv:4053b6186a43b790] :: a writer is `std::print.writer`, `.whole` or `.split`
 use_list_without_as [fnv:f116abd9d3bfd802] :: `use` says the name after `as`

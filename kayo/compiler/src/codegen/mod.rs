@@ -985,7 +985,12 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         self.cannot("this task has no shape in the generated code yet", span);
                     }
                 }
-                StmtKind::Asm { text, ins, outs, lends, clobbers } => {
+                StmtKind::Asm { msl: Some(run), ins, lends, .. } => {
+                    if self.msl_run(fi, run, ins, lends, slots, f.span(s.span)).is_none() {
+                        self.cannot("this `inline.MSL` has no shape in the generated code yet", Some(f.span(s.span)));
+                    }
+                }
+                StmtKind::Asm { text, ins, outs, lends, clobbers, msl: None } => {
                     if self.inline_asm(fi, text, ins, outs, lends, clobbers, slots).is_none() {
                         self.cannot("this `inline.ASM` has no shape in the generated code yet", Some(f.span(s.span)));
                     }
@@ -2304,18 +2309,24 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// What a check that stops the program says: `check[name] at
     /// file:line:col`, then `where:` and `code:` (`design/diagnostics.md`).
     pub(super) fn trap_text(&self, fi: usize, name: &str, sentence: &str, span: crate::source::Span) -> String {
+        let mut out = format!("check[{}] {}", name, self.place_text(fi, span));
+        if crate::diag::SENTENCE_LINE {
+            out.push_str(&format!("about: {}\n", sentence));
+        }
+        out
+    }
+
+    /// Where a stop is: `at file:line:col`, then `where:` and `code:`.
+    pub(super) fn place_text(&self, fi: usize, span: crate::source::Span) -> String {
         let file = self.sources.get(span.file);
         let (line, col) = file.line_col(span.start);
         let f = &self.p.functions[fi];
         let where_ = if f.name.is_empty() || f.name == "MAIN" { "MAIN".to_string() } else { format!("{}()", f.name) };
         let code = file.slice(span).trim();
         let code = code.lines().next().unwrap_or("").trim_end();
-        let mut out = format!("check[{}] at {}:{}:{}\nwhere: in {}\n", name, file.display_name(), line, col, where_);
+        let mut out = format!("at {}:{}:{}\nwhere: in {}\n", file.display_name(), line, col, where_);
         if !code.is_empty() {
             out.push_str(&format!("code:  {}\n", code));
-        }
-        if crate::diag::SENTENCE_LINE {
-            out.push_str(&format!("about: {}\n", sentence));
         }
         out
     }
@@ -2878,6 +2889,87 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// through a pointer it was handed — which costs optimisation, never
     /// correctness. Whole registers: a value goes in widened to 64 bits by
     /// its own sign, and comes out narrowed to its place.
+    /// An `inline.MSL` block where it stands (owner, 2026-10-01): its
+    /// library, carried in the program, handed to the runtime with the
+    /// kernel's name, the thread count and each binding — a lent list's or
+    /// struct's memory as it is, a copied value's bytes — and the runtime
+    /// runs it on the GPU and waits for it.
+    fn msl_run(&mut self, fi: usize, run: &crate::mir::MslRun, ins: &[(Place, String)], lends: &[(Place, bool, String)], slots: &[Option<PointerValue<'ctx>>], span: crate::source::Span) -> Option<()> {
+        USES_METAL.with(|m| m.set(true));
+        let i64t = self.ctx.i64_type();
+        let i32t = self.ctx.i32_type();
+        let ptr = self.ctx.ptr_type(AddressSpace::default());
+        // The library's bytes and the kernel's name, as constants.
+        let lib = self.ctx.const_string(&run.library, false);
+        let g = self.module.add_global(lib.get_type(), None, "metal_library");
+        g.set_initializer(&lib);
+        g.set_constant(true);
+        g.set_linkage(Linkage::Private);
+        let kernel = self.global_bytes(&run.kernel);
+        let slot_of = |r: &str| r.strip_prefix("buffer(").and_then(|r| r.strip_suffix(')')).and_then(|n| n.parse::<u64>().ok());
+        // Each binding: its slot, how it binds (0 lent, 1 lent to change, 2
+        // a constant), where its bytes are and how many.
+        let binding = self.ctx.struct_type(&[i32t.into(), i32t.into(), ptr.into(), i64t.into()], false);
+        let mut entries: Vec<(u64, u64, PointerValue<'ctx>, IntValue<'ctx>)> = Vec::new();
+        let mut threads = None;
+        for (p, r) in ins {
+            if r == "threads" {
+                let v = self.operand(fi, &Operand::Read(p.clone()), slots)?;
+                threads = Some(self.fit_as(v, i64t.into(), false).into_int_value());
+                continue;
+            }
+            let (slot, ty) = self.slot_of(fi, p, slots)?;
+            let lt = self.ty(&ty)?;
+            let size = self.target.get_store_size(&lt);
+            entries.push((slot_of(r)?, 2, slot, i64t.const_int(size, false)));
+        }
+        for (p, mutable, r) in lends {
+            let (slot, ty) = self.slot_of(fi, p, slots)?;
+            let (data, bytes) = if let Ty::Seq { elem, .. } = ty.base() {
+                // A list: its elements, length times their size.
+                let st = match self.ty(&ty)? {
+                    BasicTypeEnum::StructType(s) => s,
+                    _ => return None,
+                };
+                let field = self.builder.build_struct_gep(st, slot, 0, "data").ok()?;
+                let data = self.builder.build_load(ptr, field, "p").ok()?.into_pointer_value();
+                let len_at = self.builder.build_struct_gep(st, slot, 1, "len").ok()?;
+                let len = self.builder.build_load(i64t, len_at, "n").ok()?.into_int_value();
+                let et = self.ty(elem)?;
+                let elem_size = self.target.get_store_size(&et);
+                let bytes = self.builder.build_int_mul(len, i64t.const_int(elem_size, false), "bytes").ok()?;
+                (data, bytes)
+            } else {
+                let lt = self.ty(&ty)?;
+                let size = self.target.get_store_size(&lt);
+                (slot, i64t.const_int(size, false))
+            };
+            entries.push((slot_of(r)?, if *mutable { 1 } else { 0 }, data, bytes));
+        }
+        let count = entries.len() as u64;
+        let table = self.builder.build_array_alloca(binding, i64t.const_int(count.max(1), false), "bindings").ok()?;
+        for (k, (slot, kind, data, bytes)) in entries.into_iter().enumerate() {
+            let at = unsafe { self.builder.build_gep(binding, table, &[i64t.const_int(k as u64, false)], "binding").ok()? };
+            let fields: [BasicValueEnum<'ctx>; 4] = [i32t.const_int(slot, false).into(), i32t.const_int(kind, false).into(), data.into(), bytes.into()];
+            for (n, v) in fields.into_iter().enumerate() {
+                let f = self.builder.build_struct_gep(binding, at, n as u32, "field").ok()?;
+                self.builder.build_store(f, v).ok()?;
+            }
+        }
+        let run_fn = match self.module.get_function("cyborg_msl_run") {
+            Some(f) => f,
+            None => self.module.add_function("cyborg_msl_run", self.ctx.void_type().fn_type(&[ptr.into(), i64t.into(), ptr.into(), i64t.into(), i64t.into(), ptr.into(), i64t.into(), ptr.into(), i64t.into()], false), Some(Linkage::External)),
+        };
+        // Where the block is, for the runtime to say if the GPU fails it.
+        let place = self.place_text(fi, span);
+        let at = self.global_bytes(&place);
+        // Its prints first: what came before the block is out before the
+        // GPU runs, as before any call that leaves the program's code.
+        self.emit_print_flush();
+        self.builder.build_call(run_fn, &[g.as_pointer_value().into(), i64t.const_int(run.library.len() as u64, false).into(), kernel.into(), i64t.const_int(run.kernel.len() as u64, false).into(), threads?.into(), table.into(), i64t.const_int(count, false).into(), at.into(), i64t.const_int(place.len() as u64, false).into()], "").ok()?;
+        Some(())
+    }
+
     fn inline_asm(&mut self, fi: usize, text: &str, ins: &[(Place, String)], outs: &[(Place, String)], lends: &[(Place, bool, String)], clobbers: &[String], slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {
         let abi = |r: &str| -> String {
             match r {
@@ -4888,6 +4980,11 @@ pub fn split_debug(out: &Path) -> Result<std::path::PathBuf, String> {
     Err(format!("not yet: a final build for `{}` writes its debug info beside the program, and kayo knows that file only for macOS (`.dSYM`), Linux and no OS (`.debug`) so far", target))
 }
 
+thread_local! {
+    /// The program holds an `inline.MSL` block: it links Metal.
+    static USES_METAL: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
 pub fn link(obj: &Path, out: &Path) -> Result<(), String> {
     if crate::target::bare() {
         let Some(script) = crate::target::layout() else {
@@ -4895,7 +4992,14 @@ pub fn link(obj: &Path, out: &Path) -> Result<(), String> {
         };
         return bare::link(obj, &script.0, &script.1, out);
     }
-    let runtime = runtime_path().ok_or_else(|| "the runtime is not built: `cargo build -p kayo-runtime --release`".to_string())?;
+    // Apple's GPU, for a program with an `inline.MSL` block: the runtime
+    // built with std and what reaches Metal, in place of the bare one.
+    let metal = USES_METAL.with(|m| m.replace(false));
+    let runtime = if metal {
+        runtime_path("libkayo_metal.a").ok_or_else(|| "the runtime with Metal is not built: `cargo build -p kayo-metal --release`".to_string())?
+    } else {
+        runtime_path("libkayo_runtime.a").ok_or_else(|| "the runtime is not built: `cargo build -p kayo-runtime --release`".to_string())?
+    };
     if !cfg!(target_os = "macos") {
         return Err("linking with lld is built for macOS so far: this host's system libraries and start files are not found yet".into());
     }
@@ -4930,6 +5034,14 @@ pub fn link(obj: &Path, out: &Path) -> Result<(), String> {
         runtime.to_string_lossy().into_owned(),
         "-lSystem".into(),
     ];
+    // Metal, and the Objective-C runtime its objects are reached through.
+    if metal {
+        for f in ["Metal", "Foundation", "CoreGraphics"] {
+            args.push("-framework".into());
+            args.push(f.into());
+        }
+        args.push("-lobjc".into());
+    }
     // The C libraries the kits list (owner, 2026-10-19), found in the
     // system's folders (the SDK) and Homebrew's.
     let libs = crate::target::c_libs();
@@ -4952,17 +5064,17 @@ pub fn link(obj: &Path, out: &Path) -> Result<(), String> {
     Err(if said.is_empty() { "the linker (lld) refused the program".into() } else { format!("the linker (lld) refused the program:\n{}", said) })
 }
 
-fn runtime_path() -> Option<std::path::PathBuf> {
+fn runtime_path(name: &str) -> Option<std::path::PathBuf> {
     // Beside the compiler, which is where cargo puts it.
     let exe = std::env::current_exe().ok()?;
     for dir in exe.parent()?.ancestors().take(4) {
         for profile in ["release", "debug"] {
-            let p = dir.join(profile).join("libkayo_runtime.a");
+            let p = dir.join(profile).join(name);
             if p.is_file() {
                 return Some(p);
             }
         }
-        let p = dir.join("libkayo_runtime.a");
+        let p = dir.join(name);
         if p.is_file() {
             return Some(p);
         }

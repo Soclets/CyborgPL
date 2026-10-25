@@ -222,6 +222,18 @@ impl Scan {
                     }
                 }
             }
+            // A `lend.mut` binding is the kernel's to change.
+            StmtKind::InlineMsl { threads, bindings, .. } => {
+                if let Some(t) = threads {
+                    self.expr(t);
+                }
+                for b in bindings {
+                    if b.verb == Verb::LendMut {
+                        let name = b.name.name.clone();
+                        self.change(&name);
+                    }
+                }
+            }
         }
     }
 

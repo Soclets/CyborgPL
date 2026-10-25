@@ -3,5 +3,3 @@
 # edit from here. The test insists each of these still fails, so the day one is
 # fixed the suite says so and the line goes.
 case_mappings :: `to.casing` (withdrawn in my notes; asked) reads `casing` bare: `casing` is std's: write `std::casing`
-msl_shared :: inline.MSL (owner, 2026-10-24; oracle d8a84895) not built yet: `#include` is not a comment form
-msl_twice :: inline.MSL (owner, 2026-10-24; oracle d8a84895) not built yet: `*` is an old spelling

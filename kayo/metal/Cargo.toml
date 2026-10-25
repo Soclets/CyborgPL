@@ -1,0 +1,28 @@
+[package]
+name = "kayo-metal"
+version = "0.0.1"
+edition = "2021"
+description = "The runtime with Apple's GPU, linked into a CyborgPL program that runs `inline.MSL`"
+publish = false
+
+[lib]
+name = "kayo_metal"
+path = "src/lib.rs"
+crate-type = ["staticlib"]
+test = false
+doctest = false
+bench = false
+
+[dependencies]
+# Every runtime function, beside std (the runtime's panic handler stands
+# down for std's).
+kayo-runtime = { path = "../runtime", features = ["std"] }
+
+# Metal through the Objective-C runtime, typed (owner, 2026-10-25: "(b)",
+# objc2); macOS only, so the no-OS target never sees them.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "=0.6.5"
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std"] }
+objc2-metal = { version = "=0.3.2", default-features = false, features = ["std", "dispatch2", "MTLDevice", "MTLBuffer", "MTLCommandQueue", "MTLCommandBuffer", "MTLCommandEncoder", "MTLComputeCommandEncoder", "MTLComputePipeline", "MTLLibrary", "MTLResource", "MTLTypes"] }
+# The library as data, read where it lies in the program.
+dispatch2 = { version = "=0.3.1", default-features = false, features = ["alloc", "block2", "objc2"] }

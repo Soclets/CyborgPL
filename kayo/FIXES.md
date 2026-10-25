@@ -468,3 +468,18 @@ said why), **—** (not yet).
 | `template_value_unknown` | 4 | keeps about | the value is the writer's |
 | `use_form` | 5 | partly | ` as NAME` after the path; a use of this kit's own path goes; not yet: a `use` below other lines (it moves), a missing `;` |
 | `use_name_taken` | 1 | keeps about | the new name is the writer's |
+
+## Metal, `inline.MSL` (10 names)
+
+| name | sites | status | notes |
+|---|---|---|---|
+| `metal::binding_verb_wrong` | 3 | written | the verb the value takes, `lend` / `lend.mut` or `copy` |
+| `metal::cannot_bind` | 2 | keeps about | what is bound instead is the writer's |
+| `metal::compile_failed` | 1 | none suggested | the fix is in the writer's Metal, which kayo hands on unchanged (design claude, 2026-10-25); Apple's message stays on `about:` |
+| `metal::include_missing` | 1 | keeps about | the path is the writer's |
+| `metal::include_outside_kit` | 1 | keeps about | where the shared file lives is the writer's |
+| `metal::kernel_missing` | 1 | keeps about | the kernel is the writer's |
+| `metal::run_failed` | 1 | none suggested | the GPU refused at run time: the machine's, not the program's |
+| `metal::slot_bound_twice` | 1 | keeps about | which value takes which slot is the writer's |
+| `metal::threads_unsaid` | 2 | keeps about | the count is the writer's |
+| `metal::two_kernels` | 1 | keeps about | which kernel the block runs is the writer's |

@@ -1,6 +1,10 @@
 [workspace]
 resolver = "2"
-members = ["base", "compiler", "runtime", "limbs/*"]
+members = ["base", "compiler", "runtime", "metal", "limbs/*"]
+# kayo-metal turns on the runtime's `std`: built with the rest, it would
+# make every program's runtime std's too, so it is built only by name,
+# `cargo build -p kayo-metal --release`.
+default-members = ["base", "compiler", "runtime", "limbs/*"]
 
 [profile.release]
 panic = "abort"
