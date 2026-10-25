@@ -1718,6 +1718,16 @@ impl Items {
                         ("list", Some("not_page_aligned"), 2) => Some(false),
                         _ => None,
                     };
+                    // Another word between `list` and its element type
+                    // means a kind it does not have.
+                    if head == "list" && pages.is_none() && path.segs.len() == 2 && args.len() == 1 {
+                        let word = path.segs[1].name.as_str();
+                        let mut d = Diagnostic::error(format!("`list.{}` is no kind of list: a list's kinds are `list.page_aligned[T]` and `list.not_page_aligned[T]`", word)).named("unknown_narrowing").at(path.segs[1].span);
+                        if let Some(c) = crate::diag::closest(word, ["page_aligned", "not_page_aligned"]) {
+                            d = d.fix_edit(path.segs[1].span, crate::diag::Edit::Replace, c);
+                        }
+                        return err(d);
+                    }
                     if let Some(aligned) = pages {
                         if args.len() != 1 {
                             return err(Diagnostic::error(format!("`list.{}` takes exactly one type parameter, the element type: `std::list.{}[i32]`", path.segs[1].name, path.segs[1].name)).named("type_parameter_count").at(span));

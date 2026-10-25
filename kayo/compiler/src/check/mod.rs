@@ -436,7 +436,7 @@ impl Checker {
     pub fn narrowed_into(&mut self, value: &Ty, target: &Ty) -> Option<bool> {
         let (value, target) = (self.resolve(value), self.resolve(target));
         let Ty::Pages { inner, aligned } = &value else { return None };
-        if crate::precog::paged::narrowed(&target).is_some() || !matches!(target.base(), Ty::Seq { kind: SeqKind::List, .. }) {
+        if crate::precog::paged::narrowed(&target).is_some() || !matches!(target.base(), Ty::Seq { kind: SeqKind::List | SeqKind::Free(_), .. }) {
             return None;
         }
         let inner = (**inner).clone();

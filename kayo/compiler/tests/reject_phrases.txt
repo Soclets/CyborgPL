@@ -905,3 +905,10 @@ msl_way_unknown [fnv:d40913f07f7e72ab] :: error[unknown_narrowing]
 channel_through_std [fnv:2cf20a96c3edbb9f] :: `channel` is the MCPS limb's, not std's: write `channel.send(…)`
 writer_way_unknown [fnv:4053b6186a43b790] :: a writer is `std::print.writer`, `.whole` or `.split`
 use_list_without_as [fnv:f116abd9d3bfd802] :: `use` says the name after `as`
+array_through_untyped [fnv:fd7150cb07b4b796] :: error[wrong_type]
+page_aligned_from_plain [fnv:de59544d6f5607e1] :: error[wrong_type]
+page_aligned_lent_from_plain [fnv:de59544d6f5607e1] :: error[wrong_type]
+page_aligned_returned_plain [fnv:de59544d6f5607e1] :: error[wrong_type]
+page_aligned_through_untyped [fnv:553ea7e89b383c49] :: error[wrong_type]
+page_aligned_to_not [fnv:553ea7e89b383c49] :: error[wrong_type]
+list_kind_unknown [fnv:c3d68aa6eb047f5a] :: error[unknown_narrowing]
