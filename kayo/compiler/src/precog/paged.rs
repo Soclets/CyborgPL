@@ -9,7 +9,7 @@
 //! list's memory when the block runs and copies it when it is not
 //! page-aligned. What Precog decides is only which lists are made so.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::ast::Verb;
 use crate::mir::*;
@@ -24,6 +24,12 @@ pub struct Paged {
     pub types: Vec<Ty>,
     /// Each block's bound lists, for the report: the function, the local.
     pub bound: Vec<(usize, LocalId)>,
+    /// A plain list's name that may hold a narrowed one (owner,
+    /// 2026-10-25: a narrowed list goes anywhere a plain one does and
+    /// keeps its kind): whether a page-aligned one, a not-page-aligned
+    /// one. Where its type is the narrowing, the type says it; this is
+    /// where it went by `change`, or back from a call.
+    pub kinds: HashMap<(usize, LocalId), (bool, bool)>,
 }
 
 impl Paged {
@@ -32,10 +38,18 @@ impl Paged {
     /// `Some(false)` from a page's size on (Precog's), `None` not
     /// (`std::list.not_page_aligned`, or a list that reaches no block).
     pub fn local(&self, f: usize, l: LocalId, ty: &Ty) -> Option<bool> {
-        match narrowed(ty) {
-            Some(aligned) => aligned.then_some(true),
-            None => (self.locals.contains(&(f, l)) || (is_list(ty) && self.types.iter().any(|t| t == ty.base()))).then_some(false),
+        match (narrowed(ty), self.kinds.get(&(f, l))) {
+            (Some(aligned), _) => aligned.then_some(true),
+            (None, Some((true, _))) => Some(true),
+            (None, Some((false, true))) => None,
+            _ => (self.locals.contains(&(f, l)) || (is_list(ty) && self.types.iter().any(|t| t == ty.base()))).then_some(false),
         }
+    }
+
+    /// Whether a bound list is always copied: `std::list.not_page_aligned`,
+    /// or a name that may hold one ("never" is the writer's word).
+    pub fn never(&self, f: usize, l: LocalId, ty: &Ty) -> bool {
+        narrowed(ty) == Some(false) || self.kinds.get(&(f, l)).is_some_and(|k| k.1)
     }
 }
 
@@ -59,6 +73,7 @@ fn is_list(t: &Ty) -> bool {
 /// What Precog finds for this program.
 pub fn decide(p: &Program) -> Paged {
     let mut out = Paged::default();
+    out.kinds = kinds(p);
     let live = |f: &Function| !f.dropped;
     // The seeds: every list a block binds.
     for (fi, f) in p.functions.iter().enumerate().filter(|(_, f)| live(f)) {
@@ -146,6 +161,54 @@ pub fn decide(p: &Program) -> Paged {
         }
     }
     out
+}
+
+/// Where narrowed lists go under a plain list's name: moved by `change`
+/// or a `let`, or handed back by a call. A kind once there stays there.
+fn kinds(p: &Program) -> HashMap<(usize, LocalId), (bool, bool)> {
+    let mut out: HashMap<(usize, LocalId), (bool, bool)> = HashMap::new();
+    let kind_of = |out: &HashMap<(usize, LocalId), (bool, bool)>, fi: usize, f: &Function, l: LocalId| -> (bool, bool) {
+        match narrowed(&f.locals[l.0 as usize].ty) {
+            Some(true) => (true, false),
+            Some(false) => (false, true),
+            None => out.get(&(fi, l)).copied().unwrap_or((false, false)),
+        }
+    };
+    loop {
+        let mut changed = false;
+        for (fi, f) in p.functions.iter().enumerate().filter(|(_, f)| !f.dropped) {
+            let mut flows: Vec<(LocalId, (bool, bool))> = Vec::new();
+            for b in &f.blocks {
+                for s in &b.stmts {
+                    if let StmtKind::Assign { place, rvalue: Rvalue::Use(Operand::Move(src) | Operand::Read(src)) } = &s.kind {
+                        if place.is_local() && src.is_local() {
+                            flows.push((place.local, kind_of(&out, fi, f, src.local)));
+                        }
+                    }
+                }
+                if let Terminator::Call { callee: Callee::Fn(g), dest: Some(d), .. } = &b.term {
+                    let gi = g.0 as usize;
+                    if let (true, Some(r)) = (d.is_local(), p.functions[gi].ret_local) {
+                        flows.push((d.local, kind_of(&out, gi, &p.functions[gi], r)));
+                    }
+                }
+            }
+            for (l, (a, n)) in flows {
+                if !(a || n) || narrowed(&f.locals[l.0 as usize].ty).is_some() || !matches!(f.locals[l.0 as usize].ty.base(), Ty::Seq { kind: SeqKind::List, .. }) {
+                    continue;
+                }
+                let k = out.entry((fi, l)).or_insert((false, false));
+                if (k.0 || !a) && (k.1 || !n) {
+                    continue;
+                }
+                *k = (k.0 || a, k.1 || n);
+                changed = true;
+            }
+        }
+        if !changed {
+            return out;
+        }
+    }
 }
 
 /// The memory of a list read from `src` reaches a binding.

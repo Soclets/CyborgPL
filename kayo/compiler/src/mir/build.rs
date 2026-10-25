@@ -2783,7 +2783,7 @@ fn builtin_op(b: &Builtin) -> Op {
         Builtin::ListAppend => Op::ListAppend,
         Builtin::ListFill => Op::ListFill,
         Builtin::ListSlice | Builtin::ArraySlice => Op::ListSlice,
-        Builtin::ToList => Op::ToList,
+        Builtin::ToList | Builtin::ToListPages(_) => Op::ToList,
         Builtin::ToArray => Op::ToArray,
         Builtin::ListRemove => Op::ListRemove,
         Builtin::ArrayLength => Op::ArrayLength,

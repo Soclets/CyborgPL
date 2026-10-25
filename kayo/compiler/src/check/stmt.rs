@@ -377,7 +377,11 @@ impl Checker {
                             Some(false) => LocalKind::Lent,
                             None => LocalKind::Owned,
                         };
-                        (v, t.clone(), kind)
+                        // A narrowed list declared as a plain one keeps its
+                        // kind (owner, 2026-10-25): the name holds that.
+                        let vt = self.resolve(&v.ty);
+                        let local_ty = if self.narrowed_into(&vt, t).is_some() { vt } else { t.clone() };
+                        (v, local_ty, kind)
                     }
                     None => {
                         // `ptr.null` alone says nothing of what it points at

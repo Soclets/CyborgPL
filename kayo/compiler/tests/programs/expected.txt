@@ -349,3 +349,5 @@ msl_page_aligned 51
 exit_worked_out 8
 # `inline.MSL.wrap`: a kernel's signed sum wraps (owner, 2026-10-25).
 msl_wrap 1
+# Narrowed lists where plain ones go, keeping their kind; `to.list.page_aligned` (owner, 2026-10-25).
+msl_narrowed_cross 18

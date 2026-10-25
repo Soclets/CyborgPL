@@ -3002,7 +3002,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 // `std::list.not_page_aligned` is copied whatever its
                 // memory (design claude, 2026-10-25: "never" is the
                 // writer's word).
-                let never = crate::precog::paged::narrowed(&ty) == Some(false);
+                let never = if p.is_local() { self.paged.never(fi, p.local, &ty) } else { crate::precog::paged::narrowed(&ty) == Some(false) };
                 let held = if st.count_fields() >= 3 && !never {
                     let cap_at = self.builder.build_struct_gep(st, slot, 2, "cap").ok()?;
                     let cap = self.builder.build_load(i64t, cap_at, "c").ok()?.into_int_value();

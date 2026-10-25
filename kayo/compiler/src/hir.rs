@@ -226,6 +226,10 @@ pub enum Builtin {
     /// `to.list[give 'a']` / `to.array[copy 'l']` (owner, 2026-09-23).
     ToList,
     ToArray,
+    /// `to.list.page_aligned(give $xs)` (`true`) and
+    /// `to.list.not_page_aligned(give $xs)` (owner, 2026-10-25): a list
+    /// into a narrowing, its memory moved to pages if it has to be.
+    ToListPages(bool),
     ArrayLength,
     /// `incl.bytes[…]`: its one argument the file's bytes, as hex text,
     /// read while building (owner, 2026-10-10).

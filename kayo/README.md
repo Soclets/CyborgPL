@@ -1109,8 +1109,16 @@ Dated, with the alternative, so each can become a question later.
   anything else assigned to it there (`cyborg_list_rehome`), and a list lent to change just before it
   is bound; one lent to read is never moved, since a reader may hold its address. These are in
   `runtime/src/pages.rs`. `std::list.page_aligned[T]` is page-aligned at every size and
-  `std::list.not_page_aligned[T]` never shared (`Ty::Pages`, which `base` looks through): neither meets
-  another list type until the owner rules how they relate; a list made in place takes its place's.
+  `std::list.not_page_aligned[T]` never shared (`Ty::Pages`, which `base` looks through). A list made in
+  place takes its place's narrowing. Point 1 (owner, "Seems good"): a narrowed list goes anywhere a plain
+  one does (`Checker::narrowed_into`, in a store and a lend) and keeps its kind: a call handing one to a
+  plain list's parameter gets an instance knowing it (`InstKey::pages`, the parameter typed narrowed, so
+  it grows and binds as its kind with no branch); a `let` declared plain takes the narrowed type; where
+  it goes on under a plain name (`change`, a call's result), Precog follows the kind (`Paged::kinds`):
+  a name that may hold a page-aligned list grows page-aligned, and one that may hold a not-page-aligned
+  list is copied when bound. The other way, or one narrowing into the other, is only
+  `to.list.page_aligned(give $xs)` / `to.list.not_page_aligned(…)` (`Builtin::ToListPages`, lowered as
+  `to.list`, its result moved to pages if it has to be), which a refusal offers as its fix.
   Found on the way: `std::exit` with a worked-out code handed LLVM a 65-bit value (now its low byte);
   `not_built_yet` and `not_decided` keep their sentence on `about:`; a declared type in a fix is
   written as the writer writes it (`std::list[i32]`, `Checker::spell_written`); an unknown operator's

@@ -402,7 +402,7 @@ impl Checker {
                 if !decl.blanks.is_empty() || decl.params.iter().any(|p| p.ty.is_none() || p.variadic) {
                     return err(Diagnostic::error(format!("`{}` has blanks, so it has no single type to hold: pass it where the blanks are filled, or write a version with the types", decl.name)).named("not_a_value").at(span));
                 }
-                let key = InstKey { fn_id: id, blanks: Vec::new(), bundle: None, owning: Vec::new() };
+                let key = InstKey { fn_id: id, blanks: Vec::new(), bundle: None, owning: Vec::new(), pages: Vec::new() };
                 let inst = self.instance(key);
                 let sig = self.instances[inst.0 as usize].sig.clone();
                 let ty = Ty::Fn(Box::new(FnTy { params: sig.params, ret: sig.ret, fails: sig.fails, owning: false }));
@@ -850,6 +850,11 @@ impl Checker {
             }
             _ => None,
         };
+        // A narrowed list goes anywhere a plain one does, and keeps its kind
+        // (owner, 2026-10-25: "Seems good").
+        if self.narrowed_into(&vt, &t).is_some() {
+            return Ok(v);
+        }
         // A list made here (a literal, `std::list.fill`, an empty one) is
         // made with its place's memory, page-aligned or not (owner,
         // 2026-10-25); a list that already exists is another type.
@@ -860,6 +865,19 @@ impl Checker {
                 let mut v = self.expect_store(ctx, v, &inner, what)?;
                 v.ty = t.clone();
                 return Ok(v);
+            }
+        }
+        // A list that exists becomes a narrowed one only by saying so (owner,
+        // 2026-10-25): `to.list.page_aligned(give $xs)`, which may copy.
+        if let Ty::Pages { inner, aligned } = &t {
+            let plain = |ty: &Ty| match ty {
+                Ty::Pages { inner, .. } => (**inner).clone(),
+                other => other.clone(),
+            };
+            let (inner, vplain) = ((**inner).clone(), plain(&vt));
+            if vt != t && matches!(vplain.base(), Ty::Seq { kind: SeqKind::List, .. }) && self.unify(&inner, &vplain) {
+                let to = if *aligned { "to.list.page_aligned" } else { "to.list.not_page_aligned" };
+                return err(Diagnostic::error(format!("{} is {}, and this is {}: a list becomes one with `{}(give $xs)`, which may copy", what, article(&self.spell(&t)), article(&self.spell(&vt)), to)).named("wrong_type").at(v.span).fix_edit(v.span, Edit::Wrap, to));
             }
         }
         if let Some(lane) = fill_lane {
@@ -2229,7 +2247,7 @@ impl Checker {
         if !decl.blanks.is_empty() {
             return self.generic_op_call(ctx, fn_id, spelling, lhs, rhs, span);
         }
-        let key = InstKey { fn_id, blanks: Vec::new(), bundle: None, owning: Vec::new() };
+        let key = InstKey { fn_id, blanks: Vec::new(), bundle: None, owning: Vec::new(), pages: Vec::new() };
         let inst = self.instance(key);
         let sig = self.instances[inst.0 as usize].sig.clone();
         let mut operands = Vec::new();
@@ -2322,7 +2340,7 @@ impl Checker {
             }
             blank_tys.push(r);
         }
-        let inst = self.instance(InstKey { fn_id, blanks: blank_tys, bundle: None, owning: Vec::new() });
+        let inst = self.instance(InstKey { fn_id, blanks: blank_tys, bundle: None, owning: Vec::new(), pages: Vec::new() });
         let sig = self.instances[inst.0 as usize].sig.clone();
         let rhs_arg = args.pop().unwrap();
         let lhs_arg = args.pop().unwrap();
@@ -2729,7 +2747,7 @@ impl Checker {
                 if crate::target::bare() {
                     let board = if name == "exit" { self.items.board_exit } else { self.items.board_output.map(|(id, _)| id) };
                     if let Some(id) = board {
-                        self.instance(crate::check::InstKey { fn_id: id, blanks: Vec::new(), bundle: None, owning: Vec::new() });
+                        self.instance(crate::check::InstKey { fn_id: id, blanks: Vec::new(), bundle: None, owning: Vec::new(), pages: Vec::new() });
                     }
                 }
                 return self.std_stub(ctx, path, args, otherwise, span, used);
@@ -3167,7 +3185,13 @@ impl Checker {
         // A parameter handed a function that carries what it captured owns
         // it in this instance, and gives it back at the end.
         let owning: Vec<usize> = hargs.iter().enumerate().filter(|(i, a)| *i < fixed && matches!(self.resolve(&self.arg_type(a)).base(), Ty::Fn(f) if f.owning)).map(|(i, _)| i).collect();
-        let key = InstKey { fn_id: id, blanks: blank_tys, bundle: if has_variadic { Some(bundle_tys) } else { None }, owning };
+        // A narrowed list handed to a plain list's parameter: this instance
+        // knows its kind (owner, 2026-10-25), so it grows and binds it so.
+        let pages: Vec<(usize, bool)> = hargs.iter().enumerate().take(fixed).filter_map(|(i, a)| {
+            let at = self.resolve(&self.arg_type(a));
+            self.narrowed_into(&at, &param_tys[i].1).map(|k| (i, k))
+        }).collect();
+        let key = InstKey { fn_id: id, blanks: blank_tys, bundle: if has_variadic { Some(bundle_tys) } else { None }, owning, pages };
         let inst = self.instance(key);
         let sig = self.instances[inst.0 as usize].sig.clone();
         let _ = path;
@@ -3443,7 +3467,7 @@ impl Checker {
                 let name = self.place_name(ctx, &place);
                 let fb = ctx.locals[place.base.0 as usize].from_blank && place.proj.is_empty();
                 self.check_verb_on_type(&pt, *verb, fb, e.span, &name)?;
-                if !self.unify(&pt, pty) {
+                if self.narrowed_into(&pt, pty).is_none() && !self.unify(&pt, pty) {
                     return err(Diagnostic::error(format!("{} is {}, and {} is {}", what, crate::types::a_type(&self.spell(pty)), name, crate::types::a_type(&self.spell(&pt)))).named(if matches!((self.resolve(pty).base(), pt.base()), (Ty::Seq { kind: SeqKind::List, .. }, Ty::Seq { kind: SeqKind::Array, .. }) | (Ty::Seq { kind: SeqKind::Array, .. }, Ty::Seq { kind: SeqKind::List, .. })) { "list_array_mismatch" } else { "wrong_type" }).at(e.span));
                 }
                 // A name whose numbers' width was never written (`:=` of a
@@ -3768,7 +3792,7 @@ impl Checker {
             inst_caps.push((c.name.name.clone(), c.verb, ty));
             caps.push((outer, c.verb));
         }
-        let key = InstKey { fn_id, blanks: Vec::new(), bundle: None, owning: Vec::new() };
+        let key = InstKey { fn_id, blanks: Vec::new(), bundle: None, owning: Vec::new(), pages: Vec::new() };
         let inst = self.instance(key);
         self.instances[inst.0 as usize].captures = inst_caps;
         // The literal's body sees the enclosing names only through `with`: check it now
@@ -3813,7 +3837,7 @@ impl Checker {
         let body = crate::ast::Block { stmts: vec![crate::ast::Stmt { kind: crate::ast::StmtKind::Return(Some(value)), span }], span };
         let fn_id = FnId(self.items.fns.len() as u32);
         self.items.fns.push(crate::resolve::FnDeclInfo { name: format!("op {}", spelled), path: String::new(), module: ctx.module, vis: crate::ast::Vis::Private, params, ret: ft.ret.clone(), ret_lent: None, fails: Vec::new(), blanks: Vec::new(), body: Some(body), op: None, is_literal: true, test: false, table_bytes: None, labels: None, defaults: Vec::new(), span, name_span: span });
-        let key = InstKey { fn_id, blanks: Vec::new(), bundle: None, owning: Vec::new() };
+        let key = InstKey { fn_id, blanks: Vec::new(), bundle: None, owning: Vec::new(), pages: Vec::new() };
         let inst = self.instance(key);
         self.check_literal_now(inst, Vec::new())?;
         let sig = self.instances[inst.0 as usize].sig.clone();
@@ -4193,6 +4217,8 @@ impl Checker {
             ("array", ["slice"]) => BuiltinHead::B(Builtin::ArraySlice),
             ("array", [other]) => return err(Diagnostic::error(format!("`array.{}` does not exist: an array has `length` and `slice`", other)).named("unknown_operation").at(span).fix_swap_close(span, "array", other, ["length", "slice"])),
             ("to", ["list"]) => BuiltinHead::B(Builtin::ToList),
+            ("to", ["list", "page_aligned"]) => BuiltinHead::B(Builtin::ToListPages(true)),
+            ("to", ["list", "not_page_aligned"]) => BuiltinHead::B(Builtin::ToListPages(false)),
             ("to", ["array"]) => BuiltinHead::B(Builtin::ToArray),
             ("map", ["length"]) => BuiltinHead::B(Builtin::MapLength),
             ("map", ["has"]) => BuiltinHead::B(Builtin::MapHas),
@@ -4434,7 +4460,7 @@ impl Checker {
                 // from (`lists.md`); Precog may lower it to an array.
                 (vec![a, first, last], Ty::Seq { elem: Box::new(elem), kind: SeqKind::List })
             }
-            Builtin::ToList | Builtin::ToArray => {
+            Builtin::ToList | Builtin::ToArray | Builtin::ToListPages(_) => {
                 arity(1, self)?;
                 let e = positional[0];
                 // It takes the collection, so it says how (`lists.md`): a
@@ -4455,8 +4481,13 @@ impl Checker {
                     Ty::Seq { elem, .. } => (**elem).clone(),
                     other => return err(Diagnostic::error(format!("`to.list` / `to.array` take a list or an array, and this is {}", crate::types::a_type(&self.spell(other)))).named("wrong_type").at(e.span)),
                 };
-                let kind = if b == Builtin::ToList { SeqKind::List } else { SeqKind::Array };
-                (vec![a], Ty::Seq { elem: Box::new(elem), kind })
+                let kind = if b == Builtin::ToArray { SeqKind::Array } else { SeqKind::List };
+                let out = Ty::Seq { elem: Box::new(elem), kind };
+                let out = match b {
+                    Builtin::ToListPages(aligned) => Ty::Pages { inner: Box::new(out), aligned },
+                    _ => out,
+                };
+                (vec![a], out)
             }
             Builtin::MapHas | Builtin::MapGet | Builtin::MapRemove => {
                 arity(2, self)?;

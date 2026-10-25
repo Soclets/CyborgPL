@@ -33,6 +33,9 @@ pub struct InstKey {
     /// (`copy`/`give`): in this instance they own it, and give it back
     /// (owner, 2026-09-24: a — `run[give 'count']`).
     pub owning: Vec<usize>,
+    /// The plain list parameters handed a narrowed list, and its kind
+    /// (owner, 2026-10-25): this instance is built knowing it.
+    pub pages: Vec<(usize, bool)>,
 }
 
 #[derive(Debug, Clone)]
@@ -426,6 +429,20 @@ impl Checker {
         }
     }
 
+    /// A narrowed list (`std::list.page_aligned[T]` or `.not_page_aligned`)
+    /// going where a plain `std::list[T]` is taken: its kind, `true` for
+    /// page-aligned (owner, 2026-10-25). The other way round needs
+    /// `to.list.page_aligned(…)`.
+    pub fn narrowed_into(&mut self, value: &Ty, target: &Ty) -> Option<bool> {
+        let (value, target) = (self.resolve(value), self.resolve(target));
+        let Ty::Pages { inner, aligned } = &value else { return None };
+        if crate::precog::paged::narrowed(&target).is_some() || !matches!(target.base(), Ty::Seq { kind: SeqKind::List, .. }) {
+            return None;
+        }
+        let inner = (**inner).clone();
+        self.unify(&inner, &target).then_some(*aligned)
+    }
+
     /// Strict sameness after resolution (for instance keys).
     pub fn same(&self, a: &Ty, b: &Ty) -> bool {
         self.resolve(a) == self.resolve(b)
@@ -472,7 +489,10 @@ impl Checker {
                     f.owning = true;
                     Ty::Fn(f)
                 }
-                t => t,
+                t => match key.pages.iter().find(|(i, _)| *i == params.len()) {
+                    Some((_, aligned)) => Ty::Pages { inner: Box::new(t), aligned: *aligned },
+                    None => t,
+                },
             };
             params.push((p.kind, ty));
         }
@@ -524,7 +544,7 @@ impl Checker {
         let main = match self.items.main.clone() {
             Some((block, module, span, main_params)) => {
                 let inst = FnInst(self.instances.len() as u32);
-                let key = InstKey { fn_id: FnId(u32::MAX), blanks: Vec::new(), bundle: None, owning: Vec::new() };
+                let key = InstKey { fn_id: FnId(u32::MAX), blanks: Vec::new(), bundle: None, owning: Vec::new(), pages: Vec::new() };
                 self.instances.push(Instance { key, sig: hir::Signature { params: Vec::new(), ret: Ty::Nothing, fails: Vec::new() }, body: None, captures: Vec::new() });
                 let mut ctx = self.new_ctx(inst, module, "MAIN".to_string(), Ty::Nothing, Vec::new(), true);
                 ctx.fold_vars = self.items.case_vars.contains(&span);
@@ -564,7 +584,7 @@ impl Checker {
             if f.is_literal || !f.blanks.is_empty() || f.params.iter().any(|p| p.variadic || p.ty.is_none()) {
                 continue;
             }
-            let key = InstKey { fn_id: FnId(i as u32), blanks: Vec::new(), bundle: None, owning: Vec::new() };
+            let key = InstKey { fn_id: FnId(i as u32), blanks: Vec::new(), bundle: None, owning: Vec::new(), pages: Vec::new() };
             if !self.inst_index.contains_key(&key) {
                 self.instance(key);
                 while let Some(inst) = self.pending.pop() {

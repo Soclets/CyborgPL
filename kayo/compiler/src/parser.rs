@@ -3250,7 +3250,9 @@ impl<'a> Parser<'a> {
         }
                 TypeKind::Fn { params, ret: ret.map(Box::new), fails }
             }
-            Tok::Word(w) if w == "list" && matches!(self.peek_at(1), Tok::Dot) => {
+            // `list.page_aligned`, `list.not_page_aligned` (owner,
+            // 2026-10-25) are the list's narrowings, not an element type.
+            Tok::Word(w) if w == "list" && matches!(self.peek_at(1), Tok::Dot) && !matches!(self.peek_at(2), Tok::Word(n) if n == "page_aligned" || n == "not_page_aligned") => {
                 return self.fail_n("type_parameter_form", "the element type goes in brackets: `list[i32]`, not `list.i32` (a dot picks a fixed variant, brackets supply a type)");
             }
             // A family word alone (owner, 2026-10-20): `i`, `u`, `f`, `d`
@@ -5956,12 +5958,25 @@ impl<'a> Parser<'a> {
         // so it is not written and the bracket is the value (`lists.md`).
         // They take ownership like a call, so they are parsed as one.
         if let Tok::Word(w) = self.peek().clone() {
-            if (w == "list" || w == "array") && matches!(self.peek_at(1), Tok::LBracket) {
+            // And a list's narrowings (owner, 2026-10-25):
+            // `to.list.page_aligned(give $xs)`, `to.list.not_page_aligned(…)`.
+            let narrowing = match (self.peek_at(1), self.peek_at(2), self.peek_at(3)) {
+                (Tok::Dot, Tok::Word(n), Tok::LBracket) if w == "list" && (n == "page_aligned" || n == "not_page_aligned") => Some(n.clone()),
+                _ => None,
+            };
+            if (w == "list" || w == "array") && (matches!(self.peek_at(1), Tok::LBracket) || narrowing.is_some()) {
                 let wspan = self.bump().span;
+                let mut segs = vec![Ident { name: "to".into(), span: start }, Ident { name: w, span: wspan }];
+                if let Some(n) = narrowing {
+                    self.bump();
+                    let nspan = self.bump().span;
+                    segs.push(Ident { name: n, span: nspan });
+                }
+                let wspan = segs.last().unwrap().span;
                 let paren = self.is_call_bracket();
                 let at = self.bump().span;
                 let args = self.args()?;
-                let path = Path { kit: None, segs: vec![Ident { name: "to".into(), span: start }, Ident { name: w, span: wspan }], span: start.to(wspan) };
+                let path = Path { kit: None, segs, span: start.to(wspan) };
                 brackets_fit(&path, &args, paren, at, self.prev_span())?;
                 if self.is(&Tok::LBracket) && !self.bracket_is_bound() {
                     let what = path.spelled();
