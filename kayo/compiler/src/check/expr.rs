@@ -5546,7 +5546,10 @@ impl Checker {
             return err(Diagnostic::error("a format text not written in the call is read only when it runs, so its holes cannot be checked now: that is a no_check site").named("no_check_missing").at(text_e.span));
         };
         let pieces = crate::format::parse(text).map_err(|why| {
-            let d = Diagnostic::error(why).named("format_text_wrong").at(text_e.span);
+            // Rust's shapes are a replaced spelling, as every other is
+            // (design claude, 2026-10-25).
+            let name = if why.contains("is an old spelling") { "old_spelling" } else { "format_text_wrong" };
+            let d = Diagnostic::error(why).named(name).at(text_e.span);
             Box::new(match crate::format::repair(text) {
                 Some(fixed) => d.fix_edit(text_e.span, Edit::Replace, written_back(&fixed)),
                 None => d,
