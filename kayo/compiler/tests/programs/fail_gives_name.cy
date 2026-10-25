@@ -7,14 +7,17 @@ fn take [$n: i32] -> i32 or fail[sold_out: str.utf8] {
     if $n equal_to 1 { fail sold_out[give $kind]; }
     return 0;
 }
-MAIN {
+fn try [] -> i32 {
     let $got := take(1) otherwise {
         sold_out $what {
             let $other := kind_of(7);
             let $more := kind_of(8);
-            if $what equal_to "sleeper for 1" and $other equal_to "sleeper for 7" and $more equal_to "sleeper for 8" { std::exit(code: 13); }
-            std::exit(code: 2);
+            if $what equal_to "sleeper for 1" and $other equal_to "sleeper for 7" and $more equal_to "sleeper for 8" { return 13; }
+            return 2;
         }
     };
-    std::exit(code: $got);
+    return $got;
+}
+MAIN {
+    std::exit(code: try());
 }

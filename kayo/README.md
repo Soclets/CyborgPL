@@ -1094,6 +1094,16 @@ Dated, with the alternative, so each can become a question later.
   stops the program with `error[metal::run_failed]` at the block. `metal::compile_failed` says `fix: none
   suggested` and keeps Apple's own words on `about:` (`Diagnostic::outside_saying`). A program with a
   block is about 2 MB, std's share.
+- **2026-10-25 — night_trains' frees, a `d` const, deep parts** (design claude's examples/night_trains). Three
+  memory faults, each found with Guard Malloc (`DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib`): `map.get`
+  handed back the value's bytes and dropped them, freeing a text the map held (now the type's copy, as `copy`
+  makes; `map.remove` still takes the bytes); `fail k[give $name]` had the scope's drop of `$name` before the
+  failure gave it away (the name is moved into the failure's own value on that path); and helpers were named
+  by a type's spelling, so every `map.pairs` element, each its own `pair`, shared the first one's drop
+  (`type_key` adds the type's hash). `const $x: d64 = …` folds (`const_eval` takes a `d` literal). Giving a
+  part two or more steps in, `give $o.inn.name`, is `element_given_away` (oracle ff2c3d1e); one step is
+  followed field by field as before. `KAYO_STEP_BUDGET` lowers Precog's step budget for a quick build while
+  looking into something else (night_trains: 50 s, not 190).
 - **2026-10-25 — Format shapes in words, widths in a named unit** (owner, the day's rulings; oracle 0c746ed3;
   `design/strings.md`). `format.rs` reads a hole as its value number, if any, then its shapes in any order:
   `align: left|right|center`, `width: N cols` (`col`, `cols.east_asian`, `graphemes`, `points`, `bytes`),

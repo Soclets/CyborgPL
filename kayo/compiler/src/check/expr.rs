@@ -500,6 +500,14 @@ impl Checker {
                 if use_ == PlaceUse::Write && f.immut {
                     return err(Diagnostic::error(format!("`{}` is an `immut` field of `{}` and cannot be written", field.name, info.name)).named("cannot_change_immut").at(field.span));
                 }
+                // A part two or more steps in is not given away: it would
+                // leave a hole in what holds it (design claude, 2026-10-25,
+                // as the oracle reads paths as deep as they go); one step,
+                // `give $mine.owner`, is followed field by field.
+                if use_ == PlaceUse::Give && !p.proj.is_empty() && self.resolve(&f.ty.subst(&args)).is_owned() {
+                    let path = format!("{}.{}", self.place_name(ctx, &p).trim_matches('\''), field.name);
+                    return err(Diagnostic::error(format!("giving ${} would leave a hole in what holds it: `copy ${}` makes one of its own", path.trim_start_matches('$'), path.trim_start_matches('$'))).named("element_given_away").at(e.span).fix_edit(e.span, Edit::Swap(vec!["give".into()]), "copy"));
+                }
                 let fty = f.ty.subst(&args);
                 p.proj.push(Proj::Field(fi));
                 p.ty = fty;

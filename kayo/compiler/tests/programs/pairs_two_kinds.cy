@@ -1,8 +1,8 @@
 # Two maps walked by `map.pairs`, one of texts to a struct holding a text, one of texts to `i32`s: each walk's
 # `pair` is its own type, and the drop made for the first was given the second (examples/night_trains: the
-# count 5 was freed as a text). 1 + 5 + 6: exit 12.
+# count 5 was freed as a text). 1 + 5 + 6: exit 12. The walk is a function's, so all it holds is given back.
 struct Reach { minutes: i32, prev: str.utf8 }
-MAIN {
+fn walk [] -> i32 {
     let $line := "a b";
     let $names := std::str.split(lend $line, at: " ");
     let $best: std::map.ordered[str.utf8, Reach] = std::map.empty;
@@ -15,5 +15,8 @@ MAIN {
     let mut $total: i32 = 0;
     for $e in std::map.pairs(lend $best) { if $e.key equal_to "a" { change $total = $total + $e.value.minutes; } }
     for $e in std::map.pairs(lend $left) { change $total = $total + $e.value; }
-    std::exit(code: $total);
+    return $total;
+}
+MAIN {
+    std::exit(code: walk());
 }
