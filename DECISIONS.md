@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — A format width may count `graphemes` too (owner)
+
+Asked whether `graphemes` is a width unit beside `cols` (`cols` counts screen columns, a wide character 2;
+`graphemes` counts characters, each 1, for text not bound for a terminal), design claude recommending yes as a
+narrowing of the kind 2026-10-25's philosophy asks for, the owner: "yes". So **`width: 10 cols`** and **`width: 10
+graphemes`**.
+
 ### 2026-10-25 — In a format hole the value number comes first, then the shapes in any order (owner)
 
 Design claude first recommended one fixed order, strongest first; the owner: "I mean, this isn't about narrowings.
