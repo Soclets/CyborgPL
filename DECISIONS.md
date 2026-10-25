@@ -34,6 +34,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — A page-aligned list goes anywhere a list does, keeping its kind as it grows; a plain one becomes page-aligned only by a conversion (owner)
+
+Compiler claude, building `.page_aligned` / `.not_page_aligned`: how do they cross with `std::list[T]`? Design claude
+recommended: a narrowed list goes where a plain one is asked (it is still a list); a plain list into a narrowed place,
+or one narrowing into the other, only by an explicit conversion, `to.list.page_aligned(give $xs)` (it may copy, and
+CyborgPL makes no hidden copies); like a ranged number into a plain one, bounded text into plain text, and `list` /
+`array` crossing only by `to.`. Asked "Is your recommendation consistent?": one hole, a page-aligned list lent mutably
+to a function taking a plain list could be regrown into ordinary memory; mended by **the list keeping its kind as it
+grows**, kayo building a version of such a function that knows the kind (no branch in the final program), a branch on
+the list's kind left only where kayo cannot see it (a function value), as writers, channels and function values
+already carry what they are. The owner asked whether there should be a way not to have that check (Precog removes it),
+whether final builds have run-time checks (no safety checks: unproven sites are refused; this is a path, not a check),
+"What kind of check is it?", "Do we have these kinds already?", then "Seems good". So:
+- **`std::list.page_aligned[T]` and `std::list.not_page_aligned[T]` go anywhere `std::list[T]` does**, `lend.mut`
+  included, and keep their kind when grown there.
+- **A plain list becomes either only by an explicit conversion**, `to.list.page_aligned(give $xs)`,
+  `to.list.not_page_aligned(give $xs)`, and so between the two.
+Design claude's reading: the conversions' names follow `to.list(…)` / `to.array(…)`. Not built in the oracle.
+
 ### 2026-10-25 — A list lent to a kernel must be read-only in Metal: `const device` or `constant`, else refused (owner: a)
 
 Compiler claude, building no-copy: a kernel that writes a `lend` binding (not `lend.mut`) now changes the program's

@@ -186,6 +186,8 @@ no_check inline.MSL threads $n {
   is copied in, and back after `lend.mut`. Precog gives page-aligned memory to lists of 16 KB or more that can reach a
   block, and, unable to follow one, to it too; `std::list.page_aligned[T]` and `std::list.not_page_aligned[T]` say it
   outright. The measurements: `kayo/metal/bench/RESULTS.md`.
+  A narrowed list goes anywhere `std::list[T]` does, `lend.mut` included, keeping its kind as it grows; a plain list
+  becomes one only by `to.list.page_aligned(give $xs)` / `to.list.not_page_aligned(give $xs)` (owner: "Seems good").
 
 ## Open
 
