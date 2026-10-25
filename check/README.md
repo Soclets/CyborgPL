@@ -12,7 +12,10 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 
 
 **inline.MSL on the GPU** (kayo 793861b5): `check metal --cases N`. The oracle cannot run Metal, so each case is
-two programs: (A) a kernel, one thread per item, writing a list; (B) the same steps in a loop. B runs on the
+two programs: (A) 1 to 3 kernels in a row, one thread per item, each later one reading the list the one
+before wrote; (B) the same steps in loops. Inputs are two `u32` lists or a list of a `layout.C struct Pr { a:
+u32, b: u32 }` (kayo writes its Metal declaration); with the struct, the last kernel may write its result into
+each `.a` through `lend.mut`, and the loops rebuild the structs alike (a field read from `copy $prs[pos: $i]`). B runs on the
 oracle and on kayo, A on kayo (`cargo build --release -p kayo-metal --offline` once); all three must print the
 same list. Steps are `u32` only, each its own declared value (`uint t3 = t1 + t2;` / `let $t3: u32 = $t1
 plus.wrap $t2;`): wrapping `+ - *`, `/` and `%` by a literal not zero, `& | ^`, `>>` under 32; the result always
