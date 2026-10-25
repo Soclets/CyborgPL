@@ -1,0 +1,74 @@
+the Nightjar night trains
+
+reading the timetable:
+  (skipped a row that does not read as "A - B minutes km": "Wien - Budapest two hours")
+  21 lines between 18 stations
+
+departures from Wien at 21:30
+  to           arrives      km
+  München      01:30 +1    435
+  Praha        01:30 +1    330
+  Kraków       04:10 +1    440
+  Zürich       05:20 +1    750
+  Berlin       06:00 +1    680
+  Köln         06:10 +1   1025
+  Bruxelles    08:10 +1   1245
+  Amsterdam    09:00 +1   1285
+  Paris        09:35 +1   1360
+  København    13:10 +1   1120
+  Malmö        14:00 +1   1165
+  Barcelona    16:20 +1   2395
+  Stockholm    18:40 +1   1780
+  Madrid       19:20 +1   3016
+  Lisboa       04:30 +2   3641
+
+bookings:
+  #501 Ana (youth), sleeper for 2
+    Lisboa → Madrid → Barcelona → Paris → Zürich → Wien
+    3641 km, 4 change(s), leaves 21:30, arrives 04:30 +2, fare 278.46
+  #502 Bram (adult), couchette
+    Amsterdam → Köln → München → Wien → Kraków
+    1725 km, 3 change(s), leaves 21:30, arrives 15:50 +1, fare 183.00
+  #503 Chloé (senior), seat
+    Paris → Bruxelles → Köln → Berlin → København → Malmö → Stockholm
+    2212 km, 5 change(s), leaves 21:30, arrives 18:05 +1, fare 137.87
+  Dario: that journey starts where it ends
+  Eun: no night train joins those two stations
+  Femi: no station called Oslo on this network
+  #504 Gil (adult), sleeper for 4
+    Praha → Berlin → Köln → Bruxelles → Paris → Barcelona → Madrid → Lisboa
+    3743 km, 6 change(s), leaves 21:30, arrives 04:50 +2, fare 349.44
+  (cannot read "Hana: Köln > Wien sleeper 2")
+  #505 Ines (senior), sleeper for 1
+    München → Köln → Berlin → København
+    1610 km, 2 change(s), leaves 21:30, arrives 13:40 +1, fare 188.16
+  Jo: no sleeper for 1 left tonight
+  #506 Kai (youth), sleeper for 3
+    Bruxelles → Paris → Zürich
+    922 km, 1 change(s), leaves 21:30, arrives 03:10 +1, fare 100.32
+
+=== Nightjar, tonight ===
+tickets sold: 6
+takings: 1237.25
+average fare: 206.21
+km travelled: 13853, the longest 3743 km (Gil)
+places left:
+  seat            39
+  couchette        5
+  sleeper for 1    0
+  sleeper for 2    3
+  sleeper for 3    2
+  sleeper for 4    7
+
+stations reached by 08:00 +1: Paris 8, Köln 9, Wien 6
+
+stations by letter:
+  with ö: Köln, Malmö
+  with ü: Zürich, München
+  with ó: Kraków
+  with x: Bruxelles
+
+the last quarter hours before midnight: 21:30 21:45 22:00 22:15 22:30 22:45 23:00 23:15 23:30 23:45
+three fares of 0.10 as d64: 0.30
+the same in f64: 0.3000000000000000444089209850062616169452667236328125
+good night from Nightjar
