@@ -34,6 +34,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — `inline.MSL.precise` and `inline.MSL.wrap`: Apple's defaults unless a block says otherwise (owner)
+
+Compiler claude: kayo runs `xcrun metal -c` with no flags, so Apple's defaults apply: fast math (`fmul fast`, results
+can differ from the same steps in CyborgPL) and signed overflow undefined, as in C++. By "a hell lot of alternatives",
+design claude offered the default as 2026-10-01 has it ("the code is Metal's, passed to Apple's compiler unchanged")
+with a narrowing, first `.exact`; the owner: "Does `.exact` imply decimal floats, because we have `let $d := exactly
+0.1;`" (it could), then, offered `.ieee` (CyborgPL's word for IEEE's own behaviour): "Does IEEE actually say that?"
+(IEEE 754 asks correctly rounded basic operations and value-changing optimizations only on request; but a developer's
+reading of Metal's spec says its safe mode may still round toward zero and flush denormals, so `.ieee` could promise
+more than Apple's GPU keeps). Offered `.precise`, Metal's own word, and `.wrap` (`-fwrapv` does wrap): "yes". So:
+- **`inline.MSL` builds with Apple's defaults**: fast math, signed overflow undefined.
+- **`inline.MSL.precise`**: Metal's safe math mode with precise functions and no fused multiply-add
+  (`-fmetal-math-mode=safe -ffp-contract=off`).
+- **`inline.MSL.wrap`**: signed overflow wraps (`-fwrapv`).
+- **They combine**: `inline.MSL.precise.wrap`.
+Not built.
+
 ### 2026-10-25 — A list reaches the GPU without a copy when it is page-aligned: Precog decides, `.page_aligned` / `.not_page_aligned` say it (owner)
 
 Compiler claude: Metal wraps memory without a copy only when it starts on a page and spans whole pages (16 KB here),
