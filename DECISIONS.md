@@ -34,6 +34,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — `print.format` shapes are words: a label where there is a choice, a bare word where there is none (owner)
+
+Following the entry below. Shown `{left, width: 10}`, the owner: "Why doesn't `left` have `:`?" Design claude cited
+2026-10-20's "a phrase with no value takes no colon" (`exclude zero`) and offered `align: left`; the owner: "It was
+`exclude zero`, because there's nothing except that". So the rule is about choices: **a shape with several choices
+is a label and its value; one that is only on or not is a bare word.** Shown the set, the owner: "yes, but `science`
+instead":
+- `align: left` / `right` / `center`; `width: 10 cols`; `places: 2`; `fill: "*"`;
+- `base: bin` / `oct` / `hex` / `hex.upper`;
+- `form: stored` / `form: science` (design claude's label, `form:`, for the two ways of writing the value);
+- `zeros` (pad with zeros after the sign) and `sign` (always show it), bare.
+The corner shop's receipt: `"  {align: left, width: 10 cols} x{width: 2 cols}  {width: 8 cols, places: 2}\n"`.
+Open: the order inside a hole; `graphemes` as a width unit too; which characters take two columns; the Unicode data.
+`{:…}` becomes an old spelling when this is built. Not built.
+
 ### 2026-10-25 — A format width names its unit; screen columns are `col` / `cols` (owner)
 
 The second review of the corner shop (multifinity, a fresh Claude) found `print.format`'s shapes, `"{:<10} x{:>2}
