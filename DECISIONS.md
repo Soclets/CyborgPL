@@ -34,6 +34,20 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — `cols` counts an ambiguous-width character as 1, `cols.east_asian` as 2; no asking the terminal (owner)
+
+About 900 characters (`°`, `±`, `×`, Greek, Cyrillic) are East Asian Ambiguous in Unicode: one column on Western
+terminals, two on those set to Chinese, Japanese or Korean. The owner asked "what's the idea?" (a table lining up on
+the screen it is printed on), then "Why can't it ask the terminal?": design claude had said it could not, and
+corrected itself: a program can ask where the cursor is (`ESC [6n`), but only while it prints straight to a
+terminal, reading the answer from its input, and some terminals do not answer. Offered `cols` (1), `cols.east_asian`
+(2) and `cols.asked` (ask once, 1 when unanswered). The owner: "I think it should have 1st & 2nd bullet. But
+`cols.asked` seems a bit too much, can't they just create their own". So **`cols` counts them as 1 and
+`cols.east_asian` as 2**, fixed either way; a writer who wants to ask the terminal does it in their own code
+(through `extern.C`) and picks between the two. Chinese, Japanese and Korean characters and most emoji are 2 under
+both, combining marks 0. Design claude's reading: the widths follow Unicode's `EastAsianWidth.txt` and
+`emoji-data.txt`, as terminals' `wcwidth` does.
+
 ### 2026-10-25 — A format width counts `cols`, `graphemes`, `points` or `bytes` (owner)
 
 Asked whether `graphemes` is a width unit beside `cols` (`cols` counts screen columns, a wide character 2;
