@@ -34,12 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
-### 2026-10-25 — A format width may count `graphemes` too (owner)
+### 2026-10-25 — A format width counts `cols`, `graphemes`, `points` or `bytes` (owner)
 
 Asked whether `graphemes` is a width unit beside `cols` (`cols` counts screen columns, a wide character 2;
 `graphemes` counts characters, each 1, for text not bound for a terminal), design claude recommending yes as a
 narrowing of the kind 2026-10-25's philosophy asks for, the owner: "yes". So **`width: 10 cols`** and **`width: 10
 graphemes`**.
+Then asked whether a width takes `bytes` and `points` too, every unit a text length takes (`str.utf8[max: 40
+graphemes]`), design claude recommending yes: "yes". So **a width is `cols`, `graphemes`, `points` or `bytes`**.
 
 ### 2026-10-25 — In a format hole the value number comes first, then the shapes in any order (owner)
 
