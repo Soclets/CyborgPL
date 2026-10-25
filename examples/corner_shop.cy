@@ -90,6 +90,7 @@ interface Number {
     i32
     i64
     f64
+    d64
 }
 
 # The larger of two numbers, for any kind of number.
@@ -373,16 +374,17 @@ fn reorder_list [lent $items: std::list[Item], lent $stock: std::map[str.utf8, i
 }
 
 fn takings_by_aisle [lent $items: std::list[Item], lent $opening: std::map[str.utf8, i32], lent $closing: std::map[str.utf8, i32], $a: Aisle] -> d64 {
-    let $sum: d64 = 0;
+    # each item's takings, then their total by the same `total_of` that adds the units: its `<T>` zero is a d64 here
+    let $takings: std::list[d64] = std::list.empty;
     for $it in lend $items {
         if $it.aisle equal_to $a {
             let $had := std::map.get(lend $opening, key: copy $it.name) otherwise 0;
             let $has := std::map.get(lend $closing, key: copy $it.name) otherwise 0;
             let $sold := $had - $has;
-            change $sum = $sum + $it.price x to.d64($sold);
+            std::list.append(lend.mut $takings, value: $it.price x to.d64($sold));
         }
     }
-    return $sum;
+    return total_of(lend $takings);
 }
 
 fn report [lent $sales: std::list[Sale], lent $items: std::list[Item], lent $opening: std::map[str.utf8, i32], lent $stock: std::map[str.utf8, i32], lent $points: std::map[str.utf8, i32]] {
