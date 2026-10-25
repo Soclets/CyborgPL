@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — Measure Z3's Spacer as Precog's second way to find a loop's invariant, before deciding (owner)
+
+The owner: "Should we use Z3's Spacer?" Precog already puts exact questions to Z3 and CVC5 (2026-09-22, owner: b) and
+finds a loop's invariant from a fixed list of shapes, unproven when none fits (2026-09-22, "a and fallback to c").
+Spacer, the Constrained Horn Clause engine inside the Z3 kayo already links, finds invariants itself. Design claude
+recommended it as a second step, never a replacement: the shapes first; Spacer only where none fits, under a fixed
+step budget (deterministic); and every invariant it proposes confirmed inductively by both Z3 and CVC5, as any proof
+is, so a Spacer bug cannot make a wrong proof (CVC5 has no Horn engine to pair with it). It does not speed the build
+(that is the entry below). First measure it: of night_trains' unproven sites (12 of 60 in design claude's scratch
+build), how many it proves, and at what build time. The owner: "yes." Not decided; a measurement.
+
 ### 2026-10-25 — Precog may summarise a loop whose trips only grow its collections, if every program proves exactly what it did (owner)
 
 Compiler claude: examples/night_trains.cy takes about 190 s to build, nearly all in Precog. Its route search is a
