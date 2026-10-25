@@ -432,7 +432,7 @@ errors::table[
         errors::error[name = "unknown_const", means = "No const of that name is reachable from here.", about = "The module has no const of that name.", tests = []],
         errors::error[name = "unknown_inline_language", means = "An inline block names a language that is not one of the inline languages.", about = "The inline languages are `inline.ASM`, `inline.LL` and `inline.MSL`.", tests = []],
         errors::error[name = "unknown_module", means = "No module of that name is reachable from here.", tests = []],
-        errors::error[name = "unknown_narrowing", means = "A word is narrowed with `.` and a word it does not take, such as `must.x` or `concur.x`.", tests = ["msl_way_unknown",]],
+        errors::error[name = "unknown_narrowing", means = "A word is narrowed with `.` and a word it does not take, such as `must.x` or `concur.x`.", tests = ["msl_order", "msl_way_unknown",]],
         errors::error[name = "unknown_operation", means = "An operation of a built-in kind, such as `list.`, `map.` or `simd.`, is named that does not exist.", about = "The kind has no operation of that name; its operations are listed.", tests = []],
         errors::error[name = "unknown_power", means = "A power is named that does not exist.", about = "The powers are listed; any other is not one.", tests = []],
         errors::error[name = "unknown_text_unit", means = "A text or character unit is named that is not `byte`, `point` or `grapheme`.", about = "A text's units are `bytes`, `points` and `graphemes`; its encodings `utf8`, `utf16`, `utf32` and `ascii`.", tests = []],

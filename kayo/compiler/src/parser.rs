@@ -4297,7 +4297,7 @@ impl<'a> Parser<'a> {
             match w.name.as_str() {
                 "precise" if !precise && !wrap => precise = true,
                 "wrap" if !wrap => wrap = true,
-                "precise" if wrap => return self.fail_at_n(w.span, "unknown_narrowing", "`.precise` comes before `.wrap`: `inline.MSL.precise.wrap`").with_fix(name.to(w.span), Edit::Swap(vec!["MSL.wrap.precise".into()]), "MSL.precise.wrap"),
+                "precise" if wrap => return self.fail_at_n(w.span, "unknown_narrowing", "the strongest modifier comes first: `inline.MSL.precise.wrap` (`.precise` changes every float step, `.wrap` only an overflow)").with_fix(name.to(w.span), Edit::Swap(vec!["MSL.wrap.precise".into()]), "MSL.precise.wrap"),
                 other => {
                     return self.fail_at_n(w.span, "unknown_narrowing", format!("`inline.MSL.{}` is not a narrowing: `inline.MSL.precise` (safe math, no contraction), `inline.MSL.wrap` (signed arithmetic wraps), or both, `inline.MSL.precise.wrap`", other)).map_err(|d| Box::new(match crate::diag::closest(other, ["precise", "wrap"]) {
                         Some(c) => (*d).fix_edit(w.span, Edit::Replace, c),

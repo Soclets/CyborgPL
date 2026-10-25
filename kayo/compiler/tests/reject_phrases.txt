@@ -897,6 +897,7 @@ msl_metal_not_listed [fnv:f82c75ae39ff9d4b] :: `inline.MSL` is Metal's, and this
 msl_needs_no_check [fnv:10fa1498d854aa1d] :: an `inline.MSL` block is a no_check site: the compiler canno
 msl_no_kernel [fnv:5d5510cc1907b89f] :: an `inline.MSL` block holds one `kernel` function, the one i
 msl_no_threads [fnv:b529f3af359a0c53] :: an `inline.MSL` block says how many threads run it first: `i
+msl_order [fnv:64eaca23e18da9ab] :: error[unknown_narrowing]
 msl_slot_twice [fnv:4696919b3467d594] :: `buffer(0)` is bound twice, to $xs and $xs
 msl_text_bound [fnv:2ec49dab014f6094] :: 'k' is str, and what binds to the GPU is a number, a list of
 msl_two_kernels [fnv:db113e0ce70405a6] :: an `inline.MSL` block holds one kernel, and this one has 2:
