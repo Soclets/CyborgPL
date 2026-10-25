@@ -116,10 +116,19 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         }
     }
 
-    /// A name for the generated helpers, one per distinct type.
+    /// A name for the generated helpers, one per distinct type: its spelling,
+    /// and a hash of the type itself, since two types can spell alike (every
+    /// `map.pairs` element is a `pair`, of its own key and value; two kits
+    /// may each have a `Point`). One spelling for all of them gave a `pair`
+    /// of text and `i32` the drop of a `pair` of text and a struct, which
+    /// freed the count (examples/night_trains, `free(0x5)`).
     fn type_key(&self, t: &Ty) -> String {
         let s = crate::types::TySpelling { ty: t, structs: &self.p.items.structs, enums: &self.p.items.enums }.to_string();
-        sanitise(&s)
+        let mut h: u64 = 0xcbf29ce484222325;
+        for b in format!("{:?}", t).bytes() {
+            h = (h ^ b as u64).wrapping_mul(0x100000001b3);
+        }
+        format!("{}_{:08x}", sanitise(&s), h as u32)
     }
 
     // ------------------------------------------------------- drop and copy
@@ -2935,7 +2944,19 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let _ = self.builder.build_conditional_branch(there.into_int_value(), good, missing);
         self.builder.position_at_end(good);
         if let Some(d) = dest {
-            let v = self.builder.build_load(vlt, out, "value").ok()?;
+            // `map.get` hands back a value of its own while the map keeps
+            // its own: a copy of what owns memory, as `copy` makes (a text
+            // in a struct was freed by both; design claude's night_trains).
+            // `map.remove` takes the value out, so its bytes are it.
+            let from = match (op, self.copy_fn(&vt)) {
+                (Op::MapGet, Some(copier)) => {
+                    let mine = self.stack(vlt, "got_copy").ok()?;
+                    let _ = self.builder.build_call(copier, &[mine.into(), out.into()], "");
+                    mine
+                }
+                _ => out,
+            };
+            let v = self.builder.build_load(vlt, from, "value").ok()?;
             self.store_place(fi, d, v, slots);
             if d.proj.is_empty() && self.owns_memory(&vt) {
                 self.mark_alive(d.local, true);

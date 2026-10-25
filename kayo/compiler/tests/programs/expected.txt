@@ -351,3 +351,11 @@ exit_worked_out 8
 msl_wrap 1
 # Narrowed lists where plain ones go, keeping their kind; `to.list.page_aligned` (owner, 2026-10-25).
 msl_narrowed_cross 18
+# `map.get` of a value owning a text hands back a copy (design claude's night_trains, 2026-10-25).
+map_get_owned_copy 9
+# A `d64` const folded in (design claude's night_trains, 2026-10-25).
+const_d64 12
+# `map.pairs` of two kinds in one program, each its own `pair` (examples/night_trains, 2026-10-25).
+pairs_two_kinds 12
+# A name given to a failure reaches its handler whole (examples/night_trains, 2026-10-25).
+fail_gives_name 13

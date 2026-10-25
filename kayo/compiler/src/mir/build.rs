@@ -237,6 +237,8 @@ fn const_eval(e: &hir::Expr, done: &[Option<Const>], items: &crate::resolve::Ite
         hir::ExprKind::Int(v) => Some(Const::Int(*v)),
         hir::ExprKind::BigInt(v) => Some(Const::Big(v.clone())),
         hir::ExprKind::Bin(s) => Some(Const::Bin(s.clone())),
+        // A `d` const (`const $rate: d64 = 0.12;`), in its layout already.
+        hir::ExprKind::Deci { bits, value } => Some(Const::Deci { bits: *bits, value: *value }),
         hir::ExprKind::Str(s) => Some(Const::Str(s.clone())),
         hir::ExprKind::Char(c) => Some(Const::Char(c.clone())),
         hir::ExprKind::Bool(b) => Some(Const::Bool(*b)),
@@ -864,6 +866,20 @@ impl<'a> FnBuilder<'a> {
                     scope.retain(|l| *l != pl.local);
                 }
                 Operand::Move(pl)
+            }
+            // A name given to the failure (`fail sold_out[give $kind]`) is
+            // moved into a value of the failure's own first, on this path
+            // only, so the unwinding finds it given away and does not drop
+            // it (it reached its handler freed; examples/night_trains). The
+            // name's scope still drops it on every other path.
+            Operand::Move(pl) if pl.proj.is_empty() && self.locals[pl.local.0 as usize].ty.is_owned() => {
+                let ty = self.locals[pl.local.0 as usize].ty.clone();
+                let t = self.temp(&ty, span);
+                self.assign(Place::local(t), Rvalue::Use(Operand::Move(pl)), span);
+                for scope in &mut self.scopes {
+                    scope.retain(|l| *l != t);
+                }
+                Operand::Move(Place::local(t))
             }
             other => other,
         });

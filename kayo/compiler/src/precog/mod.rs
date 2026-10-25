@@ -43,6 +43,13 @@ pub const INDUCTION_CAP: usize = 4096;
 /// Provisional: one step per instruction interpreted.
 pub const STEP_BUDGET: u64 = 100_000_000;
 
+/// The budget, or `KAYO_STEP_BUDGET` for a quicker build when looking into
+/// something else: a smaller one only leaves more checked at run time.
+fn step_budget() -> u64 {
+    static BUDGET: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+    *BUDGET.get_or_init(|| std::env::var("KAYO_STEP_BUDGET").ok().and_then(|v| v.parse().ok()).unwrap_or(STEP_BUDGET))
+}
+
 /// What the analysis concluded about one site, and why, in the words the
 /// report and any message will use.
 #[derive(Debug, Clone)]
@@ -910,7 +917,7 @@ impl Precog {
                 continue;
             };
             self.steps += 1;
-            if self.steps > STEP_BUDGET {
+            if self.steps > step_budget() {
                 self.gave_up = true;
                 self.ran_out = true;
                 break;
