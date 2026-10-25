@@ -20,6 +20,9 @@ pub mod par;
 pub mod channels;
 pub mod deci;
 pub mod print;
+// Unicode 17.0.0's widths on a screen, for a format width in `cols`
+// (owner, 2026-10-25); generated, see its head.
+pub mod unicode_width;
 
 // Page-aligned lists, for a GPU block to share (owner, 2026-10-25).
 #[cfg(target_vendor = "apple")]

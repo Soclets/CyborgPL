@@ -5578,25 +5578,32 @@ impl Checker {
             };
             let k = kind_of(&t);
             let shown = if k == "str" { "a str".to_string() } else { crate::types::a_type(&self.spell(&t)) };
-            let wants = |ok: &[&str], what: &str| -> Result<()> {
-                if ok.contains(&k) {
-                    return Ok(());
-                }
-                let d = Diagnostic::error(format!("{} takes {} and does not apply to {}", what, if ok == ["integer"] { "a whole number" } else { "a bin or a deci" }, shown)).named("format_text_wrong").at(values[i + 1].span);
-                err(match crate::format::without_kind(text, *i) {
-                    Some(fixed) if spec.places.is_none() => d.fix_edit(text_e.span, Edit::Replace, written_back(&fixed)),
-                    _ => d,
+            // A shape the value's type does not take, its fix the shape gone.
+            let refuse = |what: String, label: &str| -> Result<()> {
+                let d = Diagnostic::error(format!("{} does not apply to {}", what, shown)).named("format_text_wrong").at(values[i + 1].span);
+                err(match crate::format::without_shape(text, *i, label) {
+                    Some(fixed) => d.fix_edit(text_e.span, Edit::Replace, written_back(&fixed)),
+                    None => d,
                 })
             };
+            let number = matches!(k, "integer" | "bin" | "deci");
             match spec.kind {
-                Some(c @ ('x' | 'X' | 'o' | 'b')) => wants(&["integer"], &format!("`{{:{}}}`", c))?,
-                Some('e') => wants(&["bin", "deci"], "`{:e}`")?,
+                Some(c @ ('x' | 'X' | 'o' | 'b')) if k != "integer" => {
+                    let b = match c { 'x' => "hex", 'X' => "hex.upper", 'o' => "oct", _ => "bin" };
+                    refuse(format!("`base: {}`, a whole number's digits,", b), "base")?
+                }
+                Some('e') if !matches!(k, "bin" | "deci") => refuse("`form: science`, a bin's or a deci's,".into(), "form")?,
+                Some('?') if spec.places.is_some() => refuse("`places:` with `form: stored`".into(), "places")?,
                 _ => {}
             }
-            if let (Some(n), None | Some('e')) = (spec.places, spec.kind) {
-                if spec.kind.is_none() {
-                    wants(&["bin", "deci"], &format!("`{{:.{}}}`", n))?;
-                }
+            if spec.places.is_some() && !matches!(k, "bin" | "deci") {
+                refuse(if k == "str" { "`places:`, which counts digits after the point,".into() } else { "`places:`".into() }, "places")?;
+            }
+            if spec.plus && !number {
+                refuse("`sign`".into(), "sign")?;
+            }
+            if spec.zero && !number {
+                refuse("`zeros`".into(), "zeros")?;
             }
         }
         Ok(())

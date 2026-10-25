@@ -859,15 +859,16 @@ pub unsafe extern "C" fn cyborg_fmt_decimal(s: *mut Out, places: i32, sci: bool)
 /// `o` a buffer, `s` a scratch buffer from `cyborg_fmt_scratch`.
 #[cfg(not(target_os = "none"))]
 #[no_mangle]
-pub unsafe extern "C" fn cyborg_fmt_put(o: *mut Out, s: *mut Out, width: u32, align: u32, fill: u32, plus: bool, zero: bool, numeric: bool) {
+pub unsafe extern "C" fn cyborg_fmt_put(o: *mut Out, s: *mut Out, width: u32, unit: u32, align: u32, fill: u32, plus: bool, zero: bool, numeric: bool) {
     let text = scratch_bytes(s);
     let (sign, rest): (&[u8], &[u8]) = match text.first() {
         Some(b'-') if numeric => (b"-", &text[1..]),
         _ if numeric && plus => (b"+", text),
         _ => (b"", text),
     };
-    let chars = sign.len() + rest.iter().filter(|b| (**b & 0xC0) != 0x80).count();
-    let pad = (width as usize).saturating_sub(chars);
+    // The width in its unit (owner, 2026-10-25); a fill is one unit wide.
+    let taken = sign.len() + measure(rest, unit);
+    let pad = (width as usize).saturating_sub(taken);
     let mut fill_bytes = [0u8; 4];
     let fill_len = crate::char_utf8(if fill == 0 { b' ' as u32 } else { fill }, &mut fill_bytes);
     let pad_with = |o: *mut Out, k: usize, b: &[u8]| {
@@ -894,6 +895,57 @@ pub unsafe extern "C" fn cyborg_fmt_put(o: *mut Out, s: *mut Out, width: u32, al
     }
     crate::cyborg_free((*s).bytes);
     crate::cyborg_free(s as *mut u8);
+}
+
+/// How wide `text` is in a format width's unit (owner, 2026-10-25): 0
+/// screen columns, 1 the same with East Asian Ambiguous characters 2, 2
+/// graphemes, 3 points, 4 bytes.
+fn measure(text: &[u8], unit: u32) -> usize {
+    use unicode_segmentation::UnicodeSegmentation;
+    let Ok(s) = core::str::from_utf8(text) else { return text.len() };
+    match unit {
+        2 => s.graphemes(true).count(),
+        3 => s.chars().count(),
+        4 => text.len(),
+        _ => s.graphemes(true).map(|g| grapheme_cols(g, unit == 1)).sum(),
+    }
+}
+
+/// A grapheme's screen columns: its widest character's, and 2 when U+FE0F
+/// follows an emoji in it (it asks the emoji to be drawn as a picture).
+fn grapheme_cols(g: &str, east_asian: bool) -> usize {
+    use crate::unicode_width::EMOJI;
+    let mut widest = 0;
+    let mut after_emoji = false;
+    for c in g.chars() {
+        if c == '\u{FE0F}' && after_emoji {
+            return 2;
+        }
+        after_emoji = within(&EMOJI, c as u32);
+        widest = widest.max(char_cols(c as u32, east_asian));
+    }
+    widest
+}
+
+/// One character's screen columns: 0 for a mark, a format or control
+/// character and the Hangul jamo that join the syllable before; 2 for an
+/// East Asian Wide or Fullwidth one, or one drawn as an emoji; an East Asian
+/// Ambiguous one 1, or 2 under `cols.east_asian`; 1 otherwise.
+fn char_cols(c: u32, east_asian: bool) -> usize {
+    use crate::unicode_width::{AMBIGUOUS, EMOJI_PRESENTATION, WIDE, ZERO};
+    if within(&ZERO, c) {
+        0
+    } else if within(&WIDE, c) || within(&EMOJI_PRESENTATION, c) {
+        2
+    } else if east_asian && within(&AMBIGUOUS, c) {
+        2
+    } else {
+        1
+    }
+}
+
+fn within(t: &[(u32, u32)], c: u32) -> bool {
+    t.binary_search_by(|&(a, b)| if c < a { core::cmp::Ordering::Greater } else if c > b { core::cmp::Ordering::Less } else { core::cmp::Ordering::Equal }).is_ok()
 }
 
 /// `std::format(…)`: the scratch buffer's bytes as a new text; the buffer

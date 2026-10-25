@@ -560,7 +560,6 @@ precedence_bare [fnv:2c52bed853d4921b] :: say which way the levels count
 print_bare [fnv:7587d85df41ba149] :: say which form
 print_format_backslash_percent [fnv:ad50ed3dcd7f1187] :: `\%` is not an escape
 print_format_extra_arg [fnv:40f9185c6f51c2e6] :: fewer holes than values
-print_format_hash [fnv:b053127aa853d749] :: type the prefix in the text
 print_format_hole_zero [fnv:d041555e923d0b74] :: holes count from `{1}`
 print_format_lone_brace [fnv:d885f76e08ed722d] :: a literal brace is `\}`
 print_format_missing_arg [fnv:a9458c5dbdc79cc8] :: more holes than values
@@ -914,3 +913,13 @@ page_aligned_to_not [fnv:553ea7e89b383c49] :: error[wrong_type]
 list_kind_unknown [fnv:c3d68aa6eb047f5a] :: error[unknown_narrowing]
 map_get_bare_key [fnv:b3b309009cb42bdd] :: error[owned_value_bare]
 map_set_lent_key [fnv:009d11dcef90ce5f] :: error[verb_wrong_for_parameter]
+print_format_bare_choice [fnv:46568b014a277b67] :: error[format_text_wrong]
+print_format_fill_quotes [fnv:9ec6655436acb930] :: error[format_text_wrong]
+print_format_fill_wide [fnv:4859cd08e2c3d6ea] :: error[format_text_wrong]
+print_format_old_shape [fnv:f967d8a99f28a722] :: error[format_text_wrong]
+print_format_pad_without_width [fnv:a0f1da94485a6fa1] :: error[format_text_wrong]
+print_format_text_places [fnv:70d1ef6ea3abc610] :: error[format_text_wrong]
+print_format_twice [fnv:9f589206fa3b96df] :: error[format_text_wrong]
+print_format_width_unit [fnv:5e511a0171c64d3a] :: error[format_text_wrong]
+print_format_word_colon [fnv:4852c3722cd02f87] :: error[format_text_wrong]
+print_format_hash [fnv:7fa03c45655ef5bf] :: error[format_text_wrong]

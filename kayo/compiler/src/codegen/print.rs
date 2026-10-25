@@ -41,7 +41,7 @@ impl<'ctx> Cg<'_, 'ctx> {
             "cyborg_fmt_scratch" => p.fn_type(&[], false),
             "cyborg_fmt_int_base" => v.fn_type(&[p.into(), w.into(), w.into(), b.into(), i32t.into(), b.into()], false),
             "cyborg_fmt_decimal" => v.fn_type(&[p.into(), i32t.into(), b.into()], false),
-            "cyborg_fmt_put" => v.fn_type(&[p.into(), p.into(), i32t.into(), i32t.into(), i32t.into(), b.into(), b.into(), b.into()], false),
+            "cyborg_fmt_put" => v.fn_type(&[p.into(), p.into(), i32t.into(), i32t.into(), i32t.into(), i32t.into(), b.into(), b.into(), b.into()], false),
             "cyborg_fmt_text" => v.fn_type(&[p.into(), p.into()], false),
             "cyborg_out_bytes" => v.fn_type(&[p.into(), p.into(), w.into()], false),
             "cyborg_out_int" => v.fn_type(&[p.into(), w.into(), w.into(), b.into()], false),
@@ -286,10 +286,11 @@ impl<'ctx> Cg<'_, 'ctx> {
                 _ => 0,
             };
             let put = self.out_fn("cyborg_fmt_put");
-            let args: [inkwell::values::BasicMetadataValueEnum; 8] = [
+            let args: [inkwell::values::BasicMetadataValueEnum; 9] = [
                 out.into(),
                 scratch.into(),
                 i32t.const_int(spec.width.unwrap_or(0) as u64, false).into(),
+                i32t.const_int(spec.unit as u64, false).into(),
                 i32t.const_int(align, false).into(),
                 i32t.const_int(spec.fill.map(|c| c as u64).unwrap_or(0), false).into(),
                 bt.const_int(spec.plus as u64, false).into(),
