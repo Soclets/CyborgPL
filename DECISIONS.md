@@ -34,6 +34,23 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — A format width names its unit; screen columns are `col` / `cols` (owner)
+
+The second review of the corner shop (multifinity, a fresh Claude) found `print.format`'s shapes, `"{:<10} x{:>2}
+{:>8.2}"`, the most cryptic thing in a language that writes `at_least` for `>=`. The owner: "Why did `print.format`
+not have the normal way of spelling?" (the shapes were design claude's pick of Rust's set on 2026-10-01, before the
+words rule of 2026-10-14/16, and never revisited), then "Suggest a words version". Design claude's sketch:
+`{left, width: 10}`, `{width: 8, places: 2}`, `{hex.upper, width: 5, zeros}`, `{scientific, places: 2}`, `{stored}`,
+`{2, right, width: 6}`; not yet ruled. The owner: "width: 8 what?" (the oracle counted code points, design claude's
+unwritten pick). Offered graphemes, with screen cells (East Asian wide characters, most emoji) for later; the owner:
+"No, that comes now". Offered `columns` (recommended) or `cells`; the owner: "`col`". Asked about the plural, design
+claude recommending the durations' way (`1 sec`, `5 secs`): "yes". So:
+- **A width names its unit**, as every length does.
+- **Screen columns are `col` / `cols`**: `1 col`, `width: 8 cols`.
+Open: the worded form itself; whether `graphemes` is a width unit too (design claude's reading: yes, the counted
+one); which characters take two columns (the ambiguous ones, like `±`); the Unicode data it needs
+(`EastAsianWidth.txt`, `emoji-data.txt`, not on this Mac, a download for the owner's yes). Not built.
+
 ### 2026-10-25 — A handler's `continue` / `break` is not marked where it is used (owner)
 
 The same review (point 1) found `otherwise order_failed.apologize(customer: …)` in the corner shop leaving the order
