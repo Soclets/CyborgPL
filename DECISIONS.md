@@ -34,6 +34,26 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — `coll.bound`: a collection of named bounded types (owner)
+
+multifinity's rewrite of the corner shop (on the issue thread, by a fresh Claude) had `type Quantity = i32[min: 1,
+max: 99];`, a type alias, which CyborgPL does not have. The owner: "What the fuck is `type Quantity`?", then "Hey,
+that's a good idea. Maybe `coll.bound`?" Design claude sketched it beside `coll.fn` and `coll.handler`, every member
+line writing its full name (2026-10-19):
+
+```
+coll.bound order {
+    order.quantity = i32[min: 1, max: 99];
+    order.discount = i32[min: 0, max: 50];
+    order.name = str.utf8[min: 1, max: 40 graphemes];
+}
+struct Line { name: order.name, count: order.quantity }
+```
+
+**a member names one bounded type, and a use of it is that type exactly, not a new one**, so values move between
+the two freely. The owner: "Hell yeah". Open: whether a member may name any type or only a bounded one; an own bound
+named as the collection; `pub` and use from another kit. Not built.
+
 ### 2026-10-25 — A final build is small: it carries only what the program uses, never at the cost of speed or safety (owner)
 
 The owner asked how big Lua's collector is (lgc.c and lgc.h in 5.5.1: 2,072 lines, about 1,220 of code), then "Let me
