@@ -51,8 +51,11 @@ struct Line { name: order.name, count: order.quantity }
 ```
 
 **a member names one bounded type, and a use of it is that type exactly, not a new one**, so values move between
-the two freely. The owner: "Hell yeah". Open: whether a member may name any type or only a bounded one; an own bound
-named as the collection; `pub` and use from another kit. Not built.
+the two freely. The owner: "Hell yeah". Asked whether a member may name any type (`order.lines = std::list[Line]`),
+design claude recommending bounded only (the name says `bound`; an unbounded alias adds a spelling, no limit): "only
+bounded". So **only a bounded type**. Design claude's reading: bounded is any type with a limit written after it, a
+number's `min:`/`max:`, a text's length, a list's or map's length, `C.str`'s, a `d`'s `max_places:`. Open: an own
+bound named as the collection; `pub` and use from another kit. Not built.
 
 ### 2026-10-25 — A final build is small: it carries only what the program uses, never at the cost of speed or safety (owner)
 
