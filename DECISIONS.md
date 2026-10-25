@@ -34,6 +34,13 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — A format fill is a char literal: `` fill: `*` `` (owner)
+
+`fill: "*"` would need `\"*\"` inside the format's own `"…"`. Design claude recommended `fill: '*'`; the owner:
+"That shit means a var" (`'…'` is a quoted name). Offered the language's char literal, a backtick (2026-09-14: "`
+means char in CyPL"), which needs no escape in a format: the owner: "yes". So
+**`{align: center, width: 7 cols, fill: `*`}`**.
+
 ### 2026-10-25 — `cols` counts an ambiguous-width character as 1, `cols.east_asian` as 2; no asking the terminal (owner)
 
 About 900 characters (`°`, `±`, `×`, Greek, Cyrillic) are East Asian Ambiguous in Unicode: one column on Western
