@@ -33,6 +33,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             "cyborg_alloc" | "cyborg_alloc_zeroed" => p.fn_type(&[w.into()], false),
             "cyborg_par_for" => w.fn_type(&[p.into(), p.into(), w.into()], false),
             "cyborg_realloc" => p.fn_type(&[p.into(), w.into()], false),
+            "cyborg_alloc_paged" | "cyborg_alloc_zeroed_paged" => p.fn_type(&[w.into(), self.ctx.bool_type().into()], false),
+            "cyborg_realloc_paged" => p.fn_type(&[p.into(), w.into(), self.ctx.bool_type().into()], false),
+            "cyborg_list_rehome" => self.ctx.void_type().fn_type(&[p.into(), w.into(), self.ctx.bool_type().into()], false),
             "cyborg_free" => self.ctx.void_type().fn_type(&[p.into()], false),
             "cyborg_machine_has" => self.ctx.bool_type().fn_type(&[self.ctx.i32_type().into()], false),
             "cyborg_copy" | "cyborg_move" => self.ctx.void_type().fn_type(&[p.into(), p.into(), w.into()], false),
@@ -60,8 +63,14 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     }
 
     pub(super) fn alloc(&mut self, bytes: IntValue<'ctx>) -> PointerValue<'ctx> {
-        let f = self.rt("cyborg_alloc");
-        let call = self.builder.build_call(f, &[bytes.into()], "mem").unwrap();
+        // A page-aligned list's elements (owner, 2026-10-25).
+        let call = if let Some(always) = self.alloc_paged {
+            let f = self.rt("cyborg_alloc_paged");
+            self.builder.build_call(f, &[bytes.into(), self.ctx.bool_type().const_int(always as u64, false).into()], "mem").unwrap()
+        } else {
+            let f = self.rt("cyborg_alloc");
+            self.builder.build_call(f, &[bytes.into()], "mem").unwrap()
+        };
         basic_result(call).unwrap().into_pointer_value()
     }
 
@@ -740,8 +749,15 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let fresh_cap = self.builder.build_select(small, w.const_int(4, false), doubled, "cap").ok()?.into_int_value();
         let bytes = self.builder.build_int_mul(fresh_cap, w.const_int(esize, false), "bytes").ok()?;
         let old = self.load_field_ptr(shape, at, 0);
-        let re = self.rt("cyborg_realloc");
-        let call = self.builder.build_call(re, &[old.into(), bytes.into()], "mem").ok()?;
+        // A list Precog gives page-aligned memory grows into more of it.
+        let paged = args.first().and_then(|a| a.place()).and_then(|pl| self.paged_list(fi, pl));
+        let call = if let Some(always) = paged {
+            let re = self.rt("cyborg_realloc_paged");
+            self.builder.build_call(re, &[old.into(), bytes.into(), self.ctx.bool_type().const_int(always as u64, false).into()], "mem").ok()?
+        } else {
+            let re = self.rt("cyborg_realloc");
+            self.builder.build_call(re, &[old.into(), bytes.into()], "mem").ok()?
+        };
         let fresh = basic_result(call)?.into_pointer_value();
         self.store_field(shape, at, 0, fresh.into());
         self.store_field(shape, at, 2, fresh_cap.into());
@@ -1979,11 +1995,19 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             _ => false,
         };
         let data = if zero {
-            let f = self.rt("cyborg_alloc_zeroed");
-            basic_result(self.builder.build_call(f, &[bytes.into()], "zeroed").ok()?)?.into_pointer_value()
+            let call = match self.alloc_paged {
+                Some(always) => {
+                    let f = self.rt("cyborg_alloc_zeroed_paged");
+                    self.builder.build_call(f, &[bytes.into(), self.ctx.bool_type().const_int(always as u64, false).into()], "zeroed").ok()?
+                }
+                None => {
+                    let f = self.rt("cyborg_alloc_zeroed");
+                    self.builder.build_call(f, &[bytes.into()], "zeroed").ok()?
+                }
+            };
+            basic_result(call)?.into_pointer_value()
         } else {
-            let f = self.rt("cyborg_alloc");
-            let p = basic_result(self.builder.build_call(f, &[bytes.into()], "room").ok()?)?.into_pointer_value();
+            let p = self.alloc(bytes);
             let v = self.operand(fi, args.first()?, slots)?;
             let v = self.fit(v, lty);
             let src = if owned {

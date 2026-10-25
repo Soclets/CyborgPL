@@ -1712,6 +1712,19 @@ impl Items {
                     return Ok(Ty::Char(u));
                 }
                 "list" | "array" => {
+                    // A list narrowed to its memory (owner, 2026-10-25).
+                    let pages = match (head, path.seg(1), path.segs.len()) {
+                        ("list", Some("page_aligned"), 2) => Some(true),
+                        ("list", Some("not_page_aligned"), 2) => Some(false),
+                        _ => None,
+                    };
+                    if let Some(aligned) = pages {
+                        if args.len() != 1 {
+                            return err(Diagnostic::error(format!("`list.{}` takes exactly one type parameter, the element type: `std::list.{}[i32]`", path.segs[1].name, path.segs[1].name)).named("type_parameter_count").at(span));
+                        }
+                        let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
+                        return Ok(Ty::Pages { inner: Box::new(Ty::Seq { elem: Box::new(elem), kind: SeqKind::List }), aligned });
+                    }
                     if path.segs.len() > 1 {
                         return err(Diagnostic::error(format!("the element type goes in brackets: `{}[i32]`, not `{}` (a dot picks a fixed variant, brackets supply a type)", head, path.spelled())).named("type_parameter_form").at(span).fix_edit(span, crate::diag::Edit::Swap(vec![path.spelled()]), format!("{}[{}]", head, path.segs[1..].iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join("."))));
                     }

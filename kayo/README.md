@@ -1094,6 +1094,27 @@ Dated, with the alternative, so each can become a question later.
   stops the program with `error[metal::run_failed]` at the block. `metal::compile_failed` says `fix: none
   suggested` and keeps Apple's own words on `about:` (`Diagnostic::outside_saying`). A program with a
   block is about 2 MB, std's share.
+- **2026-10-25 — A list reaches the GPU with no copy when page-aligned** (owner, point 3, measured by
+  `metal/bench/`; design claude's readings of sizes and "never"). The binding carries the list's capacity
+  in bytes; the runtime wraps memory that starts on a page and holds whole pages past the list
+  (its capacity, or `malloc_size`) with `newBufferWithBytesNoCopy`, and copies anything else (a struct,
+  an array, `std::list.not_page_aligned`). The device, queue and each block's pipeline are kept per
+  thread, the block's library address naming it. Precog decides which lists get page-aligned memory
+  (`precog/paged.rs`): the lists a block binds, back along where their memory came from (moves, lends,
+  a call's result, a callee's parameter, a task's capture, a callee growing a list lent to change), and,
+  where it stops following (a field, an element), every list of that type; none in a program with no
+  block; a note in the report for each. Codegen makes such a list's literal and `list.fill` page-aligned
+  from a page's size on (`cyborg_alloc_paged`, `cyborg_alloc_zeroed_paged`), grows it so
+  (`cyborg_realloc_paged`: realloc first, which keeps a page-sized block on a page here), and moves
+  anything else assigned to it there (`cyborg_list_rehome`), and a list lent to change just before it
+  is bound; one lent to read is never moved, since a reader may hold its address. These are in
+  `runtime/src/pages.rs`. `std::list.page_aligned[T]` is page-aligned at every size and
+  `std::list.not_page_aligned[T]` never shared (`Ty::Pages`, which `base` looks through): neither meets
+  another list type until the owner rules how they relate; a list made in place takes its place's.
+  Found on the way: `std::exit` with a worked-out code handed LLVM a 65-bit value (now its low byte);
+  `not_built_yet` and `not_decided` keep their sentence on `about:`; a declared type in a fix is
+  written as the writer writes it (`std::list[i32]`, `Checker::spell_written`); an unknown operator's
+  fix is the language operator it is close to or begins (`equal` → `equal_to`), never an unrelated one.
 - **2026-10-24 — The fixes, family by family** (owner, 2026-10-24: "finish it"; `kayo/FIXES.md`, the
   checklist). Every fix is a set of edits made from the source (`diag::Edit`: a span replaced, wrapped,
   a word or a line taken out, text put in, a line put above, a word swapped), so one fix is one or more

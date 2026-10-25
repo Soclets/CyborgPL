@@ -23,6 +23,6 @@ kayo-runtime = { path = "../runtime", features = ["std"] }
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "=0.6.5"
 objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std"] }
-objc2-metal = { version = "=0.3.2", default-features = false, features = ["std", "dispatch2", "MTLDevice", "MTLBuffer", "MTLCommandQueue", "MTLCommandBuffer", "MTLCommandEncoder", "MTLComputeCommandEncoder", "MTLComputePipeline", "MTLLibrary", "MTLResource", "MTLTypes"] }
+objc2-metal = { version = "=0.3.2", default-features = false, features = ["std", "dispatch2", "block2", "MTLAllocation", "MTLDevice", "MTLBuffer", "MTLCommandQueue", "MTLCommandBuffer", "MTLCommandEncoder", "MTLComputeCommandEncoder", "MTLComputePipeline", "MTLLibrary", "MTLResource", "MTLTypes"] }
 # The library as data, read where it lies in the program.
 dispatch2 = { version = "=0.3.1", default-features = false, features = ["alloc", "block2", "objc2"] }

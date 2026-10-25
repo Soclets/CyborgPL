@@ -319,8 +319,11 @@ impl Diagnostic {
         self.name = Some(name);
         // Its fix is kayo's to build or the owner's to rule on, never in the
         // writer's code (design claude, 2026-10-24).
+        // Its sentence stays: it says what is not built or not decided,
+        // which the docs under the name cannot.
         if matches!(name, "not_built_yet" | "not_decided") {
             self.outside = true;
+            self.keep_about = true;
         }
         self
     }

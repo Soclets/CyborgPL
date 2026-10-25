@@ -670,7 +670,10 @@ impl<'ctx> Cg<'_, 'ctx> {
     /// `cord::exit[code]`: the OS's `exit`; with no OS, the board's, or the
     /// CPU sleeps as when MAIN ends (owner, 2026-10-09: "c").
     pub(super) fn emit_exit(&mut self, fi: usize, args: &[Operand], slots: &[Option<PointerValue<'ctx>>]) -> Option<()> {
+        // The code is a `u8` (the checker made sure); worked out, it may be
+        // held wider, as exact arithmetic is: its low byte, at its width.
         let code = self.operand(fi, args.first()?, slots)?.into_int_value();
+        let code = self.builder.build_int_cast_sign_flag(code, self.ctx.i8_type(), false, "code").ok()?;
         self.emit_print_flush();
         let i32t = self.ctx.i32_type();
         if crate::target::bare() {

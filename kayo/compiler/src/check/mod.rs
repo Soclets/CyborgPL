@@ -264,6 +264,38 @@ impl Checker {
         TySpelling { ty: &t, structs: &self.items.structs, enums: &self.items.enums }.to_string()
     }
 
+    /// A type as the writer writes it in module `m`, for a fix: std's own
+    /// types take `std::` outside std (owner, 2026-10-22), as `spell`,
+    /// which is for sentences, leaves out.
+    pub fn spell_written(&self, m: crate::resolve::ModuleId, t: &Ty) -> String {
+        let s = self.spell(t);
+        // Inside std, or in a kit that does not list it, they are bare.
+        let root = self.items.kit_root(m);
+        if self.items.nerve_cord.is_some_and(|c| c == root) || (self.items.nerve_cord.is_none() && self.items.no_std_roots.contains(&root)) {
+            return s;
+        }
+        let mut out = String::with_capacity(s.len() + 8);
+        let mut rest = s.as_str();
+        while !rest.is_empty() {
+            let before = out.chars().last();
+            let joined = before.is_some_and(|c| c.is_alphanumeric() || c == '_' || c == '.' || c == ':');
+            let head = ["list", "map", "duration"].into_iter().find(|h| rest.starts_with(h) && !rest[h.len()..].starts_with(|c: char| c.is_alphanumeric() || c == '_'));
+            match head {
+                Some(h) if !joined => {
+                    out.push_str("std::");
+                    out.push_str(h);
+                    rest = &rest[h.len()..];
+                }
+                _ => {
+                    let c = rest.chars().next().unwrap();
+                    out.push(c);
+                    rest = &rest[c.len_utf8()..];
+                }
+            }
+        }
+        out
+    }
+
     /// Apply the substitution throughout.
     pub fn resolve(&self, t: &Ty) -> Ty {
         match t {
@@ -300,6 +332,7 @@ impl Checker {
             Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(self.resolve(inner)), bound: bound.clone() },
             Ty::Percent(inner) => Ty::Percent(Box::new(self.resolve(inner))),
             Ty::Places { inner, max, min } => Ty::Places { inner: Box::new(self.resolve(inner)), max: *max, min: *min },
+            Ty::Pages { inner, aligned } => Ty::Pages { inner: Box::new(self.resolve(inner)), aligned: *aligned },
             t => t.clone(),
         }
     }
@@ -370,6 +403,14 @@ impl Checker {
                 let (x, y) = (x.clone(), y.clone());
                 self.unify(&x, &y)
             }
+            // A list narrowed to its memory meets only the same narrowing
+            // (design claude, 2026-10-25: none crosses into another until
+            // the owner rules).
+            (Ty::Pages { inner: x, aligned: a }, Ty::Pages { inner: y, aligned: b }) => {
+                let (x, y) = (x.clone(), y.clone());
+                a == b && self.unify(&x, &y)
+            }
+            (Ty::Pages { .. }, _) | (_, Ty::Pages { .. }) => false,
             (Ty::Places { inner, .. }, other) | (other, Ty::Places { inner, .. }) => {
                 let inner = inner.clone();
                 let other = other.clone();

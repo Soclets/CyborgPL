@@ -54,6 +54,7 @@ bare_int [fnv:ef16210764d8ed79] :: the typed form is always fully explicit
 bare_list_type [fnv:2c25ad3c0db0aeaa] :: `list` takes exactly one type parameter, the element type: `list[i32]`
 bare_never_without_path [fnv:b853aa5f020aa949] :: `formal` is `greet`'s: another kit's names take its path (owner, 2026-10-22), so write `greet::formal(…)`
 bare_owned_assign [fnv:a4a8ad33036213f9] :: give $s
+bare_struct_from_position [fnv:dad2041d7955f650] :: give $prs[pos: 1]
 bare_str [fnv:b78f2a1f98dce47b] :: `str` is never bare: say the encoding
 bare_type_never [fnv:037dc0ed954fe338] :: `Tally` is `greet`'s: another kit's names take its path
 bin16_rounds_past [fnv:c3ba05f314456c5d] :: the value can be outside what an `f16` holds

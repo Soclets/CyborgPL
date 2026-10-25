@@ -398,7 +398,16 @@ impl<'a> Lexer<'a> {
             k -= 1;
             match &self.toks[k].tok {
                 Tok::Semi | Tok::LBrace | Tok::RBrace | Tok::Raw(_) => return false,
-                Tok::Word(w) if w == "threads" => return k >= 1 && inline_at(k - 1, &["MSL", "Metal_Shading_Language"]),
+                Tok::Word(w) if w == "threads" => {
+                    // Past `.precise` and `.wrap` (owner, 2026-10-25), or a
+                    // word the parser then refuses as no narrowing: the
+                    // block is Metal's either way.
+                    let mut at = k;
+                    while at >= 3 && !inline_at(at - 1, &["MSL", "Metal_Shading_Language"]) && matches!(&self.toks[at - 1].tok, Tok::Word(_)) && self.toks[at - 2].tok == Tok::Dot {
+                        at -= 2;
+                    }
+                    return at >= 1 && inline_at(at - 1, &["MSL", "Metal_Shading_Language"]);
+                }
                 _ => {}
             }
         }

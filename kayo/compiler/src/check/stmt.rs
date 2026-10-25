@@ -352,7 +352,7 @@ impl Checker {
                             }
                         }
                         // Or the declared type is the value's: `let $n: d64 = …`.
-                        let value_ty = crate::check::expr::conv_spelling(&self.spell(&self.resolve(&v.ty)));
+                        let value_ty = crate::check::expr::conv_spelling(&self.spell_written(ctx.module, &self.resolve(&v.ty)));
                         // A whole number too big for the type written: the
                         // narrowest of the same sign that holds it.
                         let wider = match (&value.kind, self.resolve(t).base()) {
@@ -643,8 +643,8 @@ impl Checker {
             ast::StmtKind::Match { value, arms } => self.match_stmt(ctx, value, arms),
             ast::StmtKind::Concur { detached, captures, body, otherwise } => self.concur_stmt(ctx, *detached, captures, body, otherwise.as_ref(), s.span),
             ast::StmtKind::Whichever { arms, otherwise } => self.whichever_stmt(ctx, arms, otherwise.as_ref(), s.span),
-            ast::StmtKind::InlineMsl { text, text_span, threads, bindings } => match threads {
-                Some(t) => self.inline_msl(ctx, text, *text_span, t, bindings, s.span),
+            ast::StmtKind::InlineMsl { text, text_span, threads, bindings, precise, wrap } => match threads {
+                Some(t) => self.inline_msl(ctx, text, *text_span, t, bindings, (*precise, *wrap), s.span),
                 None => err(Diagnostic::error("an `inline.MSL` block says how many threads run it first").named("metal::threads_unsaid").at(s.span)),
             },
             ast::StmtKind::InlineAsm { text, bindings } => {

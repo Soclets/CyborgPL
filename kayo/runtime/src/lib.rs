@@ -21,6 +21,10 @@ pub mod channels;
 pub mod deci;
 pub mod print;
 
+// Page-aligned lists, for a GPU block to share (owner, 2026-10-25).
+#[cfg(target_vendor = "apple")]
+pub mod pages;
+
 extern "C" {
     fn write(fd: i32, buf: *const u8, count: usize) -> isize;
     fn exit(code: i32) -> !;
@@ -221,7 +225,7 @@ pub extern "C" fn rust_eh_personality() {}
 /// Out of memory is not a check firing and not a failure the program can
 /// handle: there is nothing to hand back a failure *in*. It stops, saying
 /// so.
-unsafe fn out_of_memory() -> ! {
+pub(crate) unsafe fn out_of_memory() -> ! {
     let msg = b"out of memory\n";
     write(2, msg.as_ptr(), msg.len());
     exit(103)

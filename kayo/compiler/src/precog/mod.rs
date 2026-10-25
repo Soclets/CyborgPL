@@ -17,6 +17,7 @@
 //! (`reproducible-builds.md`): the same source gives the same answer on
 //! every machine, on every day.
 
+pub mod paged;
 pub mod report;
 pub mod smt;
 

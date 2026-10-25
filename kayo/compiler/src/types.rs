@@ -209,6 +209,13 @@ pub enum Ty {
     /// 2026-10-20): how many places a `d` or a percent keeps, and pads to
     /// when printed. Its values are its number's, so `base` looks through it.
     Places { inner: Box<Ty>, max: Option<u32>, min: Option<u32> },
+    /// `std::list.page_aligned[T]` (`aligned`) and
+    /// `std::list.not_page_aligned[T]` (owner, 2026-10-25): a list whose
+    /// memory is always, or never, page-aligned, so a GPU block shares it
+    /// with no copy or always copies it. A list, so `base` looks through
+    /// it; it meets no other list type (design claude, 2026-10-25, until
+    /// the owner rules how they relate).
+    Pages { inner: Box<Ty>, aligned: bool },
 }
 
 /// Marks [`Ty::exact`]: no width anyone writes has this bit, and the rest
@@ -277,6 +284,7 @@ impl Ty {
             Ty::Bounded { inner, .. } => inner.base(),
             Ty::Percent(inner) => inner.base(),
             Ty::Places { inner, .. } => inner.base(),
+            Ty::Pages { inner, .. } => inner.base(),
             t => t,
         }
     }
@@ -370,7 +378,7 @@ impl Ty {
             Ty::Struct { args, .. } | Ty::Enum { args, .. } => args.iter().any(|a| a.contains_var()),
             Ty::Fn(f) => f.params.iter().any(|(_, t)| t.contains_var()) || f.ret.contains_var() || f.fails.iter().any(|(_, t)| t.as_ref().map(|t| t.contains_var()).unwrap_or(false)),
             Ty::Bundle(ts) => ts.iter().any(|t| t.contains_var()),
-            Ty::Bounded { inner, .. } | Ty::Percent(inner) | Ty::Places { inner, .. } => inner.contains_var(),
+            Ty::Bounded { inner, .. } | Ty::Percent(inner) | Ty::Places { inner, .. } | Ty::Pages { inner, .. } => inner.contains_var(),
             _ => false,
         }
     }
@@ -396,6 +404,7 @@ impl Ty {
             Ty::Bounded { inner, bound } => Ty::Bounded { inner: Box::new(inner.subst(args)), bound: bound.clone() },
             Ty::Percent(inner) => Ty::Percent(Box::new(inner.subst(args))),
             Ty::Places { inner, max, min } => Ty::Places { inner: Box::new(inner.subst(args)), max: *max, min: *min },
+            Ty::Pages { inner, aligned } => Ty::Pages { inner: Box::new(inner.subst(args)), aligned: *aligned },
             t => t.clone(),
         }
     }
@@ -581,6 +590,10 @@ impl<'a> fmt::Display for TySpelling<'a> {
                 write!(f, "C.str[{}]", parts.join(", "))
             }
             Ty::Percent(inner) => write!(f, "percent[{}]", sp(inner)),
+            Ty::Pages { inner, aligned } => match &**inner {
+                Ty::Seq { elem, .. } => write!(f, "list.{}[{}]", if *aligned { "page_aligned" } else { "not_page_aligned" }, sp(elem)),
+                other => write!(f, "{}", sp(other)),
+            },
             // In the limits bracket, after the sides: `d64[min: 0.0, max:
             // 1.0, max_places: 2]`, or a bracket of its own.
             Ty::Places { inner, max, min } => {

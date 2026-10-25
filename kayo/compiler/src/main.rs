@@ -594,6 +594,7 @@ fn build_opts(path: &Path, out: &Path, assert_proofs: bool, final_build: bool, q
     for (at, name, path) in kayo::uses::seen() {
         notes.push(kayo::diag::Diagnostic::note(format!("`{}` stands for `{}` in this file (its `use`)", name, path)).at(at).render(&sources));
     }
+    notes.extend(kayo::precog::paged::notes(&mir, &sources));
     let refusals = kayo::precog::refusals_opts(&analysis, &mir, &sources, final_build);
     if !refusals.is_empty() {
         return Err(refusals.join(""));

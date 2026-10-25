@@ -22,7 +22,7 @@ enum Bound {
 }
 
 impl Checker {
-    pub(super) fn inline_msl(&mut self, ctx: &mut FnCtx, text: &str, text_span: Span, threads: &ast::Expr, bindings: &[ast::MslBinding], span: Span) -> Result<hir::StmtKind> {
+    pub(super) fn inline_msl(&mut self, ctx: &mut FnCtx, text: &str, text_span: Span, threads: &ast::Expr, bindings: &[ast::MslBinding], (precise, wrap): (bool, bool), span: Span) -> Result<hir::StmtKind> {
         if self.needs_mark(ctx) {
             self.power_first()?;
             return err(Diagnostic::error("an `inline.MSL` block is a no_check site: the compiler cannot prove anything inside it — write `no_check inline.MSL threads … { … }`").named("no_check_missing").at(span).fix_edit(span, Edit::Before, "no_check "));
@@ -110,11 +110,23 @@ impl Checker {
                 }
             }
         }
+        // A value lent to read is read only in the kernel too (owner,
+        // 2026-10-25: "(a)"): a list may be shared with no copy, and a write
+        // would change what the program holds as unchanged.
+        let params = crate::metal::buffer_params(text, &kernel);
+        for b in bindings.iter().filter(|b| b.verb == Verb::Lend) {
+            if let Some((_, at, false)) = params.iter().find(|(slot, _, _)| *slot == b.slot) {
+                let start = text_span.start as usize + 1 + at;
+                let word = text[*at..].split_whitespace().next().unwrap_or("");
+                let param = Span::new(text_span.file, start, start + word.len());
+                return err(Diagnostic::error(format!("${} is lent to read, and the kernel's `buffer({})` parameter can write it: make it `const device …` (or `constant …`), or lend it to change, `lend.mut ${} -> buffer({})`", b.name.name, b.slot, b.name.name, b.slot)).named("metal::lent_but_written").at(param).fix_edit(param, Edit::Insert, "const ").fix_edit(b.span, Edit::Verb, "lend.mut"));
+            }
+        }
         // The structs' Metal declarations, then the block as written.
         let decls = crate::metal::declarations(&structs, &self.items.structs).map_err(|what| Box::new(Diagnostic::error(format!("{} has no form in Metal: a struct the GPU reads holds numbers and `layout.C` structs Metal has", what)).named("metal::cannot_bind").at(span)))?;
         let source = format!("#include <metal_stdlib>\nusing namespace metal;\n{}{}", decls, text);
         let before = source.lines().count() - text.lines().count();
-        let library = crate::metal::compile(&source, &dir).map_err(|(line, said)| {
+        let library = crate::metal::compile(&source, &dir, precise, wrap).map_err(|(line, said)| {
             // The error's line in the file: the block's text starts just
             // after its `{`, and the line Apple's compiler names is in it.
             let at = line.map(|l| l.saturating_sub(before)).filter(|l| *l > 0).and_then(|l| {

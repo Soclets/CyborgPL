@@ -622,7 +622,10 @@ pub enum StmtKind {
     /// `inline.MSL threads <count> { … } with [lend.mut $xs -> buffer(0),
     /// copy $k -> buffer(1)];` (owner, 2026-10-01, 2026-10-22): Metal's code,
     /// handed to Apple's compiler unchanged; `text_span` is where it is.
-    InlineMsl { text: String, text_span: Span, threads: Option<Expr>, bindings: Vec<MslBinding> },
+    /// `precise` and `wrap`: `inline.MSL.precise`, `.wrap`, `.precise.wrap`
+    /// (owner, 2026-10-25), Apple's compiler told safe math with no
+    /// contraction, and wrapping signed arithmetic.
+    InlineMsl { text: String, text_span: Span, threads: Option<Expr>, bindings: Vec<MslBinding>, precise: bool, wrap: bool },
     /// `must …;` in a `test fn` (owner, 2026-09-29): what must hold, that
     /// something fails (with a reason), or that a check site fires.
     Must { kind: MustKind, expr: Expr },

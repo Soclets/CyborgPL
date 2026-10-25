@@ -340,3 +340,10 @@ no_cheat_held 9
 no_cheat_vector 81
 # Two flags are two graphemes, not four, to Precog too (check claude, 2026-10-20).
 grapheme_flags 30
+# A 64 KB list doubled three times on the GPU by one block: its pipeline kept, its memory shared with no
+# copy when page-aligned (owner, 2026-10-25).
+msl_whole_pages 8
+# `std::list.page_aligned` and `.not_page_aligned` bound to GPU blocks (owner, 2026-10-25).
+msl_page_aligned 51
+# An exit code worked out, held wider than its `u8` (found 2026-10-25).
+exit_worked_out 8

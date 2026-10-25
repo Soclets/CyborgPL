@@ -139,7 +139,7 @@ said why), **—** (not yet).
 | `unknown_handler` | 1 | written | the close name |
 | `unknown_inline_language` | 1 | written | the close language |
 | `unknown_narrowing` | 3 | partly | `must`'s close form, `concur.detached`; not yet: a type's `.of` |
-| `unknown_operator` | 6 | partly | `=` → `equal_to`; not yet: another kit's operator |
+| `unknown_operator` | 6 | partly | `=` → `equal_to`; a word close to or beginning one of the language's operators → that one (`equal` → `equal_to`, never an unrelated `plus`); `&+` → `plus.wrap`; not yet: another kit's operator |
 | `unknown_pub_narrowing` | 2 | written | `pub.kit` |
 | `unknown_target` | 5 | keeps about | the chip or target is the writer's |
 | `unknown_verb` | 4 | keeps about | `lent` or `lent.mut` is the writer's |
@@ -469,12 +469,13 @@ said why), **—** (not yet).
 | `use_form` | 5 | partly | ` as NAME` after the path; a use of this kit's own path goes; not yet: a `use` below other lines (it moves), a missing `;` |
 | `use_name_taken` | 1 | keeps about | the new name is the writer's |
 
-## Metal, `inline.MSL` (10 names)
+## Metal, `inline.MSL` (11 names)
 
 | name | sites | status | notes |
 |---|---|---|---|
 | `metal::binding_verb_wrong` | 3 | written | the verb the value takes, `lend` / `lend.mut` or `copy` |
 | `metal::cannot_bind` | 2 | keeps about | what is bound instead is the writer's |
+| `metal::lent_but_written` | 1 | written | `const ` before the parameter's first word; or: `lend` → `lend.mut` |
 | `metal::compile_failed` | 1 | none suggested | the fix is in the writer's Metal, which kayo hands on unchanged (design claude, 2026-10-25); Apple's message stays on `about:` |
 | `metal::include_missing` | 1 | keeps about | the path is the writer's |
 | `metal::include_outside_kit` | 1 | keeps about | where the shared file lives is the writer's |

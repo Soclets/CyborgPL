@@ -4288,6 +4288,22 @@ impl<'a> Parser<'a> {
     /// 2026-10-22), from after its name: how many copies of the kernel run,
     /// the Metal code as written, and what binds to which buffer slot.
     fn inline_msl(&mut self, name: Span) -> Result<StmtKind> {
+        // `.precise`, `.wrap`, or both in that order (owner, 2026-10-25).
+        let (mut precise, mut wrap) = (false, false);
+        while self.eat(&Tok::Dot) {
+            let w = self.ident("`precise` or `wrap`")?;
+            match w.name.as_str() {
+                "precise" if !precise && !wrap => precise = true,
+                "wrap" if !wrap => wrap = true,
+                "precise" if wrap => return self.fail_at_n(w.span, "unknown_narrowing", "`.precise` comes before `.wrap`: `inline.MSL.precise.wrap`").with_fix(name.to(w.span), Edit::Swap(vec!["MSL.wrap.precise".into()]), "MSL.precise.wrap"),
+                other => {
+                    return self.fail_at_n(w.span, "unknown_narrowing", format!("`inline.MSL.{}` is not a narrowing: `inline.MSL.precise` (safe math, no contraction), `inline.MSL.wrap` (signed arithmetic wraps), or both, `inline.MSL.precise.wrap`", other)).map_err(|d| Box::new(match crate::diag::closest(other, ["precise", "wrap"]) {
+                        Some(c) => (*d).fix_edit(w.span, Edit::Replace, c),
+                        None => *d,
+                    }));
+                }
+            }
+        }
         let threads = if self.eat_word("threads") { Some(self.expr(0)?) } else { None };
         let (text, text_span) = match self.peek().clone() {
             Tok::Raw(t) => (t, self.bump().span),
@@ -4347,7 +4363,7 @@ impl<'a> Parser<'a> {
             self.expect(&Tok::RBracket, "`]` closing the bindings")?;
         }
         self.expect_semi("the inline block")?;
-        Ok(StmtKind::InlineMsl { text, text_span, threads, bindings })
+        Ok(StmtKind::InlineMsl { text, text_span, threads, bindings, precise, wrap })
     }
 
     /// An expression statement or an assignment.

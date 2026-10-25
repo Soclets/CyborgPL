@@ -13,6 +13,11 @@ use super::{Checker, FnCtx, InstKey};
 const FREE_INT: Ty = Ty::Int(IntW::Free(InferId(0)));
 const FREE_BIN: Ty = Ty::Bin(BinW::Free(InferId(0)));
 
+/// The operators between two values the language owns, as written.
+const LANGUAGE_OPS: &[&str] = &[
+    "plus", "minus", "times", "pow", "plus.wrap", "minus.wrap", "times.wrap", "pow.wrap", "div.floor", "div.ceil", "div.trunc", "div.near", "mod.floor", "mod.ceil", "mod.trunc", "mod.near", "equal_to", "not_equal", "at_most", "at_least", "and", "or", "xor", "shl", "shr", "and.bit", "or.bit", "and.then", "or.else",
+];
+
 impl Checker {
     // ------------------------------------------------------------ entry points
 
@@ -845,6 +850,18 @@ impl Checker {
             }
             _ => None,
         };
+        // A list made here (a literal, `std::list.fill`, an empty one) is
+        // made with its place's memory, page-aligned or not (owner,
+        // 2026-10-25); a list that already exists is another type.
+        if let (Ty::Pages { inner, .. }, false) = (&t, matches!(vt, Ty::Pages { .. })) {
+            let fresh = matches!(&v.kind, K::List(_) | K::ListEmpty) || matches!(&v.kind, K::Call { callee: hir::Callee::Builtin(hir::Builtin::ListFill), .. });
+            if fresh && matches!(vt.base(), Ty::Seq { kind: SeqKind::List | SeqKind::Free(_), .. } | Ty::Infer(_)) {
+                let inner = (**inner).clone();
+                let mut v = self.expect_store(ctx, v, &inner, what)?;
+                v.ty = t.clone();
+                return Ok(v);
+            }
+        }
         if let Some(lane) = fill_lane {
             let mut v = v;
             let span = v.span;
@@ -2142,11 +2159,31 @@ impl Checker {
                     _ => "an operator between two values is one the language owns (`plus`, `times`, `mod.floor`, …) or one declared with `op`",
                 },
             };
-            let mut d = Diagnostic::error(format!("`{}` is not an operator here; {}", spelling, hint)).named(if crate::spellings::free_op_hint(spelling).is_some() { "old_spelling" } else { "unknown_operator" }).at(op_span);
-            // The operators the hint names in backticks; `not` and `neg`
-            // take one value, so they are not this operator's place.
-            for w in hint.split('`').skip(1).step_by(2).filter(|w| !w.contains(|c: char| c == ' ' || c == '$' || c == '(') && !matches!(*w, "not" | "neg" | "op")) {
+            let old = crate::spellings::free_op_hint(spelling).is_some();
+            let mut d = Diagnostic::error(format!("`{}` is not an operator here; {}", spelling, hint)).named(if old { "old_spelling" } else { "unknown_operator" }).at(op_span);
+            let wrap = match spelling {
+                "&+" | "+%" => Some("plus.wrap"),
+                "&-" | "-%" => Some("minus.wrap"),
+                "*%" => Some("times.wrap"),
+                _ => None,
+            };
+            if old {
+                // The old glyph's hint names its words in backticks; `not`
+                // and `neg` take one value, so they are not this one's place.
+                for w in hint.split('`').skip(1).step_by(2).filter(|w| !w.contains(|c: char| c == ' ' || c == '$' || c == '(') && !matches!(*w, "not" | "neg" | "op")) {
+                    d = d.fix_edit(op_span, Edit::Replace, w);
+                }
+            } else if let Some(w) = wrap {
                 d = d.fix_edit(op_span, Edit::Replace, w);
+            } else {
+                // The language's operator the word is close to, or the one
+                // it begins (`equal` is `equal_to`); none made up.
+                let start = LANGUAGE_OPS.iter().copied().filter(|o| o.strip_prefix(spelling).is_some_and(|r| r.starts_with(['_', '.']))).collect::<Vec<_>>();
+                match (crate::diag::closest(spelling, LANGUAGE_OPS.iter().copied()), start.as_slice()) {
+                    (Some(c), _) => d = d.fix_edit(op_span, Edit::Replace, c),
+                    (None, [one]) => d = d.fix_edit(op_span, Edit::Replace, *one),
+                    _ => {}
+                }
             }
             return err(d);
         };

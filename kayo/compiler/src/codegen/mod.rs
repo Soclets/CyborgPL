@@ -118,7 +118,7 @@ pub fn lower_for<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, nam
         }
         Err(e) => return Err(vec![NotYet { what: format!("this machine has no target description: {}", e), span: None }]),
     };
-    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, const_arrays: HashMap::new(), op_sites: Vec::new(), par: crate::par::plan(p), par_child: None, nocheat: nocheat_blocks(p), keep: HashMap::new(), sink: None, bits: crate::mir::bits::bit_lists(p) };
+    let mut cg = Cg { ctx, module: &module, builder: ctx.create_builder(), p, sources, fns: HashMap::new(), env_fns: HashMap::new(), externs: HashMap::new(), problems: Vec::new(), strings: HashMap::new(), target, helpers: HashMap::new(), cur_flags: Vec::new(), cur_groups: Vec::new(), cur_outcomes: HashMap::new(), assert_proofs, here: (0, 0), ranges_trusted: None, tests, cur_fi: 0, const_arrays: HashMap::new(), op_sites: Vec::new(), par: crate::par::plan(p), par_child: None, nocheat: nocheat_blocks(p), keep: HashMap::new(), sink: None, bits: crate::mir::bits::bit_lists(p), paged: crate::precog::paged::decide(p), alloc_paged: None };
     cg.keep = keep::keep_loops(p, &cg.nocheat);
     // Read by the pipeline (`llvm-passes/pipeline.cpp`): a build with a loop
     // under `no_cheat` never has a loop's answer replaced by its closed form.
@@ -144,6 +144,11 @@ pub fn lower_for<'ctx>(ctx: &'ctx Context, p: &Program, sources: &SourceMap, nam
 }
 
 struct Cg<'a, 'ctx> {
+    /// The lists Precog gives page-aligned memory, for a GPU block to share
+    /// with no copy (owner, 2026-10-25).
+    paged: crate::precog::paged::Paged,
+    /// While a page-aligned list's elements are allocated: `Some(always)`.
+    alloc_paged: Option<bool>,
     /// Each const array's elements in the program, made once, by its value.
     const_arrays: HashMap<String, (PointerValue<'ctx>, (u64, u64))>,
     ctx: &'ctx Context,
@@ -932,8 +937,18 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     }
                     let want_ty = self.slot_of(fi, place, slots).map(|(_, t)| t);
                     let want = want_ty.clone().and_then(|t| self.ty(&t));
-                    if let Some(v) = self.rvalue(fi, rvalue, slots, &sites, func, blocks, want, want_ty.clone()) {
+                    // A page-aligned list's literal is made so; any other
+                    // value moved there after it lands.
+                    let paged = self.paged_list(fi, place);
+                    let made = matches!(rvalue, Rvalue::MakeList(_));
+                    self.alloc_paged = if made { paged } else { None };
+                    let v = self.rvalue(fi, rvalue, slots, &sites, func, blocks, want, want_ty.clone());
+                    self.alloc_paged = None;
+                    if let Some(v) = v {
                         self.store_place(fi, place, v, slots);
+                        if let (Some(always), false) = (paged, made) {
+                            self.rehome(fi, place, slots, always);
+                        }
                         // The place now holds a value worth giving back.
                         if place.proj.is_empty() {
                             if let Some(t) = &want_ty {
@@ -953,11 +968,17 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     self.op_sites = std::mem::take(&mut pending);
                     let dest_ty = dest.as_ref().and_then(|d| self.slot_of(fi, d, slots)).map(|(_, t)| t);
                     let as_bits = matches!(op, Op::ListFill) && dest.as_ref().is_some_and(|d| d.proj.is_empty() && self.bits.contains(&(fi, d.local.0)));
+                    let paged = dest.as_ref().and_then(|d| self.paged_list(fi, d));
+                    self.alloc_paged = if matches!(op, Op::ListFill) { paged } else { None };
                     let done = if as_bits { dest_ty.and_then(|t| self.bit_fill(fi, args, &t, slots, func)).map(Some) } else { self.op(fi, op, args, slots, func, dest_ty) };
+                    self.alloc_paged = None;
                     match done {
                         Some(v) => {
                             if let (Some(d), Some(v)) = (dest, v) {
                                 self.store_place(fi, d, v, slots);
+                                if let (Some(always), false) = (paged, matches!(op, Op::ListFill)) {
+                                    self.rehome(fi, d, slots, always);
+                                }
                                 if d.proj.is_empty() {
                                     let t = self.p.functions[fi].locals[d.local.0 as usize].ty.clone();
                                     if self.owns_memory(&t) {
@@ -1125,6 +1146,9 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                         _ => v,
                     };
                     self.store_place(fi, d, v, slots);
+                    if let Some(always) = self.paged_list(fi, d) {
+                        self.rehome(fi, d, slots, always);
+                    }
                     // What came back is here now, and is given back at the
                     // end like anything else held. Without this an owned
                     // answer — a text a function built — was never freed.
@@ -2894,6 +2918,31 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
     /// kernel's name, the thread count and each binding — a lent list's or
     /// struct's memory as it is, a copied value's bytes — and the runtime
     /// runs it on the GPU and waits for it.
+    /// Whether `place` is a list given page-aligned memory: `Some(always)`,
+    /// `always` when its type says so at every size.
+    fn paged_list(&self, fi: usize, place: &Place) -> Option<bool> {
+        if !place.is_local() {
+            return None;
+        }
+        let l = &self.p.functions[fi].locals[place.local.0 as usize];
+        self.paged.local(fi, place.local, &l.ty)
+    }
+
+    /// A list Precog gives page-aligned memory, moved there if it is not
+    /// (`cyborg_list_rehome`); a lent one is its owner's to move.
+    fn rehome(&mut self, fi: usize, place: &Place, slots: &[Option<PointerValue<'ctx>>], always: bool) {
+        let l = &self.p.functions[fi].locals[place.local.0 as usize];
+        if matches!(l.kind, LocalKind::Lent { .. }) {
+            return;
+        }
+        let ty = l.ty.clone();
+        let Some(elem) = Self::elem_of(&ty) else { return };
+        let (Some(esize), Some((slot, _))) = (self.size_of_ty(&elem), self.slot_of(fi, place, slots)) else { return };
+        let f = self.rt("cyborg_list_rehome");
+        let w = self.ctx.i64_type();
+        let _ = self.builder.build_call(f, &[slot.into(), w.const_int(esize, false).into(), self.ctx.bool_type().const_int(always as u64, false).into()], "");
+    }
+
     fn msl_run(&mut self, fi: usize, run: &crate::mir::MslRun, ins: &[(Place, String)], lends: &[(Place, bool, String)], slots: &[Option<PointerValue<'ctx>>], span: crate::source::Span) -> Option<()> {
         USES_METAL.with(|m| m.set(true));
         let i64t = self.ctx.i64_type();
@@ -2908,9 +2957,11 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         let kernel = self.global_bytes(&run.kernel);
         let slot_of = |r: &str| r.strip_prefix("buffer(").and_then(|r| r.strip_suffix(')')).and_then(|n| n.parse::<u64>().ok());
         // Each binding: its slot, how it binds (0 lent, 1 lent to change, 2
-        // a constant), where its bytes are and how many.
-        let binding = self.ctx.struct_type(&[i32t.into(), i32t.into(), ptr.into(), i64t.into()], false);
-        let mut entries: Vec<(u64, u64, PointerValue<'ctx>, IntValue<'ctx>)> = Vec::new();
+        // a constant), where its bytes are, how many, and how many its
+        // memory holds (a list's capacity; 0 for what is copied whatever its
+        // memory), so the runtime can lend page-aligned memory with no copy.
+        let binding = self.ctx.struct_type(&[i32t.into(), i32t.into(), ptr.into(), i64t.into(), i64t.into()], false);
+        let mut entries: Vec<(u64, u64, PointerValue<'ctx>, IntValue<'ctx>, IntValue<'ctx>)> = Vec::new();
         let mut threads = None;
         for (p, r) in ins {
             if r == "threads" {
@@ -2921,12 +2972,22 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let (slot, ty) = self.slot_of(fi, p, slots)?;
             let lt = self.ty(&ty)?;
             let size = self.target.get_store_size(&lt);
-            entries.push((slot_of(r)?, 2, slot, i64t.const_int(size, false)));
+            entries.push((slot_of(r)?, 2, slot, i64t.const_int(size, false), i64t.const_zero()));
         }
         for (p, mutable, r) in lends {
+            // A list lent to change, which nothing else holds now, moved to
+            // page-aligned memory first when Precog gave it that and it is
+            // not there yet (a value that arrived some way Precog did not
+            // make). One lent to read is shared as it is, or copied: moving
+            // it could leave a reader's address behind.
+            if let (true, Some(always)) = (*mutable, self.paged_list(fi, p)) {
+                self.rehome(fi, p, slots, always);
+            }
             let (slot, ty) = self.slot_of(fi, p, slots)?;
-            let (data, bytes) = if let Ty::Seq { elem, .. } = ty.base() {
-                // A list: its elements, length times their size.
+            let (data, bytes, held) = if let Ty::Seq { elem, .. } = ty.base() {
+                // A list: its elements, length times their size; what its
+                // memory holds, capacity times their size (an array, which
+                // never grows, has none said and is copied).
                 let st = match self.ty(&ty)? {
                     BasicTypeEnum::StructType(s) => s,
                     _ => return None,
@@ -2938,19 +2999,31 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 let et = self.ty(elem)?;
                 let elem_size = self.target.get_store_size(&et);
                 let bytes = self.builder.build_int_mul(len, i64t.const_int(elem_size, false), "bytes").ok()?;
-                (data, bytes)
+                // `std::list.not_page_aligned` is copied whatever its
+                // memory (design claude, 2026-10-25: "never" is the
+                // writer's word).
+                let never = crate::precog::paged::narrowed(&ty) == Some(false);
+                let held = if st.count_fields() >= 3 && !never {
+                    let cap_at = self.builder.build_struct_gep(st, slot, 2, "cap").ok()?;
+                    let cap = self.builder.build_load(i64t, cap_at, "c").ok()?.into_int_value();
+                    self.builder.build_int_mul(cap, i64t.const_int(elem_size, false), "held").ok()?
+                } else {
+                    i64t.const_zero()
+                };
+                (data, bytes, held)
             } else {
+                // A lone struct is copied (owner, 2026-10-25).
                 let lt = self.ty(&ty)?;
                 let size = self.target.get_store_size(&lt);
-                (slot, i64t.const_int(size, false))
+                (slot, i64t.const_int(size, false), i64t.const_zero())
             };
-            entries.push((slot_of(r)?, if *mutable { 1 } else { 0 }, data, bytes));
+            entries.push((slot_of(r)?, if *mutable { 1 } else { 0 }, data, bytes, held));
         }
         let count = entries.len() as u64;
         let table = self.builder.build_array_alloca(binding, i64t.const_int(count.max(1), false), "bindings").ok()?;
-        for (k, (slot, kind, data, bytes)) in entries.into_iter().enumerate() {
+        for (k, (slot, kind, data, bytes, held)) in entries.into_iter().enumerate() {
             let at = unsafe { self.builder.build_gep(binding, table, &[i64t.const_int(k as u64, false)], "binding").ok()? };
-            let fields: [BasicValueEnum<'ctx>; 4] = [i32t.const_int(slot, false).into(), i32t.const_int(kind, false).into(), data.into(), bytes.into()];
+            let fields: [BasicValueEnum<'ctx>; 5] = [i32t.const_int(slot, false).into(), i32t.const_int(kind, false).into(), data.into(), bytes.into(), held.into()];
             for (n, v) in fields.into_iter().enumerate() {
                 let f = self.builder.build_struct_gep(binding, at, n as u32, "field").ok()?;
                 self.builder.build_store(f, v).ok()?;
