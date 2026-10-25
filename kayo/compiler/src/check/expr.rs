@@ -189,7 +189,7 @@ impl Checker {
             }
             AK::Unary { op, expr } => self.unary(ctx, *op, expr, span),
             AK::Binary { op, op_span, lhs, rhs } => self.binary(ctx, op, *op_span, lhs, rhs, span),
-            AK::Paren(inner) => {
+            AK::Paren(inner, _) => {
                 let mut v = self.expr(ctx, inner)?;
                 v.span = span;
                 Ok(v)
@@ -282,7 +282,7 @@ impl Checker {
     fn peek_ty(&self, ctx: &FnCtx, e: &ast::Expr) -> Option<Ty> {
         let t = match &e.kind {
             AK::Name(n) => ctx.locals[ctx.lookup(&n.name)?.0 as usize].ty.clone(),
-            AK::Paren(inner) => self.peek_ty(ctx, inner)?,
+            AK::Paren(inner, _) => self.peek_ty(ctx, inner)?,
             AK::Field { base, field } => match self.peek_ty(ctx, base)?.base() {
                 Ty::Struct { id, args } => {
                     let info = &self.items.structs[id.0 as usize];
@@ -547,7 +547,7 @@ impl Checker {
                 p.span = e.span;
                 Ok(p)
             }
-            AK::Paren(inner) => self.place(ctx, inner, use_),
+            AK::Paren(inner, _) => self.place(ctx, inner, use_),
             AK::Verb { .. } => err(Diagnostic::error("one verb per value").named("two_verbs").at(e.span)),
             _ => match use_ {
                 PlaceUse::Write => err(Diagnostic::error("only a variable, a field or an element can be assigned to").named("not_changeable").at(e.span)),
@@ -630,7 +630,7 @@ impl Checker {
     fn verb_expr(&mut self, ctx: &mut FnCtx, verb: Verb, operand: &ast::Expr, span: Span) -> Result<Expr> {
         // A verb on a call result or literal: nothing to transfer.
         match &operand.kind {
-            AK::Name(_) | AK::Field { .. } | AK::Index { .. } | AK::Paren(_) => {}
+            AK::Name(_) | AK::Field { .. } | AK::Index { .. } | AK::Paren(..) => {}
             AK::Call { .. } | AK::CallValue { .. } | AK::Str(_) | AK::List(_) | AK::Conv { .. } => {
                 return err(Diagnostic::error(format!("`{}` on a fresh value: a call's result or a literal has no owner yet, so it goes straight in with no verb", verb.spelled())).named("verb_on_fresh_value").at(span).fix_edit(span, Edit::Verb, ""));
             }
@@ -3021,7 +3021,7 @@ impl Checker {
                 None => Peek::Unknown,
             },
             AK::Verb { expr, .. } => self.peek_arg(ctx, expr),
-            AK::Paren(expr) => self.peek_arg(ctx, expr),
+            AK::Paren(expr, _) => self.peek_arg(ctx, expr),
             AK::Bool(_) => Peek::Ty(Ty::Bool),
             // A conversion's type is its target (check claude, 2026-10-20).
             AK::Conv { target, .. } => self.body_type(ctx, target).map(|t| Peek::Ty(self.resolve(&t))).unwrap_or(Peek::Unknown),
@@ -6044,7 +6044,7 @@ fn written_below_one(e: &ast::Expr) -> bool {
     match &e.kind {
         AK::Int(t) => t.trim_start_matches('0').is_empty(),
         AK::Unary { op: ast::UnOp::Neg, expr } => matches!(&expr.kind, AK::Int(_)),
-        AK::Paren(inner) => written_below_one(inner),
+        AK::Paren(inner, _) => written_below_one(inner),
         _ => false,
     }
 }
@@ -6073,7 +6073,7 @@ pub fn literal_written(e: &ast::Expr) -> Option<String> {
             Some(format!("{}%", shown))
         }
         AK::Unary { op: UnOp::Neg, expr } => literal_written(expr).map(|t| format!("-{}", t)),
-        AK::Typed { value, .. } | AK::Paren(value) => literal_written(value),
+        AK::Typed { value, .. } | AK::Paren(value, _) => literal_written(value),
         AK::Bool(b) => Some(b.to_string()),
         AK::Str(s) => Some(s.clone()),
         AK::Newline => Some("\n".to_string()),

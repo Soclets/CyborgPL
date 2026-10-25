@@ -5626,7 +5626,7 @@ impl<'a> Parser<'a> {
                 let inner = self.expr(0)?;
                 self.expect(&Tok::RParen, "`)`")?;
                 let span = start.to(self.prev_span());
-                Expr { kind: ExprKind::Paren(Box::new(inner)), span }
+                Expr { kind: ExprKind::Paren(Box::new(inner), false), span }
             }
             Tok::LBracket => {
                 self.bump();
@@ -5645,7 +5645,7 @@ impl<'a> Parser<'a> {
                 if items.len() == 1 && !trailing {
                     // `[expr]` is grouping: it builds nothing.
                     let inner = items.pop().unwrap();
-                    Expr { kind: ExprKind::Paren(Box::new(inner)), span }
+                    Expr { kind: ExprKind::Paren(Box::new(inner), true), span }
                 } else {
                     Expr { kind: ExprKind::List(items), span }
                 }

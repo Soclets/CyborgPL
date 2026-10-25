@@ -433,8 +433,9 @@ pub enum ExprKind {
     Verb { verb: Verb, amp: bool, expr: Box<Expr> },
     Unary { op: UnOp, expr: Box<Expr> },
     Binary { op: BinOp, op_span: Span, lhs: Box<Expr>, rhs: Box<Expr> },
-    /// `( … )`
-    Paren(Box<Expr>),
+    /// `( … )`, or `[x]` (`true`), one value bracketed: grouping, not a
+    /// list of one, which is `[x,]` (2026-09-14).
+    Paren(Box<Expr>, bool),
     /// `[1, 2, 3]`, `[7,]`, `[]`
     List(Vec<Expr>),
     /// `to.i32[…]`, `to.i32[0, 100][…]`, `to.str.utf8[…]`.

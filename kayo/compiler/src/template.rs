@@ -57,7 +57,7 @@ fn literal(e: &Expr) -> Option<Val> {
             Val::Int(n) => Some(Val::Int(-n)),
             _ => None,
         },
-        ExprKind::Paren(x) => literal(x),
+        ExprKind::Paren(x, _) => literal(x),
         _ => None,
     }
 }
@@ -153,7 +153,7 @@ impl Run<'_> {
         Ok(match &e.kind {
             ExprKind::Int(_) | ExprKind::Str(_) => literal(e).unwrap(),
             ExprKind::Bool(b) => Val::Bool(*b),
-            ExprKind::Paren(x) => self.expr(x, env)?,
+            ExprKind::Paren(x, _) => self.expr(x, env)?,
             ExprKind::Name(q) => match self.lookup(env, &q.name) {
                 Some(v) => v,
                 None => return err(Diagnostic::error(format!("'{}' is not known while generating", q.name)).named("template_value_unknown").at(e.span)),

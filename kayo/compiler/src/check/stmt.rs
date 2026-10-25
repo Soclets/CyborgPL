@@ -168,7 +168,7 @@ impl Checker {
                 self.expect_bool(&cond, "`must`'s condition")?;
                 // A comparison of values that have a text shows both sides.
                 let mut inner = expr;
-                while let AK::Paren(e) = &inner.kind {
+                while let AK::Paren(e, _) = &inner.kind {
                     inner = e;
                 }
                 let printable = |t: &Ty| matches!(t.base(), Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Bool | Ty::Char(_) | Ty::Str(_));
@@ -364,7 +364,14 @@ impl Checker {
                             }),
                             _ => None,
                         };
-                        let v = self.expect_store(ctx, v, t, "the declared type").map_err(|d| match (d.name, ty) {
+                        // `[x]` where a list is declared: a list of one is
+                        // `[x,]` (2026-09-14), what the writer almost surely
+                        // meant (design claude, 2026-10-25), before the type
+                        // made the value's.
+                        let one = matches!(value.kind, ast::ExprKind::Paren(_, true)) && matches!(self.resolve(t).base(), Ty::Seq { kind: SeqKind::List | SeqKind::Array, .. });
+                        let comma = Span::new(value.span.file, value.span.end as usize - 1, value.span.end as usize);
+                        let d_one = |d: Box<Diagnostic>| if one { Box::new(d.fix_edit(comma, crate::diag::Edit::Insert, ",")) } else { d };
+                        let v = self.expect_store(ctx, v, t, "the declared type").map_err(d_one).map_err(|d| match (d.name, ty) {
                             (Some("wrong_type" | "no_implicit_conversion"), Some(written)) if !value_ty.contains(' ') => Box::new(d.fix_edit(written.span, crate::diag::Edit::Replace, value_ty.clone())),
                             (Some("value_does_not_fit"), Some(written)) if wider.is_some() => Box::new(d.fix_edit(written.span, crate::diag::Edit::Replace, wider.clone().unwrap())),
                             _ => d,

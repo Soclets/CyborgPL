@@ -67,7 +67,7 @@ impl Scan {
                 self.change(&name);
             }
             ExprKind::Field { base, .. } | ExprKind::Index { base, .. } => self.base(base),
-            ExprKind::Paren(x) | ExprKind::Pos(x) => self.base(x),
+            ExprKind::Paren(x, _) | ExprKind::Pos(x) => self.base(x),
             _ => {}
         }
     }
@@ -279,7 +279,7 @@ impl Scan {
                 self.expr(base);
                 self.expr(index);
             }
-            ExprKind::Unary { expr, .. } | ExprKind::Paren(expr) | ExprKind::Pos(expr) | ExprKind::Count(expr) | ExprKind::Value(expr) | ExprKind::Label(_, expr) => self.expr(expr),
+            ExprKind::Unary { expr, .. } | ExprKind::Paren(expr, _) | ExprKind::Pos(expr) | ExprKind::Count(expr) | ExprKind::Value(expr) | ExprKind::Label(_, expr) => self.expr(expr),
             ExprKind::PtrCast { value, .. } => self.expr(value),
             ExprKind::Binary { lhs, rhs, .. } => {
                 self.expr(lhs);

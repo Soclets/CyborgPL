@@ -151,7 +151,7 @@ fn field<'a>(f: &[(String, &'a Expr)], name: &str) -> Result<&'a Expr, String> {
 fn list(e: &Expr) -> Result<&[Expr], String> {
     match &e.kind {
         ExprKind::List(items) => Ok(items),
-        ExprKind::Paren(_) => Err("a list of one is written `[x,]`; `[x]` is the value itself (2026-09-14)".into()),
+        ExprKind::Paren(..) => Err("a list of one is written `[x,]`; `[x]` is the value itself (2026-09-14)".into()),
         _ => Err("expected a list".into()),
     }
 }

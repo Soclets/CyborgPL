@@ -2090,7 +2090,7 @@ pub fn int_literal(e: &ast::Expr) -> Option<i128> {
     match &e.kind {
         ast::ExprKind::Int(t) => t.parse().ok(),
         ast::ExprKind::Unary { op: ast::UnOp::Neg, expr } => int_literal(expr).map(|v| -v),
-        ast::ExprKind::Paren(inner) => int_literal(inner),
+        ast::ExprKind::Paren(inner, _) => int_literal(inner),
         _ => None,
     }
 }
@@ -2099,7 +2099,7 @@ pub fn bin_literal(e: &ast::Expr) -> Option<String> {
     match &e.kind {
         ast::ExprKind::Bin(t) => Some(t.clone()),
         ast::ExprKind::Unary { op: ast::UnOp::Neg, expr } => bin_literal(expr).map(|v| format!("-{}", v)),
-        ast::ExprKind::Paren(inner) => bin_literal(inner),
+        ast::ExprKind::Paren(inner, _) => bin_literal(inner),
         _ => None,
     }
 }
