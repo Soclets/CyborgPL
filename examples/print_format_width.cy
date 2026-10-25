@@ -8,6 +8,8 @@ MAIN {
     std::print.format("{align: left, width: 8 cols}|{width: 6 cols, places: 1}|\n", "café", 4.0);
     std::print.format("{align: left, width: 8 cols}|{width: 6 cols, places: 1}|\n", "👍🏽 ok", 1.0);
     std::print.format("{width: 6 cols}|{width: 6 cols.east_asian}|\n", "20°C", "20°C");
+    # U+FE0F after an emoji asks for its picture, two columns: ❤ is 1, ❤️ and 1️⃣ are 2
+    std::print.format("{width: 4 cols}|{width: 4 cols}|{width: 4 cols}|\n", "❤", "❤️", "1️⃣");
     std::print.format("{width: 6 graphemes}|{width: 6 points}|{width: 6 bytes}|\n", "日本", "日本", "日本");
     std::print.format("{align: center, width: 9 cols, fill: `-`}|{base: hex.upper, zeros, width: 6 cols}|{sign}|\n", "mid", 255, 7);
 }

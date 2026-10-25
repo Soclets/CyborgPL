@@ -6912,9 +6912,9 @@ fn measure(s: &str, unit: WidthUnit) -> usize {
         WidthUnit::Points => s.chars().count(),
         WidthUnit::Graphemes => grapheme_count(s),
         WidthUnit::Cols | WidthUnit::ColsEastAsian => graphemes(s).iter().map(|g| {
-            let mut cs = g.chars();
-            let first = cs.next().unwrap_or(' ');
-            if g.contains('\u{FE0F}') && has(&EMOJI, first) { return 2; }
+            // U+FE0F asks the emoji just before it for its picture (❤️, 1️⃣), two columns (compiler claude, 2026-10-25)
+            let cs: Vec<char> = g.chars().collect();
+            if cs.windows(2).any(|w| w[1] == '\u{FE0F}' && has(&EMOJI, w[0])) { return 2; }
             g.chars().map(|c| col(c, unit == WidthUnit::ColsEastAsian)).max().unwrap_or(0)
         }).sum(),
     }
