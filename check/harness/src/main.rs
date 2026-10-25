@@ -156,6 +156,8 @@ impl Args {
             formats: !avoid.contains("formats"),
             // a list's kinds (oracle 8054704c, kayo 3b6a8a6e)
             list_kinds: !avoid.contains("list-kinds"),
+            // `std::map` with lent lookup keys (oracle 2bb7cb0a)
+            maps: !avoid.contains("maps"),
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),

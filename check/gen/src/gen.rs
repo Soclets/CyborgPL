@@ -204,6 +204,9 @@ pub struct Config {
     /// `page_aligned` lent and given into plain parameters, copied, and a plain
     /// list turned `not_page_aligned` and given back into a plain one.
     pub list_kinds: bool,
+    /// A `std::map` set and looked up, the lookups' keys lent (owner, 2026-10-25;
+    /// oracle 2bb7cb0a).
+    pub maps: bool,
     /// C interop (owner, 2026-10-19; oracle 927b1905, kayo 6ae65a5f): a
     /// `layout.C union` written through one field and read through another,
     /// a `layout.C struct` of bit-fields written at and past their limits,
@@ -222,7 +225,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: true, formats: true, list_kinds: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: true, formats: true, list_kinds: true, maps: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
     }
 }
 
@@ -481,6 +484,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let lines = g.writer_episode();
         main.extend(lines.into_iter().map(Stmt::Src));
     }
+    if g.cfg.maps && g.rng.chance(8) {
+        let lines = g.map_episode();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
     if g.cfg.list_kinds && g.cfg.lists && g.rng.chance(8) {
         let lines = g.list_kinds();
         main.extend(lines.into_iter().map(Stmt::Src));
@@ -643,6 +650,78 @@ impl Gen {
             format!("std::print.flush[lend.mut {}];", v("pw")),
             format!("std::print.useful[\"after {id}\", newln] otherwise {{ write_failed {{ std::exit[code: 3]; }} }};"),
         ]
+    }
+
+    /// A `std::map` keyed by text or by i64: keys set by `copy`, `give` or a
+    /// literal, one perhaps twice (the later wins); `get`, `has` and `remove`
+    /// with the key lent (owner, 2026-10-25), present and missing, `remove`
+    /// handled by a value or by its `missing` arm; the length printed, never
+    /// the map, whose order is not the point here.
+    fn map_episode(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        let v = |n: &str| format!("'{n}{id}'");
+        let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
+        let text = self.rng.chance(50);
+        let words = ["tea", "rope", "milk", "a b", "z9", "x", "bread"];
+        let key = |r: &mut crate::rng::Rng| -> String {
+            if text { format!("\"{}\"", r.pick(&words)) } else { lit(r.range(-50, 50)) }
+        };
+        let kt = if text { "str.utf8" } else { "i64" };
+        // a text key is owned: `copy` / `give` into `set`, lent to a lookup;
+        // an integer owns nothing and goes bare everywhere
+        let (cp, gv, ln) = if text { ("copy ", "give ", "lend ") } else { ("", "", "") };
+        let m = v("mp");
+        let mut lines = vec![format!("let mut {m}: map[{kt}, i64] = map.empty;")];
+        let n = self.rng.range(1, 6);
+        let mut keys = vec![];
+        for j in 0..n {
+            let k = key(&mut self.rng);
+            let val = lit(self.rng.range(-9999, 9999));
+            match self.rng.below(3) {
+                // copy from a name, give a name, or the literal itself
+                0 => {
+                    lines.push(format!("let {}: {kt} = {k};", v(&format!("mk{j}_"))));
+                    lines.push(format!("std::map.set[lend.mut {m}, key: {cp}{}, value: {val}];", v(&format!("mk{j}_"))));
+                }
+                1 => {
+                    lines.push(format!("let {}: {kt} = {k};", v(&format!("mk{j}_"))));
+                    lines.push(format!("std::map.set[lend.mut {m}, key: {gv}{}, value: {val}];", v(&format!("mk{j}_"))));
+                }
+                _ => lines.push(format!("std::map.set[lend.mut {m}, key: {k}, value: {val}];")),
+            }
+            keys.push(k);
+        }
+        // lookups, of keys set and of keys perhaps never set
+        let mut shown = vec![];
+        for j in 0..self.rng.range(1, 4) {
+            let k = if self.rng.chance(60) { self.rng.pick(&keys).clone() } else { key(&mut self.rng) };
+            let lk = v(&format!("lk{j}_"));
+            lines.push(format!("let {lk}: {kt} = {k};"));
+            let dflt = lit(self.rng.range(-9, 9));
+            match self.rng.below(4) {
+                0 | 1 => {
+                    lines.push(format!("let {} := std::map.get[lend {m}, key: {ln}{lk}] otherwise {dflt};", v(&format!("mg{j}_"))));
+                    shown.push(v(&format!("mg{j}_")));
+                }
+                2 => {
+                    lines.push(format!("let {} := std::map.has[lend {m}, key: {ln}{lk}];", v(&format!("mh{j}_"))));
+                    shown.push(v(&format!("mh{j}_")));
+                }
+                _ => {
+                    if self.rng.chance(50) {
+                        lines.push(format!("let {} := std::map.remove[lend.mut {m}, key: {ln}{lk}] otherwise {dflt};", v(&format!("mr{j}_"))));
+                        shown.push(v(&format!("mr{j}_")));
+                    } else {
+                        lines.push(format!("std::map.remove[lend.mut {m}, key: {ln}{lk}] otherwise {{ missing {{ }} }};"));
+                    }
+                }
+            }
+        }
+        shown.push(format!("std::map.length[lend {m}]"));
+        lines.push(format!("std::print.useful[{}, newln];", shown.join(", \" \", ")));
+        lines
     }
 
     /// A list's kinds (owner, 2026-10-25): a `page_aligned` list grown through

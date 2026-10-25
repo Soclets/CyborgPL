@@ -26,6 +26,11 @@ input and output lists are of a kind, `std::list`, `.page_aligned` or `.not_page
 and narrowed by `to.list.…(give …)` (owner, 2026-10-25; oracle 8054704c). Left out: `<<`
 (CyborgPL checks what it shifts out) and signed overflow in a plain block. `harness/src/metal.rs`.
 
+**Maps** (owner, 2026-10-25; oracle 2bb7cb0a): a `std::map` keyed by text or by i64, keys set by `copy`, `give`
+or a literal (one perhaps twice, the later winning); `get`, `has` and `remove` with a text key lent, present and
+missing, `remove` handled by a value or by its `missing` arm; an integer key bare everywhere, as it owns nothing.
+Its length is printed, never the map. `--avoid maps` leaves it out.
+
 **A list's kinds** (owner, 2026-10-25; oracle 8054704c, kayo 3b6a8a6e): a `page_aligned` or `not_page_aligned`
 list grown through a function taking a plain `lent.mut` list and summed through a plain `lent` one, copied (a copy
 keeps its kind), and a plain list narrowed by `to.list.…(give …)` and given back into a plain one. `--avoid
