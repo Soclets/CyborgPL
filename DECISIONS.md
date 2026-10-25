@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — Precog may summarise a loop whose trips only grow its collections, if every program proves exactly what it did (owner)
+
+Compiler claude: examples/night_trains.cy takes about 190 s to build, nearly all in Precog. Its route search is a
+`loop` with no count whose maps grow every trip, so Precog follows it trip by trip to the program's step budget
+(the 100 000-trip limit is the owner's, 2026-09-23: "keep it at 100k"). Offered (a) widen a loop early when only
+collection sizes grow from trip to trip, not values a check depends on, (b) a smaller trip budget for an uncounted
+loop, (c) leave it. Design claude recommended (a) on the condition that no proof is lost, else (c) (compile time is
+free; (b) proves less). The owner asked "What's the idea here?", then "Okay, so the idea is to make Precog smarter
+without it actually not being Precog anymore?" (yes: the same proofs, less repeated work), then "yes". So **Precog
+may summarise such a loop, on the condition that every program in the suites proves exactly the same sites as
+before**; if any proof is lost, it stays as it is. The 100 000-trip limit is unchanged.
+
 ### 2026-10-25 — Built: a path reads as deep as it goes, `$b.journey.km`, `$xs[pos: 2].minutes`
 
 Writing examples/night_trains.cy (the owner: "Remove corner_shop, and make a big new example that's proper, and
