@@ -78,7 +78,9 @@ more than Apple's GPU keeps). Offered `.precise`, Metal's own word, and `.wrap` 
 - **`inline.MSL.precise`**: Metal's safe math mode with precise functions and no fused multiply-add
   (`-fmetal-math-mode=safe -ffp-contract=off`).
 - **`inline.MSL.wrap`**: signed overflow wraps (`-fwrapv`).
-- **They combine**: `inline.MSL.precise.wrap`.
+- **They combine**: `inline.MSL.precise.wrap`, in that order by the strongest-first rule (2026-10-01): `.precise`
+  changes every float step, `.wrap` only an overflow (the owner, design claude having forgotten the rule: "Look for
+  what comes first rule"); `.wrap.precise` is refused.
 Not built.
 
 ### 2026-10-25 — A list reaches the GPU without a copy when it is page-aligned: Precog decides, `.page_aligned` / `.not_page_aligned` say it (owner)

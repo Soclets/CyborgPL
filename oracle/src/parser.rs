@@ -3593,11 +3593,13 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
     fn msl_block(&mut self, line: usize) -> PResult<Stmt> {
         if self.lacks.iter().any(|c| c == "Metal") { return self.core_missing("Metal", "`inline.MSL`"); }
         // `.precise` (Metal's safe math, precise functions, no fused multiply-add) and `.wrap` (signed overflow wraps),
-        // in either order, each once (owner, 2026-10-25: "yes"); without them, Apple's defaults
+        // each once (owner, 2026-10-25: "yes"), the strongest first (2026-10-01): `.precise` changes every float step,
+        // `.wrap` only an overflow, so `.precise.wrap`; without them, Apple's defaults
         let mut ways: Vec<String> = Vec::new();
         while *self.peek() == Tok::Dot {
             self.advance();
             match self.advance().tok {
+                Tok::Word(w) if w == "precise" && ways.iter().any(|x| x == "wrap") => return self.err("the strongest modifier comes first: `inline.MSL.precise.wrap`, not `.wrap.precise` (owner, 2026-10-01)"),
                 Tok::Word(w) if (w == "precise" || w == "wrap") && !ways.contains(&w) => ways.push(w),
                 Tok::Word(w) if w == "precise" || w == "wrap" => return self.err(format!("`.{w}` is said once")),
                 other => return self.err(format!("an `inline.MSL` block narrows with `.precise` (Metal's safe math) or `.wrap` (signed overflow wraps), found {other}")),
