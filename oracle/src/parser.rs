@@ -3592,6 +3592,17 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
     /// being a file of the kit; the values bound are checked when the block is reached, and the oracle then stops.
     fn msl_block(&mut self, line: usize) -> PResult<Stmt> {
         if self.lacks.iter().any(|c| c == "Metal") { return self.core_missing("Metal", "`inline.MSL`"); }
+        // `.precise` (Metal's safe math, precise functions, no fused multiply-add) and `.wrap` (signed overflow wraps),
+        // in either order, each once (owner, 2026-10-25: "yes"); without them, Apple's defaults
+        let mut ways: Vec<String> = Vec::new();
+        while *self.peek() == Tok::Dot {
+            self.advance();
+            match self.advance().tok {
+                Tok::Word(w) if (w == "precise" || w == "wrap") && !ways.contains(&w) => ways.push(w),
+                Tok::Word(w) if w == "precise" || w == "wrap" => return self.err(format!("`.{w}` is said once")),
+                other => return self.err(format!("an `inline.MSL` block narrows with `.precise` (Metal's safe math) or `.wrap` (signed overflow wraps), found {other}")),
+            }
+        }
         if !self.is_word("threads") { return self.err("an `inline.MSL` block says how many threads run it first: `inline.MSL threads $n { … }` (owner, 2026-10-01)"); }
         self.advance();
         let tline = self.line();
@@ -3648,6 +3659,19 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
             self.expect(Tok::RBracket, "`]` to close the bindings")?;
         }
         self.expect(Tok::Semi, "`;` after the `inline.MSL` block")?;
+        // a list lent, not lent mutably, is read-only in the kernel: its parameter is `const device …` or `constant …`
+        // (owner, 2026-10-25: "(a)"), or the kernel could change it behind the program's back
+        for (verb, v, slot) in &binds {
+            if *verb != Verb::Lend { continue; }
+            let mark = format!("[[buffer({slot})]]");
+            let Some(at) = code.find(&mark) else { continue };
+            let start = code[..at].rfind(|c| c == ',' || c == '(').map_or(0, |i| i + 1);
+            let param = code[start..at].trim();
+            let words: Vec<&str> = param.split(|c: char| c.is_whitespace() || c == '*' || c == '&').filter(|w| !w.is_empty()).collect();
+            if !words.iter().any(|w| *w == "const" || *w == "constant") {
+                return self.err_at(self.pos.saturating_sub(1), format!("${v} is lent, not lent mutably, so the kernel may not write it: its parameter is `const device …` or `constant …`, not `{param}`; or bind it `lend.mut ${v}` (owner, 2026-10-25)"));
+            }
+        }
         Ok(Stmt::Msl { threads, text, binds, line })
     }
 
