@@ -176,6 +176,11 @@ no_check inline.MSL threads $n {
 ```
 
 - The limb is **Metal** (2026-10-06), listed as `metal { … }` under `my limbs:`.
+- **No copy when page-aligned** (owner, 2026-10-25; not built): Metal shares memory without a copy only when it starts on
+  a page and spans whole pages (16 KB on this Mac). A bound list that is page-aligned goes without a copy; otherwise it
+  is copied in, and back after `lend.mut`. Precog gives page-aligned memory to lists of 16 KB or more that can reach a
+  block, and, unable to follow one, to it too; `std::list.page_aligned[T]` and `std::list.not_page_aligned[T]` say it
+  outright. The measurements: `kayo/metal/bench/RESULTS.md`.
 
 ## Open
 

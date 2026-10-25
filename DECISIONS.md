@@ -34,6 +34,31 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — A list reaches the GPU without a copy when it is page-aligned: Precog decides, `.page_aligned` / `.not_page_aligned` say it (owner)
+
+Compiler claude: Metal wraps memory without a copy only when it starts on a page and spans whole pages (16 KB here),
+which a list's storage and a struct on the stack usually do not. (The "no copy" in 2026-10-22's ruling was design
+claude's description of the option, not something the owner chose; asked fresh.) Measured on this Mac's GPU at the
+owner's "How about we let it measure?" (`kayo/metal/bench/RESULTS.md`): no copy wins from 16 KB (3.9 µs against 2.0),
+by 58 µs at 1 MB and 3.5–7 ms at 64 MB; below 16 KB copying is 0.7 µs cheaper; a page-aligned list costs nothing to
+allocate but grows up to 10× slower (1.2 ms against 0.12 over its doublings to 64 MB), paid once and repaid by one GPU
+run. The owner asked what won ((a): the faster way at every size), whether narrowings fit (design claude twice said one
+was not worth it; the owner: "Look at the things that have rare narrowings", "Can Precog help?", "our philosophy is a
+hell lot of alternatives, and Precog is Precog", entry below), what `.gpu` meant (Metal today, but CUDA's pinned and
+Vulkan's imported memory want alignment too), "Are those names accurate?" (`.paged` is not: "paged" memory is the OS's
+pageable kind, the opposite of what a GPU wants), then: "It's long, but atleast it's accurate. C'mon". So:
+- **A list bound to a GPU block goes without a copy when its memory is page-aligned, and is copied in (and back after
+  `lend.mut`) when not**; a lone struct or number is copied.
+- **Precog decides which lists get page-aligned memory**: those 16 KB or more that it finds can reach an `inline.MSL`
+  binding, and, where it cannot follow a list, page-aligned to be safe; in a program with no block, none. The report
+  notes which lists it made page-aligned.
+- **`std::list.page_aligned[T]`** makes a list page-aligned whatever Precog finds; **`std::list.not_page_aligned[T]`**
+  never (copied if ever bound). Design claude's reading of "It's long, but … accurate": the long exact name over
+  `.plain`.
+- Keeping a block's device, library and pipeline from one run to the next, which saves more than not copying below
+  1 MB and changes nothing a program does, is kayo's speed work, no ruling needed (design claude's reading).
+Not built.
+
 ### 2026-10-25 — The philosophy: many alternatives, and Precog is Precog (owner)
 
 Discussing how a list reaches the GPU, design claude argued against a narrowing that would save about 1 ms once ("not
