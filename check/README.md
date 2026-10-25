@@ -17,10 +17,12 @@ before wrote; (B) the same steps in loops. Inputs are two `u32` lists or a list 
 u32, b: u32 }` (kayo writes its Metal declaration); with the struct, the last kernel may write its result into
 each `.a` through `lend.mut`, and the loops rebuild the structs alike (a field read from `copy $prs[pos: $i]`). B runs on the
 oracle and on kayo, A on kayo (`cargo build --release -p kayo-metal --offline` once); all three must print the
-same list. Steps are `u32` only, each its own declared value (`uint t3 = t1 + t2;` / `let $t3: u32 = $t1
-plus.wrap $t2;`): wrapping `+ - *`, `/` and `%` by a literal not zero, `& | ^`, `>>` under 32; the result always
-takes in the item's own x and y. Left out: signed overflow (undefined in Metal), `<<` (CyborgPL checks what it
-shifts out), floats (Metal may compile them fast). `harness/src/metal.rs`.
+same list. Steps are each its own declared value (`uint t3 = t1 + t2;` / `let $t3: u32 = $t1 plus.wrap $t2;`), of one
+type a case (kayo 7aed734d): `u32` (wrapping `+ - *`, `/` `%` by a literal not zero, `& | ^`, `>>` under 32; the
+block plain, `.precise`, `.wrap` or both), `i32` in `inline.MSL.wrap` (signed overflow wraps on both sides), or
+`f32` in `inline.MSL.precise` (`+ - *` on multiples of 1/8 up to 100, a product only by an input). One case in
+eight has lists of 4096 to 6000 items built by appends, which kayo hands to the GPU uncopied. Left out: `<<`
+(CyborgPL checks what it shifts out) and signed overflow in a plain block. `harness/src/metal.rs`.
 
 **Formats** (kayo e0437f9e): typed values of each kind (i64, u8, f64, d64, text, bool), each hole a shape its
 kind takes (fill and `< ^ >`, width, `+`, `0`; `x X o b` on whole numbers, `.places` and `e` on bins and
