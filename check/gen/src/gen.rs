@@ -776,7 +776,9 @@ impl Gen {
         // magnitude, `0` padding after the sign (owner, 2026-10-24; oracle a1dcbd3a)
         enum K { Int, NegInt, Small, Bin, Deci, Text, Bool }
         // texts whose widths count differently: wide, combining, emoji, ambiguous
-        let words = ["rope", "tea", "a b", "x", "z9", "ok", "日本茶", "café", "20°C", "👍🏽 ok", "±1"];
+        // U+FE0F widens only straight after an Emoji character (oracle 3b8a8334):
+        // ❤ is 1 col, ❤️ and 1️⃣ are 2
+        let words = ["rope", "tea", "a b", "x", "z9", "ok", "日本茶", "café", "20°C", "👍🏽 ok", "±1", "❤", "❤️", "1️⃣ go"];
         let mut lets = vec![];
         let mut vals: Vec<(String, K)> = vec![];
         let n = self.rng.range(1, 5) as usize;

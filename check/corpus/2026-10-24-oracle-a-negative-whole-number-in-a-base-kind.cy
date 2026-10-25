@@ -5,7 +5,6 @@
 # "FFFFFFFFFFFF227A", until a1dcbd3a.
 # Shapes in words since 2026-10-25 (owner; oracle 0c746ed3): `{:X}` is `{base: hex.upper}`, `{:05X}` `{base:
 # hex.upper, zeros, width: 5 cols}`, `{:+b}` `{sign, base: bin}`.
-# known-difference: kayo does not read format shapes in words yet; drop this mark when it does.
 MAIN {
     let $a: i64 = -56710;
     let $b: i8 = -5;

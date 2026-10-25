@@ -43,8 +43,7 @@ every value used, one perhaps twice); printed by `std::print.format`, made by `s
 a writer. Since 2026-10-25 (owner; oracle 0c746ed3) the shapes are words, `{2, width: 8 cols, places: 2}`, in
 any order (`align`, `width: N cols|col|cols.east_asian|graphemes|points|bytes`, `fill`, `places`, `base`, `form:
 stored|science`, `zeros`, `sign`), and texts include wide, combining, emoji and ambiguous characters so the width
-units differ; `--avoid format-words` writes the older symbols. kayo does not read the words yet, so the episode
-is off until it does; `--formats` turns it on.
+units differ; `--avoid format-words` writes the older symbols. kayo reads them since 3f4fd15a.
 
 **Episodes for 2026-10-22 to 24's rulings** (kayo a319a218, b02769fe, 6c647471, 22eb479f): a generic whose
 `let mut $sum: <T> = K;` is filled by i32, d64 and f64 lists; channels from `channel.empty`, sent from
