@@ -154,6 +154,8 @@ impl Args {
             writer_kinds: !avoid.contains("writer-kinds"),
             // `std::print.format` / `std::format` (kayo e0437f9e)
             formats: !avoid.contains("formats"),
+            // a list's kinds (oracle 8054704c, kayo 3b6a8a6e)
+            list_kinds: !avoid.contains("list-kinds"),
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),

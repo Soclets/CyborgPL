@@ -200,6 +200,10 @@ pub struct Config {
     /// `std::print.format` and `std::format` with holes `{}` or numbered, and
     /// shapes fitting each value's kind (2026-09-22, 10-01; kayo e0437f9e).
     pub formats: bool,
+    /// A list's kinds (owner, 2026-10-25; oracle 8054704c, kayo 3b6a8a6e):
+    /// `page_aligned` lent and given into plain parameters, copied, and a plain
+    /// list turned `not_page_aligned` and given back into a plain one.
+    pub list_kinds: bool,
     /// C interop (owner, 2026-10-19; oracle 927b1905, kayo 6ae65a5f): a
     /// `layout.C union` written through one field and read through another,
     /// a `layout.C struct` of bit-fields written at and past their limits,
@@ -218,7 +222,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: true, formats: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: true, formats: true, list_kinds: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
     }
 }
 
@@ -477,6 +481,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let lines = g.writer_episode();
         main.extend(lines.into_iter().map(Stmt::Src));
     }
+    if g.cfg.list_kinds && g.cfg.lists && g.rng.chance(8) {
+        let lines = g.list_kinds();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
     if g.cfg.formats && g.cfg.print && g.rng.chance(10) {
         let lines = g.format_episode();
         main.extend(lines.into_iter().map(Stmt::Src));
@@ -634,6 +642,38 @@ impl Gen {
             format!("std::print.useful[\"between {id}\", newln];"),
             format!("std::print.flush[lend.mut {}];", v("pw")),
             format!("std::print.useful[\"after {id}\", newln] otherwise {{ write_failed {{ std::exit[code: 3]; }} }};"),
+        ]
+    }
+
+    /// A list's kinds (owner, 2026-10-25): a `page_aligned` list grown through
+    /// a function taking a plain `lent.mut` list and summed through a plain
+    /// `lent` one, copied (a copy keeps its kind), and a plain list turned
+    /// `not_page_aligned` by `to.list.not_page_aligned(give …)` and given back
+    /// into a plain one. The kind says only where the memory starts; every
+    /// answer is the same.
+    fn list_kinds(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        let v = |n: &str| format!("'{n}{id}'");
+        let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
+        self.extra_fns.push(format!("fn lk_total{id} [lent 'xs': list[i64]] -> i64 {{\n    let mut 's': i64 = 0;\n    for 'x' in lend 'xs' {{ change 's' = 's' plus.wrap 'x'; }}\n    return 's';\n}}"));
+        self.extra_fns.push(format!("fn lk_grow{id} [lent.mut 'xs': list[i64], 'v': i64] {{\n    list.append[lend.mut 'xs', value: 'v'];\n}}"));
+        let (na, nb) = (self.rng.range(1, 6), self.rng.range(1, 6));
+        let mut r = |n: i128| (0..n).map(|_| lit(self.rng.range(-99999, 99999))).collect::<Vec<_>>().join(", ");
+        let (a, b) = (r(na), r(nb));
+        let g = lit(self.rng.range(-999, 999));
+        let narrow = if self.rng.chance(50) { "page_aligned" } else { "not_page_aligned" };
+        let other = if narrow == "page_aligned" { "not_page_aligned" } else { "page_aligned" };
+        vec![
+            format!("let mut {}: list.{narrow}[i64] = [{a},];", v("ka")),
+            format!("lk_grow{id}[lend.mut {}, {g}];", v("ka")),
+            format!("std::print.useful[lk_total{id}[lend {ka}], \" \", {ka}, newln];", ka = v("ka")),
+            format!("let {} := copy {};", v("kc"), v("ka")),
+            format!("let {}: list[i64] = [{b},];", v("kp")),
+            format!("let {} := to.list.{other}[give {}];", v("kv"), v("kp")),
+            format!("let {}: list[i64] = give {};", v("kb"), v("kv")),
+            format!("std::print.useful[{}, \" \", lk_total{id}[lend {}], newln];", v("kc"), v("kb")),
         ]
     }
 

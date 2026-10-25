@@ -21,8 +21,15 @@ same list. Steps are each its own declared value (`uint t3 = t1 + t2;` / `let $t
 type a case (kayo 7aed734d): `u32` (wrapping `+ - *`, `/` `%` by a literal not zero, `& | ^`, `>>` under 32; the
 block plain, `.precise`, `.wrap` or both), `i32` in `inline.MSL.wrap` (signed overflow wraps on both sides), or
 `f32` in `inline.MSL.precise` (`+ - *` on multiples of 1/8 up to 100, a product only by an input). One case in
-eight has lists of 4096 to 6000 items built by appends, which kayo hands to the GPU uncopied. Left out: `<<`
+eight has lists of 4096 to 6000 items built by appends, which kayo hands to the GPU uncopied. Each case's
+input and output lists are of a kind, `std::list`, `.page_aligned` or `.not_page_aligned`, sometimes built plain
+and narrowed by `to.list.…(give …)` (owner, 2026-10-25; oracle 8054704c). Left out: `<<`
 (CyborgPL checks what it shifts out) and signed overflow in a plain block. `harness/src/metal.rs`.
+
+**A list's kinds** (owner, 2026-10-25; oracle 8054704c, kayo 3b6a8a6e): a `page_aligned` or `not_page_aligned`
+list grown through a function taking a plain `lent.mut` list and summed through a plain `lent` one, copied (a copy
+keeps its kind), and a plain list narrowed by `to.list.…(give …)` and given back into a plain one. `--avoid
+list-kinds` leaves it out.
 
 **Formats** (kayo e0437f9e): typed values of each kind (i64, u8, f64, d64, text, bool), each hole a shape its
 kind takes (fill and `< ^ >`, width, `+`, `0`; `x X o b` on whole numbers, `.places` and `e` on bins and

@@ -97,7 +97,15 @@ pub struct Case {
     big: Option<(usize, u32, u32)>,
     form: Form,
     stages: Vec<Vec<Step>>,
+    /// the inputs' kind and the outputs' (owner, 2026-10-25; oracle 8054704c):
+    /// `std::list`, `std::list.page_aligned` or `std::list.not_page_aligned`
+    kin: &'static str,
+    kout: &'static str,
+    /// the inputs built plain, then turned into `kin` by `to.list.…(give …)`
+    conv: bool,
 }
+
+const KINDS: [&str; 3] = ["std::list", "std::list.page_aligned", "std::list.not_page_aligned"];
 
 fn word(r: &mut Rng, ty: Ty) -> Val {
     match ty {
@@ -198,7 +206,9 @@ impl Case {
         let form = *r.pick(&[Form::Lists, Form::Lists, Form::StructIn, Form::StructOut]);
         let big = (form == Form::Lists && ty != Ty::F32 && r.chance(12)).then(|| (r.range(4096, 6000) as usize, r.range(1, 99999) as u32, r.range(0, 99999) as u32));
         let stages = (0..r.range(1, 3)).map(|_| steps(&mut r, ty)).collect();
-        Case { ty, block, xs, ys, k, big, form, stages }
+        let (kin, kout) = (*r.pick(&KINDS), *r.pick(&KINDS));
+        let conv = form == Form::Lists && kin != "std::list" && r.chance(50);
+        Case { ty, block, xs, ys, k, big, form, stages, kin, kout, conv }
     }
 
     fn list(&self, v: &[Val]) -> String {
@@ -212,20 +222,26 @@ impl Case {
             s.push_str(&format!("layout.C struct Pr {{ a: {t}, b: {t} }}\n\n"));
         }
         s.push_str("MAIN {\n");
+        // with `conv`, built plain as $xs0 / $ys0, then narrowed
+        let (kind, xs, ys) = if self.conv { ("std::list", "$xs0", "$ys0") } else { (self.kin, "$xs", "$ys") };
         match (self.form, self.big) {
             (Form::Lists, Some((n, a, b))) => {
                 // built by appends: lists of 16 KB and more go to the GPU uncopied
-                s.push_str(&format!("    let mut $xs: std::list[{t}] = std::list.empty;\n    let mut $ys: std::list[{t}] = std::list.empty;\n"));
+                s.push_str(&format!("    let mut {xs}: {kind}[{t}] = std::list.empty;\n    let mut {ys}: {kind}[{t}] = std::list.empty;\n"));
                 // the counter of the lists' own type, so no conversion is needed
-                s.push_str(&format!("    for $i: {t} [from: 1, to: {n}, by: 1] {{\n        let $w: {t} = $i;\n        let $v: {t} = $w times.wrap {a};\n        std::list.append(lend.mut $xs, value: $v plus.wrap {b});\n        std::list.append(lend.mut $ys, value: $v xor $w);\n    }}\n"));
+                s.push_str(&format!("    for $i: {t} [from: 1, to: {n}, by: 1] {{\n        let $w: {t} = $i;\n        let $v: {t} = $w times.wrap {a};\n        std::list.append(lend.mut {xs}, value: $v plus.wrap {b});\n        std::list.append(lend.mut {ys}, value: $v xor $w);\n    }}\n"));
             }
-            (Form::Lists, None) => s.push_str(&format!("    let $xs: std::list[{t}] = {};\n    let $ys: std::list[{t}] = {};\n", self.list(&self.xs), self.list(&self.ys))),
+            (Form::Lists, None) => s.push_str(&format!("    let {xs}: {kind}[{t}] = {};\n    let {ys}: {kind}[{t}] = {};\n", self.list(&self.xs), self.list(&self.ys))),
             _ => {
                 let items: Vec<String> = self.xs.iter().zip(&self.ys).map(|(a, b)| format!("Pr[a = {}, b = {}]", a.cy, b.cy)).collect();
                 // `mut` only where the last kernel writes into them
                 let m = if self.form == Form::StructOut { "mut " } else { "" };
-                s.push_str(&format!("    let {m}$prs: std::list[Pr] = [{},];\n", items.join(", ")));
+                s.push_str(&format!("    let {m}$prs: {}[Pr] = [{},];\n", self.kin, items.join(", ")));
             }
+        }
+        if self.conv {
+            let to = self.kin.trim_start_matches("std::");
+            s.push_str(&format!("    let $xs := to.{to}(give $xs0);\n    let $ys := to.{to}(give $ys0);\n"));
         }
         s.push_str(&format!("    let $k: {t} = {};\n", self.k.cy));
         s
@@ -304,7 +320,7 @@ impl Case {
                 bufs.push((format!("device {mt} *out"), format!("lend.mut $o{}", j + 1)));
                 body.push_str(&format!("            out[id] = {result};\n"));
                 let zero = if self.ty == Ty::F32 { "0.0" } else { "0" };
-                s.push_str(&format!("    let mut $o{}: std::list[{ct}] = std::list.fill(value: {zero}, count: {});\n", j + 1, self.count()));
+                s.push_str(&format!("    let mut $o{}: {}[{ct}] = std::list.fill(value: {zero}, count: {});\n", j + 1, self.kout, self.count()));
             }
             bufs.push((format!("constant {mt} &k"), "copy $k".into()));
             let params: Vec<String> = bufs.iter().enumerate().map(|(n, (p, _))| format!("{p} [[buffer({n})]]")).collect();
@@ -347,10 +363,10 @@ impl Case {
             let result = format!("${}", name(2 + st.len()));
             if writes_structs {
                 // the structs rebuilt with the result in `a`, as the kernel leaves them
-                s.push_str("    let mut $done: std::list[Pr] = std::list.empty;\n");
+                s.push_str(&format!("    let mut $done: {}[Pr] = std::list.empty;\n", self.kin));
                 body.push_str(&format!("        std::list.append(lend.mut $done, value: Pr[a = {result}, b = $p.b]);\n"));
             } else {
-                s.push_str(&format!("    let mut $o{}: std::list[{ct}] = std::list.empty;\n", j + 1));
+                s.push_str(&format!("    let mut $o{}: {}[{ct}] = std::list.empty;\n", j + 1, self.kout));
                 body.push_str(&format!("        std::list.append(lend.mut $o{}, value: {result});\n", j + 1));
             }
             s.push_str(&format!("    for $i: u64 [from: 1, to: {}, by: 1] {{\n{body}    }}\n", self.count()));
