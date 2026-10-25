@@ -4497,7 +4497,7 @@ impl Checker {
                     Ty::Map { key, val, .. } => ((**key).clone(), (**val).clone()),
                     other => return err(Diagnostic::error(format!("`{}` takes a map, and {} is {}", name, self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
-                let k = self.key_arg(ctx, positional[1], &kt)?;
+                let k = self.key_arg(ctx, positional[1], &kt, &name)?;
                 let ty = match b {
                     Builtin::MapHas => Ty::Bool,
                     _ => {
@@ -4966,9 +4966,13 @@ impl Checker {
         }
     }
 
-    fn key_arg(&mut self, ctx: &mut FnCtx, e: &ast::Expr, kt: &Ty) -> Result<Arg> {
-        // A key to look up is only looked at: a fresh value, or a lend, or a bare owned name (lent).
+    fn key_arg(&mut self, ctx: &mut FnCtx, e: &ast::Expr, kt: &Ty, op: &str) -> Result<Arg> {
+        // A key to look up is only looked at (owner, 2026-10-25): a fresh
+        // value or a lend; an owned name says `lend` (or `copy`, `give`).
         let v = self.expr(ctx, e)?;
+        if let (AK::Name(n), true) = (&e.kind, self.resolve(&v.ty).is_owned()) {
+            return err(Diagnostic::error(format!("bare ${} as the key: `{}` only looks at it, so `lend ${}`", n.name, op.trim_start_matches("std::"), n.name)).named("owned_value_bare").at(e.span).fix_edit(e.span, Edit::Verb, "lend"));
+        }
         let v = self.as_operand(ctx, v)?;
         let v = self.expect_store(ctx, v, kt, "the key")?;
         Ok(self.value_arg(v))
