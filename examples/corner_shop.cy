@@ -244,7 +244,7 @@ fn check_order [
         let $item := find_item(lend $items, lend $line.name) otherwise {
             unknown_item { fail unknown_item[copy $line.name]; }
         };
-        let $have := std::map.get(lend $left, key: copy $line.name) otherwise 0;
+        let $have := std::map.get(lend $left, key: lend $line.name) otherwise 0;
         if $have < $line.count { fail out_of_stock[copy $line.name]; }
         std::map.set(lend.mut $left, key: copy $line.name, value: $have - $line.count);
     }
@@ -279,7 +279,7 @@ fn take_order [
         let $item := find_item(lend $items, lend $line.name) otherwise {
             unknown_item { fail unknown_item[copy $line.name]; }
         };
-        let $have := std::map.get(lend $stock, key: copy $line.name) otherwise 0;
+        let $have := std::map.get(lend $stock, key: lend $line.name) otherwise 0;
         if $have < $line.count { fail out_of_stock[copy $line.name]; }
         std::map.set(lend.mut $stock, key: copy $line.name, value: $have - $line.count);
         let $rule := rule_for(copy $item.aisle);
@@ -354,7 +354,7 @@ fn choose_payment [$i: i32] -> Payment {
 
 fn add_points [lent.mut $points: std::map[str.utf8, i32], lent $sale: Sale] {
     let $earned := $sale.units x $points_per_item;
-    let $before := std::map.get(lend $points, key: copy $sale.customer) otherwise 0;
+    let $before := std::map.get(lend $points, key: lend $sale.customer) otherwise 0;
     std::map.set(lend.mut $points, key: copy $sale.customer, value: $before + $earned);
 }
 
@@ -365,7 +365,7 @@ fn add_points [lent.mut $points: std::map[str.utf8, i32], lent $sale: Sale] {
 fn reorder_list [lent $items: std::list[Item], lent $stock: std::map[str.utf8, i32]] -> std::list[str.utf8] {
     let $out: std::list[str.utf8] = std::list.empty;
     for $it in lend $items {
-        let $left := std::map.get(lend $stock, key: copy $it.name) otherwise 0;
+        let $left := std::map.get(lend $stock, key: lend $it.name) otherwise 0;
         if $left at_most $low_stock {
             std::list.append(lend.mut $out, value: copy $it.name concat " (" concat to.stored.str.utf8($left) concat " left)");
         }
@@ -378,8 +378,8 @@ fn takings_by_aisle [lent $items: std::list[Item], lent $opening: std::map[str.u
     let $takings: std::list[d64] = std::list.empty;
     for $it in lend $items {
         if $it.aisle equal_to $a {
-            let $had := std::map.get(lend $opening, key: copy $it.name) otherwise 0;
-            let $has := std::map.get(lend $closing, key: copy $it.name) otherwise 0;
+            let $had := std::map.get(lend $opening, key: lend $it.name) otherwise 0;
+            let $has := std::map.get(lend $closing, key: lend $it.name) otherwise 0;
             let $sold := $had - $has;
             std::list.append(lend.mut $takings, value: $it.price x to.d64($sold));
         }
@@ -440,7 +440,7 @@ fn report [lent $sales: std::list[Sale], lent $items: std::list[Item], lent $ope
     # Loyalty points, for the customers who were served
     std::print.useful(lend.mut $out, "loyalty points:", newln);
     for $s in lend $sales {
-        let $p := std::map.get(lend $points, key: copy $s.customer) otherwise 0;
+        let $p := std::map.get(lend $points, key: lend $s.customer) otherwise 0;
         std::print.format(lend.mut $out, "  {:<5} {:>3}\n", $s.customer, $p);
     }
     std::print.flush(lend.mut $out);
@@ -455,7 +455,7 @@ fn shelf_count [lent $items: std::list[Item], lent $stock: std::map[str.utf8, i3
     let $n := 0;
     for $it in lend $items {
         if $it.aisle equal_to $a {
-            let $on_shelf := std::map.get(lend $stock, key: copy $it.name) otherwise 0;
+            let $on_shelf := std::map.get(lend $stock, key: lend $it.name) otherwise 0;
             change $n = $n + $on_shelf;
         }
     }
@@ -542,8 +542,8 @@ fn case_cost [$price: d64, $size: i32] -> d64 {
 fn plan_restock [lent $items: std::list[Item], lent $opening: std::map[str.utf8, i32], lent $stock: std::map[str.utf8, i32]] -> std::list[Restock] {
     let $plan: std::list[Restock] = std::list.empty;
     for $it in lend $items {
-        let $target := std::map.get(lend $opening, key: copy $it.name) otherwise 0;
-        let $left := std::map.get(lend $stock, key: copy $it.name) otherwise 0;
+        let $target := std::map.get(lend $opening, key: lend $it.name) otherwise 0;
+        let $left := std::map.get(lend $stock, key: lend $it.name) otherwise 0;
         let $missing := $target - $left;
         if $missing > 0 {
             let $size := case_size(copy $it.aisle);

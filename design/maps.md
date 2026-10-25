@@ -14,6 +14,18 @@ let $v := std::map.remove(lend.mut $phones, key: "bob") otherwise 0;   # hands t
 let $count := std::map.length(lend $phones);                # u64
 ```
 
+## A lookup lends its key (owner, 2026-10-25: "yes")
+
+`map.set` keeps the key and value it is handed, so they come by `copy` or `give`. `map.get`, `map.has` and `map.remove`
+only look at the key, so it may be lent:
+
+```
+let $n := std::map.get(lend $phones, key: lend $name) otherwise 0;   # no copy of the text, nothing kept
+std::map.set(lend.mut $phones, key: copy $name, value: 5551);        # the map keeps this one
+```
+
+Until then every operation took `set`'s rule (design claude's, 2026-09-22, never asked), so a lookup copied its key.
+
 ## In the language (owner: a)
 
 `map[K, V]` is a language type with type-headed operations — `map.empty`,

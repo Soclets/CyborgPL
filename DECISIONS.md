@@ -34,6 +34,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — A map lookup lends its key: `map.get`, `map.has`, `map.remove` take `key: lend $k`; `map.set` keeps `copy` / `give` (owner)
+
+A review of the corner shop posted on the issue thread (multifinity, from a fresh Claude) asked why
+`std::map.get(lend $stock, key: copy $line.name)` copies a text only to look it up. The oracle refused a lent key on
+every map operation, "a map owns its keys and values", a rule design claude wrote for `map.set` on 2026-09-22 and
+gave to all of them without asking. Design claude measured one case (10 million lookups, a 27-byte key): kayo had
+removed the copy, 0.20 s either way, but only because it could prove it; the word itself said "make one to keep".
+The owner: "Right now, `copy` costs perf, right?", "So, what you're saying is that writing `copy` here instead of
+`lend` doesn't really make sense?", "But why", then "yes" to: **`map.get`, `map.has` and `map.remove` take the key
+lent; `map.set` keeps `copy` or `give`.** A bare owned key on a lookup is refused naming `lend`. Design claude's
+reading: `copy` and `give` stay accepted on a lookup, as before. Built in the oracle; the shop lends its ten lookup
+keys (design/maps.md).
+
 ### 2026-10-25 — A page-aligned list goes anywhere a list does, keeping its kind as it grows; a plain one becomes page-aligned only by a conversion (owner)
 
 Compiler claude, building `.page_aligned` / `.not_page_aligned`: how do they cross with `std::list[T]`? Design claude

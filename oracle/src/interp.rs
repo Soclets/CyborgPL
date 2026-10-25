@@ -4148,9 +4148,12 @@ impl<'p> Interp<'p> {
             let r = self.value(a);
             self.expected = saved;
             let (v, prov) = r?;
+            // only `map.set` keeps what it is handed; `get`, `has` and `remove` only look at the key, so it may be lent
+            // (owner, 2026-10-25: "yes", after a review found `key: copy $name` on every lookup)
             match prov {
-                Prov::Bare(n) => return rt(line, format!("bare {n} into a map: say `give {n}` or `copy {n}`")),
-                Prov::Borrowed(..) => return rt(line, "a map owns its keys and values; store a `copy` or `give`, not a lend"),
+                Prov::Bare(n) if op == "set" => return rt(line, format!("bare {n} into a map: say `give {n}` or `copy {n}`")),
+                Prov::Bare(n) => return rt(line, format!("bare {n} as the key: `map.{op}` only looks at it, so `lend {n}`")),
+                Prov::Borrowed(..) if op == "set" => return rt(line, "a map owns its keys and values; store a `copy` or `give`, not a lend"),
                 _ => {}
             }
             rest.push(v);
