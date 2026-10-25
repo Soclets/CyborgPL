@@ -967,7 +967,7 @@ impl<'p> Interp<'p> {
                 };
                 let immut = *mutability == Some(Mutability::Immut);
                 let slot = match prov {
-                    Prov::Bare(n) => return rt(*line, format!("declaring '{name}' from bare '{n}', which owns a {}: say `give '{n}'`, `copy '{n}'`, or `lend '{n}'`", v.kind())),
+                    Prov::Bare(n) => return rt(*line, format!("declaring '{name}' from bare {n}, which owns a {}: say `give {n}`, `copy {n}`, or `lend {n}`", v.kind())),
                     Prov::Borrowed(cell, is_mut) => {
                         if ty.is_some() { return rt(*line, format!("'{name}' would hold a lend; a lent variable takes no explicit type here (use `:=`)")); }
                         Slot { cell, ty: None, kind: if is_mut { SlotKind::LentMut } else { SlotKind::Lent }, alive: true, immut, sized: false, sealed: false , since: 0, deps: Vec::new() }
@@ -1016,7 +1016,7 @@ impl<'p> Interp<'p> {
                     r?
                 };
                 match prov {
-                    Prov::Bare(n) => return rt(*line, format!("assigning bare '{n}' to '{name}': '{n}' owns a {} — say `give '{n}'`, `copy '{n}'`, or `lend '{n}'`", v.kind())),
+                    Prov::Bare(n) => return rt(*line, format!("assigning bare {n} to '{name}': {n} owns a {} — say `give {n}`, `copy {n}`, or `lend {n}`", v.kind())),
                     Prov::Borrowed(..) => return rt(*line, format!("assigning a lend to '{name}': a lend is temporary and cannot be stored in an owned variable (`copy` it or `give` it)")),
                     _ => {}
                 }
@@ -1052,7 +1052,7 @@ impl<'p> Interp<'p> {
                 let i = match i { Value::Int(i) => i, other => return rt(*line, format!("a position is an integer, got {}", other.kind())) };
                 let (v, prov) = self.bracket(value, *line)?;
                 match prov {
-                    Prov::Bare(n) => return rt(*line, format!("storing bare '{n}' into '{name}': say `give '{n}'` or `copy '{n}'`")),
+                    Prov::Bare(n) => return rt(*line, format!("storing bare {n} into '{name}': say `give {n}` or `copy {n}`")),
                     Prov::Borrowed(..) => return rt(*line, "a list owns its elements; store a `copy` or `give`, not a lend"),
                     _ => {}
                 }
@@ -1097,7 +1097,7 @@ impl<'p> Interp<'p> {
                 if fdef.immut { return rt(*line, format!("'{field}' is an `immut` field of {sname}; it cannot be assigned to")); }
                 let (v, prov) = self.bracket(value, *line)?;
                 match prov {
-                    Prov::Bare(n) => return rt(*line, format!("storing bare '{n}' into '{name}'.{field}: say `give '{n}'` or `copy '{n}'`")),
+                    Prov::Bare(n) => return rt(*line, format!("storing bare {n} into '{name}'.{field}: say `give {n}` or `copy {n}`")),
                     Prov::Borrowed(..) => return rt(*line, "a struct owns its fields; store a `copy` or `give`, not a lend"),
                     _ => {}
                 }
@@ -1311,7 +1311,7 @@ impl<'p> Interp<'p> {
                         self.ret_kind = self.last_kind.take();
                         self.ret_line = *line;
                         match prov {
-                            Prov::Bare(n) => return rt(*line, format!("returning bare '{n}', which owns a {}: say `give '{n}'` (or `copy`)", v.kind())),
+                            Prov::Bare(n) => return rt(*line, format!("returning bare {n}, which owns a {}: say `give {n}` (or `copy`)", v.kind())),
                             // a borrow handed back (owner, 2026-09-29): checked against `-> lent @x` by the caller
                             Prov::Borrowed(cell, m) => { self.ret_borrow = Some((cell, m)); v }
                             _ => v,
@@ -1367,7 +1367,7 @@ impl<'p> Interp<'p> {
                     let (v, prov) = self.single(&arm.chan, arm.line)?;
                     match (v, prov) {
                         (Value::Chan(c), Prov::Borrowed(..)) | (Value::Chan(c), Prov::Plain) | (Value::Chan(c), Prov::Fresh) => chans.push(c),
-                        (Value::Chan(_), Prov::Bare(n)) => return rt(arm.line, format!("a `whichever` arm lends its channel: `from lend '{n}'`")),
+                        (Value::Chan(_), Prov::Bare(n)) => return rt(arm.line, format!("a `whichever` arm lends its channel: `from lend {n}`")),
                         (other, _) => return rt(arm.line, format!("a `whichever` arm waits on a channel, got {}", other.kind())),
                     }
                 }
@@ -1473,7 +1473,7 @@ impl<'p> Interp<'p> {
                     Some(b) => {
                         let (v, prov) = self.bracket(b, *line)?;
                         match prov {
-                            Prov::Bare(n) => return rt(*line, format!("a failure carries bare '{n}', which owns a {}: say `give '{n}'` or `copy '{n}'`", v.kind())),
+                            Prov::Bare(n) => return rt(*line, format!("a failure carries bare {n}, which owns a {}: say `give {n}` or `copy {n}`", v.kind())),
                             Prov::Borrowed(..) => return rt(*line, "a failure cannot carry a lend"),
                             _ => {}
                         }
@@ -1529,7 +1529,7 @@ impl<'p> Interp<'p> {
             other => return rt(line, format!("`for` needs a list, this is {}", other.kind())),
         };
         let kind = match prov {
-            Prov::Bare(n) => return rt(line, format!("'{n}' is owned: say how the loop takes it — `lend '{n}'`, `copy '{n}'`, or `give '{n}'`")),
+            Prov::Bare(n) => return rt(line, format!("{n} is owned: say how the loop takes it — `lend {n}`, `copy {n}`, or `give {n}`")),
             Prov::Borrowed(_, false) => SlotKind::Lent,
             Prov::Borrowed(_, true) => SlotKind::LentMut, // written back after each trip, and on a read of the list (the `for` arm)
             _ => SlotKind::Owned,
@@ -1861,7 +1861,7 @@ impl<'p> Interp<'p> {
                     let (val, prov) = match r { Ok(x) => x, Err(e) => { self.expected = saved; return Err(e); } };
                     let val = elem_literal(elem.as_ref(), val, &prov);
                     match prov {
-                        Prov::Bare(name) => { self.expected = saved; return rt(line, format!("bare '{name}' inside a list: say `give`, `copy`, or `lend`")); }
+                        Prov::Bare(name) => { self.expected = saved; return rt(line, format!("bare {name} inside a list: say `give`, `copy`, or `lend`")); }
                         Prov::Borrowed(..) => { self.expected = saved; return rt(line, "a lend inside a list: a list owns its elements (`copy` or `give`)"); }
                         _ => {}
                     }
@@ -2418,10 +2418,10 @@ impl<'p> Interp<'p> {
                 let mut out: Vec<(Value, Value)> = Vec::new();
                 for (ke, vb) in pairs {
                     let (k, kp) = self.eval(ke)?;
-                    match kp { Prov::Bare(n) => return rt(line, format!("bare '{n}' as a map key: say `give '{n}'` or `copy '{n}'`")), Prov::Borrowed(..) => return rt(line, "a map owns its keys; a lend cannot be one (`copy` or `give`)"), _ => {} }
+                    match kp { Prov::Bare(n) => return rt(line, format!("bare {n} as a map key: say `give {n}` or `copy {n}`")), Prov::Borrowed(..) => return rt(line, "a map owns its keys; a lend cannot be one (`copy` or `give`)"), _ => {} }
                     self.key_ok(&k, line)?;
                     let (v, vp) = self.bracket(vb, line)?;
-                    match vp { Prov::Bare(n) => return rt(line, format!("bare '{n}' as a map value: say `give '{n}'` or `copy '{n}'`")), Prov::Borrowed(..) => return rt(line, "a map owns its values; a lend cannot be one (`copy` or `give`)"), _ => {} }
+                    match vp { Prov::Bare(n) => return rt(line, format!("bare {n} as a map value: say `give {n}` or `copy {n}`")), Prov::Borrowed(..) => return rt(line, "a map owns its values; a lend cannot be one (`copy` or `give`)"), _ => {} }
                     for (k2, _) in &out { if self.keys_equal(k2, &k, line)? { return rt(line, format!("the key {} is written twice in this map literal", k.show_useful())); } }
                     out.push((k, v));
                 }
@@ -2466,7 +2466,7 @@ impl<'p> Interp<'p> {
                 let v = self.read_var(name, line)?;
                 // a const is baked in: every use is a fresh value, nobody owns it
                 let prov = if self.is_const(name) { if v.is_owned() { Prov::Fresh } else { Prov::Plain } }
-                    else if v.is_owned() { Prov::Bare(name.clone()) } else { Prov::Plain };
+                    else if v.is_owned() { Prov::Bare(format!("'{name}'")) } else { Prov::Plain };
                 Ok((v, prov))
             }
             Expr::Owned(verb, name, _) => {
@@ -2529,7 +2529,7 @@ impl<'p> Interp<'p> {
                     return site(line, format!("position {i} is out of range for '{name}', which has {} element(s) (1 to {})", items.len(), items.len()));
                 }
                 let item = items[(i - 1) as usize].clone();
-                let prov = if item.is_owned() { Prov::Bare(format!("{name}'[{i}]'")) } else { Prov::Plain };
+                let prov = if item.is_owned() { Prov::Bare(format!("'{name}'[pos: {i}]")) } else { Prov::Plain };
                 Ok((item, prov))
             }
             Expr::FieldIndex(name, field, idx, _) => {
@@ -2548,7 +2548,7 @@ impl<'p> Interp<'p> {
                     return site(line, format!("position {i} is out of range for '{name}'.{field}, which has {} element(s) (1 to {})", items.len(), items.len()));
                 }
                 let item = items[(i - 1) as usize].clone();
-                let prov = if item.is_owned() { Prov::Bare(format!("{name}'.{field}[{i}]'")) } else { Prov::Plain };
+                let prov = if item.is_owned() { Prov::Bare(format!("'{name}'.{field}[pos: {i}]")) } else { Prov::Plain };
                 Ok((item, prov))
             }
             Expr::Field(name, field, _) => {
@@ -2585,7 +2585,7 @@ impl<'p> Interp<'p> {
                 }
                 match fields.into_iter().find(|(k, _)| k == field) {
                     Some((_, fv)) => {
-                        let prov = if fv.is_owned() { Prov::Bare(format!("{name}'.{field} (write `copy '{name}'.{field}` or `lend '{name}'.{field}`; the field is owned by '{name}")) } else { Prov::Plain };
+                        let prov = if fv.is_owned() { Prov::Bare(format!("'{name}'.{field} (write `copy '{name}'.{field}` or `lend '{name}'.{field}`; the field is owned by '{name}')")) } else { Prov::Plain };
                         Ok((fv, prov))
                     }
                     None => rt(line, format!("{sname} has no field `{field}`")),
@@ -2670,7 +2670,7 @@ impl<'p> Interp<'p> {
             Expr::Convert(Ty::List(_) | Ty::Array(_), b, _, _, _) => {
                 let (v, prov) = self.single(b, line)?;
                 match (&v, &prov) {
-                    (_, Prov::Bare(n)) => rt(line, format!("converting bare '{n}': say `give '{n}'` (no copy) or `copy '{n}'` (keeps '{n}')")),
+                    (_, Prov::Bare(n)) => rt(line, format!("converting bare {n}: say `give {n}` (no copy) or `copy {n}` (keeps {n})")),
                     (_, Prov::Borrowed(..)) => rt(line, "converting a lend would copy it without saying so: `copy` it or `give` it"),
                     (Value::List(_), _) => Ok((v, Prov::Fresh)),
                     (other, _) => rt(line, format!("`to.list` / `to.array` take a list or an array, got {}", other.kind())),
@@ -3943,7 +3943,7 @@ impl<'p> Interp<'p> {
             // The units of a text (decided 2026-09-20): no single length, no bare walk.
             let (v, prov) = self.value(&args.values[0])?;
             let s = match v { Value::Str(s) => s, Value::Char(_, c) => c, other => return rt(line, format!("`str.{op}` needs a text, got {}", other.kind())) };
-            if let Prov::Bare(n) = prov { return rt(line, format!("`str.{op}` looks at '{n}': `lend '{n}'`")); }
+            if let Prov::Bare(n) = prov { return rt(line, format!("`str.{op}` looks at {n}: `lend {n}`")); }
             return Ok(match op {
                 "bytes" => Value::Int(s.len() as i128),
                 "points" => Value::Int(s.chars().count() as i128),
@@ -3969,7 +3969,7 @@ impl<'p> Interp<'p> {
             let r = self.value(&args.values[0]);
             self.expected = None;
             let (v, prov) = match r { Ok(x) => x, Err(e) => { self.expected = saved; return Err(e); } };
-            if let Prov::Bare(n) = &prov { if v.is_owned() { self.expected = saved; return rt(line, format!("`list.fill` makes copies of '{n}': `copy '{n}'`")); } }
+            if let Prov::Bare(n) = &prov { if v.is_owned() { self.expected = saved; return rt(line, format!("`list.fill` makes copies of {n}: `copy {n}`")); } }
             let v = elem_literal(elem.as_ref(), v, &prov);
             let counted = self.value(&args.values[1]);
             self.expected = saved;
@@ -3984,7 +3984,7 @@ impl<'p> Interp<'p> {
             if args.values.len() != 3 { return rt(line, format!("`{head}.slice` takes a list and two positions: `{head}.slice(lend $xs, pos: 2, pos: 4)`")); }
             let (v, prov) = self.value(&args.values[0])?;
             let items = match &v { Value::List(i) => i.clone(), other => return rt(line, format!("`{head}.slice` needs a list or array, got {}", other.kind())) };
-            if let Prov::Bare(n) = &prov { return rt(line, format!("`{head}.slice` takes the list by `lend '{n}'`")); }
+            if let Prov::Bare(n) = &prov { return rt(line, format!("`{head}.slice` takes the list by `lend {n}`")); }
             let mut ends = Vec::new();
             for a in &args.values[1..] {
                 match self.value(a)?.0 { Value::Int(i) => ends.push(i), other => return rt(line, format!("a position is an integer, got {}", other.kind())) }
@@ -4007,7 +4007,7 @@ impl<'p> Interp<'p> {
                 let is_array = self.lookup(&name).map(|s| matches!(s.ty, Some(Ty::Array(_)))).unwrap_or(false);
                 (name, is_array, Some(cell.clone()))
             }
-            Prov::Bare(n) => return rt(line, format!("`{head}.{op}` takes the list by `lend '{n}'` (or `lend.mut` to change it)")),
+            Prov::Bare(n) => return rt(line, format!("`{head}.{op}` takes the list by `lend {n}` (or `lend.mut` to change it)")),
             _ => (String::new(), false, None),
         };
         match op {
@@ -4033,7 +4033,7 @@ impl<'p> Interp<'p> {
                 let mut removed: Option<Value> = None;
                 if op == "append" {
                     match aprov {
-                        Prov::Bare(n) => return rt(line, format!("appending bare '{n}': say `give '{n}'` or `copy '{n}'`")),
+                        Prov::Bare(n) => return rt(line, format!("appending bare {n}: say `give {n}` or `copy {n}`")),
                         Prov::Borrowed(..) => return rt(line, "a list owns its elements; append a `copy` or `give`, not a lend"),
                         _ => {}
                     }
@@ -4113,7 +4113,7 @@ impl<'p> Interp<'p> {
         let (v, prov) = self.value(&args.values[0])?;
         let (cell, is_mut) = match prov {
             Prov::Borrowed(cell, m) => (cell, m),
-            Prov::Bare(n) => return rt(line, format!("`map.{op}` takes the map by `lend '{n}'` (or `lend.mut` to change it)")),
+            Prov::Bare(n) => return rt(line, format!("`map.{op}` takes the map by `lend {n}` (or `lend.mut` to change it)")),
             _ => (Rc::new(RefCell::new(v.clone())), true),
         };
         if !matches!(&*cell.borrow(), Value::Map(_)) { return rt(line, format!("`map.{op}` needs a map, got {}", v.kind())); }
@@ -4135,7 +4135,7 @@ impl<'p> Interp<'p> {
             self.expected = saved;
             let (v, prov) = r?;
             match prov {
-                Prov::Bare(n) => return rt(line, format!("bare '{n}' into a map: say `give '{n}'` or `copy '{n}'`")),
+                Prov::Bare(n) => return rt(line, format!("bare {n} into a map: say `give {n}` or `copy {n}`")),
                 Prov::Borrowed(..) => return rt(line, "a map owns its keys and values; store a `copy` or `give`, not a lend"),
                 _ => {}
             }
@@ -4270,7 +4270,7 @@ impl<'p> Interp<'p> {
                 if args.values.len() != want { return rt(line, format!("`simd.{op}` takes {want} arguments: `simd.{op}({}, pos: $i, $k{})`", if store { "lend.mut 'xs'" } else { "lend 'xs'" }, if store { ", 'v'" } else { "" })); }
                 let (xs, prov) = self.value(&args.values[0])?;
                 let cell = match &prov { Prov::Borrowed(c, m) => { if store && !*m { return rt(line, "`simd.store.some` changes the list: pass `lend.mut`"); } c.clone() }
-                    Prov::Bare(n) => return rt(line, format!("`simd.{op}` takes the list by `lend '{n}'`")), _ => Rc::new(RefCell::new(xs.clone())) };
+                    Prov::Bare(n) => return rt(line, format!("`simd.{op}` takes the list by `lend {n}`")), _ => Rc::new(RefCell::new(xs.clone())) };
                 let items = match &*cell.borrow() { Value::List(i) => i.clone(), other => return rt(line, format!("`simd.{op}` needs a list or array, got {}", other.kind())) };
                 let i = match self.value(&args.values[1])?.0 { Value::Int(i) => i, other => return rt(line, format!("a position is an integer, got {}", other.kind())) };
                 let k = match self.value(&args.values[2])?.0 { Value::Int(k) => k, other => return rt(line, format!("a lane count is an integer, got {}", other.kind())) };
@@ -4304,7 +4304,7 @@ impl<'p> Interp<'p> {
                 if args.values.len() != want { return rt(line, format!("`simd.{op}` takes {want} arguments: `simd.{op}(lend $xs, pos: $i{})`", if op == "store" { ", 'v'" } else { "" })); }
                 let (xs, prov) = self.value(&args.values[0])?;
                 let cell = match &prov { Prov::Borrowed(c, m) => { if op == "store" && !*m { return rt(line, "`simd.store` changes the list: pass `lend.mut`"); } c.clone() }
-                    Prov::Bare(n) => return rt(line, format!("`simd.{op}` takes the list by `lend '{n}'`")), _ => Rc::new(RefCell::new(xs.clone())) };
+                    Prov::Bare(n) => return rt(line, format!("`simd.{op}` takes the list by `lend {n}`")), _ => Rc::new(RefCell::new(xs.clone())) };
                 let items = match &*cell.borrow() { Value::List(i) => i.clone(), other => return rt(line, format!("`simd.{op}` needs a list or array, got {}", other.kind())) };
                 let (iv, _) = self.value(&args.values[1])?;
                 let i = match iv { Value::Int(i) => i, other => return rt(line, format!("a position is an integer, got {}", other.kind())) };
@@ -4408,14 +4408,14 @@ impl<'p> Interp<'p> {
         let (v, prov) = self.value(&args.values[0])?;
         let c = match (v, &prov) {
             (Value::Chan(c), Prov::Borrowed(..)) | (Value::Chan(c), Prov::Plain) | (Value::Chan(c), Prov::Fresh) => c,
-            (Value::Chan(_), Prov::Bare(n)) => return rt(line, format!("`channel.{op}` takes the channel by `lend '{n}'`")),
+            (Value::Chan(_), Prov::Bare(n)) => return rt(line, format!("`channel.{op}` takes the channel by `lend {n}`")),
             (other, _) => return rt(line, format!("`channel.{op}` needs a channel, got {}", other.kind())),
         };
         let mut rest = Vec::new();
         for a in &args.values[1..] {
             let (v, prov) = self.value(a)?;
             match prov {
-                Prov::Bare(n) => return rt(line, format!("bare '{n}' into a channel: say `give '{n}'` or `copy '{n}'` — the sender no longer has it")),
+                Prov::Bare(n) => return rt(line, format!("bare {n} into a channel: say `give {n}` or `copy {n}` — the sender no longer has it")),
                 Prov::Borrowed(..) => return rt(line, "a value sent down a channel is given, never lent (no two tasks may hold one thing)"),
                 _ => {}
             }
@@ -4723,7 +4723,7 @@ impl<'p> Interp<'p> {
             let slot = match param.kind {
                 ParamKind::Owned => {
                     match &prov {
-                        Prov::Bare(n) => return rt(c.line, format!("`{name}` takes ownership of '{pn}' — pass `give '{n}'` or `copy '{n}'`")),
+                        Prov::Bare(n) => return rt(c.line, format!("`{name}` takes ownership of '{pn}' — pass `give {n}` or `copy {n}`")),
                         Prov::Borrowed(..) => return rt(c.line, format!("`{name}` takes ownership of '{pn}' but you lent it; `give` or `copy` instead")),
                         _ => {}
                     }
@@ -4750,10 +4750,10 @@ impl<'p> Interp<'p> {
                         }
                         // a `lent.mut` parameter changes what it is given (compiler claude, 2026-10-17: the message said
                         // "only looks at" for it too)
-                        Prov::Bare(n) if want_mut => return rt(c.line, format!("`{name}` may modify '{pn}' — pass `lend.mut '{n}'`")),
+                        Prov::Bare(n) if want_mut => return rt(c.line, format!("`{name}` may modify '{pn}' — pass `lend.mut {n}`")),
                         Prov::Given if want_mut => return rt(c.line, format!("`{name}` may modify '{pn}': it is `lent.mut`, so the caller writes `lend.mut`, not `give`")),
                         Prov::Copied if want_mut => return rt(c.line, format!("`{name}` may modify '{pn}': it is `lent.mut`, so the caller writes `lend.mut`, not `copy`")),
-                        Prov::Bare(n) => return rt(c.line, format!("`{name}` only looks at '{pn}' — pass `lend '{n}'`")),
+                        Prov::Bare(n) => return rt(c.line, format!("`{name}` only looks at '{pn}' — pass `lend {n}`")),
                         Prov::Given => return rt(c.line, format!("`{name}` only looks at '{pn}': it is `lent`, so the caller writes `lend`, not `give`")),
                         Prov::Copied => return rt(c.line, format!("`{name}` only looks at '{pn}': it is `lent`, so the caller writes `lend`, not `copy`")),
                         // A plain value, or a fresh temporary (literal, call result): nothing owns
@@ -4999,7 +4999,7 @@ impl<'p> Interp<'p> {
             let slot = match param.kind {
                 ParamKind::Owned => {
                     match &prov {
-                        Prov::Bare(n) => return rt(line, format!("`{op}` takes '{}' by value: write `give '{n}'` (or `copy '{n}'`)", param.name)),
+                        Prov::Bare(n) => return rt(line, format!("`{op}` takes '{}' by value: write `give {n}` (or `copy {n}`)", param.name)),
                         Prov::Borrowed(..) => return rt(line, format!("`{op}` takes '{}' by value, not a lend", param.name)),
                         _ => {}
                     }
@@ -5121,7 +5121,7 @@ impl<'p> Interp<'p> {
                 if let Some(s) = saved { self.expected = s; }
                 let (v, prov) = r?;
                 match prov {
-                    Prov::Bare(n) => rt(line, format!("the fallback is bare '{n}', which owns a {}: say `give '{n}'` or `copy '{n}'`", v.kind())),
+                    Prov::Bare(n) => rt(line, format!("the fallback is bare {n}, which owns a {}: say `give {n}` or `copy {n}`", v.kind())),
                     _ => match &fty { Some(t) => self.fit(v, prov, Some(t), line), None => Ok(v) },
                 }
             }
@@ -5473,7 +5473,7 @@ impl<'p> Interp<'p> {
             self.expected = saved;
             let (v, prov) = r?;
             match prov {
-                Prov::Bare(n) => return rt(line, format!("bare '{n}' as field `{}`: say `give '{n}'` or `copy '{n}'`", f.name)),
+                Prov::Bare(n) => return rt(line, format!("bare {n} as field `{}`: say `give {n}` or `copy {n}`", f.name)),
                 Prov::Borrowed(..) => return rt(line, format!("a struct owns its fields; `{}` cannot hold a lend", f.name)),
                 _ => {}
             }
@@ -5591,7 +5591,7 @@ impl<'p> Interp<'p> {
                 self.expected = saved;
                 let (v, prov) = r?;
                 match prov {
-                    Prov::Bare(n) => return rt(line, format!("bare '{n}' as the data of `{case}`: say `give '{n}'` or `copy '{n}'`")),
+                    Prov::Bare(n) => return rt(line, format!("bare {n} as the data of `{case}`: say `give {n}` or `copy {n}`")),
                     Prov::Borrowed(..) => return rt(line, "an enum owns its data; it cannot hold a lend"),
                     _ => {}
                 }
@@ -5671,7 +5671,7 @@ impl<'p> Interp<'p> {
                 let r = self.value(a);
                 if let Some(old) = saved { self.expected = old; }
                 let (v, prov) = r?;
-                if let Prov::Bare(n) = prov { return rt(c.line, format!("std::{path} looks at '{n}': `lend '{n}'`")); }
+                if let Prov::Bare(n) = prov { return rt(c.line, format!("std::{path} looks at {n}: `lend {n}`")); }
                 // std's own take every text `lent` (std/str.cy), so a copy or a give is refused as for any `lent`
                 // (compiler claude, 2026-10-17: corner_shop passed `part copy 'part'`)
                 let lent_all = matches!(path.as_str(), "str.split" | "str.contains" | "str.starts_with" | "str.ends_with" | "str.join" | "str.replace");

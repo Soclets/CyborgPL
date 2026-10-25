@@ -1,0 +1,1 @@
+say `give $prs[pos: 1]`, `copy $prs[pos: 1]`, or `lend $prs[pos: 1]`
