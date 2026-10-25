@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — The design notes' code is in the new syntax (owner: "Resume CyborgPL")
+
+The code blocks of 30 notes in `design/` (357 lines) now write calls in `( )`, names as `$name`, `channel.empty`,
+`std::exit(code: …)`, `secs` and `mins`, and `concat` for `++`, by `oracle/tools/snip_syntax.py` (a heuristic for
+snippets, kept in the repo, every change reviewed by eye) and a handful by hand: a function value's call `$f(…)`, the
+`map` helper, `str.at.<unit>(…)`, and list reads given the `pos:` they lacked since 2026-10-07. Blocks of another
+language (C, Metal, Rust) are left as they are, as is syntax-sketch's block of the 2026-09-14 syntax kept as history,
+and the briefs of Lilith, Synthia and RRx2. Prose that quotes old forms as history is unchanged.
+
 ### 2026-10-24 — Several renames in one `use`: `use [std::print.useful as printu, std::list as list];` (owner)
 
 The owner, writing `use[std::print.useful as printu];`: "If use doesn't support doing a lot of shit in one line, it

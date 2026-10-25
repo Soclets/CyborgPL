@@ -19,7 +19,7 @@ use this anyways"; there are no others since 2026-10-07).
 error[unclosed_name] at shop.cy:3:9
 where: in pick(), called from take_order() at line 240
 code:  let 'a := $b + 1;
-fix:   let 'a' := $b + 1;
+fix:   let $a := $b + 1;
 ```
 
 ```

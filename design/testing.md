@@ -1,16 +1,16 @@
 # Testing — `test fn` and `must` (owner, 2026-09-29)
 
 ```
-fn add ['a': i32, 'b': i32] -> i32 { return 'a' plus 'b'; }
+fn add [$a: i32, $b: i32] -> i32 { return $a plus $b; }
 
 test fn adds_up [] {
-    must add[2, 3] equal_to 5;                        # what must hold
-    let 'n' := to.i32["42"] otherwise 0;
-    must 'n' equal_to 42;
+    must add(2, 3) equal_to 5;                        # what must hold
+    let $n := to.i32("42") otherwise 0;
+    must $n equal_to 42;
     must.fail to.i32["abc"];                  # it must fail
-    must.fail.not_a_number to.i32["abc"];     # …with exactly this reason
-    let 'xs': std::list[i32] = [1, 2, 3];
-    must.stop 'xs'[99];                         # a check site must fire
+    must.fail.not_a_number to.i32("abc");     # …with exactly this reason
+    let $xs: std::list[i32] = [1, 2, 3];
+    must.stop $xs[pos: 99];                      # a check site must fire
 }
 ```
 

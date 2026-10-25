@@ -8,9 +8,9 @@ conditions without `[ ]`, one `for`.
 ## Branching
 
 ```
-if 'x' > 10 {
+if $x > 10 {
     …
-} else if 'x' > 5 {
+} else if $x > 5 {
     …
 } else {
     …
@@ -33,10 +33,10 @@ enclosing scope cannot be redeclared with `:=` or `=`. It *can* be
 deliberately hidden with `shadow 'x' := …;` (owner, 2026-10-08; `$:=` / `$=` until then, the `$` marking the intent):
 
 ```
-let 'x' := 1;
+let $x := 1;
 if true {
-    shadow 'x' := 2;            # shadows the outer 'x' until the block ends
-    shadow 'y': i32 = 3;      # error: there is no 'y' to shadow
+    shadow $x := 2;            # shadows the outer 'x' until the block ends
+    shadow $y: i32 = 3;      # error: there is no 'y' to shadow
 }
 ```
 
@@ -54,15 +54,15 @@ loop {                                         # forever, until break
     …
 }
 
-while 'count' < 100 {                          # while a condition holds
+while $count < 100 {                          # while a condition holds
     …
 }
 
-for 'item' in lend 'items' {                   # each element; 'item' gone after
+for $item in lend $items {                   # each element; 'item' gone after
     …
 }
 
-for 'i' [from: 0, to: 1000, by: 1] {                    # 'i' from 0 to 1000 inclusive
+for $i [from: 0, to: 1000, by: 1] {                    # 'i' from 0 to 1000 inclusive
     …
 }
 ```
@@ -78,10 +78,10 @@ body ran with after a full run (the stop value when the step lands on it; for
 body never ran. One rule for every way a loop can end.
 
 ```
-for perm 'i' [from: 0, to: 100, by: 1] {
-    if found['i'] { break; }
+for perm $i [from: 0, to: 100, by: 1] {
+    if found($i) { break; }
 }
-std::print.useful["stopped at ", 'i', newln];
+std::print.useful("stopped at ", $i, newln);
 ```
 
 `perm` on a list loop keeps the last element visited (an empty list is an
@@ -126,8 +126,8 @@ file each bound is labelled and the step always written,
 `range[from: 2, to: 8, by: 2]` (owner, 2026-09-27; `core-features.md`):
 
 ```
-for 'i' [from: 0, to: 9, by: 1] { }                 # like  'i' := 0;
-for 'i': i8 [from: 0, to: 9, by: 1] { }           # like  'i': i8 = 0;
+for $i [from: 0, to: 9, by: 1] { }                 # like  'i' := 0;
+for $i: i8 [from: 0, to: 9, by: 1] { }           # like  'i': i8 = 0;
 ```
 
 **`range[…]` stays part of the `for`** (owner, 2026-09-23): it is not a

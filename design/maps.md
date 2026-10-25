@@ -6,12 +6,12 @@ Decided 2026-09-22, one question at a time. The third collection, beside
 `list` and `array` (`lists.md`): look a value up by a key.
 
 ```
-let mut 'phones': std::map[str.utf8, i32] = std::map.empty;
-std::map.set[lend.mut 'phones', key: "ann", value: 5551];                 # add, or replace an existing key's value
-let 'n' := std::map.get[lend 'phones', key: "ann"] otherwise 0;    # a missing key is a failure
-if std::map.has[lend 'phones', key: "bob"] { … }
-let 'v' := std::map.remove[lend.mut 'phones', key: "bob"] otherwise 0;   # hands the value back, like list.remove
-let 'count' := std::map.length[lend 'phones'];                # u64
+let mut $phones: std::map[str.utf8, i32] = std::map.empty;
+std::map.set(lend.mut $phones, key: "ann", value: 5551);                 # add, or replace an existing key's value
+let $n := std::map.get(lend $phones, key: "ann") otherwise 0;    # a missing key is a failure
+if std::map.has(lend $phones, key: "bob") { … }
+let $v := std::map.remove(lend.mut $phones, key: "bob") otherwise 0;   # hands the value back, like list.remove
+let $count := std::map.length(lend $phones);                # u64
 ```
 
 ## In the language (owner: a)
@@ -44,7 +44,7 @@ check site guarded by `has`; a found/missing enum to `match`.
 - **A type's own rule**: a struct or enum that satisfies
 
   ```
-  interface Key <T> { op == ['a': <T>, 'b': <T>] --> bool;  fn hash [lent 'v': <T>] --> u64; }
+  interface Key <T> { op == [$a: <T>, $b: <T>] --> bool;  fn hash [lent $v: <T>] --> u64; }
   ```
 
   compares and hashes by its own `op ==` and `fn hash` — a
@@ -62,9 +62,9 @@ a `give` — never a lend.
 ## A literal — `key = value` (owner: a)
 
 ```
-let 'phones' := std::map["ann" = 5551, "bob" = 5552];
-let 'grid' := std::map[[1, 2] = "tree", [3, 4] = "rock"];
-let 'one' := std::map["cat" = 1,];
+let $phones := std::map["ann" = 5551, "bob" = 5552];
+let $grid := std::map[[1, 2] = "tree", [3, 4] = "rock"];
+let $one := std::map["cat" = 1,];
 ```
 
 `key = value`, the spelling a struct construction uses for `field =
@@ -77,7 +77,7 @@ a compile error. Proposed alternatives: a list of two-element lists
 ## A count bound, and bounds inside (owner: yes)
 
 ```
-let mut 'small': std::map[str.utf8[min: 1, max: 3 bytes], i32[min: 0, max: 10]][min: 0, max: 2] = std::map.empty;
+let mut $small: std::map[str.utf8[min: 1, max: 3 bytes], i32[min: 0, max: 10]][min: 0, max: 2] = std::map.empty;
 ```
 
 `map[K, V][lo, hi]` bounds the number of entries, as `list[T][lo, hi]`
@@ -90,9 +90,9 @@ fitting together (owner asked "what about the things inside?").
 ## Walking a map — say which, in insertion order (owner: c, a)
 
 ```
-for 'k' in std::map.keys[lend 'phones'] { … }
-for 'v' in std::map.values[lend 'phones'] { … }
-for 'e' in std::map.pairs[lend 'phones'] { … 'e'.key … 'e'.value … }
+for $k in std::map.keys(lend $phones) { … }
+for $v in std::map.values(lend $phones) { … }
+for $e in std::map.pairs(lend $phones) { … $e.key … $e.value … }
 ```
 
 A map has no single walk, so the walk says which — like `str.each.point`

@@ -11,8 +11,8 @@ solved for types, solved here for behaviour.
 ## 1. A function becomes a value by its bare name
 
 ```
-let 'f' := average;            # the function itself; bare name, no brackets
-let 'n' := 'f'[lend 's'];      # calling a held function: quoted name, then the arguments
+let $f := average;            # the function itself; bare name, no brackets
+let $n := $f(lend $s);      # calling a held function: its name, then the arguments in `( )`
 ```
 
 The rule stands: a *value you hold* is quoted, a function's name is bare.
@@ -25,10 +25,10 @@ calls it. Since `pos` went (2026-09-27), a list read looks the same
 ## 2. The type of a function is its signature without the names
 
 ```
-fn by_number [lent 'a': Locker, lent 'b': Locker] -> bool { … }     # the definition
+fn by_number [lent $a: Locker, lent $b: Locker] -> bool { … }     # the definition
                 fn[lent Locker,      lent Locker]  -> bool           # its type
 
-fn sort <T: any> [lent.mut 'xs': std::list[<T>], 'less': fn[lent <T>, lent <T>] -> bool] { … }
+fn sort <T: any> [lent.mut $xs: std::list[<T>], $less: fn[lent <T>, lent <T>] -> bool] { … }
 ```
 
 Parameter kinds (`lent`, `lent.mut`, none) are part of the type — the
@@ -40,9 +40,9 @@ difference.
 ## 3. Inline functions capture explicitly — `with`
 
 ```
-let 'limit' := 60;
-let 'passing' := keep[lend 'scores', fn ['s': i32] -> bool with [lend 'limit'] { return 's' at_least 'limit'; }];
-let 'evens'   := keep[lend 'scores', fn ['s': i32] -> bool { return ('s' mod.floor 2) equal_to 0; }];   # captures nothing
+let $limit := 60;
+let $passing := keep(lend $scores, fn [$s: i32] -> bool with [lend $limit] { return $s at_least $limit; });
+let $evens   := keep(lend $scores, fn [$s: i32] -> bool { return ($s mod.floor 2) equal_to 0; });   # captures nothing
 ```
 
 An anonymous function is `fn` with its parameters, return, and body,
@@ -69,10 +69,10 @@ stays. A named function has no short form (owner: "no"), its body always in `{ }
 ## 4. An operator is a value as `op plus` (owner, 2026-09-29)
 
 ```
-let 'sum'     := fold[lend 'xs', 0, op plus];
-let 'product' := fold[lend 'xs', 1, op times];
-let 'flipped' := map[lend 'xs', op neg];
-let 'f': fn[i32, i32] -> i32 = op mod.floor;
+let $sum     := fold(lend $xs, 0, op plus);
+let $product := fold(lend $xs, 1, op times);
+let $flipped := map(lend $xs, op neg);
+let $f: fn[i32, i32] -> i32 = op mod.floor;
 ```
 
 `op` — the word that defines an operator — before any operator makes it

@@ -26,8 +26,8 @@ namespace. The keyword is `enum` (Rust/C/Swift/TypeScript) over `variant`.
 ## Values
 
 ```
-let 'a' := Status.empty;                 # a case with no data: bare
-let 'b' := Status.claimed["Tankun"];     # a case with data: the bracket builds it
+let $a := Status.empty;                 # a case with no data: bare
+let $b := Status.claimed["Tankun"];     # a case with data: the bracket builds it
 struct Locker { number: i32, status: Status }
 ```
 
@@ -40,10 +40,10 @@ struct Locker { number: i32, status: Status }
 ## `match` — when every case matters
 
 ```
-fn describe [lent 'l': Locker] -> str.utf8 {
-    match 'l'.status {
+fn describe [lent $l: Locker] -> str.utf8 {
+    match $l.status {
         empty         { return "free"; }
-        claimed 'who' { return "taken by " ++ 'who'; }
+        claimed $who { return "taken by " concat $who; }
         locked        { return "locked"; }
     }
 }
@@ -71,9 +71,9 @@ in one scope (open: state that rule).
 ## A `match` that gives a value (owner, 2026-09-29)
 
 ```
-let 'label' := match 's' {
+let $label := match $s {
     empty         { "free" }
-    claimed 'who' { "taken by " ++ 'who' }
+    claimed $who { "taken by " concat $who }
     locked        { return "(locked)"; }      # a case may still leave instead
 };
 ```
@@ -103,11 +103,11 @@ is that match's value. In a `#strict` file a bare nested `match` is
 always a statement, since a value says `giveS` (owner: "yes"):
 
 ```
-match 'o' {
+match $o {
     cancelled { }
-    paid { match 's' { pickup { … } post { … } } }                 # runs
+    paid { match $s { pickup { … } post { … } } }                 # runs
 }
-let 'price' := match 'o' { cancelled { 0 } paid { match 's' { pickup { 5 } post { 9 } } } };
+let $price := match $o { cancelled { 0 } paid { match $s { pickup { 5 } post { 9 } } } };
 #strict: paid { giveS match 's' { pickup { giveS 5; } post { giveS 9; } }; }
 ```
 

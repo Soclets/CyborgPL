@@ -6,20 +6,20 @@ Decided 2026-09-14; spelling revised 2026-09-19 (`fn`, name-then-type
 parameters, `--> T`).
 
 ```
-fn add ['a': i32, 'b': i32] -> i32 {
-    return 'a' plus 'b';
+fn add [$a: i32, $b: i32] -> i32 {
+    return $a plus $b;
 }
-let 'sum' := add[10, 20];              # this Kit: bare
-let 'big' := mathstuff::pow[2, 64];    # another Kit: Kit::path
+let $sum := add(10, 20);              # this Kit: bare
+let $big := mathstuff::pow(2, 64);    # another Kit: Kit::path
 ```
 
 ## Definition
 
 ```
-fn count [lent 'text': str.utf8] -> i32 { … }     # looks at it
-fn edit  [lent.mut 'text': str.utf8] { … }          # may modify it
-fn keep  ['text': str.utf8] { … }                   # owns it
-fn twice [immut 'n': i32] -> i32 { … }          # stated mutability
+fn count [lent $text: str.utf8] -> i32 { … }     # looks at it
+fn edit  [lent.mut $text: str.utf8] { … }          # may modify it
+fn keep  [$text: str.utf8] { … }                   # owns it
+fn twice [immut $n: i32] -> i32 { … }          # stated mutability
 ```
 
 - **`fn`**, bare name, parameters in one `[ ]`, optional `--> type`, body in
@@ -108,8 +108,8 @@ the parameters. A call is a value and stands bare wherever a value goes:
 ## Return
 
 ```
-return 'a' plus 'b';
-return "hello " ++ 'name';    # text joins with ++ (2026-09-19)
+return $a plus $b;
+return "hello " concat $name;    # text joins with ++ (2026-09-19)
 return;                       # in a nothing-function
 ```
 
@@ -117,8 +117,8 @@ return;                       # in a nothing-function
 
 ```
 MAIN {
-    let 'sum' := add[10, 20];
-    std::print.useful["sum: ", 'sum', newln];
+    let $sum := add(10, 20);
+    std::print.useful("sum: ", $sum, newln);
 }
 ```
 
@@ -142,8 +142,8 @@ depends on may have one too, run only when that kit is run itself
 "low-level shit, decided" — "we're at Rust, C, C++ level"):
 
 ```
-MAIN ['argc': i32, 'argv': ptr[ptr[u8]]] {
-    no_check let 'first' := ptr.read[ptr.at['argv', by: 1]];     # the first word after the program's name
+MAIN [$argc: i32, $argv: ptr[ptr[u8]]] {
+    no_check let $first := ptr.read(ptr.at($argv, by: 1));     # the first word after the program's name
     …
 }
 ```

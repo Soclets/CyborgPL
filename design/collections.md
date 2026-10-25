@@ -17,9 +17,9 @@ A collection writes a function and its dot narrowings (`cum`, `cum.quick`,
 
 ```
 pub coll.fn cum {
-    cum ['x': i32, 'step': i32] -> i32 { return 'x' plus 'step'; }
-    cum.quick ['step' = 2];
-    cum.double ['x': i32] -> i32 { return 'x' times 2; }
+    cum [$x: i32, $step: i32] -> i32 { return $x plus $step; }
+    cum.quick [$step = 2];
+    cum.double [$x: i32] -> i32 { return $x times 2; }
 }
 ```
 
@@ -53,10 +53,10 @@ A member may point at a function written elsewhere in the kit, so a kit's `kit.c
 
 ```
 pub coll.fn area {
-    area ['w': i64, 'h': i64] -> i64 { return 'w' x 'h'; }
+    area [$w: i64, $h: i64] -> i64 { return $w x $h; }
     area.square = shapes.square.area;           # body in shapes/square.cy
     area.triangle = shapes.triangle.area;
-    area.unit ['w' = 1, 'h' = 1];               # a preset of the own function
+    area.unit [$w = 1, $h = 1];               # a preset of the own function
 }
 # users write geometry::area.square[5]
 ```
@@ -73,9 +73,9 @@ picked by how many arguments it has and their types. This is the only place over
 
 ```
 pub coll.fn round {
-    round.near ['x': f64] -> f64 { … }
-    round.near ['x': d64] -> d64 { … }
-    round.near ['x': f64, 'decimals': i32] -> f64 { … }
+    round.near [$x: f64] -> f64 { … }
+    round.near [$x: d64] -> d64 { … }
+    round.near [$x: f64, $decimals: i32] -> f64 { … }
 }
 ```
 
@@ -100,9 +100,9 @@ A collection also says how its own function is called:
 
 ```
 pub coll.fn say {
-    labels.in_order ['text' as value, 'times' as count];
-    defaults ['times' = 1];
-    say ['n': i32, 'text': str.utf8, 'times': i32] -> str.utf8 { … }
+    labels.in_order [$text as value, $times as count];
+    defaults [$times = 1];
+    say [$n: i32, $text: str.utf8, $times: i32] -> str.utf8 { … }
 }
 # say[2, value: "Hi"]               'times' is 1
 # say[2, value: "Hi", count: 3]
@@ -149,9 +149,9 @@ member's signature, or no own function takes it.
 
 ```
 coll.fn zero {
-    for 'T' in [i16, i64] {
-        named "of_" ++ 'T';
-        [] -> 'T' { return 0; }
+    for $T in [i16, i64] {
+        named "of_" concat $T;
+        [] -> $T { return 0; }
     }
     #generated_2_lines_below
     zero.of_int16 [] -> i16 { return 0; }
@@ -205,11 +205,11 @@ owner rules:
 coll.handler cum_failed {
     cum_failed.flow_back_to_bladder {
         odd { return 0; }
-        negative 'v' { report['v']; return 0; }
+        negative $v { report($v); return 0; }
     }
 }
 
-let 'b' := half[-4] otherwise cum_failed.flow_back_to_bladder;
+let $b := half(-4) otherwise cum_failed.flow_back_to_bladder;
 ```
 
 - A member is a **named `otherwise` block**: the arms written inline today,

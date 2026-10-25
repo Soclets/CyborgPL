@@ -25,9 +25,9 @@ programmer only says which at a boundary.
 ## Slicing — `list.slice`, `array.slice` (owner, 2026-09-23)
 
 ```
-let 'mid' := std::list.slice[lend 'xs', from: pos 2, to: pos 4];      # elements 2, 3 and 4
-let 'head' := array.slice[lend 'fixed', from: pos 1, to: pos 2];
-let 'none' := std::list.slice[lend 'xs', from: pos 3, to: pos 2];     # empty: last is first minus 1
+let $mid := std::list.slice(lend $xs, from: pos 2, to: pos 4);      # elements 2, 3 and 4
+let $head := array.slice(lend $fixed, from: pos 1, to: pos 2);
+let $none := std::list.slice(lend $xs, from: pos 3, to: pos 2);     # empty: last is first minus 1
 ```
 
 **A slice owns its elements**, like any list: the copy is the meaning.
@@ -59,8 +59,8 @@ recommending an array from an array.)
 ## Between the two — `to.array[…]`, `to.list[…]` (owner, 2026-09-23)
 
 ```
-let 'a' := to.array[give 'l'];     # a list's length frozen: it cannot grow now
-let 'm' := to.list[copy 'a'];      # an array that can grow; 'a' is still here
+let $a := to.array(give $l);     # a list's length frozen: it cannot grow now
+let $m := to.list(copy $a);      # an array that can grow; 'a' is still here
 ```
 
 A `list` and an `array` are different types, and nothing converts by
@@ -127,7 +127,7 @@ default tier, proven away by the prover where it can be.
 **Element assignment** (decided 2026-09-17) is the same shape on the left of `=`:
 
 ```
-change 'xs'[2] = 5;
+change $xs[pos: 2] = 5;
 ```
 
 The list must be assignable (not `!mut`, not a shared `lent`); the position
@@ -139,10 +139,10 @@ Selecting by *value* (`'xs'[value-is 2]`) was considered and dropped: it is a
 search, and a search is a loop the reader should see —
 
 ```
-for perm 'i' [from: 1, to: std::list.length[lend 'xs'], by: 1] {
-    if 'xs'['i'] equal_to 2 { break; }
+for perm $i [from: 1, to: std::list.length(lend $xs), by: 1] {
+    if $xs[pos: $i] equal_to 2 { break; }
 }
-change 'xs'['i'] = 5;
+change $xs[pos: $i] = 5;
 ```
 
 — which the `perm` counter makes three plain lines.
@@ -152,8 +152,8 @@ the loop's element is the list's own: changing it changes the list. Over
 `lend`, it cannot be changed.
 
 ```
-for 'x' in lend.mut 'prices' {
-    change 'x' = 'x' times 2;
+for $x in lend.mut $prices {
+    change $x = $x times 2;
 }
 ```
 
@@ -168,12 +168,12 @@ growing or giving away the list inside stays refused for the whole loop.
 ## Operations — the type name as the chain's head
 
 ```
-let 'n' := std::list.length[lend 'xs'];
-std::list.append[lend.mut 'xs', value: 40];
-std::list.remove[lend.mut 'xs', pos: 1];            # by 1-based position; the element is dropped
-let 'first' := std::list.remove[lend.mut 'xs', pos: 1];   # or handed back (decided 2026-09-21)
-run[std::list.remove[lend.mut 'queue', pos: 1]];    # straight into a call: moved, never copied
-let 'm' := array.length[lend 'fixed'];
+let $n := std::list.length(lend $xs);
+std::list.append(lend.mut $xs, value: 40);
+std::list.remove(lend.mut $xs, pos: 1);            # by 1-based position; the element is dropped
+let $first := std::list.remove(lend.mut $xs, pos: 1);   # or handed back (decided 2026-09-21)
+run(std::list.remove(lend.mut $queue, pos: 1));    # straight into a call: moved, never copied
+let $m := array.length(lend $fixed);
 ```
 
 They are language operations (the compiler implements them; the prover knows
@@ -193,9 +193,9 @@ is fastest.
 ## A length bound — `list[T][lo, hi]`
 
 ```
-let mut 'ys': std::list[i32][min: 0, max: 1000] = read_numbers[] otherwise std::list.empty;
-let 'n' := std::list.length[lend 'ys'];      # a u64[min: 0, max: 1000]
-let 'm': i32 = 'n';                   # proven by the bound; no check
+let mut $ys: std::list[i32][min: 0, max: 1000] = read_numbers() otherwise std::list.empty;
+let $n := std::list.length(lend $ys);      # a u64[min: 0, max: 1000]
+let $m: i32 = $n;                   # proven by the bound; no check
 ```
 
 Decided 2026-09-21: the thing, then its bounds — the same shape as
@@ -226,8 +226,8 @@ fresh value, a `copy`, or a `give` — never a lend.
 ## The empty list (decided 2026-09-17)
 
 ```
-let 'xs': std::list[i32] = [];             # typed: the type says list, [] is empty
-let 'ys' := std::list.empty;                # best-type: the value says list; Precog picks the
+let $xs: std::list[i32] = [];             # typed: the type says list, [] is empty
+let $ys := std::list.empty;                # best-type: the value says list; Precog picks the
                                        # element type from what is appended later
 ```
 
@@ -239,8 +239,8 @@ is an error.
 ## The position beside the item: `for 'i', 'x' in lend 'xs'` (owner, 2026-09-29: a)
 
 ```
-for 'i', 'x' in lend 'xs' {
-    std::print.useful['i', ". ", 'x', newln];      # 1. ann  2. bob  3. cy
+for $i, $x in lend $xs {
+    std::print.useful($i, ". ", $x, newln);      # 1. ann  2. bob  3. cy
 }
 ```
 
@@ -257,8 +257,8 @@ reading, not asked). Proposed alternative: leave it, looping over
 ## A list of n copies — `list.fill` (owner, 2026-09-30)
 
 ```
-let mut 'scores' := std::list.fill[value: 0, count: 10];              # ten 0s
-let 'flags': std::list[bool] = std::list.fill[value: false, count: 'n'];   # 'n' falses
+let mut $scores := std::list.fill(value: 0, count: 10);              # ten 0s
+let $flags: std::list[bool] = std::list.fill(value: false, count: $n);   # 'n' falses
 ```
 
 The value, then the count, as `simd.fill[7]` fills every lane. A count

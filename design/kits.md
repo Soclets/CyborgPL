@@ -47,11 +47,11 @@ bare".
 other kits, own stays bare."): its functions, types, enums and enum values, std's included.
 
 ```
-std::print.useful[greet::hello[], newln];
-let mut 'xs': std::list[i64] = [];
-std::list.append[lend.mut 'xs', value: 3];
-let 'b': greet::Note = greet::Note[text = "hi"];
-let 'up' := std::str.upper.full[lend 's', lang: std::casing.tr];
+std::print.useful(greet::hello(), newln);
+let mut $xs: std::list[i64] = [];
+std::list.append(lend.mut $xs, value: 3);
+let $b: greet::Note = greet::Note[text = "hi"];
+let $up := std::str.upper.full(lend $s, lang: std::casing.tr);
 ```
 
 - **Your own kit's names stay bare** (`helper[]`; `my.helper[]` where needed), and so do the base's: `+`, `plus`,
@@ -101,10 +101,10 @@ modules keep the strict rule — their names appear bare in type positions.
 ## `pub` and `const` (decided 2026-09-19)
 
 ```
-pub fn add ['a': i32, 'b': i32] -> i32 { … }
+pub fn add [$a: i32, $b: i32] -> i32 { … }
 pub struct Locker { … }
-pub const 'max_players' := 8;
-const 'pi': f64 = 3.141_592_653_589_793;      # private to the Kit
+pub const $max_players := 8;
+const $pi: f64 = 3.141_592_653_589_793;      # private to the Kit
 ```
 
 - **`pub`** is a bare word before `fn`, `struct`, or `const` at the top
@@ -179,13 +179,13 @@ and macOS normalises Unicode names differently from Linux.
 ### Reaching in — `::` crosses, `.` narrows, `my.` is the root
 
 ```
-shapes.area[…]                 # from the root: a module's item
-my.helper[…]                   # from inside a module: the root's item
-my.shapes.circle.area[…]       # from inside any module: an absolute path
-circle.area[…]                 # from inside `shapes`: its own child
-geometry::shapes.circle.area[…]   # from another Kit
-'r': shapes.circle.Circle      # a struct through modules
-shapes.circle.'pi'             # a const through modules
+shapes.area(…)                 # from the root: a module's item
+my.helper(…)                   # from inside a module: the root's item
+my.shapes.circle.area(…)       # from inside any module: an absolute path
+circle.area(…)                 # from inside `shapes`: its own child
+geometry::shapes.circle.area(…)   # from another Kit
+$r: shapes.circle.Circle      # a struct through modules
+shapes.circle.$pi             # a const through modules
 ```
 
 - A bare name is **this module's**. A dotted path is **relative to this
@@ -232,7 +232,7 @@ refusal: nothing to disambiguate, for the reader or for the prover.
 
 ```
 # geometry/shapes/circle.cy
-pub.kit fn area ['r': f64] -> f64 { … }
+pub.kit fn area [$r: f64] -> f64 { … }
 pub.kit struct Circle { r: f64 }
 
 # geometry/kit.cy

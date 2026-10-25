@@ -18,15 +18,15 @@ comptime and Rust's monomorphisation do the same.
 ## Spelling (revised 2026-10-02)
 
 ```
-fn max <T: Number> ['a': <T>, 'b': <T>] -> <T> { … }           # announced after the name, with what it accepts
-fn first <T: any> [lent 'xs': std::list[<T>]] -> <T> or fail[empty] { … }
-fn pick <T: any> [@x] [lent @x 'xs': std::list[<T>]] -> lent @x <T> { … }   # then the lifetime groups, after a `|`
+fn max <T: Number> [$a: <T>, $b: <T>] -> <T> { … }           # announced after the name, with what it accepts
+fn first <T: any> [lent $xs: std::list[<T>]] -> <T> or fail[empty] { … }
+fn pick <T: any> [@x] [lent @x $xs: std::list[<T>]] -> lent @x <T> { … }   # then the lifetime groups, after a `|`
 
 struct Pair <A: any, B: any> { left: <A>, right: <B> }         # blanks in the order announced
 enum Maybe <T: any> { none, some: <T> }
 
-let 'p': Pair[i32, str.utf8] = Pair[left = 7, right = "seven"];   # filled at the use
-let 'm' := Maybe.some[42];                                          # filled from the value
+let $p: Pair[i32, str.utf8] = Pair[left = 7, right = "seven"];   # filled at the use
+let $m := Maybe.some[42];                                          # filled from the value
 ```
 
 - **`<T>` is a type variable — a blank**, and every mention wears its
@@ -80,7 +80,7 @@ a plain `T` they do nothing (`interfaces.md`).
 ## A generic `op` (owner, 2026-09-29)
 
 ```
-op ~= <T>: Number ['a': <T>, 'b': <T>] -> bool { … }   # once, for any type keeping Number's promises
+op ~= <T>: Number [$a: <T>, $b: <T>] -> bool { … }   # once, for any type keeping Number's promises
 ```
 
 An operator may be generic, with the rules of a generic `fn`: announced

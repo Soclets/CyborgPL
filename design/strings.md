@@ -58,7 +58,7 @@ Decided when building: no source text is carried at run time.
 ## `std::print.useful.auto_newline` — the line ended for you (owner, 2026-09-30)
 
 ```
-std::print.useful.auto_newln["Hello, World!"];
+std::print.useful.auto_newln("Hello, World!");
 ```
 
 `print.useful` with a newline after the values, the same as writing `\n`
@@ -72,8 +72,8 @@ form is decided: `print` and `print.format` have no `auto_newline`.
 ## `std::print.weird` — C++'s `cout <<`, with arrows (owner, 2026-10-01)
 
 ```
-std::print.weird.useful <- "tenth is " <- 'tenth' <- ", n is " <- 'n' <- newln;
-std::print.weird.stored <- "stored: " <- 'tenth' <- newln;
+std::print.weird.useful <- "tenth is " <- $tenth <- ", n is " <- $n <- newln;
+std::print.weird.stored <- "stored: " <- $tenth <- newln;
 ```
 
 A print in the shape of C++'s `std::cout << …` (owner: "`std::print.weird`
@@ -95,10 +95,10 @@ print_weird_brackets, print_weird_order.
 ## `std::print.format` — the formatting print, with `{}` holes (2026-09-22; holes since 2026-10-01)
 
 ```
-std::print.format["{}: {} at ${:.2}, 50% off\n", 'name', 'count', 'price'];
-std::print.format["0x{:x} 0b{:08b} [{:>6}] [{:+}]\n", 255, 10, 42, 5];
-std::print.format["{2} vs {1}, and {2} wins\n", "a", "b"];
-std::print.format.stderr["error: {}\n", 'msg'];
+std::print.format("{}: {} at ${:.2}, 50% off\n", $name, $count, $price);
+std::print.format("0x{:x} 0b{:08b} [{:>6}] [{:+}]\n", 255, 10, 42, 5);
+std::print.format("{2} vs {1}, and {2} wins\n", "a", "b");
+std::print.format.stderr("error: {}\n", $msg);
 ```
 
 The third print, beside `print.stored` (stored form) and `print.useful` (useful
@@ -147,10 +147,10 @@ reject tests `print_format_*`.
 ## A length bound names its unit (decided 2026-09-22)
 
 ```
-let 'name': str.utf8[min: 1, max: 40 graphemes] = std::input.line[] otherwise "";
-fn greet [lent 'who': str.utf8[min: 1, max: 10 graphemes]] { … }
-let 'field': str.utf8[min: 0, max: 255 bytes] = …;
-let 'code': str.utf8[min: 4, max: 4 points] = …;
+let $name: str.utf8[min: 1, max: 40 graphemes] = std::input.line() otherwise "";
+fn greet [lent $who: str.utf8[min: 1, max: 10 graphemes]] { … }
+let $field: str.utf8[min: 0, max: 255 bytes] = …;
+let $code: str.utf8[min: 4, max: 4 points] = …;
 ```
 
 The thing, then its bounds, as `i32[min: 0, max: 100]` and `list[T][lo, hi]` —
@@ -171,9 +171,9 @@ bytes, 5 points, 1 grapheme. The language has the three units already
 `str.length` — the thing that makes other languages cut emoji in half:
 
 ```
-std::str.bytes[lend 's']        # what the OS and C see; O(1)
-std::str.points[lend 's']       # Unicode scalar values
-std::str.graphemes[lend 's']    # what a person counts as one character; O(n)
+std::str.bytes(lend $s)        # what the OS and C see; O(1)
+std::str.points(lend $s)       # Unicode scalar values
+std::str.graphemes(lend $s)    # what a person counts as one character; O(n)
 ```
 
 `str.length` is a compile error naming the three.
@@ -181,9 +181,9 @@ std::str.graphemes[lend 's']    # what a person counts as one character; O(n)
 ## Walking says the unit too
 
 ```
-for 'g' in std::str.each.grapheme[lend 's'] { … }     # 'g': char.grapheme
-for 'p' in std::str.each.point[lend 's'] { … }        # 'p': char.point
-for 'b' in std::str.each.byte[lend 's'] { … }         # 'b': u8
+for $g in std::str.each.grapheme(lend $s) { … }     # 'g': char.grapheme
+for $p in std::str.each.point(lend $s) { … }        # 'p': char.point
+for $b in std::str.each.byte(lend $s) { … }         # 'b': u8
 ```
 
 A bare `for 'c' in lend 's'` is an error: a text is not a list of anything
@@ -206,17 +206,17 @@ to walk them. Everything else is ordinary library code, and case tables
 change with every Unicode release, so they belong in something updatable:
 
 ```
-std::str.split[lend 's', at: " "]          -> std::list[str.utf8]
-std::str.join[lend 'parts', between: "_"]
-std::str.contains / starts_with / ends_with[lend 's', "x"]   -> bool
-std::str.trim[lend 's']
-std::str.upper.ascii / .simple / .full[lend 's']          (and std::str.lower.…; `.full[…, lang: std::casing.tr]`)
-std::str.replace[lend 's', from: "a", to: "b"]
-std::str.find.grapheme[lend 's', part: "x"]  -> i32 or fail[missing]   (1-based grapheme position)
-std::str.at.<unit>[lend 's', pos: 3]        -> that unit, or fail[out_of_range]
-std::str.slice.grapheme[lend 's', from: pos 1, to: pos 5] -> str, or fail[out_of_range]
-std::str.slice.point[lend 's', from: pos 1, before: pos 5]  -> str, or fail[out_of_range]
-std::str.slice.byte[lend 's', from: pos 1, to: pos 5]     -> std::list[u8], or fail[out_of_range]
+std::str.split(lend $s, at: " ")          -> std::list[str.utf8]
+std::str.join(lend $parts, between: "_")
+std::str.contains / starts_with / ends_with(lend $s, "x")   -> bool
+std::str.trim(lend $s)
+std::str.upper.ascii / .simple / .full(lend $s)          (and std::str.lower.…; `.full(…, lang: std::casing.tr)`)
+std::str.replace(lend $s, from: "a", to: "b")
+std::str.find.grapheme(lend $s, part: "x")  -> i32 or fail[missing]   (1-based grapheme position)
+std::str.at.<unit>(lend $s, pos: 3)        -> that unit, or fail[out_of_range]
+std::str.slice.grapheme(lend $s, from: pos 1, to: pos 5) -> str, or fail[out_of_range]
+std::str.slice.point(lend $s, from: pos 1, before: pos 5)  -> str, or fail[out_of_range]
+std::str.slice.byte(lend $s, from: pos 1, to: pos 5)     -> std::list[u8], or fail[out_of_range]
 ```
 
 **A case change says its mapping** (owner, 2026-10-20): `str.upper.ascii` changes a to z only (`café` → `CAFé`),

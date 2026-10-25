@@ -273,7 +273,7 @@ Chosen **when compiling**, with `else` for the rest:
 ```
 on.target.chip aarch64 { no_check inline.ASM { neg x0, x0 } with [ … ]; }
 else on.target.chip x86_64 { no_check inline.ASM { neg rax } with [ … ]; }
-else { let 'y' := -'x'; }
+else { let $y := -$x; }
 on.target.os macos 15 { … }          # a minimum: refuses to start on older
 on.target aarch64-macos { … }        # one exact target
 ```

@@ -9,12 +9,12 @@ types are for when it does not, or when the algorithm is a vector
 algorithm.
 
 ```
-fn is_ascii [lent 'bytes': array[u8]] -> bool {
-    let mut 'acc' := simd.fill[value: 0];                          # simd[u8, count 16]
-    for 'i' [from: 1, to: array.length[lend 'bytes'], by: 16] {
-        change 'acc' = 'acc' or.bit simd.load[lend 'bytes', pos: 'i'];
+fn is_ascii [lent $bytes: array[u8]] -> bool {
+    let mut $acc := simd.fill(value: 0);                          # simd[u8, count 16]
+    for $i [from: 1, to: array.length(lend $bytes), by: 16] {
+        change $acc = $acc or.bit simd.load(lend $bytes, pos: $i);
     }
-    return simd.max['acc'] < 128;
+    return simd.max($acc) < 128;
 }
 ```
 
@@ -105,9 +105,9 @@ against a vector (`'v' plus 1`), and `simd.sum` is a check site while
 ## A mask is a type: `simd[bool, N]` (owner, 2026-09-27: a)
 
 ```
-fn all_on ['m': simd[bool, count: 4]] -> bool { return simd.all['m']; }
-let 'm': simd[bool, count: 4] = 'a' > simd.fill[value: 10];
-let 'flip' := not 'm';
+fn all_on [$m: simd[bool, count: 4]] -> bool { return simd.all($m); }
+let $m: simd[bool, count: 4] = $a > simd.fill(value: 10);
+let $flip := not $m;
 ```
 
 A vector comparison's result can be written as a type, so a function can
@@ -120,8 +120,8 @@ on the spot. `examples/simd_mask.cy`.
 ## The leftover end: `simd.load.some` / `simd.store.some` (owner, 2026-09-27: a)
 
 ```
-let 'v': simd[i32, count: 4] = simd.load.some[lend 'xs', pos: 9, count: 2];   # 2 items; lanes 3–4 are zero
-simd.store.some[lend.mut 'xs', pos: 9, count: 2, value: 'v'];               # writes lanes 1–2 only
+let $v: simd[i32, count: 4] = simd.load.some(lend $xs, pos: 9, count: 2);   # 2 items; lanes 3–4 are zero
+simd.store.some(lend.mut $xs, pos: 9, count: 2, value: $v);               # writes lanes 1–2 only
 ```
 
 Every vector loop over a list whose length is not a multiple of N has a
@@ -138,7 +138,7 @@ went through with a. `examples/simd_tail.cy`.
 
 ```
 struct Particle { place: simd[f32, count: 4], vel: simd[f32, count: 4] }
-let 'history': std::list[simd[f32, count: 4]] = [];
+let $history: std::list[simd[f32, count: 4]] = [];
 ```
 
 Struct fields, list elements, parameters and returns. It is a plain,
@@ -151,9 +151,9 @@ local only, with plain numbers stored and reloaded each time.
 ## Rearranging lanes: `simd.shuffle` (owner, 2026-09-27: a)
 
 ```
-let 'r' := simd.shuffle['v', [4, 3, 2, 1]];      # reversed
-let 'p' := simd.shuffle['v', [2, 1, 4, 3]];      # neighbours swapped
-let 'b' := simd.shuffle['v', [1, 1, 1, 1]];      # lane 1 everywhere
+let $r := simd.shuffle($v, [4, 3, 2, 1]);      # reversed
+let $p := simd.shuffle($v, [2, 1, 4, 3]);      # neighbours swapped
+let $b := simd.shuffle($v, [1, 1, 1, 1]);      # lane 1 everywhere
 ```
 
 One operation for every rearrangement: the vector, then its new order as

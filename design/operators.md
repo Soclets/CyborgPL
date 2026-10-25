@@ -129,9 +129,9 @@ how wide the number is. **Any operand whose type it can work out is
 enough** — it does not have to be a declared name:
 
 ```
-let 'v': u32 = 3;
-let 'a': u32 = 2 shl 3;              # 16 — the literal takes the u32 of its context
-let 'b': u32 = ('v' mod.floor 16) shl 2;   # 12 — the expression is plainly a u32
+let $v: u32 = 3;
+let $a: u32 = 2 shl 3;              # 16 — the literal takes the u32 of its context
+let $b: u32 = ($v mod.floor 16) shl 2;   # 12 — the expression is plainly a u32
 ```
 
 Same for `not.bit` and the wrapping operators. A literal takes its
@@ -177,10 +177,10 @@ it.
 ## Plain math is exact; it is checked where it lands (owner, 2026-09-23)
 
 ```
-let 'small': i16 = 5;
-let 'big': i64 = (20000 plus 20000) plus 'small';   # 40005: fits i64, fine
-let 'tiny': i8 = (100 plus 100) minus 150;           # 50: the 200 in between is fine
-let 'bad': i8 = 100 plus 100;                    # 200 does not fit i8: error
+let $small: i16 = 5;
+let $big: i64 = (20000 plus 20000) plus $small;   # 40005: fits i64, fine
+let $tiny: i8 = (100 plus 100) minus 150;           # 50: the 200 in between is fine
+let $bad: i8 = 100 plus 100;                    # 200 does not fit i8: error
 ```
 
 `plus minus times` (and std's `pow`) on integers give the true answer, and so does every `div.X`
@@ -246,8 +246,8 @@ them.
 ## `f16` / `f32` math rounds after every step (owner, 2026-09-24: a)
 
 ```
-let 'x': f32 = 16777216.0;
-let 'y': f32 = 'x' plus 1.0 plus 1.0;      # 16777216: each plus rounds back at f32
+let $x: f32 = 16777216.0;
+let $y: f32 = $x plus 1.0 plus 1.0;      # 16777216: each plus rounds back at f32
 ```
 
 Each operation on `f16` or `f32` values gives the IEEE result at their
@@ -264,9 +264,9 @@ alternative: 64-bit intermediates rounded once where stored.
 ## `and` / `or` always work out both sides (owner, 2026-09-25: b)
 
 ```
-let 'ok' := check_name['f'] and check_age['f'];     # both run, left then right
-if 'i' at_most std::list.length[lend 'xs'] {             # a check that protects the next
-    if 'xs'['i'] equal_to 5 { … }                 # step is written as two `if`s
+let $ok := check_name($f) and check_age($f);     # both run, left then right
+if $i at_most std::list.length(lend $xs) {             # a check that protects the next
+    if $xs[pos: $i] equal_to 5 { … }              # step is written as two `if`s
 }
 ```
 
@@ -285,8 +285,8 @@ run both and refuse such lines at compile time.
 day), for when the second half should depend on the first:
 
 ```
-if 'i' at_most std::list.length[lend 'xs'] and.then 'xs'['i'] equal_to 5 { … }
-if 'n' equal_to 0 or.else 100 div.floor 'n' < 2 { … }
+if $i at_most std::list.length(lend $xs) and.then $xs[pos: $i] equal_to 5 { … }
+if $n equal_to 0 or.else 100 div.floor $n < 2 { … }
 ```
 
 A variant of `and`/`or` by the dot rule, like `and.bit`. It reads as the
@@ -333,13 +333,13 @@ every one of these symbols spelled its word, and good practice was the words. `e
 
 ```
 struct Vec { x: f64, y: f64 }
-op <+> ['a': Vec, 'b': Vec] -> Vec { return Vec[x = 'a'.x plus 'b'.x, y = 'a'.y plus 'b'.y]; }
-op dot ['a': Vec, 'b': Vec] -> f64 { return 'a'.x times 'b'.x plus 'a'.y times 'b'.y; }
-op **  [give 'a': Vec, 'b': f64] -> Vec { … return give 'a'; }
+op <+> [$a: Vec, $b: Vec] -> Vec { return Vec[x = $a.x plus $b.x, y = $a.y plus $b.y]; }
+op dot [$a: Vec, $b: Vec] -> f64 { return $a.x times $b.x plus $a.y times $b.y; }
+op **  [give $a: Vec, $b: f64] -> Vec { … return give $a; }
 
-let 'w' := 'u' <+> 'v';                 # 'u' and 'v' both still yours
-let 'd' := ('u' <+> 'v') dot 'v';       # parenthesise when operators meet
-let 's' := give 'u' ** 10;              # this op takes 'a' by value; the caller says so
+let $w := $u <+> $v;                 # 'u' and 'v' both still yours
+let $d := ($u <+> $v) dot $v;       # parenthesise when operators meet
+let $s := give $u ** 10;              # this op takes 'a' by value; the caller says so
 ```
 
 Four questions, one at a time:

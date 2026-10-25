@@ -25,9 +25,9 @@ The layers, then:
 
 ```
 struct Node {
-    'value': i32;
-    'left': manual[Node];
-    'right': manual[Node];
+    $value: i32;
+    $left: manual[Node];
+    $right: manual[Node];
 }
 ```
 

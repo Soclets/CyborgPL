@@ -15,9 +15,9 @@ that can be compared," and a type needs a way to *be* comparable.
 ## 1. A type may define the language's operators for itself (owner: yes)
 
 ```
-op < ['a': Vec, 'b': Vec] -> bool { … }
-op equal_to ['a': Vec, 'b': Vec] -> bool { … }
-op plus ['a': Vec, 'b': Vec] -> Vec { … }
+op < [$a: Vec, $b: Vec] -> bool { … }
+op equal_to [$a: Vec, $b: Vec] -> bool { … }
+op plus [$a: Vec, $b: Vec] -> Vec { … }
 ```
 
 Revises 2026-09-19's "the language's operators cannot be redefined": they
@@ -31,11 +31,11 @@ language's.
 
 ```
 interface Ordered <T> {
-    op < ['a': <T>, 'b': <T>] -> bool;
-    op equal_to ['a': <T>, 'b': <T>] -> bool;
+    op < [$a: <T>, $b: <T>] -> bool;
+    op equal_to [$a: <T>, $b: <T>] -> bool;
 }
 interface Printable <T> {
-    fn show [lent 'x': <T>] -> str.utf8;
+    fn show [lent $x: <T>] -> str.utf8;
 }
 interface Number {
     i32
@@ -73,9 +73,9 @@ noun-named interfaces; `satisfies` reads right for any name).
 ## 4. Asking — `<T>: Ordered`
 
 ```
-fn max <T: Ordered> ['a': <T>, 'b': <T>] -> <T> {
-    if 'b' < 'a' { return give 'a'; }
-    return give 'b';
+fn max <T: Ordered> [$a: <T>, $b: <T>] -> <T> {
+    if $b < $a { return give $a; }
+    return give $b;
 }
 ```
 

@@ -109,10 +109,10 @@ word in front of a statement, covering every check site inside it. A `{ }`
 block is a statement, so a region is `check { … }` with no second rule.
 
 ```
-check change 'xs'['i'] = 'total' plus 'score';     # prove: index in range, add fits
-no_check change 'hash' = 'hash' times 31 plus 'c';          # I want the wrap; on my word
-check { for 'i' [from: 1, to: 'n', by: 1] { … } }     # every site in the region
-check if 'x' > 0 { … }                       # an if or a loop is a statement too
+check change $xs[$i] = $total plus $score;     # prove: index in range, add fits
+no_check change $hash = $hash times 31 plus $c;          # I want the wrap; on my word
+check { for $i [from: 1, to: $n, by: 1] { … } }     # every site in the region
+check if $x > 0 { … }                       # an if or a loop is a statement too
 ```
 
 - Innermost word wins when they nest. **No alias** for `no_check` (owner,
@@ -199,8 +199,8 @@ check if 'x' > 0 { … }                       # an if or a loop is a statement 
   to confirm the `if` is enough:
 
   ```
-  if 'x' > 65_504 { deny[]; } else {
-      check 'y': f16 = 'x';     # proven from the branch: check removed
+  if $x > 65_504 { deny(); } else {
+      check $y: f16 = $x;     # proven from the branch: check removed
   }
   ```
   Without the `if`, the same line is a compile error: *"'x' does not fit

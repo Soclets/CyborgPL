@@ -20,14 +20,14 @@ and may carry a payload of any type. The reasons are listed **inline, in the
 function's own signature** (owner: option 1, over a named reusable type):
 
 ```
-fn stash [lent.mut 'l': Locker, 'item': str.utf8] -> bool or fail[full, bad_item: str.utf8] {
-    if free_slots[lend 'l'] equal_to 0 { fail full; }
-    if 'item' equal_to "" { fail bad_item[copy 'item']; }
-    std::list.append[lend.mut 'l'.items, value: give 'item'];
+fn stash [lent.mut $l: Locker, $item: str.utf8] -> bool or fail[full, bad_item: str.utf8] {
+    if free_slots(lend $l) equal_to 0 { fail full; }
+    if $item equal_to "" { fail bad_item[copy $item]; }
+    std::list.append(lend.mut $l.items, value: give $item);
     return true;
 }
 
-fn save [lent 'l': Locker] -> fail[disk_full, no_permission] { … }   # nothing on success, or a failure
+fn save [lent $l: Locker] -> fail[disk_full, no_permission] { … }   # nothing on success, or a failure
 ```
 
 - `-> T or fail[…]`: "returns a T, or fails one of these ways."
@@ -52,14 +52,14 @@ call buried in a larger expression is an error — declare it on its own
 line first (`let 'v' := f[…] otherwise 0;`).
 
 ```
-let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise false;          # a fallback value
-let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise return false;   # leave, whatever the reason
-let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise fail;           # pass it up unchanged
-let 'ok' := stash[lend.mut 'mine', copy 'n'] otherwise {               # one arm per reason
+let $ok := stash(lend.mut $mine, copy $n) otherwise false;          # a fallback value
+let $ok := stash(lend.mut $mine, copy $n) otherwise return false;   # leave, whatever the reason
+let $ok := stash(lend.mut $mine, copy $n) otherwise fail;           # pass it up unchanged
+let $ok := stash(lend.mut $mine, copy $n) otherwise {               # one arm per reason
     full           { break; }
-    bad_item 'why' { std::print.stored["bad: ", 'why', newln]; continue; }
+    bad_item $why { std::print.stored("bad: ", $why, newln); continue; }
 };
-save[lend 'mine'] otherwise { disk_full { std::print.stored["not saved", newln]; } };
+save(lend $mine) otherwise { disk_full { std::print.stored("not saved", newln); } };
 ```
 
 - **A value** — used instead. **A leaving statement** (`return …`, `fail …`,

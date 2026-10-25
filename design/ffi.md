@@ -16,15 +16,15 @@ enforced; the oracle cannot link C, so it emulates `write`, `exit`,
 ## `extern.C` — a function whose body is somewhere else
 
 ```
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
-extern.C fn exit ['code': i32];
-extern.C fn printf ['fmt': ptr[u8], ...'args'] -> i32;      # C's own varargs
+extern.C fn write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
+extern.C fn exit [$code: i32];
+extern.C fn printf [$fmt: ptr[u8], ...$args] -> i32;      # C's own varargs
 
 extern.C {                                  # a library's worth at once
-    fn malloc ['bytes': u64] -> ptr.mut[u8];
-    fn free ['p': ptr.mut[u8]];
-    'lib_version': i32;
-    mut 'lib_verbose': i32;
+    fn malloc [$bytes: u64] -> ptr.mut[u8];
+    fn free [$p: ptr.mut[u8]];
+    $lib_version: i32;
+    mut $lib_verbose: i32;
 }
 ```
 
@@ -68,10 +68,10 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
   written through**:
 
   ```
-  no_check let 'c' := ptr.read['p'];       # the T at 'p'
-  no_check ptr.write['p', value: 65];               # needs ptr.mut
-  no_check let 'q' := ptr.at['p', by: 3];      # 3 elements further — in T units, never bytes
-  if ptr.is_null['f'] { fail not_found; }   # C's null; reading it would crash
+  no_check let $c := ptr.read($p);       # the T at 'p'
+  no_check ptr.write($p, value: 65);               # needs ptr.mut
+  no_check let $q := ptr.at($p, by: 3);      # 3 elements further — in T units, never bytes
+  if ptr.is_null($f) { fail not_found; }   # C's null; reading it would crash
   ```
   All `no_check` sites. No pointer↔integer conversion; a pointer comes
   only from a lend, from C, or as `ptr.null`.
@@ -102,13 +102,13 @@ all** (owner, 2026-10-02: "allow mixing, but block overrides"): in a plain
 ## Callbacks — a Cyborg function C calls (decided 2026-09-21)
 
 ```
-extern.C fn qsort ['base': ptr.mut[i32], 'n': u64, 'size': u64,
-                 'cmp': fn[ptr[i32], ptr[i32]] -> i32];
+extern.C fn qsort [$base: ptr.mut[i32], $n: u64, $size: u64,
+                 $cmp: fn[ptr[i32], ptr[i32]] -> i32];
 
-fn ascending ['a': ptr[i32], 'b': ptr[i32]] -> i32 {
-    no_check return ptr.read['a'] minus ptr.read['b'];
+fn ascending [$a: ptr[i32], $b: ptr[i32]] -> i32 {
+    no_check return ptr.read($a) minus ptr.read($b);
 }
-no_check qsort[lend.mut 'nums', 5, size.of[i32], ascending];
+no_check qsort(lend.mut $nums, 5, size.of[i32], ascending);
 ```
 
 - **Only capture-free functions cross** (owner: a, over smuggling captures
@@ -129,8 +129,8 @@ no_check qsort[lend.mut 'nums', 5, size.of[i32], ascending];
 ## A ranged return — C's contract, checked at the door (decided 2026-09-22)
 
 ```
-extern.C fn strlen ['s': ptr[u8]] -> u64[min: 0, max: 1_000_000];
-no_check let 'n' := strlen[lend 's'] otherwise fail too_long;    # can fail out_of_range
+extern.C fn strlen [$s: ptr[u8]] -> u64[min: 0, max: 1_000_000];
+no_check let $n := strlen(lend $s) otherwise fail too_long;    # can fail out_of_range
 ```
 
 An extern's return may be a range type. It is a promise about C that
@@ -170,7 +170,7 @@ type is the request to check. To skip the check, write the plain type
 (`i32`), and convert when you want the enum:
 
 ```
-let 'k' := to.Key['code'] otherwise { out_of_range { return; } };
+let $k := to.Key($code) otherwise { out_of_range { return; } };
 ```
 
 `no_check` does not remove these. It turns off *check sites*, the bugs
@@ -207,7 +207,7 @@ refusing it, with plain fields checked by hand. A range on an `extern.C fn`
 
 ```
 layout.C enum Key { a = 65, b = 66, escape = 256 }
-extern.C fn IsKeyDown ['key': Key] -> bool;
+extern.C fn IsKeyDown [$key: Key] -> bool;
 ```
 
 A C enum is a number with names, and here it is a Cyborg enum laid out
@@ -227,11 +227,11 @@ design claude's recommendation with a, not asked separately.
 ## `extern.C 'x': T` — a C global (decided 2026-09-21; `let` dropped 2026-09-25)
 
 ```
-extern.C 'lib_version': i32;        # C: extern int lib_version;   read-only
-extern.C mut 'lib_verbose': i32;    # C: extern int lib_verbose;   may be written
+extern.C $lib_version: i32;        # C: extern int lib_version;   read-only
+extern.C mut $lib_verbose: i32;    # C: extern int lib_verbose;   may be written
 
-no_check let 'v' := 'lib_version';       # reading C's variable is a no_check site
-no_check change 'lib_verbose' = 1;              # so is writing one
+no_check let $v := $lib_version;       # reading C's variable is a no_check site
+no_check change $lib_verbose = 1;              # so is writing one
 ```
 
 A C library's variables, named the way `extern.C fn` names its functions.
@@ -296,7 +296,7 @@ refused.
 no_check inline.ASM {
     mov x16, #4
     svc 0
-} with ['fd' -> x0, 'buf' -> x1, 'len' -> x2, 'n' <- x0, clobber x16];
+} with [$fd -> x0, $buf -> x1, $len -> x2, $n <- x0, clobber x16];
 ```
 
 - **`inline.<LANGUAGE>`** — owner's shape, over bare `asm`: a family, with
@@ -339,10 +339,10 @@ A C string is bytes ending in a 0 byte; a `str.utf8` knows its own length. Two w
 `C.int` (owner: "Isn't it `str`?"):
 
 ```
-extern.C fn puts ['s': ptr[u8]] -> i32;
-let 'name' := C.str.read['p'] otherwise { not_utf8 { … } };              # a char* to its 0 byte → str.utf8
-let 'cs' := C.str.make[lend 'name'] otherwise { has_zero_byte { … } };   # str.utf8 → a C string
-puts[lend 'cs'];
+extern.C fn puts [$s: ptr[u8]] -> i32;
+let $name := C.str.read($p) otherwise { not_utf8 { … } };              # a char* to its 0 byte → str.utf8
+let $cs := C.str.make(lend $name) otherwise { has_zero_byte { … } };   # str.utf8 → a C string
+puts(lend $cs);
 ```
 
 - `C.str.read` fails `not_utf8` when the bytes are not UTF-8.
@@ -377,10 +377,10 @@ Both forms (owner: "What about both?"):
 
 ```
 incl.C.system["stdio.h"];                                        # printf comes with C's `...`
-no_check printf[lend 'fmt', 5, lend 'name'];                     # the open form: any extras, on your word
+no_check printf(lend $fmt, 5, lend $name);                     # the open form: any extras, on your word
 
-extern.C fn printf_count = C.printf ['format': ptr[u8], ...'n': i32] -> i32;
-no_check printf_count[lend 'fmt', 5];                            # a fixed shape: its extras' types checked
+extern.C fn printf_count = C.printf [$format: ptr[u8], ...$n: i32] -> i32;
+no_check printf_count(lend $fmt, 5);                            # a fixed shape: its extras' types checked
 ```
 
 - The open form is `...'args'` (owner, 2026-10-19: "(a)", as decided before), any extras, each call a `no_check` site.
@@ -395,11 +395,11 @@ no_check printf_count[lend 'fmt', 5];                            # a fixed shape
 
 ```
 layout.C union Number { i: i32, f: f32 }        # one of them at a time; C knows which
-no_check let 'x' := 'n'.i;                          # reading a field: on your word, listed in the build report
-change 'n'.f = 1.5;                                 # writing: always safe
+no_check let $x := $n.i;                          # reading a field: on your word, listed in the build report
+change $n.f = 1.5;                                 # writing: always safe
 
 layout.C struct Status { mode: u8[bits: 3], ready: bool[bits: 1], level: u8[bits: 4] }
-change 's'.mode = 5;                                # checked to fit: 3 bits hold 0 to 7
+change $s.mode = 5;                                # checked to fit: 3 bits hold 0 to 7
 ```
 
 - A union's read is a `no_check` site (owner: a); a write needs nothing.

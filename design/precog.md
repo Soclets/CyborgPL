@@ -308,10 +308,10 @@ from the same independence proof.
 Per check site, in source order:
 
 ```
-line 7   'total' plus square['i']   overflow           proven    (layer 2: max 333833500)
-line 12  'xs'['k']           out of bounds      checked   (layer 3: sat, k=100 when len=100)
-line 15  'a' div.floor 'b'       division by zero   trusted   (no_check)
-line 9   square: 'x' times 'x'       overflow           proven    (layer 2, at: 1 call site)
+line 7   $total plus square($i)   overflow           proven    (layer 2: max 333833500)
+line 12  $xs[$k]           out of bounds      checked   (layer 3: sat, k=100 when len=100)
+line 15  $a div.floor $b       division by zero   trusted   (no_check)
+line 9   square: $x times $x       overflow           proven    (layer 2, at: 1 call site)
 ```
 
 Three lists in the build output: `no_check` sites, `check` sites passed,
@@ -332,8 +332,8 @@ targets = [
     cyjet::target[name = "aarch64-none", table_bytes = 4_096],      # a small board: small tables
 ]
 
-table_bytes 1_024 fn square ['x': u8] -> u16 { … }    # this function's own limit
-table_bytes 0 fn fib ['n': i64[min: 0, max: 92]] -> i64 { … }   # never a table
+table_bytes 1_024 fn square [$x: u8] -> u16 { … }    # this function's own limit
+table_bytes 0 fn fib [$n: i64[min: 0, max: 92]] -> i64 { … }   # never a table
 ```
 
 - Per target in `CyJet.cyr`, in bytes; **65,536** when not written (design claude's number: about the fast cache

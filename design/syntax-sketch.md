@@ -18,30 +18,30 @@ struct Locker {
     occupied: bool
 }
 
-fn count [lent 'text': str.utf8] -> i32 { … }
+fn count [lent $text: str.utf8] -> i32 { … }
 
 MAIN {
-    let 'mine' := Locker[name = "A", number = 7, occupied = false];
-    let mut 'total': i32 = 0;
-    for 'i' [from: 1, to: 10, by: 1] {
-        if ('i' mod.floor 2) equal_to 0 { change 'total' = 'total' plus 'i'; }
-        else if 'i' equal_to 7 { break; }
+    let $mine := Locker[name = "A", number = 7, occupied = false];
+    let mut $total: i32 = 0;
+    for $i [from: 1, to: 10, by: 1] {
+        if ($i mod.floor 2) equal_to 0 { change $total = $total plus $i; }
+        else if $i equal_to 7 { break; }
         else { continue; }
     }
-    let 's' := "line 1" ++ newln ++ "line 2";
-    std::print.useful["total: ", 'total', newln];
+    let $s := "line 1" concat newln concat "line 2";
+    std::print.useful("total: ", $total, newln);
 }
 ```
 
 ## Declarations (revised 2026-09-19)
 
 ```
-let 'x' := 1000;                 # Precog picks the best type
-let 'x': f16 = 1000;           # explicit type; must be fully explicit
-let mut 'n': i32 = 0;          # mutability, when stated, before the name
-let immut 'limit' := 10;
-let 'r': std::uenr = 1000;        # a Kit-provided type: `::` crosses, `.` narrows
-pub const 'max' := 8;            # a Kit-level value: top level only, see kits.md
+let $x := 1000;                 # Precog picks the best type
+let $x: f16 = 1000;           # explicit type; must be fully explicit
+let mut $n: i32 = 0;          # mutability, when stated, before the name
+let immut $limit := 10;
+let $r: std::uenr = 1000;        # a Kit-provided type: `::` crosses, `.` narrows
+pub const $max := 8;            # a Kit-level value: top level only, see kits.md
 ```
 
 - **`let` declares, `change` changes** (owner, 2026-10-02: "Kinda want

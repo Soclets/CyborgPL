@@ -37,7 +37,7 @@ struct Locker {
 ## Making a value — by field name
 
 ```
-let 'mine' := Locker[name = "field kit", number = 7,
+let $mine := Locker[name = "field kit", number = 7,
                  capacity = 12, occupied = false];
 ```
 
@@ -51,8 +51,8 @@ let 'mine' := Locker[name = "field kit", number = 7,
 ## Reading and writing a field
 
 ```
-let 'n' := 'mine'.number;           # read
-change 'mine'.number = 8;                  # write
+let $n := $mine.number;           # read
+change $mine.number = 8;                  # write
 ```
 
 A quoted name followed by `.` is field access — a new shape, unambiguous

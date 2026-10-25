@@ -9,13 +9,13 @@ over cores or a GPU, the programmer writes nothing). Concurrency is
 download beside a keyboard — where the waiting is the point.
 
 ```
-let 'results' := channel[str.utf8];
-let 'a' := "a.com";
-concur with [lend 'results', give 'a'] { channel.send[lend 'results', value: fetch[lend 'a']]; }   # a call's result is fresh: no verb
-concur with [lend 'results'] { channel.send[lend 'results', value: fetch["b.com"]]; }
-for 'i' [from: 1, to: 2, by: 1] {
-    let 'page' := channel.take[lend 'results'] otherwise "";    # waits; whichever finished first
-    std::print.useful[std::str.bytes[lend 'page'], newln];
+let $results: channel[str.utf8] = channel.empty;
+let $a := "a.com";
+concur with [lend $results, give $a] { channel.send(lend $results, value: fetch(lend $a)); }   # a call's result is fresh: no verb
+concur with [lend $results] { channel.send(lend $results, value: fetch("b.com")); }
+for $i [from: 1, to: 2, by: 1] {
+    let $page := channel.take(lend $results) otherwise "";    # waits; whichever finished first
+    std::print.useful(std::str.bytes(lend $page), newln);
 }
 ```
 
@@ -33,7 +33,7 @@ caller).
 
 ```
 concur { … }                       # a block, run alongside
-concur fetch[lend 'url'];          # a call, run alongside
+concur fetch(lend $url);          # a call, run alongside
 ```
 
 A bare word in front of a statement, the family of `check` / `no_check`.
@@ -65,8 +65,8 @@ the goroutine leak).
 ## A task's failure — `otherwise` on the `concur` (owner: a)
 
 ```
-concur with [give 'url'] { let 'p' := fetch['url'] otherwise fail; … }
-    otherwise { no_network { std::print.useful["offline", newln]; } };
+concur with [give $url] { let $p := fetch($url) otherwise fail; … }
+    otherwise { no_network { std::print.useful("offline", newln); } };
 ```
 
 A task that can fail says so where it is written, like every failing
@@ -78,8 +78,8 @@ the block; tasks cannot fail (plumb it through a channel by hand).
 task, the moment it fails** (owner, 2026-09-23):
 
 ```
-fn setup [give 'doc': Document] {
-    concur.detached with [give 'doc'] { save[lend 'doc'] otherwise fail; }
+fn setup [give $doc: Document] {
+    concur.detached with [give $doc] { save(lend $doc) otherwise fail; }
         otherwise { disk_full { … } };        # runs here, in the task, at once
 }
 ```
@@ -96,10 +96,10 @@ while the program carries on.
 ## Channels
 
 ```
-let 'c' := channel[str.utf8];                    # hand-off: send waits for a taker
-let 'q' := channel[str.utf8][max: 100];            # a buffer: send waits only when full
-channel.send[lend 'c', value: give 'line'];             # a value is given, never lent
-let 'v' := channel.take[lend 'c'] otherwise …;   # waits; fails `closed` when no sender is left
+let $c: channel[str.utf8] = channel.empty;                    # hand-off: send waits for a taker
+let $q: channel[str.utf8][max: 100] = channel.empty;            # a buffer: send waits only when full
+channel.send(lend $c, value: give $line);             # a value is given, never lent
+let $v := channel.take(lend $c) otherwise …;   # waits; fails `closed` when no sender is left
 ```
 
 **Capacity by the bound rule** (owner: b): no bound is a hand-off (Go's
@@ -114,8 +114,8 @@ check site too — a deadlock the prover can see.
 
 ```
 whichever {
-    'msg' from lend 'inbox'     { handle[give 'msg']; }
-    'why' from lend 'shutdown'  { return; }
+    $msg from lend $inbox     { handle(give $msg); }
+    $why from lend $shutdown  { return; }
 }
 ```
 
@@ -134,11 +134,11 @@ Time is the outside world, so it is std's, like input:
 
 ```
 std::time.wait(for: 5 secs);
-let 'deadline' := std::time.after[500 millis];     # a channel that sends once
-let 'tick' := std::time.every[1 second];           # a channel that sends every second
+let $deadline := std::time.after(500 millis);     # a channel that sends once
+let $tick := std::time.every(1 sec);           # a channel that sends every second
 whichever {
-    'msg' from lend 'inbox'     { … }
-    'now' from lend 'deadline'  { std::print.useful["timed out", newln]; }
+    $msg from lend $inbox     { … }
+    $now from lend $deadline  { std::print.useful("timed out", newln); }
 }
 ```
 

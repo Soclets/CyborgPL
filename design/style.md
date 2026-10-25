@@ -21,8 +21,8 @@ recommended.
 2. **Narrow an outside value once, where it arrives, with a range type.**
 
    ```
-   let 'text' := std::input.line[] otherwise "";
-   let 'n' := to.i32[min: 1, max: 99]['text'] otherwise 1;
+   let $text := std::input.line() otherwise "";
+   let $n := to.i32[min: 1, max: 99]($text) otherwise 1;
    ```
 
    Everything downstream is then proven, with no guard at each use
