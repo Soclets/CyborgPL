@@ -1924,6 +1924,12 @@ impl<'p> Interp<'p> {
                 match fs.as_slice() { [f] => f.ret.clone().filter(|t| { let mut v = Vec::new(); t.vars_into(&mut v); v.is_empty() }), _ => None }
             }
             Expr::Var(name, _) => self.lookup(name).and_then(|s| s.ty.clone()),
+            // a struct's field has the type its struct declares (check claude, 2026-10-25: an f32 field printed as an f64)
+            Expr::Field(name, field, _) => {
+                let v = self.lookup(name).map(|s| s.cell.borrow().clone())?;
+                let Value::Struct(sname, _) = v else { return None };
+                self.prog.structs.iter().find(|d| d.name == sname)?.fields.iter().find(|f| &f.name == field).map(|f| f.ty.clone())
+            }
             Expr::Paren(inner, _) => self.expr_ty_own(inner),
             Expr::Convert(t, _, _, _, _) => Some(t.clone()),
             Expr::PtrCast(t, b, _) => {
