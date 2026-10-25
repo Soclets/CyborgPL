@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — In a format hole the value number comes first, then the shapes in any order (owner)
+
+Design claude first recommended one fixed order, strongest first; the owner: "I mean, this isn't about narrowings.
+So, you could look at the other ones like `pos:`". By the label rule (2026-10-14), arguments without a label come
+first, in place, and a `pub` function says `labels.in_order` or `labels.any_order`. The owner: "by the ruke", then
+"Does order really matter here?" (no: each shape means the same wherever it sits), then "yea". So **`{2, width: 8
+cols, places: 2}`: the value number first, the shapes after it in any order**, `zeros` and `sign` among them.
+`print.format` is `labels.any_order`.
+
 ### 2026-10-25 — `print.format` shapes are words: a label where there is a choice, a bare word where there is none (owner)
 
 Following the entry below. Shown `{left, width: 10}`, the owner: "Why doesn't `left` have `:`?" Design claude cited
