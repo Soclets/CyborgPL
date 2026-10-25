@@ -165,6 +165,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "kayo-metal-bench"
+version = "0.0.1"
+dependencies = [
+ "dispatch2",
+ "objc2",
+ "objc2-foundation",
+ "objc2-metal",
+]
+
+[[package]]
 name = "kayo-runtime"
 version = "0.0.1"
 dependencies = [
@@ -229,6 +239,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a0125f776a10d00af4152d74616409f0d4a2053a6f57fa5b7d6aa2854ac04794"
 dependencies = [
  "bitflags",
+ "block2",
  "dispatch2",
  "objc2",
  "objc2-foundation",
