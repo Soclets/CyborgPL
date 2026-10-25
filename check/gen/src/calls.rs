@@ -60,7 +60,9 @@ fn opens(text: &str, i: usize, last_closed: Option<Open>) -> Open {
     }
     let start = (0..i).rev().take_while(|&k| path_char(b[k])).last().unwrap_or(i);
     let path = &text[start..i];
-    if start > 0 && b[start - 1] == b'$' {
+    // a field of a value, `$b.trip.stops[…]` or `'b'.trip.stops[…]` (deep
+    // paths, oracle ff2c3d1e): a position, or a function value called
+    if (start > 0 && b[start - 1] == b'$') || path.starts_with('.') {
         return if position { Open::Keep } else { Open::Call };
     }
     if path.is_empty() || path.as_bytes()[0].is_ascii_digit() {
@@ -258,6 +260,11 @@ mod tests {
         let s = "fn f ['n': i64] -> i64 { return 'n'; }\nMAIN {\n    let mut 'b': std::list[u8] = [];\n    std::list.append[lend.mut 'b', value: to.u8[48 plus f['n']]];\n    let 'x': i32[min: 0, max: 9] = to.i32[min: 0, max: 9]['t'] otherwise 0;\n    std::print.useful['b'[pos: 1], size.of[L], L[a = 1], to.percent[d64][0.07], newln];\n    fail r['v'];\n}";
         let t = paren_calls(s);
         assert_eq!(t, "fn f ['n': i64] -> i64 { return 'n'; }\nMAIN {\n    let mut 'b': std::list[u8] = [];\n    std::list.append(lend.mut 'b', value: to.u8(48 plus f('n')));\n    let 'x': i32[min: 0, max: 9] = to.i32[min: 0, max: 9]('t') otherwise 0;\n    std::print.useful('b'[pos: 1], size.of[L], L[a = 1], to.percent[d64](0.07), newln);\n    fail r['v'];\n}");
+    }
+
+    #[test]
+    fn deep_paths() {
+        assert_eq!(paren_calls("print['bk'.trip.stops[pos: 2].minutes, $b.trip.stops[pos: 1], f[lend 'a'[pos: 1].x]]"), "print('bk'.trip.stops[pos: 2].minutes, $b.trip.stops[pos: 1], f(lend 'a'[pos: 1].x))");
     }
 
     #[test]

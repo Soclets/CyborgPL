@@ -26,6 +26,11 @@ input and output lists are of a kind, `std::list`, `.page_aligned` or `.not_page
 and narrowed by `to.list.…(give …)` (owner, 2026-10-25; oracle 8054704c). Left out: `<<`
 (CyborgPL checks what it shifts out) and signed overflow in a plain block. `harness/src/metal.rs`.
 
+**Deep paths** (oracle ff2c3d1e): a booking holding a trip holding a list of stops, read through a field of a
+field (`$bk.trip.km`), a field of a list item (`$al[pos: 1].trip.km`) and an item of a field's list
+(`$bk.trip.stops[pos: 3].minutes`); a plain end bare, an owned one by `copy`, a deep list lent to a function.
+The call rewrite keeps a position after a field step (`'bk'.trip.stops[pos: 2]`). `--avoid deep-paths` leaves it out.
+
 **Maps** (owner, 2026-10-25; oracle 2bb7cb0a): a `std::map` keyed by text or by i64, keys set by `copy`, `give`
 or a literal (one perhaps twice, the later winning); `get`, `has` and `remove` with a text key lent, present and
 missing, `remove` handled by a value or by its `missing` arm; an integer key bare everywhere, as it owns nothing.

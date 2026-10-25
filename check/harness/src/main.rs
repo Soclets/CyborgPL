@@ -160,6 +160,8 @@ impl Args {
             list_kinds: !avoid.contains("list-kinds"),
             // `std::map` with lent lookup keys (oracle 2bb7cb0a)
             maps: !avoid.contains("maps"),
+            // deep paths (oracle ff2c3d1e; kayo read them already)
+            deep_paths: !avoid.contains("deep-paths"),
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),
