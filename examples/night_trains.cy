@@ -195,41 +195,51 @@ fn quickest_from [lent $net: Network, lent $from: str.utf8] -> std::map.ordered[
     let $done: std::map[str.utf8, bool] = std::map.empty;
     std::map.set(lend.mut $best, key: copy $from, value: Reach[minutes = 0, km = 0, prev = str.empty]);
     loop {
-        # the unfinished station reached soonest; the first in the station list wins a tie
-        let $pick := str.empty;
+        # the unfinished station reached soonest, by its position in the station list; the first wins a tie
+        let $pick_at := 0;
         let $pick_minutes := -1;
-        for $s in lend $net.stations {
+        let $pick_km := 0;
+        for $i, $s in lend $net.stations {
             if std::map.has(lend $done, key: lend $s) { continue; }
             if not std::map.has(lend $best, key: lend $s) { continue; }
             let $r := std::map.get(lend $best, key: lend $s) otherwise { missing { continue; } };
             if $pick_minutes < 0 or.else $r.minutes < $pick_minutes {
-                change $pick = copy $s;
+                change $pick_at = $i;
                 change $pick_minutes = $r.minutes;
+                change $pick_km = $r.km;
             }
         }
         if $pick_minutes < 0 { break; }
+        let $pick := copy $net.stations[pos: $pick_at];
         std::map.set(lend.mut $done, key: copy $pick, value: true);
-        let $here := std::map.get(lend $best, key: lend $pick) otherwise { missing { break; } };
         let $wait := $change_minutes;
         if $pick equal_to $from { change $wait = 0; }
         for $l in lend $net.links {
-            let $next := str.empty;
-            if $l.a equal_to $pick { change $next = copy $l.b; }
-            else if $l.b equal_to $pick { change $next = copy $l.a; }
-            else { continue; }
-            if std::map.has(lend $done, key: lend $next) { continue; }
-            let $minutes := $here.minutes + $wait + $l.minutes;
-            let $better := true;
-            if std::map.has(lend $best, key: lend $next) {
-                let $old := std::map.get(lend $best, key: lend $next) otherwise { missing { continue; } };
-                if $old.minutes at_most $minutes { change $better = false; }
-            }
-            if $better {
-                std::map.set(lend.mut $best, key: copy $next, value: Reach[minutes = $minutes, km = $here.km + $l.km, prev = copy $pick]);
-            }
+            let $minutes := $pick_minutes + $wait + $l.minutes;
+            let $km := $pick_km + $l.km;
+            if $l.a equal_to $pick { try_reach(lend.mut $best, lend $done, lend $l.b, lend $pick, $minutes, $km); }
+            else if $l.b equal_to $pick { try_reach(lend.mut $best, lend $done, lend $l.a, lend $pick, $minutes, $km); }
         }
     }
     return give $best;
+}
+
+# Reaching 'next' from 'pick' in 'minutes': kept only if no sooner way is known. The map keeps its own copy of
+# both names, made here and nowhere else.
+fn try_reach [
+    lent.mut $best: std::map.ordered[str.utf8, Reach],
+    lent $done: std::map[str.utf8, bool],
+    lent $next: str.utf8,
+    lent $pick: str.utf8,
+    $minutes: i32,
+    $km: i32
+] {
+    if std::map.has(lend $done, key: lend $next) { return; }
+    if std::map.has(lend $best, key: lend $next) {
+        let $old := std::map.get(lend $best, key: lend $next) otherwise { missing { return; } };
+        if $old.minutes at_most $minutes { return; }
+    }
+    std::map.set(lend.mut $best, key: copy $next, value: Reach[minutes = $minutes, km = $km, prev = copy $pick]);
 }
 
 # The stops from 'from' to 'to', walked back from 'to' along each station's `prev`, then turned round.
@@ -287,7 +297,7 @@ fn Clock.next [lent.mut $c: Clock] -> optional[i32] {
 
 fn distance_fare [$km: i32] -> d64 {
     if $km at_most $near_km { return $near_rate x to.d64($km); }
-    let $far: d64 = to.d64($km - $near_km);
+    let $far := to.d64($km - $near_km);
     return $near_rate x to.d64($near_km) + $far_rate x $far;
 }
 
@@ -313,7 +323,7 @@ fn discount [$age: Age] -> i32[min: 0, max: 50] {
 # cent once, at the end, half to even, and said so.
 fn fare [$km: i32, lent $seat: Seat, $age: Age] -> d64 {
     let $full := distance_fare($km) + supplement(lend $seat);
-    let $off: d64 = to.d64(discount(copy $age));
+    let $off := to.d64(discount(copy $age));
     let $exact := $full - ($full x $off) div.near 100;
     return std::round.near($exact, places: 2);
 }
@@ -409,7 +419,8 @@ fn book [
 ] -> Booking or fail[unknown_station: str.utf8, same_station, no_route, sold_out: str.utf8] {
     let $trip := journey(lend $net, lend $req.origin, lend $req.destination) otherwise fail;
     let $kind := seat_name(lend $req.seat);
-    let $free := std::map.get(lend $left, key: lend $kind) otherwise 0;
+    # a kind of place the trains do not carry has none left, said here rather than read as a zero
+    let $free := std::map.get(lend $left, key: lend $kind) otherwise { missing { fail sold_out[give $kind]; } };
     if $free equal_to 0 { fail sold_out[give $kind]; }
     std::map.set(lend.mut $left, key: copy $kind, value: $free - 1);
     let $price := fare($trip.km, lend $req.seat, copy $req.age);
@@ -580,24 +591,11 @@ fn report [lent $bookings: std::list[Booking], lent $left: std::map.ordered[str.
     std::print.flush(lend.mut $out);
 }
 
-# ---------------------------------------------------------------------------------------------------
-# The night
-# ---------------------------------------------------------------------------------------------------
-
-MAIN {
-    std::print.useful("the ", $network_name, " night trains", newln, newln, "reading the timetable:", newln);
-    let $rows := timetable();
-    let $net := read_network(lend $rows);
-    std::print.useful("  ", std::list.length(lend $net.links), " lines between ", std::list.length(lend $net.stations), " stations", newln);
-
-    board(lend $net, "Wien");
-
-    # Book every request, each with the next ticket number
+# Every request of the day, each with the next ticket number; the ones that cannot be read or booked are explained.
+fn book_all [lent $net: Network, lent.mut $left: std::map.ordered[str.utf8, i32], lent $lines: std::list[str.utf8]] -> std::list[Booking] {
     std::print.useful(newln, "bookings:", newln);
-    let $left := places_left();
     let $bookings: std::list[Booking] = std::list.empty;
     let $ticket := 500;
-    let $lines := todays_requests();
     for $line in lend $lines {
         let $req := parse_request(lend $line) otherwise {
             bad_request $what {
@@ -614,26 +612,47 @@ MAIN {
         show_booking(lend $b, copy $req.age);
         std::list.append(lend.mut $bookings, value: give $b);
     }
+    return give $bookings;
+}
 
-    report(lend $bookings, lend $left);
-    compare_hubs(lend $net);
-    show_letters(lend $net);
-
-    # The night's quarter hours, from departure to midnight, walked by the clock's own iterator
+# The night's quarter hours, from departure to midnight, walked by the clock's own iterator.
+fn show_quarter_hours [] {
     std::print.useful(newln, "the last quarter hours before midnight:");
     let mut $quarters := Clock[now = $departure, stop = 1440];
     for $t in lend.mut $quarters {
         std::print.useful(" ", clock($t));
     }
     std::print.useful(newln);
+}
 
-    # Exact decimals: why a fare is a `d64`. A fare of 0.10 three times is 0.30 exactly.
+# Exact decimals: why a fare is a `d64`. A fare of 0.10 three times is 0.30 exactly.
+fn show_exact_money [] {
     let $dime: d64 = 0.10;
-    let $three: d64 = $dime + $dime + $dime;
+    let $three := $dime + $dime + $dime;
     let $float: f64 = 0.1 + 0.1 + 0.1;
     std::print.useful("three fares of 0.10 as d64: ");
     std::print.stored($three, newln);
     std::print.useful("the same in f64: ");
     std::print.stored($float, newln);
+}
+
+# ---------------------------------------------------------------------------------------------------
+# The night: read the timetable, then each part in turn
+# ---------------------------------------------------------------------------------------------------
+
+MAIN {
+    std::print.useful("the ", $network_name, " night trains", newln, newln, "reading the timetable:", newln);
+    let $rows := timetable();
+    let $net := read_network(lend $rows);
+    std::print.useful("  ", std::list.length(lend $net.links), " lines between ", std::list.length(lend $net.stations), " stations", newln);
+    board(lend $net, "Wien");
+    let $left := places_left();
+    let $requests := todays_requests();
+    let $bookings := book_all(lend $net, lend.mut $left, lend $requests);
+    report(lend $bookings, lend $left);
+    compare_hubs(lend $net);
+    show_letters(lend $net);
+    show_quarter_hours();
+    show_exact_money();
     std::print.useful("good night from ", $network_name, newln);
 }
