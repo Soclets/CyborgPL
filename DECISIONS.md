@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — kayo reaches Metal through the objc2 crates (owner: b)
+
+Compiler claude, building `inline.MSL`: the dispatch runs in the built program, so it lives in kayo's runtime. Offered
+(a) the Objective-C runtime's C functions straight from Rust, no crate, about 200 lines of unsafe Rust with
+hand-written signatures (compiler claude's and design claude's recommendation: no download, smallest surface), (b)
+`objc2` + `objc2-metal` + `objc2-foundation`, typed from Apple's headers, retain and release handled, at the cost of
+crates and build time, (c) the older `metal` crate, which its authors point away from, (d) an Objective-C shim (out by
+the Rust rule). The owner asked "What's the diff between (a) & (b)?" (the same calls underneath; (b) catches a wrong
+type or name when kayo builds, and handles memory), then: "(b)". So **kayo's runtime reaches Metal through objc2**:
+objc2 0.6.5, objc2-metal 0.3.2, objc2-foundation 0.3.2 and their six dependencies, all already in this Mac's cargo
+cache, so nothing is downloaded. Only macOS builds use them, gated off for a chip with no OS.
+
 ### 2026-10-25 — The design notes' code is in the new syntax (owner: "Resume CyborgPL")
 
 The code blocks of 30 notes in `design/` (357 lines) now write calls in `( )`, names as `$name`, `channel.empty`,
