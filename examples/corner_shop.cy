@@ -287,13 +287,13 @@ fn take_order [
         let $line_total := $rule($item.price x $count);
         change $subtotal = $subtotal + $line_total;
         change $units = $units + $line.count;
-        std::print.format("  {:<10} x{:>2}  {:>8.2}\n", $line.name, $line.count, $line_total);
+        std::print.format("  {align: left, width: 10 cols} x{width: 2 cols}  {width: 8 cols, places: 2}\n", $line.name, $line.count, $line_total);
     }
     let $total := apply_discount($subtotal, $order.discount);
     if $order.discount > 0 {
         std::print.format("  discount {}%\n", $order.discount);
     }
-    std::print.format("  {:<14} {:>8.2}\n", "total", $total);
+    std::print.format("  {align: left, width: 14 cols} {width: 8 cols, places: 2}\n", "total", $total);
     std::print.useful("  paid by ", payment_text(lend $order.payment, $total), newln);
     return Sale[ticket = $ticket, customer = copy $order.customer, units = $units, total = $total];
 }
@@ -304,7 +304,7 @@ fn payment_text [lent $p: Payment, $total: d64] -> str.utf8 {
         card $last4 { return "card ending " concat $last4; }
         voucher $worth {
             if $worth at_least $total { return "voucher, nothing left to pay"; }
-            return std::format("voucher, then {:.2} in cash", $total - $worth);
+            return std::format("voucher, then {places: 2} in cash", $total - $worth);
         }
     }
 }
@@ -400,7 +400,7 @@ fn report [lent $sales: std::list[Sale], lent $items: std::list[Item], lent $ope
         change $takings = $takings + $s.total;
     }
     std::print.useful(lend.mut $out, "orders served: ", std::list.length(lend $sales), ", units sold: ", total_of(lend $units), newln);
-    std::print.format(lend.mut $out, "takings: {:.2}\n", $takings);
+    std::print.format(lend.mut $out, "takings: {places: 2}\n", $takings);
 
     # The biggest baskets, by units: the first three of the list sorted largest first
     let $ranked := sorted_down(lend $units);
@@ -420,13 +420,13 @@ fn report [lent $sales: std::list[Sale], lent $items: std::list[Item], lent $ope
             change $best_customer = copy $s.customer;
         }
     }
-    std::print.format(lend.mut $out, "best sale: #{}, {}, {:.2}\n", $best_ticket, $best_customer, $best_total);
+    std::print.format(lend.mut $out, "best sale: #{}, {}, {places: 2}\n", $best_ticket, $best_customer, $best_total);
 
     # Takings by aisle, counted from what left the shelves (at list price, before discounts)
     std::print.useful(lend.mut $out, "by aisle, at list price:", newln);
     let $aisles := [Aisle.fresh, Aisle.bakery, Aisle.pantry, Aisle.household];
     for $a in lend $aisles {
-        std::print.format(lend.mut $out, "  {:<10} {:>8.2}\n", aisle_name(copy $a), takings_by_aisle(lend $items, lend $opening, lend $stock, copy $a));
+        std::print.format(lend.mut $out, "  {align: left, width: 10 cols} {width: 8 cols, places: 2}\n", aisle_name(copy $a), takings_by_aisle(lend $items, lend $opening, lend $stock, copy $a));
     }
 
     # Reorders
@@ -441,7 +441,7 @@ fn report [lent $sales: std::list[Sale], lent $items: std::list[Item], lent $ope
     std::print.useful(lend.mut $out, "loyalty points:", newln);
     for $s in lend $sales {
         let $p := std::map.get(lend $points, key: lend $s.customer) otherwise 0;
-        std::print.format(lend.mut $out, "  {:<5} {:>3}\n", $s.customer, $p);
+        std::print.format(lend.mut $out, "  {align: left, width: 5 cols} {width: 3 cols}\n", $s.customer, $p);
     }
     std::print.flush(lend.mut $out);
 }
@@ -561,10 +561,10 @@ fn show_restock [lent $plan: std::list[Restock]] {
     std::print.useful(newln, "tomorrow's delivery:", newln);
     let $bill: d64 = 0;
     for $r in lend $plan {
-        std::print.format("  {:<10} {:>2} case(s)  {:>7.2}\n", $r.name, $r.cases, $r.cost);
+        std::print.format("  {align: left, width: 10 cols} {width: 2 cols} case(s)  {width: 7 cols, places: 2}\n", $r.name, $r.cases, $r.cost);
         change $bill = $bill + $r.cost;
     }
-    std::print.format("  {:<22} {:>7.2}\n", "to the supplier", $bill);
+    std::print.format("  {align: left, width: 22 cols} {width: 7 cols, places: 2}\n", "to the supplier", $bill);
 }
 
 # ---------------------------------------------------------------------------------------------------
@@ -588,7 +588,7 @@ fn show_week [] {
     let $names := ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     let $busiest := 0;
     for $i, $n in lend $counts {
-        std::print.format("  {} {:>3}  ", $names[pos: $i], $n);
+        std::print.format("  {} {width: 3 cols}  ", $names[pos: $i], $n);
         for $k [from: 0, before: $n, by: 4] {
             std::print.useful("#");
         }
@@ -597,7 +597,7 @@ fn show_week [] {
     }
     let $sum := total_of(lend $counts);
     let $average: f64 = to.f64($sum) div.near to.f64($days);
-    std::print.format("  {} customers, {:.1} a day, {} on the busiest\n", $sum, $average, $busiest);
+    std::print.format("  {} customers, {places: 1} a day, {} on the busiest\n", $sum, $average, $busiest);
     let $weekend := std::list.slice(lend $counts, from: pos 6, to: pos 7);
     let $weekdays := std::list.slice(lend $counts, from: pos 1, before: pos 6);
     std::print.useful("  weekdays ", total_of(lend $weekdays), ", weekend ", total_of(lend $weekend), newln);
@@ -616,7 +616,7 @@ fn show_hours [$open: i32, $close: i32] {
         let $n := 2;
         if $h equal_to 12 or $h equal_to 17 { change $n = 9; }
         if $h equal_to 13 or $h equal_to 18 { change $n = 6; }
-        std::print.format("  {:>2}:00 ", $h);
+        std::print.format("  {width: 2 cols}:00 ", $h);
         let $bar := std::list.fill(value: "*", count: $n);
         std::print.useful(std::str.join(lend $bar, between: str.empty), newln);
         if $n > $peak {
@@ -645,7 +645,7 @@ MAIN {
     # The price list, three columns of a table
     std::print.useful(newln, "today's prices:", newln);
     for $it in lend $items {
-        std::print.format("  {:<10} {:<10} {:>6.2}\n", $it.name, aisle_name(copy $it.aisle), $it.price);
+        std::print.format("  {align: left, width: 10 cols} {align: left, width: 10 cols} {width: 6 cols, places: 2}\n", $it.name, aisle_name(copy $it.aisle), $it.price);
     }
     std::print.useful(newln);
 

@@ -6593,8 +6593,8 @@ pub fn grapheme_count(s: &str) -> usize {
 /// count — the mismatch C leaves undefined is an error here.
 /// `std::print.format`'s holes (owner, 2026-10-01; C's `%` codes until then): `{}` takes the next
 /// value in its readable form, `{1}`, `{2}`… a numbered one (counted from 1, never mixed with `{}`),
-/// and `:` adds a shape — `[[fill]align][+][0][width][.precision][kind]`, kind one of x X o b e `?`
-/// (`?` is the stored form). `\{` and `\}` are literal braces; unknown escapes are errors.
+/// and shapes in words follow it, in any order (owner, 2026-10-25): `{2, width: 8 cols, places: 2}`.
+/// Rust's `{:>8.2}` shapes, used until then, are old spellings. `\{` and `\}` are literal braces.
 fn hole_format(fmt: &str, vals: &[(Value, Option<Ty>)]) -> Result<String, String> {
     let chars: Vec<char> = fmt.chars().collect();
     let mut out = String::new();
@@ -6629,24 +6629,26 @@ fn hole_format(fmt: &str, vals: &[(Value, Option<Ty>)]) -> Result<String, String
         }
         if ch == '}' { return Err("a `}` with no `{` before it; a literal brace is `\\}`".into()); }
         if ch != '{' { out.push(ch); i += 1; continue; }
-        // a hole: {[n][:shape]}
+        // a hole: {[n][, shape…]}; a fill's backticks may hold a `}`
         i += 1;
-        let close = chars[i..].iter().position(|c| *c == '}').ok_or("a `{` that never closes; a literal brace is `\\{`")?;
+        let mut close = None; let mut tick = false;
+        for (k, c) in chars[i..].iter().enumerate() { if *c == '`' { tick = !tick; } else if *c == '}' && !tick { close = Some(k); break; } }
+        let close = close.ok_or("a `{` that never closes; a literal brace is `\\{`")?;
         let inner: String = chars[i..i + close].iter().collect();
         i += close + 1;
-        let (index, shape) = match inner.split_once(':') { Some((a, b)) => (a.to_string(), Some(b.to_string())), None => (inner.clone(), None) };
+        let (index, shape) = split_hole(&inner)?;
         let at = if index.is_empty() {
             plain = true; next += 1; next
         } else {
             numbered = true;
-            let n: usize = index.parse().map_err(|_| format!("`{{{inner}}}`: a hole is `{{}}`, `{{1}}`, `{{2}}`…, optionally with `:` and a shape"))?;
+            let n: usize = index.parse().map_err(|_| format!("`{{{inner}}}`: a hole is `{{}}`, `{{1}}`, `{{2}}`…, optionally with shapes, `{{2, width: 8 cols}}`"))?;
             if n == 0 { return Err("`{0}` does not exist: holes count from `{1}`, as positions do".into()); }
             n
         };
         if plain && numbered { return Err("this format mixes `{}` with numbered holes; use one or the other".into()); }
         let (v, ty) = vals.get(at - 1).ok_or_else(|| if numbered { format!("`{{{at}}}` names value {at}, but only {} were given", vals.len()) } else { format!("the format has more holes than values (value {at} is missing)") })?;
         used[at - 1] = true;
-        out.push_str(&fill_hole(v, ty.as_ref(), shape.as_deref().unwrap_or(""))?);
+        out.push_str(&fill_hole(v, ty.as_ref(), &shape)?);
     }
     if let Some(k) = used.iter().position(|u| !u) {
         return Err(if numbered { format!("value {} is never used by a hole", k + 1) } else { format!("the format has fewer holes than values ({} value(s) unused)", vals.len() - next) });
@@ -6655,60 +6657,53 @@ fn hole_format(fmt: &str, vals: &[(Value, Option<Ty>)]) -> Result<String, String
 }
 
 /// One hole's text: the value's readable form, or its shape.
-fn fill_hole(v: &Value, ty: Option<&Ty>, shape: &str) -> Result<String, String> {
+fn fill_hole(v: &Value, ty: Option<&Ty>, shape: &Shape) -> Result<String, String> {
     // a brain16 shapes as the bin it exactly is; its plain `{}` is its own shortest form (2026-10-02)
     if let Value::Brain(x) = v {
-        if shape.is_empty() { return Ok(crate::value::brain_useful(*x)); }
-        if shape == "?" { return Ok(v.show_stored()); }
+        if *shape == Shape::default() { return Ok(crate::value::brain_useful(*x)); }
+        if shape.kind == "?" && shape.width.is_none() && shape.places.is_none() { return Ok(v.show_stored()); }
         return fill_hole(&Value::Bin(*x), Some(&Ty::Bin(32)), shape);
     }
-    let sc: Vec<char> = shape.chars().collect();
-    let mut j = 0;
-    let (mut fill, mut align) = (' ', None::<char>);
-    if sc.len() >= 2 && matches!(sc[1], '<' | '^' | '>') { fill = sc[0]; align = Some(sc[1]); j = 2; }
-    else if sc.first().map_or(false, |c| matches!(c, '<' | '^' | '>')) { align = Some(sc[0]); j = 1; }
-    let plus = sc.get(j) == Some(&'+'); if plus { j += 1; }
-    if sc.get(j) == Some(&'#') { return Err("`#` is not a shape here: type the prefix in the text, `0x{:x}`".into()); }
-    let zero = sc.get(j) == Some(&'0') && align.is_none(); if zero { j += 1; }
-    let mut width = String::new(); while let Some(d) = sc.get(j) { if d.is_ascii_digit() { width.push(*d); j += 1; } else { break; } }
-    let mut prec: Option<usize> = None;
-    if sc.get(j) == Some(&'.') { j += 1; let mut p = String::new(); while let Some(d) = sc.get(j) { if d.is_ascii_digit() { p.push(*d); j += 1; } else { break; } } if p.is_empty() { return Err(format!("`{{:{shape}}}`: a `.` needs a number of places")); } prec = Some(p.parse().unwrap()); }
-    let kind: String = sc[j..].iter().collect();
-    if !matches!(kind.as_str(), "" | "x" | "X" | "o" | "b" | "e" | "?") { return Err(format!("`{{:{shape}}}`: `{kind}` is not a shape kind (x X o b e ? are)")); }
+    let Shape { align, fill, sign: plus, zeros: zero, places: prec, .. } = *shape;
+    let fill = fill.unwrap_or(' ');
+    let kind = shape.kind;
     let ty = match ty { Some(Ty::Ranged(b, _, _)) => Some(&**b), t => t };
     let numeric = matches!(v, Value::Int(_) | Value::Bin(_) | Value::Deci(_));
     let refuse = |what: &str| Err(format!("{what} does not apply to a {}", v.kind()));
-    if (plus || zero) && !numeric { return refuse(if plus { "`+`" } else { "`0` padding" }); }
-    let body = match (v, kind.as_str()) {
-        (_, "?") => { if prec.is_some() { return refuse("a precision with `?`"); } v.show_stored() }
+    if (plus || zero) && !numeric { return refuse(if plus { "`sign`" } else { "`zeros`" }); }
+    let body = match (v, kind) {
+        (_, "?") => { if prec.is_some() { return refuse("`places:` with `form: stored`"); } v.show_stored() }
         (Value::Int(n), k) => {
-            if prec.is_some() { return refuse("a precision"); }
+            if prec.is_some() { return refuse("`places:`"); }
             // a number in a base is the number, its sign and its digits, as in base 10 (owner, 2026-10-24: "(b)", over
             // two's complement); the stored bits are asked for by name, `to.u8.bits($b)`
             let (sign, mag) = (if *n < 0 { "-" } else { "" }, n.unsigned_abs());
-            match k { "" => n.to_string(), "x" => format!("{sign}{mag:x}"), "X" => format!("{sign}{mag:X}"), "o" => format!("{sign}{mag:o}"), "b" => format!("{sign}{mag:b}"), _ => return refuse("`e`") }
+            match k { "" => n.to_string(), "x" => format!("{sign}{mag:x}"), "X" => format!("{sign}{mag:X}"), "o" => format!("{sign}{mag:o}"), "b" => format!("{sign}{mag:b}"), _ => return refuse("`form: science`") }
         }
         (Value::Bin(x), k) => match (k, prec) {
             ("", None) => show_useful_as(v, ty),
             ("", Some(p)) => format!("{:.*}", p, x),
             ("e", None) => format!("{:e}", x),
             ("e", Some(p)) => format!("{:.*e}", p, x),
-            _ => return refuse(&format!("`{k}`")),
+            _ => return refuse(&format!("`{}`", kind_words(k))),
         },
         (Value::Deci(d), k) => match (k, prec) {
             ("", None) => d.show_useful(),
             ("", Some(p)) => deci_fixed(d, p),
             ("e", p) => deci_sci(d, p),
-            _ => return refuse(&format!("`{k}`")),
+            _ => return refuse(&format!("`{}`", kind_words(k))),
         },
-        (Value::Str(t), "") => match prec { Some(p) => t.chars().take(p).collect(), None => t.clone() },
-        (Value::Char(_, t), "") => { if prec.is_some() { return refuse("a precision"); } t.clone() }
-        (_, "") => { if prec.is_some() { return refuse("a precision"); } show_useful_as(v, ty) }
-        (_, k) => return refuse(&format!("`{k}`")),
+        // `places:` counts digits after the point, so a text has none (owner, 2026-10-25)
+        (Value::Str(t), "") => { if prec.is_some() { return refuse("`places:`, which counts digits after the point,"); } t.clone() }
+        (Value::Char(_, t), "") => { if prec.is_some() { return refuse("`places:`"); } t.clone() }
+        (_, "") => { if prec.is_some() { return refuse("`places:`"); } show_useful_as(v, ty) }
+        (_, k) => return refuse(&format!("`{}`", kind_words(k))),
     };
     let body = if plus && !body.starts_with('-') { format!("+{body}") } else { body };
-    let w: usize = width.parse().unwrap_or(0);
-    let n = body.chars().count();
+    let Some((w, unit)) = shape.width else { return Ok(body) };
+    // the fill takes one of the width's units, so the padding comes out exact
+    if measure(&fill.to_string(), unit) != 1 { return Err(format!("the fill `{fill}` is {} {} wide; a fill takes one", measure(&fill.to_string(), unit), unit.name())); }
+    let n = measure(&body, unit);
     if n >= w { return Ok(body); }
     let pad = w - n;
     if zero {
@@ -6882,4 +6877,148 @@ pub fn list_head(k: ListAlign) -> &'static str {
 
 fn coll_of_ty(t: &Ty) -> Option<Coll> {
     match t { Ty::List(_, k) => Some(Coll::List(*k)), Ty::Array(_) => Some(Coll::Array), Ty::Ranged(b, _, _) => coll_of_ty(b), _ => None }
+}
+
+/// What a format width counts (owner, 2026-10-25): screen columns, an East Asian Ambiguous character 1 (`cols`) or
+/// 2 (`cols.east_asian`), or one of a text's own units
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum WidthUnit { Cols, ColsEastAsian, Graphemes, Points, Bytes }
+
+impl WidthUnit {
+    fn name(self) -> &'static str {
+        match self { WidthUnit::Cols => "cols", WidthUnit::ColsEastAsian => "cols.east_asian", WidthUnit::Graphemes => "graphemes", WidthUnit::Points => "points", WidthUnit::Bytes => "bytes" }
+    }
+}
+
+/// A hole's shapes, in words (owner, 2026-10-25): `kind` keeps the old letter inside (`x` is `base: hex`, `?` is
+/// `form: stored`, `e` is `form: science`) so the rendering below did not change
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+struct Shape { align: Option<char>, fill: Option<char>, sign: bool, zeros: bool, width: Option<(usize, WidthUnit)>, places: Option<usize>, kind: &'static str }
+
+fn kind_words(k: &str) -> &'static str {
+    match k { "x" => "base: hex", "X" => "base: hex.upper", "o" => "base: oct", "b" => "base: bin", "e" => "form: science", "?" => "form: stored", _ => "" }
+}
+
+/// How wide a text is in a width's unit. A grapheme takes the widest of its characters, two when an emoji's
+/// variation selector asks for its picture; a character with no width (a combining mark) adds none.
+fn measure(s: &str, unit: WidthUnit) -> usize {
+    use crate::unicode_props::has;
+    use crate::unicode_width::*;
+    let col = |c: char, east: bool| -> usize {
+        if has(&ZERO, c) { 0 } else if has(&WIDE, c) || has(&EMOJI_PRESENTATION, c) { 2 } else if east && has(&AMBIGUOUS, c) { 2 } else { 1 }
+    };
+    match unit {
+        WidthUnit::Bytes => s.len(),
+        WidthUnit::Points => s.chars().count(),
+        WidthUnit::Graphemes => grapheme_count(s),
+        WidthUnit::Cols | WidthUnit::ColsEastAsian => graphemes(s).iter().map(|g| {
+            let mut cs = g.chars();
+            let first = cs.next().unwrap_or(' ');
+            if g.contains('\u{FE0F}') && has(&EMOJI, first) { return 2; }
+            g.chars().map(|c| col(c, unit == WidthUnit::ColsEastAsian)).max().unwrap_or(0)
+        }).sum(),
+    }
+}
+
+/// Splits a hole's inside into its value number (empty for `{}`) and its shapes. Commas inside a fill's backticks
+/// are the fill's.
+fn split_hole(inner: &str) -> Result<(String, Shape), String> {
+    let t = inner.trim_start();
+    // `{:>8.2}`, `{2:x}`: Rust's shapes, the spelling until 2026-10-25
+    let digits: String = t.chars().take_while(|c| c.is_ascii_digit()).collect();
+    if t[digits.len()..].starts_with(':') {
+        let old = &t[digits.len() + 1..];
+        let words = old_shape_words(old).map(|w| if digits.is_empty() { w } else if w.is_empty() { digits.clone() } else { format!("{digits}, {w}") });
+        return Err(match words {
+            Ok(w) => format!("`{{{inner}}}` is an old spelling: shapes are words, `{{{w}}}` (owner, 2026-10-25)"),
+            Err(m) => format!("`{{{inner}}}` is an old spelling: shapes are words, as `{{align: right, width: 8 cols, places: 2}}` (owner, 2026-10-25); {m}"),
+        });
+    }
+    let mut parts = Vec::new(); let (mut cur, mut tick) = (String::new(), false);
+    for c in inner.chars() {
+        if c == '`' { tick = !tick; }
+        if c == ',' && !tick { parts.push(std::mem::take(&mut cur)); continue; }
+        cur.push(c);
+    }
+    parts.push(cur);
+    let mut index = String::new();
+    let mut sh = Shape::default();
+    let mut seen: Vec<String> = Vec::new();
+    for (k, raw) in parts.iter().enumerate() {
+        let part = raw.trim();
+        if part.is_empty() {
+            if parts.len() == 1 { break; }
+            return Err(format!("`{{{inner}}}`: an empty shape between commas"));
+        }
+        if part.chars().all(|c| c.is_ascii_digit()) {
+            if k != 0 { return Err(format!("`{{{inner}}}`: the value number comes first, `{{{part}, …}}`")); }
+            index = part.to_string(); continue;
+        }
+        let (label, value) = match part.split_once(':') { Some((a, b)) => (a.trim(), Some(b.trim())), None => (part, None) };
+        if seen.iter().any(|x| x == label) { return Err(format!("`{{{inner}}}` says `{label}` twice")); }
+        seen.push(label.to_string());
+        fn need<'a>(v: Option<&'a str>, label: &str) -> Result<&'a str, String> { v.filter(|x| !x.is_empty()).ok_or_else(|| format!("`{label}` takes a value: `{label}: …`")) }
+        match label {
+            "zeros" | "sign" => {
+                if value.is_some() { return Err(format!("`{label}` is a word on its own, with no `:` (owner, 2026-10-25: a shape with no choice is a bare word)")); }
+                if label == "zeros" { sh.zeros = true } else { sh.sign = true }
+            }
+            "align" => sh.align = Some(match need(value, label)? { "left" => '<', "right" => '>', "center" => '^', o => return Err(format!("`align: {o}`: an alignment is `left`, `right` or `center`")) }),
+            "base" => { if !sh.kind.is_empty() { return Err(format!("`{{{inner}}}` has a `base:` and a `form:`; a value is written one way")); } sh.kind = match need(value, label)? { "bin" => "b", "oct" => "o", "hex" => "x", "hex.upper" => "X", o => return Err(format!("`base: {o}`: a base is `bin`, `oct`, `hex` or `hex.upper`")) } }
+            "form" => { if !sh.kind.is_empty() { return Err(format!("`{{{inner}}}` has a `base:` and a `form:`; a value is written one way")); } sh.kind = match need(value, label)? { "stored" => "?", "science" => "e", o => return Err(format!("`form: {o}`: a form is `stored` or `science`")) } }
+            "places" => sh.places = Some(need(value, label)?.parse().map_err(|_| format!("`places:` takes a whole number: `places: 2`"))?),
+            "width" => {
+                let v = need(value, label)?;
+                let (n, unit) = v.split_once(' ').map(|(a, b)| (a, b.trim())).unwrap_or((v, ""));
+                let n: usize = n.parse().map_err(|_| format!("`width: {v}`: a width is a whole number and its unit, `width: 8 cols`"))?;
+                // `1 col` / `8 cols`, as `1 sec` / `5 secs` (owner, 2026-10-25: "yes")
+                let unit = match unit {
+                    "col" | "cols" => WidthUnit::Cols, "col.east_asian" | "cols.east_asian" => WidthUnit::ColsEastAsian,
+                    "graphemes" => WidthUnit::Graphemes, "points" => WidthUnit::Points, "bytes" => WidthUnit::Bytes,
+                    "" => return Err(format!("`width: {n}` names its unit: `width: {n} cols`, or `graphemes`, `points`, `bytes` (owner, 2026-10-25)")),
+                    o => return Err(format!("`width: {n} {o}`: a width counts `cols`, `cols.east_asian`, `graphemes`, `points` or `bytes`")),
+                };
+                sh.width = Some((n, unit));
+            }
+            "fill" => {
+                let v = need(value, label)?;
+                let inside = v.strip_prefix('`').and_then(|x| x.strip_suffix('`')).ok_or_else(|| format!("`fill: {v}`: a fill is one character in backticks, `` fill: `*` `` (owner, 2026-10-25)"))?;
+                let mut cs = inside.chars();
+                match (cs.next(), cs.next()) { (Some(c), None) => sh.fill = Some(c), _ => return Err(format!("`fill: {v}`: a fill is one character")) }
+            }
+            // a choice is written with its label (owner, 2026-10-25)
+            "left" | "right" | "center" => return Err(format!("`{label}` is an alignment, one of three: `align: {label}`")),
+            "bin" | "oct" | "hex" | "hex.upper" => return Err(format!("`{label}` is a base, one of four: `base: {label}`")),
+            "stored" | "science" => return Err(format!("`{label}` is a form, one of two: `form: {label}`")),
+            o => return Err(format!("`{o}` is not a shape: they are `align:`, `width:`, `fill:`, `places:`, `base:`, `form:`, `zeros` and `sign`")),
+        }
+    }
+    if sh.zeros && sh.align.is_some() { return Err(format!("`{{{inner}}}`: `zeros` pads after the sign, so it has no alignment")); }
+    if (sh.fill.is_some() || sh.align.is_some() || sh.zeros) && sh.width.is_none() { return Err(format!("`{{{inner}}}`: there is nothing to pad without a `width:`")); }
+    Ok((index, sh))
+}
+
+/// A Rust shape (`>8.2`, `*^7`, `+08b`) in words, for the message that refuses it.
+fn old_shape_words(sc: &str) -> Result<String, String> {
+    let c: Vec<char> = sc.chars().collect();
+    let mut j = 0;
+    let (mut fill, mut align) = (None, None);
+    if c.len() >= 2 && matches!(c[1], '<' | '^' | '>') { fill = Some(c[0]); align = Some(c[1]); j = 2; }
+    else if c.first().map_or(false, |x| matches!(x, '<' | '^' | '>')) { align = Some(c[0]); j = 1; }
+    let plus = c.get(j) == Some(&'+'); if plus { j += 1; }
+    let zero = c.get(j) == Some(&'0') && align.is_none(); if zero { j += 1; }
+    let mut width = String::new(); while let Some(d) = c.get(j) { if d.is_ascii_digit() { width.push(*d); j += 1; } else { break; } }
+    let mut places = String::new();
+    if c.get(j) == Some(&'.') { j += 1; while let Some(d) = c.get(j) { if d.is_ascii_digit() { places.push(*d); j += 1; } else { break; } } }
+    let kind: String = c[j..].iter().collect();
+    if !matches!(kind.as_str(), "" | "x" | "X" | "o" | "b" | "e" | "?") { return Err(format!("`{kind}` was never a shape")); }
+    let mut w = Vec::new();
+    if !kind.is_empty() { w.push(kind_words(&kind).to_string()); }
+    if !places.is_empty() { w.push(format!("places: {places}")); }
+    if plus { w.push("sign".into()); }
+    if zero { w.push("zeros".into()); }
+    if let Some(a) = align { w.push(format!("align: {}", match a { '<' => "left", '>' => "right", _ => "center" })); }
+    if !width.is_empty() { w.push(format!("width: {width} cols")); }
+    if let Some(f) = fill { if f != ' ' { w.push(format!("fill: `{f}`")); } }
+    Ok(w.join(", "))
 }

@@ -1,1 +1,1 @@
-MAIN { std::print.format("{:x}\n", "text"); }
+MAIN { std::print.format("{base: hex}\n", "text"); }

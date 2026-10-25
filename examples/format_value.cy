@@ -3,8 +3,8 @@
 # and `.stdout` may still be written.
 MAIN {
     let $n := 3;
-    let $line := std::format("{} items at {:.2} each, 0x{:x}\n", $n, 1.5, 255);
+    let $line := std::format("{} items at {places: 2} each, 0x{base: hex}\n", $n, 1.5, 255);
     std::print.useful($line);
-    std::print.weird.useful <- "hex: " <- std::format("{:x}", $n x 100) <- newln;
+    std::print.weird.useful <- "hex: " <- std::format("{base: hex}", $n x 100) <- newln;
     std::print.useful.stdout("said ", "stdout", newln);
 }

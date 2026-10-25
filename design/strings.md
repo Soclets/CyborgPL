@@ -95,8 +95,8 @@ print_weird_brackets, print_weird_order.
 ## `std::print.format` — the formatting print, with `{}` holes (2026-09-22; holes since 2026-10-01)
 
 ```
-std::print.format("{}: {} at ${:.2}, 50% off\n", $name, $count, $price);
-std::print.format("0x{:x} 0b{:08b} [{:>6}] [{:+}]\n", 255, 10, 42, 5);
+std::print.format("{}: {} at ${places: 2}, 50% off\n", $name, $count, $price);
+std::print.format("0x{base: hex} 0b{base: bin, zeros, width: 8 cols} [{width: 6 cols}] [{sign}]\n", 255, 10, 42, 5);
 std::print.format("{2} vs {1}, and {2} wins\n", "a", "b");
 std::print.format.stderr("error: {}\n", $msg);
 ```
@@ -117,16 +117,32 @@ holes"):
   A format uses plain or numbered holes, **never both** (owner: "no
   mixing"). Every value fills a hole and every hole has a value, or it is
   a compile error.
-- **A shape follows `:`**, Rust's set without `#`: fill and alignment
-  `<` `^` `>` (`{:*^7}`), `+` for a sign, `0` padding, a width, `.places`
-  (for text, the first characters), and a kind — `x` `X` `o` `b` for bases,
-  `e` for scientific, and **`?` for the stored form** (`{:?}` of a `bin`
-  `0.1` is `0.1000000000000000055…`). `#` is refused: type the prefix,
-  `0x{:x}` (owner: "drop it"; `#` already means comments and `#strict`).
-- A negative whole number in a base is its sign and digits, `{:b}` of -5 being `-101` (owner, 2026-10-24: "(b)");
+- **Shapes are words** after the hole's number, if any, in any order (owner, 2026-10-25, over Rust's `{:>8.2}`,
+  design claude's pick of 2026-10-01, now an old spelling refused naming its words). **A shape with several choices
+  is a label and its value; one that is only on or not is a bare word** (owner: "It was `exclude zero`, because
+  there's nothing except that"):
+  - `align: left` / `right` / `center`: a number sits right and a text left unless it says;
+  - `width: 8 cols`: the least the value takes, **in a named unit** (owner: "width: 8 what?"): `cols` screen
+    columns (`1 col`, `8 cols`; a Chinese, Japanese or Korean character and most emoji 2, a combining mark 0, an
+    East Asian Ambiguous one like `°` 1), `cols.east_asian` (that last kind 2, for terminals set to those
+    languages), `graphemes`, `points` or `bytes`. Unicode 17.0.0's `EastAsianWidth.txt` and `emoji-data.txt` say
+    which, as terminals' `wcwidth` does; a program cannot know its terminal, so asking it is the writer's own code;
+  - `` fill: `*` ``: the padding, a char literal (a space unless written), one of the width's units wide;
+  - `places: 2`: digits after the point, for numbers only;
+  - `base: bin` / `oct` / `hex` / `hex.upper`; `form: stored` (the stored form, `0.1000000000000000055…` for an
+    `f64` `0.1`) / `form: science` (`1.23e3`);
+  - `zeros` (pad with zeros after the sign, `-0005`) and `sign` (always show it, `+5`).
+
+  ```
+  std::print.format("  {align: left, width: 10 cols} x{width: 2 cols}  {width: 8 cols, places: 2}\n", …);
+  std::print.format("{2, base: hex.upper, zeros, width: 4 cols} {1}\n", "id", 255);   # 00FF id
+  ```
+
+  There is no `#`: type the prefix, `0x{base: hex}`. `examples/print_format_width.cy`.
+- A negative whole number in a base is its sign and digits, `{base: bin}` of -5 being `-101` (owner, 2026-10-24: "(b)");
   the stored bits are asked for by name, `to.u8.bits($b)`.
-  `{:.2}` of a `deci` is exact, from its decimal digits, half to even.
-- **Lists, structs and maps** fill a plain `{}` or `{:?}`, as `print.useful`
+  `{places: 2}` of a `d64` is exact, from its decimal digits, half to even.
+- **Lists, structs and maps** fill a plain `{}` or `{form: stored}`, as `print.useful`
   and `print` show them; number shapes are refused for them (owner:
   "allow").
 - **The format text has its own escapes, read in one pass** (owner:

@@ -12,5 +12,5 @@ MAIN {
     let $n := to.i32($w) otherwise -1;      # whole, so it converts
     std::print.useful($w, " ", $back, " ", $n, newln);
     let $xs: std::list[brain16] = [0.5, 1.5, 2.5];
-    std::print.format("{} {:.2} {:?}\n", $xs, $a, $a);
+    std::print.format("{} {places: 2} {form: stored}\n", $xs, $a, $a);
 }

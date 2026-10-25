@@ -9,11 +9,11 @@ MAIN {
     let $price: f64 = 12.5;
     let $pay: d64 = 37.5 x 12.40;
     let $tenth: f64 = 0.1;
-    std::print.format("{}: {} at ${:.2}, 50% off\n", $name, $count, $price);
-    std::print.format("pay ${:.2}, readable {}, stored {:?}\n", $pay, $pay, $pay);
-    std::print.format("tenth {} is really {:?}\n", $tenth, $tenth);
-    std::print.format("0x{:x} 0x{:04X} 0o{:o} 0b{:08b}\n", 255, 255, 8, 10);
-    std::print.format("[{:>6}] [{:<6}] [{:*^7}] [{:+}] [{:05}] {:.2e}\n", 42, 42, "ab", 5, 42, $price);
+    std::print.format("{}: {} at ${places: 2}, 50% off\n", $name, $count, $price);
+    std::print.format("pay ${places: 2}, readable {}, stored {form: stored}\n", $pay, $pay, $pay);
+    std::print.format("tenth {} is really {form: stored}\n", $tenth, $tenth);
+    std::print.format("0x{base: hex} 0x{base: hex.upper, zeros, width: 4 cols} 0o{base: oct} 0b{base: bin, zeros, width: 8 cols}\n", 255, 255, 8, 10);
+    std::print.format("[{align: right, width: 6 cols}] [{align: left, width: 6 cols}] [{align: center, width: 7 cols, fill: `*`}] [{sign}] [{zeros, width: 5 cols}] {form: science, places: 2}\n", 42, 42, "ab", 5, 42, $price);
     std::print.format("{2} vs {1}, and {2} wins\n", "a", "b");
     std::print.format("\{ \"count\": {} \} in C:\\temp, tab[\t]\n", $count);
 }
