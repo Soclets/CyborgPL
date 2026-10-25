@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — A final build is small: it carries only what the program uses, never at the cost of speed or safety (owner)
+
+The owner asked how big Lua's collector is (lgc.c and lgc.h in 5.5.1: 2,072 lines, about 1,220 of code), then "Let me
+guess, CyborgPL's footprint is bigger?" Measured on this Mac: a C hello world 33 KB; the whole Lua 5.5.1 interpreter
+286 KB (54 KB program, 232 KB library); a Rust hello world 466 KB; a CyborgPL hello world, `kayo build --final`, 514
+KB (447 KB stripped; 218 KB code, 119 KB constant data, mostly Rust's Unicode case and grapheme tables), because
+kayo's runtime brings Rust's standard library whole. The owner: "514 KB? What, what the fu-". Design claude
+recommended a small final build as kayo's work, no syntax change, since Precog knows what a program uses; the owner:
+"Yes, unless it costs final product perf or safety". So **a final build carries only what the program uses**, and
+**speed and safety win over size** wherever they meet. Not built; for compiler claude when CyborgPL resumes.
+
 ### 2026-10-25 — Measure Z3's Spacer as Precog's second way to find a loop's invariant, before deciding (owner)
 
 The owner: "Should we use Z3's Spacer?" Precog already puts exact questions to Z3 and CVC5 (2026-09-22, owner: b) and
