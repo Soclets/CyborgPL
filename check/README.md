@@ -11,6 +11,14 @@ cd check && cargo build --release -j 3   # needs oracle/ built, and kayo/ with -
 ```
 
 
+**inline.MSL on the GPU** (kayo 793861b5): `check metal --cases N`. The oracle cannot run Metal, so each case is
+two programs: (A) a kernel, one thread per item, writing a list; (B) the same steps in a loop. B runs on the
+oracle and on kayo, A on kayo (`cargo build --release -p kayo-metal --offline` once); all three must print the
+same list. Steps are `u32` only, each its own declared value (`uint t3 = t1 + t2;` / `let $t3: u32 = $t1
+plus.wrap $t2;`): wrapping `+ - *`, `/` and `%` by a literal not zero, `& | ^`, `>>` under 32; the result always
+takes in the item's own x and y. Left out: signed overflow (undefined in Metal), `<<` (CyborgPL checks what it
+shifts out), floats (Metal may compile them fast). `harness/src/metal.rs`.
+
 **Formats** (kayo e0437f9e): typed values of each kind (i64, u8, f64, d64, text, bool), each hole a shape its
 kind takes (fill and `< ^ >`, width, `+`, `0`; `x X o b` on whole numbers, `.places` and `e` on bins and
 decis, `?`), plain text with `%`, `\t` and `\{ \}` between; `{}` in order or numbered holes (shuffled,

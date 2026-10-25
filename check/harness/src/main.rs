@@ -12,6 +12,7 @@ mod clayout;
 mod compare;
 mod engines;
 mod json;
+mod metal;
 mod tv;
 
 use check_gen::rng::Rng;
@@ -345,6 +346,27 @@ fn main() {
         "same" => same_run(&tools(), &a),
         "recref" => recref_run(&tools(), &a),
         "clayout" => clayout_run(&tools(), &a),
+        "metal" => {
+            // inline.MSL on the GPU against the oracle's loop (kayo 793861b5)
+            let t = tools();
+            let (mut same, mut differ, mut failed) = (0, 0, vec![]);
+            for seed in a.num("from", 1)..a.num("from", 1) + a.num("cases", 50) {
+                let c = metal::Case::random(seed);
+                let dir = work().join("metal").join(seed.to_string());
+                match metal::check(&t, &c, &dir) {
+                    metal::Outcome::Same => same += 1,
+                    metal::Outcome::Differ(why) => {
+                        differ += 1;
+                        println!("seed {seed}: {why}, files in {}", dir.display());
+                    }
+                    metal::Outcome::Failed(why) => failed.push(format!("seed {seed}: {why}")),
+                }
+            }
+            for f in failed.iter().take(5) {
+                println!("not built or run: {f}");
+            }
+            println!("{} cases: {same} the same on the GPU, {differ} differ, {} not built or run", same + differ + failed.len(), failed.len());
+        }
         "evalsite" => {
             // What the exact evaluator saw at every site on one line.
             let p = generate(a.num("seed", 1), &a.config_modelled());
