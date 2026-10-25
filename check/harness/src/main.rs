@@ -152,8 +152,11 @@ impl Args {
             short_lambdas: !avoid.contains("short-lambdas"),
             // `.whole` / `.split` writers (oracle deda6720, kayo 64cdc5de)
             writer_kinds: !avoid.contains("writer-kinds"),
-            // `std::print.format` / `std::format` (kayo e0437f9e)
-            formats: !avoid.contains("formats"),
+            // `std::print.format` / `std::format` (kayo e0437f9e); shapes in words
+            // (oracle 0c746ed3), which kayo does not read yet (2026-10-25), so the
+            // episode is off until it does: `--formats` turns it on
+            formats: self.has("formats"),
+            format_words: !avoid.contains("format-words"),
             // a list's kinds (oracle 8054704c, kayo 3b6a8a6e)
             list_kinds: !avoid.contains("list-kinds"),
             // `std::map` with lent lookup keys (oracle 2bb7cb0a)

@@ -200,6 +200,9 @@ pub struct Config {
     /// `std::print.format` and `std::format` with holes `{}` or numbered, and
     /// shapes fitting each value's kind (2026-09-22, 10-01; kayo e0437f9e).
     pub formats: bool,
+    /// Format shapes in words, `{2, width: 8 cols, places: 2}` (owner,
+    /// 2026-10-25; oracle 0c746ed3); otherwise the older `{2:>8.2}`.
+    pub format_words: bool,
     /// A list's kinds (owner, 2026-10-25; oracle 8054704c, kayo 3b6a8a6e):
     /// `page_aligned` lent and given into plain parameters, copied, and a plain
     /// list turned `not_page_aligned` and given back into a plain one.
@@ -225,7 +228,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: true, formats: true, list_kinds: true, maps: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: true, formats: true, format_words: true, list_kinds: true, maps: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
     }
 }
 
@@ -772,7 +775,8 @@ impl Gen {
         // NegInt: a negative whole number, its base kinds a sign and the
         // magnitude, `0` padding after the sign (owner, 2026-10-24; oracle a1dcbd3a)
         enum K { Int, NegInt, Small, Bin, Deci, Text, Bool }
-        let words = ["rope", "tea", "a b", "x", "z9", "ok"];
+        // texts whose widths count differently: wide, combining, emoji, ambiguous
+        let words = ["rope", "tea", "a b", "x", "z9", "ok", "日本茶", "café", "20°C", "👍🏽 ok", "±1"];
         let mut lets = vec![];
         let mut vals: Vec<(String, K)> = vec![];
         let n = self.rng.range(1, 5) as usize;
@@ -813,6 +817,52 @@ impl Gen {
                 _ => String::new(),
             }
         };
+        // shapes in words (owner, 2026-10-25; oracle 0c746ed3), in any order
+        let words_shape = |k: K, r: &mut crate::rng::Rng| -> Vec<String> {
+            let w = r.range(1, 12);
+            let cols = |r: &mut crate::rng::Rng, w: i128| -> String {
+                let unit = if k == K::Text { *r.pick(&["cols", "cols.east_asian", "graphemes", "points", "bytes"]) } else { "cols" };
+                if w == 1 && unit == "cols" { "width: 1 col".to_string() } else { format!("width: {w} {unit}") }
+            };
+            let padded = |r: &mut crate::rng::Rng| -> Vec<String> {
+                let mut v = vec![format!("align: {}", r.pick(&["left", "right", "center"])), cols(r, w)];
+                if r.chance(50) {
+                    v.push(format!("fill: `{}`", r.pick(&["*", "-", "."])));
+                }
+                v
+            };
+            let base = |r: &mut crate::rng::Rng| format!("base: {}", r.pick(&["bin", "oct", "hex", "hex.upper"]));
+            let mut v = match (k, r.below(6)) {
+                (_, 0) => vec![],
+                (_, 1) => padded(r),
+                (K::Text, _) => if r.chance(50) { padded(r) } else { vec![cols(r, w)] },
+                (K::Int | K::Small | K::NegInt, 2) => vec![base(r)],
+                (K::Int | K::Small | K::NegInt, 3) => {
+                    let mut v = vec!["zeros".to_string(), cols(r, w)];
+                    if r.chance(50) { v.push(base(r)); }
+                    v
+                }
+                (K::Int | K::Small | K::NegInt, 4) => {
+                    let mut v = vec!["sign".to_string()];
+                    if r.chance(40) { v.push(base(r)); }
+                    v
+                }
+                (K::Bin | K::Deci, 2) => vec![format!("places: {}", r.range(0, 4))],
+                (K::Bin | K::Deci, 3) => vec!["form: science".to_string(), format!("places: {}", r.range(0, 3))],
+                (K::Bin | K::Deci, 4) => vec!["form: stored".to_string()],
+                (K::Bin | K::Deci, 5) => {
+                    let mut v = padded(r);
+                    v.push(format!("places: {}", r.range(0, 3)));
+                    v
+                }
+                _ => vec![],
+            };
+            for i in (1..v.len()).rev() {
+                let j = r.below(i as u64 + 1) as usize;
+                v.swap(i, j);
+            }
+            v
+        };
         let plain = ["", " ", " at ", ", ", " 50% off ", "\\t", " \\{x\\} ", " = "];
         let numbered = self.rng.chance(35);
         let mut text = String::new();
@@ -833,11 +883,19 @@ impl Gen {
             if pos > 0 || self.rng.chance(50) {
                 text.push_str(self.rng.pick(&plain));
             }
-            let sh = shape(vals[j].1, &mut self.rng);
-            if numbered {
-                text.push_str(&format!("{{{}{sh}}}", j + 1));
+            if self.cfg.format_words {
+                // `{2, width: 8 cols, places: 2}`: the value's number first
+                let ws = words_shape(vals[j].1, &mut self.rng);
+                let mut parts = if numbered { vec![(j + 1).to_string()] } else { vec![] };
+                parts.extend(ws);
+                text.push_str(&format!("{{{}}}", parts.join(", ")));
             } else {
-                text.push_str(&format!("{{{sh}}}"));
+                let sh = shape(vals[j].1, &mut self.rng);
+                if numbered {
+                    text.push_str(&format!("{{{}{sh}}}", j + 1));
+                } else {
+                    text.push_str(&format!("{{{sh}}}"));
+                }
             }
         }
         let args = vals.iter().map(|(nm, _)| nm.clone()).collect::<Vec<_>>().join(", ");

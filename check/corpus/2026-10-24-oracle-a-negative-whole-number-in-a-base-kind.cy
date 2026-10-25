@@ -3,8 +3,11 @@
 # width counting the sign and `0` padding after it; the stored bits are asked for by name (`to.u8.bits`).
 # For -56710 `{:X}` is "-DD86", as kayo printed; the oracle printed the 64-bit two's complement,
 # "FFFFFFFFFFFF227A", until a1dcbd3a.
+# Shapes in words since 2026-10-25 (owner; oracle 0c746ed3): `{:X}` is `{base: hex.upper}`, `{:05X}` `{base:
+# hex.upper, zeros, width: 5 cols}`, `{:+b}` `{sign, base: bin}`.
+# known-difference: kayo does not read format shapes in words yet; drop this mark when it does.
 MAIN {
     let $a: i64 = -56710;
     let $b: i8 = -5;
-    std::print.format("{:X} {:05X} {:x} {:o} {:b} {:b} {:08b} {:+b}\n", $a, $a, $a, $a, $a, $b, $b, 5);
+    std::print.format("{base: hex.upper} {base: hex.upper, zeros, width: 5 cols} {base: hex} {base: oct} {base: bin} {base: bin} {base: bin, zeros, width: 8 cols} {sign, base: bin}\n", $a, $a, $a, $a, $a, $b, $b, 5);
 }
