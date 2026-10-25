@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — Built: a path reads as deep as it goes, `$b.journey.km`, `$xs[pos: 2].minutes`
+
+Writing examples/night_trains.cy (the owner: "Remove corner_shop, and make a big new example that's proper, and
+correct"), design claude found the oracle read only one step, `$a.b`, `$xs[pos: i]`, `$a.b[pos: i]`; kayo read any
+depth. Told so, the owner: "the fuck?" Not a design question (a field read is decided; this is it repeated), so built:
+a field of whatever a path reads and a position in it, any depth, with `copy` and `lend` on the whole path. Design
+claude's readings, as one step already does: `give` of a deep part is refused (it would leave a hole), `lend.mut` of
+one is not modelled by the oracle (lend what holds it). examples/deep_paths.cy, tests/reject/deep_path_*; night_trains
+reads its journeys and map values directly.
+
 ### 2026-10-25 — A format fill is a char literal: `` fill: `*` `` (owner)
 
 `fill: "*"` would need `\"*\"` inside the format's own `"…"`. Design claude recommended `fill: '*'`; the owner:

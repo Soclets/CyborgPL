@@ -4311,6 +4311,27 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
     }
 
     // index := '[' 'pos' expr ']'   — 1-based; `pos` is mandatory (decided 2026-09-17)
+    /// Whether a read path goes on: `.field`, or `[pos: …]`.
+    fn path_continues(&self) -> bool {
+        (*self.peek() == Tok::Dot && matches!(self.peek_at(1), Tok::Word(_)))
+            || (*self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Word(w) if w == "pos"))
+    }
+
+    /// The rest of a read path after its first step, as deep as it goes: `$b.journey.km`, `$xs[pos: 2].minutes`.
+    fn path_tail(&mut self, mut base: Expr, line: usize) -> PResult<Expr> {
+        while self.path_continues() {
+            if *self.peek() == Tok::Dot {
+                self.advance();
+                let field = match self.advance().tok { Tok::Word(f) => f, other => return self.err(format!("expected a field name after `.`, found {other}")) };
+                base = Expr::FieldOf(Box::new(base), field, line);
+            } else {
+                let idx = self.index_bracket("the path")?;
+                base = Expr::IndexOf(Box::new(base), Box::new(idx), line);
+            }
+        }
+        Ok(base)
+    }
+
     fn index_bracket(&mut self, name: &str) -> PResult<Expr> {
         self.plain_open("a position")?;
         self.expect(Tok::LBracket, "`[`")?;
@@ -4959,7 +4980,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                     let says_pos = matches!(self.peek_at(1), Tok::Word(w) if w == "pos") && !matches!(self.peek_at(2), Tok::LBracket | Tok::Dot | Tok::RBracket | Tok::Comma);
                     if says_pos {
                         let idx = self.index_bracket(&v)?;
-                        return Ok(Expr::Index(v, Box::new(idx), line));
+                        return self.path_tail(Expr::Index(v, Box::new(idx), line), line);
                     }
                     self.call_open(&format!("${v}"))?;
                     let args = self.bracket()?;
@@ -4970,9 +4991,9 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                     let field = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected a field name after `'{v}'.`, found {other}")) };
                     if *self.peek() == Tok::LBracket {
                         let idx = self.index_bracket(&format!("{v}'.{field}"))?;
-                        return Ok(Expr::FieldIndex(v, field, Box::new(idx), line));
+                        return self.path_tail(Expr::FieldIndex(v, field, Box::new(idx), line), line);
                     }
-                    return Ok(Expr::Field(v, field, line));
+                    return self.path_tail(Expr::Field(v, field, line), line);
                 }
                 Ok(Expr::Var(v, line))
             }
@@ -5034,13 +5055,22 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                     };
                     match self.advance().tok {
                         Tok::Var(v) => {
+                            // one step is its own node; a deeper path is read, then the verb applies to what it reads
                             if *self.peek() == Tok::Dot {
                                 self.advance();
                                 let field = match self.advance().tok { Tok::Word(f) => f, other => return self.err(format!("expected a field name after `'{v}'.`, found {other}")) };
+                                if self.path_continues() {
+                                    let path = self.path_tail(Expr::Field(v, field, line), line)?;
+                                    return Ok(Expr::OwnedPath(verb, Box::new(path), line));
+                                }
                                 return Ok(Expr::OwnedField(verb, v, field, line));
                             }
                             if *self.peek() == Tok::LBracket {
                                 let idx = self.index_bracket(&v)?;
+                                if self.path_continues() {
+                                    let path = self.path_tail(Expr::Index(v, Box::new(idx), line), line)?;
+                                    return Ok(Expr::OwnedPath(verb, Box::new(path), line));
+                                }
                                 return Ok(Expr::OwnedElem(verb, v, Box::new(idx), line));
                             }
                             Ok(Expr::Owned(verb, v, line))

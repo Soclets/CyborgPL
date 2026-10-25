@@ -742,6 +742,8 @@ fn check_widthless_shifts(prog: &ast::Program) -> Result<(), String> {
             Expr::Call(c) => { bracket(&c.args)?; handler(&c.handler) }
             Expr::Nested(b) | Expr::PtrCast(_, b, _) => bracket(b),
             Expr::Index(_, i, _) | Expr::FieldIndex(_, _, i, _) | Expr::OwnedElem(_, _, i, _) | Expr::Paren(i, _) | Expr::Unary(_, i, _) => expr(i),
+            Expr::FieldOf(i, _, _) | Expr::OwnedPath(_, i, _) => expr(i),
+            Expr::IndexOf(p, i, _) => { expr(p)?; expr(i) }
             Expr::Builtin(_, _, b, _) => bracket(b),
             Expr::Construct(_, fields, _) => { for (_, b) in fields { bracket(b)?; } Ok(()) }
             Expr::Convert(_, b, h, _, _) | Expr::MapFail(_, b, h, _) | Expr::PtrReadChecked(b, h, _) | Expr::CharFromCode(_, b, h, _) | Expr::CallValue(_, b, h, _) => { bracket(b)?; handler(h) }

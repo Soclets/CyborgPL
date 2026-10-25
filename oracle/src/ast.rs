@@ -475,6 +475,12 @@ pub enum Expr {
     Construct(String, Vec<(String, Bracket)>, usize),
     /// `give 'mine'.field` / `copy 'mine'.field` / `lend 'mine'.field`
     OwnedField(Verb, String, String, usize),
+    /// `$b.journey.km`, `$xs[pos: 2].minutes`: a field of whatever a path reads, as deep as it goes
+    FieldOf(Box<Expr>, String, usize),
+    /// `$net.links[pos: 1].stops[pos: 2]`: a position in whatever a path reads
+    IndexOf(Box<Expr>, Box<Expr>, usize),
+    /// `copy $b.journey.stops`, `lend $xs[pos: 2].name`: a verb on a path deeper than one step
+    OwnedPath(Verb, Box<Expr>, usize),
     /// `lend 'xs'[pos: i]` / `copy 'xs'[pos: i]` — an element handed over with a verb
     OwnedElem(Verb, String, Box<Expr>, usize),
     /// `shapes.'pi'` / `kit.'pi'` — a const reached by module path (canonical), from a module
@@ -542,6 +548,7 @@ impl Expr {
             Expr::FieldIndex(_, _, _, l) => *l,
             Expr::Construct(_, _, l) => *l,
             Expr::OwnedField(_, _, _, l) => *l,
+            Expr::FieldOf(_, _, l) | Expr::IndexOf(_, _, l) | Expr::OwnedPath(_, _, l) => *l,
             Expr::OwnedElem(_, _, _, l) => *l,
             Expr::ConstPath(_, _, _, l) => *l,
             Expr::Convert(_, _, _, _, l) => *l,

@@ -1935,6 +1935,16 @@ impl<'p> Interp<'p> {
                 self.prog.structs.iter().find(|d| d.name == sname)?.fields.iter().find(|f| &f.name == field).map(|f| f.ty.clone())
             }
             Expr::Paren(inner, _) => self.expr_ty_own(inner),
+            Expr::FieldOf(inner, field, _) => match self.expr_ty_own(inner)? {
+                Ty::Struct(sname) => self.prog.structs.iter().find(|d| d.name == sname)?.fields.iter().find(|f| &f.name == field).map(|f| f.ty.clone()),
+                _ => None,
+            },
+            Expr::IndexOf(inner, _, _) => match self.expr_ty_own(inner)? {
+                Ty::List(t, _) | Ty::Array(t) => Some(*t),
+                Ty::Ranged(b, _, _) => match *b { Ty::List(t, _) | Ty::Array(t) => Some(*t), _ => None },
+                _ => None,
+            },
+            Expr::OwnedPath(_, path, _) => self.expr_ty_own(path),
             Expr::Convert(t, _, _, _, _) => Some(t.clone()),
             Expr::PtrCast(t, b, _) => {
                 let mutable = match b.values.first() { Some(crate::ast::Value::Expr(e)) => matches!(self.expr_ty_own(e), Some(Ty::Ptr(_, true))), _ => false };
@@ -2635,6 +2645,41 @@ impl<'p> Interp<'p> {
                         if *verb == Verb::LendMut { self.field_borrows.push((cell.clone(), field.clone(), tmp.clone())); }
                         Ok((fv, Prov::Borrowed(tmp, *verb == Verb::LendMut)))
                     }
+                }
+            }
+            // a path deeper than one step (owner, 2026-10-25: "the fuck?", that `$b.journey.km` was not read): each
+            // step reads what the one before it gave
+            Expr::FieldOf(inner, field, _) => {
+                let (v, _) = self.eval(inner)?;
+                let fields = match v { Value::Struct(_, f) => f, other => return rt(line, format!("{} is {}, not a struct; it has no field `{field}`", path_text(inner), other.kind())) };
+                match fields.into_iter().find(|(k, _)| k == field) {
+                    Some((_, fv)) => {
+                        let prov = if fv.is_owned() { Prov::Bare(format!("{}.{field} (write `copy` or `lend` before it; the field is owned by what holds it)", path_text(inner))) } else { Prov::Plain };
+                        Ok((fv, prov))
+                    }
+                    None => rt(line, format!("{} has no field `{field}`", path_text(inner))),
+                }
+            }
+            Expr::IndexOf(inner, idx, _) => {
+                let (v, _) = self.eval(inner)?;
+                let items = match v { Value::List(items) => items, other => return rt(line, format!("{} is {}, not a list or array; it cannot be indexed", path_text(inner), other.kind())) };
+                let (i, _) = self.eval(idx)?;
+                let i = match i { Value::Int(i) => i, other => return rt(line, format!("an index is an integer, got {}", other.kind())) };
+                if i < 1 || i as usize > items.len() {
+                    return site(line, format!("position {i} is out of range for {}, which has {} element(s) (1 to {})", path_text(inner), items.len(), items.len()));
+                }
+                let item = items[(i - 1) as usize].clone();
+                let prov = if item.is_owned() { Prov::Bare(format!("{}[pos: {i}]", path_text(inner))) } else { Prov::Plain };
+                Ok((item, prov))
+            }
+            Expr::OwnedPath(verb, path, _) => {
+                let (v, _) = self.eval(path)?;
+                if !v.is_owned() { return rt(line, format!("{} is a plain {} and owns nothing; it copies by itself — no `give`/`copy`/`lend`", path_text(path), v.kind())); }
+                match verb {
+                    Verb::Copy => Ok((v, Prov::Copied)),
+                    Verb::Lend => Ok((v.clone(), Prov::Borrowed(Rc::new(RefCell::new(v)), false))),
+                    Verb::Give => rt(line, format!("giving {} would leave a hole in what holds it; `copy` it", path_text(path))),
+                    Verb::LendMut => rt(line, format!("`lend.mut` of {} is not modelled by the oracle; lend what holds it", path_text(path))),
                 }
             }
             Expr::OwnedElem(verb, name, idx, _) => {
@@ -6510,7 +6555,8 @@ fn first_std_call(b: &Bracket) -> Option<String> {
             Expr::Builtin(_, _, b, _) => in_bracket(b),
             Expr::Construct(_, fs, _) => fs.iter().find_map(|(_, b)| in_bracket(b)),
             Expr::Index(_, i, _) => in_expr(i),
-            Expr::Unary(_, i, _) | Expr::Paren(i, _) => in_expr(i),
+            Expr::Unary(_, i, _) | Expr::Paren(i, _) | Expr::FieldOf(i, _, _) | Expr::OwnedPath(_, i, _) => in_expr(i),
+            Expr::IndexOf(p, i, _) => in_expr(p).or_else(|| in_expr(i)),
             Expr::Binary(_, l, r, _) => in_expr(l).or_else(|| in_expr(r)),
             _ => None,
         }
@@ -7025,4 +7071,17 @@ fn old_shape_words(sc: &str) -> Result<String, String> {
     if !width.is_empty() { w.push(format!("width: {width} cols")); }
     if let Some(f) = fill { if f != ' ' { w.push(format!("fill: `{f}`")); } }
     Ok(w.join(", "))
+}
+
+/// A read path as the writer wrote it, for messages: `$b.journey`, `$xs[pos: …]`.
+fn path_text(e: &Expr) -> String {
+    match e {
+        Expr::Var(n, _) => format!("${n}"),
+        Expr::Field(n, f, _) => format!("${n}.{f}"),
+        Expr::Index(n, _, _) => format!("${n}[pos: …]"),
+        Expr::FieldIndex(n, f, _, _) => format!("${n}.{f}[pos: …]"),
+        Expr::FieldOf(inner, f, _) => format!("{}.{f}", path_text(inner)),
+        Expr::IndexOf(inner, _, _) => format!("{}[pos: …]", path_text(inner)),
+        _ => "the value".into(),
+    }
 }

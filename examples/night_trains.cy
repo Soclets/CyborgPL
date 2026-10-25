@@ -80,9 +80,7 @@ struct Request {
 struct Booking {
     ticket: i32,
     traveller: str.utf8,
-    stops: std::list[str.utf8],
-    minutes: i32,
-    km: i32,
+    journey: Journey,
     seat: Seat,
     fare: d64
 }
@@ -415,7 +413,7 @@ fn book [
     if $free equal_to 0 { fail sold_out[give $kind]; }
     std::map.set(lend.mut $left, key: copy $kind, value: $free - 1);
     let $price := fare($trip.km, lend $req.seat, copy $req.age);
-    return Booking[ticket = $ticket, traveller = copy $req.traveller, stops = copy $trip.stops, minutes = $trip.minutes, km = $trip.km, seat = copy $req.seat, fare = $price];
+    return Booking[ticket = $ticket, traveller = copy $req.traveller, journey = give $trip, seat = copy $req.seat, fare = $price];
 }
 
 # A request that cannot be booked is explained the same way wherever it is tried: one handler, told
@@ -443,10 +441,10 @@ coll.handler booking_failed {
 }
 
 fn show_booking [lent $b: Booking, $age: Age] {
-    let $changes := std::list.length(lend $b.stops) - 2;
+    let $changes := std::list.length(lend $b.journey.stops) - 2;
     std::print.useful("  #", $b.ticket, " ", $b.traveller, " (", age_name(copy $age), "), ", seat_name(lend $b.seat), newln);
-    std::print.useful("    ", std::str.join(lend $b.stops, between: " → "), newln);
-    std::print.format("    {} km, {} change(s), leaves {}, arrives {}, fare {places: 2}\n", $b.km, $changes, clock($departure), clock($departure + $b.minutes), $b.fare);
+    std::print.useful("    ", std::str.join(lend $b.journey.stops, between: " → "), newln);
+    std::print.format("    {} km, {} change(s), leaves {}, arrives {}, fare {places: 2}\n", $b.journey.km, $changes, clock($departure), clock($departure + $b.journey.minutes), $b.fare);
 }
 
 # ---------------------------------------------------------------------------------------------------
@@ -465,12 +463,10 @@ fn soonest_first [lent $xs: std::list[Arrival]] -> std::list[Arrival] {
     for $x in lend $xs {
         std::list.append(lend.mut $out, value: copy $x);
         let $i := std::list.length(lend $out);
-        while $i > 1 {
-            let $later := copy $out[pos: $i];
-            let $earlier := copy $out[pos: $i - 1];
-            if $earlier.minutes at_most $later.minutes { break; }
-            change $out[pos: $i] = give $earlier;
-            change $out[pos: $i - 1] = give $later;
+        while $i > 1 and.then $out[pos: $i].minutes < $out[pos: $i - 1].minutes {
+            let $held := copy $out[pos: $i];
+            change $out[pos: $i] = copy $out[pos: $i - 1];
+            change $out[pos: $i - 1] = give $held;
             change $i = $i - 1;
         }
     }
@@ -485,8 +481,7 @@ fn board [lent $net: Network, lent $from: str.utf8] {
     let $arrivals: std::list[Arrival] = std::list.empty;
     for $e in std::map.pairs(lend $best) {
         if $e.key equal_to $from { continue; }
-        let $r := copy $e.value;
-        std::list.append(lend.mut $arrivals, value: Arrival[station = copy $e.key, minutes = $r.minutes, km = $r.km]);
+        std::list.append(lend.mut $arrivals, value: Arrival[station = copy $e.key, minutes = $e.value.minutes, km = $e.value.km]);
     }
     let $sorted := soonest_first(lend $arrivals);
     for $a in lend $sorted {
@@ -504,8 +499,7 @@ fn reached_by [lent $net: Network, lent $hub: str.utf8, $deadline: i32] -> i32 {
     let $best := quickest_from(lend $net, lend $hub);
     let $n := 0;
     for $e in std::map.pairs(lend $best) {
-        let $r := copy $e.value;
-        if $e.key not_equal $hub and $departure + $r.minutes at_most $deadline { change $n = $n + 1; }
+        if $e.key not_equal $hub and $departure + $e.value.minutes at_most $deadline { change $n = $n + 1; }
     }
     return $n;
 }
@@ -564,9 +558,9 @@ fn report [lent $bookings: std::list[Booking], lent $left: std::map.ordered[str.
     let $longest_who := "nobody";
     for $b in lend $bookings {
         std::list.append(lend.mut $fares, value: $b.fare);
-        std::list.append(lend.mut $kms, value: $b.km);
-        if $b.km > $longest {
-            change $longest = $b.km;
+        std::list.append(lend.mut $kms, value: $b.journey.km);
+        if $b.journey.km > $longest {
+            change $longest = $b.journey.km;
             change $longest_who = copy $b.traveller;
         }
     }
