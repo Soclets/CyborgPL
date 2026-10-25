@@ -895,6 +895,42 @@ impl Precog {
                 let e = pending_trip.remove(&h).unwrap();
                 self.trips += 1;
                 let settled = matches!(&states[h], Some(old) if same(old, &e));
+                // Only sizes grew: summarised now (owner, 2026-10-25). A
+                // counted loop nothing bounds below its trip budget, whose
+                // trips change only sizes and its own counter and
+                // accumulators (a walk of a text of unknown length), widens
+                // now as it would at the budget, with its bound and
+                // accumulators, instead of 100 000 trips later.
+                let walk = !settled
+                    && counted.get(&h).is_some_and(|c| {
+                        self.trips_of(f, h, c).is_none_or(|t| t > TRIPS_PER_LOOP as i128)
+                            && states[h].as_ref().is_some_and(|old| changes_only(old, &e, |l| l == c.counter || c.bound.place().is_some_and(|p| p.is_local() && p.local == l) || c.accs.iter().any(|(x, _)| *x == l) || c.grows.contains(&l)))
+                    });
+                // `KAYO_TRIP_DIFF`: why a loop is followed trip by trip, the
+                // locals a trip changed beyond sizes, for looking into a
+                // slow build.
+                if std::env::var("KAYO_TRIP_DIFF").as_deref() == Ok("all") {
+                    let name = unsafe { (&(*self.p).functions)[f].name.clone() };
+                    eprintln!("end {} b{} settled={} walk={} visits={}", name, h, settled, walk, visits[h]);
+                }
+                if !settled && !walk && std::env::var("KAYO_TRIP_DIFF").is_ok() {
+                    if let Some(old) = &states[h] {
+                        let name = unsafe { (&(*self.p).functions)[f].name.clone() };
+                        let changed: Vec<String> = old.0.diff(&e.0).filter_map(|d| match d {
+                            im::ordmap::DiffItem::Update { old: (l, x), new: (_, y) } if sizes_widen(x, y).is_none() => Some(format!("_{}: {:?} -> {:?}", l.0, x, y)),
+                            im::ordmap::DiffItem::Update { .. } => None,
+                            im::ordmap::DiffItem::Add(l, _) | im::ordmap::DiffItem::Remove(l, _) => Some(format!("_{} came or went", l.0)),
+                        }).collect();
+                        eprintln!("trip {} b{}{}: {}", name, h, if counted.contains_key(&h) { " (counted)" } else { "" }, changed.join("; "));
+                    }
+                }
+                if walk {
+                    visits[h] = TRIPS_PER_LOOP;
+                }
+                let e = match &states[h] {
+                    Some(old) if !settled && !walk => sizes_only(old, &e).unwrap_or(e),
+                    _ => e,
+                };
                 if !settled {
                     if let Some(body) = head_body.get(&h) {
                         for x in body {
@@ -1213,6 +1249,14 @@ impl Precog {
                             if same(old, &m) {
                                 return;
                             }
+                            if std::env::var("KAYO_TRIP_DIFF").as_deref() == Ok("join") && widen_now {
+                                let name = unsafe { (&(*this.p).functions)[f].name.clone() };
+                                let changed: Vec<String> = old.0.diff(&m.0).map(|d| match d {
+                                    im::ordmap::DiffItem::Update { old: (l, x), new: (_, y) } => format!("_{}: {:?} -> {:?}", l.0, x, y),
+                                    im::ordmap::DiffItem::Add(l, _) | im::ordmap::DiffItem::Remove(l, _) => format!("_{} came or went", l.0),
+                                }).collect();
+                                eprintln!("widened {} b{} from b{}: {}", name, i, b, changed.join("; "));
+                            }
                             m
                         }
                     }
@@ -1339,6 +1383,12 @@ impl Precog {
                 Terminator::Fail { .. } | Terminator::Trap(_) | Terminator::Unreachable => {}
             }
 
+        }
+        if std::env::var("KAYO_TRIP_DIFF").is_ok() && visits.iter().map(|v| *v as u64).sum::<u64>() > 100_000 {
+            let mut top: Vec<(u32, usize)> = visits.iter().enumerate().map(|(b, v)| (*v, b)).collect();
+            top.sort_by(|a, b| b.cmp(a));
+            let name = unsafe { (&(*self.p).functions)[f].name.clone() };
+            eprintln!("visits {}: {}", name, top.iter().take(6).map(|(v, b)| format!("b{} {}{}", b, v, if heads.contains(b) { " (head)" } else { "" })).collect::<Vec<_>>().join(", "));
         }
         for (id, v) in sites_seen {
             if self.dry || !self.counts_for(f) {
@@ -3082,6 +3132,61 @@ pub fn natural_loop(f: &Function, h: usize, b: usize) -> Vec<usize> {
 
 fn same(a: &Env, b: &Env) -> bool {
     a.0.ptr_eq(&b.0) || a.0.diff(&b.0).next().is_none()
+}
+
+/// Whether a trip changed nothing but sizes and the locals `free` allows.
+fn changes_only(old: &Env, new: &Env, free: impl Fn(LocalId) -> bool) -> bool {
+    old.0.diff(&new.0).all(|d| match d {
+        im::ordmap::DiffItem::Update { old: (l, x), new: (_, y) } => free(*l) || sizes_widen(x, y).is_some(),
+        im::ordmap::DiffItem::Add(l, _) | im::ordmap::DiffItem::Remove(l, _) => free(*l),
+    })
+}
+
+/// A loop's trip that changed only the sizes of lists and maps (owner,
+/// 2026-10-25: (a)): the state with each size that grew widened to the
+/// type's top, so the loop is summarised at once instead of followed trip by
+/// trip to its budget. `None` when anything else changed, a value a check
+/// may read: then the loop is followed as it always was. Whether a proof
+/// was lost to it is `kayo/tools/precog_sites.py`'s to show.
+fn sizes_only(old: &Env, new: &Env) -> Option<Env> {
+    let mut out = new.clone();
+    let mut grew = false;
+    for d in old.0.diff(&new.0) {
+        match d {
+            im::ordmap::DiffItem::Update { old: (l, x), new: (_, y) } => {
+                let w = sizes_widen(x, y)?;
+                if **y != w {
+                    grew = true;
+                }
+                out.insert(*l, w);
+            }
+            _ => return None,
+        }
+    }
+    grew.then_some(out)
+}
+
+/// One domain against the next trip's: the same but for sizes, each that
+/// grew widened to the type's top; `None` when anything else differs.
+fn sizes_widen(a: &Domain, b: &Domain) -> Option<Domain> {
+    fn len(a: &ISet, b: &ISet) -> ISet {
+        let u = a.union(b);
+        match (a.bounds(), b.bounds(), u.bounds()) {
+            (Some((_, ahi)), Some((_, bhi)), Some((lo, _))) if bhi > ahi => ISet::Range { lo, hi: i64::MAX as i128 },
+            (Some((alo, _)), Some((blo, _)), Some((_, hi))) if blo < alo => ISet::Range { lo: 0, hi },
+            _ => u,
+        }
+    }
+    if a == b {
+        return Some(a.clone());
+    }
+    Some(match (a, b) {
+        (Domain::Seq { len: la, elem: ea }, Domain::Seq { len: lb, elem: eb }) => Domain::Seq { len: len(la, lb), elem: Box::new(sizes_widen(ea, eb)?) },
+        (Domain::Map { len: la, key: ka, val: va }, Domain::Map { len: lb, key: kb, val: vb }) => Domain::Map { len: len(la, lb), key: Box::new(sizes_widen(ka, kb)?), val: Box::new(sizes_widen(va, vb)?) },
+        (Domain::Struct(fa), Domain::Struct(fb)) if fa.len() == fb.len() => Domain::Struct(fa.iter().zip(fb).map(|(x, y)| sizes_widen(x, y)).collect::<Option<Vec<_>>>()?),
+        (Domain::Enum(ca), Domain::Enum(cb)) if ca.len() == cb.len() && ca.iter().zip(cb).all(|(x, y)| x.0 == y.0) => Domain::Enum(ca.iter().zip(cb).map(|(x, y)| sizes_widen(&x.1, &y.1).map(|d| (x.0, d))).collect::<Option<Vec<_>>>()?),
+        _ => return None,
+    })
 }
 
 /// A loop that counts: `c` goes up by `step` exactly once a trip toward a

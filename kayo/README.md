@@ -1094,6 +1094,17 @@ Dated, with the alternative, so each can become a question later.
   stops the program with `error[metal::run_failed]` at the block. `metal::compile_failed` says `fix: none
   suggested` and keeps Apple's own words on `about:` (`Diagnostic::outside_saying`). A program with a
   block is about 2 MB, std's share.
+- **2026-10-25 — Precog settles a map, and summarises a counted walk** (owner, (a): "the same proofs, less repeated
+  work"). The 190 s of night_trains was mostly a bug: a widening loop head joined a map's size, keys and values
+  without widening them, so the size bound went up by one a round, a million rounds; `Domain::widen_to` now widens
+  a map and a struct part by part, each part by its own type. And by the ruling: a counted loop nothing bounds
+  below its trip budget, whose trips change only sizes, its counter, its bound and accumulators (std's walks of a
+  text of unknown length), widens at once as it would at the budget; a loop whose trips change only list and map
+  sizes has them widened (`sizes_only`). Measured with `tools/precog_sites.py` over the 622 programs of
+  examples/, tests/programs/ and check/corpus/: no proof lost; night_trains alone changed, 104 sites proven that
+  the old walk never reached before its budget ran out; all proving 420 s → 321 s, night_trains 171 s → 62 s.
+  `KAYO_TRIP_DIFF` prints why a loop is followed trip by trip (`=all` every trip's end, `=join` what a widening
+  still changed) and each heavy walk's busiest blocks.
 - **2026-10-25 — night_trains' frees, a `d` const, deep parts** (design claude's examples/night_trains). Three
   memory faults, each found with Guard Malloc (`DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib`): `map.get`
   handed back the value's bytes and dropped them, freeing a text the map held (now the type's copy, as `copy`

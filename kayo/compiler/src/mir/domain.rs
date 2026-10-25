@@ -1131,6 +1131,34 @@ impl Domain {
     /// front of the `mod` could no longer be proven. It stays finite — a
     /// bound only ever moves up the list.
     pub fn widen_to(&self, next: &Domain, ty: &Ty, items: &crate::resolve::Items, steps: &[i128]) -> Domain {
+        // A map and a struct widen part by part, each part by its own type:
+        // joined only, a map's size went up by one a round and never
+        // settled (examples/night_trains: a million rounds of one loop).
+        let size = |n: &ISet, o: &ISet| -> ISet {
+            let u = o.union(n);
+            match (u.bounds(), o.bounds()) {
+                (Some((n1, n2)), Some((o1, o2))) => ISet::range(if n1 < o1 { 0 } else { n1 }, if n2 > o2 { i64::MAX as i128 } else { n2 }),
+                _ => u,
+            }
+        };
+        match (self, next) {
+            (Domain::Map { len: ol, key: ok, val: ov }, Domain::Map { len: nl, key: nk, val: nv }) => {
+                let (kt, vt) = match ty.base() {
+                    Ty::Map { key, val, .. } => ((**key).clone(), (**val).clone()),
+                    _ => (Ty::Nothing, Ty::Nothing),
+                };
+                return Domain::Map { len: size(nl, ol), key: Box::new(ok.widen_to(nk, &kt, items, steps)), val: Box::new(ov.widen_to(nv, &vt, items, steps)) };
+            }
+            (Domain::Struct(of), Domain::Struct(nf)) if of.len() == nf.len() => {
+                if let Ty::Struct { id, args } = ty.base() {
+                    let fields = &items.structs[id.0 as usize].fields;
+                    if fields.len() == of.len() {
+                        return Domain::Struct(of.iter().zip(nf).zip(fields).map(|((o, n), fi)| o.widen_to(n, &fi.ty.subst(args), items, steps)).collect());
+                    }
+                }
+            }
+            _ => {}
+        }
         let joined = self.union(next);
         // Past `i128` a bound still moving goes to the type's end.
         if let (Domain::Wide { .. }, Some(old)) = (&joined, self.wide_bounds()) {
