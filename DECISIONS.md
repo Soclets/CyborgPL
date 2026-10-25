@@ -51,8 +51,8 @@ whether final builds have run-time checks (no safety checks: unproven sites are 
   included, and keep their kind when grown there.
 - **A plain list becomes either only by an explicit conversion**, `to.list.page_aligned(give $xs)`,
   `to.list.not_page_aligned(give $xs)`, and so between the two.
-Design claude's reading: the conversions' names follow `to.list(…)` / `to.array(…)`; a copy of a narrowed list, and a
-`:=` taking one over, are of its kind. Built in the oracle (examples/list_page_aligned.cy, tests/reject/page_aligned_*).
+Design claude's reading: the conversions' names follow `to.list(…)` / `to.array(…)`, and a `:=` taking a list over keeps
+its kind. **A copy of a narrowed list is of its kind** (asked, the owner: "I mean, it says `copy`"). Built in the oracle (examples/list_page_aligned.cy, tests/reject/page_aligned_*).
 
 ### 2026-10-25 — A list lent to a kernel must be read-only in Metal: `const device` or `constant`, else refused (owner: a)
 
