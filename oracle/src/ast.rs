@@ -15,7 +15,8 @@ pub enum Ty {
     Str(Encoding),
     Bool,
     Char(CharUnit),
-    List(Box<Ty>),    // growable
+    /// growable; its kind, plain or always or never page-aligned, kept as it grows (owner, 2026-10-25)
+    List(Box<Ty>, ListAlign),
     Array(Box<Ty>),   // fixed-size
     Struct(String),   // a declared blueprint, by name
     /// `ptr[T]` / `ptr.mut[T]` (design/ffi.md): only in an extern signature or a layout.C field
@@ -63,13 +64,18 @@ pub enum Bound { Int(i128), Bin(f64), Min, Max }   // `i32[1, max]` — the type
 #[derive(Debug, Clone, PartialEq)]
 pub enum MapOrder { Any, Ordered, Unordered }
 
+/// `std::list[T]`, `std::list.page_aligned[T]`, `std::list.not_page_aligned[T]` (owner, 2026-10-25): plain is Precog's to
+/// place; the two narrowings go anywhere a plain list does, and a plain one becomes either only by `to.list.page_aligned(…)`
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ListAlign { Plain, Page, NotPage }
+
 impl Ty {
     /// The type variables mentioned, in order of first appearance — a generic
     /// struct's or enum's parameter order (decided 2026-09-20: no bracket, first appearance).
     pub fn vars_into(&self, out: &mut Vec<String>) {
         match self {
             Ty::Var(n) => if !out.contains(n) { out.push(n.clone()); },
-            Ty::List(t) | Ty::Array(t) | Ty::Ptr(t, _) => t.vars_into(out),
+            Ty::List(t, _) | Ty::Array(t) | Ty::Ptr(t, _) => t.vars_into(out),
             Ty::Inst(_, args) => for a in args { a.vars_into(out); },
             Ty::Fn(ps, r, _) => { for (_, t) in ps { t.vars_into(out); } if let Some(r) = r { r.vars_into(out); } }
             _ => {}

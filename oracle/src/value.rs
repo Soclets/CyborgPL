@@ -267,14 +267,14 @@ pub fn ty_name(ty: &Ty) -> String {
         Ty::Str(e) => format!("str.{}", match e { crate::ast::Encoding::Utf8 => "utf8", crate::ast::Encoding::Utf16 => "utf16", crate::ast::Encoding::Utf32 => "utf32", crate::ast::Encoding::Ascii => "ascii" }),
         Ty::Bool => "bool".into(),
         Ty::Char(u) => format!("char.{}", match u { CharUnit::Byte => "byte", CharUnit::Point => "point", CharUnit::Grapheme => "grapheme" }),
-        Ty::List(t) => format!("list[{}]", ty_name(t)),
+        Ty::List(t, k) => format!("{}[{}]", crate::interp::list_head(*k), ty_name(t)),
         Ty::Array(t) => format!("array[{}]", ty_name(t)),
         Ty::Struct(n) => n.clone(),
         Ty::Var(n) => format!("<{n}>"),
         // as it is written since 2026-10-12: each side labelled, a side that is the type's own limit left out
         // (a length's low 0 and unlimited high, a channel's low 0)
         Ty::Ranged(t, lo, hi) => {
-            let length = matches!(**t, Ty::List(_) | Ty::Array(_) | Ty::Map(..) | Ty::Channel(_));
+            let length = matches!(**t, Ty::List(_, _) | Ty::Array(_) | Ty::Map(..) | Ty::Channel(_));
             let lo_open = matches!(lo, crate::ast::Bound::Min) || (length && *lo == crate::ast::Bound::Int(0));
             let hi_open = matches!(hi, crate::ast::Bound::Max) || (length && *hi == crate::ast::Bound::Int(i128::MAX));
             let mut sides = Vec::new();

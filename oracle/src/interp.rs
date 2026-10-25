@@ -150,11 +150,11 @@ pub struct Interp<'p> {
     /// whether the last value evaluated is statically a list (false) or an array (true), and
     /// the same for the value a `return` handed back: a list never becomes an array by itself
     /// ("nothing converts by itself", 2026-09-19; owner, 2026-09-23: `to.array[…]`, `to.list[…]`)
-    last_kind: Option<bool>,
+    last_kind: Option<Coll>,
     /// the digits of the last value evaluated, when it was a bin literal: a literal is rounded
     /// once, from its digits, to a f16/f32 (compiler session, 2026-09-24)
     last_lit: Option<String>,
-    ret_kind: Option<bool>,
+    ret_kind: Option<Coll>,
     /// a `return lend 'x'` in flight: the lent cell and whether it is mutable (owner, 2026-09-29)
     ret_borrow: Option<(Rc<RefCell<Value>>, bool)>,
     /// the borrow the last call handed back, for the expression that called it
@@ -952,7 +952,7 @@ impl<'p> Interp<'p> {
             Stmt::Decl { name, mutability, ty, value, shadow, sealed, line } => {
                 let (v, prov) = if value.values.is_empty() {
                     match ty {
-                        Some(Ty::List(_)) => (Value::List(Vec::new()), Prov::Fresh),
+                        Some(Ty::List(_, _)) => (Value::List(Vec::new()), Prov::Fresh),
                         Some(Ty::Array(_)) => return rt(*line, format!("an empty `array` '{name}' could never be filled; make it a `list`")),
                         Some(t) => return rt(*line, format!("`[]` is an empty list, but '{name}' is {}", ty_name(t))),
                         None => return rt(*line, format!("`[]` with `:=` says nothing about what '{name}' is; write `list.empty`")),
@@ -1057,10 +1057,10 @@ impl<'p> Interp<'p> {
                     _ => {}
                 }
                 let elem_ty = match &ty {
-                    Some(Ty::List(t)) | Some(Ty::Array(t)) => Some((**t).clone()),
+                    Some(Ty::List(t, _)) | Some(Ty::Array(t)) => Some((**t).clone()),
                     // one lane of a vector (owner, 2026-09-29: a)
                     Some(Ty::Simd(t, _)) => Some((**t).clone()),
-                    Some(Ty::Ranged(b, _, _)) => match &**b { Ty::List(t) | Ty::Array(t) => Some((**t).clone()), _ => None },
+                    Some(Ty::Ranged(b, _, _)) => match &**b { Ty::List(t, _) | Ty::Array(t) => Some((**t).clone()), _ => None },
                     // An untyped list still has an element family: what is in it. Storing a bin
                     // into a list of integers is the cross-family store `types.md` refuses
                     // (found by the compiler session, 2026-09-22 — the oracle had this hole).
@@ -1197,8 +1197,8 @@ impl<'p> Interp<'p> {
                 // the item has the list's element type (check claude, 2026-09-29: `'x' +~ 10` had no width)
                 let elem_ty = match over.values.first() {
                     Some(crate::ast::Value::Expr(Expr::Owned(_, n, _) | Expr::Var(n, _))) => match self.lookup(n).and_then(|s| s.ty.clone()) {
-                        Some(Ty::List(t)) | Some(Ty::Array(t)) => Some(*t),
-                        Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(t) | Ty::Array(t) => Some(*t), _ => None },
+                        Some(Ty::List(t, _)) | Some(Ty::Array(t)) => Some(*t),
+                        Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(t, _) | Ty::Array(t) => Some(*t), _ => None },
                         _ => None,
                     },
                     _ => None,
@@ -1687,7 +1687,7 @@ impl<'p> Interp<'p> {
                 Ok(())
             }
             (Ty::Bool, Value::Bool(_)) => Ok(()),
-            (Ty::List(inner) | Ty::Array(inner), Value::List(items)) => {
+            (Ty::List(inner, _) | Ty::Array(inner), Value::List(items)) => {
                 for it in items { self.check_type(it, inner, line)?; }
                 Ok(())
             }
@@ -1850,8 +1850,8 @@ impl<'p> Interp<'p> {
                 // each item lands in an element slot, so the element type is its context, as a
                 // declaration's type is (owner, 2026-09-29: a): `[0 -~ 1,]` in a list[u8] wraps at 8 bits
                 let elem = match &self.expected {
-                    Some(Ty::List(t)) | Some(Ty::Array(t)) => Some((**t).clone()),
-                    Some(Ty::Ranged(b, _, _)) => match &**b { Ty::List(t) | Ty::Array(t) => Some((**t).clone()), _ => None },
+                    Some(Ty::List(t, _)) | Some(Ty::Array(t)) => Some((**t).clone()),
+                    Some(Ty::Ranged(b, _, _)) => match &**b { Ty::List(t, _) | Ty::Array(t) => Some((**t).clone()), _ => None },
                     _ => None,
                 };
                 let saved = std::mem::replace(&mut self.expected, elem.clone());
@@ -1944,8 +1944,8 @@ impl<'p> Interp<'p> {
             Expr::Builtin(h, op, _, _) if (h == "list" || h == "array") && op == "length" => Some(Ty::Uint(IntWidth::W64)),
             Expr::Index(name, _, _) | Expr::CallValue(name, _, _, _) => match self.lookup(name).and_then(|s| s.ty.clone()) {
                 // a vector's lane, `'s'[pos: 2]`, has the lane's type (check claude, seed 42640)
-                Some(Ty::List(t)) | Some(Ty::Array(t)) | Some(Ty::Simd(t, _)) => Some(*t),
-                Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(t) | Ty::Array(t) => Some(*t), _ => None },
+                Some(Ty::List(t, _)) | Some(Ty::Array(t)) | Some(Ty::Simd(t, _)) => Some(*t),
+                Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(t, _) | Ty::Array(t) => Some(*t), _ => None },
                 _ => None,
             },
             // a vector folded to one lane answers with the lane's type (check claude, seed 4094)
@@ -2237,16 +2237,16 @@ impl<'p> Interp<'p> {
         r
     }
 
-    /// Is this expression, by its declared type, a `list` (false) or an `array` (true)?
+    /// Is this expression, by its declared type, an `array` or a `list`, and which kind of list?
     /// `None` when it is neither, or when nothing fixes it (a literal, a `:=` the prover picks).
-    fn coll_kind(&self, e: &Expr) -> Option<bool> {
-        let kind = |t: &Ty| match t { Ty::List(_) => Some(false), Ty::Array(_) => Some(true), Ty::Ranged(b, _, _) => match &**b { Ty::List(_) => Some(false), Ty::Array(_) => Some(true), _ => None }, _ => None };
+    fn coll_kind(&self, e: &Expr) -> Option<Coll> {
+        let kind = coll_of_ty;
         match e {
             Expr::Var(n, _) | Expr::Owned(_, n, _) => self.lookup(n).and_then(|s| s.ty.as_ref().and_then(kind)),
             Expr::Paren(inner, _) => self.coll_kind(inner),
             Expr::Convert(t, ..) => kind(t),
             // a slice is a list, of an array too (owner, 2026-09-23)
-            Expr::Builtin(h, op, ..) if (h == "list" || h == "array") && op == "slice" => Some(false),
+            Expr::Builtin(h, op, ..) if (h == "list" || h == "array") && op == "slice" => Some(Coll::List(ListAlign::Plain)),
             Expr::Call(c) if c.kit.is_none() => {
                 let (module, name) = c.path.split_at(c.path.len() - 1);
                 self.prog.funcs.iter().find(|f| f.module == module && f.name == name[0]).and_then(|f| f.ret.as_ref().and_then(kind))
@@ -2365,11 +2365,16 @@ impl<'p> Interp<'p> {
         r
     }
 
-    fn kind_clash(&self, have: Option<bool>, want: &Ty, line: usize) -> Result<(), RuntimeError> {
+    fn kind_clash(&self, have: Option<Coll>, want: &Ty, line: usize) -> Result<(), RuntimeError> {
         let want = match want { Ty::Ranged(b, _, _) => &**b, t => t };
         match (have, want) {
-            (Some(false), Ty::Array(_)) => rt(line, "a list where an array is wanted: nothing converts by itself — `to.array(give …)`"),
-            (Some(true), Ty::List(_)) => rt(line, "an array where a list is wanted: nothing converts by itself — `to.list(give …)`"),
+            (Some(Coll::List(_)), Ty::Array(_)) => rt(line, "a list where an array is wanted: nothing converts by itself — `to.array(give …)`"),
+            (Some(Coll::Array), Ty::List(..)) => rt(line, "an array where a list is wanted: nothing converts by itself — `to.list(give …)`"),
+            // a page-aligned list goes anywhere a plain one does; into a narrowing only its own kind (owner, 2026-10-25)
+            (Some(Coll::List(h)), Ty::List(_, w)) if *w != ListAlign::Plain && h != *w => {
+                let shown = |k: ListAlign| if k == ListAlign::Plain { "a plain list".to_string() } else { format!("a `{}`", list_head(k)) };
+                rt(line, format!("{} where a `{}` is wanted: a list becomes one only by `to.{}(give …)`, which may copy it", shown(h), list_head(*w), list_head(*w)))
+            }
             _ => Ok(()),
         }
     }
@@ -2673,7 +2678,7 @@ impl<'p> Interp<'p> {
             }
             // `to.array[give 'l']` / `to.list[give 'a']` (owner, 2026-09-23): the elements are
             // handed over as they are; only whether it can grow changes
-            Expr::Convert(Ty::List(_) | Ty::Array(_), b, _, _, _) => {
+            Expr::Convert(Ty::List(_, _) | Ty::Array(_), b, _, _, _) => {
                 let (v, prov) = self.single(b, line)?;
                 match (&v, &prov) {
                     (_, Prov::Bare(n)) => rt(line, format!("converting bare {n}: say `give {n}` (no copy) or `copy {n}` (keeps {n})")),
@@ -2802,7 +2807,7 @@ impl<'p> Interp<'p> {
                 // bytes into text (owner, 2026-09-30: "yea"): a list or array of u8 read as UTF-8, failing
                 // `not_utf8` when they are not; only utf8 reads bytes so far
                 let src_ty = match b.values.first() { Some(crate::ast::Value::Expr(e)) => self.expr_ty(e), _ => None };
-                let from_bytes = matches!(&src_ty, Some(Ty::List(t) | Ty::Array(t)) if **t == Ty::Uint(IntWidth::W8));
+                let from_bytes = matches!(&src_ty, Some(Ty::List(t, _) | Ty::Array(t)) if **t == Ty::Uint(IntWidth::W8));
                 if from_bytes {
                     match base {
                         Ty::Str(Encoding::Utf8) => fails.push(FailCase { name: "not_utf8".into(), ty: None }),
@@ -3891,7 +3896,7 @@ impl<'p> Interp<'p> {
     /// `list.empty`, or a value of a bounded type `list[T][lo, hi]` — the cases the prover
     /// always knows. (It would know more; the oracle keeps to these.)
     fn sized_from(value: &Bracket, ty: Option<&Ty>) -> bool {
-        if matches!(ty, Some(Ty::Ranged(b, _, _)) if matches!(**b, Ty::List(_))) { return true; }
+        if matches!(ty, Some(Ty::Ranged(b, _, _)) if matches!(**b, Ty::List(_, _))) { return true; }
         if value.values.len() > 1 || value.one_list { return true; }
         matches!(value.values.as_slice(), [crate::ast::Value::Expr(Expr::Builtin(h, op, _, _))] if h == "list" && op == "empty")
     }
@@ -3908,7 +3913,10 @@ impl<'p> Interp<'p> {
             }
             // a pointer from C has the type C's declaration gives it (`malloc` → `ptr.mut[u8]`), so handing
             // it where C wants another struct's pointer is refused (owner, 2026-10-10: `ptr.mut[FILE]`)
-            [crate::ast::Value::Expr(e @ (Expr::Call(_) | Expr::PtrCast(..)))] => self.expr_ty_own(e).filter(|t| matches!(t, Ty::Ptr(..))),
+            [crate::ast::Value::Expr(e @ (Expr::Call(_) | Expr::PtrCast(..)))] => self.expr_ty_own(e).filter(|t| matches!(t, Ty::Ptr(..)) || coll_of_ty(t).is_some()),
+            // a list or array taken over or copied is still what it was declared, its kind too (owner, 2026-10-25: a
+            // page-aligned list keeps its kind), so `let $b := give $a;` cannot carry an array into a list's place
+            [crate::ast::Value::Expr(Expr::Owned(_, n, _))] => self.lookup(n).and_then(|s| s.ty.clone()).filter(|t| { let mut v = Vec::new(); t.vars_into(&mut v); v.is_empty() && coll_of_ty(t).is_some() }),
             // `let 'y' := 'x' + 0.5: f16;` is an f16, as its operands are (compiler claude, 2026-10-21), so it prints as one
             [crate::ast::Value::Expr(e @ (Expr::Binary(..) | Expr::Unary(..) | Expr::Paren(..)))] => self.static_ty(e).filter(|t| matches!(t, Ty::Bin(16 | 32))),
             // included bytes are an `array[u8]`, included text its named type (owner, 2026-10-10)
@@ -3916,17 +3924,17 @@ impl<'p> Interp<'p> {
             // `let 'a' := to.array[give 'l']` is an array of what 'l' held
             // `'y' := to.d32['x'] otherwise 0` is a d32, whatever its fallback (check claude, 2026-09-30)
             [crate::ast::Value::Expr(Expr::Convert(t @ (Ty::Int(_) | Ty::Uint(_) | Ty::Bin(_) | Ty::Deci(_)), _, _, _, _))] => Some(t.clone()),
-            [crate::ast::Value::Expr(Expr::Convert(t @ (Ty::List(_) | Ty::Array(_)), b, _, _, _))] => {
+            [crate::ast::Value::Expr(Expr::Convert(t @ (Ty::List(_, _) | Ty::Array(_)), b, _, _, _))] => {
                 let elem = match b.values.first() {
                     Some(crate::ast::Value::Expr(Expr::Owned(_, n, _) | Expr::Var(n, _))) => match self.lookup(n).and_then(|s| s.ty.clone()) {
-                        Some(Ty::List(e) | Ty::Array(e)) => Some(e),
-                        Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(e) | Ty::Array(e) => Some(e), _ => None },
+                        Some(Ty::List(e, _) | Ty::Array(e)) => Some(e),
+                        Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(e, _) | Ty::Array(e) => Some(e), _ => None },
                         _ => None,
                     },
                     _ => None,
                 };
                 let elem = elem.unwrap_or_else(|| Box::new(Ty::Var(String::new())));
-                Some(if matches!(t, Ty::Array(_)) { Ty::Array(elem) } else { Ty::List(elem) })
+                Some(match t { Ty::List(_, k) => Ty::List(elem, *k), _ => Ty::Array(elem) })
             }
             _ => None,
         }
@@ -3967,8 +3975,8 @@ impl<'p> Interp<'p> {
         // `list.fill[v, n]`: n copies of v (owner, 2026-09-30); a count below 0 is a check site
         if op == "fill" {
             let elem = match self.expected.take() {
-                Some(Ty::List(t)) | Some(Ty::Array(t)) => Some(*t),
-                Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(t) | Ty::Array(t) => Some(t.as_ref().clone()), _ => None },
+                Some(Ty::List(t, _)) | Some(Ty::Array(t)) => Some(*t),
+                Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(t, _) | Ty::Array(t) => Some(t.as_ref().clone()), _ => None },
                 _ => None,
             };
             let saved = std::mem::replace(&mut self.expected, elem.clone());
@@ -4027,7 +4035,7 @@ impl<'p> Interp<'p> {
                 let Some(cell) = cell else { return rt(line, "`list.append`/`remove` need a variable to change") };
                 // the appended value lands in an element slot: the element type is its context (owner, 2026-09-29: a)
                 let elem = if op == "append" { match self.lookup(&var_name).and_then(|s| s.ty.clone()) {
-                    Some(Ty::List(t)) => Some(*t), Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(t) => Some(*t), _ => None }, _ => None,
+                    Some(Ty::List(t, _)) => Some(*t), Some(Ty::Ranged(b, _, _)) => match *b { Ty::List(t, _) => Some(*t), _ => None }, _ => None,
                 } } else { None };
                 let saved = std::mem::replace(&mut self.expected, elem);
                 let r = self.value(&args.values[1]);
@@ -4044,7 +4052,7 @@ impl<'p> Interp<'p> {
                         _ => {}
                     }
                     let slot_ty = self.lookup(&var_name).and_then(|s| s.ty.clone());
-                    let inner = match &slot_ty { Some(Ty::List(inner)) => Some(inner.clone()), Some(Ty::Ranged(b, _, _)) => match &**b { Ty::List(inner) => Some(inner.clone()), _ => None }, _ => None };
+                    let inner = match &slot_ty { Some(Ty::List(inner, _)) => Some(inner.clone()), Some(Ty::Ranged(b, _, _)) => match &**b { Ty::List(inner, _) => Some(inner.clone()), _ => None }, _ => None };
                     if let Some(inner) = inner { self.check_type(&arg, &inner, line)?; }
                     items.push(arg);
                 } else {
@@ -4747,6 +4755,8 @@ impl<'p> Interp<'p> {
                             // parameter's (owner, 2026-09-24: a); a range's bounds do not change the layout
                             if let (Some(st), Some(pt)) = (&src_ty, &param.ty) {
                                 let mut vars = Vec::new(); pt.vars_into(&mut vars); st.vars_into(&mut vars);
+                                // a list's kind is not its layout, but a lend into a narrowing must be of that kind (owner, 2026-10-25)
+                                if let h @ Some(Coll::List(_)) = coll_of_ty(st) { if matches!(coll_of_ty(pt), Some(Coll::List(_))) { self.kind_clash(h, pt, c.line)?; } }
                                 if vars.is_empty() && layout_name(st) != layout_name(pt) {
                                     return rt(c.line, format!("`{name}` looks at '{pn}' as {}, but what you lent is {}: a lend hands over the value where it is, so the sizes must match (change the parameter, or make it generic)", ty_name(pt), ty_name(st)));
                                 }
@@ -5260,7 +5270,7 @@ impl<'p> Interp<'p> {
             Ty::Bool => (1, 1),
             Ty::Char(CharUnit::Byte) => (1, 1),
             Ty::Char(CharUnit::Point) => (4, 4),
-            Ty::Char(_) | Ty::Str(_) | Ty::List(_) | Ty::Array(_) => (24, 8),
+            Ty::Char(_) | Ty::Str(_) | Ty::List(_, _) | Ty::Array(_) => (24, 8),
             Ty::Ptr(..) => (8, 8),
             Ty::Var(n) => return rt(line, format!("`size.of[<{n}>]`: a type variable has no size until it is filled")),
             Ty::Ranged(b, _, _) => return self.size_align(b, line),
@@ -5999,7 +6009,7 @@ fn unranged(t: &Ty) -> Ty { match t { Ty::Ranged(b, _, _) => unranged(b), other 
 fn ty_shape(t: &Ty) -> String {
     match t {
         Ty::Int(_) | Ty::Uint(_) => "integer".into(), Ty::Bin(_) => "bin".into(), Ty::Brain => "brain16".into(), Ty::Deci(_) => "deci".into(), Ty::Bool => "bool".into(),
-        Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_) | Ty::Array(_) => "list".into(),
+        Ty::Str(_) => "str".into(), Ty::Char(_) => "char".into(), Ty::List(_, _) | Ty::Array(_) => "list".into(),
         Ty::Ptr(..) => "ptr".into(), Ty::Struct(n) | Ty::Inst(n, _) => n.clone(), Ty::Var(n) => format!("<{n}>"), Ty::Ranged(b, _, _) => ty_shape(b), Ty::TextRanged(..) => "str".into(), Ty::Map(..) => "map".into(), Ty::Simd(..) => "simd".into(), Ty::Channel(_) => "channel".into(), Ty::Duration => "duration".into(), Ty::Writer => "writer".into(), Ty::Fn(..) => "function".into(), Ty::CStr(_) => "list".into(), Ty::Percent(_) => "percent".into(), Ty::Places(t, ..) => ty_shape(t),
     }
 }
@@ -6013,7 +6023,7 @@ fn shape_of(v: &Value) -> String {
 fn subst(ty: &Ty, map: &HashMap<String, Ty>) -> Ty {
     match ty {
         Ty::Var(n) => map.get(n).cloned().unwrap_or_else(|| ty.clone()),
-        Ty::List(t) => Ty::List(Box::new(subst(t, map))),
+        Ty::List(t, k) => Ty::List(Box::new(subst(t, map)), *k),
         Ty::Array(t) => Ty::Array(Box::new(subst(t, map))),
         Ty::Ptr(t, m) => Ty::Ptr(Box::new(subst(t, map)), *m),
         Ty::Inst(n, args) => Ty::Inst(n.clone(), args.iter().map(|a| subst(a, map)).collect()),
@@ -6241,7 +6251,7 @@ fn layout_name(t: &Ty) -> String {
     match t {
         Ty::Ranged(b, _, _) => layout_name(b),
         Ty::TextRanged(e, _, _, _) => ty_name(&Ty::Str(e.clone())),
-        Ty::List(e) => format!("list[{}]", layout_name(e)),
+        Ty::List(e, _) => format!("list[{}]", layout_name(e)),
         Ty::Array(e) => format!("array[{}]", layout_name(e)),
         t => ty_name(t),
     }
@@ -6355,7 +6365,7 @@ fn show_useful_as(v: &Value, ty: Option<&Ty>) -> String {
             }
             format!("{x}")
         }
-        (Value::List(items), Some(Ty::List(e) | Ty::Array(e))) => format!("[{}]", items.iter().map(|i| show_useful_as(i, Some(e))).collect::<Vec<_>>().join(", ")),
+        (Value::List(items), Some(Ty::List(e, _) | Ty::Array(e))) => format!("[{}]", items.iter().map(|i| show_useful_as(i, Some(e))).collect::<Vec<_>>().join(", ")),
         (v, _) => v.show_useful(),
     }
 }
@@ -6380,7 +6390,7 @@ fn round_to_width(t: &Ty, v: Value) -> Value {
         (Ty::Bin(32), Value::Bin(x)) => Value::Bin(no_new_neg_zero(x, (x as f32) as f64)),
         (Ty::Bin(16), Value::Bin(x)) => Value::Bin(no_new_neg_zero(x, round_f16(x))),
         (Ty::Ranged(b, _, _), v) => round_to_width(b, v),
-        (Ty::List(e) | Ty::Array(e), Value::List(items)) => Value::List(items.into_iter().map(|i| round_to_width(e, i)).collect()),
+        (Ty::List(e, _) | Ty::Array(e), Value::List(items)) => Value::List(items.into_iter().map(|i| round_to_width(e, i)).collect()),
         (Ty::Simd(e, _), Value::Simd(lanes)) => Value::Simd(lanes.into_iter().map(|i| round_to_width(e, i)).collect()),
         (_, v) => v,
     }
@@ -6856,4 +6866,17 @@ fn no_position(i: i128) -> String {
 
 fn empty_part(word: &str) -> String {
     format!("`{word}` is a text of at least 1 byte (`str.utf8[min: 1 bytes]`): an empty one finds nothing (owner, 2026-10-14)")
+}
+
+/// What a collection is by its declared type: an `array`, or a `list` of one kind (owner, 2026-10-25)
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Coll { Array, List(ListAlign) }
+
+/// A list type's name before its `[T]`: `list`, `list.page_aligned`, `list.not_page_aligned`
+pub fn list_head(k: ListAlign) -> &'static str {
+    match k { ListAlign::Plain => "list", ListAlign::Page => "list.page_aligned", ListAlign::NotPage => "list.not_page_aligned" }
+}
+
+fn coll_of_ty(t: &Ty) -> Option<Coll> {
+    match t { Ty::List(_, k) => Some(Coll::List(*k)), Ty::Array(_) => Some(Coll::Array), Ty::Ranged(b, _, _) => coll_of_ty(b), _ => None }
 }

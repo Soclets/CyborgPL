@@ -51,7 +51,8 @@ whether final builds have run-time checks (no safety checks: unproven sites are 
   included, and keep their kind when grown there.
 - **A plain list becomes either only by an explicit conversion**, `to.list.page_aligned(give $xs)`,
   `to.list.not_page_aligned(give $xs)`, and so between the two.
-Design claude's reading: the conversions' names follow `to.list(…)` / `to.array(…)`. Not built in the oracle.
+Design claude's reading: the conversions' names follow `to.list(…)` / `to.array(…)`; a copy of a narrowed list, and a
+`:=` taking one over, are of its kind. Built in the oracle (examples/list_page_aligned.cy, tests/reject/page_aligned_*).
 
 ### 2026-10-25 — A list lent to a kernel must be read-only in Metal: `const device` or `constant`, else refused (owner: a)
 
@@ -106,7 +107,7 @@ pageable kind, the opposite of what a GPU wants), then: "It's long, but atleast 
   `.plain`.
 - Keeping a block's device, library and pipeline from one run to the next, which saves more than not copying below
   1 MB and changes nothing a program does, is kayo's speed work, no ruling needed (design claude's reading).
-Not built.
+Built in kayo; the oracle reads the two types (it has no GPU, so where memory starts is not something it can show).
 
 ### 2026-10-25 — The philosophy: many alternatives, and Precog is Precog (owner)
 

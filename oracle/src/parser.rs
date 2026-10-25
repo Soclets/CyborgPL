@@ -2334,10 +2334,16 @@ impl Parser {
                 Ok(base)
             }
             "list" | "array" => {
-                if segs.len() > 1 { return bad(self, format!("`{head}` takes its element type in brackets: `{head}[{}]` (decided 2026-09-19), not `{}`", segs[1..].join("."), segs.join("."))); }
+                // `std::list.page_aligned[T]` / `std::list.not_page_aligned[T]`: a list's kind, said (owner, 2026-10-25)
+                let align = match (head, segs.get(1).map(|s| s.as_str()), segs.len()) {
+                    (_, None, _) => ListAlign::Plain,
+                    ("list", Some("page_aligned"), 2) => ListAlign::Page,
+                    ("list", Some("not_page_aligned"), 2) => ListAlign::NotPage,
+                    _ => return bad(self, format!("`{head}` takes its element type in brackets: `{head}[{}]` (decided 2026-09-19), not `{}`{}", segs[1..].join("."), segs.join("."), if head == "list" { "; a list's kinds are `list.page_aligned[T]` and `list.not_page_aligned[T]`" } else { "" })),
+                };
                 if params.len() != 1 { return bad(self, format!("`{head}` takes exactly one type parameter: `{head}[i32]`, `{head}[str.utf8]`, `{head}[list[i32]]`")); }
                 let inner = params.pop().unwrap();
-                let base = if head == "list" { Ty::List(Box::new(inner)) } else { Ty::Array(Box::new(inner)) };
+                let base = if head == "list" { Ty::List(Box::new(inner), align) } else { Ty::Array(Box::new(inner)) };
                 // `list[i32][0, 1000]` — a length bound, the thing then its bounds like `i32[0, 100]` (decided 2026-09-21)
                 if *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_) | Tok::Bin(..)) || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max")) {
                     if head == "array" { return bad(self, "an `array` has one fixed length, so a bound on it says nothing; a length bound belongs on a `list`".to_string()); }
@@ -5263,14 +5269,20 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                     // `to.array[give 'l']` / `to.list[give 'a']` (owner, 2026-09-23): the element type
                     // does not change, so it is not written
                     if let Tok::Word(k) = self.peek().clone() {
+                        // `to.list.page_aligned(give $xs)` / `to.list.not_page_aligned(give $xs)` (owner, 2026-10-25)
+                        let align = if k == "list" && *self.peek_at(1) == Tok::Dot && *self.peek_at(3) == Tok::LBracket {
+                            match self.peek_at(2) { Tok::Word(w) if w == "page_aligned" => Some(ListAlign::Page), Tok::Word(w) if w == "not_page_aligned" => Some(ListAlign::NotPage), _ => None }
+                        } else { None };
+                        if align.is_some() { self.advance(); self.advance(); }
                         if (k == "list" || k == "array") && matches!(self.peek_at(1), Tok::LBracket) {
+                            let k = match align { Some(a) => crate::interp::list_head(a).to_string(), None => k };
                             self.advance();
                             self.call_open(&format!("to.{k}"))?;
                             let b = self.bracket()?;
                             if b.values.len() != 1 { return self.err(format!("`to.{k}(…)` converts exactly one value")); }
                             if *self.peek() == Tok::LBracket { return self.err(format!("`to.{k}(…)` keeps the element type, so it is not written: `to.{k}(give $x)`")); }
                             let blank = Box::new(Ty::Var(String::new()));
-                            return Ok(Expr::Convert(if k == "array" { Ty::Array(blank) } else { Ty::List(blank) }, b, None, 0, line));
+                            return Ok(Expr::Convert(if k == "array" { Ty::Array(blank) } else { Ty::List(blank, align.unwrap_or(ListAlign::Plain)) }, b, None, 0, line));
                         }
                     }
                     // `.useful` follows the verb (owner, 2026-09-30: b): `to.useful.str.utf8[…]`, `to.useful.d64[…]`
@@ -5294,7 +5306,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                         if b.values.len() != 1 { return self.err("`to.…[…]` converts exactly one value"); }
                         return Ok(Expr::Convert(ty, b, None, 3, line));
                     }
-                    if matches!(ty, Ty::List(_) | Ty::Array(_)) { return self.err("`to.list(…)` / `to.array(…)` keep the element type, so it is not written: `to.array(give $l)`"); }
+                    if matches!(ty, Ty::List(_, _) | Ty::Array(_)) { return self.err("`to.list(…)` / `to.array(…)` keep the element type, so it is not written: `to.array(give $l)`"); }
                     // a named type is allowed here only if it is a `layout.C enum` (checked when it runs:
                     // the parser cannot yet tell a struct's name from an enum's)
                     if matches!(ty, Ty::Inst(..) | Ty::Var(_)) { return self.err(format!("no conversion to {}; conversions are between numbers, text, lists and arrays", ty_name(&ty))); }
