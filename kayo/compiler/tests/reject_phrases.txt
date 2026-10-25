@@ -892,6 +892,7 @@ msl_copy_list [fnv:22edc1402ce7344a] :: 'xs' is a list of numbers: lend it, `len
 msl_include_missing [fnv:4319c5c377fdf56b] :: `#include "shaders/nope.metal"`: there is no such file in th
 msl_include_outside [fnv:519c5d155fbe97f1] :: `#include "../outside.metal"` reaches outside the kit: a sha
 msl_lend_number [fnv:cac652cdd675ee66] :: 'k' is a single value: `copy $k -> buffer(1)`, a Metal `cons
+msl_lent_but_written [fnv:ac11482037cb077c] :: error[metal::lent_but_written]
 msl_metal_not_listed [fnv:f82c75ae39ff9d4b] :: `inline.MSL` is Metal's, and this kit's CyJet.toml does not
 msl_needs_no_check [fnv:10fa1498d854aa1d] :: an `inline.MSL` block is a no_check site: the compiler canno
 msl_no_kernel [fnv:5d5510cc1907b89f] :: an `inline.MSL` block holds one `kernel` function, the one i
@@ -899,6 +900,7 @@ msl_no_threads [fnv:b529f3af359a0c53] :: an `inline.MSL` block says how many thr
 msl_slot_twice [fnv:4696919b3467d594] :: `buffer(0)` is bound twice, to $xs and $xs
 msl_text_bound [fnv:2ec49dab014f6094] :: 'k' is str, and what binds to the GPU is a number, a list of
 msl_two_kernels [fnv:db113e0ce70405a6] :: an `inline.MSL` block holds one kernel, and this one has 2:
+msl_way_unknown [fnv:d40913f07f7e72ab] :: error[unknown_narrowing]
 channel_through_std [fnv:2cf20a96c3edbb9f] :: `channel` is the MCPS limb's, not std's: write `channel.send(…)`
 writer_way_unknown [fnv:4053b6186a43b790] :: a writer is `std::print.writer`, `.whole` or `.split`
 use_list_without_as [fnv:f116abd9d3bfd802] :: `use` says the name after `as`

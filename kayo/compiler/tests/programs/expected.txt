@@ -347,3 +347,5 @@ msl_whole_pages 8
 msl_page_aligned 51
 # An exit code worked out, held wider than its `u8` (found 2026-10-25).
 exit_worked_out 8
+# `inline.MSL.wrap`: a kernel's signed sum wraps (owner, 2026-10-25).
+msl_wrap 1

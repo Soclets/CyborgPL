@@ -350,7 +350,7 @@ errors::table[
         errors::error[name = "metal::cannot_bind", means = "A value bound to the GPU is not a number, a list of numbers, a `layout.C` struct or a list of them, in a form Metal has.", tests = ["msl_text_bound",]],
         errors::error[name = "metal::include_missing", means = "An `inline.MSL` block includes a file that is not in the kit.", tests = ["msl_include_missing",]],
         errors::error[name = "metal::include_outside_kit", means = "An `inline.MSL` block includes a file outside the kit's folder.", tests = ["msl_include_outside",]],
-        errors::error[name = "metal::lent_but_written", means = "A value lent to read is bound to a kernel parameter that can write it; it takes `const device` or `constant`, or the value is lent to change.", about = "A value lent to read is bound to a kernel parameter that can write it: make the parameter `const device …` or `constant …`, or lend the value to change.", tests = []],
+        errors::error[name = "metal::lent_but_written", means = "A value lent to read is bound to a kernel parameter that can write it; it takes `const device` or `constant`, or the value is lent to change.", about = "A value lent to read is bound to a kernel parameter that can write it: make the parameter `const device …` or `constant …`, or lend the value to change.", tests = ["msl_lent_but_written",]],
         errors::error[name = "metal::compile_failed", means = "Apple's Metal compiler refuses an `inline.MSL` block's code.", tests = []],
         errors::error[name = "metal::run_failed", means = "The GPU could not run an `inline.MSL` block when the program ran.", tests = []],
         # Kinds kayo meets that no oracle refusal test reaches (compiler claude, reviewed by design claude, 2026-10-24).
@@ -432,7 +432,7 @@ errors::table[
         errors::error[name = "unknown_const", means = "No const of that name is reachable from here.", about = "The module has no const of that name.", tests = []],
         errors::error[name = "unknown_inline_language", means = "An inline block names a language that is not one of the inline languages.", about = "The inline languages are `inline.ASM`, `inline.LL` and `inline.MSL`.", tests = []],
         errors::error[name = "unknown_module", means = "No module of that name is reachable from here.", tests = []],
-        errors::error[name = "unknown_narrowing", means = "A word is narrowed with `.` and a word it does not take, such as `must.x` or `concur.x`.", tests = []],
+        errors::error[name = "unknown_narrowing", means = "A word is narrowed with `.` and a word it does not take, such as `must.x` or `concur.x`.", tests = ["msl_way_unknown",]],
         errors::error[name = "unknown_operation", means = "An operation of a built-in kind, such as `list.`, `map.` or `simd.`, is named that does not exist.", about = "The kind has no operation of that name; its operations are listed.", tests = []],
         errors::error[name = "unknown_power", means = "A power is named that does not exist.", about = "The powers are listed; any other is not one.", tests = []],
         errors::error[name = "unknown_text_unit", means = "A text or character unit is named that is not `byte`, `point` or `grapheme`.", about = "A text's units are `bytes`, `points` and `graphemes`; its encodings `utf8`, `utf16`, `utf32` and `ascii`.", tests = []],
