@@ -215,8 +215,10 @@ let $b := half(-4) otherwise cum_failed.flow_back_to_bladder;
 - A member is a **named `otherwise` block**: the arms written inline today,
   one per reason, a payload bound to a quoted name.
 - `otherwise cum_failed.flow_back_to_bladder` uses it **as if written at
-  the call** (design claude's reading, not objected to): its arms may
-  `return`, `break`, `continue` and `fail` from where it is used.
+  the call**: its arms may `return`, `break`, `continue` and `fail` from
+  where it is used, and the use carries no mark of it (owner, 2026-10-25:
+  "you already wrote what that handler is supposed to do in the
+  `coll,handler`, right?"; design claude's reading until then).
 - It is refused on a call it does not cover: every reason the call can
   fail with needs its arm, as inline.
 - A payload is bound as inline, `negative 'v'`, its type the call's

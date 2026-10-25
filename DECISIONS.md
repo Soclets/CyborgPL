@@ -34,6 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — A handler's `continue` / `break` is not marked where it is used (owner)
+
+The same review (point 1) found `otherwise order_failed.apologize(customer: …)` in the corner shop leaving the order
+loop with no sign at the call, and asked for a marker or a compile error outside a loop (the second already holds: a
+`continue` reaching no loop is refused). Design claude had read handlers, 2026-10-13, as acting "as if written at the
+call" (shown, not objected to, never asked). Asked whether a call should show that its handler can jump, design claude
+recommended no; the owner: "I mean, you already wrote what that handler is supposed to do in the `coll,handler`,
+right?" So **a handler's arms may `return`, `break`, `continue` and `fail` from where it is used, and the use carries
+no mark**: what it does is written once, in its `coll.handler`. This makes the 2026-10-13 reading the owner's.
+
 ### 2026-10-25 — A map lookup lends its key: `map.get`, `map.has`, `map.remove` take `key: lend $k`; `map.set` keeps `copy` / `give` (owner)
 
 A review of the corner shop posted on the issue thread (multifinity, from a fresh Claude) asked why
