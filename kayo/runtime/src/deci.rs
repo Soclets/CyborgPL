@@ -714,7 +714,86 @@ fn shortest(x: f64, bits: u32, out: &mut [u8]) -> usize {
             }
         }
     }
-    b.n
+    let n = b.n;
+    tie_to_even(x, bits, out, n)
+}
+
+/// Two shortest forms exactly as near `x` (the value is their midpoint)
+/// take the even last digit, as Ryu does (check claude, 2026-10-25: f32's
+/// 5305.65625 is `5305.6562`); Rust's own shortest form takes the upper.
+/// `out[..n]` is `d.ddde±N`; the new length comes back.
+fn tie_to_even(x: f64, bits: u32, out: &mut [u8], n: usize) -> usize {
+    let Some(e_at) = out[..n].iter().position(|&c| c == b'e') else { return n };
+    let last = e_at - 1;
+    let d = out[last];
+    if !d.is_ascii_digit() || (d - b'0') % 2 == 0 {
+        return n;
+    }
+    // The significant digits of the midpoint, the lower form with a 5 after
+    // it, and of `x` exactly: equal, at one exponent, is a tie.
+    let exp: i64 = core::str::from_utf8(&out[e_at + 1..n]).ok().and_then(|e| e.parse().ok()).unwrap_or(0);
+    let mut mid = [0u8; 72];
+    let mut m = 0;
+    for &c in &out[..e_at] {
+        if c.is_ascii_digit() {
+            mid[m] = c;
+            m += 1;
+        }
+    }
+    mid[m - 1] -= 1;
+    mid[m] = b'5';
+    m += 1;
+    let mut exact = [0u8; 1080];
+    let k = crate::expand(x, &mut exact);
+    let (mut xd, mut xn, mut point, mut first) = ([0u8; 1080], 0usize, None, None);
+    for &c in &exact[..k] {
+        match c {
+            b'.' => point = Some(xn),
+            b'0'..=b'9' => {
+                if first.is_none() && c != b'0' {
+                    first = Some(xn);
+                }
+                xd[xn] = c;
+                xn += 1;
+            }
+            _ => {}
+        }
+    }
+    let Some(first) = first else { return n };
+    let point = point.unwrap_or(xn);
+    // `x`'s digits from its first that is not 0, its trailing zeros gone,
+    // and the power of ten of that first digit.
+    let mut end = xn;
+    while end > first && xd[end - 1] == b'0' {
+        end -= 1;
+    }
+    let xexp = point as i64 - first as i64 - 1;
+    if xexp != exp || &xd[first..end] != &mid[..m] {
+        return n;
+    }
+    // The even form must read back as `x` too.
+    out[last] -= 1;
+    let mut back = 0.0f64;
+    let width = if bits == 64 || bits == 32 { bits } else if bits == crate::BRAIN { crate::BRAIN } else { 16 };
+    let status = unsafe { crate::cyborg_parse_bin(out.as_ptr(), n as u64, width, &mut back) };
+    if status != 0 || back != x {
+        out[last] += 1;
+        return n;
+    }
+    // A last 0 is no digit: `1.0e5` is `1e5`.
+    let mut cut = last;
+    if out[last] == b'0' {
+        while cut > 0 && (out[cut] == b'0' || out[cut] == b'.') {
+            let was = out[cut];
+            cut -= 1;
+            if was == b'.' {
+                break;
+            }
+        }
+        out.copy_within(e_at..n, cut + 1);
+        return n - (e_at - (cut + 1));
+    }
+    n
 }
 
 /// Text into a `deci`, by `bin`'s grammar (`types.md`): 0 and the value;
