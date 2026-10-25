@@ -26,6 +26,16 @@ rules decided under them still stand, below; they are no longer headline feature
 
 ## The rules behind them
 
+### Many alternatives, and Precog is Precog (owner, 2026-10-25)
+
+The owner, on whether a narrowing should exist beside Precog choosing for itself: "our philosophy is a hell lot of
+alternatives, and Precog is Precog". So **CyborgPL gives the writer a narrowing for each real way to do a thing, even
+a rarely wanted one**, as it already does (`.ieee`, `plus.wrap`, `print.writer.split`, `str.upper.simple`,
+`print.written`, `print.weird`); **and Precog still decides for itself wherever the writer does not say**, from what
+it proves over the whole program. A narrowing is how the writer says it; it never takes the place of Precog's own
+choice. A rare need is no reason to leave its narrowing out, and a narrowing is no reason for Precog to stop deciding.
+
+
 ### What "best" means (decided 2026-09-14)
 
 Best for **safety and performance** of the final product. The compiler

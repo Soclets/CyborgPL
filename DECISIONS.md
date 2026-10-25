@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-25 — The philosophy: many alternatives, and Precog is Precog (owner)
+
+Discussing how a list reaches the GPU, design claude argued against a narrowing that would save about 1 ms once ("not
+worth adding"). The owner: "Look at the things that have rare narrowings" (`.ieee`, `.wrap`, `print.writer.split`,
+`str.upper.simple`, `print.written`, `print.weird`), "Can Precog help?" (yes: it can prove which lists reach a GPU
+block), then, design claude offering Precog instead of the narrowing: "Bro, our philosophy is a hell lot of
+alternatives, and Precog is Precog". So **a narrowing is given for each real way to do a thing, however rare, and
+Precog decides wherever the writer does not say**; neither replaces the other. In `design/core-features.md`.
+
 ### 2026-10-25 — kayo reaches Metal through the objc2 crates (owner: b)
 
 Compiler claude, building `inline.MSL`: the dispatch runs in the built program, so it lives in kayo's runtime. Offered
