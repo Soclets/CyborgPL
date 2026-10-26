@@ -7,6 +7,7 @@
 //!   check file   <prog.cy>                               compare one hand-written program
 //!   check corpus                                          re-run every past finding in check/corpus/
 
+mod bare;
 mod claims;
 mod clayout;
 mod compare;
@@ -194,6 +195,7 @@ impl Args {
             modules: !avoid.contains("modules"),
             // `fn MAIN` reached as `my.MAIN(…)` (kayo 16a41328)
             fn_main: !avoid.contains("fn-main"),
+            bare: false,
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),
@@ -388,6 +390,51 @@ fn main() {
         "same" => same_run(&tools(), &a),
         "recref" => recref_run(&tools(), &a),
         "clayout" => clayout_run(&tools(), &a),
+        "bare" => {
+            // a chip with no OS: kayo's aarch64-none build booted in QEMU against
+            // the oracle (2026-10-26; oracle 29b59ddc)
+            let t = tools();
+            let cfg = Config { lists: false, borrows: false, inputs: 0, std_all: false, iterators: false, written: false, bare: true, ..a.config_modelled() };
+            let (mut same, mut differ, mut failed) = (0, 0, vec![]);
+            // corpus-bare/ first: each a program whose MAIN ends in std::exit
+            let mut files: Vec<_> = std::fs::read_dir(repo().join("check/corpus-bare")).map(|d| d.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "cy")).collect()).unwrap_or_default();
+            files.sort();
+            for f in files {
+                let name = f.file_stem().unwrap().to_string_lossy().to_string();
+                let text = std::fs::read_to_string(&f).unwrap();
+                let dir = work().join("bare").join(&name);
+                let _ = std::fs::create_dir_all(&dir);
+                match bare::check_text(&t, &text, &dir) {
+                    bare::Outcome::Same => println!("agrees       {name}"),
+                    bare::Outcome::Differ(why) => println!("STILL FAILS  {name}  ({why})"),
+                    bare::Outcome::Failed(why) => println!("STILL FAILS  {name}  ({why})"),
+                }
+            }
+            if a.has("corpus-only") {
+                return;
+            }
+            for seed in a.num("from", 1)..a.num("from", 1) + a.num("cases", 50) {
+                let p = generate(seed, &cfg);
+                // a mistake on purpose is refused before any board
+                if p.expect_refused {
+                    continue;
+                }
+                let dir = work().join("bare").join(seed.to_string());
+                let _ = std::fs::create_dir_all(&dir);
+                match bare::check(&t, &p, &dir) {
+                    bare::Outcome::Same => same += 1,
+                    bare::Outcome::Differ(why) => {
+                        differ += 1;
+                        println!("seed {seed}: {why}, files in {}", dir.display());
+                    }
+                    bare::Outcome::Failed(why) => failed.push(format!("seed {seed}: {why}")),
+                }
+            }
+            for f in failed.iter().take(5) {
+                println!("not built or run: {f}");
+            }
+            println!("{} programs: {same} the same on the bare board, {differ} differ, {} not built or run", same + differ + failed.len(), failed.len());
+        }
         "metal" => {
             // inline.MSL on the GPU against the oracle's loop (kayo 793861b5)
             let t = tools();

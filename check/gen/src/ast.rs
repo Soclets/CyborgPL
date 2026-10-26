@@ -525,6 +525,8 @@ pub struct Program {
     /// Every piece a limb adds marked `%`, a percent a word (owner, 2026-10-26;
     /// oracle 8bc2967c): `limbs::mark_limbs`, last.
     pub limb_marks: bool,
+    /// No `extern.C` (a chip with no operating system; `check bare`).
+    pub bare: bool,
     /// Omit parentheses where design/operators.md says they are not needed.
     pub loose: bool,
     /// Holds values my exact evaluator does not model (deci, bin, text):
@@ -1091,7 +1093,9 @@ impl Program {
         // `extern.C`, one line each, or as a block (owner, 2026-10-02: "both");
         // the block where there are three, so both forms are written
         let write = "fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;\n";
-        if self.inputs.is_empty() {
+        if self.bare {
+            // nothing of C on a chip with no operating system
+        } else if self.inputs.is_empty() {
             w.out.push_str(&format!("extern.C {write}"));
         } else {
             w.out.push_str(&format!("extern.C {{\n    {write}    fn getenv ['name': ptr[u8]] -> ptr[u8];\n    fn strlen ['s': ptr[u8]] -> u64;\n}}\n"));

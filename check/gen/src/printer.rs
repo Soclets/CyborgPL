@@ -5,6 +5,13 @@
 
 use crate::rng::Rng;
 
+/// The printer of a program for a chip with no operating system (`check
+/// bare`, 2026-10-26): no C and no heap, so `put_u` / `put_i` go through
+/// `std::print`, which the target sends to the board's serial port.
+pub fn bare_printer() -> String {
+    "fn put_u ['n': u64] {\n    std::print.useful['n', newln];\n}\n\nfn put_i ['n': i64] {\n    std::print.useful['n', newln];\n}\n".to_string()
+}
+
 pub fn printer(rng: &mut Rng) -> String {
     let digits = match rng.below(3) {
         0 => DIGITS_REVERSED_FOR,
