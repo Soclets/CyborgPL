@@ -4,14 +4,14 @@
 # (`int32_t` is `i32`). A named C enum is a `layout.C enum` (`color.BLUE`, its value 6, counted on
 # from `GREEN = 5`); one named by its `typedef` takes that name (`level_t`); an unnamed one's names are
 # consts (`$SEEK_B`), and so is a later name for a number already named (`$SHADE_LAST`). A C function pointer is CyborgPL's callback type, `fn[…] -> C.int`. All are CNC's.
-incl.C["headers/paint.h"];
+incl.%C["headers/paint.h"];
 
 MAIN {
-    let $n: C.long = 40;
-    let $c: C.char = -3;
-    let $d: C.long_double = 1.5;
+    let $n: %C.long = 40;
+    let $c: %C.char = -3;
+    let $d: %C.long_double = 1.5;
     std::print.useful(to.i32(color.BLUE), " ", to.i32(level_t.LOW), " ", $SEEK_B, newln);
-    std::print.useful($n + 2, " ", $c, " ", $d, " ", size.of[C.long], " ", size.of[C.int], newln);
+    std::print.useful($n + 2, " ", $c, " ", $d, " ", size.of[%C.long], " ", size.of[%C.int], newln);
     # a header's last struct comes through whole too (compiler claude found it opaque once): 16 bytes
     std::print.useful(size.of[last], newln);
     # an unnamed struct named by its `typedef` comes through whole as well: `pair_t`, 8 bytes

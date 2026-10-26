@@ -4,9 +4,9 @@
 # The Nth Fibonacci number, recursively; the exit code is its low byte. N
 # comes from the environment and must be 0 to 92 — fib(93) does not fit an
 # i64 — and anything else ends the program with exit code 2, as does no N at all.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
-extern.C fn atoll [$s: ptr[u8]] -> i64[min: 0, max: 92];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn atoll [$s: ptr[u8]] -> i64[min: 0, max: 92];
 
 # N, from the text in the environment: missing when there is none, and out
 # of range when it is not a number this program takes.

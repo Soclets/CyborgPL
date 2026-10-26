@@ -1,3 +1,3 @@
-layout.rust struct P { x: i32 }
+%layout.rust struct P { x: i32 }
 MAIN {
 }

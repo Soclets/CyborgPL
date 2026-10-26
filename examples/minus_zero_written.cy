@@ -1,6 +1,6 @@
 # A written -0.0 is 0: no bin is -0 except through the .ieee forms (owner, 2026-10-07: "a").
 # check claude, 2026-10-19 (corpus 3878ea56): the oracle kept the sign of a written -0.0.
-layout.C union Un { i: i32, u: u32, f: f32 }
+%layout.C union Un { i: i32, u: u32, f: f32 }
 
 MAIN {
     let $a: f32 = -0.0;

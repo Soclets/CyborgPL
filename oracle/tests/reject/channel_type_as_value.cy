@@ -1,3 +1,3 @@
 MAIN {
-    let $c := channel[i32];
+    let $c := %channel[i32];
 }

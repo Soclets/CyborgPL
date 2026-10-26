@@ -8,14 +8,14 @@ coll.bound quantity {
 
 coll.bound order {
     order.discount = i32[min: 0, max: 50];
-    order.name = str.utf8[min: 1, max: 12 graphemes];
+    order.name = str.utf8[min: 1, max: 12 %graphemes];
     order.few = std::list[i32][max: 3];
 }
 
 struct Line { name: order.name, count: quantity }
 
-fn apply_discount [$amount: d64, $percent: order.discount] -> d64 {
-    return $amount - ($amount x to.d64($percent)) div.near 100;
+fn apply_discount [$amount: %d64, $percent: order.discount] -> %d64 {
+    return $amount - ($amount x to.%d64($percent)) div.near 100;
 }
 
 MAIN {

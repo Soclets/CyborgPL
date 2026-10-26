@@ -1,3 +1,3 @@
 MAIN {
-    let $c: char.grapheme = `a`;
+    let $c: char.%grapheme = `a`;
 }

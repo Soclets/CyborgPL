@@ -1,3 +1,3 @@
 MAIN {
-    let $c: char.point = `é`;
+    let $c: char.%point = `é`;
 }

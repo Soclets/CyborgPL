@@ -10,8 +10,8 @@ MAIN {
     let $a: f32 = -0.000001;
     let $b: f32 = 360.0;
     std::print.useful(($a mod.floor $b), newln);
-    let $h: brain16 = -1.0;
-    let $k: brain16 = 360.0;
-    let $one: brain16 = 1.0;
+    let $h: %brain16 = -1.0;
+    let $k: %brain16 = 360.0;
+    let $one: %brain16 = 1.0;
     std::print.useful(($h mod.floor $k), " ", ($one mod.ceil $k), newln);
 }

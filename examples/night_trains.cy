@@ -21,8 +21,8 @@
 const $network_name := "Nightjar";
 const $departure: i32 = 1290;        # every train leaves at 21:30, counted in minutes from midnight
 const $change_minutes: i32 = 10;     # changing trains at a station costs ten minutes
-const $near_rate: d64 = 0.12;        # the fare per km for the first 500 km
-const $far_rate: d64 = 0.08;         # and per km after that
+const $near_rate: %d64 = 0.12;        # the fare per km for the first 500 km
+const $far_rate: %d64 = 0.08;         # and per km after that
 const $near_km: i32 = 500;
 const $by_eight: i32 = 1920;         # 08:00 the next morning, 1440 + 480
 
@@ -82,7 +82,7 @@ struct Booking {
     traveller: str.utf8,
     journey: Journey,
     seat: Seat,
-    fare: d64
+    fare: %d64
 }
 
 # ---------------------------------------------------------------------------------------------------
@@ -91,7 +91,7 @@ struct Booking {
 
 interface Number {
     i32
-    d64
+    %d64
 }
 
 fn total_of <T: Number> [lent $xs: std::list[<T>]] -> <T> {
@@ -295,18 +295,18 @@ fn Clock.next [lent.mut $c: Clock] -> optional[i32] {
 # Fares, in exact decimals
 # ---------------------------------------------------------------------------------------------------
 
-fn distance_fare [$km: i32] -> d64 {
-    if $km at_most $near_km { return $near_rate x to.d64($km); }
-    let $far := to.d64($km - $near_km);
-    return $near_rate x to.d64($near_km) + $far_rate x $far;
+fn distance_fare [$km: i32] -> %d64 {
+    if $km at_most $near_km { return $near_rate x to.%d64($km); }
+    let $far := to.%d64($km - $near_km);
+    return $near_rate x to.%d64($near_km) + $far_rate x $far;
 }
 
 # The bed costs the same per compartment, shared by however many sleep in it.
-fn supplement [lent $seat: Seat] -> d64 {
+fn supplement [lent $seat: Seat] -> %d64 {
     match $seat {
         seat { return 0; }
         couchette { return 25.00; }
-        sleeper $berths { return 120.00 div.near to.d64($berths); }
+        sleeper $berths { return 120.00 div.near to.%d64($berths); }
     }
 }
 
@@ -321,9 +321,9 @@ fn discount [$age: Age] -> i32[min: 0, max: 50] {
 
 # The fare before rounding can hold more than two places (30% of 0.15 is 0.045): it is rounded to the
 # cent once, at the end, half to even, and said so.
-fn fare [$km: i32, lent $seat: Seat, $age: Age] -> d64 {
+fn fare [$km: i32, lent $seat: Seat, $age: Age] -> %d64 {
     let $full := distance_fare($km) + supplement(lend $seat);
-    let $off := to.d64(discount(copy $age));
+    let $off := to.%d64(discount(copy $age));
     let $exact := $full - ($full x $off) div.near 100;
     return std::round.near($exact, places: 2);
 }
@@ -516,18 +516,18 @@ fn reached_by [lent $net: Network, lent $hub: str.utf8, $deadline: i32] -> i32 {
 }
 
 fn compare_hubs [lent $net: Network] {
-    let $paris_ch: channel[i32] = channel.empty;
-    let $koln_ch: channel[i32] = channel.empty;
-    let $wien_ch: channel[i32] = channel.empty;
+    let $paris_ch: %channel[i32] = %channel.empty;
+    let $koln_ch: %channel[i32] = %channel.empty;
+    let $wien_ch: %channel[i32] = %channel.empty;
     let $paris := "Paris";
     let $koln := "Köln";
     let $wien := "Wien";
-    concur with [lend $paris_ch, lend $net, lend $paris] { channel.send(lend $paris_ch, value: reached_by(lend $net, lend $paris, $by_eight)); }
-    concur with [lend $koln_ch, lend $net, lend $koln] { channel.send(lend $koln_ch, value: reached_by(lend $net, lend $koln, $by_eight)); }
-    concur with [lend $wien_ch, lend $net, lend $wien] { channel.send(lend $wien_ch, value: reached_by(lend $net, lend $wien, $by_eight)); }
-    let $p := channel.take(lend $paris_ch) otherwise 0;
-    let $k := channel.take(lend $koln_ch) otherwise 0;
-    let $w := channel.take(lend $wien_ch) otherwise 0;
+    %concur with [lend $paris_ch, lend $net, lend $paris] { %channel.send(lend $paris_ch, value: reached_by(lend $net, lend $paris, $by_eight)); }
+    %concur with [lend $koln_ch, lend $net, lend $koln] { %channel.send(lend $koln_ch, value: reached_by(lend $net, lend $koln, $by_eight)); }
+    %concur with [lend $wien_ch, lend $net, lend $wien] { %channel.send(lend $wien_ch, value: reached_by(lend $net, lend $wien, $by_eight)); }
+    let $p := %channel.take(lend $paris_ch) otherwise 0;
+    let $k := %channel.take(lend $koln_ch) otherwise 0;
+    let $w := %channel.take(lend $wien_ch) otherwise 0;
     std::print.useful(newln, "stations reached by ", clock($by_eight), ": Paris ", $p, ", Köln ", $k, ", Wien ", $w, newln);
 }
 
@@ -563,7 +563,7 @@ fn show_letters [lent $net: Network] {
 fn report [lent $bookings: std::list[Booking], lent $left: std::map.ordered[str.utf8, i32]] {
     let mut $out := std::print.writer(size: 4096 bytes);
     std::print.useful(lend.mut $out, newln, "=== ", $network_name, ", tonight ===", newln);
-    let $fares: std::list[d64] = std::list.empty;
+    let $fares: std::list[%d64] = std::list.empty;
     let $kms: std::list[i32] = std::list.empty;
     let $longest := 0;
     let $longest_who := "nobody";
@@ -580,7 +580,7 @@ fn report [lent $bookings: std::list[Booking], lent $left: std::map.ordered[str.
     std::print.useful(lend.mut $out, "tickets sold: ", $count, newln);
     std::print.format(lend.mut $out, "takings: {places: 2}\n", $takings);
     if $count > 0 {
-        let $average := std::round.near($takings div.near to.d64(to.i32($count)), places: 2);
+        let $average := std::round.near($takings div.near to.%d64(to.i32($count)), places: 2);
         std::print.format(lend.mut $out, "average fare: {places: 2}\n", $average);
     }
     std::print.useful(lend.mut $out, "km travelled: ", total_of(lend $kms), ", the longest ", $longest, " km (", $longest_who, ")", newln);
@@ -627,7 +627,7 @@ fn show_quarter_hours [] {
 
 # Exact decimals: why a fare is a `d64`. A fare of 0.10 three times is 0.30 exactly.
 fn show_exact_money [] {
-    let $dime: d64 = 0.10;
+    let $dime: %d64 = 0.10;
     let $three := $dime + $dime + $dime;
     let $float: f64 = 0.1 + 0.1 + 0.1;
     std::print.useful("three fares of 0.10 as d64: ");

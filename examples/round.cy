@@ -6,5 +6,5 @@ MAIN {
     std::print.useful(std::round.near(2.675: f64, places: 2), " ", std::round.floor(-1.234: f64, places: 1), newln);
     let $d := exactly 2.675;
     std::print.useful(std::round.near($d, places: 2), " ", std::round.half_up($d, places: 2), " ", std::round.floor(0.0 - $d, places: 2), " ", std::round.ceil($d, places: 1), newln);
-    std::print.useful(std::round.near(exactly 2.665: d64, places: 2), " ", std::round.trunc(exactly 2.665: d64, places: 1), newln);
+    std::print.useful(std::round.near(exactly 2.665: %d64, places: 2), " ", std::round.trunc(exactly 2.665: %d64, places: 1), newln);
 }

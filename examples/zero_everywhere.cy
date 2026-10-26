@@ -16,8 +16,8 @@ MAIN {
     std::print.useful($z div.near $n, " ", $z div.near.ieee $n, newln);
     let $m: f64 = negate.ieee $z;
     std::print.useful($m + $m, " ", $m plus.ieee $m, " ", $m - $z, " ", $m minus.ieee $z, newln);
-    let $b: brain16 = 0.0;
-    let $c: brain16 = -3.0;
+    let $b: %brain16 = 0.0;
+    let $c: %brain16 = -3.0;
     std::print.useful($b x $c, " ", $b times.ieee $c, " ", -$b, " ", negate.ieee $b, newln);
     let $w: f32 = $e30 x $e30 x (-1.0);
     std::print.useful($w, " ", 3.0 mod.floor (-3.0), " ", 3.0 mod.floor.ieee (-3.0), " ", (-3.0) mod.trunc 3.0, " ", (-3.0) mod.trunc.ieee 3.0, newln);

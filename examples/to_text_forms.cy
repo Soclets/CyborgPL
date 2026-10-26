@@ -7,7 +7,7 @@ enum Size {
 
 MAIN {
     let $x: f64 = 0.1;
-    let $d: d64 = 1.50;
+    let $d: %d64 = 1.50;
     let $n: i32 = 42;
     let $ok := true;
     let $s := Size.big;

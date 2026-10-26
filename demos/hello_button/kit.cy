@@ -2,27 +2,27 @@
 # with a button that quits the program"). SDL3 draws it through CNC and C: the text with SDL's built-in debug font, the
 # button as a filled rectangle that lights up under the mouse; a click on it, or closing the window, ends the program.
 # Build and run it with `kayo build --final demos/hello_button -o build/hello_button && build/hello_button`.
-extern.C fn SDL_Init [$flags: u32] -> bool;
-extern.C fn SDL_CreateWindow [$title: ptr[u8], $w: i32, $h: i32, $flags: u64] -> ptr.mut[u8];
-extern.C fn SDL_CreateRenderer [$window: ptr.mut[u8], $name: ptr[u8]] -> ptr.mut[u8];
-extern.C fn SDL_SetRenderScale [$r: ptr.mut[u8], $x: f32, $y: f32] -> bool;
-extern.C fn SDL_SetRenderDrawColor [$r: ptr.mut[u8], $red: u8, $green: u8, $blue: u8, $alpha: u8] -> bool;
-extern.C fn SDL_RenderClear [$r: ptr.mut[u8]] -> bool;
-extern.C fn SDL_RenderFillRect [$r: ptr.mut[u8], $rect: ptr[f32]] -> bool;
-extern.C fn SDL_RenderRect [$r: ptr.mut[u8], $rect: ptr[f32]] -> bool;
-extern.C fn SDL_RenderDebugText [$r: ptr.mut[u8], $x: f32, $y: f32, $text: ptr[u8]] -> bool;
-extern.C fn SDL_RenderPresent [$r: ptr.mut[u8]] -> bool;
-extern.C fn SDL_PollEvent [$event: ptr.mut[u8]] -> bool;
-extern.C fn SDL_GetMouseState [$x: ptr.mut[f32], $y: ptr.mut[f32]] -> u32;
-extern.C fn SDL_Delay [$ms: u32];
-extern.C fn SDL_DestroyRenderer [$r: ptr.mut[u8]];
-extern.C fn SDL_DestroyWindow [$window: ptr.mut[u8]];
-extern.C fn SDL_Quit [];
+%extern.C fn SDL_Init [$flags: u32] -> bool;
+%extern.C fn SDL_CreateWindow [$title: ptr[u8], $w: i32, $h: i32, $flags: u64] -> ptr.mut[u8];
+%extern.C fn SDL_CreateRenderer [$window: ptr.mut[u8], $name: ptr[u8]] -> ptr.mut[u8];
+%extern.C fn SDL_SetRenderScale [$r: ptr.mut[u8], $x: f32, $y: f32] -> bool;
+%extern.C fn SDL_SetRenderDrawColor [$r: ptr.mut[u8], $red: u8, $green: u8, $blue: u8, $alpha: u8] -> bool;
+%extern.C fn SDL_RenderClear [$r: ptr.mut[u8]] -> bool;
+%extern.C fn SDL_RenderFillRect [$r: ptr.mut[u8], $rect: ptr[f32]] -> bool;
+%extern.C fn SDL_RenderRect [$r: ptr.mut[u8], $rect: ptr[f32]] -> bool;
+%extern.C fn SDL_RenderDebugText [$r: ptr.mut[u8], $x: f32, $y: f32, $text: ptr[u8]] -> bool;
+%extern.C fn SDL_RenderPresent [$r: ptr.mut[u8]] -> bool;
+%extern.C fn SDL_PollEvent [$event: ptr.mut[u8]] -> bool;
+%extern.C fn SDL_GetMouseState [$x: ptr.mut[f32], $y: ptr.mut[f32]] -> u32;
+%extern.C fn SDL_Delay [$ms: u32];
+%extern.C fn SDL_DestroyRenderer [$r: ptr.mut[u8]];
+%extern.C fn SDL_DestroyWindow [$window: ptr.mut[u8]];
+%extern.C fn SDL_Quit [];
 
 MAIN {
-    let $title := C.str.make("CyborgPL");
-    let $hello := C.str.make("Hello World");
-    let $quit := C.str.make("Quit");
+    let $title := %C.str.make("CyborgPL");
+    let $hello := %C.str.make("Hello World");
+    let $quit := %C.str.make("Quit");
     # SDL_Event is 128 bytes; its first 4 are the type: SDL_EVENT_QUIT is 0x100, SDL_EVENT_MOUSE_BUTTON_UP 0x402
     let mut $event: std::list[u8] = std::list.fill(value: 0, count: 128);
     # the mouse, in window points; the drawing is scaled by 2, so a point is half a drawn unit

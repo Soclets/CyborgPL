@@ -1,1 +1,1 @@
-MAIN { let $x := "a"; concur.detached with [lend $x] { }; }
+MAIN { let $x := "a"; %concur.detached with [lend $x] { }; }

@@ -1,5 +1,5 @@
 fn work [] { }
 
 MAIN {
-    concur work[];
+    %concur work[];
 }

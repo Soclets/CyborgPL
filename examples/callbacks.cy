@@ -1,5 +1,5 @@
 # Callbacks (design/ffi.md, 2026-09-21): a capture-free, C-shaped CyborgPL function handed to C.
-extern.C fn qsort [$base: ptr.mut[i32], $n: u64, $size: u64,
+%extern.C fn qsort [$base: ptr.mut[i32], $n: u64, $size: u64,
                  $cmp: fn[ptr[i32], ptr[i32]] -> i32];
 
 fn ascending [$a: ptr[i32], $b: ptr[i32]] -> i32 {

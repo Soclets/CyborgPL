@@ -4,9 +4,9 @@
 # line sits in a `module` block (`pub.kit` there, as for any item a module shares). A call into C
 # is a `no_check` site, as for `extern.C`. The oracle runs only the C functions it imitates (write,
 # strlen, getenv, malloc, free, exit, qsort).
-incl.C.system["unistd.h", "stdio.h"];
+incl.%C.system["unistd.h", "stdio.h"];
 
-module text { pub.kit incl.C.system["string.h"]; }
+module text { pub.kit incl.%C.system["string.h"]; }
 
 MAIN {
     let $msg := "hello through C's write";

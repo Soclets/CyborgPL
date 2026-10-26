@@ -3,13 +3,13 @@ fn fetch [lent $url: str.utf8] -> str.utf8 { return "page of " concat $url; }
 
 MAIN {
     # Each task sends on its own channel, so the pages print in the same order whichever finishes first.
-    let $from_a: channel[str.utf8] = channel.empty;
-    let $from_b: channel[str.utf8] = channel.empty;
+    let $from_a: %channel[str.utf8] = %channel.empty;
+    let $from_b: %channel[str.utf8] = %channel.empty;
     let $a := "a.com";
-    concur with [lend $from_a, give $a] { channel.send(lend $from_a, value: fetch(lend $a)); }
-    concur with [lend $from_b] { channel.send(lend $from_b, value: fetch("b.com")); }
-    let $page_a := channel.take(lend $from_a) otherwise str.empty;
-    let $page_b := channel.take(lend $from_b) otherwise str.empty;
+    %concur with [lend $from_a, give $a] { %channel.send(lend $from_a, value: fetch(lend $a)); }
+    %concur with [lend $from_b] { %channel.send(lend $from_b, value: fetch("b.com")); }
+    let $page_a := %channel.take(lend $from_a) otherwise str.empty;
+    let $page_b := %channel.take(lend $from_b) otherwise str.empty;
     std::print.useful($page_a, newln, $page_b, newln);
     let $d := 5 secs;
     std::print.useful($d, " ", 1500 millis, " ", 1 hour, " ", 5 secs equal_to 5_000 millis, newln);

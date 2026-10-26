@@ -1,12 +1,12 @@
 # The door to the OS (design/ffi.md). The oracle cannot link C; it emulates
 # write, exit, getenv, strlen, malloc, free so this runs.
-extern.C fn write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
-extern.C fn strlen [$s: ptr[u8]] -> u64;
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
-extern.C fn malloc [$bytes: u64] -> ptr.mut[u8];
-extern.C fn free [$p: ptr.mut[u8]];
+%extern.C fn write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
+%extern.C fn strlen [$s: ptr[u8]] -> u64;
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn malloc [$bytes: u64] -> ptr.mut[u8];
+%extern.C fn free [$p: ptr.mut[u8]];
 
-layout.C struct Timeval {
+%layout.C struct Timeval {
     sec: i64,
     usec: i64
 }

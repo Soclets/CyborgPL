@@ -6,7 +6,7 @@ fn total <T: any> [lent $xs: std::list[<T>]] -> <T> {
     return $sum;
 }
 MAIN {
-    let $a: std::list[d64] = [0.1, 0.2];
+    let $a: std::list[%d64] = [0.1, 0.2];
     let $b: std::list[f64] = [0.5, 0.25];
     let $c: std::list[i32] = [1, 2];
     std::print.useful(total(lend $a), " ", total(lend $b), " ", total(lend $c), newln);

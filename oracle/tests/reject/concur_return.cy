@@ -1,1 +1,1 @@
-MAIN { concur { return; }; }
+MAIN { %concur { return; }; }

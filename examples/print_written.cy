@@ -4,10 +4,10 @@
 # `otherwise std::print.useful` (or `.stored`), or it is refused.
 MAIN {
     let $x: f16 = 0.123456789;
-    let $tax := exactly 7.5%;
+    let $tax := exactly 7.5 percent;
     std::print.stored($x, newln);
     std::print.useful($x, newln);
-    std::print.written($x, " ", $tax, " ", -2.50, " ", exactly 51.0%, newln);
+    std::print.written($x, " ", $tax, " ", -2.50, " ", exactly 51.0 percent, newln);
     let $y := $x + 0.5: f16;
     std::print.written($y, newln) otherwise std::print.useful;
     let mut $z: f64 = 1.25;

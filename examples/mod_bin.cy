@@ -5,8 +5,8 @@ MAIN {
     let $turn: f64 = 360.0;
     let $a: f64 = 7.5;
     let $b: f64 = -2.0;
-    let $h: brain16 = -5.0;
-    let $k: brain16 = 3.0;
+    let $h: %brain16 = -5.0;
+    let $k: %brain16 = 3.0;
     std::print.useful($angle mod.floor $turn, " ", $a mod.floor $b, " ", $h mod.floor $k, newln);
     std::print.useful(($angle mod.trunc $turn), " ", ($a mod.trunc $b), newln);
     # a tiny negative would round up to the divisor itself; it is 0 instead, so the answer stays below 360

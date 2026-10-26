@@ -1,4 +1,4 @@
-extern.C fn malloc [$bytes: u64] -> ptr.mut[u8];
+%extern.C fn malloc [$bytes: u64] -> ptr.mut[u8];
 struct Plain {
     x: i32
 }

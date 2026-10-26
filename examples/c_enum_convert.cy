@@ -2,7 +2,7 @@
 # converts it, failing `out_of_range` for a number no case has — here 302, a key a newer
 # library added — so the program decides what an unknown key means instead of hitting
 # undefined behaviour in the `match`. A callback, which C calls, takes the plain number.
-layout.C enum Key { a = 65, b = 66, escape = 256 }
+%layout.C enum Key { a = 65, b = 66, escape = 256 }
 fn on_key [$code: i32] -> i32 {
     let $k := to.Key($code) otherwise { out_of_range { return 0; } };
     match $k {

@@ -1,3 +1,3 @@
 MAIN {
-    let $n: not_std.i24 = 5;
+    let $n: %not_std.i24 = 5;
 }

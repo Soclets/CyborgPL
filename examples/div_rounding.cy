@@ -14,7 +14,7 @@ MAIN {
     let $board: f64 = 7.5;
     let $plank: f64 = 2.0;
     std::print.useful(($board div.near $plank), " ", ($board div.floor $plank), " ", ($board mod.floor $plank), " ", ($board div.ceil $plank), " ", ($board mod.ceil $plank), newln);
-    let $p: d64 = -7.5;
-    let $q: d64 = 2.0;
+    let $p: %d64 = -7.5;
+    let $q: %d64 = 2.0;
     std::print.useful(($p div.near $q), " ", ($p div.floor $q), " ", ($p mod.floor $q), " ", ($p div.trunc $q), " ", ($p mod.trunc $q), " ", ($p div.near $q), newln);
 }

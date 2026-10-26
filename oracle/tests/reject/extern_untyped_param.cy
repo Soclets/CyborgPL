@@ -1,3 +1,3 @@
-extern.C fn f [$a];
+%extern.C fn f [$a];
 MAIN {
 }

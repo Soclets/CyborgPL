@@ -1,3 +1,3 @@
 MAIN {
-    let $c := channel.empty;
+    let $c := %channel.empty;
 }

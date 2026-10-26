@@ -15,5 +15,5 @@ MAIN {
     check change $n = $n + 1;
     no_check change $n = $n x 1;
     std::print.useful(first($n, 7), newln);
-    concur hello();
+    %concur hello();
 }

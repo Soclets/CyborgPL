@@ -8,7 +8,7 @@ MAIN {
     # and it stays a bin when used: 1 plus 2.5 times 2.0
     std::print.useful($xs[pos: 1] + ($xs[pos: 2] x 2.0), newln);
     # beside a deci, a bare number is a deci
-    let $q: d64 = 0.5;
+    let $q: %d64 = 0.5;
     let $ds := [1, $q];
     std::print.useful($ds[pos: 1] + $ds[pos: 2], newln);
 }

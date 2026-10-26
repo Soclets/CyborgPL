@@ -69,7 +69,12 @@ unicode `%graphemes`, `%points`, `char.%point`, `str.%utf16`), with design claud
 `threads` inside `inline.%MSL` unmarked; `exactly`, `percent` and `cols` the base's; format holes unmarked for now):
 "yes". Then: "But another limb extending a current limb would be `%layout.%C++`, double mark?? Or no" (by the rule,
 per limb; one mark per path would hide the second limb); design claude recommending the double mark: "yes". So
-**each limb marks its own first word in a path: `%layout.%Cpp`**. Open: `%`'s old-spelling refusal for `mod`. Not built: every C, decimal, task and GPU program changes.
+**each limb marks its own first word in a path: `%layout.%Cpp`**. Built in the oracle 2026-10-26: the lexer reads `%`
+glued to a word as the mark and `oracle/src/marks.rs` checks every word against the table; `80%` and `%[d32]` are
+refused as old spellings; `oracle --mark-limbs` rewrote 228 programs (examples, tests, demos, bench) and
+`oracle/tools/mark_notes.py` the notes' code; tests/reject/mark_* and percent_*. A spaced `%` between values is still
+refused naming `mod` (design claude's reading). The oracle's own messages still spell some limb words bare (`write
+`to.d64(…)``), to be swept. Not built: every C, decimal, task and GPU program changes.
 
 ### 2026-10-26 — A module's bounds are reached by its path, the collection's name included: `shop.order.discount` (owner)
 

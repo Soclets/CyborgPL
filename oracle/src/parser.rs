@@ -1106,7 +1106,7 @@ impl Parser {
                         }
                         for text in header.lines {
                             // each line as if written here; one CyborgPL cannot say yet is left out, as the reader does
-                            let Ok(toks) = crate::lexer::lex(&text) else { continue };
+                            let Ok(toks) = crate::lexer::lex_marking(&text) else { continue };
                             let mut sub = Parser::new_in_kit(toks, self.module.clone(), self.kit_root.clone());
                             sub.from_c = true;
                             let Ok(mut part) = sub.program() else { continue };

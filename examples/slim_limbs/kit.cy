@@ -3,7 +3,7 @@
 # which took in UniTect and CAPS on 2026-10-12). Testing (TAS) and range types (ASP) are the base's again.
 case.any [fn];
 
-fn Halve [$n: i128] -> i128 {
+fn Halve [$n: %i128] -> %i128 {
     return $n div.floor 2;
 }
 
@@ -12,10 +12,10 @@ test fn halves [] {
 }
 
 MAIN {
-    let $b: brain16 = 0.5;
-    let $w: not_std.u4 = 9;
-    let $price: d64 = 19.99;
-    let $g: char.grapheme = `ก็`;
+    let $b: %brain16 = 0.5;
+    let $w: %not_std.u4 = 9;
+    let $price: %d64 = 19.99;
+    let $g: char.%grapheme = `ก็`;
     let $age: i32[min: 0, max: 150] = 42;
     std::print.useful(HALVE(1000000000000000000000), " ", $b, " ", $w, " ", $price, " ", $g, " ", $age, newln);
 }

@@ -4,8 +4,8 @@
 # `fopen` gives a `ptr.mut[FILE]`, and another struct's pointer handed to `fclose` is refused.
 # A field named like a CyborgPL keyword keeps its name after the dot (`$b.size`); a function so named is
 # reached by path (`my.size(…)`).
-incl.C.system["time.h", "stdio.h"];
-incl.C["headers/shapes.h"];
+incl.%C.system["time.h", "stdio.h"];
+incl.%C["headers/shapes.h"];
 
 MAIN {
     let $b := buf[size = 42, count = 7];

@@ -75,7 +75,7 @@ until `para` joined it.
 ```
 no_cheat for $i: i64 [from: 1, to: $n, by: 1] { change $acc = $acc plus $i; }
 no_cheat for seq $i in lend $xs { … }
-no_cheat for para $i [from: 1, to: $n, by: 1] { … }
+no_cheat for %para $i [from: 1, to: $n, by: 1] { … }
 ```
 
 **`no_cheat`, "no cheat"** (`!c` until 2026-10-06, `!cheat` until 2026-10-07): every round's work really happens at run time. The

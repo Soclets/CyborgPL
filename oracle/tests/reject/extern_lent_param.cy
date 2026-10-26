@@ -1,3 +1,3 @@
-extern.C fn f [lent $a: i32];
+%extern.C fn f [lent $a: i32];
 MAIN {
 }

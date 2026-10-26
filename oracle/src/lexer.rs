@@ -45,6 +45,8 @@ pub enum Tok {
     Semi,           // ;
     Comma,          // ,
     Op(String),     // + - ++ == !== < > </== >/==
+    /// `%` glued to a word: the limb mark (owner, 2026-10-26), checked and taken out by `marks`
+    Mark,
     Eof,
 }
 
@@ -76,6 +78,7 @@ impl fmt::Display for Tok {
             Tok::Strict => write!(f, "#strict"),
             Tok::Colon => write!(f, ":"),
             Tok::Ellipsis => write!(f, "..."),
+            Tok::Mark => write!(f, "%"),
             Tok::LeftArrow => write!(f, "<-"),
             Tok::BothArrow => write!(f, "<-->"),
             Tok::Raw(_) => write!(f, "assembly"),
@@ -113,6 +116,12 @@ pub struct LexError {
     pub line: usize,
     pub col: usize,
     pub msg: String,
+}
+
+thread_local! {
+    /// `oracle --mark-limbs`: the edits that would mark a file's limb words and spell its percentages out, gathered
+    /// instead of refused
+    pub static FIX_EDITS: std::cell::RefCell<Option<Vec<crate::marks::Edit>>> = std::cell::RefCell::new(None);
 }
 
 /// A message's column counts graphemes, what a reader counts (owner, 2026-10-06: "our error messages
@@ -278,6 +287,11 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 let w: String = chars[k..].iter().take(8).collect();
                 k > i && w.starts_with("percent") && !w[7..].chars().next().map_or(false, |c| c.is_alphanumeric() || c == '_')
             };
+            // `80%` is the old spelling since `%` became the limb mark (owner, 2026-10-26: "make it `80 percent`")
+            if glued {
+                let fixed = FIX_EDITS.with(|f| f.borrow_mut().as_mut().map(|e| e.push(crate::marks::Edit { at: i, remove: 1, insert: " percent".into() })).is_some());
+                if !fixed { return err(tl, tc, format!("`{s}%` is an old spelling: write `{s} percent`; `%` marks a limb's word since 2026-10-26 (owner)")); }
+            }
             if glued || worded {
                 let n = if glued { 1 } else { chars[i..].iter().take_while(|c| **c == ' ').count() + 7 };
                 i += n; col += n;
@@ -350,7 +364,9 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
                 i += 1; col += 1;
                 continue;
             }
-            let after_inline = toks.len() >= 2 && toks[toks.len() - 1].tok == Tok::Dot && matches!(&toks[toks.len() - 2].tok, Tok::Word(w) if w == "inline");
+            // a limb's word after `inline.` wears its mark, `inline.%MSL` (owner, 2026-10-26)
+            let m = usize::from(toks.last().map_or(false, |t| t.tok == Tok::Mark));
+            let after_inline = toks.len() >= 2 + m && toks[toks.len() - 1 - m].tok == Tok::Dot && matches!(&toks[toks.len() - 2 - m].tok, Tok::Word(w) if w == "inline");
             let is_asm = (s == "ASM" || s == "S" || s == "Assembly") && after_inline;
             // `inline.MSL threads $n { … }` (owner, 2026-10-01): the count comes first, so the first `{` outside any
             // bracket after it opens the Metal code, taken verbatim
@@ -445,6 +461,10 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
         // the language's own, or a custom `op`; a space separates two. `$`, `:`, `.`
         // and the brackets are grammar, not operator characters.
         const OP_CHARS: &str = "!%&*+-/<>=?@^|~";
+        // `%` glued to a word marks a limb's word (owner, 2026-10-26)
+        if c == '%' && chars.get(i + 1).map_or(false, |n| n.is_alphabetic() || *n == '_') {
+            push(Tok::Mark, &mut toks); i += 1; col += 1; continue;
+        }
         if OP_CHARS.contains(c) {
             let mut run = String::new();
             let mut j = i;
@@ -595,10 +615,27 @@ fn lex_points(src: &str) -> Result<Vec<Token>, LexError> {
         i += 1; col += 1;
     }
     toks.push(Token { tok: Tok::Eof, line, col, mtm: None, paren: false, at: chars.len() });
+    let mut fix = FIX_EDITS.with(|f| f.borrow_mut().take());
+    let r = crate::marks::check(&mut toks, fix.as_mut());
+    FIX_EDITS.with(|f| *f.borrow_mut() = fix);
+    r.map_err(|(line, col, msg)| LexError { line, col, msg })?;
     Ok(toks)
 }
 
 /// The old spelling `written` as the lexer marks it, unless the table itself is being read
 fn mark(written: &str) -> Option<(String, &'static crate::spellings::Old)> {
     if crate::spellings::loading() { None } else { Some((written.to_string(), crate::spellings::old(written))) }
+}
+
+/// Text the oracle writes itself (a C header's lines, 2026-10-10): lexed with its limb words marked, as a writer marks
+/// them (owner, 2026-10-26), since the generator writes the words bare.
+pub fn lex_marking(src: &str) -> Result<Vec<Token>, LexError> {
+    FIX_EDITS.with(|f| *f.borrow_mut() = Some(Vec::new()));
+    let first = lex(src);
+    let mut edits = FIX_EDITS.with(|f| f.borrow_mut().take()).unwrap_or_default();
+    if edits.is_empty() { return first; }
+    let mut chars: Vec<char> = src.chars().collect();
+    edits.sort_by(|a, b| b.at.cmp(&a.at));
+    for e in edits { chars.splice(e.at..e.at + e.remove, e.insert.chars()); }
+    lex(&chars.into_iter().collect::<String>())
 }

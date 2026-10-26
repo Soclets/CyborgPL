@@ -91,8 +91,8 @@ and `deci`/`uenr` are ours to write rather than vendored.
 ## Integers of any width: `!std.int24` (owner, 2026-10-03; the `.` since 2026-10-06)
 
 ```
-let $sample: not_std.i24 = -8_000_000;     # Rust-style: !std.i24
-let $flags: not_std.u4 = 9;               # !std.u4
+let $sample: %not_std.i24 = -8_000_000;     # Rust-style: !std.i24
+let $flags: %not_std.u4 = 9;               # !std.u4
 ```
 
 Any width LLVM takes (from 1 bit to its own limit, about 8 million),

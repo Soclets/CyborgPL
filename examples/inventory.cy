@@ -15,11 +15,11 @@ fn kilos [$grams: i32] -> i32 or fail[not_whole, out_of_range] {
     return to.i32($k) otherwise fail;
 }
 
-fn initial [lent $name: str.utf8] -> char.point {
+fn initial [lent $name: str.utf8] -> char.%point {
     let $first := std::str.at.point(lend $name, pos: 1) otherwise `?`;
     let $code := char.code($first);
     if $code at_least 97 and $code at_most 122 {
-        return char.point.from_code($code - 32) otherwise `?`;
+        return char.%point.from_code($code - 32) otherwise `?`;
     }
     return $first;
 }

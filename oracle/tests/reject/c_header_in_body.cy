@@ -1,3 +1,3 @@
 MAIN {
-    incl.C.system["stdio.h"];
+    incl.%C.system["stdio.h"];
 }

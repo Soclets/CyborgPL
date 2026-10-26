@@ -4,6 +4,6 @@
 MAIN {
     let $a: i8 = -128;
     std::print.useful(($a div.trunc.wrap -1), " ", ($a div.floor.wrap -1), " ", ($a div.trunc -1), newln);
-    let $m: i128 = -170141183460469231731687303715884105728;
+    let $m: %i128 = -170141183460469231731687303715884105728;
     std::print.useful(($m div.trunc.wrap -1), " ", ($m div.near.wrap 2), newln);
 }

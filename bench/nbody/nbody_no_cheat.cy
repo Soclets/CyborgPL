@@ -11,11 +11,11 @@
 # C's: `sqrt`, and `printf` with "%.9f", the same formatting C's version uses. Every bin operation is a
 # check site (an infinity or a NaN), which the prover cannot rule out over N steps, so the arithmetic
 # is under `no_check`.
-incl.C.system["stdio.h"];
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
-extern.C fn atoll [$s: ptr[u8]] -> i64[min: 0, max: 1_000_000_000];
-extern.C fn sqrt [$x: f64] -> f64;
+incl.%C.system["stdio.h"];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn atoll [$s: ptr[u8]] -> i64[min: 0, max: 1_000_000_000];
+%extern.C fn sqrt [$x: f64] -> f64;
 
 const $pi: f64 = 3.141592653589793;
 const $solar_mass: f64 = 4.0 times $pi times $pi;
@@ -119,7 +119,7 @@ fn run [] -> i32 or fail[missing, out_of_range] {
              vz = -0.0000951592254519715870 times $days_per_year, mass = 0.0000515138902046611451 times $solar_mass]
     ];
     offset_momentum(lend.mut $bodies);
-    let $fmt := C.str.make("%.9f" concat newln) otherwise { has_zero_byte { return 2; } };
+    let $fmt := %C.str.make("%.9f" concat newln) otherwise { has_zero_byte { return 2; } };
     no_check printf(lend $fmt, energy(lend $bodies));
     for $step: i64 [from: 1, to: $n, by: 1] {
         advance(lend.mut $bodies, 0.01);

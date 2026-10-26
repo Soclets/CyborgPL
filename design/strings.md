@@ -163,10 +163,10 @@ reject tests `print_format_*`.
 ## A length bound names its unit (decided 2026-09-22)
 
 ```
-let $name: str.utf8[min: 1, max: 40 graphemes] = std::input.line() otherwise "";
-fn greet [lent $who: str.utf8[min: 1, max: 10 graphemes]] { … }
+let $name: str.utf8[min: 1, max: 40 %graphemes] = std::input.line() otherwise "";
+fn greet [lent $who: str.utf8[min: 1, max: 10 %graphemes]] { … }
 let $field: str.utf8[min: 0, max: 255 bytes] = …;
-let $code: str.utf8[min: 4, max: 4 points] = …;
+let $code: str.utf8[min: 4, max: 4 %points] = …;
 ```
 
 The thing, then its bounds, as `i32[min: 0, max: 100]` and `list[T][lo, hi]` —

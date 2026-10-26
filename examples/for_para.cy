@@ -3,7 +3,7 @@
 MAIN {
     let $xs: std::list[i64] = [1, 2, 3, 4];
     let mut $total: i64 = 0;
-    for para $x in lend $xs {
+    for %para $x in lend $xs {
         change $total = $total + $x;
     }
     for seq $x in lend $xs {

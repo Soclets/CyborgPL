@@ -3,6 +3,6 @@
 MAIN {
     let $q: f64 = 0.5 div.ceil (-1.75);
     let $r: f64 = 0.5 div.ceil.ieee (-1.75);
-    let $b: brain16 = 0.5 div.trunc (-1.75);
+    let $b: %brain16 = 0.5 div.trunc (-1.75);
     std::print.useful($q, " ", $r, " ", $b, " ", $q equal_to $r, newln);
 }

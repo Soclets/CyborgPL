@@ -1,12 +1,12 @@
 # Low level: raw memory from C, bits, a wrapping hash, SIMD, C layout, and the OS through `write`.
 # a block of C's functions (owner, 2026-10-02); one alone may be a line, `extern.C fn exit [$code: i32];`
-extern.C {
+%extern.C {
     fn write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
     fn malloc [$bytes: u64] -> ptr.mut[u8];
     fn free [$p: ptr.mut[u8]];
 }
 
-layout.C struct Header { magic: u32, flags: u8, length: u64 }
+%layout.C struct Header { magic: u32, flags: u8, length: u64 }
 
 # FNV-1a: the wrap *is* the algorithm, so `x~`, never a check
 fn fnv1a [lent $bytes: array[u8]] -> u64 {

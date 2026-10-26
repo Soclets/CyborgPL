@@ -1,6 +1,6 @@
 # extern.C 'x': T — a C global (decided 2026-09-21). Reading or writing it is a no_check site.
-extern.C $lib_version: i32;              # C: extern int lib_version;
-extern.C mut $lib_verbose: i32;          # C: extern int lib_verbose;  (we may write it)
+%extern.C $lib_version: i32;              # C: extern int lib_version;
+%extern.C mut $lib_verbose: i32;          # C: extern int lib_verbose;  (we may write it)
 
 MAIN {
     no_check let $v := $lib_version;

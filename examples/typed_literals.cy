@@ -9,9 +9,9 @@ MAIN {
     let $n := -128: i8;
     std::print.useful($n, newln);
     std::print.useful(3: u8 x 2, newln);
-    let $d := exactly 0.1: d64;
+    let $d := exactly 0.1: %d64;
     std::print.useful($d + exactly 0.2, newln);
-    let $small := exactly 2.5: d32;
+    let $small := exactly 2.5: %d32;
     std::print.useful($small, newln);
     let $p := 5: u64[min: 1];
     std::print.useful($p, newln);

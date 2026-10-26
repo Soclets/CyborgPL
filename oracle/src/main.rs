@@ -18,6 +18,7 @@ mod generate;
 mod deci;
 mod interp;
 mod lexer;
+mod marks;
 mod parser;
 mod spellings;
 mod value;
@@ -1277,6 +1278,13 @@ fn main() {
     }
     // `oracle --to-paren-calls <file.cy | kit-directory>`: rewrites a program written before 2026-10-22, each call's
     // `[ ]` as `( )` and each quoted name that needs no quotes as `$name`, in the files under its own folder
+    // `oracle --mark-limbs <file.cy | directory>…`: marks every limb word `%` and spells each `80%` as `80 percent`
+    // (owner, 2026-10-26), in place
+    if head.len() >= 3 && head[1] == "--mark-limbs" {
+        let mut bad = false;
+        for t in &head[2..] { if let Err(m) = mark_limbs(Path::new(t)) { eprintln!("{m}"); bad = true; } }
+        exit(if bad { 1 } else { 0 });
+    }
     if let [_, flag, t] = head { if flag == "--to-paren-calls" {
         let target = PathBuf::from(t);
         let run = std::thread::Builder::new().stack_size(1 << 30).spawn(move || to_paren_calls(&target)).expect("the oracle's thread");
@@ -1299,4 +1307,28 @@ fn main() {
         Ok(Err(msg)) => { eprintln!("{}", dollar_names(&msg)); exit(1); }
         Err(_) => exit(101),
     };
+}
+
+/// One file, or every `.cy` file under a directory: the limb marks and the spelled-out percentages written in.
+fn mark_limbs(path: &Path) -> Result<(), String> {
+    if path.is_dir() {
+        let mut entries: Vec<PathBuf> = std::fs::read_dir(path).map_err(|e| format!("{}: {e}", path.display()))?.filter_map(|e| e.ok().map(|e| e.path())).collect();
+        entries.sort();
+        let mut first_err = Ok(());
+        for p in entries { if p.is_dir() || p.extension().map_or(false, |x| x == "cy") { if let Err(m) = mark_limbs(&p) { eprintln!("{m}"); first_err = Err(String::new()); } } }
+        return first_err.map_err(|_| format!("{}: some files were not marked", path.display()));
+    }
+    let src = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    lexer::FIX_EDITS.with(|f| *f.borrow_mut() = Some(Vec::new()));
+    let r = lexer::lex(&src);
+    let edits = lexer::FIX_EDITS.with(|f| f.borrow_mut().take()).unwrap_or_default();
+    r.map_err(|e| format!("{}: line {}:{}: {}", path.display(), e.line, e.col, e.msg))?;
+    if edits.is_empty() { return Ok(()); }
+    let mut chars: Vec<char> = src.chars().collect();
+    let mut edits = edits;
+    edits.sort_by(|a, b| b.at.cmp(&a.at));
+    for e in edits { chars.splice(e.at..e.at + e.remove, e.insert.chars()); }
+    std::fs::write(path, chars.into_iter().collect::<String>()).map_err(|e| format!("{}: {e}", path.display()))?;
+    println!("marked {}", path.display());
+    Ok(())
 }

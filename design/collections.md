@@ -74,7 +74,7 @@ picked by how many arguments it has and their types. This is the only place over
 ```
 pub coll.fn round {
     round.near [$x: f64] -> f64 { … }
-    round.near [$x: d64] -> d64 { … }
+    round.near [$x: %d64] -> %d64 { … }
     round.near [$x: f64, $decimals: i32] -> f64 { … }
 }
 ```
@@ -251,11 +251,11 @@ coll.bound quantity {
 
 coll.bound order {
     order.discount = i32[min: 0, max: 50];
-    order.name = str.utf8[min: 1, max: 40 graphemes];
+    order.name = str.utf8[min: 1, max: 40 %graphemes];
 }
 
 struct Line { name: order.name, count: quantity }
-fn apply_discount [$amount: d64, $percent: order.discount] -> d64 { … }
+fn apply_discount [$amount: %d64, $percent: order.discount] -> %d64 { … }
 ```
 
 - **Only a bounded type**: a type with a limit after it — a number's `min:` / `max:`, a text's length, a list's or

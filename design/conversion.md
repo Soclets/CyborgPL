@@ -129,7 +129,7 @@ before it, so no brackets are needed inside maths (owner: "(a)", over brackets r
 let $r: i64 = to.i64(1) shl (5: u8 shr 1);   # the count gives no width, so the literal says it
 let $a := 200: u8;
 let $p := 5: u64[min: 1];
-let $d := exactly 0.1: d64;
+let $d := exactly 0.1: %d64;
 ```
 
 - **Literals only.** A variable is converted with `to.u8['x']`; `'x': u8` in an expression is refused,

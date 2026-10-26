@@ -8,6 +8,6 @@ MAIN {
     std::print.stored($a, newln, $b, newln);
     let $s: str.ascii = "abc";
     let $c := to.str.ascii($s);
-    let $w := to.str.utf16($accented);
+    let $w := to.str.%utf16($accented);
     std::print.stored($c, " ", $w, newln);
 }

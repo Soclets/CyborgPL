@@ -1,3 +1,3 @@
 MAIN {
-    let $c := C.str.copy["a"];
+    let $c := %C.str.copy["a"];
 }

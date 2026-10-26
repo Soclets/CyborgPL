@@ -1,6 +1,6 @@
 
 module text {
-    extern.C {
+    %extern.C {
         pub fn strlen [$s: ptr[u8]] -> u64;
         fn write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
     }
