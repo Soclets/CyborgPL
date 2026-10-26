@@ -34,6 +34,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: number types are named by narrowing, `float.decimal.32_bit`, `integer.signed.32_bit` (owner; not built)
+
+Starting no abbreviations ("before the symbol purge, there should come no abbriviations. Just to see how diabolical it
+looks first"), design claude listed every abbreviation (`fn`, `str`, `struct`, `enum`, `const`, `pub`, `mut`, `ptr`,
+`incl`, `coll`, `pos`, `newln`, `secs`, `bin`/`hex`/`oct`, `i32`…, `char`, `div`/`mod`, `shl`/`shr`, `cols`,
+`min:`/`max:`, `seq`/`para`/`temp`/`perm`, `asm`), several reversing the owner's own shortenings, and showed night
+trains both ways, offering `integer32` / `decimal64`. The owner: "Shouldn't it be `float.decimal.32_bit`?" (IEEE 754's
+decimal32: a float, base 10, 32 bits; general to specific by `.`, the strongest modifier first, 2026-10-01). Shown the
+family, the owner: "yes, and not `bits_32`". So **`float.binary.64_bit` (was `f64`), `float.decimal.64_bit` (`d64`),
+`integer.signed.32_bit` (`i32`), `integer.unsigned.8_bit` (`u8`), `float.brain.16_bit` (`brain16`)**: kind, then base
+or sign, then width, the width written `32_bit`, a segment after `.` that starts with digits (a new lexing rule,
+design claude's note). This replaces 2026-10-20's `i`/`u`/`f`/`d`. Not built; the rest of the abbreviations follow.
+
 ### 2026-10-26 — Redesign: every block is `start of …` / `end of …` lines, kind then name; `!` marks what needs attention, `!start of MAIN` (owner; not built)
 
 Starting the redesign the owner planned for 2026-10-27 ("I have some big redesigns for tomorrow"), from a phone at
