@@ -50,8 +50,15 @@ words of one name; "the program's start" is neither), then, on whether `MAIN` al
 to say it easily"), design claude: `MAIN` is the kind, as `fn` and `if` are, with no name because there is only one,
 as an `if` has none. The owner: "Ahhh. Yes, I couldn't see that. Very consistent". So **a block's line is its kind,
 then its name if the kind has one**: `start of fn add_points`, `start of struct Line`, `start of if`, `!start of MAIN`,
-and `.` only for a kind that is a variant (`start of coll.handler order_failed`). Not built; the rest of the redesign
-follows.
+and `.` only for a kind that is a variant (`start of coll.handler order_failed`). Asked where an `if`'s condition goes
+((a) its own line before `start of if`, (b) on the start line), the owner: "I think both look wrong, and that might be
+my mistake", sketching `start of MAIN:` … `end of MAIN`. So **the opening line ends in `:`**, which opens the body
+(as `my details:` opens a section in `CyJet.toml`), and carries what the block needs: `start of if $count > 0:`,
+`start of for $x in lend $xs:`, `start of fn add [$a: i32, $b: i32] -> i32:`, `!start of MAIN:` (design claude's
+reading, recommended: a `:` ending the opening line is never a type's, nothing following it). Asked "Should it be `end
+of fn add [$a: i32, $b: i32] -> i32`?" and shown both in a whole program: "Yeah, I think I had a stroke reading the
+second version (joke)". So **the closing line is the kind and the name only**, `end of fn total_of`, `end of if`,
+`!end of MAIN`, the compiler checking the name matches the start's. Not built; the rest of the redesign follows.
 
 ### 2026-10-26 — In `print.format`, a newline is `{newln}` and a tab `{tab}`; `\n` and `\t` there become old spellings (owner; not built)
 
