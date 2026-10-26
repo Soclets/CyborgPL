@@ -103,7 +103,7 @@ pub coll.fn at {
     }
 
     # The character (Unicode code point) at $pos.
-    at.point [lent $s: str.utf8, $pos: u64[min: 1]] -> char.point or fail[out_of_range] {
+    at.point [lent $s: str.utf8, $pos: u64[min: 1]] -> char.%point or fail[out_of_range] {
         for $i, $p in str.each.point(lend $s) {
             if $i equal_to $pos { return $p; }
         }
@@ -111,7 +111,7 @@ pub coll.fn at {
     }
 
     # The grapheme (what a person counts as one character) at $pos.
-    at.grapheme [lent $s: str.utf8, $pos: u64[min: 1]] -> char.grapheme or fail[out_of_range] {
+    at.grapheme [lent $s: str.utf8, $pos: u64[min: 1]] -> char.%grapheme or fail[out_of_range] {
         for $i, $g in str.each.grapheme(lend $s) {
             if $i equal_to $pos { return copy $g; }
         }
@@ -388,7 +388,7 @@ fn before_dot [lent $c: list[u32], $i: u64[min: 1]] -> bool {
 # The UTF-8 bytes of the character $c, after $out. Every $c here comes from Unicode's case tables, so it
 # is always a character; if it ever is not, std has a bug, and the program stops saying so.
 fn append_point [lent.mut $out: list[u8], $c: u32] {
-    let $ch := char.point.from_code($c) otherwise {
+    let $ch := char.%point.from_code($c) otherwise {
         not_a_char {
             std::print.useful.stderr("std: a bug: a case table gave a code that is no character", newln);
             std::exit(code: 101);

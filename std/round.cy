@@ -57,12 +57,12 @@ pub coll.fn near {
             let $cut := my.round.digits(lend $text, $places, Way.nearest_even);
             return to.f64($cut) otherwise { not_a_number { std::print.useful.stderr("std: a bug: a rounded bin's digits did not read back", newln); std::exit(code: 101); } out_of_range { std::print.useful.stderr("std: a bug: a rounded bin's digits did not read back", newln); std::exit(code: 101); } };
         }
-        [$x: d32] -> d32 { return my.round.whole_d32($x, Way.nearest_even); }
-        [$x: d32, $places: i32[min: 0]] -> d32 { return my.round.places_d32($x, $places, Way.nearest_even); }
-        [$x: d64] -> d64 { return my.round.whole_d64($x, Way.nearest_even); }
-        [$x: d64, $places: i32[min: 0]] -> d64 { return my.round.places_d64($x, $places, Way.nearest_even); }
-        [$x: d128] -> d128 { return my.round.whole_d128($x, Way.nearest_even); }
-        [$x: d128, $places: i32[min: 0]] -> d128 { return my.round.places_d128($x, $places, Way.nearest_even); }
+        [$x: %d32] -> %d32 { return my.round.whole_d32($x, Way.nearest_even); }
+        [$x: %d32, $places: i32[min: 0]] -> %d32 { return my.round.places_d32($x, $places, Way.nearest_even); }
+        [$x: %d64] -> %d64 { return my.round.whole_d64($x, Way.nearest_even); }
+        [$x: %d64, $places: i32[min: 0]] -> %d64 { return my.round.places_d64($x, $places, Way.nearest_even); }
+        [$x: %d128] -> %d128 { return my.round.whole_d128($x, Way.nearest_even); }
+        [$x: %d128, $places: i32[min: 0]] -> %d128 { return my.round.places_d128($x, $places, Way.nearest_even); }
     }
 }
 
@@ -111,12 +111,12 @@ pub coll.fn half_up {
             let $cut := my.round.digits(lend $text, $places, Way.half_away);
             return to.f64($cut) otherwise { not_a_number { std::print.useful.stderr("std: a bug: a rounded bin's digits did not read back", newln); std::exit(code: 101); } out_of_range { std::print.useful.stderr("std: a bug: a rounded bin's digits did not read back", newln); std::exit(code: 101); } };
         }
-        [$x: d32] -> d32 { return my.round.whole_d32($x, Way.half_away); }
-        [$x: d32, $places: i32[min: 0]] -> d32 { return my.round.places_d32($x, $places, Way.half_away); }
-        [$x: d64] -> d64 { return my.round.whole_d64($x, Way.half_away); }
-        [$x: d64, $places: i32[min: 0]] -> d64 { return my.round.places_d64($x, $places, Way.half_away); }
-        [$x: d128] -> d128 { return my.round.whole_d128($x, Way.half_away); }
-        [$x: d128, $places: i32[min: 0]] -> d128 { return my.round.places_d128($x, $places, Way.half_away); }
+        [$x: %d32] -> %d32 { return my.round.whole_d32($x, Way.half_away); }
+        [$x: %d32, $places: i32[min: 0]] -> %d32 { return my.round.places_d32($x, $places, Way.half_away); }
+        [$x: %d64] -> %d64 { return my.round.whole_d64($x, Way.half_away); }
+        [$x: %d64, $places: i32[min: 0]] -> %d64 { return my.round.places_d64($x, $places, Way.half_away); }
+        [$x: %d128] -> %d128 { return my.round.whole_d128($x, Way.half_away); }
+        [$x: %d128, $places: i32[min: 0]] -> %d128 { return my.round.places_d128($x, $places, Way.half_away); }
     }
 }
 
@@ -153,12 +153,12 @@ pub coll.fn floor {
             let $cut := my.round.digits(lend $text, $places, Way.down);
             return to.f64($cut) otherwise { not_a_number { std::print.useful.stderr("std: a bug: a rounded bin's digits did not read back", newln); std::exit(code: 101); } out_of_range { std::print.useful.stderr("std: a bug: a rounded bin's digits did not read back", newln); std::exit(code: 101); } };
         }
-        [$x: d32] -> d32 { return my.round.whole_d32($x, Way.down); }
-        [$x: d32, $places: i32[min: 0]] -> d32 { return my.round.places_d32($x, $places, Way.down); }
-        [$x: d64] -> d64 { return my.round.whole_d64($x, Way.down); }
-        [$x: d64, $places: i32[min: 0]] -> d64 { return my.round.places_d64($x, $places, Way.down); }
-        [$x: d128] -> d128 { return my.round.whole_d128($x, Way.down); }
-        [$x: d128, $places: i32[min: 0]] -> d128 { return my.round.places_d128($x, $places, Way.down); }
+        [$x: %d32] -> %d32 { return my.round.whole_d32($x, Way.down); }
+        [$x: %d32, $places: i32[min: 0]] -> %d32 { return my.round.places_d32($x, $places, Way.down); }
+        [$x: %d64] -> %d64 { return my.round.whole_d64($x, Way.down); }
+        [$x: %d64, $places: i32[min: 0]] -> %d64 { return my.round.places_d64($x, $places, Way.down); }
+        [$x: %d128] -> %d128 { return my.round.whole_d128($x, Way.down); }
+        [$x: %d128, $places: i32[min: 0]] -> %d128 { return my.round.places_d128($x, $places, Way.down); }
     }
 }
 
@@ -195,12 +195,12 @@ pub coll.fn ceil {
             let $cut := my.round.digits(lend $text, $places, Way.up);
             return to.f64($cut) otherwise { not_a_number { std::print.useful.stderr("std: a bug: a rounded bin's digits did not read back", newln); std::exit(code: 101); } out_of_range { std::print.useful.stderr("std: a bug: a rounded bin's digits did not read back", newln); std::exit(code: 101); } };
         }
-        [$x: d32] -> d32 { return my.round.whole_d32($x, Way.up); }
-        [$x: d32, $places: i32[min: 0]] -> d32 { return my.round.places_d32($x, $places, Way.up); }
-        [$x: d64] -> d64 { return my.round.whole_d64($x, Way.up); }
-        [$x: d64, $places: i32[min: 0]] -> d64 { return my.round.places_d64($x, $places, Way.up); }
-        [$x: d128] -> d128 { return my.round.whole_d128($x, Way.up); }
-        [$x: d128, $places: i32[min: 0]] -> d128 { return my.round.places_d128($x, $places, Way.up); }
+        [$x: %d32] -> %d32 { return my.round.whole_d32($x, Way.up); }
+        [$x: %d32, $places: i32[min: 0]] -> %d32 { return my.round.places_d32($x, $places, Way.up); }
+        [$x: %d64] -> %d64 { return my.round.whole_d64($x, Way.up); }
+        [$x: %d64, $places: i32[min: 0]] -> %d64 { return my.round.places_d64($x, $places, Way.up); }
+        [$x: %d128] -> %d128 { return my.round.whole_d128($x, Way.up); }
+        [$x: %d128, $places: i32[min: 0]] -> %d128 { return my.round.places_d128($x, $places, Way.up); }
     }
 }
 
@@ -237,12 +237,12 @@ pub coll.fn trunc {
             let $cut := my.round.digits(lend $text, $places, Way.toward_zero);
             return to.f64($cut) otherwise { not_a_number { std::print.useful.stderr("std: a bug: a rounded bin's digits did not read back", newln); std::exit(code: 101); } out_of_range { std::print.useful.stderr("std: a bug: a rounded bin's digits did not read back", newln); std::exit(code: 101); } };
         }
-        [$x: d32] -> d32 { return my.round.whole_d32($x, Way.toward_zero); }
-        [$x: d32, $places: i32[min: 0]] -> d32 { return my.round.places_d32($x, $places, Way.toward_zero); }
-        [$x: d64] -> d64 { return my.round.whole_d64($x, Way.toward_zero); }
-        [$x: d64, $places: i32[min: 0]] -> d64 { return my.round.places_d64($x, $places, Way.toward_zero); }
-        [$x: d128] -> d128 { return my.round.whole_d128($x, Way.toward_zero); }
-        [$x: d128, $places: i32[min: 0]] -> d128 { return my.round.places_d128($x, $places, Way.toward_zero); }
+        [$x: %d32] -> %d32 { return my.round.whole_d32($x, Way.toward_zero); }
+        [$x: %d32, $places: i32[min: 0]] -> %d32 { return my.round.places_d32($x, $places, Way.toward_zero); }
+        [$x: %d64] -> %d64 { return my.round.whole_d64($x, Way.toward_zero); }
+        [$x: %d64, $places: i32[min: 0]] -> %d64 { return my.round.places_d64($x, $places, Way.toward_zero); }
+        [$x: %d128] -> %d128 { return my.round.whole_d128($x, Way.toward_zero); }
+        [$x: %d128, $places: i32[min: 0]] -> %d128 { return my.round.places_d128($x, $places, Way.toward_zero); }
     }
 }
 
@@ -322,14 +322,14 @@ fn digits [lent $t: str.utf8, $n: i32[min: 0], $way: Way] -> str.utf8 {
 
 
 # A d32 rounded to a whole number the way $way says. One at or past 10000000 has no places left.
-fn whole_d32 [$x: d32, $way: Way] -> d32 {
-    let $big: d32 = exactly 10000000;
+fn whole_d32 [$x: %d32, $way: Way] -> %d32 {
+    let $big: %d32 = exactly 10000000;
     if $x at_least $big { return $x; }
     if $x at_most -$big { return $x; }
-    let $one: d32 = exactly 1;
-    let $two: d32 = exactly 2;
-    let $none: d32 = exactly 0;
-    let $half: d32 = exactly 0.5;
+    let $one: %d32 = exactly 1;
+    let $two: %d32 = exactly 2;
+    let $none: %d32 = exactly 0;
+    let $half: %d32 = exactly 0.5;
     let $t := $x div.trunc $one;
     let $r := $x - $t;
     let $odd := ($t mod.floor $two) not_equal $none;
@@ -354,10 +354,10 @@ fn whole_d32 [$x: d32, $way: Way] -> d32 {
 
 # A d32 rounded to $n places the way $way says, keeping $n places as a deci does ("2.500") as far as
 # its digits go. The point moves right until the number is whole or $n places are passed.
-fn places_d32 [$x: d32, $n: i32[min: 0], $way: Way] -> d32 {
-    let $one: d32 = exactly 1;
-    let $ten: d32 = exactly 10;
-    let $tenth: d32 = exactly 0.1;
+fn places_d32 [$x: %d32, $n: i32[min: 0], $way: Way] -> %d32 {
+    let $one: %d32 = exactly 1;
+    let $ten: %d32 = exactly 10;
+    let $tenth: %d32 = exactly 0.1;
     let mut $limit: i32 = $n;
     if $limit > 110 { change $limit = 110; }
     let mut $y := $x;
@@ -370,20 +370,20 @@ fn places_d32 [$x: d32, $n: i32[min: 0], $way: Way] -> d32 {
     if $y not_equal $whole { change $whole = my.round.whole_d32($y, copy $way); }
     let mut $scale := $one;
     for $i [from: 1, to: $k, by: 1] { change $scale = $scale x $ten; }
-    let mut $zero: d32 = exactly 0;
+    let mut $zero: %d32 = exactly 0;
     for $i [from: 1, to: $limit, by: 1] { change $zero = $zero x $tenth; }
     return ($whole div.near $scale) + $zero;
 }
 
 # A d64 rounded to a whole number the way $way says. One at or past 10000000000000000 has no places left.
-fn whole_d64 [$x: d64, $way: Way] -> d64 {
-    let $big: d64 = exactly 10000000000000000;
+fn whole_d64 [$x: %d64, $way: Way] -> %d64 {
+    let $big: %d64 = exactly 10000000000000000;
     if $x at_least $big { return $x; }
     if $x at_most -$big { return $x; }
-    let $one: d64 = exactly 1;
-    let $two: d64 = exactly 2;
-    let $none: d64 = exactly 0;
-    let $half: d64 = exactly 0.5;
+    let $one: %d64 = exactly 1;
+    let $two: %d64 = exactly 2;
+    let $none: %d64 = exactly 0;
+    let $half: %d64 = exactly 0.5;
     let $t := $x div.trunc $one;
     let $r := $x - $t;
     let $odd := ($t mod.floor $two) not_equal $none;
@@ -408,10 +408,10 @@ fn whole_d64 [$x: d64, $way: Way] -> d64 {
 
 # A d64 rounded to $n places the way $way says, keeping $n places as a deci does ("2.500") as far as
 # its digits go. The point moves right until the number is whole or $n places are passed.
-fn places_d64 [$x: d64, $n: i32[min: 0], $way: Way] -> d64 {
-    let $one: d64 = exactly 1;
-    let $ten: d64 = exactly 10;
-    let $tenth: d64 = exactly 0.1;
+fn places_d64 [$x: %d64, $n: i32[min: 0], $way: Way] -> %d64 {
+    let $one: %d64 = exactly 1;
+    let $ten: %d64 = exactly 10;
+    let $tenth: %d64 = exactly 0.1;
     let mut $limit: i32 = $n;
     if $limit > 400 { change $limit = 400; }
     let mut $y := $x;
@@ -424,20 +424,20 @@ fn places_d64 [$x: d64, $n: i32[min: 0], $way: Way] -> d64 {
     if $y not_equal $whole { change $whole = my.round.whole_d64($y, copy $way); }
     let mut $scale := $one;
     for $i [from: 1, to: $k, by: 1] { change $scale = $scale x $ten; }
-    let mut $zero: d64 = exactly 0;
+    let mut $zero: %d64 = exactly 0;
     for $i [from: 1, to: $limit, by: 1] { change $zero = $zero x $tenth; }
     return ($whole div.near $scale) + $zero;
 }
 
 # A d128 rounded to a whole number the way $way says. One at or past 10000000000000000000000000000000000 has no places left.
-fn whole_d128 [$x: d128, $way: Way] -> d128 {
-    let $big: d128 = exactly 10000000000000000000000000000000000;
+fn whole_d128 [$x: %d128, $way: Way] -> %d128 {
+    let $big: %d128 = exactly 10000000000000000000000000000000000;
     if $x at_least $big { return $x; }
     if $x at_most -$big { return $x; }
-    let $one: d128 = exactly 1;
-    let $two: d128 = exactly 2;
-    let $none: d128 = exactly 0;
-    let $half: d128 = exactly 0.5;
+    let $one: %d128 = exactly 1;
+    let $two: %d128 = exactly 2;
+    let $none: %d128 = exactly 0;
+    let $half: %d128 = exactly 0.5;
     let $t := $x div.trunc $one;
     let $r := $x - $t;
     let $odd := ($t mod.floor $two) not_equal $none;
@@ -462,10 +462,10 @@ fn whole_d128 [$x: d128, $way: Way] -> d128 {
 
 # A d128 rounded to $n places the way $way says, keeping $n places as a deci does ("2.500") as far as
 # its digits go. The point moves right until the number is whole or $n places are passed.
-fn places_d128 [$x: d128, $n: i32[min: 0], $way: Way] -> d128 {
-    let $one: d128 = exactly 1;
-    let $ten: d128 = exactly 10;
-    let $tenth: d128 = exactly 0.1;
+fn places_d128 [$x: %d128, $n: i32[min: 0], $way: Way] -> %d128 {
+    let $one: %d128 = exactly 1;
+    let $ten: %d128 = exactly 10;
+    let $tenth: %d128 = exactly 0.1;
     let mut $limit: i32 = $n;
     if $limit > 6200 { change $limit = 6200; }
     let mut $y := $x;
@@ -478,7 +478,7 @@ fn places_d128 [$x: d128, $n: i32[min: 0], $way: Way] -> d128 {
     if $y not_equal $whole { change $whole = my.round.whole_d128($y, copy $way); }
     let mut $scale := $one;
     for $i [from: 1, to: $k, by: 1] { change $scale = $scale x $ten; }
-    let mut $zero: d128 = exactly 0;
+    let mut $zero: %d128 = exactly 0;
     for $i [from: 1, to: $limit, by: 1] { change $zero = $zero x $tenth; }
     return ($whole div.near $scale) + $zero;
 }

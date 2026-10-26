@@ -14,8 +14,8 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
   bytes]` (owner, 2026-10-14: "Error"), so an empty one is refused when building, or checked where it
   is passed if it is worked out at run time. The oracle's built-in std refuses it when the call runs:
   the same rule, met at a different moment. `std::str.at.byte(lend $s, pos: 2)` is the byte at a
-  position (a `u8`), `std::str.at.point(lend $s, pos: 2)` the character (a `char.point`) and
-  `std::str.at.grapheme(lend $s, pos: 2)` the grapheme (a `char.grapheme`), each failing `out_of_range`
+  position (a `u8`), `std::str.at.point(lend $s, pos: 2)` the character (a `char.%point`) and
+  `std::str.at.grapheme(lend $s, pos: 2)` the grapheme (a `char.%grapheme`), each failing `out_of_range`
   past the last one (owner, 2026-10-17: str.at next; 2026-10-20: "(a)", finish str.at and str.slice).
   `std::str.slice.grapheme(lend $s, from: pos 2, to: pos 4)` and `str.slice.point` are the part from one
   position to another, both kept, or `before: pos 5` to leave the end out (2026-10-12); they fail
@@ -43,23 +43,32 @@ names (2026-10-15), and took CyborgPL's names in the next sweep (2026-10-16).
   `tools/UNICODE-LICENSE`.
 - `round.cy` — rounding, one family (owner, 2026-10-17; overloading 2026-10-20): `std::round.near` (a tie
   to even), `round.half_up` (a tie away from zero), `round.floor`, `round.ceil`, `round.trunc`, each `($x)`
-  for a whole number or `($x, places: N)`, one version per type (f16/32/64, d32/64/128), and the
+  for a whole number or `($x, places: N)`, one version per type (f16/32/64, %d32/64/128), and the
   answer is the kind that went in. A bin is rounded from its exact stored digits and read back as the
   nearest bin of its width; a deci keeps the places it is rounded to (`2.500`) as far as its digits go. A
   bin too big to have a fraction (from 2 to the power of its fraction bits) or a deci too big to have
   places comes back as it is. A bare literal fitting several versions is refused at the call (owner,
   2026-10-20: (b)): `std::round.half_up(2.5: f64)`.
-- `CyJet.toml` lists the `unicode` limb, std's first, since `char.point` is unicode's (owner, 2026-10-17:
+- What a limb adds is marked `%` (owner, 2026-10-26; design/cores.md): Money's `%d32`, `%d64`, `%d128`,
+  unicode's `char.%point` and `char.%grapheme`; std's own names after `std::` never are.
+- `CyJet.toml` lists the `unicode` limb, std's first, since `char.%point` is unicode's (owner, 2026-10-17:
   "(a)"), and the `Money` limb, for the decis (owner, 2026-10-20: "(a)"). A program using std does not
   inherit them: `argument_words` lists no limb.
 
-A program uses this std, the folder it is written in, by listing it as
-`cyjet::dep.path.std["…/std"]`, a folder narrowed to std (owner, 2026-10-14; the spelling 2026-10-19). A
+A program uses this std, the folder it is written in, by listing it in its `CyJet.toml` under `my kits:` as
+`std {` / `path = …/std` / `}` (owner, 2026-10-14; CyJet.toml since 2026-10-22). A
 lone file built by KAYO uses it too, as the installed std's stand-in. Then every `std::` in the build is
 this one, and what it does not define yet, `print` and `exit`, is still KAYO's Rust (owner, 2026-10-14:
 "(a)").
 
 ## How it is checked
+
+The checks are in `tools/checks/` (owner, 2026-10-26: std's tests are committed). With kayo and the oracle built
+(`cargo build --release -j 3` in each), run `check.sh`, `more.sh`, `case.sh` and `sweeps.sh` there; they write to
+the clone's git-ignored `.std-checks/`, where `sweeps.sh` also reads Unicode 17.0.0's files (`ucd-17.0.0/`). Each
+comparison runs a std call three ways: the oracle's built-in std, a copy of this folder in the oracle (as
+`stdtest`), and this folder through kayo. The fixed test programs are in `programs.py`, not `.cy` files, since
+every `.cy` under `std/` is a module of the kit.
 
 - `examples/argument_words.cy` and `examples/inventory.cy`, unchanged, built by KAYO against this
   folder, print their `.out`, every one of their sites proven; so do `round.cy`, `whole.cy` and
@@ -67,7 +76,7 @@ this one, and what it does not define yet, `print` and `exit`, is still KAYO's R
 - round.X: the oracle's built-in round and this folder's, in the oracle and through KAYO, give the same
   4,795 answers (bins and decis, every mode, whole and to 0, 1, 2, 3, 6 and 20 places); with the value
   and places read from the command line, Precog proves every one of round.cy's sites. Both are in KAYO's own tests against this
-  folder (`kayo/compiler/tests/examples_cyborgpl_std.txt`; `inventory +unicode`, as it uses `char.point`
+  folder (`kayo/compiler/tests/examples_cyborgpl_std.txt`; `inventory +unicode`, as it uses `char.%point`
   itself).
 - In the oracle, each of the six beside the oracle's own built-in std (a copy of this folder under
   another prefix), over 820 cases (empty text, separators at the ends and side by side, overlapping
@@ -82,7 +91,7 @@ this one, and what it does not define yet, `print` and `exit`, is still KAYO's R
   proven by layer 3 ("no input reaches it with a bad value"), so they hold for any text this program
   reads but rest on the calls it makes (it calls `str.at` only at position 2). 2 are proven because
   "the position is always inside".
-- The case changes (2026-10-24, KAYO 2a0b244f, oracle 88fae3c3), over 54 texts chosen for their edges
+- The case changes (2026-10-24; rerun 2026-10-26 with the limb marks, KAYO 82185f15+), over 54 texts chosen for their edges
   (`ß`, `ŉ`, `ǅ`, `ﬀ`, `İ`, Greek sigma beside apostrophes and accents, `I` and `j` with marks above and
   below): `.ascii`, `.simple` and `.full`, with and without `lang:`, give the oracle's built-in std's 756
   answers, in the oracle and through KAYO. A wider sweep of final sigma, `Σ` beside 816 characters
