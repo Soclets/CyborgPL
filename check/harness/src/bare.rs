@@ -5,7 +5,9 @@
 //! there, its prints going out of the board's serial port; the oracle runs the
 //! same program as an ordinary file. What QEMU prints must be what the oracle
 //! printed; where the oracle stopped at a check, its output must be how QEMU's
-//! begins (kayo's stop message going out of the same port).
+//! begins (kayo's stop message going out of the same port), and the board
+//! freezes there (owner, 2026-10-08), so a run that does not end is right. MAIN's
+//! end switches the board off through the target's `exit` (owner, 2026-10-26).
 //!
 //! The board is `examples/bare_station`'s (a PL011 serial port at 0x0900_0000,
 //! power off by PSCI over `hvc`), its linker script the same.
@@ -77,13 +79,13 @@ pub enum Outcome {
 }
 
 pub fn check(t: &Tools, p: &Program, dir: &Path) -> Outcome {
-    // MAIN ends by switching the board off, as examples/bare_station does: on a
-    // chip, reaching MAIN's end leaves it idle (2026-10-26; asked)
-    match p.render().trim_end().strip_suffix('}') {
-        Some(head) => check_text(t, &format!("{head}    std::exit(code: 0);\n}}\n"), dir),
-        None => Outcome::Failed("MAIN is not last".into()),
-    }
+    // MAIN's end calls the target's `exit` with 0 (owner, 2026-10-26; kayo 78a41606)
+    check_text(t, &p.render(), dir)
 }
+
+/// How long the board gets: a program here runs in well under a second, and a
+/// failed check freezes the board (owner, 2026-10-08: "freeze there").
+const BOARD_LIMIT: std::time::Duration = std::time::Duration::from_secs(5);
 
 /// A program as text (a generated one, or one of `corpus-bare/`), its MAIN
 /// ending in `std::exit`: on the oracle as a file, and in QEMU as a kit.
@@ -122,14 +124,14 @@ pub fn check_text(t: &Tools, text: &str, dir: &Path) -> Outcome {
         dir,
         &[],
         false,
-        engines::RUN_LIMIT,
+        BOARD_LIMIT,
     );
-    if q.timed_out {
-        let so_far = String::from_utf8_lossy(&q.stdout).replace("\r\n", "\n");
-        let so_far: String = so_far.chars().take(120).collect();
+    let got = String::from_utf8_lossy(&q.stdout).replace("\r\n", "\n");
+    // a board still on is right only after a failed check, which freezes it
+    if q.timed_out && !matches!(o, engines::Oracle::Stopped { .. }) {
+        let so_far: String = got.chars().take(120).collect();
         return Outcome::Failed(format!("QEMU did not end (the board was not switched off); it printed {so_far:?}"));
     }
-    let got = String::from_utf8_lossy(&q.stdout).replace("\r\n", "\n");
     let show = |s: &str| {
         let s = s.trim_end();
         if s.len() > 200 { format!("{:?}…", &s[..200]) } else { format!("{s:?}") }

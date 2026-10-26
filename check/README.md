@@ -28,9 +28,11 @@ and narrowed by `to.list.…(give …)` (owner, 2026-10-25; oracle 8054704c). Le
 
 **A chip with no operating system** (`aarch64-none`; oracle 29b59ddc): `check bare --cases N` generates programs
 with no C and no heap (the printer through `std::print`, no lists, borrows, inputs, text operations or episodes),
-ends MAIN in `std::exit(code: 0)` as examples/bare_station does, and has kayo build each as a kit for QEMU's `virt`
+and has kayo build each as a kit for QEMU's `virt`
 board (bare_station's board module and linker script, CNC and WSMW listed) and boots it; the oracle runs the same
-program as a file. QEMU's output must be the oracle's; where the oracle stopped, its output must be how QEMU's begins;
+program as a file. QEMU's output must be the oracle's; where the oracle stopped, its output must be how QEMU's begins and the
+board freezes (owner, 2026-10-08), so a run that does not end is right there; MAIN's end switches the board off
+through the target's `exit` (owner, 2026-10-26; kayo 78a41606);
 a build refusal at the oracle's stopping line agrees. `check/corpus-bare/` holds programs for it, run first
 (`--corpus-only` for those alone). Needs kayo's runtime built for the target: `cargo build -p kayo-runtime --release
 --target aarch64-unknown-none`. QEMU's run is stopped by the harness's own limit; `perl alarm` does not stop QEMU.
