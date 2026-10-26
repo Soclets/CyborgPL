@@ -10,17 +10,6 @@
 use crate::diag::{err, Diagnostic, Edit, Result};
 use crate::lexer::{Tok, Token};
 
-thread_local! {
-    /// Whether the files being read are checked: std's own are not, until
-    /// std claude marks them (they were written before the rule).
-    static CHECKED: std::cell::Cell<bool> = const { std::cell::Cell::new(true) };
-}
-
-/// Whether to check the files read from here on; the setting before.
-pub fn set_checked(on: bool) -> bool {
-    CHECKED.with(|c| c.replace(on))
-}
-
 /// The limb a word is the first word of, where it stands: `before`, the word
 /// before it in the path (`to` in `to.d64`), if any; `after`, the next one;
 /// `prev`, the token before the path.
@@ -53,9 +42,6 @@ fn word(t: &Token) -> Option<&str> {
 }
 
 pub fn check(toks: &[Token]) -> Result<()> {
-    if !CHECKED.with(|c| c.get()) {
-        return Ok(());
-    }
     let mut i = 0;
     while i < toks.len() {
         if word(&toks[i]).is_none() {
