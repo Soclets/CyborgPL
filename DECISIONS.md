@@ -34,6 +34,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-26 — `array` is `arr`, `equal_to` is `eq_to`, `not_equal` is `not_eq`; `list` stays (owner; not built)
+
+The owner: "Should we shorten `list`, `array`, `equal_to`, `not_equal` to `ls`, `arr`, `eq`, `not_eq`?" Design claude
+recommended keeping all four: `eq` brings back what `equal` was turned down for (2026-10-07: it "could blend it with
+the reader's `=`"), `ls` reads as the shell's. The owner: "What about `ls`, `arr`, `eq_to`, `not_eq`, and we could
+shorten the others too if it's shortable" (`eq_to` keeps "to", so it reads "equal to"; `not_eq` is C++'s own spelling
+of `!=`; `arr` the usual abbreviation; design claude held back on the others, a short form being worth it only where
+programmers read it as the same word, and `concat`, `module` and `interface` having none safe), then "Tbh, it doesn't
+say `inline.BASH`" (inside CyborgPL nothing else could be `ls`), then, shown the four everywhere a name sits: "yes, but
+`list` stays". So **`array` becomes `arr`** (`arr[u8]`, `arr.length(…)`, `to.arr(…)`), **`equal_to` becomes `eq_to`**,
+**`not_equal` becomes `not_eq`**, each old spelling refused naming the new one; **`list` is unchanged**. The other
+words are not shortened. Not built: CyborgPL is paused for the day (owner: "Remember, CyborgPL is paused for today").
+
 ### 2026-10-26 — With no OS, reaching `MAIN`'s end calls the target's `exit` with 0, when the target names one (owner)
 
 Check claude, booting generated programs on QEMU's `virt` board (`check bare`), found kayo leaves a board asleep when
