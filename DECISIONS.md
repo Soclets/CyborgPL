@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-26 — In `print.format`, a newline is `{newln}` and a tab `{tab}`; `\n` and `\t` there become old spellings (owner; not built)
+
+The owner: "Why not `{newln}` in print.format instead?" 2026-10-07 replaced `\n` with `newln` outside quotes (owner:
+"If `\` means escape, `\n` could read as escape the letter `n` to consistent people") but left a format its own `\n`
+and `\t`, so one newline had two spellings (`print.useful(…, newln)`, `print.format("…\n", …)`). Design claude
+recommended `{newln}`, and `{tab}` with it, since everything special in a format already sits in `{ }`: **a newline in a
+format is `{newln}`, a tab `{tab}`**, holes that take no value (not counted against the values given), and `\n` / `\t`
+in a format are refused naming them. The other escapes stay (`\{ \} \\ \" \xHH \uHHHH`), spelling what a format cannot
+hold otherwise (design claude's recommendation, with the rest). The owner: "yes". Not built: CyborgPL is paused for
+the day.
+
 ### 2026-10-26 — An idea for `CyJet.lock`: `kayo prepare --paranoid` writes it only as AES-256 `CyJet.lock.aes`, under a password (owner; not designed)
 
 The owner: "Should we add AES-256 encryption to the `.lock`? It's a funny one". Design claude: no for the lock itself
