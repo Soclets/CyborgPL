@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-26 — An idea for `CyJet.lock`: `kayo prepare --paranoid` also writes an AES-256 `CyJet.lock.aes`, for fun (owner; not designed)
+
+The owner: "Should we add AES-256 encryption to the `.lock`? It's a funny one". Design claude: no for the lock itself
+(git diffs it, every builder needs it, reproducible builds rebuild from it; a key everyone holds is no secret). The
+owner: "C'mon, how about a special command". Design claude sketched an opt-in flag on a kayo command (CyJet has no
+command of its own, 2026-10-15): `kayo prepare --paranoid` writes the plain `CyJet.lock` as always and an AES-256
+`CyJet.lock.aes` beside it ("for no reason at all"), which kayo never reads. The owner: "yea" to recording it. **An
+idea, to take up when `CyJet.lock` is designed**; nothing about the lock is decided by it.
+
 ### 2026-10-26 — std keeps going; it is not paused until it can be written wholly in CyborgPL (owner)
 
 The owner: "should we pause the std kit, and unpause it only after it's self-hostable?", meaning (asked) std written
