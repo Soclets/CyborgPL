@@ -151,7 +151,24 @@ no_check inline.%MSL threads 64 { … } with [lend.mut $xs -> buffer(0)];   # Me
 
 So `%` no longer means percent: `80 percent`, `percent[d32]`. A program's limbs show where they are used, and `%C`
 nowhere means it never calls C. **Names are never marked** (owner: "correct"): `let $ชื่อ := 5;` is the writer's name, not
-a piece of the language. Open: who says where a limb's marks go; the `%` old-spelling refusal for `mod`.
+a piece of the language. **The base places every mark, by its one rule** (owner, 2026-10-26: "Seems good", then "yes"):
+a limb declares its words and where they attach, never a mark, and kayo refuses a limb word unmarked, a mark on a
+base word, a mark on what no listed limb adds, and a limb claiming a base word. **Each limb marks its own first word**,
+so one limb extending another's shows two: `%layout.%Cpp` (owner: "yes").
+
+| Limb | Marked as |
+|---|---|
+| CNC | `%extern.C`, `%layout.C`, `%C.int`, `%C.str.make(…)`, `= %C.printf`, `incl.%C[…]`, `incl.%C.system[…]`, `inline.%C` |
+| Money | `%d32`, `%d64`, `%d128`, `to.%d64(…)`, `to.%d32.written(…)` |
+| WSMW | `%i128`, `%u128`, `%f128`, `%not_std.i24`, `%not_std.f80` |
+| AI | `%brain16` |
+| MCPS | `%concur`, `%channel[i32]`, `%channel.empty`, `%channel.send(…)`, `for %para`, `%whichever` |
+| Metal | `inline.%MSL threads 64 { … } with […]` |
+| unicode | text units `40 %graphemes`, `%points`; `char.%point`, `char.%grapheme`; `str.%utf16`, `str.%utf32` |
+
+Never marked: the base's words, anything after a kit's `::`, names. Design claude's readings: one mark per construct
+(`threads` inside `inline.%MSL` is not marked again); `exactly`, `percent` and `cols` are the base's; format holes stay
+unmarked for now. Open: the `%` old-spelling refusal for `mod`.
 
 ## The official limbs
 

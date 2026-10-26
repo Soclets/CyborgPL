@@ -62,8 +62,14 @@ enforced?" (a limb declares its words and where they attach, never a mark; the b
 refuses a limb word unmarked, a mark on a base word, a mark on what no listed limb adds, and a limb claiming a base
 word), then "Seems good. But is a limb even creatable yet?" (no: only the official limbs, inside kayo; how a limb is
 written was never designed), then "yes". So **(a): the base places every mark, by its one rule**; the official limbs'
-words are a table in kayo and the oracle. The owner: "The `.lock` and 3rd-party limbs come tomorrow". Open: `%`'s
-old-spelling refusal for `mod`. Not built: every C, decimal, task and GPU program changes.
+words are a table in kayo and the oracle. The owner: "The `.lock` and 3rd-party limbs come tomorrow". Shown the table of the official
+limbs' marked words (CNC `%extern.C`, `%layout.C`, `%C.int`, `incl.%C`, `inline.%C`; Money `%d64`, `to.%d64`; WSMW
+`%i128`, `%not_std.i24`; AI `%brain16`; MCPS `%concur`, `%channel`, `for %para`, `%whichever`; Metal `inline.%MSL`;
+unicode `%graphemes`, `%points`, `char.%point`, `str.%utf16`), with design claude's readings (one mark per construct,
+`threads` inside `inline.%MSL` unmarked; `exactly`, `percent` and `cols` the base's; format holes unmarked for now):
+"yes". Then: "But another limb extending a current limb would be `%layout.%C++`, double mark?? Or no" (by the rule,
+per limb; one mark per path would hide the second limb); design claude recommending the double mark: "yes". So
+**each limb marks its own first word in a path: `%layout.%Cpp`**. Open: `%`'s old-spelling refusal for `mod`. Not built: every C, decimal, task and GPU program changes.
 
 ### 2026-10-26 — A module's bounds are reached by its path, the collection's name included: `shop.order.discount` (owner)
 
