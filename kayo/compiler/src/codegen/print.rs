@@ -241,6 +241,14 @@ impl<'ctx> Cg<'_, 'ctx> {
                 Operand::Const(_) => None,
                 _ => self.operand_signed(fi, a),
             };
+            // With no OS a hole is written into one fixed buffer (the
+            // runtime's `BARE_SCRATCH`), which a number, a truth or one
+            // character never fills; text and collections, which can, are
+            // not built there yet.
+            if crate::target::bare() && !matches!(ty.base(), Ty::Int(_) | Ty::Bin(BinW::Fixed(16 | 32 | 64) | BinW::Free(_)) | Ty::Deci(_) | Ty::Brain | Ty::Bool | Ty::Char(Unit::Point)) {
+                self.cannot("a format hole holding text, a collection or a wide `bin` with no OS is not built yet: numbers, truths and characters are", None);
+                return None;
+            }
             let scratch_fn = self.out_fn("cyborg_fmt_scratch");
             let scratch = self.builder.build_call(scratch_fn, &[], "hole").ok().and_then(crate::codegen::basic_result)?.into_pointer_value();
             let numeric = matches!(ty.base(), Ty::Int(_) | Ty::Bin(_) | Ty::Deci(_) | Ty::Brain);
@@ -342,7 +350,7 @@ impl<'ctx> Cg<'_, 'ctx> {
 
     /// The LLVM function of a board's `output` or `exit`: the instance the
     /// checker made of it.
-    fn board_fn(&mut self, id: crate::resolve::FnId) -> Option<FunctionValue<'ctx>> {
+    pub(super) fn board_fn(&mut self, id: crate::resolve::FnId) -> Option<FunctionValue<'ctx>> {
         let i = self.p.functions.iter().position(|f| f.inst.and_then(|inst| self.p.instances.get(inst.0 as usize)).is_some_and(|inst| inst.key.fn_id == id));
         match i.and_then(|i| self.fns.get(&i).copied()) {
             Some(f) => Some(f),

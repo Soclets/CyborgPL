@@ -1,0 +1,20 @@
+my details:
+name = text_hole
+prefix = text_hole
+ver = 0.1.0
+
+my kits:
+std {
+id = fff4302dffc4a894a2bab6baf724eb21dfc05a2ad9818509d8001013d6761936
+ver = 2026-10-06T12:57:14+07:00
+}
+virt {
+path = ../virt
+}
+
+my targets:
+aarch64-none {
+layout = boards/virt.ld
+output = virt::serial.write
+exit = virt::power.off
+}

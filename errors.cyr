@@ -391,7 +391,7 @@ errors::table[
         errors::error[name = "lane_count_misplaced", means = "A lane count, `count N`, is written somewhere other than in a `simd` type.", tests = []],
         errors::error[name = "lent_at_call", means = "`lent` is written at a call; it is the parameter's word, and the caller writes `lend`.", about = "`lent` is the parameter's word; at a call the caller writes `lend` (or `lend.mut`).", tests = []],
         errors::error[name = "lent_given_away", means = "Something only borrowed, such as a `lent` parameter or a loop's element, is given away.", about = "What is only borrowed cannot be given away: it is copied.", tests = []],
-        errors::error[name = "manifest_field_misplaced", means = "A manifest field is given where it does not belong, such as a `layout` on a target with an OS.", tests = []],
+        errors::error[name = "manifest_field_misplaced", means = "A manifest field is given where it does not belong, such as a `layout` on a target with an OS.", tests = ["target_layout_with_os"]],
         errors::error[name = "manifest_line_form", means = "A line of the manifest is not a section, a block's opening or closing, or a `key = value` line with a value.", tests = []],
         errors::error[name = "manifest_missing", means = "A kit that is used has no `CyJet.toml`, so nothing gives its prefix.", tests = []],
         errors::error[name = "manifest_section_form", means = "A manifest section holds lines of the wrong shape, such as `key = value` lines where blocks belong.", tests = []],

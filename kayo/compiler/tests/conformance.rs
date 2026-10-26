@@ -134,6 +134,60 @@ fn targets(dir: &Path) -> Vec<PathBuf> {
     v
 }
 
+/// Whether the program is a kit built for a chip with no OS.
+fn is_bare(p: &Path) -> bool {
+    std::fs::read_to_string(p.join("CyJet.toml")).is_ok_and(|t| t.lines().any(|l| l.trim() == "aarch64-none {"))
+}
+
+/// Build it, and run it on QEMU's `virt` board: what its serial port
+/// printed is its output, and powering the machine off is its exit, 0. None
+/// with no QEMU here (a note says so); a build refused is what `kayo run`
+/// would have shown.
+fn run_bare(kayo: &Path, src: &Path, name: &str) -> Option<std::process::Output> {
+    use std::os::unix::process::ExitStatusExt;
+    let out = std::env::temp_dir().join(format!("kayo-bare-examples-{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&out);
+    let exe = out.join(name);
+    let built = Command::new(kayo).arg("build").arg(src).arg("-o").arg(&exe).output().unwrap();
+    if !built.status.success() {
+        return Some(built);
+    }
+    if !Command::new("qemu-system-aarch64").arg("--version").output().is_ok_and(|o| o.status.success()) {
+        eprintln!("note: no qemu-system-aarch64 on this machine, so {} was built but not run", name);
+        return None;
+    }
+    let serial = out.join(format!("{}.serial", name));
+    let mut q = Command::new("qemu-system-aarch64")
+        .args(["-M", "virt", "-cpu", "cortex-a72", "-display", "none", "-monitor", "none", "-serial"])
+        .arg(format!("file:{}", serial.display()))
+        .arg("-kernel")
+        .arg(&exe)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    let mut ended = false;
+    for _ in 0..300 {
+        if q.try_wait().unwrap().is_some() {
+            ended = true;
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    if !ended {
+        let _ = q.kill();
+        let _ = q.wait();
+    }
+    let stdout = std::fs::read(&serial).unwrap_or_default();
+    let _ = std::fs::remove_file(&serial);
+    let _ = std::fs::remove_file(&exe);
+    // Never powered off: no exit at all, which no `.exit` names.
+    let status = std::process::ExitStatus::from_raw(if ended { 0 } else { 0x7f00 });
+    let stderr = if ended { Vec::new() } else { b"QEMU was stopped after 30 s: the program never switched the machine off\n".to_vec() };
+    Some(std::process::Output { status, stdout, stderr })
+}
+
 fn name_of(p: &Path) -> String {
     if p.is_dir() {
         p.file_name().unwrap().to_string_lossy().to_string()
@@ -350,12 +404,21 @@ fn examples_run_as_the_oracle_prints() {
         let want = std::fs::read(dir.join(format!("{}.out", name))).unwrap();
         let code = std::fs::read_to_string(dir.join(format!("{}.exit", name))).ok().and_then(|t| t.trim().rsplit(':').next().and_then(|n| n.trim().parse::<i32>().ok())).unwrap_or(0);
         let words: Vec<String> = std::fs::read_to_string(dir.join(format!("{}.args", name))).map(|t| t.lines().filter(|l| !l.is_empty()).map(str::to_string).collect()).unwrap_or_default();
-        let mut cmd = Command::new(&synapse);
-        cmd.arg("run").arg(src).stdin(std::process::Stdio::null());
-        if !words.is_empty() {
-            cmd.arg("--").args(&words);
-        }
-        let r = cmd.output().unwrap();
+        // A kit for a chip with no OS (`examples/bare_station`) is not run
+        // here but on QEMU's `virt` board, its serial port its output.
+        let r = if is_bare(src) {
+            match run_bare(&synapse, src, &name) {
+                Some(r) => r,
+                None => return None,
+            }
+        } else {
+            let mut cmd = Command::new(&synapse);
+            cmd.arg("run").arg(src).stdin(std::process::Stdio::null());
+            if !words.is_empty() {
+                cmd.arg("--").args(&words);
+            }
+            cmd.output().unwrap()
+        };
         let err = String::from_utf8_lossy(&r.stderr);
         let refused = r.stdout.is_empty() && err.lines().any(|l| l.starts_with("error[") || l.starts_with("error:")) && r.status.code() != Some(code);
         match (unbuilt.get(&name), refused) {

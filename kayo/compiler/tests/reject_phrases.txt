@@ -945,3 +945,4 @@ percent_spaced_is_mod [fnv:db4d3c1464ddf611] :: error[old_spelling]
 percent_type_symbol_old [fnv:1f36b4c8bb912f7a] :: error[old_spelling]
 
 main_fn_called_bare [fnv:f1c8a5d71d1fa783] :: error[keyword_name_bare]
+target_layout_with_os [fnv:bdb4919177fb990d] :: error[manifest_field_misplaced]

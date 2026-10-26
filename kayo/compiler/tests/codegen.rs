@@ -602,6 +602,7 @@ fn bare_metal_runs_in_qemu() {
     // of one of the two shapes, on a target with no OS only.
     refused(&bare.join("bad_output"), "the target's `output`, `fn my.serial.write`, takes the bytes `std::print` writes in one of two forms");
     refused(&bare.join("output_with_os"), "`exit` is for a target with no OS");
+    refused(&bare.join("text_hole"), "a format hole holding text, a collection or a wide `bin` with no OS is not built yet");
     // A target's output may be the Neuron's own function or a board
     // Neuron's it uses (`virt::serial.write`).
     for name in ["serial", "uses_board"] {
@@ -656,7 +657,7 @@ fn bare_metal_runs_in_qemu() {
     // `cord::print` and `cord::exit` with no OS (owner, 2026-10-09): the
     // bytes reach the board's serial port, and `exit` powers QEMU off.
     // The output either way it may take: a byte or a chunk a call.
-    for name in ["uses_board", "uses_board_chunk"] {
+    for name in ["uses_board", "uses_board_chunk", "fixed_values"] {
         let r = Command::new(cca()).arg("build").arg(bare.join(name)).arg("-o").arg(out.join(name)).output().unwrap();
         assert!(r.status.success(), "{} did not build for aarch64-none:\n{}", name, String::from_utf8_lossy(&r.stderr));
         if !Command::new("qemu-system-aarch64").arg("--version").output().is_ok_and(|o| o.status.success()) {
@@ -687,7 +688,38 @@ fn bare_metal_runs_in_qemu() {
         }
         let printed = std::fs::read_to_string(&serial).unwrap_or_default();
         assert!(ended, "{}'s `std::exit` did not power QEMU off; it printed:\n{}", name, printed);
-        assert_eq!(printed, format!("hello from a bare chip\nPoint[x = 3, y = -4] 0.1 42\n0.1000000000000000055511151231257827021181583404541015625\n{}", if name == "uses_board" { "4 7\n" } else { "" }), "{} printed the wrong thing through its board's serial port", name);
+        let want = if name == "fixed_values" {
+            // A fixed array, a text literal and format holes, with no heap.
+            "7 [5, 7, 9, 1]\nabc 5\n0000beef 2.50|true |\n".to_string()
+        } else {
+            format!("hello from a bare chip\nPoint[x = 3, y = -4] 0.1 42\n0.1000000000000000055511151231257827021181583404541015625\n{}", if name == "uses_board" { "4 7\n" } else { "" })
+        };
+        assert_eq!(printed, want, "{} printed the wrong thing through its board's serial port", name);
+    }
+    // A failed check: what was printed before it goes out, then the chip
+    // freezes on the trap, never switched off (check claude, 2026-10-26).
+    if Command::new("qemu-system-aarch64").arg("--version").output().is_ok_and(|o| o.status.success()) {
+        let exe = out.join("trap_flushes");
+        let r = Command::new(cca()).arg("build").arg(bare.join("trap_flushes")).arg("-o").arg(&exe).output().unwrap();
+        assert!(r.status.success(), "trap_flushes did not build for aarch64-none:\n{}", String::from_utf8_lossy(&r.stderr));
+        let serial = out.join("trap_flushes.serial");
+        let mut q = Command::new("qemu-system-aarch64")
+            .args(["-M", "virt", "-cpu", "cortex-a72", "-display", "none", "-monitor", "none", "-serial"])
+            .arg(format!("file:{}", serial.display()))
+            .arg("-kernel")
+            .arg(&exe)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(2000));
+        let ended = q.try_wait().unwrap().is_some();
+        let _ = q.kill();
+        let _ = q.wait();
+        let printed = std::fs::read_to_string(&serial).unwrap_or_default();
+        assert!(!ended, "trap_flushes switched the board off after a failed check; it printed:\n{}", printed);
+        assert_eq!(printed, "before\n0\n0\n", "trap_flushes did not send what it printed before the failed check");
     }
     let _ = std::fs::remove_dir_all(&out);
 }

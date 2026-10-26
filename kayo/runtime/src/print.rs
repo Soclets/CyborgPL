@@ -112,11 +112,39 @@ fn take() {
     while TAKEN.compare_exchange_weak(false, true, core::sync::atomic::Ordering::Acquire, core::sync::atomic::Ordering::Relaxed).is_err() {
         core::hint::spin_loop();
     }
+    #[cfg(target_os = "none")]
+    unsafe {
+        FILLING = true;
+    }
 }
 
 fn give_back() {
     #[cfg(not(target_os = "none"))]
     TAKEN.store(false, core::sync::atomic::Ordering::Release);
+    #[cfg(target_os = "none")]
+    unsafe {
+        FILLING = false;
+    }
+}
+
+/// With no OS, whether a print is being filled: one thread, so no lock,
+/// but a stop in the middle of one must know it.
+#[cfg(target_os = "none")]
+static mut FILLING: bool = false;
+
+/// Before a failed check freezes a chip with no OS (check claude,
+/// 2026-10-26: "before" never reached the serial port): what the buffer
+/// holds goes out, as it does before a stop on an OS — unless the stop
+/// came while a print was being filled, which an OS leaves held too.
+///
+/// # Safety
+/// Any time.
+#[cfg(target_os = "none")]
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_stop_flush() {
+    if !FILLING && (*(&raw const SHARED)).len > 0 {
+        cyborg_out_flush(shared());
+    }
 }
 
 /// A write the OS refused, with no `otherwise`: the program stops (owner,
@@ -397,6 +425,13 @@ pub unsafe extern "C" fn cyborg_out_bytes(o: *mut Out, p: *const u8, n: u64) {
             (*o).cap = cap as u32;
             continue;
         }
+        // With no OS the scratch does not grow, and kayo lets nothing into
+        // a hole there that could fill it: past it is kayo's bug, and the
+        // program stops as a failed check does.
+        #[cfg(target_os = "none")]
+        if room == 0 && (*o).sink == GROW {
+            core::arch::asm!("brk #0x6b61", options(noreturn));
+        }
         if room == 0 {
             // Kept whole: what came before this print goes, and the print
             // starts the buffer; one longer than the buffer goes out alone.
@@ -632,6 +667,31 @@ pub unsafe extern "C" fn cyborg_out_deci(o: *mut Out, lo: u64, hi: u64, bits: u3
 /// A scratch buffer's sink: it grows and is never sent.
 const GROW: u32 = 3;
 
+/// With no OS, one hole's scratch is one buffer kept in the program's
+/// memory: holes are filled one at a time, each put before the next is
+/// begun. kayo lets only numbers, truths and characters into a hole there,
+/// and the longest of those is an `f64`'s exact digits, under 1,100 bytes
+/// (design claude, 2026-10-26: `{base: hex, …}` on `aarch64-none`).
+#[cfg(target_os = "none")]
+const BARE_SCRATCH: usize = 2048;
+#[cfg(target_os = "none")]
+static mut BARE_SCRATCH_BYTES: [u8; BARE_SCRATCH] = [0; BARE_SCRATCH];
+#[cfg(target_os = "none")]
+static mut BARE_SCRATCH_OUT: Out = Out { to: 0, sink: GROW, len: 0, cap: BARE_SCRATCH as u32, failed: 0, bytes: core::ptr::null_mut(), at: core::ptr::null(), at_len: 0, cur: core::ptr::null(), cur_len: 0, whole: 0, mark: 0 };
+
+/// A hole's scratch buffer, with no OS: the one buffer, emptied.
+///
+/// # Safety
+/// Put by `cyborg_fmt_put` before the next is asked for.
+#[cfg(target_os = "none")]
+#[no_mangle]
+pub unsafe extern "C" fn cyborg_fmt_scratch() -> *mut Out {
+    let o = &raw mut BARE_SCRATCH_OUT;
+    (*o).bytes = (&raw mut BARE_SCRATCH_BYTES).cast();
+    (*o).len = 0;
+    o
+}
+
 /// A hole's scratch buffer.
 ///
 /// # Safety
@@ -683,7 +743,6 @@ pub unsafe extern "C" fn cyborg_fmt_int_base(s: *mut Out, lo: u64, hi: u64, sign
 ///
 /// # Safety
 /// `s` is a scratch buffer.
-#[cfg(not(target_os = "none"))]
 #[no_mangle]
 pub unsafe extern "C" fn cyborg_fmt_decimal(s: *mut Out, places: i32, sci: bool) {
     // Past 80 places a decimal shows nothing more a reader can use.
@@ -857,7 +916,6 @@ pub unsafe extern "C" fn cyborg_fmt_decimal(s: *mut Out, places: i32, sci: bool)
 ///
 /// # Safety
 /// `o` a buffer, `s` a scratch buffer from `cyborg_fmt_scratch`.
-#[cfg(not(target_os = "none"))]
 #[no_mangle]
 pub unsafe extern "C" fn cyborg_fmt_put(o: *mut Out, s: *mut Out, width: u32, unit: u32, align: u32, fill: u32, plus: bool, zero: bool, numeric: bool) {
     let text = scratch_bytes(s);
@@ -893,8 +951,12 @@ pub unsafe extern "C" fn cyborg_fmt_put(o: *mut Out, s: *mut Out, width: u32, un
         put(o, rest);
         pad_with(o, right, &fill_bytes[..fill_len]);
     }
-    crate::cyborg_free((*s).bytes);
-    crate::cyborg_free(s as *mut u8);
+    // With no OS the scratch is the one buffer, kept.
+    #[cfg(not(target_os = "none"))]
+    {
+        crate::cyborg_free((*s).bytes);
+        crate::cyborg_free(s as *mut u8);
+    }
 }
 
 /// How wide `text` is in a format width's unit (owner, 2026-10-25): 0

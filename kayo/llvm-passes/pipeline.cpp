@@ -4,6 +4,7 @@
 // function already cleaned up, and ahead of the inliner and the passes that
 // make use of what it unfolded.
 
+#include "heap_to_stack.h"
 #include "recursive_inline.h"
 
 #include "llvm-c/Error.h"
@@ -47,6 +48,12 @@ extern "C" void kayo_optimize(LLVMModuleRef module, LLVMTargetMachineRef machine
             mpm.addPass(kayo::RecursiveInlinePass{{}, depth, max_size, inlined});
         });
     }
+    // After each early clean-up, once inlining has put a callee's uses of a
+    // pointer beside its allocation, and before the later SROA, which then
+    // keeps the moved memory in registers.
+    pb.registerPeepholeEPCallback([&](FunctionPassManager &fpm, OptimizationLevel) {
+        fpm.addPass(kayo::HeapToStackPass{});
+    });
     // A build with a loop under `no_cheat` (the module flag
     // `kayo.keep_rounds`, `codegen/keep.rs`): no loop's answer is replaced
     // by its closed form (`n x (n + 1) / 2` for a sum), so every round runs.

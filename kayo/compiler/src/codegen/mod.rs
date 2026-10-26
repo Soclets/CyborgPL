@@ -548,6 +548,16 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             let _ = self.builder.build_call(body, &[], "");
         }
         self.emit_print_flush();
+        // With no OS, reaching MAIN's end calls the target's `exit` with 0
+        // when it names one (owner, 2026-10-26: "yes"); with none, or if it
+        // comes back, the entry sleeps (2026-10-09).
+        if crate::target::bare() {
+            if let Some(id) = self.p.items.board_exit {
+                if let Some(off) = self.board_fn(id) {
+                    let _ = self.builder.build_call(off, &[self.ctx.i8_type().const_zero().into()], "");
+                }
+            }
+        }
         let _ = self.builder.build_return(Some(&i32t.const_zero()));
     }
 
@@ -2261,6 +2271,13 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // on a trap instruction a debugger shows (owner, 2026-10-08: "yea,
         // freeze there"): LLVM's trap, `brk` on ARM.
         if crate::target::bare() {
+            // What was printed before it goes out first, as before a stop
+            // on an OS (check claude, 2026-10-26).
+            let flush = match self.module.get_function("cyborg_stop_flush") {
+                Some(f) => f,
+                None => self.module.add_function("cyborg_stop_flush", self.ctx.void_type().fn_type(&[], false), None),
+            };
+            let _ = self.builder.build_call(flush, &[], "");
             if let Some(trap) = inkwell::intrinsics::Intrinsic::find("llvm.trap").and_then(|i| i.get_declaration(self.module, &[])) {
                 let _ = self.builder.build_call(trap, &[], "");
             }
