@@ -264,5 +264,8 @@ fn apply_discount [$amount: d64, $percent: order.discount] -> d64 { … }
 - **`pub` and another kit's use** follow every collection's: `pub coll.bound`, `shop::quantity.small` (design
   claude's reading).
 
-Built in the oracle (2026-10-26), within one kit: `examples/coll_bound.cy`, reject tests `bound_*`. Another kit's use
-is not built yet.
+- **A module in any file of the kit names the root's bounds through `my.`**, `count: my.quantity`, as `my.Color` names a
+  root type (owner, 2026-10-26: "yes, no shit"); the root names them bare.
+
+Built in the oracle (2026-10-26), within one kit: `examples/coll_bound.cy`, `examples/bounds_kit/`, reject tests
+`bound_*`. Another kit's use is not built yet.

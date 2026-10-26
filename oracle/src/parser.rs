@@ -232,6 +232,9 @@ thread_local! {
     /// every `pub coll.handler`'s members, by (kit root, collection, member), read in the first pass over every file, so
     /// another kit uses one through its path (owner, 2026-10-23)
     pub static PUB_HANDLERS: std::cell::RefCell<Vec<(Vec<String>, String, String, HandlerMember)>> = std::cell::RefCell::new(Vec::new());
+    /// every root file's `coll.bound` members, by (kit root, name): a module in any file names one as `my.quantity` (owner,
+    /// 2026-10-26: "yes, no shit"); the root file is read first, so they are known before any module file
+    pub static ROOT_BOUNDS: std::cell::RefCell<Vec<(Vec<String>, String, Ty)>> = std::cell::RefCell::new(Vec::new());
     /// `oracle --to-paren-calls`: read a call's old `[ ]` and record where it is, to be rewritten as `( )`
     pub static OLD_CALLS: std::cell::Cell<bool> = std::cell::Cell::new(false);
     /// (file, character, the text it becomes), for `oracle --to-paren-calls`
@@ -795,6 +798,14 @@ impl Parser {
         let bound_starts: Vec<usize> = (0..self.toks.len().saturating_sub(3)).filter(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "coll") && self.toks[i + 1].tok == Tok::Dot && matches!(&self.toks[i + 2].tok, Tok::Word(w) if w == "bound")).collect();
         for at in bound_starts { self.pos = at + 3; self.bound_collection()?; }
         self.pos = 0;
+        if self.module == self.kit_root {
+            let root = self.kit_root.clone();
+            ROOT_BOUNDS.with(|b| {
+                let mut b = b.borrow_mut();
+                b.retain(|(r, _, _)| *r != root);
+                for (name, ty) in &self.named_bounds { b.push((root.clone(), name.clone(), ty.clone())); }
+            });
+        }
         self.items(&mut prog, 0)?;
         Ok(prog)
     }
@@ -1928,6 +1939,23 @@ impl Parser {
     }
 
     fn ty(&mut self) -> PResult<Ty> {
+        // `my.quantity`: the root's bound, from any file of the kit (owner, 2026-10-26)
+        if self.is_word("my") && *self.peek_at(1) == Tok::Dot {
+            let root = self.kit_root.clone();
+            let (mut path, mut k, mut best) = (String::new(), 2, None);
+            while let Tok::Word(w) = self.peek_at(k).clone() {
+                if !path.is_empty() { path.push('.'); }
+                path.push_str(&w);
+                k += 1;
+                if let Some(t) = ROOT_BOUNDS.with(|b| b.borrow().iter().find(|(r, n, _)| *r == root && *n == path).map(|(_, _, t)| t.clone())) { best = Some((k, t)); }
+                if *self.peek_at(k) != Tok::Dot { break; }
+                k += 1;
+            }
+            if let Some((n, t)) = best {
+                for _ in 0..n { self.advance(); }
+                return Ok(t);
+            }
+        }
         // a `coll.bound` member is the type it names (owner, 2026-10-25): the longest name that is one
         if !self.named_bounds.is_empty() {
             if let Tok::Word(first) = self.peek().clone() {

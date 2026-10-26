@@ -41,6 +41,7 @@ another file reaches the root's bounds as it reaches the root's functions, const
 the owner asked "What is `my` currently used for?" (a root function, `my.helper()`; a root function named like a
 built-in word, `my.true()`; a root const, `my.$pi`; a root type, `my.Color`; std going back down, `my.str.…`), then
 "yes, no shit". So **`my.quantity` names the root's bound from any file of the kit**, as `my.Color` names its type.
+Built in the oracle the same day: examples/bounds_kit/, tests/reject/bound_my_out/.
 
 ### 2026-10-26 — std's tests live in the repo, in `std/tools/checks/` (owner)
 

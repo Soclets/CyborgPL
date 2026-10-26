@@ -99,6 +99,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     parser::LACKS.with(|n| n.borrow_mut().clear());
     parser::TYPE_PATHS.with(|t| t.borrow_mut().clear());
     parser::TEMPLATES.with(|t| t.borrow_mut().clear());
+    parser::ROOT_BOUNDS.with(|b| b.borrow_mut().clear());
     generate::PENDING.with(|p| p.borrow_mut().clear());
     case::PLAN.with(|p| p.borrow_mut().clear());
     LEVELS_ONLY.with(|f| f.set(true));
