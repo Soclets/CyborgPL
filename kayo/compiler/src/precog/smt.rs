@@ -112,7 +112,7 @@ impl Portfolio {
     /// program.
     pub fn ask_text(&self, text: &str) -> Answer {
         let Some(s) = self.members.first() else { return Answer::Unknown };
-        run(s, &Query { text: text.to_string(), assumptions: String::new(), truncated: false, assumed: false, reach: String::new(), inputs: Vec::new() })
+        run(s, &Query { text: text.to_string(), assumptions: String::new(), truncated: false, assumed: false, reach: String::new(), inputs: Vec::new(), points: Vec::new() })
     }
 }
 
@@ -164,7 +164,7 @@ fn run(s: &Solver, q: &Query) -> Answer {
     }
     match said {
         Some("unsat") => Answer::Unsat,
-        Some("sat") => Answer::Sat(model_of(&text, &q.inputs)),
+        Some("sat") => Answer::Sat(model_of(&text, q)),
         _ => Answer::Unknown,
     }
 }
@@ -194,13 +194,26 @@ pub fn disagreed(answers: &[(&'static str, Answer)]) -> bool {
 /// The values a solver said make the site fail, in the program's own
 /// words. Only the query's inputs are worth showing — a parameter, what a
 /// call gave back, how long something was — never the working.
-fn model_of(text: &str, inputs: &[Input]) -> String {
+fn model_of(text: &str, q: &Query) -> String {
     let mut vals = asked_values(text);
     if vals.is_empty() {
         vals = defined_values(text);
     }
     let mut out = Vec::new();
-    for i in inputs {
+    // The copy of the site that went wrong, by its own operands: the
+    // program's values there, not the many the query is built from
+    // (design claude, 2026-10-26: 124 lines of "a value (13) = …").
+    if let Some(pt) = q.points.iter().find(|pt| vals.get(&pt.bad).map(String::as_str) == Some("true")) {
+        for i in &pt.operands {
+            if let Some(n) = vals.get(&i.sym).and_then(|v| literal(v, i.signed)) {
+                out.push(format!("{} = {}", i.show, n));
+            }
+        }
+        if !out.is_empty() {
+            return out.join(", ");
+        }
+    }
+    for i in &q.inputs {
         if let Some(v) = vals.get(&i.sym) {
             if let Some(n) = literal(v, i.signed) {
                 out.push(format!("{} = {}", i.show, n));
@@ -350,6 +363,27 @@ fn length_word(op: &Op) -> &'static str {
     }
 }
 
+/// A place reached by fields alone, as a key.
+fn field_key(p: &Place) -> Option<String> {
+    (!p.proj.is_empty() && p.proj.iter().all(|x| matches!(x, Proj::Field(_)))).then(|| format!("{:?}", p.proj))
+}
+
+/// What `Key::Pristine` holds: only that it is there.
+fn pristine() -> Val {
+    Val { term: "pristine".to_string(), bits: 0, signed: false }
+}
+
+/// A length, of a place the program names: "how many elements $xs has".
+fn length_of(op: &Op, whose: &str) -> String {
+    let w = length_word(op);
+    for thing in ["the list", "the array", "the map", "the text"] {
+        if w.contains(thing) {
+            return w.replacen(thing, whose, 1);
+        }
+    }
+    w.to_string()
+}
+
 fn as_signed(n: u128, bits: usize) -> i128 {
     if bits >= 128 {
         return n as i128;
@@ -384,6 +418,15 @@ pub struct Query {
     /// What the query knows nothing about, and so what a counterexample
     /// is made of.
     pub inputs: Vec<Input>,
+    /// Per copy of the site: the term saying it went wrong there, and the
+    /// operands' terms as the program names them. A counterexample shows
+    /// the copy the solver chose, in its own values.
+    pub points: Vec<Point>,
+}
+
+pub struct Point {
+    pub bad: String,
+    pub operands: Vec<Input>,
 }
 
 /// A value the query cannot see inside: a parameter, what a call gave
@@ -407,6 +450,15 @@ pub fn encode(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts)
 /// only when a question without it was not proved: it is true, and it
 /// makes some questions too heavy to answer (bench/sieve's nested loops).
 pub fn encode_opts(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts, assume: bool, counted: bool) -> Option<Query> {
+    encode_unrolled(p, f, site, facts, assume, counted, UNROLL_PER_LOOP)
+}
+
+/// `encode_opts`, with each loop walked `unroll` times before its head
+/// stands for every later trip. At 0 the head stands for every trip, the
+/// first too: a weaker question, and a much smaller one. Only its proofs
+/// are worth having (design claude, 2026-10-26: std's `sits_at`, whose
+/// counted loop's sixteen trips made questions CVC5 took 29 s over).
+pub fn encode_unrolled(p: &Program, f: usize, site: SiteId, facts: &crate::precog::Facts, assume: bool, counted: bool, unroll: u32) -> Option<Query> {
     let mut aliased = std::collections::HashSet::new();
     for b in &p.functions[f].blocks {
         for s in &b.stmts {
@@ -416,7 +468,7 @@ pub fn encode_opts(p: &Program, f: usize, site: SiteId, facts: &crate::precog::F
         }
     }
     let borrows = shared_borrows(&p.functions[f]);
-    let mut e = Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows, entries: HashMap::new(), assume, counted, assumed: false, reach: Vec::new() };
+    let mut e = Enc { p, f, defs: Vec::new(), next: 0, truncated: false, reached: Vec::new(), inputs: Vec::new(), aliased, unexpressible: false, facts, borrows, entries: HashMap::new(), assume, counted, assumed: false, reach: Vec::new(), points: Vec::new(), operands: Vec::new(), entry_fields: HashMap::new(), unroll };
     e.build(site)?;
     if e.reached.is_empty() || e.unexpressible {
         return None;
@@ -436,10 +488,15 @@ pub fn encode_opts(p: &Program, f: usize, site: SiteId, facts: &crate::precog::F
     // Only the inputs' values, never the whole model: a model of a query
     // with 95,000 definitions was printed as 3.9 GB, and reading it took
     // twenty minutes of a build (check claude's slow builds, 2026-09-29).
-    if !e.inputs.is_empty() {
-        let _ = writeln!(text, "(get-value ({}))", e.inputs.iter().map(|i| i.sym.clone()).collect::<Vec<_>>().join(" "));
+    let mut asked: Vec<String> = e.inputs.iter().map(|i| i.sym.clone()).collect();
+    for pt in &e.points {
+        asked.push(pt.bad.clone());
+        asked.extend(pt.operands.iter().map(|o| o.sym.clone()));
     }
-    Some(Query { text, assumptions, truncated: e.truncated, assumed: e.assumed, reach, inputs: e.inputs })
+    if !asked.is_empty() {
+        let _ = writeln!(text, "(get-value ({}))", asked.join(" "));
+    }
+    Some(Query { text, assumptions, truncated: e.truncated, assumed: e.assumed, reach, inputs: e.inputs, points: e.points })
 }
 
 fn describe_site(p: &Program, f: usize, site: SiteId) -> String {
@@ -489,6 +546,16 @@ struct Enc<'a> {
     assumed: bool,
     /// One term per copy of the site: it is reached, whatever the value.
     reach: Vec<String>,
+    points: Vec<Point>,
+    /// The last site asked about: its operands, named.
+    operands: Vec<Input>,
+    /// A parameter's fields as they were on entry, one unknown each, made
+    /// when first read (design claude, 2026-10-26: `if $c.now at_least
+    /// 2880 { return …; }` said nothing about the `$c.now + 15` after it).
+    entry_fields: HashMap<(LocalId, String), Option<Val>>,
+    /// How many times each loop is walked before its head stands for the
+    /// trips after.
+    unroll: u32,
 }
 
 /// What the query knows at one point: the value of each whole-number
@@ -505,6 +572,12 @@ enum Key {
     /// A length of a place: its local, then its field path and which
     /// length (bytes, points, elements…), spelled out.
     Len(LocalId, String),
+    /// A whole-number field of a parameter, reached by fields alone
+    /// (`$c.now`), as written since the function was entered.
+    Field(LocalId, String),
+    /// The parameter's fields are still what they were on entry, except
+    /// those a `Field` says were written since.
+    Pristine(LocalId),
 }
 
 type Env = HashMap<Key, Val>;
@@ -560,6 +633,77 @@ impl<'a> Enc<'a> {
         &self.p.functions[self.f]
     }
 
+    /// The one statement that gives a temporary its value, if one does.
+    fn made_by(&self, l: LocalId) -> Option<&'a StmtKind> {
+        let mut from = None;
+        for b in &self.func().blocks {
+            for st in &b.stmts {
+                let dest = match &st.kind {
+                    StmtKind::Assign { place, .. } => Some(place),
+                    StmtKind::Op { dest: Some(place), .. } => Some(place),
+                    _ => None,
+                };
+                if dest.is_some_and(|d| d.local == l) {
+                    if from.is_some() {
+                        return None;
+                    }
+                    from = Some(&st.kind);
+                }
+            }
+        }
+        from
+    }
+
+    /// The named values a temporary was worked out from, through the
+    /// operations and conversions that made it.
+    fn made_from(&self, l: LocalId, depth: u32, out: &mut Vec<&'a Operand>) {
+        if depth > 6 {
+            return;
+        }
+        let from: Vec<&'a Operand> = match self.made_by(l) {
+            Some(StmtKind::Assign { rvalue: Rvalue::Binary { lhs, rhs, .. }, .. }) => vec![lhs, rhs],
+            Some(StmtKind::Assign { rvalue: Rvalue::Unary { operand, .. } | Rvalue::Convert { operand, .. } | Rvalue::Use(operand), .. }) => vec![operand],
+            _ => return,
+        };
+        for o in from {
+            let Some(p) = o.place() else { continue };
+            if self.spell(o, 0).is_some() {
+                out.push(o);
+            } else if p.proj.is_empty() {
+                self.made_from(p.local, depth + 1, out);
+            }
+        }
+    }
+
+    /// An operand as the program writes it: `$a.minutes`, or a temporary
+    /// by what it was made from. None when it has no name to give.
+    fn spell(&self, o: &Operand, depth: u32) -> Option<String> {
+        let p = o.place()?;
+        let f = self.func();
+        let decl = &f.locals[p.local.0 as usize];
+        let base = match &decl.name {
+            Some(n) => format!("${}", n),
+            // A temporary made once, from a value, a copy or a length.
+            None if depth < 4 => match self.made_by(p.local)? {
+                StmtKind::Assign { rvalue: Rvalue::Use(src), .. } => self.spell(src, depth + 1)?,
+                StmtKind::Assign { rvalue: Rvalue::Duplicate(src), .. } => self.spell(&Operand::Read(src.clone()), depth + 1)?,
+                StmtKind::Op { op, args, .. } if length_word(op) != "a length" => {
+                    let whose = self.spell(args.first()?, depth + 1)?;
+                    length_of(op, &whose)
+                }
+                _ => return None,
+            },
+            None => return None,
+        };
+        if p.proj.is_empty() {
+            return Some(base);
+        }
+        let bare = Place { local: p.local, proj: Vec::new() };
+        let whole = f.place_name(p, &self.p.items.structs);
+        let head = f.place_name(&bare, &self.p.items.structs);
+        Some(whole.replacen(&head, &base, 1))
+    }
+
     /// What to call a callee in a counterexample.
     fn callee_name(&self, c: &Callee) -> String {
         match c {
@@ -591,6 +735,11 @@ impl<'a> Enc<'a> {
                 let v = self.fresh("in", bits, signed, self.p.functions[self.f].locals[l.0 as usize].name.clone().unwrap_or_else(|| "a parameter".to_string()));
                 self.constrain_range(&v, &ty);
                 env0.insert(Key::Local(*l), v);
+            }
+            // Its fields, unless a name lends it mutably: a write through
+            // that name would change them without saying so.
+            if !self.aliased.contains(l) {
+                env0.insert(Key::Pristine(*l), pristine());
             }
         }
         incoming.insert((0, 0), vec![("true".to_string(), env0)]);
@@ -631,7 +780,7 @@ impl<'a> Enc<'a> {
                 }
                 let is_back = back.contains(&(b, ti));
                 let next_level = if is_back { level + 1 } else { level };
-                if is_back && next_level > UNROLL_PER_LOOP {
+                if is_back && next_level > self.unroll {
                     // Not cut: the head at the last level already stands for
                     // every later trip (see `last_trip`), so nothing is lost
                     // by not going round again — when that copy of the head
@@ -676,7 +825,7 @@ impl<'a> Enc<'a> {
             let mut avoiding: HashMap<usize, std::collections::HashSet<(usize, u32)>> = HashMap::new();
             for (from, head) in &dropped {
                 let reach = avoiding.entry(*head).or_insert_with(|| {
-                    let skip = (*head, UNROLL_PER_LOOP);
+                    let skip = (*head, self.unroll);
                     let mut got = std::collections::HashSet::new();
                     let mut stack = vec![(0usize, 0u32)];
                     while let Some(n) = stack.pop() {
@@ -688,8 +837,8 @@ impl<'a> Enc<'a> {
                     got
                 });
                 if reach.contains(from) {
-                    if seen.contains(&(*head, UNROLL_PER_LOOP)) {
-                        widened.insert((*head, UNROLL_PER_LOOP));
+                    if seen.contains(&(*head, self.unroll)) {
+                        widened.insert((*head, self.unroll));
                     } else {
                         self.truncated = true;
                     }
@@ -855,7 +1004,9 @@ impl<'a> Enc<'a> {
                         match self.bad_value(*id, &env) {
                             Some(bad) => {
                                 let both = self.define_bool(&format!("(and {} {})", guard, bad));
-                                self.reached.push(both);
+                                self.reached.push(both.clone());
+                                let operands = std::mem::take(&mut self.operands);
+                                self.points.push(Point { bad: both, operands });
                                 self.reach.push(guard.clone());
                             }
                             // A copy of the site the query cannot put into
@@ -920,11 +1071,12 @@ impl<'a> Enc<'a> {
                 // there too — with what the loop writes forgotten, and the
                 // conditions of the path that entered kept. An entry walked
                 // after that copy could not be added: the query is cut.
-                if entering && lvl < UNROLL_PER_LOOP && widened.contains(&(ti, UNROLL_PER_LOOP)) {
-                    if walked.contains(&(ti, UNROLL_PER_LOOP)) {
+                if entering && lvl < this.unroll && widened.contains(&(ti, this.unroll)) {
+                    if walked.contains(&(ti, this.unroll)) {
                         this.truncated = true;
                     } else {
                         let mut late = e.clone();
+                        let before = e.clone();
                         let grows = resized.get(&ti).cloned().unwrap_or_default();
                         for l in sorted(last_trip.get(&ti).cloned().unwrap_or_default()) {
                             if grows.contains(&l) {
@@ -936,6 +1088,8 @@ impl<'a> Enc<'a> {
                         }
                         let written = last_trip.get(&ti).cloned().unwrap_or_default();
                         this.assume_counted(&mut late, ti, &written);
+                        let body = bodies.get(&ti).cloned().unwrap_or_default();
+                        this.assume_kept_positions(&mut late, ti, &written, &body, &[before]);
                         this.forget_aliased(&mut late);
                         // Either the trips go on as walked, or this entry is
                         // one of the later ones the last copy stands for:
@@ -947,7 +1101,7 @@ impl<'a> Enc<'a> {
                         // its inner loop had used the levels up).
                         let ways = this.choices(&g, 2);
                         g = ways[0].clone();
-                        incoming.entry((ti, UNROLL_PER_LOOP)).or_default().push((ways[1].clone(), late));
+                        incoming.entry((ti, this.unroll)).or_default().push((ways[1].clone(), late));
                     }
                 }
                 if entering {
@@ -956,7 +1110,7 @@ impl<'a> Enc<'a> {
                     }
                     this.entries.entry(ti).or_default().push(e.clone());
                 }
-                if lvl == UNROLL_PER_LOOP {
+                if lvl == this.unroll {
                     if let Some(written) = last_trip.get(&ti).cloned() {
                         let grows = resized.get(&ti).cloned().unwrap_or_default();
                         for l in &sorted(written.clone()) {
@@ -973,6 +1127,9 @@ impl<'a> Enc<'a> {
                             this.assume_fact(&mut e, ti, *l);
                         }
                         this.assume_counted(&mut e, ti, &written);
+                        let body = bodies.get(&ti).cloned().unwrap_or_default();
+                        let entries = this.entries.get(&ti).cloned().unwrap_or_default();
+                        this.assume_kept_positions(&mut e, ti, &written, &body, &entries);
                         this.forget_aliased(&mut e);
                         // Lock-step: the length is the entry's length plus
                         // how far the counter has come since. Only for a
@@ -1093,9 +1250,40 @@ impl<'a> Enc<'a> {
         let mut names: Vec<Key> = arrivals.iter().flat_map(|(_, e)| e.keys().cloned()).collect();
         names.sort();
         names.dedup();
+        // A field written on one way in and not another holds, on the
+        // other, what it held on entry, when that way still knows it. When
+        // it does not, no field of that parameter is known past here.
+        let mut arrivals: Vec<(String, Env)> = arrivals.to_vec();
+        let mut lost: Vec<LocalId> = Vec::new();
+        for k in &names {
+            let Key::Field(l, path) = k else { continue };
+            for (_, e) in arrivals.iter_mut() {
+                if e.contains_key(k) {
+                    continue;
+                }
+                let entry = e.contains_key(&Key::Pristine(*l)).then(|| self.entry_fields.get(&(*l, path.clone())).cloned().flatten()).flatten();
+                match entry {
+                    Some(v) => {
+                        e.insert(k.clone(), v);
+                    }
+                    None => lost.push(*l),
+                }
+            }
+        }
         for l in names {
+            if let Key::Field(x, _) | Key::Pristine(x) = &l {
+                if lost.contains(x) {
+                    continue;
+                }
+            }
+            if let Key::Pristine(_) = &l {
+                if arrivals.iter().all(|(_, e)| e.contains_key(&l)) {
+                    env.insert(l, pristine());
+                }
+                continue;
+            }
             let mut holders: Vec<(String, Val)> = Vec::new();
-            for (g, e) in arrivals {
+            for (g, e) in &arrivals {
                 if let Some(v) = e.get(&l) {
                     holders.push((g.clone(), v.clone()));
                 }
@@ -1128,8 +1316,36 @@ impl<'a> Enc<'a> {
         if !place.proj.is_empty() {
             // Part of a value: what the whole holds is no longer described.
             env.remove(&Key::Local(place.local));
+            // One whole-number field is what was written, the rest as they
+            // were; any other write leaves no field known.
+            let leaf = field_key(place).filter(|_| int_shape(&self.place_ty(place)).is_some());
+            match leaf {
+                Some(k) if env.contains_key(&Key::Pristine(place.local)) || env.contains_key(&Key::Field(place.local, k.clone())) => {
+                    let ty = self.place_ty(place);
+                    let v = match v {
+                        Some(v) => {
+                            let (bits, signed) = int_shape(&ty).unwrap_or((v.bits, v.signed));
+                            Some(self.resize(v, bits, signed))
+                        }
+                        None => int_shape(&ty).map(|(bits, signed)| {
+                            let show = self.spell(&Operand::Read(place.clone()), 0).unwrap_or_else(|| "a field".to_string());
+                            let u = self.fresh("in", bits, signed, show);
+                            self.constrain_range(&u, &ty);
+                            u
+                        }),
+                    };
+                    match v {
+                        Some(v) => {
+                            env.insert(Key::Field(place.local, k), v);
+                        }
+                        None => self.forget_fields(env, place.local),
+                    }
+                }
+                _ => self.forget_fields(env, place.local),
+            }
             return;
         }
+        self.forget_fields(env, place.local);
         // A value is held at its local's width: a sum asked at its true
         // value lands in an `i64` as the machine stores it. One that does
         // not fit stopped at the landing's own site, so nothing after it
@@ -1150,8 +1366,32 @@ impl<'a> Enc<'a> {
         }
     }
 
+    /// No field of this local is known any more.
+    fn forget_fields(&mut self, env: &mut Env, l: LocalId) {
+        env.retain(|k, _| !matches!(k, Key::Field(x, _) | Key::Pristine(x) if *x == l));
+    }
+
+    /// A parameter's field as it was on entry: anything its type allows,
+    /// the same at every read.
+    fn entry_field(&mut self, p: &Place) -> Option<Val> {
+        let k = (p.local, field_key(p)?);
+        if let Some(v) = self.entry_fields.get(&k) {
+            return v.clone();
+        }
+        let ty = self.place_ty(p);
+        let v = int_shape(&ty).map(|(bits, signed)| {
+            let show = self.spell(&Operand::Read(p.clone()), 0).unwrap_or_else(|| "a field".to_string());
+            let v = self.fresh("in", bits, signed, show);
+            self.constrain_range(&v, &ty);
+            v
+        });
+        self.entry_fields.insert(k, v.clone());
+        v
+    }
+
     /// The local's value is unknown now, but not its lengths.
     fn forget_value(&mut self, env: &mut Env, l: LocalId) {
+        self.forget_fields(env, l);
         match self.unknown_of(l) {
             Some(v) => {
                 env.insert(Key::Local(l), v);
@@ -1167,6 +1407,7 @@ impl<'a> Enc<'a> {
     /// what assembly produced.
     fn forget(&mut self, env: &mut Env, l: LocalId) {
         self.forget_lengths(env, l);
+        self.forget_fields(env, l);
         // Not removed: one unknown of its type, the same one for every read
         // that follows, so a later test of it (a loop's `'i' </== n`) still
         // constrains the value the site sees.
@@ -1213,6 +1454,77 @@ impl<'a> Enc<'a> {
             // An assumption like the landings: a proof leaning on it is
             // checked for a site that can still be reached.
             self.assumed = true;
+        }
+    }
+
+    /// A position kept from a walk over a list (design claude, 2026-10-26:
+    /// `change $at = $i` in `for $i, $x in lend $xs`, then `$xs[pos: $at]`
+    /// after it): a local the body sets only from the walk's counter, or
+    /// from a copy of it, holds at the head either what it held on the way
+    /// in or a position the walk was at, 1 to the length it took. The
+    /// counter is inside that while the body runs: the head tested it.
+    fn assume_kept_positions(&mut self, env: &mut Env, head: usize, written: &std::collections::HashSet<LocalId>, body: &std::collections::HashSet<usize>, entries: &[Env]) {
+        if entries.is_empty() {
+            return;
+        }
+        let f = self.func();
+        let fors: Vec<_> = f.fors.iter().filter(|fl| fl.head.0 as usize == head && fl.start.is_none() && fl.step.is_none()).cloned().collect();
+        for fl in fors {
+            if written.contains(&fl.stop) || self.aliased.contains(&fl.counter) {
+                continue;
+            }
+            // Every write in the body to each local: a copy of which local,
+            // or None for anything else.
+            let mut writes: HashMap<LocalId, Vec<Option<LocalId>>> = HashMap::new();
+            let mut blocks: Vec<usize> = body.iter().copied().collect();
+            blocks.sort();
+            for b in blocks {
+                for st in &f.blocks[b].stmts {
+                    match &st.kind {
+                        StmtKind::Assign { place, rvalue } => {
+                            let from = match rvalue {
+                                Rvalue::Use(Operand::Read(src) | Operand::Move(src)) if src.proj.is_empty() && place.proj.is_empty() => Some(src.local),
+                                _ => None,
+                            };
+                            writes.entry(place.local).or_default().push(from);
+                        }
+                        StmtKind::Op { dest: Some(d), .. } => writes.entry(d.local).or_default().push(None),
+                        _ => {}
+                    }
+                }
+            }
+            for l in written {
+                writes.entry(*l).or_default();
+            }
+            // Copies of the counter, then copies of those.
+            let mut sources = vec![fl.counter];
+            for _ in 0..4 {
+                let more: Vec<LocalId> = sorted(writes.keys().copied().collect())
+                    .into_iter()
+                    .filter(|l| !sources.contains(l) && !self.aliased.contains(l))
+                    .filter(|l| writes[l].iter().all(|w| w.is_some_and(|s| sources.contains(&s))) && !writes[l].is_empty())
+                    .collect();
+                if more.is_empty() {
+                    break;
+                }
+                sources.extend(more);
+            }
+            let Some(stop) = env.get(&Key::Local(fl.stop)).cloned() else { continue };
+            for x in sources.into_iter().skip(1) {
+                let Some(cur) = env.get(&Key::Local(x)).cloned() else { continue };
+                let Some(was) = entries.iter().map(|e| e.get(&Key::Local(x)).cloned()).collect::<Option<Vec<Val>>>() else { continue };
+                let w = 130;
+                let (cs, ts) = (cur.signed, stop.signed);
+                let cur = self.resize(cur, w, cs);
+                let top = self.resize(stop.clone(), w, ts);
+                let mut ways: Vec<String> = was.into_iter().map(|v| {
+                    let v = self.resize(v.clone(), w, v.signed);
+                    format!("(= {} {})", cur.term, v.term)
+                }).collect();
+                ways.push(format!("(and (bvsge {c} {one}) (bvsle {c} {top}))", c = cur.term, one = bv(1, w), top = top.term));
+                self.defs.push(format!("(assert (or {}))", ways.join(" ")));
+                self.assumed = true;
+            }
         }
     }
 
@@ -1276,7 +1588,11 @@ impl<'a> Enc<'a> {
                 return Some(v.clone());
             }
         }
-        let v = self.fresh("len", 64, false, length_word(op).to_string());
+        let whose = args.first().and_then(|o| self.spell(o, 0));
+        let v = self.fresh("len", 64, false, match whose {
+            Some(w) => length_of(op, &w),
+            None => length_word(op).to_string(),
+        });
         self.defs.push(format!("(assert (bvsge {} (_ bv0 64)))", v.term));
         if let Some(k) = key {
             env.insert(k, v.clone());
@@ -1305,6 +1621,13 @@ impl<'a> Enc<'a> {
             Operand::Const(_) => None,
             Operand::Read(p) | Operand::Move(p) => {
                 if !p.proj.is_empty() {
+                    let k = field_key(p)?;
+                    if let Some(v) = env.get(&Key::Field(p.local, k)) {
+                        return Some(v.clone());
+                    }
+                    if env.contains_key(&Key::Pristine(p.local)) {
+                        return self.entry_field(p);
+                    }
                     return None;
                 }
                 env.get(&Key::Local(p.local)).cloned()
@@ -1542,6 +1865,49 @@ impl<'a> Enc<'a> {
                 },
             };
             ops.push(v);
+        }
+        // What a counterexample shows: each operand that is not written out
+        // in the code already, as the program names it.
+        self.operands.clear();
+        let sides = site.operands.len();
+        for (n, o) in site.operands.iter().enumerate() {
+            let (Some(v), Some(p)) = (ops.get(n).cloned().flatten(), o.place()) else { continue };
+            if let Some(show) = self.spell(o, 0) {
+                self.operands.push(Input { sym: v.term.clone(), show, signed: v.signed });
+                continue;
+            }
+            // A temporary an operation made just before (`$departure +
+            // $a.minutes` landing in an `i32`): what it was made from.
+            let mut made = Vec::new();
+            if p.proj.is_empty() {
+                self.made_from(p.local, 0, &mut made);
+            }
+            let before = self.operands.len();
+            for m in made {
+                if let (Some(show), Some(mv)) = (self.spell(m, 0), self.operand(m, env)) {
+                    self.operands.push(Input { sym: mv.term, show, signed: mv.signed });
+                }
+            }
+            if self.operands.len() == before {
+                // Nothing it was made from is known here: the value itself,
+                // spelled as it was worked out (`1290 + $a.minutes`).
+                let show = match self.made_by(p.local) {
+                    Some(StmtKind::Assign { rvalue: Rvalue::Binary { op, lhs, rhs }, .. }) if p.proj.is_empty() => {
+                        let side = |o: &Operand| match o {
+                            Operand::Const(Const::Int(k)) => k.to_string(),
+                            _ => self.spell(o, 0).unwrap_or_else(|| "…".to_string()),
+                        };
+                        format!("{} {} {}", side(lhs), op.spelled(), side(rhs))
+                    }
+                    _ => match (sides, n) {
+                        (2, 0) => "the left side",
+                        (2, _) => "the right side",
+                        _ => "the value",
+                    }
+                    .to_string(),
+                };
+                self.operands.push(Input { sym: v.term.clone(), show, signed: v.signed });
+            }
         }
         // A literal takes its context's family here as everywhere: at the
         // result's width and sign, when the result's type can hold it.

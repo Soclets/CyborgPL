@@ -1241,7 +1241,7 @@ impl Precog {
                                         let Some(Domain::Seq { len: len0, .. }) = this.loop_entry.get(&(f, i)).and_then(|en| en.get(l)).cloned() else { continue };
                                         let Some((a, z)) = len0.bounds() else { continue };
                                         if let Some(Domain::Seq { elem, .. }) = m.get(l).cloned() {
-                                            m.insert(*l, Domain::Seq { len: ISet::range(a, z.saturating_add(t)), elem });
+                                            m.insert(*l, Domain::Seq { len: ISet::range(a, z.saturating_add(t).min(i64::MAX as i128)), elem });
                                         }
                                     }
                                 }
@@ -2176,7 +2176,9 @@ impl Precog {
         let after = match (op, before) {
             (Op::ListAppend, Domain::Seq { len, elem }) => {
                 let added = args.get(1).map(|a| self.read_operand(f, env, a)).unwrap_or(Domain::Any);
-                Domain::Seq { len: len.add(&ISet::one(1)), elem: Box::new(elem.union(&added)) }
+                // Never past the longest a list can be: 2^63 - 1 (design
+                // claude, 2026-10-26: a split's pieces read "1 to 2^63").
+                Domain::Seq { len: len.add(&ISet::one(1)).clamp(0, i64::MAX as i128), elem: Box::new(elem.union(&added)) }
             }
             (Op::ListRemove, Domain::Seq { len, elem }) => Domain::Seq { len: len.sub(&ISet::one(1)).clamp(0, i64::MAX as i128), elem },
             // A key that is one known value, outside every key the map can
@@ -2589,6 +2591,9 @@ impl Precog {
                     Verdict::Proven { how: "the position is always inside" }
                 } else if ihi < 1 || ilo > lhi {
                     Verdict::Fails { counterexample: format!("every time: the position is {} and there {} {} element(s)", describe_ints(i), if lhi == 1 { "is" } else { "are" }, describe_ints(len)) }
+                } else if ilo < 1 {
+                    // Below 1 is the way it fails, whatever the length.
+                    Verdict::Fails { counterexample: format!("the position can be {}", ilo) }
                 } else {
                     Verdict::Fails { counterexample: format!("the position can be {} when there are {} element(s)", ihi, llo) }
                 }
@@ -4279,6 +4284,22 @@ struct Layer3 {
 /// landings needs.
 fn layer3(p: &Program, r: &SiteResult, facts: &Facts, portfolio: &smt::Portfolio) -> Layer3 {
     let note = |n: &str| Layer3 { verdict: None, note: Some(n.to_string()), solved: false, disagreement: None };
+    // First, with no loop walked: each head stands for every trip, and a
+    // counting loop's counter never goes back past its first value. A
+    // weaker question, so only a proof from it is taken; and a much
+    // smaller one, answered in a second where the walked one took CVC5
+    // half a minute (std's `sits_at`, design claude, 2026-10-26).
+    if !p.functions[r.function].fors.is_empty() {
+        if let Some(shallow) = smt::encode_unrolled(p, r.function, r.site, facts, true, true, 0) {
+            if shallow.text.len() <= smt::QUERY_CAP {
+                let (a, e) = portfolio.ask(&shallow);
+                let reached = !shallow.assumed || matches!(portfolio.ask_text(&shallow.reach), smt::Answer::Sat(_));
+                if matches!(a, smt::Answer::Unsat) && reached && !shallow.truncated && !smt::disagreed(&e) {
+                    return Layer3 { verdict: Some(Verdict::Proven { how: "layer 3" }), note: Some("layer 3: no input reaches it with a bad value".into()), solved: true, disagreement: None };
+                }
+            }
+        }
+    }
     let Some(q) = smt::encode(p, r.function, r.site, facts) else {
         // A site whose values bit-vectors do not describe — what a task
         // computes, a horizontal sum across lanes. Layer 3 ran; it had

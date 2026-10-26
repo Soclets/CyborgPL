@@ -404,6 +404,39 @@ fn final_build_proves_counted_loops_and_no_more() {
     }
 }
 
+/// A parameter's field is one value from entry until something writes it,
+/// so a guard on it narrows it; and a position kept from a walk over a list
+/// is inside that list (design claude, 2026-10-26). Refused still: a field
+/// written on one way in, after a call that lends it, through the whole
+/// struct or a borrow, and a kept position one past, in another list, in
+/// a list since shortened, or never kept. A counterexample names the
+/// program's own values.
+#[test]
+fn final_build_proves_fields_and_kept_positions_and_no_more() {
+    let tests = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/final");
+    let proven = ["field_guarded", "field_or_guarded", "kept_position", "kept_position_from_one"];
+    let refused = [
+        ("field_branch_written", "field_branch_written.cy:16:"),
+        ("field_after_call", "field_after_call.cy:16:"),
+        ("field_struct_replaced", "field_struct_replaced.cy:16:"),
+        ("field_alias", "field_alias.cy:17:"),
+        ("kept_position_plus_one", "kept_position_plus_one.cy:15:"),
+        ("kept_position_other_list", "kept_position_other_list.cy:15:"),
+        ("kept_position_shrunk", "kept_position_shrunk.cy:23:"),
+        ("kept_position_zero", "when:  $at = 0,"),
+    ];
+    let names: Vec<&str> = proven.iter().copied().chain(refused.iter().map(|(n, _)| *n)).collect();
+    let results = common::par_map(&names, |name| (name.to_string(), final_build(&tests.join(format!("{}.cy", name)))));
+    for (name, r) in results {
+        let err = String::from_utf8_lossy(&r.stderr);
+        match refused.iter().find(|(n, _)| *n == name.as_str()) {
+            None => assert!(r.status.success(), "the final build refused tests/final/{}.cy:\n{}", name, err),
+            Some((_, phrase)) => assert!(!r.status.success() && err.contains(phrase), "{}: the final build should refuse it ({}), and said:\n{}", name, phrase, err),
+        }
+        assert!(!err.contains("a value ("), "{}: a counterexample names solver values:\n{}", name, err);
+    }
+}
+
 /// An unproven narrowing is a check in the working build, not a silent
 /// truncation (`conversion.md`: "a runtime check unless Precog proves the
 /// fit"). It used to be neither checked nor counted.
