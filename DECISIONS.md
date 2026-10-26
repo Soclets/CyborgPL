@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-26 — std's tests live in the repo, in `std/tools/checks/` (owner)
+
+std claude had held a question for the owner: whether std's tests may live in the repo. Given the scratch-folder rule
+(CLAUDE.md, 2026-10-25), it planned to move its 16 check scripts and generators from the git-ignored `.std-checks/`
+into `std/tools/checks/`. The owner: "What kind of tests?" (comparisons that run each std call three ways, the oracle's
+built-in std, std's own code in the oracle, and std's code built by kayo: `str.at` / `str.slice` by byte, point and
+grapheme at every position; `str.upper` / `str.lower` with the Turkish and Lithuanian dots and final sigma; the sigma
+sweep over 816 characters against Unicode's data; `round.X` over f16, f32, f64; and a final build of std), then "yes".
+So **std's tests are committed in the repo, in `std/tools/checks/`**; the Unicode data and build outputs stay in
+`.std-checks/`. Design claude's reading: the migration helpers (`conv.py`, `cyr2toml.py`, `oracle_copy.sh`) need not
+be kept once nothing uses them.
+
 ### 2026-10-25 — `or` keeps both jobs: logical or between values, and `-> T or fail[…]` in a return type (owner)
 
 multifinity's second review (a fresh Claude) noted that `or` is logical or in `$h equal_to 12 or $h equal_to 17` and
