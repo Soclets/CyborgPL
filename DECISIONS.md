@@ -68,8 +68,12 @@ else:` / `end of else` are blocks of their own, each straight after an `if` or `
 hot $level:`): "Yes" (and, asked what `match $a` means: the arm of the case `$a` is runs, every case needing one). So
 **an arm is a `case` block, its case's name on both lines**. A `match` used as a value: **`let $rank := start of match
 $a:` … `end of match;`**, the `;` ending the `let`, each arm's `is` handing its value up (owner: "yes"; design claude
-recommending it over dropping value matches, which would need a name before its value). Not built; the rest of the
-redesign follows.
+recommending it over dropping value matches, which would need a name before its value). Declarations are blocks too,
+`start of struct Line:` / `end of struct Line`, `start of enum Alarm:` / `end of enum Alarm`; asked "Should it be `,`
+or `;`" (`,` separates items in a list, inside `[ ]` and `( )`; `;` ends what stands alone, as a statement), design
+claude recommending `;`: "Ok". So **each field and case ends in `;`**, and the rule is **commas inside brackets,
+semicolons inside blocks** (`Line[name = "apple", count = 3]` keeps its commas). Not built; the rest of the redesign
+follows.
 
 ### 2026-10-26 — In `print.format`, a newline is `{newln}` and a tab `{tab}`; `\n` and `\t` there become old spellings (owner; not built)
 
