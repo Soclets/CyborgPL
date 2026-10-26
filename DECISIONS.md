@@ -68,7 +68,8 @@ number's `min:`/`max:`, a text's length, a list's or map's length, `C.str`'s, a 
 it has an own bound under its own name, as `coll.fn` has its own function (`quantity = i32[…]`, `quantity.small =
 …`): "yes, that's what a collection is". So **the collection's name alone is its own bound, and members narrow it**.
 Design claude's reading: `pub` and another kit's use follow every collection's (`pub coll.bound`, `kit::quantity.small`).
-Not built.
+Built in the oracle 2026-10-26 (owner: "Do 2, 3, 4"), within one kit: examples/coll_bound.cy, tests/reject/bound_*;
+another kit's use is not built yet.
 
 ### 2026-10-25 — A final build is small: it carries only what the program uses, never at the cost of speed or safety (owner)
 

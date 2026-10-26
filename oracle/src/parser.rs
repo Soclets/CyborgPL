@@ -191,6 +191,8 @@ pub struct Parser {
     /// where `my.` points: `[]` for the kit being built, `["::geometry"]` for a dependency
     /// loaded beside it (a segment no source can write, so the two never meet)
     kit_root: Vec<String>,
+    /// `coll.bound` members, read in the first pass (owner, 2026-10-25): `quantity`, `quantity.small` → the bounded type
+    named_bounds: std::collections::HashMap<String, Ty>,
     /// inside a `test fn`'s body: `must` may appear (owner, 2026-09-29)
     in_test: bool,
     /// how many tokens the operator `binop` just read takes (`plus` 1, `times.wrap` 3, `std::pow` 3)
@@ -268,9 +270,9 @@ thread_local! {
 }
 
 impl Parser {
-    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, fixed_shape: false, in_layout_c: false, in_interface: false, in_const_value: false, from_c: false, in_count: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), kit_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new(toks: Vec<Token>) -> Self { Parser { toks, pos: 0, module: Vec::new(), to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, fixed_shape: false, in_layout_c: false, in_interface: false, in_const_value: false, from_c: false, in_count: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), kit_root: Vec::new(), named_bounds: std::collections::HashMap::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
     /// A parser for a file that is the module `module` (its path from the root).
-    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, fixed_shape: false, in_layout_c: false, in_interface: false, in_const_value: false, from_c: false, in_count: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), kit_root: Vec::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
+    pub fn new_in(toks: Vec<Token>, module: Vec<String>) -> Self { Parser { toks, pos: 0, module, to_target: false, strict: false, saw_value_return: false, arm_depth: 0, ruled_out: 0, in_map_key: false, at_boundary: false, fixed_shape: false, in_layout_c: false, in_interface: false, in_const_value: false, from_c: false, in_count: false, bounds: Vec::new(), declared: None, groups: Vec::new(), pending_captures: Vec::new(), kit_root: Vec::new(), named_bounds: std::collections::HashMap::new(), in_test: false, op_len: std::cell::Cell::new(1), op_old: std::cell::Cell::new(false), internal_ops: false, no_std: false, lacks: Vec::new(), user_levels: SHARED_LEVELS.with(|l| l.borrow().clone()) } }
 
     /// A path written in this module, made canonical (from the root):
     /// `my.x.f` → x.f; a relative `x.f` → <this module>.x.f  (decided 2026-09-19)
@@ -789,6 +791,10 @@ impl Parser {
         }
         // a `precedence` block applies to the whole file, wherever it is written: read it first
         self.scan_levels()?;
+        // every `coll.bound` too, in order, so a type anywhere in the file may name one (owner, 2026-10-25)
+        let bound_starts: Vec<usize> = (0..self.toks.len().saturating_sub(3)).filter(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "coll") && self.toks[i + 1].tok == Tok::Dot && matches!(&self.toks[i + 2].tok, Tok::Word(w) if w == "bound")).collect();
+        for at in bound_starts { self.pos = at + 3; self.bound_collection()?; }
+        self.pos = 0;
         self.items(&mut prog, 0)?;
         Ok(prog)
     }
@@ -1011,7 +1017,16 @@ impl Parser {
                             if !pending_bare.is_empty() { return self.err("the `bare.` marks are gone: another kit's names always take its path (owner, 2026-10-22)"); }
                             self.handler_collection()?;
                         }
-                        (Tok::Dot, Tok::Word(k)) => return self.err(format!("there is no `coll.{k}`: a collection is `coll.fn` (a function and its narrowings) or `coll.handler` (named `otherwise` blocks) (owner, 2026-10-13)")),
+                        // read in the first pass, before any type could name it (owner, 2026-10-25): skipped here
+                        (Tok::Dot, Tok::Word(k)) if k == "bound" => {
+                            if !pending_bare.is_empty() { return self.err("the `bare.` marks are gone: another kit's names always take its path (owner, 2026-10-22)"); }
+                            while *self.peek() != Tok::LBrace { self.advance(); }
+                            let mut depth = 0;
+                            loop {
+                                match self.advance().tok { Tok::LBrace => depth += 1, Tok::RBrace => { depth -= 1; if depth == 0 { break; } } Tok::Eof => return self.err("a `coll.bound` that never closes"), _ => {} }
+                            }
+                        }
+                        (Tok::Dot, Tok::Word(k)) => return self.err(format!("there is no `coll.{k}`: a collection is `coll.fn` (a function and its narrowings), `coll.handler` (named `otherwise` blocks) or `coll.bound` (named bounded types) (owner, 2026-10-13, 2026-10-25)")),
                         _ => return self.err("a collection says its kind: `coll.fn cum { … }` (a function and its narrowings) or `coll.handler cum_failed { … }` (named `otherwise` blocks) (owner, 2026-10-13)"),
                     }
                     continue;
@@ -1875,7 +1890,61 @@ impl Parser {
     // `[ ]` supplies type parameters (`list[i32]`, `list[list[i32]]`). A struct
     // through modules is a dotted path (`shapes.Locker`, `my.Locker`).
     /// A type; a range or a length bound is ASP's (owner, 2026-10-07: "move"), refused without it
+    /// `coll.bound quantity { quantity = i32[min: 1, max: 99]; quantity.small = i32[min: 1, max: 9]; }` (owner,
+    /// 2026-10-25): each member names one bounded type, and a use of it is that type exactly.
+    fn bound_collection(&mut self) -> PResult<()> {
+        let name = match self.advance().tok {
+            Tok::Word(n) => n,
+            other => return self.err(format!("expected the collection's name after `coll.bound`, found {other}")),
+        };
+        self.expect(Tok::LBrace, "`{` to open the bounds")?;
+        while *self.peek() != Tok::RBrace {
+            // every member line writes its full name (owner, 2026-10-19), the collection's name alone its own bound
+            let at = self.pos;
+            let mut path = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("a `coll.bound` holds named bounds, `{name}.small = i32[min: 1, max: 9];`, found {other}")) };
+            while *self.peek() == Tok::Dot {
+                self.advance();
+                match self.advance().tok { Tok::Word(w) => { path.push('.'); path.push_str(&w); } other => return self.err(format!("expected a name after `{path}.`, found {other}")) }
+            }
+            if path != name && !path.starts_with(&format!("{name}.")) {
+                self.pos = at;
+                return self.err(format!("a member writes the collection's name in front: `{name}.{path} = …;` (owner, 2026-10-19)"));
+            }
+            if self.named_bounds.contains_key(&path) { self.pos = at; return self.err(format!("`{path}` is named twice")); }
+            self.expect(Tok::Eq, &format!("`=` after `{path}`: `{path} = i32[min: 1, max: 99];`"))?;
+            let ty_at = self.pos;
+            let ty = self.ty()?;
+            // only a bounded type (owner, 2026-10-25: "only bounded"): one with a limit written after it
+            let bounded = matches!(ty, Ty::Ranged(..) | Ty::TextRanged(..) | Ty::CStr(Some(_)) | Ty::Places(..));
+            if !bounded {
+                self.pos = ty_at;
+                return self.err(format!("`{path} = {}` limits nothing: a `coll.bound` names a bounded type, as `i32[min: 1, max: 99]` or `str.utf8[max: 40 graphemes]` (owner, 2026-10-25: \"only bounded\")", ty_name(&ty)));
+            }
+            self.expect(Tok::Semi, &format!("`;` after `{path}`'s type"))?;
+            self.named_bounds.insert(path, ty);
+        }
+        self.advance();
+        Ok(())
+    }
+
     fn ty(&mut self) -> PResult<Ty> {
+        // a `coll.bound` member is the type it names (owner, 2026-10-25): the longest name that is one
+        if !self.named_bounds.is_empty() {
+            if let Tok::Word(first) = self.peek().clone() {
+                let (mut path, mut k, mut best) = (first, 1, None);
+                if self.named_bounds.contains_key(&path) { best = Some((1, path.clone())); }
+                while *self.peek_at(k) == Tok::Dot {
+                    let Tok::Word(w) = self.peek_at(k + 1).clone() else { break };
+                    path = format!("{path}.{w}");
+                    k += 2;
+                    if self.named_bounds.contains_key(&path) { best = Some((k, path.clone())); }
+                }
+                if let Some((n, p)) = best {
+                    for _ in 0..n { self.advance(); }
+                    return Ok(self.named_bounds[&p].clone());
+                }
+            }
+        }
         // `percent[d32]` / `percent[f64]`, and the symbol spelling `%[d32]` (owner, 2026-10-17): a percentage holding
         // that number; its size is always written (`:=` lets Precog pick). A second bracket bounds it, in `%`.
         if self.is_word("percent") || matches!(self.peek(), Tok::Op(o) if o == "%") {
