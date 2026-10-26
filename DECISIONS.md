@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: `not_equal` becomes `not_equal_to`; `equal_to` and `array` stay; 2026-10-26's `arr` / `eq_to` / `not_eq` withdrawn (owner; not built)
+
+The owner: "did we change `not_equal` to `not_equal_to` yet? Because, since we have no abbriviations anymore, we might
+aswell don't need to give that much fuck to eye movement" (2026-10-07 chose `not_equal` over `not_equal_to` for eye
+movement). Design claude: nothing had changed; yesterday's held `arr`, `eq_to`, `not_eq` go against no abbreviations.
+The owner: "yes" to **`equal_to` and `not_equal_to`** (the pair matching at last), **`array` unchanged**, and
+**2026-10-26's `array` → `arr`, `equal_to` → `eq_to`, `not_equal` → `not_eq` withdrawn**, never built. `not_equal`
+becomes an old spelling, refused naming `not_equal_to`. Not built.
+
 ### 2026-10-27 — Redesign: `let` never changes; a name that changes is a `variable`; `mut` and `immut` go (owner: a; not built)
 
 From the maths sense: a `let` names a value that does not change. Design claude offered (a) a word of its own,
@@ -215,7 +224,7 @@ now (text, case mapping, rounding) is already CyborgPL and keeps finding real bu
 while its lists, maps and print buffer wait on the manual memory model however std is scheduled; that design is what
 makes std self-hostable. The owner: "Keep it going, then." std's turn rule with compiler claude is unchanged.
 
-### 2026-10-26 — `array` is `arr`, `equal_to` is `eq_to`, `not_equal` is `not_eq`; `list` stays (owner; not built)
+### 2026-10-26 — `array` is `arr`, `equal_to` is `eq_to`, `not_equal` is `not_eq`; `list` stays (owner; not built) — WITHDRAWN 2026-10-27: `not_equal_to`, `equal_to` and `array` (no abbreviations)
 
 The owner: "Should we shorten `list`, `array`, `equal_to`, `not_equal` to `ls`, `arr`, `eq`, `not_eq`?" Design claude
 recommended keeping all four: `eq` brings back what `equal` was turned down for (2026-10-07: it "could blend it with
