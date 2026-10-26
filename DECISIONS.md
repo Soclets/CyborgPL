@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-26 — Built in the oracle: a no-OS target's `layout`, `output` and `exit`; examples/bare_station (owner: "Make another big example that uses freestanding CyborgPL")
+
+2026-10-09's target lines for a chip with no OS (`layout = boards/virt.ld`, `output = my.board.write`, `exit =
+my.board.off`) were kayo's only: the oracle refused them as unknown. It reads them now, refuses them on a target with
+an OS, and runs the program as on one with, its prints to its own output (tests/reject/target_layout_with_os). The new
+example, `examples/bare_station/`, is a weather station's firmware for QEMU's `virt` board: its log baked in with
+`incl.bytes`, read byte by byte, a CRC-32, the day's figures in tenths, an alarm, a status word, the board's serial
+port and power off in its own `board` module. The oracle, kayo's build booted in QEMU, and an independent Python
+version (`oracle/tools/check_bare_station.py`) print the same 11 lines; kayo proves all 101 sites, its final build
+22,720 bytes.
+
 ### 2026-10-26 — A function may be named `MAIN`, reached only by its path, `my.MAIN()`, as a keyword is (owner)
 
 The owner asked whether `MAIN { main(); }` and `fn MAIN … MAIN { MAIN(); }` are possible (`fn main` is an ordinary

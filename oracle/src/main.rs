@@ -469,7 +469,14 @@ fn read_manifest(dir: &Path) -> Result<(Option<String>, Vec<Dep>, Vec<String>), 
                             // the largest table Precog may make on this target, in bytes; 65,536 when not written (owner, 2026-10-19)
                             "table_bytes" => if v.replace('_', "").parse::<u64>().is_err() { return Err(err(*line, "`table_bytes` is a whole number of bytes, 0 or more: `table_bytes = 65_536`".into())); },
                             "runner" => {}
-                            other => return Err(err(*line, format!("a target's block has no `{other}`; it has `runner`, `default` and `table_bytes`"))),
+                            // a chip with no OS (owner, 2026-10-09): the linker script, and the functions `std::print` and
+                            // `std::exit` call there; the oracle runs the program as on a machine with an OS, its prints
+                            // to its own output, so it reads them and checks only where they may be
+                            "layout" | "output" | "exit" => {
+                                if !b.name.ends_with("-none") { return Err(err(*line, format!("`{k}` is for a target with no OS, as `aarch64-none`; `{}` has one", b.name))); }
+                                if v.is_empty() { return Err(err(*line, format!("`{k}` names {}", if k == "layout" { "the linker script: `layout = boards/virt.ld`" } else { "a function: `output = my.serial.write`" }))); }
+                            }
+                            other => return Err(err(*line, format!("a target's block has no `{other}`; it has `runner`, `default`, `table_bytes`, and with no OS `layout`, `output` and `exit`"))),
                         }
                     }
                 }

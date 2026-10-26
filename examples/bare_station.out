@@ -1,0 +1,11 @@
+station 7, booting on a chip with no operating system
+log: 190 bytes, CRC-32 0x44d6_3b46
+alarm:  calm -> warm at 11:00 -> hot at 14:00 -> warm at 17:00 -> calm at 19:00
+readings: 24, in tenths of a degree
+lowest:  13.9 C at 04:00
+highest: 25.9 C at 15:00
+mean:    19.3 C, 66.7 F
+steepest hour: +1.8 C, from 08:00 to 09:00
+warm for 8 hours, hot for 3
+status word: 0x1808_0304
+switching off

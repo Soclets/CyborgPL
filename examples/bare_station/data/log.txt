@@ -1,0 +1,25 @@
+# Station 7, one day: the temperature each hour from midnight, in tenths of a degree Celsius.
+152
+148
+145
+141
+139
+140
+147
+161
+178
+196
+213
+229
+241
+250
+256
+259
+254
+243
+227
+210
+194
+181
+170
+161
