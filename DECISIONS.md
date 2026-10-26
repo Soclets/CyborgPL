@@ -55,8 +55,15 @@ gives it one), and design claude switched; the owner: "yes". So:
 Design claude's reading, from the owner's examples: the mark goes on the first word that is the limb's (`inline.%MSL`,
 `incl.%C` after a base word; `%d64`, `%concur`, `%not_std.i24` the limb's from the start). Asked whether a name in
 another script (`let $ชื่อ := 5;`, unicode's) is marked, design claude recommending no (a name is the writer's, not a
-piece of the language; the manifest's `unicode` already says it): "correct". So **names are never marked**. Open: who
-says where a limb's marks go; `%`'s old-spelling refusal for `mod`. Not built: every C, decimal, task and GPU program changes.
+piece of the language; the manifest's `unicode` already says it): "correct". So **names are never marked**. Asked who
+says where a limb's marks go, (a) the base, one rule for every limb, or (b) each limb its own, design claude
+recommending (a) (a limb placing its own could hide a piece as the base's), the owner asked "How would (a) be
+enforced?" (a limb declares its words and where they attach, never a mark; the base places it by its rule; kayo
+refuses a limb word unmarked, a mark on a base word, a mark on what no listed limb adds, and a limb claiming a base
+word), then "Seems good. But is a limb even creatable yet?" (no: only the official limbs, inside kayo; how a limb is
+written was never designed), then "yes". So **(a): the base places every mark, by its one rule**; the official limbs'
+words are a table in kayo and the oracle. The owner: "The `.lock` and 3rd-party limbs come tomorrow". Open: `%`'s
+old-spelling refusal for `mod`. Not built: every C, decimal, task and GPU program changes.
 
 ### 2026-10-26 — A module's bounds are reached by its path, the collection's name included: `shop.order.discount` (owner)
 
