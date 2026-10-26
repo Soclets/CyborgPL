@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: the operator symbols go; `plus`, `minus`, `times`, `power`, `less_than`, `greater_than`, `negative 5`, `negate $x` (owner; not built)
+
+The symbol purge (owner, 2026-10-26: "we'll be doing an operator symbol purge tomorrow"). Design claude listed the
+operator symbols left (`+ - x xx < >` and a leading `-`, each with a word since 2026-10-16) and the structural ones
+(`->`, `<-`, `<->`, `:=`, `=`, `<T>`, `@x`, `...`), recommending the operators only. The owner: "Doing just the first
+table, we can't be fully symbol free either way (say `$`, `.`, `::`). But wait, did you just include an abbriviation?
+Also, shouldn't `-5` becomes `negative 5`? Like `exactly 5`?" So `pow` is `power`, and a literal's sign is part of the
+number as `exactly` is: **`$a plus $b times 2`, `$side power 2`, `$a minus $b`, `$t greater_than 250`, `$t less_than
+0`, `negative 18` for a negative literal, `negate $x` for a value** (owner: "yes"). School-maths precedence stays with
+the words. The symbols become old spellings, refused naming the word, and `-` is free for the line-end hyphen
+(2026-10-26). The structural symbols stay. Not built.
+
 ### 2026-10-27 — Redesign: number types are named by narrowing, `float.decimal.32_bit`, `integer.signed.32_bit` (owner; not built)
 
 Starting no abbreviations ("before the symbol purge, there should come no abbriviations. Just to see how diabolical it
