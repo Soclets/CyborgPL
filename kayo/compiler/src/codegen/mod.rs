@@ -5106,6 +5106,11 @@ pub fn link(obj: &Path, out: &Path) -> Result<(), String> {
         obj.to_string_lossy().into_owned(),
         runtime.to_string_lossy().into_owned(),
         "-lSystem".into(),
+        // Only what the program reaches (owner, 2026-10-25: a final build
+        // carries only what it uses): the runtime is a few large objects,
+        // and without this a hello world carried the tasks, the parallel
+        // `for` and their threads.
+        "-dead_strip".into(),
     ];
     // Metal, and the Objective-C runtime its objects are reached through.
     if metal {
