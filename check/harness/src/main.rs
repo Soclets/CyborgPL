@@ -404,10 +404,13 @@ fn main() {
                 let text = std::fs::read_to_string(&f).unwrap();
                 let dir = work().join("bare").join(&name);
                 let _ = std::fs::create_dir_all(&dir);
-                match bare::check_text(&t, &text, &dir) {
-                    bare::Outcome::Same => println!("agrees       {name}"),
-                    bare::Outcome::Differ(why) => println!("STILL FAILS  {name}  ({why})"),
-                    bare::Outcome::Failed(why) => println!("STILL FAILS  {name}  ({why})"),
+                // a `# known-difference:` mark, as in corpus/
+                let known = text.lines().find_map(|l| l.strip_prefix("# known-difference: ")).map(|s| s.to_string());
+                match (bare::check_text(&t, &text, &dir), known) {
+                    (bare::Outcome::Same, Some(_)) => println!("agrees       {name}  (marked known-difference: it agrees now, so the mark can go)"),
+                    (bare::Outcome::Same, None) => println!("agrees       {name}"),
+                    (bare::Outcome::Differ(why) | bare::Outcome::Failed(why), Some(k)) => println!("known        {name}  ({why}; {k})"),
+                    (bare::Outcome::Differ(why) | bare::Outcome::Failed(why), None) => println!("STILL FAILS  {name}  ({why})"),
                 }
             }
             if a.has("corpus-only") {
