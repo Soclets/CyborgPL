@@ -32,9 +32,12 @@ is marked last (`gen/src/limbs.rs`): a limb's word standing alone (`%d64`, `%bra
 (`to.%d64(…)`, `inline.%MSL`, `char.%point`, `to.str.%utf32`), and a percent as a word (`82.25 percent`,
 `percent[%d32]`); names, fields and anything after `::` never. The same as `oracle --mark-limbs` on 200 of 200
 programs; spans carried through. `check clayout` and `check metal` mark their own programs under the same switch.
-kayo does not read the marks yet, so the switch is off, and the differential runs against an oracle pinned at
-759453de, built in `check/.keep/` (git-ignored, outside the Cargo workspace): `git worktree add --detach
-check/.keep/oracle-759453de 759453de`, then `CHECK_ORACLE=…/check/.keep/oracle-759453de/oracle/target/release/oracle`.
+On by default since kayo 82185f15 (`--avoid limb-marks` for the bare form); the corpus was marked by `check marks
+FILE…`, the same rewrite (identical to the converter's on all 149). A pinned oracle, when one is needed again, goes
+in `check/.keep/` (git-ignored, outside the Cargo workspace) and is named by `CHECK_ORACLE`. A function named
+`MAIN`, reached as `my.MAIN(…)` (kayo 16a41328), is an episode too. The evaluator's and the solver's programs
+(`evaltest`, `claims-run`) leave every episode out, as each makes a program unevaluable: with them on, 99 of 100
+claims programs had nothing to check; without, 14 of 100.
 
 **Modules and `my.`** (owner, 2026-10-06; oracle 6e3e40c9): a block module whose `pub` functions name the root's
 enum and struct through `my.`, in a parameter, a return type and a value built (`my.Mp[x = …]`), called from MAIN

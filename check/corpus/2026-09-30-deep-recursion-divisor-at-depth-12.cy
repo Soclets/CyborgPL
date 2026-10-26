@@ -1,7 +1,7 @@
 # Regression (compiler claude's suggestion, 2026-09-30): a bad divisor only at depth 12, past Precog's call-depth cap
 # of 8. It must stay a run-time check (both engines stop at the div).
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

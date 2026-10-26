@@ -3,9 +3,9 @@
 # "0.0 0.00 -0.00 -0.0"; the oracle "0.0 0.00 0.00 0.0". Seen beside it, not a difference: a zero d64
 # times a negative (`'z' x (-1.7)`) prints "-0.00" in both engines.
 MAIN {
-    let 'a': d64 = -5.0;
-    let 'm': d64 = 'a' mod.ceil 2.5;
-    let 't': d64 = 'm' x 1.7;
-    let 'z': d64 = 0.0;
+    let 'a': %d64 = -5.0;
+    let 'm': %d64 = 'a' mod.ceil 2.5;
+    let 't': %d64 = 'm' x 1.7;
+    let 'z': %d64 = 0.0;
     std::print.stored('m', " ", 't', " ", -'t', " ", -'z', newln);
 }

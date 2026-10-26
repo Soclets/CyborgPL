@@ -4,7 +4,7 @@
 # failed: the shift can move bits out of the type" (as if the bare divisor, past i64, were
 # negative and the count -1). With a plain name on the left instead of ('v2' mod.floor 1) it agrees.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

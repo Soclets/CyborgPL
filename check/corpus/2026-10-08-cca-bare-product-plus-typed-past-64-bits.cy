@@ -4,7 +4,7 @@
 # 120623782226614850658282569013217716289, is past it, a check site. The oracle stops there. The CCA
 # binary runs on (likely since f0cbd125 worked a bare group beside a typed operand at its own size).
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

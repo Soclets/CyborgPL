@@ -3,7 +3,7 @@
 # so its `mut` is a promise broken (owner, 2026-10-10): Synapse refuses ("'x' is `mut`, but nothing
 # changes it"). The oracle runs it (prints 3): it counts the shadow's change for the shadowed name.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

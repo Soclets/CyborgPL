@@ -4,7 +4,7 @@
 # shift a width: both engines refuse it ("`shr` needs a width"). Before the ruling the oracle ran it
 # as a 64-bit shift (22) and CCA took the count's 8 bits (seed 4106).
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

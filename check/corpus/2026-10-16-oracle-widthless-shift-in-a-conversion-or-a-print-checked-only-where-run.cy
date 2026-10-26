@@ -4,7 +4,7 @@
 # to.u8[1]]` when building; the oracle prints 7. Taken, the oracle refuses it ("`shr` needs a
 # width"), and the same for std::print.useful[5 shr to.u8[1], newln].
 # check claude generator (printer only)
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

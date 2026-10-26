@@ -3,7 +3,7 @@
 # (design/operators.md), so this is true; the oracle prints 1. CCA refuses: "`pow` goes past 64
 # bits in between". Stored after a mod.floor ((4207507906 pow 17) mod.floor 1000) it builds (94dbca3).
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

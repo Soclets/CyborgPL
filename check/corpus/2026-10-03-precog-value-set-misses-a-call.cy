@@ -5,7 +5,7 @@
 # (6 fits u8), but a value set missing a reachable value is a wrong proof. The engines agree on the
 # output, so `check corpus` passes; see `cca precog --json` on this file, line 47 (start 47:17).
 # check claude generator, seed 17021
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

@@ -178,7 +178,7 @@ pub struct Config {
     pub std_glyph: bool,
     /// Calls in `( )` and `$name` (owner, 2026-10-22; oracle c16dc2d7, kayo 33f7b3dd).
     pub paren_calls: bool,
-    /// The limb mark `%` (owner, 2026-10-26; oracle 8bc2967c). Off until kayo reads it.
+    /// The limb mark `%` (owner, 2026-10-26; oracle 8bc2967c, kayo 82185f15).
     pub limb_marks: bool,
     /// MAIN ending in `std::exit(code: N)` (owner, 2026-10-23; oracle 69c6aedf).
     pub exits: bool,
@@ -219,6 +219,9 @@ pub struct Config {
     /// A block module naming the root's types through `my.` (owner,
     /// 2026-10-06; oracle 6e3e40c9).
     pub modules: bool,
+    /// A function named `MAIN`, reached only as `my.MAIN(…)` (owner,
+    /// 2026-10-26; kayo 16a41328).
+    pub fn_main: bool,
     /// C interop (owner, 2026-10-19; oracle 927b1905, kayo 6ae65a5f): a
     /// `layout.C union` written through one field and read through another,
     /// a `layout.C struct` of bit-fields written at and past their limits,
@@ -237,7 +240,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, limb_marks: false, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: true, formats: true, format_words: true, list_kinds: true, maps: true, deep_paths: true, modules: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, limb_marks: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: true, formats: true, format_words: true, list_kinds: true, maps: true, deep_paths: true, modules: true, fn_main: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
     }
 }
 
@@ -495,6 +498,14 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
     if g.cfg.writers && g.cfg.print && g.rng.chance(8) {
         let lines = g.writer_episode();
         main.extend(lines.into_iter().map(Stmt::Src));
+    }
+    if g.cfg.fn_main && g.rng.chance(8) {
+        // a function named MAIN beside the block: one a program, reached by `my.`
+        let (k, c, x) = (g.rng.range(-99, 99), g.rng.range(-9999, 9999), g.rng.range(-999, 999));
+        let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
+        g.extra_fns.push(format!("fn MAIN ['n': i64] -> i64 {{ return 'n' x {} + {}; }}", lit(k), lit(c)));
+        main.push(Stmt::Src(format!("std::print.useful[my.MAIN[{}], newln];", lit(x))));
+        g.unevaluable = true;
     }
     if g.cfg.modules && g.rng.chance(8) {
         let lines = g.module_episode();

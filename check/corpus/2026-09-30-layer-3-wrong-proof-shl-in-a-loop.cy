@@ -3,7 +3,7 @@
 # shift proven (shift_width, layer 3, solver) with its own operands {2030534677} and {0..5}; the binary
 # prints wrapped values (552600224 = 64977109664 mod 2^32 first). The oracle stops at the first shift.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

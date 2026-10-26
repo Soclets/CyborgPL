@@ -1,7 +1,7 @@
 # Coverage 2026-10-08 (owner: "yea, ask it to cover them"): str.at in each unit and std::str.slice.grapheme,
 # with pos: (f2f3879b), in range and out of it (the otherwise). CCA has no stdkit yet: "not yet" there.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

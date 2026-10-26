@@ -2,8 +2,8 @@
 # Finding 2026-09-23 (generator seed 58, shrunk structurally then by hand):
 # Precog loses the interval of a negative value through `shl 0`, so a check
 # that 1 + 'v' fits i16 is refused; without the shl it is proven.
-extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
-extern.C fn strlen ['s': ptr[u8]] -> u64;
+%extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
+%extern.C fn strlen ['s': ptr[u8]] -> u64;
 MAIN {
     let 'k' := "CHK_A";
     no_check let 'n': u64 = strlen(getenv(lend 'k'));

@@ -2,7 +2,7 @@
 # while 'r', a lend of it, is still used. Both engines let it through: the oracle prints 4,
 # CCA's binary prints the stale length 3. Rust-style borrowing (core-features.md) refuses it,
 # as CCA already does for change 's'[1] = …
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 fn put_u ['m': u64] {
     let mut 'buf': std::list[u8] = [];
     let mut 'v': u64 = 'm';

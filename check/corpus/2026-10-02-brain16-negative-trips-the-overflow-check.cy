@@ -3,7 +3,7 @@
 # but the CCA binary stops: "`x` can go past the largest brain16 (it would be infinity)". The same with
 # `+`, `-` and `div` on negative values (-1.75 + -1.75); positive values agree.
 # check claude generator, seed 11045
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];
@@ -35,10 +35,10 @@ fn put_i ['n': i64] {
     }
 }
 MAIN {
-    let 'a': brain16 = -0.3;
+    let 'a': %brain16 = -0.3;
     let 'z' := to.i64('a' times 10.0) otherwise -1;
     put_i('z');
-    let 'b': brain16 = -1.75;
+    let 'b': %brain16 = -1.75;
     let 'y' := to.i64('b' times 4.0) otherwise -1;
     put_i('y');
 }

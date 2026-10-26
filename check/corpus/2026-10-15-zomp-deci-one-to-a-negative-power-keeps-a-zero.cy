@@ -4,12 +4,12 @@
 # prints 1, 1, -1. Zomp prints 1.0, 1.0, -1.0, though its own 1 div.near 1 and 1 pow 2 print 1,
 # and 2 pow (-1), 0.5 pow (-1) and 5 pow (-1) agree (0.5, 2, 0.2): only a base of 1 or -1.
 MAIN {
-    let 'a': d32 = to.d32(1) pow (-1);
+    let 'a': %d32 = to.%d32(1) pow (-1);
     std::print.stored('a', newln);
-    let 'b': d64 = to.d64(1) pow (-2);
+    let 'b': %d64 = to.%d64(1) pow (-2);
     std::print.stored('b', newln);
-    let 'c': d32 = to.d32(-1) pow (-1);
+    let 'c': %d32 = to.%d32(-1) pow (-1);
     std::print.stored('c', newln);
-    let 'd': d32 = to.d32(1) div.near to.d32(1);
+    let 'd': %d32 = to.%d32(1) div.near to.%d32(1);
     std::print.stored('d', newln);
 }

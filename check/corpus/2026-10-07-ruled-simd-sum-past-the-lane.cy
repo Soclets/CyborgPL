@@ -3,7 +3,7 @@
 # wraps there). Four i32 lanes of about 1.2 x 10^9 summed, then mod.floor 1, is 0: the oracle runs
 # it; CCA's binary had stopped, as design/simd.md of 2026-09-22 said (seed 30022).
 # check claude generator, seed 30022
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

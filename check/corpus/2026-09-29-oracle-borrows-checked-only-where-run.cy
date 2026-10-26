@@ -1,7 +1,7 @@
 # Finding 2026-09-29 (by hand): the oracle checks borrows only on the paths it runs. Both
 # wrong borrows sit in an if that is not taken (a borrow of a local handed back; an append
 # while 'q' is used), so the oracle prints 7 and exits 0. CCA refuses the program.
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 fn put_u ['m': u64] {
     let mut 'buf': std::list[u8] = [];
     let mut 'v': u64 = 'm';

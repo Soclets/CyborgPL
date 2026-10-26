@@ -4,7 +4,7 @@
 # there having no width, so it now checks only that they refuse alike; deep nesting is covered by
 # 2026-10-07-oracle-stack-overflow-on-deep-calls (noted 2026-10-16).
 # check claude generator, seed 6241
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

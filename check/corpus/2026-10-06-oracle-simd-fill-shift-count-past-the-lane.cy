@@ -3,7 +3,7 @@
 # lanes' type), and a shift by 9 on an 8-bit value loses every bit: stored into an i8 instead, both
 # engines stop there. CCA refuses this one too; the oracle runs it and prints 22.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

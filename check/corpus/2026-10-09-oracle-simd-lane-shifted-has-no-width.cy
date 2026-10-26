@@ -3,7 +3,7 @@
 # 2026-10-07: from the shifted number), as a list item does since 328b04b1. The oracle stops: "`shr`
 # needs a width, and nothing here gives one". Synapse runs it and prints 1.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

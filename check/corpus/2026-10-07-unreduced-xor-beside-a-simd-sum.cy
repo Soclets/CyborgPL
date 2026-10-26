@@ -4,7 +4,7 @@
 # beside simd.sum['s37'] (a plain number since the 2026-10-07 ruling). The oracle runs the program.
 # Small versions agree, so it needs more of this context.
 # check claude generator, seed 32250
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];
@@ -58,10 +58,10 @@ fn f1 ['p1': u16] -> i32[min: -181, max: 64] {
         }
     }
     {
-        let 'w4': brain16 = -1.75;
+        let 'w4': %brain16 = -1.75;
         let 'g5': f64 = 12.75;
-        let 'w6' := to.brain16('g5');
-        let 'w7': brain16 = ('w4' mod.ceil.ieee (0.5));
+        let 'w6' := to.%brain16('g5');
+        let 'w7': %brain16 = ('w4' mod.ceil.ieee (0.5));
         if 'w6' at_least 2.5 {
             put_u(1);
         } else {
@@ -81,12 +81,12 @@ fn f1 ['p1': u16] -> i32[min: -181, max: 64] {
             }
             change 'w8' = 'w8' minus 1;
             {
-                let 'w9': brain16 = 0.5;
-                let 'w10': brain16 = 'w9' div.near 0.001;
-                let 'w11': brain16 = 'w10' times 'w9';
-                let 'w12': brain16 = ('w10' minus.ieee 'w11');
+                let 'w9': %brain16 = 0.5;
+                let 'w10': %brain16 = 'w9' div.near 0.001;
+                let 'w11': %brain16 = 'w10' times 'w9';
+                let 'w12': %brain16 = ('w10' minus.ieee 'w11');
                 let 'g13': f64 = -1.75;
-                let 'w14' := to.brain16('g13');
+                let 'w14' := to.%brain16('g13');
                 let 'd15' := to.stored.d64('w11');
                 let 'z16' := to.i64('d15' times 1000000) otherwise -1;
                 put_i('z16');
@@ -107,10 +107,10 @@ fn f2 ['pr': u8[min: 0, max: 3], 'p1': u16, 'p2': i16, 'p3': i8] -> i8 {
     for perm 'i20': u8 [from: 212, to: 255, by: 7] {
         put_u(to.i64(-9223372036854775808) mod.floor (-1));
         {
-            let 'd21': d128 = 6411.0;
-            let 'd22': d128 = 'd21' pow (-3);
-            let 'd23': d128 = 'd22' pow (-1);
-            let 'd24' := to.d32('d21') otherwise -88.0;
+            let 'd21': %d128 = 6411.0;
+            let 'd22': %d128 = 'd21' pow (-3);
+            let 'd23': %d128 = 'd22' pow (-1);
+            let 'd24' := to.%d32('d21') otherwise -88.0;
             let 'z25' := to.i64('d24' times 1000) otherwise -1;
             put_i('z25');
             let 't26' := to.useful.str.utf8('d22');
@@ -142,10 +142,10 @@ MAIN {
         if false and to.u64('v36') minus 60550 equal_to 4044568063511618629 {
             let 'v38': i64[min: 1] = ((-1) mod.floor 9223372036854775807) plus 1;
             {
-                let 'w39': brain16 = 2.5;
-                let 'w40' := to.brain16('v33');
-                let 'w41' := to.brain16(".5") otherwise 0.1;
-                let 'w42': brain16 = ('w40' minus.ieee 'w39');
+                let 'w39': %brain16 = 2.5;
+                let 'w40' := to.%brain16('v33');
+                let 'w41' := to.%brain16(".5") otherwise 0.1;
+                let 'w42': %brain16 = ('w40' minus.ieee 'w39');
                 if 'w40' < 1000.0 {
                     put_u(1);
                 } else {
@@ -158,13 +158,13 @@ MAIN {
         } else if ('v36' not_equal 2 and.then (10 mod.floor ('v36' minus 2)) < 3) and (to.i32('v33') shl 22) equal_to ((simd.sum.wrap('s37') mod.floor 92681) minus 46340) times ((simd.min('s37') mod.floor 92681) minus 46340) {
             change 'v36' = (((to.u16('v33') xor 'v36') mod.floor ((('v36' and.bit 1) mod.floor 42626) plus 1)) mod.floor 35) plus 65501;
             {
-                let 'w45': brain16 = 300.7;
-                let 'w46' := to.brain16('v33');
+                let 'w45': %brain16 = 300.7;
+                let 'w46' := to.%brain16('v33');
                 let 'g47': f64 = 2.5;
-                let 'w48' := to.brain16('g47');
-                let 'd49': d64 = 12.75;
-                let 'w50' := to.brain16('d49');
-                let 'w51': brain16 = 'w48';
+                let 'w48' := to.%brain16('g47');
+                let 'd49': %d64 = 12.75;
+                let 'w50' := to.%brain16('d49');
+                let 'w51': %brain16 = 'w48';
                 let 'h52' := to.f16('w51');
                 let 'd53' := to.useful.d64('h52');
                 let 'z54' := to.i64('d53') otherwise -1;
@@ -185,9 +185,9 @@ MAIN {
     for 'i57': i32 [from: 10, to: 22, by: 2] {
         put_i(to.i64('v36') minus to.i64('v33') plus (to.i64('v33') shl 4) minus (to.i64('v34') shl 52));
         {
-            let 'w58': brain16 = 0.1;
-            let 'w59': brain16 = ('w58' div.ceil.ieee (0.001));
-            let 'w60': brain16 = 'w58';
+            let 'w58': %brain16 = 0.1;
+            let 'w59': %brain16 = ('w58' div.ceil.ieee (0.001));
+            let 'w60': %brain16 = 'w58';
             let 'h61' := to.f16('w60');
             let 'd62' := to.useful.d64('h61');
             let 'z63' := to.i64('d62') otherwise -1;

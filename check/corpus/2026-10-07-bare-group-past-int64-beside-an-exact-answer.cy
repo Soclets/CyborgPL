@@ -4,7 +4,7 @@
 # integer". With the name 'v' alone on the left it builds (c1973f02); beside an exact answer it does
 # not. The same with the group as a mod.floor operand inside such an expression.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

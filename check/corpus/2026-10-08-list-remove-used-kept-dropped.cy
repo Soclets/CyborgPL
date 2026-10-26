@@ -1,7 +1,7 @@
 # Coverage 2026-10-08 (owner: "yea, ask it to cover them"): list.remove with pos: (f2f3879b), its item
 # printed straight from the call, kept in a name, and dropped; then the list's length and items.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

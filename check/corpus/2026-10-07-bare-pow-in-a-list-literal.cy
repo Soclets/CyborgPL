@@ -3,7 +3,7 @@
 # exactly: 454, which the oracle prints. CCA refuses: "`pow` goes past 64 bits in between" (its
 # answer shown as 2^127 - 1). Stored by a plain let 'r': u64 = … it builds (6232bb14).
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

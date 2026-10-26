@@ -5,7 +5,7 @@
 # 2026-10-07; oracle 3fd09056): a shifted number must fit its width first, so -1 there is a check
 # site, and the oracle now stops on it ("-1 does not fit u32").
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

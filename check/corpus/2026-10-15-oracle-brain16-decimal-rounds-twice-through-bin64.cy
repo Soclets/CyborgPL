@@ -5,10 +5,10 @@
 # The oracle prints 1.015625: as a f64 the number is exactly the half step, and ties to even go
 # up. The exact half step, and a f64 (rounded as a f64 first, by: its own rule), agree.
 MAIN {
-    let 'a': brain16 = 1.01171874999999999999;
+    let 'a': %brain16 = 1.01171874999999999999;
     std::print.stored('a', newln);
-    let 'b' := to.brain16("1.01171874999999999999") otherwise 1.0;
+    let 'b' := to.%brain16("1.01171874999999999999") otherwise 1.0;
     std::print.stored('b', newln);
-    let 'd': brain16 = 1.01171875;
+    let 'd': %brain16 = 1.01171875;
     std::print.stored('d', newln);
 }

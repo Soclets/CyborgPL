@@ -1,7 +1,7 @@
 # Regression (CCA 8ed06d6, 2026-09-30): a bin sum reaching infinity only after about 105,000 trips, past
 # where Precog's walk stopped; it was "proven" before. Both engines must stop at the +.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

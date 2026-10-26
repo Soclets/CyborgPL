@@ -3,7 +3,7 @@
 # `otherwise` gives -180.0: the oracle prints -180000. The CCA binary stops instead: "check: the
 # value is past what a `d32` holds".
 # check claude generator, seed 18003
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];
@@ -36,8 +36,8 @@ fn put_i ['n': i64] {
 }
 
 MAIN {
-    let 'a' := to.d128("1e400") otherwise -21.363;
-    let 'b' := to.d32('a') otherwise -180.0;
+    let 'a' := to.%d128("1e400") otherwise -21.363;
+    let 'b' := to.%d32('a') otherwise -180.0;
     let 'z' := to.i64('b' times 1000) otherwise -1;
     put_i('z');
 }

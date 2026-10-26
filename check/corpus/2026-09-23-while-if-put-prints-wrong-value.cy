@@ -2,9 +2,9 @@
 # inside a one-trip while prints 1 in CCA's binary; the oracle prints 0.
 # env CHK_IN2 7745
 # check claude generator, seed 2
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
-extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
-extern.C fn strlen ['s': ptr[u8]] -> u64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
+%extern.C fn strlen ['s': ptr[u8]] -> u64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

@@ -3,7 +3,7 @@
 # that narrowing proven (layer 3, solver) while its own operand range is about ±2.4e27, drops the
 # check, and the binary runs on. The oracle stops there, as it should (design claude traced it).
 # check claude generator, seed 6313
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

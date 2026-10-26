@@ -2,7 +2,7 @@
 # (15 mod 'v16') is refused ("the divisor can be zero"); 'v16' is 1 from f1[1]. 7ef4341 stopped folds
 # inside strict functions; MAIN seems to still fold the guard away. The oracle runs it.
 # check claude generator, seed 6430
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

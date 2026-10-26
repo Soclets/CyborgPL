@@ -3,7 +3,7 @@
 # --assert-proofs binary prints 16, as if the literal were a signed i64; its normal build, the
 # oracle, and the same group in a let, a list item or an argument all give 25. Only the build
 # with --assert-proofs is wrong. In the generated program it printed 126 for 110.
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 fn put_u ['m': u64] {
     let mut 'buf': std::list[u8] = [];
     let mut 'v': u64 = 'm';

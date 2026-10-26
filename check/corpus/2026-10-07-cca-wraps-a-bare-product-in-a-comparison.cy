@@ -3,7 +3,7 @@
 # product is 23955622256324454720, so the test is false and the oracle prints 1 (the else). The CCA
 # binary prints 0: it takes the then branch, as if the product had wrapped.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

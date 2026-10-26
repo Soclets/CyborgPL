@@ -4,7 +4,7 @@
 # the loop it refuses emit's 'v' div 10 as failing "every time it reaches here" (line 15). From
 # put_u[0] it is 0 div 10. The oracle stops at line 47, the call, as it should.
 # check claude generator, seed 1027
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

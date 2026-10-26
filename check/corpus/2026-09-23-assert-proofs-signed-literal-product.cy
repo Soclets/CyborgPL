@@ -3,9 +3,9 @@
 # env CHK_IN1 0
 # env CHK_IN2 0
 # check claude generator, seed 22
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
-extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
-extern.C fn strlen ['s': ptr[u8]] -> u64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
+%extern.C fn strlen ['s': ptr[u8]] -> u64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

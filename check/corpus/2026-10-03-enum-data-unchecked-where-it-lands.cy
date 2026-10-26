@@ -3,7 +3,7 @@
 # binary runs and the match prints 18446744073709551611 (2^64 - 5, wrapped). The same with an i64
 # name holding -5 as the data. In the seed it was bare numbers worth about -2 x 10^37.
 # check claude generator, seed 15174
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];
@@ -41,7 +41,7 @@ enum E1 {
     c4: u64
 }
 
-layout.C enum E2 {
+%layout.C enum E2 {
     c1 = -169,
     c2 = -2003713270
 }

@@ -4,7 +4,7 @@
 # ("`x` can leave what the type holds"; in the full program the binary stopped there instead). The
 # same group stored by a plain `let 'n': u64 = …` agrees, so it is list.fill's count.
 # check claude generator, seed 11045
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

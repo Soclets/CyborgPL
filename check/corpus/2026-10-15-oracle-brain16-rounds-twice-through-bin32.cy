@@ -8,10 +8,10 @@
 # 2533274790395904, the line the seed's run caught).
 MAIN {
     let 'v': i64 = 25262379159781017;
-    let 'w' := to.brain16('v');
+    let 'w' := to.%brain16('v');
     std::print.stored('w', newln);
-    let 'l': brain16 = 25262379159781017.0;
+    let 'l': %brain16 = 25262379159781017.0;
     std::print.stored('l', newln);
-    let 'x': brain16 = 'w' times 0.1;
+    let 'x': %brain16 = 'w' times 0.1;
     std::print.stored('x', newln);
 }

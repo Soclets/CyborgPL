@@ -3,7 +3,7 @@
 # (oracle/README.md). Typed `exactly 51.0%`, kayo prints "51.0%"; the oracle prints "51%", dropping
 # the `.0` it keeps for the f16 beside it ("0.337403770").
 MAIN {
-    let 'tx' := exactly 51.0%;
+    let 'tx' := exactly 51.0 percent;
     let 'wx': f16 = 0.337403770;
     std::print.written('wx', " ", 'tx', " ", -2.50, newln);
 }

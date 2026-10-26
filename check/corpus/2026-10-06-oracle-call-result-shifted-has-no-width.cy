@@ -5,7 +5,7 @@
 # one". With the call's result held in a named i8 first it runs. CCA builds it (2 sites proven) and
 # runs. Earlier runs of the same generator agreed (2026-10-05), so this is likely from c95ec8e.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

@@ -4,7 +4,7 @@
 # 0.000…0001234 with a huge negative exponent; -9223372036854775807 shows as -0), so it gives -1. The
 # same value from a `let` converts right.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];
@@ -57,7 +57,7 @@ fn half ['n': i32] -> optional[i32] {
 
 MAIN {
     const 'c': i64 = 1234;
-    let 'd' := to.d128('c');
+    let 'd' := to.%d128('c');
     let 'z' := to.i64('d' times 1) otherwise -1;
     put_i('z');
 }

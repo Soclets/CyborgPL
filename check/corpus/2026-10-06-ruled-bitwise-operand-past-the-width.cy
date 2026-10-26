@@ -3,7 +3,7 @@
 # (('v' and.bit 3) minus 7), all u32: -6 does not fit, as CCA (c1973f02) refused; the oracle had
 # combined the bits and printed 0 (seeds 4263, 4076).
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

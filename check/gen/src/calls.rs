@@ -76,6 +76,10 @@ fn opens(text: &str, i: usize, last_closed: Option<Open>) -> Open {
         let close = matching(text, i);
         return if close.is_some_and(|c| b.get(c + 1) == Some(&b'[')) { Open::Describes } else { Open::Call };
     }
+    // `my.MAIN(…)`: a function named MAIN, reached only by its path (owner, 2026-10-26)
+    if path == "my.MAIN" {
+        return Open::Call;
+    }
     // a capitalised last part builds a struct (`P[x = 1]`); a type's own
     // function (`Counter.next`) is called like any other
     if last.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {

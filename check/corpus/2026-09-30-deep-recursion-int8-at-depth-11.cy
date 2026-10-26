@@ -1,6 +1,6 @@
 # Regression (2026-09-30): an i8 overflow only at depth 11, past the call-depth cap of 8: a run-time check.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

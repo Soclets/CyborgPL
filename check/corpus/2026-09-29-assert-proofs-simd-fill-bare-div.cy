@@ -4,7 +4,7 @@
 # holds), as if the literal past i64 were divided as a signed i64. A plain fill of the literal,
 # or of a u64 name holding the quotient, is fine. The same family as assert-proofs-match-arm-bare-div.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

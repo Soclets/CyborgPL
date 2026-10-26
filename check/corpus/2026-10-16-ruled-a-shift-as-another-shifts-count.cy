@@ -3,7 +3,7 @@
 # to.i64[1] shl (5 shr to.u8[1]) has none: "`shr` needs a width", refused by both engines,
 # whether or not the code runs. Before the ruling the oracle ran it (count 2, printing 4).
 # check claude generator (printer only)
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

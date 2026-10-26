@@ -2,9 +2,9 @@
 # u8 takes the wrong branch in CCA (0434f04): 206 - 8 > 201 is false.
 # env CHK_IN1 12745
 # check claude generator, seed 77
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
-extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
-extern.C fn strlen ['s': ptr[u8]] -> u64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
+%extern.C fn strlen ['s': ptr[u8]] -> u64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

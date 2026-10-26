@@ -1,7 +1,7 @@
 # Finding 2026-09-29 (by hand): 's' is given away while 'r', a lend of it, is still used.
 # CCA refuses it ('r' still borrows it and is used after this); the oracle runs it and prints 1.
 # Also the oracle: change 's'[1] = 99 while 'r' is used runs and prints 99.
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 fn put_u ['m': u64] {
     let mut 'buf': std::list[u8] = [];
     let mut 'v': u64 = 'm';

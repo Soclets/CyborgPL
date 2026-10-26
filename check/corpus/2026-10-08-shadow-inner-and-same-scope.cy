@@ -1,7 +1,7 @@
 # Coverage 2026-10-08 (owner: "yea, ask it to cover them"): shadow (ef3a8a55) in an inner block, which
 # ends with the block, and in the same scope with a new type and mut. Prints 2, 1, 4.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

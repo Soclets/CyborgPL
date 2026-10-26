@@ -4,7 +4,7 @@
 # (owner: a, 2026-09-23), so 32 bits; the oracle prints 0. CCA refuses: "`shr` only knows a
 # declared width". The same inside a comparison with a bare number (seed 20020).
 # check claude generator, seed 20067
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

@@ -2,7 +2,7 @@
 # zero is 0, never -0 (div.X.ieee keeps IEEE's -0). 0.5 div.ceil (-1.75) on a brain16 is 0, text "0",
 # 1 byte, as CCA gave; the oracle had kept -0 (seeds 25502, 26092).
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];
@@ -56,8 +56,8 @@ fn b3 [@x] [lent @x 'a': std::list[i16], lent @x 'b': std::list[i16]] -> lent @x
 }
 
 MAIN {
-    let 'a': brain16 = 0.5;
-    let 'q': brain16 = 'a' div.ceil (-1.75);
+    let 'a': %brain16 = 0.5;
+    let 'q': %brain16 = 'a' div.ceil (-1.75);
     let 't' := to.useful.str.utf8('q');
     put_u(std::str.bytes(lend 't'));
 }

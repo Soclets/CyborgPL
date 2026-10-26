@@ -2,7 +2,7 @@
 # lands in f3's return type (u64[min, 100]), but the oracle sizes its bare group by the declaration:
 # "`shr` by 42 on a 16-bit value". CCA runs it.
 # check claude generator, seed 6868
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

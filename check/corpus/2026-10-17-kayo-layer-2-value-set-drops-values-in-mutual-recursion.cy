@@ -6,7 +6,7 @@
 # {0, 2, 4, 6}, the site is checked and kayo stops too. Not the recursion inlining (0ed08993), which
 # leaves mutual recursion alone.
 # check claude generator (printer only)
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

@@ -4,7 +4,7 @@
 # number), as a call's result (f679f11) and a SIMD fold (b6c5c532) do. The oracle stops: "`shl` needs
 # a width, and nothing here gives one". CCA runs it and prints 1 and 2.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

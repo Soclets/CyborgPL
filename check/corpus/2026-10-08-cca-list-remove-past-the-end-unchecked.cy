@@ -4,7 +4,7 @@
 # SIGBUS (exit 138), with and without --assert-proofs: the position is never checked. The same with
 # a computed position ('k' plus 1, 'k' a u64 of 3).
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

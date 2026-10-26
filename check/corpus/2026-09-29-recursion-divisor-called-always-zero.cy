@@ -2,7 +2,7 @@
 # 'p1' = 1, so the divisor -to.i64['p1'] is -1 (and 448..680 from the self-call). CCA refuses it:
 # "the divisor is always zero". The oracle runs it.
 # check claude generator, seed 3593
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

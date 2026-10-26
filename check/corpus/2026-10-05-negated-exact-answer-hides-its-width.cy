@@ -4,7 +4,7 @@
 # CCA refuses: "these have different sizes (or none left to see)". Without the minus, or with
 # (-'a') shr 1, both agree; the same with times.wrap, xor, or.bit beside a negated exact answer.
 # check claude generator, seed 20067
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

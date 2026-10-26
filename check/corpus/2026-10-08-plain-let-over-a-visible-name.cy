@@ -1,7 +1,7 @@
 # Coverage 2026-10-08 (owner: "yea, ask it to cover them"): a plain let over a visible name in an
 # inner block is refused (ef3a8a55: shadowing is written `shadow`). Both engines should refuse line N.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

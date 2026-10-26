@@ -4,7 +4,7 @@
 # an i64, so CCA prints 9220000000000000000. The oracle's to.useful.d64 gives 9223372036854776000
 # (its stored form), past i64, so its to.i64[...] otherwise -1 prints -1.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];
@@ -59,7 +59,7 @@ fn b3 [@x] [lent @x 'a': std::list[i16], lent @x 'b': std::list[i16]] -> lent @x
 
 MAIN {
     let 'v': i64 = 9223372036854775803;
-    let 'w' := to.brain16('v');
+    let 'w' := to.%brain16('v');
     let 'd' := to.useful.d64('w');
     let 'z' := to.i64('d') otherwise -1;
     put_i('z');

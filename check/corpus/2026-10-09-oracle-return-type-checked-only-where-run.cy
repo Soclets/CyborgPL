@@ -3,7 +3,7 @@
 # like a let over a visible name, caba9b84): Synapse refuses it ("expected a value of the return type
 # (u8), found a `bool`"). The oracle runs the program (exit 0); on a path that runs it refuses too.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

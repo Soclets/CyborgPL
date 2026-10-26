@@ -4,7 +4,7 @@
 # `integer` holds -9223372036854775808 to 9223372036854775807". Written as the one number
 # 9223372036854775808 it builds. The same family as beside a bitwise operator (c1973f02, f0cbd125).
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

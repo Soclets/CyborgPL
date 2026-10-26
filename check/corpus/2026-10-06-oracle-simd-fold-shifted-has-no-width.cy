@@ -3,7 +3,7 @@
 # 2026-09-23), as a call's return type does since f679f11. The oracle stops: "`shl` needs a width,
 # and nothing here gives one". CCA runs it and prints 6.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

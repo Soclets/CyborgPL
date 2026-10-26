@@ -1,7 +1,7 @@
 # Finding 2026-09-29 (by hand): a borrow handed back by a call, 'r' := first[lend 's'], is
 # used after 1000 appends to 's' have moved its storage. CCA's binary reads freed memory
 # (prints 1, then an empty line); the oracle prints 1 and 1003. Both should refuse the appends.
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 fn put_u ['m': u64] {
     let mut 'buf': std::list[u8] = [];
     let mut 'v': u64 = 'm';

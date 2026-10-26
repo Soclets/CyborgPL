@@ -2,7 +2,7 @@
 # ever -0; plus/minus/times/div.X.ieee and neg.ieee keep IEEE's -0. A brain16 zero times (-0.3) is 0,
 # text "0", 1 byte, as CCA gave; the oracle had kept -0 (seed 30208).
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];
@@ -56,9 +56,9 @@ fn b3 [@x] [lent @x 'a': std::list[i16], lent @x 'b': std::list[i16]] -> lent @x
 }
 
 MAIN {
-    let 'w4': brain16 = 0.1;
-    let 'w6': brain16 = 'w4' minus 'w4';
-    let 'w7': brain16 = 'w6' times (-0.3);
+    let 'w4': %brain16 = 0.1;
+    let 'w6': %brain16 = 'w4' minus 'w4';
+    let 'w7': %brain16 = 'w6' times (-0.3);
     let 't15' := to.useful.str.utf8('w7');
     put_u(std::str.bytes(lend 't15'));
 }

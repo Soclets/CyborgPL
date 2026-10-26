@@ -5,7 +5,7 @@
 # type holds ... a `integer` holds -9223372036854775808 to 9223372036854775807". Beside `plus`, or
 # stored alone, it builds; beside or.bit and xor it does not. The same for `plus` and `times` groups.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

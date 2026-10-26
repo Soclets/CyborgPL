@@ -2,9 +2,9 @@
 # 'in1' mod 65535 give 0 in CCA's binary (c845110) when 'in1' is 27796; other divisors are right.
 # env CHK_IN1 27796
 # check claude generator, seed 106
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
-extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
-extern.C fn strlen ['s': ptr[u8]] -> u64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn getenv ['name': ptr[u8]] -> ptr[u8];
+%extern.C fn strlen ['s': ptr[u8]] -> u64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

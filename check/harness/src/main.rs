@@ -72,7 +72,33 @@ impl Args {
     /// For the evaluator and the solver: no deci or text, which they do not
     /// model (a program with them would be skipped whole).
     fn config_modelled(&self) -> Config {
-        Config { deci: false, brain16: false, mutator: false, ..self.config() }
+        // and none of the episodes, each of which makes a program unevaluable:
+        // with them all on, 99 of 100 programs had nothing the claims could check
+        // (2026-10-26)
+        Config {
+            deci: false,
+            brain16: false,
+            mutator: false,
+            c_interop: false,
+            percents: false,
+            bare_enums: false,
+            collections: false,
+            tables: false,
+            ptr_null: false,
+            exits: false,
+            generics: false,
+            channels: false,
+            writers: false,
+            short_lambdas: false,
+            formats: false,
+            list_kinds: false,
+            maps: false,
+            deep_paths: false,
+            modules: false,
+            fn_main: false,
+            width_probes: false,
+            ..self.config()
+        }
     }
 
     fn config(&self) -> Config {
@@ -141,8 +167,8 @@ impl Args {
             std_glyph: !avoid.contains("std-glyph"),
             // calls in `( )` and `$name` (oracle c16dc2d7, kayo 33f7b3dd, std aa012698)
             paren_calls: !avoid.contains("paren-calls"),
-            // the limb mark `%` (oracle 8bc2967c): kayo does not read it yet (2026-10-26); `--limb-marks` turns it on
-            limb_marks: self.has("limb-marks"),
+            // the limb mark `%` (oracle 8bc2967c, kayo 82185f15)
+            limb_marks: !avoid.contains("limb-marks"),
             // MAIN ending in `std::exit(code: N)` (oracle 69c6aedf, kayo has it)
             exits: !avoid.contains("exits"),
             // kayo a319a218, b02769fe
@@ -166,6 +192,8 @@ impl Args {
             deep_paths: !avoid.contains("deep-paths"),
             // a module naming the root's types through `my.` (oracle 6e3e40c9)
             modules: !avoid.contains("modules"),
+            // `fn MAIN` reached as `my.MAIN(…)` (kayo 16a41328)
+            fn_main: !avoid.contains("fn-main"),
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),
@@ -250,12 +278,10 @@ fn aimed_envs(p: &Program, dir: &Path, cap: usize) -> (Vec<Env>, usize, usize) {
 }
 
 fn main() {
-    // the harness's own programs marked too, under `--limb-marks`
-    if std::env::args().any(|a| a == "--limb-marks") {
-        check_gen::limbs::MARKED.store(true, std::sync::atomic::Ordering::Relaxed);
-    }
     engines::reap_leftovers();
     let a = parse();
+    // the harness's own programs marked as the generator's are
+    check_gen::limbs::MARKED.store(a.config().limb_marks, std::sync::atomic::Ordering::Relaxed);
     let tools = || Tools::find(&repo()).unwrap_or_else(|e| die(&e));
     let oracle_only = || Tools::find_oracle(&repo()).unwrap_or_else(|e| die(&e));
     match a.cmd.as_str() {
@@ -496,6 +522,17 @@ fn main() {
                 if ok { same += 1 } else { differ += 1 }
             }
             println!("{} programs ({runs} runs): {same} twins the same, {differ} differ", same + differ);
+        }
+        "marks" => {
+            // rewrite files in place with the limb mark, as the generator writes them
+            for f in &a.rest {
+                let s = std::fs::read_to_string(f).unwrap_or_else(|e| die(&format!("{f}: {e}")));
+                let t = check_gen::limbs::mark_limbs(&s);
+                if t != s {
+                    std::fs::write(f, t).unwrap();
+                    println!("rewrote {f}");
+                }
+            }
         }
         "calls" => {
             // rewrite files in place with calls in `( )`, as the generator writes them

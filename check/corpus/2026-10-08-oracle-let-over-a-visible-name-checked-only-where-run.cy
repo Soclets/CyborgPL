@@ -4,7 +4,7 @@
 # already declared in an enclosing scope; to shadow it deliberately write `shadow 'x' := …;`". In code
 # that runs, both refuse.
 # check claude generator, seed 1
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];

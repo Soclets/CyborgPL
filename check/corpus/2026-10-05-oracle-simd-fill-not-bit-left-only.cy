@@ -5,7 +5,7 @@
 # many". With ('v17' plus 5) it runs, as it does for not.bit (5 plus 'v17') in a comparison or a
 # print: inside simd.fill it looks at the left operand only. CCA runs it.
 # check claude generator, seed 24126
-extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
+%extern.C fn write ['fd': i32, 'buf': ptr[u8], 'len': u64] -> i64;
 
 fn emit ['m': u64, 'neg': bool] {
     let mut 'buf': std::list[u8] = [];
