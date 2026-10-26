@@ -86,8 +86,15 @@ over two lines), and offered (1) the same line, recommended, (2) the hyphen as a
 as a hyphen only when a block's `start of` comes next. The owner: "Opt 3, because we'll be doing an operator symbol
 purge tomorrow". So **a `-` ending a line, with a block's `start of` on the next, joins them**:
 `let $line := parse_line(lend $piece)-` / `start of otherwise:` … `end of otherwise;` (design claude's reading: only
-before a block's start, for now; tomorrow's purge of operator symbols may free `-` altogether). Not built; the rest of
-the redesign follows.
+before a block's start, for now; tomorrow's purge of operator symbols may free `-` altogether). **`!` marks a handler
+arm that jumps** (`continue`, `break`, `return`), on its start and end lines, `!start of case out_of_stock $what:` …
+`!end of case out_of_stock`, the compiler requiring it on such an arm and refusing it on any other (owner: "yes"), "and
+also where that handler is used. That specific handler, if the bare version triggers it (`otherwise !bare`), and if
+narrowing triggers it (`otherwise notbare.!oops`)". So **the use is marked too, on the word naming the handler that
+jumps**: `otherwise !order_failed(…)` for a collection's own, `otherwise order_failed.!apologize(…)` for a member,
+required where the handler used can jump and refused where it cannot. **This reverses 2026-10-25's "a handler's
+`continue` / `break` is not marked where it is used"**: what it does is still written once, in the handler, and now
+shown where it happens. Not built; the rest of the redesign follows.
 
 ### 2026-10-26 — In `print.format`, a newline is `{newln}` and a tab `{tab}`; `\n` and `\t` there become old spellings (owner; not built)
 
