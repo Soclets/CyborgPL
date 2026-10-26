@@ -2430,7 +2430,8 @@ impl Parser {
             "i" | "u" | "f" | "d" => bad(self, format!("the typed form is fully explicit: `{head}` needs a width (e.g. `{head}32`)")),
             // the long family names are old since 2026-10-20 (owner: "switch to u, i, f, d")
             "int" | "uint" | "bin" | "deci" => bad(self, format!("`{head}` is an old spelling: the types are `i`, `u`, `f`, `d` with a width (`{}32`) (owner, 2026-10-20)", match head { "int" => "i", "uint" => "u", "bin" => "f", _ => "d" })),
-            _ if crate::spellings::is_reserved(&head) => bad(self, format!("`{head}` is a keyword, not a type")),
+            // `my.Color`: the root's type, reached from a module (owner, 2026-10-06: `my.` is the root); `my` alone is no type
+            _ if crate::spellings::is_reserved(&head) && !(head == "my" && segs.len() > 1) => bad(self, format!("`{head}` is a keyword, not a type")),
             _ => {
                 if !params.is_empty() {
                     let builtin = ["i", "u", "f", "d"].iter().any(|p| width(head, p).is_some());
