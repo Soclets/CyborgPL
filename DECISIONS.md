@@ -34,6 +34,17 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-26 — A module's bounds are reached by its path, the collection's name included: `shop.order.discount` (owner)
+
+The twin of the entry below. Asked whether a module's own `coll.bound` is reached from elsewhere by the module's path,
+as its functions (`shop.basket(…)`) and types (`shop.Locker`) are, the owner: "Would you need to type the `coll,bound`'s
+name too?" (yes, and nothing more: every member's name starts with it, `order.discount`, so the path is the module's in
+front, `shop.order.discount`, as a `coll.fn` member is `shapes.area.square`), then "yes". So **a module's bound is
+`module.collection.member` from elsewhere in the kit**, the root's `my.collection.member`, and bare in its own file.
+Design claude's reading, as every module item: reached from outside its module only when `pub` (or `pub.kit`); the
+root's are the whole kit's. Built in the oracle the same day: every file's bounds are read in the first pass, so files
+name each other's in any order; examples/bounds_kit/, tests/reject/bound_module_private.
+
 ### 2026-10-26 — A module in any file of the kit reaches the root's bounds through `my.` (owner)
 
 Compiler claude, building `coll.bound`: both engines read a bound only in its own file. Asked whether a module in

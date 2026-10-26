@@ -232,9 +232,9 @@ thread_local! {
     /// every `pub coll.handler`'s members, by (kit root, collection, member), read in the first pass over every file, so
     /// another kit uses one through its path (owner, 2026-10-23)
     pub static PUB_HANDLERS: std::cell::RefCell<Vec<(Vec<String>, String, String, HandlerMember)>> = std::cell::RefCell::new(Vec::new());
-    /// every root file's `coll.bound` members, by (kit root, name): a module in any file names one as `my.quantity` (owner,
-    /// 2026-10-26: "yes, no shit"); the root file is read first, so they are known before any module file
-    pub static ROOT_BOUNDS: std::cell::RefCell<Vec<(Vec<String>, String, Ty)>> = std::cell::RefCell::new(Vec::new());
+    /// every `coll.bound` member of every file, by (kit root, module, name), read in the first pass: any file names one
+    /// by its module's path, `shop.order.discount`, or the root's as `my.quantity` (owner, 2026-10-26)
+    pub static KIT_BOUNDS: std::cell::RefCell<Vec<(Vec<String>, Vec<String>, String, Ty, bool)>> = std::cell::RefCell::new(Vec::new());
     /// `oracle --to-paren-calls`: read a call's old `[ ]` and record where it is, to be rewritten as `( )`
     pub static OLD_CALLS: std::cell::Cell<bool> = std::cell::Cell::new(false);
     /// (file, character, the text it becomes), for `oracle --to-paren-calls`
@@ -779,33 +779,11 @@ impl Parser {
                 return self.err_at(i, format!("`{name}` is std's: write `std::{name}` ({example}), or name it for this file with `use std::{name} as {};` (owner, 2026-10-22)", name.replace('.', "_")));
             }
         }
-        let mut i = 0;
-        while i + 3 < self.toks.len() {
-            let std_head = matches!(&self.toks[i].tok, Tok::Word(w) if w == "std") && self.toks[i + 1].tok == Tok::ColonColon
-                && (i == 0 || self.toks[i - 1].tok != Tok::Dot)
-                && match (&self.toks[i + 2].tok, &self.toks[i + 3].tok, self.toks.get(i + 4).map(|t| &t.tok)) {
-                    (Tok::Word(h), Tok::Dot | Tok::LBracket, _) if h == "list" || h == "map" => true,
-                    (Tok::Word(h), _, _) if h == "casing" => true,
-                    (Tok::Word(h), Tok::Dot, Some(Tok::Word(u))) if h == "str" => ["bytes", "points", "graphemes", "each"].contains(&u.as_str()),
-                    _ => false,
-                };
-            if std_head { self.toks.drain(i..i + 2); }
-            i += 1;
-        }
+        strip_std_heads(&mut self.toks);
         // a `precedence` block applies to the whole file, wherever it is written: read it first
         self.scan_levels()?;
-        // every `coll.bound` too, in order, so a type anywhere in the file may name one (owner, 2026-10-25)
-        let bound_starts: Vec<usize> = (0..self.toks.len().saturating_sub(3)).filter(|&i| matches!(&self.toks[i].tok, Tok::Word(w) if w == "coll") && self.toks[i + 1].tok == Tok::Dot && matches!(&self.toks[i + 2].tok, Tok::Word(w) if w == "bound")).collect();
-        for at in bound_starts { self.pos = at + 3; self.bound_collection()?; }
-        self.pos = 0;
-        if self.module == self.kit_root {
-            let root = self.kit_root.clone();
-            ROOT_BOUNDS.with(|b| {
-                let mut b = b.borrow_mut();
-                b.retain(|(r, _, _)| *r != root);
-                for (name, ty) in &self.named_bounds { b.push((root.clone(), name.clone(), ty.clone())); }
-            });
-        }
+        // every `coll.bound` too, so a type anywhere in the file may name one bare (owner, 2026-10-25)
+        self.read_bounds()?;
         self.items(&mut prog, 0)?;
         Ok(prog)
     }
@@ -1901,6 +1879,59 @@ impl Parser {
     // `[ ]` supplies type parameters (`list[i32]`, `list[list[i32]]`). A struct
     // through modules is a dotted path (`shapes.Locker`, `my.Locker`).
     /// A type; a range or a length bound is ASP's (owner, 2026-10-07: "move"), refused without it
+    /// The first pass's reading of this file's bounds (owner, 2026-10-26), before any file's items are read, so every
+    /// file may name every other's.
+    pub fn scan_bounds(&mut self) -> PResult<()> {
+        strip_std_heads(&mut self.toks);
+        self.read_bounds()
+    }
+
+    /// Every `coll.bound` in the file, each under the module it sits in (the file's, and any `module x { … }` around
+    /// it), into `named_bounds` (for bare names here) and `KIT_BOUNDS` (for paths from anywhere in the kit).
+    fn read_bounds(&mut self) -> PResult<()> {
+        let mut stack: Vec<(String, i32)> = Vec::new();
+        let mut depth = 0;
+        let mut found = Vec::new();
+        let mut i = 0;
+        while i < self.toks.len() {
+            match &self.toks[i].tok {
+                Tok::LBrace => depth += 1,
+                Tok::RBrace => { if stack.last().map_or(false, |(_, d)| *d == depth) { stack.pop(); } depth -= 1; }
+                Tok::Word(w) if w == "module" => {
+                    if let (Some(Tok::Word(n)), Some(Tok::LBrace)) = (self.toks.get(i + 1).map(|t| &t.tok), self.toks.get(i + 2).map(|t| &t.tok)) {
+                        stack.push((n.clone(), depth + 1));
+                    }
+                }
+                Tok::Word(w) if w == "coll" && self.toks.get(i + 1).map(|t| &t.tok) == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(b)) if b == "bound") => {
+                    let mut module = self.module.clone();
+                    module.extend(stack.iter().map(|(n, _)| n.clone()));
+                    // `pub` / `pub.kit` in front: reached from outside its module, as a module's other items are
+                    let public = i > 0 && matches!(&self.toks[i - 1].tok, Tok::Word(p) if p == "pub" || p == "kit")
+                        || (i > 2 && matches!(&self.toks[i - 3].tok, Tok::Word(p) if p == "pub") && self.toks[i - 2].tok == Tok::Dot);
+                    found.push((i, module, public));
+                }
+                _ => {}
+            }
+            i += 1;
+        }
+        let root = self.kit_root.clone();
+        for (at, module, public) in found {
+            let before: Vec<String> = self.named_bounds.keys().cloned().collect();
+            self.pos = at + 3;
+            self.bound_collection()?;
+            let new: Vec<(String, Ty)> = self.named_bounds.iter().filter(|(k, _)| !before.contains(k)).map(|(k, t)| (k.clone(), t.clone())).collect();
+            KIT_BOUNDS.with(|b| {
+                let mut b = b.borrow_mut();
+                for (name, ty) in new {
+                    b.retain(|(r, m, n, _, _)| !(*r == root && *m == module && *n == name));
+                    b.push((root.clone(), module.clone(), name, ty, public));
+                }
+            });
+        }
+        self.pos = 0;
+        Ok(())
+    }
+
     /// `coll.bound quantity { quantity = i32[min: 1, max: 99]; quantity.small = i32[min: 1, max: 9]; }` (owner,
     /// 2026-10-25): each member names one bounded type, and a use of it is that type exactly.
     fn bound_collection(&mut self) -> PResult<()> {
@@ -1939,22 +1970,46 @@ impl Parser {
     }
 
     fn ty(&mut self) -> PResult<Ty> {
-        // `my.quantity`: the root's bound, from any file of the kit (owner, 2026-10-26)
-        if self.is_word("my") && *self.peek_at(1) == Tok::Dot {
+        // a bound by its module's path from anywhere in the kit, `shop.order.discount`, the root's as `my.quantity`
+        // (owner, 2026-10-26): the longest path that names one
+        if let Tok::Word(first) = self.peek().clone() {
             let root = self.kit_root.clone();
-            let (mut path, mut k, mut best) = (String::new(), 2, None);
+            let (skip, mut k) = if first == "my" && *self.peek_at(1) == Tok::Dot { (2, 2) } else { (0, 0) };
+            let mut words: Vec<String> = Vec::new();
             while let Tok::Word(w) = self.peek_at(k).clone() {
-                if !path.is_empty() { path.push('.'); }
-                path.push_str(&w);
+                words.push(w);
                 k += 1;
-                if let Some(t) = ROOT_BOUNDS.with(|b| b.borrow().iter().find(|(r, n, _)| *r == root && *n == path).map(|(_, _, t)| t.clone())) { best = Some((k, t)); }
                 if *self.peek_at(k) != Tok::Dot { break; }
                 k += 1;
             }
+            let mut best: Option<(usize, Ty)> = None;
+            let mut private: Option<(String, String)> = None;
+            let here = self.module.clone();
+            KIT_BOUNDS.with(|b| {
+                let b = b.borrow();
+                for split in 0..words.len() {
+                    let mut module = root.clone();
+                    module.extend(words[..split].iter().cloned());
+                    for end in split + 1..=words.len() {
+                        let name = words[split..end].join(".");
+                        if split == 0 && skip == 0 { continue; }   // a bare name is this file's own, below
+                        if let Some((_, _, _, t, public)) = b.iter().find(|(r, m, n, _, _)| *r == root && *m == module && *n == name) {
+                            // the root's are the kit's; a module's need `pub` outside it (and its own blocks)
+                            if !*public && module != root && !here.starts_with(&module) {
+                                private = Some((words[..end].join("."), words[..split].join(".")));
+                                continue;
+                            }
+                            let used = skip + end * 2 - 1;
+                            if best.as_ref().map_or(true, |(u, _)| used > *u) { best = Some((used, t.clone())); }
+                        }
+                    }
+                }
+            });
             if let Some((n, t)) = best {
                 for _ in 0..n { self.advance(); }
                 return Ok(t);
             }
+            if let Some((path, m)) = private { return self.err(format!("`{path}` is private to `{m}`; mark its `coll.bound` `pub` or `pub.kit`")); }
         }
         // a `coll.bound` member is the type it names (owner, 2026-10-25): the longest name that is one
         if !self.named_bounds.is_empty() {
@@ -5760,5 +5815,22 @@ impl Parser {
             i = j + 1;
         }
         Ok(())
+    }
+}
+
+/// `std::list[i64]` and the like are the oracle's built-ins, so their path is taken off before parsing.
+fn strip_std_heads(toks: &mut Vec<Token>) {
+    let mut i = 0;
+    while i + 3 < toks.len() {
+        let std_head = matches!(&toks[i].tok, Tok::Word(w) if w == "std") && toks[i + 1].tok == Tok::ColonColon
+            && (i == 0 || toks[i - 1].tok != Tok::Dot)
+            && match (&toks[i + 2].tok, &toks[i + 3].tok, toks.get(i + 4).map(|t| &t.tok)) {
+                (Tok::Word(h), Tok::Dot | Tok::LBracket, _) if h == "list" || h == "map" => true,
+                (Tok::Word(h), _, _) if h == "casing" => true,
+                (Tok::Word(h), Tok::Dot, Some(Tok::Word(u))) if h == "str" => ["bytes", "points", "graphemes", "each"].contains(&u.as_str()),
+                _ => false,
+            };
+        if std_head { toks.drain(i..i + 2); }
+        i += 1;
     }
 }

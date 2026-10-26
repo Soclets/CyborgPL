@@ -72,8 +72,10 @@ fn parse_file_in(path: &Path, module: Vec<String>, kit_root: Vec<String>) -> Res
     if dir.as_os_str().is_empty() { dir = PathBuf::from("."); }
     parser::NEURON_DIR.with(|d| *d.borrow_mut() = dir);
     if LEVELS_ONLY.with(|f| f.get()) && path.file_name().map_or(true, |n| n != "CyJet.cyr") {
-        parser::Parser::new_in_kit(toks, module, kit_root).scan_levels()
-            .map_err(|e| format!("{}: line {}: {}{}", path.display(), e.line, e.msg, at(e.line)))?;
+        let mut first = parser::Parser::new_in_kit(toks, module, kit_root);
+        first.scan_levels().map_err(|e| format!("{}: line {}: {}{}", path.display(), e.line, e.msg, at(e.line)))?;
+        // every file's bounds, before any file's items, so each may name another's (owner, 2026-10-26)
+        first.scan_bounds().map_err(|e| format!("{}: line {}: {}{}", path.display(), e.line, e.msg, at(e.line)))?;
         return Ok(ast::Program { funcs: Vec::new(), structs: Vec::new(), enums: Vec::new(), interfaces: Vec::new(), claims: Vec::new(), consts: Vec::new(), externs: Vec::new(), modules: Vec::new(), main: None, main_args: None, strict_modules: Vec::new(), bare_marks: Vec::new(), case_marks: Vec::new() });
     }
     parser::CURRENT_FILE.with(|f| *f.borrow_mut() = path.to_path_buf());
@@ -99,7 +101,7 @@ fn load(path: &Path) -> Result<ast::Program, String> {
     parser::LACKS.with(|n| n.borrow_mut().clear());
     parser::TYPE_PATHS.with(|t| t.borrow_mut().clear());
     parser::TEMPLATES.with(|t| t.borrow_mut().clear());
-    parser::ROOT_BOUNDS.with(|b| b.borrow_mut().clear());
+    parser::KIT_BOUNDS.with(|b| b.borrow_mut().clear());
     generate::PENDING.with(|p| p.borrow_mut().clear());
     case::PLAN.with(|p| p.borrow_mut().clear());
     LEVELS_ONLY.with(|f| f.set(true));

@@ -266,6 +266,8 @@ fn apply_discount [$amount: d64, $percent: order.discount] -> d64 { … }
 
 - **A module in any file of the kit names the root's bounds through `my.`**, `count: my.quantity`, as `my.Color` names a
   root type (owner, 2026-10-26: "yes, no shit"); the root names them bare.
+- **A module's own bounds are reached by its path**, the collection's name included, `shop.order.discount` (owner,
+  2026-10-26: "yes"), from outside the module only when `pub` (design claude's reading, as every module item).
 
 Built in the oracle (2026-10-26), within one kit: `examples/coll_bound.cy`, `examples/bounds_kit/`, reject tests
 `bound_*`. Another kit's use is not built yet.
