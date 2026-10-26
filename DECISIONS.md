@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: `let` never changes; a name that changes is a `variable`; `mut` and `immut` go (owner: a; not built)
+
+From the maths sense: a `let` names a value that does not change. Design claude offered (a) a word of its own,
+`variable $count := 0;`, recommended, or (b) `let.mutable $count := 0;`. The owner: "(a)". So **`let $near_km := 500;`
+never changes (a `change` of it refused), and `variable $count := 0;` does (`change $count = $count plus 1;`)**.
+`mut` and `immut` go: a `let` is always fixed and a `variable` says it changes (design claude's reading, said with the
+recommendation). This reverses 2026-09-14's "plain `let` is Precog-inferred, `mut` states intent". `var`, retired since
+2026-09, stays an old spelling, refused naming `variable`. Not built.
+
 ### 2026-10-27 — Redesign: `function` is pure, possibly partial; `procedure` may have effects; every `fn` becomes one (owner; not built)
 
 From the maths sense. Design claude offered two kinds, a pure function checked by Precog and a procedure for
