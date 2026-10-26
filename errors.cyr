@@ -28,7 +28,7 @@ errors::table[
         errors::error[name = "quoted_name_form", means = "A quoted name breaks its rules, such as a stray backslash or doubled space.", tests = ["name_bad_escape", "name_double_space",]],
         errors::error[name = "name_not_english", means = "A name uses letters outside English letters, digits and `_`, which the base allows.", tests = ["wstn_emoji_fn", "wstn_thai_name",]],
         errors::error[name = "name_reserved", means = "A name belongs to the language, such as `any`, `optional` or a number type, and cannot be reused.", tests = ["iface_named_any", "optional_taken", "struct_keyword_field", "struct_named_rust_alias",]],
-        errors::error[name = "keyword_name_bare", means = "A function named like a keyword is reached bare; it is reached through a path.", tests = ["c_header_keyword_fn_bare", "keyword_fn_bare",]],
+        errors::error[name = "keyword_name_bare", means = "A function named like a keyword is reached bare; it is reached through a path.", tests = ["c_header_keyword_fn_bare", "keyword_fn_bare", "main_fn_called_bare",]],
         errors::error[name = "label_needs_colon", means = "A word inside `[ ]` is not followed by `:` before its value.", tests = ["label_needs_colon",]],
         errors::error[name = "belongs_at_top_level", means = "An item that sits at the top level of a file, such as an enum or module, is inside a body.", tests = ["c_header_in_body", "enum_in_body", "module_in_body", "pub_in_body",]],
         errors::error[name = "belongs_in_body", means = "A statement that runs, such as inline assembly or `on.machine`, is outside any body.", tests = ["asm_top_level", "on_machine_top_level",]],

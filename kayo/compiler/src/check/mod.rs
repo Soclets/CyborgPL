@@ -517,6 +517,14 @@ impl Checker {
 
     pub fn check_program(mut self) -> Result<Program> {
         self.check_op_meanings()?;
+        // A program is its `MAIN { … }` block; `fn MAIN` is an ordinary
+        // function (owner, 2026-10-26), so a root with it and no block has
+        // nothing to run.
+        if self.items.main.is_none() {
+            if let Some(f) = self.items.fns.iter().find(|f| f.name == "MAIN" && f.module == crate::resolve::ROOT) {
+                return err(Diagnostic::error("this kit has no `MAIN { … }`, the program's block; `fn MAIN` is an ordinary function, called `my.MAIN()`").named("main_form").at(f.name_span));
+            }
+        }
         // Claims first: `Vec satisfies Ordered;` is checked at load.
         let claims = self.items.claims.clone();
         for (ty, iface, span) in &claims {

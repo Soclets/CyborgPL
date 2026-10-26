@@ -1568,15 +1568,8 @@ impl<'a> Parser<'a> {
             }
             "fn" => {
                 self.bump();
-                if self.is_word("MAIN") {
-                    // `fn MAIN [] -> i32 {` is `MAIN {`.
-                    let refused = self.fail_n("main_form", "`MAIN` is the program's block, not a function: write `MAIN { … }` with no `fn`, no return type, no `return`");
-                    let brace = (0..).map(|k| (self.peek_at(k).clone(), self.span_at(k))).find(|(t, _)| matches!(t, Tok::LBrace | Tok::Eof));
-                    return match brace {
-                        Some((Tok::LBrace, b)) => refused.with_fix(Self::cut(self.prev_span(), b), Edit::Replace, "MAIN "),
-                        _ => refused,
-                    };
-                }
+                // `fn MAIN` is an ordinary function (owner, 2026-10-26:
+                // "yes"), as a keyword may name one, reached as `my.MAIN()`.
                 let decl = self.fn_decl(true)?;
                 Ok(ItemKind::Fn(decl))
             }
@@ -3954,7 +3947,7 @@ impl<'a> Parser<'a> {
             "module" => self.fail_n("belongs_at_top_level", "a `module` sits at the top level of a file, not inside a body"),
             "pub" => self.fail_n("belongs_at_top_level", "`pub` goes at the top level, on a `fn`, `struct`, `enum` or `const`"),
             "extern" => self.fail_n("belongs_at_top_level", "an `extern` declaration sits at the top level, not inside a body"),
-            "MAIN" => self.fail_n("main_form", "`MAIN` cannot be nested or called: it is the program's one block").with_fix(self.span(), Edit::DeleteLine, ""),
+            "MAIN" => self.fail_n("main_form", "bare `MAIN` is the program's block and cannot be nested or called; a function named `MAIN` is called by its path, `my.MAIN()`").with_fix(self.span(), Edit::DeleteLine, ""),
             "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail_n("spelling_removed", "`lang:` was removed: keywords are bare — `let $x := 1;`").with_fix(Span::new(self.span().file, self.span().start as usize, self.span_at(2).start as usize), Edit::Replace, ""),
             _ => self.expr_stmt(),
         }
@@ -5479,6 +5472,9 @@ impl<'a> Parser<'a> {
                     Ok(Expr { kind: ExprKind::Match { value: Box::new(value), arms }, span })
                 }
                 "lang" if matches!(self.peek_at(1), Tok::Colon) => self.fail_n("spelling_removed", "`lang:` was removed: keywords are bare").with_fix(Span::new(self.span().file, self.span().start as usize, self.span_at(2).start as usize), Edit::Replace, ""),
+                "MAIN" if matches!(self.peek_at(1), Tok::LBracket | Tok::LParen) => {
+                    self.fail_n("keyword_name_bare", "`MAIN` is a keyword; a function named `MAIN` is reached through a path, never bare: `my.MAIN(…)`").with_fix(self.span(), Edit::Replace, "my.MAIN")
+                }
                 w if is_keyword(w) && w != "map" && matches!(self.peek_at(1), Tok::LBracket | Tok::LParen) => {
                     self.fail_n("keyword_name_bare", format!("`{}` is a keyword and is never bare: a function named with one is reached only through a path — `kit.{}(…)` inside its own kit, `name::{}(…)` from outside", w, w, w))
                 }

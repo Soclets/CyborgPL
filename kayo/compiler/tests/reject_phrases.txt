@@ -13,7 +13,7 @@
 # it for a reason that is not a rule, and the line says which.
 
 
-ai_missing [fnv:72a06f2d6464308c] :: `%brain16` is AI's
+ai_missing [fnv:a79e4fb1a3690d0b] :: `%brain16` is AI's
 and_does_not_guard [fnv:73a43ee7964ee933] :: the position can be past the end
 append_as_value [fnv:962f0b75bc91959f] :: it changes the list in place
 append_to_array [fnv:5b0ab95e546066e1] :: declare it a `list` to append
@@ -87,7 +87,7 @@ bound_too_short [fnv:9806ce6df3c3ab28] :: this can take it outside the bound its
 brain_into_bin [fnv:55f6457d890e98fd] :: is a brain16, not f32
 brain_mixed_bin [fnv:f96220f94a68d5be] :: the brain float is a family of its own
 brain_overflow [fnv:6c45f1780f2082f5] :: past the largest brain16
-brain_width [fnv:7deee18239553328] :: `%brain16` only
+brain_width [fnv:cb0eafd0d23ec5ff] :: `%brain16` only
 bytes_to_ascii [fnv:3b82fac2d984055d] :: only `to.str.utf8` reads bytes as text
 bytes_to_text_needs_otherwise [fnv:b62e90d146e74936] :: `to.str.utf8` can fail (not_utf8)
 c_enum_data [fnv:792b602bfc2bed61] :: of the C enum `K` carries no data
@@ -97,7 +97,7 @@ c_enum_param_number [fnv:0538729f27791a2b] :: `paint`'s parameter 'p1' (color), 
 c_enum_same_number [fnv:c5cddd1ecd2bf563] :: each case has its own number
 c_header_call_needs_no_check [fnv:4bd7c98b872aba34] :: nothing about `strlen` can be proven
 c_header_clash [fnv:6a1251337c7d821a] :: `strlen` is defined twice
-c_header_in_body [fnv:4b685b0459c1d2ba] :: `incl.%C` sits at the top level of a file or in a `module` block
+c_header_in_body [fnv:f938648f451cdb0f] :: `incl.%C` sits at the top level of a file or in a `module` block
 c_header_keyword_fn_bare [fnv:08e47a880c51b20d] :: a function named `size`, a C header's say, is reached through a path, `my.size(…)`
 c_header_lowercase [fnv:3e5988e32c743ee7] :: C is written capitalized here
 c_header_macro_skipped [fnv:35d1b390269120dc] :: no item `MYLIB_MAX`
@@ -210,8 +210,8 @@ enum_match_on_int [fnv:f255111305f0853e] :: `match` takes an enum value, and thi
 enum_match_unknown_case [fnv:912ccf29227a6e3c] :: `S` has no case `z`: its cases are a, b
 enum_name_clash [fnv:590a2387e4587ab6] :: a struct and an enum cannot share a name
 enum_no_comma [fnv:99137202b69c0bcc] :: items in braces are separated by `,`
-enum_not_c [fnv:297ced9753bdbb93] :: the `%extern.C fn f` parameter 'k' is not C-shaped
-enum_number_not_c [fnv:3d2b02ae1d3a34e4] :: only a `%layout.C enum` has numbers
+enum_not_c [fnv:4d19725ace81bda2] :: the `%extern.C fn f` parameter 'k' is not C-shaped
+enum_number_not_c [fnv:0904fe493cf9cff7] :: only a `%layout.C enum` has numbers
 enum_plain_case_to_text [fnv:0cb6696c30a5f896] :: a `Status` is not text: its case `claimed` carries data
 enum_quoted_case [fnv:c6233fb8356caa36] :: a case's name is bare
 enum_unknown_case [fnv:297e3ae595f8a01e] :: `S` has no case `zz`: its cases are a, b
@@ -231,7 +231,7 @@ extern_otherwise [fnv:d2a17dcd21891cc1] :: an `extern fn` cannot fail; drop the 
 extern_range_unhandled [fnv:ebfccc6b5bcb6642] :: its return is a range C promised, checked at the door
 extern_read_checked [fnv:2d7e2869398f29d6] :: is a no_check site
 extern_str_param [fnv:fc8e6737a324ce6d] :: the `%extern.C fn f` parameter 'a' is not C-shaped
-extern_struct_not_layout [fnv:6e53a6db9ecbfb65] :: a pointer points at something C-shaped
+extern_struct_not_layout [fnv:c3f1d4412e83f2b8] :: a pointer points at something C-shaped
 extern_untyped_param [fnv:0bf8c905edf2e9d6] :: parameter 'a' says its type: `$a: i32`
 extern_with_body [fnv:5f5a8b37640106ae] :: an `extern fn` has no body: `f`'s body is in C
 extern_with_value [fnv:0e76e80fcde2593f] :: C owns it; write only its type
@@ -355,7 +355,7 @@ kit_version_dep [fnv:103c76d08dd5f6ea] :: the registry does not exist yet
 lang_prefix [fnv:c1d124ba1f70ae44] :: `lang:` was removed: keywords are bare
 layout_c_bad_field [fnv:fc8e6737a324ce6d] :: only numbers, `bool`, `ptr[…]` and other `%layout.C` structs and enums can cross to C
 layout_lowercase_c [fnv:13e4bd3b5f70abf7] :: C is written capitalized here
-layout_not_c [fnv:97c96f596f7b8b40] :: the only layout is `%layout.C`, C's shape; `%layout.rust` does not exist
+layout_not_c [fnv:0062b7c5cdd8be33] :: the only layout is `%layout.C`, C's shape; `%layout.rust` does not exist
 leading_zero [fnv:cd43e7e5f661968a] :: `007` starts with a zero, and leading zeros are illegal: write `7`
 lend_mut_and_lend [fnv:162b1b57a7351c56] :: lent again in the same call
 lend_mut_via_return [fnv:162b1b57a7351c56] :: lent again in the same call
@@ -400,7 +400,7 @@ loop_list_changed [fnv:03a098de8f149bca] :: the loop on line 4 of loop_list_chan
 lte_retired [fnv:d3273b1a4ee04243] :: `<==` is not an operator; less-or-equal is `at_most`
 main_args_one [fnv:a01f160c881421a0] :: `,` and the second parameter
 main_args_type [fnv:429f0f2d47fbaeb4] :: is C's `argc`, whose type is `i32`
-main_as_func [fnv:d88745ab93f13dde] :: write `MAIN { … }` with no `fn`, no return type, no `return`
+main_as_func [fnv:9197d3a11bb5db66] :: error[main_form]
 manifest_bad_name [fnv:141f1cec70f82c3f] :: `Areas of shapes` cannot name a kit
 manifest_bad_prefix [fnv:142ba3472cf5fe78] :: cannot be a prefix, written in code as `Cash-Handling::`
 manifest_core_twice [fnv:21ddea1157a52c4b] :: `mcps` is given twice in `my limbs:`
@@ -461,14 +461,14 @@ neg_word_old [fnv:5ffcc4c67615fa7e] :: `neg` is an old spelling: write `negate`
 negate_ieee_on_int [fnv:f4a405032ba084b4] :: `negate.ieee` keeps a -0, which only a bin or brain16 has, and an integer has none: write `-$x`
 negative_exponent [fnv:3f25e158191599f2] :: a negative exponent on integers would produce a fraction
 neuron_word_old [fnv:80ffff166656de74] :: `neuron` is an old spelling: write `kit` (owner, 2026-10-15)
-no_bin128 [fnv:cf39e2971b8af77b] :: there is no `%f128`
+no_bin128 [fnv:b8b54de37eaef710] :: there is no `%f128`
 no_cheat_before_check [fnv:ece7acadc792ca4d] :: `check` comes first: the check word always comes before `no_cheat`
 no_cheat_beside_tier [fnv:d9795463df3250d5] :: `no_check` comes first, the stronger word: `no_check no_cheat …`
 no_cheat_in_value [fnv:89e6a22b4d2f89ee] :: `no_cheat` goes in front of a statement, not inside a value
 no_cheat_old [fnv:fc0169759787cd18] :: `!c` is `no_cheat` now
 no_checks_lied [fnv:0bec22d994061742] :: !by-design CCA builds it and emits a note naming `NO_FUCKING_CHECKS`, which is the rule for a vouch that fails every run (owner, 2026-09-22, core-features.md); the oracle refuses it only because an interpreter actually runs the division
 no_mcps_concur [fnv:85f83276fc15bc2c] :: `%concur` is MCPS's
-no_mcps_para [fnv:80b8efddb44c83df] :: `for %para` is MCPS's
+no_mcps_para [fnv:41a9c81b08b155d6] :: `for %para` is MCPS's
 no_precedence [fnv:c019255d74965b33] :: mathematics has no settled reading here (`6 div.floor 2 times 3`)
 no_std_list [fnv:9722ce7973a65431] :: a growing list (`list`) is std's
 no_std_map [fnv:948ea297c44df56a] :: a map (`map`) is std's
@@ -785,7 +785,7 @@ wrap_percent_form [fnv:b1acc1385341e3b7] :: wrapping arithmetic is `plus.wrap`, 
 wrap_untyped_left [fnv:1dd0601c6eead672] :: `plus.wrap` needs a width, and nothing here gives one
 wrong_arg_count [fnv:eb88fab86c650ec3] :: `one` takes 1 argument, and 2 were given
 wsmw_missing [fnv:50ac577375295335] :: `%i128` is WSMW's
-wsmw_not_std_missing [fnv:737bb9a2ca26bdc9] :: a `not_std.` width is WSMW's
+wsmw_not_std_missing [fnv:41fd1e10f93eae22] :: a `not_std.` width is WSMW's
 wstn_emoji_fn [fnv:05b489393a3281fd] :: is not an English name: the base's names are English letters, digits and `_`
 wstn_now_broca [fnv:dd674dabbd23d215] :: WSTN is part of unicode since 2026-10-12: list `unicode` instead
 wstn_thai_name [fnv:05b489393a3281fd] :: is not an English name: the base's names are English letters, digits and `_`
@@ -795,13 +795,13 @@ coll_member_short_name [fnv:2e2233858d06600a] :: a member writes the collection'
 coll_pointer_missing [fnv:f12e812a5c20b960] :: names no function
 collection_old_word [fnv:c622aae12d578b33] :: `collection.` is an old spelling: write `coll.fn` / `coll.handler`
 coll_handler_short_name [fnv:8853fb27f165af7f] :: a member writes the collection's name in front: `h.as_zero { … }`
-bits_outside_layout [fnv:2bef197147f98ff3] :: it is for a `%layout.C` struct's fields
+bits_outside_layout [fnv:5b213e0b1b7a50b0] :: it is for a `%layout.C` struct's fields
 bits_too_wide [fnv:caa015a423cd19b7] :: a `u8` bit-field is 1 to 8 bits, not 9
 bits_write_too_big [fnv:2e2ab858533613a8] :: 8 does not fit
 c_fixed_shape_count [fnv:7f7b57792c6b9789] :: takes exactly 2 argument(s), as its shape says
-c_rename_needs_c [fnv:b6aecd3c65918281] :: says whose it is: `%extern.C fn printf_count = %C.printf
+c_rename_needs_c [fnv:1e86a1d37b8b7f4b] :: says whose it is: `%extern.C fn printf_count = %C.printf
 c_str_make_needs_otherwise [fnv:8d7356383ea14f29] :: has_zero_byte
-c_str_unknown [fnv:00d1a4a94ea3b583] :: C strings are `%C.str.read($p)` and `%C.str.make(lend $s)`
+c_str_unknown [fnv:52f7ddc0d32fcd27] :: C strings are `%C.str.read($p)` and `%C.str.make(lend $s)`
 union_read_unchecked [fnv:dbe9fbc4c272acfe] :: reading 'n'.i is a `no_check` site
 union_two_fields [fnv:0ae2b27570af8ade] :: it holds one field at a time, so give exactly one
 c_lib_named_file [fnv:ab4a4d692af538d5] :: without `lib` or a file ending
@@ -871,8 +871,8 @@ dollar_alone [fnv:4ecaa11006a8d93a] :: `$` starts a variable's name
 kit_call_in_brackets [fnv:6601c68f056642b6] :: a call takes `( )`: `twice(…)`
 position_in_parens [fnv:d4b29f344dd35e6a] :: `( )` is a call's; a position takes `[ ]`
 struct_in_parens [fnv:47d13a384b89c940] :: `( )` is a call's; building a struct takes `[ ]`
-channel_empty_untyped [fnv:c05b0657c6d49cf5] :: `%channel.empty` takes its type from the declaration
-channel_type_as_value [fnv:2673cf870de0db50] :: a channel is made as a list or a map is: `let $ch: %channel[i32] = %channel.empty;`
+channel_empty_untyped [fnv:f7cc3a461cb8657a] :: `%channel.empty` takes its type from the declaration
+channel_type_as_value [fnv:c888deb2c44d7d5c] :: a channel is made as a list or a map is: `let $ch: %channel[i32] = %channel.empty;`
 exit_bare [fnv:6defa2b51b26fa0d] :: only the thing worked on goes bare; this argument says what it is: `exit(code: 3)`
 fill_in_brackets [fnv:78221fca69c0410d] :: a call takes `( )`: `std::list.fill(…)`
 generic_literal_not_fitting [fnv:45393259853918f2] :: the declared type is an `i32` and this value is a `bin`
@@ -892,16 +892,16 @@ msl_include_missing [fnv:4319c5c377fdf56b] :: `#include "shaders/nope.metal"`: t
 msl_include_outside [fnv:519c5d155fbe97f1] :: `#include "../outside.metal"` reaches outside the kit: a sha
 msl_lend_number [fnv:cac652cdd675ee66] :: 'k' is a single value: `copy $k -> buffer(1)`, a Metal `cons
 msl_lent_but_written [fnv:ac11482037cb077c] :: error[metal::lent_but_written]
-msl_metal_not_listed [fnv:f82c75ae39ff9d4b] :: `inline.%MSL` is Metal's, and this kit's CyJet.toml does not
-msl_needs_no_check [fnv:10fa1498d854aa1d] :: an `inline.%MSL` block is a no_check site: the compiler canno
-msl_no_kernel [fnv:5d5510cc1907b89f] :: an `inline.%MSL` block holds one `kernel` function, the one i
-msl_no_threads [fnv:b529f3af359a0c53] :: an `inline.%MSL` block says how many threads run it first: `i
-msl_order [fnv:64eaca23e18da9ab] :: error[unknown_narrowing]
+msl_metal_not_listed [fnv:46090ecda71c4d94] :: `inline.%MSL` is Metal's, and this kit's CyJet.toml does not
+msl_needs_no_check [fnv:a4314a43e859773a] :: an `inline.%MSL` block is a no_check site: the compiler canno
+msl_no_kernel [fnv:2251272683dc132c] :: an `inline.%MSL` block holds one `kernel` function, the one i
+msl_no_threads [fnv:786c82bb9fbb229c] :: an `inline.%MSL` block says how many threads run it first: `i
+msl_order [fnv:8671b8a69e4a13ee] :: error[unknown_narrowing]
 msl_slot_twice [fnv:4696919b3467d594] :: `buffer(0)` is bound twice, to $xs and $xs
 msl_text_bound [fnv:2ec49dab014f6094] :: 'k' is str, and what binds to the GPU is a number, a list of
-msl_two_kernels [fnv:db113e0ce70405a6] :: an `inline.%MSL` block holds one kernel, and this one has 2:
-msl_way_unknown [fnv:d40913f07f7e72ab] :: error[unknown_narrowing]
-channel_through_std [fnv:2cf20a96c3edbb9f] :: `%channel` is the MCPS limb's, not std's: write `%channel.send(…)`
+msl_two_kernels [fnv:9a67fb2803cadc05] :: an `inline.%MSL` block holds one kernel, and this one has 2:
+msl_way_unknown [fnv:9802feda5cb26ede] :: error[unknown_narrowing]
+channel_through_std [fnv:8128c17029b25eb3] :: `%channel` is the MCPS limb's, not std's: write `%channel.send(…)`
 writer_way_unknown [fnv:4053b6186a43b790] :: a writer is `std::print.writer`, `.whole` or `.split`
 use_list_without_as [fnv:f116abd9d3bfd802] :: `use` says the name after `as`
 array_through_untyped [fnv:fd7150cb07b4b796] :: error[wrong_type]
@@ -943,3 +943,5 @@ mark_twice_one_limb [fnv:2780e9752c53c9bc] :: error[limb_mark_misplaced]
 percent_glued_old [fnv:a6eb1ccacd1ced5e] :: error[old_spelling]
 percent_spaced_is_mod [fnv:db4d3c1464ddf611] :: error[old_spelling]
 percent_type_symbol_old [fnv:1f36b4c8bb912f7a] :: error[old_spelling]
+
+main_fn_called_bare [fnv:f1c8a5d71d1fa783] :: error[keyword_name_bare]
