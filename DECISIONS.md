@@ -34,6 +34,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: `function` is pure, possibly partial; `procedure` may have effects; every `fn` becomes one (owner; not built)
+
+From the maths sense. Design claude offered two kinds, a pure function checked by Precog and a procedure for
+everything else (Nim's `func` / `proc`), first saying a function could not fail; the owner: "Is it accurate?" Design
+claude: "function" is the maths meaning (one result per input, nothing else happening, the same input the same output,
+so no reading the clock or input either); "procedure" is plain English's series of steps that does something (in
+Pascal it means "returns no value", a different split); and its own mistake, maths having partial functions (division
+has no answer for 0), so **a function `-> T or fail[…]` is a partial function and stays a function; only effects make a
+procedure**. The owner: "Does it need more keywords for this, or is this enough?" Two are enough, every `fn` becoming
+one: a definition as it is (Precog checks); a type's own that changes it (`Counter.next`) a procedure; a short lambda as
+its body; a function's type `function[…] -> R` / `procedure[…] -> R`; `%extern.C` a procedure; `coll.function` /
+`coll.procedure`; `test procedure`; `op` stays and must be pure. **A function calls only functions; a procedure either.
+A function value goes where a procedure type is asked, never the reverse.** The owner: "yes". The names may still
+change in the keyword pass. Not built.
+
 ### 2026-10-27 — Redesign: the language's words are accurate in the maths sense (owner; not built)
 
 The question deferred from 2026-10-26 (the owner: "If fn becames math accurate, so has to be the others. And honestly?
