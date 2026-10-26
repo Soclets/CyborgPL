@@ -94,7 +94,13 @@ narrowing triggers it (`otherwise notbare.!oops`)". So **the use is marked too, 
 jumps**: `otherwise !order_failed(…)` for a collection's own, `otherwise order_failed.!apologize(…)` for a member,
 required where the handler used can jump and refused where it cannot. **This reverses 2026-10-25's "a handler's
 `continue` / `break` is not marked where it is used"**: what it does is still written once, in the handler, and now
-shown where it happens. Not built; the rest of the redesign follows.
+shown where it happens. Then the owner: "We're removing \"start of\" btw, the `:` already tells". So **a block opens
+with its line ending in `:`, with no `start of`**, and still closes with `end of …`: `fn add [$a: i32, $b: i32] -> i32:`
+… `end of fn add`; `if $count > 0:` … `end of if`; `else if $t > 220:` … `end of else if`; `!MAIN:` … `!end of MAIN`;
+`case hot $level:` … `end of case hot`; `let $rank := match $a:` … `end of match;`; `struct Line:` … `end of struct Line`;
+`!case out_of_stock $what:` … `!end of case out_of_stock`. Design claude's readings: the line-end `-` now joins a line to
+a block's opening line below it (`…(lend $piece)-` / `otherwise:`); `%concur with […]:` … `end of %concur`. Not built;
+the rest of the redesign follows.
 
 ### 2026-10-26 — In `print.format`, a newline is `{newln}` and a tab `{tab}`; `\n` and `\t` there become old spellings (owner; not built)
 
