@@ -42,6 +42,8 @@ never changes (a `change` of it refused), and `variable $count := 0;` does (`cha
 `mut` and `immut` go: a `let` is always fixed and a `variable` says it changes (design claude's reading, said with the
 recommendation). This reverses 2026-09-14's "plain `let` is Precog-inferred, `mut` states intent". `var`, retired since
 2026-09, stays an old spelling, refused naming `variable`. Not built.
+And `is` in a value `match` arm stays (owner: "keep it"): a value `match` is a piecewise definition, `is 0` reading "in
+this case, the result is 0", accurate in the maths sense (design claude's recommendation).
 
 ### 2026-10-27 — Redesign: `function` is pure, possibly partial; `procedure` may have effects; every `fn` becomes one (owner; not built)
 
