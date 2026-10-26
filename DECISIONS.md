@@ -63,7 +63,10 @@ branch its own block, chained by coming straight after the previous branch's end
 the branch before it, would end a block without saying so), and shown it in four programs (a grade chain, a loop with a
 nested `if`, a plain if/else, picking a value): "Yea". So **`start of else if …:` / `end of else if` and `start of
 else:` / `end of else` are blocks of their own, each straight after an `if` or `else if` block's end**, nothing between
-(design claude's reading of "chained": anything between is refused). Not built; the rest of the redesign follows.
+(design claude's reading of "chained": anything between is refused). A `match` arm, shown as `start of case calm:` /
+`end of case calm` inside `start of match $a:` / `end of match`, a case's data bound on its start line (`start of case
+hot $level:`): "Yes" (and, asked what `match $a` means: the arm of the case `$a` is runs, every case needing one). So
+**an arm is a `case` block, its case's name on both lines**. Not built; the rest of the redesign follows.
 
 ### 2026-10-26 — In `print.format`, a newline is `{newln}` and a tab `{tab}`; `\n` and `\t` there become old spellings (owner; not built)
 
