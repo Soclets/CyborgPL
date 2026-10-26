@@ -6,7 +6,8 @@
 //! block is taken out and each member's name written as its type wherever it
 //! starts a path, so a type anywhere in the file may name one. Every line
 //! writes its full name; only a bounded type, one with a limit after it, is
-//! named. Another kit's use (`pub coll.bound`) is not built, as in the oracle.
+//! named. A `pub` one is used in its own kit; another kit's use (`kit::q`) is not
+//! built, as in the oracle.
 
 use crate::diag::{err, Diagnostic, Result};
 use crate::lexer::{Tok, Token};
@@ -63,8 +64,10 @@ pub fn rewrite(toks: &[Token]) -> Result<Vec<Token>> {
             continue;
         }
         let at = toks[i].span;
+        // `pub` is read and used within its own kit; another kit's use,
+        // `kit::q`, is not built, as in the oracle (design claude, 2026-10-26).
         if kept.last().is_some_and(|t| matches!(&t.tok, Tok::Word(w) if w == "pub")) {
-            return err(Diagnostic::error("not yet: a `pub coll.bound`, used from another kit, is not built (as in the oracle); a `coll.bound` is its own kit's").named("not_built_yet").at(at));
+            kept.pop();
         }
         let Some(Tok::Word(name)) = toks.get(i + 3).map(|t| t.tok.clone()) else {
             return err(Diagnostic::error("a `coll.bound` says its name, then its members in `{ }`: `coll.bound quantity { quantity = i32[min: 1, max: 99]; }`").named("collection_form").at(at));

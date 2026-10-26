@@ -361,3 +361,5 @@ pairs_two_kinds 12
 fail_gives_name 13
 # A field named as a `coll.bound` name stays a field (owner, 2026-10-25: coll.bound).
 bound_named_field 9
+# A `pub coll.bound` used in its own kit (design claude, 2026-10-26).
+bound_pub 3
