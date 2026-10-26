@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-26 — std keeps going; it is not paused until it can be written wholly in CyborgPL (owner)
+
+The owner: "should we pause the std kit, and unpause it only after it's self-hostable?", meaning (asked) std written
+wholly in CyborgPL, with no built-ins or Rust runtime under it. Design claude recommended keeping it: what std writes
+now (text, case mapping, rounding) is already CyborgPL and keeps finding real bugs (Precog's `sits_at`, 2026-10-26),
+while its lists, maps and print buffer wait on the manual memory model however std is scheduled; that design is what
+makes std self-hostable. The owner: "Keep it going, then." std's turn rule with compiler claude is unchanged.
+
 ### 2026-10-26 — `array` is `arr`, `equal_to` is `eq_to`, `not_equal` is `not_eq`; `list` stays (owner; not built)
 
 The owner: "Should we shorten `list`, `array`, `equal_to`, `not_equal` to `ls`, `arr`, `eq`, `not_eq`?" Design claude
