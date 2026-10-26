@@ -1094,6 +1094,15 @@ Dated, with the alternative, so each can become a question later.
   stops the program with `error[metal::run_failed]` at the block. `metal::compile_failed` says `fix: none
   suggested` and keeps Apple's own words on `about:` (`Diagnostic::outside_saying`). A program with a
   block is about 2 MB, std's share.
+- **2026-10-26 — `coll.bound`, and small final builds** (owner, 2026-10-25; oracle 2283f179). `coll.bound q { q =
+  i32[min: 1, max: 99]; q.small = …; }` is read as a `use` is, a rewrite of the file's tokens before parsing
+  (`bounds.rs`): each block taken out and each member's name written as its type wherever it starts a path (and
+  not where it names a field, `quantity = 4`, `$o.quantity`, unless it follows `:`), so a use is exactly the type
+  and a type anywhere in the file may name one. Refused: a member without the collection's name in front
+  (`collection_member_unprefixed`), a name twice (`defined_twice`), a type with no limit (`bound_type_unbounded`);
+  a `pub coll.bound` is not built, as in the oracle. The macOS link passes `-dead_strip`, as the bare one passes
+  `--gc-sections`: a hello world's final build went from 513,824 to 51,312 bytes, the bench programs alike, the
+  same sites proven and the runs within noise (`tools/final_size.py`).
 - **2026-10-25 — Precog settles a map, and summarises a counted walk** (owner, (a): "the same proofs, less repeated
   work"). The 190 s of night_trains was mostly a bug: a widening loop head joined a map's size, keys and values
   without widening them, so the size bound went up by one a round, a million rounds; `Domain::widen_to` now widens

@@ -11,6 +11,7 @@ pub mod format;
 pub mod metal;
 pub mod lexer;
 pub mod uses;
+pub mod bounds;
 pub mod names;
 pub mod parser;
 pub mod argwords;

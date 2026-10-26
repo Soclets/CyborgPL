@@ -546,6 +546,8 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
     // words checked and taken out before anything is parsed.
     // `use … as …;` (owner, 2026-10-22): its names written out first.
     let used = crate::uses::rewrite(toks)?;
+    // `coll.bound`'s names written as their types (owner, 2026-10-25).
+    let used = crate::bounds::rewrite(&used)?;
     let labelled = crate::argwords::labels(&used);
     let owned = crate::argwords::strip(&labelled)?;
     let toks = &owned[..];
@@ -1187,7 +1189,7 @@ impl<'a> Parser<'a> {
         if self.is_word("coll") {
             let kw = self.bump().span;
             if !self.eat(&Tok::Dot) {
-                return self.fail_at_n(kw, "collection_kind_unsaid", "a collection says its kind: `coll.fn cum { … }` (a function and its narrowings) or `coll.handler h { … }` (named `otherwise` blocks) (owner, 2026-10-13)");
+                return self.fail_at_n(kw, "collection_kind_unsaid", "a collection says its kind: `coll.fn cum { … }` (a function and its narrowings), `coll.handler h { … }` (named `otherwise` blocks) or `coll.bound q { … }` (named bounded types) (owner, 2026-10-13)");
             }
             let kind = self.ident("the collection's kind")?;
             match kind.name.as_str() {
@@ -1210,7 +1212,7 @@ impl<'a> Parser<'a> {
                     let span = start.to(self.prev_span());
                     return Ok(Item { vis, kind: ItemKind::ExternBlock(Vec::new()), span, bare: None, enum_bare: None, case });
                 }
-                other => return self.fail_at_n(kind.span, "collection_kind_unsaid", format!("there is no `coll.{}`: a collection is `coll.fn` (a function and its narrowings) or `coll.handler` (named `otherwise` blocks)", other)),
+                other => return self.fail_at_n(kind.span, "collection_kind_unsaid", format!("there is no `coll.{}`: a collection is `coll.fn` (a function and its narrowings), `coll.handler` (named `otherwise` blocks) or `coll.bound` (named bounded types)", other)),
             }
         }
         let mut kind = self.item_kind(vis)?;
@@ -6122,6 +6124,8 @@ fn kit_handler(kit: &str, name: &str) -> Option<Vec<HandlerMember>> {
 /// A file's `pub coll.handler`s, read on their own.
 pub fn pub_handlers(toks: &[Token]) -> Result<Vec<(String, Vec<HandlerMember>)>> {
     let used = crate::uses::rewrite(toks)?;
+    // `coll.bound`'s names written as their types (owner, 2026-10-25).
+    let used = crate::bounds::rewrite(&used)?;
     let labelled = crate::argwords::labels(&used);
     let owned = crate::argwords::strip(&labelled)?;
     let toks = &owned[..];

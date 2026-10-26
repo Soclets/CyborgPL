@@ -359,3 +359,5 @@ const_d64 12
 pairs_two_kinds 12
 # A name given to a failure reaches its handler whole (examples/night_trains, 2026-10-25).
 fail_gives_name 13
+# A field named as a `coll.bound` name stays a field (owner, 2026-10-25: coll.bound).
+bound_named_field 9
