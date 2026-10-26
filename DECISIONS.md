@@ -72,8 +72,12 @@ recommending it over dropping value matches, which would need a name before its 
 `start of struct Line:` / `end of struct Line`, `start of enum Alarm:` / `end of enum Alarm`; asked "Should it be `,`
 or `;`" (`,` separates items in a list, inside `[ ]` and `( )`; `;` ends what stands alone, as a statement), design
 claude recommending `;`: "Ok". So **each field and case ends in `;`**, and the rule is **commas inside brackets,
-semicolons inside blocks** (`Line[name = "apple", count = 3]` keeps its commas). Not built; the rest of the redesign
-follows.
+semicolons inside blocks** (`Line[name = "apple", count = 3]` keeps its commas). A block of another language
+(`inline.ASM`, `inline.%MSL`, `inline.%C`) holds raw text up to its exact `end of …` line; asked where its `with [ … ]`
+bindings go, (a) the start line or (b) the end line as today, design claude recommending (a) (the end line is kind and
+name only; bindings are what the block needs before it runs, as parameters are): "Your recc". So **`no_check start of
+inline.ASM with [$a -> x0, $r <- x0]:` … `end of inline.ASM`**, Metal's `threads N` on the start line too (design
+claude's reading: `no_check` stays in front, as before any statement). Not built; the rest of the redesign follows.
 
 ### 2026-10-26 — In `print.format`, a newline is `{newln}` and a tab `{tab}`; `\n` and `\t` there become old spellings (owner; not built)
 
