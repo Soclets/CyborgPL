@@ -13,6 +13,7 @@
 #   counting loops, `loop`, `break`, `continue`     a short lambda, `fn [$s] with [lend $part] = …`
 #   tasks and channels, `concur`                    a writer, `std::print.writer`
 #   format holes in words, widths in `cols`         rounding money on purpose, `std::round.near`
+#   named bounds, `coll.bound trip`                 guards that let a final build prove every site
 
 # ---------------------------------------------------------------------------------------------------
 # The fixed facts
@@ -24,7 +25,8 @@ const $change_minutes: i32 = 10;     # changing trains at a station costs ten mi
 const $near_rate: %d64 = 0.12;        # the fare per km for the first 500 km
 const $far_rate: %d64 = 0.08;         # and per km after that
 const $near_km: i32 = 500;
-const $by_eight: i32 = 1920;         # 08:00 the next morning, 1440 + 480
+const $by_eight: i32 = 1920;
+const $most_bookings: u64 = 500;     # a night's trains hold no more travellers than this         # 08:00 the next morning, 1440 + 480
 
 # ---------------------------------------------------------------------------------------------------
 # Types
@@ -43,17 +45,24 @@ struct Network {
     links: std::list[Link]
 }
 
+# The longest trip the network sells: ten days and 100,000 km. A way past either is no way, and that limit is what
+# keeps every sum of minutes and km below provably inside an `i32`.
+coll.bound trip {
+    trip.minutes = i32[min: 0, max: 14400];
+    trip.km = i32[min: 0, max: 100000];
+}
+
 # The quickest known way to a station: when it is reached, how far it is, and where it came from.
 struct Reach {
-    minutes: i32,
-    km: i32,
+    minutes: trip.minutes,
+    km: trip.km,
     prev: str.utf8
 }
 
 struct Journey {
     stops: std::list[str.utf8],
-    minutes: i32,
-    km: i32
+    minutes: trip.minutes,
+    km: trip.km
 }
 
 # Where a traveller sleeps. A sleeper carries how many berths share the compartment.
@@ -195,22 +204,23 @@ fn quickest_from [lent $net: Network, lent $from: str.utf8] -> std::map.ordered[
     let $done: std::map[str.utf8, bool] = std::map.empty;
     std::map.set(lend.mut $best, key: copy $from, value: Reach[minutes = 0, km = 0, prev = str.empty]);
     loop {
-        # the unfinished station reached soonest, by its position in the station list; the first wins a tie
-        let $pick_at := 0;
-        let $pick_minutes := -1;
-        let $pick_km := 0;
-        for $i, $s in lend $net.stations {
+        # the unfinished station reached soonest; the first in the station list wins a tie
+        let $found := false;
+        let $pick := str.empty;
+        let $pick_minutes: trip.minutes = 0;
+        let $pick_km: trip.km = 0;
+        for $s in lend $net.stations {
             if std::map.has(lend $done, key: lend $s) { continue; }
             if not std::map.has(lend $best, key: lend $s) { continue; }
             let $r := std::map.get(lend $best, key: lend $s) otherwise { missing { continue; } };
-            if $pick_minutes < 0 or.else $r.minutes < $pick_minutes {
-                change $pick_at = $i;
+            if not $found or.else $r.minutes < $pick_minutes {
+                change $found = true;
+                change $pick = copy $s;
                 change $pick_minutes = $r.minutes;
                 change $pick_km = $r.km;
             }
         }
-        if $pick_minutes < 0 { break; }
-        let $pick := copy $net.stations[pos: $pick_at];
+        if not $found { break; }
         std::map.set(lend.mut $done, key: copy $pick, value: true);
         let $wait := $change_minutes;
         if $pick equal_to $from { change $wait = 0; }
@@ -235,6 +245,8 @@ fn try_reach [
     $km: i32
 ] {
     if std::map.has(lend $done, key: lend $next) { return; }
+    # past the longest trip sold, it is no way at all
+    if $minutes < 0 or $minutes > 14400 or $km < 0 or $km > 100000 { return; }
     if std::map.has(lend $best, key: lend $next) {
         let $old := std::map.get(lend $best, key: lend $next) otherwise { missing { return; } };
         if $old.minutes at_most $minutes { return; }
@@ -258,10 +270,9 @@ fn journey [lent $net: Network, lent $from: str.utf8, lent $to: str.utf8] -> Jou
         change $at = copy $r.prev;
     }
     let $stops: std::list[str.utf8] = std::list.empty;
-    let $i := std::list.length(lend $back);
-    while $i at_least 1 {
-        std::list.append(lend.mut $stops, value: copy $back[pos: $i]);
-        change $i = $i - 1;
+    let $n := std::list.length(lend $back);
+    for $k [from: 1, to: $n, by: 1] {
+        std::list.append(lend.mut $stops, value: copy $back[pos: $n - $k + 1]);
     }
     return Journey[stops = give $stops, minutes = $end.minutes, km = $end.km];
 }
@@ -280,14 +291,16 @@ fn clock [$minutes: i32] -> str.utf8 {
 
 # A clock that hands out the next quarter hour each time it is asked, until it reaches its end.
 struct Clock {
-    now: i32,
-    stop: i32
+    now: i32[min: 0, max: 2895],
+    stop: i32[min: 0, max: 2880]
 }
 
 fn Clock.next [lent.mut $c: Clock] -> optional[i32] {
-    if $c.now at_least $c.stop { return optional.none; }
+    # the stop is never past the next day's end, so neither is the last time handed out
     let $t := $c.now;
-    change $c.now = $c.now + 15;
+    if $t at_least $c.stop { return optional.none; }
+    if $t at_least 2880 { return optional.none; }
+    change $c.now = $t + 15;
     return optional.value($t);
 }
 
@@ -421,7 +434,7 @@ fn book [
     let $kind := seat_name(lend $req.seat);
     # a kind of place the trains do not carry has none left, said here rather than read as a zero
     let $free := std::map.get(lend $left, key: lend $kind) otherwise { missing { fail sold_out[give $kind]; } };
-    if $free equal_to 0 { fail sold_out[give $kind]; }
+    if $free at_most 0 { fail sold_out[give $kind]; }
     std::map.set(lend.mut $left, key: copy $kind, value: $free - 1);
     let $price := fare($trip.km, lend $req.seat, copy $req.age);
     return Booking[ticket = $ticket, traveller = copy $req.traveller, journey = give $trip, seat = copy $req.seat, fare = $price];
@@ -464,22 +477,26 @@ fn show_booking [lent $b: Booking, $age: Age] {
 
 struct Arrival {
     station: str.utf8,
-    minutes: i32,
-    km: i32
+    minutes: trip.minutes,
+    km: trip.km
 }
 
-# Soonest first: a plain insertion sort, easy to check by eye.
+# Soonest first: each arrival goes in before the first one later than it, so arrivals at the same time keep their
+# order. The list is written out anew around each one, which needs no positions.
 fn soonest_first [lent $xs: std::list[Arrival]] -> std::list[Arrival] {
     let $out: std::list[Arrival] = std::list.empty;
     for $x in lend $xs {
-        std::list.append(lend.mut $out, value: copy $x);
-        let $i := std::list.length(lend $out);
-        while $i > 1 and.then $out[pos: $i].minutes < $out[pos: $i - 1].minutes {
-            let $held := copy $out[pos: $i];
-            change $out[pos: $i] = copy $out[pos: $i - 1];
-            change $out[pos: $i - 1] = give $held;
-            change $i = $i - 1;
+        let $next: std::list[Arrival] = std::list.empty;
+        let $placed := false;
+        for $y in lend $out {
+            if not $placed and $x.minutes < $y.minutes {
+                std::list.append(lend.mut $next, value: copy $x);
+                change $placed = true;
+            }
+            std::list.append(lend.mut $next, value: copy $y);
         }
+        if not $placed { std::list.append(lend.mut $next, value: copy $x); }
+        change $out = give $next;
     }
     return give $out;
 }
@@ -506,19 +523,19 @@ fn board [lent $net: Network, lent $from: str.utf8] {
 # worked out by its own task, which reports back over a channel
 # ---------------------------------------------------------------------------------------------------
 
-fn reached_by [lent $net: Network, lent $hub: str.utf8, $deadline: i32] -> i32 {
+fn reached_by [lent $net: Network, lent $hub: str.utf8, $deadline: i32] -> u64 {
     let $best := quickest_from(lend $net, lend $hub);
-    let $n := 0;
+    let $reached: std::list[str.utf8] = std::list.empty;
     for $e in std::map.pairs(lend $best) {
-        if $e.key not_equal $hub and $departure + $e.value.minutes at_most $deadline { change $n = $n + 1; }
+        if $e.key not_equal $hub and $departure + $e.value.minutes at_most $deadline { std::list.append(lend.mut $reached, value: copy $e.key); }
     }
-    return $n;
+    return std::list.length(lend $reached);
 }
 
 fn compare_hubs [lent $net: Network] {
-    let $paris_ch: %channel[i32] = %channel.empty;
-    let $koln_ch: %channel[i32] = %channel.empty;
-    let $wien_ch: %channel[i32] = %channel.empty;
+    let $paris_ch: %channel[u64] = %channel.empty;
+    let $koln_ch: %channel[u64] = %channel.empty;
+    let $wien_ch: %channel[u64] = %channel.empty;
     let $paris := "Paris";
     let $koln := "Köln";
     let $wien := "Wien";
@@ -560,11 +577,11 @@ fn show_letters [lent $net: Network] {
 # The report
 # ---------------------------------------------------------------------------------------------------
 
-fn report [lent $bookings: std::list[Booking], lent $left: std::map.ordered[str.utf8, i32]] {
+fn report [lent $bookings: std::list[Booking][max: 500], lent $left: std::map.ordered[str.utf8, i32]] {
     let mut $out := std::print.writer(size: 4096 bytes);
     std::print.useful(lend.mut $out, newln, "=== ", $network_name, ", tonight ===", newln);
-    let $fares: std::list[%d64] = std::list.empty;
-    let $kms: std::list[i32] = std::list.empty;
+    let $fares: std::list[%d64][max: 500] = std::list.empty;
+    let $kms: std::list[i32][max: 500] = std::list.empty;
     let $longest := 0;
     let $longest_who := "nobody";
     for $b in lend $bookings {
@@ -592,11 +609,15 @@ fn report [lent $bookings: std::list[Booking], lent $left: std::map.ordered[str.
 }
 
 # Every request of the day, each with the next ticket number; the ones that cannot be read or booked are explained.
-fn book_all [lent $net: Network, lent.mut $left: std::map.ordered[str.utf8, i32], lent $lines: std::list[str.utf8]] -> std::list[Booking] {
+fn book_all [lent $net: Network, lent.mut $left: std::map.ordered[str.utf8, i32], lent $lines: std::list[str.utf8]] -> std::list[Booking][max: 500] {
     std::print.useful(newln, "bookings:", newln);
-    let $bookings: std::list[Booking] = std::list.empty;
+    let $bookings: std::list[Booking][max: 500] = std::list.empty;
     let $ticket := 500;
     for $line in lend $lines {
+        if std::list.length(lend $bookings) at_least $most_bookings {
+            std::print.useful("  (tonight's trains are full)", newln);
+            break;
+        }
         let $req := parse_request(lend $line) otherwise {
             bad_request $what {
                 if $what equal_to $line {
