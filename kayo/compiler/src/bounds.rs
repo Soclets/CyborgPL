@@ -47,11 +47,44 @@ fn bounded(ty: &[Token]) -> bool {
     false
 }
 
+/// A member: its name's tokens and its type's.
+pub type Member = (Vec<Token>, Vec<Token>);
+
+thread_local! {
+    /// The bounds of the kit's root being read (owner, 2026-10-26: "yes, no
+    /// shit"): a module in any file of the kit names them through `my.`.
+    static KIT: std::cell::RefCell<Vec<Member>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// The root's bounds for the kit's other files, and the ones before.
+pub fn set_kit(members: Vec<Member>) -> Vec<Member> {
+    KIT.with(|k| std::mem::replace(&mut *k.borrow_mut(), members))
+}
+
+/// A file's `coll.bound` members, read on their own (for the root's table).
+pub fn collect(toks: &[Token]) -> Result<Vec<Member>> {
+    Ok(blocks(toks)?.1)
+}
+
 pub fn rewrite(toks: &[Token]) -> Result<Vec<Token>> {
+    let kit = KIT.with(|k| k.borrow().clone());
     let is_word = |i: usize, w: &str| matches!(toks.get(i).map(|t| &t.tok), Some(Tok::Word(x)) if x == w);
-    if !(0..toks.len()).any(|i| is_word(i, "coll") && matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && is_word(i + 2, "bound")) {
+    let has_block = (0..toks.len()).any(|i| is_word(i, "coll") && matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && is_word(i + 2, "bound"));
+    let reaches_root = !kit.is_empty() && (0..toks.len()).any(|i| is_word(i, "my"));
+    if !has_block && !reaches_root {
         return Ok(toks.to_vec());
     }
+    let (kept, mut members) = blocks(toks)?;
+    // Longest names first: `quantity.small` before `quantity`.
+    members.sort_by_key(|(m, _)| std::cmp::Reverse(m.len()));
+    let mut kit = kit;
+    kit.sort_by_key(|(m, _)| std::cmp::Reverse(m.len()));
+    Ok(substitute(&kept, &members, &kit))
+}
+
+/// The file's tokens with its `coll.bound` blocks taken out, and their members.
+fn blocks(toks: &[Token]) -> Result<(Vec<Token>, Vec<Member>)> {
+    let is_word = |i: usize, w: &str| matches!(toks.get(i).map(|t| &t.tok), Some(Tok::Word(x)) if x == w);
     // Each block: its members, each a name's tokens and its type's.
     let mut members: Vec<(Vec<Token>, Vec<Token>)> = Vec::new();
     let mut kept: Vec<Token> = Vec::with_capacity(toks.len());
@@ -119,8 +152,12 @@ pub fn rewrite(toks: &[Token]) -> Result<Vec<Token>> {
         }
         i = k;
     }
-    // Longest names first: `quantity.small` before `quantity`.
-    members.sort_by_key(|(m, _)| std::cmp::Reverse(m.len()));
+    Ok((kept, members))
+}
+
+/// Each member's name written as its type where it starts a path; each of
+/// the root's, `kit`, where `my.` and its name do.
+fn substitute(kept: &[Token], members: &[Member], kit: &[Member]) -> Vec<Token> {
     let mut out: Vec<Token> = Vec::with_capacity(kept.len());
     let mut k = 0;
     while k < kept.len() {
@@ -128,6 +165,27 @@ pub fn rewrite(toks: &[Token]) -> Result<Vec<Token>> {
         let head = k == 0 || !matches!(kept[k - 1].tok, Tok::Dot | Tok::ColonColon);
         // After `:` or `->` a name is a type, whatever follows it.
         let typed = k > 0 && (matches!(kept[k - 1].tok, Tok::Colon) || matches!(&kept[k - 1].tok, Tok::Op(o) if o == "->"));
+        // `my.quantity` from any file of the kit: the root's, `my.` and all.
+        let mine = head && matches!(&t.tok, Tok::Word(w) if w == "my") && matches!(kept.get(k + 1).map(|t| &t.tok), Some(Tok::Dot));
+        if mine {
+            let found = kit.iter().find(|(m, _)| {
+                let end = k + 2 + m.len();
+                kept.get(k + 2..end).is_some_and(|w| w.iter().zip(m).all(|(a, b)| a.tok == b.tok)) && !matches!(kept.get(end).map(|t| &t.tok), Some(Tok::Dot | Tok::ColonColon))
+            });
+            if let Some((m, ty)) = found {
+                for p in ty {
+                    let mut p = p.clone();
+                    p.span = t.span;
+                    p.line_first = false;
+                    out.push(p);
+                }
+                if let Some(first) = out.len().checked_sub(ty.len()) {
+                    out[first].line_first = t.line_first;
+                }
+                k += 2 + m.len();
+                continue;
+            }
+        }
         let hit = head.then(|| members.iter().find(|(m, _)| {
             let end = k + m.len();
             kept.get(k..end).is_some_and(|w| w.iter().zip(m).all(|(a, b)| a.tok == b.tok))
@@ -152,5 +210,5 @@ pub fn rewrite(toks: &[Token]) -> Result<Vec<Token>> {
         out.push(t.clone());
         k += 1;
     }
-    Ok(out)
+    out
 }

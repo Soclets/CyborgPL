@@ -624,7 +624,14 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
         }
     }
     let outer_handlers = crate::parser::set_kit_handlers(kit_handlers);
+    let mut outer_bounds = None;
     let parsed = (|| {
+        // The root's bounds first, for `my.quantity` in any file of the kit
+        // (owner, 2026-10-26: "yes, no shit").
+        let text = std::fs::read_to_string(&root).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", root.display(), e)).named("path_not_readable")))?;
+        let id = sources.add_once(&root, text);
+        let toks = sources.lex_file(id)?;
+        outer_bounds = Some(crate::bounds::set_kit(crate::bounds::collect(&toks)?));
         let mut file = parse_file(sources, &root)?;
         check_bare(sources, items, &file, "", true)?;
         check_case(sources, items, &file, true)?;
@@ -640,6 +647,9 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
     crate::parser::set_cores(None);
     crate::parser::set_neuron_root(&outer_root);
     crate::parser::set_kit_handlers(outer_handlers);
+    if let Some(b) = outer_bounds {
+        crate::bounds::set_kit(b);
+    }
     parsed?;
     if no_cord {
         items.no_std_roots.insert(m);
