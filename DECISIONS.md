@@ -34,6 +34,28 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-26 — A limb's every piece is marked `%`: `inline.%MSL`, `%d64`, `%concur`; `%` is no longer percent (owner)
+
+The owner: "Show me syntax, if every limb thing needs to be marked with `%`. Say `inline.%MSL`, because `inline` is
+already in the base lang (it doesn't need `%inline`)." Design claude sketched it over the official limbs (CNC: `%extern.C`,
+`incl.%C`, `layout.%C`, `%C.int`, `inline.%C`; Money: `%d64`; WSMW: `%i128`, `%not_std.i24`; AI: `%brain16`; unicode:
+`%graphemes`; MCPS: `%concur`, `%channel`, `for %para`; Metal: `inline.%MSL`); corrected by the owner on `not_std`
+(only WSMW's, so all of it marked) and, asked, "Hm, then I guess `incl` is base" (`incl.bytes` is the base's, so
+`incl.%C`). Asked whether it reads as noise, the owner: "Personally, I think it's consistent. If kits already have
+marks, why not limbs. And then, lang could be the absence of such". Design claude agreed (the base bare, a limb marked,
+a kit by its path, so a program's limbs show, `%C` absent meaning no C), noting `%` was percent. Offered the free
+characters (`^` never used; `~`, `?`, `|` only in refused old spellings; `@` lifetime groups), `^` recommended; the owner:
+"What about we drop `80%`, and make it `80 percent`? I mean, we already have `percent` as alt". Design claude still
+leaned `^` (a newcomer reads `%` as percent); the owner: "That's like saying a beginner in C reads `%` as percent,
+instead of `mod`. Look at what you have to learn in the two langs (C, and CyborgPL)" (C gives `%` two meanings, this
+gives it one), and design claude switched; the owner: "yes". So:
+- **Every piece a limb adds is marked `%`; the base is bare; a kit is its path.**
+- **`80%` becomes `80 percent`** (`exactly 7.5 percent`), and **`%[d32]` becomes `percent[d32]` only**; good practice 18
+  reverses. A quoted name (`'80%'`) and plain text in a format are untouched.
+Design claude's reading, from the owner's examples: the mark goes on the first word that is the limb's (`inline.%MSL`,
+`incl.%C` after a base word; `%d64`, `%concur`, `%not_std.i24` the limb's from the start). Open: names in other
+scripts (unicode's); `%`'s old-spelling refusal for `mod`. Not built: every C, decimal, task and GPU program changes.
+
 ### 2026-10-26 — A module's bounds are reached by its path, the collection's name included: `shop.order.discount` (owner)
 
 The twin of the entry below. Asked whether a module's own `coll.bound` is reached from elsewhere by the module's path,

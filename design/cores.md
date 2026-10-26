@@ -133,6 +133,25 @@ pretty lower-level (say writing fucking Assembly for a lot of things)"
 - **no operators, no `to.` conversions, no markers**: in Signatar alone, a
   negation or a reinterpretation is assembly.
 
+## The limb mark, `%` (owner, 2026-10-26; not built)
+
+**Every piece a limb adds is marked `%`; the base is bare; a kit is its path** (owner: "If kits already have marks, why
+not limbs. And then, lang could be the absence of such"). The mark goes on the first word that is the limb's (design
+claude's reading of the owner's examples):
+
+```
+%extern.C fn puts [$s: ptr[u8]] -> %C.int;             # CNC
+incl.%C["sdl.h"];                                      # `incl` is the base's
+let $price: %d64 = 19.50;                              # Money
+let $odd: %not_std.i24 = 5;                            # WSMW: `not_std` is only its
+let $name: str.utf8[max: 40 %graphemes] = "café";      # unicode
+%concur with [lend $ch] { %channel.send(lend $ch, value: 1); }   # MCPS
+no_check inline.%MSL threads 64 { … } with [lend.mut $xs -> buffer(0)];   # Metal
+```
+
+So `%` no longer means percent: `80 percent`, `percent[d32]`. A program's limbs show where they are used, and `%C`
+nowhere means it never calls C. Open: names in other scripts; the `%` old-spelling refusal for `mod`.
+
 ## The official limbs
 
 - **CNC, "CNC Not C"** (owner, 2026-10-10): everything about C, one limb for
