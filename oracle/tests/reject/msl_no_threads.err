@@ -1,1 +1,1 @@
-an `inline.MSL` block says how many threads run it first: `i
+an `inline.%MSL` block says how many threads run it first: `i

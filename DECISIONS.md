@@ -73,8 +73,8 @@ per limb; one mark per path would hide the second limb); design claude recommend
 glued to a word as the mark and `oracle/src/marks.rs` checks every word against the table; `80%` and `%[d32]` are
 refused as old spellings; `oracle --mark-limbs` rewrote 228 programs (examples, tests, demos, bench) and
 `oracle/tools/mark_notes.py` the notes' code; tests/reject/mark_* and percent_*. A spaced `%` between values is still
-refused naming `mod` (design claude's reading). The oracle's own messages still spell some limb words bare (`write
-`to.d64(…)``), to be swept. Not built: every C, decimal, task and GPU program changes.
+refused naming `mod` (design claude's reading). The oracle's messages were swept the same day: the code they show is
+marked (`write `to.%d64(…)``). Not built: every C, decimal, task and GPU program changes.
 
 ### 2026-10-26 — A module's bounds are reached by its path, the collection's name included: `shop.order.discount` (owner)
 

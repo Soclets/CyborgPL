@@ -694,7 +694,7 @@ impl Parser {
                 };
                 if self.lacks.iter().any(|c| c == core) {
                     self.pos = i;
-                    let what = if w == "to" { "`to.`".to_string() } else if w == "para" { "`for para`".to_string() }  else { format!("`{w}`") };
+                    let what = if w == "to" { "`to.`".to_string() } else if w == "para" { "`for %para`".to_string() }  else { format!("`{w}`") };
                     return self.core_missing(core, &what);
                 }
             }
@@ -709,9 +709,9 @@ impl Parser {
                 let after_dot = i > 0 && self.toks[i - 1].tok == Tok::Dot;
                 let next = self.toks.get(i + 1).map(|t| &t.tok);
                 let found: Option<(&str, String)> = match &self.toks[i].tok {
-                    Tok::Word(w) if w == "brain16" => Some(("AI", "`brain16`".into())),
+                    Tok::Word(w) if w == "brain16" => Some(("AI", "`%brain16`".into())),
                     Tok::Word(w) if w == "i128" || w == "u128" => Some(("WSMW", format!("`{w}`"))),
-                    Tok::Word(w) if w == "not_std" => Some(("WSMW", "a `not_std.` width".into())),
+                    Tok::Word(w) if w == "not_std" => Some(("WSMW", "a `%not_std.` width".into())),
                     Tok::Word(w) if w.starts_with('d') && w.len() > 1 && w[1..].parse::<u32>().is_ok() => Some(("Money", format!("`{w}`"))),
                     Tok::Word(w) if w == "exactly" => Some(("Money", "an exact decimal literal (`exactly 0.1`)".into())),
                     Tok::Word(w) if after_dot && prev_word(2) == Some("str") && (w == "utf16" || w == "utf32") => Some(("unicode", format!("`str.{w}`"))),
@@ -721,7 +721,7 @@ impl Parser {
                     // everything about C is CNC's (owner, 2026-10-10): `extern.C`, `incl.C`, `layout.C`
                     Tok::Word(w) if ["extern", "incl", "layout"].contains(&w.as_str()) && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(c)) if c == "C") => Some(("CNC", format!("`{w}.C`"))),
                     // the C string tools are CNC's too (owner, 2026-10-19)
-                    Tok::Word(w) if w == "C" && !after_dot && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(c)) if c == "str") => Some(("CNC", "`C.str`".to_string())),
+                    Tok::Word(w) if w == "C" && !after_dot && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(c)) if c == "str") => Some(("CNC", "`%C.str`".to_string())),
                     Tok::Word(w) if w == "C" && !after_dot && next == Some(&Tok::Dot) && matches!(self.toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(c)) if C_TYPES.contains(&c.as_str())) => {
                         let Some(Tok::Word(c)) = self.toks.get(i + 2).map(|t| &t.tok) else { unreachable!() };
                         Some(("CNC", format!("`C.{c}`")))
@@ -1074,12 +1074,12 @@ impl Parser {
                     // person would write here; private unless `pub`, as `extern.C` is
                     let line = self.line();
                     self.advance(); self.advance();
-                    if matches!(self.advance().tok, Tok::Word(c) if c == "c") { return self.err("C is written capitalized here, as every language's name is: `incl.C`"); }
+                    if matches!(self.advance().tok, Tok::Word(c) if c == "c") { return self.err("C is written capitalized here, as every language's name is: `incl.%C`"); }
                     let system = if *self.peek() == Tok::Dot {
                         self.advance();
                         match self.advance().tok {
                             Tok::Word(s) if s == "system" => true,
-                            other => return self.err(format!("after `incl.C` comes `.system` for the system's headers (`incl.C.system[\"stdio.h\"]`), or the bracket for a header in the kit, found {other}")),
+                            other => return self.err(format!("after `incl.%C` comes `.system` for the system's headers (`incl.C.system[\"stdio.h\"]`), or the bracket for a header in the kit, found {other}")),
                         }
                     } else { false };
                     let what = if system { "incl.C.system" } else { "incl.C" };
@@ -1136,18 +1136,18 @@ impl Parser {
                     // the block and the `.C`, owner, 2026-10-02: "both", "`extern.C`, and one line too")
                     self.advance();
                     if *self.peek() != Tok::Dot {
-                        return self.err("`extern` names its language, as `layout.C` does: `extern.C fn write [...] -> i64;`, `extern.C $errno: i32;`, or a block, `extern.C { … }`");
+                        return self.err("`extern` names its language, as `%layout.C` does: `%extern.C fn write [...] -> i64;`, `%extern.C $errno: i32;`, or a block, `%extern.C { … }`");
                     }
                     self.advance();
                     match self.advance().tok {
                         Tok::Word(l) if l == "C" => {}
-                        Tok::Word(l) if l == "c" => return self.err("C is written capitalized here, as every language's name is: `extern.C`"),
-                        other => return self.err(format!("the only language `extern` reaches is C: `extern.C`, found {other}")),
+                        Tok::Word(l) if l == "c" => return self.err("C is written capitalized here, as every language's name is: `%extern.C`"),
+                        other => return self.err(format!("the only language `extern` reaches is C: `%extern.C`, found {other}")),
                     }
                     if *self.peek() == Tok::LBrace {
                         self.advance();
                         while *self.peek() != Tok::RBrace {
-                            if *self.peek() == Tok::Eof { return self.err("an `extern.C { … }` block is missing its `}`"); }
+                            if *self.peek() == Tok::Eof { return self.err("an `%extern.C { … }` block is missing its `}`"); }
                             // a line may say its own `pub` / `pub.kit`; a `pub` written on the block
                             // overrides every line's (owner, 2026-10-02: "allow mixing, but block overrides")
                             let mut line_vis = Vis::Private;
@@ -1163,9 +1163,9 @@ impl Parser {
                                 }
                             }
                             let item_vis = if vis != Vis::Private { vis } else { line_vis };
-                            if self.is_word("extern") { return self.err("inside `extern.C { … }`, each line starts with `fn` or a quoted name, without `extern.C`"); }
+                            if self.is_word("extern") { return self.err("inside `%extern.C { … }`, each line starts with `fn` or a quoted name, without `%extern.C`"); }
                             if !(self.is_word("fn") || self.is_word("mut") || self.is_word("immut") || self.is_word("let") || matches!(self.peek(), Tok::Var(_))) {
-                                return self.err(format!("an `extern.C {{ … }}` block holds `fn` lines and quoted names, found {}: is its `}}` missing?", self.peek()));
+                                return self.err(format!("an `%extern.C {{ … }}` block holds `fn` lines and quoted names, found {}: is its `}}` missing?", self.peek()));
                             }
                             self.extern_item(prog, item_vis)?;
                         }
@@ -1177,12 +1177,12 @@ impl Parser {
                 Tok::Word(w) if w == "layout" => {
                     // layout.C struct Name { … }   (design/ffi.md)
                     self.advance();
-                    self.expect(Tok::Dot, "`.C` after `layout` (`layout.C struct …`)")?;
+                    self.expect(Tok::Dot, "`.C` after `layout` (`%layout.C struct …`)")?;
                     match self.advance().tok {
                         Tok::Word(l) if l == "C" => {},
                         // a language's name is capitalized, as `inline.ASM` (owner, 2026-10-02: "BIG")
-                        Tok::Word(l) if l == "c" => return self.err("C is written capitalized here, as every language's name is: `layout.C`".to_string()),
-                        other => return self.err(format!("the only layout is `layout.C`, found {other}")),
+                        Tok::Word(l) if l == "c" => return self.err("C is written capitalized here, as every language's name is: `%layout.C`".to_string()),
+                        other => return self.err(format!("the only layout is `%layout.C`, found {other}")),
                     }
                     if self.is_word("enum") {
                         // layout.C enum Key { a = 65  b = 66 }  — C's enum: a number per case, no data,
@@ -1200,7 +1200,7 @@ impl Parser {
                             let cname = match self.advance().tok {
                                 Tok::Word(c) if crate::spellings::is_reserved(&c) => return self.err(format!("`{c}` is a keyword and cannot name a case")),
                                 Tok::Word(c) => c,
-                                Tok::Eof => return self.err("unclosed `layout.C enum {`"),
+                                Tok::Eof => return self.err("unclosed `%layout.C enum {`"),
                                 other => return self.err(format!("expected a case name, found {other}")),
                             };
                             if *self.peek() == Tok::Colon { return self.err(format!("a C enum's case carries no data; C's enum is a number: `{cname} = 1`")); }
@@ -1224,7 +1224,7 @@ impl Parser {
                     // `layout.C union Number { i: i32, f: f32 }` (owner, 2026-10-19): read as a struct, one field held at a time
                     let union = self.is_word("union");
                     if union { self.toks[self.pos].tok = Tok::Word("struct".into()); }
-                    if !self.is_word("struct") { return self.err("`layout.C` goes before `struct`, `union` or `enum`: `layout.C struct Timeval { … }`, `layout.C union Number { … }`, `layout.C enum Key { a = 65 }`"); }
+                    if !self.is_word("struct") { return self.err("`%layout.C` goes before `struct`, `union` or `enum`: `%layout.C struct Timeval { … }`, `%layout.C union Number { … }`, `%layout.C enum Key { a = 65 }`"); }
                     self.at_boundary = true;
                     self.in_layout_c = true;
                     let d = self.struct_def();
@@ -1614,8 +1614,8 @@ impl Parser {
         }
         self.saw_value_return = false;
         let body = if self.at_boundary {
-            if *self.peek() == Tok::LBrace { return self.err("an `extern.C fn` has no body — it lives somewhere else; end it with `;`"); }
-            if !fails.is_empty() { return self.err("an `extern.C fn` cannot `fail`; C has no failures — a wrapper turns its return value into one"); }
+            if *self.peek() == Tok::LBrace { return self.err("an `%extern.C fn` has no body — it lives somewhere else; end it with `;`"); }
+            if !fails.is_empty() { return self.err("an `%extern.C fn` cannot `fail`; C has no failures — a wrapper turns its return value into one"); }
             self.expect(Tok::Semi, "`;` to end the extern declaration")?;
             Vec::new()
         } else if self.in_interface {
@@ -1667,13 +1667,13 @@ impl Parser {
     /// `fn name [params] -> T;` or `['mut'] 'name': T;`.
     fn extern_item(&mut self, prog: &mut Program, vis: Vis) -> PResult<()> {
         let line = self.line();
-        if self.is_word("let") { return self.err("C's variable takes no `let`: `extern.C $errno: i32;` (or `extern.C mut $x: T;`)"); }
+        if self.is_word("let") { return self.err("C's variable takes no `let`: `%extern.C $errno: i32;` (or `%extern.C mut $x: T;`)"); }
         if self.is_word("mut") || self.is_word("immut") || matches!(self.peek(), Tok::Var(_)) {
             // a C global (decided 2026-09-21; no `let` since 2026-09-25)
             let mutable = if self.is_word("mut") { self.advance(); true } else { false };
             if self.is_word("immut") { return self.err("an extern variable is C's; it is read-only unless `mut`, never `immut`"); }
-            let name = match self.advance().tok { Tok::Var(v) => v, Tok::Word(w) => return self.err(format!("an extern variable is named like a variable, quoted: `extern.C '{w}': …`")), other => return self.err(format!("expected a quoted name, found {other}")) };
-            if *self.peek() != Tok::Colon { return self.err(format!("the extern variable '{name}' needs a type; C has no inference: `extern.C '{name}': i32;`")); }
+            let name = match self.advance().tok { Tok::Var(v) => v, Tok::Word(w) => return self.err(format!("an extern variable is named like a variable, quoted: `%extern.C '{w}': …`")), other => return self.err(format!("expected a quoted name, found {other}")) };
+            if *self.peek() != Tok::Colon { return self.err(format!("the extern variable '{name}' needs a type; C has no inference: `%extern.C '{name}': i32;`")); }
             self.advance();
             self.at_boundary = true;
             let ty = self.ty();
@@ -1684,14 +1684,14 @@ impl Parser {
             prog.externs.push(ExternVar { name, module: self.module.clone(), vis, ty, mutable, line });
             return Ok(());
         }
-        if !self.is_word("fn") { return self.err("after `extern.C` comes `fn` or a quoted name: `extern.C fn write [...] -> i64;`, `extern.C $errno: i32;`"); }
+        if !self.is_word("fn") { return self.err("after `%extern.C` comes `fn` or a quoted name: `%extern.C fn write [...] -> i64;`, `%extern.C $errno: i32;`"); }
         // `extern.C fn printf_count = C.printf ['format': ptr[u8], ...'n': i32] -> i32;` (owner, 2026-10-19: "(c)"):
         // the name is yours, `C.` names C's; after `...` a fixed shape names and types each extra
         let mut link = None;
         if matches!(self.peek_at(1), Tok::Word(_)) && *self.peek_at(2) == Tok::Eq {
             match (self.peek_at(3).clone(), self.peek_at(4).clone(), self.peek_at(5).clone()) {
                 (Tok::Word(c), Tok::Dot, Tok::Word(n)) if c == "C" => { link = Some(n); self.toks.drain(self.pos + 2..self.pos + 6); }
-                _ => return self.err("a C function under another name says whose it is: `extern.C fn printf_count = C.printf [ … ] -> i32;`"),
+                _ => return self.err("a C function under another name says whose it is: `%extern.C fn printf_count = %C.printf [ … ] -> i32;`"),
             }
         }
         self.at_boundary = true;
@@ -1960,7 +1960,7 @@ impl Parser {
             let bounded = matches!(ty, Ty::Ranged(..) | Ty::TextRanged(..) | Ty::CStr(Some(_)) | Ty::Places(..));
             if !bounded {
                 self.pos = ty_at;
-                return self.err(format!("`{path} = {}` limits nothing: a `coll.bound` names a bounded type, as `i32[min: 1, max: 99]` or `str.utf8[max: 40 graphemes]` (owner, 2026-10-25: \"only bounded\")", ty_name(&ty)));
+                return self.err(format!("`{path} = {}` limits nothing: a `coll.bound` names a bounded type, as `i32[min: 1, max: 99]` or `str.utf8[max: 40 %graphemes]` (owner, 2026-10-25: \"only bounded\")", ty_name(&ty)));
             }
             self.expect(Tok::Semi, &format!("`;` after `{path}`'s type"))?;
             self.named_bounds.insert(path, ty);
@@ -2032,11 +2032,11 @@ impl Parser {
         // that number; its size is always written (`:=` lets Precog pick). A second bracket bounds it, in `%`.
         if self.is_word("percent") || matches!(self.peek(), Tok::Op(o) if o == "%") {
             self.advance();
-            if *self.peek() != Tok::LBracket { return self.err("a written percent names its number: `percent[d64]` or `percent[f64]`; `:=` lets Precog pick (owner, 2026-10-17)"); }
+            if *self.peek() != Tok::LBracket { return self.err("a written percent names its number: `percent[%d64]` or `percent[f64]`; `:=` lets Precog pick (owner, 2026-10-17)"); }
             self.advance();
             let inner = self.ty()?;
             self.expect(Tok::RBracket, "`]` after the percent's number")?;
-            if !matches!(inner, Ty::Deci(_) | Ty::Bin(_)) { return self.err(format!("a percent holds a `d` or an `f`: `percent[d64]`, not `percent[{}]`", ty_name(&inner))); }
+            if !matches!(inner, Ty::Deci(_) | Ty::Bin(_)) { return self.err(format!("a percent holds a `d` or an `f`: `percent[%d64]`, not `percent[{}]`", ty_name(&inner))); }
             let t = Ty::Percent(Box::new(inner));
             if *self.peek() == Tok::LBracket && matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max" || w == "min_places" || w == "max_places") {
                 let (lo, hi) = self.labelled_bounds("percent[d32][min: 0%, max: 100%]")?;
@@ -2063,14 +2063,14 @@ impl Parser {
                         match self.advance().tok { Tok::Word(u) if u == "bytes" => {}, Tok::Word(u) if u == "points" || u == "graphemes" => return self.err(format!("a C string is counted in bytes, not {u}: C has no {u}")), other => return self.err(format!("a C string's bound says its unit, bytes: `max 255 bytes`, found {other}")) }
                     }
                     Tok::Word(w) if (w == "exclude" || w == "include") && self.is_word("zero") => { self.advance(); zero = Some(w == "include"); }
-                    other => return self.err(format!("a bounded C string is `C.str[max: 255 bytes, exclude zero]` or `[…, include zero]`; found {other}")),
+                    other => return self.err(format!("a bounded C string is `%C.str[max: 255 bytes, exclude zero]` or `[…, include zero]`; found {other}")),
                 }
                 if *self.peek() == Tok::Comma { self.advance(); continue; }
                 break;
             }
             self.expect(Tok::RBracket, "`]` after the C string's bound")?;
-            let Some(hi) = hi else { return self.err("a bounded C string says its most: `C.str[max: 255 bytes, exclude zero]`") };
-            let Some(z) = zero else { return self.err(format!("a bounded C string says whether its closing 0 counts: `C.str[max: {hi} bytes, exclude zero]` (the text) or `include zero` (the whole buffer) (owner, 2026-10-19)")) };
+            let Some(hi) = hi else { return self.err("a bounded C string says its most: `%C.str[max: 255 bytes, exclude zero]`") };
+            let Some(z) = zero else { return self.err(format!("a bounded C string says whether its closing 0 counts: `%C.str[max: {hi} bytes, exclude zero]` (the text) or `include zero` (the whole buffer) (owner, 2026-10-19)")) };
             if lo > hi { return self.err(format!("{lo} is more than {hi}")); }
             if z && hi < 1 { return self.err("a buffer that includes its 0 holds at least 1 byte"); }
             return Ok(Ty::CStr(Some((lo, hi, z))));
@@ -2078,7 +2078,7 @@ impl Parser {
         // a C bit-field, `mode: u8[bits: 3]` (owner, 2026-10-19: "(a)"): N bits of the field's integer, written in
         // its limits bracket; only in a `layout.C` struct or union. It holds what N bits hold, checked when written
         if matches!(self.peek(), Tok::Word(_)) && *self.peek_at(1) == Tok::LBracket && matches!(self.peek_at(2), Tok::Word(b) if b == "bits") {
-            if !self.in_layout_c { return self.err("`bits` makes a C bit-field: it is for a `layout.C` struct's fields, `mode: u8[bits: 3]`"); }
+            if !self.in_layout_c { return self.err("`bits` makes a C bit-field: it is for a `%layout.C` struct's fields, `mode: u8[bits: 3]`"); }
             let Tok::Word(base) = self.peek().clone() else { unreachable!() };
             // `bits:`, a label (owner, 2026-10-20)
             if *self.peek_at(3) != Tok::Colon { return self.err(format!("inside `[ ]` a word takes `:` before its value: `{base}[bits: 3]` (owner, 2026-10-20)")); }
@@ -2194,7 +2194,7 @@ impl Parser {
         }
         // `not_std.i24` (owner, 2026-10-07): read as one name, `not_std.i24`, inside
         if matches!(self.peek(), Tok::Word(w) if w == "not_std") && *self.peek_at(1) == Tok::Dot {
-            let Tok::Word(w) = self.peek_at(2).clone() else { return self.err("`not_std.` is followed by a width: `not_std.i24`, `not_std.u4`") };
+            let Tok::Word(w) = self.peek_at(2).clone() else { return self.err("`%not_std.` is followed by a width: `%not_std.i24`, `%not_std.u4`") };
             self.toks.drain(self.pos..self.pos + 2);
             self.toks[self.pos].tok = Tok::Word(format!("not_std.{w}"));
         }
@@ -2296,7 +2296,7 @@ impl Parser {
             match segs[0].as_str() {
                 "usize" | "isize" => return self.err(format!("`{}` is as big as the machine's pointer, which no CyborgPL type is: say the width, `{}`", segs[0], if segs[0] == "usize" { "u64" } else { "i64" })),
                 "String" => return self.err("text is `str.utf8`; Rust's `String` is not an alias"),
-                "f128" => return self.err("there is no `f128` (2026-09-23): `std::uenr` is exact rather than wider"),
+                "f128" => return self.err("there is no `%f128` (2026-09-23): `std::uenr` is exact rather than wider"),
                 _ => {}
             }
         }
@@ -2407,7 +2407,7 @@ impl Parser {
         match head {
             "bool" => { if segs.len() > 1 { return bad(self, "`bool` takes no narrowing".into()); } no_params(self, "bool")?; Ok(Ty::Bool) }
             "str" => {
-                if segs.len() != 2 { return bad(self, "the typed form is fully explicit: `str.utf8`, `str.utf16`, `str.utf32`, or `str.ascii` — never bare `str`".into()); }
+                if segs.len() != 2 { return bad(self, "the typed form is fully explicit: `str.utf8`, `str.%utf16`, `str.%utf32`, or `str.ascii` — never bare `str`".into()); }
                 no_params(self, "str")?;
                 let enc = match segs[1].as_str() {
                     "utf8" => Encoding::Utf8, "utf16" => Encoding::Utf16, "utf32" => Encoding::Utf32, "ascii" => Encoding::Ascii,
@@ -2424,7 +2424,7 @@ impl Parser {
                         Tok::Word(w) if w == "bytes" => CharUnit::Byte,
                         Tok::Word(w) if w == "points" => CharUnit::Point,
                         Tok::Word(w) if w == "graphemes" => CharUnit::Grapheme,
-                        Tok::RBracket => return bad(self, "a text has three lengths: say which the bound counts — `str.utf8[min: 1, max: 40 graphemes]`, `[…bytes]`, or `[…points]`".into()),
+                        Tok::RBracket => return bad(self, "a text has three lengths: say which the bound counts — `str.utf8[min: 1, max: 40 %graphemes]`, `[…bytes]`, or `[…points]`".into()),
                         other => return bad(self, format!("the unit after a text's bounds is `bytes`, `points`, or `graphemes`, found {other}")),
                     };
                     self.expect(Tok::RBracket, "`]` after the unit")?;
@@ -2435,7 +2435,7 @@ impl Parser {
                 Ok(Ty::Str(enc))
             }
             "char" => {
-                if segs.len() != 2 { return bad(self, "the typed form is fully explicit: `char.point`, `char.grapheme`, or `char.byte` — never bare `char`".into()); }
+                if segs.len() != 2 { return bad(self, "the typed form is fully explicit: `char.%point`, `char.%grapheme`, or `char.byte` — never bare `char`".into()); }
                 no_params(self, "char")?;
                 Ok(Ty::Char(match segs[1].as_str() {
                     "point" => CharUnit::Point, "grapheme" => CharUnit::Grapheme, "byte" => CharUnit::Byte,
@@ -2444,17 +2444,17 @@ impl Parser {
             }
             "channel" => {
                 // channel[T] / channel[T][0, N]  (design/concurrency.md)
-                if segs.len() > 1 { return bad(self, "`channel` takes its element type in brackets: `channel[str.utf8]`".into()); }
-                if params.len() != 1 { return bad(self, "`channel` takes exactly one type: `channel[str.utf8]`".into()); }
+                if segs.len() > 1 { return bad(self, "`%channel` takes its element type in brackets: `%channel[str.utf8]`".into()); }
+                if params.len() != 1 { return bad(self, "`%channel` takes exactly one type: `%channel[str.utf8]`".into()); }
                 let base = Ty::Channel(Box::new(params.pop().unwrap()));
                 if *self.peek() == Tok::LBracket && (matches!(self.peek_at(1), Tok::Int(_)) || matches!(self.peek_at(1), Tok::Word(w) if w == "min" || w == "max")) {
                     let (lo, hi) = self.labelled_bounds("channel[T][max: 100]")?;
                     self.expect(Tok::RBracket, "`]` after the bounds")?;
                     let lo = if lo == Bound::Min { Bound::Int(0) } else { lo };
-                    if hi == Bound::Max { return bad(self, "a bounded channel says how much it holds: `channel[T][max: 100]`; with no bound it is a hand-off".into()); }
-                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a channel's bound is whole numbers: `channel[T][max: 100]`".into()) };
+                    if hi == Bound::Max { return bad(self, "a bounded channel says how much it holds: `%channel[T][max: 100]`; with no bound it is a hand-off".into()); }
+                    let (Bound::Int(a), Bound::Int(b)) = (&lo, &hi) else { return bad(self, "a channel's bound is whole numbers: `%channel[T][max: 100]`".into()) };
                     if *a != 0 { return bad(self, "a channel's low bound is 0: it may be empty".into()); }
-                    if *b < 1 { return bad(self, "a channel that holds nothing is a hand-off: write `channel[T]` with no bound".into()); }
+                    if *b < 1 { return bad(self, "a channel that holds nothing is a hand-off: write `%channel[T]` with no bound".into()); }
                     return Ok(Ty::Ranged(Box::new(base), lo, hi));
                 }
                 Ok(base)
@@ -2531,7 +2531,7 @@ impl Parser {
                 }
                 if let Some(rest) = head.strip_prefix("not_std.") {
                     let (signed, digits) = if let Some(d) = rest.strip_prefix('u') { (false, d) } else if let Some(d) = rest.strip_prefix('i') { (true, d) } else { (true, "") };
-                    let n: u32 = match digits.parse() { Ok(n) if n >= 1 => n, _ => return bad(self, format!("`{}` is not a type: a non-standard integer is `not_std.i24` or `not_std.u24`", head)) };
+                    let n: u32 = match digits.parse() { Ok(n) if n >= 1 => n, _ => return bad(self, format!("`{}` is not a type: a non-standard integer is `%not_std.i24` or `%not_std.u24`", head)) };
                     let std_name = if signed { "i" } else { "u" };
                     if int_w(n).is_some() { return bad(self, format!("`{std_name}{n}` is standard: write `{std_name}{n}` (owner, 2026-10-03)")); }
                     // LLVM's widest integer is 2^23 bits (checked with `llvm-as`, 2026-10-03)
@@ -2548,9 +2548,9 @@ impl Parser {
                 // answers "more precision than 64 bits" by being exact rather than wider.
                 // the brain float (owner, 2026-10-02): 16 bits only, a family of its own
                 if head == "brain16" { return Ok(Ty::Brain); }
-                if let Some(n) = width(head, "brain") { return bad(self, format!("no such width `brain{n}`; the brain float is `brain16` only")); }
+                if let Some(n) = width(head, "brain") { return bad(self, format!("no such width `brain{n}`; the brain float is `%brain16` only")); }
                 if let Some(n) = width(head, "f") {
-                    if n == 128 { return bad(self, "there is no `f128`: quad precision has no hardware, and `std::uenr` is exact rather than merely wider".into()); }
+                    if n == 128 { return bad(self, "there is no `%f128`: quad precision has no hardware, and `std::uenr` is exact rather than merely wider".into()); }
                     return if [16, 32, 64].contains(&n) { Ok(Ty::Bin(n as u8)) } else { bad(self, format!("no such width `{head}`; f is 16/32/64")) };
                 }
                 if let Some(n) = width(head, "d") { return if [32, 64, 128].contains(&n) { Ok(Ty::Deci(n as u8)) } else { bad(self, format!("no such width `{head}`; d is 32/64/128 (IEEE 754 defines only these)")) }; }
@@ -2711,7 +2711,7 @@ impl Parser {
                     self.advance();
                     let detached = if *self.peek() == Tok::Dot {
                         self.advance();
-                        match self.advance().tok { Tok::Word(d) if d == "detached" => true, other => return self.err(format!("the only variant of `concur` is `concur.detached`, found {other}")) }
+                        match self.advance().tok { Tok::Word(d) if d == "detached" => true, other => return self.err(format!("the only variant of `%concur` is `%concur.detached`, found {other}")) }
                     } else { false };
                     let caps = self.captures()?;
                     let body = if *self.peek() == Tok::LBrace { self.block()? } else {
@@ -2727,11 +2727,11 @@ impl Parser {
                 "whichever" => {
                     // whichever { 'v' from lend 'c' { … } … } [otherwise …];
                     self.advance();
-                    self.expect(Tok::LBrace, "`{` after `whichever`")?;
+                    self.expect(Tok::LBrace, "`{` after `%whichever`")?;
                     let mut arms = Vec::new();
                     while *self.peek() != Tok::RBrace {
                         let aline = self.line();
-                        let name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("a `whichever` arm names its value: `$msg from lend $inbox {{ … }}`, found {other}")) };
+                        let name = match self.advance().tok { Tok::Var(v) => v, other => return self.err(format!("a `%whichever` arm names its value: `$msg from lend $inbox {{ … }}`, found {other}")) };
                         if !self.is_word("from") { return self.err("after the arm's name comes `from`: `$msg from lend $inbox { … }`"); }
                         self.advance();
                         let chan = Bracket { values: vec![self.value()?], line: aline, one_list: false };
@@ -2739,7 +2739,7 @@ impl Parser {
                         arms.push(WhicheverArm { name, chan, body, line: aline });
                     }
                     self.advance();
-                    if arms.is_empty() { return self.err("`whichever` needs at least one arm"); }
+                    if arms.is_empty() { return self.err("`%whichever` needs at least one arm"); }
                     let handler = if self.is_word("otherwise") { self.handler()? } else { None };
                     if *self.peek() == Tok::Semi { self.advance(); }
                     Ok(Stmt::Whichever { arms, handler, line })
@@ -2767,7 +2767,7 @@ impl Parser {
                     Ok(Stmt::BuiltinStmt { head, op, args, line })
                 }
                 "extern" | "layout" => self.err(format!("`{w}` sits at the top level of a file")),
-                "incl" if matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(c) if c == "C" || c == "c") => self.err("`incl.C` sits at the top level of a file or in a `module` block, as `extern.C` does, never in a body"),
+                "incl" if matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(c) if c == "C" || c == "c") => self.err("`incl.%C` sits at the top level of a file or in a `module` block, as `%extern.C` does, never in a body"),
                 "asm" | "ASM" => self.err("inline assembly is `inline.ASM { … }` (decided 2026-09-20; `inline.ASM` again since 2026-10-07)"),
                 "is" => {
                     // `is "free";` gives a case its value (owner, 2026-10-07: "`is`")
@@ -2799,7 +2799,7 @@ impl Parser {
                         Tok::Word(l) if l == "LL" || l == "LLVM" || l == "LLVM_Intermediate_Representation" => return self.err("`inline.LL`, LLVM IR in place, is the base's (owner, 2026-10-12, IEG being dissolved); the oracle does not read it yet"),
                         Tok::Word(l) if l == "MSL" || l == "Metal_Shading_Language" => return self.msl_block(line),
                         Tok::Word(l) if l == "ll" || l == "msl" => return self.err(format!("an inline language's name is in capitals: `inline.{}`", l.to_uppercase())),
-                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; the inline languages are `inline.ASM` (the base's), `inline.LL` (the base's) and `inline.MSL` (the Metal limb's) (`inline.C` is possible later — LLVM ships clang)")),
+                        Tok::Word(l) => return self.err(format!("`inline.{l}` is not decided; the inline languages are `inline.ASM` (the base's), `inline.LL` (the base's) and `inline.%MSL` (the Metal limb's) (`inline.%C` is possible later — LLVM ships clang)")),
                         other => return self.err(format!("expected `ASM` after `inline.`, found {other}")),
                     }
                     let text = match self.advance().tok {
@@ -3015,7 +3015,7 @@ impl Parser {
                 let (elem, cap) = match &ty {
                     Some(Ty::Channel(t)) => ((**t).clone(), None),
                     Some(Ty::Ranged(b, _, Bound::Int(n))) if matches!(**b, Ty::Channel(_)) => { let Ty::Channel(t) = &**b else { unreachable!() }; ((**t).clone(), Some(*n as usize)) }
-                    _ => return self.err(format!("`channel.empty` takes its type from the declaration: `let ${name}: channel[i32] = channel.empty;`")),
+                    _ => return self.err(format!("`%channel.empty` takes its type from the declaration: `let ${name}: %channel[i32] = %channel.empty;`")),
                 };
                 value.values = vec![Value::Expr(Expr::ChannelNew(elem, cap, l))];
             }
@@ -3750,7 +3750,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
     /// What is checked here: the limb, the count's place, one kernel, each binding's shape and slot, and each `#include`
     /// being a file of the kit; the values bound are checked when the block is reached, and the oracle then stops.
     fn msl_block(&mut self, line: usize) -> PResult<Stmt> {
-        if self.lacks.iter().any(|c| c == "Metal") { return self.core_missing("Metal", "`inline.MSL`"); }
+        if self.lacks.iter().any(|c| c == "Metal") { return self.core_missing("Metal", "`inline.%MSL`"); }
         // `.precise` (Metal's safe math, precise functions, no fused multiply-add) and `.wrap` (signed overflow wraps),
         // each once (owner, 2026-10-25: "yes"), the strongest first (2026-10-01): `.precise` changes every float step,
         // `.wrap` only an overflow, so `.precise.wrap`; without them, Apple's defaults
@@ -3758,13 +3758,13 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
         while *self.peek() == Tok::Dot {
             self.advance();
             match self.advance().tok {
-                Tok::Word(w) if w == "precise" && ways.iter().any(|x| x == "wrap") => return self.err("the strongest modifier comes first: `inline.MSL.precise.wrap`, not `.wrap.precise` (owner, 2026-10-01)"),
+                Tok::Word(w) if w == "precise" && ways.iter().any(|x| x == "wrap") => return self.err("the strongest modifier comes first: `inline.%MSL.precise.wrap`, not `.wrap.precise` (owner, 2026-10-01)"),
                 Tok::Word(w) if (w == "precise" || w == "wrap") && !ways.contains(&w) => ways.push(w),
                 Tok::Word(w) if w == "precise" || w == "wrap" => return self.err(format!("`.{w}` is said once")),
-                other => return self.err(format!("an `inline.MSL` block narrows with `.precise` (Metal's safe math) or `.wrap` (signed overflow wraps), found {other}")),
+                other => return self.err(format!("an `inline.%MSL` block narrows with `.precise` (Metal's safe math) or `.wrap` (signed overflow wraps), found {other}")),
             }
         }
-        if !self.is_word("threads") { return self.err("an `inline.MSL` block says how many threads run it first: `inline.MSL threads $n { … }` (owner, 2026-10-01)"); }
+        if !self.is_word("threads") { return self.err("an `inline.%MSL` block says how many threads run it first: `inline.%MSL threads $n { … }` (owner, 2026-10-01)"); }
         self.advance();
         let tline = self.line();
         let count = self.expr()?;
@@ -3776,15 +3776,15 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
         // one kernel per block (owner, 2026-10-22: "yea"); helper functions without `kernel` are fine
         let code: String = text.lines().map(|l| l.split("//").next().unwrap_or("")).collect::<Vec<_>>().join("\n");
         let kernels = code.split(|c: char| !(c.is_alphanumeric() || c == '_')).filter(|w| *w == "kernel").count();
-        if kernels == 0 { return self.err("an `inline.MSL` block holds one `kernel` function, the one its threads run; this one has none"); }
-        if kernels > 1 { return self.err(format!("an `inline.MSL` block holds one kernel, and this one has {kernels}: put each other kernel in a block of its own; shared code goes in a `.metal` file, `#include`d (owner, 2026-10-22)")); }
+        if kernels == 0 { return self.err("an `inline.%MSL` block holds one `kernel` function, the one its threads run; this one has none"); }
+        if kernels > 1 { return self.err(format!("an `inline.%MSL` block holds one kernel, and this one has {kernels}: put each other kernel in a block of its own; shared code goes in a `.metal` file, `#include`d (owner, 2026-10-22)")); }
         // shared code: Metal's own `#include "…"`, the path from the kit's root, a file in the kit (owner, 2026-10-22)
         for l in text.lines() {
             let t = l.trim_start();
             let Some(rest) = t.strip_prefix("#include") else { continue };
             let rest = rest.trim();
             let Some(path) = rest.strip_prefix('"').and_then(|r| r.strip_suffix('"')) else {
-                return self.err(format!("an `inline.MSL` block includes a file of the kit, in quotes from its root: `#include \"shaders/common.metal\"`, not `{rest}`"));
+                return self.err(format!("an `inline.%MSL` block includes a file of the kit, in quotes from its root: `#include \"shaders/common.metal\"`, not `{rest}`"));
             };
             if path.starts_with('/') || path.split('/').any(|p| p == "..") { return self.err(format!("`#include \"{path}\"` reaches outside the kit: a shared Metal file is in the kit, its path from the kit's root")); }
             let dir = NEURON_DIR.with(|d| d.borrow().clone());
@@ -3793,7 +3793,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
         let mut binds: Vec<(Verb, String, u32)> = Vec::new();
         if self.is_word("with") {
             self.advance();
-            self.plain_open("an `inline.MSL` block's bindings")?;
+            self.plain_open("an `inline.%MSL` block's bindings")?;
             self.expect(Tok::LBracket, "`[` after `with`")?;
             while *self.peek() != Tok::RBracket {
                 let verb = match self.advance().tok {
@@ -3819,7 +3819,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
             }
             self.expect(Tok::RBracket, "`]` to close the bindings")?;
         }
-        self.expect(Tok::Semi, "`;` after the `inline.MSL` block")?;
+        self.expect(Tok::Semi, "`;` after the `inline.%MSL` block")?;
         // a list lent, not lent mutably, is read-only in the kernel: its parameter is `const device …` or `constant …`
         // (owner, 2026-10-25: "(a)"), or the kernel could change it behind the program's back
         for (verb, v, slot) in &binds {
@@ -4020,7 +4020,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
         let (minp, maxp) = PENDING_PLACES.with(|p| p.replace((None, None)));
         if minp.is_none() && maxp.is_none() { return Ok(t); }
         let base = match &t { Ty::Ranged(b, ..) => (**b).clone(), b => b.clone() };
-        if !matches!(base, Ty::Deci(_) | Ty::Percent(_)) { return self.err(format!("places are kept by a `d` or a percent; a {} is not decimal: `d64[max_places: 2]`", ty_name(&base))); }
+        if !matches!(base, Ty::Deci(_) | Ty::Percent(_)) { return self.err(format!("places are kept by a `d` or a percent; a {} is not decimal: `%d64[max_places: 2]`", ty_name(&base))); }
         Ok(Ty::Places(Box::new(t), minp, maxp))
     }
 
@@ -4301,7 +4301,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
         // a channel is the MCPS limb's, as `concur` is, and a limb's words are written bare (check claude, 2026-10-24:
         // `std::channel.take` and `channel.take` read differently)
         if kit.as_deref() == Some("std") && path.first().map(|s| s.as_str()) == Some("channel") {
-            return self.err_at(start, format!("`channel` is the MCPS limb's, not std's: write `{}(…)`", written.join(".")));
+            return self.err_at(start, format!("`%channel` is the MCPS limb's, not std's: write `%{}(…)`", written.join(".")));
         }
         // a print goes to stdout unless it says `.stderr` (owner, 2026-10-07: "default to out")
         let mut path = path;
@@ -5088,14 +5088,14 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
             Tok::Word(w) if w == "C" && *self.peek_at(1) == Tok::Dot && matches!(self.peek_at(2), Tok::Word(x) if x == "str") && *self.peek_at(3) == Tok::Dot => {
                 let op = match self.peek_at(4).clone() {
                     Tok::Word(o) if o == "read" || o == "make" => o,
-                    Tok::Word(o) => return self.err(format!("C strings are `C.str.read($p)` and `C.str.make(lend $s)`; there is no `C.str.{o}`")),
-                    other => return self.err(format!("C strings are `C.str.read($p)` and `C.str.make(lend $s)`, found {other}")),
+                    Tok::Word(o) => return self.err(format!("C strings are `%C.str.read($p)` and `%C.str.make(lend $s)`; there is no `%C.str.{o}`")),
+                    other => return self.err(format!("C strings are `%C.str.read($p)` and `%C.str.make(lend $s)`, found {other}")),
                 };
                 for _ in 0..5 { self.advance(); }
-                if *self.peek() != Tok::LBracket { return self.err(format!("`C.str.{op}` takes its value in `( )`: `C.str.{op}(…)`")); }
+                if *self.peek() != Tok::LBracket { return self.err(format!("`%C.str.{op}` takes its value in `( )`: `%C.str.{op}(…)`")); }
                 self.call_open(&format!("C.str.{op}"))?;
                 let args = self.bracket()?;
-                if args.values.len() != 1 { return self.err(format!("`C.str.{op}` takes one value")); }
+                if args.values.len() != 1 { return self.err(format!("`%C.str.{op}` takes one value")); }
                 let written = vec!["C".to_string(), "str".to_string(), op.clone()];
                 return Ok(Expr::Call(Call { handler: None, kit: Some("C".into()), path: vec!["str".into(), op], from: self.module.clone(), args, line, bare: false, written, labels: Vec::new() }));
             }
@@ -5238,7 +5238,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                 "channel" if *self.peek_at(1) == Tok::LBracket => {
                     // a type standing as a value was `channel[T]`, before 2026-10-22 (owner): a channel is made as a list is
                     if !OLD_CALLS.with(|c| c.get()) {
-                        return self.err("a channel is made as a list or a map is: `let $ch: channel[i32] = channel.empty;` (owner, 2026-10-22)");
+                        return self.err("a channel is made as a list or a map is: `let $ch: %channel[i32] = %channel.empty;` (owner, 2026-10-22)");
                     }
                     self.advance(); self.advance();
                     let ty = self.ty()?;
@@ -5398,7 +5398,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
                             incl_order = order;
                             Some(e)
                         }
-                        Tok::Word(c) if c == "C" => return self.err("`incl.C` sits at the top level of a file or in a `module` block, as `extern.C` does, never in a body"),
+                        Tok::Word(c) if c == "C" => return self.err("`incl.%C` sits at the top level of a file or in a `module` block, as `%extern.C` does, never in a body"),
                         other => return self.err(format!("`incl.` is followed by `bytes` or a text type (`incl.str.utf8[…]`), found {other}")),
                     };
                     self.expect(Tok::LBracket, "`[` and the file's path in quotes")?;
@@ -5682,7 +5682,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
 }
 
 fn bad_ptr<T>(p: &Parser) -> PResult<T> {
-    p.err("`ptr[T]` exists only at the boundary: in an `extern.C fn` signature or a `layout.C struct` field (design/ffi.md); a pointer is held with `:=`, never declared")
+    p.err("`ptr[T]` exists only at the boundary: in an `%extern.C fn` signature or a `%layout.C struct` field (design/ffi.md); a pointer is held with `:=`, never declared")
 }
 
 /// Module names (decided 2026-09-19, "whatever has most compat"): lowercase

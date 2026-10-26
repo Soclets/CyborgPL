@@ -1,1 +1,1 @@
-`channel` is the MCPS limb's, not std's: write `channel.send(…)`
+`%channel` is the MCPS limb's, not std's: write `%channel.send(…)`

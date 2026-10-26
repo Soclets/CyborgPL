@@ -1,1 +1,1 @@
-`channel.empty` takes its type from the declaration: `let $c: channel[i32] = channel.empty;`
+`%channel.empty` takes its type from the declaration: `let $c: %channel[i32] = %channel.empty;`

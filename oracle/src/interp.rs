@@ -630,10 +630,10 @@ impl<'p> Interp<'p> {
             Ty::Ptr(inner, _) => self.c_shaped(inner),
             Ty::Struct(n) => match self.prog.structs.iter().find(|d| &d.name == n) {
                 Some(d) if d.layout_c => Ok(()),
-                Some(_) => Err(format!("struct `{n}` is not `layout.C`; its layout is the prover's, not C's")),
+                Some(_) => Err(format!("struct `{n}` is not `%layout.C`; its layout is the prover's, not C's")),
                 None => match self.prog.enums.iter().find(|e| &e.name == n) {
                     Some(e) if e.c_values.is_some() => Ok(()),
-                    Some(_) => Err(format!("enum `{n}` is not `layout.C`; a C enum is `layout.C enum {n} {{ a = 0 }}`")),
+                    Some(_) => Err(format!("enum `{n}` is not `%layout.C`; a C enum is `%layout.C enum {n} {{ a = 0 }}`")),
                     None => Err(format!("no struct or enum named `{n}`")),
                 },
             },
@@ -666,30 +666,30 @@ impl<'p> Interp<'p> {
                 // a field may be a range type (owner, 2026-09-27: a): C sees the plain number, and
                 // a struct that comes from C is checked at the door, `out_of_range`
                 let laid = match &f.ty { Ty::Ranged(b, _, _) => &**b, t => t };
-                if let Err(m) = self.c_shaped(laid) { return rt(d.line, format!("`layout.C struct {}`: field `{}` — {m}", d.name, f.name)); }
+                if let Err(m) = self.c_shaped(laid) { return rt(d.line, format!("`%layout.C struct {}`: field `{}` — {m}", d.name, f.name)); }
             }
         }
         // `extern let` (decided 2026-09-21): C-shaped, like an extern parameter
         for x in &self.prog.externs {
-            if let Err(m) = self.c_shaped(&x.ty) { return rt(x.line, format!("`extern.C '{}'`: {m}", x.name)); }
+            if let Err(m) = self.c_shaped(&x.ty) { return rt(x.line, format!("`%extern.C '{}'`: {m}", x.name)); }
             // a C variable is read by its name, and a read never fails, so it holds C's plain
             // number; convert it with `to.Key[…] otherwise …` (owner, 2026-09-28: b)
-            if let Some(n) = self.c_checked(&x.ty) { return rt(x.line, format!("`extern.C '{}'`: a C variable cannot be `{n}` — reading a variable never fails, so it holds C's plain number: declare it `i32` and convert, `to.{n}['{}'] otherwise …`", x.name, x.name)); }
+            if let Some(n) = self.c_checked(&x.ty) { return rt(x.line, format!("`%extern.C '{}'`: a C variable cannot be `{n}` — reading a variable never fails, so it holds C's plain number: declare it `i32` and convert, `to.{n}['{}'] otherwise …`", x.name, x.name)); }
         }
         for f in self.prog.funcs.iter().filter(|f| f.is_extern) {
             for p in &f.params {
                 match &p.ty {
-                    None if !p.variadic => return rt(f.line, format!("`extern.C fn {}`: parameter '{}' needs a type; C has no inference", f.name, p.name)),
-                    Some(t) => if let Err(m) = self.c_shaped(t) { return rt(f.line, format!("`extern.C fn {}`: parameter '{}' — {m}", f.name, p.name)); },
+                    None if !p.variadic => return rt(f.line, format!("`%extern.C fn {}`: parameter '{}' needs a type; C has no inference", f.name, p.name)),
+                    Some(t) => if let Err(m) = self.c_shaped(t) { return rt(f.line, format!("`%extern.C fn {}`: parameter '{}' — {m}", f.name, p.name)); },
                     None => {}
                 }
-                if p.kind != ParamKind::Owned { return rt(f.line, format!("`extern.C fn {}`: C receives values and pointers, not `lent`; a lend is written at the call, against a `ptr` parameter", f.name)); }
+                if p.kind != ParamKind::Owned { return rt(f.line, format!("`%extern.C fn {}`: C receives values and pointers, not `lent`; a lend is written at the call, against a `ptr` parameter", f.name)); }
             }
             // A ranged return (`-> u64[0, 1_000_000]`) is a contract checked at the door: the call
             // fails `out_of_range` when C returns outside it (decided 2026-09-22). The base must be C-shaped.
             if let Some(t) = &f.ret {
                 let base = match t { Ty::Ranged(b, _, _) => &**b, t => t };
-                if let Err(m) = self.c_shaped(base) { return rt(f.line, format!("`extern.C fn {}`: return type — {m}", f.name)); }
+                if let Err(m) = self.c_shaped(base) { return rt(f.line, format!("`%extern.C fn {}`: return type — {m}", f.name)); }
             }
         }
         Ok(())
@@ -828,7 +828,7 @@ impl<'p> Interp<'p> {
         match flow {
             Ok(Flow::Fail(name, payload)) => {
                 // the task's failure lands where its `concur` was written (owner, 2026-09-22)
-                let Some(h) = task.handler.as_ref() else { return rt(task.line, format!("the task failed (`{name}`) and its `concur` has no `otherwise`")) };
+                let Some(h) = task.handler.as_ref() else { return rt(task.line, format!("the task failed (`{name}`) and its `%concur` has no `otherwise`")) };
                 self.call_is_stmt = true;
                 let r = self.handle_failure(h, task.line, "concur", name, payload, false);
                 self.call_is_stmt = saved_stmt;
@@ -1339,7 +1339,7 @@ impl<'p> Interp<'p> {
                     if !alive { return rt(*line, format!("'{v}' was already given away")); }
                     match verb {
                         Verb::Lend | Verb::LendMut => {
-                            if *detached { return rt(*line, format!("`concur.detached` may not lend '{v}': no scope protects a detached task — `give` or `copy` it")); }
+                            if *detached { return rt(*line, format!("`%concur.detached` may not lend '{v}': no scope protects a detached task — `give` or `copy` it")); }
                             if *verb == Verb::LendMut && kind == SlotKind::Lent { return rt(*line, format!("'{v}' is lent (shared); it cannot be lent mutably")); }
                             captures.push((v.clone(), cell, *verb == Verb::LendMut));
                         }
@@ -1371,8 +1371,8 @@ impl<'p> Interp<'p> {
                     let (v, prov) = self.single(&arm.chan, arm.line)?;
                     match (v, prov) {
                         (Value::Chan(c), Prov::Borrowed(..)) | (Value::Chan(c), Prov::Plain) | (Value::Chan(c), Prov::Fresh) => chans.push(c),
-                        (Value::Chan(_), Prov::Bare(n)) => return rt(arm.line, format!("a `whichever` arm lends its channel: `from lend {n}`")),
-                        (other, _) => return rt(arm.line, format!("a `whichever` arm waits on a channel, got {}", other.kind())),
+                        (Value::Chan(_), Prov::Bare(n)) => return rt(arm.line, format!("a `%whichever` arm lends its channel: `from lend {n}`")),
+                        (other, _) => return rt(arm.line, format!("a `%whichever` arm waits on a channel, got {}", other.kind())),
                     }
                 }
                 loop {
@@ -1443,9 +1443,9 @@ impl<'p> Interp<'p> {
             }
             // the oracle reads and checks a Metal block, then stops: running it is the GPU's (owner, 2026-10-22)
             Stmt::Msl { threads, text, binds, line } => {
-                if self.nocheck_depth == 0 && self.marks_needed() { return rt(*line, "an `inline.MSL` block is a no_check site: the compiler cannot see inside the Metal code"); }
+                if self.nocheck_depth == 0 && self.marks_needed() { return rt(*line, "an `inline.%MSL` block is a no_check site: the compiler cannot see inside the Metal code"); }
                 let (n, _) = self.bracket(threads, *line)?;
-                let n = match n { Value::Int(n) if n >= 1 => n, Value::Int(n) => return rt(*line, format!("an `inline.MSL` block runs at least one thread; here {n}")), other => return rt(*line, format!("the thread count is a whole number, not {}", other.kind())) };
+                let n = match n { Value::Int(n) if n >= 1 => n, Value::Int(n) => return rt(*line, format!("an `inline.%MSL` block runs at least one thread; here {n}")), other => return rt(*line, format!("the thread count is a whole number, not {}", other.kind())) };
                 let number = |v: &Value| matches!(v, Value::Int(_) | Value::Bin(_) | Value::Brain(_));
                 for (verb, v, slot) in binds {
                     let Some(sl) = self.lookup(v) else { return rt(*line, format!("'{v}' is not declared")) };
@@ -1454,9 +1454,9 @@ impl<'p> Interp<'p> {
                     let what = match &val {
                         x if number(x) => "a number",
                         Value::List(xs) if xs.iter().all(number) => "a list of numbers",
-                        Value::Struct(n, _) if layout_c(n) => "a `layout.C` struct",
-                        Value::List(xs) if xs.iter().all(|x| matches!(x, Value::Struct(n, _) if layout_c(n))) => "a list of `layout.C` structs",
-                        other => return rt(*line, format!("'{v}' is {}, and what binds to the GPU is a number, a list of numbers, a `layout.C` struct or a list of them, handed over as they are (owner, 2026-10-22)", other.kind())),
+                        Value::Struct(n, _) if layout_c(n) => "a `%layout.C` struct",
+                        Value::List(xs) if xs.iter().all(|x| matches!(x, Value::Struct(n, _) if layout_c(n))) => "a list of `%layout.C` structs",
+                        other => return rt(*line, format!("'{v}' is {}, and what binds to the GPU is a number, a list of numbers, a `%layout.C` struct or a list of them, handed over as they are (owner, 2026-10-22)", other.kind())),
                     };
                     match (verb, what) {
                         (Verb::Copy, "a number") => {}
@@ -1638,14 +1638,14 @@ impl<'p> Interp<'p> {
         match (ty, v) {
             // a C string: its bytes and a 0; a bound counts the 0 or not, as it says (owner, 2026-10-19)
             (Ty::CStr(bound), Value::List(items)) => {
-                if items.last() != Some(&Value::Int(0)) || !items.iter().all(|x| matches!(x, Value::Int(b) if (0..=255).contains(b))) { return rt(line, format!("a {name} is bytes ending in a 0, made with `C.str.make`")); }
+                if items.last() != Some(&Value::Int(0)) || !items.iter().all(|x| matches!(x, Value::Int(b) if (0..=255).contains(b))) { return rt(line, format!("a {name} is bytes ending in a 0, made with `%C.str.make`")); }
                 if let Some((lo, hi, z)) = bound {
                     let n = items.len() as i128 - if *z { 0 } else { 1 };
                     if n < *lo || n > *hi { return site(line, format!("a C string of {n} bytes does not fit {name}")); }
                 }
                 Ok(())
             }
-            (Ty::CStr(_), other) => rt(line, format!("a {name} is made with `C.str.make`, not {}", other.kind())),
+            (Ty::CStr(_), other) => rt(line, format!("a {name} is made with `%C.str.make`, not {}", other.kind())),
             // the places a `d` or a percent keeps (owner, 2026-10-17): its type first, then its decimals
             (Ty::Places(t, _, maxp), v) => {
                 self.check_type(v, t, line)?;
@@ -1682,7 +1682,7 @@ impl<'p> Interp<'p> {
             (Ty::Bin(_), Value::Int(i)) => rt(line, format!("{i} is an integer, not {name}; there is no implicit conversion between numeric families")),
             // the brain float is a family of its own (owner, 2026-10-02: a): it never mixes without `to.`
             (Ty::Brain, Value::Brain(_)) => Ok(()),
-            (Ty::Brain, v) => rt(line, format!("{} is {}, not brain16; there is no implicit conversion between numeric families: `to.brain16(…)`", v.show_stored(), v.kind())),
+            (Ty::Brain, v) => rt(line, format!("{} is {}, not brain16; there is no implicit conversion between numeric families: `to.%brain16(…)`", v.show_stored(), v.kind())),
             (Ty::Bin(_) | Ty::Int(_) | Ty::Uint(_), Value::Brain(b)) => rt(line, format!("{} is a brain16, not {name}; there is no implicit conversion between numeric families: `to.{name}(…)`", exact_decimal(*b))),
             (Ty::Deci(w), Value::Deci(d)) => if d.width == *w { Ok(()) } else { rt(line, format!("a d{} is not {name}; widths do not change by themselves: `to.{name}(…)`", d.width)) },
             (Ty::Deci(_), v) => rt(line, format!("{} is {}, not {name}; there is no implicit conversion between numeric families", v.show_stored(), v.kind())),
@@ -2751,8 +2751,8 @@ impl<'p> Interp<'p> {
             Expr::Convert(Ty::Struct(tname), b, handler, _, _) => {
                 let def = match self.prog.enums.iter().find(|e| &e.name == tname) {
                     Some(e) if e.c_values.is_some() => e.clone(),
-                    Some(_) => return rt(line, format!("no conversion to the enum `{tname}`; only a `layout.C enum`'s numbers convert")),
-                    None => return rt(line, format!("no conversion to {tname}; conversions are between numbers, text, lists and arrays, and into a `layout.C enum`")),
+                    Some(_) => return rt(line, format!("no conversion to the enum `{tname}`; only a `%layout.C enum`'s numbers convert")),
+                    None => return rt(line, format!("no conversion to {tname}; conversions are between numbers, text, lists and arrays, and into a `%layout.C enum`")),
                 };
                 let fails = vec![FailCase { name: "out_of_range".into(), ty: None }];
                 self.check_handler(handler.as_ref(), &fails, &format!("to.{tname}"), line)?;
@@ -3057,14 +3057,14 @@ impl<'p> Interp<'p> {
                     }
                     // a C enum's case to its number (owner, 2026-09-28): never fails; the number must fit
                     (Ty::Int(_) | Ty::Uint(_), Value::Enum(tn, cn, None)) => {
-                        let Some(e) = self.prog.enums.iter().find(|e| &e.name == tn && e.c_values.is_some()) else { return rt(line, format!("only a `layout.C enum` has numbers; `{tn}` is a Cyborg enum")) };
+                        let Some(e) = self.prog.enums.iter().find(|e| &e.name == tn && e.c_values.is_some()) else { return rt(line, format!("only a `%layout.C enum` has numbers; `{tn}` is a Cyborg enum")) };
                         let i = e.cases.iter().position(|c| &c.name == cn).unwrap();
                         let k = Value::Int(e.c_values.as_ref().unwrap()[i]);
                         fit_base!(k.clone());
                         k
                     }
                     (Ty::Int(_) | Ty::Uint(_), Value::Char(_, c)) => return rt(line, format!("a character does not convert to a number: `char.code(`{c}`)` is its code, `to.i32(to.str.utf8(…))` its digit value (decided 2026-09-21)")),
-                    (Ty::Char(_), Value::Int(_)) => return rt(line, "a number does not convert to a character: `char.point.from_code(…) otherwise …` (decided 2026-09-21)"),
+                    (Ty::Char(_), Value::Int(_)) => return rt(line, "a number does not convert to a character: `char.%point.from_code(…) otherwise …` (decided 2026-09-21)"),
                     (Ty::Char(unit), Value::Str(s) | Value::Char(_, s)) => {
                         let count = match unit { CharUnit::Byte => s.len(), CharUnit::Point => s.chars().count(), CharUnit::Grapheme => grapheme_count(s) };
                         if count != 1 {
@@ -3804,7 +3804,7 @@ impl<'p> Interp<'p> {
                 return match op {
                     "+" | "-" => Ok(Value::Percent(Box::new(self.binary_at(op, (**x).clone(), (**y).clone(), line, ieee)?))),
                     "<" | ">" | "at_most" | "at_least" | "equal_to" | "not_equal" => self.binary_at(op, (**x).clone(), (**y).clone(), line, ieee),
-                    _ => rt(line, format!("`{op}` between two percents is not decided; convert them: `to.d64($a) {op} to.d64($b)`")),
+                    _ => rt(line, format!("`{op}` between two percents is not decided; convert them: `to.%d64($a) {op} to.%d64($b)`")),
                 };
             }
             (Value::Percent(_), _) | (_, Value::Percent(_)) => {
@@ -3885,7 +3885,7 @@ impl<'p> Interp<'p> {
             ("at_most", Brain(x), Brain(y)) => Bool(x <= y),
             ("at_least", Brain(x), Brain(y)) => Bool(x >= y),
             (_, x, y) if (matches!(x, Brain(_)) || matches!(y, Brain(_))) && !matches!(op, "equal_to" | "not_equal") =>
-                return rt(line, format!("`{op}` between {} and {}: the brain float is a family of its own; convert one, `to.brain16(…)` or `to.f32(…)`", x.kind(), y.kind())),
+                return rt(line, format!("`{op}` between {} and {}: the brain float is a family of its own; convert one, `to.%brain16(…)` or `to.f32(…)`", x.kind(), y.kind())),
             // deci (owner, 2026-09-29): exact, then rounded to the width, half to even
             (_, Deci(x), Deci(y)) if x.width != y.width => return rt(line, format!("`{op}` between a d{} and a d{}: say which width, `to.d{}(…)`", x.width, y.width, x.width.max(y.width))),
             ("+", Deci(x), Deci(y)) => Deci(x.add(&y).or_else(|m| site(line, m))?),
@@ -3905,7 +3905,7 @@ impl<'p> Interp<'p> {
             }
             ("xx", Deci(x), Int(n)) => match x.pow_int(n) { None => return site(line, "zero to a negative power: division by zero"), Some(r) => Deci(r.or_else(|m| site(line, m))?) },
             (_, Deci(_), Int(_) | Bin(_)) | (_, Int(_) | Bin(_), Deci(_)) =>
-                return rt(line, format!("`{op}` between a deci and another number family: there is no implicit conversion between numeric families; `to.d64(…)`")),
+                return rt(line, format!("`{op}` between a deci and another number family: there is no implicit conversion between numeric families; `to.%d64(…)`")),
             (_, Int(_), Bin(_)) | (_, Bin(_), Int(_)) if matches!(op, "+" | "-" | "x" | "xx") || op.starts_with("div.") || op.starts_with("mod.") =>
                 return rt(line, format!("`{op}` between an integer and a bin: there is no implicit conversion between numeric families")),
             // a char compares by its content, whatever unit it was declared in
@@ -3997,7 +3997,7 @@ impl<'p> Interp<'p> {
             // char.code[c] (decided 2026-09-21): the number under a point or a byte
             let (v, _) = self.value(&args.values[0])?;
             return match v {
-                Value::Char(CharUnit::Grapheme, g) => rt(line, format!("`{g}` is a grapheme, which has no single code; its points: `str.each.point(lend to.str.utf8(…))`, or `to.char.point(…) otherwise …` if it is one")),
+                Value::Char(CharUnit::Grapheme, g) => rt(line, format!("`{g}` is a grapheme, which has no single code; its points: `str.each.point(lend to.str.utf8(…))`, or `to.char.%point(…) otherwise …` if it is one")),
                 Value::Char(_, c) => Ok(Value::Int(c.chars().next().map(|ch| ch as i128).unwrap_or(0))),
                 other => rt(line, format!("`char.code` takes a character, got {}", other.kind())),
             };
@@ -4470,12 +4470,12 @@ impl<'p> Interp<'p> {
     // ---- channels (design/concurrency.md, 2026-09-22) ---------------------------
 
     fn chan_arg(&mut self, args: &Bracket, want: usize, op: &str, line: usize) -> Result<(Rc<RefCell<Chan>>, Vec<Value>), RuntimeError> {
-        if args.values.len() != want { return rt(line, format!("`channel.{op}` takes {want} argument(s), given {}", args.values.len())); }
+        if args.values.len() != want { return rt(line, format!("`%channel.{op}` takes {want} argument(s), given {}", args.values.len())); }
         let (v, prov) = self.value(&args.values[0])?;
         let c = match (v, &prov) {
             (Value::Chan(c), Prov::Borrowed(..)) | (Value::Chan(c), Prov::Plain) | (Value::Chan(c), Prov::Fresh) => c,
-            (Value::Chan(_), Prov::Bare(n)) => return rt(line, format!("`channel.{op}` takes the channel by `lend {n}`")),
-            (other, _) => return rt(line, format!("`channel.{op}` needs a channel, got {}", other.kind())),
+            (Value::Chan(_), Prov::Bare(n)) => return rt(line, format!("`%channel.{op}` takes the channel by `lend {n}`")),
+            (other, _) => return rt(line, format!("`%channel.{op}` needs a channel, got {}", other.kind())),
         };
         let mut rest = Vec::new();
         for a in &args.values[1..] {
@@ -5682,8 +5682,8 @@ impl<'p> Interp<'p> {
             self.check_handler(c.handler.as_ref(), &fails, "C.str.read", c.line)?;
             // a lent C string made here reads as a pointer to its first byte
             let v = match (&v, &prov) { (Value::List(_) | Value::Str(_), Prov::Borrowed(cell, m)) => Value::Ptr(Ptr { cell: Some(cell.clone()), index: 0, mutable: *m }), _ => v.clone() };
-            let Value::Ptr(p) = &v else { return rt(c.line, format!("`C.str.read` reads a C string through a pointer, `ptr[u8]`; got {}", v.kind())) };
-            let Some(cell) = &p.cell else { return site(c.line, "`C.str.read` was given a null pointer") };
+            let Value::Ptr(p) = &v else { return rt(c.line, format!("`%C.str.read` reads a C string through a pointer, `ptr[u8]`; got {}", v.kind())) };
+            let Some(cell) = &p.cell else { return site(c.line, "`%C.str.read` was given a null pointer") };
             let all: Vec<u8> = match &*cell.borrow() { Value::List(items) => items.iter().map(|x| if let Value::Int(i) = x { *i as u8 } else { 0 }).collect(), Value::Str(s) => s.as_bytes().to_vec(), other => return rt(c.line, format!("a pointer into {} is not a C string", other.kind())) };
             let start = (p.index.max(0) as usize).min(all.len());
             let bytes: Vec<u8> = all[start..].iter().take_while(|b| **b != 0).cloned().collect();
@@ -5693,8 +5693,8 @@ impl<'p> Interp<'p> {
             };
         }
         // `make`: lent, as std's text functions are
-        if !matches!(prov, Prov::Borrowed(..) | Prov::Literal | Prov::Fresh) { return rt(c.line, "`C.str.make` only looks at its text: `C.str.make(lend $s)`"); }
-        let Value::Str(t) = &v else { return rt(c.line, format!("`C.str.make` makes a C string from a text; got {}", v.kind())) };
+        if !matches!(prov, Prov::Borrowed(..) | Prov::Literal | Prov::Fresh) { return rt(c.line, "`%C.str.make` only looks at its text: `%C.str.make(lend $s)`"); }
+        let Value::Str(t) = &v else { return rt(c.line, format!("`%C.str.make` makes a C string from a text; got {}", v.kind())) };
         // a literal with no 0 byte cannot fail, so it needs no `otherwise` (owner: the check dropped where proven)
         let literal = matches!(&c.args.values[0], crate::ast::Value::Expr(crate::ast::Expr::Text(..)));
         let proven = literal && !t.contains('\0');

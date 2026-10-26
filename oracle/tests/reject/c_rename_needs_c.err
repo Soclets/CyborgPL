@@ -1,1 +1,1 @@
-says whose it is: `extern.C fn printf_count = C.printf
+says whose it is: `%extern.C fn printf_count = %C.printf

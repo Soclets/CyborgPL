@@ -1,1 +1,1 @@
-a channel is made as a list or a map is: `let $ch: channel[i32] = channel.empty;`
+a channel is made as a list or a map is: `let $ch: %channel[i32] = %channel.empty;`
