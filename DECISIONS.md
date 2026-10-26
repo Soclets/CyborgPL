@@ -34,14 +34,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
-### 2026-10-26 — An idea for `CyJet.lock`: `kayo prepare --paranoid` also writes an AES-256 `CyJet.lock.aes`, for fun (owner; not designed)
+### 2026-10-26 — An idea for `CyJet.lock`: `kayo prepare --paranoid` writes it only as AES-256 `CyJet.lock.aes`, under a password (owner; not designed)
 
 The owner: "Should we add AES-256 encryption to the `.lock`? It's a funny one". Design claude: no for the lock itself
 (git diffs it, every builder needs it, reproducible builds rebuild from it; a key everyone holds is no secret). The
 owner: "C'mon, how about a special command". Design claude sketched an opt-in flag on a kayo command (CyJet has no
 command of its own, 2026-10-15): `kayo prepare --paranoid` writes the plain `CyJet.lock` as always and an AES-256
-`CyJet.lock.aes` beside it ("for no reason at all"), which kayo never reads. The owner: "yea" to recording it. **An
-idea, to take up when `CyJet.lock` is designed**; nothing about the lock is decided by it.
+`CyJet.lock.aes` beside it ("for no reason at all"), which kayo never reads. The owner: "yea" to recording it, then "I
+think that should only generate the AES version, I mean it's already an opt-in command" (so kayo must read it, with a
+key from somewhere), "Maybe a password you can set?", and "yes" to: **`kayo prepare --paranoid` writes only
+`CyJet.lock.aes`, asking for a password twice; `kayo build` asks for it, or reads `CYJET_LOCK_PASSWORD` where nothing
+can ask; the key is the password stretched by Argon2id, the file sealed with AES-256-GCM, so a wrong password and an
+edited file both fail ("the lock's password is wrong, or the file was changed"), never a build without the lock.**
+Design claude's correction, asked "the `.lock` is already recorded to be in real binary, right?" (yes, 2026-10-22): its
+first objection, that git diffs a lock readably, was wrong, a binary lock never diffing readably. **An idea, to take up
+when `CyJet.lock` is designed.**
 
 ### 2026-10-26 — std keeps going; it is not paused until it can be written wholly in CyborgPL (owner)
 
