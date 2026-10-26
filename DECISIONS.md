@@ -34,6 +34,14 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-26 — A module in any file of the kit reaches the root's bounds through `my.` (owner)
+
+Compiler claude, building `coll.bound`: both engines read a bound only in its own file. Asked whether a module in
+another file reaches the root's bounds as it reaches the root's functions, consts and types (`count: my.quantity`),
+the owner asked "What is `my` currently used for?" (a root function, `my.helper()`; a root function named like a
+built-in word, `my.true()`; a root const, `my.$pi`; a root type, `my.Color`; std going back down, `my.str.…`), then
+"yes, no shit". So **`my.quantity` names the root's bound from any file of the kit**, as `my.Color` names its type.
+
 ### 2026-10-26 — std's tests live in the repo, in `std/tools/checks/` (owner)
 
 std claude had held a question for the owner: whether std's tests may live in the repo. Given the scratch-folder rule
