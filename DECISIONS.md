@@ -106,8 +106,10 @@ mark on the limb's word on both lines (owner, 2026-10-27: "yes"). A bare `no_che
 form, or the mark would not be reliable. The owner: "yes". So **every `no_check` wears `!`**: the block, `!no_check:` …
 `!end of no_check`; a statement, `!no_check let $n := write(1, lend $text, 14);`; before inline code, `!no_check
 inline.ASM with […]:` … `end of inline.ASM` (the `!` on `no_check`, which is the danger); `NO_FUCKING_CHECKS` the same.
-The compiler requires it and refuses a bare `no_check`, so `!no_check` finds every unchecked site. Not built; the rest of
-the redesign follows.
+The compiler requires it and refuses a bare `no_check`, so `!no_check` finds every unchecked site. The other blocks,
+shown in the pattern (`while $i < 10:`, `loop:`, `for $x in lend $xs:`, `module shop:`, `interface Number:`, `coll.fn
+area:`, `coll.bound trip:`, `test fn adds:`, `enum Alarm:`, each closed by `end of` its kind and name): "yes". Not built;
+the redesign goes on with abbreviations, then the operator symbols.
 
 ### 2026-10-26 — In `print.format`, a newline is `{newln}` and a tab `{tab}`; `\n` and `\t` there become old spellings (owner; not built)
 
