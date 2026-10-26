@@ -77,7 +77,17 @@ semicolons inside blocks** (`Line[name = "apple", count = 3]` keeps its commas).
 bindings go, (a) the start line or (b) the end line as today, design claude recommending (a) (the end line is kind and
 name only; bindings are what the block needs before it runs, as parameters are): "Your recc". So **`no_check start of
 inline.ASM with [$a -> x0, $r <- x0]:` … `end of inline.ASM`**, Metal's `threads N` on the start line too (design
-claude's reading: `no_check` stays in front, as before any statement). Not built; the rest of the redesign follows.
+claude's reading: `no_check` stays in front, as before any statement). An `otherwise` with arms: its arms are `case`
+blocks inside `start of otherwise:` / `end of otherwise` (shown, as `match`'s; the one-value `otherwise 0` unchanged).
+Asked "Should the long version `otherwise` be on another line?" (the compiler does not care, `;` ending a statement;
+on its own line, the call's line looks finished), the owner wrote the call's line ending in `-`, "See that `-`?": a
+hyphen, the statement carrying on below. Design claude noted `-` is minus, a trailing one already legal (`$total -`
+over two lines), and offered (1) the same line, recommended, (2) the hyphen as another character, `\`, (3) `-`, read
+as a hyphen only when a block's `start of` comes next. The owner: "Opt 3, because we'll be doing an operator symbol
+purge tomorrow". So **a `-` ending a line, with a block's `start of` on the next, joins them**:
+`let $line := parse_line(lend $piece)-` / `start of otherwise:` … `end of otherwise;` (design claude's reading: only
+before a block's start, for now; tomorrow's purge of operator symbols may free `-` altogether). Not built; the rest of
+the redesign follows.
 
 ### 2026-10-26 — In `print.format`, a newline is `{newln}` and a tab `{tab}`; `\n` and `\t` there become old spellings (owner; not built)
 
