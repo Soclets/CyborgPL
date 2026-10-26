@@ -34,6 +34,18 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-26 — With no OS, reaching `MAIN`'s end calls the target's `exit` with 0, when the target names one (owner)
+
+Check claude, booting generated programs on QEMU's `virt` board (`check bare`), found kayo leaves a board asleep when
+`MAIN` ends, though the target names an `exit`; 2026-10-09's Q3 ("when MAIN ends with no OS, the CPU sleeps forever
+there") was ruled just before `exit` existed (`std::exit` calls the board's, else ends as MAIN does). Design claude
+recommended calling it with 0, as ending `MAIN` exits 0 with an OS ("the one implied thing in the language"). The owner
+asked "Does `no` cost bugs?" (no wrong results; the same program would end on the Mac and hang on the board, a hang an
+outside watcher cannot tell from being stuck; the chip left powered; Q3's reason, a debugger seeing where it stopped,
+is kept by a program that loops at its end on purpose), then "yes". So **reaching `MAIN`'s end on a no-OS target calls
+the target's `exit` with 0 when one is named; with none named, the CPU sleeps there, as Q3 says.** The oracle needs no
+change: it runs a no-OS program as with an OS, where `MAIN`'s end is exit 0.
+
 ### 2026-10-26 — Built in the oracle: a no-OS target's `layout`, `output` and `exit`; examples/bare_station (owner: "Make another big example that uses freestanding CyborgPL")
 
 2026-10-09's target lines for a chip with no OS (`layout = boards/virt.ld`, `output = my.board.write`, `exit =

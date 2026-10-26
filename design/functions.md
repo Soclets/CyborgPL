@@ -125,7 +125,9 @@ MAIN {
 `MAIN` is the program's block — not a function. No `fn`, no return type,
 no `return`. When the block ends, the process exits 0; that is the one
 implied thing in the language. Any other exit code is stated where it
-happens: `std::exit[1];`, typed `u8` because an exit status is 0–255.
+happens: `std::exit[1];`, typed `u8` because an exit status is 0–255. On a chip with no OS (`aarch64-none`)
+the end calls the target's `exit` with 0 when the target names one, and otherwise the CPU sleeps there
+(2026-10-09; 2026-10-26).
 
 `MAIN` is **unquoted** because it belongs to the language, not the user. It
 cannot be called: it is not a function. (Since 2026-10-26 a writer's function may be
