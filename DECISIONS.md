@@ -100,7 +100,14 @@ with its line ending in `:`, with no `start of`**, and still closes with `end of
 `case hot $level:` … `end of case hot`; `let $rank := match $a:` … `end of match;`; `struct Line:` … `end of struct Line`;
 `!case out_of_stock $what:` … `!end of case out_of_stock`. Design claude's readings: the line-end `-` now joins a line to
 a block's opening line below it (`…(lend $piece)-` / `otherwise:`). **`%concur with […]:` … `end of %concur`**, the
-mark on the limb's word on both lines (owner, 2026-10-27: "yes"). Not built; the rest of the redesign follows.
+mark on the limb's word on both lines (owner, 2026-10-27: "yes"). A bare `no_check` block is its own kind, `no_check:` …
+`end of no_check` (owner: "yes", over design claude's earlier `no_check block:`); then "Actually, wait. Should it have
+`!` too?" Design claude: yes, unchecked code being what a reviewer looks at first (good practice 5), and then on every
+form, or the mark would not be reliable. The owner: "yes". So **every `no_check` wears `!`**: the block, `!no_check:` …
+`!end of no_check`; a statement, `!no_check let $n := write(1, lend $text, 14);`; before inline code, `!no_check
+inline.ASM with […]:` … `end of inline.ASM` (the `!` on `no_check`, which is the danger); `NO_FUCKING_CHECKS` the same.
+The compiler requires it and refuses a bare `no_check`, so `!no_check` finds every unchecked site. Not built; the rest of
+the redesign follows.
 
 ### 2026-10-26 — In `print.format`, a newline is `{newln}` and a tab `{tab}`; `\n` and `\t` there become old spellings (owner; not built)
 
