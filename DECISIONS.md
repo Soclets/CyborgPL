@@ -34,6 +34,25 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-26 — Redesign: every block is `start of …` / `end of …` lines, kind then name; `!` marks what needs attention, `!start of MAIN` (owner; not built)
+
+Starting the redesign the owner planned for 2026-10-27 ("I have some big redesigns for tomorrow"), from a phone at
+night. The owner: "Let's start with blocks first, the current ones that use `{}`", sketching `!start of
+program_start_block MAIN` … `!end of program_start_block MAIN`, "To be consistent, we could make every block like that,
+but maybe another thing after `start of` & `end of`. Maybe use `.` ways instead of `_` there. `!` means 'needs your
+attention', it would also apply to other stuff, like a handler holding a `continue`". Design claude noted `!` on every
+block could not also mean attention, and recommended start/end lines only on named top-level blocks; the owner: "I
+think for consistency, it should be every. Also, I think the end or start of MAIN is a major thing, while an if
+starting or ending isn't?" So **every block opens with a `start of …` line and closes with an `end of …` line**, in
+place of `{ }`, and **`!` goes only where something needs attention**: `MAIN`'s lines, a handler holding a `continue`,
+others to come. Asked "Why `program.start`? There's a rule about `.` vs `_`" (`.` narrows into a variant, `_` joins
+words of one name; "the program's start" is neither), then, on whether `MAIN` alone would not say what it is ("Idk how
+to say it easily"), design claude: `MAIN` is the kind, as `fn` and `if` are, with no name because there is only one,
+as an `if` has none. The owner: "Ahhh. Yes, I couldn't see that. Very consistent". So **a block's line is its kind,
+then its name if the kind has one**: `start of fn add_points`, `start of struct Line`, `start of if`, `!start of MAIN`,
+and `.` only for a kind that is a variant (`start of coll.handler order_failed`). Not built; the rest of the redesign
+follows.
+
 ### 2026-10-26 — In `print.format`, a newline is `{newln}` and a tab `{tab}`; `\n` and `\t` there become old spellings (owner; not built)
 
 The owner: "Why not `{newln}` in print.format instead?" 2026-10-07 replaced `\n` with `newln` outside quotes (owner:
