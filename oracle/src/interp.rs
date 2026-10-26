@@ -225,6 +225,8 @@ impl<'p> Interp<'p> {
         self.prepare()?;
         let main = match &self.prog.main {
             Some(m) => m,
+            // `fn MAIN` is an ordinary function since 2026-10-26: the program starts at the block
+            None if self.prog.funcs.iter().any(|f| f.name == "MAIN" && f.module.is_empty()) => return rt(0, "this kit has no `MAIN { … }`, the program's block; `fn MAIN` is an ordinary function, called `my.MAIN()` (owner, 2026-10-26)"),
             None => return rt(0, "this kit has no MAIN, so it is a library, not a program"),
         };
         // `MAIN ['argc': i32, 'argv': ptr[ptr[u8]]]`: C's own view of the command line — the

@@ -128,7 +128,9 @@ implied thing in the language. Any other exit code is stated where it
 happens: `std::exit[1];`, typed `u8` because an exit status is 0–255.
 
 `MAIN` is **unquoted** because it belongs to the language, not the user. It
-cannot be called: it is not a function. It is the single root of the prover's
+cannot be called: it is not a function. (Since 2026-10-26 a writer's function may be
+named `MAIN` as a keyword may, reached only by its path, `my.MAIN()`; bare `MAIN` is
+always this block.) It is the single root of the prover's
 whole-program analysis and owns the program's top-level values. Next to
 `fn` it is the only shouting word in a file — the owner kept it for exactly
 that reason: its distinctness is the feature, and Rust's `fn main` being an

@@ -34,6 +34,19 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-26 — A function may be named `MAIN`, reached only by its path, `my.MAIN()`, as a keyword is (owner)
+
+The owner asked whether `MAIN { main(); }` and `fn MAIN … MAIN { MAIN(); }` are possible (`fn main` is an ordinary
+name; `fn MAIN` was refused, "MAIN is the program's block, not a function", and calling `MAIN` too, 2026-09-14), then
+"I mean, is our `MAIN` really a `fn`?" (no: the program's block, no return, uncallable), "So, why can't you just make a
+real `fn MAIN` to use?" (design claude: the word would mean two things to a reader), "But `MAIN` isn't a `fn`, right?"
+(right: no clash of kinds, only reading), and "What other `fn` names are refused?" (none of the 78 keywords: since
+2026-09-19 a keyword may name a function reached by path, never bare, `my.true()`; `MAIN` was the only one). Design
+claude then recommended the keyword rule for `MAIN` too; the owner: "yes". So **`fn MAIN [ … ]` is an ordinary
+function, called `my.MAIN()`**; bare `MAIN` is always the program's block, which a program still has exactly one of.
+Built in the oracle: examples/fn_main.cy, tests/reject/main_fn_called_bare, main_as_func (a kit with `fn MAIN` and no
+block is told so).
+
 ### 2026-10-26 — A limb's every piece is marked `%`: `inline.%MSL`, `%d64`, `%concur`; `%` is no longer percent (owner)
 
 The owner: "Show me syntax, if every limb thing needs to be marked with `%`. Say `inline.%MSL`, because `inline` is

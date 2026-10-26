@@ -1547,7 +1547,8 @@ impl Parser {
         };
         // A keyword may name a function (decided 2026-09-19) — it is then never called
         // bare, only through a path: `my.to[…]` inside, `std::to[…]` outside.
-        if name == "MAIN" { return self.err("MAIN is the program's block, not a function: `MAIN { … }`"); }
+        // `fn MAIN` too, as the keywords (owner, 2026-10-26: "yes"): bare `MAIN` is always the program's block, so the
+        // function is reached only by its path, `my.MAIN()`
         // a function can belong to a type: `fn Counter.next […]`, called `Counter.next[…]` (owner,
         // 2026-10-09: "`b`"); it sits under the type's name as a module's functions sit under the module's
         let mut owner: Option<String> = None;
@@ -2648,7 +2649,7 @@ impl Parser {
                 "const" => { let c = self.const_def()?; Ok(Stmt::LocalConst { name: c.name, ty: c.ty, value: c.value, line: c.line }) }
                 "pub" => self.err("`pub` goes at the top level, before `fn`, `struct`, `const`, or `module`"),
                 "module" => self.err("a `module` block sits at the top level of a file, not inside a body"),
-                "MAIN" => self.err("MAIN cannot be nested or called"),
+                "MAIN" => self.err("bare `MAIN` is the program's block and cannot be nested or called; a function named `MAIN` is called by its path, `my.MAIN()` (owner, 2026-10-26)"),
                 "else" => self.err("`else` without an `if`"),
                 // `no_cheat`: the work written really runs, calls included (owner, 2026-10-18: "(b)", in front of any
                 // statement or block as `no_check` is). The oracle never takes a shortcut, so it reads the word and runs
@@ -4272,7 +4273,7 @@ fn handler_block_in(t: &[Token], coll: &str, member: &str) -> Option<Result<Hand
         let line = self.line();
         let start = self.pos;
         let first = match self.advance().tok { Tok::Word(w) => w, other => return self.err(format!("expected a name, found {other}")) };
-        if crate::spellings::is_reserved(&first) && first != "my" && *self.peek() != Tok::ColonColon {
+        if (crate::spellings::is_reserved(&first) || first == "MAIN") && first != "my" && *self.peek() != Tok::ColonColon {
             return self.err(format!("`{first}` is a keyword; a function named `{first}` is reached through a path, never bare: `my.{first}(…)`"));
         }
         let (kit, mut path) = if *self.peek() == Tok::ColonColon {
