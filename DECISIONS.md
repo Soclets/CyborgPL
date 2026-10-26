@@ -99,8 +99,8 @@ with its line ending in `:`, with no `start of`**, and still closes with `end of
 … `end of fn add`; `if $count > 0:` … `end of if`; `else if $t > 220:` … `end of else if`; `!MAIN:` … `!end of MAIN`;
 `case hot $level:` … `end of case hot`; `let $rank := match $a:` … `end of match;`; `struct Line:` … `end of struct Line`;
 `!case out_of_stock $what:` … `!end of case out_of_stock`. Design claude's readings: the line-end `-` now joins a line to
-a block's opening line below it (`…(lend $piece)-` / `otherwise:`); `%concur with […]:` … `end of %concur`. Not built;
-the rest of the redesign follows.
+a block's opening line below it (`…(lend $piece)-` / `otherwise:`). **`%concur with […]:` … `end of %concur`**, the
+mark on the limb's word on both lines (owner, 2026-10-27: "yes"). Not built; the rest of the redesign follows.
 
 ### 2026-10-26 — In `print.format`, a newline is `{newln}` and a tab `{tab}`; `\n` and `\t` there become old spellings (owner; not built)
 
