@@ -53,8 +53,10 @@ gives it one), and design claude switched; the owner: "yes". So:
 - **`80%` becomes `80 percent`** (`exactly 7.5 percent`), and **`%[d32]` becomes `percent[d32]` only**; good practice 18
   reverses. A quoted name (`'80%'`) and plain text in a format are untouched.
 Design claude's reading, from the owner's examples: the mark goes on the first word that is the limb's (`inline.%MSL`,
-`incl.%C` after a base word; `%d64`, `%concur`, `%not_std.i24` the limb's from the start). Open: names in other
-scripts (unicode's); `%`'s old-spelling refusal for `mod`. Not built: every C, decimal, task and GPU program changes.
+`incl.%C` after a base word; `%d64`, `%concur`, `%not_std.i24` the limb's from the start). Asked whether a name in
+another script (`let $ชื่อ := 5;`, unicode's) is marked, design claude recommending no (a name is the writer's, not a
+piece of the language; the manifest's `unicode` already says it): "correct". So **names are never marked**. Open: who
+says where a limb's marks go; `%`'s old-spelling refusal for `mod`. Not built: every C, decimal, task and GPU program changes.
 
 ### 2026-10-26 — A module's bounds are reached by its path, the collection's name included: `shop.order.discount` (owner)
 

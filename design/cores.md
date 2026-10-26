@@ -150,7 +150,8 @@ no_check inline.%MSL threads 64 { … } with [lend.mut $xs -> buffer(0)];   # Me
 ```
 
 So `%` no longer means percent: `80 percent`, `percent[d32]`. A program's limbs show where they are used, and `%C`
-nowhere means it never calls C. Open: names in other scripts; the `%` old-spelling refusal for `mod`.
+nowhere means it never calls C. **Names are never marked** (owner: "correct"): `let $ชื่อ := 5;` is the writer's name, not
+a piece of the language. Open: who says where a limb's marks go; the `%` old-spelling refusal for `mod`.
 
 ## The official limbs
 
