@@ -522,6 +522,9 @@ pub struct Program {
     /// Calls in `( )`, plain names `$name` every other time (owner,
     /// 2026-10-22; oracle c16dc2d7): `calls::paren_calls`, then `calls::dollars`.
     pub paren_calls: bool,
+    /// Every piece a limb adds marked `%`, a percent a word (owner, 2026-10-26;
+    /// oracle 8bc2967c): `limbs::mark_limbs`, last.
+    pub limb_marks: bool,
     /// Omit parentheses where design/operators.md says they are not needed.
     pub loose: bool,
     /// Holds values my exact evaluator does not model (deci, bin, text):
@@ -1151,7 +1154,8 @@ impl Program {
         // the rewrites, carrying every span's offsets through them
         let (out, e1) = if self.std_paths { crate::paths::std_paths_with(&w.out, self.seed % 3 == 0, self.std_glyph && self.seed % 3 != 0) } else { (w.out.clone(), vec![]) };
         let (out, e2) = if self.paren_calls { crate::calls::dollars_with(&crate::calls::paren_calls(&out)) } else { (out, vec![]) };
-        let mv = |p: usize| crate::paths::map_offset(&e2, crate::paths::map_offset(&e1, p));
+        let (out, e3) = if self.limb_marks { crate::limbs::mark_limbs_with(&out) } else { (out, vec![]) };
+        let mv = |p: usize| crate::paths::map_offset(&e3, crate::paths::map_offset(&e2, crate::paths::map_offset(&e1, p)));
         // byte offsets to (line, column)
         let starts: Vec<usize> = std::iter::once(0).chain(out.match_indices('\n').map(|(i, _)| i + 1)).collect();
         let at = |off: usize| -> (u32, u32) {

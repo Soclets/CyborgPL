@@ -7,6 +7,7 @@ pub mod calls;
 pub mod eval;
 pub mod gen;
 pub mod intervals;
+pub mod limbs;
 pub mod paths;
 pub mod printer;
 pub mod rng;

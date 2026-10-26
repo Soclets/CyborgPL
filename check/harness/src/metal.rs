@@ -403,7 +403,7 @@ pub fn check(t: &Tools, c: &Case, dir: &Path) -> Outcome {
         let _ = std::fs::create_dir_all(d);
     }
     let (fa, fb) = (da.join("prog.cy"), db.join("prog.cy"));
-    if std::fs::write(&fa, c.gpu()).is_err() || std::fs::write(&fb, c.cpu()).is_err() {
+    if std::fs::write(&fa, check_gen::limbs::as_marked(c.gpu())).is_err() || std::fs::write(&fb, check_gen::limbs::as_marked(c.cpu())).is_err() {
         return Outcome::Failed("cannot write the files".into());
     }
     let o = match engines::oracle(t, &fb, &db, &[]) {

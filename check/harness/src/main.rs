@@ -141,6 +141,8 @@ impl Args {
             std_glyph: !avoid.contains("std-glyph"),
             // calls in `( )` and `$name` (oracle c16dc2d7, kayo 33f7b3dd, std aa012698)
             paren_calls: !avoid.contains("paren-calls"),
+            // the limb mark `%` (oracle 8bc2967c): kayo does not read it yet (2026-10-26); `--limb-marks` turns it on
+            limb_marks: self.has("limb-marks"),
             // MAIN ending in `std::exit(code: N)` (oracle 69c6aedf, kayo has it)
             exits: !avoid.contains("exits"),
             // kayo a319a218, b02769fe
@@ -248,6 +250,10 @@ fn aimed_envs(p: &Program, dir: &Path, cap: usize) -> (Vec<Env>, usize, usize) {
 }
 
 fn main() {
+    // the harness's own programs marked too, under `--limb-marks`
+    if std::env::args().any(|a| a == "--limb-marks") {
+        check_gen::limbs::MARKED.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
     engines::reap_leftovers();
     let a = parse();
     let tools = || Tools::find(&repo()).unwrap_or_else(|e| die(&e));

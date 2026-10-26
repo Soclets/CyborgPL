@@ -26,6 +26,16 @@ input and output lists are of a kind, `std::list`, `.page_aligned` or `.not_page
 and narrowed by `to.list.…(give …)` (owner, 2026-10-25; oracle 8054704c). Left out: `<<`
 (CyborgPL checks what it shifts out) and signed overflow in a plain block. `harness/src/metal.rs`.
 
+**The limb mark `%`** (owner, 2026-10-26; oracle 8bc2967c, design/cores.md): under `--limb-marks` the printer's text
+is marked last (`gen/src/limbs.rs`): a limb's word standing alone (`%d64`, `%brain16`, `%channel`, `%concur`,
+`%extern.C`, `%layout.C`, `%C.printf`, `for %para`, …), the word after `to.` / `incl.` / `inline.` / `char.` / `str.`
+(`to.%d64(…)`, `inline.%MSL`, `char.%point`, `to.str.%utf32`), and a percent as a word (`82.25 percent`,
+`percent[%d32]`); names, fields and anything after `::` never. The same as `oracle --mark-limbs` on 200 of 200
+programs; spans carried through. `check clayout` and `check metal` mark their own programs under the same switch.
+kayo does not read the marks yet, so the switch is off, and the differential runs against an oracle pinned at
+759453de, built in `check/.keep/` (git-ignored, outside the Cargo workspace): `git worktree add --detach
+check/.keep/oracle-759453de 759453de`, then `CHECK_ORACLE=…/check/.keep/oracle-759453de/oracle/target/release/oracle`.
+
 **Modules and `my.`** (owner, 2026-10-06; oracle 6e3e40c9): a block module whose `pub` functions name the root's
 enum and struct through `my.`, in a parameter, a return type and a value built (`my.Mp[x = …]`), called from MAIN
 through the module's name. `--avoid modules` leaves it out.

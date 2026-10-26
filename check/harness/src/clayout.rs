@@ -154,7 +154,7 @@ pub fn check(t: &Tools, l: &Layout, dir: &Path) -> Outcome {
     let _ = std::fs::remove_file(&kb);
     let _ = std::fs::remove_file(&cb);
     // calls in `( )` (owner, 2026-10-22), as every program is written now
-    if std::fs::write(&kf, check_gen::calls::paren_calls(&l.cy())).is_err() || std::fs::write(&cf, l.c()).is_err() {
+    if std::fs::write(&kf, check_gen::limbs::as_marked(check_gen::calls::paren_calls(&l.cy()))).is_err() || std::fs::write(&cf, l.c()).is_err() {
         return Outcome::Failed("cannot write the files".into());
     }
     let r = engines::run(Command::new(&t.cca).arg("build").arg(&kf).arg("-o").arg(&kb), dir, &[], false, engines::build_limit());

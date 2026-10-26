@@ -1,2 +1,4 @@
 target/
 work/
+# what must last but is not committed (owner, 2026-10-25): a pinned oracle build, sweep results
+.keep/

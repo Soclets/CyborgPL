@@ -178,6 +178,8 @@ pub struct Config {
     pub std_glyph: bool,
     /// Calls in `( )` and `$name` (owner, 2026-10-22; oracle c16dc2d7, kayo 33f7b3dd).
     pub paren_calls: bool,
+    /// The limb mark `%` (owner, 2026-10-26; oracle 8bc2967c). Off until kayo reads it.
+    pub limb_marks: bool,
     /// MAIN ending in `std::exit(code: N)` (owner, 2026-10-23; oracle 69c6aedf).
     pub exits: bool,
     /// A generic's bare literal filled by i32, d64 and f64 (owner, 2026-10-22;
@@ -235,7 +237,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: true, formats: true, format_words: true, list_kinds: true, maps: true, deep_paths: true, modules: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, limb_marks: false, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: true, formats: true, format_words: true, list_kinds: true, maps: true, deep_paths: true, modules: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
     }
 }
 
@@ -558,7 +560,7 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         g.unevaluable = true;
         main.push(Stmt::Src(format!("std::exit[code: {}];", g.rng.range(0, 99))));
     }
-    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() || g.shadow_mistake, strict, new_words, typed_lits: cfg.typed_literals, based_lits: cfg.based_literals, std_paths: cfg.std_paths, std_glyph: cfg.std_glyph, paren_calls: cfg.paren_calls, unevaluable: g.unevaluable }
+    Program { seed, printer, inputs, funcs, bfuncs, extra_fns: g.extra_fns.clone(), enums: g.enums.iter().map(|e| e.def.clone()).collect(), main, loose, expect_refused: wrong.is_some() || g.shadow_mistake, strict, new_words, typed_lits: cfg.typed_literals, based_lits: cfg.based_literals, std_paths: cfg.std_paths, std_glyph: cfg.std_glyph, paren_calls: cfg.paren_calls, limb_marks: cfg.limb_marks, unevaluable: g.unevaluable }
 }
 
 impl Gen {

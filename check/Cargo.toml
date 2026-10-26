@@ -1,5 +1,7 @@
 [workspace]
 members = ["gen", "harness"]
+# a pinned oracle build lives in .keep/ (git-ignored), its own crate
+exclude = [".keep"]
 resolver = "2"
 
 [profile.release]
