@@ -66,7 +66,10 @@ else:` / `end of else` are blocks of their own, each straight after an `if` or `
 (design claude's reading of "chained": anything between is refused). A `match` arm, shown as `start of case calm:` /
 `end of case calm` inside `start of match $a:` / `end of match`, a case's data bound on its start line (`start of case
 hot $level:`): "Yes" (and, asked what `match $a` means: the arm of the case `$a` is runs, every case needing one). So
-**an arm is a `case` block, its case's name on both lines**. Not built; the rest of the redesign follows.
+**an arm is a `case` block, its case's name on both lines**. A `match` used as a value: **`let $rank := start of match
+$a:` … `end of match;`**, the `;` ending the `let`, each arm's `is` handing its value up (owner: "yes"; design claude
+recommending it over dropping value matches, which would need a name before its value). Not built; the rest of the
+redesign follows.
 
 ### 2026-10-26 — In `print.format`, a newline is `{newln}` and a tab `{tab}`; `\n` and `\t` there become old spellings (owner; not built)
 
