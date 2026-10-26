@@ -2,7 +2,7 @@
 # goes past the largest bin at about trip 180 million. Precog once let the
 # sum grow forever without widening, ran out of steps, and called the add
 # proven; the check is kept, and the program stops there.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $n: i64 = 400000000;
     let $big: f64 = 10.0 pow 300.0;

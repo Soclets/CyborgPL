@@ -3,7 +3,7 @@
 # the call's value the same way (examples/match_value.cpls as an exit code:
 # free is 4 bytes, "taken by ann" 12, locked leaves with 8, and "12x" is
 # not a number, -2 → 4 + 12 + 8 + 100 - 2 = 122).
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 enum Status { empty, claimed: str.utf8, locked }
 fn label [$s: Status] -> str.utf8 {
     let $text := match $s {

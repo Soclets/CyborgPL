@@ -1,8 +1,8 @@
 # A held function that can fail (functions-as-values.md: the failure list is
 # part of the type): called as $f(…) with otherwise, named or a literal, a
 # reason carrying its payload out.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 fn half [$n: i32] -> i32 or fail[odd: i32] {
     if ($n mod.floor 2) equal_to 1 { fail odd[$n]; }
     return $n div.floor 2;

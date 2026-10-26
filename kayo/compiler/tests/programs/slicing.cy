@@ -2,7 +2,7 @@
 # a new list owning copies — so changing the slice leaves the original be.
 # `pos n, n - 1` is empty. Elements that own memory are copied, not
 # shared: the leak check frees each list's texts once.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $xs: std::list[i64] = [10, 20, 30, 40, 50];
     let mut $mid := std::list.slice(lend $xs, from: pos 2, to: pos 4);

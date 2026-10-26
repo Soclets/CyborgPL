@@ -7,7 +7,7 @@
 # Inner 3, failing on trip 6 (15): checked. Guess, unread: precog.md's 16 iterations per loop are
 # counted across the outer loop's trips, and the trips past them are taken as unreachable, where
 # the note has anything past the budget unproven.
-extern.C fn write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
+%extern.C fn write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
 
 fn emit [$m: u64, $neg: bool] {
     let mut $buf: std::list[u8] = [];

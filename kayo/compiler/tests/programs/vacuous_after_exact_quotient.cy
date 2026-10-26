@@ -8,7 +8,7 @@
 # quotient printed from another function, keeps the check. Guess, unread: layer 3 works the
 # quotient out in 64 bits (-2^63), so c9631fd3's "earlier sites passed" assumes -2^63 fits u64,
 # which is false, and every later site in the function is proven vacuously.
-extern.C fn write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
+%extern.C fn write [$fd: i32, $buf: ptr[u8], $len: u64] -> i64;
 
 fn emit [$m: u64, $neg: bool] {
     let mut $buf: std::list[u8] = [];

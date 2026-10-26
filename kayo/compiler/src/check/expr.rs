@@ -206,8 +206,8 @@ impl Checker {
                 let cap = match bound {
                     Some(b) => {
                         let (lo, hi) = (&b.0, &b.1);
-                        let l = crate::resolve::int_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a channel's bound is written as numbers: `channel[T][0, 100]`").named("mcps::channel_form").at(lo.span)))?;
-                        let h = crate::resolve::int_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a channel's bound is written as numbers: `channel[T][0, 100]`").named("mcps::channel_form").at(hi.span)))?;
+                        let l = crate::resolve::int_literal(lo).ok_or_else(|| Box::new(Diagnostic::error("a channel's bound is written as numbers: `%channel[T][0, 100]`").named("mcps::channel_form").at(lo.span)))?;
+                        let h = crate::resolve::int_literal(hi).ok_or_else(|| Box::new(Diagnostic::error("a channel's bound is written as numbers: `%channel[T][0, 100]`").named("mcps::channel_form").at(hi.span)))?;
                         if l < 0 || h < l {
                             return err(Diagnostic::error("a channel's bound is `[0, N]`: the low end 0, the high end how many values may wait").named("mcps::channel_form").at(span));
                         }
@@ -252,8 +252,8 @@ impl Checker {
                 }
                 if !t.is_c_shaped(&self.items.structs, &self.items.enums) {
                     let why = match t.base() {
-                        Ty::Struct { id, .. } => format!("struct `{}` is not `layout.C`; its layout is the prover's, not C's", self.items.structs[id.0 as usize].name),
-                        Ty::Enum { id, .. } => format!("enum `{}` is not `layout.C`; its layout is the prover's, not C's", self.items.enums[id.0 as usize].name),
+                        Ty::Struct { id, .. } => format!("struct `{}` is not `%layout.C`; its layout is the prover's, not C's", self.items.structs[id.0 as usize].name),
+                        Ty::Enum { id, .. } => format!("enum `{}` is not `%layout.C`; its layout is the prover's, not C's", self.items.enums[id.0 as usize].name),
                         other => format!("`{}` is not C-shaped", self.spell(other)),
                     };
                     return err(Diagnostic::error(format!("a pointer points at C-shaped data, so it casts only to a C-shaped type: {}", why)).named("pointer_cast_target").at(ty.span));
@@ -495,7 +495,7 @@ impl Checker {
                         AK::Name(q) => format!("'{}'.{}", q.name, field.name),
                         _ => format!("`.{}`", field.name),
                     };
-                    return err(Diagnostic::error(format!("reading {} is a `no_check` site: a `layout.C union` holds one field at a time, and only C knows which — write `no_check` in front of the statement", whose)).named("no_check_missing").at(e.span).fix_edit(e.span, Edit::Before, "no_check "));
+                    return err(Diagnostic::error(format!("reading {} is a `no_check` site: a `%layout.C union` holds one field at a time, and only C knows which — write `no_check` in front of the statement", whose)).named("no_check_missing").at(e.span).fix_edit(e.span, Edit::Before, "no_check "));
                 }
                 if use_ == PlaceUse::Write && f.immut {
                     return err(Diagnostic::error(format!("`{}` is an `immut` field of `{}` and cannot be written", field.name, info.name)).named("cannot_change_immut").at(field.span));
@@ -584,7 +584,7 @@ impl Checker {
             return err(Diagnostic::error(format!("{} C's variable '{}' is a no_check site: nothing about C's memory can be proven — write `no_check` in front of the statement", what, info.name)).named("cnc::no_check_missing").at(span).fix_edit(span, Edit::Before, "no_check "));
         }
         if use_ == PlaceUse::Write && !info.mutable {
-            return err(Diagnostic::error(format!("'{}' is read-only: `extern.C mut ${}: …` says C's variable may be written", info.name, info.name)).named("cnc::c_variable_read_only").at(span));
+            return err(Diagnostic::error(format!("'{}' is read-only: `%extern.C mut ${}: …` says C's variable may be written", info.name, info.name)).named("cnc::c_variable_read_only").at(span));
         }
         if matches!(use_, PlaceUse::Give | PlaceUse::Copy | PlaceUse::Lend | PlaceUse::LendMut) {
             return err(Diagnostic::error(format!("'{}' is C's plain value: it copies by itself and takes no verb", info.name)).named("nothing_to_give").at(span).fix_edit(span, Edit::Verb, ""));
@@ -1261,7 +1261,7 @@ impl Checker {
                 Ty::Brain => "a brain16",
                 _ => return err(Diagnostic::error(format!("`{}` between a percent and {}: a percent is a number", op.spelled(), crate::types::a_type(&self.spell(other)))).named("operator_wrong_type").at(op_span)),
             };
-            return err(Diagnostic::error(format!("`{}` between a percent and {}: a percent is its own number family; convert it, `to.d64($tax)` (7% → 0.07), or the number, `to.percent[d64](0.07)`", op.spelled(), fam)).named("money::percent_mixed").at(op_span));
+            return err(Diagnostic::error(format!("`{}` between a percent and {}: a percent is its own number family; convert it, `to.%d64($tax)` (7% → 0.07), or the number, `to.percent[%d64](0.07)`", op.spelled(), fam)).named("money::percent_mixed").at(op_span));
         };
         if !(matches!(op, BinOp::Add | BinOp::Sub) || op.is_comparison()) {
             let name = |e: &ast::Expr| match &e.kind {
@@ -1270,7 +1270,7 @@ impl Checker {
             };
             let (a, b) = (name(lhs), name(rhs));
             let b = if a == b { "'b'".to_string() } else { b };
-            return err(Diagnostic::error(format!("`{}` between two percents is not decided; convert them: `to.d64({}) {} to.d64({})`", op.spelled(), a, match op { BinOp::Mul => "x".to_string(), BinOp::Pow => "xx".to_string(), o => o.spelled() }, b)).named("not_decided").at(op_span));
+            return err(Diagnostic::error(format!("`{}` between two percents is not decided; convert them: `to.%d64({}) {} to.%d64({})`", op.spelled(), a, match op { BinOp::Mul => "x".to_string(), BinOp::Pow => "xx".to_string(), o => o.spelled() }, b)).named("not_decided").at(op_span));
         }
         // Worked out on their numbers; a sum or difference is a percent.
         let (li, ri) = (percent_inner(&self.resolve(&l.ty)).unwrap_or(li), percent_inner(&self.resolve(&r.ty)).unwrap_or(ri));
@@ -2083,7 +2083,7 @@ impl Checker {
             return Ok((l, r, Ty::Brain));
         }
         let other = if lt.is_brain() { &rt } else { &lt };
-        err(Diagnostic::error(format!("`{}` between a brain16 and {}: the brain float is a family of its own — convert one side first, `to.brain16(…)` or `to.f32(…)`", op.spelled(), article(&self.spell(other)))).named("ai::brain_mixed").at(op_span))
+        err(Diagnostic::error(format!("`{}` between a brain16 and {}: the brain float is a family of its own — convert one side first, `to.%brain16(…)` or `to.f32(…)`", op.spelled(), article(&self.spell(other)))).named("ai::brain_mixed").at(op_span))
     }
 
     /// Both sides of an operator where one is a `deci` (owner, 2026-09-29):
@@ -2572,7 +2572,7 @@ impl Checker {
         // are left as nothing, and the code generator writes the one given.
         if info.union {
             if given.iter().filter(|g| g.is_some()).count() != 1 {
-                return err(Diagnostic::error(format!("`{}` is a `layout.C union`: it holds one field at a time, so give exactly one: `{}[{} = …]`", info.name, info.name, info.fields.first().map(|f| f.name.as_str()).unwrap_or("field"))).named("union_one_field").at(span));
+                return err(Diagnostic::error(format!("`{}` is a `%layout.C union`: it holds one field at a time, so give exactly one: `{}[{} = …]`", info.name, info.name, info.fields.first().map(|f| f.name.as_str()).unwrap_or("field"))).named("union_one_field").at(span));
             }
             let fields = given.into_iter().map(|g| g.unwrap_or(Arg::Value(Expr { kind: K::Nothing, ty: Ty::Nothing, span }))).collect();
             return Ok(Expr { kind: K::Construct { id, fields }, ty: Ty::Struct { id, args: targs }, span });
@@ -2732,7 +2732,7 @@ impl Checker {
         // claude, 2026-10-24).
         if path.kit.as_ref().is_some_and(|l| l.name == "std") && path.segs.first().is_some_and(|s| s.name == "channel") {
             let rest = path.segs.iter().skip(1).map(|s| s.name.as_str()).collect::<Vec<_>>().join(".");
-            return err(Diagnostic::error(format!("`channel` is the MCPS limb's, not std's: write `channel.{}(…)`", if rest.is_empty() { "send" } else { &rest })).named("unknown_std_name").at(path.span));
+            return err(Diagnostic::error(format!("`%channel` is the MCPS limb's, not std's: write `%channel.{}(…)`", if rest.is_empty() { "send" } else { &rest })).named("unknown_std_name").at(path.span));
         }
         // A writer's way is `.whole` or `.split` (owner, 2026-10-24).
         if path.kit.as_ref().is_some_and(|l| l.name == "std") {
@@ -4099,7 +4099,7 @@ impl Checker {
                 }
             }
             (Ty::Char(_), Ty::Int(_)) => return err(Diagnostic::error("a character does not convert to a number: `to.i32(`7`)` could mean 55 (its code) or 7 (its digit) — `char.code(…)` gives the code, `to.i32(to.str.utf8(…)) otherwise …` the digit").named("no_such_conversion").at(span)),
-            (Ty::Int(_), Ty::Char(_)) => return err(Diagnostic::error("a number does not convert to a character: `char.point.from_code(…) otherwise …` builds one from a code").named("no_such_conversion").at(span)),
+            (Ty::Int(_), Ty::Char(_)) => return err(Diagnostic::error("a number does not convert to a character: `char.%point.from_code(…) otherwise …` builds one from a code").named("no_such_conversion").at(span)),
             (_, Ty::Bool) => return err(Diagnostic::error("nothing converts to `bool`: there is no truthiness — compare instead (`$n not_equal 0`)").named("no_truthiness").at(span)),
             // Bytes read as text (owner, 2026-09-30: "yea"): UTF-8 only.
             (Ty::Seq { elem, .. }, Ty::Str(enc)) if matches!(elem.base(), Ty::Int(IntW::Fixed { signed: false, bits: 8 })) => {
@@ -4113,11 +4113,11 @@ impl Checker {
             // A number from C becomes a C enum only through a check (owner,
             // 2026-09-27): one no case has fails `out_of_range`.
             (Ty::Int(_), Ty::Enum { id, .. }) if self.items.enums[id.0 as usize].numbers.is_some() => fails.push("out_of_range"),
-            (Ty::Int(_), Ty::Enum { .. }) => return err(Diagnostic::error(format!("only a `layout.C enum` converts from a number, and `{}` is a Cyborg enum: its value is built by name", target_spelling)).named("cnc::numbered_enum_not_c").at(span)),
+            (Ty::Int(_), Ty::Enum { .. }) => return err(Diagnostic::error(format!("only a `%layout.C enum` converts from a number, and `{}` is a Cyborg enum: its value is built by name", target_spelling)).named("cnc::numbered_enum_not_c").at(span)),
             // And back: a C enum's number never fails (owner, 2026-09-28);
             // a narrower target is a narrowing site, as ever.
             (Ty::Enum { id, .. }, Ty::Int(_)) if self.items.enums[id.0 as usize].numbers.is_some() => {}
-            (Ty::Enum { .. }, Ty::Int(_)) => return err(Diagnostic::error(format!("only a `layout.C enum` has numbers: `{}` is a Cyborg enum, whose cases are names", self.spell(&vt))).named("cnc::numbered_enum_not_c").at(span)),
+            (Ty::Enum { .. }, Ty::Int(_)) => return err(Diagnostic::error(format!("only a `%layout.C enum` has numbers: `{}` is a Cyborg enum, whose cases are names", self.spell(&vt))).named("cnc::numbered_enum_not_c").at(span)),
             (_, Ty::Struct { .. }) | (_, Ty::Enum { .. }) => return err(Diagnostic::error(format!("there is no conversion to `{}`: a struct or enum value is built by name", target_spelling)).named("no_such_conversion").at(span)),
             (Ty::Duration, _) | (_, Ty::Duration) => return err(Diagnostic::error("a duration does not convert: compare or add durations directly").named("no_such_conversion").at(span)),
             _ => return err(Diagnostic::error(format!("there is no conversion from `{}` to `{}`", self.spell(&vt), target_spelling)).named("no_such_conversion").at(span)),
@@ -4159,7 +4159,7 @@ impl Checker {
             }
         }
         if written && !(matches!(t.base(), Ty::Deci(_)) && matches!(vt.base(), Ty::Str(_))) {
-            return err(Diagnostic::error(format!("`.written` counts the digits of text as written into a deci, trailing zeros included — `to.d32.written(\"1234567.0\")`; `to.{}.written` of {} has nothing written to count", target_spelling, crate::types::a_type(&self.spell(&vt)))).named("conversion_form").at(span));
+            return err(Diagnostic::error(format!("`.written` counts the digits of text as written into a deci, trailing zeros included — `to.%d32.written(\"1234567.0\")`; `to.{}.written` of {} has nothing written to count", target_spelling, crate::types::a_type(&self.spell(&vt)))).named("conversion_form").at(span));
         }
         let fails_owned: Vec<String> = fails.iter().map(|s| s.to_string()).collect();
         Ok(Expr { kind: K::Conv { target: t.clone(), expr: Box::new(v), otherwise: ow, fails: fails_owned, useful, bits: false, written }, ty: t, span })
@@ -4259,15 +4259,15 @@ impl Checker {
             ("char", [unit, "from_code"]) => match *unit {
                 "byte" => BuiltinHead::B(Builtin::CharFromCode(Unit::Byte)),
                 "point" => BuiltinHead::B(Builtin::CharFromCode(Unit::Point)),
-                "grapheme" => return err(Diagnostic::error("a grapheme has no single code: `char.point.from_code(…)` or `char.byte.from_code(…)`").named("unicode::no_single_code").at(span)),
+                "grapheme" => return err(Diagnostic::error("a grapheme has no single code: `char.%point.from_code(…)` or `char.byte.from_code(…)`").named("unicode::no_single_code").at(span)),
                 other => return err(Diagnostic::error(format!("`char.{}` is not a unit", other)).named("unknown_text_unit").at(span)),
             },
-            ("char", [..]) => return err(Diagnostic::error(format!("`{}` does not exist: `char.code(…)`, `char.point.from_code(…)`, `char.byte.from_code(…)`", path.spelled())).named("unknown_operation").at(span)),
+            ("char", [..]) => return err(Diagnostic::error(format!("`{}` does not exist: `char.code(…)`, `char.%point.from_code(…)`, `char.byte.from_code(…)`", path.spelled())).named("unknown_operation").at(span)),
             ("ptr", ["read"]) => BuiltinHead::B(Builtin::PtrRead),
             // C strings (owner, 2026-10-19), C's own vocabulary under `C.`.
             ("C", ["str", "read"]) => BuiltinHead::B(Builtin::CStrRead),
             ("C", ["str", "make"]) => BuiltinHead::B(Builtin::CStrMake),
-            ("C", ["str", ..]) => return err(Diagnostic::error("C strings are `C.str.read($p)` and `C.str.make(lend $s)`: a C string read into a text, and a text made into one").named("cnc::c_str_unknown").at(span)),
+            ("C", ["str", ..]) => return err(Diagnostic::error("C strings are `%C.str.read($p)` and `%C.str.make(lend $s)`: a C string read into a text, and a text made into one").named("cnc::c_str_unknown").at(span)),
             ("ptr", ["write"]) => BuiltinHead::B(Builtin::PtrWrite),
             ("ptr", ["at"]) => BuiltinHead::B(Builtin::PtrAt),
             ("ptr", ["is_null"]) => BuiltinHead::B(Builtin::PtrIsNull),
@@ -4289,7 +4289,7 @@ impl Checker {
             ("simd", [other]) => return err(Diagnostic::error(format!("`simd.{}` does not exist: a vector has `fill`, `load`, `store`, `load.some`, `store.some`, `shuffle`, `all`, `any`, `max`, `min`, `sum`", other)).named("unknown_operation").at(span)),
             ("channel", ["send"]) => BuiltinHead::B(Builtin::ChannelSend),
             ("channel", ["take"]) => BuiltinHead::B(Builtin::ChannelTake),
-            ("channel", [other]) => return err(Diagnostic::error(format!("`channel.{}` does not exist: a channel has `send` and `take`", other)).named("unknown_operation").at(span).fix_swap_close(span, "channel", other, ["send", "take"])),
+            ("channel", [other]) => return err(Diagnostic::error(format!("`%channel.{}` does not exist: a channel has `send` and `take`", other)).named("unknown_operation").at(span).fix_swap_close(span, "channel", other, ["send", "take"])),
             _ => return Ok(None),
         };
         Ok(Some(b))
@@ -4602,7 +4602,7 @@ impl Checker {
                 match at.base() {
                     Ty::Ptr { elem, .. } if bytes(elem) => {}
                     Ty::Seq { elem, .. } if bytes(elem) => {}
-                    other => return err(Diagnostic::error(format!("`C.str.read` reads bytes ending in a 0: a `ptr[u8]` or a C string `C.str.make` made, and this is {}", crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`%C.str.read` reads bytes ending in a 0: a `ptr[u8]` or a C string `%C.str.make` made, and this is {}", crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 }
                 fails.push(("not_utf8".into(), None));
                 (vec![a], Ty::utf8())
@@ -4619,7 +4619,7 @@ impl Checker {
                 };
                 let at = self.resolve(&self.arg_type(&a));
                 if !matches!(at.base(), Ty::Str(_)) {
-                    return err(Diagnostic::error(format!("`C.str.make` makes a C string of a text, and this is {}", crate::types::a_type(&self.spell(&at)))).named("wrong_type").at(positional[0].span));
+                    return err(Diagnostic::error(format!("`%C.str.make` makes a C string of a text, and this is {}", crate::types::a_type(&self.spell(&at)))).named("wrong_type").at(positional[0].span));
                 }
                 let literal = match &a {
                     Arg::Value(Expr { kind: K::Str(s), .. }) => Some(s.clone()),
@@ -4722,7 +4722,7 @@ impl Checker {
                 let at = self.resolve(&self.arg_type(&a));
                 let elem = match at.base() {
                     Ty::Channel(e) => (**e).clone(),
-                    other => return err(Diagnostic::error(format!("`channel.send` takes a channel, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`%channel.send` takes a channel, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 let v = self.one_argument(ctx, positional[1], ParamKind::Owned, &elem, "channel.send", "the value")?;
                 if let Arg::Lend { .. } = v {
@@ -4736,7 +4736,7 @@ impl Checker {
                 let at = self.resolve(&self.arg_type(&a));
                 let elem = match at.base() {
                     Ty::Channel(e) => (**e).clone(),
-                    other => return err(Diagnostic::error(format!("`channel.take` takes a channel, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
+                    other => return err(Diagnostic::error(format!("`%channel.take` takes a channel, and {} is {}", self.arg_name(ctx, &a), crate::types::a_type(&self.spell(other)))).named("wrong_type").at(positional[0].span)),
                 };
                 fails.push(("closed".into(), None));
                 (vec![a], elem)

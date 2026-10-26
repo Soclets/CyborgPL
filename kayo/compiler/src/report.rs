@@ -432,7 +432,7 @@ pub fn render(f: &Facts) -> String {
         }
     }
     let used = p.items.externs.iter().enumerate().filter(|(i, e)| !e.is_let && called.contains(&(*i as u32))).count();
-    let _ = writeln!(c, "**`extern.C` functions** ({}, {} called), with the CyborgPL types C's map to:\n", fns.len(), used);
+    let _ = writeln!(c, "**`%extern.C` functions** ({}, {} called), with the CyborgPL types C's map to:\n", fns.len(), used);
     if !fns.is_empty() {
         let _ = writeln!(c, "| Name | Called | Parameters | Returns | Declared at |\n|---|---|---|---|---|");
         let mut rows: Vec<(bool, String)> = Vec::new();

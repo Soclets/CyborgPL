@@ -2,7 +2,7 @@
 # (check claude, 2026-09-29, seed 1027): the -1 stops at the call, which
 # traps when it runs, and Precog no longer walks it into `half`, where it
 # made the division look wrong every time.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn half [$n: u64] -> u64 { return ($n div.floor 10) plus 1; }
 MAIN {
     let mut $k: i32 = 2;

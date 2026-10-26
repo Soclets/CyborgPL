@@ -1,7 +1,7 @@
 # The upper half of a u64 is a big number, not a negative one: compare,
 # divide and widen it as unsigned. From C, so it is decided at run time.
-extern.C fn exit [$code: i32];
-extern.C fn labs [$v: i64] -> i64;
+%extern.C fn exit [$code: i32];
+%extern.C fn labs [$v: i64] -> i64;
 MAIN {
     no_check let $one: i64 = labs(-1);
     no_check let $u: u64 = to.u64($one);

@@ -5,8 +5,8 @@
 # rounds, down to its first 3, a u64 down to 0 is 5 3 1 (9), `continue`
 # and `break` give 0 3 9 12 (24), a sieve's marking 14 8 4 2 (28), and an
 # empty range none: 67.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 
 MAIN {
     let $key := "KAYO_NEVER_SET";

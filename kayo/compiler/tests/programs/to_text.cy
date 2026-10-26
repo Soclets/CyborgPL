@@ -3,8 +3,8 @@
 # 0.100000001490116119384765625, DECISIONS 2026-09-14); true / false. Into
 # a bounded text it fails out_of_range, and the text made is given back.
 # The values are known only at run time: whether an unset variable is there.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 fn short [$n: i64] -> str.utf8 {
     let $s := to.stored.str.utf8[min: 0, max: 3 bytes]($n) otherwise { out_of_range { return "?"; } };
     return give $s;

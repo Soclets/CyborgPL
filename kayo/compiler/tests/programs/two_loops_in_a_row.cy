@@ -4,7 +4,7 @@
 # on a path that cannot happen, and "proven" came back (check claude,
 # seed 133). `0 - 'n'` with 'n' = 2 is -2, which no `u64` holds: storing
 # it must stop. (Since plain math is exact, the site is the store.)
-extern.C fn strlen [$s: ptr[u8]] -> u64;
+%extern.C fn strlen [$s: ptr[u8]] -> u64;
 MAIN {
     let $s := "ab";
     no_check let $n: u64 = strlen(lend $s);

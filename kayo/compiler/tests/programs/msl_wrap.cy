@@ -2,7 +2,7 @@
 # everywhere in two's complement. 1 + 2147483647 wraps to -2147483648; -2147483648 + 2147483647 is -1: exit 1.
 MAIN {
     let mut $xs: std::list[i32] = [1, -2147483648];
-    no_check inline.MSL.wrap threads 2 {
+    no_check inline.%MSL.wrap threads 2 {
         kernel void add(device int *xs [[buffer(0)]], uint id [[thread_position_in_grid]]) {
             xs[id] = xs[id] + 2147483647;
         }

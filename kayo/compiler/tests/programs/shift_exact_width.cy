@@ -3,8 +3,8 @@
 # Worked at 65 bits and then cut, a shift past 32 bits went unseen. 'v' is 3
 # and 'k' 29 at run time: (3 mod 16) shl 2 is 12, 4 shl 29 is 2^31 and shr 24
 # of it 128, 4 shr 1 is 2: 12 + 128 + 2 = 142.
-extern.C fn exit [$code: i32];
-extern.C fn strlen [$s: ptr[u8]] -> u64;
+%extern.C fn exit [$code: i32];
+%extern.C fn strlen [$s: ptr[u8]] -> u64;
 MAIN {
     let $s := "xyz";
     no_check let $n: u64 = strlen(lend $s);

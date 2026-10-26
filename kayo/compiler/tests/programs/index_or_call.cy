@@ -3,7 +3,7 @@
 # whole number, a 65-bit exact answer included. 3 + 30 + 4 = 37 (oracle).
 fn inc [$n: i32] -> i32 { return $n plus 1; }
 fn add [$a: i32, $b: i32] -> i32 { return $a plus $b; }
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $f := inc;
     let $g := add;

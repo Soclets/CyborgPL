@@ -1094,6 +1094,17 @@ Dated, with the alternative, so each can become a question later.
   stops the program with `error[metal::run_failed]` at the block. `metal::compile_failed` says `fix: none
   suggested` and keeps Apple's own words on `about:` (`Diagnostic::outside_saying`). A program with a
   block is about 2 MB, std's share.
+- **2026-10-26 — The limb mark** (owner; oracle 8bc2967c; `design/cores.md`, "The limb mark"). The lexer reads a
+  `%` glued to a word as marking it (`Token::marked`, the `%` in its span) and the word as before; `80%` and a
+  glued `%[d32]` are old spellings (`80 percent`, `percent[%d32]`). `marks::check` walks each dotted path on a
+  file's tokens as written, before any rewrite, by the oracle's table of each limb's first words (`%extern.C`,
+  `%layout.C`, `%C.…`, `incl.%C`, `inline.%C`, `inline.%MSL`, `%d64`, `to.%d64`, `%i128`, `%not_std.i24`,
+  `%brain16`, `%concur`, `%channel`, `%whichever`, `for %para`, `char.%point`, `str.%utf16`, `40 %graphemes`):
+  `limb_mark_missing` where one is due, `limb_mark_misplaced` on a base word, twice in one limb's path, after a
+  kit's `::`, or on a name or label. std's own files are not checked until std claude marks them (the oracle
+  never loads std/). Types spell with their marks (`%d64`, `%channel[…]`, `char.%point`), so every fix that
+  writes a type writes it marked, and `marks::in_message` marks the code in every message's backticks.
+  kayo's own programs were marked by `oracle --mark-limbs`, its messages by `tools/mark_messages.py`.
 - **2026-10-26 — `coll.bound`, and small final builds** (owner, 2026-10-25; oracle 2283f179). `coll.bound q { q =
   i32[min: 1, max: 99]; q.small = …; }` is read as a `use` is, a rewrite of the file's tokens before parsing
   (`bounds.rs`): each block taken out and each member's name written as its type wherever it starts a path (and

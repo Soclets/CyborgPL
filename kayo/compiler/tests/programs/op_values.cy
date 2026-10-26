@@ -1,7 +1,7 @@
 # An operator is a value as `op +` (owner, 2026-09-29): its type comes from
 # where it goes — a parameter, a typed declaration: 1+2+3+4 = 10,
 # 1x2x3x4 = 24, 17 mod 5 = 2, (1,2) dot (3,4) = 11 → 47 (the oracle agrees).
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 struct V { x: i32, y: i32 }
 op dot [$a: V, $b: V] -> i32 { return $a.x times $b.x plus $a.y times $b.y; }
 fn fold [lent $xs: std::list[i32], $start: i32, $f: fn[i32, i32] -> i32] -> i32 {

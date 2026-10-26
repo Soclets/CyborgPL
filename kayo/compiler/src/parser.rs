@@ -239,30 +239,30 @@ fn core_word(toks: &[Token], i: usize) -> Option<(&'static str, &'static str)> {
     let dot_then = |t: &[&str]| matches!(toks.get(i + 1).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 2).map(|t| &t.tok), Some(Tok::Word(x)) if t.contains(&x.as_str()));
     Some(match w.as_str() {
         // The slimmer base (owner, 2026-10-07): what left it, by core.
-        "brain16" => ("`brain16`", "AI"),
+        "brain16" => ("`%brain16`", "AI"),
         // Everything about C is CNC's (owner, 2026-10-10); `ptr`, raw
         // memory and inline assembly stay the Brainstem's.
-        "extern" if dot_then(&["C"]) => ("`extern.C`", "CNC"),
-        "incl" if dot_then(&["C"]) => ("`incl.C`", "CNC"),
+        "extern" if dot_then(&["C"]) => ("`%extern.C`", "CNC"),
+        "incl" if dot_then(&["C"]) => ("`incl.%C`", "CNC"),
         // Apple's GPU code is the Metal limb's (owner, 2026-10-22).
-        "inline" if dot_then(&["MSL", "Metal_Shading_Language"]) => ("`inline.MSL`", "Metal"),
-        "layout" if dot_then(&["C"]) => ("`layout.C`", "CNC"),
-        "C" if dot_then(&["str"]) => ("`C.str`", "CNC"),
-        "i128" | "u128" => (if w == "i128" { "`i128`" } else { "`u128`" }, "WSMW"),
+        "inline" if dot_then(&["MSL", "Metal_Shading_Language"]) => ("`inline.%MSL`", "Metal"),
+        "layout" if dot_then(&["C"]) => ("`%layout.C`", "CNC"),
+        "C" if dot_then(&["str"]) => ("`%C.str`", "CNC"),
+        "i128" | "u128" => (if w == "i128" { "`%i128`" } else { "`%u128`" }, "WSMW"),
         "not_std" => ("a `not_std.` width", "WSMW"),
-        "d32" | "d64" | "d128" => (match w.as_str() { "d32" => "`d32`", "d64" => "`d64`", _ => "`d128`" }, "Money"),
-        "str" if dot_then(&["utf16", "utf32"]) => (if next_is(2, "utf16") { "`str.utf16`" } else { "`str.utf32`" }, "unicode"),
+        "d32" | "d64" | "d128" => (match w.as_str() { "d32" => "`%d32`", "d64" => "`%d64`", _ => "`%d128`" }, "Money"),
+        "str" if dot_then(&["utf16", "utf32"]) => (if next_is(2, "utf16") { "`str.%utf16`" } else { "`str.%utf32`" }, "unicode"),
         // UTF-16 and UTF-32 included need UniTect, as their text does.
-        "incl" if dot_then(&["str"]) && matches!(toks.get(i + 3).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "utf16" || x == "utf32") => (if matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "utf16") { "`incl.str.utf16`" } else { "`incl.str.utf32`" }, "unicode"),
+        "incl" if dot_then(&["str"]) && matches!(toks.get(i + 3).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "utf16" || x == "utf32") => (if matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "utf16") { "`incl.str.%utf16`" } else { "`incl.str.%utf32`" }, "unicode"),
         "str" if dot_then(&["points", "graphemes"]) => (if next_is(2, "points") { "`str.points`" } else { "`str.graphemes`" }, "unicode"),
         "str" if dot_then(&["each", "at"]) && matches!(toks.get(i + 3).map(|t| &t.tok), Some(Tok::Dot)) && matches!(toks.get(i + 4).map(|t| &t.tok), Some(Tok::Word(x)) if x == "point" || x == "grapheme") => ("counting in points or graphemes", "unicode"),
-        "char" if dot_then(&["point", "grapheme"]) => (if next_is(2, "point") { "`char.point`" } else { "`char.grapheme`" }, "unicode"),
+        "char" if dot_then(&["point", "grapheme"]) => (if next_is(2, "point") { "`char.%point`" } else { "`char.%grapheme`" }, "unicode"),
         "case" if dot_then(&["any", "exact", "insensitive", "sensitive"]) => ("a `case` mark", "unicode"),
-        "concur" => ("`concur`", "MCPS"),
-        "whichever" => ("`whichever`", "MCPS"),
-        "channel" => ("`channel`", "MCPS"),
+        "concur" => ("`%concur`", "MCPS"),
+        "whichever" => ("`%whichever`", "MCPS"),
+        "channel" => ("`%channel`", "MCPS"),
         // `for para`, or `for !cheat para`.
-        "for" if next_is(1, "para") || (next_is(1, "no_cheat") && next_is(2, "para")) => ("`for para`", "MCPS"),
+        "for" if next_is(1, "para") || (next_is(1, "no_cheat") && next_is(2, "para")) => ("`for %para`", "MCPS"),
         _ => return None,
     })
 }
@@ -542,6 +542,9 @@ pub fn precedence_blocks(toks: &[Token]) -> Result<Vec<(String, (u16, Chain))>> 
 }
 
 pub fn parse_file(toks: &[Token]) -> Result<File> {
+    // Every piece a limb adds is marked `%` (owner, 2026-10-26): checked on
+    // the tokens as written, before anything rewrites them.
+    crate::marks::check(toks)?;
     // Each argument after the first says its role (owner, 2026-10-14): the
     // words checked and taken out before anything is parsed.
     // `use … as …;` (owner, 2026-10-22): its names written out first.
@@ -622,7 +625,7 @@ pub fn parse_file(toks: &[Token]) -> Result<File> {
             if let (Tok::Word(c), Some(Tok::Dot), Some(Tok::Word(t))) = (&toks[i].tok, toks.get(i + 1).map(|t| &t.tok), toks.get(i + 2).map(|t| &t.tok)) {
                 let after_dot = i > 0 && matches!(toks[i - 1].tok, Tok::Dot | Tok::ColonColon);
                 if c == "C" && !after_dot && !cores.iter().any(|c| c == "CNC") {
-                    return core_missing(&format!("`C.{}`", t), "CNC", toks[i].span);
+                    return core_missing(&format!("`%C.{}`", t), "CNC", toks[i].span);
                 }
             }
         }
@@ -1584,13 +1587,13 @@ impl<'a> Parser<'a> {
                 // `extern` names its language (owner, 2026-10-02): `extern.C`,
                 // a line or a block.
                 if !self.eat(&Tok::Dot) {
-                    return self.fail_n("cnc::extern_language_unsaid", "`extern` names its language: `extern.C fn exit [$code: i32];`, or a block, `extern.C { … }`").with_fix(Span::new(self.prev_span().file, self.prev_span().end as usize, self.prev_span().end as usize), Edit::Insert, ".C");
+                    return self.fail_n("cnc::extern_language_unsaid", "`extern` names its language: `%extern.C fn exit [$code: i32];`, or a block, `%extern.C { … }`").with_fix(Span::new(self.prev_span().file, self.prev_span().end as usize, self.prev_span().end as usize), Edit::Insert, ".C");
                 }
                 let lang = self.ident("the language after `extern.`")?;
                 match lang.name.as_str() {
                     "C" => {}
-                    "c" => return self.fail_at_n(lang.span, "cnc::c_capitalized", "C is written capitalized here, as every language's name is: `extern.C`").with_fix(lang.span, Edit::Replace, "C"),
-                    other => return self.fail_at_n(lang.span, "cnc::extern_language_unknown", format!("only `extern.C` exists: `extern.{}` is not a language CyborgPL reaches", other)).with_fix(lang.span, Edit::Replace, "C"),
+                    "c" => return self.fail_at_n(lang.span, "cnc::c_capitalized", "C is written capitalized here, as every language's name is: `%extern.C`").with_fix(lang.span, Edit::Replace, "C"),
+                    other => return self.fail_at_n(lang.span, "cnc::extern_language_unknown", format!("only `%extern.C` exists: `%extern.{}` is not a language CyborgPL reaches", other)).with_fix(lang.span, Edit::Replace, "C"),
                 }
                 if self.is(&Tok::LBrace) {
                     let open = self.bump().span;
@@ -1599,7 +1602,7 @@ impl<'a> Parser<'a> {
                         // Another item's first word at the left margin, or the
                         // end of the file: the block was never closed.
                         if self.at_eof() || self.is_word("MAIN") || self.is_word("struct") || self.is_word("enum") || self.is_word("const") || self.is_word("module") || self.is_word("extern") || self.is_word("layout") {
-                            return self.close_block(self.fail_at_n(open, "unclosed_block", "the `extern.C {` block is never closed: is its `}` missing?"));
+                            return self.close_block(self.fail_at_n(open, "unclosed_block", "the `%extern.C {` block is never closed: is its `}` missing?"));
                         }
                         // A line may say its own `pub` or `pub.kit`; one
                         // before the block overrides them (owner, 2026-10-02:
@@ -1637,10 +1640,10 @@ impl<'a> Parser<'a> {
                 let which = self.ident("`C` after `layout.`")?;
                 // A language's name is capitalized (owner, 2026-10-02).
                 if which.name == "c" {
-                    return self.fail_at_n(which.span, "cnc::c_capitalized", "C is written capitalized here, as every language's name is: `layout.C struct`, `layout.C enum`").with_fix(which.span, Edit::Replace, "C");
+                    return self.fail_at_n(which.span, "cnc::c_capitalized", "C is written capitalized here, as every language's name is: `%layout.C struct`, `%layout.C enum`").with_fix(which.span, Edit::Replace, "C");
                 }
                 if which.name != "C" {
-                    return self.fail_at_n(which.span, "cnc::unknown_layout", format!("the only layout is `layout.C`, C's shape; `layout.{}` does not exist", which.name)).with_fix(which.span, Edit::Replace, "C");
+                    return self.fail_at_n(which.span, "cnc::unknown_layout", format!("the only layout is `%layout.C`, C's shape; `%layout.{}` does not exist", which.name)).with_fix(which.span, Edit::Replace, "C");
                 }
                 if self.eat_word("enum") {
                     return Ok(ItemKind::Enum(self.enum_decl(true)?));
@@ -1652,7 +1655,7 @@ impl<'a> Parser<'a> {
                     return Ok(ItemKind::Struct(d));
                 }
                 if !self.is_word("struct") {
-                    return self.fail_n("unexpected_text", format!("`layout.C` is followed by `struct`, `union` or `enum`, found {}", self.peek().describe()));
+                    return self.fail_n("unexpected_text", format!("`%layout.C` is followed by `struct`, `union` or `enum`, found {}", self.peek().describe()));
                 }
                 self.bump();
                 Ok(ItemKind::Struct(self.struct_decl(true)?))
@@ -1852,12 +1855,12 @@ impl<'a> Parser<'a> {
         self.bump();
         let lang = self.ident("`C`")?;
         if lang.name == "c" {
-            return self.fail_at_n(lang.span, "cnc::c_capitalized", "C is written capitalized here, as every language's name is: `incl.C`").with_fix(lang.span, Edit::Replace, "C");
+            return self.fail_at_n(lang.span, "cnc::c_capitalized", "C is written capitalized here, as every language's name is: `incl.%C`").with_fix(lang.span, Edit::Replace, "C");
         }
         let system = if self.eat(&Tok::Dot) {
             let w = self.ident("`system`")?;
             if w.name != "system" {
-                return self.fail_at_n(w.span, "cnc::incl_c_form", format!("`incl.C.{}` is not a kind of header: `incl.C.system[\"stdio.h\"]` is the system's, `incl.C[\"vendor/mylib.h\"]` one in the kit", w.name));
+                return self.fail_at_n(w.span, "cnc::incl_c_form", format!("`incl.%C.{}` is not a kind of header: `incl.%C.system[\"stdio.h\"]` is the system's, `incl.%C[\"vendor/mylib.h\"]` one in the kit", w.name));
             }
             true
         } else {
@@ -1867,7 +1870,7 @@ impl<'a> Parser<'a> {
         let mut paths = Vec::new();
         while !self.is(&Tok::RBracket) {
             let Tok::Str(p) = self.peek().clone() else {
-                return self.fail_n("cnc::incl_c_form", "a header is written in quotes, as text: `incl.C.system[\"stdio.h\"]`");
+                return self.fail_n("cnc::incl_c_form", "a header is written in quotes, as text: `incl.%C.system[\"stdio.h\"]`");
             };
             self.bump();
             paths.push(p);
@@ -1877,11 +1880,11 @@ impl<'a> Parser<'a> {
         }
         self.expect(&Tok::RBracket, "`]` closing the headers")?;
         if paths.is_empty() {
-            return self.fail_n("cnc::incl_c_form", "`incl.C` names at least one header: `incl.C.system[\"stdio.h\"]`");
+            return self.fail_n("cnc::incl_c_form", "`incl.%C` names at least one header: `incl.%C.system[\"stdio.h\"]`");
         }
         let line = start.to(self.prev_span());
-        self.expect_semi("the `incl.C` line")?;
-        let spelled = format!("`incl.C{}[{}]`", if system { ".system" } else { "" }, paths.iter().map(|p| format!("\"{}\"", p)).collect::<Vec<_>>().join(", "));
+        self.expect_semi("the `incl.%C` line")?;
+        let spelled = format!("`incl.%C{}[{}]`", if system { ".system" } else { "" }, paths.iter().map(|p| format!("\"{}\"", p)).collect::<Vec<_>>().join(", "));
         let root = NEURON_ROOT.with(|r| r.borrow().clone());
         let decls = crate::cheader::declare(system, &paths, &root).map_err(|why| Box::new(Diagnostic::error(format!("{}: {}", spelled, why)).named("cnc::header_not_found").at(line)))?;
         let mut text = String::new();
@@ -2436,10 +2439,10 @@ impl<'a> Parser<'a> {
             return Ok(ItemKind::ExternFn(decl));
         }
         if self.is_word("let") {
-            return self.fail_n("declaration_form", "C's variable has no `let`: `extern.C $x: T;` (`extern.C mut $x: T;` to write it)");
+            return self.fail_n("declaration_form", "C's variable has no `let`: `%extern.C $x: T;` (`%extern.C mut $x: T;` to write it)");
         }
         if !(matches!(self.peek(), Tok::Name(_)) || self.is_word("mut") || self.is_word("immut")) {
-            return self.fail_n("unexpected_text", "`extern.C` is followed by `fn` (a C function) or a quoted name (a C variable: `extern.C 'x': i32;`)");
+            return self.fail_n("unexpected_text", "`%extern.C` is followed by `fn` (a C function) or a quoted name (a C variable: `%extern.C 'x': i32;`)");
         }
         let mutable = self.eat_word("mut");
         if self.is_word("immut") {
@@ -2447,7 +2450,7 @@ impl<'a> Parser<'a> {
         }
         let name = self.qname("the C variable's name")?;
         if !self.is(&Tok::Colon) {
-            return self.fail_n("declaration_form", "C's variable needs a type: it has a C-shaped type and no value here — `extern.C $x: i32;`");
+            return self.fail_n("declaration_form", "C's variable needs a type: it has a C-shaped type and no value here — `%extern.C $x: i32;`");
         }
         self.bump();
         let ty = self.type_()?;
@@ -2489,7 +2492,7 @@ impl<'a> Parser<'a> {
         if !has_body && self.is_op("=") {
             self.bump();
             if !(self.is_word("C") && matches!(self.peek_at(1), Tok::Dot)) {
-                return self.fail_n("cnc::extern_language_unsaid", format!("a C function under another name says whose it is: `extern.C fn printf_count = C.printf […]`, so `= C.{}`", self.word_text()));
+                return self.fail_n("cnc::extern_language_unsaid", format!("a C function under another name says whose it is: `%extern.C fn printf_count = %C.printf […]`, so `= %C.{}`", self.word_text()));
             }
             self.bump();
             self.bump();
@@ -3269,10 +3272,10 @@ impl<'a> Parser<'a> {
                 return self.fail_n("type_incomplete", format!("`{}` needs a width: the typed form is always fully explicit — `{}32`, `{}64`, …", w, w, w));
             }
             Tok::Word(w) if w == "str" && !matches!(self.peek_at(1), Tok::Dot) => {
-                return self.fail_n("type_incomplete", "`str` is never bare: say the encoding — `str.utf8`, `str.utf16`, `str.utf32`, `str.ascii`");
+                return self.fail_n("type_incomplete", "`str` is never bare: say the encoding — `str.utf8`, `str.%utf16`, `str.%utf32`, `str.ascii`");
             }
             Tok::Word(w) if w == "char" && !matches!(self.peek_at(1), Tok::Dot) => {
-                return self.fail_n("type_incomplete", "`char` is never bare: say the unit — `char.point`, `char.grapheme`, `char.byte`");
+                return self.fail_n("type_incomplete", "`char` is never bare: say the unit — `char.%point`, `char.%grapheme`, `char.byte`");
             }
             Tok::Word(w) if w == "range" => {
                 return self.fail_n("old_spelling", "a counting loop reads as a sentence now: `for $i [from: 1, to: 10, by: 1]` (`before: 10` leaves 10 out) (owner, 2026-10-20)");
@@ -3285,7 +3288,7 @@ impl<'a> Parser<'a> {
                 let Tok::Word(w) = self.peek_at(1).clone() else { unreachable!() };
                 let rest = &w[4..];
                 let to = rest.strip_prefix("uint").map(|b| format!("u{}", b)).or_else(|| rest.strip_prefix("int").map(|b| format!("i{}", b))).unwrap_or_else(|| rest.to_string());
-                return self.fail_n("old_spelling", format!("`!{}` is `not_std.{}` since 2026-10-06: \"not standard\", narrowed with `.`", w, &w[4..])).with_fix(self.span().to(self.span_at(1)), Edit::Replace, format!("not_std.{}", to));
+                return self.fail_n("old_spelling", format!("`!{}` is `%not_std.{}` since 2026-10-06: \"not standard\", narrowed with `.`", w, &w[4..])).with_fix(self.span().to(self.span_at(1)), Edit::Replace, format!("not_std.{}", to));
             }
             // `not_std.int24` (owner, 2026-10-07; `!std.int24` before).
             Tok::Word(n) if n == "not_std" && matches!(self.peek_at(1), Tok::Dot) && matches!(self.peek_at(2), Tok::Word(_)) => {
@@ -3323,7 +3326,7 @@ impl<'a> Parser<'a> {
                     self.expect(&Tok::RBracket, "`]` closing the type parameters")?;
                 } else if self.is(&Tok::LBracket) && is_primitive_head(&head) && !self.bracket_is_bound() && !conv && !self.bracket_is_count() {
                     if head == "bool" || head.starts_with("str") || head.starts_with("char") {
-                        return self.fail_n("type_parameter_count", format!("`{}` takes no type parameters; a bracket after it is a bound — `[min: 1, max: 40 graphemes]`", path.spelled()));
+                        return self.fail_n("type_parameter_count", format!("`{}` takes no type parameters; a bracket after it is a bound — `[min: 1, max: 40 %graphemes]`", path.spelled()));
                     }
                     return self.fail_n("type_parameter_count", format!("`{}` takes no type parameters; a bracket after it is a range — `{}[min: 0, max: 100]`", path.spelled(), path.spelled()));
                 }
@@ -4117,9 +4120,9 @@ impl<'a> Parser<'a> {
     fn concur_rest(&mut self) -> Result<StmtKind> {
         let mut detached = false;
         if self.eat(&Tok::Dot) {
-            let w = self.ident("`detached` after `concur.`")?;
+            let w = self.ident("`detached` after `%concur.`")?;
             if w.name != "detached" {
-                return self.fail_at_n(w.span, "unknown_narrowing", format!("`concur.{}` does not exist: `concur` (structured) or `concur.detached` (lives as long as the program)", w.name)).with_fix(w.span, Edit::Replace, "detached");
+                return self.fail_at_n(w.span, "unknown_narrowing", format!("`%concur.{}` does not exist: `%concur` (structured) or `%concur.detached` (lives as long as the program)", w.name)).with_fix(w.span, Edit::Replace, "detached");
             }
             detached = true;
         }
@@ -4145,11 +4148,11 @@ impl<'a> Parser<'a> {
     }
 
     fn whichever_rest(&mut self) -> Result<StmtKind> {
-        let open = self.expect(&Tok::LBrace, "`{` after `whichever`")?;
+        let open = self.expect(&Tok::LBrace, "`{` after `%whichever`")?;
         let mut arms = Vec::new();
         while !self.is(&Tok::RBrace) {
             if self.at_eof() {
-                return self.close_block(self.fail_at_n(open, "unclosed_block", "`whichever` is never closed"));
+                return self.close_block(self.fail_at_n(open, "unclosed_block", "`%whichever` is never closed"));
             }
             let name = self.qname("the arm's value name")?;
             if !self.eat_word("from") {
@@ -4161,7 +4164,7 @@ impl<'a> Parser<'a> {
         }
         self.bump();
         if arms.is_empty() {
-            return self.fail_at_n(open.to(self.prev_span()), "mcps::whichever_empty", "`whichever` needs at least one arm: `$v from lend $c { … }`");
+            return self.fail_at_n(open.to(self.prev_span()), "mcps::whichever_empty", "`%whichever` needs at least one arm: `$v from lend $c { … }`");
         }
         let otherwise = if self.is_word("otherwise") {
             self.bump();
@@ -4214,9 +4217,9 @@ impl<'a> Parser<'a> {
             "MSL" | "Metal_Shading_Language" => return self.inline_msl(lang.span),
             "asm" | "s" | "assembly" => return self.fail_at_n(lang.span, "inline_language_capitals", "an inline language's name is in capitals: `inline.ASM`").with_fix(lang.span, Edit::Replace, "ASM"),
             "ll" | "llvm" => return self.fail_at_n(lang.span, "inline_language_capitals", "an inline language's name is in capitals: `inline.LL`").with_fix(lang.span, Edit::Replace, "LL"),
-            "msl" => return self.fail_at_n(lang.span, "inline_language_capitals", "an inline language's name is in capitals: `inline.MSL`").with_fix(lang.span, Edit::Replace, "MSL"),
-            "C" | "c" => return self.fail_at_n(lang.span, "not_decided", "the inline languages are `inline.ASM`, `inline.LL` and `inline.MSL`; `inline.C` is not decided"),
-            other => return self.fail_at_n(lang.span, "unknown_inline_language", format!("the inline languages are `inline.ASM`, `inline.LL` and `inline.MSL`; `inline.{}` is not one", other)).map_err(|d| Box::new(d.fix_close(lang.span, other, ["ASM", "LL", "MSL"]))),
+            "msl" => return self.fail_at_n(lang.span, "inline_language_capitals", "an inline language's name is in capitals: `inline.%MSL`").with_fix(lang.span, Edit::Replace, "MSL"),
+            "C" | "c" => return self.fail_at_n(lang.span, "not_decided", "the inline languages are `inline.ASM`, `inline.LL` and `inline.%MSL`; `inline.%C` is not decided"),
+            other => return self.fail_at_n(lang.span, "unknown_inline_language", format!("the inline languages are `inline.ASM`, `inline.LL` and `inline.%MSL`; `inline.{}` is not one", other)).map_err(|d| Box::new(d.fix_close(lang.span, other, ["ASM", "LL", "MSL"]))),
         }
         let text = match self.peek().clone() {
             Tok::Raw(t) => {
@@ -4299,9 +4302,9 @@ impl<'a> Parser<'a> {
             match w.name.as_str() {
                 "precise" if !precise && !wrap => precise = true,
                 "wrap" if !wrap => wrap = true,
-                "precise" if wrap => return self.fail_at_n(w.span, "unknown_narrowing", "the strongest modifier comes first: `inline.MSL.precise.wrap` (`.precise` changes every float step, `.wrap` only an overflow)").with_fix(name.to(w.span), Edit::Swap(vec!["MSL.wrap.precise".into()]), "MSL.precise.wrap"),
+                "precise" if wrap => return self.fail_at_n(w.span, "unknown_narrowing", "the strongest modifier comes first: `inline.%MSL.precise.wrap` (`.precise` changes every float step, `.wrap` only an overflow)").with_fix(name.to(w.span), Edit::Swap(vec!["MSL.wrap.precise".into()]), "MSL.precise.wrap"),
                 other => {
-                    return self.fail_at_n(w.span, "unknown_narrowing", format!("`inline.MSL.{}` is not a narrowing: `inline.MSL.precise` (safe math, no contraction), `inline.MSL.wrap` (signed arithmetic wraps), or both, `inline.MSL.precise.wrap`", other)).map_err(|d| Box::new(match crate::diag::closest(other, ["precise", "wrap"]) {
+                    return self.fail_at_n(w.span, "unknown_narrowing", format!("`inline.%MSL.{}` is not a narrowing: `inline.%MSL.precise` (safe math, no contraction), `inline.%MSL.wrap` (signed arithmetic wraps), or both, `inline.%MSL.precise.wrap`", other)).map_err(|d| Box::new(match crate::diag::closest(other, ["precise", "wrap"]) {
                         Some(c) => (*d).fix_edit(w.span, Edit::Replace, c),
                         None => *d,
                     }));
@@ -4314,7 +4317,7 @@ impl<'a> Parser<'a> {
             other => return self.fail_n("unexpected_text", format!("expected `{{` holding the Metal code, found {}", other.describe())),
         };
         if threads.is_none() {
-            return self.fail_at_n(name, "metal::threads_unsaid", "an `inline.MSL` block says how many threads run it first: `inline.MSL threads std::list.length(lend $xs) { … }`, the copies of its kernel that run");
+            return self.fail_at_n(name, "metal::threads_unsaid", "an `inline.%MSL` block says how many threads run it first: `inline.%MSL threads std::list.length(lend $xs) { … }`, the copies of its kernel that run");
         }
         let mut bindings = Vec::new();
         if self.eat_word("with") {
@@ -5338,10 +5341,10 @@ impl<'a> Parser<'a> {
                 // A channel is made as a list or a map is (owner, 2026-10-22:
                 // "Seems good"): `let $ch: channel[i32] = channel.empty;`.
                 "channel" if !matches!(self.peek_at(1), Tok::Dot) => {
-                    return self.fail_n("mcps::channel_form", "a channel is made as a list or a map is: `let $ch: channel[i32] = channel.empty;` (owner, 2026-10-22)");
+                    return self.fail_n("mcps::channel_form", "a channel is made as a list or a map is: `let $ch: %channel[i32] = %channel.empty;` (owner, 2026-10-22)");
                 }
                 "channel" if self.is_word_at(2, "empty") && !self.channel_ok => {
-                    return self.fail_n("mcps::channel_form", "`channel.empty` takes its type from the declaration: `let $c: channel[i32] = channel.empty;`, or bounded, `let $c: channel[i32][max: 10] = channel.empty;` (owner, 2026-10-22)");
+                    return self.fail_n("mcps::channel_form", "`%channel.empty` takes its type from the declaration: `let $c: %channel[i32] = %channel.empty;`, or bounded, `let $c: %channel[i32][max: 10] = %channel.empty;` (owner, 2026-10-22)");
                 }
                 "channel" if self.is_word_at(2, "empty") => {
                     self.bump();
@@ -5374,8 +5377,8 @@ impl<'a> Parser<'a> {
                     }
                     let what = self.ident("`bytes` or `str`")?;
                     let form = match what.name.as_str() {
-                        "C" => return self.fail_at_n(start, "belongs_at_top_level", "`incl.C` sits at the top level of a file or in a `module` block, as `extern.C` does, never in a body"),
-                        "c" => return self.fail_at_n(what.span, "cnc::c_capitalized", "C is written capitalized here, as every language's name is: `incl.C`").with_fix(what.span, Edit::Replace, "C"),
+                        "C" => return self.fail_at_n(start, "belongs_at_top_level", "`incl.%C` sits at the top level of a file or in a `module` block, as `%extern.C` does, never in a body"),
+                        "c" => return self.fail_at_n(what.span, "cnc::c_capitalized", "C is written capitalized here, as every language's name is: `incl.%C`").with_fix(what.span, Edit::Replace, "C"),
                         "bytes" => InclForm::Bytes,
                         "str" => {
                             self.expect(&Tok::Dot, "`.` and the text's encoding: `incl.str.utf8[…]`")?;
@@ -5402,7 +5405,7 @@ impl<'a> Parser<'a> {
                                     };
                                     if enc.name == "utf16" { InclForm::Utf16 { low_first } } else { InclForm::Utf32 { low_first } }
                                 }
-                                other => return self.fail_at_n(enc.span, "include_form", format!("`incl.str.{}` is not an encoding: `incl.str.utf8[…]`, `incl.str.ascii[…]`, or `incl.str.utf16` / `utf32` with its byte order", other)),
+                                other => return self.fail_at_n(enc.span, "include_form", format!("`incl.str.{}` is not an encoding: `incl.str.utf8[…]`, `incl.str.ascii[…]`, or `incl.str.%utf16` / `utf32` with its byte order", other)),
                             }
                         }
                         other => return self.fail_at_n(what.span, "include_form", format!("`incl.{}` does not exist: `incl.bytes[…]` gives the bytes, `incl.str.utf8[…]` the text", other)),

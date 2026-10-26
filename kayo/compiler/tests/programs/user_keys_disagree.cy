@@ -1,8 +1,8 @@
 # `==` says 7 and 107 are equal, and `hash` gives 7 and 107: the second
 # key would sit in another slot. A miss asks every key there is, and the
 # comparison that finds them equal stops the program.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 struct User { id: i32, name: str.utf8 }
 op equal_to [$a: User, $b: User] -> bool { return ($a.id mod.floor 100) equal_to ($b.id mod.floor 100); }
 fn hash [lent $v: User] -> u64 { return to.u64($v.id); }

@@ -1,7 +1,7 @@
 # In a `#strict` file a case says its value with `gives` (owner, 2026-09-29:
 # b), and may do other work first (examples/strict_match.cpls as an exit
 # code: "taken by bo" is 11 bytes).
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 enum Status { empty, claimed: str.utf8, locked }
 fn label [$s: Status] -> str.utf8 {
     let immut $text := match $s {

@@ -312,7 +312,7 @@ impl Diagnostic {
         Diagnostic::new(Kind::Note, sentence)
     }
     pub fn new(kind: Kind, sentence: impl Into<String>) -> Diagnostic {
-        Diagnostic { kind, name: None, sentence: dollar_names(sentence.into()), span: None, place: None, when: None, why: Vec::new(), try_: None, fixes: Vec::new(), outside: false, keep_about: false }
+        Diagnostic { kind, name: None, sentence: crate::marks::in_message(&dollar_names(sentence.into())), span: None, place: None, when: None, why: Vec::new(), try_: None, fixes: Vec::new(), outside: false, keep_about: false }
     }
     /// Its name from `errors.cyr`.
     pub fn named(mut self, name: &'static str) -> Diagnostic {

@@ -3,7 +3,7 @@
 # covers its own name, so `Mood`'s cases stay exact. examples/case_marks.cpls
 # without printing: 1 + 2 x 10 + 2 x 100 = 221.
 case.any [fn, var];
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 
 case.any enum Mood {
     Happy,

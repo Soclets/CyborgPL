@@ -2,10 +2,10 @@
 # points and grapheme clusters (UAX #29, extended: เกี่ยว is 4 clusters, 6
 # points, 18 bytes); text <-> grapheme conversions; a text bound counted
 # in graphemes, checked at run time. Values chosen at run time.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 fn short [lent $t: str.utf8] -> i32 {
-    let $s: str.utf8[min: 0, max: 2 graphemes] = to.str.utf8[min: 0, max: 2 graphemes]($t) otherwise { out_of_range { return 0; } };
+    let $s: str.utf8[min: 0, max: 2 %graphemes] = to.str.utf8[min: 0, max: 2 %graphemes]($t) otherwise { out_of_range { return 0; } };
     return 1;
 }
 MAIN {
@@ -15,15 +15,15 @@ MAIN {
     if $there { change $w = "เกี่ยว"; }
     let mut $got: i32 = 0;
     if std::str.graphemes(lend $w) equal_to 4 and std::str.points(lend $w) equal_to 6 and std::str.bytes(lend $w) equal_to 18 { change $got = $got plus 1; }
-    let $g: char.grapheme = `é`;
-    let $p := to.char.point($g) otherwise `?`;
+    let $g: char.%grapheme = `é`;
+    let $p := to.char.%point($g) otherwise `?`;
     if char.code($p) equal_to 233 and $g equal_to `é` { change $got = $got plus 2; }
-    let $one := to.char.grapheme("x" concat $w) otherwise `?`;
-    let $syl := to.char.grapheme("เกี่ยว") otherwise `?`;
-    let $acc := to.char.grapheme("é") otherwise `?`;
+    let $one := to.char.%grapheme("x" concat $w) otherwise `?`;
+    let $syl := to.char.%grapheme("เกี่ยว") otherwise `?`;
+    let $acc := to.char.%grapheme("é") otherwise `?`;
     let $at := to.str.utf8($acc);
     if $one equal_to `?` and $syl equal_to `?` and std::str.bytes(lend $at) equal_to 3 { change $got = $got plus 4; }
-    let $up := to.char.grapheme(`x`);
+    let $up := to.char.%grapheme(`x`);
     if to.str.utf8($up) concat "!" equal_to "x!" { change $got = $got plus 8; }
     if short(lend $w) equal_to 0 and short("ab") equal_to 1 and short("abc") equal_to 0 { change $got = $got plus 16; }
     no_check my.exit($got);

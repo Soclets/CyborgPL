@@ -5,7 +5,7 @@
 # divisor was "always zero" though no call ever passes it. f[3, 587] is 1;
 # g[0, 1] is 100 mod -1, 0; g[2, 1] reaches p1 = 664 at pr = 0 (1 → 449 →
 # 664): 100 mod -664 is -564 by the divisor's sign. 1 + 0 + 564 - 560 = 5.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn f [$pr: i32[min: 0, max: 6], $p1: u64] -> i64 {
     if $pr equal_to 0 { return 1; }
     let $r: i64 = f($pr minus 1, $p1);

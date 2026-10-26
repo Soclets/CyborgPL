@@ -2,7 +2,7 @@ case.any;
 # A file's mark covers every name written in it: functions, types, fields,
 # cases, consts and variables (owner, 2026-10-06). examples/case_file.cpls
 # without printing: 6 + 6 x 10 + 2 = 68.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 const $Limit := 3;
 
 struct Point {

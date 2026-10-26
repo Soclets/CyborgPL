@@ -2,7 +2,7 @@
 # 2026-10-06), mixed in one chain. Built for aarch64-macos: 10 from the
 # whole target, 200 from the item branch, 3 because no Apple chip has SVE
 # so the chain falls to the target branch, 30 from the chip: 243.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 on.target.os windows {
     fn where [] -> i32 { return 1; }
 } else {

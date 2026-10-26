@@ -4,7 +4,7 @@
 # literal lent to a call is freed after it; a text `to.str.utf8` made with
 # an `otherwise` is freed; a nested list is moved into its list, not freed
 # twice; a `for … in lend` over owning elements borrows them.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 
 struct L {
     owner: str.utf8,

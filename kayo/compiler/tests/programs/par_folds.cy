@@ -2,7 +2,7 @@
 # products of integers, bins and decis run in slices, each folding its own
 # trips, the partials combined in slice order at the end. The values are
 # exact, so the rounding the order may change never shows here.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $n: i64 = 300000;
     let $bs: std::list[f64] = std::list.fill(value: 0.5, count: $n);
@@ -10,13 +10,13 @@ MAIN {
     for $x in lend $bs {
         change $bsum = $bsum plus $x;
     }
-    let $q: d64 = 0.25;
-    let $ds: std::list[d64] = std::list.fill(value: $q, count: $n);
-    let mut $dsum: d64 = 0;
+    let $q: %d64 = 0.25;
+    let $ds: std::list[%d64] = std::list.fill(value: $q, count: $n);
+    let mut $dsum: %d64 = 0;
     for $x in lend $ds {
         change $dsum = $dsum plus $x;
     }
-    let mut $dprod: d64 = 2;
+    let mut $dprod: %d64 = 2;
     for $y in lend $ds {
         change $dprod = $dprod times 1;
     }

@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 
 MAIN {
     let mut $total: i32 = 0;

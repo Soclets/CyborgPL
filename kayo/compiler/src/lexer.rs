@@ -107,6 +107,10 @@ pub struct Token {
     /// A text with a backslash, as written between its quotes: a format
     /// text reads its own escapes in one pass (`print.format`).
     pub raw: Option<String>,
+    /// A word written with `%` glued in front (owner, 2026-10-26): a piece a
+    /// limb adds. `marks::check` says where one goes; the word reads as it
+    /// always did.
+    pub marked: bool,
 }
 
 pub const OP_CHARS: &str = "!%&*+-/<>=?@^|~";
@@ -147,10 +151,12 @@ struct Lexer<'a> {
     toks: Vec<Token>,
     /// Byte offset where the current line began (for `#wl`).
     line_start: usize,
+    /// A `%` glued to the word that comes next: it marks that word.
+    mark: Option<usize>,
 }
 
 pub fn lex(file: FileId, src: &str) -> Result<Vec<Token>> {
-    let mut lx = Lexer { file, src, pos: 0, toks: Vec::new(), line_start: 0 };
+    let mut lx = Lexer { file, src, pos: 0, toks: Vec::new(), line_start: 0, mark: None };
     lx.run()?;
     Ok(lx.toks)
 }
@@ -173,7 +179,13 @@ impl<'a> Lexer<'a> {
     fn push(&mut self, tok: Tok, start: usize) {
         let span = self.span(start);
         let line_first = self.toks.last().map_or(true, |t| self.src.get(t.span.end as usize..start).is_some_and(|gap| gap.contains('\n')));
-        self.toks.push(Token { tok, span, line_first, alt: None, labelled: false, call: false, raw: None });
+        // A mark's `%` belongs to the word's span, so a message shows it.
+        let (span, marked) = match self.mark.take() {
+            Some(at) if matches!(tok, Tok::Word(_)) => (Span::new(self.file, at, span.end as usize), true),
+            _ => (span, false),
+        };
+        let line_first = line_first || (marked && self.toks.last().map_or(true, |t| self.src.get(t.span.end as usize..span.start as usize).is_some_and(|gap| gap.contains('\n'))));
+        self.toks.push(Token { tok, span, line_first, alt: None, labelled: false, call: false, raw: None, marked });
     }
     fn push_alt(&mut self, tok: Tok, start: usize, alt: Option<(String, &'static str)>) {
         self.push(tok, start);
@@ -256,6 +268,17 @@ impl<'a> Lexer<'a> {
                 }
                 c if c.is_ascii_digit() => self.number(start)?,
                 c if is_word_start(c) => self.word(start)?,
+                // `%` glued to a word marks it, a piece a limb adds (owner,
+                // 2026-10-26): `%d64`, `to.%d64`, `%extern.C`.
+                '%' if self.peek_at(1).is_some_and(is_word_start) => {
+                    self.bump();
+                    self.mark = Some(start);
+                }
+                // `%[d32]` was a percent type's symbol; it is `percent[…]`
+                // now (owner, 2026-10-26).
+                '%' if self.peek_at(1) == Some('[') && self.toks.last().is_some_and(|t| matches!(t.tok, Tok::Colon | Tok::LBracket | Tok::Comma)) => {
+                    return self.fail(start, "old_spelling", "`%[…]` is an old spelling: a percent type is `percent[%d32]` (owner, 2026-10-26)").with_fix(Span::new(self.file, start, start + 1), Edit::Replace, "percent");
+                }
                 c if is_op_char(c) => {
                     while self.peek().map(is_op_char).unwrap_or(false) {
                         self.bump();
@@ -375,7 +398,7 @@ impl<'a> Lexer<'a> {
             }
         }
         let end = self.src.len();
-        self.toks.push(Token { tok: Tok::Eof, span: Span::new(self.file, end, end), line_first: true, alt: None, labelled: false, call: false, raw: None });
+        self.toks.push(Token { tok: Tok::Eof, span: Span::new(self.file, end, end), line_first: true, marked: false, alt: None, labelled: false, call: false, raw: None });
         Ok(())
     }
 
@@ -683,11 +706,16 @@ impl<'a> Lexer<'a> {
         // `%` touches the number, and is the old `%` of `mod` when an
         // operator, a digit, `'` or `(` follows it (`7%2`); `percent` comes
         // after a space and runs into no letter.
-        let sign = self.peek() == Some('%') && !self.peek_at(1).is_some_and(|c| is_op_char(c) || c.is_ascii_digit() || c == '\'' || c == '(');
+        // `80%` is an old spelling since 2026-10-26 (owner): `%` marks a
+        // limb's word now, and a percent is `80 percent`.
+        let sign = self.peek() == Some('%') && !self.peek_at(1).is_some_and(|c| is_op_char(c) || c.is_ascii_digit() || c == '\'' || c == '(' || is_word_start(c));
+        if sign {
+            return self.fail(start, "old_spelling", format!("`{}%` is an old spelling: write `{} percent` (owner, 2026-10-26)", text, text)).with_fix(Span::new(self.file, self.pos, self.pos + 1), Edit::Replace, " percent");
+        }
         let spaces = (0..).take_while(|&k| self.peek_at(k) == Some(' ')).count();
         let word = spaces > 0 && self.src[self.pos + spaces..].starts_with("percent") && !self.src[self.pos + spaces + 7..].chars().next().is_some_and(is_word_char);
-        if sign || word {
-            for _ in 0..if sign { 1 } else { spaces + 7 } {
+        if word {
+            for _ in 0..spaces + 7 {
                 self.bump();
             }
             self.push(Tok::Num { text: over_100(&text), bin: true, percent: true }, start);

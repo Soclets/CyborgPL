@@ -1,7 +1,7 @@
 # Conversions that can fail: text into a whole number (not_a_number), a bin
 # into one (not_whole, or out_of_range when too big: owner, 2026-09-30),
 # and anything into a range type (out_of_range).
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn read [$t: str.utf8] -> i32 {
     let $v := to.i32($t) otherwise {
         not_a_number { return -1; }

@@ -1,7 +1,7 @@
 # Loops in slices over a lent parameter: its slot is the address it borrows
 # already, so the slices take a copy of what is there, not of the address.
 # The oracle: 64.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn total [lent $xs: std::list[i64]] -> i64 {
     let mut $acc: i64 = 0;
     for $x in lend $xs {

@@ -2,11 +2,11 @@
 # 2026-09-30: a): malloc's bytes as a `layout.C` Point, written and read
 # whole, then as int32s one at a time. 3 x 10 + 4 = 34, and the second
 # i32 is y, 4: 34 + 4 = 38.
-extern.C fn malloc [$bytes: u64] -> ptr.mut[u8];
-extern.C fn free [$p: ptr.mut[u8]];
-extern.C fn exit [$code: i32];
+%extern.C fn malloc [$bytes: u64] -> ptr.mut[u8];
+%extern.C fn free [$p: ptr.mut[u8]];
+%extern.C fn exit [$code: i32];
 
-layout.C struct Point {
+%layout.C struct Point {
     x: i32,
     y: i32
 }

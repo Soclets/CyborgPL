@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let mut $xs: std::list[i32] = [];
     for $i: i32 [from: 1, to: 100, by: 1] {

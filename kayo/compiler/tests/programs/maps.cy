@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let mut $phones: std::map[str.utf8, i32] = std::map["ann" = 51, "bob" = 52];
     std::map.set(lend.mut $phones, key: "cat", value: 53);

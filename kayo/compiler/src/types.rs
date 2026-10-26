@@ -500,29 +500,33 @@ impl<'a> fmt::Display for TySpelling<'a> {
         let sp = |t: &'a Ty| TySpelling { ty: t, structs: self.structs, enums: self.enums };
         match self.ty {
             Ty::Int(IntW::Fixed { signed: true, bits }) if bits & EXACT_FLAG != 0 => write!(f, "integer"),
-            Ty::Int(IntW::Fixed { signed, bits }) if matches!(bits, 8 | 16 | 32 | 64 | 128) => write!(f, "{}{}", if *signed { "i" } else { "u" }, bits),
+            // A limb's type is spelled with its mark (owner, 2026-10-26),
+            // as the writer writes it: WSMW's 128 bits.
+            Ty::Int(IntW::Fixed { signed, bits: 128 }) => write!(f, "%{}128", if *signed { "i" } else { "u" }),
+            Ty::Int(IntW::Fixed { signed, bits }) if matches!(bits, 8 | 16 | 32 | 64) => write!(f, "{}{}", if *signed { "i" } else { "u" }, bits),
             // Not a standard width: marked as such (owner, 2026-10-03).
-            Ty::Int(IntW::Fixed { signed, bits }) => write!(f, "not_std.{}{}", if *signed { "i" } else { "u" }, bits),
+            Ty::Int(IntW::Fixed { signed, bits }) => write!(f, "%not_std.{}{}", if *signed { "i" } else { "u" }, bits),
             Ty::Int(IntW::Free(_)) => write!(f, "integer"),
+            Ty::Bin(BinW::Fixed(128)) => write!(f, "%f128"),
             Ty::Bin(BinW::Fixed(b)) => write!(f, "f{}", b),
             Ty::Bin(BinW::Free(_)) => write!(f, "bin"),
-            Ty::Brain => write!(f, "brain16"),
-            Ty::Deci(b) => write!(f, "d{}", b),
+            Ty::Brain => write!(f, "%brain16"),
+            Ty::Deci(b) => write!(f, "%d{}", b),
             Ty::Bool => write!(f, "bool"),
             Ty::Str(e) => match e {
                 Enc::Utf8 => write!(f, "str.utf8"),
-                Enc::Utf16 => write!(f, "str.utf16"),
-                Enc::Utf32 => write!(f, "str.utf32"),
+                Enc::Utf16 => write!(f, "str.%utf16"),
+                Enc::Utf32 => write!(f, "str.%utf32"),
                 Enc::Ascii => write!(f, "str.ascii"),
                 Enc::Free(_) => write!(f, "str"),
             },
             Ty::Char(u) => match u {
                 Unit::Byte => write!(f, "char.byte"),
-                Unit::Point => write!(f, "char.point"),
-                Unit::Grapheme => write!(f, "char.grapheme"),
+                Unit::Point => write!(f, "char.%point"),
+                Unit::Grapheme => write!(f, "char.%grapheme"),
                 Unit::Free(_) => write!(f, "char"),
             },
-            Ty::Seq { kind: SeqKind::CStr(_), .. } => write!(f, "C.str"),
+            Ty::Seq { kind: SeqKind::CStr(_), .. } => write!(f, "%C.str"),
             Ty::Seq { elem, kind } => {
                 let k = match kind {
                     SeqKind::List => "list",
@@ -539,7 +543,7 @@ impl<'a> fmt::Display for TySpelling<'a> {
                 };
                 write!(f, "{}[{}, {}]", o, sp(key), sp(val))
             }
-            Ty::Channel(e) => write!(f, "channel[{}]", sp(e)),
+            Ty::Channel(e) => write!(f, "%channel[{}]", sp(e)),
             Ty::Writer => write!(f, "std::print.writer"),
             Ty::Simd { elem, lanes } => write!(f, "simd[{}, count: {}]", sp(elem), lanes),
             Ty::Struct { id, args } => {

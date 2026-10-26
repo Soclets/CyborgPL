@@ -1,7 +1,7 @@
 # A template's name worked out by a function of the file, run while
 # generating (owner, 2026-10-13: `named size_name($n);`): kb, mb and pow6.
 # 1 + 1 + 64 is 66.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 
 fn size_name [$n: i32] -> str.utf8 {
     if $n equal_to 1024 { return "kb"; }

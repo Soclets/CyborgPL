@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 struct P { x: i32 }
 fn get [$p: P] -> i32 { return $p.x; }
 MAIN {

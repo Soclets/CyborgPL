@@ -3,8 +3,8 @@
 # from the digits to the width; past the largest fails out_of_range, and
 # so does a value outside a range type. Which text is read is known only
 # at run time: whether an unset variable is there.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 fn b64 [$t: str.utf8] -> f64 {
     let $v := to.f64($t) otherwise { not_a_number { return -1.0; } out_of_range { return -2.0; } };
     return $v;

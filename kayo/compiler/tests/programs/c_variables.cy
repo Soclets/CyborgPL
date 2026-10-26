@@ -4,11 +4,11 @@
 # (examples/c_variables.cpls, with libc's own `optind` as the C variable, so
 # the oracle cannot link it and the answer is worked out by hand: 1, 11, 10
 # → 100 + 10 + 0 = 110).
-extern.C fn exit [$code: i32];
-extern.C fn malloc [$bytes: u64] -> ptr.mut[Mode];
-extern.C fn free [$p: ptr.mut[Mode]];
-extern.C mut $optind: i32;
-layout.C enum Mode { emacs = 0, vi = 1 }
+%extern.C fn exit [$code: i32];
+%extern.C fn malloc [$bytes: u64] -> ptr.mut[Mode];
+%extern.C fn free [$p: ptr.mut[Mode]];
+%extern.C mut $optind: i32;
+%layout.C enum Mode { emacs = 0, vi = 1 }
 fn mode_at [$p: ptr[Mode]] -> i32 {
     no_check let $m := ptr.read($p) otherwise Mode.emacs;
     match $m {

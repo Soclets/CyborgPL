@@ -3,8 +3,8 @@
 # "0 x -inf has no number, every time" — the build refused a program that
 # always works. Past the largest is the store's own site to stop, so the
 # range stays within it. 0 x 1 is 0: exit 7.
-extern.C fn exit [$code: i32];
-extern.C fn strlen [$s: ptr[u8]] -> u64;
+%extern.C fn exit [$code: i32];
+%extern.C fn strlen [$s: ptr[u8]] -> u64;
 MAIN {
     let $s := "x";
     no_check let $n: u64 = strlen(lend $s);

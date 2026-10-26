@@ -1,7 +1,7 @@
 # Powers at run time: by squaring, each multiply checked only when the
 # answer needs it; xx~ wraps at its values' size. Each true case adds a bit.
-extern.C fn exit [$code: i32];
-extern.C fn strlen [$s: ptr[u8]] -> u64;
+%extern.C fn exit [$code: i32];
+%extern.C fn strlen [$s: ptr[u8]] -> u64;
 MAIN {
     let $s := "ab";
     no_check let $two: i64 = to.i64(strlen(lend $s));

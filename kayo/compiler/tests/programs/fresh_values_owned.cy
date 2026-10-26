@@ -2,7 +2,7 @@
 # it — and a fresh one sent, appended or set is moved in, never given back
 # twice. Both were wrong until 2026-09-29: an answer held in a variable was
 # never freed, which only hid the second.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn page [lent $u: str.utf8] -> str.utf8 { return "page of " concat $u; }
 fn run [] -> i32 {
     let mut $xs: std::list[str.utf8] = [];

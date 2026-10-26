@@ -1,10 +1,10 @@
 # A negative literal in a f16, f32 or brain16 place is written at that
 # width, as a positive one is: a brain16 -0.3 was stored as a f64 into its
 # two bytes, so every negative brain16 went wrong (check claude, 13ca93c).
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
-    let $a: brain16 = -0.3;
-    let $b: brain16 = -1.75;
+    let $a: %brain16 = -0.3;
+    let $b: %brain16 = -1.75;
     let $c: f32 = -0.5;
     let $h: f16 = -2.5;
     let $n1 := to.i64($a times 10.0) otherwise -100;

@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 
 fn grade [$n: i32] -> i32 {
     if $n > 90 { return 1; }

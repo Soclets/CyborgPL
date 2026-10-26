@@ -2,8 +2,8 @@
 # cases of examples/overflow_sites.cpls, each adding its bit to the exit.
 # The last line also pins a wrapping answer kept at its own width when
 # stored wider: layer 1 used to fold 8000000000 for 'h'.
-extern.C fn exit [$code: i32];
-extern.C fn strlen [$s: ptr[u8]] -> u64;
+%extern.C fn exit [$code: i32];
+%extern.C fn strlen [$s: ptr[u8]] -> u64;
 MAIN {
     let $z := "ab";
     no_check let $two: i64 = to.i64(strlen(lend $z));

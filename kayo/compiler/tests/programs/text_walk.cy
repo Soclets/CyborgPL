@@ -1,8 +1,8 @@
 # Walking a text by its units (strings.md): str.each.byte / .point /
 # .grapheme — 21 bytes, 8 points, 6 clusters for "aé" ++ "เกี่ยว"; each
 # cluster a text of its own, given back with the walk.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 MAIN {
     let $k := "SYNAPSE_SURELY_UNSET_VARIABLE";
     no_check let $there := ptr.is_null(getenv(lend $k));

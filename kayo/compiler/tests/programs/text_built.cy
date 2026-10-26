@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let mut $out: str.utf8 = str.empty;
     for $i: i32 [from: 1, to: 20, by: 1] {

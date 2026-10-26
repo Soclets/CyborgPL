@@ -614,6 +614,9 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
     crate::parser::set_no_std(no_cord);
     crate::parser::set_cores(dir.join(MANIFEST).is_file().then(|| manifest.cores.clone()));
     let outer_root = crate::parser::set_neuron_root(dir);
+    // std's own files were written before the limb mark (owner,
+    // 2026-10-26), and are std claude's to mark: not checked until then.
+    let outer_marks = crate::marks::set_checked(!as_cord);
     // The kits it lists: their `pub` handlers, by their prefix, before its
     // own files are read (owner, 2026-10-23).
     let mut kit_handlers = std::collections::HashMap::new();
@@ -655,6 +658,7 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
     crate::parser::set_cores(None);
     crate::parser::set_neuron_root(&outer_root);
     crate::parser::set_kit_handlers(outer_handlers);
+    crate::marks::set_checked(outer_marks);
     if let Some(b) = outer_bounds {
         crate::bounds::set_kit(b);
     }

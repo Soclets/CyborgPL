@@ -4,8 +4,8 @@
 # `'v' == 0 or.else` leaves 1 to 16383, and `18 mod 'v'` cannot divide by
 # 0. It was all of i32, 0 inside it, and the `mod` was refused.
 # Whatever the pid, the guard holds (18 mod v is at most 18): 7.
-extern.C fn exit [$code: i32];
-extern.C fn getpid [] -> i32;
+%extern.C fn exit [$code: i32];
+%extern.C fn getpid [] -> i32;
 MAIN {
     no_check let immut $p: i32 = getpid();
     let immut $v: i32 = $p and.bit 16383;

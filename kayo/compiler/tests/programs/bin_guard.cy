@@ -2,8 +2,8 @@
 # two `if`s the store is refused; with them it is proven and no check is
 # emitted. The program exits 7 either way — what is being tested is that it
 # builds at all, which only happens when the guardrail is believed.
-extern.C fn exit [$code: i32];
-extern.C fn getpid [] -> i32;
+%extern.C fn exit [$code: i32];
+%extern.C fn getpid [] -> i32;
 
 MAIN {
     no_check let $n := getpid();

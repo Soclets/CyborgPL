@@ -4,7 +4,7 @@
 # is past the type for `div.trunc` and is left out; its `mod.trunc` is 0.
 # Lane by lane on a vector too, and C's `fmod` on bins: 4 + 8 + 16 = 28
 # when all hold, minus 1 for the first that does not.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $ds: std::list[i8] = [-3, -1, 1, 2, 7];
     let mut $bad: i32 = 0;

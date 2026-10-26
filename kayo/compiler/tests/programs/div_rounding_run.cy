@@ -4,8 +4,8 @@
 # `mod.X` is what `div.X` leaves. On a bin or deci `div.near` is ordinary
 # division and the others give a whole quotient. The smallest i8 by -1
 # is 128, exact where it lands. Each right group adds its own bit: 255.
-extern.C fn exit [$code: i32];
-extern.C fn strlen [$s: ptr[u8]] -> u64;
+%extern.C fn exit [$code: i32];
+%extern.C fn strlen [$s: ptr[u8]] -> u64;
 MAIN {
     let $s := "x";
     no_check let $n: u64 = strlen(lend $s);
@@ -28,11 +28,11 @@ MAIN {
     let $x: f64 = 7.5 times $one;
     let $y: f64 = 2.0 times $one;
     if (($x div.near $y) equal_to 3.75) and (($x div.floor $y) equal_to 3.0) and (($x mod.floor $y) equal_to 1.5) and (($x div.ceil $y) equal_to 4.0) and (($x mod.ceil $y) equal_to -0.5) { change $code = $code plus 32; }
-    let $h: brain16 = to.brain16(-5 plus $z);
-    let $k: brain16 = to.brain16(3 plus $z);
+    let $h: %brain16 = to.%brain16(-5 plus $z);
+    let $k: %brain16 = to.%brain16(3 plus $z);
     if (($h div.floor $k) equal_to -2.0) and (($h mod.floor $k) equal_to 1.0) and (($h div.trunc $k) equal_to -1.0) and (($h mod.trunc $k) equal_to -2.0) { change $code = $code plus 64; }
-    let $p: d64 = -7.5 plus to.d64($z);
-    let $q: d64 = 2.0 plus to.d64($z);
+    let $p: %d64 = -7.5 plus to.%d64($z);
+    let $q: %d64 = 2.0 plus to.%d64($z);
     if (($p div.near $q) equal_to -3.75) and (($p div.floor $q) equal_to -4) and (($p mod.floor $q) equal_to 0.5) and (($p div.trunc $q) equal_to -3) and (($p mod.trunc $q) equal_to -1.5) and (($p mod.ceil $q) equal_to -1.5) { change $code = $code plus 128; }
     no_check my.exit($code);
 }

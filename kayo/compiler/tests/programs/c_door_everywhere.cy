@@ -5,12 +5,12 @@
 # by hand: calloc's 0 is no key, after the write the read is b, memset's
 # 0x41414141 is no key, memcpy's b and a are keys, and the trusted read is b
 # — each right answer is one bit, 1 + 2 + 4 + 8 + 16 = 31.
-extern.C fn exit [$code: i32];
-extern.C fn calloc [$n: u64, $size: u64] -> ptr.mut[Key];
-extern.C fn free [$p: ptr.mut[Key]];
-extern.C fn memset [$s: ptr.mut[Key], $c: i32, $n: u64] -> ptr.mut[Key];
-extern.C fn memcpy [$d: ptr.mut[Key], $s: ptr[Key], $n: u64] -> ptr.mut[Key];
-layout.C enum Key { a = 65, b = 66, escape = 256 }
+%extern.C fn exit [$code: i32];
+%extern.C fn calloc [$n: u64, $size: u64] -> ptr.mut[Key];
+%extern.C fn free [$p: ptr.mut[Key]];
+%extern.C fn memset [$s: ptr.mut[Key], $c: i32, $n: u64] -> ptr.mut[Key];
+%extern.C fn memcpy [$d: ptr.mut[Key], $s: ptr[Key], $n: u64] -> ptr.mut[Key];
+%layout.C enum Key { a = 65, b = 66, escape = 256 }
 
 fn num [$k: Key] -> i32 {
     match $k {

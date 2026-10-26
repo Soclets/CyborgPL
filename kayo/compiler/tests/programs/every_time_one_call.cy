@@ -3,7 +3,7 @@
 # fits, and with 5e18, where it never does; the second call is behind an
 # `if` the run does not take, so the program ends 2. It was refused as
 # failing every time it reaches the multiply.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn double [$p: i64] -> i64 {
     return $p times 2;
 }

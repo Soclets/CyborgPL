@@ -1,14 +1,14 @@
 # Text in two forms (owner, 2026-09-30): `to.str.utf8` the exact value,
 # `to.useful.str.utf8` the useful one, as the oracle prints them. Each
 # form that reads as expected counts one: 22 in all.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 
 enum Size {
     small,
     big
 }
 
-layout.C enum Mode {
+%layout.C enum Mode {
     off = 0,
     lit = 7
 }
@@ -18,10 +18,10 @@ MAIN {
     let $x: f64 = 0.1;
     if to.stored.str.utf8($x) equal_to "0.1000000000000000055511151231257827021181583404541015625" { change $got = $got plus 1; }
     if to.useful.str.utf8($x) equal_to "0.1" { change $got = $got plus 1; }
-    let $d: d64 = 1.50;
+    let $d: %d64 = 1.50;
     if to.stored.str.utf8($d) equal_to "1.50" { change $got = $got plus 1; }
     if to.useful.str.utf8($d) equal_to "1.5" { change $got = $got plus 1; }
-    let $m: d64 = 100;
+    let $m: %d64 = 100;
     if to.useful.str.utf8($m) equal_to "100" { change $got = $got plus 1; }
     let $n: i32 = 42;
     if to.stored.str.utf8($n) equal_to "42" { change $got = $got plus 1; }

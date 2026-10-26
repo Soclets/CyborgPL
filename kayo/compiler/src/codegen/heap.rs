@@ -1652,7 +1652,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         // Into a grapheme: text that is one grapheme cluster, copied.
         if unit == Unit::Grapheme {
             let Ty::Str(_) = from.base() else {
-                self.cannot("a conversion into a `char.grapheme` from this has no shape in the generated code yet", None);
+                self.cannot("a conversion into a `char.%grapheme` from this has no shape in the generated code yet", None);
                 return None;
             };
             let (p, n) = self.text_parts(v)?;

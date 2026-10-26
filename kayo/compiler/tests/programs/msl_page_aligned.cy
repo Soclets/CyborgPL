@@ -5,13 +5,13 @@ MAIN {
     let mut $xs: std::list.page_aligned[i32] = [1, 2, 3, 4];
     std::list.append(lend.mut $xs, value: 5);
     let $k: i32 = 3;
-    no_check inline.MSL threads std::list.length(lend $xs) {
+    no_check inline.%MSL threads std::list.length(lend $xs) {
         kernel void times(device int *xs [[buffer(0)]], constant int &k [[buffer(1)]], uint id [[thread_position_in_grid]]) {
             xs[id] = xs[id] * k;
         }
     } with [lend.mut $xs -> buffer(0), copy $k -> buffer(1)];
     let mut $ys: std::list.not_page_aligned[i32] = std::list.fill(value: 2, count: 8192);
-    no_check inline.MSL threads std::list.length(lend $ys) {
+    no_check inline.%MSL threads std::list.length(lend $ys) {
         kernel void times(device int *xs [[buffer(0)]], constant int &k [[buffer(1)]], uint id [[thread_position_in_grid]]) {
             xs[id] = xs[id] * k;
         }

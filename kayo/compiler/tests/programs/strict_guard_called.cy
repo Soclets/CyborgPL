@@ -3,7 +3,7 @@
 # folded to true for the whole program, and layer 3 then asked about
 # `16 mod 'p'` with no `if` and refused it for p = 0. f[5]: 16 mod 5 is 1,
 # not >= 3, so false; g[5] and h[5] the same; 1 + 2 + 4 when each is false.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn f [$p: i32] -> bool {
     if $p not_equal 0 { return (16 mod.floor $p) at_least 3; }
     return false;

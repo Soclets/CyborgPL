@@ -584,7 +584,7 @@ impl Items {
                 // A range is Cyborg's promise, and C sees the plain number
                 // (owner, 2026-09-27: a).
                 if decl.layout_c && !ty.base().is_c_shaped(&self.structs, &self.enums) {
-                    return err(Diagnostic::error(format!("field `{}` of the `layout.C` struct `{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and other `layout.C` structs and enums can cross to C", f.name.name, decl.name.name)).named("cnc::not_c_shaped").at(f.ty.span));
+                    return err(Diagnostic::error(format!("field `{}` of the `%layout.C` struct `{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and other `%layout.C` structs and enums can cross to C", f.name.name, decl.name.name)).named("cnc::not_c_shaped").at(f.ty.span));
                 }
                 fields.push(FieldInfo { name: f.name.name.clone(), immut: f.immut, ty, bits });
             }
@@ -623,7 +623,7 @@ impl Items {
                     }
                     numbers.push(n as i64);
                 } else if let Some((_, at)) = c.number {
-                    return err(Diagnostic::error(format!("only a `layout.C enum`'s cases have numbers: `{}` is a Cyborg enum, whose cases are names", decl.name.name)).named("cnc::numbered_enum_not_c").at(at));
+                    return err(Diagnostic::error(format!("only a `%layout.C enum`'s cases have numbers: `{}` is a Cyborg enum, whose cases are names", decl.name.name)).named("cnc::numbered_enum_not_c").at(at));
                 }
                 cases.push(CaseInfo { name: c.name.name.clone(), payload });
             }
@@ -777,7 +777,7 @@ impl Items {
                     }
                 }
                 let Some(t) = &p.ty else {
-                    return err(Diagnostic::error(format!("the `extern.C fn {}` parameter '{}' needs a type: C's signature is written in full", decl.name.name, p.name.name)).named("parameter_type_missing").at(p.span));
+                    return err(Diagnostic::error(format!("the `%extern.C fn {}` parameter '{}' needs a type: C's signature is written in full", decl.name.name, p.name.name)).named("parameter_type_missing").at(p.span));
                 };
                 let ty = self.resolve_type(t, *m, &mut blanks, false)?;
                 if !blanks.is_empty() {
@@ -786,7 +786,7 @@ impl Items {
                 if ty.bound().is_some() {
                     return err(Diagnostic::error(format!("a range type cannot cross to C: '{}' is written as the plain `{}`", p.name.name, spell(&ty.base().clone(), self))).named("cnc::cannot_cross_to_c").at(t.span));
                 }
-                self.check_c_shaped(&ty, t.span, &format!("the `extern.C fn {}` parameter '{}'", decl.name.name, p.name.name))?;
+                self.check_c_shaped(&ty, t.span, &format!("the `%extern.C fn {}` parameter '{}'", decl.name.name, p.name.name))?;
                 // C calls a callback, so a number it sends that no case has
                 // would have nowhere to fail (owner, 2026-09-27).
                 if let Ty::Fn(f) = ty.base() {
@@ -804,7 +804,7 @@ impl Items {
                         return err(Diagnostic::error("a blank `<T>` cannot cross to C: an `extern fn` is written in C's own types").named("cnc::cannot_cross_to_c").at(t.span));
                     }
                     let ranged = self.checked_at_door(&ty);
-                    self.check_c_shaped(ty.base(), t.span, &format!("the `extern.C fn {}` return", decl.name.name))?;
+                    self.check_c_shaped(ty.base(), t.span, &format!("the `%extern.C fn {}` return", decl.name.name))?;
                     (ty, ranged)
                 }
                 None => (Ty::Nothing, false),
@@ -866,12 +866,12 @@ impl Items {
             return Ok(());
         }
         let why = match ty.base() {
-            Ty::Struct { id, .. } => format!("`{}` is not `layout.C`: only a `layout.C struct` has C's shape", self.structs[id.0 as usize].name),
-            Ty::Enum { id, .. } => format!("`{}` is not `layout.C`: only a `layout.C enum` crosses to C, a number per case", self.enums[id.0 as usize].name),
+            Ty::Struct { id, .. } => format!("`{}` is not `%layout.C`: only a `%layout.C struct` has C's shape", self.structs[id.0 as usize].name),
+            Ty::Enum { id, .. } => format!("`{}` is not `%layout.C`: only a `%layout.C enum` crosses to C, a number per case", self.enums[id.0 as usize].name),
             Ty::Str(_) => "a `str` is not C-shaped: C sees bytes, so hand it a `ptr[u8]` (a lend of the text)".to_string(),
             Ty::Seq { .. } => "a list is not C-shaped: C sees a pointer to the elements — `ptr[T]` and a length".to_string(),
             Ty::Fn(_) => "the callback is not C-shaped: parameters by value (no `lent`), C-shaped types, no `fail`".to_string(),
-            _ => format!("`{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and `layout.C` structs cross to C", spell(ty, self)),
+            _ => format!("`{}` is not C-shaped: only numbers, `bool`, `ptr[…]` and `%layout.C` structs cross to C", spell(ty, self)),
         };
         err(Diagnostic::error(format!("{} is not C-shaped", what)).named(match ty.base() { Ty::Struct { .. } | Ty::Enum { .. } => "cnc::not_layout_c", Ty::Fn(f) if !f.fails.is_empty() => "cnc::c_cannot_fail", Ty::Fn(f) if f.params.iter().any(|(k, _)| *k != crate::types::ParamKind::Owned) => "cnc::lent_across_c", _ => "cnc::not_c_shaped" }).at(span).why(why))
     }
@@ -1319,7 +1319,7 @@ impl Items {
             }
             ast::TypeKind::Bits { inner, bits, span } => {
                 let inner_ty = self.resolve_type(inner, m, blanks, allow_blanks)?;
-                err(Diagnostic::error(format!("`{}[bits: {}]` is a C bit-field: it is for a `layout.C` struct's fields, where C packs them", spell(&inner_ty, self), bits)).named("cnc::bits_outside_layout").at(*span))
+                err(Diagnostic::error(format!("`{}[bits: {}]` is a C bit-field: it is for a `%layout.C` struct's fields, where C packs them", spell(&inner_ty, self), bits)).named("cnc::bits_outside_layout").at(*span))
             }
             ast::TypeKind::Bound { inner, lo, hi, unit, span, old, zero, places: Some((max, min, pspan)) } => {
                 // The places a `d` or a percent keeps (owner, 2026-10-17):
@@ -1333,7 +1333,7 @@ impl Items {
                 };
                 let decimal = crate::check::expr::percent_inner(&number).is_some() || matches!(number.base(), Ty::Deci(_));
                 if !decimal {
-                    return err(Diagnostic::error(format!("places are kept by a `d` or a percent; {} is not decimal: `d64[max_places: 2]`", crate::types::a_type(&spell(&number, self)))).named("money::places_on_bin").at(*pspan));
+                    return err(Diagnostic::error(format!("places are kept by a `d` or a percent; {} is not decimal: `%d64[max_places: 2]`", crate::types::a_type(&spell(&number, self)))).named("money::places_on_bin").at(*pspan));
                 }
                 Ok(Ty::Places { inner: Box::new(number), max: *max, min: *min })
             }
@@ -1346,7 +1346,7 @@ impl Items {
                         return err(Diagnostic::error(format!("a C string is counted in bytes, not {}: C has no {}", u.name, u.name)).named("cnc::c_str_counted_in_bytes").at(u.span));
                     }
                     let Some((include, _)) = zero else {
-                        return err(Diagnostic::error("a bounded C string says whether its closing 0 counts: `C.str[max: 255 bytes, exclude zero]` (the text, the 0 on top) or `C.str[max: 256 bytes, include zero]` (the whole buffer) (owner, 2026-10-19)").named("cnc::c_str_zero_unsaid").at(*span).fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, ", exclude zero").fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, ", include zero"));
+                        return err(Diagnostic::error("a bounded C string says whether its closing 0 counts: `%C.str[max: 255 bytes, exclude zero]` (the text, the 0 on top) or `%C.str[max: 256 bytes, include zero]` (the whole buffer) (owner, 2026-10-19)").named("cnc::c_str_zero_unsaid").at(*span).fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, ", exclude zero").fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, ", include zero"));
                     };
                     let (l, h) = len_bounds(lo, hi, *span)?;
                     // Held as the length with the 0, which a C string always has.
@@ -1354,7 +1354,7 @@ impl Items {
                     return Ok(Ty::Bounded { inner: Box::new(Ty::Seq { elem: elem.clone(), kind: SeqKind::CStr(*include) }), bound: Bound::Len { lo: l, hi: h, unit: Some(Unit::Byte) } });
                 }
                 if let Some((_, at)) = zero {
-                    return err(Diagnostic::error("`exclude zero` and `include zero` are for a C string's bound, `C.str[max: 255 bytes, exclude zero]`").named("cnc::c_str_zero_misplaced").at(*at).fix_edit(*at, crate::diag::Edit::Swap(vec![", exclude zero".into(), ", include zero".into()]), ""));
+                    return err(Diagnostic::error("`exclude zero` and `include zero` are for a C string's bound, `%C.str[max: 255 bytes, exclude zero]`").named("cnc::c_str_zero_misplaced").at(*at).fix_edit(*at, crate::diag::Edit::Swap(vec![", exclude zero".into(), ", include zero".into()]), ""));
                 }
                 if let Some(values) = old {
                     // Whether it takes a bound comes before how one is
@@ -1518,9 +1518,9 @@ impl Items {
                     match &e.kind {
                         ast::ExprKind::Percent(lit) => match &lit.kind {
                             ast::ExprKind::Bin(t) | ast::ExprKind::Exact(t) => Ok(Some(format!("{}{}", if neg { "-" } else { "" }, t.replace('_', "")))),
-                            _ => err(Diagnostic::error("a percent's bounds are written in `%`: `percent[d32][min: 0%, max: 100%]`").named("bound_wrong_type").at(e.span)),
+                            _ => err(Diagnostic::error("a percent's bounds are written in `%`: `percent[%d32][min: 0%, max: 100%]`").named("bound_wrong_type").at(e.span)),
                         },
-                        _ => err(Diagnostic::error("a percent's bounds are written in `%`: `percent[d32][min: 0%, max: 100%]`").named("bound_wrong_type").at(e.span)),
+                        _ => err(Diagnostic::error("a percent's bounds are written in `%`: `percent[%d32][min: 0%, max: 100%]`").named("bound_wrong_type").at(e.span)),
                     }
                 };
                 let (l, h) = (side(lo, "min")?, side(hi, "max")?);
@@ -1565,7 +1565,7 @@ impl Items {
                         "graphemes" | "grapheme" => Unit::Grapheme,
                         other => return err(Diagnostic::error(format!("`{}` is not a unit of text length: `bytes`, `points` or `graphemes`", other)).named("unknown_text_unit").at(u.span).fix_close(u.span, other, ["bytes", "points", "graphemes"])),
                     },
-                    None => return err(Diagnostic::error("a text's length bound must say which unit it counts — `bytes`, `points` or `graphemes` — after the last number: `str.utf8[min: 1, max: 40 graphemes]`; a text has three lengths and no single one").named("bound_unit_unsaid").at(span).fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, " graphemes").fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, " points").fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, " bytes")),
+                    None => return err(Diagnostic::error("a text's length bound must say which unit it counts — `bytes`, `points` or `graphemes` — after the last number: `str.utf8[min: 1, max: 40 %graphemes]`; a text has three lengths and no single one").named("bound_unit_unsaid").at(span).fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, " graphemes").fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, " points").fix_edit(crate::source::Span::new(span.file, span.end as usize - 1, span.end as usize - 1), crate::diag::Edit::Insert, " bytes")),
                 };
                 let (l, h) = len_bounds(lo, hi, span)?;
                 Bound::Len { lo: l, hi: h, unit: Some(u) }
@@ -1575,7 +1575,7 @@ impl Items {
             }
             Ty::Seq { .. } | Ty::Map { .. } | Ty::Channel(_) => {
                 if matches!(base, Ty::Channel(_)) && matches!(&hi.kind, ast::ExprKind::Path(p) if p.is(&["max"])) {
-                    return err(Diagnostic::error("a bounded channel says how much it holds: `channel[T][max: 100]`; with no bound it is a hand-off").named("mcps::channel_bound_form").at(span));
+                    return err(Diagnostic::error("a bounded channel says how much it holds: `%channel[T][max: 100]`; with no bound it is a hand-off").named("mcps::channel_bound_form").at(span));
                 }
                 if let Some(u) = unit {
                     return err(Diagnostic::error(format!("a count bound has no unit; `{}` belongs on a text's length bound", u.name)).named("bound_unit_misplaced").at(u.span));
@@ -1643,11 +1643,11 @@ impl Items {
         if path.kit.is_none() && head != "brain16" && head != "bfloat16" && head != "bf16" {
             let brainy = ["brain", "bfloat", "bf"].iter().find(|p| head.strip_prefix(*p).is_some_and(|r| !r.is_empty() && r.bytes().all(|c| c.is_ascii_digit())));
             if let Some(p) = brainy {
-                return err(Diagnostic::error(format!("the brain float comes in `brain16` only (also written `bfloat16` and `bf16`): there is no `{}`, and `{}` is 16 bits by name", head, p)).named("ai::brain_width").at(span).fix_edit(span, crate::diag::Edit::Replace, "brain16"));
+                return err(Diagnostic::error(format!("the brain float comes in `%brain16` only (also written `bfloat16` and `bf16`): there is no `{}`, and `{}` is 16 bits by name", head, p)).named("ai::brain_width").at(span).fix_edit(span, crate::diag::Edit::Replace, "brain16"));
             }
         }
         if path.kit.is_none() && head == "f128" {
-            return err(Diagnostic::error("there is no `f128`: quad precision is software arithmetic on every machine — `f64`, or `d128` for more digits (owner, 2026-09-23)").named("no_such_width").at(span).fix_edit(span, crate::diag::Edit::Replace, "f64").fix_edit(span, crate::diag::Edit::Replace, "d128"));
+            return err(Diagnostic::error("there is no `%f128`: quad precision is software arithmetic on every machine — `f64`, or `%d128` for more digits (owner, 2026-09-23)").named("no_such_width").at(span).fix_edit(span, crate::diag::Edit::Replace, "f64").fix_edit(span, crate::diag::Edit::Replace, "d128"));
         }
         // An integer of any width (owner, 2026-10-03).
         if let Some(rest) = head.strip_prefix("!std_") {
@@ -1678,13 +1678,13 @@ impl Items {
                         Some(crate::target::CType::Int(signed, bits)) => Ok(Ty::int(signed, bits)),
                         Some(crate::target::CType::Bin(bits)) => Ok(Ty::Bin(crate::types::BinW::Fixed(bits as u16))),
                         Some(crate::target::CType::NotYet(why)) => err(Diagnostic::error(format!("not yet: {}", why)).named("not_built_yet").at(span)),
-                        None => err(Diagnostic::error(format!("`C.{}` is not one of C's machine-sized types: {}", name, crate::target::C_TYPES.iter().map(|t| format!("`C.{}`", t)).collect::<Vec<_>>().join(", "))).named("cnc::c_type_unknown").at(span)),
+                        None => err(Diagnostic::error(format!("`%C.{}` is not one of C's machine-sized types: {}", name, crate::target::C_TYPES.iter().map(|t| format!("`%C.{}`", t)).collect::<Vec<_>>().join(", "))).named("cnc::c_type_unknown").at(span)),
                     };
                 }
                 "str" => {
                     no_args("str")?;
                     let Some(enc) = path.seg(1) else {
-                        return err(Diagnostic::error("`str` is never bare: say the encoding — `str.utf8`, `str.utf16`, `str.utf32`, `str.ascii`").named("type_incomplete").at(span));
+                        return err(Diagnostic::error("`str` is never bare: say the encoding — `str.utf8`, `str.%utf16`, `str.%utf32`, `str.ascii`").named("type_incomplete").at(span));
                     };
                     let e = match enc {
                         "utf8" => Enc::Utf8,
@@ -1701,7 +1701,7 @@ impl Items {
                 "char" => {
                     no_args("char")?;
                     let Some(unit) = path.seg(1) else {
-                        return err(Diagnostic::error("`char` is never bare: say the unit — `char.point`, `char.grapheme`, `char.byte`").named("type_incomplete").at(span));
+                        return err(Diagnostic::error("`char` is never bare: say the unit — `char.%point`, `char.%grapheme`, `char.byte`").named("type_incomplete").at(span));
                     };
                     let u = match unit {
                         "byte" => Unit::Byte,
@@ -1803,17 +1803,17 @@ impl Items {
                 // family, holding a `d` or an `f`; a written one names it.
                 "percent" => {
                     if args.len() != 1 {
-                        return err(Diagnostic::error("a written percent names its number: `percent[d32]`, `percent[f64]` (`:=` lets Precog pick)").named("money::percent_unsized").at(span));
+                        return err(Diagnostic::error("a written percent names its number: `percent[%d32]`, `percent[f64]` (`:=` lets Precog pick)").named("money::percent_unsized").at(span));
                     }
                     let inner = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     if !matches!(inner, Ty::Deci(_) | Ty::Bin(_)) {
-                        return err(Diagnostic::error(format!("a percent holds a `d` or an `f`: `percent[d32]`, `percent[f64]`, not `percent[{}]`", spell(&inner, self))).named("money::percent_number_type").at(span));
+                        return err(Diagnostic::error(format!("a percent holds a `d` or an `f`: `percent[%d32]`, `percent[f64]`, not `percent[{}]`", spell(&inner, self))).named("money::percent_number_type").at(span));
                     }
                     return Ok(Ty::Percent(Box::new(inner)));
                 }
                 "channel" => {
                     if args.len() != 1 {
-                        return err(Diagnostic::error("`channel` takes one type parameter: `channel[str.utf8]`").named("type_parameter_count").at(span));
+                        return err(Diagnostic::error("`%channel` takes one type parameter: `%channel[str.utf8]`").named("type_parameter_count").at(span));
                     }
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     return Ok(Ty::Channel(Box::new(elem)));
@@ -1831,7 +1831,7 @@ impl Items {
                     let elem = self.resolve_type(&args[0], m, blanks, allow_blanks)?;
                     if !elem.contains_var() && !elem.is_c_shaped(&self.structs, &self.enums) {
                         let why = match elem.base() {
-                            Ty::Struct { id, .. } => format!("`{}` is not `layout.C`: only a `layout.C struct` has C's shape", self.structs[id.0 as usize].name),
+                            Ty::Struct { id, .. } => format!("`{}` is not `%layout.C`: only a `%layout.C struct` has C's shape", self.structs[id.0 as usize].name),
                             other => format!("`{}` is not C-shaped", spell(other, self)),
                         };
                         return err(Diagnostic::error(format!("`ptr[{}]` cannot exist: a pointer points at something C-shaped", spell(&elem, self))).named("cnc::not_layout_c").at(span).why(why));
@@ -1986,18 +1986,18 @@ fn std_int(rest: &str, span: Span) -> Result<Ty> {
     } else {
         (true, "")
     };
-    let not_a_type = || err(Diagnostic::error(format!("`not_std.{}` is not a type: a non-standard integer is `not_std.iN` or `not_std.uN`, N its width in bits", rest)).named("wsmw::no_such_width").at(span));
+    let not_a_type = || err(Diagnostic::error(format!("`%not_std.{}` is not a type: a non-standard integer is `%not_std.iN` or `%not_std.uN`, N its width in bits", rest)).named("wsmw::no_such_width").at(span));
     if digits.is_empty() || !digits.bytes().all(|c| c.is_ascii_digit()) {
         return not_a_type();
     }
     let Ok(bits) = digits.parse::<u64>() else {
-        return err(Diagnostic::error(format!("`not_std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).named("wsmw::no_such_width").at(span));
+        return err(Diagnostic::error(format!("`%not_std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).named("wsmw::no_such_width").at(span));
     };
     if bits == 0 {
-        return err(Diagnostic::error(format!("`not_std.{}` holds nothing: a width is at least 1 bit", rest)).named("wsmw::no_such_width").at(span));
+        return err(Diagnostic::error(format!("`%not_std.{}` holds nothing: a width is at least 1 bit", rest)).named("wsmw::no_such_width").at(span));
     }
     if bits > crate::types::WIDEST_INT as u64 {
-        return err(Diagnostic::error(format!("`not_std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).named("wsmw::no_such_width").at(span));
+        return err(Diagnostic::error(format!("`%not_std.{}` is past the widest integer there is: LLVM's {} bits", rest, crate::types::WIDEST_INT)).named("wsmw::no_such_width").at(span));
     }
     if matches!(bits, 8 | 16 | 32 | 64 | 128) {
         let std = format!("{}{}", if signed { "i" } else { "u" }, bits);

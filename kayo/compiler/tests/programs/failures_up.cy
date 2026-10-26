@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn inner [$n: i32] -> i32 or fail[bad: std::list[i32]] {
     if $n < 0 { fail bad[[1, 2, 3]]; }
     return $n;

@@ -4,8 +4,8 @@
 # the loops lost the interval and the build refused the `check`. The
 # quotient is exact now (owner, 2026-10-02) and a shift of an exact answer
 # is open, so it is an i8 first, as it was.
-extern.C fn exit [$code: i32];
-extern.C fn strlen [$s: ptr[u8]] -> u64;
+%extern.C fn exit [$code: i32];
+%extern.C fn strlen [$s: ptr[u8]] -> u64;
 MAIN {
     let $s := "seven!!";
     no_check let $n: u64 = strlen(lend $s);

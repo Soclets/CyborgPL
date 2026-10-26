@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let mut $grid: std::list[std::list[i32]] = [[1, 2], [3, 4]];
     let $row: std::list[i32] = [5, 6, 7];

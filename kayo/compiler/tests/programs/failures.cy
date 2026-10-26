@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn half [$n: i32] -> i32 or fail[odd, negative: i32] {
     if $n < 0 { fail negative[$n]; }
     if ($n mod.floor 2) equal_to 1 { fail odd; }

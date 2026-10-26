@@ -1,8 +1,8 @@
 # A map keyed by a type with its own `op ==` and `fn hash` (maps.md): keys
 # equal by `==` are one key; "equal keys hash the same" is a check site,
 # checked in the working build and refused unproven by the final one.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 struct User { id: i32, name: str.utf8 }
 op equal_to [$a: User, $b: User] -> bool { return ($a.id mod.floor 100) equal_to ($b.id mod.floor 100); }
 fn hash [lent $v: User] -> u64 { return to.u64($v.id mod.floor 100); }

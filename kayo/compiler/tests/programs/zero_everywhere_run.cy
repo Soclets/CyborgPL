@@ -4,7 +4,7 @@
 # right, 0 when wrong. The oracle gives 56. `mod` and `pow` too
 # (owner, 2026-10-07: "yea.").
 # Values come from calls so nothing is folded, then once more as literals.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn zero [] -> f64 { return 0.0; }
 fn two [] -> f64 { return -2.0; }
 fn three [] -> f64 { return 3.0; }
@@ -27,12 +27,12 @@ MAIN {
     let $d := plus($z div.near $n) plus ieee($z div.near.ieee $n) plus plus($z div.ceil $n) plus ieee($z div.ceil.ieee $n);
     let $e := plus($m plus $m) plus ieee($m plus.ieee $m) plus plus($m minus $z) plus ieee($m minus.ieee $z);
     let $f := plus(3.0 mod.floor (-3.0)) plus plus($n mod.floor $n) plus ieee($m);
-    let $bz: brain16 = 0.0;
-    let $bc: brain16 = -3.0;
+    let $bz: %brain16 = 0.0;
+    let $bc: %brain16 = -3.0;
     let $g := plus(to.f64($bz times $bc)) plus ieee(to.f64($bz times.ieee $bc)) plus plus(to.f64(-$bz)) plus ieee(to.f64(negate.ieee $bz));
     let $w: f32 = to.f32($t times (-1.0));
     let $k: f32 = to.f32($m);
-    let $h := plus(to.f64($w)) plus ieee(to.f64($k)) plus plus(to.f64(to.brain16($t times (-1.0))));
+    let $h := plus(to.f64($w)) plus ieee(to.f64($k)) plus plus(to.f64(to.%brain16($t times (-1.0))));
     let $vz: simd[f64, count: 2] = simd.fill(value: $z);
     let $vm: simd[f64, count: 2] = simd.fill(value: $m);
     let $vn: simd[f64, count: 2] = simd.fill(value: $n);

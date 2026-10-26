@@ -4,7 +4,7 @@
 # function written elsewhere (owner, 2026-10-19), in a collection with its
 # own function and in one without. 73 + 12 + 100 (the empty list's
 # failure) + 7 is 192, + 9 (`mix.square[3]`) + 4 (`only.twice[2]`) is 205.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 
 fn square [$x: i32] -> i32 { return $x times $x; }
 fn double [$x: i32] -> i32 { return $x times 2; }

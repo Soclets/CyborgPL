@@ -343,7 +343,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // what the design has not settled or the lowering has not
             // reached, so the message says which.
             let why = match t.base() {
-                Ty::Channel(_) => ": a channel's layout waits for `concur` to generate code",
+                Ty::Channel(_) => ": a channel's layout waits for `%concur` to generate code",
                 Ty::Fn(_) => ": a function held as a value has no shape yet",
                 Ty::Char(crate::types::Unit::Grapheme) => ": a grapheme is a text of its own and waits with the rest of `char`",
                 _ => "",
@@ -442,7 +442,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 _ => false,
             });
             if back {
-                self.cannot(format!("the `extern.C fn {}` takes a callback that passes or returns a struct by value, which needs a thunk in C's calling convention, and that is not built yet", e.name), None);
+                self.cannot(format!("the `%extern.C fn {}` takes a callback that passes or returns a struct by value, which needs a thunk in C's calling convention, and that is not built yet", e.name), None);
                 continue;
             }
             let mut params: Vec<BasicMetadataTypeEnum> = Vec::new();
@@ -477,7 +477,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
             }
             if !ok {
-                self.cannot(format!("the `extern.C fn {}` takes something the generated code has no shape for yet", e.name), None);
+                self.cannot(format!("the `%extern.C fn {}` takes something the generated code has no shape for yet", e.name), None);
                 continue;
             }
             let fty = match &e.ret {
@@ -487,7 +487,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                     (Some(t), Some(cabi::CPass::Direct)) => t.fn_type(&params, vararg),
                     (Some(_), Some(cabi::CPass::Coerce(c))) => c.fn_type(&params, vararg),
                     _ => {
-                        self.cannot(format!("the `extern.C fn {}` returns something the generated code has no shape for yet", e.name), None);
+                        self.cannot(format!("the `%extern.C fn {}` returns something the generated code has no shape for yet", e.name), None);
                         continue;
                     }
                 },
@@ -1008,7 +1008,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
                 }
                 StmtKind::Asm { msl: Some(run), ins, lends, .. } => {
                     if self.msl_run(fi, run, ins, lends, slots, f.span(s.span)).is_none() {
-                        self.cannot("this `inline.MSL` has no shape in the generated code yet", Some(f.span(s.span)));
+                        self.cannot("this `inline.%MSL` has no shape in the generated code yet", Some(f.span(s.span)));
                     }
                 }
                 StmtKind::Asm { text, ins, outs, lends, clobbers, msl: None } => {
@@ -1081,7 +1081,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             // (`maps.md`), and that is the only reason either gives.
             Terminator::Call { callee: Callee::Op(Op::ChannelTake), args, dest, ok, fail } if !fail.is_empty() => {
                 if self.chan_take(fi, args, dest, *ok, fail, blocks, slots, func).is_none() {
-                    self.cannot("this `channel.take` has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
+                    self.cannot("this `%channel.take` has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
                     let _ = self.builder.build_unreachable();
                 }
             }
@@ -1231,7 +1231,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
             }
             Terminator::Whichever { arms, closed } => {
                 if self.emit_whichever(fi, arms, *closed, blocks, slots, func).is_none() {
-                    self.cannot("this `whichever` has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
+                    self.cannot("this `%whichever` has no shape in the generated code yet", Some(f.span(f.blocks[b].term_span)));
                     let _ = self.builder.build_unreachable();
                 }
             }

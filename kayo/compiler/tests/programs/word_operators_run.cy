@@ -3,7 +3,7 @@
 # = -243; 2 pow 3 pow 2 = 512; -2 pow 2 = -4; 2 times 3 pow 2 = 18; a u8 200
 # plus.wrap 100 is 44 and times.wrap 2 is 144, 188. -243 + 512 - 4 + 18 + 188
 # = 471, and 471 mod 256 is 215.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $a: i32 = 7;
     let $b: i32 = 3;

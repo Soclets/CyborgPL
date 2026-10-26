@@ -4,12 +4,12 @@
 # toupper['2'] is no case, 50 is past quot's range, and both take `otherwise`.
 # The oracle cannot link C, so the answer is worked out by hand:
 # 1000 + 200 + 30 + (3 + 1) + 9 = 1243, which exits as 1243 mod 256 = 219.
-extern.C fn exit [$code: i32];
-layout.C enum Key { a = 65, b = 66, escape = 256 }
-extern.C fn abs [$k: Key] -> i32;
-extern.C fn toupper [$c: i32] -> Key;
-layout.C struct Div { quot: i32[min: 0, max: 10], rem: i32 }
-extern.C fn div [$n: i32, $d: i32] -> Div;
+%extern.C fn exit [$code: i32];
+%layout.C enum Key { a = 65, b = 66, escape = 256 }
+%extern.C fn abs [$k: Key] -> i32;
+%extern.C fn toupper [$c: i32] -> Key;
+%layout.C struct Div { quot: i32[min: 0, max: 10], rem: i32 }
+%extern.C fn div [$n: i32, $d: i32] -> Div;
 
 fn code [$k: Key] -> i32 {
     match $k {

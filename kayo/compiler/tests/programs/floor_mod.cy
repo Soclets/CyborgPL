@@ -1,6 +1,6 @@
 # `mod` takes the divisor's sign (operators.md): 1 mod -3 is -2.
-extern.C fn exit [$code: i32];
-extern.C fn labs [$v: i64] -> i64;
+%extern.C fn exit [$code: i32];
+%extern.C fn labs [$v: i64] -> i64;
 MAIN {
     no_check let $x: i64 = labs(1);
     let $a: i64 = 1 mod.floor (-3);

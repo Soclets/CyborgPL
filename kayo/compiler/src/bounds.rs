@@ -191,7 +191,7 @@ pub fn blocks(toks: &[Token], base: &[String]) -> Result<(Vec<Token>, Vec<Bound>
             }
             let ty = toks[n1 + 1..t1].to_vec();
             if !bounded(&ty) {
-                return err(Diagnostic::error(format!("`{}` limits nothing: a `coll.bound` names a bounded type, a type with a limit after it (`i32[min: 1, max: 99]`, `str.utf8[max: 40 graphemes]`, `std::list[i32][max: 3]`)", full)).named("bound_type_unbounded").at(member[0].span));
+                return err(Diagnostic::error(format!("`{}` limits nothing: a `coll.bound` names a bounded type, a type with a limit after it (`i32[min: 1, max: 99]`, `str.utf8[max: 40 %graphemes]`, `std::list[i32][max: 3]`)", full)).named("bound_type_unbounded").at(member[0].span));
             }
             bounds.push(Bound { module: module.clone(), name: member, ty, public });
             k = t1 + 1;

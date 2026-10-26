@@ -92,7 +92,7 @@ impl<'a, 'ctx> Cg<'a, 'ctx> {
         if detached && !self.p.functions[bi].fails.is_empty() {
             // A detached task has no block waiting for it, so its failure
             // has nowhere to land. The design does not say where it goes.
-            self.cannot("a `concur.detached` task that can fail: nothing waits for it, so its failure has nowhere to land", span);
+            self.cannot("a `%concur.detached` task that can fail: nothing waits for it, so its failure has nowhere to land", span);
             return None;
         }
         let pack = self.task_pack_shape(bi)?;

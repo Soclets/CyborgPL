@@ -1,8 +1,8 @@
 # fib on 0 to 93, N from outside: fib(93) does not fit an i64, so the
 # final build must refuse where it lands.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
-extern.C fn atoll [$s: ptr[u8]] -> i64[min: 0, max: 93];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn atoll [$s: ptr[u8]] -> i64[min: 0, max: 93];
 fn fib [$n: i64[min: 0, max: 93]] -> i64 {
     if $n < 2 { return $n; }
     return fib($n minus 1) plus fib($n minus 2);

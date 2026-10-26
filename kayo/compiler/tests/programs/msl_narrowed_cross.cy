@@ -14,7 +14,7 @@ MAIN {
     let mut $a: std::list.page_aligned[i32] = [1,];
     grow(lend.mut $a);
     let $k: i32 = 2;
-    no_check inline.MSL threads std::list.length(lend $a) {
+    no_check inline.%MSL threads std::list.length(lend $a) {
         kernel void twice(device int *xs [[buffer(0)]], constant int &k [[buffer(1)]], uint id [[thread_position_in_grid]]) {
             xs[id] = xs[id] * k;
         }

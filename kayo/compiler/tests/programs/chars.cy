@@ -4,10 +4,10 @@
 # failing conversions, a char as text (a byte as the point of its number,
 # the oracle's reading), `==` across units, and `++` beside text. Values
 # are known only at run time: whether an unset variable is there.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 fn point [$code: i64] -> u32 {
-    let $c := char.point.from_code($code) otherwise { not_a_char { return 0; } };
+    let $c := char.%point.from_code($code) otherwise { not_a_char { return 0; } };
     return char.code($c);
 }
 fn byte [$code: i64] -> u8 {
@@ -27,14 +27,14 @@ MAIN {
     if std::str.bytes(lend $t) equal_to 2 { change $got = $got plus 4; }
     let mut $e := "Z";
     if $there { change $e = "é"; }
-    let $p := to.char.point($e) otherwise `?`;
+    let $p := to.char.%point($e) otherwise `?`;
     let $y := to.char.byte($p) otherwise `?`;
     if char.code($p) equal_to 233 and $y equal_to `?` { change $got = $got plus 8; }
-    let $two := to.char.point($e concat "x") otherwise `?`;
+    let $two := to.char.%point($e concat "x") otherwise `?`;
     let $none := to.char.byte(str.empty concat $e) otherwise `!`;
     if $two equal_to `?` and $none equal_to `!` { change $got = $got plus 16; }
     let $bb: char.byte = `A`;
-    let mut $pp: char.point = `B`;
+    let mut $pp: char.%point = `B`;
     if $there { change $pp = `A`; }
     if $bb equal_to $pp { change $got = $got plus 32; }
     let $j := $p concat "!" concat $pp;

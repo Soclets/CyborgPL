@@ -2,8 +2,8 @@
 # bare name, held in a variable and called as 'f'[…], passed to a function
 # that takes a `fn[…]`; a literal capturing nothing, and one borrowing with
 # `with [lend …]`, called from inside a loop. Values chosen at run time.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 struct Locker { number: i32, owner: str.utf8 }
 fn by_number [lent $a: Locker, lent $b: Locker] -> bool { return $a.number < $b.number; }
 fn by_owner [lent $a: Locker, lent $b: Locker] -> bool { return std::str.bytes(lend $a.owner) < std::str.bytes(lend $b.owner); }

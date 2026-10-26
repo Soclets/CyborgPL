@@ -1,7 +1,7 @@
 # A simd value goes anywhere a number does (owner, 2026-09-27: a): a struct's
 # field, a list's element, a parameter and a return (examples/simd_fields.cpls
 # with i32 lanes, read out as an exit code).
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 
 struct Particle { place: simd[i32, count: 4], vel: simd[i32, count: 4] }
 

@@ -105,7 +105,7 @@ pub fn c_type(name: &str) -> Option<CType> {
         "unsigned_long" | "unsigned_long_long" | "size_t" | "uintptr_t" => CType::Int(false, 64),
         "wchar_t" => CType::Int(apple, 32),
         "long_double" if apple => CType::Bin(64),
-        "long_double" => CType::NotYet(format!("`C.long_double` is a 128-bit binary float on `{}`, and `f128` is not built yet", crate::target::name())),
+        "long_double" => CType::NotYet(format!("`%C.long_double` is a 128-bit binary float on `{}`, and `%f128` is not built yet", crate::target::name())),
         _ => return None,
     })
 }

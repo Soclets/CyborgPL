@@ -2,8 +2,8 @@
 # text, f64 and powers, used in a struct, a call, a loop's bound.
 
 
-extern.C fn exit [$code: i32];
-extern.C fn strlen [$s: ptr[u8]] -> u64;
+%extern.C fn exit [$code: i32];
+%extern.C fn strlen [$s: ptr[u8]] -> u64;
 pub const $max := 8;
 const $pi: f64 = 3.141_592_653_589_793;
 const $twice_max := $max times 2;

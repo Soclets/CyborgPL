@@ -2,8 +2,8 @@
 # its own; lent or owned; `...'xs'` unpacking a list (literal, bounded with
 # a length known only at run time, or a bundle passed on), `...copy` and
 # `...give` of owned elements. The call builds the bundle.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 fn sum [...$nums] -> f64 {
     let mut $total: f64 = 0.0;
     for $n in lend $nums { change $total = $total plus to.f64($n); }

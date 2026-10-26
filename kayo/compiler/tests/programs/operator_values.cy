@@ -1,6 +1,6 @@
 # examples/operator_values.cpls as an exit code (owner, 2026-09-29): 10 + 24
 # + (-10) + (-5) + 2 + 11, and 100 when `op </==` said 3 </== 3 → 132.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 struct Vec { x: f64, y: f64 }
 op dot [$a: Vec, $b: Vec] -> f64 { return $a.x times $b.x plus $a.y times $b.y; }
 fn fold [lent $xs: std::list[i32], $start: i32, $f: fn[i32, i32] -> i32] -> i32 {

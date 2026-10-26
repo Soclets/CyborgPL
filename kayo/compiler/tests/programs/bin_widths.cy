@@ -2,7 +2,7 @@
 # typed side's width (owner, 2026-09-24: a): 2^24 + 1.0 at f32 is 2^24.
 # With a f64 it is done at the wider (the oracle's pick). A literal in a
 # comparison stays at 64 bits: a f32 0.1 is a little more than 0.1.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $x: f32 = 16777216.0;
     let mut $got: i32 = 0;

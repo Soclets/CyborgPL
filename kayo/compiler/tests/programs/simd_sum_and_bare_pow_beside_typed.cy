@@ -4,7 +4,7 @@
 # `simd.sum` gives way to a typed operand's width and otherwise works at its
 # lane's (seed 32250): 5 xor 0 is 5 at i8, and two sums of i32 lanes
 # xor at i32, 48 xor 47 = 31. 92 + 5 + 31 = 128.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn three [] -> i32 { return 3; }
 MAIN {
     let $p := three();

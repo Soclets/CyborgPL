@@ -1,7 +1,7 @@
 # Iterators (owner, 2026-10-08/09): `fn Counter.next`, called by hand and
 # by `for`, taken `lend.mut` (it remains) and `give` (gone after); `break`
 # ends an endless one, and `perm` keeps its last item.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 struct Counter {
     now: i32,
     stop: i32

@@ -4,7 +4,7 @@
 # the range on 'n' is why 100 / 'n' is safe (examples/strict.cpls, read out
 # as an exit code; the closure's 'n' carries a range, so its multiply is
 # proven there too). 100 + (20 + 30) + 25 + 6 = 181.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn ratio [$n: i32[min: 1]] -> i32 { return 100 div.floor $n; }
 MAIN {
     let immut $xs: std::list[i32] = [10, 20, 30, 40];

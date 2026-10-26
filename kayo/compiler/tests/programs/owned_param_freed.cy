@@ -1,8 +1,8 @@
 # An owned parameter is the function's to give back when it ends: nothing
 # freed a list handed over with `give`, and every such call leaked. The
 # list is built at run time so the call is not worked out in advance.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 fn total [$xs: std::list[i32]] -> i32 { return $xs[pos: 1]; }
 MAIN {
     let $k := "SYNAPSE_SURELY_UNSET_VARIABLE";

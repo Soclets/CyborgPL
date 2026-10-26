@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $a: std::list[i32] = [1, 2, 3];
     let mut $b: std::list[i32] = copy $a;

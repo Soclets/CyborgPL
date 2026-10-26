@@ -1,7 +1,7 @@
 # `simd[bool, N]` is a type you can write (owner, 2026-09-27: a): a function
 # takes one, `simd.fill[true]` makes one, and `not`/`and`/`or` work lane by
 # lane. The answers are examples/simd_mask.cpls', read out as an exit code.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 
 fn all_on [$m: simd[bool, count: 4]] -> bool {
     return simd.all($m);

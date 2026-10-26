@@ -1,6 +1,6 @@
 # A `lent.mut` borrow handed back changes what was lent (owner, 2026-09-29):
 # 'xs' becomes [7, 2, 9], so 7 x 10 + 3 = 73 (the oracle agrees).
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn pickmut [@x] [lent.mut @x $a: std::list[i32], lent $b: std::list[i32]] -> lent.mut @x std::list[i32] {
     return lend.mut $a;
 }

@@ -312,7 +312,7 @@ impl Checker {
                 };
                 if let Some(t) = &declared {
                     if let Ty::Ptr { .. } = t.base() {
-                        return err(Diagnostic::error(format!("`{}` exists only at the boundary: in an `extern fn` signature or a `layout.C` field — a declaration cannot make a pointer; a pointer comes only from a lend or from C", self.spell(t))).named("pointer_outside_boundary").at(ty.as_ref().unwrap().span));
+                        return err(Diagnostic::error(format!("`{}` exists only at the boundary: in an `extern fn` signature or a `%layout.C` field — a declaration cannot make a pointer; a pointer comes only from a lend or from C", self.spell(t))).named("pointer_outside_boundary").at(ty.as_ref().unwrap().span));
                     }
                 }
                 // A borrow a function hands back is held by a new name
@@ -656,7 +656,7 @@ impl Checker {
             ast::StmtKind::Whichever { arms, otherwise } => self.whichever_stmt(ctx, arms, otherwise.as_ref(), s.span),
             ast::StmtKind::InlineMsl { text, text_span, threads, bindings, precise, wrap } => match threads {
                 Some(t) => self.inline_msl(ctx, text, *text_span, t, bindings, (*precise, *wrap), s.span),
-                None => err(Diagnostic::error("an `inline.MSL` block says how many threads run it first").named("metal::threads_unsaid").at(s.span)),
+                None => err(Diagnostic::error("an `inline.%MSL` block says how many threads run it first").named("metal::threads_unsaid").at(s.span)),
             },
             ast::StmtKind::InlineAsm { text, bindings } => {
                 self.power_use(ctx, &["inline_assembly"], None, "runs assembly (`inline.ASM`)".into(), s.span);
@@ -1167,7 +1167,7 @@ impl Checker {
             }
             None => {
                 if !fails.is_empty() {
-                    return err(Diagnostic::error(format!("this `concur` can fail ({}), so it needs an `otherwise` saying what happens when it does", fails.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>().join(", "))).named("failure_unhandled").at(span));
+                    return err(Diagnostic::error(format!("this `%concur` can fail ({}), so it needs an `otherwise` saying what happens when it does", fails.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>().join(", "))).named("failure_unhandled").at(span));
                 }
                 None
             }
@@ -1182,10 +1182,10 @@ impl Checker {
             let ct = self.resolve(&ch.ty);
             let elem = match ct.base() {
                 Ty::Channel(e) => (**e).clone(),
-                other => return err(Diagnostic::error(format!("an arm of `whichever` takes from a channel, and this is {}", crate::types::a_type(&self.spell(other)))).named("wrong_type").at(arm.channel.span)),
+                other => return err(Diagnostic::error(format!("an arm of `%whichever` takes from a channel, and this is {}", crate::types::a_type(&self.spell(other)))).named("wrong_type").at(arm.channel.span)),
             };
             if !matches!(ch.kind, hir::ExprKind::Lend { .. }) {
-                return err(Diagnostic::error("a channel is lent to `whichever`: `$v from lend $c { … }`").named("verb_wrong_for_parameter").at(arm.channel.span));
+                return err(Diagnostic::error("a channel is lent to `%whichever`: `$v from lend $c { … }`").named("verb_wrong_for_parameter").at(arm.channel.span));
             }
             ctx.push_scope();
             let id = ctx.declare(&arm.name.name, Local { name: arm.name.name.clone(), ty: elem, mutability: None, kind: LocalKind::Owned, from_blank: false, span: arm.name.span });
@@ -1196,7 +1196,7 @@ impl Checker {
         let fails = vec![("closed".to_string(), None)];
         let ow = match otherwise {
             Some(o) => Some(self.otherwise(ctx, o, &fails, &Ty::Nothing, false, span)?),
-            None => return err(Diagnostic::error("`whichever` can fail (closed) when every channel is closed, so it needs an `otherwise`").named("failure_unhandled").at(span)),
+            None => return err(Diagnostic::error("`%whichever` can fail (closed) when every channel is closed, so it needs an `otherwise`").named("failure_unhandled").at(span)),
         };
         Ok(hir::StmtKind::Whichever { arms: out, otherwise: ow })
     }

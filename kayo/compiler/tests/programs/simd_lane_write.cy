@@ -3,7 +3,7 @@
 # lane 3 set to 30 reads 30 and sums to 30 — and Precog, which joins a
 # written lane into the vector's domain, must not fold it back to 0.
 # 4 + 144 + 30 + 30 = 208.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $a: simd[i32, count: 4] = simd.fill(value: 4);
     let $x: i32 = $a[pos: 1];

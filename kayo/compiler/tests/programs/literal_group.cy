@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $u: u64 = 1;
     let $a: u64 = (0 plus 10702988103728947458) plus $u;

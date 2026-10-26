@@ -2,7 +2,7 @@
 # "hello world"`. argc is 4 (the program's name first); the first word's
 # first byte is `a`, 97; the last word is 11 bytes long; argv[argc] is
 # null. 4 + 97 + 11 + 100 = 212.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN [$argc: i32, $argv: ptr[ptr[u8]]] {
     no_check let $first := ptr.read(ptr.at($argv, by: 1));
     no_check let $a := ptr.read($first);

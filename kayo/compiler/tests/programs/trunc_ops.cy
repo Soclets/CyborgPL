@@ -4,7 +4,7 @@
 # `fmod`: -370 mod.trunc 360 is -10. The lowest i8 mod.trunc -1 is 0 and
 # no check; div.trunc of it is past the type, like `div`. Each right answer
 # adds its own bit to the exit code: 255 when all are right.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $x: i32 = -7;
     let $y: i32 = 2;
@@ -16,8 +16,8 @@ MAIN {
     let $turn: f64 = 360.0;
     let $a: f64 = 7.5;
     let $b: f64 = -2.0;
-    let $h: brain16 = -5.0;
-    let $k: brain16 = 3.0;
+    let $h: %brain16 = -5.0;
+    let $k: %brain16 = 3.0;
     let mut $code: i32 = 0;
     if ($x div.trunc $y) equal_to -3 { change $code = $code plus 1; }
     if ($x mod.trunc $y) equal_to -1 { change $code = $code plus 2; }

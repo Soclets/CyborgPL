@@ -3,7 +3,7 @@
 # or adds into one total — and give what the loop in order gives. The sum
 # is 0 or more every time, so its one check at the end is the loop's.
 # (Their total mod 256, as the oracle computes it: 160.)
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $n: i64 = 300000;
     let mut $xs: std::list[i64] = std::list.fill(value: 3, count: $n);

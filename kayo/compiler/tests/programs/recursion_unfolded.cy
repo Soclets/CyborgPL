@@ -3,7 +3,7 @@
 # effects (a walk writing before and after its call), a failure climbing
 # out from deep down, two calls with different arguments, recursion far
 # deeper than the levels unfolded, and two functions calling each other.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 
 fn fib [$n: i64[min: 0, max: 92]] -> i64 {
     if $n < 2 { return $n; }

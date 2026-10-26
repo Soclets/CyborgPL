@@ -25,14 +25,14 @@ impl Checker {
     pub(super) fn inline_msl(&mut self, ctx: &mut FnCtx, text: &str, text_span: Span, threads: &ast::Expr, bindings: &[ast::MslBinding], (precise, wrap): (bool, bool), span: Span) -> Result<hir::StmtKind> {
         if self.needs_mark(ctx) {
             self.power_first()?;
-            return err(Diagnostic::error("an `inline.MSL` block is a no_check site: the compiler cannot prove anything inside it — write `no_check inline.MSL threads … { … }`").named("no_check_missing").at(span).fix_edit(span, Edit::Before, "no_check "));
+            return err(Diagnostic::error("an `inline.%MSL` block is a no_check site: the compiler cannot prove anything inside it — write `no_check inline.%MSL threads … { … }`").named("no_check_missing").at(span).fix_edit(span, Edit::Before, "no_check "));
         }
         // One kernel, the one the block runs; helpers are fine.
         let kernels = crate::metal::kernels(text);
         let kernel = match kernels.as_slice() {
-            [] => return err(Diagnostic::error("an `inline.MSL` block holds one `kernel` function, the one it runs, and this one has none").named("metal::kernel_missing").at(text_span)),
+            [] => return err(Diagnostic::error("an `inline.%MSL` block holds one `kernel` function, the one it runs, and this one has none").named("metal::kernel_missing").at(text_span)),
             [one] => one.clone(),
-            many => return err(Diagnostic::error(format!("an `inline.MSL` block holds one kernel, and this one has {}: {}", many.len(), many.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))).named("metal::two_kernels").at(text_span)),
+            many => return err(Diagnostic::error(format!("an `inline.%MSL` block holds one kernel, and this one has {}: {}", many.len(), many.iter().map(|k| format!("`{}`", k)).collect::<Vec<_>>().join(", "))).named("metal::two_kernels").at(text_span)),
         };
         // Shared code is the kit's, from its root.
         let root = self.items.kit_root(ctx.module);
@@ -72,14 +72,14 @@ impl Checker {
                     if let Some(s) = elem_struct(elem) {
                         structs.push(s);
                     }
-                    (Bound::Lent, if elem_struct(elem).is_some() { "a list of `layout.C` structs" } else { "a list of numbers" })
+                    (Bound::Lent, if elem_struct(elem).is_some() { "a list of `%layout.C` structs" } else { "a list of numbers" })
                 }
                 Ty::Struct { .. } if crate::metal::metal_type(&ty, structs_of).is_some() => {
                     structs.push(elem_struct(&ty).unwrap());
-                    (Bound::Lent, "a `layout.C` struct")
+                    (Bound::Lent, "a `%layout.C` struct")
                 }
                 t if crate::metal::metal_type(&ty, structs_of).is_some() && !matches!(t, Ty::Struct { .. }) => (Bound::Value, "a single value"),
-                _ => return err(Diagnostic::error(format!("'{}' is {}, and what binds to the GPU is a number, a list of numbers, a `layout.C` struct or a list of them, each in a form Metal has", name, self.spell(&ty))).named("metal::cannot_bind").at(b.name.span)),
+                _ => return err(Diagnostic::error(format!("'{}' is {}, and what binds to the GPU is a number, a list of numbers, a `%layout.C` struct or a list of them, each in a form Metal has", name, self.spell(&ty))).named("metal::cannot_bind").at(b.name.span)),
             };
             match (kind, b.verb) {
                 (Bound::Lent, Verb::Lend | Verb::LendMut) => {
@@ -123,7 +123,7 @@ impl Checker {
             }
         }
         // The structs' Metal declarations, then the block as written.
-        let decls = crate::metal::declarations(&structs, &self.items.structs).map_err(|what| Box::new(Diagnostic::error(format!("{} has no form in Metal: a struct the GPU reads holds numbers and `layout.C` structs Metal has", what)).named("metal::cannot_bind").at(span)))?;
+        let decls = crate::metal::declarations(&structs, &self.items.structs).map_err(|what| Box::new(Diagnostic::error(format!("{} has no form in Metal: a struct the GPU reads holds numbers and `%layout.C` structs Metal has", what)).named("metal::cannot_bind").at(span)))?;
         let source = format!("#include <metal_stdlib>\nusing namespace metal;\n{}{}", decls, text);
         let before = source.lines().count() - text.lines().count();
         let library = crate::metal::compile(&source, &dir, precise, wrap).map_err(|(line, said)| {

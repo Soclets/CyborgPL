@@ -2,7 +2,7 @@
 # seeds 25263 and 26090): worked exactly, then landing in the u64 they
 # meet, as the oracle has it. 15803055715966303536 xor 5 and
 # 10222921044520364505 or.bit 5, each mod 100: 41 + 9 = 50.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn v [] -> u64 { return 5; }
 MAIN {
     let $r: u64 = v() xor (15803055715966303544 minus 8);

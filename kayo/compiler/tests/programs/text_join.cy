@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn greet [lent $who: str.utf8] -> str.utf8 {
     return "hello, " concat $who;
 }

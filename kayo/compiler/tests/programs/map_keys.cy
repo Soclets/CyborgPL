@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 struct Point { x: i32, y: i32 }
 MAIN {
     let mut $big: std::map[i32, i32] = std::map.empty;

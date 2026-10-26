@@ -3,14 +3,14 @@
 # is 0, never -0 (owner, 2026-10-07: "a"; until then it took the divisor's
 # sign, "-0"): 4.0 mod -2.0 is "0"; a tiny negative over 360 that rounds up to
 # 360 is 0, always below the divisor (owner: b).
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $angle: f64 = -370.0;
     let $turn: f64 = 360.0;
     let $a: f64 = 7.5;
     let $b: f64 = -2.0;
-    let $h: brain16 = -5.0;
-    let $k: brain16 = 3.0;
+    let $h: %brain16 = -5.0;
+    let $k: %brain16 = 3.0;
     let $four: f64 = 4.0;
     let $tiny: f64 = -1.0 div.near (10.0 pow 20.0);
     let $m1 := to.i32($angle mod.floor $turn) otherwise -1;

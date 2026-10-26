@@ -2,7 +2,7 @@
 # `mod` too (check claude, seed 4698): the group took the typed side's
 # `u8`, and its `221 x 2` was refused as 442. 7 mod 3 is 1, 7 div 3 is
 # 2, 12 mod 7 is 5: 1 + 20 + 5 x 10 = 71.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $p: u8 = 7;
     let $a: u8 = $p mod.floor (((221 times 2) mod.floor 5) plus 1);

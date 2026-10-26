@@ -2,7 +2,7 @@
 # (owner, 2026-09-23). `give` hands the elements over without a copy;
 # `copy` keeps the original. Texts inside are copied, not shared: the
 # leak check frees each once.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let mut $l: std::list[i32] = [1, 2];
     std::list.append(lend.mut $l, value: 3);

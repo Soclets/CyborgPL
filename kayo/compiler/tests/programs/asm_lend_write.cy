@@ -1,7 +1,7 @@
 # `lend.mut 'buf' -> x1` puts the address of the list's elements in x1,
 # as a lend does at an extern call (owner, 2026-09-30: a); the assembly
 # writes 42 over the first, and the program exits with it.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let mut $buf: std::list[u8] = [7, 8,];
     no_check inline.ASM {

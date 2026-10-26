@@ -2,6 +2,6 @@
 # MAIN runs when it is run itself, and is left out when another uses it.
 
 
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 pub fn seven [] -> i32 { return 7; }
 MAIN { no_check my.exit(99); }

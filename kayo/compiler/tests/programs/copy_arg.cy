@@ -2,8 +2,8 @@
 # owns it and gives it back, and the caller's own list is untouched. Read as
 # the same bytes, the callee freed the caller's list, which was then used
 # and freed again. Built at run time so the calls are not worked out ahead.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 fn first [$xs: std::list[i32]] -> i32 { return $xs[pos: 1]; }
 MAIN {
     let $k := "SYNAPSE_SURELY_UNSET_VARIABLE";

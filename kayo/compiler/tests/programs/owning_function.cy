@@ -3,8 +3,8 @@
 # it on, and dropping it gives back what it holds. One carrying nothing, or
 # only lends, copies by itself. Lent to a `lent` parameter, it stays put;
 # given or copied to a `fn[…]` parameter, the callee owns it and gives it back.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
 fn look [lent $f: fn[] -> u64] -> u64 { return $f(); }
 fn run [$f: fn[] -> u64] -> u64 { return $f(); }
 MAIN {

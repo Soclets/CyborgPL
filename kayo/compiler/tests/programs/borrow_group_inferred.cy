@@ -7,7 +7,7 @@ fn b1 [lent $b: std::list[i32]] -> lent std::list[i32] {
 fn b2 [@x, @y] [lent @y $a: std::list[i32], lent @x $b: std::list[i32]] -> lent @x std::list[i32] {
     return b1(lend $b);
 }
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let $s: std::list[i32] = [1,];
     let $t: std::list[i32] = [2, 3];

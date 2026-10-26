@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn fill [lent.mut $into: std::list[i32]] {
     std::list.append(lend.mut $into, value: 7);
 }

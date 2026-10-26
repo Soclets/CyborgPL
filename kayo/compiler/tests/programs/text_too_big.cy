@@ -1,7 +1,7 @@
 # Text holding a number its type cannot hold fails `out_of_range`, however
 # many digits, above or below; never a check site, never `not_a_number`
 # (owner, 2026-09-24: c). `examples/text_to_number.cpls`.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn read [$t: str.utf8] -> i32 {
     let $v := to.i32($t) otherwise {
         not_a_number { return -1; }

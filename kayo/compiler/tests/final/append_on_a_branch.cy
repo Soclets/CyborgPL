@@ -1,8 +1,8 @@
 # A list appended to on only some trips is not in lock-step with the
 # counter: its length is not n + 1, and indexing up to n must stay unproven.
-extern.C fn exit [$code: i32];
-extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
-extern.C fn atoi [$s: ptr[u8]] -> i32;
+%extern.C fn exit [$code: i32];
+%extern.C fn getenv [$name: ptr[u8]] -> ptr[u8];
+%extern.C fn atoi [$s: ptr[u8]] -> i32;
 MAIN {
     let $k := "N";
     no_check let $n: i64 = to.i64(atoi(getenv(lend $k)));

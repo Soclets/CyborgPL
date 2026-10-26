@@ -2,7 +2,7 @@
 # "b"); `.lane` checked at the lane's type, `.wrap` wrapped there ("yea").
 # 4800000000 into an i64; 505032704 wrapped; -2000000000 at i32; seed
 # 30022's shape: the whole sum, then `mod.floor`.
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 fn big [] -> i32 { return 1200000000; }
 MAIN {
     let $v: simd[i32, count: 4] = simd.fill(value: big());

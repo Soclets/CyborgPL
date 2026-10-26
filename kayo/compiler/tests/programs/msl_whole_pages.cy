@@ -6,7 +6,7 @@ MAIN {
     for $i [from: 1, to: 16384, by: 1] { std::list.append(lend.mut $xs, value: 1); }
     let $k: i32 = 2;
     for $round [from: 1, to: 3, by: 1] {
-        no_check inline.MSL threads std::list.length(lend $xs) {
+        no_check inline.%MSL threads std::list.length(lend $xs) {
             kernel void twice(device int *xs [[buffer(0)]], constant int &k [[buffer(1)]], uint id [[thread_position_in_grid]]) {
                 xs[id] = xs[id] * k;
             }

@@ -1,4 +1,4 @@
-extern.C fn exit [$code: i32];
+%extern.C fn exit [$code: i32];
 MAIN {
     let mut $xs: std::list[i32] = [10, 20, 30];
     std::list.append(lend.mut $xs, value: 12);
