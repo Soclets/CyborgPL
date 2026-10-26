@@ -216,7 +216,8 @@ let $b := half(-4) otherwise cum_failed.flow_back_to_bladder;
   one per reason, a payload bound to a quoted name.
 - `otherwise cum_failed.flow_back_to_bladder` uses it **as if written at
   the call**: its arms may `return`, `break`, `continue` and `fail` from
-  where it is used, and the use carries no mark of it (owner, 2026-10-25:
+  where it is used. *(Reversed in the 2026-10-26 redesign, not built: the arm that jumps and its use both wear `!`,
+  `otherwise order_failed.!apologize(…)`.)* Until then the use carried no mark of it (owner, 2026-10-25:
   "you already wrote what that handler is supposed to do in the
   `coll,handler`, right?"; design claude's reading until then).
 - It is refused on a call it does not cover: every reason the call can
