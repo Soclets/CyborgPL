@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: the language's words are accurate in the maths sense (owner; not built)
+
+The question deferred from 2026-10-26 (the owner: "If fn becames math accurate, so has to be the others. And honestly?
+Our let is pretty cursed"): are CyborgPL's words accurate in the maths sense or the programming sense? Design claude
+recommended the programming sense, with no word misleading even programmers. The owner: "maths sense". So **a word
+means what it means in mathematics**: a `fn` / function maps inputs to its result and does nothing else; a `let`
+names a value that does not change. What follows, one question at a time: a word for a procedure, one for a name that
+changes, and `is` in match arms. Not built.
+
 ### 2026-10-27 — Redesign: a variable is always `$name`, or `$'odd name'`; a bare `'x'` is refused (owner; not built)
 
 The owner: "Should `'x'` become `$'x'`? Because, `''` just does the same thing as `$`, but for crazy names. So, it's the
