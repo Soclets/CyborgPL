@@ -34,6 +34,15 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign: a variable is always `$name`, or `$'odd name'`; a bare `'x'` is refused (owner; not built)
+
+The owner: "Should `'x'` become `$'x'`? Because, `''` just does the same thing as `$`, but for crazy names. So, it's the
+same thing". 2026-10-22 had both, `$total` and `'total due'`, the owner then: "Why not `$` and `''`? Instead of `$''`".
+Design claude recommended the change: `$` would always mean a variable, the quotes only letting a name hold spaces or
+symbols. The owner: "yes". So **`$total`, `$'total due'`, `$'80%'`**, the same variable as `$total` when the quoted
+name needs no quotes; **a bare `'x'` is refused naming `$x` (or `$'…'`)**. This reverses 2026-10-22's bare quoted form.
+Not built.
+
 ### 2026-10-27 — Redesign: the operator symbols go; `plus`, `minus`, `times`, `power`, `less_than`, `greater_than`, `negative 5`, `negate $x` (owner; not built)
 
 The symbol purge (owner, 2026-10-26: "we'll be doing an operator symbol purge tomorrow"). Design claude listed the
