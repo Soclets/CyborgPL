@@ -26,6 +26,10 @@ input and output lists are of a kind, `std::list`, `.page_aligned` or `.not_page
 and narrowed by `to.list.…(give …)` (owner, 2026-10-25; oracle 8054704c). Left out: `<<`
 (CyborgPL checks what it shifts out) and signed overflow in a plain block. `harness/src/metal.rs`.
 
+**Modules and `my.`** (owner, 2026-10-06; oracle 6e3e40c9): a block module whose `pub` functions name the root's
+enum and struct through `my.`, in a parameter, a return type and a value built (`my.Mp[x = …]`), called from MAIN
+through the module's name. `--avoid modules` leaves it out.
+
 **Deep paths** (oracle ff2c3d1e): a booking holding a trip holding a list of stops, read through a field of a
 field (`$bk.trip.km`), a field of a list item (`$al[pos: 1].trip.km`) and an item of a field's list
 (`$bk.trip.stops[pos: 3].minutes`); a plain end bare, an owned one by `copy`, a deep list lent to a function.

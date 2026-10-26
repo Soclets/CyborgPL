@@ -162,6 +162,8 @@ impl Args {
             maps: !avoid.contains("maps"),
             // deep paths (oracle ff2c3d1e; kayo read them already)
             deep_paths: !avoid.contains("deep-paths"),
+            // a module naming the root's types through `my.` (oracle 6e3e40c9)
+            modules: !avoid.contains("modules"),
             c_interop: !avoid.contains("c-interop"),
             based_literals: !avoid.contains("based-literals"),
             bare_enums: !avoid.contains("bare-enums"),

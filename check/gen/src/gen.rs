@@ -214,6 +214,9 @@ pub struct Config {
     /// fields of list items, items of a field's list; `copy` and `lend` of
     /// owned ends.
     pub deep_paths: bool,
+    /// A block module naming the root's types through `my.` (owner,
+    /// 2026-10-06; oracle 6e3e40c9).
+    pub modules: bool,
     /// C interop (owner, 2026-10-19; oracle 927b1905, kayo 6ae65a5f): a
     /// `layout.C union` written through one field and read through another,
     /// a `layout.C struct` of bit-fields written at and past their limits,
@@ -232,7 +235,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Config {
-        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: true, formats: true, format_words: true, list_kinds: true, maps: true, deep_paths: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
+        Config { size: 3, inputs: 0, risk: 5, pow: false, range_edge: false, width_from_context: false, ranges: true, edge: false, sized_bits: true, recursion: true, exhaust: 0, lists: true, item_through_to: false, data_through_to: false, borrows: true, borrow_wrong: 250, enums: true, strict: 200, simd: true, simd_lanes: true, simd_wrap: true, deci: true, deci_useful: true, no_cheat: true, brain16: true, brain_mod: true, roundings: true, mutator: true, ieee: true, remove: true, shadow: true, shadow_wrong: 50, std_lib: true, iterators: true, print: true, written: true, consts: true, new_words: true, edge_landings: true, compound: true, symbol_names: true, width_probes: true, rec_rate: 30, rec_depth: 10, mutual: true, reborrows: true, typed_literals: true, std_all: true, bool_lists: true, tables: true, collections: true, versions: true, ptr_null: true, std_paths: true, std_glyph: true, paren_calls: true, exits: true, generics: true, channels: true, handler_args: true, writers: true, short_lambdas: true, writer_kinds: true, formats: true, format_words: true, list_kinds: true, maps: true, deep_paths: true, modules: true, c_interop: true, based_literals: true, bare_enums: true, percents: true }
     }
 }
 
@@ -491,6 +494,10 @@ pub fn generate(seed: u64, cfg: &Config) -> Program {
         let lines = g.writer_episode();
         main.extend(lines.into_iter().map(Stmt::Src));
     }
+    if g.cfg.modules && g.rng.chance(8) {
+        let lines = g.module_episode();
+        main.extend(lines.into_iter().map(Stmt::Src));
+    }
     if g.cfg.deep_paths && g.cfg.lists && g.rng.chance(8) {
         let lines = g.deep_paths();
         main.extend(lines.into_iter().map(Stmt::Src));
@@ -660,6 +667,30 @@ impl Gen {
             format!("std::print.useful[\"between {id}\", newln];"),
             format!("std::print.flush[lend.mut {}];", v("pw")),
             format!("std::print.useful[\"after {id}\", newln] otherwise {{ write_failed {{ std::exit[code: 3]; }} }};"),
+        ]
+    }
+
+    /// A block module whose `pub` functions name the root's types through
+    /// `my.` (owner, 2026-10-06; oracle 6e3e40c9, examples/my_type.cy): an enum
+    /// in a parameter, a struct in a parameter, a return type and a value
+    /// built, called from MAIN through the module's name.
+    fn module_episode(&mut self) -> Vec<String> {
+        self.unevaluable = true;
+        self.fresh += 1;
+        let id = self.fresh;
+        let lit = |v: i128| if v < 0 { format!("({v})") } else { v.to_string() };
+        let (a, b, c, k) = (lit(self.rng.range(-999, 999)), lit(self.rng.range(-999, 999)), lit(self.rng.range(-999, 999)), lit(self.rng.range(-999, 999)));
+        self.extra_fns.push(format!("enum Mc{id} {{ red, blue, green }}"));
+        self.extra_fns.push(format!("struct Mp{id} {{ x: i32, y: i32 }}"));
+        self.extra_fns.push(format!(
+            "module md{id} {{\n    pub fn name ['c': my.Mc{id}] -> i32 {{\n        match 'c' {{\n            red {{ return {a}; }}\n            blue {{ return {b}; }}\n            green {{ return {c}; }}\n        }}\n    }}\n    pub fn twice ['p': my.Mp{id}] -> my.Mp{id} {{ return my.Mp{id}[x = 'p'.x x 2, y = 'p'.y + {k}]; }}\n}}"
+        ));
+        let (x, y) = (lit(self.rng.range(-9999, 9999)), lit(self.rng.range(-9999, 9999)));
+        let case = *self.rng.pick(&["red", "blue", "green"]);
+        let q = format!("'mq{id}'");
+        vec![
+            format!("let {q} := md{id}.twice[Mp{id}[x = {x}, y = {y}]];"),
+            format!("std::print.useful[md{id}.name[Mc{id}.{case}], \" \", {q}.x, \" \", {q}.y, newln];"),
         ]
     }
 
