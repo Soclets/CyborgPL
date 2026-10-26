@@ -626,12 +626,20 @@ fn load_kit_inner(sources: &mut SourceMap, items: &mut Items, dir: &Path, from: 
     let outer_handlers = crate::parser::set_kit_handlers(kit_handlers);
     let mut outer_bounds = None;
     let parsed = (|| {
-        // The root's bounds first, for `my.quantity` in any file of the kit
-        // (owner, 2026-10-26: "yes, no shit").
-        let text = std::fs::read_to_string(&root).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", root.display(), e)).named("path_not_readable")))?;
-        let id = sources.add_once(&root, text);
-        let toks = sources.lex_file(id)?;
-        outer_bounds = Some(crate::bounds::set_kit(crate::bounds::collect(&toks)?));
+        // Every file's bounds first, each under its module's path, so the
+        // files name each other's in any order (owner, 2026-10-26).
+        let mut kit = crate::bounds::Kit::default();
+        let mut files = vec![(root.clone(), Vec::new())];
+        kit_files(dir, Vec::new(), true, &mut files);
+        for (path, module) in files {
+            let text = std::fs::read_to_string(&path).map_err(|e| Box::new(Diagnostic::error(format!("cannot read `{}`: {}", path.display(), e)).named("path_not_readable")))?;
+            let id = sources.add_once(&path, text);
+            let toks = sources.lex_file(id)?;
+            let (_, bounds) = crate::bounds::blocks(&toks, &module)?;
+            kit.files.push((id, module));
+            kit.bounds.extend(bounds);
+        }
+        outer_bounds = Some(crate::bounds::set_kit(kit));
         let mut file = parse_file(sources, &root)?;
         check_bare(sources, items, &file, "", true)?;
         check_case(sources, items, &file, true)?;
@@ -1334,6 +1342,33 @@ fn parse_file(sources: &mut SourceMap, path: &Path) -> Result<crate::ast::File> 
     // (owner, 2026-10-13): it must be the one the template makes now.
     crate::template::check(&file, &sources.get(id).text)?;
     Ok(file)
+}
+
+/// Every module file of the kit under `dir`, with its module's path, as
+/// `load_dir` reads them, for the first pass over their bounds.
+fn kit_files(dir: &Path, rel: Vec<String>, is_root_dir: bool, out: &mut Vec<(PathBuf, Vec<String>)>) {
+    let Ok(read) = std::fs::read_dir(dir) else { return };
+    let mut entries: Vec<PathBuf> = read.filter_map(|e| e.ok().map(|e| e.path())).collect();
+    entries.sort();
+    for e in &entries {
+        if e.is_file() && e.extension().is_some_and(|x| x == "cy") {
+            let stem = e.file_stem().unwrap().to_string_lossy().to_string();
+            if is_root_dir && (stem == "kit" || stem == "build") {
+                continue;
+            }
+            let mut m = rel.clone();
+            m.push(stem);
+            out.push((e.clone(), m));
+        }
+    }
+    for e in &entries {
+        let name = e.file_name().unwrap().to_string_lossy().to_string();
+        if e.is_dir() && !name.starts_with('.') && name != "target" && has_cpls(e) {
+            let mut m = rel.clone();
+            m.push(name);
+            kit_files(e, m, false, out);
+        }
+    }
 }
 
 /// The entries of `dir` as modules of `parent`.
