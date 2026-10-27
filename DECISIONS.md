@@ -34,12 +34,16 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
-### 2026-10-27 — std converts to the redesign together with kayo, on the owner's go (owner)
+### 2026-10-27 — std converts to the redesign right after kayo, on the owner's go, when compiler claude's turn ends (owner)
 
 std's checks run every call in both the oracle and kayo, so converting std/ alone stops half of them either way (std
 claude). std claude recommended converting std/ in the same turn kayo starts reading the redesign, rerunning everything in
 both before pushing; design claude agreed. The owner: "yes". So **std/ waits, and converts with kayo when the owner gives
 compiler claude the go**.
+Then the owner: "Wait, doesn't std have to wait for cores first?" (std claude works only while compiler claude does not,
+2026-10-14, the two sharing compiler claude's 3 cores). Design claude: yes, so "the same turn" is one after the other: on
+the go, compiler claude converts kayo and runs its checks, then stops; then std claude converts std/ and reruns its
+checks in both tools. The owner: "yes".
 
 ### 2026-10-27 — Redesign: a limb's number type is marked on the part the limb adds, `float.%decimal.64_bit` (owner)
 
