@@ -34,6 +34,21 @@ Nothing here is final until the owner says so; open questions live at the bottom
 
 
 
+### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): the `words` style is dropped; one spelling, the short one (owner)
+
+Asked about the number types as the one exception to "`.` narrows" (`i32`), the owner first asked how Rust writes
+`times.wrap` (methods: `wrapping_mul`, `checked_mul`, `Wrapping<T>`) and `.stored` on a print (a digit count, `{:.55}`),
+then: "Should we drop support for `words` style?" Design claude recommended dropping it: readers read many kits, so a
+second style makes everyone learn both; every future feature would need two spellings, twin tests and doubled docs; most
+code would be `practical_concise` anyway; one docs line serves the reader who forgot `??` better than a dialect. The
+cost named: some new symbols are not universal (`&` for `and`, `|`, `^`, `??`, `;`). The owner: "drop it. Though, I think
+non-universal symbols aren't that bad. I mean, you already have to learn Rust + SPARK in CyborgPL". So, exploring: **one
+spelling**: where a symbol was chosen, the symbol (`+`, `x`, `==`, `&`, `-5`, `;fn fare`, …); where none was, the word
+(`div.floor`, `not`, `shl`, `times.wrap`). Undone with it, all recorded tonight: the `style` line in `CyJet.toml`, the
+generated `words` twins of the examples, `end of` as the `words` closer. Design claude's readings, to confirm: the replaced
+words (`plus`, `eq`, `and`, `neg`, …) become old spellings refused naming the symbol; `?` and `??` replace `otherwise fail`
+and `otherwise <value>`.
+
 ### 2026-10-27 — Redesign three (EXPLORING, NOT BUILT): a declaration keeps `let` / `var` in both styles (owner)
 
 Shown the remaining candidates for `practical_concise` twins (number types `i32` / `%d64`, 829 lines; `&$xs` for `lend`,
